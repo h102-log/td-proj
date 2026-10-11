@@ -1,0 +1,22 @@
+def test_EV5_breaks_wall_when_cheaper(gd):
+    gd("pathing", "EV5")
+
+
+def test_EV6_open_maze_detours(gd):
+    gd("pathing", "EV6")
+
+
+def test_EV7_full_block_breaks_cheapest_wall(gd):
+    gd("pathing", "EV7")
+
+
+def test_EV8_prep_wall_reroutes_next_battle(gd):
+    gd("pathing", "EV8")
+
+
+def test_EV9_default_enemy_detours_longest_maze(gd):
+    gd("pathing", "EV9")
+
+
+def test_EV10_wall_coefficient_per_enemy_type(gd):
+    gd("pathing", "EV10")

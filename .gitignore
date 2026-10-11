@@ -1,2 +1,4 @@
 .godot/
 .specgate-log.jsonl
+__pycache__/
+.specgate-eval.json
