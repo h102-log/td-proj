@@ -1,0 +1,251 @@
+# 출처 목록
+
+주장 대장에 쓰인 출처 전체. 오른쪽은 그 출처를 쓴 주장 ID다.
+
+- (namu.wiki 디펜스 게임의 폭군이 되었다 하위 문서: /설정, /스테이지, /등장인물 중 하나) — R2-C77, R2-C82, R2-C83, R2-C87, R2-C88
+- http://classic.battle.net/war3/basics/heroes.shtml — R2-G3-2, R2-G3-3
+- https://acoup.blog/2022/07/01/collections-total-generalship-commanding-pre-modern-armies-part-iiic-morale-and-cohesion/ — R2-C44, R2-C45, R2-C46, R2-C47, R2-C48
+- https://ageofdarknessfinalstand.fandom.com/wiki/Keep — R2-G3-11
+- https://allthings.how/?p=130751 — R2-C27
+- https://allthings.how/star-wars-zero-company-how-to-turn-off-permadeath/ — R2-C24, R2-C25, R2-C26
+- https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/?appid=2849080&count=300&maxlength=0&feeds=steam_community_announcements — R2-G4-5, R2-G4-6
+- https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/?appid=688420 — R2-C51, R2-C53
+- https://bad-north.fandom.com/wiki/Bad_North%27s_Basic_Rules — R2-C53
+- https://bad-north.fandom.com/wiki/Commander — R2-C53
+- https://bad-north.fandom.com/wiki/Items — R2-C52
+- https://bad-north.fandom.com/wiki/Plunge — R2-C52
+- https://bad-north.fandom.com/wiki/Skills — R2-C52
+- https://bad-north.fandom.com/wiki/Volley — R2-C52
+- https://battlebrothers.fandom.com/wiki/Injuries — R2-C15, R2-C42
+- https://battlebrothers.fandom.com/wiki/Permanent_Injuries — R2-C14, R2-C15
+- https://battlebrothers.fandom.com/wiki/Retinue — R2-C43
+- https://battlebrothers.fandom.com/wiki/The_Scavenger_(Follower) — R2-C43
+- https://battlebrothers.fandom.com/wiki/The_Surgeon_(Follower) — R2-C42
+- https://blogs.tuni.fi/playlab/game-reviews/darkest-dungeon-stress-disease-and-desperation/ — R2-C19, R2-C20, R2-C21, R2-C22, R2-C23
+- https://darkestdungeon.fandom.com/wiki/Affliction — R2-C22
+- https://darkestdungeon.fandom.com/wiki/Quest — R2-C20
+- https://darkestdungeon.fandom.com/wiki/Virtue — R2-C22
+- https://darkestdungeon.wiki.gg/wiki/Abbey — R2-C21
+- https://darkestdungeon.wiki.gg/wiki/Death — R2-C19
+- https://darkestdungeon.wiki.gg/wiki/Expedition — R2-C20
+- https://darkestdungeon.wiki.gg/wiki/Graveyard — R2-C19
+- https://darkestdungeon.wiki.gg/wiki/Hamlet — R2-C21
+- https://darkestdungeon.wiki.gg/wiki/Sanitarium — R2-C21
+- https://darkestdungeon.wiki.gg/wiki/Stress — R2-C22
+- https://darkestdungeon.wiki.gg/wiki/Town_Events — R2-C19
+- https://diplomacy-is-not-an-option.fandom.com/wiki/Ballista — R2-C5
+- https://diplomacy-is-not-an-option.fandom.com/wiki/Catapult — R2-C5
+- https://diplomacy-is-not-an-option.fandom.com/wiki/Crossbowman — R2-C5
+- https://diplomacy-is-not-an-option.fandom.com/wiki/Engineering_Miracle — R2-C38
+- https://diplomacy-is-not-an-option.fandom.com/wiki/Food — R2-C72
+- https://diplomacy-is-not-an-option.fandom.com/wiki/Fortification_Comparisons — R2-C5, R2-C34
+- https://diplomacy-is-not-an-option.fandom.com/wiki/Gravedigger%27s_House_I — R2-C72
+- https://diplomacy-is-not-an-option.fandom.com/wiki/Guard_Tower_I — R2-C34
+- https://diplomacy-is-not-an-option.fandom.com/wiki/Healer — R2-C5
+- https://diplomacy-is-not-an-option.fandom.com/wiki/High-Quality_Materials_I — R2-C38
+- https://diplomacy-is-not-an-option.fandom.com/wiki/Massive_Tower_I — R2-C5
+- https://diplomacy-is-not-an-option.fandom.com/wiki/Population — R2-C72
+- https://diplomacy-is-not-an-option.fandom.com/wiki/Resources — R2-C72, R2-C73
+- https://diplomacy-is-not-an-option.fandom.com/wiki/Stained_Wood — R2-C38
+- https://diplomacy-is-not-an-option.fandom.com/wiki/Trebuchet — R2-C5
+- https://diplomacy-is-not-an-option.fandom.com/wiki/Tutorial — R2-C7
+- https://diplomacy-is-not-an-option.fandom.com/wiki/Walking_Corpse — R2-C72
+- https://diplomacy-is-not-an-option.fandom.com/wiki/Wooden_Wall — R2-C5
+- https://dungeondefenders.wiki.gg/wiki/Defense_Units — R2-G2-6
+- https://dungeondefenders.wiki.gg/wiki/Defenses — R2-G2-6, R2-G2-8
+- https://dungeondefenders.wiki.gg/wiki/Eternia_Crystal — R2-G2-7
+- https://dungeondefenders.wiki.gg/wiki/Glossary — R2-G2-7
+- https://dungeondefenders.wiki.gg/wiki/Hardcore — R2-G2-7
+- https://en.wikipedia.org/wiki/Dungeon_Defenders — R2-G2-5, R2-G2-7
+- https://en.wikipedia.org/wiki/Iron_Brigade_(video_game) — R2-G2-11, R2-G2-12
+- https://en.wikipedia.org/wiki/Legion_TD — R2-G2-3
+- https://en.wikipedia.org/wiki/Orcs_Must_Die! — R2-G1-2, R2-G1-11
+- https://everythingedinburgh.com/games/news/star-wars-zero-company-permadeath-review/ — R2-C28
+- https://finalboss.io/star-wars-zero-company-permadeath-makes-every-squad-choice-matter — R2-C24, R2-C25, R2-C26, R2-C27, R2-C28
+- https://gamedeveloper.com/design/kingdom-rush---the-wonderful-campaign-level-design — R2-C59, R2-C60, R2-C61, R2-C62, R2-C63
+- https://gameinformer.com/games/trenched/b/xbox360/archive/2011/06/24/double-fine-39-s-trenched-holds-the-line — R2-G2-11
+- https://gamingtrend.com/reviews/kingdom-rush-5-alliance-td-review-lacking-depth-where-it-matters/ — R2-G4-11
+- https://gamingtrend.com/reviews/kingdom-rush-5-alliance-td-review-lacking-depth-where-it-matters/ (2024-09-07) — R2-G4-11
+- https://keengamer.com/articles/guides/star-wars-zero-company-best-difficulty-settings-and-beskar-mode/ — R2-C24, R2-C25, R2-C26, R2-C28
+- https://kingdomrushtd.fandom.com/wiki/Abominor — R2-G4-5
+- https://kingdomrushtd.fandom.com/wiki/Blacksurge — R2-G4-4
+- https://kingdomrushtd.fandom.com/wiki/Brigand — R2-C61
+- https://kingdomrushtd.fandom.com/wiki/Bruxa — R2-G4-2
+- https://kingdomrushtd.fandom.com/wiki/Call_Reinforcements — R2-C59, R2-C60, R2-C63, R2-G1-3, R2-G1-6
+- https://kingdomrushtd.fandom.com/wiki/Category:Heroes — R2-C63
+- https://kingdomrushtd.fandom.com/wiki/Dune_Terror — R2-G4-2
+- https://kingdomrushtd.fandom.com/wiki/Encyclopedia — R2-G4-1, R2-G4-3, R2-G4-4
+- https://kingdomrushtd.fandom.com/wiki/Encyclopedia (Tips & Tricks, api.php wikitext로 원문 확인) — R2-G4-1
+- https://kingdomrushtd.fandom.com/wiki/Executioner — R2-G4-3
+- https://kingdomrushtd.fandom.com/wiki/Flying_Enemies — R2-C60
+- https://kingdomrushtd.fandom.com/wiki/Gargoyle — R2-C60
+- https://kingdomrushtd.fandom.com/wiki/Gerald_Lightseeker/Kingdom_Rush — R2-G3-12
+- https://kingdomrushtd.fandom.com/wiki/Giant_Wasp — R2-G4-1
+- https://kingdomrushtd.fandom.com/wiki/Heroes/Alliance — R2-G1-4, R2-G1-6
+- https://kingdomrushtd.fandom.com/wiki/Heroes/Frontiers — R2-G1-4, R2-G1-5
+- https://kingdomrushtd.fandom.com/wiki/Heroes/Kingdom_Rush — R2-C63, R2-G1-2, R2-G1-4, R2-G1-5, R2-G1-8
+- https://kingdomrushtd.fandom.com/wiki/Heroes/Origins — R2-G1-4, R2-G1-5
+- https://kingdomrushtd.fandom.com/wiki/Heroes/Vengeance — R2-G1-4
+- https://kingdomrushtd.fandom.com/wiki/Kingdom_Rush — R2-C62
+- https://kingdomrushtd.fandom.com/wiki/Melee_Towers — R2-G1-1, R2-G1-2, R2-G1-3
+- https://kingdomrushtd.fandom.com/wiki/Militia_Barracks — R2-C59, R2-G1-3
+- https://kingdomrushtd.fandom.com/wiki/Premium_Content — R2-C63
+- https://kingdomrushtd.fandom.com/wiki/Rain_of_Fire — R2-C61, R2-C63, R2-G1-6
+- https://kingdomrushtd.fandom.com/wiki/Sarelgaz/Genesis — R2-G4-4
+- https://kingdomrushtd.fandom.com/wiki/Southport — R2-G1-6
+- https://kingdomrushtd.fandom.com/wiki/Strategic_Point — R2-C62
+- https://kingdomrushtd.fandom.com/wiki/Template:KRF_Barracks_Upgrade — R2-G1-1
+- https://kingdomrushtd.fandom.com/wiki/Template:KRO_Barracks_Upgrade — R2-G1-1
+- https://kingdomrushtd.fandom.com/wiki/Template:KR_Barracks_Upgrade — R2-G1-1
+- https://kingdomrushtd.fandom.com/wiki/Terrain — R2-G1-1
+- https://kingdomthegame.fandom.com/api.php?action=parse&page=Archer&prop=wikitext&format=json — R2-C32, R2-C33
+- https://kingdomthegame.fandom.com/wiki/Archer — R1-F1, R1-F5, R1-F7, R2-C32, R2-C33
+- https://legiontd2.wiki.gg/wiki/King — R2-G2-2, R2-G2-3
+- https://legiontd2.wiki.gg/wiki/Leak_Gold — R2-G2-4
+- https://legiontd2.wiki.gg/wiki/Legion_TD_2 — R2-G2-1
+- https://legiontd2.wiki.gg/wiki/Mercenaries — R2-G2-1
+- https://legiontd2.wiki.gg/wiki/Mercenary — R2-G2-3
+- https://liquipedia.net/warcraft/Aura — R2-G3-1
+- https://liquipedia.net/warcraft/Brilliance_Aura — R2-G3-2
+- https://liquipedia.net/warcraft/Devotion_Aura — R2-G3-1, R2-G3-2
+- https://liquipedia.net/warcraft/Unholy_Aura — R2-G3-1, R2-G3-2
+- https://liquipedia.net/warcraft/Vampiric_Aura — R2-G3-2
+- https://mountandblade.fandom.com/wiki/Battle — R2-C47
+- https://mountandblade.fandom.com/wiki/Hero_tactics — R2-C55, R2-C57
+- https://mountandblade.fandom.com/wiki/Heroes — R2-C54, R2-C56, R2-C57, R2-C58
+- https://mountandblade.fandom.com/wiki/Morale — R2-C47
+- https://mountandblade.fandom.com/wiki/Ransom_Broker — R2-C54
+- https://mountandblade.fandom.com/wiki/Skills — R2-C54, R2-C57
+- https://namu.wiki/w/%EB%94%94%ED%8E%9C%EC%8A%A4%20%EA%B2%8C%EC%9E%84%EC%9D%98%20%ED%8F%AD%EA%B5%B0%EC%9D%B4%20%EB%90%98%EC%97%88%EB%8B%A4/%EB%93%B1%EC%9E%A5%EC%9D%B8%EB%AC%BC — R1-X3, R1-X4, R1-X5
+- https://namu.wiki/w/%EB%94%94%ED%8E%9C%EC%8A%A4%20%EA%B2%8C%EC%9E%84%EC%9D%98%20%ED%8F%AD%EA%B5%B0%EC%9D%B4%20%EB%90%98%EC%97%88%EB%8B%A4/%EC%84%A4%EC%A0%95 — R1-F12, R1-X6
+- https://namu.wiki/w/%EB%94%94%ED%8E%9C%EC%8A%A4%20%EA%B2%8C%EC%9E%84%EC%9D%98%20%ED%8F%AD%EA%B5%B0%EC%9D%B4%20%EB%90%98%EC%97%88%EB%8B%A4/%EC%8A%A4%ED%85%8C%EC%9D%B4%EC%A7%80 — R1-F10, R1-F11, R1-X2
+- https://namu.wiki/w/디펜스 게임의 폭군이 되었다 — R2-C83, R2-C88
+- https://namu.wiki/w/디펜스 게임의 폭군이 되었다/등장인물 — R2-C77, R2-C87, R2-C88
+- https://namu.wiki/w/디펜스 게임의 폭군이 되었다/설정 — R2-C77, R2-C82
+- https://namu.wiki/w/디펜스 게임의 폭군이 되었다/스테이지 — R2-C77, R2-C82, R2-C83, R2-C87, R2-C88
+- https://namu.wiki/w/디펜스%20게임의%20폭군이%20되었다 — R2-C83, R2-C88
+- https://namu.wiki/w/디펜스%20게임의%20폭군이%20되었다/등장인물 — R2-C87, R2-C88
+- https://namu.wiki/w/디펜스%20게임의%20폭군이%20되었다/설정 — R2-C77, R2-C82, R2-C83, R2-C87
+- https://namu.wiki/w/디펜스%20게임의%20폭군이%20되었다/스테이지 — R2-C77, R2-C82, R2-C83, R2-C87, R2-C88
+- https://numantiangames.com/News/2017-09-14-they-are-billions-update-defend-your-colony/ — R1-F4, R1-F5, R1-F6, R2-C12, R2-C13
+- https://orcsmustdie.fandom.com/wiki/Barricade — R2-G1-12
+- https://orcsmustdie.fandom.com/wiki/Gnoll_Hunter — R2-G1-12
+- https://orcsmustdie.fandom.com/wiki/Guardians — R2-G1-2, R2-G1-11
+- https://orcsmustdie.fandom.com/wiki/Kobold_Runner — R2-G1-12
+- https://orcsmustdie.fandom.com/wiki/Kobold_Sapper — R2-G1-12
+- https://orcsmustdie.fandom.com/wiki/Paladin_Guardian — R2-G1-10
+- https://orcsmustdie.fandom.com/wiki/Rift_Points — R2-G1-2
+- https://r2enc.totalwar.com/en/manual/single-player/0087_enc_page_battle_play_phase_conflict_morale — R2-C44, R2-C46
+- https://r2encv2.totalwar.com/en/manual/single-player/0087_enc_page_battle_play_phase_conflict_morale/index.html — R2-C44, R2-C45, R2-G3-5, R2-G3-6
+- https://robotentertainment.com/news-archive/omd3/scramblemode — R2-G1-2
+- https://steamcommunity.com/app/1272320/discussions/0/3189116454999393694 — R2-C5, R2-C6, R2-C7, R2-C8
+- https://steamcommunity.com/app/1272320/discussions/0/3875967397714728558/ — R2-C34, R2-C35, R2-C36, R2-C37, R2-C38, R2-C72, R2-C73
+- https://steamcommunity.com/app/246420/discussions/0/540733524208865929 — R2-C63
+- https://steamcommunity.com/app/2849080/discussions/0/597391837559266658/ — R2-G4-11
+- https://steamcommunity.com/app/2849080/discussions/0/597391837559266658/ (Steam 토론 'Colossal Dwarfare Difficulty') — R2-G4-11
+- https://steamcommunity.com/app/365360/discussions/0/4149469212592158948 — R2-C14, R2-C16, R2-C42, R2-C43
+- https://steamcommunity.com/app/458710/discussions/0/154644519324234735/ — R2-G4-12
+- https://steamcommunity.com/app/458710/discussions/0/154644519324234735/ (Steam 토론 'hero comments') — R2-G4-12
+- https://steamcommunity.com/app/469600/discussions/0/3426690213935019336 — R2-G2-1
+- https://steamcommunity.com/app/594570/discussions/0/1771511442687123095 — R2-C45, R2-C46
+- https://steamcommunity.com/profiles/76561198003129733/recommended/2849080/ — R2-G1-6
+- https://steamcommunity.com/profiles/76561198201552874/recommended/2239150/ — R2-G1-7
+- https://steamcommunity.com/profiles/76561198213387137/recommended/1367550/ — R2-G1-7
+- https://steamcommunity.com/profiles/76561198312533087/recommended/2849080/ — R2-G1-8
+- https://steamcommunity.com/profiles/76561198364117803/recommended/1367550/ — R2-G1-7
+- https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1788945554756512 — R2-G4-5
+- https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1788945554756512 (Ironhide 공식 Steam 공지 'Abominor Mechanics Update', 2025-01-15, Steam News API로 원문 확인) — R2-G4-5
+- https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1797820624626908 — R2-G3-10
+- https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1826362059933978 — R2-G4-6
+- https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1826362059933978 (Ironhide 공식 Steam 공지 'A Note on Dragon Wars Balancing', 2026-03-10) — R2-G4-6
+- https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1829528821308320 — R2-G4-7
+- https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1829528821308320 (Ninja Kiwi 'Bloons TD 6 - Update 54.0', 2026-04-09) — R2-G4-7
+- https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1832700592789621 — R2-G3-9
+- https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/2451533424649450562 — R2-G4-8
+- https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/2451533424649450562 (Numantian Games 'Something Giant is coming!', 2018-08-06) — R2-G4-8
+- https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/2564086801868034344 — R2-G4-8
+- https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/2564086801868034344 (Numantian Games 'Update #2, Plot, campaign and more!', 2017-07-01) — R2-G4-8
+- https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/3856733252006672364 — R2-G3-8
+- https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/4224936849654473323 — R2-C32, R2-C33
+- https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/4237326104320220815 — R2-G3-11
+- https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/4347669995478445307 — R2-G3-11
+- https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/4474904295744340877 — R2-G3-11
+- https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/4971405952701523537 — R2-C33
+- https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/4971406207534944532 — R2-C32, R2-C33
+- https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/5395938616813343186 — R2-G3-9
+- https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/5842939267309414185 — R2-G4-9, R2-G4-10
+- https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/5842939267309414185 (Thronefall 개발자 Jonas, 'Balancing Survey', 2024-06-27) — R2-G4-9, R2-G4-10
+- https://store.epicgames.com/p/diplomacy-is-not-an-option-9c6bea — R1-F3, R1-F5, R1-F8, R2-C72, R2-C73
+- https://store.steampowered.com/app/1067690/ — R2-C18
+- https://store.steampowered.com/app/1272320/ — R2-C72, R2-C73
+- https://store.steampowered.com/app/1315751/ — R2-G3-8
+- https://store.steampowered.com/app/1361280/ — R2-C42, R2-C43
+- https://store.steampowered.com/app/236110/ — R2-G2-9
+- https://store.steampowered.com/app/365360/Battle_Brothers/ — R2-C15
+- https://store.steampowered.com/news/app/1272320/view/1841579228676091 — R2-C72
+- https://store.steampowered.com/news/app/1272320/view/5133583642651766417 — R2-C34
+- https://store.steampowered.com/news/app/1272320/view/5140340943302013612 — R2-C35, R2-C36, R2-C38, R2-C72
+- https://store.steampowered.com/news/app/1272320/view/5395937983672511375 — R2-C35, R2-C72
+- https://store.steampowered.com/news/app/1272320/view/5842939267310001208 — R2-C37
+- https://store.steampowered.com/news/app/1272320/view/6350729003498415621 — R2-C34, R2-C38
+- https://store.steampowered.com/news/app/1367550/view/1797820624590980 — R2-G1-1
+- https://store.steampowered.com/news/app/2239150/view/5124582150174402835 — R2-G1-10
+- https://store.steampowered.com/news/app/2239150/view/5127964289172904822 — R2-G1-2, R2-G1-7, R2-G1-10
+- https://store.steampowered.com/news/app/2239150/view/5322753221338310975 — R2-G1-2
+- https://store.steampowered.com/news/app/2239150/view/5686430301714629742 — R2-G1-2, R2-G1-7
+- https://store.steampowered.com/news/app/2849080/view/1788945554756512 — R2-G1-9
+- https://store.steampowered.com/news/app/2849080/view/1826992588596536 — R2-G1-10
+- https://store.steampowered.com/news/app/688420 — R2-C53
+- https://strategywiki.org/wiki/Mount&Blade/Companions — R2-C54, R2-C55, R2-C56, R2-C57, R2-C58
+- https://stronghold.fandom.com/api.php?action=parse&oldid=14717&prop=wikitext&format=json — R2-C0, R2-C1, R2-C4
+- https://stronghold.fandom.com/api.php?action=parse&oldid=5649&prop=wikitext&format=json — R2-C0, R2-C3
+- https://stronghold.fandom.com/api.php?action=parse&page=Stairs&prop=wikitext&format=json — R2-C1
+- https://stronghold.fandom.com/wiki/Gatehouse/Background — R2-C0
+- https://stronghold.fandom.com/wiki/Gatehouse/Stronghold_2 — R2-C0, R2-C1, R2-C3, R2-C4
+- https://stronghold.fandom.com/wiki/Gatehouse/Stronghold_Crusader — R2-C1, R2-C3, R2-C4
+- https://stronghold.fandom.com/wiki/Gatehouse/Stronghold_Crusader_2 — R2-C0, R2-C4
+- https://stronghold.fandom.com/wiki/Gatehouse?oldid=14717 — R2-C1, R2-C4
+- https://stronghold.fandom.com/wiki/Gatehouse?oldid=5649 — R2-C0, R2-C1, R2-C3, R2-C4
+- https://stronghold.fandom.com/wiki/Wall/Stronghold_Crusader — R2-C1
+- https://they-are-billions.fandom.com/wiki/Executor — R2-C12
+- https://they-are-billions.fandom.com/wiki/Great_Ballista — R2-C12
+- https://they-are-billions.fandom.com/wiki/Infected — R2-C12, R2-G4-8
+- https://they-are-billions.fandom.com/wiki/Infected_Giant — R2-G4-8
+- https://they-are-billions.fandom.com/wiki/Infected_Harpy — R2-G4-8
+- https://they-are-billions.fandom.com/wiki/Infected_Venom — R2-G4-8
+- https://they-are-billions.fandom.com/wiki/Land_Mine — R2-C13
+- https://they-are-billions.fandom.com/wiki/Stakes_Trap — R2-C13
+- https://they-are-billions.fandom.com/wiki/Tesla_Tower — R2-C12
+- https://they-are-billions.fandom.com/wiki/Wire_Fence_Trap — R2-C13
+- https://totalwarwarhammer.fandom.com/wiki/Chieftain — R2-G3-8
+- https://totalwarwarhammer.fandom.com/wiki/Encourage — R2-G3-4
+- https://totalwarwarhammer.fandom.com/wiki/Leadership — R2-C44, R2-C46, R2-G3-7
+- https://totalwarwarhammer.fandom.com/wiki/Lords — R2-C45, R2-G3-4
+- https://totalwarwarhammer.fandom.com/wiki/Power_Grab — R2-G3-8
+- https://totalwarwarhammer.fandom.com/wiki/Rampage — R2-C44
+- https://turnbasedlovers.com/originals/star-wars-zero-company-what-it-is-what-to-expect-and-how-it-plays/ — R2-C24, R2-C25, R2-C26, R2-C27, R2-C28
+- https://warcraft.wiki.gg/wiki/Tavern_(Warcraft_III) — R2-G3-3
+- https://wiki.totalwar.com/w/Total_War_ROME_II:_Patch_4 — R2-G3-6
+- https://www.bloonswiki.com/Camo_Bloon_(BTD6) — R2-G4-7
+- https://www.bloonswiki.com/Camo_Bloon_(BTD6) (api.php wikitext로 확인) — R2-G4-7
+- https://www.destructoid.com/reviews/review-dungeon-defenders/ — R2-G2-5
+- https://www.doublefine.com/games/iron-brigade — R2-G2-10
+- https://www.engadget.com/2011-06-20-trenched-review.html — R2-G2-10, R2-G2-11, R2-G2-12
+- https://www.engadget.com/2011-10-05-orcs-must-die-review.html — R2-G1-11
+- https://www.gamebanshee.com/3ux9h — R1-F9, R1-X1, R2-C14, R2-C15, R2-C42, R2-C43
+- https://www.gamebanshee.com/news/123466-battle-brothers-developer-blog-128-the-retinue-part-2.html — R2-C42, R2-C43
+- https://www.gamedeveloper.com/design/kingdom-rush---the-wonderful-campaign-level-design — R2-C59, R2-C60, R2-C61, R2-C62, R2-C63, R2-G4-1
+- https://www.gamedeveloper.com/design/kingdom-rush---the-wonderful-campaign-level-design (David Harlow, Blogger, 2013-10-25) — R2-G4-1
+- https://www.gamedeveloper.com/design/mastering-minimalism-and-layering-complexity-with-strategy-game-thronefall — R2-G1-8, R2-G1-9
+- https://www.hiveworkshop.com/threads/about-stacking-and-not-stacking.265614 — R2-G3-1
+- https://www.hiveworkshop.com/threads/another-aura-stacking-question-s.291681 — R2-G3-1
+- https://www.keengamer.com/articles/previews/legion-td-2-preview/ — R2-G2-1, R2-G2-2
+- https://www.keengamer.com/articles/reviews/battle-brothers-review/ — R2-C14, R2-C15, R2-C16, R2-C17, R2-C18, R2-C42
+- https://www.kodeco.com/2769-making-a-hit-tower-defense-game-a-top-app-dev-interview — R1-F2, R2-G1-8
+- https://www.nintendo.com/en-gb/News/2018/April/Interview-Taking-on-hordes-of-invading-Vikings-in-Bad-North-1368315.html — R1-F1, R1-F9, R2-C51, R2-C52, R2-C53
+- https://www.shacknews.com/article/149482/star-wars-zero-company-release-date-summer-game-fest-2026 — R2-C24
+- https://www.shacknews.com/article/150309/star-wars-zero-company-august-2026-preview — R2-C24, R2-C25, R2-C26, R2-C27, R2-C28
+- https://www.switchbladegaming.com/strategy-games/legion-td-2/beginners-guide-12/ — R2-G2-1, R2-G2-2
+- https://www.webtoonguide.com/ko/board/totalreview/17207 — R2-C82
+- https://www.whisperofthehouse.com/star-wars-zero-company/difficulty-settings — R2-C24, R2-C26
+- https://www.whisperofthehouse.com/star-wars-zero-company/permadeath-injuries — R2-C25, R2-C27

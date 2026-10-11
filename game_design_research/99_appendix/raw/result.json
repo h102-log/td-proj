@@ -1,0 +1,281 @@
+{
+ "question": "# Role & Context\n당신은 시스템 및 전투 메커니즘을 전문으로 설계하는 수석 게임 기획자입니다.\n현재 **2D 도트 다크 판타지 영지 방어 디펜스 게임**의 핵심 룰셋을 기획 중입니다.\n\n본 프로젝트의 핵심 모티브는 네이버 웹툰/웹소설 《디펜스 게임의 폭군이 되었다》의 전장 운용 방식입니다.\n시중의 디펜스 게임은 \"무생물 타워만 짓는 방식\"이거나 \"영웅 1명이 혼자 무쌍을 찍는 방식\"으로 양극화되어 있습니다. 반면, 본 게임은 다음 세 가지 방어 축이 한 전장에서 유기적으로 맞물리는 **'복합 수성 디펜스 룰'**을 목표로 합니다:\n1. **고정 방어 시설:** 성벽, 방어 타워, 공성 병기, 함정\n2. **배치형 일반 용병:** 전선을 형성하고 적의 진격을 저지하는 병종별 부대\n3. **네임드 영웅 유닛:** 전황을 뒤흔드는 고유 스킬과 특성을 가진 소수의 정예 캐릭터\n\n# Objective\n수학적 수식이나 세부 밸런스 수치는 제외하고, 위 세 요소가 충돌하지 않고 상호보완적으로 작동하게 만드는 **\"3중 복합 방어 체계의 규칙 아키텍처(Rules Architecture)\"**와 관련 레퍼런스를 심층 조사해주세요.\n\n---\n\n# Core Research Areas\n\n### 1. 3중 방어 주체 간의 역할 분담 및 상호작용 규칙\n- **역할 정의(Roles):** 타워(지속 딜/유틸), 일반 용병(전선 유지/몸빵/저지), 네임드 영웅(변수 창출/기믹 파훼/결정타)의 명확한 기능 분리 규칙.\n- **상호 시너지 규칙:**\n  - 영웅이 특정 타워에 탑승하거나 근처에 배치될 때 발생하는 보너스 규칙.\n  - 영웅의 오라/지휘 스킬이 일반 용병 분대에 미치는 영향 메커니즘.\n  - 성벽/타워의 내구도와 지상 용병의 보호 판정(성벽 위 사격 vs 지상 차단).\n- **카운터 분담:** 어떤 적은 타워로 잡아야 하고, 어떤 적은 용병의 저지가 필요하며, 어떤 적은 영웅의 직접 개입이 필수적인지에 대한 적-방어군 상성 매칭 규칙.\n\n### 2. 전장 조작 및 자원 분배의 균형 (플레이어 피로도 제어)\n- 세 가지 요소를 동시에 다룰 때 발생하는 **조작 과부하(Action Overhead)**를 제어하는 규칙:\n  - 전투 중 실시간 조작의 범위는 어디까지 허용할 것인가? (예: 타워는 완전 자동, 용병은 구역 고정/간단한 스탠스 변경, 영웅만 액티브 스킬 수동 조작 등).\n- **자원 경제(Economy):** 영지 자원을 \"타워 증축\", \"용병 충원\", \"영웅 육성/장비\" 중 어디에 투자하게 만들 것인가에 대한 자원 배분 딜레마 설계 규칙.\n\n### 3. 영웅과 용병의 '가치' 및 '손실' 규칙\n- 웹툰 특유의 다크 판타지적 긴장감을 게임 룰로 치환:\n  - 일반 용병의 소모성(충원 가능한 소모품 자원) vs 영웅의 희소성(부상, 피로도, 영구 결손 메커니즘).\n  - 영웅이 쓰러졌을 때의 전선 붕괴 판정 및 패널티 완충 규칙.\n\n### 4. 벤치마킹 및 유사 하이브리드 게임 분석\n- 타워와 부대/영웅이 결합된 형태를 부분적으로 시도했던 게임들(예: Kingdom Rush의 병영/영웅 시스템, Warcraft 3 영웅 디펜스 유즈맵, Bad North의 분대 운용, They Are Billions의 벽+유닛 방어, Iron Brigade 등)의 규칙적 성공 요인과 실패 요인 분석.\n\n---\n\n# Output Guidelines\n- **수학 공식, 세부 대미지 수치, 밸런스 표는 일체 제외**하고, 시스템의 **구조적 규칙, 상호작용 메커니즘, 장단점 분석**에 집중할 것.\n- 《디펜스 게임의 폭군이 되었다》의 핵심 전장 묘사를 게임 기획 언어(규칙 명세)로 치환하여 설명할 것.\n- 리서치 마지막에는 프로토타입 구현 시 시스템 충돌을 막기 위해 가장 먼저 확정해야 할 **\"핵심 설계 결정 사항 4가지\"**를 정리할 것.",
+ "summary": "검증을 통과한 선례들을 보면 세 방어 축은 이동성, 조작 밀도, 손실 비용이라는 세 기준으로 나뉠 때 충돌이 적습니다. 구조물은 한자리에 고정되고 자원을 들여 수리합니다(They Are Billions). 병력은 플레이어가 위치만 지정하고 교전은 AI가 처리합니다(Bad North, Kingdom Two Crowns). 구조물의 화력은 그 안에 탑승한 유닛에서 나오며, 성벽 위 사격과 지상 차단은 높이와 시야 판정으로 구분됩니다(TAB 군 타워, KTC 타워 궁수, DINO 사격 타워). 손실 규칙도 선례가 있습니다. 병사는 충원할 수 있는 소모품으로, 지휘관과 네임드는 영구히 잃는 자원으로 나누는 2층 구조가 확인됩니다(Bad North). 영구 부상을 사망과 은퇴 사이의 중간 단계로 두고 계속 쓸지를 플레이어가 고르게 하는 방식도 있습니다(Battle Brothers). 원작 결산창 역시 네임드의 손실만 사망·부상·실종으로 나누어 기록합니다. 원작 STAGE 0은 네임드별 기능 분담(미끼, 전선 지휘, 병목 차단, 고정 포대로 결정타)과, 네임드가 지휘하는 병사·고정 포대의 결합을 이야기로 보여 줍니다. 다만 적 등급별 카운터 분담이나 '병력은 시간 확보, 영웅은 결정타' 같은 일반 규칙의 원작 근거는 검증에서 기각되었습니다. 선례에서 끌어낸 추론(검증된 사실이 아님)으로, 프로토타입 전에 확정해야 할 4가지를 제안합니다. (1) 실시간 조작 범위: 무엇을 자동으로 두고 무엇을 수동으로 둘지, 일시정지를 허용할지. (2) 영웅·용병의 구조물 탑승 규칙: 빈 구조물의 판정, 높이·시야 보너스, 탑승하면 다른 역할에서 빠지는지. (3) 손실 계층: 병사 충원, 영웅의 중간 결손 단계, 지휘관이 쓰러졌을 때 분대 처리. (4) 자원 축의 분리: 구조물 수리비, 병력 충원비, 영웅 성장비를 각각 다른 자원이나 다른 시점에 쓰게 할지.",
+ "findings": [
+  {
+   "claim": "[조작 범위: 위치 지정과 자동 교전] 용병(분대) 레이어는 플레이어가 배치 위치만 정하고 교전은 AI가 처리하는 저조작 구조로 만든 선례가 있습니다. Bad North에서는 분대를 격자 위 위치에 두면 분대원이 언제, 어떻게 공격할지 스스로 정합니다. Kingdom Two Crowns에는 개별 유닛을 직접 조작하는 수단이 아예 없습니다. 역할(사냥꾼, 타워 주둔, 병사)은 플레이어가 만든 일자리, 지휘관 고용, 깃발 출격 명령을 통해 간접적으로 배분됩니다. '용병은 구역 배치와 자동 교전'이라는 설계안의 직접적인 선례입니다.",
+   "confidence": "high",
+   "sources": [
+    "https://www.nintendo.com/en-gb/News/2018/April/Interview-Taking-on-hordes-of-invading-Vikings-in-Bad-North-1368315.html",
+    "https://kingdomthegame.fandom.com/wiki/Archer"
+   ],
+   "evidence": "Bad North 개발사(Plausible Concept)의 2018-04 Nintendo UK 인터뷰: 'very low granularity of interaction ... mostly players will be simply positioning their squads on a grid ... each of the units in that squad decide how/when to attack'. 출시 뒤 GamesBeat 기사도 '위치만 지정하면 나머지는 유닛이 처리한다'고 확인합니다. 단서: 플레이어가 직접 발동하는 어빌리티가 있고, 명령을 내리는 동안 화면이 슬로모션이 되며, 병종마다 이동 중 공격 가능 여부가 다릅니다. 따라서 '자동 교전'은 핵심 루프 기준으로 읽어야 합니다. KTC 위키(개발자 발언과 패치 각주 포함): 'Monarchs have very little control on how they chose their roles, and no direct control at all over their individual activities.' 단서: 역할을 배분하는 수단은 시설 건설만이 아닙니다. Knight·Squire 고용이 있고, 동전을 내고 깃발로 분대에 출격을 명령할 수도 있습니다(1.1.13 이후로는 명령 없이 포탈을 공격하지 않음).",
+   "vote": "3-0 / 3-0"
+  },
+  {
+   "claim": "[능동 개입 설계 의도] Kingdom Rush(Ironhide)는 반대 방향을 골랐습니다. 대부분의 TD가 '전략을 짠 뒤 거의 개입하지 않고 지켜보는' 구조라고 진단하고, 플레이어가 전투에 관여하며 바쁘다고 느끼고 스테이지가 실제로 진행 중인 전투처럼 느껴지도록 설계했습니다. 타워 중심 TD에서도 전투 중 실시간 개입을 일부러 열어 두는 설계 선택의 근거가 됩니다.",
+   "confidence": "high",
+   "sources": [
+    "https://www.kodeco.com/2769-making-a-hit-tower-defense-game-a-top-app-dev-interview"
+   ],
+   "evidence": "공동창업자 Alvaro Azofra의 2013-02-22 Kodeco 인터뷰 원문: 'On most TD games the players makes the strategy and then sits back to enjoy the show with minimal intervention' / 'we wanted to make the player feel involved, busy, and wanted the stage to feel like a battle was going on'. 그는 이 목표가 게임의 여러 메커니즘을 정했다고 말합니다. 단서: 인터뷰는 병영 집결지, 주문, 영웅 같은 구체적 메커니즘을 이 의도와 직접 연결하지 않습니다. 쿨다운식 수동 주문(Rain of Fire, Reinforcements)이 시리즈의 정체성이라는 점은 리뷰(games.gg)와 2025년 Kingdom Rush 6 보도자료로 따로 확인됩니다. 이 의도를 특정 조작 규칙과 연결하는 것은 분석자의 해석입니다.",
+   "vote": "3-0 / 3-0 (같은 인터뷰에서 나온 두 주장을 병합)"
+  },
+  {
+   "claim": "[조작 과부하 완화: active pause와 방어 설계 단위] DINO(Diplomacy is Not an Option)는 성문, 진격·후퇴 동선, 킬존, 후퇴 거점을 방어 설계의 단위로 명시하고, 전투 중 능동적인 지휘를 요구합니다. 대신 실시간 진행과 상시 일시정지(active pause) 가운데 하나를 고를 수 있게 해서 조작 부담을 덜어 줍니다.",
+   "confidence": "medium",
+   "sources": [
+    "https://store.epicgames.com/p/diplomacy-is-not-an-option-9c6bea"
+   ],
+   "evidence": "Steam 공식 상점 문구(Epic 페이지와 같은 문안): 'Consider your gates, your lines of advancement and retreat. Create kill-zones and fall-back positions. You will need to take an active role in combat to get the best from your men. ... Play battles in real-time or use pause constantly to keep everything in your hands.' Cubed3 리뷰(2025-09)는 이 게임이 micro-management-heavy하며 'the Pause button is the biggest ally'라고 평가했습니다. Steam 커뮤니티에 따르면 일시정지 중에도 명령을 내릴 수 있습니다. 단서: 원문은 '최선의 결과를 내려면'이라는 조건부 표현이고, '과부하를 완화한다'는 해석입니다. 일시정지가 멀티태스킹이 어려운 플레이어에게는 도움이 되지 않는다는 사용자 반론도 있습니다. 출처는 상점 마케팅 문구입니다.",
+   "vote": "2-1"
+  },
+  {
+   "claim": "[역할 분리: 이동 요소와 고정 요소, 유지비 비대칭] They Are Billions는 유닛을 '이동 가능한 유일한 방어 요소'로, 성벽·타워·함정을 고정 요소로 나눕니다. 유지비도 비대칭입니다. 유닛은 시간이 지나면 스스로 회복하지만, 구조물은 금과 자원을 들여야 수리됩니다. 구조물은 '자원이 드는 내구도', 유닛은 '시간으로 회복되는 체력'을 갖는 셈이어서, 투자 딜레마에 유지비라는 축이 하나 더 생깁니다(이 마지막 함의는 분석자 해석).",
+   "confidence": "high",
+   "sources": [
+    "https://numantiangames.com/News/2017-09-14-they-are-billions-update-defend-your-colony/"
+   ],
+   "evidence": "Numantian Games 2017-09-14 개발 블로그: 'They can move and be placed wherever you need them while all the rest of defense elements are static. ... Units can also cure themselves with time', 구조물은 'must be repaired ... by spending gold and resources'. Twinfinite 가이드(전투가 끝나면 자연 회복되고 직접 치료할 수단은 없음)와 ModDB·Steam 글(수리 비용 발생)이 출시 뒤에도 이 구조가 유지됨을 확인합니다. 단서: 원문은 '보병'이 아니라 '유닛' 전체를 말하므로 타이탄 같은 기계 유닛도 포함됩니다. 회복은 전투 중이 아닐 때만 되는 것으로 보입니다. 얼리액세스 이전 글이라 구체적 비용은 이후 바뀌었을 수 있습니다.",
+   "vote": "3-0"
+  },
+  {
+   "claim": "[탑승·주둔 시너지와 높이·시야 판정] 유닛을 구조물에 올리거나 넣으면 사거리·시야 보너스를 주는 규칙은 여러 게임에서 독립적으로 쓰였고, '성벽 위 사격 vs 지상 차단'을 가르는 핵심 판정이 됩니다. They Are Billions의 군 타워는 안에 들어간 유닛에 시야·공격 반경 보너스를 주고 성벽과 함께 쓰입니다. 유닛이 없으면 큰 벽일 뿐이며, 영지를 넓힐 때는 부수고 새로 지어야 합니다. Kingdom Two Crowns는 타워 궁수가 지상 궁수보다 멀리 쏘도록 패치했습니다. DINO에서는 원거리 병력이 사격용 타워를 차지하고 시야선을 확보해야 하며, 플레이어가 지은 방어 시설이 오히려 아군의 사격을 막을 수 있습니다. 설계 함의는 '구조물은 빈 껍데기이고 화력은 탑승 유닛에서 나온다'는 원칙이 영웅 탑승 보너스 규칙의 일반형이 될 수 있다는 것입니다(분석자 해석).",
+   "confidence": "high",
+   "sources": [
+    "https://numantiangames.com/News/2017-09-14-they-are-billions-update-defend-your-colony/",
+    "https://kingdomthegame.fandom.com/wiki/Archer",
+    "https://store.epicgames.com/p/diplomacy-is-not-an-option-9c6bea"
+   ],
+   "evidence": "TAB 개발 블로그: 'Place your units in these towers and they will gain a big bonus to their sight and attack radius. They work perfectly with the walls. ... When you wish to extend the colony, you will have to destroy them and build new ones', 'The towers also need units inside, otherwise, they are just big passive walls'. 출시판 Steam 토론: 나무·돌 타워에 최대 4명이 들어가고, 빈 돌 타워는 좀비가 벽처럼 취급합니다. KTC: 공식 Steam 패치 공지(2021-11-16) 'Archers in towers: they now shoot further than archers on the ground', 개발 공지(2021-11-10) 'take advantage of their height to shoot farther'. 위키는 '성벽 너머로 쏘지 않고 아래 적을 직접 조준한다'고 쓰지만, 이 부분은 1차 출처로 확인되지 않았습니다. DINO 상점 문구: 'Every arrow, catapult stone ... is physically modeled ... make sure your troops have towers to shoot from and clear lines of sight, or ... blunted by your own fortifications'. 서드파티 가이드에 따르면 화살은 돌벽을 뚫지 못하고 튕겨 나가며, 타워 궁수에게는 사각이 있습니다. 성벽·타워에는 궁수만 올릴 수 있고 공성 병기는 타워에 설치합니다. 단서: DINO의 사격 차단은 명시적인 시야 판정이 아니라 물리 충돌에서 생기는 결과로 보이며, 지형 판정에 대한 언급은 없습니다. TAB 군 타워를 철거할 때 무엇이 환급되는지는 확인하지 못했습니다.",
+   "vote": "3-0 / 3-0 / 3-0"
+  },
+  {
+   "claim": "[성벽: 파괴 가능, 관문, 다층 고리] 성벽을 '수동적이지만 파괴될 수 있는 진입 차단 요소'로 정의하고, 관문과 여러 겹 배치로 돌파된 이후까지 설계하는 선례가 있습니다. They Are Billions에서 성벽은 감염체를 막지만 감염체가 부술 수 있고, 관문은 아군에게만 자동으로 열립니다(적은 부숴야 들어옴). 개발사는 성벽을 여러 겹의 고리로 둘러 하나가 뚫려도 다음 고리에서 막는 전술을 예로 듭니다.",
+   "confidence": "high",
+   "sources": [
+    "https://numantiangames.com/News/2017-09-14-they-are-billions-update-defend-your-colony/"
+   ],
+   "evidence": "원문: 'Walls are passive defense elements. They block access from the infected. However, the infected can destroy walls while they trying to reach the colony. ... you can make several walls rings that surround your colony so if the infected reach the colony, they will be contained in the next ring.' 관문: 'the gates open and close automatically for allies. Your enemies will have to destroy them to enter.' 커뮤니티 자료(Steam, gosunoob)도 성벽이 뚫린다는 전제로 성벽과 건물 사이에 완충 공간을 두라고 조언합니다. 관문에 좀비가 더 몰려 먼저 무너진다는 플레이어 보고도 있습니다. 단서: '권장'은 원문의 'For example'보다 강한 표현입니다. 비행형 같은 일부 특수 적은 성벽을 우회하므로 성벽만으로는 모든 적을 막지 못하며, 이 점은 카운터 분담 설계에 함의가 있습니다.",
+   "vote": "3-0"
+  },
+  {
+   "claim": "[지휘관 편입의 상호배타 규칙] 지휘 유닛이 일반 유닛을 분대로 묶으면 그 유닛은 다른 역할에서 빠지는 상호배타 규칙이 있습니다. Kingdom Two Crowns에서 기사나 종자를 고용하면 근처에서 할 일 없는 궁수를 최대 4명까지 지휘 아래로 편입합니다. 편입된 궁수는 지휘관을 따라다니며 포탈 공격과 폭탄 호위에 나서고, 대신 사냥과 타워 주둔에서는 빠집니다. TC에서는 양쪽에 사냥꾼이 최소 1명씩 남아 있어야 궁수가 분대나 타워로 갑니다. 영웅의 지휘 버프를 '편입된 분대'에만 적용하고, 편입하면 타워 주둔 같은 다른 슬롯이 비게 만드는 규칙의 선례가 됩니다(적용 방식은 분석자 해석).",
+   "confidence": "medium",
+   "sources": [
+    "https://kingdomthegame.fandom.com/wiki/Archer"
+   ],
+   "evidence": "위키 원문: 'Whenever a knight or a squire is hired, they will enlist up to four nearby idle archers under their command. Soldier archers always stick with their liege and will attack portals with them, but do not hunt anymore, nor mount towers.' / 'In Two Crowns, they also escort the bomb towards the cave.' 최소 사냥꾼 규칙의 각주는 개발자 Alan Kertz의 Reddit 발언('There is a minimum of 1 hunter per side', 2023-12-07)이며, TC 1.1.13(2021-11-16) 변경 이력에도 올라 있습니다. 단서: 폭탄 호위는 TC에만 있고(Classic/New Lands에서는 보트 호위), Norse Lands에서는 궁수가 방패를 받아야 편입됩니다. 분대 궁수도 밤에는 지휘관과 함께 성벽 뒤에서 사격하므로, 배타성은 사냥과 타워 주둔에만 해당합니다. 출처는 2차 커뮤니티 위키이고, 공식 패치노트와 Reddit 원문은 직접 확인하지 못했습니다.",
+   "vote": "3-0 / 3-0 (16·17번 주장 중 지휘관 편입 부분)"
+  },
+  {
+   "claim": "[자원 배분: 시설, 병력, 성장의 세 축] DINO는 투자 방향을 '초반 성벽 집중', '소모성 대군 양성', '탐욕적 확장과 고비용 장기 투자'의 세 가지로 제시합니다. 경제 설명에서는 확장과 안전 사이의 균형을 묻고, 보호받지 못한 민간 확장은 습격의 먹잇감이 된다고 밝힙니다. '시설 vs 병력 vs 성장'의 투자 경쟁 구조에 해당합니다.",
+   "confidence": "medium",
+   "sources": [
+    "https://store.epicgames.com/p/diplomacy-is-not-an-option-9c6bea"
+   ],
+   "evidence": "Steam 공식 상점 문구: 'Go heavy on walls early, build large armies of cannon-fodder, or pursue the macro game of greedy growth and costly investments.' 같은 페이지의 경제 단락: 'strike the balance between greedy expansion and security?', 'unprotected civilian expansions will have consequences of falling prey to the hostile incursion'. 단서: (1) 마케팅 문구이므로 실제 밸런스에서 세 축이 모두 쓸 만한지는 증명하지 못합니다. (2) 'Freedom of play' 맥락에서 소개된 것이라 강제된 3자 딜레마가 아니라 플레이 스타일 선택지입니다. (3) 여기서 '성장'은 경제 확장(농민, 건물, 자원)을 뜻합니다. 이 게임에는 네임드 영웅 육성 축이 없으므로 기획의 '영웅 육성/장비' 축과 1:1로 대응시키면 안 됩니다.",
+   "vote": "2-1"
+  },
+  {
+   "claim": "[손실 계층화: 소모품 병사, 영구 결손 지휘관, 양면적 영구 부상] 병력 손실을 두 층 이상으로 나누는 규칙이 검증된 선례로 있습니다. Bad North에서 일반 병사 손실은 길게 보면 감당할 수 있지만, 분대 지휘관이 죽으면 그 분대와 누적된 업그레이드를 영구히 잃습니다. Battle Brothers 개발진은 영구 부상을 양면적인 결과로 설계했습니다. 커리어를 끝낼 수도 있지만 '특히 힘들었던 전투의 흔적'으로만 남을 수도 있습니다. 부상당한 캐릭터를 로스터에 남길지 내보낼지는 시스템이 아니라 플레이어가 정합니다. 개발진은 이것이 후반부의 숙련된 핵심 캐릭터에게 특히 유용하다고 밝혔습니다. 정리하면 영구 결손이 곧바로 유닛 폐기로 이어지지 않는 중간 단계입니다.",
+   "confidence": "high",
+   "sources": [
+    "https://www.nintendo.com/en-gb/News/2018/April/Interview-Taking-on-hordes-of-invading-Vikings-in-Bad-North-1368315.html",
+    "https://www.gamebanshee.com/3ux9h"
+   ],
+   "evidence": "Bad North 개발사 인터뷰: 'We also have a permadeath mechanic on the squad commanders, if the individual soldiers under their command get killed then that's OK in the long term, if one of your commanders dies, you lose that squad and all its upgrades forever.' Xbox 스토어 설명과 Gideon's Gaming 리뷰도 같은 내용입니다. 2차 출처에 따르면 분대를 집으로 후퇴시키면 타이머가 지난 뒤 병사가 보충됩니다. 이후 업데이트로 죽은 지휘관을 부활시키는 아이템(Holy Grail)이 생겼다는 언급은 확인되지 않았습니다. Battle Brothers 개발 블로그 #128(2020-02-29, GameBanshee 재게시): 'A permanent injury can still end a career, of course, but it can just as well end up being but a reminder of a particularly hard-fought battle. The important point is that now it's up to you and no one else to decide whether to let go of a character or keep them on the roster – which can be particularly helpful in the late game and with experienced and key characters.' 단서: 이 단락은 Blazing Deserts DLC의 Surgeon 추종자를 설명하는 맥락에서 나왔습니다. 'Surgeon이 영구 결손 단계를 새로 도입하는 완충 규칙'이라는 별도 주장은 1-2로 기각되었습니다. 커뮤니티에 따르면 처형형 사망은 영구 부상으로 바뀌지 않으므로, '플레이어가 정한다'는 말은 살아남은 경우에만 해당합니다.",
+   "vote": "3-0 / 3-0 / 3-0"
+  },
+  {
+   "claim": "[원작 STAGE 0: 네임드별 기능 분담] 원작 STAGE 0의 첫 방어전은 네임드마다 기능을 나눠 해결합니다. 켄은 요새 밖에서 적의 이목을 끌어 분산시키고(미끼), 루카스는 병사들을 지휘해 전선을 최대한 오래 유지하며 시간을 끌고(지휘·지연), 릴리는 아티팩트가 있는 중앙 포대로 들어오는 유일한 입구를 몸으로 막고(병목 차단), 데미안은 고정 공성 병기인 마나 대포로 보스(검은 거미 여왕)를 저격합니다(결정타). 애쉬는 작전을 짜고 [지도 작성] 특성으로 여왕의 위치를 파악합니다. 결과는 켄 사망, 릴리 하반신 마비, 생존자 9명(포병 5명 포함)입니다. 규칙 명세로 옮기면 '네임드는 고유 역할 슬롯, 일반 병사는 네임드 지휘 아래의 전선 유지, 고정 포대는 네임드가 조작할 때 결정타 수단'입니다(이 치환은 분석자 해석).",
+   "confidence": "medium",
+   "sources": [
+    "https://namu.wiki/w/%EB%94%94%ED%8E%9C%EC%8A%A4%20%EA%B2%8C%EC%9E%84%EC%9D%98%20%ED%8F%AD%EA%B5%B0%EC%9D%B4%20%EB%90%98%EC%97%88%EB%8B%A4/%EC%8A%A4%ED%85%8C%EC%9D%B4%EC%A7%80"
+   ],
+   "evidence": "나무위키 스테이지 문서: '루카스는 병사들을 지휘하여 가능한 오래 전선을 유지하면서 시간을 끈다 / 릴리는 아티팩트가 있는 중앙 포대로 들어오는 유일한 입구를 몸으로 막아낸다 / 데미안이 마나 대포로 여왕을 저격한다'. 적 구성은 검은 거미 여왕 1, 공성병 196, 돌격병 912입니다. 독립 출처인 webtoonguide 리뷰는 '마법사에게 탱커의 임무, 탱커에게 적진 중앙에서 적을 교란하는 역할, 힐러에게 저격수 역할'이라고 서술합니다. 역할이 직업이 아니라 배치로 정해진다는 점을 시사합니다. 단서: 애쉬를 '정찰'로 분류하는 것은 과장입니다(작전 지휘자이며 특성으로 위치만 파악). webtoonguide는 위치 파악을 데미안 쪽으로 서술해 웹툰과 소설의 서술이 다를 수 있습니다. 보스 처치를 '[지도 작성]+[천리안] 특성과 마나 대포의 결합, 여러 번 포격'으로 일반화한 별도 주장은 0-3으로 기각되었습니다.",
+   "vote": "3-0"
+  },
+  {
+   "claim": "[원작 결산창: 네임드 손실의 분류 기록] 원작의 스테이지 결산창은 네임드 캐릭터의 손실을 사망, 부상(중상·경상), 실종으로 나눠 따로 기록하고, 이름 없는 병사는 기록하지 않습니다. 같은 양식에 레벨업(직업 선택 가능 알림)과 아군 편입 항목이 상황에 따라 붙습니다. 중상은 장기 결손으로 이어질 수 있습니다. 릴리의 하반신 마비는 결말부까지 이어졌고, 그동안 휠체어 상태로 계속 참전했습니다.",
+   "confidence": "medium",
+   "sources": [
+    "https://namu.wiki/w/%EB%94%94%ED%8E%9C%EC%8A%A4%20%EA%B2%8C%EC%9E%84%EC%9D%98%20%ED%8F%AD%EA%B5%B0%EC%9D%B4%20%EB%90%98%EC%97%88%EB%8B%A4/%EC%8A%A4%ED%85%8C%EC%9D%B4%EC%A7%80"
+   ],
+   "evidence": "결산창 원문 예시: STAGE 0 '[사망 및 부상 캐릭터] - 켄(N) : 사망 / 릴리(R) : 중상', '[레벨업 캐릭터] - 애쉬(EX) Lv.5 (↑4) (직업 선택이 가능합니다!)'. STAGE 1 '쥬피터(SR) : 경상'. STAGE 12 '[아군 편입 캐릭터] - 더스크 브링어(SSR)'. STAGE 15 '[사망 캐릭터] 마르헤리타(R) 외 20인 / [실종 캐릭터] 갓핸드(SR) / [부상 캐릭터] 애쉬(EX) 외 45인'. STAGE 0 생존 포병 5명 같은 무명 병사는 결산창에 나오지 않습니다. 단서: 마비 자체는 결산창이 아니라 본문 서술에만 나옵니다. 직업 선택은 결산창에서 처리되지 않고 '가능하다'는 알림만 뜹니다. 레벨업·사망·편입·실종이 한 화면에 동시에 나온 적은 없으며, 상황에 따라 항목이 붙는 가변 양식입니다. 원작의 '부활 횟수 제한 후 영구 소멸' 규칙 주장은 0-3으로 기각되었고, 피로도에 관한 서술은 확인되지 않았습니다.",
+   "vote": "3-0"
+  },
+  {
+   "claim": "[원작의 스테이지 단위 규칙 변수: 적측 다크 이벤트와 아군측 가디스 블레싱] 원작에는 스테이지 단위로 전장 규칙을 바꾸는 변수가 양쪽에 있습니다. 적측 '다크 이벤트'로는 보스 1체 추가, 일반 괴수 복제(번식), 이동속도 증가(순풍전진), 출격 시간 단축과 군단 임의 교체(기습), 물리 방어력을 크게 올리는 대신 이동속도를 크게 낮추는 '웅크리기' 등이 있습니다. 아군측 '가디스 블레싱'은 스테이지당 1회 업적점수를 써서 '무적의 성벽'(이번 전투 동안 성벽 파괴 불가), '일방통행'(남쪽 성벽으로만 공격) 같은 버프를 겁니다. 이로 보아 원작 전장은 방위별 성벽, 성벽 파괴 판정, 적의 진입 방향, 피해 유형별 내성과 기동성의 맞교환을 규칙 단위로 다룹니다. 특히 웅크리기는 '물리 내성을 얻는 대신 느려진다'는 적 상태로, 피해 유형별 카운터 분담 규칙의 원작 근거가 됩니다.",
+   "confidence": "medium",
+   "sources": [
+    "https://namu.wiki/w/%EB%94%94%ED%8E%9C%EC%8A%A4%20%EA%B2%8C%EC%9E%84%EC%9D%98%20%ED%8F%AD%EA%B5%B0%EC%9D%B4%20%EB%90%98%EC%97%88%EB%8B%A4/%EC%84%A4%EC%A0%95"
+   ],
+   "evidence": "나무위키 설정 문서 원문: '해당 스테이지에 무작위 이벤트가 일어나, 플레이어의 공략에 악영향을 끼칩니다 ... 다크 이벤트 : 웅크리기 / 물리 방어력을 초월적으로 높이는 대신, 이동속도를 대폭 낮춘다', '스테이지당 한 번 아군에게 버프를 걸 수 있는 기능으로, 업적점수를 소모해 사용할 수 있다 ... 무적의 성벽 / 이번 전투 동안, 성벽이 파괴되지 않습니다 ... 일방통행 / 이번 전투 동안, 남쪽 성벽으로만 적이 공격해옵니다'. 비공식 영문 번역본(ch374)에도 'Invincible Walls'와 'One-Way Assault'가 확인됩니다. 이 장에서 주인공은 적이 주로 자폭병으로 공성한다는 이유로 처음에 무적의 성벽을 고려하다가, 전장을 남쪽 성벽 하나로 좁히려고 일방통행을 고릅니다. 좌우 포수가 각자 맡은 성벽으로 돌진하는 적을 노리는 장면도 있습니다. 단서: 다크 이벤트는 '스테이지마다 무작위로' 발동하는 것이 아니라 '관조자의 의지'가 게임에 개입할 때 생기는 조건부 변수입니다. 성벽 '내구도'를 수치로 관리한다는 서술은 원문에 없고, 파괴될 수 있다는 점만 확인됩니다. 업적점수 소모와 '스테이지 15부터' 조건은 나무위키에만 있습니다. 원작 적을 '일반/정예/보스 3등급'으로 나누는 주장은 0-3으로 기각되었습니다.",
+   "vote": "3-0 (가디스 블레싱) / 2-1 (다크 이벤트)"
+  }
+ ],
+ "caveats": "1) 출처 성격: 벤치마크 근거는 대부분 개발사 1차 자료(인터뷰, 개발 블로그, 상점 문구)입니다. 설계 '의도'와 메커니즘의 존재는 입증하지만, 그 규칙이 실제 플레이에서 성공했는지 실패했는지(지배 전략 발생, 플레이어 이탈 등)는 입증하지 못합니다. 따라서 요청한 '성공·실패 요인 분석' 가운데 실패 요인 쪽은 검증된 근거가 사실상 없습니다. DINO 관련 주장은 상점 마케팅 문구에 기대고 있고, 두 건은 2-1 표결입니다. 2) 시점: They Are Billions 자료는 2017년 얼리액세스 이전 블로그이고(핵심 메커니즘이 출시판에도 남아 있다는 점은 커뮤니티로 확인), Bad North 자료는 출시 전 인터뷰이며(출시판은 2차 출처로 확인), Kingdom Rush 자료는 2013년 인터뷰입니다. 3) 원작 근거의 한계: 원작 관련 주장은 모두 팬 편집 2차 위키(나무위키)와 비공식 번역에 기대고 있습니다. 웹툰과 소설의 서술이 다를 수 있습니다(예: STAGE 0에서 위치를 파악한 주체). 원작 관련 주장 10건 중 5건이 기각되었습니다. 기각된 주장은 적 3등급 체계, '병력은 시간 확보, 영웅은 결정타'라는 일반 구조, 부활 횟수 제한에 따른 영구 소멸, 특성과 마나 대포를 결합한 보스 처치, 성벽 방어전의 병력·영웅 지원 구조입니다. 이 내용들을 원작 근거로 인용하면 안 됩니다. 4) 해석 표시: 각 finding의 '설계 함의'나 '규칙 명세로 옮기면' 부분, 그리고 summary의 핵심 설계 결정 4가지는 검증된 사실이 아니라 분석자의 추론입니다. 5) 범위 공백: 요청에 있던 Warcraft 3 영웅 디펜스 유즈맵, Iron Brigade, Kingdom Rush의 병영·영웅 시스템 세부 규칙, 영웅 오라·지휘 스킬의 구체적 메커니즘, 영웅 피로도, 적과 방어군의 상성 매칭, 영웅이 쓰러졌을 때의 전선 붕괴 판정에 대해서는 검증을 통과한 주장이 없습니다. 6) DINO의 '성장' 축은 경제 확장이고 영웅 육성이 아니므로, 기획의 3축과 1:1로 대응시킬 수 없습니다. 7) Battle Brothers의 영구 부상 근거는 DLC(Surgeon) 설명 맥락에서 나왔고, Surgeon의 메커니즘을 일반화한 별도 주장은 1-2로 기각되었습니다.",
+ "openQuestions": [
+  "영웅의 오라·지휘 스킬이 일반 분대에 미치는 영향(적용 범위, 중첩 여부, 지휘관이 쓰러졌을 때 분대의 사기·전선 붕괴 처리)을 규칙으로 명세한 선례는 무엇인가? Kingdom Rush 영웅, Warcraft 3 영웅 디펜스, Bad North 지휘관 사망 직후의 분대 처리 등을 검증하는 추가 조사가 필요합니다.",
+  "적 유형별 카운터 분담(타워가 전담하는 적, 용병의 저지가 필수인 적, 영웅이 직접 개입해야 하는 적)을 명시적인 규칙으로 만든 하이브리드 TD 선례가 있는가? 원작의 적 등급 근거는 기각되었고, 확인된 것은 '웅크리기'(물리 내성과 이동속도의 맞교환)와 성벽을 우회하는 특수 적뿐입니다.",
+  "영웅 피로도, 연속 출전 제한, 부상 회복 기간 같은 시간 기반 희소성 규칙은 하이브리드 디펜스에서 어떻게 구현되었고, 플레이어 체감(좌절 대 긴장감)은 어땠는가? 원작에서는 피로도 서술이 확인되지 않았습니다.",
+  "세 방어 축 가운데 하나가 지배 전략이 되는 실패 사례(영웅 혼자 무쌍을 찍는 경우, 타워만으로 충분한 경우 등)는 실제로 관측되었는가? 그리고 어떤 규칙(유지비 비대칭, 탑승 슬롯 제한, 편입 상호배타 등)으로 방지되었는가?"
+ ],
+ "refuted": [
+  {
+   "claim": "Battle Brothers의 Blazing Deserts 확장에서 추가된 비전투 추종자 Surgeon은, 전투에서 쓰러진 캐릭터가 즉사하는 대신 영구 부상을 입고 살아남을 확률을 크게 높인다. 이는 사망과 생존 사이에 '영구 결손' 단계를 두는 손실 완충 규칙이다.",
+   "vote": "1-2",
+   "source": "https://www.gamebanshee.com/3ux9h"
+  },
+  {
+   "claim": "원작의 보스 처치는 영웅 한 명의 직접 전투가 아니라 고유 특성과 고정 방어 시설의 결합으로 이뤄진다. [지도 작성] 특성으로 위치를 찾고 [천리안] 특성 보유자가 마나 대포를 쏴 보스를 저격하며, 성공까지 포격을 여러 번 해야 한다.",
+   "vote": "0-3",
+   "source": "https://namu.wiki/w/%EB%94%94%ED%8E%9C%EC%8A%A4%20%EA%B2%8C%EC%9E%84%EC%9D%98%20%ED%8F%AD%EA%B5%B0%EC%9D%B4%20%EB%90%98%EC%97%88%EB%8B%A4/%EC%8A%A4%ED%85%8C%EC%9D%B4%EC%A7%80"
+  },
+  {
+   "claim": "원작 전투에서 일반 병력은 영웅의 결정타(궁극기 시전)에 필요한 시간을 버는 역할을 맡는다. 즉 '병력 = 저지·시간 확보, 영웅 = 결정타'로 역할이 나뉘어 묘사된다. 쥬피터 쥬니어의 궁극기는 '원소 해체'로 언급된다.",
+   "vote": "0-3",
+   "source": "https://namu.wiki/w/%EB%94%94%ED%8E%9C%EC%8A%A4%20%EA%B2%8C%EC%9E%84%EC%9D%98%20%ED%8F%AD%EA%B5%B0%EC%9D%B4%20%EB%90%98%EC%97%88%EB%8B%A4/%EB%93%B1%EC%9E%A5%EC%9D%B8%EB%AC%BC"
+  },
+  {
+   "claim": "원작의 성벽 방어전은 성벽에 배치된 다수 병력이 전방의 영웅(루카스)을 지원하는 구조로 묘사된다. 보스(올롭)는 데미안의 포격을 연속으로 맞혀 격파하는데, 이는 고정 화력·포격과 영웅·병력이 함께 움직이는 3중 방어의 서사적 근거가 된다. 적(시궁쥐 군단)이 성벽에 구멍을 내는 등 성벽 파손 개념도 나온다.",
+   "vote": "1-2",
+   "source": "https://namu.wiki/w/%EB%94%94%ED%8E%9C%EC%8A%A4%20%EA%B2%8C%EC%9E%84%EC%9D%98%20%ED%8F%AD%EA%B5%B0%EC%9D%B4%20%EB%90%98%EC%97%88%EB%8B%A4/%EB%93%B1%EC%9E%A5%EC%9D%B8%EB%AC%BC"
+  },
+  {
+   "claim": "원작에서 네임드 영웅은 영구히 잃을 수 있다. 부상, 사망(쥬니어), 전투원 은퇴(체인)가 나오고, 부활할 때마다 영혼이 약해져 한 번 더 죽으면 영원히 소멸하는 사례도 있다. 이는 '부활 횟수 제한 → 영구 결손' 규칙의 근거가 된다. 반면 피로도에 관한 서술은 이 문서에 없다.",
+   "vote": "0-3",
+   "source": "https://namu.wiki/w/%EB%94%94%ED%8E%9C%EC%8A%A4%20%EA%B2%8C%EC%9E%84%EC%9D%98%20%ED%8F%AD%EA%B5%B0%EC%9D%B4%20%EB%90%98%EC%97%88%EB%8B%A4/%EB%93%B1%EC%9E%A5%EC%9D%B8%EB%AC%BC"
+  },
+  {
+   "claim": "원작 게임 내 적(몬스터)은 일반, 정예, 보스급의 3단계 등급으로 나뉜다. 보스급은 해당 종족의 정점으로, 전투력·방어력·지능이 높은 별도 위협 계층이다. 적 등급별로 대응 주체(타워/용병/영웅)를 나누는 카운터 분담 규칙의 원작 근거가 된다.",
+   "vote": "0-3",
+   "source": "https://namu.wiki/w/%EB%94%94%ED%8E%9C%EC%8A%A4%20%EA%B2%8C%EC%9E%84%EC%9D%98%20%ED%8F%AD%EA%B5%B0%EC%9D%B4%20%EB%90%98%EC%97%88%EB%8B%A4/%EC%84%A4%EC%A0%95"
+  }
+ ],
+ "unverified": [],
+ "sources": [
+  {
+   "url": "https://namu.wiki/w/%EB%94%94%ED%8E%9C%EC%8A%A4%20%EA%B2%8C%EC%9E%84%EC%9D%98%20%ED%8F%AD%EA%B5%B0%EC%9D%B4%20%EB%90%98%EC%97%88%EB%8B%A4/%EC%8A%A4%ED%85%8C%EC%9D%B4%EC%A7%80",
+   "quality": "secondary",
+   "angle": "원작 전장 묘사 (1차 소스)",
+   "claimCount": 5
+  },
+  {
+   "url": "https://namu.wiki/w/%EB%94%94%ED%8E%9C%EC%8A%A4%20%EA%B2%8C%EC%9E%84%EC%9D%98%20%ED%8F%AD%EA%B5%B0%EC%9D%B4%20%EB%90%98%EC%97%88%EB%8B%A4/%EB%93%B1%EC%9E%A5%EC%9D%B8%EB%AC%BC",
+   "quality": "secondary",
+   "angle": "원작 전장 묘사 (1차 소스)",
+   "claimCount": 5
+  },
+  {
+   "url": "https://namu.wiki/w/%EB%94%94%ED%8E%9C%EC%8A%A4%20%EA%B2%8C%EC%9E%84%EC%9D%98%20%ED%8F%AD%EA%B5%B0%EC%9D%B4%20%EB%90%98%EC%97%88%EB%8B%A4/%EC%84%A4%EC%A0%95",
+   "quality": "secondary",
+   "angle": "원작 전장 묘사 (1차 소스)",
+   "claimCount": 5
+  },
+  {
+   "url": "https://gamedeveloper.com/design/kingdom-rush---the-wonderful-campaign-level-design",
+   "quality": "blog",
+   "angle": "하이브리드 TD 벤치마크: 저지·병영·영웅",
+   "claimCount": 5
+  },
+  {
+   "url": "https://www.nintendo.com/en-gb/News/2018/April/Interview-Taking-on-hordes-of-invading-Vikings-in-Bad-North-1368315.html",
+   "quality": "primary",
+   "angle": "하이브리드 TD 벤치마크: 저지·병영·영웅",
+   "claimCount": 5
+  },
+  {
+   "url": "https://www.kodeco.com/2769-making-a-hit-tower-defense-game-a-top-app-dev-interview",
+   "quality": "primary",
+   "angle": "하이브리드 TD 벤치마크: 저지·병영·영웅",
+   "claimCount": 5
+  },
+  {
+   "url": "https://numantiangames.com/News/2017-09-14-they-are-billions-update-defend-your-colony/",
+   "quality": "primary",
+   "angle": "성벽+주둔 유닛 방어 메커니즘",
+   "claimCount": 5
+  },
+  {
+   "url": "https://kingdomthegame.fandom.com/wiki/Archer",
+   "quality": "secondary",
+   "angle": "성벽+주둔 유닛 방어 메커니즘",
+   "claimCount": 5
+  },
+  {
+   "url": "https://steamcommunity.com/app/1272320/discussions/0/3189116454999393694",
+   "quality": "forum",
+   "angle": "성벽+주둔 유닛 방어 메커니즘",
+   "claimCount": 4
+  },
+  {
+   "url": "https://steamcommunity.com/app/1272320/discussions/0/3875967397714728558/",
+   "quality": "forum",
+   "angle": "성벽+주둔 유닛 방어 메커니즘",
+   "claimCount": 5
+  },
+  {
+   "url": "https://store.epicgames.com/p/diplomacy-is-not-an-option-9c6bea",
+   "quality": "primary",
+   "angle": "성벽+주둔 유닛 방어 메커니즘",
+   "claimCount": 5
+  },
+  {
+   "url": "https://stronghold.fandom.com/wiki/Gatehouse?oldid=5649",
+   "quality": "forum",
+   "angle": "성벽+주둔 유닛 방어 메커니즘",
+   "claimCount": 5
+  },
+  {
+   "url": "https://www.gamebanshee.com/3ux9h",
+   "quality": "primary",
+   "angle": "영웅 희소성과 용병 소모성 (손실 규칙)",
+   "claimCount": 5
+  },
+  {
+   "url": "https://finalboss.io/star-wars-zero-company-permadeath-makes-every-squad-choice-matter",
+   "quality": "blog",
+   "angle": "영웅 희소성과 용병 소모성 (손실 규칙)",
+   "claimCount": 5
+  },
+  {
+   "url": "https://blogs.tuni.fi/playlab/game-reviews/darkest-dungeon-stress-disease-and-desperation/",
+   "quality": "blog",
+   "angle": "영웅 희소성과 용병 소모성 (손실 규칙)",
+   "claimCount": 5
+  },
+  {
+   "url": "https://acoup.blog/2022/07/01/collections-total-generalship-commanding-pre-modern-armies-part-iiic-morale-and-cohesion/",
+   "quality": "blog",
+   "angle": "영웅 희소성과 용병 소모성 (손실 규칙)",
+   "claimCount": 5
+  },
+  {
+   "url": "https://www.keengamer.com/articles/reviews/battle-brothers-review/",
+   "quality": "blog",
+   "angle": "영웅 희소성과 용병 소모성 (손실 규칙)",
+   "claimCount": 5
+  },
+  {
+   "url": "https://strategywiki.org/wiki/Mount&Blade/Companions",
+   "quality": "secondary",
+   "angle": "영웅 희소성과 용병 소모성 (손실 규칙)",
+   "claimCount": 5
+  }
+ ],
+ "stats": {
+  "angles": 5,
+  "sourcesFetched": 18,
+  "claimsExtracted": 89,
+  "claimsVerified": 25,
+  "confirmed": 19,
+  "killed": 6,
+  "unverified": 0,
+  "afterSynthesis": 12,
+  "urlDupes": 2,
+  "budgetDropped": 10,
+  "agentCalls": 100
+ }
+}
