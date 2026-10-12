@@ -2,9 +2,10 @@ extends SceneTree
 # 자체 테스트 실행기: `-- <res:// 경로>`로 받은 파일의 test_로 시작하는 함수를 모두 돌리고 종료 코드로 알린다.
 # test 함수는 통과면 "", 실패면 이유 문자열을 돌려준다. 런타임 오류로 null이 오면 실패다.
 
+var started := false
 var done := false
 
-func _initialize() -> void:
+func _run() -> void:
 	var path: String = OS.get_cmdline_user_args()[0]
 	var script = load(path)
 	if script == null or not script.can_instantiate():
@@ -32,9 +33,13 @@ func _finish(fails: int, why: String) -> void:
 		printerr("FAIL: ", why)
 	quit(0 if fails == 0 else 1)
 
-# _initialize가 결과 없이 중단돼도 첫 프레임에서 실패로 끝낸다(무한 대기 방지)
+# 첫 프레임에 돌린다(_initialize 때는 root가 아직 트리 밖이라 노드 테스트가 안 된다).
+# _run이 결과 없이 중단되면 다음 프레임에서 실패로 끝낸다(무한 대기 방지).
 func _process(_delta: float) -> bool:
-	if not done:
+	if not started:
+		started = true
+		_run()
+	elif not done:
 		printerr("FAIL: 실행기가 결과 없이 중단됐다")
 		quit(1)
 	return false
