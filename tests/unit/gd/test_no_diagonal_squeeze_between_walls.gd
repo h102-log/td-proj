@@ -7,7 +7,7 @@ extends RefCounted
 
 func test_diagonal_wall_line_forces_breaking_a_wall():
 	var b = load("res://src/sim/battle.gd").new({
-		"size": Vector2i(10, 10), "base": Vector2i(9, 9), "base_hp": 100, "spawns": [Vector2i(0, 0)],
+		"size": Vector2i(10, 10), "base": Vector2i(9, 9), "base_hp": 100, "gold": 1000000, "spawns": [Vector2i(0, 0)],
 	})
 	var walls := []
 	for x in 10:

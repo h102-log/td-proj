@@ -5,6 +5,7 @@ const Battle := preload("res://src/sim/battle.gd")
 const BattleView := preload("res://src/ui/battle_view.gd")
 const Camera := preload("res://src/ui/camera.gd")
 const Controls := preload("res://src/ui/controls.gd")
+const Hud := preload("res://src/ui/hud.gd")
 
 var view
 var controls
@@ -19,12 +20,13 @@ func _ready() -> void:
 	cam.map_px = Vector2(view.battle.size * BattleView.CELL)
 	cam.position = Vector2(view.battle.base.cell * BattleView.CELL)
 	add_child(cam)
+	add_child(Hud.new(view.battle, controls))
 
 func _process(delta: float) -> void:
 	view.battle.step(delta)
 	view.queue_redraw()
 
-# ponytail: 웨이브 시작은 Enter·Space(기본 ui_accept)다. 전투 시작 버튼은 HUD를 만들 때(2.10) 붙인다
+# 전투 시작은 HUD 버튼 말고 Enter·Space(기본 ui_accept)로도 된다
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_accept"):
 		view.battle.start_battle()
@@ -38,7 +40,7 @@ static func stage() -> Dictionary:
 		if Vector2i(x, 9) not in gates:
 			walls.append(Vector2i(x, 9))
 	return {
-		"size": Vector2i(40, 32), "base": Vector2i(20, 4), "base_hp": 100,
+		"size": Vector2i(40, 32), "base": Vector2i(20, 4), "base_hp": 100, "gold": 100,
 		"spawns": [Vector2i(6, 31), Vector2i(20, 31), Vector2i(33, 31)],
 		# 영웅은 정문 바로 앞 들판에서 시작한다. 성문 열기가 없어서 마을 안에 두면 나올 수 없다(I42, 사용자 2026-10-12)
 		"hero_start": Vector2i(20, 11),

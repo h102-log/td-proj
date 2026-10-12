@@ -240,43 +240,43 @@
 
 | 문장 | 코드 위치 |
 | --- | --- |
-| S1 | src/sim/battle.gd:146-147 |
-| S2 | src/sim/battle.gd:274 |
-| S3 | src/sim/battle.gd:143 · src/sim/battle.gd:288 |
-| S4 | src/sim/battle.gd:298-313 · src/sim/battle.gd:315-324 · src/sim/battle.gd:330-334 |
-| S5 | src/sim/battle.gd:371-375 · src/sim/battle.gd:311-312 |
-| S6 | src/sim/battle.gd:292-296 · src/sim/battle.gd:330-334 |
-| S7 | src/sim/battle.gd:112-117 · src/sim/battle.gd:294-296 |
-| S8 | src/sim/battle.gd:112-117 · src/sim/battle.gd:294-296 |
-| S9 | src/sim/battle.gd:112-117 · src/sim/battle.gd:330-334 |
-| S10 | src/sim/battle.gd:260 · src/sim/battle.gd:164-167 |
+| S1 | src/sim/battle.gd:150-151 |
+| S2 | src/sim/battle.gd:304 |
+| S3 | src/sim/battle.gd:148 · src/sim/battle.gd:319 |
+| S4 | src/sim/battle.gd:329-344 · src/sim/battle.gd:346-355 · src/sim/battle.gd:361-365 |
+| S5 | src/sim/battle.gd:402-406 · src/sim/battle.gd:342-343 |
+| S6 | src/sim/battle.gd:323-327 · src/sim/battle.gd:361-365 |
+| S7 | src/sim/battle.gd:115-120 · src/sim/battle.gd:325-327 |
+| S8 | src/sim/battle.gd:115-120 · src/sim/battle.gd:325-327 |
+| S9 | src/sim/battle.gd:115-120 · src/sim/battle.gd:361-365 |
+| S10 | src/sim/battle.gd:290 · src/sim/battle.gd:186-189 |
 | S11 | |
 | S12 | |
-| S13 | src/sim/battle.gd:305-306 · src/sim/battle.gd:322-324 · src/sim/battle.gd:396 · src/sim/battle.gd:435-445 · src/sim/battle.gd:173 · src/sim/battle.gd:347-360 · src/ui/battle_view.gd:41 |
-| S14 | src/sim/battle.gd:216-223 · src/sim/battle.gd:393-404 · src/ui/controls.gd:37-38 · src/main.gd:31 |
-| S15 | src/sim/battle.gd:385 · src/sim/battle.gd:387 · src/sim/battle.gd:413-415 · src/sim/battle.gd:418-426 · src/sim/battle.gd:238-246 · src/ui/controls.gd:22-23 |
-| S16 | src/ui/controls.gd:32-36 · src/ui/controls.gd:40-48 · src/ui/controls.gd:24-27 · src/sim/battle.gd:225-236 · src/sim/battle.gd:385 · src/ui/battle_view.gd:48-49 |
-| S17 | src/sim/battle.gd:190-197 · src/sim/battle.gd:175-177 |
-| S18 | src/sim/battle.gd:250-261 · src/sim/battle.gd:209-214 |
-| S19 | |
+| S13 | src/sim/battle.gd:336-337 · src/sim/battle.gd:353-355 · src/sim/battle.gd:427 · src/sim/battle.gd:466-476 · src/sim/battle.gd:195 · src/sim/battle.gd:378-391 · src/ui/battle_view.gd:41 |
+| S14 | src/sim/battle.gd:242-249 · src/sim/battle.gd:424-435 · src/ui/controls.gd:51-52 · src/main.gd:33 |
+| S15 | src/sim/battle.gd:416 · src/sim/battle.gd:418 · src/sim/battle.gd:444-446 · src/sim/battle.gd:449-457 · src/sim/battle.gd:264-272 · src/ui/controls.gd:25-26 |
+| S16 | src/ui/controls.gd:46-50 · src/ui/controls.gd:54-62 · src/ui/controls.gd:27-30 · src/sim/battle.gd:251-262 · src/sim/battle.gd:416 · src/ui/battle_view.gd:48-49 |
+| S17 | src/sim/battle.gd:212-219 · src/sim/battle.gd:197-199 · src/ui/hud.gd:54 |
+| S18 | src/sim/battle.gd:277-291 · src/sim/battle.gd:231-240 · src/ui/controls.gd:30-45 · src/ui/controls.gd:65-69 · src/ui/hud.gd:34-38 |
+| S19 | src/sim/battle.gd:134 · src/ui/hud.gd:54 (일부: 골드 하나뿐이다. 전투 중 사용은 W2) |
 | S20 | |
 | S21 | |
 | S22 | |
 | S23 | |
 | S24 | |
 | S25 | |
-| S26 | src/sim/battle.gd:73-75 · src/sim/battle.gd:277-278 · src/sim/battle.gd:178-188 |
-| S27 | src/sim/battle.gd:128 · src/sim/battle.gd:178 |
-| S28 | src/sim/battle.gd:16 · src/sim/battle.gd:363-375 · src/sim/battle.gd:418-426 · src/sim/battle.gd:279-282 · src/ui/battle_view.gd:31-38 · src/ui/battle_view.gd:51-54 |
-| S29 | |
+| S26 | src/sim/battle.gd:76-78 · src/sim/battle.gd:308-309 · src/sim/battle.gd:200-210 |
+| S27 | src/sim/battle.gd:131 · src/sim/battle.gd:200 |
+| S28 | src/sim/battle.gd:18 · src/sim/battle.gd:394-406 · src/sim/battle.gd:449-457 · src/sim/battle.gd:310-313 · src/ui/battle_view.gd:31-38 · src/ui/battle_view.gd:51-54 |
+| S29 | src/sim/battle.gd:158-181 · src/ui/hud.gd:61-62 · src/ui/hud.gd:78-81 |
 | S30 | project.godot:16-17 |
 | S31 | |
 | S32 | tests/unit/test_gdscript_suites.py:31 · tests/unit/gd/runner.gd:8 |
 | S33 | |
-| S34 | src/sim/battle.gd:8 · src/sim/battle.gd:107 · src/sim/battle.gd:295 |
-| S35 | src/sim/battle.gd:83 · src/sim/battle.gd:225-230 · src/sim/battle.gd:386-391 · src/ui/controls.gd:24-25 · src/ui/battle_view.gd:43 |
-| S36 | src/sim/battle.gd:84-86 · src/sim/battle.gd:232-236 · src/sim/battle.gd:384-385 · src/sim/battle.gd:405-412 · src/ui/controls.gd:26-27 · src/ui/battle_view.gd:44-45 |
-| S37 | src/sim/battle.gd:146-149 · src/main.gd:46 (일부: 성곽 배치만. 마을 구역·업그레이드는 W2 이후) |
+| S34 | src/sim/battle.gd:8 · src/sim/battle.gd:110 · src/sim/battle.gd:326 |
+| S35 | src/sim/battle.gd:86 · src/sim/battle.gd:251-256 · src/sim/battle.gd:417-422 · src/ui/controls.gd:27-28 · src/ui/battle_view.gd:43 |
+| S36 | src/sim/battle.gd:87-89 · src/sim/battle.gd:258-262 · src/sim/battle.gd:415-416 · src/sim/battle.gd:436-443 · src/ui/controls.gd:29-30 · src/ui/battle_view.gd:44-45 |
+| S37 | src/sim/battle.gd:150-153 · src/main.gd:48 (일부: 성곽 배치만. 마을 구역·업그레이드는 W2 이후) |
 | S38 | |
 | S39 | |
 | S40 | |
@@ -290,7 +290,7 @@
 | S48 | |
 | S49 | |
 | S50 | |
-| S51 | src/main.gd:33-48 (W1 시험 스테이지. 스테이지 전반은 5.1) |
+| S51 | src/main.gd:35-50 (W1 시험 스테이지. 스테이지 전반은 5.1) |
 | S52 | src/ui/camera.gd:18-23 · src/ui/camera.gd:40-48 |
 | S53 | src/ui/camera.gd:25-32 |
 | S54 | |
@@ -303,51 +303,51 @@
 | S61 | |
 | S62 | |
 | S63 | |
-| S64 | |
+| S64 | src/sim/battle.gd:160-181 (일부: W1은 라운드 하나뿐인 도전이라 재시작이 곧 하드리셋이다. 여러 라운드 도전은 W1 밖) |
 | S65 | |
 | S66 | |
-| S67 | src/sim/battle.gd:182-188 |
+| S67 | src/sim/battle.gd:204-210 |
 | I1 | |
-| I2 | src/sim/battle.gd:294-296 · src/sim/battle.gd:435-445 |
-| I3 | src/sim/battle.gd:103-104 (일부: 지금 구조물은 방벽·타워뿐이다) |
-| I5 | src/sim/battle.gd:279-282 (일부: 파괴만. W1에는 전투 중 건설이 없다) |
-| I6 | src/sim/battle.gd:330-334 |
-| I7 | src/sim/battle.gd:298-306 · src/sim/battle.gd:365-366 |
-| I8 | src/sim/battle.gd:311-312 |
-| I9 | src/ui/controls.gd:40-48 (일부: 영웅 선택 단축키는 아직 없다) |
-| I10 | src/ui/controls.gd:22-23 |
+| I2 | src/sim/battle.gd:325-327 · src/sim/battle.gd:466-476 |
+| I3 | src/sim/battle.gd:106-107 (일부: 지금 구조물은 방벽·타워뿐이다) |
+| I5 | src/sim/battle.gd:310-313 (일부: 파괴만. W1에는 전투 중 건설이 없다) |
+| I6 | src/sim/battle.gd:361-365 |
+| I7 | src/sim/battle.gd:329-337 · src/sim/battle.gd:396-397 |
+| I8 | src/sim/battle.gd:342-343 |
+| I9 | src/ui/controls.gd:54-62 (일부: 영웅 선택 단축키는 아직 없다) |
+| I10 | src/ui/controls.gd:25-26 |
 | I11 | |
 | I12 | |
-| I13 | src/sim/battle.gd:190 · src/sim/battle.gd:175 |
-| I14 | src/sim/battle.gd:177 |
-| I15 | |
-| I16 | |
-| I17 | |
+| I13 | src/sim/battle.gd:212 · src/sim/battle.gd:197 · src/ui/hud.gd:39 · src/ui/hud.gd:73-75 · src/main.gd:31 |
+| I14 | src/sim/battle.gd:199 |
+| I15 | src/sim/battle.gd:9 · src/sim/battle.gd:54 · src/sim/battle.gd:307 · src/sim/battle.gd:164 · src/main.gd:43 |
+| I16 | src/sim/battle.gd:235-237 · src/sim/battle.gd:283-285 |
+| I17 | src/sim/battle.gd:283-285 (일부: 준비 단계 건설만. 공병은 W2) |
 | I18 | |
 | I19 | |
 | I20 | |
 | I21 | |
 | I22 | |
 | I23 | |
-| I24 | src/sim/battle.gd:251 · src/sim/battle.gd:253-254 (일부: 적이 선 칸은 보지 않는다. 준비 단계엔 적이 없고, 전투 중 건설은 W2) |
+| I24 | src/sim/battle.gd:278 · src/sim/battle.gd:280-281 (일부: 적이 선 칸은 보지 않는다. 준비 단계엔 적이 없고, 전투 중 건설은 W2) |
 | I25 | |
-| I26 | src/sim/battle.gd:273-278 |
-| I27 | src/sim/battle.gd:185 |
-| I28 | src/sim/battle.gd:128 (일부: 기본값만. 설정 메뉴는 4.2) |
-| I29 | src/sim/battle.gd:370-375 · src/sim/battle.gd:418-426 |
+| I26 | src/sim/battle.gd:303-309 |
+| I27 | src/sim/battle.gd:207 |
+| I28 | src/sim/battle.gd:131 (일부: 기본값만. 설정 메뉴는 4.2) |
+| I29 | src/sim/battle.gd:401-406 · src/sim/battle.gd:449-457 |
 | I30 | |
 | I31 | tests/unit/test_gdscript_suites.py:36 · tests/unit/gd/runner.gd:34 |
 | I32 | project.godot:8 |
-| I33 | src/sim/battle.gd:12-15 · src/sim/battle.gd:238-246 (일부: W1 스킬 1개만. 스킬 2개·오라는 미정) |
+| I33 | src/sim/battle.gd:13-16 · src/sim/battle.gd:264-272 (일부: W1 스킬 1개만. 스킬 2개·오라는 미정) |
 | I34 | |
-| I35 | src/sim/battle.gd:385 · src/sim/battle.gd:390-391 |
-| I36 | src/sim/battle.gd:81 · src/sim/battle.gd:405-412 |
-| I37 | src/sim/battle.gd:236 · src/sim/battle.gd:383-384 · src/sim/battle.gd:403-404 |
-| I38 | src/sim/battle.gd:83 (일부: 기본값만. 구매·생산 시설은 W2) |
+| I35 | src/sim/battle.gd:416 · src/sim/battle.gd:421-422 |
+| I36 | src/sim/battle.gd:84 · src/sim/battle.gd:436-443 |
+| I37 | src/sim/battle.gd:262 · src/sim/battle.gd:414-415 · src/sim/battle.gd:434-435 |
+| I38 | src/sim/battle.gd:86 (일부: 기본값만. 구매·생산 시설은 W2) |
 | I39 | |
-| I40 | src/sim/battle.gd:109-110 · src/sim/battle.gd:279-282 |
+| I40 | src/sim/battle.gd:112-113 · src/sim/battle.gd:310-313 |
 | I41 | |
-| I42 | src/sim/battle.gd:19 · src/sim/battle.gd:220 · src/sim/battle.gd:443 (일부: 닫힌 성문만. 성문 여닫기는 이후) |
+| I42 | src/sim/battle.gd:21 · src/sim/battle.gd:246 · src/sim/battle.gd:474 (일부: 닫힌 성문만. 성문 여닫기는 이후) |
 | I43 | |
 | I44 | |
 | I45 | |
@@ -356,7 +356,7 @@
 | I48 | |
 | I49 | |
 | I50 | src/ui/camera.gd:26 · src/ui/camera.gd:35-37 · src/ui/camera.gd:40-48 |
-| I51 | src/sim/battle.gd:8 · src/sim/battle.gd:10-11 · src/sim/battle.gd:335-338 · src/sim/battle.gd:347-360 · src/sim/battle.gd:398-401 · src/sim/battle.gd:435-445 · src/sim/battle.gd:170 · src/sim/battle.gd:173 · src/ui/battle_view.gd:41 · src/ui/battle_view.gd:47 |
+| I51 | src/sim/battle.gd:8 · src/sim/battle.gd:11-12 · src/sim/battle.gd:366-369 · src/sim/battle.gd:378-391 · src/sim/battle.gd:429-432 · src/sim/battle.gd:466-476 · src/sim/battle.gd:192 · src/sim/battle.gd:195 · src/ui/battle_view.gd:41 · src/ui/battle_view.gd:47 |
 | I52 | |
 | I53 | |
 | I54 | |
