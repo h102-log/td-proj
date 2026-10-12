@@ -7,7 +7,7 @@ extends RefCounted
 
 func _battle():
 	return load("res://src/sim/battle.gd").new({
-		"size": Vector2i(10, 10), "base": Vector2i(5, 5), "base_hp": 100, "spawns": [Vector2i(0, 5)],
+		"size": Vector2i(10, 10), "base": Vector2i(5, 5), "base_hp": 100, "gold": 1000000, "spawns": [Vector2i(0, 5)],
 		"waves": [[{"kind": "basic", "count": 1}]],
 		"castle": {"walls": [Vector2i(3, 4)], "gates": [Vector2i(3, 5)], "wall_hp": 300, "gate_hp": 150},
 	})

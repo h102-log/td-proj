@@ -6,7 +6,7 @@ extends RefCounted
 # 서로 밀어내며 끝없이 걷는다(도착하지 못하면 I36의 추적도 시작하지 않는다).
 
 func _battle():
-	return load("res://src/sim/battle.gd").new({"size": Vector2i(20, 20), "base": Vector2i(19, 19), "base_hp": 1000000, "spawns": [Vector2i(0, 0)]})
+	return load("res://src/sim/battle.gd").new({"size": Vector2i(20, 20), "base": Vector2i(19, 19), "base_hp": 1000000, "gold": 1000000, "spawns": [Vector2i(0, 0)]})
 
 func _steps(b, n: int) -> void:
 	for i in n:

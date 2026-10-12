@@ -7,7 +7,7 @@ extends RefCounted
 # 뒤에서 미는 적들(적끼리 밀어내기, I51)에 떠밀려 앞의 적이 용병을 뚫고 지나가면 안 된다.
 
 func test_crowd_cannot_pass_merc_in_one_cell_gap():
-	var b = load("res://src/sim/battle.gd").new({"size": Vector2i(11, 14), "base": Vector2i(5, 1), "base_hp": 1000000, "spawns": [Vector2i(5, 13)]})
+	var b = load("res://src/sim/battle.gd").new({"size": Vector2i(11, 14), "base": Vector2i(5, 1), "base_hp": 1000000, "gold": 1000000, "spawns": [Vector2i(5, 13)]})
 	var walls := []
 	for x in 11:
 		if x != 5:

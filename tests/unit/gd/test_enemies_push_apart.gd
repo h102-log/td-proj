@@ -8,7 +8,7 @@ extends RefCounted
 # 같은 칸 중심을 노리는 적들이 서로 밀어내며 그 자리에 멈춘다(W1 정문에서 실제로 났다).
 
 func _battle(size: Vector2i, base: Vector2i, spawn: Vector2i):
-	return load("res://src/sim/battle.gd").new({"size": size, "base": base, "base_hp": 1000000, "spawns": [spawn]})
+	return load("res://src/sim/battle.gd").new({"size": size, "base": base, "base_hp": 1000000, "gold": 1000000, "spawns": [spawn]})
 
 func _steps(b, n: int) -> void:
 	for i in n:

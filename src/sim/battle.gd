@@ -5,15 +5,17 @@ signal enemy_spawned(enemy)
 
 # ponytail: 수치는 임시값이다. 적·구조물 종류별 역할과 수치는 3.1(I34), Resource 파일화는 2.18(S31)에서 한다
 # ponytail: wall_k 1.0은 가득 찬 방벽(100) 하나 = 100칸 걷기. EV6·9(돌아가기)와 EV7(뚫기)을 함께 넘는 임시값
-const ENEMY_KINDS := {"basic": {"hp": 10.0, "speed": 2.0, "wall_k": 1.0, "damage": 5.0, "attack_gap": 1.0, "radius": 0.3, "sight": 3.0}}
+const ENEMY_KINDS := {"basic": {"hp": 10.0, "speed": 2.0, "wall_k": 1.0, "damage": 5.0, "attack_gap": 1.0, "radius": 0.3, "sight": 3.0,
+	"reward": 5}}
 # ponytail: 용병 수치도 임시값이다. range 1.2는 옆 칸(1)의 적을 치는 근접(EV26). 종류·밸런스는 3.1(I34)에서
-const MERC_KINDS := {"soldier": {"hp": 50.0, "radius": 0.3, "speed": 2.5, "damage": 2.0, "range": 1.2, "attack_gap": 1.0,
+const MERC_KINDS := {"soldier": {"cost": 20, "hp": 50.0, "radius": 0.3, "speed": 2.5, "damage": 2.0, "range": 1.2, "attack_gap": 1.0,
 	"sight": 4.0, "hold_radius": 2.0}}
 # 스킬은 «주변 skill_radius칸 안의 적 전부에게 피해»다(I33, 사용자 2026-10-12: 1.5칸·대기 10초·단축키 Q). 피해량 등 나머지는 임시값
 # ponytail: 영웅은 하나뿐이다. 영웅 종류·스킬 2개·오라(I33)는 내용이 정해지면 HERO_KINDS로 넓힌다
 const HERO := {"hp": 100.0, "radius": 0.3, "speed": 3.0, "damage": 3.0, "range": 1.5, "attack_gap": 1.0,
 	"skill_damage": 30.0, "skill_radius": 1.5, "skill_gap": 10.0}
-const STRUCTURE_KINDS := {"wall": {"hp": 100.0}, "tower": {"hp": 100.0, "range": 4.0, "damage": 2.0, "fire_gap": 1.0}}
+# 골드(cost·reward)도 임시값이다(사용자 2026-10-12: 시작 100·방벽 10·타워 30·용병 20·처치 5)
+const STRUCTURE_KINDS := {"wall": {"cost": 10, "hp": 100.0}, "tower": {"cost": 30, "hp": 100.0, "range": 4.0, "damage": 2.0, "fire_gap": 1.0}}
 const SPAWN_GAP := 1.0  # 웨이브 안에서 적이 나오는 간격(초)
 const REACH := 1.0      # 적이 막힌 칸·거점·유닛을 칠 수 있는 거리(중심 사이). 옆 칸 중심까지가 1이다
 const UNIT_WALL_K := 1e6  # 유닛 경로의 막힌 칸 비용 배율. 돌아갈 길이 있으면 막힌 칸(닫힌 성문 포함, I42)을 지나지 않는다
@@ -49,6 +51,7 @@ class Enemy:
 	var damage: float
 	var attack_gap: float  # 공격 간격(초)
 	var sight: float  # 인식 범위(칸)
+	var reward := 0  # 처치하면 얻는 골드(I15)
 	var cooldown := 0.0  # 0 이하면 바로 칠 수 있다
 	var alive := true
 	var attacker  # 마지막으로 이 적을 쏜 구조물. 살아 있는 동안 반격 대상이다(S4 ②)
@@ -128,6 +131,7 @@ var hero  # 영웅(Unit). 스테이지에 hero_start가 없으면 null
 var revive := true  # 쓰러진 영웅이 다음 준비 단계에 돌아온다(S27). 기본값 켜짐(I28)
 var state := "prep"
 var wave_index := 0
+var gold := 0
 
 var grid := CostGrid.new()
 var _repath := false  # 막힌 칸이 바뀌어 적 경로를 다시 구해야 한다
@@ -135,6 +139,7 @@ var _queue := []      # 이번 웨이브에서 아직 안 나온 적 종류
 var _spawn_timer := 0.0
 var _spawned := 0     # 이번 웨이브에서 나온 적 수(출현 지점 돌아가며 쓰기)
 var _hero_start: Vector2i  # 쓰러진 영웅이 돌아오는 칸
+var _stage: Dictionary  # 재시작할 때 다시 읽는다
 
 func _init(stage: Dictionary) -> void:
 	size = stage.size
@@ -142,17 +147,34 @@ func _init(stage: Dictionary) -> void:
 	for c in spawns:
 		assert(c.x == 0 or c.y == 0 or c.x == size.x - 1 or c.y == size.y - 1, "출현 지점 %s가 맵 가장자리가 아니다" % c)
 	waves = stage.get("waves", [])
-	base = Block.new(stage.base, "base", stage.base_hp)
 	grid.region = Rect2i(Vector2i.ZERO, size)
 	grid.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
 	grid.update()
 	grid.castle = castle
 	grid.structures = structures
+	_stage = stage
+	restart()
+
+# 판을 stage 그대로 처음 상태로 놓는다(S29). W1은 라운드 하나뿐인 도전이라 재시작이 곧 하드리셋이다(S64)
+# 컬렉션은 새로 만들지 않고 비운다. grid와 화면이 같은 객체를 쥐고 있다
+func restart() -> void:
+	var stage := _stage
+	state = "prep"
+	wave_index = 0
+	gold = stage.get("gold", 0)
+	base = Block.new(stage.base, "base", stage.base_hp)
+	castle.clear()
+	structures.clear()
+	enemies.clear()
+	units.clear()
+	_queue.clear()
+	_repath = false
 	var fort: Dictionary = stage.get("castle", {})
 	for c in fort.get("walls", []):
 		castle[c] = Block.new(c, "castle_wall", fort.wall_hp)
 	for c in fort.get("gates", []):
 		castle[c] = Block.new(c, "gate", fort.gate_hp)
+	hero = null
 	if stage.get("hero_start") != null:
 		_hero_start = stage.hero_start
 		hero = Unit.new("hero", _hero_start, HERO)
@@ -205,11 +227,15 @@ func spawn_enemy(kind: String, cell: Vector2i, overrides := {}):
 	enemy_spawned.emit(e)
 	return e
 
-# 준비 단계에만, 막힌 칸·거점이 아닌 맵 안 칸에 바로 놓는다(S18)
+# 준비 단계에만, 막힌 칸·거점이 아닌 맵 안 칸에 바로 놓는다(S18). 골드가 모자라면 거부한다(I16)
 func place_merc(kind: String, cell: Vector2i, overrides := {}):
 	if state != "prep" or not grid.is_in_boundsv(cell) or grid.block_at(cell) or cell == base.cell:
 		return null
-	var m := Unit.new(kind, cell, MERC_KINDS[kind].merged(overrides, true))
+	var stats: Dictionary = MERC_KINDS[kind].merged(overrides, true)
+	if gold < stats.cost:
+		return null
+	gold -= stats.cost
+	var m := Unit.new(kind, cell, stats)
 	units.append(m)
 	return m
 
@@ -246,6 +272,7 @@ func use_skill() -> void:
 			damage(e, hero.skill_damage)
 
 # 준비 단계에만, 빈 칸(구조물·성곽·거점·유닛이 없는 맵 안 칸)에 바로 완성해 짓는다(S18, I24)
+# 건설비는 지시하는 순간 내고, 모자라면 거부한다(I16, I17)
 # ponytail: 적이 선 칸은 보지 않는다. 준비 단계엔 적이 없다. 전투 중 건설(공병, W2)이 생기면 더한다
 func build(kind: String, cell: Vector2i, overrides := {}):
 	if state != "prep" or not grid.is_in_boundsv(cell) or structures.has(cell) or castle.has(cell) or cell == base.cell:
@@ -253,6 +280,9 @@ func build(kind: String, cell: Vector2i, overrides := {}):
 	if units.any(func(u): return Vector2i(u.pos.round()) == cell):
 		return null
 	var stats: Dictionary = STRUCTURE_KINDS[kind].merged(overrides, true)
+	if gold < stats.cost:
+		return null
+	gold -= stats.cost
 	var s := Block.new(cell, kind, stats.hp)
 	for key in stats:
 		s.set(key, stats[key])
@@ -274,6 +304,7 @@ func damage(target, amount: float) -> void:
 		state = "lost"
 	elif target is Enemy:
 		enemies.erase(target)
+		gold += target.reward
 	elif target is Unit:  # 전장에서 빠진다. 영웅은 다음 준비 단계에 돌아온다(step, S26)
 		units.erase(target)
 	else:  # 구조물·성곽: 칸이 비고 경로를 다시 구한다(I5)
