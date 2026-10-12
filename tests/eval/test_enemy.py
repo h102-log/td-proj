@@ -18,7 +18,7 @@ def test_EV15_breaks_wall_to_reach_shooter(gd):
     gd("enemy", "EV15")
 
 
-def test_EV16_units_do_not_body_block(gd):
+def test_EV16_body_block_enemy_attacks_blocker(gd):
     gd("enemy", "EV16")
 
 
