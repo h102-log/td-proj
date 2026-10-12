@@ -6,8 +6,9 @@ signal enemy_spawned(enemy)
 # ponytail: 수치는 임시값이다. 적·구조물 종류별 역할과 수치는 3.1(I34), Resource 파일화는 2.18(S31)에서 한다
 # ponytail: wall_k 1.0은 가득 찬 방벽(100) 하나 = 100칸 걷기. EV6·9(돌아가기)와 EV7(뚫기)을 함께 넘는 임시값
 const ENEMY_KINDS := {"basic": {"hp": 10.0, "speed": 2.0, "wall_k": 1.0, "damage": 5.0, "attack_gap": 1.0, "radius": 0.3, "sight": 3.0}}
-# ponytail: 용병은 몸과 체력만 있다. 이동·자동 공격(damage·range·sight·hold_radius)은 2.8에서 붙인다
-const MERC_KINDS := {"soldier": {"hp": 50.0, "radius": 0.3}}
+# ponytail: 용병 수치도 임시값이다. range 1.2는 옆 칸(1)의 적을 치는 근접(EV26). 종류·밸런스는 3.1(I34)에서
+const MERC_KINDS := {"soldier": {"hp": 50.0, "radius": 0.3, "speed": 2.5, "damage": 2.0, "range": 1.2, "attack_gap": 1.0,
+	"sight": 4.0, "hold_radius": 2.0}}
 # 스킬은 «주변 skill_radius칸 안의 적 전부에게 피해»다(I33, 사용자 2026-10-12: 1.5칸·대기 10초·단축키 Q). 피해량 등 나머지는 임시값
 # ponytail: 영웅은 하나뿐이다. 영웅 종류·스킬 2개·오라(I33)는 내용이 정해지면 HERO_KINDS로 넓힌다
 const HERO := {"hp": 100.0, "radius": 0.3, "speed": 3.0, "damage": 3.0, "range": 1.5, "attack_gap": 1.0,
@@ -60,7 +61,7 @@ class Enemy:
 			set(key, stats[key])
 		max_hp = hp
 
-# 영웅과 용병(I1). 지금은 영웅만 걷고 치고 스킬을 쓴다. 용병은 speed·range가 0이다(2.8에서 붙인다)
+# 영웅과 용병(I1). 스킬은 영웅만, 이동 방식·홀드는 용병만 쓴다(S16)
 class Unit:
 	var kind: String
 	var pos: Vector2  # 칸 단위, Enemy.pos와 같다
@@ -76,7 +77,12 @@ class Unit:
 	var range := 0.0  # 사거리(칸). 0보다 커야 적을 친다
 	var attack_gap := 1.0  # 공격 간격(초)
 	var cooldown := 0.0
+	var sight := 0.0  # 인식 범위(칸). 서 있을 때 이 안의 적을 쫓는다(I36)
 	var path: Array[Vector2i] = []  # 명령받은 이동 경로(지금 칸 제외)
+	var move_mode := "attack_move"  # "move" | "attack_move"(S35). 새 용병은 이동 중 공격(I38)
+	var hold := false  # 켜지면 anchor에서 hold_radius 안에서만 싸운다(S36)
+	var hold_radius := 0.0
+	var anchor: Vector2  # 홀드 기준 지점(I37)
 	var skill_damage := 0.0
 	var skill_radius := 0.0
 	var skill_gap := 0.0  # 재사용 대기(초). 0이면 스킬이 없다
@@ -160,9 +166,10 @@ func step(dt: float) -> void:
 			_find_path(e)
 	for e in enemies:
 		_move(e, dt)
-	_push_apart()
+	_push_apart(enemies, units)
 	for u in units:
 		_act(u, dt)
+	_push_apart(units, enemies)
 	_fire(dt)
 	if state == "battle" and _queue.is_empty() and enemies.is_empty():
 		wave_index += 1
@@ -171,7 +178,7 @@ func step(dt: float) -> void:
 			_return_hero()
 
 # 쓰러진 영웅은 시작 지점에 체력이 가득 찬 채 돌아온다(S26, I27)
-# ponytail: 공격·스킬 대기는 쓰러질 때 값 그대로 둔다. 정할 문장이 생기면 여기서 초기화
+# 공격·스킬 대기는 쓰러질 때 값을 이어 간다(S67)
 func _return_hero() -> void:
 	hero.alive = true
 	hero.hp = hero.max_hp
@@ -214,6 +221,19 @@ func order_move(group: Array, cell: Vector2i) -> void:
 		if u.alive:
 			u.path = grid.get_id_path(Vector2i(u.pos.round()), cell, true).slice(1)
 
+# 용병의 이동 방식(S35)·홀드(S36)를 바꾼다. 영웅에게는 걸지 않는다(S16)
+func set_move_mode(group: Array, mode: String) -> void:
+	assert(mode in ["move", "attack_move"], "이동 방식 %s" % mode)
+	for u in group:
+		if u != hero:
+			u.move_mode = mode
+
+func set_hold(group: Array, on: bool) -> void:
+	for u in group:
+		if u != hero:
+			u.hold = on
+			u.anchor = u.pos  # 기준 지점은 켠 순간의 위치(I37)
+
 # 영웅 스킬(S15): 주변 skill_radius칸 안의 적 전부에게 피해. 명령으로만 쓴다
 func use_skill() -> void:
 	if not hero or not hero.alive or not hero.skill_ready():
@@ -224,9 +244,12 @@ func use_skill() -> void:
 		if e.pos.distance_to(hero.pos) <= hero.skill_radius:
 			damage(e, hero.skill_damage)
 
-# 준비 단계에만, 빈 칸(구조물·성곽·거점이 없는 맵 안 칸)에 바로 완성해 짓는다(S18, I24)
+# 준비 단계에만, 빈 칸(구조물·성곽·거점·유닛이 없는 맵 안 칸)에 바로 완성해 짓는다(S18, I24)
+# ponytail: 적이 선 칸은 보지 않는다. 준비 단계엔 적이 없다. 전투 중 건설(공병, W2)이 생기면 더한다
 func build(kind: String, cell: Vector2i, overrides := {}):
 	if state != "prep" or not grid.is_in_boundsv(cell) or structures.has(cell) or castle.has(cell) or cell == base.cell:
+		return null
+	if units.any(func(u): return Vector2i(u.pos.round()) == cell):
 		return null
 	var stats: Dictionary = STRUCTURE_KINDS[kind].merged(overrides, true)
 	var s := Block.new(cell, kind, stats.hp)
@@ -320,19 +343,20 @@ func _move(e: Enemy, dt: float) -> void:
 			_shove(e, (target - e.pos) / d * left, units)
 			left = 0.0
 
-# 겹친 적끼리 겹친 만큼 반씩 밀어낸다. 경로는 그대로라 밀려난 적은 _move가 다시 데려간다(I51)
+# 같은 편(bodies)끼리 겹친 만큼 반씩 밀어낸다. 상대 편(others)과는 겹치지 않게 민다.
+# 경로는 그대로라 밀려난 쪽은 _move·_act가 다시 데려간다(I51)
 # ponytail: O(n²) 전수 비교, 적이 수백이면 칸 버킷으로
-func _push_apart() -> void:
-	for i in enemies.size():
-		for j in range(i + 1, enemies.size()):
-			var a: Enemy = enemies[i]
-			var o: Enemy = enemies[j]
-			var gap := o.pos - a.pos
-			var overlap := a.radius + o.radius - gap.length()
+func _push_apart(bodies: Array, others: Array) -> void:
+	for i in bodies.size():
+		for j in range(i + 1, bodies.size()):
+			var a = bodies[i]
+			var o = bodies[j]
+			var gap: Vector2 = o.pos - a.pos
+			var overlap: float = a.radius + o.radius - gap.length()
 			if overlap > 0.0:
 				var push := (gap.normalized() if gap != Vector2.ZERO else Vector2.RIGHT) * overlap / 2.0
-				_shove(a, -push, units)
-				_shove(o, push, units)
+				_shove(a, -push, others)
+				_shove(o, push, others)
 
 # 쏘는 구조물은 사거리 안에서 가장 가까운 적을 쏘고(S28, I29), 맞은 적은 그 구조물에 반격한다(S5)
 func _fire(dt: float) -> void:
@@ -348,29 +372,53 @@ func _fire(dt: float) -> void:
 			best.attacker = s
 			damage(best, s.damage)
 
-# 유닛은 명령받은 경로를 걷고(S14), 사거리 안의 가장 가까운 적을 친다(S15). 걷는 동안에도 친다
+# 유닛은 명령받은 경로를 걷고(S14), 사거리 안의 가장 가까운 적을 친다(S15). 영웅은 걷는 동안에도 친다.
+# 용병은 걷는 동안 이동 방식을 따르고(S35, I35), 서 있으면 인식 범위 안의 적을 쫓는다(I36).
+# 홀드가 켜진 용병은 서 있는 동안 기준 지점 반경 안의 적만 노리고, 그 반경 밖으로 쫓아가지 않는다(S36)
 func _act(u: Unit, dt: float) -> void:
 	u.cooldown -= dt
 	u.skill_cooldown -= dt
+	# 걷는 동안엔 반경을 보지 않는다. 홀드 중 이동 지시를 받으면 도착한 곳이 새 기준이다(I37)
+	var zone := u.hold_radius if u.hold and u.path.is_empty() else INF
+	var foe = _nearest_enemy(u.pos, u.range, u.anchor, zone)
+	var walking := not u.path.is_empty()
+	if walking and u != hero:
+		if u.move_mode == "move":
+			foe = null
+		elif foe:  # 이동 중 공격: 멈춰서 친다
+			walking = false
 	var left := u.speed * dt
-	while left > 0.0 and not u.path.is_empty():
-		var to := Vector2(u.path[0]) - u.pos
-		_shove(u, to.limit_length(left), enemies)
-		left -= to.length()  # 적에게 막혀 못 갔어도 줄인다
-		if u.pos.distance_to(Vector2(u.path[0])) < 0.01:
-			u.path.remove_at(0)
-	if u.range > 0.0 and u.cooldown <= 0.0:
-		var e = _nearest_enemy(u.pos, u.range)
-		if e:
-			u.cooldown = u.attack_gap
-			damage(e, u.damage)
+	if walking:
+		while left > 0.0 and not u.path.is_empty():
+			var to := Vector2(u.path[0]) - u.pos
+			_shove(u, to.limit_length(left), enemies)
+			left -= to.length()  # 적에게 막혀 못 갔어도 줄인다
+			var d := u.pos.distance_to(Vector2(u.path[0]))
+			# 마지막 칸은 다른 유닛과 몸이 닿은 채 0.5칸 안에 들어도 도착이다. 같은 칸으로 보낸 무리가 서로 밀며 끝없이 걷지 않게(I51)
+			var crowded := u.path.size() == 1 and d <= 0.5 and units.any(func(o): return o != u and o.pos.distance_to(u.pos) < u.radius + o.radius + 0.01)
+			if d < 0.01 or crowded:
+				u.path.remove_at(0)
+				if u.path.is_empty():
+					u.anchor = u.pos
+	elif not foe:
+		# ponytail: 적에게 곧장 다가간다. 벽 너머 적에게는 벽을 따라 미끄러질 뿐이다. 막히는 일이 보이면 경로로
+		var prey = _nearest_enemy(u.pos, u.sight, u.anchor, zone)
+		if prey:
+			var p: Vector2 = u.pos + (prey.pos - u.pos).limit_length(left)
+			if u.hold:
+				p = u.anchor + (p - u.anchor).limit_length(u.hold_radius)
+			_shove(u, p - u.pos, enemies)
+	if foe and u.cooldown <= 0.0:
+		u.cooldown = u.attack_gap
+		damage(foe, u.damage)
 
-func _nearest_enemy(from: Vector2, reach: float):
+# from에서 reach 안의 가장 가까운 적. center에서 zone보다 먼 적은 뺀다(홀드 반경)
+func _nearest_enemy(from: Vector2, reach: float, center := Vector2.ZERO, zone := INF):
 	var best = null
 	var best_d := reach
 	for e in enemies:
 		var d: float = e.pos.distance_to(from)
-		if d <= best_d:
+		if d <= best_d and e.pos.distance_to(center) <= zone:
 			best = e
 			best_d = d
 	return best
@@ -381,7 +429,7 @@ func _nearest_enemy(from: Vector2, reach: float):
 # [의도] 유닛이 몸으로 적의 길을 막고, 몸이 닿은 적은 그 유닛을 치게 한다(S13, _target_of). 경로에는 유닛을 넣지 않는다(I2)
 # [이유] 겹친 뒤 따로 밀어내면, 성벽에 막힌 적이 한 축으로 미끄러지며 한 칸 틈의 용병 옆을 빠져나갔다
 #        (test_crowd_cannot_pass_merc_in_one_cell_gap)
-# ponytail: 몸 하나씩 차례로 밀어낸다. 몸끼리 붙어 있으면 앞 몸 쪽으로 다시 겹칠 수 있다. 아군끼리 밀어내기(2.8)에서 다시 본다
+# ponytail: 몸 하나씩 차례로 밀어낸다. 몸끼리 붙어 있으면 앞 몸 쪽으로 다시 겹칠 수 있다. 겹친 채 남는 일이 보이면 몇 번 되풀이한다
 func _shove(e, by: Vector2, bodies: Array) -> void:
 	for v in [by, Vector2(by.x, 0), Vector2(0, by.y)]:
 		var p: Vector2 = e.pos + v

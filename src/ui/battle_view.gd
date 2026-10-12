@@ -34,10 +34,14 @@ func _draw() -> void:
 	for u in battle.units:
 		var at: Vector2 = u.pos * CELL + Vector2(CELL, CELL) / 2
 		draw_circle(at, CELL * u.radius, COLORS.hero if u == battle.hero else COLORS.merc)
-		if u in controls.selected:
-			draw_arc(at, CELL * (u.radius + 0.2), 0.0, TAU, 24, Color.WHITE, 1.0)
+		if u in controls.selected:  # 테두리: 흰색 이동 중 공격, 노란색 무조건 이동. 홀드면 기준 반경도 그린다
+			draw_arc(at, CELL * (u.radius + 0.2), 0.0, TAU, 24, Color.YELLOW if u.move_mode == "move" else Color.WHITE, 1.0)
+			if u.hold:
+				draw_arc(u.anchor * CELL + Vector2(CELL, CELL) / 2, CELL * u.hold_radius, 0.0, TAU, 48, Color(1, 1, 1, 0.4), 1.0)
 	for e in battle.enemies:
 		draw_circle(e.pos * CELL + Vector2(CELL, CELL) / 2, CELL * e.radius, COLORS.enemy)
+	if controls.drag_rect.has_area():
+		draw_rect(controls.drag_rect, Color.WHITE, false, 1.0)
 
 func _rect(c: Vector2i) -> Rect2:
 	return Rect2(Vector2(c) * CELL, Vector2(CELL, CELL))
