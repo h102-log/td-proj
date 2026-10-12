@@ -56,6 +56,7 @@
 
 - S26. 영웅 체력이 0이 되면 영웅은 그 웨이브가 끝날 때까지 전장에서 빠지고, 다음 준비 단계에 시작 지점으로 복귀한다. (근거: WBS.md:22, WBS.md:76)
 - S27. 부활을 끄는 설정이 있다. 부활을 끄면 쓰러진 영웅은 복귀하지 않는다. (근거: WBS.md:22, WBS.md:76)
+- S67. 쓰러졌다 복귀한 영웅의 공격·스킬 대기 시간은 쓰러질 때의 값을 이어 간다(복귀할 때 초기화하지 않는다). (근거: 사용자 2026-10-12)
 
 **구조물·판 결과·화면·데이터**
 
@@ -239,24 +240,24 @@
 
 | 문장 | 코드 위치 |
 | --- | --- |
-| S1 | src/sim/battle.gd:139-140 |
-| S2 | src/sim/battle.gd:250 |
-| S3 | src/sim/battle.gd:136 · src/sim/battle.gd:264 |
-| S4 | src/sim/battle.gd:274-289 · src/sim/battle.gd:291-300 · src/sim/battle.gd:306-310 |
-| S5 | src/sim/battle.gd:346-349 · src/sim/battle.gd:287-288 |
-| S6 | src/sim/battle.gd:268-272 · src/sim/battle.gd:306-310 |
-| S7 | src/sim/battle.gd:105-110 · src/sim/battle.gd:270-272 |
-| S8 | src/sim/battle.gd:105-110 · src/sim/battle.gd:270-272 |
-| S9 | src/sim/battle.gd:105-110 · src/sim/battle.gd:306-310 |
-| S10 | src/sim/battle.gd:236 · src/sim/battle.gd:157-160 |
+| S1 | src/sim/battle.gd:145-146 |
+| S2 | src/sim/battle.gd:273 |
+| S3 | src/sim/battle.gd:142 · src/sim/battle.gd:287 |
+| S4 | src/sim/battle.gd:297-312 · src/sim/battle.gd:314-323 · src/sim/battle.gd:329-333 |
+| S5 | src/sim/battle.gd:370-373 · src/sim/battle.gd:310-311 |
+| S6 | src/sim/battle.gd:291-295 · src/sim/battle.gd:329-333 |
+| S7 | src/sim/battle.gd:111-116 · src/sim/battle.gd:293-295 |
+| S8 | src/sim/battle.gd:111-116 · src/sim/battle.gd:293-295 |
+| S9 | src/sim/battle.gd:111-116 · src/sim/battle.gd:329-333 |
+| S10 | src/sim/battle.gd:259 · src/sim/battle.gd:163-166 |
 | S11 | |
 | S12 | |
-| S13 | src/sim/battle.gd:281-282 · src/sim/battle.gd:298-300 · src/sim/battle.gd:358 · src/sim/battle.gd:385-395 · src/ui/battle_view.gd:36 (일부: 유닛과 적 사이만. 아군끼리는 2.8) |
-| S14 | src/sim/battle.gd:208-215 · src/sim/battle.gd:356-361 · src/ui/controls.gd:22-23 · src/main.gd:31 |
-| S15 | src/sim/battle.gd:362-366 · src/sim/battle.gd:368-376 · src/sim/battle.gd:217-225 · src/ui/controls.gd:14-15 |
-| S16 | |
-| S17 | src/sim/battle.gd:182-189 · src/sim/battle.gd:167-169 |
-| S18 | src/sim/battle.gd:228-237 · src/sim/battle.gd:201-206 |
+| S13 | src/sim/battle.gd:304-305 · src/sim/battle.gd:321-323 · src/sim/battle.gd:394 · src/sim/battle.gd:433-443 · src/sim/battle.gd:172 · src/sim/battle.gd:346-359 · src/ui/battle_view.gd:36 |
+| S14 | src/sim/battle.gd:215-222 · src/sim/battle.gd:391-402 · src/ui/controls.gd:37-38 · src/main.gd:31 |
+| S15 | src/sim/battle.gd:383 · src/sim/battle.gd:385 · src/sim/battle.gd:411-413 · src/sim/battle.gd:416-424 · src/sim/battle.gd:237-245 · src/ui/controls.gd:22-23 |
+| S16 | src/ui/controls.gd:32-36 · src/ui/controls.gd:40-48 · src/ui/controls.gd:24-27 · src/sim/battle.gd:224-235 · src/sim/battle.gd:383 · src/ui/battle_view.gd:43-44 |
+| S17 | src/sim/battle.gd:189-196 · src/sim/battle.gd:174-176 |
+| S18 | src/sim/battle.gd:249-260 · src/sim/battle.gd:208-213 |
 | S19 | |
 | S20 | |
 | S21 | |
@@ -264,17 +265,17 @@
 | S23 | |
 | S24 | |
 | S25 | |
-| S26 | src/sim/battle.gd:71-73 · src/sim/battle.gd:253-254 · src/sim/battle.gd:170-180 |
-| S27 | src/sim/battle.gd:121 · src/sim/battle.gd:170 |
-| S28 | src/sim/battle.gd:15 · src/sim/battle.gd:338-349 · src/sim/battle.gd:368-376 · src/sim/battle.gd:255-258 |
+| S26 | src/sim/battle.gd:72-74 · src/sim/battle.gd:276-277 · src/sim/battle.gd:177-187 |
+| S27 | src/sim/battle.gd:127 · src/sim/battle.gd:177 |
+| S28 | src/sim/battle.gd:16 · src/sim/battle.gd:362-373 · src/sim/battle.gd:416-424 · src/sim/battle.gd:278-281 |
 | S29 | |
 | S30 | project.godot:16-17 |
 | S31 | |
 | S32 | tests/unit/test_gdscript_suites.py:31 · tests/unit/gd/runner.gd:8 |
 | S33 | |
-| S34 | src/sim/battle.gd:8 · src/sim/battle.gd:100 · src/sim/battle.gd:271 |
-| S35 | |
-| S36 | |
+| S34 | src/sim/battle.gd:8 · src/sim/battle.gd:106 · src/sim/battle.gd:294 |
+| S35 | src/sim/battle.gd:82 · src/sim/battle.gd:224-229 · src/sim/battle.gd:384-389 · src/ui/controls.gd:24-25 · src/ui/battle_view.gd:38 |
+| S36 | src/sim/battle.gd:83-85 · src/sim/battle.gd:231-235 · src/sim/battle.gd:382-383 · src/sim/battle.gd:403-410 · src/ui/controls.gd:26-27 · src/ui/battle_view.gd:39-40 |
 | S37 | src/sim/battle.gd:145-148 · src/main.gd:46 (일부: 성곽 배치만. 마을 구역·업그레이드는 W2 이후) |
 | S38 | |
 | S39 | |
@@ -305,19 +306,20 @@
 | S64 | |
 | S65 | |
 | S66 | |
+| S67 | src/sim/battle.gd:181-187 |
 | I1 | |
-| I2 | src/sim/battle.gd:270-272 · src/sim/battle.gd:385-395 |
+| I2 | src/sim/battle.gd:293-295 · src/sim/battle.gd:433-443 |
 | I3 | src/sim/battle.gd:102-103 (일부: 지금 구조물은 방벽·타워뿐이다) |
-| I5 | src/sim/battle.gd:255-258 (일부: 파괴만. W1에는 전투 중 건설이 없다) |
-| I6 | src/sim/battle.gd:306-310 |
-| I7 | src/sim/battle.gd:274-282 · src/sim/battle.gd:340-341 |
-| I8 | src/sim/battle.gd:287-288 |
-| I9 | src/ui/controls.gd:19-21 (일부: 클릭으로 고르기만. 드래그 선택은 2.8, 영웅 선택 단축키는 아직 없다) |
-| I10 | src/ui/controls.gd:14-15 |
+| I5 | src/sim/battle.gd:278-281 (일부: 파괴만. W1에는 전투 중 건설이 없다) |
+| I6 | src/sim/battle.gd:329-333 |
+| I7 | src/sim/battle.gd:297-305 · src/sim/battle.gd:364-365 |
+| I8 | src/sim/battle.gd:310-311 |
+| I9 | src/ui/controls.gd:40-48 (일부: 영웅 선택 단축키는 아직 없다) |
+| I10 | src/ui/controls.gd:22-23 |
 | I11 | |
 | I12 | |
-| I13 | src/sim/battle.gd:182 · src/sim/battle.gd:167 |
-| I14 | src/sim/battle.gd:169 |
+| I13 | src/sim/battle.gd:189 · src/sim/battle.gd:174 |
+| I14 | src/sim/battle.gd:176 |
 | I15 | |
 | I16 | |
 | I17 | |
@@ -327,25 +329,25 @@
 | I21 | |
 | I22 | |
 | I23 | |
-| I24 | src/sim/battle.gd:229 (일부: 용병이 선 칸을 막는 것은 2.8) |
+| I24 | src/sim/battle.gd:250 · src/sim/battle.gd:252-253 (일부: 적이 선 칸은 보지 않는다. 준비 단계엔 적이 없고, 전투 중 건설은 W2) |
 | I25 | |
-| I26 | src/sim/battle.gd:249-254 |
-| I27 | src/sim/battle.gd:177 |
-| I28 | src/sim/battle.gd:121 (일부: 기본값만. 설정 메뉴는 4.2) |
-| I29 | src/sim/battle.gd:345-349 · src/sim/battle.gd:368-376 |
+| I26 | src/sim/battle.gd:272-277 |
+| I27 | src/sim/battle.gd:184 |
+| I28 | src/sim/battle.gd:127 (일부: 기본값만. 설정 메뉴는 4.2) |
+| I29 | src/sim/battle.gd:369-373 · src/sim/battle.gd:416-424 |
 | I30 | |
 | I31 | tests/unit/test_gdscript_suites.py:36 · tests/unit/gd/runner.gd:34 |
 | I32 | project.godot:8 |
-| I33 | src/sim/battle.gd:11-14 · src/sim/battle.gd:217-225 (일부: W1 스킬 1개만. 스킬 2개·오라는 미정) |
+| I33 | src/sim/battle.gd:12-15 · src/sim/battle.gd:237-245 (일부: W1 스킬 1개만. 스킬 2개·오라는 미정) |
 | I34 | |
-| I35 | |
-| I36 | |
-| I37 | |
-| I38 | |
+| I35 | src/sim/battle.gd:383 · src/sim/battle.gd:388-389 |
+| I36 | src/sim/battle.gd:80 · src/sim/battle.gd:403-410 |
+| I37 | src/sim/battle.gd:235 · src/sim/battle.gd:381-382 · src/sim/battle.gd:401-402 |
+| I38 | src/sim/battle.gd:82 (일부: 기본값만. 구매·생산 시설은 W2) |
 | I39 | |
-| I40 | src/sim/battle.gd:102-103 · src/sim/battle.gd:255-258 |
+| I40 | src/sim/battle.gd:108-109 · src/sim/battle.gd:278-281 |
 | I41 | |
-| I42 | src/sim/battle.gd:18 · src/sim/battle.gd:212 · src/sim/battle.gd:393 (일부: 닫힌 성문만. 성문 여닫기는 이후) |
+| I42 | src/sim/battle.gd:19 · src/sim/battle.gd:219 · src/sim/battle.gd:441 (일부: 닫힌 성문만. 성문 여닫기는 이후) |
 | I43 | |
 | I44 | |
 | I45 | |
@@ -354,7 +356,7 @@
 | I48 | |
 | I49 | |
 | I50 | src/ui/camera.gd:26 · src/ui/camera.gd:35-37 · src/ui/camera.gd:40-48 |
-| I51 | src/sim/battle.gd:8 · src/sim/battle.gd:10 · src/sim/battle.gd:311-314 · src/sim/battle.gd:323-335 · src/sim/battle.gd:385-395 · src/ui/battle_view.gd:36 · src/ui/battle_view.gd:40 (일부: 적끼리만. 아군끼리는 2.8) |
+| I51 | src/sim/battle.gd:8 · src/sim/battle.gd:10-11 · src/sim/battle.gd:334-337 · src/sim/battle.gd:346-359 · src/sim/battle.gd:396-399 · src/sim/battle.gd:433-443 · src/sim/battle.gd:169 · src/sim/battle.gd:172 · src/ui/battle_view.gd:36 · src/ui/battle_view.gd:42 |
 | I52 | |
 | I53 | |
 | I54 | |

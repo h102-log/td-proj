@@ -12,7 +12,7 @@ func test_crowd_cannot_pass_merc_in_one_cell_gap():
 	for x in 11:
 		if x != 5:
 			walls.append(b.build("wall", Vector2i(x, 6)))
-	var m = b.place_merc("soldier", Vector2i(5, 6), {"hp": 1000000})
+	var m = b.place_merc("soldier", Vector2i(5, 6), {"hp": 1000000, "damage": 0, "sight": 0})  # 치거나 쫓아가 틈을 비우지 않게
 	var es := []
 	for i in 5:
 		es.append(b.spawn_enemy("basic", Vector2i(5, 13), {"sight": 0}))

@@ -20,6 +20,11 @@ func test_build_rejected_on_occupied_or_outside_cells():
 			return "%s에 지어졌다" % [c]
 	return "" if b.structures.size() == 1 else "구조물이 %d개다" % b.structures.size()
 
+func test_build_rejected_on_merc_cell():
+	var b = _battle()
+	b.place_merc("soldier", Vector2i(7, 2))
+	return "" if b.build("wall", Vector2i(7, 2)) == null else "용병이 선 칸에 지어졌다"
+
 func test_build_rejected_during_battle():
 	var b = _battle()
 	b.start_battle()
