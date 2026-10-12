@@ -30,6 +30,7 @@ class Block:
 	var damage := 0.0
 	var fire_gap := 1.0  # 쏘는 간격(초)
 	var cooldown := 0.0
+	var target  # 마지막으로 쏜 적. 화면이 쏜 직후 사격 선을 그린다
 
 	func _init(c: Vector2i, k: String, h: float) -> void:
 		cell = c
@@ -369,6 +370,7 @@ func _fire(dt: float) -> void:
 		var best = _nearest_enemy(Vector2(s.cell), s.range)
 		if best:
 			s.cooldown = s.fire_gap
+			s.target = best
 			best.attacker = s
 			damage(best, s.damage)
 
