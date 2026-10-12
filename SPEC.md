@@ -211,24 +211,24 @@
 
 | 문장 | 코드 위치 |
 | --- | --- |
-| S1 | |
-| S2 | src/sim/battle.gd:43 |
-| S3 | src/sim/battle.gd:28 (일부: 출현 지점 검사만. 적 등장은 2.3·2.10) |
+| S1 | src/sim/battle.gd:65-66 |
+| S2 | src/sim/battle.gd:128 |
+| S3 | src/sim/battle.gd:62 · src/sim/battle.gd:136 |
 | S4 | |
 | S5 | |
 | S6 | |
-| S7 | |
-| S8 | |
+| S7 | src/sim/battle.gd:143 (일부: AStarGrid2D 경로만. 성벽 비용은 2.4) |
+| S8 | src/sim/battle.gd:142-145 |
 | S9 | |
-| S10 | |
+| S10 | src/sim/battle.gd:114 · src/sim/battle.gd:79-82 |
 | S11 | |
 | S12 | |
 | S13 | |
 | S14 | |
 | S15 | |
 | S16 | |
-| S17 | |
-| S18 | |
+| S17 | src/sim/battle.gd:89-96 · src/sim/battle.gd:85-87 |
+| S18 | src/sim/battle.gd:107-116 (일부: 구조물만. 유닛 배치는 2.8) |
 | S19 | |
 | S20 | |
 | S21 | |
@@ -247,7 +247,7 @@
 | S34 | |
 | S35 | |
 | S36 | |
-| S37 | src/sim/battle.gd:30-34 · src/main.gd:28 (일부: 성곽 배치만. 마을 구역·업그레이드는 W2 이후) |
+| S37 | src/sim/battle.gd:69-74 · src/main.gd:39 (일부: 성곽 배치만. 마을 구역·업그레이드는 W2 이후) |
 | S38 | |
 | S39 | |
 | S40 | |
@@ -261,7 +261,7 @@
 | S48 | |
 | S49 | |
 | S50 | |
-| S51 | src/main.gd:18-28 (W1 시험 스테이지. 스테이지 전반은 5.1) |
+| S51 | src/main.gd:29-41 (W1 시험 스테이지. 스테이지 전반은 5.1) |
 | S52 | src/ui/camera.gd:18-23 · src/ui/camera.gd:40-48 |
 | S53 | src/ui/camera.gd:25-32 |
 | I1 | |
@@ -275,8 +275,8 @@
 | I10 | |
 | I11 | |
 | I12 | |
-| I13 | |
-| I14 | |
+| I13 | src/sim/battle.gd:89 · src/sim/battle.gd:85 |
+| I14 | src/sim/battle.gd:87 |
 | I15 | |
 | I16 | |
 | I17 | |
@@ -286,7 +286,7 @@
 | I21 | |
 | I22 | |
 | I23 | |
-| I24 | |
+| I24 | src/sim/battle.gd:108 |
 | I25 | |
 | I26 | |
 | I27 | |
