@@ -3,24 +3,27 @@ extends Node2D
 
 const Battle := preload("res://src/sim/battle.gd")
 const BattleView := preload("res://src/ui/battle_view.gd")
+const Camera := preload("res://src/ui/camera.gd")
 
 func _ready() -> void:
 	var view := BattleView.new()
 	view.battle = Battle.new(stage())
 	add_child(view)
+	var cam := Camera.new()
+	cam.map_px = Vector2(view.battle.size * BattleView.CELL)
+	cam.position = Vector2(view.battle.base.cell * BattleView.CELL)
+	add_child(cam)
 
-# W1 시험 스테이지(30×20). 마을은 오른쪽 가장자리에 붙고 ㄷ자 성곽이 감싼다.
+# W1 시험 스테이지(40×32, S51 위아래 구도). 위쪽 마을을 가로 성곽이 막고, 적은 아래쪽 가장자리에서 온다.
 static func stage() -> Dictionary:
-	var gates := [Vector2i(19, 10), Vector2i(29, 4), Vector2i(29, 16)]  # 정문, 양 끝 쪽문
+	var gates := [Vector2i(0, 9), Vector2i(20, 9), Vector2i(39, 9)]  # 쪽문, 정문, 쪽문
 	var walls := []
-	for y in range(4, 17):
-		walls.append(Vector2i(19, y))
-	for x in range(20, 30):
-		walls.append(Vector2i(x, 4))
-		walls.append(Vector2i(x, 16))
+	for x in 40:
+		if Vector2i(x, 9) not in gates:
+			walls.append(Vector2i(x, 9))
 	return {
-		"size": Vector2i(30, 20), "base": Vector2i(25, 10), "base_hp": 100,
-		"spawns": [Vector2i(0, 10), Vector2i(10, 0), Vector2i(10, 19)],
+		"size": Vector2i(40, 32), "base": Vector2i(20, 4), "base_hp": 100,
+		"spawns": [Vector2i(6, 31), Vector2i(20, 31), Vector2i(33, 31)],
 		# ponytail: 체력은 임시값이다. 성문이 성벽보다 약해야 한다는 것(I41)만 지킨다. 수치는 3.1 밸런스에서 정한다
-		"castle": {"walls": walls.filter(func(c): return c not in gates), "gates": gates, "wall_hp": 300, "gate_hp": 150},
+		"castle": {"walls": walls, "gates": gates, "wall_hp": 300, "gate_hp": 150},
 	}
