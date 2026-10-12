@@ -30,7 +30,7 @@ func _draw() -> void:
 	draw_rect(bar, Color.BLACK)
 	draw_rect(Rect2(bar.position, Vector2(CELL * base.hp / base.max_hp, 2)), Color.GREEN)
 	for e in battle.enemies:
-		draw_circle(e.pos * CELL + Vector2(CELL, CELL) / 2, CELL * 0.3, COLORS.enemy)
+		draw_circle(e.pos * CELL + Vector2(CELL, CELL) / 2, CELL * e.radius, COLORS.enemy)
 
 func _rect(c: Vector2i) -> Rect2:
 	return Rect2(Vector2(c) * CELL, Vector2(CELL, CELL))
