@@ -5,6 +5,7 @@ const CELL := 16
 const COLORS := {
 	"field": Color("4a6b3a"), "grid": Color(0, 0, 0, 0.15), "spawn": Color("c03030"),
 	"base": Color("e0c040"), "castle_wall": Color("8a8a8a"), "gate": Color("7a5230"),
+	"wall": Color("5a5a5a"), "enemy": Color("d04040"),
 }
 
 var battle
@@ -18,6 +19,8 @@ func _draw() -> void:
 		draw_line(Vector2(0, y * CELL), Vector2(map.x, y * CELL), COLORS.grid)
 	for b in battle.castle.values():
 		draw_rect(_rect(b.cell), COLORS[b.kind])
+	for s in battle.structures.values():
+		draw_rect(_rect(s.cell), COLORS[s.kind])
 	for c in battle.spawns:
 		draw_rect(_rect(c).grow(-3), COLORS.spawn, false, 2.0)
 	var base = battle.base
@@ -26,6 +29,8 @@ func _draw() -> void:
 	var bar := Rect2(Vector2(base.cell) * CELL + Vector2(0, -4), Vector2(CELL, 2))
 	draw_rect(bar, Color.BLACK)
 	draw_rect(Rect2(bar.position, Vector2(CELL * base.hp / base.max_hp, 2)), Color.GREEN)
+	for e in battle.enemies:
+		draw_circle(e.pos * CELL + Vector2(CELL, CELL) / 2, CELL * 0.3, COLORS.enemy)
 
 func _rect(c: Vector2i) -> Rect2:
 	return Rect2(Vector2(c) * CELL, Vector2(CELL, CELL))
