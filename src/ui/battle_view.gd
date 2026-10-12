@@ -6,9 +6,11 @@ const COLORS := {
 	"field": Color("4a6b3a"), "grid": Color(0, 0, 0, 0.15), "spawn": Color("c03030"),
 	"base": Color("e0c040"), "castle_wall": Color("8a8a8a"), "gate": Color("7a5230"),
 	"wall": Color("5a5a5a"), "tower": Color("3060b0"), "enemy": Color("d04040"), "merc": Color("50a0f0"),
+	"hero": Color("b060f0"),
 }
 
 var battle
+var controls  # 고른 유닛에 테두리를 그린다
 
 func _draw() -> void:
 	var map := Vector2(battle.size) * CELL
@@ -29,8 +31,11 @@ func _draw() -> void:
 	var bar := Rect2(Vector2(base.cell) * CELL + Vector2(0, -4), Vector2(CELL, 2))
 	draw_rect(bar, Color.BLACK)
 	draw_rect(Rect2(bar.position, Vector2(CELL * base.hp / base.max_hp, 2)), Color.GREEN)
-	for m in battle.mercs:
-		draw_circle(m.pos * CELL + Vector2(CELL, CELL) / 2, CELL * m.radius, COLORS.merc)
+	for u in battle.units:
+		var at: Vector2 = u.pos * CELL + Vector2(CELL, CELL) / 2
+		draw_circle(at, CELL * u.radius, COLORS.hero if u == battle.hero else COLORS.merc)
+		if u in controls.selected:
+			draw_arc(at, CELL * (u.radius + 0.2), 0.0, TAU, 24, Color.WHITE, 1.0)
 	for e in battle.enemies:
 		draw_circle(e.pos * CELL + Vector2(CELL, CELL) / 2, CELL * e.radius, COLORS.enemy)
 

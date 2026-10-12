@@ -4,12 +4,16 @@ extends Node2D
 const Battle := preload("res://src/sim/battle.gd")
 const BattleView := preload("res://src/ui/battle_view.gd")
 const Camera := preload("res://src/ui/camera.gd")
+const Controls := preload("res://src/ui/controls.gd")
 
 var view
+var controls
 
 func _ready() -> void:
 	view = BattleView.new()
 	view.battle = Battle.new(stage())
+	controls = Controls.new(view.battle, BattleView.CELL)
+	view.controls = controls
 	add_child(view)
 	var cam := Camera.new()
 	cam.map_px = Vector2(view.battle.size * BattleView.CELL)
@@ -24,6 +28,7 @@ func _process(delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_accept"):
 		view.battle.start_battle()
+	controls.handle(view.make_input_local(event))  # 화면 좌표 → 맵 px(카메라 줌·이동 반영)
 
 # W1 시험 스테이지(40×32, S51 위아래 구도). 위쪽 마을을 가로 성곽이 막고, 적은 아래쪽 가장자리에서 온다.
 static func stage() -> Dictionary:
@@ -35,6 +40,8 @@ static func stage() -> Dictionary:
 	return {
 		"size": Vector2i(40, 32), "base": Vector2i(20, 4), "base_hp": 100,
 		"spawns": [Vector2i(6, 31), Vector2i(20, 31), Vector2i(33, 31)],
+		# 영웅은 정문 바로 앞 들판에서 시작한다. 성문 열기가 없어서 마을 안에 두면 나올 수 없다(I42, 사용자 2026-10-12)
+		"hero_start": Vector2i(20, 11),
 		# ponytail: 체력은 임시값이다. 성문이 성벽보다 약해야 한다는 것(I41)만 지킨다. 수치는 3.1 밸런스에서 정한다
 		"castle": {"walls": walls, "gates": gates, "wall_hp": 300, "gate_hp": 150},
 		"waves": [[{"kind": "basic", "count": 5}], [{"kind": "basic", "count": 8}], [{"kind": "basic", "count": 12}]],
