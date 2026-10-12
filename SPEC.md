@@ -233,9 +233,9 @@
 | S27 | |
 | S28 | |
 | S29 | |
-| S30 | |
+| S30 | project.godot:16-17 |
 | S31 | |
-| S32 | |
+| S32 | tests/unit/test_gdscript_suites.py:31 · tests/unit/gd/runner.gd:7 |
 | S33 | |
 | S34 | |
 | S35 | |
@@ -283,8 +283,8 @@
 | I28 | |
 | I29 | |
 | I30 | |
-| I31 | |
-| I32 | |
+| I31 | tests/unit/test_gdscript_suites.py:36 · tests/unit/gd/runner.gd:33 |
+| I32 | project.godot:8 |
 | I33 | |
 | I34 | |
 | I35 | |
