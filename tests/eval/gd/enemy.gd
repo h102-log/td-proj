@@ -58,16 +58,14 @@ func ev15():
 	var broken := walls.filter(func(c): return b.structure_at(c) == null)
 	return check(ok and broken.size() >= 1, "성벽을 뚫고 타워를 공격하지 않았다")
 
-# EV16 · S13: 아군 유닛은 적을 몸으로 막지 않는다
+# EV16 · S13: 아군 유닛은 적의 길을 몸으로 막고, 막힌 적은 그 유닛을 공격한다 (2026-10-12 개정)
 func ev16():
 	var b = battle({"base_hp": BIG})
-	b.place_merc("soldier", Vector2i(10, 10), {"damage": 0, "range": 0, "sight": 0})
+	var m = b.place_merc("soldier", Vector2i(10, 10), {"damage": 0, "range": 0, "sight": 0, "hp": BIG})
 	var e = b.spawn_enemy("basic", Vector2i(0, 10), {"sight": 0})
-	var seen := {}
-	var ok := run(b, 120, func():
-		seen[cell_of(e)] = true
-		return at_base(b, e))
-	return check(ok and seen.has(Vector2i(10, 10)), "용병이 선 칸을 지나 거점에 닿지 못했다")
+	run(b, 30)
+	var ok: bool = e.pos.x < m.pos.x and m.hp < m.max_hp and b.base.hp == b.base.max_hp
+	return check(ok, "적 x %.2f, 용병 x %.2f, 용병 체력 %s/%s, 거점 체력 %s/%s" % [e.pos.x, m.pos.x, m.hp, m.max_hp, b.base.hp, b.base.max_hp])
 
 # EV17 · I7: 쏘지 않는 타워는 인식 범위 안에 있어도 공격 대상이 아니다
 func ev17():
