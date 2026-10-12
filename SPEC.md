@@ -212,24 +212,24 @@
 
 | 문장 | 코드 위치 |
 | --- | --- |
-| S1 | src/sim/battle.gd:88-89 |
-| S2 | src/sim/battle.gd:151 |
-| S3 | src/sim/battle.gd:85 · src/sim/battle.gd:163 |
-| S4 | src/sim/battle.gd:168-170 · src/sim/battle.gd:179-183 (일부: ③ 거점으로 이동·④ 거점 공격만. ①·②는 2.5) |
-| S5 | |
-| S6 | |
-| S7 | src/sim/battle.gd:58-63 · src/sim/battle.gd:168-170 |
-| S8 | src/sim/battle.gd:58-63 · src/sim/battle.gd:168-170 |
-| S9 | src/sim/battle.gd:58-63 · src/sim/battle.gd:179-183 |
-| S10 | src/sim/battle.gd:137 · src/sim/battle.gd:102-105 |
+| S1 | src/sim/battle.gd:113-114 |
+| S2 | src/sim/battle.gd:188 |
+| S3 | src/sim/battle.gd:110 · src/sim/battle.gd:202 |
+| S4 | src/sim/battle.gd:212-227 · src/sim/battle.gd:229-238 · src/sim/battle.gd:244-248 |
+| S5 | src/sim/battle.gd:290-293 · src/sim/battle.gd:225-226 |
+| S6 | src/sim/battle.gd:206-210 · src/sim/battle.gd:244-248 |
+| S7 | src/sim/battle.gd:82-87 · src/sim/battle.gd:208-210 |
+| S8 | src/sim/battle.gd:82-87 · src/sim/battle.gd:208-210 |
+| S9 | src/sim/battle.gd:82-87 · src/sim/battle.gd:244-248 |
+| S10 | src/sim/battle.gd:174 · src/sim/battle.gd:127-130 |
 | S11 | |
 | S12 | |
-| S13 | |
+| S13 | src/sim/battle.gd:219-220 · src/sim/battle.gd:236-238 · src/sim/battle.gd:302-312 · src/ui/battle_view.gd:33 (일부: 용병과 적 사이만. 영웅은 2.6, 아군끼리는 2.8) |
 | S14 | |
 | S15 | |
 | S16 | |
-| S17 | src/sim/battle.gd:113-120 · src/sim/battle.gd:109-111 |
-| S18 | src/sim/battle.gd:131-138 (일부: 구조물만. 유닛 배치는 2.8) |
+| S17 | src/sim/battle.gd:139-146 · src/sim/battle.gd:135-137 |
+| S18 | src/sim/battle.gd:166-175 · src/sim/battle.gd:158-163 |
 | S19 | |
 | S20 | |
 | S21 | |
@@ -239,16 +239,16 @@
 | S25 | |
 | S26 | |
 | S27 | |
-| S28 | |
+| S28 | src/sim/battle.gd:11 · src/sim/battle.gd:276-293 · src/sim/battle.gd:193-196 |
 | S29 | |
 | S30 | project.godot:16-17 |
 | S31 | |
 | S32 | tests/unit/test_gdscript_suites.py:31 · tests/unit/gd/runner.gd:8 |
 | S33 | |
-| S34 | src/sim/battle.gd:8 · src/sim/battle.gd:53 · src/sim/battle.gd:169 |
+| S34 | src/sim/battle.gd:8 · src/sim/battle.gd:77 · src/sim/battle.gd:209 |
 | S35 | |
 | S36 | |
-| S37 | src/sim/battle.gd:94-97 · src/main.gd:39 (일부: 성곽 배치만. 마을 구역·업그레이드는 W2 이후) |
+| S37 | src/sim/battle.gd:119-122 · src/main.gd:39 (일부: 성곽 배치만. 마을 구역·업그레이드는 W2 이후) |
 | S38 | |
 | S39 | |
 | S40 | |
@@ -266,18 +266,18 @@
 | S52 | src/ui/camera.gd:18-23 · src/ui/camera.gd:40-48 |
 | S53 | src/ui/camera.gd:25-32 |
 | I1 | |
-| I2 | |
-| I3 | src/sim/battle.gd:55-56 (일부: 지금 구조물은 방벽뿐이다) |
-| I5 | src/sim/battle.gd:154-157 (일부: 파괴만. W1에는 전투 중 건설이 없다) |
-| I6 | src/sim/battle.gd:179-183 |
-| I7 | |
-| I8 | |
+| I2 | src/sim/battle.gd:208-210 · src/sim/battle.gd:302-312 |
+| I3 | src/sim/battle.gd:79-80 (일부: 지금 구조물은 방벽·타워뿐이다) |
+| I5 | src/sim/battle.gd:193-196 (일부: 파괴만. W1에는 전투 중 건설이 없다) |
+| I6 | src/sim/battle.gd:244-248 |
+| I7 | src/sim/battle.gd:212-220 · src/sim/battle.gd:278-279 |
+| I8 | src/sim/battle.gd:225-226 |
 | I9 | |
 | I10 | |
 | I11 | |
 | I12 | |
-| I13 | src/sim/battle.gd:113 · src/sim/battle.gd:109 |
-| I14 | src/sim/battle.gd:111 |
+| I13 | src/sim/battle.gd:139 · src/sim/battle.gd:135 |
+| I14 | src/sim/battle.gd:137 |
 | I15 | |
 | I16 | |
 | I17 | |
@@ -287,12 +287,12 @@
 | I21 | |
 | I22 | |
 | I23 | |
-| I24 | src/sim/battle.gd:132 |
+| I24 | src/sim/battle.gd:167 (일부: 용병이 선 칸을 막는 것은 2.8) |
 | I25 | |
 | I26 | |
 | I27 | |
 | I28 | |
-| I29 | |
+| I29 | src/sim/battle.gd:283-293 |
 | I30 | |
 | I31 | tests/unit/test_gdscript_suites.py:36 · tests/unit/gd/runner.gd:34 |
 | I32 | project.godot:8 |
@@ -303,7 +303,7 @@
 | I37 | |
 | I38 | |
 | I39 | |
-| I40 | src/sim/battle.gd:55-56 · src/sim/battle.gd:154-157 |
+| I40 | src/sim/battle.gd:79-80 · src/sim/battle.gd:193-196 |
 | I41 | |
 | I42 | |
 | I43 | |
@@ -314,7 +314,7 @@
 | I48 | |
 | I49 | |
 | I50 | src/ui/camera.gd:26 · src/ui/camera.gd:35-37 · src/ui/camera.gd:40-48 |
-| I51 | src/sim/battle.gd:8 · src/sim/battle.gd:184-187 · src/sim/battle.gd:196-216 · src/ui/battle_view.gd:33 (일부: 적끼리만. 아군끼리는 2.8) |
+| I51 | src/sim/battle.gd:8 · src/sim/battle.gd:10 · src/sim/battle.gd:249-252 · src/sim/battle.gd:261-273 · src/sim/battle.gd:302-312 · src/ui/battle_view.gd:33 · src/ui/battle_view.gd:35 (일부: 적끼리만. 아군끼리는 2.8) |
 
 ### 3.2 재확인 목록 (`선택 대기`)
 

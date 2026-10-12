@@ -5,10 +5,12 @@ signal enemy_spawned(enemy)
 
 # ponytail: 수치는 임시값이다. 적·구조물 종류별 역할과 수치는 3.1(I34), Resource 파일화는 2.18(S31)에서 한다
 # ponytail: wall_k 1.0은 가득 찬 방벽(100) 하나 = 100칸 걷기. EV6·9(돌아가기)와 EV7(뚫기)을 함께 넘는 임시값
-const ENEMY_KINDS := {"basic": {"hp": 10.0, "speed": 2.0, "wall_k": 1.0, "damage": 5.0, "attack_gap": 1.0, "radius": 0.3}}
-const STRUCTURE_KINDS := {"wall": {"hp": 100.0}}
+const ENEMY_KINDS := {"basic": {"hp": 10.0, "speed": 2.0, "wall_k": 1.0, "damage": 5.0, "attack_gap": 1.0, "radius": 0.3, "sight": 3.0}}
+# ponytail: 용병은 몸과 체력만 있다. 이동·자동 공격(damage·range·sight·hold_radius)은 2.8에서 붙인다
+const MERC_KINDS := {"soldier": {"hp": 50.0, "radius": 0.3}}
+const STRUCTURE_KINDS := {"wall": {"hp": 100.0}, "tower": {"hp": 100.0, "range": 4.0, "damage": 2.0, "fire_gap": 1.0}}
 const SPAWN_GAP := 1.0  # 웨이브 안에서 적이 나오는 간격(초)
-const REACH := 1.0      # 적이 막힌 칸·거점을 칠 수 있는 거리(칸 중심 사이). 옆 칸 중심까지가 1이다
+const REACH := 1.0      # 적이 막힌 칸·거점·용병을 칠 수 있는 거리(중심 사이). 옆 칸 중심까지가 1이다
 
 # 칸 하나를 차지하고 체력이 있는 것: 거점 "base" · 성곽 "castle_wall"·"gate" · 구조물 "wall" 등
 class Block:
@@ -18,6 +20,10 @@ class Block:
 	var hp: float
 	var alive := true
 	var complete := true
+	var range := 0.0  # 사거리(칸). 0보다 커야 적을 쏜다(타워)
+	var damage := 0.0
+	var fire_gap := 1.0  # 쏘는 간격(초)
+	var cooldown := 0.0
 
 	func _init(c: Vector2i, k: String, h: float) -> void:
 		cell = c
@@ -35,9 +41,27 @@ class Enemy:
 	var wall_k: float
 	var damage: float
 	var attack_gap: float  # 공격 간격(초)
+	var sight: float  # 인식 범위(칸)
 	var cooldown := 0.0  # 0 이하면 바로 칠 수 있다
 	var alive := true
+	var attacker  # 마지막으로 이 적을 쏜 구조물. 살아 있는 동안 반격 대상이다(S4 ②)
+	var goal: Vector2i  # 경로의 끝 칸(지금 노리는 대상의 칸)
 	var path: Array[Vector2i] = []
+
+	func _init(k: String, cell: Vector2i, stats: Dictionary) -> void:
+		kind = k
+		pos = Vector2(cell)
+		for key in stats:
+			set(key, stats[key])
+		max_hp = hp
+
+class Merc:
+	var kind: String
+	var pos: Vector2  # 칸 단위, Enemy.pos와 같다
+	var hp: float
+	var max_hp: float
+	var radius: float  # 몸 반지름(칸 단위)
+	var alive := true
 
 	func _init(k: String, cell: Vector2i, stats: Dictionary) -> void:
 		kind = k
@@ -69,6 +93,7 @@ var base: Block
 var castle := {}      # Vector2i → Block
 var structures := {}  # Vector2i → Block
 var enemies := []
+var mercs := []
 var state := "prep"
 var wave_index := 0
 
@@ -106,6 +131,7 @@ func step(dt: float) -> void:
 	for e in enemies:
 		_move(e, dt)
 	_push_apart()
+	_fire(dt)
 	if state == "battle" and _queue.is_empty() and enemies.is_empty():
 		wave_index += 1
 		state = "won" if wave_index >= waves.size() else "prep"
@@ -122,10 +148,19 @@ func start_battle() -> void:
 
 func spawn_enemy(kind: String, cell: Vector2i, overrides := {}):
 	var e := Enemy.new(kind, cell, ENEMY_KINDS[kind].merged(overrides, true))
+	e.goal = base.cell
 	_find_path(e)
 	enemies.append(e)
 	enemy_spawned.emit(e)
 	return e
+
+# 준비 단계에만, 막힌 칸·거점이 아닌 맵 안 칸에 바로 놓는다(S18)
+func place_merc(kind: String, cell: Vector2i, overrides := {}):
+	if state != "prep" or not grid.is_in_boundsv(cell) or grid.block_at(cell) or cell == base.cell:
+		return null
+	var m := Merc.new(kind, cell, MERC_KINDS[kind].merged(overrides, true))
+	mercs.append(m)
+	return m
 
 # 준비 단계에만, 빈 칸(구조물·성곽·거점이 없는 맵 안 칸)에 바로 완성해 짓는다(S18, I24)
 func build(kind: String, cell: Vector2i, overrides := {}):
@@ -133,6 +168,8 @@ func build(kind: String, cell: Vector2i, overrides := {}):
 		return null
 	var stats: Dictionary = STRUCTURE_KINDS[kind].merged(overrides, true)
 	var s := Block.new(cell, kind, stats.hp)
+	for key in stats:
+		s.set(key, stats[key])
 	structures[cell] = s
 	_repath = true
 	return s
@@ -151,6 +188,8 @@ func damage(target, amount: float) -> void:
 		state = "lost"
 	elif target is Enemy:
 		enemies.erase(target)
+	elif target is Merc:
+		mercs.erase(target)
 	else:  # 구조물·성곽: 칸이 비고 경로를 다시 구한다(I5)
 		structures.erase(target.cell)
 		castle.erase(target.cell)
@@ -164,13 +203,39 @@ func _spawn_wave(dt: float) -> void:
 	_spawned += 1
 	_spawn_timer = SPAWN_GAP
 
-# 거점까지 «걷는 거리 + 막힌 칸 비용»이 가장 싼 경로. 막힌 칸과 거점은 닿는 거리에서 친다(_move).
+# 대상 칸(e.goal)까지 «걷는 거리 + 막힌 칸 비용»이 가장 싼 경로. 막힌 칸과 거점은 닿는 거리에서 친다(_move).
+# 그래서 반격 대상이 성벽에 둘러싸여 있으면 비용이 가장 싼 성벽을 뚫고 간다(S6)
 func _find_path(e: Enemy) -> void:
 	grid.wall_k = e.wall_k
-	e.path = grid.get_id_path(Vector2i(e.pos.round()), base.cell, true)
+	e.path = grid.get_id_path(Vector2i(e.pos.round()), e.goal, true)
+
+# 적이 지금 노리는 것(S4): ① 인식 범위 안이나 몸이 닿은 가장 가까운 용병 → ② 살아 있는 반격 대상 → ③④ 거점.
+# 들판의 구조물은 ①이 아니다(I7). 쏘지 않는 구조물은 attacker가 되지 않는다(_fire). 반격 대상이 부서지면 ②가 끝난다(I8)
+func _target_of(e: Enemy):
+	var best = null
+	var best_d := INF
+	for m in mercs:
+		var d := e.pos.distance_to(m.pos)
+		# 밀어낸 직후 거리는 반지름 합과 같아서 0.01 여유를 둔다(S13: 몸으로 막은 용병은 인식 범위 밖이어도 친다)
+		if d < best_d and (d <= e.sight or d <= e.radius + m.radius + 0.01):
+			best = m
+			best_d = d
+	if best:
+		return best
+	if e.attacker and e.attacker.alive:
+		return e.attacker
+	return base
 
 func _move(e: Enemy, dt: float) -> void:
 	e.cooldown -= dt
+	var aim = _target_of(e)
+	var goal: Vector2i = Vector2i(aim.pos.round()) if aim is Merc else aim.cell
+	if goal != e.goal:  # 대상이 바뀌었다
+		e.goal = goal
+		_find_path(e)
+	if aim is Merc and e.pos.distance_to(aim.pos) <= REACH:
+		_attack(e, aim)
+		return
 	var left := e.speed * dt
 	while left > 0.0 and not e.path.is_empty():
 		var next: Vector2i = e.path[0]
@@ -207,12 +272,43 @@ func _push_apart() -> void:
 				_shove(a, -push)
 				_shove(o, push)
 
+# 쏘는 구조물은 사거리 안에서 가장 가까운 적을 쏘고(S28, I29), 맞은 적은 그 구조물에 반격한다(S5)
+func _fire(dt: float) -> void:
+	for s in structures.values():
+		if s.range <= 0.0:
+			continue
+		s.cooldown -= dt
+		if s.cooldown > 0.0:
+			continue
+		var best = null
+		var best_d: float = s.range
+		for e in enemies:
+			var d: float = e.pos.distance_to(Vector2(s.cell))
+			if d <= best_d:
+				best = e
+				best_d = d
+		if best:
+			s.cooldown = s.fire_gap
+			best.attacker = s
+			damage(best, s.damage)
+
 # 맵 밖이나 막힌 칸·거점 칸으로는 들어가지 않는다. 막히면 한 축으로만 움직여 벽을 따라 미끄러진다
+# 2026-10-12
+# [동작] 용병과 겹치는 자리는 용병 몸 바로 바깥 자리로 바꾼 뒤 칸을 검사한다
+# [의도] 용병이 몸으로 적의 길을 막고, 몸이 닿은 적은 그 용병을 치게 한다(S13, _target_of). 경로에는 용병을 넣지 않는다(I2)
+# [이유] 겹친 뒤 따로 밀어내면, 성벽에 막힌 적이 한 축으로 미끄러지며 한 칸 틈의 용병 옆을 빠져나갔다
+#        (test_crowd_cannot_pass_merc_in_one_cell_gap)
+# ponytail: 용병 하나씩 차례로 밀어낸다. 용병끼리 붙어 있으면 앞 용병 쪽으로 다시 겹칠 수 있다. 아군끼리 밀어내기(2.8)에서 다시 본다
 func _shove(e: Enemy, by: Vector2) -> void:
 	for v in [by, Vector2(by.x, 0), Vector2(0, by.y)]:
-		var c := Vector2i((e.pos + v).round())
+		var p: Vector2 = e.pos + v
+		for m in mercs:
+			var gap: Vector2 = p - m.pos
+			if gap.length() < e.radius + m.radius:
+				p = m.pos + (gap.normalized() if gap != Vector2.ZERO else Vector2.LEFT) * (e.radius + m.radius)
+		var c := Vector2i(p.round())
 		if grid.is_in_boundsv(c) and not grid.block_at(c) and c != base.cell:
-			e.pos += v
+			e.pos = p
 			return
 
 func _attack(e: Enemy, target) -> void:
