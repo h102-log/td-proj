@@ -68,6 +68,9 @@ class Unit:
 	var max_hp: float
 	var radius: float  # 몸 반지름(칸 단위)
 	var alive := true
+	var present: bool:  # 전장에 있다. 쓰러진 영웅은 다음 준비 단계에 돌아올 때까지 거짓이다(S26)
+		get:
+			return alive
 	var speed := 0.0
 	var damage := 0.0
 	var range := 0.0  # 사거리(칸). 0보다 커야 적을 친다
@@ -115,6 +118,7 @@ var structures := {}  # Vector2i → Block
 var enemies := []
 var units := []  # 살아 있는 영웅·용병
 var hero  # 영웅(Unit). 스테이지에 hero_start가 없으면 null
+var revive := true  # 쓰러진 영웅이 다음 준비 단계에 돌아온다(S27). 기본값 켜짐(I28)
 var state := "prep"
 var wave_index := 0
 
@@ -123,6 +127,7 @@ var _repath := false  # 막힌 칸이 바뀌어 적 경로를 다시 구해야 �
 var _queue := []      # 이번 웨이브에서 아직 안 나온 적 종류
 var _spawn_timer := 0.0
 var _spawned := 0     # 이번 웨이브에서 나온 적 수(출현 지점 돌아가며 쓰기)
+var _hero_start: Vector2i  # 쓰러진 영웅이 돌아오는 칸
 
 func _init(stage: Dictionary) -> void:
 	size = stage.size
@@ -142,7 +147,8 @@ func _init(stage: Dictionary) -> void:
 	for c in fort.get("gates", []):
 		castle[c] = Block.new(c, "gate", fort.gate_hp)
 	if stage.get("hero_start") != null:
-		hero = Unit.new("hero", stage.hero_start, HERO)
+		_hero_start = stage.hero_start
+		hero = Unit.new("hero", _hero_start, HERO)
 		units.append(hero)
 
 func step(dt: float) -> void:
@@ -161,6 +167,17 @@ func step(dt: float) -> void:
 	if state == "battle" and _queue.is_empty() and enemies.is_empty():
 		wave_index += 1
 		state = "won" if wave_index >= waves.size() else "prep"
+		if state == "prep" and revive and hero and not hero.alive:
+			_return_hero()
+
+# 쓰러진 영웅은 시작 지점에 체력이 가득 찬 채 돌아온다(S26, I27)
+# ponytail: 공격·스킬 대기는 쓰러질 때 값 그대로 둔다. 정할 문장이 생기면 여기서 초기화
+func _return_hero() -> void:
+	hero.alive = true
+	hero.hp = hero.max_hp
+	hero.pos = Vector2(_hero_start)
+	hero.path.clear()
+	units.append(hero)
 
 func start_battle() -> void:
 	if state != "prep" or wave_index >= waves.size():
@@ -233,7 +250,7 @@ func damage(target, amount: float) -> void:
 		state = "lost"
 	elif target is Enemy:
 		enemies.erase(target)
-	elif target is Unit:  # ponytail: 쓰러진 영웅은 전장에서 빠지기만 한다. 복귀·부활(S26·S27)은 2.7
+	elif target is Unit:  # 전장에서 빠진다. 영웅은 다음 준비 단계에 돌아온다(step, S26)
 		units.erase(target)
 	else:  # 구조물·성곽: 칸이 비고 경로를 다시 구한다(I5)
 		structures.erase(target.cell)
