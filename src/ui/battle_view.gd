@@ -27,10 +27,15 @@ func _draw() -> void:
 		draw_rect(_rect(c).grow(-3), COLORS.spawn, false, 2.0)
 	var base = battle.base
 	draw_rect(_rect(base.cell), COLORS.base)
-	# 거점 체력 막대
-	var bar := Rect2(Vector2(base.cell) * CELL + Vector2(0, -4), Vector2(CELL, 2))
-	draw_rect(bar, Color.BLACK)
-	draw_rect(Rect2(bar.position, Vector2(CELL * base.hp / base.max_hp, 2)), Color.GREEN)
+	_hp_bar(base)
+	# 구조물·성곽은 깎였을 때만 체력 막대를 그린다(성곽 칸이 많아서)
+	for b in battle.castle.values() + battle.structures.values():
+		if b.hp < b.max_hp:
+			_hp_bar(b)
+	# 타워 사격 선: 쏜 뒤 0.1초 동안
+	for s in battle.structures.values():
+		if s.target and s.cooldown > s.fire_gap - 0.1:
+			draw_line(Vector2(s.cell) * CELL + Vector2(CELL, CELL) / 2, s.target.pos * CELL + Vector2(CELL, CELL) / 2, Color.YELLOW, 1.0)
 	for u in battle.units:
 		var at: Vector2 = u.pos * CELL + Vector2(CELL, CELL) / 2
 		draw_circle(at, CELL * u.radius, COLORS.hero if u == battle.hero else COLORS.merc)
@@ -42,6 +47,11 @@ func _draw() -> void:
 		draw_circle(e.pos * CELL + Vector2(CELL, CELL) / 2, CELL * e.radius, COLORS.enemy)
 	if controls.drag_rect.has_area():
 		draw_rect(controls.drag_rect, Color.WHITE, false, 1.0)
+
+func _hp_bar(b) -> void:
+	var bar := Rect2(Vector2(b.cell) * CELL + Vector2(0, -4), Vector2(CELL, 2))
+	draw_rect(bar, Color.BLACK)
+	draw_rect(Rect2(bar.position, Vector2(CELL * b.hp / b.max_hp, 2)), Color.GREEN)
 
 func _rect(c: Vector2i) -> Rect2:
 	return Rect2(Vector2(c) * CELL, Vector2(CELL, CELL))
