@@ -1,10 +1,12 @@
 {
-  "approvedAt": "2026-10-13T05:24:13.250Z",
-  "evalMd": "3b2af9c5",
+  "approvedAt": "2026-10-13T06:34:22.814Z",
+  "evalMd": "a519957d",
   "tests": {
     "tests/eval/conftest.py": "b195cc2b",
     "tests/eval/gd/buff.gd": "a44a6d2b",
     "tests/eval/gd/buff.gd.uid": "adfc765c",
+    "tests/eval/gd/castle.gd": "c4d71e98",
+    "tests/eval/gd/castle.gd.uid": "b1cd1533",
     "tests/eval/gd/data.gd": "c5d1920d",
     "tests/eval/gd/data.gd.uid": "5a13beba",
     "tests/eval/gd/enemy.gd": "5f8f8dd0",
@@ -33,7 +35,10 @@
     "tests/eval/gd/show.gd.uid": "be479de2",
     "tests/eval/gd/tower.gd": "d91b7026",
     "tests/eval/gd/tower.gd.uid": "0885cf1d",
+    "tests/eval/gd/wall.gd": "daafd091",
+    "tests/eval/gd/wall.gd.uid": "5931bc74",
     "tests/eval/test_buff.py": "2a114e63",
+    "tests/eval/test_castle.py": "4409746e",
     "tests/eval/test_data.py": "3e776d23",
     "tests/eval/test_enemy.py": "b0e6394e",
     "tests/eval/test_engineer.py": "09974bfa",
@@ -45,7 +50,8 @@
     "tests/eval/test_production.py": "69098c5e",
     "tests/eval/test_sell.py": "ade7595a",
     "tests/eval/test_show.py": "8d919ae1",
-    "tests/eval/test_tower.py": "783a3ed2"
+    "tests/eval/test_tower.py": "783a3ed2",
+    "tests/eval/test_wall.py": "0a4e7af7"
   },
   "sentences": {
     "S1": "03bece56",
@@ -108,6 +114,19 @@
     "S84": "2d7b62cb",
     "I65": "312d68ce",
     "I66": "0c035744",
-    "S31": "d9cccbea"
+    "S31": "d9cccbea",
+    "S85": "8e0bda81",
+    "S40": "522a57ca",
+    "S39": "fa12417b",
+    "I67": "0cea3ca4",
+    "S86": "f387d27f",
+    "I68": "8c0b8840",
+    "I44": "727854f2",
+    "I69": "e7a9bce3",
+    "S42": "9ae9b9f9",
+    "S88": "292119d3",
+    "I70": "c3b4b4c5",
+    "S89": "52a02943",
+    "S87": "8aee1e41"
   }
 }

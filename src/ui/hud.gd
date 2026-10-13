@@ -1,9 +1,10 @@
 extends CanvasLayer
 # 골드·웨이브·단계를 보이고, 놓기 모드·«전투 시작»(I13) 버튼과 판이 끝난 뒤의 결과·«재시작»(S29)을 둔다.
-# 판매 후보가 있으면 그 옆에 판매 버튼을 띄운다(S70, I58). 전투 단계에 생산 시설을 고르면 그 옆에 구매 버튼을 띄운다(S81, I61).
+# 판매 후보가 있으면 그 옆에 판매 버튼을 띄운다(S70, I58). 전투 단계에 생산 시설을 고르면 그 옆에 파는 용병마다 구매 버튼을 띄운다(S81, I61, I71).
 # 고른 구조물에 따라 같은 자리에 철거(S74)·이어 짓기·취소(전투 단계)와 완성(준비 단계) 버튼도 띄운다(S83).
+# 성곽 칸을 고르면 같은 자리에 성문 열기·닫기(S85)와 업그레이드(S86) 버튼을 띄운다.
 
-const NAMES := {"wall": "방벽", "tower": "타워", "soldier": "용병", "barracks": "병영", "engineer": "공병", "workshop": "작업장"}
+const NAMES := {"wall": "방벽", "tower": "타워", "soldier": "용병", "barracks": "병영", "engineer": "공병", "workshop": "작업장", "archer": "궁수"}
 const STATES := {"prep": "준비", "battle": "전투", "won": "승리", "lost": "패배"}
 
 var battle
@@ -14,10 +15,12 @@ var _start: Button
 var _popup := HBoxContainer.new()  # 판매·완성·구매·철거·이어 짓기·취소 버튼. 클릭하거나 드래그를 놓은 지점 옆에 뜬다
 var _sell: Button
 var _finish: Button
-var _buy: Button
+var _buy := {}  # 용병 kind → 구매 버튼
 var _demolish: Button
 var _resume: Button
 var _cancel: Button
+var _gate: Button
+var _upgrade: Button
 var _place := {}  # kind → 버튼
 var _result := PanelContainer.new()
 var _result_label := Label.new()
@@ -59,10 +62,13 @@ func _ready() -> void:
 	root.add_child(_popup)
 	_sell = _button(_popup, "", _sell_now)
 	_finish = _button(_popup, "완성", func(): _apply(battle.finish, battle.unfinished(controls.selling)))
-	_buy = _button(_popup, "", func(): battle.recruit(controls.facility))
+	for kind in battle.MERC_KINDS:
+		_buy[kind] = _button(_popup, "", func(): battle.recruit(controls.facility, kind))
 	_demolish = _button(_popup, "철거", func(): _apply(func(s): battle.demolish([s]), controls.picked))
 	_resume = _button(_popup, "이어 짓기", func(): _apply(battle.resume, battle.unfinished(controls.picked)))
 	_cancel = _button(_popup, "취소", func(): _apply(battle.cancel, battle.unfinished(controls.picked)))
+	_gate = _button(_popup, "", func(): battle.set_gate(controls.fort, not controls.fort.open))
+	_upgrade = _button(_popup, "", func(): battle.upgrade(controls.fort))
 
 func _process(_delta: float) -> void:
 	var prep: bool = battle.state == "prep"
@@ -83,9 +89,9 @@ func _process(_delta: float) -> void:
 	_finish.visible = not battle.unfinished(controls.selling).is_empty()
 	if controls.facility and not controls.facility.alive:  # 파괴되거나 팔린 시설
 		controls.facility = null
-	_buy.visible = battle.state == "battle" and controls.facility != null
-	if _buy.visible:
-		_buy.text = "%s 구매 %d골드" % [NAMES[controls.facility.produces], battle.MERC_KINDS[controls.facility.produces].cost]
+	for kind in _buy:
+		_buy[kind].visible = battle.state == "battle" and controls.facility != null and kind in controls.facility.produces
+		_buy[kind].text = "%s 구매 %d골드" % [NAMES[kind], battle.MERC_KINDS[kind].cost]
 	if battle.state != "battle" or controls.placing != "":
 		controls.picked = []
 	controls.picked = controls.picked.filter(func(s): return s.alive)  # 부서지거나 허물거나 취소된 것은 뺀다
@@ -93,6 +99,16 @@ func _process(_delta: float) -> void:
 	_demolish.visible = controls.picked.any(battle.can_demolish)
 	_resume.visible = todo.any(func(s): return s.worker == null)
 	_cancel.visible = not todo.is_empty()
+	if controls.placing != "" or (controls.fort and not controls.fort.alive):  # 놓기 모드거나 부서진 성곽 칸
+		controls.fort = null
+	var k = controls.fort
+	_gate.visible = k != null and k.kind == "gate"
+	if _gate.visible:
+		_gate.text = "닫기" if k.open else "열기"
+	# 공병이 올리는 중이면 숨긴다. 그만둔 업그레이드는 «계속»으로 골드 없이 이어 올린다(I68)
+	_upgrade.visible = k != null and battle.state in ["prep", "battle"] and k.level < battle.UPGRADE_MAX and k.worker == null
+	if _upgrade.visible:
+		_upgrade.text = "업그레이드 계속" if k.lift >= 0.0 else "업그레이드 %d골드" % battle.upgrade_cost(k)
 	_popup.reset_size()
 	# 맵 px → 화면 좌표. 전투 화면(BattleView)이 원점에 있어 카메라 변환만 곱한다
 	_popup.position = get_viewport().get_canvas_transform() * controls.sell_at + Vector2(6, 6)
@@ -118,6 +134,7 @@ func _restart() -> void:
 	controls.placing = ""
 	controls.facility = null
 	controls.picked = []
+	controls.fort = null
 
 # 고른 구조물마다 f를 부르고 팝업을 닫는다
 func _apply(f: Callable, things: Array) -> void:
