@@ -7,4 +7,4 @@ script = ExtResource("1_7pm45")
 cost = 40
 hp = 150.0
 build_time = 6.0
-produces = "engineer"
+produces = Array[String](["engineer"])

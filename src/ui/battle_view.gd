@@ -7,7 +7,7 @@ const COLORS := {
 	"base": Color("e0c040"), "castle_wall": Color("8a8a8a"), "gate": Color("7a5230"), "gate_open": Color("c8a070"),
 	"wall": Color("5a5a5a"), "tower": Color("3060b0"), "enemy": Color("d04040"), "merc": Color("50a0f0"),
 	"hero": Color("b060f0"), "village": Color("6b6b4a"), "barracks": Color("a06a30"),
-	"workshop": Color("308080"), "engineer": Color("f0a030"),
+	"workshop": Color("308080"), "engineer": Color("f0a030"), "archer": Color("60d0a0"),
 }
 
 var battle
