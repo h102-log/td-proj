@@ -2,6 +2,7 @@ extends "res://tests/eval/gd/lib.gd"
 # 1·2·3 놓기 모드: 좌클릭은 그 칸에 짓거나 놓고, 우클릭은 모드를 끝낸다(WBS 2.10, 사용자 2026-10-12).
 # 지키는 요구:
 #   S18. 준비 단계에서는 유닛 배치와 구조물 건설이 그 자리에서 바로 완성된다.
+#   S22. 전투 중 건설은 공병이 그 칸까지 걸어가서 시간을 들여 짓는다.
 
 func _key(c, code: int) -> void:
 	var ev := InputEventKey.new()
@@ -40,3 +41,14 @@ func test_mode_ends_in_battle():
 	b.start_battle()
 	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(5, 5)))
 	return check(c.placing == "", "전투 중에도 놓기 모드다")
+
+# 전투가 시작된 뒤 첫 입력이 놓기 키여도 모드가 켜져, 좌클릭으로 공병에게 건설을 지시한다
+func test_structure_key_first_after_battle_start():
+	var b = battle({"waves": [[{"kind": "basic", "count": 1}]]})
+	var c = controls(b)
+	b.place_merc("engineer", Vector2i(5, 8))
+	b.start_battle()
+	_key(c, KEY_2)
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(5, 5)))
+	var s = b.structure_at(Vector2i(5, 5))
+	return check(s != null and not s.complete, "전투 시작 뒤 2 → 좌클릭으로 지어지지 않았다(모드 %s)" % c.placing)

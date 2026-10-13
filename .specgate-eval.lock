@@ -1,10 +1,12 @@
 {
-  "approvedAt": "2026-10-13T02:03:22.413Z",
-  "evalMd": "941902bb",
+  "approvedAt": "2026-10-13T03:28:20.397Z",
+  "evalMd": "fd426819",
   "tests": {
     "tests/eval/conftest.py": "b195cc2b",
     "tests/eval/gd/enemy.gd": "5f8f8dd0",
     "tests/eval/gd/enemy.gd.uid": "e1e29647",
+    "tests/eval/gd/engineer.gd": "fe678a8a",
+    "tests/eval/gd/engineer.gd.uid": "fd6b919f",
     "tests/eval/gd/hero.gd": "df247e48",
     "tests/eval/gd/hero.gd.uid": "890522fc",
     "tests/eval/gd/lib.gd": "43dd4862",
@@ -28,6 +30,7 @@
     "tests/eval/gd/tower.gd": "d91b7026",
     "tests/eval/gd/tower.gd.uid": "0885cf1d",
     "tests/eval/test_enemy.py": "b0e6394e",
+    "tests/eval/test_engineer.py": "09974bfa",
     "tests/eval/test_hero.py": "5b11b600",
     "tests/eval/test_loop.py": "eb9dcfdc",
     "tests/eval/test_map.py": "32cf2187",
@@ -86,6 +89,15 @@
     "S43": "f3349a18",
     "S48": "d7d962e1",
     "S81": "07b0b1bc",
-    "S82": "3747c783"
+    "S82": "3747c783",
+    "S22": "a91d47f4",
+    "S23": "b948919c",
+    "S24": "3853073f",
+    "I5": "f06cda04",
+    "I18": "1305cdca",
+    "I39": "940aaf17",
+    "S74": "3e2a2f96",
+    "I19": "acd8d060",
+    "S49": "0f7f6b5b"
   }
 }
