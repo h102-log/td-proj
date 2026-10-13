@@ -2,9 +2,9 @@ extends CanvasLayer
 # 골드·웨이브·단계를 보이고, 놓기 모드·«전투 시작»(I13) 버튼과 판이 끝난 뒤의 결과·«재시작»(S29)을 둔다.
 # 판매 후보가 있으면 그 옆에 판매 버튼을 띄운다(S70, I58). 전투 단계에 생산 시설을 고르면 그 옆에 파는 용병마다 구매 버튼을 띄운다(S81, I61, I71).
 # 고른 구조물에 따라 같은 자리에 철거(S74)·이어 짓기·취소(전투 단계)와 완성(준비 단계) 버튼도 띄운다(S83). 대포면 옮기기(S91)도 띄운다.
-# 성곽 칸을 고르면 같은 자리에 성문 열기·닫기(S85)와 업그레이드(S86) 버튼을 띄운다.
+# 성곽 칸을 고르면 같은 자리에 성문 열기·닫기(S85)와 업그레이드(S86) 버튼을 띄운다. 거점을 고르면 마을 레벨 올리기(S100) 버튼을 띄운다.
 
-const NAMES := {"wall": "방벽", "tower": "타워", "soldier": "용병", "barracks": "병영", "engineer": "공병", "workshop": "작업장", "archer": "궁수", "cannon": "대포"}
+const NAMES := {"wall": "방벽", "tower": "타워", "soldier": "용병", "barracks": "병영", "engineer": "공병", "workshop": "작업장", "archer": "궁수", "cannon": "대포", "archery": "사격장"}
 const STATES := {"prep": "준비", "battle": "전투", "won": "승리", "lost": "패배"}
 
 var battle
@@ -22,6 +22,7 @@ var _resume: Button
 var _cancel: Button
 var _gate: Button
 var _upgrade: Button
+var _village: Button
 var _place := {}  # kind → 버튼
 var _result := PanelContainer.new()
 var _result_label := Label.new()
@@ -71,13 +72,19 @@ func _ready() -> void:
 	_cancel = _button(_popup, "취소", func(): _apply(battle.cancel, battle.unfinished(controls.picked)))
 	_gate = _button(_popup, "", func(): battle.set_gate(controls.fort, not controls.fort.open))
 	_upgrade = _button(_popup, "", func(): battle.upgrade(controls.fort))
+	_village = _button(_popup, "", func(): battle.raise_village())
 
 func _process(_delta: float) -> void:
 	var prep: bool = battle.state == "prep"
 	var n: int = battle.waves.size()
-	_info.text = "골드 %d · 웨이브 %d/%d · %s" % [battle.gold, mini(battle.wave_index + 1, n), n, STATES[battle.state]]
+	_info.text = "골드 %d · 웨이브 %d/%d · %s · 마을 Lv%d" % [battle.gold, mini(battle.wave_index + 1, n), n, STATES[battle.state], battle.village_level]
 	for kind in _place:
 		_place[kind].disabled = not (prep or (battle.state == "battle" and kind in battle.STRUCTURE_KINDS))
+		# 마을 레벨이 모자란 시설(S99)과, 준비 단계에 시설이 없어 못 사는 용병(S50)
+		if kind in battle.STRUCTURE_KINDS:
+			_place[kind].disabled = _place[kind].disabled or battle.STRUCTURE_KINDS[kind].village_level > battle.village_level
+		elif prep:
+			_place[kind].disabled = _place[kind].disabled or not battle.can_buy(kind)
 		_place[kind].button_pressed = controls.placing == kind
 	_start.disabled = not prep
 	_hint.visible = controls.placing != "" or controls.moving != null
@@ -114,6 +121,11 @@ func _process(_delta: float) -> void:
 	_upgrade.visible = k != null and battle.state in ["prep", "battle"] and k.level < battle.UPGRADE_MAX and k.worker == null
 	if _upgrade.visible:
 		_upgrade.text = "업그레이드 계속" if k.lift >= 0.0 else "업그레이드 %d골드" % battle.upgrade_cost(k)
+	if controls.placing != "":
+		controls.village = false
+	_village.visible = controls.village and prep and battle.village_level <= battle.VILLAGE_UP.size()
+	if _village.visible:
+		_village.text = "마을 레벨 %d로 올리기 %d골드" % [battle.village_level + 1, battle.VILLAGE_UP[battle.village_level - 1]]
 	_popup.reset_size()
 	# 맵 px → 화면 좌표. 전투 화면(BattleView)이 원점에 있어 카메라 변환만 곱한다
 	_popup.position = get_viewport().get_canvas_transform() * controls.sell_at + Vector2(6, 6)
@@ -140,6 +152,7 @@ func _restart() -> void:
 	controls.facility = null
 	controls.picked = []
 	controls.fort = null
+	controls.village = false
 
 # 고른 구조물마다 f를 부르고 팝업을 닫는다
 func _apply(f: Callable, things: Array) -> void:

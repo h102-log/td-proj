@@ -7,4 +7,4 @@ script = ExtResource("1_mttwt")
 cost = 40
 hp = 150.0
 build_time = 6.0
-produces = Array[String](["soldier", "archer"])
+produces = Array[String](["soldier"])
