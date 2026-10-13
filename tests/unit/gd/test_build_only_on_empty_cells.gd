@@ -3,7 +3,7 @@ extends RefCounted
 # 지키는 요구:
 #   I24. 구조물은 격자 한 칸을 차지하고(거점은 예외), 비어 있는 칸(구조물·유닛·적이 없는 칸)에만 지을 수 있다.
 #   S18. 준비 단계에서는 유닛 배치와 구조물 건설이 그 자리에서 바로 완성된다.
-# W1에는 공병이 없어서(WBS.md:85) 전투 중 건설은 거부한다.
+# 놀고 있는 공병이 없으면 전투 중 건설은 거부한다(I39). 공병이 있을 때는 tests/eval/gd/engineer.gd가 본다.
 
 func _battle():
 	return load("res://src/sim/battle.gd").new({

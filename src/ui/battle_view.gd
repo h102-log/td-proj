@@ -7,6 +7,7 @@ const COLORS := {
 	"base": Color("e0c040"), "castle_wall": Color("8a8a8a"), "gate": Color("7a5230"),
 	"wall": Color("5a5a5a"), "tower": Color("3060b0"), "enemy": Color("d04040"), "merc": Color("50a0f0"),
 	"hero": Color("b060f0"), "village": Color("6b6b4a"), "barracks": Color("a06a30"),
+	"workshop": Color("308080"), "engineer": Color("f0a030"),
 }
 
 var battle
@@ -22,8 +23,11 @@ func _draw() -> void:
 		draw_line(Vector2(0, y * CELL), Vector2(map.x, y * CELL), COLORS.grid)
 	for b in battle.castle.values():
 		draw_rect(_rect(b.cell), COLORS[b.kind])
-	for s in battle.structures.values():
-		draw_rect(_rect(s.cell), COLORS[s.kind])
+	for s in battle.structures.values():  # 미완성은 흐리게. 진행률은 체력 막대로 보인다(I62)
+		var col: Color = COLORS[s.kind]
+		draw_rect(_rect(s.cell), col if s.complete else Color(col, 0.4))
+	for s in controls.picked:  # 전투 단계에 고른 구조물(S74, S83)
+		draw_rect(_rect(s.cell), Color.WHITE, false, 1.0)
 	var f = controls.facility  # 고른 생산 시설: 테두리와 집결 지점 깃발(S82)
 	if f and f.alive:
 		draw_rect(_rect(f.cell), Color.WHITE, false, 1.0)
@@ -44,7 +48,7 @@ func _draw() -> void:
 			draw_line(Vector2(s.cell) * CELL + Vector2(CELL, CELL) / 2, s.target.pos * CELL + Vector2(CELL, CELL) / 2, Color.YELLOW, 1.0)
 	for u in battle.units:
 		var at: Vector2 = u.pos * CELL + Vector2(CELL, CELL) / 2
-		draw_circle(at, CELL * u.radius, COLORS.hero if u == battle.hero else COLORS.merc)
+		draw_circle(at, CELL * u.radius, COLORS.hero if u == battle.hero else COLORS.get(u.kind, COLORS.merc))
 		if u in controls.selected:  # 테두리: 흰색 이동 중 공격, 노란색 무조건 이동. 홀드면 기준 반경도 그린다
 			draw_arc(at, CELL * (u.radius + 0.2), 0.0, TAU, 24, Color.YELLOW if u.move_mode == "move" else Color.WHITE, 1.0)
 			if u.hold:

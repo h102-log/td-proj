@@ -1,8 +1,9 @@
 extends CanvasLayer
 # 골드·웨이브·단계를 보이고, 놓기 모드·«전투 시작»(I13) 버튼과 판이 끝난 뒤의 결과·«재시작»(S29)을 둔다.
 # 판매 후보가 있으면 그 옆에 판매 버튼을 띄운다(S70, I58). 전투 단계에 생산 시설을 고르면 그 옆에 구매 버튼을 띄운다(S81, I61).
+# 고른 구조물에 따라 같은 자리에 철거(S74)·이어 짓기·취소(전투 단계)와 완성(준비 단계) 버튼도 띄운다(S83).
 
-const NAMES := {"wall": "방벽", "tower": "타워", "soldier": "용병", "barracks": "병영"}
+const NAMES := {"wall": "방벽", "tower": "타워", "soldier": "용병", "barracks": "병영", "engineer": "공병", "workshop": "작업장"}
 const STATES := {"prep": "준비", "battle": "전투", "won": "승리", "lost": "패배"}
 
 var battle
@@ -10,8 +11,13 @@ var controls
 var _info := Label.new()
 var _hint := Label.new()
 var _start: Button
+var _popup := HBoxContainer.new()  # 판매·완성·구매·철거·이어 짓기·취소 버튼. 클릭하거나 드래그를 놓은 지점 옆에 뜬다
 var _sell: Button
+var _finish: Button
 var _buy: Button
+var _demolish: Button
+var _resume: Button
+var _cancel: Button
 var _place := {}  # kind → 버튼
 var _result := PanelContainer.new()
 var _result_label := Label.new()
@@ -50,18 +56,23 @@ func _ready() -> void:
 	_result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(_result_label)
 	_button(box, "재시작", _restart)
-	_sell = _button(root, "", _sell_now)
-	_buy = _button(root, "", func(): battle.recruit(controls.facility))
+	root.add_child(_popup)
+	_sell = _button(_popup, "", _sell_now)
+	_finish = _button(_popup, "완성", func(): _apply(battle.finish, battle.unfinished(controls.selling)))
+	_buy = _button(_popup, "", func(): battle.recruit(controls.facility))
+	_demolish = _button(_popup, "철거", func(): _apply(func(s): battle.demolish([s]), controls.picked))
+	_resume = _button(_popup, "이어 짓기", func(): _apply(battle.resume, battle.unfinished(controls.picked)))
+	_cancel = _button(_popup, "취소", func(): _apply(battle.cancel, battle.unfinished(controls.picked)))
 
 func _process(_delta: float) -> void:
 	var prep: bool = battle.state == "prep"
 	var n: int = battle.waves.size()
 	_info.text = "골드 %d · 웨이브 %d/%d · %s" % [battle.gold, mini(battle.wave_index + 1, n), n, STATES[battle.state]]
 	for kind in _place:
-		_place[kind].disabled = not prep
+		_place[kind].disabled = not (prep or (battle.state == "battle" and kind in battle.STRUCTURE_KINDS))
 		_place[kind].button_pressed = controls.placing == kind
 	_start.disabled = not prep
-	_hint.visible = prep and controls.placing != ""
+	_hint.visible = controls.placing != ""
 	_hint.text = "%s 놓기: 좌클릭 · 끝내기: 우클릭·ESC" % NAMES.get(controls.placing, "")
 	_result.visible = battle.state in ["won", "lost"]
 	_result_label.text = "승리!" if battle.state == "won" else "패배"
@@ -69,16 +80,22 @@ func _process(_delta: float) -> void:
 		controls.selling = []
 	_sell.visible = not controls.selling.is_empty()
 	_sell.text = "판매 +%d골드" % controls.selling.reduce(func(n, t): return n + battle.refund(t), 0)
-	_sell.reset_size()
-	# 맵 px → 화면 좌표. 전투 화면(BattleView)이 원점에 있어 카메라 변환만 곱한다
-	_sell.position = get_viewport().get_canvas_transform() * controls.sell_at + Vector2(6, 6)
+	_finish.visible = not battle.unfinished(controls.selling).is_empty()
 	if controls.facility and not controls.facility.alive:  # 파괴되거나 팔린 시설
 		controls.facility = null
 	_buy.visible = battle.state == "battle" and controls.facility != null
 	if _buy.visible:
 		_buy.text = "%s 구매 %d골드" % [NAMES[controls.facility.produces], battle.MERC_KINDS[controls.facility.produces].cost]
-	_buy.reset_size()
-	_buy.position = _sell.position
+	if battle.state != "battle" or controls.placing != "":
+		controls.picked = []
+	controls.picked = controls.picked.filter(func(s): return s.alive)  # 부서지거나 허물거나 취소된 것은 뺀다
+	var todo: Array = battle.unfinished(controls.picked)
+	_demolish.visible = controls.picked.any(battle.can_demolish)
+	_resume.visible = todo.any(func(s): return s.worker == null)
+	_cancel.visible = not todo.is_empty()
+	_popup.reset_size()
+	# 맵 px → 화면 좌표. 전투 화면(BattleView)이 원점에 있어 카메라 변환만 곱한다
+	_popup.position = get_viewport().get_canvas_transform() * controls.sell_at + Vector2(6, 6)
 
 # 키보드 포커스를 받지 않는다. 받으면 Enter·Space가 맵 대신 마지막에 누른 버튼을 누른다
 func _button(parent: Control, text: String, on_press: Callable) -> Button:
@@ -100,6 +117,14 @@ func _restart() -> void:
 	controls.selling = []
 	controls.placing = ""
 	controls.facility = null
+	controls.picked = []
+
+# 고른 구조물마다 f를 부르고 팝업을 닫는다
+func _apply(f: Callable, things: Array) -> void:
+	for t in things:
+		f.call(t)
+	controls.selling = []
+	controls.picked = []
 
 # 팔린 용병은 고른 상태에서도 뺀다
 func _sell_now() -> void:

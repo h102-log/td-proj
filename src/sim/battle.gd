@@ -8,20 +8,26 @@ signal enemy_spawned(enemy)
 const ENEMY_KINDS := {"basic": {"hp": 10.0, "speed": 2.0, "wall_k": 1.0, "damage": 5.0, "attack_gap": 1.0, "radius": 0.3, "sight": 3.0,
 	"reward": 5}}
 # ponytail: 용병 수치도 임시값이다. range 1.2는 옆 칸(1)의 적을 치는 근접(EV26). 종류·밸런스는 3.1(I34)에서
+# 공병("engineer")은 공격하지 않는다(I63). 사거리·인식 범위 0
 const MERC_KINDS := {"soldier": {"cost": 20, "hp": 50.0, "radius": 0.3, "speed": 2.5, "damage": 2.0, "range": 1.2, "attack_gap": 1.0,
-	"sight": 4.0, "hold_radius": 2.0}}
+	"sight": 4.0, "hold_radius": 2.0},
+	"engineer": {"cost": 15, "hp": 30.0, "radius": 0.3, "speed": 2.5, "damage": 0.0, "range": 0.0, "sight": 0.0}}
 # 스킬은 «주변 skill_radius칸 안의 적 전부에게 피해»다(I33, 사용자 2026-10-12: 1.5칸·대기 10초·단축키 Q). 피해량 등 나머지는 임시값
 # ponytail: 영웅은 하나뿐이다. 영웅 종류·스킬 2개·오라(I33)는 내용이 정해지면 HERO_KINDS로 넓힌다
 const HERO := {"hp": 100.0, "radius": 0.3, "speed": 3.0, "damage": 3.0, "range": 1.5, "attack_gap": 1.0,
 	"skill_damage": 30.0, "skill_radius": 1.5, "skill_gap": 10.0}
 # 골드(cost·reward)도 임시값이다(사용자 2026-10-12: 시작 100·방벽 10·타워 30·용병 20·처치 5)
-# 생산 시설("barracks", produces = 나오는 용병 kind)의 비용·체력도 임시값이다. 시설 3종은 2.22
-const STRUCTURE_KINDS := {"wall": {"cost": 10, "hp": 100.0}, "tower": {"cost": 30, "hp": 100.0, "range": 4.0, "damage": 2.0, "fire_gap": 1.0},
-	"barracks": {"cost": 40, "hp": 150.0, "produces": "soldier"}}
+# 생산 시설("barracks"·"workshop", produces = 나오는 용병 kind)의 비용·체력도 임시값이다. 시설 3종은 2.22
+# build_time(전투 중 짓는 데 드는 초, I62)도 임시값이다
+const STRUCTURE_KINDS := {"wall": {"cost": 10, "hp": 100.0, "build_time": 2.0},
+	"tower": {"cost": 30, "hp": 100.0, "range": 4.0, "damage": 2.0, "fire_gap": 1.0, "build_time": 4.0},
+	"barracks": {"cost": 40, "hp": 150.0, "produces": "soldier", "build_time": 6.0},
+	"workshop": {"cost": 40, "hp": 150.0, "produces": "engineer", "build_time": 6.0}}
 const MERC_CAP := 10  # 배치 상한 기본값(S25). 임시값(사용자 2026-10-13), 스테이지의 merc_cap이 덮어쓴다
 const SPAWN_GAP := 1.0  # 웨이브 안에서 적이 나오는 간격(초)
 const REACH := 1.0      # 적이 막힌 칸·거점·유닛을 칠 수 있는 거리(중심 사이). 옆 칸 중심까지가 1이다
 const UNIT_WALL_K := 1e6  # 유닛 경로의 막힌 칸 비용 배율. 돌아갈 길이 있으면 막힌 칸(닫힌 성문 포함, I42)을 지나지 않는다
+const WORK_REACH := 2.0  # 공병이 일하는 거리(중심 사이). 옆 칸 대각선(1.41)에, 무리에 밀려 0.5칸 못 미친 도착(I51)을 더했다
 
 # 칸 하나를 차지하고 체력이 있는 것: 거점 "base" · 성곽 "castle_wall"·"gate" · 구조물 "wall" 등
 class Block:
@@ -39,6 +45,10 @@ class Block:
 	var paid := 0  # 지을 때 낸 골드. 판매 환불의 기준(S69)
 	var produces := ""  # 생산 시설이면 나오는 용병 kind(S20)
 	var rally: Vector2i  # 생산 시설의 집결 지점(S21)
+	var progress := 1.0  # 건설 진행률(0~1). 1 미만이면 미완성이다(I62)
+	var build_time := 1.0  # 전투 중 짓는 데 드는 시간(초)
+	var worker  # 이 구조물을 짓거나 허무는(그러러 가는) 공병
+	var razed := 0.0  # 철거 진행률(0~1, I64)
 
 	func _init(c: Vector2i, k: String, h: float) -> void:
 		cell = c
@@ -91,6 +101,7 @@ class Unit:
 	var target  # 마지막으로 친 적. 화면이 친 직후 공격선을 그린다(S71)
 	var paid := 0  # 놓을 때 낸 골드. 판매 환불의 기준(S69)
 	var rally_from  # 집결 지점으로 걸어가는 중이면 나온 생산 시설(I22). 닿거나 다른 이동 지시를 받으면 null
+	var job  # 공병이 맡은 구조물(짓거나 허문다, I63). 놀고 있으면 null
 	var sight := 0.0  # 인식 범위(칸). 서 있을 때 이 안의 적을 쫓는다(I36)
 	var path: Array[Vector2i] = []  # 명령받은 이동 경로(지금 칸 제외)
 	var move_mode := "attack_move"  # "move" | "attack_move"(S35). 새 용병은 이동 중 공격(I38)
@@ -177,6 +188,8 @@ func restart() -> void:
 	village = stage.get("village", Rect2i())
 	merc_cap = stage.get("merc_cap", MERC_CAP)
 	base = Block.new(stage.base, "base", stage.base_hp)
+	for s in structures.values():  # 공병 ↔ 구조물 상호 참조를 끊는다. 남기면 RefCounted 순환이라 해제되지 않는다
+		_release(s)
 	castle.clear()
 	structures.clear()
 	enemies.clear()
@@ -211,6 +224,8 @@ func step(dt: float) -> void:
 	if state == "battle" and _queue.is_empty() and enemies.is_empty():
 		wave_index += 1
 		state = "won" if wave_index >= waves.size() else "prep"
+		for s in structures.values():  # 하던 건설·철거는 그 상태로 멈춘다(I19)
+			_release(s)
 		if state == "prep" and revive and hero and not hero.alive:
 			_return_hero()
 
@@ -261,6 +276,8 @@ func order_move(group: Array, cell: Vector2i) -> void:
 	grid.wall_k = UNIT_WALL_K
 	for u in group:
 		u.rally_from = null
+		if u.job:  # 공병은 하던 일을 그만둔다(I63)
+			_release(u.job)
 		if u.alive:
 			u.path = grid.get_id_path(Vector2i(u.pos.round()), cell, true).slice(1)
 
@@ -287,17 +304,20 @@ func use_skill() -> void:
 		if e.pos.distance_to(hero.pos) <= hero.skill_radius:
 			damage(e, hero.skill_damage)
 
-# 준비 단계에만, 빈 칸(구조물·성곽·거점·유닛이 없는 맵 안 칸)에 바로 완성해 짓는다(S18, I24)
+# 빈 칸(구조물·성곽·거점·유닛·적이 없는 맵 안 칸)에 짓는다(I24). 준비 단계엔 바로 완성된다(S18).
+# 전투 단계엔 진행률 0의 미완성 구조물을 놓고 놀고 있는 가장 가까운 공병을 보낸다. 그런 공병이 없으면 거부한다(S22, I39, I62)
 # 생산 시설은 마을 안에만, 나머지 구조물은 마을 밖에만 짓는다(S43). 생산 시설의 집결 지점 기본값은 출구 칸이다(I61)
 # 건설비는 지시하는 순간 내고, 모자라면 거부한다(I16, I17)
-# ponytail: 적이 선 칸은 보지 않는다. 준비 단계엔 적이 없다. 전투 중 건설(공병, W2)이 생기면 더한다
 func build(kind: String, cell: Vector2i, overrides := {}):
-	if state != "prep" or not grid.is_in_boundsv(cell) or structures.has(cell) or castle.has(cell) or cell == base.cell:
+	if state not in ["prep", "battle"] or not grid.is_in_boundsv(cell) or structures.has(cell) or castle.has(cell) or cell == base.cell:
 		return null
-	if units.any(func(u): return Vector2i(u.pos.round()) == cell):
+	if (units + enemies).any(func(u): return Vector2i(u.pos.round()) == cell):
 		return null
 	var stats: Dictionary = STRUCTURE_KINDS[kind].merged(overrides, true)
 	if gold < stats.cost or village.has_point(cell) != stats.has("produces"):
+		return null
+	var engineer = _idle_engineer(cell) if state == "battle" else null
+	if state == "battle" and not engineer:
 		return null
 	gold -= stats.cost
 	var s := Block.new(cell, kind, stats.hp)
@@ -305,6 +325,11 @@ func build(kind: String, cell: Vector2i, overrides := {}):
 		s.set(key, stats[key])
 	s.paid = stats.cost
 	structures[cell] = s
+	if engineer:
+		s.progress = 0.0
+		s.complete = false
+		s.hp = 0.0
+		_send(engineer, s)
 	if s.produces != "":
 		var exit = _exit_of(cell)
 		s.rally = exit if exit != null else cell
@@ -317,7 +342,7 @@ func structure_at(cell: Vector2i):
 # 전투 단계에만, 생산 시설에서 용병 하나를 산다(S20, I21). 시설 옆 칸에 나타나 집결 지점으로 걸어간다(I61)
 # 골드가 모자라거나, 배치 상한에 닿았거나(S25, I23), 시설이 파괴됐으면(S48) 거부한다
 func recruit(f):
-	if state != "battle" or structures.get(f.cell) != f or f.produces == "":
+	if state != "battle" or structures.get(f.cell) != f or f.produces == "" or not f.complete:  # 미완성 시설은 생산하지 않는다(I18)
 		return null
 	var stats: Dictionary = MERC_KINDS[f.produces]
 	var exit = _exit_of(f.cell)
@@ -352,6 +377,96 @@ func _exit_of(cell: Vector2i):
 		if grid.is_in_boundsv(c) and not grid.block_at(c) and c != base.cell:
 			return c
 	return null
+
+# 전투 단계에만, 미완성 구조물을 없애고 낸 골드를 모두 돌려준다(S23)
+func cancel(s) -> void:
+	if state == "battle" and not s.complete and structures.get(s.cell) == s:
+		_remove(s)
+		gold += s.paid
+
+# 전투 단계에만, 짓는 공병이 없는 미완성 구조물에 놀고 있는 가장 가까운 공병을 보낸다(S24, S83)
+func resume(s):
+	if state != "battle" or s.complete or s.worker or structures.get(s.cell) != s:
+		return null
+	var engineer = _idle_engineer(s.cell)
+	if engineer:
+		_send(engineer, s)
+	return engineer
+
+# 준비 단계에만, 미완성 구조물을 추가 비용 없이 바로 완성한다(I19)
+func finish(s) -> void:
+	if state == "prep" and not s.complete and structures.get(s.cell) == s:
+		_grow(s, 1.0)
+
+# 전투 단계에만, 철거할 수 있는 구조물마다 놀고 있는 가장 가까운 공병을 보낸다. 그런 공병이 없으면 그 구조물은 거부한다(S74, I64)
+func demolish(things: Array) -> void:
+	if state != "battle":
+		return
+	for t in things:
+		var engineer = _idle_engineer(t.cell) if can_demolish(t) else null
+		if engineer:
+			_send(engineer, t)
+
+# 완성된 방벽·타워이고 허무는 공병이 아직 없다. 골드는 돌려주지 않는다(S74). 생산 시설은 철거하지 않는다(I64)
+func can_demolish(t) -> bool:
+	return t is Block and structures.get(t.cell) == t and t.complete and t.produces == "" and t.worker == null
+
+# things 가운데 판에 남아 있는 미완성 구조물. 화면이 완성·취소·이어 짓기 버튼에 쓴다(S83)
+func unfinished(things: Array) -> Array:
+	return things.filter(func(t): return t is Block and structures.get(t.cell) == t and not t.complete)
+
+# 놀고 있는 공병(짓거나 허무는 일을 맡지 않은 공병) 가운데 그 칸에 가장 가까운 공병(I39)
+func _idle_engineer(cell: Vector2i):
+	var best = null
+	for u in units:
+		if u.kind == "engineer" and u.job == null and (best == null or u.pos.distance_to(Vector2(cell)) < best.pos.distance_to(Vector2(cell))):
+			best = u
+	return best
+
+# 공병에게 그 구조물 일을 맡기고 옆 칸(대각선 포함)까지 걸어가게 한다(I63)
+func _send(u: Unit, s: Block) -> void:
+	u.job = s
+	u.rally_from = null
+	s.worker = u
+	grid.wall_k = UNIT_WALL_K
+	u.path = grid.get_id_path(Vector2i(u.pos.round()), s.cell, true).slice(1, -1)
+
+# 일하던 공병을 놓아준다. 공병은 그 자리에 서고, 구조물은 그 상태로 남는다(I63)
+func _release(s: Block) -> void:
+	if s.worker:
+		s.worker.job = null
+		s.worker.path.clear()
+		s.worker = null
+
+func _remove(s: Block) -> void:
+	_release(s)
+	structures.erase(s.cell)
+	s.alive = false
+	_repath = true
+
+# 진행률을 dp만큼 올리고 체력을 «최대 체력 × 진행률 − 짓는 동안 입은 피해»로 둔다. 다 차면 완성되고 적 경로를 다시 구한다(I62)
+# 체력에 더해 가지 않고 곱해서 구한다. 더하면 오차가 쌓여 다 지어도 최대 체력에 못 미친다(EV48)
+func _grow(s: Block, dp: float) -> void:
+	var lost := s.max_hp * s.progress - s.hp
+	s.progress = minf(s.progress + dp, 1.0)
+	s.hp = s.max_hp * s.progress - lost
+	if s.progress >= 1.0:
+		s.complete = true
+		_release(s)
+		_repath = true
+
+# 옆 칸에 닿은 공병은 미완성이면 짓고(I62), 완성이면 허문다(I64: 건설 시간의 절반이 든다). 밀려나 멀어졌으면 다시 걸어간다
+# ponytail: 닿을 수 없는 칸이면 매 프레임 경로를 다시 구한다. 공병이 많아 느려지면 포기 처리를 둔다
+func _work(u: Unit, dt: float) -> void:
+	var s: Block = u.job
+	if u.pos.distance_to(Vector2(s.cell)) > WORK_REACH:
+		_send(u, s)
+	elif not s.complete:
+		_grow(s, dt / s.build_time)
+	else:
+		s.razed += dt / (s.build_time / 2.0)
+		if s.razed >= 1.0:
+			_remove(s)
 
 # 배치 상한에 세는 살아 있는 용병 수(공병 포함, 영웅 제외, I23)
 func _mercs() -> int:
@@ -388,9 +503,12 @@ func damage(target, amount: float) -> void:
 	elif target is Enemy:
 		enemies.erase(target)
 		gold += target.reward
-	elif target is Unit:  # 전장에서 빠진다. 영웅은 다음 준비 단계에 돌아온다(step, S26)
+	elif target is Unit:  # 전장에서 빠진다. 영웅은 다음 준비 단계에 돌아온다(step, S26). 공병이 하던 일은 그 상태로 남는다(S24)
+		if target.job:
+			_release(target.job)
 		units.erase(target)
 	else:  # 구조물·성곽: 칸이 비고 경로를 다시 구한다(I5)
+		_release(target)
 		structures.erase(target.cell)
 		castle.erase(target.cell)
 		_repath = true
@@ -476,7 +594,7 @@ func _push_apart(bodies: Array, others: Array) -> void:
 # 쏘는 구조물은 사거리 안에서 가장 가까운 적을 쏘고(S28, I29), 맞은 적은 그 구조물에 반격한다(S5)
 func _fire(dt: float) -> void:
 	for s in structures.values():
-		if s.range <= 0.0:
+		if s.range <= 0.0 or not s.complete:  # 미완성 타워는 쏘지 않는다(I18)
 			continue
 		s.cooldown -= dt
 		if s.cooldown > 0.0:
@@ -529,6 +647,8 @@ func _act(u: Unit, dt: float) -> void:
 		u.cooldown = u.attack_gap
 		u.target = foe
 		damage(foe, u.damage)
+	if u.job and u.path.is_empty():
+		_work(u, dt)
 
 # from에서 reach 안의 가장 가까운 적. center에서 zone보다 먼 적은 뺀다(홀드 반경)
 func _nearest_enemy(from: Vector2, reach: float, center := Vector2.ZERO, zone := INF):
