@@ -46,5 +46,6 @@ static func stage() -> Dictionary:
 		"hero_start": Vector2i(20, 11),
 		# ponytail: 체력은 임시값이다. 성문이 성벽보다 약해야 한다는 것(I41)만 지킨다. 수치는 3.1 밸런스에서 정한다
 		"castle": {"walls": walls, "gates": gates, "wall_hp": 300, "gate_hp": 150},
+		"village": Rect2i(0, 0, 40, 9),  # 성곽(9행) 위쪽. 생산 시설은 여기에만 짓는다(S43)
 		"waves": [[{"kind": "basic", "count": 5}], [{"kind": "basic", "count": 8}], [{"kind": "basic", "count": 12}]],
 	}

@@ -15,7 +15,10 @@ const MERC_KINDS := {"soldier": {"cost": 20, "hp": 50.0, "radius": 0.3, "speed":
 const HERO := {"hp": 100.0, "radius": 0.3, "speed": 3.0, "damage": 3.0, "range": 1.5, "attack_gap": 1.0,
 	"skill_damage": 30.0, "skill_radius": 1.5, "skill_gap": 10.0}
 # 골드(cost·reward)도 임시값이다(사용자 2026-10-12: 시작 100·방벽 10·타워 30·용병 20·처치 5)
-const STRUCTURE_KINDS := {"wall": {"cost": 10, "hp": 100.0}, "tower": {"cost": 30, "hp": 100.0, "range": 4.0, "damage": 2.0, "fire_gap": 1.0}}
+# 생산 시설("barracks", produces = 나오는 용병 kind)의 비용·체력도 임시값이다. 시설 3종은 2.22
+const STRUCTURE_KINDS := {"wall": {"cost": 10, "hp": 100.0}, "tower": {"cost": 30, "hp": 100.0, "range": 4.0, "damage": 2.0, "fire_gap": 1.0},
+	"barracks": {"cost": 40, "hp": 150.0, "produces": "soldier"}}
+const MERC_CAP := 10  # 배치 상한 기본값(S25). 임시값(사용자 2026-10-13), 스테이지의 merc_cap이 덮어쓴다
 const SPAWN_GAP := 1.0  # 웨이브 안에서 적이 나오는 간격(초)
 const REACH := 1.0      # 적이 막힌 칸·거점·유닛을 칠 수 있는 거리(중심 사이). 옆 칸 중심까지가 1이다
 const UNIT_WALL_K := 1e6  # 유닛 경로의 막힌 칸 비용 배율. 돌아갈 길이 있으면 막힌 칸(닫힌 성문 포함, I42)을 지나지 않는다
@@ -34,6 +37,8 @@ class Block:
 	var cooldown := 0.0
 	var target  # 마지막으로 쏜 적. 화면이 쏜 직후 사격 선을 그린다
 	var paid := 0  # 지을 때 낸 골드. 판매 환불의 기준(S69)
+	var produces := ""  # 생산 시설이면 나오는 용병 kind(S20)
+	var rally: Vector2i  # 생산 시설의 집결 지점(S21)
 
 	func _init(c: Vector2i, k: String, h: float) -> void:
 		cell = c
@@ -85,6 +90,7 @@ class Unit:
 	var cooldown := 0.0
 	var target  # 마지막으로 친 적. 화면이 친 직후 공격선을 그린다(S71)
 	var paid := 0  # 놓을 때 낸 골드. 판매 환불의 기준(S69)
+	var rally_from  # 집결 지점으로 걸어가는 중이면 나온 생산 시설(I22). 닿거나 다른 이동 지시를 받으면 null
 	var sight := 0.0  # 인식 범위(칸). 서 있을 때 이 안의 적을 쫓는다(I36)
 	var path: Array[Vector2i] = []  # 명령받은 이동 경로(지금 칸 제외)
 	var move_mode := "attack_move"  # "move" | "attack_move"(S35). 새 용병은 이동 중 공격(I38)
@@ -136,6 +142,8 @@ var revive := true  # 쓰러진 영웅이 다음 준비 단계에 돌아온다(S
 var state := "prep"
 var wave_index := 0
 var gold := 0
+var village := Rect2i()  # 마을 칸. 생산 시설은 안에만, 나머지 구조물은 밖에만 짓는다(S43). 비어 있으면 모두 들판
+var merc_cap := MERC_CAP
 
 var grid := CostGrid.new()
 var _repath := false  # 막힌 칸이 바뀌어 적 경로를 다시 구해야 한다
@@ -166,6 +174,8 @@ func restart() -> void:
 	state = "prep"
 	wave_index = 0
 	gold = stage.get("gold", 0)
+	village = stage.get("village", Rect2i())
+	merc_cap = stage.get("merc_cap", MERC_CAP)
 	base = Block.new(stage.base, "base", stage.base_hp)
 	castle.clear()
 	structures.clear()
@@ -236,7 +246,7 @@ func place_merc(kind: String, cell: Vector2i, overrides := {}):
 	if state != "prep" or not grid.is_in_boundsv(cell) or grid.block_at(cell) or cell == base.cell:
 		return null
 	var stats: Dictionary = MERC_KINDS[kind].merged(overrides, true)
-	if gold < stats.cost:
+	if gold < stats.cost or _mercs() >= merc_cap:
 		return null
 	gold -= stats.cost
 	var m := Unit.new(kind, cell, stats)
@@ -250,6 +260,7 @@ func order_move(group: Array, cell: Vector2i) -> void:
 		return
 	grid.wall_k = UNIT_WALL_K
 	for u in group:
+		u.rally_from = null
 		if u.alive:
 			u.path = grid.get_id_path(Vector2i(u.pos.round()), cell, true).slice(1)
 
@@ -277,6 +288,7 @@ func use_skill() -> void:
 			damage(e, hero.skill_damage)
 
 # 준비 단계에만, 빈 칸(구조물·성곽·거점·유닛이 없는 맵 안 칸)에 바로 완성해 짓는다(S18, I24)
+# 생산 시설은 마을 안에만, 나머지 구조물은 마을 밖에만 짓는다(S43). 생산 시설의 집결 지점 기본값은 출구 칸이다(I61)
 # 건설비는 지시하는 순간 내고, 모자라면 거부한다(I16, I17)
 # ponytail: 적이 선 칸은 보지 않는다. 준비 단계엔 적이 없다. 전투 중 건설(공병, W2)이 생기면 더한다
 func build(kind: String, cell: Vector2i, overrides := {}):
@@ -285,7 +297,7 @@ func build(kind: String, cell: Vector2i, overrides := {}):
 	if units.any(func(u): return Vector2i(u.pos.round()) == cell):
 		return null
 	var stats: Dictionary = STRUCTURE_KINDS[kind].merged(overrides, true)
-	if gold < stats.cost:
+	if gold < stats.cost or village.has_point(cell) != stats.has("produces"):
 		return null
 	gold -= stats.cost
 	var s := Block.new(cell, kind, stats.hp)
@@ -293,11 +305,57 @@ func build(kind: String, cell: Vector2i, overrides := {}):
 		s.set(key, stats[key])
 	s.paid = stats.cost
 	structures[cell] = s
+	if s.produces != "":
+		var exit = _exit_of(cell)
+		s.rally = exit if exit != null else cell
 	_repath = true
 	return s
 
 func structure_at(cell: Vector2i):
 	return structures.get(cell)
+
+# 전투 단계에만, 생산 시설에서 용병 하나를 산다(S20, I21). 시설 옆 칸에 나타나 집결 지점으로 걸어간다(I61)
+# 골드가 모자라거나, 배치 상한에 닿았거나(S25, I23), 시설이 파괴됐으면(S48) 거부한다
+func recruit(f):
+	if state != "battle" or structures.get(f.cell) != f or f.produces == "":
+		return null
+	var stats: Dictionary = MERC_KINDS[f.produces]
+	var exit = _exit_of(f.cell)
+	if exit == null or gold < stats.cost or _mercs() >= merc_cap:
+		return null
+	gold -= stats.cost
+	var m := Unit.new(f.produces, exit, stats)
+	m.paid = stats.cost
+	units.append(m)
+	_to_rally(m, f)
+	return m
+
+# 아직 집결 지점에 닿지 않은 그 시설의 용병도 새 집결 지점으로 간다(I22). 0.5칸 안에 들어왔으면 닿은 것이다
+func set_rally(f, cell: Vector2i) -> void:
+	if not grid.is_in_boundsv(cell):
+		return
+	var old := Vector2(f.rally)
+	f.rally = cell
+	for u in units:
+		if u.rally_from == f and u.pos.distance_to(old) > 0.5:
+			_to_rally(u, f)
+
+func _to_rally(u: Unit, f: Block) -> void:
+	order_move([u], f.rally)
+	u.rally_from = f
+
+# 시설 옆의 빈 칸. 맵 아래쪽(들판 쪽, S51)부터 본다(I61)
+# ponytail: 상하좌우 넷만 본다. 넷이 다 막히면 대각선까지 볼 일
+func _exit_of(cell: Vector2i):
+	for d in [Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP]:
+		var c: Vector2i = cell + d
+		if grid.is_in_boundsv(c) and not grid.block_at(c) and c != base.cell:
+			return c
+	return null
+
+# 배치 상한에 세는 살아 있는 용병 수(공병 포함, 영웅 제외, I23)
+func _mercs() -> int:
+	return units.filter(func(u): return u != hero).size()
 
 # 준비 단계에만, 플레이어가 놓은 구조물·용병을 판다(S69). 성곽·영웅 등 나머지는 건너뛴다(I56)
 func sell(things: Array) -> void:
@@ -458,6 +516,7 @@ func _act(u: Unit, dt: float) -> void:
 				u.path.remove_at(0)
 				if u.path.is_empty():
 					u.anchor = u.pos
+					u.rally_from = null
 	elif not foe:
 		# ponytail: 적에게 곧장 다가간다. 벽 너머 적에게는 벽을 따라 미끄러질 뿐이다. 막히는 일이 보이면 경로로
 		var prey = _nearest_enemy(u.pos, u.sight, u.anchor, zone)
