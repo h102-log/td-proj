@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="MercDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/merc_def.gd" id="1_2se0y"]
+
+[resource]
+script = ExtResource("1_2se0y")
+cost = 15
+hp = 30.0
+speed = 2.5
