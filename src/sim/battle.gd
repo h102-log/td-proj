@@ -19,6 +19,11 @@ const SPAWN_GAP := 1.0  # 웨이브 안에서 적이 나오는 간격(초)
 const REACH := 1.0      # 적이 막힌 칸·거점·유닛을 칠 수 있는 거리(중심 사이). 옆 칸 중심까지가 1이다
 const UNIT_WALL_K := 1e6  # 유닛 경로의 막힌 칸 비용 배율. 돌아갈 길이 있으면 막힌 칸(닫힌 성문 포함, I42)을 지나지 않는다
 const WORK_REACH := 2.0  # 공병이 일하는 거리(중심 사이). 옆 칸 대각선(1.41)에, 무리에 밀려 0.5칸 못 미친 도착(I51)을 더했다
+# 성곽 업그레이드(S86): 한 단계마다 최대 체력 ×UPGRADE_MULT. 비용은 종류별 1→2단계 값이고 다음 단계는 2배. 수치는 임시값
+const UPGRADE_COST := {"castle_wall": 10, "gate": 20}
+const UPGRADE_MULT := 1.5
+const UPGRADE_MAX := 3
+const UPGRADE_TIME := 5.0  # 전투 중 공병이 한 단계 올리는 시간(초)
 
 # 칸 하나를 차지하고 체력이 있는 것: 거점 "base" · 성곽 "castle_wall"·"gate" · 구조물 "wall" 등
 class Block:
@@ -40,6 +45,9 @@ class Block:
 	var build_time := 1.0  # 전투 중 짓는 데 드는 시간(초)
 	var worker  # 이 구조물을 짓거나 허무는(그러러 가는) 공병
 	var razed := 0.0  # 철거 진행률(0~1, I64)
+	var open := false  # 열린 성문(S85). 막힌 칸이 아니다(I67)
+	var level := 1  # 성곽 업그레이드 단계(S86)
+	var lift := -1.0  # 업그레이드 진행률(0~1). 음수면 올리는 중이 아니다. 그만두면 그대로 남는다(I68)
 
 	func _init(c: Vector2i, k: String, h: float) -> void:
 		cell = c
@@ -132,7 +140,8 @@ class CostGrid extends AStarGrid2D:
 	var wall_k := 1.0  # 경로를 구하기 직전에 그 적의 값을 넣는다
 
 	func block_at(c: Vector2i):
-		return structures.get(c, castle.get(c))
+		var b = structures.get(c, castle.get(c))
+		return null if b and b.open else b
 
 	func _compute_cost(from: Vector2i, to: Vector2i) -> float:
 		# 옆 칸이 막혔으면 대각선으로 끼어들지 않는다(solid였을 때의 DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES와 같게)
@@ -202,7 +211,7 @@ func restart() -> void:
 	village = stage.get("village", Rect2i())
 	merc_cap = stage.get("merc_cap", MERC_CAP)
 	base = Block.new(stage.base, "base", stage.base_hp)
-	for s in structures.values():  # 공병 ↔ 구조물 상호 참조를 끊는다. 남기면 RefCounted 순환이라 해제되지 않는다
+	for s in structures.values() + castle.values():  # 공병 ↔ 구조물 상호 참조를 끊는다. 남기면 RefCounted 순환이라 해제되지 않는다
 		_release(s)
 	castle.clear()
 	structures.clear()
@@ -238,7 +247,7 @@ func step(dt: float) -> void:
 	if state == "battle" and _queue.is_empty() and enemies.is_empty():
 		wave_index += 1
 		state = "won" if wave_index >= waves.size() else "prep"
-		for s in structures.values():  # 하던 건설·철거는 그 상태로 멈춘다(I19)
+		for s in structures.values() + castle.values():  # 하던 건설·철거·업그레이드는 그 상태로 멈춘다(I19, I68)
 			_release(s)
 		if state == "prep" and revive and hero and not hero.alive:
 			_return_hero()
@@ -402,6 +411,49 @@ func _exit_of(cell: Vector2i):
 			return c
 	return null
 
+# 성문을 열거나 닫는다(S85). 성문 칸에 유닛이나 적이 있으면 닫지 않는다. 여닫으면 적 경로를 다시 구한다(I67)
+func set_gate(g: Block, open: bool) -> void:
+	if g.kind != "gate" or castle.get(g.cell) != g:
+		return
+	if not open and (units + enemies).any(func(u): return Vector2i(u.pos.round()) == g.cell):
+		return
+	g.open = open
+	_repath = true
+
+func upgrade_cost(k: Block) -> int:
+	return UPGRADE_COST[k.kind] * (1 << (k.level - 1))
+
+# 성곽 칸 하나를 한 단계 올린다(S86). 골드는 지시할 때 낸다(I16). 준비 단계엔 바로 오르고, 전투 단계엔 놀고 있는
+# 가장 가까운 공병을 보낸다. 그런 공병이 없으면 거부한다. 그만둔 업그레이드는 골드를 더 내지 않고 이어 올린다(I68)
+func upgrade(k: Block) -> void:
+	if state not in ["prep", "battle"] or castle.get(k.cell) != k or k.level >= UPGRADE_MAX or k.worker:
+		return
+	var engineer = _idle_engineer(k.cell) if state == "battle" else null
+	if state == "battle" and not engineer:
+		return
+	if k.lift < 0.0:
+		if gold < upgrade_cost(k):
+			return
+		gold -= upgrade_cost(k)
+		k.lift = 0.0
+	if engineer:
+		_send(engineer, k)
+	else:
+		_lift(k, 1.0)
+
+# 진행률을 dp만큼 올리고, 다 차면 한 단계 오른다. 최대 체력이 오른 만큼 체력도 올라 입은 피해는 그대로다(I68)
+func _lift(k: Block, dp: float) -> void:
+	k.lift += dp
+	if k.lift < 1.0:
+		return
+	k.lift = -1.0
+	k.level += 1
+	var gain := k.max_hp * (UPGRADE_MULT - 1.0)
+	k.max_hp += gain
+	k.hp += gain
+	_release(k)
+	_repath = true  # 남은 체력이 적의 경로 비용이다(S7, I41)
+
 # 전투 단계에만, 미완성 구조물을 없애고 낸 골드를 모두 돌려준다(S23)
 func cancel(s) -> void:
 	if state == "battle" and not s.complete and structures.get(s.cell) == s:
@@ -479,12 +531,14 @@ func _grow(s: Block, dp: float) -> void:
 		_release(s)
 		_repath = true
 
-# 옆 칸에 닿은 공병은 미완성이면 짓고(I62), 완성이면 허문다(I64: 건설 시간의 절반이 든다). 밀려나 멀어졌으면 다시 걸어간다
+# 옆 칸에 닿은 공병은 성곽이면 올리고(S86), 미완성이면 짓고(I62), 완성이면 허문다(I64: 건설 시간의 절반이 든다). 밀려나 멀어졌으면 다시 걸어간다
 # ponytail: 닿을 수 없는 칸이면 매 프레임 경로를 다시 구한다. 공병이 많아 느려지면 포기 처리를 둔다
 func _work(u: Unit, dt: float) -> void:
 	var s: Block = u.job
 	if u.pos.distance_to(Vector2(s.cell)) > WORK_REACH:
 		_send(u, s)
+	elif s.lift >= 0.0:
+		_lift(s, dt / UPGRADE_TIME)
 	elif not s.complete:
 		_grow(s, dt / s.build_time)
 	else:

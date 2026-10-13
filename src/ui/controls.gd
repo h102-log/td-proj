@@ -1,6 +1,6 @@
 extends RefCounted
 # 마우스·키 입력을 전투 명령으로 바꾼다. 마우스 좌표는 맵 px(칸 (x,y)가 [x, x+1) × cell_px)로 받는다.
-# 좌클릭: 영웅이나 생산 시설을 고르거나(I9, S81) 선택을 푼다 · 좌드래그: 사각형 안의 용병을 고른다(S16, I9)
+# 좌클릭: 영웅이나 생산 시설·성곽 칸을 고르거나(I9, S81, S85, S86) 선택을 푼다 · 좌드래그: 사각형 안의 용병을 고른다(S16, I9)
 # 우클릭: 생산 시설을 골랐으면 그 칸을 집결 지점으로(S82), 아니면 고른 유닛 이동(S14)
 # 준비 단계의 좌클릭·좌드래그는 판매 후보도 정한다(S70, I57). 좌클릭한 용병은 고른 상태도 된다
 # 전투 단계의 좌클릭·좌드래그는 철거·취소·이어 짓기 후보(picked)를 정한다(S74, S83)
@@ -23,6 +23,7 @@ var sell_at := Vector2()  # 판매 팝업을 띄울 곳: 클릭하거나 드래�
 var show_hp := false  # 체력바를 모두 그린다(S73)
 var facility = null  # 고른 생산 시설. 전투 단계엔 그 옆에 구매 팝업이 뜬다(S81, I61)
 var picked := []  # 전투 단계에 고른 플레이어 구조물. 철거·취소·이어 짓기 팝업의 대상이다(S74, S83)
+var fort = null  # 고른 성곽 칸. 그 옆에 여닫기·업그레이드 팝업이 뜬다(S85, S86)
 var _state: String  # 마지막으로 본 판 단계. 바뀌면 놓기 모드를 끝낸다
 
 func _init(b, px: int) -> void:
@@ -86,6 +87,7 @@ func _release(rect: Rect2, at: Vector2) -> void:
 		selected = [h] if h and h.alive and Vector2i(h.pos.round()) == cell else []
 		var hit = battle.structure_at(cell)
 		facility = hit if hit and hit.produces != "" and hit.complete else null
+		fort = battle.castle.get(cell)
 		picked = [hit] if hit and not prep else []
 		for m in mercs:
 			if Vector2i(m.pos.round()) == cell:
@@ -96,6 +98,7 @@ func _release(rect: Rect2, at: Vector2) -> void:
 	else:
 		var inside := func(p: Vector2): return rect.has_point((p + Vector2(0.5, 0.5)) * cell_px)
 		facility = null
+		fort = null
 		selected = mercs.filter(func(u): return inside.call(u.pos))
 		var built: Array = battle.structures.values().filter(func(s): return inside.call(Vector2(s.cell)))
 		selling = (selected + built) if prep else []

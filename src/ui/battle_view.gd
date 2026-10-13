@@ -4,7 +4,7 @@ extends Node2D
 const CELL := 16
 const COLORS := {
 	"field": Color("4a6b3a"), "grid": Color(0, 0, 0, 0.15), "spawn": Color("c03030"),
-	"base": Color("e0c040"), "castle_wall": Color("8a8a8a"), "gate": Color("7a5230"),
+	"base": Color("e0c040"), "castle_wall": Color("8a8a8a"), "gate": Color("7a5230"), "gate_open": Color("c8a070"),
 	"wall": Color("5a5a5a"), "tower": Color("3060b0"), "enemy": Color("d04040"), "merc": Color("50a0f0"),
 	"hero": Color("b060f0"), "village": Color("6b6b4a"), "barracks": Color("a06a30"),
 	"workshop": Color("308080"), "engineer": Color("f0a030"),
@@ -21,12 +21,14 @@ func _draw() -> void:
 		draw_line(Vector2(x * CELL, 0), Vector2(x * CELL, map.y), COLORS.grid)
 	for y in battle.size.y + 1:
 		draw_line(Vector2(0, y * CELL), Vector2(map.x, y * CELL), COLORS.grid)
-	for b in battle.castle.values():
-		draw_rect(_rect(b.cell), COLORS[b.kind])
+	for b in battle.castle.values():  # 열린 성문은 밝게(I67). 단계는 칸 아래쪽 점 개수다(I68)
+		draw_rect(_rect(b.cell), COLORS.gate_open if b.open else COLORS[b.kind])
+		for i in b.level:
+			draw_rect(Rect2(Vector2(b.cell) * CELL + Vector2(2 + i * 4, CELL - 4), Vector2(2, 2)), Color.WHITE)
 	for s in battle.structures.values():  # 미완성은 흐리게. 진행률은 체력 막대로 보인다(I62)
 		var col: Color = COLORS[s.kind]
 		draw_rect(_rect(s.cell), col if s.complete else Color(col, 0.4))
-	for s in controls.picked:  # 전투 단계에 고른 구조물(S74, S83)
+	for s in controls.picked + ([controls.fort] if controls.fort else []):  # 전투 단계에 고른 구조물(S74, S83)·고른 성곽 칸(S85)
 		draw_rect(_rect(s.cell), Color.WHITE, false, 1.0)
 	var f = controls.facility  # 고른 생산 시설: 테두리와 집결 지점 깃발(S82)
 	if f and f.alive:
