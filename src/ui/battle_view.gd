@@ -7,7 +7,7 @@ const COLORS := {
 	"base": Color("e0c040"), "castle_wall": Color("8a8a8a"), "gate": Color("7a5230"), "gate_open": Color("c8a070"),
 	"wall": Color("5a5a5a"), "tower": Color("3060b0"), "enemy": Color("d04040"), "merc": Color("50a0f0"),
 	"hero": Color("b060f0"), "village": Color("6b6b4a"), "barracks": Color("a06a30"),
-	"workshop": Color("308080"), "engineer": Color("f0a030"), "archer": Color("60d0a0"),
+	"workshop": Color("308080"), "engineer": Color("f0a030"), "archer": Color("60d0a0"), "cannon": Color("303060"),
 }
 
 var battle
@@ -44,10 +44,12 @@ func _draw() -> void:
 	for b in battle.castle.values() + battle.structures.values():
 		if b.hp < b.max_hp or (controls.show_hp and b.kind in battle.STRUCTURE_KINDS):
 			_hp_bar(Vector2(b.cell), b)
-	# 타워 사격 선: 쏜 뒤 0.1초 동안
+	# 타워 사격 선: 쏜 뒤 0.1초 동안. 대포는 맞은 곳에 범위 피해 원도 그린다(S90)
 	for s in battle.structures.values():
 		if s.target and s.cooldown > s.fire_gap - 0.1:
 			draw_line(Vector2(s.cell) * CELL + Vector2(CELL, CELL) / 2, s.target.pos * CELL + Vector2(CELL, CELL) / 2, Color.YELLOW, 1.0)
+			if s.splash > 0.0:
+				draw_arc(_center(s.target.pos), CELL * s.splash, 0.0, TAU, 24, Color.YELLOW, 1.0)
 	for u in battle.units:
 		var at: Vector2 = u.pos * CELL + Vector2(CELL, CELL) / 2
 		draw_circle(at, CELL * u.radius, COLORS.hero if u == battle.hero else COLORS.get(u.kind, COLORS.merc))
