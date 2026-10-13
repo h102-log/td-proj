@@ -1,7 +1,7 @@
 extends CanvasLayer
 # 골드·웨이브·단계를 보이고, 놓기 모드·«전투 시작»(I13) 버튼과 판이 끝난 뒤의 결과·«재시작»(S29)을 둔다.
 # 판매 후보가 있으면 그 옆에 판매 버튼을 띄운다(S70, I58). 전투 단계에 생산 시설을 고르면 그 옆에 파는 용병마다 구매 버튼을 띄운다(S81, I61, I71).
-# 고른 구조물에 따라 같은 자리에 철거(S74)·이어 짓기·취소(전투 단계)와 완성(준비 단계) 버튼도 띄운다(S83).
+# 고른 구조물에 따라 같은 자리에 철거(S74)·이어 짓기·취소(전투 단계)와 완성(준비 단계) 버튼도 띄운다(S83). 대포면 옮기기(S91)도 띄운다.
 # 성곽 칸을 고르면 같은 자리에 성문 열기·닫기(S85)와 업그레이드(S86) 버튼을 띄운다.
 
 const NAMES := {"wall": "방벽", "tower": "타워", "soldier": "용병", "barracks": "병영", "engineer": "공병", "workshop": "작업장", "archer": "궁수", "cannon": "대포"}
@@ -17,6 +17,7 @@ var _sell: Button
 var _finish: Button
 var _buy := {}  # 용병 kind → 구매 버튼
 var _demolish: Button
+var _move: Button
 var _resume: Button
 var _cancel: Button
 var _gate: Button
@@ -65,6 +66,7 @@ func _ready() -> void:
 	for kind in battle.MERC_KINDS:
 		_buy[kind] = _button(_popup, "", func(): battle.recruit(controls.facility, kind))
 	_demolish = _button(_popup, "철거", func(): _apply(func(s): battle.demolish([s]), controls.picked))
+	_move = _button(_popup, "옮기기", _start_move)
 	_resume = _button(_popup, "이어 짓기", func(): _apply(battle.resume, battle.unfinished(controls.picked)))
 	_cancel = _button(_popup, "취소", func(): _apply(battle.cancel, battle.unfinished(controls.picked)))
 	_gate = _button(_popup, "", func(): battle.set_gate(controls.fort, not controls.fort.open))
@@ -78,8 +80,10 @@ func _process(_delta: float) -> void:
 		_place[kind].disabled = not (prep or (battle.state == "battle" and kind in battle.STRUCTURE_KINDS))
 		_place[kind].button_pressed = controls.placing == kind
 	_start.disabled = not prep
-	_hint.visible = controls.placing != ""
+	_hint.visible = controls.placing != "" or controls.moving != null
 	_hint.text = "%s 놓기: 좌클릭 · 끝내기: 우클릭·ESC" % NAMES.get(controls.placing, "")
+	if controls.moving:
+		_hint.text = "대포 옮길 칸: 좌클릭 · 끝내기: 우클릭·ESC"
 	_result.visible = battle.state in ["won", "lost"]
 	_result_label.text = "승리!" if battle.state == "won" else "패배"
 	if not prep or controls.placing != "":  # 전투가 시작되거나 놓기 모드에 들어가면 판매 팝업을 닫는다(I58)
@@ -97,6 +101,7 @@ func _process(_delta: float) -> void:
 	controls.picked = controls.picked.filter(func(s): return s.alive)  # 부서지거나 허물거나 취소된 것은 뺀다
 	var todo: Array = battle.unfinished(controls.picked)
 	_demolish.visible = controls.picked.any(battle.can_demolish)
+	_move.visible = _cannon() != null
 	_resume.visible = todo.any(func(s): return s.worker == null)
 	_cancel.visible = not todo.is_empty()
 	if controls.placing != "" or (controls.fort and not controls.fort.alive):  # 놓기 모드거나 부서진 성곽 칸
@@ -141,6 +146,17 @@ func _apply(f: Callable, things: Array) -> void:
 	for t in things:
 		f.call(t)
 	controls.selling = []
+	controls.picked = []
+
+# 고른 구조물 가운데 옮길 수 있는 첫 대포(S44)
+func _cannon():
+	for s in controls.picked:
+		if s.kind == "cannon" and battle.can_demolish(s):
+			return s
+	return null
+
+func _start_move() -> void:
+	controls.moving = _cannon()
 	controls.picked = []
 
 # 팔린 용병은 고른 상태에서도 뺀다

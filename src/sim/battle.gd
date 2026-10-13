@@ -44,9 +44,11 @@ class Block:
 	var produces := []  # 생산 시설이면 파는 용병 kind들. 첫째가 기본이다(S20, S87)
 	var rally: Vector2i  # 생산 시설의 집결 지점(S21)
 	var progress := 1.0  # 건설 진행률(0~1). 1 미만이면 미완성이다(I62)
+	var full: float  # 다 지었을 때의 체력. 옮겨 다시 짓는 대포는 옮기기 전 체력이다(I74)
 	var build_time := 1.0  # 전투 중 짓는 데 드는 시간(초)
 	var worker  # 이 구조물을 짓거나 허무는(그러러 가는) 공병
-	var razed := 0.0  # 철거 진행률(0~1, I64)
+	var razed := 0.0  # 철거 진행률(0~1, I64). 옮기는 대포는 1이면 접혀 새 칸으로 가는 중이다(I74)
+	var dest  # 대포를 옮겨 갈 칸(S44). 옮기는 중이 아니면 null
 	var open := false  # 열린 성문(S85). 막힌 칸이 아니다(I67)
 	var level := 1  # 성곽 업그레이드 단계(S86)
 	var lift := -1.0  # 업그레이드 진행률(0~1). 음수면 올리는 중이 아니다. 그만두면 그대로 남는다(I68)
@@ -56,6 +58,7 @@ class Block:
 		kind = k
 		max_hp = h
 		hp = h
+		full = h
 
 class Enemy:
 	var kind: String
@@ -549,7 +552,37 @@ func demolish(things: Array) -> void:
 		if engineer:
 			_send(engineer, t)
 
-# 완성된 방벽·타워이고 허무는 공병이 아직 없다. 골드는 돌려주지 않는다(S74). 생산 시설은 철거하지 않는다(I64)
+# 전투 단계에만, 놀고 있는 가장 가까운 공병을 보내 대포를 그 칸으로 옮긴다. 골드는 들지 않는다(S44, I48).
+# 공병은 대포를 허물어 접고, 새 칸 옆에 닿으면 거기서 다시 짓는다(_work, I74)
+func move_cannon(s: Block, cell: Vector2i) -> void:
+	if state != "battle" or s.kind != "cannon" or not can_demolish(s) or not _buildable(s.kind, cell):
+		return
+	var engineer = _idle_engineer(s.cell)
+	if engineer:
+		s.dest = cell
+		_send(engineer, s)
+
+# 접은 대포를 새 칸으로 옮겨 진행률 0부터 다시 짓는다. 새 칸에 지을 수 없게 됐으면 그만둔다(I74)
+func _settle(s: Block) -> void:
+	if not _buildable(s.kind, s.dest):
+		_release(s)
+		return
+	structures.erase(s.cell)
+	s.cell = s.dest
+	structures[s.cell] = s
+	s.dest = null
+	s.razed = 0.0
+	s.full = s.hp
+	s.hp = 0.0
+	s.progress = 0.0
+	s.complete = false
+	_repath = true
+
+# 공병이 일하러 가는 칸. 접은 대포는 새 칸이다(I74)
+func _site(s: Block) -> Vector2i:
+	return s.dest if s.dest != null and s.razed >= 1.0 else s.cell
+
+# 완성된 방벽·타워·대포이고 일하는 공병이 아직 없다. 골드는 돌려주지 않는다(S74). 생산 시설은 철거하지 않는다(I64)
 func can_demolish(t) -> bool:
 	return t is Block and structures.get(t.cell) == t and t.complete and t.produces.is_empty() and t.worker == null
 
@@ -572,14 +605,18 @@ func _send(u: Unit, s: Block) -> void:
 	u.after.clear()
 	s.worker = u
 	grid.wall_k = UNIT_WALL_K
-	u.path = grid.get_id_path(Vector2i(u.pos.round()), s.cell, true).slice(1, -1)
+	u.path = grid.get_id_path(Vector2i(u.pos.round()), _site(s), true).slice(1, -1)
 
 # 일하던 공병을 놓아준다. 공병은 그 자리에 서고, 구조물은 그 상태로 남는다(I63)
+# 옮기던 대포는 원래 칸에 완성된 채 남는다(U12, I74)
 func _release(s: Block) -> void:
 	if s.worker:
 		s.worker.job = null
 		s.worker.path.clear()
 		s.worker = null
+	if s.dest != null:
+		s.dest = null
+		s.razed = 0.0
 
 func _remove(s: Block) -> void:
 	_release(s)
@@ -587,30 +624,33 @@ func _remove(s: Block) -> void:
 	s.alive = false
 	_repath = true
 
-# 진행률을 dp만큼 올리고 체력을 «최대 체력 × 진행률 − 짓는 동안 입은 피해»로 둔다. 다 차면 완성되고 적 경로를 다시 구한다(I62)
+# 진행률을 dp만큼 올리고 체력을 «다 지었을 때의 체력 × 진행률 − 짓는 동안 입은 피해»로 둔다. 다 차면 완성되고 적 경로를 다시 구한다(I62, I74)
 # 체력에 더해 가지 않고 곱해서 구한다. 더하면 오차가 쌓여 다 지어도 최대 체력에 못 미친다(EV48)
 func _grow(s: Block, dp: float) -> void:
-	var lost := s.max_hp * s.progress - s.hp
+	var lost := s.full * s.progress - s.hp
 	s.progress = minf(s.progress + dp, 1.0)
-	s.hp = s.max_hp * s.progress - lost
+	s.hp = s.full * s.progress - lost
 	if s.progress >= 1.0:
 		s.complete = true
 		_release(s)
 		_repath = true
 
 # 옆 칸에 닿은 공병은 성곽이면 올리고(S86), 미완성이면 짓고(I62), 완성이면 허문다(I64: 건설 시간의 절반이 든다). 밀려나 멀어졌으면 다시 걸어간다
+# 옮기는 대포는 허물면 접어 두고, 새 칸 옆에 닿으면 내려놓는다(I74)
 # ponytail: 닿을 수 없는 칸이면 매 프레임 경로를 다시 구한다. 공병이 많아 느려지면 포기 처리를 둔다
 func _work(u: Unit, dt: float) -> void:
 	var s: Block = u.job
-	if u.pos.distance_to(Vector2(s.cell)) > WORK_REACH:
+	if u.pos.distance_to(Vector2(_site(s))) > WORK_REACH:
 		_send(u, s)
 	elif s.lift >= 0.0:
 		_lift(s, dt / UPGRADE_TIME)
 	elif not s.complete:
 		_grow(s, dt / s.build_time)
+	elif s.razed >= 1.0:
+		_settle(s)
 	else:
 		s.razed += dt / (s.build_time / 2.0)
-		if s.razed >= 1.0:
+		if s.razed >= 1.0 and s.dest == null:
 			_remove(s)
 
 # 배치 상한에 세는 살아 있는 용병 수(공병 포함, 영웅 제외, I23)
@@ -754,7 +794,7 @@ func _push_apart(bodies: Array, others: Array) -> void:
 # 대포는 맞은 적 splash칸 안의 적에게도 같은 피해를 주고, 그 적들도 반격한다(S90, I73)
 func _fire(dt: float) -> void:
 	for s in structures.values():
-		if s.range <= 0.0 or not s.complete:  # 미완성 타워는 쏘지 않는다(I18)
+		if s.range <= 0.0 or not s.complete or s.razed >= 1.0:  # 미완성 타워(I18)·접은 대포(I74)는 쏘지 않는다
 			continue
 		s.cooldown -= dt
 		if s.cooldown > 0.0:
