@@ -13,9 +13,11 @@ const MERC_KINDS := {"soldier": {"cost": 20, "hp": 50.0, "radius": 0.3, "speed":
 	"sight": 4.0, "hold_radius": 2.0},
 	"engineer": {"cost": 15, "hp": 30.0, "radius": 0.3, "speed": 2.5, "damage": 0.0, "range": 0.0, "sight": 0.0}}
 # 스킬은 «주변 skill_radius칸 안의 적 전부에게 피해»다(I33, 사용자 2026-10-12: 1.5칸·대기 10초·단축키 Q). 피해량 등 나머지는 임시값
-# ponytail: 영웅은 하나뿐이다. 영웅 종류·스킬 2개·오라(I33)는 내용이 정해지면 HERO_KINDS로 넓힌다
+# 스킬 2(buff_*)는 «주변 buff_radius칸 안 용병의 공격력 ×buff_mult, buff_time초»다(S84, 단축키 W). 수치는 임시값
+# ponytail: 영웅은 하나뿐이다. 영웅 종류·오라(I33)는 내용이 정해지면 HERO_KINDS로 넓힌다
 const HERO := {"hp": 100.0, "radius": 0.3, "speed": 3.0, "damage": 3.0, "range": 1.5, "attack_gap": 1.0,
-	"skill_damage": 30.0, "skill_radius": 1.5, "skill_gap": 10.0}
+	"skill_damage": 30.0, "skill_radius": 1.5, "skill_gap": 10.0,
+	"buff_radius": 3.0, "buff_mult": 1.5, "buff_time": 5.0, "buff_gap": 20.0}
 # 골드(cost·reward)도 임시값이다(사용자 2026-10-12: 시작 100·방벽 10·타워 30·용병 20·처치 5)
 # 생산 시설("barracks"·"workshop", produces = 나오는 용병 kind)의 비용·체력도 임시값이다. 시설 3종은 2.22
 # build_time(전투 중 짓는 데 드는 초, I62)도 임시값이다
@@ -113,9 +115,19 @@ class Unit:
 	var skill_gap := 0.0  # 재사용 대기(초). 0이면 스킬이 없다
 	var skill_cooldown := 0.0
 	var skill_uses := 0
+	var buff_radius := 0.0
+	var buff_mult := 1.0
+	var buff_time := 0.0
+	var buff_gap := 0.0  # 재사용 대기(초). 0이면 스킬 2가 없다
+	var buff_cooldown := 0.0
+	var boost := 1.0  # 용병이 받은 버프 배율. boost_left초 동안만 공격력에 곱한다(S84)
+	var boost_left := 0.0
 
 	func skill_ready() -> bool:
 		return skill_gap > 0.0 and skill_cooldown <= 0.0
+
+	func buff_ready() -> bool:
+		return buff_gap > 0.0 and buff_cooldown <= 0.0
 
 	func _init(k: String, cell: Vector2i, stats: Dictionary) -> void:
 		kind = k
@@ -303,6 +315,16 @@ func use_skill() -> void:
 	for e in enemies.duplicate():
 		if e.pos.distance_to(hero.pos) <= hero.skill_radius:
 			damage(e, hero.skill_damage)
+
+# 영웅 스킬 2(S84): 지금 주변 buff_radius칸 안에 있는 용병에게만 버프를 건다(I65). 명령으로만 쓴다
+func use_buff() -> void:
+	if not hero or not hero.alive or not hero.buff_ready():
+		return
+	hero.buff_cooldown = hero.buff_gap
+	for u in units:
+		if u != hero and u.pos.distance_to(hero.pos) <= hero.buff_radius:
+			u.boost = hero.buff_mult
+			u.boost_left = hero.buff_time
 
 # 빈 칸(구조물·성곽·거점·유닛·적이 없는 맵 안 칸)에 짓는다(I24). 준비 단계엔 바로 완성된다(S18).
 # 전투 단계엔 진행률 0의 미완성 구조물을 놓고 놀고 있는 가장 가까운 공병을 보낸다. 그런 공병이 없으면 거부한다(S22, I39, I62)
@@ -612,6 +634,8 @@ func _fire(dt: float) -> void:
 func _act(u: Unit, dt: float) -> void:
 	u.cooldown -= dt
 	u.skill_cooldown -= dt
+	u.buff_cooldown -= dt
+	u.boost_left -= dt
 	# 걷는 동안엔 반경을 보지 않는다. 홀드 중 이동 지시를 받으면 도착한 곳이 새 기준이다(I37)
 	var zone := u.hold_radius if u.hold and u.path.is_empty() else INF
 	var foe = _nearest_enemy(u.pos, u.range, u.anchor, zone)
@@ -646,7 +670,7 @@ func _act(u: Unit, dt: float) -> void:
 	if foe and u.cooldown <= 0.0:
 		u.cooldown = u.attack_gap
 		u.target = foe
-		damage(foe, u.damage)
+		damage(foe, u.damage * (u.boost if u.boost_left > 0.0 else 1.0))
 	if u.job and u.path.is_empty():
 		_work(u, dt)
 

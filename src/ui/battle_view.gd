@@ -53,6 +53,8 @@ func _draw() -> void:
 			draw_arc(at, CELL * (u.radius + 0.2), 0.0, TAU, 24, Color.YELLOW if u.move_mode == "move" else Color.WHITE, 1.0)
 			if u.hold:
 				draw_arc(u.anchor * CELL + Vector2(CELL, CELL) / 2, CELL * u.hold_radius, 0.0, TAU, 48, Color(1, 1, 1, 0.4), 1.0)
+		if u.boost_left > 0.0:  # 버프를 받은 용병(I65): 선택 테두리 바깥에 주황 테두리
+			draw_arc(at, CELL * (u.radius + 0.35), 0.0, TAU, 24, Color.ORANGE, 1.0)
 	for e in battle.enemies:
 		draw_circle(e.pos * CELL + Vector2(CELL, CELL) / 2, CELL * e.radius, COLORS.enemy)
 	# 공격선: 친 뒤 0.1초 동안 아군은 흰색, 적은 빨간색(S71). 대상이 무엇이든 그린다(I59)
@@ -66,6 +68,8 @@ func _draw() -> void:
 	var h = battle.hero
 	if h and h.alive and h.skill_cooldown > h.skill_gap - 0.3:
 		draw_arc(_center(h.pos), CELL * h.skill_radius, 0.0, TAU, 48, Color.WHITE, 1.0)
+	if h and h.alive and h.buff_cooldown > h.buff_gap - 0.3:  # 스킬 2 범위 원(S72, I65)
+		draw_arc(_center(h.pos), CELL * h.buff_radius, 0.0, TAU, 48, Color.ORANGE, 1.0)
 	if controls.show_hp:
 		for u in battle.units + battle.enemies:
 			_hp_bar(u.pos, u)
