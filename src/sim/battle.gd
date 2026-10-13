@@ -33,6 +33,7 @@ class Block:
 	var fire_gap := 1.0  # 쏘는 간격(초)
 	var cooldown := 0.0
 	var target  # 마지막으로 쏜 적. 화면이 쏜 직후 사격 선을 그린다
+	var paid := 0  # 지을 때 낸 골드. 판매 환불의 기준(S69)
 
 	func _init(c: Vector2i, k: String, h: float) -> void:
 		cell = c
@@ -55,6 +56,7 @@ class Enemy:
 	var cooldown := 0.0  # 0 이하면 바로 칠 수 있다
 	var alive := true
 	var attacker  # 마지막으로 이 적을 쏜 구조물. 살아 있는 동안 반격 대상이다(S4 ②)
+	var target  # 마지막으로 친 대상. 화면이 친 직후 공격선을 그린다(S71)
 	var goal: Vector2i  # 경로의 끝 칸(지금 노리는 대상의 칸)
 	var path: Array[Vector2i] = []
 
@@ -81,6 +83,8 @@ class Unit:
 	var range := 0.0  # 사거리(칸). 0보다 커야 적을 친다
 	var attack_gap := 1.0  # 공격 간격(초)
 	var cooldown := 0.0
+	var target  # 마지막으로 친 적. 화면이 친 직후 공격선을 그린다(S71)
+	var paid := 0  # 놓을 때 낸 골드. 판매 환불의 기준(S69)
 	var sight := 0.0  # 인식 범위(칸). 서 있을 때 이 안의 적을 쫓는다(I36)
 	var path: Array[Vector2i] = []  # 명령받은 이동 경로(지금 칸 제외)
 	var move_mode := "attack_move"  # "move" | "attack_move"(S35). 새 용병은 이동 중 공격(I38)
@@ -236,6 +240,7 @@ func place_merc(kind: String, cell: Vector2i, overrides := {}):
 		return null
 	gold -= stats.cost
 	var m := Unit.new(kind, cell, stats)
+	m.paid = stats.cost
 	units.append(m)
 	return m
 
@@ -286,12 +291,32 @@ func build(kind: String, cell: Vector2i, overrides := {}):
 	var s := Block.new(cell, kind, stats.hp)
 	for key in stats:
 		s.set(key, stats[key])
+	s.paid = stats.cost
 	structures[cell] = s
 	_repath = true
 	return s
 
 func structure_at(cell: Vector2i):
 	return structures.get(cell)
+
+# 준비 단계에만, 플레이어가 놓은 구조물·용병을 판다(S69). 성곽·영웅 등 나머지는 건너뛴다(I56)
+func sell(things: Array) -> void:
+	if state != "prep":
+		return
+	for t in things:
+		if t is Block and structures.get(t.cell) == t:
+			structures.erase(t.cell)
+			_repath = true
+		elif t is Unit and t != hero and t in units:
+			units.erase(t)
+		else:
+			continue
+		t.alive = false
+		gold += refund(t)
+
+# 판매로 돌려받는 골드: 낸 골드 × 남은 체력 비율, 1골드 미만은 버린다(S69, I56)
+func refund(t) -> int:
+	return floori(t.paid * t.hp / t.max_hp)
 
 func damage(target, amount: float) -> void:
 	if not target.alive:
@@ -443,6 +468,7 @@ func _act(u: Unit, dt: float) -> void:
 			_shove(u, p - u.pos, enemies)
 	if foe and u.cooldown <= 0.0:
 		u.cooldown = u.attack_gap
+		u.target = foe
 		damage(foe, u.damage)
 
 # from에서 reach 안의 가장 가까운 적. center에서 zone보다 먼 적은 뺀다(홀드 반경)
@@ -478,4 +504,5 @@ func _shove(e, by: Vector2, bodies: Array) -> void:
 func _attack(e: Enemy, target) -> void:
 	if e.cooldown <= 0.0:
 		e.cooldown = e.attack_gap
+		e.target = target
 		damage(target, e.damage)

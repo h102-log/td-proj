@@ -1,7 +1,8 @@
 extends RefCounted
 # 마우스·키 입력을 전투 명령으로 바꾼다. 마우스 좌표는 맵 px(칸 (x,y)가 [x, x+1) × cell_px)로 받는다.
 # 좌클릭: 영웅을 고르거나(I9) 선택을 푼다 · 좌드래그: 사각형 안의 용병을 고른다(S16, I9) · 우클릭: 고른 유닛 이동(S14)
-# Q: 영웅 스킬(I10) · A: 고른 용병의 이동 방식 전환(S35) · H: 홀드 전환(S36) (A·H는 사용자 2026-10-12)
+# 준비 단계의 좌클릭·좌드래그는 판매 후보도 정한다(S70, I57). 좌클릭한 용병은 고른 상태도 된다
+# Q: 영웅 스킬(I10) · A: 고른 용병의 이동 방식 전환(S35) · H: 홀드 전환(S36) (A·H는 사용자 2026-10-12) · V: 체력바 표시 전환(S73)
 # 1 방벽 · 2 타워 · 3 용병: 놓기 모드. 그동안 좌클릭은 그 칸에 짓거나 놓고, 우클릭·ESC는 모드를 끝낸다(사용자 2026-10-12)
 
 # ponytail: 맵 px 기준이라 줌에 따라 화면에서 느끼는 거리가 달라진다. 거슬리면 화면 px로 잰다
@@ -14,6 +15,9 @@ var selected := []
 var drag_rect := Rect2()  # 끌고 있는 선택 사각형(맵 px). 그리기용이고, 끌고 있지 않으면 크기 0
 var _press = null  # 좌버튼을 누른 위치(맵 px)
 var placing := ""  # 놓기 모드의 종류(구조물 kind 또는 용병 kind). 빈 문자열이면 모드가 아니다
+var selling := []  # 판매 후보(구조물·용병). 비어 있지 않으면 화면에 판매 팝업이 뜬다(I58)
+var sell_at := Vector2()  # 판매 팝업을 띄울 곳: 클릭하거나 드래그를 놓은 지점(맵 px)
+var show_hp := false  # 체력바를 모두 그린다(S73)
 
 func _init(b, px: int) -> void:
 	battle = b
@@ -28,6 +32,8 @@ func handle(event: InputEvent) -> void:
 				battle.set_move_mode(selected, "attack_move" if selected.all(func(u): return u.move_mode == "move") else "move")
 			KEY_H:
 				battle.set_hold(selected, not selected.all(func(u): return u.hold))
+			KEY_V:
+				show_hp = not show_hp
 			KEY_ESCAPE:
 				placing = ""
 		placing = PLACE_KEYS.get(event.keycode, placing)
@@ -47,19 +53,31 @@ func handle(event: InputEvent) -> void:
 		if event.pressed:
 			_press = event.position
 		elif _press != null:
-			_release(Rect2(_press, event.position - _press).abs())
+			_release(Rect2(_press, event.position - _press).abs(), event.position)
 	elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 		battle.order_move(selected, Vector2i((event.position / cell_px).floor()))
 
-func _release(rect: Rect2) -> void:
+func _release(rect: Rect2, at: Vector2) -> void:
 	_press = null
 	drag_rect = Rect2()
+	sell_at = at
 	var h = battle.hero
+	var mercs: Array = battle.units.filter(func(u): return u != h)
+	var prep: bool = battle.state == "prep"
 	if rect.size.length() < CLICK_SLOP:
 		var cell := Vector2i((rect.position / cell_px).floor())
 		selected = [h] if h and h.alive and Vector2i(h.pos.round()) == cell else []
+		var hit = battle.structure_at(cell)
+		for m in mercs:
+			if Vector2i(m.pos.round()) == cell:
+				hit = m
+		selling = [hit] if prep and hit else []
+		if hit in mercs and prep:
+			selected = [hit]
 	else:
-		selected = battle.units.filter(func(u): return u != h and rect.has_point((u.pos + Vector2(0.5, 0.5)) * cell_px))
+		var inside := func(p: Vector2): return rect.has_point((p + Vector2(0.5, 0.5)) * cell_px)
+		selected = mercs.filter(func(u): return inside.call(u.pos))
+		selling = (selected + battle.structures.values().filter(func(s): return inside.call(Vector2(s.cell)))) if prep else []
 
 # 모드는 놓은 뒤에도 이어진다. 방벽을 줄지어 짓기 쉽게
 func _place(cell: Vector2i) -> void:
