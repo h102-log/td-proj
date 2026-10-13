@@ -16,6 +16,7 @@ const HERO := {"hp": 100.0, "radius": 0.3, "speed": 3.0, "damage": 3.0, "range":
 	"buff_radius": 3.0, "buff_mult": 1.5, "buff_time": 5.0, "buff_gap": 20.0}
 const VILLAGE_UP := [60]  # 마을 레벨 n→n+1 비용(S99). 길이+1이 최대 레벨이다. 임시값(Claude 예시, 사용자 2026-10-13 수락)
 const MERC_CAP := 10  # 배치 상한 기본값(S25). 임시값(사용자 2026-10-13), 스테이지의 merc_cap이 덮어쓴다
+const HOUSE_CAP := 6  # 마을에 지을 수 있는 집 수(S101). 임시값(사용자 2026-10-13)
 const SPAWN_GAP := 1.0  # 웨이브 안에서 적이 나오는 간격(초)
 const REACH := 1.0      # 적이 막힌 칸·거점·유닛을 칠 수 있는 거리(중심 사이). 옆 칸 중심까지가 1이다
 const UNIT_WALL_K := 1e6  # 유닛 경로의 막힌 칸 비용 배율. 돌아갈 길이 있으면 막힌 칸(닫힌 성문 포함, I42)을 지나지 않는다
@@ -44,6 +45,7 @@ class Block:
 	var paid := 0  # 지을 때 낸 골드. 판매 환불의 기준(S69)
 	var produces := []  # 생산 시설이면 파는 용병 kind들. 첫째가 기본이다(S20, S87)
 	var rally: Vector2i  # 생산 시설의 집결 지점(S21)
+	var tax := 0  # 집이면 준비 단계마다 내는 세금(S101)
 	var progress := 1.0  # 건설 진행률(0~1). 1 미만이면 미완성이다(I62)
 	var full: float  # 다 지었을 때의 체력. 옮겨 다시 짓는 대포는 옮기기 전 체력이다(I74)
 	var build_time := 1.0  # 전투 중 짓는 데 드는 시간(초)
@@ -263,6 +265,8 @@ func step(dt: float) -> void:
 	if state == "battle" and _queue.is_empty() and enemies.is_empty():
 		wave_index += 1
 		state = "won" if wave_index >= waves.size() else "prep"
+		if state == "prep":
+			gold += tax()
 		for s in structures.values() + castle.values():  # 하던 건설·철거·업그레이드는 그 상태로 멈춘다(I19, I68)
 			_release(s)
 		if state == "prep" and revive and hero and not hero.alive:
@@ -296,6 +300,10 @@ func spawn_enemy(kind: String, cell: Vector2i, overrides := {}):
 	enemies.append(e)
 	enemy_spawned.emit(e)
 	return e
+
+# 준비 단계가 시작될 때 걷는 세금: 완성된 집의 세금 합이다. 미완성·부서진·팔린 집은 내지 않는다(I46, S102)
+func tax() -> int:
+	return structures.values().reduce(func(n, s): return n + (s.tax if s.complete else 0), 0)
 
 # 준비 단계에만 골드를 내고 마을 레벨을 하나 올린다(S99, I47). 최대 레벨이거나 골드가 모자라면 거부한다
 func raise_village() -> bool:
@@ -416,7 +424,7 @@ func build(kind: String, cell: Vector2i, overrides := {}):
 	if state not in ["prep", "battle"] or not _buildable(kind, cell) or STRUCTURE_KINDS[kind].village_level > village_level:
 		return null
 	var stats: Dictionary = STRUCTURE_KINDS[kind].merged(overrides, true)
-	if gold < stats.cost:
+	if gold < stats.cost or (stats.tax > 0 and structures.values().filter(func(s): return s.tax > 0).size() >= HOUSE_CAP):  # 집 상한(S101)
 		return null
 	var engineer = _idle_engineer(cell) if state == "battle" else null
 	if state == "battle" and not engineer:
@@ -438,7 +446,7 @@ func build(kind: String, cell: Vector2i, overrides := {}):
 	_repath = true
 	return s
 
-# 빈 칸(구조물·거점·유닛·적이 없는 맵 안 칸, I24)이다. 생산 시설은 마을 안, 나머지는 마을 밖이고,
+# 빈 칸(구조물·거점·유닛·적이 없는 맵 안 칸, I24)이다. 생산 시설·집은 마을 안, 나머지는 마을 밖이고,
 # 성곽 칸에는 대포만 성벽 칸(성문 제외)에 짓는다(S43, I72)
 func _buildable(kind: String, cell: Vector2i) -> bool:
 	if not grid.is_in_boundsv(cell) or structures.has(cell) or cell == base.cell:
@@ -447,7 +455,8 @@ func _buildable(kind: String, cell: Vector2i) -> bool:
 		return false
 	if (units + enemies).any(func(u): return Vector2i(u.pos.round()) == cell):
 		return false
-	return village.has_point(cell) != STRUCTURE_KINDS[kind].produces.is_empty()
+	var def: Dictionary = STRUCTURE_KINDS[kind]
+	return village.has_point(cell) == (not def.produces.is_empty() or def.tax > 0)
 
 func structure_at(cell: Vector2i):
 	return structures.get(cell)
@@ -742,7 +751,7 @@ func _find_path(e: Enemy) -> void:
 	e.path = grid.get_id_path(Vector2i(e.pos.round()), e.goal, true)
 
 # 적이 지금 노리는 것(S4): ① 인식 범위 안이나 몸이 닿은 가장 가까운 유닛(영웅·용병) → ② 살아 있는 반격 대상 → ③④ 거점.
-# 들판의 구조물은 ①이 아니다(I7). 쏘지 않는 구조물은 attacker가 되지 않는다(_fire). 반격 대상이 부서지면 ②가 끝난다(I8)
+# 마을 안의 적에게는 인식 범위 안의 마을 구조물(집·생산 시설, S43)도 ①이다(I49). 들판의 구조물은 ①이 아니다(I7). 쏘지 않는 구조물은 attacker가 되지 않는다(_fire). 반격 대상이 부서지면 ②가 끝난다(I8)
 func _target_of(e: Enemy):
 	var best = null
 	var best_d := INF
@@ -753,6 +762,12 @@ func _target_of(e: Enemy):
 		if d < best_d and ((d <= e.sight and not m.on_wall) or d <= e.radius + m.radius + 0.01):
 			best = m
 			best_d = d
+	if village.has_point(Vector2i(e.pos.round())):
+		for s in structures.values():
+			var d := e.pos.distance_to(Vector2(s.cell))
+			if d < best_d and d <= e.sight:
+				best = s
+				best_d = d
 	if best:
 		return best
 	if e.attacker and e.attacker.alive:

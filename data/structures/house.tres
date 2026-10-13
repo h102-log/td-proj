@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="StructureDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/structure_def.gd" id="1_house"]
+
+[resource]
+script = ExtResource("1_house")
+cost = 20
+hp = 80.0
+build_time = 4.0
+tax = 5
