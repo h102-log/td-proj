@@ -1,13 +1,14 @@
 extends RefCounted
 # 마우스·키 입력을 전투 명령으로 바꾼다. 마우스 좌표는 맵 px(칸 (x,y)가 [x, x+1) × cell_px)로 받는다.
-# 좌클릭: 영웅을 고르거나(I9) 선택을 푼다 · 좌드래그: 사각형 안의 용병을 고른다(S16, I9) · 우클릭: 고른 유닛 이동(S14)
+# 좌클릭: 영웅이나 생산 시설을 고르거나(I9, S81) 선택을 푼다 · 좌드래그: 사각형 안의 용병을 고른다(S16, I9)
+# 우클릭: 생산 시설을 골랐으면 그 칸을 집결 지점으로(S82), 아니면 고른 유닛 이동(S14)
 # 준비 단계의 좌클릭·좌드래그는 판매 후보도 정한다(S70, I57). 좌클릭한 용병은 고른 상태도 된다
 # Q: 영웅 스킬(I10) · A: 고른 용병의 이동 방식 전환(S35) · H: 홀드 전환(S36) (A·H는 사용자 2026-10-12) · V: 체력바 표시 전환(S73)
-# 1 방벽 · 2 타워 · 3 용병: 놓기 모드. 그동안 좌클릭은 그 칸에 짓거나 놓고, 우클릭·ESC는 모드를 끝낸다(사용자 2026-10-12)
+# 1 방벽 · 2 타워 · 3 용병 · 4 병영(생산 시설): 놓기 모드. 그동안 좌클릭은 그 칸에 짓거나 놓고, 우클릭·ESC는 모드를 끝낸다(사용자 2026-10-12)
 
 # ponytail: 맵 px 기준이라 줌에 따라 화면에서 느끼는 거리가 달라진다. 거슬리면 화면 px로 잰다
 const CLICK_SLOP := 4.0  # 이보다 덜 끌고 떼면 클릭이다(맵 px)
-const PLACE_KEYS := {KEY_1: "wall", KEY_2: "tower", KEY_3: "soldier"}
+const PLACE_KEYS := {KEY_1: "wall", KEY_2: "tower", KEY_3: "soldier", KEY_4: "barracks"}
 
 var battle
 var cell_px: int
@@ -18,6 +19,7 @@ var placing := ""  # 놓기 모드의 종류(구조물 kind 또는 용병 kind).
 var selling := []  # 판매 후보(구조물·용병). 비어 있지 않으면 화면에 판매 팝업이 뜬다(I58)
 var sell_at := Vector2()  # 판매 팝업을 띄울 곳: 클릭하거나 드래그를 놓은 지점(맵 px)
 var show_hp := false  # 체력바를 모두 그린다(S73)
+var facility = null  # 고른 생산 시설. 전투 단계엔 그 옆에 구매 팝업이 뜬다(S81, I61)
 
 func _init(b, px: int) -> void:
 	battle = b
@@ -37,7 +39,7 @@ func handle(event: InputEvent) -> void:
 			KEY_ESCAPE:
 				placing = ""
 		placing = PLACE_KEYS.get(event.keycode, placing)
-	if battle.state != "prep":  # 놓기는 준비 단계에만 된다(S18). 전투 중 구매·건설은 W2(S20~S24)
+	if battle.state != "prep":  # 놓기는 준비 단계에만 된다(S18). 전투 중 구매는 시설 팝업(S81), 전투 중 건설은 2.16(S22~S24)
 		placing = ""
 	if event is InputEventMouseMotion and _press != null:
 		drag_rect = Rect2(_press, event.position - _press).abs()
@@ -55,7 +57,11 @@ func handle(event: InputEvent) -> void:
 		elif _press != null:
 			_release(Rect2(_press, event.position - _press).abs(), event.position)
 	elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
-		battle.order_move(selected, Vector2i((event.position / cell_px).floor()))
+		var cell := Vector2i((event.position / cell_px).floor())
+		if facility:
+			battle.set_rally(facility, cell)
+		else:
+			battle.order_move(selected, cell)
 
 func _release(rect: Rect2, at: Vector2) -> void:
 	_press = null
@@ -68,6 +74,7 @@ func _release(rect: Rect2, at: Vector2) -> void:
 		var cell := Vector2i((rect.position / cell_px).floor())
 		selected = [h] if h and h.alive and Vector2i(h.pos.round()) == cell else []
 		var hit = battle.structure_at(cell)
+		facility = hit if hit and hit.produces != "" else null
 		for m in mercs:
 			if Vector2i(m.pos.round()) == cell:
 				hit = m
@@ -76,6 +83,7 @@ func _release(rect: Rect2, at: Vector2) -> void:
 			selected = [hit]
 	else:
 		var inside := func(p: Vector2): return rect.has_point((p + Vector2(0.5, 0.5)) * cell_px)
+		facility = null
 		selected = mercs.filter(func(u): return inside.call(u.pos))
 		selling = (selected + battle.structures.values().filter(func(s): return inside.call(Vector2(s.cell)))) if prep else []
 

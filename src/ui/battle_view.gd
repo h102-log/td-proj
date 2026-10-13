@@ -6,7 +6,7 @@ const COLORS := {
 	"field": Color("4a6b3a"), "grid": Color(0, 0, 0, 0.15), "spawn": Color("c03030"),
 	"base": Color("e0c040"), "castle_wall": Color("8a8a8a"), "gate": Color("7a5230"),
 	"wall": Color("5a5a5a"), "tower": Color("3060b0"), "enemy": Color("d04040"), "merc": Color("50a0f0"),
-	"hero": Color("b060f0"),
+	"hero": Color("b060f0"), "village": Color("6b6b4a"), "barracks": Color("a06a30"),
 }
 
 var battle
@@ -15,6 +15,7 @@ var controls  # 고른 유닛에 테두리를 그린다
 func _draw() -> void:
 	var map := Vector2(battle.size) * CELL
 	draw_rect(Rect2(Vector2.ZERO, map), COLORS.field)
+	draw_rect(Rect2(Vector2(battle.village.position) * CELL, Vector2(battle.village.size) * CELL), COLORS.village)
 	for x in battle.size.x + 1:
 		draw_line(Vector2(x * CELL, 0), Vector2(x * CELL, map.y), COLORS.grid)
 	for y in battle.size.y + 1:
@@ -23,6 +24,11 @@ func _draw() -> void:
 		draw_rect(_rect(b.cell), COLORS[b.kind])
 	for s in battle.structures.values():
 		draw_rect(_rect(s.cell), COLORS[s.kind])
+	var f = controls.facility  # 고른 생산 시설: 테두리와 집결 지점 깃발(S82)
+	if f and f.alive:
+		draw_rect(_rect(f.cell), Color.WHITE, false, 1.0)
+		draw_line(_center(Vector2(f.cell)), _center(Vector2(f.rally)), Color(1, 1, 1, 0.4), 1.0)
+		draw_rect(_rect(f.rally).grow(-5), Color.WHITE)
 	for c in battle.spawns:
 		draw_rect(_rect(c).grow(-3), COLORS.spawn, false, 2.0)
 	var base = battle.base

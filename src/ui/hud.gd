@@ -1,8 +1,8 @@
 extends CanvasLayer
 # 골드·웨이브·단계를 보이고, 놓기 모드·«전투 시작»(I13) 버튼과 판이 끝난 뒤의 결과·«재시작»(S29)을 둔다.
-# 판매 후보가 있으면 그 옆에 판매 버튼을 띄운다(S70, I58).
+# 판매 후보가 있으면 그 옆에 판매 버튼을 띄운다(S70, I58). 전투 단계에 생산 시설을 고르면 그 옆에 구매 버튼을 띄운다(S81, I61).
 
-const NAMES := {"wall": "방벽", "tower": "타워", "soldier": "용병"}
+const NAMES := {"wall": "방벽", "tower": "타워", "soldier": "용병", "barracks": "병영"}
 const STATES := {"prep": "준비", "battle": "전투", "won": "승리", "lost": "패배"}
 
 var battle
@@ -11,6 +11,7 @@ var _info := Label.new()
 var _hint := Label.new()
 var _start: Button
 var _sell: Button
+var _buy: Button
 var _place := {}  # kind → 버튼
 var _result := PanelContainer.new()
 var _result_label := Label.new()
@@ -50,6 +51,7 @@ func _ready() -> void:
 	box.add_child(_result_label)
 	_button(box, "재시작", _restart)
 	_sell = _button(root, "", _sell_now)
+	_buy = _button(root, "", func(): battle.recruit(controls.facility))
 
 func _process(_delta: float) -> void:
 	var prep: bool = battle.state == "prep"
@@ -70,6 +72,13 @@ func _process(_delta: float) -> void:
 	_sell.reset_size()
 	# 맵 px → 화면 좌표. 전투 화면(BattleView)이 원점에 있어 카메라 변환만 곱한다
 	_sell.position = get_viewport().get_canvas_transform() * controls.sell_at + Vector2(6, 6)
+	if controls.facility and not controls.facility.alive:  # 파괴되거나 팔린 시설
+		controls.facility = null
+	_buy.visible = battle.state == "battle" and controls.facility != null
+	if _buy.visible:
+		_buy.text = "%s 구매 %d골드" % [NAMES[controls.facility.produces], battle.MERC_KINDS[controls.facility.produces].cost]
+	_buy.reset_size()
+	_buy.position = _sell.position
 
 # 키보드 포커스를 받지 않는다. 받으면 Enter·Space가 맵 대신 마지막에 누른 버튼을 누른다
 func _button(parent: Control, text: String, on_press: Callable) -> Button:
@@ -90,6 +99,7 @@ func _restart() -> void:
 	controls.selected = []
 	controls.selling = []
 	controls.placing = ""
+	controls.facility = null
 
 # 팔린 용병은 고른 상태에서도 뺀다
 func _sell_now() -> void:
