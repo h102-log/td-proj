@@ -3,28 +3,17 @@ extends RefCounted
 
 signal enemy_spawned(enemy)
 
-# ponytail: 수치는 임시값이다. 적·구조물 종류별 역할과 수치는 3.1(I34), Resource 파일화는 2.18(S31)에서 한다
-# ponytail: wall_k 1.0은 가득 찬 방벽(100) 하나 = 100칸 걷기. EV6·9(돌아가기)와 EV7(뚫기)을 함께 넘는 임시값
-const ENEMY_KINDS := {"basic": {"hp": 10.0, "speed": 2.0, "wall_k": 1.0, "damage": 5.0, "attack_gap": 1.0, "radius": 0.3, "sight": 3.0,
-	"reward": 5}}
-# ponytail: 용병 수치도 임시값이다. range 1.2는 옆 칸(1)의 적을 치는 근접(EV26). 종류·밸런스는 3.1(I34)에서
-# 공병("engineer")은 공격하지 않는다(I63). 사거리·인식 범위 0
-const MERC_KINDS := {"soldier": {"cost": 20, "hp": 50.0, "radius": 0.3, "speed": 2.5, "damage": 2.0, "range": 1.2, "attack_gap": 1.0,
-	"sight": 4.0, "hold_radius": 2.0},
-	"engineer": {"cost": 15, "hp": 30.0, "radius": 0.3, "speed": 2.5, "damage": 0.0, "range": 0.0, "sight": 0.0}}
+# 종류 이름 → 수치. 판을 만들 때 data/ 아래 Resource 파일에서 읽는다(S31). 파일 이름이 종류 이름이다(I66)
+# 상수였을 때의 이름을 그대로 둔다(UI·테스트가 battle.MERC_KINDS.soldier.cost처럼 읽는다)
+var ENEMY_KINDS := _kinds("res://data/enemies/")
+var MERC_KINDS := _kinds("res://data/mercs/")
+var STRUCTURE_KINDS := _kinds("res://data/structures/")
 # 스킬은 «주변 skill_radius칸 안의 적 전부에게 피해»다(I33, 사용자 2026-10-12: 1.5칸·대기 10초·단축키 Q). 피해량 등 나머지는 임시값
 # 스킬 2(buff_*)는 «주변 buff_radius칸 안 용병의 공격력 ×buff_mult, buff_time초»다(S84, 단축키 W). 수치는 임시값
-# ponytail: 영웅은 하나뿐이다. 영웅 종류·오라(I33)는 내용이 정해지면 HERO_KINDS로 넓힌다
+# ponytail: 영웅은 하나뿐이라 아직 상수다. 영웅 종류·오라(I33)와 Resource 파일화(I66)는 3.7에서 HERO_KINDS로 넓힌다
 const HERO := {"hp": 100.0, "radius": 0.3, "speed": 3.0, "damage": 3.0, "range": 1.5, "attack_gap": 1.0,
 	"skill_damage": 30.0, "skill_radius": 1.5, "skill_gap": 10.0,
 	"buff_radius": 3.0, "buff_mult": 1.5, "buff_time": 5.0, "buff_gap": 20.0}
-# 골드(cost·reward)도 임시값이다(사용자 2026-10-12: 시작 100·방벽 10·타워 30·용병 20·처치 5)
-# 생산 시설("barracks"·"workshop", produces = 나오는 용병 kind)의 비용·체력도 임시값이다. 시설 3종은 2.22
-# build_time(전투 중 짓는 데 드는 초, I62)도 임시값이다
-const STRUCTURE_KINDS := {"wall": {"cost": 10, "hp": 100.0, "build_time": 2.0},
-	"tower": {"cost": 30, "hp": 100.0, "range": 4.0, "damage": 2.0, "fire_gap": 1.0, "build_time": 4.0},
-	"barracks": {"cost": 40, "hp": 150.0, "produces": "soldier", "build_time": 6.0},
-	"workshop": {"cost": 40, "hp": 150.0, "produces": "engineer", "build_time": 6.0}}
 const MERC_CAP := 10  # 배치 상한 기본값(S25). 임시값(사용자 2026-10-13), 스테이지의 merc_cap이 덮어쓴다
 const SPAWN_GAP := 1.0  # 웨이브 안에서 적이 나오는 간격(초)
 const REACH := 1.0      # 적이 막힌 칸·거점·유닛을 칠 수 있는 거리(중심 사이). 옆 칸 중심까지가 1이다
@@ -175,6 +164,19 @@ var _spawn_timer := 0.0
 var _spawned := 0     # 이번 웨이브에서 나온 적 수(출현 지점 돌아가며 쓰기)
 var _hero_start: Vector2i  # 쓰러진 영웅이 돌아오는 칸
 var _stage: Dictionary  # 재시작할 때 다시 읽는다
+
+# dir의 Resource 파일마다 «파일 이름 → 스크립트 변수 사전». list_directory는 내보낸 빌드의 .remap도 원래 이름으로 준다
+static func _kinds(dir: String) -> Dictionary:
+	var out := {}
+	for f in ResourceLoader.list_directory(dir):
+		if f.ends_with(".tres"):
+			var r := load(dir + f)
+			var stats := {}
+			for p in r.get_property_list():
+				if p.usage & PROPERTY_USAGE_SCRIPT_VARIABLE:
+					stats[p.name] = r.get(p.name)
+			out[f.get_basename()] = stats
+	return out
 
 func _init(stage: Dictionary) -> void:
 	size = stage.size
@@ -336,7 +338,7 @@ func build(kind: String, cell: Vector2i, overrides := {}):
 	if (units + enemies).any(func(u): return Vector2i(u.pos.round()) == cell):
 		return null
 	var stats: Dictionary = STRUCTURE_KINDS[kind].merged(overrides, true)
-	if gold < stats.cost or village.has_point(cell) != stats.has("produces"):
+	if gold < stats.cost or village.has_point(cell) != (stats.produces != ""):
 		return null
 	var engineer = _idle_engineer(cell) if state == "battle" else null
 	if state == "battle" and not engineer:

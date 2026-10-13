@@ -84,6 +84,9 @@
 | EV75 | S84 | 2d7b62cb | W를 쓰고 버프 지속 시간이 지나면 그 용병의 한 방 피해가 기본 공격력으로 돌아온다 | tests/eval/test_buff.py | 일괄 승인(2026-10-13) |
 | EV76 | S84 | 2d7b62cb | W를 쓴 직후엔 W를 다시 쓸 수 없고 재사용 대기가 지나면 쓸 수 있다. W를 써도 Q 스킬은 그대로 쓸 수 있다 | tests/eval/test_buff.py | 일괄 승인(2026-10-13) |
 | EV77 | I65 | 312d68ce | W를 쓴 순간 범위 밖에 있던 용병은 버프 지속 시간 안에 영웅 옆으로 걸어와도 한 방 피해가 기본 공격력이다 | tests/eval/test_buff.py | 일괄 승인(2026-10-13) |
+| EV78 | I66 | 0c035744 | `data/enemies`·`data/mercs`·`data/structures` 폴더의 Resource 파일 이름 집합이 각각 판의 적·용병·구조물 종류 집합과 같다 | tests/eval/test_data.py | 일괄 승인(2026-10-13) |
+| EV79 | S31 | d9cccbea | 메모리에 올린 적(basic)·용병(soldier)·타워(tower) Resource의 체력·비용·공격력을 바꾼 뒤 새 판을 만들면, 낸 적의 최대 체력·용병을 놓고 줄어든 골드·타워가 적에게 준 한 방 피해가 바꾼 값이다 | tests/eval/test_data.py | 일괄 승인(2026-10-13) |
+| EV80 | S31 | d9cccbea | 시험 스테이지 웨이브 Resource에서 첫 웨이브의 적 수를 바꾸면, 시험 스테이지(`main.gd`의 `stage()`) 첫 웨이브에 그 수만큼 적이 나온다 | tests/eval/test_data.py | 일괄 승인(2026-10-13) |
 
 ## 보류 — W2·W3 (다음 승인 때 본표로 옮긴다)
 
