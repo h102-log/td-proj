@@ -2,7 +2,7 @@ extends "res://tests/eval/gd/lib.gd"
 # WBS 2.20 성곽 ② 성벽 위 이동·원거리 공격·궁수(S42·S87·S88·S89·I44·I69·I70). lib.gd·castle.gd 머리의 계약에 더하는 API:
 #   stage 키 village: Rect2i(마을 칸)
 #   order_move(units, 성곽 칸) — 성벽 위의 그 칸으로 보낸다 · 유닛: on_wall(성벽 위에 있나) · range · kind
-#   용병 kind "archer"(궁수) · 구조물 kind "barracks"(병영)
+#   용병 kind "archer"(궁수) · 구조물 kind "barracks"(병영) · "archery"(사격장, 궁수) · Battle.raise_village()(village.gd)
 #   Battle.recruit(시설, kind="") -> 용병|null — kind를 비우면 시설의 기본 용병을 산다
 # 맵: 9행이 가로 성곽(성문 5·15·25열), 위쪽(0~8행)이 마을, 아래쪽이 들판. 적은 아래 가장자리에서 온다
 
@@ -138,16 +138,14 @@ func ev96():
 	run(b, 0.5)
 	return check(m.alive and not m.on_wall and near(m.pos, TOP), "칸이 부서진 뒤 용병 %s, 성벽 위 %s, 살아 있음 %s" % [m.pos, m.on_wall, m.alive])
 
-# EV97 · S87: 병영에서 궁수를 산다. 종류를 비우면 용병이다
+# EV97 · S87: 사격장에서 궁수를 산다
 func ev97():
 	var b = _battle()
-	var f = b.build("barracks", Vector2i(20, 4))
+	b.raise_village()
+	var f = b.build("archery", Vector2i(20, 4))
 	_start(b)
 	var gold0: int = b.gold
 	var a = b.recruit(f, "archer")
 	if a == null or a.kind != "archer" or a.range < 2.0:
 		return "궁수를 사지 못했다(%s)" % a
-	if b.gold != gold0 - b.MERC_KINDS.archer.cost:
-		return "골드 %d → %d(궁수 값 %d)" % [gold0, b.gold, b.MERC_KINDS.archer.cost]
-	var s = b.recruit(f)
-	return check(s != null and s.kind == "soldier", "종류 없이 산 용병이 %s다" % (s.kind if s else "없음"))
+	return check(b.gold == gold0 - b.MERC_KINDS.archer.cost, "골드 %d → %d(궁수 값 %d)" % [gold0, b.gold, b.MERC_KINDS.archer.cost])

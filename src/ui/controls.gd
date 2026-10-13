@@ -1,17 +1,17 @@
 extends RefCounted
 # 마우스·키 입력을 전투 명령으로 바꾼다. 마우스 좌표는 맵 px(칸 (x,y)가 [x, x+1) × cell_px)로 받는다.
-# 좌클릭: 영웅이나 생산 시설·성곽 칸을 고르거나(I9, S81, S85, S86) 선택을 푼다 · 좌드래그: 사각형 안의 용병을 고른다(S16, I9)
+# 좌클릭: 영웅이나 생산 시설·성곽 칸·거점을 고르거나(I9, S81, S85, S86, S100) 선택을 푼다 · 좌드래그: 사각형 안의 용병을 고른다(S16, I9)
 # 우클릭: 생산 시설을 골랐으면 그 칸을 집결 지점으로(S82), 아니면 고른 유닛 이동(S14)
 # 준비 단계의 좌클릭·좌드래그는 판매 후보도 정한다(S70, I57). 좌클릭한 용병은 고른 상태도 된다
 # 전투 단계의 좌클릭·좌드래그는 철거·취소·이어 짓기 후보(picked)를 정한다(S74, S83)
 # Q: 영웅 스킬 · W: 스킬 2 아군 버프(S84) (I10) · A: 고른 용병의 이동 방식 전환(S35) · H: 홀드 전환(S36) (A·H는 사용자 2026-10-12) · V: 체력바 표시 전환(S73)
-# 1 방벽 · 2 타워 · 3 용병 · 4 병영 · 5 공병 · 6 작업장 · 7 궁수(I71) · 8 대포(S92): 놓기 모드. 그동안 좌클릭은 그 칸에 짓거나 놓고, 우클릭·ESC는 모드를 끝낸다(사용자 2026-10-12)
+# 1 방벽 · 2 타워 · 3 용병 · 4 병영 · 5 공병 · 6 작업장 · 7 궁수(I71) · 8 대포(S92) · 9 사격장(S98): 놓기 모드. 그동안 좌클릭은 그 칸에 짓거나 놓고, 우클릭·ESC는 모드를 끝낸다(사용자 2026-10-12)
 # 전투 단계엔 구조물만 짓는다(공병이 가서 짓는다, S22). 단계가 바뀌면 모드가 끝난다
 # 옮길 대포(moving)가 있으면 다음 좌클릭한 칸으로 옮기고(S91), 우클릭·ESC·단계 변경은 옮기기를 그만둔다
 
 # ponytail: 맵 px 기준이라 줌에 따라 화면에서 느끼는 거리가 달라진다. 거슬리면 화면 px로 잰다
 const CLICK_SLOP := 4.0  # 이보다 덜 끌고 떼면 클릭이다(맵 px)
-const PLACE_KEYS := {KEY_1: "wall", KEY_2: "tower", KEY_3: "soldier", KEY_4: "barracks", KEY_5: "engineer", KEY_6: "workshop", KEY_7: "archer", KEY_8: "cannon"}
+const PLACE_KEYS := {KEY_1: "wall", KEY_2: "tower", KEY_3: "soldier", KEY_4: "barracks", KEY_5: "engineer", KEY_6: "workshop", KEY_7: "archer", KEY_8: "cannon", KEY_9: "archery"}
 
 var battle
 var cell_px: int
@@ -26,6 +26,7 @@ var facility = null  # 고른 생산 시설. 전투 단계엔 그 옆에 구매 
 var picked := []  # 전투 단계에 고른 플레이어 구조물. 철거·취소·이어 짓기 팝업의 대상이다(S74, S83)
 var fort = null  # 고른 성곽 칸. 그 옆에 여닫기·업그레이드 팝업이 뜬다(S85, S86)
 var moving = null  # 옮길 대포. 팝업의 «옮기기» 버튼이 넣는다(S91)
+var village := false  # 거점을 골랐다. 그 옆에 마을 레벨 팝업이 뜬다(S100)
 var _state: String  # 마지막으로 본 판 단계. 바뀌면 놓기 모드를 끝낸다
 
 func _init(b, px: int) -> void:
@@ -97,6 +98,7 @@ func _release(rect: Rect2, at: Vector2) -> void:
 		var hit = battle.structure_at(cell)
 		facility = hit if hit and not hit.produces.is_empty() and hit.complete else null
 		fort = battle.castle.get(cell)
+		village = cell == battle.base.cell
 		picked = [hit] if hit and not prep else []
 		for m in mercs:
 			if Vector2i(m.pos.round()) == cell:
@@ -108,6 +110,7 @@ func _release(rect: Rect2, at: Vector2) -> void:
 		var inside := func(p: Vector2): return rect.has_point((p + Vector2(0.5, 0.5)) * cell_px)
 		facility = null
 		fort = null
+		village = false
 		selected = mercs.filter(func(u): return inside.call(u.pos))
 		var built: Array = battle.structures.values().filter(func(s): return inside.call(Vector2(s.cell)))
 		selling = (selected + built) if prep else []
@@ -117,5 +120,5 @@ func _release(rect: Rect2, at: Vector2) -> void:
 func _place(cell: Vector2i) -> void:
 	if placing in battle.STRUCTURE_KINDS:
 		battle.build(placing, cell)
-	else:
+	elif battle.can_buy(placing):  # 마을이 있으면 그 용병의 시설이 있어야 산다(S50)
 		battle.place_merc(placing, cell)

@@ -7,7 +7,7 @@ const COLORS := {
 	"base": Color("e0c040"), "castle_wall": Color("8a8a8a"), "gate": Color("7a5230"), "gate_open": Color("c8a070"),
 	"wall": Color("5a5a5a"), "tower": Color("3060b0"), "enemy": Color("d04040"), "merc": Color("50a0f0"),
 	"hero": Color("b060f0"), "village": Color("6b6b4a"), "barracks": Color("a06a30"),
-	"workshop": Color("308080"), "engineer": Color("f0a030"), "archer": Color("60d0a0"), "cannon": Color("303060"),
+	"workshop": Color("308080"), "engineer": Color("f0a030"), "archer": Color("60d0a0"), "cannon": Color("303060"), "archery": Color("40a070"),
 }
 
 var battle
@@ -30,7 +30,7 @@ func _draw() -> void:
 		draw_rect(_rect(s.cell), col if s.complete and s.razed < 1.0 else Color(col, 0.4))
 		if s.dest != null:  # 옮겨 갈 칸(S44)
 			draw_rect(_rect(s.dest), col, false, 1.0)
-	for s in controls.picked + ([controls.fort] if controls.fort else []):  # 전투 단계에 고른 구조물(S74, S83)·고른 성곽 칸(S85)
+	for s in controls.picked + ([controls.fort] if controls.fort else []) + ([battle.base] if controls.village else []):  # 전투 단계에 고른 구조물(S74, S83)·고른 성곽 칸(S85)·고른 거점(S100)
 		draw_rect(_rect(s.cell), Color.WHITE, false, 1.0)
 	var f = controls.facility  # 고른 생산 시설: 테두리와 집결 지점 깃발(S82)
 	if f and f.alive:

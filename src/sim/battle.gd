@@ -14,6 +14,7 @@ var STRUCTURE_KINDS := _kinds("res://data/structures/")
 const HERO := {"hp": 100.0, "radius": 0.3, "speed": 3.0, "damage": 3.0, "range": 1.5, "attack_gap": 1.0,
 	"skill_damage": 30.0, "skill_radius": 1.5, "skill_gap": 10.0,
 	"buff_radius": 3.0, "buff_mult": 1.5, "buff_time": 5.0, "buff_gap": 20.0}
+const VILLAGE_UP := [60]  # 마을 레벨 n→n+1 비용(S99). 길이+1이 최대 레벨이다. 임시값(Claude 예시, 사용자 2026-10-13 수락)
 const MERC_CAP := 10  # 배치 상한 기본값(S25). 임시값(사용자 2026-10-13), 스테이지의 merc_cap이 덮어쓴다
 const SPAWN_GAP := 1.0  # 웨이브 안에서 적이 나오는 간격(초)
 const REACH := 1.0      # 적이 막힌 칸·거점·유닛을 칠 수 있는 거리(중심 사이). 옆 칸 중심까지가 1이다
@@ -173,6 +174,7 @@ var wave_index := 0
 var gold := 0
 var village := Rect2i()  # 마을 칸. 생산 시설은 안에만, 나머지 구조물은 밖에만 짓는다(S43). 비어 있으면 모두 들판
 var merc_cap := MERC_CAP
+var village_level := 1  # 오를수록 지을 수 있는 생산 시설이 는다(S46, S99)
 
 var grid := CostGrid.new()
 var _wall := AStarGrid2D.new()  # 성벽 위 길. 성곽 칸만 걸을 수 있다(I69)
@@ -222,6 +224,7 @@ func restart() -> void:
 	gold = stage.get("gold", 0)
 	village = stage.get("village", Rect2i())
 	merc_cap = stage.get("merc_cap", MERC_CAP)
+	village_level = 1
 	base = Block.new(stage.base, "base", stage.base_hp)
 	for s in structures.values() + castle.values():  # 공병 ↔ 구조물 상호 참조를 끊는다. 남기면 RefCounted 순환이라 해제되지 않는다
 		_release(s)
@@ -294,7 +297,20 @@ func spawn_enemy(kind: String, cell: Vector2i, overrides := {}):
 	enemy_spawned.emit(e)
 	return e
 
+# 준비 단계에만 골드를 내고 마을 레벨을 하나 올린다(S99, I47). 최대 레벨이거나 골드가 모자라면 거부한다
+func raise_village() -> bool:
+	if state != "prep" or village_level > VILLAGE_UP.size() or gold < VILLAGE_UP[village_level - 1]:
+		return false
+	gold -= VILLAGE_UP[village_level - 1]
+	village_level += 1
+	return true
+
+# 준비 단계 구매(S50): 마을이 있는 스테이지면 그 용병을 파는 완성된 생산 시설이 있어야 한다
+func can_buy(kind: String) -> bool:
+	return not village.has_area() or structures.values().any(func(s): return s.complete and kind in s.produces)
+
 # 준비 단계에만, 막힌 칸·거점이 아닌 맵 안 칸에 바로 놓는다(S18). 골드가 모자라면 거부한다(I16)
+# 시설 조건(S50)은 보지 않는다. 플레이어의 구매는 Controls가 can_buy로 먼저 묻는다
 func place_merc(kind: String, cell: Vector2i, overrides := {}):
 	if state != "prep" or not grid.is_in_boundsv(cell) or grid.block_at(cell) or cell == base.cell:
 		return null
@@ -393,11 +409,11 @@ func use_buff() -> void:
 			u.boost = hero.buff_mult
 			u.boost_left = hero.buff_time
 
-# 지을 수 있는 칸에 짓는다(_buildable). 준비 단계엔 바로 완성된다(S18).
+# 지을 수 있는 칸에 짓는다(_buildable). 마을 레벨이 모자란 종류는 거부한다(S99). 준비 단계엔 바로 완성된다(S18).
 # 전투 단계엔 진행률 0의 미완성 구조물을 놓고 놀고 있는 가장 가까운 공병을 보낸다. 그런 공병이 없으면 거부한다(S22, I39, I62)
 # 생산 시설의 집결 지점 기본값은 출구 칸이다(I61). 건설비는 지시하는 순간 내고, 모자라면 거부한다(I16, I17)
 func build(kind: String, cell: Vector2i, overrides := {}):
-	if state not in ["prep", "battle"] or not _buildable(kind, cell):
+	if state not in ["prep", "battle"] or not _buildable(kind, cell) or STRUCTURE_KINDS[kind].village_level > village_level:
 		return null
 	var stats: Dictionary = STRUCTURE_KINDS[kind].merged(overrides, true)
 	if gold < stats.cost:
