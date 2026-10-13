@@ -37,15 +37,18 @@ class Block:
 	var range := 0.0  # 사거리(칸). 0보다 커야 적을 쏜다(타워)
 	var damage := 0.0
 	var fire_gap := 1.0  # 쏘는 간격(초)
+	var splash := 0.0  # 범위 피해 반경(칸, S90)
 	var cooldown := 0.0
 	var target  # 마지막으로 쏜 적. 화면이 쏜 직후 사격 선을 그린다
 	var paid := 0  # 지을 때 낸 골드. 판매 환불의 기준(S69)
 	var produces := []  # 생산 시설이면 파는 용병 kind들. 첫째가 기본이다(S20, S87)
 	var rally: Vector2i  # 생산 시설의 집결 지점(S21)
 	var progress := 1.0  # 건설 진행률(0~1). 1 미만이면 미완성이다(I62)
+	var full: float  # 다 지었을 때의 체력. 옮겨 다시 짓는 대포는 옮기기 전 체력이다(I74)
 	var build_time := 1.0  # 전투 중 짓는 데 드는 시간(초)
 	var worker  # 이 구조물을 짓거나 허무는(그러러 가는) 공병
-	var razed := 0.0  # 철거 진행률(0~1, I64)
+	var razed := 0.0  # 철거 진행률(0~1, I64). 옮기는 대포는 1이면 접혀 새 칸으로 가는 중이다(I74)
+	var dest  # 대포를 옮겨 갈 칸(S44). 옮기는 중이 아니면 null
 	var open := false  # 열린 성문(S85). 막힌 칸이 아니다(I67)
 	var level := 1  # 성곽 업그레이드 단계(S86)
 	var lift := -1.0  # 업그레이드 진행률(0~1). 음수면 올리는 중이 아니다. 그만두면 그대로 남는다(I68)
@@ -55,6 +58,7 @@ class Block:
 		kind = k
 		max_hp = h
 		hp = h
+		full = h
 
 class Enemy:
 	var kind: String
@@ -142,8 +146,9 @@ class CostGrid extends AStarGrid2D:
 	var structures: Dictionary
 	var wall_k := 1.0  # 경로를 구하기 직전에 그 적의 값을 넣는다
 
+	# 성곽을 먼저 본다. 성벽 위 대포의 칸은 성벽이다(I72)
 	func block_at(c: Vector2i):
-		var b = structures.get(c, castle.get(c))
+		var b = castle.get(c, structures.get(c))
 		return null if b and b.open else b
 
 	func _compute_cost(from: Vector2i, to: Vector2i) -> float:
@@ -388,17 +393,14 @@ func use_buff() -> void:
 			u.boost = hero.buff_mult
 			u.boost_left = hero.buff_time
 
-# 빈 칸(구조물·성곽·거점·유닛·적이 없는 맵 안 칸)에 짓는다(I24). 준비 단계엔 바로 완성된다(S18).
+# 지을 수 있는 칸에 짓는다(_buildable). 준비 단계엔 바로 완성된다(S18).
 # 전투 단계엔 진행률 0의 미완성 구조물을 놓고 놀고 있는 가장 가까운 공병을 보낸다. 그런 공병이 없으면 거부한다(S22, I39, I62)
-# 생산 시설은 마을 안에만, 나머지 구조물은 마을 밖에만 짓는다(S43). 생산 시설의 집결 지점 기본값은 출구 칸이다(I61)
-# 건설비는 지시하는 순간 내고, 모자라면 거부한다(I16, I17)
+# 생산 시설의 집결 지점 기본값은 출구 칸이다(I61). 건설비는 지시하는 순간 내고, 모자라면 거부한다(I16, I17)
 func build(kind: String, cell: Vector2i, overrides := {}):
-	if state not in ["prep", "battle"] or not grid.is_in_boundsv(cell) or structures.has(cell) or castle.has(cell) or cell == base.cell:
-		return null
-	if (units + enemies).any(func(u): return Vector2i(u.pos.round()) == cell):
+	if state not in ["prep", "battle"] or not _buildable(kind, cell):
 		return null
 	var stats: Dictionary = STRUCTURE_KINDS[kind].merged(overrides, true)
-	if gold < stats.cost or village.has_point(cell) == stats.produces.is_empty():
+	if gold < stats.cost:
 		return null
 	var engineer = _idle_engineer(cell) if state == "battle" else null
 	if state == "battle" and not engineer:
@@ -419,6 +421,17 @@ func build(kind: String, cell: Vector2i, overrides := {}):
 		s.rally = exit if exit != null else cell
 	_repath = true
 	return s
+
+# 빈 칸(구조물·거점·유닛·적이 없는 맵 안 칸, I24)이다. 생산 시설은 마을 안, 나머지는 마을 밖이고,
+# 성곽 칸에는 대포만 성벽 칸(성문 제외)에 짓는다(S43, I72)
+func _buildable(kind: String, cell: Vector2i) -> bool:
+	if not grid.is_in_boundsv(cell) or structures.has(cell) or cell == base.cell:
+		return false
+	if castle.has(cell) and (kind != "cannon" or castle[cell].kind != "castle_wall"):
+		return false
+	if (units + enemies).any(func(u): return Vector2i(u.pos.round()) == cell):
+		return false
+	return village.has_point(cell) != STRUCTURE_KINDS[kind].produces.is_empty()
 
 func structure_at(cell: Vector2i):
 	return structures.get(cell)
@@ -539,7 +552,37 @@ func demolish(things: Array) -> void:
 		if engineer:
 			_send(engineer, t)
 
-# 완성된 방벽·타워이고 허무는 공병이 아직 없다. 골드는 돌려주지 않는다(S74). 생산 시설은 철거하지 않는다(I64)
+# 전투 단계에만, 놀고 있는 가장 가까운 공병을 보내 대포를 그 칸으로 옮긴다. 골드는 들지 않는다(S44, I48).
+# 공병은 대포를 허물어 접고, 새 칸 옆에 닿으면 거기서 다시 짓는다(_work, I74)
+func move_cannon(s: Block, cell: Vector2i) -> void:
+	if state != "battle" or s.kind != "cannon" or not can_demolish(s) or not _buildable(s.kind, cell):
+		return
+	var engineer = _idle_engineer(s.cell)
+	if engineer:
+		s.dest = cell
+		_send(engineer, s)
+
+# 접은 대포를 새 칸으로 옮겨 진행률 0부터 다시 짓는다. 새 칸에 지을 수 없게 됐으면 그만둔다(I74)
+func _settle(s: Block) -> void:
+	if not _buildable(s.kind, s.dest):
+		_release(s)
+		return
+	structures.erase(s.cell)
+	s.cell = s.dest
+	structures[s.cell] = s
+	s.dest = null
+	s.razed = 0.0
+	s.full = s.hp
+	s.hp = 0.0
+	s.progress = 0.0
+	s.complete = false
+	_repath = true
+
+# 공병이 일하러 가는 칸. 접은 대포는 새 칸이다(I74)
+func _site(s: Block) -> Vector2i:
+	return s.dest if s.dest != null and s.razed >= 1.0 else s.cell
+
+# 완성된 방벽·타워·대포이고 일하는 공병이 아직 없다. 골드는 돌려주지 않는다(S74). 생산 시설은 철거하지 않는다(I64)
 func can_demolish(t) -> bool:
 	return t is Block and structures.get(t.cell) == t and t.complete and t.produces.is_empty() and t.worker == null
 
@@ -562,14 +605,18 @@ func _send(u: Unit, s: Block) -> void:
 	u.after.clear()
 	s.worker = u
 	grid.wall_k = UNIT_WALL_K
-	u.path = grid.get_id_path(Vector2i(u.pos.round()), s.cell, true).slice(1, -1)
+	u.path = grid.get_id_path(Vector2i(u.pos.round()), _site(s), true).slice(1, -1)
 
 # 일하던 공병을 놓아준다. 공병은 그 자리에 서고, 구조물은 그 상태로 남는다(I63)
+# 옮기던 대포는 원래 칸에 완성된 채 남는다(U12, I74)
 func _release(s: Block) -> void:
 	if s.worker:
 		s.worker.job = null
 		s.worker.path.clear()
 		s.worker = null
+	if s.dest != null:
+		s.dest = null
+		s.razed = 0.0
 
 func _remove(s: Block) -> void:
 	_release(s)
@@ -577,30 +624,33 @@ func _remove(s: Block) -> void:
 	s.alive = false
 	_repath = true
 
-# 진행률을 dp만큼 올리고 체력을 «최대 체력 × 진행률 − 짓는 동안 입은 피해»로 둔다. 다 차면 완성되고 적 경로를 다시 구한다(I62)
+# 진행률을 dp만큼 올리고 체력을 «다 지었을 때의 체력 × 진행률 − 짓는 동안 입은 피해»로 둔다. 다 차면 완성되고 적 경로를 다시 구한다(I62, I74)
 # 체력에 더해 가지 않고 곱해서 구한다. 더하면 오차가 쌓여 다 지어도 최대 체력에 못 미친다(EV48)
 func _grow(s: Block, dp: float) -> void:
-	var lost := s.max_hp * s.progress - s.hp
+	var lost := s.full * s.progress - s.hp
 	s.progress = minf(s.progress + dp, 1.0)
-	s.hp = s.max_hp * s.progress - lost
+	s.hp = s.full * s.progress - lost
 	if s.progress >= 1.0:
 		s.complete = true
 		_release(s)
 		_repath = true
 
 # 옆 칸에 닿은 공병은 성곽이면 올리고(S86), 미완성이면 짓고(I62), 완성이면 허문다(I64: 건설 시간의 절반이 든다). 밀려나 멀어졌으면 다시 걸어간다
+# 옮기는 대포는 허물면 접어 두고, 새 칸 옆에 닿으면 내려놓는다(I74)
 # ponytail: 닿을 수 없는 칸이면 매 프레임 경로를 다시 구한다. 공병이 많아 느려지면 포기 처리를 둔다
 func _work(u: Unit, dt: float) -> void:
 	var s: Block = u.job
-	if u.pos.distance_to(Vector2(s.cell)) > WORK_REACH:
+	if u.pos.distance_to(Vector2(_site(s))) > WORK_REACH:
 		_send(u, s)
 	elif s.lift >= 0.0:
 		_lift(s, dt / UPGRADE_TIME)
 	elif not s.complete:
 		_grow(s, dt / s.build_time)
+	elif s.razed >= 1.0:
+		_settle(s)
 	else:
 		s.razed += dt / (s.build_time / 2.0)
-		if s.razed >= 1.0:
+		if s.razed >= 1.0 and s.dest == null:
 			_remove(s)
 
 # 배치 상한에 세는 살아 있는 용병 수(공병 포함, 영웅 제외, I23)
@@ -644,9 +694,13 @@ func damage(target, amount: float) -> void:
 		units.erase(target)
 	else:  # 구조물·성곽: 칸이 비고 경로를 다시 구한다(I5)
 		_release(target)
-		structures.erase(target.cell)
-		castle.erase(target.cell)
 		_repath = true
+		if structures.get(target.cell) == target:  # 성벽 위 대포가 부서져도 성벽 칸은 남는다(S93)
+			structures.erase(target.cell)
+			return
+		castle.erase(target.cell)
+		if structures.has(target.cell):  # 성벽 칸이 부서지면 그 위 대포도 부서진다(I72)
+			damage(structures[target.cell], INF)
 		# 그 칸에 걸쳐 선(0.5칸 안) 유닛은 그 칸 땅으로 내려오고, 성벽 위로 그 칸을 지나려던 유닛은 멈춘다(I70)
 		for u in units:
 			var here: bool = u.on_wall and u.pos.distance_to(Vector2(target.cell)) <= 0.5
@@ -736,10 +790,11 @@ func _push_apart(bodies: Array, others: Array) -> void:
 				_shove(a, -push, others)
 				_shove(o, push, others)
 
-# 쏘는 구조물은 사거리 안에서 가장 가까운 적을 쏘고(S28, I29), 맞은 적은 그 구조물에 반격한다(S5)
+# 쏘는 구조물은 사거리 안에서 가장 가까운 적을 쏘고(S28, I29), 맞은 적은 그 구조물에 반격한다(S5).
+# 대포는 맞은 적 splash칸 안의 적에게도 같은 피해를 주고, 그 적들도 반격한다(S90, I73)
 func _fire(dt: float) -> void:
 	for s in structures.values():
-		if s.range <= 0.0 or not s.complete:  # 미완성 타워는 쏘지 않는다(I18)
+		if s.range <= 0.0 or not s.complete or s.razed >= 1.0:  # 미완성 타워(I18)·접은 대포(I74)는 쏘지 않는다
 			continue
 		s.cooldown -= dt
 		if s.cooldown > 0.0:
@@ -748,8 +803,10 @@ func _fire(dt: float) -> void:
 		if best:
 			s.cooldown = s.fire_gap
 			s.target = best
-			best.attacker = s
-			damage(best, s.damage)
+			for e in enemies.duplicate():
+				if e == best or (s.splash > 0.0 and e.pos.distance_to(best.pos) <= s.splash):
+					e.attacker = s
+					damage(e, s.damage)
 
 # 유닛은 명령받은 경로를 걷고(S14), 사거리 안의 가장 가까운 적을 친다(S15). 영웅은 걷는 동안에도 친다.
 # 용병은 걷는 동안 이동 방식을 따르고(S35, I35), 서 있으면 인식 범위 안의 적을 쫓는다(I36).

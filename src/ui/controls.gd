@@ -5,12 +5,13 @@ extends RefCounted
 # 준비 단계의 좌클릭·좌드래그는 판매 후보도 정한다(S70, I57). 좌클릭한 용병은 고른 상태도 된다
 # 전투 단계의 좌클릭·좌드래그는 철거·취소·이어 짓기 후보(picked)를 정한다(S74, S83)
 # Q: 영웅 스킬 · W: 스킬 2 아군 버프(S84) (I10) · A: 고른 용병의 이동 방식 전환(S35) · H: 홀드 전환(S36) (A·H는 사용자 2026-10-12) · V: 체력바 표시 전환(S73)
-# 1 방벽 · 2 타워 · 3 용병 · 4 병영 · 5 공병 · 6 작업장 · 7 궁수(I71): 놓기 모드. 그동안 좌클릭은 그 칸에 짓거나 놓고, 우클릭·ESC는 모드를 끝낸다(사용자 2026-10-12)
+# 1 방벽 · 2 타워 · 3 용병 · 4 병영 · 5 공병 · 6 작업장 · 7 궁수(I71) · 8 대포(S92): 놓기 모드. 그동안 좌클릭은 그 칸에 짓거나 놓고, 우클릭·ESC는 모드를 끝낸다(사용자 2026-10-12)
 # 전투 단계엔 구조물만 짓는다(공병이 가서 짓는다, S22). 단계가 바뀌면 모드가 끝난다
+# 옮길 대포(moving)가 있으면 다음 좌클릭한 칸으로 옮기고(S91), 우클릭·ESC·단계 변경은 옮기기를 그만둔다
 
 # ponytail: 맵 px 기준이라 줌에 따라 화면에서 느끼는 거리가 달라진다. 거슬리면 화면 px로 잰다
 const CLICK_SLOP := 4.0  # 이보다 덜 끌고 떼면 클릭이다(맵 px)
-const PLACE_KEYS := {KEY_1: "wall", KEY_2: "tower", KEY_3: "soldier", KEY_4: "barracks", KEY_5: "engineer", KEY_6: "workshop", KEY_7: "archer"}
+const PLACE_KEYS := {KEY_1: "wall", KEY_2: "tower", KEY_3: "soldier", KEY_4: "barracks", KEY_5: "engineer", KEY_6: "workshop", KEY_7: "archer", KEY_8: "cannon"}
 
 var battle
 var cell_px: int
@@ -24,6 +25,7 @@ var show_hp := false  # 체력바를 모두 그린다(S73)
 var facility = null  # 고른 생산 시설. 전투 단계엔 그 옆에 구매 팝업이 뜬다(S81, I61)
 var picked := []  # 전투 단계에 고른 플레이어 구조물. 철거·취소·이어 짓기 팝업의 대상이다(S74, S83)
 var fort = null  # 고른 성곽 칸. 그 옆에 여닫기·업그레이드 팝업이 뜬다(S85, S86)
+var moving = null  # 옮길 대포. 팝업의 «옮기기» 버튼이 넣는다(S91)
 var _state: String  # 마지막으로 본 판 단계. 바뀌면 놓기 모드를 끝낸다
 
 func _init(b, px: int) -> void:
@@ -34,6 +36,7 @@ func _init(b, px: int) -> void:
 func handle(event: InputEvent) -> void:
 	if battle.state != _state:  # 키보다 먼저 본다. 단계가 바뀐 뒤 첫 입력이 놓기 키여도 모드가 켜지게
 		placing = ""
+		moving = null
 		_state = battle.state
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
@@ -49,6 +52,7 @@ func handle(event: InputEvent) -> void:
 				show_hp = not show_hp
 			KEY_ESCAPE:
 				placing = ""
+				moving = null
 		placing = PLACE_KEYS.get(event.keycode, placing)
 	# 전투 단계엔 구조물만 놓기 모드가 된다. 전투 중 용병 구매는 시설 팝업으로 한다(S81)
 	if not (battle.state == "prep" or (battle.state == "battle" and placing in battle.STRUCTURE_KINDS)):
@@ -56,6 +60,11 @@ func handle(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and _press != null:
 		drag_rect = Rect2(_press, event.position - _press).abs()
 	if not event is InputEventMouseButton:
+		return
+	if moving and event.pressed:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			battle.move_cannon(moving, Vector2i((event.position / cell_px).floor()))
+		moving = null
 		return
 	if placing != "" and event.pressed and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:
 		if event.button_index == MOUSE_BUTTON_LEFT:

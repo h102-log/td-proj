@@ -1,10 +1,11 @@
 {
-  "approvedAt": "2026-10-13T06:34:22.814Z",
-  "evalMd": "a519957d",
+  "approvedAt": "2026-10-13T07:49:11.155Z",
+  "evalMd": "8dc07fdf",
   "tests": {
     "tests/eval/conftest.py": "b195cc2b",
     "tests/eval/gd/buff.gd": "a44a6d2b",
     "tests/eval/gd/buff.gd.uid": "adfc765c",
+    "tests/eval/gd/cannon.gd": "1058b96d",
     "tests/eval/gd/castle.gd": "c4d71e98",
     "tests/eval/gd/castle.gd.uid": "b1cd1533",
     "tests/eval/gd/data.gd": "c5d1920d",
@@ -38,6 +39,7 @@
     "tests/eval/gd/wall.gd": "daafd091",
     "tests/eval/gd/wall.gd.uid": "5931bc74",
     "tests/eval/test_buff.py": "2a114e63",
+    "tests/eval/test_cannon.py": "646c7251",
     "tests/eval/test_castle.py": "4409746e",
     "tests/eval/test_data.py": "3e776d23",
     "tests/eval/test_enemy.py": "b0e6394e",
@@ -127,6 +129,14 @@
     "S88": "292119d3",
     "I70": "c3b4b4c5",
     "S89": "52a02943",
-    "S87": "8aee1e41"
+    "S87": "8aee1e41",
+    "S90": "f42d9198",
+    "I73": "4471d80d",
+    "I72": "8bd2d55b",
+    "S93": "6fc514a3",
+    "S44": "c230f6d0",
+    "S91": "751d9f3f",
+    "I74": "6af8f230",
+    "S92": "63df33ed"
   }
 }
