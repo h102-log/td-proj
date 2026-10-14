@@ -40,7 +40,7 @@ static func stage() -> Dictionary:
 		if Vector2i(x, 9) not in gates:
 			walls.append(Vector2i(x, 9))
 	return {
-		"size": Vector2i(40, 32), "base": Vector2i(20, 4), "base_hp": 100, "gold": 100,
+		"size": Vector2i(40, 32), "base": Vector2i(20, 4), "base_hp": 100, "gold": 150,  # 시작 골드(S111)
 		"spawns": [Vector2i(6, 31), Vector2i(20, 31), Vector2i(33, 31)],
 		# 영웅은 정문 바로 앞 들판에서 시작한다. 성문 열기가 없어서 마을 안에 두면 나올 수 없다(I42, 사용자 2026-10-12)
 		"hero_start": Vector2i(20, 11),

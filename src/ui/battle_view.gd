@@ -5,10 +5,13 @@ const CELL := 16
 const COLORS := {
 	"field": Color("4a6b3a"), "grid": Color(0, 0, 0, 0.15), "spawn": Color("c03030"),
 	"base": Color("e0c040"), "castle_wall": Color("8a8a8a"), "gate": Color("7a5230"), "gate_open": Color("c8a070"),
-	"wall": Color("5a5a5a"), "tower": Color("3060b0"), "magic": Color("7030a0"), "enemy": Color("d04040"), "merc": Color("50a0f0"),
+	"wall": Color("5a5a5a"), "tower": Color("3060b0"), "magic": Color("7030a0"), "merc": Color("50a0f0"),
 	"hero": Color("b060f0"), "village": Color("6b6b4a"), "barracks": Color("a06a30"),
 	"workshop": Color("308080"), "engineer": Color("f0a030"), "archer": Color("60d0a0"), "cannon": Color("303060"), "archery": Color("40a070"),
 	"house": Color("b08060"), "resident": Color("f0e0b0"),
+}
+const ENEMY_COLORS := {  # 적 종류마다 다른 색(I81)
+	"basic": Color("d04040"), "fast": Color("f08030"), "armored": Color("807070"), "flying": Color("e050c0"), "boss": Color("801010"),
 }
 
 var battle
@@ -64,8 +67,10 @@ func _draw() -> void:
 				draw_arc(u.anchor * CELL + Vector2(CELL, CELL) / 2, CELL * u.hold_radius, 0.0, TAU, 48, Color(1, 1, 1, 0.4), 1.0)
 		if u.boost_left > 0.0:  # 버프를 받은 용병(I65): 선택 테두리 바깥에 주황 테두리
 			draw_arc(at, CELL * (u.radius + 0.35), 0.0, TAU, 24, Color.ORANGE, 1.0)
-	for e in battle.enemies:
-		draw_circle(e.pos * CELL + Vector2(CELL, CELL) / 2, CELL * e.radius, COLORS.enemy)
+	for e in battle.enemies:  # 비행 적은 아래에 그림자를 그린다(I81)
+		if e.flying:
+			draw_circle(_center(e.pos) + Vector2(0, CELL * 0.4), CELL * e.radius * 0.8, Color(0, 0, 0, 0.35))
+		draw_circle(_center(e.pos), CELL * e.radius, ENEMY_COLORS.get(e.kind, ENEMY_COLORS.basic))
 	# 공격선: 친 뒤 0.1초 동안 아군은 흰색, 적은 빨간색(S71). 대상이 무엇이든 그린다(I59)
 	for u in battle.units:
 		if u.target and u.cooldown > u.attack_gap - 0.1:
