@@ -11,6 +11,7 @@ extends Resource
 @export var damage := 0.0
 @export var fire_gap := 1.0  # 쏘는 간격(초)
 @export var splash := 0.0  # 범위 피해 반경(칸). 맞은 적에서 이 거리 안의 적도 같은 피해를 입는다(대포, S90)
+@export var pierce := false  # 적의 장갑을 무시한다(마법 타워, S110)
 @export var produces: Array[String] = []  # 생산 시설이면 파는 용병 종류들. 첫째가 기본이다(S20, S87)
 @export var village_level := 1  # 이 마을 레벨부터 짓는다(S99)
 @export var tax := 0  # 집이면 준비 단계마다 내는 세금(S101, I46)

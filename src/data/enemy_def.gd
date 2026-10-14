@@ -1,7 +1,7 @@
 class_name EnemyDef
 extends Resource
 # 적 종류 하나의 수치(S31). data/enemies/<종류>.tres, 파일 이름이 종류 이름이다(I66)
-# ponytail: 수치는 임시값이다. 적 종류별 역할과 수치는 3.1(I34)에서 정한다
+# 수치는 임시값이다(S106, 3.1에서 정했다). 무시하는 판정 층은 flying·climb 가운데 하나뿐이다(S11, I80)
 
 @export var hp := 0.0
 @export var speed := 0.0
@@ -12,3 +12,6 @@ extends Resource
 @export var radius := 0.3  # 몸 반지름(칸, I51)
 @export var sight := 0.0  # 인식 범위(칸)
 @export var reward := 0  # 처치 골드(I15). basic 5는 임시값(사용자 2026-10-12)
+@export var armor := 0.0  # 받는 피해를 이만큼 줄인다(S108)
+@export var flying := false  # 경로 층을 무시하고 대상으로 곧장 난다(S109, I79)
+@export var climb := 0.0  # 성곽 성벽을 기어오르는 시간(초). 0이면 오르지 않는다(S107, I76)
