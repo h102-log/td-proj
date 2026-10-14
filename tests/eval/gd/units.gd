@@ -208,9 +208,13 @@ func ev143():
 	if m == null:
 		return "용병이 성벽에 오르지 못했다"
 	var e = b.spawn_enemy("fast", TOP + Vector2i(0, 3), {"hp": BIG, "damage": 0})
-	if not run(b, 15.0, func(): return _on_wall(b, e)):
+	var ground_hp := [e.hp]  # 성벽 위로 올라서기 직전 프레임의 체력. 올라선 프레임 안에서 바로 맞을 수 있다
+	if not run(b, 15.0, func():
+		if not _on_wall(b, e):
+			ground_hp[0] = e.hp
+		return _on_wall(b, e)):
 		return "빠름 적이 성벽에 오르지 않았다(%s)" % e.pos
-	if e.hp < e.max_hp:
+	if ground_hp[0] < e.max_hp:
 		return "성벽 위 근접 용병이 땅의 적을 쳤다(S88)"
 	return check(run(b, 3.0, func(): return e.hp < e.max_hp), "성벽 위 근접 용병이 성벽 위 적을 치지 않았다")
 

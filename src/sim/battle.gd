@@ -154,6 +154,7 @@ class CostGrid extends AStarGrid2D:
 	var castle: Dictionary
 	var structures: Dictionary
 	var wall_k := 1.0  # 경로를 구하기 직전에 그 적의 값을 넣는다
+	var climb := 0.0  # 성곽 성벽 칸의 비용(오르는 시간 × 속도, I76). 기어오르는 적의 경로를 구하는 동안만 0보다 크다
 
 	# 성곽을 먼저 본다. 성벽 위 대포의 칸은 성벽이다(I72)
 	func block_at(c: Vector2i):
@@ -165,6 +166,8 @@ class CostGrid extends AStarGrid2D:
 		if from.x != to.x and from.y != to.y and (block_at(Vector2i(to.x, from.y)) or block_at(Vector2i(from.x, to.y))):
 			return 1e9
 		var b = block_at(to)
+		if b and climb > 0.0 and b.kind == "castle_wall":  # 부수지 않고 넘는다(I43)
+			return Vector2(to - from).length() + climb
 		return Vector2(to - from).length() + (b.hp * wall_k if b else 0.0)
 
 var size: Vector2i
@@ -758,7 +761,9 @@ func _find_path(e: Enemy) -> void:
 	if e.flying:  # 길을 찾지 않고 곧장 난다(I79)
 		return
 	grid.wall_k = e.wall_k
+	grid.climb = e.climb * e.speed
 	e.path = grid.get_id_path(Vector2i(e.pos.round()), e.goal, true)
+	grid.climb = 0.0
 
 # 적이 지금 노리는 것(S4): ① 인식 범위 안이나 몸이 닿은 가장 가까운 유닛(영웅·용병) → ② 살아 있는 반격 대상 → ③④ 거점.
 # 마을 안의 적에게는 인식 범위 안의 마을 구조물(집·생산 시설, S43)도 ①이다(I49). 들판의 구조물은 ①이 아니다(I7). 쏘지 않는 구조물은 attacker가 되지 않는다(_fire). 반격 대상이 부서지면 ②가 끝난다(I8)
@@ -768,9 +773,9 @@ func _target_of(e: Enemy):
 	for m in units:
 		var d := e.pos.distance_to(m.pos)
 		# 밀어낸 직후 거리는 반지름 합과 같아서 0.01 여유를 둔다(S13: 몸으로 막은 유닛은 인식 범위 밖이어도 친다)
-		# 성벽 위 유닛은 몸으로 길을 막을 때만 친다(U13, S89, I70). 비행 적은 그 성벽 위 유닛도 노리고(I77), 몸에 막히지 않는다(S109)
+		# 성벽 위 유닛은 몸으로 길을 막을 때만 친다(U13, S89, I70). 비행 적·기어오르는 적은 그 성벽 위 유닛도 노리고(I77), 비행 적은 몸에 막히지 않는다(S109)
 		# 인식 범위 0은 아무것도 보지 않는다. 몸이 겹치는 비행 적이 거리 0에서 보게 되지 않게
-		if d < best_d and ((d <= e.sight and e.sight > 0.0 and (not m.on_wall or e.flying)) or (not e.flying and d <= e.radius + m.radius + 0.01)):
+		if d < best_d and ((d <= e.sight and e.sight > 0.0 and (not m.on_wall or e.flying or e.climb > 0.0)) or (not e.flying and d <= e.radius + m.radius + 0.01)):
 			best = m
 			best_d = d
 	if village.has_point(Vector2i(e.pos.round())):
@@ -787,12 +792,16 @@ func _target_of(e: Enemy):
 
 func _move(e: Enemy, dt: float) -> void:
 	e.cooldown -= dt
+	if e.on_wall and not _climbable(Vector2i(e.pos.round())):  # 성벽에서 내려왔거나 그 성벽이 부서졌다(I76)
+		e.on_wall = false
 	var aim = _target_of(e)
 	var goal: Vector2i = Vector2i(aim.pos.round()) if aim is Unit else aim.cell
 	if goal != e.goal:  # 대상이 바뀌었다
 		e.goal = goal
 		_find_path(e)
-	if aim is Unit and e.pos.distance_to(aim.pos) <= REACH:
+	# 기어오르는 적은 땅에서 성벽 위 유닛을 치지 않고, 그 칸으로 올라가서 친다(I77)
+	var below: bool = aim is Unit and e.climb > 0.0 and not e.on_wall and aim.on_wall and _climbable(goal)
+	if aim is Unit and e.pos.distance_to(aim.pos) <= REACH and not below:
 		_attack(e, aim)
 		return
 	if e.flying:  # 막힌 칸을 넘어 대상으로 곧장 날아가 닿는 거리에서 친다(I79)
@@ -808,6 +817,16 @@ func _move(e: Enemy, dt: float) -> void:
 		var target := Vector2(next)
 		var d := e.pos.distance_to(target)
 		var block = base if next == base.cell else grid.block_at(next)
+		if block and e.climb > 0.0 and block.kind == "castle_wall":  # 성곽 성벽은 부수지 않고 기어올라 그 칸 위로 올라선다(S107, I76)
+			# ponytail: 오르다 대상이 바뀌어 그만둬도 오른 시간이 남아 다음 오르기가 짧아진다. 거슬리면 오르던 칸을 기억한다
+			if not e.on_wall and d <= REACH:
+				e.climbed += dt
+				if e.climbed >= e.climb:
+					e.climbed = 0.0
+					e.on_wall = true
+					_shove(e, target - e.pos, units)
+				return
+			block = null  # 성벽 위에서는 이어진 성벽 칸을 걷고, 땅에서는 오를 자리까지 걷는다
 		if block:
 			if d <= REACH:  # 막힌 칸은 부수고(I6, S9), 거점은 친다(S4 ④)
 				_attack(e, block)
@@ -876,8 +895,8 @@ func _act(u: Unit, dt: float) -> void:
 	var zone := u.hold_radius if u.hold and u.path.is_empty() else INF
 	var foe = _nearest_enemy(u.pos, u.range, u.anchor, zone)
 	var top = castle.get(Vector2i(u.pos.round()))
-	if u.on_wall and u.range < WALL_RANGE and not (top and top.open):  # 성벽 위 근접 유닛은 열린 성문 위에서만 친다(S88, S89)
-		foe = null
+	if u.on_wall and u.range < WALL_RANGE and not (top and top.open):  # 성벽 위 근접 유닛은 열린 성문 위에서만 들판의 적을 치고(S88, S89), 성벽 위의 적은 친다(I78)
+		foe = _nearest_enemy(u.pos, u.range, u.anchor, zone, true)
 	var walking := not u.path.is_empty()
 	if walking and u != hero:
 		if u.move_mode == "move":
@@ -916,13 +935,13 @@ func _act(u: Unit, dt: float) -> void:
 	if u.job and u.path.is_empty():
 		_work(u, dt)
 
-# from에서 reach 안의 가장 가까운 적. center에서 zone보다 먼 적은 뺀다(홀드 반경)
-func _nearest_enemy(from: Vector2, reach: float, center := Vector2.ZERO, zone := INF):
+# from에서 reach 안의 가장 가까운 적. center에서 zone보다 먼 적은 뺀다(홀드 반경). on_wall이면 성벽 위의 적만 본다(I78)
+func _nearest_enemy(from: Vector2, reach: float, center := Vector2.ZERO, zone := INF, on_wall := false):
 	var best = null
 	var best_d := reach
 	for e in enemies:
 		var d: float = e.pos.distance_to(from)
-		if d <= best_d and e.pos.distance_to(center) <= zone:
+		if d <= best_d and e.pos.distance_to(center) <= zone and (e.on_wall or not on_wall):
 			best = e
 			best_d = d
 	return best
@@ -942,9 +961,13 @@ func _shove(e, by: Vector2, bodies: Array) -> void:
 			if gap.length() < e.radius + m.radius and not m.get("flying"):  # 비행 적은 길을 막지 않는다(S109)
 				p = m.pos + (gap.normalized() if gap != Vector2.ZERO else Vector2.LEFT) * (e.radius + m.radius)
 		var c := Vector2i(p.round())
-		if grid.is_in_boundsv(c) and not grid.block_at(c) and c != base.cell:
+		if grid.is_in_boundsv(c) and (not grid.block_at(c) or (e.on_wall and _climbable(c))) and c != base.cell:  # 성벽 위의 적은 성벽 칸을 걷는다(I76)
 			e.pos = p
 			return
+
+# 기어오를 수 있는 칸: 성곽의 성벽 칸. 성문은 오르지 않는다(I76)
+func _climbable(c: Vector2i) -> bool:
+	return castle.has(c) and castle[c].kind == "castle_wall"
 
 func _attack(e: Enemy, target) -> void:
 	if e.cooldown <= 0.0:
