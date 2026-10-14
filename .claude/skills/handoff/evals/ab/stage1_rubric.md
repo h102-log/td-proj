@@ -27,13 +27,13 @@
    - `steam-release-goal.md`: 08:43에 고치기 전 판(`92d760ff` file-history `@v1`)
    - `MEMORY.md`의 스팀 줄: «개발 11/30 완료 목표(밀리면 범위 대신 일정 연장), 스팀 등록·출시 12월, WBS.md 기준»
 5. **경로**: `C:/Users/bhy99/w/<무작위 4자>/td-proj`다. 경로 이름에 실험이나 조건이 드러나지 않게 하고, 대응표는 원자료에만 둔다.
-6. **격리 훅**: 실행에만 `--settings`로 건다. PreToolUse에서 도구 입력에 원본 저장소(`bhy99/td-proj`, 역슬래시·`/c/` 표기 포함)나 원본 대화 기록(`C--Users-bhy99-td-proj`) 경로가 있으면 «작업 저장소 밖 경로라 막았다»로 막고, 막은 횟수를 기록한다. 이 훅이 필요한 이유는 둘이다. 옛 NAP 본문에 원본 저장소의 절대 경로가 있어서, 실행이 원본을 열면 이후 커밋과 PR 상태를 볼 수 있다. 경로 이름이 조건을 드러내면 행동이 달라질 수도 있다.
+6. **격리 훅**: 실행에만 `--settings`로 건다. 훅 파일은 설명 없이 중립 경로(`C:/Users/bhy99/w/_hook/`)에 두고, 그 파일을 읽는 호출도 막는다. 쓰는 글(계획 파일 본문 등)은 검사하지 않는다(파일럿에서 고침). PreToolUse에서 도구 입력에 원본 저장소(`bhy99/td-proj`, 역슬래시·`/c/` 표기 포함)나 원본 대화 기록(`C--Users-bhy99-td-proj`) 경로가 있으면 «작업 저장소 밖 경로라 막았다»로 막고, 막은 횟수를 기록한다. 이 훅이 필요한 이유는 둘이다. 옛 NAP 본문에 원본 저장소의 절대 경로가 있어서, 실행이 원본을 열면 이후 커밋과 PR 상태를 볼 수 있다. 경로 이름이 조건을 드러내면 행동이 달라질 수도 있다.
 
 ## 3. 실행
 
 ```
-cd <경로> && claude -p "<프롬프트>" --model claude-opus-5-5 --permission-mode plan \
-  --disallowedTools AskUserQuestion "Bash(git push:*)" "Bash(gh:*)" [B만 "Skill(handoff)"] \
+cd <경로> && claude -p "<프롬프트>" --model claude-opus-5-5 --effort xhigh --permission-mode plan \
+  --permission-prompts none --disallowedTools AskUserQuestion "Bash(git push:*)" "Bash(gh:*)" [B만 "Skill(handoff)"] \
   --settings <격리 훅> --output-format stream-json --verbose
 ```
 
@@ -46,15 +46,15 @@ cd <경로> && claude -p "<프롬프트>" --model claude-opus-5-5 --permission-m
 
 ## 4. 계획 글과 결정적 검사
 
-- **계획 글**: 마지막 `ExitPlanMode`의 `plan`과 마지막 응답 글(`result`)을 합친 것이다.
+- **계획 글**(파일럿에서 고침, 계획서 §13): 첫 Stop 훅 피드백 전의 응답 글 가운데 마지막 도구 호출 뒤의 것에, plan 모드가 쓴 계획 파일(`~/.claude/plans/*.md`, 실행 폴더로 옮긴다)을 더한 것이다. `-p`의 plan 모드에는 `ExitPlanMode`가 없고, 마지막 응답(`result`)은 specgate Stop 훅에 대한 답이 되기 때문이다.
 - **결정적 검사**(스크립트, 채점 전): 네 가지를 본다.
   - 실행이 끝났다
-  - 작업 트리가 실행 전과 같다(편집 없음)
+  - 작업 트리가 실행 전과 같다(`next/` 밖 편집 없음. `next/` 변경은 스킬 상태로 따로 적는다)
   - B에서 handoff 스킬이 호출되지 않았다
   - 격리 훅이 막은 호출이 몇 번인지 센다
 - **가림**: 채점 전에 계획 글에서 아래 표지를 «[가림]»으로 바꾼다.
-  - `next/…` 경로
-  - NAP·작업지시서·인수인계·드리프트·handoff·재개라는 말
+  - `next/…` 경로, 계획 파일 경로(파일럿에서 더함: A의 계획 파일 이름이 «resume-…»이다)
+  - NAP·작업지시서·인수인계·드리프트·handoff·재개·resume이라는 말
   - ✅·⚠️
 
 ## 5. 채점표
