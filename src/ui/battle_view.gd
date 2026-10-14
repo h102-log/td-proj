@@ -8,6 +8,7 @@ const COLORS := {
 	"wall": Color("5a5a5a"), "tower": Color("3060b0"), "enemy": Color("d04040"), "merc": Color("50a0f0"),
 	"hero": Color("b060f0"), "village": Color("6b6b4a"), "barracks": Color("a06a30"),
 	"workshop": Color("308080"), "engineer": Color("f0a030"), "archer": Color("60d0a0"), "cannon": Color("303060"), "archery": Color("40a070"),
+	"house": Color("b08060"), "resident": Color("f0e0b0"),
 }
 
 var battle
@@ -41,6 +42,8 @@ func _draw() -> void:
 		draw_rect(_rect(c).grow(-3), COLORS.spawn, false, 2.0)
 	var base = battle.base
 	draw_rect(_rect(base.cell), COLORS.base)
+	for p in residents(battle, Time.get_ticks_msec() / 1000.0):
+		draw_circle(_center(p), CELL * 0.15, COLORS.resident)
 	_hp_bar(Vector2(base.cell), base)
 	# 구조물·성곽은 깎였을 때만 체력 막대를 그린다(성곽 칸이 많아서). V로 켜면 구조물은 늘 그린다(S73, I59)
 	for b in battle.castle.values() + battle.structures.values():
@@ -87,6 +90,18 @@ func _hp_bar(at: Vector2, b) -> void:
 	var bar := Rect2(at * CELL + Vector2(0, -4), Vector2(CELL, 2))
 	draw_rect(bar, Color.BLACK)
 	draw_rect(Rect2(bar.position, Vector2(CELL * b.hp / b.max_hp, 2)), Color.GREEN)
+
+# t초 때 주민 위치(칸 단위). 완성된 집마다 하나가 집 둘레 1.5칸 안을 떠돌고, 마을 밖으로는 나가지 않는다(S104)
+# 연출이라 시뮬레이션에 상태를 두지 않고 시각으로 구한다(I46)
+static func residents(b, t: float) -> Array:
+	var lo := Vector2(b.village.position)
+	var hi := Vector2(b.village.end - Vector2i.ONE)
+	var out := []
+	for s in b.structures.values():
+		if s.tax > 0 and s.complete:
+			var k := float(s.cell.x * 7 + s.cell.y * 13)  # 집마다 다른 위상
+			out.append((Vector2(s.cell) + Vector2(sin(t * 0.7 + k), sin(t * 0.5 + k * 1.3)) * 1.5).clamp(lo, hi))
+	return out
 
 # 유닛·적은 pos, 구조물·성곽·거점은 cell로 자리를 갖는다
 func _pos_of(x) -> Vector2:

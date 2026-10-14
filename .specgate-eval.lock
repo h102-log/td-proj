@@ -1,6 +1,6 @@
 {
-  "approvedAt": "2026-10-13T08:43:39.496Z",
-  "evalMd": "2319150c",
+  "approvedAt": "2026-10-13T10:12:06.926Z",
+  "evalMd": "de3f517c",
   "tests": {
     "tests/eval/conftest.py": "b195cc2b",
     "tests/eval/gd/buff.gd": "a44a6d2b",
@@ -17,6 +17,8 @@
     "tests/eval/gd/engineer.gd.uid": "fd6b919f",
     "tests/eval/gd/hero.gd": "df247e48",
     "tests/eval/gd/hero.gd.uid": "890522fc",
+    "tests/eval/gd/house.gd": "711703a1",
+    "tests/eval/gd/house.gd.uid": "5fd6fb28",
     "tests/eval/gd/lib.gd": "43dd4862",
     "tests/eval/gd/lib.gd.uid": "0b978a98",
     "tests/eval/gd/loop.gd": "36f7bc2a",
@@ -48,6 +50,7 @@
     "tests/eval/test_enemy.py": "b0e6394e",
     "tests/eval/test_engineer.py": "09974bfa",
     "tests/eval/test_hero.py": "5b11b600",
+    "tests/eval/test_house.py": "f908d7b0",
     "tests/eval/test_loop.py": "eb9dcfdc",
     "tests/eval/test_map.py": "32cf2187",
     "tests/eval/test_merc.py": "45389b79",
@@ -104,7 +107,7 @@
     "S25": "8e9f85e4",
     "I23": "28bd6e64",
     "I22": "22c16774",
-    "S43": "f3349a18",
+    "S43": "9af1511b",
     "S48": "d7d962e1",
     "S81": "07b0b1bc",
     "S82": "3747c783",
@@ -146,6 +149,12 @@
     "S99": "1733d15f",
     "I47": "11d6fbd1",
     "S100": "b63867a7",
-    "S50": "49199fe9"
+    "S50": "49199fe9",
+    "S101": "88388554",
+    "I46": "1adea06c",
+    "S102": "b8fb4ae3",
+    "S103": "306135f0",
+    "I49": "783edbce",
+    "S104": "ed915097"
   }
 }
