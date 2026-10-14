@@ -40,6 +40,7 @@ class Block:
 	var damage := 0.0
 	var fire_gap := 1.0  # 쏘는 간격(초)
 	var splash := 0.0  # 범위 피해 반경(칸, S90)
+	var pierce := false  # 적의 장갑을 무시한다(마법 타워, S110)
 	var cooldown := 0.0
 	var target  # 마지막으로 쏜 적. 화면이 쏜 직후 사격 선을 그린다
 	var paid := 0  # 지을 때 낸 골드. 판매 환불의 기준(S69)
@@ -75,6 +76,11 @@ class Enemy:
 	var attack_gap: float  # 공격 간격(초)
 	var sight: float  # 인식 범위(칸)
 	var reward := 0  # 처치하면 얻는 골드(I15)
+	var armor := 0.0  # 받는 피해를 이만큼 줄인다(S108)
+	var flying := false  # 경로 층을 무시하고 곧장 난다(S109, I79)
+	var climb := 0.0  # 성곽 성벽을 오르는 시간(초). 0이면 오르지 않는다(S107, I76)
+	var climbed := 0.0  # 지금 성벽을 오른 시간(초)
+	var on_wall := false  # 성곽 성벽 칸 위에 올라서 있다(I76)
 	var cooldown := 0.0  # 0 이하면 바로 칠 수 있다
 	var alive := true
 	var attacker  # 마지막으로 이 적을 쏜 구조물. 살아 있는 동안 반격 대상이다(S4 ②)
@@ -701,9 +707,11 @@ func sell(things: Array) -> void:
 func refund(t) -> int:
 	return floori(t.paid * t.hp / t.max_hp)
 
-func damage(target, amount: float) -> void:
+func damage(target, amount: float, pierce := false) -> void:
 	if not target.alive:
 		return
+	if target is Enemy and not pierce:  # 장갑(S108): 줄인 피해는 1 아래로 내려가지 않고, 원래 1 미만이면 그대로다
+		amount = maxf(amount - target.armor, minf(amount, 1.0))
 	target.hp = maxf(target.hp - amount, 0.0)
 	if target.hp > 0.0:
 		return
@@ -822,7 +830,7 @@ func _push_apart(bodies: Array, others: Array) -> void:
 				_shove(o, push, others)
 
 # 쏘는 구조물은 사거리 안에서 가장 가까운 적을 쏘고(S28, I29), 맞은 적은 그 구조물에 반격한다(S5).
-# 대포는 맞은 적 splash칸 안의 적에게도 같은 피해를 주고, 그 적들도 반격한다(S90, I73)
+# 대포는 맞은 적 splash칸 안의 적에게도 같은 피해를 주고, 그 적들도 반격한다(S90, I73). 마법 타워는 장갑을 무시한다(S110)
 func _fire(dt: float) -> void:
 	for s in structures.values():
 		if s.range <= 0.0 or not s.complete or s.razed >= 1.0:  # 미완성 타워(I18)·접은 대포(I74)는 쏘지 않는다
@@ -837,7 +845,7 @@ func _fire(dt: float) -> void:
 			for e in enemies.duplicate():
 				if e == best or (s.splash > 0.0 and e.pos.distance_to(best.pos) <= s.splash):
 					e.attacker = s
-					damage(e, s.damage)
+					damage(e, s.damage, s.pierce)
 
 # 유닛은 명령받은 경로를 걷고(S14), 사거리 안의 가장 가까운 적을 친다(S15). 영웅은 걷는 동안에도 친다.
 # 용병은 걷는 동안 이동 방식을 따르고(S35, I35), 서 있으면 인식 범위 안의 적을 쫓는다(I36).
