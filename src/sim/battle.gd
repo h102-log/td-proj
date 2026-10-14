@@ -755,6 +755,8 @@ func _spawn_wave(dt: float) -> void:
 # 대상 칸(e.goal)까지 «걷는 거리 + 막힌 칸 비용»이 가장 싼 경로. 막힌 칸과 거점은 닿는 거리에서 친다(_move).
 # 그래서 반격 대상이 성벽에 둘러싸여 있으면 비용이 가장 싼 성벽을 뚫고 간다(S6)
 func _find_path(e: Enemy) -> void:
+	if e.flying:  # 길을 찾지 않고 곧장 난다(I79)
+		return
 	grid.wall_k = e.wall_k
 	e.path = grid.get_id_path(Vector2i(e.pos.round()), e.goal, true)
 
@@ -766,8 +768,9 @@ func _target_of(e: Enemy):
 	for m in units:
 		var d := e.pos.distance_to(m.pos)
 		# 밀어낸 직후 거리는 반지름 합과 같아서 0.01 여유를 둔다(S13: 몸으로 막은 유닛은 인식 범위 밖이어도 친다)
-		# 성벽 위 유닛은 몸으로 길을 막을 때만 친다(U13, S89, I70)
-		if d < best_d and ((d <= e.sight and not m.on_wall) or d <= e.radius + m.radius + 0.01):
+		# 성벽 위 유닛은 몸으로 길을 막을 때만 친다(U13, S89, I70). 비행 적은 그 성벽 위 유닛도 노리고(I77), 몸에 막히지 않는다(S109)
+		# 인식 범위 0은 아무것도 보지 않는다. 몸이 겹치는 비행 적이 거리 0에서 보게 되지 않게
+		if d < best_d and ((d <= e.sight and e.sight > 0.0 and (not m.on_wall or e.flying)) or (not e.flying and d <= e.radius + m.radius + 0.01)):
 			best = m
 			best_d = d
 	if village.has_point(Vector2i(e.pos.round())):
@@ -792,6 +795,13 @@ func _move(e: Enemy, dt: float) -> void:
 	if aim is Unit and e.pos.distance_to(aim.pos) <= REACH:
 		_attack(e, aim)
 		return
+	if e.flying:  # 막힌 칸을 넘어 대상으로 곧장 날아가 닿는 거리에서 친다(I79)
+		var to: Vector2 = aim.pos if aim is Unit else Vector2(goal)
+		if e.pos.distance_to(to) <= REACH:
+			_attack(e, aim)
+		else:
+			e.pos = e.pos.move_toward(to, e.speed * dt)
+		return
 	var left := e.speed * dt
 	while left > 0.0 and not e.path.is_empty():
 		var next: Vector2i = e.path[0]
@@ -814,7 +824,7 @@ func _move(e: Enemy, dt: float) -> void:
 			_shove(e, (target - e.pos) / d * left, units)
 			left = 0.0
 
-# 같은 편(bodies)끼리 겹친 만큼 반씩 밀어낸다. 상대 편(others)과는 겹치지 않게 민다.
+# 같은 편(bodies)끼리 겹친 만큼 반씩 밀어낸다. 상대 편(others)과는 겹치지 않게 민다. 비행 적은 밀지도 밀리지도 않는다(I79).
 # 경로는 그대로라 밀려난 쪽은 _move·_act가 다시 데려간다(I51)
 # ponytail: O(n²) 전수 비교, 적이 수백이면 칸 버킷으로
 func _push_apart(bodies: Array, others: Array) -> void:
@@ -822,6 +832,8 @@ func _push_apart(bodies: Array, others: Array) -> void:
 		for j in range(i + 1, bodies.size()):
 			var a = bodies[i]
 			var o = bodies[j]
+			if a.get("flying") or o.get("flying"):
+				continue
 			var gap: Vector2 = o.pos - a.pos
 			var overlap: float = a.radius + o.radius - gap.length()
 			if overlap > 0.0:
@@ -927,7 +939,7 @@ func _shove(e, by: Vector2, bodies: Array) -> void:
 		var p: Vector2 = e.pos + v
 		for m in bodies:
 			var gap: Vector2 = p - m.pos
-			if gap.length() < e.radius + m.radius:
+			if gap.length() < e.radius + m.radius and not m.get("flying"):  # 비행 적은 길을 막지 않는다(S109)
 				p = m.pos + (gap.normalized() if gap != Vector2.ZERO else Vector2.LEFT) * (e.radius + m.radius)
 		var c := Vector2i(p.round())
 		if grid.is_in_boundsv(c) and not grid.block_at(c) and c != base.cell:
