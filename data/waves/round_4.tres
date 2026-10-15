@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="WavesDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/waves_def.gd" id="1_83rh7"]
+
+[resource]
+script = ExtResource("1_83rh7")
+waves = Array[Dictionary]([{
+"basic": 10,
+"fast": 5
+}, {
+"basic": 10,
+"armored": 5,
+"flying": 5
+}, {
+"basic": 14,
+"fast": 7,
+"armored": 5,
+"flying": 5,
+"boss": 1
+}])

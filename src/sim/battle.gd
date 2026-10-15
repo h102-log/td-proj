@@ -180,7 +180,8 @@ class CostGrid extends AStarGrid2D:
 
 var size: Vector2i
 var spawns: Array
-var waves: Array
+var waves: Array  # 지금 라운드의 웨이브
+var rounds: Array  # 도전의 라운드마다 웨이브 배열(S63, I91). stage에 rounds가 없으면 waves 하나가 1라운드짜리 도전이다
 var base: Block
 var castle := {}      # Vector2i → Block
 var structures := {}  # Vector2i → Block
@@ -189,7 +190,8 @@ var enemies := []
 var units := []  # 살아 있는 영웅·용병
 var hero  # 영웅(Unit). 스테이지에 hero_start가 없으면 null
 var revive := true  # 쓰러진 영웅이 다음 준비 단계에 돌아온다(S27). 기본값 켜짐(I28)
-var state := "prep"
+var state := "prep"  # "prep" | "battle" | "cleared"(라운드 사이, S117) | "won"(도전 성공) | "lost"
+var round_index := 0
 var wave_index := 0
 var gold := 0
 var village := Rect2i()  # 마을 칸. 생산 시설은 안에만, 나머지 구조물은 밖에만 짓는다(S43). 비어 있으면 모두 들판
@@ -223,7 +225,7 @@ func _init(stage: Dictionary) -> void:
 	spawns = stage.spawns
 	for c in spawns:
 		assert(c.x == 0 or c.y == 0 or c.x == size.x - 1 or c.y == size.y - 1, "출현 지점 %s가 맵 가장자리가 아니다" % c)
-	waves = stage.get("waves", [])
+	rounds = stage.get("rounds", [stage.get("waves", [])])
 	grid.region = Rect2i(Vector2i.ZERO, size)
 	grid.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
 	grid.update()
@@ -235,11 +237,13 @@ func _init(stage: Dictionary) -> void:
 	_stage = stage
 	restart()
 
-# 판을 stage 그대로 처음 상태로 놓는다(S29). W1은 라운드 하나뿐인 도전이라 재시작이 곧 하드리셋이다(S64)
+# 새 도전(S29, S64): 1라운드를 stage 그대로 처음 상태로 놓는다. 앞 도전에서 남는 것은 없다(I92)
 # 컬렉션은 새로 만들지 않고 비운다. grid와 화면이 같은 객체를 쥐고 있다
 func restart() -> void:
 	var stage := _stage
 	state = "prep"
+	round_index = 0
+	waves = rounds[0]
 	wave_index = 0
 	gold = stage.get("gold", 0)
 	village = stage.get("village", Rect2i())
@@ -283,8 +287,13 @@ func step(dt: float) -> void:
 	_fire(dt)
 	if state == "battle" and _queue.is_empty() and enemies.is_empty():
 		wave_index += 1
-		state = "won" if wave_index >= waves.size() else "prep"
-		if state == "prep":
+		if wave_index < waves.size():
+			state = "prep"
+		elif round_index + 1 < rounds.size():
+			state = "cleared"  # 라운드 사이(S117). 다음 라운드는 next_round로 간다
+		else:
+			state = "won"  # 마지막 라운드를 이겨 도전에 성공했다(I92)
+		if state != "won":  # 준비 단계나 라운드 사이로 넘어갈 때 걷는다(I46)
 			gold += tax()
 		for s in structures.values() + castle.values() + rubble.values() + [base]:  # 하던 건설·철거·업그레이드·수리·복구는 그 상태로 멈춘다(I19, I68, I87)
 			_release(s)
@@ -311,6 +320,20 @@ func start_battle() -> void:
 			_queue.append(entry.kind)
 	_spawn_timer = 0.0
 	_spawned = 0
+
+# 라운드 사이(S117)에서 다음 라운드의 첫 준비 단계로 간다. 라운드 사이가 아니면 거부한다
+# 구조물·성곽·마을·용병·골드와 살아 있는 영웅은 그대로 이어진다(S63, S79, S61, I93)
+# 쓰러진 영웅은 부활 설정과 상관없이 시작 지점으로 돌아온다(I93)
+func next_round() -> bool:
+	if state != "cleared":
+		return false
+	round_index += 1
+	waves = rounds[round_index]
+	wave_index = 0
+	state = "prep"
+	if hero and not hero.alive:
+		_return_hero()
+	return true
 
 func spawn_enemy(kind: String, cell: Vector2i, overrides := {}):
 	var e := Enemy.new(kind, cell, ENEMY_KINDS[kind].merged(overrides, true))
@@ -524,9 +547,9 @@ func _exit_of(cell: Vector2i):
 			return c
 	return null
 
-# 성문을 열거나 닫는다(S85). 성문 칸에 유닛이나 적이 있으면 닫지 않는다. 여닫으면 적 경로를 다시 구한다(I67)
+# 준비·전투 단계에 성문을 열거나 닫는다(S85, S117). 성문 칸에 유닛이나 적이 있으면 닫지 않는다. 여닫으면 적 경로를 다시 구한다(I67)
 func set_gate(g: Block, open: bool) -> void:
-	if g.kind != "gate" or castle.get(g.cell) != g:
+	if state not in ["prep", "battle"] or g.kind != "gate" or castle.get(g.cell) != g:
 		return
 	if not open and (units + enemies).any(func(u): return Vector2i(u.pos.round()) == g.cell):
 		return
