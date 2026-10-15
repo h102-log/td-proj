@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_ldbao")
-hp = 25.0
+hp = 18.0
 speed = 1.5
 damage = 6.0
 attack_gap = 1.2
