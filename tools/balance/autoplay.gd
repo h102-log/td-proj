@@ -14,6 +14,7 @@ extends SceneTree
 #     stage: {gold, base_hp, wall_hp, gate_hp, rounds: [[{종류: 수}, ...웨이브], ...라운드]}
 #     wave_mult: [라운드마다 적 수 배율] — rounds가 없을 때 시험 스테이지 웨이브에 곱해 내림한다
 #     spawn_gap: 웨이브 안에서 적이 나오는 간격(초, battle.gd SPAWN_GAP). 숫자 하나거나 라운드마다 배열
+#     gate_cooldown: 전투 단계에 여닫은 성문을 다시 여닫을 수 없는 시간(초). 성문 핑퐁 대책을 재 보는 규칙 오버라이드
 # ponytail: 봇은 «무난한 플레이어» 하나를 흉내 낼 뿐이다. 사람의 손을 대신하지 않는다. 판정은 사람이 한다
 # 사람과 다른 점: 준비 단계를 0초로 넘긴다(준비 단계 Q·오라 회복을 쓰지 않는다). 영웅을 마을로 부르지 않고 성문을 여닫지 않고
 # 리롤하지 않는다. 잔해 위 유닛은 한 칸 물려 세운다(사람이 준비 단계에 걸어서 비키는 손을 대신한다, 복구 거부 I89를 피한다)
@@ -39,6 +40,12 @@ const BOT := {
 	"village_from": 3,      # 이 라운드부터
 	"station": [[20, 6], [18, 5]],
 	"vlead": 9.0,           # 마을 영웅이 쫓는 거리(거점에서, 칸)
+	# 성문 핑퐁(외부 비평 검증 1-D1): 쪽문 둘을 번갈아 열어 땅 적을 오가게 한다. "near"는 땅 적이 열린 쪽문 pp_near칸 안에
+	# 오면 반대 쪽문으로 바꾸고, "timer"는 pp_period초마다 바꾼다. 웨이브가 pp_giveup초를 넘으면 그만두고 쪽문을 닫는다
+	"pingpong": "",
+	"pp_period": 8.0,
+	"pp_near": 4.0,
+	"pp_giveup": 150.0,
 }
 
 const GATE := Vector2i(20, 9)
@@ -109,6 +116,7 @@ var cur := {}        # 지금 웨이브 지표
 var _think := 0.0
 var _spawned := 0    # 이번 웨이브에 나온 적 수(kills 지표). 람다는 지역 변수를 값으로 잡아 멤버로 센다
 var _vill := []      # 마을에 세운 영웅
+var _pp := {"open": null, "t": 0.0}  # 핑퐁: 지금 열어 둔 쪽문과 바꾼 시각
 
 func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
@@ -228,6 +236,8 @@ func _fight() -> bool:
 			_think = 0.25
 			var g: int = b.gold
 			_battle_actions()
+			if bot.pingpong != "":
+				_pingpong(t)
 			cur.spent_battle += maxi(g - b.gold, 0)
 		b.step(dt)
 		t += dt
@@ -277,6 +287,12 @@ func _fight() -> bool:
 	cur.gate_min = snappedf(cur.gate_min, 0.01)
 	cur.gold_out = b.gold
 	cur.state = b.state
+	if bot.pingpong != "":  # 웨이브가 끝나면 쪽문을 닫는다(준비 단계 여닫기는 대기가 없다)
+		for c in [Vector2i(0, 9), Vector2i(39, 9)]:
+			var gt = b.castle.get(c)
+			if gt and gt.open:
+				b.set_gate(gt, false)
+		_pp.open = null
 	log.append(cur)
 	return not cur.has("stall")
 
@@ -548,12 +564,12 @@ func _zones() -> Array:
 
 # SPAWN_GAP은 상수라 판 객체에서 바꿀 수 없다. 오버라이드가 있으면 _spawn_wave만 바꾼 하위 클래스로 판을 만든다
 func _battle_class(over: Dictionary):
-	if not over.has("spawn_gap"):
+	if not over.has("spawn_gap") and not over.has("gate_cooldown"):
 		return load("res://src/sim/battle.gd")
-	var gaps = over.spawn_gap if over.spawn_gap is Array else [over.spawn_gap]
-	var src := GDScript.new()
-	src.source_code = """extends "res://src/sim/battle.gd"
-var gaps := %s
+	var code := "extends \"res://src/sim/battle.gd\"\n"
+	if over.has("spawn_gap"):
+		var gaps = over.spawn_gap if over.spawn_gap is Array else [over.spawn_gap]
+		code += """var gaps := %s
 func _spawn_wave(dt: float) -> void:
 	_spawn_timer -= dt
 	if _queue.is_empty() or _spawn_timer > 0.0:
@@ -562,6 +578,27 @@ func _spawn_wave(dt: float) -> void:
 	_spawned += 1
 	_spawn_timer = gaps[mini(round_index, gaps.size() - 1)]
 """ % [JSON.stringify(gaps)]
+	if over.has("gate_cooldown"):
+		# 전투 단계에 여닫은 성문은 gate_cd초 동안 다시 여닫지 못한다. 준비 단계 여닫기는 자유롭고 대기를 걸지 않는다
+		code += """var gate_cd := %s
+var _gw := {}
+func set_gate(g, open: bool) -> void:
+	if state == "battle" and _gw.get(g.cell, 0.0) > 0.0:
+		return
+	var was: bool = g.open
+	super.set_gate(g, open)
+	if state == "battle" and g.open != was:
+		_gw[g.cell] = gate_cd
+func step(dt: float) -> void:
+	for c in _gw:
+		_gw[c] -= dt
+	var before := state
+	super.step(dt)
+	if before == "battle" and state != "battle":
+		_gw.clear()
+""" % [str(float(over.gate_cooldown))]
+	var src := GDScript.new()
+	src.source_code = code
 	src.reload()
 	return src
 
@@ -604,3 +641,42 @@ func _move_village_hero(h) -> void:
 			b.order_move([h], c)
 	elif h.path.is_empty() and h.pos.distance_to(Vector2(home)) > 1.5:
 		b.order_move([h], home)
+
+# 성문 핑퐁(외부 비평 검증 1-D1을 사람 전략으로 흉내 낸다. 3장 자체 점검 검증 에이전트의 변형 봇에서 옮겼다)
+func _pingpong(t: float) -> void:
+	var L = b.castle.get(Vector2i(0, 9))
+	var R = b.castle.get(Vector2i(39, 9))
+	if L == null or R == null or L.kind != "gate" or R.kind != "gate":
+		return  # 쪽문이 잔해면 핑퐁이 안 된다
+	if t > bot.pp_giveup:  # 웨이브가 끝나지 않으면 그만두고 쪽문을 닫는다(끝없는 왕복 방지)
+		if _pp.open != null:
+			b.set_gate(_pp.open, false)
+			if not _pp.open.open:
+				_pp.open = null
+				cur.pp_giveup = true
+		return
+	if _pp.open == null:
+		b.set_gate(L, true)
+		if L.open:
+			_pp.open = L
+			_pp.t = t
+		return
+	var cur_g = _pp.open
+	var other = R if cur_g == L else L
+	var go := false
+	if bot.pingpong == "timer":
+		go = t - _pp.t >= bot.pp_period
+	elif t - _pp.t >= 1.5:
+		for e in b.enemies:
+			if not e.flying and not e.on_wall and e.pos.distance_to(Vector2(cur_g.cell)) <= bot.pp_near:
+				go = true
+				break
+	if go:
+		b.set_gate(cur_g, false)
+		if not cur_g.open:
+			b.set_gate(other, true)
+			if other.open:
+				_pp.open = other
+				_pp.t = t
+			else:
+				_pp.open = null
