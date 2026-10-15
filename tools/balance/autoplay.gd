@@ -15,6 +15,8 @@ extends SceneTree
 #     wave_mult: [라운드마다 적 수 배율] — rounds가 없을 때 시험 스테이지 웨이브에 곱해 내림한다
 #     spawn_gap: 웨이브 안에서 적이 나오는 간격(초, battle.gd SPAWN_GAP). 숫자 하나거나 라운드마다 배열
 # ponytail: 봇은 «무난한 플레이어» 하나를 흉내 낼 뿐이다. 사람의 손을 대신하지 않는다. 판정은 사람이 한다
+# 사람과 다른 점: 준비 단계를 0초로 넘긴다(준비 단계 Q·오라 회복을 쓰지 않는다). 영웅을 마을로 부르지 않고 성문을 여닫지 않고
+# 리롤하지 않는다. 잔해 위 유닛은 한 칸 물려 세운다(사람이 준비 단계에 걸어서 비키는 손을 대신한다, 복구 거부 I89를 피한다)
 
 const BOT := {
 	"name": "balanced",
@@ -33,6 +35,10 @@ const BOT := {
 	"hire_first_count": 2,  # 도전을 시작할 때 영입하는 최대 인원
 	"rally": [20, 10],      # 전투 중 산 병사를 보낼 칸
 	"fill": false,          # 쇼핑 목록을 다 사면 들판·성벽에 타워·마법 타워·대포를 계속 짓는다(골드가 놀지 않게)
+	"village_heroes": 0,    # 출전 영웅 가운데 뒤에서 이만큼을 준비 단계마다 마을 안 거점 옆(station)에 세운다
+	"village_from": 3,      # 이 라운드부터
+	"station": [[20, 6], [18, 5]],
+	"vlead": 9.0,           # 마을 영웅이 쫓는 거리(거점에서, 칸)
 }
 
 const GATE := Vector2i(20, 9)
@@ -101,6 +107,8 @@ var log := []        # 웨이브마다 지표
 var hires := []
 var cur := {}        # 지금 웨이브 지표
 var _think := 0.0
+var _spawned := 0    # 이번 웨이브에 나온 적 수(kills 지표). 람다는 지역 변수를 값으로 잡아 멤버로 센다
+var _vill := []      # 마을에 세운 영웅
 
 func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
@@ -116,6 +124,7 @@ func _initialize() -> void:
 	_override_kinds(over)
 	b.restart()  # 오버라이드한 영입 확률로 목록을 다시 뽑는다
 	b.begin_hiring()
+	b.enemy_spawned.connect(func(_e): _spawned += 1)
 	var out := _play()
 	print("RESULT ", JSON.stringify(out))
 	quit(0)
@@ -206,8 +215,7 @@ func _fight() -> bool:
 	var seen := {}
 	var mercs_seen := {}
 	var zones_hit := [false, false, false]
-	var spawned := 0
-	b.enemy_spawned.connect(func(_e): spawned += 1)
+	_spawned = 0
 	var gold_track: int = b.gold
 	var t := 0.0
 	while b.state == "battle":
@@ -263,7 +271,7 @@ func _fight() -> bool:
 	cur.struct_lost = maxi(structs0 - b.structures.size(), 0)
 	cur.merc_alive = b.units.filter(func(u): return not u.is_hero).size()
 	cur.merc_lost = mercs_seen.keys().filter(func(u): return not u.alive).size()
-	cur.kills = spawned - b.enemies.size()
+	cur.kills = _spawned - b.enemies.size()
 	cur.base_hp_end = snappedf(b.base.hp / b.base.max_hp, 0.01)
 	cur.base_min = snappedf(cur.base_min, 0.01)
 	cur.gate_min = snappedf(cur.gate_min, 0.01)
@@ -334,10 +342,9 @@ func _prep() -> int:
 				if Vector2i(u.pos.round()) == k.cell:
 					u.pos = Vector2(k.cell + Vector2i.UP)
 			b.restore(k)
-			if bot.get("trace", false):
-				print("복구 시도 %s 결과 %s 골드 %d 비용 %d 칸점유 %s worker %s" % [k.cell, not b.rubble.has(k.cell), b.gold, b.repair_cost(k), b._occupied(k.cell), k.worker])
 		if b.base.hp < b.base.max_hp * bot.base_repair_below:
 			b.repair(b.base)
+	_station()
 	var done := true
 	for item in PLANS[bot.plan]:
 		if not _buy(item):
@@ -444,7 +451,9 @@ func _battle_actions() -> void:
 			continue
 		if bot.skills:
 			_skills(h)
-		if bot.micro:
+		if h in _vill:
+			_move_village_hero(h)
+		elif bot.micro:
 			_move_hero(h)
 	if bot.recruit:
 		var want := 0
@@ -555,3 +564,43 @@ func _spawn_wave(dt: float) -> void:
 """ % [JSON.stringify(gaps)]
 	src.reload()
 	return src
+
+# 마을 영웅(사람이 준비 단계에 성문을 열고 영웅을 마을로 걸어 들이는 손을 대신해 자리에 세운다).
+# 3장 자체 점검 검증에서 «영웅 1명을 거점 옆에 두면 3~6라운드 거점 피해가 거의 사라진다»가 나와 패널에 넣었다
+func _station() -> void:
+	_vill.clear()
+	if bot.village_heroes <= 0 or b.round_index + 1 < bot.village_from:
+		return
+	var alive_h = b.heroes.filter(func(h): return h.alive)
+	for i in mini(bot.village_heroes, alive_h.size()):
+		var h = alive_h[alive_h.size() - 1 - i]
+		var st: Array = bot.station[i % bot.station.size()]
+		h.pos = Vector2(st[0], st[1])
+		h.on_wall = false
+		h.path.clear()
+		h.after.clear()
+		_vill.append(h)
+
+# 마을 영웅: 거점에서 vlead칸 안의 마을 안·성벽 위 적 가운데 가장 가까운 적을 쫓고, 없으면 자리로 돌아온다
+func _move_village_hero(h) -> void:
+	var st: Array = bot.station[_vill.find(h) % bot.station.size()]
+	var home := Vector2i(st[0], st[1])
+	if h.hp < h.max_hp * 0.3:
+		if h.pos.distance_to(Vector2(home)) > 1.0:
+			b.order_move([h], home)
+		return
+	var best = null
+	var best_d := INF
+	for e in b.enemies:
+		if Vector2i(e.pos.round()).y > 8 and not e.on_wall:
+			continue
+		if e.pos.distance_to(Vector2(b.base.cell)) <= bot.vlead and e.pos.distance_to(h.pos) < best_d:
+			best = e
+			best_d = e.pos.distance_to(h.pos)
+	if best:
+		if h.pos.distance_to(best.pos) > h.range * 0.8 and (h.path.is_empty() or h.path[-1].distance_to(Vector2i(best.pos.round())) > 1.5):
+			var c := Vector2i(best.pos.round())
+			c.y = mini(c.y, 8)
+			b.order_move([h], c)
+	elif h.path.is_empty() and h.pos.distance_to(Vector2(home)) > 1.5:
+		b.order_move([h], home)

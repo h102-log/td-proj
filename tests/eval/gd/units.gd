@@ -14,9 +14,9 @@ const GATES := [Vector2i(5, 9), Vector2i(15, 9), Vector2i(25, 9)]
 const TABLE := {
 	"basic": [10, 2, 5, 1, 0.3, 3, 5, 1],
 	"fast": [6, 3.5, 3, 0.8, 0.25, 3, 4, 1],
-	"armored": [25, 1.5, 6, 1.2, 0.35, 3, 8, 1],
+	"armored": [18, 1.5, 6, 1.2, 0.35, 3, 8, 1],
 	"flying": [8, 2.5, 4, 1, 0.3, 3, 6, null],
-	"boss": [200, 1.2, 20, 2, 0.45, 4, 50, 0.3],
+	"boss": [160, 1.2, 20, 2, 0.45, 4, 50, 0.3],
 }
 const KEYS := ["hp", "speed", "damage", "attack_gap", "radius", "sight", "reward", "wall_k"]
 

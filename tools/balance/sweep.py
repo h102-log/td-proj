@@ -27,6 +27,9 @@ PANEL = {
     "mid": {"name": "mid", "plan": "smart", "hire_first_grade": 1, "hire_first_count": 1, "rally": [20, 8], "fill": True,
             "micro": False, "skills": False},
     "weak": {"name": "weak", "plan": "balanced", "hire_first_grade": 1, "hire_first_count": 1, "fill": True},
+    # 사람형: 숙련 + 3라운드부터 영웅 1명을 마을 거점 옆에 둔다(3장 자체 점검 검증에서 더함)
+    "smartv": {"name": "smartv", "plan": "smart", "hire_first_grade": 1, "hire_first_count": 1, "rally": [20, 8], "fill": True,
+               "village_heroes": 1, "village_from": 3},
 }
 # 긴장감 목표(사용자 결정이 아니라 Claude 가정이다. 설계 결정 «바쁨»·«감당하는 건 실력»에서 옮겼다)
 TARGETS = {
@@ -34,6 +37,7 @@ TARGETS = {
     "base_curve": {1: (0.85, 1.0), 2: (0.75, 0.95), 3: (0.65, 0.9), 4: (0.55, 0.85), 5: (0.45, 0.8), 6: (0.35, 0.75)},
     "win_smart": (0.40, 0.75),   # 숙련 봇 도전 성공률
     "win_smart2": (0.30, 0.75),
+    "win_smartv": (0.50, 0.90),  # 사람형 봇도 끝까지 승부가 갈리게
     "idle_max": 0.30,            # 웨이브 시간 가운데 적이 아무 데도 닿지 않은 비율
     "busy_mid": 0.10,            # 2~3라운드에 위협 지점이 둘 이상인 시간 비율
     "busy_late": 0.25,           # 4~6라운드
@@ -51,7 +55,8 @@ def score(by_bot):
     t = TARGETS
     parts = {}
     curve = {}
-    for bot in ("smart", "smart2"):
+    curve_bots = [b for b in ("smart", "smart2", "smartv") if b in by_bot]
+    for bot in curve_bots:
         runs = [r for r in by_bot.get(bot, []) if "error" not in r]
         for rnd in range(1, 7):
             vals = []
@@ -60,9 +65,10 @@ def score(by_bot):
                 if ws:
                     vals.append(min(w["base_min"] for w in ws))
             curve[(bot, rnd)] = statistics.mean(vals) if vals else 0.0
-    parts["curve"] = sum(_band(curve[(b, r)], *t["base_curve"][r]) for b in ("smart", "smart2") for r in range(1, 7))
+    parts["curve"] = sum(_band(curve[(b, r)], *t["base_curve"][r]) for b in curve_bots for r in range(1, 7))
     win = {b: statistics.mean(r["result"] == "won" for r in by_bot[b] if "error" not in r) for b in by_bot}
-    parts["win"] = 2 * (_band(win.get("smart", 0), *t["win_smart"]) + _band(win.get("smart2", 0), *t["win_smart2"]))
+    parts["win"] = 2 * (_band(win.get("smart", 0), *t["win_smart"]) + _band(win.get("smart2", 0), *t["win_smart2"])
+                        + (_band(win["smartv"], *t["win_smartv"]) if "smartv" in win else 0.0))
     sw = [w for r in by_bot.get("smart", []) if "error" not in r for w in r["waves"]]
     idle = statistics.mean(w["idle"] / max(w["secs"], 0.1) for w in sw) if sw else 1.0
     parts["idle"] = 2 * max(0.0, idle - t["idle_max"])
@@ -81,6 +87,8 @@ def score(by_bot):
         "curve_smart": [round(curve[("smart", r)], 2) for r in range(1, 7)],
         "curve_smart2": [round(curve[("smart2", r)], 2) for r in range(1, 7)],
     }
+    if "smartv" in by_bot:
+        info["curve_smartv"] = [round(curve[("smartv", r)], 2) for r in range(1, 7)]
     return round(sum(parts.values()), 3), {k: round(v, 3) for k, v in parts.items()}, info
 
 
