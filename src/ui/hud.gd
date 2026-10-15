@@ -3,6 +3,7 @@ extends CanvasLayer
 # 판매 후보가 있으면 그 옆에 판매 버튼을 띄운다(S70, I58). 전투 단계에 생산 시설을 고르면 그 옆에 파는 용병마다 구매 버튼을 띄운다(S81, I61, I71).
 # 고른 구조물에 따라 같은 자리에 철거(S74)·이어 짓기·취소(전투 단계)와 완성(준비 단계) 버튼도 띄운다(S83). 대포면 옮기기(S91)도 띄운다.
 # 성곽 칸을 고르면 같은 자리에 성문 열기·닫기(S85)와 업그레이드(S86) 버튼을 띄운다. 거점을 고르면 마을 레벨 올리기(S100) 버튼을 띄운다.
+# 고른 것 가운데 깎인 것이 있으면 수리(S116, I90), 잔해를 고르면 복구(I89) 버튼도 같은 자리에 띄운다.
 
 const NAMES := {"wall": "방벽", "tower": "타워", "magic": "마법 타워", "soldier": "용병", "barracks": "병영", "engineer": "공병", "workshop": "작업장", "archer": "궁수", "cannon": "대포", "archery": "사격장", "house": "집"}
 const STATES := {"prep": "준비", "battle": "전투", "won": "승리", "lost": "패배"}
@@ -22,6 +23,8 @@ var _resume: Button
 var _cancel: Button
 var _gate: Button
 var _upgrade: Button
+var _repair: Button
+var _restore: Button
 var _village: Button
 var _place := {}  # kind → 버튼
 var _result := PanelContainer.new()
@@ -73,6 +76,8 @@ func _ready() -> void:
 	_cancel = _button(_popup, "취소", func(): _apply(battle.cancel, battle.unfinished(controls.picked)))
 	_gate = _button(_popup, "", func(): battle.set_gate(controls.fort, not controls.fort.open))
 	_upgrade = _button(_popup, "", func(): battle.upgrade(controls.fort))
+	_repair = _button(_popup, "", func(): _apply(battle.repair, _to_repair()))
+	_restore = _button(_popup, "", func(): battle.restore(controls.fort))
 	_village = _button(_popup, "", func(): battle.raise_village())
 
 func _process(_delta: float) -> void:
@@ -112,14 +117,15 @@ func _process(_delta: float) -> void:
 	_move.visible = _cannon() != null
 	_resume.visible = todo.any(func(s): return s.worker == null)
 	_cancel.visible = not todo.is_empty()
-	if controls.placing != "" or (controls.fort and not controls.fort.alive):  # 놓기 모드거나 부서진 성곽 칸
+	if controls.placing != "" or (controls.fort and not controls.fort.alive and battle.rubble.get(controls.fort.cell) != controls.fort):  # 놓기 모드거나 판에서 사라진 성곽 칸. 잔해는 남긴다(I89)
 		controls.fort = null
 	var k = controls.fort
-	_gate.visible = k != null and k.kind == "gate"
+	var live: bool = k != null and k.alive
+	_gate.visible = live and k.kind == "gate"
 	if _gate.visible:
 		_gate.text = "닫기" if k.open else "열기"
 	# 공병이 올리는 중이면 숨긴다. 그만둔 업그레이드는 «계속»으로 골드 없이 이어 올린다(I68)
-	_upgrade.visible = k != null and battle.state in ["prep", "battle"] and k.level < battle.UPGRADE_MAX and k.worker == null
+	_upgrade.visible = live and battle.state in ["prep", "battle"] and k.level < battle.UPGRADE_MAX and k.worker == null
 	if _upgrade.visible:
 		_upgrade.text = "업그레이드 계속" if k.lift >= 0.0 else "업그레이드 %d골드" % battle.upgrade_cost(k)
 	if controls.placing != "":
@@ -127,6 +133,13 @@ func _process(_delta: float) -> void:
 	_village.visible = controls.village and prep and battle.village_level <= battle.VILLAGE_UP.size()
 	if _village.visible:
 		_village.text = "마을 레벨 %d로 올리기 %d골드" % [battle.village_level + 1, battle.VILLAGE_UP[battle.village_level - 1]]
+	var fix := _to_repair()
+	_repair.visible = not fix.is_empty()
+	if _repair.visible:
+		_repair.text = "수리 %d골드" % fix.reduce(func(n, t): return n + battle.repair_cost(t), 0)
+	_restore.visible = k != null and battle.rubble.get(k.cell) == k and k.worker == null and battle.state in ["prep", "battle"]
+	if _restore.visible:
+		_restore.text = "복구 %d골드" % battle.repair_cost(k)
 	_popup.reset_size()
 	# 맵 px → 화면 좌표. 전투 화면(BattleView)이 원점에 있어 카메라 변환만 곱한다
 	_popup.position = get_viewport().get_canvas_transform() * controls.sell_at + Vector2(6, 6)
@@ -161,6 +174,11 @@ func _apply(f: Callable, things: Array) -> void:
 		f.call(t)
 	controls.selling = []
 	controls.picked = []
+
+# 고른 것 가운데 고칠 수 있는 것(S116, I90): 판매·철거 후보, 고른 성곽 칸, 고른 거점
+func _to_repair() -> Array:
+	var all: Array = controls.selling + controls.picked + ([controls.fort] if controls.fort else []) + ([battle.base] if controls.village else [])
+	return all.filter(battle.can_repair)
 
 # 고른 구조물 가운데 옮길 수 있는 첫 대포(S44)
 func _cannon():

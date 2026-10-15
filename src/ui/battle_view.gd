@@ -29,6 +29,8 @@ func _draw() -> void:
 		draw_rect(_rect(b.cell), COLORS.gate_open if b.open else COLORS[b.kind])
 		for i in b.level:
 			draw_rect(Rect2(Vector2(b.cell) * CELL + Vector2(2 + i * 4, CELL - 4), Vector2(2, 2)), Color.WHITE)
+	for k in battle.rubble.values():  # 잔해는 흐리게(I88)
+		draw_rect(_rect(k.cell), Color(COLORS[k.kind], 0.3))
 	for s in battle.structures.values():  # 미완성·접은 대포는 흐리게. 진행률은 체력 막대로 보인다(I62, I74)
 		var col: Color = COLORS[s.kind]
 		draw_rect(_rect(s.cell), col if s.complete and s.razed < 1.0 else Color(col, 0.4))

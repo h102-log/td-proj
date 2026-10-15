@@ -24,7 +24,7 @@ var sell_at := Vector2()  # 판매 팝업을 띄울 곳: 클릭하거나 드래�
 var show_hp := false  # 체력바를 모두 그린다(S73)
 var facility = null  # 고른 생산 시설. 전투 단계엔 그 옆에 구매 팝업이 뜬다(S81, I61)
 var picked := []  # 전투 단계에 고른 플레이어 구조물. 철거·취소·이어 짓기 팝업의 대상이다(S74, S83)
-var fort = null  # 고른 성곽 칸. 그 옆에 여닫기·업그레이드 팝업이 뜬다(S85, S86)
+var fort = null  # 고른 성곽 칸이나 잔해(I88). 그 옆에 여닫기·업그레이드·수리·복구 팝업이 뜬다(S85, S86, S116, I89)
 var moving = null  # 옮길 대포. 팝업의 «옮기기» 버튼이 넣는다(S91)
 var village := false  # 거점을 골랐다. 그 옆에 마을 레벨 팝업이 뜬다(S100)
 var _state: String  # 마지막으로 본 판 단계. 바뀌면 놓기 모드를 끝낸다
@@ -97,7 +97,7 @@ func _release(rect: Rect2, at: Vector2) -> void:
 		selected = [h] if h and h.alive and Vector2i(h.pos.round()) == cell else []
 		var hit = battle.structure_at(cell)
 		facility = hit if hit and not hit.produces.is_empty() and hit.complete else null
-		fort = battle.castle.get(cell)
+		fort = battle.castle.get(cell, battle.rubble.get(cell))
 		village = cell == battle.base.cell
 		picked = [hit] if hit and not prep else []
 		for m in mercs:
