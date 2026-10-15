@@ -1,12 +1,12 @@
 extends CanvasLayer
-# 골드·다음 세금(I75)·웨이브·단계를 보이고, 놓기 모드·«전투 시작»(I13) 버튼과 판이 끝난 뒤의 결과·«재시작»(S29)을 둔다.
+# 골드·다음 세금(I75)·라운드(I94)·웨이브·단계를 보이고, 놓기 모드·«전투 시작»(I13) 버튼과 라운드를 이기거나 도전이 끝난 뒤의 결과 창(S117)을 둔다.
 # 판매 후보가 있으면 그 옆에 판매 버튼을 띄운다(S70, I58). 전투 단계에 생산 시설을 고르면 그 옆에 파는 용병마다 구매 버튼을 띄운다(S81, I61, I71).
 # 고른 구조물에 따라 같은 자리에 철거(S74)·이어 짓기·취소(전투 단계)와 완성(준비 단계) 버튼도 띄운다(S83). 대포면 옮기기(S91)도 띄운다.
 # 성곽 칸을 고르면 같은 자리에 성문 열기·닫기(S85)와 업그레이드(S86) 버튼을 띄운다. 거점을 고르면 마을 레벨 올리기(S100) 버튼을 띄운다.
 # 고른 것 가운데 깎인 것이 있으면 수리(S116, I90), 잔해를 고르면 복구(I89) 버튼도 같은 자리에 띄운다.
 
 const NAMES := {"wall": "방벽", "tower": "타워", "magic": "마법 타워", "soldier": "용병", "barracks": "병영", "engineer": "공병", "workshop": "작업장", "archer": "궁수", "cannon": "대포", "archery": "사격장", "house": "집"}
-const STATES := {"prep": "준비", "battle": "전투", "won": "승리", "lost": "패배"}
+const STATES := {"prep": "준비", "battle": "전투", "cleared": "라운드 사이", "won": "승리", "lost": "패배"}
 
 var battle
 var controls
@@ -29,6 +29,7 @@ var _village: Button
 var _place := {}  # kind → 버튼
 var _result := PanelContainer.new()
 var _result_label := Label.new()
+var _next: Button  # 결과 창의 «다음 라운드»·«새 도전»
 
 func _init(b, c) -> void:
 	battle = b
@@ -64,7 +65,7 @@ func _ready() -> void:
 	_result.add_child(box)
 	_result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(_result_label)
-	_button(box, "재시작", _restart)
+	_next = _button(box, "", proceed)
 	root.add_child(_popup)
 	_sell = _button(_popup, "", _sell_now)
 	_finish = _button(_popup, "완성", func(): _apply(battle.finish, battle.unfinished(controls.selling)))
@@ -83,7 +84,8 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	var prep: bool = battle.state == "prep"
 	var n: int = battle.waves.size()
-	_info.text = "골드 %d (세금 +%d) · 웨이브 %d/%d · %s · 마을 Lv%d" % [battle.gold, battle.tax(), mini(battle.wave_index + 1, n), n, STATES[battle.state], battle.village_level]
+	var round_no: int = battle.round_index + 1
+	_info.text = "골드 %d (세금 +%d) · 라운드 %d/%d · 웨이브 %d/%d · %s · 마을 Lv%d" % [battle.gold, battle.tax(), round_no, battle.rounds.size(), mini(battle.wave_index + 1, n), n, STATES[battle.state], battle.village_level]
 	for kind in _place:
 		_place[kind].disabled = not (prep or (battle.state == "battle" and kind in battle.STRUCTURE_KINDS))
 		# 마을 레벨이 모자란 시설(S99)과, 준비 단계에 시설이 없어 못 사는 용병(S50)
@@ -97,8 +99,9 @@ func _process(_delta: float) -> void:
 	_hint.text = "%s 놓기: 좌클릭 · 끝내기: 우클릭·ESC" % NAMES.get(controls.placing, "")
 	if controls.moving:
 		_hint.text = "대포 옮길 칸: 좌클릭 · 끝내기: 우클릭·ESC"
-	_result.visible = battle.state in ["won", "lost"]
-	_result_label.text = "승리!" if battle.state == "won" else "패배"
+	_result.visible = battle.state in ["cleared", "won", "lost"]
+	_result_label.text = {"cleared": "%d라운드 승리" % round_no, "won": "도전 성공!", "lost": "%d라운드 패배 — 도전 끝" % round_no}.get(battle.state, "")
+	_next.text = "다음 라운드 (Enter)" if battle.state == "cleared" else "새 도전 (Enter)"
 	if not prep or controls.placing != "":  # 전투가 시작되거나 놓기 모드에 들어가면 판매 팝업을 닫는다(I58)
 		controls.selling = []
 	_sell.visible = not controls.selling.is_empty()
@@ -121,7 +124,7 @@ func _process(_delta: float) -> void:
 		controls.fort = null
 	var k = controls.fort
 	var live: bool = k != null and k.alive
-	_gate.visible = live and k.kind == "gate"
+	_gate.visible = live and k.kind == "gate" and battle.state in ["prep", "battle"]
 	if _gate.visible:
 		_gate.text = "닫기" if k.open else "열기"
 	# 공병이 올리는 중이면 숨긴다. 그만둔 업그레이드는 «계속»으로 골드 없이 이어 올린다(I68)
@@ -156,6 +159,13 @@ func _button(parent: Control, text: String, on_press: Callable) -> Button:
 func _start_battle() -> void:
 	controls.placing = ""
 	battle.start_battle()
+
+# 결과 창의 버튼(S117): 라운드 사이면 다음 라운드로, 도전이 끝났으면 새 도전을 시작한다. main이 Enter로도 부른다(I94)
+func proceed() -> void:
+	if battle.state == "cleared":
+		battle.next_round()
+	elif battle.state in ["won", "lost"]:
+		_restart()
 
 # 고른 유닛·놓기 모드도 비운다. 재시작 뒤의 영웅은 새 객체다
 func _restart() -> void:

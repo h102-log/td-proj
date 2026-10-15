@@ -8,6 +8,7 @@ extends RefCounted
 # 1 방벽 · 2 타워 · - 마법 타워(S110) · 3 용병 · 4 병영 · 5 공병 · 6 작업장 · 7 궁수(I71) · 8 대포(S92) · 9 사격장(S98) · 0 집(S103): 놓기 모드. 그동안 좌클릭은 그 칸에 짓거나 놓고, 우클릭·ESC는 모드를 끝낸다(사용자 2026-10-12)
 # 전투 단계엔 구조물만 짓는다(공병이 가서 짓는다, S22). 단계가 바뀌면 모드가 끝난다
 # 옮길 대포(moving)가 있으면 다음 좌클릭한 칸으로 옮기고(S91), 우클릭·ESC·단계 변경은 옮기기를 그만둔다
+# 결과 창(라운드 사이·도전 끝)이 떠 있는 동안에는 아무 입력도 받지 않는다(S117)
 
 # ponytail: 맵 px 기준이라 줌에 따라 화면에서 느끼는 거리가 달라진다. 거슬리면 화면 px로 잰다
 const CLICK_SLOP := 4.0  # 이보다 덜 끌고 떼면 클릭이다(맵 px)
@@ -39,6 +40,10 @@ func handle(event: InputEvent) -> void:
 		placing = ""
 		moving = null
 		_state = battle.state
+	if battle.state not in ["prep", "battle"]:
+		_press = null
+		drag_rect = Rect2()
+		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
 			KEY_Q:
