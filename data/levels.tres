@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="LevelDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/level_def.gd" id="1_level"]
+
+[resource]
+script = ExtResource("1_level")
+steps = [20, 30, 50, 70]
+growth = 0.1
+buff_level = 3
+aura_level = 5

@@ -10,6 +10,7 @@ var MERC_KINDS := _kinds("res://data/mercs/")
 var STRUCTURE_KINDS := _kinds("res://data/structures/")
 var HERO_KINDS := _kinds("res://data/heroes/")  # 효과의 뜻은 src/data/hero_def.gd 머리 주석(S97, I95)
 var HIRE = load("res://data/hire.tres")  # 영입소 수치(S123, I103)
+var LEVELS = load("res://data/levels.tres")  # 영웅 레벨 수치(S126, I111)
 const VILLAGE_UP := [60]  # 마을 레벨 n→n+1 비용(S99). 길이+1이 최대 레벨이다. 임시값(Claude 예시, 사용자 2026-10-13 수락)
 const MERC_CAP := 10  # 배치 상한 기본값(S25). 임시값(사용자 2026-10-13), 스테이지의 merc_cap이 덮어쓴다
 const HOUSE_CAP := 6  # 마을에 지을 수 있는 집 수(S101). 임시값(사용자 2026-10-13)
@@ -78,6 +79,7 @@ class Enemy:
 	var attack_gap: float  # 공격 간격(초)
 	var sight: float  # 인식 범위(칸)
 	var reward := 0  # 처치하면 얻는 골드(I15)
+	var xp := 0  # 처치되면 그때 살아 있는 출전 영웅이 저마다 받는 경험치(S125)
 	var armor := 0.0  # 받는 피해를 이만큼 줄인다(S108)
 	var flying := false  # 경로 층을 무시하고 곧장 난다(S109, I79)
 	var climb := 0.0  # 성곽 성벽을 오르는 시간(초). 0이면 오르지 않는다(S107, I76)
@@ -132,6 +134,8 @@ class Unit:
 	var is_hero := false
 	var home: Vector2i  # 쓰러진 영웅이 돌아오는 시작 칸(S26, I102)
 	var grade := 0
+	var level := 1  # 영웅 레벨(S60, S126). 경험치로 정해진다(Battle._set_xp)
+	var xp := 0
 	var skill_damage := 0.0
 	var skill_stun := 0.0
 	var skill_heal := 0.0
@@ -291,11 +295,13 @@ func restart() -> void:
 		castle[c] = Block.new(c, "gate", fort.gate_hp)
 	heroes.clear()
 	# 영웅 목록(I102). 목록이 없고 hero_start만 있으면 기사 하나다. 이 영웅들은 보유·출전한 채 시작한다(평가용 스테이지)
+	# 레벨(level)을 정하지 않으면 최대 레벨이다(I115)
 	var team: Array = stage.get("heroes", [] if stage.get("hero_start") == null else [{"kind": "knight", "cell": stage.hero_start}])
 	for t in team:
 		var h := Unit.new(t.kind, t.cell, HERO_KINDS[t.kind])
 		h.is_hero = true
 		h.home = t.cell
+		_set_xp(h, LEVELS.steps.slice(0, t.get("level", LEVELS.steps.size() + 1) - 1).reduce(func(s, x): return s + x, 0))
 		heroes.append(h)
 		units.append(h)
 	hero = heroes[0] if heroes else null
@@ -456,6 +462,36 @@ func _deploy() -> void:
 	heroes.assign(team)
 	hero = heroes[0] if heroes else null
 
+# 영웅 경험치를 n만큼 더한다(S125). 레벨·최대 체력·공격력은 _set_xp가 맞춘다
+func add_xp(h: Unit, n: int) -> void:
+	_set_xp(h, h.xp + n)
+
+# 경험치를 정하고(최대 레벨의 누적 경험치가 상한, I113) 레벨을 S126의 누적 경험치로 맞춘다.
+# 최대 체력·공격력은 Lv1 값 × (1 + growth × (레벨 − 1))이다(I112). 체력은 최대 체력이 오른 만큼 오르고, 줄면 새 최대 체력을 넘지 않는다(I116)
+func _set_xp(h: Unit, xp: int) -> void:
+	h.xp = mini(xp, LEVELS.steps.reduce(func(s, x): return s + x, 0))
+	h.level = 1
+	var need := 0
+	for step in LEVELS.steps:
+		need += step
+		if h.xp >= need:
+			h.level += 1
+	var base: Dictionary = HERO_KINDS[h.kind]
+	var mult: float = 1.0 + LEVELS.growth * (h.level - 1)
+	var max_hp: float = base.hp * mult
+	if h.alive:
+		h.hp = minf(h.hp + maxf(max_hp - h.max_hp, 0.0), max_hp)
+	h.max_hp = max_hp
+	h.damage = base.damage * mult
+
+# 라운드 사이에만, 주는 영웅의 경험치를 전부 받는 영웅에게 옮긴다(S127, U14). 주는 영웅은 Lv1로 돌아가 보유 목록에 남는다. 비용은 없다
+func transfer(from: Unit, to: Unit) -> bool:
+	if state != "cleared" or from == to or from not in roster or to not in roster:
+		return false
+	_set_xp(to, to.xp + from.xp)
+	_set_xp(from, 0)
+	return true
+
 func spawn_enemy(kind: String, cell: Vector2i, overrides := {}):
 	var e := Enemy.new(kind, cell, ENEMY_KINDS[kind].merged(overrides, true))
 	e.goal = base.cell
@@ -586,7 +622,7 @@ func use_skill(h = null) -> void:
 # 용병 공격력은 영웅에게 걸리지 않는다(I99)
 func use_buff(h = null) -> void:
 	h = h if h else hero
-	if not h or not h.alive or not h.buff_ready():
+	if not h or not h.alive or not h.buff_ready() or h.level < LEVELS.buff_level:  # W는 정해진 레벨에 열린다(S76, I114)
 		return
 	h.buff_cooldown = h.buff_gap
 	for u in units:
@@ -617,7 +653,7 @@ func _fortified(pos: Vector2, r: float) -> Array:
 func _aura(key: String, pos: Vector2) -> float:
 	var best := 0.0
 	for h in heroes:
-		if h.alive and pos.distance_to(h.pos) <= h.aura_radius:
+		if h.alive and h.level >= LEVELS.aura_level and pos.distance_to(h.pos) <= h.aura_radius:  # 오라는 정해진 레벨에 열린다(S76, I114)
 			best = maxf(best, h.get(key))
 	return best
 
@@ -1015,6 +1051,9 @@ func damage(target, amount: float, pierce := false) -> void:
 	elif target is Enemy:
 		enemies.erase(target)
 		gold += target.reward
+		for h in heroes:  # 누가 처치했든 그때 살아 있는 출전 영웅이 모두 받는다(S125)
+			if h.alive:
+				add_xp(h, target.xp)
 	elif target is Unit:  # 전장에서 빠진다. 영웅은 다음 준비 단계에 돌아온다(step, S26). 공병이 하던 일은 그 상태로 남는다(S24)
 		if target.job:
 			_release(target.job)
