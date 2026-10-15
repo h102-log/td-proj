@@ -58,6 +58,9 @@ func _draw() -> void:
 			draw_line(Vector2(s.cell) * CELL + Vector2(CELL, CELL) / 2, s.target.pos * CELL + Vector2(CELL, CELL) / 2, Color.YELLOW, 1.0)
 			if s.splash > 0.0:
 				draw_arc(_center(s.target.pos), CELL * s.splash, 0.0, TAU, 24, Color.YELLOW, 1.0)
+	var h = battle.hero
+	if h and h.alive and h.aura_radius > 0.0:  # 오라 반경(S113): 살아 있는 영웅 둘레에 늘 엷게, 유닛 아래에
+		draw_arc(_center(h.pos), CELL * h.aura_radius, 0.0, TAU, 48, Color(0.6, 0.8, 1.0, 0.35), 1.0)
 	for u in battle.units:
 		var at: Vector2 = u.pos * CELL + Vector2(CELL, CELL) / 2
 		draw_circle(at, CELL * u.radius, COLORS.hero if u == battle.hero else COLORS.get(u.kind, COLORS.merc))
@@ -79,7 +82,6 @@ func _draw() -> void:
 		if e.target and e.cooldown > e.attack_gap - 0.1:
 			draw_line(_center(e.pos), _center(_pos_of(e.target)), Color.RED, 1.0)
 	# 스킬 범위 원(S72). ponytail: 0.3초는 임시값, 짧거나 길면 바꾼다
-	var h = battle.hero
 	if h and h.alive and h.skill_cooldown > h.skill_gap - 0.3:
 		draw_arc(_center(h.pos), CELL * h.skill_radius, 0.0, TAU, 48, Color.WHITE, 1.0)
 	if h and h.alive and h.buff_cooldown > h.buff_gap - 0.3:  # 스킬 2 범위 원(S72, I65)
