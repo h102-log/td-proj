@@ -4,9 +4,13 @@ extends CanvasLayer
 # 고른 구조물에 따라 같은 자리에 철거(S74)·이어 짓기·취소(전투 단계)와 완성(준비 단계) 버튼도 띄운다(S83). 대포면 옮기기(S91)도 띄운다.
 # 성곽 칸을 고르면 같은 자리에 성문 열기·닫기(S85)와 업그레이드(S86) 버튼을 띄운다. 거점을 고르면 마을 레벨 올리기(S100) 버튼을 띄운다.
 # 고른 것 가운데 깎인 것이 있으면 수리(S116, I90), 잔해를 고르면 복구(I89) 버튼도 같은 자리에 띄운다.
+# 영입 창(도전 시작 전 S122·라운드 사이 S117)이면 결과 창 안에 영입 칸을 띄운다: 목록 영입·리롤·출전 전환·내보내기(S54, I110).
+# 결과 창의 버튼만 키보드 포커스를 받는다. 창이 열리면 «1라운드 시작»·«다음 라운드»·«새 도전»에 포커스가 간다(I12, I110)
 
 const NAMES := {"wall": "방벽", "tower": "타워", "magic": "마법 타워", "soldier": "용병", "barracks": "병영", "engineer": "공병", "workshop": "작업장", "archer": "궁수", "cannon": "대포", "archery": "사격장", "house": "집"}
-const STATES := {"prep": "준비", "battle": "전투", "cleared": "라운드 사이", "won": "승리", "lost": "패배"}
+const STATES := {"prep": "준비", "battle": "전투", "hiring": "영입", "cleared": "라운드 사이", "won": "승리", "lost": "패배"}
+const HEROES := {"knight": "기사(근접 전열)", "bowman": "궁수(원거리)", "mason": "축성가(구조물)", "priest": "사제(회복)", "general": "장군(지휘)", "mage": "마도사(광역)"}  # 이름(역할), S97
+const GRADES := ["동", "은", "금"]  # S94
 
 var battle
 var controls
@@ -29,7 +33,13 @@ var _village: Button
 var _place := {}  # kind → 버튼
 var _result := PanelContainer.new()
 var _result_label := Label.new()
-var _next: Button  # 결과 창의 «다음 라운드»·«새 도전»
+var _next: Button  # 결과 창의 «1라운드 시작»·«다음 라운드»·«새 도전»
+var _hire := VBoxContainer.new()  # 결과 창 안의 영입 칸
+var _hire_info := Label.new()
+var _offers := []  # 목록 칸마다 영입 버튼
+var _reroll: Button
+var _members := []  # 보유 영웅마다 [출전·대기 전환 버튼, 내보내기 버튼]
+var _seen := ""  # 마지막으로 본 판 단계. 바뀌었을 때 결과 창이 떠 있으면 포커스를 준다
 
 func _init(b, c) -> void:
 	battle = b
@@ -65,7 +75,19 @@ func _ready() -> void:
 	_result.add_child(box)
 	_result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(_result_label)
-	_next = _button(box, "", proceed)
+	box.add_child(_hire)
+	_hire_info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_hire.add_child(_hire_info)
+	for i in battle.HIRE.slots:
+		_offers.append(_window_button(_hire, func(): battle.hire(i)))
+	_reroll = _window_button(_hire, func(): battle.reroll())
+	for i in battle.HIRE.cap:
+		var member := HBoxContainer.new()
+		_hire.add_child(member)
+		var toggle := _window_button(member, func(): battle.set_lineup(battle.roster[i], battle.roster[i] not in battle.lineup))
+		toggle.toggle_mode = true
+		_members.append([toggle, _window_button(member, func(): battle.dismiss(battle.roster[i]))])
+	_next = _window_button(box, proceed)
 	root.add_child(_popup)
 	_sell = _button(_popup, "", _sell_now)
 	_finish = _button(_popup, "완성", func(): _apply(battle.finish, battle.unfinished(controls.selling)))
@@ -99,9 +121,16 @@ func _process(_delta: float) -> void:
 	_hint.text = "%s 놓기: 좌클릭 · 끝내기: 우클릭·ESC" % NAMES.get(controls.placing, "")
 	if controls.moving:
 		_hint.text = "대포 옮길 칸: 좌클릭 · 끝내기: 우클릭·ESC"
-	_result.visible = battle.state in ["cleared", "won", "lost"]
-	_result_label.text = {"cleared": "%d라운드 승리" % round_no, "won": "도전 성공!", "lost": "%d라운드 패배 — 도전 끝" % round_no}.get(battle.state, "")
-	_next.text = "다음 라운드 (Enter)" if battle.state == "cleared" else "새 도전 (Enter)"
+	_result.visible = battle.state in ["hiring", "cleared", "won", "lost"]
+	_result_label.text = {"hiring": "도전 시작 — 영웅 영입", "cleared": "%d라운드 승리" % round_no, "won": "도전 성공!", "lost": "%d라운드 패배 — 도전 끝" % round_no}.get(battle.state, "")
+	_next.text = {"hiring": "1라운드 시작 (Enter)", "cleared": "다음 라운드 (Enter)"}.get(battle.state, "새 도전 (Enter)")
+	if battle.state != _seen:
+		_seen = battle.state
+		if _result.visible:
+			_next.grab_focus()
+	_hire.visible = battle.hiring_open()
+	if _hire.visible:
+		_show_hire()
 	if not prep or controls.placing != "":  # 전투가 시작되거나 놓기 모드에 들어가면 판매 팝업을 닫는다(I58)
 		controls.selling = []
 	_sell.visible = not controls.selling.is_empty()
@@ -160,16 +189,49 @@ func _start_battle() -> void:
 	controls.placing = ""
 	battle.start_battle()
 
-# 결과 창의 버튼(S117): 라운드 사이면 다음 라운드로, 도전이 끝났으면 새 도전을 시작한다. main이 Enter로도 부른다(I94)
+# 결과 창의 버튼(S117): 영입 창이면 1라운드나 다음 라운드로, 도전이 끝났으면 새 도전을 시작한다. main이 Enter로도 부른다(I94)
 func proceed() -> void:
-	if battle.state == "cleared":
+	if battle.hiring_open():
 		battle.next_round()
 	elif battle.state in ["won", "lost"]:
 		_restart()
 
-# 고른 유닛·놓기 모드도 비운다. 재시작 뒤의 영웅은 새 객체다
+# 결과 창 안의 버튼. 키보드 포커스를 받아 방향키로 옮기고 Enter로 누른다(I12, I110)
+func _window_button(parent: Control, on_press: Callable) -> Button:
+	var b := _button(parent, "", on_press)
+	b.focus_mode = Control.FOCUS_ALL
+	return b
+
+# 영입 칸(I110): 골드·보유·출전 수, 목록 칸마다 영웅 이름(역할)·등급·영입 비용, 리롤, 보유 영웅마다 출전·대기와 내보내기
+func _show_hire() -> void:
+	var hire = battle.HIRE
+	_hire_info.text = "골드 %d · 보유 %d/%d · 출전 %d/%d" % [battle.gold, battle.roster.size(), hire.cap, battle.lineup.size(), hire.lineup]
+	for i in _offers.size():
+		var k: String = battle.offers[i]
+		if k == "":
+			_offers[i].text = "(영입함)"
+			_offers[i].disabled = true
+			continue
+		var grade: int = battle.HERO_KINDS[k].grade
+		_offers[i].text = "%s · %s · 영입 %d골드" % [HEROES[k], GRADES[grade - 1], hire.cost[grade - 1]]
+		_offers[i].disabled = battle.gold < hire.cost[grade - 1] or battle.roster.size() >= hire.cap
+	_reroll.text = "리롤 %d골드" % hire.reroll
+	_reroll.disabled = battle.gold < hire.reroll
+	for i in _members.size():
+		var here: bool = i < battle.roster.size()
+		_members[i][0].get_parent().visible = here  # 줄째 숨긴다. 버튼만 숨기면 빈 줄이 창에 틈을 남긴다
+		if here:
+			var h = battle.roster[i]
+			var out: bool = h in battle.lineup
+			_members[i][0].text = "%s · %s · %s" % [HEROES[h.kind], GRADES[h.grade - 1], "출전" if out else "대기"]
+			_members[i][0].button_pressed = out
+			_members[i][0].disabled = not out and battle.lineup.size() >= hire.lineup
+			_members[i][1].text = "내보내기"
+
+# 고른 유닛·놓기 모드도 비운다. 재시작 뒤의 영웅은 새 객체다. 새 도전도 영입 창에서 시작한다(S122)
 func _restart() -> void:
 	battle.restart()
+	battle.begin_hiring()
 	controls.selected = []
 	controls.selling = []
 	controls.placing = ""

@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="HireDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/hire_def.gd" id="1_hire"]
+
+[resource]
+script = ExtResource("1_hire")
+slots = 3
+odds = [0.6, 0.3, 0.1]
+cost = [30, 60, 100]
+reroll = 10
+cap = 4
+lineup = 2

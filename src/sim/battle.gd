@@ -9,6 +9,7 @@ var ENEMY_KINDS := _kinds("res://data/enemies/")
 var MERC_KINDS := _kinds("res://data/mercs/")
 var STRUCTURE_KINDS := _kinds("res://data/structures/")
 var HERO_KINDS := _kinds("res://data/heroes/")  # 효과의 뜻은 src/data/hero_def.gd 머리 주석(S97, I95)
+var HIRE = load("res://data/hire.tres")  # 영입소 수치(S123, I103)
 const VILLAGE_UP := [60]  # 마을 레벨 n→n+1 비용(S99). 길이+1이 최대 레벨이다. 임시값(Claude 예시, 사용자 2026-10-13 수락)
 const MERC_CAP := 10  # 배치 상한 기본값(S25). 임시값(사용자 2026-10-13), 스테이지의 merc_cap이 덮어쓴다
 const HOUSE_CAP := 6  # 마을에 지을 수 있는 집 수(S101). 임시값(사용자 2026-10-13)
@@ -208,10 +209,13 @@ var structures := {}  # Vector2i → Block
 var rubble := {}  # Vector2i → 부서진 성곽 칸 Block(I88). 지나갈 수 있고, 복구하면 castle로 돌아간다(I89)
 var enemies := []
 var units := []  # 살아 있는 영웅·용병
-var heroes := []  # 영웅(Unit)들. 쓰러진 영웅도 들어 있다(I102)
-var hero  # 첫 영웅(S119). 영웅이 없으면 null
+var heroes := []  # 전장에 나온 출전 영웅(Unit)들, 보유 순서(I108). 쓰러진 영웅도 들어 있다(I102)
+var hero  # 첫 출전 영웅(S119, I108). 영웅이 없으면 null
+var roster := []  # 보유 영웅, 영입 순서(S58, S59). 새 도전이면 비운다(S64)
+var lineup := []  # 다음 라운드에 출전할 영웅(S59, I106). 영입 창에서 바꾸고 다음 라운드로 넘어갈 때 전장에 반영한다(S124)
+var offers := []  # 영입소 목록: 칸마다 영웅 종류, 영입한 칸은 ""(I103, I104)
 var revive := true  # 쓰러진 영웅이 다음 준비 단계에 돌아온다(S27). 기본값 켜짐(I28)
-var state := "prep"  # "prep" | "battle" | "cleared"(라운드 사이, S117) | "won"(도전 성공) | "lost"
+var state := "prep"  # "prep" | "battle" | "hiring"(도전 시작 전 영입 창, S122) | "cleared"(라운드 사이, S117) | "won"(도전 성공) | "lost"
 var round_index := 0
 var wave_index := 0
 var gold := 0
@@ -226,6 +230,7 @@ var _queue := []      # 이번 웨이브에서 아직 안 나온 적 종류
 var _spawn_timer := 0.0
 var _spawned := 0     # 이번 웨이브에서 나온 적 수(출현 지점 돌아가며 쓰기)
 var _stage: Dictionary  # 재시작할 때 다시 읽는다
+var _rng := RandomNumberGenerator.new()  # 영입소 목록을 뽑는다. 스테이지에 seed가 있으면 그 씨앗이다(평가용)
 
 # dir의 Resource 파일마다 «파일 이름 → 스크립트 변수 사전». list_directory는 내보낸 빌드의 .remap도 원래 이름으로 준다
 static func _kinds(dir: String) -> Dictionary:
@@ -285,7 +290,7 @@ func restart() -> void:
 	for c in fort.get("gates", []):
 		castle[c] = Block.new(c, "gate", fort.gate_hp)
 	heroes.clear()
-	# 영웅 목록(I102). 목록이 없고 hero_start만 있으면 기사 하나다(S118)
+	# 영웅 목록(I102). 목록이 없고 hero_start만 있으면 기사 하나다. 이 영웅들은 보유·출전한 채 시작한다(평가용 스테이지)
 	var team: Array = stage.get("heroes", [] if stage.get("hero_start") == null else [{"kind": "knight", "cell": stage.hero_start}])
 	for t in team:
 		var h := Unit.new(t.kind, t.cell, HERO_KINDS[t.kind])
@@ -294,6 +299,13 @@ func restart() -> void:
 		heroes.append(h)
 		units.append(h)
 	hero = heroes[0] if heroes else null
+	roster = heroes.duplicate()
+	lineup = heroes.duplicate()
+	if stage.has("seed"):
+		_rng.seed = stage.seed
+	else:
+		_rng.randomize()
+	_draw_offers()  # 도전을 시작할 때 무료로 뽑는다(I104)
 
 func step(dt: float) -> void:
 	if state == "battle":
@@ -316,6 +328,7 @@ func step(dt: float) -> void:
 			state = "prep"
 		elif round_index + 1 < rounds.size():
 			state = "cleared"  # 라운드 사이(S117). 다음 라운드는 next_round로 간다
+			_draw_offers()  # 목록은 라운드를 이길 때 무료로 새로 뽑는다(I104)
 		else:
 			state = "won"  # 마지막 라운드를 이겨 도전에 성공했다(I92)
 		if state != "won":  # 준비 단계나 라운드 사이로 넘어갈 때 걷는다(I46)
@@ -329,7 +342,7 @@ func step(dt: float) -> void:
 	for s in structures.values() + castle.values():  # 축성가 W의 남은 시간(S120)
 		s.ward_left -= dt
 
-# 쓰러진 영웅은 자기 시작 칸에 체력이 가득 찬 채 돌아온다(S26, I27, I102)
+# 영웅을 자기 시작 칸에 체력이 가득 찬 채 세운다: 쓰러졌다 돌아올 때(S26, I27, I102)와 새로 출전할 때(S124)
 # 공격·스킬 대기는 쓰러질 때 값을 이어 간다(S67)
 func _return_hero(h: Unit) -> void:
 	h.alive = true
@@ -350,20 +363,98 @@ func start_battle() -> void:
 	_spawn_timer = 0.0
 	_spawned = 0
 
-# 라운드 사이(S117)에서 다음 라운드의 첫 준비 단계로 간다. 라운드 사이가 아니면 거부한다
-# 구조물·성곽·마을·용병·골드와 살아 있는 영웅은 그대로 이어진다(S63, S79, S61, I93)
+# 영입 창(S122)이나 라운드 사이(S117)에서 1라운드나 다음 라운드의 첫 준비 단계로 간다. 그 밖에서는 거부한다
+# 출전 목록을 전장에 반영하고(S124), 구조물·성곽·마을·용병·골드와 계속 출전하는 영웅은 그대로 이어진다(S63, S79, S61, I93)
 # 쓰러진 영웅은 부활 설정과 상관없이 시작 지점으로 돌아온다(I93)
 func next_round() -> bool:
-	if state != "cleared":
+	if not hiring_open():
 		return false
-	round_index += 1
-	waves = rounds[round_index]
-	wave_index = 0
+	if state == "cleared":
+		round_index += 1
+		waves = rounds[round_index]
+		wave_index = 0
 	state = "prep"
+	_deploy()
 	for h in heroes:
 		if not h.alive:
 			_return_hero(h)
 	return true
+
+# [동작] 도전 시작 전 영입 창(S122)을 연다. main·HUD가 새 도전(restart) 직후에 부른다
+# [이유] restart()가 곧바로 열지 않는 것은 동결된 평가(EV36·EV80·EV165·EV170)가
+#        «restart 직후 = 1라운드 웨이브 1의 준비 단계»에 기대서다
+func begin_hiring() -> void:
+	state = "hiring"
+
+# 영입 창(도전 시작 전·라운드 사이)이 떠 있다. 영입·리롤·내보내기·출전 선택은 이때만 한다(I104)
+func hiring_open() -> bool:
+	return state in ["hiring", "cleared"]
+
+# 목록을 모두 새로 뽑는다(I103): 칸마다 등급을 등장 확률로 고르고, 그 등급의 영웅 가운데 하나를 같은 확률로 고른다
+func _draw_offers() -> void:
+	offers.clear()
+	for i in HIRE.slots:
+		var grade: int = _rng.rand_weighted(PackedFloat32Array(HIRE.odds)) + 1
+		var kinds := HERO_KINDS.keys().filter(func(k): return HERO_KINDS[k].grade == grade)
+		offers.append(kinds[_rng.randi_range(0, kinds.size() - 1)])
+
+# 목록의 i번째 영웅을 영입한다(S54). 빈 칸이거나, 골드가 모자라거나(I104), 보유 상한(S123)이면 거부한다
+# 출전 목록이 차지 않았으면 바로 출전 목록에 넣는다(I106)
+func hire(i: int):
+	if not hiring_open() or offers[i] == "" or roster.size() >= HIRE.cap:
+		return null
+	var stats: Dictionary = HERO_KINDS[offers[i]]
+	var cost: int = HIRE.cost[stats.grade - 1]
+	if gold < cost:
+		return null
+	gold -= cost
+	var h := Unit.new(offers[i], Vector2i.ZERO, stats)
+	h.is_hero = true
+	offers[i] = ""
+	roster.append(h)
+	if lineup.size() < HIRE.lineup:
+		lineup.append(h)
+	return h
+
+# 리롤 비용(S123)을 내고 목록을 모두 새로 뽑는다(S57, I104). 골드가 모자라면 거부한다
+func reroll() -> bool:
+	if not hiring_open() or gold < HIRE.reroll:
+		return false
+	gold -= HIRE.reroll
+	_draw_offers()
+	return true
+
+# 보유 영웅을 내보낸다(I105). 환불은 없다. 전장에 있으면 다음 라운드로 넘어갈 때 사라진다(S124)
+func dismiss(h) -> void:
+	if hiring_open():
+		roster.erase(h)
+		lineup.erase(h)
+
+# 보유 영웅을 출전 목록에 넣거나 뺀다(S59). 출전 인원(S123)이 차 있으면 넣기를 거부한다
+func set_lineup(h, on: bool) -> bool:
+	if not hiring_open() or h not in roster or (on and h not in lineup and lineup.size() >= HIRE.lineup):
+		return false
+	if not on:
+		lineup.erase(h)
+	elif h not in lineup:
+		lineup.append(h)
+	return true
+
+# 출전 목록을 전장에 반영한다(S124). 빠진 영웅은 전장에서 사라지고, 계속 출전하는 영웅은 자리·체력이 그대로다.
+# 새로 출전한 영웅은 다른 출전 영웅이 시작 칸으로 쓰지 않는 첫 출전 칸에 최대 체력으로 선다(I107)
+func _deploy() -> void:
+	for h in heroes:
+		if h not in lineup:
+			units.erase(h)
+	var team := roster.filter(func(h): return h in lineup)  # 출전 순서는 보유 순서다(I108)
+	var homes := team.filter(func(h): return h in heroes).map(func(h): return h.home)
+	for h in team:
+		if h not in heroes:
+			h.home = _stage.hero_cells.filter(func(c): return c not in homes)[0]
+			homes.append(h.home)
+			_return_hero(h)
+	heroes.assign(team)
+	hero = heroes[0] if heroes else null
 
 func spawn_enemy(kind: String, cell: Vector2i, overrides := {}):
 	var e := Enemy.new(kind, cell, ENEMY_KINDS[kind].merged(overrides, true))
@@ -569,6 +660,8 @@ func build(kind: String, cell: Vector2i, overrides := {}):
 # 성곽 칸에는 대포만 성벽 칸(성문 제외)에 짓는다(S43, I72)
 func _buildable(kind: String, cell: Vector2i) -> bool:
 	if not grid.is_in_boundsv(cell) or structures.has(cell) or cell == base.cell or rubble.has(cell):  # 잔해 칸에는 짓지 못한다(I88)
+		return false
+	if cell in _stage.get("hero_cells", []):  # 출전 칸에는 짓지 못한다(I107). 영웅이 서거나 돌아올 칸이다
 		return false
 	if castle.has(cell) and (kind != "cannon" or castle[cell].kind != "castle_wall"):
 		return false
