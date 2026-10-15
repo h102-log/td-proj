@@ -5,10 +5,11 @@ extends RefCounted
 # 준비 단계의 좌클릭·좌드래그는 판매 후보도 정한다(S70, I57). 좌클릭한 용병은 고른 상태도 된다
 # 전투 단계의 좌클릭·좌드래그는 철거·취소·이어 짓기 후보(picked)를 정한다(S74, S83)
 # Q: 영웅 스킬 · W: 스킬 2(S84) (I10). 고른 영웅이, 없으면 첫 영웅이 쓴다(S119) · A: 고른 용병의 이동 방식 전환(S35) · H: 홀드 전환(S36) (A·H는 사용자 2026-10-12) · V: 체력바 표시 전환(S73)
+# F1·F2: 출전 영웅 1·2를 고른다(I108)
 # 1 방벽 · 2 타워 · - 마법 타워(S110) · 3 용병 · 4 병영 · 5 공병 · 6 작업장 · 7 궁수(I71) · 8 대포(S92) · 9 사격장(S98) · 0 집(S103): 놓기 모드. 그동안 좌클릭은 그 칸에 짓거나 놓고, 우클릭·ESC는 모드를 끝낸다(사용자 2026-10-12)
 # 전투 단계엔 구조물만 짓는다(공병이 가서 짓는다, S22). 단계가 바뀌면 모드가 끝난다
 # 옮길 대포(moving)가 있으면 다음 좌클릭한 칸으로 옮기고(S91), 우클릭·ESC·단계 변경은 옮기기를 그만둔다
-# 결과 창(라운드 사이·도전 끝)이 떠 있는 동안에는 아무 입력도 받지 않는다(S117)
+# 결과 창(라운드 사이·도전 끝)과 도전 시작 전 영입 창이 떠 있는 동안에는 아무 입력도 받지 않는다(S117, I109)
 
 # ponytail: 맵 px 기준이라 줌에 따라 화면에서 느끼는 거리가 달라진다. 거슬리면 화면 px로 잰다
 const CLICK_SLOP := 4.0  # 이보다 덜 끌고 떼면 클릭이다(맵 px)
@@ -56,6 +57,10 @@ func handle(event: InputEvent) -> void:
 				battle.set_hold(selected, not selected.all(func(u): return u.hold))
 			KEY_V:
 				show_hp = not show_hp
+			KEY_F1, KEY_F2:  # 쓰러진 영웅은 고르지 않는다. 우클릭이 집결 지점 대신 영웅을 옮기게 시설 선택을 푼다
+				var i: int = event.keycode - KEY_F1
+				selected = battle.heroes.slice(i, i + 1).filter(func(h): return h.alive)
+				facility = null
 			KEY_ESCAPE:
 				placing = ""
 				moving = null
@@ -120,10 +125,10 @@ func _release(rect: Rect2, at: Vector2) -> void:
 		selling = (selected + built) if prep else []
 		picked = [] if prep else built
 
-# Q·W를 쓸 영웅: 고른 영웅. 고른 영웅이 없으면 null이라 첫 영웅이 쓴다(S119)
+# Q·W를 쓸 영웅: 고른 출전 영웅. 없으면 null이라 첫 출전 영웅이 쓴다(S119). 출전에서 빠진 영웅은 고르지 않은 것으로 본다(I108)
 func _hero():
 	for u in selected:
-		if u.is_hero:
+		if u.is_hero and u in battle.heroes:
 			return u
 	return null
 
