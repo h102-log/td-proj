@@ -11,9 +11,12 @@ var STRUCTURE_KINDS := _kinds("res://data/structures/")
 var HERO_KINDS := _kinds("res://data/heroes/")  # 효과의 뜻은 src/data/hero_def.gd 머리 주석(S97, I95)
 var HIRE = load("res://data/hire.tres")  # 영입소 수치(S123, I103)
 var LEVELS = load("res://data/levels.tres")  # 영웅 레벨 수치(S126, I111)
+var QUEST_KINDS := _kinds("res://data/quests/")  # 미션·의뢰 정의(S77, I118). 칸의 뜻은 src/data/quest_def.gd 머리 주석
 const VILLAGE_UP := [60]  # 마을 레벨 n→n+1 비용(S99). 길이+1이 최대 레벨이다. 임시값(Claude 예시, 사용자 2026-10-13 수락)
 const MERC_CAP := 10  # 배치 상한 기본값(S25). 임시값(사용자 2026-10-13), 스테이지의 merc_cap이 덮어쓴다
 const HOUSE_CAP := 6  # 마을에 지을 수 있는 집 수(S101). 임시값(사용자 2026-10-13)
+const QUEST_OFFERS := 2  # 라운드 사이에 보이는 의뢰 수(I121). 임시값(Claude 예시)
+const TALLY_KEYS := ["base_hit", "castle_lost", "structure_lost", "merc_lost", "hero_down", "merc_bought", "built", "battle_time"]  # 라운드 집계의 키(I119)
 const SPAWN_GAP := 1.0  # 웨이브 안에서 적이 나오는 간격(초)
 const REACH := 1.0      # 적이 막힌 칸·거점·유닛을 칠 수 있는 거리(중심 사이). 옆 칸 중심까지가 1이다
 const UNIT_WALL_K := 1e6  # 유닛 경로의 막힌 칸 비용 배율. 돌아갈 길이 있으면 막힌 칸(닫힌 성문 포함, I42)을 지나지 않는다
@@ -218,6 +221,12 @@ var hero  # 첫 출전 영웅(S119, I108). 영웅이 없으면 null
 var roster := []  # 보유 영웅, 영입 순서(S58, S59). 새 도전이면 비운다(S64)
 var lineup := []  # 다음 라운드에 출전할 영웅(S59, I106). 영입 창에서 바꾸고 다음 라운드로 넘어갈 때 전장에 반영한다(S124)
 var offers := []  # 영입소 목록: 칸마다 영웅 종류, 영입한 칸은 ""(I103, I104)
+var quests := []  # 이 도전에서 뜰 수 있는 미션·의뢰 이름(I118). 스테이지의 quests가 정한다. 비어 있으면 미션·의뢰가 없다
+var mission := ""  # 지금 라운드의 미션(S77, I120). 없으면 ""
+var commission := ""  # 수락한 의뢰(S77, I121). 다음 라운드 하나에 걸린다. 없으면 ""
+var commission_offers := []  # 라운드 사이에 고를 수 있는 의뢰 이름(I121)
+var settled := []  # 지난 라운드의 미션·의뢰 판정 [이름, 달성 여부](I120). 결과 창이 보인다(I122)
+var tally := {}  # 라운드 집계(I119): TALLY_KEYS → 수. 라운드가 시작될 때 0이 된다
 var revive := true  # 쓰러진 영웅이 다음 준비 단계에 돌아온다(S27). 기본값 켜짐(I28)
 var state := "prep"  # "prep" | "battle" | "hiring"(도전 시작 전 영입 창, S122) | "cleared"(라운드 사이, S117) | "won"(도전 성공) | "lost"
 var round_index := 0
@@ -312,10 +321,20 @@ func restart() -> void:
 	else:
 		_rng.randomize()
 	_draw_offers()  # 도전을 시작할 때 무료로 뽑는다(I104)
+	var q = stage.get("quests", [])  # 미션·의뢰(I118): true면 data/quests의 모든 것, 배열이면 그 이름들만(평가용). 없으면 뜨지 않는다
+	quests = QUEST_KINDS.keys() if q is bool and q else (q.duplicate() if q is Array else [])
+	quests.sort()
+	mission = ""
+	commission = ""
+	commission_offers.clear()
+	settled.clear()
+	_reset_tally()
+	_draw_mission()  # 1라운드의 미션(I120)
 
 func step(dt: float) -> void:
 	if state == "battle":
 		_spawn_wave(dt)
+		tally.battle_time += dt  # 라운드 집계(I119)
 	if _repath:
 		_repath = false
 		for e in enemies:
@@ -337,6 +356,10 @@ func step(dt: float) -> void:
 			_draw_offers()  # 목록은 라운드를 이길 때 무료로 새로 뽑는다(I104)
 		else:
 			state = "won"  # 마지막 라운드를 이겨 도전에 성공했다(I92)
+		if state != "prep":  # 라운드를 이겼다: 미션과 수락한 의뢰를 판정해 보상을 준다(S77, I120). 라운드 사이에는 새 의뢰 목록을 보인다(I121)
+			_settle_quests()
+			if state == "cleared":
+				_draw_commissions()
 		if state != "won":  # 준비 단계나 라운드 사이로 넘어갈 때 걷는다(I46)
 			gold += tax()
 		for s in structures.values() + castle.values() + rubble.values() + [base]:  # 하던 건설·철거·업그레이드·수리·복구는 그 상태로 멈춘다(I19, I68, I87)
@@ -379,6 +402,10 @@ func next_round() -> bool:
 		round_index += 1
 		waves = rounds[round_index]
 		wave_index = 0
+		commission_offers.clear()
+		settled.clear()
+		_reset_tally()  # 새 라운드의 집계와 미션(I119, I120). 수락한 의뢰는 이 라운드에 걸린다(I121)
+		_draw_mission()
 	state = "prep"
 	_deploy()
 	for h in heroes:
@@ -492,6 +519,49 @@ func transfer(from: Unit, to: Unit) -> bool:
 	_set_xp(from, 0)
 	return true
 
+# 라운드 집계(I119)를 0으로 돌린다. 도전을 시작할 때와 다음 라운드로 넘어갈 때
+func _reset_tally() -> void:
+	for k in TALLY_KEYS:
+		tally[k] = 0.0 if k == "battle_time" else 0
+
+# 이 도전의 미션 가운데 하나를 같은 확률로 뽑아 이번 라운드의 미션으로 둔다(I120). 둘 이상이면 지난 라운드의 미션은 피한다. 없으면 ""
+func _draw_mission() -> void:
+	var pool := quests.filter(func(n): return not QUEST_KINDS[n].commission)
+	if pool.size() > 1:
+		pool.erase(mission)
+	mission = pool[_rng.randi_range(0, pool.size() - 1)] if not pool.is_empty() else ""
+
+# 이 도전의 의뢰 가운데 QUEST_OFFERS개를 서로 다르게 같은 확률로 뽑아 목록에 둔다(I121). 의뢰가 그보다 적으면 있는 만큼이다
+func _draw_commissions() -> void:
+	var pool := quests.filter(func(n): return QUEST_KINDS[n].commission)
+	commission_offers.clear()
+	for i in mini(QUEST_OFFERS, pool.size()):
+		commission_offers.append(pool.pop_at(_rng.randi_range(0, pool.size() - 1)))
+
+# 라운드 사이에만, 의뢰 목록의 i번째를 수락한다(S77, I121). 수락한 의뢰를 다시 수락하면 무른다. 의뢰는 하나만 수락한다
+func accept(i: int) -> bool:
+	if state != "cleared" or i < 0 or i >= commission_offers.size():
+		return false
+	commission = "" if commission == commission_offers[i] else commission_offers[i]
+	return true
+
+# 라운드를 이긴 순간 미션과 수락한 의뢰를 판정한다(S77, I120): 조건을 채웠으면 보상 골드를 받는다(S66). 실패해도 벌칙은 없다(I54)
+# 판정은 settled에 남기고(I122), 수락한 의뢰는 다 쓴 것이라 비운다. 미션은 다음 라운드를 뽑을 때까지 둔다(_draw_mission이 피한다)
+func _settle_quests() -> void:
+	settled.clear()
+	for name in [mission, commission]:
+		if name != "":
+			var done := quest_met(name)
+			if done:
+				gold += QUEST_KINDS[name].reward
+			settled.append([name, done])
+	commission = ""
+
+# 미션·의뢰의 조건(I118)을 지금 집계가 채우나: zero의 집계가 모두 0이고, 시간 상한이 있으면 전투 시간 합이 그 이하다
+func quest_met(name: String) -> bool:
+	var q: Dictionary = QUEST_KINDS[name]
+	return q.zero.all(func(k): return tally[k] == 0) and (q.time_limit <= 0.0 or tally.battle_time <= q.time_limit)
+
 func spawn_enemy(kind: String, cell: Vector2i, overrides := {}):
 	var e := Enemy.new(kind, cell, ENEMY_KINDS[kind].merged(overrides, true))
 	e.goal = base.cell
@@ -528,6 +598,7 @@ func place_merc(kind: String, cell: Vector2i, overrides := {}):
 	var m := Unit.new(kind, cell, stats)
 	m.paid = stats.cost
 	units.append(m)
+	tally.merc_bought += 1  # 라운드 집계(I119)
 	return m
 
 # 유닛들을 그 칸으로 보낸다(S14). 맵 밖 칸이면 무시한다. 성곽 칸이면 성벽 위의 그 칸으로 간다(I69)
@@ -681,6 +752,7 @@ func build(kind: String, cell: Vector2i, overrides := {}):
 		s.set(key, stats[key])
 	s.paid = stats.cost
 	structures[cell] = s
+	tally.built += 1  # 라운드 집계(I119)
 	if engineer:
 		s.progress = 0.0
 		s.complete = false
@@ -727,6 +799,7 @@ func recruit(f, kind := ""):
 	var m := Unit.new(kind, exit, stats)
 	m.paid = stats.cost
 	units.append(m)
+	tally.merc_bought += 1  # 라운드 집계(I119)
 	_to_rally(m, f)
 	return m
 
@@ -1042,6 +1115,8 @@ func damage(target, amount: float, pierce := false) -> void:
 		amount *= 1.0 - guard
 	elif target.ward_left > 0.0:  # 축성가 W(S120): 구조물·성곽 칸만 받는다
 		amount *= 1.0 - target.ward
+	if target == base and amount > 0.0:
+		tally.base_hit += 1  # 라운드 집계(I119)
 	target.hp = maxf(target.hp - amount, 0.0)
 	if target.hp > 0.0:
 		return
@@ -1058,13 +1133,19 @@ func damage(target, amount: float, pierce := false) -> void:
 		if target.job:
 			_release(target.job)
 		units.erase(target)
+		if target.is_hero:  # 라운드 집계(I119)
+			tally.hero_down += 1
+		else:
+			tally.merc_lost += 1
 	else:  # 구조물·성곽: 칸이 비고 경로를 다시 구한다(I5)
 		_release(target)
 		_repath = true
 		if structures.get(target.cell) == target:  # 성벽 위 대포가 부서져도 성벽 칸은 남는다(S93)
 			structures.erase(target.cell)
+			tally.structure_lost += 1  # 라운드 집계(I119)
 			return
 		castle.erase(target.cell)
+		tally.castle_lost += 1  # 라운드 집계(I119)
 		rubble[target.cell] = target  # 잔해로 남아 지나갈 수 있고, 복구하면 되살아난다(I88, I89)
 		if structures.has(target.cell):  # 성벽 칸이 부서지면 그 위 대포도 부서진다(I72)
 			damage(structures[target.cell], INF)

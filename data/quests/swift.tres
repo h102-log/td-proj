@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/quest_def.gd" id="1_quest"]
+
+[resource]
+script = ExtResource("1_quest")
+commission = true
+text = "전투 시간을 모두 합쳐 120초 안에 끝낸다"
+reward = 50
+time_limit = 120.0

@@ -5,7 +5,8 @@ extends CanvasLayer
 # 성곽 칸을 고르면 같은 자리에 성문 열기·닫기(S85)와 업그레이드(S86) 버튼을 띄운다. 거점을 고르면 마을 레벨 올리기(S100) 버튼을 띄운다.
 # 고른 것 가운데 깎인 것이 있으면 수리(S116, I90), 잔해를 고르면 복구(I89) 버튼도 같은 자리에 띄운다.
 # 영입 창(도전 시작 전 S122·라운드 사이 S117)이면 결과 창 안에 영입 칸을 띄운다: 목록 영입·리롤·출전 전환·내보내기(S54, I110),
-# 보유 영웅의 레벨·경험치(I117), 라운드 사이의 경험치 이관(S127, I116).
+# 보유 영웅의 레벨·경험치(I117), 라운드 사이의 경험치 이관(S127, I116), 라운드 사이의 의뢰 목록과 수락(S77, I121).
+# 준비·전투 단계에는 윗줄 아래에 이번 라운드의 미션과 수락한 의뢰를 보이고, 결과 창에 지난 라운드의 달성·실패를 보인다(I122).
 # 결과 창의 버튼만 키보드 포커스를 받는다. 창이 열리면 «1라운드 시작»·«다음 라운드»·«새 도전»에 포커스가 간다(I12, I110)
 
 const NAMES := {"wall": "방벽", "tower": "타워", "magic": "마법 타워", "soldier": "용병", "barracks": "병영", "engineer": "공병", "workshop": "작업장", "archer": "궁수", "cannon": "대포", "archery": "사격장", "house": "집"}
@@ -41,6 +42,10 @@ var _offers := []  # 목록 칸마다 영입 버튼
 var _reroll: Button
 var _members := []  # 보유 영웅마다 [출전·대기 전환 버튼, 내보내기 버튼, 이관 버튼]
 var _giver = null  # 이관(I116)에서 먼저 고른 주는 영웅
+var _quest := Label.new()  # 준비·전투 단계의 미션·수락한 의뢰(I122)
+var _quests := VBoxContainer.new()  # 라운드 사이 영입 칸 안의 의뢰 목록(I121)
+var _quests_info := Label.new()
+var _commissions := []  # 의뢰 목록 칸마다 수락 버튼
 var _seen := ""  # 마지막으로 본 판 단계. 바뀌었을 때 결과 창이 떠 있으면 포커스를 준다
 
 func _init(b, c) -> void:
@@ -69,6 +74,7 @@ func _ready() -> void:
 		_place[kind].toggle_mode = true
 	_start = _button(row, "전투 시작 (Enter)", _start_battle)
 	col.add_child(_hint)
+	col.add_child(_quest)
 	_result.set_anchors_preset(Control.PRESET_CENTER)
 	_result.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_result.grow_vertical = Control.GROW_DIRECTION_BOTH
@@ -89,6 +95,11 @@ func _ready() -> void:
 		var toggle := _window_button(member, func(): battle.set_lineup(battle.roster[i], battle.roster[i] not in battle.lineup))
 		toggle.toggle_mode = true
 		_members.append([toggle, _window_button(member, func(): battle.dismiss(battle.roster[i])), _window_button(member, func(): _give(battle.roster[i]))])
+	_hire.add_child(_quests)
+	_quests_info.text = "의뢰 — 다음 라운드에 걸린다. 하나만 수락한다"
+	_quests.add_child(_quests_info)
+	for i in battle.QUEST_OFFERS:
+		_commissions.append(_window_button(_quests, func(): battle.accept(i)))
 	_next = _window_button(box, proceed)
 	root.add_child(_popup)
 	_sell = _button(_popup, "", _sell_now)
@@ -123,8 +134,13 @@ func _process(_delta: float) -> void:
 	_hint.text = "%s 놓기: 좌클릭 · 끝내기: 우클릭·ESC" % NAMES.get(controls.placing, "")
 	if controls.moving:
 		_hint.text = "대포 옮길 칸: 좌클릭 · 끝내기: 우클릭·ESC"
+	_quest.visible = battle.state in ["prep", "battle"] and (battle.mission != "" or battle.commission != "")
+	_quest.text = " · ".join(_quest_lines())
 	_result.visible = battle.state in ["hiring", "cleared", "won", "lost"]
 	_result_label.text = {"hiring": "도전 시작 — 영웅 영입", "cleared": "%d라운드 승리" % round_no, "won": "도전 성공!", "lost": "%d라운드 패배 — 도전 끝" % round_no}.get(battle.state, "")
+	for s in battle.settled:  # 지난 라운드의 미션·의뢰 판정(I120, I122)
+		var q: Dictionary = battle.QUEST_KINDS[s[0]]
+		_result_label.text += "\n%s «%s» %s" % ["의뢰" if q.commission else "미션", q.text, "달성 +%d골드" % q.reward if s[1] else "실패"]
 	_next.text = {"hiring": "1라운드 시작 (Enter)", "cleared": "다음 라운드 (Enter)"}.get(battle.state, "새 도전 (Enter)")
 	if battle.state != _seen:
 		_seen = battle.state
@@ -233,6 +249,23 @@ func _show_hire() -> void:
 			_members[i][2].visible = battle.state == "cleared"  # 이관은 라운드 사이에만(S127)
 			_members[i][2].text = "이관" if _giver == null else ("취소" if _giver == h else "여기로")
 			_members[i][2].disabled = _giver == null and h.xp == 0
+	_quests.visible = battle.state == "cleared" and not battle.commission_offers.is_empty()  # 의뢰는 라운드 사이에만(I121)
+	for i in _commissions.size():
+		var here: bool = i < battle.commission_offers.size()
+		_commissions[i].visible = here
+		if here:
+			var q: Dictionary = battle.QUEST_KINDS[battle.commission_offers[i]]
+			var on: bool = battle.commission == battle.commission_offers[i]
+			_commissions[i].text = "%s · +%d골드 · %s" % [q.text, q.reward, "수락함 (다시 누르면 무름)" if on else "수락"]
+
+# 미션·수락한 의뢰 줄(I122): «미션: 조건 (+N골드)»와 «의뢰: 조건 (+N골드)»
+func _quest_lines() -> Array:
+	var out := []
+	for pair in [["미션", battle.mission], ["의뢰", battle.commission]]:
+		if pair[1] != "":
+			var q: Dictionary = battle.QUEST_KINDS[pair[1]]
+			out.append("%s: %s (+%d골드)" % [pair[0], q.text, q.reward])
+	return out
 
 # 레벨과 경험치(I117): «Lv2 35/50»(다음 레벨의 누적 경험치까지). 최대 레벨이면 «Lv5 최대»
 func _level(h) -> String:
