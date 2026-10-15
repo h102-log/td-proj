@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/quest_def.gd" id="1_quest"]
+
+[resource]
+script = ExtResource("1_quest")
+text = "성곽 칸이 부서지지 않는다"
+reward = 20
+zero = Array[String](["castle_lost"])
