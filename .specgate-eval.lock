@@ -1,6 +1,6 @@
 {
-  "approvedAt": "2026-10-15T02:38:01.481Z",
-  "evalMd": "5633ee36",
+  "approvedAt": "2026-10-15T03:49:20.647Z",
+  "evalMd": "16f60f0b",
   "tests": {
     "tests/eval/conftest.py": "b195cc2b",
     "tests/eval/gd/aura.gd": "07caa7f6",
@@ -33,6 +33,8 @@
     "tests/eval/gd/pathing.gd.uid": "1e4fe822",
     "tests/eval/gd/production.gd": "5696dd04",
     "tests/eval/gd/production.gd.uid": "c88b9b5e",
+    "tests/eval/gd/repair.gd": "ccacf5b7",
+    "tests/eval/gd/repair.gd.uid": "722b125d",
     "tests/eval/gd/runner.gd": "08fc4267",
     "tests/eval/gd/runner.gd.uid": "729df9cb",
     "tests/eval/gd/sell.gd": "807499f8",
@@ -61,6 +63,7 @@
     "tests/eval/test_merc.py": "45389b79",
     "tests/eval/test_pathing.py": "8d9d3f69",
     "tests/eval/test_production.py": "69098c5e",
+    "tests/eval/test_repair.py": "0d128975",
     "tests/eval/test_sell.py": "ade7595a",
     "tests/eval/test_show.py": "8d919ae1",
     "tests/eval/test_tower.py": "783a3ed2",
@@ -177,6 +180,13 @@
     "S97": "ca3c9e53",
     "S96": "9e33e670",
     "I83": "5d5138e5",
-    "I82": "e4798767"
+    "I82": "e4798767",
+    "S80": "d8392fc5",
+    "S114": "044983f9",
+    "I86": "232b9f45",
+    "I88": "f7825af9",
+    "I89": "4e96ada1",
+    "S115": "4f39a850",
+    "I87": "c79e0edf"
   }
 }

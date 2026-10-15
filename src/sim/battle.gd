@@ -28,6 +28,9 @@ const UPGRADE_COST := {"castle_wall": 10, "gate": 20}
 const UPGRADE_MULT := 1.5
 const UPGRADE_MAX := 3
 const UPGRADE_TIME := 5.0  # 전투 중 공병이 한 단계 올리는 시간(초)
+# 수리(S114): 성곽·거점의 체력 1당 수리비(골드). 구조물은 낸 골드 ÷ 최대 체력이다. 수치는 임시값
+const REPAIR_RATE := {"castle_wall": 0.1, "gate": 0.1, "base": 1.0}
+const REPAIR_TIME := 5.0  # 전투 중 공병이 성곽·거점을 0에서 가득 채우는 시간(초, I87). 구조물은 건설 시간이다
 const WALL_RANGE := 2.0  # 성벽 위에서 치려면 필요한 사거리(칸, S88). 열린 성문 위는 예외다(S89). 임시값
 
 # 칸 하나를 차지하고 체력이 있는 것: 거점 "base" · 성곽 "castle_wall"·"gate" · 구조물 "wall" 등
@@ -58,6 +61,7 @@ class Block:
 	var open := false  # 열린 성문(S85). 막힌 칸이 아니다(I67)
 	var level := 1  # 성곽 업그레이드 단계(S86)
 	var lift := -1.0  # 업그레이드 진행률(0~1). 음수면 올리는 중이 아니다. 그만두면 그대로 남는다(I68)
+	var mend := 0.0  # 수리비를 냈지만 아직 채우지 못한 체력(I87). 0보다 크면 공병이 마저 고친다
 
 	func _init(c: Vector2i, k: String, h: float) -> void:
 		cell = c
@@ -180,6 +184,7 @@ var waves: Array
 var base: Block
 var castle := {}      # Vector2i → Block
 var structures := {}  # Vector2i → Block
+var rubble := {}  # Vector2i → 부서진 성곽 칸 Block(I88). 지나갈 수 있고, 복구하면 castle로 돌아간다(I89)
 var enemies := []
 var units := []  # 살아 있는 영웅·용병
 var hero  # 영웅(Unit). 스테이지에 hero_start가 없으면 null
@@ -240,10 +245,11 @@ func restart() -> void:
 	village = stage.get("village", Rect2i())
 	merc_cap = stage.get("merc_cap", MERC_CAP)
 	village_level = 1
-	base = Block.new(stage.base, "base", stage.base_hp)
-	for s in structures.values() + castle.values():  # 공병 ↔ 구조물 상호 참조를 끊는다. 남기면 RefCounted 순환이라 해제되지 않는다
+	for s in structures.values() + castle.values() + rubble.values() + ([base] if base else []):  # 공병 ↔ 구조물 상호 참조를 끊는다. 남기면 RefCounted 순환이라 해제되지 않는다
 		_release(s)
+	base = Block.new(stage.base, "base", stage.base_hp)
 	castle.clear()
+	rubble.clear()
 	structures.clear()
 	enemies.clear()
 	units.clear()
@@ -280,7 +286,7 @@ func step(dt: float) -> void:
 		state = "won" if wave_index >= waves.size() else "prep"
 		if state == "prep":
 			gold += tax()
-		for s in structures.values() + castle.values():  # 하던 건설·철거·업그레이드는 그 상태로 멈춘다(I19, I68)
+		for s in structures.values() + castle.values() + rubble.values() + [base]:  # 하던 건설·철거·업그레이드·수리·복구는 그 상태로 멈춘다(I19, I68, I87)
 			_release(s)
 		if state == "prep" and revive and hero and not hero.alive:
 			_return_hero()
@@ -462,7 +468,7 @@ func build(kind: String, cell: Vector2i, overrides := {}):
 # 빈 칸(구조물·거점·유닛·적이 없는 맵 안 칸, I24)이다. 생산 시설·집은 마을 안, 나머지는 마을 밖이고,
 # 성곽 칸에는 대포만 성벽 칸(성문 제외)에 짓는다(S43, I72)
 func _buildable(kind: String, cell: Vector2i) -> bool:
-	if not grid.is_in_boundsv(cell) or structures.has(cell) or cell == base.cell:
+	if not grid.is_in_boundsv(cell) or structures.has(cell) or cell == base.cell or rubble.has(cell):  # 잔해 칸에는 짓지 못한다(I88)
 		return false
 	if castle.has(cell) and (kind != "cannon" or castle[cell].kind != "castle_wall"):
 		return false
@@ -561,6 +567,72 @@ func _lift(k: Block, dp: float) -> void:
 	_release(k)
 	_repath = true  # 남은 체력이 적의 경로 비용이다(S7, I41)
 
+# 수리비(S114, I85): 아직 내지 않은 잃은 체력 × 체력 1당 값, 1골드 미만은 올린다.
+# 구조물은 낸 골드 ÷ 최대 체력이라 판매 환불(S69)의 나머지와 같다. 잔해는 체력 0이라 복구비가 된다(I89)
+func repair_cost(t: Block) -> int:
+	var owed := maxf(t.max_hp - t.hp - t.mend, 0.0)
+	return ceili(owed * REPAIR_RATE.get(t.kind, t.paid / t.max_hp) - 0.0001)  # ponytail: 부동소수 오차로 1골드 더 받지 않게
+
+# 판에 있는 완성된 구조물·성곽 칸·거점이고, 깎였고, 일하는 공병이 없다(I85, I86)
+func can_repair(t) -> bool:
+	return t is Block and state in ["prep", "battle"] and t.complete and t.worker == null and t.hp < t.max_hp and (structures.get(t.cell) == t or castle.get(t.cell) == t or t == base)
+
+# 깎인 것을 고친다(S80). 준비 단계엔 수리비를 내고 바로 가득 차고(I86), 전투 단계엔 지시할 때 내고
+# 놀고 있는 가장 가까운 공병이 가서 낸 만큼 채운다(S115, I87). 공병이 없거나 골드가 모자라면 거부한다
+func repair(t) -> void:
+	if not can_repair(t):
+		return
+	var engineer = _idle_engineer(t.cell) if state == "battle" else null
+	if (state == "battle" and not engineer) or gold < repair_cost(t):
+		return
+	gold -= repair_cost(t)
+	t.mend = t.max_hp - t.hp
+	if engineer:
+		_send(engineer, t)
+	else:
+		_mend(t, t.mend)
+
+# 잔해를 되살린다(I89). 복구비는 지시할 때 낸다. 준비 단계엔 바로 가득 찬 채 서고, 전투 단계엔 놀고 있는
+# 가장 가까운 공병이 가서 닿으면 다시 세운 뒤 채운다(_work). 지시할 때 칸에 누가 있으면 거부한다
+func restore(k: Block) -> void:
+	if state not in ["prep", "battle"] or rubble.get(k.cell) != k or k.worker or _occupied(k.cell):
+		return
+	var engineer = _idle_engineer(k.cell) if state == "battle" else null
+	if (state == "battle" and not engineer) or gold < repair_cost(k):
+		return
+	gold -= repair_cost(k)
+	k.mend = k.max_hp
+	if engineer:
+		_send(engineer, k)
+	else:
+		_raise(k)
+		_mend(k, k.mend)
+
+# 잔해를 체력 0인 성곽 칸으로 다시 세운다. 부서지기 전 단계와 최대 체력은 그대로다(I89)
+func _raise(k: Block) -> void:
+	rubble.erase(k.cell)
+	castle[k.cell] = k
+	k.alive = true
+	k.hp = 0.0
+	_repath = true
+
+# 낸 몫(mend)에서 dhp만큼 체력을 채운다. 낸 만큼 다 채우거나 가득 차면 끝내고 공병을 놓아준다(I87)
+# ponytail: 더해 가는 오차로 가득 차기 직전에 멈추지 않게, 0.001 안쪽이면 다 찬 것으로 친다
+func _mend(t: Block, dhp: float) -> void:
+	var d := minf(dhp, t.mend)
+	t.hp = minf(t.hp + d, t.max_hp)
+	t.mend -= d
+	if t.mend > 0.001 and t.hp < t.max_hp:
+		return
+	if t.max_hp - t.hp < 0.001:
+		t.hp = t.max_hp
+	t.mend = 0.0
+	_release(t)
+	_repath = true  # 남은 체력이 적의 경로 비용이다(S7)
+
+func _occupied(cell: Vector2i) -> bool:
+	return (units + enemies).any(func(u): return Vector2i(u.pos.round()) == cell)
+
 # 전투 단계에만, 미완성 구조물을 없애고 낸 골드를 모두 돌려준다(S23)
 func cancel(s) -> void:
 	if state == "battle" and not s.complete and structures.get(s.cell) == s:
@@ -588,6 +660,7 @@ func demolish(things: Array) -> void:
 	for t in things:
 		var engineer = _idle_engineer(t.cell) if can_demolish(t) else null
 		if engineer:
+			t.mend = 0.0  # 남은 수리 몫(I87)이 있으면 공병이 허물지 않고 고친다
 			_send(engineer, t)
 
 # 전투 단계에만, 놀고 있는 가장 가까운 공병을 보내 대포를 그 칸으로 옮긴다. 골드는 들지 않는다(S44, I48).
@@ -598,6 +671,7 @@ func move_cannon(s: Block, cell: Vector2i) -> void:
 	var engineer = _idle_engineer(s.cell)
 	if engineer:
 		s.dest = cell
+		s.mend = 0.0  # 남은 수리 몫(I87)이 있으면 공병이 접지 않고 고친다
 		_send(engineer, s)
 
 # 접은 대포를 새 칸으로 옮겨 진행률 0부터 다시 짓는다. 새 칸에 지을 수 없게 됐으면 그만둔다(I74)
@@ -673,13 +747,20 @@ func _grow(s: Block, dp: float) -> void:
 		_release(s)
 		_repath = true
 
-# 옆 칸에 닿은 공병은 성곽이면 올리고(S86), 미완성이면 짓고(I62), 완성이면 허문다(I64: 건설 시간의 절반이 든다). 밀려나 멀어졌으면 다시 걸어간다
+# 옆 칸에 닿은 공병은 수리할 몫이 있으면 고치고(I87, 잔해면 다시 세운 뒤 고친다, I89), 성곽이면 올리고(S86),
+# 미완성이면 짓고(I62), 완성이면 허문다(I64: 건설 시간의 절반이 든다). 밀려나 멀어졌으면 다시 걸어간다
 # 옮기는 대포는 허물면 접어 두고, 새 칸 옆에 닿으면 내려놓는다(I74)
 # ponytail: 닿을 수 없는 칸이면 매 프레임 경로를 다시 구한다. 공병이 많아 느려지면 포기 처리를 둔다
+# ponytail: 일의 종류를 칸 상태로 고른다. 수리 몫과 그만둔 업그레이드가 함께 남은 칸은 수리부터 하고 멈춘다
 func _work(u: Unit, dt: float) -> void:
 	var s: Block = u.job
 	if u.pos.distance_to(Vector2(_site(s))) > WORK_REACH:
 		_send(u, s)
+	elif s.mend > 0.0:
+		if rubble.get(s.cell) != s:
+			_mend(s, s.max_hp / (s.build_time if structures.get(s.cell) == s else REPAIR_TIME) * dt)
+		elif not _occupied(s.cell):  # 잔해는 칸이 비어야 다시 세운다(I89)
+			_raise(s)
 	elif s.lift >= 0.0:
 		_lift(s, dt / UPGRADE_TIME)
 	elif not s.complete:
@@ -743,6 +824,7 @@ func damage(target, amount: float, pierce := false) -> void:
 			structures.erase(target.cell)
 			return
 		castle.erase(target.cell)
+		rubble[target.cell] = target  # 잔해로 남아 지나갈 수 있고, 복구하면 되살아난다(I88, I89)
 		if structures.has(target.cell):  # 성벽 칸이 부서지면 그 위 대포도 부서진다(I72)
 			damage(structures[target.cell], INF)
 		# 그 칸에 걸쳐 선(0.5칸 안) 유닛은 그 칸 땅으로 내려오고, 성벽 위로 그 칸을 지나려던 유닛은 멈춘다(I70)
