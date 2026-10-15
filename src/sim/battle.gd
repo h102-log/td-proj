@@ -10,10 +10,12 @@ var MERC_KINDS := _kinds("res://data/mercs/")
 var STRUCTURE_KINDS := _kinds("res://data/structures/")
 # 스킬은 «주변 skill_radius칸 안의 적 전부에게 피해»다(I33, 사용자 2026-10-12: 1.5칸·대기 10초·단축키 Q). 피해량 등 나머지는 임시값
 # 스킬 2(buff_*)는 «주변 buff_radius칸 안 용병의 공격력 ×buff_mult, buff_time초»다(S84, 단축키 W). 수치는 임시값
-# ponytail: 영웅은 하나뿐이라 아직 상수다. 영웅 종류·오라(I33)와 Resource 파일화(I66)는 3.7에서 HERO_KINDS로 넓힌다
+# 오라(aura_*)는 «주변 aura_radius칸 안 용병이 받는 피해 ×(1 − aura_guard)»다(기사, S96·S97·I82). 수치는 임시값
+# ponytail: 영웅은 하나뿐이라 아직 상수다. 영웅 종류(I33)와 Resource 파일화(I66)는 3.7에서 HERO_KINDS로 넓힌다
 const HERO := {"hp": 100.0, "radius": 0.3, "speed": 3.0, "damage": 3.0, "range": 1.5, "attack_gap": 1.0,
 	"skill_damage": 30.0, "skill_radius": 1.5, "skill_gap": 10.0,
-	"buff_radius": 3.0, "buff_mult": 1.5, "buff_time": 5.0, "buff_gap": 20.0}
+	"buff_radius": 3.0, "buff_mult": 1.5, "buff_time": 5.0, "buff_gap": 20.0,
+	"aura_radius": 3.0, "aura_guard": 0.15}
 const VILLAGE_UP := [60]  # 마을 레벨 n→n+1 비용(S99). 길이+1이 최대 레벨이다. 임시값(Claude 예시, 사용자 2026-10-13 수락)
 const MERC_CAP := 10  # 배치 상한 기본값(S25). 임시값(사용자 2026-10-13), 스테이지의 merc_cap이 덮어쓴다
 const HOUSE_CAP := 6  # 마을에 지을 수 있는 집 수(S101). 임시값(사용자 2026-10-13)
@@ -133,6 +135,8 @@ class Unit:
 	var buff_cooldown := 0.0
 	var boost := 1.0  # 용병이 받은 버프 배율. boost_left초 동안만 공격력에 곱한다(S84)
 	var boost_left := 0.0
+	var aura_radius := 0.0
+	var aura_guard := 0.0  # 오라 안 용병이 받는 피해를 줄이는 비율(0~1). 0이면 오라가 없다
 	var on_wall := false  # 성벽 위에 있다(S42, I44)
 	var after: Array[Vector2i] = []  # path 끝에서 오르내린 뒤 걸을 길. 첫 칸이 오르내려 서는 칸이다(I69)
 
@@ -715,6 +719,10 @@ func damage(target, amount: float, pierce := false) -> void:
 		return
 	if target is Enemy and not pierce:  # 장갑(S108): 줄인 피해는 1 아래로 내려가지 않고, 원래 1 미만이면 그대로다
 		amount = maxf(amount - target.armor, minf(amount, 1.0))
+	elif target is Unit and target != hero and hero and hero.alive and target.pos.distance_to(hero.pos) <= hero.aura_radius:
+		# 오라(I82): 맞는 순간 살아 있는 영웅 가까이 있는 용병은 덜 다친다. 다운된 영웅의 오라는 풀린다(S96)
+		# ponytail: 같은 종류 효과의 겹침 규칙(S96)은 효과가 하나뿐이라 아직 없다. 영웅이 늘어나는 3.7에서 넣는다
+		amount *= 1.0 - hero.aura_guard
 	target.hp = maxf(target.hp - amount, 0.0)
 	if target.hp > 0.0:
 		return
