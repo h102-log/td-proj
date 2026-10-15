@@ -46,6 +46,7 @@ const BOT := {
 	"pp_period": 8.0,
 	"pp_near": 4.0,
 	"pp_giveup": 150.0,
+	"pp_from": 1,           # 이 라운드부터 핑퐁한다(그 전에는 쪽문을 닫아 둔다)
 }
 
 const GATE := Vector2i(20, 9)
@@ -236,7 +237,7 @@ func _fight() -> bool:
 			_think = 0.25
 			var g: int = b.gold
 			_battle_actions()
-			if bot.pingpong != "":
+			if bot.pingpong != "" and b.round_index + 1 >= bot.pp_from:
 				_pingpong(t)
 			cur.spent_battle += maxi(g - b.gold, 0)
 		b.step(dt)
