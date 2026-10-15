@@ -69,12 +69,14 @@ func _draw() -> void:
 			draw_line(Vector2(s.cell) * CELL + Vector2(CELL, CELL) / 2, s.target.pos * CELL + Vector2(CELL, CELL) / 2, Color.YELLOW, 1.0)
 			if s.splash > 0.0:
 				draw_arc(_center(s.target.pos), CELL * s.splash, 0.0, TAU, 24, Color.YELLOW, 1.0)
-	for h in battle.heroes:  # 오라 반경(S113): 살아 있는 영웅마다 둘레에 늘 엷게, 유닛 아래에(I101)
-		if h.alive and h.aura_radius > 0.0:
+	for h in battle.heroes:  # 오라 반경(S113): 오라가 열린(I114) 살아 있는 영웅마다 둘레에 늘 엷게, 유닛 아래에(I101)
+		if h.alive and h.aura_radius > 0.0 and h.level >= battle.LEVELS.aura_level:
 			draw_arc(_center(h.pos), CELL * h.aura_radius, 0.0, TAU, 48, Color(0.6, 0.8, 1.0, 0.35), 1.0)
 	for u in battle.units:
 		var at: Vector2 = u.pos * CELL + Vector2(CELL, CELL) / 2
 		draw_circle(at, CELL * u.radius, HERO_COLORS.get(u.kind, COLORS.merc) if u.is_hero else COLORS.get(u.kind, COLORS.merc))
+		if u.is_hero:  # 영웅 레벨(I117): 오른쪽 위에 작게
+			draw_string(ThemeDB.fallback_font, at + Vector2(CELL * 0.3, -CELL * 0.3), str(u.level), HORIZONTAL_ALIGNMENT_LEFT, -1, 8)
 		if u in controls.selected:  # 테두리: 흰색 이동 중 공격, 노란색 무조건 이동. 홀드면 기준 반경도 그린다
 			draw_arc(at, CELL * (u.radius + 0.2), 0.0, TAU, 24, Color.YELLOW if u.move_mode == "move" else Color.WHITE, 1.0)
 			if u.hold:

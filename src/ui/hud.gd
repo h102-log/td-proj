@@ -4,7 +4,8 @@ extends CanvasLayer
 # 고른 구조물에 따라 같은 자리에 철거(S74)·이어 짓기·취소(전투 단계)와 완성(준비 단계) 버튼도 띄운다(S83). 대포면 옮기기(S91)도 띄운다.
 # 성곽 칸을 고르면 같은 자리에 성문 열기·닫기(S85)와 업그레이드(S86) 버튼을 띄운다. 거점을 고르면 마을 레벨 올리기(S100) 버튼을 띄운다.
 # 고른 것 가운데 깎인 것이 있으면 수리(S116, I90), 잔해를 고르면 복구(I89) 버튼도 같은 자리에 띄운다.
-# 영입 창(도전 시작 전 S122·라운드 사이 S117)이면 결과 창 안에 영입 칸을 띄운다: 목록 영입·리롤·출전 전환·내보내기(S54, I110).
+# 영입 창(도전 시작 전 S122·라운드 사이 S117)이면 결과 창 안에 영입 칸을 띄운다: 목록 영입·리롤·출전 전환·내보내기(S54, I110),
+# 보유 영웅의 레벨·경험치(I117), 라운드 사이의 경험치 이관(S127, I116).
 # 결과 창의 버튼만 키보드 포커스를 받는다. 창이 열리면 «1라운드 시작»·«다음 라운드»·«새 도전»에 포커스가 간다(I12, I110)
 
 const NAMES := {"wall": "방벽", "tower": "타워", "magic": "마법 타워", "soldier": "용병", "barracks": "병영", "engineer": "공병", "workshop": "작업장", "archer": "궁수", "cannon": "대포", "archery": "사격장", "house": "집"}
@@ -38,7 +39,8 @@ var _hire := VBoxContainer.new()  # 결과 창 안의 영입 칸
 var _hire_info := Label.new()
 var _offers := []  # 목록 칸마다 영입 버튼
 var _reroll: Button
-var _members := []  # 보유 영웅마다 [출전·대기 전환 버튼, 내보내기 버튼]
+var _members := []  # 보유 영웅마다 [출전·대기 전환 버튼, 내보내기 버튼, 이관 버튼]
+var _giver = null  # 이관(I116)에서 먼저 고른 주는 영웅
 var _seen := ""  # 마지막으로 본 판 단계. 바뀌었을 때 결과 창이 떠 있으면 포커스를 준다
 
 func _init(b, c) -> void:
@@ -86,7 +88,7 @@ func _ready() -> void:
 		_hire.add_child(member)
 		var toggle := _window_button(member, func(): battle.set_lineup(battle.roster[i], battle.roster[i] not in battle.lineup))
 		toggle.toggle_mode = true
-		_members.append([toggle, _window_button(member, func(): battle.dismiss(battle.roster[i]))])
+		_members.append([toggle, _window_button(member, func(): battle.dismiss(battle.roster[i])), _window_button(member, func(): _give(battle.roster[i]))])
 	_next = _window_button(box, proceed)
 	root.add_child(_popup)
 	_sell = _button(_popup, "", _sell_now)
@@ -126,6 +128,7 @@ func _process(_delta: float) -> void:
 	_next.text = {"hiring": "1라운드 시작 (Enter)", "cleared": "다음 라운드 (Enter)"}.get(battle.state, "새 도전 (Enter)")
 	if battle.state != _seen:
 		_seen = battle.state
+		_giver = null
 		if _result.visible:
 			_next.grab_focus()
 	_hire.visible = battle.hiring_open()
@@ -223,10 +226,30 @@ func _show_hire() -> void:
 		if here:
 			var h = battle.roster[i]
 			var out: bool = h in battle.lineup
-			_members[i][0].text = "%s · %s · %s" % [HEROES[h.kind], GRADES[h.grade - 1], "출전" if out else "대기"]
+			_members[i][0].text = "%s · %s · %s · %s" % [HEROES[h.kind], GRADES[h.grade - 1], _level(h), "출전" if out else "대기"]
 			_members[i][0].button_pressed = out
 			_members[i][0].disabled = not out and battle.lineup.size() >= hire.lineup
 			_members[i][1].text = "내보내기"
+			_members[i][2].visible = battle.state == "cleared"  # 이관은 라운드 사이에만(S127)
+			_members[i][2].text = "이관" if _giver == null else ("취소" if _giver == h else "여기로")
+			_members[i][2].disabled = _giver == null and h.xp == 0
+
+# 레벨과 경험치(I117): «Lv2 35/50»(다음 레벨의 누적 경험치까지). 최대 레벨이면 «Lv5 최대»
+func _level(h) -> String:
+	var steps: Array = battle.LEVELS.steps
+	if h.level > steps.size():
+		return "Lv%d 최대" % h.level
+	return "Lv%d %d/%d" % [h.level, h.xp, steps.slice(0, h.level).reduce(func(s, x): return s + x, 0)]
+
+# 이관(S127, I116): 주는 영웅의 «이관»을 누른 뒤 받는 영웅의 «여기로»를 누른다. 주는 영웅을 다시 누르면 그만둔다
+func _give(h) -> void:
+	if _giver == null:
+		_giver = h
+	elif _giver == h:
+		_giver = null
+	else:
+		battle.transfer(_giver, h)
+		_giver = null
 
 # 고른 유닛·놓기 모드도 비운다. 재시작 뒤의 영웅은 새 객체다. 새 도전도 영입 창에서 시작한다(S122)
 func _restart() -> void:
