@@ -6,12 +6,18 @@ const COLORS := {
 	"field": Color("4a6b3a"), "grid": Color(0, 0, 0, 0.15), "spawn": Color("c03030"),
 	"base": Color("e0c040"), "castle_wall": Color("8a8a8a"), "gate": Color("7a5230"), "gate_open": Color("c8a070"),
 	"wall": Color("5a5a5a"), "tower": Color("3060b0"), "magic": Color("7030a0"), "merc": Color("50a0f0"),
-	"hero": Color("b060f0"), "village": Color("6b6b4a"), "barracks": Color("a06a30"),
+	"village": Color("6b6b4a"), "barracks": Color("a06a30"),
 	"workshop": Color("308080"), "engineer": Color("f0a030"), "archer": Color("60d0a0"), "cannon": Color("303060"), "archery": Color("40a070"),
 	"house": Color("b08060"), "resident": Color("f0e0b0"),
 }
 const ENEMY_COLORS := {  # 적 종류마다 다른 색(I81)
 	"basic": Color("d04040"), "fast": Color("f08030"), "armored": Color("807070"), "flying": Color("e050c0"), "boss": Color("801010"),
+}
+const HERO_COLORS := {  # 영웅 종류마다 다른 색(S56, I101)
+	"knight": Color("b060f0"), "bowman": Color("a0ff40"), "mason": Color("c08040"), "priest": Color("f0f0f0"), "general": Color("ffd020"), "mage": Color("2040ff"),
+}
+const MARKS := {  # W가 걸린 대상의 테두리 색(I101). 용병 공격력은 주황(I65)
+	"boost": Color.ORANGE, "guard": Color("80c0ff"), "ward": Color("80c0ff"), "expose": Color.MAGENTA, "slow": Color.CYAN, "stun": Color.YELLOW,
 }
 
 var battle
@@ -36,6 +42,9 @@ func _draw() -> void:
 		draw_rect(_rect(s.cell), col if s.complete and s.razed < 1.0 else Color(col, 0.4))
 		if s.dest != null:  # 옮겨 갈 칸(S44)
 			draw_rect(_rect(s.dest), col, false, 1.0)
+	for s in battle.structures.values() + battle.castle.values():  # 축성가 W를 받은 칸(I101)
+		if s.ward_left > 0.0:
+			draw_rect(_rect(s.cell).grow(-1), MARKS.ward, false, 1.0)
 	for s in controls.picked + ([controls.fort] if controls.fort else []) + ([battle.base] if controls.village else []):  # 전투 단계에 고른 구조물(S74, S83)·고른 성곽 칸(S85)·고른 거점(S100)
 		draw_rect(_rect(s.cell), Color.WHITE, false, 1.0)
 	var f = controls.facility  # 고른 생산 시설: 테두리와 집결 지점 깃발(S82)
@@ -60,22 +69,29 @@ func _draw() -> void:
 			draw_line(Vector2(s.cell) * CELL + Vector2(CELL, CELL) / 2, s.target.pos * CELL + Vector2(CELL, CELL) / 2, Color.YELLOW, 1.0)
 			if s.splash > 0.0:
 				draw_arc(_center(s.target.pos), CELL * s.splash, 0.0, TAU, 24, Color.YELLOW, 1.0)
-	var h = battle.hero
-	if h and h.alive and h.aura_radius > 0.0:  # 오라 반경(S113): 살아 있는 영웅 둘레에 늘 엷게, 유닛 아래에
-		draw_arc(_center(h.pos), CELL * h.aura_radius, 0.0, TAU, 48, Color(0.6, 0.8, 1.0, 0.35), 1.0)
+	for h in battle.heroes:  # 오라 반경(S113): 살아 있는 영웅마다 둘레에 늘 엷게, 유닛 아래에(I101)
+		if h.alive and h.aura_radius > 0.0:
+			draw_arc(_center(h.pos), CELL * h.aura_radius, 0.0, TAU, 48, Color(0.6, 0.8, 1.0, 0.35), 1.0)
 	for u in battle.units:
 		var at: Vector2 = u.pos * CELL + Vector2(CELL, CELL) / 2
-		draw_circle(at, CELL * u.radius, COLORS.hero if u == battle.hero else COLORS.get(u.kind, COLORS.merc))
+		draw_circle(at, CELL * u.radius, HERO_COLORS.get(u.kind, COLORS.merc) if u.is_hero else COLORS.get(u.kind, COLORS.merc))
 		if u in controls.selected:  # 테두리: 흰색 이동 중 공격, 노란색 무조건 이동. 홀드면 기준 반경도 그린다
 			draw_arc(at, CELL * (u.radius + 0.2), 0.0, TAU, 24, Color.YELLOW if u.move_mode == "move" else Color.WHITE, 1.0)
 			if u.hold:
 				draw_arc(u.anchor * CELL + Vector2(CELL, CELL) / 2, CELL * u.hold_radius, 0.0, TAU, 48, Color(1, 1, 1, 0.4), 1.0)
 		if u.boost_left > 0.0:  # 버프를 받은 용병(I65): 선택 테두리 바깥에 주황 테두리
-			draw_arc(at, CELL * (u.radius + 0.35), 0.0, TAU, 24, Color.ORANGE, 1.0)
+			draw_arc(at, CELL * (u.radius + 0.35), 0.0, TAU, 24, MARKS.boost, 1.0)
+		if u.guard_left > 0.0:  # 사제 W를 받은 아군(I101)
+			draw_arc(at, CELL * (u.radius + 0.5), 0.0, TAU, 24, MARKS.guard, 1.0)
 	for e in battle.enemies:  # 비행 적은 아래에 그림자를 그린다(I81)
 		if e.flying:
 			draw_circle(_center(e.pos) + Vector2(0, CELL * 0.4), CELL * e.radius * 0.8, Color(0, 0, 0, 0.35))
 		draw_circle(_center(e.pos), CELL * e.radius, ENEMY_COLORS.get(e.kind, ENEMY_COLORS.basic))
+		var ring := 0.15
+		for key in ["stun", "slow", "expose"]:  # 기절·느려짐·받는 피해 증가가 걸린 적(I101)
+			if e.get(key + "_left") > 0.0:
+				draw_arc(_center(e.pos), CELL * (e.radius + ring), 0.0, TAU, 24, MARKS[key], 1.0)
+				ring += 0.15
 	# 공격선: 친 뒤 0.1초 동안 아군은 흰색, 적은 빨간색(S71). 대상이 무엇이든 그린다(I59)
 	for u in battle.units:
 		if u.target and u.cooldown > u.attack_gap - 0.1:
@@ -83,11 +99,12 @@ func _draw() -> void:
 	for e in battle.enemies:
 		if e.target and e.cooldown > e.attack_gap - 0.1:
 			draw_line(_center(e.pos), _center(_pos_of(e.target)), Color.RED, 1.0)
-	# 스킬 범위 원(S72). ponytail: 0.3초는 임시값, 짧거나 길면 바꾼다
-	if h and h.alive and h.skill_cooldown > h.skill_gap - 0.3:
-		draw_arc(_center(h.pos), CELL * h.skill_radius, 0.0, TAU, 48, Color.WHITE, 1.0)
-	if h and h.alive and h.buff_cooldown > h.buff_gap - 0.3:  # 스킬 2 범위 원(S72, I65)
-		draw_arc(_center(h.pos), CELL * h.buff_radius, 0.0, TAU, 48, Color.ORANGE, 1.0)
+	# 스킬 범위 원(S72): 영웅마다(I101). ponytail: 0.3초는 임시값, 짧거나 길면 바꾼다
+	for h in battle.heroes:
+		if h.alive and h.skill_cooldown > h.skill_gap - 0.3:
+			draw_arc(_center(h.pos), CELL * h.skill_radius, 0.0, TAU, 48, Color.WHITE, 1.0)
+		if h.alive and h.buff_cooldown > h.buff_gap - 0.3:  # 스킬 2 범위 원(S72, I65)
+			draw_arc(_center(h.pos), CELL * h.buff_radius, 0.0, TAU, 48, Color.ORANGE, 1.0)
 	if controls.show_hp:
 		for u in battle.units + battle.enemies:
 			_hp_bar(u.pos, u)

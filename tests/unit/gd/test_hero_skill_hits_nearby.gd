@@ -20,6 +20,6 @@ func test_q_skill_hits_only_nearby_enemies_once_per_cooldown():
 	_press_q(c)
 	if b.hero.skill_uses != 1:
 		return "Q 두 번에 스킬을 %d번 썼다(대기 중에는 쓰이지 않아야 한다)" % b.hero.skill_uses
-	if near.max_hp - near.hp != b.HERO.skill_damage:
+	if near.max_hp - near.hp != b.hero.skill_damage:
 		return "1칸 옆 적이 스킬 피해를 받지 않았다: %s" % near.hp
 	return "" if far.hp == far.max_hp else "4칸 떨어진 적이 스킬 피해를 받았다"

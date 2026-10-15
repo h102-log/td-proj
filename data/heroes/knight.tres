@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="HeroDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/hero_def.gd" id="1_hero"]
+
+[resource]
+script = ExtResource("1_hero")
+grade = 1
+hp = 100.0
+speed = 3.0
+damage = 3.0
+range = 1.5
+attack_gap = 1.0
+skill_radius = 1.5
+skill_gap = 10.0
+skill_damage = 30.0
+buff_radius = 3.0
+buff_time = 5.0
+buff_gap = 20.0
+buff_mult = 1.5
+aura_radius = 3.0
+aura_guard = 0.15

@@ -4,7 +4,7 @@ extends RefCounted
 # 우클릭: 생산 시설을 골랐으면 그 칸을 집결 지점으로(S82), 아니면 고른 유닛 이동(S14)
 # 준비 단계의 좌클릭·좌드래그는 판매 후보도 정한다(S70, I57). 좌클릭한 용병은 고른 상태도 된다
 # 전투 단계의 좌클릭·좌드래그는 철거·취소·이어 짓기 후보(picked)를 정한다(S74, S83)
-# Q: 영웅 스킬 · W: 스킬 2 아군 버프(S84) (I10) · A: 고른 용병의 이동 방식 전환(S35) · H: 홀드 전환(S36) (A·H는 사용자 2026-10-12) · V: 체력바 표시 전환(S73)
+# Q: 영웅 스킬 · W: 스킬 2(S84) (I10). 고른 영웅이, 없으면 첫 영웅이 쓴다(S119) · A: 고른 용병의 이동 방식 전환(S35) · H: 홀드 전환(S36) (A·H는 사용자 2026-10-12) · V: 체력바 표시 전환(S73)
 # 1 방벽 · 2 타워 · - 마법 타워(S110) · 3 용병 · 4 병영 · 5 공병 · 6 작업장 · 7 궁수(I71) · 8 대포(S92) · 9 사격장(S98) · 0 집(S103): 놓기 모드. 그동안 좌클릭은 그 칸에 짓거나 놓고, 우클릭·ESC는 모드를 끝낸다(사용자 2026-10-12)
 # 전투 단계엔 구조물만 짓는다(공병이 가서 짓는다, S22). 단계가 바뀌면 모드가 끝난다
 # 옮길 대포(moving)가 있으면 다음 좌클릭한 칸으로 옮기고(S91), 우클릭·ESC·단계 변경은 옮기기를 그만둔다
@@ -47,9 +47,9 @@ func handle(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
 			KEY_Q:
-				battle.use_skill()
+				battle.use_skill(_hero())
 			KEY_W:
-				battle.use_buff()
+				battle.use_buff(_hero())
 			KEY_A:  # 모두 «무조건 이동»이면 «이동 중 공격»으로, 아니면 모두 «무조건 이동»으로
 				battle.set_move_mode(selected, "attack_move" if selected.all(func(u): return u.move_mode == "move") else "move")
 			KEY_H:
@@ -94,12 +94,11 @@ func _release(rect: Rect2, at: Vector2) -> void:
 	_press = null
 	drag_rect = Rect2()
 	sell_at = at
-	var h = battle.hero
-	var mercs: Array = battle.units.filter(func(u): return u != h)
+	var mercs: Array = battle.units.filter(func(u): return not u.is_hero)
 	var prep: bool = battle.state == "prep"
 	if rect.size.length() < CLICK_SLOP:
 		var cell := Vector2i((rect.position / cell_px).floor())
-		selected = [h] if h and h.alive and Vector2i(h.pos.round()) == cell else []
+		selected = battle.heroes.filter(func(h): return h.alive and Vector2i(h.pos.round()) == cell).slice(0, 1)  # 클릭한 칸의 영웅(I9, I101)
 		var hit = battle.structure_at(cell)
 		facility = hit if hit and not hit.produces.is_empty() and hit.complete else null
 		fort = battle.castle.get(cell, battle.rubble.get(cell))
@@ -120,6 +119,13 @@ func _release(rect: Rect2, at: Vector2) -> void:
 		var built: Array = battle.structures.values().filter(func(s): return inside.call(Vector2(s.cell)))
 		selling = (selected + built) if prep else []
 		picked = [] if prep else built
+
+# Q·W를 쓸 영웅: 고른 영웅. 고른 영웅이 없으면 null이라 첫 영웅이 쓴다(S119)
+func _hero():
+	for u in selected:
+		if u.is_hero:
+			return u
+	return null
 
 # 모드는 놓은 뒤에도 이어진다. 방벽을 줄지어 짓기 쉽게
 func _place(cell: Vector2i) -> void:

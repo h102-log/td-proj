@@ -8,14 +8,7 @@ signal enemy_spawned(enemy)
 var ENEMY_KINDS := _kinds("res://data/enemies/")
 var MERC_KINDS := _kinds("res://data/mercs/")
 var STRUCTURE_KINDS := _kinds("res://data/structures/")
-# 스킬은 «주변 skill_radius칸 안의 적 전부에게 피해»다(I33, 사용자 2026-10-12: 1.5칸·대기 10초·단축키 Q). 피해량 등 나머지는 임시값
-# 스킬 2(buff_*)는 «주변 buff_radius칸 안 용병의 공격력 ×buff_mult, buff_time초»다(S84, 단축키 W). 수치는 임시값
-# 오라(aura_*)는 «주변 aura_radius칸 안 용병이 받는 피해 ×(1 − aura_guard)»다(기사, S96·S97·I82). 수치는 임시값
-# ponytail: 영웅은 하나뿐이라 아직 상수다. 영웅 종류(I33)와 Resource 파일화(I66)는 3.7에서 HERO_KINDS로 넓힌다
-const HERO := {"hp": 100.0, "radius": 0.3, "speed": 3.0, "damage": 3.0, "range": 1.5, "attack_gap": 1.0,
-	"skill_damage": 30.0, "skill_radius": 1.5, "skill_gap": 10.0,
-	"buff_radius": 3.0, "buff_mult": 1.5, "buff_time": 5.0, "buff_gap": 20.0,
-	"aura_radius": 3.0, "aura_guard": 0.15}
+var HERO_KINDS := _kinds("res://data/heroes/")  # 효과의 뜻은 src/data/hero_def.gd 머리 주석(S97, I95)
 const VILLAGE_UP := [60]  # 마을 레벨 n→n+1 비용(S99). 길이+1이 최대 레벨이다. 임시값(Claude 예시, 사용자 2026-10-13 수락)
 const MERC_CAP := 10  # 배치 상한 기본값(S25). 임시값(사용자 2026-10-13), 스테이지의 merc_cap이 덮어쓴다
 const HOUSE_CAP := 6  # 마을에 지을 수 있는 집 수(S101). 임시값(사용자 2026-10-13)
@@ -46,6 +39,8 @@ class Block:
 	var fire_gap := 1.0  # 쏘는 간격(초)
 	var splash := 0.0  # 범위 피해 반경(칸, S90)
 	var pierce := false  # 적의 장갑을 무시한다(마법 타워, S110)
+	var ward := 0.0  # 축성가 W로 받은 «받는 피해 감소» 비율. ward_left초 동안만(S120)
+	var ward_left := 0.0
 	var cooldown := 0.0
 	var target  # 마지막으로 쏜 적. 화면이 쏜 직후 사격 선을 그린다
 	var paid := 0  # 지을 때 낸 골드. 판매 환불의 기준(S69)
@@ -88,6 +83,11 @@ class Enemy:
 	var climbed := 0.0  # 지금 성벽을 오른 시간(초)
 	var on_wall := false  # 성곽 성벽 칸 위에 올라서 있다(I76)
 	var cooldown := 0.0  # 0 이하면 바로 칠 수 있다
+	var expose := 0.0  # 궁수 W로 받은 «받는 피해 증가» 비율. expose_left초 동안만(I99)
+	var expose_left := 0.0
+	var slow := 0.0  # 마도사 W로 받은 «이동 속도 감소» 비율. slow_left초 동안만(I99)
+	var slow_left := 0.0
+	var stun_left := 0.0  # 장군 Q의 기절. 남은 동안 움직이지도 치지도 않는다(I98)
 	var alive := true
 	var attacker  # 마지막으로 이 적을 쏜 구조물. 살아 있는 동안 반격 대상이다(S4 ②)
 	var target  # 마지막으로 친 대상. 화면이 친 직후 공격선을 그린다(S71)
@@ -127,20 +127,40 @@ class Unit:
 	var hold := false  # 켜지면 anchor에서 hold_radius 안에서만 싸운다(S36)
 	var hold_radius := 0.0
 	var anchor: Vector2  # 홀드 기준 지점(I37)
+	# 영웅만 쓰는 칸. 종류별 수치와 효과의 뜻은 src/data/hero_def.gd(S97, I95)
+	var is_hero := false
+	var home: Vector2i  # 쓰러진 영웅이 돌아오는 시작 칸(S26, I102)
+	var grade := 0
 	var skill_damage := 0.0
+	var skill_stun := 0.0
+	var skill_heal := 0.0
+	var skill_mend := 0.0
 	var skill_radius := 0.0
 	var skill_gap := 0.0  # 재사용 대기(초). 0이면 스킬이 없다
 	var skill_cooldown := 0.0
 	var skill_uses := 0
 	var buff_radius := 0.0
 	var buff_mult := 1.0
+	var buff_expose := 0.0
+	var buff_guard := 0.0
+	var buff_ward := 0.0
+	var buff_slow := 0.0
 	var buff_time := 0.0
 	var buff_gap := 0.0  # 재사용 대기(초). 0이면 스킬 2가 없다
 	var buff_cooldown := 0.0
-	var boost := 1.0  # 용병이 받은 버프 배율. boost_left초 동안만 공격력에 곱한다(S84)
-	var boost_left := 0.0
 	var aura_radius := 0.0
-	var aura_guard := 0.0  # 오라 안 용병이 받는 피해를 줄이는 비율(0~1). 0이면 오라가 없다
+	var aura_guard := 0.0  # 오라 안 용병이 받는 피해를 줄이는 비율(0~1). 0이면 그 오라가 없다
+	var aura_haste := 0.0
+	var aura_work := 0.0
+	var aura_regen := 0.0
+	var aura_might := 0.0
+	var aura_stride := 0.0
+	var aura_gunnery := 0.0
+	# W로 받은 효과. _left초 동안만 걸린다(I97)
+	var boost := 1.0  # 용병 공격력 배율(S84)
+	var boost_left := 0.0
+	var guard := 0.0  # 받는 피해 감소 비율(사제 W, I99)
+	var guard_left := 0.0
 	var on_wall := false  # 성벽 위에 있다(S42, I44)
 	var after: Array[Vector2i] = []  # path 끝에서 오르내린 뒤 걸을 길. 첫 칸이 오르내려 서는 칸이다(I69)
 
@@ -188,7 +208,8 @@ var structures := {}  # Vector2i → Block
 var rubble := {}  # Vector2i → 부서진 성곽 칸 Block(I88). 지나갈 수 있고, 복구하면 castle로 돌아간다(I89)
 var enemies := []
 var units := []  # 살아 있는 영웅·용병
-var hero  # 영웅(Unit). 스테이지에 hero_start가 없으면 null
+var heroes := []  # 영웅(Unit)들. 쓰러진 영웅도 들어 있다(I102)
+var hero  # 첫 영웅(S119). 영웅이 없으면 null
 var revive := true  # 쓰러진 영웅이 다음 준비 단계에 돌아온다(S27). 기본값 켜짐(I28)
 var state := "prep"  # "prep" | "battle" | "cleared"(라운드 사이, S117) | "won"(도전 성공) | "lost"
 var round_index := 0
@@ -204,7 +225,6 @@ var _repath := false  # 막힌 칸이 바뀌어 적 경로를 다시 구해야 �
 var _queue := []      # 이번 웨이브에서 아직 안 나온 적 종류
 var _spawn_timer := 0.0
 var _spawned := 0     # 이번 웨이브에서 나온 적 수(출현 지점 돌아가며 쓰기)
-var _hero_start: Vector2i  # 쓰러진 영웅이 돌아오는 칸
 var _stage: Dictionary  # 재시작할 때 다시 읽는다
 
 # dir의 Resource 파일마다 «파일 이름 → 스크립트 변수 사전». list_directory는 내보낸 빌드의 .remap도 원래 이름으로 준다
@@ -264,11 +284,16 @@ func restart() -> void:
 		castle[c] = Block.new(c, "castle_wall", fort.wall_hp)
 	for c in fort.get("gates", []):
 		castle[c] = Block.new(c, "gate", fort.gate_hp)
-	hero = null
-	if stage.get("hero_start") != null:
-		_hero_start = stage.hero_start
-		hero = Unit.new("hero", _hero_start, HERO)
-		units.append(hero)
+	heroes.clear()
+	# 영웅 목록(I102). 목록이 없고 hero_start만 있으면 기사 하나다(S118)
+	var team: Array = stage.get("heroes", [] if stage.get("hero_start") == null else [{"kind": "knight", "cell": stage.hero_start}])
+	for t in team:
+		var h := Unit.new(t.kind, t.cell, HERO_KINDS[t.kind])
+		h.is_hero = true
+		h.home = t.cell
+		heroes.append(h)
+		units.append(h)
+	hero = heroes[0] if heroes else null
 
 func step(dt: float) -> void:
 	if state == "battle":
@@ -297,19 +322,23 @@ func step(dt: float) -> void:
 			gold += tax()
 		for s in structures.values() + castle.values() + rubble.values() + [base]:  # 하던 건설·철거·업그레이드·수리·복구는 그 상태로 멈춘다(I19, I68, I87)
 			_release(s)
-		if state == "prep" and revive and hero and not hero.alive:
-			_return_hero()
+		if state == "prep" and revive:
+			for h in heroes:
+				if not h.alive:
+					_return_hero(h)
+	for s in structures.values() + castle.values():  # 축성가 W의 남은 시간(S120)
+		s.ward_left -= dt
 
-# 쓰러진 영웅은 시작 지점에 체력이 가득 찬 채 돌아온다(S26, I27)
+# 쓰러진 영웅은 자기 시작 칸에 체력이 가득 찬 채 돌아온다(S26, I27, I102)
 # 공격·스킬 대기는 쓰러질 때 값을 이어 간다(S67)
-func _return_hero() -> void:
-	hero.alive = true
-	hero.hp = hero.max_hp
-	hero.pos = Vector2(_hero_start)
-	hero.on_wall = false
-	hero.path.clear()
-	hero.after.clear()
-	units.append(hero)
+func _return_hero(h: Unit) -> void:
+	h.alive = true
+	h.hp = h.max_hp
+	h.pos = Vector2(h.home)
+	h.on_wall = false
+	h.path.clear()
+	h.after.clear()
+	units.append(h)
 
 func start_battle() -> void:
 	if state != "prep" or wave_index >= waves.size():
@@ -331,8 +360,9 @@ func next_round() -> bool:
 	waves = rounds[round_index]
 	wave_index = 0
 	state = "prep"
-	if hero and not hero.alive:
-		_return_hero()
+	for h in heroes:
+		if not h.alive:
+			_return_hero(h)
 	return true
 
 func spawn_enemy(kind: String, cell: Vector2i, overrides := {}):
@@ -430,34 +460,81 @@ func _cost(path: Array[Vector2i]) -> float:
 func set_move_mode(group: Array, mode: String) -> void:
 	assert(mode in ["move", "attack_move"], "이동 방식 %s" % mode)
 	for u in group:
-		if u != hero:
+		if not u.is_hero:
 			u.move_mode = mode
 
 func set_hold(group: Array, on: bool) -> void:
 	for u in group:
-		if u != hero:
+		if not u.is_hero:
 			u.hold = on
 			u.anchor = u.pos  # 기준 지점은 켠 순간의 위치(I37)
 
-# 영웅 스킬(S15): 주변 skill_radius칸 안의 적 전부에게 피해. 명령으로만 쓴다
-func use_skill() -> void:
-	if not hero or not hero.alive or not hero.skill_ready():
+# 영웅 스킬(S15, S95): 영웅 h(없으면 첫 영웅, S119)가 주변 skill_radius칸에 쓴다. 명령으로만 쓴다
+# 적 피해·기절, 영웅·용병 회복, 구조물·성곽 칸 회복 가운데 그 영웅이 가진 것만 걸린다(S97, I98, S120)
+func use_skill(h = null) -> void:
+	h = h if h else hero
+	if not h or not h.alive or not h.skill_ready():
 		return
-	hero.skill_cooldown = hero.skill_gap
-	hero.skill_uses += 1
+	h.skill_cooldown = h.skill_gap
+	h.skill_uses += 1
 	for e in enemies.duplicate():
-		if e.pos.distance_to(hero.pos) <= hero.skill_radius:
-			damage(e, hero.skill_damage)
+		if e.pos.distance_to(h.pos) <= h.skill_radius:
+			e.stun_left = maxf(e.stun_left, h.skill_stun)
+			if h.skill_damage > 0.0:
+				damage(e, h.skill_damage)
+	if h.skill_heal > 0.0:
+		for u in units:
+			if u.pos.distance_to(h.pos) <= h.skill_radius:
+				u.hp = minf(u.hp + h.skill_heal, u.max_hp)
+	if h.skill_mend > 0.0:
+		for s in _fortified(h.pos, h.skill_radius):
+			s.hp = minf(s.hp + h.skill_mend, s.max_hp)
+		_repath = true  # 남은 체력이 적의 경로 비용이다(S7)
 
-# 영웅 스킬 2(S84): 지금 주변 buff_radius칸 안에 있는 용병에게만 버프를 건다(I65). 명령으로만 쓴다
-func use_buff() -> void:
-	if not hero or not hero.alive or not hero.buff_ready():
+# 영웅 스킬 2(S84, S97): 영웅 h(없으면 첫 영웅, S119)가 지금 주변 buff_radius칸 안에 있는 대상에게만 건다(I65, I97). 명령으로만 쓴다
+# 용병 공격력은 영웅에게 걸리지 않는다(I99)
+func use_buff(h = null) -> void:
+	h = h if h else hero
+	if not h or not h.alive or not h.buff_ready():
 		return
-	hero.buff_cooldown = hero.buff_gap
+	h.buff_cooldown = h.buff_gap
 	for u in units:
-		if u != hero and u.pos.distance_to(hero.pos) <= hero.buff_radius:
-			u.boost = hero.buff_mult
-			u.boost_left = hero.buff_time
+		if u.pos.distance_to(h.pos) <= h.buff_radius:
+			if not u.is_hero:
+				_apply(u, "boost", h.buff_mult, h.buff_time)
+			_apply(u, "guard", h.buff_guard, h.buff_time)
+	for e in enemies:
+		if e.pos.distance_to(h.pos) <= h.buff_radius:
+			_apply(e, "expose", h.buff_expose, h.buff_time)
+			_apply(e, "slow", h.buff_slow, h.buff_time)
+	for s in _fortified(h.pos, h.buff_radius):
+		_apply(s, "ward", h.buff_ward, h.buff_time)
+
+# W 효과 하나를 대상 t에 건다. 그 영웅에게 없는 효과(배율 1·비율 0)는 건너뛴다.
+# 같은 종류가 걸려 있으면 새 값이 크거나 같을 때만 값과 남은 시간을 바꾼다(I97)
+func _apply(t, key: String, value: float, secs: float) -> void:
+	if value <= (1.0 if key == "boost" else 0.0) or (t.get(key + "_left") > 0.0 and value < t.get(key)):
+		return
+	t.set(key, value)
+	t.set(key + "_left", secs)
+
+# 축성가 Q·W의 대상(S120): pos에서 r칸 안의 완성된 플레이어 구조물과 성곽 칸. 거점·잔해는 빠진다
+func _fortified(pos: Vector2, r: float) -> Array:
+	return (structures.values() + castle.values()).filter(func(s): return s.complete and pos.distance_to(Vector2(s.cell)) <= r)
+
+# pos에 걸리는 오라 key의 값: 살아 있는 영웅 가운데 pos가 오라 반경 안인 것의 가장 큰 값(S96, I96, I100)
+func _aura(key: String, pos: Vector2) -> float:
+	var best := 0.0
+	for h in heroes:
+		if h.alive and pos.distance_to(h.pos) <= h.aura_radius:
+			best = maxf(best, h.get(key))
+	return best
+
+# 용병 공격력 배율(I96): W(기사·장군, S84)와 장군 오라 가운데 큰 값 하나. 영웅에게는 걸리지 않는다(I99)
+func _might(u: Unit) -> float:
+	if u.is_hero:
+		return 1.0
+	return maxf(u.boost if u.boost_left > 0.0 else 1.0, 1.0 + _aura("aura_might", u.pos))
 
 # 지을 수 있는 칸에 짓는다(_buildable). 마을 레벨이 모자란 종류는 거부한다(S99). 준비 단계엔 바로 완성된다(S18).
 # 전투 단계엔 진행률 0의 미완성 구조물을 놓고 놀고 있는 가장 가까운 공병을 보낸다. 그런 공병이 없으면 거부한다(S22, I39, I62)
@@ -776,6 +853,7 @@ func _grow(s: Block, dp: float) -> void:
 # ponytail: 닿을 수 없는 칸이면 매 프레임 경로를 다시 구한다. 공병이 많아 느려지면 포기 처리를 둔다
 # ponytail: 일의 종류를 칸 상태로 고른다. 수리 몫과 그만둔 업그레이드가 함께 남은 칸은 수리부터 하고 멈춘다
 func _work(u: Unit, dt: float) -> void:
+	dt *= 1.0 + _aura("aura_work", u.pos)  # 축성가 오라: 공병이 하는 모든 일이 빨라진다(I100)
 	var s: Block = u.job
 	if u.pos.distance_to(Vector2(_site(s))) > WORK_REACH:
 		_send(u, s)
@@ -797,7 +875,7 @@ func _work(u: Unit, dt: float) -> void:
 
 # 배치 상한에 세는 살아 있는 용병 수(공병 포함, 영웅 제외, I23)
 func _mercs() -> int:
-	return units.filter(func(u): return u != hero).size()
+	return units.filter(func(u): return not u.is_hero).size()
 
 # 준비 단계에만, 플레이어가 놓은 구조물·용병을 판다(S69). 성곽·영웅 등 나머지는 건너뛴다(I56)
 func sell(things: Array) -> void:
@@ -807,7 +885,7 @@ func sell(things: Array) -> void:
 		if t is Block and structures.get(t.cell) == t:
 			structures.erase(t.cell)
 			_repath = true
-		elif t is Unit and t != hero and t in units:
+		elif t is Unit and not t.is_hero and t in units:
 			units.erase(t)
 		else:
 			continue
@@ -821,12 +899,20 @@ func refund(t) -> int:
 func damage(target, amount: float, pierce := false) -> void:
 	if not target.alive:
 		return
-	if target is Enemy and not pierce:  # 장갑(S108): 줄인 피해는 1 아래로 내려가지 않고, 원래 1 미만이면 그대로다
-		amount = maxf(amount - target.armor, minf(amount, 1.0))
-	elif target is Unit and target != hero and hero and hero.alive and target.pos.distance_to(hero.pos) <= hero.aura_radius:
-		# 오라(I82): 맞는 순간 살아 있는 영웅 가까이 있는 용병은 덜 다친다. 다운된 영웅의 오라는 풀린다(S96)
-		# ponytail: 같은 종류 효과의 겹침 규칙(S96)은 효과가 하나뿐이라 아직 없다. 영웅이 늘어나는 3.7에서 넣는다
-		amount *= 1.0 - hero.aura_guard
+	if target is Enemy:
+		if not pierce:  # 장갑(S108): 줄인 피해는 1 아래로 내려가지 않고, 원래 1 미만이면 그대로다
+			amount = maxf(amount - target.armor, minf(amount, 1.0))
+		if target.expose_left > 0.0:  # 궁수 W(I99): 장갑을 뺀 뒤에 곱한다
+			amount *= 1.0 + target.expose
+	elif target is Unit:
+		# 받는 피해 감소(I96): 사제 W(I99)와, 용병이면 맞는 순간 가까이 있는 살아 있는 영웅의 오라(I82) 가운데 큰 값 하나.
+		# 다운된 영웅의 오라는 풀린다(S96)
+		var guard: float = target.guard if target.guard_left > 0.0 else 0.0
+		if not target.is_hero:
+			guard = maxf(guard, _aura("aura_guard", target.pos))
+		amount *= 1.0 - guard
+	elif target.ward_left > 0.0:  # 축성가 W(S120): 구조물·성곽 칸만 받는다
+		amount *= 1.0 - target.ward
 	target.hp = maxf(target.hp - amount, 0.0)
 	if target.hp > 0.0:
 		return
@@ -905,6 +991,12 @@ func _target_of(e: Enemy):
 
 func _move(e: Enemy, dt: float) -> void:
 	e.cooldown -= dt
+	e.expose_left -= dt
+	e.slow_left -= dt
+	if e.stun_left > 0.0:  # 기절(I98): 움직이지도 치지도 않는다
+		e.stun_left -= dt
+		return
+	var speed := e.speed * ((1.0 - e.slow) if e.slow_left > 0.0 else 1.0)  # 마도사 W(I99)
 	if e.on_wall and not _climbable(Vector2i(e.pos.round())):  # 성벽에서 내려왔거나 그 성벽이 부서졌다(I76)
 		e.on_wall = false
 	var aim = _target_of(e)
@@ -926,9 +1018,9 @@ func _move(e: Enemy, dt: float) -> void:
 		if e.pos.distance_to(to) <= REACH:
 			_attack(e, aim)
 		else:
-			e.pos = e.pos.move_toward(to, e.speed * dt)
+			e.pos = e.pos.move_toward(to, speed * dt)
 		return
-	var left := e.speed * dt
+	var left := speed * dt
 	while left > 0.0 and not e.path.is_empty():
 		var next: Vector2i = e.path[0]
 		var target := Vector2(next)
@@ -990,19 +1082,23 @@ func _fire(dt: float) -> void:
 		if best:
 			s.cooldown = s.fire_gap
 			s.target = best
+			var hurt: float = s.damage * (1.0 + _aura("aura_gunnery", Vector2(s.cell)))  # 마도사 오라(I100)
 			for e in enemies.duplicate():
 				if e == best or (s.splash > 0.0 and e.pos.distance_to(best.pos) <= s.splash):
 					e.attacker = s
-					damage(e, s.damage, s.pierce)
+					damage(e, hurt, s.pierce)
 
 # 유닛은 명령받은 경로를 걷고(S14), 사거리 안의 가장 가까운 적을 친다(S15). 영웅은 걷는 동안에도 친다.
 # 용병은 걷는 동안 이동 방식을 따르고(S35, I35), 서 있으면 인식 범위 안의 적을 쫓는다(I36).
 # 홀드가 켜진 용병은 서 있는 동안 기준 지점 반경 안의 적만 노리고, 그 반경 밖으로 쫓아가지 않는다(S36)
 func _act(u: Unit, dt: float) -> void:
-	u.cooldown -= dt
+	u.cooldown -= dt * (1.0 + (_aura("aura_haste", u.pos) if u.range >= WALL_RANGE else 0.0))  # 궁수 오라: 원거리 아군은 더 자주 친다(I100)
 	u.skill_cooldown -= dt
 	u.buff_cooldown -= dt
 	u.boost_left -= dt
+	u.guard_left -= dt
+	if not u.is_hero:  # 사제 오라: 용병 체력이 차오른다(I100)
+		u.hp = minf(u.hp + _aura("aura_regen", u.pos) * dt, u.max_hp)
 	if u.path.is_empty() and not u.after.is_empty():  # 오르내리는 칸에 닿았다(I44, I69)
 		u.on_wall = not u.on_wall
 		u.pos = Vector2(u.after[0])
@@ -1015,12 +1111,12 @@ func _act(u: Unit, dt: float) -> void:
 	if u.on_wall and u.range < WALL_RANGE and not (top and top.open):  # 성벽 위 근접 유닛은 열린 성문 위에서만 들판의 적을 치고(S88, S89), 성벽 위의 적은 친다(I78)
 		foe = _nearest_enemy(u.pos, u.range, u.anchor, zone, true)
 	var walking := not u.path.is_empty()
-	if walking and u != hero:
+	if walking and not u.is_hero:
 		if u.move_mode == "move":
 			foe = null
 		elif foe:  # 이동 중 공격: 멈춰서 친다
 			walking = false
-	var left := u.speed * dt
+	var left := u.speed * dt * (1.0 if u.is_hero else 1.0 + _aura("aura_stride", u.pos))  # 장군 오라: 용병이 더 빨리 걷는다(I100)
 	if walking:
 		while left > 0.0 and not u.path.is_empty():
 			var to := Vector2(u.path[0]) - u.pos
@@ -1048,7 +1144,7 @@ func _act(u: Unit, dt: float) -> void:
 	if foe and u.cooldown <= 0.0:
 		u.cooldown = u.attack_gap
 		u.target = foe
-		damage(foe, u.damage * (u.boost if u.boost_left > 0.0 else 1.0))
+		damage(foe, u.damage * _might(u))
 	if u.job and u.path.is_empty():
 		_work(u, dt)
 
