@@ -804,6 +804,10 @@ func _move(e: Enemy, dt: float) -> void:
 	if aim is Unit and e.pos.distance_to(aim.pos) <= REACH and not below:
 		_attack(e, aim)
 		return
+	# 성벽 위 대포는 성벽 위에서 친다(S112). 땅에서는 아래 성벽을 치지 않고 기어오른다(S107)
+	if e.on_wall and not aim is Unit and _climbable(goal) and e.pos.distance_to(Vector2(goal)) <= REACH:
+		_attack(e, aim)
+		return
 	if e.flying:  # 막힌 칸을 넘어 대상으로 곧장 날아가 닿는 거리에서 친다(I79)
 		var to: Vector2 = aim.pos if aim is Unit else Vector2(goal)
 		if e.pos.distance_to(to) <= REACH:
