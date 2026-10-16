@@ -1,6 +1,6 @@
 # 99. 출처와 검증 기록
 
-확인 날짜는 모두 2026-10-14다. 조사는 deep-research 워크플로로 두 번 했다.
+확인 날짜는 R-26까지 2026-10-14다. 조사는 deep-research 워크플로로 두 번 했다. R-27~R-29(림월드, 2026-10-16)는 이 워크플로 밖에서 단일 검색으로 더했고 반박 검증을 하지 않았다.
 
 ```
 1차 (run wf_757ac36d-ca0) 레퍼런스 작품 → 01
@@ -46,6 +46,9 @@
 | R-24 | SC2 팀 색 과다 | 3-0, 2-1 | 2차(커뮤니티 매니저 전달의 재전달) | https://www.gosugamers.net/news/7571-graphic-change-in-the-works-for-starcraft-ii |
 | R-25 | Zach Gage Subway Legibility | 3-0 | 발표 원고 + 2차 요약 | http://stfj.net/DesigningForSubwayLegibility/ · https://gigazine.net/gsc_news/en/20180501-game-design-subway-legibility |
 | R-26 | 시험 설정값 후보표의 권장안 | 종합 | **추론** | R-13~R-25 |
+| R-27 | 림월드 유닛에 걷기·전투 애니메이션 없음 | 없음(단일 검색, 반박 검증 안 함) | 커뮤니티(Steam 토론), 확인 2026-10-16 | https://steamcommunity.com/app/294100/discussions/0/1815422173027253772 |
+| R-28 | 림월드 타일당 128px 기준, 방향 그림 남·북·동 + 서쪽은 동쪽 반전 | 없음(단일 검색) | 커뮤니티(모딩 위키, 작성 중 표시), 확인 2026-10-16 | https://rimworldwiki.com/wiki/Modding_Tutorials/Textures |
+| R-29 | 림월드 설계도 → 골조(frame) | 없음(단일 검색) | 모드 변경 기록(기본 게임의 설계도·골조를 전제로 쓴 문장), 확인 2026-10-16 | https://steamcommunity.com/sharedfiles/filedetails/changelog/1372003680 |
 
 표결 메모:
 - **R-01:** 원래 주장은 "처음 렌더한 골리앗이 납작해 보였다"였다. 원문은 "가늘게 뭉개졌다"는 뜻이라 고쳤다.
