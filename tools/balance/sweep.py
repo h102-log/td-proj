@@ -101,10 +101,20 @@ def run_one(cfg):
         [godot(), "--headless", "--path", str(ROOT), "-s", "res://tools/balance/autoplay.gd", "--", json.dumps(cfg)],
         capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=1800,
     )
+    errs = [l for l in (r.stdout + r.stderr).splitlines() if l.startswith("SCRIPT ERROR")]
     for line in r.stdout.splitlines():
         if line.startswith("RESULT "):
-            return json.loads(line[7:])
+            res = json.loads(line[7:])
+            if errs:  # 스크립트 오류가 나도 판은 끝까지 돌아 RESULT를 낸다. 봇이 엉뚱하게 둔 판일 수 있다
+                res["script_errors"] = errs[:3]
+            return res
     return {"error": (r.stdout + r.stderr)[-2000:]}
+
+
+def warn_script_errors(results):
+    bad = [r for r in results if r.get("script_errors")]
+    if bad:
+        print(f"!! 경고: 스크립트 오류가 난 판 {len(bad)}/{len(results)}개. 결과를 믿지 말 것. 첫 오류: {bad[0]['script_errors'][0]}")
 
 
 def seeds_of(text):
@@ -153,6 +163,7 @@ def main():
     jobs = [(name, dict(cfg, seed=s)) for name, cfg in configs.items() for s in seeds]
     with ThreadPoolExecutor(a.jobs) as ex:
         results = list(ex.map(lambda j: run_one(j[1]), jobs))
+    warn_script_errors(results)
     by = {}
     for (name, cfg), res in zip(jobs, results):
         res["seed"] = cfg["seed"]
@@ -167,6 +178,7 @@ def run_panel(cands, seeds, a):
     jobs = [(c, bot, dict(cands[c], bot=PANEL[bot], seed=s)) for c in cands for bot in PANEL for s in seeds]
     with ThreadPoolExecutor(a.jobs) as ex:
         results = list(ex.map(lambda j: run_one(j[2]), jobs))
+    warn_script_errors(results)
     by = {}
     for (c, bot, cfg), res in zip(jobs, results):
         res["seed"] = cfg["seed"]
