@@ -26,6 +26,7 @@ const UPGRADE_COST := {"castle_wall": 10, "gate": 20}
 const UPGRADE_MULT := 1.5
 const UPGRADE_MAX := 3
 const UPGRADE_TIME := 5.0  # 전투 중 공병이 한 단계 올리는 시간(초)
+const GATE_LOCK := 20.0  # 전투 단계에 여닫은 성문을 다시 여닫지 못하는 시간(초, S135). 핑퐁 봇 측정을 보고 사용자가 고름(insights/2026-10-16_gate_cooldown.md)
 # 수리(S114): 성곽·거점의 체력 1당 수리비(골드). 구조물은 낸 골드 ÷ 최대 체력이다. 수치는 임시값
 const REPAIR_RATE := {"castle_wall": 0.1, "gate": 0.1, "base": 1.0}
 const REPAIR_TIME := 5.0  # 전투 중 공병이 성곽·거점을 0에서 가득 채우는 시간(초, I87). 구조물은 건설 시간이다
@@ -59,6 +60,7 @@ class Block:
 	var razed := 0.0  # 철거 진행률(0~1, I64). 옮기는 대포는 1이면 접혀 새 칸으로 가는 중이다(I74)
 	var dest  # 대포를 옮겨 갈 칸(S44). 옮기는 중이 아니면 null
 	var open := false  # 열린 성문(S85). 막힌 칸이 아니다(I67)
+	var lock := 0.0  # 성문 쿨타임(S135)의 남은 초. 0보다 크면 여닫기 지시를 거부한다
 	var level := 1  # 성곽 업그레이드 단계(S86)
 	var lift := -1.0  # 업그레이드 진행률(0~1). 음수면 올리는 중이 아니다. 그만두면 그대로 남는다(I68)
 	var mend := 0.0  # 수리비를 냈지만 아직 채우지 못한 체력(I87). 0보다 크면 공병이 마저 고친다
@@ -370,6 +372,8 @@ func step(dt: float) -> void:
 					_return_hero(h)
 	for s in structures.values() + castle.values():  # 축성가 W의 남은 시간(S120)
 		s.ward_left -= dt
+	for k in castle.values() + rubble.values():  # 성문 쿨타임은 전투 단계에만 줄고, 웨이브가 끝나면 사라진다(S135)
+		k.lock = maxf(k.lock - dt, 0.0) if state == "battle" else 0.0
 
 # 영웅을 자기 시작 칸에 체력이 가득 찬 채 세운다: 쓰러졌다 돌아올 때(S26, I27, I102)와 새로 출전할 때(S124)
 # 공격·스킬 대기는 쓰러질 때 값을 이어 간다(S67)
@@ -826,14 +830,16 @@ func _exit_of(cell: Vector2i):
 			return c
 	return null
 
-# 준비·전투 단계에 성문을 열거나 닫는다(S85, S117). 성문 칸에 유닛이나 적이 있으면 닫지 않는다. 여닫으면 적 경로를 다시 구한다(I67)
+# 준비·전투 단계에 성문을 열거나 닫는다(S85, S117). 성문 칸에 유닛이나 적이 있으면 닫지 않는다. 여닫으면 적 경로를 다시 구한다(I67). 전투 단계에 여닫으면 그 성문만 GATE_LOCK초 동안 묶고, 묶인 성문과 거부된 지시는 묶지 않는다(S135)
 func set_gate(g: Block, open: bool) -> void:
-	if state not in ["prep", "battle"] or g.kind != "gate" or castle.get(g.cell) != g:
+	if state not in ["prep", "battle"] or g.kind != "gate" or castle.get(g.cell) != g or g.lock > 0.0:
 		return
 	if not open and (units + enemies).any(func(u): return Vector2i(u.pos.round()) == g.cell):
 		return
 	g.open = open
 	_repath = true
+	if state == "battle":
+		g.lock = GATE_LOCK
 
 func upgrade_cost(k: Block) -> int:
 	return UPGRADE_COST[k.kind] * (1 << (k.level - 1))

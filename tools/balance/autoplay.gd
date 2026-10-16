@@ -16,7 +16,7 @@ extends SceneTree
 #     spawn_gap: 웨이브 안에서 적이 나오는 간격(초, battle.gd SPAWN_GAP). 숫자 하나거나 라운드마다 배열
 # ponytail: 봇은 «무난한 플레이어» 하나를 흉내 낼 뿐이다. 사람의 손을 대신하지 않는다. 판정은 사람이 한다
 # 사람과 다른 점: 준비 단계를 0초로 넘긴다(준비 단계 Q·오라 회복을 쓰지 않는다). 영웅을 마을로 부르지 않고 성문을 여닫지 않고
-# 리롤하지 않는다. 잔해 위 유닛은 한 칸 물려 세운다(사람이 준비 단계에 걸어서 비키는 손을 대신한다, 복구 거부 I89를 피한다)
+# (pingpong을 켜면 쪽문 핑퐁만 한다) 리롤하지 않는다. 의뢰는 보상만 보고 수락하고 조건에 맞춰 운영을 바꾸지 않는다. 잔해 위 유닛은 한 칸 물려 세운다(사람이 준비 단계에 걸어서 비키는 손을 대신한다, 복구 거부 I89를 피한다)
 
 const BOT := {
 	"name": "balanced",
@@ -39,9 +39,17 @@ const BOT := {
 	"village_from": 3,      # 이 라운드부터
 	"station": [[20, 6], [18, 5]],
 	"vlead": 9.0,           # 마을 영웅이 쫓는 거리(거점에서, 칸)
+	"pingpong": false,      # 쪽문 핑퐁(3장 자체 점검 §5의 사람 전략): 쪽문 하나만 열고, 땅 적이 그 문 pp_dist칸 안에 오면 반대 쪽문으로 바꾼다
+	"pp_dist": 4.0,
+	"pp_from": 1,           # 이 라운드부터 핑퐁한다. 그 전에는 성문을 닫아 둔다
+	"pp_slow": 0.0,        # 0보다 크면 웨이브의 적이 다 나온 뒤 남은 땅 적이 모두 이 속도 이하(장갑·보스)일 때만 핑퐁하고, 그 전엔 성문을 닫아 둔다
+	"gate_cd": 0.0,        # 봇이 스스로 지키는 성문 쿨타임(초, 전투 단계만). 쿨타임 규칙의 값을 고르려고 흉내 낸다
+	"gate_cd_all": false,   # 참이면 성문 하나를 여닫을 때 셋이 함께 묶인다. 거짓이면 그 성문만
+	"accept": true,         # 라운드 사이에 보상이 가장 큰 의뢰를 수락한다(실패해도 벌칙이 없다, I54)
 }
 
 const GATE := Vector2i(20, 9)
+const SIDES := [Vector2i(0, 9), Vector2i(39, 9)]  # 쪽문 둘
 const FRONT := Vector2i(20, 12)
 
 # 준비 단계 쇼핑 목록: 앞에서부터 사고, 골드가 모자란 항목에서 멈춘다(우선순위 저축)
@@ -109,6 +117,8 @@ var cur := {}        # 지금 웨이브 지표
 var _think := 0.0
 var _spawned := 0    # 이번 웨이브에 나온 적 수(kills 지표). 람다는 지역 변수를 값으로 잡아 멤버로 센다
 var _vill := []      # 마을에 세운 영웅
+var _t := 0.0        # 이번 웨이브의 전투 시간
+var _gate_at := {}   # 성문 칸 → 이번 웨이브에 마지막으로 여닫은 시각(봇의 쿨타임 흉내). "all"은 셋 중 아무거나
 
 func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
@@ -190,10 +200,11 @@ func _play() -> Dictionary:
 func _begin(g0: int, spent: int) -> void:
 	cur = {
 		"r": b.round_index + 1, "w": b.wave_index + 1, "gold_in": g0, "spent_prep": spent, "unspent": b.gold,
+		"base_start": snappedf(b.base.hp / b.base.max_hp, 0.01),
 		"spent_battle": 0, "base_min": 1.0, "gate_min": 1.0, "castle_lost": 0, "struct_lost": 0,
 		"merc_lost": 0, "hero_down": 0, "leak": 0, "idle": 0.0, "secs": 0.0, "peak": 0, "kills": 0,
 		"inside_peak": 0, "base_hp_end": 1.0, "gold_out": 0,
-		"def": _defense(), "lv": b.heroes.map(func(h): return h.level), "zones": 0, "busy": 0.0,
+		"def": _defense(), "lv": b.heroes.map(func(h): return h.level), "zones": 0, "busy": 0.0, "toggles": 0,
 	}
 
 # 지금 방어 구성: 종류별 수(구조물·용병)
@@ -216,9 +227,11 @@ func _fight() -> bool:
 	var mercs_seen := {}
 	var zones_hit := [false, false, false]
 	_spawned = 0
+	_gate_at.clear()
 	var gold_track: int = b.gold
 	var t := 0.0
 	while b.state == "battle":
+		_t = t
 		var heroes_alive: int = b.heroes.filter(func(h): return h.alive).size()
 		_think -= dt
 		for u in b.units:
@@ -277,6 +290,8 @@ func _fight() -> bool:
 	cur.gate_min = snappedf(cur.gate_min, 0.01)
 	cur.gold_out = b.gold
 	cur.state = b.state
+	if b.state in ["cleared", "won"]:  # 라운드를 이겼다: 미션·의뢰 판정 [이름, 달성, 보상](I120)
+		cur.quests = b.settled.map(func(s): return [s[0], s[1], b.QUEST_KINDS[s[0]].reward])
 	log.append(cur)
 	return not cur.has("stall")
 
@@ -309,6 +324,12 @@ func _hire() -> void:
 		var kind: String = b.offers[best]
 		if b.hire(best):
 			hires.append("R%d:%s" % [b.round_index + 1 + (1 if b.state == "cleared" else 0), kind])
+	if bot.accept and b.state == "cleared" and not b.commission_offers.is_empty():
+		var best := 0
+		for i in b.commission_offers.size():
+			if b.QUEST_KINDS[b.commission_offers[i]].reward > b.QUEST_KINDS[b.commission_offers[best]].reward:
+				best = i
+		b.accept(best)
 	# 출전 중인 영웅보다 높은 등급이 목록에 있고 넉넉하면 산 뒤 경험치를 옮겨 바꿔 낸다(S62의 의도)
 	if b.state == "cleared" and b.roster.size() < hire.cap:
 		for i in b.offers.size():
@@ -345,6 +366,15 @@ func _prep() -> int:
 		if b.base.hp < b.base.max_hp * bot.base_repair_below:
 			b.repair(b.base)
 	_station()
+	if bot.pingpong:  # 준비 단계 여닫기는 쿨타임이 없다. 정문은 닫고 쪽문은 하나만 연다(pp_slow면 모두 닫는다)
+		b.set_gate(b.castle[GATE], false)
+		var gs := SIDES.map(func(c): return b.castle.get(c)).filter(func(g): return g != null)
+		if bot.pp_slow > 0.0 or b.round_index + 1 < bot.pp_from:
+			for g in gs:
+				b.set_gate(g, false)
+		elif gs.size() == 2 and gs[0].open == gs[1].open:
+			b.set_gate(gs[0], true)
+			b.set_gate(gs[1], false)
 	var done := true
 	for item in PLANS[bot.plan]:
 		if not _buy(item):
@@ -446,6 +476,8 @@ func _free_near(c: Vector2i) -> Vector2i:
 # ---------------------------------------------------------------- 전투 중 손
 
 func _battle_actions() -> void:
+	if bot.pingpong:
+		_pingpong()
 	for h in b.heroes:
 		if not h.alive:
 			continue
@@ -604,3 +636,43 @@ func _move_village_hero(h) -> void:
 			b.order_move([h], c)
 	elif h.path.is_empty() and h.pos.distance_to(Vector2(home)) > 1.5:
 		b.order_move([h], home)
+
+# 쪽문 핑퐁: 땅 적이 열린 쪽문 pp_dist칸 안(들판)에 오면 반대 쪽문을 열고 이 문을 닫는다. 쿨타임에 묶여 있으면 기다린다.
+# gate_cd_all이면 한 번에 하나만 여닫을 수 있어서, 열린 문을 먼저 닫고(그동안 적은 닫힌 문을 친다) 묶임이 풀리면 반대 문을 연다
+func _pingpong() -> void:
+	var gs := SIDES.map(func(c): return b.castle.get(c))
+	if null in gs or b.round_index + 1 < bot.pp_from:
+		return  # 쪽문이 부서져 잔해다
+	if bot.pp_slow > 0.0 and not (b._queue.is_empty() and b.enemies.all(func(e): return e.flying or (e.climb <= 0.0 and e.speed <= bot.pp_slow))):
+		return
+	var opened := gs.filter(func(g): return g.open)
+	if opened.is_empty():
+		_toggle(gs[0] if _crowd(gs[0].cell) <= _crowd(gs[1].cell) else gs[1], true)  # 적이 덜 붙은 쪽을 연다
+		return
+	var a = opened[0] if opened.size() == 1 or _crowd(opened[0].cell) >= _crowd(opened[1].cell) else opened[1]
+	if _crowd(a.cell) == 0:
+		return
+	var o = gs[1 - gs.find(a)]
+	if bot.gate_cd_all:
+		_toggle(a, false)
+	elif o.open or (_gate_free(a) and _gate_free(o)):
+		if o.open or _toggle(o, true):
+			_toggle(a, false)
+
+# 성문 칸에서 pp_dist칸 안의 들판에 있는 땅 적 수
+func _crowd(cell: Vector2i) -> int:
+	return b.enemies.filter(func(e): return not e.flying and not e.on_wall and e.pos.y >= 9.5 and e.pos.distance_to(Vector2(cell)) <= bot.pp_dist).size()
+
+func _gate_free(g) -> bool:
+	return _t - _gate_at.get("all" if bot.gate_cd_all else g.cell, -INF) >= bot.gate_cd
+
+# 묶여 있으면 거짓. 성문 칸에 적·유닛이 있어 닫기가 거부돼도 거짓이고 묶지 않는다(I67)
+func _toggle(g, open: bool) -> bool:
+	if not _gate_free(g):
+		return false
+	b.set_gate(g, open)
+	if g.open != open:
+		return false
+	_gate_at["all" if bot.gate_cd_all else g.cell] = _t
+	cur.toggles += 1
+	return true
