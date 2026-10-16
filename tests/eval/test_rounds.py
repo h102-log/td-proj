@@ -48,3 +48,7 @@ def test_EV170_round_waves_from_resource(gd):
 
 def test_EV243_downed_heroes_return_with_1_hp(gd):
     gd("rounds", "EV243")
+
+
+def test_EV253_round_hp_multiplier(gd):
+    gd("rounds", "EV253")

@@ -20,3 +20,23 @@ def test_EV226_refused_order_sets_no_lock(gd):
 
 def test_EV235_gate_toggle_reroutes_waiting_unit(gd):
     gd("gates", "EV235")
+
+
+def test_EV248_round3_ground_enemy_goes_to_nearest_gate(gd):
+    gd("gates", "EV248")
+
+
+def test_EV249_after_nearest_gate_falls_enemy_goes_to_base(gd):
+    gd("gates", "EV249")
+
+
+def test_EV250_enemy_passes_open_nearest_gate(gd):
+    gd("gates", "EV250")
+
+
+def test_EV251_flying_enemy_ignores_nearest_gate(gd):
+    gd("gates", "EV251")
+
+
+def test_EV252_round3_forecast_passes_nearest_gate(gd):
+    gd("gates", "EV252")
