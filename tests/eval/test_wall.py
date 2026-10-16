@@ -32,3 +32,7 @@ def test_EV96_merc_drops_when_wall_cell_breaks(gd):
 
 def test_EV97_archery_sells_archer(gd):
     gd("wall", "EV97")
+
+
+def test_EV233_wall_melee_hits_only_wall_enemies(gd):
+    gd("wall", "EV233")

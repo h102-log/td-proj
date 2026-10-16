@@ -48,3 +48,11 @@ def test_EV72_finish_unfinished_in_prep(gd):
 
 def test_EV73_workshop_makes_engineer(gd):
     gd("engineer", "EV73")
+
+
+def test_EV229_unreachable_engineer_order_refused(gd):
+    gd("engineer", "EV229")
+
+
+def test_EV230_reachable_engineer_takes_the_job(gd):
+    gd("engineer", "EV230")

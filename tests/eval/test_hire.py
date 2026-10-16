@@ -44,3 +44,7 @@ def test_EV202_hero_cells_in_front_of_gate_unbuildable(gd):
 
 def test_EV203_lineup_order_and_hero_hotkeys(gd):
     gd("hire", "EV203")
+
+
+def test_EV232_reroll_refused_at_roster_cap(gd):
+    gd("hire", "EV232")
