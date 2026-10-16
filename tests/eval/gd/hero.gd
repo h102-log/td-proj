@@ -63,3 +63,14 @@ func ev24():
 	b.damage(b.hero, BIG)
 	run(b, 0.5)
 	return check(b.state == "battle", "영웅 다운 뒤 판 상태가 %s다" % b.state)
+
+# EV246 · S141: 영웅은 서 있을 때 인식 범위 안의 적에게 다가가 치고, 인식 범위 밖의 적에게는 가지 않는다
+func ev246():
+	var b = battle({"hero_start": START})
+	var near = b.spawn_enemy("basic", START + Vector2i(2, 0), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})
+	var reached := run(b, 5.0, func(): return near.hp < near.max_hp)
+	var d = battle({"hero_start": START})
+	var far = d.spawn_enemy("basic", START + Vector2i(4, 0), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})
+	run(d, 3.0)
+	var stayed: bool = d.hero.pos.distance_to(Vector2(START)) < 0.01 and far.hp == far.max_hp
+	return check(reached and stayed, "2칸 앞 과녁에 다가가 침 %s(기사 %s, 인식 범위 %s) · 4칸 앞 과녁만 있으면 그대로 %s(기사 %s)" % [reached, b.hero.pos, b.hero.sight, stayed, d.hero.pos])

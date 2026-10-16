@@ -27,6 +27,7 @@ const UPGRADE_MULT := 1.5
 const UPGRADE_MAX := 3
 const UPGRADE_TIME := 5.0  # 전투 중 공병이 한 단계 올리는 시간(초)
 const GATE_LOCK := 20.0  # 전투 단계에 여닫은 성문을 다시 여닫지 못하는 시간(초, S135). 핑퐁 봇 측정을 보고 사용자가 고름(insights/2026-10-16_gate_cooldown.md)
+const COUNTER_HOLD := 3.0  # 반격 대상이 이만큼 쏘지 않아야 다른 구조물로 바뀐다(초, S140). 가장 느린 쏘는 간격(2.5초)보다 길다. 임시값
 # 수리(S114): 성곽·거점의 체력 1당 수리비(골드). 구조물은 낸 골드 ÷ 최대 체력이다. 수치는 임시값
 const REPAIR_RATE := {"castle_wall": 0.1, "gate": 0.1, "base": 1.0}
 const REPAIR_TIME := 5.0  # 전투 중 공병이 성곽·거점을 0에서 가득 채우는 시간(초, I87). 구조물은 건설 시간이다
@@ -97,7 +98,8 @@ class Enemy:
 	var slow_left := 0.0
 	var stun_left := 0.0  # 장군 Q의 기절. 남은 동안 움직이지도 치지도 않는다(I98)
 	var alive := true
-	var attacker  # 마지막으로 이 적을 쏜 구조물. 살아 있는 동안 반격 대상이다(S4 ②)
+	var attacker  # 반격 대상인 구조물. 살아 있는 동안 반격한다(S4 ②). 바뀌는 때는 _fire(S140)
+	var held := 0.0  # 반격 대상을 바꾸지 않는 남은 초(S140). 반격 대상이 쏠 때마다 COUNTER_HOLD로 돌아간다
 	var target  # 마지막으로 친 대상. 화면이 친 직후 공격선을 그린다(S71)
 	var goal: Vector2i  # 경로의 끝 칸(지금 노리는 대상의 칸)
 	var path: Array[Vector2i] = []
@@ -129,7 +131,7 @@ class Unit:
 	var paid := 0  # 놓을 때 낸 골드. 판매 환불의 기준(S69)
 	var rally_from  # 집결 지점으로 걸어가는 중이면 나온 생산 시설(I22). 닿거나 다른 이동 지시를 받으면 null
 	var job  # 공병이 맡은 구조물(짓거나 허문다, I63). 놀고 있으면 null
-	var sight := 0.0  # 인식 범위(칸). 서 있을 때 이 안의 적을 쫓는다(I36)
+	var sight := 0.0  # 인식 범위(칸). 서 있을 때 이 안의 적을 쫓는다(I36, 영웅은 S141)
 	var path: Array[Vector2i] = []  # 명령받은 이동 경로(지금 칸 제외)
 	var move_mode := "attack_move"  # "move" | "attack_move"(S35). 새 용병은 이동 중 공격(I38)
 	var hold := false  # 켜지면 anchor에서 hold_radius 안에서만 싸운다(S36)
@@ -187,7 +189,7 @@ class Unit:
 			set(key, stats[key])
 		max_hp = hp
 
-# 막힌 칸(구조물·성곽)을 «남은 체력 × 적의 wall_k» 비용 칸으로 보는 격자(S7, S34, I3, I40)
+# 막힌 칸(구조물·성곽)을 «남은 체력 × 적의 wall_k» 비용 칸으로 보는 격자(S7, S34, I3, I40). 성곽 업그레이드 배율은 빼고 센다(S139)
 class CostGrid extends AStarGrid2D:
 	var castle: Dictionary
 	var structures: Dictionary
@@ -206,10 +208,11 @@ class CostGrid extends AStarGrid2D:
 		var b = block_at(to)
 		if b and climb > 0.0 and b.kind == "castle_wall":  # 부수지 않고 넘는다(I43)
 			return Vector2(to - from).length() + climb
-		return Vector2(to - from).length() + (b.hp * wall_k if b else 0.0)
+		return Vector2(to - from).length() + (b.hp / pow(UPGRADE_MULT, b.level - 1) * wall_k if b else 0.0)
 
 var size: Vector2i
 var spawns: Array
+var forecast := []  # 출현 지점마다 기본 적이 지금 나오면 걸을 길(칸 배열, S142). 화면이 선으로 그린다
 var waves: Array  # 지금 라운드의 웨이브
 var rounds: Array  # 도전의 라운드마다 웨이브 배열(S63, I91). stage에 rounds가 없으면 waves 하나가 1라운드짜리 도전이다
 var base: Block
@@ -332,6 +335,7 @@ func restart() -> void:
 	settled.clear()
 	_reset_tally()
 	_draw_mission()  # 1라운드의 미션(I120)
+	_forecast()
 
 func step(dt: float) -> void:
 	if state == "battle":
@@ -341,6 +345,7 @@ func step(dt: float) -> void:
 		_repath = false
 		for e in enemies:
 			_find_path(e)
+		_forecast()
 	for e in enemies:
 		_move(e, dt)
 	_push_apart(enemies, units)
@@ -919,7 +924,7 @@ func _lift(k: Block, dp: float) -> void:
 	k.max_hp += gain
 	k.hp += gain
 	_release(k)
-	_repath = true  # 남은 체력이 적의 경로 비용이다(S7, I41)
+	_repath = true  # 깎인 칸은 오른 체력만큼 적의 경로 비용도 바뀐다(S7, S139)
 
 # 수리비(S114, I85): 아직 내지 않은 잃은 체력 × 체력 1당 값, 1골드 미만은 올린다.
 # 구조물은 낸 골드 ÷ 최대 체력이라 판매 환불(S69)의 나머지와 같다. 잔해는 체력 0이라 복구비가 된다(I89)
@@ -1246,6 +1251,7 @@ func _spawn_wave(dt: float) -> void:
 	spawn_enemy(_queue.pop_front(), spawns[_spawned % spawns.size()])
 	_spawned += 1
 	_spawn_timer = SPAWN_GAP
+	_forecast()  # 성곽이 깎인 만큼 길이 바뀌었을 수 있다(S142)
 
 # 대상 칸(e.goal)까지 «걷는 거리 + 막힌 칸 비용»이 가장 싼 경로. 막힌 칸과 거점은 닿는 거리에서 친다(_move).
 # 그래서 반격 대상이 성벽에 둘러싸여 있으면 비용이 가장 싼 성벽을 뚫고 간다(S6)
@@ -1256,6 +1262,11 @@ func _find_path(e: Enemy) -> void:
 	grid.climb = e.climb * e.speed
 	e.path = grid.get_id_path(Vector2i(e.pos.round()), e.goal, true)
 	grid.climb = 0.0
+
+# 출현 지점마다 기본 적이 지금 나오면 거점까지 걸을 길(S142). 장갑 적도 wall_k가 같아 같은 길이다
+func _forecast() -> void:
+	grid.wall_k = ENEMY_KINDS.basic.wall_k
+	forecast = spawns.map(func(c): return grid.get_id_path(c, base.cell, true))
 
 # 적이 지금 노리는 것(S4): ① 인식 범위 안이나 몸이 닿은 가장 가까운 유닛(영웅·용병) → ② 살아 있는 반격 대상 → ③④ 거점.
 # 마을 안의 적에게는 인식 범위 안의 마을 구조물(집·생산 시설, S43)도 ①이다(I49). 들판의 구조물은 ①이 아니다(I7). 쏘지 않는 구조물은 attacker가 되지 않는다(_fire). 반격 대상이 부서지면 ②가 끝난다(I8)
@@ -1286,6 +1297,7 @@ func _move(e: Enemy, dt: float) -> void:
 	e.cooldown -= dt
 	e.expose_left -= dt
 	e.slow_left -= dt
+	e.held -= dt
 	if e.stun_left > 0.0:  # 기절(I98): 움직이지도 치지도 않는다
 		e.stun_left -= dt
 		return
@@ -1363,6 +1375,7 @@ func _push_apart(bodies: Array, others: Array) -> void:
 				_shove(o, push, others)
 
 # 쏘는 구조물은 사거리 안에서 가장 가까운 적을 쏘고(S28, I29), 맞은 적은 그 구조물에 반격한다(S5).
+# 반격 대상이 있으면 그 대상이 COUNTER_HOLD초 동안 쏘지 않았을 때만 바꾼다. 같은 프레임이면 먼저 지은(먼저 도는) 구조물이다(S140)
 # 대포는 맞은 적 splash칸 안의 적에게도 같은 피해를 주고, 그 적들도 반격한다(S90, I73). 마법 타워는 장갑을 무시한다(S110)
 func _fire(dt: float) -> void:
 	for s in structures.values():
@@ -1378,11 +1391,13 @@ func _fire(dt: float) -> void:
 			var hurt: float = s.damage * (1.0 + _aura("aura_gunnery", Vector2(s.cell)))  # 마도사 오라(I100)
 			for e in enemies.duplicate():
 				if e == best or (s.splash > 0.0 and e.pos.distance_to(best.pos) <= s.splash):
-					e.attacker = s
+					if e.attacker == s or e.held <= 0.0 or not (e.attacker and e.attacker.alive):
+						e.attacker = s
+						e.held = COUNTER_HOLD
 					damage(e, hurt, s.pierce)
 
 # 유닛은 명령받은 경로를 걷고(S14), 사거리 안의 가장 가까운 적을 친다(S15). 영웅은 걷는 동안에도 친다.
-# 용병은 걷는 동안 이동 방식을 따르고(S35, I35), 서 있으면 인식 범위 안의 적을 쫓는다(I36).
+# 용병은 걷는 동안 이동 방식을 따른다(S35, I35). 서 있으면 영웅·용병 모두 인식 범위 안의 적을 쫓는다(I36, S141).
 # 홀드가 켜진 용병은 서 있는 동안 기준 지점 반경 안의 적만 노리고, 그 반경 밖으로 쫓아가지 않는다(S36)
 func _act(u: Unit, dt: float) -> void:
 	u.cooldown -= dt * (1.0 + (_aura("aura_haste", u.pos) if u.range >= WALL_RANGE else 0.0))  # 궁수 오라: 원거리 아군은 더 자주 친다(I100)

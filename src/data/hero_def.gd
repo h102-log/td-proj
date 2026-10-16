@@ -9,6 +9,7 @@ extends Resource
 @export var speed := 0.0
 @export var damage := 0.0
 @export var range := 0.0  # 사거리(칸)
+@export var sight := 2.5  # 인식 범위(칸, S141). 모든 영웅이 같은 임시값이라 파일마다 적지 않는다
 @export var attack_gap := 1.0  # 공격 간격(초)
 # Q(S95, I98): 주변 skill_radius칸, 재사용 대기 skill_gap초. 적 피해·기절(초), 영웅·용병 회복, 구조물·성곽 칸 회복(S120)
 @export var skill_radius := 0.0

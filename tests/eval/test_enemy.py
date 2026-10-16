@@ -28,3 +28,7 @@ def test_EV17_ignores_non_shooting_tower(gd):
 
 def test_EV18_resumes_after_counter_target_dies(gd):
     gd("enemy", "EV18")
+
+
+def test_EV245_counter_target_held_while_it_keeps_firing(gd):
+    gd("enemy", "EV245")

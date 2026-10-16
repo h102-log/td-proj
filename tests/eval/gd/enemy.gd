@@ -1,4 +1,5 @@
 extends "res://tests/eval/gd/lib.gd"
+# lib.gd 머리의 계약에 더하는 API: 적 attacker(지금 반격 대상, S4 ②·S140. 없으면 null) · 구조물 range·cooldown·fire_gap
 
 # EV11 · S4 ①: 인식 범위 안의 용병을 공격하고 거점은 건드리지 않는다
 func ev11():
@@ -86,3 +87,20 @@ func ev18():
 	b.damage(t, t.max_hp)
 	var ok := run(b, 120, func(): return at_base(b, e))
 	return check(ok, "반격 대상이 사라진 뒤 거점으로 가지 않았다")
+
+# EV245 · S140: 반격 대상은 그 구조물이 계속 쏘는 동안 다른 구조물에 맞아도 그대로이고, 3초 동안 안 쏘면 바뀐다
+func ev245():
+	var b = battle({"base_hp": BIG})
+	var a = b.build("tower", Vector2i(10, 7))
+	var c = b.build("tower", Vector2i(10, 13))
+	var e = b.spawn_enemy("basic", Vector2i(10, 10), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})
+	b.step(DT)  # 두 타워가 같은 순간에 처음 쏜다
+	var first: bool = e.attacker == a
+	c.cooldown += 0.5  # 다른 타워는 엇갈려 쏜다
+	var kept := not run(b, 5.0, func(): return e.attacker != a)
+	run(b, 2.0, func(): return a.cooldown >= a.fire_gap)  # 반격 대상이 막 쏜 때까지
+	a.range = 0.0
+	var held := not run(b, 2.5, func(): return e.attacker != a)
+	var moved := run(b, 5.0, func(): return e.attacker == c)
+	return check(first and kept and held and moved,
+		"같은 순간 처음 맞으면 먼저 지은 타워 %s · 엇갈려 쏘는 5초 동안 그대로 %s · 멈추고 2.5초 동안 그대로 %s · 그 뒤 5초 안에 바뀜 %s" % [first, kept, held, moved])
