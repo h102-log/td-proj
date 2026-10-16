@@ -111,3 +111,102 @@ func ev235():
 	var other = b.castle[A] if m.pos.distance_to(Vector2(B)) < m.pos.distance_to(Vector2(A)) else b.castle[B]
 	b.set_gate(other, true)
 	return check(run(b, 30.0, func(): return near(m.pos, goal)), "%s 성문을 연 뒤 30초가 지나도 목적지에 닿지 못했다(%s)" % [other.cell, m.pos])
+
+# S143(3라운드부터 땅 적은 출현 지점에서 가장 가까운 성문으로 먼저 간다)의 판. rounds.gd 머리의 rounds·next_round를 쓴다.
+# 세로 성벽 열(SX)에 닫힌 성문 둘. NEAR는 출현 지점(0,2)에서 직선으로 가깝고, 거점(25,17)은 FAR 쪽이라 체력이 같아도
+# FAR로 가는 길이 약 5칸 싸다. FAR 체력은 1로 깎는다. 라운드 셋, 라운드마다 kind 하나짜리 웨이브 하나
+const SX := 20
+const NEAR := Vector2i(SX, 4)
+const FAR := Vector2i(SX, 16)
+
+func _split(kind := "basic"):
+	var walls := []
+	for y in 20:
+		if y != NEAR.y and y != FAR.y:
+			walls.append(Vector2i(SX, y))
+	var w := [[{"kind": kind, "count": 1}]]
+	var b = battle({"castle": {"walls": walls, "gates": [NEAR, FAR], "wall_hp": 300, "gate_hp": 150}, "base_hp": BIG,
+		"spawns": [Vector2i(0, 2)], "base": Vector2i(25, 17), "rounds": [w, w, w]})
+	b.castle[FAR].hp = 1.0
+	return b
+
+# 1·2라운드는 나오는 적을 바로 처치해 넘기고(성문은 맞지 않는다) 3라운드 첫 준비 단계로 간다
+func _to_round3(b) -> bool:
+	for i in 2:
+		b.start_battle()
+		if not clear_wave(b) or not b.next_round():
+			return false
+	return b.round_index == 2 and b.state == "prep"
+
+func _gates(b) -> String:
+	return "NEAR %s · FAR %s" % [b.castle[NEAR].hp if b.castle.has(NEAR) else "잔해", b.castle[FAR].hp if b.castle.has(FAR) else "잔해"]
+
+# EV248 · S143: 1라운드의 기본 적은 길이 싼 FAR를 부순다. 3라운드의 기본 적은 출현 지점에서 가까운 NEAR를 친다
+func ev248():
+	var b = _split()
+	b.start_battle()
+	if not run(b, 60.0, func(): return not b.castle.has(FAR)):
+		return "1라운드: 60초 안에 FAR(체력 1)가 부서지지 않았다(%s)" % _gates(b)
+	if b.castle[NEAR].hp < b.castle[NEAR].max_hp:
+		return "1라운드: NEAR가 맞았다(%s)" % _gates(b)
+	var c = _split()
+	if not _to_round3(c):
+		return "3라운드 준비 단계로 가지 못했다(라운드 %d, %s)" % [c.round_index + 1, c.state]
+	c.start_battle()
+	var g = c.castle[NEAR]
+	run(c, 60.0, func(): return g.hp < g.max_hp or not c.castle.has(FAR))
+	return check(g.hp < g.max_hp and c.castle.has(FAR) and c.castle[FAR].hp == 1.0, "3라운드: %s(NEAR가 맞고 FAR는 체력 1 그대로여야 한다)" % _gates(c))
+
+# EV249 · S143: 3라운드의 기본 적은 노리던 성문(NEAR)이 잔해가 되면 거점으로 간다
+func ev249():
+	var b = _split()
+	if not _to_round3(b):
+		return "3라운드 준비 단계로 가지 못했다(라운드 %d, %s)" % [b.round_index + 1, b.state]
+	b.castle[NEAR].hp = 1.0
+	b.start_battle()
+	var hp0: float = b.base.hp
+	if not run(b, 60.0, func(): return b.base.hp < hp0):
+		return "60초 안에 적이 거점을 치지 않았다(%s)" % _gates(b)
+	return check(not b.castle.has(NEAR) and b.castle.has(FAR) and b.castle[FAR].hp == 1.0, "%s(NEAR는 잔해, FAR는 체력 1이어야 한다)" % _gates(b))
+
+# EV250 · S143: 3라운드의 기본 적은 열린 NEAR 칸을 지나 거점으로 간다
+func ev250():
+	var b = _split()
+	if not _to_round3(b):
+		return "3라운드 준비 단계로 가지 못했다(라운드 %d, %s)" % [b.round_index + 1, b.state]
+	b.set_gate(b.castle[NEAR], true)
+	if not b.castle[NEAR].open:
+		return "준비 단계에 NEAR가 열리지 않았다"
+	b.start_battle()
+	run(b, 5.0, func(): return not b.enemies.is_empty())
+	if b.enemies.is_empty():
+		return "5초 안에 적이 나오지 않았다"
+	var e = b.enemies[0]
+	var passed := [false]
+	var ok := run(b, 60.0, func():
+		passed[0] = passed[0] or cell_of(e) == NEAR
+		return at_base(b, e))
+	return check(ok and passed[0] and b.castle[NEAR].hp == b.castle[NEAR].max_hp and b.castle.has(FAR) and b.castle[FAR].hp == 1.0,
+		"거점에 닿음 %s · NEAR 칸을 지남 %s · %s(성문 둘 체력 그대로여야 한다)" % [ok, passed[0], _gates(b)])
+
+# EV251 · S143: 3라운드에도 비행 적은 성문으로 가지 않고 거점으로 곧장 난다
+func ev251():
+	var b = _split("flying")
+	if not _to_round3(b):
+		return "3라운드 준비 단계로 가지 못했다(라운드 %d, %s)" % [b.round_index + 1, b.state]
+	b.start_battle()
+	var hp0: float = b.base.hp
+	if not run(b, 60.0, func(): return b.base.hp < hp0):
+		return "60초 안에 비행 적이 거점을 치지 않았다(%s)" % _gates(b)
+	return check(b.castle[NEAR].hp == b.castle[NEAR].max_hp and b.castle.has(FAR) and b.castle[FAR].hp == 1.0, "%s(성문 둘 체력 그대로여야 한다)" % _gates(b))
+
+# EV252 · S142·S143: 예상 경로는 1라운드 준비 단계에 FAR를, 3라운드 준비 단계에 NEAR를 지나 거점에서 끝난다
+func ev252():
+	var b = _split()
+	var p: Array = b.forecast[0]
+	if FAR not in p or NEAR in p or p[-1] != b.base.cell:
+		return "1라운드 예상 경로가 FAR를 지나 거점에서 끝나지 않는다(%s)" % [p]
+	if not _to_round3(b):
+		return "3라운드 준비 단계로 가지 못했다(라운드 %d, %s)" % [b.round_index + 1, b.state]
+	var q: Array = b.forecast[0]
+	return check(NEAR in q and FAR not in q and q[-1] == b.base.cell, "3라운드 준비 단계 예상 경로가 NEAR를 지나 거점에서 끝나지 않는다(%s)" % [q])

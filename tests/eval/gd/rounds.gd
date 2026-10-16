@@ -307,3 +307,27 @@ func ev243():
 	var back: bool = r.state == "prep" and k in r.heroes and k.present and k.hp == k.max_hp
 	return check(wave and later and benched and back,
 		"부활 켜짐: 웨이브 끝 체력 1 %s(%s) · 부활 꺼짐: 다음 라운드 체력 1 %s(%s) · 빠졌다 다시 출전: 빠짐 %s, 최대 체력 %s(%s/%s)" % [wave, b.hero.hp, later, d.hero.hp, benched, back, k.hp, k.max_hp])
+
+# EV253 · S144: 라운드 체력 배율(stage 키 hp_mult: [라운드마다 배율], 없으면 1). 3라운드(1.5)의 기본 적은 체력·최대 체력이 1.5배이고
+# 1라운드는 그대로다. 처치 보상은 배율과 상관없다
+func ev253():
+	var w := [[{"kind": "basic", "count": 1}]]
+	var b = battle({"base_hp": BIG, "rounds": [w, w, w], "hp_mult": [1.0, 1.0, 1.5]})
+	var hp: float = b.ENEMY_KINDS.basic.hp
+	var got := []
+	for r in 3:
+		if r > 0 and not b.next_round():
+			return "%d라운드로 넘어가지 못했다(%s)" % [r + 1, b.state]
+		b.start_battle()
+		if not run(b, 5.0, func(): return not b.enemies.is_empty()):
+			return "%d라운드에 5초 안에 적이 나오지 않았다" % (r + 1)
+		var e = b.enemies[0]
+		got.append([e.hp, e.max_hp])
+		var g0: int = b.gold
+		b.damage(e, BIG)
+		if r == 2 and b.gold != g0 + b.ENEMY_KINDS.basic.reward:
+			return "3라운드 적 처치 보상이 %d다(basic %d여야 한다)" % [b.gold - g0, b.ENEMY_KINDS.basic.reward]
+		if not clear_wave(b):
+			return "%d라운드 웨이브가 끝나지 않았다" % (r + 1)
+	var ok: bool = is_equal_approx(got[0][0], hp) and is_equal_approx(got[0][1], hp) and is_equal_approx(got[2][0], hp * 1.5) and is_equal_approx(got[2][1], hp * 1.5)
+	return check(ok, "라운드별 [체력, 최대 체력] %s(1라운드 %s, 3라운드 %s여야 한다)" % [got, hp, hp * 1.5])

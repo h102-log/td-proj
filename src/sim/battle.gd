@@ -28,6 +28,7 @@ const UPGRADE_MAX := 3
 const UPGRADE_TIME := 5.0  # 전투 중 공병이 한 단계 올리는 시간(초)
 const GATE_LOCK := 20.0  # 전투 단계에 여닫은 성문을 다시 여닫지 못하는 시간(초, S135). 핑퐁 봇 측정을 보고 사용자가 고름(insights/2026-10-16_gate_cooldown.md)
 const COUNTER_HOLD := 3.0  # 반격 대상이 이만큼 쏘지 않아야 다른 구조물로 바뀐다(초, S140). 가장 느린 쏘는 간격(2.5초)보다 길다. 임시값
+const GATE_SPLIT_ROUND := 3  # 이 라운드부터 땅 적은 출현 지점에서 가장 가까운 성문을 먼저 노린다(S143). 임시값
 # 수리(S114): 성곽·거점의 체력 1당 수리비(골드). 구조물은 낸 골드 ÷ 최대 체력이다. 수치는 임시값
 const REPAIR_RATE := {"castle_wall": 0.1, "gate": 0.1, "base": 1.0}
 const REPAIR_TIME := 5.0  # 전투 중 공병이 성곽·거점을 0에서 가득 채우는 시간(초, I87). 구조물은 건설 시간이다
@@ -102,6 +103,7 @@ class Enemy:
 	var held := 0.0  # 반격 대상을 바꾸지 않는 남은 초(S140). 반격 대상이 쏠 때마다 COUNTER_HOLD로 돌아간다
 	var target  # 마지막으로 친 대상. 화면이 친 직후 공격선을 그린다(S71)
 	var goal: Vector2i  # 경로의 끝 칸(지금 노리는 대상의 칸)
+	var via = null  # 먼저 노리는 성문 칸(S143). 그 칸에 들어서거나 성문이 잔해가 되면 null
 	var path: Array[Vector2i] = []
 
 	func _init(k: String, cell: Vector2i, stats: Dictionary) -> void:
@@ -420,6 +422,7 @@ func next_round() -> bool:
 	for h in heroes:
 		if not h.alive:
 			_return_hero(h)
+	_forecast()  # 라운드에 따라 길이 성문을 지난다(S142, S143)
 	return true
 
 # [동작] 도전 시작 전 영입 창(S122)을 연다. main·HUD가 새 도전(restart) 직후에 부른다
@@ -580,12 +583,31 @@ func quest_met(name: String) -> bool:
 	return q.zero.all(func(k): return tally[k] == 0) and (q.time_limit <= 0.0 or tally.battle_time <= q.time_limit)
 
 func spawn_enemy(kind: String, cell: Vector2i, overrides := {}):
-	var e := Enemy.new(kind, cell, ENEMY_KINDS[kind].merged(overrides, true))
+	var stats: Dictionary = ENEMY_KINDS[kind].merged(overrides, true)
+	stats.hp *= _hp_mult()  # 라운드 체력 배율(S144). 처치 보상은 그대로다
+	var e := Enemy.new(kind, cell, stats)
+	if not e.flying:
+		e.via = _gate_of(cell)
 	e.goal = base.cell
 	_find_path(e)
 	enemies.append(e)
 	enemy_spawned.emit(e)
 	return e
+
+# 지금 라운드의 적 체력 배율(S144). stage에 hp_mult가 없거나 짧으면 1이다
+func _hp_mult() -> float:
+	var m: Array = _stage.get("hp_mult", [])
+	return m[round_index] if round_index < m.size() else 1.0
+
+# GATE_SPLIT_ROUND부터 그 칸에서 가장 가까운(직선 거리) 성문 칸. 거리가 같으면 성문 목록에서 앞선 것이다. 그 전이거나 성문이 없으면 null(S143)
+func _gate_of(cell: Vector2i):
+	if round_index + 1 < GATE_SPLIT_ROUND:
+		return null
+	var best = null
+	for g in _stage.get("castle", {}).get("gates", []):
+		if best == null or Vector2(cell).distance_to(Vector2(g)) < Vector2(cell).distance_to(Vector2(best)):
+			best = g
+	return best
 
 # 준비 단계가 시작될 때 걷는 세금: 완성된 집의 세금 합이다. 미완성·부서진·팔린 집은 내지 않는다(I46, S102)
 func tax() -> int:
@@ -1263,12 +1285,18 @@ func _find_path(e: Enemy) -> void:
 	e.path = grid.get_id_path(Vector2i(e.pos.round()), e.goal, true)
 	grid.climb = 0.0
 
-# 출현 지점마다 기본 적이 지금 나오면 거점까지 걸을 길(S142). 장갑 적도 wall_k가 같아 같은 길이다
+# 출현 지점마다 기본 적이 지금 나오면 거점까지 걸을 길(S142). 장갑 적도 wall_k가 같아 같은 길이다.
+# 3라운드부터는 그 출현 지점의 성문(S143)을 지나고, 그 성문이 잔해면 곧장 거점까지다
 func _forecast() -> void:
 	grid.wall_k = ENEMY_KINDS.basic.wall_k
-	forecast = spawns.map(func(c): return grid.get_id_path(c, base.cell, true))
+	forecast = spawns.map(func(c):
+		var g = _gate_of(c)
+		if g == null or not castle.has(g):
+			return grid.get_id_path(c, base.cell, true)
+		return grid.get_id_path(c, g, true) + grid.get_id_path(g, base.cell, true).slice(1))
 
 # 적이 지금 노리는 것(S4): ① 인식 범위 안이나 몸이 닿은 가장 가까운 유닛(영웅·용병) → ② 살아 있는 반격 대상 → ③④ 거점.
+# 3라운드부터 땅 적은 ③ 앞에 출현 지점에서 가장 가까운 성문을 먼저 노린다. 그 칸에 들어서거나 잔해가 되면 거점이다(S143).
 # 마을 안의 적에게는 인식 범위 안의 마을 구조물(집·생산 시설, S43)도 ①이다(I49). 들판의 구조물은 ①이 아니다(I7). 쏘지 않는 구조물은 attacker가 되지 않는다(_fire). 반격 대상이 부서지면 ②가 끝난다(I8)
 func _target_of(e: Enemy):
 	var best = null
@@ -1291,6 +1319,10 @@ func _target_of(e: Enemy):
 		return best
 	if e.attacker and e.attacker.alive:
 		return e.attacker
+	if e.via != null:
+		if castle.has(e.via) and Vector2i(e.pos.round()) != e.via:
+			return castle[e.via]
+		e.via = null
 	return base
 
 func _move(e: Enemy, dt: float) -> void:

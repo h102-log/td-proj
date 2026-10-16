@@ -8,3 +8,7 @@ def test_EV79_battle_uses_resource_values(gd):
 
 def test_EV80_test_stage_waves_from_resource(gd):
     gd("data", "EV80")
+
+
+def test_EV254_test_stage_round_hp_multipliers(gd):
+    gd("data", "EV254")
