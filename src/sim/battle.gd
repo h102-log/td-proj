@@ -598,20 +598,25 @@ func raise_village() -> bool:
 func can_buy(kind: String) -> bool:
 	return not village.has_area() or structures.values().any(func(s): return s.complete and kind in s.produces)
 
-# 준비 단계에만, 막힌 칸·거점이 아닌 맵 안 칸에 바로 놓는다(S18). 골드가 모자라면 거부한다(I16)
+# 준비 단계에만, 놓을 수 있는 칸(_merc_cell)에 바로 놓는다(S18). 성곽 칸이면 그 칸의 성벽 위에 선다(I134). 골드가 모자라면 거부한다(I16)
 # 시설 조건(S50)은 보지 않는다. 플레이어의 구매는 Controls가 can_buy로 먼저 묻는다
 func place_merc(kind: String, cell: Vector2i, overrides := {}):
-	if state != "prep" or not grid.is_in_boundsv(cell) or grid.block_at(cell) or cell == base.cell:
+	if state != "prep" or not _merc_cell(cell):
 		return null
 	var stats: Dictionary = MERC_KINDS[kind].merged(overrides, true)
 	if gold < stats.cost or _mercs() >= merc_cap:
 		return null
 	gold -= stats.cost
 	var m := Unit.new(kind, cell, stats)
+	m.on_wall = castle.has(cell)
 	m.paid = stats.cost
 	units.append(m)
 	tally.merc_bought += 1  # 라운드 집계(I119)
 	return m
+
+# 용병을 놓을 수 있는 칸: 거점이 아닌 맵 안 칸 가운데 막히지 않은 칸이나, 대포가 없는 성곽 칸(I134)
+func _merc_cell(cell: Vector2i) -> bool:
+	return grid.is_in_boundsv(cell) and cell != base.cell and (not grid.block_at(cell) or (castle.has(cell) and not structures.has(cell)))
 
 # 유닛들을 그 칸으로 보낸다(S14). 맵 밖 칸이면 무시한다. 성곽 칸이면 성벽 위의 그 칸으로 간다(I69)
 func order_move(group: Array, cell: Vector2i) -> void:
@@ -784,18 +789,39 @@ func build(kind: String, cell: Vector2i, overrides := {}):
 	return s
 
 # 빈 칸(구조물·거점·유닛·적이 없는 맵 안 칸, I24)이다. 생산 시설·집은 마을 안, 나머지는 마을 밖이고,
-# 성곽 칸에는 대포만 성벽 칸(성문 제외)에 짓는다(S43, I72)
-func _buildable(kind: String, cell: Vector2i) -> bool:
+# 성곽 칸에는 대포만 성벽 칸(성문 제외)에 짓는다(S43, I72). taken은 유닛·적이 선 칸(_taken)이고, 칸을 여럿 물을 때 한 번 모아 넘긴다
+func _buildable(kind: String, cell: Vector2i, taken = null) -> bool:
 	if not grid.is_in_boundsv(cell) or structures.has(cell) or cell == base.cell or rubble.has(cell):  # 잔해 칸에는 짓지 못한다(I88)
 		return false
 	if cell in _stage.get("hero_cells", []):  # 출전 칸에는 짓지 못한다(I107). 영웅이 서거나 돌아올 칸이다
 		return false
 	if castle.has(cell) and (kind != "cannon" or castle[cell].kind != "castle_wall"):
 		return false
-	if (units + enemies).any(func(u): return Vector2i(u.pos.round()) == cell):
+	if (taken if taken != null else _taken()).has(cell):
 		return false
 	var def: Dictionary = STRUCTURE_KINDS[kind]
 	return village.has_point(cell) == (not def.produces.is_empty() or def.tax > 0)
+
+# 유닛·적이 선 칸(I24)
+func _taken() -> Dictionary:
+	var out := {}
+	for u in units + enemies:
+		out[Vector2i(u.pos.round())] = true
+	return out
+
+# 놓기 모드에서 지금 그 지시가 받아들여지는 칸(S45, I138). 골드·공병은 보지 않는다
+func placeable_cells(kind: String) -> Array:
+	var building := kind in STRUCTURE_KINDS
+	if (STRUCTURE_KINDS[kind].village_level > village_level) if building else (state != "prep" or not can_buy(kind)):
+		return []
+	var taken := _taken()  # 칸마다 유닛·적을 훑으면 40×32 맵에서 18ms라 한 번 모은다
+	var out := []
+	for x in size.x:
+		for y in size.y:
+			var c := Vector2i(x, y)
+			if _buildable(kind, c, taken) if building else _merc_cell(c):
+				out.append(c)
+	return out
 
 func structure_at(cell: Vector2i):
 	return structures.get(cell)
@@ -845,7 +871,7 @@ func _exit_of(cell: Vector2i):
 			return c
 	return null
 
-# 준비·전투 단계에 성문을 열거나 닫는다(S85, S117). 성문 칸에 유닛이나 적이 있으면 닫지 않는다. 여닫으면 적 경로를 다시 구한다(I67). 전투 단계에 여닫으면 그 성문만 GATE_LOCK초 동안 묶고, 묶인 성문과 거부된 지시는 묶지 않는다(S135)
+# 준비·전투 단계에 성문을 열거나 닫는다(S85, S117). 성문 칸에 유닛이나 적이 있으면 닫지 않는다. 여닫으면 적(I67)과 걷던 유닛(I133)의 경로를 다시 구한다. 전투 단계에 여닫으면 그 성문만 GATE_LOCK초 동안 묶고, 묶인 성문과 거부된 지시는 묶지 않는다(S135)
 func set_gate(g: Block, open: bool) -> void:
 	if state not in ["prep", "battle"] or g.kind != "gate" or castle.get(g.cell) != g or g.lock > 0.0:
 		return
@@ -853,6 +879,11 @@ func set_gate(g: Block, open: bool) -> void:
 		return
 	g.open = open
 	_repath = true
+	for u in units:  # 걷던 유닛도 지금 목적지까지 길을 다시 구한다(I133). 일하러 가는 공병은 그대로 둔다
+		if u.job == null and not (u.path.is_empty() and u.after.is_empty()):
+			var r = u.rally_from
+			order_move([u], (u.after if not u.after.is_empty() else u.path).back())
+			u.rally_from = r
 	if state == "battle":
 		g.lock = GATE_LOCK
 
@@ -1035,6 +1066,13 @@ func _idle_engineer(cell: Vector2i):
 			best = u
 	return best
 
+# 전투 중 공병 지시(I125)를 맡을 공병이 없는 이유(I128): 칸들 가운데 하나라도 맡을 공병이 있으면 "",
+# 놀고 있는 공병이 하나도 없으면 "none", 있는데 어느 칸에도 닿지 못하면 "far". 칸이 비면(놓기 버튼) 놀고 있는 공병이 있는지만 본다
+func engineer_gap(cells: Array) -> String:
+	if not units.any(func(u): return u.kind == "engineer" and u.job == null):
+		return "none"
+	return "" if cells.is_empty() or cells.any(func(c): return _idle_engineer(c) != null) else "far"
+
 # 지금 막힌 칸(닫힌 성문·성벽·구조물)을 지나지 않고 그 칸까지 걸어갈 수 있다(I125). 끝 칸은 일하는 자리라 막혀 있어도 된다
 func _reaches(u: Unit, cell: Vector2i) -> bool:
 	grid.wall_k = UNIT_WALL_K  # _send와 같은 유닛 경로
@@ -1151,6 +1189,7 @@ func damage(target, amount: float, pierce := false) -> void:
 	target.alive = false
 	if target == base:
 		state = "lost"
+		settled = [mission, commission].filter(func(n): return n != "").map(func(n): return [n, false])  # 진 라운드의 미션·의뢰는 모두 실패다(I131)
 	elif target is Enemy:
 		enemies.erase(target)
 		gold += target.reward

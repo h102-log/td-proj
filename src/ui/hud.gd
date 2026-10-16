@@ -8,11 +8,13 @@ extends CanvasLayer
 # 보유 영웅의 레벨·경험치(I117), 라운드 사이의 경험치 이관(S127, I116), 라운드 사이의 의뢰 목록과 수락(S77, I121).
 # 준비·전투 단계에는 윗줄 아래에 이번 라운드의 미션과 수락한 의뢰를 보이고, 결과 창에 지난 라운드의 달성·실패를 보인다(I122).
 # 결과 창의 버튼만 키보드 포커스를 받는다. 창이 열리면 «1라운드 시작»·«다음 라운드»·«새 도전»에 포커스가 간다(I12, I110)
+# 출전 영웅마다 Q·W 대기와 쓰러짐(I129), 고른 용병의 이동 방식·홀드 버튼(I139)을 보인다. 눌리지 않는 놓기·공병 지시 버튼에는 이유를 붙인다(I128, I132)
 
 const NAMES := {"wall": "방벽", "tower": "타워", "magic": "마법 타워", "soldier": "용병", "barracks": "병영", "engineer": "공병", "workshop": "작업장", "archer": "궁수", "cannon": "대포", "archery": "사격장", "house": "집"}
 const STATES := {"prep": "준비", "battle": "전투", "hiring": "영입", "cleared": "라운드 사이", "won": "승리", "lost": "패배"}
 const HEROES := {"knight": "기사(근접 전열)", "bowman": "궁수(원거리)", "mason": "축성가(구조물)", "priest": "사제(회복)", "general": "장군(지휘)", "mage": "마도사(광역)"}  # 이름(역할), S97
 const GRADES := ["동", "은", "금"]  # S94
+const GAPS := {"none": " (공병 없음)", "far": " (닿는 공병 없음)"}  # 공병 지시를 맡을 공병이 없는 이유(I128)
 
 var battle
 var controls
@@ -47,6 +49,13 @@ var _quests := VBoxContainer.new()  # 라운드 사이 영입 칸 안의 의뢰 
 var _quests_info := Label.new()
 var _commissions := []  # 의뢰 목록 칸마다 수락 버튼
 var _seen := ""  # 마지막으로 본 판 단계. 바뀌었을 때 결과 창이 떠 있으면 포커스를 준다
+var _place_text := {}  # kind → 이유를 붙이기 전의 놓기 버튼 글자(I132)
+var _mode: Button  # 고른 용병의 이동 방식 전환(I139)
+var _hold: Button  # 고른 용병의 홀드 전환(I139)
+var _heroes := Label.new()  # 출전 영웅마다 Q·W 대기와 쓰러짐(I129)
+var _gap := ""  # 고른 것의 칸에 공병 지시를 맡을 공병이 없는 이유(I128). _engineer_gap이 _gap_for 칸에서 _gap_at(ms)에 쟀다
+var _gap_for := []
+var _gap_at := 0
 
 func _init(b, c) -> void:
 	battle = b
@@ -72,15 +81,23 @@ func _ready() -> void:
 		var kind: String = controls.PLACE_KEYS[key]
 		_place[kind] = _button(row, "%s %d (%s)" % [NAMES[kind], costs[kind].cost, OS.get_keycode_string(key)], func(): controls.placing = kind)
 		_place[kind].toggle_mode = true
+		_place_text[kind] = _place[kind].text
 	_start = _button(row, "전투 시작 (Enter)", _start_battle)
+	_mode = _button(row, "", controls.toggle_move_mode)
+	_hold = _button(row, "", controls.toggle_hold)
 	col.add_child(_hint)
 	col.add_child(_quest)
-	_result.set_anchors_preset(Control.PRESET_CENTER)
+	col.add_child(_heroes)
+	# 윗변과 너비를 고정해 아래로만 자란다. 영입·리롤·내보내기로 줄이 바뀌어도 위의 버튼이 움직이지 않게(I136)
+	_result.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	_result.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_result.grow_vertical = Control.GROW_DIRECTION_BOTH
+	_result.offset_top = 8
+	_result.custom_minimum_size.x = 480
 	root.add_child(_result)
 	var box := VBoxContainer.new()
 	_result.add_child(box)
+	for v in [box, _hire, _quests]:  # 줄 사이를 좁혀 가장 긴 라운드 사이 창(보유 4명·결과 2줄·의뢰 2개, 기본 간격이면 370px)도 화면(360px) 안에 든다(I136)
+		v.add_theme_constant_override("separation", 2)
 	_result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(_result_label)
 	box.add_child(_hire)
@@ -121,21 +138,29 @@ func _process(_delta: float) -> void:
 	var n: int = battle.waves.size()
 	var round_no: int = battle.round_index + 1
 	_info.text = "골드 %d (세금 +%d) · 라운드 %d/%d · 웨이브 %d/%d · %s · 마을 Lv%d" % [battle.gold, battle.tax(), round_no, battle.rounds.size(), mini(battle.wave_index + 1, n), n, STATES[battle.state], battle.village_level]
+	var none: String = GAPS.get(battle.engineer_gap([]), "") if battle.state == "battle" else ""  # 놓기 버튼은 칸을 모르니 공병이 아예 없을 때만(I128)
 	for kind in _place:
-		_place[kind].disabled = not (prep or (battle.state == "battle" and kind in battle.STRUCTURE_KINDS))
-		# 마을 레벨이 모자란 시설(S99)과, 준비 단계에 시설이 없어 못 사는 용병(S50)
-		if kind in battle.STRUCTURE_KINDS:
-			_place[kind].disabled = _place[kind].disabled or battle.STRUCTURE_KINDS[kind].village_level > battle.village_level
-		elif prep:
-			_place[kind].disabled = _place[kind].disabled or not battle.can_buy(kind)
+		var lock := _place_lock(kind, none) if battle.state in ["prep", "battle"] else ""
+		_place[kind].text = _place_text[kind] + lock
+		_place[kind].disabled = battle.state not in ["prep", "battle"] or lock != ""
 		_place[kind].button_pressed = controls.placing == kind
 	_start.disabled = not prep
+	var mercs: Array = controls.selected.filter(func(u): return not u.is_hero and u.alive)  # 고른 용병의 이동 방식·홀드(U11, I139)
+	_mode.visible = battle.state in ["prep", "battle"] and not mercs.is_empty()
+	_hold.visible = _mode.visible
+	if _mode.visible:
+		var moving: int = mercs.filter(func(u): return u.move_mode == "move").size()
+		_mode.text = ("무조건 이동" if moving == mercs.size() else "이동 중 공격" if moving == 0 else "이동 방식 섞임") + " (A)"
+		var held: int = mercs.filter(func(u): return u.hold).size()
+		_hold.text = ("홀드 켬" if held == mercs.size() else "홀드 끔" if held == 0 else "홀드 섞임") + " (H)"
 	_hint.visible = controls.placing != "" or controls.moving != null
 	_hint.text = "%s 놓기: 좌클릭 · 끝내기: 우클릭·ESC" % NAMES.get(controls.placing, "")
 	if controls.moving:
 		_hint.text = "대포 옮길 칸: 좌클릭 · 끝내기: 우클릭·ESC"
 	_quest.visible = battle.state in ["prep", "battle"] and (battle.mission != "" or battle.commission != "")
 	_quest.text = " · ".join(_quest_lines())
+	_heroes.visible = battle.state in ["prep", "battle"] and not battle.heroes.is_empty()
+	_heroes.text = "   ".join(_hero_lines())
 	_result.visible = battle.state in ["hiring", "cleared", "won", "lost"]
 	_result_label.text = {"hiring": "도전 시작 — 영웅 영입", "cleared": "%d라운드 승리" % round_no, "won": "도전 성공!", "lost": "%d라운드 패배 — 도전 끝" % round_no}.get(battle.state, "")
 	for s in battle.settled:  # 지난 라운드의 미션·의뢰 판정(I120, I122)
@@ -172,6 +197,13 @@ func _process(_delta: float) -> void:
 		controls.fort = null
 	var k = controls.fort
 	var live: bool = k != null and k.alive
+	# 공병 지시 버튼(철거·옮기기·이어 짓기·업그레이드·수리·복구)은 고른 것의 칸에 맡을 공병이 없으면 끄고 이유를 붙인다(I128)
+	var gap: String = GAPS.get(_engineer_gap((controls.picked + ([k] if k else []) + ([battle.base] if controls.village else [])).map(func(t): return t.cell)), "")
+	_demolish.text = "철거" + gap
+	_move.text = "옮기기" + gap
+	_resume.text = "이어 짓기" + gap
+	for b in [_demolish, _move, _resume, _upgrade, _repair]:
+		b.disabled = gap != ""
 	_gate.visible = live and k.kind == "gate" and battle.state in ["prep", "battle"]
 	if _gate.visible:  # 쿨타임 중이면 누르지 못하고 남은 초를 올림해 붙인다(I123). 성문 칸에 누가 있어 못 닫으면 «(칸 막힘)»(I124)
 		var stuck: bool = k.open and battle.occupied(k.cell)
@@ -180,24 +212,26 @@ func _process(_delta: float) -> void:
 	# 공병이 올리는 중이면 숨긴다. 그만둔 업그레이드는 «계속»으로 골드 없이 이어 올린다(I68)
 	_upgrade.visible = live and battle.state in ["prep", "battle"] and k.level < battle.UPGRADE_MAX and k.worker == null
 	if _upgrade.visible:
-		_upgrade.text = "업그레이드 계속" if k.lift >= 0.0 else "업그레이드 %d골드" % battle.upgrade_cost(k)
+		_upgrade.text = ("업그레이드 계속" if k.lift >= 0.0 else "업그레이드 %d골드" % battle.upgrade_cost(k)) + gap
 	if controls.placing != "":
 		controls.village = false
 	_village.visible = controls.village and prep and battle.village_level <= battle.VILLAGE_UP.size()
-	if _village.visible:
-		_village.text = "마을 레벨 %d로 올리기 %d골드" % [battle.village_level + 1, battle.VILLAGE_UP[battle.village_level - 1]]
+	if _village.visible:  # 그 레벨에 열리는 시설 이름을 붙인다(I132)
+		var opens: Array = battle.STRUCTURE_KINDS.keys().filter(func(s): return battle.STRUCTURE_KINDS[s].village_level == battle.village_level + 1).map(func(s): return NAMES[s])
+		_village.text = "마을 레벨 %d로 올리기 %d골드" % [battle.village_level + 1, battle.VILLAGE_UP[battle.village_level - 1]] + ("" if opens.is_empty() else " — " + ", ".join(opens))
 	var fix := _to_repair()
 	_repair.visible = not fix.is_empty()
 	if _repair.visible:
-		_repair.text = "수리 %d골드" % fix.reduce(func(n, t): return n + battle.repair_cost(t), 0)
+		_repair.text = "수리 %d골드" % fix.reduce(func(n, t): return n + battle.repair_cost(t), 0) + gap
 	_restore.visible = k != null and battle.rubble.get(k.cell) == k and k.worker == null and battle.state in ["prep", "battle"]
 	if _restore.visible:  # 잔해 칸에 누가 있으면 복구하지 못한다(I124)
 		var blocked: bool = battle.occupied(k.cell)
-		_restore.text = "복구 %d골드" % battle.repair_cost(k) + (" (칸 막힘)" if blocked else "")
-		_restore.disabled = blocked
+		_restore.text = "복구 %d골드" % battle.repair_cost(k) + (" (칸 막힘)" if blocked else "") + gap
+		_restore.disabled = blocked or gap != ""
 	_popup.reset_size()
-	# 맵 px → 화면 좌표. 전투 화면(BattleView)이 원점에 있어 카메라 변환만 곱한다
-	_popup.position = get_viewport().get_canvas_transform() * controls.sell_at + Vector2(6, 6)
+	# 맵 px → 화면 좌표. 전투 화면(BattleView)이 원점에 있어 카메라 변환만 곱한다. 화면 밖으로 나가면 안으로 당긴다(I137)
+	var at: Vector2 = get_viewport().get_canvas_transform() * controls.sell_at + Vector2(6, 6)
+	_popup.position = at.clamp(Vector2.ZERO, get_viewport().get_visible_rect().size - _popup.size)
 
 # 키보드 포커스를 받지 않는다. 받으면 Enter·Space가 맵 대신 마지막에 누른 버튼을 누른다
 func _button(parent: Control, text: String, on_press: Callable) -> Button:
@@ -268,14 +302,53 @@ func _show_hire() -> void:
 			var on: bool = battle.commission == battle.commission_offers[i]
 			_commissions[i].text = "%s · +%d골드 · %s" % [q.text, q.reward, "수락함 (다시 누르면 무름)" if on else "수락"]
 
-# 미션·수락한 의뢰 줄(I122): «미션: 조건 (+N골드)»와 «의뢰: 조건 (+N골드)»
+# 미션·수락한 의뢰 줄(I122): «미션: 조건 (+N골드)»와 «의뢰: 조건 (+N골드)». 조건이 깨졌으면 «— 실패»를 붙인다(I131)
 func _quest_lines() -> Array:
 	var out := []
 	for pair in [["미션", battle.mission], ["의뢰", battle.commission]]:
 		if pair[1] != "":
 			var q: Dictionary = battle.QUEST_KINDS[pair[1]]
-			out.append("%s: %s (+%d골드)" % [pair[0], q.text, q.reward])
+			out.append("%s: %s (+%d골드)" % [pair[0], q.text, q.reward] + ("" if battle.quest_met(pair[1]) else " — 실패"))
 	return out
+
+# 출전 영웅 줄(I129): «F1 기사 — Q 가능 · W 12초». W가 열리기 전이면 «W Lv3»(I114), 쓰러졌으면 «쓰러짐(다음 준비 단계에 복귀)»
+func _hero_lines() -> Array:
+	var out := []
+	for i in battle.heroes.size():
+		var h = battle.heroes[i]
+		var now := "쓰러짐(%s에 복귀)" % ("다음 준비 단계" if battle.revive else "다음 라운드")
+		if h.alive:
+			var w := "W 가능" if h.buff_ready() else "W %d초" % ceili(h.buff_cooldown)
+			if h.level < battle.LEVELS.buff_level:
+				w = "W Lv%d" % battle.LEVELS.buff_level
+			now = ("Q 가능" if h.skill_ready() else "Q %d초" % ceili(h.skill_cooldown)) + " · " + w
+		out.append("F%d %s — %s" % [i + 1, HEROES[h.kind].get_slice("(", 0), now])
+	return out
+
+# 놓기 버튼이 눌리지 않는 이유(I132): 마을 레벨(S99), 전투 단계의 공병(none, I128)·용병(S81), 준비 단계의 시설(S50). 눌리면 ""
+func _place_lock(kind: String, none: String) -> String:
+	if kind in battle.STRUCTURE_KINDS:
+		var need: int = battle.STRUCTURE_KINDS[kind].village_level
+		return " (마을 Lv%d)" % need if need > battle.village_level else none
+	if battle.state == "battle":
+		return " (시설에서 구매)"
+	if battle.can_buy(kind):
+		return ""
+	for s in battle.STRUCTURE_KINDS:  # 그 용병을 파는 시설
+		if kind in battle.STRUCTURE_KINDS[s].produces:
+			return " (%s 없음)" % NAMES[s]
+	return ""
+
+# 고른 것의 칸에 공병 지시를 맡을 공병이 없는 이유(I128). 전투 단계가 아니거나 고른 것이 없으면 ""
+# ponytail: 닿는지 보는 A*가 무거워(성문이 모두 닫히면 1회 7ms) 같은 칸이면 0.3초마다만 다시 잰다. 그사이 바뀐 공병 사정은 늦게 보인다
+func _engineer_gap(cells: Array) -> String:
+	if battle.state != "battle" or cells.is_empty():
+		return ""
+	if cells != _gap_for or Time.get_ticks_msec() - _gap_at > 300:
+		_gap = battle.engineer_gap(cells)
+		_gap_for = cells
+		_gap_at = Time.get_ticks_msec()
+	return _gap
 
 # 레벨과 경험치(I117): «Lv2 35/50»(다음 레벨의 누적 경험치까지). 최대 레벨이면 «Lv5 최대»
 func _level(h) -> String:

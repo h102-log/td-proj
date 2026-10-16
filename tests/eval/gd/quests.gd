@@ -254,3 +254,15 @@ func ev221():
 	b.restart()
 	var clean: bool = b.mission == "base_safe" and b.commission == "" and b.commission_offers.is_empty() and b.settled.is_empty() and b.TALLY_KEYS.all(func(k): return b.tally[k] == 0)
 	return check(clean, "새 도전: 미션 %s · 의뢰 %s · 목록 %s · 판정 %s · 집계 %s" % [b.mission, b.commission, b.commission_offers, b.settled, b.tally])
+
+# EV234 · I131: 라운드에 지면 그 라운드의 미션과 수락한 의뢰는 모두 실패로 판정되고 보상이 없다
+func ev234():
+	var b = battle({"base_hp": BIG, "rounds": ONE_ONE, "quests": ["mercs_safe", "no_buying"]})
+	if not _win_round(b) or b.commission_offers != ["no_buying"] or not b.accept(0):
+		return "1라운드를 이기고 no_buying을 수락하지 못했다(%s, 목록 %s)" % [b.state, b.commission_offers]
+	b.next_round()
+	b.start_battle()
+	var gold: int = b.gold
+	b.damage(b.base, BIG)
+	return check(b.state == "lost" and b.settled == [["mercs_safe", false], ["no_buying", false]] and b.gold == gold,
+		"단계 %s · 판정 %s · 골드 %d → %d" % [b.state, b.settled, gold, b.gold])

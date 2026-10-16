@@ -42,6 +42,9 @@ func _draw() -> void:
 		draw_rect(_rect(s.cell), col if s.complete and s.razed < 1.0 else Color(col, 0.4))
 		if s.dest != null:  # 옮겨 갈 칸(S44)
 			draw_rect(_rect(s.dest), col, false, 1.0)
+	if controls.placing != "":  # 놓기 모드: 지금 지을(놓을) 수 있는 칸을 엷게(S45, I138)
+		for c in battle.placeable_cells(controls.placing):
+			draw_rect(_rect(c), Color(1, 1, 1, 0.25))
 	for s in battle.structures.values() + battle.castle.values():  # 축성가 W를 받은 칸(I101)
 		if s.ward_left > 0.0:
 			draw_rect(_rect(s.cell).grow(-1), MARKS.ward, false, 1.0)
@@ -94,6 +97,12 @@ func _draw() -> void:
 			if e.get(key + "_left") > 0.0:
 				draw_arc(_center(e.pos), CELL * (e.radius + ring), 0.0, TAU, 24, MARKS[key], 1.0)
 				ring += 0.15
+	for h in battle.heroes:  # 쓰러진 영웅: 복귀할 때까지 쓰러진 자리에 그 영웅 색의 X(I130)
+		if not h.alive:
+			var c := _center(h.pos)
+			var r := Vector2(CELL, CELL) * 0.3
+			draw_line(c - r, c + r, HERO_COLORS[h.kind], 2.0)
+			draw_line(c + Vector2(-r.x, r.y), c + Vector2(r.x, -r.y), HERO_COLORS[h.kind], 2.0)
 	# 공격선: 친 뒤 0.1초 동안 아군은 흰색, 적은 빨간색(S71). 대상이 무엇이든 그린다(I59)
 	for u in battle.units:
 		if u.target and u.cooldown > u.attack_gap - 0.1:

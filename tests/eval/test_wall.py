@@ -36,3 +36,7 @@ def test_EV97_archery_sells_archer(gd):
 
 def test_EV233_wall_melee_hits_only_wall_enemies(gd):
     gd("wall", "EV233")
+
+
+def test_EV236_prep_place_on_castle_cell_stands_on_wall(gd):
+    gd("wall", "EV236")

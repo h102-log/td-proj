@@ -99,3 +99,15 @@ func ev226():
 	b.damage(e, BIG)
 	b.set_gate(g, false)
 	return check(not g.open, "거부된 닫기 뒤에 쿨타임이 걸려 다시 닫지 못했다")
+
+# EV235 · I133: 닫힌 성문 앞에서 기다리던 용병은 다른 성문이 열리면 그쪽으로 돌아가 목적지에 닿는다
+func ev235():
+	var b = _battle()
+	var m = b.place_merc("soldier", Vector2i(10, 3))
+	var goal := Vector2i(20, 3)
+	b.order_move([m], goal)
+	if run(b, 10.0, func(): return near(m.pos, goal)):
+		return "성문이 모두 닫혔는데 10초 안에 목적지에 닿았다(%s)" % m.pos
+	var other = b.castle[A] if m.pos.distance_to(Vector2(B)) < m.pos.distance_to(Vector2(A)) else b.castle[B]
+	b.set_gate(other, true)
+	return check(run(b, 30.0, func(): return near(m.pos, goal)), "%s 성문을 연 뒤 30초가 지나도 목적지에 닿지 못했다(%s)" % [other.cell, m.pos])
