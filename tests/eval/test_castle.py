@@ -28,3 +28,7 @@ def test_EV87_upgrade_keeps_damage_taken(gd):
 
 def test_EV88_interrupted_upgrade_resumes_free(gd):
     gd("castle", "EV88")
+
+
+def test_EV244_upgraded_gate_keeps_enemy_route(gd):
+    gd("castle", "EV244")

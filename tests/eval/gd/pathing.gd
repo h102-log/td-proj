@@ -96,3 +96,26 @@ func _ev10_route(k: float) -> String:
 	if not run(b, 300, func(): return at_base(b, e)):
 		return "stuck"
 	return "broke" if b.structure_at(Vector2i(3, 5)) == null else "detour"
+
+# EV247 · S142: 예상 경로는 출현 지점마다 거점까지 이어지고, 막힌 칸이 바뀌면 다시 구하며, 나온 기본 적은 그 길로 간다
+# Battle.forecast — 출현 지점마다 기본 적의 예상 경로(칸 배열, 출현 지점부터 거점까지)
+func ev247():
+	var b = battle({"base_hp": BIG, "spawns": [Vector2i(0, 5), Vector2i(0, 15)], "waves": [[{"kind": "basic", "count": 1}]]})
+	var paths: Array = b.forecast
+	if paths.size() != 2 or paths.any(func(p): return p.is_empty() or p[-1] != b.base.cell) or paths[0][0] != Vector2i(0, 5) or paths[1][0] != Vector2i(0, 15):
+		return "예상 경로가 출현 지점마다 거점까지 이어지지 않는다(%s)" % [paths]
+	var mid: Vector2i = paths[0][paths[0].size() / 2]
+	if b.build("wall", mid) == null:
+		return "예상 경로 가운데 칸 %s에 방벽을 짓지 못했다" % mid
+	b.step(DT)
+	var path: Array = b.forecast[0]
+	if mid in path:
+		return "방벽을 지은 뒤에도 예상 경로가 %s를 지난다" % mid
+	b.start_battle()
+	run(b, 5.0, func(): return not b.enemies.is_empty())
+	var e = b.enemies[0]
+	var worst := [0.0]
+	var ok := run(b, 60.0, func():
+		worst[0] = maxf(worst[0], path.map(func(c): return e.pos.distance_to(Vector2(c))).min())
+		return at_base(b, e))
+	return check(ok and worst[0] <= 0.75, "거점에 닿음 %s · 예상 경로에서 가장 멀어진 거리 %.2f칸(0.75 이하여야 한다)" % [ok, worst[0]])

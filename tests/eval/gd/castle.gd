@@ -160,3 +160,21 @@ func ev88():
 	if b.gold != gold0:
 		return "다시 업그레이드하니 골드가 %d → %d다" % [gold0, b.gold]
 	return check(run(b, 30.0, func(): return k.level == lv + 1), "이어 올리지 못했다(단계 %d)" % k.level)
+
+# EV244 · S139: 성벽보다 단단하게 올린 성문도 길 비용은 1단계 때와 같아서, 적은 성문을 친다
+func ev244():
+	var walls := []
+	for y in 20:
+		if y != GATE.y:
+			walls.append(Vector2i(X, y))
+	var b = battle({"castle": {"walls": walls, "gates": [GATE], "wall_hp": 300, "gate_hp": 250}, "base_hp": BIG,
+		"waves": [[{"kind": "basic", "count": 1}]]})
+	var g = b.castle[GATE]
+	b.upgrade(g)
+	if g.level != 2 or g.max_hp <= 300:
+		return "성문이 성벽보다 단단해지지 않았다(단계 %d, 체력 %s)" % [g.level, g.max_hp]
+	b.start_battle()
+	var hurt := func(): return b.castle.values().filter(func(k): return k.hp < k.max_hp).map(func(k): return k.cell)
+	if not run(b, 60.0, func(): return not hurt.call().is_empty()):
+		return "60초 안에 적이 성곽을 치지 않았다"
+	return check(hurt.call() == [GATE], "적이 친 성곽 칸이 %s다(성문 %s여야 한다)" % [hurt.call(), GATE])

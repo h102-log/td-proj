@@ -20,3 +20,7 @@ def test_EV23_no_return_when_revive_off(gd):
 
 def test_EV24_hero_down_is_not_defeat(gd):
     gd("hero", "EV24")
+
+
+def test_EV246_hero_chases_enemy_within_sight(gd):
+    gd("hero", "EV246")

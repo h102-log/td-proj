@@ -57,6 +57,8 @@ func _draw() -> void:
 		draw_rect(_rect(f.rally).grow(-5), Color.WHITE)
 	for c in battle.spawns:
 		draw_rect(_rect(c).grow(-3), COLORS.spawn, false, 2.0)
+	for p in battle.forecast:  # 기본 적의 예상 경로(S142): 엷은 빨간 선, 유닛 아래에. 너비 1이면 1배 줌에서 칸 중심을 지나는 가로·세로 구간이 안 그려진다
+		draw_polyline(PackedVector2Array(p.map(func(c): return _center(Vector2(c)))), Color(COLORS.spawn, 0.5), 1.5)
 	var base = battle.base
 	draw_rect(_rect(base.cell), COLORS.base)
 	for p in residents(battle, Time.get_ticks_msec() / 1000.0):

@@ -20,3 +20,7 @@ def test_EV9_default_enemy_detours_longest_maze(gd):
 
 def test_EV10_wall_coefficient_per_enemy_type(gd):
     gd("pathing", "EV10")
+
+
+def test_EV247_forecast_path_per_spawn(gd):
+    gd("pathing", "EV247")
