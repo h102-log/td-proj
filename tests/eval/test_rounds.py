@@ -44,3 +44,7 @@ def test_EV169_test_challenge_rounds(gd):
 
 def test_EV170_round_waves_from_resource(gd):
     gd("rounds", "EV170")
+
+
+def test_EV243_downed_heroes_return_with_1_hp(gd):
+    gd("rounds", "EV243")

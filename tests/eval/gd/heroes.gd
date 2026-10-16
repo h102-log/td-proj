@@ -9,9 +9,11 @@ extends "res://tests/eval/gd/lib.gd"
 #   용병 kind "archer"(궁수)·"engineer"(공병) · 적 kind "flying"(나는 적) · 적 overrides 키 armor
 # 수치는 영웅 필드에서 읽는다. 임시값이라(S97·S121) 밸런스를 바꿔도 효과를 재는 평가는 깨지지 않게. EV172·EV173만 표를 대조한다
 # 성곽 맵은 repair.gd와 같다: 9행이 가로 성곽(성문 5·15·25열, 모두 닫힘), 위쪽(0~8행)이 마을, 아래쪽이 들판
+# Q·W와 그 대기, 사제 오라 회복은 전투 단계에만 돈다(S136). 그래서 그것을 재는 평가는 _start로 전투 단계를 연 뒤 잰다
 
 const H := Vector2i(10, 10)
 const GATES := [Vector2i(5, 9), Vector2i(15, 9), Vector2i(25, 9)]
+const ONE := [{"kind": "basic", "count": 1}]  # 적 하나짜리 웨이브
 const EFFECTS := ["skill_damage", "skill_stun", "skill_heal", "skill_mend", "buff_mult", "buff_expose", "buff_guard", "buff_ward", "buff_slow",
 	"aura_guard", "aura_haste", "aura_work", "aura_regen", "aura_might", "aura_stride", "aura_gunnery"]
 const S97 := {
@@ -31,7 +33,7 @@ func _hero(kind: String, cell: Vector2i) -> Dictionary:
 	return {"kind": kind, "cell": cell}
 
 func _heroes(team: Array, over := {}):
-	var stage := {"heroes": team, "base_hp": BIG}
+	var stage := {"heroes": team, "base_hp": BIG, "waves": [ONE]}
 	stage.merge(over, true)
 	return battle(stage)
 
@@ -41,7 +43,7 @@ func _castle(over := {}):
 		if Vector2i(x, 9) not in GATES:
 			walls.append(Vector2i(x, 9))
 	var stage := {"base": Vector2i(15, 4), "spawns": [Vector2i(15, 19)], "village": Rect2i(0, 0, 30, 9), "base_hp": BIG,
-		"castle": {"walls": walls, "gates": GATES, "wall_hp": 300, "gate_hp": 150}}
+		"castle": {"walls": walls, "gates": GATES, "wall_hp": 300, "gate_hp": 150}, "waves": [ONE]}
 	stage.merge(over, true)
 	return battle(stage)
 
@@ -124,6 +126,7 @@ func ev174():
 func ev175():
 	var b = _heroes([_hero("knight", Vector2i(5, 5)), _hero("mage", Vector2i(10, 5))])
 	var c = controls(b)
+	_start(b)
 	var k = b.heroes[0]
 	var m = b.heroes[1]
 	_key(c, KEY_Q)
@@ -140,6 +143,7 @@ func ev175():
 func ev176():
 	for kind in ["bowman", "general", "mage"]:
 		var b = _heroes([_hero(kind, H)])
+		_start(b)
 		var near = _dummy(b, H + Vector2i(2, 0))
 		var hard = _dummy(b, H + Vector2i(0, 2), {"armor": 2.0})
 		var far = _dummy(b, H + Vector2i(3, 0))
@@ -153,9 +157,10 @@ func ev176():
 # EV177 · I98: 장군 Q에 맞은 적은 기절해 움직이지도 치지도 않는다
 func ev177():
 	var b = _heroes([_hero("general", H)])
+	var m = b.place_merc("soldier", H + Vector2i(2, 1))
+	_start(b)
 	b.spawn_enemy("basic", H + Vector2i(1, 1), {"hp": BIG, "damage": 5.0})  # 옆 용병을 친다
 	var walker = b.spawn_enemy("basic", H + Vector2i(0, -2), {"hp": BIG, "sight": 0, "damage": 0})  # 거점으로 걷는다
-	var m = b.place_merc("soldier", H + Vector2i(2, 1))
 	b.use_skill()
 	var at: Vector2 = walker.pos
 	var hp0: float = m.hp
@@ -173,6 +178,7 @@ func ev178():
 	var a = b.place_merc("soldier", H + Vector2i(1, 0))
 	var full = b.place_merc("soldier", H + Vector2i(0, 2))
 	var far = b.place_merc("soldier", H + Vector2i(3, 0))
+	_start(b)
 	b.damage(p, 40)
 	b.damage(a, 30)
 	b.damage(full, 10)
@@ -192,6 +198,7 @@ func ev179():
 	var t = b.build("tower", Vector2i(12, 10))
 	if t == null:
 		return "타워를 짓지 못했다"
+	_start(b)
 	var k = b.castle[Vector2i(11, 9)]
 	var far = b.castle[Vector2i(20, 9)]
 	b.damage(t, 60)
@@ -210,6 +217,7 @@ func ev179():
 # EV180 · I99: 궁수 W를 받은 적은 장갑을 뺀 피해에 배율만큼 더 다친다
 func ev180():
 	var b = _heroes([_hero("bowman", H)])
+	_start(b)
 	var near = _dummy(b, H + Vector2i(3, 0), {"armor": 2.0})
 	var far = _dummy(b, H + Vector2i(4, 0), {"armor": 2.0})
 	var x: float = b.hero.buff_expose
@@ -226,6 +234,7 @@ func ev181():
 	var t = b.build("tower", Vector2i(12, 10))
 	if t == null:
 		return "타워를 짓지 못했다"
+	_start(b)
 	var k = b.castle[Vector2i(11, 9)]
 	var w: float = b.hero.buff_ward
 	b.use_buff()
@@ -242,6 +251,7 @@ func ev182():
 	var p = b.hero
 	var a = b.place_merc("soldier", H + Vector2i(1, 0))
 	var far = b.place_merc("soldier", H + Vector2i(4, 0))
+	_start(b)
 	var g: float = p.buff_guard
 	b.use_buff()
 	var got := [_hit(b, p, 10.0), _hit(b, a, 10.0), _hit(b, far, 10.0)]
@@ -254,6 +264,7 @@ func ev182():
 # EV183 · I99: 마도사 W를 받은 걷는 적·나는 적은 느려진다
 func ev183():
 	var b = _heroes([_hero("mage", H)])
+	_start(b)
 	var walk = b.spawn_enemy("basic", H + Vector2i(1, 0), {"hp": BIG, "sight": 0, "damage": 0})
 	var fly = b.spawn_enemy("flying", H + Vector2i(0, 1), {"hp": BIG, "sight": 0, "damage": 0})
 	var far = b.spawn_enemy("basic", H + Vector2i(0, -5), {"hp": BIG, "sight": 0, "damage": 0})
@@ -316,6 +327,7 @@ func ev186():
 	var near = b.place_merc("soldier", H + Vector2i(1, 0))
 	var far = b.place_merc("soldier", H + Vector2i(5, 0))
 	var k = b.heroes[1]
+	_start(b)
 	for x in [near, far, k]:
 		b.damage(x, 20)
 	var hp := [near.hp, far.hp, k.hp]
@@ -362,6 +374,7 @@ func ev188():
 func ev189():
 	var b = _heroes([_hero("knight", H), _hero("general", H + Vector2i(0, 2)), _hero("priest", H + Vector2i(0, -2))])
 	var m = b.place_merc("soldier", H + Vector2i(2, 0))  # 기사 오라·W, 장군 오라, 사제 W 안
+	_start(b)
 	var d = _dummy(b, H + Vector2i(3, 0))  # 세 영웅의 사거리 밖
 	b.use_buff(b.heroes[0])
 	b.use_buff(b.heroes[2])
@@ -376,6 +389,7 @@ func ev189():
 func ev190():
 	var b = _heroes([_hero("knight", H), _hero("general", H + Vector2i(0, 3))])
 	var m = b.place_merc("soldier", H + Vector2i(2, 0))  # 기사 W 안, 장군 W 안, 장군 오라 밖
+	_start(b)
 	var d = _dummy(b, H + Vector2i(3, 0))
 	var k = b.heroes[0]
 	b.use_buff(k)
@@ -397,7 +411,7 @@ func ev191():
 	for h in b.heroes:
 		b.damage(h, BIG)
 	clear_wave(b)
-	var back: bool = b.state == "prep" and b.heroes.all(func(h): return h.present and h.hp == h.max_hp) and near(b.heroes[0].pos, ka, 0.01) and near(b.heroes[1].pos, pa, 0.01)
+	var back: bool = b.state == "prep" and b.heroes.all(func(h): return h.present and h.hp == 1.0) and near(b.heroes[0].pos, ka, 0.01) and near(b.heroes[1].pos, pa, 0.01)  # 체력 1로 돌아온다(S138)
 	var m = b.place_merc("soldier", Vector2i(12, 5))
 	return check(back and m != null, "돌아옴 %s(%s) · 상한 1에서 용병 %s" % [back, b.heroes.map(func(h): return [h.kind, h.pos, h.hp]), m])
 
@@ -425,3 +439,43 @@ func ev231():
 func _down_first_then_q(bc: Array) -> void:
 	bc[0].damage(bc[0].heroes[0], BIG)
 	_key(bc[1], KEY_Q)
+
+# EV238 · S136: 준비 단계의 Q·W 키는 아무 일도 하지 않고 재사용 대기도 시작하지 않는다. 전투 단계에는 쓴다
+func ev238():
+	var b = _heroes([_hero("knight", H)])
+	var c = controls(b)
+	var d = _dummy(b, H + Vector2i(1, 0))
+	var k = b.hero
+	_key(c, KEY_Q)
+	_key(c, KEY_W)
+	var idle: bool = k.skill_uses == 0 and k.skill_ready() and k.buff_ready() and d.hp == d.max_hp
+	b.start_battle()
+	_key(c, KEY_Q)
+	_key(c, KEY_W)
+	return check(idle and k.skill_uses == 1 and d.hp < d.max_hp and not k.buff_ready(),
+		"준비 단계 Q·W 뒤 그대로 %s · 전투 단계: Q %d번, 과녁 체력 %s/%s, W 대기 시작 %s" % [idle, k.skill_uses, d.hp, d.max_hp, not k.buff_ready()])
+
+# EV239 · S136: 전투 단계가 아닐 때(준비 단계·라운드 사이)는 Q·W 대기가 줄지 않고 사제 오라 회복도 멈춘다
+func ev239():
+	var b = _heroes([_hero("knight", H), _hero("priest", H + Vector2i(0, 2))], {"rounds": [[ONE, ONE], [ONE]]})
+	var k = b.hero
+	var m = b.place_merc("soldier", H + Vector2i(1, 0))  # 사제 오라 안
+	_start(b)
+	b.use_skill(k)
+	b.use_buff(k)
+	b.damage(m, 20)
+	clear_wave(b)
+	var now := func(): return [k.skill_cooldown, k.buff_cooldown, m.hp]
+	var at: Array = now.call()
+	run(b, 10.0)
+	var prep: bool = b.state == "prep" and now.call() == at
+	var after_prep: Array = now.call()
+	_start(b)
+	run(b, 1.0)
+	var fight: bool = k.skill_cooldown < at[0] and m.hp > at[2]
+	clear_wave(b)
+	var between: Array = now.call()
+	run(b, 10.0)
+	var cleared: bool = b.state == "cleared" and now.call() == between
+	return check(prep and fight and cleared,
+		"준비 단계 10초 [Q 대기, W 대기, 용병 체력] %s → %s · 전투 단계 1초에 줄고 오름 %s · 라운드 사이(%s) 10초 %s → %s" % [at, after_prep, fight, b.state, between, now.call()])

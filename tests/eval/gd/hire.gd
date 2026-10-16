@@ -280,13 +280,15 @@ func ev203():
 	var c = controls(b)
 	_key(c, KEY_F2)
 	var picked: bool = c.selected == [m]
+	b.start_battle()  # Q는 전투 단계에만 쓴다(S136)
 	_key(c, KEY_Q)
 	var mage_q: bool = m.skill_uses == 1 and k.skill_uses == 0
-	if not _win_round(b):
+	if not clear_wave(b) or not _win_round(b):
 		return "1라운드를 이기지 못했다(%s)" % b.state
 	b.set_lineup(m, false)
 	b.set_lineup(p, true)
 	b.next_round()
+	b.start_battle()
 	_key(c, KEY_Q)
 	var first_q: bool = k.skill_uses == 1 and m.skill_uses == 1 and p.skill_uses == 0
 	return check(picked and mage_q and first_q, "F2로 마도사 고름 %s · 마도사가 Q %s · 다음 라운드엔 기사가 Q %s" % [picked, mage_q, first_q])

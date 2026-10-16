@@ -8,7 +8,7 @@ const COLORS := {
 	"wall": Color("5a5a5a"), "tower": Color("3060b0"), "magic": Color("7030a0"), "merc": Color("50a0f0"),
 	"village": Color("6b6b4a"), "barracks": Color("a06a30"),
 	"workshop": Color("308080"), "engineer": Color("f0a030"), "archer": Color("60d0a0"), "cannon": Color("303060"), "archery": Color("40a070"),
-	"house": Color("b08060"), "resident": Color("f0e0b0"),
+	"house": Color("b08060"), "resident": Color("f0e0b0"), "church": Color("c8c8e8"),
 }
 const ENEMY_COLORS := {  # 적 종류마다 다른 색(I81)
 	"basic": Color("d04040"), "fast": Color("f08030"), "armored": Color("807070"), "flying": Color("e050c0"), "boss": Color("801010"),
@@ -110,8 +110,8 @@ func _draw() -> void:
 	for e in battle.enemies:
 		if e.target and e.cooldown > e.attack_gap - 0.1:
 			draw_line(_center(e.pos), _center(_pos_of(e.target)), Color.RED, 1.0)
-	# 스킬 범위 원(S72): 영웅마다(I101). ponytail: 0.3초는 임시값, 짧거나 길면 바꾼다
-	for h in battle.heroes:
+	# 스킬 범위 원(S72): 영웅마다(I101). 대기는 전투 단계에만 줄어(S136) 전투 단계에만 그린다. ponytail: 0.3초는 임시값, 짧거나 길면 바꾼다
+	for h in (battle.heroes if battle.state == "battle" else []):
 		if h.alive and h.skill_cooldown > h.skill_gap - 0.3:
 			draw_arc(_center(h.pos), CELL * h.skill_radius, 0.0, TAU, 48, Color.WHITE, 1.0)
 		if h.alive and h.buff_cooldown > h.buff_gap - 0.3:  # 스킬 2 범위 원(S72, I65)

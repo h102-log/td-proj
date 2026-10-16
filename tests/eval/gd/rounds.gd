@@ -228,8 +228,8 @@ func ev167():
 	clear_wave(d)
 	var away: bool = d.state == "cleared" and not d.hero.present
 	d.next_round()
-	var back: bool = d.state == "prep" and d.hero.present and d.hero.hp == d.hero.max_hp and near(d.hero.pos, start, 0.01)
-	return check(kept and away and back, "살아 있는 영웅 그대로 %s · 쓰러진 영웅: 라운드 사이엔 없음 %s, 다음 라운드엔 시작 지점에 최대 체력 %s" % [kept, away, back])
+	var back: bool = d.state == "prep" and d.hero.present and d.hero.hp == 1.0 and near(d.hero.pos, start, 0.01)  # 체력 1로 돌아온다(S138)
+	return check(kept and away and back, "살아 있는 영웅 그대로 %s · 쓰러진 영웅: 라운드 사이엔 없음 %s, 다음 라운드엔 시작 지점에 체력 1 %s(%s)" % [kept, away, back, d.hero.hp])
 
 # EV168 · I67: 1라운드에 연 성문은 다음 라운드에도 열려 있다
 func ev168():
@@ -269,3 +269,41 @@ func ev170():
 	b.start_battle()
 	run(b, 10.0)
 	return check(n[0] == 2, "2라운드 첫 웨이브에 적이 %d명 나왔다(2명이어야 한다)" % n[0])
+
+# EV243 · S138: 쓰러진 영웅은 체력 1로 돌아온다(부활이 켜져 있으면 다음 준비 단계, 꺼져 있으면 다음 라운드).
+#   쓰러진 채 출전에서 빠졌다가 다시 출전한 영웅은 S124대로 최대 체력이다
+func ev243():
+	var start := Vector2i(20, 5)
+	var b = battle({"hero_start": start, "base_hp": BIG, "rounds": [[ONE, ONE], [ONE]]})
+	b.start_battle()
+	run(b, 1.0)
+	b.damage(b.hero, BIG)
+	clear_wave(b)
+	var wave: bool = b.state == "prep" and b.hero.present and b.hero.hp == 1.0 and near(b.hero.pos, start, 0.01)
+	var d = battle({"hero_start": start, "base_hp": BIG, "rounds": ONE_ONE})
+	d.revive = false
+	d.start_battle()
+	run(d, 1.0)
+	d.damage(d.hero, BIG)
+	clear_wave(d)
+	d.next_round()
+	var later: bool = d.state == "prep" and d.hero.present and d.hero.hp == 1.0
+	var r = battle({"hero_cells": [Vector2i(10, 5), Vector2i(12, 5)], "seed": 7, "base_hp": BIG, "rounds": [[ONE], [ONE], [ONE]]})
+	r.begin_hiring()
+	r.offers = ["knight", "priest", "mage"]
+	var k = r.hire(0)
+	r.hire(1)
+	r.next_round()
+	r.start_battle()
+	r.damage(k, BIG)
+	clear_wave(r)
+	r.set_lineup(k, false)
+	r.next_round()
+	var benched: bool = not k.present and k not in r.heroes
+	r.start_battle()
+	clear_wave(r)
+	r.set_lineup(k, true)
+	r.next_round()
+	var back: bool = r.state == "prep" and k in r.heroes and k.present and k.hp == k.max_hp
+	return check(wave and later and benched and back,
+		"부활 켜짐: 웨이브 끝 체력 1 %s(%s) · 부활 꺼짐: 다음 라운드 체력 1 %s(%s) · 빠졌다 다시 출전: 빠짐 %s, 최대 체력 %s(%s/%s)" % [wave, b.hero.hp, later, d.hero.hp, benched, back, k.hp, k.max_hp])
