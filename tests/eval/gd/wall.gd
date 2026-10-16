@@ -149,3 +149,20 @@ func ev97():
 	if a == null or a.kind != "archer" or a.range < 2.0:
 		return "궁수를 사지 못했다(%s)" % a
 	return check(b.gold == gold0 - b.MERC_KINDS.archer.cost, "골드 %d → %d(궁수 값 %d)" % [gold0, b.gold, b.MERC_KINDS.archer.cost])
+
+# EV233 · I78: 성벽 위 근접 용병은 바로 아래 마을 칸의 적과, 자기를 치는 비행 적을 치지 못한다(S88 글자대로)
+func ev233():
+	var b = _battle()
+	var m = _up(b, "soldier", TOP)
+	if m == null:
+		return "용병이 성벽에 오르지 못했다"
+	_start(b)
+	var x = _dummy(b, TOP + Vector2i(0, -1))
+	run(b, 5.0)
+	var inside: bool = x.hp == BIG
+	b.damage(x, BIG)
+	var f = b.spawn_enemy("flying", TOP + Vector2i(0, 1), {"speed": 0, "hp": BIG})
+	var h0: float = m.hp
+	run(b, 5.0)
+	return check(inside and f.hp == BIG and m.hp < h0,
+		"마을 칸 과녁 그대로 %s · 비행 적 체력 %s(그대로여야 한다) · 용병이 비행 적에게 맞음 %s(%s → %s)" % [inside, f.hp, m.hp < h0, h0, m.hp])

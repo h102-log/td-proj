@@ -400,3 +400,28 @@ func ev191():
 	var back: bool = b.state == "prep" and b.heroes.all(func(h): return h.present and h.hp == h.max_hp) and near(b.heroes[0].pos, ka, 0.01) and near(b.heroes[1].pos, pa, 0.01)
 	var m = b.place_merc("soldier", Vector2i(12, 5))
 	return check(back and m != null, "돌아옴 %s(%s) · 상한 1에서 용병 %s" % [back, b.heroes.map(func(h): return [h.kind, h.pos, h.hp]), m])
+
+# 기사(첫 영웅)·마도사를 낸 판의 전투 단계와 그 컨트롤
+func _pair_in_battle() -> Array:
+	var b = _heroes([_hero("knight", Vector2i(5, 5)), _hero("mage", Vector2i(10, 5))],
+		{"waves": [[{"kind": "basic", "count": 1}], [{"kind": "basic", "count": 1}]]})
+	var c = controls(b)
+	_start(b)
+	return [b, c]
+
+# EV231 · I126: 첫 영웅이 쓰러지면 고르지 않고 누른 Q는 살아 있는 다음 영웅이 쓴다. 쓰러진 영웅을 골라 둔 채 누른 Q도 그렇다
+func ev231():
+	var bc := _pair_in_battle()
+	_down_first_then_q(bc)
+	var free_q: int = bc[0].heroes[1].skill_uses
+	var de := _pair_in_battle()
+	_key(de[1], KEY_F1)
+	var picked: bool = de[1].selected == [de[0].heroes[0]]
+	_down_first_then_q(de)
+	return check(free_q == 1 and picked and de[0].heroes[1].skill_uses == 1,
+		"고르지 않고 Q: 마도사 %d번 · 기사를 고른 채(%s) 기사가 쓰러진 뒤 Q: 마도사 %d번" % [free_q, picked, de[0].heroes[1].skill_uses])
+
+# 첫 영웅(기사)을 쓰러뜨린 뒤 Q를 누른다
+func _down_first_then_q(bc: Array) -> void:
+	bc[0].damage(bc[0].heroes[0], BIG)
+	_key(bc[1], KEY_Q)

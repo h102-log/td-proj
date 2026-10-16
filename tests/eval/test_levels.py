@@ -28,3 +28,11 @@ def test_EV210_xp_transfer_between_rounds(gd):
 
 def test_EV211_level_up_mid_battle(gd):
     gd("levels", "EV211")
+
+
+def test_EV227_overflowing_transfer_is_refused(gd):
+    gd("levels", "EV227")
+
+
+def test_EV228_transfer_keeps_hp_ratio(gd):
+    gd("levels", "EV228")

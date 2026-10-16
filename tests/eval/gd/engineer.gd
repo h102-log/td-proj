@@ -179,3 +179,33 @@ func ev73():
 	_start(b)
 	var m = b.recruit(w) if w else null
 	return check(m != null and m.kind == "engineer", "작업장에서 산 것: %s" % [m.kind if m else null])
+
+# 6행을 가로로 막는 성곽(성문 5·15·25열, 모두 닫힘)을 더한 판. 위쪽(0~5행)이 마을이다
+func _walled():
+	var gates := [Vector2i(5, 6), Vector2i(15, 6), Vector2i(25, 6)]
+	var walls := []
+	for x in 30:
+		if Vector2i(x, 6) not in gates:
+			walls.append(Vector2i(x, 6))
+	return _battle({"base": Vector2i(15, 2), "castle": {"walls": walls, "gates": gates, "wall_hp": 300, "gate_hp": 150}})
+
+# EV229 · I125: 성문이 모두 닫혀 마을 안 공병이 들판 칸에 갈 수 없으면 건설 지시는 거부되고 골드가 그대로다. 성문을 열면 받아들여진다
+func ev229():
+	var b = _walled()
+	b.place_merc("engineer", Vector2i(12, 4))
+	_start(b)
+	var g: int = b.gold
+	var refused: bool = b.build("tower", T) == null and b.gold == g and b.structure_at(T) == null
+	b.set_gate(b.castle[Vector2i(15, 6)], true)
+	var s = b.build("tower", T)
+	return check(refused and s != null and b.gold == g - b.STRUCTURE_KINDS.tower.cost,
+		"닫힌 성곽 너머 건설 거부 %s · 성문을 열고 받아들여짐 %s(골드 %d → %d)" % [refused, s != null, g, b.gold])
+
+# EV230 · I125: 닫힌 성곽 안쪽의 더 가까운 공병과 들판의 더 먼 공병이 있으면, 들판 칸 건설은 들판의 공병이 맡는다
+func ev230():
+	var b = _walled()
+	var inner = b.place_merc("engineer", Vector2i(12, 4))
+	var outer = b.place_merc("engineer", FAR)
+	_start(b)
+	var s = b.build("tower", T)
+	return check(s != null and s.worker == outer, "일을 맡은 공병: %s(안쪽 %s · 들판 %s)" % [s.worker.pos if s and s.worker else null, inner.pos, outer.pos])

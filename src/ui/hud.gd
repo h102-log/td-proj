@@ -173,9 +173,10 @@ func _process(_delta: float) -> void:
 	var k = controls.fort
 	var live: bool = k != null and k.alive
 	_gate.visible = live and k.kind == "gate" and battle.state in ["prep", "battle"]
-	if _gate.visible:  # 쿨타임 중이면 누르지 못하고 남은 초를 올림해 붙인다(I123)
-		_gate.text = ("닫기" if k.open else "열기") + (" (%d초)" % ceili(k.lock) if k.lock > 0.0 else "")
-		_gate.disabled = k.lock > 0.0
+	if _gate.visible:  # 쿨타임 중이면 누르지 못하고 남은 초를 올림해 붙인다(I123). 성문 칸에 누가 있어 못 닫으면 «(칸 막힘)»(I124)
+		var stuck: bool = k.open and battle.occupied(k.cell)
+		_gate.text = ("닫기" if k.open else "열기") + (" (%d초)" % ceili(k.lock) if k.lock > 0.0 else "") + (" (칸 막힘)" if stuck else "")
+		_gate.disabled = k.lock > 0.0 or stuck
 	# 공병이 올리는 중이면 숨긴다. 그만둔 업그레이드는 «계속»으로 골드 없이 이어 올린다(I68)
 	_upgrade.visible = live and battle.state in ["prep", "battle"] and k.level < battle.UPGRADE_MAX and k.worker == null
 	if _upgrade.visible:
@@ -190,8 +191,10 @@ func _process(_delta: float) -> void:
 	if _repair.visible:
 		_repair.text = "수리 %d골드" % fix.reduce(func(n, t): return n + battle.repair_cost(t), 0)
 	_restore.visible = k != null and battle.rubble.get(k.cell) == k and k.worker == null and battle.state in ["prep", "battle"]
-	if _restore.visible:
-		_restore.text = "복구 %d골드" % battle.repair_cost(k)
+	if _restore.visible:  # 잔해 칸에 누가 있으면 복구하지 못한다(I124)
+		var blocked: bool = battle.occupied(k.cell)
+		_restore.text = "복구 %d골드" % battle.repair_cost(k) + (" (칸 막힘)" if blocked else "")
+		_restore.disabled = blocked
 	_popup.reset_size()
 	# 맵 px → 화면 좌표. 전투 화면(BattleView)이 원점에 있어 카메라 변환만 곱한다
 	_popup.position = get_viewport().get_canvas_transform() * controls.sell_at + Vector2(6, 6)
@@ -220,7 +223,13 @@ func proceed() -> void:
 func _window_button(parent: Control, on_press: Callable) -> Button:
 	var b := _button(parent, "", on_press)
 	b.focus_mode = Control.FOCUS_ALL
+	b.gui_input.connect(_refocus)
 	return b
+
+# 창 버튼을 마우스로 누른 뒤 포커스를 진행 버튼에 돌려준다. 안 그러면 Enter가 방금 누른 리롤·내보내기를 다시 누른다(I110)
+func _refocus(e: InputEvent) -> void:
+	if e is InputEventMouseButton and not e.pressed:
+		_next.grab_focus.call_deferred()
 
 # 영입 칸(I110): 골드·보유·출전 수, 목록 칸마다 영웅 이름(역할)·등급·영입 비용, 리롤, 보유 영웅마다 출전·대기와 내보내기
 func _show_hire() -> void:
@@ -236,7 +245,7 @@ func _show_hire() -> void:
 		_offers[i].text = "%s · %s · 영입 %d골드" % [HEROES[k], GRADES[grade - 1], hire.cost[grade - 1]]
 		_offers[i].disabled = battle.gold < hire.cost[grade - 1] or battle.roster.size() >= hire.cap
 	_reroll.text = "리롤 %d골드" % hire.reroll
-	_reroll.disabled = battle.gold < hire.reroll
+	_reroll.disabled = battle.gold < hire.reroll or battle.roster.size() >= hire.cap  # 상한이면 리롤해도 영입하지 못한다(I127)
 	for i in _members.size():
 		var here: bool = i < battle.roster.size()
 		_members[i][0].get_parent().visible = here  # 줄째 숨긴다. 버튼만 숨기면 빈 줄이 창에 틈을 남긴다
@@ -249,7 +258,7 @@ func _show_hire() -> void:
 			_members[i][1].text = "내보내기"
 			_members[i][2].visible = battle.state == "cleared"  # 이관은 라운드 사이에만(S127)
 			_members[i][2].text = "이관" if _giver == null else ("취소" if _giver == h else "여기로")
-			_members[i][2].disabled = _giver == null and h.xp == 0
+			_members[i][2].disabled = (_giver == null and h.xp == 0) or (_giver not in [null, h] and not battle.can_transfer(_giver, h))  # 넘치는 이관은 «여기로»를 끈다(I116)
 	_quests.visible = battle.state == "cleared" and not battle.commission_offers.is_empty()  # 의뢰는 라운드 사이에만(I121)
 	for i in _commissions.size():
 		var here: bool = i < battle.commission_offers.size()

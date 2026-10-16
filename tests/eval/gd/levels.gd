@@ -173,7 +173,7 @@ func ev210():
 		and is_equal_approx(k.max_hp, b.HERO_KINDS.knight.hp) and k.hp <= k.max_hp and b.gold == g
 	b.add_xp(k, 150)
 	b.transfer(k, p)
-	return check(early and prep and after and p.xp == 170, "도전 시작 전 거부 %s · 준비 단계 거부 %s · 라운드 사이 이관 %s(사제 %d, 기사 Lv%d %d, 체력 %s/%s) · 상한 170 %d" % [early, prep, after, p.xp, k.level, k.xp, k.hp, k.max_hp, p.xp])
+	return check(early and prep and after and p.xp <= 170, "도전 시작 전 거부 %s · 준비 단계 거부 %s · 라운드 사이 이관 %s(사제 %d, 기사 Lv%d %d, 체력 %s/%s) · 상한 170 %d" % [early, prep, after, p.xp, k.level, k.xp, k.hp, k.max_hp, p.xp])
 
 # EV211 · I113: 전투 중에 경험치를 채우면 그 자리에서 레벨이 오르고 W가 열린다
 func ev211():
@@ -188,3 +188,47 @@ func ev211():
 	var lv3: bool = k.level == 3 and b.state == "battle"
 	_key(controls(b), KEY_W)
 	return check(lv3 and m.boost_left > 0.0, "전투 중 Lv3 %s(Lv%d, %s) · W 걸림 %s" % [lv3, k.level, b.state, m.boost_left > 0.0])
+
+# 기사·사제를 영입해 1라운드를 이긴 라운드 사이의 판과 두 영웅. 못 이기면 [판, 오류 문장]
+func _cleared():
+	var b = _hiring()
+	b.offers = ["knight", "priest", "mage"]
+	var k = b.hire(0)
+	var p = b.hire(1)
+	b.next_round()
+	if not _win_round(b) or b.state != "cleared":
+		return [b, "1라운드를 이겨 라운드 사이가 되지 않았다(%s)" % b.state]
+	return [b, k, p]
+
+# EV227 · I116: 받는 영웅이 경험치를 다 받으면 상한(I113)을 넘을 때는 이관이 거부되고 둘 다 그대로다. 상한에 딱 닿는 이관은 받아들여진다
+func ev227():
+	var r: Array = _cleared()
+	if r.size() == 2:
+		return r[1]
+	var b = r[0]
+	var k = r[1]
+	var p = r[2]
+	var cap: int = b.LEVELS.steps.reduce(func(s, x): return s + x, 0)
+	b.add_xp(p, cap - 50 - p.xp)
+	b.add_xp(k, 50 - k.xp)
+	var fit: bool = b.transfer(k, p) and p.xp == cap and k.xp == 0
+	b.add_xp(k, 50)
+	var refused: bool = not b.transfer(k, p) and p.xp == cap and k.xp == 50
+	return check(fit and refused, "상한에 딱 닿는 이관 %s · 넘치는 이관 거부 %s(사제 %d, 기사 %d)" % [fit, refused, p.xp, k.xp])
+
+# EV228 · I116: 이관으로 레벨이 바뀐 영웅은 체력 비율이 그대로라, 이관을 네 번 오가도 체력이 차지 않는다
+func ev228():
+	var r: Array = _cleared()
+	if r.size() == 2:
+		return r[1]
+	var b = r[0]
+	var k = r[1]
+	var p = r[2]
+	b.add_xp(k, b.LEVELS.steps.reduce(func(s, x): return s + x, 0) - k.xp)
+	b.add_xp(p, -p.xp)
+	k.hp = 10.0
+	var ratio: float = k.hp / k.max_hp
+	for i in 2:
+		if not (b.transfer(k, p) and b.transfer(p, k)):
+			return "이관 왕복 %d번째가 거부됐다(기사 %d, 사제 %d)" % [i + 1, k.xp, p.xp]
+	return check(k.level == 5 and absf(k.hp / k.max_hp - ratio) < 0.001, "네 번 이관 뒤 기사 Lv%d 체력 %s/%s(비율 %s → %s)" % [k.level, k.hp, k.max_hp, ratio, k.hp / k.max_hp])

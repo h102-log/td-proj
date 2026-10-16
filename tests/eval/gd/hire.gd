@@ -290,3 +290,17 @@ func ev203():
 	_key(c, KEY_Q)
 	var first_q: bool = k.skill_uses == 1 and m.skill_uses == 1 and p.skill_uses == 0
 	return check(picked and mage_q and first_q, "F2로 마도사 고름 %s · 마도사가 Q %s · 다음 라운드엔 기사가 Q %s" % [picked, mage_q, first_q])
+
+# EV232 · I127: 보유 영웅이 상한이면 리롤은 거부되고 골드와 목록이 그대로다
+func ev232():
+	var b = _hiring()
+	for i in 3:
+		b.hire(i)
+	var rolled: bool = b.reroll()
+	b.hire(0)
+	if b.roster.size() != b.HIRE.cap:
+		return "보유 영웅이 상한(%d)까지 차지 않았다(%d)" % [b.HIRE.cap, b.roster.size()]
+	var before: Array = b.offers.duplicate()
+	var g: int = b.gold
+	var refused: bool = not b.reroll() and b.offers == before and b.gold == g
+	return check(rolled and refused, "상한 전 리롤 %s · 상한에서 리롤 거부 %s(골드 %d → %d)" % [rolled, refused, g, b.gold])

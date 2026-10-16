@@ -453,9 +453,9 @@ func hire(i: int):
 		lineup.append(h)
 	return h
 
-# 리롤 비용(S123)을 내고 목록을 모두 새로 뽑는다(S57, I104). 골드가 모자라면 거부한다
+# 리롤 비용(S123)을 내고 목록을 모두 새로 뽑는다(S57, I104). 골드가 모자라거나 보유 영웅이 상한이면 거부한다(I127)
 func reroll() -> bool:
-	if not hiring_open() or gold < HIRE.reroll:
+	if not hiring_open() or gold < HIRE.reroll or roster.size() >= HIRE.cap:
 		return false
 	gold -= HIRE.reroll
 	_draw_offers()
@@ -498,7 +498,8 @@ func add_xp(h: Unit, n: int) -> void:
 	_set_xp(h, h.xp + n)
 
 # 경험치를 정하고(최대 레벨의 누적 경험치가 상한, I113) 레벨을 S126의 누적 경험치로 맞춘다.
-# 최대 체력·공격력은 Lv1 값 × (1 + growth × (레벨 − 1))이다(I112). 체력은 최대 체력이 오른 만큼 오르고, 줄면 새 최대 체력을 넘지 않는다(I116)
+# 최대 체력·공격력은 Lv1 값 × (1 + growth × (레벨 − 1))이다(I112). 체력은 최대 체력이 오른 만큼 오르고, 줄면 새 최대 체력을 넘지 않는다.
+# 이관은 transfer가 체력 비율을 따로 맞춘다(I116)
 func _set_xp(h: Unit, xp: int) -> void:
 	h.xp = mini(xp, LEVELS.steps.reduce(func(s, x): return s + x, 0))
 	h.level = 1
@@ -515,12 +516,19 @@ func _set_xp(h: Unit, xp: int) -> void:
 	h.max_hp = max_hp
 	h.damage = base.damage * mult
 
-# 라운드 사이에만, 주는 영웅의 경험치를 전부 받는 영웅에게 옮긴다(S127, U14). 주는 영웅은 Lv1로 돌아가 보유 목록에 남는다. 비용은 없다
+# 라운드 사이에 보유 영웅 둘 사이이고, 받는 영웅이 경험치를 다 받아도 상한(I113)을 넘지 않는다(S127, I116)
+func can_transfer(from, to) -> bool:
+	return state == "cleared" and from != to and from in roster and to in roster and to.xp + from.xp <= LEVELS.steps.reduce(func(s, x): return s + x, 0)
+
+# 라운드 사이에만, 주는 영웅의 경험치를 전부 받는 영웅에게 옮긴다(S127, U14). 주는 영웅은 Lv1로 돌아가 보유 목록에 남는다. 비용은 없다.
+# 레벨이 바뀐 두 영웅의 체력 비율은 그대로다(I116)
 func transfer(from: Unit, to: Unit) -> bool:
-	if state != "cleared" or from == to or from not in roster or to not in roster:
+	if not can_transfer(from, to):
 		return false
-	_set_xp(to, to.xp + from.xp)
-	_set_xp(from, 0)
+	for pair in [[to, to.xp + from.xp], [from, 0]]:
+		var ratio: float = pair[0].hp / pair[0].max_hp
+		_set_xp(pair[0], pair[1])
+		pair[0].hp = ratio * pair[0].max_hp
 	return true
 
 # 라운드 집계(I119)를 0으로 돌린다. 도전을 시작할 때와 다음 라운드로 넘어갈 때
@@ -671,10 +679,17 @@ func set_hold(group: Array, on: bool) -> void:
 			u.hold = on
 			u.anchor = u.pos  # 기준 지점은 켠 순간의 위치(I37)
 
-# 영웅 스킬(S15, S95): 영웅 h(없으면 첫 영웅, S119)가 주변 skill_radius칸에 쓴다. 명령으로만 쓴다
+# 살아 있는 출전 영웅 가운데 첫 영웅(I126). 없으면 null
+func _first_alive():
+	for h in heroes:
+		if h.alive:
+			return h
+	return null
+
+# 영웅 스킬(S15, S95): 영웅 h(없거나 쓰러졌으면 살아 있는 첫 영웅, S119, I126)가 주변 skill_radius칸에 쓴다. 명령으로만 쓴다
 # 적 피해·기절, 영웅·용병 회복, 구조물·성곽 칸 회복 가운데 그 영웅이 가진 것만 걸린다(S97, I98, S120)
 func use_skill(h = null) -> void:
-	h = h if h else hero
+	h = h if h and h.alive else _first_alive()
 	if not h or not h.alive or not h.skill_ready():
 		return
 	h.skill_cooldown = h.skill_gap
@@ -693,10 +708,10 @@ func use_skill(h = null) -> void:
 			s.hp = minf(s.hp + h.skill_mend, s.max_hp)
 		_repath = true  # 남은 체력이 적의 경로 비용이다(S7)
 
-# 영웅 스킬 2(S84, S97): 영웅 h(없으면 첫 영웅, S119)가 지금 주변 buff_radius칸 안에 있는 대상에게만 건다(I65, I97). 명령으로만 쓴다
+# 영웅 스킬 2(S84, S97): 영웅 h(없거나 쓰러졌으면 살아 있는 첫 영웅, S119, I126)가 지금 주변 buff_radius칸 안에 있는 대상에게만 건다(I65, I97). 명령으로만 쓴다
 # 용병 공격력은 영웅에게 걸리지 않는다(I99)
 func use_buff(h = null) -> void:
-	h = h if h else hero
+	h = h if h and h.alive else _first_alive()
 	if not h or not h.alive or not h.buff_ready() or h.level < LEVELS.buff_level:  # W는 정해진 레벨에 열린다(S76, I114)
 		return
 	h.buff_cooldown = h.buff_gap
@@ -834,7 +849,7 @@ func _exit_of(cell: Vector2i):
 func set_gate(g: Block, open: bool) -> void:
 	if state not in ["prep", "battle"] or g.kind != "gate" or castle.get(g.cell) != g or g.lock > 0.0:
 		return
-	if not open and (units + enemies).any(func(u): return Vector2i(u.pos.round()) == g.cell):
+	if not open and occupied(g.cell):
 		return
 	g.open = open
 	_repath = true
@@ -903,7 +918,7 @@ func repair(t) -> void:
 # 잔해를 되살린다(I89). 복구비는 지시할 때 낸다. 준비 단계엔 바로 가득 찬 채 서고, 전투 단계엔 놀고 있는
 # 가장 가까운 공병이 가서 닿으면 다시 세운 뒤 채운다(_work). 지시할 때 칸에 누가 있으면 거부한다
 func restore(k: Block) -> void:
-	if state not in ["prep", "battle"] or rubble.get(k.cell) != k or k.worker or _occupied(k.cell):
+	if state not in ["prep", "battle"] or rubble.get(k.cell) != k or k.worker or occupied(k.cell):
 		return
 	var engineer = _idle_engineer(k.cell) if state == "battle" else null
 	if (state == "battle" and not engineer) or gold < repair_cost(k):
@@ -938,7 +953,8 @@ func _mend(t: Block, dhp: float) -> void:
 	_release(t)
 	_repath = true  # 남은 체력이 적의 경로 비용이다(S7)
 
-func _occupied(cell: Vector2i) -> bool:
+# 칸에 유닛이나 적이 서 있다. 성문 닫기(I67)·잔해 복구(I89)를 막고, 화면은 그 버튼에 «(칸 막힘)»을 붙인다(I124)
+func occupied(cell: Vector2i) -> bool:
 	return (units + enemies).any(func(u): return Vector2i(u.pos.round()) == cell)
 
 # 전투 단계에만, 미완성 구조물을 없애고 낸 골드를 모두 돌려준다(S23)
@@ -1010,13 +1026,19 @@ func can_demolish(t) -> bool:
 func unfinished(things: Array) -> Array:
 	return things.filter(func(t): return t is Block and structures.get(t.cell) == t and not t.complete)
 
-# 놀고 있는 공병(짓거나 허무는 일을 맡지 않은 공병) 가운데 그 칸에 가장 가까운 공병(I39). 성벽 위 공병은 뺀다(I69)
+# 놀고 있는 공병(짓거나 허무는 일을 맡지 않은 공병) 가운데 그 칸에 가장 가까운 공병(I39). 성벽 위 공병은 뺀다(I69).
+# 막힌 칸을 지나야만 닿는 공병도 뺀다(I125). 전투 중 공병에게 맡기는 지시는 모두 여기를 거친다
 func _idle_engineer(cell: Vector2i):
 	var best = null
 	for u in units:
-		if u.kind == "engineer" and u.job == null and not u.on_wall and (best == null or u.pos.distance_to(Vector2(cell)) < best.pos.distance_to(Vector2(cell))):
+		if u.kind == "engineer" and u.job == null and not u.on_wall and (best == null or u.pos.distance_to(Vector2(cell)) < best.pos.distance_to(Vector2(cell))) and _reaches(u, cell):
 			best = u
 	return best
+
+# 지금 막힌 칸(닫힌 성문·성벽·구조물)을 지나지 않고 그 칸까지 걸어갈 수 있다(I125). 끝 칸은 일하는 자리라 막혀 있어도 된다
+func _reaches(u: Unit, cell: Vector2i) -> bool:
+	grid.wall_k = UNIT_WALL_K  # _send와 같은 유닛 경로
+	return not grid.get_id_path(Vector2i(u.pos.round()), cell, true).slice(1, -1).any(func(c): return grid.block_at(c) != null)
 
 # 공병에게 그 구조물 일을 맡기고 옆 칸(대각선 포함)까지 걸어가게 한다(I63)
 func _send(u: Unit, s: Block) -> void:
@@ -1068,7 +1090,7 @@ func _work(u: Unit, dt: float) -> void:
 	elif s.mend > 0.0:
 		if rubble.get(s.cell) != s:
 			_mend(s, s.max_hp / (s.build_time if structures.get(s.cell) == s else REPAIR_TIME) * dt)
-		elif not _occupied(s.cell):  # 잔해는 칸이 비어야 다시 세운다(I89)
+		elif not occupied(s.cell):  # 잔해는 칸이 비어야 다시 세운다(I89)
 			_raise(s)
 	elif s.lift >= 0.0:
 		_lift(s, dt / UPGRADE_TIME)
