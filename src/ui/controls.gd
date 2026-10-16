@@ -2,7 +2,7 @@ extends RefCounted
 # 마우스·키 입력을 전투 명령으로 바꾼다. 마우스 좌표는 맵 px(칸 (x,y)가 [x, x+1) × cell_px)로 받는다.
 # 좌클릭: 영웅이나 생산 시설·성곽 칸·거점을 고르거나(I9, S81, S85, S86, S100) 선택을 푼다 · 좌드래그: 사각형 안의 용병을 고른다(S16, I9)
 # 우클릭: 생산 시설을 골랐으면 그 칸을 집결 지점으로(S82), 아니면 고른 유닛 이동(S14)
-# 준비 단계의 좌클릭·좌드래그는 판매 후보도 정한다(S70, I57). 좌클릭한 용병은 고른 상태도 된다
+# 준비 단계의 좌클릭·좌드래그는 판매 후보도 정한다(S70, I57). 좌클릭한 용병은 두 단계 모두 고른 상태가 된다(I135)
 # 전투 단계의 좌클릭·좌드래그는 철거·취소·이어 짓기 후보(picked)를 정한다(S74, S83)
 # Q: 영웅 스킬 · W: 스킬 2(S84) (I10). 고른 영웅이, 없으면 첫 영웅이 쓴다(S119) · A: 고른 용병의 이동 방식 전환(S35) · H: 홀드 전환(S36) (A·H는 사용자 2026-10-12) · V: 체력바 표시 전환(S73)
 # F1·F2: 출전 영웅 1·2를 고른다(I108)
@@ -51,10 +51,10 @@ func handle(event: InputEvent) -> void:
 				battle.use_skill(_hero())
 			KEY_W:
 				battle.use_buff(_hero())
-			KEY_A:  # 모두 «무조건 이동»이면 «이동 중 공격»으로, 아니면 모두 «무조건 이동»으로
-				battle.set_move_mode(selected, "attack_move" if selected.all(func(u): return u.move_mode == "move") else "move")
+			KEY_A:
+				toggle_move_mode()
 			KEY_H:
-				battle.set_hold(selected, not selected.all(func(u): return u.hold))
+				toggle_hold()
 			KEY_V:
 				show_hp = not show_hp
 			KEY_F1, KEY_F2:  # 쓰러진 영웅은 고르지 않는다. 우클릭이 집결 지점 대신 영웅을 옮기게 시설 선택을 푼다
@@ -113,7 +113,7 @@ func _release(rect: Rect2, at: Vector2) -> void:
 			if Vector2i(m.pos.round()) == cell:
 				hit = m
 		selling = [hit] if prep and hit else []
-		if hit in mercs and prep:
+		if hit in mercs:
 			selected = [hit]
 	else:
 		var inside := func(p: Vector2): return rect.has_point((p + Vector2(0.5, 0.5)) * cell_px)
@@ -124,6 +124,14 @@ func _release(rect: Rect2, at: Vector2) -> void:
 		var built: Array = battle.structures.values().filter(func(s): return inside.call(Vector2(s.cell)))
 		selling = (selected + built) if prep else []
 		picked = [] if prep else built
+
+# 고른 용병의 이동 방식 전환(S35): 모두 «무조건 이동»이면 «이동 중 공격»으로, 아니면 모두 «무조건 이동»으로. A 키와 HUD 버튼(I139)이 부른다
+func toggle_move_mode() -> void:
+	battle.set_move_mode(selected, "attack_move" if selected.all(func(u): return u.move_mode == "move") else "move")
+
+# 고른 용병의 홀드 전환(S36). H 키와 HUD 버튼(I139)이 부른다
+func toggle_hold() -> void:
+	battle.set_hold(selected, not selected.all(func(u): return u.hold))
 
 # Q·W를 쓸 영웅: 고른 출전 영웅. 없으면 null이라 첫 출전 영웅이 쓴다(S119). 출전에서 빠진 영웅은 고르지 않은 것으로 본다(I108)
 func _hero():

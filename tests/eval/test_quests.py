@@ -36,3 +36,7 @@ def test_EV220_swift_time_limit(gd):
 
 def test_EV221_new_challenge_resets_quests(gd):
     gd("quests", "EV221")
+
+
+def test_EV234_lost_round_fails_quests(gd):
+    gd("quests", "EV234")

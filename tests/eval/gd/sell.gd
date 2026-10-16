@@ -91,3 +91,16 @@ func ev63():
 		return "타워를 클릭해도 판매 후보가 %s다" % [c.selling]
 	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(5, 15)))
 	return check(c.selling.is_empty(), "빈 칸을 클릭한 뒤 판매 후보가 %s다" % [c.selling])
+
+# EV237 · I135: 전투 단계에도 좌클릭한 용병은 고른 상태가 되고(판매 후보는 아니다) 우클릭 이동 지시를 받는다
+func ev237():
+	var b = battle({"base_hp": BIG, "waves": _waves(1)})
+	var m = b.place_merc("soldier", Vector2i(10, 5))
+	b.start_battle()
+	var c = controls(b)
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(10, 5)))
+	if c.selected != [m] or not c.selling.is_empty():
+		return "전투 중 용병을 눌렀더니 고른 유닛 %s · 판매 후보 %s" % [c.selected, c.selling]
+	var goal := Vector2i(10, 1)
+	click(c, MOUSE_BUTTON_RIGHT, px(goal))
+	return check(run(b, 10.0, func(): return near(m.pos, goal)), "우클릭한 칸에 닿지 못했다(%s)" % m.pos)

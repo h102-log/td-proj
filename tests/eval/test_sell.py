@@ -28,3 +28,7 @@ def test_EV60_battle_click_no_sell_candidate(gd):
 
 def test_EV63_empty_click_clears_sell_candidate(gd):
     gd("sell", "EV63")
+
+
+def test_EV237_battle_click_selects_merc(gd):
+    gd("sell", "EV237")

@@ -166,3 +166,19 @@ func ev233():
 	run(b, 5.0)
 	return check(inside and f.hp == BIG and m.hp < h0,
 		"마을 칸 과녁 그대로 %s · 비행 적 체력 %s(그대로여야 한다) · 용병이 비행 적에게 맞음 %s(%s → %s)" % [inside, f.hp, m.hp < h0, h0, m.hp])
+
+# EV236 · I134: 준비 단계에 성곽 칸(성벽·성문)에 놓은 용병은 그 칸의 성벽 위에 선다. 성벽 위 대포가 있는 칸에는 놓지 못한다
+func ev236():
+	var b = _battle()
+	var a = b.place_merc("archer", TOP)
+	var s = b.place_merc("soldier", MAIN)
+	if a == null or s == null:
+		return "성곽 칸에 놓지 못했다(성벽 %s · 닫힌 성문 %s)" % [a, s]
+	run(b, 5.0)
+	if not (a.on_wall and s.on_wall and cell_of(a) == TOP and cell_of(s) == MAIN):
+		return "5초 뒤 궁수 %s(성벽 위 %s) · 용병 %s(성벽 위 %s)" % [a.pos, a.on_wall, s.pos, s.on_wall]
+	var c := Vector2i(20, 9)
+	if b.build("cannon", c) == null:
+		return "성벽 칸에 대포를 짓지 못했다"
+	var g: int = b.gold
+	return check(b.place_merc("archer", c) == null and b.gold == g, "대포가 있는 성벽 칸에 놓였다(골드 %d → %d)" % [g, b.gold])

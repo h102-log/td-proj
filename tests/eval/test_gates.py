@@ -16,3 +16,7 @@ def test_EV225_wave_end_clears_lock(gd):
 
 def test_EV226_refused_order_sets_no_lock(gd):
     gd("gates", "EV226")
+
+
+def test_EV235_gate_toggle_reroutes_waiting_unit(gd):
+    gd("gates", "EV235")
