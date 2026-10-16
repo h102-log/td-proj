@@ -173,8 +173,9 @@ func _process(_delta: float) -> void:
 	var k = controls.fort
 	var live: bool = k != null and k.alive
 	_gate.visible = live and k.kind == "gate" and battle.state in ["prep", "battle"]
-	if _gate.visible:
-		_gate.text = "닫기" if k.open else "열기"
+	if _gate.visible:  # 쿨타임 중이면 누르지 못하고 남은 초를 올림해 붙인다(I123)
+		_gate.text = ("닫기" if k.open else "열기") + (" (%d초)" % ceili(k.lock) if k.lock > 0.0 else "")
+		_gate.disabled = k.lock > 0.0
 	# 공병이 올리는 중이면 숨긴다. 그만둔 업그레이드는 «계속»으로 골드 없이 이어 올린다(I68)
 	_upgrade.visible = live and battle.state in ["prep", "battle"] and k.level < battle.UPGRADE_MAX and k.worker == null
 	if _upgrade.visible:

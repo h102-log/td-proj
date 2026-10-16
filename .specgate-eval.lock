@@ -1,6 +1,6 @@
 {
-  "approvedAt": "2026-10-15T21:57:48.282Z",
-  "evalMd": "7e920a23",
+  "approvedAt": "2026-10-16T00:02:49.146Z",
+  "evalMd": "c7866467",
   "tests": {
     "tests/eval/conftest.py": "b195cc2b",
     "tests/eval/gd/aura.gd": "07caa7f6",
@@ -19,6 +19,8 @@
     "tests/eval/gd/enemy.gd.uid": "e1e29647",
     "tests/eval/gd/engineer.gd": "fe678a8a",
     "tests/eval/gd/engineer.gd.uid": "fd6b919f",
+    "tests/eval/gd/gates.gd": "c43b572c",
+    "tests/eval/gd/gates.gd.uid": "b0cc756e",
     "tests/eval/gd/hero.gd": "df247e48",
     "tests/eval/gd/hero.gd.uid": "890522fc",
     "tests/eval/gd/heroes.gd": "a57d5c4c",
@@ -69,6 +71,7 @@
     "tests/eval/test_data.py": "3e776d23",
     "tests/eval/test_enemy.py": "b0e6394e",
     "tests/eval/test_engineer.py": "09974bfa",
+    "tests/eval/test_gates.py": "f85ad39f",
     "tests/eval/test_hero.py": "5b11b600",
     "tests/eval/test_heroes.py": "72fce9ff",
     "tests/eval/test_hire.py": "fce6cfbc",
@@ -246,6 +249,7 @@
     "I120": "4e5c36ff",
     "I121": "ce24a72d",
     "S77": "a62ff33c",
-    "I119": "f50bb593"
+    "I119": "f50bb593",
+    "S135": "ff62ee75"
   }
 }

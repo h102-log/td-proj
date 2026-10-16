@@ -229,6 +229,11 @@
 | EV219 | I118 | d3e2ab75 | 성곽 맵에서 용병 둘을 놓으면 no_buying만 실패이고 base_safe·castle_safe·mercs_safe·heroes_safe·flawless·no_building은 달성이다. 용병을 팔아도 mercs_safe는 달성이고, 용병이 죽으면 실패다. 영웅이 쓰러지면 heroes_safe가 실패다. 성벽 칸을 깎아 수리하고 다른 칸을 업그레이드해도 castle_safe·flawless·no_building은 달성이고, 성벽 칸이 부서지면 castle_safe·flawless가 실패다(base_safe는 달성). 타워를 지으면 no_building이 실패이고 flawless는 달성이며, 그 타워가 부서지면 flawless가 실패다(castle_safe·base_safe는 달성) | tests/eval/test_quests.py | 일괄 승인(2026-10-16) |
 | EV220 | I118 | d3e2ab75 | 의뢰 swift만 있는 라운드 2개 도전에서 1라운드를 이기고 swift를 수락한 뒤, 2라운드를 바로 끝내면 전투 시간이 120초 이하이고 판정이 [swift 달성]이며 골드가 «처치 보상 + 50»만큼 는다. 2라운드를 125초 끈 뒤 끝내면 판정이 [swift 실패]이고 골드가 처치 보상만큼만 는다 | tests/eval/test_quests.py | 일괄 승인(2026-10-16) |
 | EV221 | I92 | 5a185d59 | 미션 base_safe·의뢰 no_buying이 있는 도전에서 용병을 사고 거점을 깎은 채 1라운드를 이기고 no_buying을 수락한 뒤 새 도전(재시작)을 하면 미션이 base_safe이고 수락한 의뢰·의뢰 목록·판정이 비어 있으며 집계가 모두 0이다 | tests/eval/test_quests.py | 일괄 승인(2026-10-16) |
+| EV222 | S135 | ff62ee75 | 성문 2개인 성곽 맵의 GATE_LOCK이 20초다. 전투 단계에 연 성문은 GATE_LOCK − 0.5초 뒤 닫기 지시가 거부되어 열린 채이고, GATE_LOCK + 0.5초 뒤에는 닫힌다. 닫자마자 낸 열기 지시는 거부된다 | tests/eval/test_gates.py | 일괄 승인(2026-10-16) |
+| EV223 | S135 | ff62ee75 | 준비 단계에는 같은 성문에 낸 열기·닫기·열기 지시가 모두 바로 따른다. 그 성문은 전투 단계가 시작되자마자 낸 닫기 지시에 따른다 | tests/eval/test_gates.py | 일괄 승인(2026-10-16) |
+| EV224 | S135 | ff62ee75 | 전투 단계에 성문 A를 열고 바로 성문 B를 열면 B가 열린다. 그 직후 낸 A·B 닫기 지시는 둘 다 거부된다 | tests/eval/test_gates.py | 일괄 승인(2026-10-16) |
+| EV225 | S135 | ff62ee75 | 전투 단계에 성문을 열고 곧바로 그 웨이브를 끝낸 뒤, 다음 웨이브 전투 단계가 시작되자마자 낸 닫기 지시에 따른다 | tests/eval/test_gates.py | 일괄 승인(2026-10-16) |
+| EV226 | S135 | ff62ee75 | 준비 단계에 연 성문 칸에 적이 서 있으면 전투 단계의 닫기 지시가 거부된다. 그 적을 처치한 직후 다시 낸 닫기 지시에는 따른다 | tests/eval/test_gates.py | 일괄 승인(2026-10-16) |
 
 ## 보류 — W2·W3 (다음 승인 때 본표로 옮긴다)
 
