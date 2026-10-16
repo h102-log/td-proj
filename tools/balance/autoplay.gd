@@ -14,6 +14,10 @@ extends SceneTree
 #     stage: {gold, base_hp, wall_hp, gate_hp, rounds: [[{종류: 수}, ...웨이브], ...라운드]}
 #     wave_mult: [라운드마다 적 수 배율] — rounds가 없을 때 시험 스테이지 웨이브에 곱해 내림한다
 #     spawn_gap: 웨이브 안에서 적이 나오는 간격(초, battle.gd SPAWN_GAP). 숫자 하나거나 라운드마다 배열
+#     cost_step: {종류: 단계} — 그 종류의 건설비가 지금 서 있는 같은 종류 하나마다 원래 값 × 단계씩 오른다(1차 관찰 A①)
+#     fly_no_counter: 참이면 비행 적은 자기를 쏜 구조물에 반격하지 않는다(S5에서 비행 적을 뺀다, 1차 관찰 A③)
+#     hp_mult: [라운드마다 적 체력 배율] — 처치 보상은 그대로다(1차 관찰 A⑤. 적 수를 늘리면 보상도 늘어 수입이 따라 오른다)
+#     gate_split: 라운드 번호. 그 라운드부터 땅 적은 출현 지점에서 가장 가까운 성문을 먼저 노리고, 그 성문을 지나거나 부수면 거점으로 간다(1차 관찰 A④). 봇도 그 라운드부터 쪽문을 지킨다(sides)
 # ponytail: 봇은 «무난한 플레이어» 하나를 흉내 낼 뿐이다. 사람의 손을 대신하지 않는다. 판정은 사람이 한다
 # 사람과 다른 점: 준비 단계를 0초로 넘긴다(준비 단계 Q·오라 회복을 쓰지 않는다). 영웅을 마을로 부르지 않고 성문을 여닫지 않고
 # (pingpong을 켜면 쪽문 핑퐁만 한다) 리롤하지 않는다. 의뢰는 보상만 보고 수락하고 조건에 맞춰 운영을 바꾸지 않는다. 잔해 위 유닛은 한 칸 물려 세운다(사람이 준비 단계에 걸어서 비키는 손을 대신한다, 복구 거부 I89를 피한다)
@@ -46,6 +50,7 @@ const BOT := {
 	"gate_cd": 0.0,        # 봇이 스스로 지키는 성문 쿨타임(초, 전투 단계만). 쿨타임 규칙의 값을 고르려고 흉내 낸다
 	"gate_cd_all": false,   # 참이면 성문 하나를 여닫을 때 셋이 함께 묶인다. 거짓이면 그 성문만
 	"accept": true,         # 라운드 사이에 보상이 가장 큰 의뢰를 수락한다(실패해도 벌칙이 없다, I54)
+	"sides": false,         # 쪽문 둘도 정문처럼 지킨다: 쇼핑 목록의 쏘는 구조물·정문 업그레이드를 쪽문에도 하나씩 더하고(_plan), fill을 세 성문에 번갈아 깐다
 }
 
 const GATE := Vector2i(20, 9)
@@ -95,18 +100,29 @@ const PLANS := {
 }
 const HOUSE_CELLS := [Vector2i(3, 2), Vector2i(5, 2), Vector2i(7, 2), Vector2i(33, 2), Vector2i(35, 2), Vector2i(37, 2)]
 const WALL_POSTS := [Vector2i(18, 9), Vector2i(22, 9), Vector2i(17, 9), Vector2i(23, 9), Vector2i(16, 9), Vector2i(24, 9)]
-# fill: 정문(x=20) 길과 출전 칸을 비우고 정문에서 가까운 칸부터. 성벽 칸은 대포다
-static func _fill_cells() -> Array:
-	var out := []
-	for c in [Vector2i(15, 9), Vector2i(25, 9), Vector2i(14, 9), Vector2i(26, 9)]:
-		out.append(["build", "cannon", c.x, c.y])
-	var n := 0
-	for y in [11, 13, 15, 12, 14, 16]:
-		for dx in [3, 4, 5, 6, 7, 8]:
-			for x in [20 - dx, 20 + dx]:
-				out.append(["build", "magic" if n % 3 == 2 else "tower", x, y])
-				n += 1
-	return out
+# fill: 성문마다 그 길(성문 x)과 출전 칸을 비우고 성문에서 가까운 칸부터. 성벽 칸은 대포다. 성문이 여럿이면 번갈아 깐다
+static func _fill_cells(gates := [GATE]) -> Array:
+	var per := []
+	for g in gates:
+		var out := []
+		for dx in [5, 6]:
+			for x in [g.x - dx, g.x + dx]:
+				if x > 0 and x < 39:
+					out.append(["build", "cannon", x, 9])
+		var n := 0
+		for y in [11, 13, 15, 12, 14, 16]:
+			for dx in [3, 4, 5, 6, 7, 8]:
+				for x in [g.x - dx, g.x + dx]:
+					if x >= 0 and x <= 39:
+						out.append(["build", "magic" if n % 3 == 2 else "tower", x, y])
+						n += 1
+		per.append(out)
+	var mixed := []
+	for i in per.map(func(o): return o.size()).max():
+		for o in per:
+			if i < o.size():
+				mixed.append(o[i])
+	return mixed
 
 var b
 var bot := {}
@@ -119,6 +135,7 @@ var _spawned := 0    # 이번 웨이브에 나온 적 수(kills 지표). 람다�
 var _vill := []      # 마을에 세운 영웅
 var _t := 0.0        # 이번 웨이브의 전투 시간
 var _gate_at := {}   # 성문 칸 → 이번 웨이브에 마지막으로 여닫은 시각(봇의 쿨타임 흉내). "all"은 셋 중 아무거나
+var _split := 0      # over.gate_split: 적이 성문 셋으로 갈라지는 첫 라운드(0이면 없음)
 
 func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
@@ -127,6 +144,7 @@ func _initialize() -> void:
 	bot.merge(cfg.get("bot", {}), true)
 	dt = cfg.get("dt", 0.05)
 	var over: Dictionary = cfg.get("over", {})
+	_split = int(over.get("gate_split", 0))
 	var stage: Dictionary = load("res://src/main.gd").stage()
 	stage.seed = int(cfg.get("seed", 1))
 	_override_stage(stage, over)
@@ -376,15 +394,36 @@ func _prep() -> int:
 			b.set_gate(gs[0], true)
 			b.set_gate(gs[1], false)
 	var done := true
-	for item in PLANS[bot.plan]:
+	for item in _plan():
 		if not _buy(item):
 			done = false
 			break
 	if done and bot.fill:
-		for item in _fill_cells():
+		for item in _fill_cells([GATE] + (SIDES if _sides() else [])):
 			if not _buy(item):
 				break
 	return g0 - b.gold
+
+# 적이 성문 셋으로 갈라지는 라운드면(gate_split) 무난한 플레이어는 쪽문도 지킨다
+func _sides() -> bool:
+	return bot.sides or (_split > 0 and b.round_index + 1 >= _split)
+
+# 쇼핑 목록. sides면 쏘는 구조물마다 쪽문 둘에도 정문에서와 같은 x 거리(쪽문 안쪽)에 하나씩, 정문 업그레이드는 쪽문에도 더한다.
+# 정문 양옆 한 쌍은 쪽문에서 같은 칸이 되어 하나만 선다(_buy가 건너뛴다)
+func _plan() -> Array:
+	if not _sides():
+		return PLANS[bot.plan]
+	var out := []
+	for item in PLANS[bot.plan]:
+		out.append(item)
+		if item[0] == "build" and item[1] in ["tower", "magic", "cannon"]:
+			var dx: int = absi(item[2] - GATE.x)
+			for s in SIDES:
+				out.append(["build", item[1], s.x + (dx if s.x < GATE.x else -dx), item[3]])
+		elif item[0] == "upgrade" and Vector2i(item[1], item[2]) == GATE:
+			for s in SIDES:
+				out.append(["upgrade", s.x, s.y, item[3]])
+	return out
 
 # 항목 하나를 채운다. 이미 채웠으면 참, 골드가 모자라 못 채웠으면 거짓
 func _buy(item: Array) -> bool:
@@ -397,7 +436,7 @@ func _buy(item: Array) -> bool:
 				return true
 			if s or b.rubble.has(cell):
 				return true  # 다른 것이 섰거나 잔해다. 건너뛴다
-			if spare < b.STRUCTURE_KINDS[item[1]].cost:
+			if spare < (b.price(item[1]) if b.has_method("price") else b.STRUCTURE_KINDS[item[1]].cost):  # cost_step이면 누진 값
 				return false
 			if b.STRUCTURE_KINDS[item[1]].village_level > b.village_level:
 				return true
@@ -469,7 +508,7 @@ func _free_near(c: Vector2i) -> Vector2i:
 		for dy in range(-r, r + 1):
 			for dx in range(-r, r + 1):
 				var p := c + Vector2i(dx, dy)
-				if b.grid.is_in_boundsv(p) and not b.grid.block_at(p) and p != b.base.cell and not b._occupied(p) and p not in b._stage.hero_cells:
+				if b.grid.is_in_boundsv(p) and not b.grid.block_at(p) and p != b.base.cell and not b.occupied(p) and p not in b._stage.hero_cells:
 					return p
 	return c
 
@@ -578,13 +617,12 @@ func _zones() -> Array:
 			z[0] = true
 	return z
 
-# SPAWN_GAP은 상수라 판 객체에서 바꿀 수 없다. 오버라이드가 있으면 _spawn_wave만 바꾼 하위 클래스로 판을 만든다
+# 상수(SPAWN_GAP)와 규칙은 판 객체에서 바꿀 수 없다. 오버라이드가 있으면 그 함수만 바꾼 하위 클래스로 판을 만든다
 func _battle_class(over: Dictionary):
-	if not over.has("spawn_gap"):
-		return load("res://src/sim/battle.gd")
-	var gaps = over.spawn_gap if over.spawn_gap is Array else [over.spawn_gap]
-	var src := GDScript.new()
-	src.source_code = """extends "res://src/sim/battle.gd"
+	var code := ""
+	if over.has("spawn_gap"):
+		var gaps = over.spawn_gap if over.spawn_gap is Array else [over.spawn_gap]
+		code += """
 var gaps := %s
 func _spawn_wave(dt: float) -> void:
 	_spawn_timer -= dt
@@ -593,7 +631,54 @@ func _spawn_wave(dt: float) -> void:
 	spawn_enemy(_queue.pop_front(), spawns[_spawned %% spawns.size()])
 	_spawned += 1
 	_spawn_timer = gaps[mini(round_index, gaps.size() - 1)]
+	_forecast()
 """ % [JSON.stringify(gaps)]
+	if over.has("cost_step"):
+		code += """
+var cost_step := %s
+func price(kind: String) -> int:
+	var n := structures.values().filter(func(s): return s.kind == kind).size()
+	return roundi(STRUCTURE_KINDS[kind].cost * (1.0 + cost_step.get(kind, 0.0) * n))
+func build(kind: String, cell: Vector2i, overrides := {}):
+	return super(kind, cell, overrides.merged({"cost": price(kind)}, true))
+""" % [JSON.stringify(over.cost_step)]
+	if over.get("fly_no_counter", false):  # 반격 대상은 _fire에서만 정해진다(S5, S140). 비행 적의 것은 쏜 뒤 바로 지운다
+		code += """
+func _fire(dt: float) -> void:
+	super(dt)
+	for e in enemies:
+		if e.flying:
+			e.attacker = null
+"""
+	if over.has("hp_mult"):
+		code += """
+var hp_mult := %s
+func spawn_enemy(kind: String, cell: Vector2i, overrides := {}):
+	var m: float = hp_mult[mini(round_index, hp_mult.size() - 1)]
+	return super(kind, cell, overrides.merged({"hp": ENEMY_KINDS[kind].hp * m}, true))
+""" % [JSON.stringify(over.hp_mult)]
+	if int(over.get("gate_split", 0)) > 0:  # 처음 거점을 노리는 순간(출현 직후) 가장 가까운 성문을 정해 둔다. 그 성문이 잔해가 되거나 성곽 줄에 닿으면 거점이다
+		code += """
+var split_from := %d
+func _target_of(e: Enemy):
+	var t = super(e)
+	if t != base or e.flying or round_index + 1 < split_from:
+		return t
+	if not e.has_meta("via"):
+		var near: Vector2i = _stage.castle.gates[0]
+		for c in _stage.castle.gates:
+			if e.pos.distance_to(Vector2(c)) < e.pos.distance_to(Vector2(near)):
+				near = c
+		e.set_meta("via", near)
+	var via: Vector2i = e.get_meta("via")
+	if not castle.has(via) or roundi(e.pos.y) <= via.y:
+		return base
+	return castle[via]
+""" % [int(over.gate_split)]
+	if code == "":
+		return load("res://src/sim/battle.gd")
+	var src := GDScript.new()
+	src.source_code = 'extends "res://src/sim/battle.gd"\n' + code
 	src.reload()
 	return src
 
