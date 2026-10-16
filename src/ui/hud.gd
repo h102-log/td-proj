@@ -10,7 +10,7 @@ extends CanvasLayer
 # 결과 창의 버튼만 키보드 포커스를 받는다. 창이 열리면 «1라운드 시작»·«다음 라운드»·«새 도전»에 포커스가 간다(I12, I110)
 # 출전 영웅마다 Q·W 대기와 쓰러짐(I129), 고른 용병의 이동 방식·홀드 버튼(I139)을 보인다. 눌리지 않는 놓기·공병 지시 버튼에는 이유를 붙인다(I128, I132)
 
-const NAMES := {"wall": "방벽", "tower": "타워", "magic": "마법 타워", "soldier": "용병", "barracks": "병영", "engineer": "공병", "workshop": "작업장", "archer": "궁수", "cannon": "대포", "archery": "사격장", "house": "집"}
+const NAMES := {"wall": "방벽", "tower": "타워", "magic": "마법 타워", "soldier": "용병", "barracks": "병영", "engineer": "공병", "workshop": "작업장", "archer": "궁수", "cannon": "대포", "archery": "사격장", "house": "집", "church": "교회"}
 const STATES := {"prep": "준비", "battle": "전투", "hiring": "영입", "cleared": "라운드 사이", "won": "승리", "lost": "패배"}
 const HEROES := {"knight": "기사(근접 전열)", "bowman": "궁수(원거리)", "mason": "축성가(구조물)", "priest": "사제(회복)", "general": "장군(지휘)", "mage": "마도사(광역)"}  # 이름(역할), S97
 const GRADES := ["동", "은", "금"]  # S94
@@ -34,6 +34,7 @@ var _upgrade: Button
 var _repair: Button
 var _restore: Button
 var _village: Button
+var _heal := []  # 교회 팝업: 출전 영웅마다 치료 버튼(S137, I140)
 var _place := {}  # kind → 버튼
 var _result := PanelContainer.new()
 var _result_label := Label.new()
@@ -132,6 +133,8 @@ func _ready() -> void:
 	_repair = _button(_popup, "", func(): _apply(battle.repair, _to_repair()))
 	_restore = _button(_popup, "", func(): battle.restore(controls.fort))
 	_village = _button(_popup, "", func(): battle.raise_village())
+	for i in battle.HIRE.lineup:
+		_heal.append(_button(_popup, "", func(): battle.heal(battle.heroes[i])))
 
 func _process(_delta: float) -> void:
 	var prep: bool = battle.state == "prep"
@@ -160,7 +163,7 @@ func _process(_delta: float) -> void:
 	_quest.visible = battle.state in ["prep", "battle"] and (battle.mission != "" or battle.commission != "")
 	_quest.text = " · ".join(_quest_lines())
 	_heroes.visible = battle.state in ["prep", "battle"] and not battle.heroes.is_empty()
-	_heroes.text = "   ".join(_hero_lines())
+	_heroes.text = "   ".join(_hero_lines()) + ("" if battle.state == "battle" else " — Q·W는 전투 단계에만")  # S136
 	_result.visible = battle.state in ["hiring", "cleared", "won", "lost"]
 	_result_label.text = {"hiring": "도전 시작 — 영웅 영입", "cleared": "%d라운드 승리" % round_no, "won": "도전 성공!", "lost": "%d라운드 패배 — 도전 끝" % round_no}.get(battle.state, "")
 	for s in battle.settled:  # 지난 라운드의 미션·의뢰 판정(I120, I122)
@@ -228,6 +231,14 @@ func _process(_delta: float) -> void:
 		var blocked: bool = battle.occupied(k.cell)
 		_restore.text = "복구 %d골드" % battle.repair_cost(k) + (" (칸 막힘)" if blocked else "") + gap
 		_restore.disabled = blocked or gap != ""
+	# 고른 교회의 치료 버튼(S137): 살아 있고 깎인 출전 영웅마다. 전투 단계에는 끄고 이유를 붙인다(I140)
+	var church: bool = (controls.selling + controls.picked).any(func(s): return s.kind == "church")
+	for i in _heal.size():
+		var h = battle.heroes[i] if i < battle.heroes.size() else null
+		_heal[i].visible = church and h != null and h.alive and h.hp < h.max_hp
+		if _heal[i].visible:
+			_heal[i].text = "%s 치료 %d골드" % [HEROES[h.kind].get_slice("(", 0), battle.heal_cost(h)] + ("" if prep else " (준비 단계에만)")
+			_heal[i].disabled = not prep
 	_popup.reset_size()
 	# 맵 px → 화면 좌표. 전투 화면(BattleView)이 원점에 있어 카메라 변환만 곱한다. 화면 밖으로 나가면 안으로 당긴다(I137)
 	var at: Vector2 = get_viewport().get_canvas_transform() * controls.sell_at + Vector2(6, 6)

@@ -124,6 +124,7 @@ func ev208():
 	if m == null:
 		return "용병을 놓지 못했다"
 	var c = controls(b)
+	b.start_battle()  # W는 전투 단계에만 쓴다(S136)
 	var hit := func():  # 옆 칸 용병이 피해 10에 깎이는 양. 깎인 체력은 되돌린다
 		var h0: float = m.hp
 		b.damage(m, 10)

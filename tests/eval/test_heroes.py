@@ -80,3 +80,11 @@ def test_EV191_heroes_return_home_and_skip_cap(gd):
 
 def test_EV231_skill_falls_to_living_hero(gd):
     gd("heroes", "EV231")
+
+
+def test_EV238_prep_ignores_q_and_w(gd):
+    gd("heroes", "EV238")
+
+
+def test_EV239_cooldowns_and_regen_pause_outside_battle(gd):
+    gd("heroes", "EV239")
