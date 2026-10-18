@@ -332,7 +332,7 @@ func _hire() -> void:
 			if k == "":
 				continue
 			var g: int = b.HERO_KINDS[k].grade
-			# 도전 시작 전에는 최소 예비만 남긴다. 3성(100골드)뿐이라 시작 골드 150의 절반을 남기면 아무도 못 산다(2026-10-19)
+			# 도전 시작 전에는 최소 예비만 남긴다. 시작 골드 150일 때 절반을 남기면 3성(100골드)을 아무도 못 샀다(2026-10-19). 시작 220 패널도 이 규칙으로 쟀다
 			var keep: float = bot.hire_reserve if first else maxf(bot.hire_reserve, b.gold * bot.hire_keep)
 			if first and g > bot.hire_first_grade:
 				continue

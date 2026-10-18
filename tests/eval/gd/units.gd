@@ -232,7 +232,7 @@ func ev144():
 		for entry in w:
 			d[entry.kind] = d.get(entry.kind, 0) + entry.count
 		got.append(d)
-	return check(stage.gold == 150 and got == want, "시작 골드 %s, 웨이브 %s" % [stage.gold, got])
+	return check(stage.gold == 220 and got == want, "시작 골드 %s, 웨이브 %s" % [stage.gold, got])
 
 # EV145 · I81: 적 5종의 색이 모두 있고 서로 다르다
 func ev145():
