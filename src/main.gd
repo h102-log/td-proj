@@ -52,7 +52,7 @@ static func stage() -> Dictionary:
 		if Vector2i(x, 9) not in gates:
 			walls.append(Vector2i(x, 9))
 	return {
-		"size": Vector2i(40, 32), "base": Vector2i(20, 4), "base_hp": 100, "gold": 150,  # 시작 골드(S111)
+		"size": Vector2i(40, 32), "base": Vector2i(20, 4), "base_hp": 100, "gold": 220,  # 시작 골드(S111)
 		"spawns": [Vector2i(6, 31), Vector2i(20, 31), Vector2i(33, 31)],
 		# 출전 칸(I107): 정문(20,9) 바로 앞 들판의 세 칸. 성문은 닫힌 채 시작해서(I67) 마을 안에 두면 나올 수 없다(I42, 사용자 2026-10-12)
 		"hero_cells": [Vector2i(19, 11), Vector2i(21, 11), Vector2i(20, 11)],
