@@ -1,6 +1,6 @@
 extends "res://tests/eval/gd/lib.gd"
 # WBS 3.6 영웅 레벨(S76·S125~S127·I112~I115). lib.gd·hire.gd·heroes.gd 머리의 계약에 더하는 API:
-#   res://data/levels.tres — steps(다음 레벨까지 경험치 [Lv2, Lv3, Lv4, Lv5]) · growth(레벨마다 오르는 비율) · buff_level · aura_level (S126).
+#   res://data/levels.tres — steps(다음 레벨까지 경험치 [Lv2, Lv3, Lv4, Lv5]) · growth(레벨마다 오르는 비율) · unlock(칸마다 열리는 레벨, S145) (S126).
 #     Battle.LEVELS가 이 Resource다
 #   적 데이터 xp(Battle.ENEMY_KINDS[종류].xp) — 처치되면 출전 영웅이 받는 경험치
 #   영웅: level · xp · stage 키 heroes 항목의 level(없으면 최대 레벨, I115)
@@ -8,7 +8,7 @@ extends "res://tests/eval/gd/lib.gd"
 #   Battle.transfer(주는 영웅, 받는 영웅) -> bool — 라운드 사이에서만 한다(S127)
 # 수치는 Battle.LEVELS와 데이터에서 읽는다. EV205만 표를 대조하고, EV206·EV209·EV210은 S126의 누적 경험치를 쓴다
 
-const CELLS := [Vector2i(10, 5), Vector2i(12, 5)]  # 출전 칸
+const CELLS := [Vector2i(10, 5), Vector2i(12, 5), Vector2i(14, 5)]  # 출전 칸(출전 3명, S123)
 const ONE := [{"kind": "basic", "count": 1}]
 const ONE_ONE := [[ONE], [ONE]]  # 라운드 2개, 라운드마다 적 1마리짜리 웨이브 하나
 
@@ -20,10 +20,10 @@ func _hiring(over := {}):
 	b.begin_hiring()
 	return b
 
-# 기사 하나를 영입해 1라운드 준비 단계로 간 판과 그 기사
-func _knight():
+# 바스티온 하나를 영입해 1라운드 준비 단계로 간 판과 그 바스티온
+func _bastion():
 	var b = _hiring()
-	b.offers = ["knight", "knight", "knight"]
+	b.offers = ["bastion", "bastion", "bastion"]
 	var k = b.hire(0)
 	b.next_round()
 	return [b, k]
@@ -52,12 +52,11 @@ func _win_round(b) -> bool:
 # EV204 · S125: 적이 처치되면 그때 전장에 살아 있는 출전 영웅이 모두 경험치를 받는다
 func ev204():
 	var b = _hiring()
-	b.offers = ["knight", "priest", "mage"]
+	b.offers = ["bastion", "seraphina", "ignis"]
 	var k = b.hire(0)
 	var p = b.hire(1)
 	var m = b.hire(2)
-	b.set_lineup(k, true)
-	b.set_lineup(p, true)
+	b.set_lineup(m, false)
 	b.next_round()
 	var x: int = b.ENEMY_KINDS.basic.xp
 	_kill(b, 1)
@@ -66,7 +65,7 @@ func ev204():
 	_kill(b, 1)
 	var got := [k.xp, p.xp, m.xp]
 	return check(first == [x, x, 0] and got == [2 * x, x, 0],
-		"처치 한 번 뒤 %s([%d, %d, 0]이어야 한다) · 사제가 쓰러진 뒤 한 번 더 %s([%d, %d, 0]이어야 한다)" % [first, x, x, got, 2 * x, x])
+		"처치 한 번 뒤 %s([%d, %d, 0]이어야 한다) · 세라피나가 쓰러진 뒤 한 번 더 %s([%d, %d, 0]이어야 한다)" % [first, x, x, got, 2 * x, x])
 
 # EV205 · S126: data/levels.tres와 적 경험치가 표와 같다
 func ev205():
@@ -74,7 +73,7 @@ func ev205():
 	if r == null:
 		return "data/levels.tres를 불러오지 못했다"
 	var steps := [20, 30, 50, 70]
-	var ok: bool = r.steps.size() == 4 and is_equal_approx(r.growth, 0.1) and r.buff_level == 3 and r.aura_level == 5
+	var ok: bool = r.steps.size() == 4 and is_equal_approx(r.growth, 0.1) and r.unlock == {"q": 1, "w": 2, "e": 3, "r": 5}
 	for i in 4:
 		ok = ok and r.steps[i] == steps[i]
 	var b = battle()
@@ -82,11 +81,11 @@ func ev205():
 	for k in b.ENEMY_KINDS:
 		xps[k] = b.ENEMY_KINDS[k].get("xp")
 	ok = ok and xps.size() == 5 and xps.values().all(func(x): return x == 1)
-	return check(ok, "다음 레벨까지 %s · 비율 %s · W Lv%s · 오라 Lv%s · 적 경험치 %s" % [r.steps, r.growth, r.buff_level, r.aura_level, xps])
+	return check(ok, "다음 레벨까지 %s · 비율 %s · 열리는 레벨 %s · 적 경험치 %s" % [r.steps, r.growth, r.unlock, xps])
 
 # EV206 · S126: 누적 경험치 20·50·100·170에 닿는 순간 Lv2·3·4·5가 되고, 그 뒤로는 Lv5다
 func ev206():
-	var kb = _knight()
+	var kb = _bastion()
 	var b = kb[0]
 	var k = kb[1]
 	var seen := []  # 레벨이 바뀐 순간의 [경험치, 레벨]
@@ -101,10 +100,10 @@ func ev206():
 
 # EV207 · I112: 레벨마다 최대 체력·공격력이 Lv1 값의 비율만큼 오르고, 체력도 오른 만큼 오른다. 스킬·오라 수치는 그대로다
 func ev207():
-	var kb = _knight()
+	var kb = _bastion()
 	var b = kb[0]
 	var k = kb[1]
-	var base: Dictionary = b.HERO_KINDS.knight
+	var base: Dictionary = b.HERO_KINDS.bastion
 	var g: float = b.LEVELS.growth
 	b.damage(k, 30)
 	var hp0: float = k.hp
@@ -112,51 +111,48 @@ func ev207():
 	var lv2: bool = k.level == 2 and is_equal_approx(k.max_hp, base.hp * (1.0 + g)) and is_equal_approx(k.damage, base.damage * (1.0 + g)) and is_equal_approx(k.hp, hp0 + base.hp * g)
 	b.add_xp(k, 150)
 	var lv5: bool = k.level == 5 and is_equal_approx(k.max_hp, base.hp * (1.0 + 4.0 * g)) and is_equal_approx(k.damage, base.damage * (1.0 + 4.0 * g))
-	var same: bool = k.skill_damage == base.skill_damage and k.buff_mult == base.buff_mult and k.aura_guard == base.aura_guard
+	var same: bool = b.SLOTS.all(func(slot): return k.get(slot) == base[slot]) and k.passive == base.passive and k.aura == base.aura
 	return check(lv2 and lv5 and same, "Lv2 %s(최대 체력 %s, 공격력 %s, 체력 %s) · Lv5 %s(최대 체력 %s, 공격력 %s) · 스킬 수치 그대로 %s" % [lv2, k.max_hp, k.damage, k.hp, lv5, k.max_hp, k.damage, same])
 
-# EV208 · S76: W는 Lv3, 오라는 Lv5에 열린다. 그 전에는 W 키가 아무 일도 하지 않고 오라가 없다
+# EV208 · S76: Q는 Lv1, W는 Lv2, E는 Lv3, R은 Lv5에 열린다. 그 전에는 그 칸의 키가 아무 일도 하지 않는다
 func ev208():
-	var kb = _knight()
+	var kb = _bastion()
 	var b = kb[0]
 	var k = kb[1]
-	var m = b.place_merc("soldier", CELLS[0] + Vector2i(1, 0))
-	if m == null:
-		return "용병을 놓지 못했다"
 	var c = controls(b)
-	b.start_battle()  # W는 전투 단계에만 쓴다(S136)
-	var hit := func():  # 옆 칸 용병이 피해 10에 깎이는 양. 깎인 체력은 되돌린다
-		var h0: float = m.hp
-		b.damage(m, 10)
-		var lost: float = h0 - m.hp
-		m.hp = h0
-		return lost
-	var plain: bool = is_equal_approx(hit.call(), 10.0)
+	b.start_battle()  # 스킬은 전투 단계에만 쓴다(S136)
+	var q: bool = b.can_cast(k, "q")
 	_key(c, KEY_W)
-	var locked: bool = k.buff_cooldown == 0.0 and m.boost_left == 0.0
+	var locked: bool = k.cd.w == 0.0 and k.skill_uses == 0 and k.mana == k.max_mana
+	b.add_xp(k, 20)
+	_key(c, KEY_W)
+	var w: bool = k.level == 2 and k.skill_uses == 1 and k.cd.w > 0.0
+	b.add_xp(k, 30)
+	_key(c, KEY_E)
+	var e: bool = k.level == 3 and k.skill_uses == 2 and k.cd.e > 0.0
 	b.add_xp(k, 50)
-	_key(c, KEY_W)
-	var opened: bool = k.level == 3 and m.boost_left > 0.0
-	b.add_xp(k, 120)
-	var aura: bool = k.level == 5 and is_equal_approx(hit.call(), 10.0 * (1.0 - k.aura_guard))
-	return check(plain and locked and opened and aura, "Lv1 오라 없음 %s · Lv1 W 잠김 %s · Lv3 W 걸림 %s · Lv5 오라 %s" % [plain, locked, opened, aura])
+	k.mana = k.max_mana
+	var r_shut: bool = k.level == 4 and not b.can_cast(k, "r")
+	b.add_xp(k, 70)
+	var r_open: bool = k.level == 5 and b.can_cast(k, "r")
+	return check(q and locked and w and e and r_shut and r_open, "Lv1 Q %s · Lv1 W 잠김 %s · Lv2 W %s · Lv3 E %s · Lv4 R 잠김 %s · Lv5 R %s" % [q, locked, w, e, r_shut, r_open])
 
 # EV209 · I115: 영입한 영웅은 Lv1, 스테이지가 준 영웅은 따로 정하지 않으면 최대 레벨이다
 func ev209():
 	var b = _hiring()
-	b.offers = ["knight", "knight", "knight"]
+	b.offers = ["bastion", "bastion", "bastion"]
 	var k = b.hire(0)
 	var hired: bool = k.level == 1 and k.xp == 0
 	var s = battle({"hero_start": Vector2i(5, 5)})
 	var start: bool = s.hero.level == 5 and s.hero.xp == 170
-	var d = battle({"heroes": [{"kind": "knight", "cell": Vector2i(5, 5), "level": 2}]})
-	var two: bool = d.hero.level == 2 and d.hero.xp == 20 and is_equal_approx(d.hero.max_hp, d.HERO_KINDS.knight.hp * (1.0 + d.LEVELS.growth))
+	var d = battle({"heroes": [{"kind": "bastion", "cell": Vector2i(5, 5), "level": 2}]})
+	var two: bool = d.hero.level == 2 and d.hero.xp == 20 and is_equal_approx(d.hero.max_hp, d.HERO_KINDS.bastion.hp * (1.0 + d.LEVELS.growth))
 	return check(hired and start and two, "영입 Lv1·0 %s · hero_start Lv5·170 %s · level 2 영웅 %s" % [hired, start, two])
 
 # EV210 · S127: 이관은 라운드 사이에만 하고, 경험치를 전부 옮기며 주는 영웅은 Lv1로 보유에 남는다
 func ev210():
 	var b = _hiring()
-	b.offers = ["knight", "priest", "mage"]
+	b.offers = ["bastion", "seraphina", "ignis"]
 	var k = b.hire(0)
 	var p = b.hire(1)
 	b.add_xp(p, 10)
@@ -171,29 +167,28 @@ func ev210():
 	var g: int = b.gold
 	var moved: bool = b.transfer(k, p)
 	var after: bool = moved and p.xp == 70 and p.level == 3 and k.xp == 0 and k.level == 1 and k in b.roster \
-		and is_equal_approx(k.max_hp, b.HERO_KINDS.knight.hp) and k.hp <= k.max_hp and b.gold == g
+		and is_equal_approx(k.max_hp, b.HERO_KINDS.bastion.hp) and k.hp <= k.max_hp and b.gold == g
 	b.add_xp(k, 150)
 	b.transfer(k, p)
-	return check(early and prep and after and p.xp <= 170, "도전 시작 전 거부 %s · 준비 단계 거부 %s · 라운드 사이 이관 %s(사제 %d, 기사 Lv%d %d, 체력 %s/%s) · 상한 170 %d" % [early, prep, after, p.xp, k.level, k.xp, k.hp, k.max_hp, p.xp])
+	return check(early and prep and after and p.xp <= 170, "도전 시작 전 거부 %s · 준비 단계 거부 %s · 라운드 사이 이관 %s(세라피나 %d, 바스티온 Lv%d %d, 체력 %s/%s) · 상한 170 %d" % [early, prep, after, p.xp, k.level, k.xp, k.hp, k.max_hp, p.xp])
 
-# EV211 · I113: 전투 중에 경험치를 채우면 그 자리에서 레벨이 오르고 W가 열린다
+# EV211 · I113: 전투 중에 경험치를 채우면 그 자리에서 레벨이 오르고 그 레벨의 칸이 열린다
 func ev211():
-	var kb = _knight()
+	var kb = _bastion()
 	var b = kb[0]
 	var k = kb[1]
-	var m = b.place_merc("soldier", CELLS[0] + Vector2i(1, 0))
 	b.start_battle()
-	if m == null or b.state != "battle":
-		return "용병을 놓지 못했거나 전투 단계가 아니다(%s)" % b.state
+	if b.state != "battle":
+		return "전투 단계가 아니다(%s)" % b.state
 	_kill(b, 50)
 	var lv3: bool = k.level == 3 and b.state == "battle"
-	_key(controls(b), KEY_W)
-	return check(lv3 and m.boost_left > 0.0, "전투 중 Lv3 %s(Lv%d, %s) · W 걸림 %s" % [lv3, k.level, b.state, m.boost_left > 0.0])
+	_key(controls(b), KEY_E)
+	return check(lv3 and k.skill_uses == 1 and k.cd.e > 0.0, "전투 중 Lv3 %s(Lv%d, %s) · E 씀 %s" % [lv3, k.level, b.state, k.cd.e > 0.0])
 
-# 기사·사제를 영입해 1라운드를 이긴 라운드 사이의 판과 두 영웅. 못 이기면 [판, 오류 문장]
+# 바스티온·세라피나를 영입해 1라운드를 이긴 라운드 사이의 판과 두 영웅. 못 이기면 [판, 오류 문장]
 func _cleared():
 	var b = _hiring()
-	b.offers = ["knight", "priest", "mage"]
+	b.offers = ["bastion", "seraphina", "ignis"]
 	var k = b.hire(0)
 	var p = b.hire(1)
 	b.next_round()
@@ -215,7 +210,7 @@ func ev227():
 	var fit: bool = b.transfer(k, p) and p.xp == cap and k.xp == 0
 	b.add_xp(k, 50)
 	var refused: bool = not b.transfer(k, p) and p.xp == cap and k.xp == 50
-	return check(fit and refused, "상한에 딱 닿는 이관 %s · 넘치는 이관 거부 %s(사제 %d, 기사 %d)" % [fit, refused, p.xp, k.xp])
+	return check(fit and refused, "상한에 딱 닿는 이관 %s · 넘치는 이관 거부 %s(세라피나 %d, 바스티온 %d)" % [fit, refused, p.xp, k.xp])
 
 # EV228 · I116: 이관으로 레벨이 바뀐 영웅은 체력 비율이 그대로라, 이관을 네 번 오가도 체력이 차지 않는다
 func ev228():
@@ -231,5 +226,5 @@ func ev228():
 	var ratio: float = k.hp / k.max_hp
 	for i in 2:
 		if not (b.transfer(k, p) and b.transfer(p, k)):
-			return "이관 왕복 %d번째가 거부됐다(기사 %d, 사제 %d)" % [i + 1, k.xp, p.xp]
-	return check(k.level == 5 and absf(k.hp / k.max_hp - ratio) < 0.001, "네 번 이관 뒤 기사 Lv%d 체력 %s/%s(비율 %s → %s)" % [k.level, k.hp, k.max_hp, ratio, k.hp / k.max_hp])
+			return "이관 왕복 %d번째가 거부됐다(바스티온 %d, 세라피나 %d)" % [i + 1, k.xp, p.xp]
+	return check(k.level == 5 and absf(k.hp / k.max_hp - ratio) < 0.001, "네 번 이관 뒤 바스티온 Lv%d 체력 %s/%s(비율 %s → %s)" % [k.level, k.hp, k.max_hp, ratio, k.hp / k.max_hp])

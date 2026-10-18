@@ -1,0 +1,63 @@
+[gd_resource type="Resource" script_class="HeroDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/hero_def.gd" id="1_hero"]
+
+[resource]
+script = ExtResource("1_hero")
+grade = 2
+hp = 90.0
+speed = 3.0
+damage = 3.0
+range = 3.5
+attack_gap = 1.0
+passive = {
+"id": "contagion",
+"radius": 2.0
+}
+aura = {
+"radius": 3.0,
+"foe_armor": 5.0
+}
+q = {
+"id": "corrosion",
+"aim": "point",
+"gap": 8.0,
+"mana": 50.0,
+"radius": 2.0,
+"time": 5.0,
+"poison": 3.0,
+"dps": 3.0,
+"armor": -10.0,
+"mr": -0.25
+}
+w = {
+"id": "enfeeble",
+"aim": "point",
+"gap": 11.0,
+"mana": 65.0,
+"radius": 2.0,
+"time": 4.0,
+"slow": 0.4,
+"weaken": 0.35,
+"expose": 0.2
+}
+e = {
+"id": "soul_chain",
+"aim": "enemy",
+"gap": 15.0,
+"mana": 80.0,
+"radius": 3.0,
+"links": 4,
+"time": 4.0,
+"share": 0.35
+}
+r = {
+"id": "abyss",
+"aim": "point",
+"gap": 60.0,
+"mana": 160.0,
+"radius": 3.0,
+"time": 5.0,
+"slow": 0.6,
+"burn": 0.04
+}

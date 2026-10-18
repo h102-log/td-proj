@@ -1,0 +1,62 @@
+[gd_resource type="Resource" script_class="HeroDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/hero_def.gd" id="1_hero"]
+
+[resource]
+script = ExtResource("1_hero")
+grade = 2
+hp = 90.0
+speed = 3.0
+damage = 2.0
+range = 3.0
+attack_gap = 1.0
+passive = {
+"id": "overflow",
+"time": 5.0,
+"cap": 0.5
+}
+aura = {
+"radius": 3.0,
+"armor": 6.0
+}
+q = {
+"id": "holy_beam",
+"aim": "ally",
+"targets": "unit",
+"gap": 6.0,
+"mana": 45.0,
+"heal": 20.0,
+"damage": 15.0,
+"hop": 3.0,
+"hits": 5
+}
+w = {
+"id": "sanctum",
+"aim": "point",
+"gap": 12.0,
+"mana": 70.0,
+"radius": 2.0,
+"time": 4.0,
+"hps": 5.0,
+"slow": 0.25
+}
+e = {
+"id": "guardian",
+"aim": "ally",
+"targets": "unit",
+"gap": 16.0,
+"mana": 85.0,
+"time": 4.0,
+"heal_up": 0.3,
+"undying": 2.5
+}
+r = {
+"id": "miracle",
+"aim": "self",
+"gap": 70.0,
+"mana": 200.0,
+"heal": 0.5,
+"time": 5.0,
+"bless": 3.0,
+"splash": 1.0
+}

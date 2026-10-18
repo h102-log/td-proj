@@ -7,10 +7,10 @@ extends "res://tests/eval/gd/lib.gd"
 #   Battle.offers — 목록(칸마다 영웅 종류, 영입한 칸은 ""). 평가가 바꿔 넣을 수 있다 · Battle.roster — 보유 영웅(영입 순서)
 #   Battle.lineup — 다음 라운드에 출전할 영웅 · Battle.heroes — 전장에 나온 출전 영웅(보유 순서) · Battle.hero — 첫 출전 영웅
 #   Battle.hire(칸 번호) -> 영웅|null · Battle.reroll() -> bool · Battle.dismiss(영웅) · Battle.set_lineup(영웅, 출전) -> bool(못 바꾸면 false)
-#   Controls: F1·F2 키 — 출전 영웅 1·2를 고른다(I108)
+#   Controls: F1·F2·F3 키 — 출전 영웅 1·2·3을 고른다(I108)
 # 수치는 Battle.HIRE와 영웅 데이터에서 읽는다. 임시값이라(S123) 밸런스를 바꿔도 동작을 재는 평가는 깨지지 않게. EV194만 표를 대조한다
 
-const CELLS := [Vector2i(10, 5), Vector2i(12, 5)]  # 출전 칸
+const CELLS := [Vector2i(10, 5), Vector2i(12, 5), Vector2i(14, 5)]  # 출전 칸(출전 3명, S123)
 const ONE := [{"kind": "basic", "count": 1}]
 const ONE_ONE := [[ONE], [ONE]]  # 라운드 2개, 라운드마다 적 1마리짜리 웨이브 하나
 
@@ -92,7 +92,7 @@ func ev194():
 		return "data/hire.tres를 불러오지 못했다"
 	var odds := [0.6, 0.3, 0.1]
 	var cost := [30, 60, 100]
-	var ok: bool = r.slots == 3 and r.reroll == 10 and r.cap == 4 and r.lineup == 2 and r.odds.size() == 3 and r.cost.size() == 3
+	var ok: bool = r.slots == 3 and r.reroll == 10 and r.cap == 5 and r.lineup == 3 and r.odds.size() == 3 and r.cost.size() == 3
 	for i in 3:
 		ok = ok and is_equal_approx(r.odds[i], odds[i]) and r.cost[i] == cost[i]
 	return check(ok, "칸 %s · 등장 확률 %s · 영입 비용 %s · 리롤 %s · 보유 상한 %s · 출전 %s" % [r.slots, r.odds, r.cost, r.reroll, r.cap, r.lineup])
@@ -125,38 +125,39 @@ func ev196():
 			if n == 0 or absf(float(seen.get(k, 0)) / n - 0.5) > 0.05:
 				return "%d등급 %s: %d / %d (0.5여야 한다)" % [g, k, seen.get(k, 0), n]
 	var d = _hiring()
-	d.offers = ["knight", "knight", "knight"]
+	d.offers = ["bastion", "bastion", "bastion"]
 	var a = d.hire(0)
 	var z = d.hire(1)
-	return check(a != null and z != null and d.roster.size() == 2 and d.roster.all(func(h): return h.kind == "knight"),
+	return check(a != null and z != null and d.roster.size() == 2 and d.roster.all(func(h): return h.kind == "bastion"),
 		"같은 영웅 둘을 영입하지 못했다(보유 %s)" % [d.roster.map(func(h): return h.kind)])
 
-# EV197 · S123: 영입하면 등급의 영입 비용만큼 골드가 줄고, 출전은 2명·보유는 4명까지다
+# EV197 · S123: 영입하면 등급의 영입 비용만큼 골드가 줄고, 출전은 3명·보유는 5명까지다
 func ev197():
 	var b = _hiring({"gold": 200})
-	b.offers = ["knight", "priest", "general"]
+	b.offers = ["bastion", "seraphina", "chronos"]
 	var k = b.hire(0)
 	var p = b.hire(1)
 	var g = b.hire(2)
 	if k == null or p == null or g == null or b.gold != 200 - _cost(b, k) - _cost(b, p) - _cost(b, g):
 		return "셋을 영입하지 못했거나 골드가 %d다" % b.gold
-	b.set_lineup(k, true)
-	b.set_lineup(p, true)
-	var third: bool = b.set_lineup(g, true)
-	if third or b.lineup.size() != b.HIRE.lineup:
-		return "출전 목록 %d명 · 셋째 넣기 %s" % [b.lineup.size(), third]
+	if b.lineup != [k, p, g]:
+		return "출전 목록이 %s다(영입한 셋이어야 한다)" % [b.lineup.map(func(h): return h.kind)]
 	b.gold = BIG
-	b.offers = ["mage", "bowman", "mason"]
+	b.offers = ["ignis", "sylvia", "vesper"]
 	var fourth = b.hire(0)
-	var gold: int = b.gold
+	var in4: bool = b.set_lineup(fourth, true)
+	if in4 or b.lineup.size() != b.HIRE.lineup:
+		return "출전 목록 %d명 · 넷째 넣기 %s" % [b.lineup.size(), in4]
 	var fifth = b.hire(1)
-	return check(fourth != null and fifth == null and b.roster.size() == b.HIRE.cap and b.gold == gold,
-		"넷째 %s · 다섯째 %s · 보유 %d명 · 골드 %d → %d" % [fourth, fifth, b.roster.size(), gold, b.gold])
+	var gold: int = b.gold
+	var sixth = b.hire(2)
+	return check(fourth != null and fifth != null and sixth == null and b.roster.size() == b.HIRE.cap and b.gold == gold,
+		"넷째 %s · 다섯째 %s · 여섯째 %s · 보유 %d명 · 골드 %d → %d" % [fourth, fifth, sixth, b.roster.size(), gold, b.gold])
 
 # EV198 · S124: 계속 출전하는 영웅은 자리·체력이 그대로, 빠진 영웅은 사라지고, 새로 출전한 영웅은 출전 칸에 최대 체력으로 선다
 func ev198():
 	var b = _hiring()
-	b.offers = ["knight", "priest", "mage"]
+	b.offers = ["bastion", "seraphina", "ignis"]
 	var k = b.hire(0)
 	var p = b.hire(1)
 	b.set_lineup(k, true)
@@ -165,7 +166,7 @@ func ev198():
 	var to: Vector2i = CELLS[0] + Vector2i(0, 3)
 	b.order_move([k], to)
 	if not run(b, 10.0, func(): return near(k.pos, to)):
-		return "기사가 옮겨 가지 않았다(%s)" % k.pos
+		return "바스티온이 옮겨 가지 않았다(%s)" % k.pos
 	b.damage(k, 30)
 	var hp: float = k.hp
 	if not _win_round(b) or b.state != "cleared":
@@ -178,7 +179,7 @@ func ev198():
 	var kept: bool = k in b.units and k.pos.distance_to(at) < 0.1 and k.hp == hp
 	var gone: bool = p not in b.units and p not in b.heroes
 	var fresh: bool = m in b.units and m.present and near(m.pos, CELLS[1], 0.01) and m.hp == m.max_hp
-	return check(b.state == "prep" and kept and gone and fresh, "기사 그대로 %s · 사제 사라짐 %s · 마도사가 출전 칸에 최대 체력 %s (%s)" % [kept, gone, fresh, m.pos])
+	return check(b.state == "prep" and kept and gone and fresh, "바스티온 그대로 %s · 세라피나 사라짐 %s · 이그니스가 출전 칸에 최대 체력 %s (%s)" % [kept, gone, fresh, m.pos])
 
 # EV199 · I104: 목록은 도전 시작·라운드 승리 때 무료로 새로 뽑고, 영입·리롤은 영입 창에서만 한다
 func ev199():
@@ -204,7 +205,7 @@ func ev199():
 # EV200 · I105: 내보낸 영웅은 보유·출전 목록에서 빠지고 환불은 없다. 전장에 있었으면 다음 라운드에 사라진다
 func ev200():
 	var b = _hiring()
-	b.offers = ["knight", "priest", "mage"]
+	b.offers = ["bastion", "seraphina", "ignis"]
 	var k = b.hire(0)
 	var p = b.hire(1)
 	b.set_lineup(k, true)
@@ -229,77 +230,79 @@ func ev201():
 	var started: bool = b.next_round() and b.state == "prep" and b.hero == null and b.heroes.is_empty()
 	_key(c, KEY_Q)
 	_key(c, KEY_W)
-	var d = _hiring()
-	d.offers = ["knight", "priest", "mage"]
+	var d = _hiring({"gold": BIG})
+	d.offers = ["bastion", "seraphina", "ignis"]
 	var k = d.hire(0)
 	var p = d.hire(1)
 	var m = d.hire(2)
-	var auto: bool = d.lineup == [k, p]
+	d.offers = ["chronos", "", ""]
+	var x = d.hire(0)
+	var auto: bool = d.lineup == [k, p, m]
 	d.next_round()
 	if not _win_round(d):
 		return "1라운드를 이기지 못했다(%s)" % d.state
 	d.next_round()
-	var same: bool = d.heroes == [k, p] and m not in d.units
-	return check(started and auto and same, "영웅 없이 시작 %s · 처음 둘만 출전 %s · 다음 라운드도 같은 둘 %s" % [started, auto, same])
+	var same: bool = d.heroes == [k, p, m] and x not in d.units
+	return check(started and auto and same, "영웅 없이 시작 %s · 처음 셋만 출전 %s · 다음 라운드도 같은 셋 %s" % [started, auto, same])
 
-# EV202 · I107: 시험 스테이지의 출전 칸은 정문 앞 (19,11)·(21,11)이고, 영웅은 보유 순서대로 서며, 출전 칸에는 짓지 못한다
+# EV202 · I107: 시험 스테이지의 출전 칸은 정문 앞 (19,11)·(21,11)·(20,11)이고, 영웅은 보유 순서대로 서며, 출전 칸에는 짓지 못한다
 func ev202():
 	var cells: Array = load("res://src/main.gd").stage().get("hero_cells", [])
-	if cells.size() != 2 or cells[0] != Vector2i(19, 11) or cells[1] != Vector2i(21, 11):
+	if cells != [Vector2i(19, 11), Vector2i(21, 11), Vector2i(20, 11)]:
 		return "출전 칸이 %s다" % [cells]
 	var b = _main()
 	b.begin_hiring()
-	b.offers = ["knight", "bowman", "knight"]
-	var k = b.hire(0)
-	var w = b.hire(1)
-	b.set_lineup(k, true)
-	b.set_lineup(w, true)
+	b.offers = ["bastion", "sylvia", "bastion"]
+	var team := [b.hire(0), b.hire(1), b.hire(2)]
 	b.next_round()
-	var placed: bool = near(k.pos, cells[0], 0.01) and near(w.pos, cells[1], 0.01)
-	b.order_move([k], cells[0] + Vector2i(0, 4))
-	b.order_move([w], cells[1] + Vector2i(0, 4))
+	var placed := true
+	for i in 3:
+		placed = placed and near(team[i].pos, cells[i], 0.01)
+		b.order_move([team[i]], cells[i] + Vector2i(0, 4))
 	run(b, 5.0)
-	var blocked: bool = b.build("wall", cells[0]) == null and b.build("wall", cells[1]) == null
-	var beside = b.build("wall", cells[0] + Vector2i(1, 0))
+	var blocked: bool = cells.all(func(c): return b.build("wall", c) == null)
+	var beside = b.build("wall", cells[0] + Vector2i(-1, 0))
 	return check(placed and blocked and beside != null, "보유 순서대로 섬 %s · 출전 칸에 못 지음 %s · 옆 칸에 지음 %s" % [placed, blocked, beside != null])
 
-# EV203 · I108: 출전 순서는 보유 순서이고 첫 출전 영웅이 hero다. F2로 고르고, 빠진 영웅을 골라 둔 채면 첫 출전 영웅이 Q를 쓴다
+# EV203 · I108: 출전 순서는 보유 순서이고 첫 출전 영웅이 hero다. F2로 고르고, 빠진 영웅을 골라 둔 채면 첫 출전 영웅이 스킬을 쓴다
 func ev203():
 	var b = _hiring()
-	b.offers = ["knight", "priest", "mage"]
+	b.offers = ["bastion", "seraphina", "chronos"]
 	var k = b.hire(0)
 	var p = b.hire(1)
 	var m = b.hire(2)
 	for h in b.roster:
+		b.add_xp(h, 50)  # E는 Lv3에 열린다(S145)
 		b.set_lineup(h, false)
 	b.set_lineup(m, true)
 	b.set_lineup(k, true)
 	b.next_round()
 	if b.heroes != [k, m] or b.hero != k:
-		return "출전 영웅 %s · hero %s (기사, 마도사 순이어야 한다)" % [b.heroes.map(func(h): return h.kind), b.hero.kind if b.hero else "없음"]
+		return "출전 영웅 %s · hero %s (바스티온, 크로노스 순이어야 한다)" % [b.heroes.map(func(h): return h.kind), b.hero.kind if b.hero else "없음"]
 	var c = controls(b)
 	_key(c, KEY_F2)
 	var picked: bool = c.selected == [m]
-	b.start_battle()  # Q는 전투 단계에만 쓴다(S136)
-	_key(c, KEY_Q)
-	var mage_q: bool = m.skill_uses == 1 and k.skill_uses == 0
+	b.start_battle()  # 스킬은 전투 단계에만 쓴다(S136)
+	_key(c, KEY_E)  # 바스티온·크로노스의 E는 모두 즉시 칸이다
+	var second_e: bool = m.skill_uses == 1 and k.skill_uses == 0
 	if not clear_wave(b) or not _win_round(b):
 		return "1라운드를 이기지 못했다(%s)" % b.state
 	b.set_lineup(m, false)
 	b.set_lineup(p, true)
 	b.next_round()
 	b.start_battle()
-	_key(c, KEY_Q)
-	var first_q: bool = k.skill_uses == 1 and m.skill_uses == 1 and p.skill_uses == 0
-	return check(picked and mage_q and first_q, "F2로 마도사 고름 %s · 마도사가 Q %s · 다음 라운드엔 기사가 Q %s" % [picked, mage_q, first_q])
+	_key(c, KEY_E)
+	var first_e: bool = k.skill_uses == 1 and m.skill_uses == 1 and p.skill_uses == 0
+	return check(picked and second_e and first_e, "F2로 크로노스 고름 %s · 크로노스가 E %s · 다음 라운드엔 바스티온이 E %s" % [picked, second_e, first_e])
 
 # EV232 · I127: 보유 영웅이 상한이면 리롤은 거부되고 골드와 목록이 그대로다
 func ev232():
-	var b = _hiring()
+	var b = _hiring({"gold": BIG})
 	for i in 3:
 		b.hire(i)
 	var rolled: bool = b.reroll()
 	b.hire(0)
+	b.hire(1)
 	if b.roster.size() != b.HIRE.cap:
 		return "보유 영웅이 상한(%d)까지 차지 않았다(%d)" % [b.HIRE.cap, b.roster.size()]
 	var before: Array = b.offers.duplicate()

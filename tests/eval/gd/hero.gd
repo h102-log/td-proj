@@ -22,14 +22,15 @@ func ev20():
 	var ok := run(b, 10, func(): return e.hp < e.max_hp)
 	return check(ok, "영웅이 자동으로 공격하지 않았다")
 
-# EV21 · S15: 스킬은 명령 없이는 쓰지 않는다
+# EV21 · S15: 스킬은 명령 없이는 쓰지 않는다(자동 시전을 켜지 않았으면)
 func ev21():
-	var b = battle({"hero_start": START})
+	var b = battle({"hero_start": START, "waves": [[{"kind": "basic", "count": 0}]]})
 	b.spawn_enemy("basic", START + Vector2i(1, 0), {"speed": 0, "damage": 0, "hp": BIG})
-	if not run(b, 60, func(): return b.hero.skill_ready()):
-		return "60초 안에 스킬이 준비되지 않았다"
+	b.start_battle()
+	if not b.can_cast(b.hero, "q"):
+		return "전투 단계에서 Q를 쓸 수 있는 상태가 아니다"
 	run(b, 10)
-	return check(b.hero.skill_uses == 0, "명령 없이 스킬을 %d번 썼다" % b.hero.skill_uses)
+	return check(b.hero.skill_uses == 0 and b.state == "battle", "명령 없이 스킬을 %d번 썼다(%s)" % [b.hero.skill_uses, b.state])
 
 # EV22 · S26: 쓰러진 영웅은 웨이브 동안 없고, 다음 준비 단계에 시작 지점에 있다
 func ev22():

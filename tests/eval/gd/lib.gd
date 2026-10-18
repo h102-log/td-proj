@@ -12,7 +12,7 @@ extends RefCounted
 #     order_move(units, cell) · set_move_mode(units, "move"|"attack_move") · set_hold(units, on)
 #     signal enemy_spawned(enemy)
 #   유닛: pos(Vector2, 칸 단위, 칸 (x,y)의 중심 = Vector2(x,y)) · hp · max_hp · alive
-#   적: reward · 영웅: present · skill_uses · skill_ready() · 구조물: cell · hp · max_hp · complete
+#   적: reward · 영웅: present · skill_uses · 구조물: cell · hp · max_hp · complete · Battle.can_cast(영웅, 칸)(heroes.gd 머리)
 #   Controls res://src/ui/controls.gd  Controls.new(battle, cell_px) · handle(event) · selected
 #   kind: 적 "basic" · 용병 "soldier" · 구조물 "wall" "tower"
 #   overrides 키: 적 sight·wall_k·hp·speed·damage / 용병 hp·damage·range·sight·hold_radius / 타워 range·damage

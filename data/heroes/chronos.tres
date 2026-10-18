@@ -1,0 +1,58 @@
+[gd_resource type="Resource" script_class="HeroDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/hero_def.gd" id="1_hero"]
+
+[resource]
+script = ExtResource("1_hero")
+grade = 3
+hp = 110.0
+speed = 3.0
+damage = 4.0
+range = 3.0
+attack_gap = 1.0
+aura = {
+"radius": 3.0,
+"haste": 0.15,
+"stride": 0.15
+}
+q = {
+"id": "overcharge",
+"aim": "ally",
+"targets": "hero_tower",
+"auto": true,
+"gap": 4.0,
+"mana": 35.0,
+"time": 6.0,
+"haste": 0.35,
+"might": 0.2
+}
+w = {
+"id": "rewind",
+"aim": "ally",
+"targets": "other_hero",
+"gap": 14.0,
+"mana": 70.0,
+"mana_back": 0.25,
+"cut": 5.0
+}
+e = {
+"id": "golden_law",
+"aim": "self",
+"gap": 20.0,
+"mana": 60.0,
+"radius": 3.0,
+"time": 6.0,
+"bonus": 0.3
+}
+r = {
+"id": "time_warp",
+"aim": "point",
+"gap": 70.0,
+"mana": 180.0,
+"radius": 3.5,
+"time": 6.0,
+"haste": 0.5,
+"cdr": 0.5,
+"slow": 0.5,
+"lag": 0.5
+}

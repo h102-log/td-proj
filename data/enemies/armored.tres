@@ -11,4 +11,4 @@ attack_gap = 1.2
 radius = 0.35
 sight = 3.0
 reward = 8
-armor = 2.0
+armor = 15.0

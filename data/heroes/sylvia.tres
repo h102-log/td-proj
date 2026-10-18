@@ -1,0 +1,61 @@
+[gd_resource type="Resource" script_class="HeroDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/hero_def.gd" id="1_hero"]
+
+[resource]
+script = ExtResource("1_hero")
+grade = 1
+hp = 70.0
+speed = 3.0
+damage = 3.0
+range = 4.0
+attack_gap = 1.0
+passive = {
+"id": "weak_point",
+"haste": 0.08,
+"stacks": 5,
+"ignore": 0.35
+}
+aura = {
+"radius": 3.0,
+"reach": 0.1
+}
+q = {
+"id": "piercing_gale",
+"aim": "dir",
+"gap": 7.0,
+"mana": 45.0,
+"length": 6.0,
+"width": 0.5,
+"damage": 20.0,
+"falloff": 0.1,
+"stacks": 3
+}
+w = {
+"id": "split_shot",
+"aim": "toggle",
+"gap": 1.0,
+"mana": 8.0,
+"extra": 3
+}
+e = {
+"id": "storm_trap",
+"aim": "point",
+"gap": 11.0,
+"mana": 55.0,
+"radius": 1.5,
+"root": 3.0,
+"crit": 0.25,
+"life": 30.0
+}
+r = {
+"id": "arrow_rain",
+"aim": "point",
+"gap": 55.0,
+"mana": 140.0,
+"radius": 2.5,
+"time": 5.0,
+"dps": 8.0,
+"execute": 0.15,
+"boss": 1.5
+}
