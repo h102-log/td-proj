@@ -46,8 +46,9 @@ def down(pitch, side=0.0):
     return v / np.linalg.norm(v)
 
 
-def knight(pose, bob_unit):
-    """bob_unit: 화면 1px만큼 위로 올리는 월드 z. 몸통 오르내림을 정수 픽셀로 맞춰 H3(윤곽 흔들림)를 지킨다"""
+def rig(pose, bob_unit):
+    """인간형 공용 뼈대(WBS 4.1d). 자세 → (윗몸 변환 U, 다리 변환 G, 윗몸 회전 up_r, 다리 관절, 팔 관절).
+    bob_unit: 화면 1px만큼 위로 올리는 월드 z. 몸통 오르내림을 정수 픽셀로 맞춰 H3(윤곽 흔들림)를 지킨다"""
     hip_z, pelvis = 0.41, np.array([0, 0, 0.41])
     # 옆(모델 오른쪽)으로 쓰러진다. 45°에서는 뒤로 누운 몸이 선 몸과 화면 높이가 같아(cos45 = sin45) 서 있는 것처럼 보였다(2026-10-18)
     f = np.radians(pose["fall"])
@@ -62,12 +63,33 @@ def knight(pose, bob_unit):
     def G(p):  # 다리는 오르내리지 않는다. 통과 자세의 디딤발이 땅에 붙어 있게
         return fall @ np.asarray(p, float) + lift
 
-    m = MATS.index
-    P = []  # (sdf, 재질, 부위). 부위는 프레임 차이 검사(H3)가 머리·몸통과 팔다리를 가르는 데 쓴다
-    for side, s in (("l", -1), ("r", 1)):  # 다리: 허벅지 가죽, 정강이 강철, 발 가죽
+    legs, arms = {}, {}  # 쪽마다 (엉덩이, 무릎, 발목) / (어깨, 팔꿈치, 손). 아직 U·G를 거치지 않은 좌표다
+    for side, s in (("l", -1), ("r", 1)):
         hip = np.array([0.065 * s, 0, hip_z])
         knee = hip + 0.19 * down(pose["hip_" + side])
-        ankle = knee + 0.19 * down(pose["hip_" + side] - pose["knee_" + side])
+        legs[side] = (hip, knee, knee + 0.19 * down(pose["hip_" + side] - pose["knee_" + side]))
+        sh = np.array([0.165 * s, 0, 0.655])
+        el = sh + 0.15 * down(pose["sh_" + side], pose["ab_" + side] * s)
+        arms[side] = (sh, el, el + 0.13 * down(pose["sh_" + side] + pose["el_" + side], 0.05 * s))
+    return U, G, up_r, legs, arms
+
+
+def blade_axes(pose, up_r):
+    """손에 든 긴 물건(검·지휘봉)의 방향 bd와 축 행렬. 앞으로 sword도, 바깥(오른쪽)으로 sword_side도 기운다"""
+    a, s = np.radians(pose["sword"]), np.radians(pose["sword_side"])
+    bd = up_r @ np.array([np.sin(s), np.sin(a) * np.cos(s), np.cos(a) * np.cos(s)])
+    side = up_r @ np.array([1.0, 0, 0])
+    side = (side - (side @ bd) * bd) / np.linalg.norm(side - (side @ bd) * bd)
+    third = np.cross(bd, side)
+    return bd, side, third
+
+
+def knight(pose, bob_unit):
+    U, G, up_r, legs, arms = rig(pose, bob_unit)
+    m = MATS.index
+    P = []  # (sdf, 재질, 부위). 부위는 프레임 차이 검사(H3)가 머리·몸통과 팔다리를 가르는 데 쓴다
+    for side in "lr":  # 다리: 허벅지 가죽, 정강이 강철, 발 가죽
+        hip, knee, ankle = legs[side]
         P += [(R.capsule(G(hip), G(knee), 0.052), m("leather"), "leg"), (R.capsule(G(knee), G(ankle), 0.048), m("steel"), "leg"),
               (R.ellipsoid(G(ankle + [0, 0.035, -0.005]), (0.042, 0.068, 0.032)), m("leather"), "leg")]
     P += [(R.box(U([0, 0, 0.575]), (0.12, 0.075, 0.12), up_r, 0.035), m("cloth"), "torso"),  # 몸통(겉옷)
@@ -82,27 +104,19 @@ def knight(pose, bob_unit):
     # 눈높이에 투구 면보다 살짝 나온 어두운 눈구멍. 얼굴 창의 살색이 강철 하이라이트와 섞여 투구 앞뒤가 안 갈렸다(Gemini 2026-10-18).
     # 얼굴 창 높이(z 0.72~0.81)에 두면 24px에서 목 그늘처럼 읽혔고, 뒤에서 보이는 머리카락 띠와 높이가 같았다
     P.append((R.box(U([0, 0.12, 0.815]), (0.08, 0.025, 0.035), up_r), m("visor"), "head"))
-    hands = {}
-    for side, s in (("l", -1), ("r", 1)):  # 팔: 어깨 강철, 윗팔 강철, 아래팔·손 가죽
-        sh = np.array([0.165 * s, 0, 0.655])
-        el = sh + 0.15 * down(pose["sh_" + side], pose["ab_" + side] * s)
-        hd = el + 0.13 * down(pose["sh_" + side] + pose["el_" + side], 0.05 * s)
-        hands[side] = (el, hd)
+    for side in "lr":  # 팔: 어깨 강철, 윗팔 강철, 아래팔·손 가죽
+        sh, el, hd = arms[side]
         P += [(R.ellipsoid(U(sh), (0.07, 0.07, 0.055)), m("steel"), "torso"), (R.capsule(U(sh), U(el), 0.042), m("steel"), "arm"),
               (R.capsule(U(el), U(hd), 0.04), m("leather"), "arm"), (R.ellipsoid(U(hd), (0.042, 0.042, 0.042)), m("leather"), "arm")]
-    hd = U(hands["r"][1])
-    a, s = np.radians(pose["sword"]), np.radians(pose["sword_side"])
-    bd = up_r @ np.array([np.sin(s), np.sin(a) * np.cos(s), np.cos(a) * np.cos(s)])  # 검날 방향: 앞으로 a, 바깥(오른쪽)으로 s
-    side = up_r @ np.array([1.0, 0, 0])
-    side = (side - (side @ bd) * bd) / np.linalg.norm(side - (side @ bd) * bd)
-    third = np.cross(bd, side)
+    hd = U(arms["r"][2])
+    bd, side, third = blade_axes(pose, up_r)  # 검날 방향: 앞으로 sword, 바깥(오른쪽)으로 sword_side
     ax = np.stack([side, bd, third])
     dia = np.stack([(side + third) / np.sqrt(2), bd, (third - side) / np.sqrt(2)])  # 검날 단면은 마름모: 두 면이 빛을 달리 받아 명암 2단이 된다
     P += [(R.box(hd + bd * 0.045, (0.065, 0.015, 0.022), ax), m("gold"), "sword"),
           # 검날 두께 1.2배·길이 1.3배(뿌리 0.06은 그대로). 1.5배는 흰 몽둥이처럼 보였다(Gemini 2차 2026-10-18)
           (R.box(hd + bd * 0.346, (0.036, 0.286, 0.036), dia), m("blade"), "sword"),
           (R.capsule(hd - bd * 0.05, hd, 0.022), m("leather"), "sword")]
-    el_l, hd_l = hands["l"]
+    _, el_l, hd_l = arms["l"]
     n = up_r @ (np.array([-0.4, 1.0, 0]) / np.linalg.norm([-0.4, 1.0, 0]))  # 방패 앞면: 앞·왼쪽
     zz = up_r @ np.array([0, 0, 1.0])
     P.append((R.box(U((el_l + hd_l) / 2) + n * 0.035, (0.13, 0.022, 0.11), np.stack([zz, n, np.cross(zz, n)]), 0.015), m("wood"), "shield"))
@@ -115,7 +129,7 @@ PARTS = ["leg", "torso", "head", "arm", "sword", "shield"]
 PPU24 = 17.47  # 유닛 24px의 배율. 사용자가 24px을 정할 때 본 몸 크기다(2026-10-18 1차 검수 전 맞춤값)
 
 
-def fit(n, poses):
+def fit(n, poses, model=knight):
     """배율은 PPU24에 비례해 고정하고, 모든 자세·방향·각도(45·60)가 들어가는 정사각 캔버스 크기와 기준점(발밑)을 구한다.
     검을 키우면 몸이 줄던 것(24px 배율 17.47 → 14.69)을 막는다(사용자 결정 2026-10-18). 기준점은 정수라 Godot에서 offset이 정수다"""
     lo, hi, wd = 0.0, 0.0, 0.0
@@ -124,7 +138,7 @@ def fit(n, poses):
         cam = R.Cam(elev)
         for g in R.DIRS.values():
             for pose in poses:
-                pid, _, _ = R.trace(knight(pose, 0), cam, cam.facing(*g), big, bp, (big / 2, big / 2))
+                pid, _, _ = R.trace(model(pose, 0), cam, cam.facing(*g), big, bp, (big / 2, big / 2))
                 ys, xs = np.nonzero(pid >= 0)
                 hi, lo = max(hi, (big / 2 - ys.min()) / bp), min(lo, (big / 2 - ys.max() - 1) / bp)
                 wd = max(wd, abs(xs.min() - big / 2) / bp, abs(xs.max() + 1 - big / 2) / bp)
@@ -133,54 +147,66 @@ def fit(n, poses):
     return ppu, (c / 2, int(round(3 + hi * ppu))), c
 
 
-def bake(pose, elev, g, n, ppu, anchor, ramps, outline, dark):
-    """→ (팔레트 번호 이미지, 부위 이미지: 0 빈칸, 1~ PARTS 순서)"""
+def bake(pose, elev, g, n, ppu, anchor, ramps, outline, dark, model=knight, parts=PARTS):
+    """→ (팔레트 번호 이미지, 부위 이미지: 0 빈칸, 1~ parts 순서)"""
     cam = R.Cam(elev)
-    prims = knight(pose, 1 / (ppu * cam.cos))
+    prims = model(pose, 1 / (ppu * cam.cos))
     pid, lam, depth = R.trace(prims, cam, cam.facing(*g), n, ppu, anchor)
     mats = np.array([q[1] for q in prims])
-    parts = np.array([1 + PARTS.index(q[2]) for q in prims])
+    part = np.array([1 + parts.index(q[2]) for q in prims])
     mat = np.where(pid >= 0, mats[pid], -1)
     # 안쪽 외곽선 문턱: 칸 하나의 깊이 차가 곡면에서 문턱을 넘지 않게 픽셀 크기에 비례해 키운다(16px에서 0.08이면 곡면 전체가 외곽선이 됐다)
     idx = R.shade(mat, lam, depth, ramps, outline, dark, edge=0.1 + 1.5 / ppu)
-    return idx, np.where(pid >= 0, parts[pid], 0)
+    return idx, np.where(pid >= 0, part[pid], 0)
 
 
 ANIMS = {"idle": [IDLE], "walk": WALK, "attack": ATTACK, "fall": FALL}
 
 
-def fits():
+def fits(out=None, poses=None, model=knight, tag=f"m5 ppu{PPU24} blade1.2x1.3", sizes=SIZES):
     """맞춤은 45초쯤 걸려서 자세가 같으면 저장해 둔 값을 쓴다. → {n: (배율, 기준점, 캔버스)}.
-    공격·쓰러짐 자세는 넣지 않는다. 앞으로 뻗은 검까지 넣으면 캔버스가 커져서, 그 둘은 2배 캔버스로 따로 굽는다(save)"""
+    공격·쓰러짐 자세는 넣지 않는다. 앞으로 뻗은 검까지 넣으면 캔버스가 커져서, 그 둘은 2배 캔버스로 따로 굽는다(save).
+    기본값은 기사다. 다른 영웅은 자기 폴더·정지와 걷기 자세·형체·꼬리표로 부른다(general.py)"""
     import json
-    f = OUT / "fit.json"
-    key = repr([IDLE] + WALK) + f"m5 ppu{PPU24} blade1.2x1.3"  # 여백이나 형체 크기를 바꾸면 이 꼬리표도 바꾼다
+    out, poses = out or OUT, poses or [IDLE] + WALK
+    f = out / "fit.json"
+    key = repr(poses) + tag  # 여백이나 형체 크기를 바꾸면 꼬리표도 바꾼다
     if f.exists() and json.loads(f.read_text())["key"] == key:
         return {int(k): (v[0], tuple(v[1]), v[2]) for k, v in json.loads(f.read_text())["fits"].items()}
-    out = {n: fit(n, [IDLE] + WALK) for n in SIZES}
-    f.write_text(json.dumps({"key": key, "fits": out}))
-    return out
+    res = {n: fit(n, poses, model) for n in sizes}
+    f.write_text(json.dumps({"key": key, "fits": res}))
+    return res
 
 
-def save(name, anim, elev, outline, pname, fts):
-    """시트: 행 = 8방향(DIRS 순서), 열 = 프레임. 부위 이미지는 parts/에 같은 이름으로"""
+def ramp(v, pal):
+    """재질 램프(팔레트 번호 5개: 안쪽 외곽선, 음영 0~3). 값이 hex 하나면 R.ramp가 고르고, 5개 목록이면 손으로 정한 팔레트 색이다.
+    자동으로 고르면 금속 그늘이 탁한 갈색이 되는 등 맞지 않을 때 쓴다(tiles.py RAMPS와 같은 까닭)"""
+    if isinstance(v, str):
+        return R.ramp([int(v[i:i + 2], 16) for i in (0, 2, 4)], pal)
+    hexes = ["%02x%02x%02x" % tuple(c) for c in pal]
+    return [hexes.index(h) for h in v]
+
+
+def save(name, anim, elev, outline, pname, fts, model=knight, base=BASE, anims=ANIMS, out=None, parts=PARTS):
+    """시트: 행 = 8방향(DIRS 순서), 열 = 프레임. 부위 이미지는 parts/에 같은 이름으로. 기본값은 기사다"""
     from PIL import Image
+    out = out or OUT
     pal = R.PALETTES[pname]
-    ramps = [R.ramp([int(BASE[k][i:i + 2], 16) for i in (0, 2, 4)], pal) for k in MATS]
+    ramps = [ramp(base[k], pal) for k in base]
     dirs = list(R.DIRS.values())[:1] if anim == "fall" else R.DIRS.values()  # 쓰러짐은 방향 없는 한 벌(06 §1)
-    (OUT / "parts").mkdir(exist_ok=True)
+    (out / "parts").mkdir(exist_ok=True)
     for n, (ppu, anc, c) in fts.items():
         imgs, prt = [], []
         big = anim in ("attack", "fall")  # 공격·쓰러짐은 2배 캔버스. 정지·걷기 캔버스로는 뻗은 검·누운 몸이 잘린다(2026-10-18 4.0)
         c, a = (2 * c, (anc[0] + c / 2, anc[1] + c / 2)) if big else (c, anc)
         for g in dirs:
-            for pose in ANIMS[anim]:
-                idx, part = bake(pose, elev, g, c, ppu, a, ramps, outline, R.darkest(pal))
+            for pose in anims[anim]:
+                idx, part = bake(pose, elev, g, c, ppu, a, ramps, outline, R.darkest(pal), model, parts)
                 imgs.append(R.rgba(idx, pal))
                 prt.append(Image.fromarray(part.astype(np.uint8), "L").convert("RGBA"))
-        cols = len(ANIMS[anim])
-        R.sheet(imgs, cols).save(OUT / f"{name}_{elev}_{outline}_{pname}_{n}.png")
-        R.sheet(prt, cols).getchannel("R").save(OUT / "parts" / f"{name}_{elev}_{outline}_{pname}_{n}.png")
+        cols = len(anims[anim])
+        R.sheet(imgs, cols).save(out / f"{name}_{elev}_{outline}_{pname}_{n}.png")
+        R.sheet(prt, cols).getchannel("R").save(out / "parts" / f"{name}_{elev}_{outline}_{pname}_{n}.png")
 
 
 if __name__ == "__main__":

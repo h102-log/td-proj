@@ -57,8 +57,8 @@ python tools/art/concept/shot.py 그림.svg 출력.png --scale 4   # SVG 하나�
 ## 남은 일
 
 - [ ] 사용자 검수: 얼굴·손·자세·색
-- [ ] 장군 슬롯의 외형으로 쓸지 결정(사용자)
-- [ ] 쓰기로 하면 B 방식 24px 스프라이트로 옮기기(`tools/art/hero.py` 방식)
+- [x] 장군의 외형으로 쓴다(사용자 2026-10-18). 게임 안 이름은 SPEC S97의 «장군» 그대로다
+- [x] B 방식 24px 스프라이트로 옮겼다: `tools/art/general.py` → `art/trial/general/`. 기록은 [insights/2026-10-18_general_sprite.md](../../../insights/2026-10-18_general_sprite.md). 광륜은 24px에서 빼고 오라 원 이펙트로 살리는 안을 냈다
 
 ## 원 프롬프트
 
