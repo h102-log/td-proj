@@ -166,7 +166,7 @@ ANIMS = {"idle": [IDLE], "walk": WALK, "attack": ATTACK, "fall": FALL}
 def fits(out=None, poses=None, model=knight, tag=f"m5 ppu{PPU24} blade1.2x1.3", sizes=SIZES):
     """맞춤은 45초쯤 걸려서 자세가 같으면 저장해 둔 값을 쓴다. → {n: (배율, 기준점, 캔버스)}.
     공격·쓰러짐 자세는 넣지 않는다. 앞으로 뻗은 검까지 넣으면 캔버스가 커져서, 그 둘은 2배 캔버스로 따로 굽는다(save).
-    기본값은 기사다. 다른 영웅은 자기 폴더·정지와 걷기 자세·형체·꼬리표로 부른다(general.py)"""
+    기본값은 기사다. 다른 영웅은 자기 폴더·정지와 걷기 자세·형체·꼬리표로 부른다(chronos.py)"""
     import json
     out, poses = out or OUT, poses or [IDLE] + WALK
     f = out / "fit.json"

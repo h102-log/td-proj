@@ -1,6 +1,6 @@
-# 장군(크로노스, 시간 지휘자)의 3D 형체와 스프라이트 굽기. 컨셉은 art/concept/chronos/(사용자 2026-10-18: 장군 외형으로 쓴다).
+# 크로노스(시간 지휘자. SPEC S157에서 장군 자리를 이은 금 등급 chronos)의 3D 형체와 스프라이트 굽기. 컨셉은 art/concept/chronos/(사용자 2026-10-18: 장군 외형으로 쓴다).
 # 뼈대·자세·배율은 기사(hero.py)와 같고 겉모습만 다르다(WBS 4.1d 인간형 공용 뼈대). 45°·외곽선 D·f24p·유닛 24px(사용자 2026-10-18)
-# 사용: python tools/art/general.py [preview]  → art/trial/general/ 에 정지·걷기·공격·쓰러짐 시트(preview: art/trial/preview/general_*). 검사: python tools/art/lint.py walk_45_D_f24p general
+# 사용: python tools/art/chronos.py [preview]  → art/trial/chronos/ 에 정지·걷기·공격·쓰러짐 시트(preview: art/trial/preview/chronos_*). 검사: python tools/art/lint.py walk_45_D_f24p chronos
 from pathlib import Path
 
 import numpy as np
@@ -8,7 +8,7 @@ import numpy as np
 import hero as H
 import render as R
 
-OUT = Path(__file__).resolve().parents[2] / "art" / "trial" / "general"
+OUT = Path(__file__).resolve().parents[2] / "art" / "trial" / "chronos"
 # 값이 hex 하나면 자동 램프, 5개 목록이면 손 램프(안쪽 외곽선, 음영 0~3. hero.ramp)
 BASE = {"skin": "e8b090",
         "hair": "b8c0d0",  # 은발. c8cede는 밝은 면이 크림(efd8a1)이 돼서 차가운 회색만 쓰는 값으로 낮췄다
@@ -34,7 +34,7 @@ FALL = H.FALL
 ANIMS = {"idle": [IDLE], "walk": WALK, "attack": ATTACK, "fall": FALL}
 
 
-def general(pose, bob_unit):
+def chronos(pose, bob_unit):
     U, G, up_r, legs, arms = H.rig(pose, bob_unit)
     m = MATS.index
     up = up_r @ np.array([0, 0, 1.0])
@@ -88,16 +88,16 @@ def general(pose, bob_unit):
 
 
 def fits():
-    return H.fits(OUT, [IDLE] + WALK, general, TAG, SIZES)
+    return H.fits(OUT, [IDLE] + WALK, chronos, TAG, SIZES)
 
 
 def preview():
-    """검수용 확대본 → art/trial/preview/general_*. 200px 미만 원본 대신 이것을 본다(08 §3 운영 규칙)"""
+    """검수용 확대본 → art/trial/preview/chronos_*. 200px 미만 원본 대신 이것을 본다(08 §3 운영 규칙)"""
     from PIL import Image
 
     import preview as V
     pv = OUT.parent / "preview"
-    (_, ga, c), (_, ka, kc) = fits()[24], H.fits()[24]
+    (_, ca, c), (_, ka, kc) = fits()[24], H.fits()[24]
 
     def cells(path, n):  # 시트 → [행][열] 프레임
         im = Image.open(path)
@@ -111,23 +111,23 @@ def preview():
                 g.alpha_composite(f, (i * (w + gap), j * (h + gap)))
         return g
 
-    # 정지 8방향: 위 기사, 아래 장군. 캔버스가 달라서(32·26) 발밑 기준점을 같은 자리에 맞춘다
-    a = (int(max(ka[0], ga[0])), int(max(ka[1], ga[1])))
-    size = (int(a[0] + max(kc - ka[0], c - ga[0])), int(a[1] + max(kc - ka[1], c - ga[1])))
+    # 정지 8방향: 위 기사, 아래 크로노스. 캔버스가 달라서(32·26) 발밑 기준점을 같은 자리에 맞춘다
+    a = (int(max(ka[0], ca[0])), int(max(ka[1], ca[1])))
+    size = (int(a[0] + max(kc - ka[0], c - ca[0])), int(a[1] + max(kc - ka[1], c - ca[1])))
 
     def put(f, anc):
         g = Image.new("RGBA", size, (0, 0, 0, 0))
         g.alpha_composite(f, (int(a[0] - anc[0]), int(a[1] - anc[1])))
         return g
-    rows = [[put(r[0], anc) for r in cells(d / "idle_45_D_f24p_24.png", n)] for d, anc, n in ((H.OUT, ka, kc), (OUT, ga, c))]
-    V.up(V.on(grid(rows), pad=6), 5).save(pv / "general_idle_cmp_24.png")
+    rows = [[put(r[0], anc) for r in cells(d / "idle_45_D_f24p_24.png", n)] for d, anc, n in ((H.OUT, ka, kc), (OUT, ca, c))]
+    V.up(V.on(grid(rows), pad=6), 5).save(pv / "chronos_idle_cmp_24.png")
     sheets = [grid(cells(OUT / f"{an}_45_D_f24p_24.png", c * (2 if an in ("attack", "fall") else 1))) for an in ("walk", "attack", "fall")]
-    V.up(V.on(V.stack(sheets, gap=12, bg=(0, 0, 0, 0)), pad=6), 4).save(pv / "general_sheets_24.png")
+    V.up(V.on(V.stack(sheets, gap=12, bg=(0, 0, 0, 0)), pad=6), 4).save(pv / "chronos_sheets_24.png")
     walk = cells(OUT / "walk_45_D_f24p_24.png", c)
     dirs = list(R.DIRS)
     frames = [V.up(V.on(grid([[walk[dirs.index(d)][k] for d in ("S", "E", "N", "W")]]), pad=4), 6) for k in range(4)]
-    frames[0].save(pv / "general_walk.gif", save_all=True, append_images=frames[1:], duration=125, loop=0, disposal=2)
-    print(pv / "general_idle_cmp_24.png", pv / "general_sheets_24.png", pv / "general_walk.gif")
+    frames[0].save(pv / "chronos_walk.gif", save_all=True, append_images=frames[1:], duration=125, loop=0, disposal=2)
+    print(pv / "chronos_idle_cmp_24.png", pv / "chronos_sheets_24.png", pv / "chronos_walk.gif")
 
 
 if __name__ == "__main__":
@@ -140,5 +140,5 @@ if __name__ == "__main__":
     for n, (ppu, anc, c) in fts.items():
         print(f"n={n} ppu={ppu:.2f} anchor={anc} canvas={c}")
     for anim in ANIMS:
-        H.save(anim, anim, 45, "D", "f24p", fts, general, BASE, ANIMS, OUT, PARTS)
+        H.save(anim, anim, 45, "D", "f24p", fts, chronos, BASE, ANIMS, OUT, PARTS)
     print("ok")
