@@ -1,6 +1,6 @@
 extends SceneTree
 # 4.0 아트 시험 보기 화면(insights/2026-10-18_art_trial.md). 실행: godot --path . -s res://tools/art/viewer.gd
-# 쪽: ←/→ 또는 1~9. 보기: A 각도 45/60, O 외곽선 B/D, P 팔레트, S 유닛 크기 16/24/32, H 성벽 높이, T 타일 보기, R 처음부터
+# 쪽: ←/→ 또는 1~9·0(10쪽). 보기: A 각도 45/60, O 외곽선 B/D, P 팔레트, S 유닛 크기 16/24/32, H 성벽 높이, T 타일 보기, R 처음부터
 # 화면: 휠 줌 1~3배, 우클릭·휠 버튼으로 끌어 이동, Space 시점 처음으로. 인자 shots: 쪽마다 캡처를 art/trial/preview/view_N.png로 남기고 끝낸다
 
 const DIRS := ["S", "SE", "E", "NE", "N", "NW", "W", "SW"]
@@ -20,11 +20,13 @@ const PAGES := [
 	["대각 이동 8방향 대 4방향", "M5 방향 구분. 같은 걷기 프레임을 8방향(왼쪽)과 4방향(오른쪽)으로 고른다"],
 	["바닥 타일", "T2 이음매·반복 무늬, T3 terrain 칠하기. T로 보기 바꿈: 들판 / 풀·흙 8×8 반복 / 아틀라스"],
 	["성벽 높이", "H로 앞면 16·24·32px. 왼쪽 문 열림·오른쪽 문 닫힘. 성벽 뒤 마을 1·2줄, 성벽 위(서 있기·걷기)"],
+	["크로노스", "정지·걷기 제자리 8fps·공격·쓰러짐·걷기 이동. 열 = 남·남동·동·북동·북·북서·서·남서. 45° D f24p 24px만 굽어서 A·O·P·S는 듣지 않는다"],
 ]
-const DEFAULT_ZOOM := [1, 1, 1, 2, 1, 2, 2, 2, 2]
+const DEFAULT_ZOOM := [1, 1, 1, 2, 1, 2, 2, 2, 2, 1]
 const TOP := 34.0  # 위 안내 띠 높이
 
 var base: String  # art/trial/ 절대 경로
+var who := "hero"  # 시트 폴더(art/trial/<who>/). 크로노스 쪽에서만 "chronos"
 var opt := {"elev": 45, "outline": "D", "pal": "f24p", "n": 24, "wall": 24, "tiles": 0}
 var page := 0
 var zoom := 1
@@ -56,10 +58,12 @@ class Dummy extends Node2D:
 func _initialize() -> void:
 	base = ProjectSettings.globalize_path("res://art/trial/")
 	shots = OS.get_cmdline_user_args().has("shots")
-	var fj: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(base + "hero/fit.json"))
-	var fd: Dictionary = fj["fits"]
-	for k in fd:
-		fits[int(k)] = fd[k]
+	for u in ["hero", "chronos"]:
+		var fj: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(base + u + "/fit.json"))
+		var fd: Dictionary = fj["fits"]
+		fits[u] = {}
+		for k in fd:
+			fits[u][int(k)] = fd[k]
 	black = Shader.new()
 	black.code = "shader_type canvas_item; void fragment() { COLOR = vec4(0.0, 0.0, 0.0, texture(TEXTURE, UV).a); }"
 	flash = Shader.new()
@@ -117,6 +121,7 @@ func on_input(e: InputEvent) -> void:
 			KEY_T: opt.tiles = (int(opt.tiles) + 1) % 3
 			KEY_R: pass
 			KEY_SPACE: goto(page)
+			KEY_0: goto(9)
 			_:
 				if ke.keycode >= KEY_1 and ke.keycode <= KEY_9:
 					goto(ke.keycode - KEY_1)
@@ -148,6 +153,9 @@ func build() -> void:
 	actors.clear()
 	t = 0.0
 	world.scale = Vector2(zoom, zoom)
+	who = "chronos" if page == 9 else "hero"
+	if who == "chronos":  # 크로노스는 45° D f24p 24px만 굽었다
+		opt.merge({"elev": 45, "outline": "D", "pal": "f24p", "n": 24}, true)
 	match page:
 		0: page_variants()
 		1: page_silhouette()
@@ -158,13 +166,14 @@ func build() -> void:
 		6: page_diagonal()
 		7: page_tiles()
 		8: page_wall()
+		9: page_chronos()
 	update_hud()
 
 func update_hud() -> void:
 	var extra := ""
 	if page == 8:
 		extra = "  성벽 %dpx" % opt.wall
-	hud.text = "[%d/%d] %s    %d° 외곽선 %s  %s  %dpx  줌 %d배%s\n%s\n←→·1~9 쪽  A 각도  O 외곽선  P 팔레트  S 크기  H 성벽  T 타일  R 처음부터  휠 줌  우클릭 끌기  Space 시점" % [
+	hud.text = "[%d/%d] %s    %d° 외곽선 %s  %s  %dpx  줌 %d배%s\n%s\n←→·1~9·0 쪽  A 각도  O 외곽선  P 팔레트  S 크기  H 성벽  T 타일  R 처음부터  휠 줌  우클릭 끌기  Space 시점" % [
 		page + 1, PAGES.size(), PAGES[page][0], opt.elev, opt.outline, opt.pal, opt.n, zoom, extra, PAGES[page][1]]
 
 # --- 도우미 ---
@@ -175,7 +184,7 @@ func tex(rel: String) -> Texture2D:
 	return cache[rel]
 
 func sheet(anim: String, n: int, elev: int = 0, outline: String = "", pal: String = "") -> Texture2D:
-	return tex("hero/%s_%d_%s_%s_%d.png" % [anim, elev if elev else opt.elev, outline if outline else opt.outline, pal if pal else opt.pal, n])
+	return tex("%s/%s_%d_%s_%s_%d.png" % [who, anim, elev if elev else opt.elev, outline if outline else opt.outline, pal if pal else opt.pal, n])
 
 func cut(tx: Texture2D, size: int, row: int, col: int) -> AtlasTexture:
 	var a := AtlasTexture.new()
@@ -184,15 +193,15 @@ func cut(tx: Texture2D, size: int, row: int, col: int) -> AtlasTexture:
 	return a
 
 func anchor(n: int) -> Vector2:  # 발밑 기준점(hero.py fit)
-	var f: Array = fits[n]
+	var f: Array = fits[who][n]
 	return Vector2(f[1][0], f[1][1])
 
 func ppu(n: int) -> float:
-	var f: Array = fits[n]
+	var f: Array = fits[who][n]
 	return f[0]
 
 func canvas(n: int) -> int:  # 프레임 크기. 배율을 고정해서 크기 이름 n보다 크다(hero.py fit)
-	var f: Array = fits[n]
+	var f: Array = fits[who][n]
 	return int(f[2])
 
 func sprite(tx: Texture2D, pos: Vector2) -> Sprite2D:
@@ -352,36 +361,45 @@ func page_walk_moving() -> void:
 
 func page_attack_fall() -> void:
 	field(40, 24)
+	var c := canvas(opt.n)
+	for d in 8:
+		attacker(Vector2(30 + (d % 4) * (2 * c + 12), 8 + c + (d / 4) * (2 * c)), d)
+	var fg := Vector2(30, 8 + 3 * c + 2 * c)
+	faller(fg)
+	text("쓰러짐", fg + Vector2(2 * c, -12))
+
+func attacker(ground: Vector2, d: int) -> void:  # 공격 3프레임을 1초마다
 	var n: int = opt.n
 	var c := canvas(n)
 	var atk := sheet("attack", n)
 	var idle := sheet("idle", n)
+	shadow(ground)
+	var s := sprite(null, Vector2.ZERO)
+	actors.append(func(tt: float) -> void:
+		var a := fmod(tt, 1.0)
+		if a < 0.42:
+			s.texture = cut(atk, 2 * c, d, 0 if a < 0.12 else (1 if a < 0.27 else 2))
+			put(s, ground, n, true)
+		else:
+			s.texture = cut(idle, c, d, 0)
+			put(s, ground, n, false)
+	)
+
+func faller(ground: Vector2) -> void:  # 쓰러짐 5프레임 뒤 0.5초 서 있기
+	var n: int = opt.n
+	var c := canvas(n)
 	var fall := sheet("fall", n)
-	for d in 8:
-		var ground := Vector2(30 + (d % 4) * (2 * c + 12), 8 + c + (d / 4) * (2 * c))
-		shadow(ground)
-		var s := sprite(null, Vector2.ZERO)
-		actors.append(func(tt: float) -> void:
-			var a := fmod(tt, 1.0)
-			if a < 0.42:
-				s.texture = cut(atk, 2 * c, d, 0 if a < 0.12 else (1 if a < 0.27 else 2))
-				put(s, ground, n, true)
-			else:
-				s.texture = cut(idle, c, d, 0)
-				put(s, ground, n, false)
-		)
-	var fg := Vector2(30, 8 + 3 * c + 2 * c)
-	shadow(fg)
-	var fs := sprite(null, Vector2.ZERO)
-	text("쓰러짐", fg + Vector2(2 * c, -12))
+	var idle := sheet("idle", n)
+	shadow(ground)
+	var s := sprite(null, Vector2.ZERO)
 	actors.append(func(tt: float) -> void:
 		var a := fmod(tt, 2.5)
 		if a < 2.0:
-			fs.texture = cut(fall, 2 * c, 0, mini(4, int(a / 0.1)))
-			put(fs, fg, n, true)
+			s.texture = cut(fall, 2 * c, 0, mini(4, int(a / 0.1)))
+			put(s, ground, n, true)
 		else:
-			fs.texture = cut(idle, c, 0, 0)
-			put(fs, fg, n, false)
+			s.texture = cut(idle, c, 0, 0)
+			put(s, ground, n, false)
 	)
 
 func page_methods() -> void:
@@ -546,3 +564,27 @@ func page_wall() -> void:
 	knight(Vector2(6.5, 5.3) * 16, 4)  # 닫힌 문 앞(성벽 4.5칸)
 	knight(Vector2(8.5, 5.5) * 16, 2)
 	walker([Vector2(1.5 * 16, 7.5 * 16), Vector2(12.5 * 16, 7.5 * 16), Vector2(1.5 * 16, 7.5 * 16)], false)
+
+func page_chronos() -> void:  # 열마다 한 방향. 2배 캔버스(공격·쓰러짐)가 겹치지 않게 56px 간격
+	field(40, 24)
+	var n: int = opt.n
+	var c := canvas(n)
+	var idle := sheet("idle", n)
+	var walk := sheet("walk", n)
+	for k in [["정지", 18], ["걷기 8fps", 58], ["공격", 104], ["쓰러짐", 160], ["걷기 이동", 218]]:
+		text(k[0], Vector2(2, k[1]))
+	for d in 8:
+		var x := 86.0 + d * 56
+		var g := Vector2(x, 30)
+		shadow(g)
+		put(sprite(cut(idle, c, d, 0), Vector2.ZERO), g, n, false)
+		var wg := Vector2(x, 70)
+		shadow(wg)
+		var w := sprite(null, Vector2.ZERO)
+		put(w, wg, n, false)
+		actors.append(func(tt: float) -> void: w.texture = cut(walk, c, d, int(tt * 8.0) % 4))
+		attacker(Vector2(x, 116), d)
+	faller(Vector2(86, 172))
+	walker([Vector2(86, 230), Vector2(300, 230), Vector2(300, 310), Vector2(86, 310), Vector2(86, 230)], false)
+	walker([Vector2(360, 230), Vector2(440, 310), Vector2(360, 230)], false)
+	walker([Vector2(440, 230), Vector2(360, 310), Vector2(440, 230)], false)
