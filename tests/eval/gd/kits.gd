@@ -943,3 +943,25 @@ func ev301():
 	var held4 := many.filter(func(e): return e.engaged == bh)
 	return check(held.size() == 1 and gone.size() == 2 and bh.block == 4 and held4.size() == 4,
 		"용병이 붙잡음 %d(1) · 지나감 %d(2) · 요새화 블록 %d · 바스티온이 붙잡음 %d(4)" % [held.size(), gone.size(), bh.block, held4.size()])
+
+# EV302 · S151: 요새화는 이동 지시로만 풀린다(I147). 요새화한 바스티온은 멀리서 걸어오는 적을 쫓아 움직여도(S141) 요새화가 이어져
+# 적 여섯 가운데 넷을 붙잡고 둘은 지나간다(EV301은 적이 바로 옆에서 나와 쫓기 전에 붙잡혔다)
+func ev302():
+	var k = _kit([["bastion", Vector2i(12, 10)]], {"base": Vector2i(2, 10), "spawns": [Vector2i(29, 10)]})
+	var bh = k.hero
+	_quiet(k)
+	_start(k)
+	run(k, bh.passive.still + 0.3)
+	var p0: Vector2 = bh.pos
+	var many := []
+	for y in [7, 8, 9, 11, 12, 13]:  # 인식 범위(2.5칸) 밖에서 한 칸씩 벌려 선다
+		many.append(k.spawn_enemy("basic", Vector2i(20, y), {"hp": BIG}))
+	var seen := {"kept": true}  # 람다는 지역 변수를 값으로 가져가서 사전에 적는다
+	run(k, 6.0, func():
+		seen.kept = seen.kept and bh.fort
+		return false)
+	var held := many.filter(func(e): return e.engaged == bh)
+	var gone := many.filter(func(e): return e.pos.x < bh.pos.x - 1.0)
+	var moved: float = bh.pos.distance_to(p0)
+	return check(moved > 0.1 and seen.kept and bh.block == 4 and held.size() == 4 and gone.size() == 2,
+		"쫓아 움직임 %.2f칸 · 요새화 이어짐 %s · 블록 %d · 붙잡음 %d(4) · 지나감 %d(2)" % [moved, seen.kept, bh.block, held.size(), gone.size()])

@@ -87,20 +87,22 @@ func _ready() -> void:
 	_start = _button(row, "전투 시작 (Enter)", _start_battle)
 	_mode = _button(row, "", controls.toggle_move_mode)
 	_hold = _button(row, "", controls.toggle_hold)
-	col.add_child(_hint)
 	col.add_child(_quest)
 	for i in battle.HIRE.lineup:
 		var line := HBoxContainer.new()
 		col.add_child(line)
 		var who := Label.new()
 		line.add_child(who)
+		_fix_width(who, "F3 세라피나 — 마나 200")
 		var buttons := {}
 		for slot in battle.SLOTS:
 			var sb := _button(line, "", func(): controls.skill_for(battle.heroes[i] if i < battle.heroes.size() else null, slot))
 			sb.gui_input.connect(func(e): _auto_click(e, i, slot))
+			_fix_width(sb, "Q 마나 200 자동")
 			buttons[slot] = sb
 		_hero_rows.append([line, who, buttons])
 	col.add_child(_heroes)
+	col.add_child(_hint)  # 영웅 줄 아래. 조준·놓기 안내가 뜨고 질 때 스킬 버튼이 밀리지 않게
 	# 윗변과 너비를 고정해 아래로만 자란다. 영입·리롤·내보내기로 줄이 바뀌어도 위의 버튼이 움직이지 않게(I136)
 	_result.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	_result.grow_horizontal = Control.GROW_DIRECTION_BOTH
@@ -256,6 +258,13 @@ func _process(_delta: float) -> void:
 	# 맵 px → 화면 좌표. 전투 화면(BattleView)이 원점에 있어 카메라 변환만 곱한다. 화면 밖으로 나가면 안으로 당긴다(I137)
 	var at: Vector2 = get_viewport().get_canvas_transform() * controls.sell_at + Vector2(6, 6)
 	_popup.position = at.clamp(Vector2.ZERO, get_viewport().get_visible_rect().size - _popup.size)
+
+# 가장 긴 글자(sample)가 들어가는 너비로 고정한다. 마나 숫자·칸 상태 글자가 바뀌어도 뒤 버튼이 옆으로 움직이지 않게(I151)
+func _fix_width(c, sample: String) -> void:  # c: Label·Button
+	var text: String = c.text
+	c.text = sample
+	c.custom_minimum_size.x = c.get_minimum_size().x
+	c.text = text
 
 # 키보드 포커스를 받지 않는다. 받으면 Enter·Space가 맵 대신 마지막에 누른 버튼을 누른다
 func _button(parent: Control, text: String, on_press: Callable) -> Button:

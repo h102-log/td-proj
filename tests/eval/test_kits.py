@@ -184,3 +184,7 @@ def test_EV300_vesper_spread_curse_chain(gd):
 
 def test_EV301_block_count(gd):
     gd("kits", "EV301")
+
+
+def test_EV302_fortify_kept_while_chasing(gd):
+    gd("kits", "EV302")

@@ -110,10 +110,6 @@ func _draw() -> void:
 			if on:
 				draw_arc(at, CELL * (u.radius + ring), 0.0, TAU, 24, MARKS[key], 1.0)
 				ring += 0.15
-		if u.is_hero and u.alive:  # 마나 막대(S146): 영웅 발밑
-			var bar := Rect2(u.pos * CELL + Vector2(0, CELL), Vector2(CELL, 2))
-			draw_rect(bar, Color.BLACK)
-			draw_rect(Rect2(bar.position, Vector2(CELL * u.mana / u.max_mana, 2)), Color("4080ff"))
 	for e in battle.enemies:  # 비행 적은 아래에 그림자를 그린다(I81)
 		if e.flying:
 			draw_circle(_center(e.pos) + Vector2(0, CELL * 0.4), CELL * e.radius * 0.8, Color(0, 0, 0, 0.35))
@@ -123,6 +119,11 @@ func _draw() -> void:
 			if battle.effect(e, key) != null:
 				draw_arc(_center(e.pos), CELL * (e.radius + ring), 0.0, TAU, 24, MARKS[key], 1.0)
 				ring += 0.15
+	for u in battle.units:  # 마나 막대(S146): 영웅 발밑. 붙잡힌 적에 가리지 않게 적보다 나중에 그린다
+		if u.is_hero and u.alive:
+			var bar := Rect2(u.pos * CELL + Vector2(0, CELL), Vector2(CELL, 2))
+			draw_rect(bar, Color.BLACK)
+			draw_rect(Rect2(bar.position, Vector2(CELL * u.mana / u.max_mana, 2)), Color("4080ff"))
 	for h in battle.heroes:  # 쓰러진 영웅: 복귀할 때까지 쓰러진 자리에 그 영웅 색의 X(I130)
 		if not h.alive:
 			var c := _center(h.pos)
@@ -149,7 +150,7 @@ func _draw() -> void:
 	if controls.drag_rect.has_area():
 		draw_rect(controls.drag_rect, Color.WHITE, false, 1.0)
 
-# 조준 중(S147): 영웅 둘레에 시전 사거리, 커서에 범위(지점·범위), 영웅에서 커서 쪽으로 길이(방향), 에너지 성벽이 설 칸
+# 조준 중(S147): 영웅 둘레에 시전 사거리, 커서에 범위(지점·범위), 영웅에서 커서 쪽으로 길이(방향)나 부채꼴(바스티온 Q), 에너지 성벽이 설 칸
 func _aim_preview() -> void:
 	if controls.aiming == "" or not controls.aim_hero:
 		return
@@ -159,8 +160,14 @@ func _aim_preview() -> void:
 	draw_arc(_center(h.pos), CELL * battle.CAST_RANGE, 0.0, TAU, 64, Color(1, 1, 1, 0.3), 1.0)
 	match sk.aim:
 		"dir":
-			var to: Vector2 = h.pos + battle._toward(h, at) * sk.get("radius", 40.0)  # 실비아 Q는 맵 끝까지
-			draw_line(_center(h.pos), _center(to), Color.WHITE, 1.0)
+			var d: Vector2 = battle._toward(h, at)
+			if sk.has("arc"):  # 바스티온 Q: 반경 radius·각도 arc의 부채꼴(S151)
+				var half := deg_to_rad(sk.arc) / 2.0
+				draw_arc(_center(h.pos), CELL * sk.radius, d.angle() - half, d.angle() + half, 24, Color.WHITE, 1.0)
+				for side in [-half, half]:
+					draw_line(_center(h.pos), _center(h.pos + d.rotated(side) * sk.radius), Color.WHITE, 1.0)
+			else:
+				draw_line(_center(h.pos), _center(h.pos + d * sk.get("radius", 40.0)), Color.WHITE, 1.0)  # 실비아 Q는 맵 끝까지
 		"point":
 			if sk.id == "bulwark":
 				var d: Vector2 = battle._toward(h, at)

@@ -168,8 +168,7 @@ class Unit:
 	var charged := false  # 이그니스 패시브: 다음 Q·W·E가 커진다
 	var mark = null  # 실비아 패시브: 직전에 친 적(S153)
 	var stacks := 0  # 실비아 패시브 중첩
-	var still := 0.0  # 바스티온 패시브: 자리를 지킨 시간(초, S151)
-	var post := Vector2()  # 자리를 지키기 시작한 곳
+	var still := 0.0  # 바스티온 패시브: 이동 지시 없이 지난 시간(초, S151, I147)
 	var fort := false  # 요새화
 	var brace := 0.0  # 바스티온 E: 남은 시간(초). 0보다 크면 태세 중이다
 	var braced := 0.0  # 태세 동안 들어온 피해(줄이기 전 값)
@@ -401,6 +400,7 @@ func _return_hero(h: Unit, fresh := false) -> void:
 	h.mana = h.max_mana if fresh else 0.0
 	h.order = null
 	h.pos = Vector2(h.home)
+	h.still = 0.0  # 요새화 시간도 새로 센다(I147)
 	h.on_wall = false
 	h.path.clear()
 	h.after.clear()
@@ -2160,11 +2160,11 @@ func _strike(u: Unit, foe: Enemy) -> void:
 		_fx(foe, "bastion_p_stun", {"stun": true}, u.passive.stun)
 	_bless(u, at)
 
-# 바스티온 패시브 요새화(S151, I147): still초 동안 0.1칸 넘게 움직이지 않으면 요새화. 받는 피해 감소, 블록 수 +3. 움직이면 풀린다
+# 바스티온 패시브 요새화(S151, I147): 이동 지시 없이 still초가 지나면 요새화. 받는 피해 감소, 블록 수 +3. 이동 지시를 받으면 풀린다.
+# 적을 쫓거나(S141) 밀려서 움직인 것은 이동 지시가 아니다(기획서 원문). 걸어갈 길(path·after)은 이동 지시로만 생긴다
 func _fortify(h: Unit, dt: float) -> void:
-	if h.pos.distance_to(h.post) > 0.1 or not h.path.is_empty():
+	if not (h.path.is_empty() and h.after.is_empty()):
 		h.still = 0.0
-		h.post = h.pos
 	else:
 		h.still += dt
 	h.fort = h.still >= h.passive.still
