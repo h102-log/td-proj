@@ -94,7 +94,7 @@ func _draw() -> void:
 				draw_arc(_center(s.target.pos), CELL * s.splash, 0.0, TAU, 24, Color.YELLOW, 1.0)
 	for h in battle.heroes:  # 오라 반경(S113): 오라가 있는 살아 있는 영웅마다 둘레에 늘 엷게, 유닛 아래에(I101)
 		if h.alive and not h.aura.is_empty():
-			draw_arc(_center(h.pos), CELL * h.aura.radius, 0.0, TAU, 48, Color(0.6, 0.8, 1.0, 0.35), 1.0)
+			_aura_ring(h)
 	for u in battle.units:
 		var at: Vector2 = u.pos * CELL + Vector2(CELL, CELL) / 2
 		draw_circle(at, CELL * u.radius, HERO_COLORS.get(u.kind, COLORS.merc) if u.is_hero else COLORS.get(u.kind, COLORS.merc))
@@ -207,3 +207,19 @@ func _center(p: Vector2) -> Vector2:
 
 func _rect(c: Vector2i) -> Rect2:
 	return Rect2(Vector2(c) * CELL, Vector2(CELL, CELL))
+
+# 오라 반경 원(S113). 크로노스는 원 안쪽에 시계 문자판 눈금 12개를 더 그린다(S160). 컨셉 아트의 광륜(등 뒤 천문시계 고리)은
+# 24px 스프라이트에서 뺐고 여기서 이펙트로 살린다(I152). 눈금은 크로노스 색(금)이고 12·3·6·9시가 길다. 불투명도 0.5·짧은 눈금 3px는
+# 들판 위에서 흐리고 대각 눈금이 점으로 보였다. 원은 다른 영웅과 같은 하늘색이다. 금색으로 하면 반경이 같은 E 결계(S158 황금의 율법)와 테두리가 겹친다
+func _aura_ring(h) -> void:
+	var c := _center(h.pos)
+	var r: float = CELL * h.aura.radius
+	draw_arc(c, r, 0.0, TAU, 48, Color(0.6, 0.8, 1.0, 0.35), 1.0)
+	if h.kind != "chronos":
+		return
+	var ticks := PackedVector2Array()
+	for k in 12:  # k = 0이 3시. 화면 y가 아래라 k가 늘면 시계 방향으로 돈다
+		var d := Vector2.from_angle(k * TAU / 12)
+		ticks.append(c + d * r)
+		ticks.append(c + d * (r - (7.0 if k % 3 == 0 else 4.0)))
+	draw_multiline(ticks, Color(HERO_COLORS.chronos, 0.8), 1.0)
