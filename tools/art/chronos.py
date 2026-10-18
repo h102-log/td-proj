@@ -1,5 +1,5 @@
 # 크로노스(시간 지휘자. SPEC S157에서 장군 자리를 이은 금 등급 chronos)의 3D 형체와 스프라이트 굽기. 컨셉은 art/concept/chronos/(사용자 2026-10-18: 장군 외형으로 쓴다).
-# 뼈대·자세·배율은 기사(hero.py)와 같고 겉모습만 다르다(WBS 4.1d 인간형 공용 뼈대). 45°·외곽선 D·f24p·유닛 24px(사용자 2026-10-18)
+# 뼈대·배율과 정지·걷기·쓰러짐 자세는 기사(hero.py)와 같고, 공격만 원거리 동작이다(WBS 4.1d 인간형 공용 뼈대). 45°·외곽선 D·f24p·유닛 24px(사용자 2026-10-18)
 # 사용: python tools/art/chronos.py [preview]  → art/trial/chronos/ 에 정지·걷기·공격·쓰러짐 시트(preview: art/trial/preview/chronos_*). 검사: python tools/art/lint.py walk_45_D_f24p chronos
 from pathlib import Path
 
@@ -25,11 +25,17 @@ SIZES = (24,)  # 유닛 24px(사용자 2026-10-18). 16·32는 시험 비교용�
 TAG = f"m5 ppu{H.PPU24} tails hourglass1.3"  # 형체 크기를 바꾸면 이 꼬리표도 바꾼다(fit.json)
 
 # 모래시계를 띄우는 왼팔: 앞보다 옆으로 벌린다. 앞으로 내밀면(sh_l 30, ab_l 0.5) 북동·북에서 모래시계가 화면상 머리 바로 뒤에 와서
-# 받침이 머리 위로 나와 왕관처럼 보였다. 받침 꼭대기는 머리 가운데 높이(0.80)를 넘지 않는다. 오른팔(지휘봉)은 기사의 검 자세 그대로
+# 받침이 머리 위로 나와 왕관처럼 보였다. 받침 꼭대기는 머리 가운데 높이(0.80)를 넘지 않는다. 정지·걷기의 오른팔(지휘봉)은 기사의 검 자세 그대로
 L_ARM = dict(sh_l=15, el_l=40, ab_l=0.8)
 IDLE = dict(H.IDLE, **L_ARM)
 WALK = [dict(w, **L_ARM) for w in H.WALK]
-ATTACK = [dict(a, **L_ARM) for a in H.ATTACK]
+# 공격은 원거리(S121 사거리 3, 사용자 2026-10-18): 지휘봉을 곧게 치켜들었다가(준비) 팔과 함께 과녁 쪽으로 곧게 뻗어 쏘고(발사, 가운데가
+# 타격 프레임) 조금 더 내린다(마무리). 기사의 내려치기와 달리 발을 내딛지 않는다. 각도는 지휘봉이 몸 실루엣 밖으로 나온 픽셀이 8방향 중
+# 가장 적은 방향에서도 3·5·3px가 되게 격자로 재서 골랐다(기사 자세를 빌렸을 때는 0·1·2px). 팔을 벌려 비스듬히 들면(sh_r 150·ab_r 0.5)
+# 45°에서 팔이 화면 아래로 내려와 동·북에서 지휘봉이 머리에 묻혔다. 발사 프레임만 끝 구슬을 1.6배로 키운다. 2배는 철퇴 머리처럼 보였다
+ATTACK = [dict(H.POSE, **L_ARM, sh_r=180, el_r=0, ab_r=0.2, sword=-5, lean=-6),
+          dict(H.POSE, **L_ARM, sh_r=85, el_r=0, ab_r=0.35, sword=85, lean=8, tip=1.6),
+          dict(H.POSE, **L_ARM, sh_r=70, el_r=15, ab_r=0.35, sword=100, sword_side=15, lean=4)]
 FALL = H.FALL
 ANIMS = {"idle": [IDLE], "walk": WALK, "attack": ATTACK, "fall": FALL}
 
@@ -75,8 +81,9 @@ def chronos(pose, bob_unit):
               (R.ellipsoid(U(hd), (0.042, 0.042, 0.042)), m("ivory" if side == "r" else "gold"), "arm")]
     hd = U(arms["r"][2])
     bd, _, _ = H.blade_axes(pose, up_r)  # 지휘봉은 기사의 검과 같은 방향으로 든다
+    tip = 0.038 * pose.get("tip", 1)  # 끝 청록 구슬. 공격 발사 프레임만 키워 쏘는 순간을 보인다(기본 1배면 값이 그대로다)
     P += [(R.capsule(hd - bd * 0.04, hd + bd * 0.3, 0.024), m("ivory"), "baton"),
-          (R.ellipsoid(hd + bd * 0.33, (0.038, 0.038, 0.038)), m("teal"), "baton")]
+          (R.ellipsoid(hd + bd * (0.33 + (tip - 0.038)), (tip, tip, tip)), m("teal"), "baton")]
     # 왼손 위에 뜬 모래시계: 금 받침 둘, 청록 유리 둘. 컨셉 비례(약 0.26)로는 2×3px이라 1.3배로 키웠다
     hc = U(arms["l"][2]) + up * 0.18
     for k in (-1, 1):
@@ -127,7 +134,16 @@ def preview():
     dirs = list(R.DIRS)
     frames = [V.up(V.on(grid([[walk[dirs.index(d)][k] for d in ("S", "E", "N", "W")]]), pad=4), 6) for k in range(4)]
     frames[0].save(pv / "chronos_walk.gif", save_all=True, append_images=frames[1:], duration=125, loop=0, disposal=2)
-    print(pv / "chronos_idle_cmp_24.png", pv / "chronos_sheets_24.png", pv / "chronos_walk.gif")
+    # 공격: 보기 화면(viewer.gd)처럼 0.12·0.15·0.15초 뒤 정지로 돌아온다. 위 줄 남·남동·동·북동, 아래 줄 북·북서·서·남서
+    atk, idle = cells(OUT / "attack_45_D_f24p_24.png", 2 * c), cells(OUT / "idle_45_D_f24p_24.png", c)
+    seq = [[atk[r][k] for r in range(8)] for k in range(3)] + [[Image.new("RGBA", (2 * c, 2 * c), (0, 0, 0, 0)) for _ in range(8)]]
+    for g, r in zip(seq[3], idle):  # 정지 프레임은 공격 캔버스(2배)의 같은 발밑 자리에 놓는다
+        g.alpha_composite(r[0], (c // 2, c // 2))
+    x0, y0, x1, y1 = zip(*[f.getbbox() for fs in seq for f in fs])  # 모든 프레임이 들어가는 만큼만 잘라 크게 본다
+    box = (min(x0), min(y0), max(x1), max(y1))
+    frames = [V.up(V.on(grid([[f.crop(box) for f in fs[:4]], [f.crop(box) for f in fs[4:]]]), pad=4), 6) for fs in seq]
+    frames[0].save(pv / "chronos_attack.gif", save_all=True, append_images=frames[1:], duration=[120, 150, 150, 580], loop=0, disposal=2)
+    print(pv / "chronos_idle_cmp_24.png", pv / "chronos_sheets_24.png", pv / "chronos_walk.gif", pv / "chronos_attack.gif")
 
 
 if __name__ == "__main__":
