@@ -1,6 +1,6 @@
 # 숫자 검사. 이미지로 보기 전에 먼저 돌린다(08 §3 운영 규칙)
 # H5: 팔레트 밖 색·반투명·프레임 크기. H3·H4: 걷기 프레임 차이(부위 이미지 parts/ 사용). T1은 tiles.py에 있다
-# 사용: python tools/art/lint.py walk_45_D_f24p [general]  → 크기마다 결과. 둘째 인자는 영웅 모듈이다(없으면 hero = 기사)
+# 사용: python tools/art/lint.py walk_45_D_f24p [chronos]  → 크기마다 결과. 둘째 인자는 영웅 모듈이다(없으면 hero = 기사)
 import importlib
 import sys
 
