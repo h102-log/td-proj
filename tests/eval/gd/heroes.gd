@@ -21,8 +21,8 @@ const S151_158 := {  # 종류 → [패시브 id, 오라 키들, [Q·W·E·R마�
 	"chronos": ["", ["haste", "stride"], [["overcharge", "ally", 4, 35], ["rewind", "ally", 14, 70], ["golden_law", "self", 20, 60], ["time_warp", "point", 70, 180]]],
 }
 const S121 := {  # 등급, 체력, 공격력, 사거리, 공격 간격, 속도
-	"bastion": [1, 100, 3, 1.5, 1.0, 3], "sylvia": [1, 70, 3, 4, 1.0, 3], "seraphina": [2, 90, 2, 3, 1.0, 3],
-	"vesper": [2, 90, 3, 3.5, 1.0, 3], "ignis": [3, 90, 5, 4, 1.2, 3], "chronos": [3, 110, 4, 3, 1.0, 3],
+	"bastion": [3, 100, 3, 1.5, 1.0, 3], "sylvia": [3, 70, 3, 4, 1.0, 3], "seraphina": [3, 90, 2, 3, 1.0, 3],
+	"vesper": [3, 90, 3, 3.5, 1.0, 3], "ignis": [3, 90, 5, 4, 1.2, 3], "chronos": [3, 110, 4, 3, 1.0, 3],
 }
 
 func _hero(kind: String, cell: Vector2i) -> Dictionary:

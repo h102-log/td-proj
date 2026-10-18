@@ -1,7 +1,7 @@
 extends "res://tests/eval/gd/lib.gd"
 # WBS 3.5 영입소(S122~S124·I103~I109). lib.gd·rounds.gd·heroes.gd 머리의 계약에 더하는 API:
 #   stage 키 hero_cells: [칸, …] — 출전 칸(I107) · seed: int — 영입소 난수 씨앗. 같은 씨앗이면 같은 목록이 나온다
-#   res://data/hire.tres — slots · odds([동, 은, 금]) · cost([동, 은, 금]) · reroll · cap · lineup (S123). Battle.HIRE가 이 Resource다
+#   res://data/hire.tres — slots · odds([1성, 2성, 3성]) · cost([1성, 2성, 3성]) · reroll · cap · lineup (S123). Battle.HIRE가 이 Resource다
 #   state "hiring" — 도전 시작 전 영입 창(S122). Battle.begin_hiring() — 1라운드 웨이브 1의 준비 단계(restart 직후)에서 연다
 #   Battle.next_round() -> bool — 영입 창이나 라운드 사이에서 출전 목록을 전장에 반영하고 1라운드나 다음 라운드의 첫 준비 단계로 간다
 #   Battle.offers — 목록(칸마다 영웅 종류, 영입한 칸은 ""). 평가가 바꿔 넣을 수 있다 · Battle.roster — 보유 영웅(영입 순서)
@@ -97,33 +97,37 @@ func ev194():
 		ok = ok and is_equal_approx(r.odds[i], odds[i]) and r.cost[i] == cost[i]
 	return check(ok, "칸 %s · 등장 확률 %s · 영입 비용 %s · 리롤 %s · 보유 상한 %s · 출전 %s" % [r.slots, r.odds, r.cost, r.reroll, r.cap, r.lineup])
 
-# EV195 · S123: 리롤마다 골드가 리롤 비용만큼 줄고, 등급 비율이 등장 확률과 맞는다
-func ev195():
-	var b = _hiring()
-	var g0: int = b.gold
-	var seen := _sample(b, 6000)
-	var total := 0
+# 리롤을 n번 해 나온 칸의 등급별 수([1성, 2성, 3성])
+func _by_grade(b, n: int) -> Array:
+	var seen := _sample(b, n)
 	var by := [0, 0, 0]
 	for k in seen:
 		by[b.HERO_KINDS[k].grade - 1] += seen[k]
-		total += seen[k]
-	if b.gold != g0 - 6000 * b.HIRE.reroll or total != 6000 * b.HIRE.slots:
-		return "골드 %d → %d, 뽑힌 칸 %d" % [g0, b.gold, total]
-	for i in 3:
-		if absf(float(by[i]) / total - b.HIRE.odds[i]) > 0.015:
-			return "등급 비율 %s (등장 확률 %s)" % [by.map(func(x): return float(x) / total), b.HIRE.odds]
-	return ""
+	return by
 
-# EV196 · I103: 등급마다 두 영웅이 같은 확률로 나오고, 같은 영웅을 여럿 보유할 수 있다
+# EV195 · S123: 리롤마다 골드가 리롤 비용만큼 줄고, 영웅이 3성뿐이라 모든 칸이 3성이다
+func ev195():
+	var b = _hiring()
+	var g0: int = b.gold
+	var by := _by_grade(b, 6000)
+	if b.gold != g0 - 6000 * b.HIRE.reroll:
+		return "골드 %d → %d" % [g0, b.gold]
+	return check(by == [0, 0, 6000 * b.HIRE.slots], "등급별 칸 수 %s([0, 0, %d]여야 한다)" % [by, 6000 * b.HIRE.slots])
+
+# EV196 · I103: 영웅이 없는 등급은 빼고 남은 등급끼리 확률 비율대로, 등급 안에서는 같은 확률로 나오고, 같은 영웅을 여럿 보유할 수 있다
 func ev196():
 	var b = _hiring()
 	var seen := _sample(b, 6000)
-	for g in [1, 2, 3]:
-		var kinds: Array = b.HERO_KINDS.keys().filter(func(k): return b.HERO_KINDS[k].grade == g)
-		var n: int = kinds.reduce(func(s, k): return s + seen.get(k, 0), 0)
-		for k in kinds:
-			if n == 0 or absf(float(seen.get(k, 0)) / n - 0.5) > 0.05:
-				return "%d등급 %s: %d / %d (0.5여야 한다)" % [g, k, seen.get(k, 0), n]
+	var n: int = 6000 * b.HIRE.slots
+	for k in b.HERO_KINDS:
+		if absf(float(seen.get(k, 0)) / n - 1.0 / 6) > 0.02:
+			return "%s: %d / %d (1/6이어야 한다)" % [k, seen.get(k, 0), n]
+	var m = _hiring()
+	m.HERO_KINDS.bastion.grade = 1
+	m.HERO_KINDS.sylvia.grade = 1
+	var by := _by_grade(m, 6000)
+	if by[1] != 0 or absf(float(by[0]) / n - 0.6 / 0.7) > 0.015:
+		return "바스티온·실비아만 1성일 때 등급별 칸 수 %s(1성 %.3f여야 한다)" % [by, 0.6 / 0.7]
 	var d = _hiring()
 	d.offers = ["bastion", "bastion", "bastion"]
 	var a = d.hire(0)
@@ -133,12 +137,12 @@ func ev196():
 
 # EV197 · S123: 영입하면 등급의 영입 비용만큼 골드가 줄고, 출전은 3명·보유는 5명까지다
 func ev197():
-	var b = _hiring({"gold": 200})
+	var b = _hiring({"gold": 300})
 	b.offers = ["bastion", "seraphina", "chronos"]
 	var k = b.hire(0)
 	var p = b.hire(1)
 	var g = b.hire(2)
-	if k == null or p == null or g == null or b.gold != 200 - _cost(b, k) - _cost(b, p) - _cost(b, g):
+	if k == null or p == null or g == null or b.gold != 300 - _cost(b, k) - _cost(b, p) - _cost(b, g):
 		return "셋을 영입하지 못했거나 골드가 %d다" % b.gold
 	if b.lineup != [k, p, g]:
 		return "출전 목록이 %s다(영입한 셋이어야 한다)" % [b.lineup.map(func(h): return h.kind)]
@@ -252,6 +256,7 @@ func ev202():
 		return "출전 칸이 %s다" % [cells]
 	var b = _main()
 	b.begin_hiring()
+	b.gold = BIG  # 시작 골드(150)로는 3성(100골드)을 하나만 영입한다
 	b.offers = ["bastion", "sylvia", "bastion"]
 	var team := [b.hire(0), b.hire(1), b.hire(2)]
 	b.next_round()

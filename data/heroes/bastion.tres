@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_hero")
 title = "강철의 성채"
-grade = 1
+grade = 3
 hp = 100.0
 speed = 3.0
 damage = 3.0

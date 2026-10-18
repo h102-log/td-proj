@@ -13,7 +13,7 @@ extends CanvasLayer
 const NAMES := {"wall": "방벽", "tower": "타워", "magic": "마법 타워", "soldier": "용병", "barracks": "병영", "engineer": "공병", "workshop": "작업장", "archer": "궁수", "cannon": "대포", "archery": "사격장", "house": "집", "church": "교회"}
 const STATES := {"prep": "준비", "battle": "전투", "hiring": "영입", "cleared": "라운드 사이", "won": "승리", "lost": "패배"}
 const HEROES := {"bastion": "바스티온(탱커)", "sylvia": "실비아(원거리)", "seraphina": "세라피나(힐러)", "vesper": "베스퍼(디버퍼)", "ignis": "이그니스(마법사)", "chronos": "크로노스(버퍼)"}  # 이름(역할), S97·S157
-const GRADES := ["동", "은", "금"]  # S94
+const GRADES := ["1성", "2성", "3성"]  # S94
 const GAPS := {"none": " (공병 없음)", "far": " (닿는 공병 없음)"}  # 공병 지시를 맡을 공병이 없는 이유(I128)
 
 var battle

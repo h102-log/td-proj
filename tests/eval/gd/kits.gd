@@ -843,10 +843,10 @@ func ev295():
 	b.damage(wall, 1000.0)
 	return check(b.build("wall", c) == null and wall.hp == hp0 and wall.alive, "짓기 거부 %s · 깎이지 않음 %s" % [b.build("wall", c) == null, wall.hp == hp0])
 
-# EV296 · S157: data/heroes의 영웅과 등급은 bastion·sylvia(동), seraphina·vesper(은), ignis·chronos(금)이고 이명이 기획서와 같다
+# EV296 · S157: data/heroes의 영웅 6명은 모두 3성이고 이명이 기획서와 같다
 func ev296():
 	var kinds: Dictionary = battle().HERO_KINDS
-	var want := {"bastion": [1, "강철의 성채"], "sylvia": [1, "취풍의 명사수"], "seraphina": [2, "새벽빛의 성녀"], "vesper": [2, "그림자 역병의 설계자"], "ignis": [3, "원소의 지배자"], "chronos": [3, "시계탑의 지휘관"]}
+	var want := {"bastion": [3, "강철의 성채"], "sylvia": [3, "취풍의 명사수"], "seraphina": [3, "새벽빛의 성녀"], "vesper": [3, "그림자 역병의 설계자"], "ignis": [3, "원소의 지배자"], "chronos": [3, "시계탑의 지휘관"]}
 	var got := {}
 	for k in kinds:
 		got[k] = [kinds[k].grade, kinds[k].title]
