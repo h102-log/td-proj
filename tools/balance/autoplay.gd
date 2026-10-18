@@ -332,7 +332,8 @@ func _hire() -> void:
 			if k == "":
 				continue
 			var g: int = b.HERO_KINDS[k].grade
-			var keep: float = maxf(bot.hire_reserve, b.gold * bot.hire_keep)
+			# 도전 시작 전에는 최소 예비만 남긴다. 3성(100골드)뿐이라 시작 골드 150의 절반을 남기면 아무도 못 산다(2026-10-19)
+			var keep: float = bot.hire_reserve if first else maxf(bot.hire_reserve, b.gold * bot.hire_keep)
 			if first and g > bot.hire_first_grade:
 				continue
 			if b.gold - hire.cost[g - 1] >= keep and g > best_grade:

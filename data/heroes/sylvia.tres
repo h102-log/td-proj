@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_hero")
 title = "취풍의 명사수"
-grade = 1
+grade = 3
 hp = 70.0
 speed = 3.0
 damage = 3.0

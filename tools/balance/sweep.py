@@ -22,13 +22,13 @@ ROOT = Path(__file__).resolve().parents[2]
 
 # 봇 패널: 숙련(영웅 1로 시작)·숙련(영웅 2로 시작)·중간(영웅 손을 안 씀)·약함(병영 먼저, 타워 1)
 PANEL = {
-    "smart": {"name": "smart", "plan": "smart", "hire_first_grade": 1, "hire_first_count": 1, "rally": [20, 8], "fill": True},
-    "smart2": {"name": "smart2", "plan": "smart", "hire_first_grade": 2, "hire_first_count": 2, "rally": [20, 8], "fill": True},
-    "mid": {"name": "mid", "plan": "smart", "hire_first_grade": 1, "hire_first_count": 1, "rally": [20, 8], "fill": True,
+    "smart": {"name": "smart", "plan": "smart", "hire_first_count": 1, "rally": [20, 8], "fill": True},
+    "smart2": {"name": "smart2", "plan": "smart", "hire_first_count": 2, "rally": [20, 8], "fill": True},
+    "mid": {"name": "mid", "plan": "smart", "hire_first_count": 1, "rally": [20, 8], "fill": True,
             "micro": False, "skills": False},
-    "weak": {"name": "weak", "plan": "balanced", "hire_first_grade": 1, "hire_first_count": 1, "fill": True},
+    "weak": {"name": "weak", "plan": "balanced", "hire_first_count": 1, "fill": True},
     # 사람형: 숙련 + 3라운드부터 영웅 1명을 마을 거점 옆에 둔다(3장 자체 점검 검증에서 더함)
-    "smartv": {"name": "smartv", "plan": "smart", "hire_first_grade": 1, "hire_first_count": 1, "rally": [20, 8], "fill": True,
+    "smartv": {"name": "smartv", "plan": "smart", "hire_first_count": 1, "rally": [20, 8], "fill": True,
                "village_heroes": 1, "village_from": 3},
 }
 # 긴장감 목표(사용자 결정이 아니라 Claude 가정이다. 설계 결정 «바쁨»·«감당하는 건 실력»에서 옮겼다)

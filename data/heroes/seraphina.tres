@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_hero")
 title = "새벽빛의 성녀"
-grade = 2
+grade = 3
 hp = 90.0
 speed = 3.0
 damage = 2.0
