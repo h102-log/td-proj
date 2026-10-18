@@ -6,5 +6,9 @@
 script = ExtResource("1_level")
 steps = [20, 30, 50, 70]
 growth = 0.1
-buff_level = 3
-aura_level = 5
+unlock = {
+"q": 1,
+"w": 2,
+"e": 3,
+"r": 5
+}

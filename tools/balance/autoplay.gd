@@ -27,7 +27,7 @@ const BOT := {
 	"name": "balanced",
 	"plan": "balanced",     # 준비 단계 쇼핑 목록(PLANS)
 	"micro": true,          # 영웅이 가까운 적을 쫓아가 친다. 끄면 출전 칸에 서 있다
-	"skills": true,         # 영웅 Q·W를 상황 보고 쓴다
+	"skills": true,         # 영웅 Q·W·E·R을 상황 보고 쓴다
 	"recruit": true,        # 전투 중 병영에서 병사를 사서 정문 앞으로 보낸다
 	"battle_repair": true,  # 전투 중 공병이 정문을 고친다
 	"prep_repair": true,    # 준비 단계에 성곽·구조물·잔해를 고친다. 거점은 base_repair_below 아래일 때만
@@ -547,30 +547,71 @@ func _battle_actions() -> void:
 func _near(pos: Vector2, r: float) -> Array:
 	return b.enemies.filter(func(e): return e.pos.distance_to(pos) <= r)
 
+# 영웅 칸마다 단순한 판단으로 쓴다(S145~S158). 지점·방향 칸은 시전 사거리 안에서 적이 가장 몰린 곳에, 회복 칸은 가장 깎인 아군에게
 func _skills(h) -> void:
-	if h.skill_ready():
-		var foes := _near(h.pos, h.skill_radius)
-		var fire := false
-		if h.skill_damage > 0.0 or h.skill_stun > 0.0:
-			fire = foes.size() >= 2 or foes.any(func(e): return e.kind == "boss")
-		if h.skill_heal > 0.0:
-			fire = b.units.any(func(u): return u.pos.distance_to(h.pos) <= h.skill_radius and u.hp < u.max_hp * 0.6)
-		if h.skill_mend > 0.0:
-			fire = b._fortified(h.pos, h.skill_radius).any(func(s): return s.hp < s.max_hp * 0.7)
-		if fire:
-			b.use_skill(h)
-	if h.buff_ready() and h.level >= b.LEVELS.buff_level:
-		var foes := _near(h.pos, h.buff_radius + 1.0)
-		var mercs: int = b.units.filter(func(u): return not u.is_hero and u.pos.distance_to(h.pos) <= h.buff_radius).size()
-		var fire := false
-		if h.buff_mult > 1.0 or h.buff_guard > 0.0:
-			fire = mercs >= 2 and foes.size() >= 2
-		if h.buff_expose > 0.0 or h.buff_slow > 0.0:
-			fire = _near(h.pos, h.buff_radius).size() >= 3
-		if h.buff_ward > 0.0:
-			fire = foes.size() >= 2 and not b._fortified(h.pos, h.buff_radius).is_empty()
-		if fire:
-			b.use_buff(h)
+	var r: float = b.CAST_RANGE
+	for slot in b.SLOTS:
+		if not b.can_cast(h, slot) and not (slot == "w" and h.toggle):
+			continue
+		var sk: Dictionary = h.get(slot)
+		match sk.id:
+			"split_shot":  # 토글: 적이 셋 넘게 사거리 안이고 마나가 넉넉하면 켜고, 아니면 끈다
+				var want: bool = _near(h.pos, h.range).size() >= 3 and h.mana > 60.0
+				if want != h.toggle:
+					b.cast(h, slot)
+			"overcharge":  # 자동 시전에 맡긴다
+				if not h.auto:
+					b.toggle_auto(h, slot)
+			"holy_beam", "guardian":
+				var weak = _weakest(h, r)
+				if weak and weak.hp < weak.max_hp * (0.6 if sk.id == "holy_beam" else 0.35):
+					b.cast(h, slot, weak)
+			"rewind":
+				for o in b.heroes:
+					if o != h and o.alive and o.mana < o.max_mana * 0.4 and o.pos.distance_to(h.pos) <= r:
+						b.cast(h, slot, o)
+						break
+			"miracle":
+				if b.units.filter(func(u): return u.hp < u.max_hp * 0.5).size() >= 3:
+					b.cast(h, slot)
+			"sanctum":
+				var weak = _weakest(h, r)
+				if weak and weak.hp < weak.max_hp * 0.6:
+					b.cast(h, slot, weak.pos)
+			"soul_chain":
+				var big = null
+				for e in _near(h.pos, r):
+					if big == null or e.hp > big.hp:
+						big = e
+				if big and _near(big.pos, sk.radius).size() >= 3:
+					b.cast(h, slot, big)
+			_:
+				if sk.aim == "self":
+					if _near(h.pos, sk.get("radius", 3.0)).size() >= 2:
+						b.cast(h, slot)
+				else:
+					var spot = _cluster(h.pos, r, sk.get("radius", 2.0))
+					if spot:
+						b.cast(h, slot, spot)
+
+# 시전 사거리 안에서 반경 안에 적이 가장 많이 몰린 적의 자리. 둘 이상이거나 보스면 돌려주고, 아니면 null
+func _cluster(from: Vector2, reach: float, radius: float):
+	var best = null
+	var best_n := 0
+	for e in _near(from, reach):
+		var n := _near(e.pos, radius).size()
+		if n > best_n:
+			best = e
+			best_n = n
+	return best.pos if best and (best_n >= 2 or best.kind == "boss") else null
+
+# 시전 사거리 안에서 체력 비율이 가장 낮은 아군
+func _weakest(h, reach: float):
+	var low = null
+	for u in b.units:
+		if u.alive and u.pos.distance_to(h.pos) <= reach and (low == null or u.hp / u.max_hp < low.hp / low.max_hp):
+			low = u
+	return low
 
 # 영웅은 정문 앞 기준점에서 lead칸 안의 가장 가까운 적에게 다가가고, 없으면 제자리로 돌아온다.
 # 체력이 30% 아래면 기준점 뒤로 물러난다

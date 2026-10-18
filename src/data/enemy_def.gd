@@ -13,6 +13,6 @@ extends Resource
 @export var sight := 0.0  # 인식 범위(칸)
 @export var reward := 0  # 처치 골드(I15). basic 5는 임시값(사용자 2026-10-12)
 @export var xp := 1  # 처치되면 그때 살아 있는 출전 영웅이 저마다 받는 경험치(S125, S126). 임시값
-@export var armor := 0.0  # 받는 피해를 이만큼 줄인다(S108)
+@export var armor := 0.0  # 방어력. 받는 물리 피해를 워크3식 비율로 줄인다(S108, S149)
 @export var flying := false  # 경로 층을 무시하고 대상으로 곧장 난다(S109, I79)
 @export var climb := 0.0  # 성곽 성벽을 기어오르는 시간(초). 0이면 오르지 않는다(S107, I76)

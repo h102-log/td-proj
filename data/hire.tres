@@ -8,5 +8,5 @@ slots = 3
 odds = [0.6, 0.3, 0.1]
 cost = [30, 60, 100]
 reroll = 10
-cap = 4
-lineup = 2
+cap = 5
+lineup = 3

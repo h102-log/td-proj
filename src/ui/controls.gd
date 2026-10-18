@@ -4,8 +4,10 @@ extends RefCounted
 # 우클릭: 생산 시설을 골랐으면 그 칸을 집결 지점으로(S82), 아니면 고른 유닛 이동(S14)
 # 준비 단계의 좌클릭·좌드래그는 판매 후보도 정한다(S70, I57). 좌클릭한 용병은 두 단계 모두 고른 상태가 된다(I135)
 # 전투 단계의 좌클릭·좌드래그는 철거·취소·이어 짓기 후보(picked)를 정한다(S74, S83)
-# Q: 영웅 스킬 · W: 스킬 2(S84) (I10). 고른 영웅이, 없으면 첫 영웅이 쓴다(S119) · A: 고른 용병의 이동 방식 전환(S35) · H: 홀드 전환(S36) (A·H는 사용자 2026-10-12) · V: 체력바 표시 전환(S73)
-# F1·F2: 출전 영웅 1·2를 고른다(I108)
+# Q·W·E·R: 영웅 스킬(S145, I10). 고른 영웅이, 없으면 첫 영웅이 쓴다(S119). 즉시·켜고 끄는 칸은 바로 쓰고, 지점·방향·대상을 고르는 칸은
+# 조준 상태가 된다. 조준 중 좌클릭은 그 지점·대상에 쓰고, 우클릭·ESC는 취소한다(S147). Shift+키와 HUD 스킬 버튼 우클릭은 자동 시전을 켜고 끈다(S158, I151)
+# A: 고른 용병의 이동 방식 전환(S35) · H: 홀드 전환(S36) (A·H는 사용자 2026-10-12) · V: 체력바 표시 전환(S73)
+# F1·F2·F3: 출전 영웅 1·2·3을 고른다(I108)
 # 1 방벽 · 2 타워 · - 마법 타워(S110) · 3 용병 · 4 병영 · 5 공병 · 6 작업장 · 7 궁수(I71) · 8 대포(S92) · 9 사격장(S98) · 0 집(S103) · = 교회(I140): 놓기 모드. 그동안 좌클릭은 그 칸에 짓거나 놓고, 우클릭·ESC는 모드를 끝낸다(사용자 2026-10-12)
 # 전투 단계엔 구조물만 짓는다(공병이 가서 짓는다, S22). 단계가 바뀌면 모드가 끝난다
 # 옮길 대포(moving)가 있으면 다음 좌클릭한 칸으로 옮기고(S91), 우클릭·ESC·단계 변경은 옮기기를 그만둔다
@@ -13,6 +15,7 @@ extends RefCounted
 
 # ponytail: 맵 px 기준이라 줌에 따라 화면에서 느끼는 거리가 달라진다. 거슬리면 화면 px로 잰다
 const CLICK_SLOP := 4.0  # 이보다 덜 끌고 떼면 클릭이다(맵 px)
+const SKILL_KEYS := {KEY_Q: "q", KEY_W: "w", KEY_E: "e", KEY_R: "r"}  # 영웅 스킬 칸(S145)
 const PLACE_KEYS := {KEY_1: "wall", KEY_2: "tower", KEY_MINUS: "magic", KEY_3: "soldier", KEY_4: "barracks", KEY_5: "engineer", KEY_6: "workshop", KEY_7: "archer", KEY_8: "cannon", KEY_9: "archery", KEY_0: "house", KEY_EQUAL: "church"}
 
 var battle
@@ -29,6 +32,9 @@ var picked := []  # 전투 단계에 고른 플레이어 구조물. 철거·취�
 var fort = null  # 고른 성곽 칸이나 잔해(I88). 그 옆에 여닫기·업그레이드·수리·복구 팝업이 뜬다(S85, S86, S116, I89)
 var moving = null  # 옮길 대포. 팝업의 «옮기기» 버튼이 넣는다(S91)
 var village := false  # 거점을 골랐다. 그 옆에 마을 레벨 팝업이 뜬다(S100)
+var aiming := ""  # 조준 중인 스킬 칸(S147). 빈 문자열이면 조준 중이 아니다
+var aim_hero = null  # 조준 중인 칸을 쓸 영웅
+var mouse := Vector2()  # 마지막 마우스 위치(맵 px). 화면이 조준 범위를 그린다
 var _state: String  # 마지막으로 본 판 단계. 바뀌면 놓기 모드를 끝낸다
 
 func _init(b, px: int) -> void:
@@ -40,37 +46,49 @@ func handle(event: InputEvent) -> void:
 	if battle.state != _state:  # 키보다 먼저 본다. 단계가 바뀐 뒤 첫 입력이 놓기 키여도 모드가 켜지게
 		placing = ""
 		moving = null
+		aiming = ""
 		_state = battle.state
+	if aiming != "" and not (aim_hero and aim_hero.alive):  # 조준하던 영웅이 쓰러졌다
+		aiming = ""
+	if event is InputEventMouse:
+		mouse = event.position
 	if battle.state not in ["prep", "battle"]:
 		_press = null
 		drag_rect = Rect2()
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
-			KEY_Q:
-				battle.use_skill(_hero())
-			KEY_W:
-				battle.use_buff(_hero())
+			KEY_Q, KEY_W, KEY_E, KEY_R:
+				skill_key(SKILL_KEYS[event.keycode], event.shift_pressed)
 			KEY_A:
 				toggle_move_mode()
 			KEY_H:
 				toggle_hold()
 			KEY_V:
 				show_hp = not show_hp
-			KEY_F1, KEY_F2:  # 쓰러진 영웅은 고르지 않는다. 우클릭이 집결 지점 대신 영웅을 옮기게 시설 선택을 푼다
+			KEY_F1, KEY_F2, KEY_F3:  # 쓰러진 영웅은 고르지 않는다. 우클릭이 집결 지점 대신 영웅을 옮기게 시설 선택을 푼다
 				var i: int = event.keycode - KEY_F1
 				selected = battle.heroes.slice(i, i + 1).filter(func(h): return h.alive)
 				facility = null
 			KEY_ESCAPE:
 				placing = ""
 				moving = null
+				aiming = ""
 		placing = PLACE_KEYS.get(event.keycode, placing)
+		if placing != "":
+			aiming = ""
 	# 전투 단계엔 구조물만 놓기 모드가 된다. 전투 중 용병 구매는 시설 팝업으로 한다(S81)
 	if not (battle.state == "prep" or (battle.state == "battle" and placing in battle.STRUCTURE_KINDS)):
 		placing = ""
 	if event is InputEventMouseMotion and _press != null:
 		drag_rect = Rect2(_press, event.position - _press).abs()
 	if not event is InputEventMouseButton:
+		return
+	if aiming != "" and event.pressed and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			_aim_at(event.position)
+		else:
+			aiming = ""
 		return
 	if moving and event.pressed:
 		if event.button_index == MOUSE_BUTTON_LEFT:
@@ -133,7 +151,52 @@ func toggle_move_mode() -> void:
 func toggle_hold() -> void:
 	battle.set_hold(selected, not selected.all(func(u): return u.hold))
 
-# Q·W를 쓸 영웅: 고른 출전 영웅. 없으면 null이라 첫 출전 영웅이 쓴다(S119). 출전에서 빠진 영웅은 고르지 않은 것으로 본다(I108)
+# 스킬 키(S145, S147, S158). Q·W·E·R 키와 테스트가 부른다. shift면 자동 시전을 켜고 끈다.
+# 즉시·켜고 끄는 칸(그리고 태세 중인 반격의 태세)은 바로 쓰고, 고르는 칸은 지금 쓸 수 있을 때만 조준 상태가 된다
+func skill_key(slot: String, shift := false) -> void:
+	var h = _hero()
+	skill_for(h if h and h.alive else battle._first_alive(), slot, shift)
+
+# 영웅 h의 칸 slot을 쓴다(키·HUD 스킬 버튼, I151). shift면 자동 시전을 켜고 끈다
+func skill_for(h, slot: String, shift := false) -> void:
+	if not h or not h.alive:
+		return
+	if shift:
+		battle.toggle_auto(h, slot)
+		return
+	var sk: Dictionary = h.get(slot)
+	if sk.get("aim") in ["self", "toggle"] or (sk.get("id") == "brace" and h.brace > 0.0):
+		battle.cast(h, slot)
+	elif battle.can_cast(h, slot):
+		aiming = slot
+		aim_hero = h
+		placing = ""
+		moving = null
+
+# 조준 중 좌클릭(S147, I145): 지점·방향은 클릭한 곳(칸 좌표), 대상은 클릭한 곳에서 가장 가까운 적이나 아군(0.7칸 안, 아군 구조물은 그 칸).
+# 쓰거나 걸어가기 시작하면 조준이 끝나고, 맞는 대상이 없으면 조준을 이어 간다
+func _aim_at(px: Vector2) -> void:
+	var at := px / cell_px - Vector2(0.5, 0.5)
+	var sk: Dictionary = aim_hero.get(aiming)
+	var aim = at
+	if sk.aim == "enemy":
+		aim = _closest(battle.enemies, at)
+	elif sk.aim == "ally":
+		aim = _closest(battle.units, at)
+		var s = battle.structure_at(Vector2i(at.round()))
+		if aim == null and s:
+			aim = s
+	if aim != null and battle.cast(aim_hero, aiming, aim):
+		aiming = ""
+
+func _closest(pool: Array, at: Vector2):
+	var best = null
+	for x in pool:
+		if x.pos.distance_to(at) <= 0.7 and (best == null or x.pos.distance_to(at) < best.pos.distance_to(at)):
+			best = x
+	return best
+
+# 스킬을 쓸 영웅: 고른 출전 영웅. 없으면 null이라 첫 출전 영웅이 쓴다(S119). 출전에서 빠진 영웅은 고르지 않은 것으로 본다(I108)
 func _hero():
 	for u in selected:
 		if u.is_hero and u in battle.heroes:

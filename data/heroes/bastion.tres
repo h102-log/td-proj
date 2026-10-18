@@ -1,0 +1,65 @@
+[gd_resource type="Resource" script_class="HeroDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/hero_def.gd" id="1_hero"]
+
+[resource]
+script = ExtResource("1_hero")
+title = "강철의 성채"
+grade = 1
+hp = 100.0
+speed = 3.0
+damage = 3.0
+range = 1.5
+attack_gap = 1.0
+passive = {
+"id": "fortress",
+"still": 2.0,
+"dr": 0.25,
+"block": 3,
+"stun_odds": 0.2,
+"stun": 1.0
+}
+q = {
+"id": "shield_bash",
+"aim": "dir",
+"gap": 6.0,
+"mana": 40.0,
+"radius": 2.0,
+"arc": 90.0,
+"damage": 15.0,
+"stun": 1.5,
+"push": 1.0,
+"slow": 0.3,
+"slow_time": 3.0
+}
+w = {
+"id": "war_cry",
+"aim": "self",
+"gap": 12.0,
+"mana": 60.0,
+"radius": 3.0,
+"time": 4.0,
+"armor": -5.0,
+"shield": 0.04
+}
+e = {
+"id": "brace",
+"aim": "self",
+"gap": 14.0,
+"mana": 70.0,
+"time": 3.0,
+"dr": 0.5,
+"radius": 2.0,
+"ratio": 1.5
+}
+r = {
+"id": "bulwark",
+"aim": "point",
+"gap": 60.0,
+"mana": 150.0,
+"length": 3,
+"time": 6.0,
+"radius": 2.0,
+"dr": 0.4,
+"regen": 0.03
+}

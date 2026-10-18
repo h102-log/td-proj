@@ -1,0 +1,71 @@
+[gd_resource type="Resource" script_class="HeroDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/hero_def.gd" id="1_hero"]
+
+[resource]
+script = ExtResource("1_hero")
+title = "원소의 지배자"
+grade = 3
+hp = 90.0
+speed = 3.0
+damage = 5.0
+range = 4.0
+attack_gap = 1.2
+passive = {
+"id": "overload",
+"every": 3,
+"grow": 0.3,
+"cut": 2.0
+}
+aura = {
+"radius": 3.0,
+"mana": 2.5
+}
+q = {
+"id": "fireball",
+"aim": "point",
+"gap": 6.0,
+"mana": 50.0,
+"radius": 1.5,
+"damage": 25.0,
+"burn": 4.0,
+"dps": 3.0,
+"fire": 4.0,
+"fire_dps": 3.0
+}
+w = {
+"id": "frost_ring",
+"aim": "point",
+"gap": 9.0,
+"mana": 65.0,
+"radius": 2.0,
+"damage": 15.0,
+"slow": 0.4,
+"slow_time": 3.0,
+"shock": 15.0,
+"freeze": 1.5
+}
+e = {
+"id": "black_hole",
+"aim": "point",
+"gap": 14.0,
+"mana": 80.0,
+"radius": 2.5,
+"time": 2.5,
+"pull": 1.5,
+"mr": -0.2
+}
+r = {
+"id": "meteor_swarm",
+"aim": "point",
+"gap": 65.0,
+"mana": 180.0,
+"count": 3,
+"delay": 0.5,
+"spread": 1.0,
+"radius": 1.5,
+"damage": 40.0,
+"stun": 1.0,
+"lava": 5.0,
+"burn": 0.03
+}

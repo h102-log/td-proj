@@ -54,8 +54,8 @@ static func stage() -> Dictionary:
 	return {
 		"size": Vector2i(40, 32), "base": Vector2i(20, 4), "base_hp": 100, "gold": 150,  # 시작 골드(S111)
 		"spawns": [Vector2i(6, 31), Vector2i(20, 31), Vector2i(33, 31)],
-		# 출전 칸(I107): 정문(20,9) 바로 앞 들판의 두 칸. 성문은 닫힌 채 시작해서(I67) 마을 안에 두면 나올 수 없다(I42, 사용자 2026-10-12)
-		"hero_cells": [Vector2i(19, 11), Vector2i(21, 11)],
+		# 출전 칸(I107): 정문(20,9) 바로 앞 들판의 세 칸. 성문은 닫힌 채 시작해서(I67) 마을 안에 두면 나올 수 없다(I42, 사용자 2026-10-12)
+		"hero_cells": [Vector2i(19, 11), Vector2i(21, 11), Vector2i(20, 11)],
 		# ponytail: 체력은 임시값이다. 성문이 성벽보다 약해야 한다는 것(I41)만 지킨다. 수치는 3.1 밸런스에서 정한다
 		"castle": {"walls": walls, "gates": gates, "wall_hp": 300, "gate_hp": 150},
 		"village": Rect2i(0, 0, 40, 9),  # 성곽(9행) 위쪽. 생산 시설은 여기에만 짓는다(S43)

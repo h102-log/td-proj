@@ -1,7 +1,7 @@
 extends "res://tests/eval/gd/lib.gd"
 # WBS 3.1 적 5종·마법 타워(S11·S106~S111·I43·I76~I78·I81). lib.gd·wall.gd 머리의 계약에 더하는 API:
 #   적 kind "fast"(빠름, 성벽 등반) · "armored"(장갑) · "flying"(비행) · "boss"(보스)
-#   ENEMY_KINDS[kind] 키: armor(장갑) · flying(비행) · climb(성벽 오르는 시간, 초. 0이면 오르지 않는다)
+#   ENEMY_KINDS[kind] 키: armor(방어력, S149) · flying(비행) · climb(성벽 오르는 시간, 초. 0이면 오르지 않는다)
 #   구조물 kind "magic"(마법 타워, 장갑 무시) · 단축키: - 마법 타워 놓기
 #   BattleView(res://src/ui/battle_view.gd).ENEMY_COLORS — 적 kind → 색
 # 성곽 맵은 wall.gd와 같다: 9행이 가로 성곽(성문 5·15·25열, 모두 닫힘), 위쪽(0~8행)이 마을, 아래쪽이 들판
@@ -72,23 +72,27 @@ func ev130():
 			if want != null and not is_equal_approx(got, want):
 				return "%s.%s = %s, 표는 %s" % [k, KEYS[i], got, want]
 	var d: Dictionary = b.ENEMY_KINDS
-	return check(d.fast.climb == 3.0 and d.armored.armor == 2.0 and d.flying.flying and not d.basic.flying and d.basic.climb == 0.0,
+	return check(d.fast.climb == 3.0 and d.armored.armor == 15.0 and d.flying.flying and not d.basic.flying and d.basic.climb == 0.0,
 		"특수: fast.climb %s · armored.armor %s · flying.flying %s" % [d.fast.climb, d.armored.armor, d.flying.flying])
 
-# EV131 · S108: 장갑만큼 줄인 피해, 최소 1(원래 1 미만이면 그대로)
+# 방어력 a의 물리 피해 배율(S149, 워크3식): a ≥ 0이면 1 − 0.06a ÷ (1 + 0.06a)
+func _armor(a: float) -> float:
+	return 1.0 - 0.06 * a / (1.0 + 0.06 * a)
+
+# EV131 · S108: 방어력 15인 장갑 적은 물리 피해를 워크3식 비율만큼 덜 받는다(최소 1 규칙은 없다). 방어력 0인 적은 그대로 받는다
 func ev131():
 	var b = battle()
 	var a = _still(b, "armored", Vector2i(5, 5))
-	for pair in [[2.0, 1.0], [6.0, 4.0], [0.5, 0.5]]:
+	for amount in [2.0, 6.0, 0.5]:
 		var hp0: float = a.hp
-		b.damage(a, pair[0])
-		if not is_equal_approx(hp0 - a.hp, pair[1]):
-			return "장갑 적이 피해 %s에 %s 깎였다(%s이어야 한다)" % [pair[0], hp0 - a.hp, pair[1]]
+		b.damage(a, amount)
+		if not is_equal_approx(hp0 - a.hp, amount * _armor(15.0)):
+			return "장갑 적이 피해 %s에 %s 깎였다(%s이어야 한다)" % [amount, hp0 - a.hp, amount * _armor(15.0)]
 	var n = _still(b, "basic", Vector2i(5, 8))
 	b.damage(n, 2.0)
-	return check(is_equal_approx(BIG - n.hp, 2.0), "장갑 0인 적이 피해 2에 %s 깎였다" % (BIG - n.hp))
+	return check(is_equal_approx(BIG - n.hp, 2.0), "방어력 0인 적이 피해 2에 %s 깎였다" % (BIG - n.hp))
 
-# EV132 · S110: 마법 타워는 장갑을 무시하고, 타워는 장갑만큼 덜 깎는다
+# EV132 · S110: 마법 타워는 마법 피해라 방어력을 무시하고, 타워는 방어력만큼 덜 깎는다
 func ev132():
 	var got := {}
 	for kind in ["magic", "tower"]:
@@ -97,7 +101,7 @@ func ev132():
 		if b.build(kind, c) == null:
 			return "%s를 짓지 못했다" % kind
 		got[kind] = _first_hit(b, _still(b, "armored", c + Vector2i(2, 0)))
-	return check(is_equal_approx(got.magic, 6.0) and is_equal_approx(got.tower, 1.0), "한 발에 깎인 체력: 마법 타워 %s, 타워 %s" % [got.magic, got.tower])
+	return check(is_equal_approx(got.magic, 6.0) and is_equal_approx(got.tower, 2.0 * _armor(15.0)), "한 발에 깎인 체력: 마법 타워 %s(6), 타워 %s(%s)" % [got.magic, got.tower, 2.0 * _armor(15.0)])
 
 # EV133 · S110: - 키 뒤 좌클릭한 들판 칸에 마법 타워가 지어진다
 func ev133():
