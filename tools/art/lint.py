@@ -1,18 +1,28 @@
 # 숫자 검사. 이미지로 보기 전에 먼저 돌린다(08 §3 운영 규칙)
 # H5: 팔레트 밖 색·반투명·프레임 크기. H3·H4: 걷기 프레임 차이(부위 이미지 parts/ 사용). T1은 tiles.py에 있다
-# 사용: python tools/art/lint.py walk_45_D_f24p  → 크기마다 결과
+# 사용: python tools/art/lint.py walk_45_D_f24p [general]  → 크기마다 결과. 둘째 인자는 영웅 모듈이다(없으면 hero = 기사)
+import importlib
 import sys
 
 import numpy as np
 from PIL import Image
 
+import hero
 import render as R
-from hero import OUT, PARTS, WALK, fits
 
-# 걷기에서 다리 말고는 오르내림만 허용한다(사용자 2026-10-18: 머리·몸통·무기 고정)
-BODY = [1 + PARTS.index(p) for p in ("head", "torso", "arm", "sword", "shield")]
-LIMB = [1 + PARTS.index("leg")]
-HEAD = 1 + PARTS.index("head")
+M, BODY, LIMB, HEAD = hero, [], [], 0  # 검사할 영웅 모듈과 부위 번호. use()가 정한다
+
+
+def use(mod):
+    """영웅 모듈을 고른다. 걷기에서 다리 말고는 오르내림만 허용한다(사용자 2026-10-18: 머리·몸통·무기 고정)"""
+    global M, BODY, LIMB, HEAD
+    M = mod
+    BODY = [1 + i for i, p in enumerate(mod.PARTS) if p != "leg"]
+    LIMB = [1 + mod.PARTS.index("leg")]
+    HEAD = 1 + mod.PARTS.index("head")
+
+
+use(hero)
 
 
 def frames(path, n):
@@ -73,20 +83,20 @@ def h3(img, part, bobs):
 def h4(part):
     """두 접지 프레임(0·2): 머리 맨 위 행이 같고 다리 배치가 다른가"""
     top = [int(np.nonzero((p == HEAD).any(1))[0].min()) for p in (part[0], part[2])]
-    leg = 1 + PARTS.index("leg")
-    return top[0] == top[1], not np.array_equal(part[0] == leg, part[2] == leg)
+    return top[0] == top[1], not np.array_equal(part[0] == LIMB[0], part[2] == LIMB[0])
 
 
 if __name__ == "__main__":
     name = sys.argv[1]
+    use(importlib.import_module(sys.argv[2]) if len(sys.argv) > 2 else hero)
     pal = R.PALETTES[name.split("_")[-1]]
-    fts = fits()
-    for n in (16, 24, 32):
-        path, c = OUT / f"{name}_{n}.png", fts[n][2]  # 프레임 크기는 맞춤 캐시의 캔버스
+    fts = M.fits()
+    for n in sorted(fts):
+        path, c = M.OUT / f"{name}_{n}.png", fts[n][2]  # 프레임 크기는 맞춤 캐시의 캔버스
         print(f"[{n}] H5:", h5(path, pal, 2 * c if name.startswith(("attack", "fall")) else c) or "통과")
         if name.startswith("walk"):
-            img, part = frames(path, c), frames(OUT / "parts" / path.name, c)
-            bobs = [p["bob"] for p in WALK]
+            img, part = frames(path, c), frames(M.OUT / "parts" / path.name, c)
+            bobs = [p["bob"] for p in M.WALK]
             rows = [(d, h3(img[r], part[r], bobs), h4(part[r])) for r, d in enumerate(R.DIRS)]
             print("  H3 (윗몸 변화, 다리 행 밖 변화):", " ".join(f"{d}{b}" for d, b, _ in rows))
             print("  H4 (머리 높이 같음, 다리 다름):", " ".join(f"{d}{'OK' if all(c) else c}" for d, _, c in rows))
