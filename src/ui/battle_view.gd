@@ -159,7 +159,7 @@ func _aim_preview() -> void:
 	draw_arc(_center(h.pos), CELL * battle.CAST_RANGE, 0.0, TAU, 64, Color(1, 1, 1, 0.3), 1.0)
 	match sk.aim:
 		"dir":
-			var to: Vector2 = h.pos + battle._toward(h, at) * sk.get("length", sk.get("radius", 1.0))
+			var to: Vector2 = h.pos + battle._toward(h, at) * sk.get("radius", 40.0)  # 실비아 Q는 맵 끝까지
 			draw_line(_center(h.pos), _center(to), Color.WHITE, 1.0)
 		"point":
 			if sk.id == "bulwark":

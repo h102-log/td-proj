@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_hero")
+title = "시계탑의 지휘관"
 grade = 3
 hp = 110.0
 speed = 3.0
@@ -29,7 +30,7 @@ q = {
 w = {
 "id": "rewind",
 "aim": "ally",
-"targets": "other_hero",
+"targets": "hero",
 "gap": 14.0,
 "mana": 70.0,
 "mana_back": 0.25,

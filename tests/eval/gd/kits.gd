@@ -4,7 +4,7 @@ extends "res://tests/eval/gd/lib.gd"
 #   Battle.can_cast(영웅, 칸) · Battle.toggle_auto(영웅, 칸) · Battle.damage(대상, 양, 종류 = "phys", 낸 쪽 = null)
 #   Battle.effect(대상, 키) — 걸린 효과의 값(없으면 null) · Battle.effect_sum(대상, 키) — 더하는 효과의 합 · Battle.armor_of(대상)
 #   Battle.armor_mult(방어력) — 물리 피해 배율(S149) · Battle.zones · Battle.barriers(칸 → 막힌 칸) · Battle.CAST_RANGE
-#   영웅: mana · max_mana · cd[칸] · skill_uses · fort · radius · shields(출처 → {hp, left}) · stacks · mark · toggle · auto · order
+#   영웅: mana · max_mana · cd[칸] · skill_uses · fort · block · shields(출처 → {hp, left}) · stacks · mark · toggle · auto · order · 적: engaged(붙잡은 유닛)
 #   Controls.skill_key(칸, shift) · Controls.aiming · 구조물: cooldown(다음 사격까지 남은 초)
 # 수치는 영웅 필드(q·w·e·r·passive·aura 사전)에서 읽는다. 임시값이라(S151~S158) 밸런스를 바꿔도 효과를 재는 평가는 깨지지 않게
 # 영웅의 기본 공격이 재는 값을 흐리지 않게, 기본 공격을 재지 않는 평가는 영웅의 공격력을 0으로 둔다
@@ -208,17 +208,18 @@ func ev263():
 	return check(hit and spared and still_stunned and b.effect(front, "stun") == null,
 		"앞 적 피해·기절 %s · 뒤·옆 그대로 %s · 1.4초 기절 %s · 1.6초 풀림 %s" % [hit, spared, still_stunned, b.effect(front, "stun") == null])
 
-# EV264 · S151·I147: 2초 서 있으면 요새화(받는 피해 −25%, 몸 반지름 0.6). 이동 지시를 받으면 풀린다. 요새화 중 Q는 앞 적을 1칸 밀쳐 내고 둔화시킨다
+# EV264 · S151·S159·I147: 2초 서 있으면 요새화(받는 피해 −25%, 블록 수 +3). 이동 지시를 받으면 풀린다. 요새화 중 Q는 앞 적을 1칸 밀쳐 내고 둔화시킨다
 func ev264():
 	var b = _kit([["bastion", H]])
 	var k = b.hero
 	_quiet(b)
 	var front = _dummy(b, H + Vector2i(1, 0))
 	_start(b)
+	var base_block: int = k.block
 	run(b, k.passive.still + 0.3)
 	var hp0: float = k.hp
 	b.damage(k, 10.0)
-	var fort: bool = k.fort and _near_f(k.radius, k.passive.radius) and _near_f(_lost(k, hp0), 7.5)
+	var fort: bool = k.fort and k.block == base_block + k.passive.block and _near_f(_lost(k, hp0), 7.5)
 	var x0: float = front.pos.x
 	b.cast(k, "q", Vector2(H + Vector2i(3, 0)))
 	var pushed: bool = front.pos.x - x0 >= 0.9 and _near_f(b.effect_sum(front, "slow"), k.q.slow)
@@ -226,26 +227,27 @@ func ev264():
 	run(b, 0.2)
 	hp0 = k.hp
 	b.damage(k, 10.0)
-	return check(fort and pushed and not k.fort and _near_f(_lost(k, hp0), 10.0),
-		"요새화 %s · 밀쳐 냄·둔화 %s(%s칸) · 이동 지시로 풀림 %s(피해 %s)" % [fort, pushed, front.pos.x - x0, not k.fort, _lost(k, hp0)])
-
-# EV265 · S151: W는 반경 3 적을 도발하고(옆 용병이 더 가까워도 바스티온을 노린다) 방어력을 5 깎으며, 도발한 적 하나마다 최대 체력 4% 보호막을 준다
+	return check(fort and pushed and not k.fort and k.block == base_block and _near_f(_lost(k, hp0), 10.0),
+		"요새화 %s(블록 %d) · 밀쳐 냄·둔화 %s(%s칸) · 이동 지시로 풀림 %s(블록 %d, 피해 %s)" % [fort, base_block + k.passive.block, pushed, front.pos.x - x0, not k.fort, k.block, _lost(k, hp0)])
+# EV265 · S151: W는 반경 3 적을 도발하고(옆 용병이 더 가까워도 바스티온을 노린다) 방어력을 5 깎으며, 도발한 적 하나마다 최대 체력 4% 보호막을 준다(상한 없음)
 func ev265():
 	var b = _kit([["bastion", H]])
 	var k = b.hero
 	_quiet(b)
 	var m = b.place_merc("soldier", H + Vector2i(3, 0), {"hp": BIG, "damage": 0})
 	var striker = b.spawn_enemy("basic", H + Vector2i(2, 0), {"speed": 1.0, "damage": 5.0, "hp": BIG})
-	var others := [_dummy(b, H + Vector2i(0, 2)), _dummy(b, H + Vector2i(-2, 0)), _dummy(b, H + Vector2i(0, -2))]
+	var others := []
+	for c in [Vector2i(0, 2), Vector2i(-2, 0), Vector2i(0, -2), Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1), Vector2i(2, 1), Vector2i(-2, 1), Vector2i(2, -1), Vector2i(-2, -1)]:
+		others.append(_dummy(b, H + c))
 	var out = _dummy(b, H + Vector2i(5, 0))
 	_start(b)
 	b.cast(k, "w")
 	var taunted: bool = ([striker] + others).all(func(e): return b.effect(e, "taunt") == k and _near_f(b.armor_of(e), k.w.armor)) and b.effect(out, "taunt") == null
 	var shield: float = k.shields.bastion_w.hp
+	var want: float = 12 * k.w.shield * k.max_hp  # 12명이면 48%(상한이 없다)
 	run(b, k.w.time - 0.5)
-	return check(taunted and _near_f(shield, 4 * k.w.shield * k.max_hp) and m.hp == m.max_hp,
-		"도발·방어력 −5 %s · 보호막 %s(%s) · 옆 용병 맞지 않음 %s" % [taunted, shield, 4 * k.w.shield * k.max_hp, m.hp == m.max_hp])
-
+	return check(taunted and _near_f(shield, want) and m.hp == m.max_hp,
+		"도발·방어력 −5 %s · 보호막 %s(%s) · 옆 용병 맞지 않음 %s" % [taunted, shield, want, m.hp == m.max_hp])
 # EV266 · S151: E는 3초 동안 받는 피해 −50%. 다시 누르거나 끝나면 그동안 들어온 피해(줄이기 전) × 1.5를 반경 2 적에게 준다
 func ev266():
 	var b = _kit([["bastion", H]])
@@ -270,30 +272,34 @@ func ev266():
 	return check(halved and burst and _near_f(before - near_e.hp, 20.0 * k.e.ratio),
 		"태세 중 40에 %s 받음 · 다시 눌러 터뜨림 %s · 끝나서 터짐 %s" % [_lost(k, hp0), burst, before - near_e.hp])
 
-# EV267 · S151·I142: R은 지점 칸을 가운데로 영웅 → 지점 방향에 수직인 3칸 에너지 성벽을 세운다. 땅 적은 지나가지 못해 돌아가고,
+# EV267 · S151·I142: R은 지점 칸을 가운데로 영웅 → 지점 방향에 수직인 3칸 에너지 성벽을 세운다. 땅 적은 지나가지 못해 돌아가고 아군은 지나간다.
 # 6초 뒤 사라진다. 성벽 2칸 안 타워는 받는 피해 −40%
 func ev267():
 	var b = _kit([["bastion", Vector2i(10, 10)]], {"base": Vector2i(2, 10), "spawns": [Vector2i(29, 10)]})
 	var k = b.hero
 	_quiet(b)
 	var tw = b.build("tower", Vector2i(15, 12))
+	var ally = b.place_merc("soldier", Vector2i(16, 12), {"hp": BIG, "damage": 0, "sight": 0})  # 전투 단계에는 시설에서만 사서(S81) 준비 단계에 놓는다
 	_start(b)
 	b.cast(k, "r", Vector2(14, 10))
 	var cells: Array = b.barriers.keys()
 	cells.sort()
 	var want := [Vector2i(14, 9), Vector2i(14, 10), Vector2i(14, 11)]
 	var walker = b.spawn_enemy("basic", Vector2i(20, 10), {"sight": 0, "hp": BIG})
-	var seen := {"crossed": false}  # 람다는 지역 변수를 복사해 가져가서 사전에 적는다
+	b.order_move([ally], Vector2i(12, 10))
+	var seen := {"crossed": false, "ally": false}  # 람다는 지역 변수를 복사해 가져가서 사전에 적는다
 	run(b, k.r.time - 0.5, func():
 		seen.crossed = seen.crossed or Vector2i(walker.pos.round()) in want
+		seen.ally = seen.ally or Vector2i(ally.pos.round()) in want
 		return false)
 	var crossed: bool = seen.crossed
+	var ally_crossed: bool = seen.ally and ally.pos.distance_to(Vector2(12, 10)) < 0.6
 	var hp0: float = tw.hp
 	b.damage(tw, 10.0)
 	var warded: bool = _near_f(_lost(tw, hp0), 10.0 * (1.0 - k.r.dr))
 	run(b, 0.7)
-	return check(cells == want and not crossed and warded and b.barriers.is_empty(),
-		"성벽 칸 %s(%s) · 적이 성벽 칸을 지남 %s · 타워 피해 −40%% %s · 6초 뒤 사라짐 %s" % [cells, want, crossed, warded, b.barriers.is_empty()])
+	return check(cells == want and not crossed and warded and ally_crossed and b.barriers.is_empty(),
+		"성벽 칸 %s(%s) · 적이 성벽 칸을 지남 %s · 타워 피해 −40%% %s · 아군은 지나감 %s · 6초 뒤 사라짐 %s" % [cells, want, crossed, warded, ally_crossed, b.barriers.is_empty()])
 
 # ── 세라피나(S152) ──
 
@@ -316,7 +322,7 @@ func ev268():
 	var hurt: bool = _near_f(_lost(e1, BIG), s.q.damage) and _near_f(_lost(e2, BIG), s.q.damage)
 	return check(healed and hurt and e3.hp == e3.max_hp, "용병 셋 회복 %s(%s) · 적 둘 피해 %s · 여섯째 그대로 %s" % [healed, [m1.hp, m2.hp, m3.hp], hurt, e3.hp == e3.max_hp])
 
-# EV269 · S152: 최대 체력을 넘친 회복은 빛의 보호막이 되어 피해를 먼저 받는다. 오라 안 아군은 방어력 +6이라 피해 10에 10 × 배율(6)만 받는다
+# EV269 · S152: 최대 체력을 넘친 회복은 빛의 보호막이 되어 피해를 먼저 받고, 상한 없이 쌓인다. 오라 안 아군은 방어력 +6이라 피해 10에 10 × 배율(6)만 받는다
 func ev269():
 	var b = _kit([["seraphina", H]])
 	var s = b.hero
@@ -330,8 +336,14 @@ func ev269():
 	var absorbed: bool = m.hp == m.max_hp and _near_f(m.shields.seraphina.hp, shield - 10.0 * b.armor_mult(s.aura.armor))
 	var hp0: float = far_m.hp
 	b.damage(far_m, 10.0)
-	return check(_near_f(shield, s.q.heal) and absorbed and _near_f(_lost(far_m, hp0), 10.0),
-		"넘친 회복 보호막 %s(%s) · 오라 안 피해 10이 보호막에서 %s · 오라 밖 피해 %s(10)" % [shield, s.q.heal, absorbed, _lost(far_m, hp0)])
+	m.shields.clear()
+	for i in 2:  # 상한이 없어 넘친 회복이 계속 쌓인다(20 + 20 = 40 > 최대 체력 50%)
+		s.cd.q = 0.0
+		s.mana = s.max_mana
+		b.cast(s, "q", m)
+	var stacked: float = m.shields.seraphina.hp
+	return check(_near_f(shield, s.q.heal) and absorbed and _near_f(_lost(far_m, hp0), 10.0) and _near_f(stacked, 2.0 * s.q.heal) and stacked > 0.5 * m.max_hp,
+		"넘친 회복 보호막 %s(%s) · 오라 안 피해 10이 보호막에서 %s · 오라 밖 피해 %s(10) · 두 번 넘친 보호막 %s(상한 없음)" % [shield, s.q.heal, absorbed, _lost(far_m, hp0), stacked])
 
 # EV270 · S152: E가 걸린 아군은 받는 회복이 30% 늘고, 체력이 0이 될 피해를 받으면 체력 1로 남아 2.5초 동안 피해를 받지 않는다
 func ev270():
@@ -404,22 +416,21 @@ func ev273():
 	var ok := hits.slice(0, 5).all(func(x): return _near_f(x, plain, 0.001)) and _near_f(hits[5], pierced, 0.001)
 	return check(ok and s.stacks == s.passive.stacks, "한 방들 %s(다섯은 %s, 여섯째 %s) · 중첩 %d" % [hits, plain, pierced, s.stacks])
 
-# EV274 · S153: Q는 지점 쪽 직선 위 적을 가까운 차례로 꿰뚫고, 하나 맞힐 때마다 피해가 10%씩 준다. 첫 적에 중첩 3
+# EV274 · S153: Q는 지점 쪽 일직선(맵 끝까지)의 적을 가까운 차례로 꿰뚫어 공격력의 200%를 주고, 하나 맞힐 때마다 피해가 10%씩 준다. 첫 적에 중첩 3
 func ev274():
-	var b = _kit([["sylvia", H]])
+	var b = _kit([["sylvia", Vector2i(3, 10)]])
 	var s = b.hero
-	_quiet(b)
-	var line := [_dummy(b, H + Vector2i(2, 0)), _dummy(b, H + Vector2i(4, 0)), _dummy(b, H + Vector2i(5, 0))]
-	var off = _dummy(b, H + Vector2i(3, 2))
+	var atk: float = s.damage
+	var line := [_dummy(b, Vector2i(5, 10)), _dummy(b, Vector2i(7, 10)), _dummy(b, Vector2i(26, 10))]
+	var off = _dummy(b, Vector2i(6, 12))
 	_start(b)
-	b.cast(s, "q", Vector2(H + Vector2i(6, 0)))
+	b.cast(s, "q", Vector2(6, 10))
 	var got := line.map(func(e): return _lost(e, BIG))
-	var want := [s.q.damage, s.q.damage * 0.9, s.q.damage * 0.81]
+	var want := [atk * s.q.ratio, atk * s.q.ratio * 0.9, atk * s.q.ratio * 0.81]
 	var ok := true
 	for i in 3:
 		ok = ok and _near_f(got[i], want[i], 0.001)
-	return check(ok and off.hp == off.max_hp and s.mark == line[0] and s.stacks == s.q.stacks, "직선 위 %s(%s) · 직선 밖 그대로 %s · 첫 적 중첩 %d" % [got, want, off.hp == off.max_hp, s.stacks])
-
+	return check(ok and off.hp == off.max_hp and s.mark == line[0] and s.stacks == s.q.stacks, "직선 위 %s(%s, 23칸 떨어진 적 포함) · 직선 밖 그대로 %s · 첫 적 중첩 %d" % [got, want, off.hp == off.max_hp, s.stacks])
 # EV275 · S153: W를 켜면 기본 공격마다 마나 8을 내고 대상과 가까운 적 3명에게도 같은 피해를 준다. 마나가 모자라면 꺼진다
 func ev275():
 	var b = _kit([["sylvia", H]])
@@ -622,7 +633,7 @@ func ev284():
 	var cold: bool = _near_f(_lost(d2, BIG), g.w.damage) and b.effect(d2, "stun") == null and _near_f(b.effect_sum(d2, "slow"), g.w.slow)
 	return check(q_ok and shock and cold, "Q 피해·발화 %s · 발화 적 열충격 %s(%s) · 발화 아닌 적 15·둔화 %s(%s)" % [q_ok, shock, _lost(d1, BIG), cold, _lost(d2, BIG)])
 
-# EV285 · S156: E 중력장은 안의 적을 초당 1.5칸씩 중심으로 끌어당기고(보스도) 마법 저항을 20% 깎는다
+# EV285 · S156: E 중력장은 안의 적을 초당 1.5칸씩 중심으로 끌어당기고(보스도) 안에 있는 동안 마법 저항을 20% 깎는다
 func ev285():
 	var b = _kit([["ignis", H]])
 	var g = b.hero
@@ -636,7 +647,11 @@ func ev285():
 	var pulled: bool = _near_f(d.pos.distance_to(mid), 2.0 - g.e.pull, 0.1) and _near_f(boss.pos.distance_to(mid), 2.0 - g.e.pull, 0.1)
 	var hp0: float = d.hp
 	b.damage(d, 10.0, "magic")
-	return check(pulled and _near_f(_lost(d, hp0), 10.0 * (1.0 - g.e.mr)), "끌림 %s(%s, %s) · 마법 10에 %s" % [pulled, d.pos.distance_to(mid), boss.pos.distance_to(mid), _lost(d, hp0)])
+	var inside: float = _lost(d, hp0)
+	run(b, g.e.time - 1.0 + 0.7)  # 중력장이 끝나고 0.7초
+	hp0 = d.hp
+	b.damage(d, 10.0, "magic")
+	return check(pulled and _near_f(inside, 10.0 * (1.0 - g.e.mr)) and _near_f(_lost(d, hp0), 10.0), "끌림 %s(%s, %s) · 안에서 마법 10에 %s · 끝난 뒤 %s(10)" % [pulled, d.pos.distance_to(mid), boss.pos.distance_to(mid), inside, _lost(d, hp0)])
 
 # EV286 · S156: R 운석은 0.5초 간격으로 셋이 떨어진다(지점, 수직 양옆 1칸). 각 마법 40과 기절 1초, 떨어진 자리는 용암
 func ev286():
@@ -721,7 +736,7 @@ func ev289():
 	run(b, 1.0, func(): return d.hp < d.max_hp)
 	return check(first and second and _near_f(_lost(d, BIG), tw.damage * (1.0 + ch.q.might)), "첫 자동: 이그니스 %s · 둘째: 마법 타워 %s · Q 받은 타워 한 방 %s(%s)" % [first, second, _lost(d, BIG), tw.damage * (1.0 + ch.q.might)])
 
-# EV290 · S158·I145: W는 다른 영웅의 마나를 최대 마나 25%만큼 채우고 Q·W·E 대기를 5초씩 줄인다. 자기 자신에게는 쓰지 못한다
+# EV290 · S158·I145: W는 영웅(자기 포함)의 마나를 최대 마나 25%만큼 채우고 Q·W·E 대기를 5초씩 줄인다
 func ev290():
 	var b = _kit([["chronos", H], ["bastion", H + Vector2i(2, 0)]])
 	var ch = b.hero
@@ -730,11 +745,14 @@ func ev290():
 	k.mana = 50.0
 	k.cd.q = 6.0
 	k.cd.w = 10.0
-	var self_ok: bool = b.cast(ch, "w", ch)
 	b.cast(ch, "w", k)
-	return check(not self_ok and _near_f(k.mana, 50.0 + ch.w.mana_back * k.max_mana) and _near_f(k.cd.q, 1.0) and _near_f(k.cd.w, 5.0),
-		"자기에게 씀 %s · 마나 %s · Q 대기 %s · W 대기 %s" % [self_ok, k.mana, k.cd.q, k.cd.w])
-
+	var other: bool = _near_f(k.mana, 50.0 + ch.w.mana_back * k.max_mana) and _near_f(k.cd.q, 1.0) and _near_f(k.cd.w, 5.0)
+	ch.cd.w = 0.0
+	ch.cd.q = 6.0
+	ch.mana = 100.0
+	var self_ok: bool = b.cast(ch, "w", ch)
+	return check(other and self_ok and _near_f(ch.mana, 100.0 - ch.w.mana + ch.w.mana_back * ch.max_mana) and _near_f(ch.cd.q, 1.0) and _near_f(ch.cd.w, ch.w.gap - ch.w.cut),
+		"다른 영웅 %s · 자기에게 씀 %s(마나 %s, Q 대기 %s, W 대기 %s)" % [other, self_ok, ch.mana, ch.cd.q, ch.cd.w])
 # EV291 · S158·I149: E 결계 안에서 처치된 적의 골드는 보상 × 1.3을 반올림한 값이다(기본 5 → 7, 장갑 8 → 10). 결계 밖은 그대로다
 func ev291():
 	var b = _kit([["chronos", H]])
@@ -825,11 +843,103 @@ func ev295():
 	b.damage(wall, 1000.0)
 	return check(b.build("wall", c) == null and wall.hp == hp0 and wall.alive, "짓기 거부 %s · 깎이지 않음 %s" % [b.build("wall", c) == null, wall.hp == hp0])
 
-# EV296 · S157: data/heroes의 영웅은 bastion·sylvia(동), seraphina·vesper(은), ignis·chronos(금)다
+# EV296 · S157: data/heroes의 영웅과 등급은 bastion·sylvia(동), seraphina·vesper(은), ignis·chronos(금)이고 이명이 기획서와 같다
 func ev296():
 	var kinds: Dictionary = battle().HERO_KINDS
-	var want := {"bastion": 1, "sylvia": 1, "seraphina": 2, "vesper": 2, "ignis": 3, "chronos": 3}
+	var want := {"bastion": [1, "강철의 성채"], "sylvia": [1, "취풍의 명사수"], "seraphina": [2, "새벽빛의 성녀"], "vesper": [2, "그림자 역병의 설계자"], "ignis": [3, "원소의 지배자"], "chronos": [3, "시계탑의 지휘관"]}
 	var got := {}
 	for k in kinds:
-		got[k] = kinds[k].grade
-	return check(got == want, "영웅·등급 %s(%s여야 한다)" % [got, want])
+		got[k] = [kinds[k].grade, kinds[k].title]
+	return check(got == want, "영웅·등급·이명 %s(%s여야 한다)" % [got, want])
+
+# ── 기획서 원문대로 고친 곳(2026-10-18) ──
+
+# EV297 · S153: 폭풍의 덫은 개수와 시간 제한이 없다. 둘을 깔아도 둘 다 남고, 35초가 지나도 밟히지 않은 덫은 남는다
+func ev297():
+	var b = _kit([["sylvia", H]])
+	var s = b.hero
+	_quiet(b)
+	_start(b)
+	b.cast(s, "e", Vector2(H + Vector2i(3, 0)))
+	s.cd.e = 0.0
+	s.mana = s.max_mana
+	b.cast(s, "e", Vector2(H + Vector2i(0, 3)))
+	var two: int = b.zones.filter(func(z): return z.src == "sylvia_e").size()
+	run(b, 35.0)
+	var later: int = b.zones.filter(func(z): return z.src == "sylvia_e").size()
+	return check(two == 2 and later == 2 and b.state == "battle", "덫 둘 %d · 35초 뒤 %d" % [two, later])
+
+# EV298 · S156: Q의 바닥 불길은 발화와 따로 초당 마법 피해를 준다. 화염구가 떨어진 뒤 불길에 들어온 적은 피해를 받지만 발화 상태가 아니다
+func ev298():
+	var b = _kit([["ignis", H]])
+	var g = b.hero
+	_quiet(b)
+	_start(b)
+	b.cast(g, "q", Vector2(H + Vector2i(3, 0)))
+	var d = _dummy(b, H + Vector2i(3, 0))
+	run(b, 1.0)
+	return check(_near_f(_lost(d, BIG), g.q.fire_dps, 0.2) and b.effect(d, "dot") == null, "불길 1초 피해 %s(%s) · 발화 아님 %s" % [_lost(d, BIG), g.q.fire_dps, b.effect(d, "dot") == null])
+
+# EV299 · S152: 성역 안 아군에 걸린 해로운 효과(둔화·방어력 감소)는 지워진다. 이로운 효과(공격 속도 증가)는 남는다
+func ev299():
+	var b = _kit([["seraphina", H]])
+	var s = b.hero
+	_quiet(b)
+	var m = b.place_merc("soldier", H + Vector2i(2, 0), {"damage": 0})
+	_start(b)
+	b._fx(m, "test_bad", {"slow": 0.5, "armor": -3.0}, 10.0)  # 지금 적은 아군에게 해로운 효과를 걸지 않아 평가가 직접 건다
+	b._fx(m, "test_good", {"haste": 0.2}, 10.0)
+	b.cast(s, "w", Vector2(H + Vector2i(2, 0)))
+	b.step(DT)
+	return check(not m.fx.has("test_bad") and m.fx.has("test_good"), "해로운 효과 지워짐 %s · 이로운 효과 남음 %s" % [not m.fx.has("test_bad"), m.fx.has("test_good")])
+
+# EV300 · S154: 저주·사슬도 옮는다. 사슬에 묶인 적이 죽으면 2칸 안 적이 같은 사슬에 묶여 피해를 나눠 받고, 저주받은 적이 죽으면 2칸 안 적이 저주에 걸린다
+func ev300():
+	var b = _kit([["vesper", Vector2i(10, 6)]])
+	var v = b.hero
+	_quiet(b)
+	var t = _dummy(b, Vector2i(12, 10))
+	var a = _dummy(b, Vector2i(13, 10))
+	var near_e = _dummy(b, Vector2i(14, 10))  # 대상에서 2칸, 사슬 반경 3 안이지만 넷째 자리 밖이 되게 체력을 낮춘다
+	near_e.hp = 10.0
+	var fill := [_dummy(b, Vector2i(12, 11)), _dummy(b, Vector2i(12, 9)), _dummy(b, Vector2i(11, 10))]
+	_start(b)
+	b.cast(v, "e", t)
+	var outside: bool = b.effect(near_e, "chain") == null
+	b.damage(a, BIG)
+	var joined: bool = b.effect(near_e, "chain") == b.effect(t, "chain")
+	var hp0: float = near_e.hp
+	b.damage(t, 10.0)
+	var shared: bool = _near_f(hp0 - near_e.hp, 10.0 * v.e.share)
+	var c = _dummy(b, Vector2i(14, 4))
+	var d = _dummy(b, Vector2i(15, 4))  # 저주 지점에서 3칸(반경 2 밖), c에서 1칸(전염 반경 2 안)
+	v.cd.w = 0.0
+	v.mana = v.max_mana
+	b.cast(v, "w", Vector2(12, 4))
+	var cursed_before: bool = b.effect(d, "weaken") == null
+	b.damage(c, BIG)
+	return check(outside and joined and shared and cursed_before and b.effect(d, "weaken") != null,
+		"처음엔 사슬 밖 %s · 옮아 묶임 %s · 나눠 받음 %s · 저주가 옮음 %s" % [outside, joined, shared, cursed_before and b.effect(d, "weaken") != null])
+
+# EV301 · S159: 블록 수 1인 용병은 인식 범위 안 적 셋 가운데 하나만 붙잡아 맞는다. 나머지 둘은 그 용병을 노리지 않고 지나간다. 요새화한 바스티온(블록 4)은 넷을 붙잡는다
+func ev301():
+	var b = battle({"base": Vector2i(2, 10), "spawns": [Vector2i(29, 10)], "base_hp": BIG})
+	var m = b.place_merc("soldier", Vector2i(12, 10), {"hp": BIG, "damage": 0, "sight": 0, "range": 0})
+	var es := []
+	for i in 3:
+		es.append(b.spawn_enemy("basic", Vector2i(14, 9 + i), {"hp": BIG}))
+	run(b, 4.0)
+	var held := es.filter(func(e): return e.engaged == m)
+	var gone := es.filter(func(e): return e.pos.x < 10.0)
+	var k = _kit([["bastion", Vector2i(12, 10)]], {"base": Vector2i(2, 10), "spawns": [Vector2i(29, 10)]})
+	var bh = k.hero
+	_quiet(k)
+	_start(k)
+	run(k, bh.passive.still + 0.3)
+	var many := []
+	for c in [Vector2i(14, 8), Vector2i(14, 9), Vector2i(14, 10), Vector2i(14, 11), Vector2i(14, 12), Vector2i(15, 10)]:
+		many.append(k.spawn_enemy("basic", c, {"hp": BIG}))
+	run(k, 3.0)
+	var held4 := many.filter(func(e): return e.engaged == bh)
+	return check(held.size() == 1 and gone.size() == 2 and bh.block == 4 and held4.size() == 4,
+		"용병이 붙잡음 %d(1) · 지나감 %d(2) · 요새화 블록 %d · 바스티온이 붙잡음 %d(4)" % [held.size(), gone.size(), bh.block, held4.size()])

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_hero")
+title = "원소의 지배자"
 grade = 3
 hp = 90.0
 speed = 3.0
@@ -29,7 +30,8 @@ q = {
 "damage": 25.0,
 "burn": 4.0,
 "dps": 3.0,
-"fire": 4.0
+"fire": 4.0,
+"fire_dps": 3.0
 }
 w = {
 "id": "frost_ring",
@@ -51,8 +53,7 @@ e = {
 "radius": 2.5,
 "time": 2.5,
 "pull": 1.5,
-"mr": -0.2,
-"mr_time": 4.0
+"mr": -0.2
 }
 r = {
 "id": "meteor_swarm",

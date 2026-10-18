@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_hero")
+title = "강철의 성채"
 grade = 1
 hp = 100.0
 speed = 3.0
@@ -14,7 +15,7 @@ passive = {
 "id": "fortress",
 "still": 2.0,
 "dr": 0.25,
-"radius": 0.6,
+"block": 3,
 "stun_odds": 0.2,
 "stun": 1.0
 }
@@ -39,8 +40,7 @@ w = {
 "radius": 3.0,
 "time": 4.0,
 "armor": -5.0,
-"shield": 0.04,
-"shield_cap": 0.4
+"shield": 0.04
 }
 e = {
 "id": "brace",

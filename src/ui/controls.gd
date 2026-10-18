@@ -5,7 +5,7 @@ extends RefCounted
 # 준비 단계의 좌클릭·좌드래그는 판매 후보도 정한다(S70, I57). 좌클릭한 용병은 두 단계 모두 고른 상태가 된다(I135)
 # 전투 단계의 좌클릭·좌드래그는 철거·취소·이어 짓기 후보(picked)를 정한다(S74, S83)
 # Q·W·E·R: 영웅 스킬(S145, I10). 고른 영웅이, 없으면 첫 영웅이 쓴다(S119). 즉시·켜고 끄는 칸은 바로 쓰고, 지점·방향·대상을 고르는 칸은
-# 조준 상태가 된다. 조준 중 좌클릭은 그 지점·대상에 쓰고, 우클릭·ESC는 취소한다(S147). Shift+키는 자동 시전을 켜고 끈다(S158)
+# 조준 상태가 된다. 조준 중 좌클릭은 그 지점·대상에 쓰고, 우클릭·ESC는 취소한다(S147). Shift+키와 HUD 스킬 버튼 우클릭은 자동 시전을 켜고 끈다(S158, I151)
 # A: 고른 용병의 이동 방식 전환(S35) · H: 홀드 전환(S36) (A·H는 사용자 2026-10-12) · V: 체력바 표시 전환(S73)
 # F1·F2·F3: 출전 영웅 1·2·3을 고른다(I108)
 # 1 방벽 · 2 타워 · - 마법 타워(S110) · 3 용병 · 4 병영 · 5 공병 · 6 작업장 · 7 궁수(I71) · 8 대포(S92) · 9 사격장(S98) · 0 집(S103) · = 교회(I140): 놓기 모드. 그동안 좌클릭은 그 칸에 짓거나 놓고, 우클릭·ESC는 모드를 끝낸다(사용자 2026-10-12)
@@ -155,8 +155,11 @@ func toggle_hold() -> void:
 # 즉시·켜고 끄는 칸(그리고 태세 중인 반격의 태세)은 바로 쓰고, 고르는 칸은 지금 쓸 수 있을 때만 조준 상태가 된다
 func skill_key(slot: String, shift := false) -> void:
 	var h = _hero()
-	h = h if h and h.alive else battle._first_alive()
-	if not h:
+	skill_for(h if h and h.alive else battle._first_alive(), slot, shift)
+
+# 영웅 h의 칸 slot을 쓴다(키·HUD 스킬 버튼, I151). shift면 자동 시전을 켜고 끈다
+func skill_for(h, slot: String, shift := false) -> void:
+	if not h or not h.alive:
 		return
 	if shift:
 		battle.toggle_auto(h, slot)

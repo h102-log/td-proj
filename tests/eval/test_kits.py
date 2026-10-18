@@ -164,3 +164,23 @@ def test_EV295_barrier_unbuildable_unbreakable(gd):
 
 def test_EV296_hero_roster(gd):
     gd("kits", "EV296")
+
+
+def test_EV297_sylvia_traps_unlimited(gd):
+    gd("kits", "EV297")
+
+
+def test_EV298_ignis_fire_ground_separate(gd):
+    gd("kits", "EV298")
+
+
+def test_EV299_seraphina_cleanse_harmful(gd):
+    gd("kits", "EV299")
+
+
+def test_EV300_vesper_spread_curse_chain(gd):
+    gd("kits", "EV300")
+
+
+def test_EV301_block_count(gd):
+    gd("kits", "EV301")

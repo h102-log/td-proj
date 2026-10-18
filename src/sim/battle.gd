@@ -98,6 +98,7 @@ class Enemy:
 	var on_wall := false  # 성곽 성벽 칸 위에 올라서 있다(I76)
 	var cooldown := 0.0  # 0 이하면 바로 칠 수 있다
 	var fx := {}  # 걸린 효과: 출처 → {효과 키: 값, left: 남은 초}(S150, I141)
+	var engaged = null  # 이 적을 붙잡은 유닛(S159). 블록 자리를 하나 차지한다. 없으면 null
 	var alive := true
 	var attacker  # 반격 대상인 구조물. 살아 있는 동안 반격한다(S4 ②). 바뀌는 때는 _fire(S140)
 	var held := 0.0  # 반격 대상을 바꾸지 않는 남은 초(S140). 반격 대상이 쏠 때마다 COUNTER_HOLD로 돌아간다
@@ -140,6 +141,7 @@ class Unit:
 	var hold_radius := 0.0
 	var anchor: Vector2  # 홀드 기준 지점(I37)
 	var armor := 0.0  # 방어력(S149). 기본 0이고 세라피나 오라로만 오른다
+	var block := 1  # 블록 수(S159): 동시에 붙잡는 적 수. 요새화한 바스티온은 더 많다
 	var fx := {}  # 걸린 효과: 출처 → {효과 키: 값, left: 남은 초}(S150, I141)
 	var shields := {}  # 보호막: 출처 → {hp, left}(S150). 피해를 체력보다 먼저 받는다
 	# 영웅만 쓰는 칸. 종류별 수치와 칸의 뜻은 src/data/hero_def.gd(S97, I95)
@@ -195,11 +197,16 @@ class CostGrid extends AStarGrid2D:
 		var b = castle.get(c, structures.get(c, barriers.get(c)))
 		return null if b and b.open else b
 
+	# 경로가 보는 막힌 칸. 유닛 경로(order_move가 wall_k를 UNIT_WALL_K로 둔다)는 에너지 성벽을 지나간다(I142)
+	func _solid(c: Vector2i):
+		var b = block_at(c)
+		return null if b and b.kind == "barrier" and wall_k >= UNIT_WALL_K else b
+
 	func _compute_cost(from: Vector2i, to: Vector2i) -> float:
 		# 옆 칸이 막혔으면 대각선으로 끼어들지 않는다(solid였을 때의 DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES와 같게)
-		if from.x != to.x and from.y != to.y and (block_at(Vector2i(to.x, from.y)) or block_at(Vector2i(from.x, to.y))):
+		if from.x != to.x and from.y != to.y and (_solid(Vector2i(to.x, from.y)) or _solid(Vector2i(from.x, to.y))):
 			return 1e9
-		var b = block_at(to)
+		var b = _solid(to)
 		if b and climb > 0.0 and b.kind == "castle_wall":  # 부수지 않고 넘는다(I43)
 			return Vector2(to - from).length() + climb
 		return Vector2(to - from).length() + (b.hp / pow(UPGRADE_MULT, b.level - 1) * wall_k if b else 0.0)
@@ -247,6 +254,7 @@ var _stage: Dictionary  # 재시작할 때 다시 읽는다
 var _rng := RandomNumberGenerator.new()  # 영입소 목록을 뽑는다. 스테이지에 seed가 있으면 그 씨앗이다(평가용)
 var _luck := RandomNumberGenerator.new()  # 치명타·요새화 기절(S149, S151). 영입소 목록이 전투에 따라 바뀌지 않게 따로 둔다
 var _chains := 0  # 영혼 사슬(S154)마다 붙이는 번호
+var _holds := {}  # 유닛 → 그 유닛이 붙잡은 적 수(S159). 스텝마다 적의 engaged로 다시 센다
 
 # dir의 Resource 파일마다 «파일 이름 → 스크립트 변수 사전». list_directory는 내보낸 빌드의 .remap도 원래 이름으로 준다
 static func _kinds(dir: String) -> Dictionary:
@@ -351,6 +359,7 @@ func step(dt: float) -> void:
 		_forecast()
 	_tick(dt)
 	_zones(dt)
+	_count_holds()
 	for e in enemies:
 		_move(e, dt)
 	_push_apart(enemies, units)
@@ -775,8 +784,8 @@ func _aim_ok(h, sk: Dictionary, aim) -> bool:
 					return aim is Unit and aim.alive and aim in units
 				"hero_tower":  # 출전 영웅이나 완성된 쏘는 구조물
 					return (aim is Unit and aim.alive and aim in heroes) or (aim is Block and aim.alive and aim.complete and aim.range > 0.0 and structures.get(aim.cell) == aim)
-				"other_hero":  # 자기 말고 다른 출전 영웅
-					return aim is Unit and aim.alive and aim in heroes and aim != h
+				"hero":  # 출전 영웅(자기 포함)
+					return aim is Unit and aim.alive and aim in heroes
 	return false
 
 # 칸을 쓴다: 마나를 내고 재사용 대기를 시작하고 그 칸의 효과를 낸다. 이그니스 패시브(S156)가 커진 칸을 고른다
@@ -935,7 +944,7 @@ func _heal(t, amount: float, src = null, repath := true) -> void:
 	var over: float = t.hp + amount - t.max_hp
 	t.hp = minf(t.hp + amount, t.max_hp)
 	if over > 0.0 and t is Unit and src is Unit and src.passive.get("id") == "overflow":
-		_shield(t, "seraphina", over, src.passive.time, src.passive.cap * t.max_hp)
+		_shield(t, "seraphina", over, src.passive.time, INF)  # 넘친 양의 100%, 상한 없음(기획서)
 	if t is Block and repath:
 		_repath = true  # 남은 체력이 적의 경로 비용이다(S7)
 
@@ -1018,8 +1027,8 @@ func _zones(dt: float) -> void:
 			_meteor(z)
 		var foes: Array = enemies.filter(func(e): return _inside(z, e.pos))
 		match z.src:
-			"bastion_r":  # 둘레의 영웅·구조물·성곽: 받는 피해 감소와 초당 최대 체력 비율 회복
-				for t in heroes.filter(func(x): return x.alive) + structures.values() + castle.values():
+			"bastion_r":  # 둘레의 아군 영웅과 방어 타워(쏘는 구조물): 받는 피해 감소와 초당 최대 체력 비율 회복
+				for t in heroes.filter(func(x): return x.alive) + structures.values().filter(func(x): return x.range > 0.0):
 					if _inside(z, _where(t)) and (not t is Block or t.complete):
 						_fx(t, "bastion_r", {"dr": z.dr, "regen": z.regen * t.max_hp}, STAY)
 			"sylvia_e":  # 덫: 땅 적이 밟으면 터진다
@@ -1035,7 +1044,7 @@ func _zones(dt: float) -> void:
 			"seraphina_w":  # 성역: 안의 아군은 초당 회복과 정화, 안의 적은 둔화
 				for u in units.filter(func(x): return _inside(z, x.pos)):
 					for src in u.fx.keys():
-						if ["stun", "root", "slow", "weaken", "lag"].any(func(k): return u.fx[src].has(k)):
+						if _harmful(u.fx[src]):
 							u.fx.erase(src)
 					_heal(u, z.hps * dt, z.owner)
 				for e in foes:
@@ -1045,16 +1054,16 @@ func _zones(dt: float) -> void:
 					_fx(e, "vesper_q", {"dot": z.dps, "armor": z.armor, "mr": z.mr, "spread": z.spread}, z.poison)
 			"vesper_r":  # 늪: 둔화·봉인, 초당 최대 체력 비율 마법 피해
 				for e in foes:
-					_fx(e, "vesper_r", {"slow": z.slow, "seal": true}, STAY)
+					_fx(e, "vesper_r", {"slow": z.slow, "seal": true, "spread": z.owner.passive.radius}, STAY)
 					damage(e, z.burn * e.max_hp * dt, "magic", z.owner)
-			"ignis_q":  # 불길: 안의 적에게 발화를 다시 건다
+			"ignis_q":  # 바닥 불길: 안의 적에게 초당 마법 피해(발화와 따로 든다)
 				for e in foes:
-					_fx(e, "ignis_q", {"dot": z.dps}, z.burn)
+					damage(e, z.dps * dt, "magic", z.owner)
 			"ignis_e":  # 중력장: 중심으로 끌어당기고 마법 저항을 깎는다
 				for e in foes:
 					var to: Vector2 = z.pos - e.pos
 					_knock(e, to.limit_length(z.pull * dt))
-					_fx(e, "ignis_e", {"mr": z.mr}, z.mr_time)
+					_fx(e, "ignis_e", {"mr": z.mr}, STAY)  # 중력장 안에 있는 동안만
 			"ignis_r":  # 용암: 초당 최대 체력 비율 마법 피해
 				for e in foes:
 					damage(e, z.burn * e.max_hp * dt, "magic", z.owner)
@@ -1068,6 +1077,10 @@ func _zones(dt: float) -> void:
 		if z.left <= 0.0:
 			_end_zone(z)
 			zones.erase(z)
+
+# 해로운 효과(S152 정화가 지운다): 기절·속박·둔화·도발·봉인·공격력·공격 속도 감소, 받는 피해 증가, 초당 피해, 방어력·마법 저항 감소
+func _harmful(v: Dictionary) -> bool:
+	return ["stun", "root", "slow", "taunt", "seal", "weaken", "lag", "expose", "dot", "chain"].any(func(k): return v.has(k)) or v.get("armor", 0.0) < 0.0 or v.get("mr", 0.0) < 0.0
 
 # 장판이 끝날 때: 에너지 성벽 칸을 치운다(S151)
 func _end_zone(z: Dictionary) -> void:
@@ -1100,8 +1113,8 @@ func _cast_war_cry(h: Unit, sk: Dictionary, _aim, grow: float) -> void:
 		if e.pos.distance_to(h.pos) <= sk.radius * grow:
 			_fx(e, "bastion_w", {"taunt": h, "armor": sk.armor}, sk.time)
 			n += 1
-	if n > 0:
-		_shield(h, "bastion_w", n * sk.shield * h.max_hp, 5.0, sk.shield_cap * h.max_hp)
+	if n > 0:  # 상한은 없다(기획서). 보호막 시간 5초는 기획서에 없어 세라피나와 같게 둔다
+		_shield(h, "bastion_w", n * sk.shield * h.max_hp, 5.0, INF)
 
 # E 반격의 태세: time초 동안 받는 피해 감소. 끝나거나 다시 누르면 _burst
 func _cast_brace(h: Unit, sk: Dictionary, _aim, _grow: float) -> void:
@@ -1139,14 +1152,13 @@ func _cast_bulwark(h: Unit, sk: Dictionary, aim, _grow: float) -> void:
 
 # ── 실비아(S153) ──
 
-# Q 관통의 바람살: 지점 쪽 직선의 적을 가까운 차례로 꿰뚫는다. 꿰뚫을 때마다 피해가 준다. 첫 적에게 약점 포착 중첩
-func _cast_piercing_gale(h: Unit, sk: Dictionary, aim, grow: float) -> void:
+# Q 관통의 바람살: 지점 쪽 일직선(맵 끝까지)의 모든 적을 가까운 차례로 꿰뚫는다. 피해는 공격력 × ratio, 꿰뚫을 때마다 준다. 첫 적에게 약점 포착 중첩
+func _cast_piercing_gale(h: Unit, sk: Dictionary, aim, _grow: float) -> void:
 	var dir := _toward(h, aim)
 	var hit := enemies.filter(func(e):
-		var along: float = (e.pos - h.pos).dot(dir)
-		return along >= 0.0 and along <= sk.length * grow and absf((e.pos - h.pos).cross(dir)) <= sk.width / 2.0 + e.radius)
+		return (e.pos - h.pos).dot(dir) >= 0.0 and absf((e.pos - h.pos).cross(dir)) <= sk.width / 2.0 + e.radius)
 	hit.sort_custom(func(a, b): return (a.pos - h.pos).dot(dir) < (b.pos - h.pos).dot(dir))
-	var hurt: float = sk.damage
+	var hurt: float = h.damage * _might(h) * sk.ratio
 	for e in hit:
 		if e == hit[0]:
 			h.stacks = maxi(h.stacks if h.mark == e else 0, sk.stacks)
@@ -1157,10 +1169,9 @@ func _cast_piercing_gale(h: Unit, sk: Dictionary, aim, grow: float) -> void:
 func _cast_split_shot(_h: Unit, _sk: Dictionary, _aim, _grow: float) -> void:
 	pass  # 켜고 끄는 칸이라 cast가 직접 다룬다. 효과는 _strike
 
-# E 폭풍의 덫: 지점에 덫 하나. 새로 깔면 이 영웅의 이전 덫은 사라진다
+# E 폭풍의 덫: 지점에 덫을 깐다. 개수와 시간 제한이 없고 밟히면 터진다(웨이브가 끝나면 사라진다, I143)
 func _cast_storm_trap(h: Unit, sk: Dictionary, aim, grow: float) -> void:
-	zones = zones.filter(func(z): return not (z.src == "sylvia_e" and z.owner == h))
-	_zone("sylvia_e", h, aim, sk.radius * grow, sk.life, {"root": sk.root, "crit": sk.crit})
+	_zone("sylvia_e", h, aim, sk.radius * grow, INF, {"root": sk.root, "crit": sk.crit})
 
 # R 천공의 화살비
 func _cast_arrow_rain(h: Unit, sk: Dictionary, aim, _grow: float) -> void:
@@ -1229,21 +1240,22 @@ func _cast_enfeeble(h: Unit, sk: Dictionary, aim, grow: float) -> void:
 			_fx(e, "vesper_w", {"slow": sk.slow, "weaken": sk.weaken, "expose": sk.expose, "spread": h.passive.radius}, sk.time)
 
 # E 영혼 사슬: 대상과 radius칸 안 다른 적 links명(체력 높은 차례)을 묶는다. 피해 나누기는 damage
-func _cast_soul_chain(_h: Unit, sk: Dictionary, aim, grow: float) -> void:
+func _cast_soul_chain(h: Unit, sk: Dictionary, aim, grow: float) -> void:
 	var others := enemies.filter(func(e): return e != aim and e.pos.distance_to(aim.pos) <= sk.radius * grow)
 	others.sort_custom(func(a, b): return a.hp > b.hp)
 	_chains += 1
 	for e in [aim] + others.slice(0, sk.links):
-		_fx(e, "vesper_e", {"chain": _chains, "share": sk.share}, sk.time)
+		_fx(e, "vesper_e", {"chain": _chains, "share": sk.share, "spread": h.passive.radius}, sk.time)
 
 # R 심연의 늪
 func _cast_abyss(h: Unit, sk: Dictionary, aim, _grow: float) -> void:
 	_zone("vesper_r", h, aim, sk.radius, sk.time, {"slow": sk.slow, "burn": sk.burn})
 
-# 전염(S154 패시브): 베스퍼의 Q 중독·W 저주가 걸린 적이 죽으면 둘레 적에게 남은 시간만큼 옮긴다. 더 오래 남은 같은 효과는 그대로 둔다
+# 전염(S154 패시브): 베스퍼의 디버프(Q 중독·W 저주·E 사슬·R 늪)가 걸린 적이 죽으면 둘레 적에게 남은 시간만큼 옮긴다.
+# 더 오래 남은 같은 효과는 그대로 둔다. 사슬이 옮으면 그 적도 같은 사슬에 묶인다
 func _spread(dead: Enemy) -> void:
-	for src in ["vesper_q", "vesper_w"]:
-		if not dead.fx.has(src):
+	for src in ["vesper_q", "vesper_w", "vesper_e", "vesper_r"]:
+		if not dead.fx.has(src) or not dead.fx[src].has("spread"):
 			continue
 		var v: Dictionary = dead.fx[src]
 		for o in enemies:
@@ -1259,7 +1271,7 @@ func _cast_fireball(h: Unit, sk: Dictionary, aim, grow: float) -> void:
 			damage(e, sk.damage, "magic", h)
 			if e.alive:
 				_fx(e, "ignis_q", {"dot": sk.dps}, sk.burn)
-	_zone("ignis_q", h, aim, sk.radius * grow, sk.fire, {"dps": sk.dps, "burn": sk.burn})
+	_zone("ignis_q", h, aim, sk.radius * grow, sk.fire, {"dps": sk.fire_dps})
 
 # W 서리 고리: 범위 마법 피해와 둔화. 발화 중인 적은 열충격(피해 더하고 빙결)
 func _cast_frost_ring(h: Unit, sk: Dictionary, aim, grow: float) -> void:
@@ -1276,7 +1288,7 @@ func _cast_frost_ring(h: Unit, sk: Dictionary, aim, grow: float) -> void:
 
 # E 비전 블랙홀
 func _cast_black_hole(h: Unit, sk: Dictionary, aim, grow: float) -> void:
-	_zone("ignis_e", h, aim, sk.radius * grow, sk.time, {"pull": sk.pull, "mr": sk.mr, "mr_time": sk.mr_time})
+	_zone("ignis_e", h, aim, sk.radius * grow, sk.time, {"pull": sk.pull, "mr": sk.mr})
 
 # R 메테오 스웜: 지점, 그 좌우 spread칸(영웅 → 지점 방향에 수직)에 delay초 간격으로 운석. 떨어진 자리는 용암
 func _cast_meteor_swarm(h: Unit, sk: Dictionary, aim, _grow: float) -> void:
@@ -1309,7 +1321,7 @@ func _autocast(h: Unit) -> void:
 	if best:
 		_use(h, "q", best)
 
-# W 시간 되감기: 다른 영웅의 마나를 최대 마나 비율만큼 채우고 Q·W·E 대기를 줄인다
+# W 시간 되감기: 영웅(자기 포함)의 마나를 최대 마나 비율만큼 채우고 Q·W·E 대기를 줄인다
 func _cast_rewind(_h: Unit, sk: Dictionary, aim, _grow: float) -> void:
 	aim.mana = minf(aim.mana + sk.mana_back * aim.max_mana, aim.max_mana)
 	for slot in ["q", "w", "e"]:
@@ -1867,12 +1879,15 @@ func _forecast() -> void:
 # 3라운드부터 땅 적은 ③ 앞에 출현 지점에서 가장 가까운 성문을 먼저 노린다. 그 칸에 들어서거나 잔해가 되면 거점이다(S143).
 # 마을 안의 적에게는 인식 범위 안의 마을 구조물(집·생산 시설, S43)도 ①이다(I49). 들판의 구조물은 ①이 아니다(I7). 쏘지 않는 구조물은 attacker가 되지 않는다(_fire). 반격 대상이 부서지면 ②가 끝난다(I8)
 func _target_of(e: Enemy):
-	var taunt = _fx_on(e, "taunt")  # 도발(S151): 도발한 영웅만 노린다. 그 영웅이 쓰러지면 풀린다
+	var taunt = _fx_on(e, "taunt")  # 도발(S151): 도발한 영웅만 노린다. 블록 수와 상관없다. 그 영웅이 쓰러지면 풀린다
 	if taunt and taunt.alive:
+		_engage(e, taunt)
 		return taunt
 	var best = null
 	var best_d := INF
 	for m in units:
+		if not _free(m, e):  # 블록 자리가 찬 유닛은 노리지 않고 지나간다(S159)
+			continue
 		var d := e.pos.distance_to(m.pos)
 		# 밀어낸 직후 거리는 반지름 합과 같아서 0.01 여유를 둔다(S13: 몸으로 막은 유닛은 인식 범위 밖이어도 친다)
 		# 성벽 위 유닛은 몸으로 길을 막을 때만 친다(U13, S89, I70). 비행 적·기어오르는 적은 그 성벽 위 유닛도 노리고(I77), 비행 적은 몸에 막히지 않는다(S109)
@@ -1886,6 +1901,7 @@ func _target_of(e: Enemy):
 			if d < best_d and d <= e.sight:
 				best = s
 				best_d = d
+	_engage(e, best if best is Unit else null)
 	if best:
 		return best
 	if e.attacker and e.attacker.alive:
@@ -1967,6 +1983,39 @@ func _move(e: Enemy, dt: float) -> void:
 		else:
 			_shove(e, (target - e.pos) / d * left, units)
 			left = 0.0
+
+# 블록 수(S159, I150): 유닛 m이 적 e를 붙잡고 있거나 블록 자리가 남았다. 붙잡을 수 있는 유닛만 e를 노리고 몸으로 막는다
+func _free(m: Unit, e: Enemy) -> bool:
+	return e.engaged == m or _holds.get(m, 0) < m.block
+
+# 적 e를 유닛 m(없으면 null)이 붙잡게 한다. 블록 자리 수를 맞춘다
+func _engage(e: Enemy, m) -> void:
+	if e.engaged == m:
+		return
+	if e.engaged:
+		_holds[e.engaged] = _holds.get(e.engaged, 1) - 1
+	e.engaged = m
+	if m:
+		_holds[m] = _holds.get(m, 0) + 1
+
+# 붙잡힌 적 수를 다시 센다(I150). 붙잡은 유닛이 쓰러졌거나 전장에 없으면 풀린다
+func _count_holds() -> void:
+	_holds.clear()
+	for e in enemies:
+		if e.engaged and not (e.engaged.alive and e.engaged in units):
+			e.engaged = null
+		if e.engaged:
+			_holds[e.engaged] = _holds.get(e.engaged, 0) + 1
+
+# 몸끼리 닿는가(S13, S159): 유닛과 적 사이는 그 유닛이 그 적을 붙잡을 수 있을 때만 막는다. 비행 적은 막지 않는다(S109). 아군은 에너지 성벽을 지나간다(I142)
+func _touch(mover, body) -> bool:
+	if body is Enemy and _flies(body):
+		return false
+	if mover is Enemy and body is Unit:
+		return _free(body, mover)
+	if mover is Unit and body is Enemy:
+		return _free(mover, body)
+	return true
 
 # 같은 편(bodies)끼리 겹친 만큼 반씩 밀어낸다. 상대 편(others)과는 겹치지 않게 민다. 비행 적은 밀지도 밀리지도 않는다(I79).
 # 경로는 그대로라 밀려난 쪽은 _move·_act가 다시 데려간다(I51)
@@ -2111,7 +2160,7 @@ func _strike(u: Unit, foe: Enemy) -> void:
 		_fx(foe, "bastion_p_stun", {"stun": true}, u.passive.stun)
 	_bless(u, at)
 
-# 바스티온 패시브 요새화(S151, I147): still초 동안 0.1칸 넘게 움직이지 않으면 요새화. 받는 피해 감소, 몸이 커진다. 움직이면 풀린다
+# 바스티온 패시브 요새화(S151, I147): still초 동안 0.1칸 넘게 움직이지 않으면 요새화. 받는 피해 감소, 블록 수 +3. 움직이면 풀린다
 func _fortify(h: Unit, dt: float) -> void:
 	if h.pos.distance_to(h.post) > 0.1 or not h.path.is_empty():
 		h.still = 0.0
@@ -2119,7 +2168,7 @@ func _fortify(h: Unit, dt: float) -> void:
 	else:
 		h.still += dt
 	h.fort = h.still >= h.passive.still
-	h.radius = h.passive.radius if h.fort else HERO_KINDS[h.kind].radius
+	h.block = HERO_KINDS[h.kind].block + (h.passive.block if h.fort else 0)  # 블록 수 +3(S159)
 	if h.fort:
 		_fx(h, "bastion_p", {"dr": h.passive.dr}, STAY)
 	else:  # 풀리면 바로 끝난다(장판의 «안에 있는 동안» 효과와 달리 남지 않는다)
@@ -2148,10 +2197,13 @@ func _shove(e, by: Vector2, bodies: Array) -> void:
 		var p: Vector2 = e.pos + v
 		for m in bodies:
 			var gap: Vector2 = p - m.pos
-			if gap.length() < e.radius + m.radius and not _flies(m):  # 비행 적은 길을 막지 않는다(S109). 봉인된 비행 적은 막는다(S155)
+			if gap.length() < e.radius + m.radius and _touch(e, m):  # 비행 적은 길을 막지 않는다(S109). 봉인된 비행 적은 막는다(S155). 블록 자리가 없으면 지나간다(S159)
 				p = m.pos + (gap.normalized() if gap != Vector2.ZERO else Vector2.LEFT) * (e.radius + m.radius)
 		var c := Vector2i(p.round())
-		if grid.is_in_boundsv(c) and (not grid.block_at(c) or (e.on_wall and _climbable(c))) and c != base.cell:  # 성벽 위의 적은 성벽 칸을 걷는다(I76)
+		var blk = grid.block_at(c)
+		if blk and blk.kind == "barrier" and e is Unit:  # 아군은 에너지 성벽을 지나간다(I142)
+			blk = null
+		if grid.is_in_boundsv(c) and (not blk or (e.on_wall and _climbable(c))) and c != base.cell:  # 성벽 위의 적은 성벽 칸을 걷는다(I76)
 			e.pos = p
 			return
 

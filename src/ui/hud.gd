@@ -8,7 +8,7 @@ extends CanvasLayer
 # 보유 영웅의 레벨·경험치(I117), 라운드 사이의 경험치 이관(S127, I116), 라운드 사이의 의뢰 목록과 수락(S77, I121).
 # 준비·전투 단계에는 윗줄 아래에 이번 라운드의 미션과 수락한 의뢰를 보이고, 결과 창에 지난 라운드의 달성·실패를 보인다(I122).
 # 결과 창의 버튼만 키보드 포커스를 받는다. 창이 열리면 «1라운드 시작»·«다음 라운드»·«새 도전»에 포커스가 간다(I12, I110)
-# 출전 영웅마다 마나·Q·W·E·R 상태와 쓰러짐(I129), 고른 용병의 이동 방식·홀드 버튼(I139)을 보인다. 눌리지 않는 놓기·공병 지시 버튼에는 이유를 붙인다(I128, I132)
+# 출전 영웅마다 마나와 Q·W·E·R 스킬 버튼(좌클릭은 쓰기, 우클릭은 자동 시전, I151)과 쓰러짐(I129), 고른 용병의 이동 방식·홀드 버튼(I139)을 보인다. 눌리지 않는 놓기·공병 지시 버튼에는 이유를 붙인다(I128, I132)
 
 const NAMES := {"wall": "방벽", "tower": "타워", "magic": "마법 타워", "soldier": "용병", "barracks": "병영", "engineer": "공병", "workshop": "작업장", "archer": "궁수", "cannon": "대포", "archery": "사격장", "house": "집", "church": "교회"}
 const STATES := {"prep": "준비", "battle": "전투", "hiring": "영입", "cleared": "라운드 사이", "won": "승리", "lost": "패배"}
@@ -53,7 +53,8 @@ var _seen := ""  # 마지막으로 본 판 단계. 바뀌었을 때 결과 창�
 var _place_text := {}  # kind → 이유를 붙이기 전의 놓기 버튼 글자(I132)
 var _mode: Button  # 고른 용병의 이동 방식 전환(I139)
 var _hold: Button  # 고른 용병의 홀드 전환(I139)
-var _heroes := Label.new()  # 출전 영웅마다 마나·Q·W·E·R 상태와 쓰러짐(I129)
+var _heroes := Label.new()  # 출전 영웅 줄 아래의 안내(«— 스킬은 전투 단계에만», S136)
+var _hero_rows := []  # 출전 칸마다 [줄, 이름·마나 글, {칸: 스킬 버튼}](I129, I151)
 var _gap := ""  # 고른 것의 칸에 공병 지시를 맡을 공병이 없는 이유(I128). _engineer_gap이 _gap_for 칸에서 _gap_at(ms)에 쟀다
 var _gap_for := []
 var _gap_at := 0
@@ -88,6 +89,17 @@ func _ready() -> void:
 	_hold = _button(row, "", controls.toggle_hold)
 	col.add_child(_hint)
 	col.add_child(_quest)
+	for i in battle.HIRE.lineup:
+		var line := HBoxContainer.new()
+		col.add_child(line)
+		var who := Label.new()
+		line.add_child(who)
+		var buttons := {}
+		for slot in battle.SLOTS:
+			var sb := _button(line, "", func(): controls.skill_for(battle.heroes[i] if i < battle.heroes.size() else null, slot))
+			sb.gui_input.connect(func(e): _auto_click(e, i, slot))
+			buttons[slot] = sb
+		_hero_rows.append([line, who, buttons])
 	col.add_child(_heroes)
 	# 윗변과 너비를 고정해 아래로만 자란다. 영입·리롤·내보내기로 줄이 바뀌어도 위의 버튼이 움직이지 않게(I136)
 	_result.set_anchors_preset(Control.PRESET_CENTER_TOP)
@@ -164,8 +176,7 @@ func _process(_delta: float) -> void:
 		_hint.text = "%s %s 대상: 좌클릭 · 취소: 우클릭·ESC" % [HEROES[controls.aim_hero.kind].get_slice("(", 0), controls.aiming.to_upper()]
 	_quest.visible = battle.state in ["prep", "battle"] and (battle.mission != "" or battle.commission != "")
 	_quest.text = " · ".join(_quest_lines())
-	_heroes.visible = battle.state in ["prep", "battle"] and not battle.heroes.is_empty()
-	_heroes.text = "\n".join(_hero_lines()) + ("" if battle.state == "battle" else "\n— 스킬은 전투 단계에만")  # S136
+	_show_heroes()
 	_result.visible = battle.state in ["hiring", "cleared", "won", "lost"]
 	_result_label.text = {"hiring": "도전 시작 — 영웅 영입", "cleared": "%d라운드 승리" % round_no, "won": "도전 성공!", "lost": "%d라운드 패배 — 도전 끝" % round_no}.get(battle.state, "")
 	for s in battle.settled:  # 지난 라운드의 미션·의뢰 판정(I120, I122)
@@ -289,7 +300,7 @@ func _show_hire() -> void:
 			_offers[i].disabled = true
 			continue
 		var grade: int = battle.HERO_KINDS[k].grade
-		_offers[i].text = "%s · %s · 영입 %d골드" % [HEROES[k], GRADES[grade - 1], hire.cost[grade - 1]]
+		_offers[i].text = "%s «%s» · %s · 영입 %d골드" % [HEROES[k], battle.HERO_KINDS[k].title, GRADES[grade - 1], hire.cost[grade - 1]]  # 이명(S157)
 		_offers[i].disabled = battle.gold < hire.cost[grade - 1] or battle.roster.size() >= hire.cap
 	_reroll.text = "리롤 %d골드" % hire.reroll
 	_reroll.disabled = battle.gold < hire.reroll or battle.roster.size() >= hire.cap  # 상한이면 리롤해도 영입하지 못한다(I127)
@@ -324,20 +335,28 @@ func _quest_lines() -> Array:
 			out.append("%s: %s (+%d골드)" % [pair[0], q.text, q.reward] + ("" if battle.quest_met(pair[1]) else " — 실패"))
 	return out
 
-# 출전 영웅 줄(I129): «F1 바스티온 — 마나 120 · Q 가능 · W 3초 · E Lv3 · R Lv5». 영웅마다 한 줄이다.
-# 쓰러졌으면 «쓰러짐(다음 준비 단계에 복귀)»
-func _hero_lines() -> Array:
-	var out := []
-	for i in battle.heroes.size():
-		var h = battle.heroes[i]
-		var now := "쓰러짐(%s에 복귀)" % ("다음 준비 단계" if battle.revive else "다음 라운드")
-		if h.alive:
-			var parts := ["마나 %d" % floori(h.mana)]
-			for slot in battle.SLOTS:
-				parts.append(slot.to_upper() + " " + _slot_state(h, slot))
-			now = " · ".join(parts)
-		out.append("F%d %s — %s" % [i + 1, HEROES[h.kind].get_slice("(", 0), now])
-	return out
+# 출전 영웅 줄(I129, I151): «F1 바스티온 — 마나 120» 뒤에 «Q 가능» «W 3초» «E Lv3» «R Lv5» 스킬 버튼. 영웅마다 한 줄이다.
+# 쓰러졌으면 버튼 없이 «쓰러짐(다음 준비 단계에 복귀)». 전투 단계가 아니면 아래에 «— 스킬은 전투 단계에만»(S136)
+func _show_heroes() -> void:
+	var on: bool = battle.state in ["prep", "battle"]
+	for i in _hero_rows.size():
+		var row: Array = _hero_rows[i]
+		var h = battle.heroes[i] if on and i < battle.heroes.size() else null
+		row[0].visible = h != null
+		if h == null:
+			continue
+		var name: String = HEROES[h.kind].get_slice("(", 0)
+		row[1].text = "F%d %s — %s" % [i + 1, name, ("마나 %d" % floori(h.mana)) if h.alive else "쓰러짐(%s에 복귀)" % ("다음 준비 단계" if battle.revive else "다음 라운드")]
+		for slot in battle.SLOTS:
+			row[2][slot].visible = h.alive
+			row[2][slot].text = slot.to_upper() + " " + _slot_state(h, slot)
+	_heroes.visible = on and not battle.heroes.is_empty() and battle.state != "battle"
+	_heroes.text = "— 스킬은 전투 단계에만"
+
+# 스킬 버튼 우클릭: 그 칸의 자동 시전을 켜고 끈다(S158, I151)
+func _auto_click(e: InputEvent, i: int, slot: String) -> void:
+	if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_RIGHT and e.pressed and i < battle.heroes.size():
+		battle.toggle_auto(battle.heroes[i], slot)
 
 # 칸 하나의 상태(I129): 열리는 레벨 «Lv3» → 조준 중 → 켜진 토글 «켜짐» → 재사용 대기(올림한 초) → 마나가 모자라면 «마나 45» → «가능».
 # 자동 시전이 켜져 있으면 끝에 «자동»을 붙인다
