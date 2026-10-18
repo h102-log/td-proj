@@ -18,7 +18,7 @@ T = 16
 RAMPS = {"f24p": {"grass": ["183f39", "183f39", "2d472d", "183f39", "39571c"], "dirt": ["2a1d0d", "392a1c", "684c3c", "724113", "773421"]},
          "waldgeist": {"grass": ["32534a", "32534a", "5f7b53", "32534a", "3b6d62"], "dirt": ["382d35", "562923", "66352e", "562923", "825337"]}}
 VARIANTS = 4
-DENSITY = [1.0, 0.0, 1.5, 0.6]  # 변종별 점 개수 배율. 0이면 민무늬
+DENSITY = [1.0, 0.0, 0.0, 1.0]  # 변종별 무늬 수 배율. 0이면 민무늬: 들판 타일 절반을 비워 바닥이 덜 자글거린다(Gemini 2차 2026-10-18)
 
 
 def periodic_noise(seed, cells):
@@ -65,14 +65,14 @@ def tile(corners, var, ramps):
     dirt = F + 0.45 * field(10, var) > 0.5  # (T+2, T+2), 이웃 가장자리 1px 포함
     g, d = ramps["grass"], ramps["dirt"]
     out = np.where(dirt, d[2], g[2])
-    # 질감은 가장자리 2px을 비운 안쪽에 1~2px 점만 찍는다. 노이즈 덩어리(4~5px)는 점박이 격자로 튀었다(사용자 2026-10-18)
-    rng = np.random.default_rng(500 + var)
-    for k in range(round(6 * DENSITY[var])):
+    # 질감은 가장자리 2px을 비운 안쪽에 가로 2~3px 조각만 찍는다. 노이즈 덩어리(4~5px)는 점박이 격자로 튀었다(사용자 2026-10-18).
+    # 자리는 타일(꼴·변종)마다 다르다. 변종마다 같은 자리면 16꼴이 모두 같은 «>» 무늬로 반복돼 보였다(Gemini 2차 2026-10-18)
+    rng = np.random.default_rng(500 + 16 * var + tl + 2 * tr + 4 * bl + 8 * br)
+    for k in range(round(3 * DENSITY[var])):
         y, x = rng.integers(3, T + 1 - 3, 2)  # 패딩 좌표 3~14 = 타일 픽셀 2~13
         kind = 3 + k % 2
-        px = [(y, x), (y, x + 1)] if rng.random() < 0.5 and x + 1 <= T - 2 else [(y, x)]
-        for yy, xx in px:
-            out[yy, xx] = d[kind] if dirt[yy, xx] else g[kind]
+        for xx in range(x, min(x + int(rng.integers(2, 4)), T - 1)):
+            out[y, xx] = d[kind] if dirt[y, xx] else g[kind]
     grass_above = np.zeros_like(dirt)
     grass_above[1:] = ~dirt[:-1]
     near_grass = grass_above.copy()

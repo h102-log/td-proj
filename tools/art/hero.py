@@ -8,26 +8,29 @@ import render as R
 
 OUT = Path(__file__).resolve().parents[2] / "art" / "trial" / "hero"
 BASE = {"skin": "e8b090", "hair": "4a2c18", "steel": "98a2b4", "cloth": "3c9f9c",  # cloth = 아군 팀 색(README 결론 2 B)
-        "leather": "70462a", "blade": "dfe6ee", "gold": "d0a038", "wood": "8a5530",
+        "leather": "70462a", "blade": "b4bccb", "gold": "d0a038", "wood": "8a5530",  # 검날 dfe6ee는 밝은 면이 크림(efd8a1)이라 나무 막대 같았다
         "visor": "1b2030"}  # 투구 눈구멍. 151a26은 f24p 램프 밝은 쪽이 갈색(2a1d0d)이 됐다
 MATS = list(BASE)
 SIZES = (16, 24, 32)
 
-# 검은 앞으로 18°: 수직이면 정측면(동·서)에서 1px 막대로 보였다(사용자 2026-10-18)
-IDLE = dict(hip_l=0, hip_r=0, knee_l=4, knee_r=4, sh_l=20, el_l=70, ab_l=0.12, sh_r=15, el_r=70, ab_r=0.35, sword=18, lean=0, bob=0, fall=0)
+# 공격·쓰러짐의 기준 자세. 검은 앞으로 18°: 수직이면 정측면(동·서)에서 1px 막대로 보였다(사용자 2026-10-18)
+POSE = dict(hip_l=0, hip_r=0, knee_l=4, knee_r=4, sh_l=20, el_l=70, ab_l=0.12, sh_r=15, el_r=70, ab_r=0.35, sword=18, sword_side=0, lean=0, bob=0, fall=0)
+# 정지·걷기는 오른팔을 더 벌리고 검을 바깥으로 45° 눕힌다. 8방향 모두 검 끝이 몸 실루엣 밖으로 3px 이상 나온다
+# (24px, 방향별 7·3·3·8·7·7·8·7px). 남·남동·서·남서에서 검이 몸에 묻혔다(Gemini 2차 2026-10-18)
+IDLE = dict(POSE, ab_r=0.7, sword_side=45)
 # 걷기는 다리만 움직이고 윗몸(머리·몸통·팔·검·방패)은 통째로 정수 1px 오르내림만 한다. 방패 팔을 흔들면 윤곽이 프레임마다 깨졌다(사용자 2026-10-18)
 WALK = [dict(IDLE, hip_r=24, knee_r=5, hip_l=-20, knee_l=12),  # 접지(오른발 앞)
         dict(IDLE, hip_r=-2, knee_r=2, hip_l=10, knee_l=40, bob=1),     # 통과
         dict(IDLE, hip_l=24, knee_l=5, hip_r=-20, knee_r=12),  # 반대 접지
         dict(IDLE, hip_l=-2, knee_l=2, hip_r=10, knee_r=40, bob=1)]
-ATTACK = [dict(IDLE, sh_r=150, el_r=20, sword=-100, lean=-6, sh_l=30, el_l=80),  # 들어올림
-          dict(IDLE, sh_r=75, el_r=5, sword=110, lean=12, hip_r=14, knee_r=10, hip_l=-10, knee_l=10),  # 내려침(타격 프레임)
-          dict(IDLE, sh_r=45, el_r=35, sword=60, lean=5)]
-FALL = [dict(IDLE, knee_l=25, knee_r=25, lean=10),
-        dict(IDLE, fall=20, knee_l=30, knee_r=30, sh_r=60),
-        dict(IDLE, fall=45, knee_l=20, knee_r=20, sh_r=90, sh_l=80, sword=60),
-        dict(IDLE, fall=70, knee_l=10, knee_r=10, sh_r=120, sh_l=110, sword=110),
-        dict(IDLE, fall=88, knee_l=5, knee_r=5, sh_r=150, sh_l=140, sword=160)]
+ATTACK = [dict(POSE, sh_r=150, el_r=20, sword=-100, lean=-6, sh_l=30, el_l=80),  # 들어올림
+          dict(POSE, sh_r=75, el_r=5, sword=110, lean=12, hip_r=14, knee_r=10, hip_l=-10, knee_l=10),  # 내려침(타격 프레임)
+          dict(POSE, sh_r=45, el_r=35, sword=60, lean=5)]
+FALL = [dict(POSE, knee_l=25, knee_r=25, lean=10),
+        dict(POSE, fall=20, knee_l=30, knee_r=30, sh_r=60),
+        dict(POSE, fall=45, knee_l=20, knee_r=20, sh_r=90, sh_l=80, sword=60),
+        dict(POSE, fall=70, knee_l=10, knee_r=10, sh_r=120, sh_l=110, sword=110),
+        dict(POSE, fall=88, knee_l=5, knee_r=5, sh_r=150, sh_l=140, sword=160)]
 
 
 def rx(a):
@@ -88,14 +91,16 @@ def knight(pose, bob_unit):
         P += [(R.ellipsoid(U(sh), (0.07, 0.07, 0.055)), m("steel"), "torso"), (R.capsule(U(sh), U(el), 0.042), m("steel"), "arm"),
               (R.capsule(U(el), U(hd), 0.04), m("leather"), "arm"), (R.ellipsoid(U(hd), (0.042, 0.042, 0.042)), m("leather"), "arm")]
     hd = U(hands["r"][1])
-    a = np.radians(pose["sword"])
-    bd = up_r @ np.array([0, np.sin(a), np.cos(a)])  # 검날 방향
+    a, s = np.radians(pose["sword"]), np.radians(pose["sword_side"])
+    bd = up_r @ np.array([np.sin(s), np.sin(a) * np.cos(s), np.cos(a) * np.cos(s)])  # 검날 방향: 앞으로 a, 바깥(오른쪽)으로 s
     side = up_r @ np.array([1.0, 0, 0])
+    side = (side - (side @ bd) * bd) / np.linalg.norm(side - (side @ bd) * bd)
     third = np.cross(bd, side)
     ax = np.stack([side, bd, third])
+    dia = np.stack([(side + third) / np.sqrt(2), bd, (third - side) / np.sqrt(2)])  # 검날 단면은 마름모: 두 면이 빛을 달리 받아 명암 2단이 된다
     P += [(R.box(hd + bd * 0.045, (0.065, 0.015, 0.022), ax), m("gold"), "sword"),
-          # 검날 두께 1.5배·길이 1.3배(뿌리 0.06은 그대로): 남·남동·서·남서에서 몸에 묻혔다(Gemini 안, 사용자 결정 2026-10-18)
-          (R.box(hd + bd * 0.346, (0.045, 0.286, 0.045), ax), m("blade"), "sword"),
+          # 검날 두께 1.2배·길이 1.3배(뿌리 0.06은 그대로). 1.5배는 흰 몽둥이처럼 보였다(Gemini 2차 2026-10-18)
+          (R.box(hd + bd * 0.346, (0.036, 0.286, 0.036), dia), m("blade"), "sword"),
           (R.capsule(hd - bd * 0.05, hd, 0.022), m("leather"), "sword")]
     el_l, hd_l = hands["l"]
     n = up_r @ (np.array([-0.4, 1.0, 0]) / np.linalg.norm([-0.4, 1.0, 0]))  # 방패 앞면: 앞·왼쪽
@@ -107,8 +112,12 @@ def knight(pose, bob_unit):
 PARTS = ["leg", "torso", "head", "arm", "sword", "shield"]
 
 
+PPU24 = 17.47  # 유닛 24px의 배율. 사용자가 24px을 정할 때 본 몸 크기다(2026-10-18 1차 검수 전 맞춤값)
+
+
 def fit(n, poses):
-    """모든 자세·방향·각도(45·60)를 n×n에 넣는 ppu와 기준점(발밑). 기준점 행은 정수라 Godot에서 offset이 정수다"""
+    """배율은 PPU24에 비례해 고정하고, 모든 자세·방향·각도(45·60)가 들어가는 정사각 캔버스 크기와 기준점(발밑)을 구한다.
+    검을 키우면 몸이 줄던 것(24px 배율 17.47 → 14.69)을 막는다(사용자 결정 2026-10-18). 기준점은 정수라 Godot에서 offset이 정수다"""
     lo, hi, wd = 0.0, 0.0, 0.0
     big, bp = 160, 160 / 3.0
     for elev in (45, 60):
@@ -119,8 +128,9 @@ def fit(n, poses):
                 ys, xs = np.nonzero(pid >= 0)
                 hi, lo = max(hi, (big / 2 - ys.min()) / bp), min(lo, (big / 2 - ys.max() - 1) / bp)
                 wd = max(wd, abs(xs.min() - big / 2) / bp, abs(xs.max() + 1 - big / 2) / bp)
-    ppu = min((n - 5) / (hi - lo), (n - 4) / (2 * wd))  # 바깥 외곽선 1px + 반올림 1px씩 양쪽, 위는 걷기 오르내림 1px 더
-    return ppu, (n / 2, int(round(3 + hi * ppu)))
+    ppu = PPU24 * n / 24
+    c = 2 * int(np.ceil(max((hi - lo) * ppu + 5, 2 * wd * ppu + 4) / 2))  # 바깥 외곽선 1px + 반올림 1px씩 양쪽, 위는 걷기 오르내림 1px 더. 짝수라야 가운데가 정수
+    return ppu, (c / 2, int(round(3 + hi * ppu))), c
 
 
 def bake(pose, elev, g, n, ppu, anchor, ramps, outline, dark):
@@ -140,12 +150,13 @@ ANIMS = {"idle": [IDLE], "walk": WALK, "attack": ATTACK, "fall": FALL}
 
 
 def fits():
-    """맞춤은 45초쯤 걸려서 자세가 같으면 저장해 둔 값을 쓴다. 공격 자세까지 넣으면 앞으로 뻗은 검 때문에 몸이 반으로 준다(16px에서 ppu 8.9)"""
+    """맞춤은 45초쯤 걸려서 자세가 같으면 저장해 둔 값을 쓴다. → {n: (배율, 기준점, 캔버스)}.
+    공격·쓰러짐 자세는 넣지 않는다. 앞으로 뻗은 검까지 넣으면 캔버스가 커져서, 그 둘은 2배 캔버스로 따로 굽는다(save)"""
     import json
     f = OUT / "fit.json"
-    key = repr([IDLE] + WALK) + "m5 sword1.3"  # 여백이나 형체 크기를 바꾸면 이 꼬리표도 바꾼다
+    key = repr([IDLE] + WALK) + f"m5 ppu{PPU24} blade1.2x1.3"  # 여백이나 형체 크기를 바꾸면 이 꼬리표도 바꾼다
     if f.exists() and json.loads(f.read_text())["key"] == key:
-        return {int(k): (v[0], tuple(v[1])) for k, v in json.loads(f.read_text())["fits"].items()}
+        return {int(k): (v[0], tuple(v[1]), v[2]) for k, v in json.loads(f.read_text())["fits"].items()}
     out = {n: fit(n, [IDLE] + WALK) for n in SIZES}
     f.write_text(json.dumps({"key": key, "fits": out}))
     return out
@@ -158,10 +169,10 @@ def save(name, anim, elev, outline, pname, fts):
     ramps = [R.ramp([int(BASE[k][i:i + 2], 16) for i in (0, 2, 4)], pal) for k in MATS]
     dirs = list(R.DIRS.values())[:1] if anim == "fall" else R.DIRS.values()  # 쓰러짐은 방향 없는 한 벌(06 §1)
     (OUT / "parts").mkdir(exist_ok=True)
-    for n, (ppu, anc) in fts.items():
+    for n, (ppu, anc, c) in fts.items():
         imgs, prt = [], []
-        big = anim in ("attack", "fall")  # 공격·쓰러짐은 2배 캔버스. n에 맞춘 ppu로는 뻗은 검·누운 몸이 잘린다(2026-10-18 4.0)
-        c, a = (2 * n, (anc[0] + n / 2, anc[1] + n / 2)) if big else (n, anc)
+        big = anim in ("attack", "fall")  # 공격·쓰러짐은 2배 캔버스. 정지·걷기 캔버스로는 뻗은 검·누운 몸이 잘린다(2026-10-18 4.0)
+        c, a = (2 * c, (anc[0] + c / 2, anc[1] + c / 2)) if big else (c, anc)
         for g in dirs:
             for pose in ANIMS[anim]:
                 idx, part = bake(pose, elev, g, c, ppu, a, ramps, outline, R.darkest(pal))
@@ -176,8 +187,8 @@ if __name__ == "__main__":
     import sys
     OUT.mkdir(parents=True, exist_ok=True)
     fts = fits()
-    for n, (ppu, anc) in fts.items():
-        print(f"n={n} ppu={ppu:.2f} anchor={anc}")
+    for n, (ppu, anc, c) in fts.items():
+        print(f"n={n} ppu={ppu:.2f} anchor={anc} canvas={c}")
     what = sys.argv[1] if len(sys.argv) > 1 else "idle"
     if what == "idle":  # 1단계: 각도·외곽선·팔레트 변형 8개
         for pname in R.PALETTES:

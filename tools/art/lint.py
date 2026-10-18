@@ -7,7 +7,7 @@ import numpy as np
 from PIL import Image
 
 import render as R
-from hero import OUT, PARTS, WALK
+from hero import OUT, PARTS, WALK, fits
 
 # 걷기에서 다리 말고는 오르내림만 허용한다(사용자 2026-10-18: 머리·몸통·무기 고정)
 BODY = [1 + PARTS.index(p) for p in ("head", "torso", "arm", "sword", "shield")]
@@ -80,11 +80,12 @@ def h4(part):
 if __name__ == "__main__":
     name = sys.argv[1]
     pal = R.PALETTES[name.split("_")[-1]]
+    fts = fits()
     for n in (16, 24, 32):
-        path = OUT / f"{name}_{n}.png"
-        print(f"[{n}] H5:", h5(path, pal, 2 * n if name.startswith(("attack", "fall")) else n) or "통과")
+        path, c = OUT / f"{name}_{n}.png", fts[n][2]  # 프레임 크기는 맞춤 캐시의 캔버스
+        print(f"[{n}] H5:", h5(path, pal, 2 * c if name.startswith(("attack", "fall")) else c) or "통과")
         if name.startswith("walk"):
-            img, part = frames(path, n), frames(OUT / "parts" / path.name, n)
+            img, part = frames(path, c), frames(OUT / "parts" / path.name, c)
             bobs = [p["bob"] for p in WALK]
             rows = [(d, h3(img[r], part[r], bobs), h4(part[r])) for r, d in enumerate(R.DIRS)]
             print("  H3 (윗몸 변화, 다리 행 밖 변화):", " ".join(f"{d}{b}" for d, b, _ in rows))

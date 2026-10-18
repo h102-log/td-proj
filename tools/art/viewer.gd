@@ -191,6 +191,10 @@ func ppu(n: int) -> float:
 	var f: Array = fits[n]
 	return f[0]
 
+func canvas(n: int) -> int:  # 프레임 크기. 배율을 고정해서 크기 이름 n보다 크다(hero.py fit)
+	var f: Array = fits[n]
+	return int(f[2])
+
 func sprite(tx: Texture2D, pos: Vector2) -> Sprite2D:
 	var s := Sprite2D.new()
 	s.texture = tx
@@ -200,7 +204,7 @@ func sprite(tx: Texture2D, pos: Vector2) -> Sprite2D:
 	return s
 
 func put(s: Sprite2D, ground: Vector2, n: int, big: bool) -> void:
-	s.position = ground.round() - anchor(n) - (Vector2(n, n) / 2.0 if big else Vector2.ZERO)
+	s.position = ground.round() - anchor(n) - (Vector2.ONE * canvas(n) / 2.0 if big else Vector2.ZERO)
 
 func shadow(feet: Vector2) -> Sprite2D:  # 유닛보다 먼저 만들어 밑에 깐다
 	return sprite(shadow_tex, feet.round() - SHADOW)
@@ -208,7 +212,7 @@ func shadow(feet: Vector2) -> Sprite2D:  # 유닛보다 먼저 만들어 밑에 
 func knight(ground: Vector2, dir: int) -> Sprite2D:
 	var n: int = opt.n
 	shadow(ground)
-	var s := sprite(cut(sheet("idle", n), n, dir, 0), Vector2.ZERO)
+	var s := sprite(cut(sheet("idle", n), canvas(n), dir, 0), Vector2.ZERO)
 	put(s, ground, n, false)
 	return s
 
@@ -281,7 +285,7 @@ func walker(path: Array, four: bool, fixed_fps: float = 0.0) -> void:
 	actors.append(func(tt: float) -> void:
 		var r: Array = walk_path(path, fmod(tt * SPEED, total), n)
 		var col := int(tt * fixed_fps) % 4 if fixed_fps > 0.0 else int(float(r[2]) / (STEP / 2.0)) % 4
-		s.texture = cut(tx, n, dir_row(r[1], four), col)
+		s.texture = cut(tx, canvas(n), dir_row(r[1], four), col)
 		put(s, r[0], n, false)
 		sh.position = (r[0] as Vector2).round() - SHADOW
 	)
@@ -291,15 +295,16 @@ func walker(path: Array, four: bool, fixed_fps: float = 0.0) -> void:
 func page_variants() -> void:
 	field(40, 24)
 	var n: int = opt.n
+	var c := canvas(n)
 	var y := 4
 	for e in [45, 60]:
 		for o in ["B", "D"]:
 			for p in ["f24p", "waldgeist"]:
-				text("%d° %s %s" % [e, o, p], Vector2(2, y + n / 2 - 6))
+				text("%d° %s %s" % [e, o, p], Vector2(2, y + c / 2 - 6))
 				var tx := sheet("idle", n, e, o, p)
 				for d in 8:
-					sprite(cut(tx, n, d, 0), Vector2(78 + d * (n + 8), y))
-				y += n + 4
+					sprite(cut(tx, c, d, 0), Vector2(78 + d * (c + 8), y))
+				y += c + 4
 
 func page_silhouette() -> void:
 	var bg := ColorRect.new()
@@ -308,32 +313,34 @@ func page_silhouette() -> void:
 	world.add_child(bg)
 	var y := 6
 	for n in [16, 24, 32]:
+		var c := canvas(n)
 		var tx := sheet("idle", n)
 		for d in 8:
-			var s := sprite(cut(tx, n, d, 0), Vector2(20 + d * (n + 10), y))
+			var s := sprite(cut(tx, c, d, 0), Vector2(20 + d * (c + 10), y))
 			var m := ShaderMaterial.new()
 			m.shader = black
 			s.material = m
-		y += n + 12
+		y += c + 12
 
 func page_walk_in_place() -> void:
 	field(40, 24)
 	var y := 6
 	for n in [16, 24, 32]:
-		text("%dpx" % n, Vector2(2, y + n / 2 - 6))
+		var c := canvas(n)
+		text("%dpx" % n, Vector2(2, y + c / 2 - 6))
 		var tx := sheet("walk", n)
 		for d in 8:
 			var sf := SpriteFrames.new()
 			sf.set_animation_speed("default", 8)
 			for f in 4:
-				sf.add_frame("default", cut(tx, n, d, f))
+				sf.add_frame("default", cut(tx, c, d, f))
 			var a := AnimatedSprite2D.new()
 			a.sprite_frames = sf
 			a.centered = false
-			a.position = Vector2(40 + d * (n + 10), y)
+			a.position = Vector2(40 + d * (c + 10), y)
 			world.add_child(a)
 			a.play("default")
-		y += n + 10
+		y += c + 10
 
 func page_walk_moving() -> void:
 	field(40, 24)
@@ -346,33 +353,34 @@ func page_walk_moving() -> void:
 func page_attack_fall() -> void:
 	field(40, 24)
 	var n: int = opt.n
+	var c := canvas(n)
 	var atk := sheet("attack", n)
 	var idle := sheet("idle", n)
 	var fall := sheet("fall", n)
 	for d in 8:
-		var ground := Vector2(30 + (d % 4) * (2 * n + 12), 8 + n + (d / 4) * (2 * n))
+		var ground := Vector2(30 + (d % 4) * (2 * c + 12), 8 + c + (d / 4) * (2 * c))
 		shadow(ground)
 		var s := sprite(null, Vector2.ZERO)
 		actors.append(func(tt: float) -> void:
 			var a := fmod(tt, 1.0)
 			if a < 0.42:
-				s.texture = cut(atk, 2 * n, d, 0 if a < 0.12 else (1 if a < 0.27 else 2))
+				s.texture = cut(atk, 2 * c, d, 0 if a < 0.12 else (1 if a < 0.27 else 2))
 				put(s, ground, n, true)
 			else:
-				s.texture = cut(idle, n, d, 0)
+				s.texture = cut(idle, c, d, 0)
 				put(s, ground, n, false)
 		)
-	var fg := Vector2(30, 8 + 3 * n + 2 * n)
+	var fg := Vector2(30, 8 + 3 * c + 2 * c)
 	shadow(fg)
 	var fs := sprite(null, Vector2.ZERO)
-	text("쓰러짐", fg + Vector2(2 * n, -12))
+	text("쓰러짐", fg + Vector2(2 * c, -12))
 	actors.append(func(tt: float) -> void:
 		var a := fmod(tt, 2.5)
 		if a < 2.0:
-			fs.texture = cut(fall, 2 * n, 0, mini(4, int(a / 0.1)))
+			fs.texture = cut(fall, 2 * c, 0, mini(4, int(a / 0.1)))
 			put(fs, fg, n, true)
 		else:
-			fs.texture = cut(idle, n, 0, 0)
+			fs.texture = cut(idle, c, 0, 0)
 			put(fs, fg, n, false)
 	)
 
@@ -443,7 +451,7 @@ func unit_panel(mode: String, ox: float) -> void:
 				col = mini(4, int((s2 - 3.3) / 0.1)) if mode == "A" else 4
 		var big := key == "attack" or key == "fall"
 		var row := 0 if key == "fall" else dir_row(face, four)
-		s.texture = cut(sheet(key, n), n * 2 if big else n, row, col if key != "idle" else 0)
+		s.texture = cut(sheet(key, n), canvas(n) * 2 if big else canvas(n), row, col if key != "idle" else 0)
 		put(s, pos + off, n, big)
 		sh.position = (pos + off).round() - SHADOW
 		mat.set_shader_parameter("flash", fl)
@@ -528,7 +536,8 @@ func page_wall() -> void:
 	knight(Vector2(3.5, 1.5) * 16, 4)  # 마을 둘째 줄
 	var wall_at := Vector2(2 * 16 - 4, 4 * 16 - 100)  # 성벽 그림의 원점 픽셀 (4, 100)
 	sprite(tex("walls/wall_%d_%s_%d.png" % [opt.elev, opt.pal, h]), wall_at)
-	var top := 4 * 16 - 3 - h  # 성벽 위: 흉벽 바로 뒤(앞면에서 바닥 3px)에 서고, 앞면 높이만큼 올려 그린다(02 §2)
+	sprite(tex("walls/shade_%d_%d.png" % [opt.elev, h]), wall_at)  # 열린 문 통로 그늘(반투명, wall.py)
+	var top :=4 * 16 - 3 - h  # 성벽 위: 흉벽 바로 뒤(앞면에서 바닥 3px)에 서고, 앞면 높이만큼 올려 그린다(02 §2)
 	knight(Vector2(3.5 * 16, top), 0)
 	walker([Vector2(2.5 * 16, top), Vector2(7.5 * 16, top), Vector2(2.5 * 16, top)], false)
 	# 흉벽·앞면 층을 성벽 위 유닛보다 나중에 그려 발을 가린다(바닥선 정렬). 성벽 뒤 유닛과 위아래로 쌓여 보였다(Gemini 2026-10-18)

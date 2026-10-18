@@ -7,7 +7,7 @@ from PIL import Image
 import preview as V
 import render as R
 import tiles as TL
-from hero import OUT as HERO
+from hero import OUT as HERO, fits
 
 W = 6  # 성벽 칸 수
 GATES = {"open": 1.5, "closed": 4.5}  # 문 가운데 x(칸). 열림·닫힘을 한 장면에서 함께 본다(사용자 2026-10-18 ②)
@@ -34,7 +34,7 @@ def slab(f2, y0, y1):
 
 
 def wall(elev, H, pal):
-    """앞면 높이 H px. 원점 = 성벽 앞쪽 아래 왼쪽 모서리. → (팔레트 번호 이미지, 원점 픽셀, 흉벽·앞면 마스크)"""
+    """앞면 높이 H px. 원점 = 성벽 앞쪽 아래 왼쪽 모서리. → (팔레트 번호 이미지, 원점 픽셀, 흉벽·앞면 마스크, 통로 그늘 불투명도)"""
     cam = R.Cam(elev)
     D, h = 1 / cam.sin, H / (16 * cam.cos)  # 바닥 깊이 1칸이 화면 16px이 되게(02 §2)
     gw, gh, rd = 0.36, min(h * 0.75, 1.15), 0.3 * D  # 문 반폭·높이, 닫힌 문이 앞면에서 들어간 깊이. 0.15D는 벽 안으로 든 깊이가 안 보였다(Gemini 2026-10-18)
@@ -67,8 +67,9 @@ def wall(elev, H, pal):
     idx = R.shade(mat, lam, depth, ramps, "D", R.darkest(pal), edge=0.19)
     x, y, z = pos[..., 0], pos[..., 1], pos[..., 2]
     st, rp = mat == STONE, [np.array(r) for r in ramps]
-    row = np.floor(z / 0.25).astype(int)
-    mortar = (np.mod(z, 0.25) < 0.06) | (np.mod(x + 0.25 * (row % 2), 0.5) < 0.07)  # 앞면 벽돌 줄눈
+    row = np.floor(z / 0.35).astype(int)
+    # 앞면 벽돌 줄눈. 0.25×0.5칸 벽돌은 줄이 빽빽해 철망 같았다(Gemini 2차 2026-10-18). 줄눈 색은 이미 앞면보다 램프 한 단계 아래다
+    mortar = (np.mod(z, 0.35) < 0.06) | (np.mod(x + 0.35 * (row % 2), 0.7) < 0.07)
     front = st & (y < 0.01)
     idx = np.where(front & mortar, rp[STONE][1], idx)
     idx = np.where(front & (idx == rp[STONE][3]), rp[STONE][2], idx)
@@ -81,7 +82,26 @@ def wall(elev, H, pal):
     pf = np.pad(front, 1)
     near_front = pf[:-2, 1:-1] | pf[2:, 1:-1] | pf[1:-1, :-2] | pf[1:-1, 2:]
     idx = np.where(gate & near_front, R.darkest(pal), idx)  # 아치 테두리는 최암색
-    return idx, anchor, st & (y < pd + 0.01)  # 흉벽·앞면: 성벽 위 유닛보다 나중에 그려 발을 가린다
+    # 옥상 뒤 모서리: 최암색 외곽선이 성벽 뒤 유닛을 날카롭게 잘라 보여, 앞면 바탕색 선 + 바로 아래 하이라이트로 바꾼다(Gemini 2차 2026-10-18)
+    walk_top = st & (z > h - 0.01) & (y > pd + 0.01)
+    edge = (pid < 0) & np.pad(walk_top, ((0, 1), (0, 0)))[1:]
+    idx = np.where(edge, rp[STONE][2], idx)
+    idx = np.where(np.pad(edge, ((1, 0), (0, 0)))[:-1] & walk_top, rp[STONE][4], idx)
+    # 2026-10-18
+    # [동작] 열린 문 통로 그늘의 불투명도(위 85% → 아래 25%, 0~255). 통로 픽셀은 바닥을 깔고 한 번 더 그려서 구한다
+    # [이유] 그늘 없이 땅 타일이 그대로 비쳐 성벽에 구멍이 난 것처럼 보였다(Gemini 2차). 최암색 디더는 창살문처럼 보여서,
+    #        발밑 그림자처럼 반투명 층으로 따로 그린다. 성벽 그림에는 반투명을 굽지 않는다
+    floor = R.box([GATES["open"], D / 2, -0.02], [gw, D / 2, 0.02])
+    passage = (pid < 0) & (R.trace([(f, m, "") for f, m in P + [(floor, STONE)]], cam, (0, 1), n, 16, anchor)[0] >= 0)
+    rows = np.nonzero(passage.any(1))[0]
+    t = (np.arange(n)[:, None] - rows.min()) / (rows.max() - rows.min())
+    shade = np.where(passage, np.round(255 * (0.85 - 0.6 * t)), 0).astype(np.uint8)
+    return idx, anchor, st & (y < pd + 0.01), shade  # 흉벽·앞면: 성벽 위 유닛보다 나중에 그려 발을 가린다
+
+
+def shade_img(a):
+    """불투명도 → 검정 반투명 RGBA"""
+    return Image.fromarray(np.dstack([np.zeros_like(a)] * 3 + [a]), "RGBA")
 
 
 def scene(elev, H, pname):
@@ -93,13 +113,15 @@ def scene(elev, H, pname):
     dirt = [at[:T, 15 * T:]] + [at[T:, k * T:(k + 1) * T] for k in range(3, 6)]
     rows = [[(dirt if y < 2 else grass)[rng.integers(4)] for _ in range(8)] for y in range(6)]  # 0~1행 마을(흙), 2행 성벽, 3~5행 들판
     img = R.rgba(np.block(rows), pal)
+    _, (ax, ay), c = fits()[24]
     knights = Image.open(HERO / f"idle_{elev}_D_{pname}_24.png")
-    k = lambda d: knights.crop((0, d * 24, 24, d * 24 + 24))  # 시트 행 = 방향(DIRS 순서)
-    put = lambda d, gp: img.alpha_composite(k(d), (int(gp[0] - 12), int(gp[1] - 19)))  # 발밑 기준점(12, 19)
+    k = lambda d: knights.crop((0, d * c, c, d * c + c))  # 시트 행 = 방향(DIRS 순서), 프레임은 c×c
+    put = lambda d, gp: img.alpha_composite(k(d), (int(gp[0] - ax), int(gp[1] - ay)))  # 발밑 기준점
     put(0, (5.5 * T, 1.5 * T))  # 성벽 바로 뒤 마을 첫 줄
     put(4, (2.5 * T, 0.5 * T))  # 마을 둘째 줄
-    idx, anc, _ = wall(elev, H, pal)
+    idx, anc, _, shade = wall(elev, H, pal)
     img.alpha_composite(R.rgba(idx, pal), (1 * T - anc[0], 3 * T - anc[1]))
+    img.alpha_composite(shade_img(shade), (1 * T - anc[0], 3 * T - anc[1]))
     put(0, (2.5 * T, 2.5 * T - H))  # 성벽 위: 앞면 높이만큼 올려 그린다(02 §2)
     put(4, (5.5 * T, 3.5 * T))  # 닫힌 문 앞
     put(2, (6.5 * T, 4.5 * T))
@@ -114,12 +136,13 @@ if __name__ == "__main__":
         cells.append(R.sheet(row, 3, 6, (30, 30, 30, 255)))
     out = V.label_rows(V.stack(cells, 6), ["45°  16 / 24 / 32px", "60°  16 / 24 / 32px"], cells[0].height + 6)
     out.save(HERO.parent / "preview" / "s4_wall.png")
-    walls = HERO.parent / "walls"  # 보기 화면(viewer.gd)용: 성벽만, 원점 픽셀 (4, 100). front_는 흉벽·앞면만 남긴 앞층
+    walls = HERO.parent / "walls"  # 보기 화면(viewer.gd)용: 성벽만, 원점 픽셀 (4, 100). front_는 흉벽·앞면만 남긴 앞층, shade_는 통로 그늘
     walls.mkdir(exist_ok=True)
     for p in R.PALETTES:
         for elev in (45, 60):
             for H in (16, 24, 32):
-                idx, _, front = wall(elev, H, R.PALETTES[p])
+                idx, _, front, shade = wall(elev, H, R.PALETTES[p])
                 R.rgba(idx, R.PALETTES[p]).save(walls / f"wall_{elev}_{p}_{H}.png")
                 R.rgba(np.where(front, idx, -1), R.PALETTES[p]).save(walls / f"front_{elev}_{p}_{H}.png")
+                shade_img(shade).save(walls / f"shade_{elev}_{H}.png")  # 팔레트와 무관하다
     print(out.size)
