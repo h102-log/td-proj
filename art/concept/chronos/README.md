@@ -46,7 +46,7 @@ python tools/art/concept/shot.py 그림.svg 출력.png --scale 4   # SVG 하나�
 
   | 칸(S158) | 이름 | 컨셉에서 |
   |---|---|---|
-  | 패시브 | 가속의 오라 | 광륜(천문시계). 24px에서는 빼고 오라 원의 시계 무늬로 살리는 안(4.1f) |
+  | 패시브 | 가속의 오라 | 광륜(천문시계). 24px에서는 빼고 오라 원에 시계 문자판 눈금 12개로 살렸다(S160) |
   | Q | 무기 과충전 | 지휘봉 끝의 청록 물결, 거기서 뻗는 빛 궤적 |
   | W | 시간 되감기 | 홀로그램 시계 |
   | E | 황금의 율법 | 없음(컨셉에 결계가 없다) |
@@ -60,7 +60,7 @@ python tools/art/concept/shot.py 그림.svg 출력.png --scale 4   # SVG 하나�
 
 - [ ] 사용자 검수: 얼굴·손·자세·색
 - [x] 장군의 외형으로 쓴다(사용자 2026-10-18). 같은 날 SPEC S157에서 크로노스가 장군 자리를 이어, 게임 안 이름도 «크로노스»다
-- [x] B 방식 24px 스프라이트로 옮겼다: `tools/art/chronos.py` → `art/trial/chronos/`. 기록은 [insights/2026-10-18_general_sprite.md](../../../insights/2026-10-18_general_sprite.md). 광륜은 24px에서 빼고 오라 원 이펙트로 살리는 안을 냈다
+- [x] B 방식 24px 스프라이트로 옮겼다: `tools/art/chronos.py` → `art/trial/chronos/`. 기록은 [insights/2026-10-18_general_sprite.md](../../../insights/2026-10-18_general_sprite.md). 광륜은 24px에서 빼고 오라 원 이펙트로 살렸다(S160, `src/ui/battle_view.gd`)
 
 ## 원 프롬프트
 
