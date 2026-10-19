@@ -1,5 +1,5 @@
 extends Node2D
-# 진입 씬. 시험 스테이지 맵에서 6라운드 도전을 띄운다(S63, I91).
+# 진입 씬. 시험 스테이지 맵에서 6라운드 도전을 띄운다(S63, I91). 창 크기와 F11 전체화면도 맡는다(S161~S164).
 
 const Battle := preload("res://src/sim/battle.gd")
 const BattleView := preload("res://src/ui/battle_view.gd")
@@ -27,6 +27,7 @@ func _ready() -> void:
 	add_child(cam)
 	hud = Hud.new(view.battle, controls)
 	add_child(hud)
+	setup_window(get_window(), get_tree().current_scene == self)
 
 func _process(delta: float) -> void:
 	view.battle.step(delta)
@@ -35,12 +36,45 @@ func _process(delta: float) -> void:
 # 전투 시작은 HUD 버튼 말고 Enter·Space(기본 ui_accept)로도 된다. 결과 창·영입 창이 떠 있으면 그 버튼을 누른다(I94)
 # 창의 버튼에 키보드 포커스가 있으면 그 버튼이 누른다(I110). 버튼은 ui_accept를 소비하지 않아 여기서 거르지 않으면 둘 다 눌린다
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F11:  # S162, I154
+		toggle_fullscreen(get_window())
+		get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed("ui_accept") and get_viewport().gui_get_focus_owner() == null:
 		if view.battle.state in ["hiring", "cleared", "won", "lost"]:
 			hud.proceed()
 		else:
 			view.battle.start_battle()
 	controls.handle(view.make_input_local(event))  # 화면 좌표 → 맵 px(카메라 줌·이동 반영)
+
+# 창 준비: 최소 크기는 늘 기준 해상도(S164). 창 크기·시작 모드는 진입 씬일 때만 정한다(S161, S163, I153)
+static func setup_window(w: Window, entry: bool) -> void:
+	w.min_size = w.content_scale_size
+	if not entry:
+		return
+	if OS.has_feature("template"):  # 내보낸 빌드
+		w.mode = Window.MODE_FULLSCREEN
+	else:
+		fit_window(w)
+
+# 지금 화면의 작업 영역에 테두리까지 들어가는 가장 큰 정수배 크기로 키워 가운데에 둔다(S161, I153)
+static func fit_window(w: Window) -> void:
+	var usable := DisplayServer.screen_get_usable_rect(w.current_screen)
+	w.size = w.content_scale_size * window_scale(usable.size, w.get_size_with_decorations() - w.size, w.content_scale_size)
+	w.position = usable.position + (usable.size - w.size) / 2
+
+# 작업 영역 usable에 테두리 deco까지 들어가는 가장 큰 base 정수배. 들어가는 배수가 없으면 1(S161)
+static func window_scale(usable: Vector2i, deco: Vector2i, base: Vector2i) -> int:
+	var k := (usable - deco) / base
+	return maxi(1, mini(k.x, k.y))
+
+# 전체화면이면 창 모드로 돌아가며 그때의 화면에 맞춰 크기를 다시 정하고, 아니면 전체화면으로 간다(S162, I154)
+static func toggle_fullscreen(w: Window) -> void:
+	if w.mode == Window.MODE_FULLSCREEN:
+		w.mode = Window.MODE_WINDOWED
+		fit_window(w)
+	else:
+		w.mode = Window.MODE_FULLSCREEN
 
 # W1 시험 스테이지(40×32, S51 위아래 구도). 위쪽 마을을 가로 성곽이 막고, 적은 아래쪽 가장자리에서 온다.
 # 도전 내내 이 맵이고, 라운드마다 웨이브만 바뀐다(S78, I91)
