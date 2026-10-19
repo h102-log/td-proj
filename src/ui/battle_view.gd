@@ -28,6 +28,8 @@ const ZONES := {  # 장판 색(I101). 엷게 채우고 테두리를 그린다
 
 const UNITS := preload("res://art/units/heroes.png")  # 영웅 6명 시트를 한 장에 모은 아틀라스(tools/art/atlas.py)
 static var ART: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/units/heroes.json"))  # 영웅 → 캔버스·발밑·시트 y
+const TEAM := [Color("3c9f9c"), Color("ef3a0c")]  # 발밑 팀 색(S166): 아군 청록, 적 빨강(F24+ 팔레트)
+static var FEET: ImageTexture = _feet()  # 발밑 채운 타원 14×6px. 아군·적을 한 장에 나란히 둬서 draw call이 끊기지 않는다
 
 var battle
 var controls  # 고른 유닛에 테두리를 그린다
@@ -154,7 +156,7 @@ func _castle() -> void:  # 열린 성문은 밝게(I67). 단계는 칸 아래쪽
 		for i in b.level:
 			draw_rect(Rect2(Vector2(b.cell) * CELL + Vector2(2 + i * 4, CELL - 4), Vector2(2, 2)), Color.WHITE)
 
-# 유닛·적 몸통(S165). 비행 적 그림자(I81)를 먼저 깔고, (층, 발밑 y, 목록 순서)로 정렬해 그린다. 영웅은 시트에서, 나머지는 원으로.
+# 유닛·적 몸통(S165). 발밑 팀 색(S166)과 비행 적 그림자(I81)를 먼저 깔고, (층, 발밑 y, 목록 순서)로 정렬해 그린다. 영웅은 시트에서, 나머지는 원으로.
 # 레벨·선택·효과 테두리는 _draw가 모든 몸통 뒤에 그린다
 func _bodies() -> void:
 	var all: Array = battle.units + battle.enemies
@@ -162,6 +164,8 @@ func _bodies() -> void:
 	for i in all.size():
 		var x = all[i]
 		var fly: bool = x.get("flying") == true
+		var foot := _center(x.pos) + (Vector2(0, CELL * 0.4) if fly else Vector2.ZERO)  # 비행 적은 그림자 자리
+		draw_texture_rect_region(FEET, Rect2((foot + Vector2(-7, -2)).round(), Vector2(14, 6)), Rect2(14 * int(i >= battle.units.size()), 0, 14, 6))
 		if fly:
 			draw_circle(_center(x.pos) + Vector2(0, CELL * 0.4), CELL * x.radius * 0.8, Color(0, 0, 0, 0.35))
 		keys.append(((2 if fly else 1) << 44) | ((int(_center(x.pos).y) + 64) << 20) | i)
@@ -204,6 +208,15 @@ func _sprite(x, next: Dictionary) -> void:
 	var size := c * (2 if anim == "attack" else 1)  # 공격은 2배 캔버스(tools/art/hero.py)
 	var at := _center(x.pos) - Vector2(a.anchor[0], a.anchor[1]) - Vector2.ONE * (size - c) / 2.0
 	draw_texture_rect_region(UNITS, Rect2(at.round(), Vector2(size, size)), Rect2(col * size, a[anim] + dir * size, size, size))
+
+static func _feet() -> ImageTexture:
+	var im := Image.create_empty(28, 6, false, Image.FORMAT_RGBA8)
+	for t in 2:
+		for y in 6:
+			for x in 14:
+				if pow((x + 0.5 - 7.0) / 7.0, 2) + pow((y + 0.5 - 3.0) / 3.0, 2) <= 1.0:
+					im.set_pixel(14 * t + x, y, TEAM[t])
+	return ImageTexture.create_from_image(im)
 
 # 화면 방향 v(y가 아래)의 시트 행: S, SE, E, NE, N, NW, W, SW(tools/art/render.py DIRS)
 static func _dir_of(v: Vector2) -> int:
