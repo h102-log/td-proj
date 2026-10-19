@@ -84,6 +84,21 @@ def blade_axes(pose, up_r):
     return bd, side, third
 
 
+def local(U, up_r, fn):
+    """윗몸 자기 좌표(x 오른쪽, y 앞, z 위)로 쓴 sdf fn(q)를 모델 좌표 sdf로. U는 up_r 회전 + 평행 이동이다"""
+    o = U([0, 0, 0])
+    return lambda p: fn((p - o) @ up_r)
+
+
+def flare(q, top, bot, r_top, r_bot, grow=0.0, depth=0.8):
+    """윗몸 자기 좌표 q에서 높이 top → bot으로 반지름이 r_top → r_bot으로 넓어지는 타원 원뿔(앞뒤는 depth배). 치마·로브·코트 자락.
+    윗몸과 함께 오르내려 걷기 윗몸 고정(lint H3)을 지킨다"""
+    t = np.clip((top - q[:, 2]) / (top - bot), 0, 1)
+    rx = r_top + (r_bot - r_top) * t + grow
+    d = (np.hypot(q[:, 0] / rx, q[:, 1] / (depth * rx)) - 1) * depth * rx
+    return np.maximum(d, np.maximum(q[:, 2] - top, bot - q[:, 2]))
+
+
 def knight(pose, bob_unit):
     U, G, up_r, legs, arms = rig(pose, bob_unit)
     m = MATS.index

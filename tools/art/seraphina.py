@@ -39,16 +39,12 @@ ANIMS = {"idle": [IDLE], "walk": WALK, "attack": ATTACK, "fall": FALL}
 def seraphina(pose, bob_unit):
     U, G, up_r, legs, arms = H.rig(pose, bob_unit)
     m = MATS.index
-    o = U([0, 0, 0])
 
-    def local(fn):  # 윗몸 자기 좌표(x 오른쪽, y 앞, z 위)로 쓴 sdf. U는 up_r 회전 + 평행 이동이다
-        return lambda p: fn((p - o) @ up_r)
+    def local(fn):
+        return H.local(U, up_r, fn)
 
-    def skirt(q, grow=0.0):  # 허리에서 발목까지 아래로 넓어지는 타원 원뿔(앞뒤는 0.8배)
-        t = np.clip((0.47 - q[:, 2]) / 0.44, 0, 1)
-        rx = 0.11 + 0.06 * t + grow
-        d = (np.hypot(q[:, 0] / rx, q[:, 1] / (0.8 * rx)) - 1) * 0.8 * rx
-        return np.maximum(d, np.maximum(q[:, 2] - 0.47, 0.035 - q[:, 2]))
+    def skirt(q, grow=0.0):  # 허리에서 발목까지
+        return H.flare(q, 0.47, 0.035, 0.11, 0.17, grow)
 
     P = []  # (sdf, 재질, 부위)
     for side in "lr":  # 다리는 치마에 가리고 금 신발만 앞뒤로 나온다
