@@ -13,7 +13,6 @@ var t := 0.0  # 애니메이션 시계(초). 벤치가 고정 간격으로 올�
 var bodies_only := false  # 바닥·오버레이 없이 몸통만(X1 캡처에서 선·막대가 색 경계를 흐리지 않게)
 var draw_us := 0  # 지난 _draw 전체
 var body_us := 0  # 지난 _bodies(정렬 + 그리기 호출)
-var _seen := {}  # 유닛·적 → [지난 위치, 방향]
 
 func _ready() -> void:
 	RenderingServer.canvas_item_set_custom_rect(get_canvas_item(), true, Rect2(Vector2.ZERO, Vector2(battle.size * CELL)))  # 05 §2 ①
