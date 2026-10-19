@@ -113,52 +113,8 @@ def fits():
 
 
 def preview():
-    """검수용 확대본 → art/trial/preview/chronos_*. 200px 미만 원본 대신 이것을 본다(08 §3 운영 규칙)"""
-    from PIL import Image
-
-    import preview as V
-    pv = OUT.parent / "preview"
-    (_, ca, c), (_, ka, kc) = fits()[24], H.fits()[24]
-
-    def cells(path, n):  # 시트 → [행][열] 프레임
-        im = Image.open(path)
-        return [[im.crop((q * n, r * n, (q + 1) * n, (r + 1) * n)) for q in range(im.width // n)] for r in range(im.height // n)]
-
-    def grid(rows, gap=4):
-        w, h = rows[0][0].size
-        g = Image.new("RGBA", (max(len(r) for r in rows) * (w + gap), len(rows) * (h + gap)), (0, 0, 0, 0))
-        for j, r in enumerate(rows):
-            for i, f in enumerate(r):
-                g.alpha_composite(f, (i * (w + gap), j * (h + gap)))
-        return g
-
-    # 정지 8방향: 위 기사, 아래 크로노스. 캔버스가 달라서(32·26) 발밑 기준점을 같은 자리에 맞춘다
-    a = (int(max(ka[0], ca[0])), int(max(ka[1], ca[1])))
-    size = (int(a[0] + max(kc - ka[0], c - ca[0])), int(a[1] + max(kc - ka[1], c - ca[1])))
-
-    def put(f, anc):
-        g = Image.new("RGBA", size, (0, 0, 0, 0))
-        g.alpha_composite(f, (int(a[0] - anc[0]), int(a[1] - anc[1])))
-        return g
-    rows = [[put(r[0], anc) for r in cells(d / "idle_45_D_f24p_24.png", n)] for d, anc, n in ((H.OUT, ka, kc), (OUT, ca, c))]
-    V.up(V.on(grid(rows), pad=6), 5).save(pv / "chronos_idle_cmp_24.png")
-    sheets = [grid(cells(OUT / f"{an}_45_D_f24p_24.png", c * (2 if an in ("attack", "fall") else 1))) for an in ("walk", "attack", "fall")]
-    V.up(V.on(V.stack(sheets, gap=12, bg=(0, 0, 0, 0)), pad=6), 4).save(pv / "chronos_sheets_24.png")
-    walk = cells(OUT / "walk_45_D_f24p_24.png", c)
-    dirs = list(R.DIRS)
-    frames = [V.up(V.on(grid([[walk[dirs.index(d)][k] for d in ("S", "E", "N", "W")]]), pad=4), 6) for k in range(4)]
-    frames[0].save(pv / "chronos_walk.gif", save_all=True, append_images=frames[1:], duration=125, loop=0, disposal=2)
-    # 공격: 보기 화면(viewer.gd)처럼 0.12·0.15·0.15초 뒤 정지로 돌아온다. 위 줄 남·남동·동·북동, 아래 줄 북·북서·서·남서
-    atk, idle = cells(OUT / "attack_45_D_f24p_24.png", 2 * c), cells(OUT / "idle_45_D_f24p_24.png", c)
-    seq = [[atk[r][k] for r in range(8)] for k in range(3)] + [[Image.new("RGBA", (2 * c, 2 * c), (0, 0, 0, 0)) for _ in range(8)]]
-    for g, r in zip(seq[3], idle):  # 정지 프레임은 공격 캔버스(2배)의 같은 발밑 자리에 놓는다
-        g.alpha_composite(r[0], (c // 2, c // 2))
-    x0, y0, x1, y1 = zip(*[f.getbbox() for fs in seq for f in fs])  # 모든 프레임이 들어가는 만큼만 잘라 크게 본다
-    box = (min(x0), min(y0), max(x1), max(y1))
-    frames = [V.up(V.on(grid([[f.crop(box) for f in fs[:4]], [f.crop(box) for f in fs[4:]]]), pad=4), 6) for fs in seq]
-    frames[0].save(pv / "chronos_attack.gif", save_all=True, append_images=frames[1:], duration=[120, 150, 150, 580], loop=0, disposal=2)
-    print(pv / "chronos_idle_cmp_24.png", pv / "chronos_sheets_24.png", pv / "chronos_walk.gif", pv / "chronos_attack.gif")
-
+    """검수용 확대본 → art/trial/preview/chronos_*. 정지 비교는 위 기사, 아래 크로노스"""
+    H.preview("chronos", OUT, fits()[24], [(H.OUT, H.fits()[24])])
 
 if __name__ == "__main__":
     import sys

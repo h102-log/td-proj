@@ -1,6 +1,6 @@
 extends SceneTree
 # 4.0 아트 시험 보기 화면(insights/2026-10-18_art_trial.md). 실행: godot --path . -s res://tools/art/viewer.gd
-# 쪽: ←/→ 또는 1~9·0(10쪽). 보기: A 각도 45/60, O 외곽선 B/D, P 팔레트, S 유닛 크기 16/24/32, H 성벽 높이, T 타일 보기, R 처음부터
+# 쪽: ←/→ 또는 1~9·0(10쪽). 11쪽(아이아스)은 ←/→로 간다. 보기: A 각도 45/60, O 외곽선 B/D, P 팔레트, S 유닛 크기 16/24/32, H 성벽 높이, T 타일 보기, R 처음부터
 # 화면: 휠 줌 1~3배, 우클릭·휠 버튼으로 끌어 이동, Space 시점 처음으로. 인자 shots: 쪽마다 캡처를 art/trial/preview/view_N.png로 남기고 끝낸다
 
 const DIRS := ["S", "SE", "E", "NE", "N", "NW", "W", "SW"]
@@ -21,12 +21,14 @@ const PAGES := [
 	["바닥 타일", "T2 이음매·반복 무늬, T3 terrain 칠하기. T로 보기 바꿈: 들판 / 풀·흙 8×8 반복 / 아틀라스"],
 	["성벽 높이", "H로 앞면 16·24·32px. 왼쪽 문 열림·오른쪽 문 닫힘. 성벽 뒤 마을 1·2줄, 성벽 위(서 있기·걷기)"],
 	["크로노스", "정지·걷기 제자리 8fps·공격·쓰러짐·걷기 이동. 열 = 남·남동·동·북동·북·북서·서·남서. 45° D f24p 24px만 굽어서 A·O·P·S는 듣지 않는다"],
+	["아이아스", "정지·걷기 제자리 8fps·공격·쓰러짐·걷기 이동. 열 = 남·남동·동·북동·북·북서·서·남서. 45° D f24p 24px만 굽어서 A·O·P·S는 듣지 않는다"],
 ]
-const DEFAULT_ZOOM := [1, 1, 1, 2, 1, 2, 2, 2, 2, 1]
+const DEFAULT_ZOOM := [1, 1, 1, 2, 1, 2, 2, 2, 2, 1, 1]
 const TOP := 34.0  # 위 안내 띠 높이
+const HERO_PAGES := {9: "chronos", 10: "aias"}  # 쪽 번호(0부터) → 시트 폴더
 
 var base: String  # art/trial/ 절대 경로
-var who := "hero"  # 시트 폴더(art/trial/<who>/). 크로노스 쪽에서만 "chronos"
+var who := "hero"  # 시트 폴더(art/trial/<who>/). 영웅 쪽(HERO_PAGES)에서만 그 영웅
 var opt := {"elev": 45, "outline": "D", "pal": "f24p", "n": 24, "wall": 24, "tiles": 0}
 var page := 0
 var zoom := 1
@@ -59,7 +61,7 @@ func _initialize() -> void:
 	root.content_scale_mode = Window.CONTENT_SCALE_MODE_VIEWPORT  # 게임 맵처럼 640×360에 그려 정수배로 키운다. 프로젝트 설정은 HUD 때문에 canvas_items다(S30)
 	base = ProjectSettings.globalize_path("res://art/trial/")
 	shots = OS.get_cmdline_user_args().has("shots")
-	for u in ["hero", "chronos"]:
+	for u in ["hero"] + HERO_PAGES.values():
 		var fj: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(base + u + "/fit.json"))
 		var fd: Dictionary = fj["fits"]
 		fits[u] = {}
@@ -154,8 +156,8 @@ func build() -> void:
 	actors.clear()
 	t = 0.0
 	world.scale = Vector2(zoom, zoom)
-	who = "chronos" if page == 9 else "hero"
-	if who == "chronos":  # 크로노스는 45° D f24p 24px만 굽었다
+	who = HERO_PAGES.get(page, "hero")
+	if who != "hero":  # 기사 말고는 45° D f24p 24px만 굽었다
 		opt.merge({"elev": 45, "outline": "D", "pal": "f24p", "n": 24}, true)
 	match page:
 		0: page_variants()
@@ -167,7 +169,7 @@ func build() -> void:
 		6: page_diagonal()
 		7: page_tiles()
 		8: page_wall()
-		9: page_chronos()
+		9, 10: page_hero()
 	update_hud()
 
 func update_hud() -> void:
@@ -566,16 +568,17 @@ func page_wall() -> void:
 	knight(Vector2(8.5, 5.5) * 16, 2)
 	walker([Vector2(1.5 * 16, 7.5 * 16), Vector2(12.5 * 16, 7.5 * 16), Vector2(1.5 * 16, 7.5 * 16)], false)
 
-func page_chronos() -> void:  # 열마다 한 방향. 2배 캔버스(공격·쓰러짐)가 겹치지 않게 56px 간격
+func page_hero() -> void:  # 열마다 한 방향. 2배 캔버스(공격·쓰러짐)가 겹치지 않게 56px 이상 간격
 	field(40, 24)
 	var n: int = opt.n
 	var c := canvas(n)
+	var step := maxf(56.0, 2.0 * c)
 	var idle := sheet("idle", n)
 	var walk := sheet("walk", n)
 	for k in [["정지", 18], ["걷기 8fps", 58], ["공격", 104], ["쓰러짐", 160], ["걷기 이동", 218]]:
 		text(k[0], Vector2(2, k[1]))
 	for d in 8:
-		var x := 86.0 + d * 56
+		var x := 86.0 + d * step
 		var g := Vector2(x, 30)
 		shadow(g)
 		put(sprite(cut(idle, c, d, 0), Vector2.ZERO), g, n, false)
