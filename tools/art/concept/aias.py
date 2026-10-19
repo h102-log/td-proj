@@ -24,8 +24,10 @@ K = {
 }
 SHIELD = (1040, 1290, 432, 982)  # 방패 왼·오른·윗변(총안 바닥)·아랫변
 EMB = (1165, 662)  # 방패 문장 중심
-SP_B, SP_T = (798, 998), (744, 168)  # 창 물미 끝, 창날 슴베(자루 위끝)
-LEG = {"L": ((930, 648), (914, 800), (906, 946)), "R": ((990, 648), (1012, 800), (1028, 946))}  # 엉덩이·무릎·발목
+SP_B, SP_T = (823, 1008), (734, 168)  # 창 물미 끝, 창날 슴베(자루 위끝). 주먹(762, 432)을 지나 비스듬히 꽂힌다
+SP_TIP = along(SP_B, SP_T, 1 + 118 / math.dist(SP_B, SP_T))  # 창날 끝(spear()의 창날 길이 118)
+# 버티기 자세: 창 쪽(화면 왼쪽) 다리는 앞으로 딛어 무릎을 바깥으로 굽히고, 방패 쪽 다리는 뒤로 곧게 뻗어 방패 뒤로 들어간다
+LEG = {"L": ((930, 648), (880, 804), (884, 958)), "R": ((990, 648), (1014, 792), (1040, 930))}  # 엉덩이·무릎·발목
 
 
 def crenel(x0, x1, y, mw, gap, mh):
@@ -169,7 +171,7 @@ def embers():
         s.append(path(circ(p, rnd.uniform(.7, 2.3)), col, op=round(rnd.uniform(.35, 1), 2)))
     g = "".join(s)
     sp = []
-    for p, r in (((736, 52), 22), (EMB, 16), ((1290, 398), 9), ((430, 610), 8), ((1500, 640), 10), ((960, 990), 12)):
+    for p, r in ((SP_TIP, 22), (EMB, 16), ((1290, 398), 9), ((430, 610), 8), ((1500, 640), 10), ((960, 990), 12)):
         star = poly([pol(p, r if i % 2 == 0 else r * .14, i * 45) for i in range(8)])
         sp.append(f'<g transform="translate({p[0]} {p[1]}) scale({r:.1f})"><circle r=".55" fill="url(#gSpark)"/></g>')
         sp.append(path(star, "#ffffff", op=.95))
@@ -198,16 +200,21 @@ def crest_tail():
     return cel(ribbon(spine, 20, head=.12, tail=.35), "url(#gRedV)", [], 1.8, inner=strands)
 
 
+SABATON = {  # 발목 기준 외곽·판 이음선. 앞발(L)은 바깥 앞으로, 뒷발(R)은 발끝이 방패 쪽으로 향한다
+    "L": ([(-20, -18, 1), (-22, 4), (-27, 20), (-37, 34), (-39, 46), (-24, 53), (4, 53), (24, 48), (28, 34), (23, 16), (21, -2), (21, -18, 1)],
+          ([(-28, 16), (24, 16)], [(-34, 31), (27, 31)])),
+    "R": ([(-19, -18, 1), (-17, 2), (-12, 16), (0, 30), (20, 44), (40, 51), (54, 47), (48, 34), (30, 20), (22, 4), (21, -18, 1)],
+          ([(-14, 14), (26, 12)], [(-4, 28), (40, 38)])),
+}
+
+
 def sabaton(side):
-    if side == "L":
-        out = [(886, 928, 1), (884, 950), (879, 966), (869, 980), (867, 992), (882, 999), (910, 999), (930, 994), (934, 980),
-               (929, 962), (927, 944), (927, 928, 1)]
-        lames = [(878, 962), (930, 962)], [(872, 977), (933, 977)]
-    else:
-        out = [(1009, 928, 1), (1011, 948), (1016, 962), (1028, 976), (1048, 990), (1068, 997), (1082, 993), (1076, 980),
-               (1058, 966), (1050, 950), (1049, 928, 1)]
-        lames = [(1014, 960), (1054, 958)], [(1024, 974), (1068, 984)]
-    sh = smooth([(p[0] + 18, p[1] + 6) for p in out[3:9]] + [(out[8][0] + 30, 1004), (out[3][0] + 30, 1004)])
+    ax, ay = LEG[side][2]
+    rel, rel_lames = SABATON[side]
+    out = [(ax + x, ay + y) + tuple(r) for x, y, *r in rel]
+    lames = [[(ax + x, ay + y) for x, y in l] for l in rel_lames]
+    sole = ay + 58
+    sh = smooth([(p[0] + 18, p[1] + 6) for p in out[3:9]] + [(out[8][0] + 30, sole), (out[3][0] + 30, sole)])
     inner = "".join(path(smooth(l, False), stroke=K["s2"], sw=1.6) for l in lames)
     return cel(smooth(out), "url(#gSteel)", [(sh, K["s2"], .6)], 2, inner=inner)
 
@@ -257,25 +264,32 @@ def skirt():
 
 
 def cuirass():
-    """근육 흉갑(강철·금 테)"""
+    """판금 흉갑(강철·금 테): 가운데 능선, 흉근 아래와 복부의 V자 판 이음새, 마름모 아케인 코어"""
     left = [(930, 352, 1), (904, 356), (882, 364), (866, 382, 1), (862, 420), (868, 466), (882, 510), (893, 546), (889, 576, 1),
             (924, 580), (960, 588, 1)]
     pts = left + mirror(left[:-1])[::-1] + [(960, 358)]
+    seams = [[(850, 462), (960, 514), (1070, 462)], [(856, 530), (960, 564), (1064, 530)]]  # 위 판이 아래 판에 겹치는 선(바깥은 외곽선에 잘린다)
     shades = [
         (smooth([(992, 350), (1080, 350), (1080, 600), (1000, 600), (1018, 540), (1030, 470), (1024, 410)]), K["s2"], .6),
-        (smooth([(884, 440), (912, 456), (940, 454), (958, 440), (958, 462), (930, 470), (896, 462)]), K["s2"], .5),
-        (smooth([(962, 440), (980, 454), (1010, 456), (1036, 440), (1030, 470), (990, 470)]), K["s1"], .5),
-        (smooth([(880, 392), (906, 378), (940, 380), (952, 404), (930, 420), (896, 418)]), K["s6"], .45),
+        (poly([(960, 356), (1060, 356), (1060, 466), (960, 514)]), K["s3"], .35),  # 능선 오른쪽 면
+        (poly([(870, 384), (910, 370), (952, 376), (952, 440), (904, 456), (870, 444)]), K["s6"], .4),  # 왼쪽 위 빛 면
     ]
-    lines = "".join(path(smooth(l, False), stroke=K["s2"], sw=1.6, op=.85) for l in (
-        [(878, 434), (908, 452), (938, 450), (957, 436)], [(1042, 434), (1012, 452), (982, 450), (963, 436)],
-        [(960, 376), (960, 560)], [(930, 486), (960, 494), (990, 486)], [(934, 524), (960, 530), (986, 524)]))
+    for a, b, c in seams:  # 이음새 아래로 위 판이 드리운 그늘 띠
+        shades.append((poly([a, b, c, (c[0], c[1] + 14), (b[0], b[1] + 14), (a[0], a[1] + 14)]), K["s1"], .5))
+    lines = path("M960 376L960 512", stroke=K["s2"], sw=1.8) + path("M957 380L957 508", stroke=K["s6"], sw=1.4, op=.8)
+    for sm in seams:
+        lines += path("M" + "L".join(pt(p) for p in sm), stroke=K["s0"], sw=2.4)
+        lines += path("M" + "L".join(pt((x, y - 3.5)) for x, y in sm), stroke=K["gold3"], sw=3)
     s = [cel(smooth(pts), "url(#gSteel)", shades, 2.2, inner=lines)]
     s.append(path(smooth([(930, 352), (960, 358), (990, 352)], False), stroke=K["gold3"], sw=4))
     for side in (left, mirror(left)):
         s.append(path(smooth(side[:4], False), stroke=K["gold3"], sw=3.4))
     s.append(path(smooth(left[8:] + mirror(left[8:-1])[::-1], False), stroke=K["gold3"], sw=5))
-    s.append(path(circ((960, 404), 13), "url(#gGold)", K["ink"], 1.4) + path(circ((960, 404), 6), K["ember"]) + path(circ((958, 402), 2), "#ffffff"))
+    def dm(r, cx=960, cy=406):  # 아케인 코어 마름모
+        return f"M{cx} {cy - r}L{cx + r * .7:.1f} {cy}L{cx} {cy + r}L{cx - r * .7:.1f} {cy}Z"
+    s.append(f'<g filter="url(#fB4)" opacity=".8">{path(dm(24), K["ember"])}</g>')
+    s.append(path(dm(21), "url(#gGold)", K["ink"], 1.4) + path(dm(14), K["s0"]) + path(dm(10), K["ember"])
+             + path(dm(4, 958, 402), "#ffffff"))
     return "".join(s)
 
 
@@ -291,7 +305,7 @@ def arm_shield():
 
 
 def arm_spear():
-    """오른팔(화면 왼쪽): 세운 창을 가슴 높이에서 쥔다"""
+    """오른팔(화면 왼쪽): 비스듬히 꽂은 창을 가슴 높이에서 쥔다"""
     sh, el, wr = (858, 396), (822, 500), (772, 446)
     s = cel(limb(sh, el, 23, 19, 3), "url(#gRed)", [(limb(along(sh, el, 0, -11), along(sh, el, 1, -9), 12, 10), K["red1"], .6)], 2)
     s += cel(limb(el, wr, 19, 17, 2), "url(#gSteel)", [(limb(along(el, wr, 0, 9), along(el, wr, 1, 8), 10, 8), K["s2"], .55)], 2)
@@ -484,7 +498,7 @@ def ornament(x0, x1, y):
 INSETS = [  # (원 중심, 반지름, 보는 곳, 배율, 제목, 설명)
     ((1716, 236), 92, (960, 262), 1.7, "THE CRESTED HELM", "faceless steel · ember gaze"),
     ((1716, 520), 92, EMB, 1.0, "SEVENFOLD SHIELD", "seven plates · citadel crest"),
-    ((1716, 804), 92, (740, 110), 1.45, "SPEAR OF THE LINE", "leaf blade · crimson tassel"),
+    ((1716, 804), 92, along(SP_B, SP_T, 1 + 58 / math.dist(SP_B, SP_T)), 1.45, "SPEAR OF THE LINE", "leaf blade · crimson tassel"),
 ]
 PALETTE = [("STEEL", K["s4"], True), ("DEEP STEEL", K["s2"], True), ("GOLD", K["gold3"], True),
            ("PALE GOLD", K["gold4"], True), ("CRIMSON", K["red2"], True), ("EMBER GLOW", K["ember"], False)]
@@ -527,7 +541,7 @@ def sheet():
 def build(sheet_on=True):
     chronos._cid[0] = 0
     scene = [background(), rampart(), floor(),
-             '<ellipse cx="985" cy="994" rx="180" ry="15" fill="#02040a" opacity=".7" filter="url(#fB4)"/>',
+             '<ellipse cx="965" cy="998" rx="200" ry="17" fill="#02040a" opacity=".7" filter="url(#fB4)"/>',
              hero(),
              '<g mask="url(#mRim)" style="mix-blend-mode:screen"><use href="#hero" filter="url(#fRim)"/></g>',
              fill_light(), eyes_glow(), embers(),

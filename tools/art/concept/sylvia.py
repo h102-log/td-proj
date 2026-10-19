@@ -62,15 +62,16 @@ def defs():
     d = [
         lin("gCloak", [(0, K["jd4"]), (.25, K["jd3"]), (.65, K["jd2"]), (1, K["jd1"])], x2=1, y2=1),
         lin("gCloakV", [(0, K["jd3"]), (.5, K["jd2"]), (1, K["jd1"])]),
+        lin("gLining", [(0, K["jd1"]), (1, K["hr1"])], x1=800, x2=890, y2=0, user=True),  # 망토 안감: 접힌 가장자리 → 몸 쪽으로 어두워진다
         lin("gLeather", [(0, K["lt4"]), (.3, K["lt3"]), (.7, K["lt2"]), (1, K["lt1"])], x2=1, y2=1),
         lin("gSilver", [(0, K["sv4"]), (.4, K["sv3"]), (.8, K["sv2"]), (1, K["sv1"])], x2=1, y2=1),
         lin("gWood", [(0, K["lt4"]), (.4, K["lt2"]), (1, K["lt1"])], x2=1, y2=0),  # 어두운 하늘에서 활 호가 보이도록 밝은 나무
         lin("gHair", [(0, K["hr2"]), (.5, K["hr1"]), (1, K["hr0"])], x2=0, y2=1),
         lin("gPant", [(0, "#2c4245"), (.5, K["pant"]), (1, "#0f1a1c")], x2=1, y2=0),
-        lin("gSky", [(0, "#071216"), (.45, "#0f272a"), (.75, "#1d4641"), (1, "#3a6a59")]),
-        rad("gHorizon", [(0, "#8fd8bf", .3), (.4, K["jd3"], .12), (1, K["jd3"], 0)], 1300, 820, 720),
-        rad("gGround", [(0, "#16312c"), (.6, "#0b1d1a"), (1, "#050d0c")], 960, 1000, 900),
-        rad("gVig", [(0, "#000", 0), (.6, "#000", 0), (1, "#020807", .72)], 960, 520, 1150),
+        lin("gSky", [(0, "#090c14"), (.45, "#151a26"), (.75, "#202636"), (1, "#3a4357")]),  # 슬레이트 밤하늘: 비취 망토가 묻히지 않게 청록을 뺐다
+        rad("gHorizon", [(0, K["sv2"], .22), (.4, K["sv1"], .08), (1, K["sv1"], 0)], 1300, 820, 720),
+        rad("gGround", [(0, "#14251f"), (.6, "#0b1714"), (1, "#050b0a")], 960, 1000, 900),
+        rad("gVig", [(0, "#000", 0), (.6, "#000", 0), (1, "#04060b", .72)], 960, 520, 1150),
         rad("gGlowWind", [(0, "#ffffff", .9), (.25, K["jd5"], .6), (.6, K["jd4"], .2), (1, K["jd3"], 0)], 0, 0, 1),
         rad("gSpark", [(0, "#ffffff"), (.25, K["jd5"], .9), (1, K["jd4"], 0)], 0, 0, 1),
         rad("gIris", [(0, K["jd4"]), (.5, K["jd3"]), (1, K["jd1"])], 0, 0, 1),
@@ -96,15 +97,18 @@ def defs():
 # ── 배경·효과 ────────────────────────────────────────────────────────
 
 def background():
-    """해 질 녘 고원: 바람에 밀리는 구름 띠, 산줄기, 언덕"""
+    """밤 고원: 성긴 별, 바람에 밀리는 구름 띠, 산줄기, 언덕"""
     s = [f'<rect width="{W}" height="{H}" fill="url(#gSky)"/>', f'<rect width="{W}" height="{H}" fill="url(#gHorizon)"/>']
     rnd = random.Random(3)
     clouds = []
     for _ in range(14):  # 오른쪽에서 왼쪽으로 밀리는 구름 띠
         x, y, w = rnd.uniform(-100, 1900), rnd.uniform(80, 640), rnd.uniform(220, 620)
-        clouds.append(f'<ellipse cx="{x:.0f}" cy="{y:.0f}" rx="{w / 2:.0f}" ry="{rnd.uniform(6, 18):.0f}" fill="#8fd0bd" opacity="{rnd.uniform(.05, .16):.2f}"/>')
+        clouds.append(f'<ellipse cx="{x:.0f}" cy="{y:.0f}" rx="{w / 2:.0f}" ry="{rnd.uniform(6, 18):.0f}" fill="{K["sv2"]}" opacity="{rnd.uniform(.04, .12):.2f}"/>')
     s.append(f'<g filter="url(#fB8)">{"".join(clouds)}</g>')
-    for base, col, amp, seed in ((820, "#132e2c", 110, 5), (880, "#0b2220", 60, 9)):  # 먼 산줄기 → 가까운 산줄기
+    r3 = random.Random(31)
+    for _ in range(18):  # 성긴 별(운석은 없다: 이그니스의 운석우 밤하늘과 구분)
+        s.append(path(circ((r3.uniform(560, 1560), r3.uniform(40, 560)), round(r3.uniform(.8, 1.8), 1)), K["sv3"], op=round(r3.uniform(.25, .6), 2)))
+    for base, col, amp, seed in ((820, "#1a2030", 110, 5), (880, "#11161f", 60, 9)):  # 먼 산줄기 → 가까운 산줄기
         r2, pts, x = random.Random(seed), [(0, H)], 0
         while x <= W:
             pts.append((x, base - r2.uniform(0, amp)))
@@ -191,13 +195,17 @@ CLOAK = [(906, 334), (860, 342), (800, 350), (730, 366), (660, 390), (590, 404, 
 
 
 def cloak():
-    """등 뒤로 바람에 길게 날리는 망토. 갈라진 끝 넷"""
+    """등 뒤로 바람에 길게 날리는 망토. 갈라진 끝 넷, 몸 바로 뒤로 젖혀 보이는 어두운 안감"""
     shades = [(smooth([(560, 520), (900, 520), (900, 780), (620, 780)]), K["jd1"], .55),
               (smooth([(600, 400), (880, 340), (880, 380), (640, 440)]), K["jd4"], .4)]
     folds = "".join(path(smooth(f, False), stroke=K["jd1"], sw=2.2, op=.7) for f in (
         [(880, 400), (760, 420), (620, 470)], [(884, 480), (760, 520), (630, 570)], [(886, 580), (780, 620), (660, 690)], [(880, 680), (800, 720), (720, 734)]))
+    # 안감: 청록 웃옷이 같은 청록 망토에 섞이지 않게 몸 뒤에 어두운 막을 깐다(Gemini 피드백 «상»)
+    turn = [(862, 340), (834, 420), (822, 520), (814, 620), (804, 700), (790, 770)]  # 겉감이 안감으로 넘어가는 접힌 가장자리
+    lining = path(smooth(turn + [(870, 790), (900, 600), (900, 330)]), "url(#gLining)")
+    edge = path(smooth(turn, False), stroke=K["ink"], sw=2.2) + path(smooth([(p[0] - 2.5, p[1]) for p in turn], False), stroke=K["jd3"], sw=1.6, op=.8)
     hem = path(smooth([p[:2] for p in CLOAK[5:18]], False), stroke=K["sv3"], sw=1.4, op=.5, extra=' stroke-dasharray="8 6"')
-    return cel(smooth(CLOAK), "url(#gCloak)", shades, 2.2, inner=folds + hem)
+    return cel(smooth(CLOAK), "url(#gCloak)", shades, 2.2, inner=folds + lining + edge + hem)
 
 
 def hood():
@@ -237,13 +245,14 @@ def leg(hip, knee, ankle, foot):
     return s
 
 
-SKIRT = [(902, 526, 1), (970, 526, 1), (984, 580), (994, 640, 1), (960, 646), (920, 652), (880, 660), (840, 668), (806, 664, 1), (850, 628), (878, 590)]
+SKIRT = [(902, 526, 1), (970, 526, 1), (986, 580), (1000, 642, 1), (962, 650), (920, 654), (880, 660), (840, 668), (806, 664, 1), (850, 628), (878, 590)]
 
 
 def skirt():
-    """웃옷 자락: 허벅지 중간까지, 뒤가 바람에 날린다"""
+    """웃옷 자락: 허벅지 중간까지, 뒤가 바람에 날린다. 아랫단·뒷자락에 가죽 띠를 둘러 망토와 가른다"""
     folds = "".join(path(smooth(f, False), stroke=K["jd1"], sw=1.8, op=.7) for f in ([(930, 540), (920, 600), (900, 650)], [(956, 540), (962, 600), (966, 644)], [(900, 560), (870, 610), (840, 660)]))
-    trim = path(smooth([p[:2] for p in SKIRT[3:9]], False), stroke=K["sv3"], sw=2.4, op=.8)
+    rim = smooth([p[:2] for p in SKIRT[3:]], False)  # 앞 아랫단 → 뒷자락 끝 → 허리 쪽으로 올라가는 뒷선
+    trim = path(rim, stroke=K["ink"], sw=15) + path(rim, stroke=K["lt2"], sw=11) + path(rim, stroke=K["lt4"], sw=1.2, op=.6)
     return cel(smooth(SKIRT), "url(#gCloak)", [(smooth([(800, 600), (900, 560), (900, 680), (800, 680)]), K["jd1"], .5)], 2, inner=folds + trim)
 
 
@@ -391,8 +400,9 @@ def hand_bow():
 def hero():
     parts = [cloak(), hood(), ponytail(), scarf_tails(),
              quiver(),
-             leg((952, 596), (1010, 772), (1052, 950), [(1040, 940), (1070, 950), (1094, 974), (1098, 994, 1), (1040, 998, 1), (1034, 966)]),
-             leg((912, 600), (872, 778), (838, 952), [(824, 942), (852, 944), (862, 976), (860, 996, 1), (798, 996, 1), (802, 978)]),
+             # 런지: 골반을 18px 낮추고 앞(활 쪽) 무릎을 굽혀 무게를 싣고, 뒷발은 뒤로 더 뺀다
+             leg((956, 614), (1056, 766), (1062, 950), [(1050, 940), (1080, 950), (1104, 974), (1108, 994, 1), (1050, 998, 1), (1044, 966)]),
+             leg((914, 618), (872, 790), (800, 950), [(786, 940), (814, 942), (824, 974), (822, 994, 1), (760, 994, 1), (764, 976)]),
              skirt(), arm_bow(), torso(), face(), hair(), scarf_wrap(), bow(), string(), arrow(), arm_draw(), hand_bow()]
     return '<g id="hero">' + "".join(parts) + "</g>"
 
@@ -462,7 +472,7 @@ def sheet():
 def build(sheet_on=True):
     chronos._cid[0] = 0
     scene = [background(), grass(False), trap(),
-             '<ellipse cx="940" cy="996" rx="150" ry="12" fill="#000" opacity=".55" filter="url(#fB4)"/>',
+             '<ellipse cx="934" cy="996" rx="180" ry="12" fill="#000" opacity=".55" filter="url(#fB4)"/>',
              hero(),
              '<g mask="url(#mRim)" style="mix-blend-mode:screen"><use href="#hero" filter="url(#fRim)"/></g>',
              fill_light(), grass(True), wind_streaks(), gale(),

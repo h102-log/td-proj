@@ -34,19 +34,35 @@ ORBS = [(200, "arcane"), (100, "fire"), (20, "frost")]  # (궤도 각, 원소). 
 HEAD_TILT = -4  # 고개를 화염구 쪽으로 기울인다
 
 
-def tongue(b, w, t, sway=0.0, n=6):
-    """밑 가운데 b(폭 w)에서 끝 t로 솟는 불꽃 혀 모양의 점. 끝은 꺾이고 몸통은 sway만큼 휜다"""
+def tongue(b, w, t, sway=0.0, n=6, waves=1):
+    """밑 가운데 b(폭 w)에서 끝 t로 솟는 불꽃 혀 모양의 점. 끝은 꺾이고 몸통은 sway만큼 휜다(waves=2면 S자)"""
     ux, uy = unit(b, t)
     nx, ny = -uy, ux
     left, right = [], []
     for i in range(n):
         s = i / n
-        bend = sway * math.sin(math.pi * s)
+        bend = sway * math.sin(math.pi * waves * s)
         cx, cy = b[0] + (t[0] - b[0]) * s + nx * bend, b[1] + (t[1] - b[1]) * s + ny * bend
         hw = w / 2 * (1 - s) ** .7
         left.append((cx - nx * hw, cy - ny * hw))
         right.append((cx + nx * hw, cy + ny * hw))
     return left + [(t[0], t[1], 1)] + right[::-1]
+
+
+def spine(q):
+    """tongue 점의 가운데 줄(밑 → 끝)"""
+    n = len(q) // 2
+    return [((q[i][0] + q[-1 - i][0]) / 2, (q[i][1] + q[-1 - i][1]) / 2) for i in range(n)] + [q[n][:2]]
+
+
+def band(pts, off):
+    """pts를 지나는 곡선을 진행 방향 왼쪽(왼→오른쪽으로 가면 위쪽)으로 off만큼 민 점"""
+    q = catmull(pts, 6)
+    out = []
+    for i, p in enumerate(q):
+        ux, uy = unit(q[max(i - 1, 0)], q[min(i + 1, len(q) - 1)])
+        out.append((p[0] + uy * off, p[1] - ux * off))
+    return out
 
 
 def ring_pt(t, dr=0.0):
@@ -245,39 +261,67 @@ def frost():
 
 # ── 인물 ─────────────────────────────────────────────────────────────
 
-def boots():
+LEGS = (((942, 640), (930, 804), (938, 954)), ((980, 640), (1012, 794), (990, 952)))  # (엉덩이, 무릎, 발목). 화면 오른쪽 다리는 무릎을 굽혀 밖으로 민다
+
+
+def legs():
+    """트임 사이로 보이는 숯빛 다리. 화염구 쪽(화면 왼쪽) 가장자리에 빛 줄"""
     s = ""
-    for x in (942, 980):
-        d = smooth([(x - 10, 980, 1), (x + 10, 980, 1), (x + 12, 992), (x + 4, 1000), (x - 4, 1000), (x - 12, 992)])
-        s += cel(d, "url(#gChar)", [], 1.4) + path(f"M{x - 9} 991Q{x} 986 {x + 9} 991", stroke=K["gold3"], sw=2)
+    for hip, kn, an in LEGS:
+        s += cel(limb(hip, kn, 17, 12, 2), "url(#gChar)", [], 1.6) + cel(limb(kn, an, 12, 7.5, 3), "url(#gChar)", [], 1.6)
+        s += path(smooth([along(hip, kn, .15, 11), along(hip, kn, .9, 8)], False), stroke=K["ch3"], sw=2, op=.8)
+        s += path(smooth([along(kn, an, .12, 8), along(kn, an, .45, 9), along(kn, an, .85, 6)], False), stroke=K["ch3"], sw=2, op=.8)
+        s += path(circ((kn[0] - 2, kn[1] - 2), 3), K["ch3"], op=.7)  # 무릎 빛
     return s
 
 
-SK_L = [(918, 530, 1), (904, 600), (880, 700), (848, 800), (808, 880), (770, 930), (738, 944, 1)]
-SK_R = [(1004, 530, 1), (1022, 620), (1052, 720), (1090, 820), (1136, 890), (1188, 930, 1)]
-HEM = [(738, 944, 1), (776, 968), (816, 966), (856, 984), (900, 976), (944, 990), (990, 980), (1036, 990), (1080, 974), (1124, 980), (1160, 958), (1188, 930, 1)]  # 양 끝이 마력에 들려 올라간다
-OPEN = [(960, 560, 1), (970, 660), (988, 780), (1004, 900), (1012, 986, 1), (912, 986, 1), (918, 900), (934, 780), (950, 660)]
+def boots():
+    """종아리까지 오는 숯빛 장화. 위 테두리와 발등 띠는 금"""
+    s = ""
+    for (_, _, (x, y)), gy in zip(LEGS, (1000, 996)):
+        d = smooth([(x - 12, y - 44, 1), (x + 12, y - 44, 1), (x + 10, y - 4), (x + 14, gy - 8), (x + 8, gy, 1), (x - 8, gy, 1), (x - 14, gy - 8), (x - 10, y - 4)])
+        s += (cel(d, "url(#gChar)", [], 1.4) + path(f"M{x - 11} {y - 38}L{x + 11} {y - 38}", stroke=K["gold3"], sw=3)
+              + path(f"M{x - 9} {gy - 9}Q{x} {gy - 14} {x + 9} {gy - 9}", stroke=K["gold3"], sw=2))
+    return s
+
+
+# 로브 자락은 앞이 허리부터 갈라진 두 폭이다. 불이 있는 화면 왼쪽 폭은 크게 부풀다 끝이 위로 들리고, 서리 쪽 오른쪽 폭은 덜 퍼져 아래로 처지다 끝만 살짝 든다
+SK_L = [(918, 530, 1), (906, 600), (884, 690), (852, 780), (812, 852), (766, 896), (718, 908), (690, 896, 1)]
+HEM_L = [(690, 896, 1), (712, 928), (748, 948), (790, 946), (830, 966), (862, 976), (884, 982, 1)]
+SLIT_L = [(884, 982, 1), (898, 920), (916, 840), (934, 740), (948, 640), (960, 556, 1)]  # 갈라진 앞자락의 왼쪽 가장자리(아래 → 허리)
+SLIT_R = [(960, 556, 1), (976, 640), (996, 740), (1018, 840), (1036, 920), (1054, 976, 1)]
+HEM_R = [(1054, 976, 1), (1086, 988), (1120, 992), (1150, 986), (1176, 966, 1)]
+SK_R = [(1004, 530, 1), (1022, 620), (1048, 720), (1078, 810), (1110, 880), (1144, 930), (1176, 966, 1)]
+LINING = [(960, 540, 1), (1000, 640), (1040, 800), (1072, 984, 1), (1010, 976), (960, 972), (910, 976), (866, 986, 1), (890, 800), (922, 640)]  # 트임 안쪽의 뒤폭 안감. 아랫단은 뒤에 있어 앞자락보다 높다
 
 
 def skirt():
-    """아래에서 치솟는 마력에 부푼 로브 자락. 앞이 갈라져 숯빛 속치마가 보인다"""
-    pts = SK_L + HEM[1:-1] + SK_R[::-1]
-    shades = [(smooth([(990, 530), (1060, 530), (1200, 960), (1030, 1000), (1010, 760)]), K["rb2"], .6),
-              (smooth([(906, 560), (922, 560), (850, 980), (790, 980), (860, 760)]), K["rb5"], .35),
-              (smooth([(700, 740), (1220, 740), (1220, 1000), (700, 1000)]), "url(#gHemDark)", 1)]  # 아래로 갈수록 어둡다
+    """아래에서 치솟는 마력에 날리는 로브 자락. 앞이 넓게 갈라져 숯빛 안감과 다리·장화가 보인다"""
+    hem_in = [(960, 972), (1010, 976), (1072, 984)]
+    under = cel(smooth(LINING), "url(#gChar)", [(smooth([(860, 540), (1080, 540), (1080, 1000), (860, 1000)]), K["ch0"], .55)], 1.8,
+                inner=path(polyline(band([(866, 986), (910, 976)] + hem_in, 9)), stroke=K["gold1"], sw=5, op=.8))
+    pts = SK_L + HEM_L[1:] + SLIT_L[1:] + SLIT_R[1:] + HEM_R[1:] + SK_R[::-1][1:]
+    shades = [(smooth([(990, 530), (1060, 530), (1190, 990), (1060, 1000), (1010, 760)]), K["rb2"], .6),
+              (smooth([(906, 560), (922, 560), (800, 930), (740, 930), (860, 760)]), K["rb5"], .35),
+              (smooth([(680, 740), (1220, 740), (1220, 1000), (680, 1000)]), "url(#gHemDark)", 1)]  # 아래로 갈수록 어둡다
     folds = ""
-    for f in ([(930, 580), (900, 780), (856, 980)], [(924, 620), (880, 800), (806, 960)], [(1000, 600), (1040, 800), (1080, 976)],
-              [(1012, 620), (1066, 810), (1124, 976)], [(1020, 650), (1090, 830), (1160, 956)]):  # 어두운 골 + 옆의 밝은 마루
+    for f in ([(930, 580), (904, 760), (870, 960)], [(922, 620), (870, 790), (790, 940)], [(912, 650), (840, 800), (730, 915)],
+              [(1000, 600), (1030, 790), (1070, 975)], [(1012, 620), (1070, 820), (1130, 980)]):  # 어두운 골 + 옆의 밝은 마루
         folds += path(smooth(f, False), stroke=K["rb1"], sw=2.6, op=.7) + path(smooth([(x - 6, y) for x, y in f], False), stroke=K["rb5"], sw=1.6, op=.45)
-    band = [(p[0], p[1] - 22) for p in HEM]
-    trim = path(smooth(band, False), stroke=K["gold1"], sw=12) + path(smooth(band, False), stroke=K["gold3"], sw=7.5)
-    for x in range(770, 1170, 42):  # 금 띠의 불꽃 무늬
-        y = min(band, key=lambda p: abs(p[0] - x))[1]
-        trim += path(smooth(tongue((x, y + 2), 9, (x + 2, y - 12), 2)), K["rb3"]) + path(circ((x, y + 1), 2), K["gold5"])
-    inner = cel(smooth(OPEN), "url(#gChar)", [(smooth([(960, 560), (1014, 560), (1014, 990), (968, 990)]), K["ch0"], .5)], 1.8,
-                inner=path(smooth([(p[0], p[1] - 14) for p in OPEN[4:6]], False), stroke=K["gold3"], sw=4))
-    edge = path(smooth(OPEN[:5], False), stroke=K["gold3"], sw=3) + path(smooth([OPEN[0]] + OPEN[5:][::-1], False), stroke=K["gold3"], sw=3)
-    return cel(smooth(pts), "url(#gRobe)", shades, 2.2, inner=folds + trim) + inner + edge
+    trim = ""
+    for hem in (HEM_L, HEM_R):
+        b = band(hem, 22)
+        trim += path(polyline(b), stroke=K["gold1"], sw=12) + path(polyline(b), stroke=K["gold3"], sw=7.5)
+        run = 30
+        for p, q in zip(b, b[1:]):  # 금 띠의 불꽃 무늬: 띠를 따라 42px마다
+            run += math.dist(p, q)
+            if run >= 42:
+                run = 0
+                trim += path(smooth(tongue((q[0], q[1] + 2), 9, (q[0] + 2, q[1] - 12), 2)), K["rb3"]) + path(circ((q[0], q[1] + 1), 2), K["gold5"])
+    for sl in (SLIT_L, SLIT_R):  # 앞자락 가장자리 금 테
+        b = band(sl, 5)
+        trim += path(polyline(b), stroke=K["gold1"], sw=6) + path(polyline(b), stroke=K["gold3"], sw=3)
+    return under + legs() + boots() + cel(smooth(pts), "url(#gRobe)", shades, 2.2, inner=folds + trim)
 
 
 def bodice():
@@ -314,18 +358,38 @@ def neck():
                [(smooth([(940, 298), (980, 298), (980, 322), (960, 330), (940, 322)]), K["skin_s"], .9)], 1.6)
 
 
-HAIR = [(926, 318), (912, 290), (906, 256), (884, 222, 1), (910, 226), (910, 190), (896, 146, 1), (930, 176), (944, 132), (958, 100, 1),
-        (972, 150), (998, 128), (1022, 108, 1), (1010, 160), (1036, 162), (1066, 152, 1), (1030, 204), (1060, 228, 1), (1014, 244),
-        (1008, 280), (996, 318), (960, 302)]  # 위로 타오르는 뒷머리 한 덩어리: 끝 여섯이 화면 오른쪽으로 휜다
-HAIR_FLOW = [[(930, 300), (920, 250), (900, 226)], [(940, 260), (928, 200), (904, 156)], [(956, 240), (952, 170), (958, 112)],
-             [(972, 236), (990, 170), (1016, 118)], [(986, 250), (1020, 200), (1058, 160)], [(996, 280), (1024, 246), (1052, 230)]]
+# 머리 불꽃 결: (밑, 끝, 밑 폭, S자 휨). 휨이 +면 아래쪽은 화면 오른쪽, 끝쪽은 왼쪽으로 굽어 끝이 화염구(화면 왼쪽 위) 쪽으로 감긴다
+HAIR_LOCKS = [((1002, 292), (1030, 182), 36, 10), ((920, 290), (880, 200), 38, 10), ((994, 262), (1004, 140), 50, 12),
+              ((976, 252), (958, 100), 58, 14), ((944, 254), (914, 124), 60, 12), ((960, 246), (928, 76), 60, 16)]
+FRONT_LOCKS = [((938, 252), (900, 176), 26, 6), ((951, 246), (922, 146), 28, 8), ((967, 246), (952, 132), 28, 8), ((983, 254), (990, 170), 24, 6)]
+EMBER_LOCKS = [((896, 70), (884, 44), 8, 3), ((946, 52), (936, 24), 7, 3), ((1000, 104), (994, 76), 7, 3), ((862, 150), (846, 126), 7, 2)]  # 떨어져 나간 불티 가닥
+
+
+def blob(ds, fill, lw, shades=(), inners=None):
+    """여러 모양을 한 덩어리로 칠한다: 굵은 외곽선을 먼저 모두 긋고 채움으로 덮어 바깥 테두리만 남긴다"""
+    inners = inners or [""] * len(ds)
+    return "".join(path(d, stroke=K["ink"], sw=lw * 2) for d in ds) + "".join(cel(d, fill, shades, 0, inner=i) for d, i in zip(ds, inners))
+
+
+def flame_locks(locks):
+    """S자로 일렁이는 머리 결들의 (모양, 결 가운데의 어두운 줄 + 밝은 줄)"""
+    ds, flows = [], []
+    for b, t, w, sway in locks:
+        q = tongue(b, w, t, sway, 12, 2)
+        c = spine(q)
+        ds.append(smooth(q))
+        flows.append(path(smooth(c[1:-2], False), stroke=K["hair_s"], sw=1.6, op=.55) + path(smooth([(x + 4, y + 1) for x, y in c[2:-2]], False), stroke=K["gold4"], sw=1.4, op=.45))
+    return ds, flows
 
 
 def hair_back():
-    """불꽃처럼 위로 솟는 뒷머리. 결은 끝을 향해 흐르고 끝일수록 밝다"""
-    flow = "".join(path(smooth(f, False), stroke=K["hair_s"], sw=1.6, op=.55) + path(smooth([(x + 5, y + 2) for x, y in f], False), stroke=K["gold4"], sw=1.4, op=.45)
-                   for f in HAIR_FLOW)
-    return cel(smooth(HAIR), "url(#gHair)", [(smooth([(990, 220), (1060, 220), (1060, 330), (990, 330)]), K["rb2"], .45)], 1.8, inner=flow)
+    """불꽃처럼 위로 솟는 뒷머리: S자 결 여섯이 한 덩어리를 이루고 위로 불티 가닥이 떨어져 나간다. 끝일수록 밝다"""
+    ds, flows = flame_locks(HAIR_LOCKS)
+    s = blob(ds, "url(#gHair)", 1.8, [(smooth([(1012, 168), (1080, 150), (1080, 340), (996, 340), (992, 262)]), K["rb2"], .4)], flows)  # 화면 오른쪽 그늘
+    for b, t, w, sway in EMBER_LOCKS:
+        d = smooth(tongue(b, w, t, sway, 8, 2))
+        s += f'<g filter="url(#fB2)">{path(d, K["or2"])}</g>' + path(d, K["or2"], op=.9) + path(d, stroke=K["gold4"], sw=.8, op=.8)
+    return s
 
 
 def face():
@@ -356,11 +420,13 @@ def face():
 
 
 def hair_front():
-    """한쪽으로 쓸어 넘긴 앞머리와 뺨을 감싸는 두 가닥(끝이 불꽃처럼 바깥으로 튄다)"""
-    s = []
-    bang = [(930, 270, 1), (933, 248), (946, 235), (962, 230), (980, 234), (992, 247), (995, 268, 1), (986, 252), (972, 245), (958, 250), (944, 262)]
-    s.append(cel(smooth(bang), "url(#gHair)", [(smooth([(966, 228), (998, 240), (998, 270), (972, 248)]), K["hair_s"], .55)], 1.4))
-    s.append(cel(smooth(tongue((976, 240), 22, (1008, 210), 6)), "url(#gHair)", [], 1.3))  # 앞머리에서 튀어 오른 한 가닥
+    """가르마에서 위로 쓸어 올린 앞머리(결이 그대로 뒷머리 불꽃으로 이어진다)와 뺨을 감싸는 두 가닥(끝이 불꽃처럼 바깥으로 튄다)"""
+    ds, flows = flame_locks(FRONT_LOCKS)
+    line = [(932, 272), (935, 256), (942, 246), (948, 241, 1), (958, 244), (974, 245), (985, 254), (989, 272)]  # 이마 머리선. 꺾인 점이 가르마
+    cap = smooth(line + [(997, 248), (990, 236), (964, 232), (934, 236), (924, 248)])  # 머리선 위를 덮는 머리. 위 가장자리는 앞머리 결에 덮인다
+    flow = "".join(path(smooth(f, False), stroke=K["hair_s"], sw=1.3, op=.55) for f in
+                   ([(940, 252), (934, 240)], [(948, 241), (944, 232)], [(962, 244), (958, 234)], [(976, 246), (976, 236)], [(986, 256), (990, 244)]))
+    s = [blob([cap] + ds, "url(#gHair)", 1.3, inners=[flow] + flows)]
     for pts in ([(934, 254), (928, 290), (926, 322), (916, 346)], [(986, 254), (992, 290), (994, 322), (1004, 346)]):  # 뺨을 따라 내린 가는 가닥
         s.append(cel(ribbon(pts, 5.5, head=.1, tail=.35), "url(#gHair)", [], 1.2))
     return "".join(s)
@@ -429,7 +495,7 @@ def hand_dn():
 def hero():
     head_back = f'<g transform="rotate({HEAD_TILT} 960 340)">{hair_back()}</g>'
     head = f'<g transform="rotate({HEAD_TILT} 960 340)">{face()}{hair_front()}</g>'
-    parts = [boots(), skirt(), bodice(), belt(), head_back, collar(), neck(), head, sleeve_up(), hand_up(), sleeve_dn(), hand_dn()]
+    parts = [skirt(), bodice(), belt(), head_back, collar(), neck(), head, sleeve_up(), hand_up(), sleeve_dn(), hand_dn()]
     return '<g id="hero">' + "".join(parts) + "</g>"
 
 
@@ -453,7 +519,7 @@ def ornament(x0, x1, y):
 
 
 INSETS = [  # (원 중심, 반지름, 보는 곳, 배율, 제목, 설명)
-    ((1716, 236), 92, (962, 262), 1.45, "FLAME-BORN", "living flame hair · ember gaze"),
+    ((1716, 236), 92, (960, 222), 1.0, "FLAME-BORN", "living flame hair · ember gaze"),  # 솟은 불꽃 머리와 얼굴이 함께 들어오게
     ((1716, 520), 92, FB, 1.25, "ROARING FIREBALL", "blazing core · ember trail"),
     ((1716, 804), 92, (1150, 610), 1.2, "ELEMENTAL ORBIT", "fire · frost · arcane"),
 ]
