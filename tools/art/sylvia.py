@@ -20,19 +20,24 @@ BASE = {"skin": S.BASE["skin"],
         "leather": ["2a1d0d", "45230d", "724113", "a56243", "a56243"],
         "trouser": ["151a26", "262d3d", "262d3d", "3a4357", "3a4357"],
         "wood": ["2a1d0d", "724113", "a56243", "a56243", "a56243"],
-        "silver": ["3a4357", "7a86a0", "a4aec2", "d0d6e0", "d0d6e0"]}
+        "silver": ["3a4357", "7a86a0", "a4aec2", "d0d6e0", "d0d6e0"],
+        # 시위. 은색(d0d6e0)이면 활대와 시위 사이가 밝은 면으로 차서 1·2배에서 방패처럼 보였다(Gemini 4차 2026-10-19)
+        "string": ["3a4357", "56607a", "56607a", "56607a", "56607a"]}
 MATS = list(BASE)
 PARTS = ["leg", "torso", "head", "arm", "bow", "arrow"]
 SIZES = (24,)
-TAG = f"m5 ppu{H.PPU24} sylvia1"  # 형체 크기를 바꾸면 이 꼬리표도 바꾼다(fit.json)
+TAG = f"m5 ppu{H.PPU24} sylvia2"  # 형체 크기를 바꾸면 이 꼬리표도 바꾼다(fit.json)
 
 ARMS = dict(sh_l=10, el_l=25, ab_l=0.45, sh_r=10, el_r=25, ab_r=0.45)  # 활을 왼쪽에 세워 든다
 IDLE = dict(H.IDLE, **ARMS)
 WALK = [dict(w, **ARMS) for w in H.WALK]
 # 공격은 원거리(S121 사거리 4): 앞 무릎을 굽힌 런지(컨셉 자세)로 활을 과녁 쪽에 세우고 시위를 뺨까지 당겼다가(준비, 화살 보임)
 # 놓으며 오른손이 귀 뒤로 튄다(발사, 가운데가 타격 프레임, 시위가 곧게 돌아오고 화살 없음). 마무리는 활을 조금 내린다
-LUNGE = dict(hip_l=18, knee_l=22, hip_r=-16, knee_r=6)
-ATTACK = [dict(H.POSE, **LUNGE, sh_l=85, el_l=0, ab_l=0.15, sh_r=75, el_r=95, ab_r=0.1, aim=1, draw=1),
+# 2026-10-19 Gemini 4차: 당긴 시위·화살대가 몸통 위에서 X자 잡음이 돼 준비 프레임은 시위를 그리지 않고 화살촉만 둔다.
+# 활은 위 끝을 바깥으로 20° 기울인다(cant). 곧게 세우면 남·남서에서 활이 시위와 겹친 통나무로 보였다. 몸 쪽 40°는 남에서 활이 몸통을 가로질렀고,
+# 바깥 30° 이상은 서에서 활이 카메라 쪽으로 누워 안 보였다
+LUNGE = dict(hip_l=18, knee_l=22, hip_r=-16, knee_r=6, cant=20)
+ATTACK = [dict(H.POSE, **LUNGE, sh_l=88, el_l=0, ab_l=0.15, sh_r=75, el_r=95, ab_r=0.1, aim=1, draw=1, lean=5),
           dict(H.POSE, **LUNGE, sh_l=85, el_l=0, ab_l=0.15, sh_r=40, el_r=140, ab_r=0.5, aim=1, lean=-3),
           dict(H.POSE, **LUNGE, sh_l=60, el_l=10, ab_l=0.2, sh_r=30, el_r=60, ab_r=0.4, aim=1)]
 FALL = [dict(H.FALL[0], **ARMS), dict(H.FALL[1], **ARMS)] + [dict(f, bow=0) for f in H.FALL[2:]]
@@ -69,16 +74,22 @@ def sylvia(pose, bob_unit):
     g = U(arms["l"][2])  # 줌통
     # 시위 쪽. 정지·걷기는 몸 왼쪽에 세우고 시위를 바깥으로 둔다. 몸 쪽으로 두면 남(정면)에서 시위가 몸통 위 은색 세로줄이 됐다
     back = -fwd if pose.get("aim") else up_r @ np.array([-1.0, 0, 0])
+    c = np.radians(pose.get("cant", 0))  # 활 위 끝을 바깥(왼쪽)으로 눕힌다
+    up = np.cos(c) * up + np.sin(c) * (up_r @ np.array([-1.0, 0, 0]))
+    back = back - (back @ up) * up
+    back /= np.linalg.norm(back)
     tips = []
     for k in (1, -1):  # 위·아래 팔
         pts = [g + up * (a * k) + back * b for a, b in BOW]
         P += [(R.capsule(pts[i], pts[i + 1], 0.03), m("wood"), "bow") for i in range(len(pts) - 1)]
         tips.append(pts[2])
-    nock = U(arms["r"][2]) if pose.get("draw") else (tips[0] + tips[1]) / 2
-    P += [(R.capsule(t, nock, 0.028), m("silver"), "bow") for t in tips]  # 시위
-    if pose.get("draw"):  # 당긴 화살: 시위에서 줌통 앞까지
-        tip = g + (g - nock) / np.linalg.norm(g - nock) * 0.1
-        P += [(R.capsule(nock, tip, 0.028), m("wood"), "arrow"), (R.capsule(tip, tip + (tip - nock) / np.linalg.norm(tip - nock) * 0.05, 0.03, 0.01), m("silver"), "arrow")]
+    if pose.get("draw"):  # 당긴 프레임: 시위·화살대 없이 줌통 앞 화살촉만
+        d = g - U(arms["r"][2])
+        tip = g + d / np.linalg.norm(d) * 0.06
+        P.append((R.capsule(tip, tip + d / np.linalg.norm(d) * 0.07, 0.035, 0.012), m("silver"), "arrow"))
+    elif pose.get("aim"):  # 정지·걷기는 시위를 그리지 않는다. 시위를 그리면 활대와 시위가 D자 판이 돼 1·2배에서 방패처럼 보였다(Gemini 4차 2026-10-19).
+        # 위 끝을 30° 눕히는 안(Gemini 안)도 견줬는데, 활대와 시위 사이가 메워져 회색 쐐기가 됐다. 시위가 없으면 «)» 활 모양이 8방향 중 여섯에서 읽힌다
+        P += [(R.capsule(t, (tips[0] + tips[1]) / 2, 0.028), m("string"), "bow") for t in tips]  # 시위
     return P
 
 
