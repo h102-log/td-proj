@@ -24,3 +24,7 @@ def test_EV10_wall_coefficient_per_enemy_type(gd):
 
 def test_EV247_forecast_path_per_spawn(gd):
     gd("pathing", "EV247")
+
+
+def test_EV305_repath_eight_per_step(gd):
+    gd("pathing", "EV305")
