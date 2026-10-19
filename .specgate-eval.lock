@@ -1,8 +1,8 @@
 {
-  "approvedAt": "2026-10-19T07:48:08.230Z",
-  "evalMd": "e46e44c9",
+  "approvedAt": "2026-10-19T22:21:53.059Z",
+  "evalMd": "ba92dc59",
   "tests": {
-    "tests/eval/conftest.py": "b195cc2b",
+    "tests/eval/conftest.py": "02db26c8",
     "tests/eval/gd/aura.gd": "010cc38a",
     "tests/eval/gd/aura.gd.uid": "40dd7bb8",
     "tests/eval/gd/cannon.gd": "4f9a0eb3",
@@ -51,7 +51,7 @@
     "tests/eval/gd/repair.gd.uid": "722b125d",
     "tests/eval/gd/rounds.gd": "edb109a9",
     "tests/eval/gd/rounds.gd.uid": "7f117ee0",
-    "tests/eval/gd/runner.gd": "08fc4267",
+    "tests/eval/gd/runner.gd": "3984b80c",
     "tests/eval/gd/runner.gd.uid": "729df9cb",
     "tests/eval/gd/sell.gd": "995695b8",
     "tests/eval/gd/sell.gd.uid": "5c77653c",
