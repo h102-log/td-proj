@@ -209,6 +209,57 @@ def save(name, anim, elev, outline, pname, fts, model=knight, base=BASE, anims=A
         R.sheet(prt, cols).getchannel("R").save(out / "parts" / f"{name}_{elev}_{outline}_{pname}_{n}.png")
 
 
+
+def preview(name, out, fit, cmp):
+    """검수용 확대본 → art/trial/preview/<name>_*. 200px 미만 원본 대신 이것을 본다(08 §3 운영 규칙).
+    fit: 이 영웅의 24px 맞춤(배율, 기준점, 캔버스). cmp: 정지 비교에서 위에 둘 [(시트 폴더, 맞춤)]"""
+    from PIL import Image
+
+    import preview as V
+    pv = out.parent / "preview"
+    c = fit[2]
+
+    def cells(path, n):  # 시트 → [행][열] 프레임
+        im = Image.open(path)
+        return [[im.crop((q * n, r * n, (q + 1) * n, (r + 1) * n)) for q in range(im.width // n)] for r in range(im.height // n)]
+
+    def grid(rows, gap=4):
+        w, h = rows[0][0].size
+        g = Image.new("RGBA", (max(len(r) for r in rows) * (w + gap), len(rows) * (h + gap)), (0, 0, 0, 0))
+        for j, r in enumerate(rows):
+            for i, f in enumerate(r):
+                g.alpha_composite(f, (i * (w + gap), j * (h + gap)))
+        return g
+
+    # 정지 8방향: 비교 줄들 아래 이 영웅. 캔버스가 달라서(기사 32·크로노스 26 등) 발밑 기준점을 같은 자리에 맞춘다
+    group = cmp + [(out, fit)]
+    a = (int(max(f[1][0] for _, f in group)), int(max(f[1][1] for _, f in group)))
+    size = (int(a[0] + max(f[2] - f[1][0] for _, f in group)), int(a[1] + max(f[2] - f[1][1] for _, f in group)))
+
+    def put(f, anc):
+        g = Image.new("RGBA", size, (0, 0, 0, 0))
+        g.alpha_composite(f, (int(a[0] - anc[0]), int(a[1] - anc[1])))
+        return g
+    rows = [[put(r[0], f[1]) for r in cells(d / "idle_45_D_f24p_24.png", f[2])] for d, f in group]
+    V.up(V.on(grid(rows), pad=6), 5).save(pv / f"{name}_idle_cmp_24.png")
+    sheets = [grid(cells(out / f"{an}_45_D_f24p_24.png", c * (2 if an in ("attack", "fall") else 1))) for an in ("walk", "attack", "fall")]
+    V.up(V.on(V.stack(sheets, gap=12, bg=(0, 0, 0, 0)), pad=6), 4).save(pv / f"{name}_sheets_24.png")
+    walk = cells(out / "walk_45_D_f24p_24.png", c)
+    dirs = list(R.DIRS)
+    frames = [V.up(V.on(grid([[walk[dirs.index(d)][k] for d in ("S", "E", "N", "W")]]), pad=4), 6) for k in range(4)]
+    frames[0].save(pv / f"{name}_walk.gif", save_all=True, append_images=frames[1:], duration=125, loop=0, disposal=2)
+    # 공격: 보기 화면(viewer.gd)처럼 0.12·0.15·0.15초 뒤 정지로 돌아온다. 위 줄 남·남동·동·북동, 아래 줄 북·북서·서·남서
+    atk, idle = cells(out / "attack_45_D_f24p_24.png", 2 * c), cells(out / "idle_45_D_f24p_24.png", c)
+    seq = [[atk[r][k] for r in range(8)] for k in range(3)] + [[Image.new("RGBA", (2 * c, 2 * c), (0, 0, 0, 0)) for _ in range(8)]]
+    for g, r in zip(seq[3], idle):  # 정지 프레임은 공격 캔버스(2배)의 같은 발밑 자리에 놓는다
+        g.alpha_composite(r[0], (c // 2, c // 2))
+    x0, y0, x1, y1 = zip(*[f.getbbox() for fs in seq for f in fs])  # 모든 프레임이 들어가는 만큼만 잘라 크게 본다
+    box = (min(x0), min(y0), max(x1), max(y1))
+    frames = [V.up(V.on(grid([[f.crop(box) for f in fs[:4]], [f.crop(box) for f in fs[4:]]]), pad=4), 6) for fs in seq]
+    frames[0].save(pv / f"{name}_attack.gif", save_all=True, append_images=frames[1:], duration=[120, 150, 150, 580], loop=0, disposal=2)
+    print(*(pv / f"{name}_{k}" for k in ("idle_cmp_24.png", "sheets_24.png", "walk.gif", "attack.gif")))
+
+
 if __name__ == "__main__":
     import sys
     OUT.mkdir(parents=True, exist_ok=True)

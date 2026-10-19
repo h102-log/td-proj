@@ -46,7 +46,7 @@ python tools/art/concept/aias.py --scale 4 --out 폴더  # 8K(파일 이름 *_76
 
 - [x] 사용자 승인(2026-10-19)
 - [ ] Gemini 피드백의 «중»·«하» 항목: 빛의 성벽을 반투명으로, 무릎 보호대와 주먹 모양, 어깨 돌기. 고칠지 아직 고르지 않았다
-- [ ] 24px 스프라이트로 옮기기(`next/archive/2026-10-19/r3.md` §1)
+- [x] 24px 스프라이트로 옮기기(2026-10-19): `tools/art/aias.py` → `art/trial/aias/`. 컨셉에서 남긴 것과 뺀 것은 [아이아스 스프라이트 기록](../../../insights/2026-10-19_aias_sprite.md)에 있다
 
 ## 방향 결정
 
