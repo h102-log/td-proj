@@ -30,23 +30,23 @@ def test_EV262_damage_kinds_and_armor_formula(gd):
     gd("kits", "EV262")
 
 
-def test_EV263_bastion_q_cone_stun(gd):
+def test_EV263_aias_q_cone_stun(gd):
     gd("kits", "EV263")
 
 
-def test_EV264_bastion_fortify(gd):
+def test_EV264_aias_fortify(gd):
     gd("kits", "EV264")
 
 
-def test_EV265_bastion_w_taunt_shield(gd):
+def test_EV265_aias_w_taunt_shield(gd):
     gd("kits", "EV265")
 
 
-def test_EV266_bastion_e_burst(gd):
+def test_EV266_aias_e_burst(gd):
     gd("kits", "EV266")
 
 
-def test_EV267_bastion_r_wall(gd):
+def test_EV267_aias_r_wall(gd):
     gd("kits", "EV267")
 
 

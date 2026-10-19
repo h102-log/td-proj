@@ -59,7 +59,7 @@ func ev255():
 
 # EV256 · S146: 마나는 전투 단계에만 초당 2씩 차고, 모자라면 스킬을 쓰지 않으며 대기도 시작하지 않는다
 func ev256():
-	var b = _kit([["bastion", H]])
+	var b = _kit([["aias", H]])
 	var k = b.hero
 	_start(b)
 	b.cast(k, "w")
@@ -84,7 +84,7 @@ func ev256():
 func ev257():
 	var b = battle({"hero_cells": [Vector2i(10, 5), Vector2i(12, 5), Vector2i(14, 5)], "base_hp": BIG, "rounds": [[ONE, ONE]], "seed": 3})
 	b.begin_hiring()
-	b.offers = ["bastion", "bastion", "bastion"]
+	b.offers = ["aias", "aias", "aias"]
 	var k = b.hire(0)
 	b.next_round()
 	var fresh: bool = k.mana == k.max_mana
@@ -120,7 +120,7 @@ func ev258():
 
 # EV259 · S147: 고르는 칸은 키를 누르면 조준 상태가 되고, 좌클릭한 곳에 쓴다. 우클릭·ESC는 취소한다. 즉시 칸은 키만으로 쓴다
 func ev259():
-	var b = _kit([["bastion", Vector2i(5, 12)], ["ignis", H]])
+	var b = _kit([["aias", Vector2i(5, 12)], ["ignis", H]])
 	var c = controls(b)
 	var ig = b.heroes[1]
 	_start(b)
@@ -158,9 +158,9 @@ func ev260():
 	return check(_near_f(two_auras, 1.15, 0.001) and _near_f(with_q, 1.5, 0.001) and _near_f(plain, 1.0, 0.001),
 		"크로노스 둘의 오라 %s(1.15) · 오라 + Q %s(1.5) · 오라 밖 %s(1)" % [two_auras, with_q, plain])
 
-# EV261 · S148: 감소율은 곱한다. 요새화(25%)한 바스티온이 반격의 태세(50%)를 쓰면 피해 100에 37.5를 받는다
+# EV261 · S148: 감소율은 곱한다. 요새화(25%)한 아이아스가 반격의 태세(50%)를 쓰면 피해 100에 37.5를 받는다
 func ev261():
-	var b = _kit([["bastion", H]])
+	var b = _kit([["aias", H]])
 	var k = b.hero
 	_quiet(b)
 	_start(b)
@@ -188,11 +188,11 @@ func ev262():
 			return "방어력 %s 적이 %s 피해 %s에 %s 깎였다(%s여야 한다)" % [c[0].armor, c[2], c[1], _lost(c[0], hp0), c[3]]
 	return ""
 
-# ── 바스티온(S151) ──
+# ── 아이아스(S151) ──
 
 # EV263 · S151: Q는 지점 쪽 반경 2·90° 부채꼴 안 적에게 물리 피해와 기절 1.5초. 뒤쪽·옆쪽 적은 맞지 않는다
 func ev263():
-	var b = _kit([["bastion", H]])
+	var b = _kit([["aias", H]])
 	var k = b.hero
 	_quiet(b)
 	var front = _dummy(b, H + Vector2i(1, 0))
@@ -210,7 +210,7 @@ func ev263():
 
 # EV264 · S151·S159·I147: 2초 서 있으면 요새화(받는 피해 −25%, 블록 수 +3). 이동 지시를 받으면 풀린다. 요새화 중 Q는 앞 적을 1칸 밀쳐 내고 둔화시킨다
 func ev264():
-	var b = _kit([["bastion", H]])
+	var b = _kit([["aias", H]])
 	var k = b.hero
 	_quiet(b)
 	var front = _dummy(b, H + Vector2i(1, 0))
@@ -229,9 +229,9 @@ func ev264():
 	b.damage(k, 10.0)
 	return check(fort and pushed and not k.fort and k.block == base_block and _near_f(_lost(k, hp0), 10.0),
 		"요새화 %s(블록 %d) · 밀쳐 냄·둔화 %s(%s칸) · 이동 지시로 풀림 %s(블록 %d, 피해 %s)" % [fort, base_block + k.passive.block, pushed, front.pos.x - x0, not k.fort, k.block, _lost(k, hp0)])
-# EV265 · S151: W는 반경 3 적을 도발하고(옆 용병이 더 가까워도 바스티온을 노린다) 방어력을 5 깎으며, 도발한 적 하나마다 최대 체력 4% 보호막을 준다(상한 없음)
+# EV265 · S151: W는 반경 3 적을 도발하고(옆 용병이 더 가까워도 아이아스를 노린다) 방어력을 5 깎으며, 도발한 적 하나마다 최대 체력 4% 보호막을 준다(상한 없음)
 func ev265():
-	var b = _kit([["bastion", H]])
+	var b = _kit([["aias", H]])
 	var k = b.hero
 	_quiet(b)
 	var m = b.place_merc("soldier", H + Vector2i(3, 0), {"hp": BIG, "damage": 0})
@@ -243,14 +243,14 @@ func ev265():
 	_start(b)
 	b.cast(k, "w")
 	var taunted: bool = ([striker] + others).all(func(e): return b.effect(e, "taunt") == k and _near_f(b.armor_of(e), k.w.armor)) and b.effect(out, "taunt") == null
-	var shield: float = k.shields.bastion_w.hp
+	var shield: float = k.shields.aias_w.hp
 	var want: float = 12 * k.w.shield * k.max_hp  # 12명이면 48%(상한이 없다)
 	run(b, k.w.time - 0.5)
 	return check(taunted and _near_f(shield, want) and m.hp == m.max_hp,
 		"도발·방어력 −5 %s · 보호막 %s(%s) · 옆 용병 맞지 않음 %s" % [taunted, shield, want, m.hp == m.max_hp])
 # EV266 · S151: E는 3초 동안 받는 피해 −50%. 다시 누르거나 끝나면 그동안 들어온 피해(줄이기 전) × 1.5를 반경 2 적에게 준다
 func ev266():
-	var b = _kit([["bastion", H]])
+	var b = _kit([["aias", H]])
 	var k = b.hero
 	_quiet(b)
 	var near_e = _dummy(b, H + Vector2i(1, 0))
@@ -275,7 +275,7 @@ func ev266():
 # EV267 · S151·I142: R은 지점 칸을 가운데로 영웅 → 지점 방향에 수직인 3칸 에너지 성벽을 세운다. 땅 적은 지나가지 못해 돌아가고 아군은 지나간다.
 # 6초 뒤 사라진다. 성벽 2칸 안 타워는 받는 피해 −40%
 func ev267():
-	var b = _kit([["bastion", Vector2i(10, 10)]], {"base": Vector2i(2, 10), "spawns": [Vector2i(29, 10)]})
+	var b = _kit([["aias", Vector2i(10, 10)]], {"base": Vector2i(2, 10), "spawns": [Vector2i(29, 10)]})
 	var k = b.hero
 	_quiet(b)
 	var tw = b.build("tower", Vector2i(15, 12))
@@ -673,7 +673,7 @@ func ev286():
 
 # EV287 · S156: 스킬을 3번 쓰면 다음 Q의 반경이 ×1.3이 되고 대기가 2초 준다. 오라 안 영웅은 초당 마나가 2.5 더 찬다
 func ev287():
-	var b = _kit([["ignis", H], ["bastion", H + Vector2i(0, 2)], ["bastion", Vector2i(25, 3)]])
+	var b = _kit([["ignis", H], ["aias", H + Vector2i(0, 2)], ["aias", Vector2i(25, 3)]])
 	var g = b.hero
 	_quiet(b)
 	var edge = _dummy(b, Vector2i(17, 10))
@@ -698,7 +698,7 @@ func ev287():
 
 # EV288 · S158: 오라 안 영웅은 15% 빨리 걷는다
 func ev288():
-	var b = _kit([["chronos", H], ["bastion", H + Vector2i(0, 1)], ["bastion", Vector2i(3, 18)]])
+	var b = _kit([["chronos", H], ["aias", H + Vector2i(0, 1)], ["aias", Vector2i(3, 18)]])
 	var near_b = b.heroes[1]
 	var far_b = b.heroes[2]
 	b.order_move([near_b], H + Vector2i(0, 1) + Vector2i(2, 0))
@@ -738,7 +738,7 @@ func ev289():
 
 # EV290 · S158·I145: W는 영웅(자기 포함)의 마나를 최대 마나 25%만큼 채우고 Q·W·E 대기를 5초씩 줄인다
 func ev290():
-	var b = _kit([["chronos", H], ["bastion", H + Vector2i(2, 0)]])
+	var b = _kit([["chronos", H], ["aias", H + Vector2i(2, 0)]])
 	var ch = b.hero
 	var k = b.heroes[1]
 	_start(b)
@@ -792,7 +792,7 @@ func ev292():
 
 # EV293 · I143: 웨이브가 끝나면 장판·에너지 성벽·보호막·태세가 사라지고, 재사용 대기와 마나는 그대로다
 func ev293():
-	var b = _kit([["bastion", H]])
+	var b = _kit([["aias", H]])
 	var k = b.hero
 	_quiet(b)
 	var foe = _dummy(b, H + Vector2i(2, 0))
@@ -831,7 +831,7 @@ func ev294():
 
 # EV295 · I142: 에너지 성벽 칸에는 짓지 못하고, 피해를 받아도 깎이지 않는다
 func ev295():
-	var b = _kit([["bastion", H]])
+	var b = _kit([["aias", H]])
 	var k = b.hero
 	_start(b)
 	b.cast(k, "r", Vector2(H + Vector2i(4, 0)))
@@ -846,7 +846,7 @@ func ev295():
 # EV296 · S157: data/heroes의 영웅 6명은 모두 3성이고 이명이 기획서와 같다
 func ev296():
 	var kinds: Dictionary = battle().HERO_KINDS
-	var want := {"bastion": [3, "강철의 성채"], "sylvia": [3, "취풍의 명사수"], "seraphina": [3, "새벽빛의 성녀"], "vesper": [3, "그림자 역병의 설계자"], "ignis": [3, "원소의 지배자"], "chronos": [3, "시계탑의 지휘관"]}
+	var want := {"aias": [3, "강철의 성채"], "sylvia": [3, "취풍의 명사수"], "seraphina": [3, "새벽빛의 성녀"], "vesper": [3, "그림자 역병의 설계자"], "ignis": [3, "원소의 지배자"], "chronos": [3, "시계탑의 지휘관"]}
 	var got := {}
 	for k in kinds:
 		got[k] = [kinds[k].grade, kinds[k].title]
@@ -921,7 +921,7 @@ func ev300():
 	return check(outside and joined and shared and cursed_before and b.effect(d, "weaken") != null,
 		"처음엔 사슬 밖 %s · 옮아 묶임 %s · 나눠 받음 %s · 저주가 옮음 %s" % [outside, joined, shared, cursed_before and b.effect(d, "weaken") != null])
 
-# EV301 · S159: 블록 수 1인 용병은 인식 범위 안 적 셋 가운데 하나만 붙잡아 맞는다. 나머지 둘은 그 용병을 노리지 않고 지나간다. 요새화한 바스티온(블록 4)은 넷을 붙잡는다
+# EV301 · S159: 블록 수 1인 용병은 인식 범위 안 적 셋 가운데 하나만 붙잡아 맞는다. 나머지 둘은 그 용병을 노리지 않고 지나간다. 요새화한 아이아스(블록 4)은 넷을 붙잡는다
 func ev301():
 	var b = battle({"base": Vector2i(2, 10), "spawns": [Vector2i(29, 10)], "base_hp": BIG})
 	var m = b.place_merc("soldier", Vector2i(12, 10), {"hp": BIG, "damage": 0, "sight": 0, "range": 0})
@@ -931,7 +931,7 @@ func ev301():
 	run(b, 4.0)
 	var held := es.filter(func(e): return e.engaged == m)
 	var gone := es.filter(func(e): return e.pos.x < 10.0)
-	var k = _kit([["bastion", Vector2i(12, 10)]], {"base": Vector2i(2, 10), "spawns": [Vector2i(29, 10)]})
+	var k = _kit([["aias", Vector2i(12, 10)]], {"base": Vector2i(2, 10), "spawns": [Vector2i(29, 10)]})
 	var bh = k.hero
 	_quiet(k)
 	_start(k)
@@ -942,12 +942,12 @@ func ev301():
 	run(k, 3.0)
 	var held4 := many.filter(func(e): return e.engaged == bh)
 	return check(held.size() == 1 and gone.size() == 2 and bh.block == 4 and held4.size() == 4,
-		"용병이 붙잡음 %d(1) · 지나감 %d(2) · 요새화 블록 %d · 바스티온이 붙잡음 %d(4)" % [held.size(), gone.size(), bh.block, held4.size()])
+		"용병이 붙잡음 %d(1) · 지나감 %d(2) · 요새화 블록 %d · 아이아스가 붙잡음 %d(4)" % [held.size(), gone.size(), bh.block, held4.size()])
 
-# EV302 · S151: 요새화는 이동 지시로만 풀린다(I147). 요새화한 바스티온은 멀리서 걸어오는 적을 쫓아 움직여도(S141) 요새화가 이어져
+# EV302 · S151: 요새화는 이동 지시로만 풀린다(I147). 요새화한 아이아스는 멀리서 걸어오는 적을 쫓아 움직여도(S141) 요새화가 이어져
 # 적 여섯 가운데 넷을 붙잡고 둘은 지나간다(EV301은 적이 바로 옆에서 나와 쫓기 전에 붙잡혔다)
 func ev302():
-	var k = _kit([["bastion", Vector2i(12, 10)]], {"base": Vector2i(2, 10), "spawns": [Vector2i(29, 10)]})
+	var k = _kit([["aias", Vector2i(12, 10)]], {"base": Vector2i(2, 10), "spawns": [Vector2i(29, 10)]})
 	var bh = k.hero
 	_quiet(k)
 	_start(k)
