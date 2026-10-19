@@ -119,3 +119,19 @@ func ev247():
 		worst[0] = maxf(worst[0], path.map(func(c): return e.pos.distance_to(Vector2(c))).min())
 		return at_base(b, e))
 	return check(ok and worst[0] <= 0.75, "거점에 닿음 %s · 예상 경로에서 가장 멀어진 거리 %.2f칸(0.75 이하여야 한다)" % [ok, worst[0]])
+
+# EV305 · I155: 막힌 칸이 바뀌어 적 경로를 다시 구할 때 한 스텝에 8명까지만 새 경로를 받고, 나머지는 다음 스텝부터 받는다
+func ev305():
+	var b = battle({"base_hp": BIG})
+	var foes := []
+	for y in 20:
+		foes.append(b.spawn_enemy("basic", Vector2i(0, y), {"speed": 0.0}))  # 서 있게 해서 경로가 줄지 않는다
+	b.step(DT)
+	var old: Array = foes.map(func(e): return e.path)
+	if b.build("wall", Vector2i(12, 3)) == null:
+		return "방벽을 짓지 못했다"
+	var got := []
+	for i in 3:
+		b.step(DT)
+		got.append(range(foes.size()).filter(func(k): return not is_same(old[k], foes[k].path)).size())
+	return check(got == [8, 16, 20], "스텝마다 새 경로를 받은 적의 누적 수가 %s다([8, 16, 20]이어야 한다)" % [got])
