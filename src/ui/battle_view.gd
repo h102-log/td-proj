@@ -69,6 +69,7 @@ func _draw() -> void:
 			continue
 		if z.get("delay", 0.0) <= 0.0:
 			draw_circle(_center(z.pos), CELL * z.radius, Color(col, 0.18))
+			_pattern(z.src, _center(z.pos).round(), CELL * z.radius, Color(col, 0.9))
 		draw_arc(_center(z.pos), CELL * z.radius, 0.0, TAU, 48, Color(col, 0.8), 1.0)
 	for s in controls.picked + ([controls.fort] if controls.fort else []) + ([battle.base] if controls.village else []):  # 전투 단계에 고른 구조물(S74, S83)·고른 성곽 칸(S85)·고른 거점(S100)
 		draw_rect(_rect(s.cell), Color.WHITE, false, 1.0)
@@ -218,6 +219,70 @@ static func _feet() -> ImageTexture:
 				if pow((x + 0.5 - 7.0) / 7.0, 2) + pow((y + 0.5 - 3.0) / 3.0, 2) <= 1.0:
 					im.set_pixel(14 * t + x, y, TEAM[t])
 	return ImageTexture.create_from_image(im)
+
+# 장판 안쪽 무늬(S168). 색이 비슷한 장판 쌍(불길·용암, 블랙홀·늪, 화살비·독안개, 황금률·성역)을 무늬로 가른다. 무늬는 원 안에만 그린다
+func _pattern(src: String, c: Vector2, r: float, col: Color) -> void:
+	match src:
+		"ignis_q":  # 불길: 위로 솟는 ^(8px 격자)
+			for p in _grid(c, r - 4.0, 8.0):
+				draw_polyline(PackedVector2Array([p + Vector2(-3, 2), p + Vector2(0, -2), p + Vector2(3, 2)]), col)
+		"ignis_r":  # 용암: 가운데서 뻗는 지그재그 균열 6줄
+			for k in 6:
+				var d := Vector2.from_angle(k * TAU / 6.0 + 0.3)
+				var pts := PackedVector2Array([c])
+				for i in range(1, 5):
+					pts.append(c + d * r * 0.22 * i + d.orthogonal() * (2.0 if i % 2 else -2.0))
+				draw_polyline(pts, col)
+		"ignis_e":  # 블랙홀: 나선 3바퀴
+			var pts := PackedVector2Array()
+			for i in 61:
+				pts.append(c + Vector2.from_angle(i / 60.0 * 3.0 * TAU) * r * 0.9 * i / 60.0)
+			draw_polyline(pts, col)
+		"vesper_r":  # 늪: 물결 가로줄 4줄
+			for k in 4:
+				var y := (k - 1.5) * r / 2.5
+				var half := sqrt(maxf(r * r - y * y, 0.0)) - 3.0
+				var pts := PackedVector2Array()
+				var x := -half
+				while x <= half:
+					pts.append(c + Vector2(x, y + 2.0 * sin(x * TAU / 8.0)))
+					x += 2.0
+				draw_polyline(pts, col)
+		"sylvia_r":  # 화살비: 비스듬한 빗금(6px 간격)
+			var s := -r + 3.0
+			while s < r - 3.0:
+				var h := sqrt(r * r - s * s) - 2.0
+				var q := c + Vector2(1, 1).normalized() * s
+				draw_line(q - Vector2(1, -1).normalized() * h, q + Vector2(1, -1).normalized() * h, col)
+				s += 6.0
+		"vesper_q":  # 독안개: 흩어진 거품(6px 격자)
+			for p in _grid(c, r - 3.0, 6.0):
+				draw_arc(p, 1.5, 0.0, TAU, 8, col)
+		"chronos_e":  # 황금률: 햇살 12줄
+			for k in 12:
+				var d := Vector2.from_angle(k * TAU / 12.0)
+				draw_line(c + d * r * 0.25, c + d * r * 0.9, col)
+		"seraphina_w":  # 성역: 큰 십자
+			draw_line(c - Vector2(0, r * 0.8), c + Vector2(0, r * 0.8), col, 2.0)
+			draw_line(c + Vector2(-r * 0.5, -r * 0.3), c + Vector2(r * 0.5, -r * 0.3), col, 2.0)
+		"chronos_r":  # 왜곡장: 안쪽 점선 고리 둘
+			for rr in [r * 0.6, r * 0.3]:
+				for k in 12:
+					draw_arc(c, rr, k * TAU / 12.0, (k + 0.5) * TAU / 12.0, 4, col)
+		"sylvia_e":  # 덫: X(10px 격자)
+			for p in _grid(c, r - 3.0, 10.0):
+				draw_line(p - Vector2(2, 2), p + Vector2(2, 2), col)
+				draw_line(p + Vector2(-2, 2), p + Vector2(2, -2), col)
+
+# 가운데 c에서 step 간격 격자점 가운데 반경 r 안의 점
+static func _grid(c: Vector2, r: float, step: float) -> Array:
+	var out := []
+	var n := int(r / step)
+	for i in range(-n, n + 1):
+		for j in range(-n, n + 1):
+			if Vector2(i, j).length() * step <= r:
+				out.append(c + Vector2(i, j) * step)
+	return out
 
 # 화면 방향 v(y가 아래)의 시트 행: S, SE, E, NE, N, NW, W, SW(tools/art/render.py DIRS)
 static func _dir_of(v: Vector2) -> int:
