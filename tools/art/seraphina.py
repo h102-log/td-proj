@@ -21,15 +21,16 @@ BASE = {"skin": ["684c3c", "927e6a", "efb775", "efb775", "efb775"],  # 자동(e8
 MATS = list(BASE)
 PARTS = ["leg", "torso", "head", "arm", "staff", "orb"]
 SIZES = (24,)
-TAG = f"m5 ppu{H.PPU24} seraphina1"  # 형체 크기를 바꾸면 이 꼬리표도 바꾼다(fit.json)
+TAG = f"m5 ppu{H.PPU24} seraphina2"  # 형체 크기를 바꾸면 이 꼬리표도 바꾼다(fit.json)
 
 STAFF = dict(sword=10, sword_side=10)
 L_ARM = dict(sh_l=25, el_l=55, ab_l=0.3)  # 빛 구슬을 가슴 높이 앞에 든다
 IDLE = dict(H.IDLE, **STAFF, **L_ARM)
 WALK = [dict(w, **STAFF, **L_ARM) for w in H.WALK]
-# 공격은 원거리(S121 사거리 3): 지팡이를 뒤로 눕혀 낮게 들었다가(준비) 머리 위로 곧게 치켜들며 해 원반을 키우고 왼손을 과녁 쪽으로 뻗는다(발사,
-# 가운데가 타격 프레임). 마무리는 반쯤 내린다. 과녁 쪽으로 겨누면(sword 25) 남·남동에서 앞으로 기운 지팡이가 화면에서 짧아져 안 보였다
-ATTACK = [dict(H.POSE, **L_ARM, sh_r=30, el_r=40, ab_r=0.5, sword=-35, sword_side=10, lean=-5),
+# 공격은 원거리(S121 사거리 3): 지팡이를 몸 앞에 곧게 모아 쥐었다가(준비) 머리 위로 곧게 치켜들며 해 원반을 키우고 왼손을 과녁 쪽으로 뻗는다(발사,
+# 가운데가 타격 프레임). 마무리는 반쯤 내린다. 과녁 쪽으로 겨누면(sword 25) 남·남동에서 앞으로 기운 지팡이가 화면에서 짧아져 안 보였다.
+# 준비에서 지팡이를 뒤로 35° 눕히면 북·북동에서 몸에 가려 해 원반이 사라졌다(Gemini 4차 2026-10-19). 지금은 수직에서 10° 안이다
+ATTACK = [dict(H.POSE, **L_ARM, sh_r=35, el_r=45, ab_r=0.15, sword=8, sword_side=-8, lean=-3),
           dict(H.POSE, sh_l=75, el_l=5, ab_l=0.2, sh_r=165, el_r=5, ab_r=0.4, sword=-5, sword_side=5, lean=6, sun=1.6),
           dict(H.POSE, **L_ARM, sh_r=100, el_r=20, ab_r=0.45, sword=0, sword_side=10, lean=3)]
 FALL = [dict(H.FALL[0], **L_ARM), dict(H.FALL[1], orb=0)] + [dict(f, orb=0, staff=0) for f in H.FALL[2:]]
@@ -43,8 +44,9 @@ def seraphina(pose, bob_unit):
     def local(fn):
         return H.local(U, up_r, fn)
 
-    def skirt(q, grow=0.0):  # 허리에서 발목까지
-        return H.flare(q, 0.47, 0.035, 0.11, 0.17, grow)
+    def skirt(q, grow=0.0):  # 허리에서 발목 위까지. 단을 0.035 → 0.075로 올려 걸을 때 금 신발이 단 아래로 보이게 했다. 발목까지 덮으면
+        # 북·북동·북서에서 다리가 안 보여 윗몸만 떠다니는 것처럼 보였다(Gemini 4차 2026-10-19)
+        return H.flare(q, 0.47, 0.075, 0.11, 0.17, grow)
 
     P = []  # (sdf, 재질, 부위)
     for side in "lr":  # 다리는 치마에 가리고 금 신발만 앞뒤로 나온다
@@ -53,11 +55,16 @@ def seraphina(pose, bob_unit):
               (R.ellipsoid(G(ankle + [0, 0.035, -0.005]), (0.04, 0.065, 0.03)), m("gold"), "leg")]
     P += [(R.box(U([0, 0, 0.575]), (0.115, 0.07, 0.12), up_r, 0.035), m("ivory"), "torso"),  # 몸판
           (local(skirt), m("ivory"), "torso"),
-          (local(lambda q: np.maximum(skirt(q, 0.006), q[:, 2] - 0.075)), m("gold"), "torso"),  # 겉치마 금 단
+          (local(lambda q: np.maximum(skirt(q, 0.006), q[:, 2] - 0.115)), m("gold"), "torso"),  # 겉치마 금 단
           (local(lambda q: np.maximum(np.maximum(skirt(q, 0.008), np.abs(q[:, 0]) - 0.035), -q[:, 1])), m("dawn"), "torso"),  # 앞자락 사이 새벽 주황 속치마
           (R.box(U([0, 0.066, 0.58]), (0.03, 0.012, 0.11), up_r), m("dawn"), "torso"),  # 영대
           (R.box(U([0, 0, 0.465]), (0.12, 0.078, 0.016), up_r), m("gold"), "torso"),  # 금 허리끈
-          (R.box(U([0, -0.105, 0.55]), (0.13, 0.012, 0.24), up_r, 0.01), m("ivory"), "torso")]  # 등 뒤 베일
+          # 등: 베일은 어깨선까지만 내리고 끝에 금 단을 두른다. 그 아래 등 가운데로 주황 영대가 치맛단까지 내려온다.
+          # 베일이 허리 아래까지 내려오면 북·북동·북서 뒷모습이 머리부터 발끝까지 상아 한 덩어리였다(Gemini 4차 2026-10-19)
+          (R.box(U([0, -0.105, 0.70]), (0.13, 0.012, 0.10), up_r, 0.01), m("ivory"), "torso"),
+          (R.box(U([0, -0.108, 0.605]), (0.135, 0.016, 0.012), up_r), m("gold"), "torso"),
+          (R.box(U([0, -0.066, 0.58]), (0.03, 0.012, 0.11), up_r), m("dawn"), "torso"),
+          (local(lambda q: np.maximum(np.maximum(skirt(q, 0.008), np.abs(q[:, 0]) - 0.03), q[:, 1])), m("dawn"), "torso")]
     P.append((R.ellipsoid(U([0, 0, 0.80]), (0.12, 0.115, 0.125)), m("skin"), "head"))
     hair = R.ellipsoid(U([0, -0.015, 0.805]), (0.13, 0.125, 0.13))
     veil = R.ellipsoid(U([0, -0.02, 0.81]), (0.14, 0.14, 0.14))
