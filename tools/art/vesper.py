@@ -12,19 +12,25 @@ import render as R
 import seraphina as S
 
 OUT = Path(__file__).resolve().parents[2] / "art" / "trial" / "vesper"
+# 독빛은 청록이다. f24p에 밝은 연두가 없다. 노랑(efac28)은 놋쇠 향로와 섞였고, 독녹(39571c)은 들판에 묻혔다(세 안 비교, Gemini 4차 안 2026-10-19)
+GLOW = ["2d472d", "3c9f9c", "3c9f9c", "3c9f9c", "3c9f9c"]
 # 값이 hex 하나면 자동 램프, 5개 목록이면 손 램프(안쪽 외곽선, 음영 0~3. hero.ramp). f24p에 밝은 연두가 없어 독빛은 39571c, 그늘은 2d472d다(컨셉 README)
 BASE = {"leather": ["2a1d0d", "392a1c", "684c3c", "684c3c", "927e6a"],
-        "hat": ["2a1d0d", "2a1d0d", "392a1c", "392a1c", "684c3c"],
+        # 모자·장화·장갑. 2a1d0d~684c3c였을 때 코트와 명도가 붙어 1·2배에서 갈색 한 덩어리였다(Gemini 4차 2026-10-19)
+        "hat": ["151a26", "151a26", "2a1d0d", "2a1d0d", "392a1c"],
         "bone": ["684c3c", "927e6a", "927e6a", "efd8a1", "efd8a1"],
+        # 조끼는 뼈색 그늘 단계만 쓴다. 뼈색(efd8a1)이면 남(정면)에서 새부리 끝과 겹쳐 흰 넥타이로 이어졌다(Gemini 4차 2026-10-19)
+        "vest": ["392a1c", "684c3c", "927e6a", "927e6a", "927e6a"],
         "toxin": ["1f240a", "2d472d", "39571c", "39571c", "39571c"],
-        "brass": ["2a1d0d", "724113", "ab5c1c", "ab5c1c", "efac28"]}
+        "brass": ["2a1d0d", "724113", "ab5c1c", "ab5c1c", "efac28"],
+        "glow": GLOW}  # 렌즈·향로 독빛
 MATS = list(BASE)
-PARTS = ["leg", "torso", "head", "arm", "censer", "compass"]
+PARTS = ["leg", "torso", "head", "arm", "censer"]
 SIZES = (24,)
-TAG = f"m5 ppu{H.PPU24} vesper1"  # 형체 크기를 바꾸면 이 꼬리표도 바꾼다(fit.json)
+TAG = f"m5 ppu{H.PPU24} vesper2"  # 형체 크기를 바꾸면 이 꼬리표도 바꾼다(fit.json)
 
 CENSER = dict(sh_r=10, el_r=30, ab_r=0.6, sword=175, sword_side=0)  # 향로 사슬은 손에서 곧장 아래로 늘어진다(sword 180 = 아래)
-L_ARM = dict(sh_l=25, el_l=60, ab_l=0.3)  # 컴퍼스를 가슴 높이 앞에 든다
+L_ARM = dict(sh_l=15, el_l=30, ab_l=0.3)  # 빈 왼손. 컴퍼스는 24px에서 1px 주황 점이라 뺐다(Gemini 4차 2026-10-19)
 IDLE = dict(H.IDLE, **CENSER, **L_ARM)
 WALK = [dict(w, **CENSER, **L_ARM) for w in H.WALK]
 # 공격은 원거리(S121 사거리 3.5): 향로를 뒤로 낮게 젖혔다가(준비) 팔을 곧게 들어 머리 위로 휘돌리며 독빛을 키우고(발사, 가운데가 타격 프레임)
@@ -32,7 +38,7 @@ WALK = [dict(w, **CENSER, **L_ARM) for w in H.WALK]
 ATTACK = [dict(H.POSE, **L_ARM, sh_r=-40, el_r=20, ab_r=0.5, sword=215, lean=-5),
           dict(H.POSE, **L_ARM, sh_r=165, el_r=5, ab_r=0.5, sword=0, sword_side=20, lean=8, glow=1.4),
           dict(H.POSE, **L_ARM, sh_r=80, el_r=20, ab_r=0.45, sword=110, lean=4)]
-FALL = [dict(H.FALL[0], sword=175), dict(H.FALL[1], sword=175, compass=0)] + [dict(f, compass=0, censer=0) for f in H.FALL[2:]]
+FALL = [dict(H.FALL[0], sword=175), dict(H.FALL[1], sword=175)] + [dict(f, censer=0) for f in H.FALL[2:]]
 ANIMS = {"idle": [IDLE], "walk": WALK, "attack": ATTACK, "fall": FALL}
 
 
@@ -53,7 +59,8 @@ def vesper(pose, bob_unit):
         P += [(R.capsule(G(hip), G(knee), 0.05), m("leather"), "leg"), (R.capsule(G(knee), G(ankle), 0.048), m("hat"), "leg"),
               (R.ellipsoid(G(ankle + [0, 0.035, -0.005]), (0.042, 0.068, 0.032)), m("hat"), "leg")]
     P += [(R.box(U([0, 0, 0.575]), (0.12, 0.075, 0.12), up_r, 0.035), m("leather"), "torso"),  # 코트 윗몸
-          (R.box(U([0, 0.06, 0.53]), (0.045, 0.02, 0.09), up_r), m("bone"), "torso"),  # 앞섶 사이 뼈색 조끼
+          (R.box(U([0, 0.06, 0.51]), (0.045, 0.02, 0.07), up_r), m("vest"), "torso"),  # 앞섶 사이 조끼
+          (R.box(U([0, 0.07, 0.635]), (0.07, 0.025, 0.03), up_r, 0.01), m("hat"), "torso"),  # 목 가리개: 새부리와 조끼 사이를 끊는다
           (R.box(U([0, 0, 0.47]), (0.125, 0.08, 0.02), up_r), m("hat"), "torso"),  # 허리띠
           (R.box(U([0, 0.082, 0.47]), (0.025, 0.01, 0.02), up_r), m("brass"), "torso"),  # 놋쇠 버클
           (H.local(U, up_r, opened(lambda q: np.maximum(coat(q), -coat(q, -0.015)))), m("leather"), "torso"),  # 코트 자락
@@ -61,10 +68,12 @@ def vesper(pose, bob_unit):
           (lambda p: np.maximum(R.ellipsoid(U([0, -0.01, 0.64]), (0.2, 0.14, 0.09))(p), -((p - U([0, 0, 0.56])) @ up)), m("leather"), "torso")]  # 어깨 망토
     P += [(R.ellipsoid(U([0, -0.01, 0.80]), (0.125, 0.12, 0.13)), m("hat"), "head"),  # 두건
           (R.ellipsoid(U([0, 0.05, 0.79]), (0.1, 0.08, 0.1)), m("bone"), "head"),  # 가면
-          (R.capsule(U([0, 0.1, 0.77]), U([0, 0.29, 0.62]), 0.05, 0.014), m("bone"), "head")]  # 새부리: 남(정면)에서는 화면 아래로 짧아져 가슴 위 뼈색 세로줄이 된다. 동·서에서 앞으로 나온다
-    P += [(R.ellipsoid(U([0.05 * s, 0.115, 0.815]), (0.028, 0.02, 0.028)), m("toxin"), "head") for s in (-1, 1)]  # 독녹 렌즈
-    P += [(R.ellipsoid(U([0, 0, 0.9]), (0.2, 0.2, 0.02)), m("hat"), "head"),  # 챙
-          (lambda p: np.maximum(R.ellipsoid(U([0, -0.01, 0.9]), (0.095, 0.095, 0.11))(p), -((p - U([0, 0, 0.9])) @ up)), m("hat"), "head"),  # 모자 꼭대기
+          # 새부리: 오른쪽으로 25° 튼다. 곧게 앞으로 두면 남(정면)에서 화면 아래로 짧아져 조끼와 이어진 뼈색 세로띠(넥타이)가 됐다(Gemini 4차 2026-10-19)
+          (R.capsule(U([0.01, 0.1, 0.77]), U([0.12, 0.26, 0.62]), 0.05, 0.014), m("bone"), "head")]
+    P += [(R.ellipsoid(U([0.05 * s, 0.115, 0.815]), (0.028, 0.02, 0.028)), m("glow"), "head") for s in (-1, 1)]  # 렌즈
+    # 챙 반지름 0.2 → 0.26(양옆 1px씩), 꼭대기 높이 0.11 → 0.17(약 1px). 위에서 본 역병 의사 모자를 키운다(Gemini 4차 2026-10-19)
+    P += [(R.ellipsoid(U([0, 0, 0.9]), (0.26, 0.26, 0.02)), m("hat"), "head"),  # 챙
+          (lambda p: np.maximum(R.ellipsoid(U([0, -0.01, 0.9]), (0.095, 0.095, 0.17))(p), -((p - U([0, 0, 0.9])) @ up)), m("hat"), "head"),  # 모자 꼭대기
           (R.box(U([0, 0.09, 0.925]), (0.03, 0.008, 0.02), up_r), m("brass"), "head")]  # 모자 버클
     for side, s in (("l", -1), ("r", 1)):  # 팔: 가죽 소매, 장갑
         sh, el, hd = arms[side]
@@ -76,13 +85,9 @@ def vesper(pose, bob_unit):
     c = hd + bd * 0.24
     P += [] if not pose.get("censer", 1) else [
           (R.capsule(hd, hd + bd * 0.18, 0.03), m("brass"), "censer"),  # 사슬
-          (R.ellipsoid(c, (0.06, 0.06, 0.07)), m("brass"), "censer"),  # 향로
-          (R.ellipsoid(c, (0.065 * glow, 0.065 * glow, 0.02)), m("toxin"), "censer")]  # 독빛 구멍 띠
-    hl = U(arms["l"][2])
-    side = up_r @ np.array([1.0, 0, 0])
-    P += [] if not pose.get("compass", 1) else [
-          (R.capsule(hl, hl + up * 0.13 + side * 0.03, 0.028), m("brass"), "compass"),
-          (R.capsule(hl, hl + up * 0.13 - side * 0.03, 0.028), m("brass"), "compass")]
+          (R.ellipsoid(c, (0.085, 0.085, 0.095)), m("brass"), "censer"),  # 향로. 컴퍼스를 빼고 반지름을 0.5px 키웠다(Gemini 4차 2026-10-19)
+          # 독빛: 향로 윗면. 가운데 띠로 두면 45°에서 놋쇠에 가려 1px도 안 나왔다
+          (R.ellipsoid(c + up * 0.035, (0.075 * glow, 0.075 * glow, 0.065 * glow)), m("glow"), "censer")]
     return P
 
 
