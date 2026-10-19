@@ -22,16 +22,19 @@ BASE = {"steel": ["262d3d", "3a4357", "7a86a0", "a4aec2", "d0d6e0"],
 MATS = list(BASE)
 PARTS = ["leg", "torso", "head", "arm", "spear", "shield"]
 SIZES = (24,)
-TAG = f"m5 ppu{H.PPU24} aias1"  # 형체 크기를 바꾸면 이 꼬리표도 바꾼다(fit.json)
+TAG = f"m5 ppu{H.PPU24} aias2"  # 형체 크기를 바꾸면 이 꼬리표도 바꾼다(fit.json)
 
-# 창은 거의 세워 들고 앞으로 15° 기울인다. 0°면 동에서 창끝이 투구 테두리와 겹쳐 보이지 않았고, 15°에서는 동·서 모두 창끝이 얼굴 앞으로 나온다
-SPEAR = dict(sword=15, sword_side=10)
-IDLE = dict(H.IDLE, **SPEAR)
-WALK = [dict(w, **SPEAR) for w in H.WALK]
+# 창은 거의 세워 들고 앞으로 5°만 기울인다. 15°였을 때 남동·동에서 창이 몸통·방패 앞을 대각선으로 가로질렀다(Gemini 4차 2026-10-19).
+# 창 든 오른손을 바깥으로 1.5px쯤 더 벌려(ab_r 0.7 → 1.1) 창 자루가 오른팔 바깥 실루엣에 붙어 내려오게 한다.
+# 바깥 기울기는 0이다. 10°면 동에서 창이 카메라 쪽으로 누워 짧아지고 창끝이 투구 높이에 붙었다. -8°는 남에서 창 밑동이 바깥으로 삐져나왔다
+SPEAR = dict(sword=5, sword_side=0)
+IDLE = dict(H.IDLE, **SPEAR, ab_r=1.1)
+WALK = [dict(w, **SPEAR, ab_r=1.1) for w in H.WALK]
 # 공격은 창 찌르기: 창을 허리 높이에서 뒤로 당겼다가(준비) 팔을 뻗고 반 발 내디디며 찌르고(가운데가 타격 프레임) 반쯤 거둔다(마무리).
 # 방패 팔은 정지 자세 그대로 앞을 막는다
 ATTACK = [dict(IDLE, sh_r=-60, el_r=55, ab_r=0.3, sword=88, sword_side=-5, lean=-6),
-          dict(IDLE, sh_r=80, el_r=0, ab_r=0.2, sword=84, sword_side=-5, lean=12, hip_r=14, knee_r=10, hip_l=-10, knee_l=10),
+          # 찌르기 프레임은 창을 손 안에서 앞으로 0.15 밀어낸다(reach). S·N은 찌르는 방향이 카메라 축이라 창끝 이동이 짧아 보였다(Gemini 4차 2026-10-19)
+          dict(IDLE, sh_r=80, el_r=0, ab_r=0.2, sword=84, sword_side=-5, lean=12, hip_r=14, knee_r=10, hip_l=-10, knee_l=10, reach=0.15),
           dict(IDLE, sh_r=-25, el_r=95, ab_r=0.25, sword=95, sword_side=-5, lean=3)]
 # 쓰러짐은 기사 자세를 쓰되, 창은 셋째 프레임부터 놓치고 방패는 넷째 프레임부터 몸 옆 바닥에 눕는다. 방패를 팔에 둔 채 누우면
 # 누운 몸 위에 금테 상자가 얹힌 것처럼 보였다
@@ -64,8 +67,8 @@ def aias(pose, bob_unit):
         P += [(R.ellipsoid(U(sh + [0.01 * s, 0, 0.015]), (0.085, 0.08, 0.06)), m("steel"), "torso"),
               (R.capsule(U(sh), U(el), 0.044), m("steel"), "arm"), (R.capsule(U(el), U(hd), 0.042), m("steel"), "arm"),
               (R.ellipsoid(U(hd), (0.045, 0.045, 0.045)), m("dark"), "arm")]
-    hd = U(arms["r"][2])
     bd, _, _ = H.blade_axes(pose, up_r)  # 창은 기사의 검과 같은 방향 값으로 든다
+    hd = U(arms["r"][2]) + bd * pose.get("reach", 0)  # 창 기준점. 찌르기에서 손 안의 창을 앞으로 민다
     P += [] if not pose.get("spear", 1) else [
           (R.capsule(hd - bd * 0.5, hd + bd * 0.76, 0.03), m("wood"), "spear"),  # 자루: 반지름 0.03이면 폭이 1px을 넘어 화소 사이로 빠지지 않는다
           (R.capsule(hd + bd * 0.74, hd + bd * 0.82, 0.014, 0.032), m("steel"), "spear"),
@@ -92,7 +95,7 @@ def tip(pose):
     """창끝의 모델 좌표"""
     U, _, up_r, _, arms = H.rig(pose, 0)
     bd, _, _ = H.blade_axes(pose, up_r)
-    return U(arms["r"][2]) + bd * TIP
+    return U(arms["r"][2]) + bd * (TIP + pose.get("reach", 0))
 
 
 def screen(p, g, ppu, anchor, elev=45):
@@ -118,9 +121,10 @@ def smear(fts):
         for r, g in enumerate(R.DIRS.values()):
             p0, p1 = screen(tip(ATTACK[0]), g, ppu, a), screen(tip(ATTACK[1]), g, ppu, a)
             u = (p1 - p0) / np.linalg.norm(p1 - p0)
-            # 자루 양쪽에 바탕 1px을 띄운다. 외곽선에 붙이면(±1.5) 창끝이 삼지창처럼 보였다. 준비 창끝 2px 뒤에서 찌르기 창끝 4px 앞까지
-            for off in (-2.5, 2.5):
-                for t in np.arange(-2, np.linalg.norm(p1 - p0) - 4, 0.25):
+            # 자루 외곽선과 잔상 사이에 바탕 1px을 띄운다(±3.5). 외곽선에 붙이면(±1.5) 창끝이 삼지창처럼 보였고, ±2.5는 S·N에서 자루에 붙은
+            # 흰 얼룩으로 읽혔다(Gemini 4차 2026-10-19). 준비 창끝 4px 뒤에서 찌르기 창끝 2px 앞까지
+            for off in (-3.5, 3.5):
+                for t in np.arange(-4, np.linalg.norm(p1 - p0) - 2, 0.25):
                     x, y = np.round(p0 + u * t + np.array([-u[1], u[0]]) * off).astype(int)
                     if 0 < x < c2 - 1 and 0 < y < c2 - 1 and im[r * c2 + y, c2 + x, 3] == 0:
                         im[r * c2 + y, c2 + x] = color
