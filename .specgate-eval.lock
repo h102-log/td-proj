@@ -1,6 +1,6 @@
 {
-  "approvedAt": "2026-10-19T00:53:09.412Z",
-  "evalMd": "a58ef352",
+  "approvedAt": "2026-10-19T07:01:41.233Z",
+  "evalMd": "c438ddab",
   "tests": {
     "tests/eval/conftest.py": "b195cc2b",
     "tests/eval/gd/aura.gd": "010cc38a",
@@ -37,7 +37,7 @@
     "tests/eval/gd/lib.gd.uid": "0b978a98",
     "tests/eval/gd/loop.gd": "36f7bc2a",
     "tests/eval/gd/loop.gd.uid": "f8a3d823",
-    "tests/eval/gd/map.gd": "251ec793",
+    "tests/eval/gd/map.gd": "e8a445d8",
     "tests/eval/gd/map.gd.uid": "c812f8cf",
     "tests/eval/gd/merc.gd": "de4df8c0",
     "tests/eval/gd/merc.gd.uid": "5a159512",
@@ -82,7 +82,7 @@
     "tests/eval/test_kits.py": "5cdb5610",
     "tests/eval/test_levels.py": "2c71fe40",
     "tests/eval/test_loop.py": "eb9dcfdc",
-    "tests/eval/test_map.py": "32cf2187",
+    "tests/eval/test_map.py": "48bda346",
     "tests/eval/test_merc.py": "45389b79",
     "tests/eval/test_pathing.py": "4e9b619c",
     "tests/eval/test_production.py": "69098c5e",
@@ -290,6 +290,8 @@
     "I145": "d04cfb87",
     "I142": "f0c1a0f9",
     "S157": "a5bca86c",
-    "S159": "ad69aba5"
+    "S159": "ad69aba5",
+    "S161": "491e0168",
+    "S164": "2ca4a20f"
   }
 }

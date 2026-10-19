@@ -12,3 +12,11 @@ def test_EV3_wave_spawns_on_map_edge(gd):
 
 def test_EV4_integer_scaling(gd):
     gd("map", "EV4")
+
+
+def test_EV303_window_fits_largest_integer_scale(gd):
+    gd("map", "EV303")
+
+
+def test_EV304_window_min_size_is_base(gd):
+    gd("map", "EV304")

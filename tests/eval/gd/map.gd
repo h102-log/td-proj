@@ -30,3 +30,23 @@ func ev3():
 func ev4():
 	var mode = ProjectSettings.get_setting("display/window/stretch/scale_mode", "fractional")
 	return check(mode == "integer", "확대 방식이 %s다" % mode)
+
+# EV303 · S161: 창 모드 배수는 작업 영역에 창 테두리까지 들어가는 가장 큰 정수배다. 들어가는 배수가 없으면 1배
+func ev303():
+	var main = load("res://src/main.gd")
+	var cases := [  # [작업 영역, 테두리, 기대 배수]
+		[Vector2i(3840, 2088), Vector2i(0, 45), 5], [Vector2i(1920, 1032), Vector2i(0, 31), 2],
+		[Vector2i(2560, 1392), Vector2i(0, 31), 3], [Vector2i(1280, 765), Vector2i(0, 45), 2],
+		[Vector2i(1279, 765), Vector2i(0, 45), 1], [Vector2i(600, 300), Vector2i(0, 45), 1],
+	]
+	for c in cases:
+		var k: int = main.window_scale(c[0], c[1], Vector2i(640, 360))
+		if k != c[2]:
+			return "작업 영역 %s·테두리 %s에서 %d배를 골랐다(기대 %d배)" % [c[0], c[1], k, c[2]]
+	return ""
+
+# EV304 · S164: main이 창을 준비하면 창 최소 크기가 기준 해상도다
+func ev304():
+	var w: Window = Engine.get_main_loop().root
+	load("res://src/main.gd").setup_window(w, false)
+	return check(w.min_size == Vector2i(640, 360), "창 최소 크기가 %s다" % w.min_size)
