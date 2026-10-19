@@ -1,6 +1,6 @@
 extends SceneTree
 # 4.0 아트 시험 보기 화면(insights/2026-10-18_art_trial.md). 실행: godot --path . -s res://tools/art/viewer.gd
-# 쪽: ←/→ 또는 1~9·0(10쪽). 11쪽부터(아이아스·세라피나)는 ←/→로 간다. 보기: A 각도 45/60, O 외곽선 B/D, P 팔레트, S 유닛 크기 16/24/32, H 성벽 높이, T 타일 보기, R 처음부터
+# 쪽: ←/→ 또는 1~9·0(10쪽). 11쪽부터(아이아스·세라피나·베스퍼)는 ←/→로 간다. 보기: A 각도 45/60, O 외곽선 B/D, P 팔레트, S 유닛 크기 16/24/32, H 성벽 높이, T 타일 보기, R 처음부터
 # 화면: 휠 줌 1~3배, 우클릭·휠 버튼으로 끌어 이동, Space 시점 처음으로. 인자 shots: 쪽마다 캡처를 art/trial/preview/view_N.png로 남기고 끝낸다
 
 const DIRS := ["S", "SE", "E", "NE", "N", "NW", "W", "SW"]
@@ -23,10 +23,11 @@ const PAGES := [
 	["크로노스", "정지·걷기 제자리 8fps·공격·쓰러짐·걷기 이동. 열 = 남·남동·동·북동·북·북서·서·남서. 45° D f24p 24px만 굽어서 A·O·P·S는 듣지 않는다"],
 	["아이아스", "정지·걷기 제자리 8fps·공격·쓰러짐·걷기 이동. 열 = 남·남동·동·북동·북·북서·서·남서. 45° D f24p 24px만 굽어서 A·O·P·S는 듣지 않는다"],
 	["세라피나", "정지·걷기 제자리 8fps·공격·쓰러짐·걷기 이동. 열 = 남·남동·동·북동·북·북서·서·남서. 45° D f24p 24px만 굽어서 A·O·P·S는 듣지 않는다"],
+	["베스퍼", "정지·걷기 제자리 8fps·공격·쓰러짐·걷기 이동. 열 = 남·남동·동·북동·북·북서·서·남서. 45° D f24p 24px만 굽어서 A·O·P·S는 듣지 않는다"],
 ]
-const DEFAULT_ZOOM := [1, 1, 1, 2, 1, 2, 2, 2, 2, 1, 1, 1]
+const DEFAULT_ZOOM := [1, 1, 1, 2, 1, 2, 2, 2, 2, 1, 1, 1, 1]
 const TOP := 34.0  # 위 안내 띠 높이
-const HERO_PAGES := {9: "chronos", 10: "aias", 11: "seraphina"}  # 쪽 번호(0부터) → 시트 폴더
+const HERO_PAGES := {9: "chronos", 10: "aias", 11: "seraphina", 12: "vesper"}  # 쪽 번호(0부터) → 시트 폴더
 
 var base: String  # art/trial/ 절대 경로
 var who := "hero"  # 시트 폴더(art/trial/<who>/). 영웅 쪽(HERO_PAGES)에서만 그 영웅
@@ -170,7 +171,7 @@ func build() -> void:
 		6: page_diagonal()
 		7: page_tiles()
 		8: page_wall()
-		9, 10, 11: page_hero()
+		9, 10, 11, 12: page_hero()
 	update_hud()
 
 func update_hud() -> void:
