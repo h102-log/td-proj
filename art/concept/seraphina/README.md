@@ -48,7 +48,7 @@ python tools/art/concept/seraphina.py --scale 4 --out 폴더  # 8K(파일 이름
 
 - [x] 사용자 승인(2026-10-19)
 - [ ] Gemini 피드백의 «중»·«하» 항목: 주먹 모양, 빛 구슬 둘레의 파동 고리. 고칠지 아직 고르지 않았다
-- [ ] 24px 스프라이트로 옮기기(`next/archive/2026-10-19/r3.md` §1)
+- [x] 24px 스프라이트로 옮기기(2026-10-19): `tools/art/seraphina.py` → `art/trial/seraphina/`. 컨셉에서 남긴 것과 뺀 것은 [영웅 스프라이트 기록](../../../insights/2026-10-19_hero_sprites.md#세라피나)에 있다
 
 ## 방향 결정
 
