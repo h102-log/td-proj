@@ -123,22 +123,22 @@ func ev196():
 		if absf(float(seen.get(k, 0)) / n - 1.0 / 6) > 0.02:
 			return "%s: %d / %d (1/6이어야 한다)" % [k, seen.get(k, 0), n]
 	var m = _hiring()
-	m.HERO_KINDS.bastion.grade = 1
+	m.HERO_KINDS.aias.grade = 1
 	m.HERO_KINDS.sylvia.grade = 1
 	var by := _by_grade(m, 6000)
 	if by[1] != 0 or absf(float(by[0]) / n - 0.6 / 0.7) > 0.015:
-		return "바스티온·실비아만 1성일 때 등급별 칸 수 %s(1성 %.3f여야 한다)" % [by, 0.6 / 0.7]
+		return "아이아스·실비아만 1성일 때 등급별 칸 수 %s(1성 %.3f여야 한다)" % [by, 0.6 / 0.7]
 	var d = _hiring()
-	d.offers = ["bastion", "bastion", "bastion"]
+	d.offers = ["aias", "aias", "aias"]
 	var a = d.hire(0)
 	var z = d.hire(1)
-	return check(a != null and z != null and d.roster.size() == 2 and d.roster.all(func(h): return h.kind == "bastion"),
+	return check(a != null and z != null and d.roster.size() == 2 and d.roster.all(func(h): return h.kind == "aias"),
 		"같은 영웅 둘을 영입하지 못했다(보유 %s)" % [d.roster.map(func(h): return h.kind)])
 
 # EV197 · S123: 영입하면 등급의 영입 비용만큼 골드가 줄고, 출전은 3명·보유는 5명까지다
 func ev197():
 	var b = _hiring({"gold": 300})
-	b.offers = ["bastion", "seraphina", "chronos"]
+	b.offers = ["aias", "seraphina", "chronos"]
 	var k = b.hire(0)
 	var p = b.hire(1)
 	var g = b.hire(2)
@@ -161,7 +161,7 @@ func ev197():
 # EV198 · S124: 계속 출전하는 영웅은 자리·체력이 그대로, 빠진 영웅은 사라지고, 새로 출전한 영웅은 출전 칸에 최대 체력으로 선다
 func ev198():
 	var b = _hiring()
-	b.offers = ["bastion", "seraphina", "ignis"]
+	b.offers = ["aias", "seraphina", "ignis"]
 	var k = b.hire(0)
 	var p = b.hire(1)
 	b.set_lineup(k, true)
@@ -170,7 +170,7 @@ func ev198():
 	var to: Vector2i = CELLS[0] + Vector2i(0, 3)
 	b.order_move([k], to)
 	if not run(b, 10.0, func(): return near(k.pos, to)):
-		return "바스티온이 옮겨 가지 않았다(%s)" % k.pos
+		return "아이아스가 옮겨 가지 않았다(%s)" % k.pos
 	b.damage(k, 30)
 	var hp: float = k.hp
 	if not _win_round(b) or b.state != "cleared":
@@ -183,7 +183,7 @@ func ev198():
 	var kept: bool = k in b.units and k.pos.distance_to(at) < 0.1 and k.hp == hp
 	var gone: bool = p not in b.units and p not in b.heroes
 	var fresh: bool = m in b.units and m.present and near(m.pos, CELLS[1], 0.01) and m.hp == m.max_hp
-	return check(b.state == "prep" and kept and gone and fresh, "바스티온 그대로 %s · 세라피나 사라짐 %s · 이그니스가 출전 칸에 최대 체력 %s (%s)" % [kept, gone, fresh, m.pos])
+	return check(b.state == "prep" and kept and gone and fresh, "아이아스 그대로 %s · 세라피나 사라짐 %s · 이그니스가 출전 칸에 최대 체력 %s (%s)" % [kept, gone, fresh, m.pos])
 
 # EV199 · I104: 목록은 도전 시작·라운드 승리 때 무료로 새로 뽑고, 영입·리롤은 영입 창에서만 한다
 func ev199():
@@ -209,7 +209,7 @@ func ev199():
 # EV200 · I105: 내보낸 영웅은 보유·출전 목록에서 빠지고 환불은 없다. 전장에 있었으면 다음 라운드에 사라진다
 func ev200():
 	var b = _hiring()
-	b.offers = ["bastion", "seraphina", "ignis"]
+	b.offers = ["aias", "seraphina", "ignis"]
 	var k = b.hire(0)
 	var p = b.hire(1)
 	b.set_lineup(k, true)
@@ -235,7 +235,7 @@ func ev201():
 	_key(c, KEY_Q)
 	_key(c, KEY_W)
 	var d = _hiring({"gold": BIG})
-	d.offers = ["bastion", "seraphina", "ignis"]
+	d.offers = ["aias", "seraphina", "ignis"]
 	var k = d.hire(0)
 	var p = d.hire(1)
 	var m = d.hire(2)
@@ -257,7 +257,7 @@ func ev202():
 	var b = _main()
 	b.begin_hiring()
 	b.gold = BIG  # 시작 골드(220)로는 3성(100골드)을 둘만 영입한다
-	b.offers = ["bastion", "sylvia", "bastion"]
+	b.offers = ["aias", "sylvia", "aias"]
 	var team := [b.hire(0), b.hire(1), b.hire(2)]
 	b.next_round()
 	var placed := true
@@ -272,7 +272,7 @@ func ev202():
 # EV203 · I108: 출전 순서는 보유 순서이고 첫 출전 영웅이 hero다. F2로 고르고, 빠진 영웅을 골라 둔 채면 첫 출전 영웅이 스킬을 쓴다
 func ev203():
 	var b = _hiring()
-	b.offers = ["bastion", "seraphina", "chronos"]
+	b.offers = ["aias", "seraphina", "chronos"]
 	var k = b.hire(0)
 	var p = b.hire(1)
 	var m = b.hire(2)
@@ -283,12 +283,12 @@ func ev203():
 	b.set_lineup(k, true)
 	b.next_round()
 	if b.heroes != [k, m] or b.hero != k:
-		return "출전 영웅 %s · hero %s (바스티온, 크로노스 순이어야 한다)" % [b.heroes.map(func(h): return h.kind), b.hero.kind if b.hero else "없음"]
+		return "출전 영웅 %s · hero %s (아이아스, 크로노스 순이어야 한다)" % [b.heroes.map(func(h): return h.kind), b.hero.kind if b.hero else "없음"]
 	var c = controls(b)
 	_key(c, KEY_F2)
 	var picked: bool = c.selected == [m]
 	b.start_battle()  # 스킬은 전투 단계에만 쓴다(S136)
-	_key(c, KEY_E)  # 바스티온·크로노스의 E는 모두 즉시 칸이다
+	_key(c, KEY_E)  # 아이아스·크로노스의 E는 모두 즉시 칸이다
 	var second_e: bool = m.skill_uses == 1 and k.skill_uses == 0
 	if not clear_wave(b) or not _win_round(b):
 		return "1라운드를 이기지 못했다(%s)" % b.state
@@ -298,7 +298,7 @@ func ev203():
 	b.start_battle()
 	_key(c, KEY_E)
 	var first_e: bool = k.skill_uses == 1 and m.skill_uses == 1 and p.skill_uses == 0
-	return check(picked and second_e and first_e, "F2로 크로노스 고름 %s · 크로노스가 E %s · 다음 라운드엔 바스티온이 E %s" % [picked, second_e, first_e])
+	return check(picked and second_e and first_e, "F2로 크로노스 고름 %s · 크로노스가 E %s · 다음 라운드엔 아이아스가 E %s" % [picked, second_e, first_e])
 
 # EV232 · I127: 보유 영웅이 상한이면 리롤은 거부되고 골드와 목록이 그대로다
 func ev232():

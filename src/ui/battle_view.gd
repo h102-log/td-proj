@@ -14,7 +14,7 @@ const ENEMY_COLORS := {  # 적 종류마다 다른 색(I81)
 	"basic": Color("d04040"), "fast": Color("f08030"), "armored": Color("807070"), "flying": Color("e050c0"), "boss": Color("801010"),
 }
 const HERO_COLORS := {  # 영웅 종류마다 다른 색(S56, S157, I101)
-	"bastion": Color("b060f0"), "sylvia": Color("a0ff40"), "seraphina": Color("f0f0f0"), "vesper": Color("40c060"), "ignis": Color("ff5020"), "chronos": Color("ffd020"),
+	"aias": Color("b060f0"), "sylvia": Color("a0ff40"), "seraphina": Color("f0f0f0"), "vesper": Color("40c060"), "ignis": Color("ff5020"), "chronos": Color("ffd020"),
 }
 # 걸린 효과의 테두리 색(I101). 적: 기절·속박·둔화·받는 피해 증가·도발·봉인·사슬·초당 피해. 아군: 받는 피해 감소·공격 속도·보호막·불사
 const MARKS := {
@@ -22,7 +22,7 @@ const MARKS := {
 	"dr": Color("80c0ff"), "haste": Color.ORANGE, "shield": Color.WHITE, "invuln": Color.GOLD,
 }
 const ZONES := {  # 장판 색(I101). 엷게 채우고 테두리를 그린다
-	"bastion_r": Color("80c0ff"), "sylvia_e": Color("c0a060"), "sylvia_r": Color("a0ff40"), "seraphina_w": Color("fff0a0"), "vesper_q": Color("60c040"),
+	"aias_r": Color("80c0ff"), "sylvia_e": Color("c0a060"), "sylvia_r": Color("a0ff40"), "seraphina_w": Color("fff0a0"), "vesper_q": Color("60c040"),
 	"vesper_r": Color("402060"), "ignis_q": Color("ff6020"), "ignis_e": Color("8040c0"), "ignis_r": Color("ff3000"), "chronos_e": Color("ffd020"), "chronos_r": Color("40e0ff"),
 }
 
@@ -150,7 +150,7 @@ func _draw() -> void:
 	if controls.drag_rect.has_area():
 		draw_rect(controls.drag_rect, Color.WHITE, false, 1.0)
 
-# 조준 중(S147): 영웅 둘레에 시전 사거리, 커서에 범위(지점·범위), 영웅에서 커서 쪽으로 길이(방향)나 부채꼴(바스티온 Q), 에너지 성벽이 설 칸
+# 조준 중(S147): 영웅 둘레에 시전 사거리, 커서에 범위(지점·범위), 영웅에서 커서 쪽으로 길이(방향)나 부채꼴(아이아스 Q), 에너지 성벽이 설 칸
 func _aim_preview() -> void:
 	if controls.aiming == "" or not controls.aim_hero:
 		return
@@ -161,7 +161,7 @@ func _aim_preview() -> void:
 	match sk.aim:
 		"dir":
 			var d: Vector2 = battle._toward(h, at)
-			if sk.has("arc"):  # 바스티온 Q: 반경 radius·각도 arc의 부채꼴(S151)
+			if sk.has("arc"):  # 아이아스 Q: 반경 radius·각도 arc의 부채꼴(S151)
 				var half := deg_to_rad(sk.arc) / 2.0
 				draw_arc(_center(h.pos), CELL * sk.radius, d.angle() - half, d.angle() + half, 24, Color.WHITE, 1.0)
 				for side in [-half, half]:

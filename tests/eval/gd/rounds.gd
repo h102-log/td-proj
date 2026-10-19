@@ -290,7 +290,7 @@ func ev243():
 	var later: bool = d.state == "prep" and d.hero.present and d.hero.hp == 1.0
 	var r = battle({"hero_cells": [Vector2i(10, 5), Vector2i(12, 5)], "seed": 7, "base_hp": BIG, "rounds": [[ONE], [ONE], [ONE]]})
 	r.begin_hiring()
-	r.offers = ["bastion", "seraphina", "ignis"]
+	r.offers = ["aias", "seraphina", "ignis"]
 	var k = r.hire(0)
 	r.hire(1)
 	r.next_round()

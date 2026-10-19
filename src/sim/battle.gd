@@ -141,7 +141,7 @@ class Unit:
 	var hold_radius := 0.0
 	var anchor: Vector2  # 홀드 기준 지점(I37)
 	var armor := 0.0  # 방어력(S149). 기본 0이고 세라피나 오라로만 오른다
-	var block := 1  # 블록 수(S159): 동시에 붙잡는 적 수. 요새화한 바스티온은 더 많다
+	var block := 1  # 블록 수(S159): 동시에 붙잡는 적 수. 요새화한 아이아스는 더 많다
 	var fx := {}  # 걸린 효과: 출처 → {효과 키: 값, left: 남은 초}(S150, I141)
 	var shields := {}  # 보호막: 출처 → {hp, left}(S150). 피해를 체력보다 먼저 받는다
 	# 영웅만 쓰는 칸. 종류별 수치와 칸의 뜻은 src/data/hero_def.gd(S97, I95)
@@ -168,9 +168,9 @@ class Unit:
 	var charged := false  # 이그니스 패시브: 다음 Q·W·E가 커진다
 	var mark = null  # 실비아 패시브: 직전에 친 적(S153)
 	var stacks := 0  # 실비아 패시브 중첩
-	var still := 0.0  # 바스티온 패시브: 이동 지시 없이 지난 시간(초, S151, I147)
+	var still := 0.0  # 아이아스 패시브: 이동 지시 없이 지난 시간(초, S151, I147)
 	var fort := false  # 요새화
-	var brace := 0.0  # 바스티온 E: 남은 시간(초). 0보다 크면 태세 중이다
+	var brace := 0.0  # 아이아스 E: 남은 시간(초). 0보다 크면 태세 중이다
 	var braced := 0.0  # 태세 동안 들어온 피해(줄이기 전 값)
 	var on_wall := false  # 성벽 위에 있다(S42, I44)
 	var after: Array[Vector2i] = []  # path 끝에서 오르내린 뒤 걸을 길. 첫 칸이 오르내려 서는 칸이다(I69)
@@ -316,9 +316,9 @@ func restart() -> void:
 	for c in fort.get("gates", []):
 		castle[c] = Block.new(c, "gate", fort.gate_hp)
 	heroes.clear()
-	# 영웅 목록(I102). 목록이 없고 hero_start만 있으면 바스티온 하나다. 이 영웅들은 보유·출전한 채 시작한다(평가용 스테이지)
+	# 영웅 목록(I102). 목록이 없고 hero_start만 있으면 아이아스 하나다. 이 영웅들은 보유·출전한 채 시작한다(평가용 스테이지)
 	# 레벨(level)을 정하지 않으면 최대 레벨이다(I115)
-	var team: Array = stage.get("heroes", [] if stage.get("hero_start") == null else [{"kind": "bastion", "cell": stage.hero_start}])
+	var team: Array = stage.get("heroes", [] if stage.get("hero_start") == null else [{"kind": "aias", "cell": stage.hero_start}])
 	for t in team:
 		var h := Unit.new(t.kind, t.cell, HERO_KINDS[t.kind])
 		h.is_hero = true
@@ -1028,10 +1028,10 @@ func _zones(dt: float) -> void:
 			_meteor(z)
 		var foes: Array = enemies.filter(func(e): return _inside(z, e.pos))
 		match z.src:
-			"bastion_r":  # 둘레의 아군 영웅과 방어 타워(쏘는 구조물): 받는 피해 감소와 초당 최대 체력 비율 회복
+			"aias_r":  # 둘레의 아군 영웅과 방어 타워(쏘는 구조물): 받는 피해 감소와 초당 최대 체력 비율 회복
 				for t in heroes.filter(func(x): return x.alive) + structures.values().filter(func(x): return x.range > 0.0):
 					if _inside(z, _where(t)) and (not t is Block or t.complete):
-						_fx(t, "bastion_r", {"dr": z.dr, "regen": z.regen * t.max_hp}, STAY)
+						_fx(t, "aias_r", {"dr": z.dr, "regen": z.regen * t.max_hp}, STAY)
 			"sylvia_e":  # 덫: 땅 적이 밟으면 터진다
 				if enemies.any(func(e): return not _flies(e) and e.pos.distance_to(z.pos) <= 0.5):
 					for e in foes:
@@ -1090,7 +1090,7 @@ func _end_zone(z: Dictionary) -> void:
 			barriers.erase(c)
 		_repath = true
 
-# ── 바스티온(S151) ──
+# ── 아이아스(S151) ──
 
 # Q 방패 강타: 지점 쪽 부채꼴 안 적에게 물리 피해와 기절. 요새화 중이면 밀쳐 내고 둔화
 func _cast_shield_bash(h: Unit, sk: Dictionary, aim, grow: float) -> void:
@@ -1102,26 +1102,26 @@ func _cast_shield_bash(h: Unit, sk: Dictionary, aim, grow: float) -> void:
 		damage(e, sk.damage, "phys", h)
 		if not e.alive:
 			continue
-		_fx(e, "bastion_q", {"stun": true}, sk.stun)
+		_fx(e, "aias_q", {"stun": true}, sk.stun)
 		if h.fort:
 			_knock(e, (to.normalized() if to.length() > 0.01 else dir) * sk.push)
-			_fx(e, "bastion_q_slow", {"slow": sk.slow}, sk.slow_time)
+			_fx(e, "aias_q_slow", {"slow": sk.slow}, sk.slow_time)
 
 # W 전장의 포효: 주변 적을 도발하고 방어력을 깎는다. 도발한 적 하나마다 최대 체력 비율 보호막
 func _cast_war_cry(h: Unit, sk: Dictionary, _aim, grow: float) -> void:
 	var n := 0
 	for e in enemies:
 		if e.pos.distance_to(h.pos) <= sk.radius * grow:
-			_fx(e, "bastion_w", {"taunt": h, "armor": sk.armor}, sk.time)
+			_fx(e, "aias_w", {"taunt": h, "armor": sk.armor}, sk.time)
 			n += 1
 	if n > 0:  # 상한은 없다(기획서). 보호막 시간 5초는 기획서에 없어 세라피나와 같게 둔다
-		_shield(h, "bastion_w", n * sk.shield * h.max_hp, 5.0, INF)
+		_shield(h, "aias_w", n * sk.shield * h.max_hp, 5.0, INF)
 
 # E 반격의 태세: time초 동안 받는 피해 감소. 끝나거나 다시 누르면 _burst
 func _cast_brace(h: Unit, sk: Dictionary, _aim, _grow: float) -> void:
 	h.brace = sk.time
 	h.braced = 0.0
-	_fx(h, "bastion_e", {"dr": sk.dr}, sk.time)
+	_fx(h, "aias_e", {"dr": sk.dr}, sk.time)
 
 # 태세 동안 들어온 피해(줄이기 전 값) × ratio를 주변 적에게 물리 피해로 낸다
 func _burst(h: Unit) -> void:
@@ -1129,7 +1129,7 @@ func _burst(h: Unit) -> void:
 	var hurt: float = h.braced * sk.ratio
 	h.brace = 0.0
 	h.braced = 0.0
-	h.fx.erase("bastion_e")
+	h.fx.erase("aias_e")
 	if hurt > 0.0:
 		for e in enemies.duplicate():
 			if e.pos.distance_to(h.pos) <= sk.radius:
@@ -1149,7 +1149,7 @@ func _cast_bulwark(h: Unit, sk: Dictionary, aim, _grow: float) -> void:
 			cells.append(c)
 	if not cells.is_empty():
 		_repath = true
-		_zone("bastion_r", h, aim, sk.radius, sk.time, {"cells": cells, "dr": sk.dr, "regen": sk.regen})
+		_zone("aias_r", h, aim, sk.radius, sk.time, {"cells": cells, "dr": sk.dr, "regen": sk.regen})
 
 # ── 실비아(S153) ──
 
@@ -2135,7 +2135,7 @@ func _hero_tick(h: Unit, dt: float) -> void:
 	_autocast(h)
 
 # 기본 공격 한 방(S15). 실비아(I148): 같은 적을 이어 치면 중첩이 쌓이고 다 차면 방어력 일부를 무시한다, W가 켜져 있으면 둘레 적에게도 들어간다(S153).
-# 바스티온: 요새화 중이면 확률로 기절시킨다(S151). 축복이 걸렸으면 맞은 곳에 마법 피해를 더한다(S152)
+# 아이아스: 요새화 중이면 확률로 기절시킨다(S151). 축복이 걸렸으면 맞은 곳에 마법 피해를 더한다(S152)
 func _strike(u: Unit, foe: Enemy) -> void:
 	var hurt := u.damage * _might(u)
 	var ignore := 0.0
@@ -2158,10 +2158,10 @@ func _strike(u: Unit, foe: Enemy) -> void:
 	for e in hit:
 		damage(e, hurt, "phys", u, ignore)
 	if u.fort and foe.alive and _luck.randf() < u.passive.stun_odds:
-		_fx(foe, "bastion_p_stun", {"stun": true}, u.passive.stun)
+		_fx(foe, "aias_p_stun", {"stun": true}, u.passive.stun)
 	_bless(u, at)
 
-# 바스티온 패시브 요새화(S151, I147): 이동 지시 없이 still초가 지나면 요새화. 받는 피해 감소, 블록 수 +3. 이동 지시를 받으면 풀린다.
+# 아이아스 패시브 요새화(S151, I147): 이동 지시 없이 still초가 지나면 요새화. 받는 피해 감소, 블록 수 +3. 이동 지시를 받으면 풀린다.
 # 적을 쫓거나(S141) 밀려서 움직인 것은 이동 지시가 아니다(기획서 원문). 걸어갈 길(path·after)은 이동 지시로만 생긴다
 func _fortify(h: Unit, dt: float) -> void:
 	if not (h.path.is_empty() and h.after.is_empty()):
@@ -2171,9 +2171,9 @@ func _fortify(h: Unit, dt: float) -> void:
 	h.fort = h.still >= h.passive.still
 	h.block = HERO_KINDS[h.kind].block + (h.passive.block if h.fort else 0)  # 블록 수 +3(S159)
 	if h.fort:
-		_fx(h, "bastion_p", {"dr": h.passive.dr}, STAY)
+		_fx(h, "aias_p", {"dr": h.passive.dr}, STAY)
 	else:  # 풀리면 바로 끝난다(장판의 «안에 있는 동안» 효과와 달리 남지 않는다)
-		h.fx.erase("bastion_p")
+		h.fx.erase("aias_p")
 
 # from에서 reach 안의 가장 가까운 적. center에서 zone보다 먼 적은 뺀다(홀드 반경). on_wall이면 성벽 위의 적만 본다(I78)
 func _nearest_enemy(from: Vector2, reach: float, center := Vector2.ZERO, zone := INF, on_wall := false):
