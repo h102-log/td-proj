@@ -114,7 +114,7 @@ def background():
 
 
 def blueprint():
-    """컴퍼스 끝에서 그어지는 공중의 저주 도면: 원호·육각별·눈금·로마 숫자"""
+    """컴퍼스 끝에서 그어지는 공중의 저주 도면: 원호·7각 별·눈금·로마 숫자"""
     c, r = BP_C, BP_R
     arc = [pol(c, r, BP_A0 + (BP_A1 - BP_A0) * i / 80) for i in range(81)]
     g = [path(polyline(arc), stroke=K["tx4"], sw=2.6)]
