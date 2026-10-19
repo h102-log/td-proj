@@ -1,0 +1,68 @@
+{
+ "aias": {
+  "c": 32,
+  "anchor": [
+   16.0,
+   26
+  ],
+  "idle": 0,
+  "walk": 256,
+  "attack": 512,
+  "fall": 1024
+ },
+ "sylvia": {
+  "c": 28,
+  "anchor": [
+   14.0,
+   19
+  ],
+  "idle": 1088,
+  "walk": 1312,
+  "attack": 1536,
+  "fall": 1984
+ },
+ "seraphina": {
+  "c": 30,
+  "anchor": [
+   15.0,
+   25
+  ],
+  "idle": 2040,
+  "walk": 2280,
+  "attack": 2520,
+  "fall": 3000
+ },
+ "vesper": {
+  "c": 24,
+  "anchor": [
+   12.0,
+   17
+  ],
+  "idle": 3060,
+  "walk": 3252,
+  "attack": 3444,
+  "fall": 3828
+ },
+ "ignis": {
+  "c": 26,
+  "anchor": [
+   13.0,
+   20
+  ],
+  "idle": 3876,
+  "walk": 4084,
+  "attack": 4292,
+  "fall": 4708
+ },
+ "chronos": {
+  "c": 26,
+  "anchor": [
+   13.0,
+   19
+  ],
+  "idle": 4760,
+  "walk": 4968,
+  "attack": 5176,
+  "fall": 5592
+ }
+}

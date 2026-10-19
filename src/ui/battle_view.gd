@@ -1,5 +1,5 @@
 extends Node2D
-# 전투 상태를 칸 단위 도형으로 그린다(그레이박스, 아트는 WBS 4.1).
+# 전투 상태를 칸 단위로 그린다. 영웅은 도트 스프라이트(S165), 나머지는 아직 도형이다(그레이박스, 아트는 WBS 4.1).
 
 const CELL := 16
 const COLORS := {
@@ -26,8 +26,12 @@ const ZONES := {  # 장판 색(I101). 엷게 채우고 테두리를 그린다
 	"vesper_r": Color("402060"), "ignis_q": Color("ff6020"), "ignis_e": Color("8040c0"), "ignis_r": Color("ff3000"), "chronos_e": Color("ffd020"), "chronos_r": Color("40e0ff"),
 }
 
+const UNITS := preload("res://art/units/heroes.png")  # 영웅 6명 시트를 한 장에 모은 아틀라스(tools/art/atlas.py)
+static var ART: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/units/heroes.json"))  # 영웅 → 캔버스·발밑·시트 y
+
 var battle
 var controls  # 고른 유닛에 테두리를 그린다
+var _seen := {}  # 영웅 → [지난 위치, 방향]
 
 func _draw() -> void:
 	var map := Vector2(battle.size) * CELL
@@ -150,14 +154,60 @@ func _castle() -> void:  # 열린 성문은 밝게(I67). 단계는 칸 아래쪽
 		for i in b.level:
 			draw_rect(Rect2(Vector2(b.cell) * CELL + Vector2(2 + i * 4, CELL - 4), Vector2(2, 2)), Color.WHITE)
 
-# 유닛·적 몸통. 레벨·선택·효과 테두리는 _draw가 모든 몸통 뒤에 그린다. 4.1a 스파이크(tools/bench)는 이 둘을 그림으로 바꿔 잰다
+# 유닛·적 몸통(S165). 비행 적 그림자(I81)를 먼저 깔고, (층, 발밑 y, 목록 순서)로 정렬해 그린다. 영웅은 시트에서, 나머지는 원으로.
+# 레벨·선택·효과 테두리는 _draw가 모든 몸통 뒤에 그린다
 func _bodies() -> void:
-	for u in battle.units:
-		draw_circle(_center(u.pos), CELL * u.radius, HERO_COLORS.get(u.kind, COLORS.merc) if u.is_hero else COLORS.get(u.kind, COLORS.merc))
-	for e in battle.enemies:  # 비행 적은 아래에 그림자를 그린다(I81)
-		if e.flying:
-			draw_circle(_center(e.pos) + Vector2(0, CELL * 0.4), CELL * e.radius * 0.8, Color(0, 0, 0, 0.35))
-		draw_circle(_center(e.pos), CELL * e.radius, ENEMY_COLORS.get(e.kind, ENEMY_COLORS.basic))
+	var all: Array = battle.units + battle.enemies
+	var keys := PackedInt64Array()
+	for i in all.size():
+		var x = all[i]
+		var fly: bool = x.get("flying") == true
+		if fly:
+			draw_circle(_center(x.pos) + Vector2(0, CELL * 0.4), CELL * x.radius * 0.8, Color(0, 0, 0, 0.35))
+		keys.append(((2 if fly else 1) << 44) | ((int(_center(x.pos).y) + 64) << 20) | i)
+	keys.sort()
+	var next := {}
+	for k in keys:
+		var i: int = k & 0xFFFFF
+		var x = all[i]
+		if i >= battle.units.size():
+			draw_circle(_center(x.pos), CELL * x.radius, ENEMY_COLORS.get(x.kind, ENEMY_COLORS.basic))
+		elif x.is_hero and ART.has(x.kind):
+			_sprite(x, next)
+		else:
+			draw_circle(_center(x.pos), CELL * x.radius, HERO_COLORS.get(x.kind, COLORS.merc) if x.is_hero else COLORS.get(x.kind, COLORS.merc))
+	_seen = next
+
+# 영웅 한 명(S165): 움직이면 그쪽으로 걷기 4프레임(초당 8), 친 뒤 0.3초는 대상 쪽으로 공격 3프레임, 아니면 정지.
+# 서 있으면 대상 쪽, 대상도 없으면 마지막 방향을 본다. 위치는 화면 픽셀로 반올림한다(insights/2026-10-20_render_spike.md X1)
+func _sprite(x, next: Dictionary) -> void:
+	var id: int = x.get_instance_id()
+	var seen = _seen.get(id)
+	var v: Vector2 = x.pos - seen[0] if seen else Vector2.ZERO
+	var dir: int = seen[1] if seen else 0
+	var moving := v.length_squared() > 1e-8
+	if moving:
+		dir = _dir_of(v)
+	elif x.target:
+		dir = _dir_of(_pos_of(x.target) - x.pos)
+	next[id] = [x.pos, dir]
+	var a: Dictionary = ART[x.kind]
+	var c := int(a.c)
+	var anim := "idle"
+	var col := 0
+	if x.target and x.cooldown > x.attack_gap - 0.3:
+		anim = "attack"
+		col = clampi(int((x.attack_gap - x.cooldown) / 0.1), 0, 2)
+	elif moving:
+		anim = "walk"
+		col = int(Time.get_ticks_msec() / 125.0) % 4
+	var size := c * (2 if anim == "attack" else 1)  # 공격은 2배 캔버스(tools/art/hero.py)
+	var at := _center(x.pos) - Vector2(a.anchor[0], a.anchor[1]) - Vector2.ONE * (size - c) / 2.0
+	draw_texture_rect_region(UNITS, Rect2(at.round(), Vector2(size, size)), Rect2(col * size, a[anim] + dir * size, size, size))
+
+# 화면 방향 v(y가 아래)의 시트 행: S, SE, E, NE, N, NW, W, SW(tools/art/render.py DIRS)
+static func _dir_of(v: Vector2) -> int:
+	return posmod(roundi((90.0 - rad_to_deg(v.angle())) / 45.0), 8)
 
 # 조준 중(S147): 영웅 둘레에 시전 사거리, 커서에 범위(지점·범위), 영웅에서 커서 쪽으로 길이(방향)나 부채꼴(아이아스 Q), 에너지 성벽이 설 칸
 func _aim_preview() -> void:
