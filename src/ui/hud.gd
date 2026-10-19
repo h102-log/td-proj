@@ -18,6 +18,7 @@ const GAPS := {"none": " (공병 없음)", "far": " (닿는 공병 없음)"}  # 
 
 var battle
 var controls
+var map: SubViewport  # 맵(전장)을 그리는 SubViewport(S30). 팝업 위치를 그 카메라 변환으로 잡는다
 var _info := Label.new()
 var _hint := Label.new()
 var _start: Button
@@ -59,9 +60,10 @@ var _gap := ""  # 고른 것의 칸에 공병 지시를 맡을 공병이 없는 
 var _gap_for := []
 var _gap_at := 0
 
-func _init(b, c) -> void:
+func _init(b, c, m) -> void:
 	battle = b
 	controls = c
+	map = m
 
 func _ready() -> void:
 	var root := Control.new()  # 글자 크기를 한 번에 주는 틀. 클릭은 아래 맵으로 흘린다
@@ -255,8 +257,8 @@ func _process(_delta: float) -> void:
 			_heal[i].text = "%s 치료 %d골드" % [HEROES[h.kind].get_slice("(", 0), battle.heal_cost(h)] + ("" if prep else " (준비 단계에만)")
 			_heal[i].disabled = not prep
 	_popup.reset_size()
-	# 맵 px → 화면 좌표. 전투 화면(BattleView)이 원점에 있어 카메라 변환만 곱한다. 화면 밖으로 나가면 안으로 당긴다(I137)
-	var at: Vector2 = get_viewport().get_canvas_transform() * controls.sell_at + Vector2(6, 6)
+	# 맵 px → 화면 좌표. 전투 화면(BattleView)이 맵 SubViewport 원점에 있고, SubViewport는 HUD와 같은 기준 해상도 좌표라 그 카메라 변환만 곱한다. 화면 밖으로 나가면 안으로 당긴다(I137)
+	var at: Vector2 = map.get_canvas_transform() * controls.sell_at + Vector2(6, 6)
 	_popup.position = at.clamp(Vector2.ZERO, get_viewport().get_visible_rect().size - _popup.size)
 
 # 가장 긴 글자(sample)가 들어가는 너비로 고정한다. 마나 숫자·칸 상태 글자가 바뀌어도 뒤 버튼이 옆으로 움직이지 않게(I151)

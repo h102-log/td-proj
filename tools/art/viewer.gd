@@ -56,6 +56,7 @@ class Dummy extends Node2D:
 		draw_circle(kb.round() + Vector2(0, -4), 5.0, Color.WHITE if white else Color("9b1a0a"))
 
 func _initialize() -> void:
+	root.content_scale_mode = Window.CONTENT_SCALE_MODE_VIEWPORT  # 게임 맵처럼 640×360에 그려 정수배로 키운다. 프로젝트 설정은 HUD 때문에 canvas_items다(S30)
 	base = ProjectSettings.globalize_path("res://art/trial/")
 	shots = OS.get_cmdline_user_args().has("shots")
 	for u in ["hero", "chronos"]:

@@ -11,7 +11,7 @@
 | EV1 | S1 | 03bece56 | 구조물이 없는 맵의 네 가장자리 출현 지점에서 적을 하나씩 내보내면 네 적 모두 거점에 닿는다 | tests/eval/test_map.py | 일괄 승인(2026-10-11) |
 | EV2 | S2 | e454318f | 거점 체력을 0으로 만드는 피해를 주면 판 상태가 «패배»가 된다 | tests/eval/test_map.py | 일괄 승인(2026-10-11) |
 | EV3 | S3 | 7ef0ca2d | 웨이브 하나를 돌리면 나타난 적 전원의 첫 칸이 맵 가장자리 칸이다 | tests/eval/test_map.py | 일괄 승인(2026-10-11) |
-| EV4 | S30 | 1985e1e1 | 프로젝트 설정의 화면 확대 방식(stretch scale_mode)이 정수배(integer)다 | tests/eval/test_map.py | 일괄 승인(2026-10-11) |
+| EV4 | S30 | 1985e1e1 | 프로젝트 설정의 화면 확대 방식이 canvas_items·정수배(integer)이고, main이 만드는 맵 SubViewport는 기준 해상도(640×360) 크기이며 그 컨테이너와 SubViewport가 모두 Nearest로 그린다 | tests/eval/test_map.py | 일괄 승인(2026-10-11) |
 | EV5 | S7 | 6e2e5dd8 | 계수 1인 적 앞에 체력 1짜리 성벽과 30칸을 더 걷는 우회로가 있으면, 적은 그 성벽을 부수고 지나간다 | tests/eval/test_pathing.py | 일괄 승인(2026-10-11) |
 | EV6 | S8 | 3eb44492 | 성벽으로 미로를 만들고 길 하나를 열어 두면, 기본 성향 적은 성벽을 하나도 부수지 않고 거점에 닿는다 | tests/eval/test_pathing.py | 일괄 승인(2026-10-11) |
 | EV7 | S9 | fbfa9b5c | 거점을 성벽으로 완전히 둘러싸고 그중 하나만 체력을 낮추면, 적은 그 성벽을 부순다(다른 성벽 체력은 그대로) | tests/eval/test_pathing.py | 일괄 승인(2026-10-11) |
@@ -535,3 +535,4 @@
 | EV300 | cebc56b3 | 근거 문장은 그대로다. 영웅 이름을 «바스티온»(`bastion`)에서 «아이아스»(`aias`)로 바꿨다(SPEC S157 «→ 2026-10-19 변경(이름)», 사용자 2026-10-19 — WBS R11). 테스트(`tests/eval/gd/kits.gd`의 ev300)의 이름만 바꿨다 | 2026-10-19 |
 | EV301 | ad69aba5 | SPEC S159 문장의 영웅 이름을 «바스티온»(`bastion`)에서 «아이아스»(`aias`)로 바꿨다(SPEC S157 «→ 2026-10-19 변경(이름)», 사용자 2026-10-19 — WBS R11). 규칙은 그대로다. 측정 문장과 테스트(`tests/eval/gd/kits.gd`의 ev301)의 이름만 바꿨다 | 2026-10-19 |
 | EV302 | 0b16e349 | SPEC S151 문장의 영웅 이름을 «바스티온»(`bastion`)에서 «아이아스»(`aias`)로 바꿨다(SPEC S157 «→ 2026-10-19 변경(이름)», 사용자 2026-10-19 — WBS R11). 규칙은 그대로다. 측정 문장과 테스트(`tests/eval/gd/kits.gd`의 ev302)의 이름만 바꿨다 | 2026-10-19 |
+| EV4 | 4174fd6d | SPEC S30에 «→ 2026-10-19 변경»을 붙였다(사용자 2026-10-19: 맵만 기준 해상도로 그려 정수배로 키우고, HUD는 화면 해상도로 그린다). 측정을 «프로젝트 설정의 화면 확대 방식이 canvas_items·정수배(integer)이고, main이 만드는 맵 SubViewport는 기준 해상도(640×360) 크기이며 그 컨테이너와 SubViewport가 모두 Nearest로 그린다»로 바꾸고, 테스트(`tests/eval/gd/map.gd`의 ev4, `tests/eval/test_map.py`의 함수 이름)를 고쳤다. 사용자 승인 2026-10-19 | 2026-10-19 |

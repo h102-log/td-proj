@@ -10,7 +10,7 @@ def test_EV3_wave_spawns_on_map_edge(gd):
     gd("map", "EV3")
 
 
-def test_EV4_integer_scaling(gd):
+def test_EV4_map_subviewport_integer_scaling(gd):
     gd("map", "EV4")
 
 

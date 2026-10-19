@@ -15,19 +15,35 @@ var controls
 var hud
 
 func _ready() -> void:
+	var box := map_viewport(get_window())
+	add_child(box)
+	var map: SubViewport = box.get_child(0)
 	view = BattleView.new()
 	view.battle = Battle.new(stage())
 	view.battle.begin_hiring()  # 도전은 영입 창에서 시작한다(S122)
 	controls = Controls.new(view.battle, BattleView.CELL)
 	view.controls = controls
-	add_child(view)
+	map.add_child(view)
 	var cam := Camera.new()
 	cam.map_px = Vector2(view.battle.size * BattleView.CELL)
 	cam.position = Vector2(view.battle.base.cell * BattleView.CELL)
-	add_child(cam)
-	hud = Hud.new(view.battle, controls)
+	map.add_child(cam)
+	hud = Hud.new(view.battle, controls, map)
 	add_child(hud)
 	setup_window(get_window(), get_tree().current_scene == self)
+
+# 맵(전장)을 기준 해상도로 그리는 SubViewport. 루트는 canvas_items라 HUD는 화면 해상도로 그리고, 맵은 이 그림을 정수배·Nearest로 키운다(S30)
+static func map_viewport(w: Window) -> SubViewportContainer:
+	var box := SubViewportContainer.new()
+	box.size = Vector2(w.content_scale_size)
+	box.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	box.mouse_filter = Control.MOUSE_FILTER_PASS  # STOP이면 클릭이 main._unhandled_input에 가지 않고, IGNORE면 휠·가운데 버튼이 카메라에 가지 않는다
+	box.focus_mode = Control.FOCUS_NONE  # 기본값 FOCUS_CLICK이면 맵을 클릭할 때 키보드 포커스를 가져가 Enter·Space가 전투를 시작하지 못한다
+	var sv := SubViewport.new()
+	sv.size = w.content_scale_size  # stretch로 맞추면 트리 밖(평가)에서는 기본값 512×512 그대로였다
+	sv.canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
+	box.add_child(sv)
+	return box
 
 func _process(delta: float) -> void:
 	view.battle.step(delta)
