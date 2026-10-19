@@ -36,7 +36,7 @@ WALK = [dict(w, **CENSER, **L_ARM) for w in H.WALK]
 # 공격은 원거리(S121 사거리 3.5): 향로를 뒤로 낮게 젖혔다가(준비) 팔을 곧게 들어 머리 위로 휘돌리며 독빛을 키우고(발사, 가운데가 타격 프레임)
 # 앞으로 내린다(마무리). 과녁 쪽 앞 위로 던지면(sword 20) 남·남동·남서에서 향로가 모자에 겹쳐 안 보였다. 바깥으로 20° 눕혀 머리와 띄운다
 ATTACK = [dict(H.POSE, **L_ARM, sh_r=-40, el_r=20, ab_r=0.5, sword=215, lean=-5),
-          dict(H.POSE, **L_ARM, sh_r=165, el_r=5, ab_r=0.5, sword=0, sword_side=20, lean=8, glow=1.4),
+          dict(H.POSE, **L_ARM, sh_r=165, el_r=5, ab_r=0.5, sword=0, sword_side=20, lean=8, glow=1.15),
           dict(H.POSE, **L_ARM, sh_r=80, el_r=20, ab_r=0.45, sword=110, lean=4)]
 FALL = [dict(H.FALL[0], sword=175), dict(H.FALL[1], sword=175)] + [dict(f, censer=0) for f in H.FALL[2:]]
 ANIMS = {"idle": [IDLE], "walk": WALK, "attack": ATTACK, "fall": FALL}
@@ -86,8 +86,9 @@ def vesper(pose, bob_unit):
     P += [] if not pose.get("censer", 1) else [
           (R.capsule(hd, hd + bd * 0.18, 0.03), m("brass"), "censer"),  # 사슬
           (R.ellipsoid(c, (0.085, 0.085, 0.095)), m("brass"), "censer"),  # 향로. 컴퍼스를 빼고 반지름을 0.5px 키웠다(Gemini 4차 2026-10-19)
-          # 독빛: 향로 윗면. 가운데 띠로 두면 45°에서 놋쇠에 가려 1px도 안 나왔다
-          (R.ellipsoid(c + up * 0.035, (0.075 * glow, 0.075 * glow, 0.065 * glow)), m("glow"), "censer")]
+          # 독빛: 향로 윗면에 얹은 납작한 뚜껑. 가운데 띠로 두면 45°에서 놋쇠에 가려 1px도 안 나왔다. 공격 발사에서는 옆으로만 넓어져
+          # 놋쇠 몸통 위 고리가 된다. 세 축을 다 키우면 놋쇠를 덮는 청록 공(파란 풍선)이 됐다(Gemini 5차 2026-10-19)
+          (R.ellipsoid(c + up * 0.07, (0.075 * glow, 0.075 * glow, 0.035)), m("glow"), "censer")]
     return P
 
 
