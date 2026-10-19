@@ -5,7 +5,7 @@ extends SceneTree
 #
 #   godot --path . -s res://tools/play/play.gd -- <폴더> [seed]
 #
-# 명령(한 줄에 하나, 좌표는 캡처 640×360 기준):
+# 명령(한 줄에 하나, 좌표는 기준 해상도 640×360. 캡처는 창 크기 1280×720이라 캡처에서 잰 좌표를 반으로 줄여 쓴다):
 #   click x y · rclick x y · drag x1 y1 x2 y2(좌버튼) · pan x1 y1 x2 y2(휠 버튼 드래그) · wheel up|down x y
 #   key 이름(Enter·Space·Escape·Q·F1·1·Minus …) · wait 초(게임 시간 진행, 단계가 바뀌면 거기서 멈춘다) · quit
 # 게임 시간은 wait에서만 흐른다. seed를 주면 영입 목록·미션이 매번 같아서, log.txt를 새 폴더의 하네스에 통째로 보내면 같은 판이 재생된다.
@@ -35,9 +35,7 @@ func _initialize() -> void:
 # main._ready 뒤에 한 번 부른다. 그 전에 set_process(false)를 하면 READY 알림이 _process를 다시 켠다
 func _start() -> void:
 	main.set_process(false)  # 실시간 step(main.gd _process)을 끈다. 생각하는 동안 게임 시간이 흐르지 않게
-	for c in main.get_children():
-		if c is Camera2D:
-			c.set_process(false)  # 실제 마우스 위치로 하는 가장자리 스크롤(camera.gd _process)을 끈다
+	main.view.get_viewport().get_camera_2d().set_process(false)  # 실제 마우스 위치로 하는 가장자리 스크롤(camera.gd _process)을 끈다
 	if seed != null:
 		var b = main.view.battle
 		b._stage["seed"] = seed  # restart()가 이 씨앗으로 영입 목록·미션을 뽑는다. 새 도전도 같은 씨앗이다
@@ -129,7 +127,7 @@ func _motion(at: Vector2, rel: Vector2, mask: int) -> void:
 	e.global_position = at
 	e.relative = rel
 	e.button_mask = mask
-	root.push_input(e, true)  # true: 좌표가 이미 뷰포트(캡처) 좌표다. 창 배율(1280×720)을 거치지 않는다
+	root.push_input(e, true)  # true: 좌표가 이미 기준 해상도(640×360) 좌표다. 창 배율(1280×720)을 거치지 않는다
 
 func _button(index: int, at: Vector2, pressed: bool) -> void:
 	var e := InputEventMouseButton.new()

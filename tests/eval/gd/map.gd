@@ -26,10 +26,16 @@ func ev3():
 	var inner := firsts.filter(func(c): return c.x > 0 and c.y > 0 and c.x < 29 and c.y < 19)
 	return check(inner.is_empty(), "가장자리가 아닌 칸에서 나온 적: %s" % [inner])
 
-# EV4 · S30: 화면 확대 방식이 정수배다
+# EV4 · S30: 화면 확대 방식이 canvas_items·정수배이고, 맵은 기준 해상도 SubViewport에 Nearest로 그린다
 func ev4():
-	var mode = ProjectSettings.get_setting("display/window/stretch/scale_mode", "fractional")
-	return check(mode == "integer", "확대 방식이 %s다" % mode)
+	var mode = ProjectSettings.get_setting("display/window/stretch/mode", "disabled")
+	var scale = ProjectSettings.get_setting("display/window/stretch/scale_mode", "fractional")
+	if mode != "canvas_items" or scale != "integer":
+		return "확대 방식이 %s·%s다" % [mode, scale]
+	var box: SubViewportContainer = load("res://src/main.gd").map_viewport(Engine.get_main_loop().root)
+	var sv: SubViewport = box.get_child(0)
+	var nearest := box.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST and sv.canvas_item_default_texture_filter == Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
+	return check(sv.size == Vector2i(640, 360) and nearest, "맵 SubViewport가 %s, Nearest %s다" % [sv.size, nearest])
 
 # EV303 · S161: 창 모드 배수는 작업 영역에 창 테두리까지 들어가는 가장 큰 정수배다. 들어가는 배수가 없으면 1배
 func ev303():
