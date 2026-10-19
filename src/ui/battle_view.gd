@@ -28,6 +28,7 @@ const ZONES := {  # 장판 색(I101). 엷게 채우고 테두리를 그린다
 
 const UNITS := preload("res://art/units/heroes.png")  # 영웅 6명 시트를 한 장에 모은 아틀라스(tools/art/atlas.py)
 static var ART: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/units/heroes.json"))  # 영웅 → 캔버스·발밑·시트 y
+const PIXEL_FONT := preload("res://art/fonts/Galmuri7.ttf")  # 맵 위 숫자(S167). 맵은 640×360을 정수배로 키우므로 벡터 글자는 뭉개진다
 const TEAM := [Color("3c9f9c"), Color("ef3a0c")]  # 발밑 팀 색(S166): 아군 청록, 적 빨강(F24+ 팔레트)
 static var FEET: ImageTexture = _feet()  # 발밑 채운 타원 14×6px. 아군·적을 한 장에 나란히 둬서 draw call이 끊기지 않는다
 
@@ -102,7 +103,7 @@ func _draw() -> void:
 	for u in battle.units:
 		var at: Vector2 = u.pos * CELL + Vector2(CELL, CELL) / 2
 		if u.is_hero:  # 영웅 레벨(I117): 오른쪽 위에 작게
-			draw_string(ThemeDB.fallback_font, at + Vector2(CELL * 0.3, -CELL * 0.3), str(u.level), HORIZONTAL_ALIGNMENT_LEFT, -1, 8)
+			draw_string(PIXEL_FONT, (at + Vector2(CELL * 0.3, -CELL * 0.3)).round(), str(u.level), HORIZONTAL_ALIGNMENT_LEFT, -1, 8)
 		if u in controls.selected:  # 테두리: 흰색 이동 중 공격, 노란색 무조건 이동. 홀드면 기준 반경도 그린다
 			draw_arc(at, CELL * (u.radius + 0.2), 0.0, TAU, 24, Color.YELLOW if u.move_mode == "move" else Color.WHITE, 1.0)
 			if u.hold:
