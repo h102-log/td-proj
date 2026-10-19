@@ -24,10 +24,27 @@ K = {
     "glass0": "#1d1838", "glass1": "#3e2650", "glass2": "#7a2e3e",
     "stone": "#120e18", "stone_h": "#2e2536",
 }
-RW, RR = (960, 330), 210  # 등 뒤 장미창 중심·반지름
-STAFF_B, STAFF_T = (786, 998), (762, 214)  # 지팡이 물미 끝, 자루 위끝(초승달 받침)
+# 2026-10-19
+# [동작] 장미창을 1.35배로 키우고 중심을 머리 위(y 64)로 올려, 창 아래 테두리가 어깨 뒤에 걸리게 한다
+# [의도] 첫 시안에서 창이 머리 바로 뒤에 걸려 후광처럼 읽히던 것을 고친다(Gemini 검토 «상», 사용자가 반영을 고름)
+# [이유] 검토 제안대로 약 140px만 올리면 중심(y≈190)이 관(y 208) 바로 위에 와서 안쪽 고리(반지름 81·189)가 머리를 동심원으로 두른다
+RW, RR = (960, 64), 284  # 등 뒤 장미창 중심·반지름
+RK = RR / 210  # 장미창 무늬 배율(무늬 치수는 반지름 210 기준)
+STAFF_B, STAFF_T = (850, 998), (745, 214)  # 지팡이 물미 끝, 자루 위끝(초승달 받침). 위가 바깥으로 기운 대각선
 SUN = along(STAFF_B, STAFF_T, 1.06)  # 지팡이 해 원반 중심
-ORB = (1126, 406)  # 왼손바닥 위에 뜬 빛 구슬
+GRIP_Y = 540  # 지팡이를 쥔 손의 높이
+BLESS_E0, BLESS_E1, BLESS_A = (1052, 470), (1075, 449), -30  # 축복하는 아래팔: 그린 자리의 팔꿈치 → 옮긴 팔꿈치, 들어 올린 각(도)
+
+
+def bless_xf(p):
+    """축복하는 아래팔 좌표 p를 BLESS_E0 둘레로 BLESS_A만큼 돌리고 BLESS_E1로 옮긴다"""
+    a = math.radians(BLESS_A)
+    dx, dy = p[0] - BLESS_E0[0], p[1] - BLESS_E0[1]
+    return (BLESS_E1[0] + dx * math.cos(a) - dy * math.sin(a), BLESS_E1[1] + dx * math.sin(a) + dy * math.cos(a))
+
+
+PALM = bless_xf((1125, 446))  # 위로 편 왼손바닥 가운데
+ORB = (PALM[0], PALM[1] - 42)  # 왼손바닥 위에 뜬 빛 구슬
 
 
 def strip(pts, w):
@@ -61,11 +78,13 @@ def defs():
         lin("gGoldS", [(0, K["gold3"]), (.6, K["gold2"]), (1, K["gold0"])]),
         lin("gShaft", [(0, K["gold2"]), (.35, K["gold5"]), (.6, K["gold3"]), (1, K["gold1"])], x2=1, y2=0),
         lin("gStole", [(0, K["or3"]), (.4, K["or2"]), (1, K["or1"])], x2=1, y2=1),
+        lin("gUnder", [(0, K["gold4"]), (.35, K["gold3"]), (.75, K["or3"]), (1, K["or2"])]),
         lin("gHair", [(0, K["hair_h"]), (.3, K["hair"]), (1, K["hair_s"])]),
         lin("gWin", [(0, K["glass0"]), (.4, K["glass1"]), (.62, K["glass2"]), (.8, K["or2"]), (.93, K["or3"]), (1, K["gold4"])],
             RW[0], RW[1] - RR, RW[0], RW[1] + RR, user=True),
         rad("gBg", [(0, "#2a2134"), (.4, "#171221"), (.75, "#0b0911"), (1, "#050408")], 960, 520, 1150),
-        rad("gSunrise", [(0, K["gold5"], .95), (.25, K["or3"], .7), (.6, K["or2"], .25), (1, K["or2"], 0)], RW[0], RW[1] + RR - 20, 320),
+        rad("gSunrise", [(0, K["gold5"], .95), (.25, K["or3"], .7), (.6, K["or2"], .25), (1, K["or2"], 0)], RW[0], RW[1] + RR - 20, 320 * RK),
+        rad("gSunriseB", [(0, K["gold5"], .95), (.25, K["or3"], .7), (.6, K["or2"], .25), (1, K["or2"], 0)], 960, 520, 320),
         rad("gFloor", [(0, K["gold3"], .3), (.5, K["or2"], .08), (1, K["or1"], 0)], 960, 994, 560),
         rad("gVig", [(0, "#000", 0), (.62, "#000", 0), (1, "#040308", .72)], 960, 520, 1150),
         rad("gGlow", [(0, "#ffffff", .95), (.3, K["gold5"], .6), (.6, K["or3"], .2), (1, K["or2"], 0)], 0, 0, 1),
@@ -97,10 +116,10 @@ def defs():
 
 def background():
     s = [f'<rect width="{W}" height="{H}" fill="url(#gBg)"/>']
-    for x in (640, 1230):  # 장미창 양옆 기둥
+    for x in (500, 1370):  # 장미창 양옆 기둥. 인물을 문틀처럼 가두지 않게 창 바깥으로 멀리 뺐다
         s.append(path(poly([(x, 60), (x + 50, 60), (x + 50, 1000), (x, 1000)]), K["stone"]))
         s.append(path(f"M{x + 6} 60L{x + 6} 1000", stroke=K["stone_h"], sw=3, op=.8))
-    arch = f"M665 120Q690 -60 960 -120Q1230 -60 1255 120"  # 뾰족 아치(꼭대기는 화면 밖)
+    arch = f"M525 120Q560 -100 960 -170Q1360 -100 1395 120"  # 뾰족 아치(꼭대기는 화면 밖)
     s.append(path(arch, stroke=K["stone"], sw=50) + path(arch, stroke=K["stone_h"], sw=2.4, op=.8))
     return "".join(s)
 
@@ -110,9 +129,9 @@ def rose_window():
     s = [path(circ(RW, RR + 24), K["stone"]), path(circ(RW, RR), "url(#gWin)")]
     tint = []
     for i in range(12):
-        tint.append(path(sector(RW, 60, 140, i * 30, i * 30 + 30), K["glass0"] if i % 2 else K["glass2"], op=.28))
-        tint.append(path(circ(pol(RW, 176, i * 30 + 15), 30), K["glass1"] if i % 2 else K["or1"], op=.25))
-    tint.append(f'<ellipse cx="{RW[0]}" cy="{RW[1] + RR - 20}" rx="320" ry="320" fill="url(#gSunrise)"/>')
+        tint.append(path(sector(RW, 60 * RK, 140 * RK, i * 30, i * 30 + 30), K["glass0"] if i % 2 else K["glass2"], op=.28))
+        tint.append(path(circ(pol(RW, 176 * RK, i * 30 + 15), 30 * RK), K["glass1"] if i % 2 else K["or1"], op=.25))
+    tint.append(f'<ellipse cx="{RW[0]}" cy="{RW[1] + RR - 20}" rx="{320 * RK:.0f}" ry="{320 * RK:.0f}" fill="url(#gSunrise)"/>')
     s.append('<g clip-path="url(#cWin)">' + "".join(tint) + "</g>")
     s.append(tracery(K["stone"], 1) + f'<g opacity=".35">{tracery(K["gold1"], .2)}</g>')  # 납선 위의 가는 금빛
     s.append(path(circ(RW, RR + 24), stroke=K["stone_h"], sw=2))
@@ -121,12 +140,12 @@ def rose_window():
 
 def tracery(col, k):
     """장미창 납선(굵기 k배)"""
-    s = [path(circ(RW, r), stroke=col, sw=w * k) for r, w in ((RR, 8), (140, 7), (60, 7), (22, 6))]
+    s = [path(circ(RW, r), stroke=col, sw=w * k) for r, w in ((RR, 8), (140 * RK, 7), (60 * RK, 7), (22 * RK, 6))]
     for i in range(12):
-        s.append(path(f"M{pt(pol(RW, 60, i * 30))}L{pt(pol(RW, RR, i * 30))}", stroke=col, sw=6 * k))
-        s.append(path(circ(pol(RW, 176, i * 30 + 15), 30), stroke=col, sw=5 * k))
+        s.append(path(f"M{pt(pol(RW, 60 * RK, i * 30))}L{pt(pol(RW, RR, i * 30))}", stroke=col, sw=6 * k))
+        s.append(path(circ(pol(RW, 176 * RK, i * 30 + 15), 30 * RK), stroke=col, sw=5 * k))
     for i in range(6):
-        s.append(path(circ(pol(RW, 40, i * 60), 18), stroke=col, sw=4 * k))
+        s.append(path(circ(pol(RW, 40 * RK, i * 60), 18 * RK), stroke=col, sw=4 * k))
     return "".join(s)
 
 
@@ -134,9 +153,9 @@ def rays():
     """장미창에서 바닥으로 퍼지는 빛줄기"""
     s = []
     for x1, w, op in ((520, 30, .06), (700, 60, .1), (880, 40, .08), (1060, 46, .08), (1230, 64, .1), (1420, 34, .06)):
-        x0 = RW[0] + (x1 - RW[0]) * .25
-        s.append(path(poly([(x0 - w / 5, 430), (x0 + w / 5, 430), (x1 + w, 1000), (x1 - w, 1000)]), K["gold4"], op=op))
-    s.append(f'<ellipse cx="{RW[0]}" cy="{RW[1] + RR - 20}" rx="300" ry="260" fill="url(#gSunrise)" opacity=".55"/>')
+        x0, y0 = RW[0] + (x1 - RW[0]) * .25, RW[1] + RR + 10
+        s.append(path(poly([(x0 - w / 5, y0), (x0 + w / 5, y0), (x1 + w, 1000), (x1 - w, 1000)]), K["gold4"], op=op))
+    s.append('<ellipse cx="960" cy="520" rx="300" ry="260" fill="url(#gSunriseB)" opacity=".55"/>')  # 몸 뒤 노을빛은 가슴 뒤에 둔다
     return f'<g filter="url(#fB8)">{"".join(s)}</g>'
 
 
@@ -211,20 +230,38 @@ def shoes():
 HEM = [(1128, 982, 1), (1094, 992), (1058, 985), (1022, 993), (986, 986), (950, 994), (914, 987), (878, 993), (842, 986), (806, 992), (792, 982, 1)]
 
 
+EDGE_L = [(956, 532), (950, 600), (938, 690), (922, 790), (906, 890), (892, 990, 1)]  # 겉치마 왼 자락 앞섶(허리 → 단)
+EDGE_R = [(964, 532), (972, 600), (986, 690), (1004, 790), (1026, 890), (1052, 990, 1)]  # 겉치마 오른 자락 앞섶
+
+
 def skirt():
-    pts = [(918, 524, 1), (1002, 524, 1), (1022, 590), (1046, 680), (1074, 780), (1100, 880)] + HEM + [(816, 880), (844, 780), (872, 680), (898, 590)]
-    shades = [(smooth([(992, 524), (1050, 520), (1160, 1000), (1030, 1000), (1010, 800), (996, 640)]), K["iv2"], .55),
-              (smooth([(900, 560), (914, 560), (858, 990), (816, 990), (850, 800)]), K["iv5"], .6)]
-    folds = "".join(path(smooth(f, False), stroke=K["iv2"], sw=2, op=.7) for f in (
-        [(940, 560), (918, 760), (900, 986)], [(1000, 600), (1030, 800), (1054, 984)], [(1020, 640), (1062, 820), (1090, 986)],
-        [(910, 620), (870, 820), (846, 986)]))
+    """앞이 갈라진 겉치마 두 자락과 그 사이로 보이는 새벽빛 속치마"""
+    sides = ([(816, 880), (844, 780), (872, 680), (898, 590)], [(1022, 590), (1046, 680), (1074, 780), (1100, 880)])
+    under = smooth([(918, 524, 1), (1002, 524, 1)] + sides[1] + HEM + sides[0])
+    pleats = "".join(path(f"M{960 + dx * .12:.1f} 560L{960 + dx:.1f} 990", stroke=K["or1"], sw=1.6, op=.45) for dx in range(-90, 91, 18))
+    uhem = [(p[0], p[1] - 10) for p in HEM]
+    s = cel(under, "url(#gUnder)", [], 2.2, inner=pleats + path(smooth(uhem, False), stroke=K["or1"], sw=10)
+            + path(smooth(uhem, False), stroke=K["gold3"], sw=2.4))
     band = [(p[0], p[1] - 24) for p in HEM]
     trim = (path(smooth(band, False), stroke=K["gold1"], sw=13) + path(smooth(band, False), stroke=K["gold3"], sw=8)
             + path(smooth([(p[0], p[1] - 3) for p in band], False), stroke=K["gold5"], sw=1.2, op=.7))
     for x in range(816, 1110, 34):  # 금 띠의 새벽 해 무늬
         y = min(band, key=lambda p: abs(p[0] - x))[1]
         trim += diamond((x, y), 5, K["or2"]) + diamond((x, y), 2, K["gold5"])
-    return cel(smooth(pts), "url(#gIvory)", shades, 2.2, inner=folds + trim)
+    left = [(918, 524, 1)] + EDGE_L + [p for p in HEM if p[0] < EDGE_L[-1][0]] + sides[0]
+    right = [(1002, 524, 1)] + sides[1] + [p for p in HEM if p[0] > EDGE_R[-1][0]] + EDGE_R[::-1]
+    folds_l = "".join(path(smooth(f, False), stroke=K["iv1"], sw=2.4, op=.55) for f in (
+        [(904, 600), (878, 790), (846, 986)], [(930, 640), (906, 800), (880, 960)]))
+    folds_r = "".join(path(smooth(f, False), stroke=K["iv1"], sw=2.4, op=.55) for f in (
+        [(990, 600), (1016, 780), (1046, 984)], [(1012, 610), (1052, 800), (1086, 986)], [(1034, 660), (1074, 820), (1112, 980)]))
+    s += cel(smooth(left), "url(#gIvory)", [(smooth([(900, 560), (914, 560), (858, 990), (816, 990), (850, 800)]), K["iv5"], .6)], 2.2,
+             inner=folds_l + trim)
+    s += cel(smooth(right), "url(#gIvory)", [(smooth([(1030, 540), (1060, 540), (1160, 1000), (1060, 1000), (1040, 800)]), K["iv2"], .55)], 2.2,
+             inner=folds_r + trim)
+    for e in (EDGE_L, EDGE_R):  # 앞섶 금 단
+        d = smooth(e, False)
+        s += path(d, stroke=K["ink"], sw=8.5) + path(d, stroke=K["gold3"], sw=5.5) + path(d, stroke=K["gold5"], sw=1.2, op=.7)
+    return s
 
 
 def bodice():
@@ -384,24 +421,29 @@ def staff():
 
 
 def fist():
-    """지팡이를 감싼 오른손(엄지가 위)"""
-    cx = along(STAFF_B, STAFF_T, (STAFF_B[1] - 520) / (STAFF_B[1] - STAFF_T[1]))[0]
+    """지팡이를 감싼 오른손(엄지가 위). 520 높이에 그려 GRIP_Y로 옮긴다"""
+    cx = along(STAFF_B, STAFF_T, (STAFF_B[1] - GRIP_Y) / (STAFF_B[1] - STAFF_T[1]))[0]
     g = cel(smooth([(cx - 11, 508), (cx, 504), (cx + 13, 507), (cx + 16, 520), (cx + 13, 534), (cx, 538), (cx - 11, 535), (cx - 14, 521)]), K["skin"],
             [(smooth([(cx + 3, 500), (cx + 22, 500), (cx + 22, 542), (cx + 3, 542)]), K["skin_s"], .55)], 1.6,
             inner="".join(path(f"M{cx - 13} {y}Q{cx - 6} {y + 1.6} {cx + 1} {y + .6}", stroke=K["skin_d"], sw=1, op=.75) for y in (516, 524.5, 532)))
     g += cel(smooth([(cx + 11, 509, 1), (cx + 2, 499), (cx - 8, 500), (cx - 11, 507, 1), (cx, 510)]), K["skin"], [], 1.3)
-    return g
+    return f'<g transform="translate(0 {GRIP_Y - 520})">{g}</g>'
+
+
+STAFF_SHIFT = (17, 20)  # 지팡이 쪽 아래팔: 그린 자리 → 쥔 손이 GRIP_Y에 오는 자리
+STAFF_EL = (846 + STAFF_SHIFT[0], 466 + STAFF_SHIFT[1])  # 그 팔꿈치
 
 
 def arm_staff():
-    """오른 아래팔(화면 왼쪽): 지팡이를 팔 길이만큼 옆에 세워 쥔다"""
-    return (sleeve([(836, 450), (810, 472), (784, 496, 1), (780, 530), (784, 566), (796, 602, 1), (820, 584), (846, 550), (866, 510), (862, 474)],
+    """오른 아래팔(화면 왼쪽): 팔꿈치를 몸에 붙이고 기울인 지팡이를 쥔다"""
+    return (f'<g transform="translate({STAFF_SHIFT[0]} {STAFF_SHIFT[1]})">'
+            + sleeve([(836, 450), (810, 472), (784, 496, 1), (780, 530), (784, 566), (796, 602, 1), (820, 584), (846, 550), (866, 510), (862, 474)],
                      [(784, 498), (796, 514), (802, 552), (796, 596), (788, 566), (782, 530)],
-                     [(784, 496), (780, 530), (784, 566), (796, 602)]))
+                     [(784, 496), (780, 530), (784, 566), (796, 602)]) + "</g>")
 
 
 def arm_bless():
-    """왼 아래팔(화면 오른쪽): 손바닥을 위로 펴 빛 구슬을 띄운다"""
+    """왼 아래팔(화면 오른쪽): 가슴 높이로 들어 올린 손바닥 위에 빛 구슬을 띄운다. bless_xf로 옮겨 그린다"""
     s = sleeve([(1040, 462), (1066, 448), (1094, 436, 1), (1104, 470), (1104, 516), (1094, 562, 1), (1070, 546), (1052, 518), (1040, 492)],
                 [(1094, 438), (1102, 470), (1100, 520), (1094, 560), (1088, 520), (1090, 470)],
                 [(1094, 436), (1104, 470), (1104, 516), (1094, 562)])
@@ -410,7 +452,8 @@ def arm_bless():
     for x0, y0, x1, y1 in ((1128, 441, 1148, 441.6), (1126, 446, 1150, 447)):
         s += path(f"M{x0} {y0}L{x1} {y1}", stroke=K["skin_d"], sw=.9, op=.75)
     s += cel(smooth([(1104, 440, 1), (1108, 428), (1115, 421), (1121, 424), (1118, 436, 1)]), K["skin"], [], 1.3)
-    return s
+    e0, e1 = BLESS_E0, BLESS_E1
+    return f'<g transform="translate({e1[0] - e0[0]} {e1[1] - e0[1]}) rotate({BLESS_A} {e0[0]} {e0[1]})">{s}</g>'
 
 
 def orb():
@@ -424,7 +467,7 @@ def orb():
 
 
 def hero():
-    parts = [veil_back(), shoes(), skirt(), bodice(), stole(), belt(), arm_upper((904, 388), (846, 466)), arm_upper((1016, 388), (1058, 468)),
+    parts = [veil_back(), shoes(), skirt(), bodice(), stole(), belt(), arm_upper((904, 388), STAFF_EL), arm_upper((1016, 388), BLESS_E1),
              veil_cap(), hair_back(), neck(), collar(), face(), hair_front(), diadem(),
              arm_staff(), staff(), fist(), arm_bless()]
     return '<g id="hero">' + "".join(parts) + "</g>"
@@ -452,7 +495,7 @@ def ornament(x0, x1, y):
 INSETS = [  # (원 중심, 반지름, 보는 곳, 배율, 제목, 설명)
     ((1716, 236), 92, (960, 256), 1.6, "THE DAWN DIADEM", "sunburst crown · veil of light"),
     ((1716, 520), 92, SUN, 1.45, "SUNDISC STAFF", "risen sun · crescent cradle"),
-    ((1716, 804), 92, (1124, 428), 1.6, "BLESSED PALM", "mending light · open hand"),
+    ((1716, 804), 92, (PALM[0], (PALM[1] + ORB[1]) / 2), 1.6, "BLESSED PALM", "mending light · open hand"),
 ]
 PALETTE = [("IVORY", K["gold4"], True), ("SHADE", K["iv1"], True), ("GOLD", K["gold3"], True),
            ("PEACH", K["or3"], True), ("DAWN", K["or2"], True), ("HALO", K["gold5"], False)]

@@ -10,7 +10,7 @@ from pathlib import Path
 
 import chronos
 import shot
-from chronos import W, H, along, catmull, cel, circ, diamond, label, limb, lin, mirror, path, poly, pol, pt, rad, ribbon, smooth
+from chronos import W, H, along, catmull, cel, circ, diamond, label, limb, lin, path, poly, pol, pt, rad, ribbon, smooth
 
 OUT = Path(__file__).resolve().parents[3] / "art" / "concept" / "vesper"
 
@@ -57,6 +57,8 @@ def defs():
         lin("gLeatherV", [(0, K["lea3"]), (.5, K["lea2"]), (1, K["lea1"])]),
         lin("gHat", [(0, K["lea2"]), (.5, K["lea1"]), (1, K["lea0"])], x2=1, y2=1),
         lin("gBone", [(0, K["bn4"]), (.35, K["bn3"]), (.75, K["bn2"]), (1, K["bn1"])], x2=.6, y2=1),
+        lin("gVest", [(0, K["bn4"]), (.3, K["bn3"]), (1, K["bn2"])], x2=.4, y2=1),
+        lin("gParch", [(0, K["bn3"]), (.55, K["bn2"]), (1, K["bn1"])], x2=1, y2=0),
         lin("gBrass", [(0, K["bn3"]), (.3, K["br3"]), (.7, K["br2"]), (1, K["br1"])], x2=1, y2=1),
         lin("gCenser", [(0, K["br3"]), (.3, K["br2"]), (.7, K["br1"]), (1, "#3a2008")], x2=1, y2=1),
         lin("gGlove", [(0, K["glove_h"]), (.5, K["glove"]), (1, "#0a0704")], x2=1, y2=1),
@@ -212,35 +214,68 @@ def spores():
 
 # ── 인물 ─────────────────────────────────────────────────────────────
 
+LEGS = (((940, 700), (930, 900)), ((980, 700), (992, 900)))  # 엉덩이 아래·발목. 코트가 갈라진 틈으로 보인다
+
+
+def legs():
+    """가죽 바지 두 다리. 그늘은 화면 오른쪽(도면빛 반대)"""
+    # along()의 off는 위→아래로 내려가는 팔다리에서 +가 화면 왼쪽이다
+    return "".join(cel(limb(h, a, 21, 15, 2.5), K["lea2"], [(limb(along(h, a, 0, -11), along(h, a, 1, -8), 11, 8), K["lea0"], .6),
+                                                         (limb(along(h, a, .1, 13), along(h, a, .9, 9), 3, 2), K["lea4"], .5)], 1.8)
+                   for h, a in LEGS)
+
+
 def boots():
+    """무릎 아래까지 오는 장화. 발끝은 바깥으로 벌린다"""
     s = []
-    for x in (934, 990):
-        d = smooth([(x - 13, 976, 1), (x + 13, 976, 1), (x + 16, 992), (x + 8, 1000), (x - 8, 1000), (x - 16, 992)])
-        s.append(cel(d, "url(#gGlove)", [(smooth([(x, 976), (x + 30, 976), (x + 30, 1004), (x, 1004)]), "#000", .35)], 1.6))
-        s.append(path(f"M{x - 13} 986L{x + 13} 986", stroke=K["bn1"], sw=2.4))
+    for x, sg in ((930, -1), (992, 1)):  # sg: 발끝 방향(화면 왼쪽 -1 / 오른쪽 +1)
+        loc = [(-17, 884, 1), (17, 884, 1), (15, 940), (15, 972), (23, 990), (17, 1001), (-13, 1001), (-19, 992), (-15, 972), (-15, 940)]
+        pts = [(x + sg * u, y) + tuple(p) for u, y, *p in loc]
+        dark = smooth([(x + 2, 884), (x + 30, 884), (x + 30, 1004), (x + 2, 1004)])
+        s.append(cel(smooth(pts), "url(#gGlove)", [(dark, "#000", .35)], 1.6,
+                     inner=path(f"M{x - 17} 896L{x + 17} 896", stroke=K["glove_h"], sw=2.4)))  # 접어 내린 장화 목
+        s.append(path(f"M{x - 15} 952L{x + 15} 952", stroke=K["ink"], sw=4.4) + path(f"M{x - 15} 952L{x + 15} 952", stroke=K["bn1"], sw=2.6))
+        s.append(f'<rect x="{x + sg * 4 - 4}" y="947" width="8" height="10" rx="1.5" fill="{K["bn3"]}" stroke="{K["ink"]}" stroke-width="1"/>')
     return "".join(s)
 
 
-COAT_L = [(902, 372), (894, 430), (900, 500), (912, 562, 1), (898, 640), (876, 740), (852, 840), (830, 930), (816, 980, 1)]
-HEM = [(816, 980, 1), (850, 988), (884, 982), (918, 990), (952, 984), (986, 990), (1020, 984), (1054, 990), (1088, 982), (1104, 980, 1)]
-OPEN = [(960, 600, 1), (968, 680), (982, 800), (996, 920), (1006, 988, 1), (914, 988, 1), (924, 920), (938, 800), (952, 680)]
+def vest():
+    """뼈색 학자 조끼. 코트가 허리 아래로 갈라지며 드러나고, 두 끝이 뾰족하게 갈린다"""
+    pts = [(908, 560, 1), (1012, 560, 1), (1016, 640), (1012, 720), (1000, 748, 1), (980, 730), (960, 714, 1), (940, 730), (920, 748, 1), (906, 720), (904, 640)]
+    shades = [(poly([(980, 560), (1020, 560), (1020, 760), (994, 748)]), K["bn1"], .5),
+              (poly([(904, 700), (960, 714), (1016, 700), (1016, 760), (904, 760)]), K["bn1"], .35)]
+    trim = path(smooth([(920, 748, 1), (940, 730), (960, 714, 1), (980, 730), (1000, 748, 1)], False), stroke=K["bn1"], sw=3)
+    seam = path("M960 566L960 714", stroke=K["bn0"], sw=1.6)
+    btn = "".join(path(circ((960, y), 3.4), "url(#gBrass)", K["ink"], 1) for y in (598, 626, 654, 682))
+    return cel(smooth(pts), "url(#gVest)", shades, 1.8, inner=trim + seam + btn)
+
+
+# 2026-10-19
+# [동작] 코트 앞자락을 허리띠 아래부터 좌우로 벌리고, 화면 왼쪽 아랫단은 향로 쪽으로 날린다
+# [의도] 첫 시안은 어깨부터 발끝까지 흑갈 기둥이라 어두운 배경에 묻혔다. 틈으로 뼈색 조끼·다리를 보여 명도 대비와 다리 윤곽을 만든다
+# [이유] Gemini 검토(art/concept/review/2026-10-19/feedback_gemini.md §3 «상»)를 사용자가 골랐다
+COAT_L = [(902, 372), (894, 430), (900, 500), (912, 562, 1), (896, 640), (872, 740), (842, 840), (808, 918), (774, 958, 1)]  # 화면 왼쪽 겉선
+COAT_R = [(1018, 372), (1026, 430), (1020, 500), (1008, 562, 1), (1022, 640), (1044, 740), (1068, 840), (1090, 930), (1106, 982, 1)]
+HEM_L = [(774, 958, 1), (804, 971), (836, 980), (870, 985, 1)]
+HEM_R = [(1048, 988, 1), (1078, 991), (1106, 982, 1)]
+EDGE_L = [(870, 985, 1), (888, 900), (910, 800), (930, 700), (942, 610), (944, 578, 1)]  # 앞자락 안쪽 끝(아래 → 허리띠 밑)
+EDGE_R = [(976, 578, 1), (978, 610), (994, 700), (1014, 800), (1034, 900), (1048, 988, 1)]
 
 
 def coat():
-    """밀랍 먹인 긴 가죽 코트. 허리 아래가 갈라져 안감이 보인다"""
-    pts = COAT_L + HEM[1:-1] + mirror(COAT_L)[::-1] + [(990, 342), (960, 338), (930, 342)]
-    shades = [(smooth([(968, 340), (1060, 340), (1130, 1000), (1000, 1000), (990, 700), (976, 500)]), K["lea0"], .55),
-              (smooth([(900, 380), (916, 380), (904, 600), (848, 960), (826, 960), (870, 700)]), K["lea4"], .45)]
+    """밀랍 먹인 긴 가죽 코트. 허리 아래가 갈라져 조끼·다리가 보이고, 날린 아랫단 안쪽으로 독녹 안감이 비친다"""
+    pts = COAT_L + HEM_L[1:] + EDGE_L[1:] + EDGE_R + HEM_R[1:] + COAT_R[::-1][1:] + [(990, 342), (960, 338), (930, 342)]
+    shades = [(smooth([(968, 340), (1060, 340), (1130, 1000), (1040, 1000), (1004, 780), (986, 560)]), K["lea0"], .55),
+              (smooth([(900, 380), (916, 380), (906, 600), (842, 930), (812, 930), (872, 700)]), K["lea4"], .45),
+              (smooth([(774, 958, 1), (804, 971), (836, 980), (870, 985, 1), (872, 972), (836, 966), (806, 957), (786, 946)]), K["tx1"], 1)]
     sheen = "".join(path(smooth(p, False), stroke=K["lea4"], sw=w, op=o) for p, w, o in (  # 밀랍 광택
-        ([(906, 620), (884, 760), (862, 900)], 5, .35), ([(918, 640), (900, 780), (884, 920)], 2, .4), ([(1030, 680), (1048, 800)], 3, .2)))
+        ([(904, 620), (882, 760), (856, 890)], 5, .35), ([(918, 640), (900, 780), (876, 900)], 2, .4), ([(1020, 680), (1042, 800)], 3, .2)))
     folds = "".join(path(smooth(f, False), stroke=K["lea0"], sw=2.2, op=.8) for f in (
-        [(930, 620), (906, 800), (888, 980)], [(1000, 640), (1030, 820), (1050, 984)], [(1020, 660), (1062, 840), (1080, 984)]))
-    stitch = path(smooth([(p[0], p[1] - 14) for p in HEM], False), stroke=K["lea4"], sw=1.2, op=.7, extra=' stroke-dasharray="5 5"')
-    inner = cel(smooth(OPEN), K["lea0"], [(smooth([(960, 600), (1010, 600), (1010, 990), (966, 990)]), "#000", .4)], 1.8,
-                inner="".join(path(smooth(f, False), stroke=K["lea2"], sw=1.6, op=.6) for f in ([(952, 720), (944, 860), (936, 980)], [(970, 740), (982, 880), (990, 980)])))
-    edge = (path(smooth(OPEN[1:5], False), stroke=K["lea4"], sw=1.4, op=.7, extra=' stroke-dasharray="5 5"')
-            + path(smooth(OPEN[5:] + [OPEN[0]], False), stroke=K["lea4"], sw=1.4, op=.7, extra=' stroke-dasharray="5 5"'))
-    return cel(smooth(pts), "url(#gLeather)", shades, 2.2, inner=sheen + folds + stitch) + inner + edge
+        [(924, 620), (898, 800), (850, 960)], [(1004, 640), (1034, 820), (1064, 984)], [(1018, 660), (1056, 840), (1084, 984)]))
+    stitch = "".join(path(smooth(e, False), stroke=K["lea4"], sw=1.2, op=.7, extra=' stroke-dasharray="5 5"') for e in (
+        [(x, y - 12) for x, y, *_ in HEM_L], [(x, y - 12) for x, y, *_ in HEM_R],
+        [(x - 8, y) for x, y, *_ in EDGE_L[:-1]], [(x + 8, y) for x, y, *_ in EDGE_R[1:]]))
+    return cel(smooth(pts), "url(#gLeather)", shades, 2.2, inner=sheen + folds + stitch)
 
 
 def straps():
@@ -262,6 +297,22 @@ def straps():
                  f'<rect x="{x - 3.5}" y="{y - 5}" width="7" height="6" rx="1" fill="{K["br2"]}" stroke="{K["ink"]}" stroke-width="1"/>'
                  + path(f"M{x - 2} {y + 4}L{x - 2} {y + h - 6}", stroke="#ffffff", sw=1, op=.5))
     return "".join(s)
+
+
+def scroll():
+    """허리띠에 매단 저주 도면 두루마리. 양피지에 독녹 7각 별과 치수선. 조끼 단추줄은 가리지 않는다"""
+    x = 908  # 양피지 왼쪽 끝
+    sheet = smooth([(x, 586, 1), (x + 34, 586, 1), (x + 37, 670), (x + 35, 754, 1), (x + 1, 756, 1), (x - 3, 670)])
+    c = (x + 18, 638)
+    ink = (path(circ(c, 11), stroke=K["tx1"], sw=1.1) + path(poly([pol(c, 9, k * 360 / 7 * 3) for k in range(7)]), stroke=K["tx1"], sw=.9)
+           + "".join(path(f"M{x + 4} {y}L{x + 30 - w} {y}", stroke=K["lea3"], sw=1, op=.75) for y, w in ((672, 0), (684, 8), (696, 3), (708, 12)))
+           + path(f"M{x + 4} 730L{x + 30} 730M{x + 4} 725L{x + 4} 735M{x + 30} 725L{x + 30} 735", stroke=K["tx1"], sw=.9))
+    s = cel(sheet, "url(#gParch)", [(smooth([(x + 22, 586), (x + 38, 586), (x + 38, 756), (x + 20, 756)]), K["bn1"], .45)], 1.6, inner=ink)
+    for y in (577, 749):  # 위·아래 굴대
+        s += (f'<rect x="{x - 2}" y="{y}" width="40" height="11" rx="5" fill="{K["br1"]}" stroke="{K["ink"]}" stroke-width="1.4"/>'
+              + path(f"M{x + 2} {y + 3.5}L{x + 34} {y + 3.5}", stroke=K["br2"], sw=1.6)
+              + path(circ((x - 2, y + 5.5), 3.4), K["bn3"], K["ink"], 1) + path(circ((x + 38, y + 5.5), 3.4), K["bn3"], K["ink"], 1))
+    return s
 
 
 def sleeve(sh, el, wr):
@@ -291,17 +342,43 @@ def fist(c, r, rot_):
     return cel(smooth(pts), "url(#gGlove)", [(circ((c[0] - r * .35, c[1] - r * .45), r * .4), K["glove_h"], .5)], 1.6, inner=knuck)
 
 
+# 2026-10-19
+# [동작] 어깨 망토를 좌우 비대칭으로 바꾼다: 컴퍼스 팔(화면 오른쪽) 쪽이 들리고, 주름은 각지게 꺾이며, 아랫단은 갈라진 가죽 띠, 목에는 잠금쇠
+# [의도] 첫 시안의 매끈한 반원 종 모양이 팔·어깨와 따로 놀아 인형처럼 보였다
+# [이유] Gemini 검토(art/concept/review/2026-10-19/feedback_gemini.md §3 «상»)를 사용자가 골랐다
+CAPE_TOP = [(842, 470, 1), (846, 446), (856, 410), (872, 380, 1), (902, 350), (932, 336), (960, 331), (988, 336), (1018, 350),
+            (1046, 370, 1), (1068, 398), (1084, 428), (1094, 454, 1)]  # 화면 왼쪽 끝 → 어깨 → 오른쪽 끝
+CAPE_BASE = [(1094, 454), (1050, 470), (1004, 480), (960, 482), (916, 480), (876, 476), (842, 470)]  # 갈라진 띠가 시작하는 선
+
+
 def capelet():
-    """어깨 망토. 아랫단에 뼈색 징"""
-    left = [(960, 330), (934, 334), (906, 348), (878, 370), (858, 402), (848, 442), (842, 486, 1), (872, 492), (900, 482), (930, 494), (960, 486)]
-    pts = left + mirror(left[1:-1])[::-1]
-    shades = [(smooth([(966, 326), (1050, 340), (1100, 500), (972, 500)]), K["lea0"], .6),
-              (smooth([(880, 372), (920, 350), (912, 380), (870, 430)]), K["lea4"], .55)]
-    hem = [p[:2] for p in left[6:]] + [p[:2] for p in mirror(left[6:-1])[::-1]]
-    stitch = path(smooth([(x, y - 12) for x, y in hem], False), stroke=K["lea4"], sw=1.2, op=.7, extra=' stroke-dasharray="5 5"')
-    s = cel(smooth(pts), "url(#gLeather)", shades, 2.2, inner=stitch)
-    for x, y in hem[::2]:
-        s += path(circ((x, y - 5), 2.6), K["bn2"], K["ink"], .8)
+    """어깨 망토. 들린 오른쪽·각진 주름·갈라진 가죽 띠 아랫단·놋쇠와 뼈 잠금쇠"""
+    q = catmull(CAPE_BASE, 8)
+    n = 11  # 가죽 띠 수
+    b = [q[round(i / n * (len(q) - 1))] for i in range(n + 1)]
+    rnd = random.Random(5)
+    hem = []
+    for (x0, y0), (x1, y1) in zip(b, b[1:]):  # 띠 하나: 위쪽 갈라진 틈 → 아래 끝 → 다음 틈
+        d = rnd.uniform(18, 26)
+        hem += [(x0, y0, 1), (x0 + (x1 - x0) * .08, (y0 + y1) / 2 + d, 1), ((x0 + x1) / 2, (y0 + y1) / 2 + d + 3),
+                (x1 - (x1 - x0) * .08, (y0 + y1) / 2 + d, 1)]
+    pts = CAPE_TOP + hem[1:]
+    shades = [(poly([(966, 326), (1046, 370), (1104, 460), (1104, 520), (1000, 510), (978, 420)]), K["lea0"], .6),  # 각진 면
+              (poly([(872, 380), (902, 350), (918, 358), (892, 420), (862, 456)]), K["lea4"], .55),
+              (poly([(930, 344), (946, 340), (930, 420), (916, 476), (902, 476), (918, 410)]), K["lea0"], .35)]
+    folds = ""
+    for f in ([(928, 350), (914, 404), (904, 474)], [(898, 364), (884, 410), (872, 470)],  # 한 번 꺾이는 주름
+              [(994, 348), (1014, 400), (1030, 478)], [(1024, 360), (1052, 404), (1072, 454)]):
+        (x0, y0), (xk, yk), (x1, y1) = f  # 위는 가늘고 아래로 갈수록 벌어지는 쐐기 그늘 + 빛 받는 쪽 선
+        folds += (path(poly([(x0, y0), (xk - 1.5, yk), (x1 - 4, y1), (x1 + 4, y1), (xk + 1.5, yk)]), K["lea0"], op=.75)
+                  + path(polyline([(x0 + 2, y0), (xk + 4, yk), (x1 + 6, y1)]), stroke=K["lea4"], sw=1.2, op=.55))
+    stitch = path(smooth([(x, y - 8) for x, y in CAPE_BASE], False), stroke=K["lea4"], sw=1.2, op=.7, extra=' stroke-dasharray="5 5"')
+    s = cel(smooth(pts), "url(#gLeather)", shades, 2.2, inner=folds + stitch)
+    for x, y in b[1:-1:2]:
+        s += path(circ((x, y - 3), 2.6), K["bn2"], K["ink"], .8)
+    s += f'<rect x="944" y="353" width="32" height="8" rx="4" fill="url(#gBone)" stroke="{K["ink"]}" stroke-width="1.3"/>'  # 뼈 토글
+    for x in (944, 976):
+        s += path(circ((x, 357), 6.5), "url(#gBrass)", K["ink"], 1.4) + path(circ((x, 357), 2.4), K["br1"])
     return s
 
 
@@ -408,7 +485,7 @@ def compass():
 
 
 def hero():
-    parts = [boots(), coat(), straps(), sleeve(*ARM_C), sleeve(*ARM_P), capelet(), cuff(*ARM_C[1:]), cuff(*ARM_P[1:]),
+    parts = [legs(), boots(), vest(), coat(), straps(), scroll(), sleeve(*ARM_C), sleeve(*ARM_P), capelet(), cuff(*ARM_C[1:]), cuff(*ARM_P[1:]),
              hood(), lenses(), beak(), hat(), censer(), fist((806, 606), 17, 20), compass(), fist((1130, 448), 16, -30)]
     return '<g id="hero">' + "".join(parts) + "</g>"
 
