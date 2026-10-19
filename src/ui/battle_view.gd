@@ -37,10 +37,7 @@ func _draw() -> void:
 		draw_line(Vector2(x * CELL, 0), Vector2(x * CELL, map.y), COLORS.grid)
 	for y in battle.size.y + 1:
 		draw_line(Vector2(0, y * CELL), Vector2(map.x, y * CELL), COLORS.grid)
-	for b in battle.castle.values():  # 열린 성문은 밝게(I67). 단계는 칸 아래쪽 점 개수다(I68)
-		draw_rect(_rect(b.cell), COLORS.gate_open if b.open else COLORS[b.kind])
-		for i in b.level:
-			draw_rect(Rect2(Vector2(b.cell) * CELL + Vector2(2 + i * 4, CELL - 4), Vector2(2, 2)), Color.WHITE)
+	_castle()
 	for k in battle.rubble.values():  # 잔해는 흐리게(I88)
 		draw_rect(_rect(k.cell), Color(COLORS[k.kind], 0.3))
 	for s in battle.structures.values():  # 미완성·접은 대포는 흐리게. 진행률은 체력 막대로 보인다(I62, I74)
@@ -95,9 +92,9 @@ func _draw() -> void:
 	for h in battle.heroes:  # 오라 반경(S113): 오라가 있는 살아 있는 영웅마다 둘레에 늘 엷게, 유닛 아래에(I101)
 		if h.alive and not h.aura.is_empty():
 			_aura_ring(h)
+	_bodies()
 	for u in battle.units:
 		var at: Vector2 = u.pos * CELL + Vector2(CELL, CELL) / 2
-		draw_circle(at, CELL * u.radius, HERO_COLORS.get(u.kind, COLORS.merc) if u.is_hero else COLORS.get(u.kind, COLORS.merc))
 		if u.is_hero:  # 영웅 레벨(I117): 오른쪽 위에 작게
 			draw_string(ThemeDB.fallback_font, at + Vector2(CELL * 0.3, -CELL * 0.3), str(u.level), HORIZONTAL_ALIGNMENT_LEFT, -1, 8)
 		if u in controls.selected:  # 테두리: 흰색 이동 중 공격, 노란색 무조건 이동. 홀드면 기준 반경도 그린다
@@ -110,10 +107,7 @@ func _draw() -> void:
 			if on:
 				draw_arc(at, CELL * (u.radius + ring), 0.0, TAU, 24, MARKS[key], 1.0)
 				ring += 0.15
-	for e in battle.enemies:  # 비행 적은 아래에 그림자를 그린다(I81)
-		if e.flying:
-			draw_circle(_center(e.pos) + Vector2(0, CELL * 0.4), CELL * e.radius * 0.8, Color(0, 0, 0, 0.35))
-		draw_circle(_center(e.pos), CELL * e.radius, ENEMY_COLORS.get(e.kind, ENEMY_COLORS.basic))
+	for e in battle.enemies:
 		var ring := 0.15
 		for key in ["stun", "root", "slow", "expose", "taunt", "seal", "chain", "dot"]:  # 걸린 효과(I101)
 			if battle.effect(e, key) != null:
@@ -149,6 +143,21 @@ func _draw() -> void:
 			_hp_bar(u.pos, u)
 	if controls.drag_rect.has_area():
 		draw_rect(controls.drag_rect, Color.WHITE, false, 1.0)
+
+func _castle() -> void:  # 열린 성문은 밝게(I67). 단계는 칸 아래쪽 점 개수다(I68)
+	for b in battle.castle.values():
+		draw_rect(_rect(b.cell), COLORS.gate_open if b.open else COLORS[b.kind])
+		for i in b.level:
+			draw_rect(Rect2(Vector2(b.cell) * CELL + Vector2(2 + i * 4, CELL - 4), Vector2(2, 2)), Color.WHITE)
+
+# 유닛·적 몸통. 레벨·선택·효과 테두리는 _draw가 모든 몸통 뒤에 그린다. 4.1a 스파이크(tools/bench)는 이 둘을 그림으로 바꿔 잰다
+func _bodies() -> void:
+	for u in battle.units:
+		draw_circle(_center(u.pos), CELL * u.radius, HERO_COLORS.get(u.kind, COLORS.merc) if u.is_hero else COLORS.get(u.kind, COLORS.merc))
+	for e in battle.enemies:  # 비행 적은 아래에 그림자를 그린다(I81)
+		if e.flying:
+			draw_circle(_center(e.pos) + Vector2(0, CELL * 0.4), CELL * e.radius * 0.8, Color(0, 0, 0, 0.35))
+		draw_circle(_center(e.pos), CELL * e.radius, ENEMY_COLORS.get(e.kind, ENEMY_COLORS.basic))
 
 # 조준 중(S147): 영웅 둘레에 시전 사거리, 커서에 범위(지점·범위), 영웅에서 커서 쪽으로 길이(방향)나 부채꼴(아이아스 Q), 에너지 성벽이 설 칸
 func _aim_preview() -> void:
