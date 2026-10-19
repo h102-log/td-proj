@@ -17,13 +17,14 @@ BASE = {"skin": S.BASE["skin"],
         "robe": ["300f0a", "9b1a0a", "ef3a0c", "ef3a0c", "ef692f"],
         "char": ["151a26", "262d3d", "3a4357", "3a4357", "56607a"],  # 숯빛 안감·바지·장화·깃
         "gold": ["2a1d0d", "724113", "ab5c1c", "efac28", "efd8a1"],
-        "flame": ["9b1a0a", "ef692f", "ef692f", "efac28", "efac28"],  # 불꽃 머리 뿌리·화염구 겉
+        "ember": ["550f0a", "9b1a0a", "ef3a0c", "ef3a0c", "ef692f"],  # 불꽃 머리 뿌리
+        "flame": ["9b1a0a", "ef692f", "ef692f", "efac28", "efac28"],  # 불꽃 머리 가운데·화염구 겉
         "flare": ["ef692f", "efac28", "efac28", "efd8a1", "efd8a1"],  # 불꽃 끝·화염구 속
         "frost": ["262d3d", "4f78ad", "a4aec2", "d0d6e0", "d0d6e0"]}
 MATS = list(BASE)
 PARTS = ["leg", "torso", "head", "arm", "fireball", "frost"]
 SIZES = (24,)
-TAG = f"m5 ppu{H.PPU24} ignis1"  # 형체 크기를 바꾸면 이 꼬리표도 바꾼다(fit.json)
+TAG = f"m5 ppu{H.PPU24} ignis2"  # 형체 크기를 바꾸면 이 꼬리표도 바꾼다(fit.json)
 
 R_ARM = dict(sh_r=100, el_r=60, ab_r=1.3)  # 화염구를 머리 옆으로 든다. 머리 위로 들면(sh_r 150, ab_r 0.6) 노란 화염구가 불꽃 머리와 붙어 한 덩어리였다
 L_ARM = dict(sh_l=20, el_l=30, ab_l=0.5)  # 서리를 흘리는 내린 손
@@ -32,13 +33,17 @@ WALK = [dict(w, **R_ARM, **L_ARM) for w in H.WALK]
 # 공격은 원거리(S121 사거리 4): 화염구를 머리 뒤로 젖혔다가(준비) 반 발 내디디며 앞으로 던지고(발사, 가운데가 타격 프레임, 화염구 1.5배)
 # 빈손으로 거둔다(마무리, 화염구 없음). 마무리에서 화염구를 지워 «던졌다»가 읽히게 했다
 ATTACK = [dict(H.POSE, **L_ARM, sh_r=175, el_r=70, ab_r=0.5, lean=-6),
-          dict(H.POSE, **L_ARM, sh_r=85, el_r=0, ab_r=0.35, lean=10, hip_r=14, knee_r=10, hip_l=-10, knee_l=10, ball=1.5),
+          # 발사는 팔을 바깥으로 45° 벌려 화염구를 몸 실루엣 밖에 둔다. 앞으로만 뻗으면(ab_r 0.35) 남쪽 방향들에서 화염구가 주홍 로브에 묻혀
+          # 배가 불룩한 것처럼 보였다(Gemini 4차 2026-10-19)
+          dict(H.POSE, **L_ARM, sh_r=85, el_r=0, ab_r=1.0, lean=10, hip_r=14, knee_r=10, hip_l=-10, knee_l=10, ball=1.5),
           dict(H.POSE, **L_ARM, sh_r=55, el_r=15, ab_r=0.4, lean=5, ball=0)]
 FALL = [dict(H.FALL[0], **L_ARM, ball=0)] + [dict(f, ball=0, frost=0) for f in H.FALL[1:]]
 ANIMS = {"idle": [IDLE], "walk": WALK, "attack": ATTACK, "fall": FALL}
-# 불꽃 머리: (뿌리, 끝) 윗몸 좌표. 정수리에서 위·뒤로 솟고 바깥 것은 옆으로 벌어진다
-LOCKS = [((-0.07, 0.03, 0.88), (-0.15, -0.06, 1.06)), ((0.0, 0.05, 0.9), (0.02, -0.04, 1.12)),
-         ((0.07, 0.03, 0.88), (0.16, -0.05, 1.05)), ((-0.03, -0.06, 0.88), (-0.06, -0.16, 1.03)), ((0.04, -0.06, 0.88), (0.08, -0.17, 1.02))]
+# 불꽃 머리: (뿌리, 꺾임, 끝) 윗몸 좌표. 높이가 다른 세 갈래가 위로 솟다가 뒤로 휜다. 대칭 다섯 갈래는 정면·뒷면에서
+# 노란 왕관·성게처럼 보였다(Gemini 4차 2026-10-19). 노랑(flare)은 끝에만 둔다
+LOCKS = [((0.0, 0.02, 0.9), (0.03, -0.04, 1.04), (-0.01, -0.1, 1.17)),
+         ((-0.07, 0.02, 0.88), (-0.13, -0.03, 0.97), (-0.15, -0.11, 1.03)),
+         ((0.06, -0.02, 0.89), (0.11, -0.07, 1.0), (0.09, -0.15, 1.08))]
 
 
 def ignis(pose, bob_unit):
@@ -58,17 +63,19 @@ def ignis(pose, bob_unit):
         P += [(R.capsule(G(hip), G(knee), 0.05), m("char"), "leg"), (R.capsule(G(knee), G(ankle), 0.046), m("char"), "leg"),
               (R.ellipsoid(G(ankle + [0, 0.035, -0.005]), (0.042, 0.068, 0.032)), m("char"), "leg")]
     P += [(R.box(U([0, 0, 0.575]), (0.115, 0.072, 0.12), up_r, 0.035), m("robe"), "torso"),
-          (R.box(U([0, 0, 0.47]), (0.12, 0.078, 0.02), up_r), m("gold"), "torso"),  # 보석 허리띠
+          (R.box(U([0, 0, 0.48]), (0.135, 0.105, 0.022), up_r, 0.01), m("gold"), "torso"),  # 보석 허리띠. 로브 자락(앞 반지름 0.096)보다 커야 보인다
           (H.local(U, up_r, opened(lambda q: np.maximum(robe(q), -robe(q, -0.015)))), m("robe"), "torso"),
           (H.local(U, up_r, opened(lambda q: np.maximum(robe(q, -0.015), -robe(q, -0.03)))), m("char"), "torso"),  # 숯빛 안감
           (H.local(U, up_r, opened(lambda q: np.maximum(robe(q, 0.006), q[:, 2] - 0.08))), m("gold"), "torso"),  # 금 단
-          (R.box(U([0, -0.02, 0.71]), (0.085, 0.045, 0.045), up_r, 0.015), m("char"), "torso")]  # 높은 깃
+          (R.box(U([0, -0.02, 0.71]), (0.085, 0.045, 0.045), up_r, 0.015), m("char"), "torso"),  # 높은 깃
+          (R.box(U([0, 0.05, 0.665]), (0.075, 0.035, 0.025), up_r, 0.01), m("char"), "torso")]  # 앞 목깃: 불꽃 머리와 주홍 로브를 가른다(Gemini 4차 2026-10-19)
     P += [(R.ellipsoid(U([0, 0, 0.80]), (0.12, 0.115, 0.125)), m("skin"), "head"),
-          (lambda p: np.maximum(R.ellipsoid(U([0, -0.02, 0.82]), (0.13, 0.125, 0.12))(p), -R.box(U([0, 0.1, 0.77]), (0.09, 0.1, 0.09), up_r)(p)), m("flame"), "head")]
-    for a, b in LOCKS:  # 불꽃 머리: 뿌리는 주황, 끝은 노랑
-        a, b = np.array(a), np.array(b)
-        mid = a + 0.55 * (b - a)
-        P += [(R.capsule(U(a), U(mid), 0.045, 0.03), m("flame"), "head"), (R.capsule(U(mid), U(b), 0.03, 0.01), m("flare"), "head")]
+          (lambda p: np.maximum(R.ellipsoid(U([0, -0.02, 0.82]), (0.13, 0.125, 0.12))(p), -R.box(U([0, 0.1, 0.77]), (0.09, 0.1, 0.09), up_r)(p)), m("ember"), "head")]
+    for a, b, c in LOCKS:  # 뿌리 주홍 → 가운데 주황 → 끝 노랑
+        a, b, c = np.array(a), np.array(b), np.array(c)
+        t = b + 0.6 * (c - b)
+        P += [(R.capsule(U(a), U(b), 0.05, 0.035), m("ember"), "head"), (R.capsule(U(b), U(t), 0.035, 0.022), m("flame"), "head"),
+              (R.capsule(U(t), U(c), 0.022, 0.008), m("flare"), "head")]
     for side, s in (("l", -1), ("r", 1)):  # 팔: 주홍 종 소매, 금 소맷단, 맨손
         sh, el, hd = arms[side]
         P += [(R.ellipsoid(U(sh), (0.07, 0.07, 0.055)), m("robe"), "torso"),
