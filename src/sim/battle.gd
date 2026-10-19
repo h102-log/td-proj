@@ -19,6 +19,7 @@ const QUEST_OFFERS := 2  # 라운드 사이에 보이는 의뢰 수(I121). 임�
 const TALLY_KEYS := ["base_hit", "castle_lost", "structure_lost", "merc_lost", "hero_down", "merc_bought", "built", "battle_time"]  # 라운드 집계의 키(I119)
 const SPAWN_GAP := 0.9  # 웨이브 안에서 적이 나오는 간격(초). 임시값: 1.0 → 0.9(2026-10-15 3장 자체 점검, 사용자 승인 2026-10-16 — insights/2026-10-15_ch3_self_check_balance.md §8)
 const REACH := 1.0      # 적이 막힌 칸·거점·유닛을 칠 수 있는 거리(중심 사이). 옆 칸 중심까지가 1이다
+const REPATH_PER_STEP := 8  # 한 스텝에 경로를 다시 구하는 적 수(I155). 적 40명을 한 번에 구하면 61ms(디버그)라 나눈다(사용자 2026-10-20)
 const UNIT_WALL_K := 1e6  # 유닛 경로의 막힌 칸 비용 배율. 돌아갈 길이 있으면 막힌 칸(닫힌 성문 포함, I42)을 지나지 않는다
 const WORK_REACH := 2.0  # 공병이 일하는 거리(중심 사이). 옆 칸 대각선(1.41)에, 무리에 밀려 0.5칸 못 미친 도착(I51)을 더했다
 # 성곽 업그레이드(S86): 한 단계마다 최대 체력 ×UPGRADE_MULT. 비용은 종류별 1→2단계 값이고 다음 단계는 2배. 수치는 임시값
@@ -196,19 +197,41 @@ class CostGrid extends AStarGrid2D:
 		var b = castle.get(c, structures.get(c, barriers.get(c)))
 		return null if b and b.open else b
 
+	# 2026-10-20
+	# [동작] 칸마다 막힌 칸 종류와 체력 비용을 배열에 펴 두고, 경로를 구할 때마다(path) 다시 편다
+	# [이유] _compute_cost는 이웃 칸 하나마다 불린다. 사전 3개를 뒤지던 때는 적 100명 재계산이 320ms였다(디버그 빌드,
+	#        insights/2026-10-20_render_spike.md). 비용 식과 계산 순서는 그대로다
+	var _w := 0
+	var _kind := PackedByteArray()  # 0 빈칸·열린 성문, 1 막힌 칸, 2 성곽 성벽, 3 에너지 성벽
+	var _hp := PackedFloat64Array()  # 남은 체력 / 업그레이드 배율(S139)
+
+	func path(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
+		_w = region.size.x
+		_kind.resize(region.size.x * region.size.y)
+		_kind.fill(0)
+		_hp.resize(_kind.size())
+		for d in [barriers, structures, castle]:  # 성곽을 먼저 본다(block_at)
+			for c in d:
+				var b = d[c]
+				var i: int = c.y * _w + c.x
+				_kind[i] = 0 if b.open else (2 if b.kind == "castle_wall" else (3 if b.kind == "barrier" else 1))
+				_hp[i] = b.hp / pow(UPGRADE_MULT, b.level - 1)
+		return get_id_path(from, to, true)
+
 	# 경로가 보는 막힌 칸. 유닛 경로(order_move가 wall_k를 UNIT_WALL_K로 둔다)는 에너지 성벽을 지나간다(I142)
-	func _solid(c: Vector2i):
-		var b = block_at(c)
-		return null if b and b.kind == "barrier" and wall_k >= UNIT_WALL_K else b
+	func _solid(i: int) -> bool:
+		return _kind[i] != 0 and not (_kind[i] == 3 and wall_k >= UNIT_WALL_K)
 
 	func _compute_cost(from: Vector2i, to: Vector2i) -> float:
 		# 옆 칸이 막혔으면 대각선으로 끼어들지 않는다(solid였을 때의 DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES와 같게)
-		if from.x != to.x and from.y != to.y and (_solid(Vector2i(to.x, from.y)) or _solid(Vector2i(from.x, to.y))):
+		if from.x != to.x and from.y != to.y and (_solid(from.y * _w + to.x) or _solid(to.y * _w + from.x)):
 			return 1e9
-		var b = _solid(to)
-		if b and climb > 0.0 and b.kind == "castle_wall":  # 부수지 않고 넘는다(I43)
+		var t := to.y * _w + to.x
+		if not _solid(t):
+			return Vector2(to - from).length()
+		if climb > 0.0 and _kind[t] == 2:  # 부수지 않고 넘는다(I43)
 			return Vector2(to - from).length() + climb
-		return Vector2(to - from).length() + (b.hp / pow(UPGRADE_MULT, b.level - 1) * wall_k if b else 0.0)
+		return Vector2(to - from).length() + _hp[t] * wall_k
 
 var size: Vector2i
 var spawns: Array
@@ -246,6 +269,7 @@ var village_level := 1  # 오를수록 지을 수 있는 생산 시설이 는다
 var grid := CostGrid.new()
 var _wall := AStarGrid2D.new()  # 성벽 위 길. 성곽 칸만 걸을 수 있다(I69)
 var _repath := false  # 막힌 칸이 바뀌어 적 경로를 다시 구해야 한다
+var _stale := {}  # 경로를 다시 구할 적, 먼저 밀린 순서(I155)
 var _queue := []      # 이번 웨이브에서 아직 안 나온 적 종류
 var _spawn_timer := 0.0
 var _spawned := 0     # 이번 웨이브에서 나온 적 수(출현 지점 돌아가며 쓰기)
@@ -310,6 +334,7 @@ func restart() -> void:
 	units.clear()
 	_queue.clear()
 	_repath = false
+	_stale.clear()
 	var fort: Dictionary = stage.get("castle", {})
 	for c in fort.get("walls", []):
 		castle[c] = Block.new(c, "castle_wall", fort.wall_hp)
@@ -354,8 +379,16 @@ func step(dt: float) -> void:
 	if _repath:
 		_repath = false
 		for e in enemies:
-			_find_path(e)
+			_stale[e] = true  # 이미 밀린 적은 자리를 지킨다
 		_forecast()
+	var n := 0
+	for e in _stale.keys():
+		if n == REPATH_PER_STEP:
+			break
+		_stale.erase(e)
+		if e.alive:
+			_find_path(e)
+			n += 1
 	_tick(dt)
 	_zones(dt)
 	_count_holds()
@@ -683,7 +716,7 @@ func _route(u: Unit, cell: Vector2i) -> void:
 	u.path.clear()
 	u.after.clear()
 	if u.on_wall == up:
-		u.path = (_wall.get_id_path(from, cell) if up else grid.get_id_path(from, cell, true)).slice(1)
+		u.path = (_wall.get_id_path(from, cell) if up else grid.path(from, cell)).slice(1)
 		return
 	var best := INF
 	for g in castle:
@@ -691,7 +724,7 @@ func _route(u: Unit, cell: Vector2i) -> void:
 		if s == null:
 			continue
 		var top: Array[Vector2i] = _wall.get_id_path(from, g) if u.on_wall else _wall.get_id_path(g, cell)
-		var ground: Array[Vector2i] = grid.get_id_path(s, cell, true) if u.on_wall else grid.get_id_path(from, s, true)
+		var ground: Array[Vector2i] = grid.path(s, cell) if u.on_wall else grid.path(from, s)
 		var cost := _cost(ground) + top.size()
 		if not top.is_empty() and cost < best:
 			best = cost
@@ -1667,7 +1700,7 @@ func engineer_gap(cells: Array) -> String:
 # 지금 막힌 칸(닫힌 성문·성벽·구조물)을 지나지 않고 그 칸까지 걸어갈 수 있다(I125). 끝 칸은 일하는 자리라 막혀 있어도 된다
 func _reaches(u: Unit, cell: Vector2i) -> bool:
 	grid.wall_k = UNIT_WALL_K  # _send와 같은 유닛 경로
-	return not grid.get_id_path(Vector2i(u.pos.round()), cell, true).slice(1, -1).any(func(c): return grid.block_at(c) != null)
+	return not grid.path(Vector2i(u.pos.round()), cell).slice(1, -1).any(func(c): return grid.block_at(c) != null)
 
 # 공병에게 그 구조물 일을 맡기고 옆 칸(대각선 포함)까지 걸어가게 한다(I63)
 func _send(u: Unit, s: Block) -> void:
@@ -1676,7 +1709,7 @@ func _send(u: Unit, s: Block) -> void:
 	u.after.clear()
 	s.worker = u
 	grid.wall_k = UNIT_WALL_K
-	u.path = grid.get_id_path(Vector2i(u.pos.round()), _site(s), true).slice(1, -1)
+	u.path = grid.path(Vector2i(u.pos.round()), _site(s)).slice(1, -1)
 
 # 일하던 공병을 놓아준다. 공병은 그 자리에 서고, 구조물은 그 상태로 남는다(I63)
 # 옮기던 대포는 원래 칸에 완성된 채 남는다(U12, I74)
@@ -1863,7 +1896,7 @@ func _find_path(e: Enemy) -> void:
 		return
 	grid.wall_k = e.wall_k
 	grid.climb = e.climb * e.speed
-	e.path = grid.get_id_path(Vector2i(e.pos.round()), e.goal, true)
+	e.path = grid.path(Vector2i(e.pos.round()), e.goal)
 	grid.climb = 0.0
 
 # 출현 지점마다 기본 적이 지금 나오면 거점까지 걸을 길(S142). 장갑 적도 wall_k가 같아 같은 길이다.
@@ -1873,8 +1906,8 @@ func _forecast() -> void:
 	forecast = spawns.map(func(c):
 		var g = _gate_of(c)
 		if g == null or not castle.has(g):
-			return grid.get_id_path(c, base.cell, true)
-		return grid.get_id_path(c, g, true) + grid.get_id_path(g, base.cell, true).slice(1))
+			return grid.path(c, base.cell)
+		return grid.path(c, g) + grid.path(g, base.cell).slice(1))
 
 # 적이 지금 노리는 것(S4): ① 인식 범위 안이나 몸이 닿은 가장 가까운 유닛(영웅·용병) → ② 살아 있는 반격 대상 → ③④ 거점.
 # 3라운드부터 땅 적은 ③ 앞에 출현 지점에서 가장 가까운 성문을 먼저 노린다. 그 칸에 들어서거나 잔해가 되면 거점이다(S143).
