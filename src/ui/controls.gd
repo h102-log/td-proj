@@ -8,7 +8,7 @@ extends RefCounted
 # 조준 상태가 된다(퀵캐스트를 켜면 키를 누르는 순간 커서 자리에 쓴다, I158). 조준 중 좌클릭은 그 지점·대상에 쓰고, 우클릭·ESC는 취소한다(S147). Shift+키와 HUD 스킬 버튼 우클릭은 자동 시전을 켜고 끈다(S158, I151)
 # A: 고른 용병의 이동 방식 전환(S35) · H: 홀드 전환(S36) (A·H는 사용자 2026-10-12) · V: 체력바 표시 전환(S73)
 # F1·F2·F3: 출전 영웅 1·2·3을 고른다(I108)
-# 1 방벽 · 2 타워 · - 마법 타워(S110) · 3 용병 · 4 병영 · 5 공병 · 6 작업장 · 7 궁수(I71) · 8 대포(S92) · 9 사격장(S98) · 0 집(S103) · = 교회(I140): 놓기 모드. 그동안 좌클릭은 그 칸에 짓거나 놓고, 우클릭·ESC는 모드를 끝낸다(사용자 2026-10-12)
+# 1 방벽 · 2 타워 · - 마법 타워(S110) · 3 용병 · 4 병영 · 5 공병 · 6 작업장 · 7 궁수(I71) · 8 대포(S92) · 9 사격장(S98) · 0 집(S103) · = 교회(I140): 놓기 모드. 그동안 좌클릭은 그 칸에 짓거나 놓고, 우클릭·ESC·같은 키는 모드를 끝낸다(사용자 2026-10-12, S186)
 # 전투 단계엔 구조물만 짓는다(공병이 가서 짓는다, S22). 단계가 바뀌면 모드가 끝난다
 # 옮길 대포(moving)가 있으면 다음 좌클릭한 칸으로 옮기고(S91), 우클릭·ESC·단계 변경은 옮기기를 그만둔다
 # 결과 창(라운드 사이·도전 끝)과 도전 시작 전 영입 창이 떠 있는 동안에는 아무 입력도 받지 않는다(S117, I109)
@@ -75,7 +75,8 @@ func handle(event: InputEvent) -> void:
 				placing = ""
 				moving = null
 				aiming = ""
-		placing = PLACE_KEYS.get(event.keycode, placing)
+		if event.keycode in PLACE_KEYS:
+			placing = "" if placing == PLACE_KEYS[event.keycode] else PLACE_KEYS[event.keycode]
 		if placing != "":
 			aiming = ""
 	# 전투 단계엔 구조물만 놓기 모드가 된다. 전투 중 용병 구매는 시설 팝업으로 한다(S81)
@@ -143,6 +144,11 @@ func _release(rect: Rect2, at: Vector2) -> void:
 		var built: Array = battle.structures.values().filter(func(s): return inside.call(Vector2(s.cell)))
 		selling = (selected + built) if prep else []
 		picked = [] if prep else built
+
+# 거점을 고른다. 거점 칸을 좌클릭한 것과 같다(S100). 건설 격자의 마을 레벨로 잠긴 칸이 해결 길로 부른다(I132)
+func pick_base() -> void:
+	var at := (Vector2(battle.base.cell) + Vector2(0.5, 0.5)) * cell_px
+	_release(Rect2(at, Vector2.ZERO), at)
 
 # 고른 용병의 이동 방식 전환(S35): 모두 «무조건 이동»이면 «이동 중 공격»으로, 아니면 모두 «무조건 이동»으로. A 키와 HUD 버튼(I139)이 부른다
 func toggle_move_mode() -> void:

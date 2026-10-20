@@ -92,6 +92,7 @@ func ev116():
 	click(c, MOUSE_BUTTON_LEFT, px(OUT))
 	if _soldiers(b) != 0 or b.gold != gold0:
 		return "병영 없이 용병이 놓였다(골드 %d → %d)" % [gold0, b.gold]
+	click(c, MOUSE_BUTTON_RIGHT, px(OUT))  # 놓기 모드를 끝낸다. 켜진 채 3 키를 다시 누르면 모드가 꺼진다(S186)
 	b.build("barracks", F)
 	_key(c, KEY_3)
 	click(c, MOUSE_BUTTON_LEFT, px(OUT))

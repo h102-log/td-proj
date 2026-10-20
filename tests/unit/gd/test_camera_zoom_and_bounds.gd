@@ -4,7 +4,7 @@ extends RefCounted
 #   S52. 플레이어는 마우스 휠로 화면을 1×·2×·3× 정수배 단계로 확대·축소한다. 기본 배율은 2×다.
 #   S53. 마우스를 창 가장자리에 대거나 그 너머 창 밖으로 내보내면 카메라가 그쪽으로 이동한다. ...
 #   S68. 휠 버튼을 누른 채 끌면 잡은 땅이 커서를 따라오듯 카메라가 이동한다.
-#   I50. 확대·축소는 커서 아래 지점을 기준으로 한다. 카메라는 맵 밖을 보여 주지 않는다.
+#   I50. 확대·축소는 커서 아래 지점을 기준으로 한다. 카메라는 아래로 72 ÷ 줌만큼만 맵 밖을 보인다(2026-10-21 변경).
 
 const MAP := Vector2(640, 512)
 
@@ -38,17 +38,18 @@ func test_zoom_keeps_point_under_cursor():
 	cam.free()
 	return "" if before.is_equal_approx(after) else "커서 아래 지점이 %s에서 %s로 바뀌었다" % [before, after]
 
-func test_camera_never_shows_outside_map():
+func test_camera_shows_outside_map_only_below():
 	var cam = _cam()
 	var c = cam.get_viewport_rect().size / 2
 	for z in [-1, 0, 1]:
 		cam.zoom_at(z, c)
+		var below: float = cam.BOTTOM / cam.zoom.x
 		for dir in [Vector2(-1, -1), Vector2(1, 1)]:
 			cam.pan(dir, 100.0)
 			var half = cam.get_viewport_rect().size / 2 / cam.zoom.x
 			var view := Rect2(cam.position - half, half * 2)
-			if not Rect2(Vector2.ZERO, MAP).encloses(view):
-				var why := "배율 %s에서 보이는 영역 %s가 맵 밖으로 나갔다" % [cam.zoom.x, view]
+			if not Rect2(Vector2.ZERO, MAP + Vector2(0, below)).grow(0.01).encloses(view) or (dir.y > 0 and absf(view.end.y - MAP.y - below) > 0.01):
+				var why := "배율 %s에서 보이는 영역 %s가 맵과 아래 여백 %.1f를 벗어나거나 맨 아래에 닿지 않았다" % [cam.zoom.x, view, below]
 				cam.free()
 				return why
 	cam.free()
@@ -58,7 +59,7 @@ func test_edge_dir_keeps_going_outside_window():
 	var cam = load("res://src/ui/camera.gd")
 	var size := Vector2(1280, 720)
 	var cases := {Vector2(640, 360): Vector2.ZERO, Vector2(2, 360): Vector2(-1, 0), Vector2(-300, 360): Vector2(-1, 0),
-		Vector2(1500, -40): Vector2(1, -1), Vector2(640, 900): Vector2(0, 1)}
+		Vector2(1500, -40): Vector2(1, -1), Vector2(640, 900): Vector2(0, 1), Vector2(640, 3): Vector2(0, -1), Vector2(640, 4): Vector2.ZERO, Vector2(640, 10): Vector2.ZERO}
 	for m in cases:
 		if cam.edge_dir(m, size) != cases[m]:
 			return "마우스 %s에서 방향이 %s다(기대 %s)" % [m, cam.edge_dir(m, size), cases[m]]

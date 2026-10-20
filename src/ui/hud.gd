@@ -1,5 +1,5 @@
 extends CanvasLayer
-# 골드·다음 세금(I75)·라운드(I94)·웨이브·단계를 보이고, 놓기 모드·«전투 시작»(I13) 버튼과 라운드를 이기거나 도전이 끝난 뒤의 결과 창(S117)을 둔다.
+# 골드·다음 세금(I75)·라운드(I94)·웨이브·단계를 보이고, «전투 시작»(I13) 버튼과 건설 격자(S186, hud_build.gd)와 라운드를 이기거나 도전이 끝난 뒤의 결과 창(S117)을 둔다.
 # 판매 후보가 있으면 그 옆에 판매 버튼을 띄운다(S70, I58). 전투 단계에 생산 시설을 고르면 그 옆에 파는 용병마다 구매 버튼을 띄운다(S81, I61, I71).
 # 고른 구조물에 따라 같은 자리에 철거(S74)·이어 짓기·취소(전투 단계)와 완성(준비 단계) 버튼도 띄운다(S83). 대포면 옮기기(S91)도 띄운다.
 # 성곽 칸을 고르면 같은 자리에 성문 열기·닫기(S85)와 업그레이드(S86) 버튼을 띄운다. 거점을 고르면 마을 레벨 올리기(S100) 버튼을 띄운다.
@@ -8,7 +8,7 @@ extends CanvasLayer
 # 보유 영웅의 레벨·경험치(I117), 라운드 사이의 경험치 이관(S127, I116), 라운드 사이의 의뢰 목록과 수락(S77, I121).
 # 준비·전투 단계에는 윗줄 아래에 이번 라운드의 미션과 수락한 의뢰를 보이고, 결과 창에 지난 라운드의 달성·실패를 보인다(I122).
 # 결과 창의 버튼만 키보드 포커스를 받는다. 창이 열리면 «1라운드 시작»·«다음 라운드»·«새 도전»에 포커스가 간다(I12, I110)
-# 출전 영웅 셋을 한 줄에 이름과 Q·W·E·R 스킬 버튼(좌클릭은 쓰기, 우클릭은 자동 시전, I151)과 쓰러짐(I129), 고른 용병의 이동 방식·홀드 버튼(I139)을 보인다. 눌리지 않는 놓기·공병 지시 버튼에는 이유를 붙인다(I128, I132)
+# 출전 영웅 셋을 한 줄에 이름과 Q·W·E·R 스킬 버튼(좌클릭은 쓰기, 우클릭은 자동 시전, I151)과 쓰러짐(I129), 고른 용병의 이동 방식·홀드 버튼(I139)을 보인다. 눌리지 않는 공병 지시 버튼에는 이유를 붙인다(I128)
 # 위 띠의 조작에는 툴팁을 단다(S187, I162). 테마는 hud_theme.gd
 
 const NAMES := {"wall": "방벽", "tower": "타워", "magic": "마법 타워", "soldier": "용병", "barracks": "병영", "engineer": "공병", "workshop": "작업장", "archer": "궁수", "cannon": "대포", "archery": "사격장", "house": "집", "church": "교회"}
@@ -26,12 +26,14 @@ const SKILLS := {  # 영웅마다 Q·W·E·R의 [이름, 요약](S97 표). 툴�
 }
 const HudTheme := preload("res://src/ui/hud_theme.gd")
 const HudTip := preload("res://src/ui/hud_tip.gd")
+const HudBuild := preload("res://src/ui/hud_build.gd")
 
 var battle
 var controls
 var map: SubViewport  # 맵(전장)을 그리는 SubViewport(S30). 팝업 위치를 그 카메라 변환으로 잡는다
 var bar: PanelContainer  # 위 띠
 var tip := HudTip.new()  # 위 띠 조작의 툴팁(S187)
+var grid  # 건설 격자·정보 칸(S186)
 var _info := Label.new()
 var _hint := Label.new()
 var _start: Button
@@ -49,7 +51,6 @@ var _repair: Button
 var _restore: Button
 var _village: Button
 var _heal := []  # 교회 팝업: 출전 영웅마다 치료 버튼(S137, I140)
-var _place := {}  # kind → 버튼
 var _result := PanelContainer.new()
 var _result_label := Label.new()
 var _next: Button  # 결과 창의 «1라운드 시작»·«다음 라운드»·«새 도전»
@@ -64,7 +65,6 @@ var _quests := VBoxContainer.new()  # 라운드 사이 영입 칸 안의 의뢰 
 var _quests_info := Label.new()
 var _commissions := []  # 의뢰 목록 칸마다 수락 버튼
 var _seen := ""  # 마지막으로 본 판 단계. 바뀌었을 때 결과 창이 떠 있으면 포커스를 준다
-var _place_text := {}  # kind → 이유를 붙이기 전의 놓기 버튼 글자(I132)
 var _mode: Button  # 고른 용병의 이동 방식 전환(I139)
 var _hold: Button  # 고른 용병의 홀드 전환(I139)
 var _heroes := Label.new()  # 출전 영웅 줄 아래의 안내(«— 스킬은 전투 단계에만», S136)
@@ -93,14 +93,6 @@ func _ready() -> void:
 	var row := HFlowContainer.new()
 	col.add_child(row)
 	row.add_child(_info)
-	var costs: Dictionary = battle.STRUCTURE_KINDS.merged(battle.MERC_KINDS)
-	for key in controls.PLACE_KEYS:
-		var kind: String = controls.PLACE_KEYS[key]
-		var key_name := OS.get_keycode_string(key).replace("Minus", "-").replace("Equal", "=")
-		_place[kind] = _button(row, "%s %d (%s)" % [NAMES[kind], costs[kind].cost, key_name], func(): controls.placing = kind)
-		_place[kind].toggle_mode = true
-		_place_text[kind] = _place[kind].text
-		tip.add(_place[kind], func(): return _place_tip(kind, key_name))
 	_start = _button(row, "전투 시작 (Enter)", _start_battle)
 	_mode = _button(row, "", controls.toggle_move_mode)
 	_hold = _button(row, "", controls.toggle_hold)
@@ -161,6 +153,8 @@ func _ready() -> void:
 	for i in battle.QUEST_OFFERS:
 		_commissions.append(_window_button(_quests, func(): battle.accept(i)))
 	_next = _window_button(box, proceed)
+	grid = HudBuild.new(self)
+	root.add_child(grid)
 	root.add_child(_popup)
 	_sell = _button(_popup, "", _sell_now)
 	_finish = _button(_popup, "완성", func(): _apply(battle.finish, battle.unfinished(controls.selling)))
@@ -184,12 +178,6 @@ func _process(_delta: float) -> void:
 	var n: int = battle.waves.size()
 	var round_no: int = battle.round_index + 1
 	_info.text = "골드 %d (세금 +%d) · 라운드 %d/%d · 웨이브 %d/%d · %s · 마을 Lv%d" % [battle.gold, battle.tax(), round_no, battle.rounds.size(), mini(battle.wave_index + 1, n), n, STATES[battle.state], battle.village_level]
-	var none: String = GAPS.get(battle.engineer_gap([]), "") if battle.state == "battle" else ""  # 놓기 버튼은 칸을 모르니 공병이 아예 없을 때만(I128)
-	for kind in _place:
-		var lock := _place_lock(kind, none) if battle.state in ["prep", "battle"] else ""
-		_place[kind].text = _place_text[kind] + lock
-		_place[kind].disabled = battle.state not in ["prep", "battle"] or lock != ""
-		_place[kind].button_pressed = controls.placing == kind
 	_start.disabled = not prep
 	var mercs: Array = controls.selected.filter(func(u): return not u.is_hero and u.alive)  # 고른 용병의 이동 방식·홀드(U11, I139)
 	_mode.visible = battle.state in ["prep", "battle"] and not mercs.is_empty()
@@ -415,43 +403,6 @@ func _slot_state(h, slot: String) -> Array:
 	elif h.cd[slot] > 0.0:
 		text = key + str(ceili(h.cd[slot]))
 	return [text + ("*" if h.auto and sk.get("auto", false) else ""), h.mana < sk.mana]
-
-# 놓기 버튼이 눌리지 않는 이유(I132): 마을 레벨(S99), 전투 단계의 공병(none, I128)·용병(S81), 준비 단계의 시설(S50). 눌리면 ""
-func _place_lock(kind: String, none: String) -> String:
-	if kind in battle.STRUCTURE_KINDS:
-		var need: int = battle.STRUCTURE_KINDS[kind].village_level
-		return " (마을 Lv%d)" % need if need > battle.village_level else none
-	if battle.state == "battle":
-		return " (시설에서 구매)"
-	if battle.can_buy(kind):
-		return ""
-	for s in battle.STRUCTURE_KINDS:  # 그 용병을 파는 시설
-		if kind in battle.STRUCTURE_KINDS[s].produces:
-			return " (%s 없음)" % NAMES[s]
-	return ""
-
-# 놓기 버튼 툴팁(S187): 이름·키·비용, 데이터로 만든 한 줄 설명, 이유는 _process가 버튼 글에 붙인 것을 괄호 없이(I132). 이유가 없고 골드가 모자라면 그것
-func _place_tip(kind: String, key: String) -> Array:
-	var d = battle.STRUCTURE_KINDS.get(kind, battle.MERC_KINDS.get(kind))
-	var why: String = _place[kind].text.trim_prefix(_place_text[kind]).strip_edges().trim_prefix("(").trim_suffix(")")
-	if why.begins_with("마을 Lv"):
-		why += " 필요"
-	if why == "" and battle.gold < d.cost:
-		why = "골드 %d 모자람" % (d.cost - battle.gold)
-	var about := "체력 %d · 적의 길을 막는다" % d.hp
-	if kind in battle.MERC_KINDS:
-		for s in battle.STRUCTURE_KINDS:
-			if kind in battle.STRUCTURE_KINDS[s].produces:
-				about = "%s에서 산다 · 체력 %d" % [NAMES[s], d.hp]
-	elif not d.produces.is_empty():
-		about = "마을 · %s를 판다" % ", ".join(d.produces.map(func(k): return NAMES[k]))
-	elif d.tax > 0:
-		about = "마을 · 준비 단계마다 세금 +%d" % d.tax
-	elif d.heal > 0.0:
-		about = "마을 · 영웅 체력을 골드로 치료"
-	elif d.range > 0.0:
-		about = "사거리 %s칸 · 공격력 %s" % [_num(d.range), _num(d.damage)] + (" · 범위 피해" if d.splash > 0.0 else "")
-	return [NAMES[kind], key, "%d골드" % d.cost, about, why]
 
 # 4.0 → «4», 1.5 → «1.5»
 func _num(x: float) -> String:
