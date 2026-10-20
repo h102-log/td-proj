@@ -108,11 +108,12 @@ func _draw() -> void:
 			if battle.effect(e, key) != null:
 				draw_arc(_spot(e), CELL * (e.radius + ring), 0.0, TAU, 24, MARKS[key], 1.0)
 				ring += 0.15
-	for u in battle.units:  # 마나 막대(S146): 영웅 발밑. 붙잡힌 적에 가리지 않게 적보다 나중에 그린다
+	for u in battle.units:  # 마나 막대(S146): 영웅 발밑. 붙잡힌 적에 가리지 않게 적보다 나중에 그린다. 성벽·거점에 가린 영웅은 덧그림처럼 반투명(사용자 2026-10-20)
 		if u.is_hero and u.alive:
 			var bar := Rect2(_spot(u) + Vector2(-CELL, CELL) / 2.0, Vector2(CELL, 2))
-			draw_rect(bar, Color.BLACK)
-			draw_rect(Rect2(bar.position, Vector2(CELL * u.mana / u.max_mana, 2)), Color("4080ff"))
+			var tint := GHOST if _behind(u) else Color.WHITE
+			draw_rect(bar, Color.BLACK * tint)
+			draw_rect(Rect2(bar.position, Vector2(CELL * u.mana / u.max_mana, 2)), Color("4080ff") * tint)
 	for h in battle.heroes:  # 쓰러진 영웅: 복귀할 때까지 쓰러진 자리에 그 영웅 색의 X(I130)
 		if not h.alive:
 			var c := _center(h.pos)
@@ -165,19 +166,23 @@ func _marks() -> void:
 
 # 유닛·적 몸통(S165)과 성곽·거점(4.1c). 발밑 팀 색(S166)과 비행 적 그림자(I81)를 먼저 깔고, (층, 바닥선 y, 목록 순서)로 정렬해 그린다.
 # 성곽 칸은 몸체(바닥선)와 앞층(바닥선 + 2) 두 조각이고, 성벽 위 유닛·대포와 기어오르는 적은 그 사이(바닥선 + 1)에 올려 그려 앞층이 발을 가린다(05 §2).
+# 성벽 위 유닛의 발밑 팀 색만은 앞층 다음(바닥선 + 3)에 올려 그려 흉벽에 가리지 않게 한다(사용자 2026-10-20).
 # 성벽·거점 그림에 가려진 땅 유닛은 끝에 반투명으로 한 번 더 그린다(C1). 레벨·선택·효과 테두리는 _draw가 모든 몸통 뒤에 그린다
 func _bodies() -> void:
 	var all: Array = battle.units + battle.enemies
 	var walls: Array = battle.castle.values() + battle.rubble.values()
 	var tops: Array = battle.structures.values().filter(func(s): return battle.castle.has(s.cell))
 	var n := all.size()
-	var m := n + 2 * walls.size()  # 이 번호부터 성벽 위 구조물, 마지막이 거점
+	var m := n + 2 * walls.size()  # 이 번호부터 성벽 위 구조물, 그다음 거점
+	var feet := m + tops.size() + 1  # 이 번호부터 성벽 위 유닛의 발밑 표시
 	var keys := PackedInt64Array()
 	for i in n:
 		var x = all[i]
 		var fly: bool = x.get("flying") == true
-		if not x.on_wall:  # 성벽 위 유닛의 발밑 표시는 몸통과 함께 올려 그린다
+		if not x.on_wall:
 			_feet_mark(x, i)
+		else:
+			keys.append((1 << 44) | ((int(roundf(x.pos.y) + 1) * CELL + 3 + 64) << 20) | (feet + i))
 		if fly:
 			draw_circle(_center(x.pos) + Vector2(0, CELL * 0.4), CELL * x.radius * 0.8, Color(0, 0, 0, 0.35))
 		var y := (roundf(x.pos.y) + 1) * CELL + 1 if x.on_wall or x.get("climbed") else _center(x.pos).y
@@ -193,7 +198,9 @@ func _bodies() -> void:
 	var next := {}
 	for k in keys:
 		var i: int = k & 0xFFFFF
-		if i == m + tops.size():  # 거점 망루: 마을 레벨(S99)마다 한 장
+		if i >= feet:
+			_feet_mark(all[i - feet], i - feet)
+		elif i == m + tops.size():  # 거점 망루: 마을 레벨(S99)마다 한 장
 			var at := Vector2(battle.base.cell * CELL) + Vector2(-32, CELL - 72)
 			draw_texture_rect_region(KEEP, Rect2(at, Vector2(80, 80)), Rect2(80 * (clampi(battle.village_level, 1, 2) - 1), 0, 80, 80))
 		elif i >= m:
@@ -209,10 +216,8 @@ func _bodies() -> void:
 			_body(all[i], i, next, GHOST)
 	_seen = next
 
-# 유닛·적 몸통 하나. 성벽 위 유닛은 발밑 표시도 여기서 올려 그린다. 영웅은 8방향 시트, 그림이 있는 용병·적은 4방향 시트, 나머지는 원으로
+# 유닛·적 몸통 하나. 영웅은 8방향 시트, 그림이 있는 용병·적은 4방향 시트, 나머지는 원으로
 func _body(x, i: int, next: Dictionary, tint := Color.WHITE) -> void:
-	if x.on_wall:
-		_feet_mark(x, i)
 	if ART.has(x.kind) and not x.get("is_hero"):
 		_four_sprite(x, next, tint)
 	elif i >= battle.units.size():
