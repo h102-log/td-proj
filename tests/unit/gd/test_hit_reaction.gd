@@ -4,6 +4,7 @@ extends RefCounted
 #   S177. 맞은 영웅·용병·적은 0.1초 흰 번쩍임과 공격자 반대쪽 밀림을 보이고, 영웅이 치거나 맞은 타격은 두 유닛의 그림만 3프레임 멈춘다.
 #   S178. 원거리 공격은 투사체로 그리고, 맞은 반응은 투사체가 닿는 때 난다.
 #   S179. 즉시 스킬은 쓴 곳·맞은 대상을 흔적으로 남기고, 스킬에 맞은 적도 피격 반응을 보인다.
+#   S180. 쓰러진 적·용병은 2초 동안 누운 몸으로 남고, 쓰러진 영웅은 복귀할 때까지 누운 몸으로 남는다.
 
 const View := preload("res://src/ui/battle_view.gd")
 
@@ -75,5 +76,29 @@ func test_skill_trace_marks_hit_enemy_then_fades():
 		b.step(1.0 / 60.0)
 	if why == "" and not b.traces.is_empty():
 		why = "1초가 지난 흔적이 남았다"
+	v.free()
+	return why
+
+func test_fallen_body_stays_then_clears_but_hero_stays():
+	var b = load("res://src/sim/battle.gd").new({"size": Vector2i(20, 20), "base": Vector2i(18, 18), "base_hp": 100, "spawns": [Vector2i(0, 10)], "hero_start": Vector2i(5, 5), "waves": [[{"kind": "basic", "count": 1}]]})
+	b.start_battle()
+	var v = View.new()
+	v.battle = b
+	var foe = b.spawn_enemy("basic", Vector2i(10, 5), {"speed": 0})
+	var why := ""
+	b.damage(foe, 1e9, "true")
+	b.damage(b.hero, 1e9, "true")
+	var d: Array = v._fallen().map(func(x): return x[0])
+	if d != [foe, b.hero]:
+		why = "쓰러진 직후 그릴 몸이 %s다(적, 영웅 순이어야 한다)" % [d]
+	for i in 90:
+		b.step(1.0 / 60.0)
+	if why == "" and v._fallen().size() != 2:
+		why = "1.5초 뒤에도 적의 몸은 남아야 하는데 %s개다" % v._fallen().size()
+	for i in 31:
+		b.step(1.0 / 60.0)
+	d = v._fallen()
+	if why == "" and (not b.fallen.is_empty() or d.size() != 1 or d[0][0] != b.hero or d[0][1] != b.FALLEN):
+		why = "2초 뒤에는 적의 몸은 지워지고 영웅만 마지막 자세(%s초)로 남아야 하는데 시뮬레이션 %s개, 그릴 몸 %s다" % [b.FALLEN, b.fallen.size(), d]
 	v.free()
 	return why

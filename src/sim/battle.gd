@@ -38,6 +38,7 @@ const SLOTS := ["q", "w", "e", "r"]  # 영웅 스킬 칸(S145)
 const CAST_RANGE := 6.0  # 지점·대상을 고르는 스킬의 시전 사거리(칸, S147). 임시값
 const CRIT := 2.0  # 치명타 피해 배율(S149). 임시값
 const STAY := 0.6  # 장판 안에 있는 동안 거는 효과의 남은 시간(초, I141). 장판을 나오면 곧 풀린다
+const FALLEN := 2.0  # 쓰러진 몸(fallen)을 지우는 때(쓰러진 뒤 초, S180). 화면은 끝 0.5초 동안 흐린다
 
 # 칸 하나를 차지하고 체력이 있는 것: 거점 "base" · 성곽 "castle_wall"·"gate" · 구조물 "wall" 등
 class Block:
@@ -245,6 +246,7 @@ var rubble := {}  # Vector2i → 부서진 성곽 칸 Block(I88). 지나갈 수 
 var barriers := {}  # Vector2i → 에너지 성벽 칸 Block(S151, I142). 그 장판(zones)이 끝나면 사라진다
 var zones := []  # 장판(S150, I141): {src, pos, radius, left, owner, 수치…}. 웨이브가 끝나면 모두 사라진다(I143)
 var traces := []  # 즉시 스킬 흔적(S179): {hero, slot, aim, at, radius, hits, age}. 그리기만 읽고 1초 지나면 지운다
+var fallen := []  # 쓰러진 영웅·용병·적(S180): {who, age}. 그리기만 읽고 FALLEN초 지나면 지운다
 var enemies := []
 var units := []  # 살아 있는 영웅·용병
 var heroes := []  # 전장에 나온 출전 영웅(Unit)들, 보유 순서(I108). 쓰러진 영웅도 들어 있다(I102)
@@ -375,9 +377,10 @@ func restart() -> void:
 	_forecast()
 
 func step(dt: float) -> void:
-	for t in traces:
+	for t in traces + fallen:
 		t.age += dt
 	traces = traces.filter(func(t): return t.age < 1.0)
+	fallen = fallen.filter(func(f): return f.age < FALLEN)
 	if state == "battle":
 		_spawn_wave(dt)
 		tally.battle_time += dt  # 라운드 집계(I119)
@@ -1847,6 +1850,8 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 	if target.hp > 0.0:
 		return
 	target.alive = false
+	if target is Enemy or target is Unit:
+		fallen.append({"who": target, "age": 0.0})
 	if target == base:
 		state = "lost"
 		settled = [mission, commission].filter(func(n): return n != "").map(func(n): return [n, false])  # 진 라운드의 미션·의뢰는 모두 실패다(I131)
