@@ -1,13 +1,10 @@
 extends Node2D
-# 전투 상태를 칸 단위로 그린다. 바닥은 타일(4.1b), 영웅은 도트 스프라이트(S165), 용병·적은 4방향 스프라이트(4.1d), 나머지는 아직 도형이다(그레이박스, 아트는 WBS 4.1).
+# 전투 상태를 칸 단위로 그린다. 바닥은 타일(4.1b), 영웅은 도트 스프라이트(S165), 용병·적은 4방향 스프라이트(4.1d), 시설은 그림(4.1e), 나머지는 아직 도형이다(그레이박스, 아트는 WBS 4.1).
 
 const CELL := 16
 const COLORS := {
-	"grid": Color(0, 0, 0, 0.15), "spawn": Color("c03030"),
-	"wall": Color("5a5a5a"), "tower": Color("3060b0"), "magic": Color("7030a0"), "merc": Color("50a0f0"),
-	"barracks": Color("a06a30"),
-	"workshop": Color("308080"), "engineer": Color("f0a030"), "archer": Color("60d0a0"), "cannon": Color("303060"), "archery": Color("40a070"),
-	"house": Color("b08060"), "church": Color("c8c8e8"),
+	"grid": Color(0, 0, 0, 0.15), "spawn": Color("c03030"), "merc": Color("50a0f0"),
+	"engineer": Color("f0a030"), "archer": Color("60d0a0"), "cannon": Color("303060"),
 }
 const ENEMY_COLORS := {  # 적 종류마다 다른 색(I81)
 	"basic": Color("d04040"), "fast": Color("f08030"), "armored": Color("807070"), "flying": Color("e050c0"), "boss": Color("801010"),
@@ -32,6 +29,9 @@ const PIXEL_FONT := preload("res://art/fonts/Galmuri7.ttf")  # 맵 위 숫자(S1
 const GROUND_TILES := preload("res://art/tiles/ground.png")  # 0행 풀↔흙 꼭짓점 16꼴, 1행 풀·흙 변종과 깃발, 2·3행 전환 꼴 변종(tools/art/tiles.py)
 const CASTLE := preload("res://art/castle/walls.png")  # 성곽 칸 조각 16×42: 행 단계 1~3마다 몸체·앞층, 통로 그늘, 잔해. 열 성벽·열린 문·닫힌 문(tools/art/atlas.py castle)
 const KEEP := preload("res://art/castle/keep.png")  # 거점 망루 80×80, 마을 레벨 1·2. 칸 앞쪽 아래 왼쪽 모서리가 그림의 (32, 72)다(tools/art/keep.py)
+const FACILITY := preload("res://art/castle/facility.png")  # 시설 48×48: 0행 그림, 1행 청사진 바탕. 칸 앞쪽 아래 왼쪽 모서리가 그림의 (16, 44)다(tools/art/facility.py)
+static var FAC: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/castle/facility.json"))  # 종류 → [열, 그림 맨 윗줄, 맨 아랫줄 + 1]
+const BLUEPRINT := Color(0.55, 0.78, 1.0, 0.6)  # 청사진 색(사용자 2026-10-20, 림월드 설계도). 회색 바탕에 곱한다
 const GHOST := Color(1, 1, 1, 0.4)  # 성벽·거점에 가려진 유닛을 덧그리는 색(C1, 사용자 2026-10-20)
 const WALL_H := 24  # 성벽 앞면 높이(px, 4.0 확정값)
 const TEAM := [Color("3c9f9c"), Color("ef3a0c")]  # 발밑 팀 색(S166): 아군 청록, 적 빨강(F24+ 팔레트)
@@ -52,12 +52,9 @@ func _draw() -> void:
 			draw_line(Vector2(x * CELL, 0), Vector2(x * CELL, map.y), COLORS.grid)
 		for y in battle.size.y + 1:
 			draw_line(Vector2(0, y * CELL), Vector2(map.x, y * CELL), COLORS.grid)
-	for s in battle.structures.values():  # 미완성·접은 대포는 흐리게. 진행률은 체력 막대로 보인다(I62, I74)
-		var col: Color = COLORS[s.kind]
-		if not battle.castle.has(s.cell):  # 성벽 위 대포(I44)는 _bodies가 성벽과 함께 올려 그린다
-			draw_rect(_rect(s.cell), col if s.complete and s.razed < 1.0 else Color(col, 0.4))
+	for s in battle.structures.values():  # 시설 그림은 _bodies가 유닛과 함께 정렬해 그린다(4.1e)
 		if s.dest != null:  # 옮겨 갈 칸(S44)
-			draw_rect(_rect(s.dest), col, false, 1.0)
+			draw_rect(_rect(s.dest), COLORS[s.kind], false, 1.0)
 	for c in battle.barriers:  # 에너지 성벽(S151): 밝은 칸
 		draw_rect(_rect(c), Color(MARKS.dr, 0.8))
 	for z in battle.zones:  # 장판(I101). 떨어지는 중인 운석은 테두리만, 덫은 플레이어에게만 보인다
@@ -70,13 +67,6 @@ func _draw() -> void:
 		draw_arc(_center(z.pos), CELL * z.radius, 0.0, TAU, 48, Color(col, 0.8), 1.0)
 	for p in battle.forecast:  # 기본 적의 예상 경로(S142): 엷은 빨간 선, 유닛 아래에. 너비 1이면 1배 줌에서 칸 중심을 지나는 가로·세로 구간이 안 그려진다
 		draw_polyline(PackedVector2Array(p.map(func(c): return _center(Vector2(c)))), Color(COLORS.spawn, 0.5), 1.5)
-	var now := Time.get_ticks_msec() / 1000.0
-	var was := residents(battle, now - 0.05)
-	var ps := residents(battle, now)
-	for k in ps.size():  # 주민(4.1d): 움직이는 쪽을 보고 걷기 2위상. 자리가 연출이라(I46) 방향도 0.05초 전 자리와의 차로 구한다
-		var v: Vector2 = ps[k] - was[k]
-		var moving := v.length_squared() > 1e-8
-		_frame(ART.resident, "walk" if moving else "idle", _four(v), int(now * 8.0) % 2 if moving else 0, _center(ps[k]))
 	# 타워 사격 선: 쏜 뒤 0.1초 동안. 대포는 맞은 곳에 범위 피해 원도 그린다(S90)
 	for s in battle.structures.values():
 		if s.target and s.cooldown > s.fire_gap - 0.1:
@@ -162,19 +152,24 @@ func _marks() -> void:
 	# 구조물·성곽은 깎였을 때만 체력 막대를 그린다(성곽 칸이 많아서). V로 켜면 구조물은 늘 그린다(S73, I59)
 	for b in battle.castle.values() + battle.structures.values():
 		if b.hp < b.max_hp or (controls.show_hp and b.kind in battle.STRUCTURE_KINDS):
-			_hp_bar(Vector2(b.cell) - Vector2(0, _lift(b) / CELL), b)
+			var top: float = 28.0 - FAC[b.kind][1] if FAC.has(b.kind) else 0.0  # 시설은 그림 위에(4.1e). 칸 위에 그리면 그림을 가로질렀다
+			_hp_bar(Vector2(b.cell) - Vector2(0, (_lift(b) + top) / CELL), b)
 
-# 유닛·적 몸통(S165)과 성곽·거점(4.1c). 발밑 팀 색(S166)과 비행 적 그림자(I81)를 먼저 깔고, (층, 바닥선 y, 목록 순서)로 정렬해 그린다.
+# 유닛·적·주민 몸통(S165, S172)과 성곽·거점(4.1c)·시설(4.1e). 발밑 팀 색(S166)과 비행 적 그림자(I81)를 먼저 깔고, (층, 바닥선 y, 목록 순서)로 정렬해 그린다.
 # 성곽 칸은 몸체(바닥선)와 앞층(바닥선 + 2) 두 조각이고, 성벽 위 유닛·대포와 기어오르는 적은 그 사이(바닥선 + 1)에 올려 그려 앞층이 발을 가린다(05 §2).
 # 성벽 위 유닛의 발밑 팀 색만은 앞층 다음(바닥선 + 3)에 올려 그려 흉벽에 가리지 않게 한다(사용자 2026-10-20).
-# 성벽·거점 그림에 가려진 땅 유닛은 끝에 반투명으로 한 번 더 그린다(C1). 레벨·선택·효과 테두리는 _draw가 모든 몸통 뒤에 그린다
+# 성벽·거점 그림에 가려진 땅 유닛과 시설은 끝에 반투명으로 한 번 더 그린다(C1). 레벨·선택·효과 테두리는 _draw가 모든 몸통 뒤에 그린다
 func _bodies() -> void:
 	var all: Array = battle.units + battle.enemies
 	var walls: Array = battle.castle.values() + battle.rubble.values()
-	var tops: Array = battle.structures.values().filter(func(s): return battle.castle.has(s.cell))
+	var blds: Array = battle.structures.values()
+	var now := Time.get_ticks_msec() / 1000.0
+	var was := residents(battle, now - 0.05)
+	var ps := residents(battle, now)
 	var n := all.size()
-	var m := n + 2 * walls.size()  # 이 번호부터 성벽 위 구조물, 그다음 거점
-	var feet := m + tops.size() + 1  # 이 번호부터 성벽 위 유닛의 발밑 표시
+	var m := n + 2 * walls.size()  # 이 번호부터 시설, 그다음 거점
+	var feet := m + blds.size() + 1  # 이 번호부터 성벽 위 유닛의 발밑 표시
+	var folk := feet + n  # 이 번호부터 주민
 	var keys := PackedInt64Array()
 	for i in n:
 		var x = all[i]
@@ -191,22 +186,26 @@ func _bodies() -> void:
 		var line: int = (walls[j].cell.y + 1) * CELL
 		keys.append((1 << 44) | ((line + 64) << 20) | (n + 2 * j))
 		keys.append((1 << 44) | ((line + 2 + 64) << 20) | (n + 2 * j + 1))
-	for j in tops.size():
-		keys.append((1 << 44) | (((tops[j].cell.y + 1) * CELL + 1 + 64) << 20) | (m + j))
-	keys.append((1 << 44) | (((battle.base.cell.y + 1) * CELL + 64) << 20) | (m + tops.size()))
+	for j in blds.size():  # 시설은 바닥선, 성벽 위 대포는 성곽 몸체와 앞층 사이(바닥선 + 1)
+		keys.append((1 << 44) | (((blds[j].cell.y + 1) * CELL + int(battle.castle.has(blds[j].cell)) + 64) << 20) | (m + j))
+	keys.append((1 << 44) | (((battle.base.cell.y + 1) * CELL + 64) << 20) | (m + blds.size()))
+	for k in ps.size():
+		keys.append((1 << 44) | ((int(_center(ps[k]).y) + 64) << 20) | (folk + k))
 	keys.sort()
 	var next := {}
 	for k in keys:
 		var i: int = k & 0xFFFFF
-		if i >= feet:
+		if i >= folk:  # 주민(4.1d): 움직이는 쪽을 보고 걷기 2위상. 자리가 연출이라(I46) 방향도 0.05초 전 자리와의 차로 구한다
+			var v: Vector2 = ps[i - folk] - was[i - folk]
+			var moving := v.length_squared() > 1e-8
+			_frame(ART.resident, "walk" if moving else "idle", _four(v), int(now * 8.0) % 2 if moving else 0, _center(ps[i - folk]))
+		elif i >= feet:
 			_feet_mark(all[i - feet], i - feet)
-		elif i == m + tops.size():  # 거점 망루: 마을 레벨(S99)마다 한 장
+		elif i == m + blds.size():  # 거점 망루: 마을 레벨(S99)마다 한 장
 			var at := Vector2(battle.base.cell * CELL) + Vector2(-32, CELL - 72)
 			draw_texture_rect_region(KEEP, Rect2(at, Vector2(80, 80)), Rect2(80 * (clampi(battle.village_level, 1, 2) - 1), 0, 80, 80))
 		elif i >= m:
-			var s = tops[i - m]
-			var col: Color = COLORS[s.kind]
-			draw_rect(_box(s), col if s.complete and s.razed < 1.0 else Color(col, 0.4))
+			_facility(blds[i - m])
 		elif i >= n:
 			_wall_piece(walls[(i - n) / 2], (i - n) % 2)
 		else:
@@ -214,7 +213,24 @@ func _bodies() -> void:
 	for i in n:
 		if _behind(all[i]):
 			_body(all[i], i, next, GHOST)
+	for s in blds:  # 시설도 같은 규칙으로 덧그린다(사용자 2026-10-20)
+		if _behind(s):
+			_facility(s, GHOST)
 	_seen = next
+
+# 시설 하나(4.1e, 사용자 2026-10-20). 미완성은 청사진 위에 진행률만큼 아래부터 그림을 채우고, 철거 중은 거꾸로 위부터 청사진으로 돌아간다.
+# 다 접힌 대포는 접힌 그림이다(I74). 성벽 위 대포(I44)는 올려 그린다
+func _facility(s, tint := Color.WHITE) -> void:
+	var folded: bool = s.dest != null and s.razed >= 1.0
+	var f: Array = FAC["cannon_folded" if folded else s.kind]
+	var t: float = 1.0 if folded else (1.0 - s.razed if s.complete else s.progress)
+	var cut := roundi(f[2] - t * (f[2] - f[1]))  # 이 줄부터 아래는 그림, 위는 청사진
+	var at := Vector2(s.cell * CELL) + Vector2(-16, CELL - 44 - _lift(s))
+	var x: float = 48.0 * f[0]
+	if cut > 0:
+		draw_texture_rect_region(FACILITY, Rect2(at, Vector2(48, cut)), Rect2(x, 48, 48, cut), BLUEPRINT * tint)
+	if cut < 48:
+		draw_texture_rect_region(FACILITY, Rect2(at + Vector2(0, cut), Vector2(48, 48 - cut)), Rect2(x, cut, 48, 48 - cut), tint)
 
 # 유닛·적 몸통 하나. 영웅은 8방향 시트, 그림이 있는 용병·적은 4방향 시트, 나머지는 원으로
 func _body(x, i: int, next: Dictionary, tint := Color.WHITE) -> void:
@@ -227,11 +243,11 @@ func _body(x, i: int, next: Dictionary, tint := Color.WHITE) -> void:
 	else:
 		draw_circle(_spot(x), CELL * x.radius, (HERO_COLORS.get(x.kind, COLORS.merc) if x.is_hero else COLORS.get(x.kind, COLORS.merc)) * tint)
 
-# 성벽·거점 그림이 덮는 자리에 선 땅 유닛: 성곽 칸 뒤 두 줄, 거점 칸 뒤 두 줄과 그 양옆(C1, 사용자 2026-10-20)
+# 성벽·거점 그림이 덮는 자리에 선 땅 유닛이나 시설: 성곽 칸 뒤 두 줄, 거점 칸 뒤 두 줄과 그 양옆(C1, 사용자 2026-10-20)
 func _behind(x) -> bool:
-	if x.on_wall or x.get("flying") == true or x.get("climbed"):
+	if x.get("on_wall") == true or x.get("flying") == true or x.get("climbed"):
 		return false
-	var c := Vector2i(roundi(x.pos.x), roundi(x.pos.y))
+	var c := Vector2i(_pos_of(x).round())
 	if battle.castle.has(c + Vector2i(0, 1)) or battle.castle.has(c + Vector2i(0, 2)):
 		return true
 	var d: Vector2i = c - battle.base.cell

@@ -3,7 +3,8 @@
 # (insights/2026-10-20_render_spike.md P4).
 # 성곽 칸 조각(4.1c)도 같은 식으로 4.0 시험 성벽 그림에서 잘라 한 장에 모은다.
 # 용병·적·주민(4.1d)은 C 절충안에 쓰는 칸만 골라 영웅 아래에 붙인다: 행 S·E·N·W, 정지 1열, 걷기 2위상 2열, 공격 키 포즈 1열, 누운 자세 1장
-# 사용: python tools/art/atlas.py → art/units/heroes.png, art/units/heroes.json, art/castle/walls.png
+# 시설(4.1e)은 48×48 칸을 따로 한 장에 모은다(facility())
+# 사용: python tools/art/atlas.py → art/units/heroes.png, art/units/heroes.json, art/castle/walls.png, art/castle/facility.png
 import json
 from pathlib import Path
 
@@ -70,6 +71,24 @@ def castle():
     print(out.size, keep.size)
 
 
+# 시설 시트: 열은 facility.KINDS 순서, 0행 그림, 1행 청사진 바탕(회색). json은 종류 → [열, 그림 맨 윗줄, 맨 아랫줄 + 1]이다.
+# 게임은 진행률만큼 그 줄 범위의 아래부터 그림을 채운다(battle_view.gd _facility)
+def facility():
+    import facility as F
+    out = Image.new("RGBA", (F.N * len(F.KINDS), 2 * F.N))
+    meta = {}
+    for c, k in enumerate(F.KINDS):
+        im = Image.open(f"art/trial/facility/{k}.png").convert("RGBA")
+        out.paste(im, (F.N * c, 0))
+        out.paste(F.gray(im), (F.N * c, F.N))
+        box = im.getbbox()
+        meta[k] = [c, box[1], box[3]]
+    out.save("art/castle/facility.png")
+    Path("art/castle/facility.json").write_text(json.dumps(meta) + "\n", encoding="utf-8")
+    print(out.size)
+
+
 if __name__ == "__main__":
     main()
     castle()
+    facility()
