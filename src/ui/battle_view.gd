@@ -38,6 +38,8 @@ const BLAST := 0.25  # 대포알이 떨어진 곳의 범위 피해 고리가 퍼
 const FX := 0.3  # 즉시 스킬 흔적(S179)이 퍼지고 사라지는 시간(초). 범위 원(S72)의 0.3초를 이었다
 const FX_COLORS := {"frost_ring": Color("a0e0ff")}  # 영웅 색이 아닌 흔적(S179): 이그니스 서리 고리는 얼음색
 const FALL := 0.5  # 운석이 보이며 떨어지는 시간(초). 이그니스 R의 첫 운석 지연(delay)과 같다
+const CORPSE_FADE := 0.5  # 쓰러진 적·용병의 몸이 시뮬레이션에서 지워지기(battle.FALLEN) 전에 흐려지는 시간(초, S180)
+const FALL_STEP := 0.08  # 영웅 쓰러짐 5프레임의 한 프레임 길이(초, S180)
 const PIXEL_FONT := preload("res://art/fonts/Galmuri7.ttf")  # 맵 위 숫자(S167). 맵은 640×360을 정수배로 키우므로 벡터 글자는 뭉개진다
 const GROUND_TILES := preload("res://art/tiles/ground.png")  # 0행 풀↔흙 꼭짓점 16꼴, 1행 풀·흙 변종과 깃발, 2·3행 전환 꼴 변종(tools/art/tiles.py)
 const CASTLE := preload("res://art/castle/walls.png")  # 성곽 칸 조각 16×42: 행 단계 1~3마다 몸체·앞층, 통로 그늘, 잔해. 열 성벽·열린 문·닫힌 문(tools/art/atlas.py castle)
@@ -116,9 +118,9 @@ func _draw() -> void:
 			var tint := GHOST if _behind(u) else Color.WHITE
 			draw_rect(bar, Color.BLACK * tint)
 			draw_rect(Rect2(bar.position, Vector2(CELL * u.mana / u.max_mana, 2)), Color("4080ff") * tint)
-	for h in battle.heroes:  # 쓰러진 영웅: 복귀할 때까지 쓰러진 자리에 그 영웅 색의 X(I130)
+	for h in battle.heroes:  # 쓰러진 영웅: 복귀할 때까지 쓰러진 자리에 그 영웅 색의 X(I130). 누운 몸(S180) 위에
 		if not h.alive:
-			var c := _center(h.pos)
+			var c := _spot(h)
 			var r := Vector2(CELL, CELL) * 0.3
 			draw_line(c - r, c + r, HERO_COLORS[h.kind], 2.0)
 			draw_line(c + Vector2(-r.x, r.y), c + Vector2(r.x, -r.y), HERO_COLORS[h.kind], 2.0)
@@ -284,7 +286,7 @@ func _marks() -> void:
 			var top: float = 28.0 - FAC[b.kind][1] if FAC.has(b.kind) else 0.0  # 시설은 그림 위에(4.1e). 칸 위에 그리면 그림을 가로질렀다
 			_hp_bar(Vector2(b.cell) - Vector2(0, (_lift(b) + top) / CELL), b)
 
-# 유닛·적·주민 몸통(S165, S172)과 성곽·거점(4.1c)·시설(4.1e). 발밑 팀 색(S166)과 비행 적 그림자(I81)를 먼저 깔고, (층, 바닥선 y, 목록 순서)로 정렬해 그린다.
+# 유닛·적·주민 몸통(S165, S172)과 성곽·거점(4.1c)·시설(4.1e). 땅의 쓰러진 몸(S180), 발밑 팀 색(S166)과 비행 적 그림자(I81)를 먼저 깔고, (층, 바닥선 y, 목록 순서)로 정렬해 그린다.
 # 성곽 칸은 몸체(바닥선)와 앞층(바닥선 + 2) 두 조각이고, 성벽 위 유닛·대포와 기어오르는 적은 그 사이(바닥선 + 1)에 올려 그려 앞층이 발을 가린다(05 §2).
 # 성벽 위 유닛의 발밑 팀 색만은 앞층 다음(바닥선 + 3)에 올려 그려 흉벽에 가리지 않게 한다(사용자 2026-10-20).
 # 성벽·거점 그림에 가려진 땅 유닛과 시설은 끝에 한 번 더 그린다(_shade). 레벨·선택·효과 테두리는 _draw가 모든 몸통 뒤에 그린다
@@ -303,7 +305,14 @@ func _bodies() -> void:
 	var m := n + 2 * walls.size()  # 이 번호부터 시설, 그다음 거점
 	var feet := m + blds.size() + 1  # 이 번호부터 성벽 위 유닛의 발밑 표시
 	var folk := feet + n  # 이 번호부터 주민
+	var grave := folk + ps.size()  # 이 번호부터 성벽 위의 쓰러진 몸
 	var keys := PackedInt64Array()
+	var dead := _fallen()
+	for k in dead.size():  # 성벽 위의 쓰러진 몸은 낮아서 흉벽에 다 가리므로, 성벽 위 발밑 표시처럼 앞층 다음(바닥선 + 3)에
+		if dead[k][0].on_wall:
+			keys.append((1 << 44) | ((int(roundf(dead[k][0].pos.y) + 1) * CELL + 3 + 64) << 20) | (grave + k))
+		else:
+			_corpse(dead[k])
 	for i in n:
 		var x = all[i]
 		var fly: bool = x.get("flying") == true
@@ -328,7 +337,9 @@ func _bodies() -> void:
 	var next := {}
 	for k in keys:
 		var i: int = k & 0xFFFFF
-		if i >= folk:  # 주민(4.1d): 움직이는 쪽을 보고 걷기 2위상. 자리가 연출이라(I46) 방향도 0.05초 전 자리와의 차로 구한다
+		if i >= grave:
+			_corpse(dead[i - grave])
+		elif i >= folk:  # 주민(4.1d): 움직이는 쪽을 보고 걷기 2위상. 자리가 연출이라(I46) 방향도 0.05초 전 자리와의 차로 구한다
 			var v: Vector2 = ps[i - folk] - was[i - folk]
 			var moving := v.length_squared() > 1e-8
 			_frame(ART.resident, "walk" if moving else "idle", _four(v), int(now * 8.0) % 2 if moving else 0, _center(ps[i - folk]))
@@ -473,7 +484,7 @@ func _sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 	_region(UNITS, Rect2(at.round(), Vector2(size, size)), Rect2(col * size, a[anim] + dir * size, size, size), tint)
 
 # 용병·적 하나(C 절충안, 4.1d. 4.1a M1·M6에서 C만 통과했다): 4방향 정지, 움직이면 걷기 2위상(초당 8), 친 뒤 0.08~0.22초는 공격 키 포즈.
-# 근접은 그동안 대상 쪽으로 돌진한다(_lunge). 방향 고르기는 _sprite와 같다(tools/bench/view_draw.gd C)
+# 근접은 그동안 대상 쪽으로 돌진한다(_lunge). 방향 고르기는 _sprite와 같다(tools/bench/view_draw.gd C). 기어오르는 적은 성벽 쪽(N)을 보고 걷기 2위상으로 오른다(S180)
 func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 	var id: int = x.get_instance_id()
 	var seen = _seen.get(id)
@@ -484,16 +495,39 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 		dir = _four(v)
 	elif x.target:
 		dir = _four(_pos_of(x.target) - x.pos)
+	if x.get("climbed"):
+		dir = 2
 	next[id] = [x.pos, dir]
 	var a := _ago(x)  # 친 뒤 지난 시간(초)
 	var anim := "idle"
 	var col := 0
 	if x.target and a >= 0.08 and a < 0.22:
 		anim = "attack"
-	elif moving:
+	elif moving or x.get("climbed"):
 		anim = "walk"
 		col = int(Time.get_ticks_msec() / 125.0) % 2
 	_frame(ART[x.kind], anim, dir, col, _spot(x) + _lunge(x) + _flinch(x), tint)
+
+# 그릴 쓰러진 몸(S180) [몸, 쓰러진 뒤 초]: 시뮬레이션이 아직 지우지 않은 적·용병과 복귀 전 영웅. 영웅은 지워진 뒤에도 마지막 자세로 남는다
+func _fallen() -> Array:
+	var out := []
+	for f in battle.fallen:
+		if f.who.get("is_hero") != true and ART.has(f.who.kind):
+			out.append([f.who, f.age])
+	for h in battle.heroes:
+		if not h.alive and ART.has(h.kind):
+			var f: Array = battle.fallen.filter(func(e): return e.who == h)
+			out.append([h, f[0].age if f else battle.FALLEN])
+	return out
+
+# 쓰러진 몸 하나(S180): 4.1d 누운 자세. 영웅은 쓰러짐 5프레임을 지나 누운 채 남고, 적·용병은 바로 누워 지워지기 전 CORPSE_FADE 동안 흐려진다.
+# 성벽 위에서 쓰러지면 성벽 위에, 오르던 적은 성벽 밑에, 비행 적은 그림자 자리에 눕는다
+func _corpse(d: Array) -> void:
+	var x = d[0]
+	var hero: bool = x.get("is_hero") == true
+	var p := _spot(x) if x.on_wall else _center(x.pos) + (Vector2(0, CELL * 0.4) if x.get("flying") == true else Vector2.ZERO)
+	var a := 1.0 if hero else clampf((battle.FALLEN - d[1]) / CORPSE_FADE, 0.0, 1.0)
+	_frame(ART[x.kind], "fall", 0, mini(int(d[1] / FALL_STEP), 4) if hero else 0, p, Color(1, 1, 1, a))
 
 # 4방향 시트(tools/art/atlas.py FOUR)의 한 칸을 발밑 p에 그린다. 행은 S·E·N·W, 공격·쓰러짐은 2배 캔버스
 func _frame(a: Dictionary, anim: String, dir: int, col: int, p: Vector2, tint := Color.WHITE) -> void:
