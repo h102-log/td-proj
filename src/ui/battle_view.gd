@@ -35,6 +35,9 @@ const SPEED := {"arrow": 240.0, "bolt": 160.0, "ball": 120.0}  # 투사체 속�
 const MUZZLE := {"tower": Vector2(0, -15), "magic": Vector2(0, -24), "cannon": Vector2(0, -6)}  # 칸 가운데에서 쏘는 곳(px, 4.1e 그림): 지붕 밑 발판, 수정, 포신
 const BALL_ARC := 12.0  # 대포알 포물선 꼭대기 높이(px)
 const BLAST := 0.25  # 대포알이 떨어진 곳의 범위 피해 고리가 퍼지는 시간(초)
+const FX := 0.3  # 즉시 스킬 흔적(S179)이 퍼지고 사라지는 시간(초). 범위 원(S72)의 0.3초를 이었다
+const FX_COLORS := {"frost_ring": Color("a0e0ff")}  # 영웅 색이 아닌 흔적(S179): 이그니스 서리 고리는 얼음색
+const FALL := 0.5  # 운석이 보이며 떨어지는 시간(초). 이그니스 R의 첫 운석 지연(delay)과 같다
 const PIXEL_FONT := preload("res://art/fonts/Galmuri7.ttf")  # 맵 위 숫자(S167). 맵은 640×360을 정수배로 키우므로 벡터 글자는 뭉개진다
 const GROUND_TILES := preload("res://art/tiles/ground.png")  # 0행 풀↔흙 꼭짓점 16꼴, 1행 풀·흙 변종과 깃발, 2·3행 전환 꼴 변종(tools/art/tiles.py)
 const CASTLE := preload("res://art/castle/walls.png")  # 성곽 칸 조각 16×42: 행 단계 1~3마다 몸체·앞층, 통로 그늘, 잔해. 열 성벽·열린 문·닫힌 문(tools/art/atlas.py castle)
@@ -74,6 +77,7 @@ func _draw() -> void:
 	for z in battle.zones:  # 장판(I101). 떨어지는 중인 운석은 테두리만, 덫은 플레이어에게만 보인다
 		var col: Color = ZONES.get(z.src, Color.WHITE)
 		if z.has("cells"):
+			_capsule(z, col)
 			continue
 		if z.get("delay", 0.0) <= 0.0:
 			draw_circle(_center(z.pos), CELL * z.radius, Color(col, 0.18))
@@ -123,12 +127,7 @@ func _draw() -> void:
 	shots.sort_custom(func(a, b): return MISSILES.get(a.kind, "bolt") < MISSILES.get(b.kind, "bolt"))
 	for x in shots:
 		_missile(x)
-	# 즉시 스킬 범위 원(S72): 쓴 뒤 0.3초 동안 영웅 둘레에. ponytail: 0.3초는 임시값, 짧거나 길면 바꾼다
-	for h in (battle.heroes if battle.state == "battle" else []):
-		for slot in battle.SLOTS:
-			var sk: Dictionary = h.get(slot)
-			if h.alive and sk.get("aim") == "self" and sk.has("radius") and h.cd[slot] > sk.gap - 0.3:
-				draw_arc(_center(h.pos), CELL * sk.radius, 0.0, TAU, 48, Color.WHITE, 1.0)
+	_traces()
 	_aim_preview()
 	if controls.show_hp:
 		for u in battle.units + battle.enemies:
@@ -185,6 +184,80 @@ func _flight(x) -> float:
 # 원거리: 타워, 사거리 2칸을 넘는 영웅·용병. 나머지는 근접이다
 func _ranged(x) -> bool:
 	return x.get("pos") == null or (x.get("range") != null and x.range > 2.0)
+
+# 즉시 스킬 흔적(S179): 쓴 뒤 FX초 동안 영웅 색으로. 범위 스킬은 반경까지 퍼지는 고리, 방향·대상 스킬은 영웅에서 잇는 선이다.
+# 떨어지는 운석과 영혼 사슬도 그린다. 무엇을 어디에 썼는지는 시뮬레이션이 남긴 흔적(traces)이 준다
+func _traces() -> void:
+	for c in battle.traces:
+		var k: float = c.age / FX
+		if k >= 1.0:
+			continue
+		var h = c.hero
+		var id: String = h.get(c.slot).id if c.slot in battle.SLOTS else c.slot
+		var col: Color = FX_COLORS.get(id, HERO_COLORS[h.kind])
+		var at := _center(c.at)
+		match id:
+			"shield_bash":  # 부채꼴 끝이 퍼진다
+				var d: float = (c.aim - c.at).angle()
+				var half := deg_to_rad(h.q.arc) / 2.0
+				draw_arc(at, CELL * c.radius * _out(k), d - half, d + half, 12, Color(col, 1.0 - k), 2.0)
+			"war_cry", "brace", "burst", "fireball", "frost_ring", "enfeeble", "trap", "meteor":
+				_ring(at, CELL * c.radius, k, col)
+			"piercing_gale":  # 맵 끝까지 곧은 줄
+				draw_line(at, at + (c.aim - c.at).normalized() * CELL * 64.0, Color(col, 1.0 - k), 1.0 + 2.0 * (1.0 - k))
+			"holy_beam":  # 영웅에서 맞은 차례대로 잇는 줄
+				var pts := PackedVector2Array([_center(h.pos)])
+				for t in c.hits:
+					pts.append(_chest(t))
+				draw_polyline(pts, Color(col, 1.0 - k), 2.0)
+			"overcharge", "rewind", "guardian":  # 영웅에서 대상까지 줄과 대상 둘레 고리
+				draw_line(_center(h.pos), _chest(c.aim), Color(col, 1.0 - k), 2.0)
+				_ring(_spot(c.aim), CELL * 0.8, k, col)
+			"miracle":  # 회복받은 아군마다 고리
+				for t in c.hits:
+					_ring(_spot(t), CELL, k, col)
+	for z in battle.zones:  # 떨어지는 운석: 마지막 FALL초 동안 오른쪽 위에서 내려오고 그림자가 커진다
+		var d: float = z.get("delay", 0.0)
+		if d > 0.0 and d < FALL:
+			var g := _center(z.pos)
+			var p := g + Vector2(0.5, -1.0) * 80.0 * d / FALL
+			_blob(g, 1 + int((1.0 - d / FALL) * 3.0), Color(0, 0, 0, 0.35))
+			_blob(p + Vector2(4, -8), 1, Color(HERO_COLORS.ignis, 0.5))
+			_blob(p, 3, HERO_COLORS.ignis)
+			_blob(p, 1, Color("ffe080"))
+	var links := {}  # 영혼 사슬(S154): 같은 사슬에 묶인 적을 처음 적에게서 잇는다
+	for e in battle.enemies:
+		var v = e.fx.get("vesper_e")
+		if v:
+			if not links.has(v.chain):
+				links[v.chain] = []
+			links[v.chain].append(e)
+	for es in links.values():
+		for i in range(1, es.size()):
+			draw_line(_chest(es[0]), _chest(es[i]), Color(MARKS.chain, 0.7), 1.0)
+
+# 퍼지는 고리: k(0~1)에 따라 반경 r까지 처음에 빠르게 퍼지며 옅어진다. 같은 영웅 색 장판 위에서도 보이게 40% 밝힌다
+func _ring(c: Vector2, r: float, k: float, col: Color) -> void:
+	if k < 1.0:
+		draw_arc(c, maxf(r * _out(k), 1.0), 0.0, TAU, 32, Color(col.lerp(Color.WHITE, 0.4), 1.0 - k), 2.0 if k < 0.5 else 1.0)
+
+func _out(k: float) -> float:
+	return 1.0 - (1.0 - k) * (1.0 - k)
+
+# 아이아스 R 둘레(S179): 에너지 성벽 칸 줄에서 radius 안(I142)은 칸 줄을 감싼 캡슐이다. 다른 장판처럼 엷게 채우고 테두리를 그린다
+func _capsule(z, col: Color) -> void:
+	var a := _center(Vector2(z.cells[0]))
+	var b := _center(Vector2(z.cells[-1]))
+	var d := (b - a).normalized() if a != b else Vector2.RIGHT
+	var r: float = CELL * z.radius
+	var pts := PackedVector2Array()
+	for i in 13:
+		pts.append(b + Vector2.from_angle(d.angle() - PI / 2.0 + PI * i / 12.0) * r)
+	for i in 13:
+		pts.append(a + Vector2.from_angle(d.angle() + PI / 2.0 + PI * i / 12.0) * r)
+	draw_colored_polygon(pts, Color(col, 0.18))
+	pts.append(pts[0])
+	draw_polyline(pts, Color(col, 0.8), 1.0)
 
 # 칸에 붙는 표시: 놓기 모드 칸, 효과 테두리, 고른 것 테두리, 집결 지점, 체력 막대. 성벽 그림에 가리지 않게 몸통 뒤에 그린다(4.1c)
 func _marks() -> void:
@@ -442,7 +515,7 @@ func _lunge(x) -> Vector2:
 	return (_pos_of(x.target) - x.pos).normalized() * LUNGE * (a / CONTACT if a < CONTACT else 1.0 - (a - CONTACT) / 0.32)
 
 # 공격자 xs 가운데 방금 친 것의 대상 → [맞은 뒤 지난 시간(초), 공격자 → 대상 방향](S177). 여럿에게 맞으면 가장 최근 타격이다.
-# 시뮬레이션에 상태를 두지 않고 공격자의 친 뒤 시간에서 구한다(06 §4)
+# 기본 공격은 시뮬레이션에 상태를 두지 않고 공격자의 친 뒤 시간에서 구한다(06 §4). 즉시 스킬은 시뮬레이션이 남긴 흔적(traces)의 맞은 대상이다(S179)
 func hit_table(xs: Array) -> Dictionary:
 	var hits := {}
 	for x in xs:
@@ -451,6 +524,11 @@ func hit_table(xs: Array) -> Dictionary:
 			var id: int = x.target.get_instance_id()
 			if t >= 0.0 and t < FLINCH_BACK and t < hits.get(id, [INF])[0]:
 				hits[id] = [t, (_pos_of(x.target) - _pos_of(x)).normalized()]
+	for c in battle.traces:  # 즉시 스킬에 맞은 적(S179): 쓴 때(운석은 떨어진 때)부터, 흔적 가운데의 반대쪽으로 밀린다
+		for t in c.hits if c.age < FLINCH_BACK else []:
+			var id: int = t.get_instance_id()
+			if t in battle.enemies and c.age < hits.get(id, [INF])[0]:
+				hits[id] = [c.age, (t.pos - c.at).normalized()]
 	return hits
 
 # 친 뒤 보일 시간(초). 영웅이 치거나 맞은 타격은 닿은 때(_contact)에서 HITSTOP만큼 멈췄다가 늦게 흐른다(S177)

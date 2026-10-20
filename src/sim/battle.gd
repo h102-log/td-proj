@@ -244,6 +244,7 @@ var structures := {}  # Vector2i → Block
 var rubble := {}  # Vector2i → 부서진 성곽 칸 Block(I88). 지나갈 수 있고, 복구하면 castle로 돌아간다(I89)
 var barriers := {}  # Vector2i → 에너지 성벽 칸 Block(S151, I142). 그 장판(zones)이 끝나면 사라진다
 var zones := []  # 장판(S150, I141): {src, pos, radius, left, owner, 수치…}. 웨이브가 끝나면 모두 사라진다(I143)
+var traces := []  # 즉시 스킬 흔적(S179): {hero, slot, aim, at, radius, hits, age}. 그리기만 읽고 1초 지나면 지운다
 var enemies := []
 var units := []  # 살아 있는 영웅·용병
 var heroes := []  # 전장에 나온 출전 영웅(Unit)들, 보유 순서(I108). 쓰러진 영웅도 들어 있다(I102)
@@ -278,6 +279,7 @@ var _rng := RandomNumberGenerator.new()  # 영입소 목록을 뽑는다. 스테
 var _luck := RandomNumberGenerator.new()  # 치명타·요새화 기절(S149, S151). 영입소 목록이 전투에 따라 바뀌지 않게 따로 둔다
 var _chains := 0  # 영혼 사슬(S154)마다 붙이는 번호
 var _holds := {}  # 유닛 → 그 유닛이 붙잡은 적 수(S159). 스텝마다 적의 engaged로 다시 센다
+var _tracing = null  # 지금 내는 스킬 흔적(_trace). 그동안 피해·회복을 받은 대상이 hits에 쌓인다
 
 # dir의 Resource 파일마다 «파일 이름 → 스크립트 변수 사전». list_directory는 내보낸 빌드의 .remap도 원래 이름으로 준다
 static func _kinds(dir: String) -> Dictionary:
@@ -373,6 +375,9 @@ func restart() -> void:
 	_forecast()
 
 func step(dt: float) -> void:
+	for t in traces:
+		t.age += dt
+	traces = traces.filter(func(t): return t.age < 1.0)
 	if state == "battle":
 		_spawn_wave(dt)
 		tally.battle_time += dt  # 라운드 집계(I119)
@@ -837,7 +842,14 @@ func _use(h, slot: String, aim) -> void:
 		h.casts += 1
 		if h.casts % int(h.passive.every) == 0:
 			h.charged = true
+	_trace(h, slot, aim, aim if sk.aim == "point" else h.pos, sk.get("radius", 0.0) * grow)
 	call("_cast_" + sk.id, h, sk, aim, grow)
+	_tracing = null
+
+# 즉시 스킬 흔적을 남긴다(S179). at은 흔적의 가운데(지점 스킬은 지점, 나머지는 쓴 때 영웅 자리)다. _tracing을 비울 때까지 맞은 대상이 hits에 쌓인다
+func _trace(h: Unit, slot: String, aim, at: Vector2, radius: float) -> void:
+	_tracing = {"hero": h, "slot": slot, "aim": aim, "at": at, "radius": radius, "hits": [], "age": 0.0}
+	traces.append(_tracing)
 
 # 걸어가서 쓰기(S147, I145): 대상이 사라졌거나 길이 끝났는데 닿지 못했으면 그만둔다. 사거리에 들면 멈춰서 쓴다
 func _follow_order(h: Unit) -> void:
@@ -973,6 +985,8 @@ func _absorb(u: Unit, amount: float) -> float:
 func _heal(t, amount: float, src = null, repath := true) -> void:
 	if not t.alive:
 		return
+	if _tracing != null:
+		_tracing.hits.append(t)
 	if t is Unit:
 		amount *= 1.0 + _fx_sum(t, "heal_up")
 	var over: float = t.hp + amount - t.max_hp
@@ -1070,6 +1084,8 @@ func _zones(dt: float) -> void:
 					for e in foes:
 						_fx(e, "sylvia_e", {"root": true, "crit": z.crit}, z.root)
 					z.left = 0.0
+					_trace(z.owner, "trap", null, z.pos, z.radius)
+					_tracing = null
 			"sylvia_r":  # 화살비: 초당 물리 피해(보스 ×), 체력 비율 이하 보스 아닌 적은 처형
 				for e in foes:
 					damage(e, z.dps * dt * (z.boss if e.kind == "boss" else 1.0), "phys", z.owner)
@@ -1164,9 +1180,11 @@ func _burst(h: Unit) -> void:
 	h.braced = 0.0
 	h.fx.erase("aias_e")
 	if hurt > 0.0:
+		_trace(h, "burst", null, h.pos, sk.radius)
 		for e in enemies.duplicate():
 			if e.pos.distance_to(h.pos) <= sk.radius:
 				damage(e, hurt, "phys", h)
+		_tracing = null
 
 # R 절대 방어선: 지점 칸을 가운데로, 영웅 → 지점 방향에 수직인 length칸 줄에 에너지 성벽을 세운다(I142)
 func _cast_bulwark(h: Unit, sk: Dictionary, aim, _grow: float) -> void:
@@ -1332,11 +1350,13 @@ func _cast_meteor_swarm(h: Unit, sk: Dictionary, aim, _grow: float) -> void:
 		_zone("ignis_r", h, spots[i % spots.size()], sk.radius, sk.lava, {"delay": sk.delay * (i + 1), "damage": sk.damage, "stun": sk.stun, "burn": sk.burn})
 
 func _meteor(z: Dictionary) -> void:
+	_trace(z.owner, "meteor", null, z.pos, z.radius)
 	for e in enemies.duplicate():
 		if e.pos.distance_to(z.pos) <= z.radius:
 			damage(e, z.damage, "magic", z.owner)
 			if e.alive:
 				_fx(e, "ignis_r", {"stun": true}, z.stun)
+	_tracing = null
 
 # ── 크로노스(S158) ──
 
@@ -1793,6 +1813,8 @@ func refund(t) -> int:
 func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) -> void:
 	if not target.alive or (target is Block and target.kind == "barrier"):
 		return
+	if _tracing != null:
+		_tracing.hits.append(target)
 	if target is Enemy:
 		if kind != "true":
 			if _crits(target, src):
