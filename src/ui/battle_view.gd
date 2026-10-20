@@ -30,6 +30,11 @@ const FLASH := 0.1  # 피격 흰 번쩍임 길이(초, S177)
 const FLINCH := 3.0  # 피격 밀림(px, S177). 림월드 0.17칸을 16px 칸으로 옮겼다(06 §4)
 const FLINCH_BACK := 0.17  # 밀린 몸이 돌아오는 시간(초, 06 §4 약 10프레임)
 const HITSTOP := 3.0 / 60.0  # 영웅이 치거나 맞은 타격에서 두 유닛의 그림만 멈추는 시간(초, S177). 시뮬레이션은 멈추지 않는다
+const MISSILES := {"archer": "arrow", "sylvia": "arrow", "tower": "arrow", "cannon": "ball"}  # 원거리 공격의 투사체(S178). 나머지(마법 타워·마법 영웅)는 마법 구슬
+const SPEED := {"arrow": 240.0, "bolt": 160.0, "ball": 120.0}  # 투사체 속도(px/초, S178)
+const MUZZLE := {"tower": Vector2(0, -15), "magic": Vector2(0, -24), "cannon": Vector2(0, -6)}  # 칸 가운데에서 쏘는 곳(px, 4.1e 그림): 지붕 밑 발판, 수정, 포신
+const BALL_ARC := 12.0  # 대포알 포물선 꼭대기 높이(px)
+const BLAST := 0.25  # 대포알이 떨어진 곳의 범위 피해 고리가 퍼지는 시간(초)
 const PIXEL_FONT := preload("res://art/fonts/Galmuri7.ttf")  # 맵 위 숫자(S167). 맵은 640×360을 정수배로 키우므로 벡터 글자는 뭉개진다
 const GROUND_TILES := preload("res://art/tiles/ground.png")  # 0행 풀↔흙 꼭짓점 16꼴, 1행 풀·흙 변종과 깃발, 2·3행 전환 꼴 변종(tools/art/tiles.py)
 const CASTLE := preload("res://art/castle/walls.png")  # 성곽 칸 조각 16×42: 행 단계 1~3마다 몸체·앞층, 통로 그늘, 잔해. 열 성벽·열린 문·닫힌 문(tools/art/atlas.py castle)
@@ -76,12 +81,6 @@ func _draw() -> void:
 		draw_arc(_center(z.pos), CELL * z.radius, 0.0, TAU, 48, Color(col, 0.8), 1.0)
 	for p in battle.forecast:  # 기본 적의 예상 경로(S142): 엷은 빨간 선, 유닛 아래에. 너비 1이면 1배 줌에서 칸 중심을 지나는 가로·세로 구간이 안 그려진다
 		draw_polyline(PackedVector2Array(p.map(func(c): return _center(Vector2(c)))), Color(COLORS.spawn, 0.5), 1.5)
-	# 타워 사격 선: 쏜 뒤 0.1초 동안. 대포는 맞은 곳에 범위 피해 원도 그린다(S90)
-	for s in battle.structures.values():
-		if s.target and s.cooldown > s.fire_gap - 0.1:
-			draw_line(_spot(s), _spot(s.target), Color.YELLOW, 1.0)
-			if s.splash > 0.0:
-				draw_arc(_center(s.target.pos), CELL * s.splash, 0.0, TAU, 24, Color.YELLOW, 1.0)
 	for h in battle.heroes:  # 오라 반경(S113): 오라가 있는 살아 있는 영웅마다 둘레에 늘 엷게, 유닛 아래에(I101)
 		if h.alive and not h.aura.is_empty():
 			_aura_ring(h)
@@ -119,13 +118,11 @@ func _draw() -> void:
 			var r := Vector2(CELL, CELL) * 0.3
 			draw_line(c - r, c + r, HERO_COLORS[h.kind], 2.0)
 			draw_line(c + Vector2(-r.x, r.y), c + Vector2(r.x, -r.y), HERO_COLORS[h.kind], 2.0)
-	# 공격선: 친 뒤 0.1초 동안 아군은 흰색, 적은 빨간색(S71). 대상이 무엇이든 그린다(I59)
-	for u in battle.units:
-		if u.target and u.cooldown > u.attack_gap - 0.1:
-			draw_line(_spot(u), _spot(u.target), Color.WHITE, 1.0)
-	for e in battle.enemies:
-		if e.target and e.cooldown > e.attack_gap - 0.1:
-			draw_line(_spot(e), _spot(e.target), Color.RED, 1.0)
+	# 원거리 공격은 투사체(S178). 근접 공격은 선을 그리지 않는다(S71 변경). 선(화살)과 원(구슬·대포알)이 번갈아 그려지면 배치가 끊겨서 모양끼리 모아 그린다
+	var shots: Array = (battle.units + battle.structures.values()).filter(func(x): return x.get("target") != null and _ranged(x))
+	shots.sort_custom(func(a, b): return MISSILES.get(a.kind, "bolt") < MISSILES.get(b.kind, "bolt"))
+	for x in shots:
+		_missile(x)
 	# 즉시 스킬 범위 원(S72): 쓴 뒤 0.3초 동안 영웅 둘레에. ponytail: 0.3초는 임시값, 짧거나 길면 바꾼다
 	for h in (battle.heroes if battle.state == "battle" else []):
 		for slot in battle.SLOTS:
@@ -138,6 +135,56 @@ func _draw() -> void:
 			_hp_bar(u.pos - Vector2(0, _lift(u) / CELL), u)
 	if controls.drag_rect.has_area():
 		draw_rect(controls.drag_rect, Color.WHITE, false, 1.0)
+
+# 원거리 공격 한 발(S178): 쏜 곳(_muzzle)에서 대상 가슴까지 _flight초 동안 날아간다. 유닛은 공격 키 포즈(CONTACT)에 놓는다.
+# 화살은 짧은 선, 마법은 쏜 쪽 색 구슬, 대포알은 포물선으로 날고 떨어진 곳에 범위 피해 고리가 BLAST초 동안 퍼진다(S90)
+func _missile(x) -> void:
+	var t := _ago(x) - (_contact(x) - _flight(x))
+	var fly := _flight(x)
+	var kind: String = MISSILES.get(x.kind, "bolt")
+	if t < 0.0 or t >= fly:
+		if kind == "ball" and t >= fly and t < fly + BLAST:
+			var k := (t - fly) / BLAST
+			draw_arc(_spot(x.target), CELL * x.splash * k, 0.0, TAU, 24, Color(1, 0.8, 0.3, 1.0 - k), 1.0)
+		return
+	var from := _muzzle(x)
+	var to := _chest(x.target)
+	var d := (to - from).normalized()
+	var p := from.lerp(to, t / fly)
+	match kind:
+		"arrow":
+			draw_line((p - d * 5).round(), p.round(), Color("e8dcc0"), 1.0)
+		"bolt":
+			var col: Color = HERO_COLORS.get(x.kind, Color("80b0ff"))
+			_blob(p - d * 3, 1, Color(col, 0.5))
+			_blob(p, 2, col)
+			_blob(p, 0, Color.WHITE)
+		"ball":
+			_blob(_spot(x).lerp(_spot(x.target), t / fly), 1, Color(0, 0, 0, 0.35))
+			_blob(p - Vector2(0, 4.0 * BALL_ARC * t / fly * (1.0 - t / fly)), 2, Color("2a2a30"))
+
+# 가운데 c, 반지름 r px의 십자형 도트 덩어리(r 0이면 1px). draw_circle은 원마다 draw call이 하나씩 늘어 사각형 둘로 그린다
+func _blob(c: Vector2, r: int, col: Color) -> void:
+	var at := c.round()
+	draw_rect(Rect2(at - Vector2(r, r - 1 if r > 0 else 0), Vector2(2 * r + 1, maxi(2 * r - 1, 1))), col)
+	if r > 0:
+		draw_rect(Rect2(at - Vector2(r - 1, r), Vector2(2 * r - 1, 2 * r + 1)), col)
+
+# 쏘는 곳(맵 px). 타워는 그림 위의 쏘는 자리, 유닛은 손 높이다
+func _muzzle(x) -> Vector2:
+	return _spot(x) + MUZZLE.get(x.kind, Vector2(0, -10))
+
+# 투사체가 닿는 곳: 몸통 가운데(발밑에서 6px 위)
+func _chest(x) -> Vector2:
+	return _spot(x) + Vector2(0, -6)
+
+# 원거리 공격의 투사체가 쏜 곳에서 대상까지 나는 시간(초)
+func _flight(x) -> float:
+	return (_chest(x.target) - _muzzle(x)).length() / SPEED[MISSILES.get(x.kind, "bolt")] if x.get("target") != null else 0.0
+
+# 원거리: 타워, 사거리 2칸을 넘는 영웅·용병. 나머지는 근접이다
+func _ranged(x) -> bool:
+	return x.get("pos") == null or (x.get("range") != null and x.range > 2.0)
 
 # 칸에 붙는 표시: 놓기 모드 칸, 효과 테두리, 고른 것 테두리, 집결 지점, 체력 막대. 성벽 그림에 가리지 않게 몸통 뒤에 그린다(4.1c)
 func _marks() -> void:
@@ -414,9 +461,9 @@ func _ago(x) -> float:
 		return maxf(a - HITSTOP, c)
 	return a
 
-# 공격이 대상에 닿는 때(친 뒤 초). 근접(사거리 2칸 이하) 영웅·용병·적은 돌진 끝, 원거리와 타워는 쏜 때다
+# 공격이 대상에 닿는 때(친 뒤 초). 근접 영웅·용병·적은 돌진 끝, 원거리 유닛은 그때 놓은 투사체가 닿는 때, 타워는 쏜 투사체가 닿는 때다(S178)
 func _contact(x) -> float:
-	return 0.0 if x.get("pos") == null or (x.get("range") != null and x.range > 2.0) else CONTACT
+	return (0.0 if x.get("pos") == null else CONTACT) + (_flight(x) if _ranged(x) else 0.0)
 
 # 맞은 몸의 밀림(px, S177): 공격자 반대쪽으로 FLINCH만큼 밀렸다가 FLINCH_BACK에 걸쳐 돌아온다. 발밑 표시도 함께 옮긴다
 func _flinch(x) -> Vector2:

@@ -1,7 +1,8 @@
 extends RefCounted
-# 피격 반응(S177)의 «방금 맞음» 표가 근접은 돌진이 닿은 때부터, 원거리는 쏜 때부터 세고, 영웅이 낀 타격은 닿은 때 3프레임 멈추는지 본다(WBS 4.1f).
+# 피격 반응(S177)의 «방금 맞음» 표가 근접은 돌진이 닿은 때부터, 원거리는 투사체가 닿은 때부터 세고, 영웅이 낀 타격은 닿은 때 3프레임 멈추는지 본다(WBS 4.1f).
 # 지키는 요구:
 #   S177. 맞은 영웅·용병·적은 0.1초 흰 번쩍임과 공격자 반대쪽 밀림을 보이고, 영웅이 치거나 맞은 타격은 두 유닛의 그림만 3프레임 멈춘다.
+#   S178. 원거리 공격은 투사체로 그리고, 맞은 반응은 투사체가 닿는 때 난다.
 
 const View := preload("res://src/ui/battle_view.gd")
 
@@ -24,9 +25,13 @@ func test_hit_table_counts_from_contact_and_holds_hero_hits():
 	var h = _hit(v, soldier, foe, View.CONTACT + 0.05)
 	if why == "" and (h == null or not is_equal_approx(h[0], 0.05) or not h[1].is_equal_approx(Vector2.RIGHT)):
 		why = "병사가 닿은 뒤 0.05초인데 표가 %s다(0.05초, 오른쪽으로 밀림이어야 한다)" % [h]
-	h = _hit(v, archer, foe, 0.05)
-	if why == "" and (h == null or not is_equal_approx(h[0], 0.05)):
-		why = "궁수(원거리)는 쏜 때부터 세야 하는데 표가 %s다" % [h]
+	archer.target = foe
+	var fly: float = v._flight(archer)  # 궁수 손에서 적 몸통까지 화살이 나는 시간(S178)
+	if why == "" and _hit(v, archer, foe, View.CONTACT + fly - 0.02) != null:
+		why = "궁수(원거리)의 화살이 닿기 전에 맞은 것으로 셌다(나는 시간 %s초)" % fly
+	h = _hit(v, archer, foe, View.CONTACT + fly + 0.05)
+	if why == "" and (fly <= 0.0 or h == null or not is_equal_approx(h[0], 0.05)):
+		why = "궁수의 화살이 닿고 0.05초인데 표가 %s다(나는 시간 %s초)" % [h, fly]
 	h = _hit(v, b.hero, foe, View.CONTACT + 0.03)
 	if why == "" and (h == null or h[0] != 0.0 or v._ago(b.hero) != View.CONTACT):
 		why = "영웅 타격 정지(3프레임) 중인데 대상 %s, 영웅 자세 시간 %s다(0초, 닿은 때여야 한다)" % [h, v._ago(b.hero)]
@@ -39,7 +44,7 @@ func test_hit_table_counts_from_contact_and_holds_hero_hits():
 	soldier.target = foe
 	soldier.cooldown = soldier.attack_gap - (View.CONTACT + 0.1)
 	archer.target = foe
-	archer.cooldown = archer.attack_gap - 0.04
+	archer.cooldown = archer.attack_gap - (View.CONTACT + fly + 0.04)
 	h = v.hit_table([soldier, archer]).get(foe.get_instance_id())
 	if why == "" and (h == null or not is_equal_approx(h[0], 0.04)):
 		why = "둘에게 맞으면 가장 최근 타격(0.04초)이어야 하는데 %s다" % [h]
