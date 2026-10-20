@@ -1,12 +1,12 @@
 extends Node2D
-# 전투 상태를 칸 단위로 그린다. 영웅은 도트 스프라이트(S165), 나머지는 아직 도형이다(그레이박스, 아트는 WBS 4.1).
+# 전투 상태를 칸 단위로 그린다. 바닥은 타일(4.1b), 영웅은 도트 스프라이트(S165), 나머지는 아직 도형이다(그레이박스, 아트는 WBS 4.1).
 
 const CELL := 16
 const COLORS := {
-	"field": Color("4a6b3a"), "grid": Color(0, 0, 0, 0.15), "spawn": Color("c03030"),
+	"grid": Color(0, 0, 0, 0.15), "spawn": Color("c03030"),
 	"base": Color("e0c040"), "castle_wall": Color("8a8a8a"), "gate": Color("7a5230"), "gate_open": Color("c8a070"),
 	"wall": Color("5a5a5a"), "tower": Color("3060b0"), "magic": Color("7030a0"), "merc": Color("50a0f0"),
-	"village": Color("6b6b4a"), "barracks": Color("a06a30"),
+	"barracks": Color("a06a30"),
 	"workshop": Color("308080"), "engineer": Color("f0a030"), "archer": Color("60d0a0"), "cannon": Color("303060"), "archery": Color("40a070"),
 	"house": Color("b08060"), "resident": Color("f0e0b0"), "church": Color("c8c8e8"),
 }
@@ -29,21 +29,25 @@ const ZONES := {  # 장판 색(I101). 엷게 채우고 테두리를 그린다
 const UNITS := preload("res://art/units/heroes.png")  # 영웅 6명 시트를 한 장에 모은 아틀라스(tools/art/atlas.py)
 static var ART: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/units/heroes.json"))  # 영웅 → 캔버스·발밑·시트 y
 const PIXEL_FONT := preload("res://art/fonts/Galmuri7.ttf")  # 맵 위 숫자(S167). 맵은 640×360을 정수배로 키우므로 벡터 글자는 뭉개진다
+const GROUND_TILES := preload("res://art/tiles/ground.png")  # 0행 풀↔흙 꼭짓점 16꼴, 1행 풀·흙 변종과 깃발, 2·3행 전환 꼴 변종(tools/art/tiles.py)
 const TEAM := [Color("3c9f9c"), Color("ef3a0c")]  # 발밑 팀 색(S166): 아군 청록, 적 빨강(F24+ 팔레트)
 static var FEET: ImageTexture = _feet()  # 발밑 채운 타원 14×6px. 아군·적을 한 장에 나란히 둬서 draw call이 끊기지 않는다
 
 var battle
 var controls  # 고른 유닛에 테두리를 그린다
 var _seen := {}  # 영웅 → [지난 위치, 방향]
+var ground: ImageTexture  # 바닥을 한 장으로 구운 것. 마을·출현 지점은 도전 내내 같아서(I91) 처음 한 번만 굽는다
 
 func _draw() -> void:
-	var map := Vector2(battle.size) * CELL
-	draw_rect(Rect2(Vector2.ZERO, map), COLORS.field)
-	draw_rect(Rect2(Vector2(battle.village.position) * CELL, Vector2(battle.village.size) * CELL), COLORS.village)
-	for x in battle.size.x + 1:
-		draw_line(Vector2(x * CELL, 0), Vector2(x * CELL, map.y), COLORS.grid)
-	for y in battle.size.y + 1:
-		draw_line(Vector2(0, y * CELL), Vector2(map.x, y * CELL), COLORS.grid)
+	if ground == null:
+		ground = bake_ground(battle)
+	draw_texture(ground, Vector2.ZERO)
+	if controls.placing != "":  # 격자선은 놓기 모드에서만(4.1b, 사용자 2026-10-20)
+		var map := Vector2(battle.size) * CELL
+		for x in battle.size.x + 1:
+			draw_line(Vector2(x * CELL, 0), Vector2(x * CELL, map.y), COLORS.grid)
+		for y in battle.size.y + 1:
+			draw_line(Vector2(0, y * CELL), Vector2(map.x, y * CELL), COLORS.grid)
 	_castle()
 	for k in battle.rubble.values():  # 잔해는 흐리게(I88)
 		draw_rect(_rect(k.cell), Color(COLORS[k.kind], 0.3))
@@ -78,8 +82,6 @@ func _draw() -> void:
 		draw_rect(_rect(f.cell), Color.WHITE, false, 1.0)
 		draw_line(_center(Vector2(f.cell)), _center(Vector2(f.rally)), Color(1, 1, 1, 0.4), 1.0)
 		draw_rect(_rect(f.rally).grow(-5), Color.WHITE)
-	for c in battle.spawns:
-		draw_rect(_rect(c).grow(-3), COLORS.spawn, false, 2.0)
 	for p in battle.forecast:  # 기본 적의 예상 경로(S142): 엷은 빨간 선, 유닛 아래에. 너비 1이면 1배 줌에서 칸 중심을 지나는 가로·세로 구간이 안 그려진다
 		draw_polyline(PackedVector2Array(p.map(func(c): return _center(Vector2(c)))), Color(COLORS.spawn, 0.5), 1.5)
 	var base = battle.base
@@ -219,6 +221,30 @@ static func _feet() -> ImageTexture:
 				if pow((x + 0.5 - 7.0) / 7.0, 2) + pow((y + 0.5 - 3.0) / 3.0, 2) <= 1.0:
 					im.set_pixel(14 * t + x, y, TEAM[t])
 	return ImageTexture.create_from_image(im)
+
+# 바닥(4.1b, 사용자 2026-10-20): 마을 칸의 꼭짓점은 흙, 나머지는 풀이다. 마을 아래 변의 흙은 들판 쪽으로 꼭짓점 0~2개만큼 불규칙하게 번진다.
+# 칸마다 네 꼭짓점으로 16꼴 가운데 하나를 고르고, 변종(풀·흙 한 가지인 칸은 넷, 전환 칸은 셋) 가운데 하나를 고른다. 출현 지점에는 깃발을 얹는다
+static func bake_ground(b) -> ImageTexture:
+	var src := GROUND_TILES.get_image()
+	var img := Image.create_empty(b.size.x * CELL, b.size.y * CELL, false, src.get_format())
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1
+	var spill := range(b.size.x + 1).map(func(_x): return rng.randi_range(0, 2))
+	var vil: Rect2i = b.village
+	var dirt := func(x: int, y: int) -> int:
+		return int(vil.has_area() and x >= vil.position.x and x <= vil.end.x and y >= vil.position.y and y <= vil.end.y + spill[x])
+	for y in b.size.y:
+		for x in b.size.x:
+			var k: int = dirt.call(x, y) + 2 * dirt.call(x + 1, y) + 4 * dirt.call(x, y + 1) + 8 * dirt.call(x + 1, y + 1)
+			var whole := k == 0 or k == 15
+			var v := rng.randi_range(0, 3 if whole else 2)
+			var at := Vector2i(k, 0)
+			if v > 0:
+				at = Vector2i(v - 1 + (3 if k == 15 else 0), 1) if whole else Vector2i(k, 1 + v)
+			img.blit_rect(src, Rect2i(at * CELL, Vector2i(CELL, CELL)), Vector2i(x, y) * CELL)
+	for c in b.spawns:  # ponytail: 깃발도 바닥에 구워서 막 나온 적이 깃발 위에 그려진다. 거슬리면 깃발만 바닥선 정렬로 옮긴다
+		img.blend_rect(src, Rect2i(Vector2i(6, 1) * CELL, Vector2i(CELL, CELL)), c * CELL)
+	return ImageTexture.create_from_image(img)
 
 # 장판 안쪽 무늬(S168). 색이 비슷한 장판 쌍(불길·용암, 블랙홀·늪, 화살비·독안개, 황금률·성역)을 무늬로 가른다. 무늬는 원 안에만 그린다
 func _pattern(src: String, c: Vector2, r: float, col: Color) -> void:

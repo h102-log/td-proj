@@ -9,6 +9,7 @@ import numpy as np
 import render as R
 
 OUT = Path(__file__).resolve().parents[2] / "art" / "trial" / "tiles"
+GAME = OUT.parents[1] / "tiles" / "ground.png"  # 게임이 쓰는 바닥(F24+, battle_view.gd)
 T = 16
 # 2026-10-19
 # [동작] 램프 [경계 그늘, 경계 띠, 바탕, 점 1, 점 2]. f24p 풀 점은 바탕과 OKLab ΔE 약 0.05~0.065, 흙 점은 경계 띠와 같은 392a1c, 경계 그늘은 풀의 어두운 점 색이다
@@ -82,7 +83,14 @@ def tile(corners, var, ramps):
     near_grass[:, 1:] |= ~dirt[:, :-1]
     near_grass[:, :-1] |= ~dirt[:, 1:]
     out = np.where(dirt & near_grass, d[1], out)  # 풀 둘레 흙은 어둡게(풀이 덮은 그늘)
-    out = np.where(dirt & grass_above, g[0], out)
+    # 2026-10-20
+    # [동작] 위가 풀인 흙에 풀 그늘을 칠하되, 가로로 혼자인 그늘 픽셀은 흙 경계 띠로 둔다
+    # [이유] 세로 경계의 계단마다 그늘이 1px씩 찍혀 풀 점처럼 떠 보였다(Gemini 3차 «경계 1px 고립 점», 4.1b 게임 화면 맵 전체 캡처에서 확인)
+    shade = dirt & grass_above
+    alone = shade.copy()
+    alone[:, 1:] &= ~shade[:, :-1]
+    alone[:, :-1] &= ~shade[:, 1:]
+    out = np.where(shade & ~alone, g[0], out)
     return out[1:-1, 1:-1]
 
 
@@ -90,20 +98,51 @@ CONFIGS = [((k >> 0) & 1, (k >> 1) & 1, (k >> 2) & 1, (k >> 3) & 1) for k in ran
 
 
 def atlas(pname):
-    """0행: 16꼴(변종 0). 1행: 풀 변종 1~3, 흙 변종 1~3"""
+    """0행: 16꼴(변종 0). 1행: 풀 변종 1~3, 흙 변종 1~3. 2·3행: 전환 꼴 1~14의 변종 1·2(같은 열).
+    전환 꼴이 한 장뿐이면 경계 요철이 칸마다 같은 톱니로 반복됐다(Gemini 3차, 4.1b 게임 화면에서 확인)"""
     pal = R.PALETTES[pname]
     hexes = ["%02x%02x%02x" % tuple(c) for c in pal]
     ramps = {k: [hexes.index(h) for h in v] for k, v in RAMPS[pname].items()}
+    empty = np.full((T, T), -1)
     row0 = [tile(c, 0, ramps) for c in CONFIGS]
     row1 = [tile(CONFIGS[0], v, ramps) for v in range(1, VARIANTS)] + [tile(CONFIGS[15], v, ramps) for v in range(1, VARIANTS)]
-    row1 += [np.full((T, T), -1)] * (16 - len(row1))
-    return np.block([row0, row1])
+    row1 += [empty] * (16 - len(row1))
+    edges = [[empty] + [tile(c, v, ramps) for c in CONFIGS[1:15]] + [empty] for v in (1, 2)]
+    return np.block([row0, row1] + edges)
+
+
+# 출현 지점 깃발(4.1b, 사용자 2026-10-20 — 구멍·깃발·균열 시안 가운데 고름). 게임 아틀라스 1행 6열에만 넣는다(battle_view.gd bake_ground)
+FLAG = """
+................
+.....w..........
+.....WrrrrrR....
+.....WrrrrrrR...
+.....WrrrrrrR...
+.....WrrrrrR....
+.....WRrRRR.....
+.....W.R........
+.....W..........
+.....W..........
+.....W..........
+.....W..........
+.....w..........
+....bwb.........
+...bmmmb........
+................
+"""
+FLAG_COLORS = {"W": "773421", "w": "45230d", "r": "ef3a0c", "R": "9b1a0a", "b": "392a1c", "m": "684c3c"}
+
+
+def flag(pal):
+    hexes = ["%02x%02x%02x" % tuple(c) for c in pal]
+    return np.array([[hexes.index(FLAG_COLORS[ch]) if ch != "." else -1 for ch in row] for row in FLAG.split()])
 
 
 def t1(at):
     """가장자리 일치: 같은 변(방향·꼭짓점 둘)을 가진 타일은 그 변의 픽셀 2줄이 모두 같아야 한다 → 불일치 수"""
     tiles = [(CONFIGS[k], at[:T, k * T:(k + 1) * T]) for k in range(16)]
-    tiles += [(CONFIGS[0 if k < VARIANTS - 1 else 15], at[T:, k * T:(k + 1) * T]) for k in range(2 * (VARIANTS - 1))]
+    tiles += [(CONFIGS[0 if k < VARIANTS - 1 else 15], at[T:2 * T, k * T:(k + 1) * T]) for k in range(2 * (VARIANTS - 1))]
+    tiles += [(CONFIGS[k], at[(1 + v) * T:(2 + v) * T, k * T:(k + 1) * T]) for v in (1, 2) for k in range(1, 15)]
     sides = {"left": (lambda c: (c[0], c[2]), lambda t: t[:, :2]), "right": (lambda c: (c[1], c[3]), lambda t: t[:, -2:]),
              "top": (lambda c: (c[0], c[1]), lambda t: t[:2]), "bottom": (lambda c: (c[2], c[3]), lambda t: t[-2:])}
     bad = 0
@@ -121,3 +160,6 @@ if __name__ == "__main__":
         at = atlas(pname)
         R.rgba(at, pal).save(OUT / f"ground_{pname}.png")
         print(pname, "T1 불일치:", t1(at))
+        if pname == "f24p":
+            at[T:2 * T, 6 * T:7 * T] = flag(pal)
+            R.rgba(at, pal).save(GAME)
