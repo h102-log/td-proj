@@ -1,5 +1,5 @@
 extends Node2D
-# 전투 상태를 칸 단위로 그린다. 바닥은 타일(4.1b), 영웅은 도트 스프라이트(S165), 나머지는 아직 도형이다(그레이박스, 아트는 WBS 4.1).
+# 전투 상태를 칸 단위로 그린다. 바닥은 타일(4.1b), 영웅은 도트 스프라이트(S165), 용병·적은 4방향 스프라이트(4.1d), 나머지는 아직 도형이다(그레이박스, 아트는 WBS 4.1).
 
 const CELL := 16
 const COLORS := {
@@ -7,7 +7,7 @@ const COLORS := {
 	"wall": Color("5a5a5a"), "tower": Color("3060b0"), "magic": Color("7030a0"), "merc": Color("50a0f0"),
 	"barracks": Color("a06a30"),
 	"workshop": Color("308080"), "engineer": Color("f0a030"), "archer": Color("60d0a0"), "cannon": Color("303060"), "archery": Color("40a070"),
-	"house": Color("b08060"), "resident": Color("f0e0b0"), "church": Color("c8c8e8"),
+	"house": Color("b08060"), "church": Color("c8c8e8"),
 }
 const ENEMY_COLORS := {  # 적 종류마다 다른 색(I81)
 	"basic": Color("d04040"), "fast": Color("f08030"), "armored": Color("807070"), "flying": Color("e050c0"), "boss": Color("801010"),
@@ -25,8 +25,9 @@ const ZONES := {  # 장판 색(I101). 엷게 채우고 테두리를 그린다
 	"vesper_r": Color("402060"), "ignis_q": Color("ff6020"), "ignis_e": Color("8040c0"), "ignis_r": Color("ff3000"), "chronos_e": Color("ffd020"), "chronos_r": Color("40e0ff"),
 }
 
-const UNITS := preload("res://art/units/heroes.png")  # 영웅 6명 시트를 한 장에 모은 아틀라스(tools/art/atlas.py)
-static var ART: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/units/heroes.json"))  # 영웅 → 캔버스·발밑·시트 y
+const UNITS := preload("res://art/units/heroes.png")  # 영웅 6명과 용병·적 시트를 한 장에 모은 아틀라스(tools/art/atlas.py)
+static var ART: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/units/heroes.json"))  # 종류 → 캔버스·발밑·시트 y
+const LUNGE := 6.0  # 근접 돌진 거리(px). 림월드 0.35칸을 16px 칸으로 옮겼다(06 §4)
 const PIXEL_FONT := preload("res://art/fonts/Galmuri7.ttf")  # 맵 위 숫자(S167). 맵은 640×360을 정수배로 키우므로 벡터 글자는 뭉개진다
 const GROUND_TILES := preload("res://art/tiles/ground.png")  # 0행 풀↔흙 꼭짓점 16꼴, 1행 풀·흙 변종과 깃발, 2·3행 전환 꼴 변종(tools/art/tiles.py)
 const CASTLE := preload("res://art/castle/walls.png")  # 성곽 칸 조각 16×42: 행 단계 1~3마다 몸체·앞층, 통로 그늘, 잔해. 열 성벽·열린 문·닫힌 문(tools/art/atlas.py castle)
@@ -38,7 +39,7 @@ static var FEET: ImageTexture = _feet()  # 발밑 채운 타원 14×6px. 아군�
 
 var battle
 var controls  # 고른 유닛에 테두리를 그린다
-var _seen := {}  # 영웅 → [지난 위치, 방향]
+var _seen := {}  # 영웅·용병·적 → [지난 위치, 방향]
 var ground: ImageTexture  # 바닥을 한 장으로 구운 것. 마을·출현 지점은 도전 내내 같아서(I91) 처음 한 번만 굽는다
 
 func _draw() -> void:
@@ -69,8 +70,13 @@ func _draw() -> void:
 		draw_arc(_center(z.pos), CELL * z.radius, 0.0, TAU, 48, Color(col, 0.8), 1.0)
 	for p in battle.forecast:  # 기본 적의 예상 경로(S142): 엷은 빨간 선, 유닛 아래에. 너비 1이면 1배 줌에서 칸 중심을 지나는 가로·세로 구간이 안 그려진다
 		draw_polyline(PackedVector2Array(p.map(func(c): return _center(Vector2(c)))), Color(COLORS.spawn, 0.5), 1.5)
-	for p in residents(battle, Time.get_ticks_msec() / 1000.0):
-		draw_circle(_center(p), CELL * 0.15, COLORS.resident)
+	var now := Time.get_ticks_msec() / 1000.0
+	var was := residents(battle, now - 0.05)
+	var ps := residents(battle, now)
+	for k in ps.size():  # 주민(4.1d): 움직이는 쪽을 보고 걷기 2위상. 자리가 연출이라(I46) 방향도 0.05초 전 자리와의 차로 구한다
+		var v: Vector2 = ps[k] - was[k]
+		var moving := v.length_squared() > 1e-8
+		_frame(ART.resident, "walk" if moving else "idle", _four(v), int(now * 8.0) % 2 if moving else 0, _center(ps[k]))
 	# 타워 사격 선: 쏜 뒤 0.1초 동안. 대포는 맞은 곳에 범위 피해 원도 그린다(S90)
 	for s in battle.structures.values():
 		if s.target and s.cooldown > s.fire_gap - 0.1:
@@ -203,11 +209,13 @@ func _bodies() -> void:
 			_body(all[i], i, next, GHOST)
 	_seen = next
 
-# 유닛·적 몸통 하나. 성벽 위 유닛은 발밑 표시도 여기서 올려 그린다. 영웅은 시트에서, 나머지는 원으로
+# 유닛·적 몸통 하나. 성벽 위 유닛은 발밑 표시도 여기서 올려 그린다. 영웅은 8방향 시트, 그림이 있는 용병·적은 4방향 시트, 나머지는 원으로
 func _body(x, i: int, next: Dictionary, tint := Color.WHITE) -> void:
 	if x.on_wall:
 		_feet_mark(x, i)
-	if i >= battle.units.size():
+	if ART.has(x.kind) and not x.get("is_hero"):
+		_four_sprite(x, next, tint)
+	elif i >= battle.units.size():
 		draw_circle(_spot(x), CELL * x.radius, ENEMY_COLORS.get(x.kind, ENEMY_COLORS.basic) * tint)
 	elif x.is_hero and ART.has(x.kind):
 		_sprite(x, next, tint)
@@ -226,7 +234,7 @@ func _behind(x) -> bool:
 
 # 발밑 팀 색(S166). i는 battle.units + battle.enemies 안의 번호다. 비행 적은 그림자 자리에 그린다
 func _feet_mark(x, i: int) -> void:
-	var foot := (_spot(x) if x.on_wall else _center(x.pos)) + (Vector2(0, CELL * 0.4) if x.get("flying") == true else Vector2.ZERO)
+	var foot := (_spot(x) if x.on_wall else _center(x.pos)) + (Vector2(0, CELL * 0.4) if x.get("flying") == true else Vector2.ZERO) + _lunge(x)
 	draw_texture_rect_region(FEET, Rect2((foot + Vector2(-7, -2)).round(), Vector2(14, 6)), Rect2(14 * int(i >= battle.units.size()), 0, 14, 6))
 
 # 성곽 칸 조각 하나(front 0 몸체, 1 앞층). 조각 맨 아랫줄이 바닥선 바로 아래 줄이다. 단계(S86)마다 그림이 다르고(사용자 2026-10-20),
@@ -285,6 +293,48 @@ func _sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 	var size := c * (2 if anim == "attack" else 1)  # 공격은 2배 캔버스(tools/art/hero.py)
 	var at := _spot(x) - Vector2(a.anchor[0], a.anchor[1]) - Vector2.ONE * (size - c) / 2.0
 	draw_texture_rect_region(UNITS, Rect2(at.round(), Vector2(size, size)), Rect2(col * size, a[anim] + dir * size, size, size), tint)
+
+# 용병·적 하나(C 절충안, 4.1d. 4.1a M1·M6에서 C만 통과했다): 4방향 정지, 움직이면 걷기 2위상(초당 8), 친 뒤 0.08~0.22초는 공격 키 포즈.
+# 근접은 그동안 대상 쪽으로 돌진한다(_lunge). 방향 고르기는 _sprite와 같다(tools/bench/view_draw.gd C)
+func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
+	var id: int = x.get_instance_id()
+	var seen = _seen.get(id)
+	var v: Vector2 = x.pos - seen[0] if seen else Vector2.ZERO
+	var dir: int = seen[1] if seen else 0
+	var moving := v.length_squared() > 1e-8
+	if moving:
+		dir = _four(v)
+	elif x.target:
+		dir = _four(_pos_of(x.target) - x.pos)
+	next[id] = [x.pos, dir]
+	var a: float = x.attack_gap - x.cooldown  # 친 뒤 지난 시간(초)
+	var anim := "idle"
+	var col := 0
+	if x.target and a >= 0.08 and a < 0.22:
+		anim = "attack"
+	elif moving:
+		anim = "walk"
+		col = int(Time.get_ticks_msec() / 125.0) % 2
+	_frame(ART[x.kind], anim, dir, col, _spot(x) + _lunge(x), tint)
+
+# 4방향 시트(tools/art/atlas.py FOUR)의 한 칸을 발밑 p에 그린다. 행은 S·E·N·W, 공격·쓰러짐은 2배 캔버스
+func _frame(a: Dictionary, anim: String, dir: int, col: int, p: Vector2, tint := Color.WHITE) -> void:
+	var c := int(a.c)
+	var size := c * (2 if anim == "attack" or anim == "fall" else 1)
+	var at := p - Vector2(a.anchor[0], a.anchor[1]) - Vector2.ONE * (size - c) / 2.0
+	draw_texture_rect_region(UNITS, Rect2(at.round(), Vector2(size, size)), Rect2(col * size, a[anim] + dir * size, size, size), tint)
+
+# 화면 방향 v → 4방향 시트 행(S·E·N·W)
+func _four(v: Vector2) -> int:
+	return posmod(roundi((90.0 - rad_to_deg(v.angle())) / 90.0), 4)
+
+# 근접 용병·적의 돌진(px): 친 뒤 0.08초에 대상 쪽으로 LUNGE만큼 나가고 0.32초에 걸쳐 돌아온다. 발밑 표시도 함께 옮긴다.
+# 영웅(8방향 공격 프레임, S165)과 원거리(사거리 2칸 초과)는 돌진하지 않는다
+func _lunge(x) -> Vector2:
+	var a: float = x.attack_gap - x.cooldown
+	if x.get("is_hero") or (x.get("range") != null and x.range > 2.0) or not x.target or a >= 0.4:
+		return Vector2.ZERO
+	return (_pos_of(x.target) - x.pos).normalized() * LUNGE * (a / 0.08 if a < 0.08 else 1.0 - (a - 0.08) / 0.32)
 
 static func _feet() -> ImageTexture:
 	var im := Image.create_empty(28, 6, false, Image.FORMAT_RGBA8)

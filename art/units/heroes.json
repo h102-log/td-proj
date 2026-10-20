@@ -64,5 +64,104 @@
   "walk": 4968,
   "attack": 5176,
   "fall": 5592
+ },
+ "soldier": {
+  "c": 30,
+  "anchor": [
+   15.0,
+   23
+  ],
+  "idle": 5644,
+  "walk": 5764,
+  "attack": 5884,
+  "fall": 6124
+ },
+ "archer": {
+  "c": 28,
+  "anchor": [
+   14.0,
+   19
+  ],
+  "idle": 6184,
+  "walk": 6296,
+  "attack": 6408,
+  "fall": 6632
+ },
+ "engineer": {
+  "c": 24,
+  "anchor": [
+   12.0,
+   18
+  ],
+  "idle": 6688,
+  "walk": 6784,
+  "attack": 6880,
+  "fall": 7072
+ },
+ "basic": {
+  "c": 22,
+  "anchor": [
+   11.0,
+   15
+  ],
+  "idle": 7120,
+  "walk": 7208,
+  "attack": 7296,
+  "fall": 7472
+ },
+ "fast": {
+  "c": 20,
+  "anchor": [
+   10.0,
+   14
+  ],
+  "idle": 7516,
+  "walk": 7596,
+  "attack": 7676,
+  "fall": 7836
+ },
+ "armored": {
+  "c": 30,
+  "anchor": [
+   15.0,
+   22
+  ],
+  "idle": 7876,
+  "walk": 7996,
+  "attack": 8116,
+  "fall": 8356
+ },
+ "flying": {
+  "c": 26,
+  "anchor": [
+   13.0,
+   19
+  ],
+  "idle": 8416,
+  "walk": 8520,
+  "attack": 8624,
+  "fall": 8832
+ },
+ "boss": {
+  "c": 44,
+  "anchor": [
+   22.0,
+   31
+  ],
+  "idle": 8884,
+  "walk": 9060,
+  "attack": 9236,
+  "fall": 9588
+ },
+ "resident": {
+  "c": 20,
+  "anchor": [
+   10.0,
+   14
+  ],
+  "idle": 9676,
+  "walk": 9756,
+  "attack": 9836,
+  "fall": 9996
  }
 }
