@@ -1,7 +1,7 @@
 # 검수용 미리보기: 확대(최근접), 검정 실루엣, 들판 배경 위 실배율. Claude에게는 200px 미만 원본을 보여 주지 않는다(08 §3 운영 규칙)
 from PIL import Image, ImageDraw
 
-FIELD = (74, 107, 58, 255)  # battle_view.gd COLORS.field
+FIELD = (74, 107, 58, 255)  # 4.1b 전 battle_view.gd의 들판 단색(지금 게임 바닥은 타일)
 
 
 def up(img, k):
