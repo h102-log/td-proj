@@ -1,0 +1,1519 @@
+# 웹·GitHub 조사 근거 (Workflow A, 주장 340개, 기각 1개 제외)
+
+상태: verified = 검증자가 독립 근거로 확인 / partly = 큰 틀은 맞고 일부가 틀리거나 판마다 다름(검증 메모 참고) / likely = 검증자는 확인 못 했지만 조사원이 서로 다른 도메인 2곳 이상으로 뒷받침 / unverified = 한 곳뿐이고 검증도 못 함.
+주의: 이 턴의 WebSearch 한도(200회)가 중간에 소진되어, 뒤쪽 조사(원칙 주제·PvZ 등)는 GitHub 1차 자료(디자인 시스템 문서, 오픈소스 게임 코드, 커뮤니티 디컴파일·모드 코드)로 근거를 모았다. The Last Spell·Into the Breach 조사는 근거를 못 모아 비었다.
+
+## 화면 배치 (layout) — 15개
+
+- [blizzard-16·verified] (StarCraft II) StarCraft II의 아래 HUD는 왼쪽 아래에 미니맵, 오른쪽 아래에 명령 카드를 두는 배치다.
+  - 맥락: Liquipedia 단축키 글은 미니맵을 모니터 왼쪽 아래 사분면, 명령 카드를 오른쪽 아래에 있다고 쓴다. 블리자드 포럼 답변도 명령 카드를 '화면 오른쪽 아래 구석'이라고 부른다. 가운데 선택 정보(와이어프레임·선택 패널)의 자리는 'Ctrl+클릭으로 선택 패널에서 같은 종류 고르기'라는 언급만 있고 직접 확인하지 못했다. 우리 게임: (4) 건설·용병·전투 시작·미션 문구가 위쪽 한 흐름에 섞인 문제에 쓴다. 미니맵, 선택 정보, 명령 격자로 나눠 아래에 둔다.
+  - 검증: SC2 core.sc2mod의 GameUI.SC2Layout에서 MinimapPanel은 왼쪽 아래, CommandPanel은 오른쪽 아래(Bottom/Right Max)에 붙는다. InfoPanel(선택 정보)은 아래 가운데(Mid -395~+185)다. 조사원이 확인하지 못한 가운데 선택 정보 자리도 데이터로 확인했다.
+  - 출처: https://liquipedia.net/starcraft2/Hotkeys, https://eu.forums.blizzard.com/en/sc2/t/patrol-shortcut-key-missing-whilst-in-grid-controls/1095
+- [blizzard-17·verified] (StarCraft II) 자유의 날개 2.0.4 패치에서 '군대 선택' 버튼이 새로 생겼고, 놀고 있는 일꾼 버튼·모든 차원 관문 선택 버튼과 함께 미니맵 바로 위에 모였다.
+  - 맥락: 2013년 2월, 군단의 심장 출시 직전 패치다. 우리 게임: 용병 전체 선택이나 놀고 있는 마을 일꾼 같은 '한 번에 고르기' 버튼에 쓴다. 명령 격자에 섞지 말고 미니맵 위 작은 버튼 줄로 모은다.
+  - 검증: SC2 GameStrings의 '새 설정' 도움말에 'A Select All Army button has been added above the minimap'이 Simple Command Card와 함께 나온다. 레이아웃에서도 IdleButton이 미니맵 바로 위에 있고, 그 오른쪽에 ArmyButton, 다시 그 오른쪽에 PylonButton(WarpButtonIcon, 차원 관문 버튼)이 나란히 있다. PylonButton은 자유의 날개 캠페인 스크립트에도 …
+  - 출처: https://news.blizzard.com/en-us/article/8724162/starcraft-ii-wings-of-liberty-patch-2-0-4, https://liquipedia.net/starcraft2/Patch_2.0.4
+- [pixel_minimal-01·verified] (Dome Keeper) Dome Keeper의 HUD는 화면 왼쪽 아래 모서리를 원점으로 한 6px 격자에 HudElement 모듈을 자동 배치한다. 각 요소의 자리는 크기(격자 칸 수), layoutPriority(배치 순서), layoutWeights(가로·세로로 멀어질 때의 비용)로 정해진다.
+  - 맥락: PC(Steam) 판, 개발사 커스텀 Godot 4.3 포크 빌드의 디컴파일 코드와 공식 모딩 위키 기준이다. 가중치가 모두 같으면 요소들이 모서리에 삼각형으로 모인다고 위키가 설명한다. 우리 문제 (2)·(4)에 쓴다: 단계마다 버튼 줄 수가 바뀌어 위치가 밀리는 흐름 레이아웃을 '고정 격자 슬롯 + 우선순위 배치'로 바꾸는 근거다.
+  - 검증: Hud.gd 코드를 직접 확인했다. 칸 좌표는 (x,-y)이고 원점은 parent.size.y, 곧 왼쪽 아래다. TileSet tile_size는 6×6이다. place()의 비용식은 0.5(rx+ry)+sqrt(rx·ry)이고 rx·ry에 layoutWeights가 곱해진다. rebuildHud는 layoutPriority 오름차순으로 배치한다. 공식 위키 HudElement-class에 6px 격자와 '가중치가 같으면 삼각형' 설명이 있다. 옛 Godot …
+  - 출처: https://github.com/DomeKeeperMods/Docs/wiki/HudElement-class, https://github.com/Kupie/DK_DECOMP/blob/main/content/hud/Hud.gd
+- [pixel_minimal-02·verified] (Dome Keeper) 웨이브 미터(layoutWeights (0,1), 우선순위 0)와 돔 체력 막대(layoutWeights (0,1), 우선순위 1)는 화면 아래 가장자리를 따라 가로로 놓인다. 자원 카운터(layoutWeights (5,0), 우선순위 2)는 왼쪽 가장자리를 따라 위로 쌓인다.
+  - 맥락: 디컴파일된 각 .tscn의 값이다. HUD 초기화 때 기본으로 붙는 요소는 웨이브 미터뿐이다(Hud.gd init). 모든 정보를 한 모서리에 L자로 몰아 화면 중앙의 전장을 비워 둔다. 우리 문제 (7)에 쓴다: 전투 중 HUD가 화면 위 40%를 덮는 대신 모서리 한 곳에 모으는 배치의 선례다.
+  - 검증: WaveMeter.tscn은 layoutWeights (0,1)이고 우선순위는 따로 지정하지 않아 HudElement 기본값 0이다. HealthMeter.tscn은 (0,1)/1, Inventory.tscn은 (5,0)/2다. Hud.gd init은 WaveMeter만 addHudElement한다. 옛 판 디컴파일도 값이 같다. 비용식에 따르면 (0,1)은 y=0인 아래 줄, (5,0)은 x=0인 왼쪽 열로 간다.
+  - 출처: https://github.com/Kupie/DK_DECOMP/blob/main/content/hud/wavemeter/WaveMeter.tscn, https://github.com/Kupie/DK_DECOMP/blob/main/content/hud/healthmeter/HealthMeter.tscn
+- [pixel_minimal-24·verified] (Loop Hero) Loop Hero의 게임 화면(GameMaker 룸)은 640×360 픽셀이다. 공개 스크린숏은 이를 정수 3배로 키운 1920×1080이다.
+  - 맥락: QoL 모드 LoopHero-Advanced의 코드 상수(RoomWidth = 640, RoomHeight = 360)와, PC판 1.105·1.154 스크린숏(1920×1080)에 근거한다. 우리 기준 해상도 640×360과 똑같으므로, Loop Hero의 패널·글자 크기를 그대로 도트 단위로 비교할 수 있다.
+  - 검증: PinFilter.cpp에 RoomWidth=640, RoomHeight=360이 있다. their_crt.png는 1920×1080이고 오른쪽 아래에 'LOOP HERO 1.105'가 보인다(정확히 3배). 단 LoopHero-Explorer의 demo.png는 창 테두리를 포함한 1922×1112(제목줄 'LOOP HERO 1.154 modded')라 파일 자체는 1920×1080이 아니다.
+  - 출처: https://github.com/sam-k0/LoopHero-Advanced/blob/master/Features/PinFilter/PinFilter.cpp, https://github.com/GarrettGunnell/CRT-Shader/blob/main/their_crt.png
+- [pixel_minimal-25·verified] (Loop Hero) 원정 중 장비 격자는 화면 오른쪽 위에 있고, 640×360 기준 (608, 27)이 비어 있는 오른쪽 위 칸이다. 모드는 그 칸에 25px 정사각 버튼(s_expsquarebutton, 보통·호버·눌림 3프레임)을 넣고 그 안에 13px 아이콘을 그린다.
+  - 맥락: 모드 README: 'During an expedition, a filter button sits in the free top right cell of the equipment grid.' 화면 오른쪽 끝(x 640)에서 32px 안쪽에 장비 칸이 붙어 있다는 뜻이다. 우리 문제 (1)에 쓴다: 640×360에서 25px 정사각 버튼과 13px 아이콘이라는 실측 크기 기준이다.
+  - 검증: PinFilter.cpp를 확인했다. g_FreeCellX=608, g_FreeCellY=27이다. ButtonSize 25이고 주석에 's_expsquarebutton, origin -1,0, frames normal/hover/pressed'라고 쓰여 있다. IconSize는 13이다. README에도 'free top right cell of the equipment grid'라고 나온다. 좌표는 모드가 하드코딩한 값이고 게임에서 읽어 온 값이 아니다.
+  - 출처: https://github.com/sam-k0/LoopHero-Advanced/blob/master/Features/PinFilter/PinFilter.cpp, https://github.com/sam-k0/LoopHero-Advanced
+- [pvz_frostpunk-02·verified] (Plants vs. Zombies (PC GOTY, 디컴파일 소스)) 씨앗 카드의 x좌표는 레벨의 칸 수만으로 정해지는 고정 공식(7칸 이하면 85+59×칸 번호, 8칸 81+54×, 9칸 80+52×, 10칸 79+51×)이어서, 해가 모자라거나 재충전 중이어도 카드가 사라지거나 자리가 밀리지 않는다.
+  - 맥락: Board.cpp GetSeedPacketPositionX, GetSeedBankExtraWidth(7칸 이상이면 바 폭을 60/76/112/153px 늘림). 칸이 늘면 간격을 좁혀 같은 바 안에 넣는다. 우리 게임 적용: (2) 준비 3줄→전투 4줄로 버튼 위치가 밀리는 문제. 단계가 바뀌어도 칸 자리를 고정하고 못 쓰는 칸은 그 자리에서 흐리게만 하는 근거.
+  - 검증: Patoke 코드와 따로 만든 0.9.9 매칭 디컴파일(bluisblu/pvz) 모두 공식이 같다. 8칸 미만이면 59i+85, 8칸 54i+81, 9칸 52i+80, 그 이상 51i+79이고, GetSeedBankExtraWidth는 7/8/9/10칸에서 60/76/112/153이다. 위치는 칸 번호와 칸 수로만 정해지고 해·재충전 상태는 계산에 들어가지 않는다. 예외로 슬롯머신(59i+247)과 컨베이어(50i+91)는 공식이 다르다. 모바일(윈도폰)은 카드…
+  - 출처: https://github.com/Patoke/re-plants-vs-zombies/blob/main/Lawn/Board.cpp
+- [pvz_frostpunk-15·verified] (Plants vs. Zombies (PC GOTY, 디컴파일 소스)) 전투 화면 위쪽 HUD는 왼쪽부터 씨앗 바, 바로 오른쪽 삽 칸(x=456+늘어난 바 폭), 오른쪽 끝 메뉴 돌 버튼(x=681, y=-10, 117×46) 순서로 한 줄에 놓이고, 그 아래 화면은 잔디밭이 차지한다.
+  - 맥락: Board.cpp GetShovelButtonRect: Rect(GetSeedBankExtraWidth() + 456, 0, IMAGE_SHOVELBANK 폭, IMAGE_SEEDBANK 높이); 생성자 mMenuButton->Resize(681, -10, 117, 46). 위쪽 HUD는 씨앗 바 그림 높이 한 줄뿐이다. 우리 게임 적용: (7) HUD가 화면 위 약 40%를 덮는 문제. 위쪽 HUD를 한 줄 높이로 줄이고 메뉴는 오른쪽 끝에 고정하는 근거.
+  - 검증: GetShovelButtonRect(456+여분 폭)와 일반 레벨 메뉴 버튼 Resize(681,-10,117,46)이 맞다. SeedBank.png가 446×87이고 바가 x=10에 놓이므로 10+446=456, 삽 칸이 바로 오른쪽에 붙는 것이 수치로도 맞는다. 위쪽 HUD 높이는 87px로 600의 약 15%다. 예외로 젠 가든/체험판은 메뉴가 (628,-10,163,46)이고, 슬롯머신·다람쥐 레벨은 삽이 x=600이다. 모바일(윈도폰)은 카드를 왼쪽 세…
+  - 출처: https://github.com/Patoke/re-plants-vs-zombies/blob/main/Lawn/Board.cpp
+- [blizzard-30·partly] (StarCraft II) StarCraft II의 아래 콘솔 그림은 폭이 고정된 조각 3개가 16:9 화면에서 맞물리도록 되어 있어, 더 넓은 화면에서는 조각 사이가 어두운 띠로 빈다.
+  - 맥락: 제3자 울트라와이드 모드 저장소의 분석이며, 콘솔을 16:9 영역 가운데로 몰았더니 아래 어두운 띠가 전체 폭으로 늘어나 더 나빠 보였다고 한다. 공식 HUD 크기 옵션은 찾지 못했다. 다른 캠페인용 모드는 아래 HUD를 50~100%까지 5% 단위로 줄인다(https://github.com/jrgray933/StarCraft-2-Campaign-Ultrawide/releases/tag/v1.8.0). 우리 게임: 640×360 기준 화면에서 아래 HUD를 미니맵·정보·명령 도트 조각 3개로 짜고, 정수배 확대 뒤 남는 가장자리를 …
+  - 검증: 인용된 저장소 README를 직접 읽었다. 콘솔은 미니맵·정보·명령 3D 모델 조각 3개이고, 화면 높이에 맞춰 크기가 정해진다. 각각 왼쪽 끝·가운데·오른쪽 끝에 붙고, 날개가 16:9에서만 맞물려 더 넓으면 틈이 생긴다. 하지만 같은 README가 SC2는 원래 화면을 16:9로 제한해 더 넓은 모니터에서는 양옆이 검은 띠가 된다고 적었다. 틈은 그 제한을 모드로 풀었을 때만 생긴다. '가운데로 몰았더니 더 나빴다'는 내용은 README에서 찾지 못했다.
+  - 출처: https://github.com/PKDT-93/sc2-ultrawide, https://github.com/jrgray933/StarCraft-2-Campaign-Ultrawide
+- [td_bars-bt-01·partly] (Bloons TD 6) BTD6의 타워 구매 상점은 게임 코드에서 «InGame.RightMenu.ShopMenu», 곧 오른쪽 메뉴에 속하며, 배경으로 «TowersSidePanelBg» 스프라이트를 쓴다.
+  - 맥락: BTD Mod Helper(모딩 API)의 네임스페이스와 스프라이트 목록에서 확인했다. PC·모바일 공통 코드다. 우리 문제 (4): 건설·구매 버튼을 화면 한쪽 세로 패널로 모아 맵과 분리한 대표 사례다.
+  - 검증: ShopMenuExt.cs가 Il2CppAssets.Scripts.Unity.UI_New.InGame.RightMenu 네임스페이스의 ShopMenu를 쓰므로 RightMenu 소속은 맞다. sprite-references에 IngameUi[TowersSidePanelBg_01~05]도 있다. 그러나 스프라이트 목록은 어느 UI가 그 스프라이트를 쓰는지 알려 주지 않는다. 상점 배경이라는 말은 이름에서 나온 추정이다.
+  - 출처: https://github.com/gurrenm3/BTD-Mod-Helper/blob/master/BloonsTD6%20Mod%20Helper/Extensions/MenuExtensions/ShopMenuExt.cs, https://github.com/gurrenm3/BTD-Mod-Helper/blob/master/Website/src/data/sprite-references.json#L2007
+- [tab-01·likely] (They Are Billions) They Are Billions의 HUD는 화면 아래쪽 띠에 모여 있고, 그 왼쪽 끝에 미니맵이, 바로 옆에 게임 안 날짜·시각 시계와 일시정지 버튼이 붙어 있다.
+  - 맥락: PC판 기준이다. 개발사가 2017년 얼리 액세스 때 쓴 GUI 소개 글과 초보 가이드가 서로 맞는다. 우리 게임 (7)번에 쓸 근거: 위쪽 40%를 덮는 HUD를 아래쪽 띠로 내리고, 미니맵·시계(웨이브 타이머)·일시정지를 한 덩어리로 묶을 수 있다.
+  - 검증: 웹 검색 한도(턴당 200회)가 다른 에이전트 몫까지 다 써서 WebSearch는 한 번도 실행되지 않았다. 이 주장은 GitHub 1차 자료로만 일부 확인했다. ryuyandev AHK 스크립트의 좌표를 보면 1080p에서 명령 격자는 y896~1066, 선택 대상 확인 지점은 y975다. 따라서 HUD가 화면 아래쪽 띠에 있다는 것까지만 간접으로 맞는다. 미니맵이 왼쪽 끝에 있다는 것, 그 옆의 날짜·시각 시계와 일시정지 버튼은 독립 근거를 찾지 못했다.
+  - 출처: https://gamertweak.com/how-to-play-they-are-billions/, https://www.moddb.com/news/revealing-the-they-are-billions-gui
+- [castle-09·likely] (Stronghold Crusader (원작)) 원작 Stronghold 계열은 800×600과 1024×768 두 해상도만 쓰도록 만들어져서, 와이드 모니터에서는 화면이 늘어나거나 양옆에 검은 띠가 생긴다는 플레이어 보고가 있다.
+  - 맥락: 원작 기준. HeavenGames와 Stronghold Nation 포럼에 올라온 보고다. GPU 배율로 4:3을 지키거나, 바탕화면과 같은 높이의 창으로 띄우는 우회법이 돈다. 고정 해상도에 맞춰 짠 큰 패널은 화면비가 바뀔 때 문제가 된다. 우리 640×360 정수배 확대에서 HUD를 화면 가장자리에 붙이는(anchor) 방식으로 짜는 근거.
+  - 검증: 검색 예산 소진으로 확인하지 못했다. GitHub의 Sourcehold README에도 해상도 정보가 없었다. 참고: 원작 패치에서 더 높은 해상도(예: 1280×1024)가 추가됐을 수 있어 '두 해상도만'은 과장일 수 있다. 다만 이것도 확인하지 못했다.
+  - 출처: https://stronghold.heavengames.com/cgi-bin/forum/display.cgi?action=st&fn=4&tn=3561, https://www.stronghold-nation.com/forums/topic/862-stretch-game-screen-remove-the-two-vertical-black-bars/
+- [aoe_northgard-01·unverified] (Age of Empires IV) 팬 위키에 따르면 AoE IV는 화면 아래 도구 막대의 왼쪽 부분에 식량·나무·금·돌 비축량과 인구를 표시하고, 같은 자리에 자원마다 일하는 일꾼 수도 함께 보여 준다.
+  - 맥락: 2021 PC판을 설명한 팬 위키 내용이라 지금의 Anniversary Edition과 다를 수 있다. 같은 문서는 AoE IV UI가 이전 작보다 '조금 바뀌었다'고 적었다. 우리 게임 (4)(5): 자원·인구·거점 체력 같은 상태 숫자를 위쪽 한 흐름에 섞지 말고 고정 막대 한 구석에 묶는 근거다.
+  - 검증: WebSearch가 실행되지 않았다. 이번 턴의 검색 한도 200회가 다른 에이전트들 몫까지 합쳐 이미 다 찼다(3회 시도, 모두 거부). GitHub 자료로는 HUD 왼쪽 아래 자원·인구·자원별 일꾼 수 배치를 확인할 수 없었다.
+  - 출처: https://ageofempires.fandom.com/wiki/User_interface
+- [aoe_northgard-16·unverified] (Northgard) 초보자 안내서에 따르면 Northgard는 화면 오른쪽 위 한 줄에 행복도·식량·나무·크로운·돌·철·인구(현재/한도)·군사 수·지식(lore)을 모아 보여 주고, 왼쪽 위에는 씨족마다 승리 조건 진행도를 보여 준다.
+  - 맥락: 예전 PC판을 설명한 안내서라 지금의 Definitive Edition 배치와 다를 수 있다. 위치를 확인해 준 출처는 이 안내서 하나다. 우리 게임 (4)(5)(7): 자원·마을 레벨·거점 체력은 화면 위 얇은 한 줄로만 두고 명령 버튼은 다른 곳으로 옮기는 '최소 HUD'의 근거다.
+  - 검증: 검색 한도가 다 차서 웹 검색을 못 했다. Northgard 게임 텍스트(v4.0.11, 2026-01)에는 '승리 조건' 단축키 V, '지식(Lore)' 단축키 L 같은 항목만 있다. 자원 줄이 오른쪽 위에 있고 승리 진행도가 왼쪽 위에 있다는 위치는 확인할 수 없었다.
+  - 출처: https://cuboldgaming.com/blogs/gaming/how-to-play-northgard-beginners-guide
+- [castle-11·unverified] (Stronghold Crusader Extreme HD) Steam판 Crusader Extreme HD에서는 화면 둘레를 크고 보기 싫은 중세풍 질감 테두리가 둘러싼다는 플레이어 불만이 있다.
+  - 맥락: Crusader Extreme HD 기준. 이 Steam 토론에는 '엔진이 오래돼서 와이드 지원이 없다'는 소문 수준의 말도 있다. 검색 요약 문장이라 원문은 열어 확인하지 못했다. 장식 패널이 플레이 화면을 빼앗는다는 지적이다. 우리 문제 (7) 'HUD가 화면 위 40%를 덮음'에서 장식 테두리를 빼고 얇은 띠로 줄이는 근거.
+  - 검증: 검색 예산 소진으로 확인하지 못했다. 조사원도 원문을 열지 못한 검색 요약이라고 적었다. 앱 16700이 정말 Crusader Extreme HD인지도 확인하지 못했다.
+  - 출처: https://steamcommunity.com/app/16700/discussions/0/1291816880499250286/
+
+## 자원·상태 표시 (resources_status) — 19개
+
+- [ironhide-08·verified] (Kingdom Rush 시리즈 (Vengeance·Alliance 캡션 기준)) Kingdom Rush 시리즈에서 생명·골드·웨이브 수는 화면 위쪽 구석에 한 덩어리로 나란히 표시되고, Alliance에서는 하트가 생명, 해골이 현재 웨이브와 버텨야 할 전체 웨이브 수를 나타낸다.
+  - 맥락: 일반 캠페인은 생명 20, Blitz 같은 모드는 3으로 시작한다. 왼쪽 위인지 오른쪽 위인지는 출처가 밝히지 않았다. 우리 문제 (5)에 쓸 수 있다: 거점 체력이 HUD에 없으니, 거점 체력·자원·라운드/웨이브를 위쪽 구석의 작은 아이콘+숫자 한 줄로 묶고 나머지 위쪽 HUD를 걷어 낼 근거.
+  - 검증: KR1~3 Steam 코드의 HudCountersView('top_left' 이미지, pos 0,-22, anchor 0,0)에 생명·골드·웨이브(현재/전체, MENU_HUD_WAVES) 라벨이 한 덩어리로 왼쪽 위에 있다. 일시정지 버튼은 오른쪽 위다. 시작 생명은 캠페인 20, Heroic·Iron 1이다. Alliance의 하트·해골 아이콘과 Blitz 3은 확인하지 못했다.
+  - 출처: https://kingdomrushtd.fandom.com/wiki/Lives, https://www.levelwinner.com/kingdom-rush-5-alliance-beginners-guide/
+- [blizzard-13·verified] (Warcraft III (Classic/Reforged)) WC3는 화면 오른쪽 위 줄에 금·나무와 나란히 인구를 '사용 중/최대'로 보여 주고, 인구 구간에 따라 유지비 글자(No/Low/High Upkeep)가 바뀐다.
+  - 맥락: 원작 Battle.net 안내 기준으로 50 이하는 수입 100%, 51~80은 70%, 81 이상은 40%이고, 최대 인구는 100이다. GameSpot 공략은 40에서 끊는 다른 판 수치를 적고 있다. Reforged에서도 자리가 같은지는 확인하지 못했다. 우리 게임: (5) 거점 체력이 HUD에 없는 문제에 쓴다. 자원·인구·거점 체력을 오른쪽 위 고정 한 줄에 두고, 구간이 바뀌면 글자 색을 바꾼다.
+  - 검증: ResourceBarFrame에 Gold/Lumber/Supply/Upkeep 글자가 있다(Tasyen). 인구 툴팁은 '사용 중인 식량 / 감당할 수 있는 총량'이다. 유지비 글자는 No(녹)/Low(노)/High(적) Upkeep으로 색이 정해져 있다(GlobalStrings). 기본값은 UpkeepUsage 50,80과 UpkeepGoldTax 0/0.3/0.6이라 수입은 100/70/40%다(Warsmash 기본값). 판 차이가 있다. 최대 인구는 TFT…
+  - 출처: https://classic.battle.net/war3/basics/basics.shtml, https://liquipedia.net/warcraft/Food
+- [td_bars-rt-01·verified] (Rogue Tower) 전투 화면 위 가운데에는 칸 세 개가 붙어 있는데, 왼쪽 칸은 «Tower: 20/20»(본진 체력, 칸으로 나뉜 초록 막대), 가운데 칸은 «Level / Score / Gold», 오른쪽 칸은 «Mana: 15/200 (+3/s)»(칸으로 나뉜 막대)를 보여 준다.
+  - 맥락: Steam 1.3.2.0에 러시아어 번역 모드를 깐 스크린샷이라 글자는 러시아어다(Башня/Уровень/Счёт/Золото/Мана). 영어 원문 라벨은 게임에서 뽑은 문자열 목록에서 확인했다. 우리 문제 (5): 거점 체력을 위 가운데 맨 앞 칸에 막대로 고정하는 직접 사례다.
+  - 검증: 스크린샷을 직접 확인함. 위 가운데 세 칸이 'Башня: 20/20'(칸으로 나뉜 초록 막대), 'Уровень: 1 / Счёт: 1 / Золото: 1937', 'Мана: 15/200 (+3/с)'(칸으로 나뉜 막대)이다. 영문 원문 'Tower: '·'Score: '·'Gold: '·'Mana: '가 translations L836-839에 있다. 덧붙임: 스크린샷 구석 표기는 모드 'RU v1.0'이다. README의 1.3은 모드 버전이고, 게임 …
+  - 출처: https://github.com/whatdidyousayme/Rogue-Tower-Russian/blob/main/screenshots/gameplay_towers.png, https://github.com/whatdidyousayme/Rogue-Tower-Russian/blob/main/translations.json#L836-L839
+- [td_bars-bt-02·verified] (Bloons TD 6) 생명과 돈은 화면 왼쪽 위 맨 윗줄에 나란히 표시되고(2560×1440 기준 생명 x 80~270, 돈 x 440~670, y 4~96), 라운드 숫자는 위쪽 오른편(x 1912~2080, 화면 너비의 약 75~81%)에 표시된다.
+  - 맥락: 자동 플레이 봇 세 곳(BloonsPlus 2026, BTD6bot, btd6farmer)이 OCR로 읽는 좌표가 서로 맞는다. btd6farmer의 기본 라운드 위치는 1080p에서 (1360,30)이다. 생명·돈에는 전용 아이콘(Ui[LivesIcon], Ui[CoinIcon])이 있다. 우리 문제 (5)·(7): 핵심 수치를 위쪽 가장자리 한 줄(높이 약 7%)로 줄이면 화면 위 40%를 덮는 문제를 풀 수 있다.
+  - 검증: BloonsPlus image_areas(2560x1440)의 값은 lives 80-270, money 440-670(y 4-96), round 1912-2080(74.7~81.3%)이다. BTD6bot current_round는 x 0.718~0.812, y 0.027~0.069이고, btd6farmer 기본값은 0.708, 0.028(1080p에서 1360,30)이다. 세 봇이 대체로 맞는다(라운드 시작 x는 71~75%로 약간 다르다). Ui[LivesIc…
+  - 출처: https://github.com/Klaasawastaken/BloonsPlus/blob/main/autobtd6/image_areas.json#L1-L30, https://github.com/j-miet/BTD6bot/blob/main/btd6bot/bot/locations.py#L125
+- [td_bars-bt-03·verified] (Bloons TD 6) 라운드 표시는 작은 «ROUND» 제목 아래에 «6/100»처럼 «현재 라운드/마지막 라운드» 숫자로 나온다.
+  - 맥락: CHIMPS·Impoppable처럼 100라운드가 넘는 모드에서는 숫자 칸이 넓어진다(봇이 OCR 범위를 넓힘). 우리 게임: 라운드 6개를 «라운드 3/6»으로 위쪽 한 칸에 보여 주는 형식의 근거다.
+  - 검증: BTD6bot locations.py 문서에 'Current round text location with start and end round e.g. 6/100'이 있다. BloonsPlus 주석에 'Keep the small ROUND caption above the digits out of the OCR crop'이 있다. 덧붙임: BloonsPlus의 넓힌 범위 키는 'round_ge100_rounds'로 100라운드 이상(…/100)일 때를 뜻한다. '1…
+  - 출처: https://github.com/j-miet/BTD6bot/blob/main/btd6bot/bot/locations.py#L241-L244, https://github.com/Klaasawastaken/BloonsPlus/blob/main/autobtd6/replay.py#L3124-L3128
+- [pixel_minimal-11·verified] (Dome Keeper) 돔 체력 막대는 왼쪽 하트 아이콘 뒤로, 최대 체력 41당 1px씩 길어진다. 피해를 받으면 0.2초 흰색 섬광이 일고, 수리 예정량은 별도 구간으로 맥동하며, 최대치를 넘는 수리분은 다른 구간으로 깜박인다.
+  - 맥락: 판마다 다르다. 현재 디컴파일(Godot 4.3, Kupie/DK_DECOMP)은 HEALTH_PER_PIXEL = 41로 길이를 바꾼다. 다른 디컴파일 저장소(HammadArifeen/Dome-Keeper)의 HealthMeter.gd는 고정 길이 3단계(rectSizes [21, 27, 33])와 배경 텍스처 3장을 쓴다. 우리 문제 (5)(거점 체력이 HUD에 없음)에 쓴다: 막대 길이로 최대 체력을, 섬광으로 피격을 알린다.
+  - 검증: 현재 판에서 확인한 것: HEALTH_PER_PIXEL=41, Segment가 Heart 뒤에 붙음, flash()가 modulate (10,10,10)에서 흰색으로 0.2초, RepairRect 반복 맥동 트윈, BadRepairRect 깜박임. 옛 판에서는 rectSizes [21,27,33]과 background1~3을 확인했다. 판 차이는 detail에 적힌 그대로다.
+  - 출처: https://github.com/Kupie/DK_DECOMP/blob/main/content/hud/healthmeter/HealthMeter.gd, https://github.com/HammadArifeen/Dome-Keeper/blob/bd0f4db5a0f6bc1727075e50101ea3d1f122a928/content/hud/healthmeter/HealthMeter.gd
+- [pixel_minimal-16·verified] (Kingdom Two Crowns) Kingdom Two Crowns에서 군주가 지닌 코인 주머니가 담을 수 있는 동전 수는 주머니 안 동전 프리팹의 크기에 묶여 있다. 커뮤니티 모드 BetterPayableUpgrade는 동전 크기를 0.668배로 줄여 주머니에 약 100개가 들어가게 한다.
+  - 맥락: PC판(IL2CPP·Mono 판 모두 지원하는 BepInEx 모드)의 README와 코드(CurrencyBag.Init 패치에서 BagPrefab의 localScale 변경)에 근거한다. 동전 수가 숫자가 아니라 주머니 안 실물 동전으로 표시되는 디제틱 자원 표시임을 시사한다(분석자 해석). 우리 문제 (5)에 쓴다: 자원을 숫자 HUD 대신 마을 안 사물(곳간·금고)로 보여 주는 선택지의 근거다. 다만 우리 게임은 바쁜 실시간 전쟁이라, 정확한 숫자가 필요한 비용 판단에는 맞지 않을 수 있다.
+  - 검증: KingdomMod Readme에 'Reduced the size of the coin, now your coin bag can hold more coins (about 100)'라고 쓰여 있다. 코드는 HarmonyPatch(CurrencyBag,"Init") Prefix에서 BagPrefab과 바이옴 교체 프리팹의 localScale을 0.668로 바꾼다. IL2CPP·Mono 둘 다 지원한다고 명시돼 있다. '디제틱 표시' 해석은 분석자 해석이다.
+  - 출처: https://github.com/abevol/KingdomMod, https://github.com/abevol/KingdomMod/blob/main/BetterPayableUpgrade/BetterPayableUpgradeHolder.cs
+- [pixel_minimal-18·verified] (Kingdom Two Crowns) StaminaBar 모드는 탈것 바로 아래 세계 좌표 위치에 막대를 그린다. 남은 스태미나(청록), 배부름 지속 시간(노랑, 이때는 스태미나가 줄지 않음), 지침 상태 지속 시간(빨강, 이때는 달릴 수 없음)을 보여 주고, N 키로 끄고 켠다.
+  - 맥락: 게임이 내부적으로 스태미나·배부름·지침 타이머를 가지고 있지만 막대로는 보여 주지 않는다는 점을 시사한다(분석자 해석). 우리 문제 (5)에 쓴다: 영웅 마나·재사용 대기 같은 수치를 화면 위 HUD가 아니라 유닛 발밑의 작은 막대로 붙이는 방식의 예다.
+  - 검증: StaminaBarHolder.cs는 steed._mover 위치를 화면 좌표로 바꾸고 그보다 y+10 아래에 막대를 그린다. 스태미나 색은 (0.46,0.84,0.92) 하늘색이고(README는 blue라고 씀), 배부름은 노랑, 지침은 빨강이다. KeyCode.N으로 켜고 끈다. Readme에 배부름 중에는 스태미나가 줄지 않고 지침 중에는 달릴 수 없다고 나온다. 막대 길이는 탈것별 소모율에 따라 다르다.
+  - 출처: https://github.com/abevol/KingdomMod, https://github.com/abevol/KingdomMod/blob/main/StaminaBar/StaminaBarHolder.cs
+- [pvz_frostpunk-07·verified] (Plants vs. Zombies (PC GOTY, 디컴파일 소스)) 해 수치는 씨앗 바 왼쪽 칸 (34,78)에 검은 숫자로 가운데 맞춰 그려지고, 해가 모자란 카드를 누르면 70틱 동안 10틱 간격으로 빨강과 검정을 번갈아 깜박인다.
+  - 맥락: SeedPacket.cpp SeedBank::Draw: TodDrawString(aMoneyLabel, 34, 78, FONT_CONTINUUMBOLD14, ...); mOutOfMoneyCounter > 0 && %20 < 10 이면 Color(255,0,0). SeedPacket::MouseDown에서 mOutOfMoneyCounter = 70. 자원 표시는 쓰는 카드 바 바로 옆에 붙어 있다. 우리 게임 적용: (5) 자원 줄을 건설 바 옆에 붙이고, 모자란 자원 숫자를 깜박여 무엇이 부족한지 가리키는 근거.
+  - 검증: (34,78)은 씨앗 바 위젯 안의 좌표로, 바가 x=10에 있으니 화면에서는 약 x=44다. FONT_CONTINUUMBOLD14, 검정 글자, mOutOfMoneyCounter%20<10이면 빨강, 클릭하면 70으로 설정되고 Board::Update에서 1씩 준다. 모두 코드와 같다. 윈도폰판 DrawSun도 같은 70 / %20<10 깜박임을 쓴다. 덧붙여 TakeSunMoney가 실패해도 똑같이 70으로 설정되므로 카드 클릭에만 반응하는 것은 아니다. 모…
+  - 출처: https://github.com/Patoke/re-plants-vs-zombies/blob/main/Lawn/SeedPacket.cpp
+- [td_bars-md-11·partly] (Mindustry) 코어 자원은 화면 위 가운데의 반투명 검은 배경 위에 «아이콘+숫자» 쌍으로 한 줄에 4개씩 표시되고, 한 번이라도 코어에 들어온 자원만 나타나며, 마우스를 올리면 자원 이름과 줄이지 않은 정확한 수가 툴팁으로 뜬다.
+  - 맥락: 숫자는 formatAmount로 줄여 쓴다(예: 1.2k). 이 표시는 모바일에서 꺼지고 설정(coreitems)으로 끌 수 있다. 우리 문제 (5): 자원을 아이콘+숫자로 바꾸고, 얻은 적 있는 자원만 보여 줘 HUD 폭을 줄이는 근거가 된다.
+  - 검증: 소스를 직접 대조함. 위 가운데 coreinfo, black6 배경, 아이콘+formatAmount 숫자, 4개마다 줄바꿈, 코어에 한 번 들어온 자원만 표시(usedItems), !mobile, coreitems 설정은 모두 맞다. 다만 툴팁은 둘로 나뉜다. 아이콘에 올리면 자원 이름만, 숫자에 올리면 정확한 수만 뜬다. 하나의 툴팁에 이름과 수가 함께 뜨는 것이 아니다.
+  - 출처: https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/ui/CoreItemsDisplay.java#L25-L52, https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/ui/fragments/HudFragment.java#L578-L595
+- [pixel_minimal-12·partly] (Dome Keeper) 자원 카운터는 철·물·모래 아이콘과 숫자를 2열 격자로 놓는다. 어느 자원이든 100 이상이 되면 폭을 격자 4칸에서 5칸으로 넓히고 숫자를 오른쪽 정렬로 바꾼다.
+  - 맥락: 자릿수가 늘어도 폭은 격자 단위로만 바뀌고, 나머지 요소는 재배치 규칙(request_rebuild)에 따라서만 움직인다. 우리 문제 (2)에 쓴다: 내용 길이에 따라 위치가 흘러 밀리지 않게, 폭 변화를 격자 단위로 묶는 방법이다.
+  - 검증: 현재 판 Inventory.gd를 확인했다. 최댓값이 100 이상이면 element_size.x를 5로, 숫자를 오른쪽 정렬로 바꾼다. 100 미만이면 4와 왼쪽 정렬이다. 바뀔 때 request_rebuild를 보내고, GridContainer는 columns=2다. 그러나 옛 판(HammadArifeen)은 clamp(0,99)로 숫자를 99에서 자르고 폭이 고정이라 판에 따라 다르다. 또 '모래'는 내부 이름(sand)이고 게임 화면 표기는 코발트다.
+  - 출처: https://github.com/Kupie/DK_DECOMP/blob/main/content/hud/inventory/Inventory.gd, https://github.com/Kupie/DK_DECOMP/blob/main/content/hud/inventory/Inventory.tscn
+- [ironhide-19·likely] (Iron Marines) Iron Marines는 화면 왼쪽 위에 유닛 생산 자원 Etherwatts를 초록 막대로, 지금 출전할 수 있는 유닛 수(명령 포인트)를 해병 아이콘으로 보여 준다.
+  - 맥락: Etherwatts는 정제소를 차지하고 있으면 시간에 따라 저절로 찬다. 맵의 홀로그램 해병(명령 포인트) 근처로 유닛을 보내면 상한이 오른다. 유닛 종류마다 비용이 다르다(fandom 기준 30/60/90, 비공식). 우리 문제 (5)에 쓸 수 있다: 자원과 용병 상한(인구)을 왼쪽 위의 작은 막대+아이콘 숫자로 압축할 근거.
+  - 검증: Etherwatts 막대의 위치·색과 명령 포인트 아이콘은 독립 출처로 확인하지 못했다. 웹 검색 한도 소진.
+  - 출처: https://www.gamezebo.com/walkthroughs/iron-marines-tips-cheats-and-strategies/, https://www.levelwinner.com/iron-marines-ios-guide-18-useful-tips-cheats-tricks/
+- [tab-04·likely] (They Are Billions) 오른쪽 아래 콜로니 상태 패널은 주민·노동자·식량·에너지의 남은 공급량과 금·나무·돌·철·석유의 재고·저장 한도·생산량을 두 열로 나눠 늘 보여 준다.
+  - 맥락: 노동자·식량·에너지는 써서 없어지는 자원이 아니라 건물이 차지하는 '공급' 자원이다. 노동자가 음수면 유닛 훈련과 건설·수리가 막히고, 식량이 음수면 유닛의 금 비용이 30% 오른다(팬 위키·스팀 포럼). Metacritic 사용자는 이 패널이 한눈에 읽기 어렵다고 평가했다. 우리 게임 (5)번에 쓸 근거: 자원과 거점 체력을 화면 한 귀퉁이의 고정 칸에 늘 표시할 수 있다.
+  - 검증: 웹 검색 한도가 소진됐다. 오른쪽 아래 패널의 두 열 구성은 확인하지 못했다. detail의 '노동자가 모자라면 훈련이 막힌다'는 부분만 QoL 모드 검증 기록('Exhausting available workers stops further native recruitment')이 뒷받침한다. 식량이 음수일 때 금 비용 30% 증가와 Metacritic 평가는 확인하지 못했다.
+  - 출처: https://www.moddb.com/news/revealing-the-they-are-billions-gui, https://kotaku.com/tips-for-playing-they-are-billions-1822005149
+- [aoe_northgard-06·likely] (Age of Empires IV) 스팀 토론의 AoE IV 이용자에 따르면 '놀고 있는 일꾼' 버튼은 화면 아래 인구 수 표시 바로 위에 있고 왼쪽 클릭으로 누를 수 있다.
+  - 맥락: 같은 토론에는 멀티플레이에서는 이 버튼이 되는데 캠페인에서는 안 된다는 보고도 있다(공식 확인 없음). 팬 위키도 놀고 있는 일꾼을 인구 표시 쪽에 보여 준다고 적었다. 우리 게임 (1)(3): 놀고 있는 공병·용병 수를 숫자 배지 버튼으로 병력 칸 옆에 두면, 버튼마다 붙은 '(공병 없음)' 같은 이유 문구를 뺄 수 있다.
+  - 검증: 검색 한도가 다 차서 웹 검색을 못 했다. '놀고 있는 일꾼' 버튼이 인구 표시 바로 위에 있다는 근거는 GitHub에서도 찾지 못했다.
+  - 출처: https://steamcommunity.com/app/1466860/discussions/0/3821921664841222335/, https://ageofempires.fandom.com/wiki/User_interface
+- [aoe_northgard-17·likely] (Northgard) Northgard 자원 줄은 자원마다 현재 양 옆에 틱당 증감(+/−)을 함께 보여 주며, 한 달은 6틱이다.
+  - 맥락: 한 안내서는 이 숫자를 10초마다 늘거나 주는 양이라고 설명한다. 우리 게임 (5): 마을 생산 시설의 수입을 자원 숫자 옆에 작은 +n으로 보여 주면 준비 단계에서 판단이 빨라진다.
+  - 검증: 검색 한도가 다 차서 웹 검색을 못 했다. 게임 텍스트에서도 자원 증감의 단위(틱이나 10초)와 '한 달 = 6틱'을 확인할 문구를 찾지 못했다.
+  - 출처: https://northgard.fandom.com/wiki/How_to_play_guide_for_Northgard, https://cuboldgaming.com/blogs/gaming/how-to-play-northgard-beginners-guide
+- [castle-06·likely] (Stronghold / Stronghold Crusader) 화면 오른쪽(오른쪽 아래) 패널에 있는 서기의 책(scribe's book)은 인기도, 금고(골드), 인구 세 가지 수치를 늘 보여 주고, 인구는 '현재/최대' 분수로 표시한다.
+  - 맥락: 원작 인터페이스 해설(Altered Gamer)과 Stronghold HD Steam 토론('화면 오른쪽의 책')이 근거다. 집 한 채가 인구 상한을 8 올리며, 이 분수가 책 아래쪽에 있다는 설명도 같은 검색에서 나왔다. 우리 문제 (5)에서 HUD에 거점 체력·골드·인구 같은 핵심 수치를 늘 보이는 한 자리에 고정하는 근거.
+  - 검증: 검색 예산 소진으로 Altered Gamer와 Steam 글 밖의 근거를 찾지 못했다. 서기의 책에 세 수치가 있는지, 인구가 '현재/최대'로 표시되는지, 집 한 채가 상한을 8 올리는지 모두 확인하지 못했다.
+  - 출처: https://www.alteredgamer.com/stronghold/8099-how-to-play-understanding-the-game-interface/, https://steamcommunity.com/app/40950/discussions/0/152393186501537166/
+- [castle-25·likely] (Diplomacy is Not an Option) HUD는 나무·돌·철·식량·금·가용 인구·놀고 있는 일꾼·영혼 수정 같은 핵심 자원을 항상 화면에 띄워 두고, 인구는 '현재/최대'(마을 회관과 집의 수용량 기준)로 표시한다.
+  - 맥락: Press Attack 리뷰는 'HUD가 필수 자원을 항상 보여 줘서 분명하다'고 평가했다. 팬 위키는 인구를 현재/최대로, 실업자는 따로 센다고 설명한다. 자원 바의 정확한 위치와 순서는 확인하지 못했다(gaps). 우리 골드·인구·거점 체력을 늘 보이는 띠 하나에 고정하는 근거(문제 (5)).
+  - 검증: 검색 예산 소진으로 확인하지 못했다. 자원 목록(영혼 수정 포함)과 인구 '현재/최대' 표시를 Press Attack·팬 위키 밖의 자료로 대조하지 못했다.
+  - 출처: https://www.pressattack.com.br/en/post/review-diplomacy-is-not-an-option-1, https://diplomacy-is-not-an-option.fandom.com/wiki/Resources
+- [blizzard-29·unverified] (StarCraft II) StarCraft II의 1대1 리플레이·관전 화면에서는 오른쪽 위에 모든 플레이어의 광물·가스·인구 줄이 한꺼번에 표시된다.
+  - 맥락: Liquipedia 리플레이 기능 글(약 11년 전)이 근거다. 일반 플레이 화면에서 자원 줄이 어디 있는지는 직접 출처를 찾지 못했다. 2014년 TL.net 글은 자원 수를 미니맵 가까이 옮기고 자원 색으로 칠하자고 제안했다(https://tl.net/forum/starcraft-2/447731-starcraft-compact-ui-concept). 우리 게임: (5) 자원·거점 체력을 오른쪽 위 고정 줄에 두는 근거로 쓴다(blizzard-13과 같은 자리).
+  - 검증: 리플레이·관전 화면에서 모든 플레이어 자원을 한꺼번에 보여 준다는 내용은 확인하지 못했다. 다만 조사원이 못 찾은 일반 플레이 화면은 확인했다. GameUI.SC2Layout의 ResourcePanel은 화면 위·오른쪽(Top Min +10, CashPanel 왼쪽)에 붙는다. 관전 패널(ObserverPanel/ReplayPanel)은 오른쪽 아래 쪽이다.
+  - 출처: https://liquipedia.net/starcraft2/Replay_Features
+- [castle-07·unverified] (Stronghold / Stronghold Crusader) 인기도와 인구 증가는 모닥불 둘레의 고리 게이지로도 표시되며, 인기가 오를수록 고리가 빨리 차고, 고리가 빨갛게 바뀌면 인기가 낮아 백성이 성을 떠나기 시작한다.
+  - 맥락: 검색 요약에는 원작 인터페이스 해설의 문장으로 나왔다(어느 쪽 문장인지 정확한 출처는 열어 확인하지 못함). DE 경제 가이드는 인기 50이 기준선이라고 한다. 50 이상이면 일정한 속도로 백성이 오고, 미만이면 일정한 속도로 떠난다. 숫자뿐 아니라 '색이 바뀌는 게이지'로 위험을 보여 준다. 우리 거점 체력·마을 상태를 색 게이지로 나타내는 근거.
+  - 검증: 검색 예산 소진으로 확인하지 못했다. 조사원도 원문 출처를 확정하지 못했다고 적었다. 고리 게이지가 빨갛게 바뀌면 백성이 떠난다는 설명과 인기 50 기준선 모두 독립 근거가 없다.
+  - 출처: https://www.alteredgamer.com/stronghold/8099-how-to-play-understanding-the-game-interface/, https://stronghold.fandom.com/wiki/Stronghold_Definitive_Edition:_Economy_Guide
+
+## 건설 메뉴 (build_menu) — 26개
+
+- [ironhide-01·verified] (Kingdom Rush (원작)) Kingdom Rush 원작에서 빈 건설 자리를 클릭하면 그 자리에 궁수·병영·마법사·포병 4가지 타워 선택지가 뜨고, 어느 자리에나 4종 중 아무것이나 지을 수 있다.
+  - 맥락: PC판은 클릭, 모바일은 탭이다. 선택지가 자리 둘레에 원형으로 뜬다는 점은 Emily Miles 블로그의 '원형 버튼' 언급 말고는 검색으로 확인하지 못했다. 참고로 Ironhide는 Genesis Devlog #28(https://www.ironhidegames.com/News/Details/522)에서 예전 UI가 'screen-first로 설계돼 특히 PC에서 티가 났다'며 손봤다고 밝혔다. 우리 문제 (4)에 쓸 수 있다: 건설 12종을 위쪽 한 줄에 늘어놓지 말고, 성벽 칸이나 건설 자리를 클릭했을 때 그 칸에 지을 수 …
+  - 검증: WebSearch 한도가 이미 소진돼 웹 검색은 한 건도 실행되지 않았다. 근거는 GitHub에 올라온 KR Steam(Love2D) 기반 비공식 모드 저장소의 Lua 코드다. tower_menus_data.lua에서 holder 메뉴는 archer·barrack·mage·engineer 4개를 place 1~4에 둔다. TowerMenu는 'gui_ring' 이미지를 자리 위치에 띄우고 버튼을 그 둘레에 배치한다. KR1 1~3스테이지의 자리는 모두 같은 to…
+  - 출처: https://sports.yahoo.com/2014-07-30-kingdom-rush-tips-and-tricks.html, https://videogamegeek.com/thread/1079989/a-video-game-review-kingdom-rush
+- [tab-11·verified] (They Are Billions) 사령부 건설 메뉴는 먼저 주거·자원·에너지·산업·군사·방어 같은 범주 버튼으로 나뉘고, 범주를 누르면 그 범주의 건물 버튼이 나오는 2단계 구조다.
+  - 맥락: 범주 이름은 출처마다 조금 다르다(나무위키는 불가사의 시설까지 7개). 얼리 액세스 시기 GitHub 스크립트에는 Colonists/Resources/Electricity/Industry/Military/Defense 메뉴로 적혀 있다. 우리 게임 (4)번에 쓸 근거: 건설 12종을 방어(성벽·성문·대포)·마을(생산·집·교회)·군사(용병) 같은 범주로 접으면 한 줄에 다 늘어놓지 않아도 된다.
+  - 검증: GitHub 1차 자료 세 곳이 맞는다. b-adkins(2017~18)는 Colonists/Resources/Electricity/Industry/Military/Defense 메뉴를 적었다. 그와 별개인 ryuyandev(2019년 8월 생성, 1.0 이후)는 같은 6개 메뉴에 'bonuZ' 메뉴를 더해 7개를 쓴다(불가사의 범주로 보이며, 나무위키의 7개와 맞는다). 2026년 QoL 모드도 'command-center category icons'를 누른 …
+  - 출처: https://en.namu.wiki/w/They%20Are%20Billions/%EA%B1%B4%EB%AC%BC, https://www.neoseeker.com/they-are-billions/guide/Getting_Started
+- [aoe_northgard-05·verified] (Age of Empires IV) AoE IV에서 일꾼을 고르면 건설 명령이 시대별 묶음으로 나뉜다. 먼저 시대 키(Q=1시대, W=2시대, E=3시대)로 그 시대 건물 묶음을 열고, 이어서 격자 키로 건물을 고른다.
+  - 맥락: 1시대 묶음은 Q 집, W 방앗간, E 벌목장, R 채광장, A 농장, S 병영, D 부두다(shortcutkings 정리가 공식 글과 일치). 모드 제작 포럼에 따르면 일꾼 건설 격자는 시대별 4개와 랜드마크·불가사의용 3개, 모두 7개 묶음이다. 공식 글은 2021년 것이다. 우리 게임 (4): 건설 12종을 한 줄에 늘어놓지 말고 '방어/생산/마을' 같은 2~3개 묶음 키를 누른 뒤 격자 키로 고르는 2단계로 나누는 근거다.
+  - 검증: 독립 자료 두 개가 일치한다. (1) GitHub의 중국어 AoE4 단축키 연습 페이지에 '시대 I 건물(Q로 진입): Q 집, W 방앗간, E 벌목장, R 채광장, A 농장, S 병영, D 부두, Z 전초기지, X 목책, C 목책 문'이 있고, 시대 II·III·IV는 W·E·R로 연다. (2) 키 프로필 기본값에 select_inline_menu_1~4 = Q/W/E/R가 있고 build_menu_age_1의 배정도 같다. '모두 7개 묶음'은 확인하지 못했…
+  - 출처: https://www.ageofempires.com/news/aoeiv-shortcuts-revealed/, https://www.aoe4academix.com/en/hotkeys
+- [aoe_northgard-22·verified] (Northgard) Northgard 영역 정보에는 집 모양 아이콘 옆에 '1/5'처럼, 그 영역에 지은 건물 수와 지을 수 있는 최대 수가 함께 표시된다.
+  - 맥락: 칸 수는 출처마다 다르다(커뮤니티 위키: 타일당 2~4개, 시작 타일은 예외, 100 크로운으로 한 번 늘릴 수 있음). 우리 게임 (3): 마을 칸·성벽 칸의 남은 건설 자리를 '3/5'처럼 숫자로 보여 주면, 회색 버튼 없이도 왜 못 짓는지 알릴 수 있다.
+  - 검증: 현재 게임 텍스트(v4.0.11)에 '<건물 아이콘> count/max buildings in this zone'이라는 문구가 있다. 'Increases the maximum number of buildings in the zone'(구역 개발)도 있다. 건물 아이콘과 지은 수/최대 수 형식이 뒷받침된다. 다만 찾은 문구는 빨간 글씨 경고 형식이다. 구역 정보 창에 늘 떠 있는지와 아이콘이 집 모양인지는 확인하지 못했다.
+  - 출처: https://www.gameskinny.com/tips/northgard-guide-tips-and-tricks-for-getting-started-with-your-first-settlement/, https://northgard-archive.fandom.com/wiki/Tile
+- [td_bars-md-01·verified] (Mindustry) PC판 Mindustry의 건설 메뉴는 화면 오른쪽 아래 구석에 붙은 패널 하나로, 왼쪽에 블록 격자, 오른쪽에 50px 아이콘 범주 탭을 2열로 쌓은 세로 열이 나란히 놓인다.
+  - 맥락: master 브랜치(2026-10) 소스 기준. 블록 격자 영역은 높이 194로 고정되고 스크롤된다. 해금된 블록이 없는 범주 칸은 반투명 검은 빈칸이 되어 목록 끝으로 정렬된다. 우리 문제 (2)·(4): 건설 12종을 위쪽 흐름 레이아웃에서 빼서 한쪽 구석의 고정 크기 «범주 탭 + 격자»에 담으면, 단계가 바뀌어도 버튼 위치가 밀리지 않는다.
+  - 검증: [웹 검색은 예산 소진으로 거부되어 GitHub master 소스를 직접 대조함] PlacementFragment.build()의 L280에 full.bottom().right()가 있다. blockCatTable은 왼쪽 블록 격자(pane height 194, 스크롤)와 오른쪽 범주 열(defaults size 50, f%2로 2열)로 되어 있다. 빈 범주는 Styles.black6 이미지로 채우고, getCategories()가 빈 범주를 뒤로 정렬한다. 주…
+  - 출처: https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/ui/fragments/PlacementFragment.java#L276-L282, https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/ui/fragments/PlacementFragment.java#L677-L765
+- [td_bars-rt-02·verified] (Rogue Tower) 타워 건설 바는 화면 아래 가운데에 놓인 카드 모양 버튼들이며, 카드 한 장에 타워 이름(위)·아이콘(가운데)·금화 비용(아래, 예: 발리스타 55g)이 함께 적혀 있다.
+  - 맥락: 스크린샷의 카드에는 단축키 표시가 없다. 문자열 목록에 «Build Menu», «Demolish Button» 같은 UI 객체 이름이 있다. 우리 문제 (1): 이름·비용을 한 버튼에 넣더라도 «아이콘 중심 + 비용 한 줄»로 줄이고 못 쓰는 이유는 빼는 형태의 참고가 된다.
+  - 검증: 스크린샷 아래 가운데에 카드 한 장이 있다. 위에 'Баллиста', 가운데에 활 아이콘, 아래에 '55 зол.'이 있고 단축키 표시는 없다. translations L991-992에 'Build Menu', 'Demolish Button'이 있다. 스크린샷에는 카드가 한 장뿐이라 '카드들'의 배치 간격은 확인하지 못했다.
+  - 출처: https://github.com/whatdidyousayme/Rogue-Tower-Russian/blob/main/screenshots/gameplay_towers.png, https://github.com/whatdidyousayme/Rogue-Tower-Russian/blob/main/translations.json#L991
+- [p_cooldown_hotkey-13·verified] (Beyond All Reason (오픈소스 RTS)) BAR 격자 건설 메뉴의 각 칸은 단축키 글자를 오른쪽 위에, 금속·에너지 비용 두 줄을 오른쪽 아래에 오른쪽 정렬로 그리며, 지을 수 없는 칸은 아이콘을 0.4 밝기로 어둡게 하고 비용과 단축키 글자도 회색으로 바꾼다.
+  - 맥락: 비용 표시(showPrice)를 꺼도 마우스를 올린 칸에는 비용이 보인다. 지을 수 없는 칸의 툴팁에는 'disabled' 문구가 들어가고, 범주 단추 툴팁 끝에는 ' - Hotkey: [Z]'가 붙는다. 공장별 칸 배치표(https://raw.githubusercontent.com/beyond-all-reason/Beyond-All-Reason/master/luaui/configs/gridmenu_layouts.lua)는 빈 칸("")을 남겨 유닛이 늘 같은 칸에 오게 한다. OpenRA 생산 툴팁도 이름 옆에 '(키)'를 붙인다…
+  - 검증: gui_gridmenu.lua의 칸 그리기를 확인했다. 단축키는 rect.yEnd 근처에 오른쪽 정렬로 쓰고, 지을 수 없으면 회색 \255\100\100\100이다. 금속·에너지 비용 두 줄은 아래쪽에 'ro' 오른쪽 정렬로 쓰고, 지을 수 없으면 회색이다. 지을 수 없는 칸의 아이콘은 gl.Color(0.4,0.4,0.4)다. showPrice를 꺼도 hovered 칸에서는 비용을 보인다. 지을 수 없는 칸 툴팁은 ui.buildMenu.disabled를 쓰…
+  - 출처: https://raw.githubusercontent.com/beyond-all-reason/Beyond-All-Reason/master/luaui/Widgets/gui_gridmenu.lua, https://raw.githubusercontent.com/beyond-all-reason/Beyond-All-Reason/master/luaui/configs/gridmenu_layouts.lua
+- [p_wave_menu-08·verified] (파이 메뉴 연구 (Callahan 외 1988)) Callahan·Hopkins·Weiser·Shneiderman의 CHI '88 논문 «An Empirical Comparison of Pie vs. Linear Menus»는 항목을 원둘레에 같은 반지름 거리로 늘어놓는 파이 메뉴가 Fitts 법칙의 거리를 고정하고 목표 크기를 키워 선형 메뉴보다 목표 찾는 시간과 오류율을 줄이며, 주관적 선호는 대체로 같다고 보고했다.
+  - 맥락: 근거는 ACM DL 서지(초록)다. 공동저자 Don Hopkins의 문서에 따르면 실험은 8항목 선형 팝업과 8항목 파이를 같은 반지름에서 비교했다. 파이가 약 15% 빨랐고 오류도 적었다. 15%라는 수치는 논문 본문이 아니라 Hopkins의 문서에서만 확인했다. Shneiderman은 Scientific American(1997)에서 '메뉴 바보다 30% 빠르고 오류는 절반'이라고 했다. 비교 대상이 다르므로 15%와 섞으면 안 된다. 같은 문서에 따르면 SimCity Unix판과 The Sims(2000~)가 파이 메뉴를 썼다…
+  - 검증: ACM DL 서지(10.1145/57167.57182, CHI '88, pp.95-100) 초록과 문구가 같다. 원둘레·같은 반지름, seek time·오류율 감소, Fitts 거리 고정과 목표 크기 증가, 'subjectively equivalent'가 다 들어 있다. '8항목 같은 반지름, 약 15% 빠름'은 Hopkins의 pie-menus-fitts-law.md와 moollm·orbit 정리에만 있고 논문 본문은 보지 못했다. Shneiderman이 Sc…
+  - 출처: https://github.com/boudinfl/acm-cr/blob/master/data/acm-dl/chi/chi-1988.bib, https://github.com/SimHacker/MicropolisCore/blob/main/documentation/designs/pie-menus-fitts-law.md
+- [p_wave_menu-12·verified] (Mindustry) Mindustry는 화면 오른쪽 아래에 고정 건설 패널을 둔다. 오른쪽 열에는 분류 아이콘(50px, 2열)을, 그 왼쪽에는 고른 분류의 블록 아이콘(46px, 한 줄 4개)을 놓고, 블록에 마우스를 올리면 패널 위 정보 칸에 아이콘, 이름과 단축키, 재료마다 '보유/필요' 수량, 빨간 X 아이콘과 설치 불가 이유를 줄을 나눠 띄운다.
+  - 맥락: 원본 코드 PlacementFragment에서 확인했다. 재료 수량은 절반 미만이면 빨강, 부족하면 노랑, 충분하면 흰색이다. 재료가 모자란 블록 버튼은 회색, 설치할 수 없는 블록은 더 짙은 회색이 된다. 비어 있는 분류는 검은 빈칸으로 자리만 남기고, 블록이 4개보다 적으면 빈 칸을 채워 표 크기를 유지한다. 명령 모드에 들어가면 같은 자리에서 블록 표가 명령 표로 바뀌고, 명령 표 폭은 블록 표 폭에 맞춘다. 숫자 키 두 번(분류→블록), 쉼표/마침표(이전/다음 분류)로도 고를 수 있다. 우리 게임에 쓸 곳: 문제 (1)·(2…
+  - 검증: PlacementFragment 원본(master, v146 같음)으로 확인했다. full.bottom().right()이고 블록 버튼은 size(46f), rowWidth=4, 4개 미만이면 빈 칸을 채운다. 분류는 defaults().size(50f)로 2열이고, 빈 분류는 Styles.black6 이미지다. 재료 색은 절반 미만 [scarlet], 부족 [accent], 충분 [white]다. 재료가 모자라면 Color.gray, 설치할 수 없으면 dark…
+  - 출처: https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/ui/fragments/PlacementFragment.java, https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/input/Binding.java
+- [p_wave_menu-13·verified] (Beyond All Reason) Beyond All Reason의 기본 «Grid menu» 위젯은 건설 목록을 3줄×4칸 고정 격자로 그리고 각 칸을 키보드 자리에 맞췄다. 격자 1줄은 Z X C V, 2줄은 A S D F, 3줄은 Q W E R이고, 분류 4개(경제·전투·유틸리티·생산)도 Z·X·C·V에 묶여 있으며 다음 쪽은 B로 넘긴다.
+  - 맥락: 위젯 설명은 «Build menu with grid hotkeys»다. 격자 내용은 고른 건설 유닛에 따라 바뀌고, 마침표로 다음 건설 유닛 메뉴로 넘어간다. 못 쓰는 항목은 툴팁에서 회색(\255\166\166\166) 경고 문구로 표시한다. 고정 격자는 칸 자리가 늘 같아서 손이 위치를 외우기 쉽다. 우리 게임에 쓸 곳: 문제 (2)·(4). 다만 우리 게임은 Q·W·E·R을 영웅 스킬에 쓴다. 그래서 격자 단축키를 쓰려면 '건설 모드'를 따로 두거나 다른 키 줄을 써야 한다.
+  - 검증: gui_gridmenu.lua에 name 'Grid menu', desc «Build menu with grid hotkeys», enabled=true, columns=4, rows=3, warnColor \255\166\166\166가 있고, 분류는 경제·전투·유틸리티·생산이다. keybind_defaults.json의 첫 프로필 'Grid'에서 분류는 sc_z/x/c/v, 격자는 Any+ZXCV(1줄)·ASDF(2줄)·QWER(3줄), sc_b가 gridm…
+  - 출처: https://github.com/beyond-all-reason/Beyond-All-Reason/blob/master/luaui/Widgets/gui_gridmenu.lua, https://github.com/beyond-all-reason/Beyond-All-Reason/blob/master/common/configs/keybind_defaults.json
+- [p_wave_menu-14·verified] (SimCity (Unix판, Don Hopkins)) Don Hopkins가 만든 Unix판 SimCity는 화면에 늘 떠 있는 도구 팔레트를 파이 메뉴와 같은 구조(최상위 항목과 Zone·Build 하위 메뉴)로 배치해서, 고정 팔레트가 파이 메뉴의 '지도' 역할을 하게 했다.
+  - 맥락: Hopkins는 '모든 도구가 같은 크기의 네모로 바둑판처럼 놓이면 구별해서 빨리 고르기가 훨씬 어렵다'고 했다. 그래서 위아래는 비대칭(종류 구분), 좌우는 대칭(비슷한 도구 짝)으로 짰다. 하위 메뉴는 알파벳순이나 칸 번호가 아니라 '의미가 가까운 것끼리' 묶었다. 출처는 Hopkins의 HN 댓글(2014)을 정리한 문서다. 우리 게임에 쓸 곳: 문제 (4)·(5). 고정 바와 원형 메뉴를 같은 배치·같은 아이콘으로 만들면 둘 중 하나를 고를 필요 없이, 초보는 바로, 숙련자는 원형으로 쓰게 할 수 있다.
+  - 검증: 원본 Unix SimCity 코드 weditor.tcl로 따로 확인했다. 최상위 toolpie는 Road·Bulldozer·Zone(하위)·Wire·Rail·Chalk·Build(하위)·Eraser다. zonepie는 Query·Police·Ind·Com·Res·Fire, buildpie는 Airport·Nuclear·Seaport·Park·Stadium·Coal이다. 늘 떠 있는 팔레트의 place 좌표를 보면 위쪽에 zone 묶음(res/com/ind, fi…
+  - 출처: https://github.com/SimHacker/MicropolisCore/blob/main/documentation/designs/simcity-tool-palette-design.md
+- [ironhide-02·partly] (Kingdom Rush 시리즈 (KR·Frontiers·Origins 모바일)) Emily Miles에 따르면 Kingdom Rush 시리즈는 타워 구매와 업그레이드를 두 번째 탭으로 확정하게 하고, 첫 탭 뒤 화면의 다른 곳을 누르면 돈을 쓰지 않고 취소된다.
+  - 맥락: 모바일판을 다룬 2018년 UI 블로그 글이다. 같은 글에서 Emily Miles는 원형 버튼이 엄지에 맞는 크기이고 아이콘이 명확하고 기억하기 쉽다고 평가했다. 또 타워 자리가 주문 메뉴에 너무 가까우면 메뉴가 잘못 열리는 문제를 지적했다. 우리 문제 (1)에 쓸 수 있다: 첫 클릭은 정보(이름·비용·설명·못 쓰는 이유) 보기, 두 번째 클릭은 확정으로 나누면 '방벽 10 (1) (공병 없음)'처럼 버튼 하나에 모든 것을 넣지 않아도 된다.
+  - 검증: Emily Miles 블로그 본문은 검색 한도 때문에 확인하지 못했다. 반면 데스크톱(Steam Love2D) 코드에서 TowerMenuButton은 마우스를 올리면(on_enter) 툴팁·사거리·건물 미리보기를 보여 주고, 한 번 클릭하면(on_click, tw_upgrade) 바로 짓는다. 확인 단계가 없다. 두 번째 탭 확정은 모바일판 동작일 뿐이고, 시리즈 공통(PC 포함)은 아니다. PC에서는 '첫 클릭=정보'보다 '호버=정보, 클릭=확정'이 원작에 가…
+  - 출처: https://emilym.space/thumbelina-hurts-mobile-ui-blog/2018/6/26/kingdom-rush-a-tower-defense-trilogy-with-ui-design-approaching-perfection-and-entertainment-worth-missing-bedtime-for, https://emily-montecalvo-xagh.squarespace.com/thumbelina-hurts-mobile-ui-blog/tag/KingdomRush
+- [aoe_northgard-21·partly] (Northgard) Northgard에서 자기 영역(타일) 아무 곳이나 누르면 화면 오른쪽에 그 영역의 '건설·주민' 메뉴가 뜬다.
+  - 맥락: 건물을 지으려면 먼저 정찰병으로 그 타일을 개척해야 한다. 개척은 왼쪽 버튼 휠의 개척 버튼으로 한다(커뮤니티 위키·가이드). 우리 게임 (4): 성벽 줄·마을 칸·들판처럼 구역을 고르면 그 구역에 맞는 건설 목록만 뜨게 하면, 건설 12종이 한 줄에 섞이지 않는다.
+  - 검증: Northgard PC용 AutoHotkey 스크립트(2022~2026년 판)의 주석은 이렇게 적었다. '유닛·건물·땅 구역을 고르면 아래쪽 메뉴가 뜬다.' 건설 메뉴는 오른쪽에 있다(1920 폭 기준 x 약 1696~1867). 스크립트는 건설 메뉴가 닫혀 있으면 B 키로 연다. 그러니 영역을 누르면 뜨는 것은 아래쪽 메뉴(구역 정보·주민 배치 쪽으로 보임)이고, 오른쪽 건설 메뉴는 따로 열리는 것으로 보인다. 정확한 판은 알 수 없다.
+  - 출처: https://ag.hyperxgaming.com/article/2726/northgard---how-to-build-your-first-settlement, https://www.gameskinny.com/tips/northgard-guide-tips-and-tricks-for-getting-started-with-your-first-settlement/
+- [pvz_frostpunk-01·partly] (Plants vs. Zombies (PC GOTY, 디컴파일 소스)) PvZ의 씨앗 카드 바(씨앗 은행)는 화면 왼쪽 위 (0,0)에 그려지고, 칸 수는 기본 6칸에 상점 슬롯 업그레이드 구매 수를 더한 값(갖고 있는 씨앗 수가 상한)이다.
+  - 맥락: Board.cpp GetNumSeedsInBank: mPurchases[STORE_ITEM_PACKET_UPGRADE] + 6, min(갖고 있는 씨앗 수). SeedPacket.cpp SeedBank::Draw: IMAGE_SEEDBANK를 (0,0)에 그림. GOTY PC판을 되살린 커뮤니티 디컴파일이며 공식 자료는 아님. 모바일/리마스터판은 확인하지 못함. 우리 게임 적용: (4) 건설 12종·용병·영웅 스킬을 한 줄에 섞지 말고, 한 범주만 담는 고정 칸 바를 화면 한 모서리에 두는 근거.
+  - 검증: (이번 회차 WebSearch는 한도 소진으로 한 번도 실행되지 않아, GitHub에 있는 다른 디컴파일들로 대조했다.) '기본 6칸 + 상점 슬롯 업그레이드, 갖고 있는 씨앗 수가 상한'은 맞다. Patoke 코드뿐 아니라 따로 만든 0.9.9 매칭 디컴파일(bluisblu/pvz)과 윈도폰 디컴파일에도 mPurchases[21]+6, min(GetSeedsAvailable)로 똑같이 나온다. 다만 '(0,0)'은 SeedBank 위젯 안의 좌표다. 실제 전투…
+  - 출처: https://github.com/Patoke/re-plants-vs-zombies/blob/main/Lawn/Board.cpp, https://github.com/Patoke/re-plants-vs-zombies/blob/main/Lawn/SeedPacket.cpp
+- [p_disabled_modal-09·partly] (Mindustry 건설 메뉴 숨김/회색 규칙) Mindustry 건설 메뉴는 연구로 아직 해금되지 않은 블록을 목록에서 뺀다. 해금된 블록 가운데 코어 재료가 모자라면 아이콘을 회색으로, 설치 자체가 불가능하면 진회색으로 칠하고, 설치 불가 블록은 목록 끝으로 정렬한다.
+  - 맥락: '미해금=숨김, 재료 부족=회색, 불가=진회색'의 3단계다. 다만 불가 항목을 뒤로 정렬하므로 버튼 위치가 바뀔 수 있어, 0 A.D.의 고정 격자와는 반대다. 우리 게임: 마을 레벨 미달 건물은 숨기되, 문제 (2)를 피하려면 정렬은 하지 말고 자리를 고정하는 쪽이 낫다는 비교 근거다.
+  - 검증: getUnlockedByCategory는 unlocked()인 블록만 고르고, !isPlaceable()인 블록을 끝으로 정렬한다. 버튼은 재료가 모자라면 gray, !isPlaceable()이면 darkGray다. 하지만 Block.java에서 isPlaceable()은 isVisible() && !isBanned() && supportsEnv()이므로, 진회색과 뒤로 정렬은 사실상 '금지된 블록'에만 해당한다. 설치 한도 초과는 진회색이 아니고 이유 줄에만 …
+  - 출처: https://raw.githubusercontent.com/Anuken/Mindustry/master/core/src/mindustry/ui/fragments/PlacementFragment.java
+- [p_wave_menu-09·partly] (마킹 메뉴 항목 수 한계 (Kurtenbach·Buxton 1993)) Kurtenbach·Buxton(INTERCHI '93)의 계층 마킹 메뉴 실험을 정리한 자료들에 따르면, 오류율을 10% 미만으로 지키려면 한 단에 8항목이면 2단까지, 4항목이면 4단까지가 한계이고, 대각선 항목이 상하좌우 항목보다 오류가 많다.
+  - 맥락: 서지 초록은 '단마다 항목을 몇 개까지, 계층을 몇 단까지 둘 수 있는지 한계를 실험했다'까지만 말한다. 수치는 그 논문을 정리한 GitHub 조사 문서 두 곳에서 확인했고, 논문 본문은 보지 못했다. 다른 정리는 Kurtenbach의 학위논문이 '12항목 1단은 신뢰성의 경계'라고 했다고 적는다. Don Hopkins는 7항목보다 8항목(나침반 방향)이 빠르다며 '7이나 11이면 8이나 12로 늘리라'고 하고, The Sims 1식으로 '한 링에 4개나 8개, 더 필요하면 중첩'을 권한다. 우리 게임에 쓸 곳: 문제 (4). 건설…
+  - 검증: orbit/research.md와 datum CONTEXT_MENU_RESEARCH.md 두 곳 모두 '오류 10% 미만이려면 8항목은 2단, 4항목은 4단까지'라고 적었다. 대각선(off-axis) 항목의 오류가 더 많다는 것은 datum에만 있다. 서지 초록은 '폭과 깊이의 한계를 실험'까지만 말한다. 논문 본문은 확인하지 못했다(웹 검색 불가). 상세 설명에 틀린 곳이 있다. 인용된 문서에서 '학위논문의 12항목 1단 경계' 문구를 찾지 못했다. Hopki…
+  - 출처: https://github.com/boudinfl/acm-cr/blob/master/data/acm-dl/chi/chi-1993.bib, https://github.com/harsha20599/orbit/blob/main/docs/research.md
+- [p_wave_menu-10·partly] (파이 메뉴의 화면 가장자리 문제) Don Hopkins의 Micropolis 설계 문서에 따르면, 전통적인 파이 메뉴 툴킷은 메뉴가 화면 가장자리에 걸리면 메뉴를 화면 안으로 옮기고 마우스 커서도 같은 거리만큼 강제로 옮겼으며(warp), 커서를 옮길 수 없는 환경에서는 이 방식이 깨진다.
+  - 맥락: 같은 문서는 대안으로 포인터 잠금을 쓴 가상 포인터와 일부가 화면 밖으로 나간 메뉴 허용을 든다. 또 '메뉴를 화면 안으로 밀어 넣는 옵션(clampMenuToViewport)은 가상 마우스가 없으면 엉뚱한 쐐기를 미리 고를 수 있다'고 적는다. 다른 문서는 쐐기 판정 영역을 라벨 크기에 묶지 말고 화면 가장자리까지 넓히라고 한다. 우리 게임에 쓸 곳: 문제 (7). 640×360 화면에서 성벽 양 끝 쪽문이나 맵 가장자리 칸을 누르면 원형 메뉴가 잘린다. 원형 메뉴를 쓰려면 밀어 넣기와 커서 이동을 함께 구현하거나, 가장자리에서는…
+  - 검증: virtual-pointer 문서 §4.1에 '고전 파이 툴킷은 메뉴를 화면 안으로 옮기고 OS 커서를 같은 거리만큼 warp'한다는 내용과 그것이 깨지는 조건이 있다. clampMenuToViewport의 '엉뚱한 쐐기를 미리 고를 수 있다'와 allowPartialOffscreenMenu도 문서 그대로다. 반대 증거도 있다. Hopkins가 만든 Unix SimCity의 Tk 파이 메뉴 원본(micropolis-activity/src/sim/w_piem.c)…
+  - 출처: https://github.com/SimHacker/MicropolisCore/blob/main/documentation/designs/virtual-pointer-and-pie-cursors.md, https://github.com/SimHacker/MicropolisCore/blob/main/documentation/designs/gesture-space-and-pie-menus.md
+- [p_wave_menu-15·partly] (Thronefall) Thronefall은 미리 정해진 자리에만, 자리마다 정해진 한 종류의 건물만 짓게 한다. 다른 개발자의 조사 문서에 따르면 New Game Network 리뷰는 '건물을 어디에 둘지 정할 수 없다'고 썼고, OpenCritic은 이 정해진 배치를 '큰 한계'로 꼽았다.
+  - 맥락: 같은 인용에 따르면 리뷰어들은 '플레이하기 아주 편하다(a breeze to play)'면서도 '창의성과 자유에서는 길을 잃는다'고 평가했다. 리뷰 원문은 직접 열어 보지 못했다. 게임 문자열에는 건물마다 업그레이드 «Choice»(예: 병영의 Knights·Spearmen·Flails)가 있어서, 자리 위에서 몇 가지 중 하나를 고르는 맥락 방식임을 보여 준다. 우리 게임에 쓸 곳: 문제 (3)·(4). 구역 맥락 메뉴(9줄 성벽 칸에는 성벽·성문·대포, 0~8줄 마을에는 생산·집·교회)는 회색 버튼을 없애 준다. 하지만 우리 맵…
+  - 검증: 자리 고정 방식은 디컴파일 BuildSlot이 뒷받침한다. 슬롯마다 이름(LOCIDENTIFIER_NAME), level, upgrades, OnUpgradeChoiceComplete가 있고 건물 종류를 고르는 구조가 없다. 업그레이드 Choice 문자열(Knights·Spearmen·Flails 등)도 맞다. 리뷰 인용(NGN의 'You don't get to decide where to place...', 'a breeze to play', 'lost whe…
+  - 출처: https://github.com/weskor/post-frontier/blob/3db7b88dea7d1c31df7ad188352df46befa81eaf/Docs/Research/opening.md, https://www.newgamenetwork.com/article/2820/thronefall-review/
+- [aod-04·likely] (Age of Darkness: Final Stand) B 키를 누르면 성채(Keep)를 클릭하지 않고도 바로 건설 메뉴가 열리고, 성문은 배치하는 동안 Tab 키로 방향을 돌린다.
+  - 맥락: 얼리 액세스 시기에는 단축키 재지정 메뉴가 범주끼리 충돌해 쓰기 어렵다는 불만이 있었다. 우리 게임에 쓸 근거: 성벽·성문(여닫이) 건설에 '건설 메뉴 바로 열기' 키와 배치 중 회전 키를 둘 수 있다.
+  - 검증: 웹 검색 한도가 소진됐다. B 키로 건설 메뉴를 바로 여는 것과 Tab 키로 성문을 돌리는 것은 독립 확인하지 못했다. 참고로 They Are Billions에서도 Tab이 회전 키였다(b-adkins 주석 '$r::Tab'). 다만 이것은 다른 게임이라 이 주장의 근거가 되지 않는다.
+  - 출처: https://www.thegamer.com/age-of-darkness-final-stand-beginner-tips/, https://steamcommunity.com/app/1426450/discussions/0/6554498588632437832/
+- [castle-04·likely] (Stronghold Crusader) 성벽을 고른 뒤 본 화면에서 왼쪽 마우스 버튼을 누른 채 끌면 길이가 정해지고, 버튼을 놓을 때 성벽이 놓인다.
+  - 맥락: Crusader 매뉴얼 문장을 HeavenGames 포럼이 인용했다. Crusader HD 매뉴얼에는 나무 성벽을 대신한 낮은 성벽(low wall)과 망루가 새로 들어갔다는 설명도 있다. 우리 성벽·방벽 건설을 '드래그로 길이 정하기 + 놓을 때 확정'으로 만들고, 끄는 동안 비용 합계를 커서 옆에 보여 주는 근거.
+  - 검증: 검색 예산 소진으로 HeavenGames 인용이나 HD 매뉴얼 밖의 근거를 찾지 못했다. 드래그 후 놓을 때 확정되는지, HD 매뉴얼의 low wall 설명이 있는지 모두 확인하지 못했다.
+  - 출처: https://stronghold.heavengames.com/cgi-bin/forum/display.cgi?action=st&fn=14&tn=3474, http://cdn.akamai.steamstatic.com/steam/apps/40970/manuals/Stronghold_Crusader_HD_Manual_-_English.pdf?t=1463137952
+- [minimal-04·likely] (Thronefall) Thronefall에서 건설 지점에 다가가면 그 자리에 지을 건물의 윤곽선이 나타나고, 건물 위에 비용 수만큼 빈 점선 원(코인 칸)이 떠서 비용을 보여 준다.
+  - 맥락: PC판 리뷰 기준이다. 검색 요약은 서로 다른 두 리뷰의 서술('outline of the building and its coin cost', 'fill dotted circles above the buildings')을 전했지만, 어느 문장이 아래 URL 중 어느 것에서 나왔는지는 페이지를 열 수 없어 짝짓지 못했다. 한 리뷰는 비용이 초반 4코인쯤에서 후반 두 자릿수까지 오른다고 적었다. 우리 게임 (1)·(4): '방벽 10 (1) (공병 없음)'처럼 글자로 된 버튼 대신, 성벽·대포 자리 위에 윤곽선과 비용 칸을 직접 그리는…
+  - 검증: 검색 한도 소진으로 검색하지 못했다. 윤곽선·점선 원 비용 표시를 다른 도메인에서 확인하지 못했고, 인용 문장과 URL 짝짓기도 여전히 미확인이다.
+  - 출처: https://www.gamereactor.eu/thronefall-1494993/, https://www.gameindustry.com/reviews/game-review/enjoy-minimalist-base-building-and-castle-defense-in-thronefall/
+- [minimal-05·likely] (Thronefall) Thronefall에서 코인을 쓰면 코인이 주머니에서 날아가 건물 위 빈 칸을 하나씩 채우고, 칸이 모두 차면 건설이나 업그레이드가 끝난다.
+  - 맥락: '날아가 칸을 채운다'는 서술은 리뷰(검색 요약, 출처 페이지 짝짓기는 미확인)에서, '다 모이면 완성된다'는 서술은 나무위키에서 나왔다. 진행 상황을 숫자 대신 세계 안 칸 채움으로 보여 준다. 우리 게임 (3)·(5): 돈이 모자란 상태를 회색 버튼이 아니라 '빈 칸이 남은 비용 표시'로 보여 줄 수 있다.
+  - 검증: 검색 한도 소진으로 검색하지 못했다. 코인이 날아가 칸을 채운다는 서술의 출처를 짝짓지 못했고, 독립 출처도 찾지 못했다.
+  - 출처: https://www.gamereactor.eu/thronefall-1494993/, https://en.namu.wiki/w/Thronefall
+- [aod-05·unverified] (Age of Darkness: Final Stand) 팬 위키는 건물을 인구·방어·빛(light)·자원·군사·발전(advancement) 범주로 나눈다.
+  - 맥락: 위키 사이드바 기준이라 게임 안 건설 메뉴의 탭 이름과 같은지는 확정하지 못했다. 우리 게임 (4)번에 쓸 근거: 건설 12종의 범주를 나눌 때, 빛처럼 방어를 돕는 시설을 따로 묶는 방식을 참고할 수 있다.
+  - 검증: 웹 검색 한도가 소진돼 팬 위키의 범주 구성을 다른 출처로 확인하지 못했다.
+  - 출처: https://ageofdarknessfinalstand.fandom.com/wiki/Resources, https://ageofdarknessfinalstand.fandom.com/wiki/Quickstart_Guide
+- [castle-01·unverified] (Stronghold Crusader: Definitive Edition) 건설 메뉴에서 'Castle Buildings' 탭을 먼저 누르고, 그 안에서 'Castle Defenses'라고 표시된 성문 아이콘을 눌러야 성문 같은 방어 건물을 고를 수 있다.
+  - 맥락: DE 기준(GameRant 해자 파기 가이드). 성곽이 '범주 탭 → 하위 묶음 아이콘' 2단계로 나뉜다. 우리 문제 (4) 건설 12종이 한 줄에 섞인 것을 '성곽/마을/병력' 범주 탭과 하위 묶음으로 나누는 근거로 쓴다.
+  - 검증: 이번 턴의 WebSearch 예산(공유 200회)이 이미 다 써져서 검색이 한 번도 실행되지 않았다. GameRant 밖의 뒷받침도, 반대 증거도 찾지 못했다. DE의 'Castle Buildings 탭 → Castle Defenses 아이콘' 2단계 구조는 확인하지 못했다.
+  - 출처: https://gamerant.com/stronghold-crusader-definitive-edition-how-dig-moats/
+- [castle-05·unverified] (Stronghold Crusader 2) Crusader 2의 성곽 건물에는 싸고 약하며 병사가 올라갈 수 없는 커튼 성문과, 튼튼하고 병사가 올라갈 수 있는 성문루가 따로 있고, 계단을 짓지 않으면 병사를 성벽·탑에 올릴 수 없다.
+  - 맥락: Crusader 2 기준(gamepressure 가이드)이라 Crusader 1·DE와 다를 수 있다. 탑은 병사, 특히 궁수·석궁병에게 높이 이점을 준다. 같은 '성문'이라도 값·내구·올라갈 수 있는지가 다르다는 정보는 툴팁에 넣어야 한다. 우리 정문·쪽문과 대포 자리의 차이를 툴팁에 쓸 근거.
+  - 검증: 검색 예산 소진으로 확인하지 못했다. Crusader 2만의 내용(커튼 성문과 성문루의 차이, 계단 필요)이라 Crusader 1·DE에 그대로 옮기면 안 된다는 단서는 그대로 남는다.
+  - 출처: https://guides.gamepressure.com/strongholdcrusader2/guide.asp?ID=28033
+- [p_wave_menu-11·unverified] (Kingdom Rush) Kingdom Rush(Frontiers 시기 화면)에서 빈 건설 자리를 누르면 그 자리를 중심으로 마름모 네 모서리에 궁수(왼쪽 위)·병영(오른쪽 위)·마법사(왼쪽 아래)·포병(오른쪽 아래) 판 4개가 펼쳐진다. 각 판 아래에 매달린 꼬리표에는 비용(60/70/100/125)이 노란 숫자로 적히고, 살 수 없는 판은 채도가 빠지고 숫자가 칙칙한 붉은 회색으로 바뀐다.
+  - 맥락: 출처는 화면을 재서 정리한 STYLE_BIBLE이고, 공식 자료가 아니다. 이미 지은 타워를 고르면 리벳 박힌 완전한 링에 업그레이드 판(왼위·오른위)과 판매 판(아래, $)이 나온다. 이때 초록 사거리 타원이 함께 그려지고, 왼쪽 툴팁 카드는 '사면 얻을 것'을, 아래쪽 바는 '지금 가진 것'을 보여 준다. 다른 TD 개발 계획서는 같은 방식을 택한 이유를 이렇게 적었다. '자리가 정해져 있으니 자유 배치는 헛일'이고, 한 링 부품으로 마우스·터치·패드를 다 처리하며, 못 쓰는 항목은 회색과 이유로 보여 준다. 우리 게임에 쓸 곳…
+  - 검증: STYLE_BIBLE §5.5·5.6(마름모 네 판, 왼위 궁수·오른위 병영·왼아래 마법사·오른아래 포병, 노란 비용 숫자 60/70/100/125, 살 수 없으면 판 채도가 빠지고 숫자가 칙칙한 붉은 회색)과 foundry 계획서 문구('Plots are fixed, so free placement is wasted work', 한 부품 RadialRing, 못 쓰면 회색과 이유)는 맞게 옮겼다. 하지만 둘 다 2차 자료이고, 웹 검색이 막혀 독립 확인을 못 …
+  - 출처: https://github.com/ir272/kingdomrush-game/blob/main/docs/STYLE_BIBLE.md, https://github.com/Vipast82/foundry-router/blob/d217ab4b869a81805c9f3dde25c0c7c11f7437e8/docs/plans/AU_UI_REWORK_PLAN.md
+
+## 선택·명령 패널 (selection_command_panel) — 22개
+
+- [tab-03·verified] (They Are Billions) 하단 중앙의 가장 넓은 영역에는 선택한 유닛·건물의 속성과 쓸 수 있는 명령이 나오고, 선택이 바뀌면 내용이 통째로 바뀌며, 건설 명령도 사령부(Command Center)를 선택해야 이 자리에 뜬다.
+  - 맥락: 개발사 글과 팬 위키·가이드가 맞는다. 우리 게임 (2)(4)번에 쓸 근거: 건설 12종·용병 구매·영웅 스킬을 위쪽 한 흐름에 섞지 않고, 크기가 고정된 선택 패널 한 칸에서 선택 대상(거점·영웅·용병)에 따라 내용만 바꿀 수 있다.
+  - 검증: GitHub 1차 자료가 독립적으로 뒷받침한다. ryuyandev 스크립트는 하단 명령 격자의 픽셀 색으로 무엇을 선택했는지(사령부/병영/공학센터) 판별해 단축키 동작을 바꾼다. b-adkins와 ryuyandev 모두 'B = 사령부 선택(Enter)'을 해야 건설 메뉴가 뜬다고 적었다. 2026년 QoL 모드의 검증 기록에도 'Selecting the command center, Q then Q enters native tent placement'라고 나온다…
+  - 출처: https://www.moddb.com/news/revealing-the-they-are-billions-gui, https://xulima.com/News/2017-06-09-glad-youre-here-an-update-on-they-are-billions-gui/
+- [blizzard-01·verified] (Warcraft III (Classic/Reforged)) Warcraft III의 명령 카드는 화면 아래 바에 있는 12칸(CommandButton_0~11, 3줄×4칸) 고정 격자이고, 유닛을 고를 때마다 같은 칸들에 그 유닛의 명령이 다시 채워진다.
+  - 맥락: 모딩용 UI 프레임 자료(1.31~1.32 기준)에 명령 버튼 12개가 따로 나오고, 영웅·건물 선택에 따라 아이콘 크기가 바뀐다고 적혀 있다. Reforged 데모 때도 12칸 그대로여서 플레이어들이 3×5로 늘려 달라고 요청했다(블리자드 포럼). 우리 게임: (2) 단계마다 버튼 줄 수가 바뀌어 위치가 밀리는 문제에 쓴다. 칸 수를 고정하고 쓸 일 없는 칸은 비워 둔다.
+  - 검증: 웹검색은 호출 한도가 이미 소진돼 한 번도 실행되지 않았다. 대신 GitHub에 있는 게임 데이터 추출본과 재구현 코드로 확인했다(이하 전부 같음). Tasyen의 ConsoleUI 계층 문서에 CommandBarFrame 밑 CommandButton_0~11(12칸)이 있고, 유닛을 고르면 ORIGIN_FRAME_COMMAND_BUTTON이 그 12칸의 자식으로 들어간다. CustomKeys 규격의 Buttonpos는 x 0~3, y 0~2라서 4열×3줄이다.…
+  - 출처: https://www.hiveworkshop.com/threads/the-big-ui-frame-tutorial.335296/, https://us.forums.blizzard.com/en/warcraft3/t/ui-bottom-bar-customization/1080
+- [aoe_northgard-26·verified] (Northgard) 스팀 가이드에 따르면 Northgard에서 E 키는 군사 유닛 전체(워밴드)를 고르고, Ctrl+숫자로 부대를 지정해 숫자 키로 다시 부를 수 있으며, 가이드는 워치프를 따로 1번에 지정해 두라고 권한다.
+  - 맥락: StrategyWiki는 E를 '부대 표시(Mark the squad)'로 적어 출처끼리 엇갈린다. 패치 노트에는 영역 밖으로 나갈 수 있는 군사 유닛만 고르는 Ctrl+E가 있다(https://store.steampowered.com/news/posts/?feed=steam_community_announcements&appids=466560&enddate=1681397386). 우리 게임: 영웅 3명은 각각 따로 부르는 키로, 용병은 전체 선택 키 하나와 Ctrl+숫자 부대로 나누는 구조의 근거다.
+  - 검증: 게임 텍스트 기본값에 'Select Warband — E'가 있고, 부대 지정은 'Ctrl을 누른 채 숫자줄 0~9'다. AutoHotkey 스크립트도 e를 워밴드 선택으로 쓴다. 그래서 StrategyWiki의 '부대 표시(Mark the squad)' 쪽이 틀린 것으로 보인다. 워치프를 1번에 두라는 권고는 가이드의 의견이라 확인 대상이 아니다. AutoHotkey 스크립트 작성자는 0번을 권한다.
+  - 출처: https://steamcommunity.com/sharedfiles/filedetails/?id=2014417078, https://steamcommunity.com/app/466560/discussions/1/1643170269567521887/
+- [td_bars-md-07·verified] (Mindustry) 왼쪽 Shift(명령 모드)를 누르는 동안에는 오른쪽 아래 건설 격자가 있던 바로 그 자리에, 같은 너비의 유닛 명령 패널이 대신 들어간다.
+  - 맥락: Stack 하나에서 내용만 바꿔 끼우는 방식이다(commandMode). 우리 문제 (4): 용병을 드래그로 고른 동안에는 건설 격자 자리를 «용병 명령 패널»로 바꿔 끼우면, 영역 하나를 상황에 따라 다시 쓸 수 있다.
+  - 검증: 소스를 직접 대조함. commandMode의 기본 키는 shiftLeft이다. 설정 commandmodehold의 기본값이 true라서 누르는 동안 켜지고, 설정을 끄면 토글 방식이 된다. mainStack이 blockCatTable 대신 commandTable을 끼우고, 너비를 blockCatTable 너비로 강제한다. 단, 블록을 고른 상태이거나 유닛이 부스트할 수 있고 키가 겹치면 명령 모드가 꺼진다.
+  - 출처: https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/ui/fragments/PlacementFragment.java#L443-L460, https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/input/Binding.java#L39
+- [td_bars-rt-10·verified] (Rogue Tower) 기본 게임에서는 체력·방어·보호막 레벨을 타워마다 하나씩 클릭해 그 패널에서 금화로 사야 해서, 한 모더가 F1로 여는 «타입별 타워 목록 + 같은 타입 일괄 업그레이드 + 그 타워로 카메라 이동(Ver)» 패널을 따로 만들었다.
+  - 맥락: 모드 README에 «맵에서 하나씩 클릭하지 않아도 되게»라고 동기가 적혀 있다(2026-06 공개). 모드는 게임의 Tower.BuyHealthLevel/BuyArmorLevel/BuyShieldLevel을 그대로 부른다. 우리 게임: 영웅 3명과 용병 다수를 맵에서 일일이 찾지 않도록 «목록에서 고르면 카메라가 그쪽으로 이동»하는 패널의 근거다.
+  - 검증: README를 대조함. F1(ToggleKey)로 패널을 연다. 왼쪽 열에 타입별 버튼(×N), 오른쪽에 그 타입 타워 목록과 Vida/Arm/Esc 레벨업 버튼이 있다. 'Ver'는 카메라를 이동하고, 'Subir todas'는 일괄 업그레이드한다. 동기는 'sin tener que ir pinchando una por una por el mapa'이고, 'igual que el panel de torre del juego'라고 적었다. Plugin.cs L2…
+  - 출처: https://github.com/ROMPEFUEGOS/rogue-tower-tower-manager-panel/blob/master/README.md#L3-L18, https://github.com/ROMPEFUEGOS/rogue-tower-tower-manager-panel/blob/master/Plugin.cs#L11-L27
+- [td_bars-bt-05·verified] (Bloons TD 6) 타워를 클릭하면 업그레이드 패널이 타워 반대편에 열린다. 화면 가운데보다 왼쪽에 놓은 타워면 오른쪽에, 오른쪽에 놓은 타워면 왼쪽에 열린다.
+  - 맥락: 봇 제작자가 «눈치채지 못했겠지만»이라며 설명하고, 봇은 왼쪽 패널과 오른쪽 패널 좌표를 따로 둔다. 선택한 대상을 패널이 가리지 않게 하는 규칙이다. 우리 문제 (7): 거점(위쪽)을 고르면 패널을 아래에, 들판 유닛을 고르면 위에 여는 식으로 응용할 수 있다.
+  - 검증: BTD6bot README에 'depending on which side of middle section you place a monkey (left or right), the monkey panel opens on the opposite side of screen'이 있다. locations.py에도 target_leftpanel/rightpanel, *_leftwindow/rightwindow 좌표가 따로 있다. BloonsPlus도 왼쪽/오른쪽 패널을 구분…
+  - 출처: https://github.com/j-miet/BTD6bot/blob/main/README.md#L713-L716, https://github.com/j-miet/BTD6bot/blob/main/btd6bot/bot/locations.py#L73-L78
+- [ironhide-03·partly] (Kingdom Rush (원작)) Kingdom Rush에서 병영 타워를 선택하면 집결할 수 있는 범위가 원으로 표시되고, 그 안을 클릭해 병사 집결 지점을 전투 중 아무 때나 옮길 수 있다.
+  - 맥락: 같은 Yahoo 글에 따르면 타워를 선택하고 $ 기호를 누르면 비용 일부를 돌려받고 판다(KR1 Steam 가이드 기준 60%). Armor Games 페이지는 Space로 선택한 주문이나 집결 지점 지정을 취소한다고 적었다. 'Improved Deployment' 업그레이드는 집결 범위를 20% 늘린다. 우리 게임에 쓸 수 있다: 용병 드래그 이동과 함께, 성문 앞이나 성벽 뒤 집결 범위를 원으로 보여 주고 깃발로 지점을 찍는 방식을 쓸 근거.
+  - 검증: 코드상 병영을 선택해도 원이 바로 뜨지 않는다. 링 메뉴의 집결 버튼(tw_rally)을 누르면 GUI_MODE_RALLY_TOWER로 바뀌고 rally_range가 원(실제로는 타원)으로 표시된다. 지점은 범위 안이면서 길 노드 근처(NF_RALLY, rally_terrains)여야 받아들여진다. 아니면 invalid 표시가 뜬다. 원 안 아무 곳이나 되는 것은 아니다. 전투 중 시점 제한은 없다. KR1 upgrades.lua의 barrack_improved…
+  - 출처: https://sports.yahoo.com/2014-07-30-kingdom-rush-tips-and-tricks.html, https://www.levelwinner.com/kingdom-rush-beginners-guide-tips-tricks-strategies-to-vanquish-the-evil-forces/
+- [blizzard-28·partly] (StarCraft II) StarCraft II에서 미니맵 위 놀고 있는 일꾼 아이콘에는 그 수가 표시되고, F1은 놀고 있는 일꾼 하나를 고르며(Ctrl+F1은 전부), F2는 군대 전체를 고른다.
+  - 맥락: 블리자드 가이드에 따르면 F1을 다시 누르면 카메라가 그 일꾼으로 간다. F2 군대 선택은 Liquipedia와 팬 위키가 같은 내용을 적고 있다. 우리 게임: 용병 드래그 선택을 보완하는 '용병 전체 선택' 키와 '놀고 있는 생산 시설 고르기' 키에 쓴다.
+  - 검증: IdleWorker=F1, ArmySelect=F2('조종 중인 모든 전투 유닛 선택')는 확인했다. 놀고 있는 일꾼 버튼은 미니맵 바로 위에 있다. 다만 게임 툴팁은 F1을 '거듭 누르면 놀고 있는 일꾼들을 차례로 돈다'고 설명해, '다시 누르면 카메라가 그 일꾼으로 간다'와 다르다. Ctrl+F1 전체 선택과 아이콘의 숫자 표시는 확인하지 못했다.
+  - 출처: https://news.blizzard.com/en-us/article/6640645/game-guide-simplified-controls, https://liquipedia.net/starcraft2/Hotkeys
+- [td_bars-rt-09·partly] (Rogue Tower) 타워를 클릭하면 열리는 타워 패널에는 Range·Fire Rate·Base Damage·체력/방어/보호막 배수 수치, «Upgrade»와 «Cost», 표적 우선순위(Progress, NearDeath, MostHealth 등), «Copy (Q)»/«Paste (E)», «Demolish»가 들어 있다.
+  - 맥락: 게임에서 뽑은 문자열을 바탕으로 한 재구성이라, 패널 안 배치 순서는 확인하지 못했다. 버튼 이름에 단축키를 괄호로 붙이는 것은 Copy(Q)·Paste(E) 두 개뿐이다. 우리 게임: 영웅·용병 선택 패널에 넣을 항목의 범위를 정할 때 참고한다.
+  - 검증: translations L868-899에 Demolish, Base Damage, Health/Armor/Shield Multiplier, Upgrade, Cost, Range, Fire Rate, Copy (Q), Paste (E), Target Priority와 Progress~Marked가 한 덩어리로 있다. 문자열은 맞다. 하지만 이것들이 모두 타워 클릭 패널에 들어 있다는 것은 문자열 순서에서 추론한 것이다. 패널 스크린샷 같은 직접 근거는 찾지 못했다…
+  - 출처: https://github.com/whatdidyousayme/Rogue-Tower-Russian/blob/main/translations.json#L868-L890
+- [td_bars-bt-06·partly] (Bloons TD 6) 업그레이드 패널 안에는 위에서부터 표적 바꾸기 좌우 화살표(높이 약 29%), 위·가운데·아래 업그레이드 경로 3칸(약 37~46%, 51~59%, 65~72%), 판매 버튼(약 81~87%)이 세로로 쌓여 있다.
+  - 맥락: 16:9 화면 비율 기준이며, 패널 너비는 화면의 약 9%(x 3.3~12.2% 또는 67.8~76.6%)에 해당하는 경로 칸 영역이다. 우리 게임: 영웅 선택 패널에서 Q·W·E·R 스킬 4줄과 위쪽 표적/명령, 아래쪽 해고·판매를 고정 순서로 쌓는 참고가 된다.
+  - 검증: locations.py의 세로 위치는 맞다. 표적 화살표 y≈0.29, 위·가운데·아래 경로 0.370~0.462 / 0.512~0.586 / 0.649~0.723, 판매 0.808~0.870이다. 그러나 x 3.3~12.2%는 '현재 업그레이드 이름' OCR 글자 영역이지 패널이나 경로 칸 전체 너비가 아니다. 표적 화살표가 x 0.044와 0.185, 판매가 x 0.14~0.20에 있으므로 패널은 화면의 약 15% 이상이다. 표적 줄 위에는 타워 초상 영역도…
+  - 출처: https://github.com/j-miet/BTD6bot/blob/main/btd6bot/bot/locations.py#L125-L137
+- [ironhide-16·likely] (Iron Marines) Iron Marines는 유닛을 눌러 선택하고 끌어서 목적지를 정하며, 이동 중인 유닛은 지나가는 적을 무시하고 도착한 뒤에야 교전한다.
+  - 맥락: 모바일 원작(2017) 기준이고, Steam PC판에서는 마우스로 한다. 모바일에서는 무리를 두 번 탭한 뒤 끌어 함께 옮긴다. 가이드들은 이동 중 공격을 안 하니 매복을 조심하라고 한다. 우리 용병 드래그 선택·이동과 같은 구조라서, '이동 중엔 교전하지 않음'을 이동 화살표나 상태 표시로 화면에 보여 줘야 할 근거.
+  - 검증: 웹 검색 한도 소진으로 확인하지 못했다. GitHub에는 Iron Marines 관련 1차 자료가 없다(Cheat Engine 테이블 저장소뿐).
+  - 출처: https://toucharcade.com/2017/09/13/iron-marines-first-impressions-pretty-close-to-a-mobile-version-of-starcraft/, https://www.levelwinner.com/iron-marines-ios-guide-18-useful-tips-cheats-tricks/
+- [aoe_northgard-02·likely] (Age of Empires IV) AoE IV 선택 패널은 유닛 하나를 고르면 화면 아래 가운데 속성 칸에 공격·방어·원거리 방어·체력을 보여 주고, 두 개 이상 고르면 개별 속성 대신 고른 유닛들의 묶음 표시로 바뀐다.
+  - 맥락: 공식 포럼 이용자는 여러 종류를 함께 고르면 유닛이 종류별 묶음 탭(기본값 '전체')으로 들어가서, 한 유닛의 상태를 보려면 탭을 바꿔야 한다고 불평했다. 개별 체력을 초록·노랑·빨강으로 보여 달라는 요청도 있었다. 우리 게임 (4)(5): 용병을 드래그로 고르면 아래 패널에 종류별 묶음과 체력 색을 보여 주는 설계 근거다.
+  - 검증: 검색 한도가 다 차서 웹 검색을 못 했다. GitHub 자료에서는 선택 패널의 속성 칸과 다중 선택 묶음 탭에 대한 근거를 찾지 못했다.
+  - 출처: https://ageofempires.fandom.com/wiki/User_interface, https://forums.ageofempires.com/t/multiple-unit-selection-suggestion/223382
+- [aoe_northgard-27·likely] (Northgard) Northgard에서 적을 공격하려면 군사 유닛을 고른 뒤 싸울 타일을 누르면 되고, 적 영역에서는 타일 하나를 정리해야 그다음 타일로 나아갈 수 있다.
+  - 맥락: 공식 도움말 센터(Playdigious, 모바일·콘솔 이식사)는 '탭'이라고 적었다. 그래서 PC의 정확한 마우스 버튼은 확인하지 못했다. 경로 제한은 수비 측이 마을회관 기습을 막도록 둔 규칙이라고 스팀 가이드가 설명한다. 우리 게임: 용병 이동 목표를 칸이 아니라 구역(성벽 구간·문 앞) 단위로 찍는 단순한 명령의 근거다.
+  - 검증: 검색 한도가 다 차서 웹 검색을 못 했다. 게임 텍스트에서는 '이웃한 구역만 개척 가능', '구역의 적을 모두 정리해야 건설 가능' 같은 문구만 찾았다. 적 영역에서 한 타일씩 나아가야 한다는 규칙은 확인하지 못했다.
+  - 출처: https://playdigious.helpshift.com/hc/en/4-northgard/faq/84-how-do-i-attack-enemies/, https://steamcommunity.com/sharedfiles/filedetails/?id=3116873079
+- [castle-02·likely] (Stronghold Crusader (HD/DE)) 지은 성문루(gatehouse)를 클릭하면 아래 패널에 성문을 손으로 열고 닫는 메뉴('open Gate' 등)가 뜨고, 도개교가 붙어 있으면 같은 메뉴로 도개교도 다룬다.
+  - 맥락: Crusader HD Steam 토론, 팬 위키(도개교 문서), DE 가이드가 함께 말한다. 성문 여닫기는 건설 메뉴가 아니라 '건물을 선택했을 때의 명령 패널'에 있다. 우리 성문(여닫이)도 성문을 클릭하면 열기/닫기 버튼이 나오게 하고, 건설 버튼 줄에서는 빼는 근거.
+  - 검증: 검색 예산 소진으로 확인하지 못했다. GitHub의 UCP(비공식 Crusader 패치) 현지화 파일에는 성문이 적에 반응해 저절로 여닫힌다는 설명만 있다. 성문루 선택 패널의 'open Gate' 메뉴나 도개교 조작이 같은 메뉴라는 내용은 없었다.
+  - 출처: https://steamcommunity.com/app/40970/discussions/0/2183537632757631684/, https://gamerant.com/stronghold-crusader-definitive-edition-how-dig-moats/
+- [castle-13·likely] (Stronghold Crusader: Definitive Edition (Autumn Update v2.0, 2025-10-14)) DE 가을 업데이트는 무기 공방 건물 UI를 고쳐서, Shift+클릭하면 같은 종류 건물 전체의 생산 무기를 한 번에 바꿀 수 있다는 사실을 패널에 분명히 보이게 했다.
+  - 맥락: 공식 패치 노트(SteamDB)다. 숨은 단축 조작이 UI에 안 보여서 고친 사례다. 같은 Steam 요청 글타래에서 플레이어들은 무기 생산 드롭다운도 따로 요청했다. 우리 우클릭 자동 시전이나 단축키도 버튼 안의 작은 표식으로 보여야 한다는 근거(문제 (1)).
+  - 검증: 검색 예산 소진으로 SteamDB 패치 노트 밖의 근거(공식 Steam 뉴스 등)를 찾지 못했다. Shift+클릭 일괄 변경을 패널에 표시한 수정이 가을 업데이트에 들어갔는지 확인하지 못했다.
+  - 출처: https://steamdb.info/patchnotes/20373049/, https://steamcommunity.com/app/3024040/discussions/0/597390873150437961/
+- [castle-19·likely] (Diplomacy is Not an Option) 메인 패널에는 건설, 수리, 모든 성문 닫기, 모든 성문 열기, 시장, 고용 통계, 연구 버튼이 함께 있다.
+  - 맥락: 단축키 목록 사이트들이 'Main Panel' 항목으로 정리한 내용이다(판마다 다를 수 있다는 단서가 있다). 성문은 하나씩 고르지 않고도 메인 패널에서 '전부 열기/전부 닫기'를 할 수 있다. 우리 정문 1·쪽문 2를 한 번에 여닫는 전역 버튼을 두는 근거.
+  - 검증: 검색 예산 소진으로 확인하지 못했다. 메인 패널 구성(모든 성문 열기·닫기 버튼 포함)을 게임 안 화면이나 공식 자료로 대조하지 못했다. 단축키 사이트 사이의 차이도 확인하지 못했다.
+  - 출처: https://defkey.com/diplomacy-is-not-an-option-shortcuts, https://tutorialtactic.com/blog/diplomacy-is-not-an-option-shortcuts/
+- [ironhide-17·unverified] (Iron Marines (Steam PC)) Steam 이용자들에 따르면 Iron Marines PC판에서 유닛을 고르고 빈 땅을 우클릭하면 도착할 때까지 공격하지 않고 이동하고, 적을 우클릭하면 사거리에 들어오는 순간 멈춰 공격한다.
+  - 맥락: 이용자들은 공격-이동 명령이 있는데 PC판이 알려 주지 않는다고 지적했다. 초기 글에는 Ctrl+숫자 부대 지정이 없다는 불만이 있었고, 나중 키 가이드에는 Ctrl+1~5가 있다. 우리 게임에 쓸 수 있다: 우클릭이 이동/공격/자동 시전 중 무엇인지 툴팁이나 첫 전투 안내로 꼭 알려야 할 근거.
+  - 검증: Steam 토론 내용을 다른 출처로 확인하지 못했다. 웹 검색 한도 소진.
+  - 출처: https://steamcommunity.com/app/931280/discussions/0/3491891042516894045/, https://steamcommunity.com/app/931280/discussions/3/3491891042518030800/?ctp=2
+- [castle-15·unverified] (Stronghold Crusader: Definitive Edition) 건물 철거 버튼은 건물 패널 오른쪽에 있는 X(십자) 아이콘인데, 초보자 가이드가 이 버튼을 못 찾는 플레이어를 위해 따로 설명할 만큼 눈에 잘 띄지 않는다.
+  - 맥락: DE 초보 가이드(GameRant). 글자 없는 아이콘 버튼은 툴팁이 없으면 찾기 어렵다는 반례다. 우리 아이콘화(문제 (1))에 툴팁을 꼭 함께 붙여야 한다는 근거(현재 툴팁 0개).
+  - 검증: 검색 예산 소진으로 확인하지 못했다. 철거 버튼이 X 아이콘인지, 패널 오른쪽에 있는지 다른 가이드로 대조하지 못했다.
+  - 출처: https://gamerant.com/stronghold-crusader-definitive-edition-beginner-tips-tricks/
+- [castle-28·unverified] (Diplomacy is Not an Option (Playtest)) 플레이테스트 패치에서, 병영이나 공병 길드 패널의 병종 아이콘을 Shift를 누른 채 클릭하면 한꺼번에 여러 명을 고용하는 기능이 들어갔다.
+  - 맥락: Playtest 앱 페이지의 패치 내용(검색 요약 기준)이다. 우리 용병 구매 버튼에 Shift+클릭 대량 구매를 넣고, 툴팁에 이를 적는 근거.
+  - 검증: 검색 예산 소진으로 확인하지 못했다. 근거가 Playtest 앱 페이지 요약 하나뿐이다. Shift+클릭 대량 고용이 정식판에도 들어갔는지 확인하지 못했다.
+  - 출처: https://steamcommunity.com/app/1887370
+- [minimal-19·unverified] (Bad North) 한 리뷰에 따르면 Bad North에는 복잡한 메뉴나 통계 화면이 없고, 필요한 정보가 한 화면에 다 있으며, 부대는 종류마다 고유한 색과 그림으로 표시된다.
+  - 맥락: 검색 요약이 이 리뷰의 URL을 특정하지 않았다. 아래는 같은 검색 결과 묶음에 나온 리뷰이며, 서술이 어느 쪽에 있는지는 확인하지 못했다. 부대 선택 UI가 화면 어디에 어떤 모양으로 놓이는지는 찾지 못했다. 우리 게임 (5): 영웅 3명과 용병 부대를 각각 고유 색과 초상 아이콘으로 구분하는 근거다.
+  - 검증: 검색 한도 소진으로 검색하지 못했다. 서술의 출처 리뷰가 특정되지 않았고 독립 확인도 없다.
+  - 출처: https://www.nintendolife.com/reviews/switch-eshop/bad_north, https://www.xboxtavern.com/bad-north-review/
+- [minimal-20·unverified] (Bad North) Switch판 Bad North에서는 왼쪽 스틱이나 터치스크린으로 부대를 고르고, 범퍼로 부대를 차례로 바꾸며, 섬의 위치를 고른 뒤 A로 이동시킨다. 한 번에 최대 4개 부대까지 지휘한다.
+  - 맥락: Switch 콘솔판 조작이며 PC 마우스 조작과 다르다. 이 서술도 리뷰 URL을 짝짓지 못했다. 우리 게임: 부대 수를 적게 제한하고 순환 단축키를 두면 선택 UI를 작게 유지할 수 있다(용병 드래그 선택의 보조 수단, 예: Tab으로 다음 부대).
+  - 검증: 검색 한도 소진으로 검색하지 못했다. Switch 조작(스틱/터치 선택, 범퍼 순환, A로 이동)과 최대 4개 부대를 확인하지 못했다. 최대 부대 수는 판(Jotunn Edition 등)이나 진행 단계에 따라 다를 수 있어 따로 확인이 필요하다.
+  - 출처: https://www.nintendolife.com/reviews/switch-eshop/bad_north, https://ladiesgamers.com/bad-north-jotunn-edition-review-nintendo-switch/
+- [pixel_minimal-20·unverified] (Kingdom Two Crowns) Kingdom Two Crowns에는 개별 유닛을 고르거나 명령하는 수단이 없다. 궁수·농부·병사 같은 역할은 도구·일자리 구매, 기사·종자 고용, 동전을 낸 깃발 출격 명령으로 간접 배분된다.
+  - 맥락: 이전 조사 대장 R1-F1(3표 반박 검증 3-0)에서 확인한 위키 문장이다: 'Monarchs have very little control on how they chose their roles, and no direct control at all over their individual activities.' 선택·명령 패널이 필요 없는 구조라 HUD 없이도 성립한다. 우리 게임은 영웅 직접 조작과 용병 드래그 선택이 있으므로 '선택 패널 없음'은 그대로 옮길 수 없다는 경계 근거다(문제 4).
+  - 검증: fandom 위키에 접속할 수 없고 웹 검색 한도도 소진됐다. GitHub 자료에서도 확인할 근거를 찾지 못했다. 반대 증거도 찾지 못했다.
+  - 출처: https://kingdomthegame.fandom.com/wiki/Archer
+
+## 못 쓰는 상태 (disabled_locked_state) — 17개
+
+- [blizzard-08·verified] (Warcraft III (Classic/Reforged)) WC3에서는 시전자의 마나가 모자란 기술 아이콘이 파랗게 물들어 보인다.
+  - 맥락: 근거가 약하다. 한 모딩 가이드가 '런타임에 추가한 주문은 마나가 모자라도 주문서 아이콘이 파래지지 않는다'고 적은 간접 근거 하나뿐이다. 그래도 누르면 'Not enough mana' 경고가 뜨고, 이 경우 시전 이벤트는 발생하지 않는다(하이브 워크숍). 우리 게임: (3) 못 쓰는 이유를 버튼 글자에 넣는 문제에 쓴다. 이유마다 색을 다르게 한다(마나 부족은 파랑, 재사용 대기는 어둡게, 조건 미충족은 회색).
+  - 검증: 재구현 두 곳이 같은 동작을 적었다. Warsmash CommandCardIcon.java는 notEnoughMana일 때 아이콘 색을 setColor(0.3, 0.5, 1, 1)로 곱해 파랗게 만든다. OpenWar3는 '원작이 마나 비용이 현재 마나를 넘는 주문 아이콘을 짙은 파랑으로 곱하고, 버튼은 살아 있어 누르면 Not enough mana가 나온다'고 적었다. 공식 문서는 아니고 원작을 따라 만든 재구현 근거다.
+  - 출처: https://thegenmaps.forumotion.net/t19-the-warcraft-iii-ability-guide-targets, https://www.hiveworkshop.com/threads/detect-for-not-enough-mana-before-cast.373345/
+- [blizzard-23·verified] (StarCraft II) StarCraft II 데이터 편집기에서 버튼의 Requirements 설정은 조건을 채우지 못했을 때 그 버튼을 숨길지, 보이되 회색으로 비활성화할지를 정한다.
+  - 맥락: 공식 4.13.0 PTR 노트에는 영웅 기술 배우기 버튼에서 '필요 레벨:'이 레벨을 채운 뒤에도 붉은 글씨로 남던 버그를 고쳤다는 내용이 있다(https://news.blizzard.com/en-gb/starcraft2/23471116/starcraft-ii-4-13-0-ptr-patch-notes). 즉 못 채운 요구 조건은 툴팁에 붉은 글씨로 나온다. 우리 게임: (3) 회색 버튼 남발 문제에 쓴다. 그 단계에서 아예 못 쓰는 것은 숨기고, 곧 쓸 수 있는 것만 회색으로 두며 툴팁에 붉은 이유 줄을 단다(예: '공병 없음').
+  - 검증: SC2 RequirementData.xml의 CRequirement에는 NodeArray index='Use'와 'Show'가 따로 있다. 예를 들어 지상 무기 2단계는 Use가 '1단계 완료와 황혼 의회', Show가 '2단계 미진행'이다. Show를 못 채우면 숨기고 Use를 못 채우면 비활성으로 보인다. 툴팁에는 RequirementsLabel(전용 스타일)이 있고, 'Requires Hero Level %level%'은 붉은색(ff0000)으로 정해져 있…
+  - 출처: https://s2editor-guides.readthedocs.io/New_Tutorials/04_Data_Editor/075_Buttons/
+- [td_bars-md-03·verified] (Mindustry) 건설 격자에는 해금된 블록만 나오고(잠긴 블록은 아예 숨김) 놓을 수 있는 블록이 앞쪽으로 정렬되며, 코어 자원이 모자라면 아이콘이 회색, 놓을 수 없는 블록이면 짙은 회색으로 칠해진다.
+  - 맥락: 상태 표시는 버튼 글자가 아니라 아이콘 색으로만 한다. 우리 문제 (3): 못 쓰는 회색 버튼이 대부분인 상황에서, 아직 못 여는 항목은 숨기고 쓸 수 있는 항목을 앞에 놓으며 «돈 부족»과 «조건 불충족»을 서로 다른 어둡기로 나누는 근거가 된다.
+  - 검증: 소스를 직접 대조함. getUnlockedByCategory가 unlocked(block)으로 걸러 내고 !isPlaceable 순으로 정렬해 놓을 수 있는 블록을 앞에 둔다. 색은 자원이 모자라면 Color.gray, !isPlaceable이면 Color.darkGray이다. 덧붙임: 회색은 자원 부족뿐 아니라 플레이어 유닛이 건설 불가(!isBuilder)일 때도 칠해진다.
+  - 출처: https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/ui/fragments/PlacementFragment.java#L313-L321, https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/ui/fragments/PlacementFragment.java#L771-L773
+- [td_bars-md-05·verified] (Mindustry) 블록을 못 놓는 이유(«Unit can't build», «Banned», «Limit: N Buildings» 등)는 버튼에 붙지 않고, 정보 칸 맨 아래에 빨간 X 아이콘과 함께 한 줄로 펼쳐질 때만 나타난다.
+  - 맥락: 이유 문구는 빨간색(scarlet) 서식이다. 우리 문제 (1): «(공병 없음)» 같은 사유를 버튼 이름에서 떼어 마우스를 올렸을 때 정보 칸에서만 보여 주는 직접 사례다.
+  - 검증: 소스와 번역 묶음 파일을 직접 대조함. topTable 맨 아래 collapser에 Icon.cancel(scarlet)과 사유 라벨이 있고, 사유가 있을 때만 펼쳐진다. 사유 문자열은 bundle에 [scarlet]Unit can't build, [scarlet]Banned, [scarlet]Limit: {0} Buildings, [scarlet]Unsupported Environment로 들어 있다.
+  - 출처: https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/ui/fragments/PlacementFragment.java#L421-L431, https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/ui/fragments/PlacementFragment.java#L753-L761
+- [td_bars-bt-14·verified] (Bloons TD 6) 업그레이드 칸 배경 스프라이트는 Blue·Green·Red·Grey 네 가지 색과 «Tier5Locked», «ParagonLocked» 같은 잠김 변형으로 따로 준비되어 있다.
+  - 맥락: 어떤 색이 어떤 상태(구매 가능, 돈 부족, 경로 잠김 등)를 뜻하는지는 이번 자료로 확인하지 못했다. 회색 한 가지로 다 처리하지 않고 상태를 색으로 나눈다는 점만 확인했다. 우리 문제 (3)·(5): 못 쓰는 상태를 «돈 부족(빨강)·조건 잠김(회색)·구매 가능(초록)»처럼 색으로 나눌 근거다.
+  - 검증: Ui[UpgradeContainerBlue](L2667), Green(L2734), Red(L2638), Grey(L2833), Tier5Locked(L2633), ParagonLocked(L2835)가 모두 있다. Tier5/Paragon/ParagonUnlocked 등 변형도 더 있다. 인용한 L2633-2638 범위에는 Tier5Locked와 Red만 들어 있고, 나머지는 흩어져 있다. 색과 상태의 대응은 확인하지 못했다.
+  - 출처: https://github.com/gurrenm3/BTD-Mod-Helper/blob/master/Website/src/data/sprite-references.json#L2633-L2638
+- [pvz_frostpunk-08·verified] (Plants vs. Zombies (PC GOTY, 디컴파일 소스)) 못 쓰는 카드(재충전 중, 해 부족, 조건 미충족)를 클릭하면 매번 버저 소리가 나고, 처음 하는 모험 모드 1레벨에서는 이유를 알려 주는 안내 문구(ADVICE_SEED_REFRESH, ADVICE_CANT_AFFORD_PLANT)가 뜬다.
+  - 맥락: SeedPacket::MouseDown: mApp->PlaySample(SOUND_BUZZER); IsFirstTimeAdventureMode() && mLevel == 1 일 때 DisplayAdvice(...). 개틀링·윈터멜론 같은 선행 조건 식물은 레벨과 상관없이 [ADVICE_PLANT_NEEDS_REPEATER] 같은 안내를 띄운다. 우리 게임 적용: 회색 버튼 클릭을 그냥 무시하지 말고 소리와 한 줄 이유로 답하게 하는 근거.
+  - 검증: 윈도폰 디컴파일 SeedPacket.MouseDown에도 재충전/해 부족/조건 미충족 세 경우 모두 SOUND_BUZZER가 있고, 해 부족이면 mOutOfMoneyCounter=70이다. 1레벨 안내가 뜨려면 IsFirstTimeAdventureMode && mLevel==1에 더해 mHelpDisplayed[ADVICE_CLICK_ON_SUN]도 참이어야 한다. 영어 원문은 'Seeds need time to refresh before planting aga…
+  - 출처: https://github.com/Patoke/re-plants-vs-zombies/blob/main/Lawn/SeedPacket.cpp
+- [pvz_frostpunk-14·verified] (Plants vs. Zombies (PC GOTY, 디컴파일 소스)) 준비 단계인 씨앗 고르기 화면 아래쪽 (154,545) 156×42 'Let's Rock' 시작 버튼은 씨앗 바 칸이 다 찰 때까지 비활성 그림과 진회색(64,64,64) 글자로 있고, 칸이 다 차면 흰 글자로 바뀌어 눌린다.
+  - 맥락: SeedChooserScreen.cpp: mStartButton->Resize(154, 545, 156, 42); EnableStartButton(mSeedsInBank == mBoard->mSeedBank->mNumPackets); EnableStartButton은 SetDisabled와 라벨 색 White / Color(64,64,64). 마우스를 올리면 빛나는 그림(IMAGE_SEEDCHOOSER_BUTTON_GLOW)이 겹친다. 우리 게임 적용: 준비 단계 '전투 시작' 버튼을 건설 버튼 무리와 떼어 따로 고정 자리에 두고,…
+  - 검증: Resize(154,545,156,42), DISABLED 그림, GLOW 오버레이, 꺼짐 (64,64,64)과 켜짐 White가 코드와 같다. 라벨 원문은 LawnStrings의 "LET'S ROCK!"이다. 윈도폰판도 칸이 다 차야 켜지고 꺼질 때 (64,64,64)인 것은 같다. 다만 모바일은 라벨이 [PLAY_BUTTON]이고, 켜질 때 노랑(255,231,26)이며 작은 버튼 그림을 쓴다.
+  - 출처: https://github.com/Patoke/re-plants-vs-zombies/blob/main/Lawn/Widget/SeedChooserScreen.cpp
+- [p_disabled_modal-01·verified] (IBM Carbon Design System - Disabled states 패턴) Carbon은 의존성·선행 조건 때문에 잠시 못 쓰는 컴포넌트는 '기본 비활성'으로 화면에 남겨 두고(완전히 사라지면 안 됨) 컴포넌트 불투명도 50%, 글자 25%, 호버 변화 없음, not-allowed 커서로 그리게 하며, 권한이 없어 계속 못 쓰는 경우에만 '숨김'으로 아예 빼라고 정한다.
+  - 맥락: 비활성 항목이 여러 항목이나 흐름의 주 동작에 영향을 주면, 다시 켜는 방법을 적은 인라인 경고를 함께 보이라고도 한다. WCAG 1.4.3은 비활성 UI 구성 요소의 글자를 대비 요건에서 빼 주므로 흐리게 그려도 되지만, 그만큼 읽기는 어려워진다. 웹/앱 지침. 우리 게임: 문제 (3) 회색 버튼이 대부분인 상태에 쓸 기준이다. '공병 없음'·'자원 부족'처럼 곧 풀리는 조건은 회색으로 자리를 지키고, 이번 판에 절대 못 쓰는 항목(마을 레벨 미달로 아직 해금 안 된 건물 등)은 숨긴다.
+  - 검증: Carbon 원문(disabled-states/index.mdx)을 직접 읽어 대조했다. 의존성·선행 조건으로 잠시 못 쓰면 '기본 비활성'이고 '시야에서 완전히 사라지면 안 된다'고 적혀 있다. 컴포넌트 50%, 글자 25%, 아이콘 50%, 호버 없음, not-allowed 커서이고, 여러 항목이나 주 동작에 영향을 주면 인라인 경고를 띄운다. 권한이 없을 때는 'Hidden'이다. 다만 원문은 이 수치를 '가장 흔한 스타일'이라 하며 '정확한 값은 각 컴포…
+  - 출처: https://raw.githubusercontent.com/carbon-design-system/carbon-website/main/src/pages/patterns/disabled-states/index.mdx, https://raw.githubusercontent.com/w3c/wcag/main/guidelines/sc/20/contrast-minimum.html
+- [p_disabled_modal-02·verified] (OpenRA (오픈소스 C&C/Red Alert 엔진) 생산 팔레트) OpenRA는 생산 항목의 선행 조건 앞에 '~'를 붙이면 그 조건이 안 될 때 생산 팔레트에서 아이콘을 숨기고, '~'가 없으면 아이콘을 제자리에 둔 채 어둡게(NotBuildable 팔레트로 cantBuild 덧그림) 그린다. 그래서 숨길지 비활성으로 둘지를 항목마다 데이터로 고른다.
+  - 맥락: Buildable.Prerequisites 설명에는 '! 는 조건을 뒤집고, ~ 는 조건이 없을 때 생산 팔레트에서 숨긴다'고 적혀 있고, TechTree가 PrerequisitesItemHidden/Visible을 따로 보낸다. PC판 OpenRA bleed 브랜치 기준. 우리 게임: 건설 12종의 숨김/비활성 규칙(예: 교회 미건설이면 숨김, 공병 없음이면 비활성)을 코드가 아닌 항목 데이터로 두는 근거다(문제 3·4).
+  - 검증: Buildable.cs 설명이 주장과 같다('!'는 뒤집기, '~'는 조건이 없을 때 팔레트에서 숨김). TechTree가 PrerequisitesItemHidden/Visible을 보내고, ProductionQueue.AllItems()는 'Buildable || Visible'인 항목만 고른다. 팔레트는 생산할 수 없는 아이콘 위에 cantBuild를 NotBuildablePalette로 덧그린다. RA 모드 structures.yaml에서도 진영과 테크레벨…
+  - 출처: https://raw.githubusercontent.com/OpenRA/OpenRA/bleed/OpenRA.Mods.Common/Traits/Buildable.cs, https://raw.githubusercontent.com/OpenRA/OpenRA/bleed/OpenRA.Mods.Common/Traits/Player/TechTree.cs
+- [p_disabled_modal-03·verified] (GitHub Primer / GOV.UK / Shopify Polaris 버튼 지침) GitHub Primer는 disabled 버튼이 키보드 포커스를 받지 못해 발견되지 않으므로 되도록 쓰지 말라고 한다. 대신 흐리게 보이되 포커스·호버·클릭은 받는 'inactive' 버튼을 써서, 호버나 포커스에는 툴팁을, 클릭에는 못 하는 이유와 해결 경로를 담은 대화창을 띄우라고 한다.
+  - 맥락: Primer는 inactive 버튼을 클릭하면 반드시 어떤 피드백이든 주라고 한다(required). GOV.UK 디자인 시스템은 '비활성 버튼은 대비가 낮고 일부 사용자를 헷갈리게 하니 가능하면 피하라'고 하고, Polaris는 '주변 화면이 왜 비활성인지, 무엇을 하면 켜지는지 분명히 해야 한다'고 쓴다. 셋 다 웹 지침이며, 게임 지침으로 쓴 곳은 확인하지 못했다. 우리 게임: Godot의 BaseButton.disabled=true만 쓰지 말고, 눌리기는 하되 이유를 알려 주는 상태를 따로 두는 근거다(문제 1·3).
+  - 검증: Primer button.mdx 원문과 대조했다. disabled 버튼은 '포커스를 받지 못해 발견되지 않으니 대체로 피하라'고 한다. inactive 버튼은 'disabled의 접근성 있는 대안'이며 호버·포커스에 툴팁, 클릭에 대화창을 띄울 수 있다. 클릭 피드백은 'required', 툴팁은 'not required'라고 적혀 있다. GOV.UK와 Polaris 문구도 원문과 같다. 다만 Primer는 inactive를 '고장 났지만 페이지에서 뺄 수 없는…
+  - 출처: https://raw.githubusercontent.com/primer/design/main/content/components/button.mdx, https://raw.githubusercontent.com/alphagov/govuk-design-system/main/src/components/button/index.md
+- [p_disabled_modal-05·verified] (0 A.D. 건설 패널) 0 A.D. 건설 패널은 38×38 아이콘 버튼을 한 줄 10칸의 고정 격자에 놓는다. 선행 조건이 안 되거나 수량 한도에 닿으면 아이콘을 회색조에 검정 127/255(약 50%)로 덮고, 자원만 모자라면 모자란 총량에 비례한 불투명도(50~125/255)의 빨간색으로 덮어, 두 가지 비활성을 색으로 나눈다.
+  - 맥락: 빨간 덧칠의 알파는 min(125, 모자란 총량/10+50)이다. 버튼은 꺼져도 인덱스 자리가 그대로라 위치가 밀리지 않는다. 꺼진 버튼도 우클릭하면 상세 창이 열린다(onPressRightDisabled). PC 오픈소스 RTS, master 기준. 우리 게임: 문제 (2) 단계마다 버튼 위치가 밀리는 것은 고정 격자로, 문제 (3) 모두 똑같은 회색인 것은 '조건 미충족=회색, 자원 부족=빨강'으로 나눠 푸는 근거다.
+  - 검증: 코드가 주장과 같다. construction_panel.xml의 버튼은 38×38이고, selection_panels.js에서 rowLength는 10이다. 선행 조건 미충족이거나 canBeAddedCount==0이면 'color:0 0 0 127:grayscale:'로 덮는다. 자원만 모자라면 resourcesToAlphaMask가 'color:255 0 0 min(125, round(총량/10)+50)'로 덮는다. onPressRightDisabled는 상세…
+  - 출처: https://raw.githubusercontent.com/0ad/0ad/master/binaries/data/mods/public/gui/session/selection_panels.js, https://raw.githubusercontent.com/0ad/0ad/master/binaries/data/mods/public/gui/session/selection_panels_helpers.js
+- [p_pixel_ui-14·verified] (Godot 4 버튼 비활성 표시) Godot 4 Button은 비활성 상태 전용 StyleBox(disabled)와 font_disabled_color(기본 RGBA 0.875, 0.875, 0.875, 0.5), icon_disabled_color(기본 알파 0.4)를 따로 가지며, TextureButton은 texture_disabled를 지정하지 않으면 비활성일 때도 texture_normal을 그대로 보여 준다.
+  - 맥락: Button.icon은 글자 앞에 놓이고, icon_alignment, expand_icon, icon_max_width로 위치와 크기를 조정한다. Mindustry도 button-disabled.9.png를 따로 둔다(p_pixel_ui-10). 우리 게임 적용: 회색 버튼이 대부분인 문제(3)는 비활성 스타일만 바꿔서는 풀리지 않는다. 못 쓰는 이유를 버튼 글자에서 빼서 잠금 아이콘(8×8)과 툴팁으로 옮기고, 비활성 대비는 테마에서 한 번에 정해야 한다.
+  - 검증: Button.xml을 확인했다: disabled StyleBox, font_disabled_color 기본 Color(0.875,0.875,0.875,0.5), icon_disabled_color 기본 Color(1,1,1,0.4). icon은 'placed before the text'이고 icon_alignment, expand_icon, icon_max_width가 있다. TextureButton.texture_disabled에는 'If not assign…
+  - 출처: https://raw.githubusercontent.com/godotengine/godot/master/doc/classes/Button.xml, https://raw.githubusercontent.com/godotengine/godot/master/doc/classes/TextureButton.xml
+- [pvz_frostpunk-05·partly] (Plants vs. Zombies (PC GOTY, 디컴파일 소스)) 해가 모자라거나 선행 식물 조건(예: 개틀링 완두는 리피터 위에만)을 못 채운 카드는 자리와 그림, 비용 숫자를 그대로 둔 채 카드 전체를 회색도 128(약 절반 밝기)로 어둡게만 그린다.
+  - 맥락: SeedPacket::Draw: if ((!CanTakeSunMoney(aCost) && aDrawCost) || ... || !PlantingRequirementsMet(...)) aGrayness = 128; DrawSeedPacket에서 SetColor(theGrayness...)로 색을 입힘. 재충전 흐림(위쪽 진회색 막)과 해 부족 흐림(전체 반 밝기)은 서로 다른 표시다. 우리 게임 적용: (3) 못 쓰는 회색 버튼 문제. 이유마다 표시를 달리하고(대기=차오름 막, 자원 부족=전체 흐림) 버튼은 숨기지 않는 근거.
+  - 검증: 해가 모자라거나 선행 조건을 못 채우면 aGrayness=128로 카드 전체를 반 밝기로 그리고, 자리·그림·비용 숫자는 그대로다. 윈도폰판 GetGraynessAndDarkness도 같다. 하지만 detail의 '재충전 흐림과 해 부족 흐림은 서로 다른 표시'는 반만 맞다. 재충전 중인 카드도 전체가 128로 어두워지고, 그 위에 위쪽 64 막이 하나 더 얹힐 뿐이다. 윈도폰판은 재충전(num>0)일 때 grayness를 128로 직접 넣는다. 둘을 가르는 것…
+  - 출처: https://github.com/Patoke/re-plants-vs-zombies/blob/main/Lawn/SeedPacket.cpp
+- [p_disabled_modal-04·partly] (OpenRA / The Battle for Wesnoth - 못 쓰는 항목 클릭 시 반응) 못 쓰는 항목을 누르면 OpenRA 생산 팔레트는 ClickDisabledSound 효과음을 내고, Wesnoth 징집 창은 못 뽑는 유닛을 골라 '징집'을 누를 때 그 이유 문구를 잠깐 떴다 사라지는 메시지(show_transient_message)로 보여 준다.
+  - 맥락: 두 게임 모두 '못 씀' 상태를 아무 반응 없는 버튼으로 두지 않는다. Primer의 'inactive 버튼 클릭에는 반드시 피드백' 지침과 같은 방향이다. PC판 오픈소스 코드(OpenRA bleed, Wesnoth master) 기준. 우리 게임: 웨이브 중 바쁠 때 회색 버튼을 누르면 짧은 거부음과 함께 '공병 없음' 같은 문구를 화면에 1초쯤 띄우는 방식에 쓴다(문제 3).
+  - 검증: OpenRA 부분은 맞다. 클릭이 처리되지 않으면 HandleEvent가 ClickDisabledSound를 재생하고, 이 소리는 mods/common/metrics.yaml에 정의돼 있다. Wesnoth도 징집 창에서 못 뽑는 유닛을 고르고 OK를 누르면 show_transient_message(err)를 부른다. 그러나 transient_message.hpp/.cpp를 보면 이것은 modal_dialog이고 '한 번 클릭하면 닫히는' 대화창이다. 타이머가 없…
+  - 출처: https://raw.githubusercontent.com/OpenRA/OpenRA/bleed/OpenRA.Mods.Common/Widgets/ProductionPaletteWidget.cs, https://raw.githubusercontent.com/wesnoth/wesnoth/master/src/menu_events.cpp
+- [tab-13·likely] (They Are Billions) 건물은 사령부와 테슬라 타워가 만드는 에너지 범위 안에만 지을 수 있고, 건물을 배치하려 할 때나 에너지 지도 보기를 켰을 때 지을 수 있는 칸이 초록으로 칠해진다.
+  - 맥락: 에너지 범위 크기는 위키마다 수치가 다르다. '여기는 못 짓는다'를 빨강으로 표시하자는 것은 플레이어의 제안일 뿐 실제 동작인지 확인되지 않았다. 우리 게임 (1)(3)번에 쓸 근거: 못 짓는 이유를 버튼 글자에 넣지 않고, 배치하는 순간 맵 위 칸 색으로 보여 줄 수 있다.
+  - 검증: 웹 검색 한도가 소진됐다. 에너지 범위 안에서만 지을 수 있다는 점과 초록 칸 표시는 GitHub 자료로 확인하지 못했다.
+  - 출처: https://they-are-billions.fandom.com/wiki/Buildings, https://en.namu.wiki/w/They%20Are%20Billions/%EA%B1%B4%EB%AC%BC
+- [aoe_northgard-09·likely] (Age of Empires IV) AoE IV의 '시대 올리기' 버튼은 화면 아래 가운데에 있다. 현재 시대를 로마 숫자로 보여 주고, 다음 시대로 올릴 수 있게 되면 빛난다.
+  - 맥락: 2021 출시판 안내 기준이다. 우리 게임 (3): 못 쓰는 버튼을 늘 회색으로 깔아 두지 말고, 마을 레벨업처럼 핵심인 버튼 하나만 고정 자리에 두고 조건이 차면 빛나게 하는 근거다.
+  - 검증: 검색 한도가 다 차서 웹 검색을 못 했다. 키 프로필에 시대 올리기 단축키(ability_age_up 기본 T)는 있지만, 버튼 위치·로마 숫자·빛나는 표시는 확인할 수 없었다.
+  - 출처: https://gamerant.com/aoe4-age-of-empires-4-how-advance-to-next-age/, https://news.xbox.com/en-us/2021/11/03/age-of-empires-4-tips/
+- [aod-06·unverified] (Age of Darkness: Final Stand) 스팀 포럼 플레이어들은 잠긴 건물이 어떤 연구나 건물을 먼저 필요로 하는지 게임이 알려 주지 않고, 금이 차서 배치하려 해도 실제로는 다른 자원이 모자란 경우를 구분하기 어렵다고 지적했다.
+  - 맥락: 얼리 액세스 시기의 피드백이며, 1.0에서 바뀌었는지는 확인하지 못했다. 우리 게임 (1)(3)번에 쓸 근거: 못 쓰는 버튼의 이유(공병 없음, 자원 부족, 선행 건물 필요)를 툴팁에서 모자란 항목만 빨갛게 보여 줄 수 있다.
+  - 검증: 웹 검색 한도가 소진돼 스팀 포럼 피드백을 다른 출처로 확인하지 못했다.
+  - 출처: https://steamcommunity.com/app/1426450/discussions/0/4027969835232892752/, https://steamcommunity.com/app/1426450/discussions/0/3266806084897497427/
+
+## 툴팁 (tooltip) — 20개
+
+- [blizzard-22·verified] (StarCraft II) StarCraft II에서 명령 버튼에 커서를 올리면 툴팁에 명령 이름과 그 뒤 괄호 속 단축키 글자가 나오고, 본문은 버튼마다 데이터에 정해 둔 설명 글이다.
+  - 맥락: 편집기 문서는 툴팁을 '버튼 마우스오버 때 보이는 글'이라고 정의하고, 이름과 연결된 능력의 시간 정보도 함께 보인다고 쓴다. 툴팁에 광물·가스·인구 비용이 어떤 순서로 나오는지는 확인하지 못했다. 공식 가이드는 오래된 글이다. 우리 게임: 툴팁이 0개인 문제와 (1)에 쓴다. 이름, 비용, 못 쓰는 이유를 버튼에서 빼서 툴팁으로 옮긴다.
+  - 검증: CommandButton.SC2Layout의 CommandTooltip은 다음 순서로 쌓인다. NameLabel 바로 오른쪽에 같은 줄로 HotkeyLabel이 붙고, 그 아래에 자원 아이콘 4개와 숫자, 인구 아이콘과 숫자 줄, 그다음 생명·보호막·에너지 줄, 시간·지속·재사용 대기·사거리, Requirements, TipLabel(데이터 설명 글), Autocast 순이다. 조사원이 확인하지 못한 비용 순서도 여기서 확인된다. 단축키가 괄호에 싸이는지는 확인…
+  - 출처: https://news.blizzard.com/en-us/article/4552955/game-guide-special-control, https://s2editor-guides.readthedocs.io/New_Tutorials/04_Data_Editor/075_Buttons/
+- [td_bars-md-04·verified] (Mindustry) 블록에 마우스를 올리거나 블록을 고르면 격자 바로 위 정보 칸에 아이콘·이름·단축키 조합과 자원별 «보유/필요» 수가 뜨고, 보유량이 필요량의 절반 미만이면 빨강, 필요량 미만이면 강조색(노랑), 충분하면 흰색으로 표시된다.
+  - 맥락: 정보 칸 오른쪽의 «?» 버튼을 누르면 블록 상세 창이 열린다. 우리 문제 (1)·(7)의 «툴팁 0개»: 비용과 부족분을 버튼 안 글자 대신 고정 위치 정보 칸에 색으로 보여 주는 구조다.
+  - 검증: 소스를 직접 대조함. topTable(Tex.buttonEdge2)이 격자 위에 있고, menuHoverBlock이나 선택한 블록을 보여 준다. 내용은 아이콘(32px), 이름+keyCombo, 자원 아이콘·이름, '보유/필요'이다. 색은 amount < 필요/2이면 [scarlet], < 필요이면 [accent], 아니면 [white]이며 보유 숫자에만 붙는다. '?' 버튼은 ui.content.show를 연다.
+  - 출처: https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/ui/fragments/PlacementFragment.java#L346-L420
+- [td_bars-rt-11·verified] (Rogue Tower) 2022년 QoL 모드가 «마우스를 올리면 타워 사거리 원/사각형 표시», «건설 모드에서 사거리 표시», «표적 우선순위별 타워 색칠»을 추가 기능으로 내놓았다.
+  - 맥락: 모드가 따로 추가한 기능이므로 당시 기본 게임에는 없었던 것으로 보인다(추정). 최신판에서 기본 기능이 됐는지는 확인하지 못했다. 우리 문제 (7)의 «툴팁 0개»: 마우스를 올렸을 때·건설할 때 사거리 표시가 플레이어가 먼저 찾는 정보라는 근거다.
+  - 검증: QoLChanges README에 'Tower Range circles/squares on hover'(1.0.0), 'Priority Coloring of Towers'(1.2.0), 'Display Tower Range in Build Mode'(1.3.0)이 완료 항목으로 있다. 저장소는 2022-03 생성이다. 당시 기본 게임에 없었다는 것과 최신판 상태는 확인하지 못했다(추정 그대로).
+  - 출처: https://github.com/TheirOwn/QoLChanges/blob/main/README.md#L5-L12
+- [pvz_frostpunk-06·verified] (Plants vs. Zombies (PC GOTY, 디컴파일 소스)) 씨앗 카드에 마우스를 올리면 연노랑(255,255,200) 바탕에 검은 테두리 툴팁이 뜨고, 식물 이름 줄과 따로 빨간(255,0,0) 경고 줄 하나가 나오며, 경고 줄은 재충전 중이면 [WAITING_FOR_SEED], 해 부족이면 [NOT_ENOUGH_SUN], 조건 미충족이면 [REQUIRES_REPEATER]처럼 한 가지 이유만 보여 준다.
+  - 맥락: Board.cpp 툴팁 갱신 부분은 if-else 사슬이라 재충전 → 해 부족 → 선행 조건 순서로 첫 이유 하나만 고른다. ToolTipWidget::Draw는 FillRect(255,255,200), DrawRect(검정), 경고 글자는 Color(255,0,0)이고 mWarningFlashCounter로 깜박일 수 있다. 영어 원문 문자열은 LawnStrings 파일을 찾지 못해 확인하지 못했고, 키 이름만 확인했다. 우리 게임 적용: (1) «방벽 10 (1) (공병 없음)»처럼 이유를 버튼 글자에 붙이지 말고, 툴팁의 빨간…
+  - 검증: 툴팁 if-else 사슬, 바탕 (255,255,200), 검은 테두리, 경고 글자 (255,0,0)이 코드와 같다. 조사원이 찾지 못한 영어 원문은 다른 저장소의 LawnStrings.txt에 있다. [WAITING_FOR_SEED]='recharging...', [NOT_ENOUGH_SUN]='not enough sun', [REQUIRES_REPEATER]='requires repeater'. 그리는 순서는 경고 줄이 위, 식물 이름(label)이 아래다.…
+  - 출처: https://github.com/Patoke/re-plants-vs-zombies/blob/main/Lawn/Board.cpp, https://github.com/Patoke/re-plants-vs-zombies/blob/main/Lawn/ToolTipWidget.cpp
+- [p_disabled_modal-08·verified] (Mindustry 건설 정보 칸(PlacementFragment)) Mindustry PC판은 화면 오른쪽 아래 건설 패널 위 정보 칸에 고른 블록의 아이콘, 이름, 단축키 조합을 쓴다. 재료마다 '보유/필요' 숫자를 보유가 필요량의 절반 미만이면 진홍(scarlet), 모자라면 강조색, 충분하면 흰색으로 칠하고, 설치할 수 없는 이유(건설 유닛 아님, 금지됨, 설치 한도)는 빨간 X 아이콘과 함께 따로 한 줄로 띄운다.
+  - 맥락: 단축키 조합은 mobile이 아닐 때만 이름 뒤에 붙는다(PC/모바일 차이). 이유 줄은 이유가 있을 때만 펼쳐지는 collapser라 평소에는 자리를 차지하지 않는다. 우리 게임: 문제 (1)에서 이유를 버튼 이름에 섞지 않고 빨간 아이콘이 붙은 별도 줄로 빼고, 비용은 '보유/필요'와 색 단계로 보이는 근거다.
+  - 검증: PlacementFragment.java와 같다. 패널은 full.bottom().right()에 있다. 단축키 조합은 !mobile일 때만 이름 뒤에 붙는다. 재료 숫자는 amount < 필요량/2이면 [scarlet], 필요량 미만이면 [accent], 그 밖에는 [white]로 '보유/필요'를 칠한다. 이유 줄은 collapser이고, Icon.cancel(X)을 scarlet으로 칠해 붙이며 이유가 있을 때만 펼친다. 이유는 unit.nobuild, un…
+  - 출처: https://raw.githubusercontent.com/Anuken/Mindustry/master/core/src/mindustry/ui/fragments/PlacementFragment.java
+- [p_disabled_modal-11·verified] (툴팁 표시 지연 값 (Godot 4 / 0 A.D. / OpenRA / Carbon / Material)) 툴팁이 뜨기까지의 지연은 Godot 4 기본값이 0.5초(ProjectSettings gui/timers/tooltip_delay_sec)인데, 0 A.D.는 전투 화면 툴팁을 0.1초(메뉴는 0.5초)로, OpenRA는 마우스가 멈춘 뒤 0.2초로 잡아 실시간 전투 화면에서는 더 짧게 쓴다.
+  - 맥락: 웹 디자인 시스템은 Carbon이 표시 0.1초·숨김 0.3초, Material(MDC Web)이 표시 0.5초·숨김 0.6초다. OpenRA 툴팁은 커서 20px 아래에 붙고, 화면 아래 끝에 닿으면 커서 위로 뒤집힌다. Godot 툴팁은 mouse_filter가 MOUSE_FILTER_IGNORE가 아닌 컨트롤에서만 뜬다. 우리 게임: 툴팁이 0개인 지금, 전투 HUD용으로 Godot 프로젝트 설정의 툴팁 지연을 0.1~0.2초로 줄이는 근거다.
+  - 검증: 모든 수치가 코드와 같다. Godot ProjectSettings의 tooltip_delay_sec 기본값은 0.5이고 4.3 브랜치도 같다. Control.tooltip_text 설명에 MOUSE_FILTER_IGNORE면 툴팁이 뜨지 않는다는 조건이 있다. 0 A.D. setup.xml은 session 툴팁 delay 100, sn(메뉴) 툴팁 delay 500이다. OpenRA는 TooltipDelayMilliseconds=200이고, 마우스가 움직일 때마…
+  - 출처: https://raw.githubusercontent.com/godotengine/godot/master/doc/classes/ProjectSettings.xml, https://raw.githubusercontent.com/godotengine/godot/master/doc/classes/Control.xml
+- [p_disabled_modal-12·verified] (고정·중첩 가능한 툴팁의 전제 (WCAG 1.4.13 / Material 지속형 리치 툴팁 / Polaris)) WCAG 2.1 1.4.13은 호버로 뜨는 추가 내용이 세 조건을 지키라고 정한다. 포인터를 그 위로 옮겨도 사라지지 않고(hoverable), 트리거를 떼거나 닫을 때까지 남으며(persistent), 포인터를 움직이지 않고도 닫을 수 있어야(dismissible) 한다. Material(MDC Web)의 '지속형 리치 툴팁'은 클릭으로 열고, 내용 위나 바깥으로 마우스를 옮겨도 남아 있다가 바깥을 클릭하면 닫힌다.
+  - 맥락: Polaris도 '클릭이나 키 입력으로 열면 계속 남는 툴팁(With persistence on click)' 변형을 둔다. 다만 Polaris는 툴팁에 링크·버튼을 넣지 말고 오류 같은 중요한 정보도 넣지 말라고 해서, 게임이 툴팁으로 '못 쓰는 이유'를 알리는 관행과는 다르다. Crusader Kings 3식 중첩 툴팁(툴팁 속 용어에 다시 툴팁, 고정)은 검색 한도 때문에 직접 확인하지 못했고, 이 항목은 그 전제가 되는 동작의 근거일 뿐이다. 우리 게임: 영웅 스킬 툴팁 안의 '기절'·'마나' 같은 용어 설명을 클릭으로 고정…
+  - 검증: WCAG 1.4.13(AA, 2.1에서 신설) 원문에 Dismissible, Hoverable, Persistent 세 조건이 그대로 있다. Dismissible에는 입력 오류를 알리거나 다른 내용을 가리지 않는 경우라는 예외가 있다. MDC README도 같다. 지속형 리치 툴팁은 클릭이나 Enter/Space로 토글하고, 앵커 밖으로 호버해도 남아 있다가 바깥을 클릭하면 숨는다. Polaris tooltip.mdx에도 'With persistence on c…
+  - 출처: https://raw.githubusercontent.com/w3c/wcag/main/guidelines/sc/21/content-on-hover-or-focus.html, https://raw.githubusercontent.com/material-components/material-components-web/master/packages/mdc-tooltip/README.md
+- [p_pixel_ui-15·verified] (Godot 4 툴팁·단축키 표시) Godot 4 Control은 tooltip_text가 있으면 마우스가 잠시(기본 0.5초, gui/timers/tooltip_delay_sec) 멈췄을 때 PopupPanel과 Label로 된 툴팁을 띄우고, Button은 shortcut_in_tooltip(기본 true)으로 지정된 Shortcut을 그 툴팁에 자동으로 붙이며, _make_custom_tooltip을 덮어쓰면 아무 Control(아이콘·비용 줄 등)이나 툴팁으로 쓸 수 있다.
+  - 맥락: 기본 툴팁의 모양은 Theme의 TooltipPanel·TooltipLabel 타입으로 바꾼다. 그래서 9-slice 패널과 도트 글꼴을 그대로 입힐 수 있다. 사용자 툴팁을 쓰면 shortcut_in_tooltip은 효과가 없다. 툴팁은 최소 크기로 줄어드니 custom_minimum_size를 지정하라고 문서가 권한다. mouse_filter가 IGNORE이면 툴팁이 뜨지 않는다. 우리 게임 적용: '방벽 10 (1) (공병 없음)'에 들어 있던 비용, 단축키, 못 쓰는 이유를 툴팁으로 옮기는 근거다(문제 1, 지금 툴팁 0개)…
+  - 검증: Control.xml의 tooltip_text 설명: 마우스가 잠시 멈추면 뜨고, mouse_filter가 IGNORE가 아니어야 하며, 지연은 gui/timers/tooltip_delay_sec(기본 0.5)다. 기본 툴팁은 PopupPanel과 Label이고 TooltipPanel, TooltipLabel 타입으로 테마를 바꾼다. _make_custom_tooltip은 아무 Control이나 돌려줄 수 있고, 'shrunk to minimal size'이니 …
+  - 출처: https://raw.githubusercontent.com/godotengine/godot/master/doc/classes/Control.xml, https://raw.githubusercontent.com/godotengine/godot/master/doc/classes/BaseButton.xml
+- [blizzard-09·partly] (Warcraft III (Classic/Reforged)) WC3 게임 데이터(war3skins.txt)에는 툴팁 전용 금·나무·마나·인구(supply) 비용 아이콘과 가로 구분선 그림이 종족 스킨마다 따로 정해져 있다.
+  - 맥락: GitHub에 있는 추출본 war3skins.txt를 직접 읽어 ToolTipGoldIcon, ToolTipLumberIcon, ToolTipManaIcon, ToolTipSupplyIcon, ToolTipHorizontalSeparator 항목을 확인했다. 하이브 워크숍 글에서는 Game Interface의 'Image - Tooltip Gold Icon'을 바꾸면 툴팁의 금 아이콘이 바뀐다. 즉 툴팁 비용은 글자가 아니라 아이콘과 숫자로 나온다. 우리 게임: (1) «방벽 10 (1) (공병 없음)»에서 비용을 툴팁으로 빼는 데…
+  - 검증: war3skins.txt를 직접 읽어 보니 ToolTipGold/Lumber/Stones/Mana/SupplyIcon과 ToolTipHorizontalSeparator가 있다. 하지만 이 키들은 [Default] 구역에만 있고 경로도 Human 것이다. [Human]·[Orc]·[NightElf]·[Undead] 구역에는 없다. '종족 스킨마다 따로 정해져 있다'는 틀렸다(OpenWar3도 같은 결론). OpenWar3 문서에 따르면 툴팁은 이름 줄, 비용 아이…
+  - 출처: https://raw.githubusercontent.com/UIZorrot/Quenching-Gitbook/master/source%20files/_retail_/ui/war3skins.txt, https://www.hiveworkshop.com/threads/gold-cost-in-tooltips-replacing-the-gold-icon-on-a-tooltip.127483/
+- [blizzard-10·partly] (Warcraft III (Classic/Reforged)) WC3 명령 버튼 툴팁의 이름 줄에서는 단축키 글자가 노란색으로 표시되고, Reforged에서는 모든 명령 툴팁 끝에 단축키가 자동으로 붙는다.
+  - 맥락: 원작 Battle.net 안내가 노란 글자가 그 명령의 단축키라고 설명한다. GitHub 단축키 편집기 README에는 별표로 감싸면 노란색이 된다는 점, 그리고 Reforged에서 '모든 명령 뒤에 단축키가 자동 표시되고 영웅 명령 툴팁은 고칠 수 없게 됐다'는 점이 적혀 있다. 우리 게임: (1) 단축키를 버튼 글자에서 빼고 툴팁 제목 줄의 강조색 글자로 옮기는 데 쓴다.
+  - 검증: 노란 단축키 글자는 확인했다. 원작 CommandStrings.txt의 이름 줄이 'Tip=|cffffcc00M|rove', 'Cancel (|cffffcc00ESC|r)'처럼 단축키 글자를 노란색 코드로 감싼다. 'Reforged에서 모든 툴팁 끝에 단축키가 자동으로 붙는다'는 인용된 README 말고는 독립 근거를 찾지 못했다.
+  - 출처: https://classic.battle.net/war3/basics/specialcommands.shtml, https://github.com/jcfieldsdev/warcraft3-hotkey-editor
+- [p_disabled_modal-06·partly] (0 A.D. 건설 버튼 툴팁 구성) 0 A.D. 건설 버튼 툴팁은 이름, 분류, 오라, 설명, 비용(자원 아이콘+숫자), 주둔·인구 보너스, 수량 한도 순으로 줄을 쌓는다. 그리고 맨 끝에 못 쓰는 이유를 빨간 굵은 글씨(sans-bold-13, red)로 'Requires <기술명>'과 'Insufficient resources: <자원 아이콘> <모자란 양>' 형태로 붙인다.
+  - 맥락: 이유 줄은 해당될 때만 생기고, 빈 줄은 filter로 빠진다. 전투 화면 툴팁 창은 최대 너비 400px이다. 우리 게임: 문제 (1) '방벽 10 (1) (공병 없음)'처럼 한 버튼에 다 넣은 글자를 버튼 밖 툴팁의 '이름 / 비용 / 효과 / 빨간 이유 줄'로 나누는 틀이다.
+  - 검증: 큰 틀은 맞다. 툴팁은 이름, 분류, 오라, 설명, 비용, (자원 하역지·주둔·포탑), 인구 보너스, '우클릭으로 상세' 안내, 수량 한도, 경기 한도 순으로 쌓이고, 그 뒤에 Requires 줄과 Insufficient resources 줄이 온다. filter로 빈 줄을 빼고 '\n'으로 잇는다. objection 형식은 sans-bold-13에 red이고, session 툴팁의 maxwidth는 400이다. 다만 두 가지가 다르다. ① 'Insufficie…
+  - 출처: https://raw.githubusercontent.com/0ad/0ad/master/binaries/data/mods/public/gui/common/tooltips.js, https://raw.githubusercontent.com/0ad/0ad/master/binaries/data/mods/public/gui/session/selection_panels.js
+- [p_disabled_modal-07·partly] (OpenRA 생산 툴팁 레이아웃) OpenRA 생산 툴팁은 폭 200px 상자 왼쪽 위에 굵은 이름과 그 옆 노란색(FFFF00) 괄호 단축키를 두고, 아래에 작은 글씨 'Requires <선행 건물>.' 줄과 설명을 둔다. 오른쪽 열에는 16×16 아이콘과 함께 비용·제작 시간·전력을 세로로 놓고, 돈이 모자라면 비용 숫자를, 전력이 모자라면 시간과 전력 숫자를 빨갛게 바꾼다.
+  - 맥락: 공통 크롬(mods/common/chrome/tooltips.yaml) 기준이며, C&C 모드는 배경 스킨(panel-black)만 다르다. 비용 색은 매 프레임 '보유 현금+자원 >= 비용'으로 정한다. 우리 게임: 단축키 '(1)'을 버튼 글자에서 빼서 툴팁 이름 옆 노란 글자로 옮기고, 비용은 아이콘+숫자(모자라면 빨강)로 쓰는 근거다(문제 1·5).
+  - 검증: 대부분 맞다. 이름은 Bold, 단축키 라벨은 FFFF00에 '(키)'이고, Requires는 TinyBold, 오른쪽 열에 16×16 아이콘과 함께 비용·시간·전력이 놓인다. 비용 색은 GetColor 람다 'GetCashAndResources() >= cost'로 정한다. 전력은 초과 시, 시간은 저전력(LowPowerModifier>100) 시 빨간색이다. 틀린 점은 둘이다. ① 'Width: 200'은 yaml 초기값일 뿐이고, ProductionTool…
+  - 출처: https://raw.githubusercontent.com/OpenRA/OpenRA/bleed/mods/common/chrome/tooltips.yaml, https://raw.githubusercontent.com/OpenRA/OpenRA/bleed/OpenRA.Mods.Common/Widgets/Logic/Ingame/ProductionTooltipLogic.cs
+- [ironhide-13·likely] (Kingdom Rush 5: Alliance) Kingdom Rush 5: Alliance는 메인 메뉴의 백과사전을 빼고, 전투 중 적을 클릭한 뒤 화면 아래쪽에 뜨는 그 적의 초상화를 누르면 상세 정보를 보게 했다.
+  - 맥락: 이전 작품의 백과사전은 새 적을 처음 만날 때마다 항목이 채워졌다(fandom). Steam 이용자들은 Alliance의 전투 중 정보가 툴팁 수준이라 체력 같은 수치가 안 보인다며 백과사전을 요청했다. fandom은 Vengeance·Alliance의 Steam판에만 백과사전이 있다고도 적어 판마다 다를 수 있다. 우리 문제(툴팁 0개)에 쓸 수 있다: 맵 위 대상을 클릭하면 아래 정보 칸에 초상화와 수치를 띄우고, 처음 보는 적은 도감에 자동으로 추가할 근거.
+  - 검증: 검색 한도 때문에 Ironhide 지원 문서와 Steam 글을 다른 출처로 교차 확인하지 못했다. GitHub의 Vengeance 이슈 트래커(ironhidegames/issues-kr4) 조회도 rate limit으로 막혔다.
+  - 출처: https://support.ironhidegames.com/support/solutions/articles/4000208360-where-is-the-encyclopedia-in-kingdom-rush-alliance-, https://steamcommunity.com/app/2849080/discussions/0/4515505814162467076/
+- [aoe_northgard-18·likely] (Northgard) Greedy Goblin 블로그(2019)는 Northgard 자원 줄이 식량을 설명 없이 '4' 같은 숫자로만 보여 줘서 실제 생산량을 플레이어가 직접 셈해 봐야 한다고 비판했다.
+  - 맥락: 공식 위키도 표시값은 가장 가까운 정수로 반올림한 값이라, '+2 식량'이 실제로는 한 달에 약 +9~+15일 수 있다고 적었다. 스팀에도 자원 생산이 불투명하다는 토론이 있다. 우리 게임: 숫자만 두지 말고, 마우스를 올리면 단위(라운드당/초당)와 내역(시설별 기여)이 나오는 툴팁을 달라는 반면교사다.
+  - 검증: 검색 한도가 다 차서 Greedy Goblin 글 자체를 확인하지 못했다. 반대 방향 정황은 있다. 현재 게임 텍스트(v4.0.11)에 자원 내역 항목 이름이 들어 있다: Consumption, Workers, Building Upkeep, Feast Bonus, Increased winter consumption, 'Rats are eating your food' 등. 지금 판은 자원 툴팁에 출처별 내역을 보여 주는 것으로 보인다. 그래서 2019년 비판은 옛…
+  - 출처: https://greedygoblinblog.wordpress.com/2019/01/07/northgard-ui-design-fail/, https://northgard.fandom.com/wiki/Economy
+- [pixel_minimal-19·likely] (Kingdom Two Crowns) Kingdom Two Crowns의 튜토리얼 안내는 HUD 글상자가 아니라 게임 세계 안에 나타나는 조상 유령 NPC가 맡는다(GhostHintTrigger). 2.0 업데이트에서 이 유령을 끌 수 있게 했고 덜 거슬리게 바꿨다.
+  - 맥락: Steam 공식 공지 2건은 이전 조사 대장(ai_game_reference_research S36·S37)에서 확인한 것이고, 이번에는 다시 열어 보지 않았다. 유령을 아예 없애는 모드 SpiritedAway가 따로 있을 만큼 유령을 귀찮아하는 플레이어가 있었다(모드 README: 'omnipresent ancestral tutorial ghost'). 우리 문제 (7)(툴팁 0개)에 쓴다: 디제틱 안내는 분위기는 살리지만, 반복되면 끄는 옵션이 필요하다는 근거다.
+  - 검증: 앞부분은 뒷받침된다. GhostHintTrigger가 K2C의 유령 힌트 컴포넌트라는 점은 SpiritedAway README(패치 대상 GhostHintTrigger.Start)와 세이브 편집기 2개로 확인된다. 편집기들은 성 오브젝트에 GhostHintTriggerData {IsGhostHintEnabled:true, hintDataPath:"UpgradeTheCastle1"}를 넣는다. 그러나 핵심인 '2.0 업데이트에서 유령을 끌 수 있게 하고 덜 거슬리…
+  - 출처: https://store.steampowered.com/news/app/701160/view/6890025005352837801, https://store.steampowered.com/news/app/701160/view/6350729003494477106
+- [tab-14·unverified] (They Are Billions) 건설 버튼에 마우스를 올리면 비용 창이 뜨고, 자원이 모자라면 버튼이 자동으로 비활성화된다.
+  - 맥락: 비용 창은 포럼 답변에서, 자동 비활성화는 사용자 정의 사령부 버튼을 다룬 공식 워크숍 가이드에서 확인했다. 비용 창의 세부 항목(노동자·에너지 표기)과 비활성 버튼의 색은 확인하지 못했다. 우리 게임 (1)번에 쓸 근거: 버튼에는 아이콘과 단축키만 두고, 비용과 못 쓰는 이유는 툴팁으로 옮길 수 있다.
+  - 검증: 웹 검색 한도가 소진됐다. 마우스를 올리면 비용 창이 뜨는지, 자원이 모자라면 버튼이 자동으로 비활성화되는지는 독립 근거를 찾지 못했다. QoL 모드는 '원래의 해금·자원·대기열 조건이 그대로 적용된다'고만 적었다.
+  - 출처: https://steamcommunity.com/app/644930/discussions/0/1479857071260622349/, https://steamcommunity.com/sharedfiles/filedetails/?id=1558159867
+- [aoe_northgard-11·unverified] (Age of Empires IV) Massively OP의 2021 리뷰에 따르면 AoE IV에서 명령 카드의 유닛 능력치에 마우스를 올리면 특정 유닛 종류를 상대로 한 추가 피해가 단순 고정 수치로 보인다.
+  - 맥락: 같은 리뷰는 AoE IV가 '툴팁 문구만 바꿔서 메커니즘은 그대로 둔 채 혼동을 고쳤다'고 평가했다(공격 버튼 이야기). 생산 버튼 툴팁에 비용·생산 시간·요구 조건이 어떤 형식으로 나오는지는 검색으로 확인하지 못했다(gaps). 우리 게임 (1)과 툴팁이 0개인 문제: 버튼에는 아이콘과 비용만 두고, 상성·설명·요구 조건은 마우스를 올렸을 때 툴팁으로 보여 주는 근거다.
+  - 검증: 검색 한도가 다 차서 Massively OP 리뷰 내용을 확인하지 못했다.
+  - 출처: https://massivelyop.com/2021/09/27/not-so-massively-age-of-empires-iv-is-a-thoughtful-love-letter-to-the-past/
+- [minimal-18·unverified] (Bad North) Switchaboo 리뷰는 Bad North의 UI와 HUD가 지나치게 최소화되어 유닛 업그레이드 같은 중요한 정보를 플레이어에게 알려 주지 않는다고 비판했다.
+  - 맥락: Switch판 리뷰다. 최소 UI의 부작용을 지적한 평가다. 우리 게임: 화면을 비우더라도 영입 창이나 업그레이드 선택처럼 결정을 내리는 순간에는 툴팁이나 설명을 꼭 붙여야 한다는 근거다(문제 7의 툴팁 0개).
+  - 검증: 검색 한도 소진으로 검색하지 못했다. Switchaboo 리뷰가 업그레이드 정보 부족을 비판했는지 확인하지 못했다.
+  - 출처: https://www.switchaboo.com/bad-north-review/
+- [p_tooltip-01·unverified] (Thronefall 1.73 — 팁과 툴팁 끄기) Thronefall 1.73 업데이트는 설정에서 팁과 툴팁을 각각 따로 끌 수 있게 했다.
+  - 맥락: 출처 경위: /home/user/td-proj/ai_game_reference_research/99_sources.md N2-04(S33, 공식). 우리 게임: 문제 (7)에 쓴다. 툴팁을 새로 넣을 때 숙련자가 끌 수 있는 옵션을 1회성 팁과 따로 둔다.
+  - 검증: 검색 한도 소진으로 확인하지 못했다. 로컬 N2-04(S33)의 «1.73 팁·툴팁 개별 끄기»와는 일치한다. 1.73이라는 버전 번호와 '각각 따로'라는 점은 외부에서 교차 확인하지 못했다.
+  - 출처: https://store.steampowered.com/news/app/2239150/view/5969041959983027686
+- [p_tooltip-02·unverified] (The King is Watching — 데모 피드백과 툴팁) The King is Watching 개발사는 자원 수집이 답답하다는 데모 피드백에 튜토리얼과 툴팁 설명을 보강하겠다고 Steam 공지로 답했다.
+  - 맥락: 출처 경위: /home/user/td-proj/ai_game_reference_research/99_sources.md N2-09(S39, 공식). 약속을 적은 공지라, 실제로 무엇이 반영됐는지는 확인하지 못했다. 우리 게임: 문제 (7)의 «툴팁 0개»에 쓴다. 데모 단계에서 플레이어가 막힐 때 개발사가 먼저 꺼낸 보완책이 툴팁이었다는 사례다.
+  - 검증: 검색 한도 소진으로 확인하지 못했다. 로컬 N2-09(S39)의 «데모 피드백에 튜토리얼·툴팁 보강 약속»과는 일치한다. '자원 수집이 답답하다'는 피드백 내용은 원장 요약에 없어 원문 대조가 필요하다. 약속이 실제로 반영됐는지는 주장 스스로도 미확인이라고 밝혔다.
+  - 출처: https://store.steampowered.com/news/app/2753900/view/1793384379538384
+
+## 영웅 초상화·스킬 (hero_portrait_skills) — 10개
+
+- [blizzard-03·verified] (Warcraft III (Classic/Reforged)) WC3는 영웅이 생기면 화면 왼쪽 위에 그 영웅의 초상화 아이콘을 놓고 F키를 매기며, 초상화에 마우스를 올리면 그 키가 보이고, 키를 한 번 누르면 영웅이 선택되고 빠르게 두 번 누르면 카메라가 그 영웅으로 간다.
+  - 맥락: 원작 Battle.net 안내에는 F1~F3, Reforged 단축키 목록에는 F1~F7(동맹 영웅 포함)로 나온다. 모딩 자료로는 왼쪽 hero bar에 버튼 7칸(0~6)이 있고, 영웅 아이콘 아래 체력·마나 막대 프레임은 스크립트로만 숨길 수 있다(https://www.hiveworkshop.com/threads/ui-hero-icons-bars.325408/). 포럼에는 F1~F3을 customkeys로 바꿀 수 없다는 보고가 있다. 우리 게임: (5) 위계가 없는 문제와 영웅 3명 출전 구조에 쓴다. 왼쪽 위에 영웅 3칸 …
+  - 검증: 원작 TipStrings Tip8에 따르면 영웅을 만든 순서대로 F1·F2·F3이 붙고, 한 번 누르면 선택, 다시 누르면 화면이 그 영웅으로 간다. HelpStrings에는 원작 데이터인데도 'F1 - F5: 두 번 빠르게 누르면 영웅으로 화면 이동'이라고 나온다. 즉 원작도 F1~F3에서 끝나지 않는다. hero bar는 7칸이고 화면 왼쪽 위에 있다(Tasyen, OpenWar3). 마우스를 올리면 키가 보인다는 부분은 확인하지 못했다.
+  - 출처: http://classic.battle.net/war3/basics/herocontrol.shtml, https://wowpedia.fandom.com/wiki/Warcraft_III:_Hotkeys
+- [blizzard-18·verified] (StarCraft II) StarCraft II: 군단의 심장 캠페인에서 케리건의 1단계 능력 '동력 폭발(Kinetic Blast)'은 Q 단축키로 쓰며, 에너지 50을 쓰고 재사용 대기가 10초다.
+  - 맥락: 단계마다 두세 능력 가운데 하나를 미션 사이에 골라 같은 단계 칸에 넣는 구조다(각 단계 두 가지 선택, 캠페인 중반에 세 번째 선택지가 열림). 에너지와 재사용 대기를 함께 쓰는 영웅 능력의 예다. 우리 게임: 영웅마다 Q·W·E·R 칸을 고정하고, 마나 비용과 재사용 대기를 한 버튼에 같이 표시해야 하는 근거로 쓴다.
+  - 검증: 군단의 심장 캠페인 데이터로 확인했다. GameStrings에 'Abil/Name/MindBolt=Kinetic Blast'가 있다. AbilData의 MindBolt는 Energy 50, Cooldown TimeUse 10, 사거리 9다. GameHotkeys에는 'Button/Hotkey/MindBolt=Q'다. 10초는 데이터상 게임 시간이다. 단계별 선택 구조(detail)는 확인하지 않았다.
+  - 출처: https://liquipedia.net/starcraft2/Sarah_Kerrigan, https://www.gamerevolution.com/guides/59363-starcraft-ii-heart-of-the-swarm-kerrigan-abilities-guide
+- [td_bars-bt-12·verified] (Bloons TD 6) 영웅·타워 능력 버튼은 화면 왼쪽 아래 가장자리에 가로로 늘어서고(1080p 기준 첫째 x≈9.9%, 둘째 x≈14.4%, 높이 y≈95.7%), 숫자키 1~0으로 차례대로 쓸 수 있다.
+  - 맥락: btd6farmer는 영웅 능력을 1·2·3 키로 쓰고, BTD6bot 단축키 설정에는 ability 1~10이 숫자키 1~0으로 묶여 있다. 우리 게임: 출전 영웅 3명의 Q·W·E·R 스킬 줄을 화면 아래 가장자리 한 줄로 몰아 위쪽 HUD에서 빼는 근거다(문제 4·7).
+  - 검증: btd6farmer static.py L64-65는 ABILLITY_ONE (0.0988, 0.9576), ABILLITY_TWO (0.1441, 0.9563)이다. BTD6bot hotkeys의 ability 1~10은 숫자키 1~0이다. 덧붙임: 이 비율값은 2560x1440 픽셀(253/2560, 1379/1440)에서 나온 것이라 '1080p 기준'이라는 표현은 정확하지 않다. 비율이므로 해상도와 무관하게 같다.
+  - 출처: https://github.com/linus-jansson/btd6farmer/blob/main/src/static.py#L64-L65, https://github.com/j-miet/BTD6bot/blob/main/btd6bot/Files/hotkeys.json#L146-L185
+- [p_cooldown_hotkey-09·verified] (World of Warcraft 소환수 행동 단추) WoW 소환수(펫) 행동 단추는 왼쪽 클릭이면 기술을 쓰고 그 밖의 클릭(오른쪽 클릭)이면 자동 시전을 켜고 끄며(TogglePetAutocast), 자동 시전이 가능한 기술에만 AutoCastOverlay를 보이고 켜짐 여부는 별도로 그린다.
+  - 맥락: 쓸 수 없는 펫 기술은 아이콘을 0.4 회색으로 칠한다. Dota 2도 자동 시전(Autocast)을 '준비되면 자동으로 쓰도록 켜고 끄는' 별도 개념으로 설명하고, 기술마다 'Autocast Ability 1~Ultimate' 단축키 칸을 둔다(https://raw.githubusercontent.com/SteamDatabase/GameTracking-Dota2/master/game/dota/pak01_dir/resource/localization/dota_english.txt, DOTA_Hotkeys_Tooltip_Autocas…
+  - 검증: PetActionBar.lua의 OnClick: 왼쪽 클릭이면 CastPetAction, 그 밖이면 TogglePetAutocast다(PICKUPACTION 수정 클릭은 집어 들기). AutoCastOverlay는 SetShown(autoCastAllowed)로 보이고, 켜짐 여부는 ShowAutoCastEnabled(autoCastEnabled)로 따로 그린다. 쓸 수 없는 기술은 0.4 회색이다. 상세 설명에서 Dota 2 툴팁(DOTA_Hotkeys_Too…
+  - 출처: https://raw.githubusercontent.com/Gethe/wow-ui-source/live/Interface/AddOns/Blizzard_ActionBar/Shared/PetActionBar.lua
+- [blizzard-04·partly] (Warcraft III (Classic/Reforged)) WC3 왼쪽 위 영웅 초상화는 그 영웅이 피해를 입는 동안 붉게 깜박이고, 레벨이 올라 쓸 기술 점수가 생기면 초상화에 깜박이는 표시가 붙는다.
+  - 맥락: 원작 Battle.net 안내 기준이며, 레벨업 때는 소리와 영웅 둘레의 빛도 함께 나온다. 하이브 워크숍 글로는 명령 카드의 빨간 '영웅 기술 배우기' 버튼(AHer)이 배울 기술이 없으면 사라진다. 우리 게임: (5)(7) 거점과 영웅이 HUD 밑이나 화면 밖에서 맞는 문제에 쓴다. 카메라를 옮기지 않아도 영웅 칸이 붉게 깜박여 '지금 맞는 중'을 알린다.
+  - 검증: 기술 점수 표시는 확인했다. war3skins의 HeroBarPointModel(HeroLevel.mdx)이 초상화 위에 '파란' 링을 맥동시키고 파란 불꽃을 띄운다(OpenWar3가 모델을 분석함). Tasyen 문서에는 남은 점수 상자(Unspent-SkillPointsBox)도 있다. 반면 '피해를 입는 동안 붉게 깜박인다'는 Battle.net 안내 말고는 데이터나 재구현에서 뒷받침을 찾지 못했다. 덧붙여 OpenWar3는 기술 배우기 버튼이 점수가 없어…
+  - 출처: http://classic.battle.net/war3/basics/herocontrol.shtml, http://classic.battle.net/war3/basics/heroes.shtml
+- [blizzard-05·partly] (Warcraft III (Classic/Reforged)) WC3에서 자동 시전이 되는 기술 아이콘은 네 귀퉁이에 노란 꺾쇠 테두리가 있고, 그 아이콘을 우클릭하면 자동 시전이 켜지면서 테두리가 주황색으로 빛난다.
+  - 맥락: Liquipedia는 빈 테두리가 켜지면 주황색으로 빛난다고, Battle.net 원작 안내는 우클릭하면 테두리가 밝아진다고, Wowpedia는 귀퉁이마다 노란 꺾쇠가 있다고 적었다(원작·Reforged 공통). 우리 게임: 영웅 스킬 우클릭 자동 시전에 쓴다. (1) 지금은 켜짐 여부도 글자로만 보이니, 버튼 테두리 빛으로 켜짐 상태를 보인다.
+  - 검증: 우클릭으로 켜고 끄는 것은 맞다(TipStrings Tip3: 'Modal skills can be turned on or off by right-clicking'). 다만 켜졌을 때 모습은 테두리가 가만히 주황색으로 빛나는 것이 아니다. war3skins의 CommandButtonAutocast(UI-ModalButtonOn.mdx)가 크림색에서 금색으로 바뀌는 불꽃 4개를 버튼 테두리를 따라 시계 방향으로 돌리는 애니메이션이다(OpenWar3 모델 분석, W…
+  - 출처: https://liquipedia.net/warcraft/Autocast, https://classic.battle.net/war3/basics/spellbasics.shtml
+- [ironhide-10·likely] (Kingdom Rush 5: Alliance) Kingdom Rush 5: Alliance는 영웅 2명을 함께 데려가며, 화면 왼쪽 아래 영웅 그림을 클릭하거나 숫자키 4·5로 영웅을 고르고, 두 영웅의 궁극기가 주문 칸의 두 번째·세 번째 자리를 차지한다.
+  - 맥락: 판에 따라 다르다: 원작은 초상화가 왼쪽 위(ironhide-09), Alliance는 왼쪽 아래다(Steam 이용자 댓글 근거, 공식 문서 아님). Alliance에서 예전 큰 주문(Soul Impact)은 빠지고 영웅 궁극기가 그 자리를 대신한다. 우리 게임(출전 3명, QWER)과 가장 가깝다: 영웅 초상화와 각 영웅의 스킬 버튼을 화면 아래 한 자리에 모아 위쪽 40% HUD를 비울 근거.
+  - 검증: Alliance 1차 자료를 찾지 못했다. 참고로 KR1~3 Love2D 코드(쌍영웅 모드 포함)도 영웅 1·2를 숫자키 4·5로 고르고 초상화를 아래쪽에 둔다. 아래 배치는 원작부터 같은 패턴일 수 있다.
+  - 출처: https://kingdomrushtd.fandom.com/wiki/Kingdom_Rush_5:_Alliance, https://steamcommunity.com/app/2849080/discussions/0/4515505814159053065/
+- [aod-14·likely] (Age of Darkness: Final Stand) 영웅은 나이트메어를 처치해 경험치를 얻어 레벨이 오르고, 레벨이 오르면서 패시브·액티브 스킬이 차례로 열린다.
+  - 맥락: 얼리 액세스 시기 가이드 기준이다. 스킬을 고를 수 있는지와 영웅별 해금 레벨은 판에 따라 달라졌을 수 있다. 우리 게임 (3)번에 쓸 근거: 영웅 Q·W·E·R 가운데 아직 열리지 않은 스킬은 '잠김+해금 레벨'로 표시해, 재사용 대기 중인 스킬과 다른 상태로 구분할 수 있다.
+  - 검증: 웹 검색 한도가 소진돼 영웅 레벨업과 스킬 해금 방식을 다른 출처로 확인하지 못했다.
+  - 출처: https://progameguides.com/age-of-darkness-final-stand/how-to-level-up-your-champion-in-age-of-darkness-final-stand/, https://www.cyberpowerpc.com/blog/survival-tips-for-age-of-darkness-final-stand/
+- [aod-01·unverified] (Age of Darkness: Final Stand) Age of Darkness: Final Stand에서는 영웅과 유닛 종류별 초상화가 화면 왼쪽 위에 있고, 초상화를 클릭하거나 부대 지정 키를 두 번 누르면 카메라가 그 대상에게 옮겨 간다.
+  - 맥락: 얼리 액세스 시기 스팀 포럼의 개발자 답변이다. 같은 스레드의 다른 플레이어는 하단 중앙 초상화를 클릭한다고 해서 판마다 다를 수 있다. 부대에 넣지 않은 대상으로 옮겨 가는 키는 없다는 불만도 있다. 우리 게임에 쓸 근거: 출전 영웅 3명의 초상화를 고정 자리에 두고, 클릭하거나 키를 두 번 누르면 카메라가 옮겨 가게 할 수 있다.
+  - 검증: 웹 검색 한도가 소진됐다. GitHub에는 Age of Darkness의 UI 자료가 없다(저장소 검색 결과는 치트 홍보 저장소 1개뿐).
+  - 출처: https://steamcommunity.com/app/1426450/discussions/0/3112542578522610559/
+- [aod-02·unverified] (Age of Darkness: Final Stand) 1.0판 리뷰(Player2)는 영웅 초상화의 체력 막대가 피해를 받아도 갱신되지 않아 여러 번 곧바로 패배로 이어졌다고 썼다.
+  - 맥락: 2025년 3월 1.0 출시 직후의 리뷰다. 우리 게임 (5)번에 쓸 반면교사: 영웅 3명의 초상화에 체력과 마나를 실시간으로 반영하는 것이 필수다.
+  - 검증: 웹 검색 한도가 소진돼 Player2 리뷰 내용을 다른 출처로 확인하지 못했다.
+  - 출처: https://www.player2.net.au/2025/03/age-of-darkness-final-stand-review-real-time-survival/
+
+## 재사용 대기·마나 (cooldown_mana) — 17개
+
+- [blizzard-24·verified] (StarCraft II) StarCraft II에서 재사용 대기 중인 능력 아이콘 위에는 시계처럼 도는 덮개가 겹쳐져 남은 대기 시간을 보여 준다.
+  - 맥락: Liquipedia에 따르면 점멸처럼 에너지 없이 재사용 대기만 있는 능력도 있고, 에너지와 재사용 대기를 둘 다 쓰는 능력도 있다(점멸 7.14초). 공허의 유산부터 시간 값은 실제 초 단위다. 에너지가 모자랄 때 버튼이 어떻게 보이는지는 확인하지 못했다. 우리 게임: QWER 재사용 대기에 쓴다. 시계 방향 덮개(Godot TextureProgressBar의 radial)와 blizzard-06의 숫자 표시를 함께 쓴다.
+  - 검증: GameButton.SC2Layout의 버튼 이미지 1층에 ButtonCooldown 텍스처가 128프레임(16열) 애니메이션으로 들어 있어 재사용 대기 동안 덮개가 돈다. 그 밖에 버튼 가운데 숫자 칸(CooldownLabel), 충전 수(ChargeLabel), 대기가 끝날 때 번쩍이는 효과(CooldownFinishedImage)도 있다. 숫자도 함께 그릴 수 있게 되어 있다. 덮개가 시계 방향이라는 것은 텍스처를 보지 못해 확인하지 못했다.
+  - 출처: https://liquipedia.net/starcraft2/Cooldown
+- [td_bars-bt-13·verified] (Bloons TD 6) BTD6 게임 UI에는 능력 재사용 대기를 그리는 «CooldownClockBg / CooldownClockFill / CooldownClockWhite» 시계 채움 스프라이트 세트가 있다.
+  - 맥락: 재사용 대기를 숫자 글자가 아니라 시계 방향으로 채워지는 그림으로 보여 주는 것으로 보인다(스프라이트 이름에서 추정, 화면으로는 확인 못 함). 우리 게임: 영웅 스킬 아이콘 위에 16px 도트 원형/세로 채움 덮개로 재사용 대기를 표시하는 근거다.
+  - 검증: sprite-references.json에 IngameUi[CooldownClockBg](L2031), [CooldownClockFill](L2066), [CooldownClockWhite](L2079)가 있다. 시계 방향 채움 표현은 이름에서 나온 추정이다.
+  - 출처: https://github.com/gurrenm3/BTD-Mod-Helper/blob/master/Website/src/data/sprite-references.json#L2066
+- [pvz_frostpunk-04·verified] (Plants vs. Zombies (PC GOTY, 디컴파일 소스)) 재충전 시간은 식물 정의표에 식물마다 들어 있으며, 완두콩·해바라기는 750, 호두는 3000, 체리 폭탄은 5000 단위로 등급이 나뉜다.
+  - 맥락: Plant.cpp gPlantDefs의 mRefreshTime 열(PEASHOOTER 100해/750, SUNFLOWER 50해/750, WALL_NUT 50해/3000, CHERRY_BOMB 150해/5000). 단위를 초로 바꾼 값(7.5/30/50초)은 게임이 1초에 100번 갱신된다는 가정에서 나오며, 이 가정은 이번에 확인하지 못했다. 우리 게임 적용: 스킬·건설 대기를 몇 단계 등급으로 묶으면 아이콘 차오름 속도만 보고도 강약을 짐작하게 할 수 있다.
+  - 검증: 윈도폰 디컴파일의 PlantDefinition 표에도 완두콩 100/750, 해바라기 50/750, 체리 폭탄 150/5000, 호두 50/3000으로 같은 값이 있다. 조사원이 확인하지 못한 '1초 100회' 가정도 맞다. SexyAppBase.cpp에 mFrameTime = 10(ms)이 있고, 윈도폰판은 한 프레임에 카운터를 3씩 줄인다. 따라서 7.5초/30초/50초로 바꾼 값이 성립한다.
+  - 출처: https://github.com/Patoke/re-plants-vs-zombies/blob/main/Lawn/Plant.cpp
+- [p_cooldown_hotkey-03·verified] (World of Warcraft (리테일·클래식)) WoW 행동 단추 아이콘은 쓸 수 없는 이유를 색으로 나눈다: 쓸 수 있으면 원색(1,1,1), 마나 부족이면 파란 틴트(0.5,0.5,1.0), 그 밖의 사용 불가면 회색(0.4,0.4,0.4)이고, 대상이 사거리 밖이면 아이콘은 그대로 두고 오른쪽 위 단축키 글자를 빨강(RED_FONT_COLOR)으로 바꾼다.
+  - 맥락: live 브랜치와 classic_era 브랜치의 ActionButton.lua UpdateUsable에 같은 값이 들어 있다. 단축키가 없는 단추는 그 자리에 '●'(RANGE_INDICATOR)를 띄워 사거리만 표시한다. 우리 게임: 버튼에 붙은 '(공병 없음)'·'마나 부족' 같은 꼬리말을 빼고, 틴트(마나=파랑, 조건 미충족=회색)와 툴팁으로 옮기는 근거다. 문제 (1)과 (3)에 쓴다.
+  - 검증: live와 classic_era의 ActionButton.lua UpdateUsable 모두 틴트가 쓸 수 있음 1,1,1 / 마나 부족 0.5,0.5,1.0 / 그 밖 0.4,0.4,0.4다. ActionButton_UpdateRangeIndicator는 checksRange이면서 사거리 밖일 때 HotKey를 RED_FONT_COLOR로 칠한다. 단축키가 없으면 RANGE_INDICATOR '●'를 넣어 두고, 사거리 판정이 있을 때만 보인다(사거리 안이면 …
+  - 출처: https://raw.githubusercontent.com/Gethe/wow-ui-source/live/Interface/AddOns/Blizzard_ActionBar/Shared/ActionButton.lua, https://raw.githubusercontent.com/Gethe/wow-ui-source/classic_era/Interface/AddOns/Blizzard_ActionBar/Shared/ActionButton.lua
+- [p_cooldown_hotkey-05·verified] (World of Warcraft (리테일)) WoW 리테일은 재사용 대기의 남은 시간 숫자를 '행동 단축바' 설정의 체크 상자(CVar countdownForCooldowns)로 켜고 끄게 하며, 이 값이 꺼져 있으면 행동 단추 Cooldown 위젯의 숫자를 숨긴다(SetHideCountdownNumbers).
+  - 맥락: 기본값이 켜짐인지 꺼짐인지는 이 파일들로 확인하지 못했다. 충전 막과 행동 불가 막은 설정과 무관하게 숫자를 늘 숨긴다(hideCountdownNumbers="true"). 우리 게임: 부채꼴 막과 남은 초 숫자를 함께 보여 주되, 640×360 도트에서 숫자가 아이콘을 가릴 수 있으니 숫자는 끌 수 있는 옵션으로 두자는 근거다.
+  - 검증: Blizzard_SettingsDefinitions_Frame/ActionBars.lua는 ACTIONBARS_LABEL 범주에 Settings.SetupCVarCheckbox(category, "countdownForCooldowns", ...)를 둔다(Plunderstorm 모드에서는 빠진다). ActionButton_UpdateCooldownNumberHidden은 이 CVar가 true가 아니면 일반 cooldown에 SetHideCountdownNumb…
+  - 출처: https://raw.githubusercontent.com/Gethe/wow-ui-source/live/Interface/AddOns/Blizzard_SettingsDefinitions_Frame/ActionBars.lua, https://raw.githubusercontent.com/Gethe/wow-ui-source/live/Interface/AddOns/Blizzard_ActionBar/Shared/ActionButton.lua
+- [p_cooldown_hotkey-06·verified] (World of Warcraft Cooldown 위젯 API) WoW Cooldown 위젯 API는 기준값에 따라 남은 시간 글자 형식을 바꾼다: 기준 초보다 적게 남으면 소수 한 자리('8.7'), 축약 기준보다 적으면 단위 없는 분:초('1:31')로 쓰고, 전체 대기 시간이 최소값보다 짧으면 숫자를 아예 띄우지 않는다(SetMinimumCountdownDuration).
+  - 맥락: 블리자드가 생성한 API 문서다. 최소 표시 기준은 남은 시간이 아니라 '전체 대기 시간' 기준이라고 명시되어 있다. 행동 단추가 실제로 어떤 기준값을 쓰는지는 확인하지 못했다. 우리 게임: 1초 안팎의 짧은 대기는 숫자 없이 막만, 몇 초 미만은 소수 한 자리, 그 이상은 정수 초로 쓰는 규칙을 정할 근거다.
+  - 검증: FrameAPICooldownDocumentation.lua에 다음이 그대로 적혀 있다. SetCountdownMillisecondsThreshold: 기준 아래면 소수 한 자리(예 '8.7'). SetCountdownAbbrevThreshold: 기준 아래면 단위 없는 축약형(예 '1:31'), 한 시간을 넘거나 1분 미만이면 축약하지 않음. SetMinimumCountdownDuration: 남은 시간이 아니라 대기 전체 길이 기준. 행동 단추가 실제로 쓰는…
+  - 출처: https://raw.githubusercontent.com/Gethe/wow-ui-source/live/Interface/AddOns/Blizzard_APIDocumentationGenerated/FrameAPICooldownDocumentation.lua
+- [p_cooldown_hotkey-10·verified] (Dota 2) Dota 2는 마나가 모자란 기술을 쓰려 하면 'Not Enough Mana', 재사용 대기 중이면 'Recharging...' 오류 문구를 띄우고, Alt+클릭으로 기술 상태를 팀에 알리면 'Not Enough Mana ( Need N more )'나 'On Cooldown ( N seconds remain )'처럼 모자란 마나와 남은 초를 숫자로 적는다.
+  - 맥락: 근거는 SteamDatabase/GameTracking-Dota2(Dota 2 클라이언트 파일 추적 저장소, 2026-10-20 커밋 4b1b9b2)의 영어 UI 문자열이다. 키는 dota_hud_error_not_enough_mana, dota_hud_error_ability_in_cooldown, DOTA_Ability_Ping_Mana, DOTA_Ability_Ping_Cooldown이다. HUD 아이콘의 실제 색(파란 틴트 여부)은 이 자료로 확인하지 못했다. 우리 게임: 못 쓰는 이유를 버튼에 늘 써 두지 말고, 눌렀을 때…
+  - 검증: dota_english.txt에서 확인한 것: dota_hud_error_not_enough_mana='Not Enough Mana', dota_hud_error_ability_in_cooldown='Recharging...', DOTA_Ability_Ping_Mana='... Not Enough Mana ( Need %s4 more )', DOTA_Ability_Ping_Cooldown='... On Cooldown ( %s4 seconds remain )'.…
+  - 출처: https://raw.githubusercontent.com/SteamDatabase/GameTracking-Dota2/master/game/dota/pak01_dir/resource/localization/dota_english.txt
+- [p_cooldown_hotkey-14·verified] (OpenRA·Beyond All Reason) OpenRA와 BAR는 진행 정도를 아이콘 위에 원형으로 도는 덮개로 그린다: OpenRA는 생산·지원 능력 아이콘에 'clock' 애니메이션을 겹치고 경과 비율에 맞는 프레임을 고르며, BAR는 건설 칸에 남은 비율만큼 어두운(0.08 회색, 불투명도 0.6) 둥근 사각 부채꼴을 위쪽에서부터 반시계 방향으로 그린다.
+  - 맥락: BAR는 Alt+클릭으로 취소할 때 버려질 진행분을 빨간 부채꼴로 덧그린다. OpenRA의 clock은 원작 C&C 사이드바의 시계 막을 재현한 스프라이트 애니메이션이다(OpenRA bleed, 2026-10-20 커밋 1f594e3). 우리 게임: 네모난 도트 아이콘에도 부채꼴 막을 쓸 수 있다는 근거다. 16px 아이콘에서는 각도를 연속으로 계산하는 셰이더보다 프레임 수가 적은 도트 스프라이트(OpenRA 방식)가 도트 화풍에 더 맞을 수 있다.
+  - 검증: OpenRA ProductionPaletteWidget과 SupportPowersWidget은 clock 애니메이션(idle)에서 (전체-남은)/전체 비율로 프레임을 골라 아이콘 위에 겹친다. TS 모드의 시퀀스는 원작 파일 gclock2.shp를 쓴다(misc.yaml, 커밋 1f594e3). BAR drawBuildProgress는 RectRoundProgress(…, 1-progress, {0.08,0.08,0.08,0.6})를 쓰고, 코드 주석에 'win…
+  - 출처: https://raw.githubusercontent.com/OpenRA/OpenRA/bleed/OpenRA.Mods.Common/Widgets/ProductionPaletteWidget.cs, https://raw.githubusercontent.com/OpenRA/OpenRA/bleed/OpenRA.Mods.Common/Widgets/SupportPowersWidget.cs
+- [ironhide-11·partly] (Kingdom Rush (원작) / Origins) Kingdom Rush의 주문(불의 비·증원)은 비용 없이 쓰고 주문마다 재사용 대기가 따로 돌며, 불의 비를 고르면 맵 위에 붉은 조준 표식이 떠서 떨어질 자리를 클릭으로 정한다.
+  - 맥락: 쿨 수치는 판마다 다르다(원작 불의 비 80초/90초로 출처마다 다르고, Genesis는 60초). Origins는 불의 비 대신 Thunderbolt를 쓰고, 영웅마다 별도 쿨이 있는 Hero Spell이 하나 더 붙는다. 주문 버튼의 화면 위치와 쿨 표시 모양은 검색으로 확인하지 못했다. 우리 게임에 쓸 수 있다: QWER 버튼마다 쿨 진행을 그리고, 조준형 스킬은 지면에 범위 표식을 띄울 근거.
+  - 검증: 코드상 주문은 골드 비용이 없다. 버튼마다 cooldown_view가 따로 돌고(power_fireball_control cooldown=80, 증원은 별도 값), 선택하면 GUI_MODE_POWER_1이 되어 맵에서 지점을 클릭한다. Origins의 세 주문(번개·증원·영웅 주문)은 krli #493에서 확인된다. '붉은' 조준 표식은 확인하지 못했다. 모드 코드는 주황 범위 포인터(pointer_area_orange)를 쓰고, 원래 'pointer_fireb…
+  - 출처: https://wikily.gg/kingdom-rush/spells, https://kingdomrushtd.fandom.com/wiki/Spell
+- [blizzard-06·partly] (Warcraft III (Classic/Reforged)) Warcraft III: Reforged 2.0.0 패치부터 재사용 대기 중인 버튼 위에 남은 시간 숫자가 기본으로 표시되고, 옵션에서 끌 수 있다.
+  - 맥락: 2024년 11월 패치 2.0.0 공식 노트에 나오며, 같은 패치에 게임 타이머·금광 일꾼 수 표시 토글도 생겼다. 그보다 앞선 포럼 글에는 생산 카운트다운을 끄는 옵션이 없다는 답이 있다. 원작의 시계 방향 덮개 모양은 이번 검색으로 확인하지 못했다. 우리 게임: QWER 재사용 대기 표시에 쓴다. 아이콘 위에 숫자를 겹치되 옵션으로 끌 수 있게 한다.
+  - 검증: 숫자를 켜고 끄는 옵션 자체는 있다. 2.0 시기 문자열(독일어)에 SHOW_COOLDOWN_TIMER('재사용 대기 숫자 카운트다운 표시')가 있다. 그런데 1.35까지의 Reforged 우크라이나어 globalstrings에서도 같은 키가 '1.32 WebUI Strings' 구역에 이미 들어 있다. 그래서 옵션은 2.0.0보다 앞선 1.32 무렵부터 있었을 가능성이 크고, 2.0.0에서 바뀐 것은 기본값이나 적용 범위였을 수 있다. 원작의 덮개는 war3s…
+  - 출처: https://news.blizzard.com/en-us/article/24167122/warcraft-iii-reforged-patch-notes-patch-2-0-0, https://us.forums.blizzard.com/en/warcraft3/t/cooldown-timer/37313
+- [pvz_frostpunk-03·partly] (Plants vs. Zombies (PC GOTY, 디컴파일 소스)) 재충전 중인 카드는 카드 위쪽을 '남은 비율 × 68px + 2px' 높이만큼 진한 회색(64,64,64)으로 덮어 그리고, 시간이 지나면 덮인 부분이 위로 줄어들어 밝은 부분이 아래에서 위로 차오른다.
+  - 맥락: SeedPacket.cpp: aPercentDark = (mRefreshTime - mRefreshCounter) / mRefreshTime; DrawSeedPacket에서 ClipRect(x, y, SEED_PACKET_WIDTH, 68*thePercentDark+2)로 위쪽만 어둡게 함. 숫자 표시는 없고 그림으로만 남은 시간을 보여준다. 우리 게임 적용: 영웅 Q·W·E·R 재사용 대기와 대포·용병 구매 대기를 아이콘 위 차오름 막으로 보여 주고 글자 칸을 없애는 근거.
+  - 검증: 위쪽을 68*비율+2 높이만큼 (64,64,64)로 덮어 그리고, 덮인 부분이 위로 줄어드는 것은 코드와 같다. 그런데 DrawSeedPacket은 thePercentDark>0이면 카드 전체에도 먼저 (128,128,128)을 입힌다. 그래서 재충전 중에는 차오른 아래쪽도 반 밝기이고, 다 차야 원래 밝기로 돌아온다. '밝은 부분이 차오른다'는 이 점에서 과장이다. 윈도폰(모바일)판은 회색으로 다시 칠하지 않고 검은 반투명(알파 150) 사각형을 FillRec…
+  - 출처: https://github.com/Patoke/re-plants-vs-zombies/blob/main/Lawn/SeedPacket.cpp
+- [p_cooldown_hotkey-01·partly] (World of Warcraft (리테일)) WoW 리테일 행동 단추의 기본 재사용 대기는 아이콘 안쪽(사방 3px 안)을 덮는 Cooldown 위젯이 그리며, 검정 불투명도 0.64의 막이 아이콘 위를 쓸어 가며 줄어들고, 가장자리 밝은 선(drawEdge)과 끝날 때 반짝임(drawBling)은 꺼져 있다.
+  - 맥락: 근거는 Gethe/wow-ui-source live 브랜치(12.1.5 빌드 70448, 2026-10-16 커밋)의 Mainline ActionButtonTemplate.xml이다. 이 저장소는 블리자드 클라이언트 UI 파일을 제3자가 미러링한 것이다. 쓸어 가는 방향(시계 방향)은 파일에 적혀 있지 않다. 확인한 것은 Cooldown API에서 SetReverse 기본값이 false라는 점뿐이다. 구현 참고: Godot 4.7 TextureProgressBar의 fill_mode에 FILL_CLOCKWISE/FILL_COUNTE…
+  - 검증: WebSearch 한도가 다 차서 검색은 한 번도 돌지 못했다. 그래서 GitHub 원본을 직접 읽어 확인했다. Gethe live의 ActionButtonTemplate.xml에서 일반 cooldown은 아이콘 기준 사방 3px 안쪽, drawBling=false, drawEdge=false, SwipeTexture 검정 a=0.64가 맞다. 다른 미러인 BigWigsMods/WoWUI도 0.64로 같다. 그러나 예전 구조를 쓰는 tomrus88/Blizzar…
+  - 출처: https://raw.githubusercontent.com/Gethe/wow-ui-source/live/Interface/AddOns/Blizzard_ActionBar/Mainline/ActionButtonTemplate.xml, https://raw.githubusercontent.com/Gethe/wow-ui-source/live/Interface/AddOns/Blizzard_APIDocumentationGenerated/FrameAPICooldownDocumentation.lua
+- [p_cooldown_hotkey-02·partly] (World of Warcraft (리테일)) WoW 행동 단추는 대기 종류마다 막을 다르게 그린다: 충전형 기술의 재충전(chargeCooldown)은 어두운 막 없이(drawSwipe=false) 가장자리 선만 돌고 숫자를 숨기며, 기절·침묵 같은 행동 불가(lossOfControlCooldown)는 짙은 빨강(0.17,0,0, 불투명도 0.64) 막과 전용 가장자리 텍스처(UI-HUD-ActionBar-LoC)를 쓴다.
+  - 맥락: ActionButton.lua의 ActionButton_ApplyCooldown은 세 막(일반·충전·행동 불가)을 따로 켜고 끈다. 행동 불가 정보에 shouldReplaceNormalCooldown이 서 있으면 행동 불가 막이 일반 대기를 대신한다. 근거는 리테일 Mainline 템플릿이다. 우리 게임: 영웅이 기절해서 못 쓰는 경우와 재사용 대기 중인 경우를 막 색으로 나누면, 문제 (1)·(3)의 '못 쓰는 이유'를 글 없이 보여 줄 수 있다.
+  - 검증: 원본과 맞는 부분: chargeCooldown은 drawSwipe=false, hideCountdownNumbers=true다. lossOfControlCooldown은 막 색 (0.17,0,0,a=0.64)에 EdgeTexture Interface\Cooldown\UI-HUD-ActionBar-LoC를 쓰고 숫자를 숨긴다. ActionButton_ApplyCooldown이 세 막을 따로 켜고 끄며, shouldReplaceNormalCooldown이면 일반 막…
+  - 출처: https://raw.githubusercontent.com/Gethe/wow-ui-source/live/Interface/AddOns/Blizzard_ActionBar/Mainline/ActionButtonTemplate.xml, https://raw.githubusercontent.com/Gethe/wow-ui-source/live/Interface/AddOns/Blizzard_ActionBar/Shared/ActionButton.lua
+- [p_cooldown_hotkey-15·partly] (OpenRA) OpenRA의 생산·지원 능력 아이콘은 진행 중이면 가운데에 남은 시간 글자(검은 외곽선)를, 끝나면 'READY'(기본은 금색과 번갈아 깜빡임), 멈추면 'ON HOLD'를 겹쳐 쓰고, 지금 만들 수 없는 항목에는 어두운 덮개를 씌운다.
+  - 맥락: 남은 시간 표시는 DrawTime 기본값이 true다. READY 표시 방식(ReadyTextStyle)은 Solid·AlternatingColor·Blinking 중 기본이 AlternatingColor(Gold)다. 대기열에 둘 이상 쌓이면 개수 숫자를 따로 그린다. 우리 게임: 마을 생산 시설과 용병 구매 버튼에 '진행 중이면 남은 초', '끝나면 준비됨', '멈춤' 세 상태를 짧은 글자로 겹쳐 쓰는 근거다. 모두 회색이던 버튼(문제 3)을 상태별로 나눌 수 있다.
+  - 검증: 생산 팔레트(ProductionPaletteWidget)는 주장과 같다. DrawTime 기본 true, 가운데에 FormatTime을 쓰고 DrawTextWithContrast로 검은 외곽선을 두른다. 완료되면 ReadyText를 쓰고, 기본 AlternatingColor라서 흰색과 Gold를 번갈아 보인다. 일시정지면 HoldText를 쓴다. 지금 만들 수 없는 항목에는 cantBuild 이미지를 IconDarkenPalette로 덮는다. 개수는 total>…
+  - 출처: https://raw.githubusercontent.com/OpenRA/OpenRA/bleed/OpenRA.Mods.Common/Widgets/ProductionPaletteWidget.cs, https://raw.githubusercontent.com/OpenRA/OpenRA/bleed/mods/common/fluent/chrome.ftl
+- [ironhide-20·likely] (Iron Marines) Iron Marines에서 영웅이 죽으면 영웅 아이콘 둘레에 재사용 대기 막대가 돌고, 막대가 다 차면 영웅을 다시 전장에 내보낼 수 있다.
+  - 맥락: 영웅 초상화 옆 화살표 아이콘으로 언제든 귀환시킬 수 있고, 발견한 장소 어디로든 다시 배치할 수 있다. 다만 귀환 중에는 체력이 차지 않는다. 능력을 적이 사거리 밖에 있을 때 쓰면 그냥 소모되고 쿨이 돈다. 우리 게임에 쓸 수 있다: 영웅 초상화 둘레 고리로 부활 대기를, 스킬 버튼 위 덮개로 스킬 쿨을 나눠 보여 줄 근거.
+  - 검증: 영웅 부활 쿨 고리 표시는 독립 출처로 확인하지 못했다. 웹 검색 한도 소진.
+  - 출처: https://www.gamezebo.com/walkthroughs/iron-marines-tips-cheats-and-strategies/, https://www.pocketgamer.com/iron-marines/iron-marines-tips-and-tricks-a-beginners-guide-to-successful-space-ops/
+- [ironhide-21·likely] (Iron Marines) Iron Marines의 Dropgun은 자원이나 시설 없이 재사용 대기만 차면 쓰는 버튼으로, 아이콘을 누른 뒤 맵 위 목표 지점을 고르면 그곳에 떨어지며 떨어진 자리의 적에게 피해를 준다.
+  - 맥락: 레벨 2에 풀린다. 유닛으로 취급되어 명령 포인트나 자원 지점 점령에도 보낼 수 있다. 우리 게임에 쓸 수 있다: 대포나 마을 지원처럼 '쿨만 있는 전술 버튼'을 영웅 스킬 줄과 다른 고정 자리에 두고, 아이콘 클릭 뒤 지점을 고르는 2단계로 쓰게 할 근거.
+  - 검증: Dropgun의 해금 시점·작동 방식은 독립 출처로 확인하지 못했다. 웹 검색 한도 소진.
+  - 출처: https://www.levelwinner.com/iron-marines-ios-guide-18-useful-tips-cheats-tricks/, https://www.gamezebo.com/walkthroughs/iron-marines-tips-cheats-and-strategies/
+- [aod-15·unverified] (Age of Darkness: Final Stand) 플레이어들은 영웅 능력을 쓰면 재사용 대기 시간만 시작되고 능력은 발동되지 않거나 엉뚱한 방향으로 나가는 문제를 보고했다.
+  - 맥락: Vizargo의 기절·돌진 같은 사례다. 얼리 액세스 시기 보고라 이후 고쳐졌을 수 있다. 우리 게임에 쓸 근거: 우클릭 자동 시전이나 Q·W·E·R 시전이 실패하면 재사용 대기를 소모하지 않고, 실패 이유(사거리·마나)를 짧게 띄울 수 있다.
+  - 검증: 웹 검색 한도가 소진돼, 능력을 써도 재사용 대기만 돌고 발동하지 않는다는 보고를 다른 출처로 확인하지 못했다.
+  - 출처: https://steamcommunity.com/app/1426450/discussions/1/3446961485758211417/
+
+## 웨이브 미리보기·출현 지점 (wave_preview_spawn) — 31개
+
+- [ironhide-06·verified] (Kingdom Rush 시리즈) Kingdom Rush에서 웨이브를 일찍 부르면 원래 도착까지 남은 초만큼 골드를 받고, 주문 재사용 대기도 그만큼 줄어든다.
+  - 맥락: Vengeance에서도 해골을 클릭해 일찍 부르면 골드를 받고 불의 비·증원 쿨이 준다(Steam 업적 가이드). wikily는 스테이지·웨이브별 최대 조기 호출 골드를 적어 둔다(예: Hushwood 33골드). 업적 'Impatient'는 아이콘이 뜬 뒤 3초 안에 부르는 것이다. 우리 게임에 쓸 수 있다: 준비 단계를 일찍 끝내고 전투를 시작하면 보상을 주고, '전투 시작' 버튼에 남은 시간과 받을 보상을 숫자로 보여 줄 근거.
+  - 검증: systems.lua에서 early_wave_reward = ceil(남은 초 × GS.early_wave_reward_per_second)이다. KR1·KR3 game_settings에서 그 값은 1이라, 남은 초만큼 골드를 준다. early-wave-called 신호에서 주문 버튼마다 early_wave_bonus(remaining_time)로 쿨 시작 시각을 남은 초만큼 앞당긴다(쿨 중이고 1초를 넘을 때만). krli #82도 조기 호출 보상 표시를 다룬…
+  - 출처: https://www.gamedeveloper.com/design/kingdom-rush---the-wonderful-campaign-level-design, https://www.levelwinner.com/kingdom-rush-beginners-guide-tips-tricks-strategies-to-vanquish-the-evil-forces/
+- [td_bars-md-08·verified] (Mindustry) 화면 왼쪽 위 웨이브 상태 칸에는 «Wave 3/30»(승리 웨이브가 정해진 경우), «N Enemies Remaining», 다음 웨이브까지 «Wave in 1:05» 형식의 카운트다운이 줄마다 표시된다.
+  - 맥락: 적을 다 잡아야 넘어가는 규칙에서는 «Wave in progress»가 대신 나온다. 이 칸에는 다음 웨이브의 적 구성이 나오지 않는다. 우리 게임: 라운드 6개와 전투 단계 남은 시간을 왼쪽 위 작은 칸 하나에 «라운드 n/6, 남은 적, 타이머» 세 줄로 묶을 근거가 된다.
+  - 검증: 소스를 직접 대조함. wavesMain은 top-left에 있다. winWave>1이면 wave.cap 'Wave {0}/{1}', enemies>0이면 '{0} Enemies Remaining'이 나온다. waveTimer가 켜져 있으면 'Wave in m:ss'(waitingf가 1:05 형식으로 씀)가 나오고, isWaitingWave(waitEnemies 규칙이나 마지막 웨이브, 그리고 적이 있을 때)이면 'Wave in progress'가 나온다. 적 …
+  - 출처: https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/ui/fragments/HudFragment.java#L1132-L1150, https://github.com/Anuken/Mindustry/blob/master/core/assets/bundles/bundle.properties#L458-L466
+- [td_bars-md-13·verified] (Mindustry) 수호자(보스)가 든 웨이브가 10·5·2·1웨이브 앞으로 다가오면 경고 아이콘이 붙은 토스트로 «Guardian approaching in N waves»를 띄우고, 보스가 나오면 위 가운데에 320×60 크기의 보스 체력 막대를 보여 준다.
+  - 맥락: 웨이브 전체 구성을 미리 보여 주지는 않고, 위험한 웨이브만 골라 몇 차례 앞서 알린다. 우리 게임: 라운드 6개 중 보스·특수 웨이브만 «n라운드 뒤» 토스트로 예고하는 가벼운 웨이브 미리보기 방식으로 쓸 수 있다.
+  - 검증: 소스를 직접 대조함. WaveEvent마다 boss 효과 그룹을 찾아 diff가 1·2·5·10일 때 showToast(Icon.warning, 'Guardian approaching in N waves')를 띄운다. 보스 막대는 width 320, height 60이고 coreinfo(top) 아래에 있다. 모바일 세로 화면에서는 숨긴다.
+  - 출처: https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/ui/fragments/HudFragment.java#L240-L256, https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/ui/fragments/HudFragment.java#L627-L652
+- [td_bars-rt-08·verified] (Rogue Tower) Rogue Tower의 경로는 직선(S)·좌(L)·우(R)·갈림길(SL/SR/LR/SLR)·포털(P) 타일이 «Expand»할 때마다 이어 붙는 방식이며, 모드 제작자는 «확장한 순서대로 타일이 나타난다»고 설명한다.
+  - 맥락: 게임 모드 «Single/Double/Triple/Quadruple Defense»는 막아야 할 갈래 수가 다르다(모드 README의 single/dual/triple lane 설명). 우리 게임은 경로가 고정된 들판이지만, 적이 올라오는 갈래를 바닥 타일로 미리 보여 주는 참고가 된다.
+  - 검증: custom-maps README에 P/S/L/R/SL/SR/LR/SLR 타일 표기와 'The tiles will appear in the order you expand in'이 있다. single/Triple/Dual lane 언급도 있다. 게임 모드 Single~Quadruple Defense와 'Expand'는 translations에 있다. 덧붙임: S/L/R 글자 표기는 모드 설정용 표기이고, 문장도 커스텀 맵 순서를 설명하는 맥락이다.
+  - 출처: https://github.com/acr-gaming/rogue-tower-custom-maps/blob/main/README.md#L36-L62, https://github.com/whatdidyousayme/Rogue-Tower-Russian/blob/main/translations.json#L763-L766
+- [pvz_frostpunk-09·verified] (Plants vs. Zombies (PC GOTY, 디컴파일 소스)) 레벨 진행 막대는 화면 오른쪽 아래(800×600 기준 x=600, y=575)에 있고, 진행할수록 막대가 오른쪽에서 왼쪽으로 채워지며 좀비 머리 아이콘이 채워진 끝을 따라 왼쪽으로 움직이고, 그 아래에 '레벨 진행' 표지 그림이 붙는다.
+  - 맥락: Board::DrawProgressMeter: DrawImageCel(IMAGE_FLAGMETER, 600, 575); aDstRect x = aCelWidth - aClipWidth + 593(채움이 왼쪽으로 늘어남); 머리 x = aCelWidth - aHeadProgress + 580; DrawImage(IMAGE_FLAGMETERLEVELPROGRESS, 638, 589). 맨 위 HUD를 피해 아래 구석에 작게 두었다. 우리 게임 적용: (7) 전투 HUD가 화면 위 40%를 덮는 문제. 라운드·웨이브 진행은 작은 막대 하…
+  - 검증: PC 코드(600,575, 채움이 왼쪽으로 늘어남, 머리 x=738-진행)가 맞다. 윈도폰판도 채우는 방식이 같다. 정밀하게 보면 FlagMeter 셀은 158×27이고 막대가 실제로 보이는 줄은 y 576~596이다. 'Level Progress' 표지(86×11)는 (638,589)~(724,600)에 놓여, 막대 아래쪽 가장자리에 겹치며 4px 삐져나온다. '아래에 붙는다'보다는 '아래 테두리에 겹친다'가 정확하다. 모바일(윈도폰)은 진행 막대를 화면 위쪽…
+  - 출처: https://github.com/Patoke/re-plants-vs-zombies/blob/main/Lawn/Board.cpp
+- [pvz_frostpunk-10·verified] (Plants vs. Zombies (PC GOTY, 디컴파일 소스)) 깃발 웨이브는 10웨이브마다 오고(처음 하는 모험 모드에서 웨이브가 10개 안 되는 레벨은 그 레벨 웨이브 수마다), 진행 막대 위 그 웨이브 비율 자리에 깃대와 깃발이 그려지며, 지나간 깃발은 14px 올라간 모습으로 바뀐다.
+  - 맥락: Board.cpp GetNumWavesPerFlag(10), IsFlagWave(wave % 10 == 9), DrawProgressMeter의 깃발 반복: 지난 깃발 aHeight=14, 지금 깃발은 mFlagRaiseCounter로 올라가는 애니메이션. 1-1 레벨에는 깃발이 없다(ProgressMeterHasFlags). 우리 게임 적용: 웨이브 미리보기가 없다는 문제(7). 막대 위 표식으로 '큰 웨이브가 언제 오는지'를 미리 보여 주는 근거.
+  - 검증: GetNumWavesPerFlag, IsFlagWave(%10==9), 비율 자리에 깃발 그리기, 지난 깃발 aHeight=14가 코드와 같다. 윈도폰 디컴파일의 IsFlagWave/GetNumWavesPerFlag도 똑같다. 단서가 두 가지 있다. 깃발이 없는 경우는 '처음 하는 모험 모드의 1-1'뿐이다. 윈도폰(모바일)판은 깃발 높이 오프셋을 0으로 고정해, 지난 깃발이 올라가지 않는다.
+  - 출처: https://github.com/Patoke/re-plants-vs-zombies/blob/main/Lawn/Board.cpp
+- [p_wave_menu-02·verified] (Mindustry) Mindustry 웨이브 표의 오른쪽 끝에는 폭 40px짜리 재생(▶) 아이콘 버튼이 붙어 있어 누르면 다음 웨이브를 바로 부르고, 이 버튼은 맵에 적이 0마리이며 적 생성이 끝난 때만 눌리며, 그 밖에는 아이콘이 투명해지고 글자 칸이 그 자리까지 넓어진다.
+  - 맥락: canSkipWave()는 state.enemies == 0 && !spawner.isSpawning()을 조건으로 쓴다. 비활성일 때는 imageDisabledColor = Color.clear로 아이콘을 지우고, 글자 칸의 오른쪽 여백을 -42로 바꾼다. 키 바인딩 «Skip Wave»가 따로 있지만 기본 키는 지정되어 있지 않다(KeyCode.unset). 우리 게임에 쓸 곳: 문제 (2)·(4). «전투 시작/조기 호출» 버튼을 위쪽 한 흐름 레이아웃에서 빼서 웨이브 표 옆의 고정 칸으로 옮긴다. 다만 Mindustry처럼 …
+  - 검증: 원본 코드(master, v146 같음)로 확인했다. 버튼은 Icon.play, width(40f), right(), imageDisabledColor=Color.clear이고, 비활성일 때 글자 칸이 padRight(-42f), 활성일 때 8f다. Binding.skipWave는 KeyCode.unset이다. 덧붙일 점: canSkipWave()에는 적 0과 생성 종료 말고도 rules.waves·rules.waveSending 조건이 있다. 멀티플레이에서는 …
+  - 출처: https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/ui/fragments/HudFragment.java, https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/input/Binding.java
+- [p_wave_menu-03·verified] (Mindustry) Mindustry는 맵 위의 적 출현 지점마다 «드롭 존» 반경을 회색과 밝은 회색 사이로 깜박이는 점선 원으로 그리는데, 플레이어가 그 반경에서 11칸 안쪽까지 다가올 때만 거리에 따라 서서히 나타난다.
+  - 맥락: OverlayRenderer의 spawnerMargin = tilesize*11f, Lines.dashCircle(..., state.rules.dropZoneRadius)로 확인했다. 같은 파일에는 «Enemy Indicators» 설정도 있다. 이 설정을 켜면 화면 90% 영역 밖에 있는 적의 방향을 플레이어 주위 14 거리 지점에 팀 색의 짧은 선(길이 3)으로 표시한다(설정 설명: «Shows markers pointing in the direction of enemy units»). 우리 게임에 쓸 곳: 문제 (7)의 웨이…
+  - 검증: OverlayRenderer 코드(master, v146 같음)로 확인했다. spawnerMargin=tilesize*11f이고 Color.gray↔lightGray를 absin으로 깜박인다. 알파는 clamp(1-(거리-dropZoneRadius)/margin)이고 dashCircle로 그린다. 적 표시기는 indicators 설정이 켜져 있을 때 카메라 90% 사각형 밖의 적을 indicatorLength=14 지점에 팀 색 선(길이 3)으로 그린다. 설정 …
+  - 출처: https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/graphics/OverlayRenderer.java, https://github.com/Anuken/Mindustry/blob/master/core/assets/bundles/bundle.properties
+- [p_wave_menu-05·verified] (Thronefall) Thronefall은 얼리액세스 1.1 업데이트에서 일시정지 메뉴에 «Upcoming Night Info»를 넣었다. 다음 밤에 공격해 올 적의 요약을 보여 주고, 적마다 짧은 설명도 읽을 수 있게 했다.
+  - 맥락: 근거는 Steam판에서 뽑은 게임 문자열(PopUps/Update1.1)이다. 같은 저장소에 있는 디컴파일 UI 클래스를 보면 NightPreviewElement가 밤 번호(number)와 적 아이콘(TFUIEnemy)·마릿수(enemyCount)를 가로로 늘어놓는다. NightWavePreviewCycleButton은 Increase/Decrease로 PauseUILoadoutHelper.CycleNightPreview를 부른다. 여기서 다른 밤도 넘겨 볼 수 있다고 추정했는데, 이것은 코드에서 끌어낸 추론이다. 개발사 사이트에 …
+  - 검증: PopUps/Update1.1 원문에 «Upcoming Night Info: ...summary of the enemies attacking during the next night in the pause menu... read a quick description of each enemy»가 있다. 디컴파일 코드에서는 TFUIEnemy.SetDataSimple이 WaveEnemyInfo.enemyCount를 numberText에 넣는다. PauseUILoadout…
+  - 출처: https://github.com/Ghenghis/ThroneFall-Coach/blob/main/reference/data_steam/localization_en.csv, https://github.com/Ghenghis/ThroneFall-Coach/blob/main/reference/maps/il/Assembly-CSharp/NightPreviewElement.il
+- [p_wave_menu-06·verified] (Thronefall) Thronefall의 밤(전투)은 타이머로 저절로 시작되지 않는다. 플레이어가 «Call Night» 동작(조작 설정 이름 «Start Night»)을 일정 시간 누르고 있어야 시작되며, 낮 시간이 지나면 밤이 저절로 오는 것은 «Durststein Speedrun» 같은 일부 모드뿐이다.
+  - 맥락: 게임 문자열에서 튜토리얼 «Hold {ACTION.Call Night} to start the night.», 조작 «Controls/Call Night,Start Night», 모드 설명 «the night sets in automatically»를 확인했다. 디컴파일 참고표에는 NightCall.nightCallTime('Call Night'을 누르고 있던 초)과 DayNightCycle.RemainingAutoDayTime(«only counts when AutomatedDaytime»)이 있다. 우리 게임에 쓸 곳: 문제 (…
+  - 검증: 문자열 «Hold {ACTION.Call Night} to start the night.», «Controls/Call Night,Start Night», Durststein Speedrun(맵 이름 'Time Flies')의 «night sets in automatically»를 원문으로 확인했다. DayNightCycle.Update는 automatedDaytime일 때만 remainingAutoDayTime을 줄이고 0이 되면 SwitchToNight를 부…
+  - 출처: https://github.com/Ghenghis/ThroneFall-Coach/blob/main/reference/data_steam/localization_en.csv, https://github.com/Ghenghis/ThroneFall-Coach/blob/main/tools/refpack/build_map_docs.py
+- [p_wave_menu-07·verified] (Bloons TD 6) BTD6 PC용 모드 Useful Utilities는 1.3.4(2025-07-30)에서 게임 안 «Bloons» 차트를 추가했다. 이 차트는 이번 라운드에 들어올 풍선을 보여 주고 다른 라운드의 풍선도 볼 수 있게 하며, 1.3.5부터는 라이브 모드에서 현재 라운드 풍선이 다 나오면 다음 라운드 풍선으로 저절로 넘어간다.
+  - 맥락: MelonLoader 모드이고 PC판에만 해당한다. 같은 변경 기록에는 Rounds Viewer 창의 이전/다음 화살표와, 재생 버튼을 가운데 클릭해 '이 라운드 전에서 자동 시작 멈춤'을 정하는 기능도 있다. 바닐라 BTD6의 라운드 숫자(«6/100» 형식)는 화면 오른쪽 위(1920×1080 기준 x 0.72~0.81, y 0.03~0.07 영역)에 있다(화면 인식 봇의 좌표 표). 이런 모드가 있다는 것만으로 바닐라에 라운드 구성 미리보기가 없다고 단정할 수는 없다(gaps 참고). 우리 게임에 쓸 곳: 문제 (7). 라운드…
+  - 검증: CHANGELOG 원문과 맞는다. 1.3.4(2025-07-30)에 «Bloons - Shows the Bloons currently inbound for the round, or view other rounds' bloons»가 있다. 1.3.5(2025-08-06)는 live mode에서 '현재 라운드 방출이 끝나면 다음 라운드를 자동 표시'한다. Rounds Viewer의 이전/다음 화살표는 1.3.13(2025-11-04), 재생 버튼 가운데 클릭으로 자…
+  - 출처: https://github.com/doombubbles/UsefulUtilities/blob/main/CHANGELOG.md, https://github.com/doombubbles/UsefulUtilities/blob/main/README.md
+- [ironhide-04·partly] (Kingdom Rush Frontiers / Alliance) Kingdom Rush Frontiers와 Alliance에서 다음 웨이브는 맵 위 해골 아이콘으로 표시되며, 한 번 누르면 다가오는 적 정보가 보이고 두 번 누르면 웨이브를 일찍 부른다.
+  - 맥락: Alliance에는 경로마다 해골이 여럿 있다('double tap on any skull'). 해골이 정확히 출현 지점 옆에 뜬다는 점은 검색 요약만으로는 약하게 뒷받침된다. Steam PC판에서는 W(또는 Enter) 키로도 부른다. 우리 문제 (7), 웨이브 미리보기 없음에 쓸 수 있다: 들판 아래 출현 지점 가까이에 아이콘을 띄워 한 번 클릭하면 구성을 보여 주고, 두 번 클릭하면 조기 호출(=전투 시작)하게 할 근거.
+  - 검증: Steam Love2D 코드(KR1~3 공용, Frontiers 포함)에서 WaveFlag는 각 경로 입구(level.locations.entrances) 옆에 뜬다. 마우스를 올리면 incoming_tooltip(적 이름×수)이 보이고, 한 번 클릭하면 바로 웨이브를 부른다(on_click→send_next_wave). '한 번=정보, 두 번=호출'은 모바일(터치) 동작이다. W·Enter 호출은 코드와 krli #82에서 확인된다. 데스크톱 HUD에는 오른쪽…
+  - 출처: https://addictedgamewise.com/kingdom-rush-frontiers-reference-theft/, https://jayisgames.com/review/kingdom-rush-frontiers.php
+- [tab-06·partly] (They Are Billions) 큰 무리(swarm)가 나타나기 전에 'Zombie swarm detected near the colony from the X'(X는 동서남북 중 하나) 창이 뜨고, 무리가 생길 때까지 남은 게임 시간 카운트다운이 함께 나오며 음악이 바뀐다.
+  - 맥락: 팬 위키 기준으로 일반 웨이브는 8시간 전, 마지막 웨이브는 24시간 전에 예고되고, 실제 도착은 최대 24시간까지 어긋날 수 있다. 예고하는 방향도 대략일 뿐이라 지형 때문에 다른 쪽으로 들어올 수 있다. 우리 게임 (7)번 '웨이브 미리보기 없음'에 쓸 근거: 준비 단계에 다음 웨이브가 몰릴 쪽(정문/쪽문)과 남은 시간을 한 줄로 띄울 수 있다.
+  - 검증: 예고 시점은 게임 데이터로 확인된다. TABSAT의 SaveReader.cs에 담긴 세이브 값(StartTimeH/StartNotifyTimeH)을 보면 일반 무리는 시작 8시간 전(Easy 312/304, Hard 1210/1202), 최종 무리는 24시간 전(2208/2184)에 예고된다. 100일·80일·50일 설정 모두 간격이 같다. TABSAT 문서는 화면 글과 아이콘이 무리의 방향을 모두 보여 주고, 음성 안내는 방향을 하나만 말한다고 적었다. 그러나…
+  - 출처: https://they-are-billions.fandom.com/wiki/Swarms, https://en.namu.wiki/w/They%20Are%20Billions
+- [pixel_minimal-06·partly] (Dome Keeper) 웨이브 미터의 시간 막대 길이는 웨이브 간격 4초당 1px(secondsPerPixel = 4)로 정해진다. 채움 막대는 다음 웨이브까지의 쿨다운 진행에 비례해 늘어나고, 막대 왼쪽에 웨이브 번호(최대 99)가 붙는다.
+  - 맥락: 웨이브 간격이 길어지면 막대 자체가 길어지므로, 길이만 보고도 간격을 읽을 수 있다. 웨이브를 늦추는 가젯(Repellent)을 가지고 있으면 지연 구간 막대가 따로 붙는다. 우리 문제 (7)에 쓴다: 웨이브 미리보기가 없는 상태를 숫자 없이 작은 막대 하나로 해결하는 예다.
+  - 검증: 맞는 점: secondsPerPixel=4이고 막대 최대 길이는 floor(웨이브 간격/4)px다. 웨이브 번호는 min(99, cycle+1)이고 라벨이 HBox 맨 앞(왼쪽)에 있다. repellent를 사면 DelayBar가 붙는다. 틀린 점: 채움 막대 goalRectSize=(max-1)×wavecooldown/간격이다. Monsters.gd에서 waveCooldown은 간격 값에서 0으로 줄어드는 '남은 시간'이다(doWaveCountdown이 깎고,…
+  - 출처: https://github.com/Kupie/DK_DECOMP/blob/main/content/hud/wavemeter/WaveMeter.gd
+- [pvz_frostpunk-13·partly] (Plants vs. Zombies (PC GOTY, 디컴파일 소스)) 레벨 시작 컷신에서 카메라가 오른쪽 길거리로 이동하면, 이번 레벨 모든 웨이브에 나올 좀비 종류가 길에 서 있고, 종류마다 마릿수는 '그 종류 수 × 미리보기 정원 ÷ 전체 수'(최소 1)로 정해진다(정원은 보통 10, 일부 레벨 15·18).
+  - 맥락: CutScene.cpp PlaceStreetZombies: mZombiesInWave 전 웨이브를 세어 종류별 수를 구하고 aZombiePreviewNum = count * aPreviewCapacity / aTotalZombieCount, ClampInt(1, count). 큰 좀비부터 배치하고, 깃발 좀비는 빠진다. TimePanRightStart 1500 ~ TimePanRightEnd 3500. 우리 게임 적용: 준비 단계에 들판에 다음 라운드 적 구성을 비율대로 세워 보여 주는 웨이브 미리보기 근거(문제 7).
+  - 검증: 정원 10/15/18, '수×정원÷전체(최소 1)' 공식, 깃발 좀비 제외, 팬 1500~3500은 윈도폰 디컴파일 CutScene에서도 똑같이 확인된다. 그러나 '종류마다 이 공식'은 틀린 부분이 있다. 2×2 좀비(거대 좀비 등)와 잠보니는 비율과 상관없이 한 마리씩만 놓는다. 번지 좀비는 1마리로 고정된다. 예티는 Stormy Night가 아니면, 봅슬레이는 해당 챌린지가 아니면 빠진다. 수영장 레벨은 오리튜브 좀비가 늘 들어가고, 5×5 칸이 차면 더 놓…
+  - 출처: https://github.com/Patoke/re-plants-vs-zombies/blob/main/Lawn/CutScene.cpp
+- [p_wave_menu-01·partly] (Mindustry) Mindustry는 화면 왼쪽 위 웨이브 표에 «Wave N»(승리 웨이브가 정해져 있으면 «Wave N/M»), 남은 적 수(«N Enemies Remaining»), 다음 웨이브까지 남은 시간(«Wave in 1:05» 같은 분:초, 진행 중이면 «Wave in progress»)을 한 줄씩 나눠 보여 준다.
+  - 맥락: Anuken/Mindustry master 브랜치 원본 코드(HudFragment.makeStatusTable)와 영어 문자열 파일에서 확인했다. PC와 모바일이 같은 코드를 쓴다. 같은 파일에는 수호자(보스) 웨이브를 10·5·2·1 웨이브 전에 경고 아이콘 토스트(«Guardian approaching in N waves.»)로 미리 알리는 코드도 있다. 우리 게임에 쓸 곳: 문제 (5)·(7). 거점 체력 옆 고정 칸 하나에 «라운드 3/6 · 웨이브 2/5 · 다음 0:42»를 넣고, 보스 라운드는 몇 라운드 전에 미리 알린…
+  - 검증: WebSearch 예산이 다 떨어져 웹 교차 확인은 못 했다. GitHub 원본 코드로만 확인했고 master와 v146 릴리스가 같다. «Wave N»과 «Wave N/M»(winWave>1일 때), 남은 적 수, 분:초 카운트다운, 수호자 경고(10·5·2·1 웨이브 전 토스트)는 맞다. 틀린 점은 «Wave in progress»가 웨이브가 진행 중일 때마다 나오지 않는다는 것이다. Logic.isWaitingWave()는 rules.waitEnemies(…
+  - 출처: https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/ui/fragments/HudFragment.java, https://github.com/Anuken/Mindustry/blob/master/core/assets/bundles/bundle.properties
+- [p_wave_menu-04·partly] (Kingdom Rush) Kingdom Rush의 웨이브 호출 버튼은 1920×1080 화면 기준 지름 약 72~80px의 원형 해골 배지다. 출현 입구 옆에 입구마다 하나씩 놓이고, 주황 테두리 링이 대기 시간이 줄어드는 만큼 줄어드는 카운트다운 게이지 역할을 하며, 누르면 다음 웨이브가 바로 시작되고 남은 시간에 비례한 보너스 골드를 준다.
+  - 맥락: Kingdom Rush 화면 16장을 직접 재서 정리한 다른 개발자의 문서(STYLE_BIBLE)가 출처다. 판마다 위치가 다르다. Origins는 오른쪽 아래(약 x1780, y1000), Frontiers 시기 화면은 오른쪽 가운데(약 x1855, y540)이고, 출현 지점이 둘인 화면에는 버튼도 둘이다. 보너스는 같은 문서가 '남은 1초당 약 1골드'로 추정했다. KR을 본뜬 다른 게임 문서도 Game Developer의 KR 분석 글이 '조기 호출 1초당 1골드'라고 했다고 인용한다(Game Developer 원문은 직접 열…
+  - 검증: STYLE_BIBLE §5.4와 §8.9의 내용과는 맞는다. 하지만 지름 72~80px, 주황 링(#E8701C), 좌표는 이 한 문서의 스크린샷 측정뿐이고 다른 뒷받침이 없다. 링이 줄어드는 카운트다운 게이지라는 점과 '1초당 약 1골드'는 측정한 절이 아니라 메커니즘 추정 절(§8)에서 나온다. 원문에는 '웨이브 번호에 따라 달라짐(scaled by wave index)'이라는 단서도 붙어 있다. 조기 호출로 골드를 받는다는 점은 독립된 두 문서(ref2ga…
+  - 출처: https://github.com/ir272/kingdomrush-game/blob/main/docs/STYLE_BIBLE.md, https://github.com/jsclev/in-defense-of-history/blob/main/Tools/wave_start_timing.md
+- [ironhide-07·likely] (Kingdom Rush Origins / Vengeance) Kingdom Rush Origins와 Vengeance에서는 웨이브가 오기 전 경로에 표식(배너)이 떠서, 적이 어느 방향으로 행군할지 미리 알려 준다.
+  - 맥락: 검색 요약에 따르면 fandom의 Vengeance 문서는 방향 표식을 Origins와 달라진 점으로 적었다. 그래서 어느 작품에서 처음 생겼는지는 모호하다. LadiesGamers(Origins Switch판 리뷰)는 스테이지 도중 새 길이 열리니 배너 위치를 보라고 했다. 우리 게임에 쓸 수 있다: 들판 31줄 쪽 출현 지점이 화면 밖에 있을 때도, 다음 웨이브가 어느 쪽 문(정문·쪽문)으로 몰릴지 화살표로 보여 줄 근거.
+  - 검증: Origins·Vengeance의 경로 배너는 검색 한도로 확인하지 못했다. 참고로 KR1~3 Love2D 코드에서도 입구의 WaveFlag에 경로 방향으로 회전하는 화살표(pointer.r = item.r - π/2)가 붙는다. 방향 표시 자체는 KR1부터 있었다.
+  - 출처: https://kingdomrushtd.fandom.com/wiki/Kingdom_Rush:_Vengeance, https://ladiesgamers.com/kingdom-rush-origins-review-nintendo-switch/
+- [tab-07·likely] (They Are Billions) 다음 무리가 오기까지 남은 시간(다음 침공 타이머)은 팝업이 아니라 화면 왼쪽 아래에 늘 떠 있다.
+  - 맥락: 개발사 공식 설명이 아니라 가이드와 나무위키 기준이다. 우리 게임 (7)번에 쓸 근거: 라운드·웨이브까지 남은 시간을 미니맵 옆 고정 자리에 늘 띄울 수 있다.
+  - 검증: 웹 검색 한도가 소진돼 독립 근거를 찾지 못했다. 다만 상충할 가능성이 있다. 게임 데이터에는 무리마다 예고 시작 시각(StartNotifyTimeH, 8시간 또는 24시간 전)이 따로 있어서, 무리 시각은 예고창으로 알려 주는 구조로 보인다. '다음 침공 타이머가 왼쪽 아래에 늘 떠 있다'는 주장은 가이드·나무위키만의 설명이고, 상설 타이머가 실제로 있는지는 확인되지 않았다.
+  - 출처: https://www.keengamer.com/articles/guides/they-are-billions-survival-guide/, https://en.namu.wiki/w/They%20Are%20Billions
+- [aod-08·likely] (Age of Darkness: Final Stand) 다음 Death Night까지 남은 시간을 보여 주는 카운트다운 타이머가 있고, 다섯 번째 Death Night가 끝나면 10분짜리 최종 웨이브 타이머가 돌기 시작한다.
+  - 맥락: 타이머가 화면 어디에 있는지는 확인하지 못했다. 우리 게임 (7)번에 쓸 근거: 라운드 6개 구조에 '다음 전투까지 남은 시간'과 '최종 라운드' 타이머를 HUD 고정 칸에 둘 수 있다.
+  - 검증: 웹 검색 한도가 소진돼 Death Night 카운트다운과 10분짜리 최종 웨이브 타이머를 다른 출처로 확인하지 못했다.
+  - 출처: https://www.gameskinny.com/tips/age-of-darkness-final-stand-tips-and-tricks-guide/, https://www.thegamer.com/age-of-darkness-final-stand-how-to-win-survival-mode/
+- [aod-09·likely] (Age of Darkness: Final Stand) 나이트메어 무리의 출발지는 지도에 드러나는 거대한 수정(크리스탈)으로 표시되어 대략의 공격 방향을 알 수 있지만, 플레이어들은 밤안개 가장자리가 옅게 보이는 정도의 단서로는 부족하다며 공격 직전의 방향 표시를 요구했다.
+  - 맥락: Death Night 예고 시점(전날 아침, 실시간 약 5분 전)은 검색 요약에 나왔지만 어느 출처의 내용인지 불분명해 뺐다. 우리 게임 (7)번에 쓸 근거: 적이 아래 들판에서만 오더라도, 어느 문(정문/쪽문 2)으로 몰릴지 준비 단계에 화살표로 보여 줄 수 있다.
+  - 검증: 웹 검색 한도가 소진돼 출발지 수정과 방향 표시 요구를 다른 출처로 확인하지 못했다.
+  - 출처: https://dislocated.space/2022/02/27/nightmares-invade-in-age-of-darkness-final-stand/, https://steamcommunity.com/app/1426450/discussions/0/3192488348508449606/
+- [aoe_northgard-19·likely] (Northgard) Northgard는 화면 왼쪽 아래 미니맵 바로 위에 달력 막대를 둔다. 막대는 한 칸이 한 달이고, 겨울 구간은 하얀 눈 덮인 칸으로 칠해진다.
+  - 맥락: 계절 구분은 출처마다 다르다(공식 위키는 4계절, gamepressure는 여름·겨울 둘). 우리 게임: 라운드 6개를 미니맵이나 아래 HUD 위 6칸 막대로 보여 주고, 현재 라운드와 다음 전투를 칸 색으로 표시하는 웨이브 미리보기의 근거다.
+  - 검증: 검색 한도가 다 차서 웹 검색을 못 했다. 게임 텍스트에서 달력 계절 설명은 Winter·Summer·Stockpiling(겨울 대비) 셋뿐이다. 이 점은 detail에서 gamepressure가 말한 여름·겨울 구분 쪽과 맞는다. '달력 타이머 표시(Show calendar timers)' 옵션도 있다. 달력이 미니맵 바로 위에 있다는 위치와 칸 모양은 확인하지 못했다.
+  - 출처: https://northgard.fandom.com/wiki/Calendar, https://discover.hubpages.com/games-hobbies/Surviving-Northgard-A-New-Players-Guide-to-the-Game
+- [aoe_northgard-20·likely] (Northgard) Northgard 달력은 다가오는 재난(눈보라·지진·쥐 떼 등)을 일어날 달의 칸에 아이콘(느낌표)으로 표시하고, 보통 3달 전에 미리 알린다.
+  - 맥락: 예외로 '얼어붙은 바다'는 다른 사건 직후에 일어날 수 있어 달력에 예고되지 않는다(공식 위키). 리뷰어(Explorminate)는 미리 경고가 오지만 장기 계획을 급히 바꿔야 할 때가 많다고 평했다. 우리 게임: 다음 라운드 적 구성(공성병·비행 등)을 라운드 막대 칸에 아이콘으로 미리 꽂아 두는 웨이브 미리보기의 근거다.
+  - 검증: 검색 한도가 다 차서 웹 검색을 못 했다. 게임 텍스트에 사건 예고 문구가 있다('N개월 N일 뒤 시작', 'N개월 뒤 예고'). 눈보라·지진을 미리 경고하는 문구('올겨울 눈보라가 온다', '진동이 보고됐다')도 있다. 그래서 미리 알린다는 큰 틀은 맞아 보인다. 하지만 '보통 3달 전'과 달력 칸의 느낌표 아이콘은 확인하지 못했다.
+  - 출처: https://northgard.fandom.com/wiki/Disasters, https://northgard.fandom.com/wiki/Calendar
+- [castle-16·likely] (Diplomacy is Not an Option) 미니맵에 뿔 달린 투구 아이콘이 다음 적 웨이브가 나올 지점을 표시하고, 후반 웨이브는 여러 지점에서 나오므로 투구도 여러 개가 된다.
+  - 맥락: 팬 위키 튜토리얼 미션('Let's Learn')과 초보 가이드에서 나온 설명이다(검색 요약 기준이라 문장마다 어느 쪽 출처인지 확정하지는 못함). 다른 초보 가이드는 '첫 공격 방향은 미니맵 귀퉁이에서 보인다'고 한다. 우리 들판 31줄의 출현 칸을 미니맵이나 화면 가장자리 아이콘으로 미리 보여 주는 근거(웨이브 미리보기 없음 문제).
+  - 검증: 검색 예산 소진으로 확인하지 못했다. 미니맵의 뿔 투구 아이콘이 출현 지점을 표시하는지, 후반에 여러 개가 되는지 독립 근거가 없다. 조사원도 문장별 출처를 확정하지 못했다.
+  - 출처: https://diplomacy-is-not-an-option.fandom.com/wiki/Let's_Learn, https://techraptor.net/gaming/guides/diplomacy-is-not-option-guide-for-beginners
+- [minimal-01·likely] (Thronefall) Thronefall의 낮(건설) 단계에는 맵의 각 적 출현 지점에 작은 빨간 아이콘이 떠서, 그날 밤 그 지점에서 나올 적 유닛 수를 미리 보여 준다.
+  - 맥락: PC판(2023 얼리 액세스 체험기와 리뷰 기준). HUD 패널 없이 맵 위 출현 지점에 직접 그리는 예고 방식이다. 우리 게임 (7) '웨이브 미리보기 없음' 문제: 준비 단계에 들판 아래쪽 출현 칸 위에 적 수 아이콘을 띄우면 위쪽 HUD를 키우지 않고도 예고할 수 있다.
+  - 검증: WebSearch 한도(턴당 200회, 모든 에이전트 공유)가 이미 소진되어 검색이 한 번도 실행되지 않았다. 독립 뒷받침도 반대 증거도 모으지 못했다. 재검증이 필요하다.
+  - 출처: https://checkpointgaming.net/features/2023/08/thronefall-hands-on-preview-a-small-game-packing-a-big-punch/, https://www.siliconera.com/review-thronefall-is-a-beautifully-simplistic-rts-game/
+- [minimal-02·likely] (Thronefall) Thronefall의 출현 지점 예고 아이콘은 적을 근접·원거리·비행으로 나눈 종류 아이콘과 종류별 수를 함께 보여 준다.
+  - 맥락: Siliconera 리뷰와 Checkpoint Gaming 체험기 모두 아이콘이 '어떤 종류가 오는지'도 알려 준다고 적었다. 우리 게임 (5)·(7): 아이콘·색이 없는 문제에 쓴다. 적 종류를 글자 대신 16px 아이콘 3~4종으로 줄이고 숫자만 붙이면 640×360 화면에서도 읽힌다.
+  - 검증: 검색 한도 소진으로 검색하지 못했다. 아이콘이 근접/원거리/비행으로 나뉘는지, 종류별 수를 함께 보여 주는지 독립 출처로 확인하지 못했다. minimal-03(나무위키: 초기판은 지상/공중 구분이 직관적이지 않음)과 어긋날 수 있으니 판별 확인이 필요하다.
+  - 출처: https://www.siliconera.com/review-thronefall-is-a-beautifully-simplistic-rts-game/, https://checkpointgaming.net/features/2023/08/thronefall-hands-on-preview-a-small-game-packing-a-big-punch/
+- [ironhide-05·unverified] (Kingdom Rush 5: Alliance) Kingdom Rush 5: Alliance에서 해골을 누르면 그 웨이브의 적 종류·마릿수·이동 경로가 보이고, 날개 달린 해골은 비행 적이 섞인 웨이브라는 뜻이다.
+  - 맥락: 같은 가이드는 웨이브가 진행되면서 적이 새 경로를 쓰는 스테이지가 있다고도 적었다. 우리 문제 (7)에 쓸 수 있다: 웨이브 미리보기에 적 종류 아이콘과 수를 넣고, 비행·공성 같은 속성은 해골 위 작은 표식(날개 등) 하나로 줄여 보여 줄 근거.
+  - 검증: Alliance 자료는 찾지 못했다. 같은 개념이 KR1~3 코드에는 있다. WaveFlag가 some_flying이면 다른 아이콘(nextwaveTimer_0003)을 쓰고, 툴팁(GU.incoming_wave_report)은 경로별 적 종류×마릿수를 보여 준다(krli #1181 'Demon Lord x 5, Flareon x 24'). 경로 표시(marching ants)는 모드 코드에 '다른 판에서 가져옴'이라는 주석이 있어 원작 기능인지 불명확하다.
+  - 출처: https://www.levelwinner.com/kingdom-rush-5-alliance-beginners-guide/
+- [castle-17·unverified] (Diplomacy is Not an Option) 웨이브 카운터는 처음에 도착 날짜(Day)로 보이다가 그날이 가까워지면 분·초 카운트다운으로 바뀌고, 시간이 다 되면 적이 마을 쪽으로 움직이기 시작한다.
+  - 맥락: 초보 가이드 설명이다(검색 요약 기준). 먼 미래는 거칠게(날짜), 임박하면 정밀하게(초) 보여 준다. 우리 준비 단계 남은 시간과 다음 라운드 예고를 한 자리 카운터로 두고, 임박하면 표시를 바꾸는 근거.
+  - 검증: 검색 예산 소진으로 확인하지 못했다. 날짜 표시가 분·초 카운트다운으로 바뀐다는 설명은 검색 요약에만 기대고 있다.
+  - 출처: https://techraptor.net/gaming/guides/diplomacy-is-not-option-guide-for-beginners, https://www.noobfeed.com/articles/diplomacy-is-not-an-option-beginners-guide
+- [castle-18·unverified] (Diplomacy is Not an Option) 웨이브는 출현 지점만 표시되고 실제 진군 경로는 보이지 않아서, 웨이브가 탑 사거리 밖으로 지나가 탑을 잃었다는 플레이어 지적이 있다.
+  - 맥락: Steam 토론. 플레이어들이 제안한 우회법은 이렇다. 카메라를 출현 지점에 놓고 성 쪽으로 따라가 보기, 출현 지점에서 유닛을 성으로 보내 경로 재 보기, 매일 저장했다가 불러와 실제 경로 확인하기(웨이브마다 10분 넘게 되돌려야 함). AI가 조금 다른 방향으로 가기도 해서 확실하지 않다는 말도 있다. 우리 웨이브 미리보기에 '어느 문/어느 길로 오는지' 화살표를 넣는 근거.
+  - 검증: 검색 예산 소진으로 확인하지 못했다. 진군 경로가 보이지 않는다는 지적은 인용된 Steam 글타래 하나에만 기대고 있다. 이후 패치에서 경로 표시가 생겼는지도 확인하지 못했다.
+  - 출처: https://steamcommunity.com/app/1272320/discussions/0/599658601187034003/
+- [minimal-03·unverified] (Thronefall) 나무위키는 Thronefall의 출현 아이콘이 지상 적과 공중 적을 직관적으로 구분해 주지 않는다고 지적했고, 이후 패치로 유닛 머리 위에 유닛 종류 아이콘이 뜨게 바뀌었다고 적었다.
+  - 맥락: 판에 따라 다르다. 출시 초기 판과 패치 뒤 판의 아이콘 표시가 다르며, 정확한 패치 버전은 확인하지 못했다. 우리 게임: 예고 아이콘을 만들 때 지상과 공중(또는 성벽을 넘는 적)을 모양으로 확실히 구분해야 한다는 교훈이다. 전투 중 적 머리 위에도 같은 종류 아이콘을 쓰면 예고와 실제 적이 이어진다.
+  - 검증: 검색 한도 소진으로 검색하지 못했다. 나무위키 서술과 패치 내용(머리 위 종류 아이콘)을 패치 노트나 스팀 공지로 대조하지 못했다.
+  - 출처: https://en.namu.wiki/w/Thronefall
+- [minimal-07·unverified] (Thronefall) Thronefall 스팀 토론에서 한 플레이어가 남은 적 수를 세는 카운터를 요청했다. 그 시점에는 전투 중에 남은 적 수를 보여 주는 HUD가 없었다는 뜻이다.
+  - 맥락: 검색 시점 기준 약 987일 전(2023년 무렵) 글이며, 이후 추가되었는지는 확인하지 못했다. 최소 HUD의 대가다. 우리 게임은 '웨이브 내내 바쁜 실시간 전쟁'이 정체성이므로, 남은 적 수나 웨이브 진행 막대 하나쯤은 HUD에 두는 쪽이 낫다는 근거로 쓸 수 있다.
+  - 검증: 검색 한도 소진으로 검색하지 못했다. 스팀 토론 글의 존재와 날짜, 이후 남은 적 카운터가 추가되었는지 확인하지 못했다. '그 시점에 HUD가 없었다'는 것도 요청 글에서 끌어낸 추론일 뿐이다.
+  - 출처: https://steamcommunity.com/app/2239150/discussions/0/4201364375110360954/
+
+## 경보·화면 밖 (alerts_offscreen) — 30개
+
+- [blizzard-11·verified] (Warcraft III (Classic/Reforged)) WC3에서 스페이스바를 누르면 카메라가 마지막 알림(공격 경보·유닛 완성 등)이 난 위치로 가고, 다시 누르면 이전 알림들을 최대 8개까지 거슬러 차례로 돈다.
+  - 맥락: 원작부터 있는 기능이다. 맵 제작자가 다른 기능으로 다시 묶을 수 없게 고정돼 있다(하이브 워크숍). 오픈소스 재구현 OpenWar3에도 같은 기능 요청 이슈가 있다(https://github.com/elevchyt/openwar3/issues/163). 우리 게임: (7) 화면 밖 경보가 없는 문제에 쓴다. 성문·거점·영웅 피격 알림을 쌓아 두고 스페이스로 그 자리에 간다.
+  - 검증: 원작 TipStrings Tip36: 스페이스바를 누르면 마지막 transmission 위치로 화면이 가고, 거듭 누르면 '마지막 8개' 위치를 차례로 돈다. HelpStrings: 'Spacebar - Center on last notification(s)'. 원문 단어는 알림(transmission/notification)이다.
+  - 출처: https://wowpedia.fandom.com/wiki/Warcraft_III:_Hotkeys, https://classic.battle.net/war3/basics/specialcommands.shtml
+- [blizzard-25·verified] (StarCraft II) StarCraft II에서 스페이스바를 누르면 카메라가 마지막 경보(예: '기지가 공격받고 있습니다')가 난 곳으로 가고, 다시 누르면 이전 경보들을 차례로 돈다.
+  - 맥락: 백스페이스는 기지 카메라를 돈다. 포럼에는 경보 이동이 원치 않는 곳으로 튄다는 불만이 있고, 'Show Alerts' 옵션을 끄거나 Shift+Space로 옮겨 쓰는 사람도 있다. 우리 게임: (7) 화면 밖 경보가 없는 문제에 쓴다. 웨이브 중 성문·거점 피격을 스페이스로 바로 가 보게 한다.
+  - 검증: 자유의 날개 GameHotkeys에 'UI/Hotkey/AlertRecall=Space'가 있고, 툴팁은 'Focuses the camera on an alert. Press repeatedly to cycle.'(이름은 Jump to Last Alert)이다. TownCamera=Backspace(기지 카메라)다. ShowAlerts 옵션은 '경보를 화면 왼쪽에 표시'다.
+  - 출처: https://news.blizzard.com/en-us/article/6640645/game-guide-simplified-controls, https://liquipedia.net/starcraft2/Hotkeys
+- [blizzard-27·verified] (StarCraft II) StarCraft II에서는 내 유닛이 공격받으면 미니맵의 그 자리에 붉은 경보 표시가 맥동하듯 깜박인다.
+  - 맥락: 플레이어 포럼 글이 근거이며 공식 문서로는 확인하지 못했다. 미니맵의 붉은 경고가 가끔 늦게 뜬다는 지적도 있다. 우리 게임: (7) 화면 밖 경보에 쓴다. 성벽·성문·거점이 맞으면 미니맵 그 칸을 붉게 깜박이고, blizzard-25의 스페이스 이동과 묶는다.
+  - 검증: SC2 core AlertData.xml의 기본 Attack 경보(AttackUnit/AttackTown 등이 물려받음)는 Flags Ping=1, PingColor=255,255,0,0(빨강), 수명 15초다. 기본 PingTime은 6초다. 공격 경보가 미니맵에 붉은 핑을 띄우는 것은 데이터로 확인된다. '맥동' 모양 자체는 보지 못했다.
+  - 출처: https://tl.net/forum/sc2-strategy/403812-improving-minimap-awareness, https://tl.net/forum/starcraft-2/172497-we-are-under-attack-message
+- [td_bars-md-12·verified] (Mindustry) 코어가 피해를 입으면 위 가운데 자원 표시 바로 아래에 «< Core is under attack! >» 글자가 주황과 빨강 사이로 깜빡이며 약 4초(240틱) 떠 있고, 이 글자를 누르면 카메라가 마지막으로 맞은 코어로 옮겨 간다.
+  - 맥락: 화면 밖 방향 화살표는 없고, 글자 경보와 «누르면 카메라 이동»만 있다. 우리 문제 (5)·(7): 거점 체력이 HUD에 없고 거점이 HUD에 가리는 문제에 «거점 피격 경보 + 누르면 거점으로 카메라 이동»을 붙이는 근거가 된다.
+  - 검증: 소스를 직접 대조함. notifDuration=240, 라벨 색은 Color.orange에서 scarlet으로 absin lerp되어 깜빡이고, black6 배경이다. 라벨 tapped에 panCamera(lastDamagedCore)가 걸려 있다. collapser 셀에 touchable(disabled)가 붙어 있지만, Arc Collapser가 펼쳐질 때 touchable을 enabled로 되돌리므로 누르기는 작동한다. 화면 밖 방향 화살표 코드는 없다.
+  - 출처: https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/ui/fragments/HudFragment.java#L596-L625, https://github.com/Anuken/Mindustry/blob/master/core/assets/bundles/bundle.properties#L106
+- [pixel_minimal-08·verified] (Dome Keeper) 웨이브가 진행되는 동안 키퍼가 조종석(스테이션)에 없으면, 웨이브 미터의 적 아이콘 섬광이 0.1초 켜지고 0.9초 꺼지기를 반복하며 켜질 때마다 alarm 효과음이 울린다. 키퍼가 조종석에 있으면 섬광은 계속 켜져 있다.
+  - 맥락: WaveMeter.gd의 switchFlare에 근거한다. 우리 문제 (7)(화면 밖 경보 없음)에 쓴다: 플레이어가 다른 곳을 보고 있을 때 작은 HUD 아이콘의 점멸과 소리로 '지금 전투 중'을 알리는 최소 경보의 예다.
+  - 검증: switchFlare 코드가 주장과 같다. 웨이브 중 팀원 누구든 스테이션에 있으면(oneInsideStation) Flare를 켠 채 0.3초마다 다시 확인한다. 아니면 켜짐 0.1초에 Audio.sound("alarm"), 꺼짐 0.9초를 반복한다. 판단 대상은 '그 키퍼'가 아니라 팀 전체다.
+  - 출처: https://github.com/Kupie/DK_DECOMP/blob/main/content/hud/wavemeter/WaveMeter.gd
+- [pixel_minimal-09·verified] (Dome Keeper) 웨이브 경보 업그레이드(물 1)를 사면, 키퍼가 돔에서 150px 넘게 떨어져 있을 때 경고가 나온다. 웨이브까지 남은 시간이 1.5 + (6 + 거리×0.01) × 보정값 초 아래로 내려가는 순간 경고음 3회와 아이콘 점멸이 나온다. 보정값은 그동안 늦게 또는 일찍 돌아온 기록에 따라 플레이어마다 0.5~2.0 사이에서 조정된다.
+  - 맥락: 경고가 나온 뒤 웨이브가 시작된 지 0.3초 넘게 지나서 돌아오면 보정값을 올리고, 웨이브 시작보다 1.5초 넘게 일찍 돌아오면 내린다. 우리 게임에 쓴다: 영웅이 성벽 밖 들판에 나가 있을 때 거리 비례로 웨이브 예고 시간을 늘리는 경보 규칙의 근거다.
+  - 검증: 코드에서 모두 확인했다. domewavewarner는 물 1이다. 거리가 150을 넘어야 하고, 임계값은 1.5+(6+거리×0.01)×보정값이다. 경고음은 startSound 뒤 0.6초·1.2초에 다시 울려 3회이고 Flare가 점멸한다. 보정값은 0.5~2.0으로 clamp되고 0.3초·1.5초 조건도 맞다. 단 거리는 keeper.global_position.length(), 곧 월드 원점 기준이다(1인 돔은 원점 근처라 사실상 돔까지의 거리). 이 경고·…
+  - 출처: https://github.com/Kupie/DK_DECOMP/blob/main/content/hud/wavemeter/WaveMeter.gd, https://github.com/Kupie/DK_DECOMP/blob/main/upgrades.yaml
+- [pixel_minimal-10·verified] (Dome Keeper) 귀환 경로 업그레이드(물 1)는 경고 시점에 키퍼 위치에서 돔까지의 경로선을 맵 위에 0.4초에 걸쳐 투명도 0.6까지 서서히 그린다. 키퍼가 돔에 들어오거나 웨이브가 끝나면 선을 지운다.
+  - 맥락: HUD가 아니라 게임 세계 안에 그리는 디제틱 길 안내다. 우리 문제 (7)에 쓴다: 카메라에 거점이 가려지거나 화면 밖에 있을 때 '거점 쪽 방향'을 세계 위에 잠깐 그려 주는 방식의 선례다.
+  - 검증: domewavepathtodome는 물 1이고 선행 업그레이드가 domewavewarner다. showPathToDome은 Level.map에 경로선을 붙이고 modulate.a를 0에서 0.6까지 0.4초에 올린다. 키퍼가 돔에 들어오거나 wavepresent가 false가 되면 removePathToDome이 0.4초 페이드로 지운다. 선은 경고가 울리는 순간에만 그린다.
+  - 출처: https://github.com/Kupie/DK_DECOMP/blob/main/content/hud/wavemeter/WaveMeter.gd, https://github.com/Kupie/DK_DECOMP/blob/main/upgrades.yaml
+- [pvz_frostpunk-11·verified] (Plants vs. Zombies (PC GOTY, 디컴파일 소스)) 깃발 웨이브 직전에 화면 가운데 높이(y=330)에 빨간(255,0,0) HouseOfTerror 28 글꼴로 [ADVICE_HUGE_WAVE] 글자가 페이드 인으로 떠서 750틱 동안 머물고, 이 750틱 카운트다운이 끝나야 그 웨이브 좀비가 나온다.
+  - 맥락: Board::UpdateZombieSpawning: IsFlagWave면 DisplayAdviceAgain("[ADVICE_HUGE_WAVE]", MESSAGE_STYLE_HUGE_WAVE); mHugeWaveCountDown = 750; 0이 되면 ClearAdvice 뒤 NextWaveComing(). MessageWidget.cpp: HUGE_WAVE 스타일은 mDuration=750, REANIM_TEXT_FADE_ON, aPosY=330, Color(255,0,0), FONT_HOUSEOFTERROR28. 경고와 실제 출현…
+  - 검증: UpdateZombieSpawning에서 mZombieCountDown==5이고 깃발 웨이브이면 경고를 띄우고 mHugeWaveCountDown=750으로 둔다. 0이 되면 ClearAdvice와 NextWaveComing을 부른다. MessageWidget의 HUGE_WAVE 스타일(750, TEXT_FADE_ON, y=330, 빨강, HOUSEOFTERROR28)도 맞다. 윈도폰판도 750, FADE_ON, 빨강으로 같고 y만 해상도에 맞춰 290이다. 원문…
+  - 출처: https://github.com/Patoke/re-plants-vs-zombies/blob/main/Lawn/Board.cpp, https://github.com/Patoke/re-plants-vs-zombies/blob/main/Lawn/MessageWidget.cpp
+- [pvz_frostpunk-12·verified] (Plants vs. Zombies (PC GOTY, 디컴파일 소스)) 웨이브 경보는 소리로도 겹쳐 나온다: 큰 웨이브 카운트다운 725틱에 HUGE_WAVE 효과음, 깃발 웨이브가 나올 때 사이렌, 첫 웨이브에 AWOOGA 경적이 울리고, 마지막 웨이브에는 UI보다 위 층에 FINAL_WAVE 애니메이션을 띄운 뒤 60틱 뒤 FINALWAVE 효과음이 난다.
+  - 맥락: Board.cpp UpdateZombieSpawning(mHugeWaveCountDown == 725 → SOUND_HUGE_WAVE), NextWaveComing(SOUND_AWOOGA / SOUND_SIREN, REANIM_FINAL_WAVE를 RENDER_LAYER_ABOVE_UI에, mFinalWaveSoundCounter = 60). 우리 게임 적용: 화면 밖 경보·미니맵이 없는 문제(7). 카메라가 다른 곳을 보고 있어도 들리는 소리 경보를 단계별(첫/큰/마지막 웨이브)로 나누는 근거.
+  - 검증: 725틱 HUGE_WAVE, 첫 웨이브 AWOOGA, 깃발 웨이브 SIREN(카운트다운이 끝나 NextWaveComing이 불릴 때), 마지막 웨이브 REANIM_FINAL_WAVE(ABOVE_UI)와 60틱 뒤 FINALWAVE가 모두 코드와 같다. 윈도폰판에도 같은 순서가 있다. 단서: 재선택이 있는 서바이벌, Last Stand, 연속 챌린지에서는 FINAL_WAVE 연출이 빠진다. 마지막 웨이브는 보통 깃발 웨이브라 사이렌도 함께 울린다.
+  - 출처: https://github.com/Patoke/re-plants-vs-zombies/blob/main/Lawn/Board.cpp
+- [p_alerts_camera-02·verified] (OpenRA (Red Alert 모드)) OpenRA의 DamageNotifier는 내 건물이 공격받으면 미니맵(레이더)에 빨간 핑을 250틱(기본 속도 40ms/틱이면 10초) 동안 띄우고, 음성 알림과 «Base under attack.» 글줄을 낸 뒤, 다음 알림까지 최소 30000ms를 기다린다.
+  - 맥락: RA 모드 player.yaml에서 건물(Structure)은 BaseAttack 음성과 글줄을 낸다. 유닛용 DamageNotifier@Unit은 NotifyInterval 10000ms이고 음성 지정이 없어 핑만 남는다. 핑은 반지름 200에서 시작해 틱마다 4씩 줄어 15까지 작아지며 도는 삼각형이고, RadarWidget이 미니맵 위에 그린다. 우리 게임: 거점·성문 피격은 소리+글+미니맵 핑, 일반 용병 피격은 핑만 내고, 같은 종류는 쿨다운으로 묶는 계층 설계에 쓴다(문제 7: 경보 없음).
+  - 검증: 웹검색이 불가해 원본 코드로 대조했다. 기본값이 NotifyInterval 30000(ms, Game.RunTime 기준), RadarPingColor Red, RadarPingDuration 250틱인 것을 확인했다. RA player.yaml의 DamageNotifier는 ValidTargets: Structure, Notification: BaseAttack, TextNotification이 'Base under attack.'이다. @Unit은 Inval…
+  - 출처: https://github.com/OpenRA/OpenRA/blob/1f594e32065615ed1847962c80ecfe6e868a11c3/OpenRA.Mods.Common/Traits/Player/DamgeNotifier.cs#L30-L37, https://github.com/OpenRA/OpenRA/blob/1f594e32065615ed1847962c80ecfe6e868a11c3/mods/ra/rules/player.yaml#L147-L154
+- [p_alerts_camera-10·verified] (Beyond All Reason (Point Tracker·Mapmark Ping 위젯)) Beyond All Reason의 Point Tracker 위젯은 아군이 찍은 지도 표시(point)를 플레이어 색 십자선으로 그리고, 그 자리가 화면 밖이면 십자선 중심을 화면 가장자리에 붙여(clip 공간 −1~1로 clamp) 방향을 보여 주며, 같은 표시를 미니맵에도 그리고, 330게임프레임 동안 점점 투명하게 만든다.
+  - 맥락: 근거는 gui_point_tracker.lua(L19 timeToLive=330, L172 clamp, L403 DrawInMiniMap)다. 게임 프레임이 초당 30이면 약 11초다. 짝 위젯 snd_mapmark_ping.lua는 표시 자리에서 위치 소리를 내고, 멀리 있어도 들리게 작은 전역 소리를 한 번 더 낸다. 구현 주의: Godot의 VisibleOnScreenNotifier2D는 화면 그리기 컬링으로 판정하므로 HUD에 덮인 곳도 '화면 안'으로 친다. HUD를 뺀 사각형으로 따로 판정해야 한다. 우리 게임: 화면 밖…
+  - 검증: 웹검색이 불가해 원본 코드로 대조했다. gui_point_tracker.lua는 timeToLive=330이고, 셰이더에서 clipspaceposition.xy를 -1~1로 clamp한다(L172). 알파는 1-(경과 프레임/330)이고 GameFrame에서 330프레임 뒤 제거한다. MapDrawCmd는 point이고 아군(또는 전체 시야 관전자)일 때만 처리하며 플레이어 색을 쓴다. DrawInMiniMap으로 미니맵에도 그린다. 모양은 사각형에 눈금이 붙은…
+  - 출처: https://github.com/beyond-all-reason/Beyond-All-Reason/blob/02e48d62bbcf4048a506ad9f3e599a5800b6cd06/luaui/Widgets/gui_point_tracker.lua#L165-L184, https://github.com/beyond-all-reason/Beyond-All-Reason/blob/02e48d62bbcf4048a506ad9f3e599a5800b6cd06/luaui/Widgets/gui_point_tracker.lua#L58-L62
+- [p_alerts_camera-11·verified] (Mindustry (타워 디펜스·RTS 혼합)) Mindustry는 설정 «Enemy Indicators»를 켜면 카메라 화면 90% 크기 사각형 밖에 있는 적 유닛마다 팀 색의 짧은 선을 플레이어에게서 14 단위 떨어진 자리에 그 적 방향으로 그리고, 안개(fog) 규칙이 켜진 판에서는 그리지 않는다.
+  - 맥락: 근거는 OverlayRenderer.java drawTop()과 bundle.properties의 «Shows markers pointing in the direction of enemy units.»다. 아군 플레이어용 «Player Indicators»도 같은 방식이다(선 굵기 2). 화면 가장자리가 아니라 내 캐릭터 둘레에 방향 표시를 두는 변형이다. PC/모바일 공용 코드. 우리 게임: 직접 조작하는 영웅 둘레에 적 웨이브가 오는 방향 표식을 다는 대안.
+  - 검증: 웹검색이 불가해 원본 코드로 대조했다. drawTop에서 indicators가 켜져 있고 !state.rules.fog일 때, 카메라 크기 0.9배 사각형 밖의 적(unit.team!=player.team) 유닛마다 indicatorLength=14 지점에 팀 색 선(굵기 1, 길이 3)을 그린다. Player Indicators는 같은 팀 다른 플레이어용이고 굵기 2, 길이 4이며 fog 조건은 없다. 둘 다 플레이어가 살아 있고 HUD가 보일 때만 그린다. …
+  - 출처: https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/graphics/OverlayRenderer.java#L110-L119, https://github.com/Anuken/Mindustry/blob/master/core/assets/bundles/bundle.properties#L1449-L1450
+- [p_alerts_camera-12·verified] (Mindustry) Mindustry는 내 코어가 피해를 입으면 HUD 위쪽 가운데에 반투명 검은 띠와 «< Core is under attack! >» 글자를 240틱(초당 60틱이면 4초) 동안 띄우고 글자색을 주황과 진홍 사이로 맥박처럼 바꾸며, 일시정지 중에는 숨긴다.
+  - 맥락: 근거는 HudFragment.java L596~621이다. Trigger.teamCoreDamage가 올 때마다 남은 시간을 240으로 되돌린다. 코드에는 띠를 누르면 마지막으로 피해 입은 코어로 카메라를 옮기는 tapped 처리가 있지만, 감싼 칸이 Touchable.disabled라 실제로 눌리는지는 확인하지 못했다. 우리 게임: 거점 체력이 HUD에 없는 문제(5)와 거점 피격 경보가 없는 문제(7)를 함께 메우는 '깜박이는 띠 경보'의 근거.
+  - 검증: 웹검색이 불가해 원본 코드로 대조했다. notifDuration=240f이고, Trigger.teamCoreDamage가 오면 coreAttackTime=240으로 되돌린다. Styles.black6 배경에 '@coreattack'('< Core is under attack! >', bundle L106)을 띄우고, 글자색은 orange와 scarlet 사이를 Mathf.absin으로 오간다. 일시정지 중이거나 HUD가 숨으면 false를 돌려 숨기고, 그동안 …
+  - 출처: https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/ui/fragments/HudFragment.java#L596-L621, https://github.com/Anuken/Mindustry/blob/master/core/assets/bundles/bundle.properties#L106
+- [blizzard-12·partly] (Warcraft III (Classic/Reforged)) WC3는 내 유닛이나 마을이 공격받으면 경보 음성과 함께 미니맵에 붉은 핑을 띄우고, 카메라 중심에서 정해진 알림 거리(기본 1250) 안에서 일어난 공격에는 경보를 띄우지 않는다.
+  - 맥락: 하이브 워크숍의 맵 제작 글들이 근거다. 'Ally Town Under Attack' 같은 소리 칸을 바꿔도 미니맵 붉은 핑은 남고, 알림 거리는 Gameplay Constants에 있다. 원작 시절 글이다. 우리 게임: 이미 보고 있는 곳의 경보는 생략하고 화면 밖 공격만 미니맵 핑과 소리로 알려 경보 소음을 줄인다.
+  - 검증: 원작 Units/MiscData.txt에 'AttackNotifyDelay=30.0'(공격 알림 사이 간격, 초)과 'AttackNotifyRange=1250'이 있어 숫자와 위치는 맞다. war3skins에는 종족별 UnderAttack/TownAttack 소리 칸이 있다. 다만 1250이 '카메라 중심에서의 거리'로 경보를 억제하는 값이라는 해석과 붉은 미니맵 핑은 독립 확인하지 못했다.
+  - 출처: https://www.hiveworkshop.com/threads/turn-off-alarm-generation-like-our-forces-are-under-attack.304077/, https://www.hiveworkshop.com/threads/disable-attack-notification-sounds-such-as-our-allys-base-is-under-attack.363585/
+- [aoe_northgard-13·partly] (Age of Empires IV) AoE IV는 '마지막 사건(알림)으로 카메라 이동'을 기본 Space 키에 묶어 두었고, 보조 키는 숫자패드 Enter다.
+  - 맥락: 2021 공개 목록 기준이다. 2022년 무렵 패치 직후 이 키가 안 먹는다는 버그 보고가 있었다(https://forums.ageofempires.com/t/focus-on-last-event-hotkey-not-working/208514). 포럼 이용자는 이 키가 공격 지점이 아니라 마지막으로 만든 일꾼 쪽으로 보내기도 한다고 불평했다. 우리 게임 (7): 화면 밖 경보를 만들면, 키 하나로 그 자리로 카메라를 옮기는 기능을 같이 넣는 근거다.
+  - 검증: Space는 맞다. 두 키 프로필의 기본값 영역에 focus_event_cue=Space가 있다. 하지만 보조 키 자리는 두 프로필 모두 비어 있다. 같은 영역에서 다른 명령은 보조 키가 기록돼 있으니, 지금 기본값에는 숫자패드 Enter 보조 키가 없을 가능성이 크다. 2021년 공개 목록과 현재 판이 다를 수 있다.
+  - 출처: https://news.xbox.com/en-us/2021/10/22/age-of-empires-iv-hotkeys-revealed/amp/, https://dotesports.com/age-of-empires/news/all-controls-and-hotkeys-in-age-of-empires-iv-for-pc-and-console
+- [aoe_northgard-23·partly] (Northgard) Northgard는 공격·건물 관련 알림을 화면 왼쪽에 아이콘으로 띄운다. 군사 경로·명성(renown) 팝업은 옵션 > 게임플레이에서 팝업 대신 이 알림 아이콘으로 바꿀 수 있다.
+  - 맥락: 메타크리틱 이용자 평은 들어오는 공격 경고가 왼쪽 아래 작은 아이콘이라 마우스를 올려야 읽힌다고 불평했다(https://www.metacritic.com/game/northgard/user-reviews/). 2025-01-16 패치(Definitive Edition)에는 경고 팝업 전체를 켜고 끄는 설정이 들어갔다(https://steamcommunity.com/games/466560/announcements/detail/747134776966643864). 우리 게임 (6): 화면을 가리는 창은 줄이고, 전투 중 사건은 화면 가…
+  - 검증: 틀린 점은 찾지 못했고, 이 판정은 왼쪽 위치를 확인 못 했다는 뜻이다. 옵션 부분은 게임 텍스트로 확인했다. 게임플레이 > 일반에 'Set Fame and Military popup to notifications' 항목이 있다. 공격·건물 알림이 화면 왼쪽에 아이콘으로 뜬다는 위치는 확인하지 못했다.
+  - 출처: https://steamcommunity.com/app/466560/discussions/1/4767710564310270685/?l=finnish, https://northgard.featureupvote.com/?tag=Notification
+- [p_alerts_camera-04·partly] (0 A.D.) 0 A.D.의 AttackDetection은 내 개체가 공격받으면 미니맵 핑 메시지·화면 알림(type "attack")·'attacked' 소리를 내되, 앞선 알림 지점에서 160m 안에서 난 공격은 60초 동안 새로 알리지 않고, 80m 안에서 난 공격은 억제 중인 사건의 위치만 새것으로 바꾼다.
+  - 맥락: 값은 template_player.xml에 있다(SuppressionTransferRange 80, SuppressionRange 160, SuppressionTime 60000). 가축 피격은 우선순위가 낮아서, 같은 구역에서 더 중요한 대상이 맞으면 다시 알린다(승격). 점령(capture)과 자연(gaia) 공격은 소리 묶음을 따로 쓴다. 우리 게임: 웨이브 내내 성벽이 맞는 상황에서도 경보가 끝없이 울리지 않게 하는 '구역+시간' 억제 규칙과 '더 중요한 대상이면 승격' 규칙의 근거.
+  - 검증: 웹검색이 불가해 원본 코드로 대조했다. 수치(80/160/60000), 가축의 낮은 우선순위와 승격, attacked_capture·_gaia 소리 묶음은 맞다. 틀린 부분이 둘 있다. (1) 미니맵 핑(MT_MinimapPing)은 억제와 상관없이 OnGlobalAttacked에서 공격마다 보낸다(L51, AttackAlert보다 먼저). 억제되는 것은 화면 알림·MT_AttackDetected·소리뿐이다. (2) 80m 안의 공격은 위치만 바꾸는 게 아니다.…
+  - 출처: https://github.com/0ad/0ad/blob/master/binaries/data/mods/public/simulation/components/AttackDetection.js#L44-L139, https://github.com/0ad/0ad/blob/master/binaries/data/mods/public/simulation/templates/template_player.xml#L3-L7
+- [p_alerts_camera-08·partly] (Beyond All Reason (Recoil/Spring 엔진 RTS)) Beyond All Reason은 '공격받음' 음성을 대상별로 나눠 재생 간격을 사령관 10초, 사령관 체력 20% 미만(ComHeavyDamage) 10초, 공장·경제 건물 30초, 일반 유닛·방어 탑 60초로 두고, 상위 경보가 울리면 하위 경보의 간격 타이머도 처음부터 다시 센다.
+  - 맥락: 근거는 sounds/voice/config.lua(delay·stackedDelay·resetOtherEventDelay)와 luarules/gadgets/snd_notifications.lua다. 피해 5 미만은 무시하고 적 팀 공격만 센다. 참고로 SC2 공식 API(Blizzard s2client-proto)도 경보 종류를 BuildingUnderAttack·UnitUnderAttack·NuclearLaunchDetected 등으로 나눈다. 우리 게임: '거점 공격받음'·'거점 위험(체력 낮음)'·'성문 공격받음'·'용병 피격…
+  - 검증: 웹검색이 불가해 원본 코드로 대조했다. delay 값(Commander 10, ComHeavyDamage 10, Factory·Economy 30, Units·Defense 60), 피해 5 미만 무시, 적 allyTeam 공격만 센다는 점, 체력 20% 미만이면 ComHeavyDamage로 대체된다는 점, SC2 Alert enum은 맞다. 틀린 부분이 둘 있다. (1) 모두 stackedDelay=true다. 위젯의 queueNotification은 재생하지…
+  - 출처: https://github.com/beyond-all-reason/Beyond-All-Reason/blob/02e48d62bbcf4048a506ad9f3e599a5800b6cd06/sounds/voice/config.lua#L264-L300, https://github.com/beyond-all-reason/Beyond-All-Reason/blob/02e48d62bbcf4048a506ad9f3e599a5800b6cd06/luarules/gadgets/snd_notifications.lua#L254-L291
+- [tab-10·likely] (They Are Billions) 기본 설정에서는 지금 보고 있는 화면 밖의 사건에만 경보가 뜨고, 설정의 'Show Visible Alerts'(기본값 꺼짐)를 켜면 화면 안의 사건에도 경보가 뜨지만, 플레이어들은 경보가 일관되게 뜨지 않는다고 지적했다.
+  - 맥락: 이 옵션을 켜면 웨이브 중에 경보가 쏟아진다는 경고도 있다. Can I Play That?의 청각장애인 대상 리뷰는 이 옵션이 접근성 옵션처럼 보인다고 했다. 우리 게임 (7)번에 쓸 근거: 기본은 화면 밖 경보만 띄우되, 거점·성문 피격은 반드시 띄우고 겹치는 경보는 묶는 규칙을 정할 수 있다.
+  - 검증: 웹 검색 한도가 소진됐다. GitHub의 Deedubsy/Relight 조사 문서가 같은 스팀 스레드(1642042464749067572)를 인용해 'show visible alerts'가 웨이브 중에 경보를 쏟아낸다고 적었지만, 인용된 출처를 다시 옮긴 것이라 독립 근거가 아니다. 기본값이 꺼짐인지와 Can I Play That? 리뷰 내용은 확인하지 못했다.
+  - 출처: https://steamcommunity.com/app/644930/discussions/0/1642042464749067572/, https://steamcommunity.com/app/644930/discussions/0/1642041106374596319/
+- [aod-11·likely] (Age of Darkness: Final Stand) 방어 시설이 공격받으면 미니맵에 'Defence is under attack' 아이콘이 뜨고, 성채(Keep)가 공격받으면 'Keep under attack'이라는 별도 UI가 표시된다.
+  - 맥락: 0.10 패치는 이 아이콘이 흰 사각형으로 보이던 버그를, v1.0.2.x 패치는 아군 성채 피격 UI가 패배 화면 위에 겹치던 버그를 고쳤고 미니맵 핑 크기도 조정했다. 경보를 클릭하면 카메라가 옮겨 가는지는 확인하지 못했다. 우리 게임 (5)(7)번에 쓸 근거: 거점 피격은 일반 경보와 다른 전용 표시로 분리할 수 있다. 또 경보 UI가 결과 창 위에 겹치면 안 된다는 점은 (6)번의 교훈이다.
+  - 검증: 웹 검색 한도가 소진됐다. GitHub 코드 검색에서 'Defence is under attack'는 이 게임과 무관한 결과만 나왔다. 패치노트 내용을 독립 확인하지 못했다.
+  - 출처: https://updatecrazy.com/age-of-darkness-final-stand-update-0-10-patch-notes/, https://steamdb.info/patchnotes/17890537/
+- [aod-13·likely] (Age of Darkness: Final Stand) 베테랑 플레이어의 피드백 스레드는 경보를 믿기 어렵고 전투 중에 놓치기 쉽다고 했고, 인도네시아 리뷰(Esportsnesia)는 갑작스러운 공격 알림이 더 눈에 띄어야 한다고 평가했다.
+  - 맥락: 얼리 액세스 시기 피드백과 리뷰다. 우리 게임 (7)번에 쓸 근거: 경보에 소리, 화면 가장자리 화살표, 미니맵 깜빡임을 함께 써서 놓치지 않게 할 수 있다.
+  - 검증: 웹 검색 한도가 소진돼 베테랑 피드백 스레드와 Esportsnesia 리뷰를 다른 출처로 확인하지 못했다.
+  - 출처: https://steamcommunity.com/app/1426450/discussions/0/3266806084897497427/, https://esportsnesia.com/game/review-age-of-darkness-final-stand-survival/
+- [ironhide-22·unverified] (Iron Marines (출시 전 GDC 시연)) Ironhide 공식 포럼의 한 이용자는 Iron Marines GDC 시연 영상에서 유닛이 공격받으면 화면 가장자리에 느낌표 경고가 떴다고 적었다.
+  - 맥락: 출시 전(약 2016~17) 영상 기준이며, 출시판에서 어떻게 동작하는지는 확인하지 못했다. 같은 글타래에 화면 밖 공격 위치를 알려 달라는 요청이 있다. 우리 문제 (7), 화면 밖 경보 없음에 쓸 수 있다: 카메라 밖에서 성문·거점이 공격받으면 그 방향 화면 가장자리에 느낌표를 띄울 근거.
+  - 검증: Ironhide 포럼 글은 열 수 없었고, 같은 내용을 다룬 다른 출처도 찾지 못했다.
+  - 출처: https://forums.ironhidegames.com/viewtopic.php?f=18&t=25944
+- [tab-09·unverified] (They Are Billions) 건물이 공격받거나 유닛이 승급하는 등의 사건은 화면 왼쪽 위 알림 목록에 쌓이고, 그 알림을 클릭하면 카메라가 사건 위치로 옮겨 간다.
+  - 맥락: 스팀 포럼 사용자의 설명이며, 공식 문서로는 확인하지 못했다. 플레이어들은 여기에 더해 미니맵 깜빡임이나 클릭할 수 있는 HUD 아이콘을 요구했다. 우리 게임 (7)번 '화면 밖 경보 없음'에 쓸 근거: 왼쪽 위 알림 목록과 클릭하면 카메라가 옮겨 가는 구조를 그대로 참고할 수 있다.
+  - 검증: 웹 검색 한도가 소진됐다. 왼쪽 위 알림 목록과 클릭하면 카메라가 옮겨 가는 동작은 GitHub 자료에서도 찾지 못했다.
+  - 출처: https://steamcommunity.com/app/644930/discussions/0/1692659135899521107/, https://steamcommunity.com/app/644930/discussions/0/1642041106374596319/
+- [aoe_northgard-12·unverified] (Age of Empires IV) 2022년 7월 12일 시즌 2 업데이트 17718은 AoE IV의 '공격받음' 미니맵 애니메이션 시작 크기를 줄이고, 건물이 공격받을 때 알림이 다시 울리기까지의 간격을 0초에서 15초로 늘렸다.
+  - 맥락: 같은 패치에서 아군 공격받음 핑 색을 빨강에서 파랑으로 바꿨고, 여러 유닛이 가까이 붙어 싸울 때는 덜 자주 울리게 했다(팬 위키에 옮겨 둔 패치 노트). 우리 게임 (7)과 경보가 없는 문제: 성벽·성문이 맞을 때 경보를 넣되, 같은 대상에는 다시 울리기까지 대기 시간(예: 15초)을 두는 근거다.
+  - 검증: 검색 한도가 다 차서 시즌 2 업데이트 17718의 패치 노트(날짜, 공격받음 애니메이션, 0초에서 15초로 바뀐 재알림 간격)를 확인하지 못했다.
+  - 출처: https://ageofempires.fandom.com/wiki/Season_Two_Update_17718
+- [aoe_northgard-14·unverified] (Age of Empires IV) AoE IV 공식 포럼 이용자들은 공격받을 때 미니맵에 뜨는 표시가 '잘 눈에 띄지 않는다'고 평가했고, 화면 가장자리에 빨강·노랑·파랑의 작은 표시를 띄우는 기능을 요청했다.
+  - 맥락: 요청한 화면 가장자리 표시가 실제로 들어갔다는 근거는 찾지 못했다. 스팀 이용자는 AI전에서 공격 경보 소리가 10초쯤마다 크게 울리는데, 효과음 볼륨을 낮추는 것 말고는 방법이 없다고 불평했다(https://steamcommunity.com/app/1466860/discussions/0/801217647356334256/). 우리 게임 (7): 미니맵만으로는 부족하니 화면 가장자리 화살표 경보와 소리 대기 시간을 함께 설계해야 한다는 근거다.
+  - 검증: 검색 한도가 다 차서 포럼 글을 확인하지 못했다.
+  - 출처: https://forums.ageofempires.com/t/age-of-empires-4-minimap-timelapse-and-pings/234935, https://forums.ageofempires.com/t/suggestion-visual-feedback-for-pings-enemy-attacks-wolves-etc-at-the-edge-of-the-screen/218955
+- [castle-14·unverified] (Stronghold Crusader: Definitive Edition (Autumn Update v2.0)) 같은 가을 업데이트에서 '동맹과 대화' 버튼에 새 소식이 있음을 알리는 알림 점(notification pip)이 붙었다.
+  - 맥락: 공식 패치 노트다. 같은 패치에서 자유 건설(Freebuild) 설정 패널도 손봤다. 버튼 귀퉁이의 작은 점 하나로 '볼 것이 생겼다'를 알린다. 우리 미션·의뢰 버튼에 새 의뢰나 완료를 점으로 알리는 근거.
+  - 검증: 검색 예산 소진으로 확인하지 못했다. '동맹과 대화' 버튼의 알림 점과 Freebuild 패널 수정은 인용된 패치 노트 하나에만 기대고 있다.
+  - 출처: https://steamdb.info/patchnotes/20373049/
+- [castle-23·unverified] (Diplomacy is Not an Option) 질병, 자원, 사상자 같은 상황 알림은 화면 오른쪽 위 구석에 팝업 아이콘으로 뜬다.
+  - 맥락: Steam 토론에서 한 플레이어가 한 설명이다(검색 요약 기준이라 정확한 글타래는 확정하지 못함). 알림을 HUD 가운데가 아니라 한 구석 아이콘 줄로 모은다. 우리 화면 밖 경보(성문 공격·거점 피해)를 정해 둔 한 구석 아이콘으로 띄우는 근거.
+  - 검증: 검색 예산 소진으로 확인하지 못했다. 알림이 오른쪽 위에 아이콘으로 뜬다는 설명은 출처 글타래도 확정되지 않은 검색 요약이다.
+  - 출처: https://steamcommunity.com/app/1272320/discussions/0/4409669206926240535/
+- [castle-24·unverified] (Diplomacy is Not an Option) Bossrush 리뷰는 건물 완공, 연구 완료, 분대 모집 완료를 알려 주는 수단이 사실상 없고, 동시에 도는 여러 타이머를 따라갈 방법도 부족하다고 지적했다.
+  - 맥락: 2026년 9월 리뷰다. 우리 영웅 스킬 재사용 대기, 건설·생산 완료, 라운드 타이머를 한 곳에서 보이게 하고, 완료되면 알림을 띄우는 근거.
+  - 검증: 검색 예산 소진으로 확인하지 못했다. 게임은 2022년에 나왔는데 리뷰 URL의 날짜가 2026년 9월이라 리뷰 날짜와 내용을 따로 확인해야 한다. 완료 알림이 없다는 지적을 다른 리뷰로 대조하지 못했다.
+  - 출처: https://bossrush.net/2026/09/game-review-diplomacy-is-not-an-option/
+- [minimal-09·unverified] (Bad North) Bad North에서는 바이킹 배가 다가오는 전투 시작 무렵 뿔나팔 소리가 울려 침공이 온다는 것을 플레이어에게 알린다.
+  - 맥락: PC판 리뷰다. 화면 표시가 아닌 소리로 하는 예고다. 배가 화면에서 어떻게 예고되는지(가장자리 표시 등)는 찾지 못했다(gaps 참고). 우리 게임 (7) '화면 밖 경보 없음': 웨이브 시작이나 쪽문 쪽 접근을 소리 단서로 알리면 HUD를 늘리지 않아도 된다.
+  - 검증: 검색 한도 소진으로 검색하지 못했다. 침공 직전 뿔나팔 소리를 다른 리뷰나 위키로 확인하지 못했다.
+  - 출처: https://www.geeksundergrace.com/gaming/review-bad-north-pc/
+- [minimal-10·unverified] (Bad North) Bad North의 브루트 궁수(Brute Archer)는 쏘기 전에 크랭크 감는 소리로 경고하고, 플레이어는 그 소리를 듣고 부대를 엄폐물 뒤로 옮길 수 있다.
+  - 맥락: 위키 1곳의 서술이다. 위험한 적의 행동을 UI 아이콘이 아닌 소리와 동작으로 미리 알리는 디제틱 경보다. 우리 게임: 성문을 부수는 적이나 대포 같은 강한 적의 공격 준비를 소리와 동작으로 미리 알리는 데 쓸 수 있다.
+  - 검증: 검색 한도 소진으로 검색하지 못했다. 브루트 궁수의 크랭크 소리 경고를 위키 외 출처로 확인하지 못했다. 인용 출처는 나무위키 1곳이다.
+  - 출처: https://en.namu.wiki/w/Bad%20North
+
+## 미니맵 (minimap) — 12개
+
+- [tab-08·verified] (They Are Billions) 무리가 맵에 생기면 미니맵에 노란 해골 아이콘으로 표시되지만, 플레이어들은 이 아이콘이 이리저리 튀고 무리가 갈라져도 해골이 하나뿐이라고 불평했다.
+  - 맥락: 팬 위키(표시 방식)와 스팀 포럼(불만)을 합친 내용이다. 우리 게임 (7)번에 쓸 근거: 미니맵에 적 웨이브 선두를 아이콘 하나로 표시하되, 정문·쪽문 2개로 갈라지면 아이콘도 나눠야 한다.
+  - 검증: 미니맵 표시 방식은 게임 데이터가 독립적으로 뒷받침한다. TABSAT이 분석한 세이브에는 미니맵 표시 객체 ZXMiniMapIndicatorInfectedSwarn이 무리마다 하나씩 있고, 객체마다 위치(Cell)는 하나, 소속 유닛은 목록으로 담겨 있다. 그래서 무리가 갈라져도 아이콘이 하나라는 불만과 맞는다. 여러 방향에서 오는 무리는 방향별로 아이콘이 따로 생긴다(TABSAT Features). '노란 해골'이라는 색·모양과 스팀 포럼의 불만 자체는 독립 …
+  - 출처: https://they-are-billions.fandom.com/wiki/Swarms, https://steamcommunity.com/app/644930/discussions/0/4768721849827560490/
+- [blizzard-26·verified] (StarCraft II) StarCraft II에서 Alt+G를 누른 뒤 클릭하면 미니맵에 핑이 찍히고, 본 화면에서 Ctrl+Alt+클릭으로도 미니맵에 신호를 보낼 수 있다.
+  - 맥락: Alt+F는 미니맵 유닛 색을 팀 색과 아군/적 색 사이에서 바꾼다(Liquipedia). 2012년 포럼 글은 Ctrl+Alt+클릭으로 핑을 연달아 찍을 수 있다고 말한다. 우리 게임: 혼자 하는 게임이라 핑보다는, 경보가 난 자리에 미니맵 마커를 자동으로 띄우는 방식으로 바꿔 쓴다. 미니맵 색을 적은 빨강으로 고정하는 토글도 참고한다.
+  - 검증: core GameHotkeys: MinimapPing=Alt+G, QuickPing=Control+Alt+LeftMouseButton, MinimapColors=Alt+F. 핑은 미니맵과 게임 화면 어디에나 찍힌다. Alt+F는 미니맵만이 아니라 게임 화면의 색도 Colors 옵션의 '동맹 색' 설정대로 바꾼다. 빨강은 사용자가 고른 색이지 고정 색이 아니다.
+  - 출처: https://liquipedia.net/starcraft2/Minimap, https://starcraft.fandom.com/wiki/Hotkey
+- [td_bars-md-14·verified] (Mindustry) 미니맵은 화면 오른쪽 위의 140px 정사각 칸이며, 우클릭한 지점으로 카메라가 옮겨 가고, 좌클릭하면 큰 지도 화면이 열리며, 마우스 휠로 확대·축소된다.
+  - 맥락: 설정(minimap)으로 끌 수 있고, 아래에 좌표 표시를 붙일 수 있다. 우리 맵은 40×32칸이고 HUD가 거점을 가린다(문제 7). 작은 미니맵에 «클릭하면 카메라 이동»을 붙이면 거점과 들판 사이를 빨리 오갈 수 있다.
+  - 검증: 소스를 직접 대조함. Minimap 요소는 size 140(+pane 여백)이고 HudFragment에서 top().right()에 놓인다. 우클릭(ClickListener mouseRight)하면 panCamera, 기본 클릭이면 minimapfrag.toggle(큰 지도)이 열리고, 휠 scrolled는 zoomBy이다. minimap 설정의 기본값은 !mobile이고, 아래에 position/mouseposition 좌표 라벨을 붙일 수 있다.
+  - 출처: https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/ui/Minimap.java#L17-L112, https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/ui/fragments/HudFragment.java#L335-L352
+- [pixel_minimal-17·verified] (Kingdom Two Crowns) 인기 모드 OverlayMap(M 키)은 화면 위쪽에 지도 레이어를 덧그린다. 성·성벽·관심 지점은 기호와 3색(빨강 미해금·파괴, 파랑 건설 중, 초록 안전)으로 표시하고, 놀고 있는 주민·일꾼·궁수·농부 수와 시각, 섬 번호, 보석·동전 수를 'Coins: N' 같은 글자로 띄운다.
+  - 맥락: 기본 게임에 이런 지도·숫자 HUD가 없어서 모드가 만들어졌다는 해석이 가능하다(분석자 해석, 기본판에 없다는 직접 진술은 확인 못 함). 우리 문제 (7)(미니맵 없음)에 쓴다: HUD 없는 설계라도 정보 욕구가 큰 플레이어는 지도·인구 집계를 원한다는 반대 근거다.
+  - 검증: Readme에 다음이 있다: M 키, 화면 위 지도 레이어, 성·성벽 등의 기호, 빨강(미해금·미점령·파괴)·파랑(건설 중)·초록(해금·안전), 놀고 있는 주민·일꾼·궁수·농부·농지 수, 시각·섬·보석·동전. ExtraInfoView.cs는 "Coins: N", "Gems: N", "Land: N  Days: N" 형식으로 그린다. '인기 모드'인지는 확인 못 했다.
+  - 출처: https://github.com/abevol/KingdomMod, https://github.com/abevol/KingdomMod/blob/main/OverlayMap/Gui/ExtraInfo/ExtraInfoView.cs
+- [p_alerts_camera-05·verified] (0 A.D.) 0 A.D. 미니맵은 공격 알림을 받은 개체의 점을 pingduration 50초 동안 흰색으로 깜박이고(blinkduration 1.7초 주기), 깜박이는 점을 다른 점들 위에 그린다.
+  - 맥락: default.cfg의 [gui.session.minimap]와 MiniMapTexture.cpp 기준. 반 주기마다 깜박임 상태를 뒤집고, 핑 중인 점은 흰색(r=255)으로 바꿔 목록 끝에 넣어 맨 위에 그린다. 시간 단위는 timer_Time()의 초다. 공격 채팅 알림은 [gui.session.notifications] attack=true로 따로 켠다. 우리 게임: 미니맵을 만들면 공격받는 성벽 칸·거점 점을 깜박이게 할 때 쓸 수치의 출발점. 50초는 우리 웨이브 길이에 비해 길 수 있다.
+  - 검증: 웹검색이 불가해 원본 코드로 대조했다. default.cfg에 blinkduration 1.7, pingduration 50.0, notifications.attack=true가 있다. MiniMapTexture.cpp에서 currentTime=timer_Time()이고, 반 주기(m_HalfBlinkDuration)마다 m_BlinkState를 뒤집는다. 핑 중인 점은 r,g,b=255(흰색)로 pingingVertices에 모았다가 마지막에 그려 맨 위에 온…
+  - 출처: https://github.com/0ad/0ad/blob/master/binaries/data/config/default.cfg#L464-L473, https://github.com/0ad/0ad/blob/master/source/graphics/MiniMapTexture.cpp#L671-L677
+- [p_alerts_camera-07·verified] (Stratagus (Warcraft II 데이터용 오픈소스 엔진)) Stratagus는 내 유닛이 공격받으면 미니맵에 빨간 원을 미니맵 짧은 변의 1/3 반지름으로 그렸다가 그릴 때마다 1px씩 줄여 없애고(동시에 최대 8개), «<유닛> attacked» 메시지를 남기며, 도움 요청 음성은 2초에 한 번까지만, 같은 구역(±14칸)에서는 2분에 한 번까지만 낸다.
+  - 맥락: unit.cpp의 HitUnit_LastAttack 기준. 벽(WALL) 유닛은 알리지 않고, 같은 유닛이 2초 안에 다시 맞아도 알리지 않는다. player.cpp의 Notify는 미니맵 AddEvent와 메시지 사건 저장(06의 스페이스바 순회 대상)을 함께 한다. 우리 게임: 성벽은 웨이브 내내 맞으니 '성벽은 경보에서 빼거나 따로 규칙을 둔다'는 결정의 근거.
+  - 검증: 웹검색이 불가해 원본 코드로 대조했다. HitUnit_LastAttack는 WALL이거나 2초 안에 다시 맞으면 return한다. HelpMe 음성은 HelpMeLastCycle=GameCycle+2초로 2초 간격을 두고, 120초가 지났거나 ±14칸 밖일 때만 다시 낸다. 실제 같은 구역 간격은 약 122초다. Notify(ColorRed, '%s attacked')는 미니맵 AddEvent와 SetMessageEvent를 함께 한다(내 팀원에게도). mini…
+  - 출처: https://github.com/Wargus/stratagus/blob/master/src/unit/unit.cpp#L2688-L2714, https://github.com/Wargus/stratagus/blob/master/src/stratagus/player.cpp#L1392-L1413
+- [blizzard-02·partly] (Warcraft III (Classic/Reforged)) WC3 화면 왼쪽 아래 미니맵 바로 옆에는 아군/적 색 전환(Alt+A), 대형 이동 전환(Alt+F), 지형 표시 같은 작은 토글 버튼이 붙어 있고, 리플레이에서는 이 버튼들이 회색으로 꺼진다.
+  - 맥락: 미니맵 핑은 본 화면에서 Alt+G를 누르고 클릭하거나, 화면 밖 위치면 미니맵을 Alt+왼쪽 클릭해 찍는다(원작 Battle.net 팀 전략 안내, https://classic.battle.net/war3/basics/teams.shtml). 맵 제작자는 EnableMinimapFilterButtons로 아군 색·크립 표시 버튼을 끌 수 있다. 우리 게임: (7) 미니맵이 없는 문제에 쓴다. 미니맵 옆에 경보 핑 같은 토글 몇 개만 붙이는 구성을 참고한다.
+  - 검증: 원작 GlobalStrings.fdf에 미니맵 버튼 툴팁이 있다. Minimap Signal(Alt-G), Toggle Minimap Terrain(Alt-T), Set Ally Color Mode(Alt-A), Minimap Creep Display(Alt-R), Toggle Formation Movement(Alt-F)이고, 핑은 미니맵이나 본 화면을 Alt+왼쪽 클릭해서도 찍힌다. Tasyen 문서에서 MiniMapButtonBar는 버튼 5개다. 그런데 …
+  - 출처: https://www.hiveworkshop.com/threads/can-you-disable-minimap-terrain-formation-movement-toggle.175186/, https://github.com/Hr0ffT/W3MinimapTweaks
+- [aoe_northgard-03·partly] (Age of Empires IV) AoE IV 미니맵 옆 구석의 명령 패널에는 아군에게 보내는 핑 3종(알림·공격·방어)이 있고, 기본 단축키는 Ctrl+E·Ctrl+R·Ctrl+T를 누른 뒤 왼쪽 클릭이다.
+  - 맥락: 미니맵이 왼쪽 아래인지 오른쪽 아래인지는 팬 위키 문서끼리 엇갈린다(gaps). 업데이트 6.0.878에서 미니맵 확대 단계(100·125·150%) 설정이 들어갔고, M 키나 미니맵 HUD 버튼으로 바꾼다(player.one 기사, https://www.player.one/age-empires-iv-players-can-now-change-size-minimap-update-60878-154474). 우리 게임 (7): 미니맵이 아직 없다. 미니맵을 만들 때 옆에 '경보 위치로 이동' 같은 버튼 몇 개만 붙이는 배치의 근거다.
+  - 검증: 키는 맞다. 서로 다른 두 사용자의 AoE4 키 프로필(.rkp)의 fullyRemappable 기본값 영역에 ping_question=Control+E, ping_attack=Control+R, ping_defend=Control+T가 같게 들어 있다. 미니맵 확대 단계 키(minimap_cycle_zoom_level)도 M이다. 다만 첫 핑의 내부 이름이 'question'(물음표)이라 '알림'이라는 이름은 화면 표기와 다를 수 있다. 미니맵 옆 구석 명령 …
+  - 출처: https://ageofempires.fandom.com/wiki/Mini_map, https://forums.ageofempires.com/t/feature-request-add-additional-tactical-pings/289111
+- [tab-02·likely] (They Are Billions) 미니맵은 탐험한 땅만 보여 주고, 자기 콜로니는 초록, 적은 빨강으로 찍으며, 적은 건물이나 유닛이 보고 있을 때만 나타난다.
+  - 맥락: 개발사 Numantian Games의 2017년 GUI 글이다. moddb·xulima·fandom에 같은 글이 실렸으므로 원문은 하나다. 우리 게임 (7)번 '미니맵 없음'에 쓸 근거: 640×512 맵의 미니맵을 만들 때 아군 초록/적 빨강 두 색 규칙을 기본으로 삼을 수 있다.
+  - 검증: 웹 검색 한도가 소진됐다. 미니맵의 초록/빨강 색 규칙과 탐험한 땅만 보여 준다는 점을 뒷받침하는 GitHub 자료는 찾지 못했다. 인용된 세 곳(moddb·xulima·fandom)은 원문이 하나라 서로 독립된 근거가 아니다.
+  - 출처: https://www.moddb.com/news/revealing-the-they-are-billions-gui, https://they-are-billions.fandom.com/wiki/Update:Update_1_Glad_you're_here!
+- [aod-10·unverified] (Age of Darkness: Final Stand) Death Night 웨이브는 미니맵에 붉은 해골 아이콘으로 표시되며, 0.10 패치에서 이 해골이 나오지 않던 버그를 고쳤다.
+  - 맥락: 얼리 액세스 0.10(2023년 9월) 패치 노트이고, 같은 패치에서 목표·부목표의 미니맵 표시도 더 잘 보이게 바꿨다. 해골이 무리 선두를 따라 움직인다는 가이드 설명도 있으나 출처를 특정하지 못했다. 우리 게임 (7)번에 쓸 근거: 미니맵에 웨이브 선두를 해골 아이콘으로 표시할 수 있다.
+  - 검증: 웹 검색 한도가 소진됐다. 0.10 패치노트의 '붉은 해골' 버그 수정은 updatecrazy 한 곳에만 있고, 다른 패치노트 출처(Steam·SteamDB)로 대조하지 못했다.
+  - 출처: https://updatecrazy.com/age-of-darkness-final-stand-update-0-10-patch-notes/
+- [aod-12·unverified] (Age of Darkness: Final Stand) 스팀 포럼 플레이어들은 미니맵에서 아군 병력과 건물이 같은 색이라 구분되지 않고 길목과 적 경로도 읽기 어려워, 크게 보기 모드에서도 영웅 위치를 찾는 것 말고는 쓸모가 적다고 평가했다.
+  - 맥락: 2025년 2월(1.0 직전) 스레드다. 다른 스레드의 사용자 답글에 따르면 화면 오른쪽 위 미니맵에서 Alt+가운데 클릭으로 핑을 찍을 수 있다. 우리 게임 (7)번에 쓸 반면교사: 미니맵에서 성벽·성문·용병·영웅·적을 색이나 모양으로 구분해야 한다.
+  - 검증: 웹 검색 한도가 소진돼 미니맵 색 구분에 대한 불만과 Alt+가운데 클릭 핑을 다른 출처로 확인하지 못했다.
+  - 출처: https://steamcommunity.com/app/1426450/discussions/0/600769423993795884/, https://steamcommunity.com/app/1426450/discussions/0/578249790940272335/
+- [aoe_northgard-25·unverified] (Northgard) 스팀 가이드에 따르면 Northgard 미니맵은 공격받는 타일을 빨갛게 깜빡이고, 관심 지점은 느낌표로, 맵 승리 타일은 별로 표시하며, 미니맵을 누르면 그 자리로 화면이 바로 옮겨 간다.
+  - 맥락: 약 6년 전 가이드라 지금 판과 다를 수 있다. 우리 게임 (7): 40×32칸 맵의 미니맵에 공격받는 성벽 구간만 빨갛게 깜빡이게 하면, 거점이 HUD에 가려져 있어도 위험을 알 수 있다.
+  - 검증: 검색 한도가 다 차서 스팀 가이드를 확인하지 못했다. 게임 텍스트에는 미니맵 표시 방식 전환(아이콘/군사, 기본 키 T)과 '군사 모드를 기본으로 쓰기' 옵션만 있다. 빨간 깜빡임, 느낌표, 별 표시는 확인하지 못했다.
+  - 출처: https://steamcommunity.com/sharedfiles/filedetails/?id=2014417078
+
+## 일시정지·배속 (pause_speed) — 14개
+
+- [td_bars-md-09·verified] (Mindustry) 웨이브 건너뛰기 버튼은 상태 칸 오른쪽에 붙은 너비 40의 재생(▶) 아이콘이며, 남은 적이 0이고 생성 중이 아닐 때만 누를 수 있고, 그 밖에는 아이콘이 투명해지면서 글자 칸이 그 자리까지 넓어진다.
+  - 맥락: 멀티플레이에서는 서버나 관리자만 누를 수 있다. 우리 문제 (2)·(3): 준비 단계의 «전투 시작» 버튼을 상태 칸 옆 고정 자리에 두고, 못 누르는 동안에는 회색 대신 숨기는 방식의 참고 사례다.
+  - 검증: 소스를 직접 대조함. Icon.play 버튼은 width 40, right()이다. disabled(!canSkipWave)일 때 imageDisabledColor=Color.clear로 아이콘이 투명해지고, 라벨 padRight를 -42로 줄여 그 자리까지 넓힌다. canSkipWave의 조건은 waves, waveSending, (서버·관리자·싱글), enemies==0, !isSpawning이다. waveSending 규칙 조건이 하나 더 있다는 점만 덧붙…
+  - 출처: https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/ui/fragments/HudFragment.java#L493-L509, https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/ui/fragments/HudFragment.java#L1234-L1236
+- [td_bars-bt-08·verified] (Bloons TD 6) Space 키 하나가 «시작/빨리 감기»를 함께 맡아서, 라운드가 멈춰 있을 때 한 번 누르면 라운드가 시작되고 한 번 더 누르면 빨리 감기가 켜진다.
+  - 맥락: 봇은 빨리 감기로 시작할 때 Space를 두 번 보낸다. 오른쪽 아래에는 초록 Play 버튼이 있다(BloonsPlus 주석). 우리 문제 (2)·(4): 준비 단계의 «전투 시작»과 전투 단계의 «배속»을 같은 자리·같은 키의 버튼 하나로 합치면, 단계마다 버튼 수가 바뀌어 위치가 밀리는 문제를 줄일 수 있다.
+  - 검증: btd6farmer start_first_round는 빨리 감기일 때 space를 2번, 아니면 1번 보낸다. BTD6bot hotkeys에는 'play/fast forward': space가 있다. BloonsPlus 주석에 'Bottom-right green Play'가 있다. Mod Helper 스프라이트에 Ui[GoFastForwardIcon]/[GoFastForwardIconOff]가 있어 시작과 빨리 감기를 한 버튼으로 합친 것과 맞는다.
+  - 출처: https://github.com/linus-jansson/btd6farmer/blob/main/src/Bot.py#L392-L396, https://github.com/j-miet/BTD6bot/blob/main/btd6bot/Files/hotkeys.json#L142-L145
+- [td_bars-bt-09·verified] (Bloons TD 6) 빨리 감기의 기본 배속은 3배이다.
+  - 맥락: FasterForward 모드는 «F1: 3x Speed (Default)»라고 적고 F2~F5로 5·10·25배를 더한다. btd6farmer는 빨리 감기 중 능력 재사용 시간을 3으로 나눠 계산한다. Mod Helper가 다시 구현한 시간 처리 코드에서는 라운드 사이(inBetweenRounds)에 배속이 1로 돌아간다. 우리 게임: 배속을 1배/3배 두 단계로 두는 근거다.
+  - 검증: FasterForward README에 'F1: 3x Speed (Default)'와 F2~F4 5/10/25배가 있다. btd6farmer는 빨리 감기 중 m=3으로 나눈다. Mod Helper TimeManager_Update는 FastForwardActive && !inBetweenRounds일 때만 배속을 적용하고 그 밖에는 1로 둔다. 서로 독립된 세 출처가 맞는다.
+  - 출처: https://github.com/doombubbles/FasterForward/blob/main/README.md#L12, https://github.com/linus-jansson/btd6farmer/blob/main/src/Bot.py#L383-L390
+- [td_bars-bt-10·verified] (Bloons TD 6) BTD6 게임 UI 스프라이트에는 GoBtn, FastForwardBtn, FastForwardGlowBtn, NextRoundbtn이 따로 있다.
+  - 맥락: 빨리 감기 버튼에 «Glow» 변형이 따로 있으니, 켜진 상태를 빛나는 그림으로 구분하는 것으로 보인다(추정, 화면으로는 확인 못 함). 우리 문제 (5): 아이콘이 없는 글자 버튼 대신 시작·배속·배속 켜짐을 서로 다른 16px 아이콘으로 그리는 근거다.
+  - 검증: sprite-references.json에 IngameUi[GoBtn](L2033), [FastForwardGlowBtn](L2063), [NextRoundbtn](L2075), [FastForwardBtn](L2086)이 모두 있다. GoBtnSmall도 있다. Glow가 켜진 상태를 뜻한다는 것은 추정이다.
+  - 출처: https://github.com/gurrenm3/BTD-Mod-Helper/blob/master/Website/src/data/sprite-references.json#L2033-L2086
+- [td_bars-bt-11·verified] (Bloons TD 6) BTD6 설정에는 다음 라운드를 자동으로 시작하는 «Autostart», 드래그 앤 드롭 배치, «Nudge» 모드 토글이 있다.
+  - 맥락: 봇이 이 설정 버튼들을 누르는 좌표를 따로 들고 있다. 우리 게임: 준비 단계 → 전투 단계 전환을 자동 시작 옵션으로 두거나, 배치를 끌어다 놓기 방식으로 고를 수 있게 하는 근거다.
+  - 검증: BTD6bot locations.py ingame 항목에 dragdrop, nudge, autostart, hints 좌표가 있다. 문서(L189-196)에 'Drag & drop setting', 'Nudge mode setting', 'Autostart setting'이 적혀 있다.
+  - 출처: https://github.com/j-miet/BTD6bot/blob/main/btd6bot/bot/locations.py#L62-L65, https://github.com/j-miet/BTD6bot/blob/main/btd6bot/bot/locations.py#L189-L196
+- [pixel_minimal-27·verified] (Loop Hero) 원정 중 일시정지 메뉴(o_menu)는 원정 내내 존재하다가, 일시정지 상태(global.menu_open)일 때만 화면 안으로 미끄러져 들어온다.
+  - 맥락: 모드 코드 주석에 근거한다: 'Pause is global.menu_open, o_menu exists during the whole expedition and only slides in when paused.' 우리 문제 (6)에 쓴다: 메뉴·창을 HUD 위에 그냥 겹치지 않고, 상태에 묶어 슬라이드로 들이고 내는 방식이다.
+  - 검증: PinFilter.cpp 주석 원문을 확인했다: 'Pause is global.menu_open, o_menu exists during the whole expedition and only slides in when paused'. o_opt_button이 o_menu를 따라 움직인다는 주석도 있다. 모드 작가 주석 말고 다른 독립 출처는 없다.
+  - 출처: https://github.com/sam-k0/LoopHero-Advanced/blob/master/Features/PinFilter/PinFilter.cpp
+- [p_disabled_modal-15·verified] (게임 일시정지 화면 배경 (0 A.D. / Mindustry / Godot 공식 데모)) 세 게임 모두 일시정지 화면은 전체 화면을 검정 반투명으로 덮지만 불투명도는 다르다. 0 A.D.는 검정 185/255(약 73%) 위, 화면 40% 높이 가운데에 'Game Paused'와 'Click to Resume Game'을 쓴다. Mindustry 기본 대화창은 검정 90% 배경(stageBackground)을 깔고 일시정지 대화창이 열리면 게임 상태를 paused로 바꾼다. Godot 공식 2D 플랫포머 데모는 전체 화면 ColorRect 검정 약 29% 가운데에 'Game Paused'와 Resume·Quit 버튼을 둔다.
+  - 맥락: Godot 데모의 PauseMenu는 process_mode=3(Always)이라 트리가 멈춰도 동작하고, 0.3초 페이드인·0.2초 페이드아웃을 하며, 열릴 때 Resume 버튼에 포커스를 준다. 0 A.D.의 일시정지 오버레이는 화면 전체가 버튼이라 아무 데나 클릭하면 재개된다. 0 A.D.와 Mindustry는 PC/모바일 공용 코드이고, Mindustry는 네트워크 게임이면 멈추지 않는다(!net.active()). 우리 게임: 일시정지 메뉴와 영입·결과 창(문제 6)의 배경 처리, 그리고 Godot 구현(process_mo…
+  - 검증: 코드가 주장과 같다. 0 A.D. sessionOverlayBackground는 backcolor '0 0 0 185'이고, 'Game Paused' 문구는 40% 높이에, 'Click to Resume Game'은 그 아래에 있다. 오버레이 전체가 button이다. 다만 PauseOverlay.js를 보면 클릭 재개는 explicitPause(직접 일시정지)일 때만 된다. Mindustry는 defaultDialog의 stageBackground가 black9…
+  - 출처: https://raw.githubusercontent.com/0ad/0ad/master/binaries/data/mods/public/gui/session/PauseOverlay.xml, https://raw.githubusercontent.com/0ad/0ad/master/binaries/data/mods/public/gui/session/sprites.xml
+- [tab-05·likely] (They Are Billions) 스페이스바로 게임을 멈춘 상태에서도 건물 배치, 군대 명령, 정보 확인을 할 수 있고, 멈춘 동안 배치한 건물은 정지를 풀어야 짓기 시작한다.
+  - 맥락: 스팀 상점 페이지가 'Pause Mode'를 공식 기능으로 소개한다. 배속(빨리 감기)은 없고, 개발사가 안정성 때문에 넣지 않겠다고 했다는 포럼 증언이 있다. 우리 게임에 쓸 근거: 웨이브 내내 바쁜 실시간 전쟁이 정체성이므로, 정지 중 명령을 허용할지(난이도별로 나눌지 등)를 정할 때 참고한다.
+  - 검증: 정지 중에 건물 배치·명령을 할 수 있다는 점과, 정지를 풀어야 건설이 시작된다는 점은 웹 검색 한도 소진으로 독립 확인하지 못했다. detail의 '배속 없음'은 GitHub 자료가 뒷받침한다. 2026년 QoL 모드(Steam 1.0.14.29 대상)가 0.5~5배 속도 조절을 따로 추가한다는 것은 기본 게임에 배속 UI가 없다는 뜻이다. 다만 엔진 안에는 속도 설정 함수가 있다고 적혀 있다.
+  - 출처: https://store.steampowered.com/app/644930/They_Are_Billions/, https://kotaku.com/tips-for-playing-they-are-billions-1822005149
+- [aod-07·likely] (Age of Darkness: Final Stand) 일시정지는 난이도에 묶여 있어서 최고 난이도 Nightmare와 사용자 설정의 가장 긴 게임 길이에서는 꺼지고, 일시정지가 되는 판에서는 시간과 적이 멈춘 채로 카메라 이동·선택·건설·명령을 할 수 있다.
+  - 맥락: 멈춘 동안 무엇을 할 수 있는지는 게임 자체의 정지 기능을 되살리는 Nexus 'Nightmare Pause' 모드 설명에서 나온 것이다. 배속 기능은 확인하지 못했다. 우리 게임에 쓸 근거: 정지 중 명령 허용 여부를 난이도 선택지로 두는 선례다.
+  - 검증: 웹 검색 한도가 소진됐다. Nightmare와 가장 긴 게임 길이에서 일시정지가 꺼지는지, 정지 중에 무엇을 할 수 있는지는 확인하지 못했다. GitHub에서 'Nightmare Pause' 모드의 원본도 찾지 못했다.
+  - 출처: https://steamcommunity.com/app/1426450/discussions/0/600769605204482908/, https://steamcommunity.com/app/1426450/discussions/0/3267934519721816726/
+- [minimal-11·likely] (Bad North) Bad North에서는 부대를 고르는 순간 시간이 크게 느려지고, 목적지를 고르는 동안 느린 상태가 이어지며, 이동 명령을 내리면 다시 정상 속도로 돌아간다.
+  - 맥락: PC Gamer는 '부대를 고르고 배치하는 동안에만 느려진다'고 썼다. 148apps 공략은 부대만 골라도 느려지고, 이동 명령 뒤에는 의도와 달리 빨라질 수 있다고 적었다. 우리 게임: 영웅 스킬 조준이나 용병 드래그 선택 중에만 시간을 늦추면, 전투 흐름을 끊지 않고 조작 부담을 덜 수 있다.
+  - 검증: 검색 한도 소진으로 검색하지 못했다. 부대 선택 시 감속과 명령 후 정상 속도 복귀를 독립 출처로 확인하지 못했다. 인용된 두 출처(PC Gamer, 148apps)끼리도 감속 조건 서술이 조금 다르다.
+  - 출처: https://www.pcgamer.com/bad-north-is-easy-to-pick-up-but-its-a-fiendish-strategy-game/, https://www.148apps.com/bad-north-jotunn-edition/bad-north-jotunn-edition-guide/
+- [minimal-12·likely] (Bad North) Bad North에는 정식 일시정지 버튼이 없고(PC Gamer) 빨리감기 기능도 없으며, 스팀 토론에서 플레이어들이 빨리감기와 자동 일시정지를 요청했다.
+  - 맥락: PC Gamer는 일시정지가 없어서 상황에 압도되기 쉽다고 평가했다. 이후 판에서 바뀌었는지는 확인하지 못했다. 우리 게임은 미션·의뢰·영입 창까지 있는 더 복잡한 게임이므로, 일시정지와 배속 버튼을 따로 두는 근거가 된다.
+  - 검증: 검색 한도 소진으로 검색하지 못했다. '정식 일시정지 없음'은 메뉴 일시정지나 포커스 자동 일시정지(minimal-14)와 겹칠 수 있다. 판에 따라 다를 가능성이 있는데 확인하지 못했다.
+  - 출처: https://www.pcgamer.com/bad-north-is-easy-to-pick-up-but-its-a-fiendish-strategy-game/, https://steamcommunity.com/app/688420/discussions/0/1639793203780111919/
+- [minimal-14·likely] (Bad North) Bad North는 창 포커스를 잃으면 자동으로 일시정지하고, 공식 패치 1.05 노트에 따르면 NoAutoPause 명령줄 인자로 이 기능을 끌 수 있다.
+  - 맥락: PC판 기준이다. 우리 게임(스팀 PC): 창 포커스를 잃으면 자동으로 멈추게 하고, 이를 끄는 옵션도 함께 두면 좋다.
+  - 검증: 검색 한도 소진으로 검색하지 못했다. 패치 1.05 노트의 NoAutoPause 인자를 공식 페이지나 다른 출처로 대조하지 못했다.
+  - 출처: https://www.badnorth.com/news/patch/1-05, https://steamcommunity.com/app/688420/discussions/0/1741103267290225958/
+- [ironhide-14·unverified] (Kingdom Rush Vengeance (Steam)) Kingdom Rush Vengeance Steam 토론에서 개발진은 빨리 감기 버튼을 여러 번 논의했지만, 게임을 지금 속도에 맞춰 설계했다며 당장은 넣지 않겠다고 답했다.
+  - 맥락: 팬 모드 '2x Speed'는 웨이브 건너뛰기 버튼 옆에 '1x/2x Speed' 토글 버튼과 F 키를 붙인다(Nexus Mods, 시리즈 공용이고 Vengeance 호환은 확인 못 함). Emily Miles도 속도 올리기 버튼이 있으면 좋겠다고 평가했다. 일시정지는 Esc/P 키로 한다(ironhide-12). 우리 게임에 쓸 수 있다: '웨이브 내내 바쁜 실시간 전쟁'이 정체성이므로 배속보다 일시정지와 일시정지 중 명령을 먼저 갖출 근거. 배속을 넣는다면 웨이브 호출 버튼 옆이 자리 후보다.
+  - 검증: Steam 토론의 개발진 답변을 다른 출처로 확인하지 못했다. 공식 Vengeance PC 이슈 트래커(ironhidegames/issues-kr4)에서 speed/fast forward 검색은 결과 0건이었다. 단축키 관련 이슈로는 #72 'configurable key shortcuts'만 나왔다.
+  - 출처: https://steamcommunity.com/app/1367550/discussions/0/4835136555198683614/, https://www.nexusmods.com/kingdomrushtowerdefense/mods/6
+- [castle-21·unverified] (Diplomacy is Not an Option) Space로 일시정지하고 F1~F3과 '='로 게임 속도를 바꾸며, F11로 UI 전체를 숨기거나 보이고, `(백틱) 키로 카메라에 보이는 모든 병력을 고른다.
+  - 맥락: 단축키 목록 사이트 기준이다. 실시간 전쟁 중에 멈추고 속도를 바꾸는 것과 UI 숨기기를 키 하나로 한다. 우리 문제 (7) HUD가 화면을 덮는 문제에 'UI 숨기기 키'를 보조로 두고, 용병 전체 선택 키를 두는 근거.
+  - 검증: 검색 예산 소진으로 확인하지 못했다. Space 일시정지, F1~F3과 '=' 속도, F11 UI 숨기기, 백틱 전체 선택 모두 공식 조작표로 대조하지 못했다.
+  - 출처: https://defkey.com/diplomacy-is-not-an-option-shortcuts, https://www.magicgameworld.com/diplomacy-is-not-an-option-pc-keyboard-controls-guide/
+
+## 모달·팝업 (modal_popup) — 5개
+
+- [pixel_minimal-14·verified] (Dome Keeper) 게임이 끝나면 HUD 전체가 0.3초 큐빅 트윈으로 화면 아래로 미끄러져 사라진다(Level.moveHudOut). 조종석·전투 팝업도 0.3초 트윈으로 화면 아래 가장자리에서 들어오고 나간다.
+  - 맥락: LevelStage의 종료 처리와 여러 게임 모드(Prestige, Relichunt 등)의 승패 처리에서 moveHudOut을 부른다. 우리 문제 (6)에 쓴다: 영입·결과 창이 HUD 위에 그대로 겹치는 대신, 창을 띄울 때 HUD를 빼는 선례다.
+  - 검증: Hud.moveOut은 0.3초 TRANS_CUBIC EASE_IN이다. Level.moveHudOut은 hud 그룹 전체에 moveOut을 부른다. GitHub 코드 검색으로 찾은 호출처는 LevelStage.onGameLost, Versus, Prestige, Assignments, Relichunt다. StationPopup은 moveIn·moveOut이 0.3초 cubic이고 화면 아래 가장자리를 기준으로 움직인다.
+  - 출처: https://github.com/Kupie/DK_DECOMP/blob/main/content/hud/Hud.gd, https://github.com/Kupie/DK_DECOMP/blob/main/stages/level/LevelStage.gd
+- [p_disabled_modal-10·verified] (The Battle for Wesnoth 징집 창) Wesnoth 징집 창은 지금 뽑을 수 없는 유닛도 목록에 남기되, 초상은 회색조(~GS)로, 이름과 비용 숫자는 비활성 색으로, 금화 아이콘도 회색조로 바꾼다. 그 줄에 마우스를 올리면 'You do not have enough gold to recruit this unit.' 같은 이유를 툴팁으로 띄운다.
+  - 맥락: 계획 모드에서는 'At this point in your plan, you will not have enough gold...'로 문구가 바뀌고, 소환(recall) 목록도 같은 방식으로 이유 툴팁을 단다. PC 오픈소스 master 기준. 우리 게임: 라운드 사이 영웅 영입 창(리롤)에서 못 사는 영웅을 지우지 말고 회색과 이유 툴팁으로 남겨 두는 근거다(문제 3·6).
+  - 검증: units_dialog.cpp의 build_recruit_dialog가 주장대로 동작한다. 오류가 있는 유닛은 이미지에 '~GS()'를 붙이고, 이름과 비용은 maybe_inactive로 비활성 색이 되며, format_cost_string(..., false)는 'themes/gold.png~GS()'를 쓴다. 툴팁 생성기는 err_msgs_map 문구를 보여 준다. helper.cpp에는 'You do not have enough gold...'와 계획(wh…
+  - 출처: https://raw.githubusercontent.com/wesnoth/wesnoth/master/src/gui/dialogs/units_dialog.cpp, https://raw.githubusercontent.com/wesnoth/wesnoth/master/src/units/helper.cpp
+- [td_bars-rt-04·partly] (Rogue Tower) 업그레이드 카드를 고를 때는 화면 가운데에 카드 6장이 가로 한 줄로 맵 위에 겹쳐 뜨고, 카드마다 위에 제목, 가운데에 큰 단색 아이콘, 아래에 한두 줄 설명이 놓인다.
+  - 맥락: 스크린샷 한 장으로 봤을 때 카드 뒤 맵이 크게 어두워지지 않은 것처럼 보인다. 어둡게 까는 처리가 있는지는 확정하지 못했다. 우리 문제 (6): 라운드 사이 영웅 영입 창(리롤)을 «같은 크기 카드 가로 배열 + 큰 아이콘»으로 짤 때의 참고 사례다.
+  - 검증: 스크린샷에서 카드 6장이 가로 한 줄로 맵 위에 겹쳐 있다. 위에 제목, 가운데에 큰 단색 아이콘, 아래에 1~3줄 설명이 있고, 배경 어둡게 처리는 보이지 않는다. 그러나 6장은 고정값이 아니다. 영구 업그레이드 'Card Draw I~III'의 설명이 'Draw an additional card when you draw upgrade cards'(translations L27-30)라서 장 수가 메타 진행에 따라 늘어난다.
+  - 출처: https://github.com/whatdidyousayme/Rogue-Tower-Russian/blob/main/screenshots/gameplay_towers.png, https://github.com/whatdidyousayme/Rogue-Tower-Russian/blob/main/translations.json#L8
+- [p_disabled_modal-14·partly] (모달 스크림 불투명도 (Material 2·3 / Fluent 2 / Bootstrap 5.3)) 모달 대화창 뒤에 화면 전체를 덮는 스크림의 불투명도는 Material 2(MDC Web)가 on-surface 색 32%, Material 3(material-web)가 scrim 색 32%(모달 내비게이션 서랍도 32%)다. 이와 달리 Microsoft Fluent 2는 검정 40%(밝은 테마)·50%(어두운 테마), Bootstrap 5.3은 검정 50%다.
+  - 맥락: Fluent는 대화창 위에 겹쳐 연 대화창(nested)의 배경을 투명으로 두어 두 겹으로 어두워지지 않게 한다. MDC Web은 스크림 클릭과 Esc를 기본으로 '닫기'에 묶고, 이를 끄더라도 '사용자가 언제나 닫을 수 있어야 한다'고 경고한다. m3.material.io 지침 본문은 검색 한도 때문에 읽지 못했고, 값은 공식 컴포넌트 코드에서 확인했다. 우리 게임: 문제 (6) 영입·결과 창이 HUD 위에 그냥 겹치는 것을, 화면 전체 ColorRect(검정 32~50%)로 까는 기준값이다. Godot Control의 기본 mo…
+  - 검증: 주요 수치는 모두 코드와 같다. MDC dialog의 $scrim-color는 on-surface, opacity는 0.32다. material-web dialog의 .scrim은 sys scrim 색에 opacity 32%다. Fluent의 colorBackgroundOverlay는 밝은 테마 blackAlpha40, 어두운 테마 blackAlpha50이고, 중첩 대화창 배경은 colorTransparentBackground다. Bootstrap 5.3.3의 …
+  - 출처: https://raw.githubusercontent.com/material-components/material-components-web/master/packages/mdc-dialog/_variables.scss, https://raw.githubusercontent.com/material-components/material-components-web/master/packages/mdc-drawer/_variables.scss
+- [castle-12·likely] (Stronghold Crusader: Definitive Edition) FireFly Studios는 출시 전 설명에서, DE의 메뉴 대부분을 패널 방식으로 바꿔 중간에 거치던 화면 일부를 없애면서도 원작 느낌은 지켰다고 했다.
+  - 맥락: DE 출시 전 기사(Simulation Daily)다. Game8 리뷰는 DE의 UI가 '훨씬 깔끔해졌다'고 평가하며, 현대식 UI 손질을 편의 개선의 하나로 꼽았다. 화면을 갈아타는 대신 패널을 띄운다는 방향은 우리 문제 (6) 영입·결과 창을 '어둡게 깐 배경 위의 패널'로 정리하는 근거.
+  - 검증: 검색 예산 소진으로 확인하지 못했다. Simulation Daily와 Game8 밖에서 FireFly의 '패널 방식 전환' 발언을 찾지 못했다.
+  - 출처: https://simulationdaily.com/news/stronghold-crusader-definitive-edition-graphics/, https://game8.co/articles/reviews/stronghold-crusader-definitive-edition-review
+
+## 단축키 (hotkeys) — 31개
+
+- [blizzard-19·verified] (StarCraft II) StarCraft II의 Grid 단축키 프로필은 명령 카드의 각 칸을 키보드에서 같은 자리에 있는 키 하나(모두 15키)에 묶는다.
+  - 맥락: Standard, Grid, 그리고 둘 다의 왼손잡이용 프로필이 있다. 커뮤니티 글들은 Grid와 Standard 중 무엇이 나은지를 취향 문제로 다룬다. 우리 게임: (1)(2) 건설 12종을 3×4 격자에 넣고 키를 Q~R/A~F/Z~V로 고정하면, 버튼 글자에 단축키를 쓰지 않아도 칸 위치로 알 수 있다.
+  - 검증: CommandPanel.SC2Layout에 CommandButton00~14, 즉 15칸(5×3)이 있다. 게임 문자열의 Grid 설명은 'Grid hotkeys are based on the button's position in the command card'다. 프로필은 Standard, Standard for Lefties, Grid, Grid for Lefties 말고도 Classic(원작 스타크래프트 키)이 하나 더 있어, detail의 목록은 빠진 것…
+  - 출처: https://tictactactics.wordpress.com/2015/07/18/the-beginners-guide-to-starcraft-2-part-ii-hotkeys/, https://tl.net/forum/starcraft-2/513298-grid-hotkeys-and-the-spaceship-grid
+- [aoe_northgard-04·verified] (Age of Empires IV) AoE IV의 기본 단축키 방식은 '격자 키(Grid Keys)'다. 화면 아래 가운데에서 약간 왼쪽에 있는 명령 격자의 칸 위치가 키보드 왼쪽 키 배치와 대응하고, 칸의 아이콘이 바뀌어도 같은 칸은 같은 키로 눌린다.
+  - 맥락: PC 키보드·마우스 판 기준이다. 2026년 패치 16.2.10604부터는 PC에서도 컨트롤러용 UI로 바꿀 수 있다(https://ageofempires.fandom.com/wiki/Patch_16.2.10604). '완전 재지정' 모드를 처음 켜면 기본 격자 배치에서 시작한다. 스팀 토론에는 격자를 다른 게임 방식으로 바꾸기 어렵다는 불평도 있다(https://steamcommunity.com/app/1466860/discussions/0/3158706376149243445). 우리 게임 (1): '(1)' 같은 단축키를 버튼 …
+  - 검증: 키 프로필 3개 모두 classicKeys=false다. fullyRemappable 기본값의 build_menu_age_1은 Q·W·E·R / A·S·D·F / Z·X·C·V 격자로 배정돼 있다. 같은 칸에 문명마다 다른 건물이 들어가도 키는 같다(F칸 = 지혜의 집·마을(중국)·모스크·저수조, A칸 = 농장·올리브 숲·목초지). 그래서 '아이콘이 바뀌어도 같은 칸은 같은 키'와 '완전 재지정은 격자 기본 배치에서 시작'을 뒷받침한다. 다만 명령 격자가 화면 …
+  - 출처: https://support.ageofempires.com/hc/en-us/articles/7473968190356-Fully-Remappable-Keys, https://techplusgame.com/age-of-empires-iv-hotkeys-best-hotkeys-to-use-in-age-of-empires-iv/
+- [aoe_northgard-07·verified] (Age of Empires IV) AoE IV 기본 단축키에서 마침표(.)는 놀고 있는 경제 유닛(일꾼·교역 수레·어선 등)을 하나씩 돌며 고르고, Ctrl+마침표는 놀고 있는 일꾼을 한꺼번에 고른다.
+  - 맥락: 2021년 출시 직전 공개된 Xbox Wire 목록 기준이다. 보조 키는 N과 Ctrl+위쪽 화살표이고 다시 지정할 수 있다. 우리 게임: '놀고 있는 용병·공병 순환' 키 하나를 두면, 웨이브 중에 손 놓은 유닛을 찾느라 카메라를 헤매지 않는다.
+  - 검증: 두 키 프로필의 기본값 영역에 pick_next_idle_worker=Period, pick_all_idle_villagers=Control+Period가 같게 들어 있다. 명령 이름이 'worker'라서 경제 유닛 전반을 돈다는 설명과도 맞는다. 다만 detail의 보조 키(N, Ctrl+위쪽 화살표)는 이 기본값에 없다. 같은 영역에서 다른 명령은 보조 키가 적혀 있다(부대 키 = 숫자패드, 화면 이동 = Alt+WASD). 그래서 2021년 목록 이후 보조…
+  - 출처: https://news.xbox.com/en-us/2021/10/22/age-of-empires-iv-hotkeys-revealed/, https://www.pcgamesn.com/age-of-empires-4/hotkeys-keyboard-shortcuts
+- [aoe_northgard-24·verified] (Northgard) PC판 Northgard는 Space 키를 '알림으로 이동'에 묶어 두었다.
+  - 맥락: 닌텐도 스위치판 업데이트에서는 전쟁 알림을 누르면 싸움이 벌어지는 곳으로 카메라가 옮겨 가게 됐다(https://www.perfectly-nintendo.com/northgard-switch-software-updates/). PC에서 알림 클릭 동작은 따로 확인하지 못했다. 우리 게임 (7): 경보가 울리면 키 하나로 그 자리로 가는 기능의 근거다(AoE IV도 Space).
+  - 검증: 현재 게임 텍스트(v4.0.11)의 단축키 목록에 'View Notification — Space'가 기본값으로 있다. AutoHotkey 스크립트도 Space를 게임에 그대로 넘긴다.
+  - 출처: https://strategywiki.org/wiki/Northgard/Controls, https://www.magicgameworld.com/northgard-controls-for-keyboard-and-mouse/
+- [aoe_northgard-28·verified] (Northgard) PC판 Northgard에는 G로 주민, H로 정찰병, U로 놀고 있는 유닛·일꾼을 고르는 선택 단축키가 있다.
+  - 맥락: AoE IV의 놀고 있는 일꾼 키와 같은 역할이다. 우리 게임 (1)(3): '놀고 있는 공병·용병 선택' 키를 두면 버튼의 '(공병 없음)' 문구 대신 쓸 수 있다.
+  - 검증: 현재 게임 텍스트(v4.0.11)의 기본 단축키는 Select All Villagers = G, Select All Scouts = H, Select Idle Workers = U다. AutoHotkey 스크립트에도 u = 놀고 있는 일꾼 선택이 있다. 다만 U의 게임 표기는 'Idle Workers'라서 놀고 있는 일꾼만 고른다. '놀고 있는 유닛' 전반을 고르는 키는 아니다.
+  - 출처: https://strategywiki.org/wiki/Northgard/Controls, https://www.magicgameworld.com/northgard-pc-keyboard-shortcuts/
+- [td_bars-md-06·verified] (Mindustry) 데스크톱에서는 숫자키 1~0을 0.4초 안에 두 번 눌러 «범주 고르기 → 블록 고르기»를 하고, 쉼표·마침표로 이전·다음 범주로 넘어가며, 정보 칸의 블록 이름 아래에 «Key: [1,3]» 같은 조합이 회색으로 표시된다.
+  - 맥락: 키 조합 표시는 모바일에서 빠진다(!mobile). 우리 문제 (1): 단축키 «(1)»을 버튼 이름에 넣지 말고 정보 칸에서만 알려 줘도 된다는 근거다. 건설 12종은 «범주 숫자 + 항목 숫자» 두 번 누르기로 나눌 수 있다.
+  - 검증: 소스를 직접 대조함. blockSelect01~10은 num1~num0, categoryPrev/Next는 comma/period이다. 400ms 안에 다시 누르면 블록을 고르고, 블록이 10개를 넘으면 세 번째 키까지 쓴다. placement.blockselectkeys는 '\n[lightgray]Key: [{0},'이고 !mobile일 때만 붙는다. 방향키로 격자 안을 옮겨 다니는 기능도 있다.
+  - 출처: https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/ui/fragments/PlacementFragment.java#L183-L256, https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/input/Binding.java#L68-L76
+- [td_bars-md-10·verified] (Mindustry) 기본 키 배치에서 웨이브 건너뛰기 키는 비어 있고(unset), Space는 일시정지, C는 메뉴(HUD) 전체 켜기·끄기, M은 미니맵에 묶여 있다.
+  - 맥락: 실수로 웨이브를 당기지 않도록 건너뛰기를 기본 키에서 뺀 것으로 보인다(추정). 우리 문제 (7): HUD가 거점을 가릴 때 키 하나로 HUD를 숨기는 기능과 Space 일시정지는 바로 가져다 쓸 수 있다.
+  - 검증: Binding.java를 직접 대조함. skipWave=KeyCode.unset, pause=space, toggleMenus=c, minimap=m이다. toggleMenus는 HudFragment.shown을 뒤집어 HUD 전체를 숨기고, 처음 숨길 때 다시 켜는 키를 한 번 안내한다.
+  - 출처: https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/input/Binding.java#L91-L97
+- [td_bars-rt-06·verified] (Rogue Tower) 전투 화면 오른쪽 위에는 «P or Esc: Pause game / Hold shift: Smooth cam & fast tower placement / H: Hide UI / C: Recenter camera / T: Show damage & tower stats» 단축키 안내가 글자로 늘 떠 있다.
+  - 맥락: 단축키 안내가 버튼마다 붙지 않고 한쪽 구석에 모여 있다. H로 UI 전체를 숨기고 C로 카메라를 다시 가운데로 맞출 수 있다. 우리 문제 (1)·(7): 단축키를 버튼 이름에서 빼서 구석의 안내 한 곳으로 모으고, HUD 숨기기와 «거점으로 카메라» 키를 두는 근거다.
+  - 검증: 스크린샷의 HUD 칸 오른쪽(화면 위 오른쪽 절반)에 'P или Esc: Пауза / Shift: плавная камера и быстрая установка / H: скрыть интерфейс / C: центрировать камеру / T: урон и характеристики башен'이 2열 글자로 떠 있다. 영문 원문은 L840-844, L1423, L1869에 있다. '늘' 떠 있는지(H로 숨길 때 함께 사라지는지 등)는 스크린샷 한 …
+  - 출처: https://github.com/whatdidyousayme/Rogue-Tower-Russian/blob/main/translations.json#L1869, https://github.com/whatdidyousayme/Rogue-Tower-Russian/blob/main/screenshots/gameplay_towers.png
+- [td_bars-bt-07·verified] (Bloons TD 6) PC판 기본 단축키는 타워마다 글자 키 하나(Dart Q, Boomerang W, Bomb E, Tack R … 영웅 U), 업그레이드 경로 위·가운데·아래에 쉼표·마침표·슬래시, 표적 바꾸기에 Tab, 판매에 Backspace를 쓴다.
+  - 맥락: btd6farmer(2022~23년판)는 /, BTD6bot(최신판, 북유럽 자판 사용자 설정)은 같은 자리의 - 키로 적었다. 표적은 Tab으로 First→Last→Close→Strong 순서로 돈다. 우리 게임은 Q·W·E·R을 영웅 스킬에 쓰므로, 건설은 숫자키나 다른 줄로 나눠야 한다는 충돌 점검 근거가 된다.
+  - 검증: btd6farmer static.py의 tower_keybinds는 DART q, BOOMERANG w, BOMB e, TACK r … HERO u이다. upgrade_keybinds는 , . /이고, target_order는 FIRST, LAST, CLOSE, STRONG이다. BTD6bot hotkeys.json에는 upgrade bot '-'(VK 189), target change tab, sell backspace, play/fast forward sp…
+  - 출처: https://github.com/linus-jansson/btd6farmer/blob/main/src/static.py#L113-L136, https://github.com/linus-jansson/btd6farmer/blob/main/src/static.py#L206-L214
+- [pixel_minimal-26·verified] (Loop Hero) 인벤토리의 장비를 우클릭하면 그 장비가 잠기고(핀) 인벤토리 맨 앞으로 옮겨진다.
+  - 맥락: 모드 README의 기본 동작 설명이다('the same as right-clicking them in the inventory (the item is locked and moved to the front of the inventory)'). 우클릭에 '보조 동작'을 하나만 묶은 예다. 우리 게임에 쓴다: 영웅 스킬 우클릭 자동 시전 토글처럼, 우클릭 보조 동작을 일관된 하나의 의미로 묶는 근거다.
+  - 검증: README 문구를 확인했다. Pin() 코드는 주석에 'o_item_Mouse_5(GameMaker 우클릭 누름 이벤트)와 같다'고 쓰여 있고, 장비를 inv_items 리스트 0번 자리로 옮긴 뒤 inv_lock=1로 둔다. 잠긴 장비를 다시 우클릭했을 때의 동작은 확인하지 않았다.
+  - 출처: https://github.com/sam-k0/LoopHero-Advanced
+- [p_disabled_modal-13·verified] (단축키 표시 위치 (Polaris / Unciv / OpenRA / Mindustry)) Shopify Polaris는 아이콘만 있는 버튼과 단축키가 있는 버튼에 툴팁을 달고, 단축키는 툴팁 본문 옆 접미(suffix)로 보이라고 한다. Unciv(오픈소스 문명 5 리메이크)는 단축키 툴팁을 버튼 오른쪽 위 모서리에 살짝 걸쳐 띄우고, 키보드가 없는 기기에서는 자동으로 숨긴다.
+  - 맥락: OpenRA는 툴팁 이름 옆에 노란 괄호로, Mindustry는 PC(비모바일)에서만 이름 뒤에 키 조합을 붙인다. 네 곳 모두 단축키를 버튼 본문 글자에 넣지 않는다. 우리 게임: 문제 (1)의 '(1)' 같은 단축키를 버튼 글자에서 빼서, 아이콘 버튼 모서리 배지나 툴팁 이름 옆으로 옮기는 근거다(스팀 PC 마우스+키보드라 항상 표시해도 된다).
+  - 검증: Polaris 원문에 '아이콘만 있는 버튼이나 단축키가 있는 버튼에 툴팁을 단다'는 문장과 suffix 예시(아이콘 버튼의 단축키)가 있다. UncivTooltip.kt 주석에는 '오른쪽 위 모서리에 살짝 넘치게 배치'와 '주로 키보드 팁이라 키보드가 없는 기기에서는 기본으로 숨김(always로 무시 가능)'이 적혀 있다. GUI.keyboardAvailable로 확인한다. OpenRA의 노란 괄호 단축키와 Mindustry의 !mobile 키 조합도 코드로 확…
+  - 출처: https://raw.githubusercontent.com/Shopify/polaris/main/polaris.shopify.com/content/components/overlays/tooltip.mdx, https://raw.githubusercontent.com/yairm210/Unciv/master/core/src/com/unciv/ui/components/UncivTooltip.kt
+- [p_cooldown_hotkey-07·verified] (World of Warcraft (리테일)) WoW 리테일의 '빠른 단축키 설정(Quick Keybind)' 모드에서는 행동 단추에 마우스를 올리고 키(또는 마우스 휠·추가 마우스 단추)를 누르면 바로 그 키가 묶이고, 툴팁에 동작 이름과 지금 키, 그리고 'Esc로 해제' 또는 '지정 안 됨·키를 누르세요' 안내가 뜬다.
+  - 맥락: 이 모드에서도 왼쪽·오른쪽 클릭은 묶이지 않는다(button ~= "LeftButton" and button ~= "RightButton"). 창에는 기본값 복원(DefaultsButton)과 캐릭터별 단축키 사용(UseCharacterBindingsButton) 단추가 있다. 우리 게임: QWER와 건설 칸 단축키를 HUD 위에서 바로 바꾸는 방식의 선례다(단축키 재설정 기대치).
+  - 검증: QuickKeybind.lua에서 확인한 것: 마우스를 올리면 KeybindListener:StartListening(command, 1). 클릭 처리는 LeftButton/RightButton이 아닐 때만 묶는다. 휠은 OnMouseWheel로 묶는다. 툴팁에는 GetBindingName, 현재 키, ESCAPE_TO_UNBIND가 나오고, 키가 없으면 NOT_BOUND와 PRESS_KEY_TO_BIND가 나온다. DefaultsButton과 UseCharac…
+  - 출처: https://raw.githubusercontent.com/Gethe/wow-ui-source/live/Interface/AddOns/Blizzard_QuickKeybind/QuickKeybind.lua
+- [p_cooldown_hotkey-11·verified] (Dota 2) Dota 2 단축키 설정에서 'Use Legacy Keys'를 켜면 Dota 1처럼 영웅마다 기술 단축키가 달라지고 Quickcast가 동작하지 않으며, 레거시가 아닌 기본 설정에서 유닛마다 다른 기술 단축키를 쓰려면 'Unit Specific Hotkeys'를 따로 켜야 한다.
+  - 맥락: 설정 툴팁 원문은 "Use hotkeys from Dota 1. Ability hotkeys will vary per Hero. NOTE: Quickcast does not work with legacy keys enabled."와 "Enable different ability hotkeys per unit."이다. 단축키 템플릿은 Normal·WASD·Legacy·MMO·League of Legends·Heroes of Newerth·Smite가 있고, 템플릿을 고르면 영웅 기술·아이템 칸·카메라 키가 재설정된다. Quickcas…
+  - 검증: DOTA_Hotkeys_Tooltip_Legacy 원문('Use hotkeys from Dota 1. Ability hotkeys will vary per Hero. NOTE: Quickcast does not work with legacy keys enabled.')과 DOTA_Hotkeys_Tooltip_PerUnitHotkeys('Enable different ability hotkeys per unit.'), dota_settings_per_unit_ho…
+  - 출처: https://raw.githubusercontent.com/SteamDatabase/GameTracking-Dota2/master/game/dota/pak01_dir/resource/localization/dota_english.txt, https://raw.githubusercontent.com/SteamDatabase/GameTracking-Dota2/master/DumpSource2/convars.txt
+- [p_cooldown_hotkey-12·verified] (Beyond All Reason (오픈소스 RTS)) Beyond All Reason의 기본 'Grid' 단축키 프로필은 건설 메뉴 3×4 칸을 화면 위 줄부터 Q W E R / A S D F / Z X C V에 묶고, 범주 선택은 Z X C V, 다음 쪽은 B에 두어 화면의 칸 배치와 키보드 배치를 일치시킨다.
+  - 맥락: 함께 실린 프로필은 Grid, Grid (60% Keyboard), Legacy, Legacy (60% Keyboard) 네 개다. gui_gridmenu.lua의 setupCells는 1행(Z X C V)을 맨 아래 칸, 3행(Q W E R)을 맨 위 칸에 놓는다. 키는 물리 위치(scancode, sc_q 등)로 묶고, 화면에 보이는 글자는 QWERTY·AZERTY·QWERTZ 변환표로 바꾼다(https://raw.githubusercontent.com/beyond-all-reason/Beyond-All-Reason/master…
+  - 검증: keybind_defaults.json의 Grid와 Grid (60% Keyboard) 프로필: Any+sc_q/w/e/r는 gridmenu_key 3 1~4, sc_a~f는 2행, sc_z~v는 1행이다. sc_z~v는 gridmenu_category 1~4도 맡는다. sc_b는 gridmenu_next_page다. 프로필은 Grid, Grid (60%), Legacy, Legacy (60%) 네 개다. keybinds.README.md에 따르면 활성 프로필이…
+  - 출처: https://raw.githubusercontent.com/beyond-all-reason/Beyond-All-Reason/master/common/configs/keybind_defaults.json, https://raw.githubusercontent.com/beyond-all-reason/Beyond-All-Reason/master/luaui/Widgets/gui_gridmenu.lua
+- [p_alerts_camera-01·verified] (OpenRA (C&C/Red Alert 오픈소스 재구현)) OpenRA는 스페이스바(ToLastEvent, «Jump to last radar event»)를 누르면 카메라 중심을 마지막으로 보이게 생긴 레이더 핑 위치(RadarPings.LastPingPosition)로 곧바로 옮긴다.
+  - 맥락: PC, OpenRA bleed 브랜치(2026-10-20 커밋 1f594e3) 소스 기준. 핑이 하나도 없으면 아무 일도 하지 않고, 핑이 새로 생길 때마다 위치를 덮어써서 '마지막 사건 1개'만 기억한다. 공격 경보·비컨 같은 사건이 모두 이 핑을 거친다. 우리 게임: 지금은 경보가 없다(문제 7). 화면 밖에서 성문이나 거점이 맞을 때 스페이스바 한 번으로 그 자리로 가게 하는 근거로 쓴다.
+  - 검증: WebSearch 한도가 소진되어 검색 2회가 모두 거부됐다. 그래서 다른 도메인의 뒷받침은 찾지 못했고, 인용 커밋 1f594e3의 원본 코드를 직접 읽어 대조했다. game.yaml에 ToLastEvent: SPACE가 있고, ftl L87은 'Jump to last radar event'다. JumpToLastEventHotkeyLogic은 LastPingPosition이 null이면 그냥 return하고, 아니면 viewport.Center(LastPin…
+  - 출처: https://github.com/OpenRA/OpenRA/blob/1f594e32065615ed1847962c80ecfe6e868a11c3/mods/common/hotkeys/game.yaml#L6-L9, https://github.com/OpenRA/OpenRA/blob/1f594e32065615ed1847962c80ecfe6e868a11c3/mods/common/fluent/hotkeys.ftl#L87
+- [p_alerts_camera-06·verified] (Stratagus (Warcraft II 데이터용 오픈소스 엔진, Wargus)) Stratagus는 스페이스바(«center on last action»)를 누를 때마다 위치가 붙은 최근 사건 메시지(최대 10개)를 하나씩 돌아가며 그 칸으로 화면 중심을 옮기고 «Event: …» 문구를 띄운다.
+  - 맥락: Wargus/stratagus master 기준. 근거 코드는 interface.cpp의 SDLK_SPACE와 mainscr.cpp의 CenterOnMessage(), MESSAGES_MAX 10. 새 사건이 오면 순번을 최신 것으로 맞추고, 누를 때마다 다음 사건으로 넘어가며 끝에서 처음으로 돈다. Blizzard 원작 WC2/WC3 동작의 직접 근거가 아니라 재구현이다. 우리 게임: 여러 곳이 동시에 맞을 때 스페이스바를 거듭 눌러 사건을 차례로 도는 방식의 근거.
+  - 검증: 웹검색이 불가해 원본 코드로 대조했다. interface.cpp에 'case SDLK_SPACE: // center on last action → CenterOnMessage()'가 있고, mainscr.cpp에 MESSAGES_MAX 10이 있다. SetMessageEvent는 새 사건을 넣을 때 Index를 최신 것으로 맞춘다(가득 차면 가장 오래된 것을 밀어냄). CenterOnMessage는 해당 칸으로 Center한 뒤 '~<Event: %s~>'를 띄…
+  - 출처: https://github.com/Wargus/stratagus/blob/master/src/ui/interface.cpp#L654-L655, https://github.com/Wargus/stratagus/blob/master/src/ui/mainscr.cpp#L1043-L1055
+- [ironhide-12·partly] (Kingdom Rush 시리즈 Steam판) Kingdom Rush Steam판은 1·2로 두 주문을, Space로 영웅을 고르고, W(또는 Enter)로 다음 웨이브를 부르며, Esc(또는 P)로 일시정지·메뉴를 연다.
+  - 맥락: Alliance(DefKey 목록): Space 영웅 이동, 1·2 영웅 능력, 6 증원 이동, W 웨이브 호출, E 웨이브 정보, R 정보 카드. Ironhide의 공식 단축키 문서는 찾지 못했고 출처는 이용자 글이다. 우리 문제 (1)에 쓸 수 있다: 단축키를 버튼 글자 안에 '(1)'처럼 넣지 말고 버튼 귀퉁이 작은 글자나 툴팁으로 빼는 근거. 웨이브 정보·정보 카드에도 키를 주는 방식을 참고할 만하다.
+  - 검증: Love2D Steam 코드에서 pow_1='1', pow_2='2'(Origins는 3도 있음)다. 영웅은 Space 또는 4(2번째 5)이고, 다음 웨이브는 W 또는 Return이다. Esc는 무언가 선택돼 있으면 선택 해제, 아니면 일시정지 메뉴다. krli #82(W), #1141(Space·4), #400(Origins의 1·3·Space), #1555(Flash판의 4=Sunray, 지금은 영웅)로 뒷받침된다. 반면 P 일시정지는 코드에서 찾지 못했다…
+  - 출처: https://steamcommunity.com/sharedfiles/filedetails/?id=248387245, https://steamcommunity.com/app/458710/discussions/0/359543951709916667/
+- [tab-12·partly] (They Are Billions) 명령 버튼은 5×3 격자로 놓이고, 얼리 액세스 시기에는 건설 단축키가 없어서 플레이어들이 버튼 위치를 Q·W·E 같은 격자 키에 연결하는 AutoHotkey 스크립트를 따로 만들었다.
+  - 맥락: 얼리 액세스(2017~2018) 기준이며, 이후 공식 단축키가 추가됐는지는 확인하지 못했다. GitHub 1차 자료다(b-adkins README에 '5x3 grid of buttons'와 B-범주키-건물키 3단 입력이 나온다). 우리 게임 (1)(2)번에 쓸 근거: 버튼 칸 수와 위치를 고정 격자로 두면 단축키를 위치에 매길 수 있고, 단계가 바뀌어도 위치가 밀리지 않는다. 다만 영웅 Q·W·E·R과 겹치므로 키를 따로 설계해야 한다.
+  - 검증: 5×3 격자는 세 곳에서 확인된다. b-adkins는 i_size=5, j_size=3, ryuyandev는 너비/5·높이/3으로 칸을 나누고, QoL 모드는 QWERT/ASDFG/ZXCVB에 대응시킨다. 그러나 '건설 단축키가 없었다'는 부분은 부정확하다. b-adkins 스크립트 주석에 'top-level menus already have hotkeys in-game'이라고 나오고, 실제로 C·R·E·I·M 같은 범주 키를 게임에 그대로 보낸다(얼리 액세스 …
+  - 출처: https://github.com/b-adkins/they_are_billions.ahk, https://github.com/ryuyandev/theyarebillions-hotkeys
+- [blizzard-07·partly] (Warcraft III (Classic/Reforged)) Warcraft III: Reforged에서는 옵션 → 입력 → 미리 정한 키 배치에서 Grid를 고르면 명령 카드 칸 위치대로 키가 묶이고, 2.0.4 패치에서 QWERTY가 아니거나 영어가 아닌 자판에서도 격자 단축키가 동작하도록 고쳤다.
+  - 맥락: 2.0.0에서 게임 안 단축키 편집 화면이 생겼고(사용자 지정 키를 켜야 열림), 2.0.4에는 키 충돌(Conflicts) 표시가 추가됐다. VGChartz는 2.0부터 모든 모드에서 명령 카드 아이콘 위에 단축키가 바로 보인다고 보도했다(https://www.vgchartz.com/article/463108/warcraft-iii-rebroken-a-look-at-patch-20/). 우리 게임: (1) 버튼 글자 속 '(1)' 단축키 문제에 쓴다. '칸 위치=키' 규칙으로 정해 버튼 글자에서 빼고, 자판 배치 차이를 고려한다.
+  - 검증: Grid 부분은 확인했다. Reforged 문자열에 PRESET_KEYBINDINGS(Classic/Grid/Custom)가 있고, Grid 설명은 '명령 카드의 각 칸을 특정 키에 묶고 모든 유닛 카드에 적용'이다. 2.0 시기 문자열에는 '입력 메뉴에서 키 배치를 Custom으로 바꿔야 이 메뉴가 열린다'는 안내와 SHOW_COMMAND_BUTTON_HOTKEY 옵션이 있다. 따라서 버튼 위 단축키 표시는 끌 수 있는 옵션이다. 2.0.4의 QWERTY 아닌…
+  - 출처: https://us.forums.blizzard.com/en/warcraft3/t/grid-layout-simple-wasd-camera-fix/21993, https://us.forums.blizzard.com/en/warcraft3/t/warcraft-iii-reforged-patch-notes-version-204/36567
+- [blizzard-20·partly] (StarCraft II) StarCraft II의 옵션 → 게임플레이에서 '명령 단축키 글자(Command Hotkey Text)'를 켜면 단축키가 툴팁이 아니라 각 명령 버튼 위에 직접 표시된다.
+  - 맥락: 판에 따라 메뉴 이름이 다르다. 2015년 가이드에는 'Display hotkeys on Command Card'로 나온다. 우리 게임: (1) 단축키를 버튼 이름 글자에서 떼어 내 버튼 구석의 작은 도트 글자로 옮기고, 옵션으로 켜고 끈다.
+  - 검증: 기능은 있다. GameButton.SC2Layout의 명령 버튼 템플릿 왼쪽 위에 CommandHotkeyFrame(HotkeyLabel과 배경)이 있어 버튼 위에 단축키를 그린다. 옵션 이름 'Command Hotkey Text'와 메뉴 위치는 확인하지 못했다. 옛 게임 문자열은 SimpleCommandCard 같은 설정을 Gameplay 옵션에 두었지만, 최근 커뮤니티 문서는 같은 설정을 Options → Interface에 있다고 한다. 메뉴 위치는 판에 …
+  - 출처: https://learningsc2.com/tag/hotkeys/, https://tictactactics.wordpress.com/2015/07/18/the-beginners-guide-to-starcraft-2-part-ii-hotkeys/
+- [p_cooldown_hotkey-04·partly] (World of Warcraft (리테일)) WoW 리테일 행동 단추는 단축키 글자를 오른쪽 위(TOPRIGHT, -5,-5)에 32×10 크기의 오른쪽 정렬 작은 회색 숫자 글꼴(NumberFontNormalSmallGray)로 두고, 개수·충전 수는 오른쪽 아래(BOTTOMRIGHT, -5,5)에 두며, 단축키 글자는 GetBindingText(key, 1)의 줄임 표기를 쓴다.
+  - 맥락: 작은 행동 단추(SmallActionButtonMixin)도 단축키를 TOPRIGHT에 다시 붙인다. 게임패드 바인딩이면 글자 폭을 단추 전체 너비로 넓힌다. 우리 게임: '방벽 10 (1)'에서 '(1)'은 아이콘 오른쪽 위 작은 도트 글자로, 비용은 아래 모서리로 떼어 내는 배치 근거다(문제 1). 16px 도트 아이콘에서는 한 글자 키만 들어갈 폭이다.
+  - 검증: XML에는 HotKey가 TOPRIGHT(-5,-5), 32×10, justifyH=RIGHT, NumberFontNormalSmallGray로, Count가 BOTTOMRIGHT(-5,5)로 적혀 있다. 하지만 XML 주석이 'Reanchored in script'다. 실제로 UpdateHotkeys는 키보드·마우스 바인딩이면 크기를 (단추 너비-8)×10, 45px 단추라면 37×10으로 바꾼다. 위치도 KeyValue의 hotkeyTextKeyboardX/…
+  - 출처: https://raw.githubusercontent.com/Gethe/wow-ui-source/live/Interface/AddOns/Blizzard_ActionBar/Mainline/ActionButtonTemplate.xml, https://raw.githubusercontent.com/Gethe/wow-ui-source/live/Interface/AddOns/Blizzard_ActionBar/Shared/ActionButton.lua
+- [p_cooldown_hotkey-08·partly] (WoW·Dota 2·OpenRA 단축키 설정) WoW·Dota 2·OpenRA의 단축키 설정은 이미 다른 동작에 쓰인 키를 고르면 그 동작의 이름을 알려 준다: WoW는 기존 동작에서 키를 떼어 내고 그 동작 이름이 든 문구를 띄우고, Dota 2는 'Already Bound to {기존 동작}' 경고를, OpenRA는 'This is already used for "{동작}" in the {context} context' 안내와 덮어쓰기(Override) 단추를 보인다.
+  - 맥락: WoW는 동작마다 키를 두 칸(slotIndex 1·2)까지 둔다. OpenRA 설정 창에는 'Reset'(기본값으로)과 'Clear'(키 해제) 단추, 'The default is "{key}"' 안내가 있다. 바꿀 수 없는 키에는 'This hotkey cannot be modified'가 뜨고, 충돌한 키 단추는 오류 색으로 칠한다. Dota 2에는 템플릿 단위로 되돌리는 'Reset Hotkeys...'가 있다. 우리 게임: 단축키 재설정 화면에 '충돌 대상 이름 표시', '기본값 복원', '해제' 세 가지를 넣는 기준이다.
+  - 검증: Dota 2: dota_settings_bindhotkey_alreadybound_warning = 'Already Bound to {s:existing_binding}'. OpenRA: label-duplicate-notice 'This is already used for "{key}" in the {context} context'과 Override, Clear('Unbind the hotkey'), Reset('Reset to default') 단추가 있다.…
+  - 출처: https://raw.githubusercontent.com/Gethe/wow-ui-source/live/Interface/AddOns/Blizzard_Settings_Shared/Blizzard_Keybindings.lua, https://raw.githubusercontent.com/Gethe/wow-ui-source/live/Interface/AddOns/Blizzard_QuickKeybind/QuickKeybind.lua
+- [p_alerts_camera-03·partly] (0 A.D.) 0 A.D.는 기본 단축키 스페이스바(hotkey.camera.lastattackfocus)를 «Focus the camera on the last notified attack»으로 정해 두고, 누르면 focusAttack(g_LastAttack)를 불러 마지막으로 알린 공격 위치에 카메라를 맞춘다.
+  - 맥락: PC 오픈소스 RTS(GitHub 미러 0ad/0ad master). F5~F8은 카메라 위치 저장·점프(hotkey.camera.jump)다. OpenRA(01)·Stratagus(06)와 함께 'RTS에서 스페이스바는 마지막 사건으로 이동'이라는 관례를 보여 준다. 우리 게임: 스페이스바에 같은 기능을 맡긴다. 지금 스페이스바를 다른 데 쓰는지는 따로 확인해야 한다.
+  - 검증: 웹검색이 불가해 원본 코드로 대조했다. default.cfg L243 lastattackfocus="Space"(설명 'Focus the camera on the last notified attack')와 camera.xml의 focusAttack(g_LastAttack)을 확인했다. F5~F8 camera.jump, Ctrl+F5~F8 jump.set도 맞다. 틀린 부분은 동작이다. messages.js의 focusAttack은 대상이 Unit 클래스면 공격 …
+  - 출처: https://github.com/0ad/0ad/blob/master/binaries/data/config/default.cfg#L243, https://github.com/0ad/0ad/blob/master/binaries/data/mods/public/gui/session/hotkeys/camera.xml#L12-L16
+- [p_alerts_camera-09·partly] (Beyond All Reason) Beyond All Reason 기본 단축키는 Grid 배치에서 F5, Legacy 배치에서 F3에 lastmsgpos(«Moves the camera to show the position of the last message»)를 묶어 마지막 메시지 위치로 카메라를 옮긴다.
+  - 맥락: 근거는 common/configs/keybind_defaults.json과 language/en/interface.json이다. 60% 키보드 배치에서는 meta+5/meta+3이다. Grid 배치는 스페이스를 fakeMeta(보조 키)로 쓰기 때문에 이 기능을 기능키로 옮긴 사례다. 우리 게임: 스페이스바를 다른 기능(예: 일시정지)에 쓰게 되면 고를 수 있는 대체 키.
+  - 검증: 웹검색이 불가해 원본 코드로 대조했다. 단축키는 맞다. Grid는 Any+f5, Legacy는 Any+f3, Grid 60%는 meta+5, Legacy 60%는 meta+3이 lastmsgpos이고, interface.json 설명 문구도 일치한다. 틀린 부분은 해석이다. 네 프리셋(Grid, Grid60, Legacy, Legacy60) 모두 "fakeMeta": "space"이므로 Grid만의 사정이 아니다. Legacy도 원래 F3 기능키에 묶여 있으므로…
+  - 출처: https://github.com/beyond-all-reason/Beyond-All-Reason/blob/02e48d62bbcf4048a506ad9f3e599a5800b6cd06/common/configs/keybind_defaults.json#L1155-L1156, https://github.com/beyond-all-reason/Beyond-All-Reason/blob/02e48d62bbcf4048a506ad9f3e599a5800b6cd06/common/configs/keybind_defaults.json#L3781-L3782
+- [aod-03·likely] (Age of Darkness: Final Stand) PC 기본 키 설정에서 키보드 왼쪽 아래 블록 Q·W·E·R·A·S·D·F·Z·X가 '상황 버튼(Context Button)' 1~10번에 하나씩 연결되어, 선택 대상에 따라 바뀌는 명령 버튼을 자리 순서대로 누른다.
+  - 맥락: 여러 조작 가이드가 같은 내용이다(한 곳은 W 대신 O로 적었는데, 오기로 보인다). 우리 게임 (1)(2)번에 쓸 근거: 명령 칸을 고정 격자(예: 2×5)로 두고 칸마다 키를 고정하면, 버튼에 '(1)' 같은 단축키 글자를 넣을 필요가 줄어든다. 영웅 스킬 Q·W·E·R도 같은 칸 규칙으로 통일할 수 있다.
+  - 검증: 웹 검색 한도가 소진됐다. GitHub 코드 검색에서 'Age of Darkness'와 'Context Button'이 함께 나오는 결과는 0건이었다. Q·W·E·R·A·S·D·F·Z·X 배치는 확인하지 못했다.
+  - 출처: https://www.magicgameworld.com/age-of-darkness-final-stand-pc-keyboard-controls-guide/, https://www.gamenguides.com/age-of-darkness-final-stand-pc-keyboard-controls
+- [castle-20·likely] (Diplomacy is Not an Option) 기본 단축키는 건설 메뉴 C, 연구 Z, 시장 L, 모든 성문 열기 '.', 모든 성문 닫기 '/'이고, 선택한 건물을 짓는 수정키는 Ctrl이다.
+  - 맥락: 단축키 목록 사이트 기준이다. 사이트마다 목록이 조금씩 달라서 게임 안 Controls 메뉴로 확인해야 한다. 성문 여닫기에 따로 키를 준다. 우리 버튼 안 '(1)' 같은 단축키 글자를 버튼 귀퉁이의 작은 키 표식으로 옮기고, 성문 여닫기 키를 따로 주는 근거.
+  - 검증: 검색 예산 소진으로 확인하지 못했다. C/Z/L/'.'/'/' 키와 Ctrl 수정키는 단축키 목록 사이트에만 기대고 있다. 판(패치)에 따라 다를 수 있다.
+  - 출처: https://defkey.com/diplomacy-is-not-an-option-shortcuts, https://tutorialtactic.com/blog/diplomacy-is-not-an-option-shortcuts/
+- [minimal-13·likely] (Bad North) PC판 Bad North에서는 스페이스바를 누르고 있는 동안에만 시간이 느려지며(켜고 끄는 토글이 아님), 스팀 토론에서 이를 토글로 바꿔 달라는 요청이 나왔다.
+  - 맥락: PC 키보드 기준이다. 검색 요약에 따르면 한 공략은 컨트롤러 숄더 버튼으로도 시간이 느려진다고 적었는데, 그 공략의 URL은 짝짓지 못했다. 우리 게임: 느린 시간을 단축키 하나로 두되 '누르고 있기'와 '토글' 중 하나를 고르게 하는 옵션이 필요하다는 근거다.
+  - 검증: 검색 한도 소진으로 검색하지 못했다. 스페이스바를 누르고 있는 동안만 감속하는지와 토글 요청 글을 확인하지 못했다. minimal-11의 '부대 선택만으로 감속'과의 관계(둘 다 있는지)도 미확인이다.
+  - 출처: http://badnorth.wikidot.com/keyboard-hotkeys, https://steamcommunity.com/app/688420/discussions/0/1741103267271562708/
+- [ironhide-18·unverified] (Iron Marines (Steam PC)) Iron Marines PC판의 공통 단축키는 Space=영웅 선택, Tab=다음 분대 선택, Q=영웅 귀환/배치, S=분대 정지, M=빠른 시전(Quick Cast) 켜기·끄기, H=단축키 보기다.
+  - 맥락: 영웅 능력 키는 가이드마다 W·E와 E·R로 엇갈리고, Dropgun도 R 또는 1로 다르다. 빠른 메뉴 동작 1~6은 Z·X·C·V·B·N이다. 출처가 한 사이트라 게임 안에서 확인해야 한다. 우리 게임(QWER+우클릭 자동 시전)에 쓸 수 있다: '빠른 시전 켜기·끄기'와 'H 키로 단축키 겹쳐 보기'를 넣을 근거.
+  - 검증: magicgameworld 외 출처를 찾지 못했다. 웹 검색 한도 소진으로 게임 안 키 목록과 대조하지 못했다.
+  - 출처: https://www.magicgameworld.com/iron-marines-pc-keyboard-controls-key-bindings/, https://www.magicgameworld.com/iron-marines-pc-keyboard-controls-shortcuts/
+- [castle-22·unverified] (Diplomacy is Not an Option) Steam 'Controls and Input Feedback' 글에서 플레이어들은 건설 메뉴의 '뒤로' 키와 일부 건물 키를 다시 정할 수 없다고 지적했다.
+  - 맥락: 플레이어 요청 글이며, 반영됐는지는 확인하지 못했다. 같은 글타래 댓글에는 Ctrl+좌클릭으로 화면 안의 같은 건물을 모두 고를 수 있다는 사용자 설명도 있다(공식 조작표 아님). 우리 건설 단축키를 처음부터 다시 정할 수 있게(InputMap) 만드는 근거.
+  - 검증: 검색 예산 소진으로 확인하지 못했다. 키를 다시 정할 수 없다는 요청이 반영됐는지, 지금도 그런지 알 수 없다.
+  - 출처: https://steamcommunity.com/app/1272320/discussions/0/603018644256008417/
+- [minimal-06·unverified] (Thronefall) 나무위키에 따르면 Thronefall에서는 건물 옆에서 스페이스바를 누르고 있으면 골드가 하나씩 빠져나가고, 다 모이면 건설이 끝나며, 중간에 손을 떼면 골드가 돌아온다.
+  - 맥락: PC 키보드 조작이다. 출처가 위키 1곳뿐이어서 공식 자료로 확인하지 못했다. 검색 요약은 이 페이지에 같은 개발사의 전작 ISLANDERS 내용이 섞여 있다고 경고했다. 우리 게임 (1): 건설에 '길게 누르기'를 쓰면 실수로 비싼 성문이나 대포를 짓는 일을 막을 수 있고, 따로 확인 창도 필요 없다.
+  - 검증: 검색 한도 소진으로 검색하지 못했다. 스페이스바 길게 누르기와 손을 떼면 골드가 돌아온다는 내용을 공식 자료나 다른 출처로 확인하지 못했다. 출처가 위키 1곳뿐이고 ISLANDERS 내용이 섞였다는 경고도 있으니 주의가 필요하다.
+  - 출처: https://en.namu.wiki/w/Thronefall
+- [p_disclosure-02·unverified] (Thronefall — 편의 조작을 가르치지 않은 튜토리얼) Thronefall 개발사는 앞서 해보기 내내 튜토리얼이 처음 상태 그대로여서 부대 선택 단축키 같은 편의 기능을 가르치지 않았고, 그래서 많은 플레이어가 그 기능을 놓쳤다고 공지했다.
+  - 맥락: 출처 경위: /home/user/td-proj/ai_game_reference_research/99_sources.md N2-02(S31, 공식). 같은 공지는 콘텐츠를 일부만 해금하고 캠페인을 끝내는 플레이어가 많았으며 그것이 의도한 바가 아니었다고도 적었다. 우리 게임: 문제 (1)에 쓴다. 지금은 단축키를 버튼 글자 «(1)»로만 알린다. 용병 드래그 선택, 영웅 전환, Q·W·E·R, 우클릭 자동 시전 같은 편의 조작은 따로 가르치거나, 아이콘 귀퉁이 키캡과 툴팁으로 보여 줘야 한다는 근거가 된다.
+  - 검증: 검색 한도 소진으로 독립 확인을 못 했다. 로컬 N2-02(S31)에는 «튜토리얼이 편의 기능을 안 가르쳐 많은 플레이어가 놓침, 일부만 해금하고 캠페인 종료»로 적혀 있다. 여기서 확인되는 것은 '편의 기능'까지다. 주장의 '부대 선택 단축키'라는 구체 예시와 '앞서 해보기 내내 처음 상태 그대로'라는 표현은 원장 요약에 없다. 원문 문구를 다시 대조해야 한다.
+  - 출처: https://store.steampowered.com/news/app/2239150/view/5741605105625484095
+
+## 글자·아이콘 크기 (font_icon_size) — 19개
+
+- [td_bars-md-02·verified] (Mindustry) 블록 버튼은 글자 없이 아이콘만 있는 46px 정사각형이며 한 줄에 4개씩 놓이고, 블록이 4개보다 적은 범주에서는 빈 칸을 채워 패널 너비를 유지한다.
+  - 맥락: 이름·비용·단축키는 버튼 밖 정보 칸으로 뺐다(md-05). 우리 문제 (1)·(2): «방벽 10 (1) (공병 없음)»처럼 글자를 늘어놓은 버튼 대신 16px 도트 아이콘의 정사각 버튼을 고정 개수로 놓을 근거가 된다.
+  - 검증: 소스를 직접 대조함. rowWidth=4(L38)이고, 버튼은 TextureRegionDrawable(block.uiIcon)만 쓰는 ImageButton이며 size(46f)이다. index<4이면 blockTable.add().size(46f)로 빈 칸을 채운다(L331-336). 버튼에 글자는 없다.
+  - 출처: https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/ui/fragments/PlacementFragment.java#L284-L336, https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/ui/fragments/PlacementFragment.java#L38
+- [td_bars-rt-12·verified] (Rogue Tower) Rogue Tower 설정에는 «UI Scale», «Show damage numbers», «Show condition messages» 항목이 있다.
+  - 맥락: 러시아어 모드는 글자 크기를 50~140%로 따로 조절하는 기능까지 넣었다. 우리 게임은 640×360을 정수배로 키우므로 UI 배율은 정수배만 허용해야 하고, 데미지 숫자 끄기 옵션은 웨이브 내내 바쁜 화면의 정보량을 줄이는 데 쓸 수 있다.
+  - 검증: translations L776-779에 'Show damage numbers', 'Show condition messages', 'Projectile D.O.T. FX', 'UI Scale'이 볼륨 설정과 함께 있다. 러시아어 README에 '«Масштаб текста» — от 50 до 140%'가 있다.
+  - 출처: https://github.com/whatdidyousayme/Rogue-Tower-Russian/blob/main/translations.json#L776-L779, https://github.com/whatdidyousayme/Rogue-Tower-Russian/blob/main/README.md
+- [pixel_minimal-03·verified] (Dome Keeper) HUD 루트 노드는 4배로 확대되어(scale 4,4) 1920×1080 기준 화면 위에 그려진다. 따라서 HUD의 도트 공간은 480×270이고, 6px 격자 한 칸은 실제 화면에서 24px이다.
+  - 맥락: project.godot의 뷰포트는 1920×1080, stretch는 canvas_items/expand이고 Const.gd의 BASE_RESOLUTION도 1920×1080이다. 세계 화면은 도트 단위로 줌한다(13번 항목 참고). 우리 640×360 기준에 견주면 DK HUD는 그보다 작은 480×270 도트 공간에서 설계됐다. 우리 문제 (5)·(7)에 쓴다: 640×360에서도 6~8px 격자 HUD로 충분하다는 크기 판단 근거다.
+  - 검증: Hud.tscn은 scale (4,4)이고 앵커가 화면 전체다. project.godot은 1920×1080, canvas_items/expand이고 Const.gd BASE_RESOLUTION도 1920×1080이다. 옛 판도 rect_scale 4에 1920×1080이다. 단 aspect=expand라 16:9가 아닌 화면에서는 HUD 도트 공간이 480×270보다 넓어진다.
+  - 출처: https://github.com/Kupie/DK_DECOMP/blob/main/content/hud/Hud.tscn, https://github.com/Kupie/DK_DECOMP/blob/main/project.godot
+- [pixel_minimal-04·verified] (Dome Keeper) Dome Keeper HUD 아이콘의 높이는 8px 안팎이다. 웨이브 적 아이콘(hostile.png)은 10×8, 체력 하트 배경은 10×8, 웨이브 막대 조각은 4×8이고, 자원 아이콘은 24×24 원본을 0.333배로 줄여 약 8px로 쓴다.
+  - 맥락: GitHub 디컴파일 저장소에서 PNG 원본의 크기를 직접 확인했다. 모든 HUD 노드는 texture_filter = 1(최근접)이라 도트가 유지된다. 우리 문제 (1)·(5)에 쓴다: 16px 도트 게임에서 HUD 아이콘은 반 타일(8px), 숫자 칸은 6px 격자가 하나의 기준점이 된다.
+  - 검증: PNG 헤더를 직접 읽었다. hostile·hostile_flare는 10×8, healthMeterBGHeart는 10×8, waveMeterSegment는 4×8이다. icon_iron·icon_water는 24×24이고 Inventory 루트가 scale 0.333이다. 세 번째 자원(코발트) 아이콘 sand_smol은 9×9를 27×27로 늘린 뒤 0.333배라 약 9px다. 텍스처 노드는 모두 texture_filter=1(최근접)이다.
+  - 출처: https://github.com/Kupie/DK_DECOMP/blob/main/content/hud/wavemeter/hostile.png, https://github.com/Kupie/DK_DECOMP/blob/main/content/hud/healthmeter/healthMeterBGHeart.png
+- [pixel_minimal-28·verified] (Loop Hero) Loop Hero 옵션 화면 왼쪽 위에는 글꼴을 Pixel fonts, High-res fonts, Dyslexia-friendly fonts 셋 중에서 고르는 체크 항목이 있고, 각 항목 이름은 그 글꼴로 미리 그려진다.
+  - 맥락: PC판 1.105 원본 스크린숏(CRT-Shader 저장소)과 1.154 스크린숏(LoopHero-Explorer 저장소)에서 확인했다. 우리 문제 (5)에 쓴다: 640×360 도트 게임도 가독성을 위해 고해상도·난독증 친화 글꼴을 옵션으로 준다. 지금처럼 '기본 벡터 글꼴 고정'이 아니라 '도트 기본 + 고해상도 선택'으로 가는 근거다.
+  - 검증: 두 스크린숏을 직접 봤다. 왼쪽 위에 PIXEL FONTS, High-res fonts, Dyslexia-friendly fonts 체크 3개가 있고, 각 이름이 그 글꼴로 그려져 있다. 1.105는 Pixel, 1.154는 High-res가 체크돼 있다.
+  - 출처: https://github.com/GarrettGunnell/CRT-Shader/blob/main/their_crt.png, https://github.com/sam-k0/LoopHero-Explorer/blob/master/Assets/demo.png
+- [pixel_minimal-29·verified] (Loop Hero) High-res fonts를 켜면 메인 메뉴 버튼 글자(Continue, Select save slot, Options menu, Trophies, Exit)가 도트 글꼴에서 매끈한 고해상도 글꼴로 바뀐다. 버튼 판 스프라이트와 아이콘은 도트 그대로 남는다.
+  - 맥락: 1.105(Pixel fonts)와 1.154(High-res fonts) 스크린숏을 비교한 관찰이다. 판이 달라 버전 차이가 섞였을 가능성은 남는다. 우리 문제 (5)에 쓴다: 그림(판·아이콘)은 도트로 두고 글자만 고해상도로 바꾸는 혼합이 상용 도트 게임에서 쓰인다는 근거다.
+  - 검증: 1.154 화면에서 Continue, Select save slot, Options menu, Trophies, Exit가 매끈한 글꼴이고, 버튼 판·슬라이더·아이콘은 도트 그대로다. 'English' 라벨도 고해상도다. 단 1.154는 모드(Explorer)를 켠 판이고 버전도 달라 혼입 가능성이 남는다.
+  - 출처: https://github.com/GarrettGunnell/CRT-Shader/blob/main/their_crt.png, https://github.com/sam-k0/LoopHero-Explorer/blob/master/Assets/demo.png
+- [p_pixel_ui-03·verified] (Galmuri 한글 도트 글꼴 크기 체계) Galmuri README의 크기표는 Galmuri14=15px(11pt), Galmuri11=12px(9pt), Galmuri9=10px(7.5pt), Galmuri7=8px(6pt)이고, 배포 TTF의 unitsPerEm도 각각 1500·1200·1000·800이라 도트 한 칸이 정확히 100단위다.
+  - 맥락: 직접 확인: dist/Galmuri11.ttf는 head.unitsPerEm=1200이고, '가'의 전진폭은 1200, 윤곽 범위는 0~1100이다. 그러니 Godot font_size를 README의 px 값(Galmuri11이면 12, 24, 36)으로 줘야 도트 한 칸이 화면 1픽셀(또는 정수배)에 맞는다. 이것은 Godot 글꼴 문서의 '설계 크기의 정수배' 규칙(p_pixel_ui-06)과 겹쳐 읽은 결과다. 글꼴 이름의 숫자(11 등)는 한글 높이이고, px 값은 글자 폭(em) 크기다. dist에는 16ppem 내장 비…
+  - 검증: README 표는 Galmuri14 (15px, 11pt) / 11 (12px, 9pt) / 9 (10px, 7.5pt) / 7 (8px, 6pt)이고 'inspired by the font design from Nintendo DS' 문구가 있다. 배포 TTF를 fontTools로 직접 읽었다. head.unitsPerEm은 1500/1200/1000/800이다. Galmuri11 '가'는 advance 1200, 윤곽 x 0~1100, y 0~1100이다. …
+  - 출처: https://raw.githubusercontent.com/quiple/galmuri/main/README.md, https://raw.githubusercontent.com/quiple/galmuri/main/dist/Galmuri11.ttf
+- [p_pixel_ui-04·verified] (Galmuri 글리프 실측(BDF)) Galmuri 배포 BDF를 직접 읽어 보면 한글 '가'의 잉크 크기·전진폭·줄 높이(ascent+descent)가 Galmuri14는 14×14·15px·21px, Galmuri11은 11×11·12px·16px, Galmuri9는 9×9·10px·12px, Galmuri7은 7×7·8px·10px이다.
+  - 맥락: 숫자 '0'의 전진폭은 Galmuri11 8px, Galmuri9 6px, Galmuri7 5px이고, '1'은 각각 6, 4, 4px이다(비례폭). Galmuri11 TTF에서 hhea ascent/descent는 1200/-200(=14px)이고 win 값은 1400/200(=16px)이다. Godot이 어느 쪽을 줄 높이로 쓰는지는 실행해 봐야 안다. 높이 360px에 16px 줄이면 22줄, 12px 줄이면 30줄이 들어간다. 우리 게임 적용: 버튼 한 칸을 16×16 아이콘과 그 아래 Galmuri9 숫자(비용 '10'은 …
+  - 검증: BDF 네 개를 직접 파싱했다. '가'(U+AC00)의 BBX/DWIDTH와 FONT_ASCENT+DESCENT는 다음과 같다. Galmuri14: 14×14, 15, 18+3=21. Galmuri11: 11×11, 12, 14+2=16. Galmuri9: 9×9, 10, 11+1=12. Galmuri7: 7×7, 8, 9+1=10. '0'의 DWIDTH는 8/6/5, '1'은 6/4/4로 주장과 같다. Galmuri11.ttf는 hhea 1200/-200(li…
+  - 출처: https://raw.githubusercontent.com/quiple/galmuri/main/dist/Galmuri11.bdf, https://raw.githubusercontent.com/quiple/galmuri/main/dist/Galmuri9.bdf
+- [p_pixel_ui-06·verified] (Godot 4 도트 글꼴 크기·필터 규칙) Godot 글꼴 문서는 도트 느낌의 글꼴이 흐려지지 않게 하려면 Default Texture Filter를 Nearest로 바꾸고, 글꼴 크기를 그 글꼴 설계 크기의 정수배로, 그 글꼴을 쓰는 Control의 scale도 정수배로 둬야 한다고 쓰며, Godot의 글꼴 크기 단위는 pt가 아니라 px라고 경고한다.
+  - 맥락: Godot 4부터는 필터와 반복을 텍스처가 아니라 그 텍스처를 쓰는 노드(CanvasItem.texture_filter)에서 정한다. gui/common/snap_controls_to_pixels(기본 true)는 Control의 꼭짓점을 가장 가까운 픽셀에 맞춘다. rendering/2d/snap/snap_2d_transforms_to_pixel은 저해상도 도트 게임용 설정이다. 켜면 움직임이 덜 부드러워질 수 있고, 게임 시작 때만 읽는다. 우리 게임 적용: Galmuri11은 '9pt'가 아니라 12px로 지정해야 한다. HU…
+  - 검증: gui_using_fonts.rst의 warning 블록 원문과 같다. Default Texture Filter를 Nearest로, 글꼴 크기를 'integer multiple of the design size'로, Control도 'scaled by an integer multiple'로 두라고 하고, 'Font sizes in Godot are specified in pixels (px), not points (pt)'라고 쓴다. 4.0부터 필터는 사용하는 …
+  - 출처: https://raw.githubusercontent.com/godotengine/godot-docs/master/tutorials/ui/gui_using_fonts.rst, https://raw.githubusercontent.com/godotengine/godot/master/doc/classes/ProjectSettings.xml
+- [p_pixel_ui-07·verified] (Godot 기본 글꼴과 벡터 글꼴 렌더링) Godot 문서에 따르면 글꼴을 따로 지정하지 않은 Control은 Open Sans SemiBold(벡터 글꼴)로 그려지고, 기본 안티앨리어싱인 Grayscale은 작은 크기에서 글자를 흐리게 만들 수 있으며, gui/theme/default_font_* 설정은 이 기본 글꼴에만 적용된다.
+  - 맥락: 힌팅 None은 작은 크기에서 흐리고, Light(기본)는 Y축만, Full은 X·Y축 모두 픽셀에 맞춘다. MSDF 글꼴은 늘 grayscale이고 힌팅이 없어서 작은 크기에서 덜 선명하다. gui/fonts/dynamic_fonts/use_oversampling(기본 true)을 켜 두면 canvas_items 모드에서 창 배율이 바뀔 때 글꼴을 화면 해상도로 다시 래스터화한다. 추론: 그래서 canvas_items에 기본 글꼴을 쓰면 HUD 글자는 3배 해상도의 매끈한 벡터 글자로, 16px 도트 그림과 다른 픽셀 밀도로 그려…
+  - 검증: 문서에 'If no font override is specified anywhere, Open Sans SemiBold is used'가 있다. 소스도 확인했다: scene/theme/SCsub가 thirdparty/fonts/OpenSans_SemiBold.woff2를 넣고, default_theme.cpp의 기본 글꼴 크기는 16이다. Grayscale은 'at small sizes ... may result in fonts looking blurry'다. …
+  - 출처: https://raw.githubusercontent.com/godotengine/godot-docs/master/tutorials/ui/gui_using_fonts.rst, https://raw.githubusercontent.com/godotengine/godot-docs/master/tutorials/rendering/multiple_resolutions.rst
+- [p_pixel_ui-11·verified] (도트 아이콘 크기 관행(16×16)) Shattered Pixel Dungeon 소스는 아이템 스프라이트를 16×16(ItemSpriteSheet.SIZE=16), 아이템 위에 겹치는 보조 아이콘을 8×8, 버프 아이콘을 작은 것 7px·큰 것 16px로 정해 두며, Godot 편집기 아이콘 지침도 아이콘을 16×16으로 그리고 선을 픽셀에 맞추라고 한다.
+  - 맥락: Godot 편집기 지침은 편집기 UI(SVG) 규칙이지 게임 UI 규칙은 아니므로 16px 격자 관행의 보조 근거로만 쓴다. SPD 주석: 보조 아이콘은 'smaller 8x8 icons that often accompany an item sprite'. 우리 게임 적용: 16px 타일과 같은 16×16 아이콘을 건설·용병 버튼의 기본으로 삼는다. 비용 자원이나 잠김·공병 없음 같은 상태는 8×8 보조 아이콘을 아이콘 모서리에 겹쳐 따로 보여 준다(문제 1·3·5).
+  - 검증: ItemSpriteSheet.java에 SIZE = 16이 있고, Icons 클래스의 SIZE = 8에는 '//for smaller 8x8 icons that often accompany an item sprite' 주석이 달려 있다. BuffIndicator.java는 SIZE_SMALL = 7, SIZE_LARGE = 16이다. creating_icons.rst에는 'Icons must be 16×16'과 'Lines should be snapped to p…
+  - 출처: https://raw.githubusercontent.com/00-Evan/shattered-pixel-dungeon/master/core/src/main/java/com/shatteredpixel/shatteredpixeldungeon/sprites/ItemSpriteSheet.java, https://raw.githubusercontent.com/00-Evan/shattered-pixel-dungeon/master/core/src/main/java/com/shatteredpixel/shatteredpixeldungeon/ui/BuffIndicator.java
+- [pixel_minimal-05·partly] (Dome Keeper) HUD 숫자(웨이브 번호, 자원 수)는 픽셀아트 고정폭 글꼴 Mononum.ttf(FontHudPixelartMonospaced)로 그린다. 팝업·메뉴의 Normal 글꼴은 Kollektif.ttf(대체 NotoSans)이며 1080p 기준 24px(Normal)·18px(Small)이다. 한국어 등은 언어별 글꼴 리소스로 바꿔 끼운다.
+  - 맥락: project.godot의 locale remap에 res://gui/fonts/korean/... 항목이 있다. 우리 문제 (5)에 쓴다: 지금 HUD는 기본 벡터 글꼴이다. 짧은 숫자는 도트 고정폭으로, 긴 설명문(툴팁·팝업)은 고해상도 글꼴로 나누는 선례다. 한글 대체 글꼴 경로도 따로 필요하다.
+  - 검증: WaveMeter·Inventory 라벨이 FontHudPixelartMonospaced(Mononum.ttf)를 쓰는 것을 확인했다(라벨 설정 48px, 노드 0.333배). FontNormal이 Kollektif에 NotoSans 대체이고 NormalFontSettings가 24px인 것도 맞다. 한국어 remap(res://gui/fonts/korean/...)도 있다. 틀린 점: SmallFontSettings(18px)의 FontSmall.tres는 '…
+  - 출처: https://github.com/Kupie/DK_DECOMP/blob/main/gui/fonts/FontHudPixelartMonospaced.tres, https://github.com/Kupie/DK_DECOMP/blob/main/gui/fontsettings/NormalFontSettings.tres
+- [p_pixel_ui-05·partly] (Godot 4 도트 글꼴 가져오기 설정) Godot 문서와 Godot 4.7로 만든 TakWolf의 도트 글꼴 예제는 TTF/OTF 도트 글꼴을 가져올 때 안티앨리어싱 Disabled(1비트 래스터), 힌팅 None, 서브픽셀 배치 Disabled를 쓰라고 하며, 예제의 .import 파일은 antialiasing=0, hinting=0, subpixel_positioning=0, generate_mipmaps=false, allow_system_fallback=false, oversampling=0.0이다.
+  - 맥락: ResourceImporterDynamicFont 문서는 Disabled를 '도트 글꼴에 가장 알맞다'고 적는다. 다만 정수배 크기로 쓰면 Grayscale도 괜찮을 수 있다고 하고, 서브픽셀 배치는 '도트 글꼴은 Disabled로 하라'고 한다. 글꼴 사용법 문서는 서브픽셀을 끄지 않으면 픽셀 크기가 고르지 않게 보인다고 경고한다. .fnt 같은 비트맵 글꼴에는 이 설정이 상관없다. TakWolf 예제는 640×360과 canvas_items를 쓰고, 한국어 글꼴은 fusion-pixel-12px-proportional-ko.ot…
+  - 검증: TakWolf 예제 쪽은 맞다. README에 'Built with Godot 4.7'과 'antialiasing, hinting, and subpixel positioning disabled, mipmaps off, system font fallback disabled ... without oversampling'이 있다. ko.otf.import도 antialiasing=0, hinting=0, subpixel_positioning=0, generate_mi…
+  - 출처: https://raw.githubusercontent.com/godotengine/godot/master/doc/classes/ResourceImporterDynamicFont.xml, https://raw.githubusercontent.com/godotengine/godot-docs/master/tutorials/ui/gui_using_fonts.rst
+- [p_pixel_ui-08·partly] (도트 글꼴 외곽선·그림자(Godot)) Godot 문서는 HUD처럼 배경색을 미리 알 수 없는 글자에 외곽선(Font Outline Color·Outline Size)과 그림자를 권하는데, 그림자는 Label과 RichTextLabel에만 있고 가장자리가 늘 딱딱하며, 이슈 #88373은 작은 도트 글꼴에서 외곽선 크기가 6보다 작으면 안쪽 픽셀이 채워지지 않는다고 보고한다.
+  - 맥락: #88373은 Godot 4.2.1 보고이고 아직 열려 있다. MSDF 글꼴은 msdf_pixel_range를 외곽선 크기의 2배 이상으로 잡아야 외곽선이 잘리지 않는다. LabelSettings 리소스 하나로 여러 Label에 같은 외곽선과 그림자를 줄 수 있고, 이 설정은 테마보다 우선한다. 우리 게임 적용: 들판과 성벽 위에 뜨는 HUD 숫자나 체력 글자는 외곽선보다 1px 그림자(오프셋 1,1)나 9-slice 패널 바탕을 깔 때 도트 글꼴에서 더 고르게 보일 가능성이 크다.
+  - 검증: 문서 부분은 원문과 같다. 배경색을 모를 때 HUD에 외곽선과 그림자를 쓰라는 내용(Font Outline Color·Outline Size), 그림자는 'only available in Label and RichTextLabel'이고 'always have a hard edge'라는 내용, MSDF Pixel Range를 외곽선의 2배 이상으로 하라는 내용(임포터 문서: 기본 8이면 외곽선 4까지), LabelSettings가 'takes priority ov…
+  - 출처: https://raw.githubusercontent.com/godotengine/godot-docs/master/tutorials/ui/gui_using_fonts.rst, https://github.com/godotengine/godot/issues/88373
+- [p_pixel_ui-12·partly] (Shattered Pixel Dungeon 글자 렌더링(고해상도 글자 혼용 사례)) Shattered Pixel Dungeon은 화면을 정수 배율로 키우면서도(최소 2배, 가로 모드 최소 가상 해상도 240×160, 데스크톱 전체 UI 360×200) 글자는 RenderedTextBlock을 '글자 크기×배율'로 화면 해상도에서 그린 뒤 1/배율로 줄여 얹어서, 도트 그림 위에 화면 해상도 글자를 쓴다.
+  - 맥락: 언어가 한국어, 중국어, 일본어면 글리프 텍스처 페이지를 2배로 키우고, 시스템 글꼴 옵션(SPDSettings.systemFont)도 둔다. 라틴 문자 전용 3×5 도트 비트맵 글꼴(pixelFont)은 따로 있다. 즉 한글처럼 글자 수가 많은 언어에서 도트 글꼴 대신 고해상도 글자를 일부러 고른 실제 사례다(픽셀 밀도가 섞이는 것을 감수). 판: 모바일과 PC가 같은 코드다. 우리 게임 적용: 'Galmuri로 도트 글꼴 통일'과 'SPD식 고해상도 글자' 중 하나를 의식적으로 골라야 한다는 비교 근거다. 지금처럼 의도 없이 기…
+  - 검증: PixelScene.java 숫자는 맞다: MIN_WIDTH_L/HEIGHT_L=240/160, MIN_WIDTH_FULL/HEIGHT_FULL=360/200(full desktop UI), maxDefaultZoom=max(2,...), gate(2,...). renderTextBlock은 size*round(defaultZoom*scale)로 만들고 zoom(1/…)으로 줄인다. 한국어·중국어·일본어는 renderedTextPageSize*=2이고, SPDS…
+  - 출처: https://raw.githubusercontent.com/00-Evan/shattered-pixel-dungeon/master/core/src/main/java/com/shatteredpixel/shatteredpixeldungeon/scenes/PixelScene.java
+- [aoe_northgard-30·unverified] (Northgard) 148Apps 모바일판 리뷰는 Northgard에서 UI 배율을 키워도 목표와 유닛을 찾기 어려웠고, 빠른 선택 아이콘이 잘 읽히지 않아 거의 쓸모가 없었다고 평가했다.
+  - 맥락: 모바일(iOS/Android)판 평가다. PC Definitive Edition에서도 기본 배율 1.0에서는 글자가 작아 1.25로 올렸다는 스팀 이용자 글이 있다(https://steamcommunity.com/app/466560/discussions/1/3279194170690550841/). 우리 게임 (5)와 글꼴 문제: 640×360 정수배 16px 도트 화면에서는 아이콘만으로 구분이 안 되는 일이 없게 아이콘마다 색과 실루엣을 다르게 하고, 도트 글꼴의 최소 크기 기준을 정해야 한다는 근거다.
+  - 검증: 검색 한도가 다 차서 148Apps 리뷰를 확인하지 못했다. 게임 텍스트에 UI 배율(UI Scaling) 옵션이 있다는 것만 확인했다.
+  - 출처: https://www.148apps.com/northgard/northgard-review/
+- [castle-10·unverified] (Stronghold HD (리마스터)) Stronghold HD 리마스터는 와이드 화면을 지원하게 고쳤지만 UI 크기 조절 기능이 없다는 Steam 사용자 지적이 있다.
+  - 맥락: HD판 기준(Steam 토론 글 제목: 'This HD version is a disgusting cash grab'). 해상도를 올리면 패널과 글자가 상대적으로 작아진다. 우리는 정수배 확대 + 도트 글꼴로 HUD 글자 크기를 해상도와 함께 키운다는 방향의 근거(문제 (7)의 벡터 글꼴).
+  - 검증: 검색 예산 소진으로 확인하지 못했다. HD판에 와이드 지원은 있고 UI 크기 조절은 없다는 내용은 인용된 Steam 글 하나에만 기대고 있다.
+  - 출처: https://steamcommunity.com/app/40950/discussions/0/133261907137162312/
+- [castle-27·unverified] (Diplomacy is Not an Option) Steam 포럼에서 플레이어들은 UI가 너무 작다며 크기 조절 옵션을 요청했고, 한 답글은 개발진이 그런 설정이 없다고 했다고 전한다.
+  - 맥락: 'UI scalling', 'font size' 글타래다. 약 1,137일 전 글이라 지금은 바뀌었을 수 있다. 우리는 640×360 정수배 확대로 UI가 함께 커지지만, 도트 글꼴의 최소 크기(16px 칸 기준)를 지켜야 한다는 근거(문제 (7)의 벡터 글꼴).
+  - 검증: 검색 예산 소진으로 확인하지 못했다. '약 1,137일 전'은 검색한 날에 따라 달라지는 상대 날짜다. 이후 UI 크기 조절 옵션이 추가됐는지도 확인하지 못했다.
+  - 출처: https://steamcommunity.com/app/1272320/discussions/0/599658601187000846/, https://steamcommunity.com/app/1272320/discussions/0/3816292894060940947/
+- [pixel_minimal-22·unverified] (Kingdom (2015 원작)) 원작 Kingdom의 화면 해상도는 약 400×250 도트였다(2014년 출시 전 개발자 발언).
+  - 맥락: 이전 조사 대장 art_direction_research R-08(인터뷰 2건)에서 확인했다. 두 출처 중 어느 쪽이 해상도 수치를 직접 말했는지는 대장에 따로 적혀 있지 않아 independent_domains를 1로 보수적으로 잡았다. Two Crowns의 기준 해상도는 확인하지 못했다. 우리 640×360과 견주면, 더 작은 400×250 화면에서도 HUD 없이 정보를 전달했다는 비교점이 된다.
+  - 검증: cliqist·80.lv 인터뷰는 GitHub 밖이라 열 수 없다. 웹 검색 한도도 소진돼 400×250 수치를 확인하지 못했고 반대 증거도 찾지 못했다.
+  - 출처: https://cliqist.com/2014/05/19/thomas-van-den-berg-discusses-the-new-kingdom/, https://80.lv/articles/kingdom-how-2-guys-created-a-side-scrolling-strategy/
+
+## 시각 위계 (visual_hierarchy) — 14개
+
+- [td_bars-bt-15·verified] (Bloons TD 6) 한 BTD6 봇 제작자는 돈 숫자를 OCR로 읽으면 눈 덮인 맵처럼 배경이 복잡한 곳에서 자주 틀렸고, 업그레이드 패널 글자는 배경이 늘 같아 안정적으로 읽혔다고 적었다.
+  - 맥락: 돈 숫자가 단단한 판 없이 맵 위에 바로 그려진다는 정황이다(기계 판독 기준이지만 가독성과 관련 있음). 우리 문제 (5)와 벡터 글꼴 문제: 16px 도트 숫자를 맵 위에 둘 때는 외곽선이나 어두운 바탕판을 넣어야 한다는 근거다.
+  - 검증: BTD6bot README에 'cash values proved to be often inaccurate, especially on maps where background had other elements like snow. With upgrade texts, background is always the same.'가 그대로 있다. 이것이 가독성 문제라는 해석은 추론이다.
+  - 출처: https://github.com/j-miet/BTD6bot/blob/main/README.md#L674-L680
+- [pixel_minimal-15·verified] (Dome Keeper) HUD는 요소들이 차지한 6px 칸들의 바깥 둘레를 따라, 이웃 칸 조합(15가지)에 맞는 테두리 스프라이트를 자동으로 붙인다. 테두리를 포함한 HUD의 색은 팔레트 스왑(Style.init) 시스템으로 월드 팔레트에 맞춰 바뀐다.
+  - 맥락: 모드는 Level.addHudElement(scene, 팀/플레이어 ID)로 요소를 추가하면 같은 배치·테두리 규칙을 그대로 따른다(공식 예제는 32×16px Drillbert 수면 표시기). 우리 문제 (5)에 쓴다: 위계·색이 없는 상태에서, 모듈별 패널 대신 하나로 이어진 테두리 판과 팔레트 고정색으로 통일감을 주는 방식이다.
+  - 검증: Hud.gd updateBorderSprite를 확인했다. 2×2 이웃 칸 점유를 비트로 합쳐 1~15 조합을 만들고 HudBorder(4×4 프레임 시트)의 프레임을 고른다. 각 테두리에 Style.init을 건다. 위키 Style-class·HudElement-class에 'HUD 색은 팔레트 스왑/Style 시스템'이라고 나온다. Level.addHudElement(scene, teamOrPlayerId)도 맞다. 예제 Drillbert 표시기의 32×16…
+  - 출처: https://github.com/Kupie/DK_DECOMP/blob/main/content/hud/Hud.gd, https://github.com/DomeKeeperMods/Docs/wiki/HudElement-class
+- [pixel_minimal-30·verified] (Loop Hero) Loop Hero 옵션 화면의 분류 탭 3개는 글자 없는 그림 버튼(모니터 등)이고, 선택된 탭 이름(VIDEO)은 탭 아래 검은 띠에 한 번만 표시된다. 오른쪽 위 언어 선택도 국기 버튼 14개로 하고, 선택된 언어 이름(ENGLISH)은 그 아래에 따로 표시된다.
+  - 맥락: 1.105 원본 스크린숏을 보고 한 관찰이다. 우리 문제 (1)에 쓴다: 버튼 하나에 이름·비용·단축키·못 쓰는 이유를 다 넣지 않고, 버튼은 아이콘만 두고 선택·호버된 항목의 이름과 설명은 따로 정한 한 자리에서 보여 주는 패턴이다.
+  - 검증: 1.105 화면을 봤다. 글자 없는 탭 3개(모니터·눈·세 번째 아이콘) 아래 검은 띠에 VIDEO가 있다. 오른쪽 위 국기는 6+6+2=14개이고 그 아래에 ENGLISH가 있다. LoopHero-Advanced 모드를 켜면 폴란드·태국·베트남 국기가 더 붙는다.
+  - 출처: https://github.com/GarrettGunnell/CRT-Shader/blob/main/their_crt.png
+- [p_pixel_ui-13·partly] (Godot 4 Theme·타입 변형) Godot 4에서는 gui/theme/custom에 Theme 리소스 하나를 지정하면 모든 Control이 기본 테마보다 그 테마의 글꼴·글꼴 크기·색·StyleBox를 먼저 쓰며, 타입 변형(type variation)으로 Button을 바탕으로 일부 항목만 바꾼 'GrayButton' 같은 버튼 종류를 만들 수 있다.
+  - 맥락: 테마는 부모에서 자식으로 내려간다. 팝업의 루트에 다른 Theme을 달면 그 안의 버튼만 모양이 바뀐다. 로컬 오버라이드는 일관성에는 불리하지만 BoxContainer·GridContainer 간격과 MarginContainer 여백에는 꼭 필요하다. TakWolf 예제의 default_theme.tres는 default_font를 도트 글꼴로, default_font_size를 12로 두고, Button의 normal/hover/pressed/disabled/focus에 StyleBoxFlat(anti_aliasing=false,…
+  - 검증: 문서 부분은 맞다. gui_skinning.rst에 'GUI > Theme > Custom ... checked first. Only if it doesn't have the item the default theme is checked'가 있다. 다만 노드의 theme 속성이 프로젝트 테마보다 먼저다. 부모에서 자식으로 퍼지는 것, 팝업 루트에 다른 테마를 다는 예, 로컬 오버라이드가 BoxContainer·GridContainer 간격과 MarginContai…
+  - 출처: https://raw.githubusercontent.com/godotengine/godot-docs/master/tutorials/ui/gui_skinning.rst, https://raw.githubusercontent.com/godotengine/godot-docs/master/tutorials/ui/gui_theme_type_variations.rst
+- [tab-15·likely] (They Are Billions) 리뷰어들은 정보 전달을 문제로 짚었다: The Outer Haven은 게임 규칙 설명이 일시정지 메뉴의 긴 글에만 있다고 했고, Metacritic 사용자는 건물 설명에 어떤 자원을 쓰는지 나오지 않는다고 했으며, PlayStation LifeStyle은 콘솔판 메뉴 글자가 읽기 어렵다고 평가했다.
+  - 맥락: PSLS 평가는 콘솔판(PS4) 기준이다. 우리 게임 (5)번과 '툴팁 0개' 문제에 쓸 반면교사: 설명은 메뉴 속 긴 글이 아니라 해당 버튼의 툴팁에 두고, 글자 크기와 대비를 확보해야 한다(벡터 글꼴을 도트 글꼴로 바꿀 때도 해당).
+  - 검증: 웹 검색 한도가 소진돼 세 리뷰(The Outer Haven·Metacritic·PSLS)의 내용을 다른 출처로 확인하지 못했다.
+  - 출처: https://www.theouterhaven.net/2019/07/they-are-billions-review-they-are-pretty-good/, https://www.metacritic.com/game/they-are-billions/user-reviews/?platform=pc
+- [aoe_northgard-29·likely] (Northgard) 2017년 PC 첫인상 리뷰(Nerdy Bookahs)는 Northgard UI가 '깔끔하고 직관적이며 다루기 쉽다'고 평가했고, The Xbox Hub 콘솔 리뷰는 메뉴와 UI가 '급할 때도 찾아가기 복잡하지 않다'고 평가했다.
+  - 맥락: 얼리 액세스 PC판과 Xbox판에 대한 평가다. PC Gamer는 Northgard를 '우아한 RTS'라고 했지만(https://www.pcgamer.com/northgard-review/) UI 자체에 대한 언급은 확인하지 못했다. 우리 게임 (5): 위쪽 자원 줄 + 왼쪽 아래 달력·미니맵 + 오른쪽 맥락 메뉴로 구성된 최소 HUD가 이런 평가를 받은 사례다.
+  - 검증: 검색 한도가 다 차서 Nerdy Bookahs와 The Xbox Hub 리뷰 문구를 확인하지 못했다.
+  - 출처: https://nerdybookahs.wordpress.com/2017/02/22/quick-first-impressions-review-northgard/, https://www.thexboxhub.com/northgard-review/
+- [castle-26·likely] (Diplomacy is Not an Option) The Drastik Measure 리뷰는 UI가 눈에 띄게 혼잡해 도시와 병력 관리가 어렵다고 단점에 넣었고, Gertlush Gaming 리뷰는 메뉴 상당수가 여러 번 클릭해 들어가야 해서 오래 하거나 급할 때 헷갈린다고 평가했다.
+  - 맥락: 반대 평가도 있다. Press Attack은 대규모 전투에서는 붐비지만 헷갈리지는 않는다고 했고, Finger Guns는 처음 익히고 나면 직관적이라고, Noobfeed는 작고 단순하다고 평가했다. 깊은 메뉴와 붐비는 화면이 주된 불만이다. 우리 문제 (4)·(5)에서 자주 쓰는 명령은 한 번 클릭으로 닿게 하고 위계를 주는 근거.
+  - 검증: 검색 예산 소진으로 확인하지 못했다. 리뷰 네 곳의 평가 문구를 원문이나 다른 요약으로 대조하지 못했다.
+  - 출처: https://www.thedrastikmeasure.com/2025/07/04/diplomacy-is-not-an-option-pc-review/, https://gertlushgaming.co.uk/diplomacy-is-not-an-option-review-steam/
+- [minimal-08·likely] (Thronefall) Siliconera는 Thronefall을 '아름답게 단순한(Beautifully Simplistic) RTS'로, Gameindustry.com은 '최소주의(Minimalist) 기지 건설'로 평가했다.
+  - 맥락: 매체 평가를 그대로 옮긴 것이다. 화면 대부분을 세계 안 표시로 처리한 설계가 리뷰에서 장점으로 꼽혔다는 근거다. 우리 게임 (7): 화면 위 약 40%를 덮는 HUD를 줄이는 방향을 뒷받침한다.
+  - 검증: 검색 한도 소진으로 검색하지 못했다. 다만 인용 URL 슬러그(review-thronefall-is-a-beautifully-simplistic-rts-game, enjoy-minimalist-base-building-...)가 제목 표현과 맞는다. 페이지 내용은 확인하지 못했다.
+  - 출처: https://www.siliconera.com/review-thronefall-is-a-beautifully-simplistic-rts-game/, https://www.gameindustry.com/reviews/game-review/enjoy-minimalist-base-building-and-castle-defense-in-thronefall/
+- [minimal-21·likely] (Bad North) Creative Review는 Bad North의 미술 양식을 '최소주의적이면서 독특하다'고 평가했고, Vice는 이 게임을 'Clean, Pretty'한 전략 게임이라고 불렀다.
+  - 맥락: 매체 평가를 그대로 옮긴 것이다. 위키백과에 따르면 Metacritic 평은 '엇갈리거나 평균'이다. 우리 게임 (5)·(7): HUD를 줄이고 세계 쪽 그림을 앞세우는 방향이 시각적 강점으로 평가받을 수 있다는 근거다.
+  - 검증: 검색 한도 소진으로 검색하지 못했다. Creative Review와 Vice 표현, Metacritic '엇갈리거나 평균' 평가를 확인하지 못했다.
+  - 출처: https://www.creativereview.co.uk/bad-north-creators-on-where-gaming-is-going/, https://www.vice.com/en/article/bad-north-switch-review-impressions/
+- [pixel_minimal-23·likely] (Kingdom (2015 원작)) 원작 Kingdom은 거칠지만 일관되게 거친 손 도트 위에 실시간 조명·반사·셰이더를 얹어 화면을 하나로 묶었다. 저해상도라 이 효과들의 성능 부담이 거의 없다고 개발진이 설명했다.
+  - 맥락: 이전 조사 대장 R-08(3표 반박 검증 통과)에 근거한다. 밤·위험 같은 상태를 HUD 대신 조명과 색으로 전달하는 바탕이다. 우리 문제 (5)(위계·색 없음)에 쓴다: 전투 단계를 HUD 글자 대신 화면 조명·색조 변화로 알리는 선택지의 근거다.
+  - 검증: 인용 인터뷰 2건을 열 수 없고 웹 검색 한도도 소진됐다. 다른 출처도 반대 증거도 찾지 못했다.
+  - 출처: https://cliqist.com/2014/05/19/thomas-van-den-berg-discusses-the-new-kingdom/, https://80.lv/articles/kingdom-how-2-guys-created-a-side-scrolling-strategy/
+- [p_glance-01·likely] (Zach Gage — Designing for Subway Legibility (GDC 2018)) Zach Gage는 GDC 2018 발표(원고 «Designing for Subway Legibility»)에서 지하철에서 어깨 너머로 보는 사람도 설명 없이 화면만 보고 무슨 일이 벌어지는지 알 수 있어야 하고, 스크린샷과 GIF에 맥락 설명이 거의 필요 없어야 한다는 기준을 내놓았다.
+  - 맥락: 출처 경위: 이번 작업에서는 턴 전체 검색 한도(200회)가 이미 소진돼 WebSearch가 한 번도 실행되지 않았다. 이 주장과 URL은 프로젝트의 기존 조사 /home/user/td-proj/art_direction_research/99_sources.md R-25(3표 반박 검증 3-0, 2026-10-14 확인, 발표 원고와 2차 요약)에서 가져왔다. 과제가 말한 제목 «Building Games That Can Be Understood at a Glance»가 이 원고와 같은 발표인지는 이번에 검색으로 확인하지 못했다. 우…
+  - 검증: WebSearch를 한 번도 돌리지 못했다. 이 턴에서 공유하는 검색 한도 200회가 이미 소진됐고, 시도한 3회는 모두 '검색 미실행'으로 돌아왔다. 그래서 독립된 뒷받침도 반대 증거도 모으지 못했다. 로컬 art_direction_research/04_readability.md 15행과 99_sources.md R-25에서는 주장 내용과 URL이 일치함을 확인했다. 다만 이는 조사원과 같은 출처라 독립 근거가 아니다. GDC 공식 제목 «Building Ga…
+  - 출처: http://stfj.net/DesigningForSubwayLegibility/, https://gigazine.net/gsc_news/en/20180501-game-design-subway-legibility
+- [p_glance-02·likely] (Zach Gage — Three Reads) Zach Gage는 같은 Subway Legibility 발표에서 «Three Reads»를 한눈에 읽히는 게임을 만드는 핵심 도구로 꼽았다.
+  - 맥락: 출처 경위: /home/user/td-proj/art_direction_research/04_readability.md §2와 99_sources.md R-25. 주의할 점이 있다. Gigazine 요약이 적은 세 층(직관적 정보 / 직관적이지 않지만 중요한 정보 / 나머지 세부)을 적·아군 화면에 옮긴 주장은 프로젝트 검증에서 0-3으로 기각됐다(99_sources.md §3). 그래서 각 층의 정의는 확인된 것이 없다. 우리 게임: 문제 (1)(5)에 쓴다. 버튼 하나에 이름·비용·단축키·못 쓰는 이유가 같은 무게로 섞인 것을 …
+  - 검증: 검색 한도가 소진돼 외부 확인을 못 했다. 로컬 자료끼리 어긋나는 곳이 하나 있다. 04_readability.md 30행은 Three Reads를 «먼저 보이는 것 → 세부 → 맥락»으로 정의해 적었다. 반면 이 주장과 99_sources.md §3은 층 정의가 확인되지 않았다고 본다(Gigazine 3층 정의를 옮긴 주장은 0-3 기각). 04의 괄호 정의도 근거 없는 서술일 수 있으니 정리가 필요하다. 'Gage가 Three Reads를 핵심 도구로 꼽았다…
+  - 출처: http://stfj.net/DesigningForSubwayLegibility/, https://gigazine.net/gsc_news/en/20180501-game-design-subway-legibility
+- [aoe_northgard-15·unverified] (Age of Empires IV) AoE IV 아트 디렉터 Zach Schläppi는 Windows Central 인터뷰에서 건물을 '정교한 버튼'처럼 다뤄 실루엣을 알아보기 쉽게 했고, 건물 지붕·깃발 문양을 HUD 아이콘 문양과 같게 맞췄다고 말했다.
+  - 맥락: 2021 출시 전 인터뷰다. 같은 인터뷰에서 카메라가 멀 때나 가까울 때나 잘 읽히도록 스타일을 정했다고 했다. 우리 게임 (1)(5): 16px 도트 건물 스프라이트(성벽·성문·대포·집·교회)를 줄여서 버튼 아이콘으로 쓰면 맵 위 건물과 버튼이 한눈에 이어진다.
+  - 검증: 검색 한도가 다 차서 Windows Central 인터뷰 내용(건물을 '정교한 버튼'처럼 다뤘다는 말, 지붕·깃발 문양과 HUD 아이콘을 맞췄다는 말)을 확인하지 못했다.
+  - 출처: https://www.windowscentral.com/age-empires-4-preview-event-interview, https://www.windowscentral.com/age-empires-4-success-graphics
+- [p_hierarchy-01·unverified] (Riot Games — Clarity in League (League of Legends)) Riot Games는 개발 블로그 «Clarity in League»에서 «스킬이 끄는 주의의 양은 그 중요도와 맞아야 한다»(the amount of attention an ability grabs should match its level of importance)는 명료성 원칙을 세웠다.
+  - 맥락: 출처 경위: /home/user/td-proj/art_direction_research/99_sources.md R-60(원문 확인, 반박 표결은 없음, 2026-10-16). PC MOBA의 전투 연출을 다룬 글이고, HUD 배치를 직접 다룬 글은 아니다. 우리 게임: 문제 (3)(5)에 쓴다. 지금은 못 쓰는 회색 버튼 다수와 거점 체력·웨이브 같은 핵심 정보가 같은 크기·같은 색으로 보인다. 중요도에 따라 크기·색·대비를 다르게 주는 근거가 된다(HUD에 옮기는 것은 추론이다).
+  - 검증: 검색 한도 소진으로 다른 도메인의 뒷받침이나 반대 증거를 찾지 못했다. 로컬 99_sources.md R-60에는 원문을 확인했다고만 적혀 있고 반박 표결은 없다. 인용문의 정확한 문구와 글 제목은 이번에 다시 확인하지 못했다. MOBA 전투 연출 맥락의 원칙이라 HUD에 옮기는 것은 추론이라는 단서는 타당하다.
+  - 출처: https://www.leagueoflegends.com/en-gb/news/dev/clarity-in-league/
+
+## 단계적 공개 (progressive_disclosure) — 19개
+
+- [blizzard-21·verified] (StarCraft II) StarCraft II 2.0.4 패치는 초보자용 '간단한 명령 카드' 옵션을 넣었는데, 이 옵션을 끄면 오른쪽 아래 명령 카드에 모든 명령이 보이고 켜면 일부 명령(예: 순찰)이 빠진 간소한 카드가 보인다.
+  - 맥락: 공식 노트는 '명령 카드를 더 단순하게 보여 준다'고 설명한다. 포럼에는 Grid에서 순찰 단축키가 사라졌다는 문의가 있었고, 원인이 이 옵션이었다. 우리 게임: (3) 못 쓰는 회색 버튼이 대부분인 문제에 쓴다. 그 단계에 쓸 수 없는 명령은 아예 숨기는 간소 표시를 기본으로 하는 방안이다.
+  - 검증: 게임 문자열 '새 설정' 목록에 'Simple Command Card: 핵심 명령을 강조하도록 명령 카드를 바꾼다'가 군대 선택 버튼 추가와 함께 있다. 옵션 설명은 'Enables a more simplified view of the command card'다. 커뮤니티 문서도 'Stop, hold, patrol을 보려면 Simple Command Card를 꺼야 한다(Options → Interface)'고 적어 순찰이 빠진다는 내용과 맞는다. 2.0.4라는…
+  - 출처: https://news.blizzard.com/en-us/article/8724162/starcraft-ii-wings-of-liberty-patch-2-0-4, https://eu.forums.blizzard.com/en/sc2/t/patrol-shortcut-key-missing-whilst-in-grid-controls/1095
+- [td_bars-rt-03·verified] (Rogue Tower) 레벨 1 스크린샷의 아래쪽 건설 바에는 발리스타 카드 한 장만 있고, 다른 타워 종류는 «Tower - Radar», «Tower - Mortar» 같은 업그레이드 카드를 골라야 생긴다.
+  - 맥락: 같은 화면의 카드 선택지에 «Башня: Радар»(Tower - Radar)와 «Башня: Мортира»(Tower - Mortar)가 들어 있다. 우리 문제 (3): 처음부터 12종을 회색으로 다 깔지 말고, 얻거나 해금한 것만 바에 더하면 «못 쓰는 회색 버튼 대부분» 문제가 사라진다.
+  - 검증: 스크린샷의 건설 바에는 발리스타 한 장만 있다. 카드 선택지에 'Башня: Радар', 'Башня: Мортира'가 있다. translations L803-822에 'Tower - X'와 'Building - X' 카드가 여러 종 있다. 타워 종류를 카드로 얻는 구조와 맞지만, 웹의 독립 출처는 찾지 못했다.
+  - 출처: https://github.com/whatdidyousayme/Rogue-Tower-Russian/blob/main/screenshots/gameplay_towers.png, https://github.com/whatdidyousayme/Rogue-Tower-Russian/blob/main/translations.json#L803-L807
+- [pixel_minimal-32·verified] (Loop Hero) 전투 중 적의 상세 수치를 화면에 띄우는 커뮤니티 모드 BattleInfo가 있다. 이 모드는 글자 크기(기본 0.5배), 소수 자릿수(기본 2), 글자 위치 오프셋을 options.ini에서 조절하게 한다.
+  - 맥락: 기본 게임이 전투 중 상세 수치를 거의 보여 주지 않는다는 해석이 가능하다(분석자 해석, 직접 진술은 확인 못 함). 우리 게임에 쓴다: 바쁜 전투 화면에서는 상세 수치를 기본으로 숨기고, 원하는 사람만 켜게 하는 점진 공개의 근거다.
+  - 검증: README 설정 DecPrecision=2, TextOffsetX/Y, TextSize=0.5를 확인했다. dllmain.cpp는 o_fight_enemy_Draw_0에 걸어 적마다 'HP: … DPS: …'(str×spd)를 draw_text_transformed로 그린다. xscale·yscale이 TextSize라 0.5배가 맞다. 다만 '상세 수치'는 HP와 DPS 둘뿐이다.
+  - 출처: https://github.com/sam-k0/LoopHero-BattleInfo
+- [td_bars-md-15·partly] (Mindustry) 튜토리얼 힌트는 한 번에 하나만 화면 왼쪽 가운데의 반투명 검은 상자(PC에서 너비 400)에 뜨고, 그 행동을 해내면(예: 웨이브 2 이후 Space로 일시정지) 사라지며, 아래에 «Skip» 버튼이 붙고 설정으로 모두 끌 수 있다.
+  - 맥락: 누적 플레이 시간이 아주 짧은 첫 몇 초에는 힌트를 띄우지 않는다. 우리 게임: 버튼에 사유·단축키를 넣는 대신, 상황이 됐을 때 힌트를 하나씩 띄우는 방식으로 영웅 스킬과 용병 드래그를 가르칠 수 있다.
+  - 검증: 소스를 직접 대조함. 힌트는 한 번에 하나(current)이고, t.left() 위치, Styles.black5 배경, 너비는 PC 400·모바일 270이다. 완료되면 사라지고 'Skip' 버튼이 붙으며, hints 설정(기본 true)으로 끌 수 있다. 플레이 시간 8000ms 조건도 있다. 다만 예로 든 '웨이브 2 이후 Space 일시정지' 힌트(desktopPause)는 튜토리얼 섹터(Ground Zero)이고 멀티가 아닐 때만 뜬다. 또 checkNex…
+  - 출처: https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/ui/fragments/HintsFragment.java#L42-L135, https://github.com/Anuken/Mindustry/blob/master/core/src/mindustry/ui/fragments/HintsFragment.java#L189-L192
+- [pixel_minimal-07·partly] (Dome Keeper) 웨이브 시간 막대(철 2), 웨이브 번호(물 1), 돔 체력 막대(철 1), 자원 카운터(물 1)는 처음부터 보이지 않는다. 돔 업그레이드를 사야 HUD에 붙는다. 월드 수정자 worldmodifierhud는 이 넷을 미리 주고, worldmodifiernowavemeter는 웨이브 미터를 없앤다.
+  - 맥락: upgrades.yaml의 domewavemeter, domewavecount, domeHealthMeter, domeResourceCounters 항목에 근거한다. 영구 보상(rewardpermanent...)으로도 얻을 수 있다. 우리 문제 (3)에 쓴다: 못 쓰는 회색 버튼을 늘어놓지 않고, 해금 전에는 아예 숨기는 점진 공개의 선례다. 단, 우리 게임은 거점 체력을 처음부터 보여야 하므로 체력까지 숨기는 방식은 옮기지 않는다.
+  - 검증: 맞는 점: 네 업그레이드의 비용이 철2·물1·철1·물1이고, worldmodifierhud가 넷을 준다(upgrades.yaml). 옛 판도 비용이 같다. 틀린 점: worldmodifiernowavemeter는 eraseupgradelimits:[wavemeter]로 domewavemeter(시간 막대)와 그 뒤 경보·경로 업그레이드만 막는다. 적 아이콘이 있는 WaveMeter 요소 자체는 Hud.init에서 항상 붙는다. 웨이브 번호(domewavecoun…
+  - 출처: https://github.com/Kupie/DK_DECOMP/blob/main/upgrades.yaml
+- [aoe_northgard-10·likely] (Age of Empires IV) AoE IV에서는 시대 올리기 요구 조건(자원 + 랜드마크 건설)을 기술 트리에서, 또는 일꾼을 고른 뒤 유닛 카드의 '시대 아이콘'에서 언제든 확인할 수 있다.
+  - 맥락: Xbox Wire와 ageofempires.com은 같은 글을 함께 실었다. 아바스 왕조는 랜드마크 대신 지혜의 집 날개를 지어 시대를 올린다. 우리 게임 (1)(3): 못 쓰는 이유를 버튼 글자에 넣지 말고, 고른 대상의 카드나 툴팁에서 조건 목록(충족/미충족)으로 보여 주는 근거다.
+  - 검증: 검색 한도가 다 차서 웹 검색을 못 했다. 기술 트리나 유닛 카드의 시대 아이콘에서 요구 조건을 보여 준다는 근거를 GitHub에서 찾지 못했다.
+  - 출처: https://news.xbox.com/en-us/2021/11/03/age-of-empires-4-tips/, https://www.ageofempires.com/news/age-of-empires-iv-tips-to-help-you-get-started/
+- [p_disclosure-04·likely] (Thronefall — 복잡도를 조금씩 얹기) GameDiscoverCo 분석에 따르면 Thronefall은 1~3인 팀이 범위를 일부러 작게 두고, 기존 시스템 위에 복잡도를 조금씩 얹는 방식으로 만들었다.
+  - 맥락: 출처 경위: /home/user/td-proj/ai_game_reference_research/99_sources.md Q2-e1(S19, 확인). Game Developer 인터뷰 기사(2023-07-13)의 제목도 «Mastering minimalism and layering complexity»다. 다만 프로젝트 기존 조사는 이 기사를 다른 주장(밤새 대기 문제, 건물 재생성)에만 썼고, 레이어링을 다룬 본문 문장은 확인하지 않았다. 우리 게임: TD·영웅·용병·마을이 겹친 «3중 복합»은 그 자체로 복잡도가 크다. 6라운드에…
+  - 검증: 검색 한도 소진으로 GameDiscoverCo 본문도 Game Developer 기사도 다시 확인하지 못했다. 로컬 Q2-e1(S19)의 «범위를 작게, 기존 시스템에 복잡도를 조금씩»과는 일치한다. '1~3인 팀'이라는 팀 규모는 원장 요약에 없어 출처를 확인해야 한다. 주장 detail이 스스로 밝혔듯 Game Developer 기사는 제목만 맞고, 레이어링을 다룬 본문은 확인되지 않았다.
+  - 출처: https://newsletter.gamediscover.co/p/deep-dive-how-thronefall-went-minimal, https://www.gamedeveloper.com/design/mastering-minimalism-and-layering-complexity-with-strategy-game-thronefall
+- [p_disclosure-09·likely] (Bad North — 능동 스킬 해금) Bad North는 처음에는 분대 위치 지정만 할 수 있고, 지휘관을 업그레이드해 병과가 정해지면 병과마다 능동 스킬 하나(보병 Plunge, 궁수 Volley, 창병 Pike Charge)를 코인으로 해금한다.
+  - 맥락: 출처 경위: /home/user/td-proj/game_design_research/99_appendix/claim_ledger.md R2-C52(2관점 검증 confirmed/confirmed). 개발사 인터뷰는 출시 전(2018-04)에 나왔고, 출시판에 들어갔는지는 팬 위키로 확인했다. 개발사는 이 능력들이 «전략의 핵심은 아니지만 적시에 쓰면 파괴적»이라고 했다. 위키에 따르면 Volley 해금은 7코인이다. 우리 게임: 영웅 Q·W·E·R 네 칸을 처음부터 회색으로 다 보여 주지 않고, 레벨에 따라 칸을 하나씩 여는 근거가…
+  - 검증: 검색 한도 소진으로 새 확인을 못 했다. 같은 원장 R2-C52의 근거에 이미 주의할 점이 적혀 있다. 지휘관 한 명이 얻는 병과 스킬은 하나이고, 업그레이드는 스킬 개수가 아니라 위력을 키운다(Volley 7→10→14코인). 추가 능동 능력은 업그레이드가 아니라 아이템 섬 보상인 아이템에서 나온다. 따라서 'Q·W·E·R 칸을 레벨마다 하나씩 여는 근거'는 Bad North 구조와 다른 추론이다. 위키 수치가 2019년 Jotunn Edition 이후 판 기…
+  - 출처: https://www.nintendo.com/en-gb/News/2018/April/Interview-Taking-on-hordes-of-invading-Vikings-in-Bad-North-1368315.html, https://bad-north.fandom.com/wiki/Skills
+- [ironhide-15·unverified] (Kingdom Rush Vengeance) Kingdom Rush Vengeance는 스테이지 첫 웨이브 전에 쓸 타워를 골라 가게 하고, 한 스테이지에서 쓸 수 있는 타워를 5종으로 제한한다(이전 작품은 8종).
+  - 맥락: 한 Steam 이용자는 '첫 웨이브 전에 편성을 고르게 해 결정을 스테이지 밖으로 옮겼다'고 평했다. 다른 이용자는 8종에서 5종으로 줄어든 것이 싫다고 평가했다. Steam판은 영웅·타워가 무료지만 특정 스테이지를 깨야 풀린다. 우리 문제 (3)(4)에 쓸 수 있다: 건설 12종을 준비 단계에서 '이번 라운드 편성'으로 고르게 하면 전투 단계 버튼 수가 고정되고 회색 버튼이 줄어든다.
+  - 검증: Vengeance 1차 자료는 찾지 못했다. 같은 계열의 Genesis(6편) 모드 README에 따르면 GS.number_of_towers=5이고, 스테이지 밖 Tower Room에서 5종을 고르며, Iron 등 일부 모드는 스테이지가 정한 세트를 쓴다. 후기작의 5종 제한 패턴과는 맞는다. 다만 Vengeance에서 '첫 웨이브 전 스테이지 안에서 고르는지'는 확인하지 못했다. '이전 작품 8종'은 4계열×2 고급 타워를 센 것으로 보인다.
+  - 출처: https://store.steampowered.com/app/1367550/Kingdom_Rush_Vengeance__Tower_Defense/, https://kingdomrushtd.fandom.com/wiki/Kingdom_Rush:_Vengeance
+- [castle-08·unverified] (Stronghold HD) 서기의 책을 클릭하고 '인기도'를 고르면 인기도가 무엇에서 얼마씩 오르내리는지 항목별로 나눠 보여 주는 화면이 열린다.
+  - 맥락: Stronghold HD Steam 토론. 아래 패널에는 합계만 두고, 원인별 내역은 한 번 더 눌러야 보인다(점진 공개). 우리 마을 레벨·생산 효과의 내역을 툴팁이나 펼침 창으로 옮겨 HUD를 줄이는 근거.
+  - 검증: 검색 예산 소진으로 확인하지 못했다. 인용된 Steam 글 하나 말고는 인기도 내역 화면을 뒷받침하는 자료도, 반대 자료도 찾지 못했다.
+  - 출처: https://steamcommunity.com/app/40950/discussions/0/152393186501537166/
+- [castle-29·unverified] (Diplomacy is Not an Option) 자원 노드 위의 흰 막대는 그 노드에 남은 자원 양을 보여 주고, Alt 키로 막대를 숨길 수 있다.
+  - 맥락: Steam 토론 'White bars over resources'. 맵 위 정보 겹침을 키 하나로 끄고 켠다. 우리 성벽·대포 체력바나 범위 표시를 Alt로 켜고 끄게 해서, 전투 중 화면이 붐비는 것을 줄이는 근거.
+  - 검증: 검색 예산 소진으로 확인하지 못했다. 흰 막대가 남은 자원 양이라는 설명과 Alt로 숨긴다는 설명 모두 인용된 Steam 글 하나에만 기대고 있다.
+  - 출처: https://steamcommunity.com/app/1272320/discussions/0/599648400266296995/
+- [minimal-15·unverified] (Bad North) Bad North 개발자는 누구나 바로 집어 들고 즐길 수 있도록 UI를 아주 가볍게(super lightweight) 유지했다고 말했다.
+  - 맥락: 검색 요약은 이 발언의 출처 URL을 특정하지 않았다. 같은 결과 묶음 안의 개발자 인터뷰는 Nintendo UK 인터뷰이며, 페이지를 열지 못해 확인하지 못했다. 우리 게임 (4)·(5): 건설 12종, 용병, 미션 문구, 스킬 줄이 한 흐름에 섞인 상태를 줄이는 원칙으로 쓸 수 있다.
+  - 검증: 검색 한도 소진으로 검색하지 못했다. 'super lightweight' 발언의 출처 URL이 특정되지 않은 채로 남아 있다.
+  - 출처: https://www.nintendo.com/en-gb/News/2018/April/Interview-Taking-on-hordes-of-invading-Vikings-in-Bad-North-1368315.html
+- [minimal-17·unverified] (Bad North) Nintendo Life 인터뷰에서 Richard Meredith는 Bad North가 규칙을 일부러 숨겨, 플레이어가 병사들의 행동을 지켜보며 배우게 만들었고 패배도 그 배움의 일부라고 설명했다.
+  - 맥락: 개발자 인터뷰다. 숫자·설명 대신 화면 속 행동으로 정보를 전달하는 철학이다. 우리 게임: 툴팁이 0개인 지금은 반대 극단이므로, 핵심 수치(비용, 재사용 대기, 마나)는 보여 주고 세부 상성은 행동으로 배우게 나누는 근거로 쓸 수 있다.
+  - 검증: 검색 한도 소진으로 검색하지 못했다. Nintendo Life 인터뷰에서 '규칙을 숨기고 관찰로 배우게 했다'는 발언을 확인하지 못했다.
+  - 출처: https://www.nintendolife.com/news/2018/05/feature_battling_the_viking_horde_with_bad_north_dev_plausible_concept
+- [p_disclosure-01·unverified] (Thronefall — 메타 진행의 목적) Thronefall 개발사(Grizzly Games)는 Steam 공지에서 메타 진행(캠페인을 깨며 여는 해금)의 주된 목적이 새 플레이어의 결정 마비와 복잡도를 줄이는 것이라고 밝혔다.
+  - 맥락: 출처 경위: /home/user/td-proj/ai_game_reference_research/99_sources.md N2-01(S30, 공식 공지, 연구자 1명이 원문을 확인, 2026-10-17~18). PC(Steam) 판 공지다. 우리 게임: 문제 (3)(4)에 쓴다. 건설 12종, 용병, 영웅 스킬을 1라운드부터 모두 펼치지 않고 라운드나 마을 레벨에 따라 여는 근거가 된다.
+  - 검증: 검색 한도 소진으로 Steam 공지 원문을 다시 확인하지 못했고 다른 도메인 보도도 찾지 못했다. 로컬 ai_game_reference_research/99_sources.md N2-01(S30)과는 내용이 일치한다. 하지만 연구자 1명이 확인한 기록뿐이라 독립 근거가 없다. 개발사 이름 Grizzly Games도 이번에 따로 확인하지 못했다.
+  - 출처: https://store.steampowered.com/news/app/2239150/view/5127964289172904822
+- [p_disclosure-03·unverified] (Thronefall 1.7 — 튜토리얼 뒤에 이어지는 팁) Thronefall 1.7 업데이트는 튜토리얼 뒤에도 이어지는 팁 시스템을 넣었다. 팁은 한 번만 뜨거나 플레이어가 그 기능을 써 볼 때까지만 뜨며, 개수도 제한했다.
+  - 맥락: 출처 경위: /home/user/td-proj/ai_game_reference_research/99_sources.md N2-03(S32, 공식). 같은 업데이트는 무기 해금을 캠페인 레벨 클리어에 묶어, 새 플레이어가 필요한 때 무기를 받게 했다. 우리 게임: 문제 (7)의 «툴팁 0개»와 준비 단계 안내에 쓴다. 성문 여닫기나 용병 이동처럼 처음 써 볼 때까지만 뜨는 1회성 팁의 선례다.
+  - 검증: 검색 한도 소진으로 1.7 패치노트를 다른 출처(SteamDB, 커뮤니티 등)와 대조하지 못했다. 로컬 N2-03(S32)에는 «1.7 팁 시스템(한 번 또는 써 볼 때까지, 개수 제한), 무기 해금을 레벨 클리어에 묶음»으로 적혀 있어 주장과 일치한다. 독립 근거는 없다.
+  - 출처: https://store.steampowered.com/news/app/2239150/view/5842939267353517646
+- [p_disclosure-05·unverified] (The King is Watching — 쉬운 건물부터 해금) The King is Watching(2025, 픽셀 아트 디펜스) 개발사는 업데이트에서 가장 낮은 난이도의 보스를 2명에서 1명으로 줄여 첫 판을 짧게 하고, 쉬운 건물부터 해금되도록 바꿨다고 공지했다.
+  - 맥락: 출처 경위: /home/user/td-proj/ai_game_reference_research/99_sources.md N2-08(S38, 공식). 같은 공지에 따르면 튜토리얼 끝에 게임의 분위기와 한 판의 구조를 소개하는 보스전도 넣었다. PC(Steam) 판이다. 우리 게임: 문제 (3)(4)에 쓴다. 건설 12종 가운데 대부분이 회색으로 늘어선 지금 상태를 «쉬운 건물만 먼저 보여 주기»로 바꾸는 근거가 된다.
+  - 검증: 검색 한도 소진으로 독립 확인을 못 했다. 로컬 N2-08(S38)은 «Tier 0 보스 2→1명, 쉬운 건물 먼저»로 적었다. 주장은 'Tier 0'을 '가장 낮은 난이도'로 바꿔 썼는데, Tier 0이 난이도 단계인지 다른 구분(예: 진행 단계)인지는 원문으로 확인해야 한다. '첫 판을 짧게'라는 목적 서술도 원장 요약에는 없다.
+  - 출처: https://store.steampowered.com/news/app/2753900/view/1834602721193591
+- [p_disclosure-06·unverified] (Plants vs. Zombies — George Fan GDC 2012) George Fan의 GDC 2012 Plants vs. Zombies 강연 시청 노트에 따르면 PvZ는 튜토리얼을 별도 메뉴로 두지 않고 실제 게임플레이 안에 넣었다.
+  - 맥락: 출처 경위: /home/user/td-proj/ai_game_reference_research/99_sources.md Q2-a1(S24, 블로그 시청 노트로 확인). 함께 적은 GDC 공식 영상(S25)으로는 세션이 있다는 것만 확인했고, 내용은 2차 노트로만 확인했다. 우리 게임: 1라운드의 준비 단계와 전투 단계를 그대로 튜토리얼로 쓰고, 따로 튜토리얼 화면을 만들지 않는 근거가 된다.
+  - 검증: 검색 한도 소진으로 다른 강연 요약(GDC Vault, Gamasutra 기사 등)을 찾지 못했다. 근거는 로컬 Q2-a1의 블로그 시청 노트(2차) 하나뿐이다. GDC 2012 세션이 있었다는 것만 원장 Q2-a0에서 1차로 확인됐다. GitHub에서 노트 원본을 찾으려 했지만 세션이 지정 저장소에만 묶여 있어 열지 못했다.
+  - 출처: https://notes.hamatti.org/sources/talks/how-i-got-my-mom-to-play-through-plants-vs.-zombies, https://www.youtube.com/watch?v=fbzhHSexzpY
+- [p_disclosure-07·unverified] (Plants vs. Zombies — 새 요소 투입 간격) 같은 강연 노트에 따르면 PvZ는 약 5레벨마다 새 요소를 하나씩 들이고, 첫 상점 방문에서는 물건을 하나만 살 수 있게 했다.
+  - 맥락: 출처 경위: /home/user/td-proj/ai_game_reference_research/99_sources.md Q2-a3·Q2-a4(S24, 2차 노트로 확인). 우리 게임: 라운드 사이 영웅 영입 창(리롤)과 건설 목록을 처음에는 좁게 열고, 라운드마다 한두 가지씩 더하는 간격의 참고가 된다(문제 3·4).
+  - 검증: 검색 한도 소진으로 독립 확인을 못 했다. 근거는 로컬 Q2-a3·Q2-a4의 2차 노트뿐이다. '약 5레벨마다'와 '첫 상점에서 1개만'은 2차 시청 노트의 요약이라, 강연 원본이나 다른 요약으로 교차 확인해야 한다.
+  - 출처: https://notes.hamatti.org/sources/talks/how-i-got-my-mom-to-play-through-plants-vs.-zombies
+- [p_disclosure-08·unverified] (Kingdom Rush — 1레벨 튜토리얼) 2013년 Game Developer 블로그 분석에 따르면 Kingdom Rush는 1레벨을 튜토리얼로 쓰고, 첫 웨이브를 고블린 3마리로 두어 병영 하나가 내보내는 병사 3명이 정확히 막게 했다.
+  - 맥락: 출처 경위: /home/user/td-proj/ai_game_reference_research/99_sources.md Q2-b1(S26, 확인). 이 글은 제3자 사용자 블로그이고 개발사 자료가 아니다. 같은 글은 레벨마다 이후 레벨에서도 다시 쓰일 공통 개념에 집중한다고 분석했다(Q2-b4, 정정됨). 1편 원작이다. 우리 게임: 1라운드 첫 웨이브를 한 가지 조작(예: 대포 하나나 영웅 스킬 하나)으로 정확히 막히게 짜고, 그 조작의 버튼만 눈에 띄게 하는 근거가 된다(문제 3·5).
+  - 검증: 검색 한도 소진으로 독립 확인을 못 했다. 로컬 Q2-b1(S26)과는 일치한다. 그러나 S26은 제3자 블로그 하나이고, 같은 원장에서 Q2-b3~b6이 여러 번 정정됐다. 그만큼 이 출처는 저자 해석이 섞여 있다. '고블린 3 = 병사 3'은 실제 게임(1편 1레벨 웨이브 구성)으로 교차 확인해야 한다.
+  - 출처: https://www.gamedeveloper.com/design/kingdom-rush---the-wonderful-campaign-level-design
+
+## 카메라·가림 (camera_occlusion) — 9개
+
+- [blizzard-15·verified] (Warcraft III (Classic/Reforged)) Warcraft III: Reforged 2.0.0 패치에서 옵션으로 HUD 크기를 바꿀 수 있게 되었고, Classic 모드 HUD에는 양옆 테두리를 없애는 옵션이 생겼다.
+  - 맥락: 투명 HUD 같은 공식 옵션은 찾지 못했다. 포럼 의견으로는 Reforged HD 콘솔이 아래 가운데만 덮고 양옆은 트여 있다(https://us.forums.blizzard.com/en/warcraft3/t/update-request-where-is-the-new-ui/28059). 1.32.2 패치에서 울트라와이드를 제대로 지원하게 됐다. 우리 게임: (7) HUD가 거점을 가리는 문제에 쓴다. HUD 배율 옵션을 두고, 아래 띠 양옆을 비워 맵이 보이게 한다.
+  - 검증: 2.0 시기 Reforged 문자열(Classic HD, 금광 일꾼 수, 경과 시간 옵션과 함께 들어 있음)에 HUD_SCALE('HUD 크기를 키우고 줄이는 슬라이더')와 HUD_SIDEPANELS가 있다. HUD_SIDEPANELS 설명은 'SD(Classic) 그래픽 전용: HUD 양옆 패널을 켜고 끄며, SD에서 HUD 배율을 쓸 수 있게 한다'이다. 즉 Classic에서는 양옆 패널 설정과 배율이 묶여 있다. 1.32.2 울트라와이드 부분은 확인하지 못…
+  - 출처: https://news.blizzard.com/en-us/article/24167122/warcraft-iii-reforged-patch-notes-patch-2-0-0, https://www.hiveworkshop.com/threads/warcraft-iii-reforged-patch-notes-version-2-0.356591/
+- [td_bars-rt-07·verified] (Rogue Tower) 화면 가운데 위쪽, 자원 칸 바로 아래에 W·A·S·D 방향 화살표 안내가 겹쳐 그려지며, QoL 모드 제작자는 이 WASD 표시를 끄는 기능을 할 일 목록(WIP)에 올렸다.
+  - 맥락: QoLChanges 모드 저장소는 2022년에 만들어졌다. 카메라 조작 안내가 맵 위를 가린다는 점을 플레이어가 불편해한 정황이다. 우리 문제 (7): 조작 안내 오버레이는 처음 몇 번만 보여 주거나 끌 수 있게 해야 한다는 근거다.
+  - 검증: 스크린샷에서 가운데 칸 바로 아래에 W·A·S·D 화살표 안내가 맵 위에 겹쳐 있다. QoLChanges README 12행이 '[ ] Prevent WASD Display (WIP)'이다. 저장소는 2022-03-15에 만들어졌고 마지막 push는 2022-04-01이다(GitHub API). '플레이어가 불편해했다'는 정황 추정이다.
+  - 출처: https://github.com/whatdidyousayme/Rogue-Tower-Russian/blob/main/screenshots/gameplay_towers.png, https://github.com/TheirOwn/QoLChanges/blob/main/README.md#L12
+- [pixel_minimal-13·verified] (Dome Keeper) 1인 플레이에서 웨이브 중 키퍼가 돔 안에 있으면 카메라 줌이 2로 물러나 1920×1080 기준 세계 960×540px가 보인다. 평시 돔 안(goalCameraZoom)과 광산(keeper.zoominmine)에서는 기본 줌 4로 480×270px가 보인다.
+  - 맥락: 분할 화면 협동에서는 돔과 웨이브 지점을 함께 담도록 줌을 따로 계산한다(_calcZoomToFitPoints). 우리 문제 (7)에 쓴다: 전투 단계에 들어가면 카메라를 자동으로 넓혀 거점과 적 진입로를 함께 보여 주는, 단계별 카메라 프레이밍의 근거다.
+  - 검증: KeeperCamera._process를 확인했다. 웨이브 중이고 돔 안이며 분할 화면이 아니면 zoomTo(2)다. 평시 돔 안은 _getDomePeaceZoom이 goalCameraZoom(기본 4)을 쓴다. 광산은 zoominmine이고 LevelKeeperSpawner가 4로 둔다. 분할 화면은 _calcZoomToFitPoints로 계산한다. 덧붙임: 새 게임의 착륙 장면 동안은 LevelStage가 줌을 2로 두고 Impact.gd가 4로 되돌린다. …
+  - 출처: https://github.com/Kupie/DK_DECOMP/blob/main/systems/camera/KeeperCamera.gd, https://github.com/Kupie/DK_DECOMP/blob/main/stages/level/LevelKeeperSpawner.gd
+- [pixel_minimal-21·verified] (Kingdom Two Crowns) KingdomMod 미리보기 스크린숏(1920×1080)에서 유닛이 걷는 지면 줄은 화면 높이의 약 58% 지점에 있다. 그 아래 약 40%는 수면 반사, 위쪽은 하늘이며, 모드의 지도·통계·동전 글자는 모두 위쪽 하늘 띠와 오른쪽 위 모서리에만 놓인다.
+  - 맥락: 모드를 켠 PC판 화면 한 장을 보고 비율을 어림한 것이다. 모드 글자를 빼면 숫자형 HUD 요소는 보이지 않는다. 우리 문제 (7)에 쓴다: 플레이가 일어나지 않는 화면 띠(하늘·반사)에만 정보를 얹어 유닛을 가리지 않는 배치다. 우리 맵에서는 이 띠가 마을 위쪽 바깥 여백(맵 밖으로 카메라를 낼 수 있을 때)에 해당한다.
+  - 검증: preview.png(1920×1080, 중국어 화면)를 직접 봤다. 유닛 발 위치는 y≈630(약 58%)이고, 흙 띠 아래 y≈700~1080이 수면 반사(약 35~40%)다. 지도 줄은 최상단, 통계 목록(游民·工人·射手…)은 왼쪽 위 y≈140~300, 시각은 위 가운데, 보석·금화는 오른쪽 위로 모두 하늘 띠 안에 있다. 단 StaminaBar 모드 막대는 말 발밑 지면 띠(y≈652)에 그려져 있다. '플레이 띠를 가리지 않는다'는 일반화는 글자에만 …
+  - 출처: https://github.com/abevol/KingdomMod/blob/main/preview.png
+- [p_alerts_camera-13·verified] (0 A.D. HUD 크기 (비교: OpenRA RA 사이드바, BAR)) 0 A.D.의 전투 HUD는 화면 크기와 상관없이 고정 픽셀 크기로, 아래 가운데 1024px 너비 안에 미니맵 200×200·선택 정보 228×200·좌우 패널(높이 166px)을 두고 맨 위에 높이 36px 자원 줄을 두며, Alt+G로 HUD 전체를 숨길 수 있다.
+  - 맥락: 근거는 session.xml L80~113, TopPanel.xml L5, default.cfg(gui scale 1.0, hotkey.session.gui.toggle)다. (Claude 계산) HUD가 덮는 넓이는 1920×1080에서 약 12%, 1280×720에서 약 25%다. 비교 사례: OpenRA RA 모드는 오른쪽에 폭 238px 사이드바를 두고 위에 220×220 레이더, 그 아래에 생산 칸을 둔다. BAR는 Ctrl+F7(Grid)로 GUI를 숨긴다. 우리 게임: 지금 전투 HUD는 약 40~54%를 덮는다(프로젝…
+  - 검증: 웹검색이 불가해 원본 코드로 대조했다. session.xml의 아래 패널은 50%-512~50%+512이고, 미니맵 200×200, 선택 정보 228×200, 왼쪽 206×166, 오른쪽 402×166이다. TopPanel 높이는 36이고 default.cfg에 Alt+G 토글과 [gui] scale=1.0이 있다. 픽셀이 고정인 것은 scale이 기본값일 때뿐이다. 넓이를 다시 계산하면 1920×1080에서 약 12.2%, 1280×720에서 약 25%로 주장…
+  - 출처: https://github.com/0ad/0ad/blob/master/binaries/data/mods/public/gui/session/session.xml#L80-L113, https://github.com/0ad/0ad/blob/master/binaries/data/mods/public/gui/session/TopPanel.xml#L5
+- [p_alerts_camera-14·verified] (RTS 카메라 경계 (OpenRA, 0 A.D., BAR)) OpenRA는 카메라 화면의 가장자리가 아니라 화면 중심(CenterLocation)만 맵 경계 사각형 안에 가두므로 맵 맨 끝 칸도 화면 한가운데까지 끌어올 수 있고, 0 A.D.도 카메라 초점(pivot)만 맵 가장자리에서 2타일 안쪽으로 가둔다.
+  - 맥락: OpenRA Viewport.cs의 Center()·Scroll()·AdjustZoom()은 모두 mapBounds.Clamp(CenterLocation)를 쓴다. 그래서 맵 가장자리에서는 화면 절반만큼 맵 밖이 보인다. 0 A.D.는 CameraController.cpp에서 CAMERA_EDGE_MARGIN = 2*TERRAIN_TILE_SIZE를 쓴다. BAR는 맵 밖에 거울처럼 비친 지형을 그리는 Map Edge Extension 위젯을 기본으로 켜 두는데, 이는 맵 밖이 보인다는 것을 전제로 한다. 우리 게임: camera.…
+  - 검증: 웹검색이 불가해 원본 코드로 대조했다. OpenRA Viewport의 Center(), Scroll(), AdjustZoom(dz, center)는 mapBounds.Clamp(CenterLocation)로 중심만 가둔다. mapBounds는 map.ProjectedTopLeft/BottomRight, 즉 플레이 가능한 경계다. 단, Scroll(ignoreBorders=true)이면 가두지 않는다. 0 A.D. CameraController는 pivot을 te…
+  - 출처: https://github.com/OpenRA/OpenRA/blob/1f594e32065615ed1847962c80ecfe6e868a11c3/OpenRA.Game/Graphics/Viewport.cs#L350-L373, https://github.com/OpenRA/OpenRA/blob/1f594e32065615ed1847962c80ecfe6e868a11c3/OpenRA.Game/Graphics/Viewport.cs#L172-L177
+- [p_alerts_camera-15·verified] (Godot 4 Camera2D (우리 엔진)) Godot 4의 Camera2D limit_top·limit_bottom 등은 카메라가 보여 주는 화면 사각형의 가장자리가 그 값을 넘지 않게 막고(한계 폭이 화면보다 좁으면 가운데로 맞춤), offset은 이 제한을 계산한 뒤에 더해지므로 화면을 한계 밖으로 밀 수 있다.
+  - 맥락: Godot master의 Camera2D.xml에 «The camera stops moving when reaching this value, but offset can push the view past the limit.»라고 적혀 있다. camera_2d.cpp L166~190에서 screen_rect 가장자리를 clamp하고, L257에서 screen_rect.position += offset을 한다. 프로젝트가 쓰는 4.7.2에서도 같은지 다시 확인해야 한다. 지금 camera.gd는 limit_*를 쓰지 않고 직접 clamp…
+  - 검증: 웹검색이 불가해 원본 코드로 대조했다. Camera2D.xml의 limit_* 설명에 'offset can push the view past the limit'가 있다. 4.7.2-stable 태그의 camera_2d.cpp는 master와 바이트 단위로 같다(diff 없음). 기본 경로(L229~253)는 screen_rect 가장자리를 limit으로 clamp하고, 한계 폭이 화면보다 좁으면 가운데로 맞춘다. 그다음 L257에서 screen_rect.posi…
+  - 출처: https://github.com/godotengine/godot/blob/master/doc/classes/Camera2D.xml#L150-L169, https://github.com/godotengine/godot/blob/master/scene/2d/camera_2d.cpp#L166-L190
+- [blizzard-14·partly] (Warcraft III (Classic/Reforged)) 원작 WC3의 아래 콘솔을 두고 블리자드 포럼의 한 사용자는 화면의 거의 50%를 덮는다고, 와이드스크린 모드 제작자는 큰 TV에서 화면의 1/3을 덮는다고 평가했다.
+  - 맥락: PC Gamer는 2018년 와이드스크린 패치(1.29) 뒤에도 기지 주변을 볼 화면이 더 있었으면 한다고 썼고, TechRadar는 와이드 대응이 주로 양옆 검은 기둥을 더한 것이었다고 보도했다. 포럼 답글들은 고전 느낌을 지키려 크기를 유지했고, 대회 공정성 때문에 줌을 잠갔다고 설명한다. 우리 게임: (7) 전투 중 HUD가 화면 위 약 40%를 덮는 문제에 쓴다. 블리자드 게임에서도 이 정도 비율이면 불만이 나왔다는 비교 기준이 된다.
+  - 검증: 1/3 쪽은 비슷한 독립 근거가 있다. 다른 와이드스크린 모드(W3TrueWidescreen) README가 큰 화면에서 원래 콘솔이 '높이의 1/3'을 차지한다고 적었다. 다만 '화면 1/3'이 아니라 '높이 1/3'이다. 포럼 사용자의 '거의 50%'와 PC Gamer·TechRadar 보도는 검색할 수 없어 확인하지 못했다.
+  - 출처: https://us.forums.blizzard.com/en/warcraft3/t/ui-size-too-big/13798, https://www.nexusmods.com/warcraft3/mods/36
+- [td_bars-bt-04·partly] (Bloons TD 6) 타워 상세(업그레이드) 패널이 왼쪽에 열리면 왼쪽 위 생명·돈 표시가 화면 절반쯤 오른쪽으로 옮겨지고, 오른쪽에 열리면 맨 오른쪽 위 라운드 표시가 가운데 칸으로 밀려난다.
+  - 맥락: 2026년 BloonsPlus 봇 코드의 주석과 OCR 좌표 분기에서 확인했다(왼쪽 패널일 때 생명 x 226~312, 돈 x 378~503, 960폭 기준). 패널이 HUD 수치를 가리지 않도록 HUD 쪽이 자리를 옮긴다. 우리 문제 (6)·(7): 창이나 패널이 열리면 겹치는 HUD 칸을 비켜 놓는 규칙의 근거다.
+  - 검증: BloonsPlus replay.py에 왼쪽 패널이 열리면 lives·cash 좌표를 바꾸고, 오른쪽 패널이 열리면 round를 가운데 칸(505-612/960 ≈ 53~64%)으로 옮기는 분기가 있다. 방향은 맞다. 그러나 '화면 절반쯤'은 주석의 표현이고, 같은 코드의 좌표로 보면 lives는 약 3~10%에서 23.5~32.5%로, money는 약 19~32%에서 39~52%로 옮겨진다. 실제 이동은 화면 너비의 약 20%(패널 너비 정도)이다.
+  - 출처: https://github.com/Klaasawastaken/BloonsPlus/blob/main/autobtd6/replay.py#L3060-L3128
+
+## 기타 (other) — 10개
+
+- [pixel_minimal-31·verified] (Loop Hero) Loop Hero 비디오 옵션에는 CRT 셰이더 켜기·끄기 항목(V-sync와 함께)이 있다. 그래픽 개발자 Garrett Gunnell(Acerola)은 이 CRT 셰이더를 연구해 Unity 후처리 효과로 다시 만들었다.
+  - 맥락: 1.105 스크린숏에서는 CRT SHADER가 켜져 있다. 우리 게임과의 관련: 640×360 정수배 확대 위의 화면 효과는 HUD 글자 가독성에 영향을 주므로 끌 수 있어야 한다는 참고점이다(직접 근거는 약함).
+  - 검증: 1.105 비디오 옵션에 CRT SHADER와 V-SYNC 체크가 있고 둘 다 켜져 있다. CRT-Shader README는 'A study of Loop Hero's CRT shader, implemented as a Unity post processing effect'라고 쓴다. GarrettGunnell 프로필 README에 'Hello I am Acerola and I'm a graphics programmer'라고 나온다.
+  - 출처: https://github.com/GarrettGunnell/CRT-Shader
+- [p_pixel_ui-01·verified] (Godot 4 해상도 설정(기준 해상도 640×360)) Godot 공식 문서는 도트 게임의 기준 해상도로 640×360을 권하고, 이 크기는 정수배로 키우면 1280×720·1920×1080·2560×1440·3840×2160 화면을 검은 띠 없이 꽉 채운다고 쓴다.
+  - 맥락: 같은 문서의 예: 창이 1366×768일 때 fractional 모드는 약 2.133배라서 도트 하나가 화면 픽셀 2.133개를 차지해야 하고, 그래서 도트 크기가 고르지 않게 보인다. integer 모드는 2배(1280×720)로 그리고 네 변에 검은 띠를 남긴다. Stretch Scale Mode=integer는 Godot 4.2부터 있다. 우리 프로젝트는 이미 640×360, canvas_items, scale_mode=integer, 기본 텍스처 필터 Nearest(0)로 설정돼 있다. 우리 게임 적용: 1080p에서는 3배…
+  - 검증: WebSearch는 세션 검색 한도가 이미 차서 한 번도 실행되지 않았다. 그래서 GitHub 원문을 직접 읽어 확인했다. multiple_resolutions.rst의 Pixel art 절에 '640×360 is a good baseline, as it scales to 1280×720, 1920×1080, 2560×1440, and 3840×2160 without any black bars when using integer scaling'이 있다. 1366×…
+  - 출처: https://raw.githubusercontent.com/godotengine/godot-docs/master/tutorials/rendering/multiple_resolutions.rst, https://raw.githubusercontent.com/godotengine/godot/master/doc/classes/ProjectSettings.xml
+- [p_pixel_ui-09·verified] (Godot 4 9-slice(NinePatchRect·StyleBoxTexture)) Godot 4의 NinePatchRect와 StyleBoxTexture는 작은 텍스처를 3×3으로 나눠 모서리는 그대로 두고 가장자리와 가운데만 늘이거나(STRETCH, 기본) 반복해서(TILE·TILE_FIT) 어떤 크기의 패널이든 만들며, 나누는 선은 픽셀 단위 여백(patch_margin_*·texture_margin_*)으로 정한다.
+  - 맥락: NinePatchRect 문서의 예: 여백이 16이면 모서리와 변의 두께가 16px이다. draw_center=false로 두면 테두리만 그린다. StyleBoxTexture는 Theme에서 Button과 Panel의 상태별 스타일로 넣을 수 있어서, 노드마다 NinePatchRect를 따로 둘 필요가 없다. 함정 두 가지. 첫째, 편집기의 Edit Region 선은 슬라이스가 아니라 텍스처의 일부 영역을 고르는 선이고, 슬라이스는 Texture Margin 값으로 정한다(이슈 #93419). 둘째, content margin을 t…
+  - 검증: NinePatchRect.xml에 '9-slice panels ... splits the texture in a 3×3 grid ... leaves the corners unchanged'가 있다. 'A margin of 16 means ... 16 pixels'가 있고, draw_center=false면 테두리만 그리며, axis_stretch 기본값은 0(STRETCH)이고 TILE/TILE_FIT가 있다. StyleBoxTexture도 3×3, textur…
+  - 출처: https://raw.githubusercontent.com/godotengine/godot/master/doc/classes/NinePatchRect.xml, https://raw.githubusercontent.com/godotengine/godot/master/doc/classes/StyleBoxTexture.xml
+- [p_pixel_ui-10·verified] (Shattered Pixel Dungeon·Mindustry 9-slice 실제 크기) 도트 게임 소스 두 곳은 창과 버튼 테두리를 아주 작은 9-slice 조각으로 그린다: Shattered Pixel Dungeon의 Chrome.java는 WINDOW를 20×20 조각에 여백 6, TOAST를 9×9에 여백 4, RED_BUTTON과 GREY_BUTTON을 6×6에 여백 2로 정의하고, Mindustry는 button.9.png, button-over.9.png, button-down.9.png, button-disabled.9.png처럼 상태별 9-patch PNG를 따로 두며 button.9.png는 표시선을 포함해 38×29이다.
+  - 맥락: SPD는 가상 해상도를 정수 배율로 키우는 도트 게임이다(PixelScene). Mindustry는 타워 디펜스와 공장 건설을 섞은 게임이고, .9.png는 바깥 1px이 늘이기 표시선인 안드로이드 9-patch 형식이다. 판: 두 저장소 모두 현재 master. 우리 게임 적용: 640×360 기준이면 버튼 테두리는 여백 2~3px, 창 테두리는 여백 4~6px 정도의 작은 조각이면 충분하다는 실제 예다. 비활성 버튼도 별도 조각으로 그린다(문제 3).
+  - 검증: Chrome.java를 직접 확인했다: WINDOW=NinePatch(Asset,0,0,20,20,6), TOAST=(20,0,9,9,4), RED_BUTTON=(38,0,6,6,2), GREY_BUTTON=(38,6,6,6,2). SPD-classes NinePatch.java의 생성자 (tx,x,y,w,h,margin)로 마지막 인자가 여백임을 확인했다. Mindustry core/assets-raw/sprites/ui의 button/button-over/b…
+  - 출처: https://raw.githubusercontent.com/00-Evan/shattered-pixel-dungeon/master/core/src/main/java/com/shatteredpixel/shatteredpixeldungeon/Chrome.java, https://raw.githubusercontent.com/Anuken/Mindustry/master/core/assets-raw/sprites/ui/button-disabled.9.png
+- [castle-03·partly] (Stronghold Crusader) 손으로 열어 둔 성문도 적 유닛이 가까이 오면 저절로 닫힌다.
+  - 맥락: 팬 위키와 Crusader HD Steam 토론에서 한 플레이어가 '열어 뒀는데 적이 오니 다시 닫혔다'고 했다. 자동 규칙이 화면에 안 보이면 플레이어가 혼란을 겪는다는 뜻이다. 우리 성문에 '자동 닫힘' 상태 표시(아이콘·툴팁)를 붙일 근거.
+  - 검증: 독립 근거: UCP 2 현지화 파일(o_responsivegates_descr)에 원본 Crusader 1에서 적이 사거리 200 안에 들어오면 성문이 '스스로 닫히고', 적이 모두 떠나고 1200틱 뒤 다시 열린다는 설명이 있다. 그래서 자동 닫힘 자체는 뒷받침된다. 다만 '손으로 열어 둔 성문도' 닫힌다는 부분은 이 자료에 없고 확인하지 못했다. Crusader 1(v1.41) 기준이라 DE 동작은 다를 수 있다.
+  - 출처: https://stronghold.fandom.com/wiki/Gatehouse/Stronghold_Crusader, https://steamcommunity.com/app/40970/discussions/0/2183537632757631684/
+- [td_bars-rt-05·partly] (Rogue Tower) 업그레이드 카드는 정해진 라운드 간격마다 뽑는데, 영구 업그레이드(Card Draw)를 사면 간격이 «3라운드마다»에서 «2라운드마다», «매 라운드»로 짧아진다.
+  - 맥락: 문자열만으로는 기본 간격이 몇 라운드인지 알 수 없다. 우리 게임: 영입 창을 매 라운드 사이에 띄울지, 몇 라운드마다 띄울지 정할 때의 비교 근거다.
+  - 검증: 간격 문자열 'every 3 rounds'(L33), 'every 2 rounds'(L1187), 'every round'(L34)는 있다. 그러나 업그레이드 이름이 틀렸다. 'Card Draw I~III'는 뽑는 카드 수를 1장 늘리고(L30), 간격을 줄이는 것은 'Draw Frequency I·II'(L31-32)이다. Draw Frequency는 2단계뿐이라 3→2→1 사다리와 기본 간격이 정확히 어떻게 이어지는지는 확인하지 못했다.
+  - 출처: https://github.com/whatdidyousayme/Rogue-Tower-Russian/blob/main/translations.json#L27-L34, https://github.com/whatdidyousayme/Rogue-Tower-Russian/blob/main/translations.json#L1187
+- [p_pixel_ui-02·partly] (Godot 4 늘이기 모드(viewport vs canvas_items)) Godot 문서에 따르면 canvas_items 늘이기 모드는 목표 해상도로 직접 그리기 때문에 스프라이트 픽셀과 화면 픽셀이 1:1로 맞지 않아 확대 아티팩트가 생길 수 있고, 문서는 도트 게임에 viewport 모드(기준 해상도로 먼저 그린 뒤 통째로 확대)를 권한다.
+  - 맥락: ProjectSettings 문서에 따르면 canvas_items는 Godot 4.7부터 새 프로젝트의 기본값이다. 문서는 canvas_items를 '도트 미학이 아닌 대부분의 게임에 권장(도트 게임에도 쓸 수는 있음)'으로, viewport를 '도트 미학 게임에 권장'으로 적는다. 스프라이트를 서브픽셀 단위로 움직이거나 회전하고 싶을 때만 canvas_items를 쓰라고도 한다. 이슈 #47089(아직 열림)는 2d 모드(지금의 canvas_items)에서 DynamicFont Label이 창 크기에 따라 1픽셀 줄이 겹치거나 빠…
+  - 검증: 핵심은 원문과 맞다. canvas_items 항목에는 'no longer a 1:1 correspondence between sprite pixels and screen pixels, which may result in scaling artifacts'가 있고, viewport 항목에는 'Recommended for games that use a pixel art aesthetic'이 있다. 4.7-stable ProjectSettings에도 'default f…
+  - 출처: https://raw.githubusercontent.com/godotengine/godot-docs/master/tutorials/rendering/multiple_resolutions.rst, https://raw.githubusercontent.com/godotengine/godot/master/doc/classes/ProjectSettings.xml
+- [aoe_northgard-08·likely] (Age of Empires IV) AoE IV 시즌 1 업데이트(2022)로 HUD에 '전역 생산 대기열'이 생겼다. 맵 곳곳의 건물이 대기 중인 유닛·업그레이드가 칸으로 보이고, 칸을 누르면 그 건물이 선택되며 카메라가 옮겨 가고, Ctrl+클릭하면 가장 최근에 넣은 항목이 취소된다.
+  - 맥락: 설정에서 끄거나 '업그레이드만'으로 줄일 수 있고, 관전 모드에서도 보인다. 그 전(2021)에는 AoE II 같은 전역 대기열이 없고 건물마다 따로 대기열을 넣는다는 지적이 있었다(https://www.maguro.one/2021/12/aoe4.html). 생산 항목에는 '대기열 칸' 위계가 있다. 우리 게임 (4)(7): 전투 중 마을 생산·건설 진행을 카메라를 옮기지 않고 보여 주는 작은 대기열 줄과, 누르면 그 시설로 가는 동작의 근거다.
+  - 검증: 검색 한도가 다 차서 패치 노트를 확인하지 못했다. 현재 키 프로필에 cycle_global_queue(기본 Control+Shift+Q) 명령이 있어 전역 대기열이 있다는 것까지는 뒷받침된다. 시즌 1에 들어왔다는 시점, 칸을 누르면 그 건물로 이동한다는 동작, Ctrl+클릭으로 취소한다는 동작은 확인하지 못했다.
+  - 출처: https://www.ageofempires.com/news/age-of-empires-iv-season-one-update-release-notes/, https://www.player.one/age-empires-iv-season-one-update-features-global-build-queue-and-improved-146736
+- [minimal-16·unverified] (Bad North) PocketGamer.biz 인터뷰에서 Richard Meredith는 RTS의 복잡함에 질린 전략 게임 팬을 노렸다고 말했고, Oskar Stålberg는 타워 디펜스 Revenge of the Titans의 최소주의 외형에서 영향을 받았다고 밝혔다.
+  - 맥락: 개발자 인터뷰다. 최소 UI가 '쉬운 접근'이라는 목표에서 나왔다는 점을 보여 준다. 우리 게임은 3중 복합이라 정보가 많으므로, 모든 것을 줄이기보다 단계(준비/전투)마다 필요한 것만 보여 주는 쪽이 이 철학에 가깝다.
+  - 검증: 검색 한도 소진으로 검색하지 못했다. PocketGamer.biz 인터뷰의 두 발언(RTS 복잡함에 질린 팬, Revenge of the Titans 영향)을 다른 인터뷰로 대조하지 못했다.
+  - 출처: https://www.pocketgamer.biz/interview/68638/indie-spotlight-plausible-concept-on-bad-north/
+- [p_cogload-01·unverified] (Plants vs. Zombies — 화면 텍스트 길이) 같은 강연 노트에 따르면 PvZ는 화면 안내 텍스트를 한 번에 약 8단어로 제한했다.
+  - 맥락: 출처 경위: /home/user/td-proj/ai_game_reference_research/99_sources.md Q2-a2(S24, 2차 노트로 확인). 같은 노트에 따르면 같은 곳에서 계속 막힐 때만 힌트를 단계적으로 주었다(Q2-a5). 인지 부하를 다룬 사례지만, Hodent처럼 인지과학 쪽에서 낸 근거는 아니다. 우리 게임: 문제 (1)에 쓴다. «방벽 10 (1) (공병 없음)»처럼 버튼 하나에 정보를 몰아넣지 말고, 버튼에는 아이콘과 비용만 두고 못 쓰는 이유는 짧은 툴팁 한 줄로 옮기는 근거가 된다.
+  - 검증: 검색 한도 소진으로 확인하지 못했다. 근거는 로컬 Q2-a2의 2차 노트 하나뿐이다. 기억으로는 George Fan 강연의 튜토리얼 팁 요약에 '화면 텍스트를 최소화한다'는 취지가 있었던 것 같다. 하지만 '약 8단어'라는 수치는 이번에 다른 출처로 확인하지 못했다.
+  - 출처: https://notes.hamatti.org/sources/talks/how-i-got-my-mom-to-play-through-plants-vs.-zombies
+
+## 조사원이 확인하지 못한 것(gaps)
+- (ironhide) Kingdom Rush 건설 메뉴 버튼의 가격 표기 위치(아이콘 아래 금화 숫자인지 등)와 돈이 모자랄 때의 표시(회색/가격 빨간색)는 검색으로 확인하지 못함. Vengeance에서 바깥 업그레이드 트리에서 풀지 않은 타워 능력이 전투 중 회색 아이콘으로 보인다는 언급은 MOD APK 사이트(oyunclubnet.com/kingdom-rush-vengeance/)뿐이라 claim에서 뺌
+- (ironhide) 잠긴 업그레이드(4단계 분기 등)의 자물쇠 표시 방식은 확인 못 함. 도전 모드(Iron/Heroic)에서 별 업그레이드가 제한된다는 것만 Steam 글로 확인
+- (ironhide) 주문(불의 비·증원)·영웅 스킬 버튼의 정확한 화면 위치(왼쪽 아래 추정)와 재사용 대기 그림(시계 방향 채움 등)은 검색으로 확인 못 함. 왼쪽 아래 위치는 Alliance 이용자 댓글과 개발자의 '왼쪽 아래 큰 아이콘(영웅)' 언급뿐
+- (ironhide) 해골 웨이브 아이콘의 원형 타이머(도착까지 남은 시간이 차오르는 링)는 확인 못 함
+- (ironhide) 일시정지 버튼의 화면 위치(오른쪽 위 등)와 Origins·Alliance의 배속 버튼 유무는 확인 못 함
+- (ironhide) PC판 마우스 호버 툴팁의 유무와 내용, 건설 전 사거리 원 미리보기는 확인 못 함
+- (tab) They Are Billions: 하단 패널의 정확한 크기와 비율, 버튼·아이콘 크기, HUD 글꼴 정보를 찾지 못했다(font_icon_size).
+- (tab) They Are Billions: 못 짓는 버튼의 실제 모양(회색 처리인지 숨김인지), 툴팁에 나오는 항목, 잠긴 건물 표시 방식을 확인하지 못했다.
+- (tab) They Are Billions: 미니맵을 클릭하면 카메라가 옮겨 가는지, 경보가 미니맵에서 깜빡이는지 확인하지 못했다. 플레이어들이 미니맵 깜빡임을 요구했다는 글만 있다.
+- (tab) They Are Billions: 1.0 이후 공식 건설 단축키가 추가됐는지 확인하지 못했다. 얼리 액세스 시기 서드파티 스크립트만 확인했다.
+- (tab) They Are Billions: 배속 기능이 없다는 것은 포럼 증언뿐이고 공식 자료는 찾지 못했다.
+- (tab) Age of Darkness: 하단 HUD 전체 배치(선택 패널, 명령 칸, 자원 표시의 위치)를 확인하지 못했다. 미니맵이 오른쪽 위에 있다는 것도 사용자 답글 하나뿐이다.
+- (blizzard) StarCraft II에서 에너지(마나)가 모자랄 때 명령 카드 버튼 모양(어둡게, 색 입힘 등): 'Not enough energy' 음성 줄만 확인했다
+- (blizzard) Warcraft III 원작에서 재사용 대기 표시 모양(시계 방향 덮개 여부): Reforged 2.0의 숫자 표시만 확인했다
+- (blizzard) Warcraft III 마나 부족 시 아이콘이 파래지는 것: 간접 근거 하나(모딩 가이드)뿐이고 공식 근거가 없다
+- (blizzard) Warcraft III 영웅 아이콘 아래 체력·마나 막대의 기본 모양: 모딩 스레드에서 프레임이 있다는 것만 확인했다
+- (blizzard) StarCraft II 툴팁의 비용(광물·가스·인구·생산 시간) 줄 구성과 순서
+- (blizzard) Warcraft III 툴팁에서 못 채운 요구 조건(예: 성채 필요)이 붉은 글씨인지: StarCraft II는 4.13 PTR 노트로 간접 확인했다
+- (aoe_northgard) AoE IV 미니맵의 화면 모서리 위치: 팬 위키 Mini_map 문서는 왼쪽 아래, User_interface 문서와 포럼 글은 오른쪽 아래라고 해서 출처끼리 엇갈린다. 지금의 기본 위치는 확인하지 못했다.
+- (aoe_northgard) AoE IV 생산·건설 버튼 툴팁에 비용·생산 시간·요구 조건(랜드마크·시대)이 어떤 형식과 색으로 나오는지에 대한 1차 근거가 없다(검색 요약에서 나오지 않음).
+- (aoe_northgard) AoE IV에서 못 쓰는 버튼(시대 잠김, 자원 부족)의 시각 상태(회색, 비용 빨간색, 자물쇠 등)를 다룬 근거가 없다. 다음 시대 건물이 숨겨지는지 흐리게 보이는지도 확인하지 못했다.
+- (aoe_northgard) AoE IV에서 건물 하나를 골랐을 때 개별 생산 대기열 칸이 화면 어디에 놓이는지 확인하지 못했다(전역 대기열 HUD의 정확한 위치도 마찬가지).
+- (aoe_northgard) AoE IV 화면 밖 공격 경보를 화면 가장자리에 표시하는 기능: 플레이어 요청만 있고 구현됐다는 근거는 없다.
+- (aoe_northgard) AoE IV의 '공격받음' 알림 문구 배너가 화면 어디에(위 가운데, 왼쪽 등) 뜨는지 확인하지 못했다.
+- (castle) 검색 예산 소진: 12번 시도 가운데 9번만 실행되고, 나머지는 '이번 턴 WebSearch 한도(200회, 모든 에이전트 공유)를 다 썼다'는 이유로 거부됨. 아래 항목은 추가 검색을 못 해서 확인하지 못함.
+- (castle) Stronghold의 큰 아래 장식 패널 자체: 화면 높이에서 차지하는 비율, 패널 칸 구성(왼쪽 건설 아이콘/가운데 미니맵/오른쪽 책), DE에서 패널 크기를 줄이거나 숨기는 옵션이 있는지. 패널이 화면을 너무 덮는다는 직접 불만도 못 찾음(와이드 화면 일반 불만만 찾음).
+- (castle) Stronghold Crusader 건설 범주 전체 목록(성곽·산업·농장·마을·무기·식량 같은 탭)과 성곽 탭 안의 성벽/탑/성문/함정 하위 묶음 구성.
+- (castle) Stronghold 단축키(H 성채, G 곡물 창고, B 병영, M 시장): 검색 요약에 나왔지만 어느 URL의 말인지 특정하지 못해 claim에서 뺌.
+- (castle) Stronghold DE 플레이어들이 V키 'Peek' 보기의 복귀를 요청했다는 내용은 확인함(https://steamcommunity.com/app/3024040/discussions/0/597390873150437961/). 하지만 Peek이 정확히 무엇을 하는지(성벽·건물 가리기 해제 등)는 확인하지 못해 claim으로 쓰지 않음. 원작 Space 키로 건물을 납작하게 눌러 보는 기능도 검색으로 뒷받침되지 않음.
+- (castle) 두 게임의 툴팁 구성(비용·설명·단축키 표시)과, 지을 수 없는/잠긴 버튼을 어떻게 보이는지(회색·빨간 비용 등).
+- (minimal) 검색 예산 소진: 이 턴에서 모든 에이전트가 함께 쓰는 WebSearch 한도(200회)가 내 6번째 검색 뒤 다 떨어져, 이후 검색(Thronefall 밤/낮 전환 UI, Thronefall 개발자 인터뷰)은 실행되지 않았다. GitHub Pages(throne-fall.github.io)는 프록시가 403으로 막았고, GitHub 저장소 접근은 이 세션에 허용되지 않았다.
+- (minimal) Thronefall 밤/낮 전환 UI: 밤을 시작하는 방법(버튼, 길게 누르기, 링 게이지 등)과 화면의 어느 자리에 무엇이 뜨는지 확인하지 못했다.
+- (minimal) Thronefall 개발자(Grizzly Games, Jonas Tyroller·Paul Schnepf)의 UI 철학 인터뷰나 개발 영상을 찾지 못했다.
+- (minimal) Thronefall 전투 중 HUD: 왕(플레이어)과 성 체력, 남은 코인이 화면 어디에 표시되는지 확인하지 못했다.
+- (minimal) Thronefall에서 출현 아이콘이 낮 동안 화면 밖에 있을 때 가장자리 화살표 같은 표시가 있는지 확인하지 못했다.
+- (minimal) Bad North 바이킹 배 예고의 시각 표시(수평선의 배 모습, 화면 가장자리 표시, 상륙 지점 표시)를 확인하지 못했다. 찾은 것은 뿔나팔 소리 단서뿐이다.
+- (td_bars) WebSearch를 4번 보냈지만 모두 세션 검색 한도(200회) 소진으로 실행되지 않았다. 웹 검색은 0회, GitHub 저장소·코드 검색만 7회 했다. 그래서 모든 근거가 github.com 한 도메인이고 independent_domains는 전부 1이다. 언론·위키·개발자 인터뷰·Steam 상점 자료는 하나도 확인하지 못했다.
+- (td_bars) Rogue Tower: 다음 레벨(웨이브) 적 구성을 미리 보여 주는 UI가 있는지, 있다면 어디에 있는지 확인하지 못했다.
+- (td_bars) Rogue Tower: 적 경로를 화면에 강조하거나 예정 경로·출현 지점을 표시하는 방식을 화면으로 확인하지 못했다. 타일 확장 구조만 모드 README와 문자열로 확인했다.
+- (td_bars) Rogue Tower: 배속 버튼 유무, 화면 밖 적 경보, 미니맵 유무를 확인하지 못했다.
+- (td_bars) Rogue Tower: 카드 선택 창이 배경을 어둡게 까는지는 스크린샷 한 장(러시아어 번역 모드 적용)으로만 봐서 확정하지 못했다. 원본 영어판 화면은 보지 못했다.
+- (td_bars) BTD6: 오른쪽 타워 패널 안의 범주 필터(Primary/Military/Magic/Support) 위치, 타워 버튼의 가격 표시, 패널 스크롤 방식을 1차 자료로 확인하지 못했다.
+- (pixel_tactics) [중요] 이번 턴의 WebSearch 한도(턴 전체, 모든 에이전트 합산 200회)가 이미 다 쓰여서 이 조사원의 검색 3건이 하나도 실행되지 않았다. 그래서 검색 결과로 확인된 URL이 없고, 규칙(URL 없는 주장 금지)에 따라 claims를 비워 둔다. 이어서 조사하려면 사용자가 후속 메시지로 다시 시작하거나 CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION 값을 올려야 한다. 한도를 우회하는 다른
+- (pixel_tactics) The Last Spell — 영웅 초상화·스킬 바의 화면 위치와 동작(화면 아래 스킬 바, 왼쪽 초상화와 체력·마나·행동력 표시라고 기억하지만 검색으로 확인하지 못함). 우리 게임의 문제 (4)(5)에 쓸 근거.
+- (pixel_tactics) The Last Spell — 낮 단계 건설 메뉴 구조(건물 종류별 탭·아이콘·비용 표시, 못 짓는 이유 표시 방식). 미확인. 문제 (1)(3)에 쓸 근거.
+- (pixel_tactics) The Last Spell — 밤 웨이브 적 출현 방향 예고(낮 동안 다음 밤 적이 올 방향을 맵 가장자리에 표시한다고 기억함). 미확인. 웨이브 미리보기·화면 밖 경보 부재 문제에 쓸 근거.
+- (pixel_tactics) The Last Spell — 툴팁 밀도(스킬·특성·아이템 툴팁 정보량, 중첩 툴팁 여부). 미확인. 툴팁 0개 문제에 쓸 근거.
+- (pixel_tactics) The Last Spell — 낮/밤(준비/전투) 단계 전환 때 HUD가 어떻게 바뀌는지. 미확인. 문제 (2)(단계마다 버튼 줄 수·위치가 바뀌는 문제)에 쓸 근거.
+- (pixel_minimal) WebSearch를 3회 시도했지만 모두 '이번 턴 웹 검색 한도(200회) 소진'으로 실행되지 않았다. 그래서 언론·리뷰·위키·포럼 검색 결과는 하나도 얻지 못했다. 근거는 GitHub 1차 자료(디컴파일 코드, 모드 문서·코드, 원본 스크린숏)와 프로젝트의 이전 조사 대장(art_direction_research, ai_game_reference_research, game_design_research)으로만 모았다. 대부분
+- (pixel_minimal) Dome Keeper: 기자·리뷰어·개발사가 '최소 HUD'를 직접 평가하거나 설명한 글을 확보하지 못했다.
+- (pixel_minimal) Dome Keeper: 화면 밖 적 위치 표시가 있는지, 광산 미니맵이 정확히 어떻게 동작하는지 확인하지 못했다(stationextension.showminimap 속성 이름만 보임).
+- (pixel_minimal) Kingdom Two Crowns: 코인 주머니가 화면에 어떻게 보이는지(머리 위 표시, 가득 찼을 때 동전이 넘쳐 떨어지는지)를 1차 자료로 확인하지 못했다. 모드 코드로 '용량이 동전 크기에 묶여 있다'는 것만 확인했다.
+- (pixel_minimal) Kingdom Two Crowns: 기준 해상도와 도트 배율을 확인하지 못했다(원작 Kingdom 약 400×250 발언만 있음).
+- (pixel_minimal) Kingdom Two Crowns: 건물 가격이 세계 안의 동전 슬롯으로 표시되는 방식, 리뷰어의 'HUD 없음' 평가를 확보하지 못했다.
+- (pvz_frostpunk) 웹 검색을 못 했다: 첫 WebSearch 3건(PvZ 씨앗 재충전, PvZ 진행 막대·huge wave, Frostpunk 위쪽 자원 줄)이 모두 '이번 턴 WebSearch 한도(200회, 모든 에이전트 공유) 소진'으로 돌아왔다. 한도를 피하려고 다른 검색 경로를 쓰지 않았다. 더 찾으려면 사용자가 다음 메시지로 이어서 요청하거나 CLAUDE_CODE_MAX_WEB_SEARCHES_PER_SESSION을 올려야 한다.
+- (pvz_frostpunk) PvZ 주장 15개는 모두 GitHub의 커뮤니티 디컴파일(Patoke/re-plants-vs-zombies, GOTY PC판)을 raw.githubusercontent.com으로 직접 읽어 확인했다. 그래서 independent_domains는 모두 1이고 공식·언론·위키로 교차 확인하지 못했다.
+- (pvz_frostpunk) PvZ 툴팁 경고 키([WAITING_FOR_SEED], [NOT_ENOUGH_SUN], [ADVICE_HUGE_WAVE] 등)의 실제 영어 문구는 확인하지 못했다(LawnStrings.txt가 짐작한 경로에 없음). 'A huge wave of zombies is approaching!' 같은 문구는 기억일 뿐이다.
+- (pvz_frostpunk) PvZ 틱 단위를 초로 바꾼 값(1초에 100번 갱신 → 재충전 7.5/30/50초, 큰 웨이브 경보 7.5초)은 소스에서 갱신 주기를 확인하지 않았다.
+- (pvz_frostpunk) PvZ 모바일판·HD판·리플랜티드(리마스터) 판의 차이는 확인하지 못했다.
+- (pvz_frostpunk) PvZ UI를 두고 언론·개발자가 한 평가(예: 재충전 표시가 읽기 쉽다는 평)는 확인하지 못했다.
+- (p_hierarchy) [중요] 이번 작업에서 WebSearch는 한 번도 실행되지 않았다. 3회 시도했지만 이 턴의 모든 에이전트가 함께 쓰는 검색 한도(200회)가 이미 소진돼 모두 거부됐다. 그래서 위 15개 주장은 모두 프로젝트에 이미 있는 조사 파일(/home/user/td-proj/art_direction_research/99_sources.md, /home/user/td-proj/ai_game_reference_research/99_so
+- (p_hierarchy) Zach Gage GDC 2018 발표의 정식 제목 «Building Games That Can Be Understood at a Glance»와 GDC Vault 페이지, 그리고 이 제목과 stfj.net 원고 «Designing for Subway Legibility»가 같은 발표인지 확인하지 못했다.
+- (p_hierarchy) Three Reads 세 층의 구체 정의(첫눈·둘째·셋째에 무엇이 읽혀야 하나)를 확인하지 못했다. 프로젝트의 기존 2차 요약 기반 주장은 0-3으로 기각됐다.
+- (p_hierarchy) 지하철 노선도 비유의 구체 내용(색 수 제한, 선 단순화, 아이콘·실루엣 규칙 등)을 확인하지 못했다.
+- (p_hierarchy) Celia Hodent «The Gamer's Brain»의 지각·주의·인지 부하·기억 한계, UX 기둥(사용성·몰입) 내용을 하나도 확인하지 못했다. 기억으로 아는 내용도 검색으로 뒷받침하지 못해 넣지 않았다.
+- (p_hierarchy) 게임 HUD의 시각적 위계(크기·색·대비·위치로 중요도를 나누는 방식)를 다룬 사례나 연구를 찾지 못했다. 근거는 MOBA 연출에 관한 Riot 원칙 1건뿐이다.
+- (p_disabled_modal) WebSearch 예산 소진: 시도한 검색 3회(Smashing 'Hidden vs Disabled', NN/g 비활성 버튼, Material scrim 32%)가 모두 '이번 턴 검색 한도(200회, 에이전트 공유) 소진'으로 실행되지 않았다. 그래서 근거는 전부 GitHub 1차 자료(디자인 시스템 문서 저장소, 오픈소스 게임 코드, W3C WCAG 원문)를 raw로 직접 읽어 모았다. 더 검색하려면 사용자가 후속 메시지를
+- (p_disabled_modal) Smashing Magazine «Hidden vs. Disabled In UX» 글의 주장(숨김/비활성 판단 기준)은 직접 확인하지 못했다. 대신 같은 취지의 Carbon Disabled states 패턴(일시적이면 비활성, 권한이면 숨김)으로 뒷받침했다.
+- (p_disabled_modal) NN/g의 비활성 버튼 지침(이유 표시, 저대비 문제 등)은 확인하지 못했다. 같은 방향의 GOV.UK·Primer·Polaris 원문으로 대신했다.
+- (p_disabled_modal) Crusader Kings 3 중첩 툴팁(강조 용어, 툴팁 고정·잠금 방식, 고정까지 걸리는 시간)은 확인하지 못했다. GitHub에 1차 자료가 없고 웹 검색은 막혔다. WCAG 1.4.13의 hoverable 조건과 Material 지속형 리치 툴팁은 그 전제가 되는 동작의 근거일 뿐이다.
+- (p_disabled_modal) m3.material.io의 scrim 지침 본문(문구)은 읽지 못했다. 32%라는 값은 Material 공식 컴포넌트 구현(MDC Web, material-web)의 코드 값으로만 확인했다.
+- (p_disabled_modal) 상용 게임(StarCraft II, Kingdom Rush, They Are Billions 등)의 일시정지 메뉴 배경 불투명도, 툴팁 지연, 빨간 비용 표기는 확인하지 못했다. 오픈소스 게임(0 A.D., OpenRA, Wesnoth, Mindustry, Unciv)과 Godot 공식 데모로만 근거를 댔다.
+- (p_cooldown_hotkey) WebSearch 예산이 이번 턴의 다른 에이전트들 때문에 이미 다 써져서(턴당 200회 한도) 시도한 검색 3회가 모두 실행되지 않았다. 근거는 과제가 허용한 GitHub 1차 자료(raw.githubusercontent.com)만으로 모았다. 그래서 모든 주장이 independent_domains=1이다. 더 찾으려면 사용자가 후속 메시지로 검색 예산을 다시 열어야 한다.
+- (p_cooldown_hotkey) StarCraft II Grid 단축키 배치(명령 카드 5×3을 QWERT/ASDFG/ZXCVB에 묶는 방식, Standard·Classic·Grid 프로필)는 출처를 확보하지 못했다.
+- (p_cooldown_hotkey) Age of Empires IV Grid 단축키 배치와 기본 프로필(Grid·Classic 등)은 출처를 확보하지 못했다.
+- (p_cooldown_hotkey) League of Legends의 재사용 대기 부채꼴 막과 남은 초 숫자, 마나 부족 시 아이콘 파란 덮개, 기본 Q·W·E·R·D·F 배치는 출처를 확보하지 못했다. Dota 2 단축키 템플릿 이름에 'League of Legends'가 있다는 것만 확인했다.
+- (p_cooldown_hotkey) Dota 2 HUD의 실제 시각 표현은 확인하지 못했다. 재사용 대기 막의 방향, 마나 부족 시 아이콘 틴트 색, 기술 아이콘 위 단축키 글자 위치가 해당한다. 추적 저장소에 panorama 스타일(CSS·XML) 파일이 없고 문자열만 있었다.
+- (p_cooldown_hotkey) WoW 재사용 대기 막이 '시계 방향으로 줄어든다'는 방향은 소스에 명시되지 않았다. Cooldown API의 SetReverse 기본값이 false라는 것만 확인했다.
+- (p_alerts_camera) WebSearch 예산 소진: 이번 턴에 보낸 WebSearch 3회(WC3 스페이스바·SC2 마지막 경보 키·Reforged HUD 비판)가 모두 '턴 공유 한도 200회 소진'으로 실행되지 않아 웹 검색 결과는 0건이다(searches_run=0). 모든 근거는 GitHub 1차 자료(오픈소스 게임 소스·설정·Godot 공식 문서)로 바꿨고, 그래서 모든 주장의 independent_domains가 1(github.com)
+- (p_alerts_camera) Warcraft III(원작·Reforged)의 스페이스바 '마지막 사건 위치로 이동', 'Our town is under attack' 음성, 미니맵 깜박임: 출처를 확보하지 못했다. 06·07의 Stratagus는 Warcraft II 데이터를 돌리는 재구현일 뿐 Blizzard 원작의 근거가 아니다.
+- (p_alerts_camera) StarCraft II의 기본 단축키(스페이스바=마지막 경보로 이동, Backspace=기지 순환)와 경보음·미니맵 핑 모양: 출처를 확보하지 못했다. 확보한 것은 공식 API(s2client-proto)의 경보 종류 목록뿐이다.
+- (p_alerts_camera) SC2·WC3 Reforged의 HUD 크기·화면 가림에 대한 비판(언론·커뮤니티·개발자 발언): 출처 0건.
+- (p_alerts_camera) 상용 RTS가 '카메라를 HUD 높이만큼 맵 밖으로 더 움직이게 한다'고 밝힌 문서나 개발자 발언: 확보하지 못했다. 오픈소스 코드의 '화면 중심만 가두기'(OpenRA·0 A.D.)만 확인했다.
+- (p_alerts_camera) 상용 타워 디펜스·RTS의 화면 가장자리 화살표(웨이브 진입 방향, 화면 밖 아군 피격) 사례: 웹 출처가 없다. BAR(지도 표시 십자선을 가장자리에 고정)와 Mindustry(캐릭터 둘레 방향선)만 확보했다.
+- (p_pixel_ui) WebSearch는 3번 시도했지만 세션 전체 검색 한도(200회)가 이미 바닥나 한 번도 실행되지 않았다. 그래서 근거는 모두 GitHub(godot-docs·godot 클래스 문서·Galmuri·TakWolf·SPD·Mindustry 저장소와 godot 이슈)에서만 모았고, 모든 주장의 independent_domains가 1(github.com / raw.githubusercontent.com)이다. 도메인 2개 이상으로
+- (p_pixel_ui) 480×270 기준 해상도의 관행과 실제 게임 예, 그리고 640×360·480×270에서 상용 도트 TD·RTS(예: Kingdom Rush 계열)가 쓰는 HUD 글자·아이콘 픽셀 크기는 찾지 못했다.
+- (p_pixel_ui) 도트 그림 위에 벡터 글꼴을 섞을 때의 문제(이른바 'mixels', 픽셀 밀도 불일치)를 다룬 디자인 글이나 GDC 자료는 GitHub 밖이라 확보하지 못했다. 이번 근거는 Godot 문서·이슈와 SPD 소스로 한정된다.
+- (p_pixel_ui) Galmuri11 TTF를 Godot에서 쓸 때 줄 높이로 hhea(14px)와 win/BDF(16px) 중 어느 쪽을 쓰는지는 실행해서 확인하지 않았다.
+- (p_pixel_ui) Galmuri README 각주는 Galmuri7에 한글 음절이 4,358자뿐이라고 적지만, dist/Galmuri7.bdf(v2.404)를 직접 세어 보면 11,172개 인코딩이 들어 있다. 어느 쪽이 맞는지는 풀지 못했다.
+- (p_pixel_ui) Galmuri11Bitmap-Regular-2.40.4.ttf(16ppem 내장 비트맵 EBDT)를 Godot(disable_embedded_bitmaps 기본 true)에서 썼을 때 어떻게 동작하는지는 확인하지 않았다.
+- (p_wave_menu) WebSearch를 4번 시도했지만 전부 '이번 턴 검색 한도(200회, 에이전트 공용) 소진'으로 거부되어 웹 검색은 한 번도 실행되지 않았다. 근거는 모두 GitHub(코드 검색과 raw 파일)에서 모았다. 그래서 거의 모든 주장의 independent_domains가 1(github.com)이다. 2개 이상의 도메인으로 교차 확인하려면 후속 조사에서 WebSearch를 다시 돌려야 한다.
+- (p_wave_menu) Kingdom Rush: 해골 호출 버튼에 마우스를 올리거나 한 번 누를 때 다음 웨이브의 적 종류 툴팁이 뜨는지(조기 호출 전 미리보기)는 확인하지 못했다. 1차 출처(공식 위키·Ironhide)로 보너스 골드 공식을 확인하지도 못했다. 지금 근거는 화면을 재서 쓴 제3자 문서와, Game Developer 글을 거쳐 인용한 것뿐이다.
+- (p_wave_menu) Kingdom Rush PC(Steam)판과 모바일판의 건설 링·호출 버튼 조작 차이(호버, 단축키)는 확인하지 못했다.
+- (p_wave_menu) Bloons TD 6 바닐라에 다음 라운드 풍선 구성 미리보기가 있는지 확인하지 못했다. 모드(Useful Utilities)의 기능만 확인했다.
+- (p_wave_menu) Thronefall: 낮 동안 맵 위에 적 출현 지점이나 진로(화살표·선)를 표시하는지 확인하지 못했다. 확인한 것은 일시정지 메뉴의 Upcoming Night Info뿐이고, NightPreview 클래스의 '다른 밤 넘겨 보기'는 디컴파일 코드에서 끌어낸 추론이다.
+- (p_wave_menu) Mindustry 바닐라에서 앞으로 올 웨이브의 적 구성을 게임 중에 보여 주는 창이 있는지는 확인하지 못했다(웨이브 번호·남은 적·카운트다운·수호자 경고·드롭 존 원만 확인).
