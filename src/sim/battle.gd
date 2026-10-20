@@ -2,6 +2,7 @@ extends RefCounted
 # 전투 시뮬레이션. 화면 없이 돈다(그리기는 src/ui/). API 계약은 tests/eval/gd/lib.gd 머리 주석에 있다.
 
 signal enemy_spawned(enemy)
+signal wave_starting  # 웨이브를 시작하기 직전(준비 단계가 끝나는 때). main이 저장한다(S181)
 
 # 종류 이름 → 수치. 판을 만들 때 data/ 아래 Resource 파일에서 읽는다(S31). 파일 이름이 종류 이름이다(I66)
 # 상수였을 때의 이름을 그대로 둔다(UI·테스트가 battle.MERC_KINDS.soldier.cost처럼 읽는다)
@@ -450,6 +451,7 @@ func _return_hero(h: Unit, fresh := false) -> void:
 func start_battle() -> void:
 	if state != "prep" or wave_index >= waves.size():
 		return
+	wave_starting.emit()
 	state = "battle"
 	for entry in waves[wave_index]:
 		for i in entry.count:
