@@ -49,7 +49,8 @@ description: Claude in Chrome으로 Gemini(gemini.google.com)에 이미지·영�
 - GIF는 올리면 정지 JPG 한 장이 된다. mp4로 보낸다.
 - Gemini는 mp4를 1초에 1장씩 본다. 짧은 동작은 10배 느리게 만든다.
 - mp4는 PATH의 python(3.12)에 있는 cv2로 만든다.
-  - 코덱은 `mp4v`다. `avc1`은 openh264 DLL이 없어 실패한다. ffmpeg도 없다.
+  - 코덱은 H.264이고 Windows Media Foundation 백엔드로 만든다: `cv2.VideoWriter(경로, cv2.CAP_MSMF, cv2.VideoWriter_fourcc(*"H264"), fps, 크기)`.
+  - `mp4v`는 2026-10-20부터 업로드가 끝나지 않는다(썸네일이 계속 돈다). 기본 백엔드의 `avc1`은 openh264 DLL이 없어 실패하고, ffmpeg도 없다.
   - 10MB가 넘으면 필요한 영역만 잘라 낸다(예: 가운데 960×540).
 - 프레임은 매 프레임(1/30초)을 쓴다. 자르는 간격이 애니메이션 주기와 어긋나면 같은 프레임만 찍힌다. 그러면 Gemini가 «고정»이라고 오판한다.
 

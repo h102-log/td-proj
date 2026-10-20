@@ -25,6 +25,11 @@ const ZONES := {  # 장판 색(I101). 엷게 채우고 테두리를 그린다
 const UNITS := preload("res://art/units/heroes.png")  # 영웅 6명과 용병·적 시트를 한 장에 모은 아틀라스(tools/art/atlas.py)
 static var ART: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/units/heroes.json"))  # 종류 → 캔버스·발밑·시트 y
 const LUNGE := 6.0  # 근접 돌진 거리(px). 림월드 0.35칸을 16px 칸으로 옮겼다(06 §4)
+const CONTACT := 0.08  # 근접 공격이 대상에 닿는 때(친 뒤 초). 돌진(_lunge)이 가장 멀리 나간 때다
+const FLASH := 0.1  # 피격 흰 번쩍임 길이(초, S177)
+const FLINCH := 3.0  # 피격 밀림(px, S177). 림월드 0.17칸을 16px 칸으로 옮겼다(06 §4)
+const FLINCH_BACK := 0.17  # 밀린 몸이 돌아오는 시간(초, 06 §4 약 10프레임)
+const HITSTOP := 3.0 / 60.0  # 영웅이 치거나 맞은 타격에서 두 유닛의 그림만 멈추는 시간(초, S177). 시뮬레이션은 멈추지 않는다
 const PIXEL_FONT := preload("res://art/fonts/Galmuri7.ttf")  # 맵 위 숫자(S167). 맵은 640×360을 정수배로 키우므로 벡터 글자는 뭉개진다
 const GROUND_TILES := preload("res://art/tiles/ground.png")  # 0행 풀↔흙 꼭짓점 16꼴, 1행 풀·흙 변종과 깃발, 2·3행 전환 꼴 변종(tools/art/tiles.py)
 const CASTLE := preload("res://art/castle/walls.png")  # 성곽 칸 조각 16×42: 행 단계 1~3마다 몸체·앞층, 통로 그늘, 잔해. 열 성벽·열린 문·닫힌 문(tools/art/atlas.py castle)
@@ -41,6 +46,7 @@ static var FEET: ImageTexture = _feet()  # 발밑 채운 타원 14×6px. 아군�
 var battle
 var controls  # 고른 유닛에 테두리를 그린다
 var _seen := {}  # 영웅·용병·적 → [지난 위치, 방향]
+var _hits := {}  # 방금 맞은 영웅·용병·적 id → [맞은 뒤 지난 시간(초), 공격자 → 대상 방향](S177). _bodies마다 다시 구한다
 var ground: ImageTexture  # 바닥을 한 장으로 구운 것. 마을·출현 지점은 도전 내내 같아서(I91) 처음 한 번만 굽는다
 var _clip := -INF  # 덧그릴 때 이 화면 y보다 위 줄은 그리지 않는다(_shade)
 
@@ -169,6 +175,7 @@ func _bodies() -> void:
 	for s in battle.structures.values():  # 옮겨 갈 칸의 대포 청사진(S176): 진행률 0인 미완성 대포로 그린다
 		if s.dest != null:
 			blds.append({"kind": s.kind, "cell": s.dest, "dest": null, "razed": 0.0, "complete": false, "progress": 0.0})
+	_hits = hit_table(all + blds)
 	var now := Time.get_ticks_msec() / 1000.0
 	var was := residents(battle, now - 0.05)
 	var ps := residents(battle, now)
@@ -261,6 +268,8 @@ func _facility(s, tint := Color.WHITE) -> void:
 
 # 유닛·적 몸통 하나. 영웅은 8방향 시트, 그림이 있는 용병·적은 4방향 시트, 나머지는 원으로
 func _body(x, i: int, next: Dictionary, tint := Color.WHITE) -> void:
+	if _hits.get(x.get_instance_id(), [INF])[0] < FLASH:  # 피격 번쩍임(S177): 255배 modulate가 그림을 흰 실루엣으로 만든다(유닛 그림에 0인 채널이 없다). 배치는 끊기지 않는다
+		tint *= Color(255, 255, 255)
 	if ART.has(x.kind) and not x.get("is_hero"):
 		_four_sprite(x, next, tint)
 	elif i >= battle.units.size():
@@ -282,7 +291,7 @@ func _behind(x) -> bool:
 
 # 발밑 팀 색(S166). i는 battle.units + battle.enemies 안의 번호다. 비행 적은 그림자 자리에 그린다
 func _feet_mark(x, i: int) -> void:
-	var foot := (_spot(x) if x.on_wall else _center(x.pos)) + (Vector2(0, CELL * 0.4) if x.get("flying") == true else Vector2.ZERO) + _lunge(x)
+	var foot := (_spot(x) if x.on_wall else _center(x.pos)) + (Vector2(0, CELL * 0.4) if x.get("flying") == true else Vector2.ZERO) + _lunge(x) + _flinch(x)
 	draw_texture_rect_region(FEET, Rect2((foot + Vector2(-7, -2)).round(), Vector2(14, 6)), Rect2(14 * int(i >= battle.units.size()), 0, 14, 6))
 
 # 성곽 칸 조각 하나(front 0 몸체, 1 앞층). 조각 맨 아랫줄이 바닥선 바로 아래 줄이다. 단계(S86)마다 그림이 다르고(사용자 2026-10-20),
@@ -332,14 +341,15 @@ func _sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 	var c := int(a.c)
 	var anim := "idle"
 	var col := 0
-	if x.target and x.cooldown > x.attack_gap - 0.3:
+	var t := _ago(x)
+	if x.target and t < 0.3:
 		anim = "attack"
-		col = clampi(int((x.attack_gap - x.cooldown) / 0.1), 0, 2)
+		col = clampi(int(t / 0.1), 0, 2)
 	elif moving:
 		anim = "walk"
 		col = int(Time.get_ticks_msec() / 125.0) % 4
 	var size := c * (2 if anim == "attack" else 1)  # 공격은 2배 캔버스(tools/art/hero.py)
-	var at := _spot(x) - Vector2(a.anchor[0], a.anchor[1]) - Vector2.ONE * (size - c) / 2.0
+	var at := _spot(x) + _flinch(x) - Vector2(a.anchor[0], a.anchor[1]) - Vector2.ONE * (size - c) / 2.0
 	_region(UNITS, Rect2(at.round(), Vector2(size, size)), Rect2(col * size, a[anim] + dir * size, size, size), tint)
 
 # 용병·적 하나(C 절충안, 4.1d. 4.1a M1·M6에서 C만 통과했다): 4방향 정지, 움직이면 걷기 2위상(초당 8), 친 뒤 0.08~0.22초는 공격 키 포즈.
@@ -355,7 +365,7 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 	elif x.target:
 		dir = _four(_pos_of(x.target) - x.pos)
 	next[id] = [x.pos, dir]
-	var a: float = x.attack_gap - x.cooldown  # 친 뒤 지난 시간(초)
+	var a := _ago(x)  # 친 뒤 지난 시간(초)
 	var anim := "idle"
 	var col := 0
 	if x.target and a >= 0.08 and a < 0.22:
@@ -363,7 +373,7 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 	elif moving:
 		anim = "walk"
 		col = int(Time.get_ticks_msec() / 125.0) % 2
-	_frame(ART[x.kind], anim, dir, col, _spot(x) + _lunge(x), tint)
+	_frame(ART[x.kind], anim, dir, col, _spot(x) + _lunge(x) + _flinch(x), tint)
 
 # 4방향 시트(tools/art/atlas.py FOUR)의 한 칸을 발밑 p에 그린다. 행은 S·E·N·W, 공격·쓰러짐은 2배 캔버스
 func _frame(a: Dictionary, anim: String, dir: int, col: int, p: Vector2, tint := Color.WHITE) -> void:
@@ -379,10 +389,39 @@ func _four(v: Vector2) -> int:
 # 근접 용병·적의 돌진(px): 친 뒤 0.08초에 대상 쪽으로 LUNGE만큼 나가고 0.32초에 걸쳐 돌아온다. 발밑 표시도 함께 옮긴다.
 # 영웅(8방향 공격 프레임, S165)과 원거리(사거리 2칸 초과)는 돌진하지 않는다
 func _lunge(x) -> Vector2:
-	var a: float = x.attack_gap - x.cooldown
+	var a := _ago(x)
 	if x.get("is_hero") or (x.get("range") != null and x.range > 2.0) or not x.target or a >= 0.4:
 		return Vector2.ZERO
-	return (_pos_of(x.target) - x.pos).normalized() * LUNGE * (a / 0.08 if a < 0.08 else 1.0 - (a - 0.08) / 0.32)
+	return (_pos_of(x.target) - x.pos).normalized() * LUNGE * (a / CONTACT if a < CONTACT else 1.0 - (a - CONTACT) / 0.32)
+
+# 공격자 xs 가운데 방금 친 것의 대상 → [맞은 뒤 지난 시간(초), 공격자 → 대상 방향](S177). 여럿에게 맞으면 가장 최근 타격이다.
+# 시뮬레이션에 상태를 두지 않고 공격자의 친 뒤 시간에서 구한다(06 §4)
+func hit_table(xs: Array) -> Dictionary:
+	var hits := {}
+	for x in xs:
+		if x.get("target") != null:
+			var t: float = _ago(x) - _contact(x)
+			var id: int = x.target.get_instance_id()
+			if t >= 0.0 and t < FLINCH_BACK and t < hits.get(id, [INF])[0]:
+				hits[id] = [t, (_pos_of(x.target) - _pos_of(x)).normalized()]
+	return hits
+
+# 친 뒤 보일 시간(초). 영웅이 치거나 맞은 타격은 닿은 때(_contact)에서 HITSTOP만큼 멈췄다가 늦게 흐른다(S177)
+func _ago(x) -> float:
+	var a: float = (x.attack_gap if x.get("attack_gap") != null else x.fire_gap) - x.cooldown
+	var c := _contact(x)
+	if a >= c and x.target != null and (x.get("is_hero") == true or x.target.get("is_hero") == true):
+		return maxf(a - HITSTOP, c)
+	return a
+
+# 공격이 대상에 닿는 때(친 뒤 초). 근접(사거리 2칸 이하) 영웅·용병·적은 돌진 끝, 원거리와 타워는 쏜 때다
+func _contact(x) -> float:
+	return 0.0 if x.get("pos") == null or (x.get("range") != null and x.range > 2.0) else CONTACT
+
+# 맞은 몸의 밀림(px, S177): 공격자 반대쪽으로 FLINCH만큼 밀렸다가 FLINCH_BACK에 걸쳐 돌아온다. 발밑 표시도 함께 옮긴다
+func _flinch(x) -> Vector2:
+	var h = _hits.get(x.get_instance_id())
+	return h[1] * FLINCH * (1.0 - h[0] / FLINCH_BACK) if h else Vector2.ZERO
 
 static func _feet() -> ImageTexture:
 	var im := Image.create_empty(28, 6, false, Image.FORMAT_RGBA8)
