@@ -3,6 +3,7 @@ extends RefCounted
 # 지키는 요구:
 #   S177. 맞은 영웅·용병·적은 0.1초 흰 번쩍임과 공격자 반대쪽 밀림을 보이고, 영웅이 치거나 맞은 타격은 두 유닛의 그림만 3프레임 멈춘다.
 #   S178. 원거리 공격은 투사체로 그리고, 맞은 반응은 투사체가 닿는 때 난다.
+#   S179. 즉시 스킬은 쓴 곳·맞은 대상을 흔적으로 남기고, 스킬에 맞은 적도 피격 반응을 보인다.
 
 const View := preload("res://src/ui/battle_view.gd")
 
@@ -48,5 +49,31 @@ func test_hit_table_counts_from_contact_and_holds_hero_hits():
 	h = v.hit_table([soldier, archer]).get(foe.get_instance_id())
 	if why == "" and (h == null or not is_equal_approx(h[0], 0.04)):
 		why = "둘에게 맞으면 가장 최근 타격(0.04초)이어야 하는데 %s다" % [h]
+	v.free()
+	return why
+
+func test_skill_trace_marks_hit_enemy_then_fades():
+	var b = load("res://src/sim/battle.gd").new({"size": Vector2i(20, 20), "base": Vector2i(18, 18), "base_hp": 100, "spawns": [Vector2i(0, 10)], "hero_start": Vector2i(5, 5), "waves": [[{"kind": "basic", "count": 1}]]})
+	b.start_battle()
+	var v = View.new()
+	v.battle = b
+	var front = b.spawn_enemy("basic", Vector2i(6, 5), {"speed": 0, "damage": 0, "hp": 1000})
+	var why := ""
+	if not b.cast(b.hero, "q", Vector2(7, 5)):
+		why = "아이아스 Q(방패 강타)를 쓰지 못했다"
+	var c = b.traces[-1] if not b.traces.is_empty() else null
+	if why == "" and (c == null or c.slot != "q" or c.hits != [front] or c.at != b.hero.pos):
+		why = "방패 강타 흔적이 %s다(Q, 맞은 적은 앞의 적 하나, 가운데는 영웅 자리여야 한다)" % [c]
+	var h = v.hit_table([]).get(front.get_instance_id())
+	if why == "" and (h == null or h[0] != 0.0 or not h[1].is_equal_approx(Vector2.RIGHT)):
+		why = "스킬에 맞은 적의 표가 %s다(0초, 오른쪽으로 밀림이어야 한다)" % [h]
+	for i in 12:
+		b.step(1.0 / 60.0)
+	if why == "" and (v.hit_table([]).has(front.get_instance_id()) or b.traces.is_empty()):
+		why = "0.2초 뒤에는 피격 반응이 끝나고 흔적은 남아야 하는데 표 %s, 흔적 %s개다" % [v.hit_table([]), b.traces.size()]
+	for i in 60:
+		b.step(1.0 / 60.0)
+	if why == "" and not b.traces.is_empty():
+		why = "1초가 지난 흔적이 남았다"
 	v.free()
 	return why
