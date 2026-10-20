@@ -4,6 +4,7 @@ extends CanvasLayer
 # 트리가 멈춰도 돈다. ESC 메뉴는 일시정지(I11) 중에 뜨기 때문이다. HUD(층 1) 위에 그린다
 
 const Settings := preload("res://src/settings.gd")
+const HudTheme := preload("res://src/ui/hud_theme.gd")
 
 signal chosen(what: String)
 
@@ -19,8 +20,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	layer = 2
 	_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_root.theme = Theme.new()
-	_root.theme.default_font_size = 12
+	_root.theme = HudTheme.make(12)
 	add_child(_root)
 	_dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(_dim)

@@ -133,10 +133,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			view.battle.start_battle()
 	controls.handle(view.make_input_local(event))  # 화면 좌표 → 맵 px(카메라 줌·이동 반영)
 
-# 창 준비: 최소 크기는 늘 기준 해상도(S164). 창 크기·시작 모드는 게임을 막 켰을 때(진입 장면 menu.gd)만 정한다(S161, S163, I153)
+# 창 준비: 최소 크기는 늘 기준 해상도의 2배(S164). 창 크기·시작 모드는 게임을 막 켰을 때(진입 장면 menu.gd)만 정한다(S161, S163, I153)
 # 시작 모드는 설정에 고른 창 모드, 고른 적이 없으면 내보낸 빌드만 전체화면이다(S163, S184)
 static func setup_window(w: Window, entry: bool) -> void:
-	w.min_size = w.content_scale_size
+	w.min_size = w.content_scale_size * 2
 	if not entry:
 		return
 	if Settings.fullscreen_at_start(OS.has_feature("template")):

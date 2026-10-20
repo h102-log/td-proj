@@ -51,8 +51,8 @@ func ev303():
 			return "작업 영역 %s·테두리 %s에서 %d배를 골랐다(기대 %d배)" % [c[0], c[1], k, c[2]]
 	return ""
 
-# EV304 · S164: main이 창을 준비하면 창 최소 크기가 기준 해상도다
+# EV304 · S164: main이 창을 준비하면 창 최소 크기가 기준 해상도의 2배(1280×720)다
 func ev304():
 	var w: Window = Engine.get_main_loop().root
 	load("res://src/main.gd").setup_window(w, false)
-	return check(w.min_size == Vector2i(640, 360), "창 최소 크기가 %s다" % w.min_size)
+	return check(w.min_size == Vector2i(1280, 720), "창 최소 크기가 %s다" % w.min_size)

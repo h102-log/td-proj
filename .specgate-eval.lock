@@ -1,6 +1,6 @@
 {
-  "approvedAt": "2026-10-20T12:53:10.674Z",
-  "evalMd": "ef26e754",
+  "approvedAt": "2026-10-20T22:54:03.627Z",
+  "evalMd": "394bea4d",
   "tests": {
     "tests/eval/conftest.py": "02db26c8",
     "tests/eval/gd/aura.gd": "010cc38a",
@@ -29,6 +29,8 @@
     "tests/eval/gd/hire.gd.uid": "47433f7e",
     "tests/eval/gd/house.gd": "711703a1",
     "tests/eval/gd/house.gd.uid": "5fd6fb28",
+    "tests/eval/gd/hud.gd": "6875ae4d",
+    "tests/eval/gd/hud.gd.uid": "6038f593",
     "tests/eval/gd/kits.gd": "2ce12f64",
     "tests/eval/gd/kits.gd.uid": "c48b27a3",
     "tests/eval/gd/levels.gd": "3a6be64c",
@@ -37,9 +39,9 @@
     "tests/eval/gd/lib.gd.uid": "0b978a98",
     "tests/eval/gd/loop.gd": "36f7bc2a",
     "tests/eval/gd/loop.gd.uid": "f8a3d823",
-    "tests/eval/gd/map.gd": "b3b24a5c",
+    "tests/eval/gd/map.gd": "87d12078",
     "tests/eval/gd/map.gd.uid": "c812f8cf",
-    "tests/eval/gd/menu.gd": "9cc5d65c",
+    "tests/eval/gd/menu.gd": "1cf13404",
     "tests/eval/gd/menu.gd.uid": "80c43e3a",
     "tests/eval/gd/merc.gd": "de4df8c0",
     "tests/eval/gd/merc.gd.uid": "5a159512",
@@ -55,7 +57,7 @@
     "tests/eval/gd/rounds.gd.uid": "7f117ee0",
     "tests/eval/gd/runner.gd": "7c31a78e",
     "tests/eval/gd/runner.gd.uid": "729df9cb",
-    "tests/eval/gd/save.gd": "0b520dfe",
+    "tests/eval/gd/save.gd": "a8f42e0f",
     "tests/eval/gd/save.gd.uid": "5c7f6374",
     "tests/eval/gd/sell.gd": "995695b8",
     "tests/eval/gd/sell.gd.uid": "5c77653c",
@@ -83,6 +85,7 @@
     "tests/eval/test_heroes.py": "da7683ed",
     "tests/eval/test_hire.py": "ed67a0f5",
     "tests/eval/test_house.py": "f908d7b0",
+    "tests/eval/test_hud.py": "a4f97b17",
     "tests/eval/test_kits.py": "5cdb5610",
     "tests/eval/test_levels.py": "2c71fe40",
     "tests/eval/test_loop.py": "eb9dcfdc",
@@ -298,7 +301,7 @@
     "S157": "a5bca86c",
     "S159": "ad69aba5",
     "S161": "491e0168",
-    "S164": "2ca4a20f",
+    "S164": "32e47b45",
     "I155": "5d041028",
     "I156": "60ea1d10",
     "I157": "d2f4ffa0",
@@ -310,6 +313,7 @@
     "S184": "f460f2ba",
     "I160": "8750a502",
     "I159": "436b341e",
-    "S163": "6c2d71e9"
+    "S163": "6c2d71e9",
+    "S187": "057fcb54"
   }
 }
