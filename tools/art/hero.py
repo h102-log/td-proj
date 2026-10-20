@@ -90,6 +90,11 @@ def local(U, up_r, fn):
     return lambda p: fn((p - o) @ up_r)
 
 
+def scaled(model, s):
+    """형체를 발밑 기준으로 s배. 오르내림 1px을 지키려고 bob_unit을 s로 나눠 넘긴다(작은 고블린, 큰 오우거)"""
+    return lambda pose, bob_unit: [(lambda p, f=f: f(p / s) * s, m, part) for f, m, part in model(pose, bob_unit / s)]
+
+
 def flare(q, top, bot, r_top, r_bot, grow=0.0, depth=0.8):
     """윗몸 자기 좌표 q에서 높이 top → bot으로 반지름이 r_top → r_bot으로 넓어지는 타원 원뿔(앞뒤는 depth배). 치마·로브·코트 자락.
     윗몸과 함께 오르내려 걷기 윗몸 고정(lint H3)을 지킨다"""
@@ -144,11 +149,12 @@ PARTS = ["leg", "torso", "head", "arm", "sword", "shield"]
 PPU24 = 17.47  # 유닛 24px의 배율. 사용자가 24px을 정할 때 본 몸 크기다(2026-10-18 1차 검수 전 맞춤값)
 
 
-def fit(n, poses, model=knight):
+def fit(n, poses, model=knight, span=3.0):
     """배율은 PPU24에 비례해 고정하고, 모든 자세·방향·각도(45·60)가 들어가는 정사각 캔버스 크기와 기준점(발밑)을 구한다.
-    검을 키우면 몸이 줄던 것(24px 배율 17.47 → 14.69)을 막는다(사용자 결정 2026-10-18). 기준점은 정수라 Godot에서 offset이 정수다"""
+    검을 키우면 몸이 줄던 것(24px 배율 17.47 → 14.69)을 막는다(사용자 결정 2026-10-18). 기준점은 정수라 Godot에서 offset이 정수다.
+    span: 재는 화면의 폭(모델 단위). 가운데가 발밑이라 위로 span/2까지만 잰다. 1.7배 오우거는 머리가 잘려 캔버스가 작게 나왔다"""
     lo, hi, wd = 0.0, 0.0, 0.0
-    big, bp = 160, 160 / 3.0
+    big, bp = 160, 160 / span
     for elev in (45, 60):
         cam = R.Cam(elev)
         for g in R.DIRS.values():
@@ -178,7 +184,7 @@ def bake(pose, elev, g, n, ppu, anchor, ramps, outline, dark, model=knight, part
 ANIMS = {"idle": [IDLE], "walk": WALK, "attack": ATTACK, "fall": FALL}
 
 
-def fits(out=None, poses=None, model=knight, tag=f"m5 ppu{PPU24} blade1.2x1.3", sizes=SIZES):
+def fits(out=None, poses=None, model=knight, tag=f"m5 ppu{PPU24} blade1.2x1.3", sizes=SIZES, span=3.0):
     """맞춤은 45초쯤 걸려서 자세가 같으면 저장해 둔 값을 쓴다. → {n: (배율, 기준점, 캔버스)}.
     공격·쓰러짐 자세는 넣지 않는다. 앞으로 뻗은 검까지 넣으면 캔버스가 커져서, 그 둘은 2배 캔버스로 따로 굽는다(save).
     기본값은 기사다. 다른 영웅은 자기 폴더·정지와 걷기 자세·형체·꼬리표로 부른다(chronos.py)"""
@@ -188,7 +194,7 @@ def fits(out=None, poses=None, model=knight, tag=f"m5 ppu{PPU24} blade1.2x1.3", 
     key = repr(poses) + tag  # 여백이나 형체 크기를 바꾸면 꼬리표도 바꾼다
     if f.exists() and json.loads(f.read_text())["key"] == key:
         return {int(k): (v[0], tuple(v[1]), v[2]) for k, v in json.loads(f.read_text())["fits"].items()}
-    res = {n: fit(n, poses, model) for n in sizes}
+    res = {n: fit(n, poses, model, span) for n in sizes}
     f.write_text(json.dumps({"key": key, "fits": res}))
     return res
 

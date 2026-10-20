@@ -2,6 +2,7 @@
 # 영웅마다 캔버스 크기·발밑 기준점·시트가 시작하는 y를 json으로 쓴다. 한 장이어야 유닛이 늘어도 draw call이 늘지 않는다
 # (insights/2026-10-20_render_spike.md P4).
 # 성곽 칸 조각(4.1c)도 같은 식으로 4.0 시험 성벽 그림에서 잘라 한 장에 모은다.
+# 용병·적·주민(4.1d)은 C 절충안에 쓰는 칸만 골라 영웅 아래에 붙인다: 행 S·E·N·W, 정지 1열, 걷기 2위상 2열, 공격 키 포즈 1열, 누운 자세 1장
 # 사용: python tools/art/atlas.py → art/units/heroes.png, art/units/heroes.json, art/castle/walls.png
 import json
 from pathlib import Path
@@ -10,19 +11,31 @@ from PIL import Image
 
 HEROES = ["aias", "sylvia", "seraphina", "vesper", "ignis", "chronos"]
 ANIMS = ["idle", "walk", "attack", "fall"]
+FOUR = {"soldier": "soldier", "archer": "archer", "engineer": "engineer", "basic": "goblin", "fast": "kobold",  # 게임 종류 → 그림 폴더(art/trial/)
+        "armored": "orc", "flying": "harpy", "boss": "ogre", "resident": "resident"}
+FOUR_ROWS = [0, 2, 4, 6]  # 8방향 시트(render.DIRS 순서)에서 S·E·N·W
+FOUR_COLS = {"idle": [0], "walk": [0, 1], "attack": [1], "fall": [4]}  # 걷기 접지·통과, 공격 내려침, 쓰러짐 마지막(누운 자세)
 
 
 def main():
     sheets, meta, y = [], {}, 0
-    for h in HEROES:
-        fit = json.loads(Path(f"art/trial/{h}/fit.json").read_text(encoding="utf-8"))["fits"]["24"]
+    for kind, folder in [(h, h) for h in HEROES] + list(FOUR.items()):
+        fit = json.loads(Path(f"art/trial/{folder}/fit.json").read_text(encoding="utf-8"))["fits"]["24"]
         m = {"c": int(fit[2]), "anchor": [fit[1][0], fit[1][1]]}
         for a in ANIMS:
-            im = Image.open(f"art/trial/{h}/{a}_45_D_f24p_24.png").convert("RGBA")
+            im = Image.open(f"art/trial/{folder}/{a}_45_D_f24p_24.png").convert("RGBA")
+            if kind in FOUR:
+                n = m["c"] * (2 if a in ("attack", "fall") else 1)
+                rows, cols = ([0] if a == "fall" else FOUR_ROWS), FOUR_COLS[a]
+                cut = Image.new("RGBA", (n * len(cols), n * len(rows)))
+                for r, row in enumerate(rows):
+                    for q, col in enumerate(cols):
+                        cut.paste(im.crop((col * n, row * n, (col + 1) * n, (row + 1) * n)), (q * n, r * n))
+                im = cut
             sheets.append((im, y))
             m[a] = y
             y += im.height
-        meta[h] = m
+        meta[kind] = m
     out = Image.new("RGBA", (max(im.width for im, _ in sheets), y))
     for im, oy in sheets:
         out.paste(im, (0, oy))
