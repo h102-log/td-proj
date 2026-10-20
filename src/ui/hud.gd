@@ -9,16 +9,29 @@ extends CanvasLayer
 # 준비·전투 단계에는 윗줄 아래에 이번 라운드의 미션과 수락한 의뢰를 보이고, 결과 창에 지난 라운드의 달성·실패를 보인다(I122).
 # 결과 창의 버튼만 키보드 포커스를 받는다. 창이 열리면 «1라운드 시작»·«다음 라운드»·«새 도전»에 포커스가 간다(I12, I110)
 # 출전 영웅 셋을 한 줄에 이름과 Q·W·E·R 스킬 버튼(좌클릭은 쓰기, 우클릭은 자동 시전, I151)과 쓰러짐(I129), 고른 용병의 이동 방식·홀드 버튼(I139)을 보인다. 눌리지 않는 놓기·공병 지시 버튼에는 이유를 붙인다(I128, I132)
+# 위 띠의 조작에는 툴팁을 단다(S187, I162). 테마는 hud_theme.gd
 
 const NAMES := {"wall": "방벽", "tower": "타워", "magic": "마법 타워", "soldier": "용병", "barracks": "병영", "engineer": "공병", "workshop": "작업장", "archer": "궁수", "cannon": "대포", "archery": "사격장", "house": "집", "church": "교회"}
 const STATES := {"prep": "준비", "battle": "전투", "hiring": "영입", "cleared": "라운드 사이", "won": "승리", "lost": "패배"}
 const HEROES := {"aias": "아이아스(탱커)", "sylvia": "실비아(원거리)", "seraphina": "세라피나(힐러)", "vesper": "베스퍼(디버퍼)", "ignis": "이그니스(마법사)", "chronos": "크로노스(버퍼)"}  # 이름(역할), S97·S157
 const GRADES := ["1성", "2성", "3성"]  # S94
 const GAPS := {"none": " (공병 없음)", "far": " (닿는 공병 없음)"}  # 공병 지시를 맡을 공병이 없는 이유(I128)
+const SKILLS := {  # 영웅마다 Q·W·E·R의 [이름, 요약](S97 표). 툴팁(S187)이 쓴다
+	"aias": [["방패 강타", "부채꼴 기절"], ["전장의 포효", "도발·보호막"], ["반격의 태세", "감소 뒤 충격파"], ["절대 방어선", "에너지 성벽"]],
+	"sylvia": [["관통의 바람살", "직선 관통"], ["돌풍 갈래살", "토글 4명 사격"], ["폭풍의 덫", "속박·치명타"], ["천공의 화살비", "처형"]],
+	"seraphina": [["성스러운 빛줄기", "회복·피해 도약"], ["정화의 성역", "회복 장판"], ["수호 천사의 날개", "불사"], ["기적의 강림", "전체 회복·축복"]],
+	"vesper": [["부식의 독안개", "방어력 −10"], ["쇠약의 저주", "둔화·공격력 감소"], ["영혼 사슬", "피해 나누기"], ["심연의 늪", "봉인"]],
+	"ignis": [["화염구 작렬", "발화"], ["서리 고리", "열충격 빙결"], ["비전 블랙홀", "끌어당김"], ["메테오 스웜", "운석·용암"]],
+	"chronos": [["무기 과충전", "자동 시전"], ["시간 되감기", "마나·대기"], ["황금의 율법", "골드 +30%"], ["시간 왜곡장", "가속·감속"]],
+}
+const HudTheme := preload("res://src/ui/hud_theme.gd")
+const HudTip := preload("res://src/ui/hud_tip.gd")
 
 var battle
 var controls
 var map: SubViewport  # 맵(전장)을 그리는 SubViewport(S30). 팝업 위치를 그 카메라 변환으로 잡는다
+var bar: PanelContainer  # 위 띠
+var tip := HudTip.new()  # 위 띠 조작의 툴팁(S187)
 var _info := Label.new()
 var _hint := Label.new()
 var _start: Button
@@ -70,10 +83,9 @@ func _ready() -> void:
 	var root := Control.new()  # 글자 크기를 한 번에 주는 틀. 클릭은 아래 맵으로 흘린다
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.theme = Theme.new()
-	root.theme.default_font_size = 10
+	root.theme = HudTheme.make(10)
 	add_child(root)
-	var bar := PanelContainer.new()
+	bar = PanelContainer.new()
 	bar.set_anchors_preset(Control.PRESET_TOP_WIDE)  # 화면 너비에 맞춰 버튼 줄이 줄바꿈된다(S105)
 	root.add_child(bar)
 	var col := VBoxContainer.new()
@@ -84,12 +96,17 @@ func _ready() -> void:
 	var costs: Dictionary = battle.STRUCTURE_KINDS.merged(battle.MERC_KINDS)
 	for key in controls.PLACE_KEYS:
 		var kind: String = controls.PLACE_KEYS[key]
-		_place[kind] = _button(row, "%s %d (%s)" % [NAMES[kind], costs[kind].cost, OS.get_keycode_string(key)], func(): controls.placing = kind)
+		var key_name := OS.get_keycode_string(key).replace("Minus", "-").replace("Equal", "=")
+		_place[kind] = _button(row, "%s %d (%s)" % [NAMES[kind], costs[kind].cost, key_name], func(): controls.placing = kind)
 		_place[kind].toggle_mode = true
 		_place_text[kind] = _place[kind].text
+		tip.add(_place[kind], func(): return _place_tip(kind, key_name))
 	_start = _button(row, "전투 시작 (Enter)", _start_battle)
 	_mode = _button(row, "", controls.toggle_move_mode)
 	_hold = _button(row, "", controls.toggle_hold)
+	tip.add(_start, func(): return ["전투 시작", "Enter", "", "웨이브 %d/%d를 부른다" % [mini(battle.wave_index + 1, battle.waves.size()), battle.waves.size()], "" if battle.state == "prep" else "준비 단계에만"])
+	tip.add(_mode, func(): return ["이동 방식", "A", "", "이동 중 공격 ↔ 무조건 이동", ""])
+	tip.add(_hold, func(): return ["홀드", "H", "", "켜면 기준 지점 반경 안의 적만 친다", ""])
 	col.add_child(_quest)
 	_hero_line.add_theme_constant_override("separation", 2)  # 줄 안 2px, 영웅 사이는 빈칸을 더해 6px(640px 안에 든다)
 	col.add_child(_hero_line)
@@ -110,6 +127,7 @@ func _ready() -> void:
 			sb.gui_input.connect(func(e): _auto_click(e, i, slot))
 			_fix_width(sb, "W88*")  # 조준 중 «▶»는 넓이에 넣지 않는다. 넣으면 셋이 640px를 넘는다
 			buttons[slot] = sb
+			tip.add(sb, func(): return _skill_tip(i, slot))
 		_hero_rows.append([nodes, who, buttons])
 	col.add_child(_heroes)
 	col.add_child(_hint)  # 영웅 줄 아래. 조준·놓기 안내가 뜨고 질 때 스킬 버튼이 밀리지 않게
@@ -159,6 +177,7 @@ func _ready() -> void:
 	_village = _button(_popup, "", func(): battle.raise_village())
 	for i in battle.HIRE.lineup:
 		_heal.append(_button(_popup, "", func(): battle.heal(battle.heroes[i])))
+	root.add_child(tip)  # 맨 위에 그린다(I162)
 
 func _process(_delta: float) -> void:
 	var prep: bool = battle.state == "prep"
@@ -410,6 +429,50 @@ func _place_lock(kind: String, none: String) -> String:
 		if kind in battle.STRUCTURE_KINDS[s].produces:
 			return " (%s 없음)" % NAMES[s]
 	return ""
+
+# 놓기 버튼 툴팁(S187): 이름·키·비용, 데이터로 만든 한 줄 설명, 이유는 _process가 버튼 글에 붙인 것을 괄호 없이(I132). 이유가 없고 골드가 모자라면 그것
+func _place_tip(kind: String, key: String) -> Array:
+	var d = battle.STRUCTURE_KINDS.get(kind, battle.MERC_KINDS.get(kind))
+	var why: String = _place[kind].text.trim_prefix(_place_text[kind]).strip_edges().trim_prefix("(").trim_suffix(")")
+	if why.begins_with("마을 Lv"):
+		why += " 필요"
+	if why == "" and battle.gold < d.cost:
+		why = "골드 %d 모자람" % (d.cost - battle.gold)
+	var about := "체력 %d · 적의 길을 막는다" % d.hp
+	if kind in battle.MERC_KINDS:
+		for s in battle.STRUCTURE_KINDS:
+			if kind in battle.STRUCTURE_KINDS[s].produces:
+				about = "%s에서 산다 · 체력 %d" % [NAMES[s], d.hp]
+	elif not d.produces.is_empty():
+		about = "마을 · %s를 판다" % ", ".join(d.produces.map(func(k): return NAMES[k]))
+	elif d.tax > 0:
+		about = "마을 · 준비 단계마다 세금 +%d" % d.tax
+	elif d.heal > 0.0:
+		about = "마을 · 영웅 체력을 골드로 치료"
+	elif d.range > 0.0:
+		about = "사거리 %s칸 · 공격력 %s" % [_num(d.range), _num(d.damage)] + (" · 범위 피해" if d.splash > 0.0 else "")
+	return [NAMES[kind], key, "%d골드" % d.cost, about, why]
+
+# 4.0 → «4», 1.5 → «1.5»
+func _num(x: float) -> String:
+	return str(int(x)) if x == roundf(x) else str(x)
+
+# 스킬 버튼 툴팁(S187): 이름·키·마나, 요약·재사용 대기 초·자동 시전, 못 쓰는 이유 하나(S145 해금 > S136 단계 > 마나 > 대기)
+func _skill_tip(i: int, slot: String) -> Array:
+	var h = battle.heroes[i]
+	var sk: Dictionary = h.get(slot)
+	var name_about: Array = SKILLS[h.kind][battle.SLOTS.find(slot)]
+	var why := ""
+	if h.level < battle.LEVELS.unlock[slot]:
+		why = "Lv%d에 열림" % battle.LEVELS.unlock[slot]
+	elif battle.state != "battle":
+		why = "스킬은 전투 단계에만"
+	elif h.mana < sk.mana:
+		why = "마나 %d 모자람" % ceili(sk.mana - h.mana)
+	elif h.cd[slot] > 0.0:
+		why = "재사용 대기 %d초" % ceili(h.cd[slot])
+	var about := "%s · 재사용 %s초" % [name_about[1], _num(sk.gap)] + (" · 우클릭: 자동 시전" if sk.get("auto", false) else "")
+	return [name_about[0], slot.to_upper(), "마나 %d" % sk.mana, about, why]
 
 # 고른 것의 칸에 공병 지시를 맡을 공병이 없는 이유(I128). 전투 단계가 아니거나 고른 것이 없으면 ""
 # ponytail: 닿는지 보는 A*가 무거워(성문이 모두 닫히면 1회 7ms) 같은 칸이면 0.3초마다만 다시 잰다. 그사이 바뀐 공병 사정은 늦게 보인다

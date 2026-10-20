@@ -98,7 +98,7 @@
 - S161. 진입 씬을 창 모드로 열면 창은 지금 화면의 작업 영역(작업 표시줄을 뺀 곳)에 창 테두리까지 들어가는 가장 큰 기준 해상도 정수배 크기가 되고, 작업 영역 가운데에 놓인다. 들어가는 배수가 없으면 1배다. (근거: 사용자 2026-10-19 — 1번 PC 4K 전체화면 수정안 `next/2026-10-19/r7.md` §1을 보고 «1단계 진행». 1280×720 고정 창은 4K 화면 넓이의 11%였다)
 - S162. F11을 누르면 테두리 없는 전체화면과 창 모드를 오간다. (근거: 사용자 2026-10-19 — 같은 계획서 §1. 테두리 없는 전체화면은 두 안(테두리 없음 / 독점) 가운데 고름. 1번 PC에서 둘 다 정확히 6배였다)
 - S163. 내보낸 빌드는 전체화면(S162)으로 시작한다. 편집기 빌드로 띄우면(편집기 실행·`godot --path .`) 창 모드(S161)로 시작한다. (근거: 사용자 2026-10-19 — 같은 계획서 §1) → **2026-10-20 변경:** 설정(S184)에 창 모드가 저장돼 있으면 그 모드로 시작한다. 이 문장은 저장된 값이 없는 첫 실행에만 걸린다. (근거: 사용자 2026-10-20 — 설정에 창 모드를 넣기로 고름)
-- S164. 창은 기준 해상도보다 작게 줄일 수 없다. (근거: 사용자 2026-10-19 — 같은 계획서 §1. 창이 기준 해상도보다 작으면 정수배 화면이 잘린다, `art_direction_research/05_godot_rendering.md` §3 [R-45])
+- S164. 창은 기준 해상도보다 작게 줄일 수 없다. (근거: 사용자 2026-10-19 — 같은 계획서 §1. 창이 기준 해상도보다 작으면 정수배 화면이 잘린다, `art_direction_research/05_godot_rendering.md` §3 [R-45]) → **2026-10-21 변경:** 창은 기준 해상도의 2배(1280×720)보다 작게 줄일 수 없다. (근거: 사용자 2026-10-21 — `ui_research/README.md` 8장 9번 «최소 창 1280×720». 배율 1 창이면 HUD의 7~8px 글자가 7~8 화면 px다)
 - S165. 영웅은 24px 도트 스프라이트(8방향 시트)로 그린다. 움직이면 그 방향으로 걷기 4프레임(초당 8), 친 뒤 0.3초는 대상 쪽으로 공격 3프레임, 그 밖에는 정지 자세다. 서 있으면 대상 쪽을, 대상도 없으면 마지막 방향을 본다. 영웅·용병·적의 몸통은 (층, 발밑 y, 목록 순서)로 정렬해 그리고, 비행 적은 지상보다 위 층이다. 위치는 화면 픽셀로 반올림한다. 그림이 없는 용병·적은 원으로 그린다(I81). (근거: 사용자 2026-10-20 — 4.1a 스파이크에서 ① `_draw()` 직접 그리기를 고르고 «영웅 6명만, 성벽은 4.1c까지 도형»을 고름. `insights/2026-10-20_render_spike.md`) → **2026-10-20 변경:** 영웅이 치거나 맞은 타격은 닿은 때에 그림을 3프레임 멈추므로(S177) 공격 자세가 그만큼 늦게 흐른다. (근거: 사용자 2026-10-20 — 4.1f 히트스톱 «영웅 타격만 3프레임»)
 - S166. 영웅·용병·적의 발밑에 팀 색으로 채운 타원(14×6px)을 몸통보다 먼저(밑에) 그린다. 아군은 청록 `3c9f9c`, 적은 빨강 `ef3a0c`이다. 비행 적은 그림자 자리에 그린다. (근거: 사용자 2026-10-19 — 팀 색은 스프라이트에 넓히지 않고 게임에서 발밑에 표시한다(WBS 4.1d). 사용자 2026-10-20 — 채운 타원·테두리 타원·앞쪽 반쪽 호 세 안 가운데 채운 타원을 고름, `art/trial/preview/foot_marks_options.png`) → **2026-10-20 변경:** 성벽 위 유닛(성벽에 오른 적 포함)의 발밑 표시는 흉벽 앞층(S170) 다음에 그린다. 몸통과 함께 그리면 앞층에 가려 1px만 보였다. (근거: 사용자 2026-10-20 — «앞층 위 발밑 / 머리 위 점 / 그대로» 가운데 고름, `art/trial/preview/wall_marks_options.png`)
 - S167. 맵 위 글자(영웅 레벨 숫자, I117)는 도트 폰트 Galmuri7 8px로 안티앨리어싱·힌팅·서브픽셀 위치 없이 맵 픽셀에 맞춰 그린다. 글꼴 파일과 라이선스(SIL OFL 1.1)를 게임에 함께 넣고 `CREDITS.md`에 적는다. (근거: 사용자 2026-10-19 — 4K 화면 수정안 «HUD만 고해상도», 맵은 640×360을 정수배로 키우므로 맵 위 벡터 글자는 뭉개진다(`next/archive/2026-10-19-2/r7.md` §4). 사용자 2026-10-20 — 오늘 범위로 고름)
@@ -358,6 +358,10 @@
 - S183. 게임 화면에서 ESC를 누르면 게임이 멈추고(I11) «계속»·«설정»·«메인 메뉴로»·«게임 종료» 메뉴가 뜬다. 조준(S147)·놓기 모드·대포 옮기기 중에 누른 ESC는 지금처럼 그것만 취소하고 메뉴를 열지 않는다. 전투 단계에 연 메뉴에는 «지금 나가면 이번 웨이브 진행은 저장되지 않습니다»라는 안내가 보인다. (근거: 사용자 2026-10-20 — 두 안(넷 / 게임 종료를 뺀 셋) 가운데 고름)
 - S184. 설정은 퀵캐스트(S147, 기본 꺼짐)·부활(I28, 기본 켜짐)·창 모드(전체화면/창, S162)·음량(기본 100%) 넷이다. 메인 메뉴와 ESC 메뉴 모두에서 열고, 바꾼 값은 `user://`에 저장되어 게임을 다시 켜도 그대로다. (근거: 사용자 2026-10-20 — 넷을 모두 고름. 창 모드 저장은 4K 수정안 5단계 `next/archive/2026-10-19-2/r7.md` §5, 음량은 `WBS.md:34`)
 
+**HUD 개편** (2026-10-21 추가, WBS 4.1g — `ui_research/README.md` 4장 추천안, 단계 계획 `next/2026-10-21/r1.md`)
+
+- S187. HUD 위 띠의 조작(놓기·전투 시작·이동 방식·홀드 버튼, 영웅 스킬 버튼)에는 툴팁이 있다. 커서가 조작 위에 0.2초 머물면 뜨고, 툴팁이 떠 있거나 사라진 지 0.25초 안에 다른 조작으로 옮기면 바로 뜬다. 툴팁은 조작 바로 아래에 붙어 뜨고 커서를 따라가지 않는다. 아래로 화면을 넘으면 조작 위로 뒤집고, 옆으로 넘으면 화면 안으로 당긴다. 폭은 160 이하다. 첫 줄은 이름·노란 «(키)»·비용, 그 아래 한 줄 설명, 못 쓰면 모자란 조건 하나만 빨간 한 줄이다. 커서를 툴팁 위로 옮겨도 남는다. 0.2초·0.25초·160은 임시값이다. (근거: 사용자 2026-10-21 — 추천안 채택과 0단계 초안 승인, `next/2026-10-21/r1.md` 1단계. 수치는 `ui_research/README.md` 4.7 «툴팁»의 설계 판단)
+
 **완료 신호**
 
 - S33. "바쁨" 시험(M1.5·M2)에서는 판마다 `스테이지·웨이브 / 결과 / 원인 한 문장 / 신호`를 한 줄로 기록한다. 신호는 좋음·나쁨 기준(`WBS.md:52-56`)으로 판정한다. (근거: WBS.md:50-58)
@@ -595,6 +599,10 @@
 - I160. 설정에서 바꾼 부활·퀵캐스트는 진행 중인 판에 바로 걸린다. F11(S162)로 바꾼 창 모드도 설정에 저장된다. 음량은 마스터 버스에 걸고, 0%면 소리를 끈다. `[추론]`
 - I161. ESC 메뉴의 «메인 메뉴로»·«게임 종료»와 창 닫기(× 단추)는 S181대로 전투 단계가 아니면 그때 상태를 저장하고 나간다. 전투 단계면 저장하지 않는다. 메인 메뉴의 «종료»는 게임을 끈다. `[추론]`
 
+**HUD 개편** (WBS 4.1g)
+
+- I162. 툴팁(S187)은 Godot 기본 툴팁(`tooltip_text`)을 쓰지 않고 HUD가 띄우는 패널 하나다. HUD의 가장 위에 그리고 클릭을 받지 않는다. 툴팁이 떠 있는 동안 글은 매 프레임 다시 쓴다(재사용 대기 초·마나가 바로 보인다). `[추론]`
+
 **데이터·환경**
 
 - I30. 영웅·용병·적·구조물·웨이브의 수치(체력, 공격력, 사거리, 인식 범위, 비용, 상한, 등장 확률, 경험치)는 데이터 값으로 두고 코드에 박아 넣지 않는다. `[추론]`
@@ -661,19 +669,19 @@
 | S14 | src/sim/battle.gd:705-729 · src/sim/battle.gd:2150-2164 · src/ui/controls.gd:110-115 · src/main.gd:134 |
 | S15 | src/sim/battle.gd:780 · src/sim/battle.gd:2125 · src/sim/battle.gd:2199 |
 | S16 | src/ui/controls.gd:105-109 · src/ui/controls.gd:117-145 · src/ui/controls.gd:64-67 · src/ui/controls.gd:148-153 · src/sim/battle.gd:759-770 · src/ui/battle_view.gd:137-138 · src/sim/battle.gd:120 · src/sim/battle.gd:759 · src/ui/controls.gd:3 |
-| S17 | src/sim/battle.gd:451-459 · src/sim/battle.gd:412-420 · src/ui/hud.gd:167 |
-| S18 | src/sim/battle.gd:1400-1425 · src/sim/battle.gd:687-699 · src/ui/controls.gd:67-104 · src/ui/controls.gd:210-214 · src/ui/hud.gd:84-88 |
-| S19 | src/sim/battle.gd:268 · src/ui/hud.gd:167 · src/sim/battle.gd:1468-1485 · src/ui/hud.gd:150 |
-| S20 | data/structures/barracks.tres:10 · src/data/structure_def.gd:14 · src/sim/battle.gd:62 · src/sim/battle.gd:1468-1485 · src/sim/battle.gd:1497-1499 · src/ui/hud.gd:150 |
+| S17 | src/sim/battle.gd:451-459 · src/sim/battle.gd:412-420 · src/ui/hud.gd:186 |
+| S18 | src/sim/battle.gd:1400-1425 · src/sim/battle.gd:687-699 · src/ui/controls.gd:67-104 · src/ui/controls.gd:210-214 · src/ui/hud.gd:96-101 |
+| S19 | src/sim/battle.gd:268 · src/ui/hud.gd:186 · src/sim/battle.gd:1468-1485 · src/ui/hud.gd:168 |
+| S20 | data/structures/barracks.tres:10 · src/data/structure_def.gd:14 · src/sim/battle.gd:62 · src/sim/battle.gd:1468-1485 · src/sim/battle.gd:1497-1499 · src/ui/hud.gd:168 |
 | S21 | src/sim/battle.gd:63 · src/sim/battle.gd:1488-1495 · src/ui/controls.gd:110-115 |
-| S22 | src/sim/battle.gd:1397-1425 · src/sim/battle.gd:1709-1737 · src/sim/battle.gd:1767-1784 · src/sim/battle.gd:2180-2181 · src/ui/controls.gd:47-51 · src/ui/controls.gd:81-83 · src/ui/hud.gd:172 · src/ui/hud.gd:405-406 |
-| S23 | src/sim/battle.gd:1640-1644 · src/ui/hud.gd:154 · src/ui/hud.gd:219-223 |
-| S24 | src/sim/battle.gd:1756-1765 · src/sim/battle.gd:1872-1875 · src/sim/battle.gd:1646-1653 · src/ui/hud.gd:153 · src/ui/hud.gd:222 |
+| S22 | src/sim/battle.gd:1397-1425 · src/sim/battle.gd:1709-1737 · src/sim/battle.gd:1767-1784 · src/sim/battle.gd:2180-2181 · src/ui/controls.gd:47-51 · src/ui/controls.gd:81-83 · src/ui/hud.gd:191 · src/ui/hud.gd:424-425 |
+| S23 | src/sim/battle.gd:1640-1644 · src/ui/hud.gd:172 · src/ui/hud.gd:238-242 |
+| S24 | src/sim/battle.gd:1756-1765 · src/sim/battle.gd:1872-1875 · src/sim/battle.gd:1646-1653 · src/ui/hud.gd:171 · src/ui/hud.gd:241 |
 | S25 | src/sim/battle.gd:17 · src/sim/battle.gd:328 · src/sim/battle.gd:691 · src/sim/battle.gd:1477 · src/sim/battle.gd:1792-1794 · data/mercs/engineer.tres:5-9 |
 | S26 | src/sim/battle.gd:128-130 · src/sim/battle.gd:1872-1875 · src/sim/battle.gd:430-449 |
 | S27 | src/sim/battle.gd:264 · src/sim/battle.gd:430 |
 | S28 | data/structures/tower.tres:5-11 · src/sim/battle.gd:2104-2121 · src/sim/battle.gd:2241-2249 · src/sim/battle.gd:1880-1891 · src/ui/battle_view.gd:283-287 · src/ui/battle_view.gd:127-131 · src/ui/battle_view.gd:142-165 · src/ui/battle_view.gd:174-188 · src/ui/battle_view.gd:715-719 |
-| S29 | src/sim/battle.gd:318-359 · src/ui/hud.gd:192-197 · src/ui/hud.gd:292-297 · src/ui/hud.gd:443-448 |
+| S29 | src/sim/battle.gd:318-359 · src/ui/hud.gd:211-216 · src/ui/hud.gd:311-316 · src/ui/hud.gd:506-511 |
 | S30 | project.godot:16-17 · src/main.gd:27-46 · src/main.gd:55-66 |
 | S31 | src/sim/battle.gd:7-11 · src/sim/battle.gd:287-298 · src/data/enemy_def.gd:1-14 · src/data/merc_def.gd:1-16 · src/data/structure_def.gd:1-14 · src/data/waves_def.gd:1-13 · src/main.gd:180 · src/main.gd:194-197 · data/waves/test_stage.tres:5-20 |
 | S32 | tests/unit/test_gdscript_suites.py:31 · tests/unit/gd/runner.gd:8 |
@@ -682,17 +690,17 @@
 | S35 | src/sim/battle.gd:142 · src/sim/battle.gd:759-764 · src/sim/battle.gd:2143-2148 · src/ui/controls.gd:64-65 · src/ui/controls.gd:148-149 · src/ui/battle_view.gd:100 |
 | S36 | src/sim/battle.gd:143-145 · src/sim/battle.gd:766-770 · src/sim/battle.gd:2138 · src/sim/battle.gd:2166-2173 · src/ui/controls.gd:66-67 · src/ui/controls.gd:152-153 · src/ui/battle_view.gd:101-102 |
 | S37 | src/sim/battle.gd:306-312 · src/main.gd:192 (일부: 성곽 배치만. 마을 구역·업그레이드는 W2 이후) |
-| S38 | src/sim/battle.gd:1529-1558 · src/ui/hud.gd:156 · src/ui/hud.gd:240-243 |
+| S38 | src/sim/battle.gd:1529-1558 · src/ui/hud.gd:174 · src/ui/hud.gd:259-262 |
 | S39 | src/main.gd:181 · src/sim/battle.gd:24 · src/sim/battle.gd:198-200 · src/sim/battle.gd:1510-1524 |
 | S40 | src/sim/battle.gd:198-200 |
 | S41 | data/enemies/fast.tres:14 · src/sim/battle.gd:2021-2033 |
 | S42 | src/sim/battle.gd:178 · src/sim/battle.gd:705-757 · src/sim/battle.gd:2132-2136 · src/sim/battle.gd:2140-2141 · src/sim/battle.gd:2153-2156 · data/mercs/archer.tres:11 |
 | S43 | src/sim/battle.gd:327 · src/sim/battle.gd:1427-1439 · src/main.gd:193 · src/ui/battle_view.gd:604 · src/data/structure_def.gd:4 |
-| S44 | src/sim/battle.gd:1670-1699 · src/sim/battle.gd:1772-1790 · src/sim/battle.gd:1739-1748 · src/ui/hud.gd:466-475 |
+| S44 | src/sim/battle.gd:1670-1699 · src/sim/battle.gd:1772-1790 · src/sim/battle.gd:1739-1748 · src/ui/hud.gd:529-538 |
 | S45 | src/ui/battle_view.gd:266-268 · src/sim/battle.gd:1448-1460 |
 | S46 | src/sim/battle.gd:271 · src/sim/battle.gd:673-679 · src/sim/battle.gd:465-482 |
 | S47 | src/sim/battle.gd:425-426 · src/sim/battle.gd:669-671 · data/structures/house.tres:10 |
-| S48 | src/sim/battle.gd:1469 · src/ui/hud.gd:211-212 · src/sim/battle.gd:1961-1966 |
+| S48 | src/sim/battle.gd:1469 · src/ui/hud.gd:230-231 · src/sim/battle.gd:1961-1966 |
 | S49 | data/structures/barracks.tres:10 · data/structures/archery.tres:10 · data/structures/workshop.tres:10 · data/mercs/engineer.tres:5-9 · src/ui/controls.gd:19 |
 | S50 | src/sim/battle.gd:681-683 · src/ui/controls.gd:213-214 |
 | S51 | src/main.gd:177-198 (W1 시험 스테이지. 스테이지 전반은 5.1) |
@@ -706,49 +714,49 @@
 | S59 | |
 | S60 | src/sim/battle.gd:154-155 · src/sim/battle.gd:1869-1871 · src/sim/battle.gd:561-563 |
 | S61 | src/sim/battle.gd:465-482 · src/sim/battle.gd:326 · src/sim/battle.gd:512 · src/sim/battle.gd:525 |
-| S62 | src/sim/battle.gd:584-597 · src/ui/hud.gd:432-440 |
+| S62 | src/sim/battle.gd:584-597 · src/ui/hud.gd:495-503 |
 | S63 | src/sim/battle.gd:242 · src/sim/battle.gd:305 · src/sim/battle.gd:412-420 · src/sim/battle.gd:465-482 · src/main.gd:14-16 |
-| S64 | src/sim/battle.gd:320-359 · src/sim/battle.gd:1858 · src/ui/hud.gd:292-297 |
+| S64 | src/sim/battle.gd:320-359 · src/sim/battle.gd:1858 · src/ui/hud.gd:311-316 |
 | S65 | src/main.gd:74-82 · src/sim/save.gd:64-87 · src/menu.gd:23-31 |
 | S66 | src/sim/battle.gd:627-635 · src/sim/battle.gd:638-640 · data/quests/base_safe.tres:8 · data/quests/flawless.tres:9 |
 | S67 | src/sim/battle.gd:440-449 |
 | S68 | src/ui/camera.gd:22-24 |
 | S69 | src/sim/battle.gd:1796-1813 · src/sim/battle.gd:696 · src/sim/battle.gd:1413 |
-| S70 | src/ui/controls.gd:117-145 · src/ui/hud.gd:147 · src/ui/hud.gd:206-209 · src/ui/hud.gd:267-270 · src/ui/hud.gd:477-481 |
+| S70 | src/ui/controls.gd:117-145 · src/ui/hud.gd:165 · src/ui/hud.gd:225-228 · src/ui/hud.gd:286-289 · src/ui/hud.gd:540-544 |
 | S71 | src/sim/battle.gd:2176 · src/sim/battle.gd:2280 · src/ui/battle_view.gd:127 |
 | S72 | src/ui/battle_view.gd:132 |
 | S73 | src/ui/controls.gd:68-69 · src/ui/battle_view.gd:283-287 · src/ui/battle_view.gd:134-136 |
-| S74 | src/sim/battle.gd:1660-1703 · src/sim/battle.gd:1787-1790 · src/ui/controls.gd:130 · src/ui/controls.gd:143-145 · src/ui/hud.gd:151 · src/ui/hud.gd:220 · src/ui/battle_view.gd:275-276 |
+| S74 | src/sim/battle.gd:1660-1703 · src/sim/battle.gd:1787-1790 · src/ui/controls.gd:130 · src/ui/controls.gd:143-145 · src/ui/hud.gd:169 · src/ui/hud.gd:239 · src/ui/battle_view.gd:275-276 |
 | S75 | data/heroes/aias.tres:8 · data/heroes/sylvia.tres:8 · data/heroes/seraphina.tres:8 · data/heroes/vesper.tres:8 · data/heroes/ignis.tres:8 · data/heroes/chronos.tres:8 |
 | S76 | src/data/level_def.gd:7 · src/sim/battle.gd:775 |
 | S77 | src/sim/battle.gd:15 · src/sim/battle.gd:258-263 · src/sim/battle.gd:605-609 · src/sim/battle.gd:612-616 · src/sim/battle.gd:619-623 · src/sim/battle.gd:627-635 · data/quests/base_safe.tres:7-9 · data/quests/flawless.tres:7-10 |
 | S78 | |
 | S79 | src/sim/battle.gd:465-482 |
-| S80 | src/sim/battle.gd:1570-1583 · src/sim/battle.gd:1598-1612 · src/sim/battle.gd:1880-1889 · src/ui/hud.gd:250-258 |
-| S81 | src/ui/controls.gd:30 · src/ui/controls.gd:127 · src/ui/hud.gd:150 · src/ui/hud.gd:211-215 · src/ui/hud.gd:267-270 |
+| S80 | src/sim/battle.gd:1570-1583 · src/sim/battle.gd:1598-1612 · src/sim/battle.gd:1880-1889 · src/ui/hud.gd:269-277 |
+| S81 | src/ui/controls.gd:30 · src/ui/controls.gd:127 · src/ui/hud.gd:168 · src/ui/hud.gd:230-234 · src/ui/hud.gd:286-289 |
 | S82 | src/ui/controls.gd:110-115 · src/ui/battle_view.gd:277-281 |
-| S83 | src/ui/hud.gd:146-154 · src/ui/hud.gd:210 · src/ui/hud.gd:219-270 · src/ui/hud.gd:454-459 · src/sim/battle.gd:1705-1707 · src/ui/controls.gd:130 · src/ui/battle_view.gd:386-398 · src/ui/battle_view.gd:275-276 |
+| S83 | src/ui/hud.gd:164-172 · src/ui/hud.gd:229 · src/ui/hud.gd:238-289 · src/ui/hud.gd:517-522 · src/sim/battle.gd:1705-1707 · src/ui/controls.gd:130 · src/ui/battle_view.gd:386-398 · src/ui/battle_view.gd:275-276 |
 | S84 | (2026-10-18 없어짐 — W는 영웅마다 다르다, S151~S158) |
-| S85 | src/sim/battle.gd:1510-1524 · src/ui/controls.gd:32 · src/ui/controls.gd:128 · src/ui/hud.gd:155 · src/ui/hud.gd:224-239 · src/ui/battle_view.gd:430-439 · src/ui/battle_view.gd:275 |
-| S86 | src/sim/battle.gd:26-30 · src/sim/battle.gd:1526-1558 · src/sim/battle.gd:1781-1782 · src/ui/controls.gd:128 · src/ui/hud.gd:156 · src/ui/hud.gd:240-243 |
-| S87 | data/mercs/archer.tres:7-13 · data/structures/archery.tres:10 · src/sim/battle.gd:1465-1485 · src/ui/hud.gd:150 · src/ui/hud.gd:214-215 |
+| S85 | src/sim/battle.gd:1510-1524 · src/ui/controls.gd:32 · src/ui/controls.gd:128 · src/ui/hud.gd:173 · src/ui/hud.gd:243-258 · src/ui/battle_view.gd:430-439 · src/ui/battle_view.gd:275 |
+| S86 | src/sim/battle.gd:26-30 · src/sim/battle.gd:1526-1558 · src/sim/battle.gd:1781-1782 · src/ui/controls.gd:128 · src/ui/hud.gd:174 · src/ui/hud.gd:259-262 |
+| S87 | data/mercs/archer.tres:7-13 · data/structures/archery.tres:10 · src/sim/battle.gd:1465-1485 · src/ui/hud.gd:168 · src/ui/hud.gd:233-234 |
 | S88 | src/sim/battle.gd:37 · src/sim/battle.gd:2140-2141 |
 | S89 | src/sim/battle.gd:407 · src/sim/battle.gd:1955-1957 · src/sim/battle.gd:2140-2141 |
 | S90 | data/structures/cannon.tres:7-13 · src/data/structure_def.gd:13 · src/sim/battle.gd:55 · src/sim/battle.gd:2100-2121 · src/ui/battle_view.gd:36-37 · src/ui/battle_view.gd:146-149 · src/ui/battle_view.gd:163-165 |
-| S91 | src/ui/hud.gd:152 · src/ui/hud.gd:221 · src/ui/hud.gd:466-475 · src/ui/hud.gd:184-186 · src/ui/controls.gd:33 · src/ui/controls.gd:94-98 · src/sim/battle.gd:1670-1679 |
-| S92 | src/ui/controls.gd:19 · src/ui/hud.gd:13 |
+| S91 | src/ui/hud.gd:170 · src/ui/hud.gd:240 · src/ui/hud.gd:529-538 · src/ui/hud.gd:203-205 · src/ui/controls.gd:33 · src/ui/controls.gd:94-98 · src/sim/battle.gd:1670-1679 |
+| S92 | src/ui/controls.gd:19 · src/ui/hud.gd:14 |
 | S93 | src/sim/battle.gd:1883-1886 |
-| S94 | src/data/hero_def.gd:7 · src/data/hire_def.gd:3 · src/ui/hud.gd:16 |
+| S94 | src/data/hero_def.gd:7 · src/data/hire_def.gd:3 · src/ui/hud.gd:17 |
 | S95 | (2026-10-18 바뀜 — 조준은 S147) src/sim/battle.gd:783-811 |
-| S97 | src/data/hero_def.gd:4 · src/sim/battle.gd:12 · src/sim/battle.gd:150 · src/ui/hud.gd:15 |
+| S97 | src/data/hero_def.gd:4 · src/sim/battle.gd:12 · src/sim/battle.gd:150 · src/ui/hud.gd:16 |
 | S98 | data/structures/barracks.tres:10 · data/structures/archery.tres:10 · src/ui/controls.gd:19 |
-| S99 | src/sim/battle.gd:16 · src/sim/battle.gd:673-679 · src/sim/battle.gd:1401 · src/data/structure_def.gd:16 · data/structures/archery.tres:11 · src/ui/hud.gd:402-404 |
-| S100 | src/ui/controls.gd:129 · src/ui/hud.gd:159 · src/ui/hud.gd:244-249 · src/ui/battle_view.gd:275 |
+| S99 | src/sim/battle.gd:16 · src/sim/battle.gd:673-679 · src/sim/battle.gd:1401 · src/data/structure_def.gd:16 · data/structures/archery.tres:11 · src/ui/hud.gd:421-423 |
+| S100 | src/ui/controls.gd:129 · src/ui/hud.gd:177 · src/ui/hud.gd:263-268 · src/ui/battle_view.gd:275 |
 | S101 | src/sim/battle.gd:18 · src/sim/battle.gd:1404 · data/structures/house.tres:7-10 |
 | S102 | src/sim/battle.gd:669-671 |
 | S103 | src/sim/battle.gd:1438-1439 · data/structures/house.tres:9 · src/ui/controls.gd:19 |
 | S104 | src/ui/battle_view.gd:301-303 · src/ui/battle_view.gd:334-335 · src/ui/battle_view.gd:340-345 · src/ui/battle_view.gd:721-731 |
-| S105 | src/ui/hud.gd:77 · src/ui/hud.gd:81 |
+| S105 | src/ui/hud.gd:89 · src/ui/hud.gd:93 |
 | I1 | |
 | I2 | src/sim/battle.gd:1923-1929 · src/sim/battle.gd:2258-2271 |
 | I3 | src/sim/battle.gd:189-190 |
@@ -758,15 +766,15 @@
 | I8 | src/sim/battle.gd:1970-1971 |
 | I9 | src/ui/controls.gd:117-145 · src/ui/controls.gd:71-73 |
 | I10 | src/ui/controls.gd:7 |
-| I11 | src/main.gd:85-87 · src/ui/menus.gd:18 |
-| I12 | src/ui/hud.gd:299-304 · src/ui/hud.gd:198-202 · src/main.gd:117-129 · src/ui/menus.gd:85 · src/ui/menus.gd:113-123 |
-| I13 | src/sim/battle.gd:451 · src/sim/battle.gd:412 · src/ui/hud.gd:90 · src/ui/hud.gd:288-290 · src/main.gd:129 |
+| I11 | src/main.gd:85-87 · src/ui/menus.gd:19 |
+| I12 | src/ui/hud.gd:318-323 · src/ui/hud.gd:217-221 · src/main.gd:117-129 · src/ui/menus.gd:85 · src/ui/menus.gd:113-123 |
+| I13 | src/sim/battle.gd:451 · src/sim/battle.gd:412 · src/ui/hud.gd:104 · src/ui/hud.gd:307-309 · src/main.gd:129 |
 | I14 | src/sim/battle.gd:412-420 |
 | I15 | data/enemies/basic.tres:11 · src/sim/battle.gd:95 · src/sim/battle.gd:326 · src/main.gd:187 · src/sim/battle.gd:465-482 · src/data/enemy_def.gd:14 |
 | I16 | src/sim/battle.gd:691-693 · src/sim/battle.gd:1404-1409 |
 | I17 | src/sim/battle.gd:1404-1420 |
 | I18 | src/sim/battle.gd:2106 · src/sim/battle.gd:1469 · src/ui/battle_view.gd:386-398 · src/ui/battle_view.gd:351-352 |
-| I19 | src/sim/battle.gd:427-428 · src/sim/battle.gd:1655-1658 · src/ui/hud.gd:148 · src/ui/hud.gd:210 |
+| I19 | src/sim/battle.gd:427-428 · src/sim/battle.gd:1655-1658 · src/ui/hud.gd:166 · src/ui/hud.gd:229 |
 | I20 | |
 | I21 | src/sim/battle.gd:1468-1485 · src/sim/battle.gd:63 · src/ui/controls.gd:127 |
 | I22 | src/sim/battle.gd:1488-1495 · src/sim/battle.gd:138 · src/sim/battle.gd:714 · src/sim/battle.gd:2165 |
@@ -801,28 +809,28 @@
 | I51 | src/data/enemy_def.gd:12 · src/data/merc_def.gd:9 · src/sim/battle.gd:2038-2041 · src/sim/battle.gd:2083-2098 · src/sim/battle.gd:2158-2161 · src/sim/battle.gd:2258-2271 · src/sim/battle.gd:406 · src/sim/battle.gd:410 · src/ui/battle_view.gd:411 · src/ui/battle_view.gd:323-326 · src/ui/battle_view.gd:338-356 · src/ui/battle_view.gd:406-407 |
 | I52 | src/data/level_def.gd:7 · data/levels.tres:9-14 · src/sim/battle.gd:778 |
 | I53 | |
-| I54 | src/sim/battle.gd:619-623 · src/sim/battle.gd:627-635 · src/ui/hud.gd:339-346 |
+| I54 | src/sim/battle.gd:619-623 · src/sim/battle.gd:627-635 · src/ui/hud.gd:358-365 |
 | I55 | |
 | I56 | src/sim/battle.gd:1796-1813 |
 | I57 | src/ui/controls.gd:117-145 |
-| I58 | src/ui/hud.gd:206-209 · src/ui/hud.gd:267-270 · src/ui/controls.gd:120 |
+| I58 | src/ui/hud.gd:225-228 · src/ui/hud.gd:286-289 · src/ui/controls.gd:120 |
 | I59 | src/ui/battle_view.gd:282-287 · src/ui/battle_view.gd:127 |
 | I60 | src/sim/battle.gd:1575-1581 |
-| I61 | src/sim/battle.gd:1501-1508 · src/sim/battle.gd:1422-1423 · src/ui/controls.gd:127 · src/ui/hud.gd:214 |
+| I61 | src/sim/battle.gd:1501-1508 · src/sim/battle.gd:1422-1423 · src/ui/controls.gd:127 · src/ui/hud.gd:233 |
 | I62 | src/sim/battle.gd:1416-1420 · src/sim/battle.gd:1756-1765 · src/data/structure_def.gd:9 · src/ui/battle_view.gd:386-398 · src/ui/battle_view.gd:351-352 |
 | I63 | src/data/merc_def.gd:5 · data/mercs/engineer.tres:5-9 · src/sim/battle.gd:25 · src/sim/battle.gd:1730-1745 · src/sim/battle.gd:716-717 · src/sim/battle.gd:1772-1775 |
 | I64 | src/sim/battle.gd:1660-1668 · src/sim/battle.gd:1701-1703 · src/sim/battle.gd:1787-1790 |
 | I65 | (2026-10-18 없어짐 — S84와 함께) |
 | I66 | src/sim/battle.gd:287-298 · src/sim/battle.gd:9-11 · src/data/structure_def.gd:4 · src/data/waves_def.gd:5-13 · src/data/hero_def.gd:1-3 · src/data/enemy_def.gd:3 · src/data/hero_def.gd:3 · src/data/merc_def.gd:3 · src/data/quest_def.gd:3 · src/data/structure_def.gd:3 · src/data/waves_def.gd:3 · src/main.gd:180 · src/sim/battle.gd:7 |
 | I67 | src/sim/battle.gd:71 · src/sim/battle.gd:198-200 · src/sim/battle.gd:1510-1524 · src/ui/battle_view.gd:436-439 |
-| I68 | src/sim/battle.gd:74 · src/sim/battle.gd:427 · src/sim/battle.gd:1537-1545 · src/sim/battle.gd:1547-1558 · src/ui/hud.gd:240-243 · src/ui/battle_view.gd:437 |
+| I68 | src/sim/battle.gd:74 · src/sim/battle.gd:427 · src/sim/battle.gd:1537-1545 · src/sim/battle.gd:1547-1558 · src/ui/hud.gd:259-262 · src/ui/battle_view.gd:437 |
 | I69 | src/sim/battle.gd:179 · src/sim/battle.gd:446-448 · src/sim/battle.gd:705-757 · src/sim/battle.gd:1714 · src/sim/battle.gd:2132-2136 · src/sim/battle.gd:2153-2156 |
 | I70 | src/sim/battle.gd:407 · src/sim/battle.gd:1892-1900 · src/sim/battle.gd:1955-1957 · src/sim/battle.gd:2166 |
-| I71 | data/structures/archery.tres:10 · src/ui/controls.gd:19 · src/ui/hud.gd:150 · src/ui/hud.gd:214-215 |
+| I71 | data/structures/archery.tres:10 · src/ui/controls.gd:19 · src/ui/hud.gd:168 · src/ui/hud.gd:233-234 |
 | I72 | src/sim/battle.gd:197-198 · src/sim/battle.gd:1427-1437 · src/sim/battle.gd:1887-1891 |
 | I73 | src/sim/battle.gd:2117-2121 |
 | I74 | src/sim/battle.gd:66 · src/sim/battle.gd:69-70 · src/sim/battle.gd:1681-1699 · src/sim/battle.gd:1739-1748 · src/sim/battle.gd:1758-1761 · src/sim/battle.gd:1785-1789 · src/sim/battle.gd:2106 · src/ui/battle_view.gd:73-76 · src/ui/battle_view.gd:386-398 |
-| I75 | src/ui/hud.gd:167 |
+| I75 | src/ui/hud.gd:186 |
 | S106 | src/data/enemy_def.gd:4 |
 | S107 | data/enemies/fast.tres:14 · src/data/enemy_def.gd:18 · src/sim/battle.gd:2021-2033 |
 | S108 | src/data/enemy_def.gd:16 · src/sim/battle.gd:97 |
@@ -843,18 +851,18 @@
 | I84 | src/sim/battle.gd:930-935 |
 | S114 | src/sim/battle.gd:34-35 · src/sim/battle.gd:1560-1564 |
 | S115 | src/sim/battle.gd:1575-1581 · src/sim/battle.gd:1603-1609 · src/sim/battle.gd:1776-1780 |
-| S116 | src/ui/hud.gd:157-158 · src/ui/hud.gd:250-258 · src/ui/hud.gd:461-464 |
+| S116 | src/ui/hud.gd:175-176 · src/ui/hud.gd:269-277 · src/ui/hud.gd:524-527 |
 | I85 | src/sim/battle.gd:1560-1568 |
 | I86 | src/sim/battle.gd:1566-1583 · src/sim/battle.gd:1622-1634 |
 | I87 | src/sim/battle.gd:36 · src/sim/battle.gd:75 · src/sim/battle.gd:1622-1634 · src/sim/battle.gd:1776-1778 · src/sim/battle.gd:427-428 · src/sim/battle.gd:1667 · src/sim/battle.gd:1678 |
 | I88 | src/sim/battle.gd:246 · src/sim/battle.gd:1889 · src/ui/battle_view.gd:432-435 · src/sim/battle.gd:1430 · src/ui/battle_view.gd:295 · src/ui/controls.gd:32 |
-| I89 | src/sim/battle.gd:1598-1620 · src/sim/battle.gd:1779-1780 · src/ui/controls.gd:128 · src/ui/hud.gd:254-258 |
-| I90 | src/ui/hud.gd:250-258 · src/ui/hud.gd:461-464 · src/ui/controls.gd:128 |
-| S117 | src/sim/battle.gd:417 · src/sim/battle.gd:462-482 · src/sim/battle.gd:1510-1512 · src/ui/controls.gd:56-59 · src/ui/hud.gd:192-197 · src/ui/hud.gd:235 · src/ui/hud.gd:292-297 · src/main.gd:129-133 |
+| I89 | src/sim/battle.gd:1598-1620 · src/sim/battle.gd:1779-1780 · src/ui/controls.gd:128 · src/ui/hud.gd:273-277 |
+| I90 | src/ui/hud.gd:269-277 · src/ui/hud.gd:524-527 · src/ui/controls.gd:128 |
+| S117 | src/sim/battle.gd:417 · src/sim/battle.gd:462-482 · src/sim/battle.gd:1510-1512 · src/ui/controls.gd:56-59 · src/ui/hud.gd:211-216 · src/ui/hud.gd:254 · src/ui/hud.gd:311-316 · src/main.gd:129-133 |
 | I91 | src/main.gd:14-16 · src/main.gd:180 · src/main.gd:194-197 · src/sim/battle.gd:242 · src/sim/battle.gd:305 · data/waves/round_2.tres:7-22 · data/waves/round_6.tres:8-23 |
-| I92 | src/sim/battle.gd:318-359 · src/sim/battle.gd:419-420 · src/ui/hud.gd:296-297 |
+| I92 | src/sim/battle.gd:318-359 · src/sim/battle.gd:419-420 · src/ui/hud.gd:315-316 |
 | I93 | src/sim/battle.gd:430-433 · src/sim/battle.gd:477-480 |
-| I94 | src/ui/hud.gd:166-167 · src/ui/hud.gd:197 · src/main.gd:116-133 |
+| I94 | src/ui/hud.gd:185-186 · src/ui/hud.gd:216 · src/main.gd:116-133 |
 | S118 | src/main.gd:33 · src/sim/battle.gd:348-359 |
 | S119 | src/sim/battle.gd:254 · src/sim/battle.gd:780 · src/ui/controls.gd:7 · src/ui/controls.gd:202 |
 | S120 | (2026-10-18 아이아스 R 둘레 효과의 대상) src/sim/battle.gd:1083-1086 |
@@ -867,7 +875,7 @@
 | I100 | src/sim/battle.gd:928 |
 | I101 | src/ui/battle_view.gd:12 · src/ui/battle_view.gd:115-120 · src/ui/battle_view.gd:15 · src/ui/battle_view.gd:20 · src/ui/battle_view.gd:269-274 · src/ui/battle_view.gd:269-274 · src/ui/battle_view.gd:90 · src/ui/battle_view.gd:103 · src/ui/battle_view.gd:111 · src/ui/controls.gd:125 |
 | I102 | src/sim/battle.gd:152 · src/sim/battle.gd:253 · src/sim/battle.gd:349 · src/sim/battle.gd:437 |
-| S122 | src/sim/battle.gd:484-488 · src/main.gd:33 · src/ui/hud.gd:442-445 · src/sim/battle.gd:465-477 · src/sim/battle.gd:265 · src/sim/battle.gd:462 · src/sim/battle.gd:484 · src/ui/hud.gd:7 · src/ui/hud.gd:442 |
+| S122 | src/sim/battle.gd:484-488 · src/main.gd:33 · src/ui/hud.gd:505-508 · src/sim/battle.gd:465-477 · src/sim/battle.gd:265 · src/sim/battle.gd:462 · src/sim/battle.gd:484 · src/ui/hud.gd:7 · src/ui/hud.gd:505 |
 | S123 | src/data/hire_def.gd:3 · src/sim/battle.gd:13 · src/sim/battle.gd:503 · src/sim/battle.gd:521 · src/sim/battle.gd:535 |
 | S124 | src/sim/battle.gd:545-559 · src/sim/battle.gd:477 |
 | I103 | data/hire.tres:7-10 · src/data/hire_def.gd:1-3 · src/sim/battle.gd:13 · src/sim/battle.gd:494-501 |
@@ -877,20 +885,20 @@
 | I107 | src/main.gd:189 · src/sim/battle.gd:546 · src/sim/battle.gd:1432 |
 | I108 | src/sim/battle.gd:253-254 · src/sim/battle.gd:551 · src/ui/controls.gd:10 · src/ui/controls.gd:202 |
 | I109 | src/ui/controls.gd:56-59 · src/sim/battle.gd:451-453 · src/sim/battle.gd:688-689 · src/sim/battle.gd:1401-1402 |
-| I110 | src/ui/hud.gd:128-145 · src/ui/hud.gd:198-205 · src/ui/hud.gd:299-335 · src/main.gd:117-129 |
+| I110 | src/ui/hud.gd:146-163 · src/ui/hud.gd:217-224 · src/ui/hud.gd:318-354 · src/main.gd:117-129 |
 | S125 | src/sim/battle.gd:1869-1871 · src/sim/battle.gd:561-563 · src/sim/battle.gd:96 · src/data/enemy_def.gd:15 |
 | S126 | data/levels.tres:7-8 · src/data/level_def.gd:5-6 · src/sim/battle.gd:14 · src/sim/battle.gd:565-582 · src/data/enemy_def.gd:15 |
-| S127 | src/sim/battle.gd:584-597 · src/ui/hud.gd:432-440 · src/ui/hud.gd:336 |
+| S127 | src/sim/battle.gd:584-597 · src/ui/hud.gd:495-503 · src/ui/hud.gd:355 |
 | S128 | data/quests/base_safe.tres:7-9 · data/quests/castle_safe.tres:7-9 · data/quests/mercs_safe.tres:7-9 · data/quests/heroes_safe.tres:7-9 · data/quests/flawless.tres:7-10 · data/quests/no_buying.tres:7-10 · data/quests/no_building.tres:7-10 · data/quests/swift.tres:7-10 · src/sim/battle.gd:638-640 |
-| S129 | src/sim/battle.gd:421-424 · src/sim/battle.gd:619-623 · src/ui/hud.gd:140-144 |
+| S129 | src/sim/battle.gd:421-424 · src/sim/battle.gd:619-623 · src/ui/hud.gd:158-162 |
 | S130 | src/sim/battle.gd:605-609 · src/sim/battle.gd:612-616 · src/sim/battle.gd:619-623 |
 | S131 | |
 | S132 | |
 | S133 | |
 | S134 | |
 | S135 | src/sim/battle.gd:31 · src/sim/battle.gd:72 · src/sim/battle.gd:1510-1524 · src/sim/battle.gd:434-435 |
-| S136 | src/sim/battle.gd:775 · src/sim/battle.gd:2183 · src/ui/hud.gd:57 · src/ui/hud.gd:358 |
-| S137 | data/structures/church.tres:7-10 · src/data/structure_def.gd:18 · src/sim/battle.gd:1439 · src/sim/battle.gd:1585-1596 · src/ui/hud.gd:160-161 · src/ui/hud.gd:259-266 · src/ui/controls.gd:19 · tools/art/facility.py:113-125 · src/ui/hud.gd:13 |
+| S136 | src/sim/battle.gd:775 · src/sim/battle.gd:2183 · src/ui/hud.gd:70 · src/ui/hud.gd:377 |
+| S137 | data/structures/church.tres:7-10 · src/data/structure_def.gd:18 · src/sim/battle.gd:1439 · src/sim/battle.gd:1585-1596 · src/ui/hud.gd:178-179 · src/ui/hud.gd:278-285 · src/ui/controls.gd:19 · tools/art/facility.py:113-125 · src/ui/hud.gd:14 |
 | S138 | src/sim/battle.gd:440 · src/sim/battle.gd:430-433 · src/sim/battle.gd:478-480 · src/sim/battle.gd:437 |
 | S139 | src/sim/battle.gd:236 · src/sim/battle.gd:189 · src/sim/battle.gd:1558 |
 | S140 | src/sim/battle.gd:32 · src/sim/battle.gd:106-107 · src/sim/battle.gd:1980 · src/sim/battle.gd:2119-2121 |
@@ -901,37 +909,37 @@
 | I111 | src/data/level_def.gd:3 · src/sim/battle.gd:14 |
 | I112 | src/sim/battle.gd:565-582 |
 | I113 | src/sim/battle.gd:565 · src/sim/battle.gd:584 |
-| I114 | src/sim/battle.gd:776-778 · src/ui/hud.gd:387-390 |
+| I114 | src/sim/battle.gd:776-778 · src/ui/hud.gd:406-409 |
 | I115 | src/sim/battle.gd:350-356 |
-| I116 | src/ui/hud.gd:432-440 · src/ui/hud.gd:336-338 · src/ui/hud.gd:139 · src/ui/hud.gd:200 · src/sim/battle.gd:584-597 |
-| I117 | src/ui/hud.gd:425-430 · src/ui/hud.gd:332 · src/ui/battle_view.gd:97-98 |
+| I116 | src/ui/hud.gd:495-503 · src/ui/hud.gd:355-357 · src/ui/hud.gd:157 · src/ui/hud.gd:219 · src/sim/battle.gd:584-597 |
+| I117 | src/ui/hud.gd:488-493 · src/ui/hud.gd:351 · src/ui/battle_view.gd:97-98 |
 | I118 | src/data/quest_def.gd:1-10 · data/quests/base_safe.tres:7-9 · data/quests/swift.tres:7-10 · src/sim/battle.gd:15 · src/sim/battle.gd:369-371 · src/main.gd:196 · src/sim/battle.gd:638-640 |
 | I119 | src/sim/battle.gd:20 · src/sim/battle.gd:263 · src/sim/battle.gd:600-602 · src/sim/battle.gd:387 · src/sim/battle.gd:698 · src/sim/battle.gd:1415 · src/sim/battle.gd:1483 · src/sim/battle.gd:1847-1848 · src/sim/battle.gd:1876-1879 · src/sim/battle.gd:1885 · src/sim/battle.gd:1888 |
 | I120 | src/sim/battle.gd:605-609 · src/sim/battle.gd:376-377 · src/sim/battle.gd:421-424 · src/sim/battle.gd:472-475 · src/sim/battle.gd:627-635 · src/sim/battle.gd:369-374 |
-| I121 | src/sim/battle.gd:19 · src/sim/battle.gd:260-261 · src/sim/battle.gd:612-616 · src/sim/battle.gd:619-623 · src/sim/battle.gd:423-424 · src/sim/battle.gd:472 · src/ui/hud.gd:140-144 · src/ui/hud.gd:339-346 |
-| I122 | src/ui/hud.gd:49-52 · src/ui/hud.gd:93 · src/ui/hud.gd:189-196 · src/ui/hud.gd:349-355 · src/ui/hud.gd:339-346 · src/sim/battle.gd:262 |
-| I123 | src/ui/hud.gd:235-239 |
-| I124 | src/sim/battle.gd:1636-1638 · src/ui/hud.gd:236-239 · src/ui/hud.gd:255-258 |
+| I121 | src/sim/battle.gd:19 · src/sim/battle.gd:260-261 · src/sim/battle.gd:612-616 · src/sim/battle.gd:619-623 · src/sim/battle.gd:423-424 · src/sim/battle.gd:472 · src/ui/hud.gd:158-162 · src/ui/hud.gd:358-365 |
+| I122 | src/ui/hud.gd:62-65 · src/ui/hud.gd:110 · src/ui/hud.gd:208-215 · src/ui/hud.gd:368-374 · src/ui/hud.gd:358-365 · src/sim/battle.gd:262 |
+| I123 | src/ui/hud.gd:254-258 |
+| I124 | src/sim/battle.gd:1636-1638 · src/ui/hud.gd:255-258 · src/ui/hud.gd:274-277 |
 | I125 | src/sim/battle.gd:1709-1728 |
 | I126 | src/sim/battle.gd:772 · src/sim/battle.gd:780 |
-| I127 | src/sim/battle.gd:521-524 · src/ui/hud.gd:325 |
-| I128 | src/sim/battle.gd:1720-1723 · src/ui/hud.gd:17 · src/ui/hud.gd:168 · src/ui/hud.gd:228-234 · src/ui/hud.gd:243 · src/ui/hud.gd:253 · src/ui/hud.gd:257-258 · src/ui/hud.gd:416-423 |
-| I129 | src/ui/hud.gd:11 · src/ui/hud.gd:59 · src/ui/hud.gd:357 · src/ui/hud.gd:384 |
+| I127 | src/sim/battle.gd:521-524 · src/ui/hud.gd:344 |
+| I128 | src/sim/battle.gd:1720-1723 · src/ui/hud.gd:18 · src/ui/hud.gd:187 · src/ui/hud.gd:247-253 · src/ui/hud.gd:262 · src/ui/hud.gd:272 · src/ui/hud.gd:276-277 · src/ui/hud.gd:479-486 |
+| I129 | src/ui/hud.gd:11 · src/ui/hud.gd:72 · src/ui/hud.gd:376 · src/ui/hud.gd:403 |
 | I130 | src/ui/battle_view.gd:121-126 |
-| I131 | src/sim/battle.gd:1859 · src/ui/hud.gd:349-355 |
-| I132 | src/ui/hud.gd:89 · src/ui/hud.gd:168-173 · src/ui/hud.gd:401-412 · src/ui/hud.gd:247-249 |
+| I131 | src/sim/battle.gd:1859 · src/ui/hud.gd:368-374 |
+| I132 | src/ui/hud.gd:102 · src/ui/hud.gd:187-192 · src/ui/hud.gd:420-431 · src/ui/hud.gd:266-268 |
 | I133 | src/sim/battle.gd:1518-1522 |
 | I134 | src/sim/battle.gd:687-688 · src/sim/battle.gd:695 · src/sim/battle.gd:702-703 |
 | I135 | src/ui/controls.gd:135-136 |
-| I136 | src/ui/hud.gd:116-120 · src/ui/hud.gd:124-125 |
-| I137 | src/ui/hud.gd:268-270 |
+| I136 | src/ui/hud.gd:134-138 · src/ui/hud.gd:142-143 |
+| I137 | src/ui/hud.gd:287-289 |
 | I138 | src/sim/battle.gd:1429 · src/sim/battle.gd:1436 · src/sim/battle.gd:1442-1446 · src/sim/battle.gd:1449-1460 · src/ui/battle_view.gd:266-268 |
-| I139 | src/ui/hud.gd:91-92 · src/ui/hud.gd:175-182 · src/ui/controls.gd:64-67 · src/ui/controls.gd:148-153 |
-| I140 | src/ui/controls.gd:19 · src/sim/battle.gd:1586-1587 · src/sim/battle.gd:1591-1594 · src/ui/hud.gd:263-266 |
-| S157 | data/heroes/aias.tres:7 · data/heroes/sylvia.tres:7 · data/heroes/seraphina.tres:7 · data/heroes/vesper.tres:7 · data/heroes/ignis.tres:7 · data/heroes/chronos.tres:7 · src/data/hero_def.gd:3 · src/data/hero_def.gd:6 · src/ui/battle_view.gd:12 · src/ui/hud.gd:15 · src/ui/hud.gd:322 |
+| I139 | src/ui/hud.gd:105-106 · src/ui/hud.gd:194-201 · src/ui/controls.gd:64-67 · src/ui/controls.gd:148-153 |
+| I140 | src/ui/controls.gd:19 · src/sim/battle.gd:1586-1587 · src/sim/battle.gd:1591-1594 · src/ui/hud.gd:282-285 |
+| S157 | data/heroes/aias.tres:7 · data/heroes/sylvia.tres:7 · data/heroes/seraphina.tres:7 · data/heroes/vesper.tres:7 · data/heroes/ignis.tres:7 · data/heroes/chronos.tres:7 · src/data/hero_def.gd:3 · src/data/hero_def.gd:6 · src/ui/battle_view.gd:12 · src/ui/hud.gd:16 · src/ui/hud.gd:341 |
 | S145 | src/data/hero_def.gd:18 · src/data/hero_def.gd:20 · src/data/hero_def.gd:23 · src/data/level_def.gd:7 · src/sim/battle.gd:38 · src/sim/battle.gd:773 · src/sim/battle.gd:775 · src/sim/battle.gd:780 · src/sim/battle.gd:929 · src/ui/controls.gd:7 · src/ui/controls.gd:18 · src/ui/controls.gd:155 |
 | S146 | src/data/hero_def.gd:16-17 · src/sim/battle.gd:156 · src/sim/battle.gd:438 · src/sim/battle.gd:2183 · src/ui/battle_view.gd:115 |
-| S147 | src/sim/battle.gd:39 · src/sim/battle.gd:167 · src/sim/battle.gd:715 · src/sim/battle.gd:775 · src/sim/battle.gd:782 · src/sim/battle.gd:818 · src/sim/battle.gd:859 · src/sim/battle.gd:2184 · src/ui/battle_view.gd:686 · src/ui/controls.gd:8 · src/ui/controls.gd:35 · src/ui/controls.gd:155 · src/ui/controls.gd:179 · src/ui/hud.gd:115 · src/ui/hud.gd:187 |
+| S147 | src/sim/battle.gd:39 · src/sim/battle.gd:167 · src/sim/battle.gd:715 · src/sim/battle.gd:775 · src/sim/battle.gd:782 · src/sim/battle.gd:818 · src/sim/battle.gd:859 · src/sim/battle.gd:2184 · src/ui/battle_view.gd:686 · src/ui/controls.gd:8 · src/ui/controls.gd:35 · src/ui/controls.gd:155 · src/ui/controls.gd:179 · src/ui/hud.gd:133 · src/ui/hud.gd:206 |
 | S148 | src/data/hero_def.gd:23 |
 | S149 | src/data/enemy_def.gd:16 · src/sim/battle.gd:40 · src/sim/battle.gd:56-57 · src/sim/battle.gd:97 · src/sim/battle.gd:146 · src/sim/battle.gd:282 · src/sim/battle.gd:955 · src/sim/battle.gd:963 · src/sim/battle.gd:1004 · src/sim/battle.gd:1815 · src/sim/battle.gd:2102 |
 | S150 | src/sim/battle.gd:58 · src/sim/battle.gd:103 · src/sim/battle.gd:148-149 · src/sim/battle.gd:248 · src/sim/battle.gd:892 · src/sim/battle.gd:900 · src/sim/battle.gd:907 · src/sim/battle.gd:914 · src/sim/battle.gd:937 · src/sim/battle.gd:971 · src/sim/battle.gd:988 · src/sim/battle.gd:1059 · src/sim/battle.gd:1981 · src/sim/battle.gd:1983 · src/sim/battle.gd:2103 |
@@ -941,7 +949,7 @@
 | S153 | src/sim/battle.gd:168 · src/sim/battle.gd:172 · src/sim/battle.gd:791 · src/sim/battle.gd:937 · src/sim/battle.gd:950 · src/sim/battle.gd:1210 · src/sim/battle.gd:1815 · src/sim/battle.gd:2199 |
 | S154 | src/sim/battle.gd:283 · src/sim/battle.gd:1287 · src/sim/battle.gd:1311 · src/sim/battle.gd:1902 · src/sim/battle.gd:2281 |
 | S156 | src/sim/battle.gd:170 · src/sim/battle.gd:835 · src/sim/battle.gd:1076 · src/sim/battle.gd:1322 |
-| S158 | src/sim/battle.gd:169 · src/sim/battle.gd:773 · src/sim/battle.gd:813 · src/sim/battle.gd:946 · src/sim/battle.gd:1366 · src/sim/battle.gd:1372 · src/sim/battle.gd:1862 · src/sim/battle.gd:1979 · src/sim/battle.gd:2149 · src/sim/battle.gd:2184 · src/ui/controls.gd:8 · src/ui/controls.gd:155 · src/ui/hud.gd:379 |
+| S158 | src/sim/battle.gd:169 · src/sim/battle.gd:773 · src/sim/battle.gd:813 · src/sim/battle.gd:946 · src/sim/battle.gd:1366 · src/sim/battle.gd:1372 · src/sim/battle.gd:1862 · src/sim/battle.gd:1979 · src/sim/battle.gd:2149 · src/sim/battle.gd:2184 · src/ui/controls.gd:8 · src/ui/controls.gd:155 · src/ui/hud.gd:398 |
 | I141 | src/sim/battle.gd:41 · src/sim/battle.gd:58 · src/sim/battle.gd:103 · src/sim/battle.gd:148 · src/sim/battle.gd:248 · src/sim/battle.gd:892 · src/sim/battle.gd:1059 |
 | I142 | src/sim/battle.gd:193 · src/sim/battle.gd:223 · src/sim/battle.gd:247 · src/sim/battle.gd:1194 · src/sim/battle.gd:1430 · src/sim/battle.gd:1817 · src/sim/battle.gd:2073 · src/sim/battle.gd:2267 |
 | I143 | src/sim/battle.gd:248 · src/sim/battle.gd:1046 · src/sim/battle.gd:1229 |
@@ -953,7 +961,7 @@
 | I149 | src/sim/battle.gd:1862 |
 | S159 | src/data/hero_def.gd:15 · src/data/merc_def.gd:14 · src/sim/battle.gd:104 · src/sim/battle.gd:147 · src/sim/battle.gd:284 · src/sim/battle.gd:1952 · src/sim/battle.gd:2050 · src/sim/battle.gd:2073 · src/sim/battle.gd:2234 · src/sim/battle.gd:2263 |
 | I150 | src/sim/battle.gd:2050 · src/sim/battle.gd:2064 |
-| I151 | src/ui/controls.gd:8 · src/ui/controls.gd:163 · src/ui/hud.gd:11 · src/ui/hud.gd:59 · src/ui/hud.gd:105 · src/ui/hud.gd:111 · src/ui/hud.gd:273 · src/ui/hud.gd:357 · src/ui/hud.gd:379 |
+| I151 | src/ui/controls.gd:8 · src/ui/controls.gd:163 · src/ui/hud.gd:11 · src/ui/hud.gd:72 · src/ui/hud.gd:122 · src/ui/hud.gd:128 · src/ui/hud.gd:292 · src/ui/hud.gd:376 · src/ui/hud.gd:398 |
 | S160 | src/ui/battle_view.gd:92 · src/ui/battle_view.gd:751-758 |
 | I152 | src/ui/battle_view.gd:750 · src/ui/battle_view.gd:757-758 |
 | S161 | src/menu.gd:16 · src/main.gd:52 · src/main.gd:145 · src/main.gd:148-156 |
@@ -989,6 +997,8 @@
 | I159 | src/ui/menus.gd:72 · src/ui/menus.gd:85 · src/ui/menus.gd:102-106 · src/ui/menus.gd:113-123 |
 | I160 | src/main.gd:94-97 · src/main.gd:166-176 · src/settings.gd:34-36 |
 | I161 | src/main.gd:102-114 · src/menu.gd:32-33 |
+| S187 | src/ui/hud_tip.gd:8-10 · src/ui/hud_tip.gd:58-78 · src/ui/hud_tip.gd:80-97 · src/ui/hud.gd:103 · src/ui/hud.gd:107-109 · src/ui/hud.gd:130 · src/ui/hud.gd:434-475 |
+| I162 | src/ui/hud_tip.gd:27 · src/ui/hud_tip.gd:48 · src/ui/hud_tip.gd:63 · src/ui/hud.gd:180 |
 
 ### 3.2 재확인 목록 (`선택 대기`)
 
