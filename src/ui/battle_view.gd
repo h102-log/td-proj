@@ -4,7 +4,7 @@ extends Node2D
 const CELL := 16
 const COLORS := {
 	"grid": Color(0, 0, 0, 0.15), "spawn": Color("c03030"), "merc": Color("50a0f0"),
-	"engineer": Color("f0a030"), "archer": Color("60d0a0"), "cannon": Color("303060"),
+	"engineer": Color("f0a030"), "archer": Color("60d0a0"),
 }
 const ENEMY_COLORS := {  # 적 종류마다 다른 색(I81)
 	"basic": Color("d04040"), "fast": Color("f08030"), "armored": Color("807070"), "flying": Color("e050c0"), "boss": Color("801010"),
@@ -32,7 +32,8 @@ const KEEP := preload("res://art/castle/keep.png")  # 거점 망루 80×80, 마�
 const FACILITY := preload("res://art/castle/facility.png")  # 시설 48×48: 0행 그림, 1행 청사진 바탕. 칸 앞쪽 아래 왼쪽 모서리가 그림의 (16, 44)다(tools/art/facility.py)
 static var FAC: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/castle/facility.json"))  # 종류 → [열, 그림 맨 윗줄, 맨 아랫줄 + 1]
 const BLUEPRINT := Color(0.55, 0.78, 1.0, 0.6)  # 청사진 색(사용자 2026-10-20, 림월드 설계도). 회색 바탕에 곱한다
-const GHOST := Color(1, 1, 1, 0.4)  # 성벽·거점에 가려진 유닛을 덧그리는 색(C1, 사용자 2026-10-20)
+const GHOST := Color(1, 1, 1, 0.4)  # 거점에 가려진 유닛·시설을 덧그리는 색(C1, 사용자 2026-10-20). 성벽·거점에 가려진 영웅의 마나 막대도 이 색이다
+const SHADE := Color(0, 0, 0, 0.55)  # 성벽에 가려진 부분의 실루엣 색(S175). 55%는 사용자가 고른 시안의 합성 색에 맞춘 Claude 값
 const WALL_H := 24  # 성벽 앞면 높이(px, 4.0 확정값)
 const TEAM := [Color("3c9f9c"), Color("ef3a0c")]  # 발밑 팀 색(S166): 아군 청록, 적 빨강(F24+ 팔레트)
 static var FEET: ImageTexture = _feet()  # 발밑 채운 타원 14×6px. 아군·적을 한 장에 나란히 둬서 draw call이 끊기지 않는다
@@ -41,6 +42,7 @@ var battle
 var controls  # 고른 유닛에 테두리를 그린다
 var _seen := {}  # 영웅·용병·적 → [지난 위치, 방향]
 var ground: ImageTexture  # 바닥을 한 장으로 구운 것. 마을·출현 지점은 도전 내내 같아서(I91) 처음 한 번만 굽는다
+var _clip := -INF  # 덧그릴 때 이 화면 y보다 위 줄은 그리지 않는다(_shade)
 
 func _draw() -> void:
 	if ground == null:
@@ -53,8 +55,9 @@ func _draw() -> void:
 		for y in battle.size.y + 1:
 			draw_line(Vector2(0, y * CELL), Vector2(map.x, y * CELL), COLORS.grid)
 	for s in battle.structures.values():  # 시설 그림은 _bodies가 유닛과 함께 정렬해 그린다(4.1e)
-		if s.dest != null:  # 옮겨 갈 칸(S44)
-			draw_rect(_rect(s.dest), COLORS[s.kind], false, 1.0)
+		if s.dest != null:  # 옮겨 갈 칸(S44): 청사진 색 테두리와 대포에서 이어지는 점선. 칸의 대포 청사진은 _bodies가 그린다(S176)
+			draw_rect(_rect(s.dest), Color(BLUEPRINT, 1.0), false, 1.0)
+			draw_dashed_line(_center(Vector2(s.cell)), _center(Vector2(s.dest)), Color(1, 1, 1, 0.7), 1.0, 3.0)
 	for c in battle.barriers:  # 에너지 성벽(S151): 밝은 칸
 		draw_rect(_rect(c), Color(MARKS.dr, 0.8))
 	for z in battle.zones:  # 장판(I101). 떨어지는 중인 운석은 테두리만, 덫은 플레이어에게만 보인다
@@ -158,11 +161,14 @@ func _marks() -> void:
 # 유닛·적·주민 몸통(S165, S172)과 성곽·거점(4.1c)·시설(4.1e). 발밑 팀 색(S166)과 비행 적 그림자(I81)를 먼저 깔고, (층, 바닥선 y, 목록 순서)로 정렬해 그린다.
 # 성곽 칸은 몸체(바닥선)와 앞층(바닥선 + 2) 두 조각이고, 성벽 위 유닛·대포와 기어오르는 적은 그 사이(바닥선 + 1)에 올려 그려 앞층이 발을 가린다(05 §2).
 # 성벽 위 유닛의 발밑 팀 색만은 앞층 다음(바닥선 + 3)에 올려 그려 흉벽에 가리지 않게 한다(사용자 2026-10-20).
-# 성벽·거점 그림에 가려진 땅 유닛과 시설은 끝에 반투명으로 한 번 더 그린다(C1). 레벨·선택·효과 테두리는 _draw가 모든 몸통 뒤에 그린다
+# 성벽·거점 그림에 가려진 땅 유닛과 시설은 끝에 한 번 더 그린다(_shade). 레벨·선택·효과 테두리는 _draw가 모든 몸통 뒤에 그린다
 func _bodies() -> void:
 	var all: Array = battle.units + battle.enemies
 	var walls: Array = battle.castle.values() + battle.rubble.values()
 	var blds: Array = battle.structures.values()
+	for s in battle.structures.values():  # 옮겨 갈 칸의 대포 청사진(S176): 진행률 0인 미완성 대포로 그린다
+		if s.dest != null:
+			blds.append({"kind": s.kind, "cell": s.dest, "dest": null, "razed": 0.0, "complete": false, "progress": 0.0})
 	var now := Time.get_ticks_msec() / 1000.0
 	var was := residents(battle, now - 0.05)
 	var ps := residents(battle, now)
@@ -211,12 +217,33 @@ func _bodies() -> void:
 		else:
 			_body(all[i], i, next)
 	for i in n:
-		if _behind(all[i]):
-			_body(all[i], i, next, GHOST)
+		var t := _shade(all[i])
+		if t.a > 0.0:
+			_body(all[i], i, next, t)
 	for s in blds:  # 시설도 같은 규칙으로 덧그린다(사용자 2026-10-20)
-		if _behind(s):
-			_facility(s, GHOST)
+		var t := _shade(s)
+		if t.a > 0.0:
+			_facility(s, t)
+	_clip = -INF
 	_seen = next
+
+# 가려진 몸통을 덧그릴 색. 성곽 칸 바로 뒤 한 줄은 성벽 그림 윗변(_clip)보다 아래만 어두운 실루엣이고(S175), 거점 뒤는 통째로 40%다(S171).
+# 성곽 칸 두 줄 뒤는 성벽 통로가 발만 가려 덧그리지 않는다(S175). 덧그리지 않으면 투명
+func _shade(x) -> Color:
+	_clip = -INF
+	if not _behind(x):
+		return Color.TRANSPARENT
+	var c := Vector2i(_pos_of(x).round())
+	if battle.castle.has(c + Vector2i(0, 1)):
+		_clip = (c.y + 2) * CELL - 41.0
+		return SHADE
+	return Color.TRANSPARENT if battle.castle.has(c + Vector2i(0, 2)) else GHOST
+
+# 그림 한 장을 원본과 같은 크기로 그린다. _clip보다 위 줄은 뺀다
+func _region(tex: Texture2D, dst: Rect2, src: Rect2, tint: Color) -> void:
+	var cut := clampf(_clip - dst.position.y, 0.0, dst.size.y)
+	if cut < dst.size.y:
+		draw_texture_rect_region(tex, dst.grow_side(SIDE_TOP, -cut), src.grow_side(SIDE_TOP, -cut), tint)
 
 # 시설 하나(4.1e, 사용자 2026-10-20). 미완성은 청사진 위에 진행률만큼 아래부터 그림을 채우고, 철거 중은 거꾸로 위부터 청사진으로 돌아간다.
 # 다 접힌 대포는 접힌 그림이다(I74). 성벽 위 대포(I44)는 올려 그린다
@@ -228,9 +255,9 @@ func _facility(s, tint := Color.WHITE) -> void:
 	var at := Vector2(s.cell * CELL) + Vector2(-16, CELL - 44 - _lift(s))
 	var x: float = 48.0 * f[0]
 	if cut > 0:
-		draw_texture_rect_region(FACILITY, Rect2(at, Vector2(48, cut)), Rect2(x, 48, 48, cut), BLUEPRINT * tint)
+		_region(FACILITY, Rect2(at, Vector2(48, cut)), Rect2(x, 48, 48, cut), BLUEPRINT * tint)
 	if cut < 48:
-		draw_texture_rect_region(FACILITY, Rect2(at + Vector2(0, cut), Vector2(48, 48 - cut)), Rect2(x, cut, 48, 48 - cut), tint)
+		_region(FACILITY, Rect2(at + Vector2(0, cut), Vector2(48, 48 - cut)), Rect2(x, cut, 48, 48 - cut), tint)
 
 # 유닛·적 몸통 하나. 영웅은 8방향 시트, 그림이 있는 용병·적은 4방향 시트, 나머지는 원으로
 func _body(x, i: int, next: Dictionary, tint := Color.WHITE) -> void:
@@ -313,7 +340,7 @@ func _sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 		col = int(Time.get_ticks_msec() / 125.0) % 4
 	var size := c * (2 if anim == "attack" else 1)  # 공격은 2배 캔버스(tools/art/hero.py)
 	var at := _spot(x) - Vector2(a.anchor[0], a.anchor[1]) - Vector2.ONE * (size - c) / 2.0
-	draw_texture_rect_region(UNITS, Rect2(at.round(), Vector2(size, size)), Rect2(col * size, a[anim] + dir * size, size, size), tint)
+	_region(UNITS, Rect2(at.round(), Vector2(size, size)), Rect2(col * size, a[anim] + dir * size, size, size), tint)
 
 # 용병·적 하나(C 절충안, 4.1d. 4.1a M1·M6에서 C만 통과했다): 4방향 정지, 움직이면 걷기 2위상(초당 8), 친 뒤 0.08~0.22초는 공격 키 포즈.
 # 근접은 그동안 대상 쪽으로 돌진한다(_lunge). 방향 고르기는 _sprite와 같다(tools/bench/view_draw.gd C)
@@ -343,7 +370,7 @@ func _frame(a: Dictionary, anim: String, dir: int, col: int, p: Vector2, tint :=
 	var c := int(a.c)
 	var size := c * (2 if anim == "attack" or anim == "fall" else 1)
 	var at := p - Vector2(a.anchor[0], a.anchor[1]) - Vector2.ONE * (size - c) / 2.0
-	draw_texture_rect_region(UNITS, Rect2(at.round(), Vector2(size, size)), Rect2(col * size, a[anim] + dir * size, size, size), tint)
+	_region(UNITS, Rect2(at.round(), Vector2(size, size)), Rect2(col * size, a[anim] + dir * size, size, size), tint)
 
 # 화면 방향 v → 4방향 시트 행(S·E·N·W)
 func _four(v: Vector2) -> int:
