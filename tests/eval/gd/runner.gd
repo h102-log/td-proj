@@ -3,9 +3,10 @@ extends SceneTree
 # ev 함수는 통과면 "", 실패면 이유 문자열을 돌려준다. 런타임 오류로 null이 오면 실패다.
 # EV마다 «== EV» 줄 뒤에 PASS/FAIL 줄을 찍고, 하나라도 실패하면 종료 코드 1이다.
 
+var started := false
 var done := false
 
-func _initialize() -> void:
+func _run() -> void:
 	var args := OS.get_cmdline_user_args()
 	var script = load("res://tests/eval/gd/%s.gd" % args[0])
 	var loaded: bool = script != null and script.can_instantiate()
@@ -22,9 +23,15 @@ func _initialize() -> void:
 	done = true
 	quit(0 if all_ok else 1)
 
-# _initialize가 결과 없이 중단돼도 첫 프레임에서 실패로 끝낸다(무한 대기 방지)
+# 2026-10-20
+# [동작] ev를 _initialize가 아니라 첫 프레임에 돌린다. _run이 결과 없이 중단되면 다음 프레임에서 실패로 끝낸다(무한 대기 방지)
+# [이유] _initialize 때는 root가 아직 트리 밖이라 붙인 장면의 _ready가 돌지 않는다. 메뉴·저장 평가(EV308~EV317)는
+#        게임 장면(main.tscn)과 메뉴 장면을 붙여 잰다. 유닛 실행기(tests/unit/gd/runner.gd)와 같은 방식이다
 func _process(_delta: float) -> bool:
-	if not done:
+	if not started:
+		started = true
+		_run()
+	elif not done:
 		printerr("FAIL: 실행기가 결과 없이 중단됐다")
 		quit(1)
 	return false

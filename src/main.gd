@@ -1,18 +1,27 @@
 extends Node2D
-# 진입 씬. 시험 스테이지 맵에서 6라운드 도전을 띄운다(S63, I91). 창 크기와 F11 전체화면도 맡는다(S161~S164).
+# 게임 장면. 시험 스테이지 맵에서 6라운드 도전을 띄운다(S63, I91). 메인 메뉴 장면(menu.tscn)의 새 게임·이어하기로 온다(S182).
+# 진행 저장(S181)과 ESC 메뉴(S183)를 맡고, 창 준비·F11 전체화면 함수(S161~S164)도 여기 둔다
 
 const Battle := preload("res://src/sim/battle.gd")
 const BattleView := preload("res://src/ui/battle_view.gd")
 const Camera := preload("res://src/ui/camera.gd")
 const Controls := preload("res://src/ui/controls.gd")
 const Hud := preload("res://src/ui/hud.gd")
+const Menus := preload("res://src/ui/menus.gd")
+const Save := preload("res://src/sim/save.gd")
+const Settings := preload("res://src/settings.gd")
+const QUIET := ["hiring", "prep", "cleared"]  # 전투 단계가 아닌 판 단계. 이때만 저장한다(S181)
 # 도전의 라운드 순서(S63, I91): data/waves/의 웨이브 파일 이름. 1라운드는 시험 스테이지(S111)다
 # ponytail: 2~6라운드는 5.1(WBS.md:129)까지 쓰는 임시값이다. 실제 라운드 수와 웨이브는 그때 정한다
 const ROUNDS := ["test_stage", "round_2", "round_3", "round_4", "round_5", "round_6"]
 
+static var resume := {}  # 이어하기(S182)로 올 때 메인 메뉴 장면이 넣는 저장. 비어 있으면 새 도전이다
+
 var view
 var controls
 var hud
+var menus  # ESC 메뉴(S183)
+var _seen := ""  # 마지막으로 본 판 단계. 바뀌면 저장하거나 지운다(S181, I157)
 
 func _ready() -> void:
 	var box := map_viewport(get_window())
@@ -20,8 +29,15 @@ func _ready() -> void:
 	var map: SubViewport = box.get_child(0)
 	view = BattleView.new()
 	view.battle = Battle.new(stage())
-	view.battle.begin_hiring()  # 도전은 영입 창에서 시작한다(S122)
+	if resume.is_empty():
+		view.battle.begin_hiring()  # 도전은 영입 창에서 시작한다(S122)
+	else:
+		Save.apply(view.battle, resume)
+		resume = {}
+	view.battle.revive = Settings.revive  # I28, I160
+	view.battle.wave_starting.connect(func(): Save.write(view.battle))  # 웨이브를 시작하기 직전에도 저장한다(S181)
 	controls = Controls.new(view.battle, BattleView.CELL)
+	controls.quickcast = Settings.quickcast  # I158
 	view.controls = controls
 	map.add_child(view)
 	var cam := Camera.new()
@@ -30,7 +46,11 @@ func _ready() -> void:
 	map.add_child(cam)
 	hud = Hud.new(view.battle, controls, map)
 	add_child(hud)
-	setup_window(get_window(), get_tree().current_scene == self)
+	menus = Menus.new()
+	menus.chosen.connect(_on_menu)
+	add_child(menus)
+	setup_window(get_window(), false)  # 창 크기·시작 모드는 진입 장면(menu.gd)이 정했다
+	_check()
 
 # 맵(전장)을 기준 해상도로 그리는 SubViewport. 루트는 canvas_items라 HUD는 화면 해상도로 그리고, 맵은 이 그림을 정수배·Nearest로 키운다(S30)
 static func map_viewport(w: Window) -> SubViewportContainer:
@@ -48,12 +68,62 @@ static func map_viewport(w: Window) -> SubViewportContainer:
 func _process(delta: float) -> void:
 	view.battle.step(delta)
 	view.queue_redraw()
+	_check()
+
+# 판 단계가 바뀌면 전투 단계가 아닌 단계는 저장하고(S181), 도전이 끝났으면 저장을 지운다(S65, I157)
+func _check() -> void:
+	var s: String = view.battle.state
+	if s == _seen:
+		return
+	_seen = s
+	if s in QUIET:
+		Save.write(view.battle)
+	elif s in ["won", "lost"]:
+		Save.erase()
+
+# 게임을 멈추고 ESC 메뉴를 연다(S183, I11). 전투 단계면 나가도 이번 웨이브가 저장되지 않는다고 알린다
+func pause() -> void:
+	menus.open("pause", view.battle.state == "battle")
+	get_tree().paused = true
+
+func _on_menu(what: String) -> void:
+	match what:
+		"continue":
+			menus.close()
+			get_tree().paused = false
+		"settings":  # 바꾼 설정은 진행 중인 판에 바로 건다(I160)
+			view.battle.revive = Settings.revive
+			controls.quickcast = Settings.quickcast
+			apply_window(get_window())
+		"title", "quit":
+			leave(what == "title")
+
+# 메인 메뉴로·게임 종료(I161): 전투 단계가 아니면 그때 상태를 저장하고 나간다
+func leave(to_title: bool) -> void:
+	if view.battle.state in QUIET:
+		Save.write(view.battle)
+	get_tree().paused = false
+	if to_title:
+		get_tree().change_scene_to_file("res://src/menu.tscn")
+	else:
+		get_tree().quit()
+
+# 창 닫기(× 단추)도 «게임 종료»와 같이 저장한다(I161)
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST and view and view.battle.state in QUIET:
+		Save.write(view.battle)
 
 # 전투 시작은 HUD 버튼 말고 Enter·Space(기본 ui_accept)로도 된다. 결과 창·영입 창이 떠 있으면 그 버튼을 누른다(I94)
 # 창의 버튼에 키보드 포커스가 있으면 그 버튼이 누른다(I110). 버튼은 ui_accept를 소비하지 않아 여기서 거르지 않으면 둘 다 눌린다
+# ESC는 조준·놓기·대포 옮기기 중이면 Controls가 그것을 취소하고, 아니면 ESC 메뉴를 연다(S183)
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F11:  # S162, I154
-		toggle_fullscreen(get_window())
+		switch_fullscreen(get_window())
+		get_viewport().set_input_as_handled()
+		return
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE \
+			and controls.placing == "" and controls.moving == null and controls.aiming == "":
+		pause()
 		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("ui_accept") and get_viewport().gui_get_focus_owner() == null:
@@ -63,12 +133,13 @@ func _unhandled_input(event: InputEvent) -> void:
 			view.battle.start_battle()
 	controls.handle(view.make_input_local(event))  # 화면 좌표 → 맵 px(카메라 줌·이동 반영)
 
-# 창 준비: 최소 크기는 늘 기준 해상도(S164). 창 크기·시작 모드는 진입 씬일 때만 정한다(S161, S163, I153)
+# 창 준비: 최소 크기는 늘 기준 해상도(S164). 창 크기·시작 모드는 게임을 막 켰을 때(진입 장면 menu.gd)만 정한다(S161, S163, I153)
+# 시작 모드는 설정에 고른 창 모드, 고른 적이 없으면 내보낸 빌드만 전체화면이다(S163, S184)
 static func setup_window(w: Window, entry: bool) -> void:
 	w.min_size = w.content_scale_size
 	if not entry:
 		return
-	if OS.has_feature("template"):  # 내보낸 빌드
+	if Settings.fullscreen_at_start(OS.has_feature("template")):
 		w.mode = Window.MODE_FULLSCREEN
 	else:
 		fit_window(w)
@@ -91,6 +162,17 @@ static func toggle_fullscreen(w: Window) -> void:
 		fit_window(w)
 	else:
 		w.mode = Window.MODE_FULLSCREEN
+
+# F11(S162): 창 모드를 바꾸고 설정에 남긴다(I160)
+static func switch_fullscreen(w: Window) -> void:
+	toggle_fullscreen(w)
+	Settings.fullscreen = w.mode == Window.MODE_FULLSCREEN
+	Settings.save_file()
+
+# 설정에서 고른 창 모드(S184)가 지금 창과 다르면 바꾼다
+static func apply_window(w: Window) -> void:
+	if Settings.fullscreen != null and Settings.fullscreen != (w.mode == Window.MODE_FULLSCREEN):
+		toggle_fullscreen(w)
 
 # W1 시험 스테이지(40×32, S51 위아래 구도). 위쪽 마을을 가로 성곽이 막고, 적은 아래쪽 가장자리에서 온다.
 # 도전 내내 이 맵이고, 라운드마다 웨이브만 바뀐다(S78, I91)
