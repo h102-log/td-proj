@@ -2,6 +2,8 @@ extends Node2D
 # 전투 상태를 칸 단위로 그린다. 바닥은 타일(4.1b), 영웅은 도트 스프라이트(S165), 용병·적은 4방향 스프라이트(4.1d), 시설은 그림(4.1e), 나머지는 아직 도형이다(그레이박스, 아트는 WBS 4.1).
 
 const CELL := 16
+const Camera := preload("res://src/ui/camera.gd")
+const OUTSIDE := Color("0b0c10")  # 맵 밖(I50, ui_research 4.9)
 const COLORS := {
 	"grid": Color(0, 0, 0, 0.15), "spawn": Color("c03030"), "merc": Color("50a0f0"),
 	"engineer": Color("f0a030"), "archer": Color("60d0a0"),
@@ -63,6 +65,7 @@ var _clip := -INF  # 덧그릴 때 이 화면 y보다 위 줄은 그리지 않�
 func _draw() -> void:
 	if ground == null:
 		ground = bake_ground(battle)
+	draw_rect(Rect2(0, battle.size.y * CELL, battle.size.x * CELL, Camera.BOTTOM), OUTSIDE)  # 카메라가 아래로 보이는 맵 밖(I50)
 	draw_texture(ground, Vector2.ZERO)
 	if controls.placing != "":  # 격자선은 놓기 모드에서만(4.1b, 사용자 2026-10-20)
 		var map := Vector2(battle.size) * CELL
