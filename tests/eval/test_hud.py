@@ -144,3 +144,15 @@ def test_EV354_between_rounds_window_fits(gd):
 
 def test_EV355_reroll_at_cap_dim_reason(gd):
     gd("hud", "EV355")
+
+
+def test_EV356_hint_shows_and_advances(gd):
+    gd("hud", "EV356")
+
+
+def test_EV357_hint_skip_persists(gd):
+    gd("hud", "EV357")
+
+
+def test_EV358_hint_setting_off(gd):
+    gd("hud", "EV358")

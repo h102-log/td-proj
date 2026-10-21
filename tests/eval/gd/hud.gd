@@ -27,6 +27,8 @@ extends "res://tests/eval/gd/save.gd"
 #   main.hud.alerts — 경보(Control, S189). recent: 최근 경보 칸(Vector2i, 새 것이 앞, 최대 5). 보이는 BaseButton 자식이 화면 밖 가장자리 표식이다
 #     토스트 칸(main.hud.toasts의 보이는 자식)은 자리가 있으면 gui_input에 왼쪽 버튼 누름을 넣어 누른다(I163)
 #   main.hud.window — 결과·영입 창(Control, S117·I136). 그 안의 보이는 BaseButton이 창 버튼(«리롤…»·«다음 라운드…»)이다 · main.hud.dim — 띠 아래 맵 덮개(ColorRect)
+#   main.hud.hints — 처음 하는 사람 힌트 칸(Control, S191). 그 안의 보이는 Label이 힌트 글이고, «건너뛰기» 버튼이 있다
+#   res://src/settings.gd — static var hints(힌트 켬, S184) · hints_done(끝낸 힌트 이름 Array: build·start·move·buy·keep, I166). ESC 메뉴 설정 화면에 켜고 끄는 버튼 «힌트»
 # 커서는 화면(640×360) 좌표의 InputEventMouseMotion으로 옮긴다. 빈 맵 자리는 (320,300)이다
 
 const EMPTY := Vector2(320, 300)
@@ -1615,4 +1617,136 @@ func ev355():
 		var said := " ".join(_labels(hud.window))
 		out = check(b.gold == gold and b.offers == offers and "내보내야 영입할 수 있다" in said, "상한에서 리롤을 누른 뒤 골드 %d → %d · 목록 %s → %s · 창 글 «%s»" % [gold, b.gold, offers, b.offers, said])
 	_done(main)
+	return out
+
+# 평가용 설정 파일을 지우고 읽는다. 힌트 켬·끝낸 힌트 없음(S184, I166)
+func _hints_reset():
+	_save()
+	var st = load("res://src/settings.gd")
+	if FileAccess.file_exists(st.path):
+		DirAccess.remove_absolute(st.path)
+	st.load_file()
+	return st
+
+# 힌트 칸이 보이면 그 안의 보이는 글, 안 보이면 ""
+func _hint_says(main) -> String:
+	var h = main.hud.hints
+	return " ".join(_labels(h)) if h.is_visible_in_tree() else ""
+
+# EV356 · S191: 준비 단계 [4,300,200,40]에 «짓는다» 힌트가 뜨고, 보이기 전에 해낸 영웅 이동은 끝난 것으로 치며, 지으면 «전투 시작»으로 바뀌고, 전투가 시작되면 숨는다
+func ev356():
+	var st = _hints_reset()
+	var main = _prep()
+	var b = main.view.battle
+	var hud = main.hud
+	if not hud.get("hints") is Control:
+		_done(main)
+		return "main.hud.hints가 없다"
+	var out := ""
+	var r: Rect2 = hud.hints.get_global_rect()
+	var said := _hint_says(main)
+	if r != Rect2(4, 300, 200, 40) or not "짓는다" in said:
+		out = "새 설정의 1라운드 준비 단계 힌트 칸 %s · 글 «%s»(기대: [4,300,200,40], «짓는다»)" % [r, said]
+	if out == "":
+		var h = b.heroes[0]
+		main.controls.selected = [h]
+		main.controls.facility = null
+		click(main.controls, MOUSE_BUTTON_RIGHT, px(Vector2i(h.pos.round()) + Vector2i(2, 0)))
+		_frame(main)
+		said = _hint_says(main)
+		if not "move" in st.hints_done or not "짓는다" in said:
+			out = "영웅 이동 뒤 끝낸 힌트 %s · 글 «%s»(기대: move가 있고 글은 «짓는다»)" % [st.hints_done, said]
+	if out == "":
+		if b.build("tower", Vector2i(10, 14)) == null:
+			out = "타워를 짓지 못했다"
+		else:
+			_frame(main)
+			said = _hint_says(main)
+			if not "전투 시작" in said:
+				out = "타워를 지은 뒤 힌트 글 «%s»(기대: «전투 시작»)" % said
+	var f = b.build("barracks", Vector2i(4, 4)) if out == "" else null
+	if out == "" and f == null:
+		out = "준비 단계에 마을 (4,4)에 병영을 짓지 못했다"
+	if out == "":
+		b.start_battle()
+		_frame(main)
+		if b.state != "battle" or hud.hints.is_visible_in_tree() or not "start" in st.hints_done:
+			out = "전투를 시작한 뒤(단계 %s) 힌트 칸 보임 %s · 끝낸 힌트 %s(기대: 숨고 start가 있다)" % [b.state, hud.hints.is_visible_in_tree(), st.hints_done]
+	if out == "":
+		b.recruit(f, "soldier")
+		_frame(main)
+		click(main.controls, MOUSE_BUTTON_LEFT, px(b.base.cell))
+		_frame(main)
+		out = check("buy" in st.hints_done and "keep" in st.hints_done, "전투 단계에 용병을 사고 거점을 누른 뒤 끝낸 힌트 %s(기대: buy·keep이 있다)" % [st.hints_done])
+	_done(main)
+	_hints_reset()
+	return out
+
+# EV357 · S191·I166: «건너뛰기»는 지금 힌트를 끝내고, 끝낸 힌트는 설정 파일에 남아 다시 읽은 뒤 새 게임에서도 뜨지 않는다
+func ev357():
+	var st = _hints_reset()
+	var main = _prep()
+	var hud = main.hud
+	if not hud.get("hints") is Control:
+		_done(main)
+		return "main.hud.hints가 없다"
+	var out := ""
+	if not _press(hud.hints, "건너뛰기"):
+		out = "힌트 칸에 «건너뛰기»가 없다"
+	else:
+		_frame(main)
+		var said := _hint_says(main)
+		if not "전투 시작" in said:
+			out = "«건너뛰기» 뒤 힌트 글 «%s»(기대: «전투 시작»)" % said
+	_done(main)
+	if out == "":
+		st.hints_done = []
+		st.load_file()
+		main = _prep()
+		var said := _hint_says(main)
+		out = check("build" in st.hints_done and not "짓는다" in said and "전투 시작" in said, "다시 읽은 뒤 새 게임의 끝낸 힌트 %s · 글 «%s»(기대: build가 있고 «짓는다» 없이 «전투 시작»)" % [st.hints_done, said])
+		_done(main)
+	_hints_reset()
+	return out
+
+# EV358 · S184: 설정의 «힌트»(기본 켬)를 끄면 저장되고 힌트 칸이 숨는다. 다시 켜면 끝낸 힌트는 그대로 둔 채 다음 힌트가 뜬다
+func ev358():
+	var st = _hints_reset()
+	var main = _prep()
+	var hud = main.hud
+	if not hud.get("hints") is Control:
+		_done(main)
+		return "main.hud.hints가 없다"
+	_press(hud.hints, "건너뛰기")
+	_key(KEY_ESCAPE)
+	_press(main, "설정")
+	var box = _button(main, "힌트")
+	var out := ""
+	if not box is CheckButton or not box.button_pressed:
+		out = "ESC 메뉴 설정에 켜진 «힌트» 항목이 없다(%s)" % box
+	else:
+		box.button_pressed = false
+		st.hints = true
+		st.load_file()
+		if st.hints:
+			out = "«힌트»를 끈 뒤 설정 파일을 다시 읽으니 힌트가 켜져 있다"
+	if out == "":
+		_press(main, "뒤로")
+		_press(main, "계속")
+		_frame(main)
+		if hud.hints.is_visible_in_tree():
+			out = "«힌트»를 끈 뒤 준비 단계에 힌트 칸이 보인다"
+	if out == "":
+		_key(KEY_ESCAPE)
+		_press(main, "설정")
+		box = _button(main, "힌트")
+		if box:
+			box.button_pressed = true
+		_press(main, "뒤로")
+		_press(main, "계속")
+		_frame(main)
+		var said := _hint_says(main)
+		out = check(box != null and "전투 시작" in said, "«힌트»를 다시 켠 뒤 힌트 글 «%s»(기대: «전투 시작»)" % said)
+	_done(main)
+	_hints_reset()
 	return out
