@@ -116,3 +116,7 @@ def test_EV347_merc_key_picks_and_buys(gd):
 
 def test_EV348_merc_key_next_and_missing(gd):
     gd("hud", "EV348")
+
+
+def test_EV349_hint_chip_hides_under_bar_tip(gd):
+    gd("hud", "EV349")
