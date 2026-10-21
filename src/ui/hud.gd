@@ -237,6 +237,7 @@ func _ready() -> void:
 		row.down.size = Vector2(75, 18)
 		_rows.append(row)
 	controls.hero_key.connect(_tap)
+	controls.skill_keyed.connect(_skill_refuse)
 	_make_progress()
 	var menu := _cell("menu", _bar_button(bar, "", func(): menu_pressed.emit()))
 	_pic(menu, HudBuild.dots(MENU), Vector2(8, 7)).position = Vector2(4, 8)
@@ -504,16 +505,17 @@ func _process(delta: float) -> void:
 		_restore.text = "복구 %d" % battle.repair_cost(k)
 		_restore.disabled = blocked or gap != ""
 		_why[_restore] = "칸 막힘" if blocked else gap
-	# 고른 교회의 치료 버튼(S137): 살아 있고 깎인 출전 영웅마다. 전투 단계에는 끄고 이유는 툴팁·정보 칸에(I140)
+	# 고른 교회의 치료 버튼(S137): 출전 영웅마다 늘. 전투 단계·체력 가득·쓰러짐이면 끄고 이유는 툴팁·정보 칸에(I140)
 	var church: bool = (controls.selling + controls.picked).any(func(s): return s.kind == "church")
 	for i in _heal.size():
 		var h = battle.heroes[i] if i < battle.heroes.size() else null
-		_heal[i].visible = church and h != null and h.alive and h.hp < h.max_hp
+		_heal[i].visible = church and h != null
 		if _heal[i].visible:
-			_heal[i].text = "%s %d" % [HEROES[h.kind].get_slice("(", 0), battle.heal_cost(h)]
+			var full: bool = h.hp >= h.max_hp
+			_heal[i].text = "치료 %s" % HEROES[h.kind].get_slice("(", 0) + ("" if full else " %d" % battle.heal_cost(h))
 			_heal[i].icon = _faces.get(h.kind)
-			_heal[i].disabled = not prep
-			_why[_heal[i]] = "" if prep else "준비 단계에만"
+			_why[_heal[i]] = "준비 단계에만" if not prep else "쓰러짐" if not h.alive else "체력 가득" if full else ""
+			_heal[i].disabled = _why[_heal[i]] != ""
 	var shown: Array = _why.keys().filter(func(b): return b.visible and _why[b] != "")
 	info_lines = [_opens, _why[shown[0]] if not shown.is_empty() else ""]
 	for r in popup.get_children():
@@ -1061,17 +1063,25 @@ func _tap(i: int) -> void:
 func _skill_press(i: int, slot: String) -> void:
 	if i >= battle.heroes.size():
 		return
-	var h = battle.heroes[i]
+	_skill_refuse(battle.heroes[i], slot)
+	controls.skill_for(battle.heroes[i], slot)
+
+# 영웅 h가 칸 slot을 못 쓰면 그 칸 테두리를 번쩍이고 이유 토스트(I151). 차례는 준비 단계 → 재사용 대기 → 마나, 잠긴 칸은 조용히. Q·W·E·R 키도 온다
+func _skill_refuse(h, slot: String) -> void:
+	var i: int = battle.heroes.find(h)
 	var sk: Dictionary = h.get(slot)
 	var why := ""
 	if battle.state != "battle":
 		why = "스킬은 전투 단계에만"
-	elif h.level >= battle.LEVELS.unlock[slot] and h.mana < sk.mana:
+	elif sk.is_empty() or h.level < battle.LEVELS.unlock[slot] or (sk.get("id") == "brace" and h.brace > 0.0) or (sk.get("aim") == "toggle" and h.toggle):  # 태세 중인 반격은 터뜨리고(S151) 켜진 토글은 끈다(S153)
+		why = ""
+	elif h.cd[slot] > 0.0:
+		why = "재사용 대기 %d초" % ceili(h.cd[slot])
+	elif h.mana < sk.mana:
 		why = "마나 %d 더 필요" % ceili(sk.mana - h.mana)
-	if why != "":
+	if why != "" and i >= 0:
 		slots[i][slot].reject()
 		toasts.push(why)
-	controls.skill_for(h, slot)
 
 # 스킬 버튼 우클릭: 그 칸의 자동 시전을 켜고 끈다(S158, I151)
 func _auto_click(e: InputEvent, i: int, slot: String) -> void:

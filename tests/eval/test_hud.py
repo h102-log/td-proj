@@ -168,3 +168,15 @@ def test_EV360_window_button_tips(gd):
 
 def test_EV361_field_structure_alert(gd):
     gd("hud", "EV361")
+
+
+def test_EV363_skill_key_refusal_toast(gd):
+    gd("hud", "EV363")
+
+
+def test_EV364_church_heal_rows(gd):
+    gd("hud", "EV364")
+
+
+def test_EV365_keep_art_selects_base(gd):
+    gd("hud", "EV365")

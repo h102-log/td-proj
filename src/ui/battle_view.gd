@@ -46,6 +46,8 @@ const PIXEL_FONT := preload("res://art/fonts/Galmuri7.ttf")  # 맵 위 숫자(S1
 const GROUND_TILES := preload("res://art/tiles/ground.png")  # 0행 풀↔흙 꼭짓점 16꼴, 1행 풀·흙 변종과 깃발, 2·3행 전환 꼴 변종(tools/art/tiles.py)
 const CASTLE := preload("res://art/castle/walls.png")  # 성곽 칸 조각 16×42: 행 단계 1~3마다 몸체·앞층, 통로 그늘, 잔해. 열 성벽·열린 문·닫힌 문(tools/art/atlas.py castle)
 const KEEP := preload("res://art/castle/keep.png")  # 거점 망루 80×80, 마을 레벨 1·2. 칸 앞쪽 아래 왼쪽 모서리가 그림의 (32, 72)다(tools/art/keep.py)
+const KEEP_AT := Vector2(-32, CELL - 72)  # 거점 칸 왼쪽 위에서 본 망루 그림 왼쪽 위
+const KEEP_BODY := [Rect2(29, 23, 22, 49), Rect2(21, 13, 38, 59)]  # 마을 레벨 1·2 망루 그림의 불투명 사각형(keep.png를 잼). 그림을 바꾸면 다시 잰다
 const FACILITY := preload("res://art/castle/facility.png")  # 시설 48×48: 0행 그림, 1행 청사진 바탕. 칸 앞쪽 아래 왼쪽 모서리가 그림의 (16, 44)다(tools/art/facility.py)
 static var FAC: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/castle/facility.json"))  # 종류 → [열, 그림 맨 윗줄, 맨 아랫줄 + 1]
 const BLUEPRINT := Color(0.55, 0.78, 1.0, 0.6)  # 청사진 색(사용자 2026-10-20, 림월드 설계도). 회색 바탕에 곱한다
@@ -363,7 +365,7 @@ func _bodies() -> void:
 		elif i >= feet:
 			_feet_mark(all[i - feet], i - feet)
 		elif i == m + blds.size():  # 거점 망루: 마을 레벨(S99)마다 한 장
-			var at := Vector2(battle.base.cell * CELL) + Vector2(-32, CELL - 72)
+			var at := Vector2(battle.base.cell * CELL) + KEEP_AT
 			draw_texture_rect_region(KEEP, Rect2(at, Vector2(80, 80)), Rect2(80 * (clampi(battle.village_level, 1, 2) - 1), 0, 80, 80))
 		elif i >= m:
 			_facility(blds[i - m])
@@ -734,6 +736,11 @@ func _hp_bar(at: Vector2, b, size := Vector2(CELL, 2)) -> void:
 	var bar := Rect2(at * CELL + Vector2((CELL - size.x) / 2, -2 - size.y), size)
 	draw_rect(bar, Color.BLACK)
 	draw_rect(Rect2(bar.position, Vector2(size.x * b.hp / b.max_hp, size.y)), Color.GREEN)
+
+# 거점 망루 그림의 불투명 사각형(맵 px). 이 안을 누르면 거점을 고른다(S100)
+static func keep_rect(b) -> Rect2:
+	var body: Rect2 = KEEP_BODY[clampi(b.village_level, 1, 2) - 1]
+	return Rect2(Vector2(b.base.cell * CELL) + KEEP_AT + body.position, body.size)
 
 # 유닛·적 체력바 크기(S73). 보스는 V 표시와 상관없이 늘 크게, 나머지는 켰을 때만. 그리지 않으면 Vector2.ZERO
 static func hp_bar_size(u, show_all: bool) -> Vector2:

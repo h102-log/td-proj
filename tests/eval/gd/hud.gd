@@ -1232,7 +1232,7 @@ func ev345():
 	if out == "":
 		click(c, MOUSE_BUTTON_LEFT, px(church.cell))
 		_frame(main)
-		var heal = _starts(hud.popup, hud.HEROES[h.kind].get_slice("(", 0))
+		var heal = _starts(hud.popup, "치료 " + hud.HEROES[h.kind].get_slice("(", 0))
 		if heal == null or not heal.disabled or _pops(main).any(func(n): return "(" in n.text):
 			out = "전투 단계 교회 팝업: 치료 버튼 %s · 버튼 %s(치료는 어둡고, 글에 괄호가 없어야 한다)" % [heal, _pops(main).map(func(n): return [n.text, n.disabled])]
 		elif not "준비 단계에만" in _pop_why(main, heal):
@@ -1717,6 +1717,83 @@ func ev361():
 		hud._process(0.0)
 		out = check(shown and after == before and not _on_screen(main, seen.cell) and _toasts(main) == before,
 			"화면 안(%s) 타워 60%% 피해 뒤 토스트 %s → %s · 카메라를 돌려 화면 밖(%s)이 된 뒤 %s(모두 그대로여야 한다)" % [shown, before, after, not _on_screen(main, seen.cell), _toasts(main)])
+	_done(main)
+	return out
+
+# EV363 · I151: Q 키로 못 쓰는 칸도 토스트가 뜬다(준비 단계 «전투 단계에만», 재사용 대기 «재사용 대기 N초»). Q 칸을 눌러도 같다
+func ev363():
+	var main = _prep()
+	var b = main.view.battle
+	var hud = main.hud
+	var said := []  # 단계마다 보이는 토스트 글
+	hud.toasts._process(3.6)  # 미션 토스트가 막 떠서 3.5초 줄을 선다(I163)
+	_key(KEY_Q)
+	said.append(_toasts(main))
+	b.start_battle()
+	_frame(main)
+	b.heroes[0].cd["q"] = 3.2
+	hud.toasts._process(3.6)
+	_key(KEY_Q)
+	said.append(_toasts(main))
+	hud.toasts._process(3.6)
+	hud.slots[0]["q"].pressed.emit()
+	said.append(_toasts(main))
+	var out := check(said[0].any(func(t): return "전투 단계에만" in t) and said[1].any(func(t): return "재사용 대기 4초" in t) and said[2].any(func(t): return "재사용 대기 4초" in t),
+		"준비 단계 Q 키 · 재사용 대기 중 Q 키 · 재사용 대기 중 Q 칸 뒤 토스트 %s" % [said])
+	_done(main)
+	return out
+
+# EV364 · I140: 교회 팝업에 출전 영웅마다 «치료 이름…» 버튼이 늘 있고, 체력이 가득하면 어둡고 이유가 «체력 가득»이다.
+# 깎이면 «치료 이름 N»이 눌린다. 건설 격자 교회 칸 설명에 «교회를 눌러»가 있다
+func ev364():
+	var main = _prep()
+	var b = main.view.battle
+	var hud = main.hud
+	var c = main.controls
+	var church = b.build("church", Vector2i(5, 4))
+	if church == null or b.heroes.size() != 2 or b.heroes.any(func(h): return h.hp < h.max_hp):
+		_done(main)
+		return "준비가 틀렸다: 교회 %s · 영웅 %d · 체력 %s" % [church, b.heroes.size(), b.heroes.map(func(h): return [h.hp, h.max_hp])]
+	click(c, MOUSE_BUTTON_LEFT, px(church.cell))
+	_frame(main)
+	var heals: Array = _pops(main).filter(func(n): return n.text.begins_with("치료 "))
+	var out := ""
+	if heals.size() != 2 or heals.any(func(n): return not n.disabled):
+		out = "체력이 가득 찬 두 영웅의 교회 팝업 버튼 %s(«치료 »로 시작하는 disabled 버튼 둘이어야 한다)" % [_pops(main).map(func(n): return [n.text, n.disabled])]
+	elif not "체력 가득" in _pop_why(main, heals[0]):
+		out = "체력이 가득 찬 영웅의 치료 버튼 툴팁 빨간 줄이 «%s»다" % _pop_why(main, heals[0])
+	if out == "":
+		var h = b.heroes[0]
+		b.damage(h, 33, "true")
+		_frame(main)
+		var want := "치료 %s %d" % [hud.HEROES[h.kind].get_slice("(", 0), b.heal_cost(h)]
+		var btn = _starts(hud.popup, want)
+		if btn == null or btn.disabled:
+			out = "33 깎인 뒤 «%s» 버튼 %s(눌려야 한다) · 버튼 %s" % [want, btn, _pops(main).map(func(n): return [n.text, n.disabled])]
+	if out == "":
+		_move(hud.grid.cells.church.get_global_rect().get_center())
+		hud.grid._process(0.0)
+		var s := _tip_text(hud.grid.info)
+		out = check("교회를 눌러" in s, "교회 칸 정보 칸 글이 «%s»다" % s)
+	_done(main)
+	return out
+
+# EV365 · S100: 망루 그림 안(거점 칸 두 칸 위)을 눌러도 거점을 고르고, 그 안 용병 칸을 누르면 용병이 먼저다
+func ev365():
+	var main = _prep()
+	var b = main.view.battle
+	var c = main.controls
+	click(c, MOUSE_BUTTON_LEFT, px(b.base.cell + Vector2i(0, -2)))
+	var above: bool = c.village
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(10, 14)))
+	var off: bool = not c.village
+	var m = b.place_merc("soldier", b.base.cell + Vector2i(0, -1))
+	if m == null:
+		_done(main)
+		return "준비가 틀렸다: 거점 칸 바로 위에 용병을 놓지 못했다"
+	click(c, MOUSE_BUTTON_LEFT, px(b.base.cell + Vector2i(0, -1)))
+	var out := check(above and off and not c.village and m in c.selected,
+		"두 칸 위 누름에 거점 %s · 들판 누름에 풀림 %s · 용병 칸 누름에 거점 %s · 용병 골라짐 %s" % [above, off, c.village, m in c.selected])
 	_done(main)
 	return out
 

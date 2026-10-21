@@ -251,7 +251,7 @@ func _lines(kind: String) -> Array:
 	elif d.tax > 0:
 		about = "마을 · 준비 단계마다 세금 +%d" % d.tax
 	elif d.heal > 0.0:
-		about = "마을 · 영웅 체력을 골드로 치료"
+		about = "마을 · 지은 교회를 눌러 영웅 치료"
 	elif d.range > 0.0:
 		about = "사거리 %s칸 · 공격력 %s" % [hud._num(d.range), hud._num(d.damage)] + (" · 범위 피해" if d.splash > 0.0 else "")
 	return [hud.NAMES[kind], "%d골드" % d.cost, "[%s]" % _keys[kind], about, path, why]
