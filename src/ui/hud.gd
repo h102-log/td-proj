@@ -258,6 +258,7 @@ func _ready() -> void:
 	hint.position = Vector2(134, 30)  # 띠 바로 아래. 조준·놓기 안내
 	root.add_child(hint)
 	controls.refused.connect(func(cell): _refused = [cell, _now])
+	controls.facility_key.connect(func(f): _focus(Vector2(f.cell)))  # 용병 키로 고른 시설로 카메라(S81, I164)
 	# 윗변과 너비를 고정해 아래로만 자란다. 영입·리롤·내보내기로 줄이 바뀌어도 위의 버튼이 움직이지 않게(I136)
 	# ponytail: 창이 위 띠(S185) 가운데를 덮는다. 띠 아래(y 34)로 내리면 보유 5명·의뢰 2개 창이 화면 아래로 25 넘친다. 두 칸 배치로 줄이는 11단계에서 내린다
 	_result.set_anchors_preset(Control.PRESET_CENTER_TOP)

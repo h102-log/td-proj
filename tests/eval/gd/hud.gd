@@ -1254,3 +1254,87 @@ func ev346():
 			out = check(t3.worker == null and _button(hud.popup, "철거?") != null, "2초 지나 다시 누르자 철거 공병 %s · «철거?» 버튼 %s(첫 클릭이어야 한다)" % [t3.worker, _button(hud.popup, "철거?")])
 	_done(main)
 	return out
+
+func _shift_key(code: int) -> void:
+	for down in [true, false]:
+		var e := InputEventKey.new()
+		e.keycode = code
+		e.physical_keycode = code
+		e.shift_pressed = true
+		e.pressed = down
+		Engine.get_main_loop().root.push_input(e, true)
+
+func _soldiers(b) -> int:
+	return b.units.filter(func(u): return u.kind == "soldier").size()
+
+# EV347 · S81: 병영 하나인 판의 전투 단계에서 3 키는 그 병영을 고르고(구매 팝업) 카메라를 병영 쪽으로 옮기며, 다시 3이면 용병 한 명을 산다
+func ev347():
+	var main = _prep()
+	var b = main.view.battle
+	var c = main.controls
+	var f = b.build("barracks", Vector2i(4, 4))
+	if f == null:
+		_done(main)
+		return "준비 단계에 마을 (4,4)에 병영을 짓지 못했다"
+	b.start_battle()
+	_frame(main)
+	var cam = _cam(main)
+	cam.focus(Vector2(600, 450))  # 병영에서 먼 들판 오른쪽 아래
+	cam.force_update_scroll()
+	var gap := func(): return (main.hud.map.get_canvas_transform() * ((Vector2(f.cell) + Vector2(0.5, 0.5)) * CELL_PX)).distance_to(Vector2(320, 194))
+	var far: float = gap.call()
+	_key(KEY_3)
+	cam.force_update_scroll()
+	_frame(main)
+	var near: float = gap.call()
+	var out := ""
+	if c.facility != f or _starts(main.hud.popup, "용병") == null or near >= far - 1.0:
+		out = "3 키 뒤 고른 시설 %s(병영 %s) · «용병» 구매 버튼 %s · 병영과 화면 (320,194) 거리 %.0f → %.0f" % [c.facility, f, _starts(main.hud.popup, "용병"), far, near]
+	if out == "":
+		var n := _soldiers(b)
+		var gold: int = b.gold
+		_key(KEY_3)
+		out = check(_soldiers(b) == n + 1 and b.gold == gold - b.MERC_KINDS.soldier.cost and c.facility == f, "3 키를 다시 넣자 용병 %d → %d · 골드 %d → %d(용병 값 %d) · 고른 시설 %s" % [n, _soldiers(b), gold, b.gold, b.MERC_KINDS.soldier.cost, c.facility])
+	if out == "":  # 건설 격자 용병 칸은 3 키와 같다
+		var n := _soldiers(b)
+		main.hud.grid.cells.soldier.pressed.emit()
+		out = check(_soldiers(b) == n + 1 and c.facility == f, "건설 격자 용병 칸을 누르자 용병 %d → %d · 고른 시설 %s" % [n, _soldiers(b), c.facility])
+	_done(main)
+	return out
+
+# EV348 · S81: 병영이 둘이면 Shift+3이 다음 병영을 고른다(지은 차례로 돈다). 사격장이 없을 때 7 키는 고른 시설·카메라를 그대로 두고
+# 정보 칸 빨간 줄에 «사격장 없음»을 보인다. 그때 건설 격자 용병 칸은 밝고 궁수 칸은 흐리다
+func ev348():
+	var main = _prep()
+	var b = main.view.battle
+	var c = main.controls
+	var g = main.hud.grid
+	var f1 = b.build("barracks", Vector2i(4, 4))
+	var f2 = b.build("barracks", Vector2i(8, 4))
+	if f1 == null or f2 == null:
+		_done(main)
+		return "준비 단계에 마을에 병영 둘(%s, %s)을 짓지 못했다" % [f1, f2]
+	b.start_battle()
+	_frame(main)
+	_key(KEY_3)
+	var picks := [c.facility]
+	_shift_key(KEY_3)
+	picks.append(c.facility)
+	_shift_key(KEY_3)
+	picks.append(c.facility)
+	var out := ""
+	if picks != [f1, f2, f1] or _soldiers(b) != 0:
+		out = "3 → Shift+3 → Shift+3에 고른 시설 %s · 용병 %d명(기대 첫 병영 %s → 둘째 %s → 첫, 0명)" % [picks, _soldiers(b), f1, f2]
+	if out == "":
+		var cam = _cam(main)
+		var pos: Vector2 = cam.position
+		_key(KEY_7)
+		_frame(main)
+		g._process(0.0)
+		var why: String = g.reason.text if g.reason.is_visible_in_tree() else ""
+		if c.facility != f1 or cam.position != pos or not g.info.is_visible_in_tree() or not "사격장 없음" in why:
+			out = "사격장 없이 7 키: 고른 시설 %s · 카메라 %s → %s · 정보 칸 보임 %s · 빨간 줄 «%s»" % [c.facility, pos, cam.position, g.info.is_visible_in_tree(), why]
+		elif absf(g.cells.soldier.modulate.a - 1.0) > 0.01 or absf(g.cells.archer.modulate.a - 0.35) > 0.01:
+			out = "전투 단계 용병 칸 불투명도 %.2f(1이어야 한다) · 궁수 칸 %.2f(0.35여야 한다)" % [g.cells.soldier.modulate.a, g.cells.archer.modulate.a]
+	_done(main)
+	return out

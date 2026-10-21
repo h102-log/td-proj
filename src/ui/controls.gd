@@ -20,6 +20,7 @@ const PLACE_KEYS := {KEY_1: "wall", KEY_2: "tower", KEY_MINUS: "magic", KEY_3: "
 
 signal hero_key(i: int)  # 출전 영웅 i를 F키나 초상으로 골랐다. HUD가 두 번 누름을 잰다(I165)
 signal refused(cell: Vector2i)  # 전투 단계 놓기가 닿는 공병이 없어 거부됐다. HUD가 빨간 ✕와 안내 줄로 보인다(I128)
+signal facility_key(f)  # 전투 단계 용병 키로 시설을 골랐다. HUD가 카메라를 그 시설로 옮긴다(S81, I164)
 
 var battle
 var cell_px: int
@@ -31,6 +32,7 @@ var selling := []  # 판매 후보(구조물·용병). 비어 있지 않으면 �
 var sell_at := Vector2()  # 판매 팝업을 띄울 곳: 클릭하거나 드래그를 놓은 지점(맵 px)
 var show_hp := false  # 체력바를 모두 그린다(S73)
 var facility = null  # 고른 생산 시설. 전투 단계엔 그 옆에 구매 팝업이 뜬다(S81, I61)
+var missing := ""  # 전투 단계 용병 키를 눌렀는데 그 시설이 없는 용병 kind(S81). 정보 칸이 이유를 보인다. 맵을 누르거나 놓기 키를 누르면 비운다
 var picked := []  # 전투 단계에 고른 플레이어 구조물. 철거·취소·이어 짓기 팝업의 대상이다(S74, S83)
 var fort = null  # 고른 성곽 칸이나 잔해(I88). 그 옆에 여닫기·업그레이드·수리·복구 팝업이 뜬다(S85, S86, S116, I89)
 var moving = null  # 옮길 대포. 팝업의 «옮기기» 버튼이 넣는다(S91)
@@ -51,6 +53,7 @@ func handle(event: InputEvent) -> void:
 		placing = ""
 		moving = null
 		aiming = ""
+		missing = ""
 		_state = battle.state
 	if aiming != "" and not (aim_hero and aim_hero.alive):  # 조준하던 영웅이 쓰러졌다
 		aiming = ""
@@ -77,10 +80,15 @@ func handle(event: InputEvent) -> void:
 				moving = null
 				aiming = ""
 		if event.keycode in PLACE_KEYS:
-			placing = "" if placing == PLACE_KEYS[event.keycode] else PLACE_KEYS[event.keycode]
+			var kind: String = PLACE_KEYS[event.keycode]
+			if battle.state == "battle" and kind in battle.MERC_KINDS:
+				merc_key(kind, event.shift_pressed)
+			else:
+				placing = "" if placing == kind else kind
+				missing = ""
 		if placing != "":
 			aiming = ""
-	# 전투 단계엔 구조물만 놓기 모드가 된다. 전투 중 용병 구매는 시설 팝업으로 한다(S81)
+	# 전투 단계엔 구조물만 놓기 모드가 된다. 전투 중 용병은 시설 팝업이나 용병 키(merc_key)로 산다(S81)
 	if not (battle.state == "prep" or (battle.state == "battle" and placing in battle.STRUCTURE_KINDS)):
 		placing = ""
 	if event is InputEventMouseMotion and _press != null:
@@ -120,6 +128,7 @@ func _release(rect: Rect2, at: Vector2) -> void:
 	_press = null
 	drag_rect = Rect2()
 	sell_at = at
+	missing = ""
 	var mercs: Array = battle.units.filter(func(u): return not u.is_hero)
 	var prep: bool = battle.state == "prep"
 	if rect.size.length() < CLICK_SLOP:
@@ -156,6 +165,21 @@ func pick_hero(i: int) -> void:
 func pick_base() -> void:
 	var at := (Vector2(battle.base.cell) + Vector2(0.5, 0.5)) * cell_px
 	_release(Rect2(at, Vector2.ZERO), at)
+
+# 전투 단계 용병 키(S81). 3·5·7과 건설 격자 용병 칸이 부른다. 그 용병을 파는 완성된 시설을 클릭한 것처럼 고르고(구매 팝업),
+# 그 종류의 시설을 고른 채면 한 명 산다. next(Shift)면 같은 종류의 다음 시설(지은 차례)을 고른다. 시설이 없으면 missing에 둔다
+func merc_key(kind: String, next := false) -> void:
+	var sellers: Array = battle.structures.values().filter(func(s): return s.complete and kind in s.produces)
+	missing = kind if sellers.is_empty() else ""
+	if sellers.is_empty():
+		return
+	if facility in sellers and not next:
+		battle.recruit(facility, kind)
+		return
+	var f = sellers[(sellers.find(facility) + 1) % sellers.size()]
+	var at := (Vector2(f.cell) + Vector2(0.5, 0.5)) * cell_px
+	_release(Rect2(at, Vector2.ZERO), at)
+	facility_key.emit(f)
 
 # 고른 용병의 이동 방식 전환(S35): 모두 «무조건 이동»이면 «이동 중 공격»으로, 아니면 모두 «무조건 이동»으로. A 키와 HUD 태그(I139)이 부른다
 func toggle_move_mode() -> void:
