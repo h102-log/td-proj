@@ -1,11 +1,11 @@
 extends Control
-# 경보(S189): 거점·성문·성곽 칸·영웅의 피해를 지난 프레임과 비교해 찾고, 토스트(누르면 그 자리로, I163)·
+# 경보(S189): 거점·성문·성곽 칸·영웅의 피해와 화면 밖 들판 구조물의 절반 아래를 지난 프레임과 비교해 찾고, 토스트(누르면 그 자리로, I163)·
 # 화면 밖 가장자리 표식(누르면 그 자리로)·C 키 목록(최근 KEEP개)으로 알린다. 시간은 step의 delta로만 센다(평가가 delta를 넣어 돌린다)
 
 const HudTheme := preload("res://src/ui/hud_theme.gd")
 const HudBuild := preload("res://src/ui/hud_build.gd")
 const BattleView := preload("res://src/ui/battle_view.gd")
-const ORDER := ["base", "gate", "hero", "broken", "wall"]  # 한 프레임에 여럿이면 이 차례로 알린다(거점 > 성문 > 영웅 > 구조물)
+const ORDER := ["base", "gate", "hero", "broken", "field", "wall"]  # 한 프레임에 여럿이면 이 차례로 알린다(거점 > 성문 > 영웅 > 구조물)
 const COOL := {"base": 10.0, "gate": 20.0}  # 같은 대상을 다시 알리는 간격(초, S189 임시값)
 const NEAR := 4  # 거점·성문 밖의 경보는 같은 종류가 이 칸 안에서
 const AGAIN := 15.0  # 이 초 안에 또 나면 다시 알리지 않는다(S189 임시값)
@@ -23,6 +23,7 @@ var recent := []  # 최근 경보 칸(Vector2i). 새 것이 앞이다
 var _clock := 0.0
 var _hp := {}  # 성곽 칸·거점 → 지난 프레임 체력
 var _up := {}  # 영웅 → 지난 프레임에 살아 있었나
+var _low := []  # 이미 알린 들판 구조물(구조물마다 한 번)
 var _last := {}  # 거점·성문 → 마지막으로 알린 때
 var _seen := []  # [종류, 칸, 때]: 거점·성문 밖 경보의 묶기
 var _marks := {}  # 칸 → {kind, until, button}
@@ -51,6 +52,14 @@ func step(delta: float) -> void:
 		if _up.get(h, h.alive) and not h.alive:
 			hits.append(["hero", Vector2i(h.pos.round()), h, "%s 쓰러짐 (C)" % hud.HEROES[h.kind].get_slice("(", 0)])
 		_up[h] = h.alive
+	for s in battle.structures.values():  # 화면 밖 들판 구조물이 처음 절반 아래로. 짓는 중인 것은 세지 않는다
+		var half: float = s.max_hp / 2.0
+		var at: Vector2 = hud.map.get_canvas_transform() * ((Vector2(s.cell) + Vector2(0.5, 0.5)) * BattleView.CELL)
+		if s.alive and s.complete and s.hp < half and _hp.get(s, s.hp) >= half and not s in _low \
+				and not battle.village.has_point(s.cell) and not hud.VIEW.has_point(at):
+			_low.append(s)
+			hits.append(["field", s.cell, s, "%s 위험 (C)" % hud.NAMES[s.kind]])
+		_hp[s] = s.hp
 	hits.sort_custom(func(a, b): return ORDER.find(a[0]) < ORDER.find(b[0]))
 	var fresh := []  # 이번 프레임에 알린 자리. 우선순위가 높은 것이 C 키의 첫 행선지다
 	for e in hits:

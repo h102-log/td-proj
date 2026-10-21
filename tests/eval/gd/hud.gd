@@ -1660,6 +1660,66 @@ func ev355():
 	_done(main)
 	return out
 
+# 맵 칸 가운데가 위 띠 아래 화면(hud.VIEW) 안에 보이는가
+func _on_screen(main, cell: Vector2i) -> bool:
+	return main.hud.VIEW.has_point(main.hud.map.get_canvas_transform() * ((Vector2(cell) + Vector2(0.5, 0.5)) * 16.0))
+
+# EV361 · S189: 화면 밖 들판 타워가 처음 절반 아래가 되면 «타워 위험» 토스트가 하나 뜨고, 더 깎여도 다시 뜨지 않는다. 화면 안 타워는 알리지 않는다
+func ev361():
+	var main = _prep()
+	var b = main.view.battle
+	var hud = main.hud
+	if not hud.get("alerts") is Control:
+		_done(main)
+		return "main.hud.alerts가 없다"
+	var far = b.build("tower", Vector2i(10, 14))
+	var seen = b.build("tower", Vector2i(26, 14))
+	if far == null or seen == null:
+		_done(main)
+		return "준비 단계에 타워 (10,14)·(26,14)를 짓지 못했다(%s, %s)" % [far, seen]
+	b.start_battle()
+	_frame(main)
+	_pass(main, 10.0)  # 준비 단계 미션 토스트를 흘려 보낸다
+	b.mission = ""  # 미션이 깨진 토스트가 끼지 않게
+	b.commission = ""
+	_cam(main).focus(Vector2(600, 450))
+	_cam(main).force_update_scroll()
+	var out := ""
+	if _on_screen(main, far.cell):
+		out = "준비가 틀렸다: 카메라를 (600,450)에 맞춰도 (10,14)가 화면 안이다"
+	if out == "":
+		b.damage(far, far.max_hp * 0.6, "true")
+		hud._process(0.0)
+		var t1 := _toasts(main)
+		b.damage(far, far.max_hp * 0.1, "true")
+		hud._process(0.0)
+		var t2 := _toasts(main)
+		if t1.size() != 1 or not "타워 위험" in t1[0] or t2 != t1:
+			out = "화면 밖 타워 60%% 피해 뒤 토스트 %s(«타워 위험» 하나여야 한다) · 10%% 더 준 뒤 %s(그대로여야 한다)" % [t1, t2]
+	if out == "":
+		far.hp = far.max_hp  # 수리로 다시 찬 뒤(묶기 15초가 지나도록 흘린다)
+		hud._process(0.0)
+		_pass(main, 16.0)
+		b.damage(far, far.max_hp * 0.6, "true")
+		hud._process(0.0)
+		if _toasts(main).any(func(t): return "위험" in t):
+			out = "체력을 채우고 16초 뒤 다시 60%% 피해를 주자 토스트 %s(«위험»이 없어야 한다, 구조물마다 한 번)" % [_toasts(main)]
+	if out == "":
+		_cam(main).focus((Vector2(seen.cell) + Vector2(0.5, 0.5)) * 16.0)
+		_cam(main).force_update_scroll()
+		var before := _toasts(main)
+		var shown := _on_screen(main, seen.cell)
+		b.damage(seen, seen.max_hp * 0.6, "true")
+		hud._process(0.0)
+		var after := _toasts(main)
+		_cam(main).focus(Vector2(600, 450))  # 이미 절반 아래인 타워에서 카메라만 돌린다
+		_cam(main).force_update_scroll()
+		hud._process(0.0)
+		out = check(shown and after == before and not _on_screen(main, seen.cell) and _toasts(main) == before,
+			"화면 안(%s) 타워 60%% 피해 뒤 토스트 %s → %s · 카메라를 돌려 화면 밖(%s)이 된 뒤 %s(모두 그대로여야 한다)" % [shown, before, after, not _on_screen(main, seen.cell), _toasts(main)])
+	_done(main)
+	return out
+
 # btn에 커서를 0.25초 둔 뒤 툴팁 안의 보이는 글. 툴팁이 없으면 ""
 func _tip_of(main, btn) -> String:
 	_layout(main)
