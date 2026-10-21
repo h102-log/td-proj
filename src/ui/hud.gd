@@ -62,8 +62,8 @@ const UP := ["..#..", ".###.", "#####", ".###.", ".###."]  # 팝업 업그레이
 const TOP := Rect2(0, 0, 640, 30)  # 팝업이 피하는 위 띠(I137)
 const POP_GAP := 2.0  # 팝업과 고른 칸 사이(I58)
 const CONFIRM := 2.0  # 철거를 다시 눌러 확정하는 초(S74 임시값)
-const REFUSE_MARK := 0.5  # 닿는 공병이 없는 칸의 빨간 ✕ 초(I128 임시값)
-const REFUSE_HINT := 1.5  # 그때 안내 줄을 «✕ 닿는 공병 없음»으로 바꾸는 초(I128 임시값)
+const REFUSE_MARK := 0.5  # 거부된 놓기 칸의 빨간 ✕ 초(I128 임시값)
+const REFUSE_HINT := 1.5  # 그때 안내 줄을 거부 이유로 바꾸는 초. 놓기 모드가 끝나도 그동안 칩이 남는다(I128 임시값)
 const ENEMIES := {"basic": "기본", "fast": "빠름", "armored": "장갑", "flying": "비행", "boss": "보스"}  # S106
 const TRAITS := {"fast": "성벽을 오른다", "flying": "길을 무시한다", "armored": "받는 피해를 줄인다", "boss": "성벽을 뚫고 온다"}  # S107·S109·S108, 보스는 wall_k 0.3
 const SIDES := ["왼쪽", "가운데", "오른쪽"]  # ponytail: 출현 지점 이름은 시험 스테이지(왼쪽부터 셋) 차례다. 지점이 다른 맵이 생기면 x로 이름을 정한다
@@ -118,7 +118,7 @@ var _why := {}  # 팝업 버튼 → 못 누르는 이유(툴팁 빨간 줄)
 var _opens := ""  # 마을 레벨 버튼: 그 레벨에 열리는 시설(I132)
 var _arm := -INF  # 철거를 처음 누른 때(S74)
 var _arm_on := []  # 그때 고른 구조물. 고른 것이 바뀌면 첫 클릭부터 다시
-var _refused := [Vector2i.ZERO, -INF]  # 닿는 공병이 없어 거부된 놓기 칸과 그때(I128)
+var _refused := [Vector2i.ZERO, -INF, ""]  # 거부된 놓기 칸·그때·이유(I128)
 var _mark := Control.new()  # 그 칸의 빨간 ✕를 그린다
 var _sell: Button
 var _finish: Button
@@ -276,7 +276,7 @@ func _ready() -> void:
 	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	chip.add_child(hint)
 	root.add_child(chip)
-	controls.refused.connect(func(cell): _refused = [cell, _now])
+	controls.refused.connect(func(cell, why): _refused = [cell, _now, why])
 	controls.facility_key.connect(func(f): _focus(Vector2(f.cell)))  # 용병 키로 고른 시설로 카메라(S81, I164)
 	# 창은 윗변을 고정해 아래로만 자란다(I136). 영입·라운드 사이는 두 칸: 왼쪽 영입 카드·리롤, 오른쪽 보유 5칸, 아래 의뢰, 진행 버튼은 오른쪽 아래
 	dim.position = VIEW.position
@@ -403,11 +403,11 @@ func _process(delta: float) -> void:
 		_tag_pics[0].texture = _move_tex[m]
 		_tag_pics[1].modulate = HOLD_LOOK[h]
 		_tag_tips = [MOVE_TIPS[m], HOLD_TIPS[h]]
-	chip.visible = (controls.placing != "" or controls.moving != null or controls.aiming != "") and not tip.shows_in(bar)  # 위 띠 툴팁이 뜨면 숨는다(S147)
-	hint.text = "%s 놓기: 좌클릭 · 끝: 우클릭·ESC" % NAMES.get(controls.placing, "")
 	var refusing: bool = _now - _refused[1] < REFUSE_HINT
-	if refusing:  # 닿는 공병이 없어 거부된 놓기(I128)
-		hint.text = "✕ 닿는 공병 없음"
+	chip.visible = (controls.placing != "" or controls.moving != null or controls.aiming != "" or refusing) and not tip.shows_in(bar)  # 위 띠 툴팁이 뜨면 숨는다(S147)
+	hint.text = "%s 놓기: 좌클릭 · 끝: 우클릭·ESC" % NAMES.get(controls.placing, "")
+	if refusing:  # 거부된 놓기의 첫 이유(I128)
+		hint.text = "✕ " + _refused[2]
 	hint.self_modulate = HudTheme.DANGER if refusing else Color.WHITE
 	_mark.queue_redraw()
 	if controls.moving:

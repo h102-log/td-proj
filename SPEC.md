@@ -438,7 +438,7 @@
 - I17. 건설비는 건설을 지시하는 순간에 낸다. 전투 중이면 공병이 도착하기 전에 낸다(S23의 «전액 환불»은 미리 낸 돈이 있어야 성립한다). `[추론]`
 - I39. 전투 중에 건설할 칸을 지정하면, 놀고 있는 공병(짓는 중도 아니고 지으러 가는 중도 아닌 공병) 가운데 가장 가까운 공병이 자동으로 그 칸에 간다. 놀고 있는 공병이 없으면 지정은 거부되고 골드도 나가지 않는다. `[추론]`
 - I125. 전투 중 공병에게 맡기는 지시(건설 I39, 이어 짓기 S83, 수리 S115, 성곽 업그레이드 S86, 복구 I89, 철거 S74, 대포 옮기기 S91)는, 놀고 있는 공병 가운데 지시하는 순간 막힌 칸(닫힌 성문·성벽·구조물, I67)을 지나지 않고 그 칸(대포 옮기기는 대포가 선 칸)까지 갈 수 있는 공병에게만 간다. 그중 가장 가까운 공병이 간다(I39). 그런 공병이 없으면 지시는 거부되고 골드도 나가지 않는다. `[추론]`
-- I128. 전투 단계에 공병에게 맡기는 지시(I125)의 버튼은, 그 지시를 맡을 공병이 없으면 눌리지 않고 글자 끝에 이유를 붙인다. 놀고 있는 공병이 하나도 없으면 «(공병 없음)», 놀고 있는 공병은 있지만 아무도 그 칸에 닿지 못하면 «(닿는 공병 없음)»이다. 팝업 버튼은 고른 것의 칸으로 가리고, 고른 것이 여럿이면 하나라도 맡을 공병이 있을 때 눌린다. 구조물 놓기 버튼은 칸을 고르기 전이라 놀고 있는 공병이 하나도 없을 때만 «(공병 없음)»으로 끈다(I132). `[추론]` → **2026-10-21 변경:** (놓기 칸 부분) 전투 단계에 놀고 있는 공병이 하나도 없으면 건설 격자(S186) 1·2줄 위에 빨간 «✕ 공병 없음» 띠를 덮고, 두 줄 칸은 불투명도 0.35다. 놓기 칸 글에는 이유를 붙이지 않는다(I132). 팝업 버튼 쪽은 그대로다. (근거: 사용자 2026-10-21 — Gemini 지적에 «격자에 띠»를 고름, `next/2026-10-21/r1.md` §0. `ui_research/README.md` 4.5의 «칸 글자를 가리지 않는다»를 바꿈) → **2026-10-21 변경:** (팝업 부분) 공병 지시 버튼은 맡을 공병이 없으면 어둡고 눌리지 않으며 글에 이유를 붙이지 않는다. «✕ 공병 없음»·«✕ 닿는 공병 없음»은 그 버튼 툴팁과 정보 칸의 빨간 줄에 있다. 전투 단계 놓기 중에 놀고 있는 공병은 있지만 아무도 닿지 못하는 칸을 누르면 그 칸에 빨간 ✕를 0.5초 그리고 놓기 안내 줄 글을 1.5초 «✕ 닿는 공병 없음»으로 바꾼다(지금까지는 말없이 거부했다). 0.5초·1.5초는 임시값이다. `[추론]` (근거: 사용자 2026-10-21 — 0단계 초안 승인, `next/archive/2026-10-21/r1.md` 7단계, `ui_research/README.md` 4.3 «맵 위 선택 팝업»·4.6)
+- I128. 전투 단계에 공병에게 맡기는 지시(I125)의 버튼은, 그 지시를 맡을 공병이 없으면 눌리지 않고 글자 끝에 이유를 붙인다. 놀고 있는 공병이 하나도 없으면 «(공병 없음)», 놀고 있는 공병은 있지만 아무도 그 칸에 닿지 못하면 «(닿는 공병 없음)»이다. 팝업 버튼은 고른 것의 칸으로 가리고, 고른 것이 여럿이면 하나라도 맡을 공병이 있을 때 눌린다. 구조물 놓기 버튼은 칸을 고르기 전이라 놀고 있는 공병이 하나도 없을 때만 «(공병 없음)»으로 끈다(I132). `[추론]` → **2026-10-21 변경:** (놓기 칸 부분) 전투 단계에 놀고 있는 공병이 하나도 없으면 건설 격자(S186) 1·2줄 위에 빨간 «✕ 공병 없음» 띠를 덮고, 두 줄 칸은 불투명도 0.35다. 놓기 칸 글에는 이유를 붙이지 않는다(I132). 팝업 버튼 쪽은 그대로다. (근거: 사용자 2026-10-21 — Gemini 지적에 «격자에 띠»를 고름, `next/2026-10-21/r1.md` §0. `ui_research/README.md` 4.5의 «칸 글자를 가리지 않는다»를 바꿈) → **2026-10-21 변경:** (팝업 부분) 공병 지시 버튼은 맡을 공병이 없으면 어둡고 눌리지 않으며 글에 이유를 붙이지 않는다. «✕ 공병 없음»·«✕ 닿는 공병 없음»은 그 버튼 툴팁과 정보 칸의 빨간 줄에 있다. 전투 단계 놓기 중에 놀고 있는 공병은 있지만 아무도 닿지 못하는 칸을 누르면 그 칸에 빨간 ✕를 0.5초 그리고 놓기 안내 줄 글을 1.5초 «✕ 닿는 공병 없음»으로 바꾼다(지금까지는 말없이 거부했다). 0.5초·1.5초는 임시값이다. `[추론]` (근거: 사용자 2026-10-21 — 0단계 초안 승인, `next/archive/2026-10-21/r1.md` 7단계, `ui_research/README.md` 4.3 «맵 위 선택 팝업»·4.6) → **2026-10-21 변경:** (놓기 거부 부분) 준비·전투 단계에 구조물 놓기가 어떤 이유로든 거부되면 그 칸에 빨간 ✕를 0.5초 그리고 안내 줄 글을 1.5초 첫 이유로 바꾼다. 이유 차례는 «✕ 마을 LvN 필요»(S99) → 구역(S43) «✕ 성곽에는 대포만»·«✕ 성 안에는 마을 시설만»·«✕ 마을 시설은 성 안에만» → «✕ 빈 칸이 아니다»(I24) → «✕ 골드 N 모자람» → «✕ 집은 N채까지»(S101) → 전투 단계의 «✕ 공병 없음»·«✕ 닿는 공병 없음»이다. 그 1.5초 안에 놓기 모드가 끝나도 안내 칩은 남은 시간 동안 이유를 보인다. `[추론]` (근거: 사용자 2026-10-21 — 관찰 O-6·O-9 다듬기 ㉠ 초안 승인, `insights/2026-10-21_hud_cover.md` §5)
 - I60. 전투 중 수리(S80)도 I39처럼 놀고 있는 공병 가운데 가장 가까운 공병이 간다. 수리비는 준비 단계 수리와 같다. `[추론]`
 - I85. 수리비(S114)의 1골드 미만은 올린다. 이미 낸 몫(I87)은 빼고 받는다. 수리 대상은 플레이어 구조물·성곽·거점이고, 영웅·용병은 수리하지 않는다. `[추론]`
 - I86. 준비 단계 수리(S80)는 수리비를 내면 바로 최대 체력이 된다. 골드가 모자라면 거부되고 그대로다(I16). 미완성 구조물(I18)과 공병이 일하고 있는 칸은 수리하지 않는다. `[추론]`
@@ -680,7 +680,7 @@
 | S15 | src/sim/battle.gd:797 · src/sim/battle.gd:2142 · src/sim/battle.gd:2216 |
 | S16 | src/ui/controls.gd:119-123 · src/ui/controls.gd:133-162 · src/ui/controls.gd:72-75 · src/ui/controls.gd:191-196 · src/sim/battle.gd:776-787 · src/ui/battle_view.gd:142-143 · src/sim/battle.gd:120 · src/sim/battle.gd:776 · src/ui/controls.gd:3 |
 | S17 | src/sim/battle.gd:450-456 · src/sim/battle.gd:411-419 · src/ui/hud.gd:393 |
-| S18 | src/sim/battle.gd:1417-1442 · src/sim/battle.gd:704-716 · src/ui/controls.gd:75-118 · src/ui/controls.gd:253-259 · src/ui/hud_build.gd:218-229 |
+| S18 | src/sim/battle.gd:1417-1442 · src/sim/battle.gd:704-716 · src/ui/controls.gd:75-118 · src/ui/controls.gd:253-260 · src/ui/hud_build.gd:218-229 |
 | S19 | src/sim/battle.gd:268 · src/ui/hud.gd:654 · src/sim/battle.gd:1485-1502 · src/ui/hud.gd:347 |
 | S20 | data/structures/barracks.tres:10 · src/data/structure_def.gd:14 · src/sim/battle.gd:62 · src/sim/battle.gd:1485-1502 · src/sim/battle.gd:1514-1516 · src/ui/hud.gd:347 |
 | S21 | src/sim/battle.gd:63 · src/sim/battle.gd:1505-1512 · src/ui/controls.gd:124-129 |
@@ -712,7 +712,7 @@
 | S47 | src/sim/battle.gd:424-425 · src/sim/battle.gd:686-688 · data/structures/house.tres:10 |
 | S48 | src/sim/battle.gd:1486 · src/ui/hud.gd:444-445 · src/sim/battle.gd:1978-1983 |
 | S49 | data/structures/barracks.tres:10 · data/structures/archery.tres:10 · data/structures/workshop.tres:10 · data/mercs/engineer.tres:5-9 · src/ui/controls.gd:19 |
-| S50 | src/sim/battle.gd:698-700 · src/ui/controls.gd:258-259 |
+| S50 | src/sim/battle.gd:698-700 · src/ui/controls.gd:259-260 |
 | S51 | src/main.gd:179-200 (W1 시험 스테이지. 스테이지 전반은 5.1) |
 | S52 | src/ui/camera.gd:20-25 · src/ui/camera.gd:66-74 |
 | S53 | src/ui/camera.gd:30-49 |
@@ -933,7 +933,7 @@
 | I125 | src/sim/battle.gd:1726-1745 |
 | I126 | src/sim/battle.gd:789 · src/sim/battle.gd:797 |
 | I127 | src/sim/battle.gd:538-541 · src/ui/hud.gd:144 · src/ui/hud.gd:431 · src/ui/hud.gd:904-908 · src/ui/hud.gd:960-970 |
-| I128 | src/sim/battle.gd:1737-1740 · src/ui/hud.gd:23 · src/ui/hud_build.gd:102-103 · src/ui/hud_build.gd:59-69 · src/ui/hud_build.gd:107 · src/ui/hud.gd:461-472 · src/ui/hud.gd:498-500 · src/ui/hud.gd:1094-1101 · src/ui/controls.gd:22 · src/ui/controls.gd:253-259 · src/ui/hud.gd:279 · src/ui/hud.gd:408-412 · src/ui/hud.gd:511-512 · src/ui/hud.gd:568-571 · src/ui/hud_build.gd:265 |
+| I128 | src/sim/battle.gd:1737-1740 · src/ui/hud.gd:23 · src/ui/hud_build.gd:102-103 · src/ui/hud_build.gd:59-69 · src/ui/hud_build.gd:107 · src/ui/hud.gd:461-472 · src/ui/hud.gd:498-500 · src/ui/hud.gd:1094-1101 · src/ui/controls.gd:22 · src/ui/controls.gd:253-260 · src/ui/controls.gd:262-281 · src/ui/hud.gd:279 · src/ui/hud.gd:406-412 · src/ui/hud.gd:511-512 · src/ui/hud.gd:568-571 · src/ui/hud_build.gd:265 |
 | I129 | src/ui/hud.gd:12-13 · src/ui/hud.gd:73-74 · src/ui/hud.gd:156-159 · src/ui/hud.gd:195-238 · src/ui/hud.gd:994-1034 |
 | I130 | src/ui/battle_view.gd:124-129 |
 | I131 | src/sim/battle.gd:1876 · src/ui/hud.gd:984-990 |
@@ -949,7 +949,7 @@
 | S157 | data/heroes/aias.tres:7 · data/heroes/sylvia.tres:7 · data/heroes/seraphina.tres:7 · data/heroes/vesper.tres:7 · data/heroes/ignis.tres:7 · data/heroes/chronos.tres:7 · src/data/hero_def.gd:3 · src/data/hero_def.gd:6 · src/ui/battle_view.gd:14 · src/ui/hud.gd:21 · src/ui/hud.gd:900 |
 | S145 | src/data/hero_def.gd:18 · src/data/hero_def.gd:20 · src/data/hero_def.gd:23 · src/data/level_def.gd:7 · src/sim/battle.gd:38 · src/sim/battle.gd:790 · src/sim/battle.gd:792 · src/sim/battle.gd:797 · src/sim/battle.gd:946 · src/ui/controls.gd:7 · src/ui/controls.gd:18 · src/ui/controls.gd:198 |
 | S146 | src/data/hero_def.gd:16-17 · src/sim/battle.gd:156 · src/sim/battle.gd:437 · src/sim/battle.gd:2200 · src/ui/battle_view.gd:118 |
-| S147 | src/sim/battle.gd:39 · src/sim/battle.gd:167 · src/sim/battle.gd:732 · src/sim/battle.gd:792 · src/sim/battle.gd:799 · src/sim/battle.gd:835 · src/sim/battle.gd:876 · src/sim/battle.gd:2201 · src/ui/battle_view.gd:701 · src/ui/controls.gd:8 · src/ui/controls.gd:42 · src/ui/controls.gd:198 · src/ui/controls.gd:222 · src/ui/hud.gd:267-278 · src/ui/hud.gd:415 · src/ui/hud.gd:114 · src/ui/hud.gd:406 · src/ui/hud.gd:417 · src/ui/hud_tip.gd:51-53 |
+| S147 | src/sim/battle.gd:39 · src/sim/battle.gd:167 · src/sim/battle.gd:732 · src/sim/battle.gd:792 · src/sim/battle.gd:799 · src/sim/battle.gd:835 · src/sim/battle.gd:876 · src/sim/battle.gd:2201 · src/ui/battle_view.gd:701 · src/ui/controls.gd:8 · src/ui/controls.gd:42 · src/ui/controls.gd:198 · src/ui/controls.gd:222 · src/ui/hud.gd:267-278 · src/ui/hud.gd:415 · src/ui/hud.gd:114 · src/ui/hud.gd:407 · src/ui/hud.gd:417 · src/ui/hud_tip.gd:51-53 |
 | S148 | src/data/hero_def.gd:23 |
 | S149 | src/data/enemy_def.gd:16 · src/sim/battle.gd:40 · src/sim/battle.gd:56-57 · src/sim/battle.gd:97 · src/sim/battle.gd:146 · src/sim/battle.gd:281 · src/sim/battle.gd:972 · src/sim/battle.gd:980 · src/sim/battle.gd:1021 · src/sim/battle.gd:1832 · src/sim/battle.gd:2119 |
 | S150 | src/sim/battle.gd:58 · src/sim/battle.gd:103 · src/sim/battle.gd:148-149 · src/sim/battle.gd:248 · src/sim/battle.gd:909 · src/sim/battle.gd:917 · src/sim/battle.gd:924 · src/sim/battle.gd:931 · src/sim/battle.gd:954 · src/sim/battle.gd:988 · src/sim/battle.gd:1005 · src/sim/battle.gd:1076 · src/sim/battle.gd:1998 · src/sim/battle.gd:2000 · src/sim/battle.gd:2120 |
