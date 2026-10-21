@@ -46,6 +46,10 @@ def test_EV170_round_waves_from_resource(gd):
     gd("rounds", "EV170")
 
 
+def test_EV367_spawn_gap(gd):
+    gd("rounds", "EV367")
+
+
 def test_EV243_downed_heroes_return_with_1_hp(gd):
     gd("rounds", "EV243")
 

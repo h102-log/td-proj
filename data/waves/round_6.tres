@@ -4,20 +4,25 @@
 
 [resource]
 script = ExtResource("1_83rh7")
-hp_mult = 1.6
+hp_mult = 3.04
 waves = Array[Dictionary]([{
-"basic": 13,
-"fast": 7,
-"flying": 5
+"basic": 26,
+"fast": 14,
+"flying": 10
 }, {
-"basic": 13,
-"armored": 6,
-"flying": 7,
-"fast": 4
+"basic": 26,
+"armored": 12,
+"flying": 14,
+"fast": 8
 }, {
-"basic": 18,
-"fast": 9,
-"armored": 6,
-"flying": 7,
+"basic": 26,
+"fast": 14,
+"armored": 12,
+"flying": 10
+}, {
+"basic": 36,
+"fast": 18,
+"armored": 12,
+"flying": 14,
 "boss": 2
 }])
