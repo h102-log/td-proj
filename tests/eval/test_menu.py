@@ -28,3 +28,11 @@ def test_EV317_menus_keyboard_reachable(gd):
 
 def test_EV318_start_window_mode(gd):
     gd("menu", "EV318")
+
+
+def test_EV370_language_default_and_persist(gd):
+    gd("menu", "EV370")
+
+
+def test_EV371_language_setting_switches_menu(gd):
+    gd("menu", "EV371")

@@ -6,6 +6,7 @@ var started := false
 var done := false
 
 func _run() -> void:
+	TranslationServer.set_locale("ko")  # 한국어 화면 글을 재는 테스트가 OS 언어와 상관없이 같게(I167)
 	var path: String = OS.get_cmdline_user_args()[0]
 	var script = load(path)
 	if script == null or not script.can_instantiate():

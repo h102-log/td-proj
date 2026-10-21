@@ -6,6 +6,8 @@ extends "res://tests/eval/gd/save.gd"
 #   res://src/settings.gd — static var quickcast · revive · fullscreen(null이면 아직 고르지 않음) · volume(0~100)
 #     load_file()(파일이 없으면 기본값) · save_file() · fullscreen_at_start(내보낸 빌드) -> bool
 #   Controls.quickcast — 퀵캐스트(I158) · Battle.revive — 부활(I28)
+#   언어(S193, I167): settings.gd static var language(«ko»·«en») · static default_language(OS 언어) -> String.
+#     설정 화면의 보이는 OptionButton 하나가 «언어» 항목이다(항목 글 «한국어»·«English»). 고르면 item_selected로 저장·적용한다
 
 func _settings():
 	_save()
@@ -320,3 +322,91 @@ func ev318():
 		got.append([st.fullscreen_at_start(true), st.fullscreen_at_start(false)])
 	st.fullscreen = null
 	return "" if got == [[true, false], [false, false], [true, true]] else "[내보낸, 편집기] 시작 전체화면이 (없음·창·전체화면)마다 %s다" % [got]
+
+# EV370 · S193: 언어 기본값은 OS 언어가 한국어면 ko, 아니면 en이고, 저장한 언어는 OS 언어보다 앞선다
+func ev370():
+	var st = _settings()
+	var got := []
+	for os in ["ko_KR", "ko", "en_US", "ja_JP", ""]:
+		got.append(st.default_language(os))
+	var out := check(got == ["ko", "ko", "en", "en", "en"], "OS 언어 [ko_KR, ko, en_US, ja_JP, «»]의 기본값 %s(기대: [ko, ko, en, en, en])" % [got])
+	for want in ["en", "ko"]:
+		if out != "":
+			break
+		st.language = want
+		st.save_file()
+		st.language = "?"
+		st.load_file()
+		out = check(st.language == want, "language «%s»를 저장하고 다시 읽은 값 «%s»" % [want, st.language])
+	_settings()
+	return out
+
+# EV371 · S193: 설정 «언어»로 English를 고르면 저장·적용되어 메인 메뉴 화면 글에 한글이 없고, 한국어로 돌아오면 «새 게임»이 보인다
+func ev371():
+	var st = _settings()
+	st.language = "ko"
+	TranslationServer.set_locale("ko")
+	var m = _menu()
+	var out := _ev371(m, st)
+	m.free()
+	TranslationServer.set_locale("ko")
+	_settings()
+	return out
+
+func _ev371(m, st) -> String:
+	if not _press(m, "설정"):
+		return "메인 메뉴에 «설정»이 없다"
+	var pick = _option(m)
+	if pick == null:
+		return "설정 화면에 «언어» OptionButton이 없다"
+	if pick.get_item_text(pick.selected) != "한국어":
+		return "언어 항목의 고른 값 «%s»(기대: «한국어»)" % pick.get_item_text(pick.selected)
+	if not _choose(pick, "English"):
+		return "언어 항목에 «English»가 없다"
+	st.language = "?"
+	st.load_file()
+	if st.language != "en" or TranslationServer.get_locale() != "en":
+		return "English를 고른 뒤 설정 파일 language «%s» · 번역 언어 «%s»(기대: en · en)" % [st.language, TranslationServer.get_locale()]
+	_press(m, "뒤로")
+	var ko := _hangul(m)
+	if ko != "":
+		return "English를 고르고 돌아온 메인 메뉴 화면 글에 한글이 있다: «%s»" % ko
+	_press(m, "설정")
+	if not _choose(_option(m), "한국어"):
+		return "다시 연 설정에서 «한국어»를 고르지 못했다"
+	_press(m, "뒤로")
+	return check(_shows(m, "새 게임"), "한국어를 고르고 돌아온 메인 메뉴 화면 글에 «새 게임»이 없다")
+
+func _option(node: Node):
+	for n in node.find_children("*", "OptionButton", true, false):
+		if n.is_visible_in_tree():
+			return n
+	return null
+
+# 사람이 고른 것처럼 항목 text를 고른다(select는 item_selected를 내지 않는다)
+func _choose(pick, text: String) -> bool:
+	for i in (pick.item_count if pick else 0):
+		if pick.get_item_text(i) == text:
+			pick.select(i)
+			pick.item_selected.emit(i)
+			return true
+	return false
+
+# 보이는 Label·Button의 화면 글(자동 번역을 거친 글)
+func _screen_texts(node: Node) -> Array:
+	var out := []
+	for n in node.find_children("*", "Control", true, false):
+		if n.is_visible_in_tree() and (n is Label or n is Button):
+			out.append(n.atr(n.text))
+	return out
+
+# 화면 글 가운데 한글이 든 첫 글. 없으면 ""
+func _hangul(node: Node) -> String:
+	var re := RegEx.create_from_string("[가-힣]")
+	for t in _screen_texts(node):
+		if re.search(t):
+			return t
+	return ""
+
+func _shows(node: Node, part: String) -> bool:
+	return _screen_texts(node).any(func(t): return part in t)

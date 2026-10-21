@@ -8,6 +8,7 @@ static var fullscreen = null  # 창 모드. null이면 아직 고르지 않았�
 static var volume := 100  # 마스터 음량(%)
 static var hints := true  # 처음 하는 사람 힌트(S191)
 static var hints_done := []  # 끝낸 힌트 이름(I166). 설정 파일의 hints 칸에 둔다
+static var language := "ko"  # 게임 글의 언어 «ko»·«en»(S193). 설정 파일에 없으면 OS 언어로 정한다
 
 # 파일이 없으면 기본값이다
 static func load_file() -> void:
@@ -19,6 +20,7 @@ static func load_file() -> void:
 	volume = c.get_value("settings", "volume", 100)
 	hints = c.get_value("settings", "hints", true)
 	hints_done = c.get_value("hints", "done", [])
+	language = c.get_value("settings", "language", default_language(OS.get_locale()))
 
 static func save_file() -> void:
 	if path == "":
@@ -30,7 +32,16 @@ static func save_file() -> void:
 	c.set_value("settings", "volume", volume)
 	c.set_value("settings", "hints", hints)
 	c.set_value("hints", "done", hints_done)
+	c.set_value("settings", "language", language)
 	c.save(path)
+
+# 언어를 고른 적이 없을 때 OS 언어(OS.get_locale())가 한국어면 «ko», 그 밖이면 «en»(S193)
+static func default_language(os_locale: String) -> String:
+	return "ko" if os_locale.begins_with("ko") else "en"
+
+# 게임 글의 언어를 건다. 자동 번역하는 글은 그 자리에서 다시 그린다(I167)
+static func apply_language() -> void:
+	TranslationServer.set_locale(language)
 
 # 시작할 때 전체화면인가. 고른 창 모드가 없으면 내보낸 빌드만 전체화면이다(S163)
 static func fullscreen_at_start(exported: bool) -> bool:

@@ -5,6 +5,7 @@ extends CanvasLayer
 
 const Settings := preload("res://src/settings.gd")
 const HudTheme := preload("res://src/ui/hud_theme.gd")
+const LANGUAGES := {"ko": "한국어", "en": "English"}  # 설정 «언어»의 항목(S193). 언어 이름은 그 언어로 쓴다. 번역 안 함
 
 signal chosen(what: String)
 
@@ -83,6 +84,19 @@ func open(p: String, note := false) -> void:
 				pct.text = "%d%%" % v
 				Settings.volume = int(v)
 				Settings.apply_volume()
+				_changed())
+			var lang := HBoxContainer.new()
+			_box.add_child(lang)
+			_label("언어", lang)
+			var pick := OptionButton.new()
+			pick.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+			for code in LANGUAGES:
+				pick.add_item(LANGUAGES[code])
+			pick.selected = LANGUAGES.keys().find(Settings.language)
+			lang.add_child(pick)
+			pick.item_selected.connect(func(i):
+				Settings.language = LANGUAGES.keys()[i]
+				Settings.apply_language()
 				_changed())
 			_button("뒤로", _leave_settings)
 	_root.show()
