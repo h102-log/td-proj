@@ -1,14 +1,17 @@
 extends Control
 # 토스트(I163): 위 오른쪽 [436,30,200,16]·[436,48,200,16]에 최대 둘. 하나는 4초(push에서 정하면 그 초) 보인다.
 # 새 토스트는 앞 토스트가 뜬 지 3.5초가 지나야 뜨고 그때까지 줄을 선다. 같은 글이 보이거나 줄 서 있으면 «(2)»처럼 횟수만 올린다.
+# 자리가 있는 토스트(경보, S189)는 누르면 go 신호로 그 칸을 알린다(HUD가 카메라를 옮긴다).
 # 툴팁(I162)이 떠 있으면 시간을 세지 않는다. 시간은 _process의 delta로만 센다(평가가 delta를 넣어 돌린다)
 
 const HudTheme := preload("res://src/ui/hud_theme.gd")
 const LIFE := 4.0
 const GAP := 3.5
 
+signal go(cell: Vector2i)  # 자리가 있는 토스트를 눌렀다(I163)
+
 var tip: Control  # 툴팁 패널(I162)
-var _wait := []  # 줄 선 토스트 {text, n, left}
+var _wait := []  # 줄 선 토스트 {text, n, left, at(칸 또는 null)}
 var _shown := []  # 보이는 토스트. 앞이 윗줄이다
 var _since := INF  # 마지막 토스트가 뜬 뒤 흐른 초
 var _rows := []  # 토스트 칸 둘(Panel)
@@ -23,6 +26,7 @@ func _ready() -> void:
 		p.size = Vector2(200, 16)
 		p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		p.visible = false
+		p.gui_input.connect(func(e): _click(i, e))
 		var l := Label.new()
 		l.add_theme_font_size_override("font_size", 8)
 		l.position = Vector2(4, 0)
@@ -33,12 +37,13 @@ func _ready() -> void:
 		add_child(p)
 		_rows.append(p)
 
-func push(text: String, secs := LIFE) -> void:
+func push(text: String, secs := LIFE, at = null) -> void:
 	var same: Array = (_shown + _wait).filter(func(t): return t.text == text)
 	if same.is_empty():
-		_wait.append({"text": text, "n": 1, "left": secs})
+		_wait.append({"text": text, "n": 1, "left": secs, "at": at})
 	else:
 		same[0].n += 1
+		same[0].at = at
 	_pull()
 
 func _process(delta: float) -> void:
@@ -60,3 +65,9 @@ func _pull() -> void:
 		if _rows[i].visible:
 			var t: Dictionary = _shown[i]
 			_rows[i].get_child(0).text = t.text + (" (%d)" % t.n if t.n > 1 else "")
+		_rows[i].mouse_filter = Control.MOUSE_FILTER_STOP if _rows[i].visible and _shown[i].at != null else Control.MOUSE_FILTER_IGNORE
+
+# 자리가 있는 토스트를 누르면 그 자리로(I163)
+func _click(i: int, e: InputEvent) -> void:
+	if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT and i < _shown.size() and _shown[i].at != null:
+		go.emit(_shown[i].at)

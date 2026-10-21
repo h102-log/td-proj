@@ -32,6 +32,7 @@ const HudTheme := preload("res://src/ui/hud_theme.gd")
 const HudTip := preload("res://src/ui/hud_tip.gd")
 const HudBuild := preload("res://src/ui/hud_build.gd")
 const HudToast := preload("res://src/ui/hud_toast.gd")
+const HudAlert := preload("res://src/ui/hud_alert.gd")
 const BattleView := preload("res://src/ui/battle_view.gd")
 const SkillCell := preload("res://src/ui/skill_cell.gd")
 const BAR := {  # 위 띠 칸 자리(S185, 임시값)
@@ -80,6 +81,7 @@ var cells := {}  # 위 띠 칸 이름(BAR) → Control
 var hp_bar := ColorRect.new()  # 상태 묶음의 거점 체력 막대(S190)
 var marks := []  # 임무 칸의 점 둘(I122): 왼쪽 미션·오른쪽 의뢰
 var toasts := HudToast.new()  # 토스트(I163)
+var alerts  # 경보(S189, hud_alert.gd)
 var tip := HudTip.new()  # 위 띠 조작의 툴팁(S187)
 var grid  # 건설 격자·정보 칸(S186)
 var _hp: Label
@@ -331,6 +333,10 @@ func _ready() -> void:
 	for i in battle.HIRE.lineup:
 		_heal.append(_pop(rows[2 + i], func(): battle.heal(battle.heroes[i]), "치료"))
 	_make_edges(root)
+	alerts = HudAlert.new(self)
+	root.add_child(alerts)
+	controls.alert_key.connect(alerts.back)
+	toasts.go.connect(func(cell): _focus(Vector2(cell)))  # 경보 토스트를 누르면 그 자리로(I163)
 	toasts.tip = tip
 	root.add_child(toasts)
 	root.add_child(tip)  # 맨 위에 그린다(I162)
@@ -354,6 +360,9 @@ func _process(delta: float) -> void:
 		_eng.text = str(_idle().size())
 		_eng.add_theme_color_override("font_color", HudTheme.DANGER if battle.state == "battle" and _idle().is_empty() else HudTheme.TEXT)  # I128
 	toasts.visible = on
+	alerts.visible = on
+	if on:
+		alerts.step(delta)
 	_show_progress()
 	_show_edges()
 	var mercs: Array = controls.selected.filter(func(u): return not u.is_hero and u.alive)  # 고른 용병의 이동 방식·홀드(U11, I139)
