@@ -8,6 +8,11 @@ extends "res://tests/eval/gd/save.gd"
 #     grid.info — 정보 칸(Control). grid.reason — 그 안의 빨간 이유 줄(Label) · grid.band — «공병 없음» 띠(Control, I128)
 #   카메라(Camera2D, 게임 장면 안에 하나) — scroll(창 기준 마우스, 창 크기, delta) · pan(dir, delta) · zoom_at(step, 커서) · level
 #     static edge_dir(창 기준 마우스, 창 크기)(S53)
+#   main.hud.cells — 위 띠 칸(S185) 이름 → Control: status · mission · engineer · hero0 · hero1 · hero2 · progress · menu.
+#     status·mission·engineer·menu는 BaseButton이다. status 안 Label 하나가 거점 체력 숫자, engineer 안 Label이 놀고 있는 공병 수다
+#   main.hud.hp_bar — 거점 체력 막대의 채운 부분(ColorRect, S190) · main.hud._process(delta)로 시간을 흘린다
+#   main.hud.marks — 임무 칸의 점 둘(CanvasItem, 왼쪽 미션·오른쪽 의뢰, I122). 실패면 modulate가 #ef3a0c
+#   main.hud.toasts — 토스트 층(Control, I163). 보이는 자식 하나가 토스트 하나이고 그 안 Label에 글이 있다. push(글) · _process(delta)
 # 커서는 화면(640×360) 좌표의 InputEventMouseMotion으로 옮긴다. 빈 맵 자리는 (320,300)이다
 
 const EMPTY := Vector2(320, 300)
@@ -398,5 +403,267 @@ func ev327():
 			var want = units if k in ROWS[2] else fac
 			if out == "" and (t == null or t.get_size().x <= 0 or t.get_size().y <= 0 or t.get("atlas") != want):
 				out = "«%s» 칸 아이콘이 %s다(크기 %s, 아틀라스 %s)" % [k, t, t.get_size() if t else null, t.get("atlas") if t else null]
+	_done(main)
+	return out
+
+const BAR := {"status": Rect2(4, 2, 96, 24), "mission": Rect2(104, 2, 24, 24), "engineer": Rect2(130, 2, 20, 24), "hero0": Rect2(156, 2, 104, 24),
+	"hero1": Rect2(264, 2, 104, 24), "hero2": Rect2(372, 2, 104, 24), "progress": Rect2(480, 2, 136, 24), "menu": Rect2(620, 2, 16, 24)}  # S185
+const FOCUS := Vector2(320, 194)  # I164
+
+# 위 띠 칸 사각형이 BAR와 같고, 늘 보이는 칸과 준비·전투 단계에만 보이는 칸이 맞게 보인다. 문제가 없으면 ""
+func _bar_shape(main, phase: String) -> String:
+	var bar = main.hud.bar
+	if not bar.get_global_rect().is_equal_approx(Rect2(0, 0, 640, 28)) or not bar.is_visible_in_tree():
+		return "%s: 위 띠가 %s다(보임 %s)" % [phase, bar.get_global_rect(), bar.is_visible_in_tree()]
+	var cells = main.hud.get("cells")
+	if not cells is Dictionary:
+		return "%s: main.hud.cells가 없다" % phase
+	var field: bool = main.view.battle.state in ["prep", "battle"]
+	for k in BAR:
+		if not cells.has(k):
+			return "%s: «%s» 칸이 없다(%s)" % [phase, k, cells.keys()]
+		var r: Rect2 = cells[k].get_global_rect()
+		if r.position.distance_to(BAR[k].position) > 0.5 or r.size.distance_to(BAR[k].size) > 0.5:
+			return "%s: «%s» 칸이 %s다(기대 %s)" % [phase, k, r, BAR[k]]
+		var want = true if k in ["status", "progress", "menu"] else field if k in ["mission", "engineer"] else null
+		if want != null and cells[k].is_visible_in_tree() != want:
+			return "%s: «%s» 칸 보임이 %s다" % [phase, k, cells[k].is_visible_in_tree()]
+	return ""
+
+# 판의 1라운드 웨이브를 모두 이겨 라운드 사이로 간다
+func _win(b) -> bool:
+	for i in 10:
+		if b.state == "prep":
+			b.start_battle()
+		if b.state == "battle" and not clear_wave(b):
+			return false
+		if b.state == "cleared":
+			return true
+	return false
+
+# EV328 · S185: 영입 창·준비·전투·라운드 사이에서 위 띠와 칸 사각형이 같고, 임무·공병 칸은 준비·전투 단계에만 보인다
+func ev328():
+	var main = _game()
+	var b = main.view.battle
+	b.gold = BIG
+	_frame(main)
+	_layout(main)
+	var out := _bar_shape(main, "영입 창")
+	if out == "":
+		for i in 2:
+			b.hire(i)
+		b.next_round()
+		_frame(main)
+		_layout(main)
+		out = _bar_shape(main, "준비 단계")
+	if out == "":
+		b.start_battle()
+		_frame(main)
+		_layout(main)
+		out = _bar_shape(main, "전투 단계")
+	if out == "":
+		out = check(_win(b), "1라운드를 이겨 라운드 사이가 되지 않았다(%s)" % b.state)
+	if out == "":
+		_frame(main)
+		_layout(main)
+		out = _bar_shape(main, "라운드 사이")
+	_done(main)
+	return out
+
+# node 아래 보이는 Label의 글
+func _labels(node: Node) -> Array:
+	return node.find_children("*", "Label", true, false).filter(func(l): return l.is_visible_in_tree()).map(func(l): return l.text)
+
+# EV329 · S190: 상태 묶음의 숫자가 거점 체력이고, 피해에 0.2초 하얗게 번쩍인 뒤 50% 밑 노랑, 25% 밑 빨강이다
+func ev329():
+	var main = _prep()
+	var cells = main.hud.get("cells")
+	var bar = main.hud.get("hp_bar")
+	if not cells is Dictionary or bar == null:
+		_done(main)
+		return "main.hud.cells나 main.hud.hp_bar가 없다"
+	var b = main.view.battle
+	var hp := ceili(b.base.hp)
+	var out := check(str(hp) in _labels(cells.status), "상태 묶음 글 %s에 거점 체력 %d가 없다" % [_labels(cells.status), hp])
+	if out == "":
+		b.damage(b.base, 7)
+		main.hud._process(0.1)
+		var white: bool = bar.color.is_equal_approx(Color.WHITE)
+		main.hud._process(0.2)
+		if not str(hp - 7) in _labels(cells.status):
+			out = "피해 7 뒤 상태 묶음 글이 %s다(기대 %d)" % [_labels(cells.status), hp - 7]
+		elif not white or bar.color.is_equal_approx(Color.WHITE):
+			out = "피해 뒤 0.1초에 흰색 %s, 0.3초에 흰색 %s다" % [white, bar.color.is_equal_approx(Color.WHITE)]
+	for pair in [[0.4, Color("e0c040")], [0.2, DANGER]]:
+		if out == "":
+			b.base.hp = b.base.max_hp * pair[0]
+			main.hud._process(0.3)
+			out = check(bar.color.is_equal_approx(pair[1]), "거점 체력 %d%%에서 막대 색이 %s다(기대 %s)" % [pair[0] * 100, bar.color, pair[1]])
+	_done(main)
+	return out
+
+# 맵 px p가 화면 (320,194)에서 축마다 0.5 안이거나, 그 축으로 맞추는 쪽으로 카메라가 더 움직이지 못한다(I164). 문제가 없으면 ""
+func _focused(main, p: Vector2) -> String:
+	var cam = _cam(main)
+	cam.force_update_scroll()
+	var s: Vector2 = main.hud.map.get_canvas_transform() * p
+	for ax in 2:
+		var off: float = s[ax] - FOCUS[ax]
+		if absf(off) <= 0.5:
+			continue
+		var dir := Vector2.ZERO
+		dir[ax] = signf(off)
+		var before: Vector2 = cam.position
+		cam.pan(dir, 0.05)
+		var moved: bool = not cam.position.is_equal_approx(before)
+		cam.position = before
+		if moved:
+			return "%d배 줌: 화면 %s가 (320,194)에서 어긋났는데 카메라가 그쪽으로 더 갈 수 있다" % [cam.zoom.x, s]
+	return ""
+
+# 카메라를 맨 오른쪽 아래로 보낸다
+func _away(main) -> void:
+	_cam(main).pan(Vector2(1, 1), 100.0)
+
+# EV330 · I164: 2·3배 줌에서 상태 묶음을 누르면 거점이 경계 안에서 (320,194)에 가장 가깝게 온다. 3배 줌에서는 정확히 온다
+func ev330():
+	var main = _prep()
+	var cells = main.hud.get("cells")
+	if not cells is Dictionary:
+		_done(main)
+		return "main.hud.cells가 없다"
+	var b = main.view.battle
+	var cam = _cam(main)
+	var keep := Vector2(b.base.cell) * 16 + Vector2(8, 8)
+	var out := ""
+	for lv in [1, 2]:
+		cam.zoom_at(lv - cam.level, Vector2(320, 180))
+		_away(main)
+		cells.status.pressed.emit()
+		out = _focused(main, keep)
+		if out != "":
+			break
+	if out == "":
+		var s: Vector2 = main.hud.map.get_canvas_transform() * keep
+		out = check(s.distance_to(FOCUS) <= 0.7, "3배 줌에서 거점이 화면 %s다(기대 (320,194))" % s)
+	_done(main)
+	return out
+
+# 토스트 층에서 보이는 토스트의 글
+func _toasts(main) -> Array:
+	var out := []
+	for t in main.hud.toasts.get_children():
+		if t.is_visible_in_tree():
+			out.append(" ".join(_labels(t)))
+	return out
+
+# EV331 · I122: 라운드 첫 준비 단계에 미션 토스트가 뜨고, 미션이 깨지면 임무 칸 왼쪽 점이 빨갛고 «미션 실패» 토스트가 하나 뜬다. 툴팁에 조건 문장
+func ev331():
+	var main = _prep()
+	var marks = main.hud.get("marks")
+	var cells = main.hud.get("cells")
+	if marks == null or main.hud.get("toasts") == null or not cells is Dictionary:
+		_done(main)
+		return "main.hud.marks·toasts·cells가 없다"
+	var b = main.view.battle
+	var q: Dictionary = b.QUEST_KINDS[b.mission] if b.mission != "" else {}
+	var out := check(not q.is_empty(), "1라운드 미션이 없다")
+	var starts := _toasts(main).filter(func(t): return t.begins_with("이번 라운드 미션"))
+	if out == "" and (starts.size() != 1 or not marks[0].is_visible_in_tree() or marks[0].modulate.is_equal_approx(DANGER)):
+		out = "준비 단계 첫 프레임 토스트 %s · 왼쪽 점 보임 %s · 빨강 %s" % [_toasts(main), marks[0].is_visible_in_tree(), marks[0].modulate.is_equal_approx(DANGER)]
+	if out == "":
+		_fresh(main.hud.tip, cells.mission)
+		main.hud.tip._process(0.25)
+		out = check(q.text in _tip_text(main.hud.tip), "임무 칸 툴팁 «%s»에 미션 조건 «%s»가 없다" % [_tip_text(main.hud.tip), q.text])
+		_move(EMPTY)
+		main.hud.tip._process(0.3)
+	if out == "":
+		b.tally[q.zero[0]] = 1
+		for i in 8:
+			main.hud._process(0.5)
+			main.hud.toasts._process(0.5)
+		var fails := _toasts(main).filter(func(t): return t.begins_with("미션 실패"))
+		if not marks[0].modulate.is_equal_approx(DANGER) or fails.size() != 1:
+			out = "미션이 깨진 4초 뒤 왼쪽 점 빨강 %s · 토스트 %s" % [marks[0].modulate.is_equal_approx(DANGER), _toasts(main)]
+	_done(main)
+	return out
+
+# EV332 · I163: 앞 토스트가 뜬 지 3.5초가 지나야 다음이 뜨고, 같은 글은 «(2)»로 합친다. 툴팁이 떠 있으면 시간이 흐르지 않는다
+func ev332():
+	var main = _prep()
+	var toasts = main.hud.get("toasts")
+	var cells = main.hud.get("cells")
+	if toasts == null or not cells is Dictionary:
+		_done(main)
+		return "main.hud.toasts·cells가 없다"
+	var mine := func(): return _toasts(main).filter(func(t): return "시험 경보" in t)
+	toasts.push("시험 경보")
+	toasts.push("시험 경보")
+	toasts._process(3.0)
+	var out := check(mine.call().is_empty(), "미션 토스트가 뜬 지 3초에 «시험 경보»가 떴다(%s)" % [_toasts(main)])
+	if out == "":
+		toasts._process(0.6)
+		var m: Array = mine.call()
+		if m.size() != 1 or not m[0].ends_with("(2)") or _toasts(main).size() != 2:
+			out = "3.6초에 토스트가 %s다(기대: 미션 토스트와 «시험 경보 (2)»)" % [_toasts(main)]
+	if out == "":
+		_fresh(main.hud.tip, cells.menu)
+		main.hud.tip._process(0.25)
+		toasts._process(10.0)
+		out = check(main.hud.tip.visible and _toasts(main).size() == 2, "툴팁 %s가 떠 있는 동안 10초 뒤 토스트가 %s다" % [main.hud.tip.visible, _toasts(main)])
+	if out == "":
+		_move(EMPTY)
+		main.hud.tip._process(0.3)
+		toasts._process(4.1)
+		out = check(mine.call().is_empty(), "툴팁을 닫고 4.1초 뒤에도 «시험 경보»가 있다(%s)" % [_toasts(main)])
+	_done(main)
+	return out
+
+# EV333 · S185: 메뉴 칸을 누르면 ESC 메뉴가 열리고 트리가 멈춘다
+func ev333():
+	var main = _prep()
+	var cells = main.hud.get("cells")
+	if not cells is Dictionary or not cells.get("menu") is BaseButton:
+		_done(main)
+		return "main.hud.cells.menu 버튼이 없다"
+	cells.menu.pressed.emit()
+	var out := check(_button(main, "계속") != null and main.get_tree().paused, "메뉴 칸을 누른 뒤 «계속» %s · 트리 멈춤 %s" % [_button(main, "계속"), main.get_tree().paused])
+	_done(main)
+	return out
+
+# EV334 · S185: 전투 단계 공병 칸은 놀고 있는 공병 수이고 0이면 빨갛다. 툴팁은 «놀고 있는 공병 N · 전체 M», 누르면 그 공병에게 카메라가 간다(I164)
+func ev334():
+	var main = _prep()
+	var cells = main.hud.get("cells")
+	if not cells is Dictionary:
+		_done(main)
+		return "main.hud.cells가 없다"
+	var b = main.view.battle
+	var ws = b.build("workshop", _near(b, "workshop", b.base.cell))
+	b.start_battle()
+	_frame(main)
+	var n: Label = null
+	for l in cells.engineer.find_children("*", "Label", true, false):
+		n = l
+	var out := check(ws != null and n != null, "작업장 %s · 공병 칸 Label %s" % [ws, n])
+	if out == "" and (n.text != "0" or not n.get_theme_color("font_color").is_equal_approx(DANGER)):
+		out = "공병 0인 전투 단계 공병 칸 글 «%s» · 색 %s" % [n.text, n.get_theme_color("font_color")]
+	var e = b.recruit(ws, "engineer") if out == "" else null
+	if out == "":
+		main.hud._process(0.0)
+		if e == null:
+			out = "작업장에서 공병을 사지 못했다"
+		elif n.text != "1" or n.get_theme_color("font_color").is_equal_approx(DANGER):
+			out = "공병을 산 뒤 공병 칸 글 «%s» · 색 %s" % [n.text, n.get_theme_color("font_color")]
+	if out == "":
+		_fresh(main.hud.tip, cells.engineer)
+		main.hud.tip._process(0.25)
+		out = check("놀고 있는 공병 1 · 전체 1" in _tip_text(main.hud.tip), "공병 칸 툴팁이 «%s»다" % _tip_text(main.hud.tip))
+	if out == "":
+		var cam = _cam(main)
+		cam.zoom_at(2 - cam.level, Vector2(320, 180))
+		_away(main)
+		cells.engineer.pressed.emit()
+		out = _focused(main, e.pos * 16 + Vector2(8, 8))
 	_done(main)
 	return out
