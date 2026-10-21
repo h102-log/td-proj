@@ -85,6 +85,7 @@ func _check() -> void:
 # 게임을 멈추고 ESC 메뉴를 연다(S183, I11). 전투 단계면 나가도 이번 웨이브가 저장되지 않는다고 알린다
 func pause() -> void:
 	menus.open("pause", view.battle.state == "battle")
+	hud.cover()
 	get_tree().paused = true
 
 func _on_menu(what: String) -> void:

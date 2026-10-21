@@ -26,6 +26,7 @@ extends "res://tests/eval/gd/save.gd"
 #   main.hud.map — 맵 SubViewport. get_canvas_transform()이 맵 px → 화면 좌표다
 #   main.hud.alerts — 경보(Control, S189). recent: 최근 경보 칸(Vector2i, 새 것이 앞, 최대 5). 보이는 BaseButton 자식이 화면 밖 가장자리 표식이다
 #     토스트 칸(main.hud.toasts의 보이는 자식)은 자리가 있으면 gui_input에 왼쪽 버튼 누름을 넣어 누른다(I163)
+#   main.hud.window — 결과·영입 창(Control, S117·I136). 그 안의 보이는 BaseButton이 창 버튼(«리롤…»·«다음 라운드…»)이다 · main.hud.dim — 띠 아래 맵 덮개(ColorRect)
 # 커서는 화면(640×360) 좌표의 InputEventMouseMotion으로 옮긴다. 빈 맵 자리는 (320,300)이다
 
 const EMPTY := Vector2(320, 300)
@@ -1488,5 +1489,130 @@ func ev351():
 		_key(KEY_C)
 		var b1 := _off(main, g1.cell)
 		out = check(a1 < a0 - 1.0 and b1 < b0 - 1.0, "C 키에 왼쪽 쪽문 거리 %.0f → %.0f, 다시 C에 정문 거리 %.0f → %.0f(둘 다 가까워져야 한다)" % [a0, a1, b0, b1])
+	_done(main)
+	return out
+
+# 보유를 상한(5명)까지 채운다(목록이 비면 리롤)
+func _five(b) -> void:
+	for t in 6:
+		for i in b.HIRE.slots:
+			if b.roster.size() < b.HIRE.cap:
+				b.hire(i)
+		if b.roster.size() >= b.HIRE.cap:
+			return
+		b.reroll()
+
+# EV352 · S117: 영입 창·라운드 사이 창이 떠 있으면 띠 아래 맵 덮개(검정 50%)가 보이고 건설 격자는 숨는다. 준비 단계에는 반대다
+func ev352():
+	var main = _game()
+	var b = main.view.battle
+	var hud = main.hud
+	if not hud.get("window") is Control or not hud.get("dim") is ColorRect:
+		_done(main)
+		return "main.hud.window·dim이 없다"
+	b.gold = BIG
+	_frame(main)
+	hud.grid._process(0.0)
+	var out := ""
+	var r: Rect2 = hud.dim.get_global_rect()
+	if b.state != "hiring" or not hud.window.is_visible_in_tree() or not hud.dim.is_visible_in_tree() or absf(hud.dim.color.a - 0.5) > 0.01 or not r.is_equal_approx(Rect2(0, 28, 640, 332)) or hud.grid.visible:
+		out = "영입 창: 단계 %s · 창 %s · 덮개 %s(알파 %.2f, %s) · 격자 %s" % [b.state, hud.window.is_visible_in_tree(), hud.dim.is_visible_in_tree(), hud.dim.color.a, r, hud.grid.visible]
+	if out == "":
+		b.hire(0)
+		b.next_round()
+		_frame(main)
+		hud.grid._process(0.0)
+		if hud.dim.is_visible_in_tree() or not hud.grid.visible:
+			out = "준비 단계에 덮개 %s · 격자 %s(덮개는 숨고 격자는 보여야 한다)" % [hud.dim.is_visible_in_tree(), hud.grid.visible]
+	if out == "":
+		if not _win(b):
+			out = "1라운드를 이기지 못했다(%s)" % b.state
+		else:
+			_frame(main)
+			hud.grid._process(0.0)
+			out = check(hud.window.is_visible_in_tree() and hud.dim.is_visible_in_tree() and not hud.grid.visible, "라운드 사이: 창 %s · 덮개 %s · 격자 %s" % [hud.window.is_visible_in_tree(), hud.dim.is_visible_in_tree(), hud.grid.visible])
+	_done(main)
+	return out
+
+# EV353 · S183: 준비 단계에 용병을 고른 채 ESC 메뉴를 열면 건설 격자와 태그가 숨는다
+func ev353():
+	var main = _prep()
+	var b = main.view.battle
+	var hud = main.hud
+	var m = b.place_merc("soldier", Vector2i(20, 14))
+	main.controls.selected = [m]
+	_frame(main)
+	hud.grid._process(0.0)
+	var before: bool = hud.grid.visible and hud.tags[0].is_visible_in_tree()
+	_key(KEY_ESCAPE)
+	var paused: bool = main.get_tree().paused
+	var out := check(before and paused and not hud.grid.visible and not hud.tags[0].visible and not hud.tags[1].visible,
+		"ESC 전 격자·태그 보임 %s · ESC 뒤 멈춤 %s · 격자 %s · 태그 %s·%s" % [before, paused, hud.grid.visible, hud.tags[0].visible, hud.tags[1].visible])
+	_done(main)
+	return out
+
+# EV354 · I136: 보유 5명·의뢰 2개인 라운드 사이 창은 [16,34]에서 폭 608로 뜨고 아래끝이 356 이하다. 한 명을 내보낸 뒤 영입해도 리롤·진행 버튼 자리가 같다
+func ev354():
+	var main = _game()
+	var b = main.view.battle
+	var hud = main.hud
+	if not hud.get("window") is Control:
+		_done(main)
+		return "main.hud.window가 없다"
+	b.gold = BIG
+	_five(b)
+	b.next_round()
+	var won: bool = _win(b)
+	_frame(main)
+	_layout(main)
+	var w: Rect2 = hud.window.get_global_rect()
+	var out := ""
+	if not won or b.roster.size() != 5 or b.commission_offers.size() != 2:
+		out = "준비가 틀렸다: 1라운드 승리 %s · 보유 %d · 의뢰 %d" % [won, b.roster.size(), b.commission_offers.size()]
+	elif not w.position.is_equal_approx(Vector2(16, 34)) or absf(w.size.x - 608.0) > 0.5 or w.end.y > 356.5:
+		out = "보유 5명·의뢰 2개 라운드 사이 창 %s(기대: [16,34] 폭 608, 아래끝 356 이하)" % w
+	if out == "":
+		b.dismiss(b.roster[4])
+		_frame(main)
+		_layout(main)
+		var re = _starts(hud.window, "리롤")
+		var go = _starts(hud.window, "다음 라운드")
+		if re == null or go == null:
+			out = "라운드 사이 창에 «리롤»(%s)·«다음 라운드»(%s) 버튼이 없다" % [re, go]
+		else:
+			var at := [re.get_global_rect(), go.get_global_rect()]
+			for i in b.HIRE.slots:
+				if b.offers[i] != "":
+					b.hire(i)
+					break
+			_frame(main)
+			_layout(main)
+			var now := [re.get_global_rect(), go.get_global_rect()]
+			out = check(b.roster.size() == 5 and now == at, "내보내고 영입한 뒤 보유 %d · 리롤·진행 버튼 %s → %s" % [b.roster.size(), at, now])
+	_done(main)
+	return out
+
+# EV355 · I127: 보유가 상한이면 리롤 버튼이 0.35로 흐리지만 누를 수 있고, 누르면 창에 «내보내야 영입할 수 있다»가 보이며 골드·목록이 그대로다
+func ev355():
+	var main = _game()
+	var b = main.view.battle
+	var hud = main.hud
+	if not hud.get("window") is Control:
+		_done(main)
+		return "main.hud.window가 없다"
+	b.gold = BIG
+	_five(b)
+	_frame(main)
+	var re = _starts(hud.window, "리롤")
+	var out := ""
+	if re == null or b.roster.size() != 5 or absf(re.modulate.a - 0.35) > 0.01 or re.disabled:
+		out = "보유 %d명 영입 창의 리롤 버튼 %s(불투명도 0.35이고 누를 수 있어야 한다)" % [b.roster.size(), [re.modulate.a, re.disabled] if re else null]
+	else:
+		var gold: int = b.gold
+		var offers: Array = b.offers.duplicate()
+		re.pressed.emit()
+		main.hud._process(0.0)
+		var said := " ".join(_labels(hud.window))
+		out = check(b.gold == gold and b.offers == offers and "내보내야 영입할 수 있다" in said, "상한에서 리롤을 누른 뒤 골드 %d → %d · 목록 %s → %s · 창 글 «%s»" % [gold, b.gold, offers, b.offers, said])
 	_done(main)
 	return out
