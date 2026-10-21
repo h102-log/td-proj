@@ -254,7 +254,7 @@ func ev309():
 	if S.read().is_empty():
 		_done(main)
 		return "마지막 웨이브를 시작할 때 저장이 없다"
-	clear_wave(b)
+	clear_wave(b, 600.0)  # 마지막 웨이브는 적 82명이 2.5초 간격으로 나와 다 나오는 데만 205초다(I91 2026-10-21 변경)
 	_frame(main)
 	var won: bool = b.state == "won"
 	gone = not FileAccess.file_exists(PATH)

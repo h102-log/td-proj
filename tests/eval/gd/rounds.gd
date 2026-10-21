@@ -19,13 +19,13 @@ const HOUSE := Vector2i(6, 3)
 const ONE := [{"kind": "basic", "count": 1}]
 const ONE_ONE := [[ONE], [ONE]]  # 라운드 2개, 라운드마다 적 1마리짜리 웨이브 하나
 const S111 := [{"basic": 6, "fast": 3}, {"basic": 6, "armored": 3, "flying": 3}, {"basic": 8, "fast": 4, "armored": 3, "flying": 3, "boss": 1}]
-# I91 표(2026-10-15 개정): 2~6라운드 웨이브마다 종류별 적 수
+# I91 표(2026-10-21 개정): 2~6라운드 웨이브마다 종류별 적 수
 const I91 := [
-	[{"basic": 9, "fast": 4, "flying": 3}, {"basic": 9, "armored": 4, "flying": 5, "fast": 2}, {"basic": 11, "fast": 6, "armored": 4, "flying": 5, "boss": 1}],
-	[{"basic": 11, "fast": 5, "flying": 4}, {"basic": 11, "armored": 5, "flying": 6, "fast": 3}, {"basic": 14, "fast": 7, "armored": 5, "flying": 6, "boss": 1}],
-	[{"basic": 11, "fast": 6, "flying": 4}, {"basic": 12, "armored": 5, "flying": 6, "fast": 3}, {"basic": 15, "fast": 8, "armored": 5, "flying": 6, "boss": 1}],
-	[{"basic": 12, "fast": 6, "flying": 5}, {"basic": 12, "armored": 6, "flying": 7, "fast": 3}, {"basic": 16, "fast": 8, "armored": 6, "flying": 7, "boss": 2}],
-	[{"basic": 13, "fast": 7, "flying": 5}, {"basic": 13, "armored": 6, "flying": 7, "fast": 4}, {"basic": 18, "fast": 9, "armored": 6, "flying": 7, "boss": 2}],
+	[{"basic": 18, "fast": 8, "flying": 6}, {"basic": 18, "armored": 8, "flying": 10, "fast": 4}, {"basic": 18, "fast": 8, "armored": 8, "flying": 6}, {"basic": 22, "fast": 12, "armored": 8, "flying": 10, "boss": 1}],
+	[{"basic": 22, "fast": 10, "flying": 8}, {"basic": 22, "armored": 10, "flying": 12, "fast": 6}, {"basic": 22, "fast": 10, "armored": 10, "flying": 8}, {"basic": 28, "fast": 14, "armored": 10, "flying": 12, "boss": 1}],
+	[{"basic": 22, "fast": 12, "flying": 8}, {"basic": 24, "armored": 10, "flying": 12, "fast": 6}, {"basic": 24, "fast": 12, "armored": 10, "flying": 8}, {"basic": 30, "fast": 16, "armored": 10, "flying": 12, "boss": 1}],
+	[{"basic": 24, "fast": 12, "flying": 10}, {"basic": 24, "armored": 12, "flying": 14, "fast": 6}, {"basic": 24, "fast": 12, "armored": 12, "flying": 10}, {"basic": 32, "fast": 16, "armored": 12, "flying": 14, "boss": 2}],
+	[{"basic": 26, "fast": 14, "flying": 10}, {"basic": 26, "armored": 12, "flying": 14, "fast": 8}, {"basic": 26, "fast": 14, "armored": 12, "flying": 10}, {"basic": 36, "fast": 18, "armored": 12, "flying": 14, "boss": 2}],
 ]
 
 func _castle(over := {}):
@@ -269,6 +269,17 @@ func ev170():
 	b.start_battle()
 	run(b, 10.0)
 	return check(n[0] == 2, "2라운드 첫 웨이브에 적이 %d명 나왔다(2명이어야 한다)" % n[0])
+
+# EV367 · I91: 시험 스테이지 판에서 적은 2.5초 간격으로 나온다. 첫 적은 전투를 시작하자마자 나온다
+func ev367():
+	var b = load("res://src/sim/battle.gd").new(load("res://src/main.gd").stage())
+	var n := [0]
+	b.enemy_spawned.connect(func(_e): n[0] += 1)
+	b.start_battle()
+	run(b, 2.4)
+	var early: int = n[0]
+	run(b, 0.4)
+	return check(early == 1 and n[0] == 2, "2.4초 뒤 %d명, 2.8초 뒤 %d명이 나왔다(1명·2명이어야 한다)" % [early, n[0]])
 
 # EV243 · S138: 쓰러진 영웅은 체력 1로 돌아온다(부활이 켜져 있으면 다음 준비 단계, 꺼져 있으면 다음 라운드).
 #   쓰러진 채 출전에서 빠졌다가 다시 출전한 영웅은 S124대로 최대 체력이다
