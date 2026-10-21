@@ -15,6 +15,7 @@ extends CanvasLayer
 # 눌리지 않는 팝업 버튼은 어둡게 하고 이유는 툴팁·정보 칸의 빨간 줄이다(I123, I124, I128, I140). 놓기 중 닿는 공병이 없는 칸은 빨간 ✕와 안내 줄(I128)
 # 위 띠의 조작과 팝업 버튼에는 툴팁을 단다(S187, I162). 테마는 hud_theme.gd
 # 준비 단계에 화면 밖 출현 지점은 아래 가장자리에 그 지점 적 수 표식을 둔다(S188)
+# 준비 단계 왼쪽 아래에 처음 하는 사람 힌트를 둔다(S191, hints.gd)
 
 const NAMES := {"wall": "방벽", "tower": "타워", "magic": "마법 타워", "soldier": "용병", "barracks": "병영", "engineer": "공병", "workshop": "작업장", "archer": "궁수", "cannon": "대포", "archery": "사격장", "house": "집", "church": "교회"}
 const HEROES := {"aias": "아이아스(탱커)", "sylvia": "실비아(원거리)", "seraphina": "세라피나(힐러)", "vesper": "베스퍼(디버퍼)", "ignis": "이그니스(마법사)", "chronos": "크로노스(버퍼)"}  # 이름(역할), S97·S157
@@ -33,6 +34,7 @@ const HudTip := preload("res://src/ui/hud_tip.gd")
 const HudBuild := preload("res://src/ui/hud_build.gd")
 const HudToast := preload("res://src/ui/hud_toast.gd")
 const HudAlert := preload("res://src/ui/hud_alert.gd")
+const Hints := preload("res://src/ui/hints.gd")
 const BattleView := preload("res://src/ui/battle_view.gd")
 const SkillCell := preload("res://src/ui/skill_cell.gd")
 const BAR := {  # 위 띠 칸 자리(S185, 임시값)
@@ -82,6 +84,7 @@ var hp_bar := ColorRect.new()  # 상태 묶음의 거점 체력 막대(S190)
 var marks := []  # 임무 칸의 점 둘(I122): 왼쪽 미션·오른쪽 의뢰
 var toasts := HudToast.new()  # 토스트(I163)
 var alerts  # 경보(S189, hud_alert.gd)
+var hints  # 처음 하는 사람 힌트(S191, hints.gd)
 var tip := HudTip.new()  # 위 띠 조작의 툴팁(S187)
 var grid  # 건설 격자·정보 칸(S186)
 var _hp: Label
@@ -357,6 +360,8 @@ func _ready() -> void:
 	alerts = HudAlert.new(self)
 	root.add_child(alerts)
 	controls.alert_key.connect(alerts.back)
+	hints = Hints.new(battle, controls)
+	root.add_child(hints)
 	toasts.go.connect(func(cell): _focus(Vector2(cell)))  # 경보 토스트를 누르면 그 자리로(I163)
 	toasts.tip = tip
 	root.add_child(toasts)
@@ -384,6 +389,7 @@ func _process(delta: float) -> void:
 	alerts.visible = on
 	if on:
 		alerts.step(delta)
+	hints.step()
 	_show_progress()
 	_show_edges()
 	var mercs: Array = controls.selected.filter(func(u): return not u.is_hero and u.alive)  # 고른 용병의 이동 방식·홀드(U11, I139)

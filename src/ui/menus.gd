@@ -68,6 +68,7 @@ func open(p: String, note := false) -> void:
 			_check("부활", Settings.revive, func(on): Settings.revive = on)
 			var full: bool = Settings.fullscreen if Settings.fullscreen != null else get_window().mode == Window.MODE_FULLSCREEN
 			_check("전체화면", full, func(on): Settings.fullscreen = on)
+			_check("힌트", Settings.hints, func(on): Settings.hints = on)  # S191
 			var row := HBoxContainer.new()
 			_box.add_child(row)
 			_label("음량", row)

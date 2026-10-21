@@ -22,6 +22,7 @@ signal hero_key(i: int)  # 출전 영웅 i를 F키나 초상으로 골랐다. HU
 signal refused(cell: Vector2i)  # 전투 단계 놓기가 닿는 공병이 없어 거부됐다. HUD가 빨간 ✕와 안내 줄로 보인다(I128)
 signal facility_key(f)  # 전투 단계 용병 키로 시설을 골랐다. HUD가 카메라를 그 시설로 옮긴다(S81, I164)
 signal alert_key  # C 키. HUD가 마지막 경보 자리로 카메라를 옮긴다(S189)
+signal hero_sent  # 고른 것에 영웅이 있는 채 우클릭 이동을 시켰다. 힌트(S191)가 듣는다
 
 var battle
 var cell_px: int
@@ -126,6 +127,8 @@ func handle(event: InputEvent) -> void:
 			battle.set_rally(facility, cell)
 		else:
 			battle.order_move(selected, cell)
+			if selected.any(func(u): return u.is_hero):
+				hero_sent.emit()
 
 func _release(rect: Rect2, at: Vector2) -> void:
 	_press = null
