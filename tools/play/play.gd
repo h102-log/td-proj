@@ -6,13 +6,14 @@ extends SceneTree
 #   godot --path . -s res://tools/play/play.gd -- <폴더> [seed]
 #
 # 명령(한 줄에 하나, 좌표는 기준 해상도 640×360. 캡처는 창 크기 1280×720이라 캡처에서 잰 좌표를 반으로 줄여 쓴다):
-#   click x y · rclick x y · drag x1 y1 x2 y2(좌버튼) · pan x1 y1 x2 y2(휠 버튼 드래그) · wheel up|down x y
+#   click x y · rclick x y · move x y(커서만 옮기고 툴팁이 뜰 만큼 프레임을 쉰다) · drag x1 y1 x2 y2(좌버튼) · pan x1 y1 x2 y2(휠 버튼 드래그) · wheel up|down x y
 #   key 이름(Enter·Space·Escape·Q·F1·1·Minus …) · wait 초(게임 시간 진행, 단계가 바뀌면 거기서 멈춘다) · quit
 # 게임 시간은 wait에서만 흐른다. seed를 주면 영입 목록·미션이 매번 같아서, log.txt를 새 폴더의 하네스에 통째로 보내면 같은 판이 재생된다.
 # 실행마다 새 폴더를 쓴다(캡처 번호가 001부터 다시 시작하고 log.txt는 이어 붙는다).
 
 const DT := 0.05  # autoplay.gd의 기본 한 걸음과 같다
 const GAP := 3  # 명령 사이·캡처 전에 쉬는 프레임. HUD가 _process에서 팝업을 갱신하고 그려질 틈이다
+const HOVER := 30  # move 뒤에 쉬는 프레임. 툴팁 지연(hud_tip.gd DELAY 0.2초)을 실시간으로 넘긴다
 
 var dir: String
 var seed = null
@@ -85,6 +86,9 @@ func _run(line: String) -> bool:
 			_motion(p, Vector2.ZERO, 0)
 			_button(button, p, true)
 			_button(button, p, false)
+		["move", 2]:
+			_motion(Vector2(n[0], n[1]), Vector2.ZERO, 0)
+			gap = HOVER
 		["drag", 4], ["pan", 4]:
 			var p := Vector2(n[0], n[1])
 			var q := Vector2(n[2], n[3])
