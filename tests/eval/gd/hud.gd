@@ -20,6 +20,7 @@ extends "res://tests/eval/gd/save.gd"
 #   main.hud.portraits — 출전 칸 차례마다 영웅 초상(BaseButton, I129·I165). 누르면 그 영웅을 고른다
 #   main.hud.slots — 출전 칸 차례마다 {"q"·"w"·"e"·"r": 스킬 칸(BaseButton, I151)}. 버튼 글은 쓸 수 있으면 칸 글자(«Q»), 재사용 대기면 보이는 칸 글에 올림한 초.
 #     self_modulate: 마나 부족 (0.5,0.5,1) · 잠김 (0.4,0.4,0.4) · 그 밖 흰색. 스킬 칸.lock — 자물쇠(CanvasItem). 잠겼을 때만 보인다
+#   main.hud.tags — 상황 태그 [A, H](BaseButton, I139). 버튼 글은 없고, 안의 첫 TextureRect가 상태 그림이다(텍스처·modulate)
 # 커서는 화면(640×360) 좌표의 InputEventMouseMotion으로 옮긴다. 빈 맵 자리는 (320,300)이다
 
 const EMPTY := Vector2(320, 300)
@@ -951,4 +952,82 @@ func ev341():
 		_done(main)
 		if out != "":
 			break
+	return out
+
+# 태그(I139)의 상태 그림: 안의 첫 TextureRect의 [텍스처, modulate]
+func _look(tag) -> Array:
+	var pics: Array = tag.find_children("*", "TextureRect", true, false)
+	return [pics[0].texture, pics[0].modulate] if not pics.is_empty() else [null, null]
+
+# 태그에 커서를 0.25초 두었을 때 툴팁 글. 뜨지 않으면 ""
+func _tag_tip(tip, tag) -> String:
+	_fresh(tip, tag)
+	tip._process(0.25)
+	return _tip_text(tip) if tip.visible else ""
+
+# EV342 · I139: 용병을 고르면 오른쪽 가장자리 [616,182]·[616,208]에 글 없는 그림 태그 A·H가 뜨고, 상태 글은 툴팁이며, 누르면 A·H 키와 같고, 용병을 놓으면 숨는다
+func ev342():
+	var main = _prep()
+	var b = main.view.battle
+	var c = main.hud.controls
+	var tip = main.hud.tip
+	var tags = main.hud.get("tags")
+	if not tags is Array or tags.size() != 2 or not tags[0] is BaseButton or not tags[1] is BaseButton:
+		_done(main)
+		return "main.hud.tags가 BaseButton 둘이 아니다"
+	var m1 = b.place_merc("soldier", Vector2i(20, 14))
+	var m2 = b.place_merc("soldier", Vector2i(21, 14))
+	if m1 == null or m2 == null:
+		_done(main)
+		return "준비 단계에 용병을 놓지 못했다"
+	b.set_move_mode([m1, m2], "attack_move")
+	b.set_hold([m1, m2], false)
+	c.selected = [m1]
+	main.hud._process(0.0)
+	var out := ""
+	for i in 2:
+		var r: Rect2 = tags[i].get_global_rect()
+		var want := Rect2(616, 182 + 26 * i, 24, 24)
+		var key: String = "AH"[i]
+		if not tags[i].is_visible_in_tree() or r.position.distance_to(want.position) > 0.5 or r.size.distance_to(want.size) > 0.5:
+			out = "%s 태그 %s · 보임 %s(기대 %s)" % [key, r, tags[i].is_visible_in_tree(), want]
+		elif tags[i].text != "" or " ".join(_labels(tags[i])) != key or _look(tags[i])[0] == null:
+			out = "%s 태그: 버튼 글 «%s» · 보이는 글 %s · 그림 %s(기대: 버튼 글 없음, 보이는 글은 키 글자 하나, 그림 있음)" % [key, tags[i].text, _labels(tags[i]), _look(tags[i])[0]]
+		if out != "":
+			break
+	var attack := _look(tags[0])
+	var off := _look(tags[1])
+	if out == "":
+		var said := _tag_tip(tip, tags[0])
+		if not "이동 중 공격" in said or "무조건 이동" in said:
+			out = "이동 중 공격인 용병의 A 태그 툴팁이 «%s»다" % said
+	if out == "":
+		tags[0].pressed.emit()
+		main.hud._process(0.0)
+		var said := _tag_tip(tip, tags[0])
+		if m1.move_mode != "move" or _look(tags[0]) == attack or not "무조건 이동" in said or "이동 중 공격" in said:
+			out = "A 태그를 누른 뒤: 이동 방식 %s · 그림이 그대로 %s · 툴팁 «%s»" % [m1.move_mode, _look(tags[0]) == attack, said]
+	if out == "":
+		_key(KEY_A)
+		main.hud._process(0.0)
+		out = check(m1.move_mode == "attack_move" and _look(tags[0]) == attack, "A 키를 넣자 이동 방식이 %s · 그림이 처음과 같음 %s다(태그를 누른 것과 A 키가 같은 전환이 아니다)" % [m1.move_mode, _look(tags[0]) == attack])
+	if out == "":
+		tags[1].pressed.emit()
+		main.hud._process(0.0)
+		var said := _tag_tip(tip, tags[1])
+		if not m1.hold or _look(tags[1]) == off or not "홀드 켬" in said or "홀드 끔" in said:
+			out = "H 태그를 누른 뒤: 홀드 %s · 그림이 그대로 %s · 툴팁 «%s»" % [m1.hold, _look(tags[1]) == off, said]
+	if out == "":
+		b.set_move_mode([m2], "move")
+		c.selected = [m1, m2]
+		main.hud._process(0.0)
+		var said_a := _tag_tip(tip, tags[0])
+		var said_h := _tag_tip(tip, tags[1])
+		if not "섞임" in said_a or not "섞임" in said_h or _look(tags[0]) == attack:
+			out = "상태가 섞인 두 용병: A 툴팁 «%s» · H 툴팁 «%s» · A 그림이 이동 중 공격과 같음 %s" % [said_a, said_h, _look(tags[0]) == attack]
+	if out == "":
+		c.selected = []
+		main.hud._process(0.0)
+		out = check(not tags[0].is_visible_in_tree() and not tags[1].is_visible_in_tree(), "용병을 놓았는데 태그가 보인다")
+	_done(main)
 	return out

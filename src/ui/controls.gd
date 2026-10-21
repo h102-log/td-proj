@@ -156,11 +156,11 @@ func pick_base() -> void:
 	var at := (Vector2(battle.base.cell) + Vector2(0.5, 0.5)) * cell_px
 	_release(Rect2(at, Vector2.ZERO), at)
 
-# 고른 용병의 이동 방식 전환(S35): 모두 «무조건 이동»이면 «이동 중 공격»으로, 아니면 모두 «무조건 이동»으로. A 키와 HUD 버튼(I139)이 부른다
+# 고른 용병의 이동 방식 전환(S35): 모두 «무조건 이동»이면 «이동 중 공격»으로, 아니면 모두 «무조건 이동»으로. A 키와 HUD 태그(I139)이 부른다
 func toggle_move_mode() -> void:
 	battle.set_move_mode(selected, "attack_move" if selected.all(func(u): return u.move_mode == "move") else "move")
 
-# 고른 용병의 홀드 전환(S36). H 키와 HUD 버튼(I139)이 부른다
+# 고른 용병의 홀드 전환(S36). H 키와 HUD 태그(I139)이 부른다
 func toggle_hold() -> void:
 	battle.set_hold(selected, not selected.all(func(u): return u.hold))
 

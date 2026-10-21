@@ -88,3 +88,7 @@ def test_EV340_hero_double_tap_camera(gd):
 
 def test_EV341_hero_cells_fixed_and_down(gd):
     gd("hud", "EV341")
+
+
+def test_EV342_situation_tags(gd):
+    gd("hud", "EV342")

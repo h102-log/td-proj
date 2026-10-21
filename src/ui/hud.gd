@@ -10,7 +10,7 @@ extends CanvasLayer
 # 준비·전투 단계에는 임무 칸에 미션·수락한 의뢰의 점을 보이고, 라운드 첫 준비 단계와 조건이 깨질 때 토스트를 띄운다. 결과 창에 지난 라운드의 달성·실패를 보인다(I122).
 # 결과 창의 버튼만 키보드 포커스를 받는다. 창이 열리면 «1라운드 시작»·«다음 라운드»·«새 도전»에 포커스가 간다(I12, I110)
 # 출전 영웅 칸마다 초상(누르면 고르기, 두 번이면 카메라, I165)·그림 상태 스킬 칸(좌클릭은 쓰기, 우클릭은 자동 시전, I151, skill_cell.gd)·체력·마나 막대와 쓰러짐(I129)을,
-# 화면 오른쪽 가장자리에 고른 용병의 이동 방식·홀드 버튼(I139)을 보인다.
+# 화면 오른쪽 가장자리에 고른 용병의 이동 방식·홀드 태그(그림이 상태, 상태 글은 툴팁, I139)를 보인다.
 # 눌리지 않는 공병 지시 버튼에는 이유를 붙인다(I128)
 # 위 띠의 조작에는 툴팁을 단다(S187, I162). 테마는 hud_theme.gd
 # 준비 단계에 화면 밖 출현 지점은 아래 가장자리에 그 지점 적 수 표식을 둔다(S188)
@@ -48,6 +48,11 @@ const MENU := ["########", "........", "........", "########", "........", "....
 const PLAY := ["#...", "##..", "###.", "####", "###.", "##..", "#..."]  # ▶
 const SKULL := [".#####.", "#######", "#..#..#", "#######", ".##.##.", ".#####.", ".#.#.#."]  # 보스(S188)
 const ARROW := [".###.", ".###.", "#####", ".###.", "..#.."]  # 아래 가장자리 표식의 화살표(S188)
+const ATTACK := [".....g....", "....hgssss", ".....g....", "......#...", "......##..", "#########.", "##########", "#########.", "......##..", "......#..."]  # 칼 + 화살. 칼을 빼면 무조건 이동(I139)
+const SHIELD := ["..........", "..########", "..#oooooo#", "..#oooooo#", "..#oooooo#", "..#oooooo#", "...#oooo#.", "...#oooo#.", "....#oo#..", ".....##..."]  # 홀드(I139)
+const MOVE_TIPS := ["이동 중 공격\n가는 길의 적을 친다", "무조건 이동\n가는 길의 적을 지나친다", "이동 방식 섞임\n누르면 모두 무조건 이동"]  # A 태그 툴팁(I139). 툴팁 폭 160이라 줄을 나눈다
+const HOLD_TIPS := ["홀드 끔\n켜면 기준 지점 반경 안의 적만 친다", "홀드 켬\n기준 지점 반경 안의 적만 친다", "홀드 섞임\n누르면 모두 켠다"]
+const HOLD_LOOK := [Color(0.4, 0.4, 0.4), Color.WHITE, Color(0.7, 0.7, 0.7)]  # 홀드 방패 밝기: 끔·켬·섞임
 const ENEMIES := {"basic": "기본", "fast": "빠름", "armored": "장갑", "flying": "비행", "boss": "보스"}  # S106
 const TRAITS := {"fast": "성벽을 오른다", "flying": "길을 무시한다", "armored": "받는 피해를 줄인다", "boss": "성벽을 뚫고 온다"}  # S107·S109·S108, 보스는 wall_k 0.3
 const SIDES := ["왼쪽", "가운데", "오른쪽"]  # ponytail: 출현 지점 이름은 시험 스테이지(왼쪽부터 셋) 차례다. 지점이 다른 맵이 생기면 x로 이름을 정한다
@@ -120,8 +125,10 @@ var _quests := VBoxContainer.new()  # 라운드 사이 영입 칸 안의 의뢰 
 var _quests_info := Label.new()
 var _commissions := []  # 의뢰 목록 칸마다 수락 버튼
 var _seen := ""  # 마지막으로 본 판 단계. 바뀌었을 때 결과 창이 떠 있으면 포커스를 준다
-var _mode: Button  # 고른 용병의 이동 방식 전환(I139)
-var _hold: Button  # 고른 용병의 홀드 전환(I139)
+var tags := []  # 고른 용병의 상황 태그 [A 이동 방식, H 홀드](I139)
+var _tag_pics := []  # 태그마다 상태 그림
+var _tag_tips := ["", ""]  # 태그마다 툴팁의 지금 상태 글
+var _move_tex := []  # A 태그 그림: 이동 중 공격·무조건 이동·섞임(칼을 흐리게)
 var portraits := []  # 출전 칸마다 초상 버튼(I129). 누르면 그 영웅을 고른다(I165)
 var slots := []  # 출전 칸마다 {칸: 스킬 칸}(I151)
 var _rows := []  # 출전 칸마다 {pic: 초상 그림, lv: 레벨 글, hp·mp: 막대, down: «쓰러짐»}(I129)
@@ -213,10 +220,26 @@ func _ready() -> void:
 	for n in bar.find_children("*", "Control", true, false):  # 버튼 위의 그림·글은 클릭과 호버를 버튼에 넘긴다
 		if not n is BaseButton:
 			n.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_mode = _button(root, "", controls.toggle_move_mode)
-	_hold = _button(root, "", controls.toggle_hold)
-	tip.add(_mode, func(): return ["이동 방식", "A", "", "이동 중 공격 ↔ 무조건 이동", ""])
-	tip.add(_hold, func(): return ["홀드", "H", "", "켜면 기준 지점 반경 안의 적만 친다", ""])
+	var sword := {"g": HudTheme.ACCENT, "h": Color("6b5537"), "s": Color("d8dde6"), "#": HudTheme.TEXT}
+	var faint := {"#": HudTheme.TEXT}
+	for k in ["g", "h", "s"]:
+		faint[k] = Color(sword[k], 0.35)
+	_move_tex = [HudBuild.dots(ATTACK, sword), HudBuild.dots(ATTACK, {"#": HudTheme.TEXT}), HudBuild.dots(ATTACK, faint)]
+	for i in 2:  # 오른쪽 가장자리 태그 24×24, 자리는 고정(I139). 그림 10×10을 2배로, 왼쪽 위에 키 글자
+		var t := _bar_button(root, "", [controls.toggle_move_mode, controls.toggle_hold][i])
+		t.position = Vector2(616, 182 + 26 * i)
+		t.size = Vector2(24, 24)
+		_tag_pics.append(_pic(t, _move_tex[0] if i == 0 else HudBuild.dots(SHIELD, {"#": Color("e8d8a8"), "o": SkillCell.TEAL}), Vector2(20, 20)))
+		_tag_pics[i].position = Vector2(2, 2)
+		var key := _text(t, 7, HudTheme.ACCENT)
+		key.text = "AH"[i]
+		key.position = Vector2(1, -1)
+		key.size = Vector2(8, 8)
+		for n in t.get_children():
+			n.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tags.append(t)
+	tip.add(tags[0], func(): return ["이동 방식", "A", "", _tag_tips[0], ""])
+	tip.add(tags[1], func(): return ["홀드", "H", "", _tag_tips[1], ""])
 	_hint.position = Vector2(134, 30)  # 띠 바로 아래. 조준·놓기 안내
 	root.add_child(_hint)
 	# 윗변과 너비를 고정해 아래로만 자란다. 영입·리롤·내보내기로 줄이 바뀌어도 위의 버튼이 움직이지 않게(I136)
@@ -295,17 +318,16 @@ func _process(delta: float) -> void:
 	_show_progress()
 	_show_edges()
 	var mercs: Array = controls.selected.filter(func(u): return not u.is_hero and u.alive)  # 고른 용병의 이동 방식·홀드(U11, I139)
-	_mode.visible = battle.state in ["prep", "battle"] and not mercs.is_empty()
-	_hold.visible = _mode.visible
-	if _mode.visible:
+	tags[0].visible = battle.state in ["prep", "battle"] and not mercs.is_empty()
+	tags[1].visible = tags[0].visible
+	if tags[0].visible:
 		var moving: int = mercs.filter(func(u): return u.move_mode == "move").size()
-		_mode.text = ("무조건 이동" if moving == mercs.size() else "이동 중 공격" if moving == 0 else "이동 방식 섞임") + " (A)"
 		var held: int = mercs.filter(func(u): return u.hold).size()
-		_hold.text = ("홀드 켬" if held == mercs.size() else "홀드 끔" if held == 0 else "홀드 섞임") + " (H)"
-		for i in 2:  # 오른쪽 가장자리에 오른쪽을 맞춘다(I139)
-			var t: Button = [_mode, _hold][i]
-			t.reset_size()
-			t.position = Vector2(640 - t.size.x, 182 + 26 * i)
+		var m := 0 if moving == 0 else 1 if moving == mercs.size() else 2  # 이동 중 공격·무조건 이동·섞임
+		var h := 0 if held == 0 else 1 if held == mercs.size() else 2  # 끔·켬·섞임
+		_tag_pics[0].texture = _move_tex[m]
+		_tag_pics[1].modulate = HOLD_LOOK[h]
+		_tag_tips = [MOVE_TIPS[m], HOLD_TIPS[h]]
 	_hint.visible = controls.placing != "" or controls.moving != null or controls.aiming != ""
 	_hint.text = "%s 놓기: 좌클릭 · 끝내기: 우클릭·ESC" % NAMES.get(controls.placing, "")
 	if controls.moving:
