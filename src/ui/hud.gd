@@ -1,14 +1,16 @@
 extends CanvasLayer
-# 골드·다음 세금(I75)·라운드(I94)·웨이브·단계를 보이고, «전투 시작»(I13) 버튼과 건설 격자(S186, hud_build.gd)와 라운드를 이기거나 도전이 끝난 뒤의 결과 창(S117)을 둔다.
+# 위 띠(S185)의 정해진 자리에 상태 묶음(거점 체력·마을 레벨·골드·세금·라운드, S190)·임무 칸(I122)·공병 칸·출전 영웅 칸(I129)·진행 칸(«전투 시작» I13, 웨이브·단계)·메뉴 칸을 두고,
+# 건설 격자(S186, hud_build.gd)와 토스트(I163, hud_toast.gd)와 라운드를 이기거나 도전이 끝난 뒤의 결과 창(S117)을 둔다.
 # 판매 후보가 있으면 그 옆에 판매 버튼을 띄운다(S70, I58). 전투 단계에 생산 시설을 고르면 그 옆에 파는 용병마다 구매 버튼을 띄운다(S81, I61, I71).
 # 고른 구조물에 따라 같은 자리에 철거(S74)·이어 짓기·취소(전투 단계)와 완성(준비 단계) 버튼도 띄운다(S83). 대포면 옮기기(S91)도 띄운다.
 # 성곽 칸을 고르면 같은 자리에 성문 열기·닫기(S85)와 업그레이드(S86) 버튼을 띄운다. 거점을 고르면 마을 레벨 올리기(S100) 버튼을 띄운다.
 # 고른 것 가운데 깎인 것이 있으면 수리(S116, I90), 잔해를 고르면 복구(I89) 버튼도 같은 자리에 띄운다.
 # 영입 창(도전 시작 전 S122·라운드 사이 S117)이면 결과 창 안에 영입 칸을 띄운다: 목록 영입·리롤·출전 전환·내보내기(S54, I110),
 # 보유 영웅의 레벨·경험치(I117), 라운드 사이의 경험치 이관(S127, I116), 라운드 사이의 의뢰 목록과 수락(S77, I121).
-# 준비·전투 단계에는 윗줄 아래에 이번 라운드의 미션과 수락한 의뢰를 보이고, 결과 창에 지난 라운드의 달성·실패를 보인다(I122).
+# 준비·전투 단계에는 임무 칸에 미션·수락한 의뢰의 점을 보이고, 라운드 첫 준비 단계와 조건이 깨질 때 토스트를 띄운다. 결과 창에 지난 라운드의 달성·실패를 보인다(I122).
 # 결과 창의 버튼만 키보드 포커스를 받는다. 창이 열리면 «1라운드 시작»·«다음 라운드»·«새 도전»에 포커스가 간다(I12, I110)
-# 출전 영웅 셋을 한 줄에 이름과 Q·W·E·R 스킬 버튼(좌클릭은 쓰기, 우클릭은 자동 시전, I151)과 쓰러짐(I129), 고른 용병의 이동 방식·홀드 버튼(I139)을 보인다. 눌리지 않는 공병 지시 버튼에는 이유를 붙인다(I128)
+# 출전 영웅 칸마다 «F1 이름»과 Q·W·E·R 스킬 버튼(좌클릭은 쓰기, 우클릭은 자동 시전, I151)과 쓰러짐(I129)을, 화면 오른쪽 가장자리에 고른 용병의 이동 방식·홀드 버튼(I139)을 보인다.
+# 눌리지 않는 공병 지시 버튼에는 이유를 붙인다(I128)
 # 위 띠의 조작에는 툴팁을 단다(S187, I162). 테마는 hud_theme.gd
 
 const NAMES := {"wall": "방벽", "tower": "타워", "magic": "마법 타워", "soldier": "용병", "barracks": "병영", "engineer": "공병", "workshop": "작업장", "archer": "궁수", "cannon": "대포", "archery": "사격장", "house": "집", "church": "교회"}
@@ -27,14 +29,46 @@ const SKILLS := {  # 영웅마다 Q·W·E·R의 [이름, 요약](S97 표). 툴�
 const HudTheme := preload("res://src/ui/hud_theme.gd")
 const HudTip := preload("res://src/ui/hud_tip.gd")
 const HudBuild := preload("res://src/ui/hud_build.gd")
+const HudToast := preload("res://src/ui/hud_toast.gd")
+const BattleView := preload("res://src/ui/battle_view.gd")
+const BAR := {  # 위 띠 칸 자리(S185, 임시값)
+	"status": Rect2(4, 2, 96, 24), "mission": Rect2(104, 2, 24, 24), "engineer": Rect2(130, 2, 20, 24),
+	"hero0": Rect2(156, 2, 104, 24), "hero1": Rect2(264, 2, 104, 24), "hero2": Rect2(372, 2, 104, 24),
+	"progress": Rect2(480, 2, 136, 24), "menu": Rect2(620, 2, 16, 24)}
+const FLASH := 0.2  # 거점이 맞으면 체력 막대가 하얗게 번쩍이는 초(S190 임시값)
+const MISSION_SECS := 6.0  # 라운드 첫 미션 토스트를 보이는 초(I122 임시값)
+const SCROLL := [".oooooooooo.", "oppppppppppo", ".oooooooooo.", "..oppppppo..", "..opllllpo..", "..oppppppo..",
+	"..opllllpo..", "..oppppppo..", "..opllpppo..", ".oooooooooo.", "oppppppppppo", ".oooooooooo."]  # 임무 칸 두루마리(I122)
+const DOT := [".....", ".###.", ".###.", ".###.", "....."]  # 임무 칸: 조건을 지키는 중
+const COIN := [".####.", "##oo##", "#o##o#", "#o##o#", "##oo##", ".####."]
+const FLAG := ["|####.", "|#####", "|####.", "|.....", "|.....", "|....."]
+const MENU := ["########", "........", "........", "########", "........", "........", "########"]  # ≡
+
+signal menu_pressed  # 메뉴 칸(S185). main이 ESC 메뉴를 연다
 
 var battle
 var controls
 var map: SubViewport  # 맵(전장)을 그리는 SubViewport(S30). 팝업 위치를 그 카메라 변환으로 잡는다
-var bar: PanelContainer  # 위 띠
+var bar: Panel  # 위 띠(S185). 칸은 좌표로 두고, 띠 바탕이 클릭을 받아 맵으로 흘리지 않는다
+var cells := {}  # 위 띠 칸 이름(BAR) → Control
+var hp_bar := ColorRect.new()  # 상태 묶음의 거점 체력 막대(S190)
+var marks := []  # 임무 칸의 점 둘(I122): 왼쪽 미션·오른쪽 의뢰
+var toasts := HudToast.new()  # 토스트(I163)
 var tip := HudTip.new()  # 위 띠 조작의 툴팁(S187)
 var grid  # 건설 격자·정보 칸(S186)
-var _info := Label.new()
+var _hp: Label
+var _lv: Label
+var _gold: Label
+var _tax: Label
+var _round: Label
+var _eng: Label  # 공병 칸의 놀고 있는 공병 수
+var _wave: Label  # 진행 칸의 웨이브·단계
+var _flash := 0.0  # 거점 체력 막대가 하얗게 남은 초
+var _hp_seen := -INF  # 지난 프레임의 거점 체력
+var _ok := {}  # 이번 라운드 미션·의뢰 이름 → 지난 프레임에 조건을 지켰나(I122)
+var _eng_next := -1  # 공병 칸을 누를 때 다음에 갈 놀고 있는 공병 차례
+var _dot := HudBuild.dots(DOT)
+var _cross := HudBuild.dots(HudBuild.CROSS)
 var _hint := Label.new()
 var _start: Button
 var _popup := HBoxContainer.new()  # 판매·완성·구매·철거·이어 짓기·취소 버튼. 클릭하거나 드래그를 놓은 지점 옆에 뜬다
@@ -60,16 +94,14 @@ var _offers := []  # 목록 칸마다 영입 버튼
 var _reroll: Button
 var _members := []  # 보유 영웅마다 [출전·대기 전환 버튼, 내보내기 버튼, 이관 버튼]
 var _giver = null  # 이관(I116)에서 먼저 고른 주는 영웅
-var _quest := Label.new()  # 준비·전투 단계의 미션·수락한 의뢰(I122)
 var _quests := VBoxContainer.new()  # 라운드 사이 영입 칸 안의 의뢰 목록(I121)
 var _quests_info := Label.new()
 var _commissions := []  # 의뢰 목록 칸마다 수락 버튼
 var _seen := ""  # 마지막으로 본 판 단계. 바뀌었을 때 결과 창이 떠 있으면 포커스를 준다
 var _mode: Button  # 고른 용병의 이동 방식 전환(I139)
 var _hold: Button  # 고른 용병의 홀드 전환(I139)
-var _heroes := Label.new()  # 출전 영웅 줄 아래의 안내(«— 스킬은 전투 단계에만», S136)
-var _hero_line := HBoxContainer.new()  # 출전 영웅 셋을 한 줄에(I129)
-var _hero_rows := []  # 출전 칸마다 [보일 노드들, 이름 글, {칸: 스킬 버튼}](I129, I151)
+var _heroes := Label.new()  # 출전 영웅 칸 아래의 안내(«— 스킬은 전투 단계에만», S136)
+var _hero_rows := []  # 출전 칸마다 [영웅 칸, 이름 글, {칸: 스킬 버튼}](I129, I151)
 var _gap := ""  # 고른 것의 칸에 공병 지시를 맡을 공병이 없는 이유(I128). _engineer_gap이 _gap_for 칸에서 _gap_at(ms)에 쟀다
 var _gap_for := []
 var _gap_at := 0
@@ -85,45 +117,67 @@ func _ready() -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.theme = HudTheme.make(10)
 	add_child(root)
-	bar = PanelContainer.new()
-	bar.set_anchors_preset(Control.PRESET_TOP_WIDE)  # 화면 너비에 맞춰 버튼 줄이 줄바꿈된다(S105)
+	bar = Panel.new()
+	bar.size = Vector2(640, 28)
+	bar.add_theme_stylebox_override("panel", HudTheme.box("panel", "PanelContainer", HudTheme.PANEL, HudTheme.LINE))
 	root.add_child(bar)
-	var col := VBoxContainer.new()
-	bar.add_child(col)
-	var row := HFlowContainer.new()
-	col.add_child(row)
-	row.add_child(_info)
-	_start = _button(row, "전투 시작 (Enter)", _start_battle)
-	_mode = _button(row, "", controls.toggle_move_mode)
-	_hold = _button(row, "", controls.toggle_hold)
-	tip.add(_start, func(): return ["전투 시작", "Enter", "", "웨이브 %d/%d를 부른다" % [mini(battle.wave_index + 1, battle.waves.size()), battle.waves.size()], "" if battle.state == "prep" else "준비 단계에만"])
-	tip.add(_mode, func(): return ["이동 방식", "A", "", "이동 중 공격 ↔ 무조건 이동", ""])
-	tip.add(_hold, func(): return ["홀드", "H", "", "켜면 기준 지점 반경 안의 적만 친다", ""])
-	col.add_child(_quest)
-	_hero_line.add_theme_constant_override("separation", 2)  # 줄 안 2px, 영웅 사이는 빈칸을 더해 6px(640px 안에 든다)
-	col.add_child(_hero_line)
-	for i in battle.HIRE.lineup:
-		var nodes := []
-		if i > 0:
-			var gap := Control.new()
-			gap.custom_minimum_size.x = 2
-			_hero_line.add_child(gap)
-			nodes.append(gap)
-		var who := Label.new()
-		_hero_line.add_child(who)
-		_fix_width(who, "F3 세라피나")
-		nodes.append(who)
+	_make_status()
+	var m := _cell("mission", _bar_button(bar, "", Callable()))
+	_pic(m, HudBuild.dots(SCROLL, {"o": Color("6b5537"), "p": Color("e8d8a8"), "l": Color("8a7550")}), Vector2(12, 12)).position = Vector2(6, 2)
+	for i in 2:
+		marks.append(_pic(m, _dot, Vector2(5, 5)))
+		marks[i].position = Vector2(5 + 9 * i, 17)
+	tip.add(m, func(): return ["미션·의뢰", "", "", "\n".join(_quest_lines()), ""])
+	var e := _cell("engineer", _bar_button(bar, "", _next_engineer))
+	_pic(e, HudBuild.icon("engineer"), Vector2(12, 12)).position = Vector2(4, 1)
+	_eng = _text(e, 8, HudTheme.TEXT)
+	_eng.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_eng.position = Vector2(0, 12)
+	_eng.size = Vector2(20, 11)
+	tip.add(e, func(): return ["공병", "", "", "놀고 있는 공병 %d · 전체 %d — 누르면 놀고 있는 공병에게 카메라가 간다" % [_idle().size(), battle.units.filter(func(u): return u.kind == "engineer").size()], ""])
+	for i in battle.HIRE.lineup:  # 영웅 칸: 윗줄 «F1 이름», 아랫줄 스킬 버튼 넷(I129)
+		var cell := _cell("hero%d" % i, Control.new())
+		var who := _text(cell, 8, HudTheme.TEXT)
+		who.position = Vector2(1, 0)
+		who.size = Vector2(102, 11)
 		var buttons := {}
-		for slot in battle.SLOTS:
-			var sb := _button(_hero_line, "", func(): controls.skill_for(battle.heroes[i] if i < battle.heroes.size() else null, slot))
-			sb.gui_input.connect(func(e): _auto_click(e, i, slot))
-			_fix_width(sb, "W88*")  # 조준 중 «▶»는 넓이에 넣지 않는다. 넣으면 셋이 640px를 넘는다
+		for j in battle.SLOTS.size():
+			var slot: String = battle.SLOTS[j]
+			var sb := _bar_button(cell, "", func(): controls.skill_for(battle.heroes[i] if i < battle.heroes.size() else null, slot))
+			sb.add_theme_font_size_override("font_size", 8)
+			sb.clip_text = true  # 칸 글이 길어도 칸 크기를 넘지 않는다
+			sb.position = Vector2(26 * j, 11)
+			sb.size = Vector2(25, 13)
+			sb.gui_input.connect(func(ev): _auto_click(ev, i, slot))
 			buttons[slot] = sb
 			tip.add(sb, func(): return _skill_tip(i, slot))
-		_hero_rows.append([nodes, who, buttons])
-	col.add_child(_heroes)
-	col.add_child(_hint)  # 영웅 줄 아래. 조준·놓기 안내가 뜨고 질 때 스킬 버튼이 밀리지 않게
+		_hero_rows.append([cell, who, buttons])
+	var p := _cell("progress", Control.new())  # ponytail: 진행 칸은 «전투 시작»과 웨이브·단계 글만. 계기판·웨이브 미리보기는 4단계
+	_start = _bar_button(p, "전투 시작 (Enter)", _start_battle)
+	_start.add_theme_font_size_override("font_size", 9)
+	_start.size = Vector2(84, 24)
+	_wave = _text(p, 8, HudTheme.TEXT)
+	_wave.position = Vector2(86, 0)
+	_wave.size = Vector2(50, 24)
+	tip.add(_start, func(): return ["전투 시작", "Enter", "", "웨이브 %d/%d를 부른다" % [mini(battle.wave_index + 1, battle.waves.size()), battle.waves.size()], "" if battle.state == "prep" else "준비 단계에만"])
+	var menu := _cell("menu", _bar_button(bar, "", func(): menu_pressed.emit()))
+	_pic(menu, HudBuild.dots(MENU), Vector2(8, 7)).position = Vector2(4, 8)
+	tip.add(menu, func(): return ["메뉴", "ESC", "", "계속·설정·메인 메뉴로·게임 종료", ""])
+	for n in bar.find_children("*", "Control", true, false):  # 버튼 위의 그림·글은 클릭과 호버를 버튼에 넘긴다
+		if not n is BaseButton:
+			n.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_mode = _button(root, "", controls.toggle_move_mode)
+	_hold = _button(root, "", controls.toggle_hold)
+	tip.add(_mode, func(): return ["이동 방식", "A", "", "이동 중 공격 ↔ 무조건 이동", ""])
+	tip.add(_hold, func(): return ["홀드", "H", "", "켜면 기준 지점 반경 안의 적만 친다", ""])
+	_heroes.position = Vector2(340, 30)  # 영웅 칸 아래, 안내 줄과 토스트 사이
+	_heroes.add_theme_font_size_override("font_size", 8)
+	_heroes.add_theme_color_override("font_color", HudTheme.DIM)
+	root.add_child(_heroes)
+	_hint.position = Vector2(134, 30)  # 띠 바로 아래. 조준·놓기 안내
+	root.add_child(_hint)
 	# 윗변과 너비를 고정해 아래로만 자란다. 영입·리롤·내보내기로 줄이 바뀌어도 위의 버튼이 움직이지 않게(I136)
+	# ponytail: 창이 위 띠(S185) 가운데를 덮는다. 띠 아래(y 34)로 내리면 보유 5명·의뢰 2개 창이 화면 아래로 25 넘친다. 두 칸 배치로 줄이는 11단계에서 내린다
 	_result.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	_result.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_result.offset_top = 8
@@ -171,13 +225,28 @@ func _ready() -> void:
 	_village = _button(_popup, "", func(): battle.raise_village())
 	for i in battle.HIRE.lineup:
 		_heal.append(_button(_popup, "", func(): battle.heal(battle.heroes[i])))
+	toasts.tip = tip
+	root.add_child(toasts)
 	root.add_child(tip)  # 맨 위에 그린다(I162)
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	var prep: bool = battle.state == "prep"
+	var on: bool = battle.state in ["prep", "battle"]
 	var n: int = battle.waves.size()
 	var round_no: int = battle.round_index + 1
-	_info.text = "골드 %d (세금 +%d) · 라운드 %d/%d · 웨이브 %d/%d · %s · 마을 Lv%d" % [battle.gold, battle.tax(), round_no, battle.rounds.size(), mini(battle.wave_index + 1, n), n, STATES[battle.state], battle.village_level]
+	if prep and _seen != "prep" and battle.wave_index == 0:  # 라운드 첫 준비 단계(I122)
+		_ok.clear()
+		if battle.mission != "":
+			toasts.push("이번 라운드 미션: " + battle.QUEST_KINDS[battle.mission].text, MISSION_SECS)
+	_show_status(delta, round_no)
+	for k in ["mission", "engineer"]:  # 준비·전투 단계에만(S185)
+		cells[k].visible = on
+	if on:
+		_show_quests()
+		_eng.text = str(_idle().size())
+		_eng.add_theme_color_override("font_color", HudTheme.DANGER if battle.state == "battle" and _idle().is_empty() else HudTheme.TEXT)  # I128
+	toasts.visible = on
+	_wave.text = "웨이브 %d/%d\n%s" % [mini(battle.wave_index + 1, n), n, STATES[battle.state]]
 	_start.disabled = not prep
 	var mercs: Array = controls.selected.filter(func(u): return not u.is_hero and u.alive)  # 고른 용병의 이동 방식·홀드(U11, I139)
 	_mode.visible = battle.state in ["prep", "battle"] and not mercs.is_empty()
@@ -187,14 +256,16 @@ func _process(_delta: float) -> void:
 		_mode.text = ("무조건 이동" if moving == mercs.size() else "이동 중 공격" if moving == 0 else "이동 방식 섞임") + " (A)"
 		var held: int = mercs.filter(func(u): return u.hold).size()
 		_hold.text = ("홀드 켬" if held == mercs.size() else "홀드 끔" if held == 0 else "홀드 섞임") + " (H)"
+		for i in 2:  # 오른쪽 가장자리에 오른쪽을 맞춘다(I139)
+			var t: Button = [_mode, _hold][i]
+			t.reset_size()
+			t.position = Vector2(640 - t.size.x, 182 + 26 * i)
 	_hint.visible = controls.placing != "" or controls.moving != null or controls.aiming != ""
 	_hint.text = "%s 놓기: 좌클릭 · 끝내기: 우클릭·ESC" % NAMES.get(controls.placing, "")
 	if controls.moving:
 		_hint.text = "대포 옮길 칸: 좌클릭 · 끝내기: 우클릭·ESC"
 	if controls.aiming != "":  # 조준 중(S147)
 		_hint.text = "%s %s 대상: 좌클릭 · 취소: 우클릭·ESC" % [HEROES[controls.aim_hero.kind].get_slice("(", 0), controls.aiming.to_upper()]
-	_quest.visible = battle.state in ["prep", "battle"] and (battle.mission != "" or battle.commission != "")
-	_quest.text = " · ".join(_quest_lines())
 	_show_heroes()
 	_result.visible = battle.state in ["hiring", "cleared", "won", "lost"]
 	_result_label.text = {"hiring": "도전 시작 — 영웅 영입", "cleared": "%d라운드 승리" % round_no, "won": "도전 성공!", "lost": "%d라운드 패배 — 도전 끝" % round_no}.get(battle.state, "")
@@ -276,21 +347,129 @@ func _process(_delta: float) -> void:
 	var at: Vector2 = map.get_canvas_transform() * controls.sell_at + Vector2(6, 6)
 	_popup.position = at.clamp(Vector2.ZERO, get_viewport().get_visible_rect().size - _popup.size)
 
-# 가장 긴 글자(sample)가 들어가는 너비로 고정한다. 마나 숫자·칸 상태 글자가 바뀌어도 뒤 버튼이 옆으로 움직이지 않게(I151)
-func _fix_width(c, sample: String) -> void:  # c: Label·Button
-	var text: String = c.text
-	c.text = sample
-	c.custom_minimum_size.x = c.get_minimum_size().x
-	c.text = text
-
 # 키보드 포커스를 받지 않는다. 받으면 Enter·Space가 맵 대신 마지막에 누른 버튼을 누른다
 func _button(parent: Control, text: String, on_press: Callable) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.focus_mode = Control.FOCUS_NONE
-	b.pressed.connect(on_press)
+	if on_press.is_valid():
+		b.pressed.connect(on_press)
 	parent.add_child(b)
 	return b
+
+# 위 띠의 칸 버튼: 안쪽 여백이 없어 좌표로 준 크기를 넘지 않는다
+func _bar_button(parent: Control, text: String, on_press: Callable) -> Button:
+	var b := _button(parent, text, on_press)
+	b.theme_type_variation = "BarCell"
+	return b
+
+# 위 띠 칸 하나를 BAR 자리에 둔다(S185)
+func _cell(name: String, c: Control) -> Control:
+	if c.get_parent() == null:
+		bar.add_child(c)
+	c.position = BAR[name].position
+	c.size = BAR[name].size
+	cells[name] = c
+	return c
+
+func _text(parent: Control, font: int, color: Color) -> Label:
+	var l := Label.new()
+	l.add_theme_font_size_override("font_size", font)
+	l.add_theme_color_override("font_color", color)
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	parent.add_child(l)
+	return l
+
+# 도트·대역 그림(S30). 컨테이너 안이면 size가 최소 크기다
+func _pic(parent: Control, tex: Texture2D, size: Vector2) -> TextureRect:
+	var r := TextureRect.new()
+	r.texture = tex
+	r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	r.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	r.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	r.custom_minimum_size = size
+	r.size = size
+	r.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	parent.add_child(r)
+	return r
+
+# 상태 묶음(S190): 1줄 거점 그림·체력 막대·숫자·마을 레벨, 2줄 동전·골드·세금·깃발·라운드. 누르면 카메라가 거점으로(I164)
+func _make_status() -> void:
+	var s := _cell("status", _bar_button(bar, "", func(): _focus(Vector2(battle.base.cell))))
+	s.add_theme_stylebox_override("normal", StyleBoxEmpty.new())  # 띠 바탕 위에 테두리 없이. 올리면 테두리가 보인다
+	var rows := []
+	for y in [0, 12]:
+		var r := HBoxContainer.new()
+		r.add_theme_constant_override("separation", 2)
+		r.position = Vector2(1, y)
+		r.size = Vector2(94, 12)
+		s.add_child(r)
+		rows.append(r)
+	_pic(rows[0], HudBuild.icon("base"), Vector2(10, 10))
+	var back := ColorRect.new()
+	back.color = HudTheme.CELL
+	back.custom_minimum_size = Vector2(48, 5)
+	back.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	rows[0].add_child(back)
+	hp_bar.size = Vector2(48, 5)
+	back.add_child(hp_bar)
+	_hp = _text(rows[0], 9, HudTheme.TEXT)
+	_lv = _text(rows[0], 7, HudTheme.DIM)
+	_pic(rows[1], HudBuild.dots(COIN, {"#": HudTheme.ACCENT, "o": Color("b08a3a")}), Vector2(6, 6))
+	_gold = _text(rows[1], 10, HudTheme.TEXT)
+	_tax = _text(rows[1], 8, HudTheme.GOOD)
+	var gap := Control.new()
+	gap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rows[1].add_child(gap)
+	_pic(rows[1], HudBuild.dots(FLAG, {"|": HudTheme.DIM, "#": HudTheme.DANGER}), Vector2(6, 6))
+	_round = _text(rows[1], 9, HudTheme.TEXT)
+	tip.add(s, func(): return ["거점 %d/%d" % [ceili(battle.base.hp), ceili(battle.base.max_hp)], "", "",
+		"0이 되면 도전 끝 · 마을 Lv%d · 다음 준비 단계 세금 +%d · 라운드 %d/%d — 누르면 카메라가 거점으로 간다" % [battle.village_level, battle.tax(), battle.round_index + 1, battle.rounds.size()], ""])
+
+# 상태 묶음 글과 거점 체력 막대(S190): 줄면 FLASH초 하얗고, 50% 밑 노랑, 25% 밑 빨강
+func _show_status(delta: float, round_no: int) -> void:
+	var hp: float = battle.base.hp
+	if hp < _hp_seen:
+		_flash = FLASH
+	_hp_seen = hp
+	_flash = maxf(_flash - delta, 0.0)
+	var r: float = clampf(hp / battle.base.max_hp, 0.0, 1.0)
+	hp_bar.size.x = 48.0 * r
+	hp_bar.color = Color.WHITE if _flash > 0.0 else HudTheme.DANGER if r < 0.25 else HudBuild.WARN if r < 0.5 else HudTheme.GOOD
+	_hp.text = str(ceili(hp))
+	_lv.text = "Lv%d" % battle.village_level
+	_gold.text = str(battle.gold)
+	_tax.text = "+%d" % battle.tax()
+	_round.text = "%d/%d" % [round_no, battle.rounds.size()]
+
+# 임무 칸의 점(I122): 조건을 지키는 중이면 흰 점, 깨졌으면 빨간 ✕, 없으면 비운다. 깨지는 순간 토스트를 띄운다
+func _show_quests() -> void:
+	for i in 2:
+		var name: String = [battle.mission, battle.commission][i]
+		marks[i].visible = name != ""
+		if name == "":
+			continue
+		var ok: bool = battle.quest_met(name)
+		marks[i].texture = _dot if ok else _cross
+		marks[i].modulate = Color.WHITE if ok else HudTheme.DANGER
+		if _ok.get(name, true) and not ok:
+			toasts.push("%s 실패: %s" % [["미션", "의뢰"][i], battle.QUEST_KINDS[name].text])
+		_ok[name] = ok
+
+# 놀고 있는 공병(engineer_gap과 같은 기준, I128)
+func _idle() -> Array:
+	return battle.units.filter(func(u): return u.kind == "engineer" and u.job == null)
+
+# 공병 칸(S185): 놀고 있는 공병에게 차례로 카메라를 옮긴다
+func _next_engineer() -> void:
+	var idle := _idle()
+	if not idle.is_empty():
+		_eng_next = (_eng_next + 1) % idle.size()
+		_focus(idle[_eng_next].pos)
+
+# 칸 좌표(소수 가능) p의 가운데로 카메라를 옮긴다(I164)
+func _focus(p: Vector2) -> void:
+	map.get_camera_2d().focus((p + Vector2(0.5, 0.5)) * BattleView.CELL)
 
 func _start_battle() -> void:
 	controls.placing = ""
@@ -361,20 +540,18 @@ func _quest_lines() -> Array:
 			out.append("%s: %s (+%d골드)" % [pair[0], q.text, q.reward] + ("" if battle.quest_met(pair[1]) else " — 실패"))
 	return out
 
-# 출전 영웅 줄(I129, I151): 셋을 한 줄에 «F1 아이아스» 뒤 스킬 버튼 넷. 쓰러졌으면 버튼 없이 «F1 아이아스 쓰러짐».
+# 출전 영웅 칸(I129, I151): 윗줄 «F1 아이아스», 아랫줄 스킬 버튼 넷. 쓰러졌으면 버튼 없이 «F1 아이아스 쓰러짐».
 # 전투 단계가 아니면 아래에 «— 스킬은 전투 단계에만»(S136)
 func _show_heroes() -> void:
 	var on: bool = battle.state in ["prep", "battle"]
-	_hero_line.visible = on and not battle.heroes.is_empty()
 	for i in _hero_rows.size():
 		var row: Array = _hero_rows[i]
 		var h = battle.heroes[i] if on and i < battle.heroes.size() else null
-		for n in row[0]:
-			n.visible = h != null
-		for slot in battle.SLOTS:
-			row[2][slot].visible = h != null and h.alive
+		row[0].visible = h != null
 		if h == null:
 			continue
+		for slot in battle.SLOTS:
+			row[2][slot].visible = h.alive
 		row[1].text = "F%d %s%s" % [i + 1, HEROES[h.kind].get_slice("(", 0), "" if h.alive else " 쓰러짐"]
 		for slot in battle.SLOTS:
 			var st: Array = _slot_state(h, slot)

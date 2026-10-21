@@ -15,6 +15,7 @@ const STEP := 22  # 칸 20 + 간격 2
 const FLASH := 0.3  # 거부 표시 길이(초, I132 임시값)
 const WARN := Color("e0c040")  # 골드가 모자란 비용(절반 이상 있음). 절반도 없으면 DANGER
 const THINGS := {"castle_wall": "성벽", "gate": "성문", "base": "거점"}  # 고른 것 가운데 NAMES에 없는 이름
+const CROSS := ["#...#", ".#.#.", "..#..", ".#.#.", "#...#"]  # ✕ 도트
 
 var hud
 var battle
@@ -170,6 +171,9 @@ static func icon(kind: String) -> AtlasTexture:
 		var f: Array = BattleView.FAC[kind]
 		t.atlas = BattleView.FACILITY
 		t.region = Rect2(f[0] * 48, f[1], 48, f[2] - f[1])
+	elif kind == "base":  # 마을 Lv1 거점 망루(S190)
+		t.atlas = BattleView.KEEP
+		t.region = Rect2(0, 0, 80, 80)
 	else:  # 남쪽을 보는 정지 그림
 		var a: Dictionary = BattleView.ART[kind]
 		t.atlas = BattleView.UNITS
@@ -178,14 +182,18 @@ static func icon(kind: String) -> AtlasTexture:
 	t.region = Rect2(t.region.position + Vector2(used.position), used.size)
 	return t
 
-# 빨간 ✕(S30: 기호는 글꼴이 아니라 그림). 5×5 도트를 Nearest로 그린다
+# 도트 그림(S30: 기호는 글꼴이 아니라 그림). rows의 글자마다 colors의 색이고 없는 글자는 투명이다. Nearest로 그린다
+static func dots(rows: Array, colors := {"#": Color.WHITE}) -> ImageTexture:
+	var img := Image.create(rows[0].length(), rows.size(), false, Image.FORMAT_RGBA8)
+	for y in rows.size():
+		for x in rows[y].length():
+			img.set_pixel(x, y, colors.get(rows[y][x], Color.TRANSPARENT))
+	return ImageTexture.create_from_image(img)
+
+# 빨간 ✕. 5×5 도트를 Nearest로 그린다
 static func _cross() -> TextureRect:
-	var img := Image.create(5, 5, false, Image.FORMAT_RGBA8)
-	for i in 5:
-		img.set_pixel(i, i, Color.WHITE)
-		img.set_pixel(4 - i, i, Color.WHITE)
 	var r := TextureRect.new()
-	r.texture = ImageTexture.create_from_image(img)
+	r.texture = dots(CROSS)
 	r.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	r.modulate = HudTheme.DANGER
 	r.size_flags_vertical = Control.SIZE_SHRINK_CENTER

@@ -1,6 +1,6 @@
 extends RefCounted
 # HUD·메뉴 공용 테마(ui_research 4.9): 어두운 패널, 칸 바탕·테두리, 마우스 올림 테두리, 강조색 하나. 풀·흙 색은 쓰지 않는다
-# 칸 안쪽 여백은 Godot 기본 테마 값을 그대로 둔다. 바꾸면 버튼 크기가 바뀌어 지금 줄(영웅 셋이 640px 안)이 넘친다
+# 칸 안쪽 여백은 Godot 기본 테마 값을 그대로 둔다(팝업·창 버튼). 위 띠 칸(S185)은 크기를 좌표로 정해 여백 없는 변형 BarCell을 쓴다
 
 const PANEL := Color("14161c", 0.92)
 const CELL := Color("23262f")
@@ -10,6 +10,7 @@ const ACCENT := Color("ffd37f")
 const DANGER := Color("ef3a0c")
 const TEXT := Color("e8e8e8")
 const DIM := Color("9aa0aa")
+const GOOD := Color("7cc85a")  # 거점 체력 막대·세금(S190)
 
 static func make(font_size: int) -> Theme:
 	var t := Theme.new()
@@ -22,6 +23,11 @@ static func make(font_size: int) -> Theme:
 		t.set_color(c, "Button", TEXT)
 	t.set_color("font_disabled_color", "Button", DIM)
 	t.set_color("font_color", "Label", TEXT)
+	t.set_type_variation("BarCell", "Button")
+	for st in ["normal", "hover", "pressed", "hover_pressed", "focus", "disabled"]:
+		var s: StyleBox = t.get_stylebox(st, "Button").duplicate()
+		s.set_content_margin_all(0)
+		t.set_stylebox(st, "BarCell", s)
 	return t
 
 # 기본 테마의 같은 칸을 복사해 색만 바꾼다(안쪽 여백은 그대로)

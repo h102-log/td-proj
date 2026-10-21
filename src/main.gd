@@ -45,6 +45,7 @@ func _ready() -> void:
 	cam.position = Vector2(view.battle.base.cell * BattleView.CELL)
 	map.add_child(cam)
 	hud = Hud.new(view.battle, controls, map)
+	hud.menu_pressed.connect(pause)  # 위 띠 메뉴 칸(S185)
 	add_child(hud)
 	menus = Menus.new()
 	menus.chosen.connect(_on_menu)

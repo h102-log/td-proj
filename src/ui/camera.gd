@@ -8,6 +8,7 @@ const EDGE := 16.0      # 가장자리로 치는 폭(창 px)
 const TOP_EDGE := 4.0   # 위쪽 가장자리로 치는 폭(창 px, S53 임시값). 위 띠 버튼을 누르러 가다 화면이 움직이지 않게
 const BOTTOM := 72.0    # 아래로 맵 밖을 보이는 높이(화면 px, I50). 건설 격자(S186) 높이라 맨 아래 출현 지점이 격자에 가리지 않는다
 const SPEED := 320.0    # 초당 이동 거리(화면 px)
+const FOCUS := Vector2(320, 194)  # HUD가 카메라를 대상으로 옮길 때 대상이 오는 화면 자리(I164). 위 띠 아래 빈 영역 가운데
 
 var map_px: Vector2     # 맵 크기(월드 px)
 var level := 1          # ZOOMS의 인덱스, 기본 2배
@@ -51,6 +52,11 @@ static func edge_dir(m: Vector2, size: Vector2) -> Vector2:
 func pan(dir: Vector2, delta: float) -> void:
 	var half := get_viewport_rect().size / 2 / zoom.x
 	position = (position + dir * SPEED * delta / zoom.x).clamp(half, map_px - half + Vector2(0, BOTTOM / zoom.x))
+
+# 맵 px의 대상을 화면 FOCUS에 놓고 경계 안으로 당긴다(I164)
+func focus(at: Vector2) -> void:
+	position = at - (FOCUS - get_viewport_rect().size / 2) / zoom.x
+	pan(Vector2.ZERO, 0.0)
 
 # 아래 경계에 닿아 있다. 정보 칸이 격자 왼쪽으로 옮긴다(S186)
 func at_bottom() -> bool:
