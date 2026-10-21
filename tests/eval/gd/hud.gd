@@ -24,6 +24,8 @@ extends "res://tests/eval/gd/save.gd"
 #   main.hud.popup — 맵 위 팝업(Control, I58). 그 안의 보이는 BaseButton이 팝업 버튼이고, 못 누르는 버튼은 disabled다
 #   main.hud.hint — 놓기·조준 안내 글(Label, S147·I128). main.hud.chip — 그 글을 담은 안내 칩(Control, S147)
 #   main.hud.map — 맵 SubViewport. get_canvas_transform()이 맵 px → 화면 좌표다
+#   main.hud.alerts — 경보(Control, S189). recent: 최근 경보 칸(Vector2i, 새 것이 앞, 최대 5). 보이는 BaseButton 자식이 화면 밖 가장자리 표식이다
+#     토스트 칸(main.hud.toasts의 보이는 자식)은 자리가 있으면 gui_input에 왼쪽 버튼 누름을 넣어 누른다(I163)
 # 커서는 화면(640×360) 좌표의 InputEventMouseMotion으로 옮긴다. 빈 맵 자리는 (320,300)이다
 
 const EMPTY := Vector2(320, 300)
@@ -1375,5 +1377,116 @@ func ev349():
 		hud._process(0.0)
 		if not tipped or not hidden or hud.tip.visible or not chip.is_visible_in_tree() or main.controls.aiming != "q":
 			out = "초상 툴팁 뜸 %s · 그때 칩 숨음 %s · 커서를 치운 뒤 툴팁 %s · 칩 보임 %s · 조준 %s" % [tipped, hidden, hud.tip.visible, chip.is_visible_in_tree(), main.controls.aiming]
+	_done(main)
+	return out
+
+# 맵 칸 가운데의 화면 위치와 카메라가 대상을 놓는 자리 (320,194)의 거리
+func _off(main, cell: Vector2i) -> float:
+	_cam(main).force_update_scroll()
+	return (main.hud.map.get_canvas_transform() * ((Vector2(cell) + Vector2(0.5, 0.5)) * CELL_PX)).distance_to(Vector2(320, 194))
+
+func _press_toast(main, head: String) -> bool:
+	for t in main.hud.toasts.get_children():
+		if t.is_visible_in_tree() and " ".join(_labels(t)).begins_with(head):
+			var e := InputEventMouseButton.new()
+			e.button_index = MOUSE_BUTTON_LEFT
+			e.pressed = true
+			t.gui_input.emit(e)
+			return true
+	return false
+
+# HUD와 토스트 층의 시간을 함께 흘린다(평가는 토스트 층 _process를 따로 부른다)
+func _pass(main, secs: float) -> void:
+	main.hud._process(secs)
+	main.hud.toasts._process(secs)
+
+# EV350 · S189: 화면 밖 거점이 맞으면 토스트 하나와 가장자리 표식이 뜨고, 1초 뒤 또 맞아도 토스트는 그대로다. C 키는 카메라를 거점 쪽으로 옮긴다
+func ev350():
+	var main = _prep()
+	var b = main.view.battle
+	var hud = main.hud
+	if not hud.get("alerts") is Control:
+		_done(main)
+		return "main.hud.alerts가 없다"
+	b.start_battle()
+	_frame(main)
+	_pass(main, 10.0)  # 준비 단계 미션 토스트를 흘려 보낸다
+	b.mission = ""  # 미션이 깨진 토스트가 끼지 않게(미션은 판마다 다르다)
+	b.commission = ""
+	_cam(main).focus(Vector2(600, 450))  # 거점이 화면 밖(위)
+	_cam(main).force_update_scroll()
+	b.damage(b.base, 5, "true")
+	hud._process(0.0)
+	var shown := _toasts(main)
+	var marks: Array = hud.alerts.find_children("*", "BaseButton", true, false).filter(func(n): return n.is_visible_in_tree())
+	var out := ""
+	if shown.size() != 1 or not "거점 공격받음" in shown[0]:
+		out = "거점 피해 뒤 토스트 %s(«거점 공격받음» 하나여야 한다)" % [shown]
+	elif marks.size() != 1 or marks[0].get_global_rect().intersects(Rect2(0, 0, 640, 30)) or marks[0].get_global_rect().intersects(Rect2(510, 288, 130, 72)):
+		out = "화면 밖 거점 피해 뒤 가장자리 표식 %s(하나이고 위 띠·건설 격자와 겹치지 않아야 한다)" % [marks.map(func(n): return n.get_global_rect())]
+	if out == "":
+		_pass(main, 1.0)
+		b.damage(b.base, 5, "true")
+		hud._process(0.0)
+		if _toasts(main) != shown:
+			out = "1초 뒤 거점이 또 맞자 토스트가 %s다(그대로 %s여야 한다)" % [_toasts(main), shown]
+	if out == "":
+		var far := _off(main, b.base.cell)
+		_key(KEY_C)
+		var near := _off(main, b.base.cell)
+		out = check(near < far - 1.0 and hud.alerts.recent.size() == 1, "C 키 뒤 거점과 (320,194) 거리 %.0f → %.0f · 최근 경보 %s" % [far, near, hud.alerts.recent])
+	_done(main)
+	return out
+
+# EV351 · S189·I163: 정문이 맞으면 «정문 공격받음», 3.6초 뒤 왼쪽 쪽문이 맞으면 따로 «왼쪽 쪽문 공격받음»이 뜬다. 정문 토스트를 누르면 카메라가 정문 쪽으로 간다.
+# 첫 피해 5초 뒤 정문이 또 맞아도 토스트는 없다(20초에 한 번). C는 왼쪽 쪽문, 한 번 더 C는 정문 쪽으로 카메라를 옮긴다
+func ev351():
+	var main = _prep()
+	var b = main.view.battle
+	var hud = main.hud
+	if not hud.get("alerts") is Control:
+		_done(main)
+		return "main.hud.alerts가 없다"
+	b.start_battle()
+	_frame(main)
+	_pass(main, 10.0)  # 준비 단계 미션 토스트를 흘려 보낸다
+	b.mission = ""  # 미션이 깨진 토스트가 끼지 않게(미션은 판마다 다르다)
+	b.commission = ""
+	var g1 = b.castle[Vector2i(20, 9)]
+	var g0 = b.castle[Vector2i(0, 9)]
+	b.damage(g1, 5, "true")
+	hud._process(0.0)
+	var t1 := _toasts(main)
+	_pass(main, 3.6)
+	b.damage(g0, 5, "true")
+	hud._process(0.0)
+	var t2 := _toasts(main)
+	var out := ""
+	if t1.size() != 1 or not t1[0].begins_with("정문 공격받음") or t2.size() != 2 or not t2[1].begins_with("왼쪽 쪽문 공격받음"):
+		out = "정문 피해 뒤 토스트 %s · 3.6초 뒤 왼쪽 쪽문 피해 뒤 %s" % [t1, t2]
+	if out == "":
+		_cam(main).focus(Vector2(600, 450))
+		var far := _off(main, g1.cell)
+		var pressed := _press_toast(main, "정문")
+		var near := _off(main, g1.cell)
+		if not pressed or near >= far - 1.0:
+			out = "정문 토스트 누름 %s · 정문과 (320,194) 거리 %.0f → %.0f" % [pressed, far, near]
+	if out == "":
+		_pass(main, 1.4)
+		b.damage(g1, 5, "true")
+		hud._process(0.0)
+		_pass(main, 4.0)
+		var later := _toasts(main)
+		if later.any(func(t): return "정문" in t) or hud.alerts.recent != [g0.cell, g1.cell]:
+			out = "첫 피해 5초 뒤 정문이 또 맞은 뒤 토스트 %s · 최근 경보 %s(정문 토스트가 없고 [왼쪽 쪽문, 정문]이어야 한다)" % [later, hud.alerts.recent]
+	if out == "":
+		_cam(main).focus(Vector2(600, 450))
+		var a0 := _off(main, g0.cell)
+		_key(KEY_C)
+		var a1 := _off(main, g0.cell)
+		var b0 := _off(main, g1.cell)
+		_key(KEY_C)
+		var b1 := _off(main, g1.cell)
+		out = check(a1 < a0 - 1.0 and b1 < b0 - 1.0, "C 키에 왼쪽 쪽문 거리 %.0f → %.0f, 다시 C에 정문 거리 %.0f → %.0f(둘 다 가까워져야 한다)" % [a0, a1, b0, b1])
 	_done(main)
 	return out

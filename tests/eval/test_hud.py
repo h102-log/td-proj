@@ -120,3 +120,11 @@ def test_EV348_merc_key_next_and_missing(gd):
 
 def test_EV349_hint_chip_hides_under_bar_tip(gd):
     gd("hud", "EV349")
+
+
+def test_EV350_base_alert_toast_mark_c(gd):
+    gd("hud", "EV350")
+
+
+def test_EV351_gate_alerts_cooldown_c_cycle(gd):
+    gd("hud", "EV351")

@@ -21,6 +21,7 @@ const PLACE_KEYS := {KEY_1: "wall", KEY_2: "tower", KEY_MINUS: "magic", KEY_3: "
 signal hero_key(i: int)  # 출전 영웅 i를 F키나 초상으로 골랐다. HUD가 두 번 누름을 잰다(I165)
 signal refused(cell: Vector2i)  # 전투 단계 놓기가 닿는 공병이 없어 거부됐다. HUD가 빨간 ✕와 안내 줄로 보인다(I128)
 signal facility_key(f)  # 전투 단계 용병 키로 시설을 골랐다. HUD가 카메라를 그 시설로 옮긴다(S81, I164)
+signal alert_key  # C 키. HUD가 마지막 경보 자리로 카메라를 옮긴다(S189)
 
 var battle
 var cell_px: int
@@ -73,6 +74,8 @@ func handle(event: InputEvent) -> void:
 				toggle_hold()
 			KEY_V:
 				show_hp = not show_hp
+			KEY_C:
+				alert_key.emit()
 			KEY_F1, KEY_F2, KEY_F3:
 				pick_hero(event.keycode - KEY_F1)
 			KEY_ESCAPE:
