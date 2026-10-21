@@ -890,6 +890,8 @@ func _refocus(e: InputEvent) -> void:
 func _show_hire() -> void:
 	var hire = battle.HIRE
 	_hire_info.text = "골드 %d · 보유 %d/%d · 출전 %d/%d" % [battle.gold, battle.roster.size(), hire.cap, battle.lineup.size(), hire.lineup]
+	if battle.state == "hiring":  # 도전 시작 전에는 지을 골드를 남기라고 알린다(O-1)
+		_hire_info.text += " · 준비 단계에 지을 골드도 남긴다"
 	var full: bool = battle.roster.size() >= hire.cap
 	for i in _offers.size():  # 영입 카드(I110): 영입한 칸은 초상을 흐리게 «영입함», 골드가 모자라면 비용만 빨강
 		var k: String = battle.offers[i]

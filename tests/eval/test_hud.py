@@ -180,3 +180,7 @@ def test_EV364_church_heal_rows(gd):
 
 def test_EV365_keep_art_selects_base(gd):
     gd("hud", "EV365")
+
+
+def test_EV366_hire_gold_note(gd):
+    gd("hud", "EV366")

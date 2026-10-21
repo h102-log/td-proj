@@ -1797,6 +1797,28 @@ func ev365():
 	_done(main)
 	return out
 
+# EV366 · I110: 도전 시작 전 영입 창에만 «준비 단계에 지을 골드도 남긴다»가 있다
+func ev366():
+	var main = _game()
+	var b = main.view.battle
+	var hud = main.hud
+	if not hud.get("window") is Control:
+		_done(main)
+		return "main.hud.window가 없다"
+	b.gold = BIG
+	_frame(main)
+	var before := " ".join(_labels(hud.window))
+	for i in 2:
+		b.hire(i)
+	b.next_round()
+	var won: bool = _win(b)
+	_frame(main)
+	var after := " ".join(_labels(hud.window))
+	var out := check(b.state == "cleared" and won and "지을 골드도 남긴다" in before and not "지을 골드도 남긴다" in after and after != "",
+		"도전 시작 전 영입 창 글 «%s» · 1라운드 승리(%s) 뒤 창 글 «%s»" % [before, won, after])
+	_done(main)
+	return out
+
 # btn에 커서를 0.25초 둔 뒤 툴팁 안의 보이는 글. 툴팁이 없으면 ""
 func _tip_of(main, btn) -> String:
 	_layout(main)
