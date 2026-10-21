@@ -128,3 +128,19 @@ def test_EV350_base_alert_toast_mark_c(gd):
 
 def test_EV351_gate_alerts_cooldown_c_cycle(gd):
     gd("hud", "EV351")
+
+
+def test_EV352_window_dims_map_hides_grid(gd):
+    gd("hud", "EV352")
+
+
+def test_EV353_esc_menu_hides_grid_tags(gd):
+    gd("hud", "EV353")
+
+
+def test_EV354_between_rounds_window_fits(gd):
+    gd("hud", "EV354")
+
+
+def test_EV355_reroll_at_cap_dim_reason(gd):
+    gd("hud", "EV355")

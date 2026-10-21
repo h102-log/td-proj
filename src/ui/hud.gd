@@ -130,12 +130,15 @@ var _repair: Button
 var _restore: Button
 var _village: Button
 var _heal := []  # 교회 팝업: 출전 영웅마다 치료 버튼(S137, I140)
-var _result := PanelContainer.new()
+var window := PanelContainer.new()  # 결과·영입 창(S117). 영입·라운드 사이는 [16,34] 폭 608, 결과는 [170,110,300,110](I136)
+var dim := ColorRect.new()  # 창이 떠 있으면 띠 아래 맵을 덮는다(S117)
 var _result_label := Label.new()
 var _next: Button  # 결과 창의 «1라운드 시작»·«다음 라운드»·«새 도전»
 var _hire := VBoxContainer.new()  # 결과 창 안의 영입 칸
 var _hire_info := Label.new()
-var _offers := []  # 목록 칸마다 영입 버튼
+var _offers := []  # 목록 칸마다 영입 카드(I110)
+var _offer_kinds := []  # 목록 칸마다 마지막으로 본 영웅 종류. 영입한 칸은 그 초상을 흐리게 남긴다
+var _note := Label.new()  # 상한에서 리롤을 누르면 보이는 빨간 이유(I127)
 var _reroll: Button
 var _members := []  # 보유 영웅마다 [출전·대기 전환 버튼, 내보내기 버튼, 이관 버튼]
 var _giver = null  # 이관(I116)에서 먼저 고른 주는 영웅
@@ -272,37 +275,55 @@ func _ready() -> void:
 	root.add_child(chip)
 	controls.refused.connect(func(cell): _refused = [cell, _now])
 	controls.facility_key.connect(func(f): _focus(Vector2(f.cell)))  # 용병 키로 고른 시설로 카메라(S81, I164)
-	# 윗변과 너비를 고정해 아래로만 자란다. 영입·리롤·내보내기로 줄이 바뀌어도 위의 버튼이 움직이지 않게(I136)
-	# ponytail: 창이 위 띠(S185) 가운데를 덮는다. 띠 아래(y 34)로 내리면 보유 5명·의뢰 2개 창이 화면 아래로 25 넘친다. 두 칸 배치로 줄이는 11단계에서 내린다
-	_result.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_result.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_result.offset_top = 8
-	_result.custom_minimum_size.x = 480
-	root.add_child(_result)
+	# 창은 윗변을 고정해 아래로만 자란다(I136). 영입·라운드 사이는 두 칸: 왼쪽 영입 카드·리롤, 오른쪽 보유 5칸, 아래 의뢰, 진행 버튼은 오른쪽 아래
+	dim.position = VIEW.position
+	dim.size = VIEW.size
+	dim.color = Color(0, 0, 0, 0.5)
+	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(dim)
+	root.add_child(window)
 	var box := VBoxContainer.new()
-	_result.add_child(box)
-	for v in [box, _hire, _quests]:  # 줄 사이를 좁혀 가장 긴 라운드 사이 창(보유 4명·결과 2줄·의뢰 2개, 기본 간격이면 370px)도 화면(360px) 안에 든다(I136)
-		v.add_theme_constant_override("separation", 2)
+	window.add_child(box)
 	_result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(_result_label)
 	box.add_child(_hire)
 	_hire_info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_hire.add_child(_hire_info)
+	var cols := HBoxContainer.new()
+	cols.add_theme_constant_override("separation", 8)
+	_hire.add_child(cols)
+	var left := VBoxContainer.new()
+	var right := VBoxContainer.new()
+	for col in [left, right]:
+		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		cols.add_child(col)
+	for v in [box, _hire, _quests, left, right]:
+		v.add_theme_constant_override("separation", 2)
 	for i in battle.HIRE.slots:
-		_offers.append(_window_button(_hire, func(): battle.hire(i)))
-	_reroll = _window_button(_hire, func(): battle.reroll())
-	for i in battle.HIRE.cap:
+		_offers.append(_card(left, i))
+		_offer_kinds.append("")
+	_reroll = _window_button(left, _reroll_press)
+	tip.add(_reroll, func(): return ["리롤", "", "", "목록을 새로 뽑는다", _cap_note()])
+	_note.add_theme_color_override("font_color", HudTheme.DANGER)
+	_note.add_theme_font_size_override("font_size", 8)
+	left.add_child(_note)
+	for i in battle.HIRE.cap:  # 보유 칸은 늘 cap줄이다. 빈 칸도 자리를 지킨다(I136)
 		var member := HBoxContainer.new()
-		_hire.add_child(member)
+		right.add_child(member)
 		var toggle := _window_button(member, func(): battle.set_lineup(battle.roster[i], battle.roster[i] not in battle.lineup))
 		toggle.toggle_mode = true
+		toggle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_members.append([toggle, _window_button(member, func(): battle.dismiss(battle.roster[i])), _window_button(member, func(): _give(battle.roster[i]))])
 	_hire.add_child(_quests)
 	_quests_info.text = "의뢰 — 다음 라운드에 걸린다. 하나만 수락한다"
 	_quests.add_child(_quests_info)
 	for i in battle.QUEST_OFFERS:
 		_commissions.append(_window_button(_quests, func(): battle.accept(i)))
-	_next = _window_button(box, proceed)
+	var foot := HBoxContainer.new()
+	foot.alignment = BoxContainer.ALIGNMENT_END
+	foot.size_flags_vertical = Control.SIZE_EXPAND | Control.SIZE_SHRINK_END  # 결과 창(높이 110 고정)에서도 진행 버튼이 오른쪽 아래
+	box.add_child(foot)
+	_next = _window_button(foot, proceed)
 	grid = HudBuild.new(self)
 	root.add_child(grid)
 	_mark.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -389,7 +410,10 @@ func _process(delta: float) -> void:
 		hint.text = "%s %s 대상: 좌클릭 · 취소: 우클릭·ESC" % [HEROES[controls.aim_hero.kind].get_slice("(", 0), controls.aiming.to_upper()]
 	chip.reset_size()
 	_show_heroes()
-	_result.visible = battle.state in ["hiring", "cleared", "won", "lost"]
+	window.visible = battle.state in ["hiring", "cleared", "won", "lost"]
+	dim.visible = window.visible
+	window.position = Vector2(16, 34) if battle.hiring_open() else Vector2(170, 110)  # I136 임시값
+	window.custom_minimum_size = Vector2(608, 0) if battle.hiring_open() else Vector2(300, 110)
 	_result_label.text = {"hiring": "도전 시작 — 영웅 영입", "cleared": "%d라운드 승리" % round_no, "won": "도전 성공!", "lost": "%d라운드 패배 — 도전 끝" % round_no}.get(battle.state, "")
 	for s in battle.settled:  # 지난 라운드의 미션·의뢰 판정(I120, I122)
 		var q: Dictionary = battle.QUEST_KINDS[s[0]]
@@ -398,11 +422,13 @@ func _process(delta: float) -> void:
 	if battle.state != _seen:
 		_seen = battle.state
 		_giver = null
-		if _result.visible:
+		_note.text = ""  # 상한 리롤 이유는 그 창에서만(I127)
+		if window.visible:
 			_next.grab_focus()
 	_hire.visible = battle.hiring_open()
 	if _hire.visible:
 		_show_hire()
+	window.reset_size()
 	if not prep or controls.placing != "":  # 전투가 시작되거나 놓기 모드에 들어가면 판매 팝업을 닫는다(I58)
 		controls.selling = []
 	_why.clear()
@@ -850,21 +876,39 @@ func _refocus(e: InputEvent) -> void:
 func _show_hire() -> void:
 	var hire = battle.HIRE
 	_hire_info.text = "골드 %d · 보유 %d/%d · 출전 %d/%d" % [battle.gold, battle.roster.size(), hire.cap, battle.lineup.size(), hire.lineup]
-	for i in _offers.size():
+	var full: bool = battle.roster.size() >= hire.cap
+	for i in _offers.size():  # 영입 카드(I110): 영입한 칸은 초상을 흐리게 «영입함», 골드가 모자라면 비용만 빨강
 		var k: String = battle.offers[i]
+		var card: Button = _offers[i]
+		var cost: Label = card.get_child(0)
+		if k != "":
+			_offer_kinds[i] = k
+		var was: String = _offer_kinds[i]
+		card.icon = _face(was) if was != "" else null
+		card.disabled = k == "" or full
+		cost.visible = k != ""
 		if k == "":
-			_offers[i].text = "(영입함)"
-			_offers[i].disabled = true
+			card.text = ("%s — 영입함" % HEROES[was]) if was != "" else "영입함"
 			continue
 		var grade: int = battle.HERO_KINDS[k].grade
-		_offers[i].text = "%s «%s» · %s · 영입 %d골드" % [HEROES[k], battle.HERO_KINDS[k].title, GRADES[grade - 1], hire.cost[grade - 1]]  # 이명(S157)
-		_offers[i].disabled = battle.gold < hire.cost[grade - 1] or battle.roster.size() >= hire.cap
+		card.text = "%s «%s» · %s" % [HEROES[k], battle.HERO_KINDS[k].title, GRADES[grade - 1]]  # 이명(S157)
+		cost.text = str(hire.cost[grade - 1])
+		cost.add_theme_color_override("font_color", HudTheme.DANGER if battle.gold < hire.cost[grade - 1] else HudTheme.TEXT)
 	_reroll.text = "리롤 %d골드" % hire.reroll
-	_reroll.disabled = battle.gold < hire.reroll or battle.roster.size() >= hire.cap  # 상한이면 리롤해도 영입하지 못한다(I127)
-	for i in _members.size():
+	_reroll.disabled = battle.gold < hire.reroll and not full
+	_reroll.modulate.a = 0.35 if full else 1.0  # 상한이면 흐리게 두고 누르면 이유를 보인다(I127)
+	if not full:
+		_note.text = ""
+	_note.visible = _note.text != ""
+	for i in _members.size():  # 보유 칸은 빈 칸도 자리를 지킨다(I136)
 		var here: bool = i < battle.roster.size()
-		_members[i][0].get_parent().visible = here  # 줄째 숨긴다. 버튼만 숨기면 빈 줄이 창에 틈을 남긴다
-		if here:
+		_members[i][0].disabled = not here
+		_members[i][1].visible = here
+		_members[i][2].visible = here
+		if not here:
+			_members[i][0].text = "빈 자리"
+			_members[i][0].button_pressed = false
+		else:
 			var h = battle.roster[i]
 			var out: bool = h in battle.lineup
 			_members[i][0].text = "%s · %s · %s · %s" % [HEROES[h.kind], GRADES[h.grade - 1], _level(h), "출전" if out else "대기"]
@@ -882,6 +926,53 @@ func _show_hire() -> void:
 			var q: Dictionary = battle.QUEST_KINDS[battle.commission_offers[i]]
 			var on: bool = battle.commission == battle.commission_offers[i]
 			_commissions[i].text = "%s · +%d골드 · %s" % [q.text, q.reward, "수락함 (다시 누르면 무름)" if on else "수락"]
+
+# 영입 카드(I110): 초상·이름(역할)·이명·등급, 오른쪽에 비용 숫자. 툴팁은 누르면 생기는 일과 모자란 조건만
+func _card(parent: Control, i: int) -> Button:
+	var b := _window_button(parent, func(): battle.hire(i))
+	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	b.add_theme_constant_override("icon_max_width", 16)
+	b.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	var cost := _text(b, 10, HudTheme.TEXT)
+	cost.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
+	cost.offset_left = -40
+	cost.offset_right = -4
+	cost.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	cost.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tip.add(b, func(): return ["영입", "", "", "누르면 보유에 넣고 빈 출전 자리에 든다", _offer_why(i)])
+	return b
+
+func _offer_why(i: int) -> String:
+	var k: String = battle.offers[i]
+	if k == "":
+		return ""
+	if _cap_note() != "":
+		return _cap_note()
+	var cost: int = battle.HIRE.cost[battle.HERO_KINDS[k].grade - 1]
+	return "골드 %d 모자람" % (cost - battle.gold) if battle.gold < cost else ""
+
+# 보유가 상한이면 영입할 수 없는 이유(I127). 아니면 ""
+func _cap_note() -> String:
+	return "보유 %d/%d — 내보내야 영입할 수 있다" % [battle.roster.size(), battle.HIRE.cap] if battle.roster.size() >= battle.HIRE.cap else ""
+
+# 리롤(I127): 상한이면 리롤해도 영입하지 못해 거부하고 이유를 창에 보인다
+func _reroll_press() -> void:
+	if _cap_note() != "":
+		_note.text = _cap_note()
+	else:
+		battle.reroll()
+
+# 영입 카드의 영웅 초상 대역(S30). 출전 칸·치료 버튼과 같은 _faces 사전을 쓴다
+func _face(kind: String) -> Texture2D:
+	if not _faces.has(kind):
+		_faces[kind] = HudBuild.icon(kind)
+	return _faces[kind]
+
+# ESC 메뉴가 열리면 건설 격자·정보 칸·태그를 숨긴다(S183). 멈춘 동안 HUD가 돌지 않아 main이 부르고, 메뉴가 닫히면 다음 _process가 다시 보인다
+func cover() -> void:
+	grid.visible = false
+	for t in tags:
+		t.visible = false
 
 # 미션·수락한 의뢰 줄(I122): «미션: 조건 (+N골드)»와 «의뢰: 조건 (+N골드)». 조건이 깨졌으면 «— 실패»를 붙인다(I131)
 func _quest_lines() -> Array:
