@@ -9,7 +9,8 @@ extends CanvasLayer
 # 보유 영웅의 레벨·경험치(I117), 라운드 사이의 경험치 이관(S127, I116), 라운드 사이의 의뢰 목록과 수락(S77, I121).
 # 준비·전투 단계에는 임무 칸에 미션·수락한 의뢰의 점을 보이고, 라운드 첫 준비 단계와 조건이 깨질 때 토스트를 띄운다. 결과 창에 지난 라운드의 달성·실패를 보인다(I122).
 # 결과 창의 버튼만 키보드 포커스를 받는다. 창이 열리면 «1라운드 시작»·«다음 라운드»·«새 도전»에 포커스가 간다(I12, I110)
-# 출전 영웅 칸마다 «F1 이름»과 Q·W·E·R 스킬 버튼(좌클릭은 쓰기, 우클릭은 자동 시전, I151)과 쓰러짐(I129)을, 화면 오른쪽 가장자리에 고른 용병의 이동 방식·홀드 버튼(I139)을 보인다.
+# 출전 영웅 칸마다 초상(누르면 고르기, 두 번이면 카메라, I165)·그림 상태 스킬 칸(좌클릭은 쓰기, 우클릭은 자동 시전, I151, skill_cell.gd)·체력·마나 막대와 쓰러짐(I129)을,
+# 화면 오른쪽 가장자리에 고른 용병의 이동 방식·홀드 버튼(I139)을 보인다.
 # 눌리지 않는 공병 지시 버튼에는 이유를 붙인다(I128)
 # 위 띠의 조작에는 툴팁을 단다(S187, I162). 테마는 hud_theme.gd
 # 준비 단계에 화면 밖 출현 지점은 아래 가장자리에 그 지점 적 수 표식을 둔다(S188)
@@ -31,6 +32,7 @@ const HudTip := preload("res://src/ui/hud_tip.gd")
 const HudBuild := preload("res://src/ui/hud_build.gd")
 const HudToast := preload("res://src/ui/hud_toast.gd")
 const BattleView := preload("res://src/ui/battle_view.gd")
+const SkillCell := preload("res://src/ui/skill_cell.gd")
 const BAR := {  # 위 띠 칸 자리(S185, 임시값)
 	"status": Rect2(4, 2, 96, 24), "mission": Rect2(104, 2, 24, 24), "engineer": Rect2(130, 2, 20, 24),
 	"hero0": Rect2(156, 2, 104, 24), "hero1": Rect2(264, 2, 104, 24), "hero2": Rect2(372, 2, 104, 24),
@@ -51,6 +53,9 @@ const TRAITS := {"fast": "성벽을 오른다", "flying": "길을 무시한다",
 const SIDES := ["왼쪽", "가운데", "오른쪽"]  # ponytail: 출현 지점 이름은 시험 스테이지(왼쪽부터 셋) 차례다. 지점이 다른 맵이 생기면 x로 이름을 정한다
 const VIEW := Rect2(0, 28, 640, 332)  # 위 띠 아래 맵이 보이는 화면. 출현 지점이 이 밖이면 아래 가장자리 표식(S188)
 const EDGE_X := Vector2(30, 500)  # 아래 가장자리 표식이 놓이는 x 범위(S188 임시값). y는 344
+const DOUBLE := 0.4  # 초상·F키를 이 초 안에 두 번 누르면 카메라가 그 영웅에게(I165 임시값)
+const LOW := 0.33  # 체력이 이 비율 밑이면 초상이 빨갛게 맥박친다(I129)
+const MANA := Color("4a8cff")  # 영웅 칸 마나 막대(ui_research 4.9)
 
 signal menu_pressed  # 메뉴 칸(S185). main이 ESC 메뉴를 연다
 
@@ -117,8 +122,12 @@ var _commissions := []  # 의뢰 목록 칸마다 수락 버튼
 var _seen := ""  # 마지막으로 본 판 단계. 바뀌었을 때 결과 창이 떠 있으면 포커스를 준다
 var _mode: Button  # 고른 용병의 이동 방식 전환(I139)
 var _hold: Button  # 고른 용병의 홀드 전환(I139)
-var _heroes := Label.new()  # 출전 영웅 칸 아래의 안내(«— 스킬은 전투 단계에만», S136)
-var _hero_rows := []  # 출전 칸마다 [영웅 칸, 이름 글, {칸: 스킬 버튼}](I129, I151)
+var portraits := []  # 출전 칸마다 초상 버튼(I129). 누르면 그 영웅을 고른다(I165)
+var slots := []  # 출전 칸마다 {칸: 스킬 칸}(I151)
+var _rows := []  # 출전 칸마다 {pic: 초상 그림, lv: 레벨 글, hp·mp: 막대, down: «쓰러짐»}(I129)
+var _faces := {}  # 영웅 종류 → 초상 대역 그림(S30)
+var _now := 0.0  # HUD 시계(초). 맥박·거부 표시·두 번 누름(I165)
+var _taps := {}  # 출전 칸 → 마지막으로 F키·초상을 누른 때(_now)
 var _gap := ""  # 고른 것의 칸에 공병 지시를 맡을 공병이 없는 이유(I128). _engineer_gap이 _gap_for 칸에서 _gap_at(ms)에 쟀다
 var _gap_for := []
 var _gap_at := 0
@@ -152,23 +161,51 @@ func _ready() -> void:
 	_eng.position = Vector2(0, 12)
 	_eng.size = Vector2(20, 11)
 	tip.add(e, func(): return ["공병", "", "", "놀고 있는 공병 %d · 전체 %d — 누르면 놀고 있는 공병에게 카메라가 간다" % [_idle().size(), battle.units.filter(func(u): return u.kind == "engineer").size()], ""])
-	for i in battle.HIRE.lineup:  # 영웅 칸: 윗줄 «F1 이름», 아랫줄 스킬 버튼 넷(I129)
+	for i in battle.HIRE.lineup:  # 영웅 칸: 초상 24×24, 스킬 칸 18×18 넷, 그 아래 체력·마나 막대(I129). 좌표는 임시값(ui_research 4.3)
 		var cell := _cell("hero%d" % i, Control.new())
-		var who := _text(cell, 8, HudTheme.TEXT)
-		who.position = Vector2(1, 0)
-		who.size = Vector2(102, 11)
-		var buttons := {}
+		cell.draw.connect(func(): _empty_slot(cell, i))
+		var face := _bar_button(cell, "", func(): controls.pick_hero(i))
+		face.size = Vector2(24, 24)
+		var row := {"pic": _pic(face, null, Vector2(22, 22))}
+		row.pic.position = Vector2(1, 1)
+		var key := _text(face, 7, HudTheme.ACCENT)
+		key.text = "F%d" % (i + 1)
+		key.position = Vector2(1, -1)
+		key.size = Vector2(12, 8)
+		row.lv = _text(face, 7, HudTheme.TEXT)
+		row.lv.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		row.lv.position = Vector2(12, 16)
+		row.lv.size = Vector2(11, 8)
+		tip.add(face, func(): return _hero_tip(i))
+		portraits.append(face)
+		var cells_of := {}
 		for j in battle.SLOTS.size():
 			var slot: String = battle.SLOTS[j]
-			var sb := _bar_button(cell, "", func(): controls.skill_for(battle.heroes[i] if i < battle.heroes.size() else null, slot))
-			sb.add_theme_font_size_override("font_size", 8)
-			sb.clip_text = true  # 칸 글이 길어도 칸 크기를 넘지 않는다
-			sb.position = Vector2(26 * j, 11)
-			sb.size = Vector2(25, 13)
+			var sb := SkillCell.new()
+			cell.add_child(sb)
+			sb.position = Vector2(25 + 19 * j, 0)
+			sb.pressed.connect(func(): _skill_press(i, slot))
 			sb.gui_input.connect(func(ev): _auto_click(ev, i, slot))
-			buttons[slot] = sb
 			tip.add(sb, func(): return _skill_tip(i, slot))
-		_hero_rows.append([cell, who, buttons])
+			cells_of[slot] = sb
+		slots.append(cells_of)
+		for k in ["hp", "mp"]:
+			var back := ColorRect.new()
+			back.color = HudTheme.CELL
+			back.position = Vector2(25, 19 if k == "hp" else 22)
+			back.size = Vector2(75, 2)
+			cell.add_child(back)
+			row[k] = ColorRect.new()
+			row[k].size = back.size
+			back.add_child(row[k])
+		row.mp.color = MANA
+		row.down = _text(cell, 9, HudTheme.DANGER)
+		row.down.text = "쓰러짐"
+		row.down.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		row.down.position = Vector2(25, 0)
+		row.down.size = Vector2(75, 18)
+		_rows.append(row)
+	controls.hero_key.connect(_tap)
 	_make_progress()
 	var menu := _cell("menu", _bar_button(bar, "", func(): menu_pressed.emit()))
 	_pic(menu, HudBuild.dots(MENU), Vector2(8, 7)).position = Vector2(4, 8)
@@ -180,10 +217,6 @@ func _ready() -> void:
 	_hold = _button(root, "", controls.toggle_hold)
 	tip.add(_mode, func(): return ["이동 방식", "A", "", "이동 중 공격 ↔ 무조건 이동", ""])
 	tip.add(_hold, func(): return ["홀드", "H", "", "켜면 기준 지점 반경 안의 적만 친다", ""])
-	_heroes.position = Vector2(340, 30)  # 영웅 칸 아래, 안내 줄과 토스트 사이
-	_heroes.add_theme_font_size_override("font_size", 8)
-	_heroes.add_theme_color_override("font_color", HudTheme.DIM)
-	root.add_child(_heroes)
 	_hint.position = Vector2(134, 30)  # 띠 바로 아래. 조준·놓기 안내
 	root.add_child(_hint)
 	# 윗변과 너비를 고정해 아래로만 자란다. 영입·리롤·내보내기로 줄이 바뀌어도 위의 버튼이 움직이지 않게(I136)
@@ -241,6 +274,7 @@ func _ready() -> void:
 	root.add_child(tip)  # 맨 위에 그린다(I162)
 
 func _process(delta: float) -> void:
+	_now += delta
 	var prep: bool = battle.state == "prep"
 	var on: bool = battle.state in ["prep", "battle"]
 	var round_no: int = battle.round_index + 1
@@ -723,46 +757,84 @@ func _quest_lines() -> Array:
 			out.append("%s: %s (+%d골드)" % [pair[0], q.text, q.reward] + ("" if battle.quest_met(pair[1]) else " — 실패"))
 	return out
 
-# 출전 영웅 칸(I129, I151): 윗줄 «F1 아이아스», 아랫줄 스킬 버튼 넷. 쓰러졌으면 버튼 없이 «F1 아이아스 쓰러짐».
-# 전투 단계가 아니면 아래에 «— 스킬은 전투 단계에만»(S136)
+# 출전 영웅 칸(I129, I151): 준비·전투 단계에 칸 셋이 늘 보이고, 빈 칸은 점선 테두리다. 초상(체력 LOW 밑이면 빨간 맥박, 쓰러지면 회색)·레벨,
+# 스킬 칸 상태, 체력·마나 막대. 쓰러졌으면 스킬 칸 대신 «쓰러짐». 준비 단계 스킬 칸의 모래시계가 «스킬은 전투 단계에만»을 대신한다(S136)
 func _show_heroes() -> void:
 	var on: bool = battle.state in ["prep", "battle"]
-	for i in _hero_rows.size():
-		var row: Array = _hero_rows[i]
-		var h = battle.heroes[i] if on and i < battle.heroes.size() else null
-		row[0].visible = h != null
-		if h == null:
+	for i in _rows.size():
+		var row: Dictionary = _rows[i]
+		var cell: Control = cells["hero%d" % i]
+		var h = battle.heroes[i] if i < battle.heroes.size() else null
+		cell.visible = on
+		cell.queue_redraw()
+		for n in cell.get_children():
+			n.visible = h != null
+		if not on or h == null:
 			continue
+		if not _faces.has(h.kind):
+			_faces[h.kind] = HudBuild.icon(h.kind)
+		row.pic.texture = _faces[h.kind]
+		var pulse := 0.5 + 0.5 * sin(_now * TAU * 2.0)
+		row.pic.modulate = Color(0.4, 0.4, 0.4) if not h.alive else Color.WHITE.lerp(HudTheme.DANGER, pulse) if h.hp < h.max_hp * LOW else Color.WHITE
+		row.lv.text = str(h.level)
+		var r: float = clampf(h.hp / h.max_hp, 0.0, 1.0)
+		row.hp.size.x = 75.0 * r
+		row.hp.color = HudTheme.DANGER if r < 0.25 else HudBuild.WARN if r < 0.5 else HudTheme.GOOD
+		row.mp.size.x = 75.0 * clampf(h.mana / maxf(h.max_mana, 1.0), 0.0, 1.0)
+		row.down.visible = not h.alive
 		for slot in battle.SLOTS:
-			row[2][slot].visible = h.alive
-		row[1].text = "F%d %s%s" % [i + 1, HEROES[h.kind].get_slice("(", 0), "" if h.alive else " 쓰러짐"]
-		for slot in battle.SLOTS:
-			var st: Array = _slot_state(h, slot)
-			row[2][slot].text = st[0]
-			row[2][slot].modulate.a = 0.4 if st[1] else 1.0
-	_heroes.visible = on and not battle.heroes.is_empty() and battle.state != "battle"
-	_heroes.text = "— 스킬은 전투 단계에만"
+			slots[i][slot].visible = h.alive
+			slots[i][slot].show_state(_slot_state(h, slot))
+
+# 빈 출전 칸은 점선 테두리로 자리를 지킨다(I129)
+func _empty_slot(cell: Control, i: int) -> void:
+	if i < battle.heroes.size():
+		return
+	var r := Rect2(Vector2(0.5, 0.5), cell.size - Vector2.ONE)
+	var corners := [r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)]
+	for k in 4:
+		cell.draw_dashed_line(corners[k], corners[(k + 1) % 4], HudTheme.LINE, 1.0, 3.0)
+
+# 초상 툴팁(I129): 이름(역할)·F키, 레벨·체력·마나 수치. 쓰러졌으면 빨간 줄에 돌아오는 때(I28·I93)
+func _hero_tip(i: int) -> Array:
+	var h = battle.heroes[i]
+	var back := "" if h.alive else "쓰러짐 — " + ("다음 준비 단계에 복귀" if battle.revive else "다음 라운드에 복귀")
+	return [HEROES[h.kind], "F%d" % (i + 1), "", "Lv%d · 체력 %d/%d · 마나 %d/%d\n누르면 고름 · 두 번이면 카메라" %[h.level, ceili(h.hp), ceili(h.max_hp), floori(h.mana), ceili(h.max_mana)], back]
+
+# F키·초상을 DOUBLE초 안에 두 번 누르면 카메라가 그 영웅에게 간다(I165, I164)
+func _tap(i: int) -> void:
+	var again: bool = _now - _taps.get(i, -INF) <= DOUBLE
+	_taps[i] = -INF if again else _now
+	if again and i < battle.heroes.size():
+		_focus(battle.heroes[i].pos)
+
+# 스킬 칸 좌클릭(I151): 그 칸 키와 같다. 준비 단계이거나 마나가 모자라면 거부 표시와 토스트(I163)
+func _skill_press(i: int, slot: String) -> void:
+	if i >= battle.heroes.size():
+		return
+	var h = battle.heroes[i]
+	var sk: Dictionary = h.get(slot)
+	var why := ""
+	if battle.state != "battle":
+		why = "스킬은 전투 단계에만"
+	elif h.level >= battle.LEVELS.unlock[slot] and h.mana < sk.mana:
+		why = "마나 %d 더 필요" % ceili(sk.mana - h.mana)
+	if why != "":
+		slots[i][slot].reject()
+		toasts.push(why)
+	controls.skill_for(h, slot)
 
 # 스킬 버튼 우클릭: 그 칸의 자동 시전을 켜고 끈다(S158, I151)
 func _auto_click(e: InputEvent, i: int, slot: String) -> void:
 	if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_RIGHT and e.pressed and i < battle.heroes.size():
 		battle.toggle_auto(battle.heroes[i], slot)
 
-# 칸 하나의 버튼 글과 흐리게 할지(I129): 칸 글자에 조준 중 «▶», 켜진 토글 «+», 재사용 대기(올림한 초), 자동 시전 «*»를 붙인다.
-# 열리기 전이거나 마나가 모자라면 흐리게
-func _slot_state(h, slot: String) -> Array:
+# 칸 하나의 상태(I151, skill_cell.gd의 show_state)
+func _slot_state(h, slot: String) -> Dictionary:
 	var sk: Dictionary = h.get(slot)
-	var key := slot.to_upper()
-	if h.level < battle.LEVELS.unlock[slot]:
-		return [key, true]
-	var text := key
-	if controls.aiming == slot and controls.aim_hero == h:
-		text = "▶" + key
-	elif h.toggle and sk.aim == "toggle":
-		text = key + "+"
-	elif h.cd[slot] > 0.0:
-		text = key + str(ceili(h.cd[slot]))
-	return [text + ("*" if h.auto and sk.get("auto", false) else ""), h.mana < sk.mana]
+	return {"letter": slot.to_upper(), "cd": h.cd[slot], "gap": sk.gap, "mana": h.mana < sk.mana, "lock": h.level < battle.LEVELS.unlock[slot],
+		"auto": h.auto and sk.get("auto", false), "aim": controls.aiming == slot and controls.aim_hero == h, "on": h.toggle and sk.get("aim") == "toggle",
+		"prep": battle.state == "prep", "now": _now}
 
 # 4.0 → «4», 1.5 → «1.5»
 func _num(x: float) -> String:

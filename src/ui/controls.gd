@@ -18,6 +18,8 @@ const CLICK_SLOP := 4.0  # 이보다 덜 끌고 떼면 클릭이다(맵 px)
 const SKILL_KEYS := {KEY_Q: "q", KEY_W: "w", KEY_E: "e", KEY_R: "r"}  # 영웅 스킬 칸(S145)
 const PLACE_KEYS := {KEY_1: "wall", KEY_2: "tower", KEY_MINUS: "magic", KEY_3: "soldier", KEY_4: "barracks", KEY_5: "engineer", KEY_6: "workshop", KEY_7: "archer", KEY_8: "cannon", KEY_9: "archery", KEY_0: "house", KEY_EQUAL: "church"}
 
+signal hero_key(i: int)  # 출전 영웅 i를 F키나 초상으로 골랐다. HUD가 두 번 누름을 잰다(I165)
+
 var battle
 var cell_px: int
 var selected := []
@@ -67,10 +69,8 @@ func handle(event: InputEvent) -> void:
 				toggle_hold()
 			KEY_V:
 				show_hp = not show_hp
-			KEY_F1, KEY_F2, KEY_F3:  # 쓰러진 영웅은 고르지 않는다. 우클릭이 집결 지점 대신 영웅을 옮기게 시설 선택을 푼다
-				var i: int = event.keycode - KEY_F1
-				selected = battle.heroes.slice(i, i + 1).filter(func(h): return h.alive)
-				facility = null
+			KEY_F1, KEY_F2, KEY_F3:
+				pick_hero(event.keycode - KEY_F1)
 			KEY_ESCAPE:
 				placing = ""
 				moving = null
@@ -144,6 +144,12 @@ func _release(rect: Rect2, at: Vector2) -> void:
 		var built: Array = battle.structures.values().filter(func(s): return inside.call(Vector2(s.cell)))
 		selling = (selected + built) if prep else []
 		picked = [] if prep else built
+
+# 출전 영웅 i를 고른다(I108). F키와 HUD 초상(I165)이 부른다. 쓰러진 영웅은 고르지 않는다. 우클릭이 집결 지점 대신 영웅을 옮기게 시설 선택을 푼다
+func pick_hero(i: int) -> void:
+	selected = battle.heroes.slice(i, i + 1).filter(func(h): return h.alive)
+	facility = null
+	hero_key.emit(i)
 
 # 거점을 고른다. 거점 칸을 좌클릭한 것과 같다(S100). 건설 격자의 마을 레벨로 잠긴 칸이 해결 길로 부른다(I132)
 func pick_base() -> void:

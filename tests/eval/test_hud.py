@@ -76,3 +76,15 @@ def test_EV337_wave_preview_ui(gd):
 
 def test_EV338_progress_focus_nearest_enemy(gd):
     gd("hud", "EV338")
+
+
+def test_EV339_skill_cell_states(gd):
+    gd("hud", "EV339")
+
+
+def test_EV340_hero_double_tap_camera(gd):
+    gd("hud", "EV340")
+
+
+def test_EV341_hero_cells_fixed_and_down(gd):
+    gd("hud", "EV341")

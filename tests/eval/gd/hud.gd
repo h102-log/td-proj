@@ -17,6 +17,9 @@ extends "res://tests/eval/gd/save.gd"
 #   main.hud.skull — 진행 칸의 보스 해골(CanvasItem, S188)
 #   main.hud.edges — 아래 가장자리 표식 층(Control, S188). 보이는 자식 하나가 표식 하나이고 그 안 Label에 수가 있다
 #   battle.spawn_counts(라운드, 웨이브) — 출현 지점(battle.spawns 차례)마다 {적 종류: 수}(S188). 라운드·웨이브는 0부터
+#   main.hud.portraits — 출전 칸 차례마다 영웅 초상(BaseButton, I129·I165). 누르면 그 영웅을 고른다
+#   main.hud.slots — 출전 칸 차례마다 {"q"·"w"·"e"·"r": 스킬 칸(BaseButton, I151)}. 버튼 글은 쓸 수 있으면 칸 글자(«Q»), 재사용 대기면 보이는 칸 글에 올림한 초.
+#     self_modulate: 마나 부족 (0.5,0.5,1) · 잠김 (0.4,0.4,0.4) · 그 밖 흰색. 스킬 칸.lock — 자물쇠(CanvasItem). 잠겼을 때만 보인다
 # 커서는 화면(640×360) 좌표의 InputEventMouseMotion으로 옮긴다. 빈 맵 자리는 (320,300)이다
 
 const EMPTY := Vector2(320, 300)
@@ -834,4 +837,118 @@ func ev338():
 	gauge.pressed.emit()
 	var out := _focused(main, near.pos * 16 + Vector2(8, 8))
 	_done(main)
+	return out
+
+# 칸의 보이는 글: 버튼 글과 보이는 자식 Label
+func _shown(c) -> String:
+	return " ".join([c.text] + _labels(c))
+
+# EV339 · I151: 준비 단계 Q는 칸 글자·흰색, 잠긴 R은 어둡고 자물쇠(«Lv» 글 없음), Q를 누르면 «전투 단계에만» 토스트,
+# 재사용 대기면 올림한 초, 마나가 모자라면 파란 틴트
+func ev339():
+	var main = _prep()
+	var slots = main.hud.get("slots")
+	if not slots is Array or slots.is_empty() or not slots[0] is Dictionary or not slots[0].get("q") is BaseButton \
+			or not slots[0].get("r") is BaseButton or not slots[0]["r"].get("lock") is CanvasItem:
+		_done(main)
+		return "main.hud.slots[0]의 q·r 스킬 칸이나 칸의 lock이 없다"
+	var h = main.view.battle.heroes[0]
+	var q: BaseButton = slots[0]["q"]
+	var r: BaseButton = slots[0]["r"]
+	main.hud._process(0.0)
+	var out := ""
+	if q.text != "Q" or not q.self_modulate.is_equal_approx(Color.WHITE):
+		out = "준비 단계 Q 칸 글이 «%s», self_modulate가 %s다(기대 «Q»·흰색)" % [q.text, q.self_modulate]
+	elif not r.self_modulate.is_equal_approx(Color(0.4, 0.4, 0.4)) or not r.lock.is_visible_in_tree() or "Lv" in _shown(r):
+		out = "Lv%d 영웅의 R 칸: self_modulate %s · 자물쇠 %s · 글 «%s»(기대 (0.4,0.4,0.4)·보임·«Lv» 없음)" % [h.level, r.self_modulate, r.lock.is_visible_in_tree(), _shown(r)]
+	if out == "":
+		main.hud.toasts._process(3.6)  # 미션 토스트가 막 떠서 3.5초 줄을 선다(I163)
+		q.pressed.emit()
+		out = check(_toasts(main).any(func(t): return "전투 단계에만" in t), "준비 단계에 Q 칸을 누른 뒤 토스트가 %s다" % [_toasts(main)])
+	if out == "":
+		h.cd["q"] = 3.2
+		main.hud._process(0.0)
+		var s := _shown(q)
+		out = check("4" in s and not "3" in s, "재사용 대기 3.2초인 Q 칸 글이 «%s»다(기대 «4», «3» 없음)" % s)
+	if out == "":
+		h.cd["q"] = 0.0
+		h.mana = 0.0
+		main.hud._process(0.0)
+		out = check(q.self_modulate.is_equal_approx(Color(0.5, 0.5, 1.0)), "마나 0인 Q 칸 self_modulate가 %s다(기대 (0.5,0.5,1))" % q.self_modulate)
+	_done(main)
+	return out
+
+# EV340 · I165: F1을 0.6초 간격으로 두 번 넣으면 카메라가 그대로이고, 0.4초 안에 두 번이면 첫 영웅에게 간다. 초상을 누르면 그 영웅을 고르고, 두 번이면 카메라가 간다
+func ev340():
+	var main = _prep()
+	var b = main.view.battle
+	var faces = main.hud.get("portraits")
+	if not faces is Array or faces.size() < 2 or not faces[1] is BaseButton:
+		_done(main)
+		return "main.hud.portraits가 없다"
+	var cam = _cam(main)
+	cam.zoom_at(2 - cam.level, Vector2(320, 180))
+	_away(main)
+	var at: Vector2 = cam.position
+	_key(KEY_F1)
+	main.hud._process(0.6)
+	_key(KEY_F1)
+	var out := ""
+	if not cam.position.is_equal_approx(at) or main.controls.selected != [b.heroes[0]]:
+		out = "F1을 0.6초 간격으로 두 번: 카메라 %s → %s, 고른 것 %s(기대 그대로·첫 영웅)" % [at, cam.position, main.controls.selected]
+	if out == "":
+		main.hud._process(0.3)
+		_key(KEY_F1)
+		out = _focused(main, b.heroes[0].pos * 16 + Vector2(8, 8))
+	if out == "":
+		_away(main)
+		faces[1].pressed.emit()
+		out = check(main.controls.selected == [b.heroes[1]], "둘째 초상을 누르자 고른 것이 %s다" % [main.controls.selected])
+	if out == "":
+		main.hud._process(0.2)
+		faces[1].pressed.emit()
+		out = _focused(main, b.heroes[1].pos * 16 + Vector2(8, 8))
+	_done(main)
+	return out
+
+# EV341 · I129: 출전 1·2·3명 모두 영웅 칸 셋이 같은 자리에 보이고 초상은 출전 수만큼이다. 쓰러진 영웅 칸에 «쓰러짐», 스킬 칸은 숨는다
+func ev341():
+	var out := ""
+	for n in [1, 2, 3]:
+		var main = _game()
+		var b = main.view.battle
+		b.gold = BIG
+		for i in 3:
+			b.hire(i)
+		for h in b.roster.slice(n):
+			b.set_lineup(h, false)
+		b.next_round()
+		_frame(main)
+		var cells = main.hud.get("cells")
+		var faces = main.hud.get("portraits")
+		var slots = main.hud.get("slots")
+		if not cells is Dictionary or not faces is Array or faces.size() != 3 or not slots is Array or slots.size() != 3:
+			out = "main.hud.cells·portraits·slots가 없거나 칸이 셋이 아니다"
+		elif b.heroes.size() != n:
+			out = "출전 %d명으로 두었는데 전장 영웅이 %d명이다" % [n, b.heroes.size()]
+		for i in 3:
+			if out != "":
+				break
+			var k := "hero%d" % i
+			var r: Rect2 = cells[k].get_global_rect()
+			if not cells[k].is_visible_in_tree() or r.position.distance_to(BAR[k].position) > 0.5 or r.size.distance_to(BAR[k].size) > 0.5:
+				out = "출전 %d명: %s 칸 %s · 보임 %s(기대 %s)" % [n, k, r, cells[k].is_visible_in_tree(), BAR[k]]
+			elif faces[i].is_visible_in_tree() != (i < n):
+				out = "출전 %d명: %d번 초상 보임이 %s다" % [n, i, faces[i].is_visible_in_tree()]
+		if out == "" and n == 2:
+			b.start_battle()
+			b.damage(b.heroes[0], BIG, "true")
+			main.hud._process(0.0)
+			var seen := " ".join(_labels(cells.hero0))
+			var shown: Array = slots[0].values().filter(func(s): return s.is_visible_in_tree())
+			if b.heroes[0].alive or not "쓰러짐" in seen or not shown.is_empty():
+				out = "쓰러진 첫 영웅 칸: 살아 있음 %s · 글 «%s» · 보이는 스킬 칸 %d" % [b.heroes[0].alive, seen, shown.size()]
+		_done(main)
+		if out != "":
+			break
 	return out
