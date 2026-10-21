@@ -28,6 +28,7 @@ extends "res://tests/eval/gd/save.gd"
 #     토스트 칸(main.hud.toasts의 보이는 자식)은 자리가 있으면 gui_input에 왼쪽 버튼 누름을 넣어 누른다(I163)
 #   main.hud.window — 결과·영입 창(Control, S117·I136). 그 안의 보이는 BaseButton이 창 버튼(«리롤…»·«다음 라운드…»)이다 · main.hud.dim — 띠 아래 맵 덮개(ColorRect)
 #   main.hud.hints — 처음 하는 사람 힌트 칸(Control, S191). 그 안의 보이는 Label이 힌트 글이고, «건너뛰기» 버튼이 있다
+#     hints.axis — 튜토리얼 축 이름(Label, S192). 글이 «시설»·«용병»·«영웅»이다
 #   res://src/settings.gd — static var hints(힌트 켬, S184) · hints_done(끝낸 힌트 이름 Array: build·start·move·buy·keep, I166). ESC 메뉴 설정 화면에 켜고 끄는 버튼 «힌트»
 # 커서는 화면(640×360) 좌표의 InputEventMouseMotion으로 옮긴다. 빈 맵 자리는 (320,300)이다
 
@@ -1872,7 +1873,7 @@ func _hint_says(main) -> String:
 	var h = main.hud.hints
 	return " ".join(_labels(h)) if h.is_visible_in_tree() else ""
 
-# EV356 · S191: 준비 단계 [4,300,200,40]에 «짓는다» 힌트가 뜨고, 보이기 전에 해낸 영웅 이동은 끝난 것으로 치며, 지으면 «전투 시작»으로 바뀌고, 전투가 시작되면 숨는다
+# EV356 · S191: 준비 단계 [4,300,200,40]에 «짓는다» 힌트가 뜨고, 보이기 전에 해낸 영웅 이동은 끝난 것으로 치며, 지으면 «거점», 거점을 누르면 «전투 시작»으로 바뀌고, 전투가 시작되면 숨는다
 func ev356():
 	var st = _hints_reset()
 	var main = _prep()
@@ -1901,8 +1902,14 @@ func ev356():
 		else:
 			_frame(main)
 			said = _hint_says(main)
-			if not "전투 시작" in said:
-				out = "타워를 지은 뒤 힌트 글 «%s»(기대: «전투 시작»)" % said
+			if not "거점" in said:
+				out = "타워를 지은 뒤 힌트 글 «%s»(기대: «거점»)" % said
+	if out == "":
+		click(main.controls, MOUSE_BUTTON_LEFT, px(b.base.cell))
+		_frame(main)
+		said = _hint_says(main)
+		if not "keep" in st.hints_done or not "전투 시작" in said:
+			out = "거점을 누른 뒤 끝낸 힌트 %s · 글 «%s»(기대: keep이 있고 «전투 시작»)" % [st.hints_done, said]
 	var f = b.build("barracks", Vector2i(4, 4)) if out == "" else null
 	if out == "" and f == null:
 		out = "준비 단계에 마을 (4,4)에 병영을 짓지 못했다"
@@ -1914,9 +1921,7 @@ func ev356():
 	if out == "":
 		b.recruit(f, "soldier")
 		_frame(main)
-		click(main.controls, MOUSE_BUTTON_LEFT, px(b.base.cell))
-		_frame(main)
-		out = check("buy" in st.hints_done and "keep" in st.hints_done, "전투 단계에 용병을 사고 거점을 누른 뒤 끝낸 힌트 %s(기대: buy·keep이 있다)" % [st.hints_done])
+		out = check("buy" in st.hints_done, "전투 단계에 용병을 산 뒤 끝낸 힌트 %s(기대: buy가 있다)" % [st.hints_done])
 	_done(main)
 	_hints_reset()
 	return out
@@ -1935,15 +1940,15 @@ func ev357():
 	else:
 		_frame(main)
 		var said := _hint_says(main)
-		if not "전투 시작" in said:
-			out = "«건너뛰기» 뒤 힌트 글 «%s»(기대: «전투 시작»)" % said
+		if not "거점" in said:
+			out = "«건너뛰기» 뒤 힌트 글 «%s»(기대: «거점»)" % said
 	_done(main)
 	if out == "":
 		st.hints_done = []
 		st.load_file()
 		main = _prep()
 		var said := _hint_says(main)
-		out = check("build" in st.hints_done and not "짓는다" in said and "전투 시작" in said, "다시 읽은 뒤 새 게임의 끝낸 힌트 %s · 글 «%s»(기대: build가 있고 «짓는다» 없이 «전투 시작»)" % [st.hints_done, said])
+		out = check("build" in st.hints_done and not "짓는다" in said and "거점" in said, "다시 읽은 뒤 새 게임의 끝낸 힌트 %s · 글 «%s»(기대: build가 있고 «짓는다» 없이 «거점»)" % [st.hints_done, said])
 		_done(main)
 	_hints_reset()
 	return out
@@ -1985,7 +1990,100 @@ func ev358():
 		_press(main, "계속")
 		_frame(main)
 		var said := _hint_says(main)
-		out = check(box != null and "전투 시작" in said, "«힌트»를 다시 켠 뒤 힌트 글 «%s»(기대: «전투 시작»)" % said)
+		out = check(box != null and "거점" in said, "«힌트»를 다시 켠 뒤 힌트 글 «%s»(기대: «거점»)" % said)
+	_done(main)
+	_hints_reset()
+	return out
+
+# EV368 · S192: 1라운드 웨이브마다 그 웨이브의 축 단계만 보이고(앞 웨이브에서 남은 단계는 넘어오지 않는다), 2·3웨이브 전투 단계에는 전투 단계용 단계가 보인다
+func ev368():
+	var st = _hints_reset()
+	var main = _prep()
+	var b = main.view.battle
+	var hud = main.hud
+	if not hud.get("hints") is Control or not hud.hints.get("axis") is Label:
+		_done(main)
+		_hints_reset()
+		return "main.hud.hints.axis가 없다"
+	var out := check(hud.hints.axis.text == "시설", "1웨이브 준비 단계 축 이름 «%s»(기대: «시설»)" % hud.hints.axis.text)
+	if out == "":
+		b.start_battle()
+		if not clear_wave(b):
+			out = "1웨이브를 끝내지 못했다"
+		else:
+			_frame(main)
+			var said := _hint_says(main)
+			if b.state != "prep" or b.wave_index != 1 or not "병영" in said or hud.hints.axis.text != "용병":
+				out = "1웨이브 뒤(단계 %s, 웨이브 %d) 힌트 글 «%s» · 축 «%s»(기대: 2웨이브 준비 단계, «병영», «용병»)" % [b.state, b.wave_index + 1, said, hud.hints.axis.text]
+	var f = b.build("barracks", Vector2i(4, 4)) if out == "" else null
+	if out == "" and f == null:
+		out = "2웨이브 준비 단계에 마을 (4,4)에 병영을 짓지 못했다"
+	if out == "":
+		if b.place_merc("soldier", Vector2i(10, 14)) == null:
+			out = "2웨이브 준비 단계에 (10,14)에 용병을 놓지 못했다"
+		else:
+			_frame(main)
+			if hud.hints.is_visible_in_tree() or not "merc" in st.hints_done:
+				out = "용병을 놓은 뒤 힌트 칸 보임 %s · 끝낸 힌트 %s(기대: 숨고 merc가 있다)" % [hud.hints.is_visible_in_tree(), st.hints_done]
+	if out == "":
+		b.start_battle()
+		_frame(main)
+		var r: Rect2 = hud.hints.get_global_rect()
+		var said := _hint_says(main)
+		if b.state != "battle" or r != Rect2(4, 300, 200, 40) or not "3·5·7" in said:
+			out = "2웨이브 전투 단계(단계 %s) 힌트 칸 %s · 글 «%s»(기대: [4,300,200,40], «3·5·7»)" % [b.state, r, said]
+	if out == "":
+		b.recruit(f, "soldier")
+		_frame(main)
+		if hud.hints.is_visible_in_tree():
+			out = "전투 중 용병을 산 뒤 힌트 칸이 보인다 · 글 «%s»" % _hint_says(main)
+	if out == "":
+		if not clear_wave(b):
+			out = "2웨이브를 끝내지 못했다"
+		else:
+			_frame(main)
+			var said := _hint_says(main)
+			if b.state != "prep" or b.wave_index != 2 or not "우클릭" in said or hud.hints.axis.text != "영웅":
+				out = "2웨이브 뒤(단계 %s, 웨이브 %d) 힌트 글 «%s» · 축 «%s»(기대: 3웨이브 준비 단계, «우클릭», «영웅»)" % [b.state, b.wave_index + 1, said, hud.hints.axis.text]
+	if out == "":
+		b.start_battle()
+		_frame(main)
+		var said := _hint_says(main)
+		if not "스킬" in said:
+			out = "3웨이브 전투 단계 힌트 글 «%s»(기대: «스킬»)" % said
+	if out == "":
+		var h = b.heroes[0]
+		var aim = h if h.q.aim == "ally" else h.pos + Vector2(1, 0)
+		if not b.cast(h, "q", aim):
+			out = "첫 출전 영웅이 Q(%s)를 쓰지 못했다" % h.q.aim
+		else:
+			_frame(main)
+			out = check(not hud.hints.is_visible_in_tree() and "skill" in st.hints_done, "Q를 쓴 뒤 힌트 칸 보임 %s · 끝낸 힌트 %s(기대: 숨고 skill이 있다)" % [hud.hints.is_visible_in_tree(), st.hints_done])
+	_done(main)
+	_hints_reset()
+	return out
+
+# EV369 · S192: 2라운드부터는 끝내지 않은 단계가 있어도 힌트 칸이 보이지 않는다
+func ev369():
+	_hints_reset()
+	var main = _prep()
+	var b = main.view.battle
+	var hud = main.hud
+	if not hud.get("hints") is Control:
+		_done(main)
+		_hints_reset()
+		return "main.hud.hints가 없다"
+	var out := ""
+	if not _win(b) or not b.next_round():
+		out = "1라운드를 이기고 2라운드로 가지 못했다(단계 %s)" % b.state
+	if out == "":
+		_frame(main)
+		if hud.hints.is_visible_in_tree():
+			out = "2라운드 준비 단계에 힌트 칸이 보인다 · 글 «%s»" % _hint_says(main)
+	if out == "":
+		b.start_battle()
+		_frame(main)
+		out = check(b.state == "battle" and not hud.hints.is_visible_in_tree(), "2라운드 전투 단계(단계 %s)에 힌트 칸 보임 %s · 글 «%s»" % [b.state, hud.hints.is_visible_in_tree(), _hint_says(main)])
 	_done(main)
 	_hints_reset()
 	return out

@@ -184,3 +184,11 @@ def test_EV365_keep_art_selects_base(gd):
 
 def test_EV366_hire_gold_note(gd):
     gd("hud", "EV366")
+
+
+def test_EV368_tutorial_waves(gd):
+    gd("hud", "EV368")
+
+
+def test_EV369_tutorial_round_one_only(gd):
+    gd("hud", "EV369")
