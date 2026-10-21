@@ -199,15 +199,13 @@ static func _cross() -> TextureRect:
 	r.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	return r
 
-# 칸을 놓을 수 없는 이유(I132, I128): 마을 레벨(S99), 전투 단계의 공병, 전투 단계의 용병(S81), 준비 단계에 그 용병의 시설이 없음(S50). 놓을 수 있으면 ""
+# 칸을 놓을 수 없는 이유(I132, I128): 마을 레벨(S99), 전투 단계의 공병, 그 용병의 시설이 없음(준비 단계 S50, 전투 단계 S81). 놓을 수 있으면 ""
 func _lock(kind: String) -> String:
 	if kind in battle.STRUCTURE_KINDS:
 		var need: int = battle.STRUCTURE_KINDS[kind].village_level
 		if need > battle.village_level:
 			return "마을 Lv%d 필요" % need
 		return "놀고 있는 공병 없음" if _none else ""
-	if battle.state == "battle":
-		return "시설에서 구매"
 	if battle.can_buy(kind):
 		return ""
 	for s in battle.STRUCTURE_KINDS:  # 그 용병을 파는 시설
@@ -215,11 +213,16 @@ func _lock(kind: String) -> String:
 			return "%s 없음" % hud.NAMES[s]
 	return ""
 
-# 칸을 누름: 놓을 수 있으면 놓기 모드를 켜고 끈다. 못 놓으면 테두리를 번쩍이고, 준비 단계의 마을 레벨 잠금이면 거점을 고른다(해결 길, I132)
+# 칸을 누름: 놓을 수 있으면 놓기 모드를 켜고 끈다. 전투 단계 용병 칸은 용병 키와 같다(S81).
+# 못 놓으면 테두리를 번쩍이고, 준비 단계의 마을 레벨 잠금이면 거점을 고른다(해결 길, I132)
 func _press(kind: String) -> void:
 	var why := _lock(kind)
-	if why == "":
+	if battle.state == "battle" and kind in battle.MERC_KINDS:
+		controls.merc_key(kind, Input.is_key_pressed(KEY_SHIFT))
+	elif why == "":
 		controls.placing = "" if controls.placing == kind else kind
+		return
+	if why == "":
 		return
 	_flash[kind] = FLASH
 	if why.begins_with("마을 Lv") and battle.state == "prep":
@@ -262,10 +265,10 @@ func _picked() -> Array:
 			return [THINGS.get(t.kind, hud.NAMES.get(t.kind, t.kind)), "", "", hud.info_lines[0], "체력 %d/%d" % [ceili(t.hp), ceili(t.max_hp)], hud.info_lines[1]]  # 팝업 버튼의 설명·이유(I124, I128, I132, I140)
 	return []
 
-# 정보 칸: 칸 호버 > 놓기 중 > 고른 것. 빈 줄은 숨기고 위로만 자란다. 카메라가 맨 아래면 격자 왼쪽 맵 밖 띠에 아래로 붙인다(S186)
+# 정보 칸: 칸 호버 > 놓기 중 > 시설 없는 용병 키(S81) > 고른 것. 빈 줄은 숨기고 위로만 자란다. 카메라가 맨 아래면 격자 왼쪽 맵 밖 띠에 아래로 붙인다(S186)
 func _show_info() -> void:
 	var kind = cells.find_key(get_viewport().gui_get_hovered_control())
-	var v: Array = _lines(kind) if kind else _lines(controls.placing) if controls.placing != "" else _picked()
+	var v: Array = _lines(kind) if kind else _lines(controls.placing) if controls.placing != "" else _lines(controls.missing) if controls.missing != "" else _picked()
 	info.visible = not v.is_empty()
 	if v.is_empty():
 		return

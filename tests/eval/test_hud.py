@@ -108,3 +108,11 @@ def test_EV345_popup_no_paren_tails(gd):
 
 def test_EV346_demolish_confirm(gd):
     gd("hud", "EV346")
+
+
+def test_EV347_merc_key_picks_and_buys(gd):
+    gd("hud", "EV347")
+
+
+def test_EV348_merc_key_next_and_missing(gd):
+    gd("hud", "EV348")
