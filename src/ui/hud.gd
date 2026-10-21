@@ -11,14 +11,15 @@ extends CanvasLayer
 # 결과 창의 버튼만 키보드 포커스를 받는다. 창이 열리면 «1라운드 시작»·«다음 라운드»·«새 도전»에 포커스가 간다(I12, I110)
 # 출전 영웅 칸마다 초상(누르면 고르기, 두 번이면 카메라, I165)·그림 상태 스킬 칸(좌클릭은 쓰기, 우클릭은 자동 시전, I151, skill_cell.gd)·체력·마나 막대와 쓰러짐(I129)을,
 # 화면 오른쪽 가장자리에 고른 용병의 이동 방식·홀드 태그(그림이 상태, 상태 글은 툴팁, I139)를 보인다.
-# 눌리지 않는 공병 지시 버튼에는 이유를 붙인다(I128)
-# 위 띠의 조작에는 툴팁을 단다(S187, I162). 테마는 hud_theme.gd
+# 맵 위 팝업은 고른 칸의 바깥쪽 모서리에 HUD 사각형을 피해 뜨고(I58, I137), 버튼 줄은 정해져 있다. 철거는 두 번 눌러 확정한다(S74).
+# 눌리지 않는 팝업 버튼은 어둡게 하고 이유는 툴팁·정보 칸의 빨간 줄이다(I123, I124, I128, I140). 놓기 중 닿는 공병이 없는 칸은 빨간 ✕와 안내 줄(I128)
+# 위 띠의 조작과 팝업 버튼에는 툴팁을 단다(S187, I162). 테마는 hud_theme.gd
 # 준비 단계에 화면 밖 출현 지점은 아래 가장자리에 그 지점 적 수 표식을 둔다(S188)
 
 const NAMES := {"wall": "방벽", "tower": "타워", "magic": "마법 타워", "soldier": "용병", "barracks": "병영", "engineer": "공병", "workshop": "작업장", "archer": "궁수", "cannon": "대포", "archery": "사격장", "house": "집", "church": "교회"}
 const HEROES := {"aias": "아이아스(탱커)", "sylvia": "실비아(원거리)", "seraphina": "세라피나(힐러)", "vesper": "베스퍼(디버퍼)", "ignis": "이그니스(마법사)", "chronos": "크로노스(버퍼)"}  # 이름(역할), S97·S157
 const GRADES := ["1성", "2성", "3성"]  # S94
-const GAPS := {"none": " (공병 없음)", "far": " (닿는 공병 없음)"}  # 공병 지시를 맡을 공병이 없는 이유(I128)
+const GAPS := {"none": "공병 없음", "far": "닿는 공병 없음"}  # 공병 지시를 맡을 공병이 없는 이유(I128). 툴팁·정보 칸의 빨간 줄(✕는 그 줄이 붙인다)
 const SKILLS := {  # 영웅마다 Q·W·E·R의 [이름, 요약](S97 표). 툴팁(S187)이 쓴다
 	"aias": [["방패 강타", "부채꼴 기절"], ["전장의 포효", "도발·보호막"], ["반격의 태세", "감소 뒤 충격파"], ["절대 방어선", "에너지 성벽"]],
 	"sylvia": [["관통의 바람살", "직선 관통"], ["돌풍 갈래살", "토글 4명 사격"], ["폭풍의 덫", "속박·치명타"], ["천공의 화살비", "처형"]],
@@ -53,6 +54,13 @@ const SHIELD := ["..........", "..########", "..#oooooo#", "..#oooooo#", "..#ooo
 const MOVE_TIPS := ["이동 중 공격\n가는 길의 적을 친다", "무조건 이동\n가는 길의 적을 지나친다", "이동 방식 섞임\n누르면 모두 무조건 이동"]  # A 태그 툴팁(I139). 툴팁 폭 160이라 줄을 나눈다
 const HOLD_TIPS := ["홀드 끔\n켜면 기준 지점 반경 안의 적만 친다", "홀드 켬\n기준 지점 반경 안의 적만 친다", "홀드 섞임\n누르면 모두 켠다"]
 const HOLD_LOOK := [Color(0.4, 0.4, 0.4), Color.WHITE, Color(0.7, 0.7, 0.7)]  # 홀드 방패 밝기: 끔·켬·섞임
+const HAMMER := [".#####.", ".#####.", "...#...", "...#...", "...#...", "...#..."]  # 팝업 완성·수리(I58)
+const UP := ["..#..", ".###.", "#####", ".###.", ".###."]  # 팝업 업그레이드(I58)
+const TOP := Rect2(0, 0, 640, 30)  # 팝업이 피하는 위 띠(I137)
+const POP_GAP := 2.0  # 팝업과 고른 칸 사이(I58)
+const CONFIRM := 2.0  # 철거를 다시 눌러 확정하는 초(S74 임시값)
+const REFUSE_MARK := 0.5  # 닿는 공병이 없는 칸의 빨간 ✕ 초(I128 임시값)
+const REFUSE_HINT := 1.5  # 그때 안내 줄을 «✕ 닿는 공병 없음»으로 바꾸는 초(I128 임시값)
 const ENEMIES := {"basic": "기본", "fast": "빠름", "armored": "장갑", "flying": "비행", "boss": "보스"}  # S106
 const TRAITS := {"fast": "성벽을 오른다", "flying": "길을 무시한다", "armored": "받는 피해를 줄인다", "boss": "성벽을 뚫고 온다"}  # S107·S109·S108, 보스는 wall_k 0.3
 const SIDES := ["왼쪽", "가운데", "오른쪽"]  # ponytail: 출현 지점 이름은 시험 스테이지(왼쪽부터 셋) 차례다. 지점이 다른 맵이 생기면 x로 이름을 정한다
@@ -97,8 +105,15 @@ var _ok := {}  # 이번 라운드 미션·의뢰 이름 → 지난 프레임에 
 var _eng_next := -1  # 공병 칸을 누를 때 다음에 갈 놀고 있는 공병 차례
 var _dot := HudBuild.dots(DOT)
 var _cross := HudBuild.dots(HudBuild.CROSS)
-var _hint := Label.new()
-var _popup := HBoxContainer.new()  # 판매·완성·구매·철거·이어 짓기·취소 버튼. 클릭하거나 드래그를 놓은 지점 옆에 뜬다
+var hint := Label.new()  # 놓기·조준 안내 줄(S147)
+var popup := VBoxContainer.new()  # 맵 위 팝업(I58). 줄(HBox)마다 정해진 버튼. 고른 칸(클릭하거나 드래그를 놓은 지점의 칸) 바깥쪽 모서리에 뜬다
+var info_lines := ["", ""]  # 정보 칸 «고른 것»에 덧붙일 [설명, 빨간 이유](I124, I128, I132, I140). hud_build가 읽는다
+var _why := {}  # 팝업 버튼 → 못 누르는 이유(툴팁 빨간 줄)
+var _opens := ""  # 마을 레벨 버튼: 그 레벨에 열리는 시설(I132)
+var _arm := -INF  # 철거를 처음 누른 때(S74)
+var _arm_on := []  # 그때 고른 구조물. 고른 것이 바뀌면 첫 클릭부터 다시
+var _refused := [Vector2i.ZERO, -INF]  # 닿는 공병이 없어 거부된 놓기 칸과 그때(I128)
+var _mark := Control.new()  # 그 칸의 빨간 ✕를 그린다
 var _sell: Button
 var _finish: Button
 var _buy := {}  # 용병 kind → 구매 버튼
@@ -240,8 +255,9 @@ func _ready() -> void:
 		tags.append(t)
 	tip.add(tags[0], func(): return ["이동 방식", "A", "", _tag_tips[0], ""])
 	tip.add(tags[1], func(): return ["홀드", "H", "", _tag_tips[1], ""])
-	_hint.position = Vector2(134, 30)  # 띠 바로 아래. 조준·놓기 안내
-	root.add_child(_hint)
+	hint.position = Vector2(134, 30)  # 띠 바로 아래. 조준·놓기 안내
+	root.add_child(hint)
+	controls.refused.connect(func(cell): _refused = [cell, _now])
 	# 윗변과 너비를 고정해 아래로만 자란다. 영입·리롤·내보내기로 줄이 바뀌어도 위의 버튼이 움직이지 않게(I136)
 	# ponytail: 창이 위 띠(S185) 가운데를 덮는다. 띠 아래(y 34)로 내리면 보유 5명·의뢰 2개 창이 화면 아래로 25 넘친다. 두 칸 배치로 줄이는 11단계에서 내린다
 	_result.set_anchors_preset(Control.PRESET_CENTER_TOP)
@@ -275,22 +291,33 @@ func _ready() -> void:
 	_next = _window_button(box, proceed)
 	grid = HudBuild.new(self)
 	root.add_child(grid)
-	root.add_child(_popup)
-	_sell = _button(_popup, "", _sell_now)
-	_finish = _button(_popup, "완성", func(): _apply(battle.finish, battle.unfinished(controls.selling)))
+	_mark.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_mark.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_mark.draw.connect(_draw_refused)
+	root.add_child(_mark)
+	root.add_child(popup)
+	var rows := []  # 1줄 판매·완성·구매·공병 지시·마을 레벨·업그레이드·수리·복구, 2줄 성문, 그 아래 영웅마다 치료(I58)
+	for i in 2 + battle.HIRE.lineup:
+		rows.append(HBoxContainer.new())
+		popup.add_child(rows[i])
+	var coin := HudBuild.dots(COIN, {"#": HudTheme.ACCENT, "o": Color("b08a3a")})
+	var hammer := HudBuild.dots(HAMMER, {"#": HudTheme.TEXT})
+	_sell = _pop(rows[0], _sell_now, "판매", coin)
+	_finish = _pop(rows[0], func(): _apply(battle.finish, battle.unfinished(controls.selling)), "완성", hammer)
 	for kind in battle.MERC_KINDS:
-		_buy[kind] = _button(_popup, "", func(): battle.recruit(controls.facility, kind))
-	_demolish = _button(_popup, "철거", func(): _apply(func(s): battle.demolish([s]), controls.picked))
-	_move = _button(_popup, "옮기기", _start_move)
-	_resume = _button(_popup, "이어 짓기", func(): _apply(battle.resume, battle.unfinished(controls.picked)))
-	_cancel = _button(_popup, "취소", func(): _apply(battle.cancel, battle.unfinished(controls.picked)))
-	_gate = _button(_popup, "", func(): battle.set_gate(controls.fort, not controls.fort.open))
-	_upgrade = _button(_popup, "", func(): battle.upgrade(controls.fort))
-	_repair = _button(_popup, "", func(): _apply(battle.repair, _to_repair()))
-	_restore = _button(_popup, "", func(): battle.restore(controls.fort))
-	_village = _button(_popup, "", func(): battle.raise_village())
+		_buy[kind] = _pop(rows[0], func(): battle.recruit(controls.facility, kind), NAMES[kind] + " 구매", HudBuild.icon(kind))
+	_demolish = _pop(rows[0], _demolish_press, "철거")
+	_move = _pop(rows[0], _start_move, "옮기기")
+	_resume = _pop(rows[0], func(): _apply(battle.resume, battle.unfinished(controls.picked)), "이어 짓기")
+	_cancel = _pop(rows[0], func(): _apply(battle.cancel, battle.unfinished(controls.picked)), "취소")
+	_village = _pop(rows[0], func(): battle.raise_village(), "마을 레벨 올리기")
+	_upgrade = _pop(rows[0], func(): battle.upgrade(controls.fort), "업그레이드", HudBuild.dots(UP, {"#": HudTheme.ACCENT}))
+	_repair = _pop(rows[0], func(): _apply(battle.repair, _to_repair()), "수리", hammer)
+	_restore = _pop(rows[0], func(): battle.restore(controls.fort), "복구")
+	_gate = _pop(rows[1], func(): battle.set_gate(controls.fort, not controls.fort.open), "성문")
 	for i in battle.HIRE.lineup:
-		_heal.append(_button(_popup, "", func(): battle.heal(battle.heroes[i])))
+		_heal.append(_pop(rows[2 + i], func(): battle.heal(battle.heroes[i]), "치료"))
 	_make_edges(root)
 	toasts.tip = tip
 	root.add_child(toasts)
@@ -328,12 +355,17 @@ func _process(delta: float) -> void:
 		_tag_pics[0].texture = _move_tex[m]
 		_tag_pics[1].modulate = HOLD_LOOK[h]
 		_tag_tips = [MOVE_TIPS[m], HOLD_TIPS[h]]
-	_hint.visible = controls.placing != "" or controls.moving != null or controls.aiming != ""
-	_hint.text = "%s 놓기: 좌클릭 · 끝내기: 우클릭·ESC" % NAMES.get(controls.placing, "")
+	hint.visible = controls.placing != "" or controls.moving != null or controls.aiming != ""
+	hint.text = "%s 놓기: 좌클릭 · 끝내기: 우클릭·ESC" % NAMES.get(controls.placing, "")
+	var refusing: bool = _now - _refused[1] < REFUSE_HINT
+	if refusing:  # 닿는 공병이 없어 거부된 놓기(I128)
+		hint.text = "✕ 닿는 공병 없음"
+	hint.self_modulate = HudTheme.DANGER if refusing else Color.WHITE
+	_mark.queue_redraw()
 	if controls.moving:
-		_hint.text = "대포 옮길 칸: 좌클릭 · 끝내기: 우클릭·ESC"
+		hint.text = "대포 옮길 칸: 좌클릭 · 끝내기: 우클릭·ESC"
 	if controls.aiming != "":  # 조준 중(S147)
-		_hint.text = "%s %s 대상: 좌클릭 · 취소: 우클릭·ESC" % [HEROES[controls.aim_hero.kind].get_slice("(", 0), controls.aiming.to_upper()]
+		hint.text = "%s %s 대상: 좌클릭 · 취소: 우클릭·ESC" % [HEROES[controls.aim_hero.kind].get_slice("(", 0), controls.aiming.to_upper()]
 	_show_heroes()
 	_result.visible = battle.state in ["hiring", "cleared", "won", "lost"]
 	_result_label.text = {"hiring": "도전 시작 — 영웅 영입", "cleared": "%d라운드 승리" % round_no, "won": "도전 성공!", "lost": "%d라운드 패배 — 도전 끝" % round_no}.get(battle.state, "")
@@ -351,14 +383,15 @@ func _process(delta: float) -> void:
 		_show_hire()
 	if not prep or controls.placing != "":  # 전투가 시작되거나 놓기 모드에 들어가면 판매 팝업을 닫는다(I58)
 		controls.selling = []
+	_why.clear()
 	_sell.visible = not controls.selling.is_empty()
-	_sell.text = "판매 +%d골드" % controls.selling.reduce(func(n, t): return n + battle.refund(t), 0)
+	_sell.text = "판매 +%d" % controls.selling.reduce(func(n, t): return n + battle.refund(t), 0)
 	_finish.visible = not battle.unfinished(controls.selling).is_empty()
 	if controls.facility and not controls.facility.alive:  # 파괴되거나 팔린 시설
 		controls.facility = null
 	for kind in _buy:
 		_buy[kind].visible = battle.state == "battle" and controls.facility != null and kind in controls.facility.produces
-		_buy[kind].text = "%s 구매 %d골드" % [NAMES[kind], battle.MERC_KINDS[kind].cost]
+		_buy[kind].text = "%s %d" % [NAMES[kind], battle.MERC_KINDS[kind].cost]
 	if battle.state != "battle" or controls.placing != "":
 		controls.picked = []
 	controls.picked = controls.picked.filter(func(s): return s.alive)  # 부서지거나 허물거나 취소된 것은 뺀다
@@ -371,49 +404,61 @@ func _process(delta: float) -> void:
 		controls.fort = null
 	var k = controls.fort
 	var live: bool = k != null and k.alive
-	# 공병 지시 버튼(철거·옮기기·이어 짓기·업그레이드·수리·복구)은 고른 것의 칸에 맡을 공병이 없으면 끄고 이유를 붙인다(I128)
+	# 공병 지시 버튼(철거·옮기기·이어 짓기·업그레이드·수리·복구)은 고른 것의 칸에 맡을 공병이 없으면 끄고, 이유는 툴팁·정보 칸에(I128)
 	var gap: String = GAPS.get(_engineer_gap((controls.picked + ([k] if k else []) + ([battle.base] if controls.village else [])).map(func(t): return t.cell)), "")
-	_demolish.text = "철거" + gap
-	_move.text = "옮기기" + gap
-	_resume.text = "이어 짓기" + gap
+	var armed: bool = _now - _arm < CONFIRM and controls.picked == _arm_on  # 이 대상의 철거를 한 번 눌렀다(S74)
+	_demolish.text = "철거?" if armed else "철거"
+	for key in ["font_color", "font_hover_color"]:
+		if armed:
+			_demolish.add_theme_color_override(key, HudTheme.DANGER)
+		else:
+			_demolish.remove_theme_color_override(key)
 	for b in [_demolish, _move, _resume, _upgrade, _repair]:
 		b.disabled = gap != ""
+		_why[b] = gap
 	_gate.visible = live and k.kind == "gate" and battle.state in ["prep", "battle"]
-	if _gate.visible:  # 쿨타임 중이면 누르지 못하고 남은 초를 올림해 붙인다(I123). 성문 칸에 누가 있어 못 닫으면 «(칸 막힘)»(I124)
+	if _gate.visible:  # 쿨타임 중이면 누르지 못하고 남은 초를 올림해 붙인다(I123). 성문 칸에 누가 있어 못 닫으면 어둡게(I124)
 		var stuck: bool = k.open and battle.occupied(k.cell)
-		_gate.text = ("닫기" if k.open else "열기") + (" (%d초)" % ceili(k.lock) if k.lock > 0.0 else "") + (" (칸 막힘)" if stuck else "")
+		_gate.text = ("닫기" if k.open else "열기") + (" %d초" % ceili(k.lock) if k.lock > 0.0 else "")
 		_gate.disabled = k.lock > 0.0 or stuck
+		_why[_gate] = "칸 막힘" if stuck else "%d초 뒤에 여닫는다" % ceili(k.lock) if k.lock > 0.0 else ""
 	# 공병이 올리는 중이면 숨긴다. 그만둔 업그레이드는 «계속»으로 골드 없이 이어 올린다(I68)
 	_upgrade.visible = live and battle.state in ["prep", "battle"] and k.level < battle.UPGRADE_MAX and k.worker == null
 	if _upgrade.visible:
-		_upgrade.text = ("업그레이드 계속" if k.lift >= 0.0 else "업그레이드 %d골드" % battle.upgrade_cost(k)) + gap
+		_upgrade.text = "업그레이드 계속" if k.lift >= 0.0 else "업그레이드 %d" % battle.upgrade_cost(k)
 	if controls.placing != "":
 		controls.village = false
 	_village.visible = controls.village and prep and battle.village_level <= battle.VILLAGE_UP.size()
-	if _village.visible:  # 그 레벨에 열리는 시설 이름을 붙인다(I132)
+	_opens = ""
+	if _village.visible:  # 그 레벨에 열리는 시설 이름은 툴팁·정보 칸에(I132)
 		var opens: Array = battle.STRUCTURE_KINDS.keys().filter(func(s): return battle.STRUCTURE_KINDS[s].village_level == battle.village_level + 1).map(func(s): return NAMES[s])
-		_village.text = "마을 레벨 %d로 올리기 %d골드" % [battle.village_level + 1, battle.VILLAGE_UP[battle.village_level - 1]] + ("" if opens.is_empty() else " — " + ", ".join(opens))
+		_village.text = "마을 Lv%d %d" % [battle.village_level + 1, battle.VILLAGE_UP[battle.village_level - 1]]
+		_opens = "" if opens.is_empty() else "Lv%d에 %s" % [battle.village_level + 1, ", ".join(opens)]
 	var fix := _to_repair()
 	_repair.visible = not fix.is_empty()
 	if _repair.visible:
-		_repair.text = "수리 %d골드" % fix.reduce(func(n, t): return n + battle.repair_cost(t), 0) + gap
+		_repair.text = "수리 %d" % fix.reduce(func(n, t): return n + battle.repair_cost(t), 0)
 	_restore.visible = k != null and battle.rubble.get(k.cell) == k and k.worker == null and battle.state in ["prep", "battle"]
 	if _restore.visible:  # 잔해 칸에 누가 있으면 복구하지 못한다(I124)
 		var blocked: bool = battle.occupied(k.cell)
-		_restore.text = "복구 %d골드" % battle.repair_cost(k) + (" (칸 막힘)" if blocked else "") + gap
+		_restore.text = "복구 %d" % battle.repair_cost(k)
 		_restore.disabled = blocked or gap != ""
-	# 고른 교회의 치료 버튼(S137): 살아 있고 깎인 출전 영웅마다. 전투 단계에는 끄고 이유를 붙인다(I140)
+		_why[_restore] = "칸 막힘" if blocked else gap
+	# 고른 교회의 치료 버튼(S137): 살아 있고 깎인 출전 영웅마다. 전투 단계에는 끄고 이유는 툴팁·정보 칸에(I140)
 	var church: bool = (controls.selling + controls.picked).any(func(s): return s.kind == "church")
 	for i in _heal.size():
 		var h = battle.heroes[i] if i < battle.heroes.size() else null
 		_heal[i].visible = church and h != null and h.alive and h.hp < h.max_hp
 		if _heal[i].visible:
-			_heal[i].text = "%s 치료 %d골드" % [HEROES[h.kind].get_slice("(", 0), battle.heal_cost(h)] + ("" if prep else " (준비 단계에만)")
+			_heal[i].text = "%s %d" % [HEROES[h.kind].get_slice("(", 0), battle.heal_cost(h)]
+			_heal[i].icon = _faces.get(h.kind)
 			_heal[i].disabled = not prep
-	_popup.reset_size()
-	# 맵 px → 화면 좌표. 전투 화면(BattleView)이 맵 SubViewport 원점에 있고, SubViewport는 HUD와 같은 기준 해상도 좌표라 그 카메라 변환만 곱한다. 화면 밖으로 나가면 안으로 당긴다(I137)
-	var at: Vector2 = map.get_canvas_transform() * controls.sell_at + Vector2(6, 6)
-	_popup.position = at.clamp(Vector2.ZERO, get_viewport().get_visible_rect().size - _popup.size)
+			_why[_heal[i]] = "" if prep else "준비 단계에만"
+	var shown: Array = _why.keys().filter(func(b): return b.visible and _why[b] != "")
+	info_lines = [_opens, _why[shown[0]] if not shown.is_empty() else ""]
+	for r in popup.get_children():
+		r.visible = r.get_children().any(func(b): return b.visible)
+	_place_popup()
 
 # 키보드 포커스를 받지 않는다. 받으면 Enter·Space가 맵 대신 마지막에 누른 버튼을 누른다
 func _button(parent: Control, text: String, on_press: Callable) -> Button:
@@ -424,6 +469,52 @@ func _button(parent: Control, text: String, on_press: Callable) -> Button:
 		b.pressed.connect(on_press)
 	parent.add_child(b)
 	return b
+
+# 맵 위 팝업 버튼(I58): 아이콘(10px 안) + 짧은 글 + 비용. 툴팁은 이름과 못 누르는 이유이고 팝업 전체 아래에 뜬다(S187)
+func _pop(row: Control, on_press: Callable, name: String, icon: Texture2D = null) -> Button:
+	var b := _button(row, "", on_press)
+	b.icon = icon
+	b.add_theme_constant_override("icon_max_width", 10)
+	b.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	tip.add(b, func(): return [name, "", "", _opens if b == _village else "", "✕ " + _why[b] if _why.get(b, "") != "" else ""], popup)
+	return b
+
+# 철거(S74): 첫 클릭은 «철거?», 같은 대상을 고른 채 CONFIRM초 안에 다시 누르면 철거한다
+func _demolish_press() -> void:
+	if _now - _arm < CONFIRM and controls.picked == _arm_on:
+		_arm = -INF
+		_apply(func(s): battle.demolish([s]), controls.picked)
+	else:
+		_arm = _now
+		_arm_on = controls.picked.duplicate()
+
+# 팝업을 고른 칸의 바깥쪽(화면 가운데 반대편) 모서리에 붙인다(I58). 화면 밖이거나 위 띠·건설 격자·정보 칸·태그와 겹치면
+# 좌우·위아래·둘 다 뒤집은 모서리를 차례로 본다(I137). 맵 px → 화면은 맵 SubViewport의 카메라 변환이다(HUD와 같은 기준 해상도)
+func _place_popup() -> void:
+	popup.reset_size()
+	var t := map.get_canvas_transform()
+	var cell: Rect2 = t * Rect2((controls.sell_at / BattleView.CELL).floor() * BattleView.CELL, Vector2.ONE * BattleView.CELL)
+	var screen := Rect2(Vector2.ZERO, get_viewport().get_visible_rect().size)
+	var away := (cell.get_center() - screen.get_center()).sign()
+	var avoid: Array = [TOP, grid.get_global_rect(), grid.info_box()] + tags.filter(func(g): return g.visible).map(func(g): return g.get_global_rect())
+	var s := popup.size
+	for flip in [Vector2(1, 1), Vector2(-1, 1), Vector2(1, -1), Vector2(-1, -1)]:
+		var d: Vector2 = away * flip
+		var r := Rect2(cell.end.x + POP_GAP if d.x >= 0 else cell.position.x - POP_GAP - s.x, cell.end.y + POP_GAP if d.y >= 0 else cell.position.y - POP_GAP - s.y, s.x, s.y)
+		if screen.encloses(r) and not avoid.any(func(h): return h.intersects(r)):
+			popup.position = r.position
+			return
+	# 들어맞는 모서리가 없으면 화면 안·위 띠 아래로 당기고, 오른쪽에 붙은 격자·정보 칸·태그와 겹치면 그 왼쪽으로 민다
+	var at := (cell.end + Vector2(POP_GAP, POP_GAP)).clamp(Vector2(0, TOP.end.y), screen.size - s)
+	for h in avoid.slice(1):
+		if h.intersects(Rect2(at, s)):
+			at.x = h.position.x - POP_GAP - s.x
+	popup.position = at
+
+# 닿는 공병이 없어 거부된 놓기 칸의 빨간 ✕(I128)
+func _draw_refused() -> void:
+	if _now - _refused[1] < REFUSE_MARK:
+		_mark.draw_texture_rect(_cross, map.get_canvas_transform() * Rect2(Vector2(_refused[0]) * BattleView.CELL, Vector2.ONE * BattleView.CELL), false, HudTheme.DANGER)
 
 # 위 띠의 칸 버튼: 안쪽 여백이 없어 좌표로 준 크기를 넘지 않는다
 func _bar_button(parent: Control, text: String, on_press: Callable) -> Button:

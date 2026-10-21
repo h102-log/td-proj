@@ -92,3 +92,19 @@ def test_EV341_hero_cells_fixed_and_down(gd):
 
 def test_EV342_situation_tags(gd):
     gd("hud", "EV342")
+
+
+def test_EV343_popup_avoids_hud(gd):
+    gd("hud", "EV343")
+
+
+def test_EV344_popup_far_engineer(gd):
+    gd("hud", "EV344")
+
+
+def test_EV345_popup_no_paren_tails(gd):
+    gd("hud", "EV345")
+
+
+def test_EV346_demolish_confirm(gd):
+    gd("hud", "EV346")

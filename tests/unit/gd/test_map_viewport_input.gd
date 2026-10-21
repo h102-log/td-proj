@@ -103,8 +103,11 @@ func test_sell_popup_opens_next_to_drag_release_point():
 	_button(MOUSE_BUTTON_LEFT, q, false)
 	main.hud._process(0.0)
 	var selected: Array = main.controls.selected
-	var at: Vector2 = main.hud._popup.position
+	var r: Rect2 = main.hud.popup.get_global_rect()
+	var t: Transform2D = main.hud.map.get_canvas_transform()
+	var cell: Rect2 = t * Rect2(((t.affine_inverse() * q) / 16).floor() * 16, Vector2(16, 16))  # 놓은 지점의 칸(화면)
 	main.free()
 	if selected != [merc]:
 		return "용병을 둘러 끌었는데 고른 것이 %s다" % [selected]
-	return "" if at.is_equal_approx(q + Vector2(6, 6)) else "판매 팝업이 %s에 떴다(기대: 놓은 지점 %s 옆 %s)" % [at, q, q + Vector2(6, 6)]
+	# 놓은 지점의 칸 모서리에 붙고(간격 3 안) 그 칸을 가리지 않는다(I58)
+	return "" if r.size.x > 0 and not r.intersects(cell) and r.grow(3).intersects(cell) else "판매 팝업 %s가 놓은 지점 %s의 칸 %s 모서리에 붙지 않았다" % [r, q, cell]

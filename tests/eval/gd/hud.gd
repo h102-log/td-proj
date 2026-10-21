@@ -21,6 +21,9 @@ extends "res://tests/eval/gd/save.gd"
 #   main.hud.slots — 출전 칸 차례마다 {"q"·"w"·"e"·"r": 스킬 칸(BaseButton, I151)}. 버튼 글은 쓸 수 있으면 칸 글자(«Q»), 재사용 대기면 보이는 칸 글에 올림한 초.
 #     self_modulate: 마나 부족 (0.5,0.5,1) · 잠김 (0.4,0.4,0.4) · 그 밖 흰색. 스킬 칸.lock — 자물쇠(CanvasItem). 잠겼을 때만 보인다
 #   main.hud.tags — 상황 태그 [A, H](BaseButton, I139). 버튼 글은 없고, 안의 첫 TextureRect가 상태 그림이다(텍스처·modulate)
+#   main.hud.popup — 맵 위 팝업(Control, I58). 그 안의 보이는 BaseButton이 팝업 버튼이고, 못 누르는 버튼은 disabled다
+#   main.hud.hint — 놓기·조준 안내 줄(Label, S147·I128)
+#   main.hud.map — 맵 SubViewport. get_canvas_transform()이 맵 px → 화면 좌표다
 # 커서는 화면(640×360) 좌표의 InputEventMouseMotion으로 옮긴다. 빈 맵 자리는 (320,300)이다
 
 const EMPTY := Vector2(320, 300)
@@ -275,7 +278,7 @@ func ev323():
 	if out == "":
 		archery.pressed.emit()
 		main.hud._process(0.0)
-		var up = _starts(main.hud, "마을 레벨 2로")
+		var up = _starts(main.hud, "마을 Lv2")
 		g._process(0.2)
 		var red_early := _red(archery)
 		g._process(0.2)
@@ -291,8 +294,8 @@ func ev323():
 		main.hud._process(0.0)
 		g._process(0.0)
 		s = _tip_text(g.info)
-		if _starts(main.hud, "마을 레벨") != null or not "준비 단계에" in s:
-			out = "전투 단계에 사격장 칸을 누른 뒤 마을 레벨 버튼 %s · 정보 칸 «%s»" % [_starts(main.hud, "마을 레벨"), s]
+		if _starts(main.hud, "마을 Lv") != null or not "준비 단계에" in s:
+			out = "전투 단계에 사격장 칸을 누른 뒤 마을 레벨 버튼 %s · 정보 칸 «%s»" % [_starts(main.hud, "마을 Lv"), s]
 	_done(main)
 	return out
 
@@ -1029,5 +1032,225 @@ func ev342():
 		c.selected = []
 		main.hud._process(0.0)
 		out = check(not tags[0].is_visible_in_tree() and not tags[1].is_visible_in_tree(), "용병을 놓았는데 태그가 보인다")
+	_done(main)
+	return out
+
+# 팝업 안의 보이는 버튼
+func _pops(main) -> Array:
+	return main.hud.popup.find_children("*", "BaseButton", true, false).filter(func(n): return n.is_visible_in_tree())
+
+# 맵 칸의 화면 사각형
+func _screen_cell(main, cell: Vector2i) -> Rect2:
+	return main.hud.map.get_canvas_transform() * Rect2(Vector2(cell) * CELL_PX, Vector2(CELL_PX, CELL_PX))
+
+# 팝업 버튼 b에 커서를 0.25초 두었을 때 툴팁 빨간 줄 글. 숨어 있으면 ""
+func _pop_why(main, btn) -> String:
+	_layout(main)
+	_fresh(main.hud.tip, btn)
+	main.hud.tip._process(0.25)
+	var r = main.hud.tip.reason
+	return r.text if main.hud.tip.visible and r.is_visible_in_tree() else ""
+
+# EV343 · I137: 화면 네 구석(오른쪽 아래는 건설 격자 왼쪽)과 정보 칸 바로 위의 용병을 누르면 판매 팝업이 화면 안에 뜨고
+# 위 띠·건설 격자·정보 칸·태그·고른 칸 사각형과 겹치지 않는다
+func ev343():
+	var main = _prep()
+	if not main.hud.get("popup") is Control:
+		_done(main)
+		return "main.hud.popup이 없다"
+	var b = main.view.battle
+	var c = main.controls
+	var hud = main.hud
+	var cam = _cam(main)  # 1배 줌, 화면이 맵 [0,0,640,360]을 보이게
+	cam.zoom_at(-1, Vector2(320, 180))
+	cam.position = Vector2(320, 180)
+	cam.force_update_scroll()
+	var out := ""
+	# 네 구석(오른쪽 아래는 건설 격자 왼쪽), 정보 칸 위·안, 태그 왼쪽, 화면 가운데 왼쪽 위(팝업이 바깥쪽 = 왼쪽 위에 붙는지도 본다)
+	for s in [Vector2(24, 40), Vector2(616, 40), Vector2(24, 344), Vector2(500, 344), Vector2(600, 220), Vector2(600, 248), Vector2(568, 190), Vector2(200, 120)]:
+		var cell := Vector2i((hud.map.get_canvas_transform().affine_inverse() * s / CELL_PX).floor())
+		var m = b.place_merc("soldier", cell)
+		if m == null:
+			out = "화면 %s 칸 %s에 용병을 놓지 못했다" % [s, cell]
+			break
+		click(c, MOUSE_BUTTON_LEFT, px(cell))
+		_frame(main)
+		hud.grid._process(0.0)
+		var r: Rect2 = hud.popup.get_global_rect()
+		var avoid := {"위 띠": Rect2(0, 0, 640, 30), "건설 격자": Rect2(510, 288, 130, 72), "고른 칸": _screen_cell(main, cell)}
+		if hud.grid.info.is_visible_in_tree():
+			avoid["정보 칸"] = hud.grid.info.get_global_rect()
+		for i in hud.tags.size():
+			if hud.tags[i].is_visible_in_tree():
+				avoid["태그 %d" % i] = hud.tags[i].get_global_rect()
+		if _pops(main).is_empty():
+			out = "화면 %s의 용병을 눌렀는데 팝업 버튼이 없다(판매 후보 %s)" % [s, c.selling]
+		elif not Rect2(0, 0, 640, 360).encloses(r):
+			out = "화면 %s의 용병 팝업 %s가 화면 밖으로 나간다" % [s, r]
+		for k in avoid:
+			if out == "" and avoid[k].intersects(r):
+				out = "화면 %s의 용병 팝업 %s가 %s %s와 겹친다" % [s, r, k, avoid[k]]
+		if out == "" and s == Vector2(200, 120) and (r.end.x > avoid["고른 칸"].position.x or r.end.y > avoid["고른 칸"].position.y):
+			out = "화면 가운데 왼쪽 위 용병의 팝업 %s가 고른 칸 %s의 왼쪽 위(바깥쪽)에 있지 않다" % [r, avoid["고른 칸"]]
+		if out != "":
+			break
+		b.sell([m])
+		_frame(main)
+	_done(main)
+	return out
+
+# EV344 · I128: 성문이 닫혀 마을 안 공병이 들판에 닿지 못하는 전투 단계에서 들판 타워의 철거 버튼은 어둡고 괄호 글이 없으며,
+# 이유 «닿는 공병 없음»은 툴팁과 정보 칸의 빨간 줄에 있다. 그때 놓기 모드로 들판 빈 칸을 누르면 안내 줄이 1.5초 «닿는 공병 없음»이다
+func ev344():
+	var main = _prep()
+	var hud = main.hud
+	if not hud.get("popup") is Control or not hud.get("hint") is Label:
+		_done(main)
+		return "main.hud.popup·hint가 없다"
+	var b = main.view.battle
+	var c = main.controls
+	var e = b.place_merc("engineer", Vector2i(10, 4))  # 마을. 성문은 닫힌 채 시작한다(I67)
+	var t = b.build("tower", Vector2i(10, 14))
+	if e == null or t == null:
+		_done(main)
+		return "준비 단계에 공병(%s)이나 타워(%s)를 놓지 못했다" % [e, t]
+	b.start_battle()
+	_frame(main)
+	click(c, MOUSE_BUTTON_LEFT, px(t.cell))
+	_frame(main)
+	var gone = _button(hud.popup, "철거")
+	var out := ""
+	if b.engineer_gap([t.cell]) != "far":
+		out = "준비가 틀렸다: 타워 칸의 공병 사정이 «%s»다(«far»여야 한다)" % b.engineer_gap([t.cell])
+	elif gone == null or not gone.disabled:
+		out = "닿는 공병이 없는데 «철거» 버튼이 %s다(눌림 %s)" % [gone, gone != null and not gone.disabled]
+	elif _pops(main).any(func(n): return "(" in n.text):
+		out = "팝업 버튼 글에 괄호가 있다: %s" % [_pops(main).map(func(n): return n.text)]
+	if out == "":
+		var said := _pop_why(main, gone)
+		hud.grid._process(0.0)
+		var info: String = hud.grid.reason.text if hud.grid.reason.is_visible_in_tree() else ""
+		if not "닿는 공병 없음" in said or not "닿는 공병 없음" in info:
+			out = "철거 버튼 툴팁 빨간 줄 «%s» · 정보 칸 빨간 줄 «%s»(둘 다 «닿는 공병 없음»이어야 한다)" % [said, info]
+	if out == "":
+		c.picked = []
+		_key(KEY_2)
+		click(c, MOUSE_BUTTON_LEFT, px(Vector2i(12, 14)))
+		hud._process(0.0)
+		var now: String = hud.hint.text if hud.hint.is_visible_in_tree() else ""
+		hud._process(1.6)
+		if c.placing != "tower" or b.structures.has(Vector2i(12, 14)) or not "닿는 공병 없음" in now or "닿는 공병 없음" in hud.hint.text:
+			out = "놓기 모드 «%s» · 지어짐 %s · 누른 직후 안내 줄 «%s» · 1.6초 뒤 «%s»" % [c.placing, b.structures.has(Vector2i(12, 14)), now, hud.hint.text]
+	_done(main)
+	return out
+
+# EV345 · I124: 막힌 성문의 «닫기», 쿨타임 중인 성문 버튼(I123), 전투 단계의 교회 치료 버튼(I140)은 어둡고 글에 괄호가 없으며 이유는 툴팁 빨간 줄에 있다
+func ev345():
+	var main = _prep()
+	var hud = main.hud
+	if not hud.get("popup") is Control:
+		_done(main)
+		return "main.hud.popup이 없다"
+	var b = main.view.battle
+	var c = main.controls
+	var g = b.castle[Vector2i(20, 9)]  # 정문
+	b.set_gate(g, true)
+	var m = b.place_merc("soldier", g.cell)
+	var church = b.build("church", Vector2i(5, 4))
+	var h = b.heroes[0]
+	b.damage(h, 10, "true")
+	if not g.open or m == null or church == null or h.hp >= h.max_hp:
+		_done(main)
+		return "준비가 틀렸다: 정문 열림 %s · 정문 위 용병 %s · 교회 %s · 영웅 체력 %s/%s" % [g.open, m, church, h.hp, h.max_hp]
+	var out := ""
+	click(c, MOUSE_BUTTON_LEFT, px(g.cell))
+	_frame(main)
+	var shut = _button(hud.popup, "닫기")
+	if shut == null or not shut.disabled or _pops(main).any(func(n): return "(" in n.text):
+		out = "용병이 선 열린 정문 팝업: «닫기» %s · 눌림 %s · 글 %s" % [shut, shut != null and not shut.disabled, _pops(main).map(func(n): return n.text)]
+	elif not "칸 막힘" in _pop_why(main, shut):
+		out = "막힌 «닫기» 툴팁 빨간 줄이 «%s»다" % _pop_why(main, shut)
+	if out == "":
+		b.sell([m])
+		b.start_battle()
+		b.set_gate(g, false)
+		c.fort = null
+		click(c, MOUSE_BUTTON_LEFT, px(g.cell))
+		_frame(main)
+		var want := "열기 %d초" % ceili(g.lock)
+		var lock = _button(hud.popup, want)
+		if g.open or g.lock <= 0.0 or lock == null or not lock.disabled or _pops(main).any(func(n): return "(" in n.text):
+			out = "쿨타임 중인 정문 팝업: «%s» %s · 글 %s(닫힘 %s, 쿨타임 %s)" % [want, lock, _pops(main).map(func(n): return n.text), not g.open, g.lock]
+		elif _pop_why(main, lock) == "":
+			out = "쿨타임 중인 성문 버튼 툴팁에 빨간 줄이 없다"
+	if out == "":
+		click(c, MOUSE_BUTTON_LEFT, px(church.cell))
+		_frame(main)
+		var heal = _starts(hud.popup, hud.HEROES[h.kind].get_slice("(", 0))
+		if heal == null or not heal.disabled or _pops(main).any(func(n): return "(" in n.text):
+			out = "전투 단계 교회 팝업: 치료 버튼 %s · 버튼 %s(치료는 어둡고, 글에 괄호가 없어야 한다)" % [heal, _pops(main).map(func(n): return [n.text, n.disabled])]
+		elif not "준비 단계에만" in _pop_why(main, heal):
+			out = "전투 단계 치료 버튼 툴팁 빨간 줄이 «%s»다" % _pop_why(main, heal)
+	_done(main)
+	return out
+
+# EV346 · S74: 철거는 첫 클릭에 «철거?»가 되고 2초 안에 다시 누르면 철거 지시가 나간다. 다른 것을 고르거나 2초가 지나면 «철거»로 돌아가 다시 첫 클릭이다
+func ev346():
+	var main = _prep()
+	var hud = main.hud
+	if not hud.get("popup") is Control:
+		_done(main)
+		return "main.hud.popup이 없다"
+	var b = main.view.battle
+	var c = main.controls
+	var es := [b.place_merc("engineer", Vector2i(12, 14)), b.place_merc("engineer", Vector2i(12, 15))]
+	var t1 = b.build("tower", Vector2i(10, 14))
+	var t2 = b.build("tower", Vector2i(14, 14))
+	var t3 = b.build("tower", Vector2i(16, 14))
+	if null in es or t1 == null or t2 == null or t3 == null:
+		_done(main)
+		return "준비 단계에 공병 %s나 타워(%s, %s, %s)를 놓지 못했다" % [es, t1, t2, t3]
+	b.start_battle()
+	_frame(main)
+	click(c, MOUSE_BUTTON_LEFT, px(t1.cell))
+	_frame(main)
+	var out := ""
+	var d = _button(hud.popup, "철거")
+	if d == null or d.disabled:
+		out = "전투 단계에 타워를 눌렀는데 누를 수 있는 «철거» 버튼이 없다(%s)" % [d]
+	if out == "":
+		d.pressed.emit()
+		hud._process(0.0)
+		if t1.worker != null or _button(hud.popup, "철거?") == null:
+			out = "«철거»를 한 번 누른 뒤 철거 공병 %s · «철거?» 버튼 %s" % [t1.worker, _button(hud.popup, "철거?")]
+	if out == "":
+		hud._process(1.0)
+		_button(hud.popup, "철거?").pressed.emit()
+		hud._process(0.0)
+		out = check(t1.worker in es, "1초 뒤 «철거?»를 눌렀는데 철거 지시가 없다")
+	if out == "":  # 둘째 타워에서 한 번 누르고 0.5초 뒤 셋째 타워를 고르면 첫 클릭부터다
+		click(c, MOUSE_BUTTON_LEFT, px(t2.cell))
+		_frame(main)
+		_button(hud.popup, "철거").pressed.emit()
+		hud._process(0.5)
+		click(c, MOUSE_BUTTON_LEFT, px(t3.cell))
+		_frame(main)
+		var other = _button(hud.popup, "철거")
+		if other == null:
+			out = "둘째 타워에서 «철거»를 누르고 셋째 타워를 고르자 버튼 글이 %s다(«철거»여야 한다)" % [_pops(main).map(func(n): return n.text)]
+		else:
+			other.pressed.emit()
+			hud._process(0.0)
+			if t2.worker != null or t3.worker != null or _button(hud.popup, "철거?") == null:
+				out = "셋째 타워에서 한 번 누르자 철거 공병 %s·%s · «철거?» 버튼 %s(첫 클릭이어야 한다)" % [t2.worker, t3.worker, _button(hud.popup, "철거?")]
+	if out == "":
+		hud._process(2.1)
+		var back = _button(hud.popup, "철거")
+		if back == null:
+			out = "«철거»를 누르고 2.1초 뒤 버튼 글이 %s다(«철거»여야 한다)" % [_pops(main).map(func(n): return n.text)]
+		else:
+			back.pressed.emit()
+			hud._process(0.0)
+			out = check(t3.worker == null and _button(hud.popup, "철거?") != null, "2초 지나 다시 누르자 철거 공병 %s · «철거?» 버튼 %s(첫 클릭이어야 한다)" % [t3.worker, _button(hud.popup, "철거?")])
 	_done(main)
 	return out
