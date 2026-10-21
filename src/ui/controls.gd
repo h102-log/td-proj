@@ -15,10 +15,12 @@ extends RefCounted
 
 # ponytail: 맵 px 기준이라 줌에 따라 화면에서 느끼는 거리가 달라진다. 거슬리면 화면 px로 잰다
 const CLICK_SLOP := 4.0  # 이보다 덜 끌고 떼면 클릭이다(맵 px)
+const BattleView := preload("res://src/ui/battle_view.gd")
 const SKILL_KEYS := {KEY_Q: "q", KEY_W: "w", KEY_E: "e", KEY_R: "r"}  # 영웅 스킬 칸(S145)
 const PLACE_KEYS := {KEY_1: "wall", KEY_2: "tower", KEY_MINUS: "magic", KEY_3: "soldier", KEY_4: "barracks", KEY_5: "engineer", KEY_6: "workshop", KEY_7: "archer", KEY_8: "cannon", KEY_9: "archery", KEY_0: "house", KEY_EQUAL: "church"}
 
 signal hero_key(i: int)  # 출전 영웅 i를 F키나 초상으로 골랐다. HUD가 두 번 누름을 잰다(I165)
+signal skill_keyed(h, slot: String)  # Q·W·E·R 키(shift 없이). HUD가 못 쓰는 칸이면 번쩍임과 토스트로 알린다(I151)
 signal refused(cell: Vector2i, why: String)  # 구조물 놓기가 거부됐다. HUD가 빨간 ✕와 안내 줄의 첫 이유로 보인다(I128)
 signal facility_key(f)  # 전투 단계 용병 키로 시설을 골랐다. HUD가 카메라를 그 시설로 옮긴다(S81, I164)
 signal alert_key  # C 키. HUD가 마지막 경보 자리로 카메라를 옮긴다(S189)
@@ -151,6 +153,8 @@ func _release(rect: Rect2, at: Vector2) -> void:
 		selling = [hit] if prep and hit else []
 		if hit in mercs:
 			selected = [hit]
+		if hit == null and fort == null and selected.is_empty() and BattleView.keep_rect(battle).has_point(rect.position):  # 망루 그림 안(S100)
+			village = true
 	else:
 		var inside := func(p: Vector2): return rect.has_point((p + Vector2(0.5, 0.5)) * cell_px)
 		facility = null
@@ -199,7 +203,10 @@ func toggle_hold() -> void:
 # 즉시·켜고 끄는 칸(그리고 태세 중인 반격의 태세)은 바로 쓰고, 고르는 칸은 지금 쓸 수 있을 때만 조준 상태가 된다
 func skill_key(slot: String, shift := false) -> void:
 	var h = _hero()
-	skill_for(h if h and h.alive else battle._first_alive(), slot, shift)
+	h = h if h and h.alive else battle._first_alive()
+	if h and not shift:
+		skill_keyed.emit(h, slot)
+	skill_for(h, slot, shift)
 	if quickcast and aiming == slot:  # I158. HUD 스킬 버튼은 skill_for로 바로 와서 조준 상태로 남는다
 		_aim_at(mouse)
 
