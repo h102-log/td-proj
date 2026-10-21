@@ -48,6 +48,10 @@ func _ready() -> void:
 	for n in find_children("*", "Control", true, false):
 		n.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
+# 툴팁이 root 안의 조작에 붙어 떠 있다. 위 띠 조작의 툴팁이 떠 있으면 안내 칩이 숨는다(S147)
+func shows_in(root: Control) -> bool:
+	return visible and _target != null and root.is_ancestor_of(_target)
+
 func add(c: Control, lines: Callable, under: Control = null) -> void:
 	_lines[c] = lines
 	if under:

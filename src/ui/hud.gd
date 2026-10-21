@@ -105,7 +105,8 @@ var _ok := {}  # 이번 라운드 미션·의뢰 이름 → 지난 프레임에 
 var _eng_next := -1  # 공병 칸을 누를 때 다음에 갈 놀고 있는 공병 차례
 var _dot := HudBuild.dots(DOT)
 var _cross := HudBuild.dots(HudBuild.CROSS)
-var hint := Label.new()  # 놓기·조준 안내 줄(S147)
+var hint := Label.new()  # 안내 칩의 글(S147)
+var chip := PanelContainer.new()  # 놓기·대포 옮기기·조준 중의 안내 칩(S147). 위 띠 툴팁이 뜨면 숨는다
 var popup := VBoxContainer.new()  # 맵 위 팝업(I58). 줄(HBox)마다 정해진 버튼. 고른 칸(클릭하거나 드래그를 놓은 지점의 칸) 바깥쪽 모서리에 뜬다
 var info_lines := ["", ""]  # 정보 칸 «고른 것»에 덧붙일 [설명, 빨간 이유](I124, I128, I132, I140). hud_build가 읽는다
 var _why := {}  # 팝업 버튼 → 못 누르는 이유(툴팁 빨간 줄)
@@ -255,8 +256,18 @@ func _ready() -> void:
 		tags.append(t)
 	tip.add(tags[0], func(): return ["이동 방식", "A", "", _tag_tips[0], ""])
 	tip.add(tags[1], func(): return ["홀드", "H", "", _tag_tips[1], ""])
-	hint.position = Vector2(134, 30)  # 띠 바로 아래. 조준·놓기 안내
-	root.add_child(hint)
+	chip.position = Vector2(134, 30)  # 위 띠 바로 아래(S147 임시값). 글이 길면 오른쪽으로 는다
+	chip.custom_minimum_size = Vector2(180, 14)
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var dark := StyleBoxFlat.new()
+	dark.bg_color = Color(0, 0, 0, 0.65)
+	dark.content_margin_left = 4
+	dark.content_margin_right = 4
+	chip.add_theme_stylebox_override("panel", dark)
+	hint.add_theme_font_size_override("font_size", 9)
+	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	chip.add_child(hint)
+	root.add_child(chip)
 	controls.refused.connect(func(cell): _refused = [cell, _now])
 	controls.facility_key.connect(func(f): _focus(Vector2(f.cell)))  # 용병 키로 고른 시설로 카메라(S81, I164)
 	# 윗변과 너비를 고정해 아래로만 자란다. 영입·리롤·내보내기로 줄이 바뀌어도 위의 버튼이 움직이지 않게(I136)
@@ -356,17 +367,18 @@ func _process(delta: float) -> void:
 		_tag_pics[0].texture = _move_tex[m]
 		_tag_pics[1].modulate = HOLD_LOOK[h]
 		_tag_tips = [MOVE_TIPS[m], HOLD_TIPS[h]]
-	hint.visible = controls.placing != "" or controls.moving != null or controls.aiming != ""
-	hint.text = "%s 놓기: 좌클릭 · 끝내기: 우클릭·ESC" % NAMES.get(controls.placing, "")
+	chip.visible = (controls.placing != "" or controls.moving != null or controls.aiming != "") and not tip.shows_in(bar)  # 위 띠 툴팁이 뜨면 숨는다(S147)
+	hint.text = "%s 놓기: 좌클릭 · 끝: 우클릭·ESC" % NAMES.get(controls.placing, "")
 	var refusing: bool = _now - _refused[1] < REFUSE_HINT
 	if refusing:  # 닿는 공병이 없어 거부된 놓기(I128)
 		hint.text = "✕ 닿는 공병 없음"
 	hint.self_modulate = HudTheme.DANGER if refusing else Color.WHITE
 	_mark.queue_redraw()
 	if controls.moving:
-		hint.text = "대포 옮길 칸: 좌클릭 · 끝내기: 우클릭·ESC"
+		hint.text = "대포 옮길 칸: 좌클릭 · 끝: 우클릭·ESC"
 	if controls.aiming != "":  # 조준 중(S147)
 		hint.text = "%s %s 대상: 좌클릭 · 취소: 우클릭·ESC" % [HEROES[controls.aim_hero.kind].get_slice("(", 0), controls.aiming.to_upper()]
+	chip.reset_size()
 	_show_heroes()
 	_result.visible = battle.state in ["hiring", "cleared", "won", "lost"]
 	_result_label.text = {"hiring": "도전 시작 — 영웅 영입", "cleared": "%d라운드 승리" % round_no, "won": "도전 성공!", "lost": "%d라운드 패배 — 도전 끝" % round_no}.get(battle.state, "")

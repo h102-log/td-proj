@@ -22,7 +22,7 @@ extends "res://tests/eval/gd/save.gd"
 #     self_modulate: 마나 부족 (0.5,0.5,1) · 잠김 (0.4,0.4,0.4) · 그 밖 흰색. 스킬 칸.lock — 자물쇠(CanvasItem). 잠겼을 때만 보인다
 #   main.hud.tags — 상황 태그 [A, H](BaseButton, I139). 버튼 글은 없고, 안의 첫 TextureRect가 상태 그림이다(텍스처·modulate)
 #   main.hud.popup — 맵 위 팝업(Control, I58). 그 안의 보이는 BaseButton이 팝업 버튼이고, 못 누르는 버튼은 disabled다
-#   main.hud.hint — 놓기·조준 안내 줄(Label, S147·I128)
+#   main.hud.hint — 놓기·조준 안내 글(Label, S147·I128). main.hud.chip — 그 글을 담은 안내 칩(Control, S147)
 #   main.hud.map — 맵 SubViewport. get_canvas_transform()이 맵 px → 화면 좌표다
 # 커서는 화면(640×360) 좌표의 InputEventMouseMotion으로 옮긴다. 빈 맵 자리는 (320,300)이다
 
@@ -1336,5 +1336,44 @@ func ev348():
 			out = "사격장 없이 7 키: 고른 시설 %s · 카메라 %s → %s · 정보 칸 보임 %s · 빨간 줄 «%s»" % [c.facility, pos, cam.position, g.info.is_visible_in_tree(), why]
 		elif absf(g.cells.soldier.modulate.a - 1.0) > 0.01 or absf(g.cells.archer.modulate.a - 0.35) > 0.01:
 			out = "전투 단계 용병 칸 불투명도 %.2f(1이어야 한다) · 궁수 칸 %.2f(0.35여야 한다)" % [g.cells.soldier.modulate.a, g.cells.archer.modulate.a]
+	_done(main)
+	return out
+
+# EV349 · S147: 조준 중에는 위 띠 바로 아래 [134,30] 안내 칩이 보이고, 영웅 초상에 커서를 두어 툴팁이 뜨면 숨으며, 툴팁이 사라지면 다시 보인다
+func ev349():
+	var main = _game()
+	var b = main.view.battle
+	var hud = main.hud
+	if not hud.get("chip") is Control or not hud.get("hint") is Label:
+		_done(main)
+		return "main.hud.chip·hint가 없다"
+	b.gold = BIG
+	b.offers[0] = "ignis"
+	b.hire(0)
+	b.next_round()
+	b.start_battle()
+	_frame(main)
+	var h = b.heroes[0]
+	h.mana = h.max_mana
+	_key(KEY_F1)
+	_key(KEY_Q)
+	hud._process(0.0)
+	var chip = hud.chip
+	var r: Rect2 = chip.get_global_rect()
+	var out := ""
+	if main.controls.aiming != "q" or not chip.is_visible_in_tree() or r.position.distance_to(Vector2(134, 30)) > 0.5 or r.size.x < 179.5 or r.size.y > 14.5 \
+			or not ("Q" in hud.hint.text and "좌클릭" in hud.hint.text):
+		out = "이그니스 Q 조준 %s · 칩 보임 %s · 칩 %s(기대 [134,30] 폭 180 이상 높이 14 이하) · 글 «%s»" % [main.controls.aiming, chip.is_visible_in_tree(), r, hud.hint.text]
+	if out == "":
+		_fresh(hud.tip, hud.portraits[0])
+		hud.tip._process(0.25)
+		hud._process(0.0)
+		var tipped: bool = hud.tip.visible
+		var hidden: bool = not chip.is_visible_in_tree()
+		_move(EMPTY)
+		hud.tip._process(0.3)
+		hud._process(0.0)
+		if not tipped or not hidden or hud.tip.visible or not chip.is_visible_in_tree() or main.controls.aiming != "q":
+			out = "초상 툴팁 뜸 %s · 그때 칩 숨음 %s · 커서를 치운 뒤 툴팁 %s · 칩 보임 %s · 조준 %s" % [tipped, hidden, hud.tip.visible, chip.is_visible_in_tree(), main.controls.aiming]
 	_done(main)
 	return out
