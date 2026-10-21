@@ -60,3 +60,19 @@ def test_EV333_menu_cell(gd):
 
 def test_EV334_engineer_cell(gd):
     gd("hud", "EV334")
+
+
+def test_EV335_wave_preview_counts(gd):
+    gd("hud", "EV335")
+
+
+def test_EV336_progress_cell_phases(gd):
+    gd("hud", "EV336")
+
+
+def test_EV337_wave_preview_ui(gd):
+    gd("hud", "EV337")
+
+
+def test_EV338_progress_focus_nearest_enemy(gd):
+    gd("hud", "EV338")
