@@ -134,11 +134,23 @@ func _draw() -> void:
 		_missile(x)
 	_traces()
 	_aim_preview()
+	if battle.state == "prep":
+		_spawn_badges()
 	if controls.show_hp:
 		for u in battle.units + battle.enemies:
 			_hp_bar(u.pos - Vector2(0, _lift(u) / CELL), u)
 	if controls.drag_rect.has_area():
 		draw_rect(controls.drag_rect, Color.WHITE, false, 1.0)
+
+# 곧 부를 웨이브에서 출현 지점마다 나올 적 수(S188): 깃발 칸 바로 위, 풀밭에 묻히지 않게 검은 바탕에 Galmuri7 8px(S167)
+func _spawn_badges() -> void:
+	var counts: Array = battle.spawn_counts(battle.round_index, battle.wave_index)
+	for i in battle.spawns.size():
+		var text := str(counts[i].values().reduce(func(n, x): return n + x, 0))
+		var w: float = PIXEL_FONT.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+		var box := Rect2((Vector2(battle.spawns[i]) * CELL + Vector2(CELL / 2.0 - w / 2.0 - 2.0, -10.0)).round(), Vector2(w + 4.0, 9.0).round())
+		draw_rect(box, Color.BLACK)
+		draw_string(PIXEL_FONT, box.position + Vector2(2, 8), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8)
 
 # 원거리 공격 한 발(S178): 쏜 곳(_muzzle)에서 대상 가슴까지 _flight초 동안 날아간다. 유닛은 공격 키 포즈(CONTACT)에 놓는다.
 # 화살은 짧은 선, 마법은 쏜 쪽 색 구슬, 대포알은 포물선으로 날고 떨어진 곳에 범위 피해 고리가 BLAST초 동안 퍼진다(S90)

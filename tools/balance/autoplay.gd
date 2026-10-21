@@ -672,8 +672,8 @@ func _spawn_wave(dt: float) -> void:
 	_spawn_timer -= dt
 	if _queue.is_empty() or _spawn_timer > 0.0:
 		return
-	spawn_enemy(_queue.pop_front(), spawns[_spawned %% spawns.size()])
-	_spawned += 1
+	var next: Array = _queue.pop_front()
+	spawn_enemy(next[0], next[1])
 	_spawn_timer = gaps[mini(round_index, gaps.size() - 1)]
 	_forecast()
 """ % [JSON.stringify(gaps)]

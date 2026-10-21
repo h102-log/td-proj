@@ -13,6 +13,10 @@ extends "res://tests/eval/gd/save.gd"
 #   main.hud.hp_bar — 거점 체력 막대의 채운 부분(ColorRect, S190) · main.hud._process(delta)로 시간을 흘린다
 #   main.hud.marks — 임무 칸의 점 둘(CanvasItem, 왼쪽 미션·오른쪽 의뢰, I122). 실패면 modulate가 #ef3a0c
 #   main.hud.toasts — 토스트 층(Control, I163). 보이는 자식 하나가 토스트 하나이고 그 안 Label에 글이 있다. push(글) · _process(delta)
+#   main.hud.start — 진행 칸의 전투 시작 버튼(BaseButton, I13) · main.hud.gauge — 진행 칸의 웨이브 버튼(BaseButton, 준비 단계 다음 웨이브·전투 단계 계기판)
+#   main.hud.skull — 진행 칸의 보스 해골(CanvasItem, S188)
+#   main.hud.edges — 아래 가장자리 표식 층(Control, S188). 보이는 자식 하나가 표식 하나이고 그 안 Label에 수가 있다
+#   battle.spawn_counts(라운드, 웨이브) — 출현 지점(battle.spawns 차례)마다 {적 종류: 수}(S188). 라운드·웨이브는 0부터
 # 커서는 화면(640×360) 좌표의 InputEventMouseMotion으로 옮긴다. 빈 맵 자리는 (320,300)이다
 
 const EMPTY := Vector2(320, 300)
@@ -665,5 +669,169 @@ func ev334():
 		_away(main)
 		cells.engineer.pressed.emit()
 		out = _focused(main, e.pos * 16 + Vector2(8, 8))
+	_done(main)
+	return out
+
+const ENEMY := {"basic": "기본", "fast": "빠름", "armored": "장갑", "flying": "비행", "boss": "보스"}  # S106
+const SIDES := ["왼쪽", "가운데", "오른쪽"]  # S188: 시험 스테이지 출현 지점 차례
+
+# 웨이브 데이터(라운드 r·웨이브 w)의 적 수
+func _wave_total(b, r: int, w: int) -> int:
+	return b.rounds[r][w].reduce(func(n, e): return n + e.count, 0)
+
+func _count(d: Dictionary) -> int:
+	return d.values().reduce(func(n, x): return n + x, 0)
+
+# EV335 · S188: 1~6라운드 웨이브마다 출현 지점별 미리보기 수가 실제로 그 지점에서 나온 적의 종류별 수와 같다
+func ev335():
+	var b = _new(load("res://src/main.gd").stage())
+	if not b.has_method("spawn_counts"):
+		return "battle.spawn_counts가 없다"
+	var got := []
+	b.enemy_spawned.connect(func(e): got.append([e.kind, cell_of(e)]))
+	for r in b.rounds.size():
+		for w in b.rounds[r].size():
+			b.round_index = r
+			b.waves = b.rounds[r]
+			b.wave_index = w
+			b.state = "prep"
+			var want: Array = b.spawn_counts(r, w)
+			var total := _wave_total(b, r, w)
+			if want.size() != b.spawns.size() or want.reduce(func(n, d): return n + _count(d), 0) != total:
+				return "%d라운드 %d웨이브 미리보기 %s의 합이 데이터 적 수 %d와 다르다" % [r + 1, w + 1, want, total]
+			got.clear()
+			b.start_battle()
+			for i in total + 3:
+				b.step(b.SPAWN_GAP)
+				kill_all(b)
+			var real: Array = b.spawns.map(func(_c): return {})
+			for g in got:
+				var d: Dictionary = real[b.spawns.find(g[1])]
+				d[g[0]] = d.get(g[0], 0) + 1
+			for i in want.size():
+				if want[i].size() != real[i].size() or want[i].keys().any(func(k): return real[i].get(k, -1) != want[i][k]):
+					return "%d라운드 %d웨이브 %s 출현 지점: 미리보기 %s · 실제 %s" % [r + 1, w + 1, b.spawns[i], want, real]
+	return ""
+
+# EV336 · I13: 진행 칸은 영입 «영입»·«다음 적 N» → 준비 «전투 시작»(누르면 전투) → 전투 «남은 적 N» → 패배 «패배»다
+func ev336():
+	var main = _game()
+	_frame(main)
+	var b = main.view.battle
+	var cells = main.hud.get("cells")
+	var start = main.hud.get("start")
+	if not cells is Dictionary or not start is BaseButton:
+		_done(main)
+		return "main.hud.cells나 main.hud.start 버튼이 없다"
+	var n := _wave_total(b, 0, 0)
+	var text := func(): return " ".join(_labels(cells.progress))
+	var out := check(b.state == "hiring" and "영입" in text.call() and "다음 적 %d" % n in text.call(), "영입 창(%s) 진행 칸 글이 «%s»다(기대 «영입»·«다음 적 %d»)" % [b.state, text.call(), n])
+	if out == "":
+		b.gold = BIG
+		for i in 2:
+			b.hire(i)
+		b.next_round()
+		_frame(main)
+		if not start.is_visible_in_tree() or not "전투 시작" in " ".join(_labels(start)):
+			out = "준비 단계 전투 시작 버튼 보임 %s · 글 %s" % [start.is_visible_in_tree(), _labels(start)]
+	if out == "":
+		start.pressed.emit()
+		out = check(b.state == "battle", "전투 시작 버튼을 누른 뒤 판이 %s다" % b.state)
+	if out == "":
+		main.hud._process(0.0)
+		if start.is_visible_in_tree() or not "남은 적 %d" % n in text.call() or "전투 시작" in text.call():
+			out = "전투 단계 전투 시작 버튼 보임 %s · 진행 칸 글 «%s»(기대 «남은 적 %d», «전투 시작» 없음)" % [start.is_visible_in_tree(), text.call(), n]
+	if out == "":
+		b.damage(b.base, BIG)
+		main.hud._process(0.0)
+		out = check(b.state == "lost" and "패배" in text.call(), "패배(%s) 진행 칸 글이 «%s»다" % [b.state, text.call()])
+	_done(main)
+	return out
+
+# EV337 · S188: 준비 단계 진행 칸에 «적 N», 웨이브 버튼 툴팁에 출현 지점별 종류·수, 화면 밖 출현 지점은 아래 가장자리 표식, 보스 웨이브면 해골과 토스트
+func ev337():
+	var main = _prep()
+	var b = main.view.battle
+	var cells = main.hud.get("cells")
+	var gauge = main.hud.get("gauge")
+	var edges = main.hud.get("edges")
+	if not cells is Dictionary or not gauge is BaseButton or edges == null or main.hud.get("skull") == null or not b.has_method("spawn_counts"):
+		_done(main)
+		return "main.hud.cells·gauge 버튼·edges·skull이나 battle.spawn_counts가 없다"
+	var want: Array = b.spawn_counts(0, 0)
+	var n := _wave_total(b, 0, 0)
+	var out := check("적 %d" % n in " ".join(_labels(cells.progress)), "준비 단계 진행 칸 글 %s에 «적 %d»가 없다" % [_labels(cells.progress), n])
+	if out == "":
+		_fresh(main.hud.tip, gauge)
+		main.hud.tip._process(0.25)
+		var lines := []  # 툴팁 Label마다 줄로 나눈다. 한 줄로 이으면 이름 줄이 첫 출현 지점 줄 앞에 붙는다
+		for l in main.hud.tip.find_children("*", "Label", true, false):
+			if l.is_visible_in_tree():
+				lines.append_array(l.text.split("\n"))
+		for i in want.size():
+			var line := ""
+			for l in lines:
+				if l.strip_edges().begins_with(SIDES[i]):
+					line = l
+			var miss: Array = want[i].keys().filter(func(k): return not "%s %d" % [ENEMY[k], want[i][k]] in line)
+			if line == "" or not miss.is_empty():
+				out = "웨이브 버튼 툴팁 «%s»의 %s 줄에 %s가 없다(미리보기 %s)" % [_tip_text(main.hud.tip), SIDES[i], miss, want[i]]
+				break
+		_move(EMPTY)
+		main.hud.tip._process(0.3)
+	if out == "" and (main.hud.skull.is_visible_in_tree() or _toasts(main).any(func(t): return "보스" in t)):
+		out = "보스 없는 첫 웨이브인데 해골 %s · 토스트 %s" % [main.hud.skull.is_visible_in_tree(), _toasts(main)]
+	var cam = _cam(main)
+	if out == "":
+		cam.zoom_at(0 - cam.level, Vector2(320, 180))
+		cam.pan(Vector2(0, -1), 100.0)
+		cam.force_update_scroll()
+		main.hud._process(0.0)
+		var shown: Array = edges.get_children().filter(func(m): return m.is_visible_in_tree())
+		var nums := shown.map(func(m): return int(" ".join(_labels(m))))
+		nums.sort()
+		var sums := want.map(func(d): return _count(d))
+		sums.sort()
+		var area := Rect2(30, 344, 470, 12)
+		if shown.size() != b.spawns.size() or nums != sums or shown.any(func(m): return not area.encloses(m.get_global_rect().grow(-0.01))):
+			out = "1배 줌 맨 위: 표식 %d개(기대 %d) · 수 %s(기대 %s) · 자리 %s" % [shown.size(), b.spawns.size(), nums, sums, shown.map(func(m): return m.get_global_rect())]
+	if out == "":
+		cam.pan(Vector2(0, 1), 100.0)
+		cam.force_update_scroll()
+		main.hud._process(0.0)
+		var shown: Array = edges.get_children().filter(func(m): return m.is_visible_in_tree())
+		out = check(shown.is_empty(), "1배 줌 맨 아래인데 표식이 %d개 보인다" % shown.size())
+	var bosses: Array = range(1, b.waves.size()).filter(func(w): return b.waves[w].any(func(e): return e.kind == "boss"))
+	if out == "" and bosses.is_empty():
+		out = "1라운드에 첫 웨이브가 아닌 보스 웨이브가 없다"
+	if out == "":
+		b.state = "battle"
+		main.hud._process(0.0)
+		b.wave_index = bosses[0]
+		b.state = "prep"
+		main.hud._process(0.0)
+		main.hud.toasts._process(3.6)  # 미션 토스트가 막 떠서 3.5초 줄을 선다(I163)
+		var said := _toasts(main).filter(func(t): return "다음 웨이브에 보스" in t)
+		out = check(main.hud.skull.is_visible_in_tree() and said.size() == 1, "보스 웨이브 준비 단계: 해골 %s · 토스트 %s" % [main.hud.skull.is_visible_in_tree(), _toasts(main)])
+	_done(main)
+	return out
+
+# EV338 · I13: 전투 중 진행 칸을 누르면 거점에 가장 가까운 적에게 카메라가 간다(I164)
+func ev338():
+	var main = _prep()
+	var b = main.view.battle
+	var gauge = main.hud.get("gauge")
+	if not gauge is BaseButton:
+		_done(main)
+		return "main.hud.gauge 버튼이 없다"
+	b.start_battle()
+	b.spawn_enemy("basic", Vector2i(6, 25))
+	var near = b.spawn_enemy("basic", Vector2i(20, 14))
+	main.hud._process(0.0)
+	var cam = _cam(main)
+	cam.zoom_at(2 - cam.level, Vector2(320, 180))
+	_away(main)
+	gauge.pressed.emit()
+	var out := _focused(main, near.pos * 16 + Vector2(8, 8))
 	_done(main)
 	return out

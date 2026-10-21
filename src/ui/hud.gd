@@ -1,5 +1,5 @@
 extends CanvasLayer
-# 위 띠(S185)의 정해진 자리에 상태 묶음(거점 체력·마을 레벨·골드·세금·라운드, S190)·임무 칸(I122)·공병 칸·출전 영웅 칸(I129)·진행 칸(«전투 시작» I13, 웨이브·단계)·메뉴 칸을 두고,
+# 위 띠(S185)의 정해진 자리에 상태 묶음(거점 체력·마을 레벨·골드·세금·라운드, S190)·임무 칸(I122)·공병 칸·출전 영웅 칸(I129)·진행 칸(«전투 시작»·계기판 I13, 다음 웨이브 S188)·메뉴 칸을 두고,
 # 건설 격자(S186, hud_build.gd)와 토스트(I163, hud_toast.gd)와 라운드를 이기거나 도전이 끝난 뒤의 결과 창(S117)을 둔다.
 # 판매 후보가 있으면 그 옆에 판매 버튼을 띄운다(S70, I58). 전투 단계에 생산 시설을 고르면 그 옆에 파는 용병마다 구매 버튼을 띄운다(S81, I61, I71).
 # 고른 구조물에 따라 같은 자리에 철거(S74)·이어 짓기·취소(전투 단계)와 완성(준비 단계) 버튼도 띄운다(S83). 대포면 옮기기(S91)도 띄운다.
@@ -12,9 +12,9 @@ extends CanvasLayer
 # 출전 영웅 칸마다 «F1 이름»과 Q·W·E·R 스킬 버튼(좌클릭은 쓰기, 우클릭은 자동 시전, I151)과 쓰러짐(I129)을, 화면 오른쪽 가장자리에 고른 용병의 이동 방식·홀드 버튼(I139)을 보인다.
 # 눌리지 않는 공병 지시 버튼에는 이유를 붙인다(I128)
 # 위 띠의 조작에는 툴팁을 단다(S187, I162). 테마는 hud_theme.gd
+# 준비 단계에 화면 밖 출현 지점은 아래 가장자리에 그 지점 적 수 표식을 둔다(S188)
 
 const NAMES := {"wall": "방벽", "tower": "타워", "magic": "마법 타워", "soldier": "용병", "barracks": "병영", "engineer": "공병", "workshop": "작업장", "archer": "궁수", "cannon": "대포", "archery": "사격장", "house": "집", "church": "교회"}
-const STATES := {"prep": "준비", "battle": "전투", "hiring": "영입", "cleared": "라운드 사이", "won": "승리", "lost": "패배"}
 const HEROES := {"aias": "아이아스(탱커)", "sylvia": "실비아(원거리)", "seraphina": "세라피나(힐러)", "vesper": "베스퍼(디버퍼)", "ignis": "이그니스(마법사)", "chronos": "크로노스(버퍼)"}  # 이름(역할), S97·S157
 const GRADES := ["1성", "2성", "3성"]  # S94
 const GAPS := {"none": " (공병 없음)", "far": " (닿는 공병 없음)"}  # 공병 지시를 맡을 공병이 없는 이유(I128)
@@ -43,6 +43,14 @@ const DOT := [".....", ".###.", ".###.", ".###.", "....."]  # 임무 칸: 조건
 const COIN := [".####.", "##oo##", "#o##o#", "#o##o#", "##oo##", ".####."]
 const FLAG := ["|####.", "|#####", "|####.", "|.....", "|.....", "|....."]
 const MENU := ["########", "........", "........", "########", "........", "........", "########"]  # ≡
+const PLAY := ["#...", "##..", "###.", "####", "###.", "##..", "#..."]  # ▶
+const SKULL := [".#####.", "#######", "#..#..#", "#######", ".##.##.", ".#####.", ".#.#.#."]  # 보스(S188)
+const ARROW := [".###.", ".###.", "#####", ".###.", "..#.."]  # 아래 가장자리 표식의 화살표(S188)
+const ENEMIES := {"basic": "기본", "fast": "빠름", "armored": "장갑", "flying": "비행", "boss": "보스"}  # S106
+const TRAITS := {"fast": "성벽을 오른다", "flying": "길을 무시한다", "armored": "받는 피해를 줄인다", "boss": "성벽을 뚫고 온다"}  # S107·S109·S108, 보스는 wall_k 0.3
+const SIDES := ["왼쪽", "가운데", "오른쪽"]  # ponytail: 출현 지점 이름은 시험 스테이지(왼쪽부터 셋) 차례다. 지점이 다른 맵이 생기면 x로 이름을 정한다
+const VIEW := Rect2(0, 28, 640, 332)  # 위 띠 아래 맵이 보이는 화면. 출현 지점이 이 밖이면 아래 가장자리 표식(S188)
+const EDGE_X := Vector2(30, 500)  # 아래 가장자리 표식이 놓이는 x 범위(S188 임시값). y는 344
 
 signal menu_pressed  # 메뉴 칸(S185). main이 ESC 메뉴를 연다
 
@@ -62,7 +70,17 @@ var _gold: Label
 var _tax: Label
 var _round: Label
 var _eng: Label  # 공병 칸의 놀고 있는 공병 수
-var _wave: Label  # 진행 칸의 웨이브·단계
+var start: Button  # 진행 칸의 «▶ 전투 시작»(I13). 준비 단계에만
+var gauge: Button  # 진행 칸의 웨이브 버튼: 준비 단계 다음 웨이브(S188)·전투 단계 계기판·영입·승패(I13)
+var skull: TextureRect  # 진행 칸의 보스 해골(S188)
+var edges := Control.new()  # 화면 밖 출현 지점의 아래 가장자리 표식(S188). 출현 지점마다 하나
+var _g1: Label  # 웨이브 버튼 윗줄
+var _g2: Label  # 웨이브 버튼 아랫줄
+var _dots: TextureRect  # 웨이브 점
+var _track := ColorRect.new()  # 전투 진행 막대 바탕
+var _fill := ColorRect.new()  # 전투 진행 막대(나온 적 가운데 처치한 비율)
+var _dot_tex := {}  # «웨이브 수/지금» → 웨이브 점 그림
+var _laid := ""  # 진행 칸 자리를 마지막으로 정한 단계
 var _flash := 0.0  # 거점 체력 막대가 하얗게 남은 초
 var _hp_seen := -INF  # 지난 프레임의 거점 체력
 var _ok := {}  # 이번 라운드 미션·의뢰 이름 → 지난 프레임에 조건을 지켰나(I122)
@@ -70,7 +88,6 @@ var _eng_next := -1  # 공병 칸을 누를 때 다음에 갈 놀고 있는 공�
 var _dot := HudBuild.dots(DOT)
 var _cross := HudBuild.dots(HudBuild.CROSS)
 var _hint := Label.new()
-var _start: Button
 var _popup := HBoxContainer.new()  # 판매·완성·구매·철거·이어 짓기·취소 버튼. 클릭하거나 드래그를 놓은 지점 옆에 뜬다
 var _sell: Button
 var _finish: Button
@@ -152,14 +169,7 @@ func _ready() -> void:
 			buttons[slot] = sb
 			tip.add(sb, func(): return _skill_tip(i, slot))
 		_hero_rows.append([cell, who, buttons])
-	var p := _cell("progress", Control.new())  # ponytail: 진행 칸은 «전투 시작»과 웨이브·단계 글만. 계기판·웨이브 미리보기는 4단계
-	_start = _bar_button(p, "전투 시작 (Enter)", _start_battle)
-	_start.add_theme_font_size_override("font_size", 9)
-	_start.size = Vector2(84, 24)
-	_wave = _text(p, 8, HudTheme.TEXT)
-	_wave.position = Vector2(86, 0)
-	_wave.size = Vector2(50, 24)
-	tip.add(_start, func(): return ["전투 시작", "Enter", "", "웨이브 %d/%d를 부른다" % [mini(battle.wave_index + 1, battle.waves.size()), battle.waves.size()], "" if battle.state == "prep" else "준비 단계에만"])
+	_make_progress()
 	var menu := _cell("menu", _bar_button(bar, "", func(): menu_pressed.emit()))
 	_pic(menu, HudBuild.dots(MENU), Vector2(8, 7)).position = Vector2(4, 8)
 	tip.add(menu, func(): return ["메뉴", "ESC", "", "계속·설정·메인 메뉴로·게임 종료", ""])
@@ -225,6 +235,7 @@ func _ready() -> void:
 	_village = _button(_popup, "", func(): battle.raise_village())
 	for i in battle.HIRE.lineup:
 		_heal.append(_button(_popup, "", func(): battle.heal(battle.heroes[i])))
+	_make_edges(root)
 	toasts.tip = tip
 	root.add_child(toasts)
 	root.add_child(tip)  # 맨 위에 그린다(I162)
@@ -232,12 +243,13 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	var prep: bool = battle.state == "prep"
 	var on: bool = battle.state in ["prep", "battle"]
-	var n: int = battle.waves.size()
 	var round_no: int = battle.round_index + 1
 	if prep and _seen != "prep" and battle.wave_index == 0:  # 라운드 첫 준비 단계(I122)
 		_ok.clear()
 		if battle.mission != "":
 			toasts.push("이번 라운드 미션: " + battle.QUEST_KINDS[battle.mission].text, MISSION_SECS)
+	if prep and _seen != "prep" and _boss(_next_wave()):  # S188
+		toasts.push("다음 웨이브에 보스")
 	_show_status(delta, round_no)
 	for k in ["mission", "engineer"]:  # 준비·전투 단계에만(S185)
 		cells[k].visible = on
@@ -246,8 +258,8 @@ func _process(delta: float) -> void:
 		_eng.text = str(_idle().size())
 		_eng.add_theme_color_override("font_color", HudTheme.DANGER if battle.state == "battle" and _idle().is_empty() else HudTheme.TEXT)  # I128
 	toasts.visible = on
-	_wave.text = "웨이브 %d/%d\n%s" % [mini(battle.wave_index + 1, n), n, STATES[battle.state]]
-	_start.disabled = not prep
+	_show_progress()
+	_show_edges()
 	var mercs: Array = controls.selected.filter(func(u): return not u.is_hero and u.alive)  # 고른 용병의 이동 방식·홀드(U11, I139)
 	_mode.visible = battle.state in ["prep", "battle"] and not mercs.is_empty()
 	_hold.visible = _mode.visible
@@ -441,6 +453,177 @@ func _show_status(delta: float, round_no: int) -> void:
 	_gold.text = str(battle.gold)
 	_tax.text = "+%d" % battle.tax()
 	_round.text = "%d/%d" % [round_no, battle.rounds.size()]
+
+# 진행 칸(S185): 준비 단계 금색 «▶ 전투 시작»과 다음 웨이브 버튼, 그 밖에는 칸 전체가 웨이브 버튼 하나다(I13)
+func _make_progress() -> void:
+	var p := _cell("progress", Control.new())
+	start = _bar_button(p, "", _start_battle)
+	start.size = Vector2(84, 24)
+	for st in ["normal", "hover", "pressed", "hover_pressed"]:
+		start.add_theme_stylebox_override(st, HudTheme.box(st, "Button", Color("3d3218") if st == "normal" else Color("5a4a22"), HudTheme.ACCENT))
+	_pic(start, HudBuild.dots(PLAY, {"#": HudTheme.ACCENT}), Vector2(4, 7)).position = Vector2(6, 8)
+	var go := _text(start, 9, HudTheme.ACCENT)
+	go.text = "전투 시작"
+	go.position = Vector2(14, 1)
+	go.size = Vector2(68, 12)
+	var key := _text(start, 7, HudTheme.DIM)
+	key.text = "Enter"
+	key.position = Vector2(14, 12)
+	key.size = Vector2(68, 11)
+	tip.add(start, func(): return ["전투 시작", "Enter", "", "웨이브 %d/%d를 부른다" % [battle.wave_index + 1, battle.waves.size()], ""])
+	gauge = _bar_button(p, "", _to_enemy)
+	_g1 = _text(gauge, 7, HudTheme.DIM)
+	_g2 = _text(gauge, 9, HudTheme.TEXT)
+	_dots = _pic(gauge, null, Vector2.ZERO)
+	skull = _pic(gauge, HudBuild.dots(SKULL, {"#": HudTheme.DANGER}), Vector2(7, 7))
+	_track.color = HudTheme.LINE
+	gauge.add_child(_track)
+	_fill.color = HudTheme.DANGER
+	_track.add_child(_fill)
+	tip.add(gauge, _wave_tip)
+
+# 진행 칸 글과 자리(I13, S188)
+func _show_progress() -> void:
+	var st: String = battle.state
+	var nw := _next_wave()
+	if st != _laid:  # 단계가 바뀔 때만 자리·글꼴을 다시 정한다
+		_laid = st
+		start.visible = st == "prep"
+		gauge.position.x = 86 if start.visible else 0
+		gauge.size = Vector2(136 - gauge.position.x, 24)
+		_track.visible = st == "battle"
+		_dots.visible = st in ["prep", "battle"]
+		_g2.visible = st not in ["battle", "won", "lost"]
+		match st:
+			"prep":
+				_line(_g1, 7, HudTheme.DIM, Rect2(3, 1, 26, 11))
+				_line(_g2, 9, HudTheme.TEXT, Rect2(3, 12, 32, 11))
+				skull.position = Vector2(38, 14)
+			"battle":
+				_line(_g1, 10, HudTheme.TEXT, Rect2(4, 1, 90, 13))
+				_track.position = Vector2(4, 17)
+				_track.size = Vector2(128, 3)
+			"hiring", "cleared":
+				_line(_g1, 9, HudTheme.TEXT, Rect2(4, 1, 60, 11))
+				_line(_g2, 8, HudTheme.DIM, Rect2(4, 12, 80, 11))
+				skull.position = Vector2(124, 14)
+			_:
+				_line(_g1, 10, HudTheme.ACCENT if st == "won" else HudTheme.DANGER, Rect2(4, 1, 128, 22))
+	skull.visible = st != "battle" and _boss(nw)
+	match st:
+		"prep":
+			_g1.text = "웨이브"
+			_g2.text = "적 %d" % _total(nw)
+		"battle":
+			_g1.text = "남은 적 %d" % battle.enemies_left()
+			_fill.size = Vector2(128.0 * (1.0 - float(battle.enemies_left()) / maxi(_total([battle.round_index, battle.wave_index]), 1)), 3)
+		"hiring", "cleared":
+			_g1.text = "영입"
+			_g2.text = "다음 적 %d" % _total(nw)
+		_:
+			_g1.text = {"won": "승리", "lost": "패배"}[st]
+	if _dots.visible:
+		_dots.texture = _wave_dots(battle.waves.size(), battle.wave_index)
+		_dots.size = _dots.texture.get_size()
+		_dots.position = Vector2(gauge.size.x - _dots.size.x - 4, 5)
+
+func _line(l: Label, font: int, color: Color, at: Rect2) -> void:
+	l.add_theme_font_size_override("font_size", font)
+	l.add_theme_color_override("font_color", color)
+	l.position = at.position
+	l.size = at.size
+
+# 웨이브 점: 지난 웨이브는 채움, 지금 웨이브는 강조색, 남은 웨이브는 테두리(ui_research 4.6)
+func _wave_dots(n: int, now: int) -> Texture2D:
+	var k := "%d/%d" % [n, now]
+	if not _dot_tex.has(k):
+		var rows := ["", "", ""]
+		for i in n:
+			var c := "#" if i < now else ("c" if i == now else "o")
+			var gap := "" if i == 0 else "."
+			rows[0] += gap + c + c + c
+			rows[1] += gap + (c + "." + c if c == "o" else c + c + c)
+			rows[2] += gap + c + c + c
+		_dot_tex[k] = HudBuild.dots(rows, {"#": HudTheme.TEXT, "c": HudTheme.ACCENT, "o": HudTheme.DIM})
+	return _dot_tex[k]
+
+# 진행 칸이 보이는 웨이브 [라운드, 웨이브](S188): 준비 단계는 곧 부를 웨이브, 전투 단계는 그다음, 영입·라운드 사이는 다음 라운드 첫 웨이브. 없으면 []
+func _next_wave() -> Array:
+	match battle.state:
+		"prep":
+			return [battle.round_index, battle.wave_index]
+		"battle":
+			return [battle.round_index, battle.wave_index + 1] if battle.wave_index + 1 < battle.waves.size() else []
+		"hiring":
+			return [battle.round_index, 0]
+		"cleared":
+			return [battle.round_index + 1, 0]
+	return []
+
+func _total(rw: Array) -> int:
+	return battle.rounds[rw[0]][rw[1]].reduce(func(n, e): return n + e.count, 0)
+
+func _boss(rw: Array) -> bool:
+	return not rw.is_empty() and battle.rounds[rw[0]][rw[1]].any(func(e): return e.kind == "boss")
+
+# 출현 지점마다 «왼쪽 — 기본 3 · 빠름 2», 그 아래 웨이브에 든 종류마다 특성 한 줄(S188)
+func _wave_lines(rw: Array) -> String:
+	var counts: Array = battle.spawn_counts(rw[0], rw[1])
+	var lines := []
+	var kinds := {}
+	for i in counts.size():
+		lines.append("%s — %s" % [SIDES[i] if i < SIDES.size() else str(i + 1), " · ".join(counts[i].keys().map(func(k): return "%s %d" % [ENEMIES[k], counts[i][k]]))])
+		kinds.merge(counts[i])
+	lines.append_array(kinds.keys().filter(func(k): return TRAITS.has(k)).map(func(k): return "%s: %s" % [ENEMIES[k], TRAITS[k]]))
+	return "\n".join(lines)
+
+# 웨이브 버튼 툴팁(S188): 준비 단계는 곧 부를 웨이브, 전투 단계는 그다음 웨이브, 영입·라운드 사이는 다음 라운드 첫 웨이브의 출현 지점별 구성
+func _wave_tip() -> Array:
+	var nw := _next_wave()
+	match battle.state:
+		"prep":
+			return ["웨이브 %d/%d" % [battle.wave_index + 1, battle.waves.size()], "", "", _wave_lines(nw), ""]
+		"battle":
+			return ["남은 적 %d" % battle.enemies_left(), "", "", ("다음 웨이브\n" + _wave_lines(nw) if not nw.is_empty() else "이 라운드의 마지막 웨이브") + "\n누르면 거점에 가장 가까운 적을 비춘다", ""]
+		"hiring", "cleared":
+			return ["다음 라운드 첫 웨이브", "", "", _wave_lines(nw), ""]
+	return [{"won": "승리", "lost": "패배"}[battle.state], "", "", "", ""]
+
+# 전투 중 진행 칸을 누르면 거점에 가장 가까운 적에게 카메라가 간다(I13, I164)
+func _to_enemy() -> void:
+	if battle.state != "battle" or battle.enemies.is_empty():
+		return
+	var keep := Vector2(battle.base.cell)
+	_focus(battle.enemies.reduce(func(a, e): return e if e.pos.distance_to(keep) < a.pos.distance_to(keep) else a).pos)
+
+# 아래 가장자리 표식(S188): 출현 지점마다 검은 바탕에 아래 화살표와 수
+func _make_edges(root: Control) -> void:
+	edges.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(edges)
+	for c in battle.spawns:
+		var m := Panel.new()
+		m.add_theme_stylebox_override("panel", HudTheme.box("panel", "PanelContainer", Color.BLACK, HudTheme.DIM))
+		m.size = Vector2(22, 12)
+		edges.add_child(m)
+		_pic(m, HudBuild.dots(ARROW), Vector2(5, 5)).position = Vector2(3, 4)
+		var l := _text(m, 8, HudTheme.TEXT)
+		l.position = Vector2(9, 0)
+		l.size = Vector2(12, 12)
+		for n in [m] + m.get_children():
+			n.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+# 준비 단계에 화면(VIEW) 밖 출현 지점의 표식을 그 x에 맞춰 아래 가장자리에 둔다
+func _show_edges() -> void:
+	edges.visible = battle.state == "prep"
+	if not edges.visible:
+		return
+	var counts: Array = battle.spawn_counts(battle.round_index, battle.wave_index)
+	for i in battle.spawns.size():
+		var m: Control = edges.get_child(i)
+		var at: Vector2 = map.get_canvas_transform() * ((Vector2(battle.spawns[i]) + Vector2(0.5, 0.5)) * BattleView.CELL)
+		m.visible = not VIEW.has_point(at)
+		m.get_child(1).text = str(counts[i].values().reduce(func(n, x): return n + x, 0))
+		m.position = Vector2(clampf(at.x - m.size.x / 2, EDGE_X.x, EDGE_X.y - m.size.x), 344)
 
 # 임무 칸의 점(I122): 조건을 지키는 중이면 흰 점, 깨졌으면 빨간 ✕, 없으면 비운다. 깨지는 순간 토스트를 띄운다
 func _show_quests() -> void:

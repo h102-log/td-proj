@@ -274,9 +274,8 @@ var grid := CostGrid.new()
 var _wall := AStarGrid2D.new()  # 성벽 위 길. 성곽 칸만 걸을 수 있다(I69)
 var _repath := false  # 막힌 칸이 바뀌어 적 경로를 다시 구해야 한다
 var _stale := {}  # 경로를 다시 구할 적, 먼저 밀린 순서(I155)
-var _queue := []      # 이번 웨이브에서 아직 안 나온 적 종류
+var _queue := []      # 이번 웨이브에서 아직 안 나온 적 [종류, 출현 지점](wave_plan)
 var _spawn_timer := 0.0
-var _spawned := 0     # 이번 웨이브에서 나온 적 수(출현 지점 돌아가며 쓰기)
 var _stage: Dictionary  # 재시작할 때 다시 읽는다
 var _rng := RandomNumberGenerator.new()  # 영입소 목록을 뽑는다. 스테이지에 seed가 있으면 그 씨앗이다(평가용)
 var _luck := RandomNumberGenerator.new()  # 치명타·요새화 기절(S149, S151). 영입소 목록이 전투에 따라 바뀌지 않게 따로 둔다
@@ -453,11 +452,29 @@ func start_battle() -> void:
 		return
 	wave_starting.emit()
 	state = "battle"
-	for entry in waves[wave_index]:
-		for i in entry.count:
-			_queue.append(entry.kind)
+	_queue = wave_plan(round_index, wave_index)
 	_spawn_timer = 0.0
-	_spawned = 0
+
+# 라운드 r·웨이브 w의 적을 나오는 차례대로 [종류, 출현 지점]. 항목 차례로 나오고 출현 지점을 돌아가며 쓴다.
+# 전투(start_battle)와 미리보기(spawn_counts, S188)가 함께 써서 미리보기가 실제와 어긋나지 않는다
+func wave_plan(r: int, w: int) -> Array:
+	var out := []
+	for entry in rounds[r][w]:
+		for i in entry.count:
+			out.append([entry.kind, spawns[out.size() % spawns.size()]])
+	return out
+
+# 출현 지점(spawns 차례)마다 {적 종류: 수}(S188)
+func spawn_counts(r: int, w: int) -> Array:
+	var out := spawns.map(func(_c): return {})
+	for p in wave_plan(r, w):
+		var d: Dictionary = out[spawns.find(p[1])]
+		d[p[0]] = d.get(p[0], 0) + 1
+	return out
+
+# 이번 웨이브에서 아직 안 나왔거나 살아 있는 적 수(I13 «남은 적»)
+func enemies_left() -> int:
+	return _queue.size() + enemies.size()
 
 # 영입 창(S122)이나 라운드 사이(S117)에서 1라운드나 다음 라운드의 첫 준비 단계로 간다. 그 밖에서는 거부한다
 # 출전 목록을 전장에 반영하고(S124), 구조물·성곽·마을·용병·골드와 계속 출전하는 영웅은 그대로 이어진다(S63, S79, S61, I93)
@@ -1913,8 +1930,8 @@ func _spawn_wave(dt: float) -> void:
 	_spawn_timer -= dt
 	if _queue.is_empty() or _spawn_timer > 0.0:
 		return
-	spawn_enemy(_queue.pop_front(), spawns[_spawned % spawns.size()])
-	_spawned += 1
+	var next: Array = _queue.pop_front()
+	spawn_enemy(next[0], next[1])
 	_spawn_timer = SPAWN_GAP
 	_forecast()  # 성곽이 깎인 만큼 길이 바뀌었을 수 있다(S142)
 
