@@ -625,7 +625,7 @@
 - I164. HUD가 카메라를 어떤 대상으로 옮길 때(상태 묶음·공병 칸 클릭)는 대상을 화면 (320,194)(위 띠 아래 빈 영역 가운데)에 놓고 카메라 경계(I50) 안으로 당긴다. `[추론]` (`ui_research/README.md` 4.8 «카메라를 옮기는 새 동작»)
 - I165. 영웅 칸 초상(I129)을 누르면 그 영웅을 고른다(F키와 같다, I108). 초상을 0.4초 안에 두 번 누르거나 F키를 0.4초 안에 두 번 누르면 카메라가 그 영웅에게 간다(I164). 0.4초는 임시값이다. `[추론]` (`next/archive/2026-10-21/r1.md` 5단계, `ui_research/README.md` 4.7 «영웅 초상»)
 - I166. 끝낸 힌트(S191)는 설정 파일(S184)의 hints 칸에 이름 목록으로 저장해 게임을 다시 켜도 다시 뜨지 않는다. 힌트 설정을 끄고 다시 켜도 끝낸 힌트는 그대로다. `[추론]` (사용자 2026-10-21 — 설정 파일 안에 저장, `next/archive/2026-10-21/r1.md` 12단계)
-- I167. 번역은 gettext PO 파일 `locale/en.po` 하나다. msgid는 코드·데이터의 한국어 원문 그대로이고, 한국어는 번역 파일 없이 원문을 보인다(대체 언어도 ko). 고정 글은 Control 자동 번역에 맡긴다. 틀 글(`%`)은 틀을 `tr()`로 번역한 뒤 값을 넣고, 이어 붙이던 글은 틀로 바꾼다. 데이터의 글(영웅 칭호·미션 글)과 이름 표는 보일 때 `tr()`을 거친다. 언어는 설정 파일의 language 칸(«ko»·«en»)에 두고, 시작할 때와 바꿀 때 `TranslationServer.set_locale`로 건다. 평가와 유닛 테스트는 «ko»로 고정한다. `[추론]` (사용자 2026-10-22 — 한국어 원문을 키로, `next/2026-10-22/r3.md`)
+- I167. 번역은 gettext PO 파일 `locale/en.po` 하나다. msgid는 코드·데이터의 한국어 원문 그대로이고, 한국어는 번역 파일 없이 원문을 보인다(대체 언어도 ko). 고정 글은 Control 자동 번역에 맡긴다. 틀 글(`%`)은 틀을 `tr()`로 번역한 뒤 값을 넣고, 이어 붙이던 글은 틀로 바꾼다. 데이터의 글(영웅 칭호·미션 글)과 이름 표는 보일 때 `tr()`을 거친다. 언어는 설정 파일의 language 칸(«ko»·«en»)에 두고, 시작할 때와 바꿀 때 `TranslationServer.set_locale`로 건다. 평가와 유닛 테스트는 «ko»로 고정한다. `[추론]` (사용자 2026-10-22 — 한국어 원문을 키로, `next/2026-10-22/r3.md`) → **2026-10-22 변경:** 게임 글은 코드에서 `tr()`로 감싸지 않는다. 번역기 `src/locale.gd`(Translation 하위 클래스)가 화면에 그릴 때 글을 바꾼다. 정확한 msgid가 있으면 그 번역을 쓴다. 없으면 `%d`·`%s` 틀과 맞춰 값을 넣고(`%s` 값도 다시 번역한다), 맞는 틀이 없으면 줄바꿈·« · »·«, »·« — »·«: »로 나눠 조각마다 번역하며, 끝에 붙은 수는 떼고 앞을 번역한다. 그래서 코드의 글은 한국어 그대로이고, 이유 글을 비교하는 로직(`hud_build.gd`)도 그대로 돈다. 이어 붙이던 글 가운데 «이름 + 구매»·«미션 안내»는 틀로 바꾼다. 번역기는 `locale/en.po`를 읽어 언어 «en»으로 TranslationServer에 넣고(`Settings.apply_language`), 프로젝트 설정의 translations에서는 뺀다. 같은 글은 한 번만 계산해 둔다. `[추론]` (근거: 사용자 2026-10-22 — «번역기로 바꿈». 틀로 쓴 이유 글을 로직이 비교해 `tr()`로 감싸면 150곳 넘게 고쳐야 했다. 시제품으로 Label 자동 번역에서 번역기가 불리는 것을 확인했다. `next/2026-10-22/r3.md` §6)
 
 **데이터·환경**
 
@@ -990,7 +990,7 @@
 | I152 | src/ui/battle_view.gd:780 · src/ui/battle_view.gd:787-788 |
 | S161 | src/menu.gd:17 · src/main.gd:53 · src/main.gd:147 · src/main.gd:150-158 |
 | S162 | src/main.gd:122-125 · src/main.gd:161-166 · src/main.gd:168-172 · src/menu.gd:38-40 |
-| S163 | src/main.gd:144-147 · src/settings.gd:47-48 |
+| S163 | src/main.gd:144-147 · src/settings.gd:51-52 |
 | S164 | src/main.gd:141 |
 | S165 | src/ui/battle_view.gd:27-28 · src/ui/battle_view.gd:312-385 · src/ui/battle_view.gd:479-503 · src/ui/battle_view.gd:702-703 · tools/art/atlas.py:21-46 |
 | S166 | src/ui/battle_view.gd:57-58 · src/ui/battle_view.gd:338-341 · src/ui/battle_view.gd:365-366 · src/ui/battle_view.gd:443-445 · src/ui/battle_view.gd:604-611 |
@@ -1014,12 +1014,12 @@
 | S181 | src/main.gd:13 · src/main.gd:38 · src/main.gd:75-83 · src/main.gd:104-106 · src/main.gd:114-116 · src/sim/battle.gd:5 · src/sim/battle.gd:453 |
 | S182 | src/menu.gd:10-32 · src/ui/menus.gd:44-55 · src/ui/menus.gd:110-115 · src/main.gd:32-36 |
 | S183 | src/main.gd:86-101 · src/main.gd:126-130 · src/ui/menus.gd:56-63 · src/main.gd:88 · src/ui/hud.gd:998-1002 |
-| S184 | src/settings.gd:4-53 · src/ui/menus.gd:64-86 · src/menu.gd:11-15 |
+| S184 | src/settings.gd:4-57 · src/ui/menus.gd:64-86 · src/menu.gd:11-15 |
 | I156 | src/sim/save.gd:9-13 · src/sim/save.gd:17-57 · src/sim/save.gd:93-117 |
 | I157 | src/sim/save.gd:7 · src/sim/save.gd:64-87 · src/main.gd:80-83 |
 | I158 | src/ui/controls.gd:47 · src/ui/controls.gd:210-211 · src/main.gd:40 · src/main.gd:98 |
 | I159 | src/ui/menus.gd:74 · src/ui/menus.gd:87 · src/ui/menus.gd:117-121 · src/ui/menus.gd:128-138 |
-| I160 | src/main.gd:96-99 · src/main.gd:168-178 · src/settings.gd:51-53 |
+| I160 | src/main.gd:96-99 · src/main.gd:168-178 · src/settings.gd:55-57 |
 | I161 | src/main.gd:104-116 · src/menu.gd:33-34 |
 | S185 | src/ui/hud.gd:40-43 · src/ui/hud.gd:76 · src/ui/hud.gd:177-181 · src/ui/hud.gd:188-194 · src/ui/hud.gd:241-247 · src/ui/hud.gd:694-737 · src/ui/hud.gd:389-394 · src/ui/hud.gd:582-594 · src/ui/hud.gd:852-861 · src/ui/hud_theme.gd:26-30 · src/main.gd:48 |
 | S186 | src/ui/hud_build.gd:43-96 · src/ui/hud_build.gd:98-114 · src/ui/hud_build.gd:117-154 · src/ui/hud_build.gd:218-229 · src/ui/hud_build.gd:260-292 · src/ui/controls.gd:88-94 · src/ui/camera.gd:62-63 · src/ui/hud.gd:337-338 |
@@ -1027,15 +1027,15 @@
 | S188 | src/sim/battle.gd:455 · src/sim/battle.gd:458-473 · src/ui/hud.gd:52-54 · src/ui/hud.gd:67-71 · src/ui/hud.gd:386-387 · src/ui/hud.gd:694-737 · src/ui/hud.gd:759-799 · src/ui/hud.gd:808-835 · src/ui/battle_view.gd:139-140 · src/ui/battle_view.gd:149-157 |
 | S189 | src/ui/hud_alert.gd:1-153 · src/ui/hud.gd:36 · src/ui/hud.gd:86 · src/ui/hud.gd:367-372 · src/ui/hud.gd:396-398 · src/ui/controls.gd:26 · src/ui/controls.gd:80-81 |
 | S190 | src/ui/hud.gd:618-649 · src/ui/hud.gd:651-664 · src/ui/hud_build.gd:174-176 · src/ui/hud_build.gd:186-191 · src/ui/hud_theme.gd:13 |
-| S191 | src/ui/hints.gd:1-93 · src/ui/hud.gd:18 · src/ui/hud.gd:37 · src/ui/hud.gd:87 · src/ui/hud.gd:370-371 · src/ui/hud.gd:399 · src/ui/controls.gd:27 · src/ui/controls.gd:132-133 · src/settings.gd:9 · src/settings.gd:21 · src/settings.gd:33 · src/ui/menus.gd:72 |
+| S191 | src/ui/hints.gd:1-93 · src/ui/hud.gd:18 · src/ui/hud.gd:37 · src/ui/hud.gd:87 · src/ui/hud.gd:370-371 · src/ui/hud.gd:399 · src/ui/controls.gd:27 · src/ui/controls.gd:132-133 · src/settings.gd:9 · src/settings.gd:22 · src/settings.gd:34 · src/ui/menus.gd:72 |
 | S192 | src/ui/hints.gd:8-17 · src/ui/hints.gd:22 · src/ui/hints.gd:25 · src/ui/hints.gd:42-48 · src/ui/hints.gd:65-71 · src/ui/hints.gd:74-93 |
-| S193 | src/settings.gd:11 · src/settings.gd:23 · src/settings.gd:35 · src/settings.gd:38-40 · src/ui/menus.gd:8 · src/ui/menus.gd:88-100 · src/menu.gd:16 · locale/en.po:1-12 |
+| S193 | src/settings.gd:11 · src/settings.gd:24 · src/settings.gd:36 · src/settings.gd:39-41 · src/ui/menus.gd:8 · src/ui/menus.gd:88-100 · src/menu.gd:16 · locale/en.po:1-12 |
 | I162 | src/ui/hud_tip.gd:28 · src/ui/hud_tip.gd:49 · src/ui/hud_tip.gd:70 · src/ui/hud.gd:375 |
 | I163 | src/ui/hud_toast.gd:1-73 · src/ui/hud.gd:373-374 · src/ui/hud.gd:395 · src/ui/hud.gd:372 |
 | I164 | src/ui/camera.gd:11 · src/ui/camera.gd:56-59 · src/ui/hud.gd:863-864 · src/ui/hud.gd:619 · src/ui/hud.gd:856-861 |
 | I165 | src/ui/controls.gd:22 · src/ui/controls.gd:82-83 · src/ui/controls.gd:168-172 · src/ui/hud.gd:72 · src/ui/hud.gd:160-161 · src/ui/hud.gd:198 · src/ui/hud.gd:239 · src/ui/hud.gd:378 · src/ui/hud.gd:1057-1062 |
-| I166 | src/settings.gd:10 · src/settings.gd:22 · src/settings.gd:34 · src/ui/hints.gd:95-99 |
-| I167 | project.godot:19-22 · src/settings.gd:42-44 · src/ui/menus.gd:92 · locale/en.po:13-16 · tests/eval/gd/runner.gd:10 · tests/unit/gd/runner.gd:9 |
+| I166 | src/settings.gd:10 · src/settings.gd:23 · src/settings.gd:35 · src/ui/hints.gd:95-99 |
+| I167 | project.godot:19-21 · src/settings.gd:12 · src/settings.gd:44-48 · src/locale.gd:1-68 · src/ui/hud.gd:354 · src/ui/hud.gd:385 · src/ui/menus.gd:92 · locale/en.po:1-21 · tests/eval/gd/runner.gd:10 · tests/unit/gd/runner.gd:9 |
 
 ### 3.2 재확인 목록 (`선택 대기`)
 

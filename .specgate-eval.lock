@@ -1,6 +1,6 @@
 {
-  "approvedAt": "2026-10-21T23:22:55.603Z",
-  "evalMd": "d35ca3e9",
+  "approvedAt": "2026-10-21T23:40:33.957Z",
+  "evalMd": "ce104b71",
   "tests": {
     "tests/eval/conftest.py": "02db26c8",
     "tests/eval/gd/aura.gd": "010cc38a",
@@ -29,7 +29,7 @@
     "tests/eval/gd/hire.gd.uid": "47433f7e",
     "tests/eval/gd/house.gd": "711703a1",
     "tests/eval/gd/house.gd.uid": "5fd6fb28",
-    "tests/eval/gd/hud.gd": "461aec79",
+    "tests/eval/gd/hud.gd": "08434ba3",
     "tests/eval/gd/hud.gd.uid": "6038f593",
     "tests/eval/gd/kits.gd": "2ce12f64",
     "tests/eval/gd/kits.gd.uid": "c48b27a3",
@@ -37,6 +37,8 @@
     "tests/eval/gd/levels.gd.uid": "ad007fbd",
     "tests/eval/gd/lib.gd": "b2026bde",
     "tests/eval/gd/lib.gd.uid": "0b978a98",
+    "tests/eval/gd/locale.gd": "feb1cd5a",
+    "tests/eval/gd/locale.gd.uid": "5cc4511c",
     "tests/eval/gd/loop.gd": "36f7bc2a",
     "tests/eval/gd/loop.gd.uid": "f8a3d823",
     "tests/eval/gd/map.gd": "87d12078",
@@ -85,9 +87,10 @@
     "tests/eval/test_heroes.py": "da7683ed",
     "tests/eval/test_hire.py": "ed67a0f5",
     "tests/eval/test_house.py": "f908d7b0",
-    "tests/eval/test_hud.py": "b88f363f",
+    "tests/eval/test_hud.py": "87dfcb6b",
     "tests/eval/test_kits.py": "5cdb5610",
     "tests/eval/test_levels.py": "2c71fe40",
+    "tests/eval/test_locale.py": "56451d19",
     "tests/eval/test_loop.py": "eb9dcfdc",
     "tests/eval/test_map.py": "9fd1d996",
     "tests/eval/test_menu.py": "6be25289",
@@ -338,6 +341,7 @@
     "S191": "b62fc8cf",
     "I110": "6ef4e75f",
     "S192": "83b66ecc",
-    "S193": "42c00989"
+    "S193": "42c00989",
+    "I167": "46f8113e"
   }
 }

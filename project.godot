@@ -18,7 +18,6 @@ window/stretch/scale_mode="integer"
 
 [internationalization]
 
-locale/translations=PackedStringArray("res://locale/en.po")
 locale/fallback="ko"
 
 [rendering]

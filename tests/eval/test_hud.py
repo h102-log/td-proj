@@ -192,3 +192,11 @@ def test_EV368_tutorial_waves(gd):
 
 def test_EV369_tutorial_round_one_only(gd):
     gd("hud", "EV369")
+
+
+def test_EV372_english_screens_have_no_hangul(gd):
+    gd("hud", "EV372")
+
+
+def test_EV374_english_text_fits(gd):
+    gd("hud", "EV374")
