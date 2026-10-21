@@ -356,7 +356,7 @@
 - S181. 진행 중인 도전은 전투 단계가 아닐 때 저장된다. 저장하는 때는 도전 시작 전 영입 창(S122)이 열릴 때, 준비 단계나 라운드 사이(S117)가 될 때, 웨이브를 시작하기 직전(준비 단계가 끝나는 때), 전투 단계가 아닐 때 메인 메뉴로 나가거나 게임을 끌 때다. 전투 단계에는 저장하지 않아서, 전투 중에 나가면 이어하기는 그 웨이브를 시작하기 직전으로 돌아간다. (근거: 사용자 2026-10-20 — 세 안(전투 없는 때마다 / 라운드 사이만 / 전투 중 포함 언제든) 가운데 고름. 지기 직전에 나가 그 웨이브를 다시 할 수 있다는 것을 알고 고름)
 - S182. 메인 메뉴는 «새 게임»·«이어하기»·«설정»·«종료» 네 버튼이다. 저장(S181)이 없으면 «이어하기»는 누를 수 없다. 저장이 있을 때 «새 게임»을 누르면 진행 중인 도전이 지워진다는 확인 창이 뜨고, 확인해야 저장을 지우고 새 도전(영입 창, S122)을 시작한다. «이어하기»는 저장한 때의 단계로 도전을 잇는다. (근거: 사용자 2026-10-20 — 두 안(넷 / 새 게임·이어하기만) 가운데 고름)
 - S183. 게임 화면에서 ESC를 누르면 게임이 멈추고(I11) «계속»·«설정»·«메인 메뉴로»·«게임 종료» 메뉴가 뜬다. 조준(S147)·놓기 모드·대포 옮기기 중에 누른 ESC는 지금처럼 그것만 취소하고 메뉴를 열지 않는다. 전투 단계에 연 메뉴에는 «지금 나가면 이번 웨이브 진행은 저장되지 않습니다»라는 안내가 보인다. (근거: 사용자 2026-10-20 — 두 안(넷 / 게임 종료를 뺀 셋) 가운데 고름) → **2026-10-21 변경:** ESC 메뉴가 열려 있는 동안 건설 격자·정보 칸·태그는 숨는다. `[추론]` (근거: 사용자 2026-10-21 — 0단계 초안 승인, `next/archive/2026-10-21/r1.md` 11단계, `ui_research/README.md` 4.3 «창»·4.6)
-- S184. 설정은 퀵캐스트(S147, 기본 꺼짐)·부활(I28, 기본 켜짐)·창 모드(전체화면/창, S162)·음량(기본 100%) 넷이다. 메인 메뉴와 ESC 메뉴 모두에서 열고, 바꾼 값은 `user://`에 저장되어 게임을 다시 켜도 그대로다. (근거: 사용자 2026-10-20 — 넷을 모두 고름. 창 모드 저장은 4K 수정안 5단계 `next/archive/2026-10-19-2/r7.md` §5, 음량은 `WBS.md:34`) → **2026-10-21 변경:** 다섯째 설정 «힌트»(기본 켜짐)를 더한다. 끄면 처음 하는 사람 힌트(S191)가 뜨지 않는다. (근거: 사용자 2026-10-21 — `ui_research/README.md` 4.7 «설정에서 끈다», MD-M41·M42. `next/archive/2026-10-21/r1.md` 12단계)
+- S184. 설정은 퀵캐스트(S147, 기본 꺼짐)·부활(I28, 기본 켜짐)·창 모드(전체화면/창, S162)·음량(기본 100%) 넷이다. 메인 메뉴와 ESC 메뉴 모두에서 열고, 바꾼 값은 `user://`에 저장되어 게임을 다시 켜도 그대로다. (근거: 사용자 2026-10-20 — 넷을 모두 고름. 창 모드 저장은 4K 수정안 5단계 `next/archive/2026-10-19-2/r7.md` §5, 음량은 `WBS.md:34`) → **2026-10-21 변경:** 다섯째 설정 «힌트»(기본 켜짐)를 더한다. 끄면 처음 하는 사람 힌트(S191)가 뜨지 않는다. (근거: 사용자 2026-10-21 — `ui_research/README.md` 4.7 «설정에서 끈다», MD-M41·M42. `next/archive/2026-10-21/r1.md` 12단계) → **2026-10-22 변경:** 여섯째 설정 «언어»(한국어·English)를 더한다(S193). (근거: 사용자 2026-10-22 — 5.4 «OS 언어 + 설정», `next/2026-10-22/r3.md`)
 
 **HUD 개편** (2026-10-21 추가, WBS 4.1g — `ui_research/README.md` 4장 추천안, 단계 계획 `next/2026-10-21/r1.md`)
 
@@ -378,6 +378,8 @@
   | 2 | 용병 | buy | 전투 | 전투 중에도 3·5·7로 용병을 산다 / 짓기는 공병(5)이 가서 한다 | 전투 단계에 용병을 샀다 |
   | 3 | 영웅 | move | 준비 | 영웅을 누르고(F1) / 우클릭한 칸으로 보낸다 | 영웅에게 이동을 시켰다 |
   | 3 | 영웅 | skill | 전투 | Q로 영웅 스킬을 쓴다 / 조준하는 칸은 맵을 눌러 쓴다 | 출전 영웅이 스킬을 썼다(켜고 끄는 칸을 켠 것도 친다) |
+
+- S193. 게임 안의 글은 한국어와 영어 둘이다. 처음 실행할 때(설정 파일에 언어가 없을 때)는 OS 언어가 한국어면 한국어, 그 밖이면 영어로 시작한다. 설정 «언어»에서 바꾸면 저장되고, 설정 창을 닫으면 보이는 글이 모두 그 언어다. 언어 이름은 그 언어로 쓴다(«한국어»·«English»). 영어 글은 Claude가 번역한 임시값이고, 6.1 외부 플레이테스트에서 영어 사용자가 검수한다. 영어 글은 HUD 칸 크기·자리를 바꾸지 않고 칸에 들어가게 줄인다. 영웅·스킬·적·시설 이름은 용어집(`locale/en.po` 머리)을 따른다. 영어 번역은 스팀 AI 공개(8.3)의 «현지화»에 적는다. 번역하지 않는 것은 개발자용 메시지와 문서다. (근거: 사용자 2026-10-22 — 방식·언어 선택·번역자·넘치는 글 넷 모두 Claude 추천 수락, `next/2026-10-22/r3.md`)
 
 **완료 신호**
 
@@ -623,6 +625,7 @@
 - I164. HUD가 카메라를 어떤 대상으로 옮길 때(상태 묶음·공병 칸 클릭)는 대상을 화면 (320,194)(위 띠 아래 빈 영역 가운데)에 놓고 카메라 경계(I50) 안으로 당긴다. `[추론]` (`ui_research/README.md` 4.8 «카메라를 옮기는 새 동작»)
 - I165. 영웅 칸 초상(I129)을 누르면 그 영웅을 고른다(F키와 같다, I108). 초상을 0.4초 안에 두 번 누르거나 F키를 0.4초 안에 두 번 누르면 카메라가 그 영웅에게 간다(I164). 0.4초는 임시값이다. `[추론]` (`next/archive/2026-10-21/r1.md` 5단계, `ui_research/README.md` 4.7 «영웅 초상»)
 - I166. 끝낸 힌트(S191)는 설정 파일(S184)의 hints 칸에 이름 목록으로 저장해 게임을 다시 켜도 다시 뜨지 않는다. 힌트 설정을 끄고 다시 켜도 끝낸 힌트는 그대로다. `[추론]` (사용자 2026-10-21 — 설정 파일 안에 저장, `next/archive/2026-10-21/r1.md` 12단계)
+- I167. 번역은 gettext PO 파일 `locale/en.po` 하나다. msgid는 코드·데이터의 한국어 원문 그대로이고, 한국어는 번역 파일 없이 원문을 보인다(대체 언어도 ko). 고정 글은 Control 자동 번역에 맡긴다. 틀 글(`%`)은 틀을 `tr()`로 번역한 뒤 값을 넣고, 이어 붙이던 글은 틀로 바꾼다. 데이터의 글(영웅 칭호·미션 글)과 이름 표는 보일 때 `tr()`을 거친다. 언어는 설정 파일의 language 칸(«ko»·«en»)에 두고, 시작할 때와 바꿀 때 `TranslationServer.set_locale`로 건다. 평가와 유닛 테스트는 «ko»로 고정한다. `[추론]` (사용자 2026-10-22 — 한국어 원문을 키로, `next/2026-10-22/r3.md`)
 
 **데이터·환경**
 
@@ -738,7 +741,7 @@
 | S62 | src/sim/battle.gd:601-614 · src/ui/hud.gd:1139-1147 |
 | S63 | src/sim/battle.gd:242 · src/sim/battle.gd:304 · src/sim/battle.gd:411-419 · src/sim/battle.gd:482-499 · src/main.gd:14-16 |
 | S64 | src/sim/battle.gd:319-358 · src/sim/battle.gd:1875 · src/ui/hud.gd:870-875 |
-| S65 | src/main.gd:75-83 · src/sim/save.gd:64-87 · src/menu.gd:23-31 |
+| S65 | src/main.gd:75-83 · src/sim/save.gd:64-87 · src/menu.gd:24-32 |
 | S66 | src/sim/battle.gd:644-652 · src/sim/battle.gd:655-657 · data/quests/base_safe.tres:8 · data/quests/flawless.tres:9 |
 | S67 | src/sim/battle.gd:439-448 |
 | S68 | src/ui/camera.gd:26-28 |
@@ -787,8 +790,8 @@
 | I8 | src/sim/battle.gd:1987-1988 |
 | I9 | src/ui/controls.gd:135-166 · src/ui/controls.gd:82-83 · src/ui/controls.gd:169-172 |
 | I10 | src/ui/controls.gd:7 |
-| I11 | src/main.gd:86-89 · src/ui/menus.gd:19 |
-| I12 | src/ui/hud.gd:877-882 · src/ui/hud.gd:435-440 · src/main.gd:119-131 · src/ui/menus.gd:86 · src/ui/menus.gd:114-124 |
+| I11 | src/main.gd:86-89 · src/ui/menus.gd:20 |
+| I12 | src/ui/hud.gd:877-882 · src/ui/hud.gd:435-440 · src/main.gd:119-131 · src/ui/menus.gd:87 · src/ui/menus.gd:128-138 |
 | I13 | src/sim/battle.gd:450 · src/sim/battle.gd:411 · src/sim/battle.gd:475-477 · src/ui/hud.gd:666-692 · src/ui/hud.gd:694-737 · src/ui/hud.gd:745-757 · src/ui/hud.gd:801-806 · src/ui/hud.gd:866-868 · src/main.gd:131 |
 | I14 | src/sim/battle.gd:411-419 |
 | I15 | data/enemies/basic.tres:11 · src/sim/battle.gd:95 · src/sim/battle.gd:325 · src/main.gd:189 · src/sim/battle.gd:482-499 · src/data/enemy_def.gd:14 |
@@ -804,7 +807,7 @@
 | I25 | |
 | I26 | src/sim/battle.gd:1874-1892 |
 | I27 | src/sim/battle.gd:436 |
-| I28 | src/sim/battle.gd:264 · src/sim/battle.gd:495-497 · src/main.gd:37 · src/main.gd:97 · src/settings.gd:6 · src/ui/menus.gd:65 |
+| I28 | src/sim/battle.gd:264 · src/sim/battle.gd:495-497 · src/main.gd:37 · src/main.gd:97 · src/settings.gd:6 · src/ui/menus.gd:66 |
 | I29 | src/sim/battle.gd:2129-2138 · src/sim/battle.gd:2258-2266 |
 | I30 | src/data/enemy_def.gd:6-14 · src/data/merc_def.gd:7-16 · src/data/structure_def.gd:7-14 · src/data/waves_def.gd:5 · src/data/hero_def.gd:7-14 · data/hire.tres:7-10 · src/data/hire_def.gd:5-10 · data/levels.tres:7-8 · src/data/level_def.gd:5-6 · src/data/enemy_def.gd:15 |
 | I31 | tests/unit/test_gdscript_suites.py:36 · tests/unit/gd/runner.gd:34 |
@@ -985,9 +988,9 @@
 | I151 | src/ui/controls.gd:8 · src/ui/controls.gd:213 · src/ui/hud.gd:12-13 · src/ui/hud.gd:157 · src/ui/hud.gd:213-221 · src/ui/hud.gd:1038-1040 · src/ui/hud.gd:1065-1098 · src/ui/skill_cell.gd:1-90 · src/ui/controls.gd:23 · src/ui/controls.gd:205-209 · src/ui/hud.gd:240 |
 | S160 | src/ui/battle_view.gd:97 · src/ui/battle_view.gd:781-788 |
 | I152 | src/ui/battle_view.gd:780 · src/ui/battle_view.gd:787-788 |
-| S161 | src/menu.gd:16 · src/main.gd:53 · src/main.gd:147 · src/main.gd:150-158 |
-| S162 | src/main.gd:122-125 · src/main.gd:161-166 · src/main.gd:168-172 · src/menu.gd:37-39 |
-| S163 | src/main.gd:144-147 · src/settings.gd:36-37 |
+| S161 | src/menu.gd:17 · src/main.gd:53 · src/main.gd:147 · src/main.gd:150-158 |
+| S162 | src/main.gd:122-125 · src/main.gd:161-166 · src/main.gd:168-172 · src/menu.gd:38-40 |
+| S163 | src/main.gd:144-147 · src/settings.gd:47-48 |
 | S164 | src/main.gd:141 |
 | S165 | src/ui/battle_view.gd:27-28 · src/ui/battle_view.gd:312-385 · src/ui/battle_view.gd:479-503 · src/ui/battle_view.gd:702-703 · tools/art/atlas.py:21-46 |
 | S166 | src/ui/battle_view.gd:57-58 · src/ui/battle_view.gd:338-341 · src/ui/battle_view.gd:365-366 · src/ui/battle_view.gd:443-445 · src/ui/battle_view.gd:604-611 |
@@ -1009,28 +1012,30 @@
 | I154 | src/main.gd:122 · src/main.gd:162-166 |
 | I155 | src/sim/battle.gd:23 · src/sim/battle.gd:276 · src/sim/battle.gd:387-399 |
 | S181 | src/main.gd:13 · src/main.gd:38 · src/main.gd:75-83 · src/main.gd:104-106 · src/main.gd:114-116 · src/sim/battle.gd:5 · src/sim/battle.gd:453 |
-| S182 | src/menu.gd:10-31 · src/ui/menus.gd:43-54 · src/ui/menus.gd:96-101 · src/main.gd:32-36 |
-| S183 | src/main.gd:86-101 · src/main.gd:126-130 · src/ui/menus.gd:55-62 · src/main.gd:88 · src/ui/hud.gd:998-1002 |
-| S184 | src/settings.gd:4-42 · src/ui/menus.gd:63-85 · src/menu.gd:11-15 |
+| S182 | src/menu.gd:10-32 · src/ui/menus.gd:44-55 · src/ui/menus.gd:110-115 · src/main.gd:32-36 |
+| S183 | src/main.gd:86-101 · src/main.gd:126-130 · src/ui/menus.gd:56-63 · src/main.gd:88 · src/ui/hud.gd:998-1002 |
+| S184 | src/settings.gd:4-53 · src/ui/menus.gd:64-86 · src/menu.gd:11-15 |
 | I156 | src/sim/save.gd:9-13 · src/sim/save.gd:17-57 · src/sim/save.gd:93-117 |
 | I157 | src/sim/save.gd:7 · src/sim/save.gd:64-87 · src/main.gd:80-83 |
 | I158 | src/ui/controls.gd:47 · src/ui/controls.gd:210-211 · src/main.gd:40 · src/main.gd:98 |
-| I159 | src/ui/menus.gd:73 · src/ui/menus.gd:86 · src/ui/menus.gd:103-107 · src/ui/menus.gd:114-124 |
-| I160 | src/main.gd:96-99 · src/main.gd:168-178 · src/settings.gd:40-42 |
-| I161 | src/main.gd:104-116 · src/menu.gd:32-33 |
+| I159 | src/ui/menus.gd:74 · src/ui/menus.gd:87 · src/ui/menus.gd:117-121 · src/ui/menus.gd:128-138 |
+| I160 | src/main.gd:96-99 · src/main.gd:168-178 · src/settings.gd:51-53 |
+| I161 | src/main.gd:104-116 · src/menu.gd:33-34 |
 | S185 | src/ui/hud.gd:40-43 · src/ui/hud.gd:76 · src/ui/hud.gd:177-181 · src/ui/hud.gd:188-194 · src/ui/hud.gd:241-247 · src/ui/hud.gd:694-737 · src/ui/hud.gd:389-394 · src/ui/hud.gd:582-594 · src/ui/hud.gd:852-861 · src/ui/hud_theme.gd:26-30 · src/main.gd:48 |
 | S186 | src/ui/hud_build.gd:43-96 · src/ui/hud_build.gd:98-114 · src/ui/hud_build.gd:117-154 · src/ui/hud_build.gd:218-229 · src/ui/hud_build.gd:260-292 · src/ui/controls.gd:88-94 · src/ui/camera.gd:62-63 · src/ui/hud.gd:337-338 |
 | S187 | src/ui/hud_tip.gd:8-10 · src/ui/hud_tip.gd:65-85 · src/ui/hud_tip.gd:87-104 · src/ui/hud.gd:187 · src/ui/hud.gd:194 · src/ui/hud.gd:220 · src/ui/hud.gd:682 · src/ui/hud.gd:692 · src/ui/hud.gd:244 · src/ui/hud.gd:266-267 · src/ui/hud.gd:647-649 · src/ui/hud.gd:1105-1119 · src/ui/hud_build.gd:269-292 · src/ui/hud.gd:535-542 · src/ui/hud_tip.gd:14 · src/ui/hud_tip.gd:55-58 · src/ui/hud_tip.gd:101 |
 | S188 | src/sim/battle.gd:455 · src/sim/battle.gd:458-473 · src/ui/hud.gd:52-54 · src/ui/hud.gd:67-71 · src/ui/hud.gd:386-387 · src/ui/hud.gd:694-737 · src/ui/hud.gd:759-799 · src/ui/hud.gd:808-835 · src/ui/battle_view.gd:139-140 · src/ui/battle_view.gd:149-157 |
 | S189 | src/ui/hud_alert.gd:1-153 · src/ui/hud.gd:36 · src/ui/hud.gd:86 · src/ui/hud.gd:367-372 · src/ui/hud.gd:396-398 · src/ui/controls.gd:26 · src/ui/controls.gd:80-81 |
 | S190 | src/ui/hud.gd:618-649 · src/ui/hud.gd:651-664 · src/ui/hud_build.gd:174-176 · src/ui/hud_build.gd:186-191 · src/ui/hud_theme.gd:13 |
-| S191 | src/ui/hints.gd:1-93 · src/ui/hud.gd:18 · src/ui/hud.gd:37 · src/ui/hud.gd:87 · src/ui/hud.gd:370-371 · src/ui/hud.gd:399 · src/ui/controls.gd:27 · src/ui/controls.gd:132-133 · src/settings.gd:9 · src/settings.gd:20 · src/settings.gd:31 · src/ui/menus.gd:71 |
+| S191 | src/ui/hints.gd:1-93 · src/ui/hud.gd:18 · src/ui/hud.gd:37 · src/ui/hud.gd:87 · src/ui/hud.gd:370-371 · src/ui/hud.gd:399 · src/ui/controls.gd:27 · src/ui/controls.gd:132-133 · src/settings.gd:9 · src/settings.gd:21 · src/settings.gd:33 · src/ui/menus.gd:72 |
 | S192 | src/ui/hints.gd:8-17 · src/ui/hints.gd:22 · src/ui/hints.gd:25 · src/ui/hints.gd:42-48 · src/ui/hints.gd:65-71 · src/ui/hints.gd:74-93 |
+| S193 | src/settings.gd:11 · src/settings.gd:23 · src/settings.gd:35 · src/settings.gd:38-40 · src/ui/menus.gd:8 · src/ui/menus.gd:88-100 · src/menu.gd:16 · locale/en.po:1-12 |
 | I162 | src/ui/hud_tip.gd:28 · src/ui/hud_tip.gd:49 · src/ui/hud_tip.gd:70 · src/ui/hud.gd:375 |
 | I163 | src/ui/hud_toast.gd:1-73 · src/ui/hud.gd:373-374 · src/ui/hud.gd:395 · src/ui/hud.gd:372 |
 | I164 | src/ui/camera.gd:11 · src/ui/camera.gd:56-59 · src/ui/hud.gd:863-864 · src/ui/hud.gd:619 · src/ui/hud.gd:856-861 |
 | I165 | src/ui/controls.gd:22 · src/ui/controls.gd:82-83 · src/ui/controls.gd:168-172 · src/ui/hud.gd:72 · src/ui/hud.gd:160-161 · src/ui/hud.gd:198 · src/ui/hud.gd:239 · src/ui/hud.gd:378 · src/ui/hud.gd:1057-1062 |
-| I166 | src/settings.gd:10 · src/settings.gd:21 · src/settings.gd:32 · src/ui/hints.gd:95-99 |
+| I166 | src/settings.gd:10 · src/settings.gd:22 · src/settings.gd:34 · src/ui/hints.gd:95-99 |
+| I167 | project.godot:19-22 · src/settings.gd:42-44 · src/ui/menus.gd:92 · locale/en.po:13-16 · tests/eval/gd/runner.gd:10 · tests/unit/gd/runner.gd:9 |
 
 ### 3.2 재확인 목록 (`선택 대기`)
 

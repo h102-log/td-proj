@@ -7,6 +7,7 @@ var started := false
 var done := false
 
 func _run() -> void:
+	TranslationServer.set_locale("ko")  # 평가는 한국어 화면 글을 잰다. OS 언어가 영어여도 같게(I167)
 	var args := OS.get_cmdline_user_args()
 	var script = load("res://tests/eval/gd/%s.gd" % args[0])
 	var loaded: bool = script != null and script.can_instantiate()

@@ -13,6 +13,7 @@ func _ready() -> void:
 		Settings.path = "user://settings.cfg"
 		Settings.load_file()
 		Settings.apply_volume()
+		Settings.apply_language()  # S193
 		Main.setup_window(get_window(), true)
 	var menus := Menus.new()
 	menus.can_resume = not Save.read().is_empty()
