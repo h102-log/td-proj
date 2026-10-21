@@ -136,9 +136,11 @@ func _draw() -> void:
 	_aim_preview()
 	if battle.state == "prep":
 		_spawn_badges()
-	if controls.show_hp:
-		for u in battle.units + battle.enemies:
-			_hp_bar(u.pos - Vector2(0, _lift(u) / CELL), u)
+	for u in battle.units + battle.enemies:
+		var bar := hp_bar_size(u, controls.show_hp)
+		if bar != Vector2.ZERO:
+			var head: float = (ART.boss.anchor[1] - ART.basic.anchor[1]) / CELL if u.kind == "boss" else 0.0  # 보스 그림은 기본 적보다 키가 커서 막대를 그만큼 올린다(머리 위)
+			_hp_bar(u.pos - Vector2(0, _lift(u) / CELL + head), u, bar)
 	if controls.drag_rect.has_area():
 		draw_rect(controls.drag_rect, Color.WHITE, false, 1.0)
 
@@ -727,11 +729,17 @@ func _aim_preview() -> void:
 		_:
 			draw_arc(_center(at), CELL * 0.7, 0.0, TAU, 24, Color.WHITE, 1.0)
 
-# at: 칸 단위 위치(칸 (x,y)의 중심 = Vector2(x,y)). 그 칸 위쪽에 그린다
-func _hp_bar(at: Vector2, b) -> void:
-	var bar := Rect2(at * CELL + Vector2(0, -4), Vector2(CELL, 2))
+# at: 칸 단위 위치(칸 (x,y)의 중심 = Vector2(x,y)). 그 칸 위쪽 가운데에 그린다
+func _hp_bar(at: Vector2, b, size := Vector2(CELL, 2)) -> void:
+	var bar := Rect2(at * CELL + Vector2((CELL - size.x) / 2, -2 - size.y), size)
 	draw_rect(bar, Color.BLACK)
-	draw_rect(Rect2(bar.position, Vector2(CELL * b.hp / b.max_hp, 2)), Color.GREEN)
+	draw_rect(Rect2(bar.position, Vector2(size.x * b.hp / b.max_hp, size.y)), Color.GREEN)
+
+# 유닛·적 체력바 크기(S73). 보스는 V 표시와 상관없이 늘 크게, 나머지는 켰을 때만. 그리지 않으면 Vector2.ZERO
+static func hp_bar_size(u, show_all: bool) -> Vector2:
+	if u.kind == "boss":
+		return Vector2(24, 3)
+	return Vector2(CELL, 2) if show_all else Vector2.ZERO
 
 # t초 때 주민 위치(칸 단위). 완성된 집마다 하나가 집 둘레 1.5칸 안을 떠돌고, 마을 밖으로는 나가지 않는다(S104)
 # 연출이라 시뮬레이션에 상태를 두지 않고 시각으로 구한다(I46)

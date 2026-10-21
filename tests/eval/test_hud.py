@@ -164,3 +164,7 @@ def test_EV359_place_refusal_reason(gd):
 
 def test_EV360_window_button_tips(gd):
     gd("hud", "EV360")
+
+
+def test_EV361_field_structure_alert(gd):
+    gd("hud", "EV361")
