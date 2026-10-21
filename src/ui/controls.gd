@@ -19,6 +19,7 @@ const SKILL_KEYS := {KEY_Q: "q", KEY_W: "w", KEY_E: "e", KEY_R: "r"}  # 영웅 �
 const PLACE_KEYS := {KEY_1: "wall", KEY_2: "tower", KEY_MINUS: "magic", KEY_3: "soldier", KEY_4: "barracks", KEY_5: "engineer", KEY_6: "workshop", KEY_7: "archer", KEY_8: "cannon", KEY_9: "archery", KEY_0: "house", KEY_EQUAL: "church"}
 
 signal hero_key(i: int)  # 출전 영웅 i를 F키나 초상으로 골랐다. HUD가 두 번 누름을 잰다(I165)
+signal refused(cell: Vector2i)  # 전투 단계 놓기가 닿는 공병이 없어 거부됐다. HUD가 빨간 ✕와 안내 줄로 보인다(I128)
 
 var battle
 var cell_px: int
@@ -221,6 +222,8 @@ func _hero():
 # 모드는 놓은 뒤에도 이어진다. 방벽을 줄지어 짓기 쉽게
 func _place(cell: Vector2i) -> void:
 	if placing in battle.STRUCTURE_KINDS:
-		battle.build(placing, cell)
+		if battle.build(placing, cell) == null and battle.state == "battle" and battle.engineer_gap([cell]) == "far" \
+				and battle.gold >= battle.STRUCTURE_KINDS[placing].cost and cell in battle.placeable_cells(placing):  # 닿는 공병만 없어 거부됐다(I128)
+			refused.emit(cell)
 	elif battle.can_buy(placing):  # 마을이 있으면 그 용병의 시설이 있어야 산다(S50)
 		battle.place_merc(placing, cell)

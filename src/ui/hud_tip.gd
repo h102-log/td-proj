@@ -11,6 +11,7 @@ const WIDTH := 160
 
 var reason := Label.new()  # 빨간 이유 줄
 var _lines := {}  # 조작 → 글 함수
+var _under := {}  # 조작 → 툴팁을 그 아래에 붙일 Control(맵 위 팝업 버튼은 팝업 전체). 없으면 조작 자신
 var _name := Label.new()
 var _key := Label.new()
 var _cost := Label.new()
@@ -47,8 +48,10 @@ func _ready() -> void:
 	for n in find_children("*", "Control", true, false):
 		n.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-func add(c: Control, lines: Callable) -> void:
+func add(c: Control, lines: Callable, under: Control = null) -> void:
 	_lines[c] = lines
+	if under:
+		_under[c] = under
 
 # 커서 자리는 들어온 입력으로 잰다. 평가가 넣는 입력도 같은 길로 온다
 func _input(e: InputEvent) -> void:
@@ -91,7 +94,7 @@ func _show(c: Control) -> void:
 		l.size.x = _inner
 	visible = true
 	reset_size()
-	var r := c.get_global_rect()
+	var r: Rect2 = _under.get(c, c).get_global_rect()
 	var screen := get_viewport().get_visible_rect().size
 	var y := r.end.y if r.end.y + size.y <= screen.y else r.position.y - size.y
 	global_position = Vector2(clampf(r.position.x, 0.0, screen.x - size.x), y)

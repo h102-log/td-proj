@@ -259,7 +259,7 @@ func _picked() -> Array:
 	all += controls.selected.filter(func(u): return not u.is_hero)
 	for t in all:
 		if t.alive or t == controls.fort:  # 잔해(I89)는 성곽 칸으로 남는다
-			return [THINGS.get(t.kind, hud.NAMES.get(t.kind, t.kind)), "", "", "", "체력 %d/%d" % [ceili(t.hp), ceili(t.max_hp)], ""]
+			return [THINGS.get(t.kind, hud.NAMES.get(t.kind, t.kind)), "", "", hud.info_lines[0], "체력 %d/%d" % [ceili(t.hp), ceili(t.max_hp)], hud.info_lines[1]]  # 팝업 버튼의 설명·이유(I124, I128, I132, I140)
 	return []
 
 # 정보 칸: 칸 호버 > 놓기 중 > 고른 것. 빈 줄은 숨기고 위로만 자란다. 카메라가 맨 아래면 격자 왼쪽 맵 밖 띠에 아래로 붙인다(S186)
@@ -279,6 +279,11 @@ func _show_info() -> void:
 	reason.get_parent().visible = reason.text != ""
 	reason.visible = reason.text != ""
 	info.reset_size()
+	var box := info_box()
+	info.global_position = Vector2(box.position.x, box.end.y - info.size.y)
+
+# 정보 칸이 4줄까지 자랐을 때의 사각형. 카메라가 맨 아래면 격자 왼쪽 맵 밖 띠(S186). 맵 위 팝업이 피한다(I137)
+func info_box() -> Rect2:
 	var cam: Camera2D = hud.map.get_camera_2d()
 	var low: bool = cam != null and cam.at_bottom()
-	info.global_position = (Vector2(376, 360) if low else Vector2(510, 288)) - Vector2(0, info.size.y)
+	return Rect2(Vector2(376, 306) if low else Vector2(510, 234), Vector2(130, 54))
