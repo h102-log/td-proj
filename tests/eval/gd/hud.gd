@@ -1660,6 +1660,45 @@ func ev355():
 	_done(main)
 	return out
 
+# btn에 커서를 0.25초 둔 뒤 툴팁 안의 보이는 글. 툴팁이 없으면 ""
+func _tip_of(main, btn) -> String:
+	_layout(main)
+	_fresh(main.hud.tip, btn)
+	main.hud.tip._process(0.25)
+	return _tip_text(main.hud.tip) if main.hud.tip.visible else ""
+
+# EV360 · I110: 라운드 사이 창의 내보내기·이관·의뢰 버튼과 이관 중 «여기로»에 툴팁이 있다
+func ev360():
+	var main = _game()
+	var b = main.view.battle
+	var hud = main.hud
+	if not hud.get("window") is Control or not hud.get("tip") is Control:
+		_done(main)
+		return "main.hud.window·tip이 없다"
+	b.gold = BIG
+	for i in 2:
+		b.hire(i)
+	b.next_round()
+	var won: bool = _win(b)
+	_frame(main)
+	_layout(main)
+	var shown: Array = hud.window.find_children("*", "BaseButton", true, false).filter(func(n): return n.is_visible_in_tree())
+	var drop: Array = shown.filter(func(n): return n.text == "내보내기")
+	var give: Array = shown.filter(func(n): return n.text == "이관" and not n.disabled)
+	var take: Array = shown.filter(func(n): return n.text.ends_with("수락"))
+	if not won or drop.is_empty() or give.is_empty() or take.is_empty():
+		_done(main)
+		return "준비가 틀렸다: 1라운드 승리 %s · 내보내기 %d · 눌리는 이관 %d · 의뢰 수락 %d" % [won, drop.size(), give.size(), take.size()]
+	var said := [_tip_of(main, drop[0]), _tip_of(main, give[0]), _tip_of(main, take[0])]
+	give[0].pressed.emit()
+	_frame(main)
+	var to = _starts(hud.window, "여기로")
+	said.append(_tip_of(main, to) if to else "«여기로» 버튼 없음")
+	var out := check("골드는 돌려받지 못한다" in said[0] and "Lv1로" in said[1] and "다음 라운드에 걸린다" in said[2] and "경험치를 받는다" in said[3],
+		"툴팁 글 내보내기·이관·의뢰·여기로 %s" % [said])
+	_done(main)
+	return out
+
 # 평가용 설정 파일을 지우고 읽는다. 힌트 켬·끝낸 힌트 없음(S184, I166)
 func _hints_reset():
 	_save()
