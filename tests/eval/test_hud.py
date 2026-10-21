@@ -160,3 +160,7 @@ def test_EV358_hint_setting_off(gd):
 
 def test_EV359_place_refusal_reason(gd):
     gd("hud", "EV359")
+
+
+def test_EV360_window_button_tips(gd):
+    gd("hud", "EV360")

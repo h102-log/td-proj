@@ -316,12 +316,18 @@ func _ready() -> void:
 		var toggle := _window_button(member, func(): battle.set_lineup(battle.roster[i], battle.roster[i] not in battle.lineup))
 		toggle.toggle_mode = true
 		toggle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_members.append([toggle, _window_button(member, func(): battle.dismiss(battle.roster[i])), _window_button(member, func(): _give(battle.roster[i]))])
+		var drop := _window_button(member, func(): battle.dismiss(battle.roster[i]))
+		var give := _window_button(member, func(): _give(battle.roster[i]))
+		tip.add(drop, func(): return ["내보내기", "", "", "보유에서 뺀다 · 골드는 돌려받지 못한다", ""])
+		tip.add(give, func(): return _give_tip(i))
+		_members.append([toggle, drop, give])
 	_hire.add_child(_quests)
 	_quests_info.text = "의뢰 — 다음 라운드에 걸린다. 하나만 수락한다"
 	_quests.add_child(_quests_info)
 	for i in battle.QUEST_OFFERS:
-		_commissions.append(_window_button(_quests, func(): battle.accept(i)))
+		var take := _window_button(_quests, func(): battle.accept(i))
+		tip.add(take, func(): return ["의뢰", "", "", "다음 라운드에 걸린다 · 하나만 수락한다", ""])
+		_commissions.append(take)
 	var foot := HBoxContainer.new()
 	foot.alignment = BoxContainer.ALIGNMENT_END
 	foot.size_flags_vertical = Control.SIZE_EXPAND | Control.SIZE_SHRINK_END  # 결과 창(높이 110 고정)에서도 진행 버튼이 오른쪽 아래
@@ -956,6 +962,17 @@ func _offer_why(i: int) -> String:
 		return _cap_note()
 	var cost: int = battle.HIRE.cost[battle.HERO_KINDS[k].grade - 1]
 	return "골드 %d 모자람" % (cost - battle.gold) if battle.gold < cost else ""
+
+# 이관 버튼 툴팁(I110, I116): 버튼 글(이관·여기로·취소)마다 누르면 생기는 일과 못 누르는 이유
+func _give_tip(i: int) -> Array:
+	if i >= battle.roster.size():
+		return ["", "", "", "", ""]
+	var h = battle.roster[i]
+	if _giver == null:
+		return ["이관", "", "", "경험치를 모두 다른 영웅에게 옮긴다 · 이 영웅은 Lv1로", "경험치가 없다" if h.xp == 0 else ""]
+	if _giver == h:
+		return ["취소", "", "", "이관을 그만둔다", ""]
+	return ["여기로", "", "", "이 영웅이 경험치를 받는다", "" if battle.can_transfer(_giver, h) else "받으면 레벨 상한을 넘는다"]
 
 # 보유가 상한이면 영입할 수 없는 이유(I127). 아니면 ""
 func _cap_note() -> String:
