@@ -19,7 +19,7 @@ const SKILL_KEYS := {KEY_Q: "q", KEY_W: "w", KEY_E: "e", KEY_R: "r"}  # 영웅 �
 const PLACE_KEYS := {KEY_1: "wall", KEY_2: "tower", KEY_MINUS: "magic", KEY_3: "soldier", KEY_4: "barracks", KEY_5: "engineer", KEY_6: "workshop", KEY_7: "archer", KEY_8: "cannon", KEY_9: "archery", KEY_0: "house", KEY_EQUAL: "church"}
 
 signal hero_key(i: int)  # 출전 영웅 i를 F키나 초상으로 골랐다. HUD가 두 번 누름을 잰다(I165)
-signal refused(cell: Vector2i)  # 전투 단계 놓기가 닿는 공병이 없어 거부됐다. HUD가 빨간 ✕와 안내 줄로 보인다(I128)
+signal refused(cell: Vector2i, why: String)  # 구조물 놓기가 거부됐다. HUD가 빨간 ✕와 안내 줄의 첫 이유로 보인다(I128)
 signal facility_key(f)  # 전투 단계 용병 키로 시설을 골랐다. HUD가 카메라를 그 시설로 옮긴다(S81, I164)
 signal alert_key  # C 키. HUD가 마지막 경보 자리로 카메라를 옮긴다(S189)
 signal hero_sent  # 고른 것에 영웅이 있는 채 우클릭 이동을 시켰다. 힌트(S191)가 듣는다
@@ -252,8 +252,30 @@ func _hero():
 # 모드는 놓은 뒤에도 이어진다. 방벽을 줄지어 짓기 쉽게
 func _place(cell: Vector2i) -> void:
 	if placing in battle.STRUCTURE_KINDS:
-		if battle.build(placing, cell) == null and battle.state == "battle" and battle.engineer_gap([cell]) == "far" \
-				and battle.gold >= battle.STRUCTURE_KINDS[placing].cost and cell in battle.placeable_cells(placing):  # 닿는 공병만 없어 거부됐다(I128)
-			refused.emit(cell)
+		if battle.build(placing, cell) == null:
+			var why := _refusal(placing, cell)
+			if why != "":
+				refused.emit(cell, why)
 	elif battle.can_buy(placing):  # 마을이 있으면 그 용병의 시설이 있어야 산다(S50)
 		battle.place_merc(placing, cell)
+
+# 구조물 놓기가 거부된 첫 이유(I128): 마을 레벨 → 구역(S43) → 빈 칸 → 골드 → 집 상한(S101) → 전투 단계 공병. 받아들여질 칸이면 ""
+func _refusal(kind: String, cell: Vector2i) -> String:
+	var d: Dictionary = battle.STRUCTURE_KINDS[kind]
+	var inner: bool = not d.produces.is_empty() or d.tax > 0 or d.heal > 0  # 마을 시설
+	if d.village_level > battle.village_level:
+		return "마을 Lv%d 필요" % d.village_level
+	if battle.castle.has(cell):
+		if kind != "cannon":
+			return "성곽에는 대포만"
+	elif battle.village.has_point(cell) != inner:
+		return "마을 시설은 성 안에만" if inner else "성 안에는 마을 시설만"
+	if not cell in battle.placeable_cells(kind):
+		return "빈 칸이 아니다"
+	if battle.gold < d.cost:
+		return "골드 %d 모자람" % (d.cost - battle.gold)
+	if d.tax > 0 and battle.structures.values().filter(func(s): return s.tax > 0).size() >= battle.HOUSE_CAP:
+		return "집은 %d채까지" % battle.HOUSE_CAP
+	if battle.state == "battle":
+		return {"none": "공병 없음", "far": "닿는 공병 없음"}.get(battle.engineer_gap([cell]), "")
+	return ""

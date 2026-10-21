@@ -156,3 +156,7 @@ def test_EV357_hint_skip_persists(gd):
 
 def test_EV358_hint_setting_off(gd):
     gd("hud", "EV358")
+
+
+def test_EV359_place_refusal_reason(gd):
+    gd("hud", "EV359")

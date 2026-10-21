@@ -1149,6 +1149,47 @@ func ev344():
 	_done(main)
 	return out
 
+# EV359 · I128: 준비 단계 타워 놓기가 구역·골드로 거부되면 안내 줄이 첫 이유다. ESC로 놓기 모드를 꺼도 안내 칩은 1.5초 이유를 남긴다
+func ev359():
+	var main = _prep()
+	var hud = main.hud
+	if not hud.get("hint") is Label or not hud.get("chip") is Control:
+		_done(main)
+		return "main.hud.hint·chip이 없다"
+	var b = main.view.battle
+	var c = main.controls
+	var walls: Array = b.castle.keys().filter(func(k): return b.castle[k].kind == "castle_wall")
+	if walls.is_empty():
+		_done(main)
+		return "성벽 칸(castle_wall)이 없다"
+	var built: int = b.structures.size()
+	_key(KEY_2)
+	var said := []  # 칸을 누른 직후 안내 줄 글
+	for cell in [Vector2i(10, 4), walls[0]]:
+		click(c, MOUSE_BUTTON_LEFT, px(cell))
+		hud._process(0.0)
+		said.append(hud.hint.text)
+	b.gold = 10
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(12, 14)))
+	hud._process(0.0)
+	said.append(hud.hint.text)
+	var poor := "골드 %d 모자람" % (b.STRUCTURE_KINDS.tower.cost - 10)
+	var out := ""
+	if b.structures.size() != built:
+		out = "거부되어야 할 놓기가 지어졌다(구조물 %d → %d)" % [built, b.structures.size()]
+	elif not "성 안에는 마을 시설만" in said[0] or not "성곽에는 대포만" in said[1] or not poor in said[2]:
+		out = "누른 직후 안내 줄 %s(기대: «성 안에는 마을 시설만»·«성곽에는 대포만»·«%s»)" % [said, poor]
+	if out == "":
+		_key(KEY_ESCAPE)
+		hud._process(0.0)
+		var kept: bool = hud.chip.is_visible_in_tree() and poor in hud.hint.text
+		var mode: String = c.placing
+		hud._process(1.6)
+		out = check(mode == "" and kept and not hud.chip.is_visible_in_tree(),
+			"ESC 뒤 놓기 모드 «%s» · 칩에 이유 남음 %s(글 «%s») · 1.6초 뒤 칩 보임 %s" % [mode, kept, hud.hint.text, hud.chip.is_visible_in_tree()])
+	_done(main)
+	return out
+
 # EV345 · I124: 막힌 성문의 «닫기», 쿨타임 중인 성문 버튼(I123), 전투 단계의 교회 치료 버튼(I140)은 어둡고 글에 괄호가 없으며 이유는 툴팁 빨간 줄에 있다
 func ev345():
 	var main = _prep()
