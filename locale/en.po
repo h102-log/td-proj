@@ -1,13 +1,15 @@
 # 영어 번역(S193, I167). msgid는 코드·데이터의 한국어 원문 그대로다. 한국어는 이 파일 없이 원문을 보인다.
+# 번역기 src/locale.gd가 이 파일을 읽는다. 정확한 msgid → %d·%s 틀 → 줄바꿈·« · »·«, »·« — »·«: »로 나눈 조각 → 끝의 수를 뗀 앞부분 순으로 맞춘다.
+# 그래서 한글이 없는 틀(예: «%s «%s» · %s»)도 값을 다시 번역하려고 넣는다.
 # 번역은 Claude가 한 임시값이고, 6.1 외부 플레이테스트에서 영어 사용자가 검수한다.
-# 영어 글은 HUD 칸 크기·자리를 바꾸지 않고 칸에 들어가게 줄인다(S193).
+# 영어 글은 HUD 칸 크기·자리를 바꾸지 않고 칸에 들어가게 줄인다(S193). 마우스는 LMB·RMB로 줄인다.
 #
 # 용어집(2026-10-22 초안, 검수 대상)
-#   거점 Keep · 성곽 Rampart · 성문 Gate · 마을 Village · 마을 레벨 Village Lv · 집 House · 교회 Church
+#   거점 Keep · 성곽 Rampart · 성벽 Wall · 성문 Gate · 마을 Village · 마을 레벨 Village Lv · 집 House · 교회 Church
 #   방벽 Barricade · 타워 Tower · 마법 타워 Mage Tower · 대포 Cannon
-#   병영 Barracks · 작업장 Workshop · 사격장 Archery Range · 용병 Soldier · 공병 Engineer · 궁수 Archer
-#   영입 Recruit · 리롤 Reroll · 이관 Transfer XP · 내보내기 Dismiss · 출전 Deployed · 보유 Roster
-#   미션 Mission · 의뢰 Contract · 준비 단계 Prep · 전투 단계 Battle · 웨이브 Wave · 라운드 Round
+#   병영 Barracks · 작업장 Workshop · 사격장 Archery Range · 용병 Merc · 공병 Engineer · 궁수 Archer
+#   영입 Recruit · 리롤 Reroll · 이관 Transfer · 내보내기 Dismiss · 출전 Deployed · 대기 Reserve · 보유 Roster
+#   미션 Mission · 의뢰 Contract · 준비 단계 Prep · 전투 단계 Battle · 웨이브 Wave · 라운드 Round · 도전 Run
 #   적: 기본 Grunt · 빠름 Runner · 장갑 Armored · 비행 Flyer · 보스 Boss
 #   영웅 이름은 음역한다: 아이아스 Aias · 실비아 Sylvia · 세라피나 Seraphina · 베스퍼 Vesper · 이그니스 Ignis · 크로노스 Chronos
 msgid ""
@@ -70,3 +72,848 @@ msgstr "Language"
 
 msgid "뒤로"
 msgstr "Back"
+
+# ── 이름: 구조물·용병(hud.gd NAMES, hud_build.gd THINGS) ──
+
+msgid "방벽"
+msgstr "Barricade"
+
+msgid "타워"
+msgstr "Tower"
+
+msgid "마법 타워"
+msgstr "Mage Tower"
+
+msgid "대포"
+msgstr "Cannon"
+
+msgid "병영"
+msgstr "Barracks"
+
+msgid "작업장"
+msgstr "Workshop"
+
+msgid "사격장"
+msgstr "Archery Range"
+
+msgid "집"
+msgstr "House"
+
+msgid "교회"
+msgstr "Church"
+
+msgid "용병"
+msgstr "Merc"
+
+msgid "공병"
+msgstr "Engineer"
+
+msgid "궁수"
+msgstr "Archer"
+
+msgid "거점"
+msgstr "Keep"
+
+msgid "성벽"
+msgstr "Wall"
+
+msgid "성문"
+msgstr "Gate"
+
+# ── 이름: 영웅(hud.gd HEROES, 데이터 칭호) ──
+
+msgid "아이아스(탱커)"
+msgstr "Aias (Tank)"
+
+msgid "실비아(원거리)"
+msgstr "Sylvia (Ranged)"
+
+msgid "세라피나(힐러)"
+msgstr "Seraphina (Healer)"
+
+msgid "베스퍼(디버퍼)"
+msgstr "Vesper (Debuffer)"
+
+msgid "이그니스(마법사)"
+msgstr "Ignis (Mage)"
+
+msgid "크로노스(버퍼)"
+msgstr "Chronos (Buffer)"
+
+msgid "아이아스"
+msgstr "Aias"
+
+msgid "실비아"
+msgstr "Sylvia"
+
+msgid "세라피나"
+msgstr "Seraphina"
+
+msgid "베스퍼"
+msgstr "Vesper"
+
+msgid "이그니스"
+msgstr "Ignis"
+
+msgid "크로노스"
+msgstr "Chronos"
+
+msgid "강철의 성채"
+msgstr "Fortress of Steel"
+
+msgid "시계탑의 지휘관"
+msgstr "Clocktower Commander"
+
+msgid "원소의 지배자"
+msgstr "Master of Elements"
+
+msgid "새벽빛의 성녀"
+msgstr "Saint of Dawnlight"
+
+msgid "취풍의 명사수"
+msgstr "Gale Marksman"
+
+msgid "그림자 역병의 설계자"
+msgstr "Plague Architect"
+
+msgid "1성"
+msgstr "1-Star"
+
+msgid "2성"
+msgstr "2-Star"
+
+msgid "3성"
+msgstr "3-Star"
+
+# ── 영웅 스킬: 이름·요약(hud.gd SKILLS) ──
+
+msgid "방패 강타"
+msgstr "Shield Bash"
+
+msgid "부채꼴 기절"
+msgstr "Cone stun"
+
+msgid "전장의 포효"
+msgstr "War Cry"
+
+msgid "도발·보호막"
+msgstr "Taunt, shield"
+
+msgid "반격의 태세"
+msgstr "Brace"
+
+msgid "감소 뒤 충격파"
+msgstr "Absorb, then shockwave"
+
+msgid "절대 방어선"
+msgstr "Bulwark"
+
+msgid "에너지 성벽"
+msgstr "Energy wall"
+
+msgid "관통의 바람살"
+msgstr "Piercing Gale"
+
+msgid "직선 관통"
+msgstr "Pierces in a line"
+
+msgid "돌풍 갈래살"
+msgstr "Split Shot"
+
+msgid "토글 4명 사격"
+msgstr "Toggle: hit 4"
+
+msgid "폭풍의 덫"
+msgstr "Storm Trap"
+
+msgid "속박·치명타"
+msgstr "Root, crits"
+
+msgid "천공의 화살비"
+msgstr "Arrow Rain"
+
+msgid "처형"
+msgstr "Execute"
+
+msgid "성스러운 빛줄기"
+msgstr "Holy Beam"
+
+msgid "회복·피해 도약"
+msgstr "Heal, bouncing damage"
+
+msgid "정화의 성역"
+msgstr "Sanctum"
+
+msgid "회복 장판"
+msgstr "Healing zone"
+
+msgid "수호 천사의 날개"
+msgstr "Guardian Wings"
+
+msgid "불사"
+msgstr "Undying"
+
+msgid "기적의 강림"
+msgstr "Miracle"
+
+msgid "전체 회복·축복"
+msgstr "Heal all, bless"
+
+msgid "부식의 독안개"
+msgstr "Corrosion"
+
+msgid "방어력 −10"
+msgstr "Armor −10"
+
+msgid "쇠약의 저주"
+msgstr "Enfeeble"
+
+msgid "둔화·공격력 감소"
+msgstr "Slow, weaken"
+
+msgid "영혼 사슬"
+msgstr "Soul Chain"
+
+msgid "피해 나누기"
+msgstr "Share damage"
+
+msgid "심연의 늪"
+msgstr "Abyss"
+
+msgid "봉인"
+msgstr "Seal"
+
+msgid "화염구 작렬"
+msgstr "Fireball"
+
+msgid "발화"
+msgstr "Ignite"
+
+msgid "서리 고리"
+msgstr "Frost Ring"
+
+msgid "열충격 빙결"
+msgstr "Thermal shock freeze"
+
+msgid "비전 블랙홀"
+msgstr "Black Hole"
+
+msgid "끌어당김"
+msgstr "Pull"
+
+msgid "메테오 스웜"
+msgstr "Meteor Swarm"
+
+msgid "운석·용암"
+msgstr "Meteors, lava"
+
+msgid "무기 과충전"
+msgstr "Overcharge"
+
+msgid "자동 시전"
+msgstr "Autocast"
+
+msgid "시간 되감기"
+msgstr "Rewind"
+
+msgid "마나·대기"
+msgstr "Mana, cooldowns"
+
+msgid "황금의 율법"
+msgstr "Golden Law"
+
+msgid "골드 +30%"
+msgstr "Gold +30%"
+
+msgid "시간 왜곡장"
+msgstr "Time Warp"
+
+msgid "가속·감속"
+msgstr "Haste, slow"
+
+# ── 적(hud.gd ENEMIES·TRAITS·SIDES) ──
+
+msgid "기본"
+msgstr "Grunt"
+
+msgid "빠름"
+msgstr "Runner"
+
+msgid "장갑"
+msgstr "Armored"
+
+msgid "비행"
+msgstr "Flyer"
+
+msgid "보스"
+msgstr "Boss"
+
+msgid "성벽을 오른다"
+msgstr "Climbs walls"
+
+msgid "길을 무시한다"
+msgstr "Ignores paths"
+
+msgid "받는 피해를 줄인다"
+msgstr "Takes less damage"
+
+msgid "성벽을 뚫고 온다"
+msgstr "Breaks through walls"
+
+msgid "왼쪽"
+msgstr "Left"
+
+msgid "가운데"
+msgstr "Center"
+
+msgid "오른쪽"
+msgstr "Right"
+
+# ── 미션·의뢰(data/quests) ──
+
+msgid "거점이 피해를 입지 않는다"
+msgstr "The Keep takes no damage"
+
+msgid "성곽 칸이 부서지지 않는다"
+msgstr "No rampart tile is lost"
+
+msgid "거점이 피해를 입지 않고 성곽·구조물이 부서지지 않는다"
+msgstr "No Keep damage, no rampart or building lost"
+
+msgid "영웅이 쓰러지지 않는다"
+msgstr "No hero goes down"
+
+msgid "용병을 잃지 않는다"
+msgstr "Lose no mercs"
+
+msgid "구조물을 짓지 않는다"
+msgstr "Build nothing"
+
+msgid "용병을 사지 않는다"
+msgstr "Buy no mercs"
+
+msgid "전투 시간을 모두 합쳐 120초 안에 끝낸다"
+msgstr "Finish all battles within 120s total"
+
+# ── 놓기·거부 이유(controls.gd, hud_build.gd) ──
+
+msgid "마을 Lv%d 필요"
+msgstr "Needs Village Lv%d"
+
+msgid "마을 Lv"
+msgstr "Village Lv"
+
+msgid "성곽에는 대포만"
+msgstr "Only cannons on ramparts"
+
+msgid "마을 시설은 성 안에만"
+msgstr "Build inside the walls"
+
+msgid "성 안에는 마을 시설만"
+msgstr "Village only inside walls"
+
+msgid "빈 칸이 아니다"
+msgstr "Tile not empty"
+
+msgid "골드 %d 모자람"
+msgstr "%d gold short"
+
+msgid "집은 %d채까지"
+msgstr "Max %d houses"
+
+msgid "공병 없음"
+msgstr "No engineer"
+
+msgid "닿는 공병 없음"
+msgstr "No engineer can reach"
+
+msgid "놀고 있는 공병 없음"
+msgstr "No idle engineer"
+
+msgid "%s 없음"
+msgstr "No %s"
+
+msgid "칸 막힘"
+msgstr "Tile blocked"
+
+msgid "준비 단계에만"
+msgstr "Prep only"
+
+msgid "체력 가득"
+msgstr "Full health"
+
+# ── 처음 하는 사람 힌트·튜토리얼(hints.gd) ──
+
+msgid "시설"
+msgstr "Build"
+
+msgid "영웅"
+msgstr "Heroes"
+
+msgid "오른쪽 아래 칸(숫자 키)을 고르고\n맵을 눌러 짓는다"
+msgstr "Pick a slot bottom right (keys)\nthen click the map to build"
+
+msgid "거점을 누르면 마을 레벨을 올린다\n(새 시설이 열린다)"
+msgstr "Click the Keep to level the Village\n(unlocks new buildings)"
+
+msgid "준비가 끝나면 위 오른쪽\n▶ 전투 시작 (Enter)"
+msgstr "When ready, top right:\n▶ Start Battle (Enter)"
+
+msgid "병영(4)을 짓고 3으로 용병을 놓는다\n용병은 적을 몸으로 붙잡는다"
+msgstr "Build Barracks (4), place Mercs (3)\nMercs hold enemies in place"
+
+msgid "전투 중에도 3·5·7로 용병을 산다\n짓기는 공병(5)이 가서 한다"
+msgstr "In battle, buy with 3·5·7 too\nEngineers (5) go and build"
+
+msgid "영웅을 누르고(F1)\n우클릭한 칸으로 보낸다"
+msgstr "Select a hero (F1)\nright-click to send it"
+
+msgid "Q로 영웅 스킬을 쓴다\n조준하는 칸은 맵을 눌러 쓴다"
+msgstr "Press Q for a hero skill\nclick the map to aim"
+
+msgid "건너뛰기"
+msgstr "Skip"
+
+# ── 건설 격자·정보 칸(hud_build.gd) ──
+
+msgid "공"
+msgstr "T"
+
+msgid "마"
+msgstr "V"
+
+msgid "용"
+msgstr "M"
+
+msgid "거점에서 Lv%d로 올린다(%d)"
+msgstr "Raise to Lv%d at the Keep (%d)"
+
+msgid "준비 단계에 거점에서 올린다(%d)"
+msgstr "Raise at the Keep in prep (%d)"
+
+msgid "작업장에서 공병을 산다"
+msgstr "Buy engineers at a Workshop"
+
+msgid "체력 %d · 적의 길을 막는다"
+msgstr "HP %d · blocks enemy paths"
+
+msgid "체력 %d"
+msgstr "HP %d"
+
+msgid "적의 길을 막는다"
+msgstr "Blocks enemy paths"
+
+msgid "%s에서 산다 · 체력 %d"
+msgstr "Bought at %s · HP %d"
+
+msgid "마을 · %s를 판다"
+msgstr "Village · sells %s"
+
+msgid "마을 · 준비 단계마다 세금 +%d"
+msgstr "Village · +%d tax each prep"
+
+msgid "마을 · 지은 교회를 눌러 영웅 치료"
+msgstr "Village · click it to heal heroes"
+
+msgid "사거리 %s칸 · 공격력 %s"
+msgstr "Range %s · Damage %s"
+
+msgid "사거리 %s칸"
+msgstr "Range %s"
+
+msgid "공격력 %s"
+msgstr "Damage %s"
+
+msgid "범위 피해"
+msgstr "Splash"
+
+msgid "%d골드"
+msgstr "%dg"
+
+msgid "체력 %d/%d"
+msgstr "HP %d/%d"
+
+# ── 맵 위 팝업(hud.gd) ──
+
+msgid "판매"
+msgstr "Sell"
+
+msgid "판매 +%d"
+msgstr "Sell +%d"
+
+msgid "완성"
+msgstr "Complete"
+
+msgid "%s 구매"
+msgstr "Buy %s"
+
+msgid "철거"
+msgstr "Demolish"
+
+msgid "철거?"
+msgstr "Demolish?"
+
+msgid "옮기기"
+msgstr "Move"
+
+msgid "이어 짓기"
+msgstr "Resume build"
+
+msgid "마을 레벨 올리기"
+msgstr "Level up Village"
+
+msgid "마을 Lv%d %d"
+msgstr "Village Lv%d %d"
+
+msgid "Lv%d에 %s"
+msgstr "Lv%d: %s"
+
+msgid "업그레이드"
+msgstr "Upgrade"
+
+msgid "업그레이드 %d"
+msgstr "Upgrade %d"
+
+msgid "업그레이드 계속"
+msgstr "Continue upgrade"
+
+msgid "수리"
+msgstr "Repair"
+
+msgid "수리 %d"
+msgstr "Repair %d"
+
+msgid "복구"
+msgstr "Restore"
+
+msgid "복구 %d"
+msgstr "Restore %d"
+
+msgid "닫기"
+msgstr "Close"
+
+msgid "열기"
+msgstr "Open"
+
+msgid "%d초"
+msgstr "%ds"
+
+msgid "%s %d초"
+msgstr "%s %ds"
+
+msgid "%d초 뒤에 여닫는다"
+msgstr "Can toggle in %ds"
+
+msgid "치료"
+msgstr "Heal"
+
+msgid "치료 %s"
+msgstr "Heal %s"
+
+# ── 안내 칩·토스트·경보(hud.gd, hud_alert.gd) ──
+
+msgid "%s 놓기: 좌클릭 · 끝: 우클릭·ESC"
+msgstr "%s: LMB · Done: RMB/ESC"
+
+msgid "대포 옮길 칸: 좌클릭 · 끝: 우클릭·ESC"
+msgstr "Move cannon: LMB · Done: RMB/ESC"
+
+msgid "%s %s 대상: 좌클릭 · 취소: 우클릭·ESC"
+msgstr "%s %s: LMB · Cancel: RMB/ESC"
+
+msgid "이번 라운드 미션: %s"
+msgstr "Round mission: %s"
+
+msgid "다음 웨이브에 보스"
+msgstr "Boss next wave"
+
+msgid "%s 실패: %s"
+msgstr "%s failed: %s"
+
+msgid "거점 공격받음! (C)"
+msgstr "Keep under attack! (C)"
+
+msgid "%s 공격받음 (C)"
+msgstr "%s under attack (C)"
+
+msgid "%s 무너짐 (C)"
+msgstr "%s destroyed (C)"
+
+msgid "%s 쓰러짐 (C)"
+msgstr "%s is down (C)"
+
+msgid "%s 위험 (C)"
+msgstr "%s in danger (C)"
+
+msgid "왼쪽 쪽문"
+msgstr "Left gate"
+
+msgid "오른쪽 쪽문"
+msgstr "Right gate"
+
+msgid "정문"
+msgstr "Main gate"
+
+# ── 위 띠·진행 칸·툴팁(hud.gd) ──
+
+msgid "미션·의뢰"
+msgstr "Missions & Contracts"
+
+msgid "미션"
+msgstr "Mission"
+
+msgid "의뢰"
+msgstr "Contract"
+
+msgid "%s: %s (+%d골드)"
+msgstr "%s: %s (+%d gold)"
+
+msgid "실패"
+msgstr "Failed"
+
+msgid "놀고 있는 공병 %d · 전체 %d — 누르면 놀고 있는 공병에게 카메라가 간다"
+msgstr "Idle engineers %d · total %d — click to view an idle one"
+
+msgid "쓰러짐"
+msgstr "Down"
+
+msgid "다음 준비 단계에 복귀"
+msgstr "Returns next prep"
+
+msgid "다음 라운드에 복귀"
+msgstr "Returns next round"
+
+msgid "메뉴"
+msgstr "Menu"
+
+msgid "계속·설정·메인 메뉴로·게임 종료"
+msgstr "Resume, Settings, Main Menu, Quit"
+
+msgid "이동 방식"
+msgstr "Move mode"
+
+msgid "홀드"
+msgstr "Hold"
+
+msgid "이동 중 공격\n가는 길의 적을 친다"
+msgstr "Attack-move\nHits enemies on the way"
+
+msgid "무조건 이동\n가는 길의 적을 지나친다"
+msgstr "Force move\nPasses enemies on the way"
+
+msgid "이동 방식 섞임\n누르면 모두 무조건 이동"
+msgstr "Mixed move modes\nClick: all force move"
+
+msgid "홀드 끔\n켜면 기준 지점 반경 안의 적만 친다"
+msgstr "Hold off\nOn: only hits enemies near its post"
+
+msgid "홀드 켬\n기준 지점 반경 안의 적만 친다"
+msgstr "Hold on\nOnly hits enemies near its post"
+
+msgid "홀드 섞임\n누르면 모두 켠다"
+msgstr "Hold mixed\nClick: turn all on"
+
+msgid "거점 %d/%d"
+msgstr "Keep %d/%d"
+
+msgid "0이 되면 도전 끝 · 마을 Lv%d · 다음 준비 단계 세금 +%d · 라운드 %d/%d — 누르면 카메라가 거점으로 간다"
+msgstr "At 0 the run ends · Village Lv%d · next prep tax +%d · Round %d/%d — click to view the Keep"
+
+msgid "전투 시작"
+msgstr "Start Battle"
+
+msgid "웨이브 %d/%d를 부른다"
+msgstr "Calls wave %d/%d"
+
+msgid "웨이브"
+msgstr "Wave"
+
+msgid "웨이브 %d/%d"
+msgstr "Wave %d/%d"
+
+msgid "적 %d"
+msgstr "Enemies %d"
+
+msgid "남은 적 %d"
+msgstr "Enemies left %d"
+
+msgid "다음 적 %d"
+msgstr "Next enemies %d"
+
+msgid "영입"
+msgstr "Recruit"
+
+msgid "승리"
+msgstr "Victory"
+
+msgid "패배"
+msgstr "Defeat"
+
+msgid "다음 웨이브"
+msgstr "Next wave"
+
+msgid "이 라운드의 마지막 웨이브"
+msgstr "Last wave of this round"
+
+msgid "누르면 거점에 가장 가까운 적을 비춘다"
+msgstr "Click to view the enemy nearest the Keep"
+
+msgid "다음 라운드 첫 웨이브"
+msgstr "Next round, first wave"
+
+msgid "Lv%d · 체력 %d/%d · 마나 %d/%d\n누르면 고름 · 두 번이면 카메라"
+msgstr "Lv%d · HP %d/%d · Mana %d/%d\nClick to select · twice to view"
+
+msgid "스킬은 전투 단계에만"
+msgstr "Skills only in battle"
+
+msgid "재사용 대기 %d초"
+msgstr "Cooldown %ds"
+
+msgid "마나 %d 더 필요"
+msgstr "Needs %d more mana"
+
+msgid "Lv%d에 열림"
+msgstr "Unlocks at Lv%d"
+
+msgid "마나 %d 모자람"
+msgstr "%d mana short"
+
+msgid "%s · 재사용 %s초"
+msgstr "%s · cooldown %ss"
+
+msgid "재사용 %s초"
+msgstr "Cooldown %ss"
+
+msgid "우클릭: 자동 시전"
+msgstr "RMB: autocast"
+
+msgid "마나 %d"
+msgstr "Mana %d"
+
+msgid "Lv%d 최대"
+msgstr "Lv%d max"
+
+# ── 영입 창·결과 창(hud.gd) ──
+
+msgid "도전 시작 — 영웅 영입"
+msgstr "New run — Recruit heroes"
+
+msgid "%d라운드 승리"
+msgstr "Round %d won"
+
+msgid "도전 성공!"
+msgstr "Run complete!"
+
+msgid "%d라운드 패배 — 도전 끝"
+msgstr "Lost round %d — run over"
+
+msgid "달성 +%d골드"
+msgstr "Done +%d gold"
+
+msgid "1라운드 시작 (Enter)"
+msgstr "Start Round 1 (Enter)"
+
+msgid "다음 라운드 (Enter)"
+msgstr "Next Round (Enter)"
+
+msgid "새 도전 (Enter)"
+msgstr "New Run (Enter)"
+
+msgid "골드 %d · 보유 %d/%d · 출전 %d/%d"
+msgstr "Gold %d · Roster %d/%d · Deployed %d/%d"
+
+msgid "골드 %d"
+msgstr "Gold %d"
+
+msgid "보유 %d/%d"
+msgstr "Roster %d/%d"
+
+msgid "출전 %d/%d"
+msgstr "Deployed %d/%d"
+
+msgid "준비 단계에 지을 골드도 남긴다"
+msgstr "Save gold for building in prep"
+
+msgid "%s — 영입함"
+msgstr "%s — Recruited"
+
+msgid "영입함"
+msgstr "Recruited"
+
+msgid "리롤"
+msgstr "Reroll"
+
+msgid "리롤 %d골드"
+msgstr "Reroll %d gold"
+
+msgid "목록을 새로 뽑는다"
+msgstr "Draws a new list"
+
+msgid "빈 자리"
+msgstr "Empty"
+
+msgid "출전"
+msgstr "Deployed"
+
+msgid "대기"
+msgstr "Reserve"
+
+msgid "내보내기"
+msgstr "Dismiss"
+
+msgid "보유에서 뺀다 · 골드는 돌려받지 못한다"
+msgstr "Removes from roster · no gold back"
+
+msgid "이관"
+msgstr "Transfer"
+
+msgid "여기로"
+msgstr "Here"
+
+msgid "의뢰 — 다음 라운드에 걸린다. 하나만 수락한다"
+msgstr "Contracts — apply next round. Accept only one"
+
+msgid "다음 라운드에 걸린다 · 하나만 수락한다"
+msgstr "Applies next round · accept only one"
+
+msgid "%s · +%d골드 · %s"
+msgstr "%s · +%d gold · %s"
+
+msgid "수락함 (다시 누르면 무름)"
+msgstr "Accepted (click again to undo)"
+
+msgid "수락"
+msgstr "Accept"
+
+msgid "누르면 보유에 넣고 빈 출전 자리에 든다"
+msgstr "Adds to roster and fills an open deploy slot"
+
+msgid "경험치를 모두 다른 영웅에게 옮긴다 · 이 영웅은 Lv1로"
+msgstr "Moves all XP to another hero · this one goes to Lv1"
+
+msgid "경험치가 없다"
+msgstr "No XP"
+
+msgid "이관을 그만둔다"
+msgstr "Stop the transfer"
+
+msgid "이 영웅이 경험치를 받는다"
+msgstr "This hero receives the XP"
+
+msgid "받으면 레벨 상한을 넘는다"
+msgstr "Would exceed the level cap"
+
+msgid "보유 %d/%d — 내보내야 영입할 수 있다"
+msgstr "Roster %d/%d — dismiss one to recruit"
+
+# ── 한글 없는 조립 틀: 끼운 값을 다시 번역하려고 넣는다 ──
+
+msgid "%s «%s» · %s"
+msgstr "%s «%s» · %s"
+
+msgid "%s «%s» %s"
+msgstr "%s «%s» %s"
+
+msgid "%s «%s»"
+msgstr "%s «%s»"

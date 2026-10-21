@@ -351,7 +351,7 @@ func _ready() -> void:
 	_sell = _pop(rows[0], _sell_now, "판매", coin)
 	_finish = _pop(rows[0], func(): _apply(battle.finish, battle.unfinished(controls.selling)), "완성", hammer)
 	for kind in battle.MERC_KINDS:
-		_buy[kind] = _pop(rows[0], func(): battle.recruit(controls.facility, kind), NAMES[kind] + " 구매", HudBuild.icon(kind))
+		_buy[kind] = _pop(rows[0], func(): battle.recruit(controls.facility, kind), "%s 구매" % NAMES[kind], HudBuild.icon(kind))
 	_demolish = _pop(rows[0], _demolish_press, "철거")
 	_move = _pop(rows[0], _start_move, "옮기기")
 	_resume = _pop(rows[0], func(): _apply(battle.resume, battle.unfinished(controls.picked)), "이어 짓기")
@@ -382,7 +382,7 @@ func _process(delta: float) -> void:
 	if prep and _seen != "prep" and battle.wave_index == 0:  # 라운드 첫 준비 단계(I122)
 		_ok.clear()
 		if battle.mission != "":
-			toasts.push("이번 라운드 미션: " + battle.QUEST_KINDS[battle.mission].text, MISSION_SECS)
+			toasts.push("이번 라운드 미션: %s" % battle.QUEST_KINDS[battle.mission].text, MISSION_SECS)
 	if prep and _seen != "prep" and _boss(_next_wave()):  # S188
 		toasts.push("다음 웨이브에 보스")
 	_show_status(delta, round_no)

@@ -28,7 +28,8 @@ extends "res://tests/eval/gd/save.gd"
 #     토스트 칸(main.hud.toasts의 보이는 자식)은 자리가 있으면 gui_input에 왼쪽 버튼 누름을 넣어 누른다(I163)
 #   main.hud.window — 결과·영입 창(Control, S117·I136). 그 안의 보이는 BaseButton이 창 버튼(«리롤…»·«다음 라운드…»)이다 · main.hud.dim — 띠 아래 맵 덮개(ColorRect)
 #   main.hud.hints — 처음 하는 사람 힌트 칸(Control, S191). 그 안의 보이는 Label이 힌트 글이고, «건너뛰기» 버튼이 있다
-#     hints.axis — 튜토리얼 축 이름(Label, S192). 글이 «시설»·«용병»·«영웅»이다
+#     hints.axis — 튜토리얼 축 이름(Label, S192). 글이 «시설»·«용병»·«영웅»이다 · hints.text — 힌트 글(Label) · hints.HINTS — [이름, 웨이브, 판 단계, 글] 표
+#   언어(S193, I167): settings.gd static var language(«ko»·«en») · apply_language()(번역기를 넣고 언어를 건다)
 #   res://src/settings.gd — static var hints(힌트 켬, S184) · hints_done(끝낸 힌트 이름 Array: build·start·move·buy·keep, I166). ESC 메뉴 설정 화면에 켜고 끄는 버튼 «힌트»
 # 커서는 화면(640×360) 좌표의 InputEventMouseMotion으로 옮긴다. 빈 맵 자리는 (320,300)이다
 
@@ -2087,3 +2088,160 @@ func ev369():
 	_done(main)
 	_hints_reset()
 	return out
+
+# 언어를 en으로 건다(S193). 평가 끝에는 _english_off로 ko로 돌린다
+func _english():
+	var st = _hints_reset()
+	st.language = "en"
+	st.apply_language()
+	return st
+
+func _english_off(st) -> void:
+	st.language = "ko"
+	st.apply_language()
+	_hints_reset()
+
+# 보이는 Label·Button의 화면 글(자동 번역을 거친 글)을 [where, 글]로 seen에 더한다
+func _gather(node: Node, where: String, seen: Array) -> void:
+	for n in node.find_children("*", "Control", true, false):
+		if n.is_visible_in_tree() and (n is Label or n is Button) and n.text != "":
+			seen.append([where, n.atr(n.text)])
+
+# buttons를 하나씩 가리켜 뜬 툴팁의 화면 글을 seen에 더한다
+func _gather_tips(main, buttons: Array, where: String, seen: Array) -> void:
+	var tip = main.hud.tip
+	for btn in buttons:
+		_fresh(tip, btn)
+		tip._process(0.3)
+		if tip.visible:
+			_gather(tip, "%s «%s»" % [where, btn.atr(btn.text)], seen)
+
+# EV372 · S193: 영어로 두면 영입 창부터 패배 창·ESC 메뉴까지 보이는 글과 툴팁에 한글이 없다
+func ev372():
+	var st = _english()
+	var main = _game()
+	var b = main.view.battle
+	var hud = main.hud
+	b.gold = BIG
+	_frame(main)
+	_layout(main)
+	var seen := []
+	_gather(main, "영입 창", seen)
+	_gather_tips(main, hud.window.find_children("*", "BaseButton", true, false).filter(func(n): return n.is_visible_in_tree()), "영입 창 툴팁", seen)
+	for i in 2:
+		b.hire(i)
+	b.next_round()
+	_frame(main)
+	_layout(main)
+	_pass(main, 0.1)
+	_gather(main, "준비 단계", seen)
+	_gather_tips(main, _bar_buttons(main), "위 띠 툴팁", seen)
+	for kind in hud.grid.cells:
+		_move(hud.grid.cells[kind].get_global_rect().get_center())
+		hud.grid._process(0.0)
+		_gather(hud.grid, "정보 칸 «%s»" % kind, seen)
+	_move(EMPTY)
+	_key(KEY_2)
+	hud._process(0.0)
+	_gather(main, "타워 놓기 중", seen)
+	click(main.controls, MOUSE_BUTTON_LEFT, px(Vector2i(5, 5)))  # 성 안(마을) 칸: 타워는 성 밖에만
+	hud._process(0.0)
+	_gather(main, "놓기 거부", seen)
+	_key(KEY_ESCAPE)
+	var f = b.build("barracks", Vector2i(4, 4))
+	b.start_battle()
+	_frame(main)
+	if f:
+		click(main.controls, MOUSE_BUTTON_LEFT, px(f.cell))
+		hud._process(0.0)
+		_gather(main, "전투 단계 병영 팝업", seen)
+	_pass(main, 10.0)
+	b.damage(b.base, 5, "true")
+	hud._process(0.0)
+	_gather(hud.toasts, "경보 토스트", seen)
+	var won: bool = _win(b)
+	_frame(main)
+	_layout(main)
+	_gather(main, "라운드 승리 창", seen)
+	_gather_tips(main, hud.window.find_children("*", "BaseButton", true, false).filter(func(n): return n.is_visible_in_tree()), "승리 창 툴팁", seen)
+	b.next_round()
+	b.start_battle()
+	b.damage(b.base, BIG, "true")
+	_frame(main)
+	_layout(main)
+	var lost: bool = b.state == "lost"
+	_gather(main, "패배 창", seen)
+	_key(KEY_ESCAPE)
+	_gather(main, "ESC 메뉴", seen)
+	_press(main, "설정")
+	_gather(main, "설정", seen)
+	_done(main)
+	_english_off(st)
+	var hangul := RegEx.create_from_string("[가-힣]")
+	var bad := seen.filter(func(p): return hangul.search(p[1]) != null)
+	if f == null or not won or not lost:
+		return "화면을 다 띄우지 못했다(병영 %s · 승리 %s · 패배 %s)" % [f != null, won, lost]
+	if seen.size() < 100:
+		return "모은 화면 글이 %d개뿐이다" % seen.size()
+	return check(bad.is_empty(), "영어 화면 글 %d개 가운데 한글이 든 것 %d개: %s" % [seen.size(), bad.size(), "; ".join(bad.slice(0, 8).map(func(p): return "%s: «%s»" % [p[0], p[1].replace("\n", "⏎")]))])
+
+# 글꼴로 잰 화면 글 l의 가장 긴 줄 폭
+func _text_w(l: Label) -> float:
+	var font: Font = l.get_theme_font("font")
+	var fs: int = l.get_theme_font_size("font_size")
+	var w := 0.0
+	for line in l.atr(l.text).split("\n"):
+		w = maxf(w, font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x)
+	return w
+
+# EV374 · S193: 영어 힌트 줄·정보 칸의 잘리는 줄·안내 칩 글이 칸 폭 안이다
+func ev374():
+	var st = _english()
+	var main = _prep()
+	var b = main.view.battle
+	var hud = main.hud
+	var over := []
+	var label: Label = hud.hints.text
+	var font: Font = label.get_theme_font("font")
+	var fs: int = label.get_theme_font_size("font_size")
+	for h in hud.hints.HINTS:
+		for line in TranslationServer.translate(h[3]).split("\n"):
+			var w := font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+			if w > label.size.x + 0.5:
+				over.append("힌트 «%s» %.0f > %.0f" % [line, w, label.size.x])
+	for kind in hud.grid.cells:
+		_move(hud.grid.cells[kind].get_global_rect().get_center())
+		hud.grid._process(0.0)
+		var box: Rect2 = hud.grid.info.get_global_rect()
+		if box.size.x > 130.5:
+			over.append("정보 칸 «%s» 폭 %.0f" % [kind, box.size.x])
+		for l in hud.grid.info.find_children("*", "Label", true, false):
+			if l.is_visible_in_tree() and l.clip_text and _text_w(l) > l.size.x + 0.5:
+				over.append("정보 칸 «%s» «%s» %.0f > %.0f" % [kind, l.atr(l.text), _text_w(l), l.size.x])
+	_move(EMPTY)
+	for kind in hud.grid.cells:
+		main.controls.placing = kind
+		hud._process(0.0)
+		if hud.chip.size.x > 180.5:
+			over.append("안내 칩 «%s» 폭 %.0f" % [hud.hint.atr(hud.hint.text), hud.chip.size.x])
+	main.controls.placing = ""
+	var c = b.build("cannon", _near(b, "cannon", Vector2i(10, 14)))
+	if c:
+		main.controls.moving = c
+		hud._process(0.0)
+		if hud.chip.size.x > 180.5:
+			over.append("안내 칩 «%s» 폭 %.0f" % [hud.hint.atr(hud.hint.text), hud.chip.size.x])
+		main.controls.moving = null
+	b.start_battle()
+	main.controls.aiming = "q"
+	main.controls.aim_hero = b.heroes[0]
+	hud._process(0.0)
+	var aim_w := _text_w(hud.hint)
+	if hud.chip.size.x > 180.5:
+		over.append("안내 칩 «%s» 폭 %.0f" % [hud.hint.atr(hud.hint.text), hud.chip.size.x])
+	main.controls.aiming = ""
+	_done(main)
+	_english_off(st)
+	if c == null or aim_w <= 0.0:
+		return "대포 옮기기·스킬 조준 칩을 띄우지 못했다(대포 %s · 조준 글 폭 %.0f)" % [c != null, aim_w]
+	return check(over.is_empty(), "영어 글이 칸을 넘는 곳 %d개: %s" % [over.size(), "; ".join(over.slice(0, 8))])
