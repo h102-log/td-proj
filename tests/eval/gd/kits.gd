@@ -781,12 +781,12 @@ func ev292():
 	b.cast(ch, "r", Vector2(12, 10))
 	b.step(DT)
 	ch.cd.q = 5.0
-	walker.cooldown = 1.0
+	walker.cooldown = 0.5  # 친 뒤 공격 자세(S196)는 지난 때
 	var p0: Vector2 = walker.pos
 	b.step(DT)
 	var moved: float = walker.pos.distance_to(p0)
-	return check(_near_f(moved, walker.speed * DT * (1.0 - ch.r.slow), 0.002) and _near_f(1.0 - walker.cooldown, DT * (1.0 - ch.r.lag), 0.0001) and _near_f(5.0 - ch.cd.q, DT * (1.0 + ch.r.cdr), 0.0001),
-		"적 한 스텝 걸음 %s · 적 공격 대기 줄음 %s · 영웅 Q 대기 줄음 %s" % [moved, 1.0 - walker.cooldown, 5.0 - ch.cd.q])
+	return check(_near_f(moved, walker.speed * DT * (1.0 - ch.r.slow), 0.002) and _near_f(0.5 - walker.cooldown, DT * (1.0 - ch.r.lag), 0.0001) and _near_f(5.0 - ch.cd.q, DT * (1.0 + ch.r.cdr), 0.0001),
+		"적 한 스텝 걸음 %s · 적 공격 대기 줄음 %s · 영웅 Q 대기 줄음 %s" % [moved, 0.5 - walker.cooldown, 5.0 - ch.cd.q])
 
 # ── 추론 문장 ──
 

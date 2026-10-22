@@ -20,6 +20,9 @@ const QUEST_OFFERS := 2  # 라운드 사이에 보이는 의뢰 수(I121). 임�
 const TALLY_KEYS := ["base_hit", "castle_lost", "structure_lost", "merc_lost", "hero_down", "merc_bought", "built", "battle_time"]  # 라운드 집계의 키(I119)
 const SPAWN_GAP := 2.5  # 웨이브 안에서 적이 나오는 간격(초). 임시값: 1.0 → 0.9(2026-10-15 3장 자체 점검, 사용자 승인 2026-10-16 — insights/2026-10-15_ch3_self_check_balance.md §8) → 2.5(2026-10-21 5.1 판 길이, I91 — insights/2026-10-21_round_design.md)
 const REACH := 1.0      # 적이 막힌 칸·거점·유닛을 칠 수 있는 거리(중심 사이). 옆 칸 중심까지가 1이다
+const POSE := 0.22  # 친 뒤 제자리에 서는 시간(초, S196). 용병·적의 공격 키 포즈가 끝나는 때다(S172)
+const HERO_POSE := 0.3  # 영웅이 친 뒤 제자리에 서는 시간(초, S196). 공격 3프레임이 끝나는 때다(S165)
+const CONTACT := 0.08  # 걷기 명령을 받은 영웅이 다시 걷는 때(친 뒤 초, S196). 화면의 근접 공격이 닿는 때(battle_view CONTACT)와 같다
 const REPATH_PER_STEP := 8  # 한 스텝에 경로를 다시 구하는 적 수(I155). 적 40명을 한 번에 구하면 61ms(디버그)라 나눈다(사용자 2026-10-20)
 const UNIT_WALL_K := 1e6  # 유닛 경로의 막힌 칸 비용 배율. 돌아갈 길이 있으면 막힌 칸(닫힌 성문 포함, I42)을 지나지 않는다
 const WORK_REACH := 2.0  # 공병이 일하는 거리(중심 사이). 옆 칸 대각선(1.41)에, 무리에 밀려 0.5칸 못 미친 도착(I51)을 더했다
@@ -2013,6 +2016,8 @@ func _move(e: Enemy, dt: float) -> void:
 		return
 	if _skills(e, dt, sealed):  # 예고 동안은 움직이지도 치지도 않는다(S194)
 		return
+	if e.attack_gap - e.cooldown < POSE:  # 친 뒤 공격 자세 동안 제자리에 선다(S196)
+		return
 	var rooted := _fx_on(e, "root") != null  # 속박(S150): 움직이지 않지만 닿는 대상은 친다
 	var speed: float = 0.0 if rooted else e.speed * (1.0 - _fx_cut(e, "slow")) * (1.0 + (e.skills.rage.stride if rage else 0.0))
 	if e.on_wall and not _climbable(Vector2i(e.pos.round())):  # 성벽에서 내려왔거나 그 성벽이 부서졌다(I76)
@@ -2212,13 +2217,16 @@ func _act(u: Unit, dt: float) -> void:
 	if u.on_wall and u.range < WALL_RANGE and not (top and top.open):  # 성벽 위 근접 유닛은 열린 성문 위에서만 들판의 적을 치고(S88, S89), 성벽 위의 적은 친다(I78)
 		foe = _nearest_enemy(u.pos, _reach(u), u.anchor, zone, true)
 	var walking := not u.path.is_empty()
-	if walking and not u.is_hero:
-		if u.move_mode == "move":
-			foe = null
-		elif foe:  # 이동 중 공격: 멈춰서 친다
-			walking = false
+	if walking and (u.is_hero or u.move_mode == "move"):  # 영웅은 걷는 동안 치지 않는다(S196)
+		foe = null
+	elif walking and foe:  # 이동 중 공격: 멈춰서 친다
+		walking = false
 	var left: float = u.speed * dt * ((1.0 + _aura("stride", u.pos)) if u.is_hero else 1.0) * (1.0 - _fx_cut(u, "slow"))  # 크로노스 오라: 영웅이 더 빨리 걷는다(S158). 둔화(I168)
+	if u.attack_gap - u.cooldown < (CONTACT if u.is_hero and walking else (HERO_POSE if u.is_hero else POSE)):  # 친 뒤 공격 자세 동안 제자리에 선다(S196)
+		left = 0.0
 	if walking:
+		var from := u.pos
+		var step := left
 		while left > 0.0 and not u.path.is_empty():
 			var to := Vector2(u.path[0]) - u.pos
 			if u.on_wall:  # 성벽 위는 성곽 칸끼리 이어져 있어 막힘 없이 걷는다(I69)
@@ -2234,6 +2242,11 @@ func _act(u: Unit, dt: float) -> void:
 				if u.path.is_empty():
 					u.anchor = u.pos
 					u.rally_from = null
+		if u.is_hero and u.pos.distance_to(from) < step * 0.25:  # 적 몸에 막혀 걸을 거리의 1/4도 못 갔으면 걷기를 그만두고 선다(S196)
+			u.path.clear()
+			u.after.clear()
+			u.anchor = u.pos
+			u.rally_from = null
 	elif not foe and not u.on_wall:  # 성벽 위 유닛은 쫓아 내려가지 않는다(I70)
 		# ponytail: 적에게 곧장 다가간다. 벽 너머 적에게는 벽을 따라 미끄러질 뿐이다. 막히는 일이 보이면 경로로
 		var prey = _nearest_enemy(u.pos, u.sight, u.anchor, zone)

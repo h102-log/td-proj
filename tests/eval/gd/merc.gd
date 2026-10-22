@@ -77,3 +77,19 @@ func ev31():
 	var d0: float = m.pos.distance_to(e.pos)
 	run(b, 3)
 	return check(m.pos.distance_to(e.pos) < d0, "인식 범위 안의 적에게 다가가지 않았다")
+
+# EV381 · S196: 이동 중 공격으로 걷던 용병은 앞의 적을 쓰러뜨린 뒤 0.2초 동안 제자리에 서 있고, 0.3초에는 다시 걷고 있다
+func ev381():
+	var b = battle()
+	var m = b.place_merc("soldier", Vector2i(5, 10))
+	b.spawn_enemy("basic", Vector2i(8, 10), {"speed": 0, "damage": 0, "sight": 0, "hp": 1})
+	b.order_move([m], DEST)
+	if not run(b, 10, func(): return b.enemies.is_empty()):
+		return "용병이 앞의 적을 쓰러뜨리지 않았다"
+	var p0: Vector2 = m.pos
+	for i in 4:
+		b.step(DT)
+	var still: float = m.pos.distance_to(p0)
+	for i in 2:
+		b.step(DT)
+	return check(still < 0.001 and m.pos.distance_to(p0) > 0.05, "쓰러뜨린 뒤 0.2초 움직임 %.3f칸 · 0.3초 %.3f칸" % [still, m.pos.distance_to(p0)])

@@ -104,3 +104,18 @@ func ev245():
 	var moved := run(b, 5.0, func(): return e.attacker == c)
 	return check(first and kept and held and moved,
 		"같은 순간 처음 맞으면 먼저 지은 타워 %s · 엇갈려 쏘는 5초 동안 그대로 %s · 멈추고 2.5초 동안 그대로 %s · 그 뒤 5초 안에 바뀜 %s" % [first, kept, held, moved])
+
+# EV382 · S196: 용병을 쓰러뜨린 적은 0.2초 동안 제자리에 서 있고, 0.3초에는 거점 쪽으로 걷고 있다
+func ev382():
+	var b = battle()
+	var e = b.spawn_enemy("basic", Vector2i(10, 10), {"damage": 10})
+	var m = b.place_merc("soldier", Vector2i(11, 10), {"hp": 1, "range": 0})
+	if not run(b, 5, func(): return not m.alive):
+		return "적이 용병을 쓰러뜨리지 않았다"
+	var p0: Vector2 = e.pos
+	for i in 4:
+		b.step(DT)
+	var still: float = e.pos.distance_to(p0)
+	for i in 2:
+		b.step(DT)
+	return check(still < 0.001 and e.pos.x - p0.x > 0.05, "쓰러뜨린 뒤 0.2초 움직임 %.3f칸 · 0.3초 거점 쪽 %.3f칸" % [still, e.pos.x - p0.x])

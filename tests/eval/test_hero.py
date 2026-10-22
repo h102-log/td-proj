@@ -24,3 +24,15 @@ def test_EV24_hero_down_is_not_defeat(gd):
 
 def test_EV246_hero_chases_enemy_within_sight(gd):
     gd("hero", "EV246")
+
+
+def test_EV383_walking_hero_does_not_attack(gd):
+    gd("hero", "EV383")
+
+
+def test_EV384_hero_stands_through_attack_pose(gd):
+    gd("hero", "EV384")
+
+
+def test_EV385_blocked_hero_stops_and_fights(gd):
+    gd("hero", "EV385")
