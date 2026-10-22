@@ -303,3 +303,53 @@ func test_fallen_body_stays_then_clears_but_hero_stays():
 		why = "2초 뒤에는 적의 몸은 지워지고 영웅만 마지막 자세(%s초)로 남아야 하는데 시뮬레이션 %s개, 그릴 몸 %s다" % [b.FALLEN, b.fallen.size(), d]
 	v.free()
 	return why
+
+func test_ranged_hero_one_fire_and_hit_while_target_closes_in():
+	var b = load("res://src/sim/battle.gd").new({"size": Vector2i(20, 20), "base": Vector2i(18, 18), "base_hp": 100, "spawns": [Vector2i(0, 10)],
+		"heroes": [{"kind": "sylvia", "cell": Vector2i(5, 5)}], "waves": [[{"kind": "basic", "count": 1}]]})
+	var v = View.new()
+	v.battle = b
+	var foe = b.spawn_enemy("basic", Vector2i(9, 5), {"speed": 0, "damage": 0, "hp": 1000})
+	var sylvia = b.heroes[0]
+	_go(b, v)
+	sylvia.target = foe  # 대상 없이 서 있다가 첫 화살을 쏜다
+	sylvia.cooldown = sylvia.attack_gap
+	var got := []
+	for i in 50:  # 적이 1칸/초로 다가오면 닿는 때가 줄어든다. 히트스톱 중에 이것을 새 공격으로 보면 안 된다
+		sylvia.cooldown -= DT
+		foe.pos.x -= DT
+		v.tick(DT)
+		got.append_array(v.events.map(func(e): return e.kind))
+	v.free()
+	if got.count("fire") != 1 or got.count("hit") != 1:
+		return "다가오는 적에게 쏜 첫 화살 한 발에 쏨 %d번·닿음 %d번이다(1번씩이어야 한다)" % [got.count("fire"), got.count("hit")]
+	return ""
+
+func test_second_knock_slides_from_drawn_spot_and_wall_walk_does_not_slide():
+	var s := _board()
+	var b = s[0]
+	var v = s[1]
+	var m = b.place_merc("soldier", Vector2i(5, 12))
+	var w = b.place_merc("soldier", Vector2i(10, 12))
+	_go(b, v)
+	v.tick(DT)
+	m.pos += Vector2(1, 0)
+	v.tick(DT)
+	for i in 3:
+		v.tick(DT)
+	var drawn: Vector2 = v._spot(m) + v._slip(m)
+	m.pos += Vector2(1, 0)  # 미끄러지는 중에 또 한 칸
+	v.tick(DT)
+	var after: Vector2 = v._spot(m) + v._slip(m)
+	var why := ""
+	if drawn.distance_to(after) > 3.0:
+		why = "미끄러지는 중에 또 옮겨지자 그린 자리가 %s → %s로 튀었다(이어서 미끄러져야 한다)" % [drawn, after]
+	w.on_wall = true
+	w.pos = Vector2(10, 5.45)
+	v.tick(DT)
+	w.pos.y = 5.55  # 성벽 위에서 칸 경계를 넘으면 그리는 높이가 16px 바뀌지만 걸은 것이다
+	v.tick(DT)
+	if why == "" and v._slides.has(w.get_instance_id()):
+		why = "성벽 위를 걸어 칸 경계를 넘은 몸이 미끄러졌다"
+	v.free()
+	return why

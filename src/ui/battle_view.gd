@@ -48,7 +48,7 @@ const HEAVY := 6.0  # 보스가 친 타격·보스 스킬에 맞은 아군의 �
 const HEAVY_BACK := 0.25  # 그 밀림이 돌아오는 시간(초, S198)
 const LIFT := 0.4  # 보스 스킬 예고의 마지막 이만큼 그림을 들어 올린다(초, S198)
 const SLAM_POSE := 0.15  # 보스 스킬이 발동한 뒤 공격 자세(초, S198)
-const FILL := 1.5 / 60.0  # 발동한 처음 2프레임은 예고 모양을 채운다(S198). 새 흔적은 나이 0에서 시작해서 2/60이면 3프레임이 된다
+const FILL := 2  # 발동한 처음 이만큼의 프레임은 예고 모양을 채운다(S198). 시간이 아니라 프레임으로 세어 프레임률과 상관없이 2프레임이다
 const SLIDE := 400.0  # 넉백·끌어옴 미끄러짐: 거리/SLIDE초, 0.12~0.3초(S198)
 const DUST := Color("927e6a")  # 먼지(F24+)
 const CRACK := [Color("1f240a"), Color("a56243")]  # 바닥 균열의 어두운 금과 그 아래 밝은 가장자리(F24+). 어두운 금만으로는 풀 위에서 안 보였다(시안 V2)
@@ -87,6 +87,7 @@ var _rubble := {}  # 본 잔해 칸
 var _tell := {}  # 보스 id → [예고 가운데(맵 px), 반경(px)]. 예고가 끊기면 둘레에 조각을 흩는다(S198)
 var _dots := []  # 효과 점(I172): {p0, p1, rise, t0, life, fade, col, size, ground}
 var _slides := {}  # id → [지난 화면 자리, 시작 시각, 길이](S198 미끄러짐)
+var _fills := []  # [보스 스킬 흔적, 남은 프레임](S198 발동 채움). tick마다 하나씩 줄인다
 var _last := {}  # id → [지난 프레임 화면 자리, 성벽 위·기어오르기 상태]
 
 func _draw() -> void:
@@ -120,9 +121,8 @@ func _draw() -> void:
 			var sk: Dictionary = e.skills[e.cast.id]
 			draw_circle(_center(e.pos), CELL * sk.radius * (1.0 - e.cast.left / sk.windup), Color(TELL, 0.35))
 			draw_arc(_center(e.pos), CELL * sk.radius, 0.0, TAU, 48, Color(TELL, 0.9), 1.0)
-	for c in battle.traces:  # 보스 스킬이 발동하면(S198) 처음 2프레임은 예고 모양 안을 예고색으로 채운다
-		if c.age < FILL and _boss(c.hero):
-			draw_circle(_center(c.at), CELL * c.radius, Color(TELL, 0.6))
+	for f in _fills:  # 보스 스킬이 발동하면(S198) 처음 FILL프레임은 예고 모양 안을 예고색으로 채운다
+		draw_circle(_center(f[0].at), CELL * f[0].radius, Color(TELL, 0.6))
 	_fx_dots(true)  # 바닥 균열(S198)은 몸통 아래
 	for p in battle.forecast:  # 기본 적의 예상 경로(S142): 엷은 빨간 선, 유닛 아래에. 너비 1이면 1배 줌에서 칸 중심을 지나는 가로·세로 구간이 안 그려진다
 		draw_polyline(PackedVector2Array(p.map(func(c): return _center(Vector2(c)))), Color(COLORS.spawn, 0.5), 1.5)
@@ -132,7 +132,7 @@ func _draw() -> void:
 	_bodies()
 	_marks()
 	for u in battle.units:
-		var at := _spot(u)
+		var at := _spot(u) + _slip(u)  # 넉백으로 미끄러지는 몸을 테두리·숫자가 따라간다(S198)
 		if u.is_hero:  # 영웅 레벨(I117): 오른쪽 위에 작게
 			draw_string(PIXEL_FONT, (at + Vector2(CELL * 0.3, -CELL * 0.3)).round(), str(u.level), HORIZONTAL_ALIGNMENT_LEFT, -1, 8)
 		if u in controls.selected:  # 테두리: 흰색 이동 중 공격, 노란색 무조건 이동. 홀드면 기준 반경도 그린다
@@ -149,11 +149,11 @@ func _draw() -> void:
 		var ring := 0.15
 		for key in ["stun", "root", "slow", "expose", "taunt", "seal", "chain", "dot"]:  # 걸린 효과(I101)
 			if battle.effect(e, key) != null:
-				draw_arc(_spot(e), CELL * (e.radius + ring), 0.0, TAU, 24, MARKS[key], 1.0)
+				draw_arc(_spot(e) + _slip(e), CELL * (e.radius + ring), 0.0, TAU, 24, MARKS[key], 1.0)
 				ring += 0.15
 	for u in battle.units:  # 마나 막대(S146): 영웅 발밑. 붙잡힌 적에 가리지 않게 적보다 나중에 그린다. 성벽·거점에 가린 영웅은 덧그림처럼 반투명(사용자 2026-10-20)
 		if u.is_hero and u.alive:
-			var bar := Rect2(_spot(u) + Vector2(-CELL, CELL) / 2.0, Vector2(CELL, 2))
+			var bar := Rect2(_spot(u) + _slip(u) + Vector2(-CELL, CELL) / 2.0, Vector2(CELL, 2))
 			var tint := GHOST if _behind(u) else Color.WHITE
 			draw_rect(bar, Color.BLACK * tint)
 			draw_rect(Rect2(bar.position, Vector2(CELL * u.mana / u.max_mana, 2)), Color("4080ff") * tint)
@@ -177,7 +177,7 @@ func _draw() -> void:
 		var bar := hp_bar_size(u, controls.show_hp)
 		if bar != Vector2.ZERO:
 			var head: float = (ART.boss.anchor[1] - ART.basic.anchor[1]) / CELL if u.kind == "boss" else 0.0  # 보스 그림은 기본 적보다 키가 커서 막대를 그만큼 올린다(머리 위)
-			_hp_bar(u.pos - Vector2(0, _lift(u) / CELL + head), u, bar)
+			_hp_bar(u.pos - Vector2(0, _lift(u) / CELL + head) + _slip(u) / CELL, u, bar)
 	if controls.drag_rect.has_area():
 		draw_rect(controls.drag_rect, Color.WHITE, false, 1.0)
 
@@ -670,6 +670,7 @@ func _flinch(x) -> Vector2:
 func tick(dt: float) -> void:
 	clock += dt
 	events = []
+	_fills = _fills.map(func(f): return [f[0], f[1] - 1]).filter(func(f): return f[1] > 0)
 	_scan()
 	for e in events:
 		_react(e)
@@ -694,21 +695,23 @@ func _scan() -> void:
 	_gone = gone
 	var pend := {}  # 쓰러진 대상 id → 아직 닿지 않은 공격 수
 	var found := []  # [공격자, 새 공격인가, 이번 프레임에 닿았나]
+	var atk := {}  # 이번 프레임의 공격자만 남긴다(쓰러지거나 팔린 공격자는 지워진다)
 	for x in battle.units + battle.enemies + battle.structures.values():
 		var id: int = x.get_instance_id()
-		if x.get("target") == null:
-			_atk.erase(id)
+		if x.get("target") == null:  # 대상이 없으면 다음 공격이 첫 공격이어도 «쏨»이 나게 한다
+			atk[id] = [INF, true]
 			continue
-		var a := _ago(x)
-		var hit: bool = a >= _contact(x)
+		var raw: float = (x.attack_gap if x.get("attack_gap") != null else x.fire_gap) - x.cooldown  # 히트스톱으로 멈추지 않은 친 뒤 시간
+		var hit: bool = _ago(x) >= _contact(x)
 		var was = _atk.get(id)
-		var fresh: bool = was != null and a < was[0]  # 친 뒤 시간이 줄면 새 공격이다
+		var fresh: bool = was != null and raw < was[0]  # 친 뒤 시간이 줄면 새 공격이다. 원거리 영웅의 닿는 때는 대상이 다가오면 줄어서 _ago로 가르면 안 된다
 		var landed: bool = hit if was == null else (false if fresh else was[1])
 		var now: bool = hit and not landed
-		_atk[id] = [a, landed or now]
+		atk[id] = [raw, landed or now]
 		if not (landed or now) and _dead.has(x.target.get_instance_id()):
 			pend[x.target.get_instance_id()] = true
 		found.append([x, fresh, now])
+	_atk = atk
 	for f in found:
 		var x = f[0]
 		var t = x.target
@@ -734,7 +737,7 @@ func _scan() -> void:
 		var id: int = e.get_instance_id()
 		if e.cast:
 			tell[id] = [_center(e.pos), CELL * e.skills[e.cast.id].radius]
-		elif _tell.has(id) and e.fx.has("stagger"):
+		elif _tell.has(id) and e.fx.has("stagger") and e.fx.stagger.left > battle.STAGGER - 0.25:  # 이번에 막 걸린 비틀거림만
 			_emit("interrupt", _tell[id][0], Vector2.ZERO, e, null, {"radius": _tell[id][1]})
 	_tell = tell
 	for c in battle.rubble:  # 성곽 칸 붕괴
@@ -755,6 +758,7 @@ func _emit(kind: String, at: Vector2, dir: Vector2, src, dst, more := {}) -> voi
 func _react(e: Dictionary) -> void:
 	match e.kind:
 		"boss":
+			_fills.append([e.ref, FILL])
 			var foot: Vector2 = _center(e.ref.at)
 			for i in 5:  # 균열 5줄: 발밑에서 바깥으로 8~14px, 1px 걸음마다 어두운 금과 그 아래 밝은 가장자리
 				var d := Vector2.from_angle(deg_to_rad(i * 72.0 + _h(e.n, i, -17, 17)))
@@ -793,7 +797,8 @@ func _fx_dots(ground: bool) -> void:
 static func _h(n: int, k: int, lo: int, hi: int) -> int:
 	return lo + posmod(hash(n * 7919 + k), hi - lo + 1)
 
-# 넉백·끌어옴처럼 화면 자리가 한 스텝에 8px 넘게 바뀐 몸은 지난 자리에서 미끄러지게 그린다(S198). 보스 스킬에 맞은 것은 160px, 그 밖은 48px까지.
+# 넉백·끌어옴처럼 한 스텝에 8px 넘게 옮겨진 몸은 지난 자리에서 미끄러지게 그린다(S198). 보스 스킬에 맞은 것은 160px, 그 밖은 48px까지.
+# 옮겨진 거리는 시뮬레이션 자리로 잰다(성벽 위 몸은 그리는 높이가 칸마다 바뀌어서 화면 자리로 재면 걷기도 튄다).
 # 성벽을 오르내리거나 기어오르기를 마친 스텝(성벽 위·기어오르기 상태가 바뀜)은 미끄러지지 않는다
 func _slide_scan() -> void:
 	var far := {}
@@ -804,14 +809,18 @@ func _slide_scan() -> void:
 	var next := {}
 	for x in battle.units + battle.enemies:
 		var id: int = x.get_instance_id()
-		var p := _spot(x)
+		var c := _center(x.pos)
 		var state := [x.on_wall, x.get("climbed") != null and x.climbed > 0.0]
-		var was = _last.get(id)
-		if was != null and was[1] == state:
-			var d: float = p.distance_to(was[0])
+		var was = _last.get(id)  # [지난 그린 자리(미끄러짐 빼고), 지난 시뮬레이션 자리, 상태]
+		if was != null and was[2] == state:
+			var d: float = c.distance_to(was[1])
 			if d > 8.0 and d <= (160.0 if far.has(id) else 48.0):
-				_slides[id] = [_spot(x) + _slip(x) if _slides.has(id) else was[0], clock, clampf(d / SLIDE, 0.12, 0.3)]
-		next[id] = [p, state]
+				var from: Vector2 = was[0]
+				var s = _slides.get(id)
+				if s != null:  # 미끄러지는 중에 또 옮겨지면 지금 그려진 자리에서 다시 미끄러진다
+					from = s[0].lerp(was[0], _out(clampf((clock - s[1]) / s[2], 0.0, 1.0)))
+				_slides[id] = [from, clock, clampf(d / SLIDE, 0.12, 0.3)]
+		next[id] = [_spot(x), c, state]
 	_last = next
 	for id in _slides.keys():
 		if clock - _slides[id][1] >= _slides[id][2]:
@@ -843,8 +852,8 @@ func _under_boss(h) -> bool:
 		return false
 	var a: Dictionary = ART[h.kind]
 	var r := Rect2(_spot(h) - Vector2(a.anchor[0], a.anchor[1]), Vector2(a.c, a.c))
-	for e in battle.enemies:
-		if _boss(e) and ART.has(e.kind) and _center(e.pos).y >= _center(h.pos).y:
+	for e in battle.enemies:  # 정렬 키는 바닥선 y의 정수다(_bodies)
+		if _boss(e) and ART.has(e.kind) and int(_center(e.pos).y) >= int(_center(h.pos).y):
 			var b: Dictionary = ART[e.kind]
 			if r.intersection(Rect2(_spot(e) - Vector2(b.anchor[0], b.anchor[1]), Vector2(b.c, b.c))).get_area() > 0.25 * r.get_area():
 				return true
