@@ -75,3 +75,47 @@ func ev246():
 	run(d, 3.0)
 	var stayed: bool = d.hero.pos.distance_to(Vector2(START)) < 0.01 and far.hp == far.max_hp
 	return check(reached and stayed, "2칸 앞 과녁에 다가가 침 %s(기사 %s, 인식 범위 %s) · 4칸 앞 과녁만 있으면 그대로 %s(기사 %s)" % [reached, b.hero.pos, b.hero.sight, stayed, d.hero.pos])
+
+# EV383 · S196: 이동 명령으로 걷는 영웅은 사거리 안을 지나는 적을 치지 않는다
+func ev383():
+	var b = battle({"hero_start": START})
+	var e = b.spawn_enemy("basic", START + Vector2i(6, 1), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})
+	b.order_move([b.hero], START + Vector2i(12, 0))
+	var arrived := run(b, 10, func(): return near(b.hero.pos, START + Vector2i(12, 0), 0.01))
+	return check(arrived and e.hp == e.max_hp, "도착 %s(%s) · 지나친 적 체력 %s/%s" % [arrived, b.hero.pos, e.hp, e.max_hp])
+
+# EV384 · S196: 친 영웅은 0.25초 동안 제자리에 서 있다가 0.35초에는 다음 적에게 다가가고 있다. 친 직후 이동 명령을 받으면 0.05초에는 그 자리이고 0.15초에는 걷고 있다
+func ev384():
+	var b = battle({"hero_start": START})
+	b.spawn_enemy("basic", START + Vector2i(1, 0), {"speed": 0, "sight": 0, "damage": 0, "hp": 1})
+	b.spawn_enemy("basic", START + Vector2i(0, 2), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})
+	if not run(b, 5, func(): return b.enemies.size() == 1):
+		return "영웅이 옆의 적을 쓰러뜨리지 않았다"
+	var p0: Vector2 = b.hero.pos
+	for i in 5:
+		b.step(DT)
+	var still: float = b.hero.pos.distance_to(p0)
+	for i in 2:
+		b.step(DT)
+	var chased: float = b.hero.pos.distance_to(p0)
+	var d = battle({"hero_start": START})
+	d.spawn_enemy("basic", START + Vector2i(1, 0), {"speed": 0, "sight": 0, "damage": 0, "hp": 1})
+	if not run(d, 5, func(): return d.enemies.is_empty()):
+		return "영웅이 옆의 적을 쓰러뜨리지 않았다(이동 명령 판)"
+	var q0: Vector2 = d.hero.pos
+	d.order_move([d.hero], START + Vector2i(0, 6))
+	d.step(DT)
+	var held: float = d.hero.pos.distance_to(q0)
+	for i in 2:
+		d.step(DT)
+	var walked: float = d.hero.pos.distance_to(q0)
+	return check(still < 0.001 and chased > 0.05 and held < 0.001 and walked > 0.05,
+		"친 뒤 0.25초 움직임 %.3f칸 · 0.35초 %.3f칸 · 이동 명령 0.05초 %.3f칸 · 0.15초 %.3f칸" % [still, chased, held, walked])
+
+# EV385 · S196: 적이 선 칸으로 이동 명령을 받은 기사는 적 몸에 막히면 걷기를 그만두고(걸을 길이 빈다) 3초 안에 그 적을 친다
+func ev385():
+	var b = battle({"hero_start": START})
+	var e = b.spawn_enemy("basic", START + Vector2i(4, 0), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})
+	b.order_move([b.hero], START + Vector2i(4, 0))
+	run(b, 3.0)
+	return check(b.hero.path.is_empty() and e.hp < e.max_hp, "기사 %s · 걸을 길 %s · 적 체력 %s/%s" % [b.hero.pos, b.hero.path, e.hp, e.max_hp])

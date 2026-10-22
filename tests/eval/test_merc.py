@@ -24,3 +24,7 @@ def test_EV30_hold_attacks_inside_radius(gd):
 
 def test_EV31_no_hold_chases(gd):
     gd("merc", "EV31")
+
+
+def test_EV381_merc_stands_through_attack_pose(gd):
+    gd("merc", "EV381")

@@ -491,17 +491,18 @@ func _sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 	var v: Vector2 = x.pos - seen[0] if seen else Vector2.ZERO
 	var dir: int = seen[1] if seen else 0
 	var moving := v.length_squared() > 1e-8
-	if moving:
-		dir = _dir_of(v)
-	elif x.target:
+	var t := _ago(x)
+	var pose: bool = x.target != null and t < battle.HERO_POSE and (x.path.is_empty() or t < CONTACT)  # 걷기 명령은 닿은 뒤의 공격 자세를 끊는다(S196)
+	if pose or (x.target and not moving):  # 공격 자세는 밀려도 대상 쪽을 친다(S165)
 		dir = _dir_of(_pos_of(x.target) - x.pos)
+	elif moving:
+		dir = _dir_of(v)
 	next[id] = [x.pos, dir]
 	var a: Dictionary = ART[x.kind]
 	var c := int(a.c)
 	var anim := "idle"
 	var col := 0
-	var t := _ago(x)
-	if x.target and t < 0.3:
+	if pose:
 		anim = "attack"
 		col = clampi(int(t / 0.1), 0, 2)
 	elif moving:
@@ -519,17 +520,18 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 	var v: Vector2 = x.pos - seen[0] if seen else Vector2.ZERO
 	var dir: int = seen[1] if seen else 0
 	var moving := v.length_squared() > 1e-8
-	if moving:
-		dir = _four(v)
-	elif x.target:
+	var a := _ago(x)  # 친 뒤 지난 시간(초)
+	var pose: bool = x.target != null and a >= CONTACT and a < battle.POSE
+	if pose or (x.target and not moving):  # 공격 자세는 밀려도 대상 쪽을 친다(S172)
 		dir = _four(_pos_of(x.target) - x.pos)
+	elif moving:
+		dir = _four(v)
 	if x.get("climbed"):
 		dir = 2
 	next[id] = [x.pos, dir]
-	var a := _ago(x)  # 친 뒤 지난 시간(초)
 	var anim := "idle"
 	var col := 0
-	if x.target and a >= 0.08 and a < 0.22:
+	if pose:
 		anim = "attack"
 	elif moving or x.get("climbed"):
 		anim = "walk"

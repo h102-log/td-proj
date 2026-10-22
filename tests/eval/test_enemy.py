@@ -32,3 +32,7 @@ def test_EV18_resumes_after_counter_target_dies(gd):
 
 def test_EV245_counter_target_held_while_it_keeps_firing(gd):
     gd("enemy", "EV245")
+
+
+def test_EV382_enemy_stands_through_attack_pose(gd):
+    gd("enemy", "EV382")
