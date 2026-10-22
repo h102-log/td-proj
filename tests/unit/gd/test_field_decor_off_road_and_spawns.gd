@@ -15,7 +15,7 @@ func _battle():
 func test_props_stay_on_open_field():
 	var b = _battle()
 	var road: Dictionary = View._road(b)
-	var props: Array = View.field_props(b)
+	var props: Array = View.ground_props(b).filter(func(p): return p[1] < 5)
 	if props.size() != 15:
 		return "소품이 %d개다(바위 9·그루터기 6이어야 한다)" % props.size()
 	for p in props:

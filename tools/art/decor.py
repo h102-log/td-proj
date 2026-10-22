@@ -1,6 +1,7 @@
-# 들판 장식(S197, 사용자 2026-10-23 — 농경지·전장 흔적·숲 가장자리 시안 가운데 «전장 흔적»). 꾸밈만이고 시뮬레이션은 그대로다.
-# 바위·그루터기는 시설(facility.py)과 같은 카메라·외곽선으로 굽고, 그을음·구덩이·자갈·풀은 바닥에 찍는 픽셀 그림이다.
-# 배치는 battle_view.gd(bake_ground·field_props)가 정한다. 0행 16×16: 바위 3·그루터기 2·구덩이 2·자갈 2·풀 2,
+# 들판 장식(S197, 사용자 2026-10-23 — 농경지·전장 흔적·숲 가장자리 시안 가운데 «전장 흔적»)과 마을 장식(S198 — 돌길·광장·생활·보급 시안 가운데
+# «돌길·광장»). 꾸밈만이고 시뮬레이션은 그대로다. 바위·그루터기·우물은 시설(facility.py)과 같은 카메라·외곽선으로 굽고,
+# 그을음·구덩이·자갈·풀·풀꽃은 바닥에 찍는 픽셀 그림이다. 마을 돌길은 그림 없이 battle_view.gd(_pave)가 칠한다.
+# 배치는 battle_view.gd(bake_ground·ground_props)가 정한다. 0행 16×16: 바위 3·그루터기 2·구덩이 2·자갈 2·풀 2·풀꽃 1·우물 1,
 # 1행 48×32: 그을음 3, 2행 48×48: 맵 아래 맵 밖 띠의 마른 나무 4(줄기 밑동이 그림의 (24, 44))
 # 사용: python tools/art/decor.py → art/tiles/decor.png
 from pathlib import Path
@@ -20,7 +21,8 @@ CY = D / 2
 # [동작] 재질 램프 [외곽선, 음영 0..3]을 팔레트 색으로 직접 정한다
 # [이유] 자동 램프(render.ramp)가 나무를 주황으로, 바위를 밝은 청회색으로 골라 시안에서 아이템처럼 튀었다(사용자가 본 1차 시안)
 RAMPS = {"stone": ["1f240a", "262d3d", "3a4357", "56607a", "56607a"], "wood": ["1f240a", "2a1d0d", "392a1c", "684c3c", "684c3c"],
-         "dead": ["1f240a", "2a1d0d", "392a1c", "684c3c", "927e6a"]}
+         "dead": ["1f240a", "2a1d0d", "392a1c", "684c3c", "927e6a"], "water": ["151a26", "151a26", "262d3d", "262d3d", "3a4357"],
+         "rim": ["151a26", "3a4357", "56607a", "7a86a0", "7a86a0"]}
 MAT = list(RAMPS)
 RAMP_IDX = np.array([[HEX.index(h) for h in v] for v in RAMPS.values()])
 SMALL, SCORCH, TREE = (16, 16), (48, 32), (48, 48)  # 행마다 한 칸 크기
@@ -121,13 +123,29 @@ def tuft(rng):
     return out
 
 
+def flower_patch(rng):
+    """마을 풀꽃(S198): 풀 포기 사이에 연한 꽃 몇 점"""
+    out = tuft(rng)
+    for _ in range(rng.integers(2, 4)):
+        x, y = rng.integers(3, 13), rng.integers(4, 13)
+        out[y, x] = col(["efd8a1", "a4aec2"][rng.integers(0, 2)])
+    return out
+
+
+def well():
+    """마을 우물(S198): 밝은 돌 고리 안 어두운 물. 기둥·가로대는 솥 손잡이로 읽혀 뺐다"""
+    outer, inner = cyl([0.5, CY, 0.08], 0.42, 0.08), cyl([0.5, CY, 0.08], 0.27, 0.3)
+    return cell_sprite([(lambda p: np.maximum(outer(p), -inner(p)), "rim"), (cyl([0.5, CY, 0.06], 0.28, 0.02), "water")])
+
+
 def sheet():
     rng = np.random.default_rng(23)
     row0 = [rock(1.0, True), rock(0.85, False), rock(1.15, False), stump(1), stump(-1),
-            crater(rng, 5), crater(rng, 6), pebbles(rng), pebbles(rng), tuft(rng), tuft(rng)]
+            crater(rng, 5), crater(rng, 6), pebbles(rng), pebbles(rng), tuft(rng), tuft(rng),
+            flower_patch(np.random.default_rng(24)), well()]  # 마을 그림은 따로 씨앗을 써서 들판 그림이 그대로다
     row1 = [scorch(rng) for _ in range(3)]
     row2 = [dead_tree(rng) for _ in range(4)]
-    out = np.zeros((SMALL[1] + SCORCH[1] + TREE[1], TREE[0] * len(row2), 4), np.uint8)
+    out = np.zeros((SMALL[1] + SCORCH[1] + TREE[1], max(SMALL[0] * len(row0), TREE[0] * len(row2)), 4), np.uint8)
     for y, (w, _), row in ((0, SMALL, row0), (SMALL[1], SCORCH, row1), (SMALL[1] + SCORCH[1], TREE, row2)):
         for i, im in enumerate(row):
             out[y:y + im.shape[0], i * w:i * w + im.shape[1]] = im
