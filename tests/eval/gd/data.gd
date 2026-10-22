@@ -63,9 +63,9 @@ func ev80():
 	run(b, 10.0)
 	return check(n[0] == 2, "첫 웨이브에 적이 %d명 나왔다(2명이어야 한다)" % n[0])
 
-# EV254 · S144: 시험 스테이지의 라운드 체력 배율은 [1, 1.6, 1.61, 2.21, 2.61, 3.04]이다(라운드 웨이브 파일의 hp_mult)
+# EV254 · S144: 시험 스테이지의 라운드 체력 배율은 [1, 1.6, 1.37, 3.32, 4.7, 6.69]이다(라운드 웨이브 파일의 hp_mult)
 func ev254():
 	var m: Array = load("res://src/main.gd").stage().get("hp_mult", [])
-	var want := [1.0, 1.6, 1.61, 2.21, 2.61, 3.04]
+	var want := [1.0, 1.6, 1.37, 3.32, 4.7, 6.69]
 	var same: bool = m.size() == want.size() and range(want.size()).all(func(i): return is_equal_approx(m[i], want[i]))
 	return check(same, "시험 스테이지 체력 배율이 %s다(%s여야 한다)" % [m, want])

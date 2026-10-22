@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_83rh7")
-hp_mult = 2.61
+hp_mult = 4.7
 waves = Array[Dictionary]([{
 "basic": 24,
 "fast": 12,
