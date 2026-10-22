@@ -357,8 +357,8 @@ msgstr "Ignores paths"
 msgid "받는 피해를 줄인다"
 msgstr "Takes less damage"
 
-msgid "성벽을 뚫고 온다"
-msgstr "Breaks through walls"
+msgid "성벽을 뚫고 온다. 대지 강타·분노"
+msgstr "Breaks through walls. Ground Slam, Rage"
 
 msgid "왼쪽"
 msgstr "Left"

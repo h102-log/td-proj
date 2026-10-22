@@ -40,6 +40,8 @@ const CAST_RANGE := 6.0  # 지점·대상을 고르는 스킬의 시전 사거�
 const CRIT := 2.0  # 치명타 피해 배율(S149). 임시값
 const STAY := 0.6  # 장판 안에 있는 동안 거는 효과의 남은 시간(초, I141). 장판을 나오면 곧 풀린다
 const FALLEN := 2.0  # 쓰러진 몸(fallen)을 지우는 때(쓰러진 뒤 초, S180). 화면은 끝 0.5초 동안 흐린다
+const STAGGER := 2.0  # 예고 중 기절로 스킬이 끊긴 보스가 비틀거리는 시간(초, S194). 임시값
+const STAGGER_EXPOSE := 0.5  # 비틀거리는 동안 받는 피해 증가(S194). 임시값
 
 # 칸 하나를 차지하고 체력이 있는 것: 거점 "base" · 성곽 "castle_wall"·"gate" · 구조물 "wall" 등
 class Block:
@@ -109,6 +111,9 @@ class Enemy:
 	var goal: Vector2i  # 경로의 끝 칸(지금 노리는 대상의 칸)
 	var via = null  # 먼저 노리는 성문 칸(S143). 그 칸에 들어서거나 성문이 잔해가 되면 null
 	var path: Array[Vector2i] = []
+	var skills := {}  # 보스 스킬 이름 → 수치(S194, I169). 종류의 사전을 같이 쓰니 적마다 바뀌는 값은 cast·cd에 둔다
+	var cast = null  # 예고 중인 스킬 {id, left}(S194). 없으면 null
+	var cd := {}  # 스킬 → 남은 대기(초). 없는 스킬은 0이다(나온 때, S194)
 
 	func _init(k: String, cell: Vector2i, stats: Dictionary) -> void:
 		kind = k
@@ -868,8 +873,9 @@ func _use(h, slot: String, aim) -> void:
 	call("_cast_" + sk.id, h, sk, aim, grow)
 	_tracing = null
 
-# 즉시 스킬 흔적을 남긴다(S179). at은 흔적의 가운데(지점 스킬은 지점, 나머지는 쓴 때 영웅 자리)다. _tracing을 비울 때까지 맞은 대상이 hits에 쌓인다
-func _trace(h: Unit, slot: String, aim, at: Vector2, radius: float) -> void:
+# 즉시 스킬 흔적을 남긴다(S179). at은 흔적의 가운데(지점 스킬은 지점, 나머지는 쓴 때 영웅 자리)다. _tracing을 비울 때까지 맞은 대상이 hits에 쌓인다.
+# 보스 강타(S195)도 남긴다. 그때 h는 그 적이고 slot은 스킬 이름이다
+func _trace(h, slot: String, aim, at: Vector2, radius: float) -> void:
 	_tracing = {"hero": h, "slot": slot, "aim": aim, "at": at, "radius": radius, "hits": [], "age": 0.0}
 	traces.append(_tracing)
 
@@ -1993,13 +1999,22 @@ func _target_of(e: Enemy):
 	return base
 
 func _move(e: Enemy, dt: float) -> void:
-	e.cooldown -= dt * (1.0 - _fx_cut(e, "lag"))  # 공격 속도 감소(S158)
+	var sealed := _fx_on(e, "seal") != null  # 봉인(S155): 비행 적은 내려앉고 기어오르는 적은 오르지 못한다. 보스는 스킬을 쓰지 못한다(S194)
+	var rage := raging(e)
+	e.cooldown -= dt * (1.0 - _fx_cut(e, "lag")) * (1.0 + (e.skills.rage.haste if rage else 0.0))  # 공격 속도 감소(S158), 분노(S195)
 	e.held -= dt
-	if _fx_on(e, "stun") != null:  # 기절·빙결(S150): 움직이지도 치지도 않는다
+	var stunned := _fx_on(e, "stun") != null
+	if e.cast and (stunned or sealed):  # 예고가 끊긴다. 기절이면 비틀거리고, 봉인이면 그냥 취소된다(S194)
+		e.cd[e.cast.id] = e.skills[e.cast.id].cd
+		e.cast = null
+		if stunned:
+			_fx(e, "stagger", {"expose": STAGGER_EXPOSE}, STAGGER)
+	if stunned:  # 기절·빙결(S150): 움직이지도 치지도 않는다
+		return
+	if _skills(e, dt, sealed):  # 예고 동안은 움직이지도 치지도 않는다(S194)
 		return
 	var rooted := _fx_on(e, "root") != null  # 속박(S150): 움직이지 않지만 닿는 대상은 친다
-	var sealed := _fx_on(e, "seal") != null  # 봉인(S155): 비행 적은 내려앉고 기어오르는 적은 오르지 못한다
-	var speed := 0.0 if rooted else e.speed * (1.0 - _fx_cut(e, "slow"))
+	var speed: float = 0.0 if rooted else e.speed * (1.0 - _fx_cut(e, "slow")) * (1.0 + (e.skills.rage.stride if rage else 0.0))
 	if e.on_wall and not _climbable(Vector2i(e.pos.round())):  # 성벽에서 내려왔거나 그 성벽이 부서졌다(I76)
 		e.on_wall = false
 	var aim = _target_of(e)
@@ -2063,6 +2078,45 @@ func _move(e: Enemy, dt: float) -> void:
 		else:
 			_shove(e, (target - e.pos) / d * left, units)
 			left = 0.0
+
+# ── 보스 스킬(S194) ──
+
+# 분노(S195): 체력이 정한 비율 이하인 보스. 봉인되면 꺼진다(S194). 화면이 붉게 그린다
+func raging(e: Enemy) -> bool:
+	return e.skills.has("rage") and e.hp <= e.skills.rage.below * e.max_hp and _fx_on(e, "seal") == null
+
+# 대기를 줄이고, 예고 중이면 시간을 세어 다 되면 발동한다. 예고가 없으면 쓸 수 있는 스킬의 예고를 시작한다. 이번 스텝을 스킬에 썼으면 true
+func _skills(e: Enemy, dt: float, sealed: bool) -> bool:
+	for id in e.cd:
+		e.cd[id] -= dt
+	if e.cast:
+		e.cast.left -= dt
+		if e.cast.left <= 0.0:
+			var id: String = e.cast.id
+			e.cast = null
+			e.cd[id] = e.skills[id].cd
+			if id == "slam":
+				_slam(e, e.skills.slam)
+		return true
+	var sk: Dictionary = e.skills.get("slam", {})
+	if sealed or sk.is_empty() or e.cd.get("slam", 0.0) > 0.0 or _ground_near(e.pos, sk.radius).size() < sk.count:
+		return false
+	e.cast = {"id": "slam", "left": sk.windup}
+	return true
+
+# 성벽 위가 아닌 영웅·용병 가운데 at에서 r 안에 있는 것
+func _ground_near(at: Vector2, r: float) -> Array:
+	return units.filter(func(u): return not u.on_wall and u.pos.distance_to(at) <= r)
+
+# 대지 강타(S195): 반경 안 땅 위 영웅·용병에게 물리 피해, 보스에게서 멀어지는 쪽으로 넉백(막힌 칸·몸에서 멈춘다), 둔화
+func _slam(e: Enemy, sk: Dictionary) -> void:
+	_trace(e, "slam", null, e.pos, sk.radius)
+	for u in _ground_near(e.pos, sk.radius):
+		damage(u, sk.damage, "phys", e)
+		if u.alive:
+			_shove(u, (u.pos - e.pos).normalized() * sk.knock, enemies)
+			_fx(u, "slam", {"slow": sk.slow}, sk.slow_time)
+	_tracing = null
 
 # 블록 수(S159, I150): 유닛 m이 적 e를 붙잡고 있거나 블록 자리가 남았다. 붙잡을 수 있는 유닛만 e를 노리고 몸으로 막는다
 func _free(m: Unit, e: Enemy) -> bool:
@@ -2163,7 +2217,7 @@ func _act(u: Unit, dt: float) -> void:
 			foe = null
 		elif foe:  # 이동 중 공격: 멈춰서 친다
 			walking = false
-	var left := u.speed * dt * ((1.0 + _aura("stride", u.pos)) if u.is_hero else 1.0)  # 크로노스 오라: 영웅이 더 빨리 걷는다(S158)
+	var left: float = u.speed * dt * ((1.0 + _aura("stride", u.pos)) if u.is_hero else 1.0) * (1.0 - _fx_cut(u, "slow"))  # 크로노스 오라: 영웅이 더 빨리 걷는다(S158). 둔화(I168)
 	if walking:
 		while left > 0.0 and not u.path.is_empty():
 			var to := Vector2(u.path[0]) - u.pos
