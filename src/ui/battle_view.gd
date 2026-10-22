@@ -38,7 +38,9 @@ const MUZZLE := {"tower": Vector2(0, -15), "magic": Vector2(0, -24), "cannon": V
 const BALL_ARC := 12.0  # 대포알 포물선 꼭대기 높이(px)
 const BLAST := 0.25  # 대포알이 떨어진 곳의 범위 피해 고리가 퍼지는 시간(초)
 const FX := 0.3  # 즉시 스킬 흔적(S179)이 퍼지고 사라지는 시간(초). 범위 원(S72)의 0.3초를 이었다
-const FX_COLORS := {"frost_ring": Color("a0e0ff")}  # 영웅 색이 아닌 흔적(S179): 이그니스 서리 고리는 얼음색
+const FX_COLORS := {"frost_ring": Color("a0e0ff"), "slam": Color("ff3020")}  # 영웅 색이 아닌 흔적(S179): 이그니스 서리 고리는 얼음색, 보스 강타(S195)는 예고 색
+const TELL := Color("ff3020")  # 보스 스킬 예고(S194): 빨간 테두리, 안쪽이 차오른다
+const RAGE := Color(1.5, 0.55, 0.55)  # 분노한 보스(S195)를 붉게 그리는 modulate
 const FALL := 0.5  # 운석이 보이며 떨어지는 시간(초). 이그니스 R의 첫 운석 지연(delay)과 같다
 const CORPSE_FADE := 0.5  # 쓰러진 적·용병의 몸이 시뮬레이션에서 지워지기(battle.FALLEN) 전에 흐려지는 시간(초, S180)
 const FALL_STEP := 0.08  # 영웅 쓰러짐 5프레임의 한 프레임 길이(초, S180)
@@ -90,6 +92,11 @@ func _draw() -> void:
 			draw_circle(_center(z.pos), CELL * z.radius, Color(col, 0.18))
 			_pattern(z.src, _center(z.pos).round(), CELL * z.radius, Color(col, 0.9))
 		draw_arc(_center(z.pos), CELL * z.radius, 0.0, TAU, 48, Color(col, 0.8), 1.0)
+	for e in battle.enemies:  # 보스 스킬 예고(S194): 빨간 테두리 안쪽이 남은 시간만큼 차오른다
+		if e.cast:
+			var sk: Dictionary = e.skills[e.cast.id]
+			draw_circle(_center(e.pos), CELL * sk.radius * (1.0 - e.cast.left / sk.windup), Color(TELL, 0.35))
+			draw_arc(_center(e.pos), CELL * sk.radius, 0.0, TAU, 48, Color(TELL, 0.9), 1.0)
 	for p in battle.forecast:  # 기본 적의 예상 경로(S142): 엷은 빨간 선, 유닛 아래에. 너비 1이면 1배 줌에서 칸 중심을 지나는 가로·세로 구간이 안 그려진다
 		draw_polyline(PackedVector2Array(p.map(func(c): return _center(Vector2(c)))), Color(COLORS.spawn, 0.5), 1.5)
 	for h in battle.heroes:  # 오라 반경(S113): 오라가 있는 살아 있는 영웅마다 둘레에 늘 엷게, 유닛 아래에(I101)
@@ -215,14 +222,14 @@ func _traces() -> void:
 			continue
 		var h = c.hero
 		var id: String = h.get(c.slot).id if c.slot in battle.SLOTS else c.slot
-		var col: Color = FX_COLORS.get(id, HERO_COLORS[h.kind])
+		var col: Color = FX_COLORS[id] if FX_COLORS.has(id) else HERO_COLORS[h.kind]
 		var at := _center(c.at)
 		match id:
 			"shield_bash":  # 부채꼴 끝이 퍼진다
 				var d: float = (c.aim - c.at).angle()
 				var half := deg_to_rad(h.q.arc) / 2.0
 				draw_arc(at, CELL * c.radius * _out(k), d - half, d + half, 12, Color(col, 1.0 - k), 2.0)
-			"war_cry", "brace", "burst", "fireball", "frost_ring", "enfeeble", "trap", "meteor":
+			"war_cry", "brace", "burst", "fireball", "frost_ring", "enfeeble", "trap", "meteor", "slam":
 				_ring(at, CELL * c.radius, k, col)
 			"piercing_gale":  # 맵 끝까지 곧은 줄
 				draw_line(at, at + (c.aim - c.at).normalized() * CELL * 64.0, Color(col, 1.0 - k), 1.0 + 2.0 * (1.0 - k))
@@ -418,6 +425,8 @@ func _facility(s, tint := Color.WHITE) -> void:
 
 # 유닛·적 몸통 하나. 영웅은 8방향 시트, 그림이 있는 용병·적은 4방향 시트, 나머지는 원으로
 func _body(x, i: int, next: Dictionary, tint := Color.WHITE) -> void:
+	if x.get("skills") and battle.raging(x):  # 분노(S195)
+		tint *= RAGE
 	if _hits.get(x.get_instance_id(), [INF])[0] < FLASH:  # 피격 번쩍임(S177): 255배 modulate가 그림을 흰 실루엣으로 만든다(유닛 그림에 0인 채널이 없다). 배치는 끊기지 않는다
 		tint *= Color(255, 255, 255)
 	if ART.has(x.kind) and not x.get("is_hero"):
@@ -580,7 +589,7 @@ func hit_table(xs: Array) -> Dictionary:
 	for c in battle.traces:  # 즉시 스킬에 맞은 적(S179): 쓴 때(운석은 떨어진 때)부터, 흔적 가운데의 반대쪽으로 밀린다
 		for t in c.hits if c.age < FLINCH_BACK else []:
 			var id: int = t.get_instance_id()
-			if t in battle.enemies and c.age < hits.get(id, [INF])[0]:
+			if (t in battle.enemies or c.slot == "slam") and c.age < hits.get(id, [INF])[0]:  # 보스 강타(S195)는 맞은 아군
 				hits[id] = [c.age, (t.pos - c.at).normalized()]
 	return hits
 

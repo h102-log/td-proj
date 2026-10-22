@@ -16,3 +16,4 @@ extends Resource
 @export var armor := 0.0  # 방어력. 받는 물리 피해를 워크3식 비율로 줄인다(S108, S149)
 @export var flying := false  # 경로 층을 무시하고 대상으로 곧장 난다(S109, I79)
 @export var climb := 0.0  # 성곽 성벽을 기어오르는 시간(초). 0이면 오르지 않는다(S107, I76)
+@export var skills := {}  # 보스 스킬 이름 → 수치(S194, I169). slam 대지 강타·rage 분노(S195). 비어 있으면 스킬이 없다

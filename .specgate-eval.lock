@@ -1,10 +1,12 @@
 {
-  "approvedAt": "2026-10-22T05:54:22.604Z",
-  "evalMd": "3b0fe693",
+  "approvedAt": "2026-10-22T09:05:06.869Z",
+  "evalMd": "5619a322",
   "tests": {
     "tests/eval/conftest.py": "02db26c8",
     "tests/eval/gd/aura.gd": "010cc38a",
     "tests/eval/gd/aura.gd.uid": "40dd7bb8",
+    "tests/eval/gd/boss.gd": "5ce3b68b",
+    "tests/eval/gd/boss.gd.uid": "6966f835",
     "tests/eval/gd/cannon.gd": "4f9a0eb3",
     "tests/eval/gd/cannon.gd.uid": "42e1930a",
     "tests/eval/gd/castle.gd": "ed9060d3",
@@ -74,6 +76,7 @@
     "tests/eval/gd/wall.gd": "08efd26f",
     "tests/eval/gd/wall.gd.uid": "5931bc74",
     "tests/eval/test_aura.py": "bb2c72b8",
+    "tests/eval/test_boss.py": "43142238",
     "tests/eval/test_buff.py": "9ead7511",
     "tests/eval/test_cannon.py": "646c7251",
     "tests/eval/test_castle.py": "f6eed088",
@@ -203,7 +206,7 @@
     "I49": "783edbce",
     "S104": "ed915097",
     "S11": "4e63a7d7",
-    "S106": "a8cc6f5d",
+    "S106": "7c1939f4",
     "S108": "39ea9368",
     "S110": "161b92c9",
     "S109": "bd1203c7",
@@ -342,6 +345,9 @@
     "I110": "6ef4e75f",
     "S192": "83b66ecc",
     "S193": "42c00989",
-    "I167": "46f8113e"
+    "I167": "46f8113e",
+    "S195": "4fec689f",
+    "S194": "1f445e84",
+    "I168": "fb82bf63"
   }
 }
