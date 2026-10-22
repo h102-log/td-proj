@@ -19,6 +19,12 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+# 2026-10-22
+# [동작] Godot을 동시에 MAX_JOBS개까지만 띄운다. --jobs를 더 크게 줘도 줄인다
+# [이유] 기본값이 코어 수(16)라 16개가 한꺼번에 떴다. 사용자가 CPU 과부하로 PC가 꺼진다고 보고 상한을 요청했다(2026-10-22).
+#        꺼짐은 이벤트 로그상 블루스크린(0x1A)이었고 Godot이 0개일 때도 났으므로, 상한은 예방일 뿐이다.
+#        4는 Claude가 정한 값이다(재지 않음)
+MAX_JOBS = 4
 
 # 봇 패널: 숙련(영웅 1로 시작)·숙련(영웅 2로 시작)·중간(영웅 손을 안 씀)·약함(병영 먼저, 타워 1)
 PANEL = {
@@ -156,11 +162,12 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("configs")
     ap.add_argument("--seeds", default="1-8")
-    ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2)))
+    ap.add_argument("--jobs", type=int, default=MAX_JOBS)
     ap.add_argument("--out")
     ap.add_argument("--panel", action="store_true")
     ap.add_argument("--quiet", action="store_true", help="--panel에서 봇별 표를 빼고 점수만")
     a = ap.parse_args()
+    a.jobs = max(1, min(a.jobs, MAX_JOBS))
     configs = json.loads(Path(a.configs).read_text(encoding="utf-8"))
     seeds = seeds_of(a.seeds)
     if a.panel:
