@@ -116,6 +116,7 @@ func _run(line: String) -> bool:
 			var from: String = b.state
 			for i in roundi(n[0] / DT):
 				b.step(DT)
+				main.view.tick(DT)  # main._process를 껐으므로 화면 시계·사건 목록도 여기서 흘린다(I170, I171)
 				if b.state != from:  # 웨이브가 끝나거나 판이 끝나면 사람처럼 거기서 본다
 					break
 		["quit", 0]:

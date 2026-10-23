@@ -68,6 +68,7 @@ static func map_viewport(w: Window) -> SubViewportContainer:
 
 func _process(delta: float) -> void:
 	view.battle.step(delta)
+	view.tick(delta)  # 화면 시계와 사건 목록(I170, I171). step과 같은 delta라 ESC 메뉴면 같이 멈춘다
 	view.queue_redraw()
 	_check()
 
