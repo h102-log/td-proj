@@ -888,6 +888,13 @@ static func bake_ground(b) -> ImageTexture:
 	var road := _road(b)
 	var dirt := func(x: int, y: int) -> int:
 		return int(vil.has_area() and x >= vil.position.x and x <= vil.end.x and y >= vil.position.y and y <= vil.end.y + spill[x] or road.has(Vector2i(x, y)))
+	var vsrc := src.duplicate() as Image  # 마을 칸 타일: 흙 타일의 어두운 점 2/3를 흙색으로 지운 사본(S202). 픽셀마다 지우면 큰 마을(S203)에서 느려 타일에서 한 번 지운다
+	var vrng := RandomNumberGenerator.new()
+	vrng.seed = 3
+	for y in vsrc.get_height():
+		for x in vsrc.get_width():
+			if vsrc.get_pixel(x, y).is_equal_approx(Color("392a1c")) and vrng.randf() < 0.67:
+				vsrc.set_pixel(x, y, Color("684c3c"))
 	for y in b.size.y:
 		for x in b.size.x:
 			var k: int = dirt.call(x, y) + 2 * dirt.call(x + 1, y) + 4 * dirt.call(x, y + 1) + 8 * dirt.call(x + 1, y + 1)
@@ -896,14 +903,15 @@ static func bake_ground(b) -> ImageTexture:
 			var at := Vector2i(k, 0)
 			if v > 0:
 				at = Vector2i(v - 1 + (3 if k == 15 else 0), 1) if whole else Vector2i(k, 1 + v)
-			img.blit_rect(src, Rect2i(at * CELL, Vector2i(CELL, CELL)), Vector2i(x, y) * CELL)
+			img.blit_rect(vsrc if vil.has_point(Vector2i(x, y)) else src, Rect2i(at * CELL, Vector2i(CELL, CELL)), Vector2i(x, y) * CELL)
 	var open := _open_cells(b, road)
-	for i in 9:  # 그을음 48×32는 가운데 칸 둘레 3×3이 모두 빈 들판일 때만
+	var f := _field_scale(b)
+	for i in roundi(9 * f):  # 그을음 48×32는 가운데 칸 둘레 3×3이 모두 빈 들판일 때만
 		var c: Vector2i = open[rng.randi() % open.size()]
 		if range(9).all(func(k): return open.has(c + Vector2i(k % 3 - 1, k / 3 - 1))):
 			img.blend_rect(deco, Rect2i(48 * (i % 3), 16, 48, 32), c * CELL - Vector2i(16, 8))
-	for k in [[5, 7], [7, 30], [9, 25]]:  # 구덩이 7·자갈 30·풀 25. 자갈·풀은 칸 안에서 조금씩 비낀다
-		for i in k[1]:
+	for k in [[5, 7], [7, 30], [9, 25]]:  # 구덩이 7·자갈 30·풀 25(40×22 들판 기준). 자갈·풀은 칸 안에서 조금씩 비낀다
+		for i in roundi(k[1] * f):
 			var off := Vector2i.ZERO if k[0] == 5 else Vector2i(rng.randi_range(-3, 3), rng.randi_range(-3, 3))
 			img.blend_rect(deco, Rect2i(CELL * (k[0] + i % 2), 0, CELL, CELL), open[rng.randi() % open.size()] * CELL + off)
 	var edge: int = b.size.y * CELL
@@ -915,21 +923,20 @@ static func bake_ground(b) -> ImageTexture:
 				img.blend_rect(deco, Rect2i(48 * rng.randi_range(0, 3), 48, 48, 48), Vector2i(int(x) - 24, edge + row + rng.randi_range(-3, 3) - 44))
 			x += rng.randf_range(14.0, 24.0)
 	if vil.has_area():
-		for y in range(vil.position.y * CELL, vil.end.y * CELL):  # 흙 타일의 어두운 점 2/3를 흙색으로 지운다
-			for x in range(vil.position.x * CELL, vil.end.x * CELL):
-				if img.get_pixel(x, y).is_equal_approx(Color("392a1c")) and rng.randf() < 0.67:
-					img.set_pixel(x, y, Color("684c3c"))
-		for i in 24:  # 작은 풀·자갈: 마을 폭 24구간마다 하나, 마을 위쪽 여섯 줄. 거점 열 둘레는 비운다
-			var x0: int = vil.position.x + i * vil.size.x / 24
-			var c := Vector2i(rng.randi_range(x0, x0 + 1), rng.randi_range(vil.position.y + 1, vil.end.y - 4))
-			if absi(c.x - b.base.cell.x) > 2:
-				img.blend_rect(deco, Rect2i(CELL * rng.randi_range(7, 10), 0, CELL, CELL), c * CELL + Vector2i(rng.randi_range(-4, 4), rng.randi_range(-4, 4)))
+		var n: int = vil.size.x * 24 / 40
+		for top in range(vil.position.y + 1, vil.end.y - 4, 5):  # 작은 풀·자갈: 다섯 줄 띠마다 마을 폭을 n구간(40칸에 24)으로 나눠 하나씩. 거점 열 둘레는 비운다
+			for i in n:
+				var x0: int = vil.position.x + i * vil.size.x / n
+				var c := Vector2i(rng.randi_range(x0, x0 + 1), rng.randi_range(top, mini(top + 4, vil.end.y - 4)))
+				if absi(c.x - b.base.cell.x) > 2:
+					img.blend_rect(deco, Rect2i(CELL * rng.randi_range(7, 10), 0, CELL, CELL), c * CELL + Vector2i(rng.randi_range(-4, 4), rng.randi_range(-4, 4)))
 		_pave(b, img, rng)
-		for i in 8:  # 풀꽃 무더기 8곳(한 곳에 셋), 마을 위쪽 여섯 줄. 거점·광장 열은 비운다
-			var c := Vector2i(rng.randi_range(vil.position.x, vil.end.x - 1), rng.randi_range(vil.position.y, vil.end.y - 4))
-			if absi(c.x - b.base.cell.x) > 3:
-				for k in 3:
-					img.blend_rect(deco, Rect2i(CELL * 11, 0, CELL, CELL), c * CELL + Vector2i(rng.randi_range(-6, 6), rng.randi_range(-4, 4)))
+		for top in range(vil.position.y, vil.end.y - 3, 6):  # 풀꽃 무더기: 여섯 줄 띠마다 마을 폭 40칸에 8곳 꼴(한 곳에 셋). 거점·광장 열은 비운다
+			for i in vil.size.x * 8 / 40:
+				var c := Vector2i(rng.randi_range(vil.position.x, vil.end.x - 1), rng.randi_range(top, mini(top + 5, vil.end.y - 4)))
+				if absi(c.x - b.base.cell.x) > 3:
+					for k in 3:
+						img.blend_rect(deco, Rect2i(CELL * 11, 0, CELL, CELL), c * CELL + Vector2i(rng.randi_range(-6, 6), rng.randi_range(-4, 4)))
 	for c in b.spawns:  # ponytail: 깃발도 바닥에 구워서 막 나온 적이 깃발 위에 그려진다. 거슬리면 깃발만 바닥선 정렬로 옮긴다
 		img.blend_rect(src, Rect2i(Vector2i(6, 1) * CELL, Vector2i(CELL, CELL)), c * CELL)
 	return ImageTexture.create_from_image(img)
@@ -972,21 +979,26 @@ static func _open_cells(b, road: Dictionary) -> Array:
 				out.append(c)
 	return out
 
-# 바닥 소품: 들판(S201)에는 바위 9·그루터기 6을 서로 한 칸 넘게 띄워 빈 들판 칸에, 마을(S202)에는 거점 오른쪽 4칸·위 1칸에 우물. [칸, decor.png 0행 열]
+# 바닥 소품: 들판(S201)에는 바위 9·그루터기 6(40×22 들판 기준, 넓이에 비례)을 서로 한 칸 넘게 띄워 빈 들판 칸에, 마을(S202)에는 거점 오른쪽 4칸·위 1칸에 우물. [칸, decor.png 0행 열]
 static func ground_props(b) -> Array:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 2
 	var open := _open_cells(b, _road(b))
 	var out := []
-	for k in 15:
+	var f := _field_scale(b)
+	for k in roundi(15 * f):
 		for _try in 50:
 			var c: Vector2i = open[rng.randi() % open.size()]
 			if out.all(func(p): return absi(p[0].x - c.x) > 1 or absi(p[0].y - c.y) > 1):
-				out.append([c, rng.randi_range(0, 2) if k < 9 else rng.randi_range(3, 4)])
+				out.append([c, rng.randi_range(0, 2) if k < roundi(9 * f) else rng.randi_range(3, 4)])
 				break
 	if b.village.has_area():
 		out.append([b.base.cell + Vector2i(4, -1), 12])
 	return out
+
+# 들판 장식 수의 배율: 수는 40×22 들판 기준이고 넓이에 비례한다(S203). 맵이 커져도 같은 밀도로 보인다
+static func _field_scale(b) -> float:
+	return b.size.x * (b.size.y - b.village.end.y - 1) / 880.0
 
 # 마을 돌길(S202): 성벽 그림 위끝(성곽 줄 위끝에서 44px 위)부터 마을 폭 전체에 깔고, 거점 열 둘레 52px은 거점 그림 아래끝 6px 위까지
 # 넓혀 정문 앞 광장으로 잇는다. 성곽 줄과 그 아래는 성벽 그림이 덮는다. 성벽 그림 바로 위 2px은 흙 1px과 그늘 1px로 남겨 성벽과 가른다.
@@ -1011,6 +1023,8 @@ static func _pave(b, img: Image, rng: RandomNumberGenerator) -> void:
 	id.resize(w * rows)
 	for y in rows:
 		for x in w:
+			if y0 + y < y1 - 46 and absi(x - cx) > 64:
+				continue  # 성벽 앞 띠 위로는 광장 열만 센다. 광장 밖 돌(점이 52px 밖)은 어차피 깔지 않는다
 			var best := INF
 			for j in range(maxi(y / 7 - 1, 0), mini(y / 7 + 2, gh)):
 				for i in range(maxi(x / 9 - 1, 0), mini(x / 9 + 2, gw)):
@@ -1020,6 +1034,8 @@ static func _pave(b, img: Image, rng: RandomNumberGenerator) -> void:
 						id[y * w + x] = j * gw + i
 	for y in rows - 1:
 		for x in w:
+			if y0 + y < y1 - 46 and absi(x - cx) > 64:
+				continue
 			var k := id[y * w + x]
 			var p: Vector2 = pts[k]
 			var dx := maxf(absf(p.x - cx) - 40, 0)  # 광장 위 모서리는 반지름 12×6px로 둥글린다

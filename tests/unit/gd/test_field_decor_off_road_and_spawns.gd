@@ -16,8 +16,9 @@ func test_props_stay_on_open_field():
 	var b = _battle()
 	var road: Dictionary = View._road(b)
 	var props: Array = View.ground_props(b).filter(func(p): return p[1] < 5)
-	if props.size() != 15:
-		return "소품이 %d개다(바위 9·그루터기 6이어야 한다)" % props.size()
+	var want := roundi(15 * View._field_scale(b))  # 바위 9·그루터기 6은 40×22 들판 기준이고 넓이에 비례한다(S203)
+	if props.size() != want:
+		return "소품이 %d개다(%d개여야 한다)" % [props.size(), want]
 	for p in props:
 		var c: Vector2i = p[0]
 		if c.y <= b.village.end.y + 1 or c.y >= b.size.y - 1:
