@@ -629,7 +629,7 @@ static func _feet() -> ImageTexture:
 # 바닥(4.1b, 사용자 2026-10-20): 마을 칸의 꼭짓점은 흙, 나머지는 풀이다. 마을 아래 변의 흙은 들판 쪽으로 꼭짓점 0~2개만큼 불규칙하게 번진다.
 # 칸마다 네 꼭짓점으로 16꼴 가운데 하나를 고르고, 변종(풀·흙 한 가지인 칸은 넷, 전환 칸은 셋) 가운데 하나를 고른다. 출현 지점에는 깃발을 얹는다.
 # 들판(S197)은 길(_road) 꼭짓점도 흙이고, 빈 들판 칸에 그을음·구덩이·자갈·풀을 찍는다. 맵 아래 맵 밖 띠(I50)에는 숲 바닥을 깔고 마른 나무를 세운다.
-# 마을(S198)에는 돌길(_pave)을 깔고 거점 열에서 4칸 이상 떨어진 칸에 풀꽃 무더기를 찍는다
+# 마을(S198)에는 흙 점을 줄이고 작은 풀·자갈을 고르게 흩은 뒤 돌길(_pave)을 깔고, 거점 열에서 4칸 이상 떨어진 칸에 풀꽃 무더기를 찍는다
 static func bake_ground(b) -> ImageTexture:
 	var src := GROUND_TILES.get_image()
 	var deco := DECOR.get_image()
@@ -668,6 +668,15 @@ static func bake_ground(b) -> ImageTexture:
 				img.blend_rect(deco, Rect2i(48 * rng.randi_range(0, 3), 48, 48, 48), Vector2i(int(x) - 24, edge + row + rng.randi_range(-3, 3) - 44))
 			x += rng.randf_range(14.0, 24.0)
 	if vil.has_area():
+		for y in range(vil.position.y * CELL, vil.end.y * CELL):  # 흙 타일의 어두운 점 2/3를 흙색으로 지운다
+			for x in range(vil.position.x * CELL, vil.end.x * CELL):
+				if img.get_pixel(x, y).is_equal_approx(Color("392a1c")) and rng.randf() < 0.67:
+					img.set_pixel(x, y, Color("684c3c"))
+		for i in 24:  # 작은 풀·자갈: 마을 폭 24구간마다 하나, 마을 위쪽 여섯 줄. 거점 열 둘레는 비운다
+			var x0: int = vil.position.x + i * vil.size.x / 24
+			var c := Vector2i(rng.randi_range(x0, x0 + 1), rng.randi_range(vil.position.y + 1, vil.end.y - 4))
+			if absi(c.x - b.base.cell.x) > 2:
+				img.blend_rect(deco, Rect2i(CELL * rng.randi_range(7, 10), 0, CELL, CELL), c * CELL + Vector2i(rng.randi_range(-4, 4), rng.randi_range(-4, 4)))
 		_pave(b, img, rng)
 		for i in 8:  # 풀꽃 무더기 8곳(한 곳에 셋), 마을 위쪽 여섯 줄. 거점·광장 열은 비운다
 			var c := Vector2i(rng.randi_range(vil.position.x, vil.end.x - 1), rng.randi_range(vil.position.y, vil.end.y - 4))
@@ -732,38 +741,46 @@ static func ground_props(b) -> Array:
 		out.append([b.base.cell + Vector2i(4, -1), 12])
 	return out
 
-# 마을 돌길(S198): 성벽 그림 위끝(성곽 줄 위끝에서 44px 위, 0~2px 들쭉날쭉)부터 마을 폭 전체에 깔고, 거점 열 둘레 52px은 거점 그림 아래끝 6px 위까지
-# 넓혀 정문 앞 광장으로 잇는다. 성곽 줄과 그 아래는 성벽 그림이 덮는다. 돌은 5×4px를 줄마다 엇갈려 깔고, 가장자리 픽셀은 45%를 비운다
+# 마을 돌길(S198): 성벽 그림 위끝(성곽 줄 위끝에서 44px 위)부터 마을 폭 전체에 깔고, 거점 열 둘레 52px은 거점 그림 아래끝 6px 위까지
+# 넓혀 정문 앞 광장으로 잇는다. 성곽 줄과 그 아래는 성벽 그림이 덮는다. 성벽 그림 바로 위 2px은 흙 1px과 그늘 1px로 남겨 성벽과 가른다.
+# 2026-10-23
+# [동작] 9×7px 격자를 흔든 점마다 박석 하나(보로노이). 점이 돌길 안인 돌만 통째로 깔고, 줄눈은 칠하지 않아 흙이 비친다
+# [의도] 돌길·광장이 성벽의 일부나 높은 기단으로 읽히지 않게 한다
+# [이유] Gemini가 5×4px 엇갈린 벽돌과 밝은 돌을 성벽과 같은 쌓은 벽돌로 읽었고, 사용자가 시안 «조합 1a + 2 + 3a»를 골랐다(insights/2026-10-23_village_decor.md)
 static func _pave(b, img: Image, rng: RandomNumberGenerator) -> void:
 	var w := img.get_width()
 	var y1: int = b.village.end.y * CELL
 	var cx: int = b.base.cell.x * CELL + CELL / 2
 	var py: int = (b.base.cell.y + 1) * CELL - 6
 	var y0 := mini(py, y1 - 44)
-	var h := y1 - y0
-	var top := range(w).map(func(_x): return y1 - 44 + rng.randi_range(0, 2))
-	var on := PackedByteArray()
-	on.resize(w * h)
-	for y in h:
+	var rows := y1 - 27 - y0  # 줄눈 판정에 아래 한 줄이 필요해서, 칠할 줄보다 한 줄 더 돌 번호를 매긴다
+	var gw := w / 9 + 3
+	var gh := rows / 7 + 3
+	var pts := []
+	for j in gh:
+		for i in gw:
+			pts.append(Vector2(i * 9 + rng.randf_range(1.5, 7.5), y0 + j * 7 + rng.randf_range(1.0, 6.0)))
+	var id := PackedInt32Array()
+	id.resize(w * rows)
+	for y in rows:
 		for x in w:
-			var dx := maxi(absi(x - cx) - 40, 0)  # 광장 위 모서리는 반지름 12×6px로 둥글린다
-			var dy := maxi(py + 6 - (y0 + y), 0)
-			on[y * w + x] = int(y0 + y >= top[x] or (absi(x - cx) < 52 and dx * dx * 36 + dy * dy * 144 < 5184))
-	var stones := [Color("56607a"), Color("56607a"), Color("56607a"), Color("7a86a0")]
-	var joint := Color("3a4357")
-	var shift := range(h / 4 + 2).map(func(_r): return rng.randi_range(0, 4))
-	var pick := range((h / 4 + 2) * (w / 5 + 2)).map(func(_i): return rng.randi_range(0, 3))
-	for y in h:
+			var best := INF
+			for j in range(maxi(y / 7 - 1, 0), mini(y / 7 + 2, gh)):
+				for i in range(maxi(x / 9 - 1, 0), mini(x / 9 + 2, gw)):
+					var d: float = pts[j * gw + i].distance_squared_to(Vector2(x + 0.5, y0 + y + 0.5))
+					if d < best:
+						best = d
+						id[y * w + x] = j * gw + i
+	for y in rows - 1:
 		for x in w:
-			if not on[y * w + x]:
-				continue
-			var edge := (x > 0 and not on[y * w + x - 1]) or (x < w - 1 and not on[y * w + x + 1]) or (y > 0 and not on[(y - 1) * w + x]) \
-					or (y < h - 1 and not on[(y + 1) * w + x])
-			if edge and rng.randf() < 0.45:
-				continue
-			var r := y / 4
-			var u: int = x + shift[r]
-			img.set_pixel(x, y0 + y, joint if y % 4 == 3 or u % 5 == 4 else stones[pick[r * (w / 5 + 2) + u / 5]])
+			var k := id[y * w + x]
+			var p: Vector2 = pts[k]
+			var dx := maxf(absf(p.x - cx) - 40, 0)  # 광장 위 모서리는 반지름 12×6px로 둥글린다
+			var dy := maxf(py + 6 - p.y, 0)
+			if (p.y >= y1 - 43 or absf(p.x - cx) < 52 and dx * dx * 36 + dy * dy * 144 < 5184) \
+					and (x == w - 1 or id[y * w + x + 1] == k) and id[(y + 1) * w + x] == k:
+				img.set_pixel(x, y0 + y, Color("56607a"))
+	img.fill_rect(Rect2i(0, y1 - 27, w, 1), Color("392a1c"))
 
 # 장판 안쪽 무늬(S168). 색이 비슷한 장판 쌍(불길·용암, 블랙홀·늪, 화살비·독안개, 황금률·성역)을 무늬로 가른다. 무늬는 원 안에만 그린다
 func _pattern(src: String, c: Vector2, r: float, col: Color) -> void:
