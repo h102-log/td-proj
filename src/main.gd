@@ -42,7 +42,7 @@ func _ready() -> void:
 	map.add_child(view)
 	var cam := Camera.new()
 	cam.map_px = Vector2(view.battle.size * BattleView.CELL)
-	cam.position = Vector2(view.battle.base.cell * BattleView.CELL)
+	cam.position = Vector2(Vector2i(view.battle.base.cell.x, view.battle.village.end.y) * BattleView.CELL)  # 정문(거점 열의 성곽 칸, S203)
 	map.add_child(cam)
 	hud = Hud.new(view.battle, controls, map)
 	hud.menu_pressed.connect(pause)  # 위 띠 메뉴 칸(S185)
@@ -177,23 +177,23 @@ static func apply_window(w: Window) -> void:
 	if Settings.fullscreen != null and Settings.fullscreen != (w.mode == Window.MODE_FULLSCREEN):
 		toggle_fullscreen(w)
 
-# W1 시험 스테이지(40×32, S51 위아래 구도). 위쪽 마을을 가로 성곽이 막고, 적은 아래쪽 가장자리에서 온다.
+# W1 시험 스테이지(60×61, S203·S51 위아래 구도). 위쪽 마을을 가로 성곽이 막고, 적은 아래쪽 가장자리에서 온다.
 # 도전 내내 이 맵이고, 라운드마다 웨이브만 바뀐다(S78, I91)
 static func stage() -> Dictionary:
 	var rounds := ROUNDS.map(func(r): return load("res://data/waves/%s.tres" % r).to_stage())  # S31, I66
-	var gates := [Vector2i(0, 9), Vector2i(20, 9), Vector2i(39, 9)]  # 쪽문, 정문, 쪽문
+	var gates := [Vector2i(0, 27), Vector2i(30, 27), Vector2i(59, 27)]  # 쪽문, 정문, 쪽문
 	var walls := []
-	for x in 40:
-		if Vector2i(x, 9) not in gates:
-			walls.append(Vector2i(x, 9))
+	for x in 60:
+		if Vector2i(x, 27) not in gates:
+			walls.append(Vector2i(x, 27))
 	return {
-		"size": Vector2i(40, 32), "base": Vector2i(20, 4), "base_hp": 100, "gold": 220,  # 시작 골드(S111)
-		"spawns": [Vector2i(6, 31), Vector2i(20, 31), Vector2i(33, 31)],
-		# 출전 칸(I107): 정문(20,9) 바로 앞 들판의 세 칸. 성문은 닫힌 채 시작해서(I67) 마을 안에 두면 나올 수 없다(I42, 사용자 2026-10-12)
-		"hero_cells": [Vector2i(19, 11), Vector2i(21, 11), Vector2i(20, 11)],
+		"size": Vector2i(60, 61), "base": Vector2i(30, 13), "base_hp": 100, "gold": 220,  # 거점은 마을 한가운데(S37, S203). 시작 골드(S111)
+		"spawns": [Vector2i(9, 60), Vector2i(30, 60), Vector2i(50, 60)],
+		# 출전 칸(I107): 정문(30,27) 바로 앞 들판의 세 칸. 성문은 닫힌 채 시작해서(I67) 마을 안에 두면 나올 수 없다(I42, 사용자 2026-10-12)
+		"hero_cells": [Vector2i(29, 29), Vector2i(31, 29), Vector2i(30, 29)],
 		# ponytail: 체력은 임시값이다. 성문이 성벽보다 약해야 한다는 것(I41)만 지킨다. 수치는 3.1 밸런스에서 정한다
 		"castle": {"walls": walls, "gates": gates, "wall_hp": 300, "gate_hp": 150},
-		"village": Rect2i(0, 0, 40, 9),  # 성곽(9행) 위쪽. 생산 시설은 여기에만 짓는다(S43)
+		"village": Rect2i(0, 0, 60, 27),  # 성곽(27행) 위쪽. 생산 시설은 여기에만 짓는다(S43)
 		"rounds": rounds,
 		"hp_mult": ROUNDS.map(func(r): return load("res://data/waves/%s.tres" % r).hp_mult),  # 라운드 적 체력 배율(S144)
 		"quests": true,  # 미션·의뢰(S77, I118): data/quests의 모든 미션·의뢰가 뜬다

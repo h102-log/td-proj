@@ -38,11 +38,11 @@ const BOT := {
 	"lead": 6.0,            # 영웅이 정문 앞 기준점에서 쫓아가는 최대 거리(칸)
 	"hire_first_grade": 3,  # 도전을 시작할 때(1라운드 전) 영입하는 최고 등급
 	"hire_first_count": 2,  # 도전을 시작할 때 영입하는 최대 인원
-	"rally": [20, 10],      # 전투 중 산 병사를 보낼 칸
+	"rally": [30, 28],      # 전투 중 산 병사를 보낼 칸
 	"fill": false,          # 쇼핑 목록을 다 사면 들판·성벽에 타워·마법 타워·대포를 계속 짓는다(골드가 놀지 않게)
 	"village_heroes": 0,    # 출전 영웅 가운데 뒤에서 이만큼을 준비 단계마다 마을 안 거점 옆(station)에 세운다
 	"village_from": 3,      # 이 라운드부터
-	"station": [[20, 6], [18, 5]],
+	"station": [[30, 15], [28, 14]],
 	"vlead": 9.0,           # 마을 영웅이 쫓는 거리(거점에서, 칸)
 	"pingpong": false,      # 쪽문 핑퐁(3장 자체 점검 §5의 사람 전략): 쪽문 하나만 열고, 땅 적이 그 문 pp_dist칸 안에 오면 반대 쪽문으로 바꾼다
 	"pp_dist": 4.0,
@@ -54,9 +54,9 @@ const BOT := {
 	"sides": false,         # 쪽문 둘도 정문처럼 지킨다: 쇼핑 목록의 쏘는 구조물·정문 업그레이드를 쪽문에도 하나씩 더하고(_plan), fill을 세 성문에 번갈아 깐다
 }
 
-const GATE := Vector2i(20, 9)
-const SIDES := [Vector2i(0, 9), Vector2i(39, 9)]  # 쪽문 둘
-const FRONT := Vector2i(20, 12)
+const GATE := Vector2i(30, 27)
+const SIDES := [Vector2i(0, 27), Vector2i(59, 27)]  # 쪽문 둘
+const FRONT := Vector2i(30, 30)
 
 # 준비 단계 쇼핑 목록: 앞에서부터 사고, 골드가 모자란 항목에서 멈춘다(우선순위 저축)
 # 항목: [종류, 인자...]
@@ -65,42 +65,42 @@ const FRONT := Vector2i(20, 12)
 const PLANS := {
 	# 타워만: 정문 앞 타워·마법 타워·성벽 위 대포
 	"turtle": [
-		["build", "tower", 18, 12], ["build", "tower", 22, 12], ["build", "cannon", 19, 9],
-		["build", "magic", 17, 11], ["build", "magic", 23, 11], ["build", "tower", 18, 14], ["build", "tower", 22, 14],
-		["build", "cannon", 21, 9], ["upgrade", 20, 9, 2], ["build", "tower", 16, 12], ["build", "tower", 24, 12],
-		["build", "cannon", 17, 9], ["build", "cannon", 23, 9], ["upgrade", 20, 9, 3], ["build", "magic", 16, 14],
-		["build", "magic", 24, 14], ["build", "tower", 14, 12], ["build", "tower", 26, 12],
+		["build", "tower", 28, 30], ["build", "tower", 32, 30], ["build", "cannon", 29, 27],
+		["build", "magic", 27, 29], ["build", "magic", 33, 29], ["build", "tower", 28, 32], ["build", "tower", 32, 32],
+		["build", "cannon", 31, 27], ["upgrade", 30, 27, 2], ["build", "tower", 26, 30], ["build", "tower", 34, 30],
+		["build", "cannon", 27, 27], ["build", "cannon", 33, 27], ["upgrade", 30, 27, 3], ["build", "magic", 26, 32],
+		["build", "magic", 34, 32], ["build", "tower", 24, 30], ["build", "tower", 36, 30],
 	],
 	# 세 겹을 고루: 병영·병사 몸막기, 타워, 사격장·성벽 위 궁수, 집 몇 채, 공병 하나
 	"balanced": [
-		["build", "barracks", 17, 7], ["merc", "soldier", 2, 20, 10], ["build", "tower", 18, 12], ["build", "tower", 22, 12],
-		["house", 2], ["build", "workshop", 24, 7], ["merc", "engineer", 1, 22, 8], ["village"], ["build", "archery", 15, 7],
-		["wallmerc", "archer", 2], ["build", "magic", 17, 11], ["build", "magic", 23, 11], ["merc", "soldier", 3, 20, 10],
-		["build", "cannon", 19, 9], ["house", 4], ["upgrade", 20, 9, 2], ["wallmerc", "archer", 4], ["build", "cannon", 21, 9],
-		["build", "tower", 18, 14], ["build", "tower", 22, 14], ["merc", "soldier", 4, 20, 10], ["upgrade", 20, 9, 3],
-		["house", 6], ["build", "cannon", 17, 9], ["build", "cannon", 23, 9], ["build", "magic", 16, 13], ["build", "magic", 24, 13],
+		["build", "barracks", 27, 25], ["merc", "soldier", 2, 30, 28], ["build", "tower", 28, 30], ["build", "tower", 32, 30],
+		["house", 2], ["build", "workshop", 34, 25], ["merc", "engineer", 1, 32, 26], ["village"], ["build", "archery", 25, 25],
+		["wallmerc", "archer", 2], ["build", "magic", 27, 29], ["build", "magic", 33, 29], ["merc", "soldier", 3, 30, 28],
+		["build", "cannon", 29, 27], ["house", 4], ["upgrade", 30, 27, 2], ["wallmerc", "archer", 4], ["build", "cannon", 31, 27],
+		["build", "tower", 28, 32], ["build", "tower", 32, 32], ["merc", "soldier", 4, 30, 28], ["upgrade", 30, 27, 3],
+		["house", 6], ["build", "cannon", 27, 27], ["build", "cannon", 33, 27], ["build", "magic", 26, 31], ["build", "magic", 34, 31],
 	],
 	# 숙련: 영웅 하나로 시작해 1라운드는 타워·대포로 버티고, 병영(정문 안쪽 2선)·사격장(성벽 궁수)·공병·집을 차례로 더한다
 	"smart": [
-		["build", "tower", 18, 12], ["build", "tower", 22, 12], ["build", "cannon", 19, 9], ["build", "magic", 17, 11],
-		["build", "barracks", 17, 7], ["merc", "soldier", 2, 20, 8], ["village"], ["build", "archery", 15, 7],
-		["wallmerc", "archer", 2], ["build", "workshop", 24, 7], ["merc", "engineer", 1, 22, 7], ["house", 2],
-		["build", "magic", 23, 11], ["build", "cannon", 21, 9], ["upgrade", 20, 9, 2], ["wallmerc", "archer", 4],
-		["build", "tower", 18, 14], ["build", "tower", 22, 14], ["house", 4], ["merc", "soldier", 3, 20, 8],
-		["upgrade", 20, 9, 3], ["build", "cannon", 17, 9], ["build", "cannon", 23, 9], ["build", "magic", 16, 13],
-		["build", "magic", 24, 13], ["house", 6], ["merc", "soldier", 4, 20, 8], ["build", "tower", 16, 12], ["build", "tower", 24, 12],
+		["build", "tower", 28, 30], ["build", "tower", 32, 30], ["build", "cannon", 29, 27], ["build", "magic", 27, 29],
+		["build", "barracks", 27, 25], ["merc", "soldier", 2, 30, 26], ["village"], ["build", "archery", 25, 25],
+		["wallmerc", "archer", 2], ["build", "workshop", 34, 25], ["merc", "engineer", 1, 32, 25], ["house", 2],
+		["build", "magic", 33, 29], ["build", "cannon", 31, 27], ["upgrade", 30, 27, 2], ["wallmerc", "archer", 4],
+		["build", "tower", 28, 32], ["build", "tower", 32, 32], ["house", 4], ["merc", "soldier", 3, 30, 26],
+		["upgrade", 30, 27, 3], ["build", "cannon", 27, 27], ["build", "cannon", 33, 27], ["build", "magic", 26, 31],
+		["build", "magic", 34, 31], ["house", 6], ["merc", "soldier", 4, 30, 26], ["build", "tower", 26, 30], ["build", "tower", 34, 30],
 	],
 	# 집 6채를 먼저 짓고 방어를 늦게 갖춘다
 	"greedy": [
-		["house", 6], ["build", "tower", 18, 12], ["build", "tower", 22, 12], ["build", "barracks", 17, 7],
-		["merc", "soldier", 2, 20, 10], ["build", "magic", 17, 11], ["build", "magic", 23, 11], ["build", "cannon", 19, 9],
-		["village"], ["build", "archery", 15, 7], ["wallmerc", "archer", 3], ["build", "cannon", 21, 9], ["upgrade", 20, 9, 2],
-		["merc", "soldier", 4, 20, 10], ["build", "tower", 18, 14], ["build", "tower", 22, 14], ["upgrade", 20, 9, 3],
-		["build", "cannon", 17, 9], ["build", "cannon", 23, 9], ["build", "magic", 16, 13], ["build", "magic", 24, 13],
+		["house", 6], ["build", "tower", 28, 30], ["build", "tower", 32, 30], ["build", "barracks", 27, 25],
+		["merc", "soldier", 2, 30, 28], ["build", "magic", 27, 29], ["build", "magic", 33, 29], ["build", "cannon", 29, 27],
+		["village"], ["build", "archery", 25, 25], ["wallmerc", "archer", 3], ["build", "cannon", 31, 27], ["upgrade", 30, 27, 2],
+		["merc", "soldier", 4, 30, 28], ["build", "tower", 28, 32], ["build", "tower", 32, 32], ["upgrade", 30, 27, 3],
+		["build", "cannon", 27, 27], ["build", "cannon", 33, 27], ["build", "magic", 26, 31], ["build", "magic", 34, 31],
 	],
 }
-const HOUSE_CELLS := [Vector2i(3, 2), Vector2i(5, 2), Vector2i(7, 2), Vector2i(33, 2), Vector2i(35, 2), Vector2i(37, 2)]
-const WALL_POSTS := [Vector2i(18, 9), Vector2i(22, 9), Vector2i(17, 9), Vector2i(23, 9), Vector2i(16, 9), Vector2i(24, 9)]
+const HOUSE_CELLS := [Vector2i(13, 20), Vector2i(15, 20), Vector2i(17, 20), Vector2i(43, 20), Vector2i(45, 20), Vector2i(47, 20)]
+const WALL_POSTS := [Vector2i(28, 27), Vector2i(32, 27), Vector2i(27, 27), Vector2i(33, 27), Vector2i(26, 27), Vector2i(34, 27)]
 # fill: 성문마다 그 길(성문 x)과 출전 칸을 비우고 성문에서 가까운 칸부터. 성벽 칸은 대포다. 성문이 여럿이면 번갈아 깐다
 static func _fill_cells(gates := [GATE]) -> Array:
 	var per := []
@@ -108,13 +108,13 @@ static func _fill_cells(gates := [GATE]) -> Array:
 		var out := []
 		for dx in [5, 6]:
 			for x in [g.x - dx, g.x + dx]:
-				if x > 0 and x < 39:
-					out.append(["build", "cannon", x, 9])
+				if x > 0 and x < 59:
+					out.append(["build", "cannon", x, g.y])
 		var n := 0
-		for y in [11, 13, 15, 12, 14, 16]:
+		for y in [g.y + 2, g.y + 4, g.y + 6, g.y + 3, g.y + 5, g.y + 7]:
 			for dx in [3, 4, 5, 6, 7, 8]:
 				for x in [g.x - dx, g.x + dx]:
-					if x >= 0 and x <= 39:
+					if x >= 0 and x <= 59:
 						out.append(["build", "magic" if n % 3 == 2 else "tower", x, y])
 						n += 1
 		per.append(out)
@@ -625,7 +625,7 @@ func _move_hero(h) -> void:
 	var best = null
 	var best_d := INF
 	for e in b.enemies:
-		if e.on_wall or Vector2i(e.pos.round()).y <= 9:
+		if e.on_wall or Vector2i(e.pos.round()).y <= GATE.y:
 			continue  # 성벽 위·마을 안 적은 들판에서 닿지 않는다
 		var d: float = e.pos.distance_to(Vector2(FRONT))
 		if d <= bot.lead and d < best_d:
@@ -642,7 +642,7 @@ func _trace(t: float) -> void:
 	var kinds := {}
 	for e in b.enemies:
 		var c := Vector2i(e.pos.round())
-		var zone := "마을" if c.y <= 8 else ("성벽" if e.on_wall else ("앞" if c.y <= 14 else "들"))
+		var zone := "마을" if c.y < GATE.y else ("성벽" if e.on_wall else ("앞" if c.y <= GATE.y + 5 else "들"))
 		var k: String = e.kind + "@" + zone
 		kinds[k] = kinds.get(k, 0) + 1
 	var us = b.units.map(func(u): return "%s%d(%d,%d)" % [u.kind.left(3), int(u.hp), roundi(u.pos.x), roundi(u.pos.y)])
@@ -654,11 +654,11 @@ func _zones() -> Array:
 	var z := [false, false, false]
 	for e in b.enemies:
 		var c := Vector2i(e.pos.round())
-		if c.y <= 8 and not e.on_wall:
+		if c.y < GATE.y and not e.on_wall:
 			z[2] = true
-		elif e.on_wall or (c.y <= 11 and absi(c.x - GATE.x) > 6):
+		elif e.on_wall or (c.y <= GATE.y + 2 and absi(c.x - GATE.x) > 6):
 			z[1] = true
-		elif c.y <= 15 and absi(c.x - GATE.x) <= 6:
+		elif c.y <= GATE.y + 6 and absi(c.x - GATE.x) <= 6:
 			z[0] = true
 	return z
 
@@ -791,7 +791,7 @@ func _pingpong() -> void:
 
 # 성문 칸에서 pp_dist칸 안의 들판에 있는 땅 적 수
 func _crowd(cell: Vector2i) -> int:
-	return b.enemies.filter(func(e): return not e.flying and not e.on_wall and e.pos.y >= 9.5 and e.pos.distance_to(Vector2(cell)) <= bot.pp_dist).size()
+	return b.enemies.filter(func(e): return not e.flying and not e.on_wall and e.pos.y >= GATE.y + 0.5 and e.pos.distance_to(Vector2(cell)) <= bot.pp_dist).size()
 
 func _gate_free(g) -> bool:
 	return _t - _gate_at.get("all" if bot.gate_cd_all else g.cell, -INF) >= bot.gate_cd
