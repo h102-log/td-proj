@@ -1,4 +1,4 @@
-# 마을 배경(S198) Gemini 답 (2026-10-23)
+# 마을 배경(S202) Gemini 답 (2026-10-23)
 
 - 대화: https://gemini.google.com/app/70e7ee51069031c2 (새 대화, 4 Argon · 보통, Claude가 Chrome으로 보냄)
 - 보낸 것: [prompt.md](prompt.md)의 두 메시지. 첫 메시지에 `../village_decor_ingame.png`(1번)와 `built.png`(2번)를 붙였다. 입력란 내용은 두 메시지 모두 원문과 SHA-256이 같았다.
