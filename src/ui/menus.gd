@@ -85,6 +85,22 @@ func open(p: String, note := false) -> void:
 				Settings.volume = int(v)
 				Settings.apply_volume()
 				_changed())
+			var cam_row := HBoxContainer.new()  # 카메라 속도(S184, S53). 음량 다음에 둔다
+			_box.add_child(cam_row)
+			_label("카메라 속도", cam_row)
+			var cam := HSlider.new()
+			cam.min_value = 50
+			cam.max_value = 200
+			cam.step = 25
+			cam.value = Settings.camera_speed
+			cam.custom_minimum_size.x = 100
+			cam.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			cam_row.add_child(cam)
+			var cam_pct := _label("%d%%" % Settings.camera_speed, cam_row)
+			cam.value_changed.connect(func(v):
+				cam_pct.text = "%d%%" % v
+				Settings.camera_speed = int(v)
+				_changed())
 			var lang := HBoxContainer.new()
 			_box.add_child(lang)
 			_label("언어", lang)

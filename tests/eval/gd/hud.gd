@@ -7,7 +7,8 @@ extends "res://tests/eval/gd/save.gd"
 #     grid.cells — 놓기 kind → 칸(BaseButton). 칸 안의 TextureRect가 아이콘이다(S30)
 #     grid.info — 정보 칸(Control). grid.reason — 그 안의 빨간 이유 줄(Label) · grid.band — «공병 없음» 띠(Control, I128)
 #   카메라(Camera2D, 게임 장면 안에 하나) — scroll(창 기준 마우스, 창 크기, delta) · pan(dir, delta) · zoom_at(step, 커서) · level
-#     static edge_dir(창 기준 마우스, 창 크기)(S53)
+#     static edge_dir(창 기준 마우스, 창 크기)(S53) · keys(delta) — 눌린 방향키 쪽으로 옮긴다(S53) · map_px(맵 크기, 맵 px)
+#   res://src/settings.gd — static var camera_speed(카메라 속도 %, S184·S53)
 #   main.hud.cells — 위 띠 칸(S185) 이름 → Control: status · mission · engineer · hero0 · hero1 · hero2 · progress · menu.
 #     status·mission·engineer·menu는 BaseButton이다. status 안 Label 하나가 거점 체력 숫자, engineer 안 Label이 놀고 있는 공병 수다
 #   main.hud.hp_bar — 거점 체력 막대의 채운 부분(ColorRect, S190) · main.hud._process(delta)로 시간을 흘린다
@@ -2246,3 +2247,48 @@ func ev374():
 	if c == null or aim_w <= 0.0:
 		return "대포 옮기기·스킬 조준 칩을 띄우지 못했다(대포 %s · 조준 글 폭 %.0f)" % [c != null, aim_w]
 	return check(over.is_empty(), "영어 글이 칸을 넘는 곳 %d개: %s" % [over.size(), "; ".join(over.slice(0, 8))])
+
+# 방향키 하나를 누르거나 뗀다. Input 상태(Input.is_key_pressed)까지 바뀌게 parse_input_event로 넣고 바로 흘린다
+func _hold(code: int, down: bool) -> void:
+	var e := InputEventKey.new()
+	e.keycode = code
+	e.physical_keycode = code
+	e.pressed = down
+	Input.parse_input_event(e)
+	Input.flush_buffered_events()
+
+# 맵 가운데에 둔 카메라를 code 방향키를 누른 채 0.5초 돌린 뒤의 이동(맵 px)
+func _keyed(cam, code: int) -> Vector2:
+	var center: Vector2 = cam.map_px / 2
+	cam.position = center
+	_hold(code, true)
+	cam.keys(0.5)
+	_hold(code, false)
+	return cam.position - center
+
+# EV389 · S53: 가장자리·방향키 이동은 초당 640 화면 px × 카메라 속도. 키보드 포커스를 쥔 버튼이 있으면 방향키로 움직이지 않는다
+func ev389():
+	var st = load("res://src/settings.gd")
+	var main = _prep()
+	var cam = _cam(main)
+	if not cam.has_method("keys"):
+		_done(main)
+		return "카메라에 keys(delta)가 없다"
+	st.camera_speed = 100
+	var center: Vector2 = cam.map_px / 2
+	cam.position = center
+	cam.scroll(Vector2(1279, 400), Vector2(1280, 720), 0.5)
+	var edge: float = cam.position.x - center.x
+	var right := _keyed(cam, KEY_RIGHT)
+	var down := _keyed(cam, KEY_DOWN)
+	st.camera_speed = 50
+	var slow := _keyed(cam, KEY_RIGHT)
+	st.camera_speed = 100
+	var b := Button.new()
+	main.hud.add_child(b)
+	b.grab_focus()
+	var held := _keyed(cam, KEY_RIGHT)
+	b.free()
+	_done(main)
+	var ok := absf(edge - 160) <= 0.5 and absf(right.x - 160) <= 0.5 and absf(down.y - 160) <= 0.5 and absf(slow.x - 80) <= 0.5 and held.length() < 0.01
+	return check(ok, "가장자리 %.1f · → %s · ↓ %s · 속도 50%% → %s · 포커스 중 → %s (기대 x 160 · x 160 · y 160 · x 80 · 0)" % [edge, right, down, slow, held])
