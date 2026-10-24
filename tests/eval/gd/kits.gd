@@ -439,12 +439,13 @@ func ev275():
 	_start(b)
 	b.cast(s, "w")
 	var m0: float = s.mana
-	run(b, 3.0, func(): return foes.any(func(e): return e.hp < e.max_hp))
-	var hit_n: int = foes.filter(func(e): return e.hp < e.max_hp).size()
+	run(b, 3.0, func(): return s.target != null)  # 첫 기본 공격을 친 step
 	var paid: bool = s.mana <= m0 - s.w.mana + 0.5
+	run(b, 1.0, func(): return b.shots.is_empty())  # 그 공격의 화살이 다 닿을 때까지(I174)
+	var hit_n: int = foes.filter(func(e): return e.hp < e.max_hp).size()
 	s.mana = 5.0
 	var before := foes.map(func(e): return e.hp)
-	run(b, 3.0, func(): return foes.any(func(e): return e.hp < before[foes.find(e)]))
+	run(b, 3.0, func(): return foes.any(func(e): return e.hp < before[foes.find(e)]) and b.shots.is_empty())
 	var after_n: int = 0
 	for i in foes.size():
 		if foes[i].hp < before[i]:

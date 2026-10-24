@@ -94,7 +94,7 @@ func ev245():
 	var a = b.build("tower", Vector2i(10, 7))
 	var c = b.build("tower", Vector2i(10, 13))
 	var e = b.spawn_enemy("basic", Vector2i(10, 10), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})
-	b.step(DT)  # 두 타워가 같은 순간에 처음 쏜다
+	run(b, 1.0, func(): return e.attacker != null)  # 두 타워가 같은 순간에 처음 쏜 화살이 같은 step에 닿는다(둘 다 3칸)
 	var first: bool = e.attacker == a
 	c.cooldown += 0.5  # 다른 타워는 엇갈려 쏜다
 	var kept := not run(b, 5.0, func(): return e.attacker != a)

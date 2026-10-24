@@ -22,7 +22,10 @@ const SPAWN_GAP := 2.5  # 웨이브 안에서 적이 나오는 간격(초). 임�
 const REACH := 1.0      # 적이 막힌 칸·거점·유닛을 칠 수 있는 거리(중심 사이). 옆 칸 중심까지가 1이다
 const POSE := 0.22  # 친 뒤 제자리에 서는 시간(초, S196). 용병·적의 공격 키 포즈가 끝나는 때다(S172)
 const HERO_POSE := 0.3  # 영웅이 친 뒤 제자리에 서는 시간(초, S196). 공격 3프레임이 끝나는 때다(S165)
-const CONTACT := 0.08  # 걷기 명령을 받은 영웅이 다시 걷는 때(친 뒤 초, S196). 화면의 근접 공격이 닿는 때(battle_view CONTACT)와 같다
+const CONTACT := 0.08  # 걷기 명령을 받은 영웅이 다시 걷는 때(친 뒤 초, S196)이자 원거리 유닛이 투사체를 손에서 놓는 때(S178). 화면의 근접 공격이 닿는 때(battle_view CONTACT)와 같다
+const MELEE := 2.0  # 사거리가 이 칸 이하인 유닛은 근접이다. 넘으면 기본 공격을 투사체로 쏜다(S178)
+const MISSILES := {"archer": "arrow", "sylvia": "arrow", "tower": "arrow", "cannon": "ball"}  # 원거리 기본 공격의 투사체(S178). 나머지(마법 타워·마법 영웅)는 마법 구슬
+const MISSILE_SPEED := {"arrow": 15.0, "bolt": 10.0, "ball": 7.5}  # 투사체 속도(칸/초, S178)
 const REPATH_PER_STEP := 8  # 한 스텝에 경로를 다시 구하는 적 수(I155). 적 40명을 한 번에 구하면 61ms(디버그)라 나눈다(사용자 2026-10-20)
 const UNIT_WALL_K := 1e6  # 유닛 경로의 막힌 칸 비용 배율. 돌아갈 길이 있으면 막힌 칸(닫힌 성문 포함, I42)을 지나지 않는다
 const WORK_REACH := 2.0  # 공병이 일하는 거리(중심 사이). 옆 칸 대각선(1.41)에, 무리에 밀려 0.5칸 못 미친 도착(I51)을 더했다
@@ -108,8 +111,8 @@ class Enemy:
 	var fx := {}  # 걸린 효과: 출처 → {효과 키: 값, left: 남은 초}(S150, I141)
 	var engaged = null  # 이 적을 붙잡은 유닛(S159). 블록 자리를 하나 차지한다. 없으면 null
 	var alive := true
-	var attacker  # 반격 대상인 구조물. 살아 있는 동안 반격한다(S4 ②). 바뀌는 때는 _fire(S140)
-	var held := 0.0  # 반격 대상을 바꾸지 않는 남은 초(S140). 반격 대상이 쏠 때마다 COUNTER_HOLD로 돌아간다
+	var attacker  # 반격 대상인 구조물. 살아 있는 동안 반격한다(S4 ②). 바뀌는 때는 그 투사체가 닿을 때다(_impact, S140)
+	var held := 0.0  # 반격 대상을 바꾸지 않는 남은 초(S140). 반격 대상의 투사체가 닿을 때마다 COUNTER_HOLD로 돌아간다
 	var target  # 마지막으로 친 대상. 화면이 친 직후 공격선을 그린다(S71)
 	var goal: Vector2i  # 경로의 끝 칸(지금 노리는 대상의 칸)
 	var via = null  # 먼저 노리는 성문 칸(S143). 그 칸에 들어서거나 성문이 잔해가 되면 null
@@ -258,6 +261,8 @@ var barriers := {}  # Vector2i → 에너지 성벽 칸 Block(S151, I142). 그 �
 var zones := []  # 장판(S150, I141): {src, pos, radius, left, owner, 수치…}. 웨이브가 끝나면 모두 사라진다(I143)
 var traces := []  # 즉시 스킬 흔적(S179): {hero, slot, aim, at, radius, hits, age}. 그리기만 읽고 1초 지나면 지운다
 var fallen := []  # 쓰러진 영웅·용병·적(S180): {who, age}. 그리기만 읽고 FALLEN초 지나면 지운다
+var shots := []  # 날아가는 원거리 기본 공격(S178): {src, target, pos, at(따라가는 자리), flown, wait(놓기까지 남은 초), speed, missile, hurt, ignore, main}. 웨이브가 끝나면 빈다(저장하지 않는다)
+var landed := []  # 닿은 투사체(S178): {src, target(대상 없이 떨어진 대포알이면 null), at, missile, splash, age}. 그리기만 읽고 1초 지나면 지운다
 var enemies := []
 var units := []  # 살아 있는 영웅·용병
 var heroes := []  # 전장에 나온 출전 영웅(Unit)들, 보유 순서(I108). 쓰러진 영웅도 들어 있다(I102)
@@ -344,6 +349,7 @@ func restart() -> void:
 	structures.clear()
 	barriers.clear()
 	zones.clear()
+	shots.clear()  # 남은 투사체가 지워진 적에게 닿지 않게(S178)
 	enemies.clear()
 	units.clear()
 	_queue.clear()
@@ -387,10 +393,11 @@ func restart() -> void:
 	_forecast()
 
 func step(dt: float) -> void:
-	for t in traces + fallen:
+	for t in traces + fallen + landed:
 		t.age += dt
 	traces = traces.filter(func(t): return t.age < 1.0)
 	fallen = fallen.filter(func(f): return f.age < FALLEN)
+	landed = landed.filter(func(t): return t.age < 1.0)
 	if state == "battle":
 		_spawn_wave(dt)
 		tally.battle_time += dt  # 라운드 집계(I119)
@@ -413,6 +420,7 @@ func step(dt: float) -> void:
 	for e in enemies:
 		_move(e, dt)
 	_push_apart(enemies, units)
+	_fly(dt)
 	var ground := units.filter(func(u): return not u.on_wall)  # 성벽 위 유닛은 밀리지 않는다(I70)
 	for u in units:
 		_act(u, dt)
@@ -1112,8 +1120,9 @@ func _age(t, dt: float) -> void:
 		if t.fx[src].left <= 0.0:
 			t.fx.erase(src)
 
-# 웨이브가 끝나면 장판·에너지 성벽·효과·보호막이 모두 사라진다(I143). 준비 단계에 공짜 회복·효과가 남지 않게
+# 웨이브가 끝나면 장판·에너지 성벽·효과·보호막이 모두 사라진다(I143). 준비 단계에 공짜 회복·효과가 남지 않게. 날아가던 투사체도 사라진다(S178)
 func _clear_effects() -> void:
+	shots.clear()
 	for z in zones:
 		_end_zone(z)
 	zones.clear()
@@ -2216,10 +2225,8 @@ func _push_apart(bodies: Array, others: Array) -> void:
 				_shove(a, -push, others)
 				_shove(o, push, others)
 
-# 쏘는 구조물은 사거리 안에서 가장 가까운 적을 쏘고(S28, I29), 맞은 적은 그 구조물에 반격한다(S5).
-# 반격 대상이 있으면 그 대상이 COUNTER_HOLD초 동안 쏘지 않았을 때만 바꾼다. 같은 프레임이면 먼저 지은(먼저 도는) 구조물이다(S140)
-# 대포는 맞은 적 splash칸 안의 적에게도 같은 피해를 주고, 그 적들도 반격한다(S90, I73). 마법 타워는 마법 피해다(S110, S149)
-# 공격 속도·공격력·사거리는 영웅 효과를 받는다(_haste·_might·_reach, S150). 축복이 걸렸으면 맞은 곳에 마법 피해를 더한다(S152)
+# 쏘는 구조물은 사거리 안에서 가장 가까운 적을 쏜다(S28, I29). 피해는 투사체가 닿을 때다(_impact, S178).
+# 공격 속도·공격력·사거리는 영웅 효과를 받는다(_haste·_might·_reach, S150). 공격력은 쏠 때 정한다(I174)
 func _fire(dt: float) -> void:
 	for s in structures.values():
 		if s.range <= 0.0 or not s.complete or s.razed >= 1.0:  # 미완성 타워(I18)·접은 대포(I74)는 쏘지 않는다
@@ -2231,15 +2238,55 @@ func _fire(dt: float) -> void:
 		if best:
 			s.cooldown = s.fire_gap
 			s.target = best
-			var hurt: float = s.damage * _might(s)
-			var at: Vector2 = best.pos
-			for e in enemies.duplicate():
-				if e == best or (s.splash > 0.0 and e.pos.distance_to(at) <= s.splash):
-					if e.attacker == s or e.held <= 0.0 or not (e.attacker and e.attacker.alive):
-						e.attacker = s
-						e.held = COUNTER_HOLD
-					damage(e, hurt, "magic" if s.pierce else "phys", s)
-			_bless(s, at)
+			_shoot(s, best, s.damage * _might(s), 0.0, true)
+
+# 원거리 기본 공격의 투사체를 놓는다(S178). 유닛은 CONTACT초 뒤에 손에서 놓고, 구조물은 바로 난다. main은 W 둘레 대상이 아닌 본 대상이다
+func _shoot(src, foe: Enemy, hurt: float, ignore: float, main: bool) -> void:
+	var missile: String = MISSILES.get(src.kind, "bolt")
+	shots.append({"src": src, "target": foe, "pos": _where(src), "at": foe.pos, "flown": 0.0, "wait": CONTACT if src is Unit else 0.0,
+		"speed": MISSILE_SPEED[missile], "missile": missile, "hurt": hurt, "ignore": ignore, "main": main})
+
+# 투사체가 살아 있는 대상을 따라 날고, 닿으면 피해를 준다(S178). 대상이 먼저 쓰러지면 화살·구슬은 피해 없이 사라지고, 대포알은 마지막 자리에 떨어진다.
+# 유닛이 행동하기 전에 돌아서, 이번 step에 쏜 투사체는 다음 step부터 난다. 같은 step에 닿으면 쏜 차례대로다(I174)
+func _fly(dt: float) -> void:
+	var left := []
+	for p in shots:
+		var t := dt
+		if p.wait > 0.0:
+			p.wait -= dt
+			if p.wait > 0.0:
+				left.append(p)
+				continue
+			t = -p.wait
+		var foe = p.target if p.target.alive else null
+		if foe:
+			p.at = foe.pos
+		elif p.missile != "ball":
+			continue
+		var gap: Vector2 = p.at - p.pos
+		if gap.length() > p.speed * t:
+			p.pos += gap.normalized() * p.speed * t
+			p.flown += p.speed * t
+			left.append(p)
+			continue
+		landed.append({"src": p.src, "target": foe, "at": p.at, "missile": p.missile, "splash": p.src.splash if p.src is Block else 0.0, "age": 0.0})
+		if p.src is Block:
+			_impact(p.src, p.at, foe, p.hurt)
+		else:
+			_blow(p.src, foe, p.hurt, p.ignore, p.main)
+	shots = left
+
+# 구조물의 투사체가 at에 닿았다(S178). 맞은 적 foe(대상 없이 떨어진 대포알이면 null)는 그 구조물에 반격한다(S5).
+# 반격 대상이 있으면 그 대상이 COUNTER_HOLD초 동안 맞히지 않았을 때만 바꾼다(S140). 쏜 구조물이 팔리거나 부서졌으면 반격 대상이 되지 않는다(I174)
+# 대포는 at에서 splash칸 안의 적에게도 같은 피해를 주고, 그 적들도 반격한다(S90, I73). 마법 타워는 마법 피해다(S110, S149). 축복이 걸렸으면 at에 마법 피해를 더한다(S152)
+func _impact(s: Block, at: Vector2, foe, hurt: float) -> void:
+	for e in enemies.duplicate():
+		if e == foe or (s.splash > 0.0 and e.pos.distance_to(at) <= s.splash):
+			if s.alive and (e.attacker == s or e.held <= 0.0 or not (e.attacker and e.attacker.alive)):
+				e.attacker = s
+				e.held = COUNTER_HOLD
+			damage(e, hurt, "magic" if s.pierce else "phys", s)
+	_bless(s, at)
 
 # 유닛은 명령받은 경로를 걷고(S14), 사거리 안의 가장 가까운 적을 친다(S15). 걷는 동안은 명령을 따른다: 순수 이동은 치지 않고,
 # 공격 이동은 사거리에 든 적 앞에 서서 친다(S35, I35, S196). 대상 공격은 그 적만 친다. 서 있으면 영웅·용병 모두 인식 범위 안의 적을 쫓는다(I36, S141).
@@ -2318,7 +2365,7 @@ func _hero_tick(h: Unit, dt: float) -> void:
 	_autocast(h)
 
 # 기본 공격 한 방(S15). 실비아(I148): 같은 적을 이어 치면 중첩이 쌓이고 다 차면 방어력 일부를 무시한다, W가 켜져 있으면 둘레 적에게도 들어간다(S153).
-# 아이아스: 요새화 중이면 확률로 기절시킨다(S151). 축복이 걸렸으면 맞은 곳에 마법 피해를 더한다(S152)
+# 원거리는 대상마다 투사체를 놓고 닿을 때 피해를 준다(S178). 중첩·방어 무시·W 마나와 대상은 쏠 때 정한다(I174). 근접은 바로 닿는다(_blow)
 func _strike(u: Unit, foe: Enemy) -> void:
 	var hurt := u.damage * _might(u)
 	var ignore := 0.0
@@ -2337,12 +2384,20 @@ func _strike(u: Unit, foe: Enemy) -> void:
 			hit += more.slice(0, u.w.extra)
 		else:
 			u.toggle = false
-	var at: Vector2 = foe.pos
 	for e in hit:
-		damage(e, hurt, "phys", u, ignore)
-	if u.fort and foe.alive and _luck.randf() < u.passive.stun_odds:
-		_fx(foe, "aias_p_stun", {"stun": true}, u.passive.stun)
-	_bless(u, at)
+		if u.range > MELEE:
+			_shoot(u, e, hurt, ignore, e == foe)
+		else:
+			_blow(u, e, hurt, ignore, e == foe)
+
+# 유닛의 기본 공격이 e에 닿았다. 본 대상(main)이면 아이아스 요새화 기절(S151)과 축복(S152, 맞은 곳에 마법 피해)도 준다
+func _blow(u: Unit, e: Enemy, hurt: float, ignore: float, main: bool) -> void:
+	var at: Vector2 = e.pos
+	damage(e, hurt, "phys", u, ignore)
+	if main:
+		if u.fort and e.alive and _luck.randf() < u.passive.stun_odds:
+			_fx(e, "aias_p_stun", {"stun": true}, u.passive.stun)
+		_bless(u, at)
 
 # 아이아스 패시브 요새화(S151, I147): 이동 지시 없이 still초가 지나면 요새화. 받는 피해 감소, 블록 수 +3. 이동 지시를 받으면 풀린다.
 # 적을 쫓거나(S141) 밀려서 움직인 것은 이동 지시가 아니다(기획서 원문). 걸어갈 길(path·after)은 이동 지시로만 생긴다

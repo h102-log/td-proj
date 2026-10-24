@@ -687,9 +687,9 @@ func price(kind: String) -> int:
 func build(kind: String, cell: Vector2i, overrides := {}):
 	return super(kind, cell, overrides.merged({"cost": price(kind)}, true))
 """ % [JSON.stringify(over.cost_step)]
-	if over.get("fly_no_counter", false):  # 반격 대상은 _fire에서만 정해진다(S5, S140). 비행 적의 것은 쏜 뒤 바로 지운다
+	if over.get("fly_no_counter", false):  # 반격 대상은 투사체가 닿을 때(_fly → _impact)만 정해진다(S5, S140, S178). 비행 적의 것은 닿은 뒤 바로 지운다
 		code += """
-func _fire(dt: float) -> void:
+func _fly(dt: float) -> void:
 	super(dt)
 	for e in enemies:
 		if e.flying:

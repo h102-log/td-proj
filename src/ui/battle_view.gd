@@ -31,8 +31,6 @@ const FLASH := 0.1  # 피격 흰 번쩍임 길이(초, S177)
 const FLINCH := 3.0  # 피격 밀림(px, S177). 림월드 0.17칸을 16px 칸으로 옮겼다(06 §4)
 const FLINCH_BACK := 0.17  # 밀린 몸이 돌아오는 시간(초, 06 §4 약 10프레임)
 const HITSTOP := 3.0 / 60.0  # 영웅이 치거나 맞은 타격에서 두 유닛의 그림만 멈추는 시간(초, S177). 시뮬레이션은 멈추지 않는다
-const MISSILES := {"archer": "arrow", "sylvia": "arrow", "tower": "arrow", "cannon": "ball"}  # 원거리 공격의 투사체(S178). 나머지(마법 타워·마법 영웅)는 마법 구슬
-const SPEED := {"arrow": 240.0, "bolt": 160.0, "ball": 120.0}  # 투사체 속도(px/초, S178)
 const MUZZLE := {"tower": Vector2(0, -15), "magic": Vector2(0, -24), "cannon": Vector2(0, -6)}  # 칸 가운데에서 쏘는 곳(px, 4.1e 그림): 지붕 밑 발판, 수정, 포신
 const BALL_ARC := 12.0  # 대포알 포물선 꼭대기 높이(px)
 const BLAST := 0.25  # 대포알이 떨어진 곳의 범위 피해 고리가 퍼지는 시간(초)
@@ -87,6 +85,7 @@ var _atk := {}  # 공격자 id → [지난 친 뒤 시간, 그 공격이 닿았�
 var _dead := {}  # 처치 사건을 기다리는 쓰러진 대상 id → [대상, 처음 본 시각]
 var _gone := {}  # 지난 프레임까지 본 쓰러짐(fallen) id
 var _known := []  # 본 흔적. traces는 step마다 새 배열이라 is_same으로 견준다
+var _landed := []  # 본 닿은 투사체(battle.landed). traces처럼 is_same으로 견준다
 var _rubble := {}  # 본 잔해 칸
 var _tell := {}  # 보스 id → [예고 가운데(맵 px), 반경(px)]. 예고가 끊기면 둘레에 조각을 흩는다(S198)
 var _dots := []  # 효과 점(I172): {p0, p1, rise, t0, life, fade, col, size, ground}
@@ -172,11 +171,14 @@ func _draw() -> void:
 			var r := Vector2(CELL, CELL) * 0.3
 			draw_line(c - r, c + r, HERO_COLORS[h.kind], 2.0)
 			draw_line(c + Vector2(-r.x, r.y), c + Vector2(r.x, -r.y), HERO_COLORS[h.kind], 2.0)
-	# 원거리 공격은 투사체(S178). 근접 공격은 선을 그리지 않는다(S71 변경). 선(화살)과 원(구슬·대포알)이 번갈아 그려지면 배치가 끊겨서 모양끼리 모아 그린다
-	var shots: Array = (battle.units + battle.structures.values()).filter(func(x): return x.get("target") != null and _ranged(x))
-	shots.sort_custom(func(a, b): return MISSILES.get(a.kind, "bolt") < MISSILES.get(b.kind, "bolt"))
-	for x in shots:
-		_missile(x)
+	# 원거리 공격은 시뮬레이션이 날리는 투사체(battle.shots, S178). 근접 공격은 선을 그리지 않는다(S71 변경). 선(화살)과 원(구슬·대포알)이 번갈아 그려지면 배치가 끊겨서 모양끼리 모아 그린다
+	var shots: Array = battle.shots.filter(func(p): return p.wait <= 0.0)
+	shots.sort_custom(func(a, b): return a.missile < b.missile)
+	for p in shots:
+		_missile(p)
+	for l in battle.landed:  # 대포알이 떨어진 곳에 범위 피해 고리가 BLAST초 동안 퍼진다(S90)
+		if l.missile == "ball" and l.age < BLAST:
+			draw_arc(_spot(l.target) if l.target else _center(l.at), CELL * l.splash * l.age / BLAST, 0.0, TAU, 24, Color(1, 0.8, 0.3, 1.0 - l.age / BLAST), 1.0)
 	_fx_dots(false)  # 먼지·조각(I172): 투사체 다음 층에 모아서
 	_traces()
 	_aim_preview()
@@ -214,32 +216,26 @@ func _spawn_badges() -> void:
 		draw_rect(box, Color.BLACK)
 		draw_string(PIXEL_FONT, box.position + Vector2(2, 8), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8)
 
-# 원거리 공격 한 발(S178): 쏜 곳(_muzzle)에서 대상 가슴까지 _flight초 동안 날아간다. 유닛은 공격 키 포즈(CONTACT)에 놓는다.
-# 화살은 짧은 선, 마법은 쏜 쪽 색 구슬, 대포알은 포물선으로 날고 떨어진 곳에 범위 피해 고리가 BLAST초 동안 퍼진다(S90)
-func _missile(x) -> void:
-	var t := _ago(x) - (_contact(x) - _flight(x))
-	var fly := _flight(x)
-	var kind: String = MISSILES.get(x.kind, "bolt")
-	if t < 0.0 or t >= fly:
-		if kind == "ball" and t >= fly and t < fly + BLAST:
-			var k := (t - fly) / BLAST
-			draw_arc(_spot(x.target), CELL * x.splash * k, 0.0, TAU, 24, Color(1, 0.8, 0.3, 1.0 - k), 1.0)
-		return
-	var from := _muzzle(x)
-	var to := _chest(x.target)
+# 날아가는 투사체 한 발(S178): 쏜 곳(_muzzle)에서 대상 가슴(대상이 쓰러진 대포알은 떨어질 자리)까지, 시뮬레이션에서 난 몫(난 거리 ÷ 전체)만큼 와 있다.
+# 화살은 짧은 선, 마법은 쏜 쪽 색 구슬, 대포알은 포물선이다
+func _missile(p: Dictionary) -> void:
+	var foe = p.target if p.target.alive else null
+	var from := _muzzle(p.src)
+	var to := _chest(foe) if foe else _center(p.at)
+	var k: float = p.flown / maxf(p.flown + p.pos.distance_to(p.at), 1e-6)
 	var d := (to - from).normalized()
-	var p := from.lerp(to, t / fly)
-	match kind:
+	var at := from.lerp(to, k)
+	match p.missile:
 		"arrow":
-			draw_line((p - d * 5).round(), p.round(), Color("e8dcc0"), 1.0)
+			draw_line((at - d * 5).round(), at.round(), Color("e8dcc0"), 1.0)
 		"bolt":
-			var col: Color = HERO_COLORS.get(x.kind, Color("80b0ff"))
-			_blob(p - d * 3, 1, Color(col, 0.5))
-			_blob(p, 2, col)
-			_blob(p, 0, Color.WHITE)
+			var col: Color = HERO_COLORS.get(p.src.kind, Color("80b0ff"))
+			_blob(at - d * 3, 1, Color(col, 0.5))
+			_blob(at, 2, col)
+			_blob(at, 0, Color.WHITE)
 		"ball":
-			_blob(_spot(x).lerp(_spot(x.target), t / fly), 1, Color(0, 0, 0, 0.35))
-			_blob(p - Vector2(0, 4.0 * BALL_ARC * t / fly * (1.0 - t / fly)), 2, Color("2a2a30"))
+			_blob(_spot(p.src).lerp(_spot(foe) if foe else _center(p.at), k), 1, Color(0, 0, 0, 0.35))
+			_blob(at - Vector2(0, 4.0 * BALL_ARC * k * (1.0 - k)), 2, Color("2a2a30"))
 
 # 가운데 c, 반지름 r px의 십자형 도트 덩어리(r 0이면 1px). draw_circle은 원마다 draw call이 하나씩 늘어 사각형 둘로 그린다
 func _blob(c: Vector2, r: int, col: Color) -> void:
@@ -255,10 +251,6 @@ func _muzzle(x) -> Vector2:
 # 투사체가 닿는 곳: 몸통 가운데(발밑에서 6px 위)
 func _chest(x) -> Vector2:
 	return _spot(x) + Vector2(0, -6)
-
-# 원거리 공격의 투사체가 쏜 곳에서 대상까지 나는 시간(초)
-func _flight(x) -> float:
-	return (_chest(x.target) - _muzzle(x)).length() / SPEED[MISSILES.get(x.kind, "bolt")] if x.get("target") != null else 0.0
 
 # 원거리: 타워, 사거리 2칸을 넘는 영웅·용병. 나머지는 근접이다
 func _ranged(x) -> bool:
@@ -651,12 +643,18 @@ func _lunge(x) -> Vector2:
 	return (_pos_of(x.target) - x.pos).normalized() * LUNGE * (a / CONTACT if a < CONTACT else 1.0 - (a - CONTACT) / 0.32)
 
 # 공격자 xs 가운데 방금 친 것의 대상 → [맞은 뒤 지난 시간(초), 공격자 → 대상 방향, 무거운 타격](S177). 여럿에게 맞으면 가장 최근 타격이다.
-# 기본 공격은 시뮬레이션에 상태를 두지 않고 공격자의 친 뒤 시간에서 구한다(06 §4). 즉시 스킬은 시뮬레이션이 남긴 흔적(traces)의 맞은 대상이다(S179).
-# 보스가 친 타격과 보스 스킬에 맞은 것은 무겁다(S198): 더 멀리 밀리고 늦게 돌아온다
+# 근접 기본 공격은 시뮬레이션에 상태를 두지 않고 공격자의 친 뒤 시간에서 구한다(06 §4). 원거리는 시뮬레이션이 남긴 닿은 투사체(landed)다(S178).
+# 즉시 스킬은 시뮬레이션이 남긴 흔적(traces)의 맞은 대상이다(S179). 보스가 친 타격과 보스 스킬에 맞은 것은 무겁다(S198): 더 멀리 밀리고 늦게 돌아온다
 func hit_table(xs: Array) -> Dictionary:
 	var hits := {}
+	for l in battle.landed:  # 영웅이 쏜 것은 닿은 때에서 HITSTOP만큼 늦게 흐른다(S177)
+		if l.target != null:
+			var t: float = maxf(l.age - (HITSTOP if l.src.get("is_hero") == true else 0.0), 0.0)
+			var id: int = l.target.get_instance_id()
+			if t < FLINCH_BACK and t < hits.get(id, [INF])[0]:
+				hits[id] = [t, (_pos_of(l.target) - _pos_of(l.src)).normalized(), false]
 	for x in xs:
-		if x.get("target") != null:
+		if x.get("target") != null and not _ranged(x):
 			var t: float = _ago(x) - _contact(x)
 			var id: int = x.target.get_instance_id()
 			var heavy := _boss(x)
@@ -670,17 +668,23 @@ func hit_table(xs: Array) -> Dictionary:
 				hits[id] = [c.age, (_pos_of(t) - c.at).normalized(), boss]
 	return hits
 
-# 친 뒤 보일 시간(초). 영웅이 치거나 맞은 타격은 닿은 때(_contact)에서 HITSTOP만큼 멈췄다가 늦게 흐른다(S177)
+# 친 뒤 보일 시간(초). 영웅이 치거나 맞은 타격은 닿은 때(근접은 _contact, 원거리는 이번 공격의 투사체가 닿은 때)에서 HITSTOP만큼 멈췄다가 늦게 흐른다(S177)
 func _ago(x) -> float:
 	var a: float = (x.attack_gap if x.get("attack_gap") != null else x.fire_gap) - x.cooldown
+	if _ranged(x):
+		if x.get("is_hero") == true:
+			for l in battle.landed:
+				if l.src == x and l.age <= a:
+					return a - minf(HITSTOP, l.age)
+		return a
 	var c := _contact(x)
 	if a >= c and x.target != null and (x.get("is_hero") == true or x.target.get("is_hero") == true):
 		return maxf(a - HITSTOP, c)
 	return a
 
-# 공격이 대상에 닿는 때(친 뒤 초). 근접 영웅·용병·적은 돌진 끝, 원거리 유닛은 그때 놓은 투사체가 닿는 때, 타워는 쏜 투사체가 닿는 때다(S178)
+# 공격이 대상에 닿는 때(친 뒤 초). 근접 영웅·용병·적은 돌진 끝이다. 원거리는 투사체를 놓는 때(유닛 CONTACT, 타워 0)이고, 닿는 때는 시뮬레이션 투사체가 준다(landed, S178)
 func _contact(x) -> float:
-	return (0.0 if x.get("pos") == null else CONTACT) + (_flight(x) if _ranged(x) else 0.0)
+	return 0.0 if x.get("pos") == null else CONTACT
 
 # 맞은 몸의 밀림(px, S177): 공격자 반대쪽으로 FLINCH만큼 밀렸다가 FLINCH_BACK에 걸쳐 돌아온다. 무거운 타격은 HEAVY·HEAVY_BACK(S198). 발밑 표시도 함께 옮긴다
 func _flinch(x) -> Vector2:
@@ -701,7 +705,7 @@ func tick(dt: float) -> void:
 	_slide_scan()
 
 # 이번 프레임에 새로 생긴 사건(I171). 판 단계가 준비·전투일 때와, 전투에서 넘어온 라운드 사이·도전 성공·패배에서 낸다.
-# 닿음·처치는 공격자의 친 뒤 시간이 닿는 때(_contact)를 넘은 프레임에 공격 하나에 한 번이고, 처치는 쓰러진 대상을 노린 마지막 공격이 닿을 때다(S197)
+# 닿음·처치는 근접은 공격자의 친 뒤 시간이 닿는 때(_contact)를 넘은 프레임, 원거리는 시뮬레이션 투사체가 닿은 프레임(S178)에 공격 하나에 한 번이고, 처치는 쓰러진 대상을 노린 마지막 공격이 닿을 때다(S197)
 func _scan() -> void:
 	var s: String = battle.state
 	if s == "battle":
@@ -725,10 +729,11 @@ func _scan() -> void:
 			atk[id] = [INF, true]
 			continue
 		var raw: float = (x.attack_gap if x.get("attack_gap") != null else x.fire_gap) - x.cooldown  # 히트스톱으로 멈추지 않은 친 뒤 시간
-		var hit: bool = _ago(x) >= _contact(x)
+		var ranged := _ranged(x)  # 원거리의 닿음·처치는 아래에서 닿은 투사체(landed)로 낸다(S178)
+		var hit: bool = not ranged and _ago(x) >= _contact(x)
 		var was = _atk.get(id)
-		var fresh: bool = was != null and raw < was[0]  # 친 뒤 시간이 줄면 새 공격이다. 원거리 영웅의 닿는 때는 대상이 다가오면 줄어서 _ago로 가르면 안 된다
-		var landed: bool = hit if was == null else (false if fresh else was[1])
+		var fresh: bool = was != null and raw < was[0]  # 친 뒤 시간이 줄면 새 공격이다. 원거리 영웅의 히트스톱은 닿는 때에 걸려서 _ago로 가르면 안 된다
+		var landed: bool = ranged or (hit if was == null else (false if fresh else was[1]))
 		var now: bool = hit and not landed
 		atk[id] = [raw, landed or now]
 		if not (landed or now) and _dead.has(x.target.get_instance_id()):
@@ -746,7 +751,18 @@ func _scan() -> void:
 			if _dead.has(tid) and not pend.has(tid):
 				kind = "kill"
 				_dead.erase(tid)
-			_emit(kind, _chest(t) if t.get("pos") != null else _spot(t), (_pos_of(t) - _pos_of(x)).normalized(), x, t, {"heavy": _boss(x) or x.kind == "cannon"})
+			_emit(kind, _chest(t) if t.get("pos") != null else _spot(t), (_pos_of(t) - _pos_of(x)).normalized(), x, t, {"heavy": _boss(x)})
+	for l in battle.landed:  # 원거리 공격의 닿음(S178): 새로 닿은 투사체마다 한 번. 그 투사체가 쓰러뜨렸고 기다릴 근접 공격이 없으면 처치다
+		if l.target == null or _landed.any(func(k): return is_same(k, l)):
+			continue
+		var t = l.target
+		var tid: int = t.get_instance_id()
+		var kind := "hit"
+		if _dead.has(tid) and not pend.has(tid):
+			kind = "kill"
+			_dead.erase(tid)
+		_emit(kind, _chest(t), (_pos_of(t) - _pos_of(l.src)).normalized(), l.src, t, {"heavy": l.src.kind == "cannon"})
+	_landed = battle.landed.duplicate()
 	for tid in _dead.keys():  # 기다릴 공격이 없는 죽음(지속 피해·장판·범위 곁 대상, 쏜 쪽이 먼저 쓰러짐)과 1초 넘게 기다린 것
 		if not pend.has(tid) or clock - _dead[tid][1] >= 1.0:
 			_emit("kill", _spot(_dead[tid][0]), Vector2.ZERO, null, _dead[tid][0])

@@ -10,12 +10,16 @@ func test_restart_clears_built_and_placed():
 		"castle": {"walls": [Vector2i(7, 7)], "gates": [], "wall_hp": 300, "gate_hp": 150},
 	})
 	b.build("wall", Vector2i(5, 5))
+	b.build("tower", Vector2i(2, 0))
 	b.place_merc("soldier", Vector2i(4, 4))
 	b.damage(b.castle[Vector2i(7, 7)], 100)
 	b.start_battle()
-	b.step(0.05)  # 적 하나가 나온다
+	b.step(0.05)  # 적 하나가 나오고 타워가 쏜다
+	var flying: int = b.shots.size()
 	b.restart()
 	var why := []
+	if flying == 0 or not b.shots.is_empty():  # 남은 화살이 지워진 적에게 닿으면 처치 골드가 들어온다(S178)
+		why.append("날아가는 투사체 %d → %d" % [flying, b.shots.size()])
 	if not b.structures.is_empty():
 		why.append("구조물 %d" % b.structures.size())
 	if not b.enemies.is_empty():

@@ -1,6 +1,6 @@
 {
-  "approvedAt": "2026-10-24T15:18:18.823Z",
-  "evalMd": "f741b083",
+  "approvedAt": "2026-10-24T22:33:14.384Z",
+  "evalMd": "aa4758ba",
   "tests": {
     "tests/eval/conftest.py": "02db26c8",
     "tests/eval/gd/aura.gd": "010cc38a",
@@ -17,7 +17,7 @@
     "tests/eval/gd/climb.gd.uid": "92a73d52",
     "tests/eval/gd/data.gd": "ab272414",
     "tests/eval/gd/data.gd.uid": "5a13beba",
-    "tests/eval/gd/enemy.gd": "8c650109",
+    "tests/eval/gd/enemy.gd": "ffe40212",
     "tests/eval/gd/enemy.gd.uid": "e1e29647",
     "tests/eval/gd/engineer.gd": "b6d62b7b",
     "tests/eval/gd/engineer.gd.uid": "fd6b919f",
@@ -33,7 +33,7 @@
     "tests/eval/gd/house.gd.uid": "5fd6fb28",
     "tests/eval/gd/hud.gd": "28ea8339",
     "tests/eval/gd/hud.gd.uid": "6038f593",
-    "tests/eval/gd/kits.gd": "39c2859f",
+    "tests/eval/gd/kits.gd": "cad56879",
     "tests/eval/gd/kits.gd.uid": "c48b27a3",
     "tests/eval/gd/levels.gd": "3a6be64c",
     "tests/eval/gd/levels.gd.uid": "ad007fbd",
@@ -49,6 +49,8 @@
     "tests/eval/gd/menu.gd.uid": "80c43e3a",
     "tests/eval/gd/merc.gd": "e04f49df",
     "tests/eval/gd/merc.gd.uid": "5a159512",
+    "tests/eval/gd/missile.gd": "25d8f095",
+    "tests/eval/gd/missile.gd.uid": "db47e684",
     "tests/eval/gd/pathing.gd": "4f106467",
     "tests/eval/gd/pathing.gd.uid": "1e4fe822",
     "tests/eval/gd/production.gd": "5c9169d8",
@@ -98,6 +100,7 @@
     "tests/eval/test_map.py": "9fd1d996",
     "tests/eval/test_menu.py": "0c179ab6",
     "tests/eval/test_merc.py": "4dd8671d",
+    "tests/eval/test_missile.py": "71ffa9c3",
     "tests/eval/test_pathing.py": "da8d306c",
     "tests/eval/test_production.py": "7576edf8",
     "tests/eval/test_quests.py": "674e3903",
@@ -354,6 +357,9 @@
     "I35": "007fd8b7",
     "I38": "980891b5",
     "S204": "8430a805",
-    "I173": "a475a78a"
+    "I173": "a475a78a",
+    "S178": "e748f695",
+    "I174": "8ca01f67",
+    "S177": "2918a70d"
   }
 }
