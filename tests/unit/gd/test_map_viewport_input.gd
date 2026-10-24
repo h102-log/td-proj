@@ -10,6 +10,7 @@ extends RefCounted
 #   I9. 영웅은 드래그 선택에 들어가지 않는다. — 그래서 드래그 선택은 용병으로 잰다
 #   I58. 판매 팝업은 클릭하거나 드래그를 놓은 지점 옆에 뜨고, …
 #   I137. 클릭한 곳 옆에 뜨는 팝업(I58)이 화면 밖으로 나가면 화면 안으로 당겨 띄운다.
+#   S205. 고른 유닛에게 우클릭·A로 명령을 내리면 누른 곳에 0.4초 동안 줄어드는 고리(이동 초록·공격 빨강)를 띄우고, 대상 공격은 그 적을 따라간다. 고른 유닛이 없으면 띄우지 않는다.
 
 const BOTTOM := Vector2(320, 300)  # HUD 윗줄(준비 단계 높이 196) 아래의 맵 자리
 
@@ -111,3 +112,48 @@ func test_sell_popup_opens_next_to_drag_release_point():
 		return "용병을 둘러 끌었는데 고른 것이 %s다" % [selected]
 	# 놓은 지점의 칸 모서리에 붙고(간격 3 안) 그 칸을 가리지 않는다(I58)
 	return "" if r.size.x > 0 and not r.intersects(cell) and r.grow(3).intersects(cell) else "판매 팝업 %s가 놓은 지점 %s의 칸 %s 모서리에 붙지 않았다" % [r, q, cell]
+
+func _rclick(at: Vector2) -> void:
+	_button(MOUSE_BUTTON_RIGHT, at, true)
+	_button(MOUSE_BUTTON_RIGHT, at, false)
+
+func test_order_mark_on_commands():
+	var main = _main()
+	var b = main.view.battle
+	var v = main.view
+	main.controls.selected = [b.place_merc("soldier", Vector2i(14, 10))]
+	var at := _under(_cam(main), BOTTOM)
+	_rclick(BOTTOM)
+	var move: Array = v.order_ring()
+	v.tick(0.2)
+	var mid: Array = v.order_ring()
+	v.tick(0.25)
+	var gone: Array = v.order_ring()
+	var key := InputEventKey.new()
+	key.keycode = KEY_A
+	key.physical_keycode = KEY_A
+	key.pressed = true
+	_push(key)
+	_button(MOUSE_BUTTON_LEFT, BOTTOM, true)
+	_button(MOUSE_BUTTON_LEFT, BOTTOM, false)
+	var attack: Array = v.order_ring()
+	var foe = b.spawn_enemy("basic", Vector2i((at / 16).floor()), {"speed": 0, "damage": 0, "sight": 0})
+	foe.pos = at / 16 - Vector2(0.5, 0.5)  # 누를 곳 바로 밑(대상 공격 판정 0.7칸 안)
+	v.tick(0.5)
+	_rclick(BOTTOM)
+	foe.pos += Vector2(1, 0)  # 표식이 옮긴 적을 따라가나
+	var hunt: Array = v.order_ring()
+	var spot: Vector2 = v._spot(foe)
+	main.controls.selected = []
+	v.tick(0.5)
+	_rclick(BOTTOM)
+	var none: Array = v.order_ring()
+	var colors: Array = v.ORDER_COLORS
+	main.free()
+	if move.is_empty() or not move[0].is_equal_approx(at) or move[2] != colors[0] or mid.is_empty() or mid[1] >= move[1] or not gone.is_empty():
+		return "우클릭 표식 %s → 0.2초 %s → 0.45초 %s(기대 누른 곳 %s의 초록 고리가 줄다가 사라짐)" % [move, mid, gone, at]
+	if attack.is_empty() or attack[2] != colors[1]:
+		return "A 뒤 좌클릭 표식 %s(기대 빨강)" % [attack]
+	if hunt.is_empty() or not hunt[0].is_equal_approx(spot) or hunt[2] != colors[1]:
+		return "적 우클릭 표식 %s(기대 옮긴 적 발밑 %s의 빨강)" % [hunt, spot]
+	return "" if none.is_empty() else "고른 것 없이 우클릭했는데 표식 %s가 떴다" % [none]

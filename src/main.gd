@@ -118,14 +118,14 @@ func _notification(what: int) -> void:
 
 # 전투 시작은 HUD 버튼 말고 Enter·Space(기본 ui_accept)로도 된다. 결과 창·영입 창이 떠 있으면 그 버튼을 누른다(I94)
 # 창의 버튼에 키보드 포커스가 있으면 그 버튼이 누른다(I110). 버튼은 ui_accept를 소비하지 않아 여기서 거르지 않으면 둘 다 눌린다
-# ESC는 조준·놓기·대포 옮기기 중이면 Controls가 그것을 취소하고, 아니면 ESC 메뉴를 연다(S183)
+# ESC는 조준·놓기·대포 옮기기 중이거나 맵 팝업이 떠 있으면 Controls가 그것을 취소하거나 닫고, 아니면 ESC 메뉴를 연다(S183)
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F11:  # S162, I154
 		switch_fullscreen(get_window())
 		get_viewport().set_input_as_handled()
 		return
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE \
-			and controls.placing == "" and controls.moving == null and controls.aiming == "" and not controls.attacking:  # 그것만 취소하는 ESC는 controls가 받는다(S183, S35)
+			and controls.placing == "" and controls.moving == null and controls.aiming == "" and not controls.attacking and not controls.popup_open():  # 그것만 취소하거나 닫는 ESC는 controls가 받는다(S183, S35)
 		pause()
 		get_viewport().set_input_as_handled()
 		return

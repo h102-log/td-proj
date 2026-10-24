@@ -66,6 +66,8 @@ const GHOST := Color(1, 1, 1, 0.4)  # 거점에 가려진 유닛·시설을 덧�
 const SHADE := Color(0, 0, 0, 0.55)  # 성벽에 가려진 부분의 실루엣 색(S175). 55%는 사용자가 고른 시안의 합성 색에 맞춘 Claude 값
 const WALL_H := 24  # 성벽 앞면 높이(px, 4.0 확정값)
 const TEAM := [Color("3c9f9c"), Color("ef3a0c")]  # 발밑 팀 색(S166): 아군 청록, 적 빨강(F24+ 팔레트)
+const ORDER_MARK := 0.4  # 명령 표식이 보이는 시간(초, S205)
+const ORDER_COLORS := [Color("40ff80"), Color("ef3a0c")]  # 명령 표식(S205): 이동 초록, 공격 빨강(적 발밑 색)
 static var FEET: ImageTexture = _feet()  # 발밑 채운 타원 14×6px. 아군·적을 한 장에 나란히 둬서 draw call이 끊기지 않는다
 
 var battle
@@ -91,6 +93,8 @@ var _dots := []  # 효과 점(I172): {p0, p1, rise, t0, life, fade, col, size, g
 var _slides := {}  # id → [지난 화면 자리, 시작 시각, 길이](S198 미끄러짐)
 var _fills := []  # [보스 스킬 흔적, 남은 프레임](S198 발동 채움). tick마다 하나씩 줄인다
 var _last := {}  # id → [지난 프레임 화면 자리, 성벽 위·기어오르기 상태]
+var _order := {}  # 마지막으로 본 명령(controls.order, S205)
+var _order_t0 := 0.0  # 그 명령을 처음 본 화면 시각
 
 func _draw() -> void:
 	if ground == null:
@@ -183,8 +187,22 @@ func _draw() -> void:
 		if bar != Vector2.ZERO:
 			var head: float = (ART.boss.anchor[1] - ART.basic.anchor[1]) / CELL if u.kind == "boss" else 0.0  # 보스 그림은 기본 적보다 키가 커서 막대를 그만큼 올린다(머리 위)
 			_hp_bar(u.pos - Vector2(0, _lift(u) / CELL + head) + _slip(u) / CELL, u, bar)
+	var cue := order_ring()
+	if not cue.is_empty():
+		draw_arc(cue[0], cue[1], 0.0, TAU, 24, cue[2], 1.0)
 	if controls.drag_rect.has_area():
 		draw_rect(controls.drag_rect, Color.WHITE, false, 1.0)
+
+# 명령 표식(S205): [가운데(맵 px), 반경(px), 색]. 새 명령을 처음 본 때부터 ORDER_MARK초 동안 줄어든다. 대상 공격은 그 적의 발밑을 따라간다. 없으면 []
+func order_ring() -> Array:
+	if not is_same(controls.order, _order):
+		_order = controls.order
+		_order_t0 = clock
+	var age := clock - _order_t0
+	if _order.is_empty() or age >= ORDER_MARK:
+		return []
+	var at: Vector2 = _spot(_order.foe) + _slip(_order.foe) if _order.foe else _order.at
+	return [at, CELL * lerpf(0.6, 0.2, age / ORDER_MARK), ORDER_COLORS[int(_order.attack)]]
 
 # 곧 부를 웨이브에서 출현 지점마다 나올 적 수(S188): 깃발 칸 바로 위, 풀밭에 묻히지 않게 검은 바탕에 Galmuri7 8px(S167)
 func _spawn_badges() -> void:
