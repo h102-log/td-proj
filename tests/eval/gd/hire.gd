@@ -114,7 +114,7 @@ func ev195():
 		return "골드 %d → %d" % [g0, b.gold]
 	return check(by == [0, 0, 6000 * b.HIRE.slots], "등급별 칸 수 %s([0, 0, %d]여야 한다)" % [by, 6000 * b.HIRE.slots])
 
-# EV196 · I103: 영웅이 없는 등급은 빼고 남은 등급끼리 확률 비율대로, 등급 안에서는 같은 확률로 나오고, 같은 영웅을 여럿 보유할 수 있다
+# EV196 · I103: 영웅이 없는 등급은 빼고 남은 등급끼리 확률 비율대로, 등급 안에서는 같은 확률로 나온다. 후보가 모두 남은 첫 칸으로 등급 비율을 잰다
 func ev196():
 	var b = _hiring()
 	var seen := _sample(b, 6000)
@@ -125,15 +125,15 @@ func ev196():
 	var m = _hiring()
 	m.HERO_KINDS.aias.grade = 1
 	m.HERO_KINDS.sylvia.grade = 1
-	var by := _by_grade(m, 6000)
-	if by[1] != 0 or absf(float(by[0]) / n - 0.6 / 0.7) > 0.015:
-		return "아이아스·실비아만 1성일 때 등급별 칸 수 %s(1성 %.3f여야 한다)" % [by, 0.6 / 0.7]
-	var d = _hiring()
-	d.offers = ["aias", "aias", "aias"]
-	var a = d.hire(0)
-	var z = d.hire(1)
-	return check(a != null and z != null and d.roster.size() == 2 and d.roster.all(func(h): return h.kind == "aias"),
-		"같은 영웅 둘을 영입하지 못했다(보유 %s)" % [d.roster.map(func(h): return h.kind)])
+	var first := [0, 0, 0]  # 첫 칸의 등급별 수
+	var by := [0, 0, 0]  # 모든 칸의 등급별 수
+	for i in 6000:
+		m.reroll()
+		first[m.HERO_KINDS[m.offers[0]].grade - 1] += 1
+		for k in m.offers:
+			by[m.HERO_KINDS[k].grade - 1] += 1
+	return check(by[1] == 0 and absf(float(first[0]) / 6000 - 0.6 / 0.7) <= 0.015,
+		"아이아스·실비아만 1성일 때 첫 칸 등급별 수 %s · 모든 칸 %s(첫 칸 1성 %.3f, 2성 0이어야 한다)" % [first, by, 0.6 / 0.7])
 
 # EV197 · S123: 영입하면 등급의 영입 비용만큼 골드가 줄고, 출전은 3명·보유는 5명까지다
 func ev197():
@@ -314,3 +314,39 @@ func ev232():
 	var g: int = b.gold
 	var refused: bool = not b.reroll() and b.offers == before and b.gold == g
 	return check(rolled and refused, "상한 전 리롤 %s · 상한에서 리롤 거부 %s(골드 %d → %d)" % [rolled, refused, g, b.gold])
+
+# EV400 · I103: 목록에는 같은 영웅이 두 번 나오지 않고 보유한 영웅도 나오지 않는다. 후보가 모자라면 남는 칸은 빈 칸이고, 내보낸 영웅은 다시 나온다
+func ev400():
+	var b = _hiring()
+	var twice := 0  # 같은 영웅이 두 번 나온 목록 수
+	for i in 300:
+		b.reroll()
+		var kinds: Array = b.offers.filter(func(k): return k != "")
+		if kinds.any(func(k): return kinds.count(k) > 1):
+			twice += 1
+	b.offers = ["sylvia", "vesper", "chronos"]
+	for i in 3:
+		b.hire(i)
+	b.offers = ["ignis", "", ""]
+	b.hire(0)
+	var owned: Array = b.roster.map(func(h): return h.kind)
+	var bad := 0  # 아이아스·세라피나 한 번씩과 빈 칸 하나가 아닌 목록 수(보유한 영웅이 나와도 여기에 든다)
+	for i in 300:
+		b.reroll()
+		var kinds: Array = b.offers.filter(func(k): return k != "")
+		if b.offers.size() != b.HIRE.slots or kinds.size() != 2 or not ("aias" in kinds and "seraphina" in kinds):
+			bad += 1
+	b.dismiss(b.roster[0])
+	var back := 0  # 내보낸 실비아가 나온 목록 수
+	for i in 300:
+		b.reroll()
+		back += int("sylvia" in b.offers)
+	var m = _hiring()
+	m.HERO_KINDS.aias.grade = 1
+	m.HERO_KINDS.sylvia.grade = 1
+	var short := 0  # 세 칸이 다 차지 않은 목록 수. 1성 후보가 목록 안에서 떨어진 칸은 후보가 남은 3성에서 골라야 한다
+	for i in 300:
+		m.reroll()
+		short += int(m.offers.size() != m.HIRE.slots or m.offers.has(""))
+	return check(twice == 0 and owned.size() == 4 and bad == 0 and back > 0 and short == 0,
+		"같은 영웅이 두 번 나온 목록 %d/300 · 보유 %s · 보유 넷일 때 어긋난 목록 %d/300(아이아스·세라피나 한 번씩과 빈 칸 하나여야 한다) · 실비아를 내보낸 뒤 실비아가 나온 목록 %d/300 · 1성 둘인 판에서 덜 찬 목록 %d/300" % [twice, owned, bad, back, short])
