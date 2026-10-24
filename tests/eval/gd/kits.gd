@@ -440,8 +440,9 @@ func ev275():
 	b.cast(s, "w")
 	var m0: float = s.mana
 	run(b, 3.0, func(): return foes.any(func(e): return e.hp < e.max_hp))
-	var hit_n: int = foes.filter(func(e): return e.hp < e.max_hp).size()
 	var paid: bool = s.mana <= m0 - s.w.mana + 0.5
+	run(b, 0.3)  # 갈래 화살은 대상마다 따로 날아 멀수록 늦게 닿는다(S178)
+	var hit_n: int = foes.filter(func(e): return e.hp < e.max_hp).size()
 	s.mana = 5.0
 	var before := foes.map(func(e): return e.hp)
 	run(b, 3.0, func(): return foes.any(func(e): return e.hp < before[foes.find(e)]))

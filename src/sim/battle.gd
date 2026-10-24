@@ -22,7 +22,10 @@ const SPAWN_GAP := 2.5  # 웨이브 안에서 적이 나오는 간격(초). 임�
 const REACH := 1.0      # 적이 막힌 칸·거점·유닛을 칠 수 있는 거리(중심 사이). 옆 칸 중심까지가 1이다
 const POSE := 0.22  # 친 뒤 제자리에 서는 시간(초, S196). 용병·적의 공격 키 포즈가 끝나는 때다(S172)
 const HERO_POSE := 0.3  # 영웅이 친 뒤 제자리에 서는 시간(초, S196). 공격 3프레임이 끝나는 때다(S165)
-const CONTACT := 0.08  # 걷기 명령을 받은 영웅이 다시 걷는 때(친 뒤 초, S196). 화면의 근접 공격이 닿는 때(battle_view CONTACT)와 같다
+const CONTACT := 0.08  # 걷기 명령을 받은 영웅이 다시 걷는 때(친 뒤 초, S196). 화면의 근접 공격이 닿는 때(battle_view CONTACT)와 같다. 원거리 유닛의 투사체가 나가는 때다(I174)
+const RANGED := 2.0  # 사거리가 이보다 큰 영웅·용병은 원거리다. 쏘는 구조물은 모두 원거리다(S178, I174)
+const MISSILES := {"archer": "arrow", "sylvia": "arrow", "tower": "arrow", "cannon": "ball"}  # 원거리 기본 공격의 투사체(S178). 나머지(마법 타워·마법 영웅)는 구슬(bolt)
+const SPEED := {"arrow": 15.0, "bolt": 10.0, "ball": 7.5}  # 투사체 속도(칸/초, S178)
 const REPATH_PER_STEP := 8  # 한 스텝에 경로를 다시 구하는 적 수(I155). 적 40명을 한 번에 구하면 61ms(디버그)라 나눈다(사용자 2026-10-20)
 const UNIT_WALL_K := 1e6  # 유닛 경로의 막힌 칸 비용 배율. 돌아갈 길이 있으면 막힌 칸(닫힌 성문 포함, I42)을 지나지 않는다
 const WORK_REACH := 2.0  # 공병이 일하는 거리(중심 사이). 옆 칸 대각선(1.41)에, 무리에 밀려 0.5칸 못 미친 도착(I51)을 더했다
@@ -196,6 +199,24 @@ class Unit:
 		max_hp = hp
 		max_mana = mana
 
+# 원거리 기본 공격의 투사체(S178, I174). 대상을 따라가 닿을 때 피해를 준다. 쏜 쪽의 상태(피해량·종류·방어 무시·축복)는 쏜 때 담는다
+class Missile:
+	var src  # 쏜 유닛·구조물
+	var target  # 노린 적
+	var look: String  # 모양: "arrow" | "bolt" | "ball"(MISSILES)
+	var speed: float  # 칸/초
+	var wait := 0.0  # 출발까지 남은 초. 유닛은 CONTACT, 구조물은 0
+	var from: Vector2  # 출발한 자리. 화면이 날아간 비율을 센다
+	var pos: Vector2  # 지금 자리
+	var at: Vector2  # 날아가는 곳: 대상의 지금 자리, 대상이 쓰러졌으면 마지막 자리
+	var hurt := 0.0  # 피해량(공격력 × 공격력 배율)
+	var kind := "phys"  # 피해 종류(S149)
+	var ignore := 0.0  # 방어 무시 비율(I148)
+	var splash := 0.0  # 범위 피해 반경(대포, S90)
+	var bless := 0.0  # 축복 마법 피해(S152). 없으면 0
+	var bless_r := 0.0  # 축복 반경
+	var age := 0.0  # 닿은 뒤 지난 초(landed)
+
 # 막힌 칸(구조물·성곽)을 «남은 체력 × 적의 wall_k» 비용 칸으로 보는 격자(S7, S34, I3, I40). 성곽 업그레이드 배율은 빼고 센다(S139)
 class CostGrid extends AStarGrid2D:
 	var castle: Dictionary
@@ -258,6 +279,8 @@ var barriers := {}  # Vector2i → 에너지 성벽 칸 Block(S151, I142). 그 �
 var zones := []  # 장판(S150, I141): {src, pos, radius, left, owner, 수치…}. 웨이브가 끝나면 모두 사라진다(I143)
 var traces := []  # 즉시 스킬 흔적(S179): {hero, slot, aim, at, radius, hits, age}. 그리기만 읽고 1초 지나면 지운다
 var fallen := []  # 쓰러진 영웅·용병·적(S180): {who, age}. 그리기만 읽고 FALLEN초 지나면 지운다
+var missiles := []  # 날고 있거나 출발을 기다리는 투사체(Missile, S178). 웨이브가 끝나면 사라진다(I143)
+var landed := []  # 닿은 투사체(Missile). 그리기만 읽고(맞은 반응·사건, S177·I171) 1초 지나면 지운다
 var enemies := []
 var units := []  # 살아 있는 영웅·용병
 var heroes := []  # 전장에 나온 출전 영웅(Unit)들, 보유 순서(I108). 쓰러진 영웅도 들어 있다(I102)
@@ -344,6 +367,8 @@ func restart() -> void:
 	structures.clear()
 	barriers.clear()
 	zones.clear()
+	missiles.clear()
+	landed.clear()
 	enemies.clear()
 	units.clear()
 	_queue.clear()
@@ -387,9 +412,10 @@ func restart() -> void:
 	_forecast()
 
 func step(dt: float) -> void:
-	for t in traces + fallen:
+	for t in traces + fallen + landed:
 		t.age += dt
 	traces = traces.filter(func(t): return t.age < 1.0)
+	landed = landed.filter(func(m): return m.age < 1.0)
 	fallen = fallen.filter(func(f): return f.age < FALLEN)
 	if state == "battle":
 		_spawn_wave(dt)
@@ -418,6 +444,7 @@ func step(dt: float) -> void:
 		_act(u, dt)
 	_push_apart(ground, enemies)
 	_fire(dt)
+	_fly(dt)
 	if state == "battle" and _queue.is_empty() and enemies.is_empty():
 		wave_index += 1
 		if wave_index < waves.size():
@@ -1112,11 +1139,12 @@ func _age(t, dt: float) -> void:
 		if t.fx[src].left <= 0.0:
 			t.fx.erase(src)
 
-# 웨이브가 끝나면 장판·에너지 성벽·효과·보호막이 모두 사라진다(I143). 준비 단계에 공짜 회복·효과가 남지 않게
+# 웨이브가 끝나면 장판·에너지 성벽·효과·보호막·날던 투사체가 모두 사라진다(I143). 준비 단계에 공짜 회복·효과가 남지 않게
 func _clear_effects() -> void:
 	for z in zones:
 		_end_zone(z)
 	zones.clear()
+	missiles.clear()
 	for t in enemies + units + structures.values() + castle.values():
 		t.fx.clear()
 	for u in units:
@@ -1343,15 +1371,16 @@ func _cast_miracle(h: Unit, sk: Dictionary, _aim, _grow: float) -> void:
 	for t in heroes.filter(func(x): return x.alive) + shooters:
 		_fx(t, "seraphina_r", {"bless": sk.bless, "splash": sk.splash}, sk.time)
 
-# 축복(S152): 기본 공격이 맞은 적 둘레 splash칸 안의 적에게 마법 피해를 더 준다
+# 축복(S152): 기본 공격이 맞은 적 둘레 splash칸 안의 적에게 마법 피해를 더 준다. 원거리는 쏜 때의 양을 투사체에 담아 닿을 때 준다(_land)
 func _bless(src, at: Vector2) -> void:
 	var b = _fx_on(src, "bless")
-	if b == null:
-		return
-	var splash: float = src.fx.seraphina_r.splash
+	if b != null:
+		_blessing(src, at, b, src.fx.seraphina_r.splash)
+
+func _blessing(src, at: Vector2, amount: float, radius: float) -> void:
 	for e in enemies.duplicate():
-		if e.pos.distance_to(at) <= splash:
-			damage(e, b, "magic", src)
+		if e.pos.distance_to(at) <= radius:
+			damage(e, amount, "magic", src)
 
 # ── 베스퍼(S154) ──
 
@@ -2216,10 +2245,8 @@ func _push_apart(bodies: Array, others: Array) -> void:
 				_shove(a, -push, others)
 				_shove(o, push, others)
 
-# 쏘는 구조물은 사거리 안에서 가장 가까운 적을 쏘고(S28, I29), 맞은 적은 그 구조물에 반격한다(S5).
-# 반격 대상이 있으면 그 대상이 COUNTER_HOLD초 동안 쏘지 않았을 때만 바꾼다. 같은 프레임이면 먼저 지은(먼저 도는) 구조물이다(S140)
-# 대포는 맞은 적 splash칸 안의 적에게도 같은 피해를 주고, 그 적들도 반격한다(S90, I73). 마법 타워는 마법 피해다(S110, S149)
-# 공격 속도·공격력·사거리는 영웅 효과를 받는다(_haste·_might·_reach, S150). 축복이 걸렸으면 맞은 곳에 마법 피해를 더한다(S152)
+# 쏘는 구조물은 사거리 안에서 가장 가까운 적을 쏜다(S28, I29). 피해·반격·범위 피해·축복은 투사체가 닿을 때다(_land, S178).
+# 마법 타워는 마법 피해다(S110, S149). 공격 속도·공격력·사거리는 영웅 효과를 받는다(_haste·_might·_reach, S150)
 func _fire(dt: float) -> void:
 	for s in structures.values():
 		if s.range <= 0.0 or not s.complete or s.razed >= 1.0:  # 미완성 타워(I18)·접은 대포(I74)는 쏘지 않는다
@@ -2231,15 +2258,74 @@ func _fire(dt: float) -> void:
 		if best:
 			s.cooldown = s.fire_gap
 			s.target = best
-			var hurt: float = s.damage * _might(s)
-			var at: Vector2 = best.pos
-			for e in enemies.duplicate():
-				if e == best or (s.splash > 0.0 and e.pos.distance_to(at) <= s.splash):
-					if e.attacker == s or e.held <= 0.0 or not (e.attacker and e.attacker.alive):
-						e.attacker = s
-						e.held = COUNTER_HOLD
-					damage(e, hurt, "magic" if s.pierce else "phys", s)
-			_bless(s, at)
+			_shoot(s, best, s.damage * _might(s), "magic" if s.pierce else "phys")
+
+# 원거리 기본 공격의 투사체를 낸다(S178, I174). 유닛은 친 뒤 CONTACT초에 그때 선 자리에서, 구조물은 바로 그 칸에서 출발한다.
+# 피해량·종류·방어 무시·축복은 지금 정해 담는다. 축복은 한 공격에 한 번이라 갈래 화살(S153)에는 싣지 않는다
+func _shoot(src, e: Enemy, hurt: float, kind: String, ignore := 0.0, blessed := true) -> void:
+	var m := Missile.new()
+	m.src = src
+	m.target = e
+	m.look = MISSILES.get(src.kind, "bolt")
+	m.speed = SPEED[m.look]
+	m.wait = CONTACT if src is Unit else 0.0
+	m.from = _where(src)
+	m.pos = m.from
+	m.at = e.pos
+	m.hurt = hurt
+	m.kind = kind
+	m.ignore = ignore
+	m.splash = src.splash if src is Block else 0.0
+	var b = _fx_on(src, "bless") if blessed else null
+	if b != null:
+		m.bless = b
+		m.bless_r = src.fx.seraphina_r.splash
+	missiles.append(m)
+
+# 투사체를 날린다(S178, I174). 출발 전에 쏜 유닛이 쓰러지면 나가지 않는다. 대상을 따라가고, 대상이 쓰러지면 화살·구슬은 사라지고
+# 대포알은 마지막 자리로 간다. 닿으면 _land. 쏜 쪽이 날아가는 동안 쓰러지거나 팔려도 닿는다
+func _fly(dt: float) -> void:
+	var flying := []
+	for m in missiles:
+		var left := dt
+		if m.wait > 0.0:
+			m.wait -= dt
+			if m.wait > 0.0:
+				flying.append(m)
+				continue
+			if not m.src.alive:
+				continue
+			m.from = _where(m.src)
+			m.pos = m.from
+			left = -m.wait
+		if m.target.alive:
+			m.at = m.target.pos
+		elif m.look != "ball":
+			continue
+		var to: Vector2 = m.at - m.pos
+		if to.length() > m.speed * left:
+			m.pos += to.normalized() * m.speed * left
+			flying.append(m)
+		else:
+			m.pos = m.at
+			_land(m)
+	missiles = flying
+
+# 투사체가 닿았다(S178, I174). 화살·구슬은 대상에게, 대포알은 떨어진 자리 둘레 splash칸 안의 적 모두에게 같은 피해를 준다(S90).
+# 쏜 구조물이 서 있으면 맞은 적은 그 구조물에 반격한다(S5, I73): 반격 대상이 있으면 그 대상이 COUNTER_HOLD초 동안 쏘지 않았을 때만 바꾼다.
+# 같은 step이면 먼저 쏜 투사체가 먼저 닿는다(S140). 축복이 실렸으면 닿은 자리 둘레에 마법 피해를 더한다(S152)
+func _land(m: Missile) -> void:
+	var s = m.src
+	var stands: bool = s is Block and s.alive and structures.get(s.cell) == s
+	for e in enemies.duplicate():
+		if e == m.target or (m.splash > 0.0 and e.pos.distance_to(m.at) <= m.splash):
+			if stands and (e.attacker == s or e.held <= 0.0 or not (e.attacker and e.attacker.alive)):
+				e.attacker = s
+				e.held = COUNTER_HOLD
+			damage(e, m.hurt, m.kind, s, m.ignore)
+	if m.bless > 0.0:
+		_blessing(s, m.at, m.bless, m.bless_r)
+	landed.append(m)
 
 # 유닛은 명령받은 경로를 걷고(S14), 사거리 안의 가장 가까운 적을 친다(S15). 걷는 동안은 명령을 따른다: 순수 이동은 치지 않고,
 # 공격 이동은 사거리에 든 적 앞에 서서 친다(S35, I35, S196). 대상 공격은 그 적만 친다. 서 있으면 영웅·용병 모두 인식 범위 안의 적을 쫓는다(I36, S141).
@@ -2318,7 +2404,8 @@ func _hero_tick(h: Unit, dt: float) -> void:
 	_autocast(h)
 
 # 기본 공격 한 방(S15). 실비아(I148): 같은 적을 이어 치면 중첩이 쌓이고 다 차면 방어력 일부를 무시한다, W가 켜져 있으면 둘레 적에게도 들어간다(S153).
-# 아이아스: 요새화 중이면 확률로 기절시킨다(S151). 축복이 걸렸으면 맞은 곳에 마법 피해를 더한다(S152)
+# 아이아스: 요새화 중이면 확률로 기절시킨다(S151). 축복이 걸렸으면 맞은 곳에 마법 피해를 더한다(S152).
+# 원거리(사거리 RANGED칸 초과)는 맞을 적마다 투사체를 쏘고, 피해·축복은 닿을 때다(S178, I174). 중첩은 쏜 때 센다(I148)
 func _strike(u: Unit, foe: Enemy) -> void:
 	var hurt := u.damage * _might(u)
 	var ignore := 0.0
@@ -2337,6 +2424,10 @@ func _strike(u: Unit, foe: Enemy) -> void:
 			hit += more.slice(0, u.w.extra)
 		else:
 			u.toggle = false
+	if u.range > RANGED:
+		for e in hit:
+			_shoot(u, e, hurt, "phys", ignore, e == foe)
+		return
 	var at: Vector2 = foe.pos
 	for e in hit:
 		damage(e, hurt, "phys", u, ignore)

@@ -1,14 +1,16 @@
 extends RefCounted
-# 피격 반응(S177)의 «방금 맞음» 표가 근접은 돌진이 닿은 때부터, 원거리는 투사체가 닿은 때부터 세고, 영웅이 낀 타격은 닿은 때 3프레임 멈추는지 본다(WBS 4.1f).
+# 피격 반응(S177)의 «방금 맞음» 표가 근접은 돌진이 닿은 때부터, 원거리는 시뮬레이션 투사체가 닿은 때(battle.landed)부터 세고, 영웅이 낀 타격은 닿은 때 3프레임 멈추는지 본다(WBS 4.1f).
 # 지키는 요구:
 #   S177. 맞은 영웅·용병·적은 0.1초 흰 번쩍임과 공격자 반대쪽 밀림을 보이고, 영웅이 치거나 맞은 타격은 두 유닛의 그림만 3프레임 멈춘다.
-#   S178. 원거리 공격은 투사체로 그리고, 맞은 반응은 투사체가 닿는 때 난다.
+#   S178. 원거리 공격은 투사체로 그리고, 피해와 맞은 반응은 시뮬레이션 투사체가 닿는 때 난다(2026-10-25 변경).
 #   S179. 즉시 스킬은 쓴 곳·맞은 대상을 흔적으로 남기고, 스킬에 맞은 적도 피격 반응을 보인다.
 #   S180. 쓰러진 적·용병은 2초 동안 누운 몸으로 남고, 쓰러진 영웅은 복귀할 때까지 누운 몸으로 남는다.
 #   S198. 보스 스킬 발동과 보스 타격: 맞은 아군은 6px·0.25초 밀리고, 넉백은 미끄러지며(성벽 오르내리기는 빼고), 끊기면 조각이 흩어지고, 보스에 가린 영웅을 덧그린다.
 #   I171. 화면 사건 목록: 닿음은 공격 하나에 한 번, 처치는 쓰러진 대상을 노린 마지막 공격이 닿을 때(기다릴 공격이 없으면 바로) 난다.
+#         원거리는 시뮬레이션 투사체가 닿은 프레임에 투사체 하나에 한 번이다.
 
 const View := preload("res://src/ui/battle_view.gd")
+const Battle := preload("res://src/sim/battle.gd")
 const DT := 1.0 / 60.0
 
 # 빈 판(준비 단계)과 그 판을 그리는 화면. 배치를 끝내면 _go로 전투를 시작한다
@@ -23,6 +25,15 @@ func _board() -> Array:
 func _go(b, v) -> void:
 	b.start_battle()
 	v.tick(0.0)
+
+# 시뮬레이션과 화면 시계를 함께 dt만큼 n번 돌리며 그 사이 난 사건 종류를 모은다(원거리 공격은 시뮬레이션 투사체가 닿는 때를 정한다)
+func _play(b, v, n: int, dt: float) -> Array:
+	var got := []
+	for i in n:
+		b.step(dt)
+		v.tick(dt)
+		got.append_array(v.events.map(func(e): return e.kind))
+	return got
 
 # 화면 시계를 dt만큼 n번 돌리며 그 사이 난 사건 종류를 모은다. 시뮬레이션은 돌리지 않는다(공격자의 친 뒤 시간은 시험이 흘린다)
 func _ticks(v, n: int, dt: float, attackers := []) -> Array:
@@ -55,15 +66,19 @@ func test_contact_event_once_per_attack():
 	got = _ticks(v, 1, 0.1, [soldier]) + _ticks(v, 5, 0.1, [soldier])
 	if why == "" and (got.count("hit") != 1 or got.count("fire") != 1):
 		why = "새 공격을 0.1초씩 건너뛰었더니 닿음 %d번·쏨 %d번이다(1번씩이어야 한다)" % [got.count("hit"), got.count("fire")]
-	soldier.target = null
-	archer.target = foe
-	archer.cooldown = archer.attack_gap
-	var fly: float = v._contact(archer)
-	got = _ticks(v, int(ceilf(fly / DT)) + 1, DT, [archer])
-	foe.pos += Vector2(0, -3)  # 화살이 닿은 뒤 대상이 멀리 밀려 닿는 때가 늦어져도 다시 닿지 않는다
-	got += _ticks(v, 40, DT, [archer])
-	if why == "" and got.count("hit") != 1:
-		why = "화살 한 발에 닿음 사건이 %d번이다(닿은 뒤 대상이 밀려도 1번이어야 한다)" % got.count("hit")
+	v.free()
+	s = _board()  # 원거리: 궁수가 시뮬레이션에서 화살 한 발을 쏜다(공격 간격 1초라 0.9초 동안 한 발)
+	b = s[0]
+	v = s[1]
+	var far = b.spawn_enemy("basic", Vector2i(10, 5), {"speed": 0, "damage": 0, "hp": 1000})
+	b.place_merc("archer", Vector2i(10, 9))
+	v.tick(0.0)
+	got = _play(b, v, 3, DT)
+	if why == "" and got.has("hit"):
+		why = "화살이 4칸을 날아 닿기 전(0.05초)에 닿음 사건이 났다(%s)" % [got]
+	got += _play(b, v, 51, DT)
+	if why == "" and (got.count("hit") != 1 or got.count("fire") != 1 or far.hp == far.max_hp):
+		why = "화살 한 발에 쏨 %d번·닿음 %d번·과녁 체력 %s다(1번씩, 줄어야 한다)" % [got.count("fire"), got.count("hit"), far.hp]
 	v.free()
 	return why
 
@@ -73,23 +88,43 @@ func test_kill_event_waits_for_last_contact():
 	var v = s[1]
 	var foe = b.spawn_enemy("basic", Vector2i(10, 5), {"speed": 0, "damage": 0})
 	var other = b.spawn_enemy("basic", Vector2i(14, 5), {"speed": 0, "damage": 0})
-	var archer = b.place_merc("archer", Vector2i(10, 9))
+	var soldier = b.place_merc("soldier", Vector2i(9, 5))
 	_go(b, v)
-	archer.target = foe
-	archer.cooldown = archer.attack_gap  # 쏜 때 쓰러진다(시뮬레이션은 쏜 때 피해를 준다, S178)
+	soldier.target = foe
+	soldier.cooldown = soldier.attack_gap  # 친 때 쓰러진다(근접은 시뮬레이션이 친 때 피해를 준다)
 	b.damage(foe, 1e9, "true")
-	var fly: float = v._contact(archer)
 	var why := ""
-	var got := _ticks(v, int(fly / DT) - 1, DT, [archer])
+	var got := _ticks(v, 4, DT, [soldier])
 	if got.has("kill"):
-		why = "화살이 닿기 전(%s초)에 처치 사건이 났다(%s)" % [fly, got]
-	got = _ticks(v, 10, DT, [archer])
+		why = "근접이 돌진 끝(%s초)에 닿기 전에 처치 사건이 났다(%s)" % [View.CONTACT, got]
+	got = _ticks(v, 10, DT, [soldier])
 	if why == "" and (got.count("kill") != 1 or got.has("hit")):
-		why = "화살이 닿을 때 처치 사건 1번이어야 하는데 %s다" % [got]
+		why = "근접이 닿을 때 처치 사건 1번이어야 하는데 %s다" % [got]
 	b.damage(other, 1e9, "true")  # 노린 공격이 없는 죽음(지속 피해 같은)은 바로 처치 사건이다
 	got = _ticks(v, 1, DT)
 	if why == "" and got.count("kill") != 1:
 		why = "노린 공격 없이 쓰러진 적의 처치 사건이 다음 프레임에 %s다" % [got]
+	v.free()
+	s = _board()  # 원거리: 화살에 쓰러지면 쓰러진 그 프레임에 처치 사건이고 닿음 사건은 없다(S178)
+	b = s[0]
+	v = s[1]
+	var weak = b.spawn_enemy("basic", Vector2i(10, 5), {"speed": 0, "damage": 0, "hp": 1.0})
+	b.place_merc("archer", Vector2i(10, 9))
+	v.tick(0.0)
+	var frames := []
+	for i in 30:
+		b.step(DT)
+		v.tick(DT)
+		frames.append([weak.alive, v.events.map(func(e): return e.kind)])
+	var died: int = frames.map(func(f): return f[0]).find(false)
+	var kills := []
+	for i in frames.size():
+		if "kill" in frames[i][1]:
+			kills.append(i)
+		if why == "" and "hit" in frames[i][1]:
+			why = "화살에 쓰러진 적에게 닿음 사건이 났다(%d프레임)" % i
+	if why == "" and (died <= 0 or kills != [died]):
+		why = "화살에 쓰러진 프레임 %d인데 처치 사건 프레임이 %s다(그 프레임 한 번이어야 한다)" % [died, kills]
 	v.free()
 	return why
 
@@ -214,6 +249,19 @@ func _hit(v, attacker, target, ago: float):  # attacker가 ago초 전에 target�
 	attacker.cooldown = attacker.attack_gap - ago
 	return v.hit_table([attacker]).get(target.get_instance_id())
 
+# src가 쏜 투사체가 target에 닿고 age초 지난 것으로 battle.landed에 둔다
+func _arrow(b, src, target, age: float):
+	var m = Battle.Missile.new()
+	m.src = src
+	m.target = target
+	m.look = "arrow"
+	m.from = src.pos
+	m.pos = target.pos
+	m.at = target.pos
+	m.age = age
+	b.landed.append(m)
+	return m
+
 func test_hit_table_counts_from_contact_and_holds_hero_hits():
 	var b = load("res://src/sim/battle.gd").new({"size": Vector2i(20, 20), "base": Vector2i(18, 18), "base_hp": 100, "spawns": [Vector2i(0, 10)], "hero_start": Vector2i(5, 5), "waves": [[{"kind": "basic", "count": 1}]]})
 	b.gold = 1 << 20
@@ -228,13 +276,22 @@ func test_hit_table_counts_from_contact_and_holds_hero_hits():
 	var h = _hit(v, soldier, foe, View.CONTACT + 0.05)
 	if why == "" and (h == null or not is_equal_approx(h[0], 0.05) or not h[1].is_equal_approx(Vector2.RIGHT)):
 		why = "병사가 닿은 뒤 0.05초인데 표가 %s다(0.05초, 오른쪽으로 밀림이어야 한다)" % [h]
-	archer.target = foe
-	var fly: float = v._flight(archer)  # 궁수 손에서 적 몸통까지 화살이 나는 시간(S178)
-	if why == "" and _hit(v, archer, foe, View.CONTACT + fly - 0.02) != null:
-		why = "궁수(원거리)의 화살이 닿기 전에 맞은 것으로 셌다(나는 시간 %s초)" % fly
-	h = _hit(v, archer, foe, View.CONTACT + fly + 0.05)
-	if why == "" and (fly <= 0.0 or h == null or not is_equal_approx(h[0], 0.05)):
-		why = "궁수의 화살이 닿고 0.05초인데 표가 %s다(나는 시간 %s초)" % [h, fly]
+	if why == "" and _hit(v, archer, foe, View.CONTACT + 0.3) != null:
+		why = "궁수(원거리)를 친 뒤 시간으로 맞은 것으로 셌다(시뮬레이션 투사체가 닿아야 한다)"
+	var arrow = _arrow(b, archer, foe, 0.05)
+	h = v.hit_table([]).get(foe.get_instance_id())
+	if why == "" and (h == null or not is_equal_approx(h[0], 0.05) or not h[1].is_equal_approx(Vector2.UP)):
+		why = "궁수의 화살이 닿고 0.05초인데 표가 %s다(0.05초, 위로 밀림이어야 한다)" % [h]
+	arrow.src = b.hero  # 영웅이 쏜 투사체는 맞은 쪽만 3프레임 멈춘다(S177 → 2026-10-25 변경)
+	arrow.age = 0.03
+	h = v.hit_table([]).get(foe.get_instance_id())
+	if why == "" and (h == null or h[0] != 0.0):
+		why = "영웅이 쏜 화살이 닿고 0.03초(정지 중)인데 표가 %s다(0초여야 한다)" % [h]
+	arrow.age = View.HITSTOP + 0.02
+	h = v.hit_table([]).get(foe.get_instance_id())
+	if why == "" and (h == null or not is_equal_approx(h[0], 0.02)):
+		why = "영웅이 쏜 화살의 정지가 끝난 뒤 0.02초인데 표가 %s다" % [h]
+	b.landed.clear()
 	h = _hit(v, b.hero, foe, View.CONTACT + 0.03)
 	if why == "" and (h == null or h[0] != 0.0 or v._ago(b.hero) != View.CONTACT):
 		why = "영웅 타격 정지(3프레임) 중인데 대상 %s, 영웅 자세 시간 %s다(0초, 닿은 때여야 한다)" % [h, v._ago(b.hero)]
@@ -246,8 +303,7 @@ func test_hit_table_counts_from_contact_and_holds_hero_hits():
 		why = "적이 영웅을 친 타격도 멈춰야 하는데 표가 %s다" % [h]
 	soldier.target = foe
 	soldier.cooldown = soldier.attack_gap - (View.CONTACT + 0.1)
-	archer.target = foe
-	archer.cooldown = archer.attack_gap - (View.CONTACT + fly + 0.04)
+	_arrow(b, archer, foe, 0.04)
 	h = v.hit_table([soldier, archer]).get(foe.get_instance_id())
 	if why == "" and (h == null or not is_equal_approx(h[0], 0.04)):
 		why = "둘에게 맞으면 가장 최근 타격(0.04초)이어야 하는데 %s다" % [h]
@@ -310,14 +366,11 @@ func test_ranged_hero_one_fire_and_hit_while_target_closes_in():
 	var v = View.new()
 	v.battle = b
 	var foe = b.spawn_enemy("basic", Vector2i(9, 5), {"speed": 0, "damage": 0, "hp": 1000})
-	var sylvia = b.heroes[0]
-	_go(b, v)
-	sylvia.target = foe  # 대상 없이 서 있다가 첫 화살을 쏜다
-	sylvia.cooldown = sylvia.attack_gap
+	v.tick(0.0)  # 준비 단계에도 영웅은 사거리 안의 적을 친다. 대상 없이 서 있다가 첫 화살을 쏜다
 	var got := []
-	for i in 50:  # 적이 1칸/초로 다가오면 닿는 때가 줄어든다. 히트스톱 중에 이것을 새 공격으로 보면 안 된다
-		sylvia.cooldown -= DT
+	for i in 50:  # 적이 1칸/초로 다가와도 화살 한 발은 쏨·닿음 한 번씩이다
 		foe.pos.x -= DT
+		b.step(DT)
 		v.tick(DT)
 		got.append_array(v.events.map(func(e): return e.kind))
 	v.free()
