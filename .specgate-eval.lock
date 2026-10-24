@@ -1,6 +1,6 @@
 {
-  "approvedAt": "2026-10-23T02:16:27.661Z",
-  "evalMd": "9f2f5c4a",
+  "approvedAt": "2026-10-24T11:01:08.490Z",
+  "evalMd": "7c9a893c",
   "tests": {
     "tests/eval/conftest.py": "02db26c8",
     "tests/eval/gd/aura.gd": "010cc38a",
@@ -47,7 +47,7 @@
     "tests/eval/gd/map.gd.uid": "c812f8cf",
     "tests/eval/gd/menu.gd": "7f7fbc50",
     "tests/eval/gd/menu.gd.uid": "80c43e3a",
-    "tests/eval/gd/merc.gd": "de8d38b5",
+    "tests/eval/gd/merc.gd": "91a4aa91",
     "tests/eval/gd/merc.gd.uid": "5a159512",
     "tests/eval/gd/pathing.gd": "4f106467",
     "tests/eval/gd/pathing.gd.uid": "1e4fe822",
@@ -97,7 +97,7 @@
     "tests/eval/test_loop.py": "eb9dcfdc",
     "tests/eval/test_map.py": "9fd1d996",
     "tests/eval/test_menu.py": "6be25289",
-    "tests/eval/test_merc.py": "2a23139c",
+    "tests/eval/test_merc.py": "3b1a46e3",
     "tests/eval/test_pathing.py": "da8d306c",
     "tests/eval/test_production.py": "69098c5e",
     "tests/eval/test_quests.py": "674e3903",
@@ -132,7 +132,7 @@
     "S26": "f2a3c5c9",
     "S27": "e7c5ea7a",
     "I26": "34bc858a",
-    "S16": "58a9b73d",
+    "S16": "dfb6dd87",
     "S35": "cc8d6fe4",
     "S36": "8dea57e2",
     "I36": "1919e3bf",
@@ -246,7 +246,7 @@
     "I100": "3f3d4966",
     "I96": "2bc10e79",
     "I97": "9277e0d6",
-    "I102": "da805f64",
+    "I102": "db48be06",
     "S122": "199f81e4",
     "I109": "193223eb",
     "S123": "d870bf26",
@@ -349,6 +349,7 @@
     "S195": "4fec689f",
     "S194": "1f445e84",
     "I168": "fb82bf63",
-    "S196": "bcfa1a27"
+    "S196": "bcfa1a27",
+    "I9": "23995495"
   }
 }

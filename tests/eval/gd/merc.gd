@@ -93,3 +93,30 @@ func ev381():
 	for i in 2:
 		b.step(DT)
 	return check(still < 0.001 and m.pos.distance_to(p0) > 0.05, "쓰러뜨린 뒤 0.2초 움직임 %.3f칸 · 0.3초 %.3f칸" % [still, m.pos.distance_to(p0)])
+
+# EV388 · I9: 드래그 사각형이 영웅과 용병을 함께 고른다. 판매 후보에 영웅은 없고, 영웅이 여럿이면 Q는 출전 순서에서 앞선 영웅이 쓴다
+func ev388():
+	var b = battle({"heroes": [{"kind": "aias", "cell": Vector2i(12, 12)}, {"kind": "sylvia", "cell": Vector2i(5, 5)}]})
+	if b.state != "prep" or b.heroes.size() != 2:
+		return "준비 단계에 영웅 둘이 출전한 판이 아니다 (%s, %d명)" % [b.state, b.heroes.size()]
+	var first = b.heroes[0]
+	var second = b.heroes[1]
+	var inside := [Vector2i(6, 5), Vector2i(5, 6)].map(func(c): return b.place_merc("soldier", c))
+	var outside = b.place_merc("soldier", Vector2i(12, 13))
+	var c = controls(b)
+	var keyed := []
+	c.skill_keyed.connect(func(h, _slot): keyed.append(h))
+	drag(c, px(Vector2i(4, 4)), px(Vector2i(7, 7)))
+	var sel: Array = c.selected.duplicate()
+	var picked: bool = sel.size() == 3 and second in sel and inside.all(func(m): return m in sel) and not (first in sel) and not (outside in sel)
+	var sale: bool = c.selling.size() == 2 and inside.all(func(m): return m in c.selling)
+	c.skill_key("q")
+	click(c, MOUSE_BUTTON_RIGHT, px(Vector2i(20, 5)))
+	var sent: bool = sel.size() == 3 and sel.all(func(u): return not u.path.is_empty())
+	b.spawn_enemy("basic", Vector2i(29, 19), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})
+	b.start_battle()
+	drag(c, px(Vector2i(4, 4)), px(Vector2i(14, 14)))
+	var all: bool = c.selected.size() == 5 and first in c.selected and second in c.selected and outside in c.selected
+	c.skill_key("q")
+	var order: bool = keyed.size() == 2 and keyed[0] == second and keyed[1] == first
+	return check(picked and sale and sent and all and order, "준비 단계 드래그 %s(%d개) · 판매 후보 %s · 우클릭 이동 %s · 전투 단계 드래그 %s(%d개) · Q 쓴 영웅 순서 %s" % [picked, sel.size(), sale, sent, all, c.selected.size(), order])

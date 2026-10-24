@@ -28,3 +28,7 @@ def test_EV31_no_hold_chases(gd):
 
 def test_EV381_merc_stands_through_attack_pose(gd):
     gd("merc", "EV381")
+
+
+def test_EV388_drag_selects_heroes_too(gd):
+    gd("merc", "EV388")

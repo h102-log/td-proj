@@ -1,6 +1,6 @@
 extends RefCounted
 # 마우스·키 입력을 전투 명령으로 바꾼다. 마우스 좌표는 맵 px(칸 (x,y)가 [x, x+1) × cell_px)로 받는다.
-# 좌클릭: 영웅이나 생산 시설·성곽 칸·거점을 고르거나(I9, S81, S85, S86, S100) 선택을 푼다 · 좌드래그: 사각형 안의 용병을 고른다(S16, I9)
+# 좌클릭: 영웅이나 생산 시설·성곽 칸·거점을 고르거나(I9, S81, S85, S86, S100) 선택을 푼다 · 좌드래그: 사각형 안의 영웅과 용병을 고른다(S16, I9)
 # 우클릭: 생산 시설을 골랐으면 그 칸을 집결 지점으로(S82), 아니면 고른 유닛 이동(S14)
 # 준비 단계의 좌클릭·좌드래그는 판매 후보도 정한다(S70, I57). 좌클릭한 용병은 두 단계 모두 고른 상태가 된다(I135)
 # 전투 단계의 좌클릭·좌드래그는 철거·취소·이어 짓기 후보(picked)를 정한다(S74, S83)
@@ -160,9 +160,11 @@ func _release(rect: Rect2, at: Vector2) -> void:
 		facility = null
 		fort = null
 		village = false
-		selected = mercs.filter(func(u): return inside.call(u.pos))
+		var heroes: Array = battle.heroes.filter(func(h): return h.alive and inside.call(h.pos))  # 출전 순서대로 앞에 둔다. Q·W·E·R은 앞선 영웅이 쓴다(I9)
+		var picks: Array = mercs.filter(func(u): return inside.call(u.pos))
+		selected = heroes + picks
 		var built: Array = battle.structures.values().filter(func(s): return inside.call(Vector2(s.cell)))
-		selling = (selected + built) if prep else []
+		selling = (picks + built) if prep else []
 		picked = [] if prep else built
 
 # 출전 영웅 i를 고른다(I108). F키와 HUD 초상(I165)이 부른다. 쓰러진 영웅은 고르지 않는다. 우클릭이 집결 지점 대신 영웅을 옮기게 시설 선택을 푼다
@@ -193,11 +195,13 @@ func merc_key(kind: String, next := false) -> void:
 
 # 고른 용병의 이동 방식 전환(S35): 모두 «무조건 이동»이면 «이동 중 공격»으로, 아니면 모두 «무조건 이동»으로. A 키와 HUD 태그(I139)이 부른다
 func toggle_move_mode() -> void:
-	battle.set_move_mode(selected, "attack_move" if selected.all(func(u): return u.move_mode == "move") else "move")
+	var mercs := selected.filter(func(u): return not u.is_hero)  # 드래그로 함께 고른 영웅은 보지 않는다(I9)
+	battle.set_move_mode(mercs, "attack_move" if mercs.all(func(u): return u.move_mode == "move") else "move")
 
 # 고른 용병의 홀드 전환(S36). H 키와 HUD 태그(I139)이 부른다
 func toggle_hold() -> void:
-	battle.set_hold(selected, not selected.all(func(u): return u.hold))
+	var mercs := selected.filter(func(u): return not u.is_hero)
+	battle.set_hold(mercs, not mercs.all(func(u): return u.hold))
 
 # 스킬 키(S145, S147, S158). Q·W·E·R 키와 테스트가 부른다. shift면 자동 시전을 켜고 끈다.
 # 즉시·켜고 끄는 칸(그리고 태세 중인 반격의 태세)은 바로 쓰고, 고르는 칸은 지금 쓸 수 있을 때만 조준 상태가 된다
