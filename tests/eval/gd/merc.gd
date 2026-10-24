@@ -162,3 +162,71 @@ func ev392():
 	var aimed_foe: bool = two.all(func(u): return u.prey == foe)
 	return check(aimed and canceled and esc and marched and halted and hunted and dropped and aimed_foe,
 		"A 조준 %s · 우클릭 취소 %s · ESC 취소 %s · 땅 공격 이동 %s · S 정지 %s · 적 우클릭 대상 %s · S로 대상 비움 %s · A 뒤 적 좌클릭 대상 %s" % [aimed, canceled, esc, marched, halted, hunted, dropped, aimed_foe])
+
+# 마을(위쪽 0~5행) (10,3)에 병영, 기사 (5,5)·병사 (5,6), 움직이지 않는 적 (12,5)를 둔 준비 단계 판에서 (4,4)~(7,7)을 드래그해 기사와 병사를 고른다.
+# [판, controls, [기사, 병사], 병영]을 돌려준다
+func _picked_pair() -> Array:
+	var b = battle({"hero_start": Vector2i(5, 5), "village": Rect2i(0, 0, 30, 6), "waves": [[{"kind": "basic", "count": 1000}]]})
+	var f = b.build("barracks", Vector2i(10, 3))
+	var m = b.place_merc("soldier", Vector2i(5, 6))
+	b.spawn_enemy("basic", Vector2i(12, 5), {"speed": 0, "damage": 0, "sight": 0, "hp": BIG})
+	var c = controls(b)
+	drag(c, px(Vector2i(4, 4)), px(Vector2i(7, 7)))
+	return [b, c, [b.hero, m], f]
+
+# EV396 · S204: 고른 영웅·용병은 빈 땅이나 적을 좌클릭해도 그대로다. 구조물을 누르면 유닛 선택이 비고 그 구조물이 골라진다
+func ev396():
+	var s := _picked_pair()
+	var c = s[1]
+	var two: Array = s[2]
+	var f = s[3]
+	if f == null or two.has(null) or c.selected != two:
+		return "병영·병사를 두거나 기사와 병사를 함께 고르지 못했다(병영 %s · 고른 것 %d개)" % [f, c.selected.size()]
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(10, 10)))
+	var ground: bool = c.selected == two
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(12, 5)))
+	var foe: bool = c.selected == two
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(10, 3)))
+	var built: bool = c.selected.is_empty() and c.facility == f and c.selling == [f]
+	return check(ground and foe and built, "빈 땅 누름 뒤 그대로 %s · 적 누름 뒤 그대로 %s · 병영 누름에 비고 병영 골라짐 %s(고른 것 %d개)" % [ground, foe, built, c.selected.size()])
+
+# EV397 · S81: 전투 중 3 키로 병영을 골라도 고른 기사·병사는 그대로이고, 그때 우클릭은 집결 지점이 아니라 둘의 이동이다. A 뒤 땅 좌클릭은 공격 이동이다
+func ev397():
+	var s := _picked_pair()
+	var b = s[0]
+	var c = s[1]
+	var two: Array = s[2]
+	var f = s[3]
+	if f == null or two.has(null) or c.selected != two:
+		return "병영·병사를 두거나 기사와 병사를 함께 고르지 못했다(병영 %s · 고른 것 %d개)" % [f, c.selected.size()]
+	b.start_battle()
+	_key(c, KEY_3)
+	var kept: bool = c.facility == f and c.selected == two
+	var rally = f.rally
+	click(c, MOUSE_BUTTON_RIGHT, px(Vector2i(10, 12)))
+	var moved: bool = two.all(func(u): return not u.path.is_empty() and u.move_mode == "move") and f.rally == rally
+	_key(c, KEY_A)
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(12, 12)))
+	var marched: bool = two.all(func(u): return not u.path.is_empty() and u.move_mode == "attack_move")
+	return check(kept and moved and marched, "3 키 뒤 병영 골라짐·둘 그대로 %s(고른 것 %d개) · 우클릭에 둘 이동·집결 그대로 %s · A 뒤 땅 좌클릭 공격 이동 %s" % [kept, c.selected.size(), moved, marched])
+
+# EV398 · I173: 빈 드래그는 고른 것을 그대로 두고, 구조물만 든 드래그는 유닛 선택을 비우고 그 구조물을 판매 후보로 고른다.
+# 건설 격자의 잠긴 칸처럼 HUD가 거점을 고르면(pick_base) 고른 유닛은 그대로다. 고른 유닛이 없으면 우클릭은 고른 시설의 집결 지점이다
+func ev398():
+	var s := _picked_pair()
+	var c = s[1]
+	var two: Array = s[2]
+	var f = s[3]
+	if f == null or two.has(null) or c.selected != two:
+		return "병영·병사를 두거나 기사와 병사를 함께 고르지 못했다(병영 %s · 고른 것 %d개)" % [f, c.selected.size()]
+	drag(c, px(Vector2i(14, 14)), px(Vector2i(16, 16)))
+	var empty: bool = c.selected == two
+	drag(c, px(Vector2i(9, 2)), px(Vector2i(11, 4)))
+	var built: bool = c.selected.is_empty() and c.selling == [f]
+	drag(c, px(Vector2i(4, 4)), px(Vector2i(7, 7)))
+	c.pick_base()
+	var base: bool = c.village and c.selected == two
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(10, 3)))
+	click(c, MOUSE_BUTTON_RIGHT, px(Vector2i(15, 9)))
+	var rally: bool = c.facility == f and f.rally == Vector2i(15, 9) and two.all(func(u): return u.path.is_empty())
+	return check(empty and built and base and rally, "빈 드래그 뒤 그대로 %s · 병영만 든 드래그에 비고 판매 후보 %s · 거점 고르기 뒤 그대로 %s · 고른 유닛 없을 때 우클릭은 집결 %s" % [empty, built, base, rally])

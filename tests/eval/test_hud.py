@@ -204,3 +204,7 @@ def test_EV374_english_text_fits(gd):
 
 def test_EV389_camera_speed_and_arrow_keys(gd):
     gd("hud", "EV389")
+
+
+def test_EV399_escape_closes_map_popup_first(gd):
+    gd("hud", "EV399")

@@ -2304,3 +2304,22 @@ func ev389():
 	_done(main)
 	var ok := absf(edge - 160) <= 0.5 and absf(right.x - 160) <= 0.5 and absf(down.y - 160) <= 0.5 and absf(slow.x - 80) <= 0.5 and held.length() < 0.01
 	return check(ok, "가장자리 %.1f · → %s · ↓ %s · 속도 50%% → %s · 포커스 중 → %s (기대 x 160 · x 160 · y 160 · x 80 · 0)" % [edge, right, down, slow, held])
+
+# EV399 · S183: 맵 팝업이 떠 있으면 ESC는 그 팝업만 닫고 메뉴를 열지 않는다. 다음 ESC가 메뉴를 연다. 고른 영웅은 ESC로 풀리지 않는다
+func ev399():
+	var main = _prep()
+	var c = main.controls
+	var h = main.view.battle.heroes[0]
+	c.selected = [h]
+	c.village = true
+	_frame(main)
+	var shown: bool = not _pops(main).is_empty()
+	_key(KEY_ESCAPE)
+	var first: bool = not main.get_tree().paused and not c.village
+	_frame(main)
+	var hidden: bool = _pops(main).is_empty()
+	_key(KEY_ESCAPE)
+	var menu: bool = main.get_tree().paused
+	var kept: bool = c.selected == [h]
+	_done(main)
+	return check(shown and first and hidden and menu and kept, "거점 팝업 뜸 %s · 첫 ESC에 팝업만 닫힘(멈추지 않음) %s · 팝업 숨음 %s · 둘째 ESC에 메뉴 %s · 고른 영웅 그대로 %s" % [shown, first, hidden, menu, kept])

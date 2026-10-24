@@ -1,12 +1,15 @@
 extends RefCounted
 # 마우스·키 입력을 전투 명령으로 바꾼다. 마우스 좌표는 맵 px(칸 (x,y)가 [x, x+1) × cell_px)로 받는다.
-# 좌클릭: 영웅이나 생산 시설·성곽 칸·거점을 고르거나(I9, S81, S85, S86, S100) 선택을 푼다 · 좌드래그: 사각형 안의 영웅과 용병을 고른다(S16, I9)
-# 우클릭: 생산 시설을 골랐으면 그 칸을 집결 지점으로(S82), 아니면 고른 유닛에게 명령: 커서 0.7칸 안에 적이 있으면 대상 공격, 아니면 순수 이동(S14, S35)
+# 좌클릭: 영웅·용병이나 생산 시설·성곽 칸·거점을 고른다(I9, S81, S85, S86, S100). 빈 땅·적을 누르면 팝업만 닫고 고른 유닛은 그대로다(S204)
+# 좌드래그: 사각형 안의 영웅과 용병을 고른다(S16, I9). 유닛도 구조물도 없는 사각형은 빈 땅 클릭과 같다(I173)
+# 우클릭: 고른 유닛에게 명령: 커서 0.7칸 안에 적이 있으면 대상 공격, 아니면 순수 이동(S14, S35). 명령이 가면 표식을 띄운다(S205).
+# 살아 있는 고른 유닛 없이 생산 시설을 골랐으면 그 칸을 집결 지점으로(S82, I173)
 # 준비 단계의 좌클릭·좌드래그는 판매 후보도 정한다(S70, I57). 좌클릭한 용병은 두 단계 모두 고른 상태가 된다(I135)
 # 전투 단계의 좌클릭·좌드래그는 철거·취소·이어 짓기 후보(picked)를 정한다(S74, S83)
 # Q·W·E·R: 영웅 스킬(S145, I10). 고른 영웅이, 없으면 첫 영웅이 쓴다(S119). 즉시·켜고 끄는 칸은 바로 쓰고, 지점·방향·대상을 고르는 칸은
 # 조준 상태가 된다(퀵캐스트를 켜면 키를 누르는 순간 커서 자리에 쓴다, I158). 조준 중 좌클릭은 그 지점·대상에 쓰고, 우클릭·ESC는 취소한다(S147). Shift+키와 HUD 스킬 버튼 우클릭은 자동 시전을 켜고 끈다(S158, I151)
 # A: 공격 명령 조준(S35). 그동안 좌클릭은 땅이면 공격 이동·적이면 대상 공격이고, 우클릭·ESC는 취소한다 · S: 정지(S35) · H: 홀드 전환(S36) · V: 체력바 표시 전환(S73)
+# ESC: 조준·놓기·옮기기가 없으면 맵 팝업을 닫는다(S183). 고른 유닛은 풀지 않는다(S204)
 # F1·F2·F3: 출전 영웅 1·2·3을 고른다(I108)
 # 1 방벽 · 2 타워 · - 마법 타워(S110) · 3 용병 · 4 병영 · 5 공병 · 6 작업장 · 7 궁수(I71) · 8 대포(S92) · 9 사격장(S98) · 0 집(S103) · = 교회(I140): 놓기 모드. 그동안 좌클릭은 그 칸에 짓거나 놓고, 우클릭·ESC·같은 키는 모드를 끝낸다(사용자 2026-10-12, S186)
 # 전투 단계엔 구조물만 짓는다(공병이 가서 짓는다, S22). 단계가 바뀌면 모드가 끝난다
@@ -46,6 +49,7 @@ var aim_hero = null  # 조준 중인 칸을 쓸 영웅
 var attacking := false  # 공격 명령 조준 중(S35). A 키와 HUD 태그(I139)가 켠다
 var mouse := Vector2()  # 마지막 마우스 위치(맵 px). 화면이 조준 범위를 그린다
 var quickcast := false  # 퀵캐스트(I158): 조준하는 칸의 키를 누르는 순간 커서 자리에 쓴다. main이 설정(S184)에서 넣는다
+var order := {}  # 마지막으로 간 명령(S205): at(맵 px)·attack·foe. 명령마다 새 사전이라 화면이 is_same으로 새 명령을 안다
 var _state: String  # 마지막으로 본 판 단계. 바뀌면 놓기 모드를 끝낸다
 
 func _init(b, px: int) -> void:
@@ -86,6 +90,8 @@ func handle(event: InputEvent) -> void:
 			KEY_F1, KEY_F2, KEY_F3:
 				pick_hero(event.keycode - KEY_F1)
 			KEY_ESCAPE:
+				if placing == "" and moving == null and aiming == "" and not attacking:  # 취소할 것이 없으면 맵 팝업을 닫는다(S183)
+					_close_popups()
 				placing = ""
 				moving = null
 				aiming = ""
@@ -136,7 +142,7 @@ func handle(event: InputEvent) -> void:
 			_release(Rect2(_press, event.position - _press).abs(), event.position)
 	elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 		var cell := Vector2i((event.position / cell_px).floor())
-		if facility:
+		if facility and not selected.any(func(u): return u.alive):  # 고른 유닛이 있으면 시설을 골랐어도 유닛 명령이다(I173)
 			battle.set_rally(facility, cell)
 		else:
 			_command(event.position, false)
@@ -148,9 +154,10 @@ func _release(rect: Rect2, at: Vector2) -> void:
 	missing = ""
 	var mercs: Array = battle.units.filter(func(u): return not u.is_hero)
 	var prep: bool = battle.state == "prep"
+	var units := []  # 누르거나 끈 영웅·용병. 비었으면 고른 유닛은 그대로다(S204, I173)
 	if rect.size.length() < CLICK_SLOP:
 		var cell := Vector2i((rect.position / cell_px).floor())
-		selected = battle.heroes.filter(func(h): return h.alive and Vector2i(h.pos.round()) == cell).slice(0, 1)  # 클릭한 칸의 영웅(I9, I101)
+		units = battle.heroes.filter(func(h): return h.alive and Vector2i(h.pos.round()) == cell).slice(0, 1)  # 클릭한 칸의 영웅(I9, I101)
 		var hit = battle.structure_at(cell)
 		facility = hit if hit and not hit.produces.is_empty() and hit.complete else null
 		fort = battle.castle.get(cell, battle.rubble.get(cell))
@@ -161,9 +168,11 @@ func _release(rect: Rect2, at: Vector2) -> void:
 				hit = m
 		selling = [hit] if prep and hit else []
 		if hit in mercs:
-			selected = [hit]
-		if hit == null and fort == null and selected.is_empty() and BattleView.keep_rect(battle).has_point(rect.position):  # 망루 그림 안(S100)
+			units = [hit]
+		if hit == null and fort == null and units.is_empty() and BattleView.keep_rect(battle).has_point(rect.position):  # 망루 그림 안(S100)
 			village = true
+		if units.is_empty() and (hit or fort or village):  # 구조물·성곽 칸·거점을 누르면 유닛 선택이 빈다(S204)
+			selected = []
 	else:
 		var inside := func(p: Vector2): return rect.has_point((p + Vector2(0.5, 0.5)) * cell_px)
 		facility = null
@@ -171,10 +180,14 @@ func _release(rect: Rect2, at: Vector2) -> void:
 		village = false
 		var heroes: Array = battle.heroes.filter(func(h): return h.alive and inside.call(h.pos))  # 출전 순서대로 앞에 둔다. Q·W·E·R은 앞선 영웅이 쓴다(I9)
 		var picks: Array = mercs.filter(func(u): return inside.call(u.pos))
-		selected = heroes + picks
+		units = heroes + picks
 		var built: Array = battle.structures.values().filter(func(s): return inside.call(Vector2(s.cell)))
 		selling = (picks + built) if prep else []
 		picked = [] if prep else built
+		if units.is_empty() and not built.is_empty():  # 구조물만 든 사각형은 유닛 선택을 비운다(I173)
+			selected = []
+	if not units.is_empty():
+		selected = units
 
 # 출전 영웅 i를 고른다(I108). F키와 HUD 초상(I165)이 부른다. 쓰러진 영웅은 고르지 않는다. 우클릭이 집결 지점 대신 영웅을 옮기게 시설 선택을 푼다
 func pick_hero(i: int) -> void:
@@ -182,10 +195,26 @@ func pick_hero(i: int) -> void:
 	facility = null
 	hero_key.emit(i)
 
-# 거점을 고른다. 거점 칸을 좌클릭한 것과 같다(S100). 건설 격자의 마을 레벨로 잠긴 칸이 해결 길로 부른다(I132)
+# 거점을 고른다. 거점 칸을 좌클릭한 것과 같되 고른 유닛은 그대로다(S100, I173). 건설 격자의 마을 레벨로 잠긴 칸이 해결 길로 부른다(I132)
 func pick_base() -> void:
-	var at := (Vector2(battle.base.cell) + Vector2(0.5, 0.5)) * cell_px
+	_pick_at((Vector2(battle.base.cell) + Vector2(0.5, 0.5)) * cell_px)
+
+# HUD가 맵의 칸을 고른다(3·5·7의 시설, 잠긴 칸의 거점). 그 칸을 누른 것과 같되 고른 유닛은 그대로다(S81, I173)
+func _pick_at(at: Vector2) -> void:
+	var units := selected
 	_release(Rect2(at, Vector2.ZERO), at)
+	selected = units
+
+# 맵 팝업(시설·성곽·거점·판매·철거, I58)이 떠 있나. main은 이것이 없을 때만 ESC로 메뉴를 연다(S183)
+func popup_open() -> bool:
+	return facility != null or fort != null or village or not selling.is_empty() or not picked.is_empty()
+
+func _close_popups() -> void:
+	facility = null
+	fort = null
+	village = false
+	selling = []
+	picked = []
 
 # 전투 단계 용병 키(S81). 3·5·7과 건설 격자 용병 칸이 부른다. 그 용병을 파는 완성된 시설을 클릭한 것처럼 고르고(구매 팝업),
 # 그 종류의 시설을 고른 채면 한 명 산다. next(Shift)면 같은 종류의 다음 시설(지은 차례)을 고른다. 시설이 없으면 missing에 둔다
@@ -198,8 +227,7 @@ func merc_key(kind: String, next := false) -> void:
 		battle.recruit(facility, kind)
 		return
 	var f = sellers[(sellers.find(facility) + 1) % sellers.size()]
-	var at := (Vector2(f.cell) + Vector2(0.5, 0.5)) * cell_px
-	_release(Rect2(at, Vector2.ZERO), at)
+	_pick_at((Vector2(f.cell) + Vector2(0.5, 0.5)) * cell_px)
 	facility_key.emit(f)
 
 # 고른 영웅·용병이 있으면 공격 명령 조준을 켠다(S35). A 키와 HUD 태그(I139)가 부른다
@@ -214,13 +242,16 @@ func attack_key() -> void:
 func stop() -> void:
 	battle.stop(selected)
 
-# 고른 유닛에게 명령한다(S14, S35): 커서 0.7칸 안에 적이 있으면 가장 가까운 그 적을 대상 공격, 아니면 그 칸으로 이동(attack이면 공격 이동)
+# 고른 유닛에게 명령한다(S14, S35): 커서 0.7칸 안에 적이 있으면 가장 가까운 그 적을 대상 공격, 아니면 그 칸으로 이동(attack이면 공격 이동).
+# 살아 있는 고른 유닛이 있어 명령이 가면 표식을 남긴다(S205)
 func _command(px: Vector2, attack: bool) -> void:
 	var foe = _closest(battle.enemies, px / cell_px - Vector2(0.5, 0.5))
 	if foe:
 		battle.order_attack(selected, foe)
 	else:
 		battle.order_move(selected, Vector2i((px / cell_px).floor()), attack)
+	if selected.any(func(u): return u.alive):
+		order = {"at": px, "attack": attack or foe != null, "foe": foe}
 	if selected.any(func(u): return u.is_hero):
 		hero_sent.emit()
 

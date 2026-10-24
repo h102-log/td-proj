@@ -36,3 +36,15 @@ def test_EV388_drag_selects_heroes_too(gd):
 
 def test_EV392_attack_and_stop_commands(gd):
     gd("merc", "EV392")
+
+
+def test_EV396_selection_survives_ground_and_enemy_clicks(gd):
+    gd("merc", "EV396")
+
+
+def test_EV397_merc_key_keeps_units_selected(gd):
+    gd("merc", "EV397")
+
+
+def test_EV398_empty_drag_and_hud_picks_keep_units(gd):
+    gd("merc", "EV398")
