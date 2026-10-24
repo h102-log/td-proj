@@ -32,3 +32,7 @@ def test_EV381_merc_stands_through_attack_pose(gd):
 
 def test_EV388_drag_selects_heroes_too(gd):
     gd("merc", "EV388")
+
+
+def test_EV392_attack_and_stop_commands(gd):
+    gd("merc", "EV392")

@@ -34,5 +34,17 @@ def test_EV384_hero_stands_through_attack_pose(gd):
     gd("hero", "EV384")
 
 
-def test_EV385_blocked_hero_stops_and_fights(gd):
+def test_EV385_hero_sent_onto_enemy_arrives_and_fights(gd):
     gd("hero", "EV385")
+
+
+def test_EV391_blocked_hero_keeps_walking(gd):
+    gd("hero", "EV391")
+
+
+def test_EV393_hero_attack_move(gd):
+    gd("hero", "EV393")
+
+
+def test_EV394_target_attack(gd):
+    gd("hero", "EV394")

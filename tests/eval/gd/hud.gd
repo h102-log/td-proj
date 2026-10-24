@@ -977,72 +977,84 @@ func _tag_tip(tip, tag) -> String:
 	tip._process(0.25)
 	return _tip_text(tip) if tip.visible else ""
 
-# EV342 · I139: 용병을 고르면 오른쪽 가장자리 [616,182]·[616,208]에 글 없는 그림 태그 A·H가 뜨고, 상태 글은 툴팁이며, 누르면 A·H 키와 같고, 용병을 놓으면 숨는다
+# EV342 · I139: 영웅이나 용병을 고르면 오른쪽 가장자리 [616,182]·[616,208]에 공격 이동(A)·정지(S) 태그가, 용병을 고르면 [616,234]에 홀드(H) 태그가 뜬다.
+# 글 없는 그림 태그이고 툴팁이 있으며, 누르면 A·S·H 키와 같다. 홀드 태그 그림이 상태를 보인다
 func ev342():
 	var main = _prep()
 	var b = main.view.battle
 	var c = main.hud.controls
 	var tip = main.hud.tip
 	var tags = main.hud.get("tags")
-	if not tags is Array or tags.size() != 2 or not tags[0] is BaseButton or not tags[1] is BaseButton:
+	if not tags is Array or tags.size() != 3 or not tags.all(func(t): return t is BaseButton):
 		_done(main)
-		return "main.hud.tags가 BaseButton 둘이 아니다"
+		return "main.hud.tags가 BaseButton 셋이 아니다"
 	var m1 = b.place_merc("soldier", Vector2i(20, 14))
 	var m2 = b.place_merc("soldier", Vector2i(21, 14))
 	if m1 == null or m2 == null:
 		_done(main)
 		return "준비 단계에 용병을 놓지 못했다"
-	b.set_move_mode([m1, m2], "attack_move")
 	b.set_hold([m1, m2], false)
 	c.selected = [m1]
 	main.hud._process(0.0)
 	var out := ""
-	for i in 2:
+	for i in 3:
 		var r: Rect2 = tags[i].get_global_rect()
 		var want := Rect2(616, 182 + 26 * i, 24, 24)
-		var key: String = "AH"[i]
+		var key: String = "ASH"[i]
 		if not tags[i].is_visible_in_tree() or r.position.distance_to(want.position) > 0.5 or r.size.distance_to(want.size) > 0.5:
 			out = "%s 태그 %s · 보임 %s(기대 %s)" % [key, r, tags[i].is_visible_in_tree(), want]
 		elif tags[i].text != "" or " ".join(_labels(tags[i])) != key or _look(tags[i])[0] == null:
 			out = "%s 태그: 버튼 글 «%s» · 보이는 글 %s · 그림 %s(기대: 버튼 글 없음, 보이는 글은 키 글자 하나, 그림 있음)" % [key, tags[i].text, _labels(tags[i]), _look(tags[i])[0]]
 		if out != "":
 			break
-	var attack := _look(tags[0])
-	var off := _look(tags[1])
+	var off := _look(tags[2])
 	if out == "":
-		var said := _tag_tip(tip, tags[0])
-		if not "이동 중 공격" in said or "무조건 이동" in said:
-			out = "이동 중 공격인 용병의 A 태그 툴팁이 «%s»다" % said
+		var said := [_tag_tip(tip, tags[0]), _tag_tip(tip, tags[1]), _tag_tip(tip, tags[2])]
+		if not "공격 이동" in said[0] or not "정지" in said[1] or not "홀드 끔" in said[2]:
+			out = "툴팁 A «%s» · S «%s» · H «%s»" % said
 	if out == "":
 		tags[0].pressed.emit()
-		main.hud._process(0.0)
-		var said := _tag_tip(tip, tags[0])
-		if m1.move_mode != "move" or _look(tags[0]) == attack or not "무조건 이동" in said or "이동 중 공격" in said:
-			out = "A 태그를 누른 뒤: 이동 방식 %s · 그림이 그대로 %s · 툴팁 «%s»" % [m1.move_mode, _look(tags[0]) == attack, said]
+		var aimed: bool = c.attacking
+		_key(KEY_ESCAPE)
+		if not aimed or c.attacking or _paused():
+			out = "A 태그를 누른 뒤 공격 명령 조준 %s · ESC 뒤 조준 %s · 멈춤 %s" % [aimed, c.attacking, _paused()]
 	if out == "":
-		_key(KEY_A)
-		main.hud._process(0.0)
-		out = check(m1.move_mode == "attack_move" and _look(tags[0]) == attack, "A 키를 넣자 이동 방식이 %s · 그림이 처음과 같음 %s다(태그를 누른 것과 A 키가 같은 전환이 아니다)" % [m1.move_mode, _look(tags[0]) == attack])
-	if out == "":
+		b.order_move([m1], Vector2i(24, 14))
+		var walking: bool = not m1.path.is_empty()
 		tags[1].pressed.emit()
-		main.hud._process(0.0)
-		var said := _tag_tip(tip, tags[1])
-		if not m1.hold or _look(tags[1]) == off or not "홀드 켬" in said or "홀드 끔" in said:
-			out = "H 태그를 누른 뒤: 홀드 %s · 그림이 그대로 %s · 툴팁 «%s»" % [m1.hold, _look(tags[1]) == off, said]
+		if not walking or not m1.path.is_empty():
+			out = "S 태그: 누르기 전 걷는 중 %s · 누른 뒤 걸을 길 %s" % [walking, m1.path]
 	if out == "":
-		b.set_move_mode([m2], "move")
+		tags[2].pressed.emit()
+		main.hud._process(0.0)
+		var said := _tag_tip(tip, tags[2])
+		if not m1.hold or _look(tags[2]) == off or not "홀드 켬" in said or "홀드 끔" in said:
+			out = "H 태그를 누른 뒤: 홀드 %s · 그림이 그대로 %s · 툴팁 «%s»" % [m1.hold, _look(tags[2]) == off, said]
+	if out == "":
+		_key(KEY_H)
+		main.hud._process(0.0)
+		out = check(not m1.hold and _look(tags[2]) == off, "H 키를 넣자 홀드 %s · 그림이 처음과 같음 %s다(태그를 누른 것과 H 키가 같은 전환이 아니다)" % [m1.hold, _look(tags[2]) == off])
+	if out == "":
+		b.set_hold([m2], true)
 		c.selected = [m1, m2]
 		main.hud._process(0.0)
-		var said_a := _tag_tip(tip, tags[0])
-		var said_h := _tag_tip(tip, tags[1])
-		if not "섞임" in said_a or not "섞임" in said_h or _look(tags[0]) == attack:
-			out = "상태가 섞인 두 용병: A 툴팁 «%s» · H 툴팁 «%s» · A 그림이 이동 중 공격과 같음 %s" % [said_a, said_h, _look(tags[0]) == attack]
+		var said := _tag_tip(tip, tags[2])
+		if not "섞임" in said:
+			out = "홀드가 섞인 두 용병: H 툴팁 «%s»" % said
+	if out == "":
+		c.selected = [b.heroes[0]]
+		main.hud._process(0.0)
+		if not tags[0].is_visible_in_tree() or not tags[1].is_visible_in_tree() or tags[2].is_visible_in_tree():
+			out = "영웅만 고름: A %s · S %s · H %s(기대 A·S만 보임)" % [tags[0].is_visible_in_tree(), tags[1].is_visible_in_tree(), tags[2].is_visible_in_tree()]
 	if out == "":
 		c.selected = []
 		main.hud._process(0.0)
-		out = check(not tags[0].is_visible_in_tree() and not tags[1].is_visible_in_tree(), "용병을 놓았는데 태그가 보인다")
+		out = check(not tags.any(func(t): return t.is_visible_in_tree()), "고른 것을 비웠는데 태그가 보인다")
 	_done(main)
 	return out
+
+func _paused() -> bool:
+	return Engine.get_main_loop().paused
 
 # 팝업 안의 보이는 버튼
 func _pops(main) -> Array:

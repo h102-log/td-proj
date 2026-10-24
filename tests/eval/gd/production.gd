@@ -141,3 +141,21 @@ func ev68():
 	click(c, MOUSE_BUTTON_LEFT, px(F))
 	click(c, MOUSE_BUTTON_RIGHT, px(R2))
 	return check(f.rally == R2, "집결 지점이 %s다(기대 %s)" % [f.rally, R2])
+
+# EV395 · I38: 시설에서 산 용병은 집결 지점까지 공격 이동으로 걷는다(가는 길에 사거리에 든 적 앞에 서서 친다)
+func ev395():
+	var b = _battle()
+	var f = b.build("barracks", F)
+	b.set_rally(f, R1)
+	b.start_battle()
+	var m = b.recruit(f)
+	if m == null or m.path.size() < 4:
+		return "사지 못했거나 집결 길이 짧다(%s)" % [m.path if m else null]
+	var foe = b.spawn_enemy("basic", m.path[3], {"speed": 0, "damage": 0, "sight": 0, "hp": BIG})
+	var hit := run(b, 30.0, func():
+		for e in b.enemies.duplicate():
+			if e != foe:
+				b.damage(e, BIG)
+		return foe.hp < foe.max_hp)
+	var left: float = m.pos.distance_to(Vector2(R1))
+	return check(hit and left > 1.0, "길 위 적 체력이 줄었나 %s · 그때 병사와 집결 지점 거리 %.2f" % [hit, left])

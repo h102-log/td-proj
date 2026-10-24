@@ -36,3 +36,7 @@ def test_EV67_battle_click_picks_facility(gd):
 
 def test_EV68_right_click_sets_rally(gd):
     gd("production", "EV68")
+
+
+def test_EV395_rally_walk_is_attack_move(gd):
+    gd("production", "EV395")
