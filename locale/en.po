@@ -67,6 +67,9 @@ msgstr "Hints"
 msgid "음량"
 msgstr "Volume"
 
+msgid "카메라 속도"
+msgstr "Camera Speed"
+
 msgid "언어"
 msgstr "Language"
 

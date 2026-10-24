@@ -3,6 +3,8 @@ extends "res://tests/eval/gd/save.gd"
 #   res://src/menu.tscn — 진입 장면(메인 메뉴). 붙일 때 저장이 있는지 보고 «이어하기»를 켠다
 #     «새 게임»(저장이 있으면 확인 창 «취소»·«지우고 새 게임»)·«이어하기»·«설정»·«종료»
 #   설정 화면: 켜고 끄는 버튼 «퀵캐스트»·«부활»·«전체화면», 글자 «음량» 옆의 HSlider(0~100, 10씩), «뒤로»
+#     글자 «카메라 속도» 옆의 HSlider(50~200, 25씩, S184). 음량 슬라이더보다 뒤에 있다(첫 슬라이더가 음량이다)
+#   res://src/settings.gd — static var camera_speed(%, 기본 100)
 #   res://src/settings.gd — static var quickcast · revive · fullscreen(null이면 아직 고르지 않음) · volume(0~100)
 #     load_file()(파일이 없으면 기본값) · save_file() · fullscreen_at_start(내보낸 빌드) -> bool
 #   Controls.quickcast — 퀵캐스트(I158) · Battle.revive — 부활(I28)
@@ -49,8 +51,8 @@ func _reachable(node: Node, page: String) -> String:
 			return "%s의 %s가 키보드 포커스를 받지 않는다" % [page, n.get("text") if n is BaseButton else n.get_class()]
 		if n is BaseButton and n.text == "":
 			return "%s에 글자 없는 버튼이 있다" % page
-		if n is Range and not n.get_parent().get_children().any(func(s): return s is Label and s.text == "음량"):
-			return "%s의 슬라이더 옆에 «음량» 글자가 없다" % page
+		if n is Range and not n.get_parent().get_children().any(func(s): return s is Label and s.text in ["음량", "카메라 속도"]):
+			return "%s의 슬라이더 옆에 «음량»이나 «카메라 속도» 글자가 없다" % page
 	return ""
 
 # EV310 · S182: 메인 메뉴의 네 버튼, 이어하기 켜짐·포커스, 새 게임 확인 창
@@ -410,3 +412,52 @@ func _hangul(node: Node) -> String:
 
 func _shows(node: Node, part: String) -> bool:
 	return _screen_texts(node).any(func(t): return part in t)
+
+# 글자 text 옆의 보이는 슬라이더
+func _slider_by(node: Node, text: String):
+	for n in node.find_children("*", "HSlider", true, false):
+		if n.is_visible_in_tree() and n.get_parent().get_children().any(func(s): return s is Label and s.text == text):
+			return n
+	return null
+
+# node의 «설정»을 눌러 «카메라 속도» 슬라이더가 50~200·25씩이고 값이 want인지 본다. 어긋난 것을 설명하는 문장, 없으면 ""
+func _camera_row(node: Node, where: String, want: int) -> String:
+	if not _press(node, "설정"):
+		return "%s에 «설정»이 없다" % where
+	var s = _slider_by(node, "카메라 속도")
+	if s == null:
+		return "%s의 설정에 «카메라 속도» 슬라이더가 없다" % where
+	if [s.min_value, s.max_value, s.step, s.value] != [50.0, 200.0, 25.0, float(want)]:
+		return "%s의 카메라 속도 슬라이더가 %s다(기대 범위 50~200·25씩·값 %d)" % [where, [s.min_value, s.max_value, s.step, s.value], want]
+	return ""
+
+# EV390 · S184: 카메라 속도 설정의 기본값·저장·불러오기, 두 메뉴의 «카메라 속도» 슬라이더
+func ev390():
+	var st = _settings()
+	if st.get("camera_speed") != 100:
+		return "설정 파일이 없을 때 카메라 속도가 %s다(기대 100)" % st.get("camera_speed")
+	st.camera_speed = 50
+	st.save_file()
+	st.camera_speed = 100
+	st.load_file()
+	if st.camera_speed != 50:
+		_settings()
+		return "저장한 카메라 속도 50을 다시 읽으니 %d다" % st.camera_speed
+	var m = _menu()
+	var why := _camera_row(m, "메인 메뉴", 50)
+	m.free()
+	if why == "":
+		var main = _game()
+		main.view.battle.next_round()
+		_frame(main)
+		_key(KEY_ESCAPE)
+		why = _camera_row(main, "ESC 메뉴", 50)
+		if why == "":
+			_slider_by(main, "카메라 속도").value = 150
+			st.camera_speed = 100
+			st.load_file()
+			if st.camera_speed != 150:
+				why = "ESC 메뉴에서 150으로 바꾼 카메라 속도를 다시 읽으니 %d다" % st.camera_speed
+		_done(main)
+	_settings()
+	return why

@@ -6,6 +6,7 @@ static var quickcast := false  # 퀵캐스트(S147, I158)
 static var revive := true  # 부활(I28)
 static var fullscreen = null  # 창 모드. null이면 아직 고르지 않았다(첫 실행은 S163대로)
 static var volume := 100  # 마스터 음량(%)
+static var camera_speed := 100  # 카메라 속도(%, S184). 가장자리·방향키 이동 속도에 곱한다(S53)
 static var hints := true  # 처음 하는 사람 힌트(S191)
 static var hints_done := []  # 끝낸 힌트 이름(I166). 설정 파일의 hints 칸에 둔다
 static var language := "ko"  # 게임 글의 언어 «ko»·«en»(S193). 설정 파일에 없으면 OS 언어로 정한다
@@ -19,6 +20,7 @@ static func load_file() -> void:
 	revive = c.get_value("settings", "revive", true)
 	fullscreen = c.get_value("settings", "fullscreen") if c.has_section_key("settings", "fullscreen") else null
 	volume = c.get_value("settings", "volume", 100)
+	camera_speed = c.get_value("settings", "camera_speed", 100)
 	hints = c.get_value("settings", "hints", true)
 	hints_done = c.get_value("hints", "done", [])
 	language = c.get_value("settings", "language", default_language(OS.get_locale()))
@@ -31,6 +33,7 @@ static func save_file() -> void:
 	c.set_value("settings", "revive", revive)
 	c.set_value("settings", "fullscreen", fullscreen)  # null이면 칸이 생기지 않는다
 	c.set_value("settings", "volume", volume)
+	c.set_value("settings", "camera_speed", camera_speed)
 	c.set_value("settings", "hints", hints)
 	c.set_value("hints", "done", hints_done)
 	c.set_value("settings", "language", language)

@@ -1,13 +1,14 @@
 extends Camera2D
-# 마우스 휠로 1·2·3배 정수배 줌(S52), 창 가장자리에 마우스를 대면 그쪽으로 이동(S53), 휠 버튼 드래그로 이동(S68).
+# 마우스 휠로 1·2·3배 정수배 줌(S52), 창 가장자리에 마우스를 대거나 방향키를 누르면 그쪽으로 이동(S53), 휠 버튼 드래그로 이동(S68).
 # HUD 버튼 위에서는 가장자리 이동을 멈추고, 위쪽 가장자리는 창 맨 위 4 창 px만 친다(S53).
 # 맵 밖은 아래로 건설 격자 높이만큼만 보인다(I50).
 
+const Settings := preload("res://src/settings.gd")
 const ZOOMS := [1, 2, 3]
 const EDGE := 16.0      # 가장자리로 치는 폭(창 px)
 const TOP_EDGE := 4.0   # 위쪽 가장자리로 치는 폭(창 px, S53 임시값). 위 띠 버튼을 누르러 가다 화면이 움직이지 않게
 const BOTTOM := 72.0    # 아래로 맵 밖을 보이는 높이(화면 px, I50). 건설 격자(S186) 높이라 맨 아래 출현 지점이 격자에 가리지 않는다
-const SPEED := 320.0    # 초당 이동 거리(화면 px)
+const SPEED := 640.0  # 초당 이동 거리(화면 px). 설정 «카메라 속도»(%)를 곱한다(S53)
 const FOCUS := Vector2(320, 194)  # HUD가 카메라를 대상으로 옮길 때 대상이 오는 화면 자리(I164). 위 띠 아래 빈 영역 가운데
 
 var map_px: Vector2     # 맵 크기(월드 px)
@@ -35,6 +36,15 @@ func _process(delta: float) -> void:
 	# [동작] 마우스가 창 밖에 있어도 화면 좌표로 읽어 가장자리를 넘어간 쪽으로 계속 움직인다
 	# [이유] 창 모드에서 가장자리를 넘어가면 멈춰서 스크롤이 잘 안 된다는 1차 시험 피드백(사용자 2026-10-12)
 	scroll(Vector2(DisplayServer.mouse_get_position() - w.position), Vector2(w.size), delta)
+	keys(delta)
+
+# 방향키 이동(S53). 버튼에 키보드 포커스가 있으면(영입 창·결과 창, I110) 방향키는 그 버튼이 쓴다
+func keys(delta: float) -> void:
+	if get_tree().root.gui_get_focus_owner() != null:
+		return
+	var dir := Vector2(int(Input.is_key_pressed(KEY_RIGHT)) - int(Input.is_key_pressed(KEY_LEFT)), int(Input.is_key_pressed(KEY_DOWN)) - int(Input.is_key_pressed(KEY_UP)))
+	if dir != Vector2.ZERO:
+		pan(dir, delta)
 
 # 가장자리 이동(S53). 커서가 HUD 버튼 위면 멈춘다. HUD는 루트 뷰포트에 있어 그 호버를 본다
 func scroll(m: Vector2, size: Vector2, delta: float) -> void:
@@ -51,7 +61,7 @@ static func edge_dir(m: Vector2, size: Vector2) -> Vector2:
 # dir 방향으로 delta초만큼 옮기고 맵 안에 가둔다. 아래만 BOTTOM ÷ 줌만큼 맵 밖으로 나간다(I50)
 func pan(dir: Vector2, delta: float) -> void:
 	var half := get_viewport_rect().size / 2 / zoom.x
-	position = (position + dir * SPEED * delta / zoom.x).clamp(half, map_px - half + Vector2(0, BOTTOM / zoom.x))
+	position = (position + dir * SPEED * Settings.camera_speed / 100.0 * delta / zoom.x).clamp(half, map_px - half + Vector2(0, BOTTOM / zoom.x))
 
 # 맵 px의 대상을 화면 FOCUS에 놓고 경계 안으로 당긴다(I164)
 func focus(at: Vector2) -> void:

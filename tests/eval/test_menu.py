@@ -36,3 +36,7 @@ def test_EV370_language_default_and_persist(gd):
 
 def test_EV371_language_setting_switches_menu(gd):
     gd("menu", "EV371")
+
+
+def test_EV390_camera_speed_setting(gd):
+    gd("menu", "EV390")
