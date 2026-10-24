@@ -518,13 +518,18 @@ func begin_hiring() -> void:
 func hiring_open() -> bool:
 	return state in ["hiring", "cleared"]
 
-# 목록을 모두 새로 뽑는다(I103): 칸마다 영웅이 있는 등급만 등장 확률 비율대로 고르고, 그 등급의 영웅 가운데 하나를 같은 확률로 고른다
+# 목록을 모두 새로 뽑는다(I103): 칸마다 보유하지 않았고 이 목록에 아직 없는 영웅이 후보다. 후보가 있는 등급만 등장 확률 비율대로 고르고,
+# 그 등급의 후보 가운데 하나를 같은 확률로 고른다. 후보가 없으면 빈 칸이다
 func _draw_offers() -> void:
 	offers.clear()
-	var odds := PackedFloat32Array(range(HIRE.odds.size()).map(func(g): return HIRE.odds[g] if HERO_KINDS.values().any(func(s): return s.grade == g + 1) else 0.0))
 	for i in HIRE.slots:
+		var free := HERO_KINDS.keys().filter(func(k): return not k in offers and not roster.any(func(h): return h.kind == k))
+		if free.is_empty():
+			offers.append("")
+			continue
+		var odds := PackedFloat32Array(range(HIRE.odds.size()).map(func(g): return HIRE.odds[g] if free.any(func(k): return HERO_KINDS[k].grade == g + 1) else 0.0))
 		var grade: int = _rng.rand_weighted(odds) + 1
-		var kinds := HERO_KINDS.keys().filter(func(k): return HERO_KINDS[k].grade == grade)
+		var kinds := free.filter(func(k): return HERO_KINDS[k].grade == grade)
 		offers.append(kinds[_rng.randi_range(0, kinds.size() - 1)])
 
 # 목록의 i번째 영웅을 영입한다(S54). 빈 칸이거나, 골드가 모자라거나(I104), 보유 상한(S123)이면 거부한다

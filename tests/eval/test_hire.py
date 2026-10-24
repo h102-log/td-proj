@@ -48,3 +48,7 @@ def test_EV203_lineup_order_and_hero_hotkeys(gd):
 
 def test_EV232_reroll_refused_at_roster_cap(gd):
     gd("hire", "EV232")
+
+
+def test_EV400_offers_have_no_duplicates_or_owned(gd):
+    gd("hire", "EV400")
