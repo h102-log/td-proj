@@ -125,7 +125,7 @@ class Enemy:
 			set(key, stats[key])
 		max_hp = hp
 
-# 영웅과 용병(I1). 스킬은 영웅만, 이동 방식·홀드는 용병만 쓴다(S16)
+# 영웅과 용병(I1). 스킬은 영웅만, 홀드는 용병만 쓴다(S16)
 class Unit:
 	var kind: String
 	var pos: Vector2  # 칸 단위, Enemy.pos와 같다
@@ -147,7 +147,9 @@ class Unit:
 	var job  # 공병이 맡은 구조물(짓거나 허문다, I63). 놀고 있으면 null
 	var sight := 0.0  # 인식 범위(칸). 서 있을 때 이 안의 적을 쫓는다(I36, 영웅은 S141)
 	var path: Array[Vector2i] = []  # 명령받은 이동 경로(지금 칸 제외)
-	var move_mode := "attack_move"  # "move" | "attack_move"(S35). 새 용병은 이동 중 공격(I38)
+	var move_mode := "attack_move"  # 지금 걷는 길의 명령: "move" 순수 이동(S14) | "attack_move" 공격 이동(S35)
+	var prey  # 대상 공격(S35)하는 적. 없으면 null
+	var chase_to: Vector2i  # 대상에게 가는 길을 구한 칸. 대상이 여기서 1칸 넘게 옮기면 다시 구한다
 	var hold := false  # 켜지면 anchor에서 hold_radius 안에서만 싸운다(S36)
 	var hold_radius := 0.0
 	var anchor: Vector2  # 홀드 기준 지점(I37)
@@ -727,21 +729,54 @@ func place_merc(kind: String, cell: Vector2i, overrides := {}):
 func _merc_cell(cell: Vector2i) -> bool:
 	return grid.is_in_boundsv(cell) and cell != base.cell and (not grid.block_at(cell) or (castle.has(cell) and not structures.has(cell)))
 
-# 유닛들을 그 칸으로 보낸다(S14). 맵 밖 칸이면 무시한다. 성곽 칸이면 성벽 위의 그 칸으로 간다(I69)
-func order_move(group: Array, cell: Vector2i) -> void:
+# 유닛들을 그 칸으로 보낸다(S14). attack이면 공격 이동, 아니면 순수 이동이다(S35). 맵 밖 칸이면 무시한다. 성곽 칸이면 성벽 위의 그 칸으로 간다(I69)
+func order_move(group: Array, cell: Vector2i, attack := false) -> void:
 	if not grid.is_in_boundsv(cell):
 		return
-	grid.wall_k = UNIT_WALL_K
-	_wall.fill_solid_region(_wall.region)  # 부서진 성곽 칸이 빠지게 매번 새로 깐다
-	for c in castle:
-		_wall.set_point_solid(c, false)
+	_unit_paths()
 	for u in group:
-		u.rally_from = null
-		u.order = null  # 걸어가서 쓰려던 스킬은 그만둔다(S147)
-		if u.job:  # 공병은 하던 일을 그만둔다(I63)
-			_release(u.job)
+		_drop_orders(u)
+		u.move_mode = "attack_move" if attack else "move"
 		if u.alive:
 			_route(u, cell)
+
+# 유닛들이 적 e를 대상 공격한다(S35). 걸어가는 동안은 순수 이동처럼 다른 적을 치지 않는다
+func order_attack(group: Array, e: Enemy) -> void:
+	_unit_paths()
+	for u in group:
+		_drop_orders(u)
+		u.move_mode = "move"
+		if u.alive:
+			u.prey = e
+			u.chase_to = Vector2i(e.pos.round())
+			_route(u, u.chase_to)
+
+# 정지(S35): 명령을 지우고 그 자리에 선다
+func stop(group: Array) -> void:
+	for u in group:
+		_drop_orders(u)
+		_halt(u)
+
+# 앞선 명령을 지운다: 집결(I22)·걸어가서 쓰려던 스킬(S147)·대상 공격(S35)·공병의 일(I63)
+func _drop_orders(u: Unit) -> void:
+	u.rally_from = null
+	u.order = null
+	u.prey = null
+	if u.job:
+		_release(u.job)
+
+func _halt(u: Unit) -> void:
+	u.path.clear()
+	u.after.clear()
+	u.anchor = u.pos
+	u.rally_from = null
+
+# 유닛 경로를 구하기 전에 부른다. 부서진 성곽 칸이 빠지게 성벽 위 격자를 매번 새로 깐다
+func _unit_paths() -> void:
+	grid.wall_k = UNIT_WALL_K
+	_wall.fill_solid_region(_wall.region)
+	for c in castle:
+		_wall.set_point_solid(c, false)
 
 # 땅과 성벽 위를 오가면 path 끝(성문 안쪽 칸이나 성문 칸)에서 오르내린 뒤 after를 걷는다(I44).
 # 오르내릴 성문은 «땅 위 경로 비용 + 성벽 위 걸음 수»가 가장 작은 곳이다(I69)
@@ -751,7 +786,7 @@ func _route(u: Unit, cell: Vector2i) -> void:
 	u.path.clear()
 	u.after.clear()
 	if u.on_wall == up:
-		u.path = (_wall.get_id_path(from, cell) if up else grid.path(from, cell)).slice(1)
+		u.path = (_wall.get_id_path(from, cell) if up else _short(grid.path(from, cell))).slice(1)
 		return
 	var best := INF
 	for g in castle:
@@ -759,12 +794,21 @@ func _route(u: Unit, cell: Vector2i) -> void:
 		if s == null:
 			continue
 		var top: Array[Vector2i] = _wall.get_id_path(from, g) if u.on_wall else _wall.get_id_path(g, cell)
-		var ground: Array[Vector2i] = grid.path(s, cell) if u.on_wall else grid.path(from, s)
+		var ground: Array[Vector2i] = _short(grid.path(s, cell)) if u.on_wall else grid.path(from, s)
 		var cost := _cost(ground) + top.size()
 		if not top.is_empty() and cost < best:
 			best = cost
 			u.path = (top if u.on_wall else ground).slice(1)
 			u.after = ground if u.on_wall else top
+
+# 목적지 칸이 들어갈 수 없는 칸(구조물·거점)이면 길은 그 앞 칸에서 끝난다(S14). 에너지 성벽은 아군이 지나간다(I142)
+func _short(p: Array[Vector2i]) -> Array[Vector2i]:
+	while p.size() > 1:
+		var b = grid.block_at(p.back())
+		if p.back() != base.cell and (b == null or b.kind == "barrier"):
+			break
+		p.pop_back()
+	return p
 
 # 성문 바로 안쪽(마을 쪽) 칸. 성문이 아니거나 마을에 닿지 않으면 null(I44)
 func _stair(g: Vector2i):
@@ -781,13 +825,7 @@ func _cost(path: Array[Vector2i]) -> float:
 		sum += grid._compute_cost(path[i - 1], path[i])
 	return sum
 
-# 용병의 이동 방식(S35)·홀드(S36)를 바꾼다. 영웅에게는 걸지 않는다(S16)
-func set_move_mode(group: Array, mode: String) -> void:
-	assert(mode in ["move", "attack_move"], "이동 방식 %s" % mode)
-	for u in group:
-		if not u.is_hero:
-			u.move_mode = mode
-
+# 용병의 홀드(S36)를 바꾼다. 영웅에게는 걸지 않는다(S16)
 func set_hold(group: Array, on: bool) -> void:
 	for u in group:
 		if not u.is_hero:
@@ -1521,7 +1559,7 @@ func set_rally(f, cell: Vector2i) -> void:
 			_to_rally(u, f)
 
 func _to_rally(u: Unit, f: Block) -> void:
-	order_move([u], f.rally)
+	order_move([u], f.rally, true)  # 집결 지점까지 공격 이동(I38)
 	u.rally_from = f
 
 # 시설 옆의 빈 칸. 맵 아래쪽(들판 쪽, S51)부터 본다(I61)
@@ -1541,11 +1579,10 @@ func set_gate(g: Block, open: bool) -> void:
 		return
 	g.open = open
 	_repath = true
-	for u in units:  # 걷던 유닛도 지금 목적지까지 길을 다시 구한다(I133). 일하러 가는 공병은 그대로 둔다
+	_unit_paths()
+	for u in units:  # 걷던 유닛도 지금 목적지까지 길을 다시 구한다(I133). 명령(집결·대상·이동 방식)은 그대로다. 일하러 가는 공병은 그대로 둔다
 		if u.job == null and not (u.path.is_empty() and u.after.is_empty()):
-			var r = u.rally_from
-			order_move([u], (u.after if not u.after.is_empty() else u.path).back())
-			u.rally_from = r
+			_route(u, (u.after if not u.after.is_empty() else u.path).back())
 	if state == "battle":
 		g.lock = GATE_LOCK
 
@@ -1757,6 +1794,7 @@ func _reaches(u: Unit, cell: Vector2i) -> bool:
 func _send(u: Unit, s: Block) -> void:
 	u.job = s
 	u.rally_from = null
+	u.prey = null
 	u.after.clear()
 	s.worker = u
 	grid.wall_k = UNIT_WALL_K
@@ -2198,8 +2236,8 @@ func _fire(dt: float) -> void:
 					damage(e, hurt, "magic" if s.pierce else "phys", s)
 			_bless(s, at)
 
-# 유닛은 명령받은 경로를 걷고(S14), 사거리 안의 가장 가까운 적을 친다(S15). 영웅은 걷는 동안에도 친다.
-# 용병은 걷는 동안 이동 방식을 따른다(S35, I35). 서 있으면 영웅·용병 모두 인식 범위 안의 적을 쫓는다(I36, S141).
+# 유닛은 명령받은 경로를 걷고(S14), 사거리 안의 가장 가까운 적을 친다(S15). 걷는 동안은 명령을 따른다: 순수 이동은 치지 않고,
+# 공격 이동은 사거리에 든 적 앞에 서서 친다(S35, I35, S196). 대상 공격은 그 적만 친다. 서 있으면 영웅·용병 모두 인식 범위 안의 적을 쫓는다(I36, S141).
 # 홀드가 켜진 용병은 서 있는 동안 기준 지점 반경 안의 적만 노리고, 그 반경 밖으로 쫓아가지 않는다(S36)
 func _act(u: Unit, dt: float) -> void:
 	u.cooldown -= dt * (1.0 + _haste(u))
@@ -2212,21 +2250,18 @@ func _act(u: Unit, dt: float) -> void:
 		u.after.clear()
 	# 걷는 동안엔 반경을 보지 않는다. 홀드 중 이동 지시를 받으면 도착한 곳이 새 기준이다(I37)
 	var zone := u.hold_radius if u.hold and u.path.is_empty() else INF
-	var foe = _nearest_enemy(u.pos, _reach(u), u.anchor, zone)
 	var top = castle.get(Vector2i(u.pos.round()))
-	if u.on_wall and u.range < WALL_RANGE and not (top and top.open):  # 성벽 위 근접 유닛은 열린 성문 위에서만 들판의 적을 치고(S88, S89), 성벽 위의 적은 친다(I78)
-		foe = _nearest_enemy(u.pos, _reach(u), u.anchor, zone, true)
+	var wall_only: bool = u.on_wall and u.range < WALL_RANGE and not (top and top.open)  # 성벽 위 근접 유닛은 열린 성문 위에서만 들판의 적을 치고(S88, S89), 성벽 위의 적은 친다(I78)
+	var foe = _hunt(u, wall_only) if u.prey else _nearest_enemy(u.pos, _reach(u), u.anchor, zone, wall_only)
 	var walking := not u.path.is_empty()
-	if walking and (u.is_hero or u.move_mode == "move"):  # 영웅은 걷는 동안 치지 않는다(S196)
+	if walking and u.move_mode == "move":  # 순수 이동·대상에게 걸어가는 동안은 치지 않는다(S14, S196)
 		foe = null
-	elif walking and foe:  # 이동 중 공격: 멈춰서 친다
+	elif walking and foe:  # 공격 이동: 멈춰서 친다(S35, I35)
 		walking = false
 	var left: float = u.speed * dt * ((1.0 + _aura("stride", u.pos)) if u.is_hero else 1.0) * (1.0 - _fx_cut(u, "slow"))  # 크로노스 오라: 영웅이 더 빨리 걷는다(S158). 둔화(I168)
 	if u.attack_gap - u.cooldown < (CONTACT if u.is_hero and walking else (HERO_POSE if u.is_hero else POSE)):  # 친 뒤 공격 자세 동안 제자리에 선다(S196)
 		left = 0.0
 	if walking:
-		var from := u.pos
-		var step := left
 		while left > 0.0 and not u.path.is_empty():
 			var to := Vector2(u.path[0]) - u.pos
 			if u.on_wall:  # 성벽 위는 성곽 칸끼리 이어져 있어 막힘 없이 걷는다(I69)
@@ -2235,21 +2270,18 @@ func _act(u: Unit, dt: float) -> void:
 				_shove(u, to.limit_length(left), enemies)
 			left -= to.length()  # 적에게 막혀 못 갔어도 줄인다
 			var d := u.pos.distance_to(Vector2(u.path[0]))
-			# 마지막 칸은 다른 유닛과 몸이 닿은 채 0.5칸 안에 들어도 도착이다. 같은 칸으로 보낸 무리가 서로 밀며 끝없이 걷지 않게(I51)
+			# 마지막 칸은 다른 유닛과 몸이 닿은 채 0.5칸 안에 들어도 도착이다. 같은 칸으로 보낸 무리가 서로 밀며 끝없이 걷지 않게(I51).
+			# 길의 칸(목적지 포함)에 적이 서 있으면 그 적 몸에 닿을 때 그 칸에 닿은 것으로 친다(S14). 그래야 막은 몸을 돌아 다음 칸으로 간다
 			var crowded := u.path.size() == 1 and d <= 0.5 and units.any(func(o): return o != u and o.pos.distance_to(u.pos) < u.radius + o.radius + 0.01)
-			if d < 0.01 or crowded:
+			var taken := d <= 1.1 and enemies.any(func(e): return not _flies(e) and e.pos.distance_to(Vector2(u.path[0])) <= 0.5 and e.pos.distance_to(u.pos) < u.radius + e.radius + 0.01)
+			if d < 0.01 or crowded or taken:
 				u.path.remove_at(0)
 				if u.path.is_empty():
 					u.anchor = u.pos
 					u.rally_from = null
-		if u.is_hero and u.pos.distance_to(from) < step * 0.25:  # 적 몸에 막혀 걸을 거리의 1/4도 못 갔으면 걷기를 그만두고 선다(S196)
-			u.path.clear()
-			u.after.clear()
-			u.anchor = u.pos
-			u.rally_from = null
 	elif not foe and not u.on_wall:  # 성벽 위 유닛은 쫓아 내려가지 않는다(I70)
 		# ponytail: 적에게 곧장 다가간다. 벽 너머 적에게는 벽을 따라 미끄러질 뿐이다. 막히는 일이 보이면 경로로
-		var prey = _nearest_enemy(u.pos, u.sight, u.anchor, zone)
+		var prey = u.prey if u.prey else _nearest_enemy(u.pos, u.sight, u.anchor, zone)  # 길 끝에서도 대상(S35)이 사거리 밖이면 곧장 다가간다
 		if prey:
 			var p: Vector2 = u.pos + (prey.pos - u.pos).limit_length(left)
 			if u.hold:
@@ -2321,6 +2353,25 @@ func _fortify(h: Unit, dt: float) -> void:
 	else:  # 풀리면 바로 끝난다(장판의 «안에 있는 동안» 효과와 달리 남지 않는다)
 		h.fx.erase("aias_p")
 
+# 대상 공격(S35): 대상이 죽거나 사라졌으면 그 자리에 서고 null. 칠 수 있는 거리면 서서 그 적을 돌려준다.
+# 아니면 null이고, 대상이 길을 구한 칸에서 1칸 넘게 옮겼으면 그 칸으로 길을 다시 구한다
+func _hunt(u: Unit, wall_only: bool):
+	var e = u.prey
+	if not (e.alive and e in enemies):
+		u.prey = null
+		_halt(u)
+		return null
+	if e.pos.distance_to(u.pos) <= _reach(u) and (e.on_wall or not wall_only):
+		u.path.clear()
+		u.after.clear()
+		return e
+	var c := Vector2i(e.pos.round())
+	if maxi(absi(c.x - u.chase_to.x), absi(c.y - u.chase_to.y)) > 1:
+		_unit_paths()
+		u.chase_to = c
+		_route(u, c)
+	return null
+
 # from에서 reach 안의 가장 가까운 적. center에서 zone보다 먼 적은 뺀다(홀드 반경). on_wall이면 성벽 위의 적만 본다(I78)
 func _nearest_enemy(from: Vector2, reach: float, center := Vector2.ZERO, zone := INF, on_wall := false):
 	var best = null
@@ -2345,7 +2396,10 @@ func _shove(e, by: Vector2, bodies: Array) -> void:
 		for m in bodies:
 			var gap: Vector2 = p - m.pos
 			if gap.length() < e.radius + m.radius and _touch(e, m):  # 비행 적은 길을 막지 않는다(S109). 봉인된 비행 적은 막는다(S155). 블록 자리가 없으면 지나간다(S159)
-				p = m.pos + (gap.normalized() if gap != Vector2.ZERO else Vector2.LEFT) * (e.radius + m.radius)
+				var n := gap.normalized() if gap != Vector2.ZERO else Vector2.LEFT
+				p = m.pos + n * (e.radius + m.radius)
+				if e is Unit and p.distance_to(e.pos) < v.length() * 0.25:  # 아군은 정면으로 막은 몸의 둘레를 따라 돌아간다(S14). 적은 막힌 채로 둔다(위 [의도])
+					p = m.pos + n.rotated(v.length() / (e.radius + m.radius) * (1.0 if n.cross(v) >= 0.0 else -1.0)) * (e.radius + m.radius)
 		var c := Vector2i(p.round())
 		var blk = grid.block_at(c)
 		if blk and blk.kind == "barrier" and e is Unit:  # 아군은 에너지 성벽을 지나간다(I142)

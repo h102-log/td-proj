@@ -125,7 +125,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE \
-			and controls.placing == "" and controls.moving == null and controls.aiming == "":
+			and controls.placing == "" and controls.moving == null and controls.aiming == "" and not controls.attacking:  # 그것만 취소하는 ESC는 controls가 받는다(S183, S35)
 		pause()
 		get_viewport().set_input_as_handled()
 		return

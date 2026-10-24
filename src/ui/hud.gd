@@ -10,7 +10,7 @@ extends CanvasLayer
 # 준비·전투 단계에는 임무 칸에 미션·수락한 의뢰의 점을 보이고, 라운드 첫 준비 단계와 조건이 깨질 때 토스트를 띄운다. 결과 창에 지난 라운드의 달성·실패를 보인다(I122).
 # 결과 창의 버튼만 키보드 포커스를 받는다. 창이 열리면 «1라운드 시작»·«다음 라운드»·«새 도전»에 포커스가 간다(I12, I110)
 # 출전 영웅 칸마다 초상(누르면 고르기, 두 번이면 카메라, I165)·그림 상태 스킬 칸(좌클릭은 쓰기, 우클릭은 자동 시전, I151, skill_cell.gd)·체력·마나 막대와 쓰러짐(I129)을,
-# 화면 오른쪽 가장자리에 고른 용병의 이동 방식·홀드 태그(그림이 상태, 상태 글은 툴팁, I139)를 보인다.
+# 화면 오른쪽 가장자리에 고른 영웅·용병의 공격 이동·정지 태그와, 용병을 골랐으면 홀드 태그(그림이 상태, 상태 글은 툴팁)를 보인다(I139).
 # 맵 위 팝업은 고른 칸의 바깥쪽 모서리에 HUD 사각형을 피해 뜨고(I58, I137), 버튼 줄은 정해져 있다. 철거는 두 번 눌러 확정한다(S74).
 # 눌리지 않는 팝업 버튼은 어둡게 하고 이유는 툴팁·정보 칸의 빨간 줄이다(I123, I124, I128, I140). 놓기 중 닿는 공병이 없는 칸은 빨간 ✕와 안내 줄(I128)
 # 위 띠의 조작과 팝업 버튼에는 툴팁을 단다(S187, I162). 테마는 hud_theme.gd
@@ -52,9 +52,9 @@ const MENU := ["########", "........", "........", "########", "........", "....
 const PLAY := ["#...", "##..", "###.", "####", "###.", "##..", "#..."]  # ▶
 const SKULL := [".#####.", "#######", "#..#..#", "#######", ".##.##.", ".#####.", ".#.#.#."]  # 보스(S188)
 const ARROW := [".###.", ".###.", "#####", ".###.", "..#.."]  # 아래 가장자리 표식의 화살표(S188)
-const ATTACK := [".....g....", "....hgssss", ".....g....", "......#...", "......##..", "#########.", "##########", "#########.", "......##..", "......#..."]  # 칼 + 화살. 칼을 빼면 무조건 이동(I139)
+const ATTACK := [".....g....", "....hgssss", ".....g....", "......#...", "......##..", "#########.", "##########", "#########.", "......##..", "......#..."]  # 칼 + 화살. 공격 이동 태그(I139)
+const STOP := ["..######..", ".#oooooo#.", "#oooooooo#", "#oooooooo#", "#oooooooo#", "#oooooooo#", "#oooooooo#", "#oooooooo#", ".#oooooo#.", "..######.."]  # 정지 태그(I139)
 const SHIELD := ["..........", "..########", "..#oooooo#", "..#oooooo#", "..#oooooo#", "..#oooooo#", "...#oooo#.", "...#oooo#.", "....#oo#..", ".....##..."]  # 홀드(I139)
-const MOVE_TIPS := ["이동 중 공격\n가는 길의 적을 친다", "무조건 이동\n가는 길의 적을 지나친다", "이동 방식 섞임\n누르면 모두 무조건 이동"]  # A 태그 툴팁(I139). 툴팁 폭 160이라 줄을 나눈다
 const HOLD_TIPS := ["홀드 끔\n켜면 기준 지점 반경 안의 적만 친다", "홀드 켬\n기준 지점 반경 안의 적만 친다", "홀드 섞임\n누르면 모두 켠다"]
 const HOLD_LOOK := [Color(0.4, 0.4, 0.4), Color.WHITE, Color(0.7, 0.7, 0.7)]  # 홀드 방패 밝기: 끔·켬·섞임
 const HAMMER := [".#####.", ".#####.", "...#...", "...#...", "...#...", "...#..."]  # 팝업 완성·수리(I58)
@@ -149,10 +149,9 @@ var _quests := VBoxContainer.new()  # 라운드 사이 영입 칸 안의 의뢰 
 var _quests_info := Label.new()
 var _commissions := []  # 의뢰 목록 칸마다 수락 버튼
 var _seen := ""  # 마지막으로 본 판 단계. 바뀌었을 때 결과 창이 떠 있으면 포커스를 준다
-var tags := []  # 고른 용병의 상황 태그 [A 이동 방식, H 홀드](I139)
-var _tag_pics := []  # 태그마다 상태 그림
-var _tag_tips := ["", ""]  # 태그마다 툴팁의 지금 상태 글
-var _move_tex := []  # A 태그 그림: 이동 중 공격·무조건 이동·섞임(칼을 흐리게)
+var tags := []  # 고른 영웅·용병의 상황 태그 [A 공격 이동, S 정지, H 홀드](I139)
+var _tag_pics := []  # 태그마다 그림
+var _hold_tip := ""  # 홀드 태그 툴팁의 지금 상태 글
 var portraits := []  # 출전 칸마다 초상 버튼(I129). 누르면 그 영웅을 고른다(I165)
 var slots := []  # 출전 칸마다 {칸: 스킬 칸}(I151)
 var _rows := []  # 출전 칸마다 {pic: 초상 그림, lv: 레벨 글, hp·mp: 막대, down: «쓰러짐»}(I129)
@@ -246,25 +245,23 @@ func _ready() -> void:
 		if not n is BaseButton:
 			n.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var sword := {"g": HudTheme.ACCENT, "h": Color("6b5537"), "s": Color("d8dde6"), "#": HudTheme.TEXT}
-	var faint := {"#": HudTheme.TEXT}
-	for k in ["g", "h", "s"]:
-		faint[k] = Color(sword[k], 0.35)
-	_move_tex = [HudBuild.dots(ATTACK, sword), HudBuild.dots(ATTACK, {"#": HudTheme.TEXT}), HudBuild.dots(ATTACK, faint)]
-	for i in 2:  # 오른쪽 가장자리 태그 24×24, 자리는 고정(I139). 그림 10×10을 2배로, 왼쪽 위에 키 글자
-		var t := _bar_button(root, "", [controls.toggle_move_mode, controls.toggle_hold][i])
+	var looks := [HudBuild.dots(ATTACK, sword), HudBuild.dots(STOP, {"#": HudTheme.TEXT, "o": HudTheme.DANGER}), HudBuild.dots(SHIELD, {"#": Color("e8d8a8"), "o": SkillCell.TEAL})]
+	for i in 3:  # 오른쪽 가장자리 태그 24×24, 자리는 고정(I139). 그림 10×10을 2배로, 왼쪽 위에 키 글자
+		var t := _bar_button(root, "", [controls.attack_key, controls.stop, controls.toggle_hold][i])
 		t.position = Vector2(616, 182 + 26 * i)
 		t.size = Vector2(24, 24)
-		_tag_pics.append(_pic(t, _move_tex[0] if i == 0 else HudBuild.dots(SHIELD, {"#": Color("e8d8a8"), "o": SkillCell.TEAL}), Vector2(20, 20)))
+		_tag_pics.append(_pic(t, looks[i], Vector2(20, 20)))
 		_tag_pics[i].position = Vector2(2, 2)
 		var key := _text(t, 7, HudTheme.ACCENT)
-		key.text = "AH"[i]
+		key.text = "ASH"[i]
 		key.position = Vector2(1, -1)
 		key.size = Vector2(8, 8)
 		for n in t.get_children():
 			n.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		tags.append(t)
-	tip.add(tags[0], func(): return ["이동 방식", "A", "", _tag_tips[0], ""])
-	tip.add(tags[1], func(): return ["홀드", "H", "", _tag_tips[1], ""])
+	tip.add(tags[0], func(): return ["공격 이동", "A", "", "누른 뒤 땅: 가는 길의 적을 친다\n적: 그 적만 친다", ""])  # 툴팁 폭 160이라 줄을 나눈다
+	tip.add(tags[1], func(): return ["정지", "S", "", "그 자리에 선다", ""])
+	tip.add(tags[2], func(): return ["홀드", "H", "", _hold_tip, ""])
 	chip.position = Vector2(134, 30)  # 위 띠 바로 아래(S147 임시값). 글이 길면 오른쪽으로 는다
 	chip.custom_minimum_size = Vector2(180, 14)
 	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -399,19 +396,18 @@ func _process(delta: float) -> void:
 	hints.step()
 	_show_progress()
 	_show_edges()
-	var mercs: Array = controls.selected.filter(func(u): return not u.is_hero and u.alive)  # 고른 용병의 이동 방식·홀드(U11, I139)
-	tags[0].visible = battle.state in ["prep", "battle"] and not mercs.is_empty()
+	var picked: Array = controls.selected.filter(func(u): return u.alive)  # 고른 영웅·용병의 명령 태그, 용병의 홀드(I139)
+	var mercs: Array = picked.filter(func(u): return not u.is_hero)
+	tags[0].visible = on and not picked.is_empty()
 	tags[1].visible = tags[0].visible
-	if tags[0].visible:
-		var moving: int = mercs.filter(func(u): return u.move_mode == "move").size()
+	tags[2].visible = on and not mercs.is_empty()
+	if tags[2].visible:
 		var held: int = mercs.filter(func(u): return u.hold).size()
-		var m := 0 if moving == 0 else 1 if moving == mercs.size() else 2  # 이동 중 공격·무조건 이동·섞임
 		var h := 0 if held == 0 else 1 if held == mercs.size() else 2  # 끔·켬·섞임
-		_tag_pics[0].texture = _move_tex[m]
-		_tag_pics[1].modulate = HOLD_LOOK[h]
-		_tag_tips = [MOVE_TIPS[m], HOLD_TIPS[h]]
+		_tag_pics[2].modulate = HOLD_LOOK[h]
+		_hold_tip = HOLD_TIPS[h]
 	var refusing: bool = _now - _refused[1] < REFUSE_HINT
-	chip.visible = (controls.placing != "" or controls.moving != null or controls.aiming != "" or refusing) and not tip.shows_in(bar)  # 위 띠 툴팁이 뜨면 숨는다(S147)
+	chip.visible = (controls.placing != "" or controls.moving != null or controls.aiming != "" or controls.attacking or refusing) and not tip.shows_in(bar)  # 위 띠 툴팁이 뜨면 숨는다(S147)
 	hint.text = "%s 놓기: 좌클릭 · 끝: 우클릭·ESC" % NAMES.get(controls.placing, "")
 	if refusing:  # 거부된 놓기의 첫 이유(I128)
 		hint.text = "✕ " + _refused[2]
@@ -421,6 +417,8 @@ func _process(delta: float) -> void:
 		hint.text = "대포 옮길 칸: 좌클릭 · 끝: 우클릭·ESC"
 	if controls.aiming != "":  # 조준 중(S147)
 		hint.text = "%s %s 대상: 좌클릭 · 취소: 우클릭·ESC" % [HEROES[controls.aim_hero.kind].get_slice("(", 0), controls.aiming.to_upper()]
+	if controls.attacking:  # 공격 명령 조준(S35)
+		hint.text = "공격 대상: 좌클릭 · 취소: 우클릭·ESC"
 	chip.reset_size()
 	_show_heroes()
 	window.visible = battle.state in ["hiring", "cleared", "won", "lost"]

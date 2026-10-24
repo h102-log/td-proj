@@ -624,6 +624,9 @@ msgstr "Move cannon: LMB · Done: RMB/ESC"
 msgid "%s %s 대상: 좌클릭 · 취소: 우클릭·ESC"
 msgstr "%s %s: LMB · Cancel: RMB/ESC"
 
+msgid "공격 대상: 좌클릭 · 취소: 우클릭·ESC"
+msgstr "Attack: LMB · Cancel: RMB/ESC"
+
 msgid "이번 라운드 미션: %s"
 msgstr "Round mission: %s"
 
@@ -692,20 +695,20 @@ msgstr "Menu"
 msgid "계속·설정·메인 메뉴로·게임 종료"
 msgstr "Resume, Settings, Main Menu, Quit"
 
-msgid "이동 방식"
-msgstr "Move mode"
+msgid "공격 이동"
+msgstr "Attack-move"
+
+msgid "누른 뒤 땅: 가는 길의 적을 친다\n적: 그 적만 친다"
+msgstr "Then ground: hits enemies on the way\nEnemy: attacks only it"
+
+msgid "정지"
+msgstr "Stop"
+
+msgid "그 자리에 선다"
+msgstr "Stands where it is"
 
 msgid "홀드"
 msgstr "Hold"
-
-msgid "이동 중 공격\n가는 길의 적을 친다"
-msgstr "Attack-move\nHits enemies on the way"
-
-msgid "무조건 이동\n가는 길의 적을 지나친다"
-msgstr "Force move\nPasses enemies on the way"
-
-msgid "이동 방식 섞임\n누르면 모두 무조건 이동"
-msgstr "Mixed move modes\nClick: all force move"
 
 msgid "홀드 끔\n켜면 기준 지점 반경 안의 적만 친다"
 msgstr "Hold off\nOn: only hits enemies near its post"

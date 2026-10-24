@@ -1,12 +1,12 @@
 extends RefCounted
 # 마우스·키 입력을 전투 명령으로 바꾼다. 마우스 좌표는 맵 px(칸 (x,y)가 [x, x+1) × cell_px)로 받는다.
 # 좌클릭: 영웅이나 생산 시설·성곽 칸·거점을 고르거나(I9, S81, S85, S86, S100) 선택을 푼다 · 좌드래그: 사각형 안의 영웅과 용병을 고른다(S16, I9)
-# 우클릭: 생산 시설을 골랐으면 그 칸을 집결 지점으로(S82), 아니면 고른 유닛 이동(S14)
+# 우클릭: 생산 시설을 골랐으면 그 칸을 집결 지점으로(S82), 아니면 고른 유닛에게 명령: 커서 0.7칸 안에 적이 있으면 대상 공격, 아니면 순수 이동(S14, S35)
 # 준비 단계의 좌클릭·좌드래그는 판매 후보도 정한다(S70, I57). 좌클릭한 용병은 두 단계 모두 고른 상태가 된다(I135)
 # 전투 단계의 좌클릭·좌드래그는 철거·취소·이어 짓기 후보(picked)를 정한다(S74, S83)
 # Q·W·E·R: 영웅 스킬(S145, I10). 고른 영웅이, 없으면 첫 영웅이 쓴다(S119). 즉시·켜고 끄는 칸은 바로 쓰고, 지점·방향·대상을 고르는 칸은
 # 조준 상태가 된다(퀵캐스트를 켜면 키를 누르는 순간 커서 자리에 쓴다, I158). 조준 중 좌클릭은 그 지점·대상에 쓰고, 우클릭·ESC는 취소한다(S147). Shift+키와 HUD 스킬 버튼 우클릭은 자동 시전을 켜고 끈다(S158, I151)
-# A: 고른 용병의 이동 방식 전환(S35) · H: 홀드 전환(S36) (A·H는 사용자 2026-10-12) · V: 체력바 표시 전환(S73)
+# A: 공격 명령 조준(S35). 그동안 좌클릭은 땅이면 공격 이동·적이면 대상 공격이고, 우클릭·ESC는 취소한다 · S: 정지(S35) · H: 홀드 전환(S36) · V: 체력바 표시 전환(S73)
 # F1·F2·F3: 출전 영웅 1·2·3을 고른다(I108)
 # 1 방벽 · 2 타워 · - 마법 타워(S110) · 3 용병 · 4 병영 · 5 공병 · 6 작업장 · 7 궁수(I71) · 8 대포(S92) · 9 사격장(S98) · 0 집(S103) · = 교회(I140): 놓기 모드. 그동안 좌클릭은 그 칸에 짓거나 놓고, 우클릭·ESC·같은 키는 모드를 끝낸다(사용자 2026-10-12, S186)
 # 전투 단계엔 구조물만 짓는다(공병이 가서 짓는다, S22). 단계가 바뀌면 모드가 끝난다
@@ -24,7 +24,7 @@ signal skill_keyed(h, slot: String)  # Q·W·E·R 키(shift 없이). HUD가 못 
 signal refused(cell: Vector2i, why: String)  # 구조물 놓기가 거부됐다. HUD가 빨간 ✕와 안내 줄의 첫 이유로 보인다(I128)
 signal facility_key(f)  # 전투 단계 용병 키로 시설을 골랐다. HUD가 카메라를 그 시설로 옮긴다(S81, I164)
 signal alert_key  # C 키. HUD가 마지막 경보 자리로 카메라를 옮긴다(S189)
-signal hero_sent  # 고른 것에 영웅이 있는 채 우클릭 이동을 시켰다. 힌트(S191)가 듣는다
+signal hero_sent  # 고른 것에 영웅이 있는 채 이동·공격 명령을 내렸다. 힌트(S191)가 듣는다
 
 var battle
 var cell_px: int
@@ -43,6 +43,7 @@ var moving = null  # 옮길 대포. 팝업의 «옮기기» 버튼이 넣는다(
 var village := false  # 거점을 골랐다. 그 옆에 마을 레벨 팝업이 뜬다(S100)
 var aiming := ""  # 조준 중인 스킬 칸(S147). 빈 문자열이면 조준 중이 아니다
 var aim_hero = null  # 조준 중인 칸을 쓸 영웅
+var attacking := false  # 공격 명령 조준 중(S35). A 키와 HUD 태그(I139)가 켠다
 var mouse := Vector2()  # 마지막 마우스 위치(맵 px). 화면이 조준 범위를 그린다
 var quickcast := false  # 퀵캐스트(I158): 조준하는 칸의 키를 누르는 순간 커서 자리에 쓴다. main이 설정(S184)에서 넣는다
 var _state: String  # 마지막으로 본 판 단계. 바뀌면 놓기 모드를 끝낸다
@@ -57,6 +58,7 @@ func handle(event: InputEvent) -> void:
 		placing = ""
 		moving = null
 		aiming = ""
+		attacking = false
 		missing = ""
 		_state = battle.state
 	if aiming != "" and not (aim_hero and aim_hero.alive):  # 조준하던 영웅이 쓰러졌다
@@ -72,7 +74,9 @@ func handle(event: InputEvent) -> void:
 			KEY_Q, KEY_W, KEY_E, KEY_R:
 				skill_key(SKILL_KEYS[event.keycode], event.shift_pressed)
 			KEY_A:
-				toggle_move_mode()
+				attack_key()
+			KEY_S:
+				stop()
 			KEY_H:
 				toggle_hold()
 			KEY_V:
@@ -85,6 +89,7 @@ func handle(event: InputEvent) -> void:
 				placing = ""
 				moving = null
 				aiming = ""
+				attacking = false
 		if event.keycode in PLACE_KEYS:
 			var kind: String = PLACE_KEYS[event.keycode]
 			if battle.state == "battle" and kind in battle.MERC_KINDS:
@@ -94,6 +99,7 @@ func handle(event: InputEvent) -> void:
 				missing = ""
 		if placing != "":
 			aiming = ""
+			attacking = false
 	# 전투 단계엔 구조물만 놓기 모드가 된다. 전투 중 용병은 시설 팝업이나 용병 키(merc_key)로 산다(S81)
 	if not (battle.state == "prep" or (battle.state == "battle" and placing in battle.STRUCTURE_KINDS)):
 		placing = ""
@@ -106,6 +112,11 @@ func handle(event: InputEvent) -> void:
 			_aim_at(event.position)
 		else:
 			aiming = ""
+		return
+	if attacking and event.pressed and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			_command(event.position, true)
+		attacking = false
 		return
 	if moving and event.pressed:
 		if event.button_index == MOUSE_BUTTON_LEFT:
@@ -128,9 +139,7 @@ func handle(event: InputEvent) -> void:
 		if facility:
 			battle.set_rally(facility, cell)
 		else:
-			battle.order_move(selected, cell)
-			if selected.any(func(u): return u.is_hero):
-				hero_sent.emit()
+			_command(event.position, false)
 
 func _release(rect: Rect2, at: Vector2) -> void:
 	_press = null
@@ -193,10 +202,27 @@ func merc_key(kind: String, next := false) -> void:
 	_release(Rect2(at, Vector2.ZERO), at)
 	facility_key.emit(f)
 
-# 고른 용병의 이동 방식 전환(S35): 모두 «무조건 이동»이면 «이동 중 공격»으로, 아니면 모두 «무조건 이동»으로. A 키와 HUD 태그(I139)이 부른다
-func toggle_move_mode() -> void:
-	var mercs := selected.filter(func(u): return not u.is_hero)  # 드래그로 함께 고른 영웅은 보지 않는다(I9)
-	battle.set_move_mode(mercs, "attack_move" if mercs.all(func(u): return u.move_mode == "move") else "move")
+# 고른 영웅·용병이 있으면 공격 명령 조준을 켠다(S35). A 키와 HUD 태그(I139)가 부른다
+func attack_key() -> void:
+	if selected.any(func(u): return u.alive):
+		attacking = true
+		placing = ""
+		moving = null
+		aiming = ""
+
+# 고른 영웅·용병의 정지(S35). S 키와 HUD 태그(I139)가 부른다
+func stop() -> void:
+	battle.stop(selected)
+
+# 고른 유닛에게 명령한다(S14, S35): 커서 0.7칸 안에 적이 있으면 가장 가까운 그 적을 대상 공격, 아니면 그 칸으로 이동(attack이면 공격 이동)
+func _command(px: Vector2, attack: bool) -> void:
+	var foe = _closest(battle.enemies, px / cell_px - Vector2(0.5, 0.5))
+	if foe:
+		battle.order_attack(selected, foe)
+	else:
+		battle.order_move(selected, Vector2i((px / cell_px).floor()), attack)
+	if selected.any(func(u): return u.is_hero):
+		hero_sent.emit()
 
 # 고른 용병의 홀드 전환(S36). H 키와 HUD 태그(I139)이 부른다
 func toggle_hold() -> void:
@@ -229,6 +255,7 @@ func skill_for(h, slot: String, shift := false) -> void:
 		aim_hero = h
 		placing = ""
 		moving = null
+		attacking = false
 
 # 조준 중 좌클릭(S147, I145): 지점·방향은 클릭한 곳(칸 좌표), 대상은 클릭한 곳에서 가장 가까운 적이나 아군(0.7칸 안, 아군 구조물은 그 칸).
 # 쓰거나 걸어가기 시작하면 조준이 끝나고, 맞는 대상이 없으면 조준을 이어 간다

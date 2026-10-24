@@ -497,7 +497,7 @@ func _buy(item: Array) -> bool:
 				if m == null:
 					return true
 				var post = WALL_POSTS[have % WALL_POSTS.size()]
-				b.order_move([m], post)
+				b.order_move([m], post, true)  # 공격 이동(S35)
 				have += 1
 				spare = b.gold - bot.reserve
 			return true
@@ -615,7 +615,7 @@ func _weakest(h, reach: float):
 	return low
 
 # 영웅은 정문 앞 기준점에서 lead칸 안의 가장 가까운 적에게 다가가고, 없으면 제자리로 돌아온다.
-# 걷는 영웅은 치지 않으므로(S196) 인식 범위 밖일 때만 이동 명령을 주고, 안에서는 서 있는 영웅이 스스로 쫓게 둔다(S141).
+# 인식 범위 밖일 때만 공격 이동 명령(S35)을 주고, 안에서는 서 있는 영웅이 스스로 쫓게 둔다(S141).
 # 체력이 30% 아래면 기준점 뒤로 물러난다
 func _move_hero(h) -> void:
 	if h.hp < h.max_hp * 0.3:
@@ -633,7 +633,7 @@ func _move_hero(h) -> void:
 			best_d = d
 	if best:
 		if h.pos.distance_to(best.pos) > h.sight and (h.path.is_empty() or h.path[-1].distance_to(Vector2i(best.pos.round())) > 1.5):
-			b.order_move([h], Vector2i(best.pos.round()))
+			b.order_move([h], Vector2i(best.pos.round()), true)
 	elif h.path.is_empty() and h.pos.distance_to(Vector2(h.home)) > 1.5:
 		b.order_move([h], h.home)
 
@@ -763,7 +763,7 @@ func _move_village_hero(h) -> void:
 		if h.pos.distance_to(best.pos) > h.sight and (h.path.is_empty() or h.path[-1].distance_to(Vector2i(best.pos.round())) > 1.5):
 			var c := Vector2i(best.pos.round())
 			c.y = mini(c.y, 8)
-			b.order_move([h], c)
+			b.order_move([h], c, true)
 	elif h.path.is_empty() and h.pos.distance_to(Vector2(home)) > 1.5:
 		b.order_move([h], home)
 

@@ -112,10 +112,60 @@ func ev384():
 	return check(still < 0.001 and chased > 0.05 and held < 0.001 and walked > 0.05,
 		"친 뒤 0.25초 움직임 %.3f칸 · 0.35초 %.3f칸 · 이동 명령 0.05초 %.3f칸 · 0.15초 %.3f칸" % [still, chased, held, walked])
 
-# EV385 · S196: 적이 선 칸으로 이동 명령을 받은 기사는 적 몸에 막히면 걷기를 그만두고(걸을 길이 빈다) 3초 안에 그 적을 친다
+# EV385 · S196: 적이 선 칸으로 이동 명령을 받은 기사는 그 적 몸에 닿으면 도착이라(걸을 길이 빈다, S14) 3초 안에 그 적을 친다
 func ev385():
 	var b = battle({"hero_start": START})
 	var e = b.spawn_enemy("basic", START + Vector2i(4, 0), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})
 	b.order_move([b.hero], START + Vector2i(4, 0))
 	run(b, 3.0)
 	return check(b.hero.path.is_empty() and e.hp < e.max_hp, "기사 %s · 걸을 길 %s · 적 체력 %s/%s" % [b.hero.pos, b.hero.path, e.hp, e.max_hp])
+
+# EV391 · S14: 적이 붙어 싸우던 영웅도 우클릭하면 걸어 나간다(막혀도 걷기를 그만두지 않는다). 들어갈 수 없는 칸으로 보내면 그 앞 칸에 선다
+func ev391():
+	var b = battle({"heroes": [{"kind": "sylvia", "cell": Vector2i(10, 10)}]})
+	var h = b.heroes[0]
+	b.spawn_enemy("basic", Vector2i(9, 10), {"speed": 0, "damage": 0, "hp": BIG})
+	run(b, 1.0)
+	var c = controls(b)
+	click(c, MOUSE_BUTTON_LEFT, px(cell_of(h)))
+	if not h in c.selected:
+		return "실비아를 고르지 못했다"
+	var p0: Vector2 = h.pos
+	click(c, MOUSE_BUTTON_RIGHT, px(Vector2i(4, 10)))
+	run(b, 1.5)
+	var gone: float = h.pos.distance_to(p0)
+	var d = battle({"hero_start": START})
+	if d.build("wall", Vector2i(10, 5)) == null:
+		return "방벽을 짓지 못했다"
+	var k = d.hero
+	var dc = controls(d)
+	click(dc, MOUSE_BUTTON_LEFT, px(START))
+	click(dc, MOUSE_BUTTON_RIGHT, px(Vector2i(10, 5)))
+	var stood := run(d, 4.0, func(): return k.path.is_empty() and k.after.is_empty())
+	var off: float = k.pos.distance_to(Vector2(10, 5))
+	return check(gone > 2.0 and stood and off > 0.5 and off <= 1.1, "실비아가 1.5초에 %.2f칸 · 기사 걸을 길 비움 %s · 방벽 중심에서 %.2f칸" % [gone, stood, off])
+
+# EV393 · I35: 공격 이동하는 영웅은 가는 길에 사거리에 든 적을 처치하고 목적지에 간다
+func ev393():
+	var b = battle({"hero_start": Vector2i(2, 10)})
+	var e = b.spawn_enemy("basic", Vector2i(10, 11), {"speed": 0, "damage": 0, "sight": 0, "hp": 30})
+	b.order_move([b.hero], Vector2i(20, 10), true)
+	var ok := run(b, 60, func(): return not e.alive and near(b.hero.pos, Vector2i(20, 10)))
+	return check(ok, "적 살아 있음 %s · 기사 %s" % [e.alive, b.hero.pos])
+
+# EV394 · S35: 대상 공격하는 영웅은 사거리 안에 다른 적이 있어도 그 적만 치고, 그 적이 사라지면 그 자리에 선다. 걷는 적도 따라가 친다
+func ev394():
+	var b = battle({"hero_start": START})
+	var a = b.spawn_enemy("basic", Vector2i(11, 5), {"speed": 0, "damage": 0, "sight": 0, "hp": BIG})
+	var other = b.spawn_enemy("basic", Vector2i(9, 6), {"speed": 0, "damage": 0, "sight": 0, "hp": BIG})
+	b.order_attack([b.hero], a)
+	run(b, 4.0)
+	var only: bool = a.hp < a.max_hp and other.hp == other.max_hp
+	b.damage(a, BIG)
+	b.step(DT)
+	var stood: bool = b.hero.prey == null and b.hero.path.is_empty() and b.hero.after.is_empty()
+	var d = battle({"hero_start": START})
+	var w = d.spawn_enemy("basic", Vector2i(11, 5), {"speed": 1, "damage": 0, "sight": 0, "hp": BIG})
+	d.order_attack([d.hero], w)
+	var caught := run(d, 6.0, func(): return w.hp < w.max_hp)
+	return check(only and stood and caught, "대상 체력 줆 %s · 다른 적 체력 %s/%s · 대상이 사라진 뒤 대상 %s 걸을 길 %s · 걷는 대상 따라가 침 %s" % [a.hp < a.max_hp, other.hp, other.max_hp, b.hero.prey, b.hero.path, caught])

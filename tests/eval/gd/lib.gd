@@ -9,7 +9,7 @@ extends RefCounted
 #     step(dt) · start_battle() · restart() · damage(대상, 양)
 #     build(kind, cell, overrides={}) -> 구조물|null · structure_at(cell) -> 구조물|null
 #     spawn_enemy(kind, cell, overrides={}) -> 적 · place_merc(kind, cell, overrides={}) -> 용병|null
-#     order_move(units, cell) · set_move_mode(units, "move"|"attack_move") · set_hold(units, on)
+#     order_move(units, cell, attack=false) · order_attack(units, 적) · stop(units) · set_hold(units, on)
 #     signal enemy_spawned(enemy)
 #   유닛: pos(Vector2, 칸 단위, 칸 (x,y)의 중심 = Vector2(x,y)) · hp · max_hp · alive
 #   적: reward · 영웅: present · skill_uses · 구조물: cell · hp · max_hp · complete · Battle.can_cast(영웅, 칸)(heroes.gd 머리)

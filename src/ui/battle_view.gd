@@ -140,8 +140,8 @@ func _draw() -> void:
 		var at := _spot(u) + _slip(u)  # 넉백으로 미끄러지는 몸을 테두리·숫자가 따라간다(S198)
 		if u.is_hero:  # 영웅 레벨(I117): 오른쪽 위에 작게
 			draw_string(PIXEL_FONT, (at + Vector2(CELL * 0.3, -CELL * 0.3)).round(), str(u.level), HORIZONTAL_ALIGNMENT_LEFT, -1, 8)
-		if u in controls.selected:  # 테두리: 흰색 이동 중 공격, 노란색 무조건 이동. 홀드면 기준 반경도 그린다
-			draw_arc(at, CELL * (u.radius + 0.2), 0.0, TAU, 24, Color.YELLOW if u.move_mode == "move" else Color.WHITE, 1.0)
+		if u in controls.selected:  # 흰 테두리. 홀드면 기준 반경도 그린다
+			draw_arc(at, CELL * (u.radius + 0.2), 0.0, TAU, 24, Color.WHITE, 1.0)
 			if u.hold:
 				draw_arc(u.anchor * CELL + Vector2(CELL, CELL) / 2, CELL * u.hold_radius, 0.0, TAU, 48, Color(1, 1, 1, 0.4), 1.0)
 		var ring := 0.35  # 걸린 효과(I101): 선택 테두리 바깥에 효과마다 한 겹
