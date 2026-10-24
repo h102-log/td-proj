@@ -1,0 +1,64 @@
+extends SceneTree
+# 일회성 측정 4: 닫힌 성문 앞 명령, 성문 여닫기와 걸어가서 쓰기, 노릴 적 고르기
+
+const DT := 1.0 / 60.0
+const BIG := 1000000
+
+func P(s: String) -> void:
+	print("RESULT ", s)
+
+func run(b, secs: float) -> void:
+	var t := 0.0
+	while t < secs:
+		b.step(DT)
+		t += DT
+
+func stage_battle(heroes := []):
+	var st: Dictionary = load("res://src/main.gd").stage()
+	if not heroes.is_empty():
+		st["heroes"] = heroes
+	var b = load("res://src/sim/battle.gd").new(st)
+	b.gold = BIG
+	return b
+
+func _initialize() -> void:
+	# a) 닫힌 성문 너머 마을로: 용병 둘(방식별)과 영웅, 5초 뒤 성문을 연다
+	var b = stage_battle([{"kind": "aias", "cell": Vector2i(19, 11)}])
+	var h = b.hero
+	var m1 = b.place_merc("soldier", Vector2i(21, 12))
+	var m2 = b.place_merc("soldier", Vector2i(22, 12))
+	b.set_move_mode([m2], "move")
+	b.order_move([h, m1, m2], Vector2i(20, 5))
+	run(b, 5.0)
+	P("A closed gate 5s: hero path=%d pos=(%.2f,%.2f) | soldier(attack_move) path=%d pos=(%.2f,%.2f) | soldier(move) path=%d pos=(%.2f,%.2f)" % [h.path.size(), h.pos.x, h.pos.y, m1.path.size(), m1.pos.x, m1.pos.y, m2.path.size(), m2.pos.x, m2.pos.y])
+	var moved := 0.0
+	for i in 60:
+		var p: Vector2 = m1.pos
+		b.step(DT)
+		moved += m1.pos.distance_to(p)
+	P("A soldier pushing on closed gate jitter 1s=%.3f cells" % moved)
+	b.set_gate(b.castle[Vector2i(20, 9)], true)
+	P("A gate open=%s lock=%.1f state=%s; right after: m1 path=%d m2 path=%d" % [b.castle[Vector2i(20, 9)].open, b.castle[Vector2i(20, 9)].lock, b.state, m1.path.size(), m2.path.size()])
+	run(b, 6.0)
+	P("A after 6s positions: m1=(%.2f,%.2f) path=%d m2=(%.2f,%.2f) path=%d" % [m1.pos.x, m1.pos.y, m1.path.size(), m2.pos.x, m2.pos.y, m2.path.size()])
+	P("A after gate opened 6s: hero pos=(%.2f,%.2f) reached=%s | soldier1 reached=%s | soldier2 reached=%s" % [h.pos.x, h.pos.y, h.pos.distance_to(Vector2(20, 5)) < 0.6, m1.pos.distance_to(Vector2(20, 5)) < 0.6, m2.pos.distance_to(Vector2(20, 5)) < 0.6])
+	# b) 걸어가서 쓰기 중 성문 여닫기
+	var c = stage_battle([{"kind": "ignis", "cell": Vector2i(10, 12)}])
+	var hi = c.hero
+	c.start_battle()
+	var ok: bool = c.cast(hi, "q", Vector2(30, 14))
+	run(c, 0.3)
+	var before = hi.order
+	c.set_gate(c.castle[Vector2i(0, 9)], true)
+	var after = hi.order
+	run(c, 6.0)
+	P("B walk-to-cast then a gate toggled: cast()=%s order before=%s after toggle=%s uses after 6s=%d" % [ok, before != null, after != null, hi.skill_uses])
+	# c) 노릴 적: 실비아 사거리 4 안에 가까운 기본 적과 조금 먼 큰 적
+	var d = load("res://src/sim/battle.gd").new({"size": Vector2i(30, 20), "base": Vector2i(25, 10), "base_hp": 100,
+		"spawns": [Vector2i(0, 10)], "gold": BIG, "waves": [], "heroes": [{"kind": "sylvia", "cell": Vector2i(5, 5)}]})
+	var near_e = d.spawn_enemy("basic", Vector2i(7, 5), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})
+	var far_e = d.spawn_enemy("boss", Vector2i(8, 7), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG, "skills": {}})
+	run(d, 5.0)
+	P("C sylvia: near basic hit=%s(%.0f lost) far boss hit=%s" % [near_e.hp < near_e.max_hp, near_e.max_hp - near_e.hp, far_e.hp < far_e.max_hp])
+	P("DONE")
+	quit(0)

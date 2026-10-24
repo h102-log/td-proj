@@ -1,0 +1,152 @@
+extends SceneTree
+# 일회성 측정 2: 막힘 문턱, 무리 도착, 무리 명령 비용, 홀드 궁수, 벽 너머 추격, 후퇴
+
+const DT := 1.0 / 60.0
+const BIG := 1000000
+
+func B(over := {}):
+	var stage := {"size": Vector2i(30, 20), "base": Vector2i(25, 10), "base_hp": 100,
+		"spawns": [Vector2i(0, 10)], "gold": BIG, "waves": [], "hero_start": null}
+	stage.merge(over, true)
+	return load("res://src/sim/battle.gd").new(stage)
+
+func P(s: String) -> void:
+	print("RESULT ", s)
+
+func run(b, secs: float) -> void:
+	var t := 0.0
+	while t < secs:
+		b.step(DT)
+		t += DT
+
+func _initialize() -> void:
+	n4()
+	n5()
+	n6()
+	n7()
+	n8()
+	n9()
+	P("DONE")
+	quit(0)
+
+# 막힘 문턱: 길에서 비켜 선 적(옆 오프셋)
+func n4() -> void:
+	var line := []
+	for off in [0.35, 0.4, 0.45, 0.5, 0.55, 0.59]:
+		var b = B({"hero_start": Vector2i(5, 5)})
+		var h = b.hero
+		var e = b.spawn_enemy("basic", Vector2i(8, 5), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})
+		e.pos = Vector2(8, 5 + off)
+		b.order_move([h], Vector2i(12, 5))
+		run(b, 5.0)
+		line.append("off=%.2f:%s(%.2f,%.2f)" % [off, "reach" if h.pos.distance_to(Vector2(12, 5)) < 0.05 else "STOP", h.pos.x, h.pos.y])
+	P("N4 offset sweep: " + " ".join(PackedStringArray(line)))
+	# 대각선으로 걷다 적과 부딪힘
+	var b = B({"hero_start": Vector2i(5, 5)})
+	var h = b.hero
+	b.spawn_enemy("basic", Vector2i(8, 8), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})
+	b.order_move([h], Vector2i(11, 11))
+	run(b, 5.0)
+	P("N4b diagonal walk into enemy at (8,8) toward (11,11): end=(%.2f,%.2f) reached=%s" % [h.pos.x, h.pos.y, h.pos.distance_to(Vector2(11, 11)) < 0.05])
+
+# 무리 도착: 30초까지
+func n5() -> void:
+	for n in [8, 10]:
+		var b = B()
+		var group := []
+		for i in n:
+			group.append(b.place_merc("soldier", Vector2i(3 + i % 5, 3 + i / 5)))
+		b.order_move(group, Vector2i(15, 10))
+		var rep := []
+		var t := 0.0
+		for mark in [10.0, 20.0, 30.0]:
+			while t < mark:
+				b.step(DT)
+				t += DT
+			rep.append("t=%.0f walking=%d" % [mark, group.filter(func(u): return not u.path.is_empty()).size()])
+		var moved := 0.0
+		for i in 60:
+			var prev := group.map(func(u): return u.pos)
+			b.step(DT)
+			for j in n:
+				moved += group[j].pos.distance_to(prev[j])
+		P("N5 %d soldiers: %s jitter_last1s=%.2f" % [n, ", ".join(PackedStringArray(rep)), moved])
+
+# 무리 명령 비용(실제 스테이지)
+func n6() -> void:
+	var st: Dictionary = load("res://src/main.gd").stage()
+	var b = load("res://src/sim/battle.gd").new(st)
+	b.gold = BIG
+	var group := []
+	for i in 10:
+		var m = b.place_merc("soldier", Vector2i(12 + i, 14))
+		if m:
+			group.append(m)
+	var cases := {"field->field (20,25)": Vector2i(20, 25), "field->village (10,4) gates closed": Vector2i(10, 4), "field->wall top (10,9)": Vector2i(10, 9)}
+	for name in cases:
+		var reps := 5
+		var t0 := Time.get_ticks_usec()
+		for r in reps:
+			for j in group.size():
+				group[j].pos = Vector2(12 + j, 14)
+				group[j].on_wall = false
+			b.order_move(group, cases[name])
+		P("N6 order_move %d mercs %s: %.2f ms/order" % [group.size(), name, float(Time.get_ticks_usec() - t0) / reps / 1000.0])
+	# 성문 열면
+	b.set_gate(b.castle[Vector2i(20, 9)], true)
+	var t1 := Time.get_ticks_usec()
+	for r in 5:
+		for j in group.size():
+			group[j].pos = Vector2(12 + j, 14)
+			group[j].on_wall = false
+		b.order_move(group, Vector2i(10, 4))
+	P("N6b order_move %d mercs field->village gate (20,9) open: %.2f ms/order" % [group.size(), float(Time.get_ticks_usec() - t1) / 5 / 1000.0])
+
+# 홀드 켠 궁수: 사거리 5, 홀드 반경 2
+func n7() -> void:
+	for hold in [false, true]:
+		var b = B()
+		var a = b.place_merc("archer", Vector2i(5, 5))
+		if hold:
+			b.set_hold([a], true)
+		var e = b.spawn_enemy("basic", Vector2i(9, 5), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})
+		run(b, 3.0)
+		P("N7 archer hold=%s enemy at 4 cells (range %.1f, hold_radius %.1f): hit=%s archer_moved=%.2f" % [hold, a.range, a.hold_radius, e.hp < e.max_hp, a.pos.distance_to(Vector2(5, 5))])
+
+# 마을 안 병사가 성벽 너머 적을 쫓는다(실제 스테이지)
+func n8() -> void:
+	var st: Dictionary = load("res://src/main.gd").stage()
+	var b = load("res://src/sim/battle.gd").new(st)
+	b.gold = BIG
+	var m = b.place_merc("soldier", Vector2i(10, 6))
+	var e = b.spawn_enemy("basic", Vector2i(10, 11), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})
+	var p0: Vector2 = m.pos
+	run(b, 4.0)
+	P("N8 soldier in village (10,6), enemy outside wall (10,11) dist 5 > sight 4 -> moved=%.2f" % [m.pos.distance_to(p0)])
+	var b2 = load("res://src/sim/battle.gd").new(st)
+	b2.gold = BIG
+	var m2 = b2.place_merc("soldier", Vector2i(10, 7))
+	b2.spawn_enemy("basic", Vector2i(12, 10), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})
+	run(b2, 4.0)
+	var trail := []
+	for i in 4:
+		run(b2, 1.0)
+		trail.append("(%.2f,%.2f)" % [m2.pos.x, m2.pos.y])
+	P("N8b soldier in village (10,7), enemy outside wall (12,10) dist 3.6 < sight 4 -> pos after 4s=(%.2f..) trail=%s path=%d" % [m2.pos.x, " ".join(PackedStringArray(trail)), m2.path.size()])
+
+# 붙은 적에게서 영웅 후퇴
+func n9() -> void:
+	var b = B({"hero_start": Vector2i(5, 5)})
+	var h = b.hero
+	var e = b.spawn_enemy("basic", Vector2i(6, 5), {"hp": BIG})
+	run(b, 2.0)
+	var hp0: float = h.hp
+	b.order_move([h], Vector2i(5, 13))
+	var t := 0.0
+	var free_at := -1.0
+	while t < 4.0:
+		b.step(DT)
+		t += DT
+		if free_at < 0.0 and h.pos.distance_to(e.pos) > 1.0:
+			free_at = t
+	P("N9 hero retreat from engaged basic: left reach(1.0) at %.2fs, hp lost during 4s=%.1f, end dist=%.2f" % [free_at, hp0 - h.hp, h.pos.distance_to(e.pos)])

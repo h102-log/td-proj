@@ -1,0 +1,25 @@
+extends SceneTree
+# 일회성: 성벽 위 대포·성벽 그림을 눌렀을 때(IN 갈래)
+
+var L
+var Hs
+
+func _initialize() -> void:
+	L = load("res://tests/eval/gd/lib.gd").new()
+	Hs = load("res://tests/eval/gd/heroes.gd").new()
+	var b = Hs._castle({"gold": L.BIG})
+	var cn = b.build("cannon", Vector2i(10, 9))
+	b.start_battle()
+	var c = L.controls(b)
+	var out := ["대포 %s" % [cn != null]]
+	for dy in [0, -8, -16, -26]:
+		c.picked = []
+		c.fort = null
+		L.click(c, MOUSE_BUTTON_LEFT, L.px(Vector2i(10, 9)) + Vector2(0, dy))
+		out.append("칸 가운데%+dpx: 고른 구조물 %s · fort %s" % [dy, c.picked.map(func(s): return s.kind), c.fort.kind if c.fort else null])
+	for dy in [0, -16, -24]:
+		c.fort = null
+		L.click(c, MOUSE_BUTTON_LEFT, L.px(Vector2i(3, 9)) + Vector2(0, dy))
+		out.append("성벽 칸 가운데%+dpx: fort %s" % [dy, c.fort.kind if c.fort else null])
+	print(" · ".join(out))
+	quit(0)

@@ -1,0 +1,14 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+RESULT variant=mod
+RESULT offset: off=0.00:STOP@5.02s(7.40,5.00)hit=true off=0.20:reach@2.58s(12.00,5.00)hit=false off=0.35:reach@2.42s(12.00,5.00)hit=false off=0.50:reach@2.35s(12.00,5.00)hit=false off=0.55:reach@2.35s(12.00,5.00)hit=false
+RESULT diagonal: end=(7.58,7.58) reached=false
+RESULT 3-line: end=(7.40,5.00) reached=false path=0
+RESULT onto enemy cell: path=0 hit=true end=(8.40,5.00)
+RESULT ignis Q 10 cells, enemy offset 0.3 at 2: uses=1 end=(9.01,4.96)
+RESULT stage walk to (1, 30): 8.78s
+RESULT stage walk to (35, 20): 6.35s
+RESULT stage walk to wall top (10,9) via open gate: 4.43s on_wall=true
+RESULT DONE
+WARNING: 13 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)

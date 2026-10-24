@@ -1,0 +1,23 @@
+extends SceneTree
+# 일회성: 구조물 칸 우클릭, 같은 칸으로 보낸 무리(IN 갈래)
+
+var L
+
+func _initialize() -> void:
+	L = load("res://tests/eval/gd/lib.gd").new()
+	var b = L.battle({"hero_start": Vector2i(5, 5)})
+	var t = b.build("tower", Vector2i(12, 5))
+	var c = L.controls(b)
+	L.click(c, MOUSE_BUTTON_LEFT, L.px(Vector2i(5, 5)))
+	L.click(c, MOUSE_BUTTON_RIGHT, L.px(Vector2i(12, 5)))
+	var p0: int = b.hero.path.size()
+	L.run(b, 6)
+	print("타워 칸 우클릭: 길 %d칸 · 6초 뒤 영웅 %s(타워 %s)" % [p0, b.hero.pos, t.cell])
+	# 자기 칸 우클릭으로 멈추기
+	b.order_move([b.hero], Vector2i(25, 15))
+	L.run(b, 0.5)
+	var here := Vector2i(b.hero.pos.round())
+	L.click(c, MOUSE_BUTTON_RIGHT, L.px(here))
+	L.run(b, 0.5)
+	print("걷다가 자기 칸 우클릭: 길 %d칸 · 위치 %s" % [b.hero.path.size(), b.hero.pos])
+	quit(0)

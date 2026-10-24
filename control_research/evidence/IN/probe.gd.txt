@@ -1,0 +1,137 @@
+extends SceneTree
+# 일회성: 입력 경로·선택 판정 확인(IN 갈래). 스냅숏 복사본에서 돈다
+
+var L
+var Hs
+
+func _initialize() -> void:
+	L = load("res://tests/eval/gd/lib.gd").new()
+	Hs = load("res://tests/eval/gd/heroes.gd").new()
+	for f in [p1_head_click, p1b_walking_click, p2_hero_merc_same_cell, p3_merc_key_steals, p4_hero_on_wall, p5_ranged_rightclick_enemy, p6_aim_head_miss, p7_prep_drag_sells_tower, p8_empty_click_q_reroute]:
+		print(f.get_method(), " → ", f.call())
+	quit(0)
+
+func _foot(u) -> Vector2:
+	return (u.pos + Vector2(0.5, 0.5)) * 16.0
+
+# P1: 칸 가운데 선 아이아스의 머리(발밑 12px 위)를 누르면 고르나
+func p1_head_click() -> String:
+	var b = L.battle({"hero_start": Vector2i(5, 5)})
+	var c = L.controls(b)
+	var out := []
+	for dy in [0, -4, -8, -10, -12, -14]:
+		c.selected = []
+		L.click(c, MOUSE_BUTTON_LEFT, _foot(b.hero) + Vector2(0, dy))
+		out.append("발밑%+dpx:%s" % [dy, "고름" if b.hero in c.selected else "못 고름"])
+	return " ".join(out)
+
+# P1b: 걷는 중(칸 사이) 영웅의 몸 가운데(발밑 7px 위)를 누르면 고르나. 칸 안 위치를 0.1칸씩 바꿔 센다
+func p1b_walking_click() -> String:
+	var b = L.battle({"hero_start": Vector2i(5, 5)})
+	var c = L.controls(b)
+	var hit := 0
+	var n := 0
+	for i in 10:
+		for j in 10:
+			b.hero.pos = Vector2(5 - 0.45 + 0.1 * i, 5 - 0.45 + 0.1 * j)
+			c.selected = []
+			L.click(c, MOUSE_BUTTON_LEFT, _foot(b.hero) + Vector2(0, -7))
+			n += 1
+			hit += int(b.hero in c.selected)
+	return "몸 가운데 클릭 성공 %d/%d" % [hit, n]
+
+# P2: 영웅과 용병이 같은 칸이면 무엇을 고르나
+func p2_hero_merc_same_cell() -> String:
+	var b = L.battle({"hero_start": Vector2i(5, 5)})
+	var c = L.controls(b)
+	var m = b.place_merc("soldier", Vector2i(6, 5))
+	m.pos = Vector2(5.3, 5.2)
+	L.click(c, MOUSE_BUTTON_LEFT, _foot(b.hero))
+	return "영웅 발밑을 눌렀는데 고른 것: %s" % [c.selected.map(func(u): return u.kind)]
+
+# P3: 영웅을 고른 채 전투 단계 용병 키(3)를 누르면 선택·우클릭이 어떻게 되나
+func p3_merc_key_steals() -> String:
+	var b = L.battle({"hero_start": Vector2i(5, 12), "village": Rect2i(0, 0, 30, 6), "base_hp": L.BIG, "waves": [[{"kind": "basic", "count": 1000}]]})
+	var f = b.build("barracks", Vector2i(10, 3))
+	b.start_battle()
+	var c = L.controls(b)
+	L.click(c, MOUSE_BUTTON_LEFT, _foot(b.hero))
+	var before: Array = c.selected.duplicate()
+	var ev := InputEventKey.new()
+	ev.keycode = KEY_3
+	ev.pressed = true
+	c.handle(ev)
+	var after: Array = c.selected.duplicate()
+	L.click(c, MOUSE_BUTTON_RIGHT, L.px(Vector2i(20, 15)))
+	return "키 전 고름 %s · 키 뒤 고름 %s · facility %s · 우클릭 뒤 영웅 길 %d칸 · 시설 집결 %s" % [before.map(func(u): return u.kind), after.map(func(u): return u.kind), f == c.facility, b.hero.path.size(), f.rally]
+
+# P4: 성벽 위 영웅을 누르면 성곽 칸(fort)도 고르나
+func p4_hero_on_wall() -> String:
+	var b = Hs._castle({"heroes": [Hs._hero("aias", Vector2i(14, 10))]})
+	b.order_move([b.hero], Vector2i(12, 9))
+	L.run(b, 15, func(): return b.hero.on_wall and b.hero.path.is_empty() and b.hero.after.is_empty())
+	var c = L.controls(b)
+	L.click(c, MOUSE_BUTTON_LEFT, _foot(b.hero))
+	return "영웅 on_wall %s · 칸 %s · 고름 %s · fort %s" % [b.hero.on_wall, Vector2i(b.hero.pos.round()), b.hero in c.selected, c.fort.kind if c.fort else null]
+
+# P5: 사거리 4 실비아를 고르고 8칸 앞 적(움직이지 않음)을 우클릭하면 언제·어디서 처음 치나
+func p5_ranged_rightclick_enemy() -> String:
+	var b = Hs._heroes([Hs._hero("sylvia", Vector2i(5, 10))])
+	var e = Hs._dummy(b, Vector2i(13, 10))
+	var c = L.controls(b)
+	L.click(c, MOUSE_BUTTON_LEFT, _foot(b.hero))
+	L.click(c, MOUSE_BUTTON_RIGHT, L.px(Vector2i(13, 10)))
+	var t := 0.0
+	var in_range_at := -1.0
+	while t < 10.0 and e.hp == e.max_hp:
+		b.step(L.DT)
+		t += L.DT
+		if in_range_at < 0.0 and b.hero.pos.distance_to(e.pos) <= b.hero.range:
+			in_range_at = t
+	var first := t
+	L.run(b, 2.0)
+	return "사거리 %s · 사거리 안에 든 때 %.2f초 · 첫 타격 %.2f초(그때 거리 %.2f칸) · 2초 뒤 거리 %.2f칸 · 걸을 길 %d" % [b.hero.range, in_range_at, first, b.hero.pos.distance_to(e.pos), b.hero.pos.distance_to(e.pos), b.hero.path.size()]
+
+# P6: 세라피나 Q(아군 대상) 조준 중 용병 머리(발밑 12px 위)를 누르면 쓰나
+func p6_aim_head_miss() -> String:
+	var b = Hs._heroes([Hs._hero("seraphina", Vector2i(10, 10))])
+	Hs._start(b)
+	var m = b.place_merc("soldier", Vector2i(12, 10))
+	if m == null:  # 전투 단계라 place_merc가 안 되면 준비 단계 판에서 놓고 시작
+		b = Hs._heroes([Hs._hero("seraphina", Vector2i(10, 10))])
+		m = b.place_merc("soldier", Vector2i(12, 10))
+		Hs._start(b)
+	var h = b.hero
+	h.mana = h.max_mana
+	var c = L.controls(b)
+	var out := []
+	for dy in [-6, -10, -12]:
+		h.cd.q = 0.0
+		h.mana = h.max_mana
+		c.skill_for(h, "q")
+		var uses: int = h.skill_uses
+		L.click(c, MOUSE_BUTTON_LEFT, _foot(m) + Vector2(0, dy))
+		out.append("발밑%+dpx: 씀 %s, 조준 남음 %s" % [dy, h.skill_uses > uses, c.aiming != ""])
+		c.aiming = ""
+	return " · ".join(out)
+
+# P7: 준비 단계에 타워 옆 용병 둘을 드래그로 고르면 판매 후보에 타워도 드나
+func p7_prep_drag_sells_tower() -> String:
+	var b = L.battle({})
+	var t = b.build("tower", Vector2i(10, 10))
+	b.place_merc("soldier", Vector2i(9, 10))
+	b.place_merc("soldier", Vector2i(11, 10))
+	var c = L.controls(b)
+	L.drag(c, L.px(Vector2i(9, 10)) - Vector2(8, 8), L.px(Vector2i(11, 10)) + Vector2(8, 8))
+	return "고른 용병 %d · 판매 후보 %s" % [c.selected.size(), c.selling.map(func(x): return x.kind)]
+
+# P8: 둘째 영웅을 고른 뒤 빈 땅을 누르고 Q → 누가 쓰나(조준 영웅)
+func p8_empty_click_q_reroute() -> String:
+	var b = Hs._heroes([Hs._hero("vesper", Vector2i(5, 10)), Hs._hero("ignis", Vector2i(8, 10))])
+	Hs._start(b)
+	var c = L.controls(b)
+	c.pick_hero(1)
+	var picked = c.selected.map(func(u): return u.kind)
+	L.click(c, MOUSE_BUTTON_LEFT, L.px(Vector2i(20, 15)))
+	c.skill_key("q")
+	return "F2로 고름 %s → 빈 땅 클릭 뒤 고름 %s → Q 조준 영웅 %s" % [picked, c.selected.map(func(u): return u.kind), c.aim_hero.kind if c.aim_hero else null]

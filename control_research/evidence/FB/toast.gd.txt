@@ -1,0 +1,36 @@
+extends SceneTree
+# 일회성 측정(조작감 FB 갈래): 스킬 거부 토스트가 앞 토스트 때문에 얼마나 늦게 뜨는지 hud_toast.gd를 그대로 돌려 잰다.
+# 경보 토스트 «거점 공격받음! (C)»가 뜬 0.5초 뒤 Q 거부(«재사용 대기 3초»)를 넣고, 1초 뒤 같은 칸을 다시 눌러 «재사용 대기 2초»를 넣는다.
+
+const HudToast := preload("res://src/ui/hud_toast.gd")
+const DT := 0.05
+
+var t: Control
+var started := false
+
+func _process(_d: float) -> bool:
+	if not started:
+		started = true
+		t = HudToast.new()
+		root.add_child(t)
+		return false
+	t.set_process(false)
+	var clock := 0.0
+	var seen := {}
+	var events := {0.0: "거점 공격받음! (C)", 0.5: "재사용 대기 3초", 1.5: "재사용 대기 2초"}
+	while clock < 12.0:
+		for at in events:
+			if absf(clock - at) < DT / 2.0:
+				t.push(events[at])
+		t._process(DT)
+		for i in 2:
+			var row: Control = t.get_child(i)
+			if row.visible:
+				var text: String = row.get_child(0).text
+				if not seen.has(text):
+					seen[text] = clock
+		clock += DT
+	for text in seen:
+		print("%s 보임 %.2f초" % [text, seen[text]])
+	quit(0)
+	return true

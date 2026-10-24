@@ -1,0 +1,304 @@
+extends SceneTree
+# 일회성 측정: 명령 → 몸이 반응하기까지(스냅숏 src/sim/battle.gd). DT는 60fps 한 프레임
+
+const DT := 1.0 / 60.0
+const BIG := 1000000
+
+func B(over := {}):
+	var stage := {"size": Vector2i(30, 20), "base": Vector2i(25, 10), "base_hp": 100,
+		"spawns": [Vector2i(0, 10)], "gold": BIG, "waves": [], "hero_start": null}
+	stage.merge(over, true)
+	return load("res://src/sim/battle.gd").new(stage)
+
+func P(s: String) -> void:
+	print("RESULT ", s)
+
+func frames_until_move(b, u, cap := 900) -> int:
+	var p0: Vector2 = u.pos
+	var n := 0
+	while u.pos.distance_to(p0) < 1e-6 and n < cap:
+		b.step(DT)
+		n += 1
+	return n
+
+func _initialize() -> void:
+	m1()
+	m2()
+	m3()
+	m4()
+	m5()
+	m6()
+	m8()
+	m9()
+	m12()
+	P("DONE")
+	quit(0)
+
+# M1: 서 있는 영웅에게 이동 명령 → 첫 걸음까지 프레임
+func m1() -> void:
+	var b = B({"hero_start": Vector2i(5, 5)})
+	var h = b.hero
+	var p0: Vector2 = h.pos
+	b.order_move([h], Vector2i(15, 5))
+	var n := frames_until_move(b, h)
+	P("M1 idle hero order->first move frames=%d disp_after=%.4f path=%d" % [n, h.pos.distance_to(p0), h.path.size()])
+	# 첫 1초 동안 프레임당 이동 거리(가속 여부)
+	var b2 = B({"hero_start": Vector2i(5, 5)})
+	var h2 = b2.hero
+	b2.order_move([h2], Vector2i(15, 5))
+	var steps := []
+	var prev: Vector2 = h2.pos
+	for i in 6:
+		b2.step(DT)
+		steps.append("%.4f" % h2.pos.distance_to(prev))
+		prev = h2.pos
+	P("M1 per-frame disp first 6 frames=%s" % [", ".join(PackedStringArray(steps))])
+
+# M2: 영웅이 친 뒤 k프레임에 이동 명령 → 출발까지 프레임
+func m2() -> void:
+	var line := []
+	for k in [0, 1, 2, 3, 4, 5, 6, 10, 17, 18, 19, 30]:
+		var b = B({"hero_start": Vector2i(5, 5)})
+		var h = b.hero
+		var e = b.spawn_enemy("basic", Vector2i(6, 5), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})
+		var f := 0
+		while e.hp == e.max_hp and f < 600:
+			b.step(DT)
+			f += 1
+		for i in k:
+			b.step(DT)
+		b.order_move([h], Vector2i(5, 12))
+		var n := frames_until_move(b, h)
+		var hp_before: float = e.hp
+		for i in 120:
+			b.step(DT)
+		line.append("k=%d->%d(%.0fms)%s" % [k, n, n * DT * 1000.0, "" if e.hp == hp_before else " HIT_WHILE_WALK"])
+	P("M2 hero order k frames after strike -> frames to move: " + " ".join(PackedStringArray(line)))
+	# 이동 명령이 공격 준비(대기 0)와 같은 프레임에 오면 치는가
+	var b = B({"hero_start": Vector2i(5, 5)})
+	var h = b.hero
+	var e = b.spawn_enemy("basic", Vector2i(6, 5), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})
+	b.order_move([h], Vector2i(5, 12))
+	var n := frames_until_move(b, h)
+	P("M2b hero cooldown ready + enemy adjacent + order -> frames=%d enemy_hit=%s" % [n, e.hp < e.max_hp])
+
+# M3: 병사(이동 중 공격 기본값)가 붙은 적과 싸우는 중 이동 명령
+func m3() -> void:
+	for mode in ["attack_move", "move"]:
+		var b = B()
+		var m = b.place_merc("soldier", Vector2i(5, 5))
+		var e = b.spawn_enemy("basic", Vector2i(6, 5), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})
+		b.set_move_mode([m], mode)
+		var f := 0
+		while e.hp == e.max_hp and f < 600:
+			b.step(DT)
+			f += 1
+		b.order_move([m], Vector2i(5, 12))
+		var n := frames_until_move(b, m, 600)
+		P("M3 soldier mode=%s engaged enemy(hp BIG) order away -> frames to move=%d (cap 600=10s) path_left=%d" % [mode, n, m.path.size()])
+	# 이동 중 공격, 적 체력 10(병사 공격력 2) → 적이 죽어야 출발
+	var b = B()
+	var m = b.place_merc("soldier", Vector2i(5, 5))
+	var e = b.spawn_enemy("basic", Vector2i(6, 5), {"speed": 0, "sight": 0, "damage": 0, "hp": 10})
+	var f := 0
+	while e.hp == e.max_hp and f < 600:
+		b.step(DT)
+		f += 1
+	b.order_move([m], Vector2i(5, 12))
+	var n := frames_until_move(b, m, 900)
+	P("M3c soldier attack_move enemy hp10 order away -> frames to move=%d (%.2fs) enemy_alive=%s" % [n, n * DT, e.alive])
+	# 적이 병사를 치는 중(실전): 기본 적 그대로, 병사 후퇴 명령
+	var b2 = B()
+	var m2 = b2.place_merc("soldier", Vector2i(5, 5))
+	var e2 = b2.spawn_enemy("basic", Vector2i(7, 5), {"hp": BIG})
+	var g := 0
+	while m2.hp == m2.max_hp and g < 600:
+		b2.step(DT)
+		g += 1
+	b2.order_move([m2], Vector2i(5, 15))
+	var hp0: float = m2.hp
+	b2.step(DT)
+	var moved_frames := 0
+	var p0: Vector2 = m2.pos
+	var t := 0
+	while t < 300:
+		b2.step(DT)
+		t += 1
+		if not m2.alive:
+			break
+	P("M3d soldier attack_move being hit by basic(hp BIG), order retreat 10 cells: after 5s moved=%.2f cells alive=%s hp %.0f->%.0f path_left=%d" % [m2.pos.distance_to(p0), m2.alive, hp0, m2.hp, m2.path.size()])
+
+# M4: 영웅 이동 길 한가운데 적(목적지 아님)
+func m4() -> void:
+	for off in [0.0, 0.1, 0.2, 0.3]:
+		var b = B({"hero_start": Vector2i(5, 5)})
+		var h = b.hero
+		var e = b.spawn_enemy("basic", Vector2i(8, 5), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})
+		e.pos = Vector2(8, 5 + off)
+		b.order_move([h], Vector2i(12, 5))
+		var stop_t := -1.0
+		var t := 0.0
+		while t < 5.0:
+			b.step(DT)
+			t += DT
+			if stop_t < 0.0 and h.path.is_empty():
+				stop_t = t
+		P("M4 enemy in path offset=%.1f -> hero end=(%.2f,%.2f) reached=%s path_cleared_at=%.2fs enemy_hit=%s" % [off, h.pos.x, h.pos.y, h.pos.distance_to(Vector2(12, 5)) < 0.05, stop_t, e.hp < e.max_hp])
+	# 적 셋이 세로로 선 줄 너머로
+	var b = B({"hero_start": Vector2i(5, 5)})
+	var h = b.hero
+	for y in [4, 5, 6]:
+		b.spawn_enemy("basic", Vector2i(8, y), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})
+	b.order_move([h], Vector2i(12, 5))
+	b.step(DT)
+	var t := 0.0
+	while t < 5.0:
+		b.step(DT)
+		t += DT
+	P("M4c 3-enemy line, order behind it -> hero end=(%.2f,%.2f) reached=%s" % [h.pos.x, h.pos.y, h.pos.distance_to(Vector2(12, 5)) < 0.05])
+
+# M5: 병사 10명을 같은 칸으로
+func m5() -> void:
+	for n in [4, 6, 8, 10]:
+		var b = B()
+		var group := []
+		for i in n:
+			group.append(b.place_merc("soldier", Vector2i(3 + i % 5, 3 + i / 5)))
+		b.order_move(group, Vector2i(15, 10))
+		var report := []
+		var t := 0.0
+		for mark in [3.0, 6.0, 10.0]:
+			while t < mark:
+				b.step(DT)
+				t += DT
+			var walking := group.filter(func(u): return not u.path.is_empty()).size()
+			report.append("t=%.0fs walking=%d" % [mark, walking])
+		# 마지막 1초 동안 움직인 합(떨림)
+		var before := group.map(func(u): return u.pos)
+		var moved := 0.0
+		for i in 60:
+			var prev := group.map(func(u): return u.pos)
+			b.step(DT)
+			for j in n:
+				moved += group[j].pos.distance_to(prev[j])
+		var far := 0.0
+		for u in group:
+			far = maxf(far, u.pos.distance_to(Vector2(15, 10)))
+		P("M5 %d soldiers to one cell: %s · jitter in last 1s=%.2f cells total · farthest from target=%.2f" % [n, ", ".join(PackedStringArray(report)), moved, far])
+
+# M6: 실제 스테이지(40×32) 경로 계산 시간
+func m6() -> void:
+	var st: Dictionary = load("res://src/main.gd").stage()
+	st["heroes"] = [{"kind": "aias", "cell": Vector2i(19, 11)}]
+	var b = load("res://src/sim/battle.gd").new(st)
+	var h = b.hero
+	var cases := {"field->far field (1,30)": Vector2i(1, 30), "field->village (10,4) gates closed": Vector2i(10, 4), "field->wall top (10,9)": Vector2i(10, 9)}
+	for name in cases:
+		var cell: Vector2i = cases[name]
+		var t0 := Time.get_ticks_usec()
+		var reps := 50
+		for i in reps:
+			h.pos = Vector2(19, 11)
+			h.on_wall = false
+			b.order_move([h], cell)
+		var us := float(Time.get_ticks_usec() - t0) / reps
+		P("M6 order_move %s: %.3f ms/call path=%d after=%d" % [name, us / 1000.0, h.path.size(), h.after.size()])
+	# 닫힌 성문 너머 마을로 보낸 영웅
+	h.pos = Vector2(19, 11)
+	h.on_wall = false
+	b.order_move([h], Vector2i(10, 4))
+	var t := 0.0
+	var stop_t := -1.0
+	while t < 8.0:
+		b.step(DT)
+		t += DT
+		if stop_t < 0.0 and h.path.is_empty():
+			stop_t = t
+	P("M6b hero ordered into village with gates closed: end=(%.2f,%.2f) path_cleared_at=%.2fs" % [h.pos.x, h.pos.y, stop_t])
+	# 같은 판, 실제 첫 step 비용(적 없음)
+	var t0 := Time.get_ticks_usec()
+	for i in 60:
+		b.step(DT)
+	P("M6c step() cost idle (1 hero, no enemies): %.3f ms/step" % [float(Time.get_ticks_usec() - t0) / 60000.0])
+
+# M8: 원거리 영웅(실비아 사거리 4)에게 적이 선 칸으로 이동 명령
+func m8() -> void:
+	var b = B({"heroes": [{"kind": "sylvia", "cell": Vector2i(5, 5)}]})
+	var h = b.hero
+	var e = b.spawn_enemy("basic", Vector2i(13, 5), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})
+	b.order_move([h], Vector2i(13, 5))
+	var t := 0.0
+	while e.hp == e.max_hp and t < 8.0:
+		b.step(DT)
+		t += DT
+	P("M8 sylvia(range %.1f) ordered onto enemy cell 8 away -> first hit at %.2fs, distance at hit %.2f, path_left=%d (ideal: stop at range -> %.2fs)" % [h.range, t, h.pos.distance_to(e.pos), h.path.size(), (8.0 - h.range) / h.speed])
+	# 같은 적, 이동 명령 없음(서 있음): 실비아는 인식 2.5 < 사거리라 쫓지 않는다
+	var b2 = B({"heroes": [{"kind": "sylvia", "cell": Vector2i(5, 5)}]})
+	var e2 = b2.spawn_enemy("basic", Vector2i(10, 5), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})
+	var t2 := 0.0
+	while t2 < 5.0:
+		b2.step(DT)
+		t2 += DT
+	P("M8b sylvia idle, enemy at 5 cells (outside range 4) for 5s -> moved=%.2f enemy_hit=%s" % [b2.hero.pos.distance_to(Vector2(5, 5)), e2.hp < e2.max_hp])
+
+# M9: 사거리 밖 스킬(걸어가서 쓰기)과 막힘
+func m9() -> void:
+	var wave := [[{"kind": "basic", "count": 0}]]
+	# a) 아이아스 Q(방향) 10칸 밖 클릭, 옆에 적
+	var b = B({"hero_start": Vector2i(5, 5), "waves": wave})
+	var h = b.hero
+	var e = b.spawn_enemy("basic", Vector2i(6, 5), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})
+	b.start_battle()
+	var ok: bool = b.cast(h, "q", Vector2(15, 5))
+	var used0: int = h.skill_uses
+	var t := 0.0
+	while t < 3.0:
+		b.step(DT)
+		t += DT
+	P("M9a aias Q(dir) aimed 10 cells away, enemy adjacent: cast()=%s used_immediately=%s after3s uses=%d order=%s enemy_hit_by_Q=%s pos=(%.2f,%.2f)" % [ok, used0 > 0, h.skill_uses, h.order, e.fx.has("aias_q"), h.pos.x, h.pos.y])
+	# a2) 같은 Q, 적 없음, 10칸 밖 클릭: 몇 초 걸어가서 쓰는가
+	var b1 = B({"hero_start": Vector2i(5, 5), "waves": wave})
+	var h1 = b1.hero
+	b1.spawn_enemy("basic", Vector2i(28, 18), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})
+	b1.start_battle()
+	b1.cast(h1, "q", Vector2(15, 5))
+	var t1 := 0.0
+	while h1.skill_uses == 0 and t1 < 5.0:
+		b1.step(DT)
+		t1 += DT
+	P("M9a2 aias Q(dir) aimed 10 cells away, no enemy: cast after %.2fs, walked %.2f cells" % [t1, h1.pos.distance_to(Vector2(5, 5))])
+	# b) 이그니스 Q(지점) 10칸 밖, 길에 적
+	var b2 = B({"heroes": [{"kind": "ignis", "cell": Vector2i(5, 5)}], "waves": wave})
+	var h2 = b2.hero
+	b2.spawn_enemy("basic", Vector2i(7, 5), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})
+	b2.start_battle()
+	var ok2: bool = b2.cast(h2, "q", Vector2(15, 5))
+	var t2 := 0.0
+	var drop := -1.0
+	while t2 < 4.0:
+		b2.step(DT)
+		t2 += DT
+		if drop < 0.0 and h2.order == null:
+			drop = t2
+	P("M9b ignis Q(point) 10 cells away, enemy in path at 2: cast()=%s order_dropped_at=%.2fs uses=%d cd_q=%.1f mana=%.0f/%.0f pos=(%.2f,%.2f)" % [ok2, drop, h2.skill_uses, h2.cd.q, h2.mana, h2.max_mana, h2.pos.x, h2.pos.y])
+
+# M12: 자기 칸 우클릭·걷는 중 지나온 칸 우클릭
+func m12() -> void:
+	var b = B({"hero_start": Vector2i(5, 5)})
+	var h = b.hero
+	h.pos = Vector2(5.3, 5.2)
+	b.order_move([h], Vector2i(5, 5))
+	var path0: int = h.path.size()
+	for i in 60:
+		b.step(DT)
+	P("M12 hero at (5.3,5.2) right-click own cell (5,5): path=%d end=(%.2f,%.2f)" % [path0, h.pos.x, h.pos.y])
+	var b2 = B({"hero_start": Vector2i(5, 5)})
+	var h2 = b2.hero
+	b2.order_move([h2], Vector2i(12, 5))
+	while h2.pos.x < 7.4:
+		b2.step(DT)
+	b2.order_move([h2], Vector2i(7, 5))
+	var p1: Vector2 = h2.pos
+	for i in 60:
+		b2.step(DT)
+	P("M12b walking hero at x=%.2f ordered to cell (7,5): path=%d end=(%.2f,%.2f)" % [p1.x, h2.path.size(), h2.pos.x, h2.pos.y])

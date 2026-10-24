@@ -1,0 +1,56 @@
+extends SceneTree
+# 일회성: 성벽 위 영웅·적의 그려진 몸을 눌렀을 때(IN 갈래)
+
+var L
+var Hs
+const BV := preload("res://src/ui/battle_view.gd")
+
+func _initialize() -> void:
+	L = load("res://tests/eval/gd/lib.gd").new()
+	Hs = load("res://tests/eval/gd/heroes.gd").new()
+	print("p4 → ", p4())
+	print("p9 → ", p9())
+	quit(0)
+
+func _foot(u) -> Vector2:
+	return (u.pos + Vector2(0.5, 0.5)) * 16.0
+
+func p4() -> String:
+	var b = Hs._castle({"heroes": [Hs._hero("aias", Vector2i(12, 7))]})
+	b.order_move([b.hero], Vector2i(12, 9))
+	var ok: bool = L.run(b, 15, func(): return b.hero.on_wall and b.hero.path.is_empty() and b.hero.after.is_empty())
+	var v = BV.new()
+	v.battle = b
+	var lift: float = v._lift(b.hero)
+	var c = L.controls(b)
+	var out := ["올라감 %s 칸 %s 그려 올림 %.0fpx" % [ok, Vector2i(b.hero.pos.round()), lift]]
+	for dy in [0.0, -lift - 7.0]:
+		c.selected = []
+		c.fort = null
+		L.click(c, MOUSE_BUTTON_LEFT, _foot(b.hero) + Vector2(0, dy))
+		out.append("발밑%+.0fpx: 고름 %s · fort %s" % [dy, b.hero in c.selected, c.fort.kind if c.fort else null])
+	v.free()
+	return " · ".join(out)
+
+# p9: 성벽 위 용병을 세라피나 Q로 조준할 때 그려진 몸을 누르면
+func p9() -> String:
+	var b = Hs._castle({"heroes": [Hs._hero("seraphina", Vector2i(12, 7))]})
+	var m = b.place_merc("soldier", Vector2i(11, 9))
+	Hs._start(b)
+	var v = BV.new()
+	v.battle = b
+	var lift: float = v._lift(m)
+	var h = b.hero
+	var c = L.controls(b)
+	var out := ["용병 on_wall %s 올림 %.0fpx" % [m.on_wall, lift]]
+	for dy in [0.0, -lift - 7.0]:
+		h.cd.q = 0.0
+		h.mana = h.max_mana
+		c.skill_for(h, "q")
+		var uses: int = h.skill_uses
+		L.click(c, MOUSE_BUTTON_LEFT, _foot(m) + Vector2(0, dy))
+		out.append("발밑%+.0fpx: 씀 %s" % [dy, h.skill_uses > uses or h.order != null])
+		c.aiming = ""
+		h.order = null
+	v.free()
+	return " · ".join(out)
