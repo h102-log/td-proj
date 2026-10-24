@@ -1,0 +1,29 @@
+== probe
+p1_head_click → 발밑+0px:고름 발밑-4px:고름 발밑-8px:고름 발밑-10px:못 고름 발밑-12px:못 고름 발밑-14px:못 고름
+p1b_walking_click → 몸 가운데 클릭 성공 60/100
+p2_hero_merc_same_cell → 영웅 발밑을 눌렀는데 고른 것: ["soldier"]
+p3_merc_key_steals → 키 전 고름 ["aias"] · 키 뒤 고름 [] · facility true · 우클릭 뒤 영웅 길 0칸 · 시설 집결 (20, 15)
+p4_hero_on_wall → 영웅 on_wall false · 칸 (15, 10) · 고름 true · fort <null>
+p5_ranged_rightclick_enemy → 사거리 4.0 · 사거리 안에 든 때 1.35초 · 첫 타격 2.60초(그때 거리 0.60칸) · 2초 뒤 거리 0.60칸 · 걸을 길 0
+p6_aim_head_miss → 발밑-6px: 씀 true, 조준 남음 false · 발밑-10px: 씀 true, 조준 남음 false · 발밑-12px: 씀 false, 조준 남음 true
+p7_prep_drag_sells_tower → 고른 용병 2 · 판매 후보 ["soldier", "soldier", "tower"]
+p8_empty_click_q_reroute → F2로 고름 ["ignis"] → 빈 땅 클릭 뒤 고름 [] → Q 조준 영웅 vesper
+== probe2
+p4 → 올라감 true 칸 (12, 9) 그려 올림 19px · 발밑+0px: 고름 true · fort castle_wall · 발밑-26px: 고름 false · fort <null>
+p9 → 용병 on_wall true 올림 19px · 발밑+0px: 씀 true · 발밑-26px: 씀 false
+== probe3
+타워 칸 우클릭: 길 7칸 · 6초 뒤 영웅 (11.44999, 5.0)(타워 (12, 5))
+걷다가 자기 칸 우클릭: 길 0칸 · 위치 (11.39132, 6.391325)
+== probe4
+드래그로 고름 ["engineer", "soldier", "soldier"] · 철거 후보 ["tower"] · 공병 일 전 true → 우클릭 뒤 false
+== probe5
+대포 true · 칸 가운데+0px: 고른 구조물 ["cannon"] · fort castle_wall · 칸 가운데-8px: 고른 구조물 ["cannon"] · fort castle_wall · 칸 가운데-16px: 고른 구조물 [] · fort <null> · 칸 가운데-26px: 고른 구조물 [] · fort <null> · 성벽 칸 가운데+0px: fort castle_wall · 성벽 칸 가운데-16px: fort <null> · 성벽 칸 가운데-24px: fort <null>
+aias       ������ 191px  ĭ ��� ���� �� 68%  �ȴ� �� ��� 49%
+sylvia     ������ 146px  ĭ ��� ���� �� 72%  �ȴ� �� ��� 52%
+seraphina  ������ 156px  ĭ ��� ���� �� 66%  �ȴ� �� ��� 49%
+vesper     ������ 165px  ĭ ��� ���� �� 60%  �ȴ� �� ��� 46%
+ignis      ������ 152px  ĭ ��� ���� �� 62%  �ȴ� �� ��� 48%
+chronos    ������ 143px  ĭ ��� ���� �� 69%  �ȴ� �� ��� 50%
+soldier    ������ 140px  ĭ ��� ���� �� 65%  �ȴ� �� ��� 48%
+archer     ������ 148px  ĭ ��� ���� �� 71%  �ȴ� �� ��� 51%
+engineer   ������ 124px  ĭ ��� ���� �� 70%  �ȴ� �� ��� 50%

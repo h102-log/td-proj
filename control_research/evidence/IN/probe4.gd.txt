@@ -1,0 +1,25 @@
+extends SceneTree
+# 일회성: 전투 단계 드래그가 일하는 공병과 구조물까지 고르나(IN 갈래)
+
+var L
+
+func _initialize() -> void:
+	L = load("res://tests/eval/gd/lib.gd").new()
+	var b = L.battle({"base_hp": L.BIG, "waves": [[{"kind": "basic", "count": 1000}]]})
+	var eng = b.place_merc("engineer", Vector2i(10, 10))
+	b.place_merc("soldier", Vector2i(11, 10))
+	b.place_merc("soldier", Vector2i(11, 11))
+	var t = b.build("tower", Vector2i(12, 10))
+	b.start_battle()
+	var w = b.build("wall", Vector2i(10, 13))
+	L.run(b, 0.3, func():
+		for e in b.enemies.duplicate():
+			b.damage(e, L.BIG)
+		return false)
+	var job_before = eng.job
+	var c = L.controls(b)
+	L.drag(c, L.px(Vector2i(10, 10)) - Vector2(8, 8), L.px(Vector2i(12, 11)) + Vector2(8, 8))
+	var kinds = c.selected.map(func(u): return u.kind)
+	L.click(c, MOUSE_BUTTON_RIGHT, L.px(Vector2i(15, 15)))
+	print("드래그로 고름 %s · 철거 후보 %s · 공병 일 전 %s → 우클릭 뒤 %s" % [kinds, c.picked.map(func(s): return s.kind), job_before != null, eng.job != null])
+	quit(0)

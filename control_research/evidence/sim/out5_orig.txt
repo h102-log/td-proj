@@ -1,0 +1,9 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+RESULT variant=orig
+RESULT a 2 soldiers via open gate 10s: inside=0/2 pos=["(19.70,10.00)p6", "(20.30,10.00)p6"]
+RESULT b 4 soldiers via open gate: t=10 inside=4, t=20 inside=4, t=30 inside=4
+RESULT b 10 soldiers via open gate: t=10 inside=2, t=20 inside=4, t=30 inside=3
+RESULT c hero+soldier via open gate 10s: hero inside=true (20.00,4.92) path=0 | soldier inside=true (20.00,5.52) path=0
+RESULT d hero behind soldier in line via gate 10s: hero inside=true (20.00,5.52) | soldier inside=true
+RESULT DONE

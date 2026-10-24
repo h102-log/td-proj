@@ -1,0 +1,70 @@
+extends SceneTree
+# 일회성 측정 5: 열린 성문(1칸)을 여럿이 지나기. 인자: orig | mod <battle_mod 경로>
+
+const DT := 1.0 / 60.0
+const BIG := 1000000
+var SRC := "res://src/sim/battle.gd"
+
+func P(s: String) -> void:
+	print("RESULT ", s)
+
+func run(b, secs: float) -> void:
+	var t := 0.0
+	while t < secs:
+		b.step(DT)
+		t += DT
+
+func stage_battle(heroes := []):
+	var st: Dictionary = load("res://src/main.gd").stage()
+	st["heroes"] = heroes
+	var b = load(SRC).new(st)
+	b.gold = BIG
+	b.set_gate(b.castle[Vector2i(20, 9)], true)
+	return b
+
+func inside(u) -> bool:
+	return u.pos.y < 8.6
+
+func _initialize() -> void:
+	var args := OS.get_cmdline_user_args()
+	if args[0] == "mod":
+		SRC = args[1]
+	P("variant=" + args[0])
+	# a) 병사 둘 나란히
+	var b = stage_battle()
+	var g := [b.place_merc("soldier", Vector2i(19, 12)), b.place_merc("soldier", Vector2i(21, 12))]
+	b.order_move(g, Vector2i(20, 5))
+	run(b, 10.0)
+	P("a 2 soldiers via open gate 10s: inside=%d/2 pos=%s" % [g.filter(inside).size(), str(g.map(func(u): return "(%.2f,%.2f)p%d" % [u.pos.x, u.pos.y, u.path.size()]))])
+	# b) 병사 열
+	for n in [4, 10]:
+		var c = stage_battle()
+		var grp := []
+		for i in n:
+			grp.append(c.place_merc("soldier", Vector2i(15 + i, 13 + i % 2)))
+		c.order_move(grp, Vector2i(20, 5))
+		var rep := []
+		var t := 0.0
+		for mark in [10.0, 20.0, 30.0]:
+			while t < mark:
+				c.step(DT)
+				t += DT
+			rep.append("t=%.0f inside=%d" % [mark, grp.filter(inside).size()])
+		P("b %d soldiers via open gate: %s" % [n, ", ".join(PackedStringArray(rep))])
+	# c) 영웅과 병사 나란히
+	var d = stage_battle([{"kind": "aias", "cell": Vector2i(19, 12)}])
+	var h = d.hero
+	var m = d.place_merc("soldier", Vector2i(21, 12))
+	d.order_move([h, m], Vector2i(20, 5))
+	run(d, 10.0)
+	P("c hero+soldier via open gate 10s: hero inside=%s (%.2f,%.2f) path=%d | soldier inside=%s (%.2f,%.2f) path=%d" % [inside(h), h.pos.x, h.pos.y, h.path.size(), inside(m), m.pos.x, m.pos.y, m.path.size()])
+	# d) 영웅을 먼저 보내고 0.3초 뒤 병사
+	var e = stage_battle([{"kind": "aias", "cell": Vector2i(20, 13)}])
+	var h2 = e.hero
+	var m2 = e.place_merc("soldier", Vector2i(20, 12))
+	e.order_move([h2], Vector2i(20, 5))
+	e.order_move([m2], Vector2i(20, 6))
+	run(e, 10.0)
+	P("d hero behind soldier in line via gate 10s: hero inside=%s (%.2f,%.2f) | soldier inside=%s" % [inside(h2), h2.pos.x, h2.pos.y, inside(m2)])
+	P("DONE")
+	quit(0)

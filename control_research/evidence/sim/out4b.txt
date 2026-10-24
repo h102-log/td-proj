@@ -1,0 +1,10 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+RESULT A closed gate 5s: hero path=0 pos=(20.88,9.50) | soldier(attack_move) path=7 pos=(19.70,9.51) | soldier(move) path=7 pos=(20.30,9.50)
+RESULT A soldier pushing on closed gate jitter 1s=0.070 cells
+RESULT A gate open=true lock=0.0 state=prep; right after: m1 path=5 m2 path=5
+RESULT A after 6s positions: m1=(19.69,9.01) path=5 m2=(20.29,8.99) path=5
+RESULT A after gate opened 6s: hero pos=(20.88,9.50) reached=false | soldier1 reached=false | soldier2 reached=false
+RESULT B walk-to-cast then a gate toggled: cast()=true order before=true after toggle=false uses after 6s=0
+RESULT C sylvia: near basic hit=true(25 lost) far boss hit=false
+RESULT DONE
