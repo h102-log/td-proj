@@ -11,6 +11,7 @@ extends Resource
 @export var damage := 0.0
 @export var range := 0.0  # 사거리(칸)
 @export var sight := 2.5  # 인식 범위(칸, S141). 모든 영웅이 같은 임시값이라 파일마다 적지 않는다
+@export var light := 2.5  # 밤 불빛 반경(칸, S211). 모든 영웅이 같은 임시값이라 파일마다 적지 않는다
 @export var attack_gap := 1.0  # 공격 간격(초)
 @export var block := 1  # 블록 수(S159): 동시에 붙잡는 적 수. 모든 영웅이 같은 임시값이라 파일마다 적지 않는다
 @export var mana := 200.0  # 최대 마나(S146). 모든 영웅이 같은 임시값이라 파일마다 적지 않는다

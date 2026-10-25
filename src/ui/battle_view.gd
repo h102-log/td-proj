@@ -69,6 +69,36 @@ const ORDER_COLORS := [Color("40ff80"), Color("ef3a0c")]  # 명령 표식(S205):
 const SELECT_GLOW := 1.9  # 고른 것의 발밑 타원 밝기 배율(S207)
 const SELECT_LINES := [Color("d8fff6"), Color("ffb0a0")]  # 발밑 선택 테두리(S207): 고른 유닛, 선택 패널의 적
 static var FEET: ImageTexture = _feet()  # 발밑 채운 타원 14×6px. 아군·적을 한 장에 나란히 둬서 draw call이 끊기지 않는다
+const NIGHT_COLOR := Color("0b1030")  # 어둠 덮개 색(S212)
+const TORCH := Color("ffb060")  # 불빛 가장자리에 엷게 비치는 횃불 색(S212)
+const NIGHT_ALPHA := 0.85  # 불빛 밖 덮개 불투명도 = 이 값 × 어둠(S212)
+const TORCH_ALPHA := 0.25  # 횃불 색이 가장 짙은 곳(불빛 단계의 가운데)의 불투명도 × 어둠(S212)
+const NIGHT_LIGHTS := 128  # 덮개 셰이더에 넘기는 불빛 수 상한. 넘으면 앞의 것만 그린다. 적이 보이는지는 시뮬레이션이 모든 불빛으로 본다(S213)
+# 어둠 덮개(S212): 맵 px마다 가장 밝은 불빛을 고르고(반경의 절반까지 1, 반경에서 0), 4×4 바이어 디더로 4단계로 끊는다.
+# 화면 px마다 돌지만 맵 px(UV × 덮개 크기의 내림)로 끊어 도트처럼 보인다
+const NIGHT_SHADER := """shader_type canvas_item;
+uniform float dark = 0.0;
+uniform float alpha;
+uniform float torch_alpha;
+uniform int count = 0;
+uniform vec4 lights[%d];
+uniform vec2 px_size = vec2(1.0);
+uniform vec4 night_color : source_color;
+uniform vec4 torch_color : source_color;
+const float BAYER[16] = float[](0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0, 3.0, 11.0, 1.0, 9.0, 15.0, 7.0, 13.0, 5.0);
+void fragment() {
+	vec2 p = floor(UV * px_size) + 0.5;
+	float lit = 0.0;
+	for (int i = 0; i < count; i++) {
+		lit = max(lit, 1.0 - smoothstep(0.5, 1.0, distance(p, lights[i].xy) / lights[i].z));
+	}
+	ivec2 q = ivec2(p) %% 4;
+	float s = clamp(floor(lit * 4.0 + BAYER[q.y * 4 + q.x] / 16.0) / 4.0, 0.0, 1.0);
+	float a = alpha * dark * (1.0 - s);
+	float g = torch_alpha * dark * 4.0 * s * (1.0 - s);
+	COLOR = vec4((night_color.rgb * a + torch_color.rgb * g) / max(a + g, 0.0001), a + g);
+}
+""" % NIGHT_LIGHTS
 
 var battle
 var controls  # 고른 유닛에 테두리를 그린다
@@ -97,11 +127,60 @@ var _order := {}  # 마지막으로 본 명령(controls.order, S205)
 var _order_t0 := 0.0  # 그 명령을 처음 본 화면 시각
 var _shots := {}  # 날고 있는 투사체 id → 출발 자리(맵 px). 처음 그릴 때 쏜 쪽의 쏘는 곳이다
 var _landed := {}  # 지난 프레임까지 본 닿은 투사체(battle.landed) id. 닿음·처치는 투사체 하나에 한 번이다(I171)
+var night: ColorRect  # 어둠 덮개(S212): 바닥 그림(맵 밖 아래 띠까지)을 덮는 사각형 하나에 셰이더를 바른다. 맵의 자식이라 맵 그림 다음에 그린다
+var _top: Node2D  # 덮개 위 층: 조준 미리보기·출현 배지·체력 막대·명령 표식·드래그 사각형(_draw_top). 덮개 다음 자식이다
+var _cv: CanvasItem = self  # _draw_top의 그리기 함수가 그리는 곳. 층이 없으면(트리 밖에서 만든 맵) 맵 자신이다
+var _foes := []  # 이번 프레임에 보이는 적(S213). 숨은 적은 몸·발밑·막대·효과 테두리·예고를 그리지 않는다
+
+func _ready() -> void:
+	if battle:
+		_night_layer()
+
+# 어둠 덮개(S212)와 그 위 층. 덮개는 클릭을 받지 않고, 낮에는 숨는다
+func _night_layer() -> void:
+	night = ColorRect.new()
+	night.size = Vector2(battle.size.x * CELL, battle.size.y * CELL + int(Camera.BOTTOM))
+	night.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	night.visible = false
+	var sh := Shader.new()
+	sh.code = NIGHT_SHADER
+	var mat := ShaderMaterial.new()
+	mat.shader = sh
+	mat.set_shader_parameter("px_size", night.size)
+	mat.set_shader_parameter("alpha", NIGHT_ALPHA)
+	mat.set_shader_parameter("torch_alpha", TORCH_ALPHA)
+	mat.set_shader_parameter("night_color", NIGHT_COLOR)
+	mat.set_shader_parameter("torch_color", TORCH)
+	night.material = mat
+	add_child(night)
+	_top = Node2D.new()
+	_top.draw.connect(func():
+		_cv = _top
+		_draw_top()
+		_cv = self)
+	add_child(_top)
+
+# 맵에 그리는 적(S213): 어둠 속에 숨은 적은 뺀다
+func foes() -> Array:
+	return battle.enemies if battle.dark <= 0.0 else battle.enemies.filter(func(e): return battle.seen(e.pos))
+
+# 덮개 셰이더에 지금 어둠과 불빛(맵 px 가운데·지금 반경 px)을 넘긴다. 낮이면 그리지 않는다
+func night_params() -> Dictionary:
+	var pts := PackedVector4Array()
+	pts.resize(NIGHT_LIGHTS)
+	var n := 0
+	if battle.dark > 0.0:
+		for l in battle.lights.slice(0, NIGHT_LIGHTS):
+			var c: Vector2 = l[0] * CELL + Vector2(CELL, CELL) / 2.0
+			pts[n] = Vector4(c.x, c.y, minf(l[1] / battle.dark, 4096.0) * CELL, 0.0)
+			n += 1
+	return {"dark": battle.dark, "count": n, "lights": pts}
 
 func _draw() -> void:
 	if ground == null:
 		ground = bake_ground(battle)
 		props = ground_props(battle)
+	_foes = foes()
 	draw_texture(ground, Vector2.ZERO)  # 카메라가 아래로 보이는 맵 밖(I50)까지 한 장이다
 	for p in props:  # 시설이 선 칸의 소품은 감춘다(S201)
 		if not battle.structures.has(p[0]):
@@ -127,12 +206,12 @@ func _draw() -> void:
 			draw_circle(_center(z.pos), CELL * z.radius, Color(col, 0.18))
 			_pattern(z.src, _center(z.pos).round(), CELL * z.radius, Color(col, 0.9))
 		draw_arc(_center(z.pos), CELL * z.radius, 0.0, TAU, 48, Color(col, 0.8), 1.0)
-	for e in battle.enemies:  # 보스 스킬 예고(S194): 빨간 테두리 안쪽이 남은 시간만큼 차오른다
+	for e in _foes:  # 보스 스킬 예고(S194): 빨간 테두리 안쪽이 남은 시간만큼 차오른다. 숨은 보스(S213)는 그리지 않는다
 		if e.cast:
 			var sk: Dictionary = e.skills[e.cast.id]
 			draw_circle(_center(e.pos), CELL * sk.radius * (1.0 - e.cast.left / sk.windup), Color(TELL, 0.35))
 			draw_arc(_center(e.pos), CELL * sk.radius, 0.0, TAU, 48, Color(TELL, 0.9), 1.0)
-	for f in _fills:  # 보스 스킬이 발동하면(S198) 처음 FILL프레임은 예고 모양 안을 예고색으로 채운다
+	for f in _fills.filter(func(f): return battle.seen(f[0].at)):  # 보스 스킬이 발동하면(S198) 처음 FILL프레임은 예고 모양 안을 예고색으로 채운다
 		draw_circle(_center(f[0].at), CELL * f[0].radius, Color(TELL, 0.6))
 	_fx_dots(true)  # 바닥 균열(S198)은 몸통 아래
 	for p in battle.forecast:  # 기본 적의 예상 경로(S142): 엷은 빨간 선, 유닛 아래에. 너비 1이면 1배 줌에서 칸 중심을 지나는 가로·세로 구간이 안 그려진다
@@ -154,7 +233,7 @@ func _draw() -> void:
 			if on:
 				draw_arc(at, CELL * (u.radius + ring), 0.0, TAU, 24, MARKS[key], 1.0)
 				ring += 0.15
-	for e in battle.enemies:
+	for e in _foes:
 		var ring := 0.15
 		for key in ["stun", "root", "slow", "expose", "taunt", "seal", "chain", "dot"]:  # 걸린 효과(I101)
 			if battle.effect(e, key) != null:
@@ -184,19 +263,27 @@ func _draw() -> void:
 			draw_arc(_spot(m.target), CELL * m.splash * m.age / BLAST, 0.0, TAU, 24, Color(1, 0.8, 0.3, 1.0 - m.age / BLAST), 1.0)
 	_fx_dots(false)  # 먼지·조각(I172): 투사체 다음 층에 모아서
 	_traces()
+	# 어둠 덮개(S212)는 맵의 자식이라 여기까지(효과) 위에 그려진다. 그 위 층(_top)이 조준 미리보기·체력 막대·명령 표식·드래그 사각형이다
+	if _top:
+		_top.queue_redraw()
+	else:
+		_draw_top()
+
+# 덮개 위 층(S212). 그리기는 _cv(층 또는 맵 자신)에 한다
+func _draw_top() -> void:
 	_aim_preview()
 	if battle.state == "prep":
 		_spawn_badges()
-	for u in battle.units + battle.enemies:
+	for u in battle.units + _foes:
 		var bar := hp_bar_size(u, controls.show_hp)
 		if bar != Vector2.ZERO:
 			var head: float = (ART.boss.anchor[1] - ART.basic.anchor[1]) / CELL if u.kind == "boss" else 0.0  # 보스 그림은 기본 적보다 키가 커서 막대를 그만큼 올린다(머리 위)
 			_hp_bar(u.pos - Vector2(0, _lift(u) / CELL + head) + _slip(u) / CELL, u, bar)
 	var cue := order_ring()
 	if not cue.is_empty():
-		draw_arc(cue[0], cue[1], 0.0, TAU, 24, cue[2], 1.0)
+		_cv.draw_arc(cue[0], cue[1], 0.0, TAU, 24, cue[2], 1.0)
 	if controls.drag_rect.has_area():
-		draw_rect(controls.drag_rect, Color.WHITE, false, 1.0)
+		_cv.draw_rect(controls.drag_rect, Color.WHITE, false, 1.0)
 
 # 명령 표식(S205): [가운데(맵 px), 반경(px), 색]. 새 명령을 처음 본 때부터 ORDER_MARK초 동안 줄어든다. 대상 공격은 그 적의 발밑을 따라간다. 없으면 []
 func order_ring() -> Array:
@@ -216,8 +303,8 @@ func _spawn_badges() -> void:
 		var text := str(counts[i].values().reduce(func(n, x): return n + x, 0))
 		var w: float = PIXEL_FONT.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
 		var box := Rect2((Vector2(battle.spawns[i]) * CELL + Vector2(CELL / 2.0 - w / 2.0 - 2.0, -10.0)).round(), Vector2(w + 4.0, 9.0).round())
-		draw_rect(box, Color.BLACK)
-		draw_string(PIXEL_FONT, box.position + Vector2(2, 8), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8)
+		_cv.draw_rect(box, Color.BLACK)
+		_cv.draw_string(PIXEL_FONT, box.position + Vector2(2, 8), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8)
 
 # 날고 있는 투사체 하나(S178). 출발 자리(처음 그릴 때 쏜 쪽의 쏘는 곳 _muzzle, starts에 남긴다)에서 대상 가슴까지, 시뮬레이션에서 날아간 비율만큼 간 자리에 그린다.
 # 화살은 짧은 선, 마법은 쏜 쪽 색 구슬, 대포알은 포물선이다. 대상이 쓰러져 마지막 자리로 가는 대포알은 쓰러진 몸 쪽으로 간다
@@ -271,6 +358,8 @@ func _traces() -> void:
 		var id: String = h.get(c.slot).id if c.slot in battle.SLOTS else c.slot
 		var col: Color = FX_COLORS[id] if FX_COLORS.has(id) else HERO_COLORS[h.kind]
 		var at := _center(c.at)
+		if _boss(h) and not battle.seen(c.at):  # 숨은 보스(S213)의 흔적은 그리지 않는다
+			continue
 		if _boss(h):  # 보스 스킬(S198): 고리가 반경의 절반에서 1.1배까지 퍼진다
 			draw_arc(at, CELL * c.radius * (0.5 + 0.6 * _out(k)), 0.0, TAU, 48, Color(col.lerp(Color.WHITE, 0.4), 1.0 - k), 2.0 if k < 0.5 else 1.0)
 			continue
@@ -303,8 +392,8 @@ func _traces() -> void:
 			_blob(p + Vector2(4, -8), 1, Color(HERO_COLORS.ignis, 0.5))
 			_blob(p, 3, HERO_COLORS.ignis)
 			_blob(p, 1, Color("ffe080"))
-	var links := {}  # 영혼 사슬(S154): 같은 사슬에 묶인 적을 처음 적에게서 잇는다
-	for e in battle.enemies:
+	var links := {}  # 영혼 사슬(S154): 같은 사슬에 묶인 적을 처음 적에게서 잇는다. 숨은 적(S213)은 잇지 않는다
+	for e in _foes:
 		var v = e.fx.get("vesper_e")
 		if v:
 			if not links.has(v.chain):
@@ -367,7 +456,7 @@ func _marks() -> void:
 # 성벽 위 유닛의 발밑 팀 색만은 앞층 다음(바닥선 + 3)에 올려 그려 흉벽에 가리지 않게 한다(사용자 2026-10-20).
 # 성벽·거점 그림에 가려진 땅 유닛과 시설은 끝에 한 번 더 그린다(_shade). 레벨·선택·효과 테두리는 _draw가 모든 몸통 뒤에 그린다
 func _bodies() -> void:
-	var all: Array = battle.units + battle.enemies
+	var all: Array = battle.units + _foes  # 숨은 적(S213)은 몸·발밑을 그리지 않는다
 	var walls: Array = battle.castle.values() + battle.rubble.values()
 	var blds: Array = battle.structures.values()
 	for s in battle.structures.values():  # 옮겨 갈 칸의 대포 청사진(S176): 진행률 0인 미완성 대포로 그린다
@@ -628,8 +717,8 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 # 그릴 쓰러진 몸(S180) [몸, 쓰러진 뒤 초]: 시뮬레이션이 아직 지우지 않은 적·용병과 복귀 전 영웅. 영웅은 지워진 뒤에도 마지막 자세로 남는다
 func _fallen() -> Array:
 	var out := []
-	for f in battle.fallen:
-		if f.who.get("is_hero") != true and ART.has(f.who.kind):
+	for f in battle.fallen:  # 어둠 속에서 쓰러진 적(S213)은 그리지 않는다. 적에게는 is_hero가 없다
+		if f.who.get("is_hero") != true and ART.has(f.who.kind) and (f.who.get("is_hero") != null or battle.seen(f.who.pos)):
 			out.append([f.who, f.age])
 	for h in battle.heroes:
 		if not h.alive and ART.has(h.kind):
@@ -712,6 +801,12 @@ func _flinch(x) -> Vector2:
 # 화면 시계와 사건 목록(I170, I171). main이 battle.step(delta) 바로 뒤에 같은 delta로 부른다. 그리기만 바꾸고 시뮬레이션은 건드리지 않는다
 func tick(dt: float) -> void:
 	clock += dt
+	if night:  # 어둠 덮개(S212): 지금 어둠·불빛을 셰이더에 넘기고, 낮이면 숨긴다
+		var mat: ShaderMaterial = night.material
+		var params := night_params()
+		for k in params:
+			mat.set_shader_parameter(k, params[k])
+		night.visible = battle.dark > 0.0
 	events = []
 	_fills = _fills.map(func(f): return [f[0], f[1] - 1]).filter(func(f): return f[1] > 0)
 	_scan()
@@ -1176,33 +1271,33 @@ func _aim_preview() -> void:
 	var h = controls.aim_hero
 	var sk: Dictionary = h.get(controls.aiming)
 	var at: Vector2 = controls.mouse / CELL - Vector2(0.5, 0.5)
-	draw_arc(_center(h.pos), CELL * battle.CAST_RANGE, 0.0, TAU, 64, Color(1, 1, 1, 0.3), 1.0)
+	_cv.draw_arc(_center(h.pos), CELL * battle.CAST_RANGE, 0.0, TAU, 64, Color(1, 1, 1, 0.3), 1.0)
 	match sk.aim:
 		"dir":
 			var d: Vector2 = battle._toward(h, at)
 			if sk.has("arc"):  # 아이아스 Q: 반경 radius·각도 arc의 부채꼴(S151)
 				var half := deg_to_rad(sk.arc) / 2.0
-				draw_arc(_center(h.pos), CELL * sk.radius, d.angle() - half, d.angle() + half, 24, Color.WHITE, 1.0)
+				_cv.draw_arc(_center(h.pos), CELL * sk.radius, d.angle() - half, d.angle() + half, 24, Color.WHITE, 1.0)
 				for side in [-half, half]:
-					draw_line(_center(h.pos), _center(h.pos + d.rotated(side) * sk.radius), Color.WHITE, 1.0)
+					_cv.draw_line(_center(h.pos), _center(h.pos + d.rotated(side) * sk.radius), Color.WHITE, 1.0)
 			else:
-				draw_line(_center(h.pos), _center(h.pos + d * sk.get("radius", 40.0)), Color.WHITE, 1.0)  # 실비아 Q는 맵 끝까지
+				_cv.draw_line(_center(h.pos), _center(h.pos + d * sk.get("radius", 40.0)), Color.WHITE, 1.0)  # 실비아 Q는 맵 끝까지
 		"point":
 			if sk.id == "bulwark":
 				var d: Vector2 = battle._toward(h, at)
 				var side := Vector2i(0, 1) if absf(d.x) > absf(d.y) else Vector2i(1, 0)
 				for i in range(-1, 2):
-					draw_rect(_rect(Vector2i(at.round()) + side * i), Color.WHITE, false, 1.0)
+					_cv.draw_rect(_rect(Vector2i(at.round()) + side * i), Color.WHITE, false, 1.0)
 			else:
-				draw_arc(_center(at), CELL * sk.get("radius", 0.5), 0.0, TAU, 48, Color.WHITE, 1.0)
+				_cv.draw_arc(_center(at), CELL * sk.get("radius", 0.5), 0.0, TAU, 48, Color.WHITE, 1.0)
 		_:
-			draw_arc(_center(at), CELL * 0.7, 0.0, TAU, 24, Color.WHITE, 1.0)
+			_cv.draw_arc(_center(at), CELL * 0.7, 0.0, TAU, 24, Color.WHITE, 1.0)
 
 # at: 칸 단위 위치(칸 (x,y)의 중심 = Vector2(x,y)). 그 칸 위쪽 가운데에 그린다
 func _hp_bar(at: Vector2, b, size := Vector2(CELL, 2)) -> void:
 	var bar := Rect2(at * CELL + Vector2((CELL - size.x) / 2, -2 - size.y), size)
-	draw_rect(bar, Color.BLACK)
-	draw_rect(Rect2(bar.position, Vector2(size.x * b.hp / b.max_hp, size.y)), Color.GREEN)
+	_cv.draw_rect(bar, Color.BLACK)
+	_cv.draw_rect(Rect2(bar.position, Vector2(size.x * b.hp / b.max_hp, size.y)), Color.GREEN)
 
 # 거점 망루 그림의 불투명 사각형(맵 px). 이 안을 누르면 거점을 고른다(S100)
 static func keep_rect(b) -> Rect2:

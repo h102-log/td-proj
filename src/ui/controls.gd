@@ -179,7 +179,7 @@ func _release(rect: Rect2, at: Vector2) -> void:
 			selected = []
 			shown = null
 		elif units.is_empty():  # 적을 누르면 선택 패널에만 보인다(S206). 고른 유닛은 그대로다
-			var foe = _closest(battle.enemies, rect.position / cell_px - Vector2(0.5, 0.5))
+			var foe = _closest(_foes(), rect.position / cell_px - Vector2(0.5, 0.5))
 			if foe:
 				shown = foe
 	else:
@@ -265,7 +265,7 @@ func stop() -> void:
 # 고른 유닛에게 명령한다(S14, S35): 커서 0.7칸 안에 적이 있으면 가장 가까운 그 적을 대상 공격, 아니면 그 칸으로 이동(attack이면 공격 이동).
 # 살아 있는 고른 유닛이 있어 명령이 가면 표식을 남긴다(S205)
 func _command(px: Vector2, attack: bool) -> void:
-	var foe = _closest(battle.enemies, px / cell_px - Vector2(0.5, 0.5))
+	var foe = _closest(_foes(), px / cell_px - Vector2(0.5, 0.5))
 	if foe:
 		battle.order_attack(selected, foe)
 	else:
@@ -315,7 +315,7 @@ func _aim_at(px: Vector2) -> void:
 	var sk: Dictionary = aim_hero.get(aiming)
 	var aim = at
 	if sk.aim == "enemy":
-		aim = _closest(battle.enemies, at)
+		aim = _closest(_foes(), at)
 	elif sk.aim == "ally":
 		aim = _closest(battle.units, at)
 		var s = battle.structure_at(Vector2i(at.round()))
@@ -323,6 +323,10 @@ func _aim_at(px: Vector2) -> void:
 			aim = s
 	if aim != null and battle.cast(aim_hero, aiming, aim):
 		aiming = ""
+
+# 고르거나 노릴 수 있는 적: 어둠 속에 숨은 적(S213)은 뺀다
+func _foes() -> Array:
+	return battle.enemies if battle.dark <= 0.0 else battle.enemies.filter(func(e): return battle.seen(e.pos))
 
 func _closest(pool: Array, at: Vector2):
 	var best = null

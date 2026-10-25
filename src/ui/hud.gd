@@ -54,6 +54,8 @@ const FLAG := ["|####.", "|#####", "|####.", "|.....", "|.....", "|....."]
 const MENU := ["########", "........", "........", "########", "........", "........", "########"]  # ≡
 const PLAY := ["#...", "##..", "###.", "####", "###.", "##..", "#..."]  # ▶
 const SKULL := [".#####.", "#######", "#..#..#", "#######", ".##.##.", ".#####.", ".#.#.#."]  # 보스(S188)
+const MOON := ["..###..", ".###...", "###....", "###....", "###....", ".###...", "..###.."]  # 밤 웨이브(S214)
+const MOON_COLOR := Color("e8e0b0")
 const ARROW := [".###.", ".###.", "#####", ".###.", "..#.."]  # 아래 가장자리 표식의 화살표(S188)
 const ATTACK := [".....g....", "....hgssss", ".....g....", "......#...", "......##..", "#########.", "##########", "#########.", "......##..", "......#..."]  # 칼 + 화살. 공격 이동 태그(I139)
 const STOP := ["..######..", ".#oooooo#.", "#oooooooo#", "#oooooooo#", "#oooooooo#", "#oooooooo#", "#oooooooo#", "#oooooooo#", ".#oooooo#.", "..######.."]  # 정지 태그(I139)
@@ -102,6 +104,8 @@ var _eng: Label  # 공병 칸의 놀고 있는 공병 수
 var start: Button  # 진행 칸의 «▶ 전투 시작»(I13). 준비 단계에만
 var gauge: Button  # 진행 칸의 웨이브 버튼: 준비 단계 다음 웨이브(S188)·전투 단계 계기판·영입·승패(I13)
 var skull: TextureRect  # 진행 칸의 보스 해골(S188)
+var moon: TextureRect  # 진행 칸의 달(S214): 준비 단계·영입·라운드 사이는 다음 웨이브, 전투 단계는 이번 웨이브가 밤이면
+var _dusk := []  # «해가 진다» 토스트를 띄운 웨이브 [라운드, 웨이브](S214). 준비 단계에 비운다
 var edges := Control.new()  # 화면 밖 출현 지점의 아래 가장자리 표식(S188). 출현 지점마다 하나
 var _g1: Label  # 웨이브 버튼 윗줄
 var _g2: Label  # 웨이브 버튼 아랫줄
@@ -393,6 +397,14 @@ func _process(delta: float) -> void:
 			toasts.push("이번 라운드 미션: %s" % battle.QUEST_KINDS[battle.mission].text, MISSION_SECS)
 	if prep and _seen != "prep" and _boss(_next_wave()):  # S188
 		toasts.push("다음 웨이브에 보스")
+	if prep and _seen != "prep" and _night(_next_wave()):  # S214
+		toasts.push("다음 웨이브는 밤")
+	if prep:
+		_dusk = []
+	var dusk: Dictionary = battle.night(battle.round_index, battle.wave_index) if battle.state == "battle" else {}
+	if not dusk.is_empty() and battle.wave_time >= dusk.get("at", 0.0) and _dusk != [battle.round_index, battle.wave_index]:  # 해가 지기 시작했다(S214)
+		_dusk = [battle.round_index, battle.wave_index]
+		toasts.push("해가 진다")
 	_show_status(delta, round_no)
 	for k in ["mission", "engineer"]:  # 준비·전투 단계에만(S185)
 		cells[k].visible = on
@@ -696,6 +708,7 @@ func _make_progress() -> void:
 	_g2 = _text(gauge, 9, HudTheme.TEXT)
 	_dots = _pic(gauge, null, Vector2.ZERO)
 	skull = _pic(gauge, HudBuild.dots(SKULL, {"#": HudTheme.DANGER}), Vector2(7, 7))
+	moon = _pic(gauge, HudBuild.dots(MOON, {"#": MOON_COLOR}), Vector2(7, 7))
 	_track.color = HudTheme.LINE
 	gauge.add_child(_track)
 	_fill.color = HudTheme.DANGER
@@ -746,6 +759,8 @@ func _show_progress() -> void:
 		_dots.texture = _wave_dots(battle.waves.size(), battle.wave_index)
 		_dots.size = _dots.texture.get_size()
 		_dots.position = Vector2(gauge.size.x - _dots.size.x - 4, 5)
+	moon.visible = _night([battle.round_index, battle.wave_index] if st == "battle" else nw)  # S214
+	moon.position = Vector2(_dots.position.x - 10, 3) if st == "battle" else skull.position + Vector2(9 if skull.visible else 0, 0)
 
 func _line(l: Label, font: int, color: Color, at: Rect2) -> void:
 	l.add_theme_font_size_override("font_size", font)
@@ -786,6 +801,10 @@ func _total(rw: Array) -> int:
 func _boss(rw: Array) -> bool:
 	return not rw.is_empty() and battle.rounds[rw[0]][rw[1]].any(func(e): return e.kind == "boss")
 
+# 그 웨이브 [라운드, 웨이브]가 밤 웨이브다(S210, S214)
+func _night(rw: Array) -> bool:
+	return not rw.is_empty() and not battle.night(rw[0], rw[1]).is_empty()
+
 # 출현 지점마다 «왼쪽 — 기본 3 · 빠름 2», 그 아래 웨이브에 든 종류마다 특성 한 줄(S188)
 func _wave_lines(rw: Array) -> String:
 	var counts: Array = battle.spawn_counts(rw[0], rw[1])
@@ -795,6 +814,8 @@ func _wave_lines(rw: Array) -> String:
 		lines.append("%s — %s" % [SIDES[i] if i < SIDES.size() else str(i + 1), " · ".join(counts[i].keys().map(func(k): return "%s %d" % [ENEMIES[k], counts[i][k]]))])
 		kinds.merge(counts[i])
 	lines.append_array(kinds.keys().filter(func(k): return TRAITS.has(k)).map(func(k): return "%s: %s" % [ENEMIES[k], TRAITS[k]]))
+	if _night(rw):  # S214
+		lines.append(tr("밤 — 전투 %d초에 해가 진다") % int(battle.night(rw[0], rw[1]).get("at", 0.0)))
 	return "\n".join(lines)
 
 # 웨이브 버튼 툴팁(S188): 준비 단계는 곧 부를 웨이브, 전투 단계는 그다음 웨이브, 영입·라운드 사이는 다음 라운드 첫 웨이브의 출현 지점별 구성
@@ -811,10 +832,11 @@ func _wave_tip() -> Array:
 
 # 전투 중 진행 칸을 누르면 거점에 가장 가까운 적에게 카메라가 간다(I13, I164)
 func _to_enemy() -> void:
-	if battle.state != "battle" or battle.enemies.is_empty():
+	var foes: Array = battle.enemies.filter(func(e): return battle.seen(e.pos))  # 어둠 속에 숨은 적(S213)은 비추지 않는다
+	if battle.state != "battle" or foes.is_empty():
 		return
 	var keep := Vector2(battle.base.cell)
-	_focus(battle.enemies.reduce(func(a, e): return e if e.pos.distance_to(keep) < a.pos.distance_to(keep) else a).pos)
+	_focus(foes.reduce(func(a, e): return e if e.pos.distance_to(keep) < a.pos.distance_to(keep) else a).pos)
 
 # 아래 가장자리 표식(S188): 출현 지점마다 검은 바탕에 아래 화살표와 수
 func _make_edges(root: Control) -> void:

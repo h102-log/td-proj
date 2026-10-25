@@ -7,3 +7,4 @@ script = ExtResource("1_2se0y")
 cost = 15
 hp = 30.0
 speed = 2.5
+light = 1.5

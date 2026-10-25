@@ -11,3 +11,4 @@ range = 4.0
 damage = 6.0
 fire_gap = 2.5
 pierce = true
+light = 2.0
