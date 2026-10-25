@@ -355,3 +355,34 @@ func ev420():
 	b.next_round()
 	var left: int = b.units.filter(func(u): return u.kind == "engineer").size()
 	return check(left == 1, "다음 라운드에 공병이 %d명이다(1명이어야 한다)" % left)
+
+# EV424 · S98: live_prep 판에서는 거점도 공병을 판다. 작업장이 생기면 작업장 다음이고, 끈 판은 작업장만 판다
+func ev424():
+	var stage: Dictionary = load("res://src/main.gd").stage()
+	stage.gold = BIG
+	var b = load("res://src/sim/battle.gd").new(stage.duplicate(true))
+	b.live_prep = true
+	b.begin_hiring()
+	b.next_round()
+	b.sell(b.units.filter(func(u): return u.kind == "engineer"))
+	if b.units.any(func(u): return u.kind == "engineer") or b.sellers("engineer") != [b.base] or not b.can_buy("engineer"):
+		return "작업장 없는 판: 남은 공병 %d · 파는 곳 %s · 살 수 있음 %s" % [b.units.filter(func(u): return u.kind == "engineer").size(), b.sellers("engineer"), b.can_buy("engineer")]
+	var g: int = b.gold
+	var e = b.recruit(b.base, "engineer")
+	var d: Vector2i = cell_of(e) - b.base.cell if e else Vector2i.ZERO
+	if e == null or e.kind != "engineer" or b.gold != g - b.MERC_KINDS.engineer.cost or absi(d.x) + absi(d.y) != 1 or b.base.rally != cell_of(e):
+		return "거점에서 산 공병 %s · 골드 %d → %d · 자리 %s(거점 %s · 집결 지점 %s)" % [e, g, b.gold, e.pos if e else null, b.base.cell, b.base.rally]
+	var w = b.build("workshop", _nearest(b, "workshop", Vector2i(26, 15)))
+	if w == null or w.worker != e:
+		return "작업장 %s · 일꾼 %s(거점에서 산 공병 %s)" % [w, w.worker if w else null, e]
+	if not run(b, 30.0, func(): return w.complete):
+		return "작업장이 30초 안에 완성되지 않았다(진행 %s)" % w.progress
+	if b.sellers("engineer") != [w, b.base]:
+		return "작업장을 지은 뒤 파는 곳 %s(작업장 %s · 거점 %s)" % [b.sellers("engineer"), w, b.base]
+	var off = load("res://src/sim/battle.gd").new(stage)
+	off.begin_hiring()
+	off.next_round()
+	off.start_battle()
+	var og: int = off.gold
+	var oe = off.recruit(off.base, "engineer")
+	return check(off.state == "battle" and off.sellers("engineer") == [] and oe == null and off.gold == og, "끈 판 %s 단계: 파는 곳 %s · 거점 구매 %s · 골드 %d → %d" % [off.state, off.sellers("engineer"), oe, og, off.gold])

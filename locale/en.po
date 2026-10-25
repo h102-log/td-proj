@@ -497,6 +497,9 @@ msgstr "Raise at the Keep in prep (%d)"
 msgid "작업장에서 공병을 산다"
 msgstr "Buy engineers at a Workshop"
 
+msgid "거점에서 공병을 산다"
+msgstr "Buy engineers at the Keep"
+
 msgid "체력 %d · 적의 길을 막는다"
 msgstr "HP %d · blocks enemy paths"
 
@@ -508,6 +511,9 @@ msgstr "Blocks enemy paths"
 
 msgid "%s에서 산다 · 체력 %d"
 msgstr "Bought at %s · HP %d"
+
+msgid "거점·%s에서 산다 · 체력 %d"
+msgstr "Bought at the Keep or %s · HP %d"
 
 msgid "마을 · %s를 판다"
 msgstr "Village · sells %s"

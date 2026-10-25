@@ -238,14 +238,14 @@ func _lines(kind: String) -> Array:
 		var up: int = battle.VILLAGE_UP[battle.village_level - 1]
 		path = "거점에서 Lv%d로 올린다(%d)" % [battle.village_level + 1, up] if battle.state == "prep" else "준비 단계에 거점에서 올린다(%d)" % up
 	elif why == "놀고 있는 공병 없음":
-		path = "작업장에서 공병을 산다"
+		path = "거점에서 공병을 산다" if battle.base in battle.sellers("engineer") else "작업장에서 공병을 산다"
 	if why == "" and battle.gold < d.cost:
 		why = "골드 %d 모자람" % (d.cost - battle.gold)
 	var about := "체력 %d · 적의 길을 막는다" % d.hp
 	if kind in battle.MERC_KINDS:
 		for s in battle.STRUCTURE_KINDS:
 			if kind in battle.STRUCTURE_KINDS[s].produces:
-				about = "%s에서 산다 · 체력 %d" % [hud.NAMES[s], d.hp]
+				about = ("거점·%s에서 산다 · 체력 %d" if battle.base in battle.sellers(kind) else "%s에서 산다 · 체력 %d") % [hud.NAMES[s], d.hp]
 	elif not d.produces.is_empty():
 		about = "마을 · %s를 판다" % ", ".join(d.produces.map(func(k): return hud.NAMES[k]))
 	elif d.tax > 0:

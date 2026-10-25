@@ -71,3 +71,7 @@ def test_EV419_live_prep_work_carries_into_battle(gd):
 
 def test_EV420_starting_engineers(gd):
     gd("engineer", "EV420")
+
+
+def test_EV424_base_sells_engineers(gd):
+    gd("engineer", "EV424")

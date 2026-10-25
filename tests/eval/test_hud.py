@@ -238,3 +238,6 @@ def test_EV418_live_prep_unfinished_popup(gd):
 
 def test_EV423_live_prep_buy_from_popup_and_grid(gd):
     gd("hud", "EV423")
+
+def test_EV425_base_engineer_key_popup_rally(gd):
+    gd("hud", "EV425")
