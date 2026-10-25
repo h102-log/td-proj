@@ -2,7 +2,8 @@
 # «돌길·광장»). 꾸밈만이고 시뮬레이션은 그대로다. 바위·그루터기는 시설(facility.py)과 같은 카메라·외곽선으로, 우물은 같은 카메라에 갈색 외곽선으로 굽고,
 # 그을음·구덩이·자갈·풀·풀꽃은 바닥에 찍는 픽셀 그림이다. 마을 돌길은 그림 없이 battle_view.gd(_pave)가 칠한다.
 # 배치는 battle_view.gd(bake_ground·ground_props)가 정한다. 0행 16×16: 바위 3·그루터기 2·구덩이 2·자갈 2·풀 2·풀꽃 1·우물 1,
-# 1행 48×32: 그을음 3, 2행 48×48: 맵 아래 맵 밖 띠의 마른 나무 4(줄기 밑동이 그림의 (24, 44))
+# 1행 48×32: 그을음 3, 2행 48×48: 맵 아래 맵 밖 띠의 마른 나무 4(줄기 밑동이 그림의 (24, 44)),
+# 3행 16×16: 마을 시설 마당 소품(S215) 텃밭 2·울타리 2·장작더미·목재 더미·톱밥·판석
 # 사용: python tools/art/decor.py → art/tiles/decor.png
 from pathlib import Path
 
@@ -149,6 +150,79 @@ def well():
     return img
 
 
+# 2026-10-26
+# [동작] 마을 시설 마당 소품(S215): 외곽선 없이 땅에 붙은 흙 계열 픽셀 그림. 그림은 칸의 왼쪽 위에 붙인다
+# [의도] 건물이 자기 마당을 데리고 와 마을로 읽히게 한다
+# [이유] 마을다움 조사의 시각 문법(village_research/03 «외곽선 없음, 땅에 붙음, 흙 계열»)을 따른 시안 B′를 사용자가 골랐다
+#        (insights/2026-10-25_village_research_mockup.md). 텃밭 새싹은 바탕 풀(2d472d)과 다른 색이다(B′ 고친 점)
+def yard_props(rng):
+    def new(w, h):
+        return np.zeros((h, w, 4), np.uint8)
+
+    def garden(n):
+        """텃밭 이랑 3줄: 위 1px 새싹(띄엄띄엄)과 작물 점, 아래 1px 갈아엎은 흙. 줄 길이가 들쭉날쭉"""
+        a = new(14, 9)
+        for r in range(3):
+            y = 1 + r * 3
+            for x in range(int(rng.integers(0, 2)), 14 - int(rng.integers(0, 3))):
+                a[y + 1, x] = col("392a1c")
+                if (x + r + n) % 2 == 0 and rng.random() < 0.85:
+                    a[y, x] = col("39571c" if rng.random() < 0.75 else "efb775")
+        return a
+
+    def fence(flip):
+        """낮은 울타리 L자: 가로 13px(기둥 3개, 가로대 1줄) + 세로 10px. 키 4px"""
+        a = new(14, 12)
+        a[1, :13] = col("724113")
+        for x in (0, 6, 12):
+            a[0, x] = col("927e6a")
+            a[1:4, x] = col("392a1c")
+        for y in range(1, 11):
+            a[y, 0] = col("724113" if y % 4 else "392a1c")
+        return a[:, ::-1] if flip else a
+
+    def woodpile():
+        """장작더미 7×5: 통나무 마구리 셋 + 위에 둘"""
+        a = new(7, 5)
+        for cx, cy in ((1, 3), (3, 3), (5, 3), (2, 1), (4, 1)):
+            a[cy, cx], a[cy, cx - 1], a[cy + 1, cx] = col("ab5c1c"), col("724113"), col("392a1c")
+        return a
+
+    def lumber():
+        """목재 더미 11×5: 엇갈려 쌓은 판자 셋"""
+        a = new(11, 5)
+        for k, (x0, x1) in enumerate(((0, 9), (2, 11), (1, 10))):
+            a[3 - k, x0:x1] = col("ab5c1c" if k == 2 else "724113")
+            a[3 - k, x0] = col("392a1c")
+        a[4, a[4, :, 3] == 0] = col("392a1c")
+        return a
+
+    def sawdust():
+        """톱밥 얼룩 12×7: 밝은 점을 성기게"""
+        a = new(12, 7)
+        for _ in range(14):
+            x, y = int(rng.integers(0, 12)), int(rng.integers(0, 7))
+            if ((x - 6) / 6) ** 2 + ((y - 3) / 3.5) ** 2 < 1:
+                a[y, x] = col("efb775" if rng.random() < 0.4 else "927e6a")
+        return a
+
+    def flags():
+        """판석 넷 14×6: 회갈 돌, 아래 1px 그늘"""
+        a = new(14, 6)
+        for x0, y0, w in ((0, 0, 4), (5, 1, 4), (10, 0, 4), (3, 3, 4)):
+            a[y0:y0 + 2, x0:x0 + w] = col("927e6a")
+            a[y0 + 2, x0:x0 + w] = col("392a1c")
+            a[y0 + 2, [x0, x0 + w - 1]] = col("684c3c")
+        return a
+
+    out = []
+    for a in (garden(0), garden(1), fence(False), fence(True), woodpile(), lumber(), sawdust(), flags()):
+        cell = np.zeros(SMALL + (4,), np.uint8)
+        cell[:a.shape[0], :a.shape[1]] = a
+        out.append(cell)
+    return out
+
+
 def sheet():
     rng = np.random.default_rng(23)
     row0 = [rock(1.0, True), rock(0.85, False), rock(1.15, False), stump(1), stump(-1),
@@ -156,8 +230,10 @@ def sheet():
             flower_patch(np.random.default_rng(24)), well()]  # 마을 그림은 따로 씨앗을 써서 들판 그림이 그대로다
     row1 = [scorch(rng) for _ in range(3)]
     row2 = [dead_tree(rng) for _ in range(4)]
-    out = np.zeros((SMALL[1] + SCORCH[1] + TREE[1], max(SMALL[0] * len(row0), TREE[0] * len(row2)), 4), np.uint8)
-    for y, (w, _), row in ((0, SMALL, row0), (SMALL[1], SCORCH, row1), (SMALL[1] + SCORCH[1], TREE, row2)):
+    row3 = yard_props(np.random.default_rng(5))
+    out = np.zeros((SMALL[1] * 2 + SCORCH[1] + TREE[1], max(SMALL[0] * len(row0), TREE[0] * len(row2)), 4), np.uint8)
+    for y, (w, _), row in ((0, SMALL, row0), (SMALL[1], SCORCH, row1), (SMALL[1] + SCORCH[1], TREE, row2),
+                           (SMALL[1] + SCORCH[1] + TREE[1], SMALL, row3)):
         for i, im in enumerate(row):
             out[y:y + im.shape[0], i * w:i * w + im.shape[1]] = im
     return Image.fromarray(out, "RGBA")
