@@ -225,7 +225,7 @@ func ev143():
 # EV144 · S111: 시험 스테이지의 시작 골드와 웨이브
 func ev144():
 	var stage: Dictionary = load("res://src/main.gd").stage()
-	var want := [{"basic": 6, "fast": 3}, {"basic": 6, "armored": 3, "flying": 3}, {"basic": 8, "fast": 4, "armored": 3, "flying": 3, "boss": 1}]
+	var want := [{"basic": 60, "fast": 30}, {"basic": 60, "armored": 30, "flying": 30}, {"basic": 80, "fast": 40, "armored": 30, "flying": 30, "boss": 1}]  # S111 2026-10-25 변경: 보스를 뺀 10배
 	var got := []
 	for w in stage.waves:
 		var d := {}

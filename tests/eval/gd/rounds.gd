@@ -54,6 +54,16 @@ func _key(c, key: int) -> void:
 	ev.pressed = true
 	c.handle(ev)
 
+# 표의 보스를 뺀 적 수를 10배 한 값(S111·I91 2026-10-25 변경)
+func _ten(table: Array) -> Array:
+	var out := []
+	for w in table:
+		var d := {}
+		for k in w:
+			d[k] = w[k] if k == "boss" else w[k] * 10
+		out.append(d)
+	return out
+
 # 웨이브마다 {적 종류: 수}
 func _counts(waves: Array) -> Array:
 	var out := []
@@ -243,12 +253,12 @@ func ev168():
 	var others := [b.castle[GATES[1]].open, b.castle[GATES[2]].open]
 	return check(b.castle.get(GATES[0]) == g and g.open and others == [false, false], "연 성문 %s · 다른 성문 열림 %s" % [g.open, others])
 
-# EV169 · I91: 시험 스테이지 도전은 6라운드이고, 1라운드는 S111, 2~6라운드는 I91 표의 적 수다
+# EV169 · I91: 시험 스테이지 도전은 6라운드이고, 1라운드는 S111, 2~6라운드는 I91 표의 적 수다(둘 다 보스를 뺀 10배)
 func ev169():
 	var b = load("res://src/sim/battle.gd").new(load("res://src/main.gd").stage())
 	if b.rounds.size() != 6:
 		return "라운드가 %d개다(6개여야 한다)" % b.rounds.size()
-	var table := [S111] + I91
+	var table := [_ten(S111)] + I91.map(func(r): return _ten(r))
 	for k in 6:
 		var got := _counts(b.rounds[k])
 		if got != table[k]:
@@ -270,16 +280,16 @@ func ev170():
 	run(b, 10.0)
 	return check(n[0] == 2, "2라운드 첫 웨이브에 적이 %d명 나왔다(2명이어야 한다)" % n[0])
 
-# EV367 · I91: 시험 스테이지 판에서 적은 2.5초 간격으로 나온다. 첫 적은 전투를 시작하자마자 나온다
+# EV367 · I91: 시험 스테이지 판에서 적은 0.25초 간격으로 나온다. 첫 적은 전투를 시작하자마자 나온다
 func ev367():
 	var b = load("res://src/sim/battle.gd").new(load("res://src/main.gd").stage())
 	var n := [0]
 	b.enemy_spawned.connect(func(_e): n[0] += 1)
 	b.start_battle()
-	run(b, 2.4)
+	run(b, 0.2)
 	var early: int = n[0]
-	run(b, 0.4)
-	return check(early == 1 and n[0] == 2, "2.4초 뒤 %d명, 2.8초 뒤 %d명이 나왔다(1명·2명이어야 한다)" % [early, n[0]])
+	run(b, 0.2)
+	return check(early == 1 and n[0] == 2, "0.2초 뒤 %d명, 0.4초 뒤 %d명이 나왔다(1명·2명이어야 한다)" % [early, n[0]])
 
 # EV243 · S138: 쓰러진 영웅은 체력 1로 돌아온다(부활이 켜져 있으면 다음 준비 단계, 꺼져 있으면 다음 라운드).
 #   쓰러진 채 출전에서 빠졌다가 다시 출전한 영웅은 S124대로 최대 체력이다
@@ -342,3 +352,46 @@ func ev253():
 			return "%d라운드 웨이브가 끝나지 않았다" % (r + 1)
 	var ok: bool = is_equal_approx(got[0][0], hp) and is_equal_approx(got[0][1], hp) and is_equal_approx(got[2][0], hp * 1.5) and is_equal_approx(got[2][1], hp * 1.5)
 	return check(ok, "라운드별 [체력, 최대 체력] %s(1라운드 %s, 3라운드 %s여야 한다)" % [got, hp, hp * 1.5])
+
+# EV426 · I176: 시험 스테이지는 처치 보상에 0.1을 곱하고, 1골드에 못 미치는 나머지는 쌓았다가 준다. 나머지는 저장에 담긴다
+func ev426():
+	var Save = load("res://src/sim/save.gd")
+	var b = load("res://src/sim/battle.gd").new(load("res://src/main.gd").stage())
+	b.gold = 0
+	var got := []
+	for i in 3:
+		b.damage(b.spawn_enemy("basic", Vector2i(30, 50)), BIG)
+		got.append(b.gold)
+	var c = load("res://src/sim/battle.gd").new(load("res://src/main.gd").stage())
+	Save.apply(c, Save.snapshot(b))
+	c.damage(c.spawn_enemy("basic", Vector2i(30, 50)), BIG)
+	var h = battle({"gold": 0})
+	h.damage(h.spawn_enemy("basic", Vector2i(10, 10)), BIG)
+	return check(got == [0, 1, 1] and c.gold == 2 and h.gold == 5,
+		"시험 스테이지 기본 적 셋을 처치하며 골드 %s(0·1·1이어야 한다) · 저장해 불러온 판에서 하나 더 처치한 골드 %d(2여야 한다) · 헬퍼 판 골드 %d(5여야 한다)" % [got, c.gold, h.gold])
+
+# EV427 · I177: 시험 스테이지의 적은 맡은 출현 지점에서 가로로 ±10칸 안의 맨 아래 줄 칸에서, 황금비 수열 차례로 흩어져 나온다
+func ev427():
+	var b = load("res://src/sim/battle.gd").new(load("res://src/main.gd").stage())
+	var plan: Array = b.wave_plan(0, 0)
+	var cells := []
+	b.enemy_spawned.connect(func(e): cells.append(Vector2i(e.pos.round())))
+	b.start_battle()
+	clear_wave(b)
+	if cells.size() != 90:
+		return "1라운드 첫 웨이브에 적이 %d명 나왔다(90명이어야 한다)" % cells.size()
+	var xs := {}
+	for k in cells.size():
+		var s: Vector2i = plan[k][1]
+		var n: int = k / b.spawns.size()
+		var x := clampi(s.x - 10 + int(fposmod(n * 0.6180339887, 1.0) * 21.0), 0, 59)
+		if cells[k] != Vector2i(x, 60):
+			return "%d번째 적이 %s에서 나왔다(출현 지점 %s, %s여야 한다)" % [k, cells[k], s, Vector2i(x, 60)]
+		xs[x] = true
+	var h = battle({"spawns": [Vector2i(0, 5)], "waves": [[{"kind": "basic", "count": 3}]]})
+	var at := []
+	h.enemy_spawned.connect(func(e): at.append(Vector2i(e.pos.round())))
+	h.start_battle()
+	clear_wave(h)
+	return check(xs.size() >= 40 and at == [Vector2i(0, 5), Vector2i(0, 5), Vector2i(0, 5)],
+		"나온 x %d가지(40가지 이상이어야 한다) · 헬퍼 판 나온 칸 %s(모두 (0, 5)여야 한다)" % [xs.size(), at])

@@ -56,3 +56,11 @@ def test_EV243_downed_heroes_return_with_1_hp(gd):
 
 def test_EV253_round_hp_multiplier(gd):
     gd("rounds", "EV253")
+
+
+def test_EV426_kill_reward_scale_carries_fraction(gd):
+    gd("rounds", "EV426")
+
+
+def test_EV427_spawn_spread_along_bottom_row(gd):
+    gd("rounds", "EV427")
