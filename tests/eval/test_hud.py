@@ -241,3 +241,12 @@ def test_EV423_live_prep_buy_from_popup_and_grid(gd):
 
 def test_EV425_base_engineer_key_popup_rally(gd):
     gd("hud", "EV425")
+
+def test_EV428_camera_accel_decel(gd):
+    gd("hud", "EV428")
+
+def test_EV429_smooth_integer_zoom(gd):
+    gd("hud", "EV429")
+
+def test_EV430_focus_glides(gd):
+    gd("hud", "EV430")
