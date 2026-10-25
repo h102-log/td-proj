@@ -123,7 +123,7 @@ func _icon(kind: String) -> AtlasTexture:
 	return _icons[kind]
 
 func refresh() -> void:
-	if controls.shown and not controls.shown.alive:  # 그 적이 쓰러지면 고른 유닛으로 돌아간다
+	if controls.shown and (not controls.shown.alive or not battle.seen(controls.shown.pos)):  # 그 적이 쓰러지거나 어둠 속에 숨으면(S213) 고른 유닛으로 돌아간다
 		controls.shown = null
 	var units: Array = controls.selected.filter(func(u): return u.alive)
 	var x = controls.shown if controls.shown else (units[0] if units.size() == 1 else null)

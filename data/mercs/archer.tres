@@ -11,3 +11,4 @@ damage = 2.0
 range = 5.0
 sight = 6.0
 hold_radius = 2.0
+light = 2.0

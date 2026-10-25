@@ -26,3 +26,10 @@ waves = Array[Dictionary]([{
 "flying": 120,
 "boss": 1
 }])
+nights = Array[Dictionary]([{}, {}, {
+"at": 30.0,
+"dark": 0.6
+}, {
+"at": 20.0,
+"dark": 0.8
+}])

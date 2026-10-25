@@ -48,6 +48,11 @@ const STAY := 0.6  # 장판 안에 있는 동안 거는 효과의 남은 시간(
 const FALLEN := 2.0  # 쓰러진 몸(fallen)을 지우는 때(쓰러진 뒤 초, S180). 화면은 끝 0.5초 동안 흐린다
 const STAGGER := 2.0  # 예고 중 기절로 스킬이 끊긴 보스가 비틀거리는 시간(초, S194). 임시값
 const STAGGER_EXPOSE := 0.5  # 비틀거리는 동안 받는 피해 증가(S194). 임시값
+const DUSK := 10.0  # 밤 웨이브에 fade가 없을 때 어둠이 dark까지 오르는 시간(초, S210). 임시값
+const DAWN := 3.0  # 전투 단계가 끝난 뒤 어둠이 1에서 0까지 내리는 시간(초, S210). 임시값
+const BASE_LIGHT := 4.0  # 거점의 밤 불빛 반경(칸, S211). 임시값
+const GATE_LIGHT := 2.0  # 성문 칸의 밤 불빛 반경(칸, S211). 임시값
+const LIGHT_CHUNK := 8  # 보이는지(seen) 물을 때 불빛을 나눠 담는 구역 크기(칸). 적 수백 명이 물어도 그 구역의 불빛만 본다
 
 # 칸 하나를 차지하고 체력이 있는 것: 거점 "base" · 성곽 "castle_wall"·"gate" · 구조물 "wall" 등
 class Block:
@@ -272,6 +277,7 @@ var spawn_spread := 0  # 출현 지점마다 가로로 흩어져 나오는 칸 �
 var forecast := []  # 출현 지점마다 기본 적이 지금 나오면 걸을 길(칸 배열, S142). 화면이 선으로 그린다
 var waves: Array  # 지금 라운드의 웨이브
 var rounds: Array  # 도전의 라운드마다 웨이브 배열(S63, I91). stage에 rounds가 없으면 waves 하나가 1라운드짜리 도전이다
+var nights: Array  # 라운드마다 웨이브 차례의 밤 {at, dark, fade}(S210). 없거나 짧으면 낮이다
 var base: Block
 var castle := {}      # Vector2i → Block
 var structures := {}  # Vector2i → Block
@@ -306,6 +312,9 @@ var gold := 0
 var village := Rect2i()  # 마을 칸. 생산 시설은 안에만, 나머지 구조물은 밖에만 짓는다(S43). 비어 있으면 모두 들판
 var merc_cap := MERC_CAP
 var village_level := 1  # 오를수록 지을 수 있는 생산 시설이 는다(S46, S99)
+var dark := 0.0  # 어둠(S210): 0 낮 ~ 1 한밤. 밤 웨이브의 전투 단계에 오르고, 전투가 끝나면 내린다. 저장에 담지 않는다(준비 단계는 낮)
+var wave_time := 0.0  # 이번 전투 단계가 시작된 뒤 흐른 시간(초). 밤 웨이브의 해 지는 때(at)를 잰다
+var lights := []  # 불빛(S211): [자리(칸), 어둠 1일 때 반경(칸)]. step 끝에 다시 모은다. 화면이 어둠을 그릴 때 읽는다
 
 var grid := CostGrid.new()
 var _wall := AStarGrid2D.new()  # 성벽 위 길. 성곽 칸만 걸을 수 있다(I69)
@@ -320,6 +329,8 @@ var _luck := RandomNumberGenerator.new()  # 치명타·요새화 기절(S149, S1
 var _chains := 0  # 영혼 사슬(S154)마다 붙이는 번호
 var _holds := {}  # 유닛 → 그 유닛이 붙잡은 적 수(S159). 스텝마다 적의 engaged로 다시 센다
 var _tracing = null  # 지금 내는 스킬 흔적(_trace). 그동안 피해·회복을 받은 대상이 hits에 쌓인다
+var _lit := {}  # 구역(LIGHT_CHUNK칸) → 그 구역에 닿는 [불빛 자리, 지금 반경²](seen)
+var _all_lit := true  # 어둠이 0이거나 불빛 하나가 맵을 다 덮어 모두 보인다
 
 # dir의 Resource 파일마다 «파일 이름 → 스크립트 변수 사전». list_directory는 내보낸 빌드의 .remap도 원래 이름으로 준다
 static func _kinds(dir: String) -> Dictionary:
@@ -341,6 +352,7 @@ func _init(stage: Dictionary) -> void:
 	for c in spawns:
 		assert(c.x == 0 or c.y == 0 or c.x == size.x - 1 or c.y == size.y - 1, "출현 지점 %s가 맵 가장자리가 아니다" % c)
 	rounds = stage.get("rounds", [stage.get("waves", [])])
+	nights = stage.get("nights", [])
 	grid.region = Rect2i(Vector2i.ZERO, size)
 	grid.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
 	grid.update()
@@ -366,6 +378,8 @@ func restart() -> void:
 	village = stage.get("village", Rect2i())
 	merc_cap = stage.get("merc_cap", MERC_CAP)
 	village_level = 1
+	dark = 0.0
+	wave_time = 0.0
 	for s in structures.values() + castle.values() + rubble.values() + ([base] if base else []):  # 공병 ↔ 구조물 상호 참조를 끊는다. 남기면 RefCounted 순환이라 해제되지 않는다
 		_release(s)
 	base = Block.new(stage.base, "base", stage.base_hp)
@@ -420,6 +434,7 @@ func restart() -> void:
 	_reset_tally()
 	_draw_mission()  # 1라운드의 미션(I120)
 	_forecast()
+	_light_up()
 
 func step(dt: float) -> void:
 	for t in traces + fallen + landed:
@@ -430,6 +445,7 @@ func step(dt: float) -> void:
 	if state == "battle":
 		_spawn_wave(dt)
 		tally.battle_time += dt  # 라운드 집계(I119)
+		wave_time += dt
 	if _repath:
 		_repath = false
 		for e in enemies:
@@ -479,6 +495,71 @@ func step(dt: float) -> void:
 					_return_hero(h)
 	for k in castle.values() + rubble.values():  # 성문 쿨타임은 전투 단계에만 줄고, 웨이브가 끝나면 사라진다(S135)
 		k.lock = maxf(k.lock - dt, 0.0) if state == "battle" else 0.0
+	_night(dt)
+	_light_up()
+
+# 라운드 r·웨이브 w의 밤(S210): {at, dark, fade}. 낮이면 {}
+func night(r: int, w: int) -> Dictionary:
+	if r >= nights.size() or w >= nights[r].size():
+		return {}
+	return nights[r][w]
+
+# 어둠(S210): 밤 웨이브의 전투 단계에서 at초가 지나면 dark까지 fade초에 오르고, 그 밖에는 1을 DAWN초에 내리는 빠르기로 0까지 내린다
+func _night(dt: float) -> void:
+	var n := night(round_index, wave_index) if state == "battle" else {}
+	if n.is_empty() or wave_time < n.get("at", 0.0):
+		dark = maxf(dark - dt / DAWN, 0.0)
+		return
+	var goal := clampf(n.get("dark", 1.0), 0.0, 1.0)
+	dark = minf(dark + goal / maxf(n.get("fade", DUSK), 0.01) * dt, goal) if dark < goal else maxf(dark - dt / DAWN, goal)
+
+# 어둠 1일 때 x의 불빛 반경(칸, S211). 데이터 값이라 저장된 판에도 같다. 빛이 없으면 0
+func light_of(x) -> float:
+	if x is Unit:
+		return (HERO_KINDS if x.is_hero else MERC_KINDS)[x.kind].get("light", 0.0)
+	if x == base:
+		return BASE_LIGHT
+	if x.kind == "gate":
+		return GATE_LIGHT
+	if not x.complete or x.razed >= 1.0:  # 미완성(I18)·접어 옮기는 대포(I74)는 빛이 없다
+		return 0.0
+	return STRUCTURE_KINDS.get(x.kind, {}).get("light", 0.0)
+
+# 불빛(S211)을 모으고, 지금 어둠의 반경으로 구역마다 나눠 담는다. 어둠이 0이거나 불빛 하나가 맵을 다 덮으면 모두 보인다
+func _light_up() -> void:
+	lights.clear()
+	_lit.clear()
+	for x in units + structures.values() + castle.values() + [base]:  # 쓰러진 유닛·부서진 칸은 이 목록에 없다
+		var r := light_of(x)
+		if r > 0.0:
+			lights.append([x.pos if x is Unit else Vector2(x.cell), r])
+	_all_lit = dark <= 0.0
+	if _all_lit:
+		return
+	var far := Vector2(size).length()
+	var last := (size - Vector2i.ONE) / LIGHT_CHUNK
+	for l in lights:
+		var r: float = l[1] / dark
+		if r >= far:
+			_all_lit = true
+			return
+		var lo := Vector2i(((l[0] - Vector2(r, r)) / LIGHT_CHUNK).floor()).clamp(Vector2i.ZERO, last)
+		var hi := Vector2i(((l[0] + Vector2(r, r)) / LIGHT_CHUNK).floor()).clamp(Vector2i.ZERO, last)
+		for cx in range(lo.x, hi.x + 1):
+			for cy in range(lo.y, hi.y + 1):
+				var k := Vector2i(cx, cy)
+				if not _lit.has(k):
+					_lit[k] = []
+				_lit[k].append([l[0], r * r])
+
+# 칸 좌표 p가 보이나(S211, S213): 어둠이 0이면 늘 보이고, 아니면 어느 불빛의 지금 반경(밤 반경 ÷ 어둠) 안이어야 한다
+func seen(p: Vector2) -> bool:
+	if _all_lit:
+		return true
+	for l in _lit.get(Vector2i((p / LIGHT_CHUNK).floor()).clamp(Vector2i.ZERO, (size - Vector2i.ONE) / LIGHT_CHUNK), []):
+		if p.distance_squared_to(l[0]) <= l[1]:
+			return true
+	return false
 
 # 영웅을 자기 시작 칸에 세운다. 체력은 쓰러졌다 돌아올 때(S26, I102) 1이고(S138, I27), 새로 출전할 때(S124) 가득 찬다.
 # 마나도 돌아올 때 0, 새로 출전할 때 가득이다(S146). 공격·스킬 대기는 쓰러질 때 값을 이어 간다(S67)
@@ -501,6 +582,7 @@ func start_battle() -> void:
 	state = "battle"
 	_queue = wave_plan(round_index, wave_index)
 	_spawn_timer = 0.0
+	wave_time = 0.0
 
 # 라운드 r·웨이브 w의 적을 나오는 차례대로 [종류, 출현 지점, 나올 칸]. 항목 차례로 나오고 출현 지점을 돌아가며 쓴다.
 # 나올 칸은 출현 지점에서 n번째 적마다 황금비 수열로 가로 ±spawn_spread 안에 흩는다(I177). 씨앗을 쓰지 않는다.

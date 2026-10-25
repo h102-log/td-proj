@@ -639,6 +639,15 @@ msgstr "Round mission: %s"
 msgid "다음 웨이브에 보스"
 msgstr "Boss next wave"
 
+msgid "다음 웨이브는 밤"
+msgstr "Next wave is at night"
+
+msgid "해가 진다"
+msgstr "The sun is setting"
+
+msgid "밤 — 전투 %d초에 해가 진다"
+msgstr "Night — the sun sets %ds into the battle"
+
 msgid "%s 실패: %s"
 msgstr "%s failed: %s"
 
