@@ -1,11 +1,12 @@
 extends Camera2D
 # 마우스 휠로 1·2·3배 정수배 줌(S52), 창 가장자리에 마우스를 대거나 방향키를 누르면 그쪽으로 이동(S53), 휠 버튼 드래그로 이동(S68).
-# HUD 버튼 위에서는 가장자리 이동을 멈추고, 위쪽 가장자리는 창 맨 위 4 창 px만 친다(S53).
+# HUD 버튼·미니맵(S209) 위에서는 가장자리 이동을 멈추고, 위쪽 가장자리는 창 맨 위 4 창 px만 친다(S53).
 # 맵 밖은 아래로 건설 격자 높이만큼만 보인다(I50).
 # 가장자리·방향키 이동은 가감속하고(S53), 휠 줌은 정수 화면 배율만 지나며 옮겨 가고(S52), HUD가 옮기는 카메라는 미끄러진다(I164).
 # 그 움직임은 glide(delta)가 흘린다. pan·zoom_at·focus는 바로 옮기는 한 걸음이다.
 
 const Settings := preload("res://src/settings.gd")
+const Minimap := preload("res://src/ui/hud_minimap.gd")
 const ZOOMS := [1, 2, 3]
 const EDGE := 16.0      # 가장자리로 치는 폭(창 px)
 const TOP_EDGE := 4.0   # 위쪽 가장자리로 치는 폭(창 px, S53 임시값). 위 띠 버튼을 누르러 가다 화면이 움직이지 않게
@@ -61,9 +62,10 @@ func keys(delta: float) -> void:
 	if dir != Vector2.ZERO:
 		_drive(dir, delta)
 
-# 가장자리 이동(S53). 커서가 HUD 버튼 위면 멈춘다. HUD는 루트 뷰포트에 있어 그 호버를 본다
+# 가장자리 이동(S53). 커서가 HUD 버튼·미니맵(S209) 위면 멈춘다. HUD는 루트 뷰포트에 있어 그 호버를 본다
 func scroll(m: Vector2, size: Vector2, delta: float) -> void:
-	if get_tree().root.gui_get_hovered_control() is BaseButton:
+	var over := get_tree().root.gui_get_hovered_control()
+	if over is BaseButton or over is Minimap:
 		return
 	var dir := edge_dir(m, size)
 	if dir != Vector2.ZERO:
@@ -120,6 +122,12 @@ func pan(dir: Vector2, delta: float) -> void:
 func focus(at: Vector2) -> void:
 	position = at - (FOCUS - get_viewport_rect().size / 2) / zoom.x
 	pan(Vector2.ZERO, 0.0)
+
+# 미니맵이 카메라를 대상으로 바로 옮긴다(S209). 미끄러짐과 가장자리·방향키 속도는 버린다
+func jump(at: Vector2) -> void:
+	_slide_t = 1.0
+	_vel = Vector2.ZERO
+	focus(at)
 
 # HUD가 카메라를 대상으로 옮긴다(I164): focus 자리까지 GLIDE초 동안 ease-out으로 미끄러진다. 사람이 카메라를 움직이면 버린다
 func slide(at: Vector2) -> void:

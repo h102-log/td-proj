@@ -44,6 +44,7 @@ func _ready() -> void:
 	cam.position = Vector2(Vector2i(view.battle.base.cell.x, view.battle.village.end.y) * BattleView.CELL)  # 정문(거점 열의 성곽 칸, S203)
 	add_child(cam)
 	hud = Hud.new(view.battle, controls, get_viewport())
+	hud.view = view
 	hud.menu_pressed.connect(pause)  # 위 띠 메뉴 칸(S185)
 	add_child(hud)
 	menus = Menus.new()

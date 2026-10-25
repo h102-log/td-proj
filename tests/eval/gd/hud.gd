@@ -823,7 +823,7 @@ func ev337():
 		nums.sort()
 		var sums := want.map(func(d): return _count(d))
 		sums.sort()
-		var area := Rect2(30, 344, 470, 12)
+		var area := Rect2(68, 344, 432, 12)
 		if shown.size() != b.spawns.size() or nums != sums or shown.any(func(m): return not area.encloses(m.get_global_rect().grow(-0.01))):
 			out = "1배 줌 맨 위: 표식 %d개(기대 %d) · 수 %s(기대 %s) · 자리 %s" % [shown.size(), b.spawns.size(), nums, sums, shown.map(func(m): return m.get_global_rect())]
 	if out == "":
@@ -1904,7 +1904,7 @@ func _hint_says(main) -> String:
 	var h = main.hud.hints
 	return " ".join(_labels(h)) if h.is_visible_in_tree() else ""
 
-# EV356 · S191: 준비 단계 [4,300,200,40]에 «짓는다» 힌트가 뜨고, 보이기 전에 해낸 영웅 이동은 끝난 것으로 치며, 지으면 «거점», 거점을 누르면 «전투 시작»으로 바뀌고, 전투가 시작되면 숨는다
+# EV356 · S191: 준비 단계 [68,300,200,40]에 «짓는다» 힌트가 뜨고, 보이기 전에 해낸 영웅 이동은 끝난 것으로 치며, 지으면 «거점», 거점을 누르면 «전투 시작»으로 바뀌고, 전투가 시작되면 숨는다
 func ev356():
 	var st = _hints_reset()
 	var main = _prep()
@@ -1916,8 +1916,8 @@ func ev356():
 	var out := ""
 	var r: Rect2 = hud.hints.get_global_rect()
 	var said := _hint_says(main)
-	if r != Rect2(4, 300, 200, 40) or not "짓는다" in said:
-		out = "새 설정의 1라운드 준비 단계 힌트 칸 %s · 글 «%s»(기대: [4,300,200,40], «짓는다»)" % [r, said]
+	if r != Rect2(68, 300, 200, 40) or not "짓는다" in said:
+		out = "새 설정의 1라운드 준비 단계 힌트 칸 %s · 글 «%s»(기대: [68,300,200,40], «짓는다»)" % [r, said]
 	if out == "":
 		var h = b.heroes[0]
 		main.controls.selected = [h]
@@ -2061,8 +2061,8 @@ func ev368():
 		_frame(main)
 		var r: Rect2 = hud.hints.get_global_rect()
 		var said := _hint_says(main)
-		if b.state != "battle" or r != Rect2(4, 300, 200, 40) or not "3·5·7" in said:
-			out = "2웨이브 전투 단계(단계 %s) 힌트 칸 %s · 글 «%s»(기대: [4,300,200,40], «3·5·7»)" % [b.state, r, said]
+		if b.state != "battle" or r != Rect2(68, 300, 200, 40) or not "3·5·7" in said:
+			out = "2웨이브 전투 단계(단계 %s) 힌트 칸 %s · 글 «%s»(기대: [68,300,200,40], «3·5·7»)" % [b.state, r, said]
 	if out == "":
 		b.recruit(f, "soldier")
 		_frame(main)
@@ -2725,3 +2725,207 @@ func ev430():
 		out = check(gap.call() > 1.0, "미끄러지는 중에 ←를 누른 뒤에도 거점이 (320,194)에서 %.1f — 남은 미끄러짐을 버려야 한다" % gap.call())
 	_done(main)
 	return out
+
+const MINI := Rect2(2, 295, 62, 63)  # 미니맵(S209). 테두리 1px 안에 칸당 1px
+
+# 미니맵 위 맵 칸 c 가운데의 화면 자리
+func _mini(c: Vector2) -> Vector2:
+	return MINI.position + Vector2.ONE + c + Vector2(0.5, 0.5)
+
+# 맵 칸 c 가운데의 화면 자리
+func _on(main, c: Vector2) -> Vector2:
+	_cam(main).force_update_scroll()
+	return main.hud.map.get_canvas_transform() * ((c + Vector2(0.5, 0.5)) * 16)
+
+# 화면 at에 마우스 버튼 누름·뗌 입력을 넣는다
+func _button_at(at: Vector2, button: int, down: bool) -> void:
+	var e := InputEventMouseButton.new()
+	e.button_index = button
+	e.position = at
+	e.global_position = at
+	e.pressed = down
+	e.button_mask = (1 << (button - 1)) if down else 0
+	Engine.get_main_loop().root.push_input(e, true)
+
+# 좌버튼을 누른 채 화면 at으로 커서를 옮긴다
+func _drag_to(at: Vector2) -> void:
+	var e := InputEventMouseMotion.new()
+	e.position = at
+	e.global_position = at
+	e.button_mask = MOUSE_BUTTON_MASK_LEFT
+	Engine.get_main_loop().root.push_input(e, true)
+
+# EV431 · S209: 미니맵은 준비·전투 단계에 [2,295,62,63]에 보이고, 영입 창에는 숨는다
+func ev431():
+	var main = _game()
+	_frame(main)
+	if main.hud.get("minimap") == null:
+		_done(main)
+		return "main.hud.minimap이 없다"
+	var hiring: bool = main.hud.minimap.is_visible_in_tree()
+	_done(main)
+	main = _prep()
+	var m = main.hud.minimap
+	var prep: bool = m.is_visible_in_tree()
+	var r: Rect2 = m.get_global_rect()
+	main.view.battle.start_battle()
+	_frame(main)
+	var fight: bool = m.is_visible_in_tree()
+	_done(main)
+	return check(not hiring and prep and r.is_equal_approx(MINI) and fight, "영입 창 보임 %s · 준비 단계 보임 %s·%s · 전투 단계 보임 %s" % [hiring, prep, r, fight])
+
+# EV432 · S209: 미니맵 좌클릭·드래그는 그 자리를 화면 가운데(320,194)로 바로 옮기고, 미끄러짐을 버리며, 놓기 모드와 맵은 건드리지 않는다
+func ev432():
+	var main = _prep()
+	if main.hud.get("minimap") == null:
+		_done(main)
+		return "main.hud.minimap이 없다"
+	var b = main.view.battle
+	var cam = _cam(main)
+	_away(main)
+	main.hud.cells.status.pressed.emit()
+	var sliding: bool = cam.busy()
+	_key(KEY_2)
+	var n: int = b.structures.size()
+	_button_at(_mini(Vector2(40, 50)), MOUSE_BUTTON_LEFT, true)
+	var d1: Vector2 = (_on(main, Vector2(40, 50)) - FOCUS).abs()
+	var still: bool = not cam.busy()
+	var kept: bool = b.structures.size() == n and main.controls.placing == "tower"
+	_drag_to(_mini(Vector2(10, 20)))
+	var d2: Vector2 = (_on(main, Vector2(10, 20)) - FOCUS).abs()
+	_button_at(_mini(Vector2(10, 20)), MOUSE_BUTTON_LEFT, false)
+	var p: Vector2 = cam.position
+	_move(_mini(Vector2(40, 50)))
+	var stays: bool = cam.position.is_equal_approx(p)
+	_done(main)
+	return check(sliding and maxf(d1.x, d1.y) <= 0.5 and still and kept and maxf(d2.x, d2.y) <= 0.5 and stays,
+		"누르기 전 미끄러지는 중 %s · 누름: (40,50)이 (320,194)에서 %s, 멈춤 %s, 구조물·놓기 그대로 %s · 끌기: (10,20)이 %s · 뗀 뒤 옮겨도 그대로 %s" % [sliding, d1, still, kept, d2, stays])
+
+# EV433 · S209: 미니맵의 카메라 사각형은 위 띠 아래 보이는 맵을 칸 단위로 옮긴 것이다
+func ev433():
+	var main = _prep()
+	var m = main.hud.get("minimap")
+	if m == null or not m.has_method("view_rect"):
+		_done(main)
+		return "main.hud.minimap.view_rect가 없다"
+	var cam = _cam(main)
+	var bad := []
+	for lv in 3:
+		cam.zoom_at(lv - cam.level, Vector2(320, 180))
+		for at in [cam.map_px / 2, Vector2.ZERO, cam.map_px]:
+			cam.position = at
+			cam.pan(Vector2.ZERO, 0.0)
+			cam.force_update_scroll()
+			var z: float = cam.zoom.x
+			var seen := Rect2(cam.position + (Vector2(0, 28) - Vector2(320, 180)) / z, Vector2(640, 332) / z)
+			var want := Rect2(seen.position / 16 + Vector2.ONE, seen.size / 16).intersection(Rect2(1, 1, 60, 61))
+			var got: Rect2 = m.view_rect()
+			var d: Vector2 = (got.position - want.position).abs()
+			var e: Vector2 = (got.size - want.size).abs()
+			if maxf(maxf(d.x, d.y), maxf(e.x, e.y)) > 0.01:
+				bad.append([z, cam.position, got, want])
+	_done(main)
+	return check(bad.is_empty(), "[줌, 카메라, 그린 사각형, 기대] %s" % [bad])
+
+# EV434 · S209: 미니맵 점은 칸마다 정해진 색·크기로 정해진 차례에 그리고, 바닥은 맵 바닥 그림을 칸 크기로 줄인 것이다
+func ev434():
+	var main = _prep()
+	var m = main.hud.get("minimap")
+	if m == null or not m.has_method("marks"):
+		_done(main)
+		return "main.hud.minimap.marks가 없다"
+	var b = main.view.battle
+	b.build("tower", Vector2i(20, 32))
+	b.place_merc("soldier", Vector2i(30, 31))
+	var still := {"speed": 0, "sight": 0, "damage": 0, "hp": BIG}
+	var e = b.spawn_enemy("basic", Vector2i(20, 40), still)
+	e.pos = Vector2(20.6, 40.4)  # 몸 가운데가 든 칸은 (21,40)
+	b.spawn_enemy("boss", Vector2i(40, 40), still)
+	b.damage(b.castle[Vector2i(10, 27)], BIG, "true")
+	var marks: Array = m.marks()
+	var want := [[Rect2(22, 41, 1, 1), "ff3b3b"], [Rect2(41, 41, 2, 2), "ff3b3b"], [Rect2(31, 32, 1, 1), "3ce0d8"], [Rect2(21, 33, 1, 1), "8fd8ff"],
+		[Rect2(30, 13, 3, 3), "ffd37f"], [Rect2(11, 28, 1, 1), "4a4a50"], [Rect2(30, 28, 1, 1), "9aa0aa"], [Rect2(31, 28, 1, 1), "c08a4a"]]
+	var miss := want.filter(func(w): return not marks.any(func(k): return k[0].is_equal_approx(w[0]) and k[1].is_equal_approx(Color(w[1]))))
+	for h in b.heroes:
+		var p: Vector2 = h.pos + Vector2(1.5, 1.5)
+		if not marks.any(func(k): return k[0].size == Vector2(2, 2) and k[0].has_point(p) and k[1].is_equal_approx(Color.WHITE)):
+			miss.append([h.kind, p])
+	var rank := {"4a4a50": 0, "9aa0aa": 1, "c08a4a": 1, "8fd8ff": 2, "ffd37f": 3, "3ce0d8": 4, "ff3b3b": 5, "ffffff": 6}
+	var ranks: Array = marks.map(func(k): return rank.get(k[1].to_html(false), -1))
+	var sorted := ranks.duplicate()
+	sorted.sort()
+	var ground: ImageTexture = load("res://src/ui/battle_view.gd").bake_ground(b)
+	var small: Image = load("res://src/ui/hud_minimap.gd").shrink(ground, b.size).get_image()
+	var big: Image = ground.get_image()
+	var off := []
+	for c in range(81).map(func(i): return Vector2i(i % 9, i / 9) * 7):
+		var sum := Color(0, 0, 0, 0)
+		for y in 16:
+			for x in 16:
+				sum += big.get_pixel(c.x * 16 + x, c.y * 16 + y)
+		var avg: Color = sum / 256.0
+		var got := small.get_pixel(c.x, c.y)
+		if maxf(maxf(absf(got.r - avg.r), absf(got.g - avg.g)), absf(got.b - avg.b)) > 0.08:
+			off.append([c, got, avg])
+	_done(main)
+	return check(miss.is_empty() and not -1 in ranks and ranks == sorted and small.get_size() == b.size and off.is_empty(),
+		"없는 점 %s · 색 차례 %s · 바닥 크기 %s · 평균과 다른 칸 %s" % [miss, ranks, small.get_size(), off])
+
+# EV435 · S209: 미니맵 우클릭은 그 자리를 맵에서 우클릭한 것과 같다(고른 유닛 명령, 놓기 취소)
+func ev435():
+	var main = _prep()
+	if main.hud.get("minimap") == null:
+		_done(main)
+		return "main.hud.minimap이 없다"
+	var b = main.view.battle
+	var c = main.controls
+	var h = b.heroes[0]
+	_key(KEY_F1)
+	for down in [true, false]:
+		_button_at(_mini(Vector2(38, 45)), MOUSE_BUTTON_RIGHT, down)
+	var at: Vector2 = c.order.get("at", Vector2.INF)
+	var sent: bool = at.distance_to(Vector2(616, 728)) <= 0.01 and not h.path.is_empty() and h.path.back() == Vector2i(38, 45)
+	_key(KEY_2)
+	var placing: String = c.placing
+	var n: int = b.structures.size()
+	for down in [true, false]:
+		_button_at(_mini(Vector2(38, 45)), MOUSE_BUTTON_RIGHT, down)
+	var off: bool = placing == "tower" and c.placing == "" and b.structures.size() == n
+	_done(main)
+	return check(sent and off, "명령 자리 %s(기대 (616,728)) · 영웅 길 끝 %s · 놓기 %s → %s, 구조물 %d → %d" % [at, h.path.back() if not h.path.is_empty() else null, placing, c.placing, n, b.structures.size()])
+
+# EV436 · S209: 커서가 미니맵 위면 가장자리 이동이 멈추고, 같은 x의 맵 위면 간다
+func ev436():
+	var main = _prep()
+	if main.hud.get("minimap") == null:
+		_done(main)
+		return "main.hud.minimap이 없다"
+	var cam = _cam(main)
+	var size := Vector2(1280, 720)
+	cam.position = cam.map_px / 2
+	var at := Vector2(4, 356)
+	_move(at)
+	var p0: Vector2 = cam.position
+	cam.scroll(at * 2, size, 1.0)
+	var held: bool = cam.position.is_equal_approx(p0)
+	var open := Vector2(4, 200)
+	_move(open)
+	cam.scroll(open * 2, size, 1.0)
+	var moved: bool = cam.position.x < p0.x
+	_done(main)
+	return check(held and moved, "미니맵 위에서 그대로 %s · 맵 위에서 x가 줆 %s" % [held, moved])
+
+# EV437 · S189: 왼쪽·아래 경보 표식은 미니맵과 겹치지 않는다
+func ev437():
+	var main = _prep()
+	var b = main.view.battle
+	b.heroes[0].pos = Vector2(1, 59)
+	b.heroes[1].pos = Vector2(0, 34)
+	for h in b.heroes.slice(0, 2):
+		b.damage(h, BIG, "true")
+	main.hud._process(0.0)
+	var rs: Array = main.hud.alerts.find_children("*", "BaseButton", true, false).filter(func(x): return x.is_visible_in_tree()).map(func(x): return x.get_global_rect())
+	var low := rs.filter(func(r): return absf(r.position.y - 344) < 0.01 and r.position.x >= 67.99)
+	var side := rs.filter(func(r): return absf(r.position.x - 2) < 0.01 and r.end.y <= 292.01)
+	_done(main)
+	return check(rs.size() == 2 and low.size() == 1 and side.size() == 1 and not rs.any(func(r): return r.intersects(MINI)), "보이는 표식 %s · 아래 띠 %d · 왼쪽 띠 %d" % [rs, low.size(), side.size()])
