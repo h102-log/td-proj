@@ -66,6 +66,8 @@ const WALL_H := 24  # 성벽 앞면 높이(px, 4.0 확정값)
 const TEAM := [Color("3c9f9c"), Color("ef3a0c")]  # 발밑 팀 색(S166): 아군 청록, 적 빨강(F24+ 팔레트)
 const ORDER_MARK := 0.4  # 명령 표식이 보이는 시간(초, S205)
 const ORDER_COLORS := [Color("40ff80"), Color("ef3a0c")]  # 명령 표식(S205): 이동 초록, 공격 빨강(적 발밑 색)
+const SELECT_GLOW := 1.9  # 고른 것의 발밑 타원 밝기 배율(S207)
+const SELECT_LINES := [Color("d8fff6"), Color("ffb0a0")]  # 발밑 선택 테두리(S207): 고른 유닛, 선택 패널의 적
 static var FEET: ImageTexture = _feet()  # 발밑 채운 타원 14×6px. 아군·적을 한 장에 나란히 둬서 draw call이 끊기지 않는다
 
 var battle
@@ -144,11 +146,9 @@ func _draw() -> void:
 		var at := _spot(u) + _slip(u)  # 넉백으로 미끄러지는 몸을 테두리·숫자가 따라간다(S198)
 		if u.is_hero:  # 영웅 레벨(I117): 오른쪽 위에 작게
 			draw_string(PIXEL_FONT, (at + Vector2(CELL * 0.3, -CELL * 0.3)).round(), str(u.level), HORIZONTAL_ALIGNMENT_LEFT, -1, 8)
-		if u in controls.selected:  # 흰 테두리. 홀드면 기준 반경도 그린다
-			draw_arc(at, CELL * (u.radius + 0.2), 0.0, TAU, 24, Color.WHITE, 1.0)
-			if u.hold:
-				draw_arc(u.anchor * CELL + Vector2(CELL, CELL) / 2, CELL * u.hold_radius, 0.0, TAU, 48, Color(1, 1, 1, 0.4), 1.0)
-		var ring := 0.35  # 걸린 효과(I101): 선택 테두리 바깥에 효과마다 한 겹
+		if u in controls.selected and u.hold:  # 고른 유닛의 표시는 발밑(_feet_mark, S207). 홀드면 기준 반경을 그린다(S36)
+			draw_arc(u.anchor * CELL + Vector2(CELL, CELL) / 2, CELL * u.hold_radius, 0.0, TAU, 48, Color(1, 1, 1, 0.4), 1.0)
+		var ring := 0.35  # 걸린 효과(I101): 몸 둘레에 효과마다 한 겹
 		for key in ["dr", "haste", "shield", "invuln"]:
 			var on: bool = (not u.shields.is_empty()) if key == "shield" else (battle.effect(u, key) != null if key == "invuln" else battle.effect_sum(u, key) > 0.0)
 			if on:
@@ -505,7 +505,26 @@ func _behind(x) -> bool:
 # 발밑 팀 색(S166). i는 battle.units + battle.enemies 안의 번호다. 비행 적은 그림자 자리에 그린다
 func _feet_mark(x, i: int) -> void:
 	var foot := (_spot(x) if x.on_wall else _center(x.pos)) + (Vector2(0, CELL * 0.4) if x.get("flying") == true else Vector2.ZERO) + _lunge(x) + _flinch(x) + _slip(x)
-	draw_texture_rect_region(FEET, Rect2((foot + Vector2(-7, -2)).round(), Vector2(14, 6)), Rect2(14 * int(i >= battle.units.size()), 0, 14, 6))
+	var rect := Rect2((foot + Vector2(-7, -2)).round(), Vector2(14, 6))
+	var region := Rect2(14 * int(i >= battle.units.size()), 0, 14, 6)
+	draw_texture_rect_region(FEET, rect, region)
+	var mark := foot_mark(x)
+	if mark != "":  # 고른 유닛·패널의 적(S207): 타원을 밝게 덧그리고 테두리를 두른다
+		draw_texture_rect_region(FEET, rect, region, Color(SELECT_GLOW, SELECT_GLOW, SELECT_GLOW))
+		_ellipse(foot + Vector2(0, 1), Vector2(8.5, 4.5), SELECT_LINES[int(mark == "foe")])
+
+# 발밑 선택 표시(S207): 고른 영웅·용병은 «pick», 선택 패널에 보인 적(S206)은 «foe», 그 밖은 «»
+func foot_mark(x) -> String:
+	if x in controls.selected:
+		return "pick"
+	return "foe" if x == controls.shown else ""
+
+# 맵 px 타원 테두리 1px(S207). 점을 반 px 옮겨 도트 칸에 맞춘다
+func _ellipse(c: Vector2, r: Vector2, col: Color) -> void:
+	var pts := PackedVector2Array()
+	for k in 33:
+		pts.append((c + Vector2(cos(TAU * k / 32.0) * r.x, sin(TAU * k / 32.0) * r.y)).round() + Vector2(0.5, 0.5))
+	draw_polyline(pts, col, 1.0)
 
 # 성곽 칸 조각 하나(front 0 몸체, 1 앞층). 조각 맨 아랫줄이 바닥선 바로 아래 줄이다. 단계(S86)마다 그림이 다르고(사용자 2026-10-20),
 # 열린 성문은 몸체 위에 통로 그늘을 겹친다(I67). 잔해(I88)는 몸체 자리에 돌무더기 하나다

@@ -32,6 +32,7 @@ const SKILLS := {  # 영웅마다 Q·W·E·R의 [이름, 요약](S97 표). 툴�
 const HudTheme := preload("res://src/ui/hud_theme.gd")
 const HudTip := preload("res://src/ui/hud_tip.gd")
 const HudBuild := preload("res://src/ui/hud_build.gd")
+const HudSelect := preload("res://src/ui/hud_select.gd")
 const HudToast := preload("res://src/ui/hud_toast.gd")
 const HudAlert := preload("res://src/ui/hud_alert.gd")
 const Hints := preload("res://src/ui/hints.gd")
@@ -87,6 +88,7 @@ var alerts  # 경보(S189, hud_alert.gd)
 var hints  # 처음 하는 사람 힌트(S191, hints.gd)
 var tip := HudTip.new()  # 위 띠 조작의 툴팁(S187)
 var grid  # 건설 격자·정보 칸(S186)
+var select  # 선택 패널(S206). 건설 격자 바로 왼쪽
 var _hp: Label
 var _lv: Label
 var _gold: Label
@@ -333,6 +335,8 @@ func _ready() -> void:
 	_next = _window_button(foot, proceed)
 	grid = HudBuild.new(self)
 	root.add_child(grid)
+	select = HudSelect.new(self)
+	root.add_child(select)
 	_mark.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_mark.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -373,6 +377,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_now += delta
+	select.refresh()  # 정보 칸 자리(hud_build.info_box)가 패널이 보이는지를 본다. 자식(격자)보다 먼저 돈다
 	var prep: bool = battle.state == "prep"
 	var on: bool = battle.state in ["prep", "battle"]
 	var round_no: int = battle.round_index + 1
@@ -819,7 +824,7 @@ func _make_edges(root: Control) -> void:
 		for n in [m] + m.get_children():
 			n.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-# 준비 단계에 화면(VIEW) 밖 출현 지점의 표식을 그 x에 맞춰 아래 가장자리에 둔다
+# 준비 단계에 화면(VIEW) 밖 출현 지점의 표식을 그 x에 맞춰 아래 가장자리에 둔다. 선택 패널(S206)과 겹치는 표식은 패널 바로 위로 올린다(S188)
 func _show_edges() -> void:
 	edges.visible = battle.state == "prep"
 	if not edges.visible:
@@ -831,6 +836,8 @@ func _show_edges() -> void:
 		m.visible = not VIEW.has_point(at)
 		m.get_child(1).text = str(counts[i].values().reduce(func(n, x): return n + x, 0))
 		m.position = Vector2(clampf(at.x - m.size.x / 2, EDGE_X.x, EDGE_X.y - m.size.x), 344)
+		if select.visible and m.position.x + m.size.x > select.position.x:
+			m.position.y = select.position.y - 2 - m.size.y
 
 # 임무 칸의 점(I122): 조건을 지키는 중이면 흰 점, 깨졌으면 빨간 ✕, 없으면 비운다. 깨지는 순간 토스트를 띄운다
 func _show_quests() -> void:

@@ -1,6 +1,7 @@
 extends RefCounted
 # 마우스·키 입력을 전투 명령으로 바꾼다. 마우스 좌표는 맵 px(칸 (x,y)가 [x, x+1) × cell_px)로 받는다.
-# 좌클릭: 영웅·용병이나 생산 시설·성곽 칸·거점을 고른다(I9, S81, S85, S86, S100). 빈 땅·적을 누르면 팝업만 닫고 고른 유닛은 그대로다(S204)
+# 좌클릭: 영웅·용병이나 생산 시설·성곽 칸·거점을 고른다(I9, S81, S85, S86, S100). 빈 땅·적을 누르면 팝업만 닫고 고른 유닛은 그대로다(S204).
+# 누른 적은 선택 패널에 보인다(shown, S206)
 # 좌드래그: 사각형 안의 영웅과 용병을 고른다(S16, I9). 유닛도 구조물도 없는 사각형은 빈 땅 클릭과 같다(I173)
 # 우클릭: 고른 유닛에게 명령: 커서 0.7칸 안에 적이 있으면 대상 공격, 아니면 순수 이동(S14, S35). 명령이 가면 표식을 띄운다(S205).
 # 살아 있는 고른 유닛 없이 생산 시설을 골랐으면 그 칸을 집결 지점으로(S82, I173)
@@ -9,7 +10,7 @@ extends RefCounted
 # Q·W·E·R: 영웅 스킬(S145, I10). 고른 영웅이, 없으면 첫 영웅이 쓴다(S119). 즉시·켜고 끄는 칸은 바로 쓰고, 지점·방향·대상을 고르는 칸은
 # 조준 상태가 된다(퀵캐스트를 켜면 키를 누르는 순간 커서 자리에 쓴다, I158). 조준 중 좌클릭은 그 지점·대상에 쓰고, 우클릭·ESC는 취소한다(S147). Shift+키와 HUD 스킬 버튼 우클릭은 자동 시전을 켜고 끈다(S158, I151)
 # A: 공격 명령 조준(S35). 그동안 좌클릭은 땅이면 공격 이동·적이면 대상 공격이고, 우클릭·ESC는 취소한다 · S: 정지(S35) · H: 홀드 전환(S36) · V: 체력바 표시 전환(S73)
-# ESC: 조준·놓기·옮기기가 없으면 맵 팝업을 닫는다(S183). 고른 유닛은 풀지 않는다(S204)
+# ESC: 조준·놓기·옮기기가 없으면 맵 팝업과 패널의 적을 닫는다(S183, S206). 고른 유닛은 풀지 않는다(S204)
 # F1·F2·F3: 출전 영웅 1·2·3을 고른다(I108)
 # 1 방벽 · 2 타워 · - 마법 타워(S110) · 3 용병 · 4 병영 · 5 공병 · 6 작업장 · 7 궁수(I71) · 8 대포(S92) · 9 사격장(S98) · 0 집(S103) · = 교회(I140): 놓기 모드. 그동안 좌클릭은 그 칸에 짓거나 놓고, 우클릭·ESC·같은 키는 모드를 끝낸다(사용자 2026-10-12, S186)
 # 전투 단계엔 구조물만 짓는다(공병이 가서 짓는다, S22). 단계가 바뀌면 모드가 끝난다
@@ -50,6 +51,7 @@ var attacking := false  # 공격 명령 조준 중(S35). A 키와 HUD 태그(I13
 var mouse := Vector2()  # 마지막 마우스 위치(맵 px). 화면이 조준 범위를 그린다
 var quickcast := false  # 퀵캐스트(I158): 조준하는 칸의 키를 누르는 순간 커서 자리에 쓴다. main이 설정(S184)에서 넣는다
 var order := {}  # 마지막으로 간 명령(S205): at(맵 px)·attack·foe. 명령마다 새 사전이라 화면이 is_same으로 새 명령을 안다
+var shown = null  # 선택 패널에 보인 적(S206). 유닛·구조물을 다시 고르거나 ESC를 누르면 비운다. 그 적이 쓰러지면 패널(hud_select)이 비운다
 var _state: String  # 마지막으로 본 판 단계. 바뀌면 놓기 모드를 끝낸다
 
 func _init(b, px: int) -> void:
@@ -173,6 +175,11 @@ func _release(rect: Rect2, at: Vector2) -> void:
 			village = true
 		if units.is_empty() and (hit or fort or village):  # 구조물·성곽 칸·거점을 누르면 유닛 선택이 빈다(S204)
 			selected = []
+			shown = null
+		elif units.is_empty():  # 적을 누르면 선택 패널에만 보인다(S206). 고른 유닛은 그대로다
+			var foe = _closest(battle.enemies, rect.position / cell_px - Vector2(0.5, 0.5))
+			if foe:
+				shown = foe
 	else:
 		var inside := func(p: Vector2): return rect.has_point((p + Vector2(0.5, 0.5)) * cell_px)
 		facility = null
@@ -186,14 +193,23 @@ func _release(rect: Rect2, at: Vector2) -> void:
 		picked = [] if prep else built
 		if units.is_empty() and not built.is_empty():  # 구조물만 든 사각형은 유닛 선택을 비운다(I173)
 			selected = []
+			shown = null
 	if not units.is_empty():
 		selected = units
+		shown = null
 
 # 출전 영웅 i를 고른다(I108). F키와 HUD 초상(I165)이 부른다. 쓰러진 영웅은 고르지 않는다. 우클릭이 집결 지점 대신 영웅을 옮기게 시설 선택을 푼다
 func pick_hero(i: int) -> void:
 	selected = battle.heroes.slice(i, i + 1).filter(func(h): return h.alive)
 	facility = null
+	shown = null
 	hero_key.emit(i)
+
+# 선택 패널의 그림 칸(S206)이 그 유닛 하나만 고른다. 우클릭이 그 유닛을 옮기게 시설 선택을 푼다
+func pick_unit(u) -> void:
+	selected = [u]
+	facility = null
+	shown = null
 
 # 거점을 고른다. 거점 칸을 좌클릭한 것과 같되 고른 유닛은 그대로다(S100, I173). 건설 격자의 마을 레벨로 잠긴 칸이 해결 길로 부른다(I132)
 func pick_base() -> void:
@@ -205,11 +221,12 @@ func _pick_at(at: Vector2) -> void:
 	_release(Rect2(at, Vector2.ZERO), at)
 	selected = units
 
-# 맵 팝업(시설·성곽·거점·판매·철거, I58)이 떠 있나. main은 이것이 없을 때만 ESC로 메뉴를 연다(S183)
+# 맵 팝업(시설·성곽·거점·판매·철거, I58)이나 선택 패널의 적(S206)이 떠 있나. main은 이것이 없을 때만 ESC로 메뉴를 연다(S183)
 func popup_open() -> bool:
-	return facility != null or fort != null or village or not selling.is_empty() or not picked.is_empty()
+	return facility != null or fort != null or village or not selling.is_empty() or not picked.is_empty() or (shown != null and shown.alive)
 
 func _close_popups() -> void:
+	shown = null
 	facility = null
 	fort = null
 	village = false

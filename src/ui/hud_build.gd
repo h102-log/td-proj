@@ -2,7 +2,7 @@ extends Panel  # 컨테이너가 아니라 자식을 정렬하지 않는다. 칸
 # 건설 격자(S186): 화면 오른쪽 아래 [510,288,130,72]에 놓기 칸 12개를 세 줄로 둔다. 칸이나 단축키를 누르면 놓기 모드를 켜고, 다시 누르면 끈다.
 # 못 놓는 칸은 흐리게(0.35) 하고 이유는 정보 칸의 빨간 줄에 쓴다. 흐린 칸을 누르면 테두리가 번쩍이고,
 # 준비 단계에 마을 레벨로 잠긴 칸이면 거점을 골라 마을 레벨 팝업을 띄운다(I132).
-# 격자 위 정보 칸은 칸 호버 > 놓기 중 > 고른 것을 보인다. 카메라가 맨 아래면 격자 왼쪽으로 옮긴다(S186).
+# 격자 위 정보 칸은 칸 호버 > 놓기 중 > 고른 구조물·성곽·거점을 보인다. 카메라가 맨 아래면 격자 왼쪽(선택 패널이 보이면 그 왼쪽)으로 옮긴다(S186).
 # 전투 단계에 놀고 있는 공병이 없으면 1·2줄에 «공병 없음» 띠를 덮는다(I128). 칸 그림은 시설·용병 그림을 잘라 쓴다(S30)
 
 const BattleView := preload("res://src/ui/battle_view.gd")
@@ -256,10 +256,10 @@ func _lines(kind: String) -> Array:
 		about = "사거리 %s칸 · 공격력 %s" % [hud._num(d.range), hud._num(d.damage)] + (" · 범위 피해" if d.splash > 0.0 else "")
 	return [hud.NAMES[kind], "%d골드" % d.cost, "[%s]" % _keys[kind], about, path, why]
 
-# 고른 것(구조물·성곽·거점·용병)의 이름과 체력. 없으면 []
+# 고른 것(구조물·성곽·거점)의 이름과 체력. 없으면 []. 고른 용병(판매 후보 포함)은 선택 패널이 보인다(S206)
 func _picked() -> Array:
 	var all: Array = controls.selling + controls.picked + ([controls.fort] if controls.fort else []) + ([battle.base] if controls.village else [])
-	all += controls.selected.filter(func(u): return not u.is_hero)
+	all = all.filter(func(t): return t.get("is_hero") == null)
 	for t in all:
 		if t.alive or t == controls.fort:  # 잔해(I89)는 성곽 칸으로 남는다
 			return [THINGS.get(t.kind, hud.NAMES.get(t.kind, t.kind)), "", "", hud.info_lines[0], "체력 %d/%d" % [ceili(t.hp), ceili(t.max_hp)], hud.info_lines[1]]  # 팝업 버튼의 설명·이유(I124, I128, I132, I140)
@@ -285,8 +285,8 @@ func _show_info() -> void:
 	var box := info_box()
 	info.global_position = Vector2(box.position.x, box.end.y - info.size.y)
 
-# 정보 칸이 4줄까지 자랐을 때의 사각형. 카메라가 맨 아래면 격자 왼쪽 맵 밖 띠(S186). 맵 위 팝업이 피한다(I137)
+# 정보 칸이 4줄까지 자랐을 때의 사각형. 카메라가 맨 아래면 격자 왼쪽 맵 밖 띠, 선택 패널이 보이면 그 왼쪽(S186). 맵 위 팝업이 피한다(I137)
 func info_box() -> Rect2:
 	var cam: Camera2D = hud.map.get_camera_2d()
 	var low: bool = cam != null and cam.at_bottom()
-	return Rect2(Vector2(376, 306) if low else Vector2(510, 234), Vector2(130, 54))
+	return Rect2(Vector2(178 if hud.select.visible else 376, 306) if low else Vector2(510, 234), Vector2(130, 54))
