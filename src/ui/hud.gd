@@ -2,7 +2,7 @@ extends CanvasLayer
 # 위 띠(S185)의 정해진 자리에 상태 묶음(거점 체력·마을 레벨·골드·세금·라운드, S190)·임무 칸(I122)·공병 칸·출전 영웅 칸(I129)·진행 칸(«전투 시작»·계기판 I13, 다음 웨이브 S188)·메뉴 칸을 두고,
 # 건설 격자(S186, hud_build.gd)와 토스트(I163, hud_toast.gd)와 라운드를 이기거나 도전이 끝난 뒤의 결과 창(S117)을 둔다.
 # 판매 후보가 있으면 그 옆에 판매 버튼을 띄운다(S70, I58). 전투 단계에 생산 시설을 고르면 그 옆에 파는 용병마다 구매 버튼을 띄운다(S81, I61, I71).
-# 고른 구조물에 따라 같은 자리에 철거(S74)·이어 짓기·취소(전투 단계)와 완성(준비 단계) 버튼도 띄운다(S83). 대포면 옮기기(S91)도 띄운다.
+# 고른 구조물에 따라 같은 자리에 철거(S74)·이어 짓기·취소(전투 단계, live 판의 준비 단계)와 완성(live가 아닌 준비 단계) 버튼도 띄운다(S83, I175). 대포면 옮기기(S91)도 띄운다.
 # 성곽 칸을 고르면 같은 자리에 성문 열기·닫기(S85)와 업그레이드(S86) 버튼을 띄운다. 거점을 고르면 마을 레벨 올리기(S100) 버튼을 띄운다.
 # 고른 것 가운데 깎인 것이 있으면 수리(S116, I90), 잔해를 고르면 복구(I89) 버튼도 같은 자리에 띄운다.
 # 영입 창(도전 시작 전 S122·라운드 사이 S117)이면 결과 창 안에 영입 칸을 띄운다: 목록 영입·리롤·출전 전환·내보내기(S54, I110),
@@ -393,7 +393,7 @@ func _process(delta: float) -> void:
 	if on:
 		_show_quests()
 		_eng.text = str(_idle().size())
-		_eng.add_theme_color_override("font_color", HudTheme.DANGER if battle.state == "battle" and _idle().is_empty() else HudTheme.TEXT)  # I128
+		_eng.add_theme_color_override("font_color", HudTheme.DANGER if battle.live() and _idle().is_empty() else HudTheme.TEXT)  # I128
 	toasts.visible = on
 	alerts.visible = on
 	if on:
@@ -454,9 +454,9 @@ func _process(delta: float) -> void:
 	if controls.facility and not controls.facility.alive:  # 파괴되거나 팔린 시설
 		controls.facility = null
 	for kind in _buy:
-		_buy[kind].visible = battle.state == "battle" and controls.facility != null and kind in controls.facility.produces
+		_buy[kind].visible = battle.live() and controls.facility != null and kind in controls.facility.produces
 		_buy[kind].text = "%s %d" % [NAMES[kind], battle.MERC_KINDS[kind].cost]
-	if battle.state != "battle" or controls.placing != "":
+	if not battle.live() or controls.placing != "":
 		controls.picked = []
 	controls.picked = controls.picked.filter(func(s): return s.alive)  # 부서지거나 허물거나 취소된 것은 뺀다
 	var todo: Array = battle.unfinished(controls.picked)
@@ -537,7 +537,7 @@ func _button(parent: Control, text: String, on_press: Callable) -> Button:
 
 # 맵 위 팝업 버튼(I58): 아이콘(10px 안) + 짧은 글 + 비용. 툴팁은 이름과 못 누르는 이유이고 팝업 전체 아래에 뜬다(S187)
 func _pop(row: Control, on_press: Callable, name: String, icon: Texture2D = null) -> Button:
-	var b := _button(row, "", on_press)
+	var b := _button(row, "" if icon else name, on_press)  # 아이콘 없는 버튼은 이름을 글로 둔다(이어 짓기·취소·옮기기). 값을 붙이는 버튼은 _process가 글을 덮는다
 	b.icon = icon
 	b.add_theme_constant_override("icon_max_width", 10)
 	b.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -1123,10 +1123,10 @@ func _skill_tip(i: int, slot: String) -> Array:
 	var about := "%s · 재사용 %s초" % [name_about[1], _num(sk.gap)] + (" · 우클릭: 자동 시전" if sk.get("auto", false) else "")
 	return [name_about[0], slot.to_upper(), "마나 %d" % sk.mana, about, why]
 
-# 고른 것의 칸에 공병 지시를 맡을 공병이 없는 이유(I128). 전투 단계가 아니거나 고른 것이 없으면 ""
+# 고른 것의 칸에 공병 지시를 맡을 공병이 없는 이유(I128). live()가 아니거나 고른 것이 없으면 ""
 # ponytail: 닿는지 보는 A*가 무거워(성문이 모두 닫히면 1회 7ms) 같은 칸이면 0.3초마다만 다시 잰다. 그사이 바뀐 공병 사정은 늦게 보인다
 func _engineer_gap(cells: Array) -> String:
-	if battle.state != "battle" or cells.is_empty():
+	if not battle.live() or cells.is_empty():
 		return ""
 	if cells != _gap_for or Time.get_ticks_msec() - _gap_at > 300:
 		_gap = battle.engineer_gap(cells)

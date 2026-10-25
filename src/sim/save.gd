@@ -1,7 +1,7 @@
 extends RefCounted
 # 진행 중인 도전 하나의 저장(S65, S181, I156, I157). 판(Battle)을 사전으로 떠서 user://의 파일 하나에 쓴다.
-# 전투 단계가 아닐 때만 뜬다(S181). 그때는 적·장판·효과·공병 일이 비어 있어(battle.gd의 _clear_effects·_release)
-# 유닛·구조물이 서로 가리키는 칸이 없다. 그래서 유닛·구조물은 스크립트 변수를 모두 담고, 객체를 가리키는 칸(SKIP)만 뺀다
+# 전투 단계가 아닐 때만 뜬다(S181). 그때는 적·장판·효과가 비어 있어(battle.gd의 _clear_effects) 유닛·구조물이 가리키는 것은
+# 공병 일과 집결 중인 시설뿐이다. 그래서 유닛·구조물은 스크립트 변수를 모두 담고, 객체를 가리키는 칸(SKIP)은 빼되 그 둘은 칸으로 담아 다시 잇는다
 
 const Battle := preload("res://src/sim/battle.gd")
 const VERSION := 1  # 저장 형식 판. 다르면 읽지 않는다(I157)
@@ -9,7 +9,8 @@ const VERSION := 1  # 저장 형식 판. 다르면 읽지 않는다(I157)
 const KEYS := ["state", "round_index", "wave_index", "gold", "village_level", "offers", "quests", "mission", "commission", "commission_offers", "settled", "tally", "_chains"]
 
 # 유닛·구조물에서 담지 않는 칸: 읽기만 하는 present와, 다른 객체를 가리키는 칸(지난 공격 대상·공병 일·스킬 지시·실비아 표식·나온 생산 시설).
-# 전투 단계가 아니면 공격 대상 말고는 비어 있다(_release, _clear_effects). 공격 대상은 화면이 그리는 지난 타격이다
+# 전투 단계가 아니면 공격 대상·공병 일·나온 생산 시설 말고는 비어 있다(_clear_effects). 공격 대상은 화면이 그리는 지난 타격이다.
+# 공병 일(준비 단계 실시간, S181 2026-10-25 변경)과 나온 생산 시설은 _fields가 칸으로 담는다
 const SKIP := ["present", "target", "worker", "job", "order", "mark", "rally_from"]
 
 static var path := ""  # 저장 파일. 비어 있으면 쓰지 않는다. 진입 장면(menu.gd)이 정하고, 평가는 평가용 파일로 바꾼다
@@ -54,6 +55,10 @@ static func apply(b, d: Dictionary) -> void:
 		if u.has_meta("rally_from"):
 			u.rally_from = b.structures.get(u.get_meta("rally_from"))
 			u.remove_meta("rally_from")
+		if u.has_meta("job"):
+			u.job = _job(b, u.get_meta("job")[0], u.get_meta("job")[1])
+			u.job.worker = u
+			u.remove_meta("job")
 	b._forecast()
 
 static func write(b) -> void:
@@ -89,7 +94,7 @@ static func erase() -> void:
 static func _copy(v):
 	return v.duplicate(true) if v is Array or v is Dictionary else v
 
-# 유닛·구조물의 스크립트 변수(SKIP 말고). 집결 지점으로 걷는 용병(I22)은 나온 생산 시설을 칸으로 담는다
+# 유닛·구조물의 스크립트 변수(SKIP 말고). 집결 지점으로 걷는 용병(I22)은 나온 생산 시설을 칸으로, 일하는 공병(I63)은 그 일을 [칸, 종류]로 담는다
 static func _fields(o) -> Dictionary:
 	var out := {}
 	for p in o.get_property_list():
@@ -97,11 +102,22 @@ static func _fields(o) -> Dictionary:
 			out[p.name] = _copy(o.get(p.name))
 	if o.get("rally_from"):
 		out.rally_from = o.rally_from.cell
+	if o.get("job"):
+		out.job = [o.job.cell, o.job.kind]
 	return out
+
+# 공병 일의 칸·종류로 그 구조물을 찾는다. 성벽 위 대포 칸은 성곽과 구조물이 겹쳐서 종류로 가린다
+static func _job(b, cell: Vector2i, kind: String):
+	if kind == "base":
+		return b.base
+	var s = b.structures.get(cell)
+	if s and s.kind == kind:
+		return s
+	return b.castle.get(cell, b.rubble.get(cell))
 
 static func _put(o, f: Dictionary) -> void:
 	for k in f:
-		if k == "rally_from":
+		if k in ["rally_from", "job"]:
 			o.set_meta(k, f[k])  # 구조물을 다 세운 뒤 apply가 잇는다
 		else:
 			o.set(k, _copy(f[k]))

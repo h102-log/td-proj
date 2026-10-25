@@ -15,6 +15,7 @@ func _ready() -> void:
 		Settings.apply_volume()
 		Settings.apply_language()  # S193
 		Main.setup_window(get_window(), true)
+		Main.live_prep = true  # 준비 단계 실시간(I175). 평가는 이 준비를 건너뛰어 옛 규칙 판을 쓴다
 	var menus := Menus.new()
 	menus.can_resume = not Save.read().is_empty()
 	menus.chosen.connect(_on_menu)

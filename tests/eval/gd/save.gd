@@ -295,3 +295,56 @@ func ev313():
 	if not pressed:
 		return "전투 단계의 ESC 메뉴에 «메인 메뉴로»가 없다"
 	return "" if same else "전투 단계에 나갈 때 저장 파일이 바뀌었다"
+
+# EV421 · I175: 게임 장면의 판은 Main.live_prep을 쥔다. 평가 기본(끔)은 옛 규칙이다
+func ev421():
+	var M = load("res://src/main.gd")
+	var main = _game()
+	var b = main.view.battle
+	b.next_round()
+	var wall = b.build("wall", _near(b, "wall", Vector2i(20, 30)))
+	var why := ""
+	if b.get("live_prep") != false or b._mercs() != 0 or wall == null or not wall.complete:
+		why = "끈 게임 장면: live_prep %s · 용병 %d · 방벽 %s(완성 %s)" % [b.get("live_prep"), b._mercs(), wall, wall.complete if wall else null]
+	_done(main)
+	if why != "":
+		return why
+	M.live_prep = true
+	main = _game()
+	M.live_prep = false
+	b = main.view.battle
+	b.next_round()
+	var engineers: int = b.units.filter(func(u): return u.kind == "engineer").size()
+	var on: bool = b.get("live_prep") == true and engineers == 2
+	_done(main)
+	if not on:
+		return "켠 게임 장면: live_prep %s · 공병 %d" % [b.get("live_prep"), engineers]
+	return check(battle().get("live_prep") == false, "평가 헬퍼 판의 live_prep이 %s다" % battle().get("live_prep"))
+
+# EV422 · S181: 준비 단계 실시간 판에서 공병이 일하는 중에 저장해 불러오면 일과 일꾼이 이어지고, 같은 입력에 같은 판이 된다
+func ev422():
+	var stage := _stage()
+	var a = _new(stage)
+	a.live_prep = true
+	a.begin_hiring()
+	a.offers[0] = "aias"
+	if a.hire(0) == null:
+		return "영입하지 못했다"
+	a.next_round()
+	var t = a.build("tower", _near(a, "tower", Vector2i(28, 31)))
+	var f = a.build("barracks", _near(a, "barracks", Vector2i(26, 15)))
+	if t == null or f == null or t.worker == null or f.worker == null:
+		return "공병이 짓게 하지 못했다(타워 %s · 병영 %s)" % [t, f]
+	run(a, 1.0)
+	var S = _save()
+	var c = _new(stage)
+	S.apply(c, S.snapshot(a))
+	for s in [t, f]:
+		var k = c.structure_at(s.cell)
+		var w = k.worker if k else null
+		if w == null or w.job != k or w.pos != s.worker.pos:
+			return "불러온 판의 %s: 일꾼 %s · 일꾼의 일이 그것 %s · 자리 %s / %s" % [s.kind, w, w.job == k if w else null, w.pos if w else null, s.worker.pos]
+	var why := _twin(a, stage, func(x): x.live_prep = true)
+	if why != "":
+		return why
+	return check(t.complete and f.complete, "20초 뒤 타워 완성 %s · 병영 완성 %s" % [t.complete, f.complete])

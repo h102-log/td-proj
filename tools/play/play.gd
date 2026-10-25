@@ -30,6 +30,7 @@ func _initialize() -> void:
 	dir = args[0].trim_suffix("/") + "/"
 	if args.size() > 1:
 		seed = int(args[1])
+	load("res://src/main.gd").live_prep = true  # 게임(메인 메뉴로 켠 판)과 같은 준비 단계(I175)
 	main = load("res://src/main.tscn").instantiate()
 	root.add_child(main)  # main._ready는 여기서 바로 돌지 않는다. 손대기는 _start()에서 한다
 

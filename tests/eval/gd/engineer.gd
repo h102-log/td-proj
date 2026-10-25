@@ -209,3 +209,149 @@ func ev230():
 	_start(b)
 	var s = b.build("tower", T)
 	return check(s != null and s.worker == outer, "일을 맡은 공병: %s(안쪽 %s · 들판 %s)" % [s.worker.pos if s and s.worker else null, inner.pos, outer.pos])
+
+# 준비 단계 실시간 판(I175). 끈 채 판을 차린 뒤 켠다
+func _live(b):
+	b.live_prep = true
+	return b
+
+func _tap(c, key: int) -> void:
+	var ev := InputEventKey.new()
+	ev.keycode = key
+	ev.pressed = true
+	c.handle(ev)
+
+# 그 종류를 놓을 수 있는 칸 가운데 want에 가장 가까운 칸
+func _nearest(b, kind: String, want: Vector2i) -> Vector2i:
+	var best: Vector2i = b.placeable_cells(kind)[0]
+	for c in b.placeable_cells(kind):
+		if Vector2(c - want).length() < Vector2(best - want).length():
+			best = c
+	return best
+
+# EV416 · S18: 준비 단계 실시간 판의 준비 단계 짓기·업그레이드·수리·복구는 공병이 가서 시간을 들인다. 마을 레벨 올리기는 바로 된다
+func ev416():
+	var b = _walled()
+	var e = b.place_merc("engineer", NEAR)
+	_live(b)
+	var g: int = b.gold
+	var s = b.build("tower", T)
+	if s == null or s.complete or s.progress != 0.0 or b.gold != g - b.STRUCTURE_KINDS.tower.cost or e.job != s:
+		return "지시 직후: 구조물 %s · 완성 %s · 진행률 %s · 골드 %d → %d · 공병의 일 %s" % [s, s.complete if s else null, s.progress if s else null, g, b.gold, e.job]
+	g = b.gold
+	if b.build("tower", Vector2i(14, 10)) != null or b.gold != g:
+		return "공병이 일하는 동안 둘째 타워가 받아들여졌다(골드 %d → %d)" % [g, b.gold]
+	b.finish(s)
+	if s.complete:
+		return "finish로 바로 완성됐다"
+	run(b, 1.0)
+	if s.complete:
+		return "1초 만에 완성됐다"
+	if not run(b, 30.0, func(): return s.complete):
+		return "30초 안에 완성되지 않았다(진행률 %.2f)" % s.progress
+	var k = b.castle[Vector2i(12, 6)]
+	var lv: int = k.level
+	b.upgrade(k)
+	if k.level != lv or e.job != k:
+		return "업그레이드 지시 직후 단계 %d → %d · 공병의 일 %s" % [lv, k.level, e.job]
+	if not run(b, 30.0, func(): return k.level == lv + 1):
+		return "30초 안에 업그레이드되지 않았다"
+	var w = b.castle[Vector2i(10, 6)]
+	b.damage(w, w.max_hp / 2.0)
+	b.repair(w)
+	if w.hp >= w.max_hp or e.job != w:
+		return "수리 지시 직후 체력 %.0f/%.0f · 공병의 일 %s" % [w.hp, w.max_hp, e.job]
+	if not run(b, 30.0, func(): return w.hp >= w.max_hp):
+		return "30초 안에 수리되지 않았다(%.0f/%.0f)" % [w.hp, w.max_hp]
+	var c := Vector2i(8, 6)
+	b.damage(b.castle[c], BIG)
+	var r = b.rubble.get(c)
+	if r == null:
+		return "성벽 칸이 잔해가 되지 않았다"
+	b.restore(r)
+	if not b.rubble.has(c) or e.job != r:
+		return "복구 지시 직후 잔해 %s · 공병의 일 %s" % [b.rubble.has(c), e.job]
+	if not run(b, 30.0, func(): return b.castle.has(c)):
+		return "30초 안에 복구되지 않았다"
+	var vl: int = b.village_level
+	return check(b.raise_village() and b.village_level == vl + 1, "마을 레벨 올리기 %d → %d" % [vl, b.village_level])
+
+# EV417 · I20: 준비 단계 실시간 판의 준비 단계 구매는 시설 옆에 나와 집결 지점으로 걷는다. 3 키는 시설을 고르고 다시 누르면 산다. 칸을 눌러 놓지 않는다
+func ev417():
+	var b = _battle()
+	var f = b.build("barracks", Vector2i(10, 3))
+	_live(b)
+	var rally := Vector2i(10, 12)
+	b.set_rally(f, rally)
+	var g: int = b.gold
+	var m = b.recruit(f)
+	if m == null or b.gold != g - b.MERC_KINDS.soldier.cost or m.pos.distance_to(Vector2(f.cell)) > 1.5:
+		return "준비 단계 구매: 용병 %s · 골드 %d → %d · 나온 자리 %s(병영 %s)" % [m, g, b.gold, m.pos if m else null, f.cell]
+	if not run(b, 10.0, func(): return near(m.pos, rally)):
+		return "10초 안에 집결 지점에 닿지 않았다(%s)" % m.pos
+	var c = controls(b)
+	var n: int = b.units.size()
+	_tap(c, KEY_3)
+	if c.placing != "" or c.facility != f:
+		return "3 키 뒤 놓기 모드 «%s» · 고른 시설 %s" % [c.placing, c.facility]
+	_tap(c, KEY_3)
+	if b.units.size() != n + 1:
+		return "3 키를 다시 넣어도 용병 %d → %d" % [n, b.units.size()]
+	var cell := Vector2i(20, 14)
+	click(c, MOUSE_BUTTON_LEFT, px(cell))
+	return check(b.units.size() == n + 1 and not b.occupied(cell), "빈 칸 클릭 뒤 유닛 %d(%d여야 한다) · 그 칸에 유닛 %s" % [b.units.size(), n + 1, b.occupied(cell)])
+
+# EV419 · I19: 준비 단계 실시간 판의 준비 단계에 시작한 일은 전투를 시작해도 이어지고, 웨이브가 끝나면 멈춘다
+func ev419():
+	var b = _battle()
+	var e = b.place_merc("engineer", NEAR)
+	_live(b)
+	var s = b.build("tower", T, {"build_time": 60.0})
+	run(b, 2.0)
+	if s == null or s.progress <= 0.0:
+		return "준비 단계 2초 뒤 진행률이 0이다(%s)" % [s.progress if s else null]
+	var idle = _start(b)
+	var p: float = s.progress
+	run(b, 2.0)
+	if e.job != s or s.progress <= p:
+		return "전투 시작 뒤 공병의 일 %s · 진행률 %.3f → %.3f" % [e.job, p, s.progress]
+	b.damage(idle, BIG)
+	if not run(b, 5.0, func(): return b.state == "prep"):
+		return "웨이브가 끝나지 않았다(%s)" % b.state
+	p = s.progress
+	run(b, 1.0)
+	return check(e.job == null and s.worker == null and p < 1.0 and s.progress == p, "웨이브 뒤 공병의 일 %s · 일꾼 %s · 진행률 %.3f → %.3f" % [e.job, s.worker, p, s.progress])
+
+# EV420 · S208: 준비 단계 실시간 판은 1라운드로 갈 때 공병 둘을 마을 안·밖에 무료로 세운다
+func ev420():
+	var stage: Dictionary = load("res://src/main.gd").stage()
+	stage.gold = BIG
+	var off = load("res://src/sim/battle.gd").new(stage.duplicate(true))
+	off.begin_hiring()
+	off.next_round()
+	if off._mercs() != 0:
+		return "끈 판에도 1라운드에 용병이 %d명이다" % off._mercs()
+	var b = load("res://src/sim/battle.gd").new(stage)
+	b.live_prep = true
+	b.begin_hiring()
+	b.next_round()
+	var cells: Array = stage.get("engineer_cells", [])
+	var es: Array = b.units.filter(func(u): return u.kind == "engineer")
+	if cells.size() != 2 or es.size() != 2 or b._mercs() != 2 or es.map(func(u): return Vector2i(u.pos.round())) != cells:
+		return "공병 칸 %s · 공병 %s · 상한에 세는 수 %d" % [cells, es.map(func(u): return u.pos), b._mercs()]
+	var inner: Array = es.filter(func(u): return b.village.has_point(Vector2i(u.pos.round())))
+	var outer: Array = es.filter(func(u): return not b.village.has_point(Vector2i(u.pos.round())))
+	if inner.size() != 1 or outer.size() != 1:
+		return "마을 안 공병 %d · 밖 공병 %d" % [inner.size(), outer.size()]
+	var t = b.build("tower", _nearest(b, "tower", Vector2i(28, 31)))
+	var f = b.build("barracks", _nearest(b, "barracks", Vector2i(26, 15)))
+	if t == null or f == null or t.worker != outer[0] or f.worker != inner[0]:
+		return "타워 %s(일꾼 %s) · 병영 %s(일꾼 %s)" % [t, t.worker if t else null, f, f.worker if f else null]
+	var g: int = b.gold
+	b.sell([inner[0]])
+	if b.gold != g or f.worker != null:
+		return "병영 짓는 공병을 팔자 골드 %d → %d · 병영 일꾼 %s" % [g, b.gold, f.worker]
+	b.state = "cleared"
+	b.next_round()
+	var left: int = b.units.filter(func(u): return u.kind == "engineer").size()
+	return check(left == 1, "다음 라운드에 공병이 %d명이다(1명이어야 한다)" % left)

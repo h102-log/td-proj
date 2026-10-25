@@ -232,3 +232,9 @@ def test_EV414_foot_mark(gd):
 
 def test_EV415_edge_marks_above_panel(gd):
     gd("hud", "EV415")
+
+def test_EV418_live_prep_unfinished_popup(gd):
+    gd("hud", "EV418")
+
+def test_EV423_live_prep_buy_from_popup_and_grid(gd):
+    gd("hud", "EV423")

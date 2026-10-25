@@ -16,6 +16,7 @@ const QUIET := ["hiring", "prep", "cleared"]  # 전투 단계가 아닌 판 단�
 const ROUNDS := ["test_stage", "round_2", "round_3", "round_4", "round_5", "round_6"]
 
 static var resume := {}  # 이어하기(S182)로 올 때 메인 메뉴 장면이 넣는 저장. 비어 있으면 새 도전이다
+static var live_prep := false  # 판에 옮기는 준비 단계 실시간(I175). 메인 메뉴가 게임을 막 켰을 때와 관찰 하네스가 켠다. 게임 장면을 바로 띄우는 평가는 끈 채 쓴다
 
 var view
 var controls
@@ -29,6 +30,7 @@ func _ready() -> void:
 	var map: SubViewport = box.get_child(0)
 	view = BattleView.new()
 	view.battle = Battle.new(stage())
+	view.battle.live_prep = live_prep  # 저장에 담지 않는다. 이어하기도 이 값이다
 	if resume.is_empty():
 		view.battle.begin_hiring()  # 도전은 영입 창에서 시작한다(S122)
 	else:
@@ -191,6 +193,7 @@ static func stage() -> Dictionary:
 		"spawns": [Vector2i(9, 60), Vector2i(30, 60), Vector2i(50, 60)],
 		# 출전 칸(I107): 정문(30,27) 바로 앞 들판의 세 칸. 성문은 닫힌 채 시작해서(I67) 마을 안에 두면 나올 수 없다(I42, 사용자 2026-10-12)
 		"hero_cells": [Vector2i(29, 29), Vector2i(31, 29), Vector2i(30, 29)],
+		"engineer_cells": [Vector2i(30, 14), Vector2i(28, 29)],  # 시작 공병(S208): 거점 아래 마을 칸, 출전 칸 옆 들판 칸. 성문이 닫혀 있어도 마을·들판에 하나씩 짓는다(사용자 2026-10-25)
 		# ponytail: 체력은 임시값이다. 성문이 성벽보다 약해야 한다는 것(I41)만 지킨다. 수치는 3.1 밸런스에서 정한다
 		"castle": {"walls": walls, "gates": gates, "wall_hp": 300, "gate_hp": 150},
 		"village": Rect2i(0, 0, 60, 27),  # 성곽(27행) 위쪽. 생산 시설은 여기에만 짓는다(S43)
