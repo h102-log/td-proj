@@ -24,7 +24,8 @@ extends "res://tests/eval/gd/save.gd"
 #   main.hud.tags — 상황 태그 [A, H](BaseButton, I139). 버튼 글은 없고, 안의 첫 TextureRect가 상태 그림이다(텍스처·modulate)
 #   main.hud.popup — 맵 위 팝업(Control, I58). 그 안의 보이는 BaseButton이 팝업 버튼이고, 못 누르는 버튼은 disabled다
 #   main.hud.hint — 놓기·조준 안내 글(Label, S147·I128). main.hud.chip — 그 글을 담은 안내 칩(Control, S147)
-#   main.hud.map — 맵 SubViewport. get_canvas_transform()이 맵 px → 화면 좌표다
+#   main.hud.map — 맵을 그리는 뷰포트(S30 2026-10-25 변경 뒤로 루트). get_canvas_transform()이 맵 px → 화면 좌표다
+#   카메라 busy() — 가감속·부드러운 줌·미끄러짐이 아직 움직이는 중 · glide(delta) — 그것을 delta만큼 흘린다(S52·S53·I164)
 #   main.hud.alerts — 경보(Control, S189). recent: 최근 경보 칸(Vector2i, 새 것이 앞, 최대 5). 보이는 BaseButton 자식이 화면 밖 가장자리 표식이다
 #     토스트 칸(main.hud.toasts의 보이는 자식)은 자리가 있으면 gui_input에 왼쪽 버튼 누름을 넣어 누른다(I163)
 #   main.hud.window — 결과·영입 창(Control, S117·I136). 그 안의 보이는 BaseButton이 창 버튼(«리롤…»·«다음 라운드…»)이다 · main.hud.dim — 띠 아래 맵 덮개(ColorRect)
@@ -177,6 +178,15 @@ func ev321():
 
 func _cam(main):
 	return main.find_children("*", "Camera2D", true, false)[0]
+
+# 미끄러지는 카메라(I164)·부드러운 줌(S52)이 멈출 때까지 1/60초씩 흘린다. 2초에서 끊는다
+func _settle(main) -> void:
+	var cam = _cam(main)
+	for i in 120:
+		if not cam.busy():
+			break
+		cam.glide(1.0 / 60.0)
+	cam.force_update_scroll()
 
 func _rects(g) -> Dictionary:
 	var out := {}
@@ -343,7 +353,7 @@ func ev325():
 		return "main.hud.grid가 없다"
 	var b = main.view.battle
 	var cam = _cam(main)
-	var map: SubViewport = main.hud.map
+	var map: Viewport = main.hud.map
 	var bottom: float = b.size.y * main.view.CELL
 	var out := ""
 	_move(g.cells.archery.get_global_rect().get_center())
@@ -524,7 +534,7 @@ func ev329():
 # 맵 px p가 화면 (320,194)에서 축마다 0.5 안이거나, 그 축으로 맞추는 쪽으로 카메라가 더 움직이지 못한다(I164). 문제가 없으면 ""
 func _focused(main, p: Vector2) -> String:
 	var cam = _cam(main)
-	cam.force_update_scroll()
+	_settle(main)
 	var s: Vector2 = main.hud.map.get_canvas_transform() * p
 	for ax in 2:
 		var off: float = s[ax] - FOCUS[ax]
@@ -1352,7 +1362,7 @@ func ev347():
 	var gap := func(): return (main.hud.map.get_canvas_transform() * ((Vector2(f.cell) + Vector2(0.5, 0.5)) * CELL_PX)).distance_to(Vector2(320, 194))
 	var far: float = gap.call()
 	_key(KEY_3)
-	cam.force_update_scroll()
+	_settle(main)
 	_frame(main)
 	var near: float = gap.call()
 	var out := ""
@@ -1448,7 +1458,7 @@ func ev349():
 
 # 맵 칸 가운데의 화면 위치와 카메라가 대상을 놓는 자리 (320,194)의 거리
 func _off(main, cell: Vector2i) -> float:
-	_cam(main).force_update_scroll()
+	_settle(main)
 	return (main.hud.map.get_canvas_transform() * ((Vector2(cell) + Vector2(0.5, 0.5)) * CELL_PX)).distance_to(Vector2(320, 194))
 
 func _press_toast(main, head: String) -> bool:
@@ -2622,5 +2632,96 @@ func ev425():
 		click(c, MOUSE_BUTTON_LEFT, px(b.base.cell))
 		click(c, MOUSE_BUTTON_RIGHT, px(to))
 		out = check(c.facility == b.base and b.base.rally == to, "거점을 누르고 %s 우클릭: 고른 시설 %s · 거점 집결 지점 %s" % [to, c.facility, b.base.rally])
+	_done(main)
+	return out
+
+# EV428 · S53: 가장자리·방향키 이동은 0.12초에 최고 속도에 오르고, 입력이 없으면 0.15초에 선다. 경계에 닿은 축은 바로 선다
+func ev428():
+	load("res://src/settings.gd").camera_speed = 100
+	var main = _prep()
+	var cam = _cam(main)
+	var dt := 1.0 / 60.0
+	var top: float = 640.0 / cam.zoom.x * dt  # 최고 속도 한 프레임(맵 px)
+	cam.position = cam.map_px / 2
+	var steps := []
+	for i in 8:
+		var x0: float = cam.position.x
+		cam.scroll(Vector2(1279, 400), Vector2(1280, 720), dt)
+		steps.append(cam.position.x - x0)
+	var x1: float = cam.position.x
+	var frames := 0
+	while cam.busy() and frames < 30:
+		cam.glide(dt)
+		frames += 1
+	var coast: float = cam.position.x - x1
+	_away(main)
+	cam.scroll(Vector2(1279, 400), Vector2(1280, 720), dt)
+	var walled: bool = cam.busy()
+	_done(main)
+	var ok: bool = steps[0] > 0.0 and steps[0] < top - 0.01 and absf(steps[7] - top) <= 0.01 and coast > 0.0 and frames <= 12 and not walled
+	return check(ok, "프레임마다 x %s(최고 %.3f) · 입력을 끊고 %.2f를 더 가서 %d프레임에 섬 · 경계에서 움직이는 중 %s" % [steps.map(func(s): return snappedf(s, 0.001)), top, coast, frames, walled])
+
+# EV429 · S52: 휠로 바꾼 줌은 0.2초 ease-out으로 옮겨 가고, 옮기는 동안 화면 배율은 정수만 지나며 커서 아래 지점이 그대로다
+func ev429():
+	var root: Window = Engine.get_main_loop().root
+	var size0 := root.size
+	root.size = Vector2i(1280, 720)  # 창 배율 2. 헤드리스 창(64×64)은 배율 1이라 중간 배율이 없다
+	var main = _prep()
+	var cam = _cam(main)
+	var at := Vector2(400, 200)
+	var under := func() -> Vector2:
+		cam.force_update_scroll()
+		return main.hud.map.get_canvas_transform().affine_inverse() * at
+	var p0: Vector2 = under.call()
+	for down in [true, false]:
+		var e := InputEventMouseButton.new()
+		e.button_index = MOUSE_BUTTON_WHEEL_UP
+		e.position = at
+		e.global_position = at
+		e.pressed = down
+		root.push_input(e, true)
+	var lv: int = cam.level
+	var z: float = cam.zoom.x
+	var scales := []
+	var drift := 0.0
+	while cam.busy() and scales.size() < 30:
+		cam.glide(1.0 / 60.0)
+		scales.append(cam.zoom.x * 2.0)
+		drift = maxf(drift, under.call().distance_to(p0))
+	var last: float = cam.zoom.x
+	_done(main)
+	root.size = size0
+	var whole: bool = not scales.is_empty() and scales.all(func(s): return absf(s - roundf(s)) < 0.001)
+	var five: bool = scales.any(func(s): return absf(s - 5.0) < 0.001)
+	return check(lv == 2 and is_equal_approx(z, 2.0) and whole and five and drift <= 0.5 and scales.size() <= 13 and is_equal_approx(last, 3.0), "휠 그 프레임: 단계 %d · 줌 %s / 프레임마다 화면 배율 %s · 커서 아래 지점이 %.2f 움직임 · 끝 줌 %s" % [lv, z, scales, drift, last])
+
+# EV430 · I164: HUD가 옮기는 카메라는 0.2초 동안 미끄러져 간다. 미끄러지는 중에 방향키가 들어오면 남은 미끄러짐을 버린다
+func ev430():
+	var main = _prep()
+	var cells = main.hud.get("cells")
+	var cam = _cam(main)
+	var keep := Vector2(main.view.battle.base.cell) * 16 + Vector2(8, 8)
+	var gap := func() -> float:
+		cam.force_update_scroll()
+		return (main.hud.map.get_canvas_transform() * keep).distance_to(FOCUS)
+	_away(main)
+	cells.status.pressed.emit()
+	var out := ""
+	if gap.call() <= 1.0 or not cam.busy():
+		out = "상태 묶음을 누른 프레임: 거점과 (320,194) 거리 %.1f · 움직이는 중 %s(멀고 움직이는 중이어야 한다)" % [gap.call(), cam.busy()]
+	if out == "":
+		for i in 15:
+			cam.glide(1.0 / 60.0)
+		out = "15프레임 뒤에도 움직이는 중이다" if cam.busy() else _focused(main, keep)
+	if out == "":
+		_away(main)
+		cells.status.pressed.emit()
+		cam.glide(1.0 / 60.0)
+		_hold(KEY_LEFT, true)
+		cam.keys(1.0 / 60.0)
+		_hold(KEY_LEFT, false)
+		for i in 30:
+			cam.glide(1.0 / 60.0)
+		out = check(gap.call() > 1.0, "미끄러지는 중에 ←를 누른 뒤에도 거점이 (320,194)에서 %.1f — 남은 미끄러짐을 버려야 한다" % gap.call())
 	_done(main)
 	return out

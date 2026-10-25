@@ -78,7 +78,7 @@ signal menu_pressed  # 메뉴 칸(S185). main이 ESC 메뉴를 연다
 
 var battle
 var controls
-var map: SubViewport  # 맵(전장)을 그리는 SubViewport(S30). 팝업 위치를 그 카메라 변환으로 잡는다
+var map: Viewport  # 맵(전장)을 그리는 뷰포트(S30, 2026-10-25부터 루트). 팝업 위치를 그 카메라 변환으로 잡는다. 기준 해상도 단위다
 var bar: Panel  # 위 띠(S185). 칸은 좌표로 두고, 띠 바탕이 클릭을 받아 맵으로 흘리지 않는다
 var cells := {}  # 위 띠 칸 이름(BAR) → Control
 var hp_bar := ColorRect.new()  # 상태 묶음의 거점 체력 막대(S190)
@@ -554,7 +554,7 @@ func _demolish_press() -> void:
 		_arm_on = controls.picked.duplicate()
 
 # 팝업을 고른 칸의 바깥쪽(화면 가운데 반대편) 모서리에 붙인다(I58). 화면 밖이거나 위 띠·건설 격자·정보 칸·태그와 겹치면
-# 좌우·위아래·둘 다 뒤집은 모서리를 차례로 본다(I137). 맵 px → 화면은 맵 SubViewport의 카메라 변환이다(HUD와 같은 기준 해상도)
+# 좌우·위아래·둘 다 뒤집은 모서리를 차례로 본다(I137). 맵 px → 화면은 맵 뷰포트의 카메라 변환이다(HUD와 같은 기준 해상도)
 func _place_popup() -> void:
 	popup.reset_size()
 	var t := map.get_canvas_transform()
@@ -864,9 +864,9 @@ func _next_engineer() -> void:
 		_eng_next = (_eng_next + 1) % idle.size()
 		_focus(idle[_eng_next].pos)
 
-# 칸 좌표(소수 가능) p의 가운데로 카메라를 옮긴다(I164)
+# 칸 좌표(소수 가능) p의 가운데로 카메라를 미끄러지게 옮긴다(I164)
 func _focus(p: Vector2) -> void:
-	map.get_camera_2d().focus((p + Vector2(0.5, 0.5)) * BattleView.CELL)
+	map.get_camera_2d().slide((p + Vector2(0.5, 0.5)) * BattleView.CELL)
 
 func _start_battle() -> void:
 	controls.placing = ""

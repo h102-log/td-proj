@@ -1,9 +1,9 @@
 extends RefCounted
-# 맵(전장)을 SubViewport로 옮긴 뒤에도(S30) 마우스·키 입력이 예전과 같은 곳에 닿는지 본다.
+# 맵(전장)을 SubViewport로 옮긴 뒤에도, 다시 루트 뷰포트에 바로 그린 뒤에도(S30) 마우스·키 입력이 예전과 같은 곳에 닿는지 본다.
 # 진입 씬(main.tscn)을 붙이고 하네스(tools/play/play.gd)처럼 기준 해상도(640×360) 좌표로 입력을 넣는다.
 # 지키는 요구:
 #   S30. → 2026-10-19 변경: 맵(전장)은 기준 해상도로 그린 다음 창 크기에 맞춰 정수배로 확대한다. HUD는 같은 정수배로 키운 크기·위치에 놓되 화면 해상도로 그린다.
-#   S52. 플레이어는 마우스 휠로 화면을 1×·2×·3× 정수배 단계로 확대·축소한다. 기본 배율은 2×다.
+#   S52. 플레이어는 마우스 휠로 화면을 1×·2×·3× 정수배 단계로 확대·축소한다. 기본 배율은 2×다. (→ 2026-10-25 변경: 0.2초 동안 옮겨 간다)
 #   S68. 휠 버튼을 누른 채 끌면 잡은 땅이 커서를 따라오듯 카메라가 이동한다.
 #   I13. 준비 단계는 플레이어가 «전투 시작»을 누르면 끝난다(카운트다운은 없다).
 #   I94. 결과 창(S117)의 버튼은 전투 시작과 같은 키(Enter·Space)로도 누른다(I12).
@@ -15,7 +15,7 @@ extends RefCounted
 const BOTTOM := Vector2(320, 300)  # HUD 윗줄(준비 단계 높이 196) 아래의 맵 자리
 
 # 준비 단계의 진입 씬. 게임에서는 다음 프레임에 일어나는 두 가지를 바로 한다:
-# 영입 창을 닫아 그 버튼이 쥔 키보드 포커스를 풀고(HUD _process), 카메라 위치를 맵 SubViewport의 화면 변환에 반영한다
+# 영입 창을 닫아 그 버튼이 쥔 키보드 포커스를 풀고(HUD _process), 카메라 위치를 맵 뷰포트의 화면 변환에 반영한다
 func _main():
 	var main = load("res://src/main.tscn").instantiate()
 	Engine.get_main_loop().root.add_child(main)
@@ -44,7 +44,7 @@ func _button(index: int, at: Vector2, pressed: bool) -> void:
 func _cam(main) -> Camera2D:
 	return main.view.get_viewport().get_camera_2d()
 
-# 커서(기준 해상도 좌표) 아래의 맵 px. 카메라는 맵 SubViewport(640×360)의 가운데를 본다
+# 커서(기준 해상도 좌표) 아래의 맵 px. 카메라는 맵 뷰포트(기준 해상도 640×360)의 가운데를 본다
 func _under(cam: Camera2D, cursor: Vector2) -> Vector2:
 	return cam.position + (cursor - Vector2(320, 180)) / cam.zoom.x
 
@@ -62,6 +62,8 @@ func test_wheel_and_middle_drag_reach_camera():
 	var world := _under(cam, BOTTOM)
 	_button(MOUSE_BUTTON_WHEEL_UP, BOTTOM, true)
 	_button(MOUSE_BUTTON_WHEEL_UP, BOTTOM, false)
+	while cam.busy():  # 부드러운 줌(S52)을 끝까지 흘린다
+		cam.glide(1.0 / 60.0)
 	var zoom := cam.zoom.x
 	var kept := _under(cam, BOTTOM)
 	var x0 := cam.position.x

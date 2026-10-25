@@ -37,7 +37,7 @@ func _initialize() -> void:
 # main._ready 뒤에 한 번 부른다. 그 전에 set_process(false)를 하면 READY 알림이 _process를 다시 켠다
 func _start() -> void:
 	main.set_process(false)  # 실시간 step(main.gd _process)을 끈다. 생각하는 동안 게임 시간이 흐르지 않게
-	main.view.get_viewport().get_camera_2d().set_process(false)  # 실제 마우스 위치로 하는 가장자리 스크롤(camera.gd _process)을 끈다
+	main.view.get_viewport().get_camera_2d().manual = false  # 실제 마우스 위치로 하는 가장자리 스크롤·방향키(camera.gd _process)를 읽지 않는다
 	if seed != null:
 		var b = main.view.battle
 		b._stage["seed"] = seed  # restart()가 이 씨앗으로 영입 목록·미션을 뽑는다. 새 도전도 같은 씨앗이다
@@ -56,7 +56,11 @@ func _process(_delta: float) -> bool:
 		return false
 	if not queue.is_empty():
 		gap = GAP
-		return _run(queue.pop_front())
+		var end := _run(queue.pop_front())
+		var cam = main.view.get_viewport().get_camera_2d()
+		while cam.busy():  # 미끄러짐·부드러운 줌·감속(I164·S52·S53)을 끝까지 흘린다. 캡처가 움직이는 중간을 찍지 않게
+			cam.glide(DT)
+		return end
 	if pending:
 		pending = false
 		_save()

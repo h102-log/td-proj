@@ -32,10 +32,22 @@ func ev4():
 	var scale = ProjectSettings.get_setting("display/window/stretch/scale_mode", "fractional")
 	if mode != "canvas_items" or scale != "integer":
 		return "확대 방식이 %s·%s다" % [mode, scale]
-	var box: SubViewportContainer = load("res://src/main.gd").map_viewport(Engine.get_main_loop().root)
-	var sv: SubViewport = box.get_child(0)
-	var nearest := box.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST and sv.canvas_item_default_texture_filter == Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
-	return check(sv.size == Vector2i(640, 360) and nearest, "맵 SubViewport가 %s, Nearest %s다" % [sv.size, nearest])
+	var snap = ProjectSettings.get_setting("rendering/2d/snap/snap_2d_vertices_to_pixel", false)
+	if not snap:
+		return "꼭짓점 스냅이 꺼져 있다"
+	load("res://src/sim/save.gd").path = "user://eval_save.dat"  # 실제 저장·설정을 건드리지 않게(save.gd 평가와 같은 파일)
+	load("res://src/settings.gd").path = "user://eval_settings.cfg"
+	load("res://src/main.gd").resume = {}
+	var root: Window = Engine.get_main_loop().root
+	var main = load("res://src/main.tscn").instantiate()
+	root.add_child(main)
+	var subs: Array = main.find_children("*", "SubViewport", true, false)
+	var cams: Array = main.find_children("*", "Camera2D", true, false)
+	var view = main.get("view")
+	var ok: bool = subs.is_empty() and view != null and view.get_viewport() == root and cams.size() == 1 and cams[0].get_viewport() == root
+	var why := "게임 장면의 SubViewport %d개 · 판 그림이 루트 뷰포트에 %s · 카메라 %d개(루트 뷰포트에 %s)" % [subs.size(), view != null and view.get_viewport() == root, cams.size(), cams.all(func(c): return c.get_viewport() == root)]
+	main.free()
+	return check(ok, why)
 
 # EV303 · S161: 창 모드 배수는 작업 영역에 창 테두리까지 들어가는 가장 큰 정수배다. 들어가는 배수가 없으면 1배
 func ev303():

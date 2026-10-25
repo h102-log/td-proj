@@ -25,9 +25,6 @@ var menus  # ESC 메뉴(S183)
 var _seen := ""  # 마지막으로 본 판 단계. 바뀌면 저장하거나 지운다(S181, I157)
 
 func _ready() -> void:
-	var box := map_viewport(get_window())
-	add_child(box)
-	var map: SubViewport = box.get_child(0)
 	view = BattleView.new()
 	view.battle = Battle.new(stage())
 	view.battle.live_prep = live_prep  # 저장에 담지 않는다. 이어하기도 이 값이다
@@ -41,12 +38,12 @@ func _ready() -> void:
 	controls = Controls.new(view.battle, BattleView.CELL)
 	controls.quickcast = Settings.quickcast  # I158
 	view.controls = controls
-	map.add_child(view)
+	add_child(view)  # 맵은 루트 뷰포트에 바로 그려 창 해상도다(S30 2026-10-25 변경). 카메라·HUD 좌표는 그대로 기준 해상도 단위다
 	var cam := Camera.new()
 	cam.map_px = Vector2(view.battle.size * BattleView.CELL)
 	cam.position = Vector2(Vector2i(view.battle.base.cell.x, view.battle.village.end.y) * BattleView.CELL)  # 정문(거점 열의 성곽 칸, S203)
-	map.add_child(cam)
-	hud = Hud.new(view.battle, controls, map)
+	add_child(cam)
+	hud = Hud.new(view.battle, controls, get_viewport())
 	hud.menu_pressed.connect(pause)  # 위 띠 메뉴 칸(S185)
 	add_child(hud)
 	menus = Menus.new()
@@ -55,7 +52,8 @@ func _ready() -> void:
 	setup_window(get_window(), false)  # 창 크기·시작 모드는 진입 장면(menu.gd)이 정했다
 	_check()
 
-# 맵(전장)을 기준 해상도로 그리는 SubViewport. 루트는 canvas_items라 HUD는 화면 해상도로 그리고, 맵은 이 그림을 정수배·Nearest로 키운다(S30)
+# 맵(전장)을 기준 해상도로 그려 정수배·Nearest로 키우는 SubViewport. 게임은 2026-10-25부터 맵을 루트에 바로 그리고(S30 변경),
+# 이것은 4.1a 벤치(tools/bench)가 옛 그리기를 재는 데만 쓴다
 static func map_viewport(w: Window) -> SubViewportContainer:
 	var box := SubViewportContainer.new()
 	box.size = Vector2(w.content_scale_size)

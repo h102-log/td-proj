@@ -145,7 +145,7 @@ func _draw() -> void:
 	for u in battle.units:
 		var at := _spot(u) + _slip(u)  # 넉백으로 미끄러지는 몸을 테두리·숫자가 따라간다(S198)
 		if u.is_hero:  # 영웅 레벨(I117): 오른쪽 위에 작게
-			draw_string(PIXEL_FONT, (at + Vector2(CELL * 0.3, -CELL * 0.3)).round(), str(u.level), HORIZONTAL_ALIGNMENT_LEFT, -1, 8)
+			draw_string(PIXEL_FONT, at + Vector2(CELL * 0.3, -CELL * 0.3), str(u.level), HORIZONTAL_ALIGNMENT_LEFT, -1, 8)
 		if u in controls.selected and u.hold:  # 고른 유닛의 표시는 발밑(_feet_mark, S207). 홀드면 기준 반경을 그린다(S36)
 			draw_arc(u.anchor * CELL + Vector2(CELL, CELL) / 2, CELL * u.hold_radius, 0.0, TAU, 48, Color(1, 1, 1, 0.4), 1.0)
 		var ring := 0.35  # 걸린 효과(I101): 몸 둘레에 효과마다 한 겹
@@ -232,7 +232,7 @@ func _missile(m, starts: Dictionary) -> void:
 	var p := from.lerp(to, k)
 	match m.look:
 		"arrow":
-			draw_line((p - d * 5).round(), p.round(), Color("e8dcc0"), 1.0)
+			draw_line(p - d * 5, p, Color("e8dcc0"), 1.0)
 		"bolt":
 			var col: Color = HERO_COLORS.get(m.src.kind, Color("80b0ff"))
 			_blob(p - d * 3, 1, Color(col, 0.5))
@@ -244,10 +244,9 @@ func _missile(m, starts: Dictionary) -> void:
 
 # 가운데 c, 반지름 r px의 십자형 도트 덩어리(r 0이면 1px). draw_circle은 원마다 draw call이 하나씩 늘어 사각형 둘로 그린다
 func _blob(c: Vector2, r: int, col: Color) -> void:
-	var at := c.round()
-	draw_rect(Rect2(at - Vector2(r, r - 1 if r > 0 else 0), Vector2(2 * r + 1, maxi(2 * r - 1, 1))), col)
+	draw_rect(Rect2(c - Vector2(r, r - 1 if r > 0 else 0), Vector2(2 * r + 1, maxi(2 * r - 1, 1))), col)
 	if r > 0:
-		draw_rect(Rect2(at - Vector2(r - 1, r), Vector2(2 * r - 1, 2 * r + 1)), col)
+		draw_rect(Rect2(c - Vector2(r - 1, r), Vector2(2 * r - 1, 2 * r + 1)), col)
 
 # 쏘는 곳(맵 px). 타워는 그림 위의 쏘는 자리, 유닛은 손 높이다
 func _muzzle(x) -> Vector2:
@@ -505,7 +504,7 @@ func _behind(x) -> bool:
 # 발밑 팀 색(S166). i는 battle.units + battle.enemies 안의 번호다. 비행 적은 그림자 자리에 그린다
 func _feet_mark(x, i: int) -> void:
 	var foot := (_spot(x) if x.on_wall else _center(x.pos)) + (Vector2(0, CELL * 0.4) if x.get("flying") == true else Vector2.ZERO) + _lunge(x) + _flinch(x) + _slip(x)
-	var rect := Rect2((foot + Vector2(-7, -2)).round(), Vector2(14, 6))
+	var rect := Rect2(foot + Vector2(-7, -2), Vector2(14, 6))
 	var region := Rect2(14 * int(i >= battle.units.size()), 0, 14, 6)
 	draw_texture_rect_region(FEET, rect, region)
 	var mark := foot_mark(x)
@@ -519,11 +518,11 @@ func foot_mark(x) -> String:
 		return "pick"
 	return "foe" if x == controls.shown else ""
 
-# 맵 px 타원 테두리 1px(S207). 점을 반 px 옮겨 도트 칸에 맞춘다
+# 맵 px 타원 테두리 1px(S207). 점을 반 px 옮겨 1px 선이 그 점에서 시작하는 도트 칸을 덮게 한다
 func _ellipse(c: Vector2, r: Vector2, col: Color) -> void:
 	var pts := PackedVector2Array()
 	for k in 33:
-		pts.append((c + Vector2(cos(TAU * k / 32.0) * r.x, sin(TAU * k / 32.0) * r.y)).round() + Vector2(0.5, 0.5))
+		pts.append(c + Vector2(cos(TAU * k / 32.0) * r.x, sin(TAU * k / 32.0) * r.y) + Vector2(0.5, 0.5))
 	draw_polyline(pts, col, 1.0)
 
 # 성곽 칸 조각 하나(front 0 몸체, 1 앞층). 조각 맨 아랫줄이 바닥선 바로 아래 줄이다. 단계(S86)마다 그림이 다르고(사용자 2026-10-20),
@@ -583,7 +582,7 @@ func _sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 		col = int(Time.get_ticks_msec() / 125.0) % 4
 	var size := c * (2 if anim == "attack" else 1)  # 공격은 2배 캔버스(tools/art/hero.py)
 	var at := _spot(x) + _flinch(x) + _slip(x) - Vector2(a.anchor[0], a.anchor[1]) - Vector2.ONE * (size - c) / 2.0
-	_region(UNITS, Rect2(at.round(), Vector2(size, size)), Rect2(col * size, a[anim] + dir * size, size, size), tint)
+	_region(UNITS, Rect2(at, Vector2(size, size)), Rect2(col * size, a[anim] + dir * size, size, size), tint)
 
 # 용병·적 하나(C 절충안, 4.1d. 4.1a M1·M6에서 C만 통과했다): 4방향 정지, 움직이면 걷기 2위상(초당 8), 친 뒤 0.08~0.22초는 공격 키 포즈.
 # 근접은 그동안 대상 쪽으로 돌진한다(_lunge). 방향 고르기는 _sprite와 같다(tools/bench/view_draw.gd C). 기어오르는 적은 성벽 쪽(N)을 보고 걷기 2위상으로 오른다(S180)
@@ -652,7 +651,7 @@ func _frame(a: Dictionary, anim: String, dir: int, col: int, p: Vector2, tint :=
 	var c := int(a.c)
 	var size := c * (2 if anim == "attack" or anim == "fall" else 1)
 	var at := p - Vector2(a.anchor[0], a.anchor[1]) - Vector2.ONE * (size - c) / 2.0
-	_region(UNITS, Rect2(at.round(), Vector2(size, size)), Rect2(col * size, a[anim] + dir * size, size, size), tint)
+	_region(UNITS, Rect2(at, Vector2(size, size)), Rect2(col * size, a[anim] + dir * size, size, size), tint)
 
 # 화면 방향 v → 4방향 시트 행(S·E·N·W)
 func _four(v: Vector2) -> int:
@@ -853,7 +852,7 @@ func _fx_dots(ground: bool) -> void:
 		var p: Vector2 = d.p0 + (d.p1 - d.p0) * _out(k) + Vector2(0, -d.rise * sin(PI * k))
 		var a: float = 1.0 if t < d.life - d.fade else (d.life - t) / d.fade
 		var col: Color = d.col
-		draw_rect(Rect2((p - d.size / 2.0).round(), d.size), Color(col.lerp(d.to, k), a))
+		draw_rect(Rect2(p - d.size / 2.0, d.size), Color(col.lerp(d.to, k), a))
 
 # 사건 번호 n과 칸 k로 lo~hi 정수를 고른다. 모양의 무작위는 이것만 쓴다(시뮬레이션 난수는 저장되므로 쓰지 않는다, I170)
 static func _h(n: int, k: int, lo: int, hi: int) -> int:

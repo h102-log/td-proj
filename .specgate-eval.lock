@@ -1,6 +1,6 @@
 {
-  "approvedAt": "2026-10-25T03:19:25.118Z",
-  "evalMd": "89f9b6fe",
+  "approvedAt": "2026-10-25T03:45:26.023Z",
+  "evalMd": "8b79b488",
   "tests": {
     "tests/eval/conftest.py": "02db26c8",
     "tests/eval/gd/aura.gd": "010cc38a",
@@ -31,7 +31,7 @@
     "tests/eval/gd/hire.gd.uid": "47433f7e",
     "tests/eval/gd/house.gd": "711703a1",
     "tests/eval/gd/house.gd.uid": "5fd6fb28",
-    "tests/eval/gd/hud.gd": "338434de",
+    "tests/eval/gd/hud.gd": "88b72d57",
     "tests/eval/gd/hud.gd.uid": "6038f593",
     "tests/eval/gd/kits.gd": "eb05f8d7",
     "tests/eval/gd/kits.gd.uid": "c48b27a3",
@@ -43,7 +43,7 @@
     "tests/eval/gd/locale.gd.uid": "5cc4511c",
     "tests/eval/gd/loop.gd": "36f7bc2a",
     "tests/eval/gd/loop.gd.uid": "f8a3d823",
-    "tests/eval/gd/map.gd": "87d12078",
+    "tests/eval/gd/map.gd": "6c830d47",
     "tests/eval/gd/map.gd.uid": "c812f8cf",
     "tests/eval/gd/menu.gd": "9e79edef",
     "tests/eval/gd/menu.gd.uid": "80c43e3a",
@@ -92,7 +92,7 @@
     "tests/eval/test_heroes.py": "da7683ed",
     "tests/eval/test_hire.py": "8a8e108d",
     "tests/eval/test_house.py": "f908d7b0",
-    "tests/eval/test_hud.py": "0dc350a0",
+    "tests/eval/test_hud.py": "a7af63bd",
     "tests/eval/test_kits.py": "5cdb5610",
     "tests/eval/test_levels.py": "2c71fe40",
     "tests/eval/test_locale.py": "56451d19",
@@ -118,7 +118,7 @@
     "S1": "03bece56",
     "S2": "e454318f",
     "S3": "7ef0ca2d",
-    "S30": "9f644e72",
+    "S30": "1e686568",
     "S7": "34ffbf31",
     "S8": "3eb44492",
     "S9": "fbfa9b5c",
@@ -328,10 +328,10 @@
     "I132": "523697de",
     "I128": "f593f0fe",
     "I50": "e7828ad6",
-    "S53": "3bd3c899",
+    "S53": "60a9c3f9",
     "S185": "4c4941c3",
     "S190": "c67384fd",
-    "I164": "d9336ff0",
+    "I164": "c6ab3699",
     "I122": "8dbbacb4",
     "I163": "794d09b0",
     "S188": "8e6be87a",
@@ -369,6 +369,7 @@
     "S208": "d326a277",
     "I175": "6e94e7ea",
     "I176": "714a49e8",
-    "I177": "96590128"
+    "I177": "96590128",
+    "S52": "088ca264"
   }
 }
