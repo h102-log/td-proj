@@ -250,3 +250,24 @@ def test_EV429_smooth_integer_zoom(gd):
 
 def test_EV430_focus_glides(gd):
     gd("hud", "EV430")
+
+def test_EV431_minimap_shown(gd):
+    gd("hud", "EV431")
+
+def test_EV432_minimap_click_drag(gd):
+    gd("hud", "EV432")
+
+def test_EV433_minimap_view_rect(gd):
+    gd("hud", "EV433")
+
+def test_EV434_minimap_marks(gd):
+    gd("hud", "EV434")
+
+def test_EV435_minimap_right_click(gd):
+    gd("hud", "EV435")
+
+def test_EV436_minimap_stops_edge_scroll(gd):
+    gd("hud", "EV436")
+
+def test_EV437_alert_bands_avoid_minimap(gd):
+    gd("hud", "EV437")

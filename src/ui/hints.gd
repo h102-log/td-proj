@@ -1,6 +1,6 @@
 extends Panel
 # 처음 하는 사람 힌트(S191)이자 튜토리얼(S192): 1라운드 k웨이브에 k웨이브 단계 가운데 지금 판 단계의 끝나지 않은 첫 단계를
-# [4,300,200,40]에 두 줄 + «건너뛰기»로 보이고, 오른쪽 위에 그 웨이브의 축 이름을 둔다. 힌트 설정(S184)을 끄면 숨는다.
+# [68,300,200,40](미니맵 S209 오른쪽)에 두 줄 + «건너뛰기»로 보이고, 오른쪽 위에 그 웨이브의 축 이름을 둔다. 힌트 설정(S184)을 끄면 숨는다.
 # 끝날 조건은 숨어 있을 때도 지난 프레임과 비교해 찾고, 끝낸 힌트는 설정 파일에 남긴다(I166). HUD가 매 프레임 step을 부른다
 
 const HudTheme := preload("res://src/ui/hud_theme.gd")
@@ -31,7 +31,7 @@ func _init(b, c) -> void:
 
 # 크기는 HUD 테마를 받은 뒤에 정한다. 그 전에는 기본 글꼴 크기로 최소 크기가 잡혀 버튼이 칸 밖으로 커진다
 func _ready() -> void:
-	position = Vector2(4, 300)
+	position = Vector2(68, 300)
 	size = Vector2(200, 40)
 	add_theme_stylebox_override("panel", HudTheme.box("panel", "PanelContainer", Color(HudTheme.PANEL, 1.0), HudTheme.LINE))
 	text.position = Vector2(4, 0)

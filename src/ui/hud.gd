@@ -16,6 +16,7 @@ extends CanvasLayer
 # 위 띠의 조작과 팝업 버튼에는 툴팁을 단다(S187, I162). 테마는 hud_theme.gd
 # 준비 단계에 화면 밖 출현 지점은 아래 가장자리에 그 지점 적 수 표식을 둔다(S188)
 # 준비 단계 왼쪽 아래에 처음 하는 사람 힌트를 둔다(S191, hints.gd)
+# 준비·전투 단계 왼쪽 아래 구석에 미니맵을 둔다(S209, hud_minimap.gd)
 
 const NAMES := {"wall": "방벽", "tower": "타워", "magic": "마법 타워", "soldier": "용병", "barracks": "병영", "engineer": "공병", "workshop": "작업장", "archer": "궁수", "cannon": "대포", "archery": "사격장", "house": "집", "church": "교회"}
 const HEROES := {"aias": "아이아스(탱커)", "sylvia": "실비아(원거리)", "seraphina": "세라피나(힐러)", "vesper": "베스퍼(디버퍼)", "ignis": "이그니스(마법사)", "chronos": "크로노스(버퍼)"}  # 이름(역할), S97·S157
@@ -33,6 +34,7 @@ const HudTheme := preload("res://src/ui/hud_theme.gd")
 const HudTip := preload("res://src/ui/hud_tip.gd")
 const HudBuild := preload("res://src/ui/hud_build.gd")
 const HudSelect := preload("res://src/ui/hud_select.gd")
+const HudMinimap := preload("res://src/ui/hud_minimap.gd")
 const HudToast := preload("res://src/ui/hud_toast.gd")
 const HudAlert := preload("res://src/ui/hud_alert.gd")
 const Hints := preload("res://src/ui/hints.gd")
@@ -69,7 +71,7 @@ const ENEMIES := {"basic": "기본", "fast": "빠름", "armored": "장갑", "fly
 const TRAITS := {"fast": "성벽을 오른다", "flying": "길을 무시한다", "armored": "받는 피해를 줄인다", "boss": "성벽을 뚫고 온다. 대지 강타·분노"}  # S107·S109·S108, 보스는 wall_k 0.3과 스킬(S195)
 const SIDES := ["왼쪽", "가운데", "오른쪽"]  # ponytail: 출현 지점 이름은 시험 스테이지(왼쪽부터 셋) 차례다. 지점이 다른 맵이 생기면 x로 이름을 정한다
 const VIEW := Rect2(0, 28, 640, 332)  # 위 띠 아래 맵이 보이는 화면. 출현 지점이 이 밖이면 아래 가장자리 표식(S188)
-const EDGE_X := Vector2(30, 500)  # 아래 가장자리 표식이 놓이는 x 범위(S188 임시값). y는 344
+const EDGE_X := Vector2(68, 500)  # 아래 가장자리 표식이 놓이는 x 범위(S188 임시값). y는 344. 왼끝은 미니맵(S209) 오른쪽
 const DOUBLE := 0.4  # 초상·F키를 이 초 안에 두 번 누르면 카메라가 그 영웅에게(I165 임시값)
 const LOW := 0.33  # 체력이 이 비율 밑이면 초상이 빨갛게 맥박친다(I129)
 const MANA := Color("4a8cff")  # 영웅 칸 마나 막대(ui_research 4.9)
@@ -89,6 +91,8 @@ var hints  # 처음 하는 사람 힌트(S191, hints.gd)
 var tip := HudTip.new()  # 위 띠 조작의 툴팁(S187)
 var grid  # 건설 격자·정보 칸(S186)
 var select  # 선택 패널(S206). 건설 격자 바로 왼쪽
+var minimap  # 미니맵(S209). 왼쪽 아래 구석
+var view  # 맵 그림(BattleView). 미니맵이 구운 바닥을 빌린다. main이 넣는다
 var _hp: Label
 var _lv: Label
 var _gold: Label
@@ -337,6 +341,8 @@ func _ready() -> void:
 	root.add_child(grid)
 	select = HudSelect.new(self)
 	root.add_child(select)
+	minimap = HudMinimap.new(self)
+	root.add_child(minimap)
 	_mark.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_mark.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -396,6 +402,8 @@ func _process(delta: float) -> void:
 		_eng.add_theme_color_override("font_color", HudTheme.DANGER if battle.live() and _idle().is_empty() else HudTheme.TEXT)  # I128
 	toasts.visible = on
 	alerts.visible = on
+	minimap.visible = on
+	minimap.queue_redraw()
 	if on:
 		alerts.step(delta)
 	hints.step()
