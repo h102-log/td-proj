@@ -16,3 +16,10 @@ def test_EV309_end_of_challenge_erases_save(gd):
 
 def test_EV313_leaving_saves_only_when_quiet(gd):
     gd("save", "EV313")
+
+def test_EV421_game_scene_holds_live_prep(gd):
+    gd("save", "EV421")
+
+
+def test_EV422_save_keeps_engineer_jobs(gd):
+    gd("save", "EV422")

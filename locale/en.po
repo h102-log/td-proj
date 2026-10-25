@@ -453,8 +453,8 @@ msgstr "Build"
 msgid "영웅"
 msgstr "Heroes"
 
-msgid "오른쪽 아래 칸(숫자 키)을 고르고\n맵을 눌러 짓는다"
-msgstr "Pick a slot bottom right (keys)\nthen click the map to build"
+msgid "오른쪽 아래 칸(숫자 키)을 고르고\n맵을 누르면 공병이 가서 짓는다"
+msgstr "Pick a slot bottom right (keys)\nclick the map, an Engineer builds"
 
 msgid "거점을 누르면 마을 레벨을 올린다\n(새 시설이 열린다)"
 msgstr "Click the Keep to level the Village\n(unlocks new buildings)"
@@ -462,8 +462,8 @@ msgstr "Click the Keep to level the Village\n(unlocks new buildings)"
 msgid "준비가 끝나면 위 오른쪽\n▶ 전투 시작 (Enter)"
 msgstr "When ready, top right:\n▶ Start Battle (Enter)"
 
-msgid "병영(4)을 짓고 3으로 용병을 놓는다\n용병은 적을 몸으로 붙잡는다"
-msgstr "Build Barracks (4), place Mercs (3)\nMercs hold enemies in place"
+msgid "병영(4)을 짓고 3으로 용병을 산다\n용병은 적을 몸으로 붙잡는다"
+msgstr "Build Barracks (4), buy Mercs (3)\nMercs hold enemies in place"
 
 msgid "전투 중에도 3·5·7로 용병을 산다\n짓기는 공병(5)이 가서 한다"
 msgstr "In battle, buy with 3·5·7 too\nEngineers (5) go and build"

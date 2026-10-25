@@ -99,7 +99,7 @@ func _process(delta: float) -> void:
 	visible = battle.state in ["prep", "battle"]
 	if not visible:
 		return
-	_none = battle.state == "battle" and battle.engineer_gap([]) == "none"
+	_none = battle.live() and battle.engineer_gap([]) == "none"
 	band.visible = _none
 	for kind in cells:
 		var c: Button = cells[kind]
@@ -217,7 +217,7 @@ func _lock(kind: String) -> String:
 # 못 놓으면 테두리를 번쩍이고, 준비 단계의 마을 레벨 잠금이면 거점을 고른다(해결 길, I132)
 func _press(kind: String) -> void:
 	var why := _lock(kind)
-	if battle.state == "battle" and kind in battle.MERC_KINDS:
+	if battle.live() and kind in battle.MERC_KINDS:
 		controls.merc_key(kind, Input.is_key_pressed(KEY_SHIFT))
 	elif why == "":
 		controls.placing = "" if controls.placing == kind else kind

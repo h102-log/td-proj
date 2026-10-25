@@ -20,7 +20,8 @@ extends SceneTree
 #     gate_split: 라운드 번호. 그 라운드부터 땅 적은 출현 지점에서 가장 가까운 성문을 먼저 노리고, 그 성문을 지나거나 부수면 거점으로 간다(1차 관찰 A④).
 #                 battle.gd가 GATE_SPLIT_ROUND부터 같은 규칙(S143)을 걸어서, 그보다 이른 라운드를 재 볼 때만 뜻이 있다. 봇은 둘 가운데 이른 라운드부터 쪽문을 지킨다(sides)
 # ponytail: 봇은 «무난한 플레이어» 하나를 흉내 낼 뿐이다. 사람의 손을 대신하지 않는다. 판정은 사람이 한다
-# 사람과 다른 점: 준비 단계를 0초로 넘긴다(준비 단계 Q·오라 회복을 쓰지 않는다). 영웅을 마을로 부르지 않고 성문을 여닫지 않고
+# 준비 단계는 적 없는 전투다(live_prep, S18 2026-10-25 변경). 봇은 정문을 열어 두고 짓고 산 것이 다 될 때까지만 판을 돌린 뒤(PREP_MAX 상한) 정문을 닫는다.
+# 사람과 다른 점: 준비 단계 Q·오라 회복을 쓰지 않는다. 영웅을 마을로 부르지 않고 그 밖에는 성문을 여닫지 않고
 # (pingpong을 켜면 쪽문 핑퐁만 한다) 리롤하지 않는다. 의뢰는 보상만 보고 수락하고 조건에 맞춰 운영을 바꾸지 않는다. 잔해 위 유닛은 한 칸 물려 세운다(사람이 준비 단계에 걸어서 비키는 손을 대신한다, 복구 거부 I89를 피한다)
 
 const BOT := {
@@ -55,6 +56,7 @@ const BOT := {
 }
 
 const GATE := Vector2i(30, 27)
+const PREP_MAX := 180.0  # 준비 단계를 이만큼(게임 초) 넘게 끌면 짓던 것을 두고 전투를 시작한다. 닿을 수 없는 일에 묶이지 않게
 const SIDES := [Vector2i(0, 27), Vector2i(59, 27)]  # 쪽문 둘
 const FRONT := Vector2i(30, 30)
 
@@ -137,6 +139,8 @@ var _vill := []      # 마을에 세운 영웅
 var _t := 0.0        # 이번 웨이브의 전투 시간
 var _gate_at := {}   # 성문 칸 → 이번 웨이브에 마지막으로 여닫은 시각(봇의 쿨타임 흉내). "all"은 셋 중 아무거나
 var _split := 0      # over.gate_split: 적이 성문 셋으로 갈라지는 첫 라운드(0이면 없음)
+var _wait := false   # 이번 준비 단계 손에서 공병이 모자라 미룬 일이 있다
+var _prep_t := 0.0   # 이번 준비 단계에 흐른 게임 시간(초)
 
 func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
@@ -150,6 +154,7 @@ func _initialize() -> void:
 	stage.seed = int(cfg.get("seed", 1))
 	_override_stage(stage, over)
 	b = _battle_class(over).new(stage)
+	b.live_prep = true  # 게임과 같은 준비 단계(I175)
 	_override_kinds(over)
 	b.restart()  # 오버라이드한 영입 확률로 목록을 다시 뽑는다
 	b.begin_hiring()
@@ -218,7 +223,7 @@ func _play() -> Dictionary:
 
 func _begin(g0: int, spent: int) -> void:
 	cur = {
-		"r": b.round_index + 1, "w": b.wave_index + 1, "gold_in": g0, "spent_prep": spent, "unspent": b.gold,
+		"r": b.round_index + 1, "w": b.wave_index + 1, "gold_in": g0, "spent_prep": spent, "unspent": b.gold, "prep_secs": snappedf(_prep_t, 0.1),
 		"base_start": snappedf(b.base.hp / b.base.max_hp, 0.01),
 		"spent_battle": 0, "base_min": 1.0, "gate_min": 1.0, "castle_lost": 0, "struct_lost": 0,
 		"merc_lost": 0, "hero_down": 0, "leak": 0, "idle": 0.0, "secs": 0.0, "peak": 0, "kills": 0,
@@ -372,20 +377,40 @@ func _hire() -> void:
 
 # ---------------------------------------------------------------- 준비 단계
 
+# 준비 단계: 정문을 열어 공병·용병이 마을과 들판을 오가게 하고, 0.25초마다 고치고·짓고·사면서 판을 돌린다.
+# 손을 쓴 뒤 미룬 일이 없고 공병·용병이 모두 섰으면(_settled) 정문을 닫는다. 성문 칸에 누가 서 있으면 비킬 때까지 돌린다(I67)
 func _prep() -> int:
 	var g0: int = b.gold
-	if bot.prep_repair:
-		for k in b.castle.values() + b.structures.values():
-			if b.can_repair(k):
-				b.repair(k)
-		for k in b.rubble.values():
-			for u in b.units:  # 잔해 칸에 선 유닛이 있으면 복구가 거부된다(I89). 마을 쪽으로 한 칸 물린다
-				if Vector2i(u.pos.round()) == k.cell:
-					u.pos = Vector2(k.cell + Vector2i.UP)
-			b.restore(k)
-		if b.base.hp < b.base.max_hp * bot.base_repair_below:
-			b.repair(b.base)
 	_station()
+	var gate = b.castle.get(GATE)
+	if gate:
+		b.set_gate(gate, true)
+	var t := 0.0
+	var think := 0.0
+	while t < PREP_MAX:
+		if think <= 0.0:
+			think = 0.25
+			_wait = false
+			_prep_hands()
+			if not _wait and _settled():
+				break
+		b.step(dt)
+		t += dt
+		think -= dt
+	_station()  # 오가는 공병에 밀려난 마을 영웅을 제자리에 다시 세운다
+	var out: Array = b.units.filter(func(u): return u.kind == "engineer" and not b.village.has_point(Vector2i(u.pos.round())))
+	for u in out:  # 들판의 공병은 전투 전에 마을로 들인다. 공병은 싸우지 않고(I63) 다 죽으면 작업장 없이는 다시 짓지 못한다
+		b.order_move([u], _free_near(GATE + Vector2i(3, -3)))
+	var shut := t + 15.0
+	while gate and t < shut and (gate.open or out.any(func(u): return u.alive and not u.path.is_empty())):
+		if out.all(func(u): return not u.alive or u.path.is_empty()):
+			b.set_gate(gate, false)
+			if gate.open:  # 성문 칸에 선 유닛은 마을 쪽으로 물린다(사람이 비키게 하는 손)
+				b.order_move(b.units.filter(func(u): return u.path.is_empty() and Vector2i(u.pos.round()) == GATE), _free_near(GATE + Vector2i(0, -2)))
+		if gate.open:
+			b.step(dt)
+			t += dt
+	_prep_t = t
 	if bot.pingpong:  # 준비 단계 여닫기는 쿨타임이 없다. 정문은 닫고 쪽문은 하나만 연다(pp_slow면 모두 닫는다)
 		b.set_gate(b.castle[GATE], false)
 		var gs := SIDES.map(func(c): return b.castle.get(c)).filter(func(g): return g != null)
@@ -395,6 +420,27 @@ func _prep() -> int:
 		elif gs.size() == 2 and gs[0].open == gs[1].open:
 			b.set_gate(gs[0], true)
 			b.set_gate(gs[1], false)
+	return g0 - b.gold
+
+# 준비 단계 손 한 번: 수리·복구 → 쇼핑 목록 → fill. 공병이 모자라 못 한 일이 있으면 _wait
+func _prep_hands() -> void:
+	if bot.prep_repair:
+		for k in b.castle.values() + b.structures.values():
+			if b.can_repair(k) and b.gold >= b.repair_cost(k):
+				b.repair(k)
+				if k.worker == null:
+					_defer([k.cell])
+		for k in b.rubble.values():
+			for u in b.units:  # 잔해 칸에 선 유닛이 있으면 복구가 거부되고 간 공병도 기다린다(I89). 마을 쪽으로 한 칸 물린다
+				if u.path.is_empty() and Vector2i(u.pos.round()) == k.cell:
+					u.pos = Vector2(k.cell + Vector2i.UP)
+			if k.worker or b.gold < b.repair_cost(k):
+				continue
+			b.restore(k)
+			if k.worker == null:
+				_defer([k.cell])
+		if b.base.hp < b.base.max_hp * bot.base_repair_below and b.can_repair(b.base):
+			b.repair(b.base)
 	var done := true
 	for item in _plan():
 		if not _buy(item):
@@ -404,7 +450,27 @@ func _prep() -> int:
 		for item in _fill_cells([GATE] + (SIDES if _sides() else [])):
 			if not _buy(item):
 				break
-	return g0 - b.gold
+
+# 준비 단계 일이 끝났다: 일하는 공병도 걸어가는 용병도 없다
+func _settled() -> bool:
+	return b.units.all(func(u): return u.is_hero or (u.job == null and u.path.is_empty() and u.after.is_empty()))
+
+# 공병 지시가 그 칸을 맡을 공병이 없어 거부됐고 일하는 공병이 있으면(곧 놀게 된다) 미룬다(_wait). 참이면 미뤘다. 공병이 하나도 일하지 않으면 기다려도 안 오니 건너뛴다
+func _defer(cells: Array) -> bool:
+	if b.engineer_gap(cells) == "" or not b.units.any(func(u): return u.kind == "engineer" and u.job != null):
+		return false
+	_wait = true
+	return true
+
+# 그 용병을 파는 완성된 시설에서 사서 그 칸으로 공격 이동시킨다(I20, S35). 살 수 없으면 null
+func _recruit(kind: String, cell: Vector2i):
+	for s in b.structures.values():
+		if s.complete and kind in s.produces:
+			var m = b.recruit(s, kind)
+			if m:
+				b.order_move([m], cell, true)
+			return m
+	return null
 
 # 적이 성문 셋으로 갈라지는 라운드(S143, gate_split이면 둘 가운데 이른 쪽)부터 무난한 플레이어는 쪽문도 지킨다
 func _sides() -> bool:
@@ -436,6 +502,8 @@ func _buy(item: Array) -> bool:
 			var cell := Vector2i(item[2], item[3])
 			var s = b.structure_at(cell)
 			if s and s.kind == item[1]:
+				if not s.complete and s.worker == null and b.resume(s) == null:  # 웨이브 끝에 멈춘 건설은 이어 짓는다(I19)
+					return not _defer([cell])
 				return true
 			if s or b.rubble.has(cell):
 				return true  # 다른 것이 섰거나 잔해다. 건너뛴다
@@ -443,20 +511,26 @@ func _buy(item: Array) -> bool:
 				return false
 			if b.STRUCTURE_KINDS[item[1]].village_level > b.village_level:
 				return true
-			b.build(item[1], cell)
+			if b.build(item[1], cell) == null:
+				return not _defer([cell])
 			return true
 		"house":
 			var have: int = b.structures.values().filter(func(s): return s.tax > 0).size()
 			for c in HOUSE_CELLS:
 				if have >= item[1]:
 					return true
-				if b.structure_at(c):
+				var hs = b.structure_at(c)
+				if hs:
+					if hs.kind == "house" and not hs.complete and hs.worker == null and b.resume(hs) == null and _defer([c]):  # 멈춘 건설(I19)
+						return false
 					continue
 				if spare < b.STRUCTURE_KINDS.house.cost:
 					return false
 				if b.build("house", c):
 					have += 1
 					spare = b.gold - bot.reserve
+				elif _defer([c]):
+					return false
 			return true
 		"village":
 			if b.village_level > b.VILLAGE_UP.size():
@@ -467,12 +541,12 @@ func _buy(item: Array) -> bool:
 			return true
 		"upgrade":
 			var k = b.castle.get(Vector2i(item[1], item[2]))
-			if k == null or k.level >= item[3]:
+			if k == null or k.level >= item[3] or k.worker:  # 다 올렸거나 공병이 올리는 중이다
 				return true
-			if spare < b.upgrade_cost(k):
+			if k.lift < 0.0 and spare < b.upgrade_cost(k):  # 그만둔 업그레이드는 골드 없이 이어 올린다(I68)
 				return false
 			b.upgrade(k)
-			return true
+			return k.worker != null or not _defer([k.cell])
 		"merc":
 			if not b.can_buy(item[1]):
 				return true
@@ -480,7 +554,7 @@ func _buy(item: Array) -> bool:
 			while have < item[2]:
 				if spare < b.MERC_KINDS[item[1]].cost or b._mercs() >= b.merc_cap:
 					return spare >= b.MERC_KINDS[item[1]].cost
-				var m = b.place_merc(item[1], _free_near(Vector2i(item[3], item[4])))
+				var m = _recruit(item[1], _free_near(Vector2i(item[3], item[4])))
 				if m == null:
 					return true
 				have += 1
@@ -493,11 +567,8 @@ func _buy(item: Array) -> bool:
 			while have < item[2]:
 				if spare < b.MERC_KINDS[item[1]].cost or b._mercs() >= b.merc_cap:
 					return spare >= b.MERC_KINDS[item[1]].cost
-				var m = b.place_merc(item[1], _free_near(Vector2i(GATE.x, GATE.y - 1)))
-				if m == null:
+				if _recruit(item[1], WALL_POSTS[have % WALL_POSTS.size()]) == null:
 					return true
-				var post = WALL_POSTS[have % WALL_POSTS.size()]
-				b.order_move([m], post, true)  # 공격 이동(S35)
 				have += 1
 				spare = b.gold - bot.reserve
 			return true
@@ -511,7 +582,7 @@ func _free_near(c: Vector2i) -> Vector2i:
 		for dy in range(-r, r + 1):
 			for dx in range(-r, r + 1):
 				var p := c + Vector2i(dx, dy)
-				if b.grid.is_in_boundsv(p) and not b.grid.block_at(p) and p != b.base.cell and not b.occupied(p) and p not in b._stage.hero_cells:
+				if b.grid.is_in_boundsv(p) and not b.grid.block_at(p) and p != b.base.cell and not b.castle.has(p) and not b.rubble.has(p) and not b.occupied(p) and p not in b._stage.hero_cells:  # 열린 성문 칸도 뺀다(서 있으면 닫지 못한다, I67)
 					return p
 	return c
 

@@ -6,7 +6,7 @@ extends RefCounted
 # 우클릭: 고른 유닛에게 명령: 커서 0.7칸 안에 적이 있으면 대상 공격, 아니면 순수 이동(S14, S35). 명령이 가면 표식을 띄운다(S205).
 # 살아 있는 고른 유닛 없이 생산 시설을 골랐으면 그 칸을 집결 지점으로(S82, I173)
 # 준비 단계의 좌클릭·좌드래그는 판매 후보도 정한다(S70, I57). 좌클릭한 용병은 두 단계 모두 고른 상태가 된다(I135)
-# 전투 단계의 좌클릭·좌드래그는 철거·취소·이어 짓기 후보(picked)를 정한다(S74, S83)
+# 전투 단계의 좌클릭·좌드래그는 철거·취소·이어 짓기 후보(picked)를 정한다(S74, S83). live 판(I175)의 준비 단계에는 미완성 구조물만 이어 짓기·취소 후보다(I57)
 # Q·W·E·R: 영웅 스킬(S145, I10). 고른 영웅이, 없으면 첫 영웅이 쓴다(S119). 즉시·켜고 끄는 칸은 바로 쓰고, 지점·방향·대상을 고르는 칸은
 # 조준 상태가 된다(퀵캐스트를 켜면 키를 누르는 순간 커서 자리에 쓴다, I158). 조준 중 좌클릭은 그 지점·대상에 쓰고, 우클릭·ESC는 취소한다(S147). Shift+키와 HUD 스킬 버튼 우클릭은 자동 시전을 켜고 끈다(S158, I151)
 # A: 공격 명령 조준(S35). 그동안 좌클릭은 땅이면 공격 이동·적이면 대상 공격이고, 우클릭·ESC는 취소한다 · S: 정지(S35) · H: 홀드 전환(S36) · V: 체력바 표시 전환(S73)
@@ -100,7 +100,7 @@ func handle(event: InputEvent) -> void:
 				attacking = false
 		if event.keycode in PLACE_KEYS:
 			var kind: String = PLACE_KEYS[event.keycode]
-			if battle.state == "battle" and kind in battle.MERC_KINDS:
+			if battle.live() and kind in battle.MERC_KINDS:
 				merc_key(kind, event.shift_pressed)
 			else:
 				placing = "" if placing == kind else kind
@@ -108,8 +108,8 @@ func handle(event: InputEvent) -> void:
 		if placing != "":
 			aiming = ""
 			attacking = false
-	# 전투 단계엔 구조물만 놓기 모드가 된다. 전투 중 용병은 시설 팝업이나 용병 키(merc_key)로 산다(S81)
-	if not (battle.state == "prep" or (battle.state == "battle" and placing in battle.STRUCTURE_KINDS)):
+	# live()엔 구조물만 놓기 모드가 된다. 용병은 시설 팝업이나 용병 키(merc_key)로 산다(S81, I20)
+	if not ((battle.state == "prep" and not battle.live()) or (battle.live() and placing in battle.STRUCTURE_KINDS)):
 		placing = ""
 	if event is InputEventMouseMotion and _press != null:
 		drag_rect = Rect2(_press, event.position - _press).abs()
@@ -164,11 +164,11 @@ func _release(rect: Rect2, at: Vector2) -> void:
 		facility = hit if hit and not hit.produces.is_empty() and hit.complete else null
 		fort = battle.castle.get(cell, battle.rubble.get(cell))
 		village = cell == battle.base.cell
-		picked = [hit] if hit and not prep else []
+		picked = [hit] if hit and (not prep or (battle.live() and not hit.complete)) else []  # live 준비 단계의 미완성은 판매 대신 이어 짓기·취소(S83, I57)
 		for m in mercs:
 			if Vector2i(m.pos.round()) == cell:
 				hit = m
-		selling = [hit] if prep and hit else []
+		selling = [hit] if prep and hit and hit not in picked else []
 		if hit in mercs:
 			units = [hit]
 		if hit == null and fort == null and units.is_empty() and BattleView.keep_rect(battle).has_point(rect.position):  # 망루 그림 안(S100)
@@ -189,8 +189,9 @@ func _release(rect: Rect2, at: Vector2) -> void:
 		var picks: Array = mercs.filter(func(u): return inside.call(u.pos))
 		units = heroes + picks
 		var built: Array = battle.structures.values().filter(func(s): return inside.call(Vector2(s.cell)))
-		selling = (picks + built) if prep else []
-		picked = [] if prep else built
+		var todo: Array = built.filter(func(s): return not s.complete) if prep and battle.live() else []
+		selling = (picks + built.filter(func(s): return s not in todo)) if prep else []
+		picked = todo if prep else built
 		if units.is_empty() and not built.is_empty():  # 구조물만 든 사각형은 유닛 선택을 비운다(I173)
 			selected = []
 			shown = null
@@ -362,6 +363,6 @@ func _refusal(kind: String, cell: Vector2i) -> String:
 		return "골드 %d 모자람" % (d.cost - battle.gold)
 	if d.tax > 0 and battle.structures.values().filter(func(s): return s.tax > 0).size() >= battle.HOUSE_CAP:
 		return "집은 %d채까지" % battle.HOUSE_CAP
-	if battle.state == "battle":
+	if battle.live():
 		return {"none": "공병 없음", "far": "닿는 공병 없음"}.get(battle.engineer_gap([cell]), "")
 	return ""

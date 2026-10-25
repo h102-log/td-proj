@@ -295,6 +295,9 @@ var commission_offers := []  # 라운드 사이에 고를 수 있는 의뢰 이�
 var settled := []  # 지난 라운드의 미션·의뢰 판정 [이름, 달성 여부](I120). 결과 창이 보인다(I122)
 var tally := {}  # 라운드 집계(I119): TALLY_KEYS → 수. 라운드가 시작될 때 0이 된다
 var revive := true  # 쓰러진 영웅이 다음 준비 단계에 돌아온다(S27). 기본값 켜짐(I28)
+# 준비 단계를 적 없는 전투로 돈다(S18 2026-10-25 변경, I175): 짓기·업그레이드·수리·복구는 공병, 용병은 시설에서 산다. 시작 공병(S208)도 이것이 켜졌을 때다
+# ponytail: 평가 300여 곳이 준비 단계 즉시 짓기·놓기로 판을 차려서, 끄면 옛 규칙인 길을 남긴다. 게임 장면(Main.live_prep)·하네스·봇이 켠다
+var live_prep := false
 var state := "prep"  # "prep" | "battle" | "hiring"(도전 시작 전 영입 창, S122) | "cleared"(라운드 사이, S117) | "won"(도전 성공) | "lost"
 var round_index := 0
 var wave_index := 0
@@ -527,6 +530,9 @@ func next_round() -> bool:
 		settled.clear()
 		_reset_tally()  # 새 라운드의 집계와 미션(I119, I120). 수락한 의뢰는 이 라운드에 걸린다(I121)
 		_draw_mission()
+	elif live_prep:  # 도전의 첫 준비 단계: 시작 공병(S208)
+		for c in _stage.get("engineer_cells", []):
+			units.append(Unit.new("engineer", c, MERC_KINDS.engineer))
 	state = "prep"
 	_deploy()
 	for h in heroes:
@@ -534,6 +540,10 @@ func next_round() -> bool:
 			_return_hero(h)
 	_forecast()  # 라운드에 따라 길이 성문을 지난다(S142, S143)
 	return true
+
+# 공병이 가서 일하고 용병을 생산 시설에서 사는 단계: 전투 단계와, live_prep이면 준비 단계(S18, I175)
+func live() -> bool:
+	return state == "battle" or (live_prep and state == "prep")
 
 # [동작] 도전 시작 전 영입 창(S122)을 연다. main·HUD가 새 도전(restart) 직후에 부른다
 # [이유] restart()가 곧바로 열지 않는 것은 동결된 평가(EV36·EV80·EV165·EV170)가
@@ -741,7 +751,7 @@ func raise_village() -> bool:
 func can_buy(kind: String) -> bool:
 	return not village.has_area() or structures.values().any(func(s): return s.complete and kind in s.produces)
 
-# 준비 단계에만, 놓을 수 있는 칸(_merc_cell)에 바로 놓는다(S18). 성곽 칸이면 그 칸의 성벽 위에 선다(I134). 골드가 모자라면 거부한다(I16)
+# 준비 단계에만, 놓을 수 있는 칸(_merc_cell)에 바로 놓는다(S18). live_prep 판의 플레이어는 시설에서 산다(recruit, I20). 이것은 판을 차리는 길이다(I175). 성곽 칸이면 그 칸의 성벽 위에 선다(I134). 골드가 모자라면 거부한다(I16)
 # 시설 조건(S50)은 보지 않는다. 플레이어의 구매는 Controls가 can_buy로 먼저 묻는다
 func place_merc(kind: String, cell: Vector2i, overrides := {}):
 	if state != "prep" or not _merc_cell(cell):
@@ -1492,8 +1502,8 @@ func _cast_golden_law(h: Unit, sk: Dictionary, _aim, grow: float) -> void:
 func _cast_time_warp(h: Unit, sk: Dictionary, aim, _grow: float) -> void:
 	_zone("chronos_r", h, aim, sk.radius, sk.time, {"haste": sk.haste, "cdr": sk.cdr, "slow": sk.slow, "lag": sk.lag})
 
-# 지을 수 있는 칸에 짓는다(_buildable). 마을 레벨이 모자란 종류는 거부한다(S99). 준비 단계엔 바로 완성된다(S18).
-# 전투 단계엔 진행률 0의 미완성 구조물을 놓고 놀고 있는 가장 가까운 공병을 보낸다. 그런 공병이 없으면 거부한다(S22, I39, I62)
+# 지을 수 있는 칸에 짓는다(_buildable). 마을 레벨이 모자란 종류는 거부한다(S99). live가 아닌 준비 단계엔 바로 완성된다(S18, I175).
+# live()엔 진행률 0의 미완성 구조물을 놓고 놀고 있는 가장 가까운 공병을 보낸다. 그런 공병이 없으면 거부한다(S22, I39, I62)
 # 생산 시설의 집결 지점 기본값은 출구 칸이다(I61). 건설비는 지시하는 순간 내고, 모자라면 거부한다(I16, I17)
 func build(kind: String, cell: Vector2i, overrides := {}):
 	if state not in ["prep", "battle"] or not _buildable(kind, cell) or STRUCTURE_KINDS[kind].village_level > village_level:
@@ -1501,8 +1511,8 @@ func build(kind: String, cell: Vector2i, overrides := {}):
 	var stats: Dictionary = STRUCTURE_KINDS[kind].merged(overrides, true)
 	if gold < stats.cost or (stats.tax > 0 and structures.values().filter(func(s): return s.tax > 0).size() >= HOUSE_CAP):  # 집 상한(S101)
 		return null
-	var engineer = _idle_engineer(cell) if state == "battle" else null
-	if state == "battle" and not engineer:
+	var engineer = _idle_engineer(cell) if live() else null
+	if live() and not engineer:
 		return null
 	gold -= stats.cost
 	var s := Block.new(cell, kind, stats.hp)
@@ -1560,11 +1570,11 @@ func placeable_cells(kind: String) -> Array:
 func structure_at(cell: Vector2i):
 	return structures.get(cell)
 
-# 전투 단계에만, 생산 시설에서 용병 하나를 산다(S20, I21). 시설 옆 칸에 나타나 집결 지점으로 걸어간다(I61)
+# 전투 단계(live)에만, 생산 시설에서 용병 하나를 산다(S20, I21, I20). 시설 옆 칸에 나타나 집결 지점으로 걸어간다(I61)
 # kind를 비우면 시설의 첫째 용병이다(S87). 시설이 팔지 않는 종류거나, 골드가 모자라거나, 배치 상한에 닿았거나(S25, I23),
 # 시설이 파괴됐으면(S48) 거부한다
 func recruit(f, kind := ""):
-	if state != "battle" or structures.get(f.cell) != f or f.produces.is_empty() or not f.complete:  # 미완성 시설은 생산하지 않는다(I18)
+	if not live() or structures.get(f.cell) != f or f.produces.is_empty() or not f.complete:  # 미완성 시설은 생산하지 않는다(I18)
 		return null
 	if kind == "":
 		kind = f.produces[0]
@@ -1623,13 +1633,13 @@ func set_gate(g: Block, open: bool) -> void:
 func upgrade_cost(k: Block) -> int:
 	return UPGRADE_COST[k.kind] * (1 << (k.level - 1))
 
-# 성곽 칸 하나를 한 단계 올린다(S86). 골드는 지시할 때 낸다(I16). 준비 단계엔 바로 오르고, 전투 단계엔 놀고 있는
+# 성곽 칸 하나를 한 단계 올린다(S86). 골드는 지시할 때 낸다(I16). live가 아닌 준비 단계엔 바로 오르고, live()엔 놀고 있는
 # 가장 가까운 공병을 보낸다. 그런 공병이 없으면 거부한다. 그만둔 업그레이드는 골드를 더 내지 않고 이어 올린다(I68)
 func upgrade(k: Block) -> void:
 	if state not in ["prep", "battle"] or castle.get(k.cell) != k or k.level >= UPGRADE_MAX or k.worker:
 		return
-	var engineer = _idle_engineer(k.cell) if state == "battle" else null
-	if state == "battle" and not engineer:
+	var engineer = _idle_engineer(k.cell) if live() else null
+	if live() and not engineer:
 		return
 	if k.lift < 0.0:
 		if gold < upgrade_cost(k):
@@ -1664,13 +1674,13 @@ func repair_cost(t: Block) -> int:
 func can_repair(t) -> bool:
 	return t is Block and state in ["prep", "battle"] and t.complete and t.worker == null and t.hp < t.max_hp and (structures.get(t.cell) == t or castle.get(t.cell) == t or t == base)
 
-# 깎인 것을 고친다(S80). 준비 단계엔 수리비를 내고 바로 가득 차고(I86), 전투 단계엔 지시할 때 내고
+# 깎인 것을 고친다(S80). live가 아닌 준비 단계엔 수리비를 내고 바로 가득 차고(I86), live()엔 지시할 때 내고
 # 놀고 있는 가장 가까운 공병이 가서 낸 만큼 채운다(S115, I87). 공병이 없거나 골드가 모자라면 거부한다
 func repair(t) -> void:
 	if not can_repair(t):
 		return
-	var engineer = _idle_engineer(t.cell) if state == "battle" else null
-	if (state == "battle" and not engineer) or gold < repair_cost(t):
+	var engineer = _idle_engineer(t.cell) if live() else null
+	if (live() and not engineer) or gold < repair_cost(t):
 		return
 	gold -= repair_cost(t)
 	t.mend = t.max_hp - t.hp
@@ -1692,13 +1702,13 @@ func heal(h: Unit) -> void:
 	gold -= heal_cost(h)
 	h.hp = h.max_hp
 
-# 잔해를 되살린다(I89). 복구비는 지시할 때 낸다. 준비 단계엔 바로 가득 찬 채 서고, 전투 단계엔 놀고 있는
+# 잔해를 되살린다(I89). 복구비는 지시할 때 낸다. live가 아닌 준비 단계엔 바로 가득 찬 채 서고, live()엔 놀고 있는
 # 가장 가까운 공병이 가서 닿으면 다시 세운 뒤 채운다(_work). 지시할 때 칸에 누가 있으면 거부한다
 func restore(k: Block) -> void:
 	if state not in ["prep", "battle"] or rubble.get(k.cell) != k or k.worker or occupied(k.cell):
 		return
-	var engineer = _idle_engineer(k.cell) if state == "battle" else null
-	if (state == "battle" and not engineer) or gold < repair_cost(k):
+	var engineer = _idle_engineer(k.cell) if live() else null
+	if (live() and not engineer) or gold < repair_cost(k):
 		return
 	gold -= repair_cost(k)
 	k.mend = k.max_hp
@@ -1734,24 +1744,24 @@ func _mend(t: Block, dhp: float) -> void:
 func occupied(cell: Vector2i) -> bool:
 	return (units + enemies).any(func(u): return Vector2i(u.pos.round()) == cell)
 
-# 전투 단계에만, 미완성 구조물을 없애고 낸 골드를 모두 돌려준다(S23)
+# 전투 단계(live)에만, 미완성 구조물을 없애고 낸 골드를 모두 돌려준다(S23, S83)
 func cancel(s) -> void:
-	if state == "battle" and not s.complete and structures.get(s.cell) == s:
+	if live() and not s.complete and structures.get(s.cell) == s:
 		_remove(s)
 		gold += s.paid
 
-# 전투 단계에만, 짓는 공병이 없는 미완성 구조물에 놀고 있는 가장 가까운 공병을 보낸다(S24, S83)
+# 전투 단계(live)에만, 짓는 공병이 없는 미완성 구조물에 놀고 있는 가장 가까운 공병을 보낸다(S24, S83)
 func resume(s):
-	if state != "battle" or s.complete or s.worker or structures.get(s.cell) != s:
+	if not live() or s.complete or s.worker or structures.get(s.cell) != s:
 		return null
 	var engineer = _idle_engineer(s.cell)
 	if engineer:
 		_send(engineer, s)
 	return engineer
 
-# 준비 단계에만, 미완성 구조물을 추가 비용 없이 바로 완성한다(I19)
+# live_prep이 꺼진 판의 준비 단계에만, 미완성 구조물을 추가 비용 없이 바로 완성한다(I19, I175)
 func finish(s) -> void:
-	if state == "prep" and not s.complete and structures.get(s.cell) == s:
+	if state == "prep" and not live_prep and not s.complete and structures.get(s.cell) == s:
 		_grow(s, 1.0)
 
 # 전투 단계에만, 철거할 수 있는 구조물마다 놀고 있는 가장 가까운 공병을 보낸다. 그런 공병이 없으면 그 구조물은 거부한다(S74, I64)
@@ -1900,6 +1910,8 @@ func sell(things: Array) -> void:
 			structures.erase(t.cell)
 			_repath = true
 		elif t is Unit and not t.is_hero and t in units:
+			if t.job:  # 일하던 공병의 일은 그 상태로 남는다(I63)
+				_release(t.job)
 			units.erase(t)
 		else:
 			continue

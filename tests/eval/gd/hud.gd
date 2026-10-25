@@ -2347,7 +2347,7 @@ func ev410():
 	_frame(main)
 	var h = b.heroes[0]
 	var want := [main.hud.HEROES[h.kind], "Lv%d" % h.level, "체력 %d/%d" % [ceili(h.hp), ceili(h.max_hp)], "공격력 %s" % main.hud._num(h.damage),
-		"사거리 %s칸" % main.hud._num(h.range), "공격 간격 %s초" % main.hud._num(h.attack_gap), "이동 %s칸/초" % main.hud._num(h.speed), "방어력 %s" % main.hud._num(h.armor)]
+		"사거리 %s칸" % main.hud._num(h.range) if h.range > b.RANGED else "사거리 근접", "공격 간격 %s초" % main.hud._num(h.attack_gap), "이동 %s칸/초" % main.hud._num(h.speed), "방어력 %s" % main.hud._num(h.armor)]
 	var r: Rect2 = s.get_global_rect()
 	var miss := _missing(_sel_text(main), want)
 	var vis: bool = s.is_visible_in_tree()
@@ -2515,3 +2515,73 @@ func ev415():
 	var n := marks.size()
 	_done(main)
 	return check(lifted > 0 and bad.is_empty(), "보이는 표식 %d · 패널과 겹쳐 올라간 것 %d · 자리가 틀린 것 %s" % [n, lifted, bad])
+
+# 준비 단계 실시간 게임 장면(I175): Main.live_prep을 켜고 띄운 뒤 끈다. 판은 켠 값을 쥔다
+func _live_prep():
+	var M = load("res://src/main.gd")
+	M.live_prep = true
+	var main = _prep()
+	M.live_prep = false
+	return main
+
+# EV418 · S83: 준비 단계 실시간 게임 장면의 준비 단계에 미완성 병영을 누르면 «이어 짓기»·«취소»가 뜨고 «완성»·«판매»는 없다
+func ev418():
+	var main = _live_prep()
+	var b = main.view.battle
+	var c = main.controls
+	var f = b.build("barracks", _near(b, "barracks", Vector2i(26, 15)))
+	var texts := func(): return _pops(main).map(func(n): return n.text)
+	var out := ""
+	if f == null or f.complete or f.worker == null:
+		out = "준비 단계 병영: %s · 완성 %s · 일꾼 %s" % [f, f.complete if f else null, f.worker if f else null]
+	if out == "":
+		click(c, MOUSE_BUTTON_LEFT, px(f.cell))
+		_frame(main)
+		if texts.call() != ["취소"]:
+			out = "공병이 일하는 병영을 누른 팝업 버튼: %s(«취소» 하나여야 한다)" % [texts.call()]
+	if out == "":
+		b.order_move([f.worker], Vector2i(40, 5))
+		_frame(main)
+		var t: Array = texts.call()
+		if not ("이어 짓기" in t and "취소" in t) or t.any(func(s): return s == "완성" or s.begins_with("판매")):
+			out = "일을 그만둔 병영의 팝업 버튼: %s" % [t]
+	if out == "":
+		_press(main.hud.popup, "이어 짓기")
+		if f.worker == null:
+			out = "«이어 짓기»를 눌러도 일꾼이 없다"
+	if out == "":
+		b.order_move([f.worker], Vector2i(40, 5))
+		click(c, MOUSE_BUTTON_LEFT, px(f.cell))  # 버튼을 누르면 팝업이 닫힌다(_apply)
+		_frame(main)
+		var g: int = b.gold
+		_press(main.hud.popup, "취소")
+		out = check(b.structure_at(f.cell) == null and b.gold == g + f.paid, "«취소» 뒤 병영 %s · 골드 %d → %d(건설비 %d)" % [b.structure_at(f.cell), g, b.gold, f.paid])
+	_done(main)
+	return out
+
+# EV423 · I20: 준비 단계 실시간 게임 장면의 준비 단계에도 완성된 병영 팝업의 구매 버튼과 건설 격자 용병 칸으로 산다
+func ev423():
+	var main = _live_prep()
+	var b = main.view.battle
+	var c = main.controls
+	var f = b.build("barracks", _near(b, "barracks", Vector2i(26, 15)))
+	var out := ""
+	if f == null or not run(b, 30.0, func(): return f.complete):
+		out = "준비 단계 병영이 30초 안에 완성되지 않았다(%s)" % f
+	if out == "":
+		click(c, MOUSE_BUTTON_LEFT, px(f.cell))
+		_frame(main)
+		var buy = _starts(main.hud.popup, "용병")
+		var n := _soldiers(b)
+		if buy:
+			buy.pressed.emit()
+		var m = b.units.filter(func(u): return u.kind == "soldier").back() if _soldiers(b) > 0 else null
+		if buy == null or _soldiers(b) != n + 1 or m.pos.distance_to(Vector2(f.cell)) > 1.5:
+			out = "병영 팝업 «용병» 버튼 %s · 용병 %d → %d · 나온 자리 %s(병영 %s)" % [buy, n, _soldiers(b), m.pos if m else null, f.cell]
+	if out == "":
+		var n := _soldiers(b)
+		main.hud.grid.cells.soldier.pressed.emit()
+		main.hud.grid.cells.soldier.pressed.emit()
+		out = check(c.placing == "" and _soldiers(b) > n, "건설 격자 용병 칸을 두 번 누른 뒤 놓기 모드 «%s» · 용병 %d → %d" % [c.placing, n, _soldiers(b)])
+	_done(main)
+	return out
