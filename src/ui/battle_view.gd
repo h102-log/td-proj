@@ -994,7 +994,7 @@ static func bake_ground(b) -> ImageTexture:
 				if absi(c.x - b.base.cell.x) > 3:
 					for k in 3:
 						img.blend_rect(deco, Rect2i(CELL * 11, 0, CELL, CELL), c * CELL + Vector2i(rng.randi_range(-6, 6), rng.randi_range(-4, 4)))
-	for c in b.spawns:  # ponytail: 깃발도 바닥에 구워서 막 나온 적이 깃발 위에 그려진다. 거슬리면 깃발만 바닥선 정렬로 옮긴다
+	for c in (b.spawns if b.spawn_spread == 0 else []):  # 흩어져 나오는 스테이지는 깃발이 없다(I177). ponytail: 깃발도 바닥에 구워서 막 나온 적이 깃발 위에 그려진다. 거슬리면 깃발만 바닥선 정렬로 옮긴다
 		img.blend_rect(src, Rect2i(Vector2i(6, 1) * CELL, Vector2i(CELL, CELL)), c * CELL)
 	return ImageTexture.create_from_image(img)
 

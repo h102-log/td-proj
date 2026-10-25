@@ -268,6 +268,7 @@ class CostGrid extends AStarGrid2D:
 
 var size: Vector2i
 var spawns: Array
+var spawn_spread := 0  # 출현 지점마다 가로로 흩어져 나오는 칸 수(±, I177). 0이면 출현 지점 칸에서 나온다
 var forecast := []  # 출현 지점마다 기본 적이 지금 나오면 걸을 길(칸 배열, S142). 화면이 선으로 그린다
 var waves: Array  # 지금 라운드의 웨이브
 var rounds: Array  # 도전의 라운드마다 웨이브 배열(S63, I91). stage에 rounds가 없으면 waves 하나가 1라운드짜리 도전이다
@@ -310,8 +311,9 @@ var grid := CostGrid.new()
 var _wall := AStarGrid2D.new()  # 성벽 위 길. 성곽 칸만 걸을 수 있다(I69)
 var _repath := false  # 막힌 칸이 바뀌어 적 경로를 다시 구해야 한다
 var _stale := {}  # 경로를 다시 구할 적, 먼저 밀린 순서(I155)
-var _queue := []      # 이번 웨이브에서 아직 안 나온 적 [종류, 출현 지점](wave_plan)
+var _queue := []      # 이번 웨이브에서 아직 안 나온 적 [종류, 출현 지점, 나올 칸](wave_plan)
 var _spawn_timer := 0.0
+var _spare := 0.0  # 아직 1골드가 되지 않은 처치 보상(I176)
 var _stage: Dictionary  # 재시작할 때 다시 읽는다
 var _rng := RandomNumberGenerator.new()  # 영입소 목록을 뽑는다. 스테이지에 seed가 있으면 그 씨앗이다(평가용)
 var _luck := RandomNumberGenerator.new()  # 치명타·요새화 기절(S149, S151). 영입소 목록이 전투에 따라 바뀌지 않게 따로 둔다
@@ -335,6 +337,7 @@ static func _kinds(dir: String) -> Dictionary:
 func _init(stage: Dictionary) -> void:
 	size = stage.size
 	spawns = stage.spawns
+	spawn_spread = stage.get("spawn_spread", 0)
 	for c in spawns:
 		assert(c.x == 0 or c.y == 0 or c.x == size.x - 1 or c.y == size.y - 1, "출현 지점 %s가 맵 가장자리가 아니다" % c)
 	rounds = stage.get("rounds", [stage.get("waves", [])])
@@ -359,6 +362,7 @@ func restart() -> void:
 	waves = rounds[0]
 	wave_index = 0
 	gold = stage.get("gold", 0)
+	_spare = 0.0
 	village = stage.get("village", Rect2i())
 	merc_cap = stage.get("merc_cap", MERC_CAP)
 	village_level = 1
@@ -498,13 +502,17 @@ func start_battle() -> void:
 	_queue = wave_plan(round_index, wave_index)
 	_spawn_timer = 0.0
 
-# 라운드 r·웨이브 w의 적을 나오는 차례대로 [종류, 출현 지점]. 항목 차례로 나오고 출현 지점을 돌아가며 쓴다.
+# 라운드 r·웨이브 w의 적을 나오는 차례대로 [종류, 출현 지점, 나올 칸]. 항목 차례로 나오고 출현 지점을 돌아가며 쓴다.
+# 나올 칸은 출현 지점에서 n번째 적마다 황금비 수열로 가로 ±spawn_spread 안에 흩는다(I177). 씨앗을 쓰지 않는다.
 # 전투(start_battle)와 미리보기(spawn_counts, S188)가 함께 써서 미리보기가 실제와 어긋나지 않는다
 func wave_plan(r: int, w: int) -> Array:
 	var out := []
 	for entry in rounds[r][w]:
 		for i in entry.count:
-			out.append([entry.kind, spawns[out.size() % spawns.size()]])
+			var s: Vector2i = spawns[out.size() % spawns.size()]
+			var n := out.size() / spawns.size()
+			var x := s.x - spawn_spread + int(fposmod(n * 0.6180339887, 1.0) * (2 * spawn_spread + 1))
+			out.append([entry.kind, s, Vector2i(clampi(x, 0, size.x - 1), s.y)])
 	return out
 
 # 출현 지점(spawns 차례)마다 {적 종류: 수}(S188)
@@ -1981,7 +1989,9 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 		for z in zones:
 			if z.src == "chronos_e" and target.pos.distance_to(z.pos) <= z.radius:
 				bonus = maxf(bonus, z.bonus)
-		gold += roundi(target.reward * (1.0 + bonus))
+		_spare += roundi(target.reward * (1.0 + bonus)) * _stage.get("reward_scale", 1.0)  # 처치 보상 배율(I176). 1골드에 못 미치는 나머지는 쌓아 둔다
+		gold += floori(_spare)
+		_spare -= floori(_spare)
 		_spread(target)
 		target.fx.clear()  # 도발은 영웅을 가리킨다. 죽은 적이 영웅을 붙잡아 두지 않게
 		for h in heroes:  # 누가 처치했든 그때 살아 있는 출전 영웅이 모두 받는다(S125)
@@ -2032,9 +2042,11 @@ func _spawn_wave(dt: float) -> void:
 	if _queue.is_empty() or _spawn_timer > 0.0:
 		return
 	var next: Array = _queue.pop_front()
-	spawn_enemy(next[0], next[1])
-	_spawn_timer = SPAWN_GAP
-	_forecast()  # 성곽이 깎인 만큼 길이 바뀌었을 수 있다(S142)
+	spawn_enemy(next[0], next[2])
+	var gap: float = _stage.get("spawn_gap", SPAWN_GAP)  # 시험 스테이지는 적 10배라 0.25초(I91)
+	_spawn_timer = gap
+	if _queue.size() % maxi(1, roundi(SPAWN_GAP / gap)) == 0:  # 성곽이 깎인 만큼 길이 바뀌었을 수 있다. 다시 구하는 것은 2.5초에 한 번꼴(S142)
+		_forecast()
 
 # 대상 칸(e.goal)까지 «걷는 거리 + 막힌 칸 비용»이 가장 싼 경로. 막힌 칸과 거점은 닿는 거리에서 친다(_move).
 # 그래서 반격 대상이 성벽에 둘러싸여 있으면 비용이 가장 싼 성벽을 뚫고 간다(S6)
@@ -2250,14 +2262,32 @@ func _touch(mover, body) -> bool:
 
 # 같은 편(bodies)끼리 겹친 만큼 반씩 밀어낸다. 상대 편(others)과는 겹치지 않게 민다. 비행 적은 밀지도 밀리지도 않는다(I79).
 # 경로는 그대로라 밀려난 쪽은 _move·_act가 다시 데려간다(I51)
-# ponytail: O(n²) 전수 비교, 적이 수백이면 칸 버킷으로
+# 1칸 버킷의 이웃 아홉 칸만 비교한다. 몸 반지름 합은 가장 큰 보스 둘이 0.9라 겹친 쌍은 늘 이웃 버킷이다. 차례는 전수 비교(i < j)와 같다
+# ponytail: 버킷은 스텝 처음 자리로 나눈다. 한 스텝 안에서 0.1칸 넘게 밀려 새로 겹친 쌍은 다음 스텝에 민다
 func _push_apart(bodies: Array, others: Array) -> void:
+	var near := {}  # 버킷 칸 → 비행 적이 아닌 bodies 번호들
+	var home := []
 	for i in bodies.size():
-		for j in range(i + 1, bodies.size()):
-			var a = bodies[i]
+		var k := Vector2i(bodies[i].pos.floor())
+		home.append(k)
+		if not bodies[i].get("flying"):
+			if near.has(k):
+				near[k].append(i)
+			else:
+				near[k] = [i]
+	for i in bodies.size():
+		var a = bodies[i]
+		if a.get("flying"):
+			continue
+		var js := []
+		for dy in range(-1, 2):
+			for dx in range(-1, 2):
+				for j in near.get(home[i] + Vector2i(dx, dy), []):
+					if j > i:
+						js.append(j)
+		js.sort()
+		for j in js:
 			var o = bodies[j]
-			if a.get("flying") or o.get("flying"):
-				continue
 			var gap: Vector2 = o.pos - a.pos
 			var overlap: float = a.radius + o.radius - gap.length()
 			if overlap > 0.0:

@@ -141,10 +141,10 @@ func ev306():
 	a.start_battle()
 	run(a, 15.0)
 	_cast_q(a)
+	if a.heroes.any(func(h): return h.cd.q <= 0.0):  # 웨이브가 끝날 때까지 기다리면 재사용 대기가 다 돌 수 있어 쓴 바로 뒤에 본다
+		return "웨이브 1에서 Q를 쓰지 못했다"
 	if not clear_wave(a) or a.state != "prep":
 		return "웨이브 1 뒤 준비 단계가 아니다(%s)" % a.state
-	if a.heroes.any(func(h): return h.cd.q <= 0.0):
-		return "웨이브 1에서 Q를 쓰지 못했다"
 	a.order_move(a.heroes, Vector2i(30, 42))
 	run(a, 6.0)
 	var why := _twin(a, stage, func(x):

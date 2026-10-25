@@ -719,10 +719,16 @@ func ev335():
 			for i in total + 3:
 				b.step(b.SPAWN_GAP)
 				kill_all(b)
+			var plan: Array = b.wave_plan(r, w)
+			if got.size() != plan.size():
+				return "%d라운드 %d웨이브에 적이 %d명 나왔다(%d명이어야 한다)" % [r + 1, w + 1, got.size(), plan.size()]
 			var real: Array = b.spawns.map(func(_c): return {})
-			for g in got:
-				var d: Dictionary = real[b.spawns.find(g[1])]
-				d[g[0]] = d.get(g[0], 0) + 1
+			for k in got.size():  # 출현 지점은 wave_plan이 맡긴 것이고, 나온 칸은 그 출현 지점에서 가로로 spawn_spread 안이어야 한다(I177)
+				var s: Vector2i = plan[k][1]
+				if got[k][0] != plan[k][0] or got[k][1].y != s.y or absi(got[k][1].x - s.x) > b.spawn_spread:
+					return "%d라운드 %d웨이브 %d번째 적 %s가 출현 지점 %s(가로 ±%d)에서 나오지 않았다" % [r + 1, w + 1, k, got[k], s, b.spawn_spread]
+				var d: Dictionary = real[b.spawns.find(s)]
+				d[got[k][0]] = d.get(got[k][0], 0) + 1
 			for i in want.size():
 				if want[i].size() != real[i].size() or want[i].keys().any(func(k): return real[i].get(k, -1) != want[i][k]):
 					return "%d라운드 %d웨이브 %s 출현 지점: 미리보기 %s · 실제 %s" % [r + 1, w + 1, b.spawns[i], want, real]

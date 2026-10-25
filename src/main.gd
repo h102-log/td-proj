@@ -191,6 +191,7 @@ static func stage() -> Dictionary:
 	return {
 		"size": Vector2i(60, 61), "base": Vector2i(30, 13), "base_hp": 100, "gold": 220,  # 거점은 마을 한가운데(S37, S203). 시작 골드(S111)
 		"spawns": [Vector2i(9, 60), Vector2i(30, 60), Vector2i(50, 60)],
+		"spawn_spread": 10, "spawn_gap": 0.25, "reward_scale": 0.1,  # 맨 아래 줄 전체에서 흩어져 나온다(I177). 적 10배라 간격 0.25초(I91), 처치 보상 0.1배(I176)
 		# 출전 칸(I107): 정문(30,27) 바로 앞 들판의 세 칸. 성문은 닫힌 채 시작해서(I67) 마을 안에 두면 나올 수 없다(I42, 사용자 2026-10-12)
 		"hero_cells": [Vector2i(29, 29), Vector2i(31, 29), Vector2i(30, 29)],
 		"engineer_cells": [Vector2i(30, 14), Vector2i(28, 29)],  # 시작 공병(S208): 거점 아래 마을 칸, 출전 칸 옆 들판 칸. 성문이 닫혀 있어도 마을·들판에 하나씩 짓는다(사용자 2026-10-25)
