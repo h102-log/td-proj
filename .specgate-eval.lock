@@ -1,6 +1,6 @@
 {
-  "approvedAt": "2026-10-24T16:18:27.911Z",
-  "evalMd": "ce8e293b",
+  "approvedAt": "2026-10-24T23:58:28.831Z",
+  "evalMd": "5a7dbaee",
   "tests": {
     "tests/eval/conftest.py": "02db26c8",
     "tests/eval/gd/aura.gd": "010cc38a",
@@ -31,7 +31,7 @@
     "tests/eval/gd/hire.gd.uid": "47433f7e",
     "tests/eval/gd/house.gd": "711703a1",
     "tests/eval/gd/house.gd.uid": "5fd6fb28",
-    "tests/eval/gd/hud.gd": "28ea8339",
+    "tests/eval/gd/hud.gd": "dd64180e",
     "tests/eval/gd/hud.gd.uid": "6038f593",
     "tests/eval/gd/kits.gd": "eb05f8d7",
     "tests/eval/gd/kits.gd.uid": "c48b27a3",
@@ -92,7 +92,7 @@
     "tests/eval/test_heroes.py": "da7683ed",
     "tests/eval/test_hire.py": "8a8e108d",
     "tests/eval/test_house.py": "f908d7b0",
-    "tests/eval/test_hud.py": "07837a62",
+    "tests/eval/test_hud.py": "766e7bc9",
     "tests/eval/test_kits.py": "5cdb5610",
     "tests/eval/test_levels.py": "2c71fe40",
     "tests/eval/test_locale.py": "56451d19",
@@ -316,7 +316,7 @@
     "I157": "d2f4ffa0",
     "S181": "4cb24761",
     "S182": "28f627e5",
-    "S183": "c92bbaa1",
+    "S183": "303446b5",
     "I161": "c780f683",
     "I158": "8826f38a",
     "S184": "8849d806",
@@ -324,7 +324,7 @@
     "I159": "53967b25",
     "S163": "6c2d71e9",
     "S187": "072fd0e0",
-    "S186": "e5af70f1",
+    "S186": "550f1090",
     "I132": "523697de",
     "I128": "73314ca9",
     "I50": "e7828ad6",
@@ -334,7 +334,7 @@
     "I164": "d9336ff0",
     "I122": "8dbbacb4",
     "I163": "794d09b0",
-    "S188": "409635c2",
+    "S188": "8e6be87a",
     "I13": "c4330075",
     "I151": "beeef2a2",
     "I165": "52d08244",
@@ -361,6 +361,8 @@
     "S178": "f56a2361",
     "I174": "0e73f8e3",
     "I148": "09b02b2a",
-    "I171": "2b7c5a5f"
+    "I171": "2b7c5a5f",
+    "S206": "6bd2a76b",
+    "S207": "b18876eb"
   }
 }

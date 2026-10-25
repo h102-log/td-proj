@@ -2323,3 +2323,195 @@ func ev399():
 	var kept: bool = c.selected == [h]
 	_done(main)
 	return check(shown and first and hidden and menu and kept, "거점 팝업 뜸 %s · 첫 ESC에 팝업만 닫힘(멈추지 않음) %s · 팝업 숨음 %s · 둘째 ESC에 메뉴 %s · 고른 영웅 그대로 %s" % [shown, first, hidden, menu, kept])
+
+# 2026-10-25 ui-sel(S206·S207, S186 변경). 위 계약에 더하는 API:
+#   main.hud.select — 선택 패널(Control, S206). 보이는 Label이 글이고, 여럿이면 보이는 BaseButton 하나가 그림 칸 하나다
+#   main.controls.shown — 패널에 보인 적(S206). main.view.foot_mark(유닛·적) — 발밑 표시 «pick»(고름)·«foe»(패널의 적)·«»(S207)
+
+func _sel_text(main) -> Array:
+	var s = main.hud.get("select")
+	return [] if s == null or not s.is_visible_in_tree() else _labels(s)
+
+func _missing(lines: Array, want: Array) -> Array:
+	return want.filter(func(w): return not w in lines)
+
+# EV410 · S206: 하나를 고르면 패널에 그림·이름·Lv·체력과 스탯이 보이고, 고른 용병은 정보 칸이 아니라 패널에 보인다
+func ev410():
+	var main = _prep()
+	var b = main.view.battle
+	var s = main.hud.get("select")
+	if s == null:
+		_done(main)
+		return "main.hud.select가 없다"
+	_key(KEY_F1)
+	_frame(main)
+	var h = b.heroes[0]
+	var want := [main.hud.HEROES[h.kind], "Lv%d" % h.level, "체력 %d/%d" % [ceili(h.hp), ceili(h.max_hp)], "공격력 %s" % main.hud._num(h.damage),
+		"사거리 %s칸" % main.hud._num(h.range), "공격 간격 %s초" % main.hud._num(h.attack_gap), "이동 %s칸/초" % main.hud._num(h.speed), "방어력 %s" % main.hud._num(h.armor)]
+	var r: Rect2 = s.get_global_rect()
+	var miss := _missing(_sel_text(main), want)
+	var vis: bool = s.is_visible_in_tree()
+	var one: bool = main.controls.selected == [h] and vis and r.is_equal_approx(Rect2(312, 288, 196, 72)) and miss.is_empty()
+	var m = b.place_merc("soldier", Vector2i(30, 31))
+	click(main.controls, MOUSE_BUTTON_LEFT, px(Vector2i(30, 31)))
+	_frame(main)
+	var g = main.hud.grid
+	g._process(0.0)
+	var merc_miss := _missing(_sel_text(main), ["용병", "사거리 근접"])
+	var merc: bool = m != null and main.controls.selected == [m] and merc_miss.is_empty() and not g.info.is_visible_in_tree()
+	var info: bool = g.info.is_visible_in_tree()
+	main.controls.selected = []
+	main.controls.selling = []
+	_frame(main)
+	var hidden: bool = not s.is_visible_in_tree()
+	_done(main)
+	return check(one and merc and hidden, "영웅 하나: 패널 보임 %s·%s, 빠진 글 %s · 용병: 고름 %s, 빠진 글 %s, 정보 칸 보임 %s · 비우면 숨음 %s" % [vis, r, miss, m != null, merc_miss, info, hidden])
+
+# EV411 · S206: 여럿이면 그림 칸 버튼이 하나씩이고, 칸을 누르면 그 유닛만 고른다
+func ev411():
+	var main = _prep()
+	var b = main.view.battle
+	var c = main.controls
+	var s = main.hud.get("select")
+	if s == null:
+		_done(main)
+		return "main.hud.select가 없다"
+	for p in [Vector2i(28, 30), Vector2i(30, 30), Vector2i(32, 30)]:
+		b.place_merc("soldier", p)
+	drag(c, px(Vector2i(27, 28)), px(Vector2i(33, 31)))
+	_frame(main)
+	var btns: Array = s.find_children("*", "BaseButton", true, false).filter(func(x): return x.is_visible_in_tree())
+	var r: Rect2 = s.get_global_rect()
+	var apart := true
+	for i in btns.size():
+		apart = apart and r.encloses(btns[i].get_global_rect())
+		for j in range(i + 1, btns.size()):
+			apart = apart and not btns[i].get_global_rect().intersects(btns[j].get_global_rect())
+	var five: bool = c.selected.size() == 5 and btns.size() == 5 and apart
+	var pick = c.selected[2] if c.selected.size() > 2 else null
+	if btns.size() > 2:
+		btns[2].pressed.emit()
+	_frame(main)
+	var one: bool = pick != null and c.selected == [pick] and "용병" in _sel_text(main)
+	_done(main)
+	return check(five and one, "고른 것 %d · 보이는 칸 %d · 패널 안·안 겹침 %s · 셋째 칸 누름 뒤 그 유닛만 %s(고른 것 %d)" % [c.selected.size(), btns.size(), apart, one, c.selected.size()])
+
+# EV412 · S206, S183: 적을 누르면 고른 유닛은 그대로 두고 패널만 그 적이다. ESC·다시 고름·그 적의 죽음에 패널이 돌아오고, ESC는 그때 메뉴를 열지 않는다
+func ev412():
+	var main = _prep()
+	var b = main.view.battle
+	var c = main.controls
+	if main.hud.get("select") == null:
+		_done(main)
+		return "main.hud.select가 없다"
+	var h = b.heroes[0]
+	var name: String = main.hud.HEROES[h.kind]
+	_key(KEY_F1)
+	var e = b.spawn_enemy("basic", Vector2i(30, 33), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(30, 33)))
+	_frame(main)
+	var foe: bool = c.selected == [h] and _missing(_sel_text(main), ["기본 적", "사거리 근접"]).is_empty() and not name in _sel_text(main)
+	_key(KEY_ESCAPE)
+	_frame(main)
+	var esc: bool = not main.get_tree().paused and name in _sel_text(main)
+	_key(KEY_ESCAPE)
+	var menu: bool = main.get_tree().paused
+	main._on_menu("continue")  # 메뉴의 «계속»
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(30, 33)))
+	_key(KEY_F1)
+	_frame(main)
+	var again: bool = name in _sel_text(main)
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(30, 33)))
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(h.pos.round())))  # 영웅을 클릭으로 다시 고름
+	_frame(main)
+	var clicked: bool = c.selected == [h] and name in _sel_text(main)
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(30, 33)))
+	click(c, MOUSE_BUTTON_LEFT, px(b.base.cell))  # 거점을 누름: 유닛 선택이 빈다(S204)
+	_frame(main)
+	var base: bool = c.selected.is_empty() and not main.hud.select.is_visible_in_tree()
+	_key(KEY_F1)
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(30, 33)))
+	_frame(main)
+	var shown: bool = "기본 적" in _sel_text(main)
+	b.damage(e, BIG, "true")
+	_frame(main)
+	var dead: bool = shown and name in _sel_text(main)
+	_done(main)
+	return check(foe and esc and menu and again and clicked and base and dead, "적 누름: 영웅 그대로·패널 적 %s · ESC에 메뉴 없이 패널 영웅 %s · 둘째 ESC에 메뉴 %s · F1에 패널 영웅 %s · 영웅 클릭에 패널 영웅 %s · 거점 누름에 패널 숨음 %s · 적이 쓰러지면 패널 영웅 %s" % [foe, esc, menu, again, clicked, base, dead])
+
+# EV413 · S186: 선택 패널이 보이고 카메라가 맨 아래면 정보 칸은 패널 왼쪽 [178,306,130,54]다. 패널이 없으면 격자 왼쪽 376이다
+func ev413():
+	var main = _prep()
+	var g = main.hud.get("grid")
+	if main.hud.get("select") == null:
+		_done(main)
+		return "main.hud.select가 없다"
+	var cam = _cam(main)
+	_key(KEY_F1)
+	_frame(main)
+	_move(g.cells.archery.get_global_rect().get_center())
+	var out := ""
+	for lv in 3:
+		cam.zoom_at(lv - cam.level, Vector2(320, 180))
+		cam.pan(Vector2(0, 1), 100.0)
+		cam.force_update_scroll()
+		g._process(0.0)
+		var r: Rect2 = g.info.get_global_rect()
+		if not g.info.is_visible_in_tree() or absf(r.position.x - 178) > 0.5 or absf(r.end.y - 360) > 0.5 or absf(r.size.x - 130) > 0.5:
+			out = "%d배 줌 맨 아래, 패널이 보일 때 정보 칸이 %s다(보임 %s)" % [cam.zoom.x, r, g.info.is_visible_in_tree()]
+			break
+	if out == "":
+		main.controls.selected = []
+		_frame(main)
+		g._process(0.0)
+		var r: Rect2 = g.info.get_global_rect()
+		if absf(r.position.x - 376) > 0.5:
+			out = "고른 것을 비운 뒤 정보 칸이 %s다(x 376이어야 한다)" % r
+	_done(main)
+	return out if out != "" else check(true, "")
+
+# EV414 · S207: 고른 영웅·용병은 «pick», 패널의 적은 «foe» 발밑 표시다
+func ev414():
+	var main = _prep()
+	var b = main.view.battle
+	var c = main.controls
+	if not main.view.has_method("foot_mark"):
+		_done(main)
+		return "main.view.foot_mark가 없다"
+	var h0 = b.heroes[0]
+	var h1 = b.heroes[1]
+	_key(KEY_F1)
+	var e = b.spawn_enemy("basic", Vector2i(30, 33), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(30, 33)))
+	var v = main.view
+	var first := [v.foot_mark(h0), v.foot_mark(e), v.foot_mark(h1)]
+	_key(KEY_F2)
+	var second := [v.foot_mark(h0), v.foot_mark(h1), v.foot_mark(e)]
+	_done(main)
+	return check(first == ["pick", "foe", ""] and second == ["", "pick", ""], "첫 영웅 고르고 적 누름 %s(pick, foe, «») · F2 뒤 %s(«», pick, «»)" % [first, second])
+
+# EV415 · S188: 선택 패널이 보이면 패널과 겹치는 가장자리 표식은 패널 바로 위(아래끝 y 286)로 올라간다
+func ev415():
+	var main = _prep()
+	if main.hud.get("select") == null:
+		_done(main)
+		return "main.hud.select가 없다"
+	_key(KEY_F1)
+	_frame(main)
+	var marks: Array = main.hud.edges.get_children().filter(func(m): return m.is_visible_in_tree())
+	var lifted := 0
+	var bad := []
+	for m in marks:
+		var r: Rect2 = m.get_global_rect()
+		var over: bool = r.end.x > 312.0
+		lifted += int(over)
+		if (over and absf(r.end.y - 286.0) > 0.5) or (not over and absf(r.position.y - 344.0) > 0.5):
+			bad.append(r)
+	main.controls.selected = []
+	_frame(main)
+	for m in marks:
+		if m.is_visible_in_tree() and absf(m.get_global_rect().position.y - 344.0) > 0.5:
+			bad.append(["비운 뒤", m.get_global_rect()])
+	var n := marks.size()
+	_done(main)
+	return check(lifted > 0 and bad.is_empty(), "보이는 표식 %d · 패널과 겹쳐 올라간 것 %d · 자리가 틀린 것 %s" % [n, lifted, bad])

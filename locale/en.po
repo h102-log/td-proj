@@ -913,6 +913,29 @@ msgstr "Would exceed the level cap"
 msgid "보유 %d/%d — 내보내야 영입할 수 있다"
 msgstr "Roster %d/%d — dismiss one to recruit"
 
+# ── 선택 패널(hud_select.gd, S206). 칸 폭 68px(글자 8)에 들어가게 줄인다 ──
+
+msgid "공격력 %s"
+msgstr "ATK %s"
+
+msgid "사거리 %s칸"
+msgstr "Range %s"
+
+msgid "사거리 근접"
+msgstr "Range melee"
+
+msgid "공격 간격 %s초"
+msgstr "Hit every %ss"
+
+msgid "이동 %s칸/초"
+msgstr "Move %s/s"
+
+msgid "방어력 %s"
+msgstr "Armor %s"
+
+msgid "%s 적"
+msgstr "%s"
+
 # ── 한글 없는 조립 틀: 끼운 값을 다시 번역하려고 넣는다 ──
 
 msgid "%s «%s» · %s"

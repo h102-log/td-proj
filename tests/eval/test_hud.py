@@ -208,3 +208,27 @@ def test_EV389_camera_speed_and_arrow_keys(gd):
 
 def test_EV399_escape_closes_map_popup_first(gd):
     gd("hud", "EV399")
+
+
+def test_EV410_select_panel_one(gd):
+    gd("hud", "EV410")
+
+
+def test_EV411_select_panel_many(gd):
+    gd("hud", "EV411")
+
+
+def test_EV412_enemy_in_panel(gd):
+    gd("hud", "EV412")
+
+
+def test_EV413_info_left_of_panel(gd):
+    gd("hud", "EV413")
+
+
+def test_EV414_foot_mark(gd):
+    gd("hud", "EV414")
+
+
+def test_EV415_edge_marks_above_panel(gd):
+    gd("hud", "EV415")
