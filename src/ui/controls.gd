@@ -173,6 +173,8 @@ func _release(rect: Rect2, at: Vector2) -> void:
 			units = [hit]
 		if hit == null and fort == null and units.is_empty() and BattleView.keep_rect(battle).has_point(rect.position):  # 망루 그림 안(S100)
 			village = true
+		if village and battle.base in battle.sellers("engineer"):  # 거점도 공병을 파는 시설처럼 고른다(S98 2026-10-25 변경)
+			facility = battle.base
 		if units.is_empty() and (hit or fort or village):  # 구조물·성곽 칸·거점을 누르면 유닛 선택이 빈다(S204)
 			selected = []
 			shown = null
@@ -234,10 +236,10 @@ func _close_popups() -> void:
 	selling = []
 	picked = []
 
-# 전투 단계 용병 키(S81). 3·5·7과 건설 격자 용병 칸이 부른다. 그 용병을 파는 완성된 시설을 클릭한 것처럼 고르고(구매 팝업),
+# 전투 단계 용병 키(S81). 3·5·7과 건설 격자 용병 칸이 부른다. 그 용병을 파는 곳(sellers: 완성된 시설, 공병은 거점도)을 클릭한 것처럼 고르고(구매 팝업),
 # 그 종류의 시설을 고른 채면 한 명 산다. next(Shift)면 같은 종류의 다음 시설(지은 차례)을 고른다. 시설이 없으면 missing에 둔다
 func merc_key(kind: String, next := false) -> void:
-	var sellers: Array = battle.structures.values().filter(func(s): return s.complete and kind in s.produces)
+	var sellers: Array = battle.sellers(kind)
 	missing = kind if sellers.is_empty() else ""
 	if sellers.is_empty():
 		return

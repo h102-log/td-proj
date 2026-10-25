@@ -462,14 +462,13 @@ func _defer(cells: Array) -> bool:
 	_wait = true
 	return true
 
-# 그 용병을 파는 완성된 시설에서 사서 그 칸으로 공격 이동시킨다(I20, S35). 살 수 없으면 null
+# 그 용병을 파는 첫 곳(sellers: 완성된 시설, live_prep의 공병은 거점도)에서 사서 그 칸으로 공격 이동시킨다(I20, S35, S98). 살 수 없으면 null
 func _recruit(kind: String, cell: Vector2i):
-	for s in b.structures.values():
-		if s.complete and kind in s.produces:
-			var m = b.recruit(s, kind)
-			if m:
-				b.order_move([m], cell, true)
-			return m
+	for s in b.sellers(kind).slice(0, 1):
+		var m = b.recruit(s, kind)
+		if m:
+			b.order_move([m], cell, true)
+		return m
 	return null
 
 # 적이 성문 셋으로 갈라지는 라운드(S143, gate_split이면 둘 가운데 이른 쪽)부터 무난한 플레이어는 쪽문도 지킨다

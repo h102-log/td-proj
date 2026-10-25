@@ -382,6 +382,9 @@ func restart() -> void:
 		castle[c] = Block.new(c, "castle_wall", fort.wall_hp)
 	for c in fort.get("gates", []):
 		castle[c] = Block.new(c, "gate", fort.gate_hp)
+	base.produces = ["engineer"]  # live_prep 판에서는 거점도 공병을 판다(S98 2026-10-25 변경, sellers)
+	var exit = _exit_of(base.cell)
+	base.rally = exit if exit != null else base.cell
 	heroes.clear()
 	# 영웅 목록(I102). 목록이 없고 hero_start만 있으면 아이아스 하나다. 이 영웅들은 보유·출전한 채 시작한다(평가용 스테이지)
 	# 레벨(level)을 정하지 않으면 최대 레벨이다(I115)
@@ -747,9 +750,13 @@ func raise_village() -> bool:
 	village_level += 1
 	return true
 
-# 준비 단계 구매(S50): 마을이 있는 스테이지면 그 용병을 파는 완성된 생산 시설이 있어야 한다
+# 준비 단계 구매(S50): 마을이 있는 스테이지면 그 용병을 파는 곳(sellers)이 있어야 한다
 func can_buy(kind: String) -> bool:
-	return not village.has_area() or structures.values().any(func(s): return s.complete and kind in s.produces)
+	return not village.has_area() or not sellers(kind).is_empty()
+
+# 그 용병을 파는 곳: 완성된 생산 시설(지은 차례)과, live_prep 판의 공병이면 맨 뒤에 거점(S98 2026-10-25 변경)
+func sellers(kind: String) -> Array:
+	return structures.values().filter(func(s): return s.complete and kind in s.produces) + ([base] if live_prep and kind in base.produces else [])
 
 # 준비 단계에만, 놓을 수 있는 칸(_merc_cell)에 바로 놓는다(S18). live_prep 판의 플레이어는 시설에서 산다(recruit, I20). 이것은 판을 차리는 길이다(I175). 성곽 칸이면 그 칸의 성벽 위에 선다(I134). 골드가 모자라면 거부한다(I16)
 # 시설 조건(S50)은 보지 않는다. 플레이어의 구매는 Controls가 can_buy로 먼저 묻는다
@@ -1571,10 +1578,11 @@ func structure_at(cell: Vector2i):
 	return structures.get(cell)
 
 # 전투 단계(live)에만, 생산 시설에서 용병 하나를 산다(S20, I21, I20). 시설 옆 칸에 나타나 집결 지점으로 걸어간다(I61)
+# live_prep 판의 거점은 공병을 파는 시설처럼 쓴다(S98 2026-10-25 변경)
 # kind를 비우면 시설의 첫째 용병이다(S87). 시설이 팔지 않는 종류거나, 골드가 모자라거나, 배치 상한에 닿았거나(S25, I23),
 # 시설이 파괴됐으면(S48) 거부한다
 func recruit(f, kind := ""):
-	if not live() or structures.get(f.cell) != f or f.produces.is_empty() or not f.complete:  # 미완성 시설은 생산하지 않는다(I18)
+	if not live() or (structures.get(f.cell) != f and not (live_prep and f == base)) or f.produces.is_empty() or not f.complete:  # 미완성 시설은 생산하지 않는다(I18)
 		return null
 	if kind == "":
 		kind = f.produces[0]

@@ -2585,3 +2585,36 @@ func ev423():
 		out = check(c.placing == "" and _soldiers(b) > n, "건설 격자 용병 칸을 두 번 누른 뒤 놓기 모드 «%s» · 용병 %d → %d" % [c.placing, n, _soldiers(b)])
 	_done(main)
 	return out
+
+# EV425 · S98: live_prep 게임 장면은 작업장이 없어도 공병 칸이 거점을 고르고 거점 팝업에서 공병을 산다. 거점을 고르고 우클릭하면 거점의 집결 지점이다
+func ev425():
+	var main = _live_prep()
+	var b = main.view.battle
+	var c = main.controls
+	var count := func(): return b.units.filter(func(u): return u.kind == "engineer").size()
+	b.sell(b.units.filter(func(u): return u.kind == "engineer"))
+	_frame(main)
+	main.hud.grid._process(0.0)
+	var cell: Button = main.hud.grid.cells.engineer
+	var out := ""
+	if count.call() != 0 or absf(cell.modulate.a - 1.0) > 0.01:
+		out = "작업장 없는 판: 남은 공병 %d · 공병 칸 불투명도 %s" % [count.call(), cell.modulate.a]
+	if out == "":
+		cell.pressed.emit()
+		_frame(main)
+		var buy = _starts(main.hud.popup, "공병")
+		if c.placing != "" or c.facility != b.base or buy == null:
+			out = "공병 칸을 누른 뒤 놓기 모드 «%s» · 고른 시설 %s(거점 %s) · 팝업 «공병» %s" % [c.placing, c.facility, b.base, buy]
+		else:
+			cell.pressed.emit()
+			var n: int = count.call()
+			buy.pressed.emit()
+			if n != 1 or count.call() != 2:
+				out = "공병 칸을 다시 누른 뒤 공병 %d(1이어야 한다) · 팝업 버튼 뒤 %d(2여야 한다)" % [n, count.call()]
+	if out == "":
+		var to: Vector2i = _near(b, "barracks", Vector2i(26, 15))
+		click(c, MOUSE_BUTTON_LEFT, px(b.base.cell))
+		click(c, MOUSE_BUTTON_RIGHT, px(to))
+		out = check(c.facility == b.base and b.base.rally == to, "거점을 누르고 %s 우클릭: 고른 시설 %s · 거점 집결 지점 %s" % [to, c.facility, b.base.rally])
+	_done(main)
+	return out
