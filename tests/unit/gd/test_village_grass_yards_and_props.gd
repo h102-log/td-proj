@@ -4,6 +4,7 @@ extends RefCounted
 #   S169 → 2026-10-26 변경: 마을 칸도 풀이다. 흙은 거점 줄 아래 광장 둘레와 성곽 위 세 줄, 그리고 시설 터(S215)뿐이다.
 #         성 안 풀은 잡음으로 덩어리진 자리만 바래게 해 성 밖 들판과 가른다.
 #   S215. 마을 시설은 짓기 시작하면 둘레에 흙 터를 깐다 … 사격장 터는 과녁 쪽(아래)으로 밟힌 줄이 난다.
+#         → 2026-10-26 변경: 터는 차지 칸(S216) 가운데를 중심으로 하고 반지름은 차지 칸에 맞춘다(yard_radius).
 #         돌길·광장 돌 위에는 깔지 않는다. 다 지으면 마당 소품을 붙인다 … 타워·성벽에는 터가 없다.
 
 const Main := preload("res://src/main.gd")
@@ -52,26 +53,32 @@ func test_worn_grass_only_inside_above_wall_strip():
 		return "성 안 풀이 22%%보다 많이 바랬다(%s / %d)" % [n, total]
 	return ""
 
+# 데이터 크기(S216)를 단 구조물. Block.new는 크기를 모른다
+static func _block(b, kind: String, cell: Vector2i):
+	var s = Battle.Block.new(cell, kind, 10.0)
+	s.size = b.STRUCTURE_KINDS[kind].size
+	return s
+
 func test_yard_ring_trample_and_no_stones():
 	var b = Battle.new(Main.stage())
 	var under: Image = View.bake_ground(b).get_image()
-	var house = Battle.Block.new(Vector2i(20, 10), "house", 10.0)
+	var house = _block(b, "house", Vector2i(20, 10))  # 차지 칸 (20..21, 9..10)
 	var y: Array = View.bake_yard(b, house, under)
 	var img: Image = y[0].get_image()
-	var center := Vector2(20, 10) * View.CELL + Vector2(8, 11)
+	var center := Vector2(21, 10) * View.CELL + Vector2(0, 3)  # 차지 칸 가운데보다 3px 아래(S215 2026-10-26 변경)
 	for k in 8:  # 반지름의 절반 고리는 잡음이 흔들어도 늘 터 안이다
-		var p: Vector2 = center + Vector2.from_angle(k * TAU / 8) * View.YARDS.house * 0.5 - y[1]
+		var p: Vector2 = center + Vector2.from_angle(k * TAU / 8) * View.yard_radius(house) * 0.5 - y[1]
 		if img.get_pixelv(Vector2i(p)).a == 0.0:
 			return "집 터 안쪽 %s가 비었다" % p
 	for p in [Vector2i.ZERO, img.get_size() - Vector2i.ONE]:
 		if img.get_pixelv(p).a > 0.0:
 			return "집 터 그림의 모서리 %s까지 칠했다" % p
-	var archery = Battle.Block.new(Vector2i(20, 10), "archery", 10.0)
+	var archery = _block(b, "archery", Vector2i(20, 10))  # 차지 칸 (20..22, 9..10)
 	var a: Array = View.bake_yard(b, archery, under)
-	var foot := Vector2i(center + Vector2(0, 30) - a[1])
+	var foot := Vector2i(Vector2(21.5, 10) * View.CELL + Vector2(0, 3 + View.yard_radius(archery).y + 10) - a[1])
 	if not Rect2i(Vector2i.ZERO, a[0].get_size()).has_point(foot) or a[0].get_image().get_pixelv(foot).a == 0.0:  # 그림 밖을 읽으면 불투명 검정이 와서 먼저 범위를 본다
 		return "사격장 터에 아래로 밟힌 줄이 없다"
-	var plaza = Battle.Block.new(b.base.cell + Vector2i(1, 5), "house", 10.0)  # 광장 한가운데
+	var plaza = _block(b, "house", b.base.cell + Vector2i(0, 5))  # 광장 한가운데
 	var q: Array = View.bake_yard(b, plaza, under)
 	var qi: Image = q[0].get_image()
 	var stones := 0
@@ -86,7 +93,7 @@ func test_yard_ring_trample_and_no_stones():
 	return ""
 
 func test_props_only_when_built_and_not_for_towers():
-	var house = Battle.Block.new(Vector2i(20, 10), "house", 10.0)
+	var house = _block(Battle.new(Main.stage()), "house", Vector2i(20, 10))
 	if View.yard_props(house).size() != 3:
 		return "다 지은 집의 마당 소품이 %s다(텃밭·울타리·장작 셋)" % [View.yard_props(house)]
 	house.complete = false

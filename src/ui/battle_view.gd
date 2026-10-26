@@ -53,11 +53,13 @@ const PIXEL_FONT := preload("res://art/fonts/Galmuri7.ttf")  # 맵 위 숫자(S1
 const GROUND_TILES := preload("res://art/tiles/ground.png")  # 0행 풀↔흙 꼭짓점 16꼴, 1행 풀·흙 변종과 깃발, 2·3행 전환 꼴 변종(tools/art/tiles.py)
 const DECOR := preload("res://art/tiles/decor.png")  # 들판·마을 장식(S201·S202, tools/art/decor.py): 0행 16×16 바위 3·그루터기 2·구덩이 2·자갈 2·풀 2·풀꽃·우물, 1행 48×32 그을음 3, 2행 48×48 마른 나무 4, 3행 16×16 마당 소품(S215)
 const YARD_ROW := 96  # decor.png 3행(마당 소품)의 y: 텃밭 2·울타리 2·장작더미·목재 더미·톱밥·판석. 그림은 칸 왼쪽 위에 붙어 있다
-const YARDS := {"house": Vector2(26, 20), "church": Vector2(22, 20), "barracks": Vector2(36, 20), "workshop": Vector2(26, 20), "archery": Vector2(26, 20)}  # 시설 터 얼룩의 반지름(px, S215)
-const YARD_PROPS := {  # 다 지은 시설의 마당 소품(S215): 변형마다 [decor.png 3행 열, 칸 왼쪽 위에서 본 그림 자리(px)]. 칸 x+y로 변형을 고른다
-	"house": [[[0, Vector2(17, 3)], [2, Vector2(-14, 12)], [4, Vector2(-6, 9)]], [[1, Vector2(-15, 3)], [3, Vector2(16, 12)], [4, Vector2(15, 9)]]],
-	"workshop": [[[5, Vector2(15, 9)], [6, Vector2(-4, 15)]]],
-	"church": [[[7, Vector2(1, 16)]]],
+const YARDS := {"house": 0, "church": -4, "barracks": 10, "workshop": 0, "archery": 0}  # 터가 있는 시설(S215) → 터 가로 반지름에 더하는 px(yard_radius)
+# 다 지은 시설의 마당 소품(S215): 변형마다 [decor.png 3행 열, 구조물의 칸 왼쪽 위에서 본 그림 자리(px)]. 칸 x+y로 변형을 고른다.
+# 자리는 지금 크기(S216: 집 2×2·작업장 3×2·교회 2×3)에 맞춘 것이다. 크기를 바꾸면 다시 정한다
+const YARD_PROPS := {
+	"house": [[[0, Vector2(33, 3)], [2, Vector2(-14, 12)], [4, Vector2(-6, 9)]], [[1, Vector2(-15, 3)], [3, Vector2(32, 12)], [4, Vector2(31, 9)]]],
+	"workshop": [[[5, Vector2(47, 9)], [6, Vector2(-4, 15)]]],
+	"church": [[[7, Vector2(9, 16)]]],
 }
 const PAVE := Color("56607a")  # 돌길·광장 박석 색(S202)
 const FOREST_FLOOR := Color("2a1d0d")  # 맵 아래 맵 밖 띠(I50)의 바닥(S201): 마른 나무가 선 그을린 흙
@@ -65,7 +67,9 @@ const CASTLE := preload("res://art/castle/walls.png")  # 성곽 칸 조각 16×4
 const KEEP := preload("res://art/castle/keep.png")  # 거점 망루 80×80, 마을 레벨 1·2. 칸 앞쪽 아래 왼쪽 모서리가 그림의 (32, 72)다(tools/art/keep.py)
 const KEEP_AT := Vector2(-32, CELL - 72)  # 거점 칸 왼쪽 위에서 본 망루 그림 왼쪽 위
 const KEEP_BODY := [Rect2(29, 23, 22, 49), Rect2(21, 13, 38, 59)]  # 마을 레벨 1·2 망루 그림의 불투명 사각형(keep.png를 잼). 그림을 바꾸면 다시 잰다
-const FACILITY := preload("res://art/castle/facility.png")  # 시설 48×48: 0행 그림, 1행 청사진 바탕. 칸 앞쪽 아래 왼쪽 모서리가 그림의 (16, 44)다(tools/art/facility.py)
+const FACILITY := preload("res://art/castle/facility.png")  # 시설 96×96: 0행 그림, 1행 청사진 바탕. 구조물의 칸(차지 칸의 앞 왼쪽 칸, S216) 앞쪽 아래 왼쪽 모서리가 그림의 FAC_FOOT다(tools/art/facility.py)
+const FAC_N := 96  # 시설 그림 한 칸의 크기(px)
+const FAC_FOOT := Vector2(16, 92)
 static var FAC: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/castle/facility.json"))  # 종류 → [열, 그림 맨 윗줄, 맨 아랫줄 + 1]
 const BLUEPRINT := Color(0.55, 0.78, 1.0, 0.6)  # 청사진 색(사용자 2026-10-20, 림월드 설계도). 회색 바탕에 곱한다
 const GHOST := Color(1, 1, 1, 0.4)  # 거점에 가려진 유닛·시설을 덧그리는 색(C1, 사용자 2026-10-20). 성벽·거점에 가려진 영웅의 마나 막대도 이 색이다
@@ -76,6 +80,8 @@ const ORDER_MARK := 0.4  # 명령 표식이 보이는 시간(초, S205)
 const ORDER_COLORS := [Color("40ff80"), Color("ef3a0c")]  # 명령 표식(S205): 이동 초록, 공격 빨강(적 발밑 색)
 const SELECT_GLOW := 1.9  # 고른 것의 발밑 타원 밝기 배율(S207)
 const SELECT_LINES := [Color("d8fff6"), Color("ffb0a0")]  # 발밑 선택 테두리(S207): 고른 유닛, 선택 패널의 적
+const GHOST_OK := Color.WHITE  # 놓기 미리보기(S216): 지을 수 있음
+const GHOST_NO := Color("ef3a0c")  # 지을 수 없음(적 발밑 빨강)
 static var FEET: ImageTexture = _feet()  # 발밑 채운 타원 14×6px. 아군·적을 한 장에 나란히 둬서 draw call이 끊기지 않는다
 const NIGHT_COLOR := Color("0b1030")  # 어둠 덮개 색(S212)
 const TORCH := Color("ffb060")  # 불빛 가장자리에 엷게 비치는 횃불 색(S212)
@@ -201,7 +207,7 @@ func _draw() -> void:
 			draw_texture(yards[k][0], yards[k][1])
 	_yards = yards
 	for p in props:  # 시설이 선 칸의 소품은 감춘다(S201)
-		if not battle.structures.has(p[0]):
+		if not battle.footprint.has(p[0]):
 			draw_texture_rect_region(DECOR, Rect2(Vector2(p[0]) * CELL, Vector2(CELL, CELL)), Rect2(p[1] * CELL, 0, CELL, CELL))
 	for s in battle.structures.values():
 		for p in yard_props(s):
@@ -449,7 +455,12 @@ func _capsule(z, col: Color) -> void:
 
 # 칸에 붙는 표시: 놓기 모드 칸, 효과 테두리, 고른 것 테두리, 집결 지점, 체력 막대. 성벽 그림에 가리지 않게 몸통 뒤에 그린다(4.1c)
 func _marks() -> void:
-	if controls.placing != "":  # 놓기 모드: 지금 지을(놓을) 수 있는 칸을 엷게(S45, I138)
+	if controls.placing in battle.STRUCTURE_KINDS:  # 구조물 놓기: 커서 칸에 차지 칸 미리보기(S216, I138 2026-10-26 변경)
+		var g := ghost(battle, controls.placing, Vector2i((controls.mouse / CELL).floor()))  # 클릭이 짓는 칸과 같은 좌표
+		var area := Rect2(Vector2(g[0].position * CELL), Vector2(g[0].size * CELL))
+		draw_rect(area, Color(GHOST_OK if g[1] else GHOST_NO, 0.25))
+		draw_rect(area, GHOST_OK if g[1] else GHOST_NO, false, 1.0)
+	elif controls.placing != "":  # 용병 놓기: 지금 놓을 수 있는 칸을 엷게(S45, I138)
 		for c in battle.placeable_cells(controls.placing):
 			draw_rect(_rect(c), Color(1, 1, 1, 0.25))
 	for s in battle.structures.values() + battle.castle.values():  # 받는 피해 감소·공격 속도가 걸린 칸(I101)
@@ -462,15 +473,15 @@ func _marks() -> void:
 		draw_rect(_box(s), Color.WHITE, false, 1.0)
 	var f = controls.facility  # 고른 생산 시설: 테두리와 집결 지점 깃발(S82)
 	if f and f.alive:
-		draw_rect(_rect(f.cell), Color.WHITE, false, 1.0)
-		draw_line(_center(Vector2(f.cell)), _center(Vector2(f.rally)), Color(1, 1, 1, 0.4), 1.0)
+		draw_rect(_box(f), Color.WHITE, false, 1.0)
+		draw_line(_center(battle.middle(f)), _center(Vector2(f.rally)), Color(1, 1, 1, 0.4), 1.0)
 		draw_rect(_rect(f.rally).grow(-5), Color.WHITE)
 	_hp_bar(Vector2(battle.base.cell) - Vector2(0, 1.75), battle.base)  # 망루 흉벽 위(칸 위 1.75칸). 칸 위에 그리면 앞면 휘장을 가로질렀다
 	# 구조물·성곽은 깎였을 때만 체력 막대를 그린다(성곽 칸이 많아서). V로 켜면 구조물은 늘 그린다(S73, I59)
 	for b in battle.castle.values() + battle.structures.values():
 		if b.hp < b.max_hp or (controls.show_hp and b.kind in battle.STRUCTURE_KINDS):
-			var top: float = 28.0 - FAC[b.kind][1] if FAC.has(b.kind) else 0.0  # 시설은 그림 위에(4.1e). 칸 위에 그리면 그림을 가로질렀다
-			_hp_bar(Vector2(b.cell) - Vector2(0, (_lift(b) + top) / CELL), b)
+			var top: float = FAC_FOOT.y - CELL - FAC[b.kind][1] if FAC.has(b.kind) else 0.0  # 시설은 그림 위에(4.1e). 칸 위에 그리면 그림을 가로질렀다
+			_hp_bar(Vector2(battle.middle(b).x, b.cell.y) - Vector2(0, (_lift(b) + top) / CELL), b)  # 차지 칸 가운데 위(S173)
 
 # 유닛·적·주민 몸통(S165, S172)과 성곽·거점(4.1c)·시설(4.1e). 땅의 쓰러진 몸(S180), 발밑 팀 색(S166)과 비행 적 그림자(I81)를 먼저 깔고, (층, 바닥선 y, 목록 순서)로 정렬해 그린다.
 # 성곽 칸은 몸체(바닥선)와 앞층(바닥선 + 2) 두 조각이고, 성벽 위 유닛·대포와 기어오르는 적은 그 사이(바닥선 + 1)에 올려 그려 앞층이 발을 가린다(05 §2).
@@ -579,12 +590,12 @@ func _facility(s, tint := Color.WHITE) -> void:
 	var f: Array = FAC["cannon_folded" if folded else s.kind]
 	var t: float = 1.0 if folded else (1.0 - s.razed if s.complete else s.progress)
 	var cut := roundi(f[2] - t * (f[2] - f[1]))  # 이 줄부터 아래는 그림, 위는 청사진
-	var at := Vector2(s.cell * CELL) + Vector2(-16, CELL - 44 - _lift(s))
-	var x: float = 48.0 * f[0]
+	var at := Vector2(s.cell * CELL) + Vector2(-FAC_FOOT.x, CELL - FAC_FOOT.y - _lift(s))
+	var x: float = FAC_N * f[0]
 	if cut > 0:
-		_region(FACILITY, Rect2(at, Vector2(48, cut)), Rect2(x, 48, 48, cut), BLUEPRINT * tint)
-	if cut < 48:
-		_region(FACILITY, Rect2(at + Vector2(0, cut), Vector2(48, 48 - cut)), Rect2(x, cut, 48, 48 - cut), tint)
+		_region(FACILITY, Rect2(at, Vector2(FAC_N, cut)), Rect2(x, FAC_N, FAC_N, cut), BLUEPRINT * tint)
+	if cut < FAC_N:
+		_region(FACILITY, Rect2(at + Vector2(0, cut), Vector2(FAC_N, FAC_N - cut)), Rect2(x, cut, FAC_N, FAC_N - cut), tint)
 
 # 유닛·적 몸통 하나. 영웅은 8방향 시트, 그림이 있는 용병·적은 4방향 시트, 나머지는 원으로
 func _body(x, i: int, next: Dictionary, tint := Color.WHITE, flash := true) -> void:
@@ -663,7 +674,8 @@ func _spot(x) -> Vector2:
 	return _center(_pos_of(x)) - Vector2(0, _lift(x))
 
 func _box(s) -> Rect2:
-	return Rect2(_rect(s.cell).position - Vector2(0, _lift(s)), Vector2(CELL, CELL))
+	var r: Rect2i = battle.area_of(s)
+	return Rect2(Vector2(r.position * CELL) - Vector2(0, _lift(s)), Vector2(r.size * CELL))  # 차지 칸(S216)
 
 # 영웅 한 명(S165): 움직이면 그쪽으로 걷기 4프레임(초당 8), 친 뒤 0.3초는 대상 쪽으로 공격 3프레임, 아니면 정지.
 # 서 있으면 대상 쪽, 대상도 없으면 마지막 방향을 본다. 위치는 화면 픽셀로 반올림한다(insights/2026-10-20_render_spike.md X1)
@@ -1221,13 +1233,15 @@ static func _worn(b, img: Image) -> void:
 				elif k < 0.22 * w:
 					img.set_pixel(x, y, Color("684c3c"))
 
-# 시설 터(S215): 칸 가운데보다 3px 아래를 중심으로 한 타원 얼룩에 흙 타일 무늬를 깐다. 가장자리는 칸마다 씨앗이 다른 잡음으로 흔들고,
+# 시설 터(S215): 차지 칸(S216) 가운데보다 3px 아래를 중심으로 한 타원 얼룩에 흙 타일 무늬를 깐다. 가장자리는 칸마다 씨앗이 다른 잡음으로 흔들고,
 # 거리 0.85~1.15 띠는 바깥으로 갈수록 성기게 풀과 섞는다. 외곽선은 없다. 바닥(under)의 박석 위와 성벽 그늘 줄부터 아래에는 깔지 않는다. [그림, 맵 px 왼쪽 위]
 static func bake_yard(b, s, under: Image) -> Array:
-	var center := Vector2(s.cell * CELL) + Vector2(8, 11)
-	var blobs := [[center, YARDS[s.kind]]]
+	var r: Rect2i = b.area_of(s)
+	var center := (Vector2(r.position) + Vector2(r.size) / 2.0) * CELL + Vector2(0, 3)
+	var radius := yard_radius(s)
+	var blobs := [[center, radius]]
 	if s.kind == "archery":
-		blobs.append([center + Vector2(0, 30), Vector2(8, 22)])  # 과녁 쪽(아래)으로 난 밟힌 줄
+		blobs.append([center + Vector2(0, radius.y + 10), Vector2(8, 22)])  # 터 아래끝에서 아래로 난 밟힌 줄
 	var box := Rect2i(Vector2i(center), Vector2i.ZERO)
 	for bl in blobs:
 		box = box.merge(Rect2i(Vector2i(bl[0] - bl[1]) - Vector2i(8, 8), Vector2i(bl[1] * 2) + Vector2i(17, 17)))
@@ -1248,6 +1262,14 @@ static func bake_yard(b, s, under: Image) -> Array:
 					img.set_pixel(x - box.position.x, y - box.position.y, tile.get_pixel(posmod(x, CELL), posmod(y, CELL)))
 					break
 	return [ImageTexture.create_from_image(img), Vector2(box.position)]
+
+# 놓기 미리보기(S216): [커서 칸을 구조물의 칸으로 한 차지 칸, 지을 수 있나]
+static func ghost(b, kind: String, cell: Vector2i) -> Array:
+	return [b.area_at(cell, b.STRUCTURE_KINDS[kind].size), b.can_build(kind, cell)]
+
+# 터 반지름(S215 2026-10-26 변경): (가로 칸 × 8 + 18 + 종류 보탬, 깊이 칸 × 8 + 12)px
+static func yard_radius(s) -> Vector2:
+	return Vector2(s.size.x * 8 + 18 + YARDS[s.kind], s.size.y * 8 + 12)
 
 # 다 지은 시설의 마당 소품(S215): [decor.png 3행 열, 맵 px 왼쪽 위]. 짓는 중이면 없다
 static func yard_props(s) -> Array:
@@ -1424,7 +1446,7 @@ static func residents(b, t: float) -> Array:
 	for s in b.structures.values():
 		if s.tax > 0 and s.complete:
 			var k := float(s.cell.x * 7 + s.cell.y * 13)  # 집마다 다른 위상
-			out.append((Vector2(s.cell) + Vector2(sin(t * 0.7 + k), sin(t * 0.5 + k * 1.3)) * 1.5).clamp(lo, hi))
+			out.append((b.middle(s) + Vector2(sin(t * 0.7 + k), sin(t * 0.5 + k * 1.3)) * (1.5 + (s.size.x - 1) / 2.0)).clamp(lo, hi))  # 차지 칸 가운데를 돈다(I178)
 	return out
 
 # 유닛·적은 pos, 구조물·성곽·거점은 cell로 자리를 갖는다

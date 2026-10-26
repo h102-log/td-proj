@@ -86,6 +86,7 @@ class Block:
 	var level := 1  # 성곽 업그레이드 단계(S86)
 	var lift := -1.0  # 업그레이드 진행률(0~1). 음수면 올리는 중이 아니다. 그만두면 그대로 남는다(I68)
 	var mend := 0.0  # 수리비를 냈지만 아직 채우지 못한 체력(I87). 0보다 크면 공병이 마저 고친다
+	var size := Vector2i.ONE  # 차지 칸 가로 × 깊이(S216). cell은 차지 칸의 앞 왼쪽 칸이다(area_of)
 
 	func _init(c: Vector2i, k: String, h: float) -> void:
 		cell = c
@@ -280,7 +281,8 @@ var rounds: Array  # 도전의 라운드마다 웨이브 배열(S63, I91). stage
 var nights: Array  # 라운드마다 웨이브 차례의 밤 {at, dark, fade}(S210). 없거나 짧으면 낮이다
 var base: Block
 var castle := {}      # Vector2i → Block
-var structures := {}  # Vector2i → Block
+var structures := {}  # 구조물의 칸 → Block. 한 구조물에 한 키다
+var footprint := {}  # 차지 칸 → 구조물(S216). 길 격자와 칸으로 찾는 곳은 이것을 본다
 var rubble := {}  # Vector2i → 부서진 성곽 칸 Block(I88). 지나갈 수 있고, 복구하면 castle로 돌아간다(I89)
 var barriers := {}  # Vector2i → 에너지 성벽 칸 Block(S151, I142). 그 장판(zones)이 끝나면 사라진다
 var zones := []  # 장판(S150, I141): {src, pos, radius, left, owner, 수치…}. 웨이브가 끝나면 모두 사라진다(I143)
@@ -360,7 +362,7 @@ func _init(stage: Dictionary) -> void:
 	_wall.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
 	_wall.update()
 	grid.castle = castle
-	grid.structures = structures
+	grid.structures = footprint
 	grid.barriers = barriers
 	_stage = stage
 	restart()
@@ -386,6 +388,7 @@ func restart() -> void:
 	castle.clear()
 	rubble.clear()
 	structures.clear()
+	footprint.clear()
 	barriers.clear()
 	zones.clear()
 	missiles.clear()
@@ -401,7 +404,7 @@ func restart() -> void:
 	for c in fort.get("gates", []):
 		castle[c] = Block.new(c, "gate", fort.gate_hp)
 	base.produces = ["engineer"]  # live_prep 판에서는 거점도 공병을 판다(S98 2026-10-25 변경, sellers)
-	var exit = _exit_of(base.cell)
+	var exit = _exit_of(base)
 	base.rally = exit if exit != null else base.cell
 	heroes.clear()
 	# 영웅 목록(I102). 목록이 없고 hero_start만 있으면 아이아스 하나다. 이 영웅들은 보유·출전한 채 시작한다(평가용 스테이지)
@@ -532,7 +535,7 @@ func _light_up() -> void:
 	for x in units + structures.values() + castle.values() + [base]:  # 쓰러진 유닛·부서진 칸은 이 목록에 없다
 		var r := light_of(x)
 		if r > 0.0:
-			lights.append([x.pos if x is Unit else Vector2(x.cell), r])
+			lights.append([x.pos if x is Unit else middle(x), r])
 	_all_lit = dark <= 0.0
 	if _all_lit:
 		return
@@ -1616,7 +1619,7 @@ func build(kind: String, cell: Vector2i, overrides := {}):
 	for key in stats:
 		s.set(key, stats[key])
 	s.paid = stats.cost
-	structures[cell] = s
+	_occupy(s)
 	tally.built += 1  # 라운드 집계(I119)
 	if engineer:
 		s.progress = 0.0
@@ -1624,24 +1627,66 @@ func build(kind: String, cell: Vector2i, overrides := {}):
 		s.hp = 0.0
 		_send(engineer, s)
 	if not s.produces.is_empty():
-		var exit = _exit_of(cell)
+		var exit = _exit_of(s)
 		s.rally = exit if exit != null else cell
 	_repath = true
 	return s
 
-# 빈 칸(구조물·거점·유닛·적이 없는 맵 안 칸, I24)이다. 생산 시설·집·교회는 마을 안, 나머지는 마을 밖이고,
+# 차지 칸(S216)이 모두 빈 칸(구조물·거점·유닛·적이 없는 맵 안 칸, I24)이다. 생산 시설·집·교회는 마을 안, 나머지는 마을 밖이고,
 # 성곽 칸에는 대포만 성벽 칸(성문 제외)에 짓는다(S43, I72). taken은 유닛·적이 선 칸(_taken)이고, 칸을 여럿 물을 때 한 번 모아 넘긴다
 func _buildable(kind: String, cell: Vector2i, taken = null) -> bool:
-	if not grid.is_in_boundsv(cell) or structures.has(cell) or cell == base.cell or rubble.has(cell) or barriers.has(cell):  # 잔해(I88)·에너지 성벽(I142) 칸에는 짓지 못한다
-		return false
-	if cell in _stage.get("hero_cells", []):  # 출전 칸에는 짓지 못한다(I107). 영웅이 서거나 돌아올 칸이다
-		return false
-	if castle.has(cell) and (kind != "cannon" or castle[cell].kind != "castle_wall"):
-		return false
-	if (taken if taken != null else _taken()).has(cell):
-		return false
 	var def: Dictionary = STRUCTURE_KINDS[kind]
-	return village.has_point(cell) == (not def.produces.is_empty() or def.tax > 0 or def.heal > 0)
+	var inside: bool = not def.produces.is_empty() or def.tax > 0 or def.heal > 0
+	if taken == null:
+		taken = _taken()
+	for c in cells_in(area_at(cell, def.size)):
+		if not grid.is_in_boundsv(c) or footprint.has(c) or c == base.cell or rubble.has(c) or barriers.has(c):  # 잔해(I88)·에너지 성벽(I142) 칸에는 짓지 못한다
+			return false
+		if c in _stage.get("hero_cells", []):  # 출전 칸에는 짓지 못한다(I107). 영웅이 서거나 돌아올 칸이다
+			return false
+		if castle.has(c) and (kind != "cannon" or castle[c].kind != "castle_wall"):
+			return false
+		if taken.has(c) or village.has_point(c) != inside:
+			return false
+	return true
+
+# 놓기 모드에서 그 칸에 그 구조물을 지을 수 있다(S216 미리보기). 골드·공병은 보지 않는다(I138)
+func can_build(kind: String, cell: Vector2i) -> bool:
+	return STRUCTURE_KINDS[kind].village_level <= village_level and _buildable(kind, cell)
+
+# 구조물의 칸 cell에서 크기 size가 차지하는 칸(S216): 오른쪽으로 가로, 위로 깊이만큼
+static func area_at(cell: Vector2i, size: Vector2i) -> Rect2i:
+	return Rect2i(cell.x, cell.y - size.y + 1, size.x, size.y)
+
+static func area_of(s) -> Rect2i:
+	return area_at(s.cell, s.size)
+
+static func cells_in(r: Rect2i) -> Array:
+	var out := []
+	for y in range(r.position.y, r.end.y):
+		for x in range(r.position.x, r.end.x):
+			out.append(Vector2i(x, y))
+	return out
+
+# 구조물에서 p(칸 좌표)에 가장 가까운 차지 칸 가운데(I178). 칸 하나인 구조물·성곽·거점은 그 칸이다
+static func nearest(s, p: Vector2) -> Vector2:
+	var r := area_of(s)
+	return p.clamp(Vector2(r.position), Vector2(r.end - Vector2i.ONE))
+
+# 차지 칸 가운데(칸 좌표). 밤 불빛(S211)·주민(I178)의 기준이다
+static func middle(s) -> Vector2:
+	var r := area_of(s)
+	return Vector2(r.position) + Vector2(r.size - Vector2i.ONE) / 2.0
+
+func _occupy(s: Block) -> void:
+	structures[s.cell] = s
+	for c in cells_in(area_of(s)):
+		footprint[c] = s
+
+func _vacate(s: Block) -> void:
+	structures.erase(s.cell)
+	for c in cells_in(area_of(s)):
+		footprint.erase(c)
 
 # 유닛·적이 선 칸(I24)
 func _taken() -> Dictionary:
@@ -1665,7 +1710,7 @@ func placeable_cells(kind: String) -> Array:
 	return out
 
 func structure_at(cell: Vector2i):
-	return structures.get(cell)
+	return footprint.get(cell)
 
 # 전투 단계(live)에만, 생산 시설에서 용병 하나를 산다(S20, I21, I20). 시설 옆 칸에 나타나 집결 지점으로 걸어간다(I61)
 # live_prep 판의 거점은 공병을 파는 시설처럼 쓴다(S98 2026-10-25 변경)
@@ -1679,7 +1724,7 @@ func recruit(f, kind := ""):
 	if kind not in f.produces:
 		return null
 	var stats: Dictionary = MERC_KINDS[kind]
-	var exit = _exit_of(f.cell)
+	var exit = _exit_of(f)
 	if exit == null or gold < stats.cost or _mercs() >= merc_cap:
 		return null
 	gold -= stats.cost
@@ -1704,11 +1749,19 @@ func _to_rally(u: Unit, f: Block) -> void:
 	order_move([u], f.rally, true)  # 집결 지점까지 공격 이동(I38)
 	u.rally_from = f
 
-# 시설 옆의 빈 칸. 맵 아래쪽(들판 쪽, S51)부터 본다(I61)
-# ponytail: 상하좌우 넷만 본다. 넷이 다 막히면 대각선까지 볼 일
-func _exit_of(cell: Vector2i):
-	for d in [Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP]:
-		var c: Vector2i = cell + d
+# 시설 차지 칸 둘레의 빈 칸. 앞(아래, 들판 쪽 S51) 줄 → 왼쪽 옆 → 오른쪽 옆 → 뒤 줄 순서로, 앞·뒤 줄은 왼쪽부터, 옆 줄은 앞부터 본다(I61, I178)
+# ponytail: 모서리(대각선) 칸은 보지 않는다. 둘레가 다 막히면 모서리까지 볼 일
+func _exit_of(s: Block):
+	var r := area_of(s)
+	var ring := []
+	for x in range(r.position.x, r.end.x):
+		ring.append(Vector2i(x, r.end.y))
+	for side in [r.position.x - 1, r.end.x]:
+		for y in range(r.end.y - 1, r.position.y - 1, -1):
+			ring.append(Vector2i(side, y))
+	for x in range(r.position.x, r.end.x):
+		ring.append(Vector2i(x, r.position.y - 1))
+	for c in ring:
 		if grid.is_in_boundsv(c) and not grid.block_at(c) and c != base.cell:
 			return c
 	return null
@@ -1888,9 +1941,9 @@ func _settle(s: Block) -> void:
 	if not _buildable(s.kind, s.dest):
 		_release(s)
 		return
-	structures.erase(s.cell)
+	_vacate(s)
 	s.cell = s.dest
-	structures[s.cell] = s
+	_occupy(s)
 	s.dest = null
 	s.razed = 0.0
 	s.full = s.hp
@@ -1912,13 +1965,23 @@ func unfinished(things: Array) -> Array:
 	return things.filter(func(t): return t is Block and structures.get(t.cell) == t and not t.complete)
 
 # 놀고 있는 공병(짓거나 허무는 일을 맡지 않은 공병) 가운데 그 칸에 가장 가까운 공병(I39). 성벽 위 공병은 뺀다(I69).
-# 막힌 칸을 지나야만 닿는 공병도 뺀다(I125). 전투 중 공병에게 맡기는 지시는 모두 여기를 거친다
+# 막힌 칸을 지나야만 닿는 공병도 뺀다(I125). 전투 중 공병에게 맡기는 지시는 모두 여기를 거친다. 거리는 그 칸의 구조물에서 가장 가까운 차지 칸까지다(I178)
 func _idle_engineer(cell: Vector2i):
 	var best = null
+	var best_d := INF
 	for u in units:
-		if u.kind == "engineer" and u.job == null and not u.on_wall and (best == null or u.pos.distance_to(Vector2(cell)) < best.pos.distance_to(Vector2(cell))) and _reaches(u, cell):
-			best = u
+		if u.kind == "engineer" and u.job == null and not u.on_wall:
+			var c := _spot(u, cell)
+			var d: float = u.pos.distance_to(Vector2(c))
+			if d < best_d and _reaches(u, c):
+				best = u
+				best_d = d
 	return best
+
+# 공병이 그 칸의 일을 하러 가는 칸: 칸에 구조물이 있으면 그 차지 칸 가운데 공병에게 가장 가까운 칸(I178)
+func _spot(u: Unit, cell: Vector2i) -> Vector2i:
+	var s = footprint.get(cell)
+	return Vector2i(nearest(s, u.pos).round()) if s else cell
 
 # 전투 중 공병 지시(I125)를 맡을 공병이 없는 이유(I128): 칸들 가운데 하나라도 맡을 공병이 있으면 "",
 # 놀고 있는 공병이 하나도 없으면 "none", 있는데 어느 칸에도 닿지 못하면 "far". 칸이 비면(놓기 버튼) 놀고 있는 공병이 있는지만 본다
@@ -1940,7 +2003,7 @@ func _send(u: Unit, s: Block) -> void:
 	u.after.clear()
 	s.worker = u
 	grid.wall_k = UNIT_WALL_K
-	u.path = grid.path(Vector2i(u.pos.round()), _site(s)).slice(1, -1)
+	u.path = grid.path(Vector2i(u.pos.round()), _spot(u, _site(s))).slice(1, -1)
 
 # 일하던 공병을 놓아준다. 공병은 그 자리에 서고, 구조물은 그 상태로 남는다(I63)
 # 옮기던 대포는 원래 칸에 완성된 채 남는다(U12, I74)
@@ -1955,7 +2018,7 @@ func _release(s: Block) -> void:
 
 func _remove(s: Block) -> void:
 	_release(s)
-	structures.erase(s.cell)
+	_vacate(s)
 	s.alive = false
 	_repath = true
 
@@ -1977,7 +2040,7 @@ func _grow(s: Block, dp: float) -> void:
 # ponytail: 일의 종류를 칸 상태로 고른다. 수리 몫과 그만둔 업그레이드가 함께 남은 칸은 수리부터 하고 멈춘다
 func _work(u: Unit, dt: float) -> void:
 	var s: Block = u.job
-	if u.pos.distance_to(Vector2(_site(s))) > WORK_REACH:
+	if u.pos.distance_to(Vector2(_spot(u, _site(s)))) > WORK_REACH:
 		_send(u, s)
 	elif s.mend > 0.0:
 		if rubble.get(s.cell) != s:
@@ -2005,7 +2068,7 @@ func sell(things: Array) -> void:
 		return
 	for t in things:
 		if t is Block and structures.get(t.cell) == t:
-			structures.erase(t.cell)
+			_vacate(t)
 			_repath = true
 		elif t is Unit and not t.is_hero and t in units:
 			if t.job:  # 일하던 공병의 일은 그 상태로 남는다(I63)
@@ -2091,7 +2154,7 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 		_release(target)
 		_repath = true
 		if structures.get(target.cell) == target:  # 성벽 위 대포가 부서져도 성벽 칸은 남는다(S93)
-			structures.erase(target.cell)
+			_vacate(target)
 			tally.structure_lost += 1  # 라운드 집계(I119)
 			return
 		castle.erase(target.cell)
@@ -2172,7 +2235,7 @@ func _target_of(e: Enemy):
 			best_d = d
 	if village.has_point(Vector2i(e.pos.round())):
 		for s in structures.values():
-			var d := e.pos.distance_to(Vector2(s.cell))
+			var d := e.pos.distance_to(nearest(s, e.pos))  # 가장 가까운 차지 칸까지(I178)
 			if d < best_d and d <= e.sight:
 				best = s
 				best_d = d
@@ -2223,7 +2286,7 @@ func _move(e: Enemy, dt: float) -> void:
 		_attack(e, aim)
 		return
 	if e.flying:  # 막힌 칸을 넘어 대상으로 곧장 날아가 닿는 거리에서 친다(I79). 봉인되면 막힌 칸·몸에 막힌다(S155)
-		var to: Vector2 = aim.pos if aim is Unit else Vector2(goal)
+		var to: Vector2 = aim.pos if aim is Unit else nearest(aim, e.pos)  # 구조물은 가장 가까운 차지 칸(I178)
 		if e.pos.distance_to(to) <= REACH:
 			_attack(e, aim)
 		elif sealed:

@@ -17,3 +17,4 @@ extends Resource
 @export var tax := 0  # 집이면 준비 단계마다 내는 세금(S101, I46)
 @export var heal := 0.0  # 교회면 영웅 체력 1당 치료비(골드, S137)
 @export var light := 0.0  # 다 지었을 때 밤 불빛 반경(칸, S211). 0이면 빛이 없다(방벽)
+@export var size := Vector2i.ONE  # 차지 칸 가로 × 깊이(S216). 구조물의 칸은 차지 칸의 앞 왼쪽 칸이다

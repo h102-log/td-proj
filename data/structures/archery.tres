@@ -10,3 +10,4 @@ build_time = 6.0
 produces = Array[String](["archer"])
 village_level = 2
 light = 1.5
+size = Vector2i(3, 2)
