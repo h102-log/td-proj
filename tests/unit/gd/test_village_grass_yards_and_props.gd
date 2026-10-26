@@ -1,8 +1,8 @@
 extends RefCounted
 # 마을 풀 바탕(S169 2026-10-26 변경)·바랜 풀·시설 터와 마당 소품(S215)을 본다(WBS 4.1k).
 # 지키는 요구:
-#   S169 → 2026-10-26 변경: 마을 칸도 풀이다. 흙은 거점 줄 아래 광장 둘레와 성곽 위 세 줄, 그리고 시설 터(S215)뿐이다.
-#         성 안 풀은 잡음으로 덩어리진 자리만 바래게 해 성 밖 들판과 가른다.
+#   S169 → 2026-10-26 변경: 마을 칸도 풀이다 … 성 안 풀은 잡음으로 덩어리진 자리만 바래게 해 성 밖 들판과 가른다.
+#         → 2026-10-26 둘째 변경: 마을 흙은 길(S202)의 꼭짓점, 성곽 위 두 줄(성벽 안쪽 길), 성벽 쪽 두 모서리 텃밭, 시설 터(S215)다.
 #   S215. 마을 시설은 짓기 시작하면 둘레에 흙 터를 깐다 … 사격장 터는 과녁 쪽(아래)으로 밟힌 줄이 난다.
 #         → 2026-10-26 변경: 터는 차지 칸(S216) 가운데를 중심으로 하고 반지름은 차지 칸에 맞춘다(yard_radius).
 #         돌길·광장 돌 위에는 깔지 않는다. 다 지으면 마당 소품을 붙인다 … 타워·성벽에는 터가 없다.
@@ -18,13 +18,13 @@ static func _share(img: Image, c: Vector2i, col: Color) -> float:
 			n += int(img.get_pixelv(c * View.CELL + Vector2i(x, y)).is_equal_approx(col))
 	return n / float(View.CELL * View.CELL)
 
-func test_village_is_grass_but_wall_strip_and_plaza_edge():
+func test_village_is_grass_but_roads_and_wall_road():
 	var b = Battle.new(Main.stage())
 	var img: Image = View.bake_ground(b).get_image()
-	for c in [Vector2i(5, 5), Vector2i(50, 10), Vector2i(10, 20), Vector2i(45, 3)]:  # 광장에서 먼 성 안 칸
+	for c in [Vector2i(5, 5), Vector2i(50, 10), Vector2i(10, 20), Vector2i(45, 3), Vector2i(33, 19)]:  # 길에서 먼 성 안 칸, 옛 광장 둘레 흙(S169 2026-10-26 둘째 변경으로 풀)
 		if _share(img, c, Color("2d472d")) < 0.5:
 			return "성 안 %s가 풀이 아니다(풀색 %.2f)" % [c, _share(img, c, Color("2d472d"))]
-	for c in [Vector2i(5, 25), Vector2i(50, 24), Vector2i(27, 20), Vector2i(33, 20)]:  # 성곽 위 세 줄, 광장 양 끝 칸
+	for c in [Vector2i(5, 25), Vector2i(50, 25), Vector2i(30, 2), Vector2i(1, 13), Vector2i(58, 13), Vector2i(2, 23)]:  # 성벽 안쪽 길, 북·서·동 큰길의 마을 끝, 모서리 텃밭
 		if _share(img, c, Color("2d472d")) > 0.05:
 			return "%s가 흙이 아니다(풀색 %.2f)" % [c, _share(img, c, Color("2d472d"))]
 	return ""
