@@ -63,9 +63,13 @@ const YARD_PROPS := {
 }
 const PAVE := Color("56607a")  # 돌길·광장 박석 색(S202)
 const FOREST_FLOOR := Color("2a1d0d")  # 맵 아래 맵 밖 띠(I50)의 바닥(S201): 마른 나무가 선 그을린 흙
-const CASTLE := preload("res://art/castle/walls.png")  # 성곽 조각(두께 3칸, S217): 행 단계 1~3마다 몸체·앞층, 통로 그늘, 잔해. 열 성벽 한 열·열린 문·닫힌 문(tools/art/atlas.py castle)
-const WALL_PIECE_H := 74  # 성곽 조각 높이(px). 맨 아랫줄이 앞줄 바닥선 바로 위 줄이고 윗줄은 통로 뒤 모서리다
-const WALL_COLS := {"castle_wall": [0, 16], "open": [16, 48], "closed": [64, 48]}  # 조각 열 [x, 폭](px)
+const CASTLE := preload("res://art/castle/walls.png")  # 성곽 조각(두께 3칸, S217): 행 단계 1~3마다 몸체·앞층, 통로 그늘, 잔해. 열 성벽 한 열·열린 문·닫힌 문·문 양옆 탑(tools/art/atlas.py castle)
+const WALL_PIECE_H := 105  # 성곽 조각 높이(px). 맨 아랫줄이 앞줄 바닥선 바로 위 줄이고 윗줄은 양옆 탑 뒤 모서리다
+const WALL_COLS := {"castle_wall": [0, 16], "open": [16, 48], "closed": [64, 48], "tower_l": [112, 16], "tower_r": [128, 16]}  # 조각 열 [x, 폭](px)
+const WALL_TOP_UP := 25  # 성벽 그림 윗변이 성곽 윗줄 위끝보다 높은 px(S175)
+const GATE_RISE := 17  # 문루 바닥이 성벽 통로보다 높은 px(S170, tools/art/wall.py와 같다)
+const TOWER_RISE := 27  # 문 양옆 탑 바닥이 성벽 통로보다 높은 px(S170, tools/art/wall.py와 같다)
+const RING := 4  # 문루·탑 둘레 난간 높이(px). 그 그림 윗변은 바닥보다 이만큼 더 높다(wall.py ph 0.32 = 3.6px)
 const KEEP := preload("res://art/castle/keep.png")  # 거점 망루 80×80, 마을 레벨 1·2. 칸 앞쪽 아래 왼쪽 모서리가 그림의 (32, 72)다(tools/art/keep.py)
 const KEEP_AT := Vector2(-32, CELL - 72)  # 거점 칸 왼쪽 위에서 본 망루 그림 왼쪽 위
 const KEEP_BODY := [Rect2(29, 23, 22, 49), Rect2(21, 13, 38, 59)]  # 마을 레벨 1·2 망루 그림의 불투명 사각형(keep.png를 잼). 그림을 바꾸면 다시 잰다
@@ -568,17 +572,45 @@ func _bodies() -> void:
 			_body(h, battle.units.find(h), next, GHOST, false)
 	_seen = next
 
-# 가려진 몸통을 덧그릴 색. 성곽 칸 바로 뒤 한 줄은 성벽 그림 윗변(_clip)보다 아래만 어두운 실루엣이고(S175), 거점 뒤는 통째로 40%다(S171).
-# 성곽 칸 두 줄 뒤는 성벽 통로가 발만 가려 덧그리지 않는다(S175). 덧그리지 않으면 투명
+# 가려진 몸통을 덧그릴 색. 성곽 그림이 발(칸 가운데)을 4px 넘게 덮는 줄은 그림 윗변(_clip)보다 아래만 어두운 실루엣이고(S175),
+# 그보다 적게(발만) 덮는 줄은 덧그리지 않는다(투명). 성벽은 바로 뒤 한 줄, 문루·문 양옆 탑은 뒤 세 줄이 실루엣이다. 거점 뒤는 통째로 40%다(S171)
 func _shade(x) -> Color:
 	_clip = -INF
 	if not _behind(x):
 		return Color.TRANSPARENT
 	var c := Vector2i(_pos_of(x).round())
-	if battle.walls.has(c + Vector2i(0, 1)):
-		_clip = (c.y + 2) * CELL - 41.0  # 성벽 그림 윗변(성곽 윗줄 위끝에서 25px 위). 두꺼운 성곽(S217)도 같다
+	var cover := _cover(c)
+	if cover > CELL / 4.0:
+		_clip = (c.y + 0.5) * CELL - cover  # 그 열 성곽 그림 윗변
 		return SHADE
-	return Color.TRANSPARENT if battle.walls.has(c + Vector2i(0, 2)) else GHOST
+	return Color.TRANSPARENT if cover > 0 else GHOST
+
+# 땅 칸 c 앞(아래) 세 줄 안의 첫 성곽 칸 그림이 c의 발(칸 가운데)보다 위로 덮는 px. 앞에 성곽이 없으면 -INF
+func _cover(c: Vector2i) -> float:
+	for k in range(1, 4):
+		if battle.walls.has(c + Vector2i(0, k)):
+			var r := _rise(c + Vector2i(0, k))
+			return WALL_TOP_UP + (r + RING if r > 0 else 0) - CELL / 2.0 - CELL * (k - 1)
+	return -INF
+
+# 성곽 칸 c에 선 유닛·대포를 성벽 통로보다 더 올리는 px(S170): 문루는 GATE_RISE, 문 양옆 탑 열은 TOWER_RISE, 그 밖은 0
+func _rise(c: Vector2i) -> int:
+	var k = battle.walls.get(c)
+	if k == null:
+		return 0
+	if k.kind == "gate":
+		return GATE_RISE
+	return TOWER_RISE if _tower(k) != "" else 0
+
+# 성벽 열 k가 성문 바로 옆이면 그 탑 조각 이름(문 왼쪽 «tower_l», 오른쪽 «tower_r»), 아니면 «». 성문이 잔해여도 탑이다
+func _tower(k) -> String:
+	for d in [1, -1]:
+		var g = battle.walls.get(k.cell + Vector2i(d, 0))
+		if g == null:
+			g = battle.debris.get(k.cell + Vector2i(d, 0))
+		if g != null and g.kind == "gate":
+			return "tower_l" if d == 1 else "tower_r"
+	return ""
 
 # 그림 한 장을 원본과 같은 크기로 그린다. _clip보다 위 줄은 뺀다
 func _region(tex: Texture2D, dst: Rect2, src: Rect2, tint: Color) -> void:
@@ -615,12 +647,12 @@ func _body(x, i: int, next: Dictionary, tint := Color.WHITE, flash := true) -> v
 	else:
 		draw_circle(_spot(x), CELL * x.radius, (HERO_COLORS.get(x.kind, COLORS.merc) if x.is_hero else COLORS.get(x.kind, COLORS.merc)) * tint)
 
-# 성벽·거점 그림이 덮는 자리에 선 땅 유닛이나 시설: 성곽 칸 뒤 두 줄, 거점 칸 뒤 두 줄과 그 양옆(C1, 사용자 2026-10-20)
+# 성벽·거점 그림이 덮는 자리에 선 땅 유닛이나 시설: 성곽 그림이 발을 덮는 뒤 줄(성벽 두 줄, 문루 세 줄, 탑 세 줄), 거점 칸 뒤 두 줄과 그 양옆(C1, 사용자 2026-10-20)
 func _behind(x) -> bool:
 	if x.get("on_wall") == true or x.get("flying") == true or x.get("climbed"):
 		return false
 	var c := Vector2i(_pos_of(x).round())
-	if not battle.walls.has(c) and (battle.walls.has(c + Vector2i(0, 1)) or battle.walls.has(c + Vector2i(0, 2))):  # 문루 통로 안(성곽 칸)은 뒤가 아니다
+	if not battle.walls.has(c) and _cover(c) > 0:  # 문루 통로 안(성곽 칸)은 뒤가 아니다
 		return true
 	var d: Vector2i = c - battle.base.cell
 	return absi(d.x) <= 1 and d.y >= -2 and d.y < 0
@@ -658,7 +690,10 @@ func _wall_piece(b, front: int) -> void:
 			for i in b.size.x:  # 문루 잔해는 성벽 잔해 조각을 폭만큼 잇는다
 				draw_texture_rect_region(CASTLE, Rect2(at + Vector2(i * CELL, 0), Vector2(16, WALL_PIECE_H)), Rect2(0, 7 * WALL_PIECE_H, 16, WALL_PIECE_H))
 		return
-	var col: Array = WALL_COLS["castle_wall" if b.kind == "castle_wall" else ("open" if b.open else "closed")]
+	var key := "castle_wall" if _tower(b) == "" else _tower(b)  # 성문 바로 옆 성벽 열은 탑이다(S170)
+	if b.kind == "gate":
+		key = "open" if b.open else "closed"
+	var col: Array = WALL_COLS[key]
 	var dst := Rect2(at, Vector2(col[1], WALL_PIECE_H))
 	draw_texture_rect_region(CASTLE, dst, Rect2(col[0], (2 * (b.level - 1) + front) * WALL_PIECE_H, col[1], WALL_PIECE_H))
 	if front == 0 and b.kind == "gate" and b.open:
@@ -672,14 +707,15 @@ func _wall_line(c: Vector2i) -> int:
 		return (c.y + 1) * CELL + 1
 	return (k.cell.y + 1) * CELL - 2 + c.y - (k.cell.y - k.size.y + 1)
 
-# 위로 올려 그리는 정도(맵 px). 성벽 위 유닛·대포는 흉벽 바로 뒤(앞면에서 바닥 3px)에 서고, 기어오르는 적은 오른 만큼 오른다(4.1c, 05 §2)
+# 위로 올려 그리는 정도(맵 px). 성벽 위 유닛·대포는 흉벽 바로 뒤(앞면에서 바닥 3px)에 서고, 기어오르는 적은 오른 만큼 오른다(4.1c, 05 §2).
+# 문루·문 양옆 탑 칸은 그 바닥 높이만큼 더 올린다(S170)
 func _lift(x) -> float:
 	var p := _pos_of(x)
 	var top: bool = x.on_wall if x.get("pos") != null else (x.kind in battle.STRUCTURE_KINDS and battle.walls.has(x.cell))
 	if top:
-		return (p.y + 0.5) * CELL - ((roundf(p.y) + 1) * CELL - 3 - WALL_H)
+		return (p.y + 0.5) * CELL - ((roundf(p.y) + 1) * CELL - 3 - WALL_H) + _rise(Vector2i(p.round()))
 	if x.get("climbed"):
-		return (3 + WALL_H) * x.climbed / x.climb
+		return (3 + WALL_H + _rise(Vector2i(p.round()) + Vector2i.UP)) * x.climbed / x.climb
 	return 0.0
 
 # 유닛·적·칸을 그릴 자리(맵 px, 칸 가운데)와 칸 사각형. 성벽 위에 있으면 올린다

@@ -11,7 +11,8 @@ from hero import OUT as HERO, fits
 
 W = 6  # 성벽 칸 수
 GATES = {"open": 1.5, "closed": 4.5}  # 문 가운데 x(칸). 열림·닫힘을 한 장면에서 함께 본다(사용자 2026-10-18 ②)
-GAME_GATES = {"open": 2.5, "closed": 9.5}  # 게임 성곽(두께 3, 문 폭 3) 12칸 장면의 문 가운데 x(칸)
+GAME_GATES = {"open": 2.5, "closed": 10.5}  # 게임 성곽(두께 3, 문 폭 3) 14칸 장면의 문 가운데 x(칸)
+GATE_RISE, TOWER_RISE = 17, 27  # 문루·양옆 탑 바닥이 성벽 통로보다 높은 px(시안 C, 사용자 2026-10-26). battle_view.gd와 같다
 BASE = {"stone": "7c8494", "wood": "8a5530", "iron": "4a5060", "gold": "d0a040"}
 STONE, WOOD, IRON, GOLD = 0, 1, 2, 3
 
@@ -34,14 +35,24 @@ def slab(f2, y0, y1):
     return lambda p: np.maximum(f2(p), np.abs(p[:, 1] - yc) - yh)
 
 
-def wall(elev, H, pal, level=1, thick=1, gate_w=1, W=W, gates=GATES):
+def turret(x0, x1, y0, y1, floor, pd, ph, cd):
+    """문루·탑 덩어리: 바닥 높이 floor 둘레에 두께 pd·높이 ph 난간을 두르고, 앞 난간에 0.5칸마다 총안을 판다"""
+    zt = floor + ph
+    blk = R.box([(x0 + x1) / 2, (y0 + y1) / 2, zt / 2], [(x1 - x0) / 2, (y1 - y0) / 2, zt / 2])
+    inner = R.box([(x0 + x1) / 2, (y0 + y1) / 2, zt], [(x1 - x0) / 2 - pd, (y1 - y0) / 2 - pd, ph])
+    cren = [R.box([x0 + 0.5 * (i + 1), y0 + pd / 2, zt - cd / 2 + 0.01], [0.11, pd, cd / 2 + 0.01]) for i in range(round((x1 - x0) * 2) - 1)]
+    return lambda p: np.maximum(blk(p), -np.min([inner(p)] + [c(p) for c in cren], axis=0))
+
+
+def wall(elev, H, pal, level=1, thick=1, gate_w=1, W=W, gates=GATES, house=False):
     """앞면 높이 H px. 원점 = 성벽 앞쪽 아래 왼쪽 모서리. → (팔레트 번호 이미지, 원점 픽셀, 흉벽·앞면 마스크, 통로 그늘 불투명도).
     level은 성곽 업그레이드 단계(1~3, S86): 2부터 앞면에 쇠 띠 두 줄, 3은 흉벽 윗면을 금빛으로(4.1c, 사용자 2026-10-20).
-    thick은 성벽 두께(칸), gate_w는 문 폭(칸)이다. 게임은 3·3(S217, 사용자 2026-10-26 «성벽 3칸 정도, 성문도 더 크게»)"""
+    thick은 성벽 두께(칸), gate_w는 문 폭(칸)이다. 게임은 3·3(S217, 사용자 2026-10-26 «성벽 3칸 정도, 성문도 더 크게»).
+    house면 문마다 문루를 GATE_RISE, 양옆 성벽 한 열을 탑으로 TOWER_RISE만큼 높이고 문 아치를 키운다(시안 C, 사용자 2026-10-26)"""
     cam = R.Cam(elev)
     D1 = 1 / cam.sin  # 바닥 깊이 1칸이 화면 16px이 되게(02 §2)
     D, h = thick * D1, H / (16 * cam.cos)
-    gw, gh, rd = 0.36 + 0.5 * (gate_w - 1), min(h * 0.75, 1.15), 0.3 * D1  # 문 반폭·높이, 닫힌 문이 앞면에서 들어간 깊이. 0.15D는 벽 안으로 든 깊이가 안 보였다(Gemini 2026-10-18)
+    gw, gh, rd = 0.36 + 0.5 * (gate_w - 1), min(h * 0.75, 1.6 if house else 1.15), 0.3 * D1  # 문 반폭·높이, 닫힌 문이 앞면에서 들어간 깊이. 0.15D는 벽 안으로 든 깊이가 안 보였다(Gemini 2026-10-18)
     # 흉벽: 앞면과 같은 면에서 올라가는 두께 pd·높이 ph의 난간, 위를 cd만큼 판 총안. 윗면 한가운데 무늬처럼 보였다(사용자 2026-10-18 ③)
     pd, ph, cd = 0.12 * D1, 0.32, 0.16
     GATES = gates
@@ -51,10 +62,20 @@ def wall(elev, H, pal, level=1, thick=1, gate_w=1, W=W, gates=GATES):
     # 열린 문 구멍은 땅 밑 0.1까지 판다. 구멍 밑면이 벽 밑면(z=0)과 겹치면 SDF가 0으로 수렴해 광선이 거기 맞고 돌 바닥이 생겼다
     go, gc = arch(GATES["open"], gw, gh + 0.1), arch(GATES["closed"], gw, gh)
     holes = [slab(lambda p: go(p + [0, 0, 0.1]), -0.1, D + 0.1), slab(gc, -0.1, rd)]
+    raised = []  # (모양, 바닥 z): 문루는 문 칸 전체, 탑은 양옆 성벽 한 열 전체. 앞면은 성벽과 같은 면이다(내밀면 조각 바닥선 밑으로 삐져나간다)
+    if house:
+        fg, ft = h + GATE_RISE / (16 * cam.cos), h + TOWER_RISE / (16 * cam.cos)
+        for g in GATES.values():
+            raised.append((turret(g - gate_w / 2, g + gate_w / 2, 0, D, fg, pd, ph, cd), fg))
+            for s in (-1, 1):
+                x = g + s * (gate_w / 2 + 0.5)
+                o = 1 / 16  # 바깥 외곽선이 옆 열 조각으로 넘어가지 않게 바깥쪽을 1px 안으로 들인다
+                raised.append((turret(x - 0.5 + (o if s < 0 else 0), x + 0.5 - (o if s > 0 else 0), 0, D, ft, pd, ph, cd), ft))
 
     def stone(p):
         top = np.maximum(parapet(p), -np.min([c(p) for c in crenels], axis=0))
-        return np.maximum(np.minimum(body(p), top), -np.min([g(p) for g in holes], axis=0))
+        mass = np.min([body(p)] + [f(p) for f, _ in raised], axis=0)
+        return np.maximum(np.minimum(mass, top), -np.min([g(p) for g in holes], axis=0))
 
     # 닫힌 문. 열린 문 통로에는 바닥을 두지 않아 그 자리의 땅 타일이 비친다. 돌 바닥은 회색 홈처럼 보였다(Gemini 2026-10-18)
     P = [(stone, STONE), (slab(gc, rd - 0.05, rd), WOOD)]
@@ -83,11 +104,19 @@ def wall(elev, H, pal, level=1, thick=1, gate_w=1, W=W, gates=GATES):
     front = st & (y < 0.01)
     idx = np.where(front & mortar, rp[STONE][1], idx)
     idx = np.where(front & (idx == rp[STONE][3]), rp[STONE][2], idx)
-    idx = np.where(st & (z > h + ph - 0.02), rp[GOLD if level >= 3 else STONE][4], idx)  # 흉벽 윗면 하이라이트. 3단계는 금빛 장식
+    on = [(f(pos.reshape(-1, 3)).reshape(x.shape) < 0.02) & st for f, _ in raised]  # 문루·탑 겉면
+    rm = np.any(on, axis=0) if on else np.zeros(x.shape, bool)
+    up = np.zeros(x.shape, bool)  # 문루·탑의 난간 윗면
+    floors = np.zeros(x.shape, bool)  # 문루·탑 바닥(유닛이 서는 면)
+    for o, (_, fl) in zip(on, raised):
+        up |= o & (np.abs(z - fl - ph) < 0.02)
+        floors |= o & (np.abs(z - fl) < 0.02)
+    idx = np.where(st & ~rm & (z > h + ph - 0.02), rp[GOLD if level >= 3 else STONE][4], idx)  # 흉벽 윗면 하이라이트. 3단계는 금빛 장식
+    idx = np.where(up, rp[GOLD if level >= 3 else STONE][4], idx)
     if level >= 2:  # 쇠 띠 리벳: 0.25칸마다 밝은 점. 띠만으로는 줌 2에서 앞면 줄눈과 섞였다
         idx = np.where((mat == IRON) & (y < -0.01) & (np.mod(x + 0.06, 0.25) < 0.09), rp[IRON][4], idx)
     if level >= 3:
-        idx = np.where(st & (z > h + ph - cd - 0.02) & (z <= h + ph - 0.02) & (y < 0.01), rp[GOLD][2], idx)  # 총안 사이 앞면도 금빛
+        idx = np.where(st & ~rm & (z > h + ph - cd - 0.02) & (z <= h + ph - 0.02) & (y < 0.01), rp[GOLD][2], idx)  # 총안 사이 앞면도 금빛
     inside = st & (y > 0.01) & (z < gh + 0.01) & (((np.abs(x - GATES["open"]) < gw + 0.01)) | ((np.abs(x - GATES["closed"]) < gw + 0.01) & (y < rd + 0.01)))
     idx = np.where(inside, rp[STONE][1], idx)  # 문 안쪽 통로·홈은 그늘
     plank = (mat == WOOD) & (np.abs(x - GATES["closed"]) < gw - 0.05) & (np.mod(x - (GATES["closed"] - gw), 2 * gw / 3) < 0.05)
@@ -97,9 +126,9 @@ def wall(elev, H, pal, level=1, thick=1, gate_w=1, W=W, gates=GATES):
     near_front = pf[:-2, 1:-1] | pf[2:, 1:-1] | pf[1:-1, :-2] | pf[1:-1, 2:]
     idx = np.where(gate & near_front, R.darkest(pal), idx)  # 아치 테두리는 최암색
     # 옥상 뒤 모서리: 최암색 외곽선이 성벽 뒤 유닛을 날카롭게 잘라 보여, 앞면 바탕색 선 + 바로 아래 하이라이트로 바꾼다(Gemini 2차 2026-10-18)
-    walk_top = st & (z > h - 0.01) & (y > pd + 0.01)
-    if thick > 1:  # 두꺼운 성벽(S217): 통로 윗면에 칸마다 판석 줄눈. 넓은 윗면이 한 색이라 밋밋했고, 유닛이 설 칸이 보인다
-        idx = np.where(walk_top & ((np.mod(x, 1.0) < 0.06) | (np.mod(y, D1) < 0.05)), rp[STONE][2], idx)
+    walk_top = st & ~rm & (z > h - 0.01) & (y > pd + 0.01)
+    if thick > 1:  # 두꺼운 성벽(S217): 통로 윗면에 칸마다 판석 줄눈. 넓은 윗면이 한 색이라 밋밋했고, 유닛이 설 칸이 보인다. 문루·탑 바닥도 같다
+        idx = np.where((walk_top | floors) & ((np.mod(x, 1.0) < 0.06) | (np.mod(y, D1) < 0.05)), rp[STONE][2], idx)
     edge = (pid < 0) & np.pad(walk_top, ((0, 1), (0, 0)))[1:]
     idx = np.where(edge, rp[STONE][2], idx)
     idx = np.where(np.pad(edge, ((1, 0), (0, 0)))[:-1] & walk_top, rp[STONE][4], idx)
@@ -186,9 +215,10 @@ if __name__ == "__main__":
         R.rgba(idx, pal).save(walls / f"wall_45_f24p_24_L{level}.png")
         R.rgba(np.where(front, idx, -1), pal).save(walls / f"front_45_f24p_24_L{level}.png")
     R.rgba(rubble(45, 24, pal), pal).save(walls / "rubble_45_f24p_24.png")
-    # 게임 성곽(S217): 두께 3칸, 문 폭 3칸. 12칸 장면에 열린 문(1~4칸)·닫힌 문(8~11칸)을 두고 그 사이를 성벽 칸으로 자른다(atlas.py castle)
+    # 게임 성곽(S217): 두께 3칸, 문 폭 3칸. 14칸 장면에 열린 문(1~4칸)·닫힌 문(9~12칸)을 두고 그 사이를 성벽 칸으로 자른다(atlas.py castle).
+    # 문마다 문루와 양옆 탑(열린 문 0·4칸, 닫힌 문 8·12칸)을 세운다. 성벽 열은 양옆이 모두 성벽인 6칸에서 자른다
     for level in (1, 2, 3):
-        idx, anc, front, shade = wall(45, 24, pal, level, thick=3, gate_w=3, W=12, gates=GAME_GATES)
+        idx, anc, front, shade = wall(45, 24, pal, level, thick=3, gate_w=3, W=14, gates=GAME_GATES, house=True)
         R.rgba(idx, pal).save(walls / f"wall_t3_L{level}.png")
         R.rgba(np.where(front, idx, -1), pal).save(walls / f"front_t3_L{level}.png")
     shade_img(shade).save(walls / "shade_t3.png")
