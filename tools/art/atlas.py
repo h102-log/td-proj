@@ -46,23 +46,24 @@ def main():
     print(out.size)
 
 
-# 성곽 조각(S217): 두께 3칸·문 폭 3칸 장면(원점 픽셀 (4, 196), tools/art/wall.py GAME_GATES)에서 자른다. 조각 맨 아랫줄이 원점 줄(앞줄 바닥선)이다.
+# 성곽 조각(S217): 두께 3칸·문 폭 3칸 장면(원점 픽셀 (4, 그림 높이 − 4), tools/art/wall.py GAME_GATES)에서 자른다. 조각 맨 아랫줄이 원점 줄(앞줄 바닥선)이다.
 # 행은 단계 1~3(S86)마다 몸체·앞층(흉벽·앞면, 성벽 위 유닛의 발을 가린다), 그다음 통로 그늘, 잔해(I88, 성벽 한 열만)다.
-# 열은 성벽 한 열(16px)·열린 문(48px)·닫힌 문(48px)이다. battle_view.gd WALL_COLS와 같다
+# 열은 성벽 한 열(16px)·열린 문(48px)·닫힌 문(48px)·문 왼쪽·오른쪽 탑(16px씩)이다. battle_view.gd WALL_COLS와 같다
 # 거점 망루(tools/art/keep.py)는 마을 레벨 1·2를 80×80 두 칸으로 따로 모은다
 WALL_LAYERS = ["wall_t3_L1", "front_t3_L1", "wall_t3_L2", "front_t3_L2", "wall_t3_L3", "front_t3_L3", "shade_t3", "rubble_t3"]
-WALL_STRIPS = [(5, 1), (1, 3), (8, 3)]  # (시험 그림의 칸 번호, 폭 칸): 성벽 한 열, 열린 문, 닫힌 문
-WALL_TOP = 123  # 시험 그림에서 성벽 픽셀이 시작하는 줄(통로 뒤 모서리). 조각 높이는 196 - 123 + 1 = 74
+WALL_STRIPS = [(6, 1), (1, 3), (9, 3), (8, 1), (12, 1)]  # (시험 그림의 칸 번호, 폭 칸): 성벽 한 열, 열린 문, 닫힌 문, 문 왼쪽 탑, 문 오른쪽 탑
+WALL_H = 105  # 조각 높이: 원점 줄부터 양옆 탑 뒤 모서리까지(문루·탑 전에는 통로 뒤 모서리까지 74)
 
 
 def castle():
-    h = 196 - WALL_TOP + 1
+    h = WALL_H
     out = Image.new("RGBA", (16 * sum(w for _, w in WALL_STRIPS), h * len(WALL_LAYERS)))
     for r, layer in enumerate(WALL_LAYERS):
         im = Image.open(f"art/trial/walls/{layer}.png").convert("RGBA")
+        base = im.height - 4
         x = 0
         for strip, w in ([(0, 1)] if layer.startswith("rubble") else WALL_STRIPS):  # 잔해는 0번 칸 하나만 그렸다
-            out.paste(im.crop((4 + strip * 16, WALL_TOP, 4 + (strip + w) * 16, 197)), (x, h * r))
+            out.paste(im.crop((4 + strip * 16, base - h + 1, 4 + (strip + w) * 16, base + 1)), (x, h * r))
             x += 16 * w
     Path("art/castle").mkdir(exist_ok=True)
     out.save("art/castle/walls.png")
