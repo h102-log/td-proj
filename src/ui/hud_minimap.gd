@@ -47,7 +47,7 @@ func marks() -> Array:
 		out.append([_dot(Vector2(c), 1), RUBBLE])
 	for c in battle.castle:
 		out.append([_dot(Vector2(c), 1), GATE if battle.castle[c].kind == "gate" else WALL])
-	for c in battle.structures:
+	for c in battle.footprint:  # 차지 칸마다(S216)
 		out.append([_dot(Vector2(c), 1), STRUCTURE])
 	out.append([_dot(Vector2(battle.base.cell), 3), BASE])
 	for u in battle.units:

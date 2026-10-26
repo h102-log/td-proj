@@ -170,7 +170,7 @@ static func icon(kind: String) -> AtlasTexture:
 	if BattleView.FAC.has(kind):  # [열, 그림 맨 윗줄, 맨 아랫줄 + 1]
 		var f: Array = BattleView.FAC[kind]
 		t.atlas = BattleView.FACILITY
-		t.region = Rect2(f[0] * 48, f[1], 48, f[2] - f[1])
+		t.region = Rect2(f[0] * BattleView.FAC_N, f[1], BattleView.FAC_N, f[2] - f[1])
 	elif kind == "base":  # 마을 Lv1 거점 망루(S190)
 		t.atlas = BattleView.KEEP
 		t.region = Rect2(0, 0, 80, 80)

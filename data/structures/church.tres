@@ -9,3 +9,4 @@ hp = 150.0
 build_time = 6.0
 heal = 0.5
 light = 1.5
+size = Vector2i(2, 3)

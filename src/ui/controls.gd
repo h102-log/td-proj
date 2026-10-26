@@ -190,7 +190,7 @@ func _release(rect: Rect2, at: Vector2) -> void:
 		var heroes: Array = battle.heroes.filter(func(h): return h.alive and inside.call(h.pos))  # 출전 순서대로 앞에 둔다. Q·W·E·R은 앞선 영웅이 쓴다(I9)
 		var picks: Array = mercs.filter(func(u): return inside.call(u.pos))
 		units = heroes + picks
-		var built: Array = battle.structures.values().filter(func(s): return inside.call(Vector2(s.cell)))
+		var built: Array = battle.structures.values().filter(func(s): return battle.cells_in(battle.area_of(s)).any(func(c): return inside.call(Vector2(c))))  # 차지 칸이 걸치면(S216)
 		var todo: Array = built.filter(func(s): return not s.complete) if prep and battle.live() else []
 		selling = (picks + built.filter(func(s): return s not in todo)) if prep else []
 		picked = todo if prep else built
@@ -361,9 +361,9 @@ func _refusal(kind: String, cell: Vector2i) -> String:
 	if battle.castle.has(cell):
 		if kind != "cannon":
 			return "성곽에는 대포만"
-	elif battle.village.has_point(cell) != inner:
+	elif not battle.cells_in(battle.area_at(cell, d.size)).all(func(c): return battle.village.has_point(c) == inner):  # 차지 칸이 모두(S216)
 		return "마을 시설은 성 안에만" if inner else "성 안에는 마을 시설만"
-	if not cell in battle.placeable_cells(kind):
+	if not battle.can_build(kind, cell):
 		return "빈 칸이 아니다"
 	if battle.gold < d.cost:
 		return "골드 %d 모자람" % (d.cost - battle.gold)

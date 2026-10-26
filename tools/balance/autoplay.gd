@@ -76,7 +76,7 @@ const PLANS := {
 	# 세 겹을 고루: 병영·병사 몸막기, 타워, 사격장·성벽 위 궁수, 집 몇 채, 공병 하나
 	"balanced": [
 		["build", "barracks", 27, 25], ["merc", "soldier", 2, 30, 28], ["build", "tower", 28, 30], ["build", "tower", 32, 30],
-		["house", 2], ["build", "workshop", 34, 25], ["merc", "engineer", 1, 32, 26], ["village"], ["build", "archery", 25, 25],
+		["house", 2], ["build", "workshop", 34, 25], ["merc", "engineer", 1, 32, 26], ["village"], ["build", "archery", 24, 25],
 		["wallmerc", "archer", 2], ["build", "magic", 27, 29], ["build", "magic", 33, 29], ["merc", "soldier", 3, 30, 28],
 		["build", "cannon", 29, 27], ["house", 4], ["upgrade", 30, 27, 2], ["wallmerc", "archer", 4], ["build", "cannon", 31, 27],
 		["build", "tower", 28, 32], ["build", "tower", 32, 32], ["merc", "soldier", 4, 30, 28], ["upgrade", 30, 27, 3],
@@ -85,7 +85,7 @@ const PLANS := {
 	# 숙련: 영웅 하나로 시작해 1라운드는 타워·대포로 버티고, 병영(정문 안쪽 2선)·사격장(성벽 궁수)·공병·집을 차례로 더한다
 	"smart": [
 		["build", "tower", 28, 30], ["build", "tower", 32, 30], ["build", "cannon", 29, 27], ["build", "magic", 27, 29],
-		["build", "barracks", 27, 25], ["merc", "soldier", 2, 30, 26], ["village"], ["build", "archery", 25, 25],
+		["build", "barracks", 27, 25], ["merc", "soldier", 2, 30, 26], ["village"], ["build", "archery", 24, 25],
 		["wallmerc", "archer", 2], ["build", "workshop", 34, 25], ["merc", "engineer", 1, 32, 25], ["house", 2],
 		["build", "magic", 33, 29], ["build", "cannon", 31, 27], ["upgrade", 30, 27, 2], ["wallmerc", "archer", 4],
 		["build", "tower", 28, 32], ["build", "tower", 32, 32], ["house", 4], ["merc", "soldier", 3, 30, 26],
@@ -96,7 +96,7 @@ const PLANS := {
 	"greedy": [
 		["house", 6], ["build", "tower", 28, 30], ["build", "tower", 32, 30], ["build", "barracks", 27, 25],
 		["merc", "soldier", 2, 30, 28], ["build", "magic", 27, 29], ["build", "magic", 33, 29], ["build", "cannon", 29, 27],
-		["village"], ["build", "archery", 25, 25], ["wallmerc", "archer", 3], ["build", "cannon", 31, 27], ["upgrade", 30, 27, 2],
+		["village"], ["build", "archery", 24, 25], ["wallmerc", "archer", 3], ["build", "cannon", 31, 27], ["upgrade", 30, 27, 2],
 		["merc", "soldier", 4, 30, 28], ["build", "tower", 28, 32], ["build", "tower", 32, 32], ["upgrade", 30, 27, 3],
 		["build", "cannon", 27, 27], ["build", "cannon", 33, 27], ["build", "magic", 26, 31], ["build", "magic", 34, 31],
 	],

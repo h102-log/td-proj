@@ -46,6 +46,9 @@ static func apply(b, d: Dictionary) -> void:
 		b.get(k).clear()
 		for f in d[k]:
 			b.get(k)[f.cell] = _block(f)
+	b.footprint.clear()
+	for s in b.structures.values():  # 차지 칸(S216)은 구조물에서 다시 편다
+		b._occupy(s)
 	var people: Array = d.heroes.map(func(f): return _unit(f, b.HERO_KINDS))
 	b.roster.assign(d.roster.map(func(i): return people[i]))
 	b.lineup.assign(d.lineup.map(func(i): return people[i]))

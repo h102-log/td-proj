@@ -9,3 +9,4 @@ hp = 150.0
 build_time = 6.0
 produces = Array[String](["soldier"])
 light = 1.5
+size = Vector2i(3, 2)
