@@ -2957,3 +2957,21 @@ func ev461():
 		"문루 뒤 누름에 문루 %s · 탑 뒤 누름에 탑 %s · 보통 성벽 뒤 누름에 빔 %s · 용병 칸 누름에 성곽 %s · 용병 골라짐 %s" % [on_gate, on_tower, plain, c.fort, m in c.selected])
 	_done(main)
 	return out
+
+# EV463 · I128: 길 칸을 누른 놓기 거부의 이유는 «길에는 지을 수 없다»다
+func ev463():
+	var main = _prep()
+	var hud = main.hud
+	var b = main.view.battle
+	var c = main.controls
+	var built: int = b.structures.size()
+	_key(KEY_0)
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(26, 12)))
+	hud._process(0.0)
+	var said: String = hud.hint.text
+	var refused: bool = b.structures.size() == built
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(20, 6)))
+	var out := check(refused and "길에는 지을 수 없다" in said and b.structures.size() == built + 1,
+		"광장 칸 거부 %s · 누른 직후 안내 줄 «%s» · 고리 길 칸 뒤 구조물 %d → %d" % [refused, said, built, b.structures.size()])
+	_done(main)
+	return out

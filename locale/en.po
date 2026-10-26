@@ -415,6 +415,9 @@ msgstr "Build inside the walls"
 msgid "성 안에는 마을 시설만"
 msgstr "Village only inside walls"
 
+msgid "길에는 지을 수 없다"
+msgstr "No building on roads"
+
 msgid "빈 칸이 아니다"
 msgstr "Tile not empty"
 

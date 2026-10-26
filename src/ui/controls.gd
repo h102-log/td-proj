@@ -354,7 +354,7 @@ func _place(cell: Vector2i) -> void:
 	elif battle.can_buy(placing):  # 마을이 있으면 그 용병의 시설이 있어야 산다(S50)
 		battle.place_merc(placing, cell)
 
-# 구조물 놓기가 거부된 첫 이유(I128): 마을 레벨 → 구역(S43) → 빈 칸 → 골드 → 집 상한(S101) → 전투 단계 공병. 받아들여질 칸이면 ""
+# 구조물 놓기가 거부된 첫 이유(I128): 마을 레벨 → 구역(S43) → 길 칸(S43) → 빈 칸 → 골드 → 집 상한(S101) → 전투 단계 공병. 받아들여질 칸이면 ""
 func _refusal(kind: String, cell: Vector2i) -> String:
 	var d: Dictionary = battle.STRUCTURE_KINDS[kind]
 	var inner: bool = not d.produces.is_empty() or d.tax > 0 or d.heal > 0  # 마을 시설
@@ -365,6 +365,8 @@ func _refusal(kind: String, cell: Vector2i) -> String:
 			return "성곽에는 대포만"
 	elif not battle.cells_in(battle.area_at(cell, d.size)).all(func(c): return battle.village.has_point(c) == inner):  # 차지 칸이 모두(S216)
 		return "마을 시설은 성 안에만" if inner else "성 안에는 마을 시설만"
+	if battle.cells_in(battle.area_at(cell, d.size)).any(func(c): return battle.roads.has(c)):
+		return "길에는 지을 수 없다"
 	if not battle.can_build(kind, cell):
 		return "빈 칸이 아니다"
 	if battle.gold < d.cost:

@@ -40,3 +40,7 @@ def test_EV128_enemy_in_field_ignores_house(gd):
 
 def test_EV129_residents_wander_in_village(gd):
     gd("house", "EV129")
+
+
+def test_EV462_no_house_on_roads(gd):
+    gd("house", "EV462")

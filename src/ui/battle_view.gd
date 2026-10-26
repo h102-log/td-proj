@@ -1121,8 +1121,8 @@ static func _feet() -> ImageTexture:
 # 바닥(4.1b, 사용자 2026-10-20): 풀 바탕에 마을 칸의 꼭짓점 일부와 들판 길이 흙이다. 마을 아래 변의 흙은 들판 쪽으로 꼭짓점 0~2개만큼 불규칙하게 번진다.
 # 칸마다 네 꼭짓점으로 16꼴 가운데 하나를 고르고, 변종(풀·흙 한 가지인 칸은 넷, 전환 칸은 셋) 가운데 하나를 고른다. 출현 지점에는 깃발을 얹는다.
 # 들판(S201)은 길(_road) 꼭짓점도 흙이고, 빈 들판 칸에 그을음·구덩이·자갈·풀을 찍는다. 맵 아래 맵 밖 띠(I50)에는 숲 바닥을 깔고 마른 나무를 세운다.
-# 마을(S169·S202 2026-10-26 둘째 변경)은 길 골격(_plan)의 꼭짓점과 성곽 줄 꼭짓점만 흙이다. 박석(_pave)을 깔고, 모서리 텃밭과
-# 우물 밑 판석을 찍고, 풀꽃 무더기(_clusters)를 모은 뒤 성 안 풀을 바랜다(_worn)
+# 마을(S169·S202 2026-10-26 둘째·셋째 변경)은 길 골격(_plan)의 꼭짓점과 성곽 줄 꼭짓점만 흙이다. 박석(_pave)을 깔고, 텃밭과
+# 우물 밑 판석·자갈 마당을 찍고, 풀꽃 무더기(_clusters)를 모은 뒤 성 안 풀을 바랜다(_worn)
 static func bake_ground(b) -> ImageTexture:
 	var src := GROUND_TILES.get_image()
 	var deco := DECOR.get_image()
@@ -1166,9 +1166,13 @@ static func bake_ground(b) -> ImageTexture:
 			x += rng.randf_range(14.0, 24.0)
 	if vil.has_area():
 		_pave(b, img, rng, plan.pave)
-		for c in plan.garden:  # 모서리 텃밭: 집 마당 텃밭 그림 두 가지를 번갈아
+		for c in plan.garden:  # 텃밭: 집 마당 텃밭 그림 두 가지를 번갈아
 			img.blend_rect(deco, Rect2i(CELL * ((c.x + c.y) % 2), YARD_ROW, CELL, CELL), c * CELL)
 		img.blend_rect(deco, Rect2i(CELL * 7, YARD_ROW, CELL, CELL), _well(b) * CELL + Vector2i(-2, 13))  # 우물 밑 판석
+		for c in plan.slabs:  # 자갈 마당: 판석과 자갈 두 가지
+			img.blend_rect(deco, Rect2i(CELL * 7, YARD_ROW, CELL, CELL), c * CELL + Vector2i(-2, 2))
+		for c in plan.gravel:
+			img.blend_rect(deco, Rect2i(CELL * (7 + c.x % 2), 0, CELL, CELL), c * CELL)
 		_clusters(b, img, deco)
 		_worn(b, img)
 	for c in (b.spawns if b.spawn_spread == 0 else []):  # 흩어져 나오는 스테이지는 깃발이 없다(I177). ponytail: 깃발도 바닥에 구워서 막 나온 적이 깃발 위에 그려진다. 거슬리면 깃발만 바닥선 정렬로 옮긴다
@@ -1238,11 +1242,12 @@ static func _field_scale(b) -> float:
 static func _well(b) -> Vector2i:
 	return b.base.cell + Vector2i(5, 3)
 
-# 마을 길 골격(S202·S169 2026-10-26 둘째 변경, 시안 D): 박석 칸·흙 꼭짓점·텃밭 칸.
+# 마을 길 골격(S202·S169 2026-10-26 둘째·셋째 변경, 시안 D): 박석 칸·흙 꼭짓점·텃밭 칸·자갈 마당, 짓지 못하는 길 칸(S43 2026-10-26 변경).
 # ponytail: 자리는 거점 (30,13)·마을 60×27인 지금 판(main.gd stage) 하나에 맞춘 칸 값이다. 사방 성벽(S203 추후)으로 맵이 바뀌면 표를 다시 짠다
 static func _plan() -> Dictionary:
 	var pave := {}
 	var dirt := {}
+	var roads := {}  # 길 칸: 박석 칸, 남쪽 큰길 흙 줄, 북·서·동 큰길 칸
 	var spans := {10: [27, 33], 11: [25, 35], 12: [24, 36], 13: [24, 36], 14: [24, 36], 15: [24, 36], 16: [24, 36], 17: [25, 35],  # 거점 광장(시장)
 		23: [28, 32], 24: [27, 33], 25: [26, 34], 26: [26, 34]}  # 정문 안 공터
 	for y in spans:
@@ -1251,11 +1256,17 @@ static func _plan() -> Dictionary:
 	for y in range(18, 23):  # 남쪽 큰길(정문~광장): 박석-흙-박석
 		pave[Vector2i(29, y)] = true
 		pave[Vector2i(31, y)] = true
+		roads[Vector2i(30, y)] = true
 		_cell4(dirt, Vector2i(30, y))
+	for l in [[30, 0, 30, 9], [0, 13, 23, 13], [37, 13, 59, 13]]:  # 북·서·동 큰길 칸 [x0, y0, x1, y1](두 꼭짓점 폭, 나중 성문 자리인 마을 끝까지)
+		for y in range(l[1], l[3] + 1):
+			for x in range(l[0], l[2] + 1):
+				roads[Vector2i(x, y)] = true
+				_cell4(dirt, Vector2i(x, y))
 	for c in pave:
+		roads[c] = true
 		_cell4(dirt, c)
 	for l in [  # 흙 꼭짓점 선 [x0, y0, x1, y1]
-			[30, 0, 31, 10], [0, 13, 24, 14], [37, 13, 60, 14],  # 북·서·동 큰길(두 꼭짓점 폭, 나중 성문 자리인 마을 끝까지)
 			[19, 6, 29, 6], [32, 5, 41, 5], [18, 7, 18, 12], [42, 6, 42, 12],  # 고리 길: 큰길과 만날 때마다 한 칸 엇갈리고 모서리는 대각으로 닿는다
 			[17, 15, 17, 21], [43, 15, 43, 20], [18, 22, 28, 22], [33, 21, 42, 21],
 			[24, 1, 24, 6], [40, 21, 40, 25], [8, 9, 18, 9], [8, 9, 8, 25], [43, 18, 52, 18], [52, 13, 52, 25],  # 고리 밖 골목 넷(서로 어긋남)
@@ -1267,8 +1278,21 @@ static func _plan() -> Dictionary:
 	for y in range(22, 25):  # 성벽 쪽 두 모서리 텃밭
 		for x in [0, 1, 2, 3, 4, 55, 56, 57, 58, 59]:
 			garden.append(Vector2i(x, y))
-			_cell4(dirt, Vector2i(x, y))
-	return {"pave": pave, "dirt": dirt, "garden": garden}
+	for g in [[3, 3, 7, 4, 4, 6], [10, 16, 13, 17, 11, 13], [20, 2, 22, 2, 20, 21], [48, 2, 52, 3, 49, 51], [45, 20, 48, 21, 46, 47]]:  # 빈 블록 텃밭 북서·서·북·북동·동: 사각형 [x0, y0, x1, y1] 아래에 짧은 줄 [x0, x1]
+		for y in range(g[1], g[3] + 1):
+			for x in range(g[0], g[2] + 1):
+				garden.append(Vector2i(x, y))
+		for x in range(g[4], g[5] + 1):
+			garden.append(Vector2i(x, g[3] + 1))
+	for c in garden:
+		_cell4(dirt, c)
+	var slabs := [Vector2i(35, 2), Vector2i(36, 2), Vector2i(36, 3), Vector2i(10, 6), Vector2i(11, 7)]  # 자갈 마당(북·북서 블록): 판석
+	var gravel := [Vector2i(34, 3), Vector2i(37, 1), Vector2i(38, 3), Vector2i(12, 6), Vector2i(9, 7)]  # 그 둘레 자갈
+	return {"pave": pave, "dirt": dirt, "garden": garden, "slabs": slabs, "gravel": gravel, "roads": roads}
+
+# 시험 스테이지의 길 칸(S43 2026-10-26 변경). main.gd stage가 읽는다
+static func roads() -> Dictionary:
+	return _plan().roads
 
 # 칸 c의 네 꼭짓점을 d에 넣는다
 static func _cell4(d: Dictionary, c: Vector2i) -> void:

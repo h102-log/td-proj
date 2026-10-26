@@ -13,8 +13,12 @@ from hero import OUT as HERO
 
 N, ANCHOR = 96, (16, 92)  # 차지 칸이 큰 시설(S216)도 들어가게 모든 시설을 같은 캔버스에 그린다
 D = 1 / np.sin(np.radians(45))  # 칸 바닥 깊이(모델 단위). 화면에서 16px
+# 2026-10-26
+# [동작] 지붕 기본색을 빛바랜 적갈 6e3a2e로 둔다(옛 8a2018 고채도 빨강)
+# [이유] Gemini가 마을 길 D에서 빨간 지붕을 고칠 점 1순위로 꼽았고, 사용자가 시안(art/trial/preview/village_d_fixes/)에서 «지붕만 지금»을 골랐다.
+#        이 색의 램프는 팔레트 안 36170c·45230d·773421·684c3c다. 684c3c·5a4a3a 기본색은 램프에 풀색이 섞여 고르지 않았다
 COLORS = {"stone": "7c8494", "wood": "8a5530", "iron": "4a5060", "gold": "d0a040", "team": "3c9f9c",
-          "roof": "8a2018", "plaster": "e0d4b0", "canvas": "d8c8a0", "blue": "70a0e0", "red": "c03020"}
+          "roof": "6e3a2e", "plaster": "e0d4b0", "canvas": "d8c8a0", "blue": "70a0e0", "red": "c03020"}
 MAT = list(COLORS)
 EDGE = 0.35  # 안쪽 외곽선을 긋는 깊이 차. 망루의 0.19는 천막·첨탑처럼 가파른 면 전체를 외곽선으로 칠했다
 PAL = R.PALETTES["f24p"]

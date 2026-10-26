@@ -319,6 +319,7 @@ var round_index := 0
 var wave_index := 0
 var gold := 0
 var village := Rect2i()  # 마을 칸. 생산 시설은 안에만, 나머지 구조물은 밖에만 짓는다(S43). 비어 있으면 모두 들판
+var roads := {}  # 길 칸 → true. 마을 안이라도 짓지 못한다(S43 2026-10-26 변경). 스테이지가 정하고, 없으면 비어 있다
 var merc_cap := MERC_CAP
 var village_level := 1  # 오를수록 지을 수 있는 생산 시설이 는다(S46, S99)
 var dark := 0.0  # 어둠(S210): 0 낮 ~ 1 한밤. 밤 웨이브의 전투 단계에 오르고, 전투가 끝나면 내린다. 저장에 담지 않는다(준비 단계는 낮)
@@ -385,6 +386,7 @@ func restart() -> void:
 	gold = stage.get("gold", 0)
 	_spare = 0.0
 	village = stage.get("village", Rect2i())
+	roads = stage.get("roads", {})
 	merc_cap = stage.get("merc_cap", MERC_CAP)
 	village_level = 1
 	dark = 0.0
@@ -1658,7 +1660,7 @@ func _buildable(kind: String, cell: Vector2i, taken = null) -> bool:
 	if taken == null:
 		taken = _taken()
 	for c in cells_in(area_at(cell, def.size)):
-		if not grid.is_in_boundsv(c) or footprint.has(c) or c == base.cell or debris.has(c) or barriers.has(c):  # 잔해(I88)·에너지 성벽(I142) 칸에는 짓지 못한다
+		if not grid.is_in_boundsv(c) or footprint.has(c) or c == base.cell or debris.has(c) or barriers.has(c) or roads.has(c):  # 잔해(I88)·에너지 성벽(I142)·길(S43) 칸에는 짓지 못한다
 			return false
 		if c in _stage.get("hero_cells", []):  # 출전 칸에는 짓지 못한다(I107). 영웅이 서거나 돌아올 칸이다
 			return false
