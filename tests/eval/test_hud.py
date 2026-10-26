@@ -279,3 +279,11 @@ def test_EV461_gatehouse_art_selects_castle(gd):
 
 def test_EV463_road_refusal_reason(gd):
     gd("hud", "EV463")
+
+
+def test_EV466_square_wall_art_heights_and_picks(gd):
+    gd("hud", "EV466")
+
+
+def test_EV467_gate_names_by_direction(gd):
+    gd("hud", "EV467")

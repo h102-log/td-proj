@@ -249,10 +249,10 @@ func ev201():
 	var same: bool = d.heroes == [k, p, m] and x not in d.units
 	return check(started and auto and same, "영웅 없이 시작 %s · 처음 셋만 출전 %s · 다음 라운드도 같은 셋 %s" % [started, auto, same])
 
-# EV202 · I107: 시험 스테이지의 출전 칸은 정문 앞 (29,29)·(31,29)·(30,29)이고, 영웅은 보유 순서대로 서며, 출전 칸에는 짓지 못한다
+# EV202 · I107: 시험 스테이지의 출전 칸은 정문 문루 앞 (29,61)·(31,61)·(30,61)이고, 영웅은 보유 순서대로 서며, 출전 칸에는 짓지 못한다
 func ev202():
 	var cells: Array = load("res://src/main.gd").stage().get("hero_cells", [])
-	if cells != [Vector2i(29, 31), Vector2i(31, 31), Vector2i(30, 31)]:
+	if cells != [Vector2i(29, 61), Vector2i(31, 61), Vector2i(30, 61)]:
 		return "출전 칸이 %s다" % [cells]
 	var b = _main()
 	b.begin_hiring()

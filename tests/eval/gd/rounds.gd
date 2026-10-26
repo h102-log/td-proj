@@ -385,8 +385,8 @@ func ev427():
 		var s: Vector2i = plan[k][1]
 		var n: int = k / b.spawns.size()
 		var x := clampi(s.x - 10 + int(fposmod(n * 0.6180339887, 1.0) * 21.0), 0, 59)
-		if cells[k] != Vector2i(x, 62):
-			return "%d번째 적이 %s에서 나왔다(출현 지점 %s, %s여야 한다)" % [k, cells[k], s, Vector2i(x, 62)]
+		if cells[k] != Vector2i(x, 92):
+			return "%d번째 적이 %s에서 나왔다(출현 지점 %s, %s여야 한다)" % [k, cells[k], s, Vector2i(x, 92)]
 		xs[x] = true
 	var h = battle({"spawns": [Vector2i(0, 5)], "waves": [[{"kind": "basic", "count": 3}]]})
 	var at := []

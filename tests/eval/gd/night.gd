@@ -162,7 +162,7 @@ func ev441():
 	_done(main)
 	return out
 
-# EV442 · S212: 어둠 덮개는 맵 (0,0)에서 바닥 그림 크기(맵 + 아래 띠)를 덮고 클릭을 받지 않으며, 낮에는 숨고,
+# EV442 · S212: 어둠 덮개는 맵 (0,-92)에서 맵 위 띠 92px과 바닥 그림 크기(맵 + 아래 띠)를 덮고 클릭을 받지 않으며, 낮에는 숨고,
 # 밤(어둠 0.5)에는 보이며 불빛마다 맵 px 가운데와 지금 반경(반경 ÷ 어둠 × 16)을 셰이더에 넘긴다
 func ev442():
 	var main = _prep()
@@ -172,7 +172,7 @@ func ev442():
 		return "main.view.night가 ColorRect가 아니다(%s)" % v.get("night")
 	_frame(main)
 	var size: Vector2 = v.night.size
-	var placed: bool = v.night.position == Vector2.ZERO and v.night.get_parent() == v and v.night.mouse_filter == Control.MOUSE_FILTER_IGNORE
+	var placed: bool = v.night.position == Vector2(0, -92) and v.night.material.get_shader_parameter("origin") == Vector2(0, -92) and v.night.get_parent() == v and v.night.mouse_filter == Control.MOUSE_FILTER_IGNORE
 	var day_shown: bool = v.night.visible
 	var day_count: int = v.night_params().count
 	_done(main)
@@ -188,7 +188,7 @@ func ev442():
 		if not p.lights[i].is_equal_approx(want):
 			bad.append("%s → %s(%s)" % [l, p.lights[i], want])
 	var shader: Dictionary = {"dark": v.night.material.get_shader_parameter("dark"), "count": v.night.material.get_shader_parameter("count")}
-	var out := check(size == Vector2(960, 63 * 16 + 72) and placed and not day_shown and day_count == 0
+	var out := check(size == Vector2(960, 92 + 93 * 16 + 72) and placed and not day_shown and day_count == 0
 			and v.night.visible and p.dark == 0.5 and p.count == b.lights.size() and b.lights.size() >= 4 and bad.is_empty() and shader.dark == 0.5 and shader.count == p.count,
 			"크기 %s · 자리·부모·클릭 무시 %s · 낮 보임 %s·불빛 %d · 밤 보임 %s·어둠 %.2f·불빛 %d(%d) · 셰이더 %s · 어긋난 불빛 %s" % [size, placed, day_shown, day_count, v.night.visible, p.dark, p.count, b.lights.size(), shader, bad.slice(0, 3)])
 	_done(main)

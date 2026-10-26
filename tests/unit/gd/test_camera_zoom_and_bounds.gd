@@ -38,18 +38,19 @@ func test_zoom_keeps_point_under_cursor():
 	cam.free()
 	return "" if before.is_equal_approx(after) else "커서 아래 지점이 %s에서 %s로 바뀌었다" % [before, after]
 
-func test_camera_shows_outside_map_only_below():
+func test_camera_shows_outside_map_only_above_and_below():
 	var cam = _cam()
 	var c = cam.get_viewport_rect().size / 2
 	for z in [-1, 0, 1]:
 		cam.zoom_at(z, c)
 		var below: float = cam.BOTTOM / cam.zoom.x
+		var above: float = cam.TOP + cam.TOP_BAR / cam.zoom.x  # 위 여백(I50 2026-10-26 변경)
 		for dir in [Vector2(-1, -1), Vector2(1, 1)]:
 			cam.pan(dir, 100.0)
 			var half = cam.get_viewport_rect().size / 2 / cam.zoom.x
 			var view := Rect2(cam.position - half, half * 2)
-			if not Rect2(Vector2.ZERO, MAP + Vector2(0, below)).grow(0.01).encloses(view) or (dir.y > 0 and absf(view.end.y - MAP.y - below) > 0.01):
-				var why := "배율 %s에서 보이는 영역 %s가 맵과 아래 여백 %.1f를 벗어나거나 맨 아래에 닿지 않았다" % [cam.zoom.x, view, below]
+			if not Rect2(Vector2(0, -above), MAP + Vector2(0, above + below)).grow(0.01).encloses(view) or (dir.y > 0 and absf(view.end.y - MAP.y - below) > 0.01) or (dir.y < 0 and absf(view.position.y + above) > 0.01):
+				var why := "배율 %s에서 보이는 영역 %s가 맵과 위 여백 %.1f·아래 여백 %.1f를 벗어나거나 끝에 닿지 않았다" % [cam.zoom.x, view, above, below]
 				cam.free()
 				return why
 	cam.free()

@@ -150,14 +150,14 @@ func ev129():
 				return "%.1f초에 주민 %s가 마을 밖이다" % [i * 0.5, p]
 	return ""
 
-# EV462 · S43: 시험 스테이지의 길 칸(광장·큰길 가운데 줄·남쪽 큰길·정문 안 공터)에는 집을 짓지 못하고, 고리 길·큰길 가장자리에는 짓는다
+# EV462 · S43: 시험 스테이지의 길 칸(광장·큰길 가운데 줄·남쪽 큰길·정문 안 공터·북문·서문 안 공터)에는 집을 짓지 못하고, 고리 길·큰길 가장자리에는 짓는다
 func ev462():
 	var b = battle(load("res://src/main.gd").stage())
 	b.gold = BIG
-	for at in [Vector2i(26, 12), Vector2i(29, 5), Vector2i(10, 14), Vector2i(30, 20), Vector2i(27, 24)]:
+	for at in [Vector2i(26, 29), Vector2i(29, 15), Vector2i(10, 31), Vector2i(30, 45), Vector2i(27, 55), Vector2i(28, 4), Vector2i(4, 30)]:
 		if b.build("house", at) != null or b.gold != BIG:
 			return "길 칸에 걸친 %s에 집이 지어졌다(골드 %d → %d)" % [at, BIG, b.gold]
-	for at in [Vector2i(20, 6), Vector2i(31, 5)]:
+	for at in [Vector2i(22, 21), Vector2i(31, 15)]:
 		if b.build("house", at) == null:
 			return "길 칸이 아닌 %s에 집이 지어지지 않았다" % [at]
 	return ""

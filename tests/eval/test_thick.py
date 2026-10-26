@@ -28,3 +28,11 @@ def test_EV459_gate_first_by_nearest_cell(gd):
 
 def test_EV460_engineer_repairs_from_village(gd):
     gd("thick", "EV460")
+
+
+def test_EV464_sealed_gates_stay_closed(gd):
+    gd("thick", "EV464")
+
+
+def test_EV465_walk_wall_ring(gd):
+    gd("thick", "EV465")

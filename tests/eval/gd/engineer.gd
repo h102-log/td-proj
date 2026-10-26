@@ -372,7 +372,7 @@ func ev424():
 	var d: Vector2i = cell_of(e) - b.base.cell if e else Vector2i.ZERO
 	if e == null or e.kind != "engineer" or b.gold != g - b.MERC_KINDS.engineer.cost or absi(d.x) + absi(d.y) != 1 or b.base.rally != cell_of(e):
 		return "거점에서 산 공병 %s · 골드 %d → %d · 자리 %s(거점 %s · 집결 지점 %s)" % [e, g, b.gold, e.pos if e else null, b.base.cell, b.base.rally]
-	var w = b.build("workshop", _nearest(b, "workshop", Vector2i(26, 15)))
+	var w = b.build("workshop", _nearest(b, "workshop", Vector2i(26, 32)))
 	if w == null or w.worker != e:
 		return "작업장 %s · 일꾼 %s(거점에서 산 공병 %s)" % [w, w.worker if w else null, e]
 	if not run(b, 30.0, func(): return w.complete):

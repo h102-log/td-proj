@@ -27,15 +27,17 @@ func test_pave_only_plaza_south_road_and_gate_apron():
 	View._pave(b, img, rng, View._plan().pave)
 	var k: Vector2i = b.base.cell
 	var wall_top: int = b.village.end.y * View.CELL
-	for g in b.castle:
-		if b.castle[g].kind == "gate" and _paved(img, Vector2i(g.x * View.CELL + 8, wall_top - 34)) < 0.5:
-			return "정문 %s 안 공터(성벽 그림 바로 위)에 박석이 없다" % g
+	if _paved(img, Vector2i(k.x * View.CELL + 8, wall_top - 34)) < 0.5:
+		return "정문 안 공터(남벽 그림 바로 위)에 박석이 없다"
+	for c in [Vector2i(30, 4), Vector2i(4, 30), Vector2i(55, 30)]:  # 북·서·동 닫힌 문루 안 공터(S202 2026-10-26 넷째 변경)
+		if _paved(img, _mid(c)) < 0.5:
+			return "닫힌 문루 안 공터 %s에 박석이 없다" % c
 	for c in [k + Vector2i(0, 1), k + Vector2i(-6, 0), k + Vector2i(6, 0), k + Vector2i(-1, 7), k + Vector2i(1, 7)]:  # 거점 문 앞, 광장 양 끝, 남쪽 큰길 양 가장자리
 		if _paved(img, _mid(c)) < 0.5:
 			return "%s에 박석이 없다" % c
 	if _paved(img, _mid(k + Vector2i(0, 7))) > 0.3:  # 남쪽 큰길 가운데는 흙. 양옆 칸 박석이 몇 px 넘어올 수 있다
 		return "남쪽 큰길 가운데 %s까지 박석을 깔았다" % (k + Vector2i(0, 7))
-	for p in [Vector2i(10 * View.CELL + 8, wall_top - 34), Vector2i(50 * View.CELL + 8, wall_top - 34), _mid(Vector2i(5, 2)), _mid(Vector2i(5, 13))]:  # 성벽 그림 바로 위(옛 박석 띠, 아래 그늘 줄은 피함), 마을 위쪽, 서쪽 큰길
+	for p in [Vector2i(10 * View.CELL + 8, wall_top - 34), Vector2i(50 * View.CELL + 8, wall_top - 34), _mid(Vector2i(5, 2)), _mid(Vector2i(15, 30))]:  # 남벽 그림 바로 위(옛 박석 띠, 아래 그늘 줄은 피함), 북벽, 서쪽 큰길(흙)
 		if _paved(img, p) > 0.0:
 			return "%s까지 박석을 깔았다(흙이나 풀이어야 한다)" % p
 	return ""
