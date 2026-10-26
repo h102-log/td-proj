@@ -487,6 +487,8 @@ func _marks() -> void:
 	for b in battle.castle.values() + battle.structures.values():
 		if b.hp < b.max_hp or (controls.show_hp and b.kind in battle.STRUCTURE_KINDS):
 			var top: float = FAC_FOOT.y - CELL - FAC[b.kind][1] if FAC.has(b.kind) else 0.0  # 시설은 그림 위에(4.1e). 칸 위에 그리면 그림을 가로질렀다
+			if battle.castle.get(b.cell) == b:
+				top += rise_at(battle, b.cell)  # 문루·탑은 앞면이 높아진 만큼 위에(S170). 성벽과 같은 자리(흉벽 바로 아래)다
 			_hp_bar(Vector2(battle.middle(b).x, b.cell.y) - Vector2(0, (_lift(b) + top) / CELL), b)  # 차지 칸 가운데 위(S173)
 
 # 유닛·적·주민 몸통(S165, S172)과 성곽·거점(4.1c)·시설(4.1e). 땅의 쓰러진 몸(S180), 발밑 팀 색(S166)과 비행 적 그림자(I81)를 먼저 깔고, (층, 바닥선 y, 목록 순서)로 정렬해 그린다.
@@ -589,28 +591,38 @@ func _shade(x) -> Color:
 func _cover(c: Vector2i) -> float:
 	for k in range(1, 4):
 		if battle.walls.has(c + Vector2i(0, k)):
-			var r := _rise(c + Vector2i(0, k))
+			var r := rise_at(battle, c + Vector2i(0, k))
 			return WALL_TOP_UP + (r + RING if r > 0 else 0) - CELL / 2.0 - CELL * (k - 1)
 	return -INF
 
 # 성곽 칸 c에 선 유닛·대포를 성벽 통로보다 더 올리는 px(S170): 문루는 GATE_RISE, 문 양옆 탑 열은 TOWER_RISE, 그 밖은 0
-func _rise(c: Vector2i) -> int:
-	var k = battle.walls.get(c)
+static func rise_at(bt, c: Vector2i) -> int:
+	var k = bt.walls.get(c)
 	if k == null:
 		return 0
 	if k.kind == "gate":
 		return GATE_RISE
-	return TOWER_RISE if _tower(k) != "" else 0
+	return TOWER_RISE if tower_of(bt, k) != "" else 0
 
 # 성벽 열 k가 성문 바로 옆이면 그 탑 조각 이름(문 왼쪽 «tower_l», 오른쪽 «tower_r»), 아니면 «». 성문이 잔해여도 탑이다
-func _tower(k) -> String:
+static func tower_of(bt, k) -> String:
 	for d in [1, -1]:
-		var g = battle.walls.get(k.cell + Vector2i(d, 0))
+		var g = bt.walls.get(k.cell + Vector2i(d, 0))
 		if g == null:
-			g = battle.debris.get(k.cell + Vector2i(d, 0))
+			g = bt.debris.get(k.cell + Vector2i(d, 0))
 		if g != null and g.kind == "gate":
 			return "tower_l" if d == 1 else "tower_r"
 	return ""
+
+# 맵 px p가 문루·문 양옆 탑 그림 가운데 성곽 뒤 땅 칸 쪽으로 솟은 부분이면 그 성곽 Block, 아니면 null(S218). 보통 성벽 열은 null이다
+static func raised_at(bt, p: Vector2):
+	var c := Vector2i((p / CELL).floor())
+	for k in range(1, 4):
+		var w = bt.walls.get(c + Vector2i(0, k))
+		if w != null:
+			var r := rise_at(bt, c + Vector2i(0, k))
+			return w if r > 0 and p.y >= (c.y + k) * CELL - WALL_TOP_UP - r - RING else null  # 그 열 그림 윗변 아래
+	return null
 
 # 그림 한 장을 원본과 같은 크기로 그린다. _clip보다 위 줄은 뺀다
 func _region(tex: Texture2D, dst: Rect2, src: Rect2, tint: Color) -> void:
@@ -690,7 +702,7 @@ func _wall_piece(b, front: int) -> void:
 			for i in b.size.x:  # 문루 잔해는 성벽 잔해 조각을 폭만큼 잇는다
 				draw_texture_rect_region(CASTLE, Rect2(at + Vector2(i * CELL, 0), Vector2(16, WALL_PIECE_H)), Rect2(0, 7 * WALL_PIECE_H, 16, WALL_PIECE_H))
 		return
-	var key := "castle_wall" if _tower(b) == "" else _tower(b)  # 성문 바로 옆 성벽 열은 탑이다(S170)
+	var key := "castle_wall" if tower_of(battle, b) == "" else tower_of(battle, b)  # 성문 바로 옆 성벽 열은 탑이다(S170)
 	if b.kind == "gate":
 		key = "open" if b.open else "closed"
 	var col: Array = WALL_COLS[key]
@@ -713,9 +725,9 @@ func _lift(x) -> float:
 	var p := _pos_of(x)
 	var top: bool = x.on_wall if x.get("pos") != null else (x.kind in battle.STRUCTURE_KINDS and battle.walls.has(x.cell))
 	if top:
-		return (p.y + 0.5) * CELL - ((roundf(p.y) + 1) * CELL - 3 - WALL_H) + _rise(Vector2i(p.round()))
+		return (p.y + 0.5) * CELL - ((roundf(p.y) + 1) * CELL - 3 - WALL_H) + rise_at(battle, Vector2i(p.round()))
 	if x.get("climbed"):
-		return (3 + WALL_H + _rise(Vector2i(p.round()) + Vector2i.UP)) * x.climbed / x.climb
+		return (3 + WALL_H + rise_at(battle, Vector2i(p.round()) + Vector2i.UP)) * x.climbed / x.climb
 	return 0.0
 
 # 유닛·적·칸을 그릴 자리(맵 px, 칸 가운데)와 칸 사각형. 성벽 위에 있으면 올린다
