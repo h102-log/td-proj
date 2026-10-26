@@ -132,16 +132,19 @@ func ev128():
 		return "적이 거점에 닿지 않았다"
 	return check(h.hp == h.max_hp, "들판의 적이 집을 쳤다(체력 %.1f)" % h.hp)
 
-# EV129 · S104: 완성된 집마다 주민 하나, 시간이 지나면 움직이고, 늘 마을 안이다
+# EV129 · S104: 완성된 집마다 그 집 가족 모두, 시간이 지나면 움직이고, 늘 마을 안이다
 func ev129():
 	var b = _battle()
 	b.build("house", H1)
 	b.build("house", H2)
+	var n = _people(b)
+	if n is String:
+		return n
 	var view = load("res://src/ui/battle_view.gd")
 	var a: Array = view.residents(b, 0.0)
 	var z: Array = view.residents(b, 3.0)
-	if a.size() != 2 or z.size() != 2:
-		return "주민 수가 %d·%d다" % [a.size(), z.size()]
+	if a.size() != n or z.size() != n:
+		return "주민 수가 %d·%d다(두 집 가족 %d명이어야 한다)" % [a.size(), z.size(), n]
 	if a == z:
 		return "3초 뒤에도 주민이 그 자리다"
 	for i in 120:
@@ -193,12 +196,105 @@ func ev471():
 	for at in [Vector2i(43, 8), Vector2i(42, 18)]:
 		if b.build("house", at) == null:
 			return "%s에 집이 지어지지 않았다" % [at]
+	var n = _people(b)
+	if n is String:
+		return n
 	var view = load("res://src/ui/battle_view.gd")
 	for i in 1201:
 		var ps: Array = view.residents(b, i * 0.05)
-		if ps.size() != 2:
-			return "주민이 %d명이다" % ps.size()
+		if ps.size() != n:
+			return "주민이 %d명이다(%d명이어야 한다)" % [ps.size(), n]
 		for p in ps:
 			if w.has(Vector2i(p.round())):
 				return "%.2f초에 주민 %s가 물 칸 위다" % [i * 0.05, p]
 	return ""
+
+# 완성된 집들의 가족 수 합. 가족(folk)이 없는 집이 있으면 그 까닭(글)
+func _people(b):
+	var n := 0
+	for s in b.structures.values():
+		var f = s.get("folk")
+		if s.tax > 0 and s.complete and (not f is Array or f.is_empty()):
+			return "집 %s에 가족(folk)이 없다" % [s.cell]
+		n += f.size() if f is Array else 0
+	return n
+
+const ADULT := ["man", "woman"]
+const KID := ["boy", "girl"]
+const ELDER := ["old_man", "old_woman"]
+
+# 가족(folk) → 유형(S221): alone·couple·kids·single·three. 다섯 유형이 아니면 ""
+func _kind_of(folk: Array) -> String:
+	var bodies: Array = folk.map(func(m): return m.body)
+	var a: Array = bodies.filter(func(x): return x in ADULT)
+	var k: int = bodies.filter(func(x): return x in KID).size()
+	var e: int = bodies.filter(func(x): return x in ELDER).size()
+	var couple: bool = a.size() == 2 and "man" in a and "woman" in a
+	if bodies.size() != a.size() + k + e or bodies.is_empty():
+		return ""
+	if bodies.size() == 1:
+		return "alone"
+	if couple and k == 0 and e == 0:
+		return "couple"
+	if couple and k >= 1 and k <= 3 and e == 0:
+		return "kids"
+	if a.size() == 1 and k >= 1 and k <= 2 and e == 0:
+		return "single"
+	if couple and k >= 1 and k <= 2 and e == 1:
+		return "three"
+	return ""
+
+# 판의 집들의 가족을 [몸, look] 배열로(비교용)
+func _families(b) -> Array:
+	return b.structures.values().map(func(s): return (s.get("folk") if s.get("folk") is Array else []).map(func(m): return [m.body, m.look]))
+
+# EV473 · S221: 집마다 다섯 유형 가운데 하나의 가족, 몸·look 범위, 가족은 피부가 같고, 같은 씨앗·차례면 같은 가족
+func ev473():
+	var b = _battle({"seed": 7})
+	b.build("house", H1)
+	b.build("house", H2)
+	for s in b.structures.values():
+		var f = s.get("folk")
+		if not f is Array or f.is_empty() or f.size() > 5 or _kind_of(f) == "":
+			return "집 %s의 가족이 다섯 유형이 아니다: %s" % [s.cell, f]
+		for m in f:
+			if not m.body in ADULT + KID + ELDER or m.look < 0 or m.look > 7 or m.look % 3 != f[0].look % 3:
+				return "집 %s의 주민 %s가 몸·look 범위 밖이거나 피부가 가족과 다르다" % [s.cell, m]
+	var c = _battle({"seed": 7})
+	c.build("house", H1)
+	c.build("house", H2)
+	return check(_families(b) == _families(c), "같은 씨앗·차례인데 가족이 다르다: %s / %s" % [_families(b), _families(c)])
+
+# EV474 · S221: 씨앗 200개에서 다섯 유형이 모두 나오고 부부와 아이가 가장 많다
+func ev474():
+	var n := {}
+	for sd in range(1, 201):
+		var b = _battle({"seed": sd})
+		var s = b.build("house", H1)
+		var f = s.get("folk") if s else null
+		var k: String = _kind_of(f) if f is Array else ""
+		if k == "":
+			return "씨앗 %d의 가족이 다섯 유형이 아니다: %s" % [sd, f]
+		n[k] = n.get(k, 0) + 1
+	var top: String = n.keys().reduce(func(x, y): return x if n[x] >= n[y] else y)
+	return check(n.size() == 5 and top == "kids", "유형별 수 %s" % [n])
+
+# EV475 · S221: 짓는 동안은 가족이 없고, 다 지으면 생기고, 팔면 함께 없어진다
+func ev475():
+	var b = _battle()
+	b.place_merc("engineer", Vector2i(12, 5))
+	b.start_battle()
+	var h = b.build("house", H1)
+	var view = load("res://src/ui/battle_view.gd")
+	if h == null or h.complete:
+		return "전투 중에 미완성 집이 놓이지 않았다(%s)" % [h]
+	if not h.get("folk") is Array or not h.folk.is_empty() or not view.residents(b, 0.0).is_empty():
+		return "짓는 중인 집에 가족이 있다(%s)" % [h.get("folk")]
+	if not run(b, 60, func(): return h.complete):
+		return "60초 안에 다 짓지 못했다"
+	if h.folk.is_empty() or h.folk.size() > 5 or view.residents(b, 0.0).size() != h.folk.size():
+		return "다 지은 집의 가족 %s · 주민 %d명" % [h.folk, view.residents(b, 0.0).size()]
+	if not clear_wave(b) or b.state != "prep":
+		return "웨이브가 끝나지 않았다(%s)" % b.state
+	b.sell([h])
+	return check(view.residents(b, 0.0).is_empty(), "판 집의 주민이 남았다(%d명)" % view.residents(b, 0.0).size())

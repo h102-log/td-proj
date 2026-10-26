@@ -52,3 +52,15 @@ def test_EV468_no_house_on_water_or_bridge(gd):
 
 def test_EV471_residents_off_water(gd):
     gd("house", "EV471")
+
+
+def test_EV473_household_types_and_looks(gd):
+    gd("house", "EV473")
+
+
+def test_EV474_household_type_spread(gd):
+    gd("house", "EV474")
+
+
+def test_EV475_family_moves_in_when_built_and_leaves_when_sold(gd):
+    gd("house", "EV475")

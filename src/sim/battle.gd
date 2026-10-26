@@ -16,6 +16,15 @@ var QUEST_KINDS := _kinds("res://data/quests/")  # 미션·의뢰 정의(S77, I1
 const VILLAGE_UP := [60]  # 마을 레벨 n→n+1 비용(S99). 길이+1이 최대 레벨이다. 임시값(Claude 예시, 사용자 2026-10-13 수락)
 const MERC_CAP := 10  # 배치 상한 기본값(S25). 임시값(사용자 2026-10-13), 스테이지의 merc_cap이 덮어쓴다
 const HOUSE_CAP := 6  # 마을에 지을 수 있는 집 수(S101). 임시값(사용자 2026-10-13)
+# 가구 유형(S221): [가중치, 어른, 아이 최소, 아이 최대, 노인]. 어른 둘은 남녀 한 쌍, 하나는 남녀 반반이다. 손잡이 값(사용자 2026-10-26 «조사 표 그대로»)
+const HOUSEHOLDS := [
+	[7.5, 1, 0, 0, 0], [7.5, 0, 0, 0, 1],  # 혼자 15: 젊은 어른 하나나 노인 하나
+	[20.0, 2, 0, 0, 0],  # 부부
+	[35.0, 2, 1, 3, 0],  # 부부와 아이
+	[10.0, 1, 1, 2, 0],  # 한 부모와 아이
+	[15.0, 2, 1, 2, 1],  # 3대
+]
+const FOLK_LOOKS := 8  # 몸마다 색 프리셋 수(S172, tools/art/folk.py LOOKS). 피부는 look % 3이다
 const QUEST_OFFERS := 2  # 라운드 사이에 보이는 의뢰 수(I121). 임시값(Claude 예시)
 const TALLY_KEYS := ["base_hit", "castle_lost", "structure_lost", "merc_lost", "hero_down", "merc_bought", "built", "battle_time"]  # 라운드 집계의 키(I119)
 const SPAWN_GAP := 2.5  # 웨이브 안에서 적이 나오는 간격(초). 임시값: 1.0 → 0.9(2026-10-15 3장 자체 점검, 사용자 승인 2026-10-16 — insights/2026-10-15_ch3_self_check_balance.md §8) → 2.5(2026-10-21 5.1 판 길이, I91 — insights/2026-10-21_round_design.md)
@@ -75,6 +84,7 @@ class Block:
 	var produces := []  # 생산 시설이면 파는 용병 kind들. 첫째가 기본이다(S20, S87)
 	var rally: Vector2i  # 생산 시설의 집결 지점(S21)
 	var tax := 0  # 집이면 준비 단계마다 내는 세금(S101)
+	var folk := []  # 집이면 사는 가족(S221): {body, look} 배열. 다 지은 때 정해진다(_move_in)
 	var progress := 1.0  # 건설 진행률(0~1). 1 미만이면 미완성이다(I62)
 	var full: float  # 다 지었을 때의 체력. 옮겨 다시 짓는 대포는 옮기기 전 체력이다(I74)
 	var build_time := 1.0  # 전투 중 짓는 데 드는 시간(초)
@@ -338,6 +348,7 @@ var _spare := 0.0  # 아직 1골드가 되지 않은 처치 보상(I176)
 var _stage: Dictionary  # 재시작할 때 다시 읽는다
 var _rng := RandomNumberGenerator.new()  # 영입소 목록을 뽑는다. 스테이지에 seed가 있으면 그 씨앗이다(평가용)
 var _luck := RandomNumberGenerator.new()  # 치명타·요새화 기절(S149, S151). 영입소 목록이 전투에 따라 바뀌지 않게 따로 둔다
+var _kin := RandomNumberGenerator.new()  # 집의 가족(S221). 영입소·전투 난수가 집 짓기에 따라 바뀌지 않게 따로 둔다
 var _chains := 0  # 영혼 사슬(S154)마다 붙이는 번호
 var _holds := {}  # 유닛 → 그 유닛이 붙잡은 적 수(S159). 스텝마다 적의 engaged로 다시 센다
 var _tracing = null  # 지금 내는 스킬 흔적(_trace). 그동안 피해·회복을 받은 대상이 hits에 쌓인다
@@ -449,9 +460,11 @@ func restart() -> void:
 	if stage.has("seed"):
 		_rng.seed = stage.seed
 		_luck.seed = stage.seed + 1
+		_kin.seed = stage.seed + 2
 	else:
 		_rng.randomize()
 		_luck.randomize()
+		_kin.randomize()
 	_draw_offers()  # 도전을 시작할 때 무료로 뽑는다(I104)
 	var q = stage.get("quests", [])  # 미션·의뢰(I118): true면 data/quests의 모든 것, 배열이면 그 이름들만(평가용). 없으면 뜨지 않는다
 	quests = QUEST_KINDS.keys() if q is bool and q else (q.duplicate() if q is Array else [])
@@ -1672,6 +1685,8 @@ func build(kind: String, cell: Vector2i, overrides := {}):
 		s.complete = false
 		s.hp = 0.0
 		_send(engineer, s)
+	else:
+		_move_in(s)
 	if not s.produces.is_empty():
 		var exit = _exit_of(s)
 		s.rally = exit if exit != null else cell
@@ -2091,7 +2106,28 @@ func _grow(s: Block, dp: float) -> void:
 	if s.progress >= 1.0:
 		s.complete = true
 		_release(s)
+		_move_in(s)
 		_repath = true
+
+# 다 지은 집에 가족이 들어온다(S221). 유형을 가중치로 고르고 몸을 정한다. 피부(look % 3)는 가족이 같이 쓴다
+func _move_in(s: Block) -> void:
+	if s.tax <= 0:
+		return
+	var w: float = _kin.randf() * HOUSEHOLDS.reduce(func(a, h): return a + h[0], 0.0)
+	var h: Array = HOUSEHOLDS.back()
+	for x in HOUSEHOLDS:
+		w -= x[0]
+		if w < 0.0:
+			h = x
+			break
+	var pick := func(two: Array): return two[_kin.randi() % 2]
+	var bodies := ["man", "woman"] if h[1] == 2 else ([pick.call(["man", "woman"])] if h[1] == 1 else [])
+	for i in _kin.randi_range(h[2], h[3]):
+		bodies.append(pick.call(["boy", "girl"]))
+	for i in h[4]:
+		bodies.append(pick.call(["old_man", "old_woman"]))
+	var skin := _kin.randi() % 3
+	s.folk = bodies.map(func(b): return {"body": b, "look": skin + 3 * _kin.randi_range(0, (FOLK_LOOKS - 1 - skin) / 3)})
 
 # 옆 칸에 닿은 공병은 수리할 몫이 있으면 고치고(I87, 잔해면 다시 세운 뒤 고친다, I89), 성곽이면 올리고(S86),
 # 미완성이면 짓고(I62), 완성이면 허문다(I64: 건설 시간의 절반이 든다). 밀려나 멀어졌으면 다시 걸어간다

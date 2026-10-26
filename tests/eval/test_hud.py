@@ -291,3 +291,7 @@ def test_EV467_gate_names_by_direction(gd):
 
 def test_EV470_water_baked_and_on_minimap(gd):
     gd("hud", "EV470")
+
+
+def test_EV477_folk_atlas_cells(gd):
+    gd("hud", "EV477")

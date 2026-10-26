@@ -23,3 +23,7 @@ def test_EV421_game_scene_holds_live_prep(gd):
 
 def test_EV422_save_keeps_engineer_jobs(gd):
     gd("save", "EV422")
+
+
+def test_EV476_save_keeps_families(gd):
+    gd("save", "EV476")
