@@ -162,7 +162,9 @@ func _release(rect: Rect2, at: Vector2) -> void:
 		units = battle.heroes.filter(func(h): return h.alive and Vector2i(h.pos.round()) == cell).slice(0, 1)  # 클릭한 칸의 영웅(I9, I101)
 		var hit = battle.structure_at(cell)
 		facility = hit if hit and not hit.produces.is_empty() and hit.complete else null
-		fort = battle.walls.get(cell, battle.debris.get(cell))  # 성곽 차지 칸 어디를 눌러도(S217)
+		fort = BattleView.side_at(battle, rect.position)  # 동·서 성벽·닫힌 문루·모서리 탑은 올려 그린 그림으로(S219)
+		if fort == null:
+			fort = battle.walls.get(cell, battle.debris.get(cell))  # 성곽 차지 칸 어디를 눌러도(S217)
 		village = cell == battle.base.cell
 		picked = [hit] if hit and (not prep or (battle.live() and not hit.complete)) else []  # live 준비 단계의 미완성은 판매 대신 이어 짓기·취소(S83, I57)
 		for m in mercs:

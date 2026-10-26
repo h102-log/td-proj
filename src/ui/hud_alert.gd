@@ -75,13 +75,19 @@ func _hit(k, kind: String, text: String, hits: Array) -> void:
 		hits.append([kind, k.cell, k, text])
 	_hp[k] = k.hp
 
-# ponytail: 성문 이름은 성문 차례다. 하나면 정문(시험 스테이지, S39 2026-10-26 변경), 셋이면 왼쪽 쪽문·정문·오른쪽 쪽문. 다른 수의 맵이 생기면 x로 이름을 정한다
+# ponytail: 성문 이름은 x 차례다. 하나면 정문, 셋이면 왼쪽 쪽문·정문·오른쪽 쪽문이다. 넷(사방 성곽)이면 거점에서 본 방향으로 정문(남)·북문·서문·동문이다(I180).
+# 다른 수의 맵이 생기면 방향 규칙으로 합친다
 func _name(k, gates: Array) -> String:
 	if k.kind != "gate":
 		return "성벽"
 	var i := gates.find(k)
 	if gates.size() == 1:
 		return "정문"
+	if gates.size() == 4:
+		var d: Vector2 = battle.middle(k) - Vector2(battle.base.cell)
+		if absf(d.x) > absf(d.y):
+			return "서문" if d.x < 0 else "동문"
+		return "정문" if d.y > 0 else "북문"
 	return "왼쪽 쪽문" if i == 0 else "오른쪽 쪽문" if i == gates.size() - 1 else "정문"
 
 # 표식은 늘 이어 간다. 거점·성문은 대상마다 COOL초, 그 밖은 같은 종류 ±NEAR칸·AGAIN초 안이면 다시 알리지 않는다. 알렸으면 true

@@ -53,11 +53,22 @@ def main():
 WALL_LAYERS = ["wall_t3_L1", "front_t3_L1", "wall_t3_L2", "front_t3_L2", "wall_t3_L3", "front_t3_L3", "shade_t3", "rubble_t3"]
 WALL_STRIPS = [(6, 1), (1, 3), (9, 3), (8, 1), (12, 1)]  # (시험 그림의 칸 번호, 폭 칸): 성벽 한 열, 열린 문, 닫힌 문, 문 왼쪽 탑, 문 오른쪽 탑
 WALL_H = 105  # 조각 높이: 원점 줄부터 양옆 탑 뒤 모서리까지(문루·탑 전에는 통로 뒤 모서리까지 74)
+# 사방 성곽(S219) 열: 남쪽 열 다음에 (그림 이름, 자를 칸들). 자를 칸이 None이면 wall.py가 이미 자른 48px 조각이다(side_piece).
+# 북벽 열·닫힌 문루·양옆 탑, 남·북 모서리 탑(왼쪽·오른쪽), 서·동 성벽 행 띠, 서·동 닫힌 문루. battle_view.gd WALL_COLS와 같다
+SQUARE = [("wall_n_t3", [(6, 1), (9, 3), (8, 1), (12, 1)]), ("corner_s", [(0, 3), (5, 3)]), ("corner_n", [(0, 3), (5, 3)]),
+          ("side_w", None), ("side_e", None), ("gate_w", None), ("gate_e", None)]
+
+
+def _layer(name, front):
+    """사방 성곽 그림 파일 이름(단계 접미사 앞): 몸체는 name, 앞층은 wall_n_t3 → front_n_t3, 그 밖은 front_ + name"""
+    if not front:
+        return name
+    return "front_n_t3" if name == "wall_n_t3" else "front_" + name
 
 
 def castle():
     h = WALL_H
-    out = Image.new("RGBA", (16 * sum(w for _, w in WALL_STRIPS), h * len(WALL_LAYERS)))
+    out = Image.new("RGBA", (16 * sum(w for _, w in WALL_STRIPS) + 16 * sum(sum(w for _, w in st) if st else 3 for _, st in SQUARE), h * len(WALL_LAYERS)))
     for r, layer in enumerate(WALL_LAYERS):
         im = Image.open(f"art/trial/walls/{layer}.png").convert("RGBA")
         base = im.height - 4
@@ -65,6 +76,22 @@ def castle():
         for strip, w in ([(0, 1)] if layer.startswith("rubble") else WALL_STRIPS):  # 잔해는 0번 칸 하나만 그렸다
             out.paste(im.crop((4 + strip * 16, base - h + 1, 4 + (strip + w) * 16, base + 1)), (x, h * r))
             x += 16 * w
+    for r in range(6):  # 단계 1~3의 몸체·앞층. 통로 그늘·잔해 행은 비운다(닫힌 문루는 열리지 않고, 동·서 성벽은 남쪽 적이 부수지 못한다)
+        level, front = r // 2 + 1, r % 2 == 1
+        x = 16 * sum(w for _, w in WALL_STRIPS)
+        for name, strips in SQUARE:
+            if front and name.startswith("side_"):  # 동·서 성벽 띠는 발을 가릴 앞면이 없다
+                x += 48
+                continue
+            im = Image.open(f"art/trial/walls/{_layer(name, front)}_L{level}.png").convert("RGBA")
+            if strips is None:
+                out.paste(im, (x, h * r))
+                x += im.width
+                continue
+            base = im.height - 4
+            for strip, w in strips:
+                out.paste(im.crop((4 + strip * 16, base - h + 1, 4 + (strip + w) * 16, base + 1)), (x, h * r))
+                x += 16 * w
     Path("art/castle").mkdir(exist_ok=True)
     out.save("art/castle/walls.png")
     keep = Image.new("RGBA", (160, 80))

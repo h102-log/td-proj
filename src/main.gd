@@ -178,26 +178,34 @@ static func apply_window(w: Window) -> void:
 	if Settings.fullscreen != null and Settings.fullscreen != (w.mode == Window.MODE_FULLSCREEN):
 		toggle_fullscreen(w)
 
-# W1 시험 스테이지(60×63, S203·S51 위아래 구도). 위쪽 마을을 두께 3줄 가로 성곽(S217)이 막고, 적은 아래쪽 가장자리에서 온다.
+# W1 시험 스테이지(60×93, S203·S51 위아래 구도). 위쪽 60×60은 두께 3줄 사방 성곽(S217)이 두른 성이고, 적은 아래쪽 가장자리에서 온다.
 # 도전 내내 이 맵이고, 라운드마다 웨이브만 바뀐다(S78, I91)
 static func stage() -> Dictionary:
 	var rounds := ROUNDS.map(func(r): return load("res://data/waves/%s.tres" % r).to_stage())  # S31, I66
-	var gates := [Vector2i(29, 29)]  # 정문 하나(좌우 쪽문은 없앴다, S39 2026-10-26 변경). 성곽의 칸은 앞(들판 쪽) 왼쪽 칸이고 문루는 3×3이다(S217)
-	var walls := []  # 성벽은 열마다 하나(27~29행)
+	# 사방 성곽(S203·S217 2026-10-26 둘째 변경). 성곽의 칸은 차지 칸 가운데 가장 왼쪽·가장 아래 칸이고 문루는 3×3이다
+	var sealed := [Vector2i(29, 2), Vector2i(0, 31), Vector2i(57, 31)]  # 북·서·동 닫힌 문루(S39)
+	var gates := [Vector2i(29, 59)] + sealed  # 정문을 맨 앞에 둔다(S143 거리가 같으면 앞선 문)
+	var walls := []  # 남·북 성벽은 열마다 하나(남 57~59행, 북 0~2행). 네 모서리 3×3도 여기다
 	for x in 60:
-		if not gates.any(func(g): return x >= g.x and x < g.x + 3):
-			walls.append(Vector2i(x, 29))
+		if x < 29 or x > 31:
+			walls.append(Vector2i(x, 59))
+			walls.append(Vector2i(x, 2))
+	var side := []  # 동·서 성벽은 3~56행에서 행마다 하나(서 0~2열, 동 57~59열)
+	for y in range(3, 57):
+		if y < 29 or y > 31:
+			side.append(Vector2i(0, y))
+			side.append(Vector2i(57, y))
 	return {
-		"size": Vector2i(60, 63), "base": Vector2i(30, 13), "base_hp": 100, "gold": 220,  # 거점은 마을 한가운데(S37, S203). 시작 골드(S111)
-		"spawns": [Vector2i(9, 62), Vector2i(30, 62), Vector2i(50, 62)],
+		"size": Vector2i(60, 93), "base": Vector2i(30, 30), "base_hp": 100, "gold": 220,  # 거점은 마을 한가운데(S37, S203). 시작 골드(S111)
+		"spawns": [Vector2i(9, 92), Vector2i(30, 92), Vector2i(50, 92)],
 		"spawn_spread": 10, "spawn_gap": 0.25, "reward_scale": 0.1,  # 맨 아래 줄 전체에서 흩어져 나온다(I177). 적 10배라 간격 0.25초(I91), 처치 보상 0.1배(I176)
-		# 출전 칸(I107): 정문 문루(29~31열, 27~29행) 바로 앞 들판의 세 칸. 성문은 닫힌 채 시작해서(I67) 마을 안에 두면 나올 수 없다(I42, 사용자 2026-10-12)
-		"hero_cells": [Vector2i(29, 31), Vector2i(31, 31), Vector2i(30, 31)],
-		"engineer_cells": [Vector2i(30, 14), Vector2i(28, 31)],  # 시작 공병(S208): 거점 아래 마을 칸, 출전 칸 옆 들판 칸. 성문이 닫혀 있어도 마을·들판에 하나씩 짓는다(사용자 2026-10-25)
+		# 출전 칸(I107): 정문 문루(29~31열, 57~59행) 바로 앞 들판의 세 칸. 성문은 닫힌 채 시작해서(I67) 마을 안에 두면 나올 수 없다(I42, 사용자 2026-10-12)
+		"hero_cells": [Vector2i(29, 61), Vector2i(31, 61), Vector2i(30, 61)],
+		"engineer_cells": [Vector2i(30, 31), Vector2i(28, 61)],  # 시작 공병(S208): 거점 아래 마을 칸, 출전 칸 옆 들판 칸. 성문이 닫혀 있어도 마을·들판에 하나씩 짓는다(사용자 2026-10-25)
 		# ponytail: 체력은 임시값이다. 성문이 성벽보다 약해야 한다는 것(I41)만 지킨다. 수치는 3.1 밸런스에서 정한다
-		"castle": {"walls": walls, "gates": gates, "wall_hp": 300, "gate_hp": 150, "wall_size": Vector2i(1, 3), "gate_size": Vector2i(3, 3)},
-		"village": Rect2i(0, 0, 60, 27),  # 성곽(27~29행) 위쪽. 생산 시설은 여기에만 짓는다(S43)
-		"roads": BattleView.roads(),  # 마을 길 칸(광장·큰길): 짓지 못한다(S43 2026-10-26 변경). 표는 바닥 그림과 같은 BattleView._plan
+		"castle": {"walls": walls, "gates": gates, "wall_hp": 300, "gate_hp": 150, "wall_size": Vector2i(1, 3), "gate_size": Vector2i(3, 3), "side_walls": side, "side_wall_size": Vector2i(3, 1), "sealed": sealed},
+		"village": Rect2i(3, 3, 54, 54),  # 사방 성곽 안쪽(3~56행·열). 생산 시설은 여기에만 짓는다(S43)
+		"roads": BattleView.roads(),  # 마을 길 칸(광장·큰길·문루 안 공터): 짓지 못한다(S43 2026-10-26 둘째 변경). 표는 바닥 그림과 같은 BattleView._plan
 		"rounds": rounds,
 		"hp_mult": ROUNDS.map(func(r): return load("res://data/waves/%s.tres" % r).hp_mult),  # 라운드 적 체력 배율(S144)
 		"nights": ROUNDS.map(func(r): return load("res://data/waves/%s.tres" % r).nights),  # 웨이브마다 밤(S210)

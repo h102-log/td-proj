@@ -678,6 +678,15 @@ msgstr "Right gate"
 msgid "정문"
 msgstr "Main gate"
 
+msgid "북문"
+msgstr "North gate"
+
+msgid "서문"
+msgstr "West gate"
+
+msgid "동문"
+msgstr "East gate"
+
 # ── 위 띠·진행 칸·툴팁(hud.gd) ──
 
 msgid "미션·의뢰"

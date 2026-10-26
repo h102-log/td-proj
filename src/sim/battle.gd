@@ -82,6 +82,7 @@ class Block:
 	var razed := 0.0  # 철거 진행률(0~1, I64). 옮기는 대포는 1이면 접혀 새 칸으로 가는 중이다(I74)
 	var dest  # 대포를 옮겨 갈 칸(S44). 옮기는 중이 아니면 null
 	var open := false  # 열린 성문(S85). 막힌 칸이 아니다(I67)
+	var sealed := false  # 닫힌 문루(S39 2026-10-26 둘째 변경): 열거나 닫지 못한다
 	var lock := 0.0  # 성문 쿨타임(S135)의 남은 초. 0보다 크면 여닫기 지시를 거부한다
 	var level := 1  # 성곽 업그레이드 단계(S86)
 	var lift := -1.0  # 업그레이드 진행률(0~1). 음수면 올리는 중이 아니다. 그만두면 그대로 남는다(I68)
@@ -415,6 +416,12 @@ func restart() -> void:
 			var k := Block.new(c, kind, fort.wall_hp if kind == "castle_wall" else fort.gate_hp)
 			k.size = fort.get("wall_size" if kind == "castle_wall" else "gate_size", Vector2i.ONE)
 			_put(castle, walls, k)
+	for c in fort.get("side_walls", []):  # 사방 성곽의 동·서 성벽은 행마다 Block 하나(S217 2026-10-26 둘째 변경)
+		var k := Block.new(c, "castle_wall", fort.wall_hp)
+		k.size = fort.side_wall_size
+		_put(castle, walls, k)
+	for c in fort.get("sealed", []):  # 닫힌 문루(S39)
+		castle[c].sealed = true
 	field_y = village.end.y + 1
 	for k in castle.values():
 		field_y = maxi(field_y, k.cell.y + 1)
@@ -941,7 +948,12 @@ func _unit_paths() -> void:
 		_wall.set_point_solid(c, false)
 
 # 땅과 성벽 위를 오가면 path 끝(성문 안쪽 칸이나 성문 칸)에서 오르내린 뒤 after를 걷는다(I44).
-# 오르내릴 성문은 «땅 위 경로 비용 + 성벽 위 걸음 수»가 가장 작은 곳이다(I69)
+# 오르내릴 성문은 «땅 위 경로 비용 + 성벽 위 걸음 수»가 가장 작은 곳이고, 같으면 성곽 칸 차례가 앞선 곳이다(I69)
+# 2026-10-26
+# [동작] 땅 길은 «직선 거리 + 성벽 위 걸음 수» 하한이 작은 계단부터 구하고, 하한이 지금 최선보다 크면 멈춘다
+# [이유] 사방 성곽(S203)에서 계단 칸이 3에서 12로 늘어 유닛 하나 명령에 땅 길 A*(칸마다 GDScript 비용 함수)를 12번 돌려
+#        성벽 위로 보내는 명령이 한 명에 0.5ms에서 9ms가 됐고, 이렇게 해서 1.5ms다(2026-10-26 측정). 땅 길 비용은 직선 거리보다
+#        작지 않아 고르는 계단은 그대로다. 내려가는 길은 _short가 막힌 목적지 앞에서 자르므로 가장 큰 차지 칸 대각선(4.5)만큼 하한을 낮춘다
 func _route(u: Unit, cell: Vector2i) -> void:
 	var from := Vector2i(u.pos.round())
 	var up := walls.has(cell)
@@ -950,18 +962,28 @@ func _route(u: Unit, cell: Vector2i) -> void:
 	if u.on_wall == up:
 		u.path = (_wall.get_id_path(from, cell) if up else _short(grid.path(from, cell))).slice(1)
 		return
-	var best := INF
+	var cands := []  # [하한, 차례, 계단 칸, 성벽 위 길]
 	for g in walls:
 		var s = _stair(g)
 		if s == null:
 			continue
 		var top: Array[Vector2i] = _wall.get_id_path(from, g) if u.on_wall else _wall.get_id_path(g, cell)
-		var ground: Array[Vector2i] = _short(grid.path(s, cell)) if u.on_wall else grid.path(from, s)
-		var cost := _cost(ground) + top.size()
-		if not top.is_empty() and cost < best:
+		if not top.is_empty():
+			var near: float = Vector2(s).distance_to(Vector2(cell)) - 4.5 if u.on_wall else Vector2(s).distance_to(Vector2(from))
+			cands.append([near + top.size(), cands.size(), s, top])
+	cands.sort_custom(func(a, b): return a[0] < b[0] or (a[0] == b[0] and a[1] < b[1]))
+	var best := INF
+	var best_i := -1
+	for c in cands:
+		if c[0] > best:
+			break
+		var ground: Array[Vector2i] = _short(grid.path(c[2], cell)) if u.on_wall else grid.path(from, c[2])
+		var cost: float = _cost(ground) + c[3].size()
+		if cost < best or (cost == best and c[1] < best_i):
 			best = cost
-			u.path = (top if u.on_wall else ground).slice(1)
-			u.after = ground if u.on_wall else top
+			best_i = c[1]
+			u.path = (c[3] if u.on_wall else ground).slice(1)
+			u.after = ground if u.on_wall else c[3]
 
 # 목적지 칸이 들어갈 수 없는 칸(구조물·거점)이면 길은 그 앞 칸에서 끝난다(S14). 에너지 성벽은 아군이 지나간다(I142)
 func _short(p: Array[Vector2i]) -> Array[Vector2i]:
@@ -1793,9 +1815,9 @@ func _exit_of(s: Block):
 			return c
 	return null
 
-# 준비·전투 단계에 성문을 열거나 닫는다(S85, S117). 성문 칸에 유닛이나 적이 있으면 닫지 않는다. 여닫으면 적(I67)과 걷던 유닛(I133)의 경로를 다시 구한다. 전투 단계에 여닫으면 그 성문만 GATE_LOCK초 동안 묶고, 묶인 성문과 거부된 지시는 묶지 않는다(S135)
+# 준비·전투 단계에 성문을 열거나 닫는다(S85, S117). 닫힌 문루(S39)는 거부한다. 성문 칸에 유닛이나 적이 있으면 닫지 않는다. 여닫으면 적(I67)과 걷던 유닛(I133)의 경로를 다시 구한다. 전투 단계에 여닫으면 그 성문만 GATE_LOCK초 동안 묶고, 묶인 성문과 거부된 지시는 묶지 않는다(S135)
 func set_gate(g: Block, open: bool) -> void:
-	if state not in ["prep", "battle"] or g.kind != "gate" or castle.get(g.cell) != g or g.lock > 0.0:
+	if state not in ["prep", "battle"] or g.kind != "gate" or g.sealed or castle.get(g.cell) != g or g.lock > 0.0:
 		return
 	if not open and occupied_area(g):
 		return

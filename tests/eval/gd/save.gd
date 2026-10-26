@@ -130,14 +130,14 @@ func ev306():
 	if a.hire(0) == null or a.hire(1) == null:
 		return "영입하지 못했다"
 	a.next_round()
-	for p in [["tower", Vector2i(28, 33)], ["tower", Vector2i(32, 33)], ["wall", Vector2i(30, 36)], ["barracks", Vector2i(14, 5)]]:  # 들판 칸은 성곽 3줄(S217)만큼 아래
+	for p in [["tower", Vector2i(28, 63)], ["tower", Vector2i(32, 63)], ["wall", Vector2i(30, 66)], ["barracks", Vector2i(14, 22)]]:  # 들판은 남벽(57~59행, S203) 아래
 		if a.build(p[0], _near(a, p[0], p[1])) == null:
 			return "%s를 짓지 못했다" % p[0]
-	for want in [Vector2i(30, 32), Vector2i(26, 31)]:  # 용병은 병영이 있어야 놓는다(S50)
+	for want in [Vector2i(30, 62), Vector2i(26, 61)]:  # 용병은 병영이 있어야 놓는다(S50)
 		if a.place_merc("soldier", _near(a, "soldier", want)) == null:
 			return "용병을 놓지 못했다"
-	a.set_gate(a.castle[Vector2i(29, 29)], true)  # 정문 문루
-	a.upgrade(a.castle[Vector2i(22, 29)])  # 22열 성벽
+	a.set_gate(a.castle[Vector2i(29, 59)], true)  # 정문 문루
+	a.upgrade(a.castle[Vector2i(22, 59)])  # 22열 남벽
 	a.start_battle()
 	run(a, 15.0)
 	_cast_q(a)
@@ -145,7 +145,7 @@ func ev306():
 		return "웨이브 1에서 Q를 쓰지 못했다"
 	if not clear_wave(a) or a.state != "prep":
 		return "웨이브 1 뒤 준비 단계가 아니다(%s)" % a.state
-	a.order_move(a.heroes, Vector2i(30, 44))
+	a.order_move(a.heroes, Vector2i(30, 74))
 	run(a, 6.0)
 	var why := _twin(a, stage, func(x):
 		x.start_battle()
@@ -331,8 +331,8 @@ func ev422():
 	if a.hire(0) == null:
 		return "영입하지 못했다"
 	a.next_round()
-	var t = a.build("tower", _near(a, "tower", Vector2i(28, 31)))
-	var f = a.build("barracks", _near(a, "barracks", Vector2i(26, 15)))
+	var t = a.build("tower", _near(a, "tower", Vector2i(28, 61)))
+	var f = a.build("barracks", _near(a, "barracks", Vector2i(26, 32)))
 	if t == null or f == null or t.worker == null or f.worker == null:
 		return "공병이 짓게 하지 못했다(타워 %s · 병영 %s)" % [t, f]
 	run(a, 1.0)

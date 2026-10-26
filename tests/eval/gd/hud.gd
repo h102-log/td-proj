@@ -344,7 +344,7 @@ func ev324():
 	return out
 
 # EV325 · I50, S186: 1·2·3배 줌 맨 아래에서 맵 아래끝이 화면 y 288이고 정보 칸은 [376,306,130,54] 안에 아래로 붙는다.
-# 맨 위에서는 맵 y 0이 화면 y 0 아래로 내려가지 않고 정보 칸은 격자 위(x 510, 아래끝 288)다
+# 맨 위에서는 맵 y 0이 화면 y 28 + 64 × 줌(위 띠 아래로 맵 밖 64px, I50 2026-10-26 변경)이고 정보 칸은 격자 위(x 510, 아래끝 288)다
 func ev325():
 	var main = _prep()
 	var g = main.hud.get("grid")
@@ -375,8 +375,8 @@ func ev325():
 		var top: float = (map.get_canvas_transform() * Vector2.ZERO).y
 		g._process(0.0)
 		r = g.info.get_global_rect()
-		if top > 0.5:
-			out = "%d배 줌 맨 위에서 맵 y 0이 화면 y %.1f다" % [cam.zoom.x, top]
+		if absf(top - (28.0 + 64.0 * cam.zoom.x)) > 0.5:
+			out = "%d배 줌 맨 위에서 맵 y 0이 화면 y %.1f다(%.1f여야 한다)" % [cam.zoom.x, top, 28.0 + 64.0 * cam.zoom.x]
 		elif absf(r.position.x - 510) > 0.5 or absf(r.end.y - 288) > 0.5 or absf(r.size.x - 130) > 0.5:
 			out = "%d배 줌 맨 위에서 정보 칸이 %s다" % [cam.zoom.x, r]
 		if out != "":
@@ -1147,7 +1147,7 @@ func ev344():
 	var b = main.view.battle
 	var c = main.controls
 	var e = b.place_merc("engineer", Vector2i(10, 4))  # 마을. 성문은 닫힌 채 시작한다(I67)
-	var t = b.build("tower", Vector2i(20, 32))
+	var t = b.build("tower", Vector2i(20, 62))
 	if e == null or t == null:
 		_done(main)
 		return "준비 단계에 공병(%s)이나 타워(%s)를 놓지 못했다" % [e, t]
@@ -1172,12 +1172,12 @@ func ev344():
 	if out == "":
 		c.picked = []
 		_key(KEY_2)
-		click(c, MOUSE_BUTTON_LEFT, px(Vector2i(22, 32)))
+		click(c, MOUSE_BUTTON_LEFT, px(Vector2i(22, 62)))
 		hud._process(0.0)
 		var now: String = hud.hint.text if hud.hint.is_visible_in_tree() else ""
 		hud._process(1.6)
-		if c.placing != "tower" or b.structures.has(Vector2i(22, 32)) or not "닿는 공병 없음" in now or "닿는 공병 없음" in hud.hint.text:
-			out = "놓기 모드 «%s» · 지어짐 %s · 누른 직후 안내 줄 «%s» · 1.6초 뒤 «%s»" % [c.placing, b.structures.has(Vector2i(22, 32)), now, hud.hint.text]
+		if c.placing != "tower" or b.structures.has(Vector2i(22, 62)) or not "닿는 공병 없음" in now or "닿는 공병 없음" in hud.hint.text:
+			out = "놓기 모드 «%s» · 지어짐 %s · 누른 직후 안내 줄 «%s» · 1.6초 뒤 «%s»" % [c.placing, b.structures.has(Vector2i(22, 62)), now, hud.hint.text]
 	_done(main)
 	return out
 
@@ -1202,7 +1202,7 @@ func ev359():
 		hud._process(0.0)
 		said.append(hud.hint.text)
 	b.gold = 10
-	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(22, 32)))
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(22, 62)))
 	hud._process(0.0)
 	said.append(hud.hint.text)
 	var poor := "골드 %d 모자람" % (b.STRUCTURE_KINDS.tower.cost - 10)
@@ -1231,11 +1231,11 @@ func ev345():
 		return "main.hud.popup이 없다"
 	var b = main.view.battle
 	var c = main.controls
-	var g = b.castle[Vector2i(29, 29)]  # 정문 문루(S217)
-	var top := Vector2i(30, 27)  # 문루 윗줄 가운데. 앞줄(29행)을 누르면 팝업이 화면 아래끝에 붙는다
+	var g = b.castle[Vector2i(29, 59)]  # 정문 문루(S217)
+	var top := Vector2i(30, 57)  # 문루 윗줄 가운데. 앞줄(59행)을 누르면 팝업이 화면 아래끝에 붙는다
 	b.set_gate(g, true)
 	var m = b.place_merc("soldier", g.cell)
-	var church = b.build("church", Vector2i(5, 4))
+	var church = b.build("church", Vector2i(5, 6))  # 북벽(0~2행, S203) 아래
 	var h = b.heroes[0]
 	b.damage(h, 10, "true")
 	if not g.open or m == null or church == null or h.hp >= h.max_hp:
@@ -1282,10 +1282,10 @@ func ev346():
 		return "main.hud.popup이 없다"
 	var b = main.view.battle
 	var c = main.controls
-	var es := [b.place_merc("engineer", Vector2i(22, 32)), b.place_merc("engineer", Vector2i(22, 33))]
-	var t1 = b.build("tower", Vector2i(20, 32))
-	var t2 = b.build("tower", Vector2i(24, 32))
-	var t3 = b.build("tower", Vector2i(26, 32))
+	var es := [b.place_merc("engineer", Vector2i(22, 62)), b.place_merc("engineer", Vector2i(22, 63))]
+	var t1 = b.build("tower", Vector2i(20, 62))
+	var t2 = b.build("tower", Vector2i(24, 62))
+	var t3 = b.build("tower", Vector2i(26, 62))
 	if null in es or t1 == null or t2 == null or t3 == null:
 		_done(main)
 		return "준비 단계에 공병 %s나 타워(%s, %s, %s)를 놓지 못했다" % [es, t1, t2, t3]
@@ -1490,7 +1490,7 @@ func ev350():
 	_pass(main, 10.0)  # 준비 단계 미션 토스트를 흘려 보낸다
 	b.mission = ""  # 미션이 깨진 토스트가 끼지 않게(미션은 판마다 다르다)
 	b.commission = ""
-	_cam(main).focus(Vector2(600, 450))  # 거점이 화면 밖(위)
+	_cam(main).focus(Vector2(600, 930))  # 거점이 화면 밖(위)
 	_cam(main).force_update_scroll()
 	b.damage(b.base, 5, "true")
 	hud._process(0.0)
@@ -1530,7 +1530,7 @@ func ev351():
 	_pass(main, 10.0)  # 준비 단계 미션 토스트를 흘려 보낸다
 	b.mission = ""  # 미션이 깨진 토스트가 끼지 않게(미션은 판마다 다르다)
 	b.commission = ""
-	var g1 = b.castle[Vector2i(29, 29)]  # 정문 문루(S217)
+	var g1 = b.castle[Vector2i(29, 59)]  # 정문 문루(S217)
 	var g0 = b.base
 	b.damage(g1, 5, "true")
 	hud._process(0.0)
@@ -1543,7 +1543,7 @@ func ev351():
 	if t1.size() != 1 or not t1[0].begins_with("정문 공격받음") or t2.size() != 2 or not t2[1].begins_with("거점 공격받음"):
 		out = "정문 피해 뒤 토스트 %s · 3.6초 뒤 거점 피해 뒤 %s" % [t1, t2]
 	if out == "":
-		_cam(main).focus(Vector2(760, 738))
+		_cam(main).focus(Vector2(760, 1218))
 		var far := _off(main, g1.cell)
 		var pressed := _press_toast(main, "정문")
 		var near := _off(main, g1.cell)
@@ -1558,7 +1558,7 @@ func ev351():
 		if later.any(func(t): return "정문" in t) or hud.alerts.recent != [g0.cell, g1.cell]:
 			out = "첫 피해 5초 뒤 정문이 또 맞은 뒤 토스트 %s · 최근 경보 %s(정문 토스트가 없고 [거점, 정문]이어야 한다)" % [later, hud.alerts.recent]
 	if out == "":
-		_cam(main).focus(Vector2(760, 738))
+		_cam(main).focus(Vector2(760, 1218))
 		var a0 := _off(main, g0.cell)
 		_key(KEY_C)
 		var a1 := _off(main, g0.cell)
@@ -1706,8 +1706,8 @@ func ev361():
 	if not hud.get("alerts") is Control:
 		_done(main)
 		return "main.hud.alerts가 없다"
-	var far = b.build("tower", Vector2i(20, 32))
-	var seen = b.build("tower", Vector2i(36, 32))
+	var far = b.build("tower", Vector2i(20, 62))
+	var seen = b.build("tower", Vector2i(36, 62))
 	if far == null or seen == null:
 		_done(main)
 		return "준비 단계에 타워 (20,32)·(36,32)를 짓지 못했다(%s, %s)" % [far, seen]
@@ -1716,7 +1716,7 @@ func ev361():
 	_pass(main, 10.0)  # 준비 단계 미션 토스트를 흘려 보낸다
 	b.mission = ""  # 미션이 깨진 토스트가 끼지 않게
 	b.commission = ""
-	_cam(main).focus(Vector2(760, 738))
+	_cam(main).focus(Vector2(760, 1218))
 	_cam(main).force_update_scroll()
 	var out := ""
 	if _on_screen(main, far.cell):
@@ -1746,7 +1746,7 @@ func ev361():
 		b.damage(seen, seen.max_hp * 0.6, "true")
 		hud._process(0.0)
 		var after := _toasts(main)
-		_cam(main).focus(Vector2(760, 738))  # 이미 절반 아래인 타워에서 카메라만 돌린다
+		_cam(main).focus(Vector2(760, 1218))  # 이미 절반 아래인 타워에서 카메라만 돌린다
 		_cam(main).force_update_scroll()
 		hud._process(0.0)
 		out = check(shown and after == before and not _on_screen(main, seen.cell) and _toasts(main) == before,
@@ -1784,7 +1784,7 @@ func ev364():
 	var b = main.view.battle
 	var hud = main.hud
 	var c = main.controls
-	var church = b.build("church", Vector2i(5, 4))
+	var church = b.build("church", Vector2i(5, 6))  # 북벽(0~2행, S203) 아래
 	if church == null or b.heroes.size() != 2 or b.heroes.any(func(h): return h.hp < h.max_hp):
 		_done(main)
 		return "준비가 틀렸다: 교회 %s · 영웅 %d · 체력 %s" % [church, b.heroes.size(), b.heroes.map(func(h): return [h.hp, h.max_hp])]
@@ -1930,7 +1930,7 @@ func ev356():
 		if not "move" in st.hints_done or not "짓는다" in said:
 			out = "영웅 이동 뒤 끝낸 힌트 %s · 글 «%s»(기대: move가 있고 글은 «짓는다»)" % [st.hints_done, said]
 	if out == "":
-		if b.build("tower", Vector2i(20, 32)) == null:
+		if b.build("tower", Vector2i(20, 62)) == null:
 			out = "타워를 짓지 못했다"
 		else:
 			_frame(main)
@@ -2394,9 +2394,9 @@ func ev411():
 	if s == null:
 		_done(main)
 		return "main.hud.select가 없다"
-	for p in [Vector2i(28, 32), Vector2i(30, 32), Vector2i(32, 32)]:  # 성곽 앞줄(29행)·출전 칸(31행) 아래(S203 2026-10-26 변경)
+	for p in [Vector2i(28, 62), Vector2i(30, 62), Vector2i(32, 62)]:  # 성곽 앞줄(59행)·출전 칸(61행) 아래(S203 2026-10-26 둘째 변경)
 		b.place_merc("soldier", p)
-	drag(c, px(Vector2i(27, 30)), px(Vector2i(33, 33)))
+	drag(c, px(Vector2i(27, 60)), px(Vector2i(33, 63)))
 	_frame(main)
 	var btns: Array = s.find_children("*", "BaseButton", true, false).filter(func(x): return x.is_visible_in_tree())
 	var r: Rect2 = s.get_global_rect()
@@ -2547,7 +2547,7 @@ func ev418():
 	var main = _live_prep()
 	var b = main.view.battle
 	var c = main.controls
-	var f = b.build("barracks", _near(b, "barracks", Vector2i(26, 15)))
+	var f = b.build("barracks", _near(b, "barracks", Vector2i(26, 32)))
 	var texts := func(): return _pops(main).map(func(n): return n.text)
 	var out := ""
 	if f == null or f.complete or f.worker == null:
@@ -2582,7 +2582,7 @@ func ev423():
 	var main = _live_prep()
 	var b = main.view.battle
 	var c = main.controls
-	var f = b.build("barracks", _near(b, "barracks", Vector2i(26, 15)))
+	var f = b.build("barracks", _near(b, "barracks", Vector2i(26, 32)))
 	var out := ""
 	if f == null or not run(b, 30.0, func(): return f.complete):
 		out = "준비 단계 병영이 30초 안에 완성되지 않았다(%s)" % f
@@ -2728,7 +2728,7 @@ func ev430():
 	_done(main)
 	return out
 
-const MINI := Rect2(2, 295, 62, 65)  # 미니맵(S209, 2026-10-26 맵 60×63). 테두리 1px 안에 칸당 1px
+const MINI := Rect2(2, 295, 62, 65)  # 미니맵(S209). 테두리 1px 안에 칸당 1px. 60×63칸 창이 세로로 스크롤된다(2026-10-26 둘째 변경)
 
 # 미니맵 위 맵 칸 c 가운데의 화면 자리
 func _mini(c: Vector2) -> Vector2:
@@ -2776,12 +2776,14 @@ func ev431():
 	_done(main)
 	return check(not hiring and prep and r.is_equal_approx(MINI) and fight, "영입 창 보임 %s · 준비 단계 보임 %s·%s · 전투 단계 보임 %s" % [hiring, prep, r, fight])
 
-# EV432 · S209: 미니맵 좌클릭·드래그는 그 자리를 화면 가운데(320,194)로 바로 옮기고, 미끄러짐을 버리며, 놓기 모드와 맵은 건드리지 않는다
+# EV432 · S209: 미니맵을 누르고 3px 안에서 떼면 그 자리(창 맨 윗줄을 더한 칸)를 화면 가운데(320,194)로 바로 옮기고, 미끄러짐을 버리며, 놓기 모드와 맵은 건드리지 않는다.
+# 누른 채 끌면 카메라는 그대로이고 창이 끈 만큼 스크롤되며, 뗀 뒤 버튼 없이 옮겨도 카메라는 그대로다(2026-10-26 둘째 변경)
 func ev432():
 	var main = _prep()
-	if main.hud.get("minimap") == null:
+	var m = main.hud.get("minimap")
+	if m == null or not m.has_method("follow"):
 		_done(main)
-		return "main.hud.minimap이 없다"
+		return "main.hud.minimap.follow가 없다"
 	var b = main.view.battle
 	var cam = _cam(main)
 	_away(main)
@@ -2789,21 +2791,30 @@ func ev432():
 	var sliding: bool = cam.busy()
 	_key(KEY_2)
 	var n: int = b.structures.size()
-	_button_at(_mini(Vector2(40, 50)), MOUSE_BUTTON_LEFT, true)
-	var d1: Vector2 = (_on(main, Vector2(40, 50)) - FOCUS).abs()
+	cam.force_update_scroll()
+	m.follow()
+	var top: int = m.top
+	_button_at(_mini(Vector2(40, 20)), MOUSE_BUTTON_LEFT, true)
+	_button_at(_mini(Vector2(40, 20)) + Vector2(1, 1), MOUSE_BUTTON_LEFT, false)
+	var d1: Vector2 = (_on(main, Vector2(40, 20 + top)) - FOCUS).abs()
 	var still: bool = not cam.busy()
 	var kept: bool = b.structures.size() == n and main.controls.placing == "tower"
-	_drag_to(_mini(Vector2(10, 20)))
-	var d2: Vector2 = (_on(main, Vector2(10, 20)) - FOCUS).abs()
-	_button_at(_mini(Vector2(10, 20)), MOUSE_BUTTON_LEFT, false)
+	cam.force_update_scroll()
+	m.follow()
+	var top1: int = m.top
 	var p: Vector2 = cam.position
+	_button_at(_mini(Vector2(10, 20)), MOUSE_BUTTON_LEFT, true)
+	_drag_to(_mini(Vector2(10, 30)))
+	var scrolled: int = m.top
+	var want := clampi(top1 - 10, 0, b.size.y - 63)
+	_button_at(_mini(Vector2(10, 30)), MOUSE_BUTTON_LEFT, false)
 	_move(_mini(Vector2(40, 50)))
 	var stays: bool = cam.position.is_equal_approx(p)
 	_done(main)
-	return check(sliding and maxf(d1.x, d1.y) <= 0.5 and still and kept and maxf(d2.x, d2.y) <= 0.5 and stays,
-		"누르기 전 미끄러지는 중 %s · 누름: (40,50)이 (320,194)에서 %s, 멈춤 %s, 구조물·놓기 그대로 %s · 끌기: (10,20)이 %s · 뗀 뒤 옮겨도 그대로 %s" % [sliding, d1, still, kept, d2, stays])
+	return check(sliding and maxf(d1.x, d1.y) <= 0.5 and still and kept and scrolled == want and top1 > 0 and stays,
+		"누르기 전 미끄러지는 중 %s · 클릭: 창 (40,20)+윗줄 %d가 (320,194)에서 %s, 멈춤 %s, 구조물·놓기 그대로 %s · 끌기: 창 윗줄 %d → %d(%d여야 한다), 카메라 그대로 %s" % [sliding, top, d1, still, kept, top1, scrolled, want, stays])
 
-# EV433 · S209: 미니맵의 카메라 사각형은 위 띠 아래 보이는 맵을 칸 단위로 옮긴 것이다
+# EV433 · S209: 미니맵의 카메라 사각형은 위 띠 아래 보이는 맵을 칸 단위로 옮겨 창 윗줄만큼 올린 것이고, 창은 그 사각형이 들어오게 따라간다
 func ev433():
 	var main = _prep()
 	var m = main.hud.get("minimap")
@@ -2820,7 +2831,11 @@ func ev433():
 			cam.force_update_scroll()
 			var z: float = cam.zoom.x
 			var seen := Rect2(cam.position + (Vector2(0, 28) - Vector2(320, 180)) / z, Vector2(640, 332) / z)
-			var want := Rect2(seen.position / 16 + Vector2.ONE, seen.size / 16).intersection(Rect2(1, 1, 60, 63))
+			m.follow()
+			var want := Rect2(seen.position / 16 + Vector2(1, 1 - m.top), seen.size / 16).intersection(Rect2(1, 1, 60, 63))
+			var vis := Rect2(seen.position / 16, seen.size / 16).intersection(Rect2(0, 0, 60, 93))  # 카메라가 보는 맵 칸
+			if vis.size.y <= 63 and (vis.position.y < m.top - 0.01 or vis.end.y > m.top + 63 + 0.01):
+				bad.append(["창 밖", z, cam.position, m.top])
 			var got: Rect2 = m.view_rect()
 			var d: Vector2 = (got.position - want.position).abs()
 			var e: Vector2 = (got.size - want.size).abs()
@@ -2837,19 +2852,25 @@ func ev434():
 		_done(main)
 		return "main.hud.minimap.marks가 없다"
 	var b = main.view.battle
-	b.build("tower", Vector2i(20, 32))
-	b.place_merc("soldier", Vector2i(30, 33))  # 출전 칸(31행, I107) 아래
+	b.build("tower", Vector2i(20, 62))
+	b.place_merc("soldier", Vector2i(30, 63))  # 출전 칸(61행, I107) 아래
 	var still := {"speed": 0, "sight": 0, "damage": 0, "hp": BIG}
-	var e = b.spawn_enemy("basic", Vector2i(20, 40), still)
-	e.pos = Vector2(20.6, 40.4)  # 몸 가운데가 든 칸은 (21,40)
-	b.spawn_enemy("boss", Vector2i(40, 40), still)
-	b.damage(b.walls[Vector2i(10, 27)], BIG, "true")  # 10열 성벽(27~29행)
+	var e = b.spawn_enemy("basic", Vector2i(20, 70), still)
+	e.pos = Vector2(20.6, 70.4)  # 몸 가운데가 든 칸은 (21,70)
+	b.spawn_enemy("boss", Vector2i(40, 70), still)
+	b.damage(b.walls[Vector2i(10, 57)], BIG, "true")  # 10열 남벽(57~59행)
+	_cam(main).force_update_scroll()
+	m.follow()  # 창은 처음에 맨 아래(맨 윗줄 30)이고 정문 앞 카메라는 그 안이다
+	var t: int = m.top
+	if t != 30:
+		_done(main)
+		return "정문 앞 카메라에서 미니맵 창 맨 윗줄이 %d다(30이어야 한다)" % t
 	var marks: Array = m.marks()
 	var want := [[Rect2(22, 41, 1, 1), "ff3b3b"], [Rect2(41, 41, 2, 2), "ff3b3b"], [Rect2(31, 34, 1, 1), "3ce0d8"], [Rect2(21, 33, 1, 1), "8fd8ff"],
-		[Rect2(30, 13, 3, 3), "ffd37f"], [Rect2(11, 28, 1, 1), "4a4a50"], [Rect2(29, 28, 1, 1), "9aa0aa"], [Rect2(31, 28, 1, 1), "c08a4a"]]
+		[Rect2(30, 0, 3, 3), "ffd37f"], [Rect2(11, 28, 1, 1), "4a4a50"], [Rect2(29, 28, 1, 1), "9aa0aa"], [Rect2(31, 28, 1, 1), "c08a4a"]]
 	var miss := want.filter(func(w): return not marks.any(func(k): return k[0].is_equal_approx(w[0]) and k[1].is_equal_approx(Color(w[1]))))
 	for h in b.heroes:
-		var p: Vector2 = h.pos + Vector2(1.5, 1.5)
+		var p: Vector2 = h.pos + Vector2(1.5, 1.5 - t)
 		if not marks.any(func(k): return k[0].size == Vector2(2, 2) and k[0].has_point(p) and k[1].is_equal_approx(Color.WHITE)):
 			miss.append([h.kind, p])
 	var rank := {"4a4a50": 0, "9aa0aa": 1, "c08a4a": 1, "8fd8ff": 2, "ffd37f": 3, "3ce0d8": 4, "ff3b3b": 5, "ffffff": 6}
@@ -2886,7 +2907,7 @@ func ev435():
 	for down in [true, false]:
 		_button_at(_mini(Vector2(38, 45)), MOUSE_BUTTON_RIGHT, down)
 	var at: Vector2 = c.order.get("at", Vector2.INF)
-	var sent: bool = at.distance_to(Vector2(616, 728)) <= 0.01 and not h.path.is_empty() and h.path.back() == Vector2i(38, 45)
+	var sent: bool = at.distance_to(Vector2(616, 1208)) <= 0.01 and not h.path.is_empty() and h.path.back() == Vector2i(38, 75)  # 창 맨 윗줄 30(처음 맨 아래)을 더한 칸
 	_key(KEY_2)
 	var placing: String = c.placing
 	var n: int = b.structures.size()
@@ -2894,7 +2915,7 @@ func ev435():
 		_button_at(_mini(Vector2(38, 45)), MOUSE_BUTTON_RIGHT, down)
 	var off: bool = placing == "tower" and c.placing == "" and b.structures.size() == n
 	_done(main)
-	return check(sent and off, "명령 자리 %s(기대 (616,728)) · 영웅 길 끝 %s · 놓기 %s → %s, 구조물 %d → %d" % [at, h.path.back() if not h.path.is_empty() else null, placing, c.placing, n, b.structures.size()])
+	return check(sent and off, "명령 자리 %s(기대 (616,1208)) · 영웅 길 끝 %s · 놓기 %s → %s, 구조물 %d → %d" % [at, h.path.back() if not h.path.is_empty() else null, placing, c.placing, n, b.structures.size()])
 
 # EV436 · S209: 커서가 미니맵 위면 가장자리 이동이 멈추고, 같은 x의 맵 위면 간다
 func ev436():
@@ -2921,8 +2942,8 @@ func ev436():
 func ev437():
 	var main = _prep()
 	var b = main.view.battle
-	b.heroes[0].pos = Vector2(1, 59)
-	b.heroes[1].pos = Vector2(0, 34)
+	b.heroes[0].pos = Vector2(1, 89)
+	b.heroes[1].pos = Vector2(0, 64)
 	for h in b.heroes.slice(0, 2):
 		b.damage(h, BIG, "true")
 	main.hud._process(0.0)
@@ -2937,22 +2958,22 @@ func ev461():
 	var main = _prep()
 	var b = main.view.battle
 	var c = main.controls
-	var gate = b.castle.get(Vector2i(29, 29))
-	var tower = b.castle.get(Vector2i(28, 29))
+	var gate = b.castle.get(Vector2i(29, 59))
+	var tower = b.castle.get(Vector2i(28, 59))
 	if gate == null or gate.kind != "gate" or tower == null:
 		_done(main)
 		return "준비가 틀렸다: 정문 문루 %s · 왼쪽 탑 열 %s" % [gate, tower]
-	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(30, 25)))
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(30, 55)))
 	var on_gate: bool = c.fort == gate
-	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(28, 24)))
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(28, 54)))
 	var on_tower: bool = c.fort == tower
-	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(20, 25)))
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(20, 55)))
 	var plain: bool = c.fort == null
-	var m = b.place_merc("soldier", Vector2i(30, 26))
+	var m = b.place_merc("soldier", Vector2i(30, 56))
 	if m == null:
 		_done(main)
-		return "준비가 틀렸다: 문루 뒤 칸 (30,26)에 용병을 놓지 못했다"
-	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(30, 26)))
+		return "준비가 틀렸다: 문루 뒤 칸 (30,56)에 용병을 놓지 못했다"
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(30, 56)))
 	var out := check(on_gate and on_tower and plain and c.fort == null and m in c.selected,
 		"문루 뒤 누름에 문루 %s · 탑 뒤 누름에 탑 %s · 보통 성벽 뒤 누름에 빔 %s · 용병 칸 누름에 성곽 %s · 용병 골라짐 %s" % [on_gate, on_tower, plain, c.fort, m in c.selected])
 	_done(main)
@@ -2966,12 +2987,60 @@ func ev463():
 	var c = main.controls
 	var built: int = b.structures.size()
 	_key(KEY_0)
-	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(26, 12)))
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(26, 29)))
 	hud._process(0.0)
 	var said: String = hud.hint.text
 	var refused: bool = b.structures.size() == built
-	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(20, 6)))
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(22, 21)))
 	var out := check(refused and "길에는 지을 수 없다" in said and b.structures.size() == built + 1,
 		"광장 칸 거부 %s · 누른 직후 안내 줄 «%s» · 고리 길 칸 뒤 구조물 %d → %d" % [refused, said, built, b.structures.size()])
 	_done(main)
 	return out
+
+# EV466 · S219: 사방 성곽 그림의 높이와 누르기. 서·동 닫힌 문루 칸은 통로보다 8px, 네 모서리 탑 칸은 12px, 북문 문루는 17px·그 양옆 탑은 27px 올려 그리고
+# 보통 북벽·동서 성벽 칸은 0이다. 게임 장면 준비 단계에 서쪽 닫힌 문루 그림(맵 px (24,448))을 누르면 그 문루를 고르고 «열기» 버튼이 없다.
+# 서쪽 성벽 20행 그림(맵 px (24,304))을 누르면 20행 성벽을, 남서 모서리 탑 그림(맵 px (8,892))을 누르면 0열 남벽을 고른다. 정문 문루를 고르면 «열기» 버튼이 있다
+func ev466():
+	var main = _prep()
+	var b = main.view.battle
+	var c = main.controls
+	var hud = main.hud
+	var BV = load("res://src/ui/battle_view.gd")
+	var rise := {Vector2i(1, 30): 8, Vector2i(58, 30): 8, Vector2i(1, 1): 12, Vector2i(58, 58): 12, Vector2i(30, 1): 17, Vector2i(28, 1): 27, Vector2i(32, 1): 27,
+		Vector2i(30, 58): 17, Vector2i(10, 1): 0, Vector2i(1, 10): 0, Vector2i(58, 40): 0}
+	var bad := []
+	for k in rise:
+		if BV.rise_at(b, k) != rise[k]:
+			bad.append([k, BV.rise_at(b, k), rise[k]])
+	var out := ""
+	if not bad.is_empty():
+		out = "[칸, 올림, 기대] %s" % [bad]
+	if out == "":
+		click(c, MOUSE_BUTTON_LEFT, Vector2(24, 448))
+		_frame(main)
+		var west = c.fort
+		var opened = _button(hud.popup, "열기")
+		click(c, MOUSE_BUTTON_LEFT, Vector2(24, 304))
+		var row20 = c.fort
+		click(c, MOUSE_BUTTON_LEFT, Vector2(8, 892))
+		var corner = c.fort
+		click(c, MOUSE_BUTTON_LEFT, px(Vector2i(30, 58)))
+		_frame(main)
+		var main_open = _button(hud.popup, "열기")
+		out = check(west == b.castle.get(Vector2i(0, 31)) and opened == null and row20 == b.castle.get(Vector2i(0, 20)) and corner == b.castle.get(Vector2i(0, 59)) and main_open != null,
+			"서쪽 문루 그림 누름 %s(«열기» %s) · 20행 그림 %s · 남서 모서리 탑 그림 %s · 정문 «열기» %s" % [west.cell if west else null, opened, row20.cell if row20 else null, corner.cell if corner else null, main_open])
+	_done(main)
+	return out
+
+# EV467 · I180: 사방 성곽 맵의 성곽 경보 성문 이름은 거점에서 본 방향으로 남쪽 정문 «정문», 북·서·동 닫힌 문루 «북문»·«서문»·«동문»이다
+func ev467():
+	var main = _prep()
+	var b = main.view.battle
+	var a = main.hud.get("alerts")
+	if a == null or not a.has_method("_name"):
+		_done(main)
+		return "main.hud.alerts._name이 없다"
+	var gates: Array = b.castle.values().filter(func(k): return k.kind == "gate")
+	var names := [Vector2i(29, 59), Vector2i(29, 2), Vector2i(0, 31), Vector2i(57, 31)].map(func(g): return a._name(b.castle[g], gates))
+	_done(main)
+	return check(names == ["정문", "북문", "서문", "동문"], "정문·북·서·동 문루 이름이 %s다" % [names])

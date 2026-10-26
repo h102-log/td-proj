@@ -500,7 +500,7 @@ func _process(delta: float) -> void:
 	for b in [_demolish, _move, _resume, _upgrade, _repair]:
 		b.disabled = gap != ""
 		_why[b] = gap
-	_gate.visible = live and k.kind == "gate" and battle.state in ["prep", "battle"]
+	_gate.visible = live and k.kind == "gate" and not k.sealed and battle.state in ["prep", "battle"]  # 닫힌 문루는 여닫기 버튼이 없다(S39)
 	if _gate.visible:  # 쿨타임 중이면 누르지 못하고 남은 초를 올림해 붙인다(I123). 성문 칸에 누가 있어 못 닫으면 어둡게(I124)
 		var stuck: bool = k.open and battle.occupied_area(k)  # 문루 칸 어디든(S217)
 		_gate.text = ("닫기" if k.open else "열기") + (" %d초" % ceili(k.lock) if k.lock > 0.0 else "")
