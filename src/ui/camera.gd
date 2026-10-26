@@ -11,6 +11,8 @@ const ZOOMS := [1, 2, 3]
 const EDGE := 16.0      # 가장자리로 치는 폭(창 px)
 const TOP_EDGE := 4.0   # 위쪽 가장자리로 치는 폭(창 px, S53 임시값). 위 띠 버튼을 누르러 가다 화면이 움직이지 않게
 const BOTTOM := 72.0    # 아래로 맵 밖을 보이는 높이(화면 px, I50). 건설 격자(S186) 높이라 맨 아래 출현 지점이 격자에 가리지 않는다
+const TOP := 64.0       # 위로 맵 밖을 보이는 높이(맵 px, I50 2026-10-26 변경). 사방 성곽의 북벽 그림이 맵 위로 56px까지 솟는다(S219)
+const TOP_BAR := 28.0   # 위 띠 높이(화면 px, hud VIEW). 위로는 그만큼 더 나가 북벽이 위 띠에 가리지 않는다
 const SPEED := 640.0  # 초당 이동 거리(화면 px). 설정 «카메라 속도»(%)를 곱한다(S53)
 const FOCUS := Vector2(320, 194)  # HUD가 카메라를 대상으로 옮길 때 대상이 오는 화면 자리(I164). 위 띠 아래 빈 영역 가운데
 # 가속·감속·ease-out 시간(초). Claude 시안 값이다(insights/2026-10-25_motion_camera_feel.md «시안»)
@@ -113,10 +115,10 @@ func busy() -> bool:
 func _scale() -> float:
 	return maxf(get_viewport().get_stretch_transform().x.x, 1.0)
 
-# dir 방향으로 delta초만큼 옮기고 맵 안에 가둔다. 아래만 BOTTOM ÷ 줌만큼 맵 밖으로 나간다(I50)
+# dir 방향으로 delta초만큼 옮기고 맵 안에 가둔다. 아래는 BOTTOM ÷ 줌, 위는 TOP + TOP_BAR ÷ 줌만큼 맵 밖으로 나간다(I50)
 func pan(dir: Vector2, delta: float) -> void:
 	var half := get_viewport_rect().size / 2 / zoom.x
-	position = (position + dir * SPEED * Settings.camera_speed / 100.0 * delta / zoom.x).clamp(half, map_px - half + Vector2(0, BOTTOM / zoom.x))
+	position = (position + dir * SPEED * Settings.camera_speed / 100.0 * delta / zoom.x).clamp(half - Vector2(0, TOP + TOP_BAR / zoom.x), map_px - half + Vector2(0, BOTTOM / zoom.x))
 
 # 맵 px의 대상을 화면 FOCUS에 바로 놓고 경계 안으로 당긴다(I164)
 func focus(at: Vector2) -> void:
