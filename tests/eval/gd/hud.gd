@@ -2931,3 +2931,29 @@ func ev437():
 	var side := rs.filter(func(r): return absf(r.position.x - 2) < 0.01 and r.end.y <= 292.01)
 	_done(main)
 	return check(rs.size() == 2 and low.size() == 1 and side.size() == 1 and not rs.any(func(r): return r.intersects(MINI)), "보이는 표식 %s · 아래 띠 %d · 왼쪽 띠 %d" % [rs, low.size(), side.size()])
+
+# EV461 · S218: 문루·문 양옆 탑 그림 안(성곽 뒤 땅 칸)을 누르면 그 성곽을 고르고, 보통 성벽 열 뒤 칸은 아니며, 그 칸의 용병이 먼저다
+func ev461():
+	var main = _prep()
+	var b = main.view.battle
+	var c = main.controls
+	var gate = b.castle.get(Vector2i(29, 29))
+	var tower = b.castle.get(Vector2i(28, 29))
+	if gate == null or gate.kind != "gate" or tower == null:
+		_done(main)
+		return "준비가 틀렸다: 정문 문루 %s · 왼쪽 탑 열 %s" % [gate, tower]
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(30, 25)))
+	var on_gate: bool = c.fort == gate
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(28, 24)))
+	var on_tower: bool = c.fort == tower
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(20, 25)))
+	var plain: bool = c.fort == null
+	var m = b.place_merc("soldier", Vector2i(30, 26))
+	if m == null:
+		_done(main)
+		return "준비가 틀렸다: 문루 뒤 칸 (30,26)에 용병을 놓지 못했다"
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(30, 26)))
+	var out := check(on_gate and on_tower and plain and c.fort == null and m in c.selected,
+		"문루 뒤 누름에 문루 %s · 탑 뒤 누름에 탑 %s · 보통 성벽 뒤 누름에 빔 %s · 용병 칸 누름에 성곽 %s · 용병 골라짐 %s" % [on_gate, on_tower, plain, c.fort, m in c.selected])
+	_done(main)
+	return out

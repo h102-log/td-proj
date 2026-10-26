@@ -271,3 +271,7 @@ def test_EV436_minimap_stops_edge_scroll(gd):
 
 def test_EV437_alert_bands_avoid_minimap(gd):
     gd("hud", "EV437")
+
+
+def test_EV461_gatehouse_art_selects_castle(gd):
+    gd("hud", "EV461")

@@ -171,6 +171,8 @@ func _release(rect: Rect2, at: Vector2) -> void:
 		selling = [hit] if prep and hit and hit not in picked else []
 		if hit in mercs:
 			units = [hit]
+		if hit == null and fort == null and units.is_empty():  # 문루·문 양옆 탑 그림 안(S218)
+			fort = BattleView.raised_at(battle, rect.position)
 		if hit == null and fort == null and units.is_empty() and BattleView.keep_rect(battle).has_point(rect.position):  # 망루 그림 안(S100)
 			village = true
 		if village and battle.base in battle.sellers("engineer"):  # 거점도 공병을 파는 시설처럼 고른다(S98 2026-10-25 변경)
