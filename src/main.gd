@@ -197,6 +197,7 @@ static func stage() -> Dictionary:
 		# ponytail: 체력은 임시값이다. 성문이 성벽보다 약해야 한다는 것(I41)만 지킨다. 수치는 3.1 밸런스에서 정한다
 		"castle": {"walls": walls, "gates": gates, "wall_hp": 300, "gate_hp": 150, "wall_size": Vector2i(1, 3), "gate_size": Vector2i(3, 3)},
 		"village": Rect2i(0, 0, 60, 27),  # 성곽(27~29행) 위쪽. 생산 시설은 여기에만 짓는다(S43)
+		"roads": BattleView.roads(),  # 마을 길 칸(광장·큰길): 짓지 못한다(S43 2026-10-26 변경). 표는 바닥 그림과 같은 BattleView._plan
 		"rounds": rounds,
 		"hp_mult": ROUNDS.map(func(r): return load("res://data/waves/%s.tres" % r).hp_mult),  # 라운드 적 체력 배율(S144)
 		"nights": ROUNDS.map(func(r): return load("res://data/waves/%s.tres" % r).nights),  # 웨이브마다 밤(S210)

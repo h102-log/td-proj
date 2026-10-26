@@ -275,3 +275,7 @@ def test_EV437_alert_bands_avoid_minimap(gd):
 
 def test_EV461_gatehouse_art_selects_castle(gd):
     gd("hud", "EV461")
+
+
+def test_EV463_road_refusal_reason(gd):
+    gd("hud", "EV463")

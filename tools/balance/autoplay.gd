@@ -67,8 +67,8 @@ const PLANS := {
 	],
 	# 세 겹을 고루: 병영·병사 몸막기, 타워, 사격장·성벽 위 궁수, 집 몇 채, 공병 하나
 	"balanced": [
-		["build", "barracks", 27, 25], ["merc", "soldier", 2, 30, 30], ["build", "tower", 28, 32], ["build", "tower", 32, 32],
-		["house", 2], ["build", "workshop", 34, 25], ["merc", "engineer", 1, 32, 26], ["village"], ["build", "archery", 24, 25],
+		["build", "barracks", 23, 25], ["merc", "soldier", 2, 30, 30], ["build", "tower", 28, 32], ["build", "tower", 32, 32],
+		["house", 2], ["build", "workshop", 35, 25], ["merc", "engineer", 1, 32, 26], ["village"], ["build", "archery", 20, 25],
 		["wallmerc", "archer", 2], ["build", "magic", 27, 31], ["build", "magic", 33, 31], ["merc", "soldier", 3, 30, 30],
 		["build", "cannon", 28, 29], ["house", 4], ["upgrade", 30, 29, 2], ["wallmerc", "archer", 4], ["build", "cannon", 32, 29],
 		["build", "tower", 28, 34], ["build", "tower", 32, 34], ["merc", "soldier", 4, 30, 30], ["upgrade", 30, 29, 3],
@@ -77,8 +77,8 @@ const PLANS := {
 	# 숙련: 영웅 하나로 시작해 1라운드는 타워·대포로 버티고, 병영(정문 안쪽 2선)·사격장(성벽 궁수)·공병·집을 차례로 더한다
 	"smart": [
 		["build", "tower", 28, 32], ["build", "tower", 32, 32], ["build", "cannon", 28, 29], ["build", "magic", 27, 31],
-		["build", "barracks", 27, 25], ["merc", "soldier", 2, 30, 26], ["village"], ["build", "archery", 24, 25],
-		["wallmerc", "archer", 2], ["build", "workshop", 34, 25], ["merc", "engineer", 1, 32, 25], ["house", 2],
+		["build", "barracks", 23, 25], ["merc", "soldier", 2, 30, 26], ["village"], ["build", "archery", 20, 25],
+		["wallmerc", "archer", 2], ["build", "workshop", 35, 25], ["merc", "engineer", 1, 32, 25], ["house", 2],
 		["build", "magic", 33, 31], ["build", "cannon", 32, 29], ["upgrade", 30, 29, 2], ["wallmerc", "archer", 4],
 		["build", "tower", 28, 34], ["build", "tower", 32, 34], ["house", 4], ["merc", "soldier", 3, 30, 26],
 		["upgrade", 30, 29, 3], ["build", "cannon", 27, 29], ["build", "cannon", 33, 29], ["build", "magic", 26, 33],
@@ -86,9 +86,9 @@ const PLANS := {
 	],
 	# 집 6채를 먼저 짓고 방어를 늦게 갖춘다
 	"greedy": [
-		["house", 6], ["build", "tower", 28, 32], ["build", "tower", 32, 32], ["build", "barracks", 27, 25],
+		["house", 6], ["build", "tower", 28, 32], ["build", "tower", 32, 32], ["build", "barracks", 23, 25],
 		["merc", "soldier", 2, 30, 30], ["build", "magic", 27, 31], ["build", "magic", 33, 31], ["build", "cannon", 28, 29],
-		["village"], ["build", "archery", 24, 25], ["wallmerc", "archer", 3], ["build", "cannon", 32, 29], ["upgrade", 30, 29, 2],
+		["village"], ["build", "archery", 20, 25], ["wallmerc", "archer", 3], ["build", "cannon", 32, 29], ["upgrade", 30, 29, 2],
 		["merc", "soldier", 4, 30, 30], ["build", "tower", 28, 34], ["build", "tower", 32, 34], ["upgrade", 30, 29, 3],
 		["build", "cannon", 27, 29], ["build", "cannon", 33, 29], ["build", "magic", 26, 33], ["build", "magic", 34, 33],
 	],
