@@ -489,7 +489,7 @@ func _process(delta: float) -> void:
 	var k = controls.fort
 	var live: bool = k != null and k.alive
 	# 공병 지시 버튼(철거·옮기기·이어 짓기·업그레이드·수리·복구)은 고른 것의 칸에 맡을 공병이 없으면 끄고, 이유는 툴팁·정보 칸에(I128)
-	var gap: String = GAPS.get(_engineer_gap((controls.picked + ([k] if k else []) + ([battle.base] if controls.village else [])).map(func(t): return t.cell)), "")
+	var gap: String = GAPS.get(_engineer_gap((controls.picked + ([k] if k else []) + ([battle.base] if controls.village else []))), "")  # Block을 넘긴다(성벽 위 대포 칸은 성곽과 겹친다)
 	var armed: bool = _now - _arm < CONFIRM and controls.picked == _arm_on  # 이 대상의 철거를 한 번 눌렀다(S74)
 	_demolish.text = "철거?" if armed else "철거"
 	for key in ["font_color", "font_hover_color"]:
@@ -502,7 +502,7 @@ func _process(delta: float) -> void:
 		_why[b] = gap
 	_gate.visible = live and k.kind == "gate" and battle.state in ["prep", "battle"]
 	if _gate.visible:  # 쿨타임 중이면 누르지 못하고 남은 초를 올림해 붙인다(I123). 성문 칸에 누가 있어 못 닫으면 어둡게(I124)
-		var stuck: bool = k.open and battle.occupied(k.cell)
+		var stuck: bool = k.open and battle.occupied_area(k)  # 문루 칸 어디든(S217)
 		_gate.text = ("닫기" if k.open else "열기") + (" %d초" % ceili(k.lock) if k.lock > 0.0 else "")
 		_gate.disabled = k.lock > 0.0 or stuck
 		_why[_gate] = "칸 막힘" if stuck else "%d초 뒤에 여닫는다" % ceili(k.lock) if k.lock > 0.0 else ""
@@ -524,7 +524,7 @@ func _process(delta: float) -> void:
 		_repair.text = "수리 %d" % fix.reduce(func(n, t): return n + battle.repair_cost(t), 0)
 	_restore.visible = k != null and battle.rubble.get(k.cell) == k and k.worker == null and battle.state in ["prep", "battle"]
 	if _restore.visible:  # 잔해 칸에 누가 있으면 복구하지 못한다(I124)
-		var blocked: bool = battle.occupied(k.cell)
+		var blocked: bool = battle.occupied_area(k)
 		_restore.text = "복구 %d" % battle.repair_cost(k)
 		_restore.disabled = blocked or gap != ""
 		_why[_restore] = "칸 막힘" if blocked else gap

@@ -162,7 +162,7 @@ func _release(rect: Rect2, at: Vector2) -> void:
 		units = battle.heroes.filter(func(h): return h.alive and Vector2i(h.pos.round()) == cell).slice(0, 1)  # 클릭한 칸의 영웅(I9, I101)
 		var hit = battle.structure_at(cell)
 		facility = hit if hit and not hit.produces.is_empty() and hit.complete else null
-		fort = battle.castle.get(cell, battle.rubble.get(cell))
+		fort = battle.walls.get(cell, battle.debris.get(cell))  # 성곽 차지 칸 어디를 눌러도(S217)
 		village = cell == battle.base.cell
 		picked = [hit] if hit and (not prep or (battle.live() and not hit.complete)) else []  # live 준비 단계의 미완성은 판매 대신 이어 짓기·취소(S83, I57)
 		for m in mercs:
@@ -358,7 +358,7 @@ func _refusal(kind: String, cell: Vector2i) -> String:
 	var inner: bool = not d.produces.is_empty() or d.tax > 0 or d.heal > 0  # 마을 시설
 	if d.village_level > battle.village_level:
 		return "마을 Lv%d 필요" % d.village_level
-	if battle.castle.has(cell):
+	if battle.walls.has(cell):
 		if kind != "cannon":
 			return "성곽에는 대포만"
 	elif not battle.cells_in(battle.area_at(cell, d.size)).all(func(c): return battle.village.has_point(c) == inner):  # 차지 칸이 모두(S216)

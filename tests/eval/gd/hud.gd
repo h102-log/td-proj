@@ -1231,7 +1231,8 @@ func ev345():
 		return "main.hud.popup이 없다"
 	var b = main.view.battle
 	var c = main.controls
-	var g = b.castle[Vector2i(30, 27)]  # 정문
+	var g = b.castle[Vector2i(29, 29)]  # 정문 문루(S217)
+	var top := Vector2i(30, 27)  # 문루 윗줄 가운데. 앞줄(29행)을 누르면 팝업이 화면 아래끝에 붙는다
 	b.set_gate(g, true)
 	var m = b.place_merc("soldier", g.cell)
 	var church = b.build("church", Vector2i(5, 4))
@@ -1241,7 +1242,7 @@ func ev345():
 		_done(main)
 		return "준비가 틀렸다: 정문 열림 %s · 정문 위 용병 %s · 교회 %s · 영웅 체력 %s/%s" % [g.open, m, church, h.hp, h.max_hp]
 	var out := ""
-	click(c, MOUSE_BUTTON_LEFT, px(g.cell))
+	click(c, MOUSE_BUTTON_LEFT, px(top))
 	_frame(main)
 	var shut = _button(hud.popup, "닫기")
 	if shut == null or not shut.disabled or _pops(main).any(func(n): return "(" in n.text):
@@ -1253,7 +1254,7 @@ func ev345():
 		b.start_battle()
 		b.set_gate(g, false)
 		c.fort = null
-		click(c, MOUSE_BUTTON_LEFT, px(g.cell))
+		click(c, MOUSE_BUTTON_LEFT, px(top))
 		_frame(main)
 		var want := "열기 %d초" % ceili(g.lock)
 		var lock = _button(hud.popup, want)
@@ -1514,8 +1515,9 @@ func ev350():
 	_done(main)
 	return out
 
-# EV351 · S189·I163: 정문이 맞으면 «정문 공격받음», 3.6초 뒤 왼쪽 쪽문이 맞으면 따로 «왼쪽 쪽문 공격받음»이 뜬다. 정문 토스트를 누르면 카메라가 정문 쪽으로 간다.
-# 첫 피해 5초 뒤 정문이 또 맞아도 토스트는 없다(20초에 한 번). C는 왼쪽 쪽문, 한 번 더 C는 정문 쪽으로 카메라를 옮긴다
+# EV351 · S189·I163: 정문이 맞으면 «정문 공격받음», 3.6초 뒤 거점이 맞으면 따로 «거점 공격받음»이 뜬다. 정문 토스트를 누르면 카메라가 정문 쪽으로 간다.
+# 첫 피해 5초 뒤 정문이 또 맞아도 토스트는 없다(20초에 한 번). C는 거점, 한 번 더 C는 정문 쪽으로 카메라를 옮긴다.
+# 시험 스테이지에 쪽문이 없어져(S39 2026-10-26 변경) 둘째 경보를 왼쪽 쪽문에서 거점으로 바꿨다
 func ev351():
 	var main = _prep()
 	var b = main.view.battle
@@ -1528,8 +1530,8 @@ func ev351():
 	_pass(main, 10.0)  # 준비 단계 미션 토스트를 흘려 보낸다
 	b.mission = ""  # 미션이 깨진 토스트가 끼지 않게(미션은 판마다 다르다)
 	b.commission = ""
-	var g1 = b.castle[Vector2i(30, 27)]
-	var g0 = b.castle[Vector2i(0, 27)]
+	var g1 = b.castle[Vector2i(29, 29)]  # 정문 문루(S217)
+	var g0 = b.base
 	b.damage(g1, 5, "true")
 	hud._process(0.0)
 	var t1 := _toasts(main)
@@ -1538,8 +1540,8 @@ func ev351():
 	hud._process(0.0)
 	var t2 := _toasts(main)
 	var out := ""
-	if t1.size() != 1 or not t1[0].begins_with("정문 공격받음") or t2.size() != 2 or not t2[1].begins_with("왼쪽 쪽문 공격받음"):
-		out = "정문 피해 뒤 토스트 %s · 3.6초 뒤 왼쪽 쪽문 피해 뒤 %s" % [t1, t2]
+	if t1.size() != 1 or not t1[0].begins_with("정문 공격받음") or t2.size() != 2 or not t2[1].begins_with("거점 공격받음"):
+		out = "정문 피해 뒤 토스트 %s · 3.6초 뒤 거점 피해 뒤 %s" % [t1, t2]
 	if out == "":
 		_cam(main).focus(Vector2(760, 738))
 		var far := _off(main, g1.cell)
@@ -1554,7 +1556,7 @@ func ev351():
 		_pass(main, 4.0)
 		var later := _toasts(main)
 		if later.any(func(t): return "정문" in t) or hud.alerts.recent != [g0.cell, g1.cell]:
-			out = "첫 피해 5초 뒤 정문이 또 맞은 뒤 토스트 %s · 최근 경보 %s(정문 토스트가 없고 [왼쪽 쪽문, 정문]이어야 한다)" % [later, hud.alerts.recent]
+			out = "첫 피해 5초 뒤 정문이 또 맞은 뒤 토스트 %s · 최근 경보 %s(정문 토스트가 없고 [거점, 정문]이어야 한다)" % [later, hud.alerts.recent]
 	if out == "":
 		_cam(main).focus(Vector2(760, 738))
 		var a0 := _off(main, g0.cell)
@@ -1563,7 +1565,7 @@ func ev351():
 		var b0 := _off(main, g1.cell)
 		_key(KEY_C)
 		var b1 := _off(main, g1.cell)
-		out = check(a1 < a0 - 1.0 and b1 < b0 - 1.0, "C 키에 왼쪽 쪽문 거리 %.0f → %.0f, 다시 C에 정문 거리 %.0f → %.0f(둘 다 가까워져야 한다)" % [a0, a1, b0, b1])
+		out = check(a1 < a0 - 1.0 and b1 < b0 - 1.0, "C 키에 거점 거리 %.0f → %.0f, 다시 C에 정문 거리 %.0f → %.0f(둘 다 가까워져야 한다)" % [a0, a1, b0, b1])
 	_done(main)
 	return out
 
@@ -2392,9 +2394,9 @@ func ev411():
 	if s == null:
 		_done(main)
 		return "main.hud.select가 없다"
-	for p in [Vector2i(28, 30), Vector2i(30, 30), Vector2i(32, 30)]:
+	for p in [Vector2i(28, 32), Vector2i(30, 32), Vector2i(32, 32)]:  # 성곽 앞줄(29행)·출전 칸(31행) 아래(S203 2026-10-26 변경)
 		b.place_merc("soldier", p)
-	drag(c, px(Vector2i(27, 28)), px(Vector2i(33, 31)))
+	drag(c, px(Vector2i(27, 30)), px(Vector2i(33, 33)))
 	_frame(main)
 	var btns: Array = s.find_children("*", "BaseButton", true, false).filter(func(x): return x.is_visible_in_tree())
 	var r: Rect2 = s.get_global_rect()
@@ -2726,7 +2728,7 @@ func ev430():
 	_done(main)
 	return out
 
-const MINI := Rect2(2, 295, 62, 63)  # 미니맵(S209). 테두리 1px 안에 칸당 1px
+const MINI := Rect2(2, 295, 62, 65)  # 미니맵(S209, 2026-10-26 맵 60×63). 테두리 1px 안에 칸당 1px
 
 # 미니맵 위 맵 칸 c 가운데의 화면 자리
 func _mini(c: Vector2) -> Vector2:
@@ -2818,7 +2820,7 @@ func ev433():
 			cam.force_update_scroll()
 			var z: float = cam.zoom.x
 			var seen := Rect2(cam.position + (Vector2(0, 28) - Vector2(320, 180)) / z, Vector2(640, 332) / z)
-			var want := Rect2(seen.position / 16 + Vector2.ONE, seen.size / 16).intersection(Rect2(1, 1, 60, 61))
+			var want := Rect2(seen.position / 16 + Vector2.ONE, seen.size / 16).intersection(Rect2(1, 1, 60, 63))
 			var got: Rect2 = m.view_rect()
 			var d: Vector2 = (got.position - want.position).abs()
 			var e: Vector2 = (got.size - want.size).abs()
@@ -2836,15 +2838,15 @@ func ev434():
 		return "main.hud.minimap.marks가 없다"
 	var b = main.view.battle
 	b.build("tower", Vector2i(20, 32))
-	b.place_merc("soldier", Vector2i(30, 31))
+	b.place_merc("soldier", Vector2i(30, 33))  # 출전 칸(31행, I107) 아래
 	var still := {"speed": 0, "sight": 0, "damage": 0, "hp": BIG}
 	var e = b.spawn_enemy("basic", Vector2i(20, 40), still)
 	e.pos = Vector2(20.6, 40.4)  # 몸 가운데가 든 칸은 (21,40)
 	b.spawn_enemy("boss", Vector2i(40, 40), still)
-	b.damage(b.castle[Vector2i(10, 27)], BIG, "true")
+	b.damage(b.walls[Vector2i(10, 27)], BIG, "true")  # 10열 성벽(27~29행)
 	var marks: Array = m.marks()
-	var want := [[Rect2(22, 41, 1, 1), "ff3b3b"], [Rect2(41, 41, 2, 2), "ff3b3b"], [Rect2(31, 32, 1, 1), "3ce0d8"], [Rect2(21, 33, 1, 1), "8fd8ff"],
-		[Rect2(30, 13, 3, 3), "ffd37f"], [Rect2(11, 28, 1, 1), "4a4a50"], [Rect2(30, 28, 1, 1), "9aa0aa"], [Rect2(31, 28, 1, 1), "c08a4a"]]
+	var want := [[Rect2(22, 41, 1, 1), "ff3b3b"], [Rect2(41, 41, 2, 2), "ff3b3b"], [Rect2(31, 34, 1, 1), "3ce0d8"], [Rect2(21, 33, 1, 1), "8fd8ff"],
+		[Rect2(30, 13, 3, 3), "ffd37f"], [Rect2(11, 28, 1, 1), "4a4a50"], [Rect2(29, 28, 1, 1), "9aa0aa"], [Rect2(31, 28, 1, 1), "c08a4a"]]
 	var miss := want.filter(func(w): return not marks.any(func(k): return k[0].is_equal_approx(w[0]) and k[1].is_equal_approx(Color(w[1]))))
 	for h in b.heroes:
 		var p: Vector2 = h.pos + Vector2(1.5, 1.5)

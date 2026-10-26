@@ -43,10 +43,10 @@ static func shrink(full: Texture2D, cells: Vector2i) -> ImageTexture:
 # 그리는 차례의 [미니맵 안 사각형, 색]: 잔해 → 성곽 칸 → 구조물 → 거점 → 용병 → 적 → 영웅
 func marks() -> Array:
 	var out := []
-	for c in battle.rubble:
+	for c in battle.debris:  # 성곽·잔해는 차지 칸마다(S217)
 		out.append([_dot(Vector2(c), 1), RUBBLE])
-	for c in battle.castle:
-		out.append([_dot(Vector2(c), 1), GATE if battle.castle[c].kind == "gate" else WALL])
+	for c in battle.walls:
+		out.append([_dot(Vector2(c), 1), GATE if battle.walls[c].kind == "gate" else WALL])
 	for c in battle.footprint:  # 차지 칸마다(S216)
 		out.append([_dot(Vector2(c), 1), STRUCTURE])
 	out.append([_dot(Vector2(battle.base.cell), 3), BASE])

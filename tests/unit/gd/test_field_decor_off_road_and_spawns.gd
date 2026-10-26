@@ -21,7 +21,7 @@ func test_props_stay_on_open_field():
 		return "소품이 %d개다(%d개여야 한다)" % [props.size(), want]
 	for p in props:
 		var c: Vector2i = p[0]
-		if c.y <= b.village.end.y + 1 or c.y >= b.size.y - 1:
+		if c.y <= b.field_y or c.y >= b.size.y - 1:
 			return "%s는 성곽 바로 앞 줄이나 맨 아래 줄이다" % c
 		if [c, c + Vector2i.RIGHT, c + Vector2i.DOWN, c + Vector2i.ONE].any(func(v): return road.has(v)):
 			return "%s가 길에 닿는다" % c
@@ -32,7 +32,7 @@ func test_props_stay_on_open_field():
 func test_road_joins_every_spawn_to_main_gate():
 	var b = _battle()
 	var road: Dictionary = View._road(b)
-	var start := Vector2i(b.base.cell.x, b.village.end.y + 1)
+	var start := Vector2i(b.base.cell.x, b.field_y)
 	var seen := {start: true}
 	var todo := [start]
 	while todo:

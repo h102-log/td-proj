@@ -39,7 +39,7 @@ const BOT := {
 	"lead": 6.0,            # 영웅이 정문 앞 기준점에서 쫓아가는 최대 거리(칸)
 	"hire_first_grade": 3,  # 도전을 시작할 때(1라운드 전) 영입하는 최고 등급
 	"hire_first_count": 2,  # 도전을 시작할 때 영입하는 최대 인원
-	"rally": [30, 28],      # 전투 중 산 병사를 보낼 칸
+	"rally": [30, 30],      # 전투 중 산 병사를 보낼 칸
 	"fill": false,          # 쇼핑 목록을 다 사면 들판·성벽에 타워·마법 타워·대포를 계속 짓는다(골드가 놀지 않게)
 	"village_heroes": 0,    # 출전 영웅 가운데 뒤에서 이만큼을 준비 단계마다 마을 안 거점 옆(station)에 세운다
 	"village_from": 3,      # 이 라운드부터
@@ -55,10 +55,10 @@ const BOT := {
 	"sides": false,         # 쪽문 둘도 정문처럼 지킨다: 쇼핑 목록의 쏘는 구조물·정문 업그레이드를 쪽문에도 하나씩 더하고(_plan), fill을 세 성문에 번갈아 깐다
 }
 
-const GATE := Vector2i(30, 27)
+const GATE := Vector2i(30, 29)  # 정문 문루(S217) 앞줄 가운데 칸. 성문은 b.walls로 찾고, 행·열 기준점으로도 쓴다
 const PREP_MAX := 180.0  # 준비 단계를 이만큼(게임 초) 넘게 끌면 짓던 것을 두고 전투를 시작한다. 닿을 수 없는 일에 묶이지 않게
-const SIDES := [Vector2i(0, 27), Vector2i(59, 27)]  # 쪽문 둘
-const FRONT := Vector2i(30, 30)
+const SIDES := []  # 쪽문의 앞줄 가운데 칸. 시험 스테이지는 쪽문이 없어(S39 2026-10-26 변경) pingpong·sides 전략은 아무것도 하지 않는다
+const FRONT := Vector2i(30, 32)
 
 # 준비 단계 쇼핑 목록: 앞에서부터 사고, 골드가 모자란 항목에서 멈춘다(우선순위 저축)
 # 항목: [종류, 인자...]
@@ -67,42 +67,42 @@ const FRONT := Vector2i(30, 30)
 const PLANS := {
 	# 타워만: 정문 앞 타워·마법 타워·성벽 위 대포
 	"turtle": [
-		["build", "tower", 28, 30], ["build", "tower", 32, 30], ["build", "cannon", 29, 27],
-		["build", "magic", 27, 29], ["build", "magic", 33, 29], ["build", "tower", 28, 32], ["build", "tower", 32, 32],
-		["build", "cannon", 31, 27], ["upgrade", 30, 27, 2], ["build", "tower", 26, 30], ["build", "tower", 34, 30],
-		["build", "cannon", 27, 27], ["build", "cannon", 33, 27], ["upgrade", 30, 27, 3], ["build", "magic", 26, 32],
-		["build", "magic", 34, 32], ["build", "tower", 24, 30], ["build", "tower", 36, 30],
+		["build", "tower", 28, 32], ["build", "tower", 32, 32], ["build", "cannon", 28, 29],
+		["build", "magic", 27, 31], ["build", "magic", 33, 31], ["build", "tower", 28, 34], ["build", "tower", 32, 34],
+		["build", "cannon", 32, 29], ["upgrade", 30, 29, 2], ["build", "tower", 26, 32], ["build", "tower", 34, 32],
+		["build", "cannon", 27, 29], ["build", "cannon", 33, 29], ["upgrade", 30, 29, 3], ["build", "magic", 26, 34],
+		["build", "magic", 34, 34], ["build", "tower", 24, 32], ["build", "tower", 36, 32],
 	],
 	# 세 겹을 고루: 병영·병사 몸막기, 타워, 사격장·성벽 위 궁수, 집 몇 채, 공병 하나
 	"balanced": [
-		["build", "barracks", 27, 25], ["merc", "soldier", 2, 30, 28], ["build", "tower", 28, 30], ["build", "tower", 32, 30],
+		["build", "barracks", 27, 25], ["merc", "soldier", 2, 30, 30], ["build", "tower", 28, 32], ["build", "tower", 32, 32],
 		["house", 2], ["build", "workshop", 34, 25], ["merc", "engineer", 1, 32, 26], ["village"], ["build", "archery", 24, 25],
-		["wallmerc", "archer", 2], ["build", "magic", 27, 29], ["build", "magic", 33, 29], ["merc", "soldier", 3, 30, 28],
-		["build", "cannon", 29, 27], ["house", 4], ["upgrade", 30, 27, 2], ["wallmerc", "archer", 4], ["build", "cannon", 31, 27],
-		["build", "tower", 28, 32], ["build", "tower", 32, 32], ["merc", "soldier", 4, 30, 28], ["upgrade", 30, 27, 3],
-		["house", 6], ["build", "cannon", 27, 27], ["build", "cannon", 33, 27], ["build", "magic", 26, 31], ["build", "magic", 34, 31],
+		["wallmerc", "archer", 2], ["build", "magic", 27, 31], ["build", "magic", 33, 31], ["merc", "soldier", 3, 30, 30],
+		["build", "cannon", 28, 29], ["house", 4], ["upgrade", 30, 29, 2], ["wallmerc", "archer", 4], ["build", "cannon", 32, 29],
+		["build", "tower", 28, 34], ["build", "tower", 32, 34], ["merc", "soldier", 4, 30, 30], ["upgrade", 30, 29, 3],
+		["house", 6], ["build", "cannon", 27, 29], ["build", "cannon", 33, 29], ["build", "magic", 26, 33], ["build", "magic", 34, 33],
 	],
 	# 숙련: 영웅 하나로 시작해 1라운드는 타워·대포로 버티고, 병영(정문 안쪽 2선)·사격장(성벽 궁수)·공병·집을 차례로 더한다
 	"smart": [
-		["build", "tower", 28, 30], ["build", "tower", 32, 30], ["build", "cannon", 29, 27], ["build", "magic", 27, 29],
+		["build", "tower", 28, 32], ["build", "tower", 32, 32], ["build", "cannon", 28, 29], ["build", "magic", 27, 31],
 		["build", "barracks", 27, 25], ["merc", "soldier", 2, 30, 26], ["village"], ["build", "archery", 24, 25],
 		["wallmerc", "archer", 2], ["build", "workshop", 34, 25], ["merc", "engineer", 1, 32, 25], ["house", 2],
-		["build", "magic", 33, 29], ["build", "cannon", 31, 27], ["upgrade", 30, 27, 2], ["wallmerc", "archer", 4],
-		["build", "tower", 28, 32], ["build", "tower", 32, 32], ["house", 4], ["merc", "soldier", 3, 30, 26],
-		["upgrade", 30, 27, 3], ["build", "cannon", 27, 27], ["build", "cannon", 33, 27], ["build", "magic", 26, 31],
-		["build", "magic", 34, 31], ["house", 6], ["merc", "soldier", 4, 30, 26], ["build", "tower", 26, 30], ["build", "tower", 34, 30],
+		["build", "magic", 33, 31], ["build", "cannon", 32, 29], ["upgrade", 30, 29, 2], ["wallmerc", "archer", 4],
+		["build", "tower", 28, 34], ["build", "tower", 32, 34], ["house", 4], ["merc", "soldier", 3, 30, 26],
+		["upgrade", 30, 29, 3], ["build", "cannon", 27, 29], ["build", "cannon", 33, 29], ["build", "magic", 26, 33],
+		["build", "magic", 34, 33], ["house", 6], ["merc", "soldier", 4, 30, 26], ["build", "tower", 26, 32], ["build", "tower", 34, 32],
 	],
 	# 집 6채를 먼저 짓고 방어를 늦게 갖춘다
 	"greedy": [
-		["house", 6], ["build", "tower", 28, 30], ["build", "tower", 32, 30], ["build", "barracks", 27, 25],
-		["merc", "soldier", 2, 30, 28], ["build", "magic", 27, 29], ["build", "magic", 33, 29], ["build", "cannon", 29, 27],
-		["village"], ["build", "archery", 24, 25], ["wallmerc", "archer", 3], ["build", "cannon", 31, 27], ["upgrade", 30, 27, 2],
-		["merc", "soldier", 4, 30, 28], ["build", "tower", 28, 32], ["build", "tower", 32, 32], ["upgrade", 30, 27, 3],
-		["build", "cannon", 27, 27], ["build", "cannon", 33, 27], ["build", "magic", 26, 31], ["build", "magic", 34, 31],
+		["house", 6], ["build", "tower", 28, 32], ["build", "tower", 32, 32], ["build", "barracks", 27, 25],
+		["merc", "soldier", 2, 30, 30], ["build", "magic", 27, 31], ["build", "magic", 33, 31], ["build", "cannon", 28, 29],
+		["village"], ["build", "archery", 24, 25], ["wallmerc", "archer", 3], ["build", "cannon", 32, 29], ["upgrade", 30, 29, 2],
+		["merc", "soldier", 4, 30, 30], ["build", "tower", 28, 34], ["build", "tower", 32, 34], ["upgrade", 30, 29, 3],
+		["build", "cannon", 27, 29], ["build", "cannon", 33, 29], ["build", "magic", 26, 33], ["build", "magic", 34, 33],
 	],
 }
 const HOUSE_CELLS := [Vector2i(13, 20), Vector2i(15, 20), Vector2i(17, 20), Vector2i(43, 20), Vector2i(45, 20), Vector2i(47, 20)]
-const WALL_POSTS := [Vector2i(28, 27), Vector2i(32, 27), Vector2i(27, 27), Vector2i(33, 27), Vector2i(26, 27), Vector2i(34, 27)]
+const WALL_POSTS := [Vector2i(28, 29), Vector2i(32, 29), Vector2i(27, 29), Vector2i(33, 29), Vector2i(26, 29), Vector2i(34, 29)]
 # fill: 성문마다 그 길(성문 x)과 출전 칸을 비우고 성문에서 가까운 칸부터. 성벽 칸은 대포다. 성문이 여럿이면 번갈아 깐다
 static func _fill_cells(gates := [GATE]) -> Array:
 	var per := []
@@ -272,7 +272,7 @@ func _fight() -> bool:
 			_trace(t)
 		downs += maxi(heroes_alive - b.heroes.filter(func(h): return h.alive).size(), 0)
 		cur.base_min = minf(cur.base_min, b.base.hp / b.base.max_hp)
-		var gate = b.castle.get(GATE)
+		var gate = b.walls.get(GATE)
 		cur.gate_min = minf(cur.gate_min, (gate.hp / gate.max_hp) if gate else 0.0)
 		cur.peak = maxi(cur.peak, b.enemies.size())
 		var inside := 0
@@ -382,7 +382,7 @@ func _hire() -> void:
 func _prep() -> int:
 	var g0: int = b.gold
 	_station()
-	var gate = b.castle.get(GATE)
+	var gate = b.walls.get(GATE)
 	if gate:
 		b.set_gate(gate, true)
 	var t := 0.0
@@ -412,8 +412,8 @@ func _prep() -> int:
 			t += dt
 	_prep_t = t
 	if bot.pingpong:  # 준비 단계 여닫기는 쿨타임이 없다. 정문은 닫고 쪽문은 하나만 연다(pp_slow면 모두 닫는다)
-		b.set_gate(b.castle[GATE], false)
-		var gs := SIDES.map(func(c): return b.castle.get(c)).filter(func(g): return g != null)
+		b.set_gate(b.walls[GATE], false)
+		var gs := SIDES.map(func(c): return b.walls.get(c)).filter(func(g): return g != null)
 		if bot.pp_slow > 0.0 or b.round_index + 1 < bot.pp_from:
 			for g in gs:
 				b.set_gate(g, false)
@@ -429,7 +429,7 @@ func _prep_hands() -> void:
 			if b.can_repair(k) and b.gold >= b.repair_cost(k):
 				b.repair(k)
 				if k.worker == null:
-					_defer([k.cell])
+					_defer([k])
 		for k in b.rubble.values():
 			for u in b.units:  # 잔해 칸에 선 유닛이 있으면 복구가 거부되고 간 공병도 기다린다(I89). 마을 쪽으로 한 칸 물린다
 				if u.path.is_empty() and Vector2i(u.pos.round()) == k.cell:
@@ -438,7 +438,7 @@ func _prep_hands() -> void:
 				continue
 			b.restore(k)
 			if k.worker == null:
-				_defer([k.cell])
+				_defer([k])
 		if b.base.hp < b.base.max_hp * bot.base_repair_below and b.can_repair(b.base):
 			b.repair(b.base)
 	var done := true
@@ -520,7 +520,7 @@ func _buy(item: Array) -> bool:
 					return true
 				var hs = b.structure_at(c)
 				if hs:
-					if hs.kind == "house" and not hs.complete and hs.worker == null and b.resume(hs) == null and _defer([c]):  # 멈춘 건설(I19)
+					if hs.kind == "house" and not hs.complete and hs.worker == null and b.resume(hs) == null and _defer([hs]):  # 멈춘 건설(I19)
 						return false
 					continue
 				if spare < b.STRUCTURE_KINDS.house.cost:
@@ -539,13 +539,13 @@ func _buy(item: Array) -> bool:
 			b.raise_village()
 			return true
 		"upgrade":
-			var k = b.castle.get(Vector2i(item[1], item[2]))
+			var k = b.walls.get(Vector2i(item[1], item[2]))
 			if k == null or k.level >= item[3] or k.worker:  # 다 올렸거나 공병이 올리는 중이다
 				return true
 			if k.lift < 0.0 and spare < b.upgrade_cost(k):  # 그만둔 업그레이드는 골드 없이 이어 올린다(I68)
 				return false
 			b.upgrade(k)
-			return k.worker != null or not _defer([k.cell])
+			return k.worker != null or not _defer([k])
 		"merc":
 			if not b.can_buy(item[1]):
 				return true
@@ -581,7 +581,7 @@ func _free_near(c: Vector2i) -> Vector2i:
 		for dy in range(-r, r + 1):
 			for dx in range(-r, r + 1):
 				var p := c + Vector2i(dx, dy)
-				if b.grid.is_in_boundsv(p) and not b.grid.block_at(p) and p != b.base.cell and not b.castle.has(p) and not b.rubble.has(p) and not b.occupied(p) and p not in b._stage.hero_cells:  # 열린 성문 칸도 뺀다(서 있으면 닫지 못한다, I67)
+				if b.grid.is_in_boundsv(p) and not b.grid.block_at(p) and p != b.base.cell and not b.walls.has(p) and not b.debris.has(p) and not b.occupied(p) and p not in b._stage.hero_cells:  # 열린 성문 칸도 뺀다(서 있으면 닫지 못한다, I67)
 					return p
 	return c
 
@@ -611,7 +611,7 @@ func _battle_actions() -> void:
 					b.recruit(s)
 					break
 	if bot.battle_repair:
-		var gate = b.castle.get(GATE)
+		var gate = b.walls.get(GATE)
 		if gate and gate.hp < gate.max_hp * 0.6 and b.can_repair(gate) and b.gold >= b.repair_cost(gate):
 			b.repair(gate)
 
@@ -708,7 +708,7 @@ func _move_hero(h) -> void:
 		b.order_move([h], h.home)
 
 func _trace(t: float) -> void:
-	var gate = b.castle.get(GATE)
+	var gate = b.walls.get(GATE)
 	var kinds := {}
 	for e in b.enemies:
 		var c := Vector2i(e.pos.round())
@@ -840,9 +840,9 @@ func _move_village_hero(h) -> void:
 # 쪽문 핑퐁: 땅 적이 열린 쪽문 pp_dist칸 안(들판)에 오면 반대 쪽문을 열고 이 문을 닫는다. 쿨타임에 묶여 있으면 기다린다.
 # gate_cd_all이면 한 번에 하나만 여닫을 수 있어서, 열린 문을 먼저 닫고(그동안 적은 닫힌 문을 친다) 묶임이 풀리면 반대 문을 연다
 func _pingpong() -> void:
-	var gs := SIDES.map(func(c): return b.castle.get(c))
-	if null in gs or b.round_index + 1 < bot.pp_from:
-		return  # 쪽문이 부서져 잔해다
+	var gs := SIDES.map(func(c): return b.walls.get(c))
+	if gs.size() < 2 or null in gs or b.round_index + 1 < bot.pp_from:
+		return  # 쪽문이 없거나(S39 2026-10-26 변경) 부서져 잔해다
 	if bot.pp_slow > 0.0 and not (b._queue.is_empty() and b.enemies.all(func(e): return e.flying or (e.climb <= 0.0 and e.speed <= bot.pp_slow))):
 		return
 	var opened := gs.filter(func(g): return g.open)
