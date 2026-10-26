@@ -3062,3 +3062,29 @@ func ev470():
 	var c: Color = load("res://src/ui/hud_minimap.gd").shrink(ground, st.size).get_image().get_pixel(46, 16)
 	return check(wet.all(func(h): return h in waters) and not dry.any(func(h): return h in waters) and c.g - c.r > 0.1 and c.b - c.r > 0.1,
 		"물 판 두 픽셀 %s · 물 없는 판 %s · 미니맵 연못 칸 %s" % [wet, dry, c.to_html(false)])
+
+# EV477 · S172: 아틀라스에 주민 몸 여섯 × look 여덟의 정지·걷기 4방향 칸이 있고 비어 있지 않다. look이 다르면 그림이 다르다
+func ev477():
+	var art: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/units/heroes.json"))
+	var img: Image = load("res://art/units/heroes.png").get_image()
+	var bad := []
+	for body in ["man", "woman", "boy", "girl", "old_man", "old_woman"]:
+		for look in 8:
+			var a = art.get("folk_%s_%d" % [body, look])
+			if a == null:
+				bad.append("folk_%s_%d 없음" % [body, look])
+				continue
+			var c := int(a.c)
+			for f in [["idle", 0], ["walk", 0], ["walk", 1]]:
+				for dir in 4:
+					var r := Rect2i(int(a.get("x", 0)) + f[1] * c, int(a[f[0]]) + dir * c, c, c)
+					if not Rect2i(Vector2i.ZERO, img.get_size()).encloses(r) or img.get_region(r).is_invisible():
+						bad.append("folk_%s_%d %s %d열 %d행" % [body, look, f[0], f[1], dir])
+		var a0 = art.get("folk_%s_0" % body)
+		var a1 = art.get("folk_%s_1" % body)
+		if a0 and a1:
+			var c0 := int(a0.c)
+			var c1 := int(a1.c)
+			if img.get_region(Rect2i(int(a0.get("x", 0)), int(a0.idle), c0, c0)).get_data() == img.get_region(Rect2i(int(a1.get("x", 0)), int(a1.idle), c1, c1)).get_data():
+				bad.append("%s look 0·1 그림이 같다" % body)
+	return check(bad.is_empty(), "%s" % [bad.slice(0, 8)])

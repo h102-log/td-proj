@@ -4,7 +4,7 @@ extends RefCounted
 # 공병 일과 집결 중인 시설뿐이다. 그래서 유닛·구조물은 스크립트 변수를 모두 담고, 객체를 가리키는 칸(SKIP)은 빼되 그 둘은 칸으로 담아 다시 잇는다
 
 const Battle := preload("res://src/sim/battle.gd")
-const VERSION := 3  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179)
+const VERSION := 4  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179). 4: 집의 가족(S221)
 # 판에서 담는 칸. 맵·라운드·마을 칸은 같은 스테이지로 새 판을 만들면 같다
 const KEYS := ["state", "round_index", "wave_index", "gold", "village_level", "offers", "quests", "mission", "commission", "commission_offers", "settled", "tally", "_chains"]
 
@@ -16,7 +16,7 @@ const SKIP := ["present", "target", "worker", "job", "order", "mark", "rally_fro
 static var path := ""  # 저장 파일. 비어 있으면 쓰지 않는다. 진입 장면(menu.gd)이 정하고, 평가는 평가용 파일로 바꾼다
 
 static func snapshot(b) -> Dictionary:
-	var d := {"version": VERSION, "rng": b._rng.state, "luck": b._luck.state, "spare": b._spare}
+	var d := {"version": VERSION, "rng": b._rng.state, "luck": b._luck.state, "kin": b._kin.state, "spare": b._spare}
 	for k in KEYS:
 		d[k] = _copy(b.get(k))
 	d.base = _fields(b.base)
@@ -40,6 +40,7 @@ static func apply(b, d: Dictionary) -> void:
 	b.waves = b.rounds[b.round_index]
 	b._rng.state = d.rng
 	b._luck.state = d.luck
+	b._kin.state = d.kin
 	b._spare = d.get("spare", 0.0)  # 쌓인 처치 보상 나머지(I176). 이 칸이 생기기 전 저장은 0
 	b.base = _block(d.base)
 	for k in ["castle", "rubble", "structures"]:

@@ -523,6 +523,7 @@ func _bodies() -> void:
 	var now := Time.get_ticks_msec() / 1000.0
 	var was := residents(battle, now - 0.05)
 	var ps := residents(battle, now)
+	var who := folk_of(battle)
 	var n := all.size()
 	var m := n + 2 * walls.size()  # 이 번호부터 시설, 그다음 거점
 	var feet := m + blds.size() + 1  # 이 번호부터 성벽 위 유닛의 발밑 표시
@@ -562,10 +563,11 @@ func _bodies() -> void:
 		var i: int = k & 0xFFFFF
 		if i >= grave:
 			_corpse(dead[i - grave])
-		elif i >= folk:  # 주민(4.1d): 움직이는 쪽을 보고 걷기 2위상. 자리가 연출이라(I46) 방향도 0.05초 전 자리와의 차로 구한다
+		elif i >= folk:  # 주민(4.1d): 움직이는 쪽을 보고 걷기 2위상. 자리가 연출이라(I46) 방향도 0.05초 전 자리와의 차로 구한다. 그림은 몸·look(S172)
 			var v: Vector2 = ps[i - folk] - was[i - folk]
 			var moving := v.length_squared() > 1e-8
-			_frame(ART.resident, "walk" if moving else "idle", _four(v), int(now * 8.0) % 2 if moving else 0, _center(ps[i - folk]))
+			var f: Dictionary = who[i - folk]
+			_frame(ART["folk_%s_%d" % [f.body, f.look]], "walk" if moving else "idle", _four(v), int(now * 8.0) % 2 if moving else 0, _center(ps[i - folk]))
 		elif i >= feet:
 			_feet_mark(all[i - feet], i - feet)
 		elif i == m + blds.size():  # 거점 망루: 마을 레벨(S99)마다 한 장
@@ -886,7 +888,7 @@ func _frame(a: Dictionary, anim: String, dir: int, col: int, p: Vector2, tint :=
 	var c := int(a.c)
 	var size := c * (2 if anim == "attack" or anim == "fall" else 1)
 	var at := p - Vector2(a.anchor[0], a.anchor[1]) - Vector2.ONE * (size - c) / 2.0
-	_region(UNITS, Rect2(at, Vector2(size, size)), Rect2(col * size, a[anim] + dir * size, size, size), tint)
+	_region(UNITS, Rect2(at, Vector2(size, size)), Rect2(a.get("x", 0) + col * size, a[anim] + dir * size, size, size), tint)  # 주민 칸(S221)은 look마다 x가 있다
 
 # 화면 방향 v → 4방향 시트 행(S·E·N·W)
 func _four(v: Vector2) -> int:
@@ -1672,22 +1674,31 @@ static func hp_bar_size(u, show_all: bool) -> Vector2:
 		return Vector2(24, 3)
 	return Vector2(CELL, 2) if show_all else Vector2.ZERO
 
-# t초 때 주민 위치(칸 단위). 완성된 집마다 하나가 집 둘레 1.5칸 안을 떠돌고, 마을 밖으로는 나가지 않는다(S104)
-# 연출이라 시뮬레이션에 상태를 두지 않고 시각으로 구한다(I46). 차지 칸 가운데에서 그 자리로 가는 선 위에 물 칸(S220)이 있으면 그 앞에 선다(I181)
+# t초 때 주민 위치(칸 단위, folk_of 차례). 완성된 집의 가족(S221)이 저마다 집 둘레 1.5칸 안을 떠돌고, 마을 밖으로는 나가지 않는다(S104)
+# 자리는 연출이라 시뮬레이션에 상태를 두지 않고 시각으로 구한다(I46). 차지 칸 가운데에서 그 자리로 가는 선 위에 물 칸(S220)이 있으면 그 앞에 선다(I181)
 static func residents(b, t: float) -> Array:
 	var lo := Vector2(b.village.position)
 	var hi := Vector2(b.village.end - Vector2i.ONE)
 	var out := []
 	for s in b.structures.values():
 		if s.tax > 0 and s.complete:
-			var k := float(s.cell.x * 7 + s.cell.y * 13)  # 집마다 다른 위상
 			var mid: Vector2 = b.middle(s)
-			var p: Vector2 = (mid + Vector2(sin(t * 0.7 + k), sin(t * 0.5 + k * 1.3)) * (1.5 + (s.size.x - 1) / 2.0)).clamp(lo, hi)  # 차지 칸 가운데를 돈다(I178)
-			for i in range(1, 9):
-				if b.water.has(Vector2i(mid.lerp(p, i / 8.0).round())):
-					p = mid.lerp(p, (i - 1) / 8.0)
-					break
-			out.append(p)
+			for j in s.folk.size():
+				var k := float(s.cell.x * 7 + s.cell.y * 13 + j * 5)  # 집·식구마다 다른 위상
+				var p: Vector2 = (mid + Vector2(sin(t * 0.7 + k), sin(t * 0.5 + k * 1.3)) * (1.5 + (s.size.x - 1) / 2.0)).clamp(lo, hi)  # 차지 칸 가운데를 돈다(I178)
+				for i in range(1, 9):
+					if b.water.has(Vector2i(mid.lerp(p, i / 8.0).round())):
+						p = mid.lerp(p, (i - 1) / 8.0)
+						break
+				out.append(p)
+	return out
+
+# residents와 같은 차례의 주민(S221): 완성된 집마다 가족
+static func folk_of(b) -> Array:
+	var out := []
+	for s in b.structures.values():
+		if s.tax > 0 and s.complete:
+			out += s.folk
 	return out
 
 # 유닛·적은 pos, 구조물·성곽·거점은 cell로 자리를 갖는다

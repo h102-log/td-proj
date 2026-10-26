@@ -348,3 +348,20 @@ func ev422():
 	if why != "":
 		return why
 	return check(t.complete and f.complete, "20초 뒤 타워 완성 %s · 병영 완성 %s" % [t.complete, f.complete])
+
+# EV476 · S221: 집의 가족과 가족을 정하는 난수가 저장된다
+func ev476():
+	var stage := {"size": Vector2i(30, 20), "base": Vector2i(25, 10), "base_hp": BIG, "spawns": [Vector2i(0, 10)], "gold": BIG, "waves": [],
+		"hero_start": null, "village": Rect2i(0, 0, 30, 6), "seed": 7}
+	var b = _new(stage)
+	b.build("house", Vector2i(10, 3))
+	b.build("house", Vector2i(14, 3))
+	var c = _new(stage)
+	_save().apply(c, _save().snapshot(b))
+	var fam := func(x): return x.structures.values().map(func(s): return s.get("folk"))
+	if fam.call(b).has(null) or fam.call(b).has([]) or fam.call(b) != fam.call(c):
+		return "불러온 가족이 다르다: %s / %s" % [fam.call(b), fam.call(c)]
+	b.build("house", Vector2i(18, 3))
+	c.build("house", Vector2i(18, 3))
+	return check(b.structures[Vector2i(18, 3)].folk == c.structures[Vector2i(18, 3)].folk,
+		"불러온 뒤 지은 집의 가족이 다르다: %s / %s" % [b.structures[Vector2i(18, 3)].folk, c.structures[Vector2i(18, 3)].folk])

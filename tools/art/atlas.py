@@ -2,7 +2,8 @@
 # 영웅마다 캔버스 크기·발밑 기준점·시트가 시작하는 y를 json으로 쓴다. 한 장이어야 유닛이 늘어도 draw call이 늘지 않는다
 # (insights/2026-10-20_render_spike.md P4).
 # 성곽 칸 조각(4.1c)도 같은 식으로 4.0 시험 성벽 그림에서 잘라 한 장에 모은다.
-# 용병·적·주민(4.1d)은 C 절충안에 쓰는 칸만 골라 영웅 아래에 붙인다: 행 S·E·N·W, 정지 1열, 걷기 2위상 2열, 공격 키 포즈 1열, 누운 자세 1장
+# 용병·적(4.1d)은 C 절충안에 쓰는 칸만 골라 영웅 아래에 붙인다: 행 S·E·N·W, 정지 1열, 걷기 2위상 2열, 공격 키 포즈 1열, 누운 자세 1장
+# 주민(S172 2026-10-26 변경)은 몸마다 folk.py 시트 한 장을 그대로 붙이고, look마다 x로 가른다(folk_<몸>_<look>)
 # 시설(4.1e)은 48×48 칸을 따로 한 장에 모은다(facility())
 # 사용: python tools/art/atlas.py → art/units/heroes.png, art/units/heroes.json, art/castle/walls.png, art/castle/facility.png
 import json
@@ -13,7 +14,8 @@ from PIL import Image
 HEROES = ["aias", "sylvia", "seraphina", "vesper", "ignis", "chronos"]
 ANIMS = ["idle", "walk", "attack", "fall"]
 FOUR = {"soldier": "soldier", "archer": "archer", "engineer": "engineer", "basic": "goblin", "fast": "kobold",  # 게임 종류 → 그림 폴더(art/trial/)
-        "armored": "orc", "flying": "harpy", "boss": "ogre", "resident": "resident"}
+        "armored": "orc", "flying": "harpy", "boss": "ogre"}
+FOLK = ["man", "woman", "boy", "girl", "old_man", "old_woman"]  # 주민 몸(S221)
 FOUR_ROWS = [0, 2, 4, 6]  # 8방향 시트(render.DIRS 순서)에서 S·E·N·W
 FOUR_COLS = {"idle": [0], "walk": [0, 1], "attack": [1], "fall": [4]}  # 걷기 접지·통과, 공격 내려침, 쓰러짐 마지막(누운 자세)
 
@@ -37,6 +39,14 @@ def main():
             m[a] = y
             y += im.height
         meta[kind] = m
+    fit = json.loads(Path("art/trial/folk/fit.json").read_text(encoding="utf-8"))
+    c = fit["c"]
+    for body in FOLK:  # look마다 가로 2칸 띠: 위 4행은 정지(1열), 아래 4행은 걷기(2열)
+        im = Image.open(f"art/trial/folk/{body}.png").convert("RGBA")
+        for look in range(im.width // (2 * c)):
+            meta[f"folk_{body}_{look}"] = {"c": c, "anchor": fit["anchor"], "x": 2 * c * look, "idle": y, "walk": y + 4 * c}
+        sheets.append((im, y))
+        y += im.height
     out = Image.new("RGBA", (max(im.width for im, _ in sheets), y))
     for im, oy in sheets:
         out.paste(im, (0, oy))
