@@ -243,18 +243,22 @@ class CostGrid extends AStarGrid2D:
 	var _w := 0
 	var _kind := PackedByteArray()  # 0 빈칸·열린 성문, 1 막힌 칸, 2 성곽 성벽, 3 에너지 성벽
 	var _hp := PackedFloat64Array()  # 남은 체력 / 업그레이드 배율(S139)
+	var _id := PackedInt64Array()  # 칸의 막힌 Block. 같은 Block 안에서 옮겨 가는 칸은 비용을 다시 매기지 않는다(I179)
 
 	func path(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
 		_w = region.size.x
 		_kind.resize(region.size.x * region.size.y)
 		_kind.fill(0)
 		_hp.resize(_kind.size())
+		_id.resize(_kind.size())
+		_id.fill(0)
 		for d in [barriers, structures, castle]:  # 성곽을 먼저 본다(block_at)
 			for c in d:
 				var b = d[c]
 				var i: int = c.y * _w + c.x
 				_kind[i] = 0 if b.open else (2 if b.kind == "castle_wall" else (3 if b.kind == "barrier" else 1))
 				_hp[i] = b.hp / pow(UPGRADE_MULT, b.level - 1)
+				_id[i] = b.get_instance_id()
 		return get_id_path(from, to, true)
 
 	# 경로가 보는 막힌 칸. 유닛 경로(order_move가 wall_k를 UNIT_WALL_K로 둔다)는 에너지 성벽을 지나간다(I142)
@@ -266,7 +270,7 @@ class CostGrid extends AStarGrid2D:
 		if from.x != to.x and from.y != to.y and (_solid(from.y * _w + to.x) or _solid(to.y * _w + from.x)):
 			return 1e9
 		var t := to.y * _w + to.x
-		if not _solid(t):
+		if not _solid(t) or _id[t] == _id[from.y * _w + from.x]:  # 같은 Block 안(두꺼운 성벽·문루·큰 건물, I179)은 들어갈 때 한 번만 센다
 			return Vector2(to - from).length()
 		if climb > 0.0 and _kind[t] == 2:  # 부수지 않고 넘는다(I43)
 			return Vector2(to - from).length() + climb
@@ -280,10 +284,13 @@ var waves: Array  # 지금 라운드의 웨이브
 var rounds: Array  # 도전의 라운드마다 웨이브 배열(S63, I91). stage에 rounds가 없으면 waves 하나가 1라운드짜리 도전이다
 var nights: Array  # 라운드마다 웨이브 차례의 밤 {at, dark, fade}(S210). 없거나 짧으면 낮이다
 var base: Block
-var castle := {}      # Vector2i → Block
+var castle := {}      # 성곽의 칸(앞 왼쪽 칸) → 성곽 Block. 성벽은 열마다, 성문은 문마다 하나다(S217)
+var walls := {}  # 성곽 차지 칸 → 성곽 Block(S217). 길 격자와 칸으로 찾는 곳은 이것을 본다
+var field_y := 0  # 들판 첫 줄: 성곽(없으면 마을) 아래 첫 줄. 들판 꾸밈이 쓴다
 var structures := {}  # 구조물의 칸 → Block. 한 구조물에 한 키다
 var footprint := {}  # 차지 칸 → 구조물(S216). 길 격자와 칸으로 찾는 곳은 이것을 본다
-var rubble := {}  # Vector2i → 부서진 성곽 칸 Block(I88). 지나갈 수 있고, 복구하면 castle로 돌아간다(I89)
+var rubble := {}  # 성곽의 칸 → 부서진 성곽 Block(I88). 지나갈 수 있고, 복구하면 castle로 돌아간다(I89)
+var debris := {}  # 잔해 차지 칸 → 잔해 Block
 var barriers := {}  # Vector2i → 에너지 성벽 칸 Block(S151, I142). 그 장판(zones)이 끝나면 사라진다
 var zones := []  # 장판(S150, I141): {src, pos, radius, left, owner, 수치…}. 웨이브가 끝나면 모두 사라진다(I143)
 var traces := []  # 즉시 스킬 흔적(S179): {hero, slot, aim, at, radius, hits, age}. 그리기만 읽고 1초 지나면 지운다
@@ -361,7 +368,7 @@ func _init(stage: Dictionary) -> void:
 	_wall.region = grid.region
 	_wall.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
 	_wall.update()
-	grid.castle = castle
+	grid.castle = walls
 	grid.structures = footprint
 	grid.barriers = barriers
 	_stage = stage
@@ -386,7 +393,9 @@ func restart() -> void:
 		_release(s)
 	base = Block.new(stage.base, "base", stage.base_hp)
 	castle.clear()
+	walls.clear()
 	rubble.clear()
+	debris.clear()
 	structures.clear()
 	footprint.clear()
 	barriers.clear()
@@ -399,10 +408,14 @@ func restart() -> void:
 	_repath = false
 	_stale.clear()
 	var fort: Dictionary = stage.get("castle", {})
-	for c in fort.get("walls", []):
-		castle[c] = Block.new(c, "castle_wall", fort.wall_hp)
-	for c in fort.get("gates", []):
-		castle[c] = Block.new(c, "gate", fort.gate_hp)
+	for kind in ["castle_wall", "gate"]:  # 크기(S217)가 없으면 칸 하나다. 성벽은 열마다, 성문은 문마다 Block 하나
+		for c in fort.get("walls" if kind == "castle_wall" else "gates", []):
+			var k := Block.new(c, kind, fort.wall_hp if kind == "castle_wall" else fort.gate_hp)
+			k.size = fort.get("wall_size" if kind == "castle_wall" else "gate_size", Vector2i.ONE)
+			_put(castle, walls, k)
+	field_y = village.end.y + 1
+	for k in castle.values():
+		field_y = maxi(field_y, k.cell.y + 1)
 	base.produces = ["engineer"]  # live_prep 판에서는 거점도 공병을 판다(S98 2026-10-25 변경, sellers)
 	var exit = _exit_of(base)
 	base.rally = exit if exit != null else base.cell
@@ -825,10 +838,15 @@ func _hp_mult() -> float:
 func _gate_of(cell: Vector2i):
 	if round_index + 1 < GATE_SPLIT_ROUND:
 		return null
+	var fort: Dictionary = _stage.get("castle", {})
 	var best = null
-	for g in _stage.get("castle", {}).get("gates", []):
-		if best == null or Vector2(cell).distance_to(Vector2(g)) < Vector2(cell).distance_to(Vector2(best)):
+	var best_d := INF
+	for g in fort.get("gates", []):  # 거리는 문루에서 가장 가까운 칸까지(S217). 칸 하나인 문은 그 칸이다
+		var r := area_at(g, fort.get("gate_size", Vector2i.ONE))
+		var d := Vector2(cell).distance_to(Vector2(cell).clamp(Vector2(r.position), Vector2(r.end - Vector2i.ONE)))
+		if d < best_d:
 			best = g
+			best_d = d
 	return best
 
 # 준비 단계가 시작될 때 걷는 세금: 완성된 집의 세금 합이다. 미완성·부서진·팔린 집은 내지 않는다(I46, S102)
@@ -861,7 +879,7 @@ func place_merc(kind: String, cell: Vector2i, overrides := {}):
 		return null
 	gold -= stats.cost
 	var m := Unit.new(kind, cell, stats)
-	m.on_wall = castle.has(cell)
+	m.on_wall = walls.has(cell)
 	m.paid = stats.cost
 	units.append(m)
 	tally.merc_bought += 1  # 라운드 집계(I119)
@@ -869,7 +887,7 @@ func place_merc(kind: String, cell: Vector2i, overrides := {}):
 
 # 용병을 놓을 수 있는 칸: 거점이 아닌 맵 안 칸 가운데 막히지 않은 칸이나, 대포가 없는 성곽 칸(I134)
 func _merc_cell(cell: Vector2i) -> bool:
-	return grid.is_in_boundsv(cell) and cell != base.cell and (not grid.block_at(cell) or (castle.has(cell) and not structures.has(cell)))
+	return grid.is_in_boundsv(cell) and cell != base.cell and (not grid.block_at(cell) or (walls.has(cell) and not footprint.has(cell)))
 
 # 유닛들을 그 칸으로 보낸다(S14). attack이면 공격 이동, 아니면 순수 이동이다(S35). 맵 밖 칸이면 무시한다. 성곽 칸이면 성벽 위의 그 칸으로 간다(I69)
 func order_move(group: Array, cell: Vector2i, attack := false) -> void:
@@ -917,21 +935,21 @@ func _halt(u: Unit) -> void:
 func _unit_paths() -> void:
 	grid.wall_k = UNIT_WALL_K
 	_wall.fill_solid_region(_wall.region)
-	for c in castle:
+	for c in walls:  # 성벽 위는 차지 칸 어디로나 걷는다(S217 «성벽 위에서 이동»)
 		_wall.set_point_solid(c, false)
 
 # 땅과 성벽 위를 오가면 path 끝(성문 안쪽 칸이나 성문 칸)에서 오르내린 뒤 after를 걷는다(I44).
 # 오르내릴 성문은 «땅 위 경로 비용 + 성벽 위 걸음 수»가 가장 작은 곳이다(I69)
 func _route(u: Unit, cell: Vector2i) -> void:
 	var from := Vector2i(u.pos.round())
-	var up := castle.has(cell)
+	var up := walls.has(cell)
 	u.path.clear()
 	u.after.clear()
 	if u.on_wall == up:
 		u.path = (_wall.get_id_path(from, cell) if up else _short(grid.path(from, cell))).slice(1)
 		return
 	var best := INF
-	for g in castle:
+	for g in walls:
 		var s = _stair(g)
 		if s == null:
 			continue
@@ -954,7 +972,7 @@ func _short(p: Array[Vector2i]) -> Array[Vector2i]:
 
 # 성문 바로 안쪽(마을 쪽) 칸. 성문이 아니거나 마을에 닿지 않으면 null(I44)
 func _stair(g: Vector2i):
-	if castle[g].kind != "gate":
+	if walls[g].kind != "gate":
 		return null
 	for d in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
 		if village.has_point(g + d):
@@ -1407,7 +1425,7 @@ func _cast_bulwark(h: Unit, sk: Dictionary, aim, _grow: float) -> void:
 	var cells := []
 	for i in range(-(int(sk.length) / 2), int(sk.length) - int(sk.length) / 2):
 		var c := at + side * i
-		if grid.is_in_boundsv(c) and not grid.block_at(c) and not rubble.has(c) and c != base.cell and not taken.has(c):
+		if grid.is_in_boundsv(c) and not grid.block_at(c) and not debris.has(c) and c != base.cell and not taken.has(c):
 			barriers[c] = Block.new(c, "barrier", 1e6)
 			cells.append(c)
 	if not cells.is_empty():
@@ -1640,11 +1658,11 @@ func _buildable(kind: String, cell: Vector2i, taken = null) -> bool:
 	if taken == null:
 		taken = _taken()
 	for c in cells_in(area_at(cell, def.size)):
-		if not grid.is_in_boundsv(c) or footprint.has(c) or c == base.cell or rubble.has(c) or barriers.has(c):  # 잔해(I88)·에너지 성벽(I142) 칸에는 짓지 못한다
+		if not grid.is_in_boundsv(c) or footprint.has(c) or c == base.cell or debris.has(c) or barriers.has(c):  # 잔해(I88)·에너지 성벽(I142) 칸에는 짓지 못한다
 			return false
 		if c in _stage.get("hero_cells", []):  # 출전 칸에는 짓지 못한다(I107). 영웅이 서거나 돌아올 칸이다
 			return false
-		if castle.has(c) and (kind != "cannon" or castle[c].kind != "castle_wall"):
+		if walls.has(c) and (kind != "cannon" or walls[c].kind != "castle_wall"):
 			return false
 		if taken.has(c) or village.has_point(c) != inside:
 			return false
@@ -1679,14 +1697,21 @@ static func middle(s) -> Vector2:
 	return Vector2(r.position) + Vector2(r.size - Vector2i.ONE) / 2.0
 
 func _occupy(s: Block) -> void:
-	structures[s.cell] = s
-	for c in cells_in(area_of(s)):
-		footprint[c] = s
+	_put(structures, footprint, s)
 
 func _vacate(s: Block) -> void:
-	structures.erase(s.cell)
+	_cut(structures, footprint, s)
+
+# 칸 → Block 사전(d)과 차지 칸 → Block 사전(fp)에 함께 넣고 뺀다(S216, S217)
+func _put(d: Dictionary, fp: Dictionary, s: Block) -> void:
+	d[s.cell] = s
 	for c in cells_in(area_of(s)):
-		footprint.erase(c)
+		fp[c] = s
+
+func _cut(d: Dictionary, fp: Dictionary, s: Block) -> void:
+	d.erase(s.cell)
+	for c in cells_in(area_of(s)):
+		fp.erase(c)
 
 # 유닛·적이 선 칸(I24)
 func _taken() -> Dictionary:
@@ -1770,7 +1795,7 @@ func _exit_of(s: Block):
 func set_gate(g: Block, open: bool) -> void:
 	if state not in ["prep", "battle"] or g.kind != "gate" or castle.get(g.cell) != g or g.lock > 0.0:
 		return
-	if not open and occupied(g.cell):
+	if not open and occupied_area(g):
 		return
 	g.open = open
 	_repath = true
@@ -1789,7 +1814,7 @@ func upgrade_cost(k: Block) -> int:
 func upgrade(k: Block) -> void:
 	if state not in ["prep", "battle"] or castle.get(k.cell) != k or k.level >= UPGRADE_MAX or k.worker:
 		return
-	var engineer = _idle_engineer(k.cell) if live() else null
+	var engineer = _idle_engineer(k) if live() else null
 	if live() and not engineer:
 		return
 	if k.lift < 0.0:
@@ -1830,7 +1855,7 @@ func can_repair(t) -> bool:
 func repair(t) -> void:
 	if not can_repair(t):
 		return
-	var engineer = _idle_engineer(t.cell) if live() else null
+	var engineer = _idle_engineer(t) if live() else null
 	if (live() and not engineer) or gold < repair_cost(t):
 		return
 	gold -= repair_cost(t)
@@ -1856,9 +1881,9 @@ func heal(h: Unit) -> void:
 # 잔해를 되살린다(I89). 복구비는 지시할 때 낸다. live가 아닌 준비 단계엔 바로 가득 찬 채 서고, live()엔 놀고 있는
 # 가장 가까운 공병이 가서 닿으면 다시 세운 뒤 채운다(_work). 지시할 때 칸에 누가 있으면 거부한다
 func restore(k: Block) -> void:
-	if state not in ["prep", "battle"] or rubble.get(k.cell) != k or k.worker or occupied(k.cell):
+	if state not in ["prep", "battle"] or rubble.get(k.cell) != k or k.worker or occupied_area(k):
 		return
-	var engineer = _idle_engineer(k.cell) if live() else null
+	var engineer = _idle_engineer(k) if live() else null
 	if (live() and not engineer) or gold < repair_cost(k):
 		return
 	gold -= repair_cost(k)
@@ -1871,8 +1896,8 @@ func restore(k: Block) -> void:
 
 # 잔해를 체력 0인 성곽 칸으로 다시 세운다. 부서지기 전 단계와 최대 체력은 그대로다(I89)
 func _raise(k: Block) -> void:
-	rubble.erase(k.cell)
-	castle[k.cell] = k
+	_cut(rubble, debris, k)
+	_put(castle, walls, k)
 	k.alive = true
 	k.hp = 0.0
 	_repath = true
@@ -1895,6 +1920,11 @@ func _mend(t: Block, dhp: float) -> void:
 func occupied(cell: Vector2i) -> bool:
 	return (units + enemies).any(func(u): return Vector2i(u.pos.round()) == cell)
 
+# 그 Block의 차지 칸(S217) 어디에든 유닛이나 적이 서 있다
+func occupied_area(k: Block) -> bool:
+	var r := area_of(k)
+	return (units + enemies).any(func(u): return r.has_point(Vector2i(u.pos.round())))
+
 # 전투 단계(live)에만, 미완성 구조물을 없애고 낸 골드를 모두 돌려준다(S23, S83)
 func cancel(s) -> void:
 	if live() and not s.complete and structures.get(s.cell) == s:
@@ -1905,7 +1935,7 @@ func cancel(s) -> void:
 func resume(s):
 	if not live() or s.complete or s.worker or structures.get(s.cell) != s:
 		return null
-	var engineer = _idle_engineer(s.cell)
+	var engineer = _idle_engineer(s)
 	if engineer:
 		_send(engineer, s)
 	return engineer
@@ -1920,7 +1950,7 @@ func demolish(things: Array) -> void:
 	if state != "battle":
 		return
 	for t in things:
-		var engineer = _idle_engineer(t.cell) if can_demolish(t) else null
+		var engineer = _idle_engineer(t) if can_demolish(t) else null
 		if engineer:
 			t.mend = 0.0  # 남은 수리 몫(I87)이 있으면 공병이 허물지 않고 고친다
 			_send(engineer, t)
@@ -1930,7 +1960,7 @@ func demolish(things: Array) -> void:
 func move_cannon(s: Block, cell: Vector2i) -> void:
 	if state != "battle" or s.kind != "cannon" or not can_demolish(s) or not _buildable(s.kind, cell):
 		return
-	var engineer = _idle_engineer(s.cell)
+	var engineer = _idle_engineer(s)
 	if engineer:
 		s.dest = cell
 		s.mend = 0.0  # 남은 수리 몫(I87)이 있으면 공병이 접지 않고 고친다
@@ -1964,9 +1994,9 @@ func can_demolish(t) -> bool:
 func unfinished(things: Array) -> Array:
 	return things.filter(func(t): return t is Block and structures.get(t.cell) == t and not t.complete)
 
-# 놀고 있는 공병(짓거나 허무는 일을 맡지 않은 공병) 가운데 그 칸에 가장 가까운 공병(I39). 성벽 위 공병은 뺀다(I69).
-# 막힌 칸을 지나야만 닿는 공병도 뺀다(I125). 전투 중 공병에게 맡기는 지시는 모두 여기를 거친다. 거리는 그 칸의 구조물에서 가장 가까운 차지 칸까지다(I178)
-func _idle_engineer(cell: Vector2i):
+# 놀고 있는 공병(짓거나 허무는 일을 맡지 않은 공병) 가운데 그 칸(at이 Block이면 그 일 자리, _spot)에 가장 가까운 공병(I39). 성벽 위 공병은 뺀다(I69).
+# 막힌 칸을 지나야만 닿는 공병도 뺀다(I125). 전투 중 공병에게 맡기는 지시는 모두 여기를 거친다. 거리는 가장 가까운 차지 칸까지다(I178)
+func _idle_engineer(cell):
 	var best = null
 	var best_d := INF
 	for u in units:
@@ -1978,12 +2008,14 @@ func _idle_engineer(cell: Vector2i):
 				best_d = d
 	return best
 
-# 공병이 그 칸의 일을 하러 가는 칸: 칸에 구조물이 있으면 그 차지 칸 가운데 공병에게 가장 가까운 칸(I178)
-func _spot(u: Unit, cell: Vector2i) -> Vector2i:
-	var s = footprint.get(cell)
-	return Vector2i(nearest(s, u.pos).round()) if s else cell
+# 공병이 그 일을 하러 가는 칸(I178): 칸이면 그 칸, Block이면 차지 칸 가운데 공병에게 가장 가까운 칸이고 접은 대포는 새 칸(I74)이다.
+# 성벽 위 대포 칸은 성곽과 구조물이 겹쳐서 칸이 아니라 Block으로 묻는다
+func _spot(u: Unit, at) -> Vector2i:
+	if at is Vector2i:
+		return at
+	return _site(at) if at.dest != null and at.razed >= 1.0 else Vector2i(nearest(at, u.pos).round())
 
-# 전투 중 공병 지시(I125)를 맡을 공병이 없는 이유(I128): 칸들 가운데 하나라도 맡을 공병이 있으면 "",
+# 전투 중 공병 지시(I125)를 맡을 공병이 없는 이유(I128): 칸(또는 Block, _spot)들 가운데 하나라도 맡을 공병이 있으면 "",
 # 놀고 있는 공병이 하나도 없으면 "none", 있는데 어느 칸에도 닿지 못하면 "far". 칸이 비면(놓기 버튼) 놀고 있는 공병이 있는지만 본다
 func engineer_gap(cells: Array) -> String:
 	if not units.any(func(u): return u.kind == "engineer" and u.job == null):
@@ -2003,7 +2035,7 @@ func _send(u: Unit, s: Block) -> void:
 	u.after.clear()
 	s.worker = u
 	grid.wall_k = UNIT_WALL_K
-	u.path = grid.path(Vector2i(u.pos.round()), _spot(u, _site(s))).slice(1, -1)
+	u.path = grid.path(Vector2i(u.pos.round()), _spot(u, s)).slice(1, -1)
 
 # 일하던 공병을 놓아준다. 공병은 그 자리에 서고, 구조물은 그 상태로 남는다(I63)
 # 옮기던 대포는 원래 칸에 완성된 채 남는다(U12, I74)
@@ -2040,12 +2072,12 @@ func _grow(s: Block, dp: float) -> void:
 # ponytail: 일의 종류를 칸 상태로 고른다. 수리 몫과 그만둔 업그레이드가 함께 남은 칸은 수리부터 하고 멈춘다
 func _work(u: Unit, dt: float) -> void:
 	var s: Block = u.job
-	if u.pos.distance_to(Vector2(_spot(u, _site(s)))) > WORK_REACH:
+	if u.pos.distance_to(Vector2(_spot(u, s))) > WORK_REACH:
 		_send(u, s)
 	elif s.mend > 0.0:
 		if rubble.get(s.cell) != s:
 			_mend(s, s.max_hp / (s.build_time if structures.get(s.cell) == s else REPAIR_TIME) * dt)
-		elif not occupied(s.cell):  # 잔해는 칸이 비어야 다시 세운다(I89)
+		elif not occupied_area(s):  # 잔해는 칸이 비어야 다시 세운다(I89)
 			_raise(s)
 	elif s.lift >= 0.0:
 		_lift(s, dt / UPGRADE_TIME)
@@ -2157,18 +2189,26 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 			_vacate(target)
 			tally.structure_lost += 1  # 라운드 집계(I119)
 			return
-		castle.erase(target.cell)
+		_cut(castle, walls, target)
 		tally.castle_lost += 1  # 라운드 집계(I119)
-		rubble[target.cell] = target  # 잔해로 남아 지나갈 수 있고, 복구하면 되살아난다(I88, I89)
-		if structures.has(target.cell):  # 성벽 칸이 부서지면 그 위 대포도 부서진다(I72)
-			damage(structures[target.cell], INF)
-		# 그 칸에 걸쳐 선(0.5칸 안) 유닛은 그 칸 땅으로 내려오고, 성벽 위로 그 칸을 지나려던 유닛은 멈춘다(I70)
+		_put(rubble, debris, target)  # 잔해로 남아 지나갈 수 있고, 복구하면 되살아난다(I88, I89). 성벽은 열 하나가 통째로다(S217)
+		var area := area_of(target)
+		for c in cells_in(area):  # 성벽이 부서지면 그 위 대포도 부서진다(I72)
+			if footprint.has(c):
+				damage(footprint[c], INF)
+		# 그 칸들에 걸쳐 선(0.5칸 안) 유닛은 그 칸 땅으로 내려오고, 성벽 위로 그 칸을 지나려던 유닛은 멈춘다(I70)
+		var cells := cells_in(area)
 		for u in units:
-			var here: bool = u.on_wall and u.pos.distance_to(Vector2(target.cell)) <= 0.5
-			if here:
+			var here = null
+			if u.on_wall:
+				for c in cells:
+					if u.pos.distance_to(Vector2(c)) <= 0.5:
+						here = c
+						break
+			if here != null:
 				u.on_wall = false
-				u.pos = Vector2(target.cell)
-			if here or target.cell in (u.path if u.on_wall else u.after):
+				u.pos = Vector2(here)
+			if here != null or (u.path if u.on_wall else u.after).any(func(p): return area.has_point(p)):
 				u.path.clear()
 				u.after.clear()
 
@@ -2245,7 +2285,7 @@ func _target_of(e: Enemy):
 	if e.attacker and e.attacker.alive:
 		return e.attacker
 	if e.via != null:
-		if castle.has(e.via) and Vector2i(e.pos.round()) != e.via:
+		if castle.has(e.via) and not area_of(castle[e.via]).has_point(Vector2i(e.pos.round())):  # 문루 칸에 들어서면 거점이다(S217)
 			return castle[e.via]
 		e.via = null
 	return base
@@ -2536,7 +2576,7 @@ func _act(u: Unit, dt: float) -> void:
 		u.after.clear()
 	# 걷는 동안엔 반경을 보지 않는다. 홀드 중 이동 지시를 받으면 도착한 곳이 새 기준이다(I37)
 	var zone := u.hold_radius if u.hold and u.path.is_empty() else INF
-	var top = castle.get(Vector2i(u.pos.round()))
+	var top = walls.get(Vector2i(u.pos.round()))
 	var wall_only: bool = u.on_wall and u.range < WALL_RANGE and not (top and top.open)  # 성벽 위 근접 유닛은 열린 성문 위에서만 들판의 적을 치고(S88, S89), 성벽 위의 적은 친다(I78)
 	var foe = _hunt(u, wall_only) if u.prey else _nearest_enemy(u.pos, _reach(u), u.anchor, zone, wall_only)
 	var walking := not u.path.is_empty()
@@ -2701,7 +2741,7 @@ func _shove(e, by: Vector2, bodies: Array) -> void:
 
 # 기어오를 수 있는 칸: 성곽의 성벽 칸. 성문은 오르지 않는다(I76)
 func _climbable(c: Vector2i) -> bool:
-	return castle.has(c) and castle[c].kind == "castle_wall"
+	return walls.has(c) and walls[c].kind == "castle_wall"
 
 func _attack(e: Enemy, target) -> void:
 	if e.cooldown <= 0.0:

@@ -125,7 +125,7 @@ func _night_game(cells := [Vector2i(40, 55)], dark := 1.0) -> Array:
 
 # EV441 · S213: 밤에 불빛 밖의 적은 맵·미니맵에 그리지 않고, 클릭·명령의 대상이 되지 않으며, 패널에서 빠지고, 진행 칸이 비추지 않는다
 func ev441():
-	var got := _night_game([Vector2i(20, 13), Vector2i(31, 31)])  # 거점(30,13)에서 10칸 불빛 밖 · 영웅(31,29) 옆, 거점에서 18칸
+	var got := _night_game([Vector2i(20, 13), Vector2i(31, 33)])  # 거점(30,13)에서 10칸 불빛 밖 · 영웅(31,31) 옆, 거점에서 20칸
 	var main = got[0]
 	var hid = got[1][0]
 	var lit = got[1][1]
@@ -139,13 +139,13 @@ func ev441():
 	if out == "":
 		click(c, MOUSE_BUTTON_LEFT, px(Vector2i(20, 13)))
 		var hid_shown = c.shown
-		click(c, MOUSE_BUTTON_LEFT, px(Vector2i(31, 31)))
+		click(c, MOUSE_BUTTON_LEFT, px(Vector2i(31, 33)))
 		var lit_shown = c.shown
 		c.pick_hero(0)
 		click(c, MOUSE_BUTTON_RIGHT, px(Vector2i(20, 13)))
 		var hid_foe = c.order.get("foe")
 		c.pick_hero(0)
-		click(c, MOUSE_BUTTON_RIGHT, px(Vector2i(31, 31)))
+		click(c, MOUSE_BUTTON_RIGHT, px(Vector2i(31, 33)))
 		var lit_foe = c.order.get("foe")
 		if hid_shown != null or lit_shown != lit or hid_foe != null or lit_foe != lit:
 			out = "숨은 적 클릭 패널 %s · 보이는 적 클릭 패널 %s · 숨은 적 우클릭 대상 %s · 보이는 적 우클릭 대상 %s" % [hid_shown, lit_shown == lit, hid_foe, lit_foe == lit]
@@ -188,8 +188,8 @@ func ev442():
 		if not p.lights[i].is_equal_approx(want):
 			bad.append("%s → %s(%s)" % [l, p.lights[i], want])
 	var shader: Dictionary = {"dark": v.night.material.get_shader_parameter("dark"), "count": v.night.material.get_shader_parameter("count")}
-	var out := check(size == Vector2(960, 61 * 16 + 72) and placed and not day_shown and day_count == 0
-			and v.night.visible and p.dark == 0.5 and p.count == b.lights.size() and b.lights.size() >= 5 and bad.is_empty() and shader.dark == 0.5 and shader.count == p.count,
+	var out := check(size == Vector2(960, 63 * 16 + 72) and placed and not day_shown and day_count == 0
+			and v.night.visible and p.dark == 0.5 and p.count == b.lights.size() and b.lights.size() >= 4 and bad.is_empty() and shader.dark == 0.5 and shader.count == p.count,
 			"크기 %s · 자리·부모·클릭 무시 %s · 낮 보임 %s·불빛 %d · 밤 보임 %s·어둠 %.2f·불빛 %d(%d) · 셰이더 %s · 어긋난 불빛 %s" % [size, placed, day_shown, day_count, v.night.visible, p.dark, p.count, b.lights.size(), shader, bad.slice(0, 3)])
 	_done(main)
 	return out

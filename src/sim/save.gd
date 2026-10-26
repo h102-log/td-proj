@@ -4,7 +4,7 @@ extends RefCounted
 # 공병 일과 집결 중인 시설뿐이다. 그래서 유닛·구조물은 스크립트 변수를 모두 담고, 객체를 가리키는 칸(SKIP)은 빼되 그 둘은 칸으로 담아 다시 잇는다
 
 const Battle := preload("res://src/sim/battle.gd")
-const VERSION := 1  # 저장 형식 판. 다르면 읽지 않는다(I157)
+const VERSION := 2  # 저장 형식 판. 다르면 읽지 않는다(I157). 2: 두꺼운 성곽·맵 60×63(S217)
 # 판에서 담는 칸. 맵·라운드·마을 칸은 같은 스테이지로 새 판을 만들면 같다
 const KEYS := ["state", "round_index", "wave_index", "gold", "village_level", "offers", "quests", "mission", "commission", "commission_offers", "settled", "tally", "_chains"]
 
@@ -46,9 +46,10 @@ static func apply(b, d: Dictionary) -> void:
 		b.get(k).clear()
 		for f in d[k]:
 			b.get(k)[f.cell] = _block(f)
-	b.footprint.clear()
-	for s in b.structures.values():  # 차지 칸(S216)은 구조물에서 다시 편다
-		b._occupy(s)
+	for pair in [[b.structures, b.footprint], [b.castle, b.walls], [b.rubble, b.debris]]:  # 차지 칸(S216·S217)은 Block에서 다시 편다
+		pair[1].clear()
+		for k in pair[0].values():
+			b._put(pair[0], pair[1], k)
 	var people: Array = d.heroes.map(func(f): return _unit(f, b.HERO_KINDS))
 	b.roster.assign(d.roster.map(func(i): return people[i]))
 	b.lineup.assign(d.lineup.map(func(i): return people[i]))

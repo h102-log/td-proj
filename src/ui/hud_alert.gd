@@ -75,11 +75,13 @@ func _hit(k, kind: String, text: String, hits: Array) -> void:
 		hits.append([kind, k.cell, k, text])
 	_hp[k] = k.hp
 
-# ponytail: 성문 이름은 시험 스테이지(성문 셋: 왼쪽 쪽문·정문·오른쪽 쪽문) 차례다. 성문 수가 다른 맵이 생기면 x로 이름을 정한다
+# ponytail: 성문 이름은 성문 차례다. 하나면 정문(시험 스테이지, S39 2026-10-26 변경), 셋이면 왼쪽 쪽문·정문·오른쪽 쪽문. 다른 수의 맵이 생기면 x로 이름을 정한다
 func _name(k, gates: Array) -> String:
 	if k.kind != "gate":
 		return "성벽"
 	var i := gates.find(k)
+	if gates.size() == 1:
+		return "정문"
 	return "왼쪽 쪽문" if i == 0 else "오른쪽 쪽문" if i == gates.size() - 1 else "정문"
 
 # 표식은 늘 이어 간다. 거점·성문은 대상마다 COOL초, 그 밖은 같은 종류 ±NEAR칸·AGAIN초 안이면 다시 알리지 않는다. 알렸으면 true

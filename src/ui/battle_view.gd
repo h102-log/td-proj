@@ -63,7 +63,9 @@ const YARD_PROPS := {
 }
 const PAVE := Color("56607a")  # 돌길·광장 박석 색(S202)
 const FOREST_FLOOR := Color("2a1d0d")  # 맵 아래 맵 밖 띠(I50)의 바닥(S201): 마른 나무가 선 그을린 흙
-const CASTLE := preload("res://art/castle/walls.png")  # 성곽 칸 조각 16×42: 행 단계 1~3마다 몸체·앞층, 통로 그늘, 잔해. 열 성벽·열린 문·닫힌 문(tools/art/atlas.py castle)
+const CASTLE := preload("res://art/castle/walls.png")  # 성곽 조각(두께 3칸, S217): 행 단계 1~3마다 몸체·앞층, 통로 그늘, 잔해. 열 성벽 한 열·열린 문·닫힌 문(tools/art/atlas.py castle)
+const WALL_PIECE_H := 74  # 성곽 조각 높이(px). 맨 아랫줄이 앞줄 바닥선 바로 위 줄이고 윗줄은 통로 뒤 모서리다
+const WALL_COLS := {"castle_wall": [0, 16], "open": [16, 48], "closed": [64, 48]}  # 조각 열 [x, 폭](px)
 const KEEP := preload("res://art/castle/keep.png")  # 거점 망루 80×80, 마을 레벨 1·2. 칸 앞쪽 아래 왼쪽 모서리가 그림의 (32, 72)다(tools/art/keep.py)
 const KEEP_AT := Vector2(-32, CELL - 72)  # 거점 칸 왼쪽 위에서 본 망루 그림 왼쪽 위
 const KEEP_BODY := [Rect2(29, 23, 22, 49), Rect2(21, 13, 38, 59)]  # 마을 레벨 1·2 망루 그림의 불투명 사각형(keep.png를 잼). 그림을 바꾸면 다시 잰다
@@ -507,7 +509,7 @@ func _bodies() -> void:
 	var dead := _fallen()
 	for k in dead.size():  # 성벽 위의 쓰러진 몸은 낮아서 흉벽에 다 가리므로, 성벽 위 발밑 표시처럼 앞층 다음(바닥선 + 3)에
 		if dead[k][0].on_wall:
-			keys.append((1 << 44) | ((int(roundf(dead[k][0].pos.y) + 1) * CELL + 3 + 64) << 20) | (grave + k))
+			keys.append((1 << 44) | ((_wall_line(Vector2i(dead[k][0].pos.round())) + 5 + 64) << 20) | (grave + k))
 		else:
 			_corpse(dead[k])
 	for i in n:
@@ -516,17 +518,18 @@ func _bodies() -> void:
 		if not x.on_wall:
 			_feet_mark(x, i)
 		else:
-			keys.append((1 << 44) | ((int(roundf(x.pos.y) + 1) * CELL + 3 + 64) << 20) | (feet + i))
+			keys.append((1 << 44) | ((_wall_line(Vector2i(x.pos.round())) + 5 + 64) << 20) | (feet + i))
 		if fly:
 			draw_circle(_center(x.pos) + Vector2(0, CELL * 0.4), CELL * x.radius * 0.8, Color(0, 0, 0, 0.35))
-		var y := (roundf(x.pos.y) + 1) * CELL + 1 if x.on_wall or x.get("climbed") else _center(x.pos).y
+		var y: float = _wall_line(Vector2i(x.pos.round())) if x.on_wall else ((roundf(x.pos.y) + 1) * CELL + 1 if x.get("climbed") else _center(x.pos).y)
 		keys.append(((2 if fly else 1) << 44) | ((int(y) + 64) << 20) | i)
 	for j in walls.size():
 		var line: int = (walls[j].cell.y + 1) * CELL
-		keys.append((1 << 44) | ((line + 64) << 20) | (n + 2 * j))
+		keys.append((1 << 44) | ((line - 3 + 64) << 20) | (n + 2 * j))
 		keys.append((1 << 44) | ((line + 2 + 64) << 20) | (n + 2 * j + 1))
 	for j in blds.size():  # 시설은 바닥선, 성벽 위 대포는 성곽 몸체와 앞층 사이(바닥선 + 1)
-		keys.append((1 << 44) | (((blds[j].cell.y + 1) * CELL + int(battle.castle.has(blds[j].cell)) + 64) << 20) | (m + j))
+		var on: bool = battle.walls.has(blds[j].cell)
+		keys.append((1 << 44) | (((_wall_line(blds[j].cell) if on else (blds[j].cell.y + 1) * CELL) + 64) << 20) | (m + j))
 	keys.append((1 << 44) | (((battle.base.cell.y + 1) * CELL + 64) << 20) | (m + blds.size()))
 	for k in ps.size():
 		keys.append((1 << 44) | ((int(_center(ps[k]).y) + 64) << 20) | (folk + k))
@@ -572,10 +575,10 @@ func _shade(x) -> Color:
 	if not _behind(x):
 		return Color.TRANSPARENT
 	var c := Vector2i(_pos_of(x).round())
-	if battle.castle.has(c + Vector2i(0, 1)):
-		_clip = (c.y + 2) * CELL - 41.0
+	if battle.walls.has(c + Vector2i(0, 1)):
+		_clip = (c.y + 2) * CELL - 41.0  # 성벽 그림 윗변(성곽 윗줄 위끝에서 25px 위). 두꺼운 성곽(S217)도 같다
 		return SHADE
-	return Color.TRANSPARENT if battle.castle.has(c + Vector2i(0, 2)) else GHOST
+	return Color.TRANSPARENT if battle.walls.has(c + Vector2i(0, 2)) else GHOST
 
 # 그림 한 장을 원본과 같은 크기로 그린다. _clip보다 위 줄은 뺀다
 func _region(tex: Texture2D, dst: Rect2, src: Rect2, tint: Color) -> void:
@@ -617,7 +620,7 @@ func _behind(x) -> bool:
 	if x.get("on_wall") == true or x.get("flying") == true or x.get("climbed"):
 		return false
 	var c := Vector2i(_pos_of(x).round())
-	if battle.castle.has(c + Vector2i(0, 1)) or battle.castle.has(c + Vector2i(0, 2)):
+	if not battle.walls.has(c) and (battle.walls.has(c + Vector2i(0, 1)) or battle.walls.has(c + Vector2i(0, 2))):  # 문루 통로 안(성곽 칸)은 뒤가 아니다
 		return true
 	var d: Vector2i = c - battle.base.cell
 	return absi(d.x) <= 1 and d.y >= -2 and d.y < 0
@@ -649,20 +652,30 @@ func _ellipse(c: Vector2, r: Vector2, col: Color) -> void:
 # 성곽 칸 조각 하나(front 0 몸체, 1 앞층). 조각 맨 아랫줄이 바닥선 바로 아래 줄이다. 단계(S86)마다 그림이 다르고(사용자 2026-10-20),
 # 열린 성문은 몸체 위에 통로 그늘을 겹친다(I67). 잔해(I88)는 몸체 자리에 돌무더기 하나다
 func _wall_piece(b, front: int) -> void:
-	var at := Vector2(b.cell.x * CELL, (b.cell.y + 1) * CELL - 41)
+	var at := Vector2(b.cell.x * CELL, (b.cell.y + 1) * CELL - (WALL_PIECE_H - 1))
 	if battle.rubble.get(b.cell) == b:
 		if front == 0:
-			draw_texture_rect_region(CASTLE, Rect2(at, Vector2(16, 42)), Rect2(0, 7 * 42, 16, 42))
+			for i in b.size.x:  # 문루 잔해는 성벽 잔해 조각을 폭만큼 잇는다
+				draw_texture_rect_region(CASTLE, Rect2(at + Vector2(i * CELL, 0), Vector2(16, WALL_PIECE_H)), Rect2(0, 7 * WALL_PIECE_H, 16, WALL_PIECE_H))
 		return
-	var col := 0 if b.kind == "castle_wall" else (1 if b.open else 2)
-	draw_texture_rect_region(CASTLE, Rect2(at, Vector2(16, 42)), Rect2(col * 16, (2 * (b.level - 1) + front) * 42, 16, 42))
-	if front == 0 and col == 1:
-		draw_texture_rect_region(CASTLE, Rect2(at, Vector2(16, 42)), Rect2(16, 6 * 42, 16, 42))
+	var col: Array = WALL_COLS["castle_wall" if b.kind == "castle_wall" else ("open" if b.open else "closed")]
+	var dst := Rect2(at, Vector2(col[1], WALL_PIECE_H))
+	draw_texture_rect_region(CASTLE, dst, Rect2(col[0], (2 * (b.level - 1) + front) * WALL_PIECE_H, col[1], WALL_PIECE_H))
+	if front == 0 and b.kind == "gate" and b.open:
+		draw_texture_rect_region(CASTLE, dst, Rect2(col[0], 6 * WALL_PIECE_H, col[1], WALL_PIECE_H))
+
+# 성벽 위 유닛·대포·쓰러진 몸을 정렬할 바닥선(S217): 그 성곽 Block 앞줄 바닥선 − 2에서 앞줄로 올수록 1씩 뒤다.
+# 몸체(바닥선 − 3)와 앞층(바닥선 + 2) 사이라서, 통로 뒤 줄에 선 유닛도 몸체에 가리지 않고 앞층이 앞줄 유닛의 발을 가린다
+func _wall_line(c: Vector2i) -> int:
+	var k = battle.walls.get(c)
+	if k == null:
+		return (c.y + 1) * CELL + 1
+	return (k.cell.y + 1) * CELL - 2 + c.y - (k.cell.y - k.size.y + 1)
 
 # 위로 올려 그리는 정도(맵 px). 성벽 위 유닛·대포는 흉벽 바로 뒤(앞면에서 바닥 3px)에 서고, 기어오르는 적은 오른 만큼 오른다(4.1c, 05 §2)
 func _lift(x) -> float:
 	var p := _pos_of(x)
-	var top: bool = x.on_wall if x.get("pos") != null else (x.kind in battle.STRUCTURE_KINDS and battle.castle.has(x.cell))
+	var top: bool = x.on_wall if x.get("pos") != null else (x.kind in battle.STRUCTURE_KINDS and battle.walls.has(x.cell))
 	if top:
 		return (p.y + 0.5) * CELL - ((roundf(p.y) + 1) * CELL - 3 - WALL_H)
 	if x.get("climbed"):
@@ -931,7 +944,7 @@ func _scan() -> void:
 	_tell = tell
 	for c in battle.rubble:  # 성곽 칸 붕괴
 		if not _rubble.has(c):
-			_emit("collapse", _center(Vector2(c)), Vector2.ZERO, null, battle.rubble[c], {"cell": c})
+			_emit("collapse", _center(battle.middle(battle.rubble[c])), Vector2.ZERO, null, battle.rubble[c], {"cell": c})
 	_rubble = battle.rubble.duplicate()
 	_primed = true
 
@@ -1073,7 +1086,7 @@ static func bake_ground(b) -> ImageTexture:
 	var road := _road(b)
 	var bx: int = b.base.cell.x
 	var dirt := func(x: int, y: int) -> int:
-		var inv: bool = vil.has_area() and x >= vil.position.x and x <= vil.end.x and y >= vil.position.y and y <= vil.end.y + spill[x]
+		var inv: bool = vil.has_area() and x >= vil.position.x and x <= vil.end.x and y >= vil.position.y and y <= b.field_y - 1 + spill[x]  # 성곽(S217) 아래끝에서 들판 쪽으로 번진다
 		return int(inv and (y >= vil.end.y - 3 or x >= bx - 3 and x <= bx + 4 and y > b.base.cell.y) or road.has(Vector2i(x, y)))
 	var vsrc := _village_tiles()
 	for y in b.size.y:
@@ -1117,7 +1130,7 @@ static func bake_ground(b) -> ImageTexture:
 static func _road(b) -> Dictionary:
 	var out := {}
 	var gx: int = b.base.cell.x
-	var top: int = b.village.end.y
+	var top: int = b.field_y - 1  # 성곽 맨 아랫줄(S217)
 	for y in range(top + 1, b.size.y + 1):
 		for x in ([gx - 1, gx, gx + 1, gx + 2] if y <= top + 3 else [gx, gx + 1]):
 			out[Vector2i(x, y)] = true
@@ -1142,7 +1155,7 @@ static func _road(b) -> Dictionary:
 # 장식을 놓을 빈 들판 칸(S201): 성곽 아래 둘째 줄부터 맨 아래 줄 전까지(맵 밖 마른 나무가 걸친다), 길 꼭짓점에 닿지 않고 출현 지점 둘레 1칸 밖이다
 static func _open_cells(b, road: Dictionary) -> Array:
 	var out := []
-	for y in range(b.village.end.y + 2, b.size.y - 1):
+	for y in range(b.field_y + 1, b.size.y - 1):
 		for x in b.size.x:
 			var c := Vector2i(x, y)
 			if not [c, c + Vector2i.RIGHT, c + Vector2i.DOWN, c + Vector2i.ONE].any(func(v): return road.has(v)) \
@@ -1169,7 +1182,7 @@ static func ground_props(b) -> Array:
 
 # 들판 장식 수의 배율: 수는 40×22 들판 기준이고 넓이에 비례한다(S203). 맵이 커져도 같은 밀도로 보인다
 static func _field_scale(b) -> float:
-	return b.size.x * (b.size.y - b.village.end.y - 1) / 880.0
+	return b.size.x * (b.size.y - b.field_y) / 880.0
 
 # 우물 칸(S202 2026-10-26 변경): 거점에서 오른쪽 3칸·아래 2칸, 광장 오른쪽 모서리
 static func _well(b) -> Vector2i:
