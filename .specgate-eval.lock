@@ -1,6 +1,6 @@
 {
-  "approvedAt": "2026-10-26T10:40:40.061Z",
-  "evalMd": "37a8e01a",
+  "approvedAt": "2026-10-26T12:45:44.034Z",
+  "evalMd": "d0f4942f",
   "tests": {
     "tests/eval/conftest.py": "02db26c8",
     "tests/eval/gd/aura.gd": "010cc38a",
@@ -31,9 +31,9 @@
     "tests/eval/gd/heroes.gd.uid": "36f71d91",
     "tests/eval/gd/hire.gd": "43752787",
     "tests/eval/gd/hire.gd.uid": "47433f7e",
-    "tests/eval/gd/house.gd": "abd9143d",
+    "tests/eval/gd/house.gd": "a4e13a18",
     "tests/eval/gd/house.gd.uid": "5fd6fb28",
-    "tests/eval/gd/hud.gd": "d81ddf8e",
+    "tests/eval/gd/hud.gd": "5322d8df",
     "tests/eval/gd/hud.gd.uid": "6038f593",
     "tests/eval/gd/kits.gd": "eb05f8d7",
     "tests/eval/gd/kits.gd.uid": "c48b27a3",
@@ -55,7 +55,7 @@
     "tests/eval/gd/missile.gd.uid": "f8057e39",
     "tests/eval/gd/night.gd": "542c6796",
     "tests/eval/gd/night.gd.uid": "6a1ba769",
-    "tests/eval/gd/pathing.gd": "4f106467",
+    "tests/eval/gd/pathing.gd": "7f741506",
     "tests/eval/gd/pathing.gd.uid": "1e4fe822",
     "tests/eval/gd/production.gd": "5c9169d8",
     "tests/eval/gd/production.gd.uid": "c88b9b5e",
@@ -98,8 +98,8 @@
     "tests/eval/test_hero.py": "038406d7",
     "tests/eval/test_heroes.py": "da7683ed",
     "tests/eval/test_hire.py": "8a8e108d",
-    "tests/eval/test_house.py": "c7dc04bc",
-    "tests/eval/test_hud.py": "3e00ba23",
+    "tests/eval/test_house.py": "cc7951d6",
+    "tests/eval/test_hud.py": "6b761d03",
     "tests/eval/test_kits.py": "5cdb5610",
     "tests/eval/test_levels.py": "2c71fe40",
     "tests/eval/test_locale.py": "56451d19",
@@ -109,7 +109,7 @@
     "tests/eval/test_merc.py": "4dd8671d",
     "tests/eval/test_missile.py": "b2c53132",
     "tests/eval/test_night.py": "a941f4bc",
-    "tests/eval/test_pathing.py": "da8d306c",
+    "tests/eval/test_pathing.py": "70e2e529",
     "tests/eval/test_production.py": "7576edf8",
     "tests/eval/test_quests.py": "674e3903",
     "tests/eval/test_repair.py": "0d128975",
@@ -392,6 +392,8 @@
     "I179": "aefda8ee",
     "S218": "121d74ac",
     "S219": "4e530002",
-    "I180": "4d0b59d5"
+    "I180": "4d0b59d5",
+    "S220": "03e84e77",
+    "I181": "0cd2b7a4"
   }
 }

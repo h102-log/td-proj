@@ -321,6 +321,7 @@ var wave_index := 0
 var gold := 0
 var village := Rect2i()  # 마을 칸. 생산 시설은 안에만, 나머지 구조물은 밖에만 짓는다(S43). 비어 있으면 모두 들판
 var roads := {}  # 길 칸 → true. 마을 안이라도 짓지 못한다(S43 2026-10-26 변경). 스테이지가 정하고, 없으면 비어 있다
+var water := {}  # 물 칸 → true(S220). 짓지 못하고 아무도 들어가지 않는다(I181). 스테이지가 정하고, 없으면 비어 있다
 var merc_cap := MERC_CAP
 var village_level := 1  # 오를수록 지을 수 있는 생산 시설이 는다(S46, S99)
 var dark := 0.0  # 어둠(S210): 0 낮 ~ 1 한밤. 밤 웨이브의 전투 단계에 오르고, 전투가 끝나면 내린다. 저장에 담지 않는다(준비 단계는 낮)
@@ -388,6 +389,9 @@ func restart() -> void:
 	_spare = 0.0
 	village = stage.get("village", Rect2i())
 	roads = stage.get("roads", {})
+	water = stage.get("water", {})
+	for c in water:  # 막힌 칸 비용으로 세지 않고 길 격자에서 뺀다(I181). 물 칸으로 가는 길은 가장 가까운 닿는 칸에서 끝난다(allow_partial_path)
+		grid.set_point_solid(c)
 	merc_cap = stage.get("merc_cap", MERC_CAP)
 	village_level = 1
 	dark = 0.0
@@ -894,9 +898,9 @@ func place_merc(kind: String, cell: Vector2i, overrides := {}):
 	tally.merc_bought += 1  # 라운드 집계(I119)
 	return m
 
-# 용병을 놓을 수 있는 칸: 거점이 아닌 맵 안 칸 가운데 막히지 않은 칸이나, 대포가 없는 성곽 칸(I134)
+# 용병을 놓을 수 있는 칸: 거점·물(I181)이 아닌 맵 안 칸 가운데 막히지 않은 칸이나, 대포가 없는 성곽 칸(I134)
 func _merc_cell(cell: Vector2i) -> bool:
-	return grid.is_in_boundsv(cell) and cell != base.cell and (not grid.block_at(cell) or (walls.has(cell) and not footprint.has(cell)))
+	return grid.is_in_boundsv(cell) and cell != base.cell and not water.has(cell) and (not grid.block_at(cell) or (walls.has(cell) and not footprint.has(cell)))
 
 # 유닛들을 그 칸으로 보낸다(S14). attack이면 공격 이동, 아니면 순수 이동이다(S35). 맵 밖 칸이면 무시한다. 성곽 칸이면 성벽 위의 그 칸으로 간다(I69)
 func order_move(group: Array, cell: Vector2i, attack := false) -> void:
@@ -1682,7 +1686,7 @@ func _buildable(kind: String, cell: Vector2i, taken = null) -> bool:
 	if taken == null:
 		taken = _taken()
 	for c in cells_in(area_at(cell, def.size)):
-		if not grid.is_in_boundsv(c) or footprint.has(c) or c == base.cell or debris.has(c) or barriers.has(c) or roads.has(c):  # 잔해(I88)·에너지 성벽(I142)·길(S43) 칸에는 짓지 못한다
+		if not grid.is_in_boundsv(c) or footprint.has(c) or c == base.cell or debris.has(c) or barriers.has(c) or roads.has(c) or water.has(c):  # 잔해(I88)·에너지 성벽(I142)·길(S43)·물(S220) 칸에는 짓지 못한다
 			return false
 		if c in _stage.get("hero_cells", []):  # 출전 칸에는 짓지 못한다(I107). 영웅이 서거나 돌아올 칸이다
 			return false
@@ -1811,7 +1815,7 @@ func _exit_of(s: Block):
 	for x in range(r.position.x, r.end.x):
 		ring.append(Vector2i(x, r.position.y - 1))
 	for c in ring:
-		if grid.is_in_boundsv(c) and not grid.block_at(c) and c != base.cell:
+		if grid.is_in_boundsv(c) and not grid.block_at(c) and c != base.cell and not water.has(c):  # 물 칸에는 나오지 않는다(I181)
 			return c
 	return null
 
@@ -2759,7 +2763,7 @@ func _shove(e, by: Vector2, bodies: Array) -> void:
 		var blk = grid.block_at(c)
 		if blk and blk.kind == "barrier" and e is Unit:  # 아군은 에너지 성벽을 지나간다(I142)
 			blk = null
-		if grid.is_in_boundsv(c) and (not blk or (e.on_wall and _climbable(c))) and c != base.cell:  # 성벽 위의 적은 성벽 칸을 걷는다(I76)
+		if grid.is_in_boundsv(c) and (not blk or (e.on_wall and _climbable(c))) and c != base.cell and not water.has(c):  # 성벽 위의 적은 성벽 칸을 걷는다(I76). 물 칸에는 밀려도 들어가지 않는다(I181)
 			e.pos = p
 			return
 

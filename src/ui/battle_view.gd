@@ -62,6 +62,12 @@ const YARD_PROPS := {
 	"church": [[[7, Vector2(9, 16)]]],
 }
 const PAVE := Color("56607a")  # 돌길·광장 박석 색(S202)
+# 수로·연못(S220, tools/art/water.py): 바닥 위 물 덮개와 북벽 수문 덮개, 얹는 맵 px 왼쪽 위.
+# ponytail: 자리는 _plan의 물 칸(45열 수로·44~49열 연못)에 맞춘 지금 판 값이다. 판이 늘면 _plan과 함께 옮긴다
+const WATER := preload("res://art/tiles/water.png")
+const WATER_AT := Vector2i(672, 0)
+const CULVERT := preload("res://art/castle/culvert.png")
+const CULVERT_AT := Vector2i(712, 16)
 const FOREST_FLOOR := Color("2a1d0d")  # 맵 아래 맵 밖 띠(I50)의 바닥(S201): 마른 나무가 선 그을린 흙
 const CASTLE := preload("res://art/castle/walls.png")  # 성곽 조각(두께 3칸, S217): 행 단계 1~3마다 몸체·앞층, 통로 그늘, 잔해. 열 성벽 한 열·열린 문·닫힌 문·문 양옆 탑(tools/art/atlas.py castle)
 const WALL_PIECE_H := 105  # 성곽 조각 높이(px). 맨 아랫줄이 앞줄 바닥선 바로 위 줄이고 윗줄은 양옆 탑 뒤 모서리다
@@ -227,7 +233,8 @@ func _draw() -> void:
 			draw_texture_rect_region(DECOR, Rect2(Vector2(p[0]) * CELL, Vector2(CELL, CELL)), Rect2(p[1] * CELL, 0, CELL, CELL))
 	for s in battle.structures.values():
 		for p in yard_props(s):
-			draw_texture_rect_region(DECOR, Rect2(p[1], Vector2(CELL, CELL)), Rect2(p[0] * CELL, YARD_ROW, CELL, CELL))
+			if not battle.water.has(Vector2i((p[1] + Vector2(CELL, CELL) / 2.0) / CELL)):  # 소품 가운데가 물 칸이면 그리지 않는다(I181)
+				draw_texture_rect_region(DECOR, Rect2(p[1], Vector2(CELL, CELL)), Rect2(p[0] * CELL, YARD_ROW, CELL, CELL))
 	if controls.placing != "":  # 격자선은 놓기 모드에서만(4.1b, 사용자 2026-10-20)
 		var map := Vector2(battle.size) * CELL
 		for x in battle.size.x + 1:
@@ -729,6 +736,11 @@ func _wall_piece(b, front: int) -> void:
 	var col: Array = wall_col(battle, b)
 	var dst := Rect2(at, Vector2(col[1], WALL_PIECE_H))
 	draw_texture_rect_region(CASTLE, dst, Rect2(col[0], (2 * (b.level - 1) + front) * WALL_PIECE_H, col[1], WALL_PIECE_H))
+	if front == 1 and not battle.water.is_empty() and b.size == Vector2i(1, 3) and b.cell.y < battle.base.cell.y:  # 수로 수문(S220): 북벽은 앞층이 마을 쪽 벽면이라 그 위에, 그 열 폭만큼
+		var x0 := maxi(b.cell.x * CELL, CULVERT_AT.x)
+		var x1 := mini((b.cell.x + 1) * CELL, CULVERT_AT.x + CULVERT.get_width())
+		if x1 > x0:
+			draw_texture_rect_region(CULVERT, Rect2(x0, CULVERT_AT.y, x1 - x0, CULVERT.get_height()), Rect2(x0 - CULVERT_AT.x, 0, x1 - x0, CULVERT.get_height()))
 	if front == 0 and b.kind == "gate" and b.open:
 		draw_texture_rect_region(CASTLE, dst, Rect2(col[0], 6 * WALL_PIECE_H, col[1], WALL_PIECE_H))
 
@@ -1162,7 +1174,7 @@ static func _feet() -> ImageTexture:
 # 칸마다 네 꼭짓점으로 16꼴 가운데 하나를 고르고, 변종(풀·흙 한 가지인 칸은 넷, 전환 칸은 셋) 가운데 하나를 고른다. 출현 지점에는 깃발을 얹는다.
 # 들판(S201)은 길(_road) 꼭짓점도 흙이고, 빈 들판 칸에 그을음·구덩이·자갈·풀을 찍는다. 맵 아래 맵 밖 띠(I50)에는 숲 바닥을 깔고 마른 나무를 세운다.
 # 마을(S169·S202 2026-10-26 둘째·셋째 변경)은 길 골격(_plan)의 꼭짓점과 성곽 줄 꼭짓점만 흙이다. 박석(_pave)을 깔고, 텃밭과
-# 우물 밑 판석·자갈 마당을 찍고, 풀꽃 무더기(_clusters)를 모은 뒤 성 안 풀을 바랜다(_worn)
+# 우물 밑 판석·자갈 마당을 찍고, 풀꽃 무더기(_clusters)를 모은 뒤 성 안 풀을 바랜다(_worn). 물 칸이 있는 판은 그 위에 수로·연못 덮개를 섞는다(S220)
 static func bake_ground(b) -> ImageTexture:
 	var src := GROUND_TILES.get_image()
 	var deco := DECOR.get_image()
@@ -1216,6 +1228,10 @@ static func bake_ground(b) -> ImageTexture:
 		_clusters(b, img, deco)
 		_worn(b, img)
 		_wall_shade(b, img)
+	if not b.water.is_empty():
+		var w := WATER.get_image()
+		w.convert(img.get_format())
+		img.blend_rect(w, Rect2i(Vector2i.ZERO, w.get_size()), WATER_AT)
 	for c in (b.spawns if b.spawn_spread == 0 else []):  # 흩어져 나오는 스테이지는 깃발이 없다(I177). ponytail: 깃발도 바닥에 구워서 막 나온 적이 깃발 위에 그려진다. 거슬리면 깃발만 바닥선 정렬로 옮긴다
 		img.blend_rect(src, Rect2i(Vector2i(6, 1) * CELL, Vector2i(CELL, CELL)), c * CELL)
 	return ImageTexture.create_from_image(img)
@@ -1284,7 +1300,7 @@ static func _well(b) -> Vector2i:
 	return b.base.cell + Vector2i(5, 3)
 
 # 마을 길 골격(S202·S169 2026-10-26 넷째 변경, 사방 성곽): 박석 칸·흙 꼭짓점·텃밭 칸·자갈 마당, 짓지 못하는 길 칸(S43 2026-10-26 둘째 변경).
-# 북동 두 고리 사이 블록(44~49열, 13~19행)과 그 북쪽 45열(3~11행)은 수로·연못 자리로 비워 둔다.
+# 북동 두 고리 사이 블록(44~49열, 13~19행)은 연못, 그 북쪽 45열(4~12행)은 수로의 물 칸(S220)이다. 수로가 성벽 안쪽 길·바깥 고리 길과 만나는 다리 칸은 길 칸이다.
 # ponytail: 자리는 거점 (30,30)·맵 60×93인 지금 판(main.gd stage) 하나에 맞춘 칸 값이다. 판이 늘면 거점 칸 기준 상대값으로 옮긴다
 static func _plan() -> Dictionary:
 	var pave := {}
@@ -1337,7 +1353,15 @@ static func _plan() -> Dictionary:
 		_cell4(dirt, c)
 	var slabs := [Vector2i(34, 7), Vector2i(35, 7), Vector2i(35, 8), Vector2i(39, 50), Vector2i(40, 51)]  # 자갈 마당(북·남동 블록)
 	var gravel := [Vector2i(33, 8), Vector2i(36, 6), Vector2i(37, 8), Vector2i(41, 50), Vector2i(38, 51)]
-	return {"pave": pave, "dirt": dirt, "garden": garden, "slabs": slabs, "gravel": gravel, "roads": roads}
+	var water := {}
+	for y in [4, 5, 6, 7, 8, 9, 12]:  # 수로. 3행은 박석 덮개, 10·11행은 나무 다리
+		water[Vector2i(45, y)] = true
+	for y in range(13, 20):  # 연못
+		for x in range(44, 50):
+			water[Vector2i(x, y)] = true
+	for c in [Vector2i(45, 3), Vector2i(45, 10), Vector2i(45, 11)]:  # 다리 칸: 집이 다리를 막지 못하게 길 칸으로 둔다
+		roads[c] = true
+	return {"pave": pave, "dirt": dirt, "garden": garden, "slabs": slabs, "gravel": gravel, "roads": roads, "water": water}
 
 # 사방 성곽 안쪽 그늘(S219). 동·서 성벽은 마을 쪽에 남벽 앞면 벽돌색 벽면 띠 6px(원근 속임)과 그 바깥 땅 그늘 3px을, 통로처럼 24px 올린 자리에 그린다.
 # 닫힌 문루 행은 그 높이만큼 더 올리고 띠 자리에 나무 문짝을 넣는다. 남벽 통로 뒤 모서리 위 마을 땅에는 4px 그늘을, 정문 문루 뒤(박석 길 위)에는 터널 입구 그늘을 깐다.
@@ -1377,6 +1401,10 @@ static func _wall_shade(b, img: Image) -> void:
 # 시험 스테이지의 길 칸(S43 2026-10-26 변경). main.gd stage가 읽는다
 static func roads() -> Dictionary:
 	return _plan().roads
+
+# 시험 스테이지의 물 칸(S220). main.gd stage가 읽는다
+static func water() -> Dictionary:
+	return _plan().water
 
 # 칸 c의 네 꼭짓점을 d에 넣는다
 static func _cell4(d: Dictionary, c: Vector2i) -> void:
@@ -1443,7 +1471,7 @@ static func _worn(b, img: Image) -> void:
 					img.set_pixel(x, y, Color("684c3c"))
 
 # 시설 터(S215): 차지 칸(S216) 가운데보다 3px 아래를 중심으로 한 타원 얼룩에 흙 타일 무늬를 깐다. 가장자리는 칸마다 씨앗이 다른 잡음으로 흔들고,
-# 거리 0.85~1.15 띠는 바깥으로 갈수록 성기게 풀과 섞는다. 외곽선은 없다. 바닥(under)의 박석 위와 성벽 그늘 줄부터 아래에는 깔지 않는다. [그림, 맵 px 왼쪽 위]
+# 거리 0.85~1.15 띠는 바깥으로 갈수록 성기게 풀과 섞는다. 외곽선은 없다. 바닥(under)의 박석 위·물 칸(S220)과 성벽 그늘 줄부터 아래에는 깔지 않는다. [그림, 맵 px 왼쪽 위]
 static func bake_yard(b, s, under: Image) -> Array:
 	var r: Rect2i = b.area_of(s)
 	var center := (Vector2(r.position) + Vector2(r.size) / 2.0) * CELL + Vector2(0, 3)
@@ -1462,7 +1490,7 @@ static func bake_yard(b, s, under: Image) -> Array:
 	var img := Image.create_empty(box.size.x, box.size.y, false, Image.FORMAT_RGBA8)
 	for y in range(box.position.y, box.end.y):
 		for x in range(box.position.x, box.end.x):
-			if under.get_pixel(x, y).is_equal_approx(PAVE):
+			if under.get_pixel(x, y).is_equal_approx(PAVE) or b.water.has(Vector2i(x, y) / CELL):
 				continue
 			var h := fposmod(sin(x * 12.9898 + y * 78.233) * 43758.5453, 1.0)
 			for bl in blobs:
@@ -1645,7 +1673,7 @@ static func hp_bar_size(u, show_all: bool) -> Vector2:
 	return Vector2(CELL, 2) if show_all else Vector2.ZERO
 
 # t초 때 주민 위치(칸 단위). 완성된 집마다 하나가 집 둘레 1.5칸 안을 떠돌고, 마을 밖으로는 나가지 않는다(S104)
-# 연출이라 시뮬레이션에 상태를 두지 않고 시각으로 구한다(I46)
+# 연출이라 시뮬레이션에 상태를 두지 않고 시각으로 구한다(I46). 차지 칸 가운데에서 그 자리로 가는 선 위에 물 칸(S220)이 있으면 그 앞에 선다(I181)
 static func residents(b, t: float) -> Array:
 	var lo := Vector2(b.village.position)
 	var hi := Vector2(b.village.end - Vector2i.ONE)
@@ -1653,7 +1681,13 @@ static func residents(b, t: float) -> Array:
 	for s in b.structures.values():
 		if s.tax > 0 and s.complete:
 			var k := float(s.cell.x * 7 + s.cell.y * 13)  # 집마다 다른 위상
-			out.append((b.middle(s) + Vector2(sin(t * 0.7 + k), sin(t * 0.5 + k * 1.3)) * (1.5 + (s.size.x - 1) / 2.0)).clamp(lo, hi))  # 차지 칸 가운데를 돈다(I178)
+			var mid: Vector2 = b.middle(s)
+			var p: Vector2 = (mid + Vector2(sin(t * 0.7 + k), sin(t * 0.5 + k * 1.3)) * (1.5 + (s.size.x - 1) / 2.0)).clamp(lo, hi)  # 차지 칸 가운데를 돈다(I178)
+			for i in range(1, 9):
+				if b.water.has(Vector2i(mid.lerp(p, i / 8.0).round())):
+					p = mid.lerp(p, (i - 1) / 8.0)
+					break
+			out.append(p)
 	return out
 
 # 유닛·적은 pos, 구조물·성곽·거점은 cell로 자리를 갖는다

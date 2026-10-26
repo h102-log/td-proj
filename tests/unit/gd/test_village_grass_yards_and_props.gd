@@ -23,7 +23,7 @@ static func _share(img: Image, c: Vector2i, col: Color) -> float:
 func test_village_is_grass_but_roads_and_wall_road():
 	var b = Battle.new(Main.stage())
 	var img: Image = View.bake_ground(b).get_image()
-	for c in [Vector2i(13, 25), Vector2i(46, 8), Vector2i(25, 45), Vector2i(46, 15), Vector2i(36, 15)]:  # 길·텃밭에서 먼 성 안 칸, 수로·연못 자리(풀로 비움)
+	for c in [Vector2i(13, 25), Vector2i(46, 8), Vector2i(25, 45), Vector2i(36, 15)]:  # 길·텃밭에서 먼 성 안 칸, 수로 옆 칸(46,8)
 		if _share(img, c, Color("2d472d")) < 0.5:
 			return "성 안 %s가 풀이 아니다(풀색 %.2f)" % [c, _share(img, c, Color("2d472d"))]
 	for c in [Vector2i(20, 56), Vector2i(3, 20), Vector2i(20, 3), Vector2i(30, 15), Vector2i(15, 30), Vector2i(45, 30), Vector2i(6, 6), Vector2i(52, 50),  # 성벽 안쪽 길(남·서·북), 북·서·동 큰길, 모서리 텃밭

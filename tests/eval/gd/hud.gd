@@ -3044,3 +3044,21 @@ func ev467():
 	var names := [Vector2i(29, 59), Vector2i(29, 2), Vector2i(0, 31), Vector2i(57, 31)].map(func(g): return a._name(b.castle[g], gates))
 	_done(main)
 	return check(names == ["정문", "북문", "서문", "동문"], "정문·북·서·동 문루 이름이 %s다" % [names])
+
+# EV470 · S220: 바닥 그림의 연못·수로 가운데는 물 색이고(물 칸이 없는 판은 아니다), 미니맵 줄임의 연못 칸은 청록이다
+func ev470():
+	var BV = load("res://src/ui/battle_view.gd")
+	var st: Dictionary = load("res://src/main.gd").stage()
+	if not st.has("water"):
+		return "시험 스테이지에 물 칸(water)이 없다"
+	var waters := ["276468", "3c9f9c", "a4aec2"]  # 깊은 물색 183f39는 풀 점 색과 같아 세지 않는다
+	var spots := [Vector2i(748, 268), Vector2i(728, 120)]
+	var ground: ImageTexture = BV.bake_ground(battle(st))
+	var wet: Array = spots.map(func(p): return ground.get_image().get_pixelv(p).to_html(false))
+	var dry_st := st.duplicate()
+	dry_st.erase("water")
+	var dry_img: Image = BV.bake_ground(battle(dry_st)).get_image()
+	var dry: Array = spots.map(func(p): return dry_img.get_pixelv(p).to_html(false))
+	var c: Color = load("res://src/ui/hud_minimap.gd").shrink(ground, st.size).get_image().get_pixel(46, 16)
+	return check(wet.all(func(h): return h in waters) and not dry.any(func(h): return h in waters) and c.g - c.r > 0.1 and c.b - c.r > 0.1,
+		"물 판 두 픽셀 %s · 물 없는 판 %s · 미니맵 연못 칸 %s" % [wet, dry, c.to_html(false)])
