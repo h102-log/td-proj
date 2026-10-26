@@ -18,11 +18,11 @@ extends SceneTree
 #     fly_no_counter: 참이면 비행 적은 자기를 쏜 구조물에 반격하지 않는다(S5에서 비행 적을 뺀다, 1차 관찰 A③)
 #     hp_mult: [라운드마다 적 체력 배율] — data의 라운드 배율(S144)에 더 곱한다. 처치 보상은 그대로다(1차 관찰 A⑤. 적 수를 늘리면 보상도 늘어 수입이 따라 오른다)
 #     gate_split: 라운드 번호. 그 라운드부터 땅 적은 출현 지점에서 가장 가까운 성문을 먼저 노리고, 그 성문을 지나거나 부수면 거점으로 간다(1차 관찰 A④).
-#                 battle.gd가 GATE_SPLIT_ROUND부터 같은 규칙(S143)을 걸어서, 그보다 이른 라운드를 재 볼 때만 뜻이 있다. 봇은 둘 가운데 이른 라운드부터 쪽문을 지킨다(sides)
+#                 battle.gd가 GATE_SPLIT_ROUND부터 같은 규칙(S143)을 걸어서, 그보다 이른 라운드를 재 볼 때만 뜻이 있다
 # ponytail: 봇은 «무난한 플레이어» 하나를 흉내 낼 뿐이다. 사람의 손을 대신하지 않는다. 판정은 사람이 한다
 # 준비 단계는 적 없는 전투다(live_prep, S18 2026-10-25 변경). 봇은 정문을 열어 두고 짓고 산 것이 다 될 때까지만 판을 돌린 뒤(PREP_MAX 상한) 정문을 닫는다.
 # 사람과 다른 점: 준비 단계 Q·오라 회복을 쓰지 않는다. 영웅을 마을로 부르지 않고 그 밖에는 성문을 여닫지 않고
-# (pingpong을 켜면 쪽문 핑퐁만 한다) 리롤하지 않는다. 의뢰는 보상만 보고 수락하고 조건에 맞춰 운영을 바꾸지 않는다. 잔해 위 유닛은 한 칸 물려 세운다(사람이 준비 단계에 걸어서 비키는 손을 대신한다, 복구 거부 I89를 피한다)
+# 리롤하지 않는다. 의뢰는 보상만 보고 수락하고 조건에 맞춰 운영을 바꾸지 않는다. 잔해 위 유닛은 한 칸 물려 세운다(사람이 준비 단계에 걸어서 비키는 손을 대신한다, 복구 거부 I89를 피한다)
 
 const BOT := {
 	"name": "balanced",
@@ -45,19 +45,11 @@ const BOT := {
 	"village_from": 3,      # 이 라운드부터
 	"station": [[30, 15], [28, 14]],
 	"vlead": 9.0,           # 마을 영웅이 쫓는 거리(거점에서, 칸)
-	"pingpong": false,      # 쪽문 핑퐁(3장 자체 점검 §5의 사람 전략): 쪽문 하나만 열고, 땅 적이 그 문 pp_dist칸 안에 오면 반대 쪽문으로 바꾼다
-	"pp_dist": 4.0,
-	"pp_from": 1,           # 이 라운드부터 핑퐁한다. 그 전에는 성문을 닫아 둔다
-	"pp_slow": 0.0,        # 0보다 크면 웨이브의 적이 다 나온 뒤 남은 땅 적이 모두 이 속도 이하(장갑·보스)일 때만 핑퐁하고, 그 전엔 성문을 닫아 둔다
-	"gate_cd": 0.0,        # 봇이 스스로 지키는 성문 쿨타임(초, 전투 단계만). 쿨타임 규칙의 값을 고르려고 흉내 낸다
-	"gate_cd_all": false,   # 참이면 성문 하나를 여닫을 때 셋이 함께 묶인다. 거짓이면 그 성문만
 	"accept": true,         # 라운드 사이에 보상이 가장 큰 의뢰를 수락한다(실패해도 벌칙이 없다, I54)
-	"sides": false,         # 쪽문 둘도 정문처럼 지킨다: 쇼핑 목록의 쏘는 구조물·정문 업그레이드를 쪽문에도 하나씩 더하고(_plan), fill을 세 성문에 번갈아 깐다
 }
 
 const GATE := Vector2i(30, 29)  # 정문 문루(S217) 앞줄 가운데 칸. 성문은 b.walls로 찾고, 행·열 기준점으로도 쓴다
 const PREP_MAX := 180.0  # 준비 단계를 이만큼(게임 초) 넘게 끌면 짓던 것을 두고 전투를 시작한다. 닿을 수 없는 일에 묶이지 않게
-const SIDES := []  # 쪽문의 앞줄 가운데 칸. 시험 스테이지는 쪽문이 없어(S39 2026-10-26 변경) pingpong·sides 전략은 아무것도 하지 않는다
 const FRONT := Vector2i(30, 32)
 
 # 준비 단계 쇼핑 목록: 앞에서부터 사고, 골드가 모자란 항목에서 멈춘다(우선순위 저축)
@@ -136,9 +128,6 @@ var cur := {}        # 지금 웨이브 지표
 var _think := 0.0
 var _spawned := 0    # 이번 웨이브에 나온 적 수(kills 지표). 람다는 지역 변수를 값으로 잡아 멤버로 센다
 var _vill := []      # 마을에 세운 영웅
-var _t := 0.0        # 이번 웨이브의 전투 시간
-var _gate_at := {}   # 성문 칸 → 이번 웨이브에 마지막으로 여닫은 시각(봇의 쿨타임 흉내). "all"은 셋 중 아무거나
-var _split := 0      # over.gate_split: 적이 성문 셋으로 갈라지는 첫 라운드(0이면 없음)
 var _wait := false   # 이번 준비 단계 손에서 공병이 모자라 미룬 일이 있다
 var _prep_t := 0.0   # 이번 준비 단계에 흐른 게임 시간(초)
 
@@ -149,7 +138,6 @@ func _initialize() -> void:
 	bot.merge(cfg.get("bot", {}), true)
 	dt = cfg.get("dt", 0.05)
 	var over: Dictionary = cfg.get("over", {})
-	_split = int(over.get("gate_split", 0))
 	var stage: Dictionary = load("res://src/main.gd").stage()
 	stage.seed = int(cfg.get("seed", 1))
 	_override_stage(stage, over)
@@ -228,7 +216,7 @@ func _begin(g0: int, spent: int) -> void:
 		"spent_battle": 0, "base_min": 1.0, "gate_min": 1.0, "castle_lost": 0, "struct_lost": 0,
 		"merc_lost": 0, "hero_down": 0, "leak": 0, "idle": 0.0, "secs": 0.0, "peak": 0, "kills": 0,
 		"inside_peak": 0, "base_hp_end": 1.0, "gold_out": 0,
-		"def": _defense(), "lv": b.heroes.map(func(h): return h.level), "zones": 0, "busy": 0.0, "toggles": 0,
+		"def": _defense(), "lv": b.heroes.map(func(h): return h.level), "zones": 0, "busy": 0.0,
 	}
 
 # 지금 방어 구성: 종류별 수(구조물·용병)
@@ -251,11 +239,9 @@ func _fight() -> bool:
 	var mercs_seen := {}
 	var zones_hit := [false, false, false]
 	_spawned = 0
-	_gate_at.clear()
 	var gold_track: int = b.gold
 	var t := 0.0
 	while b.state == "battle":
-		_t = t
 		var heroes_alive: int = b.heroes.filter(func(h): return h.alive).size()
 		_think -= dt
 		for u in b.units:
@@ -411,15 +397,6 @@ func _prep() -> int:
 			b.step(dt)
 			t += dt
 	_prep_t = t
-	if bot.pingpong:  # 준비 단계 여닫기는 쿨타임이 없다. 정문은 닫고 쪽문은 하나만 연다(pp_slow면 모두 닫는다)
-		b.set_gate(b.walls[GATE], false)
-		var gs := SIDES.map(func(c): return b.walls.get(c)).filter(func(g): return g != null)
-		if bot.pp_slow > 0.0 or b.round_index + 1 < bot.pp_from:
-			for g in gs:
-				b.set_gate(g, false)
-		elif gs.size() == 2 and gs[0].open == gs[1].open:
-			b.set_gate(gs[0], true)
-			b.set_gate(gs[1], false)
 	return g0 - b.gold
 
 # 준비 단계 손 한 번: 수리·복구 → 쇼핑 목록 → fill. 공병이 모자라 못 한 일이 있으면 _wait
@@ -442,12 +419,12 @@ func _prep_hands() -> void:
 		if b.base.hp < b.base.max_hp * bot.base_repair_below and b.can_repair(b.base):
 			b.repair(b.base)
 	var done := true
-	for item in _plan():
+	for item in PLANS[bot.plan]:
 		if not _buy(item):
 			done = false
 			break
 	if done and bot.fill:
-		for item in _fill_cells([GATE] + (SIDES if _sides() else [])):
+		for item in _fill_cells([GATE]):
 			if not _buy(item):
 				break
 
@@ -470,28 +447,6 @@ func _recruit(kind: String, cell: Vector2i):
 			b.order_move([m], cell, true)
 		return m
 	return null
-
-# 적이 성문 셋으로 갈라지는 라운드(S143, gate_split이면 둘 가운데 이른 쪽)부터 무난한 플레이어는 쪽문도 지킨다
-func _sides() -> bool:
-	var from: int = mini(_split, b.GATE_SPLIT_ROUND) if _split > 0 else b.GATE_SPLIT_ROUND
-	return bot.sides or b.round_index + 1 >= from
-
-# 쇼핑 목록. sides면 쏘는 구조물마다 쪽문 둘에도 정문에서와 같은 x 거리(쪽문 안쪽)에 하나씩, 정문 업그레이드는 쪽문에도 더한다.
-# 정문 양옆 한 쌍은 쪽문에서 같은 칸이 되어 하나만 선다(_buy가 건너뛴다)
-func _plan() -> Array:
-	if not _sides():
-		return PLANS[bot.plan]
-	var out := []
-	for item in PLANS[bot.plan]:
-		out.append(item)
-		if item[0] == "build" and item[1] in ["tower", "magic", "cannon"]:
-			var dx: int = absi(item[2] - GATE.x)
-			for s in SIDES:
-				out.append(["build", item[1], s.x + (dx if s.x < GATE.x else -dx), item[3]])
-		elif item[0] == "upgrade" and Vector2i(item[1], item[2]) == GATE:
-			for s in SIDES:
-				out.append(["upgrade", s.x, s.y, item[3]])
-	return out
 
 # 항목 하나를 채운다. 이미 채웠으면 참, 골드가 모자라 못 채웠으면 거짓
 func _buy(item: Array) -> bool:
@@ -588,8 +543,6 @@ func _free_near(c: Vector2i) -> Vector2i:
 # ---------------------------------------------------------------- 전투 중 손
 
 func _battle_actions() -> void:
-	if bot.pingpong:
-		_pingpong()
 	for h in b.heroes:
 		if not h.alive:
 			continue
@@ -836,43 +789,3 @@ func _move_village_hero(h) -> void:
 			b.order_move([h], c, true)
 	elif h.path.is_empty() and h.pos.distance_to(Vector2(home)) > 1.5:
 		b.order_move([h], home)
-
-# 쪽문 핑퐁: 땅 적이 열린 쪽문 pp_dist칸 안(들판)에 오면 반대 쪽문을 열고 이 문을 닫는다. 쿨타임에 묶여 있으면 기다린다.
-# gate_cd_all이면 한 번에 하나만 여닫을 수 있어서, 열린 문을 먼저 닫고(그동안 적은 닫힌 문을 친다) 묶임이 풀리면 반대 문을 연다
-func _pingpong() -> void:
-	var gs := SIDES.map(func(c): return b.walls.get(c))
-	if gs.size() < 2 or null in gs or b.round_index + 1 < bot.pp_from:
-		return  # 쪽문이 없거나(S39 2026-10-26 변경) 부서져 잔해다
-	if bot.pp_slow > 0.0 and not (b._queue.is_empty() and b.enemies.all(func(e): return e.flying or (e.climb <= 0.0 and e.speed <= bot.pp_slow))):
-		return
-	var opened := gs.filter(func(g): return g.open)
-	if opened.is_empty():
-		_toggle(gs[0] if _crowd(gs[0].cell) <= _crowd(gs[1].cell) else gs[1], true)  # 적이 덜 붙은 쪽을 연다
-		return
-	var a = opened[0] if opened.size() == 1 or _crowd(opened[0].cell) >= _crowd(opened[1].cell) else opened[1]
-	if _crowd(a.cell) == 0:
-		return
-	var o = gs[1 - gs.find(a)]
-	if bot.gate_cd_all:
-		_toggle(a, false)
-	elif o.open or (_gate_free(a) and _gate_free(o)):
-		if o.open or _toggle(o, true):
-			_toggle(a, false)
-
-# 성문 칸에서 pp_dist칸 안의 들판에 있는 땅 적 수
-func _crowd(cell: Vector2i) -> int:
-	return b.enemies.filter(func(e): return not e.flying and not e.on_wall and e.pos.y >= GATE.y + 0.5 and e.pos.distance_to(Vector2(cell)) <= bot.pp_dist).size()
-
-func _gate_free(g) -> bool:
-	return _t - _gate_at.get("all" if bot.gate_cd_all else g.cell, -INF) >= bot.gate_cd
-
-# 묶여 있으면 거짓. 성문 칸에 적·유닛이 있어 닫기가 거부돼도 거짓이고 묶지 않는다(I67)
-func _toggle(g, open: bool) -> bool:
-	if not _gate_free(g):
-		return false
-	b.set_gate(g, open)
-	if g.open != open:
-		return false
-	_gate_at["all" if bot.gate_cd_all else g.cell] = _t
-	cur.toggles += 1
-	return true
