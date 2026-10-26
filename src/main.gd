@@ -206,6 +206,7 @@ static func stage() -> Dictionary:
 		"castle": {"walls": walls, "gates": gates, "wall_hp": 300, "gate_hp": 150, "wall_size": Vector2i(1, 3), "gate_size": Vector2i(3, 3), "side_walls": side, "side_wall_size": Vector2i(3, 1), "sealed": sealed},
 		"village": Rect2i(3, 3, 54, 54),  # 사방 성곽 안쪽(3~56행·열). 생산 시설은 여기에만 짓는다(S43)
 		"roads": BattleView.roads(),  # 마을 길 칸(광장·큰길·문루 안 공터): 짓지 못한다(S43 2026-10-26 둘째 변경). 표는 바닥 그림과 같은 BattleView._plan
+		"water": BattleView.water(),  # 수로·연못 물 칸(S220): 짓지 못하고 아무도 들어가지 않는다. 표는 바닥 그림과 같은 BattleView._plan
 		"rounds": rounds,
 		"hp_mult": ROUNDS.map(func(r): return load("res://data/waves/%s.tres" % r).hp_mult),  # 라운드 적 체력 배율(S144)
 		"nights": ROUNDS.map(func(r): return load("res://data/waves/%s.tres" % r).nights),  # 웨이브마다 밤(S210)

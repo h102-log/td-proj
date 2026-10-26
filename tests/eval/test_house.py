@@ -44,3 +44,11 @@ def test_EV129_residents_wander_in_village(gd):
 
 def test_EV462_no_house_on_roads(gd):
     gd("house", "EV462")
+
+
+def test_EV468_no_house_on_water_or_bridge(gd):
+    gd("house", "EV468")
+
+
+def test_EV471_residents_off_water(gd):
+    gd("house", "EV471")

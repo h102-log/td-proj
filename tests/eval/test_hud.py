@@ -287,3 +287,7 @@ def test_EV466_square_wall_art_heights_and_picks(gd):
 
 def test_EV467_gate_names_by_direction(gd):
     gd("hud", "EV467")
+
+
+def test_EV470_water_baked_and_on_minimap(gd):
+    gd("hud", "EV470")

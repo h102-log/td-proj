@@ -161,3 +161,44 @@ func ev462():
 		if b.build("house", at) == null:
 			return "길 칸이 아닌 %s에 집이 지어지지 않았다" % [at]
 	return ""
+
+# EV468 · S220: 시험 스테이지의 물 칸 49칸과 다리 칸 셋(길 칸). 차지 칸이 물·다리에 걸치는 집은 거부되고, 물가 옆에는 짓는다
+func ev468():
+	var b = battle(load("res://src/main.gd").stage())
+	var w = b.get("water")
+	if not w is Dictionary or w.size() != 49:
+		return "물 칸이 49칸이 아니다(%s)" % [w.size() if w is Dictionary else w]
+	for c in [Vector2i(45, 4), Vector2i(45, 9), Vector2i(45, 12), Vector2i(44, 13), Vector2i(49, 19)]:
+		if not w.has(c):
+			return "%s가 물 칸이 아니다" % [c]
+	for c in [Vector2i(45, 3), Vector2i(45, 10), Vector2i(45, 11)]:
+		if w.has(c) or not b.roads.has(c):
+			return "다리 칸 %s가 물 칸이거나 길 칸이 아니다" % [c]
+	b.gold = BIG
+	for at in [Vector2i(44, 14), Vector2i(43, 17), Vector2i(45, 6), Vector2i(44, 11)]:
+		if b.build("house", at) != null or b.gold != BIG:
+			return "물·다리 칸에 걸친 %s에 집이 지어졌다(골드 %d → %d)" % [at, BIG, b.gold]
+	for at in [Vector2i(42, 15), Vector2i(43, 8), Vector2i(46, 9)]:
+		if b.build("house", at) == null:
+			return "물가 옆 %s에 집이 지어지지 않았다" % [at]
+	return ""
+
+# EV471 · S220: 수로·연못 옆 집의 주민은 물 칸 위에 그리지 않는다
+func ev471():
+	var b = battle(load("res://src/main.gd").stage())
+	var w = b.get("water")
+	if not w is Dictionary or w.is_empty():
+		return "물 칸이 없다"
+	b.gold = BIG
+	for at in [Vector2i(43, 8), Vector2i(42, 18)]:
+		if b.build("house", at) == null:
+			return "%s에 집이 지어지지 않았다" % [at]
+	var view = load("res://src/ui/battle_view.gd")
+	for i in 1201:
+		var ps: Array = view.residents(b, i * 0.05)
+		if ps.size() != 2:
+			return "주민이 %d명이다" % ps.size()
+		for p in ps:
+			if w.has(Vector2i(p.round())):
+				return "%.2f초에 주민 %s가 물 칸 위다" % [i * 0.05, p]
+	return ""

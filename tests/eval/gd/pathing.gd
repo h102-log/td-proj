@@ -135,3 +135,57 @@ func ev305():
 		b.step(DT)
 		got.append(range(foes.size()).filter(func(k): return not is_same(old[k], foes[k].path)).size())
 	return check(got == [8, 16, 20], "스텝마다 새 경로를 받은 적의 누적 수가 %s다([8, 16, 20]이어야 한다)" % [got])
+
+const BRIDGE := Vector2i(10, 3)
+
+# 10열 0~19행이 물 칸이고 (10,3)만 다리다. 거점 (25,10), 출현 (0,10)
+func _canal():
+	var w := {}
+	for y in 20:
+		if y != BRIDGE.y:
+			w[Vector2i(10, y)] = true
+	return battle({"base_hp": BIG, "water": w})
+
+# u가 cond를 이룰 때까지 돌며 스텝마다 반올림한 칸을 모은다. 이루지 못하면 null
+func _walk(b, u, secs: float, cond: Callable):
+	var seen := {}
+	var ok := run(b, secs, func():
+		seen[cell_of(u)] = true
+		return cond.call())
+	return seen if ok else null
+
+# EV469 · S220: 물 칸은 아무도 지나가지 않고 다리 칸으로만 건넌다(예상 경로·땅 적·병사)
+func ev469():
+	var b = _canal()
+	var w = b.get("water")
+	if not w is Dictionary or w.is_empty():
+		return "판에 물 칸이 없다"
+	if b.forecast.is_empty() or not BRIDGE in b.forecast[0] or b.forecast[0].any(func(c): return w.has(c)):
+		return "예상 경로가 다리로 가지 않는다: %s" % [b.forecast]
+	var e = b.spawn_enemy("basic", Vector2i(0, 10))
+	var seen = _walk(b, e, 300, func(): return at_base(b, e))
+	if seen == null or not seen.has(BRIDGE) or seen.keys().any(func(c): return w.has(c)):
+		return "땅 적이 다리로만 건너 거점에 닿지 않았다(지난 칸 %s)" % [seen.keys() if seen else seen]
+	b = _canal()
+	var s = b.place_merc("soldier", Vector2i(5, 10))
+	b.order_move([s], Vector2i(15, 10))
+	seen = _walk(b, s, 60, func(): return near(s.pos, Vector2i(15, 10)))
+	return check(seen != null and seen.has(BRIDGE) and not seen.keys().any(func(c): return w.has(c)),
+		"병사가 다리로만 건너 (15,10)에 닿지 않았다(지난 칸 %s)" % [seen.keys() if seen else seen])
+
+# EV472 · I181: 물 칸으로 보낸 병사는 물가에서 멈추고, 물 칸에 놓을 수 없고, 밀려도 물 칸에 들어가지 않는다
+func ev472():
+	var b = _canal()
+	var w = b.get("water")
+	if not w is Dictionary or w.is_empty():
+		return "판에 물 칸이 없다"
+	var to := Vector2i(10, 12)
+	var s = b.place_merc("soldier", Vector2i(5, 10))
+	b.order_move([s], to)
+	if not run(b, 30, func(): return s.path.is_empty()) or w.has(cell_of(s)) or s.pos.distance_to(Vector2(to)) > 1.5:
+		return "물 칸으로 보낸 병사가 물가에서 멈추지 않았다(%s, 걷는 칸 %d)" % [s.pos, s.path.size()]
+	if b.place_merc("soldier", to) != null:
+		return "물 칸에 병사가 놓였다"
+	var e = b.spawn_enemy("basic", Vector2i(9, 12), {"speed": 0.0})
+	b._shove(e, Vector2(1, 0), [])
+	return check(cell_of(e) == Vector2i(9, 12), "동쪽으로 민 적이 %s에 있다((9,12)여야 한다)" % [e.pos])

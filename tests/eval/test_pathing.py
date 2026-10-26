@@ -28,3 +28,11 @@ def test_EV247_forecast_path_per_spawn(gd):
 
 def test_EV305_repath_eight_per_step(gd):
     gd("pathing", "EV305")
+
+
+def test_EV469_cross_water_by_bridge_only(gd):
+    gd("pathing", "EV469")
+
+
+def test_EV472_order_into_water_stops_at_shore(gd):
+    gd("pathing", "EV472")
