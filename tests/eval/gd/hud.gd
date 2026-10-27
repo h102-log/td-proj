@@ -3406,3 +3406,10 @@ func ev525():
 	if art.get("folk_man_8", {}).has("carry_pack"):
 		bad.append("folk_man_8(사제)에 carry_pack이 있다")
 	return check(bad.is_empty(), "%s" % [bad.slice(0, 8)])
+
+# EV536 · S188: 1라운드 3웨이브 줄에 슬라임 킹 특성
+func ev536():
+	var main = _prep()
+	var lines: String = main.hud._wave_lines([0, 2])
+	_done(main)
+	return check("슬라임 킹: 웅크린 뒤 뛰어내려 찍는다. 맞을수록 작아지고 빨라진다" in lines, "1라운드 3웨이브 줄 «%s»에 슬라임 킹 특성이 없다" % lines)

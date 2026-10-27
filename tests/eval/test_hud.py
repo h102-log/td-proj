@@ -338,3 +338,7 @@ def test_EV524_water_jar_is_blue(gd):
 
 def test_EV525_pack_walk_in_atlas(gd):
     gd("hud", "EV525")
+
+
+def test_EV536_slime_king_trait_line(gd):
+    gd("hud", "EV536")

@@ -1,8 +1,8 @@
 {
-  "approvedAt": "2026-10-27T07:09:57.519Z",
-  "evalMd": "0a979a9e",
+  "approvedAt": "2026-10-27T08:01:24.098Z",
+  "evalMd": "73abe70c",
   "tests": {
-    "tests/eval/conftest.py": "02db26c8",
+    "tests/eval/conftest.py": "e6bb5f0b",
     "tests/eval/gd/aura.gd": "010cc38a",
     "tests/eval/gd/aura.gd.uid": "40dd7bb8",
     "tests/eval/gd/boss.gd": "5ce3b68b",
@@ -37,7 +37,7 @@
     "tests/eval/gd/hire.gd.uid": "47433f7e",
     "tests/eval/gd/house.gd": "1df77dae",
     "tests/eval/gd/house.gd.uid": "5fd6fb28",
-    "tests/eval/gd/hud.gd": "bd1ceccb",
+    "tests/eval/gd/hud.gd": "2613ff63",
     "tests/eval/gd/hud.gd.uid": "6038f593",
     "tests/eval/gd/kits.gd": "5e064430",
     "tests/eval/gd/kits.gd.uid": "c48b27a3",
@@ -77,6 +77,8 @@
     "tests/eval/gd/sell.gd.uid": "5c77653c",
     "tests/eval/gd/show.gd": "7037f8af",
     "tests/eval/gd/show.gd.uid": "be479de2",
+    "tests/eval/gd/slimeking.gd": "ccda0ffa",
+    "tests/eval/gd/slimeking.gd.uid": "a58d1a7c",
     "tests/eval/gd/split.gd": "96660548",
     "tests/eval/gd/split.gd.uid": "b0664711",
     "tests/eval/gd/thick.gd": "4fad771c",
@@ -107,7 +109,7 @@
     "tests/eval/test_heroes.py": "da7683ed",
     "tests/eval/test_hire.py": "8a8e108d",
     "tests/eval/test_house.py": "4cbc5613",
-    "tests/eval/test_hud.py": "caf21c2c",
+    "tests/eval/test_hud.py": "de23e53d",
     "tests/eval/test_kits.py": "160e1303",
     "tests/eval/test_levels.py": "2c71fe40",
     "tests/eval/test_locale.py": "56451d19",
@@ -125,6 +127,7 @@
     "tests/eval/test_save.py": "c47d5574",
     "tests/eval/test_sell.py": "014befe2",
     "tests/eval/test_show.py": "74378302",
+    "tests/eval/test_slimeking.py": "e938269e",
     "tests/eval/test_split.py": "2bbb793b",
     "tests/eval/test_thick.py": "98dfcc83",
     "tests/eval/test_tower.py": "783a3ed2",
@@ -352,7 +355,7 @@
     "I164": "c6ab3699",
     "I122": "8dbbacb4",
     "I163": "794d09b0",
-    "S188": "58415f33",
+    "S188": "90e83a8b",
     "I13": "c4330075",
     "I151": "beeef2a2",
     "I165": "52d08244",
@@ -367,7 +370,7 @@
     "S192": "e31a8435",
     "S193": "42c00989",
     "I167": "46f8113e",
-    "S195": "4fec689f",
+    "S195": "76ec00e6",
     "S194": "1f445e84",
     "I168": "fb82bf63",
     "S196": "4a30ad4c",
@@ -424,6 +427,7 @@
     "S234": "d6e8644b",
     "I186": "119e8e8c",
     "I187": "1414ce21",
-    "S235": "8cd06bd8"
+    "S235": "8cd06bd8",
+    "S236": "63c9b853"
   }
 }
