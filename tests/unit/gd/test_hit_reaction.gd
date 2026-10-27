@@ -8,6 +8,8 @@ extends RefCounted
 #   S197. 근접 막타는 닿을 때까지 선 자세로 서 있고, 막타가 닿으면 0.1초 흰 실루엣으로 공격자 반대쪽 6px 밀려 그 자리에 눕는다.
 #         원거리는 착탄 때, 즉시 스킬은 흔적 가운데 반대쪽으로 같고, 닿는 공격이 없는 죽음은 바로 눕는다. 영웅 X는 막타가 닿은 때부터 밀린 자리에.
 #   S198. 보스 스킬 발동과 보스 타격: 맞은 아군은 6px·0.25초 밀리고, 넉백은 미끄러지며(성벽 오르내리기는 빼고), 끊기면 조각이 흩어지고, 보스에 가린 영웅을 덧그린다.
+#   S199. 맞은 구조물·성곽 칸·거점은 닿은 뒤 0.05초 공격자 반대쪽으로 1px 흔들리고 부스러기 2점이 튀며, 체력 75·50·25% 밑이면 금 1·2·3줄,
+#         맵 위 막대는 50% 밑 노랑·25% 밑 빨강이다(유닛 막대는 초록 그대로). 금은 구운 아틀라스 사본에서 단계가 오를수록 한 줄씩 늘어난다.
 #   I171. 화면 사건 목록: 닿음은 공격 하나에 한 번, 처치는 쓰러진 대상을 노린 마지막 공격이 닿을 때(기다릴 공격이 없으면 바로) 난다.
 #         원거리는 시뮬레이션 투사체가 닿은 프레임에 투사체 하나에 한 번이다.
 
@@ -510,4 +512,81 @@ func test_second_knock_slides_from_drawn_spot_and_wall_walk_does_not_slide():
 	if why == "" and v._slides.has(w.get_instance_id()):
 		why = "성벽 위를 걸어 칸 경계를 넘은 몸이 미끄러졌다"
 	v.free()
+	return why
+
+# 준비 단계에 다 지은 방벽과 그 서쪽에 붙어 선 근접 적(움직이지도 깎지도 않음)
+func _walled() -> Array:
+	var s := _board()
+	var b = s[0]
+	b.build("wall", Vector2i(10, 5))
+	s.append(b.structures[Vector2i(10, 5)])
+	s.append(b.spawn_enemy("basic", Vector2i(9, 5), {"speed": 0, "damage": 0, "hp": 1000}))
+	return s
+
+func test_struct_hit_jolts_one_px_then_throws_debris():
+	var s := _walled()
+	var b = s[0]
+	var v = s[1]
+	var wall = s[2]
+	var foe = s[3]
+	var why := ""
+	_hit(v, foe, wall, View.CONTACT + 0.02)
+	v._hits = v.hit_table([foe])
+	if v._jolt(wall) != Vector2(1, 0):
+		why = "서쪽 적에게 맞고 0.02초 뒤 방벽 흔들림이 %s다((1, 0)이어야 한다)" % v._jolt(wall)
+	_hit(v, foe, wall, View.CONTACT + 0.06)
+	v._hits = v.hit_table([foe])
+	if why == "" and v._jolt(wall) != Vector2.ZERO:
+		why = "맞고 0.06초 뒤에도 방벽이 %s만큼 옮겨져 있다(0.05초 뒤엔 제자리여야 한다)" % v._jolt(wall)
+	_go(b, v)
+	foe.target = wall
+	foe.cooldown = foe.attack_gap  # 막 쳤다
+	var got := _ticks(v, 10, DT, [foe])
+	var chips: Array = v._dots.filter(func(d): return d.col == View.DEBRIS)
+	if why == "" and (got.count("struct") != 1 or chips.size() != 2 or signf(chips[0].p1.x - chips[0].p0.x) == signf(chips[1].p1.x - chips[1].p0.x)):
+		why = "구조물 닿음 %d번에 부스러기 %d점(좌우로 하나씩 2점이어야 한다)" % [got.count("struct"), chips.size()]
+	v.free()
+	return why
+
+func test_cracks_and_bar_color_follow_structure_hp():
+	var s := _walled()
+	var v = s[1]
+	var wall = s[2]
+	var foe = s[3]
+	var why := ""
+	for c in [[0.8, 0, View.BAR_TIERS[2]], [0.7, 1, View.BAR_TIERS[2]], [0.4, 2, View.BAR_TIERS[1]], [0.2, 3, View.BAR_TIERS[0]]]:
+		wall.hp = wall.max_hp * c[0]
+		var y: int = View.crack_y(wall, 840)
+		if why == "" and (View.crack_stage(wall) != c[1] or View.bar_color(wall, true) != c[2] or (y == 0) != (c[1] == 0) or y % 840 != 0 or y > 6 * 840):
+			why = "체력 %d%%인 방벽의 금 %d줄 · 막대 %s · 사본 y %d(금 %d줄 · %s · 금이 있으면 840의 1~6배)" % [c[0] * 100, View.crack_stage(wall), View.bar_color(wall, true).to_html(false), y, c[1], c[2].to_html(false)]
+	wall.complete = false
+	if why == "" and View.crack_stage(wall) != 0:
+		why = "미완성 방벽에 금 %d줄이 있다(없어야 한다)" % View.crack_stage(wall)
+	foe.hp = foe.max_hp * 0.2
+	if why == "" and View.bar_color(foe, false) != Color.GREEN:
+		why = "체력 20%%인 적 막대가 %s다(유닛 막대는 초록 그대로)" % View.bar_color(foe, false).to_html(false)
+	v.free()
+	return why
+
+func test_crack_atlas_adds_one_crack_per_stage():
+	var src: Image = View.KEEP.get_image()
+	src.convert(Image.FORMAT_RGBA8)
+	var img: Image = View.KEEP_K.get_image()
+	var h := src.get_height()
+	var changed := func(v: int) -> Dictionary:  # 사본 v(0~5)에서 원본과 달라진 칸
+		var out := {}
+		for y in h:
+			for x in src.get_width():
+				if img.get_pixel(x, y + h * (v + 1)) != src.get_pixel(x, y):
+					out[Vector2i(x, y)] = true
+		return out
+	var why := ""
+	if img.get_region(Rect2i(0, 0, src.get_width(), h)).get_data() != src.get_data():
+		why = "구운 아틀라스의 첫 칸이 원본과 다르다"
+	for p in 2:
+		var one: Dictionary = changed.call(p)
+		var two: Dictionary = changed.call(2 + p)
+		var three: Dictionary = changed.call(4 + p)
+		if why == "" and (one.is_empty() or one.size() >= two.size() or two.size() >= three.size() or not one.keys().all(func(k): return two.has(k)) or not two.keys().all(func(k): return three.has(k))):
+			why = "무늬 %d의 금 칸 수가 단계 1·2·3에서 %d·%d·%d다(단계마다 앞 금을 두고 늘어야 한다)" % [p, one.size(), two.size(), three.size()]
 	return why
