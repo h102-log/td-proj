@@ -192,6 +192,7 @@ var _dots := []  # 효과 점(I172): {p0, p1, rise, t0, life, fade, col, size, g
 var _slides := {}  # id → [지난 화면 자리, 시작 시각, 길이](S198 미끄러짐)
 var _fills := []  # [보스 스킬 흔적, 남은 프레임](S198 발동 채움). tick마다 하나씩 줄인다
 var _zone_t0 := []  # [장판, 처음 본 화면 시각](4.1s 펼침). 장판은 Dictionary라 is_same으로 찾는다
+var _ghost := []  # 놓기 미리보기 [종류, 칸, 구조물 수, 구한 시각(ms), ghost]. 공병 길찾기(I125)가 한 번에 10~25ms라 이것이 바뀌거나 0.5초 지나야 다시 구한다
 static var _cells := {}  # Vector3i(반지름, 굵기, 0 고리 · 1 원판) → 아트 px 칸 오프셋
 static var _runs := {}  # 같은 열쇠 → 줄마다 이은 Rect2i(draw_rect 수를 줄인다)
 static var _noise := {}  # Vector3i(반지름, 밀도, 변형) → 성긴 칠 흰 마스크 텍스처
@@ -873,11 +874,19 @@ func _capsule(z, col: Color) -> void:
 
 # 칸에 붙는 표시: 놓기 모드 칸, 효과 테두리, 고른 것 테두리, 집결 지점, 체력 막대. 성벽 그림에 가리지 않게 몸통 뒤에 그린다(4.1c)
 func _marks() -> void:
-	if controls.placing in battle.STRUCTURE_KINDS:  # 구조물 놓기: 커서 칸에 차지 칸 미리보기(S216, I138 2026-10-26 변경)
-		var g := ghost(battle, controls.placing, Vector2i((controls.mouse / CELL).floor()))  # 클릭이 짓는 칸과 같은 좌표
-		var area := Rect2(Vector2(g[0].position * CELL), Vector2(g[0].size * CELL))
-		draw_rect(area, Color(GHOST_OK if g[1] else GHOST_NO, 0.25))
-		draw_rect(area, GHOST_OK if g[1] else GHOST_NO, false, 1.0)
+	if controls.placing in battle.STRUCTURE_KINDS:  # 구조물 놓기: 커서 칸에 차지 칸 미리보기를 지어질 그림 자리에(S216 2026-10-28, I138)
+		var c := Vector2i((controls.mouse / CELL).floor())  # 클릭이 짓는 칸과 같은 좌표
+		var key := [controls.placing, c, battle.structures.size()]
+		var now := Time.get_ticks_msec()
+		if _ghost.slice(0, 3) != key or now - _ghost[3] > 500:
+			_ghost = key + [now, ghost(battle, controls.placing, c)]
+		var g: Array = _ghost[4]
+		var col: Color = GHOST_OK if g[1] else GHOST_NO
+		var s := {"kind": controls.placing, "cell": c, "dest": null, "razed": 0.0, "complete": false, "progress": 0.0}  # 지을 구조물의 청사진(S176)
+		var area := Rect2(Vector2(g[0].position * CELL) - Vector2(0, _lift(s)), Vector2(g[0].size * CELL))  # 성벽 위 대포는 지은 대포처럼 올린다
+		draw_rect(area, Color(col, 0.25))
+		_facility(s, col)
+		draw_rect(area, col, false, 1.0)
 	elif controls.placing != "":  # 용병 놓기: 지금 놓을 수 있는 칸을 엷게(S45, I138)
 		for c in battle.placeable_cells(controls.placing):
 			draw_rect(_rect(c), Color(1, 1, 1, 0.25))
@@ -2102,9 +2111,9 @@ static func bake_yard(b, s, under: Image) -> Array:
 					break
 	return [ImageTexture.create_from_image(img), Vector2(box.position)]
 
-# 놓기 미리보기(S216): [커서 칸을 구조물의 칸으로 한 차지 칸, 지을 수 있나]
+# 놓기 미리보기(S216): [커서 칸을 구조물의 칸으로 한 차지 칸, 지을 수 있나]. 실시간 단계에는 닿는 공병(I125)도 본다(I138 2026-10-28)
 static func ghost(b, kind: String, cell: Vector2i) -> Array:
-	return [b.area_at(cell, b.STRUCTURE_KINDS[kind].size), b.can_build(kind, cell)]
+	return [b.area_at(cell, b.STRUCTURE_KINDS[kind].size), b.can_build(kind, cell) and (not b.live() or b.engineer_gap([cell]) == "")]
 
 # 터 반지름(S215 2026-10-26 변경): (가로 칸 × 8 + 18 + 종류 보탬, 깊이 칸 × 8 + 12)px
 static func yard_radius(s) -> Vector2:
