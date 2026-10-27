@@ -106,7 +106,8 @@ func follow() -> void:
 	top = clampi(top, 0, battle.size.y - rows())
 
 func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), HudTheme.LINE)
+	draw_rect(Rect2(-Vector2.ONE, size + Vector2(2, 2)), HudTheme.MAP_EDGE)  # 두 겹 테두리(S209 2026-10-28): 사각형 바로 바깥 1px
+	draw_rect(Rect2(Vector2.ZERO, size), HudTheme.MAP_RIM)
 	if ground == null and hud.view.ground != null:
 		ground = shrink(hud.view.ground, battle.size)
 	follow()
