@@ -1209,15 +1209,23 @@ func _wall_line(c: Vector2i) -> int:
 	return (k.cell.y + 1) * CELL - 2 + c.y - (k.cell.y - k.size.y + 1)
 
 # 위로 올려 그리는 정도(맵 px). 성벽 위 유닛·대포는 흉벽 바로 뒤(앞면에서 바닥 3px)에 서고, 기어오르는 적은 오른 만큼 오른다(4.1c, 05 §2).
-# 문루·문 양옆 탑 칸은 그 바닥 높이만큼 더 올린다(S170)
+# 문루·문 양옆 탑 칸은 그 바닥 높이만큼 더 올린다(S170). 성벽 위는 선 자리대로 그려 칸 경계에서 튀지 않는다(S170 2026-10-28)
 func _lift(x) -> float:
 	var p := _pos_of(x)
 	var top: bool = x.on_wall if x.get("pos") != null else (x.kind in battle.STRUCTURE_KINDS and battle.walls.has(x.cell))
 	if top:
-		return (p.y + 0.5) * CELL - ((roundf(p.y) + 1) * CELL - 3 - WALL_H) + rise_at(battle, Vector2i(p.round()))
+		return 3 + WALL_H - CELL / 2.0 + _rise(p)
 	if x.get("climbed"):
 		return (3 + WALL_H + rise_at(battle, Vector2i(p.round()) + Vector2i.UP)) * x.climbed / x.climb
 	return 0.0
+
+# 성벽 위 자리 p의 바닥 높이(px, S170 2026-10-28): 둘레 네 칸 가운데의 rise_at을 이어 칸 사이를 비탈로 만든다. 성곽이 아닌 이웃은 선 칸 높이로 본다
+func _rise(p: Vector2) -> float:
+	var c := Vector2i(p.floor())
+	var f := p - Vector2(c)
+	var own := float(rise_at(battle, Vector2i(p.round())))
+	var h := func(d: Vector2i) -> float: return float(rise_at(battle, c + d)) if battle.walls.has(c + d) else own
+	return lerpf(lerpf(h.call(Vector2i(0, 0)), h.call(Vector2i(1, 0)), f.x), lerpf(h.call(Vector2i(0, 1)), h.call(Vector2i(1, 1)), f.x), f.y)
 
 # 유닛·적·칸을 그릴 자리(맵 px, 칸 가운데)와 칸 사각형. 성벽 위에 있으면 올린다
 func _spot(x) -> Vector2:
