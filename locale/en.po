@@ -384,6 +384,9 @@ msgstr "Splits twice"
 msgid "보상이 없다"
 msgstr "No bounty"
 
+msgid "웅크린 뒤 뛰어내려 찍는다. 맞을수록 작아지고 빨라진다"
+msgstr "Crouches, then leaps and slams. Shrinks and speeds up as it is hurt"
+
 msgid "왼쪽"
 msgstr "Left"
 

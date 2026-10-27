@@ -40,6 +40,8 @@ const FX := 0.3  # 즉시 스킬 흔적(S179)이 퍼지고 사라지는 시간(�
 const FX_COLORS := {"frost_ring": Color("a0e0ff"), "slam": Color("ff3020")}  # 영웅 색이 아닌 흔적(S179): 이그니스 서리 고리는 얼음색, 보스 강타(S195)는 예고 색
 const TELL := Color("ff3020")  # 보스 스킬 예고(S194): 빨간 테두리, 안쪽이 차오른다
 const RAGE := Color(1.5, 0.55, 0.55)  # 분노한 보스(S195)를 붉게 그리는 modulate
+const CROUCH := Vector2(1.15, 0.75)  # 슬라임 킹이 웅크림 끝에 납작해지는 배율(가로·세로, S198). 임시값
+const LEAP_UP := 10.0  # 뜬 슬라임 킹을 한가운데에서 들어 올리는 높이(px, S198). 임시값
 const FALL := 0.5  # 운석이 보이며 떨어지는 시간(초). 이그니스 R의 첫 운석 지연(delay)과 같다
 const CORPSE_FADE := 0.5  # 쓰러진 적·용병의 몸이 시뮬레이션에서 지워지기(battle.FALLEN) 전에 흐려지는 시간(초, S180)
 const FALL_STEP := 0.08  # 영웅 쓰러짐 5프레임의 한 프레임 길이(초, S180)
@@ -264,8 +266,10 @@ func _draw() -> void:
 	for e in _foes:  # 보스 스킬 예고(S194): 빨간 테두리 안쪽이 남은 시간만큼 차오른다. 숨은 보스(S213)는 그리지 않는다
 		if e.cast:
 			var sk: Dictionary = e.skills[e.cast.id]
-			draw_circle(_center(e.pos), CELL * sk.radius * (1.0 - e.cast.left / sk.windup), Color(TELL, 0.35))
-			draw_arc(_center(e.pos), CELL * sk.radius, 0.0, TAU, 48, Color(TELL, 0.9), 1.0)
+			var at := _center(e.cast.get("at", e.pos))  # 점프(S236)는 착지 자리에, 뜬 동안은 가득 찬 채로(S198)
+			var k: float = 1.0 if e.cast.get("air", false) else 1.0 - e.cast.left / sk.windup
+			draw_circle(at, CELL * sk.radius * k, Color(TELL, 0.35))
+			draw_arc(at, CELL * sk.radius, 0.0, TAU, 48, Color(TELL, 0.9), 1.0)
 	for f in _fills.filter(func(f): return battle.seen(f[0].at)):  # 보스 스킬이 발동하면(S198) 처음 FILL프레임은 예고 모양 안을 예고색으로 채운다
 		draw_circle(_center(f[0].at), CELL * f[0].radius, Color(TELL, 0.6))
 	_fx_dots(true)  # 바닥 균열(S198)은 몸통 아래
@@ -707,11 +711,32 @@ func _body(x, i: int, next: Dictionary, tint := Color.WHITE, flash := true) -> v
 	if ART.has(x.kind) and not x.get("is_hero"):
 		_four_sprite(x, next, tint)
 	elif i >= battle.units.size():
-		draw_circle(_spot(x), CELL * x.radius, ENEMY_COLORS.get(x.kind, ENEMY_COLORS.basic) * tint)
+		_round_body(x, ENEMY_COLORS.get(x.kind, ENEMY_COLORS.basic) * tint)
 	elif x.is_hero and ART.has(x.kind):
 		_sprite(x, next, tint)
 	else:
 		draw_circle(_spot(x), CELL * x.radius, (HERO_COLORS.get(x.kind, COLORS.merc) if x.is_hero else COLORS.get(x.kind, COLORS.merc)) * tint)
+
+# 그림이 없는 적은 색 원(I81). 슬라임 킹 점프(S236, S198): 웅크리는 동안 아래끝을 둔 채 점점 납작해지고, 뜬 동안은 그림자 위로 들어 올린다
+func _round_body(x, col: Color) -> void:
+	var at := _spot(x)
+	var r: float = CELL * x.radius
+	var c = x.cast
+	if c == null or not c.has("at"):
+		draw_circle(at, r, col)
+		return
+	var sk: Dictionary = x.skills[c.id]
+	if c.get("air", false):
+		var t: float = 1.0 - c.left / sk.air
+		draw_set_transform(at, 0.0, Vector2(1.0, 0.4))
+		draw_circle(Vector2.ZERO, r, Color(0, 0, 0, 0.3))
+		draw_set_transform(at + Vector2(0, -LEAP_UP * 4.0 * t * (1.0 - t)), 0.0, Vector2.ONE)
+	else:
+		var k: float = 1.0 - c.left / sk.windup
+		var s := Vector2(1.0 + (CROUCH.x - 1.0) * k, 1.0 + (CROUCH.y - 1.0) * k)
+		draw_set_transform(at + Vector2(0, r * (1.0 - s.y)), 0.0, s)
+	draw_circle(Vector2.ZERO, r, col)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 # 성벽·거점 그림이 덮는 자리에 선 땅 유닛이나 시설: 성곽 그림이 발을 덮는 뒤 줄(성벽 두 줄, 문루 세 줄, 탑 세 줄), 거점 칸 뒤 두 줄과 그 양옆(C1, 사용자 2026-10-20)
 func _behind(x) -> bool:
@@ -1114,7 +1139,7 @@ func _scan() -> void:
 	for e in battle.enemies:  # 보스 스킬 예고가 기절·빙결로 끊김(S194, S198)
 		var id: int = e.get_instance_id()
 		if e.cast:
-			tell[id] = [_center(e.pos), CELL * e.skills[e.cast.id].radius]
+			tell[id] = [_center(e.cast.get("at", e.pos)), CELL * e.skills[e.cast.id].radius]  # 조각은 예고 원 둘레에(점프는 착지 자리, S198)
 		elif _tell.has(id) and e.fx.has("stagger") and e.fx.stagger.left > battle.STAGGER - 0.25:  # 이번에 막 걸린 비틀거림만
 			_emit("interrupt", _tell[id][0], Vector2.ZERO, e, null, {"radius": _tell[id][1]})
 	_tell = tell
