@@ -328,3 +328,109 @@ func ev510():
 	var rate := float(born) / can
 	var tol := 3.0 * sqrt(F.BIRTH * (1.0 - F.BIRTH) / can)  # 표본 크기에 맞춘 3표준편차
 	return check(absf(rate - F.BIRTH) <= tol and sexes.size() == 2, "태어난 비율 %d/%d = %.3f(기대 %s ± %.3f) · 몸 %s" % [born, can, rate, F.BIRTH, tol, sexes.keys()])
+
+# 판 b에서 사전 m인 주민 몸. 없으면 null
+func _body_of(b, m):
+	for v in b.people:
+		if is_same(v.m, m):
+			return v
+	return null
+
+# 집 A (10,3)·빈 집 B (14,3)(church면 교회 (24,3)도)인 판에서 신뢰 5로 1라운드를 이겨 B에 새 가족이 이사 오게 한다. [판, B] 또는 그 까닭(글)
+func _moving_in(church := false):
+	var b = _rounds(3, {"seed": 1})
+	b.build("house", H1)
+	var B = b.build("house", H2)
+	if church and b.build("church", Vector2i(24, 3)) == null:
+		return "교회 (24,3)을 짓지 못했다"
+	var bad := _lacks5(b)
+	if bad != "":
+		return bad
+	_empty(b, B)
+	b.trust = 5
+	bad = _win(b)
+	if bad != "" or b.state != "cleared" or B.folk.is_empty():
+		return "이사가 일어나지 않았다(%s %s, B %d명)" % [bad, b.state, B.folk.size()]
+	return [b, B]
+
+# EV526 · S235: 이사 오는 가족은 길에 있는 동안(정문 칸에서 차례를 기다릴 때도) 등짐 자세이고, 집에 든 뒤에는 아니다
+func ev526():
+	var got = _moving_in()
+	if got is String:
+		return got
+	var b = got[0]
+	var B = got[1]
+	var movers: Array = B.folk.filter(func(m): return m.get("away") != null)  # 이사 다음 차례에 태어난 아기는 길 없이 문 칸에 나타난다(S233)
+	if movers.is_empty():
+		return "이사 오는 식구가 길에 없다"
+	run(b, 0.5)
+	var mine := func(): return movers.map(func(m): return _body_of(b, m))
+	if not mine.call().all(func(v): return v != null and v.m.get("away") != null and v.pose == "carry_pack"):
+		return "이사 오는 식구 [자세, 행선지] %s" % [mine.call().map(func(v): return [v.pose, _to(v)] if v else null)]
+	if not run(b, 60.0, func(): return movers.all(func(m): return m.get("away") == null)):
+		return "60초 안에 새 가족이 집에 들지 않았다"
+	run(b, 1.0)
+	return check(mine.call().all(func(v): return v != null and v.pose != "carry_pack"), "집에 든 뒤 자세 %s" % [mine.call().map(func(v): return v.pose if v else null)])
+
+# EV527 · S235: 분가하는 다 큰 자녀와 정문으로 떠나는 가족은 걷는 동안 등짐 자세다
+func ev527():
+	var got := _first(func(sd): return _rounds(2, {"seed": sd}), func(fam): return fam.size() >= 2)
+	var b = got[0]
+	var A = got[1]
+	if b == null:
+		return "식구 둘 이상인 씨앗이 없다"
+	var B = b.build("house", H2)
+	var bad := _lacks5(b)
+	if bad != "":
+		return bad
+	var g: Dictionary = A.folk.back()
+	g.body = "man"
+	g.grown = true
+	_empty(b, B)
+	bad = _win(b)
+	if bad != "" or b.state != "cleared":
+		return "%s %s" % [bad, b.state]
+	run(b, 0.5)
+	var v = _body_of(b, g)
+	if v == null or g.get("away") == null or v.pose != "carry_pack":
+		return "분가하는 주민 자세 %s · 행선지 %s" % [v.pose if v else null, g.get("away", {}).get("to")]
+	var c = _battle({"seed": 1, "rounds": [[WAVE1], [WAVE1]]})  # 떠남: EV498과 같은 판(집 셋, 신뢰 1, 거짓 대피령)
+	for cell in ROW6.slice(0, 3):
+		c.build("house", cell)
+	c.trust = 1
+	bad = _alarm(c, Vector2i(20, 15))
+	if bad != "":
+		return bad
+	run(c, 0.5)
+	var going: Array = c.people.filter(func(x): return _to(x) == "out" and not x.m.away["in"])
+	return check(not going.is_empty() and going.all(func(x): return x.pose == "carry_pack"), "떠나는 주민 자세 %s" % [going.map(func(x): return x.pose)])
+
+# EV528 · I187 ①②: 대피령으로 대피소에 걷는 주민과, 이사 오다 다쳐 교회로 가는 주민은 맨손(walk)이다
+func ev528():
+	var b = _battle()
+	b.build("house", H1)
+	var bad := _lacks(b)
+	if bad != "":
+		return bad
+	if b.build("shelter", SHELTER) == null:
+		return "대피소 %s를 짓지 못했다" % [SHELTER]
+	b.start_battle()
+	b.step(DT)
+	if not b.evacuate():
+		return "전투 단계에 대피령이 나지 않았다"
+	run(b, 0.3)
+	var on: Array = b.people.filter(func(v): return v.m.get("away") != null and not v.m.away["in"])
+	if on.is_empty() or not on.all(func(v): return v.pose == "walk"):
+		return "대피하는 주민 자세 %s" % [on.map(func(v): return v.pose)]
+	var got = _moving_in(true)
+	if got is String:
+		return got
+	var c = got[0]
+	run(c, 0.5)
+	var m: Dictionary = got[1].folk[0]
+	var hurt = _body_of(c, m)
+	c.damage(hurt, 1.0)
+	run(c, 0.2)
+	var w = _body_of(c, m)
+	return check(w != null and m.get("away", {}).get("to") == "church" and not m.away.get("pack", false) and w.pose == "walk",
+		"다친 식구 자세 %s · 길 %s" % [w.pose if w else null, m.get("away")])
