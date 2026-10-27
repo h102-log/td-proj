@@ -11,6 +11,8 @@ const DANGER := Color("ef3a0c")
 const TEXT := Color("e8e8e8")
 const DIM := Color("9aa0aa")
 const GOOD := Color("7cc85a")  # 거점 체력 막대·세금(S190)
+const MAP_EDGE := Color("0b0c10")  # 미니맵 바깥 테두리(S209 2026-10-28)
+const MAP_RIM := Color("6b7280")  # 미니맵 안쪽 테두리(S209 2026-10-28). 맵 가장자리 성벽 점(DIM)과 갈린다
 
 static func make(font_size: int) -> Theme:
 	var t := Theme.new()
