@@ -3321,8 +3321,8 @@ func ev517():
 	_done(main)
 	return out
 
-# EV528 · S188: 1라운드 3웨이브 줄에 슬라임 킹 특성
-func ev528():
+# EV536 · S188: 1라운드 3웨이브 줄에 슬라임 킹 특성
+func ev536():
 	var main = _prep()
 	var lines: String = main.hud._wave_lines([0, 2])
 	_done(main)

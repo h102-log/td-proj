@@ -324,5 +324,5 @@ def test_EV517_boss_flag_wave_skull(gd):
     gd("hud", "EV517")
 
 
-def test_EV528_slime_king_trait_line(gd):
-    gd("hud", "EV528")
+def test_EV536_slime_king_trait_line(gd):
+    gd("hud", "EV536")

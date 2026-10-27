@@ -1,8 +1,8 @@
 extends "res://tests/eval/gd/lib.gd"
-# 슬라임 킹(S235). lib.gd 머리의 계약에 더하는 API:
+# 슬라임 킹(S236). lib.gd 머리의 계약에 더하는 API:
 #   적 kind "slime_king" · 적 cast(예고 중인 스킬 {id, left, at}. 뜬 단계면 air가 참. 없으면 null) · 적 radius · skills
 #   Battle.effect(대상, 키) · Battle.missiles(투사체 목록, 각 target) · 적 fx(출처 → {효과 키: 값, left: 남은 초})
-# 기절·봉인·초당 피해는 적 fx에 직접 넣어 건다(효과를 거는 스킬과 상관없이 S235만 재려고)
+# 기절·봉인·초당 피해는 적 fx에 직접 넣어 건다(효과를 거는 스킬과 상관없이 S236만 재려고)
 
 const KING := Vector2i(10, 10)
 const STILL := {"speed": 0, "sight": 0, "damage": 0}
@@ -29,8 +29,8 @@ func _aloft(e) -> bool:
 func _at(e):
 	return e.cast.get("at") if e.cast != null else null
 
-# EV522 · S235: 셋이 몰린 자리로 1.2초 웅크린 뒤 0.6초 동안 곧장 뛰어, 착지 자리 둘레에 물리 30·넉백·둔화 30%
-func ev522():
+# EV530 · S236: 셋이 몰린 자리로 1.2초 웅크린 뒤 0.6초 동안 곧장 뛰어, 착지 자리 둘레에 물리 30·넉백·둔화 30%
+func ev530():
 	var s = _king(THREE)
 	if s == null:
 		return "slime_king에 leap 스킬이 없다"
@@ -55,8 +55,8 @@ func ev522():
 	return check(held and flying and landed and hit and pushed and slowed and fresh,
 		"웅크림 중 자리·무피해 %s · 1.55초 뜬 채 %s(%s) · 2초 착지 %s(%s) · 피해 30 %s · 넉백 %s · 둔화 0.3 %s · 착지 뒤 길 첫 칸 %s" % [held, flying, mid, landed, e.pos, hit, pushed, slowed, e.path.slice(0, 1)])
 
-# EV523 · S235: 가장 많이 몰린 자리로 뛰고, 같으면 유닛 차례가 앞선 쪽. 둘뿐이면 뛰지 않는다
-func ev523():
+# EV531 · S236: 가장 많이 몰린 자리로 뛰고, 같으면 유닛 차례가 앞선 쪽. 둘뿐이면 뛰지 않는다
+func ev531():
 	var cells := [Vector2i(14, 10), Vector2i(14, 9), Vector2i(14, 11), Vector2i(10, 14), Vector2i(9, 14), Vector2i(11, 14), Vector2i(10, 15)]
 	var got := []
 	for cs in [cells, cells.slice(0, 6)]:
@@ -70,8 +70,8 @@ func ev523():
 	var quiet := not run(two[0], 3.0, func(): return two[1].cast != null)
 	return check(ok and quiet, "착지 자리(셋·넷, 셋·셋) %s((10, 14)·(14, 10)이어야 한다) · 둘뿐일 때 3초 조용함 %s" % [got, quiet])
 
-# EV524 · S235: 곧은 선이 방벽을 지나는 자리는 고르지 않는다
-func ev524():
+# EV532 · S236: 곧은 선이 방벽을 지나는 자리는 고르지 않는다
+func ev532():
 	var s = _king([Vector2i(14, 9), Vector2i(14, 10), Vector2i(14, 11), Vector2i(15, 10), Vector2i(10, 14), Vector2i(9, 14), Vector2i(11, 14)])
 	if s == null:
 		return "slime_king에 leap 스킬이 없다"
@@ -83,8 +83,8 @@ func ev524():
 	var at = _at(s[1])
 	return check(at != null and at.distance_to(Vector2(10, 14)) <= 0.01, "방벽 너머 넷·트인 쪽 셋에서 착지 자리 %s((10, 14)여야 한다)" % [at])
 
-# EV525 · S235: 웅크림은 기절(비틀거림)·봉인(그냥)에 끊기고, 뜬 동안은 끊기지 않는다
-func ev525():
+# EV533 · S236: 웅크림은 기절(비틀거림)·봉인(그냥)에 끊기고, 뜬 동안은 끊기지 않는다
+func ev533():
 	var s = _king(THREE)
 	if s == null:
 		return "slime_king에 leap 스킬이 없다"
@@ -118,8 +118,8 @@ func ev525():
 	return check(stun_cut and unhurt and seal_cut and through,
 		"웅크림 중 기절로 끊김·비틀거림 %s · 그 뒤 무피해 %s · 봉인으로 끊김(비틀거림 없음) %s · 뜬 동안 기절에도 착지 피해 %s(1.5초에 뜸 %s)" % [stun_cut, unhurt, seal_cut, through, up])
 
-# EV526 · S235: 뜬 동안은 타워가 노리지 않고 피해·새 효과를 받지 않는다. 이미 걸린 초당 피해는 든다
-func ev526():
+# EV534 · S236: 뜬 동안은 타워가 노리지 않고 피해·새 효과를 받지 않는다. 이미 걸린 초당 피해는 든다
+func ev534():
 	var s = _king(THREE)
 	if s == null:
 		return "slime_king에 leap 스킬이 없다"
@@ -155,8 +155,8 @@ func ev526():
 	return check(not slowed and poked and not aimed and after and absf(lost - 10.0 * air) <= 1.0,
 		"뜬 킹에 둔화가 걸림 %s · 뜬 동안 타워가 킹을 노림 %s · 착지 뒤 0.2초 안에 쏨 %s · 뜬 동안 준 체력 %.2f(초당 피해 몫 %.2f ±1, 뜬 시간 %.2f)" % [slowed, aimed, after, lost, 10.0 * air, air])
 
-# EV527 · S235: 체력 50%면 몸 0.8배·걷기 1.3배·공격 1.25배. 봉인되면 빨라짐만 꺼진다
-func ev527():
+# EV535 · S236: 체력 50%면 몸 0.8배·걷기 1.3배·공격 1.25배. 봉인되면 빨라짐만 꺼진다
+func ev535():
 	var walked := []
 	var sizes := []
 	for sealed in [false, true]:

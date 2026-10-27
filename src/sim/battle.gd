@@ -182,7 +182,7 @@ class Enemy:
 	var cd := {}  # 스킬 → 남은 대기(초). 없는 스킬은 0이다(나온 때, S194)
 	var boss := false  # 보스 표시(I185). 종류 수치의 boss 칸
 	var split := {}  # 죽으면 갈라져 나올 {kind, count}(S234). 비어 있으면 갈라지지 않는다
-	var girth := 0.0  # 나온 때의 몸 반지름. 줄어듦(S235)이 걸음마다 여기서 다시 센다
+	var girth := 0.0  # 나온 때의 몸 반지름. 줄어듦(S236)이 걸음마다 여기서 다시 센다
 
 	func _init(k: String, cell: Vector2i, stats: Dictionary) -> void:
 		kind = k
@@ -353,7 +353,7 @@ var barriers := {}  # Vector2i → 에너지 성벽 칸 Block(S151, I142). 그 �
 var zones := []  # 장판(S150, I141): {src, pos, radius, left, owner, 수치…}. 웨이브가 끝나면 모두 사라진다(I143)
 var traces := []  # 즉시 스킬 흔적(S179): {hero, slot, aim, at, radius, hits, age}. 그리기만 읽고 1초 지나면 지운다
 var fallen := []  # 쓰러진 영웅·용병·적(S180): {who, age}. 그리기만 읽고 FALLEN초 지나면 지운다
-var _dotting := false  # 초당 피해를 주는 중. 뜬 적(S235)도 이것만은 받는다
+var _dotting := false  # 초당 피해를 주는 중. 뜬 적(S236)도 이것만은 받는다
 var missiles := []  # 날고 있거나 출발을 기다리는 투사체(Missile, S178). 웨이브가 끝나면 사라진다(I143)
 var landed := []  # 닿은 투사체(Missile). 그리기만 읽고(맞은 반응·사건, S177·I171) 1초 지나면 지운다
 var enemies := []
@@ -1265,7 +1265,7 @@ func _first_alive():
 
 # 대상 t에 출처 src의 효과 eff를 secs초 건다. 같은 출처가 이미 걸려 있으면 값과 남은 시간을 새로 바꾼다(I97)
 func _fx(t, src: String, eff: Dictionary, secs: float) -> void:
-	if _aloft(t):  # 뜬 적(S235)에는 새 효과가 걸리지 않는다
+	if _aloft(t):  # 뜬 적(S236)에는 새 효과가 걸리지 않는다
 		return
 	var entry := eff.duplicate()
 	entry.left = secs
@@ -1384,7 +1384,7 @@ func _crits(target: Enemy, src) -> bool:
 
 # 넉백·끌어당김: 땅 적은 막힌 칸·몸에 막히면 멈추고(_shove), 나는 적은 그대로 옮긴다
 func _knock(e: Enemy, by: Vector2) -> void:
-	if _aloft(e):  # 뜬 적(S235)은 밀리지 않는다
+	if _aloft(e):  # 뜬 적(S236)은 밀리지 않는다
 		return
 	if _flies(e):
 		e.pos = (e.pos + by).clamp(Vector2.ZERO, Vector2(size - Vector2i.ONE))
@@ -2697,7 +2697,7 @@ func refund(t) -> int:
 func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) -> void:
 	if not target.alive or (target is Block and target.kind == "barrier"):
 		return
-	if _aloft(target) and not _dotting:  # 뜬 적(S235)은 맞지 않는다. 이미 걸린 초당 피해는 든다
+	if _aloft(target) and not _dotting:  # 뜬 적(S236)은 맞지 않는다. 이미 걸린 초당 피해는 든다
 		return
 	if target is Villager:  # 주민(S227): 방어·효과·흔적 없이 체력이 준다
 		_hurt(target, amount)
@@ -2881,15 +2881,15 @@ func _target_of(e: Enemy):
 func _move(e: Enemy, dt: float) -> void:
 	var sealed := _fx_on(e, "seal") != null  # 봉인(S155): 비행 적은 내려앉고 기어오르는 적은 오르지 못한다. 보스는 스킬을 쓰지 못한다(S194)
 	var rage := raging(e)
-	var sh: Dictionary = e.skills.get("shrink", {})  # 줄어듦(S235): 몸은 늘 체력만큼 작아지고, 빨라짐은 봉인되면 꺼진다
+	var sh: Dictionary = e.skills.get("shrink", {})  # 줄어듦(S236): 몸은 늘 체력만큼 작아지고, 빨라짐은 봉인되면 꺼진다
 	var worn := 0.0 if sh.is_empty() else 1.0 - e.hp / e.max_hp
 	if not sh.is_empty():
 		e.radius = e.girth * (sh.size_min + (1.0 - sh.size_min) * (1.0 - worn))
 	var quick := 0.0 if sealed else worn
-	e.cooldown -= dt * (1.0 - _fx_cut(e, "lag")) * (1.0 + (e.skills.rage.haste if rage else 0.0)) * (1.0 + sh.get("haste_max", 0.0) * quick)  # 공격 속도 감소(S158), 분노(S195), 줄어듦(S235)
+	e.cooldown -= dt * (1.0 - _fx_cut(e, "lag")) * (1.0 + (e.skills.rage.haste if rage else 0.0)) * (1.0 + sh.get("haste_max", 0.0) * quick)  # 공격 속도 감소(S158), 분노(S195), 줄어듦(S236)
 	e.held -= dt
 	var aloft := _aloft(e)
-	var stunned := _fx_on(e, "stun") != null and not aloft  # 뜬 동안(S235)은 발동 중이라 끊기지 않는다
+	var stunned := _fx_on(e, "stun") != null and not aloft  # 뜬 동안(S236)은 발동 중이라 끊기지 않는다
 	if e.cast and not aloft and (stunned or sealed):  # 예고가 끊긴다. 기절이면 비틀거리고, 봉인이면 그냥 취소된다(S194)
 		e.cd[e.cast.id] = e.skills[e.cast.id].cd
 		e.cast = null
@@ -2976,7 +2976,7 @@ func raging(e: Enemy) -> bool:
 
 # 대기를 줄이고, 예고 중이면 시간을 세어 다 되면 발동한다. 예고가 없으면 쓸 수 있는 스킬의 예고를 시작한다. 이번 스텝을 스킬에 썼으면 true
 # 예고(windup)가 있는 스킬마다 _<이름>_ready(적, 수치)가 발동 조건, _<이름>(적, 수치)가 효과다. 예고가 없는 스킬은 패시브라 여기서 쓰지 않는다(I169)
-# 조건이 사전을 돌려주면 예고에 더하고(점프의 착지 자리), 효과는 예고를 다음 단계로 바꿔 둘 수 있다(뜬 단계, I187)
+# 조건이 사전을 돌려주면 예고에 더하고(점프의 착지 자리), 효과는 예고를 다음 단계로 바꿔 둘 수 있다(뜬 단계, I188)
 func _skills(e: Enemy, dt: float, sealed: bool) -> bool:
 	for id in e.cd:
 		e.cd[id] -= dt
@@ -3015,7 +3015,7 @@ func _ground_near(at: Vector2, r: float) -> Array:
 	return units.filter(func(u): return not u.on_wall and u.pos.distance_to(at) <= r)
 
 # 대지 강타(S195): 반경 안 땅 위 영웅·용병에게 물리 피해, 보스에게서 멀어지는 쪽으로 넉백(막힌 칸·몸에서 멈춘다), 둔화.
-# 보스와 같은 자리에 선 몸은 away 쪽으로 민다(점프 착지, S235). 오우거는 away가 없어 그 몸은 밀리지 않는다
+# 보스와 같은 자리에 선 몸은 away 쪽으로 민다(점프 착지, S236). 오우거는 away가 없어 그 몸은 밀리지 않는다
 func _slam(e: Enemy, sk: Dictionary, away := Vector2.ZERO) -> void:
 	_trace(e, "slam", null, e.pos, sk.radius)
 	for u in _ground_near(e.pos, sk.radius):
@@ -3026,8 +3026,8 @@ func _slam(e: Enemy, sk: Dictionary, away := Vector2.ZERO) -> void:
 			_fx(u, "slam", {"slow": sk.slow}, sk.slow_time)
 	_tracing = null
 
-# 점프 내려찍기(S235)를 쓸 수 있다: range 안 땅 위 영웅·용병 가운데 반경 안에 땅 아군이 count 이상 몰렸고, 보스에서 곧은 선이
-# 막힌 칸을 지나지 않는 자리. 가장 많이 몰린 자리, 같으면 유닛 차례가 앞선 쪽. 착지 자리를 예고에 둔다(I187)
+# 점프 내려찍기(S236)를 쓸 수 있다: range 안 땅 위 영웅·용병 가운데 반경 안에 땅 아군이 count 이상 몰렸고, 보스에서 곧은 선이
+# 막힌 칸을 지나지 않는 자리. 가장 많이 몰린 자리, 같으면 유닛 차례가 앞선 쪽. 착지 자리를 예고에 둔다(I188)
 func _leap_ready(e: Enemy, sk: Dictionary):
 	var best = null
 	var most: int = sk.count - 1
@@ -3038,12 +3038,12 @@ func _leap_ready(e: Enemy, sk: Dictionary):
 			most = n
 	return {"at": best.pos} if best else false
 
-# 웅크림이 끝나면 뜬다(S235): 붙잡던 유닛에서 풀리고, air초 동안 착지 자리로 곧장 난다
+# 웅크림이 끝나면 뜬다(S236): 붙잡던 유닛에서 풀리고, air초 동안 착지 자리로 곧장 난다
 func _leap(e: Enemy, sk: Dictionary) -> void:
 	_engage(e, null)
 	e.cast = {"id": "leap", "left": sk.air, "air": true, "from": e.pos, "at": e.cast.at}
 
-# 뜬 동안(S235): 뜬 자리에서 착지 자리로 곧장 옮겨 가고, 다 날면 그 자리에서 내려찍은 뒤 길을 다시 찾는다
+# 뜬 동안(S236): 뜬 자리에서 착지 자리로 곧장 옮겨 가고, 다 날면 그 자리에서 내려찍은 뒤 길을 다시 찾는다
 func _soar(e: Enemy, dt: float) -> void:
 	var c: Dictionary = e.cast
 	var sk: Dictionary = e.skills[c.id]
@@ -3055,11 +3055,11 @@ func _soar(e: Enemy, dt: float) -> void:
 	_slam(e, sk, (c.at - c.from).normalized())
 	_find_path(e)
 
-# 점프로 뜬 적(S235): 맞지 않고(대상·피해·효과·넉백·전염·장판), 몸에 막히지도 막지도 않는다(I187)
+# 점프로 뜬 적(S236): 맞지 않고(대상·피해·효과·넉백·전염·장판), 몸에 막히지도 막지도 않는다(I188)
 func _aloft(e) -> bool:
 	return e is Enemy and e.cast != null and e.cast.get("air", false)
 
-# a에서 b까지 곧은 선이 막힌 칸(성곽·시설·방벽, 열린 성문·부서진 칸 빼고)이나 거점 칸을 지나지 않는다. 0.25칸 간격으로 짚는다(I187)
+# a에서 b까지 곧은 선이 막힌 칸(성곽·시설·방벽, 열린 성문·부서진 칸 빼고)이나 거점 칸을 지나지 않는다. 0.25칸 간격으로 짚는다(I188)
 func _clear_line(a: Vector2, b: Vector2) -> bool:
 	var n := maxi(ceili(a.distance_to(b) / 0.25), 1)
 	for i in n + 1:
@@ -3111,7 +3111,7 @@ func _push_apart(bodies: Array, others: Array) -> void:
 	for i in bodies.size():
 		var k := Vector2i(bodies[i].pos.floor())
 		home.append(k)
-		if not (bodies[i].get("flying") or _aloft(bodies[i])):  # 뜬 적(S235)도 밀지도 밀리지도 않는다
+		if not (bodies[i].get("flying") or _aloft(bodies[i])):  # 뜬 적(S236)도 밀지도 밀리지도 않는다
 			if near.has(k):
 				near[k].append(i)
 			else:

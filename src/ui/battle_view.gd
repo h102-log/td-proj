@@ -264,7 +264,7 @@ func _draw() -> void:
 	for e in _foes:  # 보스 스킬 예고(S194): 빨간 테두리 안쪽이 남은 시간만큼 차오른다. 숨은 보스(S213)는 그리지 않는다
 		if e.cast:
 			var sk: Dictionary = e.skills[e.cast.id]
-			var at := _center(e.cast.get("at", e.pos))  # 점프(S235)는 착지 자리에, 뜬 동안은 가득 찬 채로(S198)
+			var at := _center(e.cast.get("at", e.pos))  # 점프(S236)는 착지 자리에, 뜬 동안은 가득 찬 채로(S198)
 			var k: float = 1.0 if e.cast.get("air", false) else 1.0 - e.cast.left / sk.windup
 			draw_circle(at, CELL * sk.radius * k, Color(TELL, 0.35))
 			draw_arc(at, CELL * sk.radius, 0.0, TAU, 48, Color(TELL, 0.9), 1.0)
@@ -711,7 +711,7 @@ func _body(x, i: int, next: Dictionary, tint := Color.WHITE, flash := true) -> v
 	else:
 		draw_circle(_spot(x), CELL * x.radius, (HERO_COLORS.get(x.kind, COLORS.merc) if x.is_hero else COLORS.get(x.kind, COLORS.merc)) * tint)
 
-# 그림이 없는 적은 색 원(I81). 슬라임 킹 점프(S235, S198): 웅크리는 동안 아래끝을 둔 채 점점 납작해지고, 뜬 동안은 그림자 위로 들어 올린다
+# 그림이 없는 적은 색 원(I81). 슬라임 킹 점프(S236, S198): 웅크리는 동안 아래끝을 둔 채 점점 납작해지고, 뜬 동안은 그림자 위로 들어 올린다
 func _round_body(x, col: Color) -> void:
 	var at := _spot(x)
 	var r: float = CELL * x.radius
