@@ -322,3 +322,19 @@ def test_EV515_boss_flag_minimap_dot(gd):
 
 def test_EV517_boss_flag_wave_skull(gd):
     gd("hud", "EV517")
+
+
+def test_EV522_folk_heights_two_px_apart(gd):
+    gd("hud", "EV522")
+
+
+def test_EV523_young_heads_without_old_grey(gd):
+    gd("hud", "EV523")
+
+
+def test_EV524_water_jar_is_blue(gd):
+    gd("hud", "EV524")
+
+
+def test_EV525_pack_walk_in_atlas(gd):
+    gd("hud", "EV525")

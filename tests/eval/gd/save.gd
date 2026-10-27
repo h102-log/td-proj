@@ -451,3 +451,39 @@ func ev511():
 	var pc: Array = c.people.map(func(v): return v.pos)
 	var same: bool = pb.size() == pc.size() and range(pb.size()).all(func(k): return pb[k].distance_to(pc[k]) <= 0.01)
 	return check(same, "이어 돌린 5초 뒤 주민 자리 %s / %s" % [pb, pc])
+
+# EV529 · I187 ④: 분가하는 주민의 등짐(pack)은 길과 함께 저장되어, 불러온 판에서도 등짐 자세로 걷는다
+func ev529():
+	var W := [{"kind": "basic", "count": 1}]
+	var stage := {}
+	var b = null
+	var A = null
+	for sd in range(1, 80):
+		stage = {"size": Vector2i(30, 20), "base": Vector2i(25, 10), "base_hp": BIG, "spawns": [Vector2i(0, 10)], "gold": BIG, "waves": [],
+			"hero_start": null, "village": Rect2i(0, 0, 30, 6), "rounds": [[W], [W], [W]], "seed": sd}
+		b = _new(stage)
+		A = b.build("house", Vector2i(10, 3))
+		if A.folk.size() >= 2:
+			break
+		A = null
+	if A == null:
+		return "식구 둘 이상인 씨앗이 없다"
+	var B = b.build("house", Vector2i(14, 3))
+	if b.get("people") == null or not ResourceLoader.exists("res://src/sim/folk.gd"):
+		return "Battle.people·src/sim/folk.gd가 없다"
+	var F = load("res://src/sim/folk.gd")
+	var g: Dictionary = A.folk.back()
+	g.body = "man"
+	g.grown = true
+	for v in b.people.filter(func(x): return x.home == B):
+		b.damage(v, F.HP)
+	b.start_battle()
+	if not clear_wave(b) or b.state != "cleared":
+		return "1라운드가 끝나지 않았다(%s)" % b.state
+	run(b, 1.0)
+	var c = _new(stage)
+	_save().apply(c, _save().snapshot(b))
+	run(c, 0.2)
+	var who: Array = c.people.filter(func(v): return v.m.get("away") != null and not v.m.away["in"])
+	return check(who.size() == 1 and who[0].m.away.get("pack", false) and who[0].pose == "carry_pack",
+		"불러온 판의 길 위 주민 [자세, pack] %s" % [who.map(func(v): return [v.pose, v.m.away.get("pack")])])

@@ -2396,13 +2396,13 @@ func _folk(dt: float) -> void:
 				_go(v, "home")
 	_place()
 
-# 주민 v를 걷게 한다: church·shelter는 그 구조물(dest)의 문, home은 자기 집 문, out은 정문 안쪽 칸까지(I183 ②)
-func _go(v, to: String, dest = null) -> void:
+# 주민 v를 걷게 한다: church·shelter는 그 구조물(dest)의 문, home은 자기 집 문, out은 정문 안쪽 칸까지(I183 ②). pack이면 집을 옮기는 길이라 등짐을 진다(S235)
+func _go(v, to: String, dest = null, pack := false) -> void:
 	var P := Folk.paths(self)
 	var at: Vector2i = _gate_in() if to == "out" else Folk.door_of(self, P, v.home if to == "home" else dest)
 	var r := Folk.trail(P, Folk.open_cell(P, Vector2i(v.pos.round())), at)
 	var pts: Array = [v.pos] + r.pts
-	v.m.away = {"to": to, "cell": dest.cell if dest else at, "pts": pts, "len": r.len + v.pos.distance_to(r.pts[0]), "s": 0.0, "in": false}
+	v.m.away = {"to": to, "cell": dest.cell if dest else at, "pts": pts, "len": r.len + v.pos.distance_to(r.pts[0]), "s": 0.0, "in": false, "pack": pack}
 
 # 정문 바로 안쪽 마을 칸(떠나는 가족이 걸어 나가는 곳, S229). 성곽이 없으면 거점 열의 마을 맨 아래 칸
 func _gate_in() -> Vector2i:
@@ -2519,7 +2519,7 @@ func _leave() -> void:
 	var h = homes[_kin.randi() % homes.size()]
 	for v in people:
 		if v.home == h:
-			_go(v, "out")
+			_go(v, "out", null, true)
 	trust = Folk.TRUST_AFTER_LEAVE
 	folk_news.append("left")
 
@@ -2605,7 +2605,7 @@ func _split(m: Dictionary, s: Block) -> void:
 	s.lost = 0
 	_staff()
 	v.pos = at  # _staff가 새 집 일과 자리로 옮겨 놓은 것을 되돌려 지금 자리에서 걷게 한다
-	_go(v, "home")
+	_go(v, "home", null, true)
 
 # 빈 집 s에 새 가족이 이사 와(S233 ②, I184 ⑦) 정문 안쪽 칸에서 그 집 문까지 걷는다. 식구는 간 칸(s)을 0.7칸씩 덜 받아
 # 그만큼 정문 칸에 서 있다가 한 줄로 따라온다(Folk._along은 0 밑을 출발점으로 둔다)
@@ -2616,7 +2616,7 @@ func _arrive(s: Block) -> void:
 	var door := Folk.door_of(self, P, s)
 	var r := Folk.trail(P, Folk.open_cell(P, _gate_in()), door)
 	for i in s.folk.size():
-		s.folk[i].away = {"to": "home", "cell": door, "pts": r.pts, "len": r.len, "s": -0.7 * i, "in": false}
+		s.folk[i].away = {"to": "home", "cell": door, "pts": r.pts, "len": r.len, "s": -0.7 * i, "in": false, "pack": true}
 
 # 아이가 태어날 수 있는 집(S233 ③): 다 큰 자녀가 아닌 남자 어른과 여자 어른이 함께 살고, 상한보다 적고, 떠나는 가족이 아니다
 func _couple(s: Block) -> bool:

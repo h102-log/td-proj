@@ -173,7 +173,8 @@
   "carry_lantern": 10274,
   "carry_water": 10366,
   "squat": 10458,
-  "carry_basket": 10504
+  "carry_basket": 10504,
+  "carry_pack": 10596
  },
  "folk_man_1": {
   "c": 23,
@@ -195,7 +196,8 @@
   "carry_lantern": 10274,
   "carry_water": 10366,
   "squat": 10458,
-  "carry_basket": 10504
+  "carry_basket": 10504,
+  "carry_pack": 10596
  },
  "folk_man_2": {
   "c": 23,
@@ -217,7 +219,8 @@
   "carry_lantern": 10274,
   "carry_water": 10366,
   "squat": 10458,
-  "carry_basket": 10504
+  "carry_basket": 10504,
+  "carry_pack": 10596
  },
  "folk_man_3": {
   "c": 23,
@@ -239,7 +242,8 @@
   "carry_lantern": 10274,
   "carry_water": 10366,
   "squat": 10458,
-  "carry_basket": 10504
+  "carry_basket": 10504,
+  "carry_pack": 10596
  },
  "folk_man_4": {
   "c": 23,
@@ -261,7 +265,8 @@
   "carry_lantern": 10274,
   "carry_water": 10366,
   "squat": 10458,
-  "carry_basket": 10504
+  "carry_basket": 10504,
+  "carry_pack": 10596
  },
  "folk_man_5": {
   "c": 23,
@@ -283,7 +288,8 @@
   "carry_lantern": 10274,
   "carry_water": 10366,
   "squat": 10458,
-  "carry_basket": 10504
+  "carry_basket": 10504,
+  "carry_pack": 10596
  },
  "folk_man_6": {
   "c": 23,
@@ -305,7 +311,8 @@
   "carry_lantern": 10274,
   "carry_water": 10366,
   "squat": 10458,
-  "carry_basket": 10504
+  "carry_basket": 10504,
+  "carry_pack": 10596
  },
  "folk_man_7": {
   "c": 23,
@@ -327,7 +334,8 @@
   "carry_lantern": 10274,
   "carry_water": 10366,
   "squat": 10458,
-  "carry_basket": 10504
+  "carry_basket": 10504,
+  "carry_pack": 10596
  },
  "folk_man_8": {
   "c": 23,
@@ -338,18 +346,7 @@
   "x": 368,
   "idle": 9676,
   "walk": 9768,
-  "hoe": 9860,
-  "fish": 9906,
-  "axe": 9952,
-  "saw": 9998,
-  "hammer": 10044,
-  "sit": 10090,
-  "stir": 10136,
-  "carry_sack": 10182,
-  "carry_lantern": 10274,
-  "carry_water": 10366,
-  "squat": 10458,
-  "carry_basket": 10504
+  "stir": 10136
  },
  "folk_woman_0": {
   "c": 23,
@@ -358,20 +355,21 @@
    17
   ],
   "x": 0,
-  "idle": 10596,
-  "walk": 10688,
-  "hoe": 10780,
-  "fish": 10826,
-  "axe": 10872,
-  "saw": 10918,
-  "hammer": 10964,
-  "sit": 11010,
-  "stir": 11056,
-  "carry_sack": 11102,
-  "carry_lantern": 11194,
-  "carry_water": 11286,
-  "squat": 11378,
-  "carry_basket": 11424
+  "idle": 10688,
+  "walk": 10780,
+  "hoe": 10872,
+  "fish": 10918,
+  "axe": 10964,
+  "saw": 11010,
+  "hammer": 11056,
+  "sit": 11102,
+  "stir": 11148,
+  "carry_sack": 11194,
+  "carry_lantern": 11286,
+  "carry_water": 11378,
+  "squat": 11470,
+  "carry_basket": 11516,
+  "carry_pack": 11608
  },
  "folk_woman_1": {
   "c": 23,
@@ -380,20 +378,21 @@
    17
   ],
   "x": 46,
-  "idle": 10596,
-  "walk": 10688,
-  "hoe": 10780,
-  "fish": 10826,
-  "axe": 10872,
-  "saw": 10918,
-  "hammer": 10964,
-  "sit": 11010,
-  "stir": 11056,
-  "carry_sack": 11102,
-  "carry_lantern": 11194,
-  "carry_water": 11286,
-  "squat": 11378,
-  "carry_basket": 11424
+  "idle": 10688,
+  "walk": 10780,
+  "hoe": 10872,
+  "fish": 10918,
+  "axe": 10964,
+  "saw": 11010,
+  "hammer": 11056,
+  "sit": 11102,
+  "stir": 11148,
+  "carry_sack": 11194,
+  "carry_lantern": 11286,
+  "carry_water": 11378,
+  "squat": 11470,
+  "carry_basket": 11516,
+  "carry_pack": 11608
  },
  "folk_woman_2": {
   "c": 23,
@@ -402,20 +401,21 @@
    17
   ],
   "x": 92,
-  "idle": 10596,
-  "walk": 10688,
-  "hoe": 10780,
-  "fish": 10826,
-  "axe": 10872,
-  "saw": 10918,
-  "hammer": 10964,
-  "sit": 11010,
-  "stir": 11056,
-  "carry_sack": 11102,
-  "carry_lantern": 11194,
-  "carry_water": 11286,
-  "squat": 11378,
-  "carry_basket": 11424
+  "idle": 10688,
+  "walk": 10780,
+  "hoe": 10872,
+  "fish": 10918,
+  "axe": 10964,
+  "saw": 11010,
+  "hammer": 11056,
+  "sit": 11102,
+  "stir": 11148,
+  "carry_sack": 11194,
+  "carry_lantern": 11286,
+  "carry_water": 11378,
+  "squat": 11470,
+  "carry_basket": 11516,
+  "carry_pack": 11608
  },
  "folk_woman_3": {
   "c": 23,
@@ -424,20 +424,21 @@
    17
   ],
   "x": 138,
-  "idle": 10596,
-  "walk": 10688,
-  "hoe": 10780,
-  "fish": 10826,
-  "axe": 10872,
-  "saw": 10918,
-  "hammer": 10964,
-  "sit": 11010,
-  "stir": 11056,
-  "carry_sack": 11102,
-  "carry_lantern": 11194,
-  "carry_water": 11286,
-  "squat": 11378,
-  "carry_basket": 11424
+  "idle": 10688,
+  "walk": 10780,
+  "hoe": 10872,
+  "fish": 10918,
+  "axe": 10964,
+  "saw": 11010,
+  "hammer": 11056,
+  "sit": 11102,
+  "stir": 11148,
+  "carry_sack": 11194,
+  "carry_lantern": 11286,
+  "carry_water": 11378,
+  "squat": 11470,
+  "carry_basket": 11516,
+  "carry_pack": 11608
  },
  "folk_woman_4": {
   "c": 23,
@@ -446,20 +447,21 @@
    17
   ],
   "x": 184,
-  "idle": 10596,
-  "walk": 10688,
-  "hoe": 10780,
-  "fish": 10826,
-  "axe": 10872,
-  "saw": 10918,
-  "hammer": 10964,
-  "sit": 11010,
-  "stir": 11056,
-  "carry_sack": 11102,
-  "carry_lantern": 11194,
-  "carry_water": 11286,
-  "squat": 11378,
-  "carry_basket": 11424
+  "idle": 10688,
+  "walk": 10780,
+  "hoe": 10872,
+  "fish": 10918,
+  "axe": 10964,
+  "saw": 11010,
+  "hammer": 11056,
+  "sit": 11102,
+  "stir": 11148,
+  "carry_sack": 11194,
+  "carry_lantern": 11286,
+  "carry_water": 11378,
+  "squat": 11470,
+  "carry_basket": 11516,
+  "carry_pack": 11608
  },
  "folk_woman_5": {
   "c": 23,
@@ -468,20 +470,21 @@
    17
   ],
   "x": 230,
-  "idle": 10596,
-  "walk": 10688,
-  "hoe": 10780,
-  "fish": 10826,
-  "axe": 10872,
-  "saw": 10918,
-  "hammer": 10964,
-  "sit": 11010,
-  "stir": 11056,
-  "carry_sack": 11102,
-  "carry_lantern": 11194,
-  "carry_water": 11286,
-  "squat": 11378,
-  "carry_basket": 11424
+  "idle": 10688,
+  "walk": 10780,
+  "hoe": 10872,
+  "fish": 10918,
+  "axe": 10964,
+  "saw": 11010,
+  "hammer": 11056,
+  "sit": 11102,
+  "stir": 11148,
+  "carry_sack": 11194,
+  "carry_lantern": 11286,
+  "carry_water": 11378,
+  "squat": 11470,
+  "carry_basket": 11516,
+  "carry_pack": 11608
  },
  "folk_woman_6": {
   "c": 23,
@@ -490,20 +493,21 @@
    17
   ],
   "x": 276,
-  "idle": 10596,
-  "walk": 10688,
-  "hoe": 10780,
-  "fish": 10826,
-  "axe": 10872,
-  "saw": 10918,
-  "hammer": 10964,
-  "sit": 11010,
-  "stir": 11056,
-  "carry_sack": 11102,
-  "carry_lantern": 11194,
-  "carry_water": 11286,
-  "squat": 11378,
-  "carry_basket": 11424
+  "idle": 10688,
+  "walk": 10780,
+  "hoe": 10872,
+  "fish": 10918,
+  "axe": 10964,
+  "saw": 11010,
+  "hammer": 11056,
+  "sit": 11102,
+  "stir": 11148,
+  "carry_sack": 11194,
+  "carry_lantern": 11286,
+  "carry_water": 11378,
+  "squat": 11470,
+  "carry_basket": 11516,
+  "carry_pack": 11608
  },
  "folk_woman_7": {
   "c": 23,
@@ -512,20 +516,21 @@
    17
   ],
   "x": 322,
-  "idle": 10596,
-  "walk": 10688,
-  "hoe": 10780,
-  "fish": 10826,
-  "axe": 10872,
-  "saw": 10918,
-  "hammer": 10964,
-  "sit": 11010,
-  "stir": 11056,
-  "carry_sack": 11102,
-  "carry_lantern": 11194,
-  "carry_water": 11286,
-  "squat": 11378,
-  "carry_basket": 11424
+  "idle": 10688,
+  "walk": 10780,
+  "hoe": 10872,
+  "fish": 10918,
+  "axe": 10964,
+  "saw": 11010,
+  "hammer": 11056,
+  "sit": 11102,
+  "stir": 11148,
+  "carry_sack": 11194,
+  "carry_lantern": 11286,
+  "carry_water": 11378,
+  "squat": 11470,
+  "carry_basket": 11516,
+  "carry_pack": 11608
  },
  "folk_boy_0": {
   "c": 23,
@@ -534,11 +539,12 @@
    17
   ],
   "x": 0,
-  "idle": 11516,
-  "walk": 11608,
-  "squat": 11700,
-  "carry_stick": 11746,
-  "carry_water": 11838
+  "idle": 11700,
+  "walk": 11792,
+  "squat": 11884,
+  "carry_stick": 11930,
+  "carry_water": 12022,
+  "carry_pack": 12114
  },
  "folk_boy_1": {
   "c": 23,
@@ -547,11 +553,12 @@
    17
   ],
   "x": 46,
-  "idle": 11516,
-  "walk": 11608,
-  "squat": 11700,
-  "carry_stick": 11746,
-  "carry_water": 11838
+  "idle": 11700,
+  "walk": 11792,
+  "squat": 11884,
+  "carry_stick": 11930,
+  "carry_water": 12022,
+  "carry_pack": 12114
  },
  "folk_boy_2": {
   "c": 23,
@@ -560,11 +567,12 @@
    17
   ],
   "x": 92,
-  "idle": 11516,
-  "walk": 11608,
-  "squat": 11700,
-  "carry_stick": 11746,
-  "carry_water": 11838
+  "idle": 11700,
+  "walk": 11792,
+  "squat": 11884,
+  "carry_stick": 11930,
+  "carry_water": 12022,
+  "carry_pack": 12114
  },
  "folk_boy_3": {
   "c": 23,
@@ -573,11 +581,12 @@
    17
   ],
   "x": 138,
-  "idle": 11516,
-  "walk": 11608,
-  "squat": 11700,
-  "carry_stick": 11746,
-  "carry_water": 11838
+  "idle": 11700,
+  "walk": 11792,
+  "squat": 11884,
+  "carry_stick": 11930,
+  "carry_water": 12022,
+  "carry_pack": 12114
  },
  "folk_boy_4": {
   "c": 23,
@@ -586,11 +595,12 @@
    17
   ],
   "x": 184,
-  "idle": 11516,
-  "walk": 11608,
-  "squat": 11700,
-  "carry_stick": 11746,
-  "carry_water": 11838
+  "idle": 11700,
+  "walk": 11792,
+  "squat": 11884,
+  "carry_stick": 11930,
+  "carry_water": 12022,
+  "carry_pack": 12114
  },
  "folk_boy_5": {
   "c": 23,
@@ -599,11 +609,12 @@
    17
   ],
   "x": 230,
-  "idle": 11516,
-  "walk": 11608,
-  "squat": 11700,
-  "carry_stick": 11746,
-  "carry_water": 11838
+  "idle": 11700,
+  "walk": 11792,
+  "squat": 11884,
+  "carry_stick": 11930,
+  "carry_water": 12022,
+  "carry_pack": 12114
  },
  "folk_boy_6": {
   "c": 23,
@@ -612,11 +623,12 @@
    17
   ],
   "x": 276,
-  "idle": 11516,
-  "walk": 11608,
-  "squat": 11700,
-  "carry_stick": 11746,
-  "carry_water": 11838
+  "idle": 11700,
+  "walk": 11792,
+  "squat": 11884,
+  "carry_stick": 11930,
+  "carry_water": 12022,
+  "carry_pack": 12114
  },
  "folk_boy_7": {
   "c": 23,
@@ -625,11 +637,12 @@
    17
   ],
   "x": 322,
-  "idle": 11516,
-  "walk": 11608,
-  "squat": 11700,
-  "carry_stick": 11746,
-  "carry_water": 11838
+  "idle": 11700,
+  "walk": 11792,
+  "squat": 11884,
+  "carry_stick": 11930,
+  "carry_water": 12022,
+  "carry_pack": 12114
  },
  "folk_girl_0": {
   "c": 23,
@@ -638,11 +651,12 @@
    17
   ],
   "x": 0,
-  "idle": 11930,
-  "walk": 12022,
-  "squat": 12114,
-  "carry_stick": 12160,
-  "carry_water": 12252
+  "idle": 12206,
+  "walk": 12298,
+  "squat": 12390,
+  "carry_stick": 12436,
+  "carry_water": 12528,
+  "carry_pack": 12620
  },
  "folk_girl_1": {
   "c": 23,
@@ -651,11 +665,12 @@
    17
   ],
   "x": 46,
-  "idle": 11930,
-  "walk": 12022,
-  "squat": 12114,
-  "carry_stick": 12160,
-  "carry_water": 12252
+  "idle": 12206,
+  "walk": 12298,
+  "squat": 12390,
+  "carry_stick": 12436,
+  "carry_water": 12528,
+  "carry_pack": 12620
  },
  "folk_girl_2": {
   "c": 23,
@@ -664,11 +679,12 @@
    17
   ],
   "x": 92,
-  "idle": 11930,
-  "walk": 12022,
-  "squat": 12114,
-  "carry_stick": 12160,
-  "carry_water": 12252
+  "idle": 12206,
+  "walk": 12298,
+  "squat": 12390,
+  "carry_stick": 12436,
+  "carry_water": 12528,
+  "carry_pack": 12620
  },
  "folk_girl_3": {
   "c": 23,
@@ -677,11 +693,12 @@
    17
   ],
   "x": 138,
-  "idle": 11930,
-  "walk": 12022,
-  "squat": 12114,
-  "carry_stick": 12160,
-  "carry_water": 12252
+  "idle": 12206,
+  "walk": 12298,
+  "squat": 12390,
+  "carry_stick": 12436,
+  "carry_water": 12528,
+  "carry_pack": 12620
  },
  "folk_girl_4": {
   "c": 23,
@@ -690,11 +707,12 @@
    17
   ],
   "x": 184,
-  "idle": 11930,
-  "walk": 12022,
-  "squat": 12114,
-  "carry_stick": 12160,
-  "carry_water": 12252
+  "idle": 12206,
+  "walk": 12298,
+  "squat": 12390,
+  "carry_stick": 12436,
+  "carry_water": 12528,
+  "carry_pack": 12620
  },
  "folk_girl_5": {
   "c": 23,
@@ -703,11 +721,12 @@
    17
   ],
   "x": 230,
-  "idle": 11930,
-  "walk": 12022,
-  "squat": 12114,
-  "carry_stick": 12160,
-  "carry_water": 12252
+  "idle": 12206,
+  "walk": 12298,
+  "squat": 12390,
+  "carry_stick": 12436,
+  "carry_water": 12528,
+  "carry_pack": 12620
  },
  "folk_girl_6": {
   "c": 23,
@@ -716,11 +735,12 @@
    17
   ],
   "x": 276,
-  "idle": 11930,
-  "walk": 12022,
-  "squat": 12114,
-  "carry_stick": 12160,
-  "carry_water": 12252
+  "idle": 12206,
+  "walk": 12298,
+  "squat": 12390,
+  "carry_stick": 12436,
+  "carry_water": 12528,
+  "carry_pack": 12620
  },
  "folk_girl_7": {
   "c": 23,
@@ -729,11 +749,12 @@
    17
   ],
   "x": 322,
-  "idle": 11930,
-  "walk": 12022,
-  "squat": 12114,
-  "carry_stick": 12160,
-  "carry_water": 12252
+  "idle": 12206,
+  "walk": 12298,
+  "squat": 12390,
+  "carry_stick": 12436,
+  "carry_water": 12528,
+  "carry_pack": 12620
  },
  "folk_old_man_0": {
   "c": 23,
@@ -742,11 +763,12 @@
    17
   ],
   "x": 0,
-  "idle": 12344,
-  "walk": 12436,
-  "sit": 12528,
-  "squat": 12574,
-  "carry_basket": 12620
+  "idle": 12712,
+  "walk": 12804,
+  "sit": 12896,
+  "squat": 12942,
+  "carry_basket": 12988,
+  "carry_pack": 13080
  },
  "folk_old_man_1": {
   "c": 23,
@@ -755,11 +777,12 @@
    17
   ],
   "x": 46,
-  "idle": 12344,
-  "walk": 12436,
-  "sit": 12528,
-  "squat": 12574,
-  "carry_basket": 12620
+  "idle": 12712,
+  "walk": 12804,
+  "sit": 12896,
+  "squat": 12942,
+  "carry_basket": 12988,
+  "carry_pack": 13080
  },
  "folk_old_man_2": {
   "c": 23,
@@ -768,11 +791,12 @@
    17
   ],
   "x": 92,
-  "idle": 12344,
-  "walk": 12436,
-  "sit": 12528,
-  "squat": 12574,
-  "carry_basket": 12620
+  "idle": 12712,
+  "walk": 12804,
+  "sit": 12896,
+  "squat": 12942,
+  "carry_basket": 12988,
+  "carry_pack": 13080
  },
  "folk_old_man_3": {
   "c": 23,
@@ -781,11 +805,12 @@
    17
   ],
   "x": 138,
-  "idle": 12344,
-  "walk": 12436,
-  "sit": 12528,
-  "squat": 12574,
-  "carry_basket": 12620
+  "idle": 12712,
+  "walk": 12804,
+  "sit": 12896,
+  "squat": 12942,
+  "carry_basket": 12988,
+  "carry_pack": 13080
  },
  "folk_old_man_4": {
   "c": 23,
@@ -794,11 +819,12 @@
    17
   ],
   "x": 184,
-  "idle": 12344,
-  "walk": 12436,
-  "sit": 12528,
-  "squat": 12574,
-  "carry_basket": 12620
+  "idle": 12712,
+  "walk": 12804,
+  "sit": 12896,
+  "squat": 12942,
+  "carry_basket": 12988,
+  "carry_pack": 13080
  },
  "folk_old_man_5": {
   "c": 23,
@@ -807,11 +833,12 @@
    17
   ],
   "x": 230,
-  "idle": 12344,
-  "walk": 12436,
-  "sit": 12528,
-  "squat": 12574,
-  "carry_basket": 12620
+  "idle": 12712,
+  "walk": 12804,
+  "sit": 12896,
+  "squat": 12942,
+  "carry_basket": 12988,
+  "carry_pack": 13080
  },
  "folk_old_man_6": {
   "c": 23,
@@ -820,11 +847,12 @@
    17
   ],
   "x": 276,
-  "idle": 12344,
-  "walk": 12436,
-  "sit": 12528,
-  "squat": 12574,
-  "carry_basket": 12620
+  "idle": 12712,
+  "walk": 12804,
+  "sit": 12896,
+  "squat": 12942,
+  "carry_basket": 12988,
+  "carry_pack": 13080
  },
  "folk_old_man_7": {
   "c": 23,
@@ -833,11 +861,12 @@
    17
   ],
   "x": 322,
-  "idle": 12344,
-  "walk": 12436,
-  "sit": 12528,
-  "squat": 12574,
-  "carry_basket": 12620
+  "idle": 12712,
+  "walk": 12804,
+  "sit": 12896,
+  "squat": 12942,
+  "carry_basket": 12988,
+  "carry_pack": 13080
  },
  "folk_old_woman_0": {
   "c": 23,
@@ -846,11 +875,12 @@
    17
   ],
   "x": 0,
-  "idle": 12712,
-  "walk": 12804,
-  "sit": 12896,
-  "squat": 12942,
-  "carry_basket": 12988
+  "idle": 13172,
+  "walk": 13264,
+  "sit": 13356,
+  "squat": 13402,
+  "carry_basket": 13448,
+  "carry_pack": 13540
  },
  "folk_old_woman_1": {
   "c": 23,
@@ -859,11 +889,12 @@
    17
   ],
   "x": 46,
-  "idle": 12712,
-  "walk": 12804,
-  "sit": 12896,
-  "squat": 12942,
-  "carry_basket": 12988
+  "idle": 13172,
+  "walk": 13264,
+  "sit": 13356,
+  "squat": 13402,
+  "carry_basket": 13448,
+  "carry_pack": 13540
  },
  "folk_old_woman_2": {
   "c": 23,
@@ -872,11 +903,12 @@
    17
   ],
   "x": 92,
-  "idle": 12712,
-  "walk": 12804,
-  "sit": 12896,
-  "squat": 12942,
-  "carry_basket": 12988
+  "idle": 13172,
+  "walk": 13264,
+  "sit": 13356,
+  "squat": 13402,
+  "carry_basket": 13448,
+  "carry_pack": 13540
  },
  "folk_old_woman_3": {
   "c": 23,
@@ -885,11 +917,12 @@
    17
   ],
   "x": 138,
-  "idle": 12712,
-  "walk": 12804,
-  "sit": 12896,
-  "squat": 12942,
-  "carry_basket": 12988
+  "idle": 13172,
+  "walk": 13264,
+  "sit": 13356,
+  "squat": 13402,
+  "carry_basket": 13448,
+  "carry_pack": 13540
  },
  "folk_old_woman_4": {
   "c": 23,
@@ -898,11 +931,12 @@
    17
   ],
   "x": 184,
-  "idle": 12712,
-  "walk": 12804,
-  "sit": 12896,
-  "squat": 12942,
-  "carry_basket": 12988
+  "idle": 13172,
+  "walk": 13264,
+  "sit": 13356,
+  "squat": 13402,
+  "carry_basket": 13448,
+  "carry_pack": 13540
  },
  "folk_old_woman_5": {
   "c": 23,
@@ -911,11 +945,12 @@
    17
   ],
   "x": 230,
-  "idle": 12712,
-  "walk": 12804,
-  "sit": 12896,
-  "squat": 12942,
-  "carry_basket": 12988
+  "idle": 13172,
+  "walk": 13264,
+  "sit": 13356,
+  "squat": 13402,
+  "carry_basket": 13448,
+  "carry_pack": 13540
  },
  "folk_old_woman_6": {
   "c": 23,
@@ -924,11 +959,12 @@
    17
   ],
   "x": 276,
-  "idle": 12712,
-  "walk": 12804,
-  "sit": 12896,
-  "squat": 12942,
-  "carry_basket": 12988
+  "idle": 13172,
+  "walk": 13264,
+  "sit": 13356,
+  "squat": 13402,
+  "carry_basket": 13448,
+  "carry_pack": 13540
  },
  "folk_old_woman_7": {
   "c": 23,
@@ -937,11 +973,12 @@
    17
   ],
   "x": 322,
-  "idle": 12712,
-  "walk": 12804,
-  "sit": 12896,
-  "squat": 12942,
-  "carry_basket": 12988
+  "idle": 13172,
+  "walk": 13264,
+  "sit": 13356,
+  "squat": 13402,
+  "carry_basket": 13448,
+  "carry_pack": 13540
  },
  "folk_lad_0": {
   "c": 23,
@@ -950,20 +987,21 @@
    17
   ],
   "x": 0,
-  "idle": 13080,
-  "walk": 13172,
-  "hoe": 13264,
-  "fish": 13310,
-  "axe": 13356,
-  "saw": 13402,
-  "hammer": 13448,
-  "sit": 13494,
-  "stir": 13540,
-  "carry_sack": 13586,
-  "carry_lantern": 13678,
-  "carry_water": 13770,
-  "squat": 13862,
-  "carry_basket": 13908
+  "idle": 13632,
+  "walk": 13724,
+  "hoe": 13816,
+  "fish": 13862,
+  "axe": 13908,
+  "saw": 13954,
+  "hammer": 14000,
+  "sit": 14046,
+  "stir": 14092,
+  "carry_sack": 14138,
+  "carry_lantern": 14230,
+  "carry_water": 14322,
+  "squat": 14414,
+  "carry_basket": 14460,
+  "carry_pack": 14552
  },
  "folk_lad_1": {
   "c": 23,
@@ -972,20 +1010,21 @@
    17
   ],
   "x": 46,
-  "idle": 13080,
-  "walk": 13172,
-  "hoe": 13264,
-  "fish": 13310,
-  "axe": 13356,
-  "saw": 13402,
-  "hammer": 13448,
-  "sit": 13494,
-  "stir": 13540,
-  "carry_sack": 13586,
-  "carry_lantern": 13678,
-  "carry_water": 13770,
-  "squat": 13862,
-  "carry_basket": 13908
+  "idle": 13632,
+  "walk": 13724,
+  "hoe": 13816,
+  "fish": 13862,
+  "axe": 13908,
+  "saw": 13954,
+  "hammer": 14000,
+  "sit": 14046,
+  "stir": 14092,
+  "carry_sack": 14138,
+  "carry_lantern": 14230,
+  "carry_water": 14322,
+  "squat": 14414,
+  "carry_basket": 14460,
+  "carry_pack": 14552
  },
  "folk_lad_2": {
   "c": 23,
@@ -994,20 +1033,21 @@
    17
   ],
   "x": 92,
-  "idle": 13080,
-  "walk": 13172,
-  "hoe": 13264,
-  "fish": 13310,
-  "axe": 13356,
-  "saw": 13402,
-  "hammer": 13448,
-  "sit": 13494,
-  "stir": 13540,
-  "carry_sack": 13586,
-  "carry_lantern": 13678,
-  "carry_water": 13770,
-  "squat": 13862,
-  "carry_basket": 13908
+  "idle": 13632,
+  "walk": 13724,
+  "hoe": 13816,
+  "fish": 13862,
+  "axe": 13908,
+  "saw": 13954,
+  "hammer": 14000,
+  "sit": 14046,
+  "stir": 14092,
+  "carry_sack": 14138,
+  "carry_lantern": 14230,
+  "carry_water": 14322,
+  "squat": 14414,
+  "carry_basket": 14460,
+  "carry_pack": 14552
  },
  "folk_lad_3": {
   "c": 23,
@@ -1016,20 +1056,21 @@
    17
   ],
   "x": 138,
-  "idle": 13080,
-  "walk": 13172,
-  "hoe": 13264,
-  "fish": 13310,
-  "axe": 13356,
-  "saw": 13402,
-  "hammer": 13448,
-  "sit": 13494,
-  "stir": 13540,
-  "carry_sack": 13586,
-  "carry_lantern": 13678,
-  "carry_water": 13770,
-  "squat": 13862,
-  "carry_basket": 13908
+  "idle": 13632,
+  "walk": 13724,
+  "hoe": 13816,
+  "fish": 13862,
+  "axe": 13908,
+  "saw": 13954,
+  "hammer": 14000,
+  "sit": 14046,
+  "stir": 14092,
+  "carry_sack": 14138,
+  "carry_lantern": 14230,
+  "carry_water": 14322,
+  "squat": 14414,
+  "carry_basket": 14460,
+  "carry_pack": 14552
  },
  "folk_lad_4": {
   "c": 23,
@@ -1038,20 +1079,21 @@
    17
   ],
   "x": 184,
-  "idle": 13080,
-  "walk": 13172,
-  "hoe": 13264,
-  "fish": 13310,
-  "axe": 13356,
-  "saw": 13402,
-  "hammer": 13448,
-  "sit": 13494,
-  "stir": 13540,
-  "carry_sack": 13586,
-  "carry_lantern": 13678,
-  "carry_water": 13770,
-  "squat": 13862,
-  "carry_basket": 13908
+  "idle": 13632,
+  "walk": 13724,
+  "hoe": 13816,
+  "fish": 13862,
+  "axe": 13908,
+  "saw": 13954,
+  "hammer": 14000,
+  "sit": 14046,
+  "stir": 14092,
+  "carry_sack": 14138,
+  "carry_lantern": 14230,
+  "carry_water": 14322,
+  "squat": 14414,
+  "carry_basket": 14460,
+  "carry_pack": 14552
  },
  "folk_lad_5": {
   "c": 23,
@@ -1060,20 +1102,21 @@
    17
   ],
   "x": 230,
-  "idle": 13080,
-  "walk": 13172,
-  "hoe": 13264,
-  "fish": 13310,
-  "axe": 13356,
-  "saw": 13402,
-  "hammer": 13448,
-  "sit": 13494,
-  "stir": 13540,
-  "carry_sack": 13586,
-  "carry_lantern": 13678,
-  "carry_water": 13770,
-  "squat": 13862,
-  "carry_basket": 13908
+  "idle": 13632,
+  "walk": 13724,
+  "hoe": 13816,
+  "fish": 13862,
+  "axe": 13908,
+  "saw": 13954,
+  "hammer": 14000,
+  "sit": 14046,
+  "stir": 14092,
+  "carry_sack": 14138,
+  "carry_lantern": 14230,
+  "carry_water": 14322,
+  "squat": 14414,
+  "carry_basket": 14460,
+  "carry_pack": 14552
  },
  "folk_lad_6": {
   "c": 23,
@@ -1082,20 +1125,21 @@
    17
   ],
   "x": 276,
-  "idle": 13080,
-  "walk": 13172,
-  "hoe": 13264,
-  "fish": 13310,
-  "axe": 13356,
-  "saw": 13402,
-  "hammer": 13448,
-  "sit": 13494,
-  "stir": 13540,
-  "carry_sack": 13586,
-  "carry_lantern": 13678,
-  "carry_water": 13770,
-  "squat": 13862,
-  "carry_basket": 13908
+  "idle": 13632,
+  "walk": 13724,
+  "hoe": 13816,
+  "fish": 13862,
+  "axe": 13908,
+  "saw": 13954,
+  "hammer": 14000,
+  "sit": 14046,
+  "stir": 14092,
+  "carry_sack": 14138,
+  "carry_lantern": 14230,
+  "carry_water": 14322,
+  "squat": 14414,
+  "carry_basket": 14460,
+  "carry_pack": 14552
  },
  "folk_lad_7": {
   "c": 23,
@@ -1104,20 +1148,21 @@
    17
   ],
   "x": 322,
-  "idle": 13080,
-  "walk": 13172,
-  "hoe": 13264,
-  "fish": 13310,
-  "axe": 13356,
-  "saw": 13402,
-  "hammer": 13448,
-  "sit": 13494,
-  "stir": 13540,
-  "carry_sack": 13586,
-  "carry_lantern": 13678,
-  "carry_water": 13770,
-  "squat": 13862,
-  "carry_basket": 13908
+  "idle": 13632,
+  "walk": 13724,
+  "hoe": 13816,
+  "fish": 13862,
+  "axe": 13908,
+  "saw": 13954,
+  "hammer": 14000,
+  "sit": 14046,
+  "stir": 14092,
+  "carry_sack": 14138,
+  "carry_lantern": 14230,
+  "carry_water": 14322,
+  "squat": 14414,
+  "carry_basket": 14460,
+  "carry_pack": 14552
  },
  "folk_lass_0": {
   "c": 23,
@@ -1126,20 +1171,21 @@
    17
   ],
   "x": 0,
-  "idle": 14000,
-  "walk": 14092,
-  "hoe": 14184,
-  "fish": 14230,
-  "axe": 14276,
-  "saw": 14322,
-  "hammer": 14368,
-  "sit": 14414,
-  "stir": 14460,
-  "carry_sack": 14506,
-  "carry_lantern": 14598,
-  "carry_water": 14690,
-  "squat": 14782,
-  "carry_basket": 14828
+  "idle": 14644,
+  "walk": 14736,
+  "hoe": 14828,
+  "fish": 14874,
+  "axe": 14920,
+  "saw": 14966,
+  "hammer": 15012,
+  "sit": 15058,
+  "stir": 15104,
+  "carry_sack": 15150,
+  "carry_lantern": 15242,
+  "carry_water": 15334,
+  "squat": 15426,
+  "carry_basket": 15472,
+  "carry_pack": 15564
  },
  "folk_lass_1": {
   "c": 23,
@@ -1148,20 +1194,21 @@
    17
   ],
   "x": 46,
-  "idle": 14000,
-  "walk": 14092,
-  "hoe": 14184,
-  "fish": 14230,
-  "axe": 14276,
-  "saw": 14322,
-  "hammer": 14368,
-  "sit": 14414,
-  "stir": 14460,
-  "carry_sack": 14506,
-  "carry_lantern": 14598,
-  "carry_water": 14690,
-  "squat": 14782,
-  "carry_basket": 14828
+  "idle": 14644,
+  "walk": 14736,
+  "hoe": 14828,
+  "fish": 14874,
+  "axe": 14920,
+  "saw": 14966,
+  "hammer": 15012,
+  "sit": 15058,
+  "stir": 15104,
+  "carry_sack": 15150,
+  "carry_lantern": 15242,
+  "carry_water": 15334,
+  "squat": 15426,
+  "carry_basket": 15472,
+  "carry_pack": 15564
  },
  "folk_lass_2": {
   "c": 23,
@@ -1170,20 +1217,21 @@
    17
   ],
   "x": 92,
-  "idle": 14000,
-  "walk": 14092,
-  "hoe": 14184,
-  "fish": 14230,
-  "axe": 14276,
-  "saw": 14322,
-  "hammer": 14368,
-  "sit": 14414,
-  "stir": 14460,
-  "carry_sack": 14506,
-  "carry_lantern": 14598,
-  "carry_water": 14690,
-  "squat": 14782,
-  "carry_basket": 14828
+  "idle": 14644,
+  "walk": 14736,
+  "hoe": 14828,
+  "fish": 14874,
+  "axe": 14920,
+  "saw": 14966,
+  "hammer": 15012,
+  "sit": 15058,
+  "stir": 15104,
+  "carry_sack": 15150,
+  "carry_lantern": 15242,
+  "carry_water": 15334,
+  "squat": 15426,
+  "carry_basket": 15472,
+  "carry_pack": 15564
  },
  "folk_lass_3": {
   "c": 23,
@@ -1192,20 +1240,21 @@
    17
   ],
   "x": 138,
-  "idle": 14000,
-  "walk": 14092,
-  "hoe": 14184,
-  "fish": 14230,
-  "axe": 14276,
-  "saw": 14322,
-  "hammer": 14368,
-  "sit": 14414,
-  "stir": 14460,
-  "carry_sack": 14506,
-  "carry_lantern": 14598,
-  "carry_water": 14690,
-  "squat": 14782,
-  "carry_basket": 14828
+  "idle": 14644,
+  "walk": 14736,
+  "hoe": 14828,
+  "fish": 14874,
+  "axe": 14920,
+  "saw": 14966,
+  "hammer": 15012,
+  "sit": 15058,
+  "stir": 15104,
+  "carry_sack": 15150,
+  "carry_lantern": 15242,
+  "carry_water": 15334,
+  "squat": 15426,
+  "carry_basket": 15472,
+  "carry_pack": 15564
  },
  "folk_lass_4": {
   "c": 23,
@@ -1214,20 +1263,21 @@
    17
   ],
   "x": 184,
-  "idle": 14000,
-  "walk": 14092,
-  "hoe": 14184,
-  "fish": 14230,
-  "axe": 14276,
-  "saw": 14322,
-  "hammer": 14368,
-  "sit": 14414,
-  "stir": 14460,
-  "carry_sack": 14506,
-  "carry_lantern": 14598,
-  "carry_water": 14690,
-  "squat": 14782,
-  "carry_basket": 14828
+  "idle": 14644,
+  "walk": 14736,
+  "hoe": 14828,
+  "fish": 14874,
+  "axe": 14920,
+  "saw": 14966,
+  "hammer": 15012,
+  "sit": 15058,
+  "stir": 15104,
+  "carry_sack": 15150,
+  "carry_lantern": 15242,
+  "carry_water": 15334,
+  "squat": 15426,
+  "carry_basket": 15472,
+  "carry_pack": 15564
  },
  "folk_lass_5": {
   "c": 23,
@@ -1236,20 +1286,21 @@
    17
   ],
   "x": 230,
-  "idle": 14000,
-  "walk": 14092,
-  "hoe": 14184,
-  "fish": 14230,
-  "axe": 14276,
-  "saw": 14322,
-  "hammer": 14368,
-  "sit": 14414,
-  "stir": 14460,
-  "carry_sack": 14506,
-  "carry_lantern": 14598,
-  "carry_water": 14690,
-  "squat": 14782,
-  "carry_basket": 14828
+  "idle": 14644,
+  "walk": 14736,
+  "hoe": 14828,
+  "fish": 14874,
+  "axe": 14920,
+  "saw": 14966,
+  "hammer": 15012,
+  "sit": 15058,
+  "stir": 15104,
+  "carry_sack": 15150,
+  "carry_lantern": 15242,
+  "carry_water": 15334,
+  "squat": 15426,
+  "carry_basket": 15472,
+  "carry_pack": 15564
  },
  "folk_lass_6": {
   "c": 23,
@@ -1258,20 +1309,21 @@
    17
   ],
   "x": 276,
-  "idle": 14000,
-  "walk": 14092,
-  "hoe": 14184,
-  "fish": 14230,
-  "axe": 14276,
-  "saw": 14322,
-  "hammer": 14368,
-  "sit": 14414,
-  "stir": 14460,
-  "carry_sack": 14506,
-  "carry_lantern": 14598,
-  "carry_water": 14690,
-  "squat": 14782,
-  "carry_basket": 14828
+  "idle": 14644,
+  "walk": 14736,
+  "hoe": 14828,
+  "fish": 14874,
+  "axe": 14920,
+  "saw": 14966,
+  "hammer": 15012,
+  "sit": 15058,
+  "stir": 15104,
+  "carry_sack": 15150,
+  "carry_lantern": 15242,
+  "carry_water": 15334,
+  "squat": 15426,
+  "carry_basket": 15472,
+  "carry_pack": 15564
  },
  "folk_lass_7": {
   "c": 23,
@@ -1280,19 +1332,20 @@
    17
   ],
   "x": 322,
-  "idle": 14000,
-  "walk": 14092,
-  "hoe": 14184,
-  "fish": 14230,
-  "axe": 14276,
-  "saw": 14322,
-  "hammer": 14368,
-  "sit": 14414,
-  "stir": 14460,
-  "carry_sack": 14506,
-  "carry_lantern": 14598,
-  "carry_water": 14690,
-  "squat": 14782,
-  "carry_basket": 14828
+  "idle": 14644,
+  "walk": 14736,
+  "hoe": 14828,
+  "fish": 14874,
+  "axe": 14920,
+  "saw": 14966,
+  "hammer": 15012,
+  "sit": 15058,
+  "stir": 15104,
+  "carry_sack": 15150,
+  "carry_lantern": 15242,
+  "carry_water": 15334,
+  "squat": 15426,
+  "carry_basket": 15472,
+  "carry_pack": 15564
  }
 }
