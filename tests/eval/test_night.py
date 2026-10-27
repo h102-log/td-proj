@@ -20,3 +20,7 @@ def test_EV442_night_veil_params(gd):
 
 def test_EV443_night_hud(gd):
     gd("night", "EV443")
+
+
+def test_EV564_night_wolf_eyes(gd):
+    gd("night", "EV564")

@@ -231,3 +231,24 @@ func ev443():
 		out = check(hud.moon.is_visible_in_tree() and told == [0, 1] and b.dark > 0.0, "전투 단계 달 %s · «해가 진다» 토스트 2.55초 %d·4초 %d · 어둠 %.2f" % [hud.moon.is_visible_in_tree(), told[0], told[1], b.dark])
 	_done(main)
 	return out
+
+# EV564 · S240·S213: 숨은 밤 늑대는 맵에 그리지 않고 눈빛만 그린다. 숨은 다른 적과 불빛 안 밤 늑대는 눈빛이 없다
+func ev564():
+	var got := _night_game([Vector2i(20, 13)])
+	var main = got[0]
+	var b = main.view.battle
+	if not b.ENEMY_KINDS.has("night_wolf"):
+		_done(main)
+		return "적 종류 night_wolf가 없다"
+	var hid_basic = got[1][0]
+	var hid_wolf = b.spawn_enemy("night_wolf", Vector2i(21, 13), FAR)
+	var lit_wolf = b.spawn_enemy("night_wolf", Vector2i(31, 33), FAR)
+	b.step(DT)
+	var drawn: Array = main.view.foes()
+	var eyes: Array = main.view.eyes() if main.view.has_method("eyes") else []
+	var dark: float = b.dark
+	_done(main)
+	return check(dark > 0.0 and not (hid_wolf in drawn) and not (hid_basic in drawn) and (lit_wolf in drawn)
+		and (hid_wolf in eyes) and not (hid_basic in eyes) and not (lit_wolf in eyes),
+		"어둠 %.2f · 그리는 적: 숨은 밤 늑대 %s · 숨은 기본 적 %s · 불빛 안 밤 늑대 %s · 눈빛: 숨은 밤 늑대 %s · 숨은 기본 적 %s · 불빛 안 밤 늑대 %s" % [
+			dark, hid_wolf in drawn, hid_basic in drawn, lit_wolf in drawn, hid_wolf in eyes, hid_basic in eyes, lit_wolf in eyes])

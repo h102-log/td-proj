@@ -350,3 +350,7 @@ def test_EV536_slime_king_trait_line(gd):
 
 def test_EV556_wolf_trait_lines(gd):
     gd("hud", "EV556")
+
+
+def test_EV565_night_wolf_trait_line(gd):
+    gd("hud", "EV565")

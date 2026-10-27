@@ -314,3 +314,173 @@ func ev555():
 		return "세라피나가 W를 쓰지 못했다"
 	b.step(DT)
 	return check(not _stunned(b, m), "W를 쓴 다음 스텝에도 용병이 기절해 있다")
+
+# ── 밤 늑대(S240·I193) ──
+
+func _has_night(b) -> bool:
+	return b.ENEMY_KINDS.has("night_wolf")
+
+# 어둠을 d로 고정하고(스텝 끝에만 바뀐다) 거점 쪽으로 곧게 걷는 밤 늑대가 1초에 간 거리
+func _night_walk(d: float, sealed := false) -> float:
+	var b = battle()
+	var w = b.spawn_enemy("night_wolf", Vector2i(5, 10), {"hp": BIG, "sight": 0})
+	if sealed:
+		w.fx["test"] = {"seal": true, "left": 5.0}
+	var p0: Vector2 = w.pos
+	for i in 20:
+		b.dark = d
+		b.step(DT)
+	return w.pos.distance_to(p0)
+
+func _bleed_of(x):  # 걸린 출혈 효과(없으면 null)
+	for v in x.fx.values():
+		if v.has("bleed"):
+			return v
+	return null
+
+func _clear_bleed(x) -> void:
+	for k in x.fx.keys():
+		if x.fx[k].has("bleed"):
+			x.fx.erase(k)
+
+# 용병(10,10) 옆 (11,10)에 서 있는 밤 늑대
+func _bite_board(over := {}):
+	var b = battle()
+	var m = b.place_merc("soldier", Vector2i(10, 10), {"hp": BIG, "damage": 0})
+	m.armor = 0.0
+	var w = b.spawn_enemy("night_wolf", Vector2i(11, 10), {"hp": BIG, "speed": 0}.merged(over, true))
+	return [b, m, w]
+
+# EV557 · S240: 이동 속도 × (1 + 0.6 × 어둠)
+func ev557():
+	if not _has_night(battle()):
+		return "적 종류 night_wolf가 없다"
+	var got := [0.0, 0.5, 1.0].map(func(d): return _night_walk(d))
+	var want := [2.8, 3.64, 4.48]
+	return check(range(3).all(func(i): return absf(got[i] - want[i]) <= 0.05), "어둠 0·0.5·1에서 1초에 %s칸(%s여야 한다)" % [got, want])
+
+# EV558 · S240: 공격 속도 × (1 + 0.6 × 어둠). 문 횟수는 체력이 준 스텝 수(출혈은 스텝마다 지운다)
+func _bites(d: float) -> int:
+	var got = _bite_board()
+	var b = got[0]
+	var m = got[1]
+	var n := 0
+	for i in 118:  # 5.9초
+		var hp0: float = m.hp
+		b.dark = d
+		b.step(DT)
+		_clear_bleed(m)
+		if m.hp < hp0:
+			n += 1
+	return n
+
+func ev558():
+	if not _has_night(battle()):
+		return "적 종류 night_wolf가 없다"
+	var day := _bites(0.0)
+	var night := _bites(1.0)
+	return check(day == 6 and night == 10, "5.9초 동안 문 횟수: 어둠 0 %d(6) · 어둠 1 %d(10)" % [day, night])
+
+# EV559 · S240·I193: 출혈은 4초 동안 초당 2의 물리 피해(방어력 0이면 그대로)
+func ev559():
+	if not _has_night(battle()):
+		return "적 종류 night_wolf가 없다"
+	var got = _bite_board()
+	var b = got[0]
+	var m = got[1]
+	if not run(b, 1.0, func(): return m.hp < BIG):
+		return "밤 늑대가 1초 안에 물지 않았다"
+	b.damage(got[2], BIG)
+	if _bleed_of(m) == null:
+		return "물린 용병에게 출혈이 없다"
+	var hp1: float = m.hp
+	for i in 40:
+		b.step(DT)
+	var lost: float = hp1 - m.hp
+	if absf(lost - 4.0) > 0.15:
+		return "출혈 2초에 체력이 %s 줄었다(4여야 한다)" % lost
+	for i in 42:
+		b.step(DT)
+	return check(_bleed_of(m) == null, "문 때부터 4.1초 뒤에도 출혈이 남아 있다")
+
+# EV560 · S240: 다시 물면 남은 시간이 새로 되고, 둘이 물어도 출혈은 하나
+func ev560():
+	if not _has_night(battle()):
+		return "적 종류 night_wolf가 없다"
+	var got = _bite_board({"attack_gap": 2.0})
+	var b = got[0]
+	var m = got[1]
+	var w = got[2]
+	if not run(b, 1.0, func(): return m.hp < BIG):
+		return "밤 늑대가 1초 안에 물지 않았다"
+	var cd: float = w.cooldown
+	var again := false
+	for i in 60:
+		b.step(DT)
+		if w.cooldown > cd:
+			again = true
+			break
+		cd = w.cooldown
+	var v = _bleed_of(m)
+	if not again or v == null or absf(v.left - 4.0) > 0.06:
+		return "두 번째로 문 스텝에 출혈 남은 시간 %s(4여야 한다) · 다시 물었나 %s" % [v.left if v else null, again]
+	var two = _bite_board()  # 블록 자리(S159)가 하나라 첫 늑대가 문 뒤 처치하고 둘째가 문다
+	var b2 = two[0]
+	var m2 = two[1]
+	if not run(b2, 1.0, func(): return _bleed_of(m2) != null):
+		return "첫 밤 늑대가 1초 안에 물지 않았다"
+	b2.damage(two[2], BIG)
+	var w2 = b2.spawn_enemy("night_wolf", Vector2i(9, 10), {"hp": BIG, "speed": 0})
+	run(b2, 0.2)
+	var n: int = m2.fx.values().filter(func(v): return v.has("bleed")).size()
+	return check(w2.target == m2 and n == 1 and is_equal_approx(b2.effect_sum(m2, "bleed"), 2.0),
+		"둘째 밤 늑대가 물었나 %s · 출혈 %d개(1) · 합 %s(2)" % [w2.target == m2, n, b2.effect_sum(m2, "bleed")])
+
+# EV561 · S240·S152: 출혈은 해로운 효과라 정화(세라피나 W)로 풀린다
+func ev561():
+	var b = _with_seraphina(Vector2i(10, 4))
+	if not _has_night(b):
+		return "적 종류 night_wolf가 없다"
+	var h = b.hero
+	h.damage = 0.0
+	var m = b.place_merc("soldier", Vector2i(10, 7), {"hp": BIG, "damage": 0})
+	var w = b.spawn_enemy("night_wolf", Vector2i(11, 7), {"hp": BIG, "speed": 0})
+	b.spawn_enemy("basic", Vector2i(0, 19), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})  # 늑대를 처치해도 웨이브가 끝나지 않게(끝나면 효과가 모두 지워진다, I143)
+	b.start_battle()
+	if not run(b, 1.0, func(): return _bleed_of(m) != null):
+		return "밤 늑대가 1초 안에 물어 출혈을 걸지 않았다"
+	b.damage(w, BIG)
+	h.mana = h.max_mana
+	if not b.cast(h, "w", m.pos):
+		return "세라피나가 W를 쓰지 못했다"
+	b.step(DT)
+	return check(_bleed_of(m) == null, "W를 쓴 다음 스텝에도 출혈이 남아 있다")
+
+# EV562 · S240: 구조물에는 출혈을 걸지 않는다(유닛에는 건다)
+func ev562():
+	var b = battle()
+	if not _has_night(b):
+		return "적 종류 night_wolf가 없다"
+	var walls := []
+	for y in 20:
+		walls.append(b.build("wall", Vector2i(12, y)))
+	b.spawn_enemy("night_wolf", Vector2i(10, 10), {"hp": BIG, "sight": 0})
+	if not run(b, 10.0, func(): return walls.any(func(s): return s and s.hp < s.max_hp)):
+		return "밤 늑대가 10초 안에 방벽을 치지 않았다"
+	if not walls.all(func(s): return s == null or _bleed_of(s) == null):
+		return "방벽에 출혈이 걸렸다"
+	var got = _bite_board()  # 대조: 같은 밤 늑대가 용병을 물면 출혈이 걸린다
+	return check(run(got[0], 1.0, func(): return _bleed_of(got[1]) != null), "용병 옆에 선 밤 늑대가 1초 안에 물어 출혈을 걸지 않았다")
+
+# EV563 · S240·S155: 봉인되면 어둠에 세지지 않지만 물면 출혈은 건다
+func ev563():
+	if not _has_night(battle()):
+		return "적 종류 night_wolf가 없다"
+	var d := _night_walk(1.0, true)
+	if absf(d - 2.8) > 0.05:
+		return "봉인된 밤 늑대가 어둠 1에서 1초에 %s칸(2.8이어야 한다)" % d
+	var got = _bite_board()
+	got[2].fx["test"] = {"seal": true, "left": 5.0}
+	var b = got[0]
+	var m = got[1]
+	return check(run(b, 1.0, func(): return _bleed_of(m) != null), "봉인된 밤 늑대가 물어도 출혈이 걸리지 않았다")
