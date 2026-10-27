@@ -516,7 +516,7 @@ func test_second_knock_slides_from_drawn_spot_and_wall_walk_does_not_slide():
 	w.on_wall = true
 	w.pos = Vector2(10, 5.45)
 	v.tick(DT)
-	w.pos.y = 5.55  # 성벽 위에서 칸 경계를 넘으면 그리는 높이가 16px 바뀌지만 걸은 것이다
+	w.pos.y = 5.55  # 성벽 위에서 칸 경계를 넘어도 걸은 것이다
 	v.tick(DT)
 	if why == "" and v._slides.has(w.get_instance_id()):
 		why = "성벽 위를 걸어 칸 경계를 넘은 몸이 미끄러졌다"

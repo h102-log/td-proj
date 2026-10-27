@@ -40,3 +40,7 @@ def test_EV465_walk_wall_ring(gd):
 
 def test_EV566_rubble_under_bodies_and_zones(gd):
     gd("thick", "EV566")
+
+
+def test_EV567_wall_top_height_follows_position(gd):
+    gd("thick", "EV567")

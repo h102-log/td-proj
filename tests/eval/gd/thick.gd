@@ -238,3 +238,26 @@ func ev566():
 	var z := order.find("zones")
 	return check(order.has("wall") and order.has("feet") and order.has("body") and z >= 0 and order.rfind("wall") < z and order.find("feet") > z and order.find("body") > z,
 		"부른 차례 %s" % [order])
+
+# EV567 · S170: 성벽 위 병사는 선 자리대로 그린다. 남북으로는 고르게, 성벽 열(12)과 탑 열(13) 사이는 비탈처럼
+func ev567():
+	var b = _battle()
+	var m = b.place_merc("soldier", IN)
+	if m == null:
+		return "병사를 마을 %s에 두지 못했다" % [IN]
+	m.on_wall = true
+	var v = load("res://src/ui/battle_view.gd").new()
+	v.battle = b
+	var y := func(p: Vector2) -> float:
+		m.pos = p
+		return v._spot(m).y
+	var y0: float = y.call(Vector2(8, 9.0))
+	var steps := [y.call(Vector2(8, 9.4)) - y0, y.call(Vector2(8, 9.6)) - y0]
+	var r12: int = v.rise_at(b, Vector2i(12, 10))
+	var r13: int = v.rise_at(b, Vector2i(13, 10))
+	var flat: float = y.call(Vector2(12, 10))
+	var half: float = flat - y.call(Vector2(12.5, 10))
+	var top: float = flat - y.call(Vector2(13, 10))
+	v.free()
+	return check(absf(steps[0] - 6.4) <= 0.5 and absf(steps[1] - 9.6) <= 0.5 and r13 > r12 and absf(half - (r13 - r12) / 2.0) <= 0.5 and absf(top - (r13 - r12)) <= 0.5,
+		"남북 %s px(6.4·9.6이어야 한다) · 바닥 높이 12열 %d 13열 %d · 12.5열 %.1f px · 13열 %.1f px 위" % [steps, r12, r13, half, top])
