@@ -31,17 +31,25 @@ def _run_suite(suite):
     pending = [e.upper() for e in re.findall(r"^func (ev\d+)\(", src, re.M)]
     got, tail = {}, ""
     while pending:
-        r = subprocess.run(
-            [_godot(), "--headless", "--path", str(ROOT), "-s", "res://tests/eval/gd/runner.gd", "--", suite, *pending],
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace", timeout=180,
-        )
-        tail = r.stdout[-3000:]
-        parts = re.split(r"^== (EV\d+)\r?$", r.stdout, flags=re.M)  # [머리, EV, 조각, EV, 조각, ...]
+        timed_out = False
+        try:
+            out = subprocess.run(
+                [_godot(), "--headless", "--path", str(ROOT), "-s", "res://tests/eval/gd/runner.gd", "--", suite, *pending],
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace", timeout=180,
+            ).stdout
+        except subprocess.TimeoutExpired as ex:  # 스위트 하나가 180초를 넘었다(2026-10-27 hud 약 180초) — 끊긴 데까지 받고 잇는다
+            timed_out = True
+            out = ex.stdout or b""
+            out = out.decode("utf-8", "replace") if isinstance(out, bytes) else out
+        tail = out[-3000:]
+        parts = re.split(r"^== (EV\d+)\r?$", out, flags=re.M)  # [머리, EV, 조각, EV, 조각, ...]
         got.update(zip(parts[1::2], (parts[0] + p for p in parts[2::2])))
         if len(parts) == 1:
             break
-        # 런타임 오류는 _initialize를 통째로 멈춘다 — 멈춘 EV 다음부터 새 프로세스로 잇는다
-        pending = pending[pending.index(parts[-2]) + 1:]
+        # 런타임 오류는 _initialize를 통째로 멈춘다 — 멈춘 EV 다음부터 새 프로세스로 잇는다.
+        # 시간이 다 돼 끊긴 EV는 그 EV부터 다시 돌린다. 그 EV 혼자 시간을 다 썼으면(앞으로 나아가지 못함) 다음부터 잇는다
+        last = pending.index(parts[-2])
+        pending = pending[last if timed_out and last > 0 else last + 1:]
     return got, f"실행기가 이 EV에 닿기 전에 끝났다\n{tail}"
 
 
