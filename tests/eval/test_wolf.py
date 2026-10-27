@@ -48,3 +48,31 @@ def test_EV554_stunned_hero_no_cast(gd):
 
 def test_EV555_cleanse_vault_stun(gd):
     gd("wolf", "EV555")
+
+
+def test_EV557_night_wolf_stride(gd):
+    gd("wolf", "EV557")
+
+
+def test_EV558_night_wolf_haste(gd):
+    gd("wolf", "EV558")
+
+
+def test_EV559_bleed_damage(gd):
+    gd("wolf", "EV559")
+
+
+def test_EV560_bleed_refresh_single(gd):
+    gd("wolf", "EV560")
+
+
+def test_EV561_cleanse_bleed(gd):
+    gd("wolf", "EV561")
+
+
+def test_EV562_no_bleed_on_structures(gd):
+    gd("wolf", "EV562")
+
+
+def test_EV563_sealed_night_wolf(gd):
+    gd("wolf", "EV563")

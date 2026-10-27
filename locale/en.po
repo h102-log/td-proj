@@ -408,6 +408,9 @@ msgstr "Comes in packs"
 msgid "성벽 위로 뛰어 아군을 밀치고 기절시킨다"
 msgstr "Leaps onto walls, shoving and stunning defenders"
 
+msgid "어두울수록 세다, 물면 피를 흘린다"
+msgstr "Stronger in the dark; bites cause bleeding"
+
 msgid "죽으면 둘로 갈라진다"
 msgstr "Splits in two on death"
 

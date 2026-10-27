@@ -11,3 +11,11 @@ radius = 0.28
 sight = 3.0
 reward = 7
 pack = 2
+night = {
+"stride": 0.6,
+"haste": 0.6
+}
+bleed = {
+"dps": 2.0,
+"time": 4.0
+}

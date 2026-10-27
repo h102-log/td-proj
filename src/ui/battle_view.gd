@@ -17,11 +17,12 @@ const ENEMY_COLORS := {  # 적 종류마다 다른 색(I81)
 const HERO_COLORS := {  # 영웅 종류마다 다른 색(S56, S157, I101)
 	"aias": Color("b060f0"), "sylvia": Color("a0ff40"), "seraphina": Color("f0f0f0"), "vesper": Color("40c060"), "ignis": Color("ff5020"), "chronos": Color("ffd020"),
 }
-# 걸린 효과의 테두리 색(I101). 적: 기절·속박·둔화·받는 피해 증가·도발·봉인·사슬·초당 피해. 아군: 받는 피해 감소·공격 속도·보호막·불사·기절(I192)
+# 걸린 효과의 테두리 색(I101). 적: 기절·속박·둔화·받는 피해 증가·도발·봉인·사슬·초당 피해. 아군: 받는 피해 감소·공격 속도·보호막·불사·기절(I192)·출혈(I193)
 const MARKS := {
 	"stun": Color.YELLOW, "root": Color("c0a060"), "slow": Color.CYAN, "expose": Color.MAGENTA, "taunt": Color.RED, "seal": Color("6040a0"), "chain": Color("a0a0ff"), "dot": Color("ff8040"),
-	"dr": Color("80c0ff"), "haste": Color.ORANGE, "shield": Color.WHITE, "invuln": Color.GOLD,
+	"dr": Color("80c0ff"), "haste": Color.ORANGE, "shield": Color.WHITE, "invuln": Color.GOLD, "bleed": Color("a01818"),
 }
+const EYES := Color("f0e060")  # 어둠 속에 숨은 밤 늑대의 눈빛(S240, I193 ④)
 const ZONES := {  # 장판 색(I101). 엷게 채우고 테두리를 그린다
 	"aias_r": Color("80c0ff"), "sylvia_e": Color("c0a060"), "sylvia_r": Color("a0ff40"), "seraphina_w": Color("fff0a0"), "vesper_q": Color("60c040"),
 	"vesper_r": Color("402060"), "ignis_q": Color("ff6020"), "ignis_e": Color("8040c0"), "ignis_r": Color("ff3000"), "chronos_e": Color("ffd020"), "chronos_r": Color("40e0ff"),
@@ -217,6 +218,10 @@ func _night_layer() -> void:
 		_cv = self)
 	add_child(_top)
 
+# 눈빛만 그리는 적(S240): 어둠 속에 숨은 밤 늑대
+func eyes() -> Array:
+	return [] if battle.dark <= 0.0 else battle.enemies.filter(func(e): return not e.night.is_empty() and not battle.seen(e.pos))
+
 # 맵에 그리는 적(S213): 어둠 속에 숨은 적은 뺀다
 func foes() -> Array:
 	return battle.enemies if battle.dark <= 0.0 else battle.enemies.filter(func(e): return battle.seen(e.pos))
@@ -301,7 +306,7 @@ func _draw() -> void:
 		if u in controls.selected and u.hold:  # 고른 유닛의 표시는 발밑(_feet_mark, S207). 홀드면 기준 반경을 그린다(S36)
 			draw_arc(u.anchor * CELL + Vector2(CELL, CELL) / 2, CELL * u.hold_radius, 0.0, TAU, 48, Color(1, 1, 1, 0.4), 1.0)
 		var ring := 0.35  # 걸린 효과(I101): 몸 둘레에 효과마다 한 겹
-		for key in ["dr", "haste", "shield", "invuln", "stun"]:  # 기절은 도약 늑대가 건다(I192)
+		for key in ["dr", "haste", "shield", "invuln", "stun", "bleed"]:  # 기절은 도약 늑대(I192), 출혈은 밤 늑대(I193 ③)가 건다
 			var on: bool = (not u.shields.is_empty()) if key == "shield" else (battle.effect(u, key) != null if key in ["invuln", "stun"] else battle.effect_sum(u, key) > 0.0)
 			if on:
 				draw_arc(at, CELL * (u.radius + ring), 0.0, TAU, 24, MARKS[key], 1.0)
@@ -361,6 +366,10 @@ func _draw_top() -> void:
 				var lamp := _center(_folk_now[0][k].pos) + LAMP
 				_cv.draw_rect(Rect2(lamp - Vector2.ONE, Vector2(3, 3)), Color(TORCH, 0.6))
 				_cv.draw_rect(Rect2(lamp, Vector2.ONE), Color("efd8a1"))
+	for e in eyes():  # 숨은 밤 늑대의 눈빛(S240, I193 ④): 덮개 위라 어둠 속에서도 보인다. 몸 가운데보다 조금 위, 2px 간격 두 점
+		var at := _spot(e) - Vector2(0, CELL * e.radius * 0.5)
+		_cv.draw_rect(Rect2(at + Vector2(-2, 0), Vector2.ONE), EYES)
+		_cv.draw_rect(Rect2(at + Vector2(1, 0), Vector2.ONE), EYES)
 	var cue := order_ring()
 	if not cue.is_empty():
 		_cv.draw_arc(cue[0], cue[1], 0.0, TAU, 24, cue[2], 1.0)

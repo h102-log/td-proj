@@ -185,6 +185,8 @@ class Enemy:
 	var girth := 0.0  # 나온 때의 몸 반지름. 줄어듦(S236)이 걸음마다 여기서 다시 센다
 	var vault := {}  # 도약(S239). 비어 있으면 성벽에 올라도 밀치지 않는다
 	var vaulted := false  # 한 번 뛰어올랐다. 성벽에서 내려오면 다시 오르지 않는다(I191 ⑥)
+	var night := {}  # 어둠에 세짐(S240). 비어 있으면 어둠과 상관없다
+	var bleed := {}  # 물면 거는 출혈(S240). 비어 있으면 걸지 않는다
 
 	func _init(k: String, cell: Vector2i, stats: Dictionary) -> void:
 		kind = k
@@ -1420,6 +1422,9 @@ func _tick(dt: float) -> void:
 		var regen := _fx_sum(u, "regen")
 		if regen > 0.0:
 			_heal(u, regen * dt)
+		var bleed := _fx_sum(u, "bleed")  # 출혈(S240): 초당 물리 피해라 방어력을 받는다(I193 ②)
+		if bleed > 0.0 and u.alive:
+			damage(u, bleed * dt, "phys")
 	for s in structures.values() + castle.values():
 		_age(s, dt)
 		var regen := _fx_sum(s, "regen")
@@ -1525,7 +1530,7 @@ func _zones(dt: float) -> void:
 
 # 해로운 효과(S152 정화가 지운다): 기절·속박·둔화·도발·봉인·공격력·공격 속도 감소, 받는 피해 증가, 초당 피해, 방어력·마법 저항 감소
 func _harmful(v: Dictionary) -> bool:
-	return ["stun", "root", "slow", "taunt", "seal", "weaken", "lag", "expose", "dot", "chain"].any(func(k): return v.has(k)) or v.get("armor", 0.0) < 0.0 or v.get("mr", 0.0) < 0.0
+	return ["stun", "root", "slow", "taunt", "seal", "weaken", "lag", "expose", "dot", "chain", "bleed"].any(func(k): return v.has(k)) or v.get("armor", 0.0) < 0.0 or v.get("mr", 0.0) < 0.0
 
 # 장판이 끝날 때: 에너지 성벽 칸을 치운다(S151)
 func _end_zone(z: Dictionary) -> void:
@@ -2901,7 +2906,8 @@ func _move(e: Enemy, dt: float) -> void:
 	if not sh.is_empty():
 		e.radius = e.girth * (sh.size_min + (1.0 - sh.size_min) * (1.0 - worn))
 	var quick := 0.0 if sealed else worn
-	e.cooldown -= dt * (1.0 - _fx_cut(e, "lag")) * (1.0 + (e.skills.rage.haste if rage else 0.0)) * (1.0 + sh.get("haste_max", 0.0) * quick)  # 공격 속도 감소(S158), 분노(S195), 줄어듦(S236)
+	var dusk := 0.0 if sealed else dark  # 밤 늑대(S240)는 판 전체 어둠만큼 세진다(I193 ①). 봉인되면 세지지 않는다
+	e.cooldown -= dt * (1.0 - _fx_cut(e, "lag")) * (1.0 + (e.skills.rage.haste if rage else 0.0)) * (1.0 + sh.get("haste_max", 0.0) * quick) * (1.0 + e.night.get("haste", 0.0) * dusk)  # 공격 속도 감소(S158), 분노(S195), 줄어듦(S236), 어둠(S240)
 	e.held -= dt
 	var aloft := _aloft(e)
 	var stunned := _fx_on(e, "stun") != null and not aloft  # 뜬 동안(S236)은 발동 중이라 끊기지 않는다
@@ -2917,7 +2923,7 @@ func _move(e: Enemy, dt: float) -> void:
 	if e.attack_gap - e.cooldown < POSE:  # 친 뒤 공격 자세 동안 제자리에 선다(S196)
 		return
 	var rooted := _fx_on(e, "root") != null  # 속박(S150): 움직이지 않지만 닿는 대상은 친다
-	var speed: float = 0.0 if rooted else e.speed * (1.0 - _fx_cut(e, "slow")) * (1.0 + (e.skills.rage.stride if rage else 0.0)) * (1.0 + sh.get("stride_max", 0.0) * quick)
+	var speed: float = 0.0 if rooted else e.speed * (1.0 - _fx_cut(e, "slow")) * (1.0 + (e.skills.rage.stride if rage else 0.0)) * (1.0 + sh.get("stride_max", 0.0) * quick) * (1.0 + e.night.get("stride", 0.0) * dusk)
 	if e.on_wall and not _climbable(Vector2i(e.pos.round())):  # 성벽에서 내려왔거나 그 성벽이 부서졌다(I76)
 		e.on_wall = false
 		if e.vaulted:  # 한 번만 뛴다. 내려온 뒤로는 기어오르지 않는 땅 적이다(I191 ⑥)
@@ -3444,3 +3450,5 @@ func _attack(e: Enemy, target) -> void:
 		e.cooldown = e.attack_gap
 		e.target = target
 		damage(target, e.damage * (1.0 - _fx_cut(e, "weaken")))  # 공격력 감소(S154)
+		if not e.bleed.is_empty() and target is Unit and target.alive:  # 출혈(S240): 아군 유닛에만, 하나만 걸려 다시 물면 시간이 새로 된다
+			_fx(target, "bleed", {"bleed": e.bleed.dps}, e.bleed.time)
