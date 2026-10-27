@@ -204,7 +204,7 @@ func _cell_text(c) -> String:
 func _red(c) -> bool:
 	return c.get_theme_stylebox("normal").border_color.is_equal_approx(DANGER)
 
-# 건설 격자 칸의 자리(S186): 12칸이 격자 안에 겹치지 않고 세 줄로, 용병은 파는 시설 아래. 칸 글에 이유(I132)가 없다. 문제가 없으면 ""
+# 건설 격자 칸의 자리(S186): 13칸이 격자 안에 겹치지 않고 세 줄로, 용병은 파는 시설 아래, 대피소는 집 아래. 칸 글에 이유(I132)가 없다. 문제가 없으면 ""
 func _grid_shape(g, r: Dictionary) -> String:
 	var area := Rect2(510, 288, 130, 72).grow(0.5)
 	for row in ROWS:
@@ -221,14 +221,18 @@ func _grid_shape(g, r: Dictionary) -> String:
 	for i in [1, 2]:
 		if r[ROWS[i][0]].position.y <= r[ROWS[i - 1][0]].position.y:
 			return "%d줄이 %d줄보다 아래가 아니다" % [i + 1, i]
-	for pair in [["soldier", "barracks"], ["engineer", "workshop"], ["archer", "archery"]]:
+	for pair in [["soldier", "barracks"], ["engineer", "workshop"], ["archer", "archery"], ["shelter", "house"]]:
+		if not r.has(pair[0]):
+			return "«%s» 칸이 없다(%s)" % [pair[0], r.keys()]
 		if absf(r[pair[0]].position.x - r[pair[1]].position.x) > 0.5:
 			return "«%s» 칸 x %.1f가 «%s» 칸 x %.1f와 다르다" % [pair[0], r[pair[0]].position.x, pair[1], r[pair[1]].position.x]
-	if r.size() != 12:
+	if not area.encloses(r.shelter) or absf(r.shelter.position.y - r.soldier.position.y) > 0.5:  # 대피소는 3줄 4열(S186 2026-10-27 변경)
+		return "«shelter» 칸 %s가 격자 밖이거나 3줄(y %.1f)이 아니다" % [r.shelter, r.soldier.position.y]
+	if r.size() != 13:
 		return "칸이 %d개다(%s)" % [r.size(), r.keys()]
 	return ""
 
-# EV322 · S186: 준비·전투 단계에 건설 격자 12칸의 자리가 같고, 칸 글에 «없음»·«Lv»가 없다. 칸·2 키를 두 번 누르면 놓기 모드가 켜졌다 꺼진다
+# EV322 · S186: 준비·전투 단계에 건설 격자 13칸의 자리가 같고, 칸 글에 «없음»·«Lv»가 없다. 칸·2 키를 두 번 누르면 놓기 모드가 켜졌다 꺼진다
 func ev322():
 	var main = _prep()
 	var g = main.hud.get("grid")
@@ -2729,6 +2733,7 @@ func ev430():
 	return out
 
 const MINI := Rect2(2, 295, 62, 65)  # 미니맵(S209). 테두리 1px 안에 칸당 1px. 60×63칸 창이 세로로 스크롤된다(2026-10-26 둘째 변경)
+const EVAC := Rect2(3, 266, 60, 26)  # 대피령 버튼(S230)
 
 # 미니맵 위 맵 칸 c 가운데의 화면 자리
 func _mini(c: Vector2) -> Vector2:
@@ -2949,9 +2954,10 @@ func ev437():
 	main.hud._process(0.0)
 	var rs: Array = main.hud.alerts.find_children("*", "BaseButton", true, false).filter(func(x): return x.is_visible_in_tree()).map(func(x): return x.get_global_rect())
 	var low := rs.filter(func(r): return absf(r.position.y - 344) < 0.01 and r.position.x >= 67.99)
-	var side := rs.filter(func(r): return absf(r.position.x - 2) < 0.01 and r.end.y <= 292.01)
+	var side := rs.filter(func(r): return absf(r.position.x - 2) < 0.01 and r.end.y <= 264.01)
 	_done(main)
-	return check(rs.size() == 2 and low.size() == 1 and side.size() == 1 and not rs.any(func(r): return r.intersects(MINI)), "보이는 표식 %s · 아래 띠 %d · 왼쪽 띠 %d" % [rs, low.size(), side.size()])
+	return check(rs.size() == 2 and low.size() == 1 and side.size() == 1 and not rs.any(func(r): return r.intersects(MINI) or r.intersects(EVAC)),
+		"보이는 표식 %s · 아래 띠 %d · 왼쪽 띠 %d" % [rs, low.size(), side.size()])
 
 # EV461 · S218: 문루·문 양옆 탑 그림 안(성곽 뒤 땅 칸)을 누르면 그 성곽을 고르고, 보통 성벽 열 뒤 칸은 아니며, 그 칸의 용병이 먼저다
 func ev461():
@@ -3117,3 +3123,78 @@ func ev486():
 	if pr == null or not (pr.has("idle") and pr.has("walk") and pr.has("stir")):
 		bad.append("folk_man_8(사제) %s" % [pr])
 	return check(bad.is_empty(), "%s" % [bad.slice(0, 8)])
+
+# EV501 · S230: 미니맵 위 [3,266,60,26]의 대피령 버튼은 «대피령»·«B»와 신뢰 칸 다섯(채운 칸 = 신뢰)을 보이고, 준비 단계에는 흐리며,
+# 주민이 있는 전투 단계에는 흐리지 않고, 누르면 대피령이 나서 «대피 중»이다
+func ev501():
+	var main = _prep()
+	var b = main.view.battle
+	var e = main.hud.get("evac")
+	if not e is BaseButton or not b.has_method("evacuate"):
+		_done(main)
+		return "main.hud.evac(BaseButton)·Battle.evacuate가 없다"
+	b.build("house", Vector2i(22, 17))
+	b.trust = 3
+	e._process(0.0)
+	var r: Rect2 = e.get_global_rect()
+	var t := _cell_text(e)
+	var dots = e.get("dots")
+	var out := ""
+	if not r.is_equal_approx(EVAC) or not e.is_visible_in_tree():
+		out = "버튼 %s(보임 %s), 기대 %s" % [r, e.is_visible_in_tree(), EVAC]
+	elif not ("대피령" in t and "B" in t):
+		out = "버튼 글 «%s»에 «대피령»·«B»가 없다" % t
+	elif not dots is Array or dots.size() != 5:
+		out = "신뢰 칸이 다섯이 아니다(%s)" % [dots]
+	elif not (dots[0].color == dots[2].color and dots[3].color == dots[4].color and dots[2].color != dots[3].color):
+		out = "신뢰 3에서 칸 색 %s" % [dots.map(func(d): return d.color)]
+	elif e.modulate.a >= 0.99:
+		out = "준비 단계인데 버튼이 흐리지 않다"
+	if out == "":
+		b.start_battle()
+		_frame(main)
+		e._process(0.0)
+		if e.modulate.a < 0.99:
+			out = "주민이 있는 전투 단계인데 버튼이 흐리다(%.2f)" % e.modulate.a
+		else:
+			e.pressed.emit()
+			e._process(0.0)
+			if not b.evac or not "대피 중" in _cell_text(e):
+				out = "누른 뒤 대피령 %s · 글 «%s»" % [b.evac, _cell_text(e)]
+	_done(main)
+	return out
+
+# EV502 · S230: 주민이 다치면 «주민이 다쳤다» 토스트가, 거짓 대피령으로 웨이브가 끝나면 «거짓 대피령» 토스트가 뜬다
+func ev502():
+	var main = _prep()
+	var b = main.view.battle
+	var e = main.hud.get("evac")
+	if not e is BaseButton or b.get("people") == null or not ResourceLoader.exists("res://src/sim/folk.gd"):
+		_done(main)
+		return "main.hud.evac·Battle.people·src/sim/folk.gd가 없다"
+	b.build("house", Vector2i(22, 17))
+	b.start_battle()
+	_frame(main)
+	_pass(main, 10.0)  # 준비 단계 미션 토스트를 흘려 보낸다
+	b.mission = ""
+	b.commission = ""
+	e._process(0.0)
+	b.damage(b.people[0], load("res://src/sim/folk.gd").HP * 0.5)
+	e._process(0.0)
+	var hurt := _toasts(main)
+	var out := ""
+	if not hurt.any(func(x): return "주민이 다쳤다" in x):
+		out = "주민이 다친 뒤 토스트 %s" % [hurt]
+	if out == "":
+		_pass(main, 10.0)
+		b.evacuate()
+		e._process(0.0)
+		if not clear_wave(b) or b.state == "battle":
+			out = "웨이브가 끝나지 않았다"
+		else:
+			e._process(0.0)
+			var shown := _toasts(main)
+			if not shown.any(func(x): return "거짓 대피령" in x):
+				out = "거짓 대피령으로 끝난 웨이브 뒤 토스트 %s" % [shown]
+	_done(main)
+	return out

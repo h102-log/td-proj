@@ -24,13 +24,13 @@ EDGE = 0.35  # 안쪽 외곽선을 긋는 깊이 차. 망루의 0.19는 천막·
 PAL = R.PALETTES["f24p"]
 RAMPS = np.array([R.ramp([int(c[i:i + 2], 16) for i in (0, 2, 4)], PAL) for c in COLORS.values()])
 DARK = R.darkest(PAL)
-KINDS = ["house", "church", "barracks", "workshop", "archery", "wall", "tower", "magic", "cannon", "cannon_folded"]
-VILLAGE = {"house", "church", "barracks", "workshop", "archery"}  # 마을(흙) 안에만 짓는다(S43)
+KINDS = ["house", "church", "barracks", "workshop", "archery", "wall", "tower", "magic", "cannon", "cannon_folded", "shelter"]  # 새 종류는 끝에 붙여 열 번호를 지킨다
+VILLAGE = {"house", "church", "barracks", "workshop", "archery", "shelter"}  # 마을(흙) 안에만 짓는다(S43)
 # 2026-10-26
 # [동작] 칸을 여럿 차지하는 시설(S216)은 모델을 (가로, 깊이, 높이) 배율로 키워 같은 화소 밀도로 그린다
 # [이유] 사용자가 «차지하는 칸도 키우기»와 이 방식으로 그린 시안 A를 골랐다(next/2026-10-26/r1.md §1).
 #        사격장은 과녁 둘이 3칸 폭을 채우게 고르게 2배다. 배율의 가로·깊이는 data/structures/*.tres의 size와 맞춘다
-SCALE = {"house": (2, 2, 2), "church": (2, 3, 2.5), "barracks": (3, 2, 2), "workshop": (3, 2, 2), "archery": (2, 2, 2)}
+SCALE = {"house": (2, 2, 2), "church": (2, 3, 2.5), "barracks": (3, 2, 2), "workshop": (3, 2, 2), "archery": (2, 2, 2), "shelter": (2, 2, 2)}
 FACE = np.array([0, -np.cos(np.radians(45)), np.sin(np.radians(45))])  # 카메라를 보는 면의 법선(과녁·톱니바퀴)
 GEAR = np.array([0.6, 0.3, 0.64])
 
@@ -243,6 +243,24 @@ def cannon_folded():
     for bx in (0.3, 0.66):  # 묶은 끈
         P.append((cyl([bx, 0.66, 0.5], [1, 0, 0], 0.165, 0.035), "canvas"))
     return P, spokes
+
+
+def shelter():
+    """대피소(S226): 높은 돌 몸체, 나무 박공지붕, 쇠띠 두른 두꺼운 문, 문 위 종탑. 시안 (다) B(사용자 2026-10-26, insights/2026-10-26_evacuation.md).
+    지붕은 나무색이다. 집 지붕색 6e3a2e는 밝은 면이 흙 684c3c와 같아 바탕에 묻혔다"""
+    P = [(R.box([0.5, 0.8, 0.31], [0.44, 0.44, 0.31]), "stone"),
+         (gable(0.02, 0.98, 0.35, 1.25, 0.62, 0.26, ridge="x"), "wood"),
+         (R.box([0.5, 0.35, 0.22], [0.13, 0.02, 0.22]), "wood"),  # 문
+         (R.box([0.5, 0.42, 0.8], [0.1, 0.07, 0.18]), "stone"),  # 앞 종탑(문 위)
+         (pyramid(0.5, 0.42, 0.13, 0.1, 0.98, 0.14), "roof"),
+         (R.ellipsoid([0.5, 0.33, 0.8], [0.06, 0.03, 0.07]), "gold")]
+
+    def paint(idx, mat, x, y, z):
+        door = (mat == m("wood")) & (y < 0.44) & (np.abs(x - 0.5) < 0.13) & (z < 0.45)
+        band = door & ((np.abs(z - 0.1) < 0.03) | (np.abs(z - 0.32) < 0.03))  # 쇠띠 둘
+        slit = (mat == m("stone")) & (y < 0.4) & (z > 0.3) & (z < 0.48) & (np.abs(np.abs(x - 0.5) - 0.3) < 0.03)  # 좁은 창 둘
+        return np.where(band | slit, RAMPS[m("iron")][1], idx)
+    return P, paint
 
 
 def draw(kind):

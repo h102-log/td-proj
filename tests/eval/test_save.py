@@ -29,5 +29,9 @@ def test_EV476_save_keeps_families(gd):
     gd("save", "EV476")
 
 
-def test_EV482_save_version_5(gd):
+def test_EV482_save_version_6(gd):
     gd("save", "EV482")
+
+
+def test_EV503_folk_state_saved(gd):
+    gd("save", "EV503")
