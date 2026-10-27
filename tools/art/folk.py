@@ -1,4 +1,4 @@
-# 마을 주민 가족(S221, S172 2026-10-26·27 변경): 몸 여섯 × 색 프리셋 여덟의 24px 시트. 정지·걷기 2위상(4방향)과 직업의 일 자세(S223)를 굽는다.
+# 마을 주민 가족(S221, S172 2026-10-26·27 변경): 몸 여덟 × 색 프리셋 여덟의 24px 시트. 정지·걷기 2위상(4방향)과 직업의 일 자세(S223)를 굽는다.
 # 몸·색·자세는 시안 (나) v2(insights/2026-10-26_villager_looks.md)다. 뼈대는 기사(hero.py), 굽기는 render.py다
 # 시트 한 장이 몸 하나다: look마다 가로 2칸 폭 띠. 0~3행 정지(1열)·4~7행 걷기(2열)이고 행은 S·E·N·W다. 그 아래로 몸이 쓰는 일 자세가
 # 차례로 붙는다: 제자리 자세는 동·서 2행, 들고 걷기(carry_)는 S·E·N·W 4행이고 모두 2열(2프레임)이다. 자세별 첫 행은 fit.json의 rows다.
@@ -55,16 +55,19 @@ CARRY = {  # 들고 걷기: 걷기 2위상에 팔·짐만 바꾼다
 for k, v in CARRY.items():
     WORK[k] = [dict(w, **dict(ARMS, sword_side=0, **v)) for w in H.WALK[:2]]
 ADULT = ["hoe", "fish", "axe", "saw", "hammer", "sit", "stir", "carry_sack", "carry_lantern", "carry_water", "squat", "carry_basket"]
-# 몸이 굽는 일 자세: 그 몸의 역할(I182 ①)이 맡는 직업의 자세(battle_view.gd POSE). man·woman은 가장·배우자, 아이, 노인
+# 몸이 굽는 일 자세: 그 몸의 역할(I182 ①)이 맡는 직업의 자세(battle_view.gd POSE). man·woman은 가장·배우자, 아이, 노인. 청소년은 어른 직업을 얻는다(S232)
 USES = {"man": ADULT, "woman": ADULT, "boy": ["squat", "carry_stick", "carry_water"], "girl": ["squat", "carry_stick", "carry_water"],
-        "old_man": ["sit", "squat", "carry_basket"], "old_woman": ["sit", "squat", "carry_basket"]}
+        "old_man": ["sit", "squat", "carry_basket"], "old_woman": ["sit", "squat", "carry_basket"], "lad": ADULT, "lass": ADULT}
 PRIEST = 8  # 남자 시트 아홉째 띠: 사제(S222)
 
-# 몸: 성별(남 바지·맨머리 / 여 발목 치마·머릿수건, 앞머리가 보임), 나이(아이 축소·큰 머리, 여자아이는 치마·맨머리 / 노인 굽은 등·회색 머리·지팡이)
+# 몸: 성별(남 바지·맨머리 / 여 발목 치마·머릿수건, 앞머리가 보임)은 아이 때부터 같다(S172 2026-10-27 둘째 변경),
+# 나이(아이 축소·큰 머리 / 청소년은 아이와 어른 사이(S232) / 노인 굽은 등·회색 머리·지팡이)
 BODIES = {"man": dict(skirt=False, scarf=False, scale=0.9, head=1.0, lean=0, cane=False),
           "woman": dict(skirt=True, scarf=True, scale=0.88, head=1.0, lean=0, cane=False),
           "boy": dict(skirt=False, scarf=False, scale=0.66, head=1.2, lean=0, cane=False),
-          "girl": dict(skirt=True, scarf=False, scale=0.66, head=1.2, lean=0, cane=False),
+          "girl": dict(skirt=True, scarf=True, scale=0.66, head=1.2, lean=0, cane=False),
+          "lad": dict(skirt=False, scarf=False, scale=0.78, head=1.1, lean=0, cane=False),
+          "lass": dict(skirt=True, scarf=True, scale=0.77, head=1.1, lean=0, cane=False),
           "old_man": dict(skirt=False, scarf=False, scale=0.86, head=1.0, lean=16, cane=True),
           "old_woman": dict(skirt=True, scarf=True, scale=0.84, head=1.0, lean=16, cane=True)}
 
