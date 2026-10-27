@@ -701,7 +701,7 @@ func ev334():
 	_done(main)
 	return out
 
-const ENEMY := {"basic": "기본", "fast": "빠름", "armored": "장갑", "flying": "비행", "boss": "보스"}  # S106
+const ENEMY := {"basic": "기본", "fast": "빠름", "armored": "장갑", "flying": "비행", "boss": "보스", "slime": "슬라임", "slimelet": "꼬마 슬라임", "big_slime": "큰 슬라임", "slime_king": "슬라임 킹"}  # S106
 const SIDES := ["왼쪽", "가운데", "오른쪽"]  # S188: 시험 스테이지 출현 지점 차례
 
 # 웨이브 데이터(라운드 r·웨이브 w)의 적 수
@@ -812,6 +812,8 @@ func ev337():
 			if line == "" or not miss.is_empty():
 				out = "웨이브 버튼 툴팁 «%s»의 %s 줄에 %s가 없다(미리보기 %s)" % [_tip_text(main.hud.tip), SIDES[i], miss, want[i]]
 				break
+		if out == "" and not lines.any(func(l): return "슬라임: 죽으면 둘로 갈라진다" in l):  # S188 2026-10-27 변경
+			out = "첫 웨이브 툴팁 «%s»에 «슬라임: 죽으면 둘로 갈라진다» 줄이 없다" % _tip_text(main.hud.tip)
 		_move(EMPTY)
 		main.hud.tip._process(0.3)
 	if out == "" and (main.hud.skull.is_visible_in_tree() or _toasts(main).any(func(t): return "보스" in t)):
@@ -837,7 +839,7 @@ func ev337():
 		var shown: Array = edges.get_children().filter(func(m): return m.is_visible_in_tree())
 		var away: Array = b.spawns.filter(func(s): return not _on_screen(main, s))  # 맵이 1배 화면보다 넓어(S203) 양옆 출현 지점은 맨 아래에서도 화면 밖이다
 		out = check(shown.size() == away.size(), "1배 줌 맨 아래인데 표식이 %d개 보인다(화면 밖 출현 지점 %s)" % [shown.size(), away])
-	var bosses: Array = range(1, b.waves.size()).filter(func(w): return b.waves[w].any(func(e): return e.kind == "boss"))
+	var bosses: Array = range(1, b.waves.size()).filter(func(w): return b.waves[w].any(func(e): return b.ENEMY_KINDS[e.kind].get("boss") == true))  # 보스 표시(I185)
 	if out == "" and bosses.is_empty():
 		out = "1라운드에 첫 웨이브가 아닌 보스 웨이브가 없다"
 	if out == "":

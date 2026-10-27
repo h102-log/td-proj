@@ -80,7 +80,8 @@ func ev205():
 	var xps := {}
 	for k in b.ENEMY_KINDS:
 		xps[k] = b.ENEMY_KINDS[k].get("xp")
-	ok = ok and xps.size() == 5 and xps.values().all(func(x): return x == 1)
+	var want := {"basic": 1, "fast": 1, "armored": 1, "flying": 1, "boss": 1, "slime_king": 1, "slime": 3, "big_slime": 7, "slimelet": 0}  # S126 2026-10-27 변경
+	ok = ok and xps.size() == want.size() and want.keys().all(func(k): return xps.get(k) == want[k])
 	return check(ok, "다음 레벨까지 %s · 비율 %s · 열리는 레벨 %s · 적 경험치 %s" % [r.steps, r.growth, r.unlock, xps])
 
 # EV206 · S126: 누적 경험치 20·50·100·170에 닿는 순간 Lv2·3·4·5가 되고, 그 뒤로는 Lv5다

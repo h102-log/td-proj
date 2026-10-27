@@ -17,6 +17,10 @@ const TABLE := {
 	"armored": [18, 1.5, 6, 1.2, 0.35, 3, 8, 1],
 	"flying": [8, 2.5, 4, 1, 0.3, 3, 6, null],
 	"boss": [160, 1.2, 20, 2, 0.45, 4, 50, 0.3],
+	"slime": [14, 1.5, 4, 1, 0.3, 3, 15, 1],  # 1라운드 슬라임 테마(S106 2026-10-27 변경)
+	"slimelet": [5, 2, 2, 0.8, 0.18, 3, 0, 1],
+	"big_slime": [30, 1.1, 8, 1.4, 0.45, 3, 35, 1],
+	"slime_king": [160, 1, 20, 2, 0.55, 4, 50, 0.3],
 }
 const KEYS := ["hp", "speed", "damage", "attack_gap", "radius", "sight", "reward", "wall_k"]
 
@@ -72,8 +76,12 @@ func ev130():
 			if want != null and not is_equal_approx(got, want):
 				return "%s.%s = %s, 표는 %s" % [k, KEYS[i], got, want]
 	var d: Dictionary = b.ENEMY_KINDS
-	return check(d.fast.climb == 3.0 and d.armored.armor == 15.0 and d.flying.flying and not d.basic.flying and d.basic.climb == 0.0,
-		"특수: fast.climb %s · armored.armor %s · flying.flying %s" % [d.fast.climb, d.armored.armor, d.flying.flying])
+	var plain: Array = TABLE.keys().filter(func(k): return k != "slime" and k != "big_slime")
+	return check(d.fast.climb == 3.0 and d.armored.armor == 15.0 and d.flying.flying and not d.basic.flying and d.basic.climb == 0.0
+		and d.slime.get("split") == {"kind": "slimelet", "count": 2} and d.big_slime.get("split") == {"kind": "slime", "count": 2}
+		and plain.all(func(k): return d[k].get("split", {}).is_empty()) and d.slime_king.get("boss") == true,
+		"특수: fast.climb %s · armored.armor %s · flying.flying %s · 갈라짐 %s · slime_king.boss %s" % [d.fast.climb, d.armored.armor, d.flying.flying,
+			TABLE.keys().map(func(k): return [k, d[k].get("split")]), d.slime_king.get("boss")])
 
 # 방어력 a의 물리 피해 배율(S149, 워크3식): a ≥ 0이면 1 − 0.06a ÷ (1 + 0.06a)
 func _armor(a: float) -> float:
@@ -225,7 +233,7 @@ func ev143():
 # EV144 · S111: 시험 스테이지의 시작 골드와 웨이브
 func ev144():
 	var stage: Dictionary = load("res://src/main.gd").stage()
-	var want := [{"basic": 60, "fast": 30}, {"basic": 60, "armored": 30, "flying": 30}, {"basic": 80, "fast": 40, "armored": 30, "flying": 30, "boss": 1}]  # S111 2026-10-25 변경: 보스를 뺀 10배
+	var want := [{"slime": 30}, {"slime": 20, "big_slime": 8}, {"slime": 30, "big_slime": 12, "slime_king": 1}]  # S111 2026-10-27 변경: 1라운드 슬라임 테마
 	var got := []
 	for w in stage.waves:
 		var d := {}
@@ -234,7 +242,7 @@ func ev144():
 		got.append(d)
 	return check(stage.gold == 220 and got == want, "시작 골드 %s, 웨이브 %s" % [stage.gold, got])
 
-# EV145 · I81: 적 5종의 색이 모두 있고 서로 다르다
+# EV145 · I81: 적 종류(TABLE, S106)의 색이 모두 있고 서로 다르다
 func ev145():
 	var colors: Dictionary = load("res://src/ui/battle_view.gd").ENEMY_COLORS
 	var seen := []

@@ -18,7 +18,7 @@ const BARRACKS := Vector2i(10, 3)  # 마을 칸
 const HOUSE := Vector2i(6, 3)
 const ONE := [{"kind": "basic", "count": 1}]
 const ONE_ONE := [[ONE], [ONE]]  # 라운드 2개, 라운드마다 적 1마리짜리 웨이브 하나
-const S111 := [{"basic": 6, "fast": 3}, {"basic": 6, "armored": 3, "flying": 3}, {"basic": 8, "fast": 4, "armored": 3, "flying": 3, "boss": 1}]
+const S111 := [{"slime": 30}, {"slime": 20, "big_slime": 8}, {"slime": 30, "big_slime": 12, "slime_king": 1}]  # S111 2026-10-27 변경: 1라운드 슬라임 테마(10배를 하지 않는다)
 # I91 표(2026-10-21 개정): 2~6라운드 웨이브마다 종류별 적 수
 const I91 := [
 	[{"basic": 18, "fast": 8, "flying": 6}, {"basic": 18, "armored": 8, "flying": 10, "fast": 4}, {"basic": 18, "fast": 8, "armored": 8, "flying": 6}, {"basic": 22, "fast": 12, "armored": 8, "flying": 10, "boss": 1}],
@@ -253,12 +253,12 @@ func ev168():
 	var others := [b.castle[GATES[1]].open, b.castle[GATES[2]].open]
 	return check(b.castle.get(GATES[0]) == g and g.open and others == [false, false], "연 성문 %s · 다른 성문 열림 %s" % [g.open, others])
 
-# EV169 · I91: 시험 스테이지 도전은 6라운드이고, 1라운드는 S111, 2~6라운드는 I91 표의 적 수다(둘 다 보스를 뺀 10배)
+# EV169 · I91: 시험 스테이지 도전은 6라운드이고, 1라운드는 S111, 2~6라운드는 I91 표의 보스를 뺀 10배 적 수다
 func ev169():
 	var b = load("res://src/sim/battle.gd").new(load("res://src/main.gd").stage())
 	if b.rounds.size() != 6:
 		return "라운드가 %d개다(6개여야 한다)" % b.rounds.size()
-	var table := [_ten(S111)] + I91.map(func(r): return _ten(r))
+	var table := [S111] + I91.map(func(r): return _ten(r))
 	for k in 6:
 		var got := _counts(b.rounds[k])
 		if got != table[k]:
@@ -378,8 +378,8 @@ func ev427():
 	b.enemy_spawned.connect(func(e): cells.append(Vector2i(e.pos.round())))
 	b.start_battle()
 	clear_wave(b)
-	if cells.size() != 90:
-		return "1라운드 첫 웨이브에 적이 %d명 나왔다(90명이어야 한다)" % cells.size()
+	if cells.size() != 30:
+		return "1라운드 첫 웨이브에 적이 %d명 나왔다(30명이어야 한다)" % cells.size()
 	var xs := {}
 	for k in cells.size():
 		var s: Vector2i = plan[k][1]
@@ -393,5 +393,5 @@ func ev427():
 	h.enemy_spawned.connect(func(e): at.append(Vector2i(e.pos.round())))
 	h.start_battle()
 	clear_wave(h)
-	return check(xs.size() >= 40 and at == [Vector2i(0, 5), Vector2i(0, 5), Vector2i(0, 5)],
-		"나온 x %d가지(40가지 이상이어야 한다) · 헬퍼 판 나온 칸 %s(모두 (0, 5)여야 한다)" % [xs.size(), at])
+	return check(xs.size() >= 20 and at == [Vector2i(0, 5), Vector2i(0, 5), Vector2i(0, 5)],
+		"나온 x %d가지(20가지 이상이어야 한다) · 헬퍼 판 나온 칸 %s(모두 (0, 5)여야 한다)" % [xs.size(), at])
