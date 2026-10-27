@@ -44,3 +44,11 @@ def test_EV566_rubble_under_bodies_and_zones(gd):
 
 def test_EV567_wall_top_height_follows_position(gd):
     gd("thick", "EV567")
+
+
+def test_EV568_place_preview_blueprint_at_built_height(gd):
+    gd("thick", "EV568")
+
+
+def test_EV569_live_preview_needs_reaching_engineer(gd):
+    gd("thick", "EV569")

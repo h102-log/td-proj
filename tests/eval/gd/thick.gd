@@ -5,6 +5,7 @@ extends "res://tests/eval/gd/lib.gd"
 #   Battle.grid._compute_cost(from, to) — 길 격자가 한 칸 옮길 때 매기는 비용(grid.path를 한 번 부른 뒤 잰다)
 #   Battle.repair(구조물·성곽) · Battle._target_of(적) — 적이 지금 노리는 것(S4)
 #   BattleView: battle · controls · _draw() · _wall_piece(성곽·잔해 Block, 조각) · _feet_mark(몸, 번호) · _body(몸, 번호, next, 색, 번쩍임) · _zones()
+#     · _spot(몸) · rise_at(판, 칸) · _marks() · _facility(구조물, 색) · _lift(구조물) · GHOST_OK·GHOST_NO · ghost(판, 종류, 칸) · Controls: mouse(맵 px) · placing
 # 맵: 9~11행이 두께 3줄 성곽(성문 문루 4~6·14~16·24~26열), 위쪽 0~8행이 마을, 아래 12~23행이 들판
 
 const Main := preload("res://src/main.gd")
@@ -261,3 +262,50 @@ func ev567():
 	v.free()
 	return check(absf(steps[0] - 6.4) <= 0.5 and absf(steps[1] - 9.6) <= 0.5 and r13 > r12 and absf(half - (r13 - r12) / 2.0) <= 0.5 and absf(top - (r13 - r12)) <= 0.5,
 		"남북 %s px(6.4·9.6이어야 한다) · 바닥 높이 12열 %d 13열 %d · 12.5열 %.1f px · 13열 %.1f px 위" % [steps, r12, r13, half, top])
+
+# 시설 그림을 그리는 대신 [구조물, 색, 올림]을 모으는 화면
+class FacRec extends "res://src/ui/battle_view.gd":
+	var facs := []
+
+	func _facility(s, tint := Color.WHITE) -> void:
+		facs.append([s, tint, _lift(s)])
+
+# EV568 · S216: 놓기 미리보기는 지어질 그림 자리에 청사진을 겹친다. 성벽 칸 대포는 지은 대포처럼 올린다
+func ev568():
+	var b = _battle()
+	var c = controls(b)
+	var v = FacRec.new()
+	v.battle = b
+	v.controls = c
+	var cell := COL + Vector2i(0, -1)  # 성벽 열 가운데 줄 (8,10)
+	c.mouse = (Vector2(cell) + Vector2(0.5, 0.5)) * CELL_PX
+	c.placing = "cannon"
+	v._marks()
+	var cannon: Array = v.facs.duplicate()
+	v.facs.clear()
+	c.placing = "tower"
+	v._marks()
+	var tower: Array = v.facs.duplicate()
+	c.placing = ""
+	var s = b.build("cannon", cell)
+	var real: float = v._lift(s) if s != null else -1.0
+	var ok: Color = v.GHOST_OK
+	var no: Color = v.GHOST_NO
+	v.free()
+	var good_c: bool = cannon.size() == 1 and cannon[0][0].kind == "cannon" and cannon[0][0].cell == cell and not cannon[0][0].complete and cannon[0][0].progress == 0.0 \
+		and cannon[0][1] == ok and cannon[0][2] > 0.0 and absf(cannon[0][2] - real) < 0.01
+	var good_t: bool = tower.size() == 1 and tower[0][0].kind == "tower" and tower[0][0].cell == cell and tower[0][1] == no
+	return check(good_c and good_t, "대포 %s · 지은 대포 올림 %.2f · 타워 %s" % [cannon.map(func(f): return [f[0].kind, f[0].cell, f[1], f[2]]), real, tower.map(func(f): return [f[0].kind, f[0].cell, f[1]])])
+
+# EV569 · I138: 실시간 단계의 놓기 미리보기는 닿는 공병이 없는 칸을 지을 수 없다고 본다
+func ev569():
+	var b = _battle()
+	var BV = load("res://src/ui/battle_view.gd")
+	if b.place_merc("engineer", IN) == null:
+		return "공병을 마을 %s에 두지 못했다" % [IN]
+	var mid := COL + Vector2i(0, -1)
+	var back := COL + Vector2i(0, -2)
+	var prep: bool = BV.ghost(b, "cannon", mid)[1]
+	_start(b)
+	var live := [BV.ghost(b, "cannon", back)[1], BV.ghost(b, "cannon", mid)[1]]
+	return check(b.state == "battle" and prep and live == [true, false], "%s · 준비 단계 (8,10) %s · 전투 단계 (8,9) %s (8,10) %s" % [b.state, prep, live[0], live[1]])
