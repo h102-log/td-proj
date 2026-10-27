@@ -51,10 +51,11 @@ func ev522():
 	var hit: bool = ms.all(func(m): return is_equal_approx(_lost(m), 30.0))
 	var pushed: bool = ms.all(func(m): return m.pos.distance_to(Vector2(13, 10)) > 0.9)
 	var slowed: bool = ms.all(func(m): return b.effect(m, "slow") != null and is_equal_approx(b.effect(m, "slow"), 0.3))
-	return check(held and flying and landed and hit and pushed and slowed,
-		"웅크림 중 자리·무피해 %s · 1.55초 뜬 채 %s(%s) · 2초 착지 %s(%s) · 피해 30 %s · 넉백 %s · 둔화 0.3 %s" % [held, flying, mid, landed, e.pos, hit, pushed, slowed])
+	var fresh: bool = not e.path.is_empty() and Vector2(e.path[0]).distance_to(Vector2(13, 10)) <= 1.5
+	return check(held and flying and landed and hit and pushed and slowed and fresh,
+		"웅크림 중 자리·무피해 %s · 1.55초 뜬 채 %s(%s) · 2초 착지 %s(%s) · 피해 30 %s · 넉백 %s · 둔화 0.3 %s · 착지 뒤 길 첫 칸 %s" % [held, flying, mid, landed, e.pos, hit, pushed, slowed, e.path.slice(0, 1)])
 
-# EV523 · S235: 가장 많이 몰린 자리로 뛰고, 같으면 유닛 차례가 앞선 쪽
+# EV523 · S235: 가장 많이 몰린 자리로 뛰고, 같으면 유닛 차례가 앞선 쪽. 둘뿐이면 뛰지 않는다
 func ev523():
 	var cells := [Vector2i(14, 10), Vector2i(14, 9), Vector2i(14, 11), Vector2i(10, 14), Vector2i(9, 14), Vector2i(11, 14), Vector2i(10, 15)]
 	var got := []
@@ -65,7 +66,9 @@ func ev523():
 		run(s[0], DT)
 		got.append(_at(s[1]))
 	var ok: bool = got[0] != null and got[1] != null and got[0].distance_to(Vector2(10, 14)) <= 0.01 and got[1].distance_to(Vector2(14, 10)) <= 0.01
-	return check(ok, "착지 자리(셋·넷, 셋·셋) %s((10, 14)·(14, 10)이어야 한다)" % [got])
+	var two = _king(cells.slice(0, 2))
+	var quiet := not run(two[0], 3.0, func(): return two[1].cast != null)
+	return check(ok and quiet, "착지 자리(셋·넷, 셋·셋) %s((10, 14)·(14, 10)이어야 한다) · 둘뿐일 때 3초 조용함 %s" % [got, quiet])
 
 # EV524 · S235: 곧은 선이 방벽을 지나는 자리는 고르지 않는다
 func ev524():
@@ -115,26 +118,27 @@ func ev525():
 	return check(stun_cut and unhurt and seal_cut and through,
 		"웅크림 중 기절로 끊김·비틀거림 %s · 그 뒤 무피해 %s · 봉인으로 끊김(비틀거림 없음) %s · 뜬 동안 기절에도 착지 피해 %s(1.5초에 뜸 %s)" % [stun_cut, unhurt, seal_cut, through, up])
 
-# EV526 · S235: 뜬 동안은 타워가 노리지 않고 피해를 받지 않는다. 이미 걸린 초당 피해는 든다
+# EV526 · S235: 뜬 동안은 타워가 노리지 않고 피해·새 효과를 받지 않는다. 이미 걸린 초당 피해는 든다
 func ev526():
 	var s = _king(THREE)
 	if s == null:
 		return "slime_king에 leap 스킬이 없다"
 	var b = s[0]
 	var e = s[1]
-	if b.build("tower", Vector2i(11, 12), {"damage": 0}) == null:
-		return "칸 (11,12)에 타워를 짓지 못했다"
-	var shot := false
 	var t := 0.0
 	while not _aloft(e) and t < 3.0:
 		if t >= 1.1 and not e.fx.has("test_dot"):
 			e.fx["test_dot"] = {"dot": 10.0, "left": 5.0}
 		b.step(DT)
 		t += DT
-		shot = shot or b.missiles.any(func(m): return m.target == e)
 	if not _aloft(e) or not e.fx.has("test_dot"):
 		return "3초 안에 뜨지 않았거나 초당 피해를 걸기 전에 떴다"
-	var before: Array = b.missiles.duplicate()
+	var tower = b.build("tower", Vector2i(11, 12), {"damage": 0})
+	if tower == null:
+		return "칸 (11,12)에 타워를 짓지 못했다"
+	b._fx(e, "test_slow", {"slow": 0.5}, 2.0)  # 지금 적에 효과를 거는 공개 API가 스킬뿐이라 평가가 직접 건다
+	var slowed: bool = b.effect(e, "slow") != null
+	var at_king := func(): return b.missiles.any(func(m): return m.src == tower and m.target == e)
 	var hp0: float = e.hp
 	var air := 0.0
 	var poked := false
@@ -145,10 +149,11 @@ func ev526():
 			poked = true
 		b.step(DT)
 		air += DT
-		aimed = aimed or b.missiles.any(func(m): return m.target == e and not m in before)
+		aimed = aimed or (_aloft(e) and at_king.call())
 	var lost: float = hp0 - e.hp
-	return check(shot and poked and not aimed and absf(lost - 10.0 * air) <= 1.0,
-		"웅크리는 동안 타워가 킹을 쏨 %s · 뜬 동안 새 투사체가 킹을 노림 %s · 뜬 동안 준 체력 %.2f(초당 피해 몫 %.2f ±1, 뜬 시간 %.2f)" % [shot, aimed, lost, 10.0 * air, air])
+	var after := run(b, 0.2, at_king)
+	return check(not slowed and poked and not aimed and after and absf(lost - 10.0 * air) <= 1.0,
+		"뜬 킹에 둔화가 걸림 %s · 뜬 동안 타워가 킹을 노림 %s · 착지 뒤 0.2초 안에 쏨 %s · 뜬 동안 준 체력 %.2f(초당 피해 몫 %.2f ±1, 뜬 시간 %.2f)" % [slowed, aimed, after, lost, 10.0 * air, air])
 
 # EV527 · S235: 체력 50%면 몸 0.8배·걷기 1.3배·공격 1.25배. 봉인되면 빨라짐만 꺼진다
 func ev527():

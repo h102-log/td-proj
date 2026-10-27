@@ -13,3 +13,22 @@ radius = 0.55
 sight = 4.0
 reward = 50
 boss = true
+skills = {
+"leap": {
+"range": 5.0,
+"radius": 2.0,
+"count": 3,
+"windup": 1.2,
+"air": 0.6,
+"cd": 12.0,
+"damage": 30.0,
+"knock": 1.0,
+"slow": 0.3,
+"slow_time": 3.0
+},
+"shrink": {
+"size_min": 0.6,
+"stride_max": 0.6,
+"haste_max": 0.5
+}
+}
