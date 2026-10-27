@@ -3199,8 +3199,72 @@ func ev502():
 	_done(main)
 	return out
 
-# EV505 · I184: 미니맵 점 크기는 boss 칸으로 가른다. boss 칸을 켠 기본 적은 2×2, 끈 오우거는 1×1
-func ev505():
+# EV512 · S172: 청소년 몸 lad·lass 칸에 정지·걷기와 어른과 같은 일 자세가 있고, 키가 아이와 어른 사이다
+func ev512():
+	var art: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/units/heroes.json"))
+	var img: Image = load("res://art/units/heroes.png").get_image()
+	var whole := Rect2i(Vector2i.ZERO, img.get_size())
+	var adult := ["hoe", "fish", "axe", "saw", "hammer", "sit", "stir", "carry_sack", "carry_lantern", "carry_water", "squat", "carry_basket"]
+	var bad := []
+	for body in ["lad", "lass"]:
+		for look in 8:
+			var a = art.get("folk_%s_%d" % [body, look])
+			if a == null:
+				bad.append("folk_%s_%d 없음" % [body, look])
+				continue
+			var c := int(a.c)
+			var cells := []
+			for f in [["idle", 0], ["walk", 0], ["walk", 1]]:
+				for dir in 4:
+					cells.append([f[0], f[1], dir, int(a[f[0]]) + dir * c])
+			for p in adult:
+				if not a.has(p):
+					bad.append("folk_%s_%d %s 없음" % [body, look, p])
+					continue
+				for f in 2:
+					for d in (4 if p.begins_with("carry") else 2):
+						cells.append([p, f, d, int(a[p]) + d * c])
+			for x in cells:
+				var r := Rect2i(int(a.get("x", 0)) + x[1] * c, x[3], c, c)
+				if not whole.encloses(r) or img.get_region(r).is_invisible():
+					bad.append("folk_%s_%d %s %d열 %d행" % [body, look, x[0], x[1], x[2]])
+	if not bad.is_empty():
+		return "%s" % [bad.slice(0, 8)]
+	var tall := func(body, look):  # 정지 남쪽 그림의 불투명 픽셀 높이
+		var a: Dictionary = art["folk_%s_%d" % [body, look]]
+		var c := int(a.c)
+		return img.get_region(Rect2i(int(a.get("x", 0)), int(a.idle), c, c)).get_used_rect().size.y
+	for look in 8:
+		var m: Array = ["boy", "lad", "man"].map(func(k): return tall.call(k, look))
+		var w: Array = ["girl", "lass", "woman"].map(func(k): return tall.call(k, look))
+		if not (m[0] < m[1] and m[1] < m[2] and w[0] < w[1] and w[1] < w[2]):
+			bad.append("look %d 키 boy·lad·man %s · girl·lass·woman %s" % [look, m, w])
+	return check(bad.is_empty(), "%s" % [bad])
+
+# EV513 · S233: 분가·이사·출생 소식이 토스트로 차례로 뜬다
+func ev513():
+	var main = _prep()
+	var b = main.view.battle
+	var e = main.hud.get("evac")
+	if not e is BaseButton or b.get("folk_news") == null:
+		_done(main)
+		return "main.hud.evac·Battle.folk_news가 없다"
+	_pass(main, 10.0)  # 준비 단계 미션 토스트를 흘려 보낸다
+	b.mission = ""
+	b.commission = ""
+	e._process(0.0)
+	b.folk_news = ["split", "moved", "born"]
+	e._process(0.0)
+	var shown := _toasts(main)
+	for i in 24:  # 토스트는 3.5초 간격으로 줄을 서서 뜬다(I163)
+		_pass(main, 0.5)
+		shown += _toasts(main)
+	_done(main)
+	var miss := ["다 큰 자녀가 새 집으로 나갔다", "새 가족이 이사 왔다", "아기가 태어났다"].filter(func(w): return not shown.any(func(x): return w in x))
+	return check(miss.is_empty(), "토스트 %s에 %s가 없다" % [shown, miss])
+
+# EV515 · I185: 미니맵 점 크기는 boss 칸으로 가른다. boss 칸을 켠 기본 적은 2×2, 끈 오우거는 1×1
+func ev515():
 	var main = _prep()
 	var m = main.hud.get("minimap")
 	if m == null or not m.has_method("marks"):
@@ -3221,8 +3285,8 @@ func ev505():
 	var want := [Rect2(21, 41, 2, 2), Rect2(41, 41, 1, 1)]
 	return check(want.all(func(w): return foes.any(func(r): return r.is_equal_approx(w))), "적 점 %s에 boss 칸 켠 기본 적 %s·끈 오우거 %s가 없다" % [foes, want[0], want[1]])
 
-# EV507 · I184: 진행 칸 해골과 «다음 웨이브에 보스» 토스트는 웨이브에 든 종류의 boss 칸으로 가른다
-func ev507():
+# EV517 · I185: 진행 칸 해골과 «다음 웨이브에 보스» 토스트는 웨이브에 든 종류의 boss 칸으로 가른다
+func ev517():
 	var main = _prep()
 	var b = main.view.battle
 	if main.hud.get("skull") == null or b.waves.size() < 3:

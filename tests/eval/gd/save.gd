@@ -369,14 +369,14 @@ func ev476():
 # EV482 · I179: 저장 판은 6이고, 판 5 저장은 읽지 않는다
 func ev482():
 	var S = _save()
-	if S.VERSION != 6:
+	if S.VERSION != 7:
 		return "저장 판이 %d다" % S.VERSION
-	S.store({"version": 5, "probe": 1})
-	var old: Dictionary = S.read()
 	S.store({"version": 6, "probe": 1})
+	var old: Dictionary = S.read()
+	S.store({"version": 7, "probe": 1})
 	var now: Dictionary = S.read()
 	S.erase()
-	return check(old.is_empty() and now.get("probe") == 1, "판 5 읽음 %s · 판 6 읽음 %s" % [old, now])
+	return check(old.is_empty() and now.get("probe") == 1, "판 6 읽음 %s · 판 7 읽음 %s" % [old, now])
 
 # EV503 · I183 ⑩: 주민 체력·가는 길·죽은 식구 수·신뢰·셈·주민 시계를 저장했다가 불러오면 같고, 이어 돌려도 주민 자리가 같다
 func ev503():
@@ -402,6 +402,49 @@ func ev503():
 		return "불러온 값이 다르다: %s / %s" % [keep.call(b), keep.call(c)]
 	if not b.people.any(func(v): return v.m.get("away") != null):
 		return "길 위의 주민이 없다(다친 주민이 교회로 가지 않았다)"
+	run(b, 5.0)
+	run(c, 5.0)
+	var pb: Array = b.people.map(func(v): return v.pos)
+	var pc: Array = c.people.map(func(v): return v.pos)
+	var same: bool = pb.size() == pc.size() and range(pb.size()).all(func(k): return pb[k].distance_to(pc[k]) <= 0.01)
+	return check(same, "이어 돌린 5초 뒤 주민 자리 %s / %s" % [pb, pc])
+
+# EV511 · I184: 숙련·남은 라운드·다 큰 자녀·분가해 걷는 길을 저장했다가 불러오면 같고, 이어 돌려도 주민 자리가 같다
+func ev511():
+	var W := [{"kind": "basic", "count": 1}]
+	var stage := {}
+	var b = null
+	var A = null
+	for sd in range(1, 80):
+		stage = {"size": Vector2i(30, 20), "base": Vector2i(25, 10), "base_hp": BIG, "spawns": [Vector2i(0, 10)], "gold": BIG, "waves": [],
+			"hero_start": null, "village": Rect2i(0, 0, 30, 6), "rounds": [[W], [W], [W]], "seed": sd}
+		b = _new(stage)
+		A = b.build("house", Vector2i(10, 3))
+		if A.folk.size() >= 2:
+			break
+		A = null
+	if A == null:
+		return "식구 둘 이상인 씨앗이 없다"
+	var B = b.build("house", Vector2i(14, 3))
+	if b.get("people") == null or not ResourceLoader.exists("res://src/sim/folk.gd"):
+		return "Battle.people·src/sim/folk.gd가 없다"
+	var F = load("res://src/sim/folk.gd")
+	var g: Dictionary = A.folk.back()
+	g.body = "man"
+	g.grown = true
+	for v in b.people.filter(func(x): return x.home == B):
+		b.damage(v, F.HP)
+	b.start_battle()
+	if not clear_wave(b) or b.state != "cleared":
+		return "1라운드가 끝나지 않았다(%s)" % b.state
+	run(b, 1.0)
+	if not b.people.any(func(v): return is_same(v.m, g) and v.m.get("away") != null):
+		return "분가한 주민이 길 위에 없다"
+	var c = _new(stage)
+	_save().apply(c, _save().snapshot(b))
+	var keep := func(x): return x.structures.values().map(func(s): return [s.get("folk"), s.get("lost")])
+	if keep.call(b) != keep.call(c):
+		return "불러온 값이 다르다: %s / %s" % [keep.call(b), keep.call(c)]
 	run(b, 5.0)
 	run(c, 5.0)
 	var pb: Array = b.people.map(func(v): return v.pos)

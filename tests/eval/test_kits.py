@@ -90,8 +90,8 @@ def test_EV277_sylvia_r_rain_execute(gd):
     gd("kits", "EV277")
 
 
-def test_EV506_boss_flag_sylvia_r(gd):
-    gd("kits", "EV506")
+def test_EV516_boss_flag_sylvia_r(gd):
+    gd("kits", "EV516")
 
 
 def test_EV278_vesper_armor_and_magic(gd):

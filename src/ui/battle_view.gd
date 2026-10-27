@@ -329,7 +329,7 @@ func _draw_top() -> void:
 	for u in battle.units + _foes:
 		var bar := hp_bar_size(u, controls.show_hp)
 		if bar != Vector2.ZERO:
-			var head: float = (ART[u.kind].anchor[1] - ART.basic.anchor[1]) / CELL if u.get("boss") and ART.has(u.kind) else 0.0  # 보스(I184) 그림은 기본 적보다 키가 커서 막대를 그만큼 올린다(머리 위)
+			var head: float = (ART[u.kind].anchor[1] - ART.basic.anchor[1]) / CELL if u.get("boss") and ART.has(u.kind) else 0.0  # 보스(I185) 그림은 기본 적보다 키가 커서 막대를 그만큼 올린다(머리 위)
 			_hp_bar(u.pos - Vector2(0, _lift(u) / CELL + head) + _slip(u) / CELL, u, bar)
 	for v in battle.people:  # 다친 주민(S227)은 V와 상관없이 막대를 그린다
 		if v.hp < v.max_hp and not v.inside:
@@ -909,7 +909,7 @@ func _four(v: Vector2) -> int:
 	return posmod(roundi((90.0 - rad_to_deg(v.angle())) / 90.0), 4)
 
 # 주민 몸(S172·S223). 걷기·놀기는 움직이는 쪽을 보고 걷기 2위상, 들고 걷기도 같은 4방향 시트다. 제자리 일 자세는 일터 쪽(동·서)을
-# FOLK_FRAME마다 2프레임 번갈고, 그 자세 그림이 없는 칸이면 정지·걷기로 그린다
+# 숙련에 따른 간격(Folk.frame_gap, S231)마다 2프레임 번갈고, 그 자세 그림이 없는 칸이면 정지·걷기로 그린다
 func _folk_body(x, now: float) -> void:
 	var a: Dictionary = ART["folk_%s_%d" % [x.f.body, x.f.look]]
 	var v: Vector2 = x.pos - x.was
@@ -918,7 +918,7 @@ func _folk_body(x, now: float) -> void:
 	if x.pose.begins_with("carry") and a.has(x.pose):
 		_frame(a, x.pose, _four(v) if moving else 0, int(now * 8.0) % 2 if moving else 0, at)
 	elif x.dir >= 0 and a.has(x.pose):
-		_frame(a, x.pose, x.dir, int(now / FOLK_FRAME) % 2, at)
+		_frame(a, x.pose, x.dir, int(now / Folk.frame_gap(x.m)) % 2, at)
 	else:
 		_frame(a, "walk" if moving else "idle", _four(v), int(now * 8.0) % 2 if moving else 0, at)
 
@@ -1728,14 +1728,13 @@ static func keep_rect(b) -> Rect2:
 	var body: Rect2 = KEEP_BODY[clampi(b.village_level, 1, 2) - 1]
 	return Rect2(Vector2(b.base.cell * CELL) + KEEP_AT + body.position, body.size)
 
-# 유닛·적 체력바 크기(S73). 보스(I184 boss 칸)는 V 표시와 상관없이 늘 크게, 나머지는 켰을 때만. 그리지 않으면 Vector2.ZERO
+# 유닛·적 체력바 크기(S73). 보스(I185 boss 칸)는 V 표시와 상관없이 늘 크게, 나머지는 켰을 때만. 그리지 않으면 Vector2.ZERO
 static func hp_bar_size(u, show_all: bool) -> Vector2:
 	if u.get("boss"):
 		return Vector2(24, 3)
 	return Vector2(CELL, 2) if show_all else Vector2.ZERO
 
 # 주민(S223·S225~S229)의 일과·자리는 판(src/sim/folk.gd)이 구하고, 화면은 판의 people을 그린다
-const FOLK_FRAME := 0.4  # 일 자세 2프레임을 번가는 간격(초, I182 ⑧)
 const PROPS := preload("res://art/tiles/props.png")  # 일터 소품(S224, tools/art/props.py)
 const PROP_ART := {"mill": Rect2(0, 0, 24, 28), "wheel": Rect2(24, 0, 16, 16), "oven": Rect2(88, 0, 16, 16), "stall0": Rect2(104, 0, 16, 16),
 	"stall1": Rect2(120, 0, 16, 16), "inn": Rect2(136, 0, 10, 12)}  # props.png 안 자리. 바퀴는 오른쪽으로 네 장

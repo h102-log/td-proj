@@ -179,7 +179,7 @@ class Enemy:
 	var skills := {}  # 보스 스킬 이름 → 수치(S194, I169). 종류의 사전을 같이 쓰니 적마다 바뀌는 값은 cast·cd에 둔다
 	var cast = null  # 예고 중인 스킬 {id, left}(S194). 없으면 null
 	var cd := {}  # 스킬 → 남은 대기(초). 없는 스킬은 0이다(나온 때, S194)
-	var boss := false  # 보스 표시(I184). 종류 수치의 boss 칸
+	var boss := false  # 보스 표시(I185). 종류 수치의 boss 칸
 
 	func _init(k: String, cell: Vector2i, stats: Dictionary) -> void:
 		kind = k
@@ -386,7 +386,7 @@ var calm := 0  # 대피령 없이 지난 라운드 수(S229)
 var evac := false  # 대피령 중(S225). 웨이브가 끝나면 풀린다
 var evac_round := false  # 이번 라운드에 대피령을 냈나(S229)
 var near_wall := false  # 이번 웨이브에 적이 성벽 바깥 Folk.NEAR칸 안에 왔나(S229, I183 ⑤)
-var folk_news := []  # 주민 소식(S230 토스트): "hurt"·"dead"·"ok"·"false"·"left". HUD가 읽고 비운다
+var folk_news := []  # 주민 소식(S230·S233 토스트): "hurt"·"dead"·"ok"·"false"·"left"·"split"·"moved"·"born". HUD가 읽고 비운다
 var garden := []  # 텃밭 칸(I182 ⑥). 스테이지가 정하고, 없으면 비어 있다
 var yards := []  # 자갈 마당 칸(I182 ⑥). 스테이지가 정하고, 없으면 비어 있다
 var _fort := Rect2i()  # 성곽 칸을 모두 덮는 사각형, 성곽이 없으면 마을(I183 ⑤)
@@ -598,6 +598,7 @@ func step(dt: float) -> void:
 		_judge()  # 대피령 판정·떠남(S229)은 세금보다 먼저다(I183 ⑥)
 		if state != "won":  # 준비 단계나 라운드 사이로 넘어갈 때 걷는다(I46)
 			gold += tax()
+		_seasons()  # 숙련·자라기·분가·이사·출생(S231~S233)은 세금 다음이라 새 가구는 다음 세금부터 낸다(I184 ③)
 		for s in structures.values() + castle.values() + rubble.values() + [base]:  # 하던 건설·철거·업그레이드·수리·복구는 그 상태로 멈춘다(I19, I68, I87)
 			_release(s)
 		_clear_effects()
@@ -2189,8 +2190,8 @@ func _grow(s: Block, dp: float) -> void:
 		_move_in(s)
 		_repath = true
 
-# 다 지은 집에 가족이 들어온다(S221). 유형을 가중치로 고르고 몸을 정한다. 피부(look % 3)는 가족이 같이 쓴다.
-# 다 지은 교회에는 사제가 산다(S222). n은 가족 안 원래 차례라 식구가 빠져도 남은 식구의 일과가 그대로다(I183)
+# 다 지은 집에 가족이 들어온다(S221). 기다리는 다 큰 자녀가 있으면 새 가족 대신 그 사람이 든다(S233 ①).
+# 다 지은 교회에는 사제가 산다(S222)
 # ponytail: 사제는 사제가 없을 때 다 지은 교회에만 온다. 교회가 둘이고 사제가 사는 쪽이 없어지면 다른 교회에 새로 오지 않는다
 func _move_in(s: Block) -> void:
 	if s.tax <= 0:
@@ -2198,6 +2199,16 @@ func _move_in(s: Block) -> void:
 			s.folk = [{"body": "man", "look": Folk.PRIEST_LOOK, "job": "priest", "n": 0}]
 		_staff()  # 다 지은 작업장·사격장에 일할 사람(S222)
 		return
+	var g := _grown()
+	if not g.is_empty():
+		_split(g[0], s)
+		return
+	_family(s)
+	_staff()
+
+# 집 s의 새 가족(S221): 유형을 가중치로 고르고 몸을 정한다. 피부(look % 3)는 가족이 같이 쓴다. n은 가족 안 원래 차례라
+# 식구가 빠져도 남은 식구의 일과가 그대로다(I183). 아이의 남은 라운드는 해시로 정해 가족 난수를 더 쓰지 않는다(I184 ④)
+func _family(s: Block) -> void:
 	var w: float = _kin.randf() * HOUSEHOLDS.reduce(func(a, h): return a + h[0], 0.0)
 	var h: Array = HOUSEHOLDS.back()
 	for x in HOUSEHOLDS:
@@ -2215,19 +2226,27 @@ func _move_in(s: Block) -> void:
 	s.folk = bodies.map(func(b): return {"body": b, "look": skin + 3 * _kin.randi_range(0, (FOLK_LOOKS - 1 - skin) / 3)})
 	var roles := roles_of(s.folk)
 	for i in s.folk.size():
-		s.folk[i].job = _pick_job(roles[i], s.folk[i].body)
-		s.folk[i].n = i
-	_staff()
+		var m: Dictionary = s.folk[i]
+		m.job = _pick_job(roles[i], m.body)
+		m.n = i
+		m.xp = 0
+		if m.body in ["boy", "girl"]:
+			m.grow = Folk.GROW[0] + posmod(hash([s.cell, i, round_index]), Folk.GROW[1] - Folk.GROW[0] + 1)
 
-# 주민의 원래 직업(S222, I182 ③): 역할의 직업 가운데, 고유 직업이면 아직 아무도 원래 직업으로 갖지 않은 것, 상한이 있으면 닿지 않은 것을
-# 직업 무게 × 성별 무게로 뽑는다. 역할마다 상한 없는 여럿 직업이 있어 후보가 비지 않는다
-func _pick_job(role: String, body: String) -> String:
+# 원래 직업마다 맡은 주민 수(모든 집·교회)
+func _held() -> Dictionary:
 	var held := {}
 	for s in structures.values():
 		for m in s.folk:
 			if m.has("job"):
 				held[m.job] = held.get(m.job, 0) + 1
-	var male: bool = body in ["man", "boy", "old_man"]
+	return held
+
+# 주민의 원래 직업(S222, I182 ③): 역할의 직업 가운데, 고유 직업이면 아직 아무도 원래 직업으로 갖지 않은 것, 상한이 있으면 닿지 않은 것을
+# 직업 무게 × 성별 무게로 뽑는다. 역할마다 상한 없는 여럿 직업이 있어 후보가 비지 않는다
+func _pick_job(role: String, body: String) -> String:
+	var held := _held()
+	var male: bool = body in ["man", "boy", "old_man", "lad"]
 	var ws := {}
 	for j in ROLE_JOBS[role]:
 		if not (j in UNIQUE_JOBS and held.has(j)) and held.get(j, 0) < JOB_CAPS.get(j, 99):
@@ -2239,12 +2258,14 @@ func _pick_job(role: String, body: String) -> String:
 			return j
 	return ws.keys().back()
 
-# 가족의 주민마다 역할(I182 ①): 첫 어른 head, 둘째 어른 spouse, 아이 child, 노인 elder
+# 가족의 주민마다 역할(I182 ①): 첫 어른 head, 둘째 어른 spouse, 청소년 youth(I184 ⑤), 아이 child, 노인 elder
 static func roles_of(folk: Array) -> Array:
 	var out := []
 	for m in folk:
 		if m.body in ["man", "woman"]:
 			out.append("spouse" if "head" in out else "head")
+		elif m.body in ["lad", "lass"]:
+			out.append("youth")
 		else:
 			out.append("child" if m.body in ["boy", "girl"] else "elder")
 	return out
@@ -2300,6 +2321,7 @@ func _census() -> void:
 		if v == null:
 			v = Villager.new(f, structures[f.home], Folk.HP)
 		v.f = f
+		v.home = structures[f.home]  # 분가한 주민은 사는 집이 바뀐다(S233)
 		out.append(v)
 	for o in people:
 		if not out.has(o):
@@ -2476,6 +2498,115 @@ func _leave() -> void:
 			_go(v, "out")
 	trust = Folk.TRUST_AFTER_LEAVE
 	folk_news.append("left")
+
+# ── 주민 숙련·성장·인구 변화(S231~S233, I184) ──
+
+# 웨이브 끝, 세금 다음(I184 ②·③): 놀기가 아닌 주민의 일한 웨이브를 올리고, 라운드 사이로 넘어가면 자라기 → 분가 → 이사 → 출생
+func _seasons() -> void:
+	for s in structures.values():
+		for i in s.folk.size():
+			if trade(s, i) != "play":
+				s.folk[i].xp = s.folk[i].get("xp", 0) + 1
+	if state != "cleared":
+		return
+	for s in structures.values():
+		for m in s.folk.filter(func(x): return x.has("grow")):
+			_mature(s, m)
+	var news := {}
+	for s in _empties():
+		var g := _grown()
+		if g.is_empty():
+			break
+		_split(g[0], s)
+		news.split = true
+	if trust >= Folk.MOVE_TRUST:
+		for s in _empties().slice(0, Folk.MOVE_IN):
+			_arrive(s)
+			news.moved = true
+	for s in structures.values():
+		if _couple(s) and _kin.randf() < Folk.BIRTH:
+			_born(s)
+			news.born = true
+	_staff()
+	folk_news.append_array(news.keys())
+
+# 아이·청소년 m의 남은 라운드를 하나 줄이고, 0이면 한 단계 자란다(S232): 아이는 청소년이 되어 직업을 얻고 견습부터, 청소년은 어른(다 큰 자녀)
+func _mature(s: Block, m: Dictionary) -> void:
+	m.grow -= 1
+	if m.grow > 0:
+		return
+	if m.body in ["boy", "girl"]:
+		m.body = "lad" if m.body == "boy" else "lass"
+		m.grow = Folk.TEEN
+		m.job = _teen_job(s, m)
+		m.xp = 0
+	else:
+		m.body = "man" if m.body == "lad" else "woman"
+		m.erase("grow")
+		m.grown = true
+
+# 청소년이 얻는 원래 직업(S232): 가장의 원래 직업이 여럿 직업이고 상한 밑이면 가업, 아니면 성별 역할(남 가장·여 배우자) 목록에서
+# 아무도 갖지 않은 고유 직업, 그것도 없으면 그 목록에서 I182 ③처럼 뽑는다
+func _teen_job(s: Block, m: Dictionary) -> String:
+	var role := "head" if m.body == "lad" else "spouse"
+	var at := roles_of(s.folk).find("head")
+	var held := _held()
+	if at >= 0:
+		var job: String = s.folk[at].get("job", "")
+		if not job in UNIQUE_JOBS and held.get(job, 0) < JOB_CAPS.get(job, 99):
+			return job
+	var free: Array = ROLE_JOBS[role].keys().filter(func(j): return j in UNIQUE_JOBS and not held.has(j))
+	return free[_kin.randi() % free.size()] if not free.is_empty() else _pick_job(role, m.body)
+
+# 빈 집(S228, I184 ⑨): 먼저 지은 차례로, 다 지은 집 가운데 식구가 없는 집
+func _empties() -> Array:
+	return structures.values().filter(func(s): return s.tax > 0 and s.complete and s.alive and s.folk.is_empty())
+
+# 나갈 수 있는 다 큰 자녀(S233 ①): 먼저 지은 집부터 식구 차례로, 길 위가 아니고 그 집에 다른 식구가 있는 사람
+func _grown() -> Array:
+	var out := []
+	for h in structures.values():
+		if h.tax > 0 and h.folk.size() > 1:
+			out += h.folk.filter(func(m): return m.get("grown", false) and m.get("away") == null)
+	return out
+
+# 다 큰 자녀 m이 빈 집 s로 나가 혼자 새 가구의 가장이 되고(차례 0), 지금 자리에서 새 집 문까지 걷는다(S233 ①, I184 ⑥)
+func _split(m: Dictionary, s: Block) -> void:
+	var v = people.filter(func(o): return is_same(o.m, m))[0]
+	var at: Vector2 = v.pos
+	_drop(v)
+	m.erase("grown")
+	m.n = 0
+	s.folk = [m]
+	s.lost = 0
+	_staff()
+	v.pos = at  # _staff가 새 집 일과 자리로 옮겨 놓은 것을 되돌려 지금 자리에서 걷게 한다
+	_go(v, "home")
+
+# 빈 집 s에 새 가족이 이사 와(S233 ②, I184 ⑦) 정문 안쪽 칸에서 그 집 문까지 걷는다. 식구는 간 칸(s)을 0.7칸씩 덜 받아
+# 그만큼 정문 칸에 서 있다가 한 줄로 따라온다(Folk._along은 0 밑을 출발점으로 둔다)
+func _arrive(s: Block) -> void:
+	_family(s)
+	s.lost = 0
+	var P := Folk.paths(self)
+	var door := Folk.door_of(self, P, s)
+	var r := Folk.trail(P, Folk.open_cell(P, _gate_in()), door)
+	for i in s.folk.size():
+		s.folk[i].away = {"to": "home", "cell": door, "pts": r.pts, "len": r.len, "s": -0.7 * i, "in": false}
+
+# 아이가 태어날 수 있는 집(S233 ③): 다 큰 자녀가 아닌 남자 어른과 여자 어른이 함께 살고, 상한보다 적고, 떠나는 가족이 아니다
+func _couple(s: Block) -> bool:
+	var adult := func(body): return s.folk.any(func(m): return m.body == body and not m.get("grown", false))
+	return s.tax > 0 and s.complete and s.folk.size() < Folk.FOLK_MAX and adult.call("man") and adult.call("woman") \
+			and not s.folk.any(func(m): return m.get("away", {}).get("to") == "out")
+
+# 집 s에 아이가 태어나 식구 끝에 붙는다(S233 ③, I184 ⑧): 몸·색·원래 직업은 가족 난수, 차례는 가장 큰 차례 + 1이고 일과를 그 집 문에서 시작한다
+func _born(s: Block) -> void:
+	var body: String = ["boy", "girl"][_kin.randi() % 2]
+	var skin: int = s.folk[0].look % 3
+	var n: int = s.folk.map(func(x): return x.get("n", 0)).max() + 1
+	s.folk.append({"body": body, "look": skin + 3 * _kin.randi_range(0, (FOLK_LOOKS - 1 - skin) / 3), "job": _pick_job("child", body),
+		"n": n, "xp": 0, "grow": Folk.BABY, "t0": -(folk_clock + Folk.phase(s, n) * 1.7)})
 
 # 옆 칸에 닿은 공병은 수리할 몫이 있으면 고치고(I87, 잔해면 다시 세운 뒤 고친다, I89), 성곽이면 올리고(S86),
 # 미완성이면 짓고(I62), 완성이면 허문다(I64: 건설 시간의 절반이 든다). 밀려나 멀어졌으면 다시 걸어간다

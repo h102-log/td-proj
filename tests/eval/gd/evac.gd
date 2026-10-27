@@ -395,7 +395,7 @@ func ev498():
 	var bad := _lacks(b)
 	if bad != "":
 		return bad
-	var size0: Array = homes.map(func(h): return h.folk.size())
+	var fam0: Array = homes.map(func(h): return h.folk.duplicate())  # 같은 사전들. 라운드 사이에 태어난 아이는 끝에 붙는다(S233)
 	b.trust = 1
 	var gold0: int = b.gold
 	bad = _alarm(b, Vector2i(20, 15))  # 들판 깊은 칸: 거짓 대피령
@@ -416,8 +416,9 @@ func ev498():
 	var rest := []
 	for i in homes.size():
 		if homes[i] != gone:
-			rest.append(homes[i].folk.size() == size0[i])
-	return check(b.tax() == 2 * T and rest == [true, true], "떠난 뒤 세금 %d(기대 %d) · 남은 집 가족 그대로 %s" % [b.tax(), 2 * T, rest])
+			var f: Array = homes[i].folk
+			rest.append(f.size() >= fam0[i].size() and range(fam0[i].size()).all(func(k): return is_same(f[k], fam0[i][k])))
+	return check(b.tax() == 2 * T and rest == [true, true], "떠난 뒤 세금 %d(기대 %d) · 남은 집 원래 식구 그대로 %s" % [b.tax(), 2 * T, rest])
 
 # EV499 · S226: 대피소는 30골드·2×2칸·자리 8이고 마을에만 짓는다
 func ev499():

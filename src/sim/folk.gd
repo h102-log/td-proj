@@ -12,6 +12,17 @@ const REFUSE := 0.2  # 신뢰 한 칸이 빌 때마다 대피령을 따르지 �
 const CALM := 2  # 대피령 없이 이만큼 라운드가 지나면 신뢰 +1(S229)
 const TRUST_AFTER_LEAVE := 1  # 가구가 떠난 뒤 신뢰(S229)
 
+# 숙련·성장·인구 변화 손잡이(I184 ⑪). 숙련은 연출이고, 인구 변화는 난이도에 닿아 사용자가 잰다
+const SKILL_STEPS := [6, 15]  # 숙련·장인이 되는 일한 웨이브(S231)
+const SKILL_FRAME := [0.4, 0.3, 0.22]  # 견습·숙련·장인의 제자리 일 자세 2프레임 간격(초, S231)
+const GROW := [2, 4]  # 가족이 정해질 때 아이가 청소년이 되기까지 남은 라운드(S232)
+const TEEN := 2  # 청소년으로 지내는 라운드(S232)
+const BABY := 3  # 태어난 아이가 청소년이 되기까지 남은 라운드(S232)
+const MOVE_TRUST := 3  # 빈 집에 새 가족이 이사 오는 신뢰(S233)
+const MOVE_IN := 1  # 라운드 사이마다 이사 오는 가족 수(S233)
+const FOLK_MAX := 5  # 이만큼 사는 집에는 아이가 태어나지 않는다(S233)
+const BIRTH := 0.25  # 부부가 사는 집에 라운드 사이마다 아이가 태어날 확률(S233)
+
 # 주민 일과(S223, I182 ⑤). 수치는 손잡이(Claude 값)
 const WORK := 20.0  # 일터에서 일하는 시간(초)
 const HOME := 6.0  # 집 둘레에 있는 시간(초)
@@ -74,6 +85,14 @@ static func first(b, kind: String):
 		if s.kind == kind and s.complete and s.alive:
 			return s
 	return null
+
+# 주민의 숙련 단계(S231): 일한 웨이브(xp)가 SKILL_STEPS를 몇 개 넘었나. 0 견습·1 숙련·2 장인
+static func skill(m: Dictionary) -> int:
+	return SKILL_STEPS.filter(func(n): return m.get("xp", 0) >= n).size()
+
+# 주민의 제자리 일 자세 2프레임 간격(초, S231)
+static func frame_gap(m: Dictionary) -> float:
+	return SKILL_FRAME[skill(m)]
 
 # 집·식구마다 다른 일과 위상(I182 ⑤)
 static func phase(home, i: int) -> float:
@@ -302,9 +321,10 @@ static func _lap(P: Dictionary, stops: Array) -> Dictionary:
 		n += r.len
 	return {"pts": pts, "len": n}
 
-# 길 위에서 처음부터 s칸 간 자리
+# 길 위에서 처음부터 s칸 간 자리. s가 0 밑이면 출발점이다(이사 오는 식구가 차례를 기다린다, I184 ⑦)
 static func _along(r: Dictionary, s: float) -> Vector2:
 	var pts: Array = r.pts
+	s = maxf(s, 0.0)
 	for i in range(1, pts.size()):
 		var l: float = pts[i].distance_to(pts[i - 1])
 		if s <= l:

@@ -495,8 +495,8 @@ func ev277():
 	return check(_near_f(1000.0 - plain.hp, s.r.dps, 0.5) and _near_f(1000.0 - boss.hp, s.r.dps * s.r.boss, 0.6) and not low.alive,
 		"1초 피해 %s(%s) · 보스 %s(%s) · 15%% 이하 처형 %s" % [1000.0 - plain.hp, s.r.dps, 1000.0 - boss.hp, s.r.dps * s.r.boss, not low.alive])
 
-# EV506 · I184: 화살비의 보스 배율과 처형 제외는 boss 칸으로 가른다. boss 칸을 켠 기본 적은 ×1.5에 처형되지 않고, 끈 오우거는 처형된다
-func ev506():
+# EV516 · I185: 화살비의 보스 배율과 처형 제외는 boss 칸으로 가른다. boss 칸을 켠 기본 적은 ×1.5에 처형되지 않고, 끈 오우거는 처형된다
+func ev516():
 	var b = _kit([["sylvia", Vector2i(5, 10)]])
 	var s = b.hero
 	_quiet(b)
