@@ -25,6 +25,20 @@ const HOUSEHOLDS := [
 	[15.0, 2, 1, 2, 1],  # 3대
 ]
 const FOLK_LOOKS := 8  # 몸마다 색 프리셋 수(S172, tools/art/folk.py LOOKS). 피부는 look % 3이다
+# 주민 직업(S222, I182): 역할 → {직업: 무게}. 가장은 가업, 배우자는 가사·부업, 아이·노인은 나이 역할. play는 직업 없이 노는 아이다. 손잡이 값(Claude 값)
+const ROLE_JOBS := {
+	"head": {"farmer": 30.0, "fisher": 8.0, "woodcutter": 8.0, "carpenter": 8.0, "mason": 6.0, "weaver": 6.0, "merchant": 8.0, "porter": 6.0,
+		"miller": 5.0, "baker": 5.0, "innkeeper": 5.0, "watchman": 5.0},
+	"spouse": {"water_carrier": 20.0, "washer": 20.0, "spinner": 15.0, "weaver": 10.0, "brewer": 15.0, "gleaner": 10.0, "herbalist": 5.0, "midwife": 5.0},
+	"child": {"play": 40.0, "goose_herd": 20.0, "gleaner": 20.0, "water_carrier": 20.0},
+	"elder": {"spinner": 40.0, "herbalist": 30.0, "midwife": 30.0},
+}
+const JOB_SEX := {"farmer": [1.0, 0.6], "fisher": [1.0, 0.5], "woodcutter": [1.0, 0.1], "carpenter": [1.0, 0.1], "mason": [1.0, 0.1], "porter": [1.0, 0.5],
+	"miller": [1.0, 0.2], "watchman": [1.0, 0.1], "blacksmith": [1.0, 0.1], "bowyer": [1.0, 0.2], "water_carrier": [0.5, 1.0], "washer": [0.1, 1.0],
+	"spinner": [0.1, 1.0], "brewer": [0.2, 1.0], "gleaner": [0.5, 1.0], "herbalist": [0.5, 1.0], "midwife": [0.05, 1.0]}  # 남·여 무게. 없으면 [1, 1]
+const UNIQUE_JOBS := ["priest", "blacksmith", "miller", "baker", "innkeeper", "watchman", "midwife", "bowyer"]  # 마을에 한 사람
+const FACILITY_JOBS := {"workshop": "blacksmith", "archery": "bowyer"}  # 그 시설을 다 지어야 생기는 고유 직업. 가장이 바뀌어 맡는다
+const JOB_CAPS := {"fisher": 4, "merchant": 2}  # 물가 자리·좌판 수(I182)
 const QUEST_OFFERS := 2  # 라운드 사이에 보이는 의뢰 수(I121). 임시값(Claude 예시)
 const TALLY_KEYS := ["base_hit", "castle_lost", "structure_lost", "merc_lost", "hero_down", "merc_bought", "built", "battle_time"]  # 라운드 집계의 키(I119)
 const SPAWN_GAP := 2.5  # 웨이브 안에서 적이 나오는 간격(초). 임시값: 1.0 → 0.9(2026-10-15 3장 자체 점검, 사용자 승인 2026-10-16 — insights/2026-10-15_ch3_self_check_balance.md §8) → 2.5(2026-10-21 5.1 판 길이, I91 — insights/2026-10-21_round_design.md)
@@ -1744,6 +1758,7 @@ func _occupy(s: Block) -> void:
 
 func _vacate(s: Block) -> void:
 	_cut(structures, footprint, s)
+	_staff()  # 시설·맡은 집이 없어지면 시설 직업을 고친다(S222)
 
 # 칸 → Block 사전(d)과 차지 칸 → Block 사전(fp)에 함께 넣고 뺀다(S216, S217)
 func _put(d: Dictionary, fp: Dictionary, s: Block) -> void:
@@ -2112,6 +2127,7 @@ func _grow(s: Block, dp: float) -> void:
 # 다 지은 집에 가족이 들어온다(S221). 유형을 가중치로 고르고 몸을 정한다. 피부(look % 3)는 가족이 같이 쓴다
 func _move_in(s: Block) -> void:
 	if s.tax <= 0:
+		_staff()  # 다 지은 작업장·사격장에 일할 사람(S222)
 		return
 	var w: float = _kin.randf() * HOUSEHOLDS.reduce(func(a, h): return a + h[0], 0.0)
 	var h: Array = HOUSEHOLDS.back()
@@ -2128,6 +2144,76 @@ func _move_in(s: Block) -> void:
 		bodies.append(pick.call(["old_man", "old_woman"]))
 	var skin := _kin.randi() % 3
 	s.folk = bodies.map(func(b): return {"body": b, "look": skin + 3 * _kin.randi_range(0, (FOLK_LOOKS - 1 - skin) / 3)})
+	var roles := roles_of(s.folk)
+	for i in s.folk.size():
+		s.folk[i].job = _pick_job(roles[i], s.folk[i].body)
+	_staff()
+
+# 주민의 원래 직업(S222, I182 ③): 역할의 직업 가운데, 고유 직업이면 아직 아무도 원래 직업으로 갖지 않은 것, 상한이 있으면 닿지 않은 것을
+# 직업 무게 × 성별 무게로 뽑는다. 역할마다 상한 없는 여럿 직업이 있어 후보가 비지 않는다
+func _pick_job(role: String, body: String) -> String:
+	var held := {}
+	for s in structures.values():
+		for m in s.folk:
+			if m.has("job"):
+				held[m.job] = held.get(m.job, 0) + 1
+	var male: bool = body in ["man", "boy", "old_man"]
+	var ws := {}
+	for j in ROLE_JOBS[role]:
+		if not (j in UNIQUE_JOBS and held.has(j)) and held.get(j, 0) < JOB_CAPS.get(j, 99):
+			ws[j] = ROLE_JOBS[role][j] * JOB_SEX.get(j, [1.0, 1.0])[0 if male else 1]
+	var w: float = _kin.randf() * ws.values().reduce(func(a, x): return a + x, 0.0)
+	for j in ws:
+		w -= ws[j]
+		if w < 0.0:
+			return j
+	return ws.keys().back()
+
+# 가족의 주민마다 역할(I182 ①): 첫 어른 head, 둘째 어른 spouse, 아이 child, 노인 elder
+static func roles_of(folk: Array) -> Array:
+	var out := []
+	for m in folk:
+		if m.body in ["man", "woman"]:
+			out.append("spouse" if "head" in out else "head")
+		else:
+			out.append("child" if m.body in ["boy", "girl"] else "elder")
+	return out
+
+# 그 집 i번째 주민의 지금 직업(S222): 시설 직업을 맡았으면(craft) 그것, 아니면 원래 직업
+func trade(s: Block, i: int) -> String:
+	return s.folk[i].get("craft", s.folk[i].get("job", ""))
+
+# 2026-10-27
+# [동작] 시설 직업(I182 ④)을 맡은 가장의 주민 사전에 craft를 두고, 구조물이 다 지어지거나 없어질 때만 고친다
+# [이유] 매번 다시 고르면 작업장을 팔 때 활 장인 자리가 다시 골라져, 대장장이였던 사람이 활 장인으로 옮겨 갔다(EV480 첫 구현).
+#        맡은 사람은 그 시설이 모두 없어지거나 그 집이 없어질 때까지 그대로 둔다
+func _staff() -> void:
+	var open := {}
+	for s in structures.values():
+		if s.complete and s.alive and FACILITY_JOBS.has(s.kind):
+			open[FACILITY_JOBS[s.kind]] = true
+	var held := {}
+	for s in structures.values():
+		for m in s.folk:
+			if m.has("craft") and not open.has(m.craft):
+				m.erase("craft")
+			elif m.has("craft"):
+				held[m.craft] = true
+	for job in FACILITY_JOBS.values():
+		if not open.has(job) or held.has(job):
+			continue
+		var best = null
+		var top := -1.0
+		for s in structures.values():  # 원래 직업이 고유 직업이 아닌 가장 가운데 성별 무게가 가장 큰 사람, 같으면 먼저 지은 집
+			if s.tax > 0 and s.complete and not s.folk.is_empty() and roles_of(s.folk)[0] == "head" and not s.folk[0].has("craft") \
+					and not s.folk[0].get("job") in UNIQUE_JOBS:
+				var w: float = JOB_SEX.get(job, [1.0, 1.0])[0 if s.folk[0].body == "man" else 1]
+				if w > top:
+					top = w
+					best = s
+		if best:
+			best.folk[0].craft = job
+			held[job] = true
 
 # 옆 칸에 닿은 공병은 수리할 몫이 있으면 고치고(I87, 잔해면 다시 세운 뒤 고친다, I89), 성곽이면 올리고(S86),
 # 미완성이면 짓고(I62), 완성이면 허문다(I64: 건설 시간의 절반이 든다). 밀려나 멀어졌으면 다시 걸어간다

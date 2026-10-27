@@ -3088,3 +3088,32 @@ func ev477():
 			if img.get_region(Rect2i(int(a0.get("x", 0)), int(a0.idle), c0, c0)).get_data() == img.get_region(Rect2i(int(a1.get("x", 0)), int(a1.idle), c1, c1)).get_data():
 				bad.append("%s look 0·1 그림이 같다" % body)
 	return check(bad.is_empty(), "%s" % [bad.slice(0, 8)])
+
+# EV486 · S172: 주민 칸마다 그 몸의 역할(I182)이 맡는 직업의 일 자세가 있다. 제자리는 동·서 2행, 들고 걷기는 4방향 4행, 2프레임
+func ev486():
+	var art: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/units/heroes.json"))
+	var img: Image = load("res://art/units/heroes.png").get_image()
+	var adult := ["hoe", "fish", "axe", "saw", "hammer", "sit", "stir", "carry_sack", "carry_lantern", "carry_water", "squat", "carry_basket"]  # 가장·배우자 직업의 자세
+	var need := {"man": adult, "woman": adult, "boy": ["carry_stick", "squat", "carry_water"], "girl": ["carry_stick", "squat", "carry_water"],
+		"old_man": ["sit", "squat", "carry_basket"], "old_woman": ["sit", "squat", "carry_basket"]}
+	var bad := []
+	for body in need:
+		for look in 8:
+			var a = art.get("folk_%s_%d" % [body, look])
+			if a == null:
+				bad.append("folk_%s_%d 없음" % [body, look])
+				continue
+			var c := int(a.c)
+			for p in need[body]:
+				if not a.has(p):
+					bad.append("folk_%s_%d %s 없음" % [body, look, p])
+					continue
+				for f in 2:
+					for d in (4 if p.begins_with("carry") else 2):
+						var r := Rect2i(int(a.get("x", 0)) + f * c, int(a[p]) + d * c, c, c)
+						if not Rect2i(Vector2i.ZERO, img.get_size()).encloses(r) or img.get_region(r).is_invisible():
+							bad.append("folk_%s_%d %s %d열 %d행" % [body, look, p, f, d])
+	var pr = art.get("folk_man_8")
+	if pr == null or not (pr.has("idle") and pr.has("walk") and pr.has("stir")):
+		bad.append("folk_man_8(사제) %s" % [pr])
+	return check(bad.is_empty(), "%s" % [bad.slice(0, 8)])

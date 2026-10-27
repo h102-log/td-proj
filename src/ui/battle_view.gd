@@ -138,7 +138,7 @@ var controls  # 고른 유닛에 테두리를 그린다
 var _seen := {}  # 영웅·용병·적 → [지난 위치, 방향]
 var _hits := {}  # 방금 맞은 영웅·용병·적 id → [맞은 뒤 지난 시간(초), 공격자 → 대상 방향, 무거운 타격](S177, S198). _bodies마다 다시 구한다
 var ground: ImageTexture  # 바닥을 한 장으로 구운 것. 마을·출현 지점은 도전 내내 같아서(I91) 처음 한 번만 굽는다
-var props := []  # 바닥 소품(S201·S202): [칸, decor.png 0행 열]. 바닥과 함께 처음 한 번만 정한다
+var _decor := []  # 바닥 소품(S201·S202): [칸, decor.png 0행 열]. 바닥과 함께 처음 한 번만 정한다
 var _under: Image  # 구운 바닥. 터(bake_yard)가 돌 위를 피하려고 읽는다
 var _yards := {}  # [칸, 종류] → bake_yard 결과. 시설이 처음 보일 때 한 번 굽고, 없어지면 버린다(S215)
 var _clip := -INF  # 덧그릴 때 이 화면 y보다 위 줄은 그리지 않는다(_shade)
@@ -166,6 +166,7 @@ var night: ColorRect  # 어둠 덮개(S212): 바닥 그림(맵 밖 아래 띠까
 var _top: Node2D  # 덮개 위 층: 조준 미리보기·출현 배지·체력 막대·명령 표식·드래그 사각형(_draw_top). 덮개 다음 자식이다
 var _cv: CanvasItem = self  # _draw_top의 그리기 함수가 그리는 곳. 층이 없으면(트리 밖에서 만든 맵) 맵 자신이다
 var _foes := []  # 이번 프레임에 보이는 적(S213). 숨은 적은 몸·발밑·막대·효과 테두리·예고를 그리지 않는다
+var _folk_now := []  # 이번 프레임의 주민 [_day, folk_of]. 덮개 위 층이 야경꾼 등불을 그 자리에 그린다(S223)
 
 func _ready() -> void:
 	if battle:
@@ -216,7 +217,7 @@ func night_params() -> Dictionary:
 func _draw() -> void:
 	if ground == null:
 		ground = bake_ground(battle)
-		props = ground_props(battle)
+		_decor = ground_props(battle)
 		_under = ground.get_image()
 	_foes = foes()
 	draw_rect(Rect2(0, -TOP_BAND, battle.size.x * CELL, TOP_BAND), FOREST_FLOOR)  # 맵 위 맵 밖 띠(I50): 사방 성곽의 북벽 그림이 맵 위로 솟는다(S219)
@@ -228,7 +229,7 @@ func _draw() -> void:
 			yards[k] = _yards[k] if _yards.has(k) else bake_yard(battle, s, _under)
 			draw_texture(yards[k][0], yards[k][1])
 	_yards = yards
-	for p in props:  # 시설이 선 칸의 소품은 감춘다(S201)
+	for p in _decor:  # 시설이 선 칸의 소품은 감춘다(S201)
 		if not battle.footprint.has(p[0]):
 			draw_texture_rect_region(DECOR, Rect2(Vector2(p[0]) * CELL, Vector2(CELL, CELL)), Rect2(p[1] * CELL, 0, CELL, CELL))
 	for s in battle.structures.values():
@@ -329,6 +330,12 @@ func _draw_top() -> void:
 		if bar != Vector2.ZERO:
 			var head: float = (ART.boss.anchor[1] - ART.basic.anchor[1]) / CELL if u.kind == "boss" else 0.0  # 보스 그림은 기본 적보다 키가 커서 막대를 그만큼 올린다(머리 위)
 			_hp_bar(u.pos - Vector2(0, _lift(u) / CELL + head) + _slip(u) / CELL, u, bar)
+	if battle.dark > 0.0 and not _folk_now.is_empty():  # 야경꾼 등불(S223): 덮개 위 그림이라 불빛·숨긴 적은 그대로다
+		for k in _folk_now[1].size():
+			if _folk_now[1][k].job == "watchman" and not _folk_now[0][k].inside:
+				var lamp := _center(_folk_now[0][k].pos) + LAMP
+				_cv.draw_rect(Rect2(lamp - Vector2.ONE, Vector2(3, 3)), Color(TORCH, 0.6))
+				_cv.draw_rect(Rect2(lamp, Vector2.ONE), Color("efd8a1"))
 	var cue := order_ring()
 	if not cue.is_empty():
 		_cv.draw_arc(cue[0], cue[1], 0.0, TAU, 24, cue[2], 1.0)
@@ -521,14 +528,16 @@ func _bodies() -> void:
 			blds.append({"kind": s.kind, "cell": s.dest, "dest": null, "razed": 0.0, "complete": false, "progress": 0.0})
 	_hits = hit_table(all + blds)
 	var now := Time.get_ticks_msec() / 1000.0
-	var was := residents(battle, now - 0.05)
-	var ps := residents(battle, now)
+	var was := _day(battle, now - 0.05)  # 주민(S223): 0.05초 전 자리와의 차로 걷는 쪽을 구한다
+	var day := _day(battle, now)
 	var who := folk_of(battle)
+	_folk_now = [day, who]
+	var pl := _prop_list()
 	var n := all.size()
 	var m := n + 2 * walls.size()  # 이 번호부터 시설, 그다음 거점
 	var feet := m + blds.size() + 1  # 이 번호부터 성벽 위 유닛의 발밑 표시
 	var folk := feet + n  # 이 번호부터 주민
-	var grave := folk + ps.size()  # 이 번호부터 성벽 위의 쓰러진 몸
+	var grave := folk + day.size()  # 이 번호부터 성벽 위의 쓰러진 몸
 	var keys := PackedInt64Array()
 	var dead := _fallen()
 	for k in dead.size():  # 성벽 위의 쓰러진 몸은 낮아서 흉벽에 다 가리므로, 성벽 위 발밑 표시처럼 앞층 다음(바닥선 + 3)에
@@ -555,19 +564,22 @@ func _bodies() -> void:
 		var on: bool = battle.walls.has(blds[j].cell)
 		keys.append((1 << 44) | (((_wall_line(blds[j].cell) if on else (blds[j].cell.y + 1) * CELL) + 64) << 20) | (m + j))
 	keys.append((1 << 44) | (((battle.base.cell.y + 1) * CELL + 64) << 20) | (m + blds.size()))
-	for k in ps.size():
-		keys.append((1 << 44) | ((int(_center(ps[k]).y) + 64) << 20) | (folk + k))
+	for k in day.size():
+		if not day[k].inside:  # 집 안이면 그리지 않는다(S223)
+			keys.append((1 << 44) | ((int(_center(day[k].pos).y) + 64) << 20) | (folk + k))
+	var prop0 := grave + dead.size()  # 이 번호부터 일터 소품(S224)
+	for k in pl.size():
+		keys.append((1 << 44) | ((pl[k][2] + 64) << 20) | (prop0 + k))
 	keys.sort()
 	var next := {}
 	for k in keys:
 		var i: int = k & 0xFFFFF
-		if i >= grave:
+		if i >= prop0:
+			_prop(pl[i - prop0], now)
+		elif i >= grave:
 			_corpse(dead[i - grave])
-		elif i >= folk:  # 주민(4.1d): 움직이는 쪽을 보고 걷기 2위상. 자리가 연출이라(I46) 방향도 0.05초 전 자리와의 차로 구한다. 그림은 몸·look(S172)
-			var v: Vector2 = ps[i - folk] - was[i - folk]
-			var moving := v.length_squared() > 1e-8
-			var f: Dictionary = who[i - folk]
-			_frame(ART["folk_%s_%d" % [f.body, f.look]], "walk" if moving else "idle", _four(v), int(now * 8.0) % 2 if moving else 0, _center(ps[i - folk]))
+		elif i >= folk:
+			_folk_body(day[i - folk], was[i - folk], who[i - folk], now)
 		elif i >= feet:
 			_feet_mark(all[i - feet], i - feet)
 		elif i == m + blds.size():  # 거점 망루: 마을 레벨(S99)마다 한 장
@@ -893,6 +905,43 @@ func _frame(a: Dictionary, anim: String, dir: int, col: int, p: Vector2, tint :=
 # 화면 방향 v → 4방향 시트 행(S·E·N·W)
 func _four(v: Vector2) -> int:
 	return posmod(roundi((90.0 - rad_to_deg(v.angle())) / 90.0), 4)
+
+# 주민 몸(S172·S223). 걷기·놀기는 움직이는 쪽을 보고 걷기 2위상, 들고 걷기도 같은 4방향 시트다. 제자리 일 자세는 일터 쪽(동·서)을
+# FOLK_FRAME마다 2프레임 번갈고, 그 자세 그림이 없는 칸이면 정지·걷기로 그린다
+func _folk_body(x: Dictionary, was: Dictionary, f: Dictionary, now: float) -> void:
+	var a: Dictionary = ART["folk_%s_%d" % [f.body, f.look]]
+	var v: Vector2 = x.pos - was.pos
+	var moving := v.length_squared() > 1e-8
+	var at := _center(x.pos)
+	if x.pose.begins_with("carry") and a.has(x.pose):
+		_frame(a, x.pose, _four(v) if moving else 0, int(now * 8.0) % 2 if moving else 0, at)
+	elif x.dir >= 0 and a.has(x.pose):
+		_frame(a, x.pose, x.dir, int(now / FOLK_FRAME) % 2, at)
+	else:
+		_frame(a, "walk" if moving else "idle", _four(v), int(now * 8.0) % 2 if moving else 0, at)
+
+# 이번 판의 일터 소품(S224): [종류, 칸, 정렬 바닥선 y(px)]. 여관 간판은 집 앞줄 바닥선 바로 뒤에 그려 집 그림 위에 얹는다
+func _prop_list() -> Array:
+	var pr := props(battle)
+	var out := []
+	if not pr.mill.is_empty():
+		out.append(["mill", pr.mill[0], (pr.mill[1].y + 1) * CELL])
+	for c in pr.oven:
+		out.append(["oven", c, (c.y + 1) * CELL])
+	for k in pr.stalls.size():
+		out.append(["stall%d" % k, pr.stalls[k], (pr.stalls[k].y + 1) * CELL])
+	for c in pr.inn:
+		out.append(["inn", c, (c.y + 1) * CELL + 1])
+	return out
+
+# 소품 하나(art/tiles/props.png, tools/art/props.py). 물레방아 바퀴는 PROP_WHEEL_FPS로 네 장을 돈다
+func _prop(p: Array, now: float) -> void:
+	var r: Rect2 = PROP_ART[p[0]]
+	var at: Vector2 = Vector2(p[1]) * CELL + PROP_AT[p[0]]
+	draw_texture_rect_region(PROPS, Rect2(at, r.size), r)
+	if p[0] == "mill":
+		var w: Rect2 = PROP_ART.wheel
+		draw_texture_rect_region(PROPS, Rect2(Vector2(MILL[1]) * CELL + PROP_AT.wheel, w.size), Rect2(w.position + Vector2(w.size.x * (int(now * PROP_WHEEL_FPS) % 4), 0), w.size))
 
 # 근접 용병·적의 돌진(px): 친 뒤 0.08초에 대상 쪽으로 LUNGE만큼 나가고 0.32초에 걸쳐 돌아온다. 발밑 표시도 함께 옮긴다.
 # 영웅(8방향 공격 프레임, S165)과 원거리(사거리 2칸 초과)는 돌진하지 않는다
@@ -1674,32 +1723,295 @@ static func hp_bar_size(u, show_all: bool) -> Vector2:
 		return Vector2(24, 3)
 	return Vector2(CELL, 2) if show_all else Vector2.ZERO
 
-# t초 때 주민 위치(칸 단위, folk_of 차례). 완성된 집의 가족(S221)이 저마다 집 둘레 1.5칸 안을 떠돌고, 마을 밖으로는 나가지 않는다(S104)
-# 자리는 연출이라 시뮬레이션에 상태를 두지 않고 시각으로 구한다(I46). 차지 칸 가운데에서 그 자리로 가는 선 위에 물 칸(S220)이 있으면 그 앞에 선다(I181)
-static func residents(b, t: float) -> Array:
-	var lo := Vector2(b.village.position)
-	var hi := Vector2(b.village.end - Vector2i.ONE)
-	var out := []
-	for s in b.structures.values():
-		if s.tax > 0 and s.complete:
-			var mid: Vector2 = b.middle(s)
-			for j in s.folk.size():
-				var k := float(s.cell.x * 7 + s.cell.y * 13 + j * 5)  # 집·식구마다 다른 위상
-				var p: Vector2 = (mid + Vector2(sin(t * 0.7 + k), sin(t * 0.5 + k * 1.3)) * (1.5 + (s.size.x - 1) / 2.0)).clamp(lo, hi)  # 차지 칸 가운데를 돈다(I178)
-				for i in range(1, 9):
-					if b.water.has(Vector2i(mid.lerp(p, i / 8.0).round())):
-						p = mid.lerp(p, (i - 1) / 8.0)
-						break
-				out.append(p)
-	return out
+# 주민 일과(S223, I182 ⑤). 수치는 손잡이(Claude 값)
+const FOLK_WORK := 20.0  # 일터에서 일하는 시간(초)
+const FOLK_HOME := 6.0  # 집 둘레에 있는 시간(초)
+const FOLK_SPEED := 1.2  # 주민 걸음(칸/초)
+const FOLK_DUSK := 0.3  # 이 어둠부터 야경꾼 말고 모두 집 안이다
+const FOLK_FRAME := 0.4  # 일 자세 2프레임을 번가는 간격(초, I182 ⑧)
+const PRIEST_LOOK := 8  # 사제의 검은 옷 프리셋(folk_man_8, S172)
+# 직업 → 일 자세(S172 2026-10-27 변경). carry_로 시작하면 4방향 들고 걷기, 나머지는 동·서 제자리 2프레임. play는 놀기(걷기)
+const POSE := {"farmer": "hoe", "gleaner": "squat", "herbalist": "squat", "washer": "squat", "fisher": "fish", "woodcutter": "axe",
+	"blacksmith": "hammer", "mason": "hammer", "carpenter": "saw", "spinner": "sit", "weaver": "sit", "bowyer": "sit",
+	"merchant": "stir", "brewer": "stir", "baker": "stir", "innkeeper": "stir", "priest": "stir",
+	"water_carrier": "carry_water", "porter": "carry_sack", "miller": "carry_sack", "midwife": "carry_basket",
+	"watchman": "carry_lantern", "goose_herd": "carry_stick", "play": "walk"}
+# 시험 스테이지 일터 자리(I182 ⑦). ponytail: 지금 판(main.gd stage) 하나의 칸 값이다. 판이 늘면 _plan처럼 거점 기준 상대값으로 옮긴다
+const MILL := [Vector2i(45, 5), Vector2i(45, 6)]  # 수로 위 물레방아(방앗간 지붕, 바퀴)
+const OVEN := [Vector2i(25, 28)]  # 광장 서북쪽 공동 화덕
+const STALLS := [Vector2i(25, 33), Vector2i(35, 28)]  # 광장 좌판 둘
+const FISH_SPOTS := [[Vector2i(43, 14), 0], [Vector2i(50, 17), 1], [Vector2i(44, 8), 0], [Vector2i(46, 8), 1]]  # 물가 낚시 자리 [칸, 보는 쪽 0 동·1 서]
+const WASH_SPOTS := [Vector2i(43, 16), Vector2i(43, 17)]  # 연못 서쪽 빨래 판석
+const WATCH_RING := [Vector2i(18, 21), Vector2i(42, 21), Vector2i(42, 38), Vector2i(18, 38)]  # 야경꾼 길: 안 고리 직사각형 꼭짓점
+const POND_RING := [Vector2i(43, 12), Vector2i(50, 12), Vector2i(50, 20), Vector2i(43, 20)]  # 거위 지기 길: 연못 둘레
+const NONE := Vector2i(-1, -1)
+const PROPS := preload("res://art/tiles/props.png")  # 일터 소품(S224, tools/art/props.py)
+const PROP_ART := {"mill": Rect2(0, 0, 24, 28), "wheel": Rect2(24, 0, 16, 16), "oven": Rect2(88, 0, 16, 16), "stall0": Rect2(104, 0, 16, 16),
+	"stall1": Rect2(120, 0, 16, 16), "inn": Rect2(136, 0, 10, 12)}  # props.png 안 자리. 바퀴는 오른쪽으로 네 장
+const PROP_AT := {"mill": Vector2(-4, -12), "wheel": Vector2.ZERO, "oven": Vector2.ZERO, "stall0": Vector2(0, -4), "stall1": Vector2(0, -4),
+	"inn": Vector2(26, -10)}  # 소품 칸(여관은 집의 칸) 왼쪽 위에서 그림 왼쪽 위까지(px). 방앗간은 수로 칸 (45,5) 위로 솟고, 바퀴는 그 아래 (45,6) 물 위다
+const PROP_WHEEL_FPS := 4.0  # 물레방아 바퀴 네 장을 넘기는 빠르기(장/초)
+const LAMP := Vector2(3, -6)  # 야경꾼 발밑에서 등불까지(px)
 
-# residents와 같은 차례의 주민(S221): 완성된 집마다 가족
+# t초 때 주민 위치(칸 단위, folk_of 차례). 집 안(chores의 inside)인 주민은 문 칸에 둔다
+static func residents(b, t: float) -> Array:
+	return _day(b, t).map(func(x): return x.pos)
+
+# t초 때 주민이 하는 일(folk_of 차례): {pose, inside}. pose는 "idle"·"walk"·일 자세(POSE 값)이고, inside면 집 안이라 그리지 않는다(S223)
+static func chores(b, t: float) -> Array:
+	return _day(b, t).map(func(x): return {"pose": x.pose, "inside": x.inside})
+
+# residents와 같은 차례의 주민: 완성된 집마다 가족(S221), 끝에 다 지은 교회의 사제(S222).
+# {body, look, job(지금 직업), home(사는 구조물의 칸), i(가족 안 차례)}
 static func folk_of(b) -> Array:
 	var out := []
 	for s in b.structures.values():
 		if s.tax > 0 and s.complete:
-			out += s.folk
+			for i in s.folk.size():
+				out.append({"body": s.folk[i].body, "look": s.folk[i].look, "job": b.trade(s, i), "home": s.cell, "i": i})
+	var church = _first(b, "church")
+	if church:
+		out.append({"body": "man", "look": PRIEST_LOOK, "job": "priest", "home": church.cell, "i": 0})
 	return out
+
+# 고정 소품(S224, I182 ⑦): 그 칸이 마을 안의 물 칸(물레방아)·길 칸(화덕·좌판)인 판에만 선다. inn은 여관 주인이 사는 집의 칸
+static func props(b) -> Dictionary:
+	var on := func(cells: Array, d: Dictionary): return cells.all(func(c): return b.village.has_point(c) and d.has(c))
+	var inn := []
+	for s in b.structures.values():
+		if s.tax > 0 and s.complete and range(s.folk.size()).any(func(i): return b.trade(s, i) == "innkeeper"):
+			inn.append(s.cell)
+	return {"mill": MILL if on.call(MILL, b.water) else [], "oven": OVEN if on.call(OVEN, b.roads) else [],
+		"stalls": STALLS if on.call(STALLS, b.roads) else [], "inn": inn}
+
+# 다 지은 그 종류의 첫 구조물. 없으면 null
+static func _first(b, kind: String):
+	for s in b.structures.values():
+		if s.kind == kind and s.complete and s.alive:
+			return s
+	return null
+
+# 주민마다 t초 때 {pos, pose, inside, dir}. dir은 제자리 일 자세가 보는 쪽(0 동·1 서), -1이면 움직이는 쪽을 본다(그리기가 구한다)
+static func _day(b, t: float) -> Array:
+	var P := _paths(b)
+	var who := folk_of(b)
+	var nth := {}  # 직업마다 몇째 사람인가. 낚시 자리·좌판·텃밭을 나눈다
+	var out := []
+	for f in who:
+		var k: int = nth.get(f.job, 0)
+		nth[f.job] = k + 1
+		out.append(_one(b, P, f, k, t, who))
+	return out
+
+# 2026-10-27
+# [동작] 주민 하나의 자리·자세를 시각 t와 어둠으로 구한다: 집 둘레 → 일터로 걸음 → 일 → 집으로 걸음을 되풀이하고, 어둠이 오르면 집 쪽으로 물러난다
+# [의도] 직업은 연출이라(S222) 시뮬레이션에 자리 상태를 두지 않는다. 같은 판·같은 시각이면 같은 그림이다
+# [이유] 어둠 d에서 일터 쪽으로 간 몫을 (1 − d/FOLK_DUSK)배로 줄이는 것은 상태 없이 «해가 지면 집으로 걸어 들어감»을 내려는 Claude 값이다(I182 ⑤)
+# ponytail: 걷는 직업이 일하던 중에 해가 지기 시작하면 일터 첫 자리로 한 번 튄다. 밤 웨이브 시작 때만이라 그대로 둔다
+static func _one(b, P: Dictionary, f: Dictionary, k: int, t: float, who: Array) -> Dictionary:
+	var home = b.structures[f.home]
+	var door := _door(b, P, home)
+	var dv := Vector2(door)
+	var phase := float(home.cell.x * 7 + home.cell.y * 13 + f.i * 5)  # 집·식구마다 다른 위상
+	var roam := _roam(b, home, t, phase)
+	var d: float = b.dark
+	if f.job == "watchman" and d > 0.0:  # 야경꾼만 밤에 등불을 들고 돈다
+		var lap := _lap(P, _circuit(b, P, home, WATCH_RING))
+		return {"pos": _along(lap, fposmod((t + phase) * FOLK_SPEED, maxf(lap.len, 0.001))), "pose": "carry_lantern", "inside": false, "dir": -1}
+	if d >= FOLK_DUSK:
+		return {"pos": dv, "pose": "idle", "inside": true, "dir": 0}
+	if f.job in ["play", "watchman"]:
+		return {"pos": dv.lerp(roam, 1.0 - d / FOLK_DUSK), "pose": "walk", "inside": false, "dir": -1}
+	var wk := [f.home, f.i, f.job, k]  # 일터는 막힌 칸·짓는 중인 구조물이 바뀔 때까지 같다(_paths가 memo를 비운다)
+	if not P.memo.has(wk):
+		P.memo[wk] = _work(b, P, f, k, home, door, who)
+	var w: Dictionary = P.memo[wk]
+	var go := _route(P, door, w.at)
+	var walk: float = go.len / FOLK_SPEED
+	var lap := {}
+	var busy := FOLK_WORK
+	if w.has("route"):  # 걷는 직업: 일하는 동안 길을 몇 바퀴 돌고 일터 첫 자리에서 끝난다
+		lap = _lap(P, w.route)
+		var once: float = lap.len / FOLK_SPEED
+		busy = maxf(1.0, roundf(FOLK_WORK / once)) * once if once > 0.0 else FOLK_WORK
+	var tau := fposmod(t + phase * 1.7, FOLK_HOME + walk + busy + walk)
+	var keep := 1.0 - d / FOLK_DUSK
+	if tau < FOLK_HOME:  # 집 둘레: 문에서 나왔다가 문으로 돌아간다
+		return {"pos": dv.lerp(dv.lerp(roam, clampf(minf(tau, FOLK_HOME - tau), 0.0, 1.0)), keep), "pose": "walk", "inside": false, "dir": -1}
+	tau -= FOLK_HOME
+	var s: float
+	if tau < walk:
+		s = tau * FOLK_SPEED
+	elif tau < walk + busy and d <= 0.0:
+		if lap.is_empty():
+			return {"pos": Vector2(w.at), "pose": POSE[f.job], "inside": false, "dir": w.face}
+		return {"pos": _along(lap, fposmod((tau - walk) * FOLK_SPEED, maxf(lap.len, 0.001))), "pose": POSE[f.job], "inside": false, "dir": -1}
+	elif tau < walk + busy:
+		s = go.len
+	else:
+		s = go.len - (tau - walk - busy) * FOLK_SPEED
+	return {"pos": _along(go, s * keep), "pose": "walk", "inside": false, "dir": -1}
+
+# 집 둘레를 떠도는 자리(S104, I178): 차지 칸 가운데에서 1.5칸 + (가로 칸 − 1)/2 안. 마을 밖으로 나가지 않고, 가운데에서 가는 선 위에 물 칸(S220)이 있으면 그 앞에 선다(I181)
+static func _roam(b, s, t: float, k: float) -> Vector2:
+	var mid: Vector2 = b.middle(s)
+	var p: Vector2 = (mid + Vector2(sin(t * 0.7 + k), sin(t * 0.5 + k * 1.3)) * (1.5 + (s.size.x - 1) / 2.0)).clamp(Vector2(b.village.position), Vector2(b.village.end - Vector2i.ONE))
+	for i in range(1, 9):
+		if b.water.has(Vector2i(mid.lerp(p, i / 8.0).round())):
+			return mid.lerp(p, (i - 1) / 8.0)
+	return p
+
+# 일터(S224, I182 ⑥): {at: 일하는 칸, face: 보는 쪽}, 걷는 직업이면 route(둘러 갈 칸들, 처음이 at)도. 그 판에 일터가 없으면 자기 집 문 앞이다
+static func _work(b, P: Dictionary, f: Dictionary, k: int, home, door: Vector2i, who: Array) -> Dictionary:
+	var pr := props(b)
+	var here := {"at": _free(P, door + Vector2i([0, 1, -1][f.i % 3], 0)), "face": f.i % 2}  # 자기 집 문 앞. 식구끼리 겹치지 않게 옆 칸으로
+	var garden := _nearest(P, door, P.garden, k % 3)
+	var yard := _nearest(P, door, P.yard, 0)
+	var plaza: Vector2i = b.base.cell + Vector2i(-3, 3)  # 광장 서남쪽 박석(짐꾼이 짐을 내리는 곳)
+	var to_plaza: bool = b.roads.has(plaza) and b.village.has_point(plaza)
+	match f.job:
+		"farmer", "gleaner", "herbalist":
+			return {"at": garden, "face": k % 2} if garden != NONE else here
+		"mason":
+			return {"at": yard, "face": k % 2} if yard != NONE else here
+		"carpenter":
+			for s in b.structures.values():  # 마을 안에 짓는 중인 구조물 옆
+				if not s.complete and b.village.has_point(s.cell):
+					return {"at": _free(P, _door(b, P, s)), "face": 0}
+			return {"at": yard, "face": k % 2} if yard != NONE else here
+		"fisher":
+			var spot: Array = FISH_SPOTS[k % FISH_SPOTS.size()]
+			return {"at": _free(P, spot[0]), "face": spot[1]} if b.village.has_point(spot[0]) and _wet(b, spot[0]) else here
+		"washer":
+			var c: Vector2i = WASH_SPOTS[k % WASH_SPOTS.size()]
+			return {"at": _free(P, c), "face": 0} if b.village.has_point(c) and _wet(b, c) else here
+		"baker":
+			return {"at": _free(P, OVEN[0] + Vector2i(1, 0)), "face": 1} if not pr.oven.is_empty() else here
+		"merchant":
+			return {"at": _free(P, STALLS[k % STALLS.size()] + Vector2i(1, 0)), "face": 1} if not pr.stalls.is_empty() else here
+		"blacksmith", "bowyer", "priest":
+			var at = _first(b, {"blacksmith": "workshop", "bowyer": "archery", "priest": "church"}[f.job])
+			return {"at": _free(P, _door(b, P, at) + Vector2i(1, 0)), "face": 1} if at else here
+		"miller":
+			if pr.mill.is_empty():
+				return here
+			var mill := _free(P, MILL[1] + Vector2i(-1, 0))
+			return {"at": mill, "face": 0, "route": [mill, _free(P, OVEN[0] + Vector2i(1, 1)) if not pr.oven.is_empty() else door, mill]}
+		"water_carrier":
+			var well := _well(b) + Vector2i(-1, 0)
+			if not b.village.has_point(well):
+				return here
+			var at := _free(P, well)
+			return {"at": at, "face": 0, "route": [at, door, at]}
+		"porter":
+			if garden == NONE or not to_plaza:
+				return here
+			return {"at": garden, "face": 0, "route": [garden, _free(P, plaza), garden]}
+		"midwife":
+			var homes: Array = []
+			for g in who:
+				if g.home != home.cell and not g.home in homes and b.structures[g.home].tax > 0:
+					homes.append(g.home)
+			if homes.is_empty():
+				return here
+			var other := _door(b, P, b.structures[homes[k % homes.size()]])
+			return {"at": here.at, "face": 0, "route": [here.at, other, here.at]}
+		"goose_herd":
+			if b.water.is_empty() or not POND_RING.all(func(c): return b.village.has_point(c)):
+				return here
+			var ring := _circuit(b, P, home, POND_RING)
+			return {"at": ring[0], "face": 0, "route": ring}
+	return here
+
+# 이 칸 옆(위아래좌우)에 물 칸이 있나. 물가 일터(낚시·빨래)를 쓸 수 있는 판인지 본다
+static func _wet(b, c: Vector2i) -> bool:
+	return [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN].any(func(o): return b.water.has(c + o))
+
+# 둘러 도는 길(야경꾼 안 고리·거위 지기 연못 둘레): 꼭짓점 칸들(돌아온다). 마을 밖이면 그 집 둘레 작은 고리
+static func _circuit(b, P: Dictionary, home, pts: Array) -> Array:
+	if pts.all(func(c): return b.village.has_point(c)):
+		return pts.map(func(c): return _free(P, c)) + [_free(P, pts[0])]
+	var d := _door(b, P, home)
+	return [d, _free(P, d + Vector2i(2, 0)), _free(P, d + Vector2i(2, 1)), _free(P, d + Vector2i(0, 1)), d]
+
+# 집의 문 칸(I182 ⑥): 차지 칸 앞줄 가운데 바로 아래 칸. 막혔으면 가장 가까운 열린 칸
+static func _door(b, P: Dictionary, s) -> Vector2i:
+	var key := ["door", s.cell]
+	if not P.memo.has(key):
+		P.memo[key] = _free(P, s.cell + Vector2i((s.size.x - 1) / 2, 1))
+	return P.memo[key]
+
+# c 가운데 from에서 가까운 열린 칸 가운데 nth째(가까운 순). 없으면 NONE
+static func _nearest(P: Dictionary, from: Vector2i, cells: Array, nth: int) -> Vector2i:
+	var ok := cells.filter(func(c): return P.region.has_point(c) and not P.grid.is_point_solid(c))
+	if ok.is_empty():
+		return NONE
+	ok.sort_custom(func(a, z): return Vector2(a - from).length_squared() < Vector2(z - from).length_squared())
+	return ok[mini(nth, ok.size() - 1)]
+
+# c가 마을 안의 열린 칸이면 그대로, 아니면 가장 가까운 열린 칸(고리를 넓혀 가며 찾는다)
+static func _free(P: Dictionary, c: Vector2i) -> Vector2i:
+	var r: Rect2i = P.region
+	for n in 12:
+		for y in range(c.y - n, c.y + n + 1):
+			for x in range(c.x - n, c.x + n + 1):
+				var q := Vector2i(x, y)
+				if maxi(absi(x - c.x), absi(y - c.y)) == n and r.has_point(q) and not P.grid.is_point_solid(q):
+					return q
+	return c
+
+# 주민 길 격자(S223, I182 ⑥): 마을 칸에서 물 칸·구조물 차지 칸·거점을 막는다. 막힌 칸이나 다 지은 구조물이 바뀌면 다시 만들고,
+# 길·문 칸·일터 기억(memo)도 그때 비운다
+static var _pc := {}
+static func _paths(b) -> Dictionary:
+	var stamp := hash([b.get_instance_id(), b.footprint.keys(), b.structures.values().map(func(s): return s.complete), b.water.size(), b.village])
+	if _pc.get("stamp") == stamp:
+		return _pc
+	var g := AStarGrid2D.new()
+	g.region = b.village
+	g.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
+	g.update()
+	for c in b.footprint.keys() + b.water.keys() + b.cells_in(b.area_of(b.base)):
+		if b.village.has_point(c):
+			g.set_point_solid(c)
+	var plan := _plan()
+	_pc = {"stamp": stamp, "grid": g, "region": b.village, "memo": {}, "garden": plan.garden, "yard": plan.slabs + plan.gravel}
+	return _pc
+
+# a에서 z까지 걷는 길: {pts: 칸 가운데들, len: 칸 단위 길이}
+static func _route(P: Dictionary, a: Vector2i, z: Vector2i) -> Dictionary:
+	var key := [a, z]
+	if not P.memo.has(key):
+		var pts: Array = [Vector2(a)]
+		if a != z and P.region.has_point(a) and P.region.has_point(z):
+			pts = Array(P.grid.get_id_path(a, z, true)).map(func(c): return Vector2(c))
+			if pts.is_empty():
+				pts = [Vector2(a)]
+		var n := 0.0
+		for i in range(1, pts.size()):
+			n += pts[i].distance_to(pts[i - 1])
+		P.memo[key] = {"pts": pts, "len": n}
+	return P.memo[key]
+
+# 칸들을 차례로 잇는 길(걷는 직업의 일터 길·둘러 도는 길)
+static func _lap(P: Dictionary, stops: Array) -> Dictionary:
+	var pts: Array = [Vector2(stops[0])]
+	var n := 0.0
+	for i in range(1, stops.size()):
+		var r := _route(P, stops[i - 1], stops[i])
+		pts += r.pts.slice(1)
+		n += r.len
+	return {"pts": pts, "len": n}
+
+# 길 위에서 처음부터 s칸 간 자리
+static func _along(r: Dictionary, s: float) -> Vector2:
+	var pts: Array = r.pts
+	for i in range(1, pts.size()):
+		var l: float = pts[i].distance_to(pts[i - 1])
+		if s <= l:
+			return pts[i - 1].lerp(pts[i], s / l if l > 0.0 else 0.0)
+		s -= l
+	return pts.back()
 
 # 유닛·적은 pos, 구조물·성곽·거점은 cell로 자리를 갖는다
 func _pos_of(x) -> Vector2:

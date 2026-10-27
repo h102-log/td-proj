@@ -3,7 +3,7 @@
 # (insights/2026-10-20_render_spike.md P4).
 # 성곽 칸 조각(4.1c)도 같은 식으로 4.0 시험 성벽 그림에서 잘라 한 장에 모은다.
 # 용병·적(4.1d)은 C 절충안에 쓰는 칸만 골라 영웅 아래에 붙인다: 행 S·E·N·W, 정지 1열, 걷기 2위상 2열, 공격 키 포즈 1열, 누운 자세 1장
-# 주민(S172 2026-10-26 변경)은 몸마다 folk.py 시트 한 장을 그대로 붙이고, look마다 x로 가른다(folk_<몸>_<look>)
+# 주민(S172 2026-10-26·27 변경)은 몸마다 folk.py 시트 한 장을 그대로 붙이고, look마다 x로 가른다(folk_<몸>_<look>). 일 자세는 자세 이름이 그 첫 행의 y다
 # 시설(4.1e)은 48×48 칸을 따로 한 장에 모은다(facility())
 # 사용: python tools/art/atlas.py → art/units/heroes.png, art/units/heroes.json, art/castle/walls.png, art/castle/facility.png
 import json
@@ -41,10 +41,11 @@ def main():
         meta[kind] = m
     fit = json.loads(Path("art/trial/folk/fit.json").read_text(encoding="utf-8"))
     c = fit["c"]
-    for body in FOLK:  # look마다 가로 2칸 띠: 위 4행은 정지(1열), 아래 4행은 걷기(2열)
+    for body in FOLK:  # look마다 가로 2칸 띠: 0~3행 정지(1열), 4~7행 걷기(2열), 그 아래 일 자세(S172 2026-10-27 변경, 첫 행은 fit.json rows)
         im = Image.open(f"art/trial/folk/{body}.png").convert("RGBA")
         for look in range(im.width // (2 * c)):
-            meta[f"folk_{body}_{look}"] = {"c": c, "anchor": fit["anchor"], "x": 2 * c * look, "idle": y, "walk": y + 4 * c}
+            m = {"c": c, "anchor": fit["anchor"], "x": 2 * c * look, "idle": y, "walk": y + 4 * c}
+            meta[f"folk_{body}_{look}"] = dict(m, **{p: y + r * c for p, r in fit["rows"][body].items()})
         sheets.append((im, y))
         y += im.height
     out = Image.new("RGBA", (max(im.width for im, _ in sheets), y))
