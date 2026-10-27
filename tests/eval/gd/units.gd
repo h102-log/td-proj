@@ -21,7 +21,12 @@ const TABLE := {
 	"slimelet": [5, 2, 2, 0.8, 0.18, 3, 0, 1],
 	"big_slime": [30, 1.1, 8, 1.4, 0.45, 3, 35, 1],
 	"slime_king": [160, 1, 20, 2, 0.55, 4, 50, 0.3],
+	"wolf": [9, 3, 3, 0.8, 0.25, 3, 5, 1],  # 2라운드 늑대 테마(S106 2026-10-27 변경)
+	"leap_wolf": [12, 3, 3, 0.8, 0.25, 3, 7, 1],
+	"night_wolf": [12, 2.8, 4, 1, 0.28, 3, 7, 1],
+	"alpha_wolf": [160, 2, 20, 1.5, 0.45, 4, 50, 0.3],
 }
+const PACK := {"wolf": 4, "leap_wolf": 2, "night_wolf": 2}  # 무리(S238). 나머지 종류는 1
 const KEYS := ["hp", "speed", "damage", "attack_gap", "radius", "sight", "reward", "wall_k"]
 
 func _castle(gates := GATES, walls = null):
@@ -79,9 +84,11 @@ func ev130():
 	var plain: Array = TABLE.keys().filter(func(k): return k != "slime" and k != "big_slime")
 	return check(d.fast.climb == 3.0 and d.armored.armor == 15.0 and d.flying.flying and not d.basic.flying and d.basic.climb == 0.0
 		and d.slime.get("split") == {"kind": "slimelet", "count": 2} and d.big_slime.get("split") == {"kind": "slime", "count": 2}
-		and plain.all(func(k): return d[k].get("split", {}).is_empty()) and d.slime_king.get("boss") == true,
-		"특수: fast.climb %s · armored.armor %s · flying.flying %s · 갈라짐 %s · slime_king.boss %s" % [d.fast.climb, d.armored.armor, d.flying.flying,
-			TABLE.keys().map(func(k): return [k, d[k].get("split")]), d.slime_king.get("boss")])
+		and plain.all(func(k): return d[k].get("split", {}).is_empty()) and d.slime_king.get("boss") == true and d.alpha_wolf.get("boss") == true
+		and TABLE.keys().all(func(k): return d[k].get("pack", 1) == PACK.get(k, 1)) and is_equal_approx(d.leap_wolf.climb, 0.8),
+		"특수: fast.climb %s · armored.armor %s · flying.flying %s · 갈라짐 %s · boss %s · 무리 %s · leap_wolf.climb %s" % [d.fast.climb, d.armored.armor, d.flying.flying,
+			TABLE.keys().map(func(k): return [k, d[k].get("split")]), [d.slime_king.get("boss"), d.alpha_wolf.get("boss")],
+			TABLE.keys().map(func(k): return [k, d[k].get("pack")]), d.leap_wolf.climb])
 
 # 방어력 a의 물리 피해 배율(S149, 워크3식): a ≥ 0이면 1 − 0.06a ÷ (1 + 0.06a)
 func _armor(a: float) -> float:

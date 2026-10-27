@@ -346,3 +346,7 @@ def test_EV525_pack_walk_in_atlas(gd):
 
 def test_EV536_slime_king_trait_line(gd):
     gd("hud", "EV536")
+
+
+def test_EV556_wolf_trait_lines(gd):
+    gd("hud", "EV556")
