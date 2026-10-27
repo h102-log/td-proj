@@ -39,3 +39,7 @@ def test_EV503_folk_state_saved(gd):
 
 def test_EV511_grow_state_saved(gd):
     gd("save", "EV511")
+
+
+def test_EV529_pack_saved_with_path(gd):
+    gd("save", "EV529")

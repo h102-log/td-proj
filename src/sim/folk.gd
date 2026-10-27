@@ -122,7 +122,7 @@ static func day(b, t: float) -> Array:
 static func _one(b, P: Dictionary, f: Dictionary, k: int, t: float, who: Array) -> Dictionary:
 	var away = f.m.get("away")
 	if away != null:
-		return {"pos": _along(away, away.s), "pose": "idle" if away["in"] else "walk", "inside": away["in"], "dir": -1}
+		return {"pos": _along(away, away.s), "pose": "idle" if away["in"] else ("carry_pack" if away.get("pack", false) else "walk"), "inside": away["in"], "dir": -1}  # 집을 옮기면 등짐(S235)
 	t += f.m.get("t0", 0.0)
 	var home = b.structures[f.home]
 	var door := door_of(b, P, home)

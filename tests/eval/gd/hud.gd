@@ -3321,6 +3321,92 @@ func ev517():
 	_done(main)
 	return out
 
+# 주민 칸의 한 그림(몸·look·자세 키·방향 행·프레임 열)
+func _folk_cell(art: Dictionary, img: Image, body: String, look: int, key: String, dir: int, f: int) -> Image:
+	var a: Dictionary = art["folk_%s_%d" % [body, look]]
+	var c := int(a.c)
+	return img.get_region(Rect2i(int(a.get("x", 0)) + f * c, int(a[key]) + dir * c, c, c))
+
+# EV522 · S172 2026-10-27 셋째 변경: 정지 남쪽 키는 성별마다 아이 < 청소년 < 어른이 2px 이상씩 차이 난다
+func ev522():
+	var art: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/units/heroes.json"))
+	var img: Image = load("res://art/units/heroes.png").get_image()
+	var bad := []
+	for look in 8:
+		for row in [["boy", "lad", "man"], ["girl", "lass", "woman"]]:
+			var h: Array = row.map(func(k): return _folk_cell(art, img, k, look, "idle", 0, 0).get_used_rect().size.y)
+			if not (h[0] + 2 <= h[1] and h[1] + 2 <= h[2]):
+				bad.append("look %d %s 키 %s" % [look, row, h])
+	return check(bad.is_empty(), "%s" % [bad])
+
+# EV523 · S172 셋째 변경: 젊은 주민의 정지 4방향 그림 위 3줄(머리)에 노인 회색(a4aec2·d0d6e0)이 없고, 노인 정지 남쪽 위 3줄에는 a4aec2가 있다
+func ev523():
+	var art: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/units/heroes.json"))
+	var img: Image = load("res://art/units/heroes.png").get_image()
+	var top := func(cell: Image) -> Array:  # 불투명 영역 위 3줄의 색(hex)
+		var r := cell.get_used_rect()
+		var out := []
+		for y in range(r.position.y, r.position.y + 3):
+			for x in range(r.position.x, r.end.x):
+				var p := cell.get_pixel(x, y)
+				if p.a > 0.5:
+					out.append(p.to_html(false))
+		return out
+	var bad := []
+	for look in 8:
+		for body in ["boy", "lad", "man", "girl", "lass", "woman"]:
+			for dir in 4:
+				var hit: Array = top.call(_folk_cell(art, img, body, look, "idle", dir, 0)).filter(func(h): return h in ["a4aec2", "d0d6e0"])
+				if not hit.is_empty():
+					bad.append("folk_%s_%d 정지 %d행 위 3줄 %s" % [body, look, dir, hit])
+		for body in ["old_man", "old_woman"]:
+			if not "a4aec2" in top.call(_folk_cell(art, img, body, look, "idle", 0, 0)):
+				bad.append("folk_%s_%d 정지 남쪽 위 3줄에 a4aec2가 없다" % [body, look])
+	return check(bad.is_empty(), "%d건 %s" % [bad.size(), bad.slice(0, 8)])
+
+# EV524 · S172 셋째 변경: look 1(웃옷 a56243)의 물동이 이고 걷기 그림마다 물동이의 파랑 계열 픽셀이 5개 이상이다
+func ev524():
+	var art: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/units/heroes.json"))
+	var img: Image = load("res://art/units/heroes.png").get_image()
+	var bad := []
+	for body in ["man", "woman", "lad", "lass", "boy", "girl"]:
+		for d in 4:
+			for f in 2:
+				var cell := _folk_cell(art, img, body, 1, "carry_water", d, f)
+				var n := 0
+				for y in cell.get_height():
+					for x in cell.get_width():
+						var p := cell.get_pixel(x, y)
+						if p.a > 0.5 and p.to_html(false) in ["4f78ad", "7a86a0", "56607a"]:
+							n += 1
+				if n < 5:
+					bad.append("folk_%s_1 carry_water %d행 %d열 파랑 %d" % [body, d, f, n])
+	return check(bad.is_empty(), "%s" % [bad.slice(0, 8)])
+
+# EV525 · I187 ③: 몸 여덟 × look 0~7의 주민 칸마다 등짐(carry_pack) 4방향 × 2프레임이 있고 북쪽은 걷기와 다르다. 사제 옷에는 없다
+func ev525():
+	var art: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/units/heroes.json"))
+	var img: Image = load("res://art/units/heroes.png").get_image()
+	var whole := Rect2i(Vector2i.ZERO, img.get_size())
+	var bad := []
+	for body in ["man", "woman", "boy", "girl", "lad", "lass", "old_man", "old_woman"]:
+		for look in 8:
+			var a = art.get("folk_%s_%d" % [body, look])
+			if a == null or not a.has("carry_pack"):
+				bad.append("folk_%s_%d carry_pack 없음" % [body, look])
+				continue
+			var c := int(a.c)
+			for d in 4:
+				for f in 2:
+					var r := Rect2i(int(a.get("x", 0)) + f * c, int(a.carry_pack) + d * c, c, c)
+					if not whole.encloses(r) or img.get_region(r).is_invisible():
+						bad.append("folk_%s_%d carry_pack %d행 %d열" % [body, look, d, f])
+			if bad.is_empty() and _folk_cell(art, img, body, look, "carry_pack", 2, 0).get_data() == _folk_cell(art, img, body, look, "walk", 2, 0).get_data():
+				bad.append("folk_%s_%d carry_pack 북쪽이 걷기와 같다" % [body, look])
+	if art.get("folk_man_8", {}).has("carry_pack"):
+		bad.append("folk_man_8(사제)에 carry_pack이 있다")
+	return check(bad.is_empty(), "%s" % [bad.slice(0, 8)])
+
 # EV536 · S188: 1라운드 3웨이브 줄에 슬라임 킹 특성
 func ev536():
 	var main = _prep()

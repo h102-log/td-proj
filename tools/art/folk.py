@@ -15,7 +15,7 @@ import render as R
 
 OUT = Path(__file__).resolve().parents[2] / "art" / "trial" / "folk"
 PAL = R.PALETTES["f24p"]
-MATS = ["skin", "hair", "cloth", "lower", "scarf", "wood", "shoe", "iron", "clay", "sack", "flame"]
+MATS = ["skin", "hair", "cloth", "lower", "scarf", "wood", "shoe", "iron", "clay", "sack", "flame", "pack"]
 PARTS = ["leg", "torso", "head", "arm", "tool"]
 ARMS = dict(sh_l=8, el_l=15, ab_l=0.15, sh_r=8, el_r=15, ab_r=0.15)  # 빈손을 내린다(resident.py)
 POSES = [dict(H.IDLE, **ARMS)] + [dict(w, **ARMS) for w in H.WALK[:2]]  # 정지, 걷기 접지·통과(atlas.py FOUR_COLS walk)
@@ -51,23 +51,31 @@ CARRY = {  # 들고 걷기: 걷기 2위상에 팔·짐만 바꾼다
     "carry_basket": dict(sh_r=14, el_r=40, ab_r=0.35, load="basket"),
     "carry_lantern": dict(sh_r=50, el_r=35, ab_r=0.2, load="lantern"),
     "carry_stick": dict(sh_r=30, el_r=20, ab_r=0.3, load="stick", sword=150),
+    "carry_pack": dict(sh_l=20, el_l=60, ab_l=0.3, sh_r=20, el_r=60, ab_r=0.3, load="pack"),  # 집을 옮길 때 등짐(S235): 두 손이 멜빵을 쥔다
 }
 for k, v in CARRY.items():
     WORK[k] = [dict(w, **dict(ARMS, sword_side=0, **v)) for w in H.WALK[:2]]
 ADULT = ["hoe", "fish", "axe", "saw", "hammer", "sit", "stir", "carry_sack", "carry_lantern", "carry_water", "squat", "carry_basket"]
-# 몸이 굽는 일 자세: 그 몸의 역할(I182 ①)이 맡는 직업의 자세(battle_view.gd POSE). man·woman은 가장·배우자, 아이, 노인. 청소년은 어른 직업을 얻는다(S232)
+# 몸이 굽는 일 자세: 그 몸의 역할(I182 ①)이 맡는 직업의 자세(battle_view.gd POSE). man·woman은 가장·배우자, 아이, 노인. 청소년은 어른 직업을 얻는다(S232).
+# 등짐(carry_pack)은 집을 옮기는 누구나 지므로(S235) 모든 몸이 굽는다
 USES = {"man": ADULT, "woman": ADULT, "boy": ["squat", "carry_stick", "carry_water"], "girl": ["squat", "carry_stick", "carry_water"],
         "old_man": ["sit", "squat", "carry_basket"], "old_woman": ["sit", "squat", "carry_basket"], "lad": ADULT, "lass": ADULT}
+USES = {k: v + ["carry_pack"] for k, v in USES.items()}
 PRIEST = 8  # 남자 시트 아홉째 띠: 사제(S222)
 
 # 몸: 성별(남 바지·맨머리 / 여 발목 치마·머릿수건, 앞머리가 보임)은 아이 때부터 같다(S172 2026-10-27 둘째 변경),
 # 나이(아이 축소·큰 머리 / 청소년은 아이와 어른 사이(S232) / 노인 굽은 등·회색 머리·지팡이)
+# 2026-10-27
+# [동작] 정지 남쪽 키가 아이 10·청소년 12·어른 14px이 되는 배율이다(S172 셋째 변경)
+# [의도] Gemini 판정에서 청소년 여자가 혼자 서면 어른과 갈리지 않았다(art/trial/preview/villager_looks/feedback_4.md). 사이를 2px씩 벌린다
+# [이유] 사용자 «아이 10·청소년 12·어른 14px». 어른은 칸(23px)을 키우지 않으려 그대로 두고 아이·여자 청소년을 줄였다.
+#        여자는 머릿수건이 1px 더해 같은 키에 배율이 더 작다. 배율 0.02 간격으로 구워 키를 잰 값이다
 BODIES = {"man": dict(skirt=False, scarf=False, scale=0.9, head=1.0, lean=0, cane=False),
           "woman": dict(skirt=True, scarf=True, scale=0.88, head=1.0, lean=0, cane=False),
-          "boy": dict(skirt=False, scarf=False, scale=0.66, head=1.2, lean=0, cane=False),
-          "girl": dict(skirt=True, scarf=True, scale=0.66, head=1.2, lean=0, cane=False),
+          "boy": dict(skirt=False, scarf=False, scale=0.6, head=1.2, lean=0, cane=False),
+          "girl": dict(skirt=True, scarf=True, scale=0.54, head=1.2, lean=0, cane=False),
           "lad": dict(skirt=False, scarf=False, scale=0.78, head=1.1, lean=0, cane=False),
-          "lass": dict(skirt=True, scarf=True, scale=0.77, head=1.1, lean=0, cane=False),
+          "lass": dict(skirt=True, scarf=True, scale=0.72, head=1.1, lean=0, cane=False),
           "old_man": dict(skirt=False, scarf=False, scale=0.86, head=1.0, lean=16, cane=True),
           "old_woman": dict(skirt=True, scarf=True, scale=0.84, head=1.0, lean=16, cane=True)}
 
@@ -77,13 +85,18 @@ BODIES = {"man": dict(skirt=False, scarf=False, scale=0.9, head=1.0, lean=0, can
 # [이유] 웃옷은 아군 청록·흙·물과, 적 빨강·풀에 묻히는 초록을 뺀 시안 v2 색이다(Gemini 2단계, art/trial/preview/villager_looks/feedback_2.md).
 #        773421은 자동 램프가 빨강을 섞어 황토 ab5c1c로 바꿨다
 SKIN = ["e8b090", "c8906a", "a56243"]
-HAIR = ["4a2c18", "2a1d0d", "ab5c1c", "efac28", "927e6a"]
+# 2026-10-27
+# [동작] 젊은 주민의 머리·머릿수건은 그늘까지 노인 회색(a4aec2·d0d6e0)을 쓰지 않는다: 다섯째 머리 36170c, 머릿수건은 손으로 정한 따뜻한 램프 둘
+# [의도] Gemini 판정에서 머리 927e6a와 머릿수건 그늘이 노인 회색으로 구워져 젊은이가 노인처럼 읽혔다(feedback_4.md, S172 셋째 변경)
+# [이유] 자동 램프는 크림 efd8a1의 그늘 한 단을 a4aec2로, 회백 d0d6e0은 램프 전체를 노인 회색 계열로 골랐다(이 세션 H.ramp 출력)
+HAIR = ["4a2c18", "2a1d0d", "ab5c1c", "efac28", "36170c"]
 CLOTH = ["4f78ad", "a56243", "efd8a1", "7a86a0", "ab5c1c", "927e6a", "efb775"]
 LOWER = ["70462a", "262d3d", "3a4357", "392a1c", "45230d"]
-SCARF = ["efd8a1", "d0d6e0"]  # 젊은 여자는 따뜻한 크림·회백, 노인 머리·머릿수건은 차가운 회색(OLD_HAIR)과 가른다
+SCARF = [["392a1c", "a56243", "efb775", "efd8a1", "efd8a1"], ["392a1c", "684c3c", "a56243", "efb775", "efd8a1"]]  # 젊은 여자: 크림·복숭아(H.ramp 손 램프)
 OLD_HAIR = "a4aec2"
 LOOKS = 8
-TOOLS = {"wood": "8a5530", "iron": "56607a", "clay": "a56243", "sack": "927e6a", "flame": "efac28"}  # 도구·짐 색(F24+ 근처)
+# 도구·짐 색(F24+ 근처). 물동이(clay)는 웃옷·피부와 갈리게 파랑(S172 셋째 변경), 등짐(pack)은 갈색 보따리(S235)
+TOOLS = {"wood": "8a5530", "iron": "56607a", "clay": "4f78ad", "sack": "927e6a", "flame": "efac28", "pack": "724113"}
 
 
 def colors(p, old):
@@ -125,7 +138,7 @@ def make(kind, robe=False):
             sh, el, hd = arms[side]
             P += [(R.capsule(U(sh), U(el), 0.04), m("cloth"), "arm"), (R.capsule(U(el), U(hd), 0.036), m("skin"), "arm"),
                   (R.ellipsoid(U(hd), (0.036, 0.036, 0.036)), m("skin"), "arm")]
-        if b["cane"] and not pose.get("tool") and not pose.get("load"):  # 지팡이: 왼손에서 앞아래 땅으로. 일할 때는 내려놓는다
+        if b["cane"] and not pose.get("tool") and pose.get("load") in (None, "pack"):  # 지팡이: 왼손에서 앞아래 땅으로. 일할 때는 내려놓고, 등짐을 질 때는 짚는다
             hd = U(arms["l"][2])
             P.append((R.capsule(hd + [0, 0, 0.06], np.array([hd[0] - 0.02, hd[1] + 0.06, 0.0]), 0.03), m("wood"), "tool"))
         P += gear(pose, U, up_r, arms, hk, m)
@@ -165,8 +178,11 @@ def gear(pose, U, up_r, arms, hk, m):
     if pose.get("log"):
         out.append((R.box([0, 0.3, 0.3], (0.17, 0.05, 0.05)), m("wood"), "tool"))
         out.append((R.box([0, 0.3, 0.13], (0.03, 0.04, 0.13)), m("wood"), "tool"))
-    if load == "jar":  # 머리에 인 물동이
-        out.append((R.ellipsoid(U([0, 0, 0.69 + 0.235 * hk + 0.06]), (0.075, 0.075, 0.065)), m("clay"), "tool"))
+    if load == "jar":  # 머리에 인 물동이. 24px에서 머리와 갈리게 처음 크기의 1.7 × 머리 배율배다. 몸이 작은 아이도 5px 넘게 보인다(S172 셋째 변경)
+        j = 1.7 * hk
+        out.append((R.ellipsoid(U([0, 0, 0.69 + 0.235 * hk + 0.06 * j]), (0.075 * j, 0.075 * j, 0.065 * j)), m("clay"), "tool"))
+    elif load == "pack":  # 등에 멘 보따리(S235)
+        out.append((R.ellipsoid(U([0, -0.13, 0.6]), (0.12, 0.09, 0.13)), m("pack"), "tool"))
     elif load == "sack":  # 어깨에 멘 자루
         out.append((R.ellipsoid(U([0.1, -0.02, 0.86]), (0.1, 0.09, 0.08)), m("sack"), "tool"))
     elif load == "basket":  # 손에 든 바구니

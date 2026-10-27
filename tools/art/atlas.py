@@ -45,7 +45,8 @@ def main():
         im = Image.open(f"art/trial/folk/{body}.png").convert("RGBA")
         for look in range(im.width // (2 * c)):
             m = {"c": c, "anchor": fit["anchor"], "x": 2 * c * look, "idle": y, "walk": y + 4 * c}
-            meta[f"folk_{body}_{look}"] = dict(m, **{p: y + r * c for p, r in fit["rows"][body].items()})
+            have = {p: y + r * c for p, r in fit["rows"][body].items() if im.crop((2 * c * look, r * c, 2 * c * look + c, r * c + c)).getbbox()}
+            meta[f"folk_{body}_{look}"] = dict(m, **have)  # 굽지 않은 자세(사제 띠의 일 자세·등짐, I187 ③)는 키를 두지 않는다
         sheets.append((im, y))
         y += im.height
     out = Image.new("RGBA", (max(im.width for im, _ in sheets), y))
