@@ -174,10 +174,10 @@ static func icon(kind: String) -> AtlasTexture:
 	elif kind == "base":  # 마을 Lv1 거점 망루(S190)
 		t.atlas = BattleView.KEEP
 		t.region = Rect2(0, 0, 80, 80)
-	elif BattleView.ART.has(kind):  # 남쪽을 보는 정지 그림
+	elif BattleView.ART.has(kind):  # 남쪽을 보는 정지 그림. 방향 없는 칸(I189)은 x만큼 옆이다
 		var a: Dictionary = BattleView.ART[kind]
 		t.atlas = BattleView.UNITS
-		t.region = Rect2(0, a.idle, a.c, a.c)
+		t.region = Rect2(a.get("x", 0), a.idle, a.c, a.c)
 	else:  # 그림이 아직 없는 종류는 빈 그림(맵에는 색 원으로 그린다)
 		return t
 	var used := t.atlas.get_image().get_region(Rect2i(t.region)).get_used_rect()

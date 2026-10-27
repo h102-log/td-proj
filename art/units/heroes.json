@@ -153,6 +153,58 @@
   "attack": 9236,
   "fall": 9588
  },
+ "slimelet": {
+  "c": 14,
+  "anchor": [
+   7.0,
+   8
+  ],
+  "x": 88,
+  "one": true,
+  "idle": 5644,
+  "walk": 5658,
+  "attack": 5672,
+  "fall": 5700
+ },
+ "slime": {
+  "c": 20,
+  "anchor": [
+   10.0,
+   12
+  ],
+  "x": 88,
+  "one": true,
+  "idle": 5728,
+  "walk": 5748,
+  "attack": 5768,
+  "fall": 5808
+ },
+ "big_slime": {
+  "c": 26,
+  "anchor": [
+   13.0,
+   16
+  ],
+  "x": 88,
+  "one": true,
+  "idle": 5848,
+  "walk": 5874,
+  "attack": 5900,
+  "fall": 5952
+ },
+ "slime_king": {
+  "c": 32,
+  "anchor": [
+   16.0,
+   21
+  ],
+  "x": 88,
+  "one": true,
+  "idle": 6004,
+  "walk": 6036,
+  "attack": 6068,
+  "fall": 6132
+ },
  "folk_man_0": {
   "c": 23,
   "anchor": [

@@ -3,6 +3,7 @@
 # (insights/2026-10-20_render_spike.md P4).
 # 성곽 칸 조각(4.1c)도 같은 식으로 4.0 시험 성벽 그림에서 잘라 한 장에 모은다.
 # 용병·적(4.1d)은 C 절충안에 쓰는 칸만 골라 영웅 아래에 붙인다: 행 S·E·N·W, 정지 1열, 걷기 2위상 2열, 공격 키 포즈 1열, 누운 자세 1장
+# 방향 없는 적(1라운드 슬라임, I189)은 남쪽 한 행만 잘라 용병·적 칸 구역 오른쪽에 쌓는다(x·one). 아래에 붙이면 Godot 텍스처 상한 16384px을 넘는다
 # 주민(S172 2026-10-26·27 변경)은 몸마다 folk.py 시트 한 장을 그대로 붙이고, look마다 x로 가른다(folk_<몸>_<look>). 일 자세는 자세 이름이 그 첫 행의 y다
 # 시설(4.1e)은 48×48 칸을 따로 한 장에 모은다(facility())
 # 사용: python tools/art/atlas.py → art/units/heroes.png, art/units/heroes.json, art/castle/walls.png, art/castle/facility.png
@@ -18,27 +19,53 @@ FOUR = {"soldier": "soldier", "archer": "archer", "engineer": "engineer", "basic
 FOLK = ["man", "woman", "boy", "girl", "old_man", "old_woman", "lad", "lass"]  # 주민 몸(S221, 청소년 S232)
 FOUR_ROWS = [0, 2, 4, 6]  # 8방향 시트(render.DIRS 순서)에서 S·E·N·W
 FOUR_COLS = {"idle": [0], "walk": [0, 1], "attack": [1], "fall": [4]}  # 걷기 접지·통과, 공격 내려침, 쓰러짐 마지막(누운 자세)
+ONE = {k: k for k in ("slimelet", "slime", "big_slime", "slime_king")}  # 방향 없는 적(S172 2026-10-27 넷째 변경): 게임 종류 → 그림 폴더
+
+
+def _sheet(folder, a):
+    return Image.open(f"art/trial/{folder}/{a}_45_D_f24p_24.png").convert("RGBA")
+
+
+def _fit(folder):
+    fit = json.loads(Path(f"art/trial/{folder}/fit.json").read_text(encoding="utf-8"))["fits"]["24"]
+    return {"c": int(fit[2]), "anchor": [fit[1][0], fit[1][1]]}
+
+
+def _cut(im, c, a, rows):
+    """8방향 시트에서 C 절충안 칸만: rows 행 × FOUR_COLS[a] 열. 공격·쓰러짐은 2배 칸"""
+    n = c * (2 if a in ("attack", "fall") else 1)
+    cols = FOUR_COLS[a]
+    cut = Image.new("RGBA", (n * len(cols), n * len(rows)))
+    for r, row in enumerate(rows):
+        for q, col in enumerate(cols):
+            cut.paste(im.crop((col * n, row * n, (col + 1) * n, (row + 1) * n)), (q * n, r * n))
+    return cut
 
 
 def main():
-    sheets, meta, y = [], {}, 0
+    sheets, meta, y = [], {}, 0  # sheets: (그림, x, y)
     for kind, folder in [(h, h) for h in HEROES] + list(FOUR.items()):
-        fit = json.loads(Path(f"art/trial/{folder}/fit.json").read_text(encoding="utf-8"))["fits"]["24"]
-        m = {"c": int(fit[2]), "anchor": [fit[1][0], fit[1][1]]}
+        m = _fit(folder)
         for a in ANIMS:
-            im = Image.open(f"art/trial/{folder}/{a}_45_D_f24p_24.png").convert("RGBA")
+            im = _sheet(folder, a)
             if kind in FOUR:
-                n = m["c"] * (2 if a in ("attack", "fall") else 1)
-                rows, cols = ([0] if a == "fall" else FOUR_ROWS), FOUR_COLS[a]
-                cut = Image.new("RGBA", (n * len(cols), n * len(rows)))
-                for r, row in enumerate(rows):
-                    for q, col in enumerate(cols):
-                        cut.paste(im.crop((col * n, row * n, (col + 1) * n, (row + 1) * n)), (q * n, r * n))
-                im = cut
-            sheets.append((im, y))
+                im = _cut(im, m["c"], a, [0] if a == "fall" else FOUR_ROWS)
+            sheets.append((im, 0, y))
             m[a] = y
             y += im.height
         meta[kind] = m
+    top = meta[next(iter(FOUR))]["idle"]  # 용병·적 칸 구역(top~y)의 오른쪽에 방향 없는 칸을 위에서부터 쌓는다(I189)
+    x = max(im.width for im, _, oy in sheets if oy >= top)
+    oy = top
+    for kind, folder in ONE.items():
+        m = dict(_fit(folder), x=x, one=True)
+        for a in ANIMS:
+            im = _cut(_sheet(folder, a), m["c"], a, [0])
+            sheets.append((im, x, oy))
+            m[a] = oy
+            oy += im.height
+        meta[kind] = m
+    assert oy <= y, f"방향 없는 칸({top}~{oy})이 용병·적 칸 구역({top}~{y})을 넘는다"
     fit = json.loads(Path("art/trial/folk/fit.json").read_text(encoding="utf-8"))
     c = fit["c"]
     for body in FOLK:  # look마다 가로 2칸 띠: 0~3행 정지(1열), 4~7행 걷기(2열), 그 아래 일 자세(S172 2026-10-27 변경, 첫 행은 fit.json rows)
@@ -47,11 +74,11 @@ def main():
             m = {"c": c, "anchor": fit["anchor"], "x": 2 * c * look, "idle": y, "walk": y + 4 * c}
             have = {p: y + r * c for p, r in fit["rows"][body].items() if im.crop((2 * c * look, r * c, 2 * c * look + c, r * c + c)).getbbox()}
             meta[f"folk_{body}_{look}"] = dict(m, **have)  # 굽지 않은 자세(사제 띠의 일 자세·등짐, I187 ③)는 키를 두지 않는다
-        sheets.append((im, y))
+        sheets.append((im, 0, y))
         y += im.height
-    out = Image.new("RGBA", (max(im.width for im, _ in sheets), y))
-    for im, oy in sheets:
-        out.paste(im, (0, oy))
+    out = Image.new("RGBA", (max(ox + im.width for im, ox, _ in sheets), y))
+    for im, ox, oy in sheets:
+        out.paste(im, (ox, oy))
     Path("art/units").mkdir(exist_ok=True)
     out.save("art/units/heroes.png")
     Path("art/units/heroes.json").write_text(json.dumps(meta, indent=1) + "\n", encoding="utf-8")
