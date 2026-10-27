@@ -4,9 +4,10 @@ extends RefCounted
 # 공병 일과 집결 중인 시설뿐이다. 그래서 유닛·구조물은 스크립트 변수를 모두 담고, 객체를 가리키는 칸(SKIP)은 빼되 그 둘은 칸으로 담아 다시 잇는다
 
 const Battle := preload("res://src/sim/battle.gd")
-const VERSION := 5  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179). 4: 집의 가족(S221). 5: 주민의 원래 직업(S222)
+const VERSION := 6  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179). 4: 집의 가족(S221). 5: 주민의 원래 직업(S222). 6: 주민 체력·대피·신뢰(S225~S229)
 # 판에서 담는 칸. 맵·라운드·마을 칸은 같은 스테이지로 새 판을 만들면 같다
-const KEYS := ["state", "round_index", "wave_index", "gold", "village_level", "offers", "quests", "mission", "commission", "commission_offers", "settled", "tally", "_chains"]
+const KEYS := ["state", "round_index", "wave_index", "gold", "village_level", "offers", "quests", "mission", "commission", "commission_offers", "settled", "tally", "_chains",
+	"trust", "calm", "evac_round", "folk_clock"]  # 주민의 체력·가는 길·일과 위상과 집의 죽은 식구 수는 구조물 folk·lost에 담긴다(I183 ⑩)
 
 # 유닛·구조물에서 담지 않는 칸: 읽기만 하는 present와, 다른 객체를 가리키는 칸(지난 공격 대상·공병 일·스킬 지시·실비아 표식·나온 생산 시설).
 # 전투 단계가 아니면 공격 대상·공병 일·나온 생산 시설 말고는 비어 있다(_clear_effects). 공격 대상은 화면이 그리는 지난 타격이다.
@@ -65,6 +66,7 @@ static func apply(b, d: Dictionary) -> void:
 			u.job = _job(b, u.get_meta("job")[0], u.get_meta("job")[1])
 			u.job.worker = u
 			u.remove_meta("job")
+	b._census()  # 주민 몸은 구조물 folk에서 다시 만든다
 	b._forecast()
 
 static func write(b) -> void:

@@ -7,7 +7,7 @@ extends Panel  # 컨테이너가 아니라 자식을 정렬하지 않는다. 칸
 
 const BattleView := preload("res://src/ui/battle_view.gd")
 const HudTheme := preload("res://src/ui/hud_theme.gd")
-const ROWS := [["wall", "tower", "magic", "cannon"], ["barracks", "workshop", "archery", "house", "church"], ["soldier", "engineer", "archer"]]  # 용병은 파는 시설 바로 아래
+const ROWS := [["wall", "tower", "magic", "cannon"], ["barracks", "workshop", "archery", "house", "church"], ["soldier", "engineer", "archer", "shelter"]]  # 용병은 파는 시설 바로 아래, 대피소는 집 아래(S186 2026-10-27 변경)
 const HEADS := ["공", "마", "용"]  # ponytail: 줄 머리는 한 글자 임시값. 전용 아이콘이 생기면 그림으로 바꾼다
 const PAD := 4  # 격자 안쪽 여백
 const HEAD := 12  # 줄 머리 폭
@@ -46,7 +46,7 @@ func _ready() -> void:
 	add_theme_stylebox_override("panel", HudTheme.box("panel", "PanelContainer", HudTheme.PANEL, HudTheme.LINE))
 	var costs: Dictionary = battle.STRUCTURE_KINDS.merged(battle.MERC_KINDS)
 	for key in controls.PLACE_KEYS:
-		_keys[controls.PLACE_KEYS[key]] = OS.get_keycode_string(key).replace("Minus", "-").replace("Equal", "=")
+		_keys[controls.PLACE_KEYS[key]] = OS.get_keycode_string(key).replace("Minus", "-").replace("Equal", "=").replace("BackSlash", "\\")
 	for r in ROWS.size():
 		var head := _label(self, HEADS[r], 8, HudTheme.DIM)
 		head.position = Vector2(PAD, PAD + r * STEP)
@@ -252,6 +252,8 @@ func _lines(kind: String) -> Array:
 		about = "마을 · 준비 단계마다 세금 +%d" % d.tax
 	elif d.heal > 0.0:
 		about = "마을 · 지은 교회를 눌러 영웅 치료"
+	elif d.seats > 0:
+		about = "마을 · 대피령 때 주민 %d명" % d.seats
 	elif d.range > 0.0:
 		about = "사거리 %s칸 · 공격력 %s" % [hud._num(d.range), hud._num(d.damage)] + (" · 범위 피해" if d.splash > 0.0 else "")
 	return [hud.NAMES[kind], "%d골드" % d.cost, "[%s]" % _keys[kind], about, path, why]

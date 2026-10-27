@@ -963,6 +963,44 @@ msgstr "Armor %s"
 msgid "%s 적"
 msgstr "%s"
 
+# ── 대피령 버튼·대피소(hud_evac.gd·hud_build.gd, S226·S230) ──
+
+msgid "대피소"
+msgstr "Shelter"
+
+msgid "마을 · 대피령 때 주민 %d명"
+msgstr "Village · shelters %d villagers"
+
+msgid "대피령"
+msgstr "Evacuate"
+
+msgid "대피 중"
+msgstr "Evacuating"
+
+msgid "주민을 대피소와 집으로 피신시킨다 · 신뢰 %d/%d"
+msgstr "Sends villagers to shelters and homes · Trust %d/%d"
+
+msgid "주민이 없다"
+msgstr "No villagers"
+
+msgid "전투 단계에만"
+msgstr "Battle phase only"
+
+msgid "주민이 다쳤다 — 이번 라운드 세금 −1"
+msgstr "A villager was hurt — tax −1 this round"
+
+msgid "주민이 죽었다 — 그 집 세금 −1"
+msgstr "A villager died — that house pays 1 less tax"
+
+msgid "거짓 대피령: 적이 성벽에 안 왔다 · 신뢰 −1"
+msgstr "False alarm: no enemy reached the walls · Trust −1"
+
+msgid "대피령이 옳았다 · 신뢰 +1"
+msgstr "The evacuation was right · Trust +1"
+
+msgid "신뢰가 바닥나 한 가구가 떠났다"
+msgstr "Trust ran out — a household left"
+
 # ── 한글 없는 조립 틀: 끼운 값을 다시 번역하려고 넣는다 ──
 
 msgid "%s «%s» · %s"

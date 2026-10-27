@@ -4,6 +4,8 @@ extends RefCounted
 signal enemy_spawned(enemy)
 signal wave_starting  # 웨이브를 시작하기 직전(준비 단계가 끝나는 때). main이 저장한다(S181)
 
+const Folk := preload("res://src/sim/folk.gd")  # 주민 일과·대피 손잡이(S223·S225~S229)
+
 # 종류 이름 → 수치. 판을 만들 때 data/ 아래 Resource 파일에서 읽는다(S31). 파일 이름이 종류 이름이다(I66)
 # 상수였을 때의 이름을 그대로 둔다(UI·테스트가 battle.MERC_KINDS.soldier.cost처럼 읽는다)
 var ENEMY_KINDS := _kinds("res://data/enemies/")
@@ -98,7 +100,8 @@ class Block:
 	var produces := []  # 생산 시설이면 파는 용병 kind들. 첫째가 기본이다(S20, S87)
 	var rally: Vector2i  # 생산 시설의 집결 지점(S21)
 	var tax := 0  # 집이면 준비 단계마다 내는 세금(S101)
-	var folk := []  # 집이면 사는 가족(S221): {body, look} 배열. 다 지은 때 정해진다(_move_in)
+	var folk := []  # 집이면 사는 가족(S221), 교회면 사제(S222): {body, look, job, n(원래 차례), hp·away·t0(S227·I183)} 배열. 다 지은 때 정해진다(_move_in)
+	var lost := 0  # 죽은 식구 수(S228). 그 집 세금에서 계속 빠진다
 	var progress := 1.0  # 건설 진행률(0~1). 1 미만이면 미완성이다(I62)
 	var full: float  # 다 지었을 때의 체력. 옮겨 다시 짓는 대포는 옮기기 전 체력이다(I74)
 	var build_time := 1.0  # 전투 중 짓는 데 드는 시간(초)
@@ -119,6 +122,31 @@ class Block:
 		max_hp = h
 		hp = h
 		full = h
+
+# 주민 몸(S227): 적이 노리고 치는 대상. 상태(체력·가는 길·일과 위상)는 사는 구조물 folk[i] 사전 m에 두어 저장에 담긴다.
+# 자리·자세는 판이 스텝마다 Folk.day로 다시 넣는다(_place)
+class Villager:
+	var m: Dictionary
+	var f: Dictionary  # Folk.folk_of의 그 주민 항목(body·look·job·home·i)
+	var home  # 사는 구조물(집, 사제는 교회)
+	var pos := Vector2.ZERO
+	var was := Vector2.ZERO  # 지난 스텝 자리. 화면이 걷는 쪽을 구한다
+	var pose := "idle"
+	var dir := 0
+	var inside := false  # 집·대피소·교회 안이라 보이지 않고 노려지지 않는다
+	var alive := true
+	var on_wall := false  # 적 목표 고르기·화면(_lift)이 읽는다
+	var kind := "villager"
+	var max_hp: float
+	var hp: float:
+		get:
+			return m.get("hp", max_hp)
+
+	func _init(entry: Dictionary, h, top: float) -> void:
+		f = entry
+		m = entry.m
+		home = h
+		max_hp = top
 
 class Enemy:
 	var kind: String
@@ -350,6 +378,17 @@ var merc_cap := MERC_CAP
 var village_level := 1  # 오를수록 지을 수 있는 생산 시설이 는다(S46, S99)
 var dark := 0.0  # 어둠(S210): 0 낮 ~ 1 한밤. 밤 웨이브의 전투 단계에 오르고, 전투가 끝나면 내린다. 저장에 담지 않는다(준비 단계는 낮)
 var wave_time := 0.0  # 이번 전투 단계가 시작된 뒤 흐른 시간(초). 밤 웨이브의 해 지는 때(at)를 잰다
+var people := []  # 주민 몸(Villager, Folk.folk_of 차례, S227). 주민이 바뀌면 _census가 다시 만든다
+var folk_clock := 0.0  # 주민 시계(초, S223). 모든 단계에서 스텝마다 흐르고 저장에 담긴다(I183 ⑨⑩)
+var trust := Folk.TRUST  # 신뢰(S229)
+var calm := 0  # 대피령 없이 지난 라운드 수(S229)
+var evac := false  # 대피령 중(S225). 웨이브가 끝나면 풀린다
+var evac_round := false  # 이번 라운드에 대피령을 냈나(S229)
+var near_wall := false  # 이번 웨이브에 적이 성벽 바깥 Folk.NEAR칸 안에 왔나(S229, I183 ⑤)
+var folk_news := []  # 주민 소식(S230 토스트): "hurt"·"dead"·"ok"·"false"·"left". HUD가 읽고 비운다
+var garden := []  # 텃밭 칸(I182 ⑥). 스테이지가 정하고, 없으면 비어 있다
+var yards := []  # 자갈 마당 칸(I182 ⑥). 스테이지가 정하고, 없으면 비어 있다
+var _fort := Rect2i()  # 성곽 칸을 모두 덮는 사각형, 성곽이 없으면 마을(I183 ⑤)
 var lights := []  # 불빛(S211): [자리(칸), 어둠 1일 때 반경(칸)]. step 끝에 다시 모은다. 화면이 어둠을 그릴 때 읽는다
 
 var grid := CostGrid.new()
@@ -421,6 +460,16 @@ func restart() -> void:
 	village_level = 1
 	dark = 0.0
 	wave_time = 0.0
+	people.clear()
+	folk_clock = 0.0
+	trust = Folk.TRUST
+	calm = 0
+	evac = false
+	evac_round = false
+	near_wall = false
+	folk_news.clear()
+	garden = stage.get("garden", [])
+	yards = stage.get("yards", [])
 	for s in structures.values() + castle.values() + rubble.values() + ([base] if base else []):  # 공병 ↔ 구조물 상호 참조를 끊는다. 남기면 RefCounted 순환이라 해제되지 않는다
 		_release(s)
 	base = Block.new(stage.base, "base", stage.base_hp)
@@ -452,8 +501,10 @@ func restart() -> void:
 	for c in fort.get("sealed", []):  # 닫힌 문루(S39)
 		castle[c].sealed = true
 	field_y = village.end.y + 1
+	_fort = village
 	for k in castle.values():
 		field_y = maxi(field_y, k.cell.y + 1)
+		_fort = _fort.merge(area_of(k))
 	base.produces = ["engineer"]  # live_prep 판에서는 거점도 공병을 판다(S98 2026-10-25 변경, sellers)
 	var exit = _exit_of(base)
 	base.rally = exit if exit != null else base.cell
@@ -520,6 +571,9 @@ func step(dt: float) -> void:
 	_count_holds()
 	for e in enemies:
 		_move(e, dt)
+	if state == "battle" and not near_wall:  # 대피령 판정(S229, I183 ⑤): 이 웨이브에 적이 성벽 바깥 NEAR칸 안에 들어왔나
+		var near := _fort.grow(Folk.NEAR)
+		near_wall = enemies.any(func(e): return near.has_point(Vector2i(e.pos.round())))
 	_push_apart(enemies, units)
 	var ground := units.filter(func(u): return not u.on_wall)  # 성벽 위 유닛은 밀리지 않는다(I70)
 	for u in units:
@@ -540,6 +594,7 @@ func step(dt: float) -> void:
 			_settle_quests()
 			if state == "cleared":
 				_draw_commissions()
+		_judge()  # 대피령 판정·떠남(S229)은 세금보다 먼저다(I183 ⑥)
 		if state != "won":  # 준비 단계나 라운드 사이로 넘어갈 때 걷는다(I46)
 			gold += tax()
 		for s in structures.values() + castle.values() + rubble.values() + [base]:  # 하던 건설·철거·업그레이드·수리·복구는 그 상태로 멈춘다(I19, I68, I87)
@@ -552,6 +607,7 @@ func step(dt: float) -> void:
 	for k in castle.values() + rubble.values():  # 성문 쿨타임은 전투 단계에만 줄고, 웨이브가 끝나면 사라진다(S135)
 		k.lock = maxf(k.lock - dt, 0.0) if state == "battle" else 0.0
 	_night(dt)
+	_folk(dt)
 	_light_up()
 
 # 라운드 r·웨이브 w의 밤(S210): {at, dark, fade}. 낮이면 {}
@@ -639,6 +695,7 @@ func start_battle() -> void:
 	_queue = wave_plan(round_index, wave_index)
 	_spawn_timer = 0.0
 	wave_time = 0.0
+	near_wall = false
 
 # 라운드 r·웨이브 w의 적을 나오는 차례대로 [종류, 출현 지점, 나올 칸]. 항목 차례로 나오고 출현 지점을 돌아가며 쓴다.
 # 나올 칸은 출현 지점에서 n번째 적마다 황금비 수열로 가로 ±spawn_spread 안에 흩는다(I177). 씨앗을 쓰지 않는다.
@@ -889,9 +946,16 @@ func _gate_of(cell: Vector2i):
 			best_d = d
 	return best
 
-# 준비 단계가 시작될 때 걷는 세금: 완성된 집의 세금 합이다. 미완성·부서진·팔린 집은 내지 않는다(I46, S102)
+# 준비 단계가 시작될 때 걷는 세금: 완성된 집마다 _tax_of의 합이다. 미완성·부서진·팔린 집은 내지 않는다(I46, S102)
 func tax() -> int:
-	return structures.values().reduce(func(n, s): return n + (s.tax if s.complete else 0), 0)
+	return structures.values().reduce(func(n, s): return n + (_tax_of(s) if s.complete else 0), 0)
+
+# 집 하나의 이번 세금(S228): 기본 세금 − 죽은 식구 − 지금 다친 식구, 0 밑으로 내려가지 않는다. 식구가 없거나 모두 떠나는 집은 0
+func _tax_of(s: Block) -> int:
+	var here: Array = s.folk.filter(func(m): return m.get("away", {}).get("to") != "out")
+	if s.tax <= 0 or here.is_empty():
+		return 0
+	return maxi(s.tax - s.lost - here.filter(func(m): return m.get("hp", Folk.HP) < Folk.HP).size(), 0)
 
 # 준비 단계에만 골드를 내고 마을 레벨을 하나 올린다(S99, I47). 최대 레벨이거나 골드가 모자라면 거부한다
 func raise_village() -> bool:
@@ -1711,7 +1775,7 @@ func build(kind: String, cell: Vector2i, overrides := {}):
 # 성곽 칸에는 대포만 성벽 칸(성문 제외)에 짓는다(S43, I72). taken은 유닛·적이 선 칸(_taken)이고, 칸을 여럿 물을 때 한 번 모아 넘긴다
 func _buildable(kind: String, cell: Vector2i, taken = null) -> bool:
 	var def: Dictionary = STRUCTURE_KINDS[kind]
-	var inside: bool = not def.produces.is_empty() or def.tax > 0 or def.heal > 0
+	var inside: bool = not def.produces.is_empty() or def.tax > 0 or def.heal > 0 or def.seats > 0  # 생산 시설·집·교회·대피소(S226)
 	if taken == null:
 		taken = _taken()
 	for c in cells_in(area_at(cell, def.size)):
@@ -2124,9 +2188,13 @@ func _grow(s: Block, dp: float) -> void:
 		_move_in(s)
 		_repath = true
 
-# 다 지은 집에 가족이 들어온다(S221). 유형을 가중치로 고르고 몸을 정한다. 피부(look % 3)는 가족이 같이 쓴다
+# 다 지은 집에 가족이 들어온다(S221). 유형을 가중치로 고르고 몸을 정한다. 피부(look % 3)는 가족이 같이 쓴다.
+# 다 지은 교회에는 사제가 산다(S222). n은 가족 안 원래 차례라 식구가 빠져도 남은 식구의 일과가 그대로다(I183)
+# ponytail: 사제는 사제가 없을 때 다 지은 교회에만 온다. 교회가 둘이고 사제가 사는 쪽이 없어지면 다른 교회에 새로 오지 않는다
 func _move_in(s: Block) -> void:
 	if s.tax <= 0:
+		if s.kind == "church" and not structures.values().any(func(c): return c.kind == "church" and not c.folk.is_empty()):
+			s.folk = [{"body": "man", "look": Folk.PRIEST_LOOK, "job": "priest", "n": 0}]
 		_staff()  # 다 지은 작업장·사격장에 일할 사람(S222)
 		return
 	var w: float = _kin.randf() * HOUSEHOLDS.reduce(func(a, h): return a + h[0], 0.0)
@@ -2147,6 +2215,7 @@ func _move_in(s: Block) -> void:
 	var roles := roles_of(s.folk)
 	for i in s.folk.size():
 		s.folk[i].job = _pick_job(roles[i], s.folk[i].body)
+		s.folk[i].n = i
 	_staff()
 
 # 주민의 원래 직업(S222, I182 ③): 역할의 직업 가운데, 고유 직업이면 아직 아무도 원래 직업으로 갖지 않은 것, 상한이 있으면 닿지 않은 것을
@@ -2214,6 +2283,198 @@ func _staff() -> void:
 		if best:
 			best.folk[0].craft = job
 			held[job] = true
+	_census()  # 주민이 바뀌는 곳(이사·시설·죽음·떠남)은 모두 여기를 지난다
+
+# ── 주민 대피·다침·신뢰(S225~S229, I183) ──
+
+# 주민 몸 목록(people)을 Folk.folk_of 차례로 다시 만든다. 같은 사전(m)의 몸은 그대로 두어 적이 노리던 대상이 이어진다. 빠진 몸은 alive를 끈다
+func _census() -> void:
+	var out := []
+	for f in Folk.folk_of(self):
+		var v = null
+		for o in people:
+			if is_same(o.m, f.m):
+				v = o
+				break
+		if v == null:
+			v = Villager.new(f, structures[f.home], Folk.HP)
+		v.f = f
+		out.append(v)
+	for o in people:
+		if not out.has(o):
+			o.alive = false
+	var fresh := out.filter(func(v): return not people.has(v))
+	people = out
+	_place(false)
+	for v in fresh:
+		v.was = v.pos
+
+# 주민마다 지금 시계의 자리·자세(Folk.day)를 넣는다. 스텝이면(moved) 지난 자리가 was에 남는다
+func _place(moved := true) -> void:
+	var day := Folk.day(self, folk_clock)
+	for k in people.size():
+		var v = people[k]
+		if moved:
+			v.was = v.pos
+		v.pos = day[k].pos
+		v.pose = day[k].pose
+		v.dir = day[k].dir
+		v.inside = day[k].inside
+
+# 주민 시계를 흘리고 길 위의 주민을 걷게 한다(S225·S227·S229): 행선지에 닿으면 안에 들고, 안에서 다쳤으면 회복하며,
+# 다 나았고 대피령이 아니면 집으로 가거나(교회·대피소) 일과로 돌아온다(집). 행선지가 없어지면 집으로 간다(I183 ⑦). 정문에 닿은 가족은 떠난다
+func _folk(dt: float) -> void:
+	folk_clock += dt
+	if people.is_empty():
+		return
+	for v in people.duplicate():
+		var a = v.m.get("away")
+		if a == null:
+			continue
+		var dest = structures.get(a.cell)
+		if a.to in ["church", "shelter"] and (dest == null or not dest.complete):
+			_go(v, "home")
+		elif not a["in"]:
+			a.s = minf(a.s + Folk.SPEED * maxf(v.hp / v.max_hp, Folk.SLOW) * dt, a.len)
+			if a.s >= a.len:
+				a["in"] = true
+				if a.to == "out":
+					_gone(v)
+		elif v.hp < v.max_hp:
+			v.m.hp = minf(v.hp + Folk.HEAL * (1.0 if a.to == "church" else Folk.HOME_HEAL) * dt, v.max_hp)
+		elif not evac:
+			if a.to == "home":
+				_rejoin(v)
+			else:
+				_go(v, "home")
+	_place()
+
+# 주민 v를 걷게 한다: church·shelter는 그 구조물(dest)의 문, home은 자기 집 문, out은 정문 안쪽 칸까지(I183 ②)
+func _go(v, to: String, dest = null) -> void:
+	var P := Folk.paths(self)
+	var at: Vector2i = _gate_in() if to == "out" else Folk.door_of(self, P, v.home if to == "home" else dest)
+	var r := Folk.trail(P, Folk.open_cell(P, Vector2i(v.pos.round())), at)
+	var pts: Array = [v.pos] + r.pts
+	v.m.away = {"to": to, "cell": dest.cell if dest else at, "pts": pts, "len": r.len + v.pos.distance_to(r.pts[0]), "s": 0.0, "in": false}
+
+# 정문 바로 안쪽 마을 칸(떠나는 가족이 걸어 나가는 곳, S229). 성곽이 없으면 거점 열의 마을 맨 아래 칸
+func _gate_in() -> Vector2i:
+	var gates: Array = _stage.get("castle", {}).get("gates", [])
+	if gates.is_empty() or not castle.has(gates[0]):
+		return Vector2i(base.cell.x, village.end.y - 1)
+	var r := area_of(castle[gates[0]])
+	return Vector2i(r.position.x + r.size.x / 2, r.position.y - 1)
+
+# 길 위의 주민을 일과로 돌린다. 일과가 지금 그 집 문에서 다시 시작하게 시각 차를 둔다(I183 ⑧, Folk._one)
+func _rejoin(v) -> void:
+	v.m.erase("away")
+	v.m.t0 = -(folk_clock + Folk.phase(v.home, v.f.i) * 1.7)
+
+# 주민이 맞았다(S227): 체력이 0이면 죽고, 아니면 다 지은 교회(없으면 집)로 걸어간다(대피령 중이어도, I183 ③)
+func _hurt(v, n: float) -> void:
+	v.m.hp = maxf(v.hp - n, 0.0)
+	if v.m.hp <= 0.0:
+		_die(v)
+		return
+	folk_news.append("hurt")
+	var ch = Folk.first(self, "church")
+	var to := "church" if ch else "home"
+	if _to(v) != to:
+		_go(v, to, ch)
+
+# 주민이 죽어 가족에서 빠진다(S227·S221). 그 집 세금이 lost만큼 계속 준다(S228)
+func _die(v) -> void:
+	v.alive = false
+	_drop(v)
+	v.home.lost += 1
+	folk_news.append("dead")
+	_staff()
+
+# 정문에 닿은 떠나는 주민이 사라진다(S229). 죽음으로 세지 않는다
+func _gone(v) -> void:
+	v.alive = false
+	_drop(v)
+	_staff()
+
+func _drop(v) -> void:
+	var fam: Array = v.home.folk
+	for i in fam.size():
+		if is_same(fam[i], v.m):  # 내용이 같은 식구(쌍둥이)를 잘못 지우지 않게 같은 사전을 찾는다
+			fam.remove_at(i)
+			return
+
+# 주민의 행선지(m.away.to). 일과대로면 ""
+static func _to(v) -> String:
+	var a = v.m.get("away")
+	return a.to if a != null else ""
+
+# 대피령을 낼 수 있다(S225): 전투 단계이고, 아직 내지 않았고, 주민이 있다
+func can_evacuate() -> bool:
+	return state == "battle" and not evac and not people.is_empty()
+
+# 2026-10-27
+# [동작] 대피령(S225): 일과대로인 주민 가운데 따르지 않는 수만큼 빼고, 대피소에 가까운 주민부터 가장 가까운 빈자리로, 넘치면 자기 집으로 보낸다
+# [이유] 따르지 않는 사람을 해시 차례로 고르는 것은 난수 상태를 저장하지 않으려는 Claude 값이다(I183 ①). 밤에 이미 집 안인 주민은 그대로 집 안에 둔다
+func evacuate() -> bool:
+	if not can_evacuate():
+		return false
+	evac = true
+	evac_round = true
+	var calm_folk: Array = people.filter(func(v): return v.m.get("away") == null)
+	var key := func(v): return hash([v.home.cell, v.f.i, round_index, wave_index])
+	calm_folk.sort_custom(func(a, z): return key.call(a) < key.call(z))
+	var go: Array = calm_folk.slice(roundi(calm_folk.size() * (Folk.TRUST - trust) * Folk.REFUSE))
+	var halls: Array = structures.values().filter(func(s): return s.complete and STRUCTURE_KINDS[s.kind].seats > 0)
+	var room := {}
+	for s in halls:
+		room[s] = STRUCTURE_KINDS[s.kind].seats
+	var near := func(v): return halls.map(func(s): return v.pos.distance_to(middle(s))).min() if not halls.is_empty() else 0.0
+	go.sort_custom(func(a, z): return near.call(a) < near.call(z))
+	for v in go:
+		if v.inside:
+			v.m.away = {"to": "home", "cell": v.home.cell, "pts": [v.pos], "len": 0.0, "s": 0.0, "in": true}
+			continue
+		var best = null
+		for s in halls:
+			if room[s] > 0 and (best == null or v.pos.distance_to(middle(s)) < v.pos.distance_to(middle(best))):
+				best = s
+		if best:
+			room[best] -= 1
+			_go(v, "shelter", best)
+		else:
+			_go(v, "home")
+	return true
+
+# 웨이브 끝(S229, I183 ⑥): 대피령 판정(성벽 근처에 적이 왔으면 +1, 아니면 −1)과 대피령 풀기. 라운드 끝이면 대피령 없이 지난 라운드를 세고,
+# 신뢰가 0이면 한 가구를 떠나보낸다. 대피한 주민은 다음 스텝부터 _folk가 집·일과로 돌린다
+func _judge() -> void:
+	if evac:
+		trust = clampi(trust + (1 if near_wall else -1), 0, Folk.TRUST)
+		folk_news.append("ok" if near_wall else "false")
+		evac = false
+	near_wall = false
+	if state != "cleared" and state != "won":
+		return
+	calm = 0 if evac_round else calm + 1
+	if calm >= Folk.CALM:
+		trust = mini(trust + 1, Folk.TRUST)
+		calm = 0
+	evac_round = false
+	if trust <= 0 and state == "cleared":
+		_leave()
+
+# 신뢰가 바닥나 식구가 있는 집 하나의 가족이 정문으로 걸어 나간다(S229). 고르는 것은 가족 난수(_kin)다
+func _leave() -> void:
+	var homes: Array = structures.values().filter(func(s): return s.tax > 0 and s.complete and not s.folk.is_empty() \
+			and not s.folk.any(func(m): return m.get("away", {}).get("to") == "out"))
+	if homes.is_empty():
+		return
+	var h = homes[_kin.randi() % homes.size()]
+	for v in people:
+		if v.home == h:
+			_go(v, "out")
+	trust = Folk.TRUST_AFTER_LEAVE
+	folk_news.append("left")
 
 # 옆 칸에 닿은 공병은 수리할 몫이 있으면 고치고(I87, 잔해면 다시 세운 뒤 고친다, I89), 성곽이면 올리고(S86),
 # 미완성이면 짓고(I62), 완성이면 허문다(I64: 건설 시간의 절반이 든다). 밀려나 멀어졌으면 다시 걸어간다
@@ -2270,6 +2531,9 @@ func refund(t) -> int:
 # 아군 유닛: 불사면 받지 않고, 방어력과 받는 피해 감소를 받은 뒤 보호막이 먼저 받는다. 구조물·성곽: 방어력과 받는 피해 감소. 에너지 성벽은 부서지지 않는다(I142)
 func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) -> void:
 	if not target.alive or (target is Block and target.kind == "barrier"):
+		return
+	if target is Villager:  # 주민(S227): 방어·효과·흔적 없이 체력이 준다
+		_hurt(target, amount)
 		return
 	if _tracing != null:
 		_tracing.hits.append(target)
@@ -2405,7 +2669,7 @@ func _forecast() -> void:
 
 # 적이 지금 노리는 것(S4): ① 인식 범위 안이나 몸이 닿은 가장 가까운 유닛(영웅·용병) → ② 살아 있는 반격 대상 → ③④ 거점.
 # 3라운드부터 땅 적은 ③ 앞에 출현 지점에서 가장 가까운 성문을 먼저 노린다. 그 칸에 들어서거나 잔해가 되면 거점이다(S143).
-# 마을 안의 적에게는 인식 범위 안의 마을 구조물(집·생산 시설, S43)도 ①이다(I49). 들판의 구조물은 ①이 아니다(I7). 쏘지 않는 구조물은 attacker가 되지 않는다(_fire). 반격 대상이 부서지면 ②가 끝난다(I8)
+# 마을 안의 적에게는 인식 범위 안의 마을 구조물(집·생산 시설, S43)과 밖에 나온 주민(S227)도 ①이다(I49). 들판의 구조물은 ①이 아니다(I7). 쏘지 않는 구조물은 attacker가 되지 않는다(_fire). 반격 대상이 부서지면 ②가 끝난다(I8)
 func _target_of(e: Enemy):
 	var taunt = _fx_on(e, "taunt")  # 도발(S151): 도발한 영웅만 노린다. 블록 수와 상관없다. 그 영웅이 쓰러지면 풀린다
 	if taunt and taunt.alive:
@@ -2429,6 +2693,12 @@ func _target_of(e: Enemy):
 			if d < best_d and d <= e.sight:
 				best = s
 				best_d = d
+		for v in people:  # 밖에 나와 있는 주민도 노린다(I49 2026-10-27 변경). 안에 든 주민·떠나는 가족은 노리지 않는다
+			if not v.inside and _to(v) != "out":
+				var d := e.pos.distance_to(v.pos)
+				if d < best_d and d <= e.sight:
+					best = v
+					best_d = d
 	_engage(e, best if best is Unit else null)
 	if best:
 		return best
@@ -2462,13 +2732,14 @@ func _move(e: Enemy, dt: float) -> void:
 	if e.on_wall and not _climbable(Vector2i(e.pos.round())):  # 성벽에서 내려왔거나 그 성벽이 부서졌다(I76)
 		e.on_wall = false
 	var aim = _target_of(e)
-	var goal: Vector2i = Vector2i(aim.pos.round()) if aim is Unit else aim.cell
+	var body: bool = aim is Unit or aim is Villager  # 자리(pos)로 움직이는 대상
+	var goal: Vector2i = Vector2i(aim.pos.round()) if body else aim.cell
 	if goal != e.goal:  # 대상이 바뀌었다
 		e.goal = goal
 		_find_path(e)
 	# 기어오르는 적은 땅에서 성벽 위 유닛을 치지 않고, 그 칸으로 올라가서 친다(I77)
 	var below: bool = aim is Unit and e.climb > 0.0 and not e.on_wall and aim.on_wall and _climbable(goal)
-	if aim is Unit and e.pos.distance_to(aim.pos) <= REACH and not below:
+	if body and e.pos.distance_to(aim.pos) <= REACH and not below:
 		_attack(e, aim)
 		return
 	# 성벽 위 대포는 성벽 위에서 친다(S112). 땅에서는 아래 성벽을 치지 않고 기어오른다(S107)
@@ -2476,7 +2747,7 @@ func _move(e: Enemy, dt: float) -> void:
 		_attack(e, aim)
 		return
 	if e.flying:  # 막힌 칸을 넘어 대상으로 곧장 날아가 닿는 거리에서 친다(I79). 봉인되면 막힌 칸·몸에 막힌다(S155)
-		var to: Vector2 = aim.pos if aim is Unit else nearest(aim, e.pos)  # 구조물은 가장 가까운 차지 칸(I178)
+		var to: Vector2 = aim.pos if body else nearest(aim, e.pos)  # 구조물은 가장 가까운 차지 칸(I178)
 		if e.pos.distance_to(to) <= REACH:
 			_attack(e, aim)
 		elif sealed:

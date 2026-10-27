@@ -299,3 +299,10 @@ def test_EV477_folk_atlas_cells(gd):
 
 def test_EV486_folk_work_pose_cells(gd):
     gd("hud", "EV486")
+
+def test_EV501_evac_button(gd):
+    gd("hud", "EV501")
+
+
+def test_EV502_evac_toasts(gd):
+    gd("hud", "EV502")

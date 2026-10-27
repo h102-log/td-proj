@@ -18,7 +18,7 @@ extends CanvasLayer
 # 준비 단계 왼쪽 아래에 처음 하는 사람 힌트를 둔다(S191, hints.gd)
 # 준비·전투 단계 왼쪽 아래 구석에 미니맵을 둔다(S209, hud_minimap.gd)
 
-const NAMES := {"wall": "방벽", "tower": "타워", "magic": "마법 타워", "soldier": "용병", "barracks": "병영", "engineer": "공병", "workshop": "작업장", "archer": "궁수", "cannon": "대포", "archery": "사격장", "house": "집", "church": "교회"}
+const NAMES := {"wall": "방벽", "tower": "타워", "magic": "마법 타워", "soldier": "용병", "barracks": "병영", "engineer": "공병", "workshop": "작업장", "archer": "궁수", "cannon": "대포", "archery": "사격장", "house": "집", "church": "교회", "shelter": "대피소"}
 const HEROES := {"aias": "아이아스(탱커)", "sylvia": "실비아(원거리)", "seraphina": "세라피나(힐러)", "vesper": "베스퍼(디버퍼)", "ignis": "이그니스(마법사)", "chronos": "크로노스(버퍼)"}  # 이름(역할), S97·S157
 const GRADES := ["1성", "2성", "3성"]  # S94
 const GAPS := {"none": "공병 없음", "far": "닿는 공병 없음"}  # 공병 지시를 맡을 공병이 없는 이유(I128). 툴팁·정보 칸의 빨간 줄(✕는 그 줄이 붙인다)
@@ -37,6 +37,7 @@ const HudSelect := preload("res://src/ui/hud_select.gd")
 const HudMinimap := preload("res://src/ui/hud_minimap.gd")
 const HudToast := preload("res://src/ui/hud_toast.gd")
 const HudAlert := preload("res://src/ui/hud_alert.gd")
+const HudEvac := preload("res://src/ui/hud_evac.gd")
 const Hints := preload("res://src/ui/hints.gd")
 const BattleView := preload("res://src/ui/battle_view.gd")
 const SkillCell := preload("res://src/ui/skill_cell.gd")
@@ -94,6 +95,7 @@ var tip := HudTip.new()  # 위 띠 조작의 툴팁(S187)
 var grid  # 건설 격자·정보 칸(S186)
 var select  # 선택 패널(S206). 건설 격자 바로 왼쪽
 var minimap  # 미니맵(S209). 왼쪽 아래 구석
+var evac  # 대피령 버튼(S230). 미니맵 바로 위
 var view  # 맵 그림(BattleView). 미니맵이 구운 바닥을 빌린다. main이 넣는다
 var _hp: Label
 var _lv: Label
@@ -347,6 +349,8 @@ func _ready() -> void:
 	root.add_child(select)
 	minimap = HudMinimap.new(self)
 	root.add_child(minimap)
+	evac = HudEvac.new(self)
+	root.add_child(evac)
 	_mark.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_mark.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
