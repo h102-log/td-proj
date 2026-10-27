@@ -64,7 +64,7 @@ func marks() -> Array:
 			out.append([_dot(u.pos, 1), ALLY])
 	for e in battle.enemies:
 		if battle.seen(e.pos):  # 어둠 속에 숨은 적(S213)은 점을 찍지 않는다
-			out.append([_dot(e.pos, 2 if e.kind == "boss" else 1), FOE])
+			out.append([_dot(e.pos, 2 if e.boss else 1), FOE])  # 보스 표시(I185)는 2×2
 	for h in battle.heroes:
 		if h.present:
 			out.append([_dot(h.pos, 2), HERO])

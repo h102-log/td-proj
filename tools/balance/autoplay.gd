@@ -627,7 +627,7 @@ func _cluster(from: Vector2, reach: float, radius: float):
 		if n > best_n:
 			best = e
 			best_n = n
-	return best.pos if best and (best_n >= 2 or best.kind == "boss") else null
+	return best.pos if best and (best_n >= 2 or best.boss) else null
 
 # 시전 사거리 안에서 체력 비율이 가장 낮은 아군
 func _weakest(h, reach: float):

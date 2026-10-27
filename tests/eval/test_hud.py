@@ -314,3 +314,11 @@ def test_EV512_teen_bodies_in_atlas(gd):
 
 def test_EV513_grow_toasts(gd):
     gd("hud", "EV513")
+
+
+def test_EV515_boss_flag_minimap_dot(gd):
+    gd("hud", "EV515")
+
+
+def test_EV517_boss_flag_wave_skull(gd):
+    gd("hud", "EV517")

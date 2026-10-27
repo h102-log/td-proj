@@ -1,6 +1,6 @@
 {
-  "approvedAt": "2026-10-27T04:35:40.435Z",
-  "evalMd": "71663232",
+  "approvedAt": "2026-10-27T05:22:11.576Z",
+  "evalMd": "8b6581e5",
   "tests": {
     "tests/eval/conftest.py": "02db26c8",
     "tests/eval/gd/aura.gd": "010cc38a",
@@ -37,9 +37,9 @@
     "tests/eval/gd/hire.gd.uid": "47433f7e",
     "tests/eval/gd/house.gd": "1df77dae",
     "tests/eval/gd/house.gd.uid": "5fd6fb28",
-    "tests/eval/gd/hud.gd": "9e10dbee",
+    "tests/eval/gd/hud.gd": "2a152e34",
     "tests/eval/gd/hud.gd.uid": "6038f593",
-    "tests/eval/gd/kits.gd": "eb05f8d7",
+    "tests/eval/gd/kits.gd": "5e064430",
     "tests/eval/gd/kits.gd.uid": "c48b27a3",
     "tests/eval/gd/levels.gd": "3a6be64c",
     "tests/eval/gd/levels.gd.uid": "ad007fbd",
@@ -75,7 +75,7 @@
     "tests/eval/gd/save.gd.uid": "5c7f6374",
     "tests/eval/gd/sell.gd": "995695b8",
     "tests/eval/gd/sell.gd.uid": "5c77653c",
-    "tests/eval/gd/show.gd": "b0e5c8dd",
+    "tests/eval/gd/show.gd": "7037f8af",
     "tests/eval/gd/show.gd.uid": "be479de2",
     "tests/eval/gd/thick.gd": "4fad771c",
     "tests/eval/gd/thick.gd.uid": "95204401",
@@ -105,8 +105,8 @@
     "tests/eval/test_heroes.py": "da7683ed",
     "tests/eval/test_hire.py": "8a8e108d",
     "tests/eval/test_house.py": "4cbc5613",
-    "tests/eval/test_hud.py": "423918ae",
-    "tests/eval/test_kits.py": "5cdb5610",
+    "tests/eval/test_hud.py": "1ccb6c5d",
+    "tests/eval/test_kits.py": "160e1303",
     "tests/eval/test_levels.py": "2c71fe40",
     "tests/eval/test_locale.py": "56451d19",
     "tests/eval/test_loop.py": "eb9dcfdc",
@@ -122,7 +122,7 @@
     "tests/eval/test_rounds.py": "854e02bb",
     "tests/eval/test_save.py": "c618f68d",
     "tests/eval/test_sell.py": "014befe2",
-    "tests/eval/test_show.py": "408341e6",
+    "tests/eval/test_show.py": "74378302",
     "tests/eval/test_thick.py": "98dfcc83",
     "tests/eval/test_tower.py": "783a3ed2",
     "tests/eval/test_units.py": "05de9e3b",
@@ -416,6 +416,7 @@
     "S231": "09526b67",
     "S232": "6227cac5",
     "S233": "5fe15319",
-    "I184": "67bcc00b"
+    "I184": "67bcc00b",
+    "I185": "a88786d2"
   }
 }

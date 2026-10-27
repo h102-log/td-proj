@@ -329,7 +329,7 @@ func _draw_top() -> void:
 	for u in battle.units + _foes:
 		var bar := hp_bar_size(u, controls.show_hp)
 		if bar != Vector2.ZERO:
-			var head: float = (ART.boss.anchor[1] - ART.basic.anchor[1]) / CELL if u.kind == "boss" else 0.0  # 보스 그림은 기본 적보다 키가 커서 막대를 그만큼 올린다(머리 위)
+			var head: float = (ART[u.kind].anchor[1] - ART.basic.anchor[1]) / CELL if u.get("boss") and ART.has(u.kind) else 0.0  # 보스(I185) 그림은 기본 적보다 키가 커서 막대를 그만큼 올린다(머리 위)
 			_hp_bar(u.pos - Vector2(0, _lift(u) / CELL + head) + _slip(u) / CELL, u, bar)
 	for v in battle.people:  # 다친 주민(S227)은 V와 상관없이 막대를 그린다
 		if v.hp < v.max_hp and not v.inside:
@@ -1728,9 +1728,9 @@ static func keep_rect(b) -> Rect2:
 	var body: Rect2 = KEEP_BODY[clampi(b.village_level, 1, 2) - 1]
 	return Rect2(Vector2(b.base.cell * CELL) + KEEP_AT + body.position, body.size)
 
-# 유닛·적 체력바 크기(S73). 보스는 V 표시와 상관없이 늘 크게, 나머지는 켰을 때만. 그리지 않으면 Vector2.ZERO
+# 유닛·적 체력바 크기(S73). 보스(I185 boss 칸)는 V 표시와 상관없이 늘 크게, 나머지는 켰을 때만. 그리지 않으면 Vector2.ZERO
 static func hp_bar_size(u, show_all: bool) -> Vector2:
-	if u.kind == "boss":
+	if u.get("boss"):
 		return Vector2(24, 3)
 	return Vector2(CELL, 2) if show_all else Vector2.ZERO
 

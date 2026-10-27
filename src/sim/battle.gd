@@ -179,6 +179,7 @@ class Enemy:
 	var skills := {}  # 보스 스킬 이름 → 수치(S194, I169). 종류의 사전을 같이 쓰니 적마다 바뀌는 값은 cast·cd에 둔다
 	var cast = null  # 예고 중인 스킬 {id, left}(S194). 없으면 null
 	var cd := {}  # 스킬 → 남은 대기(초). 없는 스킬은 0이다(나온 때, S194)
+	var boss := false  # 보스 표시(I185). 종류 수치의 boss 칸
 
 	func _init(k: String, cell: Vector2i, stats: Dictionary) -> void:
 		kind = k
@@ -1438,8 +1439,8 @@ func _zones(dt: float) -> void:
 					_tracing = null
 			"sylvia_r":  # 화살비: 초당 물리 피해(보스 ×), 체력 비율 이하 보스 아닌 적은 처형
 				for e in foes:
-					damage(e, z.dps * dt * (z.boss if e.kind == "boss" else 1.0), "phys", z.owner)
-					if e.alive and e.kind != "boss" and e.hp <= z.execute * e.max_hp:
+					damage(e, z.dps * dt * (z.boss if e.boss else 1.0), "phys", z.owner)
+					if e.alive and not e.boss and e.hp <= z.execute * e.max_hp:
 						damage(e, e.hp, "true", z.owner)
 			"seraphina_w":  # 성역: 안의 아군은 초당 회복과 정화, 안의 적은 둔화
 				for u in units.filter(func(x): return _inside(z, x.pos)):
@@ -2932,6 +2933,7 @@ func raging(e: Enemy) -> bool:
 	return e.skills.has("rage") and e.hp <= e.skills.rage.below * e.max_hp and _fx_on(e, "seal") == null
 
 # 대기를 줄이고, 예고 중이면 시간을 세어 다 되면 발동한다. 예고가 없으면 쓸 수 있는 스킬의 예고를 시작한다. 이번 스텝을 스킬에 썼으면 true
+# 예고(windup)가 있는 스킬마다 _<이름>_ready(적, 수치)가 발동 조건, _<이름>(적, 수치)가 효과다. 예고가 없는 스킬은 패시브라 여기서 쓰지 않는다(I169)
 func _skills(e: Enemy, dt: float, sealed: bool) -> bool:
 	for id in e.cd:
 		e.cd[id] -= dt
@@ -2941,14 +2943,20 @@ func _skills(e: Enemy, dt: float, sealed: bool) -> bool:
 			var id: String = e.cast.id
 			e.cast = null
 			e.cd[id] = e.skills[id].cd
-			if id == "slam":
-				_slam(e, e.skills.slam)
+			call("_" + id, e, e.skills[id])
 		return true
-	var sk: Dictionary = e.skills.get("slam", {})
-	if sealed or sk.is_empty() or e.cd.get("slam", 0.0) > 0.0 or _ground_near(e.pos, sk.radius).size() < sk.count:
+	if sealed:
 		return false
-	e.cast = {"id": "slam", "left": sk.windup}
-	return true
+	for id in e.skills:  # 쓸 수 있는 예고 스킬이 여럿이면 skills에 적힌 차례에서 앞선 것(I169)
+		var sk: Dictionary = e.skills[id]
+		if sk.has("windup") and e.cd.get(id, 0.0) <= 0.0 and call("_%s_ready" % id, e, sk):
+			e.cast = {"id": id, "left": sk.windup}
+			return true
+	return false
+
+# 대지 강타(S195)를 쓸 수 있다: 둘레 반경 안에 땅 위 영웅·용병이 정한 수 이상
+func _slam_ready(e: Enemy, sk: Dictionary) -> bool:
+	return _ground_near(e.pos, sk.radius).size() >= sk.count
 
 # 성벽 위가 아닌 영웅·용병 가운데 at에서 r 안에 있는 것
 func _ground_near(at: Vector2, r: float) -> Array:
