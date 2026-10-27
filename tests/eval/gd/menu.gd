@@ -5,6 +5,9 @@ extends "res://tests/eval/gd/save.gd"
 #   설정 화면: 켜고 끄는 버튼 «퀵캐스트»·«부활»·«전체화면», 글자 «음량» 옆의 HSlider(0~100, 10씩), «뒤로»
 #     글자 «카메라 속도» 옆의 HSlider(50~200, 25씩, S184). 음량 슬라이더보다 뒤에 있다(첫 슬라이더가 음량이다)
 #   res://src/settings.gd — static var camera_speed(%, 기본 100)
+#   res://src/settings.gd — static var shake(화면 흔들림 0 끔·1 약하게·2 보통, 기본 2, S200) · soft_flash(번쩍임 줄이기, 기본 false, S184)
+#     설정 화면: 글자 «화면 흔들림» 옆의 OptionButton(항목 «끔»·«약하게»·«보통», «언어» OptionButton보다 뒤), 켜고 끄는 «번쩍임 줄이기»
+#   게임 장면의 맵 카메라(Camera2D) — offset이 화면 흔들림(기준 화면 정수 px ÷ 줌), steady() -> Transform2D는 흔들림을 뺀 캔버스 변환(S200)
 #   res://src/settings.gd — static var quickcast · revive · fullscreen(null이면 아직 고르지 않음) · volume(0~100)
 #     load_file()(파일이 없으면 기본값) · save_file() · fullscreen_at_start(내보낸 빌드) -> bool
 #   Controls.quickcast — 퀵캐스트(I158) · Battle.revive — 부활(I28)
@@ -458,6 +461,134 @@ func ev390():
 			st.load_file()
 			if st.camera_speed != 150:
 				why = "ESC 메뉴에서 150으로 바꾼 카메라 속도를 다시 읽으니 %d다" % st.camera_speed
+		_done(main)
+	_settings()
+	return why
+
+# 글자 text 옆의 보이는 OptionButton
+func _option_by(node: Node, text: String):
+	for n in node.find_children("*", "OptionButton", true, false):
+		if n.is_visible_in_tree() and n.get_parent().get_children().any(func(s): return s is Label and s.text == text):
+			return n
+	return null
+
+# node의 «설정»을 눌러 «화면 흔들림» 고르기가 끔·약하게·보통이고 want번이 골라져 있는지 본다. 어긋난 것을 설명하는 문장, 없으면 ""
+func _shake_row(node: Node, where: String, want: int) -> String:
+	if not _press(node, "설정"):
+		return "%s에 «설정»이 없다" % where
+	var o = _option_by(node, "화면 흔들림")
+	if o == null:
+		return "%s의 설정에 «화면 흔들림» 고르기가 없다" % where
+	var items: Array = range(o.item_count).map(func(i): return o.get_item_text(i))
+	if items != ["끔", "약하게", "보통"] or o.selected != want:
+		return "%s의 화면 흔들림 항목이 %s이고 %d번이 골라져 있다(기대 끔·약하게·보통, %d번)" % [where, items, o.selected, want]
+	return ""
+
+# 화면 흔들림을 level로 두고 1라운드 전투 단계에서 정문 바로 왼쪽 성곽 칸을 무너뜨린 뒤 main을 1/60초씩 돌린다.
+# [처음 3프레임의 카메라 offset × 줌 길이 가운데 가장 큰 값(정수가 아니면 -1), 0.35초 뒤 그 길이, 흔들리는 동안 steady()가 offset 0의 캔버스 변환과 같았나]
+func _shake_run(level: int) -> Array:
+	load("res://src/settings.gd").shake = level
+	var main = _game()
+	var b = main.view.battle
+	b.gold = 1 << 20
+	for i in 2:
+		b.hire(i)
+	b.next_round()
+	_frame(main)
+	b.start_battle()
+	_frame(main)
+	var gate = b.castle.values().filter(func(k): return k.kind == "gate" and absi(k.cell.x - b.base.cell.x) <= 1 and k.cell.y > b.base.cell.y)[0]
+	b.damage(b.castle[gate.cell + Vector2i.LEFT], 1e9, "true")
+	var cam = main.find_children("*", "Camera2D", true, false)[0]
+	var top := 0
+	var steady := true
+	for i in 21:
+		main._process(1.0 / 60.0)
+		var o: Vector2 = cam.offset * cam.zoom.x
+		if i < 3:
+			top = top if top < 0 else (-1 if not o.is_equal_approx(o.round()) else maxi(top, roundi(o.length())))
+		if cam.offset != Vector2.ZERO and cam.has_method("steady"):
+			var keep: Vector2 = cam.offset
+			var got: Transform2D = cam.steady()
+			cam.offset = Vector2.ZERO
+			cam.force_update_scroll()
+			steady = steady and got.is_equal_approx(cam.get_viewport().get_canvas_transform())
+			cam.offset = keep
+			cam.force_update_scroll()
+	var end: float = (cam.offset * cam.zoom.x).length()
+	_done(main)
+	return [top, end, steady]
+
+# EV386 · S200: «화면 흔들림» 설정의 기본값·저장·불러오기, 두 메뉴의 고르기, 성곽 칸 붕괴 흔들림(보통 3px·약하게 2px·끔 0)과 흔들림을 뺀 변환
+func ev386():
+	var st = _settings()
+	if st.get("shake") != 2:
+		return "설정 파일이 없을 때 화면 흔들림이 %s다(기대 2, 보통)" % st.get("shake")
+	st.shake = 1
+	st.save_file()
+	st.shake = 2
+	st.load_file()
+	if st.shake != 1:
+		_settings()
+		return "저장한 화면 흔들림 1(약하게)을 다시 읽으니 %d다" % st.shake
+	var m = _menu()
+	var why := _shake_row(m, "메인 메뉴", 1)
+	m.free()
+	if why == "":
+		var main = _game()
+		main.view.battle.next_round()
+		_frame(main)
+		_key(KEY_ESCAPE)
+		why = _shake_row(main, "ESC 메뉴", 1)
+		_done(main)
+	if why == "":
+		var got := {}
+		for level in [2, 1, 0]:
+			got[level] = _shake_run(level)
+		if got[2] != [3, 0.0, true] or got[1].slice(0, 2) != [2, 0.0] or got[0].slice(0, 2) != [0, 0.0]:
+			why = "성곽 칸 붕괴 뒤 [처음 3프레임의 가장 큰 흔들림, 0.35초 뒤 흔들림, steady가 흔들림을 뺐나]가 보통 %s · 약하게 %s · 끔 %s다(기대 [3, 0, true] · [2, 0] · [0, 0], 정수가 아니면 -1)" % [got[2], got[1], got[0]]
+	_settings()
+	return why
+
+# node의 «설정»을 눌러 «번쩍임 줄이기» 켜고 끄는 항목을 찾는다. 없으면 null
+func _flash_box(node: Node):
+	if not _press(node, "설정"):
+		return null
+	var box = _button(node, "번쩍임 줄이기")
+	return box if box is CheckButton else null
+
+# EV542 · S184: «번쩍임 줄이기» 설정의 기본값·저장·불러오기와 두 메뉴의 켜고 끄는 항목
+func ev542():
+	var st = _settings()
+	if st.get("soft_flash") != false:
+		return "설정 파일이 없을 때 번쩍임 줄이기가 %s다(기대 꺼짐)" % st.get("soft_flash")
+	st.soft_flash = true
+	st.save_file()
+	st.soft_flash = false
+	st.load_file()
+	if st.soft_flash != true:
+		_settings()
+		return "저장한 번쩍임 줄이기 켬을 다시 읽으니 %s다" % st.soft_flash
+	var m = _menu()
+	var box = _flash_box(m)
+	var why := "" if box != null and box.button_pressed else "메인 메뉴 설정에 켜진 «번쩍임 줄이기» 항목이 없다(%s)" % box
+	m.free()
+	if why == "":
+		st.soft_flash = false
+		st.save_file()
+		var main = _game()
+		main.view.battle.next_round()
+		_frame(main)
+		_key(KEY_ESCAPE)
+		box = _flash_box(main)
+		if box == null or box.button_pressed:
+			why = "ESC 메뉴 설정에 꺼진 «번쩍임 줄이기» 항목이 없다(%s)" % box
+		else:
+			box.button_pressed = true
+			st.soft_flash = false
+			st.load_file()
+			if st.soft_flash != true:
+				why = "ESC 메뉴에서 켠 번쩍임 줄이기를 다시 읽으니 %s다" % st.soft_flash
 		_done(main)
 	_settings()
 	return why

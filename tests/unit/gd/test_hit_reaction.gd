@@ -10,12 +10,21 @@ extends RefCounted
 #   S198. 보스 스킬 발동과 보스 타격: 맞은 아군은 6px·0.25초 밀리고, 넉백은 미끄러지며(성벽 오르내리기는 빼고), 끊기면 조각이 흩어지고, 보스에 가린 영웅을 덧그린다.
 #   S199. 맞은 구조물·성곽 칸·거점은 닿은 뒤 0.05초 공격자 반대쪽으로 1px 흔들리고 부스러기 2점이 튀며, 체력 75·50·25% 밑이면 금 1·2·3줄,
 #         맵 위 막대는 50% 밑 노랑·25% 밑 빨강이다(유닛 막대는 초록 그대로). 금은 구운 아틀라스 사본에서 단계가 오를수록 한 줄씩 늘어난다.
+#   S200. 성곽 칸이 무너지면 먼지 12점·돌 조각 4개(0.25초 안에 엇갈려 떨어짐)가 나고, 그 칸 성벽 위 유닛은 0.15초에 걸쳐 땅으로 내려온다.
+#   S177·S197 2026-10-27 변경. «번쩍임 줄이기»면 흰 실루엣 대신 원래 그림 위에 흰 40%를 덧그린다.
 #   I171. 화면 사건 목록: 닿음은 공격 하나에 한 번, 처치는 쓰러진 대상을 노린 마지막 공격이 닿을 때(기다릴 공격이 없으면 바로) 난다.
 #         원거리는 시뮬레이션 투사체가 닿은 프레임에 투사체 하나에 한 번이다.
 
 const View := preload("res://src/ui/battle_view.gd")
 const Battle := preload("res://src/sim/battle.gd")
 const DT := 1.0 / 60.0
+
+# 그림 한 장(_region)을 그리는 대신 그 색만 모으는 화면
+class Rec extends "res://src/ui/battle_view.gd":
+	var tints := []
+
+	func _region(_tex: Texture2D, _dst: Rect2, _src: Rect2, tint: Color) -> void:
+		tints.append(tint)
 
 # 빈 판(준비 단계)과 그 판을 그리는 화면. 배치를 끝내면 _go로 전투를 시작한다
 func _board() -> Array:
@@ -589,4 +598,62 @@ func test_crack_atlas_adds_one_crack_per_stage():
 		var three: Dictionary = changed.call(4 + p)
 		if why == "" and (one.is_empty() or one.size() >= two.size() or two.size() >= three.size() or not one.keys().all(func(k): return two.has(k)) or not two.keys().all(func(k): return three.has(k))):
 			why = "무늬 %d의 금 칸 수가 단계 1·2·3에서 %d·%d·%d다(단계마다 앞 금을 두고 늘어야 한다)" % [p, one.size(), two.size(), three.size()]
+	return why
+
+func test_soft_flash_draws_white_40_over_the_body():
+	var st = load("res://src/settings.gd")
+	var b = load("res://src/sim/battle.gd").new({"size": Vector2i(20, 20), "base": Vector2i(18, 18), "base_hp": 100, "spawns": [Vector2i(0, 10)], "hero_start": Vector2i(5, 5), "waves": [[{"kind": "basic", "count": 1}]]})
+	var v = Rec.new()
+	v.battle = b
+	var foe = b.spawn_enemy("basic", Vector2i(10, 5), {"speed": 0, "damage": 0, "hp": 1000})
+	var dead = b.spawn_enemy("basic", Vector2i(12, 5), {"speed": 0, "damage": 0, "hp": 1000})
+	var why := ""
+	for soft in [false, true]:
+		st.soft_flash = soft
+		var want: Array = [Color.WHITE, View.SOFT_FLASH] if soft else [Color(255, 255, 255)]
+		v._hits = {foe.get_instance_id(): [0.05, Vector2.RIGHT, false]}  # 0.05초 전에 맞았다
+		v.tints = []
+		v._body(foe, b.units.size(), {})
+		if why == "" and v.tints != want:
+			why = "번쩍임 줄이기 %s일 때 맞은 몸을 %s로 그렸다(%s여야 한다)" % [soft, v.tints, want]
+		v._killed = {dead.get_instance_id(): [v.clock, Vector2.RIGHT, dead, 0]}  # 막타가 방금 닿았다(S197)
+		v.tints = []
+		v._corpse([dead, 0.0])
+		if why == "" and v.tints != want:
+			why = "번쩍임 줄이기 %s일 때 막타 맞은 몸을 %s로 그렸다(%s여야 한다)" % [soft, v.tints, want]
+	st.soft_flash = false
+	v.free()
+	return why
+
+func test_collapse_throws_dust_and_stones_and_lowers_wall_units():
+	var s := _board()
+	var b = s[0]
+	var v = s[1]
+	var k = Battle.Block.new(Vector2i(8, 8), "castle_wall", 300.0)
+	k.size = Vector2i(1, 3)
+	var w = b.place_merc("soldier", Vector2i(8, 7))
+	w.on_wall = true
+	v.tick(DT)
+	var e := {"kind": "collapse", "at": v._center(Vector2(8, 7)), "dst": k, "n": 5}
+	v._react(e)
+	var why := ""
+	var dust: Array = v._dots.filter(func(d): return d.col == View.DUST)
+	var stones: Array = v._dots.filter(func(d): return d.col == View.STONE)
+	var floor_y: float = 9 * View.CELL - 1
+	if dust.size() != 12 or stones.size() != 4:
+		why = "무너진 칸에서 먼지 %d점·돌 조각 %d개가 났다(12·4여야 한다)" % [dust.size(), stones.size()]
+	elif not stones.all(func(d): return d.p1.y == floor_y and d.p0.y < floor_y - 20.0 and d.t0 + d.life - v.clock <= 0.25 + 1e-6):
+		why = "돌 조각이 성벽 꼭대기에서 바닥선(%s)까지 0.25초 안에 떨어지지 않는다: %s" % [floor_y, stones.map(func(d): return [d.p0, d.p1, d.t0 - v.clock, d.life])]
+	elif stones.map(func(d): return d.t0).reduce(func(a, c): return maxf(a, c)) <= v.clock:
+		why = "돌 조각 4개가 한꺼번에 떨어지기 시작한다(때를 엇갈려야 한다)"
+	w.on_wall = false  # 시뮬레이션은 무너진 칸 위 유닛을 그 칸 땅에 바로 내린다
+	v.events = [e]
+	var high: Vector2 = v._spot(w) + v._slip(w)
+	v._slide_scan()
+	var start: Vector2 = v._spot(w) + v._slip(w)
+	v.clock += View.DROP
+	var end: Vector2 = v._spot(w) + v._slip(w)
+	if why == "" and (not v._slides.has(w.get_instance_id()) or start.y >= v._spot(w).y - 10.0 or end != v._spot(w)):
+		why = "무너진 칸 위 유닛이 %s에서 땅 %s으로 0.15초에 걸쳐 내려오지 않는다(시작 %s · 0.15초 뒤 %s)" % [high, v._spot(w), start, end]
+	v.free()
 	return why

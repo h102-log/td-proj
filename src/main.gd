@@ -70,6 +70,7 @@ static func map_viewport(w: Window) -> SubViewportContainer:
 func _process(delta: float) -> void:
 	view.battle.step(delta)
 	view.tick(delta)  # 화면 시계와 사건 목록(I170, I171). step과 같은 delta라 ESC 메뉴면 같이 멈춘다
+	get_viewport().get_camera_2d().rumble(view.events, delta)  # 화면 흔들림(S200): 방금 낸 사건 목록을 읽는다
 	view.queue_redraw()
 	_check()
 
@@ -135,7 +136,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			hud.proceed()
 		else:
 			view.battle.start_battle()
-	controls.handle(view.make_input_local(event))  # 화면 좌표 → 맵 px(카메라 줌·이동 반영)
+	controls.handle(event.xformed_by(get_viewport().get_camera_2d().steady().affine_inverse()))  # 화면 좌표 → 맵 px(카메라 줌·이동 반영, 흔들림은 뺌 S200)
 
 # 창 준비: 최소 크기는 늘 기준 해상도의 2배(S164). 창 크기·시작 모드는 게임을 막 켰을 때(진입 장면 menu.gd)만 정한다(S161, S163, I153)
 # 시작 모드는 설정에 고른 창 모드, 고른 적이 없으면 내보낸 빌드만 전체화면이다(S163, S184)

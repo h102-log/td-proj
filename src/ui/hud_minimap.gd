@@ -79,7 +79,7 @@ func rows() -> int:
 
 # 카메라가 보이는 맵(위 띠 아래 화면)의 맵 칸 사각형
 func seen() -> Rect2:
-	var r: Rect2 = hud.map.get_canvas_transform().affine_inverse() * hud.VIEW
+	var r: Rect2 = hud.map.get_camera_2d().steady().affine_inverse() * hud.VIEW
 	return Rect2(r.position / cell_px, r.size / cell_px)
 
 # 카메라 사각형을 미니맵 안 좌표로. 창 밖은 잘라 낸다(창 밖이면 빈 사각형)

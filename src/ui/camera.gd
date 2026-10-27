@@ -19,6 +19,9 @@ const FOCUS := Vector2(320, 194)  # HUD가 카메라를 대상으로 옮길 때 
 const ACCEL := 0.12  # 가장자리·방향키 이동이 최고 속도까지 오르는 시간(S53)
 const DECEL := 0.15  # 입력이 없으면 서는 시간(S53)
 const GLIDE := 0.2   # 부드러운 줌(S52)·미끄러짐(I164)
+const SHAKE := {"collapse": [3, 0.25], "boss": [2, 0.2], "boss_kill": [3, 0.35]}  # 화면 흔들림(S200): 사건 → [«보통» 크기(기준 화면 px), 길이(초)]. «약하게»는 크기 절반 올림
+const SHAKE_DIRS := [Vector2.RIGHT, Vector2.LEFT, Vector2.DOWN, Vector2.UP]  # 흔들림 방향 차례. 2프레임마다 다음으로(S200)
+const SHAKE_OFF := 32.0  # 보이는 사각형을 이만큼(맵 px, 2칸) 키운 범위 밖의 사건은 흔들지 않는다(S200)
 
 var map_px: Vector2     # 맵 크기(월드 px)
 var level := 1          # ZOOMS의 인덱스, 기본 2배. 부드러운 줌 중에는 가는 단계다
@@ -30,6 +33,8 @@ var _zoom_t := 1.0      # 부드러운 줌 진행(0~1). 1이면 멈춰 있다
 var _anchor := Vector2.ZERO  # 부드러운 줌 동안 그대로 둘 커서 자리(I50)
 var _slide := [Vector2.ZERO, Vector2.ZERO]  # 미끄러짐의 출발·도착 자리
 var _slide_t := 1.0     # 미끄러짐 진행(0~1). 1이면 멈춰 있다
+var _shake := [0, 0.0, 1.0]  # 지금 흔들림 [크기(기준 화면 px), 지난 초, 길이(초)]
+var _beat := 0          # rumble을 부른 프레임 수. 흔들림 방향을 고른다
 
 func _ready() -> void:
 	zoom = Vector2.ONE * ZOOMS[level]
@@ -106,6 +111,31 @@ func glide(delta: float) -> void:
 	if _slide_t < 1.0:
 		_slide_t = minf(_slide_t + delta / GLIDE, 1.0)
 		position = _slide[0].lerp(_slide[1], 1.0 - pow(1.0 - _slide_t, 2.0))
+
+# 화면 흔들림(S200): 이번 프레임의 사건 목록(view.events)에서 흔들림을 고르고 dt초 흘려 offset에 둔다.
+# main·하네스가 view.tick 다음에 부른다(ESC 메뉴면 main이 멈춰 흔들림도 멈춘다). offset × 줌은 늘 정수 기준 화면 px다
+func rumble(events: Array, dt: float) -> void:
+	var half := get_viewport_rect().size / 2 / zoom.x
+	var seen := Rect2(position - half, half * 2).grow(SHAKE_OFF)
+	for e in events:
+		var kind: String = e.kind if e.kind != "kill" else ("boss_kill" if e.dst != null and e.dst.get("boss") else "")
+		if SHAKE.has(kind) and Settings.shake > 0 and (kind == "boss_kill" or seen.has_point(e.at)):
+			var px: int = SHAKE[kind][0] if Settings.shake == 2 else ceili(SHAKE[kind][0] / 2.0)
+			if px >= shake_px():  # 겹치면 그 순간 더 센 것 하나
+				_shake = [px, 0.0, SHAKE[kind][1]]
+				_beat = 0
+	_shake[1] += dt
+	var n := shake_px() if Settings.shake > 0 else 0
+	offset = SHAKE_DIRS[_beat / 2 % SHAKE_DIRS.size()] * n / zoom.x
+	_beat += 1
+
+# 지금 흔들림 크기(기준 화면 px): 선형으로 줄어든 크기를 올림한 정수
+func shake_px() -> int:
+	return maxi(ceili(_shake[0] * (1.0 - _shake[1] / _shake[2])), 0)
+
+# 흔들림을 뺀 캔버스 변환(S200). HUD 팝업·표식·미니맵 사각형과 맵 클릭은 맵 자리를 이것으로 잡아 흔들리지 않는다
+func steady() -> Transform2D:
+	return get_viewport().get_canvas_transform().translated(offset * zoom)
 
 # 가감속·부드러운 줌·미끄러짐이 아직 움직이는 중이다
 func busy() -> bool:

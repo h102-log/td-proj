@@ -40,3 +40,11 @@ def test_EV371_language_setting_switches_menu(gd):
 
 def test_EV390_camera_speed_setting(gd):
     gd("menu", "EV390")
+
+
+def test_EV386_screen_shake_setting_and_collapse_shake(gd):
+    gd("menu", "EV386")
+
+
+def test_EV542_reduce_flashing_setting(gd):
+    gd("menu", "EV542")
