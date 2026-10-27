@@ -36,3 +36,7 @@ def test_EV464_sealed_gates_stay_closed(gd):
 
 def test_EV465_walk_wall_ring(gd):
     gd("thick", "EV465")
+
+
+def test_EV566_rubble_under_bodies_and_zones(gd):
+    gd("thick", "EV566")

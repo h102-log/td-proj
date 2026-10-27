@@ -4,6 +4,7 @@ extends "res://tests/eval/gd/lib.gd"
 #   Battle.walls / Battle.debris: 차지 칸 → 성곽·잔해 Block · Battle.field_y: 성곽 아래 첫 줄
 #   Battle.grid._compute_cost(from, to) — 길 격자가 한 칸 옮길 때 매기는 비용(grid.path를 한 번 부른 뒤 잰다)
 #   Battle.repair(구조물·성곽) · Battle._target_of(적) — 적이 지금 노리는 것(S4)
+#   BattleView: battle · controls · _draw() · _wall_piece(성곽·잔해 Block, 조각) · _feet_mark(몸, 번호) · _body(몸, 번호, next, 색, 번쩍임) · _zones()
 # 맵: 9~11행이 두께 3줄 성곽(성문 문루 4~6·14~16·24~26열), 위쪽 0~8행이 마을, 아래 12~23행이 들판
 
 const Main := preload("res://src/main.gd")
@@ -203,3 +204,37 @@ func ev465():
 		return "병사가 북쪽 성벽 위 (10,1)에 닿지 못했다(%s, 성벽 위 %s)" % [m.pos, m.on_wall]
 	b.order_move([m], Vector2i(1, 20))
 	return check(run(b, 90.0, func(): return m.on_wall and near(m.pos, Vector2i(1, 20))), "병사가 서쪽 성벽 위 (1,20)에 닿지 못했다(%s, 성벽 위 %s)" % [m.pos, m.on_wall])
+
+# 성곽 조각·발밑·몸통·장판을 그리는 대신 부른 차례를 모으는 화면
+class Rec extends "res://src/ui/battle_view.gd":
+	var calls := []  # [이름, 대상]
+
+	func _wall_piece(b, _front: int) -> void:
+		calls.append(["wall", b])
+
+	func _feet_mark(x, _i: int) -> void:
+		calls.append(["feet", x])
+
+	func _body(x, _i: int, _next: Dictionary, _tint := Color.WHITE, _flash := true) -> void:
+		calls.append(["body", x])
+
+	func _zones() -> void:
+		calls.append(["zones", null])
+
+# EV566 · S170: 잔해는 바닥 층이다. 정문 잔해 조각은 장판보다 먼저, 잔해 가운데 줄 병사의 발밑·몸통은 장판보다 나중에 그린다
+func ev566():
+	var b = _battle()
+	var gate = b.castle[MAIN]
+	b.damage(gate, BIG)
+	var m = b.place_merc("soldier", MAIN + Vector2i(1, -1))
+	if b.rubble.get(MAIN) != gate or m == null:
+		return "정문이 잔해가 되지 않았거나(%s) 잔해 가운데 줄에 병사를 놓지 못했다(%s)" % [b.rubble.keys(), m]
+	var v = Rec.new()
+	v.battle = b
+	v.controls = controls(b)
+	v._draw()
+	var order: Array = v.calls.filter(func(c): return c[1] == gate or c[1] == m or c[0] == "zones").map(func(c): return c[0])
+	v.free()
+	var z := order.find("zones")
+	return check(order.has("wall") and order.has("feet") and order.has("body") and z >= 0 and order.rfind("wall") < z and order.find("feet") > z and order.find("body") > z,
+		"부른 차례 %s" % [order])

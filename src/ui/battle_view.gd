@@ -279,6 +279,8 @@ func _draw() -> void:
 		for p in yard_props(s):
 			if not battle.water.has(Vector2i((p[1] + Vector2(CELL, CELL) / 2.0) / CELL)):  # 소품 가운데가 물 칸이면 그리지 않는다(I181)
 				draw_texture_rect_region(DECOR, Rect2(p[1], Vector2(CELL, CELL)), Rect2(p[0] * CELL, YARD_ROW, CELL, CELL))
+	for r in battle.rubble.values():  # 잔해(I88)는 바닥 층: 몸통과 정렬하지 않고 장판·발밑·쓰러진 몸보다 먼저 깐다(S170 2026-10-28)
+		_wall_piece(r, 0)
 	if controls.placing != "":  # 격자선은 놓기 모드에서만(4.1b, 사용자 2026-10-20)
 		var map := Vector2(battle.size) * CELL
 		for x in battle.size.x + 1:
@@ -901,13 +903,13 @@ func _marks() -> void:
 				top += rise_at(battle, b.cell)  # 문루·탑은 앞면이 높아진 만큼 위에(S170). 성벽과 같은 자리(흉벽 바로 아래)다
 			_hp_bar(Vector2(battle.middle(b).x, b.cell.y) - Vector2(0, (_lift(b) + top) / CELL), b, Vector2(CELL, 2), true)  # 차지 칸 가운데 위(S173)
 
-# 유닛·적·주민 몸통(S165, S172)과 성곽·거점(4.1c)·시설(4.1e). 땅의 쓰러진 몸(S180), 발밑 팀 색(S166)과 비행 적 그림자(I81)를 먼저 깔고, (층, 바닥선 y, 목록 순서)로 정렬해 그린다.
+# 유닛·적·주민 몸통(S165, S172)과 성곽·거점(4.1c)·시설(4.1e). 잔해는 _draw가 바닥 층으로 먼저 깐다(S170). 땅의 쓰러진 몸(S180), 발밑 팀 색(S166)과 비행 적 그림자(I81)를 먼저 깔고, (층, 바닥선 y, 목록 순서)로 정렬해 그린다.
 # 성곽 칸은 몸체(바닥선)와 앞층(바닥선 + 2) 두 조각이고, 성벽 위 유닛·대포와 기어오르는 적은 그 사이(바닥선 + 1)에 올려 그려 앞층이 발을 가린다(05 §2).
 # 성벽 위 유닛의 발밑 팀 색만은 앞층 다음(바닥선 + 3)에 올려 그려 흉벽에 가리지 않게 한다(사용자 2026-10-20).
 # 성벽·거점 그림에 가려진 땅 유닛과 시설은 끝에 한 번 더 그린다(_shade). 레벨·선택·효과 테두리는 _draw가 모든 몸통 뒤에 그린다
 func _bodies() -> void:
 	var all: Array = battle.units + _foes  # 숨은 적(S213)은 몸·발밑을 그리지 않는다
-	var walls: Array = battle.castle.values() + battle.rubble.values()
+	var walls: Array = battle.castle.values()
 	var blds: Array = battle.structures.values()
 	for s in battle.structures.values():  # 옮겨 갈 칸의 대포 청사진(S176): 진행률 0인 미완성 대포로 그린다
 		if s.dest != null:
@@ -1160,7 +1162,7 @@ func _ellipse(c: Vector2, r: Vector2, col: Color) -> void:
 	draw_polyline(pts, col, 1.0)
 
 # 성곽 칸 조각 하나(front 0 몸체, 1 앞층). 조각 맨 아랫줄이 바닥선 바로 아래 줄이다. 단계(S86)마다 그림이 다르고(사용자 2026-10-20),
-# 열린 성문은 몸체 위에 통로 그늘을 겹친다(I67). 잔해(I88)는 몸체 자리에 돌무더기 하나다. 맞은 칸은 흔들리고 깎이면 금(S199)
+# 열린 성문은 몸체 위에 통로 그늘을 겹친다(I67). 잔해(I88)는 몸체 자리에 돌무더기 하나이고 바닥 층이다(S170). 맞은 칸은 흔들리고 깎이면 금(S199)
 func _wall_piece(b, front: int) -> void:
 	var at := Vector2(b.cell.x * CELL, (b.cell.y + 1) * CELL - (WALL_PIECE_H - 1)) + _jolt(b)
 	if battle.rubble.get(b.cell) == b:
