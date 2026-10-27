@@ -1,6 +1,6 @@
 {
-  "approvedAt": "2026-10-27T08:40:15.596Z",
-  "evalMd": "449e15c0",
+  "approvedAt": "2026-10-27T09:07:04.160Z",
+  "evalMd": "6334d9b4",
   "tests": {
     "tests/eval/conftest.py": "e6bb5f0b",
     "tests/eval/gd/aura.gd": "010cc38a",
@@ -77,6 +77,8 @@
     "tests/eval/gd/sell.gd.uid": "5c77653c",
     "tests/eval/gd/show.gd": "7037f8af",
     "tests/eval/gd/show.gd.uid": "be479de2",
+    "tests/eval/gd/slimeart.gd": "7d6058fd",
+    "tests/eval/gd/slimeart.gd.uid": "1b226045",
     "tests/eval/gd/slimeking.gd": "ccda0ffa",
     "tests/eval/gd/slimeking.gd.uid": "a58d1a7c",
     "tests/eval/gd/split.gd": "96660548",
@@ -127,6 +129,7 @@
     "tests/eval/test_save.py": "c47d5574",
     "tests/eval/test_sell.py": "014befe2",
     "tests/eval/test_show.py": "74378302",
+    "tests/eval/test_slimeart.py": "096bdea0",
     "tests/eval/test_slimeking.py": "e938269e",
     "tests/eval/test_split.py": "2bbb793b",
     "tests/eval/test_thick.py": "98dfcc83",
@@ -408,7 +411,7 @@
     "S220": "d205e4eb",
     "I181": "0cd2b7a4",
     "S221": "44b69362",
-    "S172": "ad7c8141",
+    "S172": "c94bf865",
     "S222": "0226b181",
     "S223": "b88e5958",
     "S224": "7e1b8744",
@@ -428,6 +431,8 @@
     "I186": "119e8e8c",
     "I187": "1414ce21",
     "S235": "8cd06bd8",
-    "S236": "63c9b853"
+    "S236": "63c9b853",
+    "I189": "b3fbe0f5",
+    "S198": "0674ac73"
   }
 }
