@@ -6,6 +6,7 @@ extends CanvasLayer
 const Settings := preload("res://src/settings.gd")
 const HudTheme := preload("res://src/ui/hud_theme.gd")
 const LANGUAGES := {"ko": "한국어", "en": "English"}  # 설정 «언어»의 항목(S193). 언어 이름은 그 언어로 쓴다. 번역 안 함
+const SHAKES := ["끔", "약하게", "보통"]  # 설정 «화면 흔들림»의 항목(S200). 번호가 Settings.shake다
 
 signal chosen(what: String)
 
@@ -114,6 +115,18 @@ func open(p: String, note := false) -> void:
 				Settings.language = LANGUAGES.keys()[i]
 				Settings.apply_language()
 				_changed())
+			var shake_row := HBoxContainer.new()  # 화면 흔들림(S184, S200). 언어 고르기보다 뒤에 둔다(언어가 설정 화면의 첫 고르기다)
+			_box.add_child(shake_row)
+			_label("화면 흔들림", shake_row)
+			var shake := OptionButton.new()
+			for t in SHAKES:
+				shake.add_item(t)
+			shake.selected = Settings.shake
+			shake_row.add_child(shake)
+			shake.item_selected.connect(func(i):
+				Settings.shake = i
+				_changed())
+			_check("번쩍임 줄이기", Settings.soft_flash, func(on): Settings.soft_flash = on)  # S177, S197
 			_button("뒤로", _leave_settings)
 	_root.show()
 	first.grab_focus()

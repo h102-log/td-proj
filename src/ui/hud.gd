@@ -587,10 +587,10 @@ func _demolish_press() -> void:
 		_arm_on = controls.picked.duplicate()
 
 # 팝업을 고른 칸의 바깥쪽(화면 가운데 반대편) 모서리에 붙인다(I58). 화면 밖이거나 위 띠·건설 격자·정보 칸·태그와 겹치면
-# 좌우·위아래·둘 다 뒤집은 모서리를 차례로 본다(I137). 맵 px → 화면은 맵 뷰포트의 카메라 변환이다(HUD와 같은 기준 해상도)
+# 좌우·위아래·둘 다 뒤집은 모서리를 차례로 본다(I137). 맵 px → 화면은 맵 뷰포트의 카메라 변환이다(HUD와 같은 기준 해상도, 화면 흔들림은 뺀다 S200)
 func _place_popup() -> void:
 	popup.reset_size()
-	var t := map.get_canvas_transform()
+	var t: Transform2D = map.get_camera_2d().steady()
 	var cell: Rect2 = t * Rect2((controls.sell_at / BattleView.CELL).floor() * BattleView.CELL, Vector2.ONE * BattleView.CELL)
 	var screen := Rect2(Vector2.ZERO, get_viewport().get_visible_rect().size)
 	var away := (cell.get_center() - screen.get_center()).sign()
@@ -612,7 +612,7 @@ func _place_popup() -> void:
 # 닿는 공병이 없어 거부된 놓기 칸의 빨간 ✕(I128)
 func _draw_refused() -> void:
 	if _now - _refused[1] < REFUSE_MARK:
-		_mark.draw_texture_rect(_cross, map.get_canvas_transform() * Rect2(Vector2(_refused[0]) * BattleView.CELL, Vector2.ONE * BattleView.CELL), false, HudTheme.DANGER)
+		_mark.draw_texture_rect(_cross, map.get_camera_2d().steady() * Rect2(Vector2(_refused[0]) * BattleView.CELL, Vector2.ONE * BattleView.CELL), false, HudTheme.DANGER)
 
 # 위 띠의 칸 버튼: 안쪽 여백이 없어 좌표로 준 크기를 넘지 않는다
 func _bar_button(parent: Control, text: String, on_press: Callable) -> Button:
@@ -875,7 +875,7 @@ func _show_edges() -> void:
 	var counts: Array = battle.spawn_counts(battle.round_index, battle.wave_index)
 	for i in battle.spawns.size():
 		var m: Control = edges.get_child(i)
-		var at: Vector2 = map.get_canvas_transform() * ((Vector2(battle.spawns[i]) + Vector2(0.5, 0.5)) * BattleView.CELL)
+		var at: Vector2 = map.get_camera_2d().steady() * ((Vector2(battle.spawns[i]) + Vector2(0.5, 0.5)) * BattleView.CELL)
 		m.visible = not VIEW.has_point(at)
 		m.get_child(1).text = str(counts[i].values().reduce(func(n, x): return n + x, 0))
 		m.position = Vector2(clampf(at.x - m.size.x / 2, EDGE_X.x, EDGE_X.y - m.size.x), 344)

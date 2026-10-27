@@ -54,7 +54,7 @@ func step(delta: float) -> void:
 		_up[h] = h.alive
 	for s in battle.structures.values():  # 화면 밖 들판 구조물이 처음 절반 아래로. 짓는 중인 것은 세지 않는다
 		var half: float = s.max_hp / 2.0
-		var at: Vector2 = hud.map.get_canvas_transform() * ((Vector2(s.cell) + Vector2(0.5, 0.5)) * BattleView.CELL)
+		var at: Vector2 = hud.map.get_camera_2d().steady() * ((Vector2(s.cell) + Vector2(0.5, 0.5)) * BattleView.CELL)
 		if s.alive and s.complete and s.hp < half and _hp.get(s, s.hp) >= half and not s in _low \
 				and not battle.village.has_point(s.cell) and not hud.VIEW.has_point(at):
 			_low.append(s)
@@ -126,7 +126,7 @@ func _show_marks() -> void:
 			continue
 		if m.button == null:
 			m.button = _marker(m.kind, cell)
-		var at: Vector2 = hud.map.get_canvas_transform() * ((Vector2(cell) + Vector2(0.5, 0.5)) * BattleView.CELL)
+		var at: Vector2 = hud.map.get_camera_2d().steady() * ((Vector2(cell) + Vector2(0.5, 0.5)) * BattleView.CELL)
 		var b: Button = m.button
 		b.visible = not hud.VIEW.has_point(at)
 		if not b.visible:

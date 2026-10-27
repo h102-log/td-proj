@@ -73,6 +73,21 @@ msgstr "Camera Speed"
 msgid "언어"
 msgstr "Language"
 
+msgid "화면 흔들림"
+msgstr "Screen Shake"
+
+msgid "끔"
+msgstr "Off"
+
+msgid "약하게"
+msgstr "Low"
+
+msgid "보통"
+msgstr "Normal"
+
+msgid "번쩍임 줄이기"
+msgstr "Reduce Flashing"
+
 msgid "뒤로"
 msgstr "Back"
 

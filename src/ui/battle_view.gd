@@ -3,6 +3,7 @@ extends Node2D
 
 const CELL := 16
 const Camera := preload("res://src/ui/camera.gd")
+const Settings := preload("res://src/settings.gd")
 const Folk := preload("res://src/sim/folk.gd")
 const COLORS := {
 	"grid": Color(0, 0, 0, 0.15), "spawn": Color("c03030"), "merc": Color("50a0f0"),
@@ -57,6 +58,10 @@ const CRACK := [Color("1f240a"), Color("a56243")]  # 바닥 균열의 어두운 
 const JOLT := 0.05  # 맞은 구조물·성곽 칸·거점 그림을 1px 옮겨 그리는 시간(초, 3프레임, S199)
 const DEBRIS := Color("efd8a1")  # 구조물 부스러기(S199): 돌 회청색·나무 갈색과 다른 밝은 모래색(F24+). 시안의 재질 색은 거의 안 보였다
 const BAR_TIERS := [Color("ef3a0c"), Color("e0c040"), Color("7cc85a")]  # 구조물·성곽·거점 막대(S199): 25% 밑·50% 밑·그 위. 위 띠 거점 막대(S190)의 HudTheme.DANGER·HudBuild.WARN·HudTheme.GOOD와 같은 값
+const SOFT_FLASH := Color(255, 255, 255, 0.4)  # 번쩍임 줄이기(S184): 같은 그림을 255배·알파 0.4로 덧그리면 흰 40%다(S177, S197)
+const STONE := Color("7a86a0")  # 무너진 성곽 칸에서 떨어지는 돌 조각(S200, F24+ 성벽 돌색)
+const DROP := 0.15  # 무너진 성곽 칸 위 유닛이 땅으로 내려오는 시간(초, S200)
+const RIM := 8  # 맵 둘레에 맵 밖 바닥색으로 칠하는 폭(px, S200). 화면 흔들림(최대 3 기준 화면 px)이 가장자리에서 빈 곳을 보이지 않게
 const PIXEL_FONT := preload("res://art/fonts/Galmuri7.ttf")  # 맵 위 숫자(S167). 맵은 640×360을 정수배로 키우므로 벡터 글자는 뭉개진다
 const GROUND_TILES := preload("res://art/tiles/ground.png")  # 0행 풀↔흙 꼭짓점 16꼴, 1행 풀·흙 변종과 깃발, 2·3행 전환 꼴 변종(tools/art/tiles.py)
 const DECOR := preload("res://art/tiles/decor.png")  # 들판·마을 장식(S201·S202, tools/art/decor.py): 0행 16×16 바위 3·그루터기 2·구덩이 2·자갈 2·풀 2·풀꽃·우물, 1행 48×32 그을음 3, 2행 48×48 마른 나무 4, 3행 16×16 마당 소품(S215)
@@ -233,7 +238,8 @@ func _draw() -> void:
 		_decor = ground_props(battle)
 		_under = ground.get_image()
 	_foes = foes()
-	draw_rect(Rect2(0, -TOP_BAND, battle.size.x * CELL, TOP_BAND), FOREST_FLOOR)  # 맵 위 맵 밖 띠(I50): 사방 성곽의 북벽 그림이 맵 위로 솟는다(S219)
+	# 맵 위 맵 밖 띠(I50): 사방 성곽의 북벽 그림이 맵 위로 솟는다(S219). 둘레 RIM까지 칠해 화면이 흔들려도(S200) 빈 곳이 안 보인다. 바닥 그림이 그 위를 덮는다
+	draw_rect(Rect2(-RIM, -TOP_BAND - RIM, battle.size.x * CELL + 2 * RIM, TOP_BAND + battle.size.y * CELL + int(Camera.BOTTOM) + 2 * RIM), FOREST_FLOOR)
 	draw_texture(ground, Vector2.ZERO)  # 카메라가 아래로 보이는 맵 밖(I50)까지 한 장이다
 	var yards := {}
 	for s in battle.structures.values():  # 시설 터(S215). 바닥을 다시 구우면 75ms라 시설마다 따로 구운 그림을 얹는다
@@ -712,8 +718,14 @@ func _facility(s, tint := Color.WHITE) -> void:
 func _body(x, i: int, next: Dictionary, tint := Color.WHITE, flash := true) -> void:
 	if x.get("skills") and battle.raging(x):  # 분노(S195)
 		tint *= RAGE
-	if flash and _hits.get(x.get_instance_id(), [INF])[0] < FLASH:  # 피격 번쩍임(S177): 255배 modulate가 그림을 흰 실루엣으로 만든다(유닛 그림에 0인 채널이 없다). 배치는 끊기지 않는다
+	var white: bool = flash and _hits.get(x.get_instance_id(), [INF])[0] < FLASH  # 피격 번쩍임(S177): 255배 modulate가 그림을 흰 실루엣으로 만든다(유닛 그림에 0인 채널이 없다). 배치는 끊기지 않는다
+	if white and not Settings.soft_flash:
 		tint *= Color(255, 255, 255)
+	_paint(x, i, next, tint)
+	if white and Settings.soft_flash:  # 번쩍임 줄이기(S184): 원래 그림 위에 같은 그림을 흰 40%로 한 번 더(S177)
+		_paint(x, i, next, tint * SOFT_FLASH)
+
+func _paint(x, i: int, next: Dictionary, tint: Color) -> void:
 	if ART.has(x.kind) and not x.get("is_hero"):
 		_four_sprite(x, next, tint)
 	elif i >= battle.units.size():  # 그림이 없는 적은 색 원(I81)
@@ -948,7 +960,10 @@ func _corpse(d: Array) -> void:
 	var hero: bool = x.get("is_hero") == true
 	var s := _last_blow(x, d[1])
 	if s[0]:
-		_frame(ART[x.kind], "idle", s[4], 0, _spot(x) + s[2], Color(255, 255, 255) if s[1] else Color.WHITE)  # 흰 실루엣은 _body의 피격 번쩍임과 같은 255배 modulate
+		var soft: bool = s[1] and Settings.soft_flash  # 번쩍임 줄이기(S184)면 선 자세 위에 흰 40%를 덧그린다(S197)
+		_frame(ART[x.kind], "idle", s[4], 0, _spot(x) + s[2], Color(255, 255, 255) if s[1] and not soft else Color.WHITE)  # 흰 실루엣은 _body의 피격 번쩍임과 같은 255배 modulate
+		if soft:
+			_frame(ART[x.kind], "idle", s[4], 0, _spot(x) + s[2], SOFT_FLASH)
 		return
 	var p: Vector2 = (_spot(x) if x.on_wall else _center(x.pos) + (Vector2(0, CELL * 0.4) if x.get("flying") == true else Vector2.ZERO)) + s[2]
 	var a := 1.0 if hero else clampf((battle.FALLEN - d[1]) / CORPSE_FADE, 0.0, 1.0)
@@ -1225,11 +1240,25 @@ func _emit(kind: String, at: Vector2, dir: Vector2, src, dst, more := {}) -> voi
 	e.merge(more, true)
 	events.append(e)
 
-# 사건에 붙는 그림(S198, S199): 보스 스킬 발동은 바닥 균열과 먼지, 끊김은 예고 둘레의 조각, 구조물이 맞으면 부스러기
+# 사건에 붙는 그림(S198~S200): 보스 스킬 발동은 바닥 균열과 먼지, 끊김은 예고 둘레의 조각, 구조물이 맞으면 부스러기, 성곽 칸이 무너지면 먼지와 돌 조각
 func _react(e: Dictionary) -> void:
 	match e.kind:
 		"struct":  # 근접 공격이 닿은 면(공격자 쪽)에서
 			_debris(e.at - e.dir * CELL * 0.4, e.n)
+		"collapse":  # 칸 아래(앞줄 바닥선)에서 먼지 12점이 퍼지고, 성벽 꼭대기에서 돌 조각 4개가 0.25초 안에 때를 엇갈려 떨어진다
+			var k = e.dst
+			var x0: float = k.cell.x * CELL
+			var w: float = k.size.x * CELL
+			var floor_y: float = (k.cell.y + 1) * CELL - 1
+			for i in 12:
+				var p := Vector2(roundf(x0 + w * (i + 0.5) / 12.0), floor_y)
+				var d := Vector2.from_angle(deg_to_rad(i * 30.0 + _h(e.n, i, -12, 12)))
+				_dot({"p0": p, "p1": p + Vector2(d.x, d.y * 0.5) * _h(e.n, 20 + i, 8, 16), "rise": _h(e.n, 40 + i, 2, 4), "col": DUST, "size": Vector2(2, 2), "life": 0.45, "fade": 0.2})
+			var top: float = floor_y - 3 - WALL_H - rise_at(battle, k.cell)
+			for i in 4:
+				var wait := i * 0.03 + _h(e.n, 60 + i, 0, 2) * 0.01
+				var p := Vector2(roundf(x0 + 2 + (w - 4) * (i + 0.5) / 4.0), top + _h(e.n, 70 + i, -3, 3))
+				_dot({"p0": p, "p1": Vector2(p.x + _h(e.n, 80 + i, -3, 3), floor_y), "col": STONE, "size": Vector2(3, 3), "life": 0.25 - wait, "fade": 0.05, "wait": wait, "fall": true})
 		"boss":
 			for t in e.ref.hits:  # 보스 스킬에 맞은 구조물·성곽 칸·거점(Block에는 pos가 없다)
 				if t.get("pos") == null:
@@ -1257,11 +1286,12 @@ func _debris(at: Vector2, n: int) -> void:
 	for i in 2:
 		_dot({"p0": p, "p1": p + Vector2((1 - 2 * i) * _h(n, 60 + i, 4, 7), _h(n, 62 + i, 2, 4)), "rise": _h(n, 64 + i, 3, 5), "col": DEBRIS, "size": Vector2(2, 2), "life": 0.35, "fade": 0.1})
 
-# 효과 점 하나(I172). p1까지 _out으로 움직이며 가운데에서 rise만큼 솟는다. to가 있으면 그 색으로 바뀐다. 마지막 fade초에 흐려진다
+# 효과 점 하나(I172). p1까지 _out으로 움직이며 가운데에서 rise만큼 솟는다. to가 있으면 그 색으로 바뀐다. 마지막 fade초에 흐려진다.
+# wait초 뒤에 나타나고, fall이면 떨어지는 것처럼 점점 빨리 움직인다(S200 돌 조각)
 func _dot(d: Dictionary) -> void:
 	var p0: Vector2 = d.p0
-	_dots.append({"p0": p0, "p1": d.get("p1", p0), "rise": float(d.get("rise", 0.0)), "t0": clock, "life": d.life, "fade": d.get("fade", 0.0),
-		"col": d.col, "to": d.get("to", d.col), "size": d.get("size", Vector2.ONE), "ground": d.get("ground", false)})
+	_dots.append({"p0": p0, "p1": d.get("p1", p0), "rise": float(d.get("rise", 0.0)), "t0": clock + d.get("wait", 0.0), "life": d.life, "fade": d.get("fade", 0.0),
+		"col": d.col, "to": d.get("to", d.col), "size": d.get("size", Vector2.ONE), "ground": d.get("ground", false), "fall": d.get("fall", false)})
 
 # 효과 점을 그린다(I172). 사각형만 써서 점이 몇 개든 배치 하나다. ground면 몸통 아래 바닥 점(균열)
 func _fx_dots(ground: bool) -> void:
@@ -1269,8 +1299,10 @@ func _fx_dots(ground: bool) -> void:
 		if d.ground != ground:
 			continue
 		var t: float = clock - d.t0
+		if t < 0.0:  # 아직 나타나지 않았다(wait)
+			continue
 		var k := clampf(t / d.life, 0.0, 1.0)
-		var p: Vector2 = d.p0 + (d.p1 - d.p0) * _out(k) + Vector2(0, -d.rise * sin(PI * k))
+		var p: Vector2 = d.p0 + (d.p1 - d.p0) * (k * k if d.fall else _out(k)) + Vector2(0, -d.rise * sin(PI * k))
 		var a: float = 1.0 if t < d.life - d.fade else (d.life - t) / d.fade
 		var col: Color = d.col
 		draw_rect(Rect2(p - d.size / 2.0, d.size), Color(col.lerp(d.to, k), a))
@@ -1281,13 +1313,18 @@ static func _h(n: int, k: int, lo: int, hi: int) -> int:
 
 # 넉백·끌어옴처럼 한 스텝에 8px 넘게 옮겨진 몸은 지난 자리에서 미끄러지게 그린다(S198). 보스 스킬에 맞은 것은 160px, 그 밖은 48px까지.
 # 옮겨진 거리는 시뮬레이션 자리로 잰다(성벽 위 몸은 그리는 높이가 칸마다 바뀌어서 화면 자리로 재면 걷기도 튄다).
-# 성벽을 오르내리거나 기어오르기를 마친 스텝(성벽 위·기어오르기 상태가 바뀜)은 미끄러지지 않는다
+# 성벽을 오르내리거나 기어오르기를 마친 스텝(성벽 위·기어오르기 상태가 바뀜)은 미끄러지지 않는다.
+# 다만 성곽 칸이 무너져 그 위에서 땅으로 내려온 몸은 DROP초에 걸쳐 내려온다(S200)
 func _slide_scan() -> void:
 	var far := {}
+	var fell := {}  # 이번 프레임에 무너진 성곽 칸
 	for e in events:
 		if e.kind == "boss":
 			for t in e.ref.hits:
 				far[t.get_instance_id()] = true
+		elif e.kind == "collapse":
+			for c in battle.cells_in(battle.area_of(e.dst)):
+				fell[c] = true
 	var next := {}
 	for x in battle.units + battle.enemies:
 		var id: int = x.get_instance_id()
@@ -1302,6 +1339,8 @@ func _slide_scan() -> void:
 				if s != null:  # 미끄러지는 중에 또 옮겨지면 지금 그려진 자리에서 다시 미끄러진다
 					from = s[0].lerp(was[0], _out(clampf((clock - s[1]) / s[2], 0.0, 1.0)))
 				_slides[id] = [from, clock, clampf(d / SLIDE, 0.12, 0.3)]
+		elif was != null and was[2][0] and not x.on_wall and fell.has(Vector2i(x.pos.round())):
+			_slides[id] = [was[0], clock, DROP]
 		next[id] = [_spot(x), c, state]
 	_last = next
 	for id in _slides.keys():
