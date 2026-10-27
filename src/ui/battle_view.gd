@@ -337,8 +337,7 @@ func _draw_top() -> void:
 	for u in battle.units + _foes:
 		var bar := hp_bar_size(u, controls.show_hp)
 		if bar != Vector2.ZERO:
-			var head: float = (ART[u.kind].anchor[1] - ART.basic.anchor[1]) / CELL if u.get("boss") and ART.has(u.kind) else 0.0  # 보스(I185) 그림은 기본 적보다 키가 커서 막대를 그만큼 올린다(머리 위)
-			_hp_bar(u.pos - Vector2(0, _lift(u) / CELL + head) + _slip(u) / CELL, u, bar)
+			_hp_bar(hp_bar_at(u), u, bar)
 	for v in battle.people:  # 다친 주민(S227)은 V와 상관없이 막대를 그린다
 		if v.hp < v.max_hp and not v.inside:
 			_hp_bar(v.pos, v)
@@ -682,11 +681,11 @@ static func side_at(bt, p: Vector2):
 			return bt.walls[c]
 	return null
 
-# 그림 한 장을 원본과 같은 크기로 그린다. _clip보다 위 줄은 뺀다
+# 그림 한 장을 대상 사각형에 그린다(보통 원본과 같은 크기, 슬라임 킹은 늘이고 줄인다). _clip보다 위 줄은 뺀다
 func _region(tex: Texture2D, dst: Rect2, src: Rect2, tint: Color) -> void:
 	var cut := clampf(_clip - dst.position.y, 0.0, dst.size.y)
 	if cut < dst.size.y:
-		draw_texture_rect_region(tex, dst.grow_side(SIDE_TOP, -cut), src.grow_side(SIDE_TOP, -cut), tint)
+		draw_texture_rect_region(tex, dst.grow_side(SIDE_TOP, -cut), src.grow_side(SIDE_TOP, -cut * src.size.y / dst.size.y), tint)
 
 # 시설 하나(4.1e, 사용자 2026-10-20). 미완성은 청사진 위에 진행률만큼 아래부터 그림을 채우고, 철거 중은 거꾸로 위부터 청사진으로 돌아간다.
 # 다 접힌 대포는 접힌 그림이다(I74). 성벽 위 대포(I44)는 올려 그린다
@@ -710,32 +709,39 @@ func _body(x, i: int, next: Dictionary, tint := Color.WHITE, flash := true) -> v
 		tint *= Color(255, 255, 255)
 	if ART.has(x.kind) and not x.get("is_hero"):
 		_four_sprite(x, next, tint)
-	elif i >= battle.units.size():
-		_round_body(x, ENEMY_COLORS.get(x.kind, ENEMY_COLORS.basic) * tint)
+	elif i >= battle.units.size():  # 그림이 없는 적은 색 원(I81)
+		draw_circle(_spot(x), CELL * x.radius, ENEMY_COLORS.get(x.kind, ENEMY_COLORS.basic) * tint)
 	elif x.is_hero and ART.has(x.kind):
 		_sprite(x, next, tint)
 	else:
 		draw_circle(_spot(x), CELL * x.radius, (HERO_COLORS.get(x.kind, COLORS.merc) if x.is_hero else COLORS.get(x.kind, COLORS.merc)) * tint)
 
-# 그림이 없는 적은 색 원(I81). 슬라임 킹 점프(S236, S198): 웅크리는 동안 아래끝을 둔 채 점점 납작해지고, 뜬 동안은 그림자 위로 들어 올린다
-func _round_body(x, col: Color) -> void:
-	var at := _spot(x)
-	var r: float = CELL * x.radius
+# 줄어든 몸(S236)의 그림 배율: 지금 반지름 ÷ 나온 때 반지름. 줄어들지 않는 몸은 1
+func _shrunk(x) -> float:
+	return x.radius / x.girth if x.get("girth") else 1.0
+
+# 몸통 그림의 [발밑 기준 배율, 들어 올림 px](S198 2026-10-27 둘째 변경). 방향 없는 그림의 보스(슬라임 킹)는 점프(S236) 웅크림 동안
+# CROUCH까지 점점 납작해지고, 뜬 동안 포물선으로 한가운데 LEAP_UP까지 오르며, 착지한 뒤 SLAM_POSE 동안 CROUCH에서 돌아온다
+func _look(x) -> Array:
+	var s := Vector2.ONE * _shrunk(x)
+	if not (_boss(x) and ART.has(x.kind) and ART[x.kind].get("one", false)):
+		return [s, 0.0]
 	var c = x.cast
-	if c == null or not c.has("at"):
-		draw_circle(at, r, col)
-		return
-	var sk: Dictionary = x.skills[c.id]
-	if c.get("air", false):
-		var t: float = 1.0 - c.left / sk.air
-		draw_set_transform(at, 0.0, Vector2(1.0, 0.4))
-		draw_circle(Vector2.ZERO, r, Color(0, 0, 0, 0.3))
-		draw_set_transform(at + Vector2(0, -LEAP_UP * 4.0 * t * (1.0 - t)), 0.0, Vector2.ONE)
-	else:
-		var k: float = 1.0 - c.left / sk.windup
-		var s := Vector2(1.0 + (CROUCH.x - 1.0) * k, 1.0 + (CROUCH.y - 1.0) * k)
-		draw_set_transform(at + Vector2(0, r * (1.0 - s.y)), 0.0, s)
-	draw_circle(Vector2.ZERO, r, col)
+	if c != null and c.has("at"):
+		var sk: Dictionary = x.skills[c.id]
+		if c.get("air", false):
+			var t: float = 1.0 - c.left / sk.air
+			return [s, LEAP_UP * 4.0 * t * (1.0 - t)]
+		return [s * Vector2.ONE.lerp(CROUCH, 1.0 - c.left / sk.windup), 0.0]
+	var tr = _boss_trace(x)
+	if tr != null:
+		return [s * CROUCH.lerp(Vector2.ONE, tr.age / SLAM_POSE), 0.0]
+	return [s, 0.0]
+
+# 뜬 몸의 그림자(S198): 땅 자리에 납작한 반투명 타원
+func _shadow(at: Vector2, r: float) -> void:
+	draw_set_transform(at, 0.0, Vector2(1.0, 0.4))
+	draw_circle(Vector2.ZERO, r, Color(0, 0, 0, 0.3))
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 # 성벽·거점 그림이 덮는 자리에 선 땅 유닛이나 시설: 성곽 그림이 발을 덮는 뒤 줄(성벽 두 줄, 문루 세 줄, 탑 세 줄), 거점 칸 뒤 두 줄과 그 양옆(C1, 사용자 2026-10-20)
@@ -893,7 +899,11 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 	var off := Vector2.ZERO
 	if _boss(x):  # 보스 스킬(S198): 예고 끝에 들어 올렸다가 발동하면 내리찍는다. 원 모양 스킬은 화면 쪽(S)을, 방향 스킬은 그쪽을 본다
 		var c = _boss_trace(x)
-		if c != null:
+		if ART[x.kind].get("one", false):  # 방향 없는 그림(슬라임 킹, S198 2026-10-27 둘째 변경)은 웅크림·뜸·착지를 정지 그림으로 하고 모양은 _look이 정한다
+			if c != null or x.cast:
+				anim = "idle"
+				col = 0
+		elif c != null:
 			anim = "attack"
 			col = 0  # 4방향 시트의 공격은 키 포즈 한 칸이다. 밀려 걷는 위상이 남으면 빈 칸을 그린다
 			dir = 0 if c.aim == null else _four(Vector2(c.aim) - c.at)
@@ -906,7 +916,11 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 		if x.fx.has("stagger"):  # 비틀거리는 동안 8프레임마다 좌우로 1px 떤다
 			off.x = 1.0 if int(clock * 60.0 / 8.0) % 2 == 0 else -1.0
 	next[id] = [x.pos, dir]
-	_frame(ART[x.kind], anim, dir, col, _spot(x) + _lunge(x) + _flinch(x) + _slip(x) + off, tint)
+	var p := _spot(x) + _lunge(x) + _flinch(x) + _slip(x) + off
+	var lk := _look(x)
+	if x.get("cast") and x.cast.get("air", false):
+		_shadow(p, CELL * x.radius)
+	_frame(ART[x.kind], anim, dir, col, p - Vector2(0, lk[1]), tint, lk[0])
 
 # 그릴 쓰러진 몸(S180) [몸, 쓰러진 뒤 초]: 시뮬레이션이 아직 지우지 않은 적·용병과 복귀 전 영웅. 영웅은 지워진 뒤에도 마지막 자세로 남는다
 func _fallen() -> Array:
@@ -931,14 +945,16 @@ func _corpse(d: Array) -> void:
 		return
 	var p: Vector2 = (_spot(x) if x.on_wall else _center(x.pos) + (Vector2(0, CELL * 0.4) if x.get("flying") == true else Vector2.ZERO)) + s[2]
 	var a := 1.0 if hero else clampf((battle.FALLEN - d[1]) / CORPSE_FADE, 0.0, 1.0)
-	_frame(ART[x.kind], "fall", 0, mini(int(s[3] / FALL_STEP), 4) if hero else 0, p, Color(1, 1, 1, a))
+	_frame(ART[x.kind], "fall", 0, mini(int(s[3] / FALL_STEP), 4) if hero else 0, p, Color(1, 1, 1, a), Vector2.ONE * _shrunk(x))
 
-# 4방향 시트(tools/art/atlas.py FOUR)의 한 칸을 발밑 p에 그린다. 행은 S·E·N·W, 공격·쓰러짐은 2배 캔버스
-func _frame(a: Dictionary, anim: String, dir: int, col: int, p: Vector2, tint := Color.WHITE) -> void:
+# 4방향 시트(tools/art/atlas.py FOUR)의 한 칸을 발밑 p에 그린다. 행은 S·E·N·W, 공격·쓰러짐은 2배 캔버스. 방향 없는 칸(one, I189)은 늘 0행이다.
+# scale은 발밑 기준 배율이다(슬라임 킹 웅크림·줄어듦, S198)
+func _frame(a: Dictionary, anim: String, dir: int, col: int, p: Vector2, tint := Color.WHITE, scale := Vector2.ONE) -> void:
 	var c := int(a.c)
 	var size := c * (2 if anim == "attack" or anim == "fall" else 1)
-	var at := p - Vector2(a.anchor[0], a.anchor[1]) - Vector2.ONE * (size - c) / 2.0
-	_region(UNITS, Rect2(at, Vector2(size, size)), Rect2(a.get("x", 0) + col * size, a[anim] + dir * size, size, size), tint)  # 주민 칸(S221)은 look마다 x가 있다
+	var at := p - (Vector2(a.anchor[0], a.anchor[1]) + Vector2.ONE * (size - c) / 2.0) * scale
+	var row := 0 if a.get("one", false) else dir
+	_region(UNITS, Rect2(at, Vector2(size, size) * scale), Rect2(a.get("x", 0) + col * size, a[anim] + row * size, size, size), tint)  # 주민 칸(S221)·방향 없는 칸(I189)은 x가 있다
 
 # 화면 방향 v → 4방향 시트 행(S·E·N·W)
 func _four(v: Vector2) -> int:
@@ -1283,7 +1299,9 @@ func _under_boss(h) -> bool:
 	for e in battle.enemies:  # 정렬 키는 바닥선 y의 정수다(_bodies)
 		if _boss(e) and ART.has(e.kind) and int(_center(e.pos).y) >= int(_center(h.pos).y):
 			var b: Dictionary = ART[e.kind]
-			if r.intersection(Rect2(_spot(e) - Vector2(b.anchor[0], b.anchor[1]), Vector2(b.c, b.c))).get_area() > 0.25 * r.get_area():
+			var lk := _look(e)  # 줄이고 늘이고 들어 올린 그대로 잰다(S198 2026-10-27 둘째 변경)
+			var at: Vector2 = _spot(e) - Vector2(0, lk[1]) - Vector2(b.anchor[0], b.anchor[1]) * lk[0]
+			if r.intersection(Rect2(at, Vector2(b.c, b.c) * lk[0])).get_area() > 0.25 * r.get_area():
 				return true
 	return false
 
@@ -1800,6 +1818,15 @@ func _hp_bar(at: Vector2, b, size := Vector2(CELL, 2)) -> void:
 static func keep_rect(b) -> Rect2:
 	var body: Rect2 = KEEP_BODY[clampi(b.village_level, 1, 2) - 1]
 	return Rect2(Vector2(b.base.cell * CELL) + KEEP_AT + body.position, body.size)
+
+# 유닛·적 체력바 자리(칸): 성벽 위와 미끄러짐을 따른다. 보스(I185) 그림은 기본 적보다 키가 커서 막대를 그만큼 올린다(머리 위).
+# 줄어들고 늘고 뜬 보스 그림(S198 2026-10-27 둘째 변경)은 그린 그림의 머리를 따른다
+func hp_bar_at(u) -> Vector2:
+	var head := 0.0
+	if u.get("boss") and ART.has(u.kind):
+		var lk := _look(u)
+		head = (ART[u.kind].anchor[1] * lk[0].y + lk[1] - ART.basic.anchor[1]) / CELL
+	return u.pos - Vector2(0, _lift(u) / CELL + head) + _slip(u) / CELL
 
 # 유닛·적 체력바 크기(S73). 보스(I185 boss 칸)는 V 표시와 상관없이 늘 크게, 나머지는 켰을 때만. 그리지 않으면 Vector2.ZERO
 static func hp_bar_size(u, show_all: bool) -> Vector2:
