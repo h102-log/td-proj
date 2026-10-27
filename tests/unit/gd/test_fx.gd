@@ -159,3 +159,17 @@ func test_boom_bright_first_frame_above_and_smoke_below_bodies():
 	if low.is_empty() or low.any(func(s): return s != "puff"):
 		return "0.4초 아래 층이 %s다(연기 조각만이어야 한다)" % [low]
 	return ""
+
+func test_ally_bleed_is_falling_drops_not_a_ring():
+	var b = _battle()
+	var v = View.new()
+	v.battle = b
+	var h = b.heroes[0] if not b.heroes.is_empty() else b.units[0]
+	b._fx(h, "bleed", {"bleed": 2.0}, 3.0)
+	var marks: Array = v.status_marks(h, true)
+	var feet: Vector2i = Vector2i((v._spot(h) + v._slip(h)).floor())
+	var why := ""
+	if marks.size() != 3 or marks.any(func(m): return m.k != "px" or m.p.y >= feet.y):
+		why = "출혈(I193 ③)이 %s다(몸에서 떨어지는 점 셋이어야 한다)" % [marks.map(func(m): return [m.k, m.p])]
+	v.free()
+	return why

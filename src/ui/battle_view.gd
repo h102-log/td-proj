@@ -20,6 +20,7 @@ const HERO_COLORS := {  # 영웅 종류마다 다른 색(S56, S157, I101)
 # 구조물·성곽 칸에 걸린 효과의 테두리 색(I101): 받는 피해 감소·공격 속도. 에너지 성벽 칸도 받는 피해 감소 색이다.
 # 유닛에 걸린 효과는 테두리 대신 효과마다 조각 하나다(status_marks, I101 2026-10-27 변경)
 const MARKS := {"dr": Color("80c0ff"), "haste": Color.ORANGE}
+const EYES := Color("f0e060")  # 어둠 속에 숨은 밤 늑대의 눈빛(S240, I193 ④)
 const ZONES := {  # 장판 색(I101). 성기게 칠하고 테두리를 그린다. 이그니스 장판은 재질이라 색표에 없다(4.1s)
 	"aias_r": Color("80c0ff"), "sylvia_e": Color("c0a060"), "sylvia_r": Color("a0ff40"), "seraphina_w": Color("fff0a0"), "vesper_q": Color("60c040"),
 	"vesper_r": Color("402060"), "chronos_e": Color("ffd020"), "chronos_r": Color("40e0ff"),
@@ -52,7 +53,7 @@ const ZONE_OPEN := 0.2  # 장판이 펼쳐지는 시간(초, 4.1s)
 const ZONE_CLOSE := 0.3  # 장판이 사라지며 줄어드는 시간(초, 4.1s)
 const BOOM_STEP := 4.0 / 60.0  # 폭발 조각 한 프레임(초). Saint11 예시 80ms에 가깝게(vfx_research/02)
 const FLAMES := 7  # 불길 장판의 불꽃 조각 수. 시안 C의 9개가 고블린을 가렸다(Gemini 고칠 점 2)
-const ALLY_FX := ["dr", "haste", "shield", "invuln", "stun"]  # 아군에 걸린 효과(I101, 기절은 I192)
+const ALLY_FX := ["dr", "haste", "shield", "invuln", "stun", "bleed"]  # 아군에 걸린 효과(I101, 기절은 I192, 출혈은 I193 ③)
 const FOE_FX := ["stun", "root", "slow", "expose", "taunt", "seal", "chain", "dot"]  # 적에 걸린 효과(I101)
 const TELL := Color("ff3020")  # 보스 스킬 예고(S194): 빨간 테두리, 안쪽이 차오른다
 const RAGE := Color(1.5, 0.55, 0.55)  # 분노한 보스(S195)를 붉게 그리는 modulate
@@ -235,6 +236,10 @@ func _night_layer() -> void:
 		_cv = self)
 	add_child(_top)
 
+# 눈빛만 그리는 적(S240): 어둠 속에 숨은 밤 늑대
+func eyes() -> Array:
+	return [] if battle.dark <= 0.0 else battle.enemies.filter(func(e): return not e.night.is_empty() and not battle.seen(e.pos))
+
 # 맵에 그리는 적(S213): 어둠 속에 숨은 적은 뺀다
 func foes() -> Array:
 	return battle.enemies if battle.dark <= 0.0 else battle.enemies.filter(func(e): return battle.seen(e.pos))
@@ -363,6 +368,10 @@ func _draw_top() -> void:
 				var lamp := _center(_folk_now[0][k].pos) + LAMP
 				_cv.draw_rect(Rect2(lamp - Vector2.ONE, Vector2(3, 3)), Color(TORCH, 0.6))
 				_cv.draw_rect(Rect2(lamp, Vector2.ONE), Color("efd8a1"))
+	for e in eyes():  # 숨은 밤 늑대의 눈빛(S240, I193 ④): 덮개 위라 어둠 속에서도 보인다. 몸 가운데보다 조금 위, 2px 간격 두 점
+		var at := _spot(e) - Vector2(0, CELL * e.radius * 0.5)
+		_cv.draw_rect(Rect2(at + Vector2(-2, 0), Vector2.ONE), EYES)
+		_cv.draw_rect(Rect2(at + Vector2(1, 0), Vector2.ONE), EYES)
 	var cue := order_ring()
 	if not cue.is_empty():
 		_cv.draw_arc(cue[0], cue[1], 0.0, TAU, 24, cue[2], 1.0)
@@ -697,6 +706,10 @@ func status_marks(x, ally: bool) -> Array:
 					out.append({k = "px", p = feet + Vector2i(-4 + i * 4, -int(10.0 * ph)), c = PX.gold if ph < 0.5 else PX.orange})
 			"shield":  # 몸 둘레 테 하나
 				out.append({k = "ring", p = feet - Vector2i(0, int(tall * 0.45)), r = int(tall * 0.6), c = PX.ice0})
+			"bleed":  # 출혈(I193 ③): 몸에서 떨어지는 핏방울
+				for i in 3:
+					var ph := fmod(clock + _hf(n, i + 7) * 0.6, 0.6) / 0.6
+					out.append({k = "px", p = feet + Vector2i(int(_hf(n, i + 11) * 8.0) - 4, -int(tall * 0.5) + int(8.0 * ph)), c = PX.blood if ph < 0.6 else PX.maroon})
 			"invuln":  # 금 테가 맥동하고 별 하나가 돈다
 				var a := clock * 3.0 + _hf(n, 6) * TAU
 				out.append({k = "ring", p = feet - Vector2i(0, int(tall * 0.45)), r = int(tall * 0.6) + 1, c = PX.gold if fmod(clock * 2.0, 1.0) < 0.5 else PX.cream})

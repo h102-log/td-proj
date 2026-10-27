@@ -3493,3 +3493,10 @@ func ev556():
 	var two: String = main.hud._wave_lines([1, 1])
 	_done(main)
 	return check("늑대: 무리로 온다" in one and "도약 늑대: 성벽 위로 뛰어 아군을 밀치고 기절시킨다" in two, "2라운드 1웨이브 줄 «%s» · 2웨이브 줄 «%s»" % [one, two])
+
+# EV565 · S188: 2라운드 3웨이브 줄에 밤 늑대 특성이 있다
+func ev565():
+	var main = _prep()
+	var three: String = main.hud._wave_lines([1, 2])
+	_done(main)
+	return check("밤 늑대: 어두울수록 세다, 물면 피를 흘린다" in three, "2라운드 3웨이브 줄 «%s»에 밤 늑대 특성이 없다" % three)
