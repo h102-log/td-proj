@@ -2199,6 +2199,7 @@ func ev372():
 	_gather(hud.toasts, "경보 토스트", seen)
 	var won: bool = _win(b)
 	_frame(main)
+	_pass(main, 1.1)  # 전투에서 넘어온 결과 창은 1초 뒤에 뜬다(S117)
 	_layout(main)
 	_gather(main, "라운드 승리 창", seen)
 	_gather_tips(main, hud.window.find_children("*", "BaseButton", true, false).filter(func(n): return n.is_visible_in_tree()), "승리 창 툴팁", seen)
@@ -2206,6 +2207,7 @@ func ev372():
 	b.start_battle()
 	b.damage(b.base, BIG, "true")
 	_frame(main)
+	_pass(main, 1.1)
 	_layout(main)
 	var lost: bool = b.state == "lost"
 	_gather(main, "패배 창", seen)
@@ -2221,6 +2223,11 @@ func ev372():
 		return "화면을 다 띄우지 못했다(병영 %s · 승리 %s · 패배 %s)" % [f != null, won, lost]
 	if seen.size() < 100:
 		return "모은 화면 글이 %d개뿐이다" % seen.size()
+	var titled: bool = seen.any(func(p): return p[0] == "라운드 승리 창" and "Next Round" in p[1])
+	var tips: int = seen.filter(func(p): return p[0].begins_with("승리 창 툴팁")).size()
+	var ended: bool = seen.any(func(p): return p[0] == "패배 창" and "New Run" in p[1])
+	if not titled or tips == 0 or not ended:
+		return "결과 창 글을 모으지 못했다(승리 창 «Next Round» %s · 승리 창 툴팁 %d개 · 패배 창 «New Run» %s)" % [titled, tips, ended]
 	return check(bad.is_empty(), "영어 화면 글 %d개 가운데 한글이 든 것 %d개: %s" % [seen.size(), bad.size(), "; ".join(bad.slice(0, 8).map(func(p): return "%s: «%s»" % [p[0], p[1].replace("\n", "⏎")]))])
 
 # 글꼴로 잰 화면 글 l의 가장 긴 줄 폭
@@ -2301,6 +2308,71 @@ func _keyed(cam, code: int) -> Vector2:
 	cam.keys(0.5)
 	_hold(code, false)
 	return cam.position - center
+
+# 1라운드 전투를 시작해 HUD가 전투 단계를 본 게임 장면
+func _fighting():
+	var main = _prep()
+	main.view.battle.start_battle()
+	_frame(main)
+	return main
+
+func _window_state(hud) -> String:
+	return "창 %s · 덮개 %s" % [hud.window.is_visible_in_tree(), hud.dim.is_visible_in_tree()]
+
+# EV387 · S117: 전투에서 라운드 사이·패배로 넘어가면 결과 창과 덮개는 1초 뒤에 뜨고, 그동안 Enter는 창만 연다. 이어하기로 불러온 라운드 사이는 바로 뜬다
+func ev387():
+	var main = _fighting()
+	var b = main.view.battle
+	var hud = main.hud
+	if not _win(b):
+		_done(main)
+		return "1라운드를 이기지 못했다(%s)" % b.state
+	_frame(main)
+	_pass(main, 0.5)
+	var out := ""
+	if hud.window.is_visible_in_tree() or hud.dim.is_visible_in_tree():
+		out = "라운드 사이 0.5초에 %s(둘 다 숨어 있어야 한다)" % _window_state(hud)
+	if out == "":
+		_pass(main, 0.6)
+		var f = Engine.get_main_loop().root.gui_get_focus_owner()
+		var on: String = f.text if f is BaseButton else str(f)
+		if not hud.window.is_visible_in_tree() or not hud.dim.is_visible_in_tree() or not "다음 라운드" in on:
+			out = "라운드 사이 1.1초에 %s · 포커스 «%s»(둘 다 보이고 포커스는 «다음 라운드»여야 한다)" % [_window_state(hud), on]
+	var snap: Dictionary = _save().snapshot(b)
+	_done(main)
+	if out == "":
+		main = _fighting()
+		b = main.view.battle
+		hud = main.hud
+		_win(b)
+		_frame(main)
+		_pass(main, 0.5)
+		_key(KEY_ENTER)
+		hud._process(0.0)
+		if b.state != "cleared" or not hud.window.is_visible_in_tree():
+			out = "라운드 사이 0.5초에 Enter: 단계 %s · %s(라운드 사이 그대로 창이 보여야 한다)" % [b.state, _window_state(hud)]
+		_done(main)
+	if out == "":
+		main = _fighting()
+		b = main.view.battle
+		hud = main.hud
+		b.damage(b.base, BIG, "true")
+		_frame(main)
+		_pass(main, 0.5)
+		var hid: bool = not hud.window.is_visible_in_tree()
+		_key(KEY_ENTER)
+		hud._process(0.0)
+		if b.state != "lost" or not hid or not hud.window.is_visible_in_tree():
+			out = "패배: 0.5초에 창 숨음 %s · Enter 뒤 단계 %s · %s(숨었다가 패배 그대로 창이 보여야 한다)" % [hid, b.state, _window_state(hud)]
+		_done(main)
+	if out == "":
+		load("res://src/main.gd").resume = snap
+		main = load("res://src/main.tscn").instantiate()
+		Engine.get_main_loop().root.add_child(main)
+		_frame(main)
+		out = check(main.view.battle.state == "cleared" and main.hud.window.is_visible_in_tree(), "이어하기로 불러온 라운드 사이: 단계 %s · %s(창이 바로 보여야 한다)" % [main.view.battle.state, _window_state(main.hud)])
+		_done(main)
+	return out
 
 # EV389 · S53: 가장자리·방향키 이동은 초당 640 화면 px × 카메라 속도. 키보드 포커스를 쥔 버튼이 있으면 방향키로 움직이지 않는다
 func ev389():
