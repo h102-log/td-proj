@@ -57,9 +57,10 @@ func _sample(b, n: int) -> Dictionary:
 # EV192 · S122: 도전 시작 전 영입 창이 먼저 뜨고, 영입한 영웅이 1라운드 첫 준비 단계에 출전 칸에 선다
 func ev192():
 	var b = _main()
-	var cells: Array = load("res://src/main.gd").stage().get("hero_cells", [])
+	var stage: Dictionary = load("res://src/main.gd").stage()
+	var cells: Array = stage.get("hero_cells", [])
 	b.begin_hiring()
-	if b.state != "hiring" or not b.heroes.is_empty() or b.hero != null or b.gold != 220:
+	if b.state != "hiring" or not b.heroes.is_empty() or b.hero != null or b.gold != stage.gold:
 		return "영입 창이 아니거나 영웅이 있다(%s, 영웅 %d명, hero %s, 골드 %d)" % [b.state, b.heroes.size(), b.hero, b.gold]
 	if b.offers.size() != b.HIRE.slots or b.offers.has(""):
 		return "목록이 다 차 있지 않다(%s)" % [b.offers]
@@ -68,7 +69,7 @@ func ev192():
 		return "목록의 첫 영웅을 영입하지 못했거나 출전 칸이 없다(%s)" % [cells]
 	var started: bool = b.next_round()
 	return check(started and b.state == "prep" and b.round_index == 0 and b.wave_index == 0 and b.heroes == [h] and b.hero == h
-		and h.present and h.hp == h.max_hp and near(h.pos, cells[0], 0.01) and b.gold == 220 - _cost(b, h),
+		and h.present and h.hp == h.max_hp and near(h.pos, cells[0], 0.01) and b.gold == stage.gold - _cost(b, h),
 		"넘어감 %s · %s %d라운드 웨이브 %d · 출전 %d명 · 영웅 자리 %s 체력 %d/%d · 골드 %d" % [started, b.state, b.round_index + 1, b.wave_index + 1, b.heroes.size(), h.pos, h.hp, h.max_hp, b.gold])
 
 # EV193 · I109: 도전 시작 전 영입 창에서는 맵 명령을 받지 않는다
@@ -256,7 +257,7 @@ func ev202():
 		return "출전 칸이 %s다" % [cells]
 	var b = _main()
 	b.begin_hiring()
-	b.gold = BIG  # 시작 골드(220)로는 3성(100골드)을 둘만 영입한다
+	b.gold = BIG  # 시작 골드(S111)가 바뀌어도 셋을 영입한다
 	b.offers = ["aias", "sylvia", "aias"]
 	var team := [b.hire(0), b.hire(1), b.hire(2)]
 	b.next_round()

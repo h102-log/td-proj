@@ -197,7 +197,7 @@ static func stage() -> Dictionary:
 			side.append(Vector2i(0, y))
 			side.append(Vector2i(57, y))
 	return {
-		"size": Vector2i(60, 93), "base": Vector2i(30, 30), "base_hp": 100, "gold": 220,  # 거점은 마을 한가운데(S37, S203). 시작 골드(S111)
+		"size": Vector2i(60, 93), "base": Vector2i(30, 30), "base_hp": 100, "gold": 400,  # 거점은 마을 한가운데(S37, S203). 시작 골드(S111)
 		"spawns": [Vector2i(9, 92), Vector2i(30, 92), Vector2i(50, 92)],
 		"spawn_spread": 10, "spawn_gap": 0.25, "reward_scale": 0.1,  # 맨 아래 줄 전체에서 흩어져 나온다(I177). 적 10배라 간격 0.25초(I91), 처치 보상 0.1배(I176)
 		# 출전 칸(I107): 정문 문루(29~31열, 57~59행) 바로 앞 들판의 세 칸. 성문은 닫힌 채 시작해서(I67) 마을 안에 두면 나올 수 없다(I42, 사용자 2026-10-12)

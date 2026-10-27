@@ -1,6 +1,6 @@
 {
-  "approvedAt": "2026-10-27T13:28:59.524Z",
-  "evalMd": "a4fd751c",
+  "approvedAt": "2026-10-27T22:32:47.780Z",
+  "evalMd": "5fe40b93",
   "tests": {
     "tests/eval/conftest.py": "e6bb5f0b",
     "tests/eval/gd/aura.gd": "010cc38a",
@@ -33,7 +33,7 @@
     "tests/eval/gd/hero.gd.uid": "890522fc",
     "tests/eval/gd/heroes.gd": "8ae575f1",
     "tests/eval/gd/heroes.gd.uid": "36f71d91",
-    "tests/eval/gd/hire.gd": "43752787",
+    "tests/eval/gd/hire.gd": "3b23d5f8",
     "tests/eval/gd/hire.gd.uid": "47433f7e",
     "tests/eval/gd/house.gd": "1df77dae",
     "tests/eval/gd/house.gd.uid": "5fd6fb28",
@@ -87,7 +87,7 @@
     "tests/eval/gd/thick.gd.uid": "95204401",
     "tests/eval/gd/tower.gd": "d91b7026",
     "tests/eval/gd/tower.gd.uid": "0885cf1d",
-    "tests/eval/gd/units.gd": "812cf213",
+    "tests/eval/gd/units.gd": "63f5f504",
     "tests/eval/gd/units.gd.uid": "935b134a",
     "tests/eval/gd/village.gd": "87428dd5",
     "tests/eval/gd/village.gd.uid": "cf32acf7",
@@ -245,7 +245,7 @@
     "I76": "b24808e5",
     "I43": "0ea74ebe",
     "I78": "6d4ea887",
-    "S111": "44633724",
+    "S111": "94e459c4",
     "I81": "f7a3c022",
     "S97": "6bc86527",
     "S96": "955104c9",
@@ -442,7 +442,7 @@
     "I190": "3e59dca2",
     "S239": "d8abf725",
     "I191": "f7b11c7e",
-    "I192": "231e8b58",
+    "I192": "dc3164e0",
     "S240": "fb4f658f"
   }
 }
