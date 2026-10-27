@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/enemy_def.gd" id="1_ldbao"]
+
+[resource]
+script = ExtResource("1_ldbao")
+hp = 160.0
+speed = 2.0
+wall_k = 0.3
+damage = 20.0
+attack_gap = 1.5
+radius = 0.45
+sight = 4.0
+reward = 50
+boss = true

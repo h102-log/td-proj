@@ -183,6 +183,8 @@ class Enemy:
 	var boss := false  # 보스 표시(I185). 종류 수치의 boss 칸
 	var split := {}  # 죽으면 갈라져 나올 {kind, count}(S234). 비어 있으면 갈라지지 않는다
 	var girth := 0.0  # 나온 때의 몸 반지름. 줄어듦(S236)이 걸음마다 여기서 다시 센다
+	var vault := {}  # 도약(S239). 비어 있으면 성벽에 올라도 밀치지 않는다
+	var vaulted := false  # 한 번 뛰어올랐다. 성벽에서 내려오면 다시 오르지 않는다(I191 ⑥)
 
 	func _init(k: String, cell: Vector2i, stats: Dictionary) -> void:
 		kind = k
@@ -704,17 +706,26 @@ func start_battle() -> void:
 	wave_time = 0.0
 	near_wall = false
 
-# 라운드 r·웨이브 w의 적을 나오는 차례대로 [종류, 출현 지점, 나올 칸]. 항목 차례로 나오고 출현 지점을 돌아가며 쓴다.
-# 나올 칸은 출현 지점에서 n번째 적마다 황금비 수열로 가로 ±spawn_spread 안에 흩는다(I177). 씨앗을 쓰지 않는다.
+# 라운드 r·웨이브 w의 적을 나오는 차례대로 [종류, 출현 지점, 나올 칸, 무리 마릿수]. 항목 차례로 나오고, 무리(S238)는 한 차례에 함께 나오며
+# 출현 지점은 차례마다 돌아간다. 나올 칸은 출현 지점에서 n번째 차례마다 황금비 수열로 가로 ±spawn_spread 안에 흩는다(I177).
+# 무리는 그 칸부터 동쪽으로 잇고, 퍼짐 구역·맵 끝을 넘으면 안으로 당긴다(I190). 씨앗을 쓰지 않는다.
 # 전투(start_battle)와 미리보기(spawn_counts, S188)가 함께 써서 미리보기가 실제와 어긋나지 않는다
 func wave_plan(r: int, w: int) -> Array:
 	var out := []
+	var turns := 0  # 지금까지의 차례 수. 무리 하나가 한 차례다
 	for entry in rounds[r][w]:
-		for i in entry.count:
-			var s: Vector2i = spawns[out.size() % spawns.size()]
-			var n := out.size() / spawns.size()
-			var x := s.x - spawn_spread + int(fposmod(n * 0.6180339887, 1.0) * (2 * spawn_spread + 1))
-			out.append([entry.kind, s, Vector2i(clampi(x, 0, size.x - 1), s.y)])
+		var pack: int = maxi(1, ENEMY_KINDS[entry.kind].get("pack", 1))
+		var left: int = entry.count
+		while left > 0:
+			var n := mini(pack, left)  # 나머지는 작은 무리 하나로 그 종류의 마지막에 나온다(S238)
+			var s: Vector2i = spawns[turns % spawns.size()]
+			var k := turns / spawns.size()
+			var x := s.x - spawn_spread + int(fposmod(k * 0.6180339887, 1.0) * (2 * spawn_spread + 1))
+			x = maxi(0, mini(x, mini(s.x + spawn_spread - n + 1, size.x - n))) if spawn_spread > 0 else s.x
+			for i in n:
+				out.append([entry.kind, s, Vector2i(clampi(x + (i if spawn_spread > 0 else 0), 0, size.x - 1), s.y), n])
+			turns += 1
+			left -= n
 	return out
 
 # 출현 지점(spawns 차례)마다 {적 종류: 수}(S188)
@@ -1143,17 +1154,17 @@ func set_hold(group: Array, on: bool) -> void:
 # 살아 있는 출전 영웅 가운데 첫 영웅(I126). 없으면 null
 # ── 영웅 스킬(S145~S158) ──────────────────────────────────────────────
 
-# 영웅 h가 칸 slot을 지금 쓸 수 있다(S145~S147): 전투 단계(S136), 살아 있음, 열린 칸(S76), 재사용 대기, 마나
+# 영웅 h가 칸 slot을 지금 쓸 수 있다(S145~S147): 전투 단계(S136), 살아 있음, 기절 아님(I192), 열린 칸(S76), 재사용 대기, 마나
 func can_cast(h, slot: String) -> bool:
 	var sk: Dictionary = h.get(slot)
-	return state == "battle" and h.alive and not sk.is_empty() and h.level >= LEVELS.unlock[slot] and h.cd[slot] <= 0.0 and h.mana >= sk.mana
+	return state == "battle" and h.alive and _fx_on(h, "stun") == null and not sk.is_empty() and h.level >= LEVELS.unlock[slot] and h.cd[slot] <= 0.0 and h.mana >= sk.mana
 
 # 영웅 h(없거나 쓰러졌으면 살아 있는 첫 영웅, S119, I126)가 칸 slot을 쓴다(S145). 명령으로만 쓴다(S15).
 # aim은 지점·방향이면 칸 좌표(Vector2), 아군·적 대상이면 그 유닛·구조물이다. 즉시·켜고 끄는 칸은 aim이 없다.
 # 시전 사거리 밖이면 그쪽으로 걸어가 사거리에 들면 쓴다(S147). 쓰거나 걸어가기 시작하면 참
 func cast(h, slot: String, aim = null) -> bool:
 	h = h if h and h.alive else _first_alive()
-	if not h or state != "battle":
+	if not h or state != "battle" or _fx_on(h, "stun") != null:  # 기절한 영웅은 누른 스킬을 쓰지 않는다(I192)
 		return false
 	var sk: Dictionary = h.get(slot)
 	if sk.get("id") == "brace" and h.brace > 0.0:  # 반격의 태세를 다시 누르면 바로 터뜨린다(S151)
@@ -2808,11 +2819,15 @@ func _spawn_wave(dt: float) -> void:
 	_spawn_timer -= dt
 	if _queue.is_empty() or _spawn_timer > 0.0:
 		return
-	var next: Array = _queue.pop_front()
-	spawn_enemy(next[0], next[2])
 	var gap: float = _stage.get("spawn_gap", SPAWN_GAP)  # 시험 스테이지는 적 10배라 0.25초(I91)
-	_spawn_timer = gap
-	if _queue.size() % maxi(1, roundi(SPAWN_GAP / gap)) == 0:  # 성곽이 깎인 만큼 길이 바뀌었을 수 있다. 다시 구하는 것은 2.5초에 한 번꼴(S142)
+	var n: int = _queue[0][3]  # 무리는 한꺼번에 나오고, 다음 차례는 그 마릿수만큼 늦다(S238)
+	var due := false
+	for i in n:
+		var next: Array = _queue.pop_front()
+		spawn_enemy(next[0], next[2])
+		due = due or _queue.size() % maxi(1, roundi(SPAWN_GAP / gap)) == 0  # 성곽이 깎인 만큼 길이 바뀌었을 수 있다. 다시 구하는 것은 2.5초에 한 번꼴(S142)
+	_spawn_timer += gap * n  # 그 스텝에 넘친 시간을 이어 간다. 새로 놓으면 차례마다 한 스텝씩 늦어져 쌓인다
+	if due:
 		_forecast()
 
 # 대상 칸(e.goal)까지 «걷는 거리 + 막힌 칸 비용»이 가장 싼 경로. 막힌 칸과 거점은 닿는 거리에서 친다(_move).
@@ -2905,6 +2920,8 @@ func _move(e: Enemy, dt: float) -> void:
 	var speed: float = 0.0 if rooted else e.speed * (1.0 - _fx_cut(e, "slow")) * (1.0 + (e.skills.rage.stride if rage else 0.0)) * (1.0 + sh.get("stride_max", 0.0) * quick)
 	if e.on_wall and not _climbable(Vector2i(e.pos.round())):  # 성벽에서 내려왔거나 그 성벽이 부서졌다(I76)
 		e.on_wall = false
+		if e.vaulted:  # 한 번만 뛴다. 내려온 뒤로는 기어오르지 않는 땅 적이다(I191 ⑥)
+			e.climb = 0.0
 	var aim = _target_of(e)
 	var body: bool = aim is Unit or aim is Villager  # 자리(pos)로 움직이는 대상
 	var goal: Vector2i = Vector2i(aim.pos.round()) if body else aim.cell
@@ -2949,6 +2966,8 @@ func _move(e: Enemy, dt: float) -> void:
 				if e.climbed >= e.climb:
 					e.climbed = 0.0
 					e.on_wall = true
+					if not e.vault.is_empty():  # 도약 늑대는 그 칸 아군을 먼저 밀어낸다(S239)
+						_vault(e, next)
 					_shove(e, target - e.pos, units)
 				return
 			block = null  # 성벽 위에서는 이어진 성벽 칸을 걷고, 땅에서는 오를 자리까지 걷는다
@@ -3225,6 +3244,10 @@ func _act(u: Unit, dt: float) -> void:
 	u.cooldown -= dt * (1.0 + _haste(u))
 	if u.is_hero:
 		_hero_tick(u, dt)
+	if _fx_on(u, "stun") != null:  # 기절(I192): 움직이지도 치지도 일하지도 않는다. 받은 명령(path)은 남아 풀리면 따른다. 요새화 같은 패시브는 그대로다
+		if u.is_hero and u.passive.get("id") == "fortress":
+			_fortify(u, dt)
+		return
 	if u.path.is_empty() and not u.after.is_empty():  # 오르내리는 칸에 닿았다(I44, I69)
 		u.on_wall = not u.on_wall
 		u.pos = Vector2(u.after[0])
@@ -3394,6 +3417,23 @@ func _shove(e, by: Vector2, bodies: Array) -> void:
 		if grid.is_in_boundsv(c) and (not blk or (e.on_wall and _climbable(c))) and c != base.cell and not water.has(c):  # 성벽 위의 적은 성벽 칸을 걷는다(I76). 물 칸에는 밀려도 들어가지 않는다(I181)
 			e.pos = p
 			return
+
+# 도약(S239, I191): 도약 늑대 e가 성벽 칸 cell 위로 뛰어올랐다. 그 칸에 선 성벽 위 아군은 성벽을 따라 vault.shove칸 밀려나고 vault.stun초 기절한다.
+# 밀리는 쪽은 칸 중심에서 치우친 쪽(가운데면 동쪽)이고, 성곽 칸이 아니면 반대쪽, 둘 다 아니면 제자리다. 늑대는 뛴 뒤 느려진다.
+# 옮긴 몸은 화면이 넉백처럼 미끄러뜨린다(S198). 기절은 매번 새로 건다(면역 없음)
+# ponytail: 성벽이 가로로만 놓여(S203) 이웃은 동·서다. 세로 성벽이 생기면 성벽 위 길(_wall)의 이웃으로 고른다
+func _vault(e: Enemy, cell: Vector2i) -> void:
+	e.vaulted = true
+	var by := Vector2i(int(e.vault.shove), 0)
+	for u in units:
+		if u.alive and u.on_wall and Vector2i(u.pos.round()) == cell:
+			var side := 1 if u.pos.x >= cell.x else -1
+			for to in [cell + by * side, cell - by * side]:
+				if walls.has(to):  # 아군이 성벽 위에서 걸을 수 있는 칸(_unit_paths)
+					u.pos = Vector2(to)
+					break
+			_fx(u, "vault", {"stun": true}, e.vault.stun)
+	_fx(e, "vault", {"slow": e.vault.slow}, e.vault.slow_time)
 
 # 기어오를 수 있는 칸: 성곽의 성벽 칸. 성문은 오르지 않는다(I76)
 func _climbable(c: Vector2i) -> bool:

@@ -71,10 +71,12 @@ const POP_GAP := 2.0  # 팝업과 고른 칸 사이(I58)
 const CONFIRM := 2.0  # 철거를 다시 눌러 확정하는 초(S74 임시값)
 const REFUSE_MARK := 0.5  # 거부된 놓기 칸의 빨간 ✕ 초(I128 임시값)
 const REFUSE_HINT := 1.5  # 그때 안내 줄을 거부 이유로 바꾸는 초. 놓기 모드가 끝나도 그동안 칩이 남는다(I128 임시값)
-const ENEMIES := {"basic": "기본", "fast": "빠름", "armored": "장갑", "flying": "비행", "boss": "보스", "slime": "슬라임", "slimelet": "꼬마 슬라임", "big_slime": "큰 슬라임", "slime_king": "슬라임 킹"}  # S106
+const ENEMIES := {"basic": "기본", "fast": "빠름", "armored": "장갑", "flying": "비행", "boss": "보스", "slime": "슬라임", "slimelet": "꼬마 슬라임", "big_slime": "큰 슬라임", "slime_king": "슬라임 킹",
+	"wolf": "늑대", "leap_wolf": "도약 늑대", "night_wolf": "밤 늑대", "alpha_wolf": "알파 늑대"}  # S106
 const TRAITS := {"fast": "성벽을 오른다", "flying": "길을 무시한다", "armored": "받는 피해를 줄인다", "boss": "성벽을 뚫고 온다. 대지 강타·분노",
 	"slime": "죽으면 둘로 갈라진다", "big_slime": "두 번 갈라진다", "slimelet": "보상이 없다",
-	"slime_king": "웅크린 뒤 뛰어내려 찍는다. 맞을수록 작아지고 빨라진다"}  # S107·S109·S108, 보스는 wall_k 0.3과 스킬(S195), 슬라임은 갈라짐(S188·S234)
+	"slime_king": "웅크린 뒤 뛰어내려 찍는다. 맞을수록 작아지고 빨라진다",
+	"wolf": "무리로 온다", "leap_wolf": "성벽 위로 뛰어 아군을 밀치고 기절시킨다"}  # S107·S109·S108, 보스는 wall_k 0.3과 스킬(S195), 슬라임은 갈라짐(S188·S234), 늑대는 무리·도약(S238·S239)
 const SIDES := ["왼쪽", "가운데", "오른쪽"]  # ponytail: 출현 지점 이름은 시험 스테이지(왼쪽부터 셋) 차례다. 지점이 다른 맵이 생기면 x로 이름을 정한다
 const VIEW := Rect2(0, 28, 640, 332)  # 위 띠 아래 맵이 보이는 화면. 출현 지점이 이 밖이면 아래 가장자리 표식(S188)
 const EDGE_X := Vector2(68, 500)  # 아래 가장자리 표식이 놓이는 x 범위(S188 임시값). y는 344. 왼끝은 미니맵(S209) 오른쪽

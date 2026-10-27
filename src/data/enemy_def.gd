@@ -19,3 +19,5 @@ extends Resource
 @export var skills := {}  # 보스 스킬 이름 → 수치(S194, I169). slam 대지 강타·rage 분노(S195). 비어 있으면 스킬이 없다
 @export var boss := false  # 보스 표시(I185). 체력바·미니맵 점·진행 칸 해골·실비아 R은 종류 이름 대신 이 칸으로 가른다
 @export var split := {}  # 죽으면 갈라져 나올 {kind, count}(S234). count가 갈라지는 수의 손잡이다. 비어 있으면 갈라지지 않는다
+@export var pack := 1  # 한 무리로 함께 나오는 마릿수(S238). 1이면 한 마리씩 나온다
+@export var vault := {}  # 도약(S239): {shove 밀어내는 칸, stun 기절 초, slow 뛴 뒤 둔화, slow_time 둔화 초}. 비어 있으면 성벽에 올라도 밀치지 않는다

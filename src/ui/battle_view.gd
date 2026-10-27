@@ -12,11 +12,12 @@ const COLORS := {
 const ENEMY_COLORS := {  # 적 종류마다 다른 색(I81)
 	"basic": Color("d04040"), "fast": Color("f08030"), "armored": Color("807070"), "flying": Color("e050c0"), "boss": Color("801010"),
 	"slime": Color("50b050"), "slimelet": Color("98e070"), "big_slime": Color("2f7a3a"), "slime_king": Color("3aa0a0"),
+	"wolf": Color("8a7a68"), "leap_wolf": Color("b08850"), "night_wolf": Color("3a3a58"), "alpha_wolf": Color("d8d8d0"),  # 그림(2라운드 PR ③) 전까지 색 원
 }
 const HERO_COLORS := {  # 영웅 종류마다 다른 색(S56, S157, I101)
 	"aias": Color("b060f0"), "sylvia": Color("a0ff40"), "seraphina": Color("f0f0f0"), "vesper": Color("40c060"), "ignis": Color("ff5020"), "chronos": Color("ffd020"),
 }
-# 걸린 효과의 테두리 색(I101). 적: 기절·속박·둔화·받는 피해 증가·도발·봉인·사슬·초당 피해. 아군: 받는 피해 감소·공격 속도·보호막·불사
+# 걸린 효과의 테두리 색(I101). 적: 기절·속박·둔화·받는 피해 증가·도발·봉인·사슬·초당 피해. 아군: 받는 피해 감소·공격 속도·보호막·불사·기절(I192)
 const MARKS := {
 	"stun": Color.YELLOW, "root": Color("c0a060"), "slow": Color.CYAN, "expose": Color.MAGENTA, "taunt": Color.RED, "seal": Color("6040a0"), "chain": Color("a0a0ff"), "dot": Color("ff8040"),
 	"dr": Color("80c0ff"), "haste": Color.ORANGE, "shield": Color.WHITE, "invuln": Color.GOLD,
@@ -300,8 +301,8 @@ func _draw() -> void:
 		if u in controls.selected and u.hold:  # 고른 유닛의 표시는 발밑(_feet_mark, S207). 홀드면 기준 반경을 그린다(S36)
 			draw_arc(u.anchor * CELL + Vector2(CELL, CELL) / 2, CELL * u.hold_radius, 0.0, TAU, 48, Color(1, 1, 1, 0.4), 1.0)
 		var ring := 0.35  # 걸린 효과(I101): 몸 둘레에 효과마다 한 겹
-		for key in ["dr", "haste", "shield", "invuln"]:
-			var on: bool = (not u.shields.is_empty()) if key == "shield" else (battle.effect(u, key) != null if key == "invuln" else battle.effect_sum(u, key) > 0.0)
+		for key in ["dr", "haste", "shield", "invuln", "stun"]:  # 기절은 도약 늑대가 건다(I192)
+			var on: bool = (not u.shields.is_empty()) if key == "shield" else (battle.effect(u, key) != null if key in ["invuln", "stun"] else battle.effect_sum(u, key) > 0.0)
 			if on:
 				draw_arc(at, CELL * (u.radius + ring), 0.0, TAU, 24, MARKS[key], 1.0)
 				ring += 0.15
