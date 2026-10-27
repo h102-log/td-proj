@@ -54,6 +54,9 @@ const FILL := 2  # 발동한 처음 이만큼의 프레임은 예고 모양을 �
 const SLIDE := 400.0  # 넉백·끌어옴 미끄러짐: 거리/SLIDE초, 0.12~0.3초(S198)
 const DUST := Color("927e6a")  # 먼지(F24+)
 const CRACK := [Color("1f240a"), Color("a56243")]  # 바닥 균열의 어두운 금과 그 아래 밝은 가장자리(F24+). 어두운 금만으로는 풀 위에서 안 보였다(시안 V2)
+const JOLT := 0.05  # 맞은 구조물·성곽 칸·거점 그림을 1px 옮겨 그리는 시간(초, 3프레임, S199)
+const DEBRIS := Color("efd8a1")  # 구조물 부스러기(S199): 돌 회청색·나무 갈색과 다른 밝은 모래색(F24+). 시안의 재질 색은 거의 안 보였다
+const BAR_TIERS := [Color("ef3a0c"), Color("e0c040"), Color("7cc85a")]  # 구조물·성곽·거점 막대(S199): 25% 밑·50% 밑·그 위. 위 띠 거점 막대(S190)의 HudTheme.DANGER·HudBuild.WARN·HudTheme.GOOD와 같은 값
 const PIXEL_FONT := preload("res://art/fonts/Galmuri7.ttf")  # 맵 위 숫자(S167). 맵은 640×360을 정수배로 키우므로 벡터 글자는 뭉개진다
 const GROUND_TILES := preload("res://art/tiles/ground.png")  # 0행 풀↔흙 꼭짓점 16꼴, 1행 풀·흙 변종과 깃발, 2·3행 전환 꼴 변종(tools/art/tiles.py)
 const DECOR := preload("res://art/tiles/decor.png")  # 들판·마을 장식(S201·S202, tools/art/decor.py): 0행 16×16 바위 3·그루터기 2·구덩이 2·자갈 2·풀 2·풀꽃·우물, 1행 48×32 그을음 3, 2행 48×48 마른 나무 4, 3행 16×16 마당 소품(S215)
@@ -93,6 +96,10 @@ const FACILITY := preload("res://art/castle/facility.png")  # 시설 96×96: 0�
 const FAC_N := 96  # 시설 그림 한 칸의 크기(px)
 const FAC_FOOT := Vector2(16, 92)
 static var FAC: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/castle/facility.json"))  # 종류 → [열, 그림 맨 윗줄, 맨 아랫줄 + 1]
+# 금(S199)을 구운 성곽·시설·망루 아틀라스(I172). 원본 대신 이것으로 그려서 금이 생겨도 텍스처가 바뀌지 않는다. 성곽은 앞층(바깥 벽면)에만 긋는다
+static var CASTLE_K: ImageTexture = crack_atlas(CASTLE, _wall_pieces())
+static var FACILITY_K: ImageTexture = crack_atlas(FACILITY, FAC.values().map(func(f): return Rect2i(FAC_N * int(f[0]), int(f[1]), FAC_N, int(f[2] - f[1]))))
+static var KEEP_K: ImageTexture = crack_atlas(KEEP, [Rect2i(0, 0, 80, 80), Rect2i(80, 0, 80, 80)])
 const BLUEPRINT := Color(0.55, 0.78, 1.0, 0.6)  # 청사진 색(사용자 2026-10-20, 림월드 설계도). 회색 바탕에 곱한다
 const GHOST := Color(1, 1, 1, 0.4)  # 거점에 가려진 유닛·시설을 덧그리는 색(C1, 사용자 2026-10-20). 성벽·거점에 가려진 영웅의 마나 막대도 이 색이다
 const SHADE := Color(0, 0, 0, 0.55)  # 성벽에 가려진 부분의 실루엣 색(S175). 55%는 사용자가 고른 시안의 합성 색에 맞춘 Claude 값
@@ -518,14 +525,14 @@ func _marks() -> void:
 		draw_rect(_box(f), Color.WHITE, false, 1.0)
 		draw_line(_center(battle.middle(f)), _center(Vector2(f.rally)), Color(1, 1, 1, 0.4), 1.0)
 		draw_rect(_rect(f.rally).grow(-5), Color.WHITE)
-	_hp_bar(Vector2(battle.base.cell) - Vector2(0, 1.75), battle.base)  # 망루 흉벽 위(칸 위 1.75칸). 칸 위에 그리면 앞면 휘장을 가로질렀다
-	# 구조물·성곽은 깎였을 때만 체력 막대를 그린다(성곽 칸이 많아서). V로 켜면 구조물은 늘 그린다(S73, I59)
+	_hp_bar(Vector2(battle.base.cell) - Vector2(0, 1.75), battle.base, Vector2(CELL, 2), true)  # 망루 흉벽 위(칸 위 1.75칸). 칸 위에 그리면 앞면 휘장을 가로질렀다
+	# 구조물·성곽은 깎였을 때만 체력 막대를 그린다(성곽 칸이 많아서). V로 켜면 구조물은 늘 그린다(S73, I59). 막대 색은 3단(S199)
 	for b in battle.castle.values() + battle.structures.values():
 		if b.hp < b.max_hp or (controls.show_hp and b.kind in battle.STRUCTURE_KINDS):
 			var top: float = FAC_FOOT.y - CELL - FAC[b.kind][1] if FAC.has(b.kind) else 0.0  # 시설은 그림 위에(4.1e). 칸 위에 그리면 그림을 가로질렀다
 			if battle.castle.get(b.cell) == b:
 				top += rise_at(battle, b.cell)  # 문루·탑은 앞면이 높아진 만큼 위에(S170). 성벽과 같은 자리(흉벽 바로 아래)다
-			_hp_bar(Vector2(battle.middle(b).x, b.cell.y) - Vector2(0, (_lift(b) + top) / CELL), b)  # 차지 칸 가운데 위(S173)
+			_hp_bar(Vector2(battle.middle(b).x, b.cell.y) - Vector2(0, (_lift(b) + top) / CELL), b, Vector2(CELL, 2), true)  # 차지 칸 가운데 위(S173)
 
 # 유닛·적·주민 몸통(S165, S172)과 성곽·거점(4.1c)·시설(4.1e). 땅의 쓰러진 몸(S180), 발밑 팀 색(S166)과 비행 적 그림자(I81)를 먼저 깔고, (층, 바닥선 y, 목록 순서)로 정렬해 그린다.
 # 성곽 칸은 몸체(바닥선)와 앞층(바닥선 + 2) 두 조각이고, 성벽 위 유닛·대포와 기어오르는 적은 그 사이(바닥선 + 1)에 올려 그려 앞층이 발을 가린다(05 §2).
@@ -595,9 +602,9 @@ func _bodies() -> void:
 			_folk_body(day[i - folk], now)
 		elif i >= feet:
 			_feet_mark(all[i - feet], i - feet)
-		elif i == m + blds.size():  # 거점 망루: 마을 레벨(S99)마다 한 장
-			var at := Vector2(battle.base.cell * CELL) + KEEP_AT
-			draw_texture_rect_region(KEEP, Rect2(at, Vector2(80, 80)), Rect2(80 * (clampi(battle.village_level, 1, 2) - 1), 0, 80, 80))
+		elif i == m + blds.size():  # 거점 망루: 마을 레벨(S99)마다 한 장. 맞으면 흔들리고 깎이면 금(S199)
+			var at := Vector2(battle.base.cell * CELL) + KEEP_AT + _jolt(battle.base)
+			draw_texture_rect_region(KEEP_K, Rect2(at, Vector2(80, 80)), Rect2(80 * (clampi(battle.village_level, 1, 2) - 1), crack_y(battle.base, KEEP.get_height()), 80, 80))
 		elif i >= m:
 			_facility(blds[i - m])
 		elif i >= n:
@@ -695,12 +702,12 @@ func _facility(s, tint := Color.WHITE) -> void:
 	var f: Array = FAC["cannon_folded" if folded else s.kind]
 	var t: float = 1.0 if folded else (1.0 - s.razed if s.complete else s.progress)
 	var cut := roundi(f[2] - t * (f[2] - f[1]))  # 이 줄부터 아래는 그림, 위는 청사진
-	var at := Vector2(s.cell * CELL) + Vector2(-FAC_FOOT.x, CELL - FAC_FOOT.y - _lift(s))
+	var at := Vector2(s.cell * CELL) + Vector2(-FAC_FOOT.x, CELL - FAC_FOOT.y - _lift(s)) + _jolt(s)  # 맞으면 흔들린다(S199)
 	var x: float = FAC_N * f[0]
 	if cut > 0:
-		_region(FACILITY, Rect2(at, Vector2(FAC_N, cut)), Rect2(x, FAC_N, FAC_N, cut), BLUEPRINT * tint)
-	if cut < FAC_N:
-		_region(FACILITY, Rect2(at + Vector2(0, cut), Vector2(FAC_N, FAC_N - cut)), Rect2(x, cut, FAC_N, FAC_N - cut), tint)
+		_region(FACILITY_K, Rect2(at, Vector2(FAC_N, cut)), Rect2(x, FAC_N, FAC_N, cut), BLUEPRINT * tint)
+	if cut < FAC_N:  # 다 지은 시설이 깎이면 금(S199)
+		_region(FACILITY_K, Rect2(at + Vector2(0, cut), Vector2(FAC_N, FAC_N - cut)), Rect2(x, cut + crack_y(s, FACILITY.get_height()), FAC_N, FAC_N - cut), tint)
 
 # 유닛·적 몸통 하나. 영웅은 8방향 시트, 그림이 있는 용병·적은 4방향 시트, 나머지는 원으로
 func _body(x, i: int, next: Dictionary, tint := Color.WHITE, flash := true) -> void:
@@ -773,24 +780,24 @@ func _ellipse(c: Vector2, r: Vector2, col: Color) -> void:
 	draw_polyline(pts, col, 1.0)
 
 # 성곽 칸 조각 하나(front 0 몸체, 1 앞층). 조각 맨 아랫줄이 바닥선 바로 아래 줄이다. 단계(S86)마다 그림이 다르고(사용자 2026-10-20),
-# 열린 성문은 몸체 위에 통로 그늘을 겹친다(I67). 잔해(I88)는 몸체 자리에 돌무더기 하나다
+# 열린 성문은 몸체 위에 통로 그늘을 겹친다(I67). 잔해(I88)는 몸체 자리에 돌무더기 하나다. 맞은 칸은 흔들리고 깎이면 금(S199)
 func _wall_piece(b, front: int) -> void:
-	var at := Vector2(b.cell.x * CELL, (b.cell.y + 1) * CELL - (WALL_PIECE_H - 1))
+	var at := Vector2(b.cell.x * CELL, (b.cell.y + 1) * CELL - (WALL_PIECE_H - 1)) + _jolt(b)
 	if battle.rubble.get(b.cell) == b:
 		if front == 0:
 			for i in b.size.x:  # 문루 잔해는 성벽 잔해 조각을 폭만큼 잇는다
-				draw_texture_rect_region(CASTLE, Rect2(at + Vector2(i * CELL, 0), Vector2(16, WALL_PIECE_H)), Rect2(0, 7 * WALL_PIECE_H, 16, WALL_PIECE_H))
+				draw_texture_rect_region(CASTLE_K, Rect2(at + Vector2(i * CELL, 0), Vector2(16, WALL_PIECE_H)), Rect2(0, 7 * WALL_PIECE_H, 16, WALL_PIECE_H))
 		return
 	var col: Array = wall_col(battle, b)
 	var dst := Rect2(at, Vector2(col[1], WALL_PIECE_H))
-	draw_texture_rect_region(CASTLE, dst, Rect2(col[0], (2 * (b.level - 1) + front) * WALL_PIECE_H, col[1], WALL_PIECE_H))
+	draw_texture_rect_region(CASTLE_K, dst, Rect2(col[0], (2 * (b.level - 1) + front) * WALL_PIECE_H + crack_y(b, CASTLE.get_height()), col[1], WALL_PIECE_H))
 	if front == 1 and not battle.water.is_empty() and b.size == Vector2i(1, 3) and b.cell.y < battle.base.cell.y:  # 수로 수문(S220): 북벽은 앞층이 마을 쪽 벽면이라 그 위에, 그 열 폭만큼
 		var x0 := maxi(b.cell.x * CELL, CULVERT_AT.x)
 		var x1 := mini((b.cell.x + 1) * CELL, CULVERT_AT.x + CULVERT.get_width())
 		if x1 > x0:
 			draw_texture_rect_region(CULVERT, Rect2(x0, CULVERT_AT.y, x1 - x0, CULVERT.get_height()), Rect2(x0 - CULVERT_AT.x, 0, x1 - x0, CULVERT.get_height()))
 	if front == 0 and b.kind == "gate" and b.open:
-		draw_texture_rect_region(CASTLE, dst, Rect2(col[0], 6 * WALL_PIECE_H, col[1], WALL_PIECE_H))
+		draw_texture_rect_region(CASTLE_K, dst, Rect2(col[0], 6 * WALL_PIECE_H, col[1], WALL_PIECE_H))
 
 # 성곽 Block의 조각 열 [x, 폭](S219). 북벽(거점보다 위)은 흉벽이 뒤인 열, 동·서는 행 띠·닫힌 문루, 네 모서리 3열은 모서리 탑을 열마다 자른다
 static func wall_col(bt, b) -> Array:
@@ -1033,6 +1040,26 @@ func _flinch(x) -> Vector2:
 		return Vector2.ZERO
 	return h[1] * (HEAVY * (1.0 - h[0] / HEAVY_BACK) if h[2] else FLINCH * (1.0 - h[0] / FLINCH_BACK))
 
+# 맞은 구조물·성곽 칸·거점 그림의 흔들림(S199): 닿은 뒤 JOLT초 동안 공격자 반대쪽 주축으로 1px. 옮겨 갈 칸의 청사진(사전)은 맞지 않는다
+func _jolt(x) -> Vector2:
+	var h = _hits.get(x.get_instance_id()) if x is Object else null
+	if h == null or h[0] >= JOLT:
+		return Vector2.ZERO
+	var d: Vector2 = h[1]
+	return Vector2(signf(d.x), 0.0) if absf(d.x) >= absf(d.y) else Vector2(0.0, signf(d.y))
+
+# 금 단계(S199): 다 지은 구조물·성곽 칸·거점의 체력이 75·50·25% 밑이면 1·2·3줄. 미완성·청사진(사전)은 0
+static func crack_stage(b) -> int:
+	if not b is Object or not b.complete:
+		return 0
+	var r: float = b.hp / b.max_hp
+	return 3 if r < 0.25 else 2 if r < 0.5 else 1 if r < 0.75 else 0
+
+# 금 단계와 무늬(칸 좌표 해시)가 고르는 crack_atlas 사본의 y. h는 원본 아틀라스 높이다. 금이 없으면 0(원본)
+static func crack_y(b, h: int) -> int:
+	var s := crack_stage(b)
+	return 0 if s == 0 else ((s - 1) * 2 + _h(b.cell.x * 131 + b.cell.y, 0, 0, 1) + 1) * h
+
 # 화면 시계와 사건 목록(I170, I171). main이 battle.step(delta) 바로 뒤에 같은 delta로 부른다. 그리기만 바꾸고 시뮬레이션은 건드리지 않는다
 func tick(dt: float) -> void:
 	clock += dt
@@ -1182,10 +1209,15 @@ func _emit(kind: String, at: Vector2, dir: Vector2, src, dst, more := {}) -> voi
 	e.merge(more, true)
 	events.append(e)
 
-# 사건에 붙는 그림(S198): 보스 스킬 발동은 바닥 균열과 먼지, 끊김은 예고 둘레의 조각
+# 사건에 붙는 그림(S198, S199): 보스 스킬 발동은 바닥 균열과 먼지, 끊김은 예고 둘레의 조각, 구조물이 맞으면 부스러기
 func _react(e: Dictionary) -> void:
 	match e.kind:
+		"struct":  # 근접 공격이 닿은 면(공격자 쪽)에서
+			_debris(e.at - e.dir * CELL * 0.4, e.n)
 		"boss":
+			for t in e.ref.hits:  # 보스 스킬에 맞은 구조물·성곽 칸·거점(Block에는 pos가 없다)
+				if t.get("pos") == null:
+					_debris(_spot(t), e.n * 31 + t.get_instance_id())
 			_fills.append([e.ref, FILL])
 			var foot: Vector2 = _center(e.ref.at)
 			for i in 5:  # 균열 5줄: 발밑에서 바깥으로 8~14px, 1px 걸음마다 어두운 금과 그 아래 밝은 가장자리
@@ -1202,6 +1234,12 @@ func _react(e: Dictionary) -> void:
 				var d := Vector2.from_angle(deg_to_rad(i * 30.0 + _h(e.n, i, -5, 5)))
 				var p: Vector2 = e.at + d * (e.radius + 1.0)
 				_dot({"p0": p, "p1": p + d * _h(e.n, 20 + i, 6, 9), "col": TELL, "to": Color("efac28"), "size": Vector2(3, 3), "life": 0.3, "fade": 0.15})
+
+# 부스러기 2점(S199): 좌우로 하나씩 4~7px 튀어 올랐다가 떨어진다
+func _debris(at: Vector2, n: int) -> void:
+	var p := at.round()
+	for i in 2:
+		_dot({"p0": p, "p1": p + Vector2((1 - 2 * i) * _h(n, 60 + i, 4, 7), _h(n, 62 + i, 2, 4)), "rise": _h(n, 64 + i, 3, 5), "col": DEBRIS, "size": Vector2(2, 2), "life": 0.35, "fade": 0.1})
 
 # 효과 점 하나(I172). p1까지 _out으로 움직이며 가운데에서 rise만큼 솟는다. to가 있으면 그 색으로 바뀐다. 마지막 fade초에 흐려진다
 func _dot(d: Dictionary) -> void:
@@ -1790,11 +1828,70 @@ func _aim_preview() -> void:
 		_:
 			_cv.draw_arc(_center(at), CELL * 0.7, 0.0, TAU, 24, Color.WHITE, 1.0)
 
-# at: 칸 단위 위치(칸 (x,y)의 중심 = Vector2(x,y)). 그 칸 위쪽 가운데에 그린다
-func _hp_bar(at: Vector2, b, size := Vector2(CELL, 2)) -> void:
+# at: 칸 단위 위치(칸 (x,y)의 중심 = Vector2(x,y)). 그 칸 위쪽 가운데에 그린다. tiers면 구조물·성곽·거점 막대의 3단 색(S199)
+func _hp_bar(at: Vector2, b, size := Vector2(CELL, 2), tiers := false) -> void:
 	var bar := Rect2(at * CELL + Vector2((CELL - size.x) / 2, -2 - size.y), size)
 	_cv.draw_rect(bar, Color.BLACK)
-	_cv.draw_rect(Rect2(bar.position, Vector2(size.x * b.hp / b.max_hp, size.y)), Color.GREEN)
+	_cv.draw_rect(Rect2(bar.position, Vector2(size.x * b.hp / b.max_hp, size.y)), bar_color(b, tiers))
+
+# 체력 막대 색(S73, S199): 구조물·성곽·거점(tiers)은 50% 밑 노랑·25% 밑 빨강, 영웅·용병·적·보스는 늘 초록
+static func bar_color(b, tiers: bool) -> Color:
+	if not tiers:
+		return Color.GREEN
+	var r: float = b.hp / b.max_hp
+	return BAR_TIERS[0] if r < 0.25 else BAR_TIERS[1] if r < 0.5 else BAR_TIERS[2]
+
+# 금 구운 아틀라스(S199, I172): 원본 아래에 금 단계 1~3 × 무늬 0·1 사본 여섯을 그 차례로 잇는다(crack_y가 고르는 행).
+# pieces는 금을 긋는 원본 조각 사각형이다. 조각마다 금 i(0~2)는 무늬와 i만으로 정해, 단계가 오르면 앞 금은 그대로 두고 한 줄을 더한다
+static func crack_atlas(tex: Texture2D, pieces: Array) -> ImageTexture:
+	var src := tex.get_image()
+	src.convert(Image.FORMAT_RGBA8)
+	var h := src.get_height()
+	var img := Image.create_empty(src.get_width(), h * 7, false, Image.FORMAT_RGBA8)
+	for v in 7:
+		img.blit_rect(src, Rect2i(Vector2i.ZERO, src.get_size()), Vector2i(0, h * v))
+	for r in pieces:
+		var spans := {}  # 불투명한 열 x → [맨 위 y, 맨 아래 y]. 6px보다 짧은 열은 뺀다
+		for x in range(r.position.x + 1, r.end.x - 2):
+			var top: int = r.position.y
+			while top < r.end.y and src.get_pixel(x, top).a < 0.5:
+				top += 1
+			var bot: int = r.end.y - 1
+			while bot > top and src.get_pixel(x, bot).a < 0.5:
+				bot -= 1
+			if bot - top >= 6:
+				spans[x] = [top, bot]
+		if spans.is_empty():
+			continue
+		var xs: Array = spans.keys()
+		for v in 6:
+			var n: int = r.position.x * 977 + r.position.y * 31 + (v % 2) * 7919
+			for i in v / 2 + 1:  # 금 i는 불투명한 열의 3할·7할·5할 언저리에서, 그 열 아래쪽 절반에서 아래로 7~11px
+				var x: int = xs[clampi(int(xs.size() * [0.3, 0.7, 0.5][i]) + _h(n, i, -1, 1), 0, xs.size() - 1)]
+				var y: int = spans[x][0] + (spans[x][1] - spans[x][0]) * _h(n, 10 + i, 50, 70) / 100
+				for j in _h(n, 20 + i, 7, 11):
+					if j > 0:
+						x = clampi(x + _h(n, 30 + 16 * i + j, -1, 1), r.position.x, r.end.x - 2)
+					if y + j >= r.end.y:
+						break
+					var c := src.get_pixel(x, y + j)
+					if c.a >= 0.5:  # 어두운 1px 줄과 그 오른쪽 밝은 1px 가장자리. 그림 밖(투명)에는 긋지 않는다
+						img.set_pixel(x, y + j + h * (v + 1), c.darkened(0.6))
+						var e := src.get_pixel(x + 1, y + j)
+						if e.a >= 0.5:
+							img.set_pixel(x + 1, y + j + h * (v + 1), e.lightened(0.35))
+	return ImageTexture.create_from_image(img)
+
+# 금을 긋는 성곽 조각(S199): 단계 1~3의 앞층 행(바깥 벽면)에서 조각 열마다. 모서리 탑은 칸마다 잘라 그리므로 16px씩
+static func _wall_pieces() -> Array:
+	var out := []
+	for name in WALL_COLS:
+		var c: Array = WALL_COLS[name]
+		var w: int = CELL if name.begins_with("sc_") or name.begins_with("nc_") else c[1]
+		for x in range(c[0], c[0] + c[1], w):
+			for row in [1, 3, 5]:
+				out.append(Rect2i(x, row * WALL_PIECE_H, w, WALL_PIECE_H))
+	return out
 
 # 거점 망루 그림의 불투명 사각형(맵 px). 이 안을 누르면 거점을 고른다(S100)
 static func keep_rect(b) -> Rect2:
