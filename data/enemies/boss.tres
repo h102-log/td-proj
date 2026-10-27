@@ -12,6 +12,7 @@ attack_gap = 2.0
 radius = 0.45
 sight = 4.0
 reward = 50
+boss = true
 skills = {
 "slam": {
 "radius": 2.0,

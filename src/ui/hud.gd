@@ -803,7 +803,7 @@ func _total(rw: Array) -> int:
 	return battle.rounds[rw[0]][rw[1]].reduce(func(n, e): return n + e.count, 0)
 
 func _boss(rw: Array) -> bool:
-	return not rw.is_empty() and battle.rounds[rw[0]][rw[1]].any(func(e): return e.kind == "boss")
+	return not rw.is_empty() and battle.rounds[rw[0]][rw[1]].any(func(e): return battle.ENEMY_KINDS[e.kind].boss)  # 보스 표시(I184)
 
 # 그 웨이브 [라운드, 웨이브]가 밤 웨이브다(S210, S214)
 func _night(rw: Array) -> bool:

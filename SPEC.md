@@ -1125,7 +1125,7 @@
 | I166 | src/settings.gd:11 · src/settings.gd:25 · src/settings.gd:38 · src/ui/hints.gd:95-99 |
 | I167 | project.godot:19-21 · src/settings.gd:13 · src/settings.gd:47-51 · src/locale.gd:1-68 · src/ui/hud.gd:369 · src/ui/hud.gd:401 · src/ui/menus.gd:108 · locale/en.po:1-21 · tests/eval/gd/runner.gd:10 · tests/unit/gd/runner.gd:9 |
 | I168 | src/sim/battle.gd:3008 |
-| I169 | src/data/enemy_def.gd:19 · src/sim/battle.gd:179 |
+| I169 | src/data/enemy_def.gd:19 · src/sim/battle.gd:179 · src/sim/battle.gd:2804-2829 |
 | I170 | src/ui/battle_view.gd:146 · src/ui/battle_view.gd:148 · src/ui/battle_view.gd:1001-1015 · src/ui/battle_view.gd:1152-1153 · src/main.gd:72 · tools/play/play.gd:124 |
 | I171 | src/ui/battle_view.gd:147 · src/ui/battle_view.gd:149-156 · src/ui/battle_view.gd:1020-1110 · src/ui/battle_view.gd:165 |
 | I172 | src/ui/battle_view.gd:158 · src/ui/battle_view.gd:268 · src/ui/battle_view.gd:316 · src/ui/battle_view.gd:1134-1149 |
@@ -1170,6 +1170,7 @@
 | S229 | src/sim/folk.gd:9-13 · src/sim/battle.gd:574-576 · src/sim/battle.gd:698 · src/sim/battle.gd:2448-2477 · src/sim/battle.gd:2418-2426 · src/sim/battle.gd:463-472 · src/sim/battle.gd:2360-2366 · src/sim/battle.gd:2393-2397 |
 | S230 | src/ui/hud_evac.gd:1-85 · src/ui/hud.gd:40 · src/ui/hud.gd:98 · src/ui/hud.gd:352-353 · src/ui/hud_alert.gd:15 · src/ui/controls.gd:90-91 |
 | I183 | src/sim/folk.gd:4-13 · src/sim/folk.gd:103-107 · src/sim/battle.gd:2288-2372 · src/sim/battle.gd:2418-2446 · src/sim/battle.gd:504-507 · src/sim/battle.gd:574-576 · src/sim/save.gd:9-10 · src/sim/save.gd:69 · src/sim/folk.gd:276-286 |
+| I184 | src/data/enemy_def.gd:20 · data/enemies/boss.tres:15 · src/sim/battle.gd:182 · src/ui/battle_view.gd:1733 · src/ui/battle_view.gd:332 · src/ui/hud_minimap.gd:67 · src/ui/hud.gd:806 · src/sim/battle.gd:1441-1442 |
 
 ### 3.2 재확인 목록 (`선택 대기`)
 
