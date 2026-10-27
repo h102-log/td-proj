@@ -64,3 +64,31 @@ def test_EV474_household_type_spread(gd):
 
 def test_EV475_family_moves_in_when_built_and_leaves_when_sold(gd):
     gd("house", "EV475")
+
+
+def test_EV478_folk_jobs_from_role_lists(gd):
+    gd("house", "EV478")
+
+
+def test_EV479_unique_jobs_and_caps(gd):
+    gd("house", "EV479")
+
+
+def test_EV480_facility_jobs_switch_existing_head(gd):
+    gd("house", "EV480")
+
+
+def test_EV481_priest_lives_in_church(gd):
+    gd("house", "EV481")
+
+
+def test_EV483_day_work_and_home(gd):
+    gd("house", "EV483")
+
+
+def test_EV484_night_inside_and_watchman(gd):
+    gd("house", "EV484")
+
+
+def test_EV485_fixed_props(gd):
+    gd("house", "EV485")

@@ -295,3 +295,7 @@ def test_EV470_water_baked_and_on_minimap(gd):
 
 def test_EV477_folk_atlas_cells(gd):
     gd("hud", "EV477")
+
+
+def test_EV486_folk_work_pose_cells(gd):
+    gd("hud", "EV486")

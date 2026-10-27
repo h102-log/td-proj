@@ -4,7 +4,7 @@ extends RefCounted
 # 공병 일과 집결 중인 시설뿐이다. 그래서 유닛·구조물은 스크립트 변수를 모두 담고, 객체를 가리키는 칸(SKIP)은 빼되 그 둘은 칸으로 담아 다시 잇는다
 
 const Battle := preload("res://src/sim/battle.gd")
-const VERSION := 4  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179). 4: 집의 가족(S221)
+const VERSION := 5  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179). 4: 집의 가족(S221). 5: 주민의 원래 직업(S222)
 # 판에서 담는 칸. 맵·라운드·마을 칸은 같은 스테이지로 새 판을 만들면 같다
 const KEYS := ["state", "round_index", "wave_index", "gold", "village_level", "offers", "quests", "mission", "commission", "commission_offers", "settled", "tally", "_chains"]
 

@@ -365,3 +365,15 @@ func ev476():
 	c.build("house", Vector2i(18, 3))
 	return check(b.structures[Vector2i(18, 3)].folk == c.structures[Vector2i(18, 3)].folk,
 		"불러온 뒤 지은 집의 가족이 다르다: %s / %s" % [b.structures[Vector2i(18, 3)].folk, c.structures[Vector2i(18, 3)].folk])
+
+# EV482 · I179: 저장 판은 5이고, 판 4 저장은 읽지 않는다
+func ev482():
+	var S = _save()
+	if S.VERSION != 5:
+		return "저장 판이 %d다" % S.VERSION
+	S.store({"version": 4, "probe": 1})
+	var old: Dictionary = S.read()
+	S.store({"version": 5, "probe": 1})
+	var now: Dictionary = S.read()
+	S.erase()
+	return check(old.is_empty() and now.get("probe") == 1, "판 4 읽음 %s · 판 5 읽음 %s" % [old, now])

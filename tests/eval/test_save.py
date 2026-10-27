@@ -27,3 +27,7 @@ def test_EV422_save_keeps_engineer_jobs(gd):
 
 def test_EV476_save_keeps_families(gd):
     gd("save", "EV476")
+
+
+def test_EV482_save_version_5(gd):
+    gd("save", "EV482")
