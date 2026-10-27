@@ -3198,3 +3198,59 @@ func ev502():
 				out = "거짓 대피령으로 끝난 웨이브 뒤 토스트 %s" % [shown]
 	_done(main)
 	return out
+
+# EV505 · I184: 미니맵 점 크기는 boss 칸으로 가른다. boss 칸을 켠 기본 적은 2×2, 끈 오우거는 1×1
+func ev505():
+	var main = _prep()
+	var m = main.hud.get("minimap")
+	if m == null or not m.has_method("marks"):
+		_done(main)
+		return "main.hud.minimap.marks가 없다"
+	var b = main.view.battle
+	var still := {"speed": 0, "sight": 0, "damage": 0, "hp": BIG}
+	b.spawn_enemy("basic", Vector2i(20, 70), still.merged({"boss": true}))
+	b.spawn_enemy("boss", Vector2i(40, 70), still.merged({"boss": false}))
+	_cam(main).force_update_scroll()
+	m.follow()  # 창은 처음에 맨 아래(맨 윗줄 30)다(EV434)
+	var t: int = m.top
+	if t != 30:
+		_done(main)
+		return "정문 앞 카메라에서 미니맵 창 맨 윗줄이 %d다(30이어야 한다)" % t
+	var foes: Array = m.marks().filter(func(k): return k[1].is_equal_approx(Color("ff3b3b"))).map(func(k): return k[0])
+	_done(main)
+	var want := [Rect2(21, 41, 2, 2), Rect2(41, 41, 1, 1)]
+	return check(want.all(func(w): return foes.any(func(r): return r.is_equal_approx(w))), "적 점 %s에 boss 칸 켠 기본 적 %s·끈 오우거 %s가 없다" % [foes, want[0], want[1]])
+
+# EV507 · I184: 진행 칸 해골과 «다음 웨이브에 보스» 토스트는 웨이브에 든 종류의 boss 칸으로 가른다
+func ev507():
+	var main = _prep()
+	var b = main.view.battle
+	if main.hud.get("skull") == null or b.waves.size() < 3:
+		_done(main)
+		return "main.hud.skull이 없거나 1라운드 웨이브가 셋보다 적다(%d)" % b.waves.size()
+	var kinds: Dictionary = b.ENEMY_KINDS
+	for k in kinds:
+		kinds[k]["boss"] = false
+	kinds[b.waves[1][0].kind]["boss"] = true  # 2웨이브 첫 종류만 보스
+	b.state = "battle"
+	main.hud._process(0.0)
+	b.wave_index = 1
+	b.state = "prep"
+	main.hud._process(0.0)
+	main.hud.toasts._process(3.6)  # 미션 토스트가 막 떠서 3.5초 줄을 선다(I163, EV337)
+	var said := _toasts(main).filter(func(t): return "다음 웨이브에 보스" in t)
+	var out := check(main.hud.skull.is_visible_in_tree() and said.size() == 1, "2웨이브 첫 종류 %s만 boss 칸을 켠 준비 단계: 해골 %s · 토스트 %s" % [b.waves[1][0].kind, main.hud.skull.is_visible_in_tree(), _toasts(main)])
+	if out == "":
+		for i in 10:  # 떠 있는 토스트를 모두 흘려 보낸다
+			main.hud.toasts._process(10.0)
+		kinds[b.waves[1][0].kind]["boss"] = false
+		b.state = "battle"
+		main.hud._process(0.0)
+		b.wave_index = 2
+		b.state = "prep"
+		main.hud._process(0.0)
+		main.hud.toasts._process(0.0)
+		said = _toasts(main).filter(func(t): return "다음 웨이브에 보스" in t)
+		out = check(not main.hud.skull.is_visible_in_tree() and said.is_empty(), "boss 칸을 모두 끈 3웨이브(%s) 준비 단계: 해골 %s · 토스트 %s" % [b.waves[2].map(func(e): return e.kind), main.hud.skull.is_visible_in_tree(), _toasts(main)])
+	_done(main)
+	return out

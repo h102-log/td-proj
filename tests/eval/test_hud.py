@@ -306,3 +306,11 @@ def test_EV501_evac_button(gd):
 
 def test_EV502_evac_toasts(gd):
     gd("hud", "EV502")
+
+
+def test_EV505_boss_flag_minimap_dot(gd):
+    gd("hud", "EV505")
+
+
+def test_EV507_boss_flag_wave_skull(gd):
+    gd("hud", "EV507")

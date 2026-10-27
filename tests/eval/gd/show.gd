@@ -40,3 +40,14 @@ func ev362():
 		return "보스(%s)·기본 적(%s)을 두지 못했거나 BattleView.hp_bar_size가 없다" % [boss, e]
 	var got := [view.hp_bar_size(boss, false), view.hp_bar_size(boss, true), view.hp_bar_size(e, false), view.hp_bar_size(e, true)]
 	return check(got == [Vector2(24, 3), Vector2(24, 3), Vector2.ZERO, Vector2(16, 2)], "보스(꺼짐·켜짐)·기본 적(꺼짐·켜짐) 체력바 크기 %s" % [got])
+
+# EV504 · I184: 체력바는 종류 이름이 아니라 boss 칸으로 가른다. boss 칸을 켠 기본 적은 늘 24×3, 끈 오우거는 켰을 때만 16×2
+func ev504():
+	var b = battle()
+	var boss = b.spawn_enemy("basic", Vector2i(10, 10), {"speed": 0.0, "boss": true})
+	var ogre = b.spawn_enemy("boss", Vector2i(12, 10), {"speed": 0.0, "boss": false})
+	var view = load("res://src/ui/battle_view.gd")
+	if boss == null or ogre == null or not view.get_script_method_list().any(func(m): return m.name == "hp_bar_size"):
+		return "기본 적(%s)·오우거(%s)를 두지 못했거나 BattleView.hp_bar_size가 없다" % [boss, ogre]
+	var got := [view.hp_bar_size(boss, false), view.hp_bar_size(boss, true), view.hp_bar_size(ogre, false), view.hp_bar_size(ogre, true)]
+	return check(got == [Vector2(24, 3), Vector2(24, 3), Vector2.ZERO, Vector2(16, 2)], "boss 칸 켠 기본 적(꺼짐·켜짐)·끈 오우거(꺼짐·켜짐) 체력바 크기 %s" % [got])

@@ -495,6 +495,22 @@ func ev277():
 	return check(_near_f(1000.0 - plain.hp, s.r.dps, 0.5) and _near_f(1000.0 - boss.hp, s.r.dps * s.r.boss, 0.6) and not low.alive,
 		"1초 피해 %s(%s) · 보스 %s(%s) · 15%% 이하 처형 %s" % [1000.0 - plain.hp, s.r.dps, 1000.0 - boss.hp, s.r.dps * s.r.boss, not low.alive])
 
+# EV506 · I184: 화살비의 보스 배율과 처형 제외는 boss 칸으로 가른다. boss 칸을 켠 기본 적은 ×1.5에 처형되지 않고, 끈 오우거는 처형된다
+func ev506():
+	var b = _kit([["sylvia", Vector2i(5, 10)]])
+	var s = b.hero
+	_quiet(b)
+	var big = _dummy(b, Vector2i(10, 10), {"hp": 1000, "boss": true})
+	var low = _dummy(b, Vector2i(11, 11), {"hp": 100, "boss": true})
+	var ogre = b.spawn_enemy("boss", Vector2i(10, 12), {"speed": 0, "sight": 0, "damage": 0, "hp": 100, "boss": false})
+	low.hp = 15.5
+	ogre.hp = 15.5
+	_start(b)
+	b.cast(s, "r", Vector2(10, 11))
+	run(b, 1.0)
+	return check(_near_f(1000.0 - big.hp, s.r.dps * s.r.boss, 0.6) and low.alive and not ogre.alive,
+		"boss 칸 켠 기본 적 1초 피해 %s(%s) · 15%% 이하 boss 칸 켠 기본 적 살아 있음 %s · 끈 오우거 처형 %s" % [1000.0 - big.hp, s.r.dps * s.r.boss, low.alive, not ogre.alive])
+
 # ── 베스퍼(S154·S155) ──
 
 # EV278 · S154: 오라(방어력 −5)와 Q 독안개(방어력 −10)가 겹친 장갑 적(15)은 방어력 0이라 물리 피해를 그대로 받고, 마법 피해는 25% 더 받는다
