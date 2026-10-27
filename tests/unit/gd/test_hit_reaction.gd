@@ -5,6 +5,8 @@ extends RefCounted
 #   S178. 원거리 공격은 투사체로 그리고, 피해와 맞은 반응은 시뮬레이션 투사체가 닿는 때 난다(2026-10-25 변경).
 #   S179. 즉시 스킬은 쓴 곳·맞은 대상을 흔적으로 남기고, 스킬에 맞은 적도 피격 반응을 보인다.
 #   S180. 쓰러진 적·용병은 2초 동안 누운 몸으로 남고, 쓰러진 영웅은 복귀할 때까지 누운 몸으로 남는다.
+#   S197. 근접 막타는 닿을 때까지 선 자세로 서 있고, 막타가 닿으면 0.1초 흰 실루엣으로 공격자 반대쪽 6px 밀려 그 자리에 눕는다.
+#         원거리는 착탄 때, 즉시 스킬은 흔적 가운데 반대쪽으로 같고, 닿는 공격이 없는 죽음은 바로 눕는다. 영웅 X는 막타가 닿은 때부터 밀린 자리에.
 #   S198. 보스 스킬 발동과 보스 타격: 맞은 아군은 6px·0.25초 밀리고, 넉백은 미끄러지며(성벽 오르내리기는 빼고), 끊기면 조각이 흩어지고, 보스에 가린 영웅을 덧그린다.
 #   I171. 화면 사건 목록: 닿음은 공격 하나에 한 번, 처치는 쓰러진 대상을 노린 마지막 공격이 닿을 때(기다릴 공격이 없으면 바로) 난다.
 #         원거리는 시뮬레이션 투사체가 닿은 프레임에 투사체 하나에 한 번이다.
@@ -125,6 +127,109 @@ func test_kill_event_waits_for_last_contact():
 			why = "화살에 쓰러진 적에게 닿음 사건이 났다(%d프레임)" % i
 	if why == "" and (died <= 0 or kills != [died]):
 		why = "화살에 쓰러진 프레임 %d인데 처치 사건 프레임이 %s다(그 프레임 한 번이어야 한다)" % [died, kills]
+	v.free()
+	return why
+
+# 막타 단계(S197) 하나를 견준다: [선 자세, 흰 번쩍임, 밀린 px]
+func _blow(v, x, up: bool, white: bool, push: Vector2) -> bool:
+	var s: Array = v._last_blow(x)
+	return s[0] == up and s[1] == white and s[2].is_equal_approx(push)
+
+func test_melee_kill_stands_until_contact_then_flashes_and_lies_pushed():
+	var s := _board()
+	var b = s[0]
+	var v = s[1]
+	var foe = b.spawn_enemy("basic", Vector2i(10, 5), {"speed": 0, "damage": 0})
+	var other = b.spawn_enemy("basic", Vector2i(14, 5), {"speed": 0, "damage": 0})
+	var soldier = b.place_merc("soldier", Vector2i(9, 5))
+	_go(b, v)
+	soldier.target = foe
+	soldier.cooldown = soldier.attack_gap  # 친 때 쓰러진다(근접은 시뮬레이션이 친 때 피해를 준다)
+	b.damage(foe, 1e9, "true")
+	var why := ""
+	_ticks(v, 1, DT, [soldier])
+	if not _blow(v, foe, true, false, Vector2.ZERO):
+		why = "근접 막타가 닿기 전에는 번쩍임 없이 그 자리에 서 있어야 하는데 %s다" % [v._last_blow(foe)]
+	var got := []
+	for i in 15:
+		got = _ticks(v, 1, DT, [soldier])
+		if got.has("kill"):
+			break
+	if why == "" and not got.has("kill"):
+		why = "근접 막타가 닿지 않았다"
+	_ticks(v, 3, DT, [soldier])
+	if why == "" and not _blow(v, foe, true, true, Vector2(View.KILL_PUSH * 3.0 * DT / View.FLASH, 0)):
+		why = "막타가 닿고 0.05초에는 선 자세 흰 실루엣으로 오른쪽으로 밀리는 중이어야 하는데 %s다" % [v._last_blow(foe)]
+	_ticks(v, 4, DT, [soldier])
+	if why == "" and not _blow(v, foe, false, false, Vector2(View.KILL_PUSH, 0)):
+		why = "막타가 닿고 0.12초에는 공격자 반대쪽(오른쪽) %spx 밀린 자리에 누워야 하는데 %s다" % [View.KILL_PUSH, v._last_blow(foe)]
+	b.damage(other, 1e9, "true")  # 닿는 공격이 없는 죽음(지속 피해 같은)은 바로 눕고 번쩍이지 않는다
+	_ticks(v, 1, DT)
+	if why == "" and not _blow(v, other, false, false, Vector2.ZERO):
+		why = "노린 공격 없이 쓰러진 적은 바로 누워야 하는데 %s다" % [v._last_blow(other)]
+	v.free()
+	return why
+
+func test_ranged_and_skill_kills_flash_and_push_at_once():
+	var s := _board()  # 화살: 쓰러진 그 프레임(착탄)부터 번쩍이며 위로 밀린다(궁수는 아래에 있다)
+	var b = s[0]
+	var v = s[1]
+	var weak = b.spawn_enemy("basic", Vector2i(10, 5), {"speed": 0, "damage": 0, "hp": 1.0})
+	b.place_merc("archer", Vector2i(10, 9))
+	v.tick(0.0)
+	var why := ""
+	for i in 60:
+		b.step(DT)
+		v.tick(DT)
+		if not weak.alive:
+			break
+	if weak.alive:
+		why = "화살이 1초 안에 적을 쓰러뜨리지 못했다"
+	elif not _blow(v, weak, true, true, Vector2.ZERO):
+		why = "화살에 쓰러진 프레임에는 선 자세 흰 실루엣이어야 하는데 %s다" % [v._last_blow(weak)]
+	_play(b, v, 7, DT)
+	if why == "" and not _blow(v, weak, false, false, Vector2(0, -View.KILL_PUSH)):
+		why = "화살 막타 0.12초 뒤에는 위로 %spx 밀린 자리에 누워야 하는데 %s다" % [View.KILL_PUSH, v._last_blow(weak)]
+	v.free()
+	b = load("res://src/sim/battle.gd").new({"size": Vector2i(20, 20), "base": Vector2i(18, 18), "base_hp": 100, "spawns": [Vector2i(0, 10)], "hero_start": Vector2i(5, 5), "waves": [[{"kind": "basic", "count": 1}]]})
+	b.start_battle()
+	v = View.new()
+	v.battle = b
+	var front = b.spawn_enemy("basic", Vector2i(6, 5), {"speed": 0, "damage": 0, "hp": 1.0})
+	v.tick(0.0)
+	if why == "" and not b.cast(b.hero, "q", Vector2(7, 5)):
+		why = "아이아스 Q(방패 강타)를 쓰지 못했다"
+	v.tick(DT)
+	if why == "" and (front.alive or not _blow(v, front, true, true, Vector2.ZERO)):
+		why = "방패 강타에 쓰러진 적은 쓴 때 선 자세 흰 실루엣이어야 하는데 살아 있음 %s · %s다" % [front.alive, v._last_blow(front)]
+	_ticks(v, 7, DT)
+	if why == "" and not _blow(v, front, false, false, Vector2(View.KILL_PUSH, 0)):
+		why = "방패 강타 0.12초 뒤에는 흔적 가운데(영웅) 반대쪽(오른쪽) %spx에 누워야 하는데 %s다" % [View.KILL_PUSH, v._last_blow(front)]
+	v.free()
+	return why
+
+func test_hero_cross_waits_for_contact_and_sits_at_pushed_spot():
+	var s := _board()
+	var b = s[0]
+	var v = s[1]
+	var h = b.hero
+	var foe = b.spawn_enemy("basic", Vector2i(h.pos.round()) + Vector2i(-1, 0), {"speed": 0})
+	_go(b, v)
+	foe.target = h
+	foe.cooldown = foe.attack_gap
+	b.damage(h, 1e9, "true")
+	var why := ""
+	_ticks(v, 1, DT, [foe])
+	if v._cross_at(h) != null:
+		why = "적의 근접 막타가 닿기 전에 영웅 X가 떴다"
+	for i in 20:
+		if v._cross_at(h) != null:
+			break
+		_ticks(v, 1, DT, [foe])
+	_ticks(v, 7, DT, [foe])
+	var c = v._cross_at(h)
+	if why == "" and (c == null or not c.is_equal_approx(v._spot(h) + Vector2(View.KILL_PUSH, 0))):
+		why = "막타가 닿은 뒤 영웅 X는 오른쪽으로 %spx 밀린 자리여야 하는데 %s다(발밑 %s)" % [View.KILL_PUSH, c, v._spot(h)]
 	v.free()
 	return why
 
