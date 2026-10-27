@@ -18,3 +18,4 @@ extends Resource
 @export var climb := 0.0  # 성곽 성벽을 기어오르는 시간(초). 0이면 오르지 않는다(S107, I76)
 @export var skills := {}  # 보스 스킬 이름 → 수치(S194, I169). slam 대지 강타·rage 분노(S195). 비어 있으면 스킬이 없다
 @export var boss := false  # 보스 표시(I185). 체력바·미니맵 점·진행 칸 해골·실비아 R은 종류 이름 대신 이 칸으로 가른다
+@export var split := {}  # 죽으면 갈라져 나올 {kind, count}(S234). count가 갈라지는 수의 손잡이다. 비어 있으면 갈라지지 않는다
