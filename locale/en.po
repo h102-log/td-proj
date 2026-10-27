@@ -10,7 +10,7 @@
 #   병영 Barracks · 작업장 Workshop · 사격장 Archery Range · 용병 Merc · 공병 Engineer · 궁수 Archer
 #   영입 Recruit · 리롤 Reroll · 이관 Transfer · 내보내기 Dismiss · 출전 Deployed · 대기 Reserve · 보유 Roster
 #   미션 Mission · 의뢰 Contract · 준비 단계 Prep · 전투 단계 Battle · 웨이브 Wave · 라운드 Round · 도전 Run
-#   적: 기본 Grunt · 빠름 Runner · 장갑 Armored · 비행 Flyer · 보스 Boss
+#   적: 기본 Grunt · 빠름 Runner · 장갑 Armored · 비행 Flyer · 보스 Boss · 슬라임 Slime · 꼬마 슬라임 Slimelet · 큰 슬라임 Big Slime · 슬라임 킹 Slime King
 #   영웅 이름은 음역한다: 아이아스 Aias · 실비아 Sylvia · 세라피나 Seraphina · 베스퍼 Vesper · 이그니스 Ignis · 크로노스 Chronos
 msgid ""
 msgstr ""
@@ -362,6 +362,27 @@ msgstr "Takes less damage"
 
 msgid "성벽을 뚫고 온다. 대지 강타·분노"
 msgstr "Breaks through walls. Ground Slam, Rage"
+
+msgid "슬라임"
+msgstr "Slime"
+
+msgid "꼬마 슬라임"
+msgstr "Slimelet"
+
+msgid "큰 슬라임"
+msgstr "Big Slime"
+
+msgid "슬라임 킹"
+msgstr "Slime King"
+
+msgid "죽으면 둘로 갈라진다"
+msgstr "Splits in two on death"
+
+msgid "두 번 갈라진다"
+msgstr "Splits twice"
+
+msgid "보상이 없다"
+msgstr "No bounty"
 
 msgid "왼쪽"
 msgstr "Left"

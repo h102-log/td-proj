@@ -11,7 +11,7 @@ const Menus := preload("res://src/ui/menus.gd")
 const Save := preload("res://src/sim/save.gd")
 const Settings := preload("res://src/settings.gd")
 const QUIET := ["hiring", "prep", "cleared"]  # 전투 단계가 아닌 판 단계. 이때만 저장한다(S181)
-# 도전의 라운드 순서(S63, I91): data/waves/의 웨이브 파일 이름. 1라운드는 시험 스테이지(S111)다
+# 도전의 라운드 순서(S63, I91): data/waves/의 웨이브 파일 이름. 1라운드는 시험 스테이지(S111, 슬라임 테마)다
 # ponytail: 2~6라운드는 5.1(WBS.md:129)까지 쓰는 임시값이다. 실제 라운드 수와 웨이브는 그때 정한다
 const ROUNDS := ["test_stage", "round_2", "round_3", "round_4", "round_5", "round_6"]
 

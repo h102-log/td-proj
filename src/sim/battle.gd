@@ -62,6 +62,7 @@ const UPGRADE_TIME := 5.0  # 전투 중 공병이 한 단계 올리는 시간(�
 const GATE_LOCK := 20.0  # 전투 단계에 여닫은 성문을 다시 여닫지 못하는 시간(초, S135). 핑퐁 봇 측정을 보고 사용자가 고름(insights/2026-10-16_gate_cooldown.md)
 const COUNTER_HOLD := 3.0  # 반격 대상이 이만큼 쏘지 않아야 다른 구조물로 바뀐다(초, S140). 가장 느린 쏘는 간격(2.5초)보다 길다. 임시값
 const GATE_SPLIT_ROUND := 3  # 이 라운드부터 땅 적은 출현 지점에서 가장 가까운 성문을 먼저 노린다(S143). 임시값
+const SPLIT_RING := 0.25  # 갈라져 나온 적을 죽은 자리에서 이만큼 떨어진 둘레에 놓는다(칸, S234). 임시값
 # 수리(S114): 성곽·거점의 체력 1당 수리비(골드). 구조물은 낸 골드 ÷ 최대 체력이다. 수치는 임시값
 const REPAIR_RATE := {"castle_wall": 0.1, "gate": 0.1, "base": 1.0}
 const REPAIR_TIME := 5.0  # 전투 중 공병이 성곽·거점을 0에서 가득 채우는 시간(초, I87). 구조물은 건설 시간이다
@@ -180,6 +181,7 @@ class Enemy:
 	var cast = null  # 예고 중인 스킬 {id, left}(S194). 없으면 null
 	var cd := {}  # 스킬 → 남은 대기(초). 없는 스킬은 0이다(나온 때, S194)
 	var boss := false  # 보스 표시(I185). 종류 수치의 boss 칸
+	var split := {}  # 죽으면 갈라져 나올 {kind, count}(S234). 비어 있으면 갈라지지 않는다
 
 	func _init(k: String, cell: Vector2i, stats: Dictionary) -> void:
 		kind = k
@@ -917,16 +919,38 @@ func quest_met(name: String) -> bool:
 	return q.zero.all(func(k): return tally[k] == 0) and (q.time_limit <= 0.0 or tally.battle_time <= q.time_limit)
 
 func spawn_enemy(kind: String, cell: Vector2i, overrides := {}):
-	var stats: Dictionary = ENEMY_KINDS[kind].merged(overrides, true)
-	stats.hp *= _hp_mult()  # 라운드 체력 배율(S144). 처치 보상은 그대로다
-	var e := Enemy.new(kind, cell, stats)
+	var e := _enemy(kind, cell, overrides)
 	if not e.flying:
 		e.via = _gate_of(cell)
+	_field(e)
+	enemy_spawned.emit(e)
+	return e
+
+# 종류 수치에 덮어쓸 수치를 얹어 적을 만든다. 체력에는 라운드 체력 배율(S144)을 곱하고, 처치 보상은 그대로다
+func _enemy(kind: String, cell: Vector2i, overrides: Dictionary) -> Enemy:
+	var stats: Dictionary = ENEMY_KINDS[kind].merged(overrides, true)
+	stats.hp *= _hp_mult()
+	return Enemy.new(kind, cell, stats)
+
+# 적을 전장에 넣고 거점까지 길을 찾는다
+func _field(e: Enemy) -> void:
 	e.goal = base.cell
 	_find_path(e)
 	enemies.append(e)
-	enemy_spawned.emit(e)
-	return e
+
+# 갈라짐(S234, I186): 죽은 적 둘레 SPLIT_RING칸에 split.kind를 split.count마리, 동쪽부터 같은 각도로 놓는다.
+# 처치 보상·경험치는 0이고 효과는 물려받지 않으며 출현 신호를 내지 않는다. 막힌 칸·물 칸·맵 밖 자리는 죽은 자리에 놓고, 죽은 적이 노리던 성문을 이어 노린다
+func _divide(dead: Enemy) -> void:
+	var n: int = dead.split.get("count", 0)
+	for i in n:
+		var at: Vector2 = dead.pos + Vector2.from_angle(TAU * i / n) * SPLIT_RING
+		var c := Vector2i(at.round())
+		if not grid.is_in_boundsv(c) or water.has(c) or grid.block_at(c):
+			at = dead.pos
+		var e := _enemy(dead.split.kind, Vector2i(at.round()), {"reward": 0, "xp": 0})
+		e.pos = at
+		e.via = dead.via
+		_field(e)
 
 # 지금 라운드의 적 체력 배율(S144). stage에 hp_mult가 없거나 짧으면 1이다
 func _hp_mult() -> float:
@@ -2720,6 +2744,7 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 		for h in heroes:  # 누가 처치했든 그때 살아 있는 출전 영웅이 모두 받는다(S125)
 			if h.alive:
 				add_xp(h, target.xp)
+		_divide(target)  # 처치 골드·전염·경험치 다음이라 전염은 막 나온 적에게 옮지 않는다(S234)
 	elif target is Unit:  # 전장에서 빠진다. 영웅은 다음 준비 단계에 돌아온다(step, S26). 공병이 하던 일은 그 상태로 남는다(S24)
 		if target.job:
 			_release(target.job)

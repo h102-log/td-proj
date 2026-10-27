@@ -29,9 +29,9 @@ func ev518():
 		b.damage(k, BIG)
 	return check(b.gold == g, "꼬마 둘을 처치한 뒤 골드 %d(%d여야 한다)" % [b.gold, g])
 
-# EV519 · S234: 큰 슬라임 → 슬라임 둘 → 꼬마 넷. 꼬마까지 모두 죽어야 웨이브가 끝난다
+# EV519 · S234: 큰 슬라임 → 슬라임 둘(보상·경험치 0) → 꼬마 넷. 꼬마까지 모두 죽어야 웨이브가 끝나고, 골드는 큰 슬라임 몫만 는다
 func ev519():
-	var b = battle({"base_hp": BIG, "waves": [[{"kind": "big_slime", "count": 1}]]})
+	var b = battle({"base_hp": BIG, "gold": 0, "waves": [[{"kind": "big_slime", "count": 1}]]})
 	if not b.ENEMY_KINDS.has("big_slime"):
 		return "적 종류 big_slime이 없다"
 	b.start_battle()
@@ -42,13 +42,16 @@ func ev519():
 	for kind in ["big_slime", "slime", "slimelet"]:
 		var es := _alive(b, kind)
 		seen.append(es.size())
+		if kind == "slime" and not es.all(func(e): return e.reward == 0 and e.xp == 0):
+			return "큰 슬라임에서 갈라져 나온 슬라임의 [보상, 경험치] %s(모두 0이어야 한다)" % [es.map(func(e): return [e.reward, e.xp])]
 		if kind == "slimelet" and (b.enemies_left() != 4 or b.state != "battle"):
 			return "꼬마 %d마리일 때 남은 적 %d · 단계 %s(4 · battle이어야 한다)" % [es.size(), b.enemies_left(), b.state]
 		for e in es:
 			b.damage(e, BIG)
 			kills += 1
 	b.step(DT)
-	return check(seen == [1, 2, 4] and kills == 7 and b.state != "battle", "차례대로 나온 수 %s([1, 2, 4]여야 한다) · 처치 %d · 단계 %s" % [seen, kills, b.state])
+	return check(seen == [1, 2, 4] and kills == 7 and b.state != "battle" and b.gold == 35,
+		"차례대로 나온 수 %s([1, 2, 4]여야 한다) · 처치 %d · 단계 %s · 골드 %d(35여야 한다)" % [seen, kills, b.state, b.gold])
 
 # EV520 · S234: 갈라져 나온 적은 효과를 물려받지 않고 전염도 옮지 않으며, 체력에 라운드 체력 배율이 곱해진다
 func ev520():
@@ -64,7 +67,7 @@ func ev520():
 	return check(kids.size() == 2 and kids.all(func(k): return k.fx.is_empty() and is_equal_approx(k.hp, 10.0)) and o.fx.has("vesper_q"),
 		"꼬마 [효과, 체력] %s · 옆 기본 적 중독 %s" % [kids.map(func(k): return [k.fx.keys(), k.hp]), o.fx.has("vesper_q")])
 
-# EV521 · I186: 갈라져 나온 적은 출현 신호를 내지 않고, 둘레 자리가 막힌 칸이면 죽은 자리에 놓인다
+# EV521 · I186: 갈라져 나온 적은 출현 신호를 내지 않고, 둘레 자리가 막힌 칸이면 죽은 자리에 놓이며, 죽은 적이 노리던 성문을 이어 노린다
 func ev521():
 	var b = battle()
 	if not b.ENEMY_KINDS.has("slime"):
@@ -81,6 +84,8 @@ func ev521():
 		return "칸 (11,10)에 방벽을 짓지 못했다"
 	var w = b.spawn_enemy("slime", Vector2i(10, 10), STILL)
 	w.pos = Vector2(10.4, 10)
+	w.via = Vector2i(12, 10)
 	b.damage(w, BIG)
 	var kids := _alive(b, "slimelet")
-	return check(kids.size() == 2 and _at(kids, Vector2(10.4, 10)) and _at(kids, Vector2(10.15, 10)), "방벽 옆에서 갈라진 꼬마 자리 %s" % [kids.map(func(k): return k.pos)])
+	return check(kids.size() == 2 and _at(kids, Vector2(10.4, 10)) and _at(kids, Vector2(10.15, 10)) and kids.all(func(k): return k.via == Vector2i(12, 10)),
+		"방벽 옆에서 갈라진 꼬마 [자리, via] %s" % [kids.map(func(k): return [k.pos, k.via])])
