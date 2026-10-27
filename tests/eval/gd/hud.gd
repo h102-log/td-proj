@@ -3485,3 +3485,11 @@ func ev536():
 	var lines: String = main.hud._wave_lines([0, 2])
 	_done(main)
 	return check("슬라임 킹: 웅크린 뒤 뛰어내려 찍는다. 맞을수록 작아지고 빨라진다" in lines, "1라운드 3웨이브 줄 «%s»에 슬라임 킹 특성이 없다" % lines)
+
+# EV556 · S188: 2라운드 1·2웨이브 줄에 늑대·도약 늑대 특성이 있다
+func ev556():
+	var main = _prep()
+	var one: String = main.hud._wave_lines([1, 0])
+	var two: String = main.hud._wave_lines([1, 1])
+	_done(main)
+	return check("늑대: 무리로 온다" in one and "도약 늑대: 성벽 위로 뛰어 아군을 밀치고 기절시킨다" in two, "2라운드 1웨이브 줄 «%s» · 2웨이브 줄 «%s»" % [one, two])

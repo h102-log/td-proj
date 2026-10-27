@@ -19,6 +19,8 @@ const HOUSE := Vector2i(6, 3)
 const ONE := [{"kind": "basic", "count": 1}]
 const ONE_ONE := [[ONE], [ONE]]  # 라운드 2개, 라운드마다 적 1마리짜리 웨이브 하나
 const S111 := [{"slime": 30}, {"slime": 20, "big_slime": 8}, {"slime": 30, "big_slime": 12, "slime_king": 1}]  # S111 2026-10-27 변경: 1라운드 슬라임 테마(10배를 하지 않는다)
+# I91 2026-10-27 변경: 2라운드는 늑대 테마(마릿수, 10배를 하지 않는다)
+const WOLF := [{"wolf": 320}, {"wolf": 300, "leap_wolf": 100}, {"wolf": 240, "leap_wolf": 80, "night_wolf": 80}, {"wolf": 320, "leap_wolf": 100, "night_wolf": 100, "alpha_wolf": 1}]
 # I91 표(2026-10-21 개정): 2~6라운드 웨이브마다 종류별 적 수
 const I91 := [
 	[{"basic": 18, "fast": 8, "flying": 6}, {"basic": 18, "armored": 8, "flying": 10, "fast": 4}, {"basic": 18, "fast": 8, "armored": 8, "flying": 6}, {"basic": 22, "fast": 12, "armored": 8, "flying": 10, "boss": 1}],
@@ -258,7 +260,7 @@ func ev169():
 	var b = load("res://src/sim/battle.gd").new(load("res://src/main.gd").stage())
 	if b.rounds.size() != 6:
 		return "라운드가 %d개다(6개여야 한다)" % b.rounds.size()
-	var table := [S111] + I91.map(func(r): return _ten(r))
+	var table := [S111, WOLF] + I91.slice(1).map(func(r): return _ten(r))
 	for k in 6:
 		var got := _counts(b.rounds[k])
 		if got != table[k]:
