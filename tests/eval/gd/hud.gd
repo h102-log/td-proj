@@ -3320,3 +3320,10 @@ func ev517():
 		out = check(not main.hud.skull.is_visible_in_tree() and said.is_empty(), "boss 칸을 모두 끈 3웨이브(%s) 준비 단계: 해골 %s · 토스트 %s" % [b.waves[2].map(func(e): return e.kind), main.hud.skull.is_visible_in_tree(), _toasts(main)])
 	_done(main)
 	return out
+
+# EV528 · S188: 1라운드 3웨이브 줄에 슬라임 킹 특성
+func ev528():
+	var main = _prep()
+	var lines: String = main.hud._wave_lines([0, 2])
+	_done(main)
+	return check("슬라임 킹: 웅크린 뒤 뛰어내려 찍는다. 맞을수록 작아지고 빨라진다" in lines, "1라운드 3웨이브 줄 «%s»에 슬라임 킹 특성이 없다" % lines)

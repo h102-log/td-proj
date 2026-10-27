@@ -322,3 +322,7 @@ def test_EV515_boss_flag_minimap_dot(gd):
 
 def test_EV517_boss_flag_wave_skull(gd):
     gd("hud", "EV517")
+
+
+def test_EV528_slime_king_trait_line(gd):
+    gd("hud", "EV528")
