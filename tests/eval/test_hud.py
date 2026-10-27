@@ -202,6 +202,10 @@ def test_EV374_english_text_fits(gd):
     gd("hud", "EV374")
 
 
+def test_EV387_result_window_waits_after_battle(gd):
+    gd("hud", "EV387")
+
+
 def test_EV389_camera_speed_and_arrow_keys(gd):
     gd("hud", "EV389")
 

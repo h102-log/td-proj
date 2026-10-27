@@ -47,6 +47,7 @@ const BAR := {  # 위 띠 칸 자리(S185, 임시값)
 	"progress": Rect2(480, 2, 136, 24), "menu": Rect2(620, 2, 16, 24)}
 const FLASH := 0.2  # 거점이 맞으면 체력 막대가 하얗게 번쩍이는 초(S190 임시값)
 const MISSION_SECS := 6.0  # 라운드 첫 미션 토스트를 보이는 초(I122 임시값)
+const RESULT_WAIT := 1.0  # 전투에서 넘어온 결과 창을 늦추는 초(S117, 사용자 2026-10-22)
 const SCROLL := [".oooooooooo.", "oppppppppppo", ".oooooooooo.", "..oppppppo..", "..opllllpo..", "..oppppppo..",
 	"..opllllpo..", "..oppppppo..", "..opllpppo..", ".oooooooooo.", "oppppppppppo", ".oooooooooo."]  # 임무 칸 두루마리(I122)
 const DOT := [".....", ".###.", ".###.", ".###.", "....."]  # 임무 칸: 조건을 지키는 중
@@ -163,6 +164,7 @@ var _quests := VBoxContainer.new()  # 라운드 사이 영입 칸 안의 의뢰 
 var _quests_info := Label.new()
 var _commissions := []  # 의뢰 목록 칸마다 수락 버튼
 var _seen := ""  # 마지막으로 본 판 단계. 바뀌었을 때 결과 창이 떠 있으면 포커스를 준다
+var _wait := 0.0  # 결과 창이 뜨기까지 남은 시간(초, S117). 트리가 멈추는 ESC 메뉴 동안에는 줄지 않는다
 var tags := []  # 고른 영웅·용병의 상황 태그 [A 공격 이동, S 정지, H 홀드](I139)
 var _tag_pics := []  # 태그마다 그림
 var _hold_tip := ""  # 홀드 태그 툴팁의 지금 상태 글
@@ -452,7 +454,12 @@ func _process(delta: float) -> void:
 		hint.text = "공격 대상: 좌클릭 · 취소: 우클릭·ESC"
 	chip.reset_size()
 	_show_heroes()
-	window.visible = battle.state in ["hiring", "cleared", "won", "lost"]
+	var fresh: bool = battle.state != _seen
+	if fresh:  # 전투에서 라운드 사이·도전 성공·패배로 넘어오면 결과 창을 늦춰 마지막 처치를 보인다(S117). 영입 창·이어하기는 바로 뜬다
+		_wait = RESULT_WAIT if _seen == "battle" and battle.state in ["cleared", "won", "lost"] else 0.0
+	_wait = maxf(_wait - delta, 0.0)
+	var was: bool = window.visible
+	window.visible = battle.state in ["hiring", "cleared", "won", "lost"] and _wait == 0.0
 	dim.visible = window.visible
 	window.position = Vector2(16, 34) if battle.hiring_open() else Vector2(170, 110)  # I136 임시값
 	window.custom_minimum_size = Vector2(608, 0) if battle.hiring_open() else Vector2(300, 110)
@@ -461,12 +468,12 @@ func _process(delta: float) -> void:
 		var q: Dictionary = battle.QUEST_KINDS[s[0]]
 		_result_label.text += "\n%s «%s» %s" % ["의뢰" if q.commission else "미션", q.text, "달성 +%d골드" % q.reward if s[1] else "실패"]
 	_next.text = {"hiring": "1라운드 시작 (Enter)", "cleared": "다음 라운드 (Enter)"}.get(battle.state, "새 도전 (Enter)")
-	if battle.state != _seen:
+	if fresh:
 		_seen = battle.state
 		_giver = null
 		_note.text = ""  # 상한 리롤 이유는 그 창에서만(I127)
-		if window.visible:
-			_next.grab_focus()
+	if window.visible and (fresh or not was):  # 포커스는 창이 처음 보이는 프레임에(I110, S117)
+		_next.grab_focus()
 	_hire.visible = battle.hiring_open()
 	if _hire.visible:
 		_show_hire()
@@ -910,6 +917,9 @@ func _start_battle() -> void:
 
 # 결과 창의 버튼(S117): 영입 창이면 1라운드나 다음 라운드로, 도전이 끝났으면 새 도전을 시작한다. main이 Enter로도 부른다(I94)
 func proceed() -> void:
+	if _wait > 0.0:  # 결과 창을 기다리는 동안 Enter는 넘어가지 않고 창만 연다(S117)
+		_wait = 0.0
+		return
 	if battle.hiring_open():
 		battle.next_round()
 	elif battle.state in ["won", "lost"]:

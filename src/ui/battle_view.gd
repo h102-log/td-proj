@@ -47,6 +47,7 @@ const CORPSE_FADE := 0.5  # 쓰러진 적·용병의 몸이 시뮬레이션에�
 const FALL_STEP := 0.08  # 영웅 쓰러짐 5프레임의 한 프레임 길이(초, S180)
 const HEAVY := 6.0  # 보스가 친 타격·보스 스킬에 맞은 아군의 밀림(px, S198)
 const HEAVY_BACK := 0.25  # 그 밀림이 돌아오는 시간(초, S198)
+const KILL_PUSH := 6.0  # 막타가 닿은 쓰러진 몸이 번쩍이는 동안 밀리는 거리(px, S197). 밀린 자리에 눕는다
 const LIFT := 0.4  # 보스 스킬 예고의 마지막 이만큼 그림을 들어 올린다(초, S198)
 const SLAM_POSE := 0.15  # 보스 스킬이 발동한 뒤 공격 자세(초, S198)
 const FILL := 2  # 발동한 처음 이만큼의 프레임은 예고 모양을 채운다(S198). 시간이 아니라 프레임으로 세어 프레임률과 상관없이 2프레임이다
@@ -153,7 +154,8 @@ var _live := false  # 이번 프레임에 사건을 내나(I171)
 var _primed := false  # 첫 tick은 이미 있던 흔적·잔해·쓰러짐을 사건으로 내지 않고 기억만 한다
 var _from_battle := false  # 전투에서 결과 단계로 넘어왔다(I171)
 var _atk := {}  # 공격자 id → [지난 친 뒤 시간, 그 공격이 닿았나]. 공격 하나에 닿음은 한 번이다(I171)
-var _dead := {}  # 처치 사건을 기다리는 쓰러진 대상 id → [대상, 처음 본 시각]
+var _dead := {}  # 처치 사건을 기다리는 쓰러진 대상 id → [대상, 처음 본 시각, 쓰러질 때 보던 방향]. 그동안 선 자세로 그린다(S197)
+var _killed := {}  # 막타가 닿은 쓰러진 대상 id → [닿은 시각, 밀리는 방향(없으면 0), 대상, 보던 방향](S197). 몸이 남은 동안만 둔다
 var _gone := {}  # 지난 프레임까지 본 쓰러짐(fallen) id
 var _known := []  # 본 흔적. traces는 step마다 새 배열이라 is_same으로 견준다
 var _rubble := {}  # 본 잔해 칸
@@ -302,9 +304,10 @@ func _draw() -> void:
 			var tint := GHOST if _behind(u) else Color.WHITE
 			draw_rect(bar, Color.BLACK * tint)
 			draw_rect(Rect2(bar.position, Vector2(CELL * u.mana / u.max_mana, 2)), Color("4080ff") * tint)
-	for h in battle.heroes:  # 쓰러진 영웅: 복귀할 때까지 쓰러진 자리에 그 영웅 색의 X(I130). 누운 몸(S180) 위에
-		if not h.alive:
-			var c := _spot(h)
+	for h in battle.heroes:  # 쓰러진 영웅: 복귀할 때까지 쓰러진 자리에 그 영웅 색의 X(I130). 누운 몸(S180) 위에, 막타가 닿은 때부터 밀린 자리에(S197)
+		var at = _cross_at(h)
+		if at != null:
+			var c: Vector2 = at
 			var r := Vector2(CELL, CELL) * 0.3
 			draw_line(c - r, c + r, HERO_COLORS[h.kind], 2.0)
 			draw_line(c + Vector2(-r.x, r.y), c + Vector2(r.x, -r.y), HERO_COLORS[h.kind], 2.0)
@@ -547,9 +550,12 @@ func _bodies() -> void:
 	var grave := folk + day.size()  # 이 번호부터 성벽 위의 쓰러진 몸
 	var keys := PackedInt64Array()
 	var dead := _fallen()
-	for k in dead.size():  # 성벽 위의 쓰러진 몸은 낮아서 흉벽에 다 가리므로, 성벽 위 발밑 표시처럼 앞층 다음(바닥선 + 3)에
-		if dead[k][0].on_wall:
-			keys.append((1 << 44) | ((_wall_line(Vector2i(dead[k][0].pos.round())) + 5 + 64) << 20) | (grave + k))
+	for k in dead.size():
+		var x = dead[k][0]
+		if _last_blow(x)[0]:  # 막타를 기다리거나 번쩍이는 선 몸은 산 몸과 같은 차례(S197)
+			keys.append((1 << 44) | ((int(_wall_line(Vector2i(x.pos.round())) if x.on_wall else _center(x.pos).y) + 64) << 20) | (grave + k))
+		elif x.on_wall:  # 성벽 위의 쓰러진 몸은 낮아서 흉벽에 다 가리므로, 성벽 위 발밑 표시처럼 앞층 다음(바닥선 + 3)에
+			keys.append((1 << 44) | ((_wall_line(Vector2i(x.pos.round())) + 5 + 64) << 20) | (grave + k))
 		else:
 			_corpse(dead[k])
 	for i in n:
@@ -915,13 +921,17 @@ func _fallen() -> Array:
 	return out
 
 # 쓰러진 몸 하나(S180): 4.1d 누운 자세. 영웅은 쓰러짐 5프레임을 지나 누운 채 남고, 적·용병은 바로 누워 지워지기 전 CORPSE_FADE 동안 흐려진다.
-# 성벽 위에서 쓰러지면 성벽 위에, 오르던 적은 성벽 밑에, 비행 적은 그림자 자리에 눕는다
+# 성벽 위에서 쓰러지면 성벽 위에, 오르던 적은 성벽 밑에, 비행 적은 그림자 자리에 눕는다. 막타를 기다리거나 번쩍이는 동안은 선 자세다(S197)
 func _corpse(d: Array) -> void:
 	var x = d[0]
 	var hero: bool = x.get("is_hero") == true
-	var p := _spot(x) if x.on_wall else _center(x.pos) + (Vector2(0, CELL * 0.4) if x.get("flying") == true else Vector2.ZERO)
+	var s := _last_blow(x, d[1])
+	if s[0]:
+		_frame(ART[x.kind], "idle", s[4], 0, _spot(x) + s[2], Color(255, 255, 255) if s[1] else Color.WHITE)  # 흰 실루엣은 _body의 피격 번쩍임과 같은 255배 modulate
+		return
+	var p: Vector2 = (_spot(x) if x.on_wall else _center(x.pos) + (Vector2(0, CELL * 0.4) if x.get("flying") == true else Vector2.ZERO)) + s[2]
 	var a := 1.0 if hero else clampf((battle.FALLEN - d[1]) / CORPSE_FADE, 0.0, 1.0)
-	_frame(ART[x.kind], "fall", 0, mini(int(d[1] / FALL_STEP), 4) if hero else 0, p, Color(1, 1, 1, a))
+	_frame(ART[x.kind], "fall", 0, mini(int(s[3] / FALL_STEP), 4) if hero else 0, p, Color(1, 1, 1, a))
 
 # 4방향 시트(tools/art/atlas.py FOUR)의 한 칸을 발밑 p에 그린다. 행은 S·E·N·W, 공격·쓰러짐은 2배 캔버스
 func _frame(a: Dictionary, anim: String, dir: int, col: int, p: Vector2, tint := Color.WHITE) -> void:
@@ -1055,8 +1065,12 @@ func _scan() -> void:
 		var id: int = f.who.get_instance_id()
 		gone[id] = true
 		if not _gone.has(id):
-			_dead[id] = [f.who, clock]
+			_dead[id] = [f.who, clock, _seen.get(id, [null, 0])[1]]
 	_gone = gone
+	for id in _killed.keys():  # 몸이 지워졌거나 일어난 영웅의 막타 기록은 버린다
+		var w = _killed[id][2]
+		if w.alive or not (gone.has(id) or w.get("is_hero") == true):
+			_killed.erase(id)
 	var pend := {}  # 쓰러진 대상 id → 아직 닿지 않은 공격 수
 	var found := []  # [공격자, 새 공격인가, 이번 프레임에 닿았나]
 	var atk := {}  # 이번 프레임의 공격자만 남긴다(쓰러지거나 팔린 공격자는 지워진다)
@@ -1085,10 +1099,11 @@ func _scan() -> void:
 		if f[2]:
 			var kind := "struct" if t.get("pos") == null else "hit"
 			var tid: int = t.get_instance_id()
+			var dir: Vector2 = (_pos_of(t) - _pos_of(x)).normalized()
 			if _dead.has(tid) and not pend.has(tid):
 				kind = "kill"
-				_dead.erase(tid)
-			_emit(kind, _chest(t) if t.get("pos") != null else _spot(t), (_pos_of(t) - _pos_of(x)).normalized(), x, t, {"heavy": _boss(x)})
+				_kill(t, dir)
+			_emit(kind, _chest(t) if t.get("pos") != null else _spot(t), dir, x, t, {"heavy": _boss(x)})
 	var shots := {}
 	for m in battle.landed:  # 원거리: 새로 닿은 투사체마다 닿음, 그 투사체에 쓰러졌으면 처치. 먼저 쓰러진 대상의 빈 자리에 떨어진 대포알은 내지 않는다
 		var mid: int = m.get_instance_id()
@@ -1098,17 +1113,24 @@ func _scan() -> void:
 		var t = m.target
 		var tid: int = t.get_instance_id()
 		var kind := "hit"
+		var dir: Vector2 = (t.pos - m.from).normalized()
 		if _dead.has(tid) and not pend.has(tid):
 			kind = "kill"
-			_dead.erase(tid)
+			_kill(t, dir)
 		elif not t.alive and not _dead.has(tid):
 			continue
-		_emit(kind, _chest(t), (t.pos - m.from).normalized(), m.src, t, {"heavy": m.src.kind == "cannon"})
+		_emit(kind, _chest(t), dir, m.src, t, {"heavy": m.src.kind == "cannon"})
 	_landed = shots
 	for tid in _dead.keys():  # 기다릴 공격이 없는 죽음(지속 피해·장판·범위 곁 대상, 쏜 쪽이 먼저 쓰러짐)과 1초 넘게 기다린 것
 		if not pend.has(tid) or clock - _dead[tid][1] >= 1.0:
-			_emit("kill", _spot(_dead[tid][0]), Vector2.ZERO, null, _dead[tid][0])
-			_dead.erase(tid)
+			var t = _dead[tid][0]
+			var dir := Vector2.ZERO  # 바로 눕는다. 즉시 스킬·보스 스킬에 쓰러졌으면 이번 흔적 가운데의 반대쪽으로 밀린다(S197)
+			if not pend.has(tid):
+				for c in battle.traces:
+					if c.hits.has(t) and not _known.any(func(k): return is_same(k, c)):
+						dir = (t.pos - c.at).normalized()
+			_kill(t, dir)
+			_emit("kill", _spot(t), dir, null, t)
 	for c in battle.traces:  # 새 흔적: 영웅 스킬 또는 보스 스킬 발동
 		if not _known.any(func(k): return is_same(k, c)):
 			_emit("boss" if _boss(c.hero) else "cast", _center(c.at), Vector2.ZERO, c.hero, null, {"ref": c, "slot": c.slot})
@@ -1126,6 +1148,31 @@ func _scan() -> void:
 			_emit("collapse", _center(battle.middle(battle.rubble[c])), Vector2.ZERO, null, battle.rubble[c], {"cell": c})
 	_rubble = battle.rubble.duplicate()
 	_primed = true
+
+# 막타가 닿았다(S197): dir이 있으면 그 몸이 번쩍이며 밀려 눕고, 없으면 바로 눕는다
+func _kill(t, dir: Vector2) -> void:
+	var id: int = t.get_instance_id()
+	_killed[id] = [clock, dir, t, _dead[id][2] if _dead.has(id) else 0]
+	_dead.erase(id)
+
+# 쓰러진 몸의 막타 단계(S197) [선 자세인가, 흰 번쩍임인가, 밀린 px, 누운 뒤 초, 보던 방향]. 막타 기록이 없으면 쓰러진 때(age) 바로 누운 것이다
+func _last_blow(x, age := 0.0) -> Array:
+	var id: int = x.get_instance_id()
+	if _dead.has(id):  # 막타를 기다린다
+		return [true, false, Vector2.ZERO, 0.0, _dead[id][2]]
+	var k = _killed.get(id)
+	if k == null:
+		return [false, false, Vector2.ZERO, age, 0]
+	var t: float = clock - k[0]
+	var hit: bool = k[1] != Vector2.ZERO
+	var up: bool = hit and t < FLASH
+	return [up, up, k[1] * KILL_PUSH * minf(t / FLASH, 1.0), t - FLASH if hit else t, k[3]]
+
+# 쓰러진 영웅의 X 자리(I130, S197): 막타가 닿은 때부터 밀린 자리에. 살아 있거나 막타를 기다리면 null
+func _cross_at(h):
+	if h.alive or _dead.has(h.get_instance_id()):
+		return null
+	return _spot(h) + _last_blow(h)[2]
 
 func _emit(kind: String, at: Vector2, dir: Vector2, src, dst, more := {}) -> void:
 	if not _live:
