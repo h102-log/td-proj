@@ -306,3 +306,11 @@ def test_EV501_evac_button(gd):
 
 def test_EV502_evac_toasts(gd):
     gd("hud", "EV502")
+
+
+def test_EV512_teen_bodies_in_atlas(gd):
+    gd("hud", "EV512")
+
+
+def test_EV513_grow_toasts(gd):
+    gd("hud", "EV513")

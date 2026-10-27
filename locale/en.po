@@ -1001,6 +1001,15 @@ msgstr "The evacuation was right · Trust +1"
 msgid "신뢰가 바닥나 한 가구가 떠났다"
 msgstr "Trust ran out — a household left"
 
+msgid "다 큰 자녀가 새 집으로 나갔다"
+msgstr "A grown child moved into a new home"
+
+msgid "새 가족이 이사 왔다"
+msgstr "A new family moved in"
+
+msgid "아기가 태어났다"
+msgstr "A baby was born"
+
 # ── 한글 없는 조립 틀: 끼운 값을 다시 번역하려고 넣는다 ──
 
 msgid "%s «%s» · %s"

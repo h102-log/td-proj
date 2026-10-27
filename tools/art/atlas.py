@@ -15,7 +15,7 @@ HEROES = ["aias", "sylvia", "seraphina", "vesper", "ignis", "chronos"]
 ANIMS = ["idle", "walk", "attack", "fall"]
 FOUR = {"soldier": "soldier", "archer": "archer", "engineer": "engineer", "basic": "goblin", "fast": "kobold",  # 게임 종류 → 그림 폴더(art/trial/)
         "armored": "orc", "flying": "harpy", "boss": "ogre"}
-FOLK = ["man", "woman", "boy", "girl", "old_man", "old_woman"]  # 주민 몸(S221)
+FOLK = ["man", "woman", "boy", "girl", "old_man", "old_woman", "lad", "lass"]  # 주민 몸(S221, 청소년 S232)
 FOUR_ROWS = [0, 2, 4, 6]  # 8방향 시트(render.DIRS 순서)에서 S·E·N·W
 FOUR_COLS = {"idle": [0], "walk": [0, 1], "attack": [1], "fall": [4]}  # 걷기 접지·통과, 공격 내려침, 쓰러짐 마지막(누운 자세)
 
