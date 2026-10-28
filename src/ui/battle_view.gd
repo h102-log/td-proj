@@ -286,6 +286,11 @@ func eyes() -> Array:
 func foes() -> Array:
 	return battle.enemies if battle.dark <= 0.0 else battle.enemies.filter(func(e): return battle.seen(e.pos))
 
+# 예고를 그리는 적(S194): 예고 중인 보이는 적. 덮치기 예고(S242)는 알파가 어둠 속에 숨어도 그린다(S213 2026-10-28 변경)
+func tellers(shown = null) -> Array:
+	var vis: Array = foes() if shown == null else shown
+	return battle.enemies.filter(func(e): return e.cast != null and (e.cast.id == "pounce" or e in vis))
+
 # 덮개 셰이더에 지금 어둠과 불빛(맵 px 가운데·지금 반경 px)을 넘긴다. 낮이면 그리지 않는다
 func night_params() -> Dictionary:
 	var pts := PackedVector4Array()
@@ -392,6 +397,7 @@ func _draw() -> void:
 # 덮개 위 층(S212). 그리기는 _cv(층 또는 맵 자신)에 한다
 func _draw_top() -> void:
 	_aim_preview()
+	_pounce_tells()
 	if battle.state == "prep":
 		_spawn_badges()
 	for u in battle.units + _foes:
@@ -2111,7 +2117,7 @@ func _scan() -> void:
 	for e in battle.enemies:  # 보스 스킬 예고가 기절·빙결로 끊김(S194, S198)
 		var id: int = e.get_instance_id()
 		if e.cast:
-			tell[id] = [_center(e.cast.get("at", e.pos)), CELL * e.skills[e.cast.id].radius]  # 조각은 예고 원 둘레에(점프는 착지 자리, S198)
+			tell[id] = [_center(e.cast.get("at", e.pos)), CELL * e.skills[e.cast.id].get("radius", 6.0 / CELL)]  # 조각은 예고 원 둘레에(점프는 착지 자리, S198). 덮치기(S242)는 대상 발밑 표식 6px
 		elif _tell.has(id) and e.fx.has("stagger") and e.fx.stagger.left > battle.STAGGER - 0.25:  # 이번에 막 걸린 비틀거림만
 			_emit("interrupt", _tell[id][0], Vector2.ZERO, e, null, {"radius": _tell[id][1]})
 	_tell = tell
@@ -2284,16 +2290,32 @@ func _slip(x) -> Vector2:
 # 보스 스킬 예고(S194, S198 fx-4): 예고 원은 F24+ 빨강 밝은 1px과 바깥 어두운 1px 테이고, 안쪽 성긴 칠이 남은 시간만큼 가운데에서 차오른다.
 # 발동하면(S198) 처음 FILL프레임은 예고 원 안을 예고색 60%로 채운다. 숨은 보스(S213)의 예고와 안 보이는 자리의 채움은 그리지 않는다
 func _tells() -> void:
-	for e in _foes:
-		if e.cast:
-			var sk: Dictionary = e.skills[e.cast.id]
-			var at := Vector2i(_center(e.cast.get("at", e.pos)).floor())  # 점프(S236)는 착지 자리에, 뜬 동안은 가득 찬 채로(S198)
-			var k: float = 1.0 if e.cast.get("air", false) else 1.0 - e.cast.left / sk.windup
-			var r := int(CELL * sk.radius)
-			_pnoise(at, int(r * k), TELL, TELL_FILL)
-			_edge(at, r, TELL, PX.maroon)
+	for e in _foes:  # 울부짖음(S242): 알파 둘레 반경 고리를 옅게
+		if e.skills.has("howl") and battle.effect(e, "seal") == null:
+			_pring(Vector2i(_center(e.pos).floor()), int(CELL * e.skills.howl.radius), 1, Color(PX.ash, 0.5))
+	for e in tellers(_foes):
+		if e.cast.id == "pounce":  # 덮치기(S242)는 덮개 위 층에 그린다(_pounce_tells)
+			continue
+		var sk: Dictionary = e.skills[e.cast.id]
+		var k: float = 1.0 if e.cast.get("air", false) else 1.0 - e.cast.left / sk.windup
+		var at := Vector2i(_center(e.cast.get("at", e.pos)).floor())  # 점프(S236)는 착지 자리에, 뜬 동안은 가득 찬 채로(S198)
+		var r := int(CELL * sk.radius)
+		_pnoise(at, int(r * k), TELL, TELL_FILL)
+		_edge(at, r, TELL, PX.maroon)
 	for f in _fills.filter(func(f): return battle.seen(f[0].at)):
 		_pdisc(Vector2i(_center(f[0].at).floor()), int(CELL * f[0].radius), Color(TELL, 0.6))
+
+# 덮치기 예고(S242): 알파에서 대상까지 곧은 선(폭 1)과 대상 발밑 표식이 차오른다. 성벽 위 대상의 올려 그린 발밑에 닿고,
+# 숨은 알파의 예고도 보이게(S213 2026-10-28 변경) 성곽·어둠 덮개 위 층에 그린다
+func _pounce_tells() -> void:
+	for e in tellers(_foes):
+		if e.cast.id != "pounce":
+			continue
+		var k: float = 1.0 if e.cast.get("air", false) else 1.0 - e.cast.left / e.skills.pounce.windup
+		var to := Vector2i(_spot(e.cast.who).floor())
+		_pline(Vector2i(_spot(e).floor()), to, TELL, 1)
+		_pnoise(to, int(6 * k), TELL, TELL_FILL)
+		_edge(to, 6, TELL, PX.maroon)
 
 # 보스: 스킬(S194)이 있는 적
 func _boss(x) -> bool:
