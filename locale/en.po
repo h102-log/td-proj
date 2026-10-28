@@ -238,8 +238,8 @@ msgstr "Pierces in a line"
 msgid "돌풍 갈래살"
 msgstr "Split Shot"
 
-msgid "토글 4명 사격"
-msgstr "Toggle: hit 4"
+msgid "토글 다중 사격"
+msgstr "Toggle multishot"
 
 msgid "폭풍의 덫"
 msgstr "Storm Trap"
@@ -280,8 +280,8 @@ msgstr "Heal all, bless"
 msgid "부식의 독안개"
 msgstr "Corrosion"
 
-msgid "방어력 −10"
-msgstr "Armor −10"
+msgid "방어력 감소"
+msgstr "Armor down"
 
 msgid "쇠약의 저주"
 msgstr "Enfeeble"
@@ -340,8 +340,8 @@ msgstr "Mana, cooldowns"
 msgid "황금의 율법"
 msgstr "Golden Law"
 
-msgid "골드 +30%"
-msgstr "Gold +30%"
+msgid "골드 증가"
+msgstr "Gold up"
 
 msgid "시간 왜곡장"
 msgstr "Time Warp"
@@ -1080,3 +1080,144 @@ msgstr "%s «%s» %s"
 
 msgid "%s «%s»"
 msgstr "%s «%s»"
+
+msgid "앞 %s° 부채꼴 %s칸: 물리 %s, 기절 %s초"
+msgstr "%s° cone, %s cells: %s physical, %ss stun"
+
+msgid "요새화 중이면 %s칸 밀침, 둔화 %s %s초"
+msgstr "While fortified: push %s cells, slow %s for %ss"
+
+msgid "둘레 %s칸 적 %s초 도발, 방어력 %s"
+msgstr "Taunt foes within %s cells for %ss, armor %s"
+
+msgid "적 하나마다 최대 체력 %s 보호막"
+msgstr "Shield of %s max HP per foe"
+
+msgid "%s초 동안 받는 피해 %s 감소"
+msgstr "%ss: take %s less damage"
+
+msgid "끝나면 받은 피해 ×%s를 둘레 %s칸에 물리 피해"
+msgstr "Then deals damage taken ×%s as physical within %s cells"
+
+msgid "벽 %s칸 %s초: 둘레 %s칸 영웅·포탑"
+msgstr "Wall of %s cells for %ss: heroes·towers within %s cells"
+
+msgid "받는 피해 %s 감소, 초당 최대 체력 %s 회복"
+msgstr "take %s less damage, regen %s max HP/s"
+
+msgid "맵 끝까지 꿰뚫음: 공격력 ×%s 물리"
+msgstr "Pierces to the map edge: attack ×%s physical"
+
+msgid "한 명 맞힐 때마다 %s 약해짐"
+msgstr "%s weaker per foe hit"
+
+msgid "기본 공격이 %s명을 더 맞힘"
+msgstr "Attacks hit %s more foes"
+
+msgid "덫을 밟으면 %s칸 적 %s초 속박"
+msgstr "Trap: roots foes within %s cells for %ss"
+
+msgid "받는 치명타 확률 +%s"
+msgstr "+%s crit chance taken"
+
+msgid "%s칸 %s초: 초당 물리 %s(보스 ×%s)"
+msgstr "%s cells, %ss: %s physical/s (boss ×%s)"
+
+msgid "체력 %s 이하 적 처형(보스 제외)"
+msgstr "Executes foes under %s HP (not bosses)"
+
+msgid "아군 회복 %s ↔ 적 마법 %s"
+msgstr "Heal ally %s ↔ magic %s to foe"
+
+msgid "%s칸 안을 번갈아 %s번 튐"
+msgstr "Bounces within %s cells, %s times"
+
+msgid "%s칸 %s초: 아군 초당 회복 %s, 해로운 효과 지움"
+msgstr "%s cells, %ss: heal allies %s/s, cleanse"
+
+msgid "적 둔화 %s"
+msgstr "Slow foes %s"
+
+msgid "%s초 동안 받는 회복 +%s"
+msgstr "%ss: +%s healing received"
+
+msgid "죽을 피해를 받으면 %s초 불사"
+msgstr "Undying for %ss on a fatal hit"
+
+msgid "모든 아군 최대 체력 %s 회복"
+msgstr "Heal all allies %s max HP"
+
+msgid "%s초 동안 공격마다 마법 %s(%s칸)"
+msgstr "%ss: +%s magic per attack (%s cells)"
+
+msgid "%s칸 독안개 %s초: 초당 마법 %s"
+msgstr "%s-cell poison fog, %ss: %s magic/s"
+
+msgid "방어력 %s, 마법 저항 %s"
+msgstr "armor %s, magic resist %s"
+
+msgid "%s칸 적 %s초: 둔화 %s"
+msgstr "Foes within %s cells, %ss: slow %s"
+
+msgid "주는 피해 −%s, 받는 피해 +%s"
+msgstr "deal −%s damage, take +%s damage"
+
+msgid "대상과 %s칸 안 적 %s명을 %s초 묶음"
+msgstr "Chains the target and foes within %s cells (up to %s) for %ss"
+
+msgid "받은 피해 %s를 나눠 받음"
+msgstr "Shares %s of damage taken"
+
+msgid "%s칸 늪 %s초: 둔화 %s, 봉인"
+msgstr "%s-cell swamp, %ss: slow %s, seal"
+
+msgid "초당 최대 체력 %s 마법 피해"
+msgstr "%s max HP/s as magic damage"
+
+msgid "%s칸 마법 %s, %s초 발화(초당 %s)"
+msgstr "%s cells: %s magic, burn %ss (%s/s)"
+
+msgid "불길 %s초(초당 %s)"
+msgstr "Flames %ss (%s/s)"
+
+msgid "%s칸 마법 %s, 둔화 %s %s초"
+msgstr "%s cells: %s magic, slow %s for %ss"
+
+msgid "발화 중인 적: +%s, %s초 빙결"
+msgstr "Burning foes: +%s, freeze %ss"
+
+msgid "%s칸 %s초: 초당 %s칸 끌어당김"
+msgstr "%s cells, %ss: pulls %s cells/s"
+
+msgid "마법 저항 %s"
+msgstr "magic resist %s"
+
+msgid "운석 %s개(%s초 간격): %s칸 마법 %s"
+msgstr "%s meteors (%ss apart): %s cells, %s magic"
+
+msgid "기절 %s초, 용암 %s초(초당 최대 체력 %s)"
+msgstr "stun %ss, lava %ss (%s max HP/s)"
+
+msgid "%s초 동안 공격 속도 +%s, 공격력 +%s"
+msgstr "%ss: +%s attack speed, +%s damage"
+
+msgid "대상 영웅 마나 %s 채움"
+msgstr "Restores %s of the target hero's mana"
+
+msgid "Q·W·E 대기 %s초 줄임"
+msgstr "Q·W·E cooldowns −%ss"
+
+msgid "둘레 %s칸 %s초: 안에서 잡은 적 골드 +%s"
+msgstr "%s cells, %ss: +%s gold from kills inside"
+
+msgid "%s칸 %s초: 아군 공격 속도 +%s, 스킬 대기 +%s"
+msgstr "%s cells, %ss: allies +%s attack speed, +%s cooldown rate"
+
+msgid "적 둔화 %s, 공격 느려짐 %s"
+msgstr "foes slowed %s, attacks slowed %s"
+
+msgid "시전 거리 %s칸"
+msgstr "Cast range %s cells"
+
+msgid "한 방에 마나 %d"
+msgstr "%d mana per shot"

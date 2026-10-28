@@ -354,3 +354,7 @@ def test_EV556_wolf_trait_lines(gd):
 
 def test_EV565_night_wolf_trait_line(gd):
     gd("hud", "EV565")
+
+
+def test_EV570_skill_tip_numbers_from_data(gd):
+    gd("hud", "EV570")
