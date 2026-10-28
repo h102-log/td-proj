@@ -3496,3 +3496,31 @@ func ev565():
 	var three: String = main.hud._wave_lines([1, 2])
 	_done(main)
 	return check("밤 늑대: 어두울수록 세다, 물면 피를 흘린다" in three, "2라운드 3웨이브 줄 «%s»에 밤 늑대 특성이 없다" % three)
+
+# EV570 · S187: 스킬 툴팁 수치 줄은 그 스킬 사전의 값으로 채운다. 지점·대상을 고르는 스킬은 시전 거리 줄을 더한다
+func ev570():
+	var H = load("res://src/ui/hud.gd")
+	var main = _prep()
+	var b = main.view.battle
+	var bad := []
+	for kind in b.HERO_KINDS:
+		for slot in b.SLOTS:
+			var sk: Dictionary = b.HERO_KINDS[kind][slot]
+			var lines: Array = H.skill_lines(kind, slot, sk)
+			if lines.is_empty() or lines.any(func(l): return l == "" or "{" in l):
+				bad.append([kind, slot, lines])
+				continue
+			var far: bool = sk.aim in ["point", "enemy", "ally"]
+			if far != (lines.back() == "시전 거리 6칸") or (not far and lines.has("시전 거리 6칸")):
+				bad.append([kind, slot, "시전 거리", lines])
+			for key in ["damage", "radius", "time", "stun", "heal", "dps"]:
+				if sk.has(key):
+					var bent := sk.duplicate()
+					bent[key] = 77.0
+					if not "77" in "\n".join(H.skill_lines(kind, slot, bent)):
+						bad.append([kind, slot, key])
+	var h = b.heroes[0]
+	var about: String = main.hud._skill_tip(0, "q")[3]
+	var want: Array = H.skill_lines(h.kind, "q", h.q)
+	_done(main)
+	return check(bad.is_empty() and want.all(func(l): return l in about), "어긋난 스킬 %s · 첫 영웅 %s Q 설명 «%s»에 %s" % [bad, h.kind, about, want])

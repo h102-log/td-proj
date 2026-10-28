@@ -22,14 +22,39 @@ const NAMES := {"wall": "방벽", "tower": "타워", "magic": "마법 타워", "
 const HEROES := {"aias": "아이아스(탱커)", "sylvia": "실비아(원거리)", "seraphina": "세라피나(힐러)", "vesper": "베스퍼(디버퍼)", "ignis": "이그니스(마법사)", "chronos": "크로노스(버퍼)"}  # 이름(역할), S97·S157
 const GRADES := ["1성", "2성", "3성"]  # S94
 const GAPS := {"none": "공병 없음", "far": "닿는 공병 없음"}  # 공병 지시를 맡을 공병이 없는 이유(I128). 툴팁·정보 칸의 빨간 줄(✕는 그 줄이 붙인다)
-const SKILLS := {  # 영웅마다 Q·W·E·R의 [이름, 요약](S97 표). 툴팁(S187)이 쓴다
-	"aias": [["방패 강타", "부채꼴 기절"], ["전장의 포효", "도발·보호막"], ["반격의 태세", "감소 뒤 충격파"], ["절대 방어선", "에너지 성벽"]],
-	"sylvia": [["관통의 바람살", "직선 관통"], ["돌풍 갈래살", "토글 4명 사격"], ["폭풍의 덫", "속박·치명타"], ["천공의 화살비", "처형"]],
-	"seraphina": [["성스러운 빛줄기", "회복·피해 도약"], ["정화의 성역", "회복 장판"], ["수호 천사의 날개", "불사"], ["기적의 강림", "전체 회복·축복"]],
-	"vesper": [["부식의 독안개", "방어력 −10"], ["쇠약의 저주", "둔화·공격력 감소"], ["영혼 사슬", "피해 나누기"], ["심연의 늪", "봉인"]],
-	"ignis": [["화염구 작렬", "발화"], ["서리 고리", "열충격 빙결"], ["비전 블랙홀", "끌어당김"], ["메테오 스웜", "운석·용암"]],
-	"chronos": [["무기 과충전", "자동 시전"], ["시간 되감기", "마나·대기"], ["황금의 율법", "골드 +30%"], ["시간 왜곡장", "가속·감속"]],
+const SKILLS := {  # 영웅마다 Q·W·E·R의 [이름, 요약, 수치 줄 틀](S97 표). 툴팁(S187)이 쓴다. 틀은 skill_lines가 채운다
+	"aias": [
+		["방패 강타", "부채꼴 기절", "앞 {arc}° 부채꼴 {radius}칸: 물리 {damage}, 기절 {stun}초\n요새화 중이면 {push}칸 밀침, 둔화 {slow%} {slow_time}초"],
+		["전장의 포효", "도발·보호막", "둘레 {radius}칸 적 {time}초 도발, 방어력 {armor}\n적 하나마다 최대 체력 {shield%} 보호막"],
+		["반격의 태세", "감소 뒤 충격파", "{time}초 동안 받는 피해 {dr%} 감소\n끝나면 받은 피해 ×{ratio}를 둘레 {radius}칸에 물리 피해"],
+		["절대 방어선", "에너지 성벽", "벽 {length}칸 {time}초: 둘레 {radius}칸 영웅·포탑\n받는 피해 {dr%} 감소, 초당 최대 체력 {regen%} 회복"]],
+	"sylvia": [
+		["관통의 바람살", "직선 관통", "맵 끝까지 꿰뚫음: 공격력 ×{ratio} 물리\n한 명 맞힐 때마다 {falloff%} 약해짐"],
+		["돌풍 갈래살", "토글 다중 사격", "기본 공격이 {extra}명을 더 맞힘"],
+		["폭풍의 덫", "속박·치명타", "덫을 밟으면 {radius}칸 적 {root}초 속박\n받는 치명타 확률 +{crit%}"],
+		["천공의 화살비", "처형", "{radius}칸 {time}초: 초당 물리 {dps}(보스 ×{boss})\n체력 {execute%} 이하 적 처형(보스 제외)"]],
+	"seraphina": [
+		["성스러운 빛줄기", "회복·피해 도약", "아군 회복 {heal} ↔ 적 마법 {damage}\n{hop}칸 안을 번갈아 {hits}번 튐"],
+		["정화의 성역", "회복 장판", "{radius}칸 {time}초: 아군 초당 회복 {hps}, 해로운 효과 지움\n적 둔화 {slow%}"],
+		["수호 천사의 날개", "불사", "{time}초 동안 받는 회복 +{heal_up%}\n죽을 피해를 받으면 {undying}초 불사"],
+		["기적의 강림", "전체 회복·축복", "모든 아군 최대 체력 {heal%} 회복\n{time}초 동안 공격마다 마법 {bless}({splash}칸)"]],
+	"vesper": [
+		["부식의 독안개", "방어력 감소", "{radius}칸 독안개 {time}초: 초당 마법 {dps}\n방어력 {armor}, 마법 저항 {mr%}"],
+		["쇠약의 저주", "둔화·공격력 감소", "{radius}칸 적 {time}초: 둔화 {slow%}\n주는 피해 −{weaken%}, 받는 피해 +{expose%}"],
+		["영혼 사슬", "피해 나누기", "대상과 {radius}칸 안 적 {links}명을 {time}초 묶음\n받은 피해 {share%}를 나눠 받음"],
+		["심연의 늪", "봉인", "{radius}칸 늪 {time}초: 둔화 {slow%}, 봉인\n초당 최대 체력 {burn%} 마법 피해"]],
+	"ignis": [
+		["화염구 작렬", "발화", "{radius}칸 마법 {damage}, {burn}초 발화(초당 {dps})\n불길 {fire}초(초당 {fire_dps})"],
+		["서리 고리", "열충격 빙결", "{radius}칸 마법 {damage}, 둔화 {slow%} {slow_time}초\n발화 중인 적: +{shock}, {freeze}초 빙결"],
+		["비전 블랙홀", "끌어당김", "{radius}칸 {time}초: 초당 {pull}칸 끌어당김\n마법 저항 {mr%}"],
+		["메테오 스웜", "운석·용암", "운석 {count}개({delay}초 간격): {radius}칸 마법 {damage}\n기절 {stun}초, 용암 {lava}초(초당 최대 체력 {burn%})"]],
+	"chronos": [
+		["무기 과충전", "자동 시전", "{time}초 동안 공격 속도 +{haste%}, 공격력 +{might%}"],
+		["시간 되감기", "마나·대기", "대상 영웅 마나 {mana_back%} 채움\nQ·W·E 대기 {cut}초 줄임"],
+		["황금의 율법", "골드 증가", "둘레 {radius}칸 {time}초: 안에서 잡은 적 골드 +{bonus%}"],
+		["시간 왜곡장", "가속·감속", "{radius}칸 {time}초: 아군 공격 속도 +{haste%}, 스킬 대기 +{cdr%}\n적 둔화 {slow%}, 공격 느려짐 {lag%}"]],
 }
+const HOLE := "\\{(\\w+)(%?)\\}"  # 수치 줄 틀의 자리: {키}는 값, {키%}는 백분율
 const HudTheme := preload("res://src/ui/hud_theme.gd")
 const HudTip := preload("res://src/ui/hud_tip.gd")
 const HudBuild := preload("res://src/ui/hud_build.gd")
@@ -41,6 +66,7 @@ const HudEvac := preload("res://src/ui/hud_evac.gd")
 const Hints := preload("res://src/ui/hints.gd")
 const BattleView := preload("res://src/ui/battle_view.gd")
 const SkillCell := preload("res://src/ui/skill_cell.gd")
+const Battle := preload("res://src/sim/battle.gd")
 const BAR := {  # 위 띠 칸 자리(S185, 임시값)
 	"status": Rect2(4, 2, 96, 24), "mission": Rect2(104, 2, 24, 24), "engineer": Rect2(130, 2, 20, 24),
 	"hero0": Rect2(156, 2, 104, 24), "hero1": Rect2(264, 2, 104, 24), "hero2": Rect2(372, 2, 104, 24),
@@ -1151,10 +1177,22 @@ func _slot_state(h, slot: String) -> Dictionary:
 		"prep": battle.state == "prep", "now": _now}
 
 # 4.0 → «4», 1.5 → «1.5»
-func _num(x: float) -> String:
+static func _num(x: float) -> String:
 	return str(int(x)) if x == roundf(x) else str(x)
 
-# 스킬 버튼 툴팁(S187): 이름·키·마나, 요약·재사용 대기 초·자동 시전, 못 쓰는 이유 하나(S145 해금 > S136 단계 > 마나 > 대기)
+# 스킬 수치 줄(S187 2026-10-28): 그 스킬 틀(SKILLS 셋째 칸)의 {키}를 스킬 사전 값으로, {키%}를 백분율로 채운다.
+# 지점·대상을 고르는 스킬은 시전 거리 줄(S147)을 더한다
+static func skill_lines(kind: String, slot: String, sk: Dictionary) -> Array:
+	var tpl: String = SKILLS[kind]["qwer".find(slot)][2]
+	for m in RegEx.create_from_string(HOLE).search_all(tpl):
+		var v: float = sk[m.get_string(1)]
+		tpl = tpl.replace(m.get_string(), "%d%%" % roundi(v * 100) if m.get_string(2) == "%" else _num(v))
+	var out := Array(tpl.split("\n"))
+	if sk.aim in ["point", "enemy", "ally"]:
+		out.append("시전 거리 %s칸" % _num(Battle.CAST_RANGE))
+	return out
+
+# 스킬 버튼 툴팁(S187): 이름·키·마나, 요약·재사용 대기 초·자동 시전과 수치 줄, 못 쓰는 이유 하나(S145 해금 > S136 단계 > 마나 > 대기)
 func _skill_tip(i: int, slot: String) -> Array:
 	var h = battle.heroes[i]
 	var sk: Dictionary = h.get(slot)
@@ -1169,7 +1207,9 @@ func _skill_tip(i: int, slot: String) -> Array:
 	elif h.cd[slot] > 0.0:
 		why = "재사용 대기 %d초" % ceili(h.cd[slot])
 	var about := "%s · 재사용 %s초" % [name_about[1], _num(sk.gap)] + (" · 우클릭: 자동 시전" if sk.get("auto", false) else "")
-	return [name_about[0], slot.to_upper(), "마나 %d" % sk.mana, about, why]
+	about += "\n" + "\n".join(skill_lines(h.kind, slot, sk))
+	var cost := ("한 방에 마나 %d" if sk.aim == "toggle" else "마나 %d") % sk.mana  # 토글(실비아 W)은 켤 때가 아니라 한 방마다 쓴다
+	return [name_about[0], slot.to_upper(), cost, about, why]
 
 # 고른 것의 칸에 공병 지시를 맡을 공병이 없는 이유(I128). live()가 아니거나 고른 것이 없으면 ""
 # ponytail: 닿는지 보는 A*가 무거워(성문이 모두 닫히면 1회 7ms) 같은 칸이면 0.3초마다만 다시 잰다. 그사이 바뀐 공병 사정은 늦게 보인다
