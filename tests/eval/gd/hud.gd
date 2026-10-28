@@ -2912,7 +2912,7 @@ func ev433():
 			var seen := Rect2(cam.position + (Vector2(0, 28) - Vector2(320, 180)) / z, Vector2(640, 332) / z)
 			m.follow()
 			var want := Rect2(seen.position / 16 + Vector2(1, 1 - m.top), seen.size / 16).intersection(Rect2(1, 1, 60, 63))
-			var vis := Rect2(seen.position / 16, seen.size / 16).intersection(Rect2(0, 0, 60, 93))  # 카메라가 보는 맵 칸
+			var vis := Rect2(seen.position / 16, seen.size / 16).intersection(Rect2(Vector2.ZERO, Vector2(main.view.battle.size)))  # 카메라가 보는 맵 칸
 			if vis.size.y <= 63 and (vis.position.y < m.top - 0.01 or vis.end.y > m.top + 63 + 0.01):
 				bad.append(["창 밖", z, cam.position, m.top])
 			var got: Rect2 = m.view_rect()
@@ -2939,14 +2939,11 @@ func ev434():
 	b.spawn_enemy("boss", Vector2i(40, 70), still)
 	b.damage(b.walls[Vector2i(10, 57)], BIG, "true")  # 10열 남벽(57~59행)
 	_cam(main).force_update_scroll()
-	m.follow()  # 창은 처음에 맨 아래(맨 윗줄 30)이고 정문 앞 카메라는 그 안이다
+	m.follow()  # 창은 정문 앞 카메라를 따라간다(S209). 점 자리는 칸 + 1 − 창 맨 윗줄 t
 	var t: int = m.top
-	if t != 30:
-		_done(main)
-		return "정문 앞 카메라에서 미니맵 창 맨 윗줄이 %d다(30이어야 한다)" % t
 	var marks: Array = m.marks()
-	var want := [[Rect2(22, 41, 1, 1), "ff3b3b"], [Rect2(41, 41, 2, 2), "ff3b3b"], [Rect2(31, 34, 1, 1), "3ce0d8"], [Rect2(21, 33, 1, 1), "8fd8ff"],
-		[Rect2(30, 0, 3, 3), "ffd37f"], [Rect2(11, 28, 1, 1), "4a4a50"], [Rect2(29, 28, 1, 1), "9aa0aa"], [Rect2(31, 28, 1, 1), "c08a4a"]]
+	var want := [[Rect2(22, 71 - t, 1, 1), "ff3b3b"], [Rect2(41, 71 - t, 2, 2), "ff3b3b"], [Rect2(31, 64 - t, 1, 1), "3ce0d8"], [Rect2(21, 63 - t, 1, 1), "8fd8ff"],
+		[Rect2(30, 30 - t, 3, 3), "ffd37f"], [Rect2(11, 58 - t, 1, 1), "4a4a50"], [Rect2(29, 58 - t, 1, 1), "9aa0aa"], [Rect2(31, 58 - t, 1, 1), "c08a4a"]]
 	var miss := want.filter(func(w): return not marks.any(func(k): return k[0].is_equal_approx(w[0]) and k[1].is_equal_approx(Color(w[1]))))
 	for h in b.heroes:
 		var p: Vector2 = h.pos + Vector2(1.5, 1.5 - t)
@@ -2983,10 +2980,12 @@ func ev435():
 	var c = main.controls
 	var h = b.heroes[0]
 	_key(KEY_F1)
+	var cell := Vector2i(38, 45 + main.hud.minimap.top)  # 창 안 (38,45)에 창 맨 윗줄을 더한 칸
 	for down in [true, false]:
 		_button_at(_mini(Vector2(38, 45)), MOUSE_BUTTON_RIGHT, down)
 	var at: Vector2 = c.order.get("at", Vector2.INF)
-	var sent: bool = at.distance_to(Vector2(616, 1208)) <= 0.01 and not h.path.is_empty() and h.path.back() == Vector2i(38, 75)  # 창 맨 윗줄 30(처음 맨 아래)을 더한 칸
+	var px := (Vector2(cell) + Vector2(0.5, 0.5)) * 16
+	var sent: bool = at.distance_to(px) <= 0.01 and not h.path.is_empty() and h.path.back() == cell
 	_key(KEY_2)
 	var placing: String = c.placing
 	var n: int = b.structures.size()
@@ -2994,7 +2993,7 @@ func ev435():
 		_button_at(_mini(Vector2(38, 45)), MOUSE_BUTTON_RIGHT, down)
 	var off: bool = placing == "tower" and c.placing == "" and b.structures.size() == n
 	_done(main)
-	return check(sent and off, "명령 자리 %s(기대 (616,1208)) · 영웅 길 끝 %s · 놓기 %s → %s, 구조물 %d → %d" % [at, h.path.back() if not h.path.is_empty() else null, placing, c.placing, n, b.structures.size()])
+	return check(sent and off, "명령 자리 %s(기대 %s, 칸 %s) · 영웅 길 끝 %s · 놓기 %s → %s, 구조물 %d → %d" % [at, px, cell, h.path.back() if not h.path.is_empty() else null, placing, c.placing, n, b.structures.size()])
 
 # EV436 · S209: 커서가 미니맵 위면 가장자리 이동이 멈추고, 같은 x의 맵 위면 간다
 func ev436():
@@ -3349,14 +3348,11 @@ func ev515():
 	b.spawn_enemy("basic", Vector2i(20, 70), still.merged({"boss": true}))
 	b.spawn_enemy("boss", Vector2i(40, 70), still.merged({"boss": false}))
 	_cam(main).force_update_scroll()
-	m.follow()  # 창은 처음에 맨 아래(맨 윗줄 30)다(EV434)
-	var t: int = m.top
-	if t != 30:
-		_done(main)
-		return "정문 앞 카메라에서 미니맵 창 맨 윗줄이 %d다(30이어야 한다)" % t
+	m.follow()
+	var t: int = m.top  # 점 자리는 칸 + 1 − 창 맨 윗줄
 	var foes: Array = m.marks().filter(func(k): return k[1].is_equal_approx(Color("ff3b3b"))).map(func(k): return k[0])
 	_done(main)
-	var want := [Rect2(21, 41, 2, 2), Rect2(41, 41, 1, 1)]
+	var want := [Rect2(21, 71 - t, 2, 2), Rect2(41, 71 - t, 1, 1)]
 	return check(want.all(func(w): return foes.any(func(r): return r.is_equal_approx(w))), "적 점 %s에 boss 칸 켠 기본 적 %s·끈 오우거 %s가 없다" % [foes, want[0], want[1]])
 
 # EV517 · I185: 진행 칸 해골과 «다음 웨이브에 보스» 토스트는 웨이브에 든 종류의 boss 칸으로 가른다
