@@ -36,7 +36,7 @@ func _start(b):
 	return idle
 
 # EV453 · S217: 시험 스테이지(사방 성곽)의 성곽은 남·북 성벽 열 114개(1×3, 칸 59·2행), 동·서 성벽 행 102개(3×1, 칸 0·57열, 3~56행에서 29~31행 뺌),
-# 문루 넷(3×3)이고 차지 칸 684개가 서로 겹치지 않는다. 맵 60×93, 들판 첫 줄 60, 마을 (3,3)부터 54×54, 거점 (30,30)
+# 문루 넷(3×3)이고 차지 칸 684개가 서로 겹치지 않는다. 맵 60 × (60 + 들판 줄 수 FIELD_ROWS), 들판 첫 줄 60, 마을 (3,3)부터 54×54, 거점 (30,30)
 func ev453():
 	var b = load("res://src/sim/battle.gd").new(Main.stage())
 	var cols: Array = b.castle.values().filter(func(k): return k.kind == "castle_wall" and k.size == Vector2i(1, 3))
@@ -57,7 +57,7 @@ func ev453():
 			[Vector2i(30, 1), Vector2i(29, 2)], [Vector2i(59, 30), Vector2i(57, 31)], [Vector2i(10, 57), Vector2i(10, 59)]]:
 		if b.walls.get(pair[0]) != b.castle.get(pair[1]) or b.grid.block_at(pair[0]) != b.castle.get(pair[1]):
 			return "%s가 %s의 Block이 아니다" % pair
-	return check(b.size == Vector2i(60, 93) and b.field_y == 60 and b.village == Rect2i(3, 3, 54, 54) and b.base.cell == Vector2i(30, 30),
+	return check(b.size == Vector2i(60, 60 + Main.FIELD_ROWS) and b.field_y == 60 and b.village == Rect2i(3, 3, 54, 54) and b.base.cell == Vector2i(30, 30),
 		"맵 %s·들판 첫 줄 %d·마을 %s·거점 %s다" % [b.size, b.field_y, b.village, b.base.cell])
 
 # EV454 · S217: 열린 문루는 아홉 칸이 모두 지나갈 수 있고, 뒤 줄에 적이 서 있으면 닫히지 않는다
