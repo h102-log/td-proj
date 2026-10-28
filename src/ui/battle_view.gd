@@ -353,7 +353,7 @@ func _draw() -> void:
 		if u.is_hero:  # 영웅 레벨(I117): 오른쪽 위에 작게
 			draw_string(PIXEL_FONT, at + Vector2(CELL * 0.3, -CELL * 0.3), str(u.level), HORIZONTAL_ALIGNMENT_LEFT, -1, 8)
 		if u in controls.selected and u.hold:  # 고른 유닛의 표시는 발밑(_feet_mark, S207). 홀드면 기준 반경을 그린다(S36)
-			draw_arc(u.anchor * CELL + Vector2(CELL, CELL) / 2, CELL * u.hold_radius, 0.0, TAU, 48, Color(1, 1, 1, 0.4), 1.0)
+			_pring(Vector2i((u.anchor * CELL + Vector2(CELL, CELL) / 2).floor()), int(CELL * u.hold_radius), 1, Color(1, 1, 1, 0.4))
 		_status(u, true)  # 걸린 효과(I101 2026-10-27 변경): 효과마다 수단 하나
 	for e in _foes:
 		_status(e, false)
@@ -377,10 +377,10 @@ func _draw() -> void:
 	for m in shots:
 		_missile(m, starts)
 	_shots = starts
-	_impacts()  # 사각형이라 구슬·대포알과 한 배치다. 고리(선)는 그 뒤에
-	for m in battle.landed:  # 대포알이 떨어진 곳에 범위 피해 반경까지 퍼지는 2px 고리(S178 2026-10-28)
+	_impacts()  # 사각형이라 구슬·대포알과 한 배치다. 대포알 고리도 아트 px 사각형이라 이어진다
+	for m in battle.landed:  # 대포알이 떨어진 곳에 범위 피해 반경까지 퍼지는 2px 주황 고리(S178 2026-10-28, I101 2026-10-28 셋째 변경)
 		if m.look == "ball" and m.age < BLAST:
-			draw_arc(_spot(m.target), CELL * m.splash * m.age / BLAST, 0.0, TAU, 24, Color(1, 0.8, 0.3, 1.0 - m.age / BLAST), 2.0)
+			_pring(Vector2i(_spot(m.target).floor()), int(CELL * m.splash * m.age / BLAST), 2, Color(PX.orange, 1.0 - m.age / BLAST))
 	_fx_dots(false)  # 먼지·조각(I172): 투사체 다음 층에 모아서
 	_traces(true)
 	# 어둠 덮개(S212)는 맵의 자식이라 여기까지(효과) 위에 그려진다. 그 위 층(_top)이 조준 미리보기·체력 막대·명령 표식·드래그 사각형이다
@@ -413,7 +413,7 @@ func _draw_top() -> void:
 		_cv.draw_rect(Rect2(at + Vector2(1, 0), Vector2.ONE), EYES)
 	var cue := order_ring()
 	if not cue.is_empty():
-		_cv.draw_arc(cue[0], cue[1], 0.0, TAU, 24, cue[2], 1.0)
+		_pring(Vector2i(cue[0].floor()), int(cue[1]), 1, cue[2])  # 아트 px(I101 2026-10-28 셋째 변경)
 	if controls.drag_rect.has_area():
 		_cv.draw_rect(controls.drag_rect, Color.WHITE, false, 1.0)
 

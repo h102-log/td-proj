@@ -14,6 +14,7 @@ extends RefCounted
 #         되감기는 대상 둘레를 12시에서 반시계로 쓸어 가는 호, 황금률은 햇살 대신 시계 방향으로 도는 바늘 둘(눈금은 오라가 맡는다),
 #         왜곡장은 서로 거꾸로 도는 점선 고리 둘과 일그러진 눈금이다. 보스 예고는 F24+ 빨강 두 겹 테와 차오르는 성긴 칠, 발동 채움은 원판이고,
 #         조준 미리보기(사거리·범위·부채꼴·방향·설 칸)는 아트 px 도우미로 그린다(덮개 위 층 _cv).
+#   I101 2026-10-28 셋째 변경. 명령 표식·홀드 기준 반경·대포알 고리도 아트 px 고리라 맵에 화면 px 원·호(draw_arc)가 없다.
 
 const View := preload("res://src/ui/battle_view.gd")
 const Battle := preload("res://src/sim/battle.gd")
@@ -816,6 +817,14 @@ func test_aim_preview_draws_with_art_px_helpers():
 			why = "%s %s 조준이 줄 %d · 고리 %d · 칸 %d다(%s여야 한다)" % [k[0].kind, k[1], v.lines.size(), v.rings.size(), v.pxs.size(), k[2]]
 	v.free()
 	return why
+
+func test_map_draws_no_screen_px_circles():
+	var src := FileAccess.get_file_as_string("res://src/ui/battle_view.gd")
+	if src.count("draw_arc(") > 0:
+		return "battle_view.gd에 draw_arc가 %d곳 남았다(원·호는 아트 px 고리여야 한다)" % src.count("draw_arc(")
+	if src.count("draw_circle(") != 4:
+		return "battle_view.gd의 draw_circle이 %d곳이다(그림자·대역 몸 넷만 남아야 한다)" % src.count("draw_circle(")
+	return ""
 
 func test_fx4_draws_only_palette_colors():
 	var bt := _chrono()
