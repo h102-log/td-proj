@@ -21,9 +21,6 @@ const HERO_COLORS := {  # 영웅 종류마다 다른 색(S56, S157, I101)
 # 유닛에 걸린 효과는 테두리 대신 효과마다 조각 하나다(status_marks, I101 2026-10-27 변경)
 const MARKS := {"dr": Color("80c0ff"), "haste": Color.ORANGE}
 const EYES := Color("f0e060")  # 어둠 속에 숨은 밤 늑대의 눈빛(S240, I193 ④)
-const ZONES := {  # 장판 색(I101). 성기게 칠하고 테두리를 그린다. 이그니스(4.1s)·아이아스·실비아(fx-2)·세라피나·베스퍼(fx-3) 장판은 재질이라 색표에 없다
-	"chronos_e": Color("ffd020"), "chronos_r": Color("40e0ff"),
-}
 
 const UNITS := preload("res://art/units/heroes.png")  # 영웅 6명과 용병·적 시트를 한 장에 모은 아틀라스(tools/art/atlas.py)
 static var ART: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/units/heroes.json"))  # 종류 → 캔버스·발밑·시트 y
@@ -82,9 +79,15 @@ const FIZZ := 5  # 독안개 장판 하나에서 오르는 거품 수
 const FIZZ_CYCLE := 1.1  # 거품 하나가 다시 오르는 주기
 const RIPPLES := 4  # 늪 장판 하나의 물결 자리 수
 const RIPPLE_CYCLE := 1.4  # 물결 하나가 다시 퍼지는 주기
+# 크로노스(금·크림, 왜곡장은 얼음)(fx-4). 시간은 초다
+const GEAR_TURN := 8.0  # 황금률 톱니 고리가 한 바퀴 도는 시간
+const COINS := 5  # 황금률 장판 하나에서 반짝이는 동전 점 수
+const COIN_CYCLE := 1.3  # 동전 점 하나가 자리를 옮겨 다시 반짝이는 주기
+const WARP_TURN := 3.0  # 왜곡장 점선 고리 둘이 서로 반대로 한 바퀴 도는 시간
+const HANDS := [[2.0, 0.5], [-6.0, 0.3]]  # 왜곡장 시곗바늘 [한 바퀴 시간(음수는 거꾸로), 길이(반경 비율)]: 긴 바늘, 짧은 바늘
 const ALLY_FX := ["dr", "haste", "shield", "invuln", "stun", "bleed"]  # 아군에 걸린 효과(I101, 기절은 I192, 출혈은 I193 ③)
 const FOE_FX := ["stun", "root", "slow", "expose", "taunt", "seal", "chain", "dot"]  # 적에 걸린 효과(I101)
-const TELL := Color("ff3020")  # 보스 스킬 예고(S194): 빨간 테두리, 안쪽이 차오른다
+const TELL := Color("ef3a0c")  # 보스 스킬 예고(S194): 빨간 테두리, 안쪽이 차오른다. F24+ 빨강(S179 2026-10-28)
 const RAGE := Color(1.5, 0.55, 0.55)  # 분노한 보스(S195)를 붉게 그리는 modulate
 const CROUCH := Vector2(1.15, 0.75)  # 슬라임 킹이 웅크림 끝에 납작해지는 배율(가로·세로, S198). 임시값
 const LEAP_UP := 10.0  # 뜬 슬라임 킹을 한가운데에서 들어 올리는 높이(px, S198). 임시값
@@ -241,6 +244,7 @@ var _landed := {}  # 지난 프레임까지 본 닿은 투사체(battle.landed) 
 var night: ColorRect  # 어둠 덮개(S212): 바닥 그림(맵 밖 아래 띠까지)을 덮는 사각형 하나에 셰이더를 바른다. 맵의 자식이라 맵 그림 다음에 그린다
 var _top: Node2D  # 덮개 위 층: 조준 미리보기·출현 배지·체력 막대·명령 표식·드래그 사각형(_draw_top). 덮개 다음 자식이다
 var _cv: CanvasItem = self  # _draw_top의 그리기 함수가 그리는 곳. 층이 없으면(트리 밖에서 만든 맵) 맵 자신이다
+var _pen: CanvasItem = self  # 아트 px 고리·호·선(_pring·_parc·_pline)이 그리는 곳. _draw_top 동안만 _cv다
 var _foes := []  # 이번 프레임에 보이는 적(S213). 숨은 적은 몸·발밑·막대·효과 테두리·예고를 그리지 않는다
 var _folk_now := []  # 이번 프레임의 주민 [주민 몸(battle.people), folk_of]. 덮개 위 층이 야경꾼 등불을 그 자리에 그린다(S223)
 
@@ -337,12 +341,12 @@ func _draw() -> void:
 	for e in _foes:  # 보스 스킬 예고(S194): 빨간 테두리 안쪽이 남은 시간만큼 차오른다. 숨은 보스(S213)는 그리지 않는다
 		if e.cast:
 			var sk: Dictionary = e.skills[e.cast.id]
-			var at := _center(e.cast.get("at", e.pos))  # 점프(S236)는 착지 자리에, 뜬 동안은 가득 찬 채로(S198)
+			var at := Vector2i(_center(e.cast.get("at", e.pos)).floor())  # 점프(S236)는 착지 자리에, 뜬 동안은 가득 찬 채로(S198)
 			var k: float = 1.0 if e.cast.get("air", false) else 1.0 - e.cast.left / sk.windup
-			draw_circle(at, CELL * sk.radius * k, Color(TELL, 0.35))
-			draw_arc(at, CELL * sk.radius, 0.0, TAU, 48, Color(TELL, 0.9), 1.0)
+			_pdisc(at, int(CELL * sk.radius * k), Color(TELL, 0.35))
+			_pring(at, int(CELL * sk.radius), 1, Color(TELL, 0.9))
 	for f in _fills.filter(func(f): return battle.seen(f[0].at)):  # 보스 스킬이 발동하면(S198) 처음 FILL프레임은 예고 모양 안을 예고색으로 채운다
-		draw_circle(_center(f[0].at), CELL * f[0].radius, Color(TELL, 0.6))
+		_pdisc(Vector2i(_center(f[0].at).floor()), int(CELL * f[0].radius), Color(TELL, 0.6))
 	_fx_dots(true)  # 바닥 균열(S198)은 몸통 아래
 	_traces(false)  # 폭발 연기·운석 그림자는 몸통 아래(4.1s, Gemini 고칠 점 2)
 	for p in battle.forecast:  # 기본 적의 예상 경로(S142): 엷은 빨간 선, 유닛 아래에. 너비 1이면 1배 줌에서 칸 중심을 지나는 가로·세로 구간이 안 그려진다
@@ -357,7 +361,7 @@ func _draw() -> void:
 		if u.is_hero:  # 영웅 레벨(I117): 오른쪽 위에 작게
 			draw_string(PIXEL_FONT, at + Vector2(CELL * 0.3, -CELL * 0.3), str(u.level), HORIZONTAL_ALIGNMENT_LEFT, -1, 8)
 		if u in controls.selected and u.hold:  # 고른 유닛의 표시는 발밑(_feet_mark, S207). 홀드면 기준 반경을 그린다(S36)
-			draw_arc(u.anchor * CELL + Vector2(CELL, CELL) / 2, CELL * u.hold_radius, 0.0, TAU, 48, Color(1, 1, 1, 0.4), 1.0)
+			_pring(Vector2i((u.anchor * CELL + Vector2(CELL, CELL) / 2).floor()), int(CELL * u.hold_radius), 1, Color(1, 1, 1, 0.4))
 		_status(u, true)  # 걸린 효과(I101 2026-10-27 변경): 효과마다 수단 하나
 	for e in _foes:
 		_status(e, false)
@@ -381,10 +385,10 @@ func _draw() -> void:
 	for m in shots:
 		_missile(m, starts)
 	_shots = starts
-	_impacts()  # 사각형이라 구슬·대포알과 한 배치다. 고리(선)는 그 뒤에
-	for m in battle.landed:  # 대포알이 떨어진 곳에 범위 피해 반경까지 퍼지는 2px 고리(S178 2026-10-28)
+	_impacts()  # 사각형이라 구슬·대포알과 한 배치다. 대포알 고리도 아트 px 사각형이라 이어진다
+	for m in battle.landed:  # 대포알이 떨어진 곳에 범위 피해 반경까지 퍼지는 2px 주황 고리(S178 2026-10-28, S179 2026-10-28)
 		if m.look == "ball" and m.age < BLAST:
-			draw_arc(_spot(m.target), CELL * m.splash * m.age / BLAST, 0.0, TAU, 24, Color(1, 0.8, 0.3, 1.0 - m.age / BLAST), 2.0)
+			_pring(Vector2i(_spot(m.target).floor()), int(CELL * m.splash * m.age / BLAST), 2, Color(PX.orange, 1.0 - m.age / BLAST))
 	_fx_dots(false)  # 먼지·조각(I172): 투사체 다음 층에 모아서
 	_traces(true)
 	# 어둠 덮개(S212)는 맵의 자식이라 여기까지(효과) 위에 그려진다. 그 위 층(_top)이 조준 미리보기·체력 막대·명령 표식·드래그 사각형이다
@@ -395,6 +399,7 @@ func _draw() -> void:
 
 # 덮개 위 층(S212). 그리기는 _cv(층 또는 맵 자신)에 한다
 func _draw_top() -> void:
+	_pen = _cv
 	_aim_preview()
 	if battle.state == "prep":
 		_spawn_badges()
@@ -417,9 +422,10 @@ func _draw_top() -> void:
 		_cv.draw_rect(Rect2(at + Vector2(1, 0), Vector2.ONE), EYES)
 	var cue := order_ring()
 	if not cue.is_empty():
-		_cv.draw_arc(cue[0], cue[1], 0.0, TAU, 24, cue[2], 1.0)
+		_pring(Vector2i(cue[0].floor()), int(cue[1]), 1, cue[2])
 	if controls.drag_rect.has_area():
 		_cv.draw_rect(controls.drag_rect, Color.WHITE, false, 1.0)
+	_pen = self
 
 # 명령 표식(S205): [가운데(맵 px), 반경(px), 색]. 새 명령을 처음 본 때부터 ORDER_MARK초 동안 줄어든다. 대상 공격은 그 적의 발밑을 따라간다. 없으면 []
 func order_ring() -> Array:
@@ -515,7 +521,7 @@ func _ranged(x) -> bool:
 
 # 즉시 스킬 흔적(S179): 쓴 뒤 영웅 색으로. 범위 스킬은 반경까지 퍼지는 고리, 방향·대상 스킬은 영웅에서 잇는 선이다.
 # 이그니스의 화염구 작렬·운석 착탄·서리 고리는 단계 있는 폭발·결정이다(4.1s fx-1). 아이아스·실비아는 베기·충격파·방패·터짐·바람이다(fx-2).
-# 세라피나는 뻗는 빛줄기·날개·빛기둥, 베스퍼는 조여드는 저주 고리·사슬 거는 줄이다(fx-3). 모두 아트 px로 그린다.
+# 세라피나는 뻗는 빛줄기·날개·빛기둥, 베스퍼는 조여드는 저주 고리·사슬 거는 줄이다(fx-3). 크로노스는 금 줄과 불티·되감는 시계다(fx-4). 모두 아트 px로 그린다.
 # top이 아니면 몸통 아래 층(폭발 연기·운석 그림자·포효 먼지·꽂힌 화살·천사 날개)만 그린다. 떨어지는 운석·화살과 영혼 사슬도 그린다. 무엇을 어디에 썼는지는 시뮬레이션이 남긴 흔적(traces)이 준다
 func _traces(top: bool) -> void:
 	for c in battle.traces:
@@ -582,9 +588,10 @@ func _traces(top: bool) -> void:
 			_pring(at, int(CELL * c.radius * (0.5 + 0.6 * _out(k))), 2 if k < 0.5 else 1, Color(col.lerp(Color.WHITE, 0.4), 1.0 - k))
 			continue
 		match id:
-			"overcharge", "rewind":  # 영웅에서 대상까지 줄과 대상 둘레 고리(크로노스는 fx-4에서 바꾼다)
-				_pline(Vector2i(_center(h.pos).floor()), Vector2i(_chest(c.aim).floor()), Color(col, 1.0 - k), 2)
-				_ring(_spot(c.aim), CELL * 0.8, k, col)
+			"overcharge":
+				_charge(h, c.aim, c.age, seed)
+			"rewind":
+				_rewind(h, c.aim, c.age)
 	for z in battle.zones:  # 떨어지는 운석(이그니스 R): 마지막 FALL초 동안 오른쪽 위에서 내려온다
 		var d: float = z.get("delay", 0.0)
 		if d > 0.0 and d < FALL:
@@ -608,10 +615,28 @@ func _traces(top: bool) -> void:
 			for j in n + 1:
 				_spr("link", 0, Vector2i(a.lerp(b, float(j) / n).floor()))
 
-# 퍼지는 고리: k(0~1)에 따라 반경 r까지 처음에 빠르게 퍼지며 옅어진다. 같은 영웅 색 장판 위에서도 보이게 40% 밝힌다. 아트 px다
-func _ring(c: Vector2, r: float, k: float, col: Color) -> void:
-	if k < 1.0:
-		_pring(Vector2i(c.floor()), maxi(int(r * _out(k)), 1), 2 if k < 0.5 else 1, Color(col.lerp(Color.WHITE, 0.4), 1.0 - k))
+# 무기 과충전(크로노스 Q, fx-4): 영웅 손에서 대상까지 금 줄(굵기 2 → 1)과 대상 둘레 고리 하나(앞 0.2초, 굵기 2 → 0), 대상 몸에서 위로 튀는 금 불티 넷
+func _charge(h, x, t: float, seed: int) -> void:
+	if t >= FX:
+		return
+	var k := t / FX
+	var p := Vector2i(_chest(x).floor())
+	_pline(Vector2i(_muzzle(h).floor()), p, _ramp(["gold", "bronze"], k), 2 if k < 0.5 else 1)
+	if t < 0.2:
+		var kk := t / 0.2
+		_pring(p, int(3.0 + 7.0 * _pow3(kk)), int(ceil(2.0 * (1.0 - kk))), _ramp(["cream", "gold"], kk))
+	for i in 4:  # 몸 그림 밖으로 나오게 옆으로 ±8px, 위로 16px까지
+		_px(p + Vector2i(int((_hf(seed, i) - 0.5) * 16.0), -int(16.0 * _pow3(k) * (0.6 + 0.4 * _hf(seed, i + 5)))), _ramp(["cream", "gold", "bronze"], k), Vector2i(1, 2))
+
+# 시간 되감기(크로노스 W, fx-4): 영웅 손에서 대상까지 크림 줄(굵기 2 → 1), 대상 둘레에서 안으로 조여드는 고리 하나, 대상 머리 위에서 바늘이 거꾸로 도는 시계 조각
+func _rewind(h, x, t: float) -> void:
+	if t >= FX:
+		return
+	var k := t / FX
+	var p := Vector2i(_chest(x).floor())
+	_pline(Vector2i(_muzzle(h).floor()), p, _ramp(["cream", "gold"], k), 2 if k < 0.5 else 1)
+	_pring(p, int(10.0 - 7.0 * _pow3(k)), 1, _ramp(["cream", "gold"], k))
+	_spr("clock", int(k * 4.0), p - Vector2i(0, 14))  # 영웅 머리 바로 위. _head는 그림 캔버스 높이라 영웅에겐 높이 뜬다
 
 # 범위 폭발(4.1s, 화염구 작렬·운석 착탄): 폭발 조각 6프레임(흰 섬광 → 날카로운 터짐 → 불 덩어리 → 초승달) + 앞 0.2초 고리(굵기 3 → 0) + 불티 방사선.
 # 고리는 하나만 그리고 섬광은 밝게 채운다(Gemini 고칠 점 1). 연기는 몸통 아래 층(top = false)에 그린다(고칠 점 2). 운석은 돌 조각이 튄다
@@ -890,13 +915,12 @@ func _shackle(h, x, t: float) -> void:
 		_pring(p, int(3.0 + 7.0 * _pow3(kk)), int(ceil(2.0 * (1.0 - kk))), _ramp(["teal", "midteal"], kk))
 
 # 장판(I101, S168, 4.1s): 처음 본 때부터 ZONE_OPEN초에 펼쳐지고 마지막 ZONE_CLOSE초에 줄어든다. 판정 경계는 밝은 1px + 바깥 어두운 1px이고,
-# 같은 종류 장판끼리 겹친 곳은 빼서 바깥 테두리만 남는다. 이그니스 장판 셋·실비아 장판 둘·세라피나 성역·베스퍼 장판 둘은 재질, 나머지(크로노스)는 성긴 칠 + 아트 1px 무늬(S168).
+# 같은 종류 장판끼리 겹친 곳은 빼서 바깥 테두리만 남는다. 장판마다 무늬 대신 재질이다(이그니스 4.1s, 실비아 fx-2, 세라피나·베스퍼 fx-3, 크로노스 fx-4, S168).
 # 떨어지는 중인 운석은 _fall, 화살비의 화살은 _rain, 절대 방어선 둘레는 _capsule이 그린다. 덫은 플레이어에게만 보인다
 func _zones() -> void:
 	_zone_t0 = _zone_t0.filter(func(e): return battle.zones.any(func(z): return is_same(z, e[0])))
 	var caps := false
 	for z in battle.zones:
-		var col: Color = ZONES.get(z.src, Color.WHITE)
 		if z.has("cells"):
 			_capsule(z)
 			caps = true
@@ -933,10 +957,10 @@ func _zones() -> void:
 				_fog_zone(c, r, seed, others)
 			"vesper_r":
 				_swamp_zone(c, r, seed, others)
-			_:
-				_pnoise(c, r, Color(col, 0.6), 3, posmod(seed, 4))
-				_pattern(z.src, Vector2(c), r, Color(col, 0.9))
-				_edge(c, r, Color(col, 0.9), PX.soot, others)
+			"chronos_e":
+				_law_zone(c, r, seed, others)
+			"chronos_r":
+				_warp_zone(c, r, seed, others)
 	if not caps:
 		_caps.clear()
 
@@ -1028,6 +1052,32 @@ func _swamp_zone(c: Vector2i, r: int, seed: int, others: Array) -> void:
 		var p := c + Vector2i((Vector2.from_angle(_hf(seed + n, i + 40) * TAU) * sqrt(_hf(seed + n, i + 50)) * r * 0.7).round())
 		_pring(p, 1 + int(5.0 * ph), 1, PX.teal if ph < 0.5 else PX.midteal)
 	_edge(c, r, PX.teal, PX.soot, others)
+
+# 황금률(크로노스 E, fx-4): 청동 성긴 칠 + 안쪽에서 천천히 도는 금 톱니 고리(굵기 2, 3px마다 끊김) + 자리를 옮겨 가며 크림 십자로 반짝이는 동전 점, 금 테두리.
+# 같은 금빛인 성역(모래 칠·성휘·크림 테두리)과 이 바닥 문양으로 갈린다. 오라 원의 시계 눈금(S160)과 겹치지 않게 눈금은 쓰지 않는다
+func _law_zone(c: Vector2i, r: int, seed: int, others: Array) -> void:
+	_pnoise(c, r - 1, PX.bronze, 2, posmod(seed, 4))
+	_pring(c, int(r * 0.75), 2, PX.gold, 3, clock * TAU / GEAR_TURN)
+	for i in COINS:
+		var u := clock + _hf(seed, i + 30) * COIN_CYCLE
+		var n := int(u / COIN_CYCLE)
+		var p := c + Vector2i((Vector2.from_angle(_hf(seed + n, i + 40) * TAU) * sqrt(_hf(seed + n, i + 50)) * r * 0.7).round())
+		if fmod(u, COIN_CYCLE) < 0.15:
+			_px(p - Vector2i(1, 0), PX.cream, Vector2i(3, 1))
+			_px(p - Vector2i(0, 1), PX.cream, Vector2i(1, 3))
+		else:
+			_px(p, PX.gold, Vector2i(2, 1))
+	_edge(c, r, PX.gold, PX.soot, others)
+
+# 왜곡장(크로노스 R, fx-4): 얼음 성긴 칠 + 서로 반대로 도는 얼음 점선 고리 둘 + 가운데에서 도는 시곗바늘 둘(긴 바늘 앞으로, 짧은 바늘 거꾸로), 얼음 테두리
+func _warp_zone(c: Vector2i, r: int, seed: int, others: Array) -> void:
+	_pnoise(c, r - 1, PX.ice3, 3, posmod(seed, 4))
+	_pring(c, int(r * 0.6), 1, PX.ice0, 2, clock * TAU / WARP_TURN)
+	_pring(c, int(r * 0.35), 1, PX.ice1, 2, -clock * TAU / WARP_TURN)
+	for hand in HANDS:
+		var d := Vector2.from_angle(clock * TAU / hand[0] - PI / 2.0)
+		_pline(c, c + Vector2i((d * r * hand[1]).round()), PX.ice0 if hand[1] > 0.4 else PX.ice1)
+	_edge(c, r, PX.ice0, PX.soot, others)
 
 # 걸린 효과(I101 2026-10-27 변경): 효과마다 수단 하나로, 고리를 겹쳐 쌓지 않는다.
 # 1차(기절·도발·봉인·속박·불사)는 머리 위 기호나 발밑 고리, 2차(둔화·받는 피해 증가·초당 피해·받는 피해 감소·공격 속도·보호막)는 몸·발의 작은 조각이다.
@@ -1142,17 +1192,18 @@ static func px_cells(r: int, th: int) -> Array:
 		_runs[key] = runs
 	return _cells[key]
 
-func _pring(c: Vector2i, r: int, th: int, col: Color, dash := 0) -> void:
+# turn(라디안)만큼 끊긴 자리를 돌린다(fx-4 도는 고리)
+func _pring(c: Vector2i, r: int, th: int, col: Color, dash := 0, turn := 0.0) -> void:
 	if r < 1 or th < 1:
 		return
 	if dash == 0:
 		px_cells(r, th)
 		for run in _runs[Vector3i(r, th, 0)]:
-			draw_rect(Rect2(Vector2(c + run.position), Vector2(run.size)), col)
+			_pen.draw_rect(Rect2(Vector2(c + run.position), Vector2(run.size)), col)
 		return
 	for o in px_cells(r, th):  # 둘레를 dash px 길이로 끊어 하나 걸러
-		if int(floor((atan2(o.y + 0.5, o.x + 0.5) + PI) * r / dash)) % 2 == 0:
-			draw_rect(Rect2(Vector2(c + o), Vector2.ONE), col)
+		if posmod(int(floor((atan2(o.y + 0.5, o.x + 0.5) + PI - turn) * r / dash)), 2) == 0:
+			_pen.draw_rect(Rect2(Vector2(c + o), Vector2.ONE), col)
 
 # 고리에서 각 a0~a1(라디안) 사이 칸만
 func _parc(c: Vector2i, r: int, th: int, a0: float, a1: float, col: Color) -> void:
@@ -1162,7 +1213,7 @@ func _parc(c: Vector2i, r: int, th: int, a0: float, a1: float, col: Color) -> vo
 	var half := (a1 - a0) / 2.0
 	for o in px_cells(r, th):
 		if absf(angle_difference(mid, atan2(o.y + 0.5, o.x + 0.5))) <= half:
-			draw_rect(Rect2(Vector2(c + o), Vector2.ONE), col)
+			_pen.draw_rect(Rect2(Vector2(c + o), Vector2.ONE), col)
 
 func _pdisc(c: Vector2i, r: int, col: Color) -> void:
 	if r < 0:
@@ -1192,7 +1243,7 @@ func _pline(a: Vector2i, b: Vector2i, col: Color, w := 1) -> void:
 	var p := a
 	var o := Vector2i(w / 2, w / 2)
 	for i in d.x + d.y + 1:
-		draw_rect(Rect2(Vector2(p - o), Vector2(w, w)), col)
+		_pen.draw_rect(Rect2(Vector2(p - o), Vector2(w, w)), col)
 		if p == b:
 			return
 		var e2 := 2 * err
@@ -2673,41 +2724,29 @@ static func _pave(b, img: Image, rng: RandomNumberGenerator, cells: Dictionary) 
 				img.set_pixel(x, y, PAVE)
 	img.fill_rect(Rect2i(0, y1 - 27, w, 1), Color("392a1c"))
 
-# 장판 안쪽 무늬(S168). 색이 비슷한 장판 쌍(블랙홀·늪, 화살비·독안개, 황금률·성역)을 무늬로 가른다. 무늬는 원 안에만 그린다.
-# 2026-10-27: 아트 1px 선으로 그린다(S168 «맵 1px»). 10/25 맵을 창 해상도로 그린 뒤(S30) 굵기 없는 선이 화면 1px가 됐었다.
-# 이그니스(4.1s)·실비아(fx-2)·세라피나·베스퍼(fx-3) 장판은 재질이라 무늬가 없다. 남은 것은 크로노스 둘이다(fx-4)
-func _pattern(src: String, c: Vector2, r: float, col: Color) -> void:
-	match src:
-		"chronos_e":  # 황금률: 햇살 12줄
-			for k in 12:
-				var d := Vector2.from_angle(k * TAU / 12.0)
-				_pline(Vector2i((c + d * r * 0.25).floor()), Vector2i((c + d * r * 0.9).floor()), col)
-		"chronos_r":  # 왜곡장: 안쪽 점선 고리 둘
-			for rr in [r * 0.6, r * 0.3]:
-				_pring(Vector2i(c.floor()), int(rr), 1, col, 2)
-
 # 화면 방향 v(y가 아래)의 시트 행: S, SE, E, NE, N, NW, W, SW(tools/art/render.py DIRS)
 static func _dir_of(v: Vector2) -> int:
 	return posmod(roundi((90.0 - rad_to_deg(v.angle())) / 45.0), 8)
 
-# 조준 중(S147): 영웅 둘레에 시전 사거리, 커서에 범위(지점·범위), 영웅에서 커서 쪽으로 길이(방향)나 부채꼴(아이아스 Q), 에너지 성벽이 설 칸
+# 조준 중(S147): 영웅 둘레에 시전 사거리, 커서에 범위(지점·범위), 영웅에서 커서 쪽으로 길이(방향)나 부채꼴(아이아스 Q), 에너지 성벽이 설 칸. 원·호·선은 아트 px다(S179 2026-10-28)
 func _aim_preview() -> void:
 	if controls.aiming == "" or not controls.aim_hero:
 		return
 	var h = controls.aim_hero
 	var sk: Dictionary = h.get(controls.aiming)
 	var at: Vector2 = controls.mouse / CELL - Vector2(0.5, 0.5)
-	_cv.draw_arc(_center(h.pos), CELL * battle.CAST_RANGE, 0.0, TAU, 64, Color(1, 1, 1, 0.3), 1.0)
+	var c := Vector2i(_center(h.pos).floor())
+	_pring(c, int(CELL * battle.CAST_RANGE), 1, Color(1, 1, 1, 0.3))
 	match sk.aim:
 		"dir":
 			var d: Vector2 = battle._toward(h, at)
 			if sk.has("arc"):  # 아이아스 Q: 반경 radius·각도 arc의 부채꼴(S151)
 				var half := deg_to_rad(sk.arc) / 2.0
-				_cv.draw_arc(_center(h.pos), CELL * sk.radius, d.angle() - half, d.angle() + half, 24, Color.WHITE, 1.0)
+				_parc(c, int(CELL * sk.radius), 1, d.angle() - half, d.angle() + half, Color.WHITE)
 				for side in [-half, half]:
-					_cv.draw_line(_center(h.pos), _center(h.pos + d.rotated(side) * sk.radius), Color.WHITE, 1.0)
+					_pline(c, Vector2i(_center(h.pos + d.rotated(side) * sk.radius).floor()), Color.WHITE)
 			else:
-				_cv.draw_line(_center(h.pos), _center(h.pos + d * sk.get("radius", 40.0)), Color.WHITE, 1.0)  # 실비아 Q는 맵 끝까지
+				_pline(c, Vector2i(_center(h.pos + d * sk.get("radius", 40.0)).floor()), Color.WHITE)  # 실비아 Q는 맵 끝까지
 		"point":
 			if sk.id == "bulwark":
 				var d: Vector2 = battle._toward(h, at)
@@ -2715,9 +2754,9 @@ func _aim_preview() -> void:
 				for i in range(-1, 2):
 					_cv.draw_rect(_rect(Vector2i(at.round()) + side * i), Color.WHITE, false, 1.0)
 			else:
-				_cv.draw_arc(_center(at), CELL * sk.get("radius", 0.5), 0.0, TAU, 48, Color.WHITE, 1.0)
+				_pring(Vector2i(_center(at).floor()), int(CELL * sk.get("radius", 0.5)), 1, Color.WHITE)
 		_:
-			_cv.draw_arc(_center(at), CELL * 0.7, 0.0, TAU, 24, Color.WHITE, 1.0)
+			_pring(Vector2i(_center(at).floor()), int(CELL * 0.7), 1, Color.WHITE)
 
 # at: 칸 단위 위치(칸 (x,y)의 중심 = Vector2(x,y)). 그 칸 위쪽 가운데에 그린다. tiers면 구조물·성곽·거점 막대의 3단 색(S199)
 func _hp_bar(at: Vector2, b, size := Vector2(CELL, 2), tiers := false) -> void:

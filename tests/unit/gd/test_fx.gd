@@ -10,6 +10,9 @@ extends RefCounted
 #   S179·S168 2026-10-28 변경(fx-3). 세라피나(크림·금)·베스퍼(청록): 빛줄기는 맞은 차례대로 한 마디씩 뻗고, 수호 천사는 등 뒤 날개(아래 층),
 #         기적은 아군마다 내려오는 빛기둥, 쇠약은 조여드는 고리와 머리 위 저주 문양, 영혼 사슬은 거는 줄과 청록 고리 도트다.
 #         성역·독안개·늪은 무늬 대신 재질(성휘·빛 점 / 안개·거품 / 진흙·물결)이고, 늪은 보라를 쓰지 않는다. 색은 팔레트 안이다.
+#   S179·S168 2026-10-28 변경(fx-4). 크로노스(금·크림, 왜곡장은 얼음): 과충전은 금 줄·고리 하나·불티 넷, 되감기는 크림 줄·조여드는 고리·머리 위 시계,
+#         황금률은 청동 칠·도는 톱니 고리·동전 점, 왜곡장은 얼음 칠·반대로 도는 점선 고리 둘·시곗바늘 둘이다(햇살·무늬 없음).
+#         보스 예고·채움, 대포알 고리, 조준 미리보기, 명령 표식, 홀드 반경도 아트 px라 맵에 화면 px 원(draw_arc)이 남지 않는다.
 
 const View := preload("res://src/ui/battle_view.gd")
 const Battle := preload("res://src/sim/battle.gd")
@@ -19,15 +22,15 @@ class Rec extends "res://src/ui/battle_view.gd":
 	var spr := []
 	var lines := []  # [a, b, 색, 굵기]
 	var arcs := []  # [반지름, 굵기, a0, a1, 색]
-	var rings := []  # [가운데, 반지름, 굵기, 색]
+	var rings := []  # [가운데, 반지름, 굵기, 색, 끊김, 돈 각]
 	var pxs := []  # [자리, 색, 크기]
 	var fills := []  # 성긴 칠 색
 	var edges := []  # 판정 경계 [밝은 색, 어두운 색]
 	func _spr(name: String, frame: int, at: Vector2i, bottom := false) -> void:
 		spr.append([name, frame, at])
-	func _pring(c: Vector2i, r: int, th: int, col: Color, dash := 0) -> void:
+	func _pring(c: Vector2i, r: int, th: int, col: Color, dash := 0, turn := 0.0) -> void:
 		spr.append(["ring", th])
-		rings.append([c, r, th, col])
+		rings.append([c, r, th, col, dash, turn])
 	func _pline(a: Vector2i, b: Vector2i, col: Color, w := 1) -> void:
 		lines.append([a, b, col, w])
 	func _parc(c: Vector2i, r: int, th: int, a0: float, a1: float, col: Color) -> void:
@@ -625,4 +628,109 @@ func test_fx3_draws_only_palette_colors():
 		w.free()
 		if off != "":
 			return "%s 장판에 팔레트 밖 색 %s가 있다" % [src, off]
+	return ""
+
+func _chronos():
+	var b = Battle.new({"size": Vector2i(30, 30), "base": Vector2i(28, 28), "base_hp": 100, "spawns": [Vector2i(0, 20)],
+		"heroes": [{"kind": "chronos", "cell": Vector2i(10, 10)}, {"kind": "seraphina", "cell": Vector2i(14, 10)}], "waves": [[{"kind": "basic", "count": 1}]]})
+	b.start_battle()
+	b._queue = []
+	return b
+
+# 크로노스가 slot을 동료에게 쓰고 한 스텝 뒤 흔적을 그린 기록 화면. 못 쓰면 null
+func _chronos_cast(slot: String):
+	var b = _chronos()
+	if not _ready_cast(b, b.heroes[0], slot, b.heroes[1]):
+		return null
+	b.step(1.0 / 60.0)
+	var v = Rec.new()
+	v.battle = b
+	v._traces(true)
+	return v
+
+func test_overcharge_and_rewind_draw_line_ring_and_their_own_marks():
+	if not View.FX_ART.has("clock"):
+		return "이펙트 아틀라스에 clock 조각이 없다"
+	var v = _chronos_cast("q")
+	if v == null:
+		return "크로노스 Q를 못 썼다"
+	var to := Vector2i(v._chest(v.battle.heroes[1]).floor())
+	var why := ""
+	if not v.lines.any(func(l): return l[1] == to and l[2] in [View.PX.gold, View.PX.bronze] and l[3] == 2):
+		why = "과충전: 크로노스에서 대상까지 굵기 2 금 줄이 없다: %s" % [v.lines]
+	elif v.rings.size() != 1 or v.pxs.size() != 4:
+		why = "과충전: 고리 %d · 불티 %d다(고리 하나 · 불티 넷이어야 한다)" % [v.rings.size(), v.pxs.size()]
+	v.free()
+	if why != "":
+		return why
+	v = _chronos_cast("w")
+	if v == null:
+		return "크로노스 W를 못 썼다"
+	var x = v.battle.heroes[1]
+	to = Vector2i(v._chest(x).floor())
+	if not v.lines.any(func(l): return l[1] == to and l[2] in [View.PX.cream, View.PX.gold]):
+		why = "되감기: 크로노스에서 대상까지 크림 줄이 없다: %s" % [v.lines]
+	elif not v.spr.any(func(q): return q[0] == "clock"):
+		why = "되감기: 대상 머리 위 시계 조각이 없다: %s" % [v.spr]
+	if why == "":
+		var r := []
+		for t in [0.05, 0.25]:
+			v.wipe()
+			v._rewind(v.battle.heroes[0], x, t)
+			r.append(v.rings[0][1] if v.rings.size() == 1 else -1)
+		if r[0] <= r[1] or r[1] < 0:
+			why = "되감기 고리 반지름이 0.05초 %d → 0.25초 %d다(고리 하나가 안으로 조여들어야 한다)" % r
+	v.free()
+	return why
+
+func test_golden_law_and_time_warp_are_materials_without_old_patterns():
+	var v = _zone_draw("chronos_e")
+	var gear: Array = v.rings.filter(func(r): return r[2] == 2 and r[4] > 0)
+	var why := ""
+	if not v.lines.is_empty() or gear.size() != 1 or v.pxs.size() < View.COINS or v.fills != [View.PX.bronze] or v.edges != [[View.PX.gold, View.PX.soot]]:
+		why = "황금률이 줄 %d · 톱니 고리 %d · 칸 %d · 칠 %s · 경계 %s다(햇살 없음, 톱니 하나, 동전 %d 이상, 청동 칠, 금 경계여야 한다)" % [
+			v.lines.size(), gear.size(), v.pxs.size(), v.fills, v.edges, View.COINS]
+	else:
+		var turn: float = gear[0][5]
+		v.clock = 2.0
+		v.wipe()
+		v._zones()
+		if is_equal_approx(v.rings.filter(func(r): return r[2] == 2)[0][5], turn):
+			why = "황금률 톱니 고리가 1초 뒤에도 같은 각(%s)이다(돌아야 한다)" % turn
+	v.free()
+	if why != "":
+		return why
+	v = _zone_draw("chronos_r")
+	var ice: Array = ["ice0", "ice1", "ice2", "ice3", "ice4", "navy", "night", "soot"].map(func(n): return View.PX[n])
+	var turns: Array = v.rings.map(func(r): return signf(r[5]))
+	if v.rings.size() != 2 or not v.rings.all(func(r): return r[4] > 0) or turns[0] == turns[1] or v.lines.size() != 2 or not _colors(v).all(func(c): return c in ice):
+		why = "왜곡장이 고리 %s · 줄 %d · 색 %s다(반대로 도는 점선 고리 둘, 바늘 둘, 얼음색만이어야 한다)" % [v.rings.map(func(r): return [r[1], r[4], r[5]]), v.lines.size(), _colors(v)]
+	v.free()
+	return why
+
+func test_fx4_draws_only_palette_colors():
+	var b = _chronos()
+	var v = Rec.new()
+	v.battle = b
+	for t in [0.0, 0.05, 0.1, 0.15, 0.2, 0.25]:
+		v._charge(b.heroes[0], b.heroes[1], t, 7)
+		v._rewind(b.heroes[0], b.heroes[1], t)
+	var off := _off_palette(_colors(v) + [View.TELL])
+	v.free()
+	if off != "":
+		return "크로노스 흔적·보스 예고에 팔레트 밖 색 %s가 있다" % off
+	for src in ["chronos_e", "chronos_r"]:
+		var w = _zone_draw(src)
+		off = _off_palette(_colors(w))
+		w.free()
+		if off != "":
+			return "%s 장판에 팔레트 밖 색 %s가 있다" % [src, off]
+	return ""
+
+func test_map_draws_no_screen_px_circles():
+	var src := FileAccess.get_file_as_string("res://src/ui/battle_view.gd")
+	if src.count("draw_arc(") > 0:
+		return "battle_view.gd에 draw_arc가 %d곳 남았다(원·호는 아트 px 고리여야 한다)" % src.count("draw_arc(")
+	if src.count("draw_circle(") != 4:
+		return "battle_view.gd의 draw_circle이 %d곳이다(그림자·대역 몸 넷만 남아야 한다)" % src.count("draw_circle(")
 	return ""

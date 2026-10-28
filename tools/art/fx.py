@@ -1,7 +1,7 @@
 # 이펙트 도트 조각 아틀라스(4.1s fx-1): 조각마다 한 줄에 프레임을 가로로 잇고, 이름 → [x, y, 폭, 높이, 프레임 수]를 json으로 쓴다.
 # 색은 F24+(palettes.json f24p)와 이펙트 확장 램프(fx, 보라 5색 + 연두 5색)만 쓴다. 출발점은 시안 C(insights/2026-10-27_hero_fx_mockup.md)이고,
 # Gemini 고칠 점대로 폭발은 밝은 섬광부터 시작하며 연기는 따로 떼어(puff) 유닛 아래 층에 그린다.
-# fx-2(아이아스·실비아)·fx-3(세라피나·베스퍼)의 조각은 맨 뒤에 붙여 앞 조각의 자리가 그대로다
+# fx-2(아이아스·실비아)·fx-3(세라피나·베스퍼)·fx-4(크로노스)의 조각은 맨 뒤에 붙여 앞 조각의 자리가 그대로다
 # 사용: python tools/art/fx.py [preview]  → art/fx/fx.png, art/fx/fx.json (preview면 art/trial/preview/fx_atlas_x6.png)
 import json
 import math
@@ -316,6 +316,15 @@ def glyph(f):
     return im
 
 
+def clock_face(f):
+    """시계(크로노스 W) 9×9: 금 테(아래쪽은 구리) 안 크림 판, 가운데에서 뻗은 어두운 바늘 하나. 프레임마다 바늘이 90°씩 거꾸로 돈다"""
+    rows = [list(r) for r in ("..GGGGG..", ".GCCCCCG.", "GCCCCCCCG", "GCCCCCCCG", "GCCCDCCCG", "GCCCCCCCG", "BCCCCCCCB", ".BCCCCCB.", "..BBBBB..")]
+    for i in range(1, 4):
+        x, y = [(4, 4 - i), (4 - i, 4), (4, 4 + i), (4 + i, 4)][f]
+        rows[y][x] = "D"
+    return ["".join(r) for r in rows]
+
+
 def fog(f):
     """독안개 조각(베스퍼 Q) 11×5: 체커로 성기게 칠한 납작한 안개(가운데 밝음). 프레임마다 체커가 엇갈려 일렁인다"""
     im = canvas(11, 5)
@@ -383,6 +392,8 @@ sprites = {
         ["t...t", ".....", ".....", ".....", "t...t", "....."])],
     "hex": [ascii(rows, {"T": c}) for c in TEAL for rows in (  # 쇠약의 저주: 머리 위로 가라앉는 아래 겹화살(밝음 → 어두움)
         ["T.....T", ".T...T.", "..T.T..", "T..T..T", ".T...T.", "..T.T..", "...T..."],)],
+    # fx-4: 크로노스(금·크림)
+    "clock": [ascii(clock_face(f), {"G": HOLY[1], "B": HOLY[3], "C": HOLY[0], "D": SMOKE[2]}) for f in range(4)],  # 되감기: 바늘이 거꾸로(12 → 9 → 6 → 3시) 도는 시계
 }
 for f in range(3):
     im = canvas(9, 9)
