@@ -2,6 +2,7 @@ extends "res://tests/eval/gd/lib.gd"
 # 2라운드 늑대 PR ①: 무리 출현(S238·I190), 도약 늑대(S239·I191), 아군 기절(I192). lib.gd·kits.gd 머리의 계약에 더하는 API:
 #   적 kind "wolf"(늑대) · "leap_wolf"(도약 늑대) · 적 on_wall·fx·goal · stage 키 spawn_gap(출현 간격)·spawn_spread(출현 퍼짐, I177)·castle
 #   Battle.spawn_counts(라운드, 웨이브) · Battle.effect(대상, 키) · Battle.cast(영웅, 칸, aim) · 용병 on_wall·anchor · 영웅 mana·max_mana·cd
+# wolf-3(S242·S243·I195): 적 kind "alpha_wolf" · 적 cast {id "pounce", who 대상} · 붙잡힘 효과 키 "pin" · Battle.damage(대상, 양, "magic")
 
 const SPAWNS := [Vector2i(0, 5), Vector2i(0, 10), Vector2i(0, 15)]
 const WALL := Vector2i(12, 9)  # 도약 늑대가 뛰어오르는 성벽 칸
@@ -484,3 +485,242 @@ func ev563():
 	var b = got[0]
 	var m = got[1]
 	return check(run(b, 1.0, func(): return _bleed_of(m) != null), "봉인된 밤 늑대가 물어도 출혈이 걸리지 않았다")
+
+# ── 알파 늑대(S242·S243·I195) ──
+
+func _has_alpha(b) -> bool:
+	return b.ENEMY_KINDS.has("alpha_wolf")
+
+func _alpha(b, cell: Vector2i, over := {}):
+	return b.spawn_enemy("alpha_wolf", cell, {"hp": BIG, "speed": 0, "damage": 0, "sight": 0}.merged(over, true))
+
+func _pinned(b, x) -> bool:
+	return b.effect(x, "pin") != null
+
+# 성곽 판: 성벽 (12,9)(또는 archer_at)에 궁수(체력 큼, 공격력 0, 방어력 0), (10,9)에 병사, (12,13)에 알파. [판, 궁수, 병사, 알파]
+func _pounce_board(archer_at := Vector2(WALL), over := {}) -> Array:
+	var b = _castle([], over)
+	var a = b.place_merc("archer", Vector2i(13, 5), {"hp": BIG, "damage": 0})
+	a.armor = 0.0
+	a.pos = archer_at
+	a.anchor = archer_at
+	a.on_wall = true
+	var s = _merc_on(b, Vector2(10, 9))
+	return [b, a, s, _alpha(b, Vector2i(12, 13))]
+
+# 알파가 성벽 위에 설 때까지(2초 안) 돌린다
+func _land(g: Array) -> bool:
+	return run(g[0], 2.0, func(): return g[3].on_wall)
+
+# EV576 · S242: 7칸 안 성벽 위 원거리 아군을 1초 웅크린 뒤 0.4초 뛰어 덮치고, 착지에 물리 25와 붙잡힘
+func ev576():
+	if not _has_alpha(battle()):
+		return "적 종류 alpha_wolf가 없다"
+	var g := _pounce_board()
+	var b = g[0]
+	var a = g[1]
+	var w = g[3]
+	b.step(DT)
+	var c = w.cast
+	if not (c is Dictionary) or c.get("id") != "pounce" or c.get("who") != a:
+		return "첫 스텝 예고 %s(pounce, 대상 궁수여야 한다)" % [c]
+	var p0: Vector2 = w.pos
+	var hp0: float = a.hp
+	run(b, 0.85)  # 0.9초
+	if w.pos.distance_to(p0) > 0.01 or a.hp != hp0:
+		return "0.9초 알파 자리 %s → %s · 궁수 체력 %s → %s(그대로여야 한다)" % [p0, w.pos, hp0, a.hp]
+	if not run(b, 1.1, func(): return w.on_wall):
+		return "알파가 2초 안에 성벽 위에 서지 않았다"
+	var gap: float = w.pos.distance_to(a.pos)
+	var lost: float = hp0 - a.hp
+	if gap > 1.0 or absf(lost - 25.0) > 0.5 or not _pinned(b, a):
+		return "선 스텝 알파-궁수 거리 %.2f(1 안) · 궁수 체력 손실 %.2f(25) · 붙잡힘 %s" % [gap, lost, _pinned(b, a)]
+	var far := _pounce_board(Vector2(3, 9))
+	return check(not run(far[0], 3.0, func(): return far[3].cast != null), "궁수가 7칸 밖 (3,9)인데 3초 안에 웅크렸다")
+
+# 알파(인식 범위 8)가 노리던 병사를 0.5초 뒤 (15,10)에 붙들어 둔다. [옮긴 뒤 예고가 처음 생긴 시각(없으면 -1), 예고 대상, 병사]
+func _chase(walls: bool) -> Array:
+	var b = battle()
+	if walls:
+		for y in range(8, 13):
+			b.build("wall", Vector2i(13, y))
+	var s = b.place_merc("soldier", Vector2i(12, 10), {"hp": BIG, "damage": 0})
+	var w = _alpha(b, Vector2i(10, 10), {"sight": 8})
+	run(b, 0.5)
+	var t := 0.0
+	while t < 3.0 - 0.001:
+		s.pos = Vector2(15, 10)
+		s.anchor = s.pos
+		b.step(DT)
+		t += DT
+		if w.cast is Dictionary:
+			return [t, w.cast.get("who"), s]
+	return [-1.0, null, s]
+
+# EV577 · S242: 노리던 아군이 3칸 넘게 떨어진 채 2초면 덮친다. 곧은 선이 막혔으면 고르지 않는다
+func ev577():
+	if not _has_alpha(battle()):
+		return "적 종류 alpha_wolf가 없다"
+	var open := _chase(false)
+	if open[0] < 1.9 or open[0] > 2.1 or open[1] != open[2]:
+		return "옮긴 뒤 예고 시각 %.2f초(1.9~2.1) · 대상이 병사 %s" % [open[0], open[1] == open[2]]
+	var shut := _chase(true)
+	return check(shut[0] < 0.0, "방벽 너머 병사인데 옮긴 뒤 %.2f초에 예고가 생겼다" % shut[0])
+
+# EV578 · S242: 붙잡힌 아군은 4초 동안 서서 치지 않고, 알파는 그 아군만 초당 물리 8로 문다
+func ev578():
+	if not _has_alpha(battle()):
+		return "적 종류 alpha_wolf가 없다"
+	var g := _pounce_board()
+	var b = g[0]
+	var a = g[1]
+	var s = g[2]
+	var w = g[3]
+	if not _land(g):
+		return "알파가 2초 안에 성벽 위에 서지 않았다"
+	a.damage = 5.0
+	var whp: float = w.hp
+	var ap: Vector2 = a.pos
+	var hp0: float = a.hp
+	var shp: float = s.hp
+	run(b, 2.0)
+	var lost: float = hp0 - a.hp
+	if w.hp != whp or a.pos.distance_to(ap) > 0.01 or absf(lost - 16.0) > 0.5 or s.hp != shp:
+		return "붙잡힌 2초: 알파 체력 %s → %s(그대로) · 궁수 자리 %s → %s · 궁수 체력 손실 %.2f(16) · 병사 체력 %s → %s" % [whp, w.hp, ap, a.pos, lost, shp, s.hp]
+	run(b, 2.1)
+	if _pinned(b, a):
+		return "선 때부터 4.1초 뒤에도 붙잡힘이 있다"
+	return check(run(b, 1.0, func(): return w.hp < whp), "붙잡힘이 풀린 뒤 1초 안에 궁수가 알파를 치지 않았다")
+
+# EV579 · S242: 알파가 받은 피해 합이 40을 넘거나, 기절(비틀거리지 않음)·봉인에 걸리면 붙잡음이 풀린다
+func ev579():
+	if not _has_alpha(battle()):
+		return "적 종류 alpha_wolf가 없다"
+	var g := _pounce_board()
+	var b = g[0]
+	var a = g[1]
+	var w = g[3]
+	if not _land(g) or not _pinned(b, a):
+		return "알파가 2초 안에 궁수를 붙잡지 않았다"
+	b.damage(w, 30.0, "magic")
+	b.step(DT)
+	var held := _pinned(b, a)
+	b.damage(w, 15.0, "magic")
+	b.step(DT)
+	if not held or _pinned(b, a):
+		return "피해 30 뒤 붙잡힘 %s(있어야 한다) · 15 더 뒤 %s(없어야 한다)" % [held, _pinned(b, a)]
+	g = _pounce_board()
+	b = g[0]
+	a = g[1]
+	w = g[3]
+	if not _land(g) or not _pinned(b, a):
+		return "둘째 판에서 알파가 궁수를 붙잡지 않았다"
+	b._fx(w, "test", {"stun": true}, 1.0)
+	b.step(DT)
+	if _pinned(b, a) or b.effect(w, "expose") != null:
+		return "알파 기절 뒤 붙잡힘 %s · 받는 피해 증가 %s(둘 다 없어야 한다)" % [_pinned(b, a), b.effect(w, "expose") != null]
+	g = _pounce_board()
+	b = g[0]
+	a = g[1]
+	w = g[3]
+	if not _land(g) or not _pinned(b, a):
+		return "셋째 판에서 알파가 궁수를 붙잡지 않았다"
+	b._fx(w, "test", {"seal": true}, 1.0)
+	b.step(DT)
+	return check(not _pinned(b, a), "알파를 봉인한 뒤에도 붙잡힘이 있다")
+
+# EV580 · S242·S152: 붙잡힘은 해로운 효과라 정화(세라피나 W)로 풀린다
+func ev580():
+	if not _has_alpha(battle()):
+		return "적 종류 alpha_wolf가 없다"
+	var g := _pounce_board(Vector2(WALL), {"heroes": [{"kind": "seraphina", "cell": Vector2i(13, 7)}], "waves": [NONE, NONE], "seed": 11})
+	var b = g[0]
+	var a = g[1]
+	var h = b.hero
+	h.damage = 0.0
+	b.start_battle()
+	if not _land(g) or not _pinned(b, a):
+		return "알파가 2초 안에 궁수를 붙잡지 않았다"
+	h.mana = h.max_mana
+	if not b.cast(h, "w", a.pos):
+		return "세라피나가 W를 쓰지 못했다"
+	b.step(DT)
+	return check(not _pinned(b, a), "W를 쓴 다음 스텝에도 궁수가 붙잡혀 있다")
+
+# EV581 · S243: 적이 아군에 거는 조작 효과는 하나만, 뒤에 건 것이 이긴다. 영웅이 적에 거는 CC는 지금대로
+func ev581():
+	if not _has_alpha(battle()):
+		return "적 종류 alpha_wolf가 없다"
+	var g := _pounce_board()
+	var b = g[0]
+	var a = g[1]
+	if not _land(g) or not _pinned(b, a):
+		return "알파가 2초 안에 궁수를 붙잡지 않았다"
+	var v = _leap(b)
+	if not run(b, 2.0, func(): return v.on_wall):
+		return "도약 늑대가 2초 안에 성벽 위에 서지 않았다"
+	if _pinned(b, a) or not _stunned(b, a):
+		return "도약 늑대가 선 스텝에 붙잡힘 %s(없어야 한다) · 기절 %s(있어야 한다)" % [_pinned(b, a), _stunned(b, a)]
+	g = _pounce_board()
+	b = g[0]
+	a = g[1]
+	run(b, 1.0)
+	a.fx["test"] = {"stun": true, "left": 3.0}
+	if not _land(g):
+		return "기절 판에서 알파가 2초 안에 성벽 위에 서지 않았다"
+	if _stunned(b, a) or not _pinned(b, a):
+		return "알파가 선 스텝에 기절 %s(없어야 한다) · 붙잡힘 %s(있어야 한다)" % [_stunned(b, a), _pinned(b, a)]
+	var f = battle()
+	var e = f.spawn_enemy("basic", Vector2i(10, 10), {"hp": BIG, "speed": 0, "damage": 0})
+	f._fx(e, "a", {"stun": true}, 2.0)
+	f._fx(e, "b", {"stun": true}, 0.5)
+	run(f, 1.0)
+	return check(_stunned(f, e), "적에 기절 2초 뒤 0.5초를 걸었더니 1초 뒤 기절이 없다")
+
+# 거점 쪽으로 곧게 걷는 늑대가 1초에 간 거리. alphas: [칸, 봉인] 목록
+func _wolf_walk(alphas := []) -> float:
+	var b = battle()
+	var v = b.spawn_enemy("wolf", Vector2i(5, 10), {"hp": BIG, "sight": 0})
+	for x in alphas:
+		var w = _alpha(b, x[0])
+		if x[1]:
+			w.fx["test"] = {"seal": true, "left": 5.0}
+	var p0: Vector2 = v.pos
+	run(b, 1.0)
+	return v.pos.distance_to(p0)
+
+# 용병 (10,10) 옆 (11,10)에 서 있는 늑대가 5.9초 동안 문 횟수(용병 체력이 준 스텝 수)
+func _wolf_bites(alpha: bool) -> int:
+	var b = battle()
+	var m = b.place_merc("soldier", Vector2i(10, 10), {"hp": BIG, "damage": 0})
+	m.armor = 0.0
+	b.spawn_enemy("wolf", Vector2i(11, 10), {"hp": BIG, "speed": 0})
+	if alpha:
+		_alpha(b, Vector2i(11, 12))
+	var n := 0
+	for i in 118:
+		var hp0: float = m.hp
+		b.step(DT)
+		if m.hp < hp0:
+			n += 1
+	return n
+
+# EV582 · S242: 울부짖음 — 4칸 안 늑대는 이동·공격 속도 × 1.3, 봉인되면 꺼진다
+func ev582():
+	if not _has_alpha(battle()):
+		return "적 종류 alpha_wolf가 없다"
+	var d0 := _wolf_walk()
+	var got := [_wolf_walk([[Vector2i(7, 12), false]]), _wolf_walk([[Vector2i(7, 16), false]]), _wolf_walk([[Vector2i(7, 12), true]])]
+	var want := [1.3 * d0, d0, d0]
+	if not range(3).all(func(i): return absf(got[i] - want[i]) <= 0.05):
+		return "1초 거리 알파 (7,12)·(7,16)·봉인 %s(%s여야 한다, d0 %.2f)" % [got, want, d0]
+	var bites := [_wolf_bites(false), _wolf_bites(true)]
+	return check(bites == [8, 10], "5.9초 동안 문 횟수 알파 없음·있음 %s([8, 10]이어야 한다)" % [bites])
+
+# EV583 · I195: 같은 적 오라는 둘이 닿아도 하나만 든다
+func ev583():
+	if not _has_alpha(battle()):
+		return "적 종류 alpha_wolf가 없다"
+	var d0 := _wolf_walk()
+	var two := _wolf_walk([[Vector2i(7, 12), false], [Vector2i(7, 8), false]])
+	return check(absf(two - 1.3 * d0) <= 0.05, "알파 둘 곁에서 1초 거리 %.2f(1.3 × %.2f = %.2f여야 한다)" % [two, d0, 1.3 * d0])

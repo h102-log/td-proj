@@ -253,3 +253,25 @@ func ev564():
 		and (hid_wolf in eyes) and not (hid_basic in eyes) and not (lit_wolf in eyes),
 		"어둠 %.2f · 그리는 적: 숨은 밤 늑대 %s · 숨은 기본 적 %s · 불빛 안 밤 늑대 %s · 눈빛: 숨은 밤 늑대 %s · 숨은 기본 적 %s · 불빛 안 밤 늑대 %s" % [
 			dark, hid_wolf in drawn, hid_basic in drawn, lit_wolf in drawn, hid_wolf in eyes, hid_basic in eyes, lit_wolf in eyes])
+
+# EV585 · S213·S242: 숨은 알파 늑대의 덮치기 예고는 그린다. 숨은 다른 보스의 예고는 그리지 않는다
+func ev585():
+	var got := _night_game()  # 웨이브가 끝나지 않게 먼 곳의 적 하나
+	var main = got[0]
+	var b = main.view.battle
+	if not b.ENEMY_KINDS.has("alpha_wolf") or not main.view.has_method("tellers"):
+		_done(main)
+		return "적 종류 alpha_wolf 또는 view.tellers()가 없다"
+	var w = b.spawn_enemy("alpha_wolf", Vector2i(20, 13), FAR)
+	var k = b.spawn_enemy("slime_king", Vector2i(20, 15), FAR)
+	w.cast = {"id": "pounce", "left": 0.5, "at": Vector2(22, 13)}
+	k.cast = {"id": "leap", "left": 0.5, "at": Vector2(22, 15)}
+	var dark_t: Array = main.view.tellers()
+	var drawn: Array = main.view.foes()
+	var dark: float = b.dark
+	b.dark = 0.0
+	var day_t: Array = main.view.tellers()
+	_done(main)
+	return check(dark > 0.0 and (w in dark_t) and not (k in dark_t) and not (w in drawn) and not (k in drawn) and (w in day_t) and (k in day_t),
+		"어둠 %.2f · 예고를 그리는 적: 알파 %s · 킹 %s · 그리는 적: 알파 %s · 킹 %s · 어둠 0 예고: 알파 %s · 킹 %s" % [
+			dark, w in dark_t, k in dark_t, w in drawn, k in drawn, w in day_t, k in day_t])

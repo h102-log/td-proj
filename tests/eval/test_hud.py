@@ -362,3 +362,7 @@ def test_EV570_skill_tip_numbers_from_data(gd):
 
 def test_EV571_bottom_panels_two_tone_frame(gd):
     gd("hud", "EV571")
+
+
+def test_EV584_alpha_wolf_trait_line(gd):
+    gd("hud", "EV584")

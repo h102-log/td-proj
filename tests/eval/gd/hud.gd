@@ -3497,6 +3497,13 @@ func ev565():
 	_done(main)
 	return check("밤 늑대: 어두울수록 세다, 물면 피를 흘린다" in three, "2라운드 3웨이브 줄 «%s»에 밤 늑대 특성이 없다" % three)
 
+# EV584 · S188: 2라운드 4웨이브 줄에 알파 늑대 특성이 있다
+func ev584():
+	var main = _prep()
+	var four: String = main.hud._wave_lines([1, 3])
+	_done(main)
+	return check("알파 늑대: 성벽 위 원거리를 덮쳐 붙잡는다, 둘레 늑대를 빠르게 한다" in four, "2라운드 4웨이브 줄 «%s»에 알파 늑대 특성이 없다" % four)
+
 # EV570 · S187: 스킬 툴팁 수치 줄은 그 스킬 사전의 값으로 채운다. 지점·대상을 고르는 스킬은 시전 거리 줄을 더한다
 func ev570():
 	var H = load("res://src/ui/hud.gd")

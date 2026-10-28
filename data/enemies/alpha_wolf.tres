@@ -13,3 +13,23 @@ radius = 0.45
 sight = 4.0
 reward = 50
 boss = true
+skills = {
+"pounce": {
+"range": 7.0,
+"ranged": 2.0,
+"far": 3.0,
+"far_time": 2.0,
+"windup": 1.0,
+"air": 0.4,
+"cd": 10.0,
+"damage": 25.0,
+"pin_time": 4.0,
+"bite": 8.0,
+"break_dmg": 40.0
+},
+"howl": {
+"radius": 4.0,
+"haste": 0.3,
+"kinds": ["wolf", "leap_wolf", "night_wolf"]
+}
+}

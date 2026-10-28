@@ -187,6 +187,9 @@ class Enemy:
 	var vaulted := false  # 한 번 뛰어올랐다. 성벽에서 내려오면 다시 오르지 않는다(I191 ⑥)
 	var night := {}  # 어둠에 세짐(S240). 비어 있으면 어둠과 상관없다
 	var bleed := {}  # 물면 거는 출혈(S240). 비어 있으면 걸지 않는다
+	var grip = null  # 덮치기로 붙잡은 아군과 그동안 받은 피해 {who, hurt}(S242). 없으면 null
+	var aimed = null  # 지난 스텝에 노린 대상(덮치기 ②, S242)
+	var away := 0.0  # 노린 아군이 far 넘게 떨어진 채 지난 시간(초)
 
 	func _init(k: String, cell: Vector2i, stats: Dictionary) -> void:
 		kind = k
@@ -415,6 +418,7 @@ var _luck := RandomNumberGenerator.new()  # 치명타·요새화 기절(S149, S1
 var _kin := RandomNumberGenerator.new()  # 집의 가족(S221). 영입소·전투 난수가 집 짓기에 따라 바뀌지 않게 따로 둔다
 var _chains := 0  # 영혼 사슬(S154)마다 붙이는 번호
 var _holds := {}  # 유닛 → 그 유닛이 붙잡은 적 수(S159). 스텝마다 적의 engaged로 다시 센다
+var _howled := {}  # 적 → 울부짖음(S242)으로 더하는 이동·공격 속도 비율. 스텝마다 다시 센다(I195)
 var _tracing = null  # 지금 내는 스킬 흔적(_trace). 그동안 피해·회복을 받은 대상이 hits에 쌓인다
 var _lit := {}  # 구역(LIGHT_CHUNK칸) → 그 구역에 닿는 [불빛 자리, 지금 반경²](seen)
 var _all_lit := true  # 어둠이 0이거나 불빛 하나가 맵을 다 덮어 모두 보인다
@@ -580,6 +584,7 @@ func step(dt: float) -> void:
 	_tick(dt)
 	_zones(dt)
 	_count_holds()
+	_howls()
 	for e in enemies:
 		_move(e, dt)
 	if state == "battle" and not near_wall:  # 대피령 판정(S229, I183 ⑤): 이 웨이브에 적이 성벽 바깥 NEAR칸 안에 들어왔나
@@ -1160,14 +1165,14 @@ func set_hold(group: Array, on: bool) -> void:
 # 영웅 h가 칸 slot을 지금 쓸 수 있다(S145~S147): 전투 단계(S136), 살아 있음, 기절 아님(I192), 열린 칸(S76), 재사용 대기, 마나
 func can_cast(h, slot: String) -> bool:
 	var sk: Dictionary = h.get(slot)
-	return state == "battle" and h.alive and _fx_on(h, "stun") == null and not sk.is_empty() and h.level >= LEVELS.unlock[slot] and h.cd[slot] <= 0.0 and h.mana >= sk.mana
+	return state == "battle" and h.alive and not _seized(h) and not sk.is_empty() and h.level >= LEVELS.unlock[slot] and h.cd[slot] <= 0.0 and h.mana >= sk.mana
 
 # 영웅 h(없거나 쓰러졌으면 살아 있는 첫 영웅, S119, I126)가 칸 slot을 쓴다(S145). 명령으로만 쓴다(S15).
 # aim은 지점·방향이면 칸 좌표(Vector2), 아군·적 대상이면 그 유닛·구조물이다. 즉시·켜고 끄는 칸은 aim이 없다.
 # 시전 사거리 밖이면 그쪽으로 걸어가 사거리에 들면 쓴다(S147). 쓰거나 걸어가기 시작하면 참
 func cast(h, slot: String, aim = null) -> bool:
 	h = h if h and h.alive else _first_alive()
-	if not h or state != "battle" or _fx_on(h, "stun") != null:  # 기절한 영웅은 누른 스킬을 쓰지 않는다(I192)
+	if not h or state != "battle" or _seized(h):  # 기절·붙잡힌 영웅은 누른 스킬을 쓰지 않는다(I192·S242)
 		return false
 	var sk: Dictionary = h.get(slot)
 	if sk.get("id") == "brace" and h.brace > 0.0:  # 반격의 태세를 다시 누르면 바로 터뜨린다(S151)
@@ -1529,9 +1534,9 @@ func _zones(dt: float) -> void:
 			_end_zone(z)
 			zones.erase(z)
 
-# 해로운 효과(S152 정화가 지운다): 기절·속박·둔화·도발·봉인·공격력·공격 속도 감소, 받는 피해 증가, 초당 피해, 방어력·마법 저항 감소
+# 해로운 효과(S152 정화가 지운다): 기절·속박·둔화·도발·봉인·공격력·공격 속도 감소, 받는 피해 증가, 초당 피해, 방어력·마법 저항 감소, 붙잡힘(S242)
 func _harmful(v: Dictionary) -> bool:
-	return ["stun", "root", "slow", "taunt", "seal", "weaken", "lag", "expose", "dot", "chain", "bleed"].any(func(k): return v.has(k)) or v.get("armor", 0.0) < 0.0 or v.get("mr", 0.0) < 0.0
+	return ["stun", "root", "slow", "taunt", "seal", "weaken", "lag", "expose", "dot", "chain", "bleed", "pin"].any(func(k): return v.has(k)) or v.get("armor", 0.0) < 0.0 or v.get("mr", 0.0) < 0.0
 
 # 장판이 끝날 때: 에너지 성벽 칸을 치운다(S151)
 func _end_zone(z: Dictionary) -> void:
@@ -2748,6 +2753,8 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 	if target == base and amount > 0.0:
 		tally.base_hit += 1  # 라운드 집계(I119)
 	target.hp = maxf(target.hp - amount, 0.0)
+	if target is Enemy and target.grip:  # 붙잡은 동안 받은 피해 합(S242)
+		target.grip.hurt += amount
 	if target is Enemy and kind != "true":
 		_share(target, amount, src)
 	if target.hp > 0.0:
@@ -2908,7 +2915,8 @@ func _move(e: Enemy, dt: float) -> void:
 		e.radius = e.girth * (sh.size_min + (1.0 - sh.size_min) * (1.0 - worn))
 	var quick := 0.0 if sealed else worn
 	var dusk := 0.0 if sealed else dark  # 밤 늑대(S240)는 판 전체 어둠만큼 세진다(I193 ①). 봉인되면 세지지 않는다
-	e.cooldown -= dt * (1.0 - _fx_cut(e, "lag")) * (1.0 + (e.skills.rage.haste if rage else 0.0)) * (1.0 + sh.get("haste_max", 0.0) * quick) * (1.0 + e.night.get("haste", 0.0) * dusk)  # 공격 속도 감소(S158), 분노(S195), 줄어듦(S236), 어둠(S240)
+	var howl: float = 1.0 + _howled.get(e, 0.0)  # 울부짖음(S242)
+	e.cooldown -= dt * (1.0 - _fx_cut(e, "lag")) * (1.0 + (e.skills.rage.haste if rage else 0.0)) * (1.0 + sh.get("haste_max", 0.0) * quick) * (1.0 + e.night.get("haste", 0.0) * dusk) * howl  # 공격 속도 감소(S158), 분노(S195), 줄어듦(S236), 어둠(S240), 울부짖음(S242)
 	e.held -= dt
 	var aloft := _aloft(e)
 	var stunned := _fx_on(e, "stun") != null and not aloft  # 뜬 동안(S236)은 발동 중이라 끊기지 않는다
@@ -2917,6 +2925,8 @@ func _move(e: Enemy, dt: float) -> void:
 		e.cast = null
 		if stunned:
 			_fx(e, "stagger", {"expose": STAGGER_EXPOSE}, STAGGER)
+	if e.grip and _grip(e, dt, stunned or sealed):  # 붙잡은 동안은 그 아군만 문다(S242)
+		return
 	if stunned:  # 기절·빙결(S150): 움직이지도 치지도 않는다
 		return
 	if _skills(e, dt, sealed):  # 예고 동안은 움직이지도 치지도 않는다(S194)
@@ -2924,12 +2934,16 @@ func _move(e: Enemy, dt: float) -> void:
 	if e.attack_gap - e.cooldown < POSE:  # 친 뒤 공격 자세 동안 제자리에 선다(S196)
 		return
 	var rooted := _fx_on(e, "root") != null  # 속박(S150): 움직이지 않지만 닿는 대상은 친다
-	var speed: float = 0.0 if rooted else e.speed * (1.0 - _fx_cut(e, "slow")) * (1.0 + (e.skills.rage.stride if rage else 0.0)) * (1.0 + sh.get("stride_max", 0.0) * quick) * (1.0 + e.night.get("stride", 0.0) * dusk)
+	var speed: float = 0.0 if rooted else e.speed * (1.0 - _fx_cut(e, "slow")) * (1.0 + (e.skills.rage.stride if rage else 0.0)) * (1.0 + sh.get("stride_max", 0.0) * quick) * (1.0 + e.night.get("stride", 0.0) * dusk) * howl
 	if e.on_wall and not _climbable(Vector2i(e.pos.round())):  # 성벽에서 내려왔거나 그 성벽이 부서졌다(I76)
 		e.on_wall = false
 		if e.vaulted:  # 한 번만 뛴다. 내려온 뒤로는 기어오르지 않는 땅 적이다(I191 ⑥)
 			e.climb = 0.0
 	var aim = _target_of(e)
+	if e.skills.has("pounce"):  # 덮치기 ②(S242): 노린 아군이 far 넘게 떨어진 채 지난 시간. 대상이 바뀌면 새로 센다
+		var far: bool = aim is Unit and e.pos.distance_to(aim.pos) > e.skills.pounce.far
+		e.away = ((e.away if aim == e.aimed else 0.0) + dt) if far else 0.0
+		e.aimed = aim
 	var body: bool = aim is Unit or aim is Villager  # 자리(pos)로 움직이는 대상
 	var goal: Vector2i = Vector2i(aim.pos.round()) if body else aim.cell
 	if goal != e.goal:  # 대상이 바뀌었다
@@ -3078,8 +3092,83 @@ func _soar(e: Enemy, dt: float) -> void:
 	if c.left > 0.0:
 		return
 	e.cast = null
-	_slam(e, sk, (c.at - c.from).normalized())
+	if c.id == "pounce":
+		_pounce_land(e, sk, c.who)
+	else:
+		_slam(e, sk, (c.at - c.from).normalized())
 	_find_path(e)
+
+# 덮치기(S242)를 쓸 수 있다: ① range 안 성벽 위 원거리 아군 가운데 가장 가까운 것, 없으면 ② 노린 아군이 far 넘게 떨어진 채
+# far_time초가 지났고 곧은 선이 막힌 칸을 지나지 않을 때 그 아군. 대상을 예고에 둔다
+func _pounce_ready(e: Enemy, sk: Dictionary):
+	var best = null
+	var best_d: float = sk.range
+	for u in units:
+		var d := e.pos.distance_to(u.pos)
+		if u.alive and u.on_wall and u.range >= sk.ranged and d <= best_d:
+			best = u
+			best_d = d
+	# ponytail: away는 스텝마다 dt를 더해 부동소수 누적이 남는다. 0.001 여유로 정확히 far_time에 닿게 한다
+	if not best and e.away >= sk.far_time - 0.001 and e.aimed is Unit and e.aimed.alive and _clear_line(e.pos, e.aimed.pos):
+		best = e.aimed
+	return {"who": best, "at": best.pos} if best else false
+
+# 웅크림이 끝나면 대상 옆(대상에서 알파 쪽으로 0.4칸)으로 뛴다(S242). 대상이 쓰러졌으면 뛰지 않는다
+func _pounce(e: Enemy, sk: Dictionary) -> void:
+	var u = e.cast.who
+	if not u.alive:
+		return
+	_engage(e, null)
+	e.cast = {"id": "pounce", "left": sk.air, "air": true, "from": e.pos, "at": u.pos.move_toward(e.pos, 0.4), "who": u}
+
+# 덮치기 착지(S242): 성벽 위 대상이면 그 성벽 칸 위에 선다. 대상에 물리 피해를 주고 붙잡는다
+func _pounce_land(e: Enemy, sk: Dictionary, u) -> void:
+	e.on_wall = u.on_wall and _climbable(Vector2i(e.pos.round()))
+	if not u.alive:
+		return
+	damage(u, sk.damage, "phys", e)
+	if u.alive:
+		_control(u, "pin", {"pin": e}, sk.pin_time)
+		e.grip = {"who": u, "hurt": 0.0}
+
+# 붙잡음(S242): 붙잡은 아군만 초당 bite로 문다. 받은 피해 합이 break_dmg를 넘거나 기절·빙결·봉인되면(broken) 놓는다.
+# 붙잡힘이 먼저 풀렸으면(시간·쓰러짐·정화·다른 조작 효과, S243) 따라 놓는다. 아직 붙잡고 있으면 true
+func _grip(e: Enemy, dt: float, broken: bool) -> bool:
+	var u = e.grip.who
+	var key = null
+	for k in u.fx:
+		if is_same(u.fx[k].get("pin"), e):
+			key = k
+	if key != null and (broken or not u.alive or e.grip.hurt > e.skills.pounce.break_dmg):
+		u.fx.erase(key)
+		key = null
+	if key == null:
+		e.grip = null
+		return false
+	damage(u, e.skills.pounce.bite * dt, "phys", e)
+	return true
+
+# 울부짖음(S242, I195): 봉인되지 않은 적의 howl 반경 안 늑대 종류는 이동·공격 속도 × (1 + haste). 같은 오라가 여럿 닿아도 하나만 든다
+func _howls() -> void:
+	_howled.clear()
+	for a in enemies:
+		var sk: Dictionary = a.skills.get("howl", {})
+		if sk.is_empty() or _fx_on(a, "seal") != null:
+			continue
+		for e in enemies:
+			if e.kind in sk.kinds and e.pos.distance_to(a.pos) <= sk.radius:
+				_howled[e] = sk.haste
+
+# 적이 아군에 거는 조작 효과(S243): 기절·붙잡힘은 하나만 걸리고 뒤에 건 것이 앞의 것을 지운다
+func _control(u, src: String, eff: Dictionary, secs: float) -> void:
+	for k in u.fx.keys():
+		if u.fx[k].has("stun") or u.fx[k].has("pin"):
+			u.fx.erase(k)
+	_fx(u, src, eff, secs)
+
+# 조작을 빼앗긴 아군(I192·S242): 기절이나 붙잡힘. 움직이지도 치지도 스킬을 쓰지도 않는다
+func _seized(u) -> bool:
+	return _fx_on(u, "stun") != null or _fx_on(u, "pin") != null
 
 # 점프로 뜬 적(S236): 맞지 않고(대상·피해·효과·넉백·전염·장판), 몸에 막히지도 막지도 않는다(I188)
 func _aloft(e) -> bool:
@@ -3253,7 +3342,7 @@ func _act(u: Unit, dt: float) -> void:
 	u.cooldown -= dt * (1.0 + _haste(u))
 	if u.is_hero:
 		_hero_tick(u, dt)
-	if _fx_on(u, "stun") != null:  # 기절(I192): 움직이지도 치지도 일하지도 않는다. 받은 명령(path)은 남아 풀리면 따른다. 요새화 같은 패시브는 그대로다
+	if _seized(u):  # 기절(I192)·붙잡힘(S242): 움직이지도 치지도 일하지도 않는다. 받은 명령(path)은 남아 풀리면 따른다. 요새화 같은 패시브는 그대로다
 		if u.is_hero and u.passive.get("id") == "fortress":
 			_fortify(u, dt)
 		return
@@ -3441,7 +3530,7 @@ func _vault(e: Enemy, cell: Vector2i) -> void:
 				if walls.has(to):  # 아군이 성벽 위에서 걸을 수 있는 칸(_unit_paths)
 					u.pos = Vector2(to)
 					break
-			_fx(u, "vault", {"stun": true}, e.vault.stun)
+			_control(u, "vault", {"stun": true}, e.vault.stun)
 	_fx(e, "vault", {"slow": e.vault.slow}, e.vault.slow_time)
 
 # 기어오를 수 있는 칸: 성곽의 성벽 칸. 성문은 오르지 않는다(I76)

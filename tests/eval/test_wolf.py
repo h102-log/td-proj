@@ -76,3 +76,35 @@ def test_EV562_no_bleed_on_structures(gd):
 
 def test_EV563_sealed_night_wolf(gd):
     gd("wolf", "EV563")
+
+
+def test_EV576_pounce_targets_wall_ranged(gd):
+    gd("wolf", "EV576")
+
+
+def test_EV577_pounce_far_target(gd):
+    gd("wolf", "EV577")
+
+
+def test_EV578_pin_holds_and_bites(gd):
+    gd("wolf", "EV578")
+
+
+def test_EV579_pin_breaks(gd):
+    gd("wolf", "EV579")
+
+
+def test_EV580_cleanse_pin(gd):
+    gd("wolf", "EV580")
+
+
+def test_EV581_enemy_cc_one_at_a_time(gd):
+    gd("wolf", "EV581")
+
+
+def test_EV582_howl_haste(gd):
+    gd("wolf", "EV582")
+
+
+def test_EV583_enemy_aura_once(gd):
+    gd("wolf", "EV583")

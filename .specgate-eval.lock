@@ -1,6 +1,6 @@
 {
-  "approvedAt": "2026-10-28T06:11:48.054Z",
-  "evalMd": "92e8d39f",
+  "approvedAt": "2026-10-28T09:43:49.970Z",
+  "evalMd": "fabae82e",
   "tests": {
     "tests/eval/conftest.py": "e6bb5f0b",
     "tests/eval/gd/aura.gd": "010cc38a",
@@ -37,7 +37,7 @@
     "tests/eval/gd/hire.gd.uid": "47433f7e",
     "tests/eval/gd/house.gd": "1df77dae",
     "tests/eval/gd/house.gd.uid": "5fd6fb28",
-    "tests/eval/gd/hud.gd": "8305dba7",
+    "tests/eval/gd/hud.gd": "4856a083",
     "tests/eval/gd/hud.gd.uid": "6038f593",
     "tests/eval/gd/kits.gd": "5e064430",
     "tests/eval/gd/kits.gd.uid": "c48b27a3",
@@ -57,7 +57,7 @@
     "tests/eval/gd/merc.gd.uid": "5a159512",
     "tests/eval/gd/missile.gd": "cb865c53",
     "tests/eval/gd/missile.gd.uid": "f8057e39",
-    "tests/eval/gd/night.gd": "9e41376d",
+    "tests/eval/gd/night.gd": "c670c75f",
     "tests/eval/gd/night.gd.uid": "6a1ba769",
     "tests/eval/gd/pathing.gd": "7f741506",
     "tests/eval/gd/pathing.gd.uid": "1e4fe822",
@@ -93,7 +93,7 @@
     "tests/eval/gd/village.gd.uid": "cf32acf7",
     "tests/eval/gd/wall.gd": "08efd26f",
     "tests/eval/gd/wall.gd.uid": "5931bc74",
-    "tests/eval/gd/wolf.gd": "66dc4439",
+    "tests/eval/gd/wolf.gd": "acc4f81b",
     "tests/eval/gd/wolf.gd.uid": "f8e3b505",
     "tests/eval/test_aura.py": "bb2c72b8",
     "tests/eval/test_boss.py": "43142238",
@@ -113,7 +113,7 @@
     "tests/eval/test_heroes.py": "da7683ed",
     "tests/eval/test_hire.py": "8a8e108d",
     "tests/eval/test_house.py": "4cbc5613",
-    "tests/eval/test_hud.py": "c48b586e",
+    "tests/eval/test_hud.py": "da89d98b",
     "tests/eval/test_kits.py": "160e1303",
     "tests/eval/test_levels.py": "2c71fe40",
     "tests/eval/test_locale.py": "56451d19",
@@ -122,7 +122,7 @@
     "tests/eval/test_menu.py": "72915a71",
     "tests/eval/test_merc.py": "4dd8671d",
     "tests/eval/test_missile.py": "b2c53132",
-    "tests/eval/test_night.py": "d7bb400d",
+    "tests/eval/test_night.py": "e3ae445a",
     "tests/eval/test_pathing.py": "70e2e529",
     "tests/eval/test_production.py": "7576edf8",
     "tests/eval/test_quests.py": "674e3903",
@@ -139,7 +139,7 @@
     "tests/eval/test_units.py": "05de9e3b",
     "tests/eval/test_village.py": "54fa0d71",
     "tests/eval/test_wall.py": "8ea59b76",
-    "tests/eval/test_wolf.py": "c3a16f01"
+    "tests/eval/test_wolf.py": "a4baf809"
   },
   "sentences": {
     "S1": "03bece56",
@@ -213,7 +213,7 @@
     "I69": "e7a9bce3",
     "S42": "9ae9b9f9",
     "S88": "292119d3",
-    "I70": "24bff294",
+    "I70": "d5ad7a66",
     "S89": "52a02943",
     "S87": "28574320",
     "S90": "f42d9198",
@@ -361,7 +361,7 @@
     "I164": "c6ab3699",
     "I122": "8dbbacb4",
     "I163": "794d09b0",
-    "S188": "610dc2e6",
+    "S188": "d7be4b87",
     "I13": "c4330075",
     "I151": "beeef2a2",
     "I165": "52d08244",
@@ -402,7 +402,7 @@
     "S209": "11848c7f",
     "S210": "342fa650",
     "S211": "c2d49ea6",
-    "S213": "c09d8ac2",
+    "S213": "8fd4bf73",
     "S212": "55529742",
     "S214": "fcdad60e",
     "S216": "ec27cba6",
@@ -447,6 +447,9 @@
     "S170": "9ed48786",
     "I138": "8eeaa632",
     "S241": "a726cc2a",
-    "I194": "28ec85f0"
+    "I194": "28ec85f0",
+    "S242": "a6e674ff",
+    "S243": "03711a53",
+    "I195": "9bb8c6e1"
   }
 }
