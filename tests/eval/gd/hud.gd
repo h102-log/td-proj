@@ -1021,7 +1021,7 @@ func ev342():
 	var out := ""
 	for i in 3:
 		var r: Rect2 = tags[i].get_global_rect()
-		var want := Rect2(616, 182 + 26 * i, 24, 24)
+		var want := Rect2(608, 182 + 26 * i, 24, 24)
 		var key: String = "ASH"[i]
 		if not tags[i].is_visible_in_tree() or r.position.distance_to(want.position) > 0.5 or r.size.distance_to(want.size) > 0.5:
 			out = "%s 태그 %s · 보임 %s(기대 %s)" % [key, r, tags[i].is_visible_in_tree(), want]

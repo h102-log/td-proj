@@ -58,8 +58,11 @@ msgstr "Quick Cast"
 msgid "부활"
 msgstr "Revive"
 
-msgid "전체화면"
-msgstr "Fullscreen"
+msgid "전체화면 (F11)"
+msgstr "Fullscreen (F11)"
+
+msgid "커서 가두기"
+msgstr "Confine cursor"
 
 msgid "힌트"
 msgstr "Hints"

@@ -69,7 +69,8 @@ func open(p: String, note := false) -> void:
 			first = _check("퀵캐스트", Settings.quickcast, func(on): Settings.quickcast = on)
 			_check("부활", Settings.revive, func(on): Settings.revive = on)
 			var full: bool = Settings.fullscreen if Settings.fullscreen != null else get_window().mode == Window.MODE_FULLSCREEN
-			_check("전체화면", full, func(on): Settings.fullscreen = on)
+			_check("전체화면 (F11)", full, func(on): Settings.fullscreen = on)
+			_check("커서 가두기", Settings.confine, func(on): Settings.confine = on)  # I194
 			_check("힌트", Settings.hints, func(on): Settings.hints = on)  # S191
 			var row := HBoxContainer.new()
 			_box.add_child(row)
