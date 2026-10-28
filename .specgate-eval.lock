@@ -1,6 +1,6 @@
 {
-  "approvedAt": "2026-10-28T00:33:42.573Z",
-  "evalMd": "609ae2de",
+  "approvedAt": "2026-10-28T01:10:26.662Z",
+  "evalMd": "78611e22",
   "tests": {
     "tests/eval/conftest.py": "e6bb5f0b",
     "tests/eval/gd/aura.gd": "010cc38a",
@@ -37,7 +37,7 @@
     "tests/eval/gd/hire.gd.uid": "47433f7e",
     "tests/eval/gd/house.gd": "1df77dae",
     "tests/eval/gd/house.gd.uid": "5fd6fb28",
-    "tests/eval/gd/hud.gd": "15062afa",
+    "tests/eval/gd/hud.gd": "a7583e29",
     "tests/eval/gd/hud.gd.uid": "6038f593",
     "tests/eval/gd/kits.gd": "5e064430",
     "tests/eval/gd/kits.gd.uid": "c48b27a3",
@@ -113,7 +113,7 @@
     "tests/eval/test_heroes.py": "da7683ed",
     "tests/eval/test_hire.py": "8a8e108d",
     "tests/eval/test_house.py": "4cbc5613",
-    "tests/eval/test_hud.py": "fc1cd78f",
+    "tests/eval/test_hud.py": "c48b586e",
     "tests/eval/test_kits.py": "160e1303",
     "tests/eval/test_levels.py": "2c71fe40",
     "tests/eval/test_locale.py": "56451d19",
@@ -445,6 +445,7 @@
     "I192": "dc3164e0",
     "S240": "fb4f658f",
     "S170": "9ed48786",
-    "I138": "8eeaa632"
+    "I138": "8eeaa632",
+    "S241": "a726cc2a"
   }
 }

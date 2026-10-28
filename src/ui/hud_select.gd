@@ -35,8 +35,8 @@ func _init(h) -> void:
 func _ready() -> void:
 	position = Vector2(312, 288)
 	size = Vector2(196, 72)
-	_plain = HudTheme.box("panel", "PanelContainer", HudTheme.PANEL, HudTheme.LINE)
-	_red = HudTheme.box("panel", "PanelContainer", HudTheme.PANEL, HudTheme.DANGER)
+	_plain = HudTheme.framed(HudTheme.box("panel", "PanelContainer", HudTheme.PANEL, HudTheme.LINE))
+	_red = HudTheme.framed(HudTheme.box("panel", "PanelContainer", HudTheme.PANEL, HudTheme.DANGER))
 	add_theme_stylebox_override("panel", _plain)
 	for c in [one, many]:
 		c.size = size

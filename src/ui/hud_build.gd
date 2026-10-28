@@ -43,7 +43,7 @@ func _init(h) -> void:
 func _ready() -> void:
 	position = Vector2(510, 288)
 	size = Vector2(130, 72)
-	add_theme_stylebox_override("panel", HudTheme.box("panel", "PanelContainer", HudTheme.PANEL, HudTheme.LINE))
+	add_theme_stylebox_override("panel", HudTheme.framed(HudTheme.box("panel", "PanelContainer", HudTheme.PANEL, HudTheme.LINE)))
 	var costs: Dictionary = battle.STRUCTURE_KINDS.merged(battle.MERC_KINDS)
 	for key in controls.PLACE_KEYS:
 		_keys[controls.PLACE_KEYS[key]] = OS.get_keycode_string(key).replace("Minus", "-").replace("Equal", "=").replace("BackSlash", "\\")
@@ -66,7 +66,7 @@ func _ready() -> void:
 	add_child(band)
 	band.reset_size()
 	band.position = Vector2(2, PAD + STEP - 1 - band.size.y / 2)  # 1·2줄 사이 간격 가운데
-	info.add_theme_stylebox_override("panel", HudTheme.box("panel", "PanelContainer", Color(HudTheme.PANEL, 1.0), HudTheme.LINE))
+	info.add_theme_stylebox_override("panel", HudTheme.framed(HudTheme.box("panel", "PanelContainer", Color(HudTheme.PANEL, 1.0), HudTheme.LINE)))
 	info.custom_minimum_size.x = size.x
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 0)

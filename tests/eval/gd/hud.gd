@@ -3524,3 +3524,17 @@ func ev570():
 	var want: Array = H.skill_lines(h.kind, "q", h.q)
 	_done(main)
 	return check(bad.is_empty() and want.all(func(l): return l in about), "어긋난 스킬 %s · 첫 영웅 %s Q 설명 «%s»에 %s" % [bad, h.kind, about, want])
+
+# EV571 · S241: 화면 아래 HUD 패널은 미니맵과 같은 두 겹 테두리(안쪽 6b7280, 바깥 0b0c10 1px). 위 띠는 그대로
+func ev571():
+	var main = _prep()
+	var h = main.hud
+	var bad := []
+	for n in [h.grid, h.grid.info, h.select, h.hints]:
+		var s: StyleBox = n.get_theme_stylebox("panel")
+		if not s is StyleBoxFlat or s.border_color != Color("6b7280") or s.shadow_color != Color("0b0c10") or s.shadow_size != 1:
+			bad.append([n.name, s.border_color if s is StyleBoxFlat else s, s.shadow_color if s is StyleBoxFlat else null, s.shadow_size if s is StyleBoxFlat else null])
+	var top: StyleBox = h.bar.get_theme_stylebox("panel")
+	var top_ok: bool = top is StyleBoxFlat and top.shadow_size == 0
+	_done(main)
+	return check(bad.is_empty() and top_ok, "어긋난 패널 %s · 위 띠 그림자 없음 %s" % [bad, top_ok])
