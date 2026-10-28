@@ -1,6 +1,7 @@
 # 이펙트 도트 조각 아틀라스(4.1s fx-1): 조각마다 한 줄에 프레임을 가로로 잇고, 이름 → [x, y, 폭, 높이, 프레임 수]를 json으로 쓴다.
-# 색은 F24+(palettes.json f24p)와 이펙트 확장 램프(fx, 보라 5색)만 쓴다. 출발점은 시안 C(insights/2026-10-27_hero_fx_mockup.md)이고,
-# Gemini 고칠 점대로 폭발은 밝은 섬광부터 시작하며 연기는 따로 떼어(puff) 유닛 아래 층에 그린다
+# 색은 F24+(palettes.json f24p)와 이펙트 확장 램프(fx, 보라 5색 + 연두 5색)만 쓴다. 출발점은 시안 C(insights/2026-10-27_hero_fx_mockup.md)이고,
+# Gemini 고칠 점대로 폭발은 밝은 섬광부터 시작하며 연기는 따로 떼어(puff) 유닛 아래 층에 그린다.
+# fx-2(아이아스·실비아)의 조각은 맨 뒤에 붙여 fx-1 조각의 자리가 그대로다
 # 사용: python tools/art/fx.py [preview]  → art/fx/fx.png, art/fx/fx.json (preview면 art/trial/preview/fx_atlas_x6.png)
 import json
 import math
@@ -24,7 +25,8 @@ FIRE = [rgb(c) for c in ["efd8a1", "efac28", "ef692f", "ef3a0c", "9b1a0a"]]  # �
 SMOKE = [rgb(c) for c in ["927e6a", "684c3c", "392a1c", "2a1d0d"]]
 ICE = [rgb(c) for c in ["d0d6e0", "a4aec2", "7a86a0", "4f78ad", "3a4357"]]
 LAVA = [rgb(c) for c in ["efac28", "ef692f", "ef3a0c", "9b1a0a", "550f0a", "300f0a", "2a1d0d"]]
-VIO = [rgb(c) for c in PAL["fx"]]
+VIO = [rgb(c) for c in PAL["fx"][:5]]  # 블랙홀·아이아스
+LIME = [rgb(c) for c in PAL["fx"][5:]]  # 실비아(fx-2)
 NIGHT = rgb("151a26")
 
 
@@ -180,6 +182,98 @@ def meteor(f):
     return im
 
 
+def shield_mask(w, h):
+    """연 모양 방패: 위 7줄은 폭 그대로(위 모서리만 깎음), 그 아래는 끝으로 좁아진다"""
+    cells = set()
+    for y in range(h):
+        half = (w / 2 - 0.5) if y < h * 0.55 else (w / 2 - 0.5) * (h - 0.5 - y) / (h * 0.45)
+        if y == 0:
+            half -= 1
+        for x in range(w):
+            if abs(x + 0.5 - w / 2) <= half + 0.01:
+                cells.add((x, y))
+    return cells
+
+
+def aegis(f):
+    """반격의 태세(아이아스 E) 11×13: 흰 방패 번쩍 → 보라 방패(크림 테, 가운데 문장) → 테만 남음"""
+    im, cells = canvas(11, 13), shield_mask(11, 13)
+    rim = {c for c in cells if any((c[0] + dx, c[1] + dy) not in cells for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))}
+    for x, y in cells:
+        if f == 0:
+            im.putpixel((x, y), VIO[0] if (x, y) in rim else rgb("efd8a1"))
+        elif f == 1:
+            emblem = x == 5 and 2 <= y <= 9 or y == 4 and 2 <= x <= 8
+            im.putpixel((x, y), rgb("efd8a1") if (x, y) in rim else VIO[0] if emblem else VIO[1] if x < 5 else VIO[2])
+        elif (x, y) in rim:
+            im.putpixel((x, y), VIO[1])
+    return im
+
+
+def spike(im, cx, cy, ang, r0, r1, ramp):
+    """가운데에서 ang 쪽 r0~r1 사이의 짧은 조각. 바깥 끝일수록 어둡다"""
+    n = max(int((r1 - r0) * 2), 1)
+    for i in range(n + 1):
+        r = r0 + (r1 - r0) * i / n
+        put(im, cx + math.cos(ang) * r, cy + math.sin(ang) * r, ramp[min(int(i / (n + 1) * len(ramp)), len(ramp) - 1)])
+
+
+def burst(f):
+    """반격의 태세 터뜨림(아이아스 E) 5프레임 32×32: 크림 섬광 → 보라 8각 별 → 바깥으로 튀는 조각 → 흩어지는 점"""
+    im = canvas(32, 32)
+    if f == 0:
+        disc(im, 16, 16, 11, VIO[0])
+        disc(im, 16, 16, 9, rgb("efd8a1"))
+    elif f == 1:
+        star(im, 16, 16, 6, 15, 8, [rgb("efd8a1"), VIO[0], VIO[1]], 0.4)
+    else:
+        g = f - 2  # 0..2
+        for k in range(8):
+            a = k * math.pi / 4 + 0.4 + (math.pi / 8 if k % 2 else 0)
+            r0 = 7 + 3 * g + (2 if k % 2 else 0)
+            spike(im, 16, 16, a, r0, r0 + 4 - g, VIO[g:g + 3])
+        if g == 0:
+            disc(im, 16, 16, 3, VIO[1])
+    return im
+
+
+def ward(f):
+    """에너지 성벽 한 칸(아이아스 R) 16×22: 위 16줄은 칸 윗면, 아래 6줄은 앞면. 안쪽은 체커로 성기게 칠해 비쳐 보이고,
+    테두리가 없어 이웃 칸과 한 벽으로 이어진다(윗면 끝의 밝은 선은 벽 줄의 바깥 끝에만 battle_view가 긋는다).
+    0~2프레임은 옅은 줄이 앞면에서 윗면 위로 지나가고, 3프레임은 끝나 갈 때 금 간 모습이다"""
+    im = canvas(16, 22)
+    scan = [19, 10, 3][f] if f < 3 else -9
+    for y in range(22):
+        for x in range(16):
+            if f == 3 and (x * 7 + y * 3) % 5 == 0:
+                continue
+            if y == 21:
+                c = ICE[4]
+            elif y == scan:
+                c = ICE[1]
+            elif (x + y) % 2 == 0:
+                c = ICE[1] if y < 16 and (x + 2 * y) % 7 == 0 else ICE[3] if y < 16 else ICE[2]
+            else:
+                continue
+            im.putpixel((x, y), c)
+    if f == 3:  # 금: 위에서 아래로 꺾이며 내려온다
+        x = 6
+        for y in range(1, 21):
+            x += (1 if y % 5 == 2 else -1 if y % 5 == 4 else 0)
+            im.putpixel((x, y), rgb("262d3d"))
+    return im
+
+
+def gust(f):
+    """돌풍 갈래살이 켜진 실비아 발밑(실비아 W) 13×5: 발 둘레를 도는 바람 줄 둘. 머리가 밝고 꼬리가 어둡다. 프레임마다 45°씩 돈다"""
+    im = canvas(13, 5)
+    for j in range(2):
+        for i in range(30):
+            t = i / 29
+            a = f * math.pi / 4 + j * math.pi + t * 2.2
+            put(im, int(6.5 + math.cos(a) * 6.0), int(2.5 + math.sin(a) * 2.2), LIME[0] if t > 0.8 else LIME[1] if t > 0.45 else LIME[2])
+    return im
+
 IP = {"W": ICE[0], "I": ICE[1], "i": ICE[2], "D": ICE[3], "N": ICE[4]}
 SP = {"W": FIRE[0], "Y": FIRE[1], "O": FIRE[2]}
 RP = {"A": SMOKE[0], "S": SMOKE[1], "D": SMOKE[2]}
@@ -209,6 +303,19 @@ sprites = {
                      {"S": rgb("a4aec2"), "R": rgb("9b1a0a")})],  # 받는 피해 증가: 금 간 방패
     "link": [ascii([".A.", "A.A", ".A."], {"A": rgb("a4aec2")})],  # 사슬 고리
     "guard": [ascii(["SSSSS", "SWBBS", "SWBBS", "SBBBS", ".SBS.", "..S.."], {"S": rgb("3a4357"), "W": rgb("d0d6e0"), "B": rgb("4f78ad")})],  # 받는 피해 감소: 작은 방패
+    # fx-2: 아이아스(보라)·실비아(연두)
+    "spark": [ascii(rows, {"W": rgb("efd8a1"), "I": ICE[0]}) for rows in (  # 스킬에 맞은 적의 작은 섬광(방패 강타·관통의 바람살)
+        ["...I...", "...W...", "..WWW..", "IWWWWWI", "..WWW..", "...W...", "...I..."],
+        [".I...I.", "..I.I..", ".......", "...W...", ".......", "..I.I..", ".I...I."],
+        ["I.....I", ".......", ".......", ".......", ".......", ".......", "I.....I"])],
+    "aegis": [aegis(f) for f in range(3)],
+    "burst": [burst(f) for f in range(5)],
+    "ward": [ward(f) for f in range(4)],
+    "trap": [ascii(rows, {"I": ICE[1], "i": ICE[3], "S": ICE[0], "L": LIME[1], "G": LIME[0]}) for rows in (  # 폭풍의 덫: 쇠 테 + 안쪽 이빨 + 가운데 바람 문양(1프레임은 반짝)
+        ["...IIIIIII...", ".IIiSiSiSiII.", "Ii.........iI", "I....LLL....I", "I...LGGGL...I", "I....LLL....I", "Ii.........iI", ".IIiSiSiSiII.", "...IIIIIII..."],
+        ["...IIIIIII...", ".IISiSiSiSII.", "Ii.........iI", "I....GGG....I", "I...GGGGG...I", "I....GGG....I", "Ii.........iI", ".IISiSiSiSII.", "...IIIIIII..."])],
+    "gust": [gust(f) for f in range(4)],
+    "stuck": [ascii(["L.L", ".L.", ".B.", ".B.", ".B.", ".N."], {"L": LIME[1], "B": rgb("efb775"), "N": rgb("392a1c")})],  # 화살비: 땅에 꽂힌 화살
 }
 for f in range(3):
     im = canvas(9, 9)
