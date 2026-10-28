@@ -1,5 +1,5 @@
 extends RefCounted
-# 영웅 이펙트 C 묶음 fx-1·fx-2(WBS 4.1s)의 그리기 규칙을 본다.
+# 영웅 이펙트 C 묶음 fx-1·fx-2·fx-3(WBS 4.1s)의 그리기 규칙을 본다.
 # 지키는 요구:
 #   S179 2026-10-27 변경. 이펙트는 아트 px 격자에 그리고 F24+와 확장 램프 색만 쓴다. 장판은 펼쳐지고 줄어들며, 판정 경계는 밝은 1px + 어두운 1px이고
 #         같은 종류 장판끼리 겹친 곳은 바깥 테두리만 남는다. 화염구 작렬·운석 착탄은 밝은 섬광부터 시작하고 연기는 몸통 아래 층이다.
@@ -7,6 +7,9 @@ extends RefCounted
 #   S179·S168·I101 2026-10-28 변경(fx-2). 아이아스·실비아: 방패 강타는 굵은 베기 띠 + 맞은 섬광, 포효는 충격파 둘(먼지는 아래 층), 태세는 방패 조각,
 #         터뜨림은 밝은 섬광부터, 바람살은 맵 끝까지 뻗는 굵은 줄, 덫 터짐은 고리 하나 + 바람 호 셋, 화살비는 떨어지는 화살(위 층)·꽂힌 화살(아래 층),
 #         절대 방어선 둘레는 칸 원을 합친 모양의 두 겹 테두리, 에너지 성벽 칸은 이어진 벽, 켜진 갈래살은 실비아 발밑 바람 줄이다.
+#   S179·S168 2026-10-28 변경(fx-3). 세라피나(크림·금)·베스퍼(청록): 빛줄기는 맞은 차례대로 한 마디씩 뻗고, 수호 천사는 등 뒤 날개(아래 층),
+#         기적은 아군마다 내려오는 빛기둥, 쇠약은 조여드는 고리와 머리 위 저주 문양, 영혼 사슬은 거는 줄과 청록 고리 도트다.
+#         성역·독안개·늪은 무늬 대신 재질(성휘·빛 점 / 안개·거품 / 진흙·물결)이고, 늪은 보라를 쓰지 않는다. 색은 팔레트 안이다.
 
 const View := preload("res://src/ui/battle_view.gd")
 const Battle := preload("res://src/sim/battle.gd")
@@ -17,7 +20,9 @@ class Rec extends "res://src/ui/battle_view.gd":
 	var lines := []  # [a, b, 색, 굵기]
 	var arcs := []  # [반지름, 굵기, a0, a1, 색]
 	var rings := []  # [가운데, 반지름, 굵기, 색]
-	var pxs := []  # [자리, 색]
+	var pxs := []  # [자리, 색, 크기]
+	var fills := []  # 성긴 칠 색
+	var edges := []  # 판정 경계 [밝은 색, 어두운 색]
 	func _spr(name: String, frame: int, at: Vector2i, bottom := false) -> void:
 		spr.append([name, frame, at])
 	func _pring(c: Vector2i, r: int, th: int, col: Color, dash := 0) -> void:
@@ -30,11 +35,13 @@ class Rec extends "res://src/ui/battle_view.gd":
 	func _pdisc(c: Vector2i, r: int, col: Color) -> void:
 		pass
 	func _pnoise(c: Vector2i, r: int, col: Color, lim: int, salt := 0) -> void:
-		pass
+		fills.append(col)
 	func _px(p: Vector2i, col: Color, size := Vector2i.ONE) -> void:
-		pxs.append([p, col])
+		pxs.append([p, col, size])
+	func _edge(c: Vector2i, r: int, light: Color, dark: Color, others := []) -> void:
+		edges.append([light, dark])
 	func wipe() -> void:
-		for a in [spr, lines, arcs, rings, pxs]:
+		for a in [spr, lines, arcs, rings, pxs, fills, edges]:
 			a.clear()
 
 func _battle():
@@ -401,3 +408,221 @@ func test_split_shot_on_shows_wind_at_feet_only_while_on():
 		why = "켠 갈래살이 %s다(발밑 바람 줄 하나여야 한다)" % [g]
 	v.free()
 	return why
+
+# ── fx-3: 세라피나(크림·금)·베스퍼(청록) ──
+
+func _duo():
+	var b = Battle.new({"size": Vector2i(30, 30), "base": Vector2i(28, 28), "base_hp": 100, "spawns": [Vector2i(0, 20)],
+		"heroes": [{"kind": "seraphina", "cell": Vector2i(10, 10)}, {"kind": "vesper", "cell": Vector2i(14, 10)}], "waves": [[{"kind": "basic", "count": 1}]]})
+	b.start_battle()
+	b._queue = []
+	return b
+
+func _target(b, cell: Vector2i):
+	return b.spawn_enemy("basic", cell, {"speed": 0, "sight": 0, "damage": 0, "hp": 1e9})
+
+# 기록 화면이 모은 색 전부(줄·호·고리·칸·성긴 칠·경계)
+func _colors(v) -> Array:
+	var out: Array = v.lines.map(func(l): return l[2]) + v.arcs.map(func(a): return a[4]) + v.rings.map(func(r): return r[3]) + v.pxs.map(func(p): return p[1]) + v.fills
+	for e in v.edges:
+		out += e
+	return out
+
+# 팔레트(f24p + fx) 밖 색이 있으면 그 색, 없으면 ""
+func _off_palette(colors: Array) -> String:
+	var pal: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://tools/art/palettes.json"))
+	for c in colors:
+		if not (c.to_html(false) in pal.f24p + pal.fx):
+			return c.to_html(false)
+	return ""
+
+# 장판 하나를 펼쳐진 뒤(1초)에 그린 기록 화면
+func _zone_draw(src: String):
+	var b = _duo()
+	b.zones = [{"src": src, "owner": b.heroes[0], "pos": Vector2(12, 12), "radius": 2.0, "left": 3.0}]
+	var v = Rec.new()
+	v.battle = b
+	v._zones()  # 처음 본 때를 0초로
+	v.clock = 1.0
+	v.wipe()
+	v._zones()
+	return v
+
+func test_fx3_pieces_and_teal_chain_links():
+	for name in ["mend", "wing", "glyph", "fog", "fizz", "hex"]:
+		if not View.FX_ART.has(name):
+			return "이펙트 아틀라스에 %s 조각이 없다" % name
+	var img: Image = load("res://art/fx/fx.png").get_image()
+	img.decompress()
+	var m: Array = View.FX_ART.link
+	var c := img.get_pixel(m[0] + 1, m[1])
+	if c.to_html(false) != "3c9f9c":
+		return "사슬 고리가 %s다(베스퍼 청록 3c9f9c여야 한다)" % c.to_html(false)
+	return ""
+
+func test_holy_beam_hops_target_to_target_in_order():
+	var b = _duo()
+	var s = b.heroes[0]
+	var ally = b.heroes[1]
+	var e = _target(b, Vector2i(12, 12))
+	var hits := [ally, e, s]
+	var v = Rec.new()
+	v.battle = b
+	var to := [Vector2i(v._chest(ally).floor()), Vector2i(v._chest(e).floor()), Vector2i(v._chest(s).floor())]
+	v._beam(s, hits, View.BEAM_HOP * 0.5)
+	var ends: Array = v.lines.map(func(l): return l[1])
+	var why := ""
+	if v.lines.is_empty() or ends.has(to[0]) or not v.spr.is_empty():
+		why = "첫 마디가 반쯤 뻗었을 때 줄 끝이 %s · 조각 %s다(첫 대상에 아직 닿지 않아야 한다)" % [ends, v.spr]
+	elif v.lines.map(func(l): return l[3]).max() != 3:
+		why = "쓴 직후 줄이 굵기 3이 아니다"
+	v.wipe()
+	v._beam(s, hits, View.BEAM_HOP * 2.5)
+	ends = v.lines.map(func(l): return l[1])
+	var names: Array = v.spr.map(func(x): return x[0])
+	if why == "" and (not ends.has(to[0]) or not ends.has(to[1]) or ends.has(to[2])):
+		why = "2.5마디 뒤 줄 끝이 %s다(아군 → 적까지 닿고 셋째 대상에는 아직이어야 한다)" % [ends]
+	elif why == "" and not v.lines.any(func(l): return l[0] == to[0] and l[1] == to[1]):
+		why = "둘째 마디가 첫 대상에서 시작하지 않는다: %s" % [v.lines]
+	elif why == "" and (not names.has("mend") or not names.has("spark")):
+		why = "닿은 아군 회복 반짝·적 섬광이 없다: %s" % [names]
+	v.free()
+	return why
+
+func test_guardian_wings_behind_body_and_line_ring_above():
+	var b = _duo()
+	var s = b.heroes[0]
+	var x = b.heroes[1]
+	var v = Rec.new()
+	v.battle = b
+	var feet := Vector2i(v._spot(x).floor())
+	v._angel(s, x, 0.1, false)
+	var why := ""
+	var w: Array = v.spr.filter(func(q): return q[0] == "wing")
+	if w.size() != 1 or w[0][1] != 1 or not v.lines.is_empty() or not v.rings.is_empty():
+		why = "아래 층이 %s다(날개 조각 1프레임 하나뿐이어야 한다)" % [v.spr]
+	elif w[0][2].y >= feet.y or w[0][2].y <= feet.y - int(v._head(x)):
+		why = "날개가 y %d다(발밑 %d과 머리 사이 등 뒤여야 한다)" % [w[0][2].y, feet.y]
+	v.wipe()
+	v._angel(s, x, 0.1, true)
+	if why == "" and (v.spr.any(func(q): return q[0] == "wing") or v.lines.size() != 1 or v.rings.size() != 1):
+		why = "위 층이 조각 %s · 줄 %d · 고리 %d다(날개 없이 줄 하나·고리 하나여야 한다)" % [v.spr, v.lines.size(), v.rings.size()]
+	v.wipe()
+	v._angel(s, x, View.FX, true)
+	if why == "" and not (v.lines.is_empty() and v.rings.is_empty()):
+		why = "FX초 뒤에도 그린다"
+	v.free()
+	return why
+
+func test_miracle_pillar_falls_on_each_healed_ally_then_ring():
+	var b = _duo()
+	var hits := [b.heroes[0], b.heroes[1]]
+	var v = Rec.new()
+	v.battle = b
+	v._miracle(hits, View.PILLAR * 0.5)
+	var why := ""
+	var cols: Array = v.pxs.filter(func(p): return p[2].x > 1)  # 기둥 몸통(크림 심은 폭 1)
+	if cols.size() != 2 or cols.any(func(p): return p[2].y <= 0 or p[2].y >= View.PILLAR_H) or not v.rings.is_empty():
+		why = "내려오는 중 기둥이 %s · 고리 %d다(아군마다 덜 내려온 기둥 하나, 고리 없음이어야 한다)" % [cols.map(func(p): return [p[0], p[2]]), v.rings.size()]
+	v.wipe()
+	v._miracle(hits, View.PILLAR + 0.02)
+	cols = v.pxs.filter(func(p): return p[2].x > 1)
+	if why == "" and (cols.size() != 2 or cols.any(func(p): return p[2].y != View.PILLAR_H) or v.rings.size() != 2 or v.spr.filter(func(q): return q[0] == "mend").size() != 2):
+		why = "내려온 뒤 기둥 %s · 고리 %d · 조각 %s다(아군마다 다 내려온 기둥·고리·반짝 하나씩이어야 한다)" % [cols.map(func(p): return p[2]), v.rings.size(), v.spr]
+	for x in hits:  # 기둥 아래 끝이 그 아군 발밑이다
+		var feet := Vector2i(v._spot(x).floor())
+		if why == "" and not cols.any(func(p): return p[0].y + p[2].y == feet.y and absi(p[0].x + p[2].x / 2 - feet.x) <= 1):
+			why = "%s 발밑 %s에 닿은 기둥이 없다" % [x.kind, feet]
+	v.free()
+	return why
+
+func test_enfeeble_ring_closes_inward_and_marks_cursed_heads():
+	var b = _duo()
+	var e = _target(b, Vector2i(14, 13))
+	if not _ready_cast(b, b.heroes[1], "w", Vector2(14, 13)):
+		return "베스퍼 W를 못 썼다"
+	b.step(1.0 / 60.0)
+	var v = Rec.new()
+	v.battle = b
+	v._foes = b.enemies
+	var c := Vector2i(v._center(Vector2(14, 13)).floor())
+	var rad := View.CELL * 2.0
+	v._hex(c, rad, 0.01, 7)
+	var r0: Array = v.rings.map(func(r): return r[1])
+	v.wipe()
+	v._hex(c, rad, View.HEX_CLOSE * 0.9, 7)
+	var r1: Array = v.rings.map(func(r): return r[1])
+	var why := ""
+	if r0.size() != 1 or r1.size() != 1 or r0[0] < int(rad * 0.9) or r1[0] >= r0[0] or r1[0] < int(rad * 0.6):
+		why = "고리 반지름이 %s → %s다(반경에서 0.6배까지 조여들어야 한다)" % [r0, r1]
+	var hx: Array = v.spr.filter(func(q): return q[0] == "hex")
+	if why == "" and (hx.size() != 1 or hx[0][2].y >= int(v._spot(e).y - v._head(e))):
+		why = "저주 문양이 %s다(걸린 적 머리 위에 하나여야 한다)" % [hx]
+	v.free()
+	return why
+
+func test_soul_chain_cast_draws_line_ring_and_teal_links():
+	var b = _duo()
+	var e = _target(b, Vector2i(14, 13))
+	_target(b, Vector2i(16, 13))
+	if not _ready_cast(b, b.heroes[1], "e", e):
+		return "베스퍼 E를 못 썼다"
+	b.step(1.0 / 60.0)
+	var v = Rec.new()
+	v.battle = b
+	v._foes = b.enemies
+	v._traces(true)
+	var why := ""
+	var to := Vector2i(v._chest(e).floor())
+	if not v.lines.any(func(l): return l[1] == to and l[2] in [View.PX.teal, View.PX.midteal, View.PX.deepteal]):
+		why = "베스퍼에서 대상까지 청록 줄이 없다: %s" % [v.lines]
+	elif v.rings.size() != 1:
+		why = "대상 둘레 고리가 %d개다(하나여야 한다)" % v.rings.size()
+	elif not v.spr.any(func(q): return q[0] == "link"):
+		why = "묶인 적끼리 잇는 사슬 고리가 없다"
+	v.free()
+	return why
+
+func test_sanctum_fog_swamp_are_materials_without_old_patterns():
+	var v = _zone_draw("seraphina_w")
+	var why := ""
+	if not v.spr.any(func(q): return q[0] == "glyph") or v.lines.any(func(l): return l[3] > 1) or v.pxs.size() != View.MOTES:
+		why = "성역이 조각 %s · 줄 굵기 %s · 빛 점 %d다(성휘와 빛 점 %d, 굵은 십자 없음이어야 한다)" % [v.spr, v.lines.map(func(l): return l[3]), v.pxs.size(), View.MOTES]
+	v.free()
+	v = _zone_draw("vesper_q")
+	var names: Array = v.spr.map(func(q): return q[0])
+	if why == "" and (names.count("fog") != View.FOGS or names.count("fizz") != View.FIZZ or not v.rings.is_empty()):
+		why = "독안개가 조각 %s · 고리 %d다(안개 %d · 거품 %d, 거품 고리 무늬 없음이어야 한다)" % [names, v.rings.size(), View.FOGS, View.FIZZ]
+	v.free()
+	v = _zone_draw("vesper_r")
+	var vio: Array = ["vio0", "vio1", "vio2", "vio3", "vio4"].map(func(n): return View.PX[n])
+	if why == "" and (v.rings.size() != View.RIPPLES or not v.lines.is_empty() or _colors(v).any(func(c): return c in vio)):
+		why = "늪이 물결 %d · 줄 %d · 색 %s다(물결 %d, 물결 가로줄 없음, 보라 없음이어야 한다)" % [v.rings.size(), v.lines.size(), _colors(v), View.RIPPLES]
+	v.free()
+	return why
+
+func test_fx3_draws_only_palette_colors():
+	var b = _duo()
+	var s = b.heroes[0]
+	var x = b.heroes[1]
+	var e = _target(b, Vector2i(12, 12))
+	var v = Rec.new()
+	v.battle = b
+	for t in [0.0, 0.05, 0.1, 0.15, 0.2, 0.25]:
+		v._beam(s, [x, e, s], t)
+		v._angel(s, x, t, true)
+		v._angel(s, x, t, false)
+		v._miracle([s, x], t)
+		v._hex(Vector2i(100, 100), 32.0, t, 7)
+		v._shackle(x, e, t)
+	var off := _off_palette(_colors(v))
+	v.free()
+	if off != "":
+		return "fx-3 흔적에 팔레트 밖 색 %s가 있다" % off
+	for src in ["seraphina_w", "vesper_q", "vesper_r"]:
+		var w = _zone_draw(src)
+		off = _off_palette(_colors(w))
+		w.free()
+		if off != "":
+			return "%s 장판에 팔레트 밖 색 %s가 있다" % [src, off]
+	return ""
