@@ -1,7 +1,7 @@
 # 이펙트 도트 조각 아틀라스(4.1s fx-1): 조각마다 한 줄에 프레임을 가로로 잇고, 이름 → [x, y, 폭, 높이, 프레임 수]를 json으로 쓴다.
 # 색은 F24+(palettes.json f24p)와 이펙트 확장 램프(fx, 보라 5색 + 연두 5색)만 쓴다. 출발점은 시안 C(insights/2026-10-27_hero_fx_mockup.md)이고,
 # Gemini 고칠 점대로 폭발은 밝은 섬광부터 시작하며 연기는 따로 떼어(puff) 유닛 아래 층에 그린다.
-# fx-2(아이아스·실비아)의 조각은 맨 뒤에 붙여 fx-1 조각의 자리가 그대로다
+# fx-2(아이아스·실비아)·fx-3(세라피나·베스퍼)의 조각은 맨 뒤에 붙여 앞 조각의 자리가 그대로다
 # 사용: python tools/art/fx.py [preview]  → art/fx/fx.png, art/fx/fx.json (preview면 art/trial/preview/fx_atlas_x6.png)
 import json
 import math
@@ -27,6 +27,8 @@ ICE = [rgb(c) for c in ["d0d6e0", "a4aec2", "7a86a0", "4f78ad", "3a4357"]]
 LAVA = [rgb(c) for c in ["efac28", "ef692f", "ef3a0c", "9b1a0a", "550f0a", "300f0a", "2a1d0d"]]
 VIO = [rgb(c) for c in PAL["fx"][:5]]  # 블랙홀·아이아스
 LIME = [rgb(c) for c in PAL["fx"][5:]]  # 실비아(fx-2)
+HOLY = [rgb(c) for c in ["efd8a1", "efac28", "efb775", "ab5c1c"]]  # 세라피나(fx-3): 크림 → 금 → 모래 → 구리
+TEAL = [rgb(c) for c in ["3c9f9c", "276468", "183f39"]]  # 베스퍼(fx-3): 밝음 → 어두움
 NIGHT = rgb("151a26")
 
 
@@ -274,6 +276,56 @@ def gust(f):
             put(im, int(6.5 + math.cos(a) * 6.0), int(2.5 + math.sin(a) * 2.2), LIME[0] if t > 0.8 else LIME[1] if t > 0.45 else LIME[2])
     return im
 
+
+def outline(im, col):
+    """칠한 칸 가운데 빈 칸(또는 가장자리)에 닿은 칸만 col로 남긴다"""
+    out = canvas(im.width, im.height)
+    for y in range(im.height):
+        for x in range(im.width):
+            if im.getpixel((x, y))[3] and any(not (0 <= x + dx < im.width and 0 <= y + dy < im.height) or not im.getpixel((x + dx, y + dy))[3]
+                                              for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+                out.putpixel((x, y), col)
+    return out
+
+
+def wing(f):
+    """수호 천사의 날개(세라피나 E) 21×9: 몸 자리(가운데 5칸)를 비우고 어깨에서 위·바깥으로 펼친 양 날개.
+    크림 번쩍 → 날개(위 가장자리 크림, 덮깃 금, 깃 모래, 깃 끝 구리) → 테만"""
+    left = ["CCC.....", "CGGCCC..", "CGGGGGCC", "TGGGGGGC", "TTTTTGG.", "TTTTTT..", "BTTTB...", "BTB.....", "B......."]
+    rows = [row + "....." + row[::-1] for row in left]
+    full = ascii(rows, {"C": HOLY[0], "G": HOLY[1], "T": HOLY[2], "B": HOLY[3]})
+    if f == 1:
+        return full
+    if f == 0:
+        return ascii([row.replace("G", "C").replace("T", "C").replace("B", "G") for row in rows], {"C": HOLY[0], "G": HOLY[1]})
+    return outline(full, HOLY[2])
+
+
+def glyph(f):
+    """성역 가운데 성휘(세라피나 W) 11×11: 금 고리 안 크림 십자(아래가 긴 십자). 1프레임은 고리가 크림으로 반짝인다"""
+    im = canvas(11, 11)
+    for y in range(11):
+        for x in range(11):
+            d = math.hypot(x + 0.5 - 5.5, y + 0.5 - 5.5)
+            if 4.3 < d <= 5.5:
+                im.putpixel((x, y), HOLY[0] if f else HOLY[1])
+    for y in range(2, 9):
+        im.putpixel((5, y), HOLY[0])
+    for x in range(3, 8):
+        im.putpixel((x, 4), HOLY[0])
+    return im
+
+
+def fog(f):
+    """독안개 조각(베스퍼 Q) 11×5: 체커로 성기게 칠한 납작한 안개(가운데 밝음). 프레임마다 체커가 엇갈려 일렁인다"""
+    im = canvas(11, 5)
+    for y in range(5):
+        for x in range(11):
+            d = math.hypot((x + 0.5 - 5.5) / 5.5, (y + 0.5 - 2.5) / 2.5)
+            if d <= 1.0 and (x + y + f) % 2 == 0:
+                im.putpixel((x, y), TEAL[0] if d < 0.5 else TEAL[1])
+    return im
+
 IP = {"W": ICE[0], "I": ICE[1], "i": ICE[2], "D": ICE[3], "N": ICE[4]}
 SP = {"W": FIRE[0], "Y": FIRE[1], "O": FIRE[2]}
 RP = {"A": SMOKE[0], "S": SMOKE[1], "D": SMOKE[2]}
@@ -301,7 +353,7 @@ sprites = {
                    {"S": rgb("a4aec2"), "L": rgb("efac28"), "D": rgb("2a1d0d")})],  # 봉인: 자물쇠
     "expose": [ascii([".SSSSS.", "SSSRSSS", "SSRSSSS", "SSSRSSS", ".SSRSS.", "..SSS..", "...S..."],
                      {"S": rgb("a4aec2"), "R": rgb("9b1a0a")})],  # 받는 피해 증가: 금 간 방패
-    "link": [ascii([".A.", "A.A", ".A."], {"A": rgb("a4aec2")})],  # 사슬 고리
+    "link": [ascii([".A.", "A.A", ".A."], {"A": rgb("3c9f9c")})],  # 사슬 고리(베스퍼 청록, fx-3)
     "guard": [ascii(["SSSSS", "SWBBS", "SWBBS", "SBBBS", ".SBS.", "..S.."], {"S": rgb("3a4357"), "W": rgb("d0d6e0"), "B": rgb("4f78ad")})],  # 받는 피해 감소: 작은 방패
     # fx-2: 아이아스(보라)·실비아(연두)
     "spark": [ascii(rows, {"W": rgb("efd8a1"), "I": ICE[0]}) for rows in (  # 스킬에 맞은 적의 작은 섬광(방패 강타·관통의 바람살)
@@ -316,6 +368,21 @@ sprites = {
         ["...IIIIIII...", ".IISiSiSiSII.", "Ii.........iI", "I....GGG....I", "I...GGGGG...I", "I....GGG....I", "Ii.........iI", ".IISiSiSiSII.", "...IIIIIII..."])],
     "gust": [gust(f) for f in range(4)],
     "stuck": [ascii(["L.L", ".L.", ".B.", ".B.", ".B.", ".N."], {"L": LIME[1], "B": rgb("efb775"), "N": rgb("392a1c")})],  # 화살비: 땅에 꽂힌 화살
+    # fx-3: 세라피나(크림·금)·베스퍼(청록)
+    "mend": [ascii(rows, {"C": HOLY[0], "G": HOLY[1], "T": HOLY[2]}) for rows in (  # 회복 반짝(빛줄기·기적): 십자가 작아지며 식는다
+        ["...G...", "...C...", "..GCG..", "GCCCCCG", "..GCG..", "...C...", "...G..."],
+        [".......", "...G...", "...C...", ".GCCCG.", "...C...", "...G...", "......."],
+        [".......", ".......", "...T...", "..TGT..", "...T...", ".......", "......."])],
+    "wing": [wing(f) for f in range(3)],
+    "glyph": [glyph(f) for f in range(2)],
+    "fog": [fog(f) for f in range(2)],
+    "fizz": [ascii(rows, {"T": TEAL[0], "t": TEAL[1], "H": rgb("d0d6e0")}) for rows in (  # 독 거품: 바닥에서 부풀어 올라 터진다
+        [".....", ".....", ".....", ".....", ".....", "..t.."],
+        [".....", ".....", ".....", "..T..", ".tHt.", "..t.."],
+        [".....", ".TTT.", "TH..T", "T...T", ".TTT.", "....."],
+        ["t...t", ".....", ".....", ".....", "t...t", "....."])],
+    "hex": [ascii(rows, {"T": c}) for c in TEAL for rows in (  # 쇠약의 저주: 머리 위로 가라앉는 아래 겹화살(밝음 → 어두움)
+        ["T.....T", ".T...T.", "..T.T..", "T..T..T", ".T...T.", "..T.T..", "...T..."],)],
 }
 for f in range(3):
     im = canvas(9, 9)
