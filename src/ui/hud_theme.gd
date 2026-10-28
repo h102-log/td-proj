@@ -11,8 +11,8 @@ const DANGER := Color("ef3a0c")
 const TEXT := Color("e8e8e8")
 const DIM := Color("9aa0aa")
 const GOOD := Color("7cc85a")  # 거점 체력 막대·세금(S190)
-const MAP_EDGE := Color("0b0c10")  # 미니맵 바깥 테두리(S209 2026-10-28)
-const MAP_RIM := Color("6b7280")  # 미니맵 안쪽 테두리(S209 2026-10-28). 맵 가장자리 성벽 점(DIM)과 갈린다
+const MAP_EDGE := Color("0b0c10")  # 미니맵·하단 패널 바깥 테두리(S209 2026-10-28, S241)
+const MAP_RIM := Color("6b7280")  # 미니맵·하단 패널 안쪽 테두리(S209 2026-10-28, S241). 맵 가장자리 성벽 점(DIM)과 갈린다
 
 static func make(font_size: int) -> Theme:
 	var t := Theme.new()
@@ -41,4 +41,12 @@ static func box(name: String, type: String, bg: Color, line: Color) -> StyleBoxF
 	s.bg_color = bg
 	s.border_color = line
 	s.set_border_width_all(1)
+	return s
+
+# 화면 아래 HUD 패널의 두 겹 테두리(S241): 안쪽 선은 MAP_RIM(따로 정한 색이면 그대로), 바로 바깥 1px은 MAP_EDGE
+static func framed(s: StyleBoxFlat) -> StyleBoxFlat:
+	if s.border_color == LINE:
+		s.border_color = MAP_RIM
+	s.shadow_color = MAP_EDGE
+	s.shadow_size = 1
 	return s
