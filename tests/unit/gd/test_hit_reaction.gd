@@ -12,6 +12,9 @@ extends RefCounted
 #         맵 위 막대는 50% 밑 노랑·25% 밑 빨강이다(유닛 막대는 초록 그대로). 금은 구운 아틀라스 사본에서 단계가 오를수록 한 줄씩 늘어난다.
 #   S200. 성곽 칸이 무너지면 먼지 12점·돌 조각 4개(0.25초 안에 엇갈려 떨어짐)가 나고, 그 칸 성벽 위 유닛은 0.15초에 걸쳐 땅으로 내려온다.
 #   S177·S197 2026-10-27 변경. «번쩍임 줄이기»면 흰 실루엣 대신 원래 그림 위에 흰 40%를 덧그린다.
+#   S177 2026-10-28 변경. 장갑(지금 방어력 10 이상)이 기본 공격·타워 사격의 물리 피해에 맞으면 1px 밀리고 강철 점이 0.2초 남는다. 무거운 타격은 밀림 그대로.
+#   S178 2026-10-28 변경. 대포는 쏠 때 1px 반동·포연·섬광, 떨어지면 먼지 6점. 주 대상은 6px·0.25초, 범위 곁 대상(시뮬레이션 기록)은 흰 0.1초·4px.
+#   S197 2026-10-28 변경. 대포 범위 곁 대상이 그 대포알에 쓰러지면 착탄 때 번쩍이며 떨어진 곳 반대쪽 6px 밀려 눕는다.
 #   I171. 화면 사건 목록: 닿음은 공격 하나에 한 번, 처치는 쓰러진 대상을 노린 마지막 공격이 닿을 때(기다릴 공격이 없으면 바로) 난다.
 #         원거리는 시뮬레이션 투사체가 닿은 프레임에 투사체 하나에 한 번이다.
 
@@ -612,7 +615,7 @@ func test_soft_flash_draws_white_40_over_the_body():
 	for soft in [false, true]:
 		st.soft_flash = soft
 		var want: Array = [Color.WHITE, View.SOFT_FLASH] if soft else [Color(255, 255, 255)]
-		v._hits = {foe.get_instance_id(): [0.05, Vector2.RIGHT, false]}  # 0.05초 전에 맞았다
+		v._hits = {foe.get_instance_id(): [0.05, Vector2.RIGHT, View.FLINCH, View.FLINCH_BACK, false]}  # 0.05초 전에 맞았다
 		v.tints = []
 		v._body(foe, b.units.size(), {})
 		if why == "" and v.tints != want:
@@ -656,5 +659,126 @@ func test_collapse_throws_dust_and_stones_and_lowers_wall_units():
 	var end: Vector2 = v._spot(w) + v._slip(w)
 	if why == "" and (not v._slides.has(w.get_instance_id()) or start.y >= v._spot(w).y - 10.0 or end != v._spot(w)):
 		why = "무너진 칸 위 유닛이 %s에서 땅 %s으로 0.15초에 걸쳐 내려오지 않는다(시작 %s · 0.15초 뒤 %s)" % [high, v._spot(w), start, end]
+	v.free()
+	return why
+
+# 대포(12,12)와 오른쪽 4칸의 주 대상, 그 아래 1칸의 곁 대상(대포 범위 1칸 안, 주 대상보다 멀다). 대포알이 떨어질 때까지 시뮬레이션과 화면을 함께 돌린다.
+# [판, 화면, 대포, 주 대상, 곁 대상, 쏜 프레임의 반동, 쏜 프레임의 효과 점, 오류]
+func _cannon(side_hp: float) -> Array:
+	var s := _board()
+	var b = s[0]
+	var v = s[1]
+	var cn = b.build("cannon", Vector2i(12, 12))
+	var main = b.spawn_enemy("basic", Vector2i(16, 12), {"speed": 0, "damage": 0, "hp": 1000})
+	var side = b.spawn_enemy("basic", Vector2i(16, 13), {"speed": 0, "damage": 0, "hp": side_hp})
+	_go(b, v)
+	var recoil := Vector2.ZERO
+	var dots := []
+	for i in 120:
+		b.step(DT)
+		v.tick(DT)
+		if v.events.any(func(e): return e.kind == "fire" and e.src == cn):
+			recoil = v._recoil(cn)
+			dots = v._dots.duplicate()
+		if not b.landed.is_empty():
+			var why := "" if b.landed[0].target == main else "대포가 가까운 주 대상이 아니라 %s를 쐈다" % [b.landed[0].target]
+			return [b, v, cn, main, side, recoil, dots, why]
+	return [b, v, cn, main, side, recoil, dots, "2초 안에 대포알이 떨어지지 않았다"]
+
+func test_cannon_fires_with_recoil_smoke_flash_and_lands_with_dust():
+	var s := _cannon(1000)
+	var v = s[1]
+	var cn = s[2]
+	var dots: Array = s[6]
+	var why: String = s[7]
+	if why == "" and s[5] != Vector2.LEFT:
+		why = "쏜 프레임에 대포 그림이 대상 반대쪽(왼쪽)으로 1px 물러나야 하는데 %s다" % [s[5]]
+	var smoke := dots.filter(func(d): return d.col == View.PX.smoke).size()
+	var flash := dots.filter(func(d): return d.col == View.PX.gold or d.col == View.PX.cream).size()
+	if why == "" and (smoke != View.PUFFS or flash != 9):
+		why = "쏜 프레임에 포연 %d점·섬광 %d점이다(%d·9여야 한다)" % [smoke, flash, View.PUFFS]
+	if why == "" and v._recoil(cn) != Vector2.ZERO:
+		why = "대포알이 떨어질 때(쏜 뒤 0.5초)는 반동이 끝나야 하는데 %s다" % [v._recoil(cn)]
+	var dust: int = v._dots.filter(func(d): return d.col == View.DUST).size()
+	if why == "" and dust != 6:
+		why = "대포알이 떨어진 프레임에 먼지 %d점이다(6점이어야 한다)" % dust
+	v.free()
+	return why
+
+func test_cannon_pushes_main_heavy_and_flashes_side_targets():
+	var s := _cannon(1000)
+	var b = s[0]
+	var v = s[1]
+	var main = s[3]
+	var side = s[4]
+	var why: String = s[7]
+	var m = b.landed[0] if not b.landed.is_empty() else null
+	if why == "" and m.side != [side]:
+		why = "떨어진 대포알의 곁 대상 기록이 %s다(곁 대상 하나만, 주 대상은 빼야 한다)" % [m.side]
+	v._hits = v.hit_table(b.units + b.enemies)
+	var h = v._hits.get(main.get_instance_id())
+	if why == "" and (h == null or h[2] != View.HEAVY or h[3] != View.HEAVY_BACK):
+		why = "대포알에 맞은 주 대상의 표가 %s다(6px·0.25초여야 한다)" % [h]
+	h = v._hits.get(side.get_instance_id())
+	var away: Vector2 = (side.pos - m.at).normalized() if m else Vector2.ZERO
+	if why == "" and (h == null or h[0] >= View.FLASH or h[2] != View.SIDE or not h[1].is_equal_approx(away)):
+		why = "대포 범위 곁 대상의 표가 %s다(번쩍임 중, %spx, 떨어진 곳 반대쪽 %s여야 한다)" % [h, View.SIDE, away]
+	v.free()
+	return why
+
+func test_cannon_side_kill_flashes_and_lies_pushed_away_from_blast():
+	var s := _cannon(1.0)
+	var b = s[0]
+	var v = s[1]
+	var side = s[4]
+	var why: String = s[7]
+	if why == "" and side.alive:
+		why = "곁 대상(체력 1)이 대포 범위 피해에 쓰러지지 않았다"
+	elif why == "" and not _blow(v, side, true, true, Vector2.ZERO):
+		why = "범위 피해에 쓰러진 곁 대상은 착탄 프레임에 선 자세 흰 실루엣이어야 하는데 %s다" % [v._last_blow(side)]
+	_play(b, v, 7, DT)
+	if why == "" and not _blow(v, side, false, false, Vector2(0, View.KILL_PUSH)):
+		why = "곁 대상은 0.12초 뒤 떨어진 곳 반대쪽(아래)으로 %spx 밀린 자리에 누워야 하는데 %s다" % [View.KILL_PUSH, v._last_blow(side)]
+	v.free()
+	return why
+
+func test_armor_pushes_one_px_with_steel_dot_for_physical_hits():
+	var s := _board()
+	var b = s[0]
+	var v = s[1]
+	var tank = b.spawn_enemy("armored", Vector2i(10, 5), {"speed": 0, "damage": 0, "hp": 1000})
+	var foe = b.spawn_enemy("basic", Vector2i(10, 7), {"speed": 0, "damage": 0, "hp": 1000})
+	var soldier = b.place_merc("soldier", Vector2i(9, 5))
+	var archer = b.place_merc("archer", Vector2i(10, 9))
+	var why := ""
+	var h = _hit(v, soldier, tank, View.CONTACT + 0.05)
+	if h == null or h[2] != View.ARMOR or not h[4]:
+		why = "장갑 적을 친 병사(물리)의 표가 %s다(1px, 강철 점이어야 한다)" % [h]
+	h = _hit(v, soldier, foe, View.CONTACT + 0.05)
+	if why == "" and (h == null or h[2] != View.FLINCH or h[4]):
+		why = "장갑 없는 적을 친 병사의 표가 %s다(3px, 강철 점 없음이어야 한다)" % [h]
+	var m = _arrow(b, archer, tank, 0.05)
+	h = v.hit_table([]).get(tank.get_instance_id())
+	if why == "" and (h == null or h[2] != View.ARMOR or not h[4]):
+		why = "장갑 적에 닿은 화살의 표가 %s다(1px, 강철 점이어야 한다)" % [h]
+	m.src = Battle.Block.new(Vector2i(13, 5), "magic", 100.0)
+	m.kind = "magic"
+	h = v.hit_table([]).get(tank.get_instance_id())
+	if why == "" and (h == null or h[2] != View.FLINCH or h[4]):
+		why = "장갑 적에 닿은 마법탑 구슬(마법)의 표가 %s다(3px, 강철 점 없음이어야 한다)" % [h]
+	m.src = Battle.Block.new(Vector2i(13, 7), "cannon", 100.0)
+	m.kind = "phys"
+	h = v.hit_table([]).get(tank.get_instance_id())
+	if why == "" and (h == null or h[2] != View.HEAVY or not h[4]):
+		why = "장갑 적에 닿은 대포알의 표가 %s다(무거운 6px 그대로, 강철 점이어야 한다)" % [h]
+	m.src = archer
+	m.age = View.FLINCH_BACK + 0.01
+	v._hits = v.hit_table([])
+	h = v._hits.get(tank.get_instance_id())
+	if why == "" and (h == null or not h[4] or v._flinch(tank) != Vector2.ZERO):
+		why = "장갑 적이 화살에 맞고 %s초면 밀림은 끝나고 강철 점은 남아야(%s초까지) 하는데 표 %s, 밀림 %s다" % [m.age, View.STEEL, h, v._flinch(tank)]
+	m.age = View.STEEL
+	if why == "" and v.hit_table([]).has(tank.get_instance_id()):
+		why = "강철 점은 맞은 뒤 %s초에 끝나야 한다" % View.STEEL
 	v.free()
 	return why

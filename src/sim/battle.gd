@@ -284,6 +284,7 @@ class Missile:
 	var bless := 0.0  # 축복 마법 피해(S152). 없으면 0
 	var bless_r := 0.0  # 축복 반경
 	var age := 0.0  # 닿은 뒤 지난 초(landed)
+	var side := []  # 범위 피해에 맞은 곁 대상(대포, S178 2026-10-28). 화면만 읽는다
 
 # 막힌 칸(구조물·성곽)을 «남은 체력 × 적의 wall_k» 비용 칸으로 보는 격자(S7, S34, I3, I40). 성곽 업그레이드 배율은 빼고 센다(S139)
 class CostGrid extends AStarGrid2D:
@@ -3238,6 +3239,8 @@ func _land(m: Missile) -> void:
 			if stands and (e.attacker == s or e.held <= 0.0 or not (e.attacker and e.attacker.alive)):
 				e.attacker = s
 				e.held = COUNTER_HOLD
+			if e != m.target:
+				m.side.append(e)
 			damage(e, m.hurt, m.kind, s, m.ignore)
 	if m.bless > 0.0:
 		_blessing(s, m.at, m.bless, m.bless_r)
