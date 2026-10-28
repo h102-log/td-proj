@@ -36,6 +36,12 @@ const HITSTOP := 3.0 / 60.0  # 영웅이 치거나 맞은 타격에서 두 유�
 const MUZZLE := {"tower": Vector2(0, -15), "magic": Vector2(0, -24), "cannon": Vector2(0, -6)}  # 칸 가운데에서 쏘는 곳(px, 4.1e 그림): 지붕 밑 발판, 수정, 포신
 const BALL_ARC := 12.0  # 대포알 포물선 꼭대기 높이(px)
 const BLAST := 0.25  # 대포알이 떨어진 곳의 범위 피해 고리가 퍼지는 시간(초)
+# 원거리 착탄(S178 2026-10-28). 시간은 초다
+const STUCK := 0.15  # 화살이 맞은 몸에 박힌 꼬리와 크림색 «ㅅ»이 남는 시간
+const MARK := 0.1  # 구슬이 닿은 자리의 쏜 쪽 색 십자가 남는 시간
+const MUZZLE_FLASH := 0.05  # 타워가 쏠 때 쏘는 곳의 금·크림 십자 섬광
+const RECOIL := 0.1  # 대포를 쏜 뒤 그림이 대상 반대쪽으로 1px 물러나 있는 시간
+const PUFFS := 4  # 대포를 쏠 때 포신 끝에서 피어오르는 포연 점 수
 const FX := 0.3  # 즉시 스킬 흔적(S179)이 퍼지고 사라지는 시간(초). 범위 원(S72)의 0.3초를 이었다
 const FX_COLORS := {"slam": Color("ff3020")}  # 영웅 색이 아닌 흔적(S179): 보스 강타(S195)는 예고 색
 const FX_TEX := preload("res://art/fx/fx.png")  # 이펙트 도트 조각 아틀라스(tools/art/fx.py, 4.1s)
@@ -88,6 +94,11 @@ const FALL_STEP := 0.08  # 영웅 쓰러짐 5프레임의 한 프레임 길이(�
 const HEAVY := 6.0  # 보스가 친 타격·보스 스킬에 맞은 아군의 밀림(px, S198)
 const HEAVY_BACK := 0.25  # 그 밀림이 돌아오는 시간(초, S198)
 const KILL_PUSH := 6.0  # 막타가 닿은 쓰러진 몸이 번쩍이는 동안 밀리는 거리(px, S197). 밀린 자리에 눕는다
+const SIDE := 4.0  # 대포 범위 곁 대상의 밀림(px, S178 2026-10-28). HEAVY_BACK에 돌아온다
+const ARMOR := 1.0  # 장갑이 기본 공격·타워 사격의 물리 피해에 맞은 밀림(px, S177 2026-10-28)
+const ARMORED := 10.0  # 장갑으로 보는 지금 방어력(battle.armor_of, 시안 V5 값)
+const STEEL := 0.2  # 장갑이 물리로 맞은 면의 강철 점이 남는 시간(초). 번쩍임(FLASH)이 끝난 뒤 0.1초 더 보인다
+const STEEL_COLS := [Color("d0d6e0"), Color("4f78ad")]  # 강철 점 윗줄·아랫줄(F24+): 흰 번쩍임 위에서도 장갑 몸(807070) 위에서도 보이게
 const LIFT := 0.4  # 보스 스킬 예고의 마지막 이만큼 그림을 들어 올린다(초, S198)
 const SLAM_POSE := 0.15  # 보스 스킬이 발동한 뒤 공격 자세(초, S198)
 const FILL := 2  # 발동한 처음 이만큼의 프레임은 예고 모양을 채운다(S198). 시간이 아니라 프레임으로 세어 프레임률과 상관없이 2프레임이다
@@ -194,7 +205,7 @@ void fragment() {
 var battle
 var controls  # 고른 유닛에 테두리를 그린다
 var _seen := {}  # 영웅·용병·적 → [지난 위치, 방향]
-var _hits := {}  # 방금 맞은 영웅·용병·적 id → [맞은 뒤 지난 시간(초), 공격자 → 대상 방향, 무거운 타격](S177, S198). _bodies마다 다시 구한다
+var _hits := {}  # 방금 맞은 영웅·용병·적 id → [맞은 뒤 지난 시간(초), 공격자 → 대상 방향, 밀림(px), 돌아오는 시간(초), 강철 점](S177, S198, hit_table). _bodies마다 다시 구한다
 var ground: ImageTexture  # 바닥을 한 장으로 구운 것. 마을·출현 지점은 도전 내내 같아서(I91) 처음 한 번만 굽는다
 var _decor := []  # 바닥 소품(S201·S202): [칸, decor.png 0행 열]. 바닥과 함께 처음 한 번만 정한다
 var _under: Image  # 구운 바닥. 터(bake_yard)가 돌 위를 피하려고 읽는다
@@ -370,9 +381,10 @@ func _draw() -> void:
 	for m in shots:
 		_missile(m, starts)
 	_shots = starts
-	for m in battle.landed:  # 대포알이 떨어진 곳에 범위 피해 반경까지 퍼지는 고리
+	_impacts()  # 사각형이라 구슬·대포알과 한 배치다. 고리(선)는 그 뒤에
+	for m in battle.landed:  # 대포알이 떨어진 곳에 범위 피해 반경까지 퍼지는 2px 고리(S178 2026-10-28)
 		if m.look == "ball" and m.age < BLAST:
-			draw_arc(_spot(m.target), CELL * m.splash * m.age / BLAST, 0.0, TAU, 24, Color(1, 0.8, 0.3, 1.0 - m.age / BLAST), 1.0)
+			draw_arc(_spot(m.target), CELL * m.splash * m.age / BLAST, 0.0, TAU, 24, Color(1, 0.8, 0.3, 1.0 - m.age / BLAST), 2.0)
 	_fx_dots(false)  # 먼지·조각(I172): 투사체 다음 층에 모아서
 	_traces(true)
 	# 어둠 덮개(S212)는 맵의 자식이라 여기까지(효과) 위에 그려진다. 그 위 층(_top)이 조준 미리보기·체력 막대·명령 표식·드래그 사각형이다
@@ -443,7 +455,7 @@ func _missile(m, starts: Dictionary) -> void:
 	var p := from.lerp(to, k)
 	match m.look:
 		"arrow":
-			draw_line(p - d * 5, p, Color("e8dcc0"), 1.0)
+			draw_line(p - d * 7, p, Color("e8dcc0"), 1.0)
 		"bolt":
 			var col: Color = HERO_COLORS.get(m.src.kind, Color("80b0ff"))
 			_blob(p - d * 3, 1, Color(col, 0.5))
@@ -452,6 +464,36 @@ func _missile(m, starts: Dictionary) -> void:
 		"ball":
 			_blob(_spot(m.src).lerp(_spot(m.target), k), 1, Color(0, 0, 0, 0.35))
 			_blob(p - Vector2(0, 4.0 * BALL_ARC * k * (1.0 - k)), 2, Color("2a2a30"))
+
+# 착탄 표시(S178 2026-10-28)와 장갑의 강철 점(S177 2026-10-28). 사각형만 쓴다.
+# 화살은 맞은 몸에 박힌 꼬리와 닿은 자리의 크림색 «ㅅ», 구슬은 쏜 쪽 색 십자, 대포알은 BOOM_STEP마다 주황 → 크림 덩어리다
+func _impacts() -> void:
+	for m in battle.landed:
+		var t = m.target
+		match m.look:
+			"arrow":
+				if m.age < STUCK and (t.alive or m.age < FLASH):  # 쓰러진 몸은 눕기 전(막타 번쩍임)까지
+					var at: Vector2 = (_chest(t) + (_flinch(t) if t.alive else _last_blow(t)[2])).round()
+					var d: Vector2 = (t.pos - m.from).normalized()
+					_pline(Vector2i((at - d).round()), Vector2i((at - d * 4.0).round()), Color("e8dcc0"))
+					for c in [Vector2i(0, -1), Vector2i(-1, 0), Vector2i(1, 0), Vector2i(-2, 1), Vector2i(2, 1)]:
+						_px(Vector2i(at) + c, PX.cream)
+			"bolt":
+				if m.age < MARK:
+					var at := Vector2i(_chest(t).round())
+					var col: Color = HERO_COLORS.get(m.src.kind, Color("80b0ff"))
+					_px(at - Vector2i(2, 0), col, Vector2i(5, 1))
+					_px(at - Vector2i(0, 2), col, Vector2i(1, 5))
+			"ball":
+				if m.age < 2.0 * BOOM_STEP:
+					var first: bool = m.age < BOOM_STEP
+					_blob(_spot(t) - Vector2(0, 3), 3 if first else 2, PX.orange if first else PX.cream)
+	for x in battle.units + _foes:  # 강철 점: 맞은 면(공격자 쪽) 2px, 윗줄 밝게 아랫줄 어둡게
+		var h = _hits.get(x.get_instance_id())
+		if h != null and h[4] and h[0] < STEEL:
+			var p := Vector2i((_chest(x) + _flinch(x) - h[1] * 3.0).round()) - Vector2i.ONE
+			_px(p, STEEL_COLS[0], Vector2i(2, 1))
+			_px(p + Vector2i(0, 1), STEEL_COLS[1], Vector2i(2, 1))
 
 # 가운데 c, 반지름 r px의 십자형 도트 덩어리(r 0이면 1px). draw_circle은 원마다 draw call이 하나씩 늘어 사각형 둘로 그린다
 func _blob(c: Vector2, r: int, col: Color) -> void:
@@ -1487,7 +1529,7 @@ func _facility(s, tint := Color.WHITE) -> void:
 	var f: Array = FAC["cannon_folded" if folded else s.kind]
 	var t: float = 1.0 if folded else (1.0 - s.razed if s.complete else s.progress)
 	var cut := roundi(f[2] - t * (f[2] - f[1]))  # 이 줄부터 아래는 그림, 위는 청사진
-	var at := Vector2(s.cell * CELL) + Vector2(-FAC_FOOT.x, CELL - FAC_FOOT.y - _lift(s)) + _jolt(s)  # 맞으면 흔들린다(S199)
+	var at := Vector2(s.cell * CELL) + Vector2(-FAC_FOOT.x, CELL - FAC_FOOT.y - _lift(s)) + _jolt(s) + _recoil(s)  # 맞으면 흔들린다(S199)
 	var x: float = FAC_N * f[0]
 	if cut > 0:
 		_region(FACILITY_K, Rect2(at, Vector2(FAC_N, cut)), Rect2(x, FAC_N, FAC_N, cut), BLUEPRINT * tint)
@@ -1815,30 +1857,47 @@ func _lunge(x) -> Vector2:
 		return Vector2.ZERO
 	return (_pos_of(x.target) - x.pos).normalized() * LUNGE * (a / CONTACT if a < CONTACT else 1.0 - (a - CONTACT) / 0.32)
 
-# 공격자 xs 가운데 방금 친 것의 대상 → [맞은 뒤 지난 시간(초), 공격자 → 대상 방향, 무거운 타격](S177). 여럿에게 맞으면 가장 최근 타격이다.
+# 공격자 xs 가운데 방금 친 것의 대상 → [맞은 뒤 지난 시간(초), 공격자 → 대상 방향, 밀림(px), 돌아오는 시간(초), 강철 점](S177). 여럿에게 맞으면 가장 최근 타격이다.
 # 근접 기본 공격은 시뮬레이션에 상태를 두지 않고 공격자의 친 뒤 시간에서 구한다(06 §4). 원거리는 시뮬레이션 투사체가 닿은 때부터다(battle.landed, S178).
-# 즉시 스킬은 시뮬레이션이 남긴 흔적(traces)의 맞은 대상이다(S179). 보스가 친 타격과 보스 스킬에 맞은 것은 무겁다(S198): 더 멀리 밀리고 늦게 돌아온다
+# 즉시 스킬은 시뮬레이션이 남긴 흔적(traces)의 맞은 대상이다(S179). 보스가 친 타격과 보스 스킬에 맞은 것은 무겁다(S198): 더 멀리 밀리고 늦게 돌아온다.
+# 대포알의 주 대상도 무겁고, 범위 곁 대상은 떨어진 곳 반대쪽으로 SIDE만큼이다(S178 2026-10-28). 장갑은 _weight
 func hit_table(xs: Array) -> Dictionary:
 	var hits := {}
 	for x in xs:
 		if x.get("target") != null and not _ranged(x):
 			var t: float = _ago(x) - _contact(x)
 			var id: int = x.target.get_instance_id()
-			var heavy := _boss(x)
-			if t >= 0.0 and t < (HEAVY_BACK if heavy else FLINCH_BACK) and t < hits.get(id, [INF])[0]:
-				hits[id] = [t, (_pos_of(x.target) - _pos_of(x)).normalized(), heavy]
+			var w := _weight(x.target, "phys", HEAVY, HEAVY_BACK) if _boss(x) else _weight(x.target, "phys")  # 근접 기본 공격은 물리다
+			if t >= 0.0 and t < _keep(w) and t < hits.get(id, [INF])[0]:
+				hits[id] = [t, (_pos_of(x.target) - _pos_of(x)).normalized()] + w
 	for m in battle.landed:  # 투사체에 맞은 적: 날아온 쪽 반대로 밀린다. 영웅이 쏜 것은 닿은 때 HITSTOP만큼 멈춘다(S177)
 		var t: float = maxf(m.age - HITSTOP, 0.0) if m.src.get("is_hero") == true else m.age
 		var id: int = m.target.get_instance_id()
-		if t < FLINCH_BACK and t < hits.get(id, [INF])[0]:
-			hits[id] = [t, (m.target.pos - m.from).normalized(), false]
-	for c in battle.traces:  # 즉시 스킬에 맞은 적(S179): 쓴 때(운석은 떨어진 때)부터, 흔적 가운데의 반대쪽으로 밀린다
+		var w := _weight(m.target, m.kind, HEAVY, HEAVY_BACK) if m.src.kind == "cannon" else _weight(m.target, m.kind)
+		if t < _keep(w) and t < hits.get(id, [INF])[0]:
+			hits[id] = [t, (m.target.pos - m.from).normalized()] + w
+		for s in m.side:
+			w = _weight(s, m.kind, SIDE, HEAVY_BACK)
+			id = s.get_instance_id()
+			if t < _keep(w) and t < hits.get(id, [INF])[0]:
+				hits[id] = [t, (s.pos - m.at).normalized()] + w
+	for c in battle.traces:  # 즉시 스킬에 맞은 적(S179): 쓴 때(운석은 떨어진 때)부터, 흔적 가운데의 반대쪽으로 밀린다. 강철 점은 없다
 		var boss := _boss(c.hero)
 		for t in c.hits if c.age < (HEAVY_BACK if boss else FLINCH_BACK) else []:
 			var id: int = t.get_instance_id()
 			if (t in battle.enemies or boss) and c.age < hits.get(id, [INF])[0]:  # 보스 스킬(S198)은 맞은 아군·구조물
-				hits[id] = [c.age, (_pos_of(t) - c.at).normalized(), boss]
+				hits[id] = [c.age, (_pos_of(t) - c.at).normalized()] + ([HEAVY, HEAVY_BACK, false] if boss else [FLINCH, FLINCH_BACK, false])
 	return hits
+
+# 맞은 몸 t의 [밀림(px), 돌아오는 시간(초), 강철 점](S177 2026-10-28). 장갑(지금 방어력 ARMORED 이상)인 몸이 물리 피해에 맞으면 강철 점이 붙고,
+# 보통 밀림(FLINCH)이면 ARMOR로 준다. 무거운 타격(보스·대포)의 밀림은 그대로다. 구조물(pos 없음)은 장갑으로 보지 않는다
+func _weight(t, kind: String, px := FLINCH, back := FLINCH_BACK) -> Array:
+	var steel: bool = kind == "phys" and t.get("pos") != null and battle.armor_of(t) >= ARMORED
+	return [ARMOR if steel and px == FLINCH else px, back, steel]
+
+# 표에 남기는 시간(초): 밀림이 돌아오는 동안, 강철 점이 있으면 STEEL까지
+func _keep(w: Array) -> float:
+	return maxf(w[1], STEEL if w[2] else 0.0)
 
 # 친 뒤 보일 시간(초). 영웅이 치거나 맞은 근접 타격은 닿은 때(_contact)에서 HITSTOP만큼 멈췄다가 늦게 흐른다(S177). 원거리는 쏜 쪽이 멈추지 않는다
 func _ago(x) -> float:
@@ -1852,12 +1911,12 @@ func _ago(x) -> float:
 func _contact(x) -> float:
 	return 0.0 if x.get("pos") == null else CONTACT
 
-# 맞은 몸의 밀림(px, S177): 공격자 반대쪽으로 FLINCH만큼 밀렸다가 FLINCH_BACK에 걸쳐 돌아온다. 무거운 타격은 HEAVY·HEAVY_BACK(S198). 발밑 표시도 함께 옮긴다
+# 맞은 몸의 밀림(px, S177): 공격자 반대쪽으로 FLINCH만큼 밀렸다가 FLINCH_BACK에 걸쳐 돌아온다. 무거운 타격은 HEAVY·HEAVY_BACK(S198), 장갑·곁 대상은 _weight. 발밑 표시도 함께 옮긴다
 func _flinch(x) -> Vector2:
 	var h = _hits.get(x.get_instance_id())
 	if h == null:
 		return Vector2.ZERO
-	return h[1] * (HEAVY * (1.0 - h[0] / HEAVY_BACK) if h[2] else FLINCH * (1.0 - h[0] / FLINCH_BACK))
+	return h[1] * h[2] * maxf(1.0 - h[0] / h[3], 0.0)
 
 # 맞은 구조물·성곽 칸·거점 그림의 흔들림(S199): 닿은 뒤 JOLT초 동안 공격자 반대쪽 주축으로 1px. 옮겨 갈 칸의 청사진(사전)은 맞지 않는다
 func _jolt(x) -> Vector2:
@@ -1865,6 +1924,13 @@ func _jolt(x) -> Vector2:
 	if h == null or h[0] >= JOLT:
 		return Vector2.ZERO
 	var d: Vector2 = h[1]
+	return Vector2(signf(d.x), 0.0) if absf(d.x) >= absf(d.y) else Vector2(0.0, signf(d.y))
+
+# 대포 포신 반동(S178 2026-10-28): 쏜 뒤 RECOIL초 동안 대상 반대쪽 주축으로 1px. 쏜 뒤 시간은 시뮬레이션 쿨다운에서 구한다(저장되는 구조물에 상태를 두지 않는다)
+func _recoil(s) -> Vector2:
+	if not (s is Object) or s.kind != "cannon" or s.target == null or s.fire_gap - s.cooldown >= RECOIL:
+		return Vector2.ZERO
+	var d: Vector2 = _pos_of(s) - _pos_of(s.target)
 	return Vector2(signf(d.x), 0.0) if absf(d.x) >= absf(d.y) else Vector2(0.0, signf(d.y))
 
 # 금 단계(S199): 다 지은 구조물·성곽 칸·거점의 체력이 75·50·25% 밑이면 1·2·3줄. 미완성·청사진(사전)은 0
@@ -1956,6 +2022,17 @@ func _scan() -> void:
 		shots[mid] = true
 		if _landed.has(mid):
 			continue
+		if m.look == "ball":  # 대포알(S178 2026-10-28): 빈 자리에 떨어져도 먼지 6점. 범위 곁 대상이 이것에 쓰러졌으면 떨어진 곳 반대쪽으로 막타(S197)
+			var foot: Vector2 = _spot(m.target).floor()
+			for i in (6 if _live else 0):
+				var d := Vector2.from_angle(deg_to_rad(i * 60.0 + _h(mid, i, -15, 15)))
+				_dot({"p0": foot, "p1": foot + Vector2(d.x, d.y * 0.5) * _h(mid, 10 + i, 6, 10), "rise": _h(mid, 20 + i, 1, 3), "col": DUST, "size": Vector2(2, 2), "life": 0.35, "fade": 0.15})
+			for o in m.side:
+				var sid: int = o.get_instance_id()
+				if _dead.has(sid) and not pend.has(sid):
+					var away: Vector2 = (o.pos - m.at).normalized()
+					_kill(o, away)
+					_emit("kill", _chest(o), away, m.src, o, {"heavy": true})
 		var t = m.target
 		var tid: int = t.get_instance_id()
 		var kind := "hit"
@@ -1967,7 +2044,7 @@ func _scan() -> void:
 			continue
 		_emit(kind, _chest(t), dir, m.src, t, {"heavy": m.src.kind == "cannon"})
 	_landed = shots
-	for tid in _dead.keys():  # 기다릴 공격이 없는 죽음(지속 피해·장판·범위 곁 대상, 쏜 쪽이 먼저 쓰러짐)과 1초 넘게 기다린 것
+	for tid in _dead.keys():  # 기다릴 공격이 없는 죽음(지속 피해·장판, 쏜 쪽이 먼저 쓰러짐)과 1초 넘게 기다린 것. 대포 범위 곁 대상은 위 착탄에서 막타를 받았다
 		if not pend.has(tid) or clock - _dead[tid][1] >= 1.0:
 			var t = _dead[tid][0]
 			var dir := Vector2.ZERO  # 바로 눕는다. 즉시 스킬·보스 스킬에 쓰러졌으면 이번 흔적 가운데의 반대쪽으로 밀린다(S197)
@@ -2031,6 +2108,16 @@ func _emit(kind: String, at: Vector2, dir: Vector2, src, dst, more := {}) -> voi
 # 사건에 붙는 그림(S198~S200): 보스 스킬 발동은 바닥 균열과 먼지, 끊김은 예고 둘레의 조각, 구조물이 맞으면 부스러기, 성곽 칸이 무너지면 먼지와 돌 조각
 func _react(e: Dictionary) -> void:
 	match e.kind:
+		"fire":  # 타워가 쏘면 쏘는 곳에 금·크림 십자 섬광, 대포는 포신 끝에서 포연도 피어오른다(S178 2026-10-28)
+			if e.src.get("pos") == null:
+				var p: Vector2 = e.at.floor()
+				_dot({"p0": p + Vector2(0.5, 0.5), "col": PX.cream, "life": MUZZLE_FLASH})
+				for d in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
+					for k in [1, 2]:
+						_dot({"p0": p + Vector2(0.5, 0.5) + d * k, "col": PX.gold, "life": MUZZLE_FLASH})
+				if e.src.kind == "cannon":
+					for i in PUFFS:
+						_dot({"p0": p, "p1": p + Vector2(_h(e.n, i, -3, 3), -_h(e.n, 10 + i, 4, 7)), "col": PX.smoke, "to": PX.ash, "size": Vector2(2, 2), "life": 0.4, "fade": 0.2, "wait": i * 0.03})
 		"struct":  # 근접 공격이 닿은 면(공격자 쪽)에서
 			_debris(e.at - e.dir * CELL * 0.4, e.n)
 		"collapse":  # 칸 아래(앞줄 바닥선)에서 먼지 12점이 퍼지고, 성벽 꼭대기에서 돌 조각 4개가 0.25초 안에 때를 엇갈려 떨어진다
