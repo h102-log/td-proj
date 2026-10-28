@@ -275,7 +275,11 @@ func _command(px: Vector2, attack: bool) -> void:
 	if foe:
 		battle.order_attack(selected, foe)
 	else:
-		battle.order_move(selected, Vector2i((px / cell_px).floor()), attack)
+		var cell := Vector2i((px / cell_px).floor())
+		var top = BattleView.raised_at(battle, px)  # 문루·탑 그림이 솟은 부분은 그 열의 성곽 뒷줄 칸으로(S218 2026-10-28)
+		if top != null:
+			cell = Vector2i(cell.x, top.cell.y - top.size.y + 1)
+		battle.order_move(selected, cell, attack)
 	if selected.any(func(u): return u.alive):
 		order = {"at": px, "attack": attack or foe != null, "foe": foe}
 	if selected.any(func(u): return u.is_hero):

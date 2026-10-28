@@ -52,3 +52,11 @@ def test_EV568_place_preview_blueprint_at_built_height(gd):
 
 def test_EV569_live_preview_needs_reaching_engineer(gd):
     gd("thick", "EV569")
+
+
+def test_EV573_wall_step_slides_briefly(gd):
+    gd("thick", "EV573")
+
+
+def test_EV574_raised_top_right_click_goes_on_wall(gd):
+    gd("thick", "EV574")
