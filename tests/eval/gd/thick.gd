@@ -355,3 +355,22 @@ func ev574():
 		var way: Array = m.after if not m.after.is_empty() else m.path  # 땅 → 성벽 위는 계단까지 path, 그 뒤 after
 		ends.append(way.back() if not way.is_empty() else null)
 	return check(ends == [Vector2i(15, 9), Vector2i(15, 1)], "길 끝 %s(기대 [(15, 9), (15, 1)])" % [ends])
+
+# EV575 · S219: 정문 문루가 잔해가 되면 터널 입구 그늘을 그늘 없는 바닥 조각으로 덮는다
+func ev575():
+	var b = load("res://src/sim/battle.gd").new(Main.stage())
+	var BV = load("res://src/ui/battle_view.gd")
+	var ground: Image = BV.bake_ground(b).get_image()
+	var v = BV.new()
+	v.battle = b
+	var whole: Array = v.tunnel_patch()
+	b.damage(b.castle[Vector2i(29, 59)], BIG)
+	var broken: Array = v.tunnel_patch()
+	v.free()
+	if not whole.is_empty() or broken.size() != 2 or not broken[0] is Texture2D:
+		return "정문이 성할 때 %s · 부순 뒤 %s" % [whole, broken]
+	var img: Image = broken[0].get_image()
+	var at := Vector2i(broken[1]) + Vector2i(img.get_width() / 2, img.get_height() - 1)
+	var lit: float = img.get_pixel(img.get_width() / 2, img.get_height() - 1).get_luminance()
+	var dark: float = ground.get_pixel(at.x, at.y).get_luminance()
+	return check(lit >= dark + 0.02, "조각 맨 아랫줄 가운데 밝기 %.3f · 바닥 %s 밝기 %.3f" % [lit, at, dark])

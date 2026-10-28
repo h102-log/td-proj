@@ -140,6 +140,7 @@ const KEEP_BODY := [Rect2(29, 23, 22, 49), Rect2(21, 13, 38, 59)]  # 마을 레�
 const FACILITY := preload("res://art/castle/facility.png")  # 시설 96×96: 0행 그림, 1행 청사진 바탕. 구조물의 칸(차지 칸의 앞 왼쪽 칸, S216) 앞쪽 아래 왼쪽 모서리가 그림의 FAC_FOOT다(tools/art/facility.py)
 const FAC_N := 96  # 시설 그림 한 칸의 크기(px)
 const FAC_FOOT := Vector2(16, 92)
+static var TUNNEL := []  # 터널 입구 그늘을 깔기 전 바닥 조각 [그림, 맵 px 왼쪽 위](S219 2026-10-28). 바닥을 구울 때(_wall_shade) 뜬다
 static var FAC: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/castle/facility.json"))  # 종류 → [열, 그림 맨 윗줄, 맨 아랫줄 + 1]
 # 금(S199)을 구운 성곽·시설·망루 아틀라스(I172). 원본 대신 이것으로 그려서 금이 생겨도 텍스처가 바뀌지 않는다. 성곽은 앞층(바깥 벽면)에만 긋는다
 static var CASTLE_K: ImageTexture = crack_atlas(CASTLE, _wall_pieces())
@@ -291,6 +292,9 @@ func _draw() -> void:
 	# 맵 위 맵 밖 띠(I50): 사방 성곽의 북벽 그림이 맵 위로 솟는다(S219). 둘레 RIM까지 칠해 화면이 흔들려도(S200) 빈 곳이 안 보인다. 바닥 그림이 그 위를 덮는다
 	draw_rect(Rect2(-RIM, -TOP_BAND - RIM, battle.size.x * CELL + 2 * RIM, TOP_BAND + battle.size.y * CELL + int(Camera.BOTTOM) + 2 * RIM), FOREST_FLOOR)
 	draw_texture(ground, Vector2.ZERO)  # 카메라가 아래로 보이는 맵 밖(I50)까지 한 장이다
+	var tp := tunnel_patch()
+	if not tp.is_empty():  # 정문이 잔해면 터널 입구 그늘을 덮는다(S219 2026-10-28)
+		draw_texture(tp[0], tp[1])
 	var yards := {}
 	for s in battle.structures.values():  # 시설 터(S215). 바닥을 다시 구우면 75ms라 시설마다 따로 구운 그림을 얹는다
 		if YARDS.has(s.kind):
@@ -2375,6 +2379,7 @@ static func _plan() -> Dictionary:
 # 사방 성곽(마을이 맵 가장자리에서 떨어진 판)에서만 그린다
 static func _wall_shade(b, img: Image) -> void:
 	var v: Rect2i = b.village
+	TUNNEL = []
 	if v.position.x < 3:
 		return
 	var face := [Color("56607a"), Color("3a4357"), Color("151a26")]  # 앞면·줄눈·외곽(walls.png 남벽 앞면 색)
@@ -2399,11 +2404,18 @@ static func _wall_shade(b, img: Image) -> void:
 			img.set_pixel(x, y1 - 1 - k, img.get_pixel(x, y1 - 1 - k).darkened(0.26 * (1.0 - k / 4.0)))
 	var gx: int = b.base.cell.x * CELL + CELL / 2  # 정문 문루 가운데(거점 열)
 	var gy := y1 - GATE_RISE  # 문루 뒤 모서리
+	TUNNEL = [ImageTexture.create_from_image(img.get_region(Rect2i(gx - 20, gy - 10, 41, 10))), Vector2(gx - 20, gy - 10)]
 	for y in range(gy - 10, gy):
 		for x in range(gx - 20, gx + 21):
 			var t := float(gy - y) / 10.0 + pow(float(x - gx) / 20.0, 2.0)  # 아래가 넓은 반타원
 			if t < 1.0:
 				img.set_pixel(x, y, img.get_pixel(x, y).darkened(0.45 * (1.0 - t)))
+
+# 정문 문루(거점 열의 남쪽 문루)가 잔해(I88)면 터널 입구 그늘을 덮을 [그늘 없는 바닥 조각, 자리](S219 2026-10-28), 아니면 []
+func tunnel_patch() -> Array:
+	var c: Vector2i = battle.base.cell
+	var gone: bool = battle.rubble.values().any(func(k): return k.kind == "gate" and k.cell.y > c.y and k.cell.x <= c.x and c.x < k.cell.x + k.size.x)
+	return TUNNEL if gone else []
 
 # 시험 스테이지의 길 칸(S43 2026-10-26 변경). main.gd stage가 읽는다
 static func roads() -> Dictionary:
