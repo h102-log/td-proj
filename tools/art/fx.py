@@ -1,7 +1,7 @@
 # 이펙트 도트 조각 아틀라스(4.1s fx-1): 조각마다 한 줄에 프레임을 가로로 잇고, 이름 → [x, y, 폭, 높이, 프레임 수]를 json으로 쓴다.
 # 색은 F24+(palettes.json f24p)와 이펙트 확장 램프(fx, 보라 5색 + 연두 5색)만 쓴다. 출발점은 시안 C(insights/2026-10-27_hero_fx_mockup.md)이고,
 # Gemini 고칠 점대로 폭발은 밝은 섬광부터 시작하며 연기는 따로 떼어(puff) 유닛 아래 층에 그린다.
-# fx-2(아이아스·실비아)·fx-3(세라피나·베스퍼)의 조각은 맨 뒤에 붙여 앞 조각의 자리가 그대로다
+# fx-2(아이아스·실비아)·fx-3(세라피나·베스퍼)·fx-4(크로노스)의 조각은 맨 뒤에 붙여 앞 조각의 자리가 그대로다
 # 사용: python tools/art/fx.py [preview]  → art/fx/fx.png, art/fx/fx.json (preview면 art/trial/preview/fx_atlas_x6.png)
 import json
 import math
@@ -326,6 +326,27 @@ def fog(f):
                 im.putpixel((x, y), TEAL[0] if d < 0.5 else TEAL[1])
     return im
 
+
+def back(f):
+    """시간 되감기(크로노스 W) 11×11: 2시에서 반시계로 돌아(12시 → 9시 → 6시) 5시 쪽에서 오른쪽 위를 향한 화살촉으로 끝나는 고리.
+    얼음 램프로 꼬리가 어둡고 머리가 밝다. 3시 쪽은 비어 있다. 프레임마다 반시계로 90° 돈다"""
+    rows = ["...........",
+            "....IDD....",
+            "...I...D...",
+            "..I.....D..",
+            ".I.........",
+            ".I.........",
+            ".I.........",
+            "..W...WWW..",
+            "...W...WW..",
+            "....WWW.W..",
+            "..........."]
+    im = ascii(rows, {"D": ICE[3], "I": ICE[1], "W": ICE[0]})
+    for _ in range(f):
+        im = im.transpose(Image.Transpose.ROTATE_90)
+    return im
+
+
 IP = {"W": ICE[0], "I": ICE[1], "i": ICE[2], "D": ICE[3], "N": ICE[4]}
 SP = {"W": FIRE[0], "Y": FIRE[1], "O": FIRE[2]}
 RP = {"A": SMOKE[0], "S": SMOKE[1], "D": SMOKE[2]}
@@ -383,6 +404,15 @@ sprites = {
         ["t...t", ".....", ".....", ".....", "t...t", "....."])],
     "hex": [ascii(rows, {"T": c}) for c in TEAL for rows in (  # 쇠약의 저주: 머리 위로 가라앉는 아래 겹화살(밝음 → 어두움)
         ["T.....T", ".T...T.", "..T.T..", "T..T..T", ".T...T.", "..T.T..", "...T..."],)],
+    # fx-4: 크로노스(금 · 얼음)
+    "charge": [ascii(rows, {"C": HOLY[0], "G": HOLY[1], "T": HOLY[2], "B": HOLY[3]}) for rows in (  # 무기 과충전: 크림 번쩍 → 금 번개(크림 심) → 식은 테
+        ["...CCC.", "..CCC..", ".CCC...", "CCCCCC.", "..CCC..", ".CCC...", "CCC....", "CC....."],
+        ["...GGG.", "..GCG..", ".GCG...", "GCCCCG.", "..GCG..", ".GCG...", "GCG....", "GG....."],
+        ["...BBB.", "..B.B..", ".B.B...", "BTTTTB.", "..B.B..", ".B.B...", "B.B....", "BB....."])],
+    "back": [back(f) for f in range(4)],
+    "hub": [ascii(rows, {"C": HOLY[0], "G": HOLY[1], "B": HOLY[3]}) for rows in (  # 황금률 가운데 시계 축: 구리 테 안 금, 크림 심(1프레임은 반짝)
+        ["..BBB..", ".BGGGB.", "BGGGGGB", "BGGCGGB", "BGGGGGB", ".BGGGB.", "..BBB.."],
+        ["..BBB..", ".BCGGB.", "BCGGGGB", "BGGCGGB", "BGGGGGB", ".BGGGB.", "..BBB.."])],
 }
 for f in range(3):
     im = canvas(9, 9)
