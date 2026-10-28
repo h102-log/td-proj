@@ -359,7 +359,7 @@ var rubble := {}  # 성곽의 칸 → 부서진 성곽 Block(I88). 지나갈 수
 var debris := {}  # 잔해 차지 칸 → 잔해 Block
 var barriers := {}  # Vector2i → 에너지 성벽 칸 Block(S151, I142). 그 장판(zones)이 끝나면 사라진다
 var zones := []  # 장판(S150, I141): {src, pos, radius, left, owner, 수치…}. 웨이브가 끝나면 모두 사라진다(I143)
-var traces := []  # 즉시 스킬 흔적(S179): {hero, slot, aim, at, radius, hits, age}. 그리기만 읽고 1초 지나면 지운다
+var traces := []  # 즉시 스킬 흔적(S179): {hero, slot, aim, at, radius, hits, marked, age}. 그리기만 읽고 1초 지나면 지운다
 var fallen := []  # 쓰러진 영웅·용병·적(S180): {who, age}. 그리기만 읽고 FALLEN초 지나면 지운다
 var _dotting := false  # 초당 피해를 주는 중. 뜬 적(S236)도 이것만은 받는다
 var missiles := []  # 날고 있거나 출발을 기다리는 투사체(Missile, S178). 웨이브가 끝나면 사라진다(I143)
@@ -1241,10 +1241,10 @@ func _use(h, slot: String, aim) -> void:
 	call("_cast_" + sk.id, h, sk, aim, grow)
 	_tracing = null
 
-# 즉시 스킬 흔적을 남긴다(S179). at은 흔적의 가운데(지점 스킬은 지점, 나머지는 쓴 때 영웅 자리)다. _tracing을 비울 때까지 맞은 대상이 hits에 쌓인다.
-# 보스 강타(S195)도 남긴다. 그때 h는 그 적이고 slot은 스킬 이름이다
+# 즉시 스킬 흔적을 남긴다(S179). at은 흔적의 가운데(지점 스킬은 지점, 나머지는 쓴 때 영웅 자리)다. _tracing을 비울 때까지 맞은 대상이 hits에 쌓이고,
+# 효과(_fx)를 건 대상이 있으면 marked가 참이다(빗나감, S179 2026-10-29). 보스 강타(S195)도 남긴다. 그때 h는 그 적이고 slot은 스킬 이름이다
 func _trace(h, slot: String, aim, at: Vector2, radius: float) -> void:
-	_tracing = {"hero": h, "slot": slot, "aim": aim, "at": at, "radius": radius, "hits": [], "age": 0.0}
+	_tracing = {"hero": h, "slot": slot, "aim": aim, "at": at, "radius": radius, "hits": [], "marked": false, "age": 0.0}
 	traces.append(_tracing)
 
 # 걸어가서 쓰기(S147, I145): 대상이 사라졌거나 길이 끝났는데 닿지 못했으면 그만둔다. 사거리에 들면 멈춰서 쓴다
@@ -1286,6 +1286,8 @@ func _first_alive():
 func _fx(t, src: String, eff: Dictionary, secs: float) -> void:
 	if _aloft(t):  # 뜬 적(S236)에는 새 효과가 걸리지 않는다
 		return
+	if _tracing != null:
+		_tracing.marked = true
 	var entry := eff.duplicate()
 	entry.left = secs
 	t.fx[src] = entry
@@ -2824,9 +2826,12 @@ func _share(e: Enemy, amount: float, src) -> void:
 	if link == null:
 		return
 	var part: float = amount * e.fx.vesper_e.share
+	var tr = _tracing  # 나눈 피해는 스킬에 맞은 것이 아니다(S179 2026-10-29): 흔적의 맞은 대상에 넣지 않는다
+	_tracing = null
 	for o in enemies.duplicate():
 		if o != e and _fx_on(o, "chain") == link:
 			damage(o, part, "true", src)
+	_tracing = tr
 
 func _spawn_wave(dt: float) -> void:
 	_spawn_timer -= dt

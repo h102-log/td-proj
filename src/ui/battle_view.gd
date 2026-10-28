@@ -40,6 +40,8 @@ const MUZZLE_FLASH := 0.05  # 타워가 쏠 때 쏘는 곳의 금·크림 십자
 const RECOIL := 0.1  # 대포를 쏜 뒤 그림이 대상 반대쪽으로 1px 물러나 있는 시간
 const PUFFS := 4  # 대포를 쏠 때 포신 끝에서 피어오르는 포연 점 수
 const FX := 0.3  # 즉시 스킬 흔적(S179)이 퍼지고 사라지는 시간(초). 범위 원(S72)의 0.3초를 이었다
+const MISSABLE := ["shield_bash", "war_cry", "burst", "fireball", "frost_ring", "meteor", "piercing_gale", "enfeeble"]  # 적을 노리는 즉시 스킬(S179 2026-10-29)
+const MISS_FADE := 0.5  # 그 스킬이 아무도 못 맞힌 흔적의 불투명도
 const FX_TEX := preload("res://art/fx/fx.png")  # 이펙트 도트 조각 아틀라스(tools/art/fx.py, 4.1s)
 static var FX_ART: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/fx/fx.json"))  # 조각 → [x, y, 폭, 높이, 프레임 수]
 # 이펙트 색(4.1s): F24+와 이펙트 확장 램프(보라·연두)만 쓴다(tools/art/palettes.json f24p·fx)
@@ -95,6 +97,8 @@ const LEAP_UP := 10.0  # 뜬 슬라임 킹을 한가운데에서 들어 올리�
 const FALL := 0.5  # 운석이 보이며 떨어지는 시간(초). 이그니스 R의 첫 운석 지연(delay)과 같다
 const CORPSE_FADE := 0.5  # 쓰러진 적·용병의 몸이 시뮬레이션에서 지워지기(battle.FALLEN) 전에 흐려지는 시간(초, S180)
 const FALL_STEP := 0.08  # 영웅 쓰러짐 5프레임의 한 프레임 길이(초, S180)
+const FALL_RING := 5 * FALL_STEP  # 쓰러진 영웅을 덧그리고 고리가 퍼지는 시간 = 쓰러짐 5프레임(S180 2026-10-29)
+const FALL_REACH := 1.5  # 그 고리가 퍼지는 반경(칸)
 const HEAVY := 6.0  # 보스가 친 타격·보스 스킬에 맞은 아군의 밀림(px, S198)
 const HEAVY_BACK := 0.25  # 그 밀림이 돌아오는 시간(초, S198)
 const KILL_PUSH := 6.0  # 막타가 닿은 쓰러진 몸이 번쩍이는 동안 밀리는 거리(px, S197). 밀린 자리에 눕는다
@@ -111,6 +115,7 @@ const DUST := Color("927e6a")  # 먼지(F24+)
 const CRACK := [Color("1f240a"), Color("a56243")]  # 바닥 균열의 어두운 금과 그 아래 밝은 가장자리(F24+). 어두운 금만으로는 풀 위에서 안 보였다(시안 V2)
 const JOLT := 0.05  # 맞은 구조물·성곽 칸·거점 그림을 1px 옮겨 그리는 시간(초, 3프레임, S199)
 const DEBRIS := Color("efd8a1")  # 구조물 부스러기(S199): 돌 회청색·나무 갈색과 다른 밝은 모래색(F24+). 시안의 재질 색은 거의 안 보였다
+const HERO_LOW := 0.5  # 영웅 체력이 이 비율 밑이면 V와 상관없이 막대를 그린다(S73 2026-10-29)
 const BAR_TIERS := [Color("ef3a0c"), Color("e0c040"), Color("7cc85a")]  # 구조물·성곽·거점 막대(S199): 25% 밑·50% 밑·그 위. 위 띠 거점 막대(S190)의 HudTheme.DANGER·HudBuild.WARN·HudTheme.GOOD와 같은 값
 const SOFT_FLASH := Color(255, 255, 255, 0.4)  # 번쩍임 줄이기(S184): 같은 그림을 255배·알파 0.4로 덧그리면 흰 40%다(S177, S197)
 const STONE := Color("7a86a0")  # 무너진 성곽 칸에서 떨어지는 돌 조각(S200, F24+ 성벽 돌색)
@@ -229,6 +234,7 @@ var _known := []  # 본 흔적. traces는 step마다 새 배열이라 is_same으
 var _rubble := {}  # 본 잔해 칸
 var _tell := {}  # 보스 id → [예고 가운데(맵 px), 반경(px)]. 예고가 끊기면 둘레에 조각을 흩는다(S198)
 var _dots := []  # 효과 점(I172): {p0, p1, rise, t0, life, fade, col, size, ground}
+var _fade := 1.0  # 지금 그리는 흔적의 불투명도(S179 2026-10-29). 아트 px 도우미가 색 알파에 곱한다
 var _slides := {}  # id → [지난 화면 자리, 시작 시각, 길이](S198 미끄러짐)
 var _fills := []  # [보스 스킬 흔적, 남은 프레임](S198 발동 채움). tick마다 하나씩 줄인다
 var _zone_t0 := []  # [장판, 처음 본 화면 시각](4.1s 펼침). 장판은 Dictionary라 is_same으로 찾는다
@@ -375,6 +381,9 @@ func _draw() -> void:
 			var r := Vector2(CELL, CELL) * 0.3
 			draw_line(c - r, c + r, HERO_COLORS[h.kind], 2.0)
 			draw_line(c + Vector2(-r.x, r.y), c + Vector2(r.x, -r.y), HERO_COLORS[h.kind], 2.0)
+		var rg := fall_ring(h)
+		if not rg.is_empty():
+			_pring(Vector2i(rg[0].floor()), rg[1], rg[2], Color(HERO_COLORS[h.kind], rg[3]))
 	# 원거리 공격은 시뮬레이션 투사체(S178). 근접 공격은 선을 그리지 않는다(S71 변경). 선(화살)과 원(구슬·대포알)이 번갈아 그려지면 배치가 끊겨서 모양끼리 모아 그린다
 	var shots: Array = battle.missiles.filter(func(m): return m.wait <= 0.0)
 	shots.sort_custom(func(a, b): return a.look < b.look)
@@ -515,18 +524,27 @@ func _chest(x) -> Vector2:
 func _ranged(x) -> bool:
 	return x.get("pos") == null or (x.get("range") != null and x.range > 2.0)
 
+# 흔적의 스킬 이름: 칸(Q·W·E·R)이면 그 칸 스킬, 아니면(운석 착탄·덫 터짐·태세 터뜨림·보스 스킬) slot 그대로
+func _skill(c) -> String:
+	return c.hero.get(c.slot).id if c.slot in battle.SLOTS else c.slot
+
+# 적을 노린 즉시 스킬이 아무도 못 맞혔나(S179 2026-10-29): 피해·회복을 받은 대상(hits)도 효과를 건 대상(marked)도 없다
+func missed(c) -> bool:
+	return _skill(c) in MISSABLE and c.hits.is_empty() and not c.marked
+
 # 즉시 스킬 흔적(S179): 쓴 뒤 영웅 색으로. 범위 스킬은 반경까지 퍼지는 고리, 방향·대상 스킬은 영웅에서 잇는 선이다.
 # 이그니스의 화염구 작렬·운석 착탄·서리 고리는 단계 있는 폭발·결정이다(4.1s fx-1). 아이아스·실비아는 베기·충격파·방패·터짐·바람이다(fx-2).
 # 세라피나는 뻗는 빛줄기·날개·빛기둥, 베스퍼는 조여드는 저주 고리·사슬 거는 줄이다(fx-3). 크로노스는 금 번개 줄·반시계로 쓸어 가는 얼음 호다(fx-4).
-# 보스 스킬 흔적은 예고색 램프 고리다(S198). 모두 아트 px로 그린다.
+# 보스 스킬 흔적은 예고색 램프 고리다(S198). 모두 아트 px로 그리고, 적을 노린 스킬이 아무도 못 맞혔으면 MISS_FADE로 그린다(S179 2026-10-29).
 # top이 아니면 몸통 아래 층(폭발 연기·운석 그림자·포효 먼지·꽂힌 화살·천사 날개)만 그린다. 떨어지는 운석·화살과 영혼 사슬도 그린다. 무엇을 어디에 썼는지는 시뮬레이션이 남긴 흔적(traces)이 준다
 func _traces(top: bool) -> void:
 	for c in battle.traces:
 		var h = c.hero
-		var id: String = h.get(c.slot).id if c.slot in battle.SLOTS else c.slot
+		var id := _skill(c)
 		var at := Vector2i(_center(c.at).floor())
 		if _boss(h) and not battle.seen(c.at):  # 숨은 보스(S213)의 흔적은 그리지 않는다
 			continue
+		_fade = MISS_FADE if missed(c) else 1.0
 		var seed := hash(str(c.at) + c.slot)
 		match id:
 			"fireball", "meteor":
@@ -588,6 +606,7 @@ func _traces(top: bool) -> void:
 		var k: float = c.age / FX
 		if top and k < 1.0 and _boss(h):  # 보스 스킬(S198): 고리가 반경의 절반에서 1.1배까지 퍼진다. 예고색 램프(F24+, fx-4)
 			_pring(at, int(CELL * c.radius * (0.5 + 0.6 * _out(k))), 2 if k < 0.5 else 1, _ramp(["orange", "red", "blood"], k))
+	_fade = 1.0
 	for z in battle.zones:  # 떨어지는 운석(이그니스 R): 마지막 FALL초 동안 오른쪽 위에서 내려온다
 		var d: float = z.get("delay", 0.0)
 		if d > 0.0 and d < FALL:
@@ -654,7 +673,7 @@ func _frost(c: Vector2i, rad: float, t: float, seed: int) -> void:
 	if t < 0.6:
 		for i in 6:
 			if posmod(int(t * 30.0) + i, 3) == 0:
-				draw_rect(Rect2(Vector2(c + Vector2i(Vector2.from_angle(_hf(seed, i + 50) * TAU) * rad * _hf(seed, i + 51))), Vector2.ONE), PX.ice0)
+				_px(c + Vector2i(Vector2.from_angle(_hf(seed, i + 50) * TAU) * rad * _hf(seed, i + 51)), PX.ice0)
 
 # 떨어지는 운석(4.1s): 몸통 아래 층은 땅 그림자(성긴 칠이 짙어지고 커짐)와 떨어질 자리 점선, 위 층은 꼬리와 운석 조각
 func _fall(z: Dictionary, d: float, top: bool) -> void:
@@ -1200,6 +1219,7 @@ static func px_cells(r: int, th: int) -> Array:
 func _pring(c: Vector2i, r: int, th: int, col: Color, dash := 0, spin := 0.0) -> void:
 	if r < 1 or th < 1:
 		return
+	col.a *= _fade
 	if dash == 0:
 		px_cells(r, th)
 		for run in _runs[Vector3i(r, th, 0)]:
@@ -1213,6 +1233,7 @@ func _pring(c: Vector2i, r: int, th: int, col: Color, dash := 0, spin := 0.0) ->
 func _parc(c: Vector2i, r: int, th: int, a0: float, a1: float, col: Color) -> void:
 	if r < 1:
 		return
+	col.a *= _fade
 	var mid := (a0 + a1) / 2.0
 	var half := (a1 - a0) / 2.0
 	for o in px_cells(r, th):
@@ -1222,6 +1243,7 @@ func _parc(c: Vector2i, r: int, th: int, a0: float, a1: float, col: Color) -> vo
 func _pdisc(c: Vector2i, r: int, col: Color) -> void:
 	if r < 0:
 		return
+	col.a *= _fade
 	px_cells(r, 0)
 	for run in _runs[Vector3i(r, 0, 0)]:
 		_cv.draw_rect(Rect2(Vector2(c + run.position), Vector2(run.size)), col)
@@ -1237,7 +1259,7 @@ func _pnoise(c: Vector2i, r: int, col: Color, lim: int, salt := 0) -> void:
 			if posmod(hash(Vector3i(o.x, o.y, salt)), 16) < lim:
 				img.set_pixel(o.x + r + 1, o.y + r + 1, Color.WHITE)
 		_noise[key] = ImageTexture.create_from_image(img)
-	_cv.draw_texture(_noise[key], Vector2(c - Vector2i(r + 1, r + 1)), col)
+	_cv.draw_texture(_noise[key], Vector2(c - Vector2i(r + 1, r + 1)), Color(col, col.a * _fade))
 
 # 아트 px 선(브레젠험). w > 1이면 w×w 칸으로 찍는다
 func _pline(a: Vector2i, b: Vector2i, col: Color, w := 1) -> void:
@@ -1246,6 +1268,7 @@ func _pline(a: Vector2i, b: Vector2i, col: Color, w := 1) -> void:
 	var err := d.x - d.y
 	var p := a
 	var o := Vector2i(w / 2, w / 2)
+	col.a *= _fade
 	for i in d.x + d.y + 1:
 		_cv.draw_rect(Rect2(Vector2(p - o), Vector2(w, w)), col)
 		if p == b:
@@ -1282,11 +1305,11 @@ func _spr(name: String, frame: int, at: Vector2i, bottom := false) -> void:
 	var w := int(m[2])
 	var h := int(m[3])
 	var pos := at - (Vector2i(w / 2, h) if bottom else Vector2i(w / 2, h / 2))
-	_cv.draw_texture_rect_region(FX_TEX, Rect2(Vector2(pos), Vector2(w, h)), Rect2(m[0] + posmod(frame, int(m[4])) * w, m[1], w, h))
+	_cv.draw_texture_rect_region(FX_TEX, Rect2(Vector2(pos), Vector2(w, h)), Rect2(m[0] + posmod(frame, int(m[4])) * w, m[1], w, h), Color(1, 1, 1, _fade))
 
 # 아트 px 칸 하나(또는 size 칸) 칠하기(fx-2). 시험의 기록 화면이 가로챈다
 func _px(p: Vector2i, col: Color, size := Vector2i.ONE) -> void:
-	_cv.draw_rect(Rect2(Vector2(p), Vector2(size)), col)
+	_cv.draw_rect(Rect2(Vector2(p), Vector2(size)), Color(col, col.a * _fade))
 
 func _out(k: float) -> float:
 	return 1.0 - (1.0 - k) * (1.0 - k)
@@ -1505,6 +1528,9 @@ func _bodies() -> void:
 	for h in battle.heroes:  # 보스 그림에 가린 영웅(S198): S171처럼 40%로 덧그리되, 보스가 맞은 것처럼 보이지 않게 번쩍임은 곱하지 않는다
 		if h.alive and _under_boss(h):
 			_body(h, battle.units.find(h), next, GHOST, false)
+	for d in dead:  # 쓰러지는 영웅(S180 2026-10-29): 적에 가려도 보이게 쓰러짐 5프레임 동안 다른 몸통 위에 40%로 덧그린다
+		if d[0].get("is_hero") == true and not fall_ring(d[0]).is_empty():
+			_corpse(d, GHOST)
 	_seen = next
 
 # 가려진 몸통을 덧그릴 색. 성곽 그림이 발(칸 가운데)을 4px 넘게 덮는 줄은 그림 윗변(_clip)보다 아래만 어두운 실루엣이고(S175),
@@ -1758,7 +1784,13 @@ func _sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 	var moving := v.length_squared() > 1e-8
 	var t := _ago(x)
 	var pose: bool = x.target != null and t < battle.HERO_POSE and (x.path.is_empty() or t < CONTACT)  # 걷기 명령은 닿은 뒤의 공격 자세를 끊는다(S196)
-	if pose or (x.target and not moving):  # 공격 자세는 밀려도 대상 쪽을 친다(S165)
+	var sk = _cast_of(x)  # 시전 자세(S165 2026-10-29): 스킬을 쓴 뒤도 공격 3프레임. 기본 공격 자세와 겹치면 나중 것이다
+	if sk != null and sk.age < battle.HERO_POSE and (x.path.is_empty() or sk.age < CONTACT) and not (pose and t < sk.age):
+		pose = true
+		t = sk.age
+		if sk.aim != null:  # 자기 스킬은 보던 쪽 그대로
+			dir = _dir_of((sk.aim if sk.aim is Vector2 else _pos_of(sk.aim)) - x.pos)
+	elif pose or (x.target and not moving):  # 공격 자세는 밀려도 대상 쪽을 친다(S165)
 		dir = _dir_of(_pos_of(x.target) - x.pos)
 	elif moving:
 		dir = _dir_of(v)
@@ -1776,6 +1808,14 @@ func _sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 	var size := c * (2 if anim == "attack" else 1)  # 공격은 2배 캔버스(tools/art/hero.py)
 	var at := _spot(x) + _flinch(x) + _slip(x) - Vector2(a.anchor[0], a.anchor[1]) - Vector2.ONE * (size - c) / 2.0
 	_region(UNITS, Rect2(at, Vector2(size, size)), Rect2(col * size, a[anim] + dir * size, size, size), tint)
+
+# 이 영웅이 가장 최근에 쓴 스킬의 흔적(Q·W·E·R·반격의 태세 터뜨림, S165 2026-10-29). 운석 착탄·덫 터짐은 쓴 때가 아니라서 뺀다. 없으면 null
+func _cast_of(h):
+	var out = null
+	for c in battle.traces:
+		if c.hero == h and (c.slot in battle.SLOTS or c.slot == "burst") and (out == null or c.age < out.age):
+			out = c
+	return out
 
 # 용병·적 하나(C 절충안, 4.1d. 4.1a M1·M6에서 C만 통과했다): 4방향 정지, 움직이면 걷기 2위상(초당 8), 친 뒤 0.08~0.22초는 공격 키 포즈.
 # 근접은 그동안 대상 쪽으로 돌진한다(_lunge). 방향 고르기는 _sprite와 같다(tools/bench/view_draw.gd C). 기어오르는 적은 성벽 쪽(N)을 보고 걷기 2위상으로 오른다(S180)
@@ -1840,7 +1880,7 @@ func _fallen() -> Array:
 
 # 쓰러진 몸 하나(S180): 4.1d 누운 자세. 영웅은 쓰러짐 5프레임을 지나 누운 채 남고, 적·용병은 바로 누워 지워지기 전 CORPSE_FADE 동안 흐려진다.
 # 성벽 위에서 쓰러지면 성벽 위에, 오르던 적은 성벽 밑에, 비행 적은 그림자 자리에 눕는다. 막타를 기다리거나 번쩍이는 동안은 선 자세다(S197)
-func _corpse(d: Array) -> void:
+func _corpse(d: Array, tint := Color.WHITE) -> void:
 	var x = d[0]
 	var hero: bool = x.get("is_hero") == true
 	var s := _last_blow(x, d[1])
@@ -1852,7 +1892,20 @@ func _corpse(d: Array) -> void:
 		return
 	var p: Vector2 = (_spot(x) if x.on_wall else _center(x.pos) + (Vector2(0, CELL * 0.4) if x.get("flying") == true else Vector2.ZERO)) + s[2]
 	var a := 1.0 if hero else clampf((battle.FALLEN - d[1]) / CORPSE_FADE, 0.0, 1.0)
-	_frame(ART[x.kind], "fall", 0, mini(int(s[3] / FALL_STEP), 4) if hero else 0, p, Color(1, 1, 1, a), Vector2.ONE * _shrunk(x))
+	_frame(ART[x.kind], "fall", 0, mini(int(s[3] / FALL_STEP), 4) if hero else 0, p, Color(1, 1, 1, a) * tint, Vector2.ONE * _shrunk(x))
+
+# 쓰러지는 영웅의 고리(S180 2026-10-29): [가운데(맵 px, X 자리), 반경(px), 굵기, 불투명도]. 누운 때부터 쓰러짐 5프레임(FALL_RING) 동안
+# 몸에서 FALL_REACH칸까지 퍼지며 굵기 2 → 1로 옅어진다. 그동안 몸은 다른 몸통 위에 덧그린다(_bodies). 아니면 []
+func fall_ring(h) -> Array:
+	var at = _cross_at(h)
+	var f: Array = battle.fallen.filter(func(e): return e.who == h)
+	if at == null or f.is_empty():
+		return []
+	var t: float = _last_blow(h, f[0].age)[3]
+	if t < 0.0 or t >= FALL_RING:  # 막타 번쩍임 동안은 아직 서 있다(S197)
+		return []
+	var k := t / FALL_RING
+	return [at, int(CELL * FALL_REACH * k), 2 if k < 0.5 else 1, 1.0 - k]
 
 # 4방향 시트(tools/art/atlas.py FOUR)의 한 칸을 발밑 p에 그린다. 행은 S·E·N·W, 공격·쓰러짐은 2배 캔버스. 방향 없는 칸(one, I189)은 늘 0행이다.
 # scale은 발밑 기준 배율이다(슬라임 킹 웅크림·줄어듦, S198)
@@ -2874,11 +2927,11 @@ func hp_bar_at(u) -> Vector2:
 		head = (ART[u.kind].anchor[1] * lk[0].y + lk[1] - ART.basic.anchor[1]) / CELL
 	return u.pos - Vector2(0, _lift(u) / CELL + head) + _slip(u) / CELL
 
-# 유닛·적 체력바 크기(S73). 보스(I185 boss 칸)는 V 표시와 상관없이 늘 크게, 나머지는 켰을 때만. 그리지 않으면 Vector2.ZERO
+# 유닛·적 체력바 크기(S73). 보스(I185 boss 칸)는 V 표시와 상관없이 늘 크게, 체력 HERO_LOW 밑 영웅도 V와 상관없이, 나머지는 켰을 때만. 그리지 않으면 Vector2.ZERO
 static func hp_bar_size(u, show_all: bool) -> Vector2:
 	if u.get("boss"):
 		return Vector2(24, 3)
-	return Vector2(CELL, 2) if show_all else Vector2.ZERO
+	return Vector2(CELL, 2) if show_all or (u.get("is_hero") == true and u.hp < HERO_LOW * u.max_hp) else Vector2.ZERO
 
 # 주민(S223·S225~S229)의 일과·자리는 판(src/sim/folk.gd)이 구하고, 화면은 판의 people을 그린다
 const PROPS := preload("res://art/tiles/props.png")  # 일터 소품(S224, tools/art/props.py)
