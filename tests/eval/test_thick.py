@@ -60,3 +60,7 @@ def test_EV573_wall_step_slides_briefly(gd):
 
 def test_EV574_raised_top_right_click_goes_on_wall(gd):
     gd("thick", "EV574")
+
+
+def test_EV575_tunnel_shade_gone_with_gate(gd):
+    gd("thick", "EV575")
