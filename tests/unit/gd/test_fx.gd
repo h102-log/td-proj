@@ -138,13 +138,41 @@ func test_foe_effects_are_one_mark_each_not_stacked_rings():
 	if why == "" and (stars.size() != 2 or stars.any(func(m): return m.p.y > feet.y - 10)):
 		why = "기절 별이 %s다(머리 위에 둘이어야 한다, 발밑 y %d)" % [stars.map(func(m): return m.p), feet.y]
 	var frost := marks.filter(func(m): return m.k == "frost")
-	if why == "" and (frost.size() != 1 or absi(frost[0].p.y - feet.y) > 3):
-		why = "둔화 서리가 %s다(발밑에 하나여야 한다)" % [frost.map(func(m): return m.p)]
+	if why == "" and frost.size() != 1:
+		why = "둔화 눈송이가 %s다(하나여야 한다)" % [frost.map(func(m): return m.p)]
 	if why == "" and (not kinds.has("flame_s") or marks.filter(func(m): return m.k == "px").size() < 4):
 		why = "발화가 작은 불꽃 + 불티 넷이 아니다: %s" % [kinds]
 	var icons := marks.filter(func(m): return m.k in ["taunt", "seal"])
 	if why == "" and (icons.size() != 2 or icons.any(func(m): return m.p.y >= stars.map(func(s): return s.p.y).min())):
 		why = "도발·봉인 기호가 %s다(별보다 위에 둘이어야 한다)" % [icons.map(func(m): return [m.k, m.p])]
+	v.free()
+	return why
+
+# fx-5 판정: 속박·둔화·독 방울이 발밑 팀 타원(발밑 y −2~+3, _feet_mark)에 묻혔다. 조각 아랫줄이 타원 윗줄보다 위여야 한다
+func test_root_slow_poison_marks_stay_above_team_ellipse():
+	var b = _battle()
+	var v = View.new()
+	v.battle = b
+	var e = b.spawn_enemy("basic", Vector2i(10, 10), {"speed": 0})
+	b._fx(e, "sylvia_e", {"root": true}, 2.0)
+	b._fx(e, "chronos_r", {"slow": 0.4}, 2.0)
+	b._fx(e, "vesper_q", {"dot": 3.0}, 2.0)
+	var feet: Vector2i = Vector2i((v._spot(e) + v._slip(e)).floor())
+	var why := ""
+	for t in [0.0, 0.13, 0.26, 0.39, 0.49]:
+		v.clock = t
+		var marks: Array = v.status_marks(e, false)
+		var kinds := marks.map(func(m): return m.k)
+		if kinds.count("bind") != 1 or kinds.count("frost") != 1 or kinds.count("venom") != 2:
+			why = "밧줄 1·눈송이 1·방울 2가 아니다: %s" % [kinds]
+			break
+		for m in marks:
+			var h: int = View.FX_ART[m.k][3]
+			if m.p.y - h / 2 + h - 1 >= feet.y - 2:
+				why = "%s 아랫줄이 %d다(발밑 %d, 타원 윗줄 %d보다 위여야 한다, 시각 %.2f)" % [m.k, m.p.y - h / 2 + h - 1, feet.y, feet.y - 2, t]
+				break
+		if why != "":
+			break
 	v.free()
 	return why
 
