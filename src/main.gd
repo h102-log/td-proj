@@ -14,6 +14,7 @@ const QUIET := ["hiring", "prep", "cleared"]  # 전투 단계가 아닌 판 단�
 # 도전의 라운드 순서(S63, I91): data/waves/의 웨이브 파일 이름. 1라운드는 시험 스테이지(S111, 슬라임 테마)다
 # ponytail: 2~6라운드는 5.1(WBS.md:129)까지 쓰는 임시값이다. 실제 라운드 수와 웨이브는 그때 정한다
 const ROUNDS := ["test_stage", "round_2", "round_3", "round_4", "round_5", "round_6"]
+const FIELD_ROWS := 66  # 시험 스테이지 들판 줄 수(S203): 성 아래 60행부터. 맵 높이와 출현 줄은 여기서 셈한다(사용자 2026-10-28)
 
 static var resume := {}  # 이어하기(S182)로 올 때 메인 메뉴 장면이 넣는 저장. 비어 있으면 새 도전이다
 static var live_prep := false  # 판에 옮기는 준비 단계 실시간(I175). 메인 메뉴가 게임을 막 켰을 때와 관찰 하네스가 켠다. 게임 장면을 바로 띄우는 평가는 끈 채 쓴다
@@ -179,7 +180,7 @@ static func apply_window(w: Window) -> void:
 	if Settings.fullscreen != null and Settings.fullscreen != (w.mode == Window.MODE_FULLSCREEN):
 		toggle_fullscreen(w)
 
-# W1 시험 스테이지(60×93, S203·S51 위아래 구도). 위쪽 60×60은 두께 3줄 사방 성곽(S217)이 두른 성이고, 적은 아래쪽 가장자리에서 온다.
+# W1 시험 스테이지(60 × (60 + FIELD_ROWS), S203·S51 위아래 구도). 위쪽 60×60은 두께 3줄 사방 성곽(S217)이 두른 성이고, 적은 아래쪽 가장자리에서 온다.
 # 도전 내내 이 맵이고, 라운드마다 웨이브만 바뀐다(S78, I91)
 static func stage() -> Dictionary:
 	var rounds := ROUNDS.map(func(r): return load("res://data/waves/%s.tres" % r).to_stage())  # S31, I66
@@ -197,8 +198,8 @@ static func stage() -> Dictionary:
 			side.append(Vector2i(0, y))
 			side.append(Vector2i(57, y))
 	return {
-		"size": Vector2i(60, 93), "base": Vector2i(30, 30), "base_hp": 100, "gold": 400,  # 거점은 마을 한가운데(S37, S203). 시작 골드(S111)
-		"spawns": [Vector2i(9, 92), Vector2i(30, 92), Vector2i(50, 92)],
+		"size": Vector2i(60, 60 + FIELD_ROWS), "base": Vector2i(30, 30), "base_hp": 100, "gold": 400,  # 거점은 마을 한가운데(S37, S203). 시작 골드(S111)
+		"spawns": [Vector2i(9, 59 + FIELD_ROWS), Vector2i(30, 59 + FIELD_ROWS), Vector2i(50, 59 + FIELD_ROWS)],  # 맨 아래 줄
 		"spawn_spread": 10, "spawn_gap": 0.25, "reward_scale": 0.1,  # 맨 아래 줄 전체에서 흩어져 나온다(I177). 적 10배라 간격 0.25초(I91), 처치 보상 0.1배(I176)
 		# 출전 칸(I107): 정문 문루(29~31열, 57~59행) 바로 앞 들판의 세 칸. 성문은 닫힌 채 시작해서(I67) 마을 안에 두면 나올 수 없다(I42, 사용자 2026-10-12)
 		"hero_cells": [Vector2i(29, 61), Vector2i(31, 61), Vector2i(30, 61)],
