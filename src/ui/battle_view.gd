@@ -100,6 +100,7 @@ const BAR_TIERS := [Color("ef3a0c"), Color("e0c040"), Color("7cc85a")]  # 구조
 const SOFT_FLASH := Color(255, 255, 255, 0.4)  # 번쩍임 줄이기(S184): 같은 그림을 255배·알파 0.4로 덧그리면 흰 40%다(S177, S197)
 const STONE := Color("7a86a0")  # 무너진 성곽 칸에서 떨어지는 돌 조각(S200, F24+ 성벽 돌색)
 const DROP := 0.15  # 무너진 성곽 칸 위 유닛이 땅으로 내려오는 시간(초, S200)
+const STEP := 0.15  # 땅↔성벽을 오르내리거나 기어오르기를 마친 스텝이 미끄러지는 시간(초, S198 2026-10-28)
 const RIM := 8  # 맵 둘레에 맵 밖 바닥색으로 칠하는 폭(px, S200). 화면 흔들림(최대 3 기준 화면 px)이 가장자리에서 빈 곳을 보이지 않게
 const PIXEL_FONT := preload("res://art/fonts/Galmuri7.ttf")  # 맵 위 숫자(S167). 맵은 640×360을 정수배로 키우므로 벡터 글자는 뭉개진다
 const GROUND_TILES := preload("res://art/tiles/ground.png")  # 0행 풀↔흙 꼭짓점 16꼴, 1행 풀·흙 변종과 깃발, 2·3행 전환 꼴 변종(tools/art/tiles.py)
@@ -2096,7 +2097,7 @@ static func _h(n: int, k: int, lo: int, hi: int) -> int:
 
 # 넉백·끌어옴처럼 한 스텝에 8px 넘게 옮겨진 몸은 지난 자리에서 미끄러지게 그린다(S198). 보스 스킬에 맞은 것은 160px, 그 밖은 48px까지.
 # 옮겨진 거리는 시뮬레이션 자리로 잰다(성벽 위 몸은 그리는 높이가 칸마다 바뀌어서 화면 자리로 재면 걷기도 튄다).
-# 성벽을 오르내리거나 기어오르기를 마친 스텝(성벽 위·기어오르기 상태가 바뀜)은 미끄러지지 않는다.
+# 성벽을 오르내리거나 기어오르기를 마친 스텝(성벽 위·기어오르기 상태가 바뀜)은 STEP초에 걸쳐 미끄러진다(S198 2026-10-28).
 # 다만 성곽 칸이 무너져 그 위에서 땅으로 내려온 몸은 DROP초에 걸쳐 내려온다(S200)
 func _slide_scan() -> void:
 	var far := {}
@@ -2124,6 +2125,8 @@ func _slide_scan() -> void:
 				_slides[id] = [from, clock, clampf(d / SLIDE, 0.12, 0.3)]
 		elif was != null and was[2][0] and not x.on_wall and fell.has(Vector2i(x.pos.round())):
 			_slides[id] = [was[0], clock, DROP]
+		elif was != null:  # 상태가 바뀐 스텝: 성벽 오르내리기·기어오르기 끝
+			_slides[id] = [was[0], clock, STEP]
 		next[id] = [_spot(x), c, state]
 	_last = next
 	for id in _slides.keys():

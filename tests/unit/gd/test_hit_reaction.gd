@@ -289,7 +289,7 @@ func test_boss_slam_pushes_heavy_and_slides():
 	v.free()
 	return why
 
-func test_wall_step_does_not_slide():
+func test_wall_step_slides_briefly():
 	var s := _board()
 	var b = s[0]
 	var v = s[1]
@@ -302,11 +302,11 @@ func test_wall_step_does_not_slide():
 	if not v._slides.has(m.get_instance_id()):
 		why = "땅에서 한 칸 튄 몸이 미끄러지지 않았다"
 	v.tick(0.2)
-	m.pos += Vector2(0, -1)  # 성문으로 성벽에 오름: 높이가 바로 바뀌므로 미끄러지지 않는다
+	m.pos += Vector2(0, -1)  # 성문으로 성벽에 오름: STEP초에 걸쳐 미끄러진다(S198 2026-10-28)
 	m.on_wall = true
 	v.tick(DT)
-	if why == "" and v._slides.has(m.get_instance_id()):
-		why = "성벽에 오른 스텝이 미끄러졌다"
+	if why == "" and v._slides.get(m.get_instance_id(), [0, 0, 0])[2] != View.STEP:
+		why = "성벽에 오른 스텝의 미끄러짐이 %s다(STEP초여야 한다)" % [v._slides.get(m.get_instance_id())]
 	v.free()
 	return why
 
@@ -516,6 +516,7 @@ func test_second_knock_slides_from_drawn_spot_and_wall_walk_does_not_slide():
 	w.on_wall = true
 	w.pos = Vector2(10, 5.45)
 	v.tick(DT)
+	v.tick(View.STEP + 0.05)  # 성벽에 오른 미끄러짐(S198 2026-10-28)이 끝난 뒤
 	w.pos.y = 5.55  # 성벽 위에서 칸 경계를 넘어도 걸은 것이다
 	v.tick(DT)
 	if why == "" and v._slides.has(w.get_instance_id()):

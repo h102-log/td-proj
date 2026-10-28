@@ -309,3 +309,49 @@ func ev569():
 	_start(b)
 	var live := [BV.ghost(b, "cannon", back)[1], BV.ghost(b, "cannon", mid)[1]]
 	return check(b.state == "battle" and prep and live == [true, false], "%s · 준비 단계 (8,10) %s · 전투 단계 (8,9) %s (8,10) %s" % [b.state, prep, live[0], live[1]])
+
+# EV573 · S198: 땅↔성벽을 오르내린 스텝은 0.15초에 걸쳐 미끄러진다. 같은 땅에서 옮겨진 몸은 지금처럼 0.12초 이상
+func ev573():
+	var b = _battle()
+	var m = b.place_merc("soldier", Vector2i(8, 8))
+	if m == null:
+		return "병사를 마을 (8,8)에 두지 못했다"
+	_start(b)
+	var v = load("res://src/ui/battle_view.gd").new()
+	v.battle = b
+	v.tick(0.0)
+	v.tick(1.0 / 60.0)
+	var id: int = m.get_instance_id()
+	m.pos = Vector2(7, 8)  # 같은 땅에서 한 칸
+	v.tick(1.0 / 60.0)
+	var ground = v._slides.get(id)
+	v.tick(0.4)
+	m.pos = Vector2(8, 9)
+	m.on_wall = true
+	v.tick(1.0 / 60.0)
+	var step = v._slides.get(id)
+	v.tick(0.2)
+	var after: bool = v._slides.has(id)
+	v.free()
+	return check(ground != null and ground[2] >= 0.12 and step != null and absf(step[2] - 0.15) <= 0.001 and not after,
+		"땅 한 칸 %s · 성벽에 오른 스텝 %s · 0.2초 뒤 남음 %s" % [ground, step, after])
+
+# EV574 · S218: 문루 그림이 솟은 부분을 우클릭하면 그 열의 성곽 뒷줄 칸으로 간다. 그림 밖은 누른 칸으로
+func ev574():
+	var b = _battle()
+	var m = b.place_merc("soldier", IN)
+	if m == null:
+		return "병사를 마을 %s에 두지 못했다" % [IN]
+	_start(b)  # 성벽 위로는 전투 단계에 걷는다
+	var c = controls(b)
+	c.selected = [m]
+	var ends := []
+	for cell in [Vector2i(15, 8), Vector2i(15, 1)]:
+		var e := InputEventMouseButton.new()
+		e.button_index = MOUSE_BUTTON_RIGHT
+		e.pressed = true
+		e.position = (Vector2(cell) + Vector2(0.5, 0.5)) * CELL_PX
+		c.handle(e)
+		var way: Array = m.after if not m.after.is_empty() else m.path  # 땅 → 성벽 위는 계단까지 path, 그 뒤 after
+		ends.append(way.back() if not way.is_empty() else null)
+	return check(ends == [Vector2i(15, 9), Vector2i(15, 1)], "길 끝 %s(기대 [(15, 9), (15, 1)])" % [ends])
