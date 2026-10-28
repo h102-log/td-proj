@@ -1079,7 +1079,7 @@ func _warp_zone(c: Vector2i, r: int, seed: int, others: Array) -> void:
 	_edge(c, r, PX.ice1, PX.night, others)
 
 # 걸린 효과(I101 2026-10-27 변경): 효과마다 수단 하나로, 고리를 겹쳐 쌓지 않는다.
-# 1차(기절·도발·봉인·속박·불사)는 머리 위 기호나 발밑 고리, 2차(둔화·받는 피해 증가·초당 피해·받는 피해 감소·공격 속도·보호막)는 몸·발의 작은 조각이다.
+# 1차(기절·도발·봉인·속박·불사)는 머리 위 기호나 몸에 감긴 밧줄, 2차(둔화·받는 피해 증가·초당 피해·받는 피해 감소·공격 속도·보호막)는 몸·발의 작은 조각이다.
 # 사슬은 적끼리 잇는 고리 도트(_traces)가 보인다. 돌려주는 것: {k 조각 이름 또는 "px"·"ring", p 아트 px 자리, f 프레임, c 색, r 반지름}
 func status_marks(x, ally: bool) -> Array:
 	var feet := Vector2i((_spot(x) + _slip(x)).floor())
@@ -1103,24 +1103,24 @@ func status_marks(x, ally: bool) -> Array:
 					out.append({k = "star", p = head + Vector2i(int(cos(a) * 5.0), -3 + int(sin(a) * 2.0)), f = int(clock * 8.0) + i})
 			"taunt", "seal":
 				icons.append(key)
-			"root":  # 발밑 밧줄 고리와 말뚝
-				out.append({k = "bind", p = feet + Vector2i(0, 2), f = 0})
-			"slow":  # 발밑 서리 껍질(Gemini 고칠 점 3: 발밑 타원 안)
-				out.append({k = "frost", p = feet + Vector2i(0, 2), f = 0})
+			"root":  # 몸 아래쪽에 감긴 밧줄 띠(fx-5 판정: 발밑 고리는 팀 타원에 묻혔다)
+				out.append({k = "bind", p = feet - Vector2i(0, 5), f = 0})
+			"slow":  # 몸 왼쪽 눈송이, 오른쪽 금 간 방패와 짝(fx-5 판정: 발밑 서리는 타원·얼음 장판에 묻혔다)
+				out.append({k = "frost", p = feet + Vector2i(-8, -int(tall * 0.55)), f = 0})
 			"expose":  # 몸 옆 금 간 방패, 1초에 0.7초 보임
 				if fmod(clock + _hf(n, 2), 1.0) < 0.7:
 					out.append({k = "expose", p = feet + Vector2i(7, -int(tall * 0.55)), f = 0})
-			"dot":  # 발화(이그니스)는 작은 불꽃과 불티, 그 밖(독)은 떨어지는 방울
+			"dot":  # 발화(이그니스)는 작은 불꽃과 불티, 그 밖(독)은 머리 높이에서 몸 가운데까지 떨어지는 방울 둘(fx-5 판정: 독안개에 묻혔다)
 				var burn: bool = x.fx.has("ignis_q")
 				if burn:
 					out.append({k = "flame_s", p = feet + Vector2i(posmod(n, 5) - 2, -4), f = int(clock * 10.0) + n})
-				for i in 4:
+				for i in (4 if burn else 2):
 					var ph := fmod(clock + _hf(n, i + 3) * 0.5, 0.5) / 0.5
 					var dx := int(_hf(n, i + 9) * 10.0) - 5
 					if burn:
 						out.append({k = "px", p = feet + Vector2i(dx, -4 - int(14.0 * ph)), c = _ramp(EMBER, ph)})
 					else:
-						out.append({k = "px", p = feet + Vector2i(dx, -int(tall * 0.6) + int(8.0 * ph)), c = PX.teal if ph < 0.6 else PX.deepteal})
+						out.append({k = "venom", p = feet + Vector2i(dx, -int(tall * (1.0 - 0.5 * ph))), f = 0})
 			"dr":  # 몸 양옆 작은 방패가 오르내린다
 				var bob := int(round(sin(clock * 3.0 + _hf(n, 4) * TAU)))
 				for sx in [-7, 7]:
@@ -1153,7 +1153,7 @@ func _status(x, ally: bool) -> void:
 			"ring":
 				_pring(m.p, m.r, 1, m.c)
 			_:
-				_spr(m.k, m.f, m.p, m.k in ["frost", "bind", "flame_s"])
+				_spr(m.k, m.f, m.p, m.k == "flame_s")
 
 # 몸의 높이(px): 발밑에서 머리까지. 그림이 있으면 시트의 발밑 기준점, 없으면 반지름으로
 func _head(x) -> float:

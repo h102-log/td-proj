@@ -359,7 +359,7 @@ sprites = {
         [".....", ".....", ".....", "..W..", ".WIi.", ".WIiD", ".WIiN", ".WiN.", "..N.."],
         ["..W..", ".WWi.", ".WIi.", "WWIiD", "WIIiD", "WIIiD", ".WIiN", ".WiN.", "..N.."],
         ["..W..", ".W.i.", ".WI..", "W.Ii.", "WI..D", ".II.D", ".W.iN", "..iN.", "....."])],
-    "frost": [ascii(["..W...W..", ".WIW.WIi.", "WIIiIIIiD", ".NiNNiNN."], IP)],  # 둔화: 발밑 서리 껍질(Gemini 고칠 점 3)
+    "frost": [ascii([".N.N.N.", "NWNWNWN", ".NWWWN.", "NWWDWWN", ".NWWWN.", "NWNWNWN", ".N.N.N."], {"W": ICE[0], "D": ICE[3], "N": NIGHT})],  # 둔화: 몸 왼쪽 눈송이, 어두운 테(fx-5 판정 후속)
     "star": [ascii(["..Y..", "..W..", "YWWWY", "..W..", "..Y.."], SP), ascii([".....", ".Y.Y.", "..W..", ".Y.Y.", "....."], SP)],
     "rock": [ascii(["AS.", "SSD", ".DD"], RP), ascii([".A.", "ASD", "SD."], RP)],
     "meteor": [meteor(0), meteor(1)],
@@ -367,8 +367,8 @@ sprites = {
     "pop": [],
     "eye": [eye(f) for f in range(4)],
     # 상태 아이콘(I101 2026-10-27 변경): 1차 상태는 머리 위 기호, 2차는 몸·발에 붙는 작은 조각
-    "bind": [ascii([".T.....T.", ".T.....T.", "RTRRRRRTR", "r.......r", ".rrrrrrr."],
-                   {"T": rgb("927e6a"), "R": rgb("efb775"), "r": rgb("a56243")})],  # 속박: 발밑 밧줄 고리 + 말뚝 둘
+    "bind": [ascii([".NNNNNNN.", "NRrRrRrRN", "NrRrRrRrN", ".NNNNNNN."],
+                   {"N": NIGHT, "R": rgb("efb775"), "r": rgb("a56243")})],  # 속박: 몸 아래쪽에 감긴 밧줄 띠, 어두운 테(fx-5 판정 후속)
     "taunt": [ascii([".DDD.", ".DRD.", ".DRD.", ".DRD.", ".DDD.", ".DRD.", ".DDD."], {"D": rgb("300f0a"), "R": rgb("ef3a0c")})],  # 도발: 빨간 느낌표
     "seal": [ascii(["..SSS..", ".S...S.", ".S...S.", "LLLLLLL", "LLLDLLL", "LLLDLLL", "LLLLLLL"],
                    {"S": rgb("a4aec2"), "L": rgb("efac28"), "D": rgb("2a1d0d")})],  # 봉인: 자물쇠
@@ -413,6 +413,7 @@ sprites = {
     "hub": [ascii(rows, {"C": HOLY[0], "G": HOLY[1], "B": HOLY[3]}) for rows in (  # 황금률 가운데 시계 축: 구리 테 안 금, 크림 심(1프레임은 반짝)
         ["..BBB..", ".BGGGB.", "BGGGGGB", "BGGCGGB", "BGGGGGB", ".BGGGB.", "..BBB.."],
         ["..BBB..", ".BCGGB.", "BCGGGGB", "BGGCGGB", "BGGGGGB", ".BGGGB.", "..BBB.."])],
+    "venom": [ascii([".N.", "NTN", "NTN", "NtN", ".N."], {"N": NIGHT, "T": TEAL[0], "t": TEAL[1]})],  # 초당 피해(독) 방울, 어두운 테(fx-5 판정 후속)
 }
 for f in range(3):
     im = canvas(9, 9)
