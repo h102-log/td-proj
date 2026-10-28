@@ -226,7 +226,7 @@ func ev315():
 func _settings_page(node: Node, where: String) -> String:
 	if not _press(node, "설정"):
 		return "%s에 «설정»이 없다" % where
-	for t in ["퀵캐스트", "부활", "전체화면"]:
+	for t in ["퀵캐스트", "부활", "전체화면 (F11)", "커서 가두기"]:
 		if not _button(node, t) is CheckButton:
 			return "%s의 설정에 켜고 끄는 «%s»가 없다" % [where, t]
 	return "" if _slider(node) != null else "%s의 설정에 음량 슬라이더가 없다" % where
@@ -592,3 +592,29 @@ func ev542():
 		_done(main)
 	_settings()
 	return why
+
+# EV572 · I194: 전체화면이거나 «커서 가두기»가 켜지면 커서를 창 안에 가둔다. 오른쪽 가장자리 이동 띠(8 기준 px)에 태그·표식 띠가 걸치지 않는다
+func ev572():
+	var st = _settings()
+	var M = load("res://src/main.gd")
+	if st.get("confine") != false:
+		return "설정 파일이 없을 때 커서 가두기가 %s다(기대 꺼짐)" % st.get("confine")
+	var off := [M.cursor_mode(true), M.cursor_mode(false)]
+	st.confine = true
+	var on := [M.cursor_mode(true), M.cursor_mode(false)]
+	st.save_file()
+	st.confine = false
+	st.load_file()
+	var saved: bool = st.confine
+	_settings()
+	var C := Input.MOUSE_MODE_CONFINED
+	var V := Input.MOUSE_MODE_VISIBLE
+	if off != [C, V] or on != [C, C] or not saved:
+		return "가두기 꺼짐 %s(기대 [%d, %d]) · 켬 %s · 저장한 켬을 다시 읽음 %s" % [off, C, V, on, saved]
+	var main = _game()
+	main.view.battle.next_round()
+	_frame(main)
+	var ends: Array = main.hud.tags.map(func(t): return t.position.x + t.size.x)
+	var band: Rect2 = load("res://src/ui/hud_alert.gd").BANDS.right
+	_done(main)
+	return check(ends.size() == 3 and ends.all(func(x): return x <= 632) and band.end.x <= 632, "태그 오른쪽 끝 %s · 오른쪽 표식 띠 %s" % [ends, band])

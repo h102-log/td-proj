@@ -1,6 +1,6 @@
 {
-  "approvedAt": "2026-10-28T01:10:26.662Z",
-  "evalMd": "78611e22",
+  "approvedAt": "2026-10-28T01:53:31.037Z",
+  "evalMd": "8da6596c",
   "tests": {
     "tests/eval/conftest.py": "e6bb5f0b",
     "tests/eval/gd/aura.gd": "010cc38a",
@@ -37,7 +37,7 @@
     "tests/eval/gd/hire.gd.uid": "47433f7e",
     "tests/eval/gd/house.gd": "1df77dae",
     "tests/eval/gd/house.gd.uid": "5fd6fb28",
-    "tests/eval/gd/hud.gd": "a7583e29",
+    "tests/eval/gd/hud.gd": "8305dba7",
     "tests/eval/gd/hud.gd.uid": "6038f593",
     "tests/eval/gd/kits.gd": "5e064430",
     "tests/eval/gd/kits.gd.uid": "c48b27a3",
@@ -51,7 +51,7 @@
     "tests/eval/gd/loop.gd.uid": "f8a3d823",
     "tests/eval/gd/map.gd": "6c830d47",
     "tests/eval/gd/map.gd.uid": "c812f8cf",
-    "tests/eval/gd/menu.gd": "024965cf",
+    "tests/eval/gd/menu.gd": "b514b0a1",
     "tests/eval/gd/menu.gd.uid": "80c43e3a",
     "tests/eval/gd/merc.gd": "e04f49df",
     "tests/eval/gd/merc.gd.uid": "5a159512",
@@ -119,7 +119,7 @@
     "tests/eval/test_locale.py": "56451d19",
     "tests/eval/test_loop.py": "eb9dcfdc",
     "tests/eval/test_map.py": "9fd1d996",
-    "tests/eval/test_menu.py": "4535f6fd",
+    "tests/eval/test_menu.py": "72915a71",
     "tests/eval/test_merc.py": "4dd8671d",
     "tests/eval/test_missile.py": "b2c53132",
     "tests/eval/test_night.py": "d7bb400d",
@@ -346,7 +346,7 @@
     "S183": "303446b5",
     "I161": "c780f683",
     "I158": "8826f38a",
-    "S184": "539d94b9",
+    "S184": "339b3207",
     "I160": "8750a502",
     "I159": "53967b25",
     "S163": "6c2d71e9",
@@ -366,10 +366,10 @@
     "I151": "beeef2a2",
     "I165": "52d08244",
     "I129": "121a2ce6",
-    "I139": "b49dbeb8",
+    "I139": "b8e24953",
     "I137": "12a4571c",
     "I124": "efef6648",
-    "S189": "5947df16",
+    "S189": "8d7915db",
     "I136": "e13d404e",
     "S191": "fd378bfe",
     "I110": "6ef4e75f",
@@ -446,6 +446,7 @@
     "S240": "fb4f658f",
     "S170": "9ed48786",
     "I138": "8eeaa632",
-    "S241": "a726cc2a"
+    "S241": "a726cc2a",
+    "I194": "28ec85f0"
   }
 }

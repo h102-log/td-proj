@@ -292,7 +292,7 @@ func _ready() -> void:
 	var looks := [HudBuild.dots(ATTACK, sword), HudBuild.dots(STOP, {"#": HudTheme.TEXT, "o": HudTheme.DANGER}), HudBuild.dots(SHIELD, {"#": Color("e8d8a8"), "o": SkillCell.TEAL})]
 	for i in 3:  # 오른쪽 가장자리 태그 24×24, 자리는 고정(I139). 그림 10×10을 2배로, 왼쪽 위에 키 글자
 		var t := _bar_button(root, "", [controls.attack_key, controls.stop, controls.toggle_hold][i])
-		t.position = Vector2(616, 182 + 26 * i)
+		t.position = Vector2(608, 182 + 26 * i)  # 오른쪽 끝 632: 가둔 커서의 가장자리 이동 띠(8px)를 비킨다(I194)
 		t.size = Vector2(24, 24)
 		_tag_pics.append(_pic(t, looks[i], Vector2(20, 20)))
 		_tag_pics[i].position = Vector2(2, 2)

@@ -143,12 +143,12 @@ func _unhandled_input(event: InputEvent) -> void:
 # 시작 모드는 설정에 고른 창 모드, 고른 적이 없으면 내보낸 빌드만 전체화면이다(S163, S184)
 static func setup_window(w: Window, entry: bool) -> void:
 	w.min_size = w.content_scale_size * 2
-	if not entry:
-		return
-	if Settings.fullscreen_at_start(OS.has_feature("template")):
-		w.mode = Window.MODE_FULLSCREEN
-	else:
-		fit_window(w)
+	if entry:
+		if Settings.fullscreen_at_start(OS.has_feature("template")):
+			w.mode = Window.MODE_FULLSCREEN
+		else:
+			fit_window(w)
+	apply_cursor(w)
 
 # 지금 화면의 작업 영역에 테두리까지 들어가는 가장 큰 정수배 크기로 키워 가운데에 둔다(S161, I153)
 static func fit_window(w: Window) -> void:
@@ -168,6 +168,7 @@ static func toggle_fullscreen(w: Window) -> void:
 		fit_window(w)
 	else:
 		w.mode = Window.MODE_FULLSCREEN
+	apply_cursor(w)
 
 # F11(S162): 창 모드를 바꾸고 설정에 남긴다(I160)
 static func switch_fullscreen(w: Window) -> void:
@@ -179,6 +180,14 @@ static func switch_fullscreen(w: Window) -> void:
 static func apply_window(w: Window) -> void:
 	if Settings.fullscreen != null and Settings.fullscreen != (w.mode == Window.MODE_FULLSCREEN):
 		toggle_fullscreen(w)
+	apply_cursor(w)  # 커서 가두기 설정을 바꿨을 수도 있다
+
+# 커서 가두기(I194): 전체화면이거나 설정 «커서 가두기»가 켜져 있으면 창 안에 가둔다
+static func cursor_mode(full: bool) -> int:
+	return Input.MOUSE_MODE_CONFINED if full or Settings.confine else Input.MOUSE_MODE_VISIBLE
+
+static func apply_cursor(w: Window) -> void:
+	Input.mouse_mode = cursor_mode(w.mode == Window.MODE_FULLSCREEN)
 
 # W1 시험 스테이지(60 × (60 + FIELD_ROWS), S203·S51 위아래 구도). 위쪽 60×60은 두께 3줄 사방 성곽(S217)이 두른 성이고, 적은 아래쪽 가장자리에서 온다.
 # 도전 내내 이 맵이고, 라운드마다 웨이브만 바뀐다(S78, I91)
