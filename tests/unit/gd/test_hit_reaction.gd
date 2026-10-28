@@ -15,6 +15,10 @@ extends RefCounted
 #   S177 2026-10-28 변경. 장갑(지금 방어력 10 이상)이 기본 공격·타워 사격의 물리 피해에 맞으면 1px 밀리고 강철 점이 0.2초 남는다. 무거운 타격은 밀림 그대로.
 #   S178 2026-10-28 변경. 대포는 쏠 때 1px 반동·포연·섬광, 떨어지면 먼지 6점. 주 대상은 6px·0.25초, 범위 곁 대상(시뮬레이션 기록)은 흰 0.1초·4px.
 #   S197 2026-10-28 변경. 대포 범위 곁 대상이 그 대포알에 쓰러지면 착탄 때 번쩍이며 떨어진 곳 반대쪽 6px 밀려 눕는다.
+#   S165 2026-10-29 변경. 스킬을 쓰면 0.3초 공격 3프레임(지점·방향·대상 쪽, 자기 스킬은 보던 쪽), 걷기 명령은 0.08초 뒤 끊는다.
+#   S179 2026-10-29 변경. 적을 노린 즉시 스킬이 아무도 못 맞히면 흔적을 50%로. 사슬 나눔으로만 맞은 적은 흔적 대상이 아니다.
+#   S180 2026-10-29 변경. 쓰러진 영웅은 쓰러짐 5프레임 동안 40%로 덧그리고, 영웅 색 고리가 1.5칸까지 퍼지며 옅어진다.
+#   S73 2026-10-29 변경. 영웅은 체력 50% 밑이면 V와 상관없이 체력바가 보인다.
 #   I171. 화면 사건 목록: 닿음은 공격 하나에 한 번, 처치는 쓰러진 대상을 노린 마지막 공격이 닿을 때(기다릴 공격이 없으면 바로) 난다.
 #         원거리는 시뮬레이션 투사체가 닿은 프레임에 투사체 하나에 한 번이다.
 
@@ -780,5 +784,189 @@ func test_armor_pushes_one_px_with_steel_dot_for_physical_hits():
 	m.age = View.STEEL
 	if why == "" and v.hit_table([]).has(tank.get_instance_id()):
 		why = "강철 점은 맞은 뒤 %s초에 끝나야 한다" % View.STEEL
+	v.free()
+	return why
+
+# 영웅 그림 한 장(_region)의 원본 칸만 모으는 화면
+class Src extends "res://src/ui/battle_view.gd":
+	var src := []
+
+	func _region(_tex: Texture2D, _dst: Rect2, s: Rect2, _tint: Color) -> void:
+		src.append(s)
+
+# 흔적 조각을 그리지 않고, 그릴 때의 불투명도(_fade)만 모으는 화면
+class Fade extends "res://src/ui/battle_view.gd":
+	var fades := []
+
+	func _pring(_c: Vector2i, _r: int, _th: int, _col: Color, _dash := 0, _spin := 0.0) -> void:
+		fades.append(_fade)
+	func _parc(_c: Vector2i, _r: int, _th: int, _a0: float, _a1: float, _col: Color) -> void:
+		fades.append(_fade)
+	func _pline(_a: Vector2i, _b: Vector2i, _col: Color, _w := 1) -> void:
+		fades.append(_fade)
+	func _spr(_name: String, _frame: int, _at: Vector2i, _bottom := false) -> void:
+		fades.append(_fade)
+	func _px(_p: Vector2i, _col: Color, _size := Vector2i.ONE) -> void:
+		fades.append(_fade)
+
+# 전투 중인 빈 판(영웅 아이아스 (5,5))을 화면 v에 붙인다
+func _fight(v):
+	var b = Battle.new({"size": Vector2i(20, 20), "base": Vector2i(18, 18), "base_hp": 100, "spawns": [Vector2i(0, 10)], "hero_start": Vector2i(5, 5), "waves": [[{"kind": "basic", "count": 1}]]})
+	b.start_battle()
+	v.battle = b
+	return b
+
+# 마나·재사용 대기를 채우고 쓴다
+func _ready_cast(b, h, slot: String, aim = null) -> bool:
+	h.mana = h.max_mana
+	for k in h.cd.keys():
+		h.cd[k] = 0.0
+	return b.cast(h, slot, aim)
+
+# 영웅 그림 한 장을 그리고 그 원본 칸을 돌려준다. 본 방향은 다음 프레임으로 넘긴다(_bodies와 같다)
+func _pose(v, h) -> Rect2:
+	v.src.clear()
+	var next := {}
+	v._sprite(h, next)
+	v._seen = next
+	return v.src[0]
+
+func test_skill_cast_poses_hero_toward_aim_for_0_3s():
+	var v = Src.new()
+	var b = _fight(v)
+	var h = b.hero
+	var a: Dictionary = View.ART[h.kind]
+	var c := int(a.c)
+	var east: int = View._dir_of(Vector2.RIGHT)
+	var why := ""
+	v._seen[h.get_instance_id()] = [h.pos, 4]  # 북쪽을 보고 서 있다(_dir_of 4)
+	if not _ready_cast(b, h, "q", h.pos + Vector2(3, 0)):
+		why = "방패 강타를 쓰지 못했다"
+	var r := _pose(v, h)
+	if why == "" and r.position != Vector2(0, a.attack + east * 2 * c):
+		why = "방패 강타를 쓴 직후 그림이 %s다(동쪽 공격 첫 프레임 (0, %d)이어야 한다)" % [r, a.attack + east * 2 * c]
+	for i in 13:
+		b.step(DT)
+	r = _pose(v, h)
+	if why == "" and r.position != Vector2(2 * 2 * c, a.attack + east * 2 * c):
+		why = "쓰고 0.22초 뒤 그림이 %s다(동쪽 공격 셋째 프레임이어야 한다)" % r
+	for i in 6:
+		b.step(DT)
+	r = _pose(v, h)
+	if why == "" and r.position != Vector2(0, a.idle + east * c):
+		why = "쓰고 0.32초 뒤 그림이 %s다(동쪽 정지여야 한다)" % r
+	v._seen[h.get_instance_id()] = [h.pos, 4]
+	_ready_cast(b, h, "w")  # 전장의 포효(자기 스킬)는 보던 쪽 그대로
+	r = _pose(v, h)
+	if why == "" and r.position != Vector2(0, a.attack + 4 * 2 * c):
+		why = "전장의 포효를 쓴 직후 그림이 %s다(보던 북쪽 공격 첫 프레임이어야 한다)" % r
+	b.order_move([h], Vector2i(5, 9))  # 걷기 명령은 기본 공격처럼 닿는 때(0.08초) 뒤 자세를 끊는다(S196)
+	for i in 6:
+		b.step(DT)
+	r = _pose(v, h)
+	if why == "" and r.position.y >= a.attack and r.position.y < a.fall:
+		why = "걸어가는 영웅이 쓰고 0.1초 뒤에도 공격 자세다(%s)" % r
+	v.free()
+	return why
+
+func test_missed_skill_trace_draws_at_half():
+	var v = Fade.new()
+	var b = _fight(v)
+	var h = b.hero
+	var why := ""
+	_ready_cast(b, h, "q", h.pos + Vector2(3, 0))
+	if not v.missed(b.traces[-1]):
+		why = "아무도 없는 쪽 방패 강타를 빗나감으로 보지 않았다"
+	v._traces(true)
+	if why == "" and (v.fades.is_empty() or v.fades.any(func(f): return f != View.MISS_FADE)):
+		why = "빗나간 방패 강타를 불투명도 %s로 그렸다(모두 %s여야 한다)" % [v.fades, View.MISS_FADE]
+	if why == "" and v._fade != 1.0:
+		why = "흔적을 다 그린 뒤 불투명도가 %s다(1로 돌아와야 한다)" % v._fade
+	b.traces.clear()
+	var foe = b.spawn_enemy("basic", Vector2i(6, 5), {"speed": 0, "damage": 0, "hp": 1000})
+	_ready_cast(b, h, "q", h.pos + Vector2(3, 0))
+	v.fades.clear()
+	v._traces(true)
+	if why == "" and (v.missed(b.traces[-1]) or v.fades.is_empty() or v.fades.any(func(f): return f != 1.0)):
+		why = "적을 맞힌 방패 강타를 빗나감 %s, 불투명도 %s로 그렸다" % [v.missed(b.traces[-1]), v.fades]
+	_ready_cast(b, h, "w")  # 전장의 포효는 피해가 없어도 도발을 걸면 맞힌 것이다
+	if why == "" and v.missed(b.traces[-1]):
+		why = "곁의 적을 도발한 전장의 포효를 빗나감으로 봤다"
+	foe.pos = Vector2(15, 15)
+	_ready_cast(b, h, "w")
+	if why == "" and not v.missed(b.traces[-1]):
+		why = "아무도 도발하지 못한 전장의 포효를 빗나감으로 보지 않았다"
+	_ready_cast(b, h, "e")  # 반격의 태세는 적을 노리지 않는다
+	if why == "" and v.missed(b.traces[-1]):
+		why = "반격의 태세를 빗나감으로 봤다"
+	v.free()
+	return why
+
+func test_chain_share_is_not_a_skill_hit():
+	var v = View.new()
+	var b = _fight(v)
+	var h = b.hero
+	var near = b.spawn_enemy("basic", Vector2i(6, 5), {"speed": 0, "damage": 0, "hp": 1000})
+	var far = b.spawn_enemy("basic", Vector2i(5, 12), {"speed": 0, "damage": 0, "hp": 1000})
+	for e in [near, far]:  # 베스퍼 E 영혼 사슬로 묶인 둘
+		b._fx(e, "vesper_e", {"chain": 1, "share": 0.5, "spread": 0.0}, 5.0)
+	_ready_cast(b, h, "q", h.pos + Vector2(3, 0))
+	var c = b.traces[-1]
+	var why := ""
+	if far.hp >= 1000:
+		why = "사슬로 나눈 피해가 들지 않았다(시험 판이 틀렸다)"
+	elif c.hits != [near]:
+		why = "방패 강타 흔적의 맞은 대상이 %s다(맞은 적 하나여야 한다)" % [c.hits]
+	elif v.hit_table([]).has(far.get_instance_id()):
+		why = "사슬로 나눈 피해만 받은 적이 피격 반응을 보인다"
+	v.free()
+	return why
+
+func test_fallen_hero_ring_spreads_during_fall_and_body_is_ghosted():
+	var s := _board()
+	var b = s[0]
+	var v = s[1]
+	var h = b.hero
+	_go(b, v)
+	b.damage(h, 1e9, "true")
+	_play(b, v, 1, DT)
+	var why := ""
+	var r0: Array = v.fall_ring(h)
+	if r0.is_empty():
+		why = "쓰러진 직후 고리가 없다"
+	_play(b, v, 12, DT)
+	var r1: Array = v.fall_ring(h)
+	if why == "" and (r1.is_empty() or r1[1] <= r0[1] or r1[3] >= r0[3]):
+		why = "0.2초 뒤 고리가 %s다(첫 %s보다 크고 옅어야 한다)" % [r1, r0]
+	if why == "" and not r1.is_empty() and r1[0] != v._cross_at(h):
+		why = "고리 가운데 %s가 X 자리 %s와 다르다" % [r1[0], v._cross_at(h)]
+	_play(b, v, 15, DT)
+	if why == "" and not v.fall_ring(h).is_empty():
+		why = "쓰러짐 5프레임(%s초) 뒤에도 고리가 남았다" % View.FALL_RING
+	var rec = Rec.new()
+	rec.battle = b
+	rec._corpse([h, 0.1], View.GHOST)
+	if why == "" and (rec.tints.is_empty() or not is_equal_approx(rec.tints[-1].a, View.GHOST.a)):
+		why = "덧그린 쓰러짐의 색이 %s다(알파 %s여야 한다)" % [rec.tints, View.GHOST.a]
+	rec.free()
+	v.free()
+	return why
+
+func test_hero_below_half_hp_shows_bar_without_v():
+	var s := _board()
+	var b = s[0]
+	var v = s[1]
+	var h = b.hero
+	var m = b.place_merc("soldier", Vector2i(8, 8))
+	var why := ""
+	h.hp = 0.6 * h.max_hp
+	if View.hp_bar_size(h, false) != Vector2.ZERO:
+		why = "체력 60% 영웅은 V를 끄면 막대가 없어야 한다"
+	h.hp = 0.4 * h.max_hp
+	m.hp = 0.4 * m.max_hp
+	if why == "" and View.hp_bar_size(h, false) != Vector2(View.CELL, 2):
+		why = "체력 40%% 영웅의 막대가 V를 꺼도 %s여야 하는데 %s다" % [Vector2(View.CELL, 2), View.hp_bar_size(h, false)]
+	if why == "" and View.hp_bar_size(m, false) != Vector2.ZERO:
+		why = "체력 40% 용병은 V를 끄면 막대가 없어야 한다"
 	v.free()
 	return why
