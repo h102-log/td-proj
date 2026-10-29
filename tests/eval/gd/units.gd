@@ -130,7 +130,7 @@ func ev133():
 	var cell := Vector2i(10, 10)
 	click(c, MOUSE_BUTTON_LEFT, px(cell))
 	var s = b.structure_at(cell)
-	return check(s != null and s.kind == "magic" and gold0 - b.gold == 40, "- 키 뒤 좌클릭: %s, 골드 %d 줄었다(놓기 모드 %s)" % [s, gold0 - b.gold, c.placing])
+	return check(s != null and s.kind == "magic" and gold0 - b.gold == b.STRUCTURE_KINDS.magic.cost, "- 키 뒤 좌클릭: %s, 골드 %d 줄었다(마법 타워 값 %d, 놓기 모드 %s)" % [s, gold0 - b.gold, b.STRUCTURE_KINDS.magic.cost, c.placing])
 
 # EV134 · S109: 비행 적은 닫힌 성곽을 부수지 않고 넘어 거점을 친다
 func ev134():
@@ -247,7 +247,7 @@ func ev144():
 		for entry in w:
 			d[entry.kind] = d.get(entry.kind, 0) + entry.count
 		got.append(d)
-	return check(stage.gold == 400 and got == want, "시작 골드 %s, 웨이브 %s" % [stage.gold, got])
+	return check(stage.gold == 1000 and got == want, "시작 골드 %s, 웨이브 %s" % [stage.gold, got])
 
 # EV145 · I81: 적 종류(TABLE, S106)의 색이 모두 있고 서로 다르다
 func ev145():

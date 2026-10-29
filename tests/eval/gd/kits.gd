@@ -49,8 +49,8 @@ func _near_f(a: float, b: float, tol := 0.01) -> bool:
 # EV255 · S145: 오라는 Lv1부터다. Lv1 실비아 옆 타워는 사거리 4를 넘는 4.12칸 적을 쏘고, 오라 밖 타워는 쏘지 않는다
 func ev255():
 	var b = battle({"heroes": [{"kind": "sylvia", "cell": H, "level": 1}], "base_hp": BIG})
-	var near_t = b.build("tower", H + Vector2i(1, 0))
-	var far_t = b.build("tower", Vector2i(20, 3))
+	var near_t = b.build("tower", H + Vector2i(1, 0), {"range": 4})  # 오라만 재려고 사거리를 4로 둔다(S245로 타워 사거리가 8)
+	var far_t = b.build("tower", Vector2i(20, 3), {"range": 4})
 	var e1 = _dummy(b, H + Vector2i(1, 0) + Vector2i(4, 1))
 	var e2 = _dummy(b, Vector2i(20, 3) + Vector2i(4, 1))
 	run(b, 3.0)

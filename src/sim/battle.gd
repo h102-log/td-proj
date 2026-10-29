@@ -93,6 +93,8 @@ class Block:
 	var fire_gap := 1.0  # 쏘는 간격(초)
 	var splash := 0.0  # 범위 피해 반경(칸, S90)
 	var pierce := false  # 마법 피해를 준다(마법 타워, S110, S149)
+	var slow := 0.0  # 맞은 적의 둔화 비율(마법 타워, S110 2026-10-29 변경)
+	var slow_time := 0.0
 	var armor := 0.0  # 방어력(S149). 기본 0이고 세라피나 오라로만 오른다(방벽)
 	var fx := {}  # 걸린 효과: 출처 → {효과 키: 값, left: 남은 초}(S150, I141)
 	var cooldown := 0.0
@@ -3336,6 +3338,8 @@ func _land(m: Missile) -> void:
 			if e != m.target:
 				m.side.append(e)
 			damage(e, m.hurt, m.kind, s, m.ignore)
+			if e == m.target and s is Block and s.slow > 0.0 and e.alive:  # 마법 타워 둔화(S110 2026-10-29 변경): 출처가 하나라 다시 맞으면 시간만 새로 된다
+				_fx(e, "magic_tower", {"slow": s.slow}, s.slow_time)
 	if m.bless > 0.0:
 		_blessing(s, m.at, m.bless, m.bless_r)
 	landed.append(m)

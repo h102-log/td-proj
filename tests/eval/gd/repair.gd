@@ -64,7 +64,8 @@ func ev152():
 
 # EV153 · I86: 골드가 수리비보다 적으면 수리가 거부되고 체력·골드가 그대로다
 func ev153():
-	var b = battle({"gold": 40})
+	var b = battle()
+	b.gold = b.STRUCTURE_KINDS.tower.cost + 5  # 짓고 나면 수리비보다 적게 남는다
 	var t = b.build("tower", T)
 	b.damage(t, t.max_hp * 0.9)
 	var hp0: float = t.hp
