@@ -4,11 +4,13 @@
 
 [resource]
 script = ExtResource("1_2wh6l")
-cost = 40
+cost = 30
 hp = 80.0
 build_time = 5.0
-range = 4.0
+range = 8.0
 damage = 6.0
 fire_gap = 2.5
 pierce = true
+slow = 0.3
+slow_time = 2.0
 light = 2.0

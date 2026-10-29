@@ -4,6 +4,6 @@
 
 [resource]
 script = ExtResource("1_y6cw1")
-cost = 10
+cost = 5
 hp = 100.0
 build_time = 2.0

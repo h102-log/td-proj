@@ -274,7 +274,7 @@ func ev322():
 	_done(main)
 	return out
 
-# EV323 · I132: 마을 Lv1 준비 단계에 타워 칸 정보 칸은 «타워»·«30골드»·«[2]»에 빨간 줄이 없고, 사격장 칸은 빨간 줄에 «마을 Lv2».
+# EV323 · I132: 마을 Lv1 준비 단계에 타워 칸 정보 칸은 «타워»·«(타워 값)골드»·«[2]»에 빨간 줄이 없고, 사격장 칸은 빨간 줄에 «마을 Lv2».
 # 사격장 칸을 누르면 놓기 모드 없이 거점이 골라져 마을 레벨 버튼이 뜨고, 칸 테두리가 0.2초에 빨갛고 0.4초에 아니다.
 # 전투 단계에 누르면 마을 레벨 버튼이 없고 정보 칸에 «준비 단계에»
 func ev323():
@@ -289,7 +289,7 @@ func ev323():
 	_move(g.cells.tower.get_global_rect().get_center())
 	g._process(0.0)
 	var s := _tip_text(g.info)
-	if not g.info.is_visible_in_tree() or not ("타워" in s and "30골드" in s and "[2]" in s) or g.reason.is_visible_in_tree():
+	if not g.info.is_visible_in_tree() or not ("타워" in s and "%d골드" % b.STRUCTURE_KINDS.tower.cost in s and "[2]" in s) or g.reason.is_visible_in_tree():
 		out = "타워 칸 정보 칸이 «%s»다(보임 %s, 빨간 줄 %s)" % [s, g.info.is_visible_in_tree(), g.reason.is_visible_in_tree()]
 	var archery = g.cells.archery
 	if out == "":
