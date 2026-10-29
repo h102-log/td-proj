@@ -180,6 +180,22 @@ func ev535():
 		hits.append(roundi(_lost(s[2][0]) / s[1].damage))
 	var fast: bool = absf(walked[0] - 1.0 * 1.3) <= 0.05
 	var calm: bool = absf(walked[1] - 1.0) <= 0.05
-	var small: bool = sizes.all(func(r): return absf(r - 0.55 * 0.8) <= 0.01)
+	var small: bool = sizes.all(func(r): return absf(r - 2.0 * 0.8) <= 0.01)
 	return check(fast and calm and small and hits == [3, 4],
 		"50%% 걸음 %.3f · 봉인 걸음 %.3f · 몸 반지름 %s · 5.9초 친 횟수(가득·50%%) %s" % [walked[0], walked[1], sizes, hits])
+
+# EV595 · S236 2026-10-29 변경: 킹 몸 반지름은 2칸이다. 몸이 닿은 병사(사거리 1.2, 움직이지 않음)는 킹을 친다.
+# 1칸 버킷 이웃 밖(2칸 떨어진 버킷)에서 킹과 겹친 슬라임도 한 스텝에 밀려난다
+func ev595():
+	var b = battle({"base_hp": BIG})
+	var e = b.spawn_enemy("slime_king", KING, {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})
+	if not is_equal_approx(e.radius, 2.0):
+		return "킹 반지름 %s(2)" % e.radius
+	var m = b.place_merc("soldier", Vector2i(13, 10), {"hp": BIG, "sight": 0})
+	m.pos = Vector2(12.3, 10)
+	var s = b.spawn_enemy("slime", Vector2i(10, 13), STILL)
+	s.pos = Vector2(10, 12.2)
+	b.step(DT)
+	var gap: float = s.pos.distance_to(e.pos) - (s.radius + e.radius)
+	var hit := run(b, 2.0, func(): return e.hp < e.max_hp)
+	return check(hit and gap > -0.01, "몸이 닿은 병사가 킹을 %s, 겹친 슬라임과의 틈 %.3f칸" % ["쳤다" if hit else "치지 않았다", gap])

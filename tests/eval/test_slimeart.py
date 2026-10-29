@@ -16,3 +16,11 @@ def test_EV540_king_shrink_bar_and_cover(gd):
 
 def test_EV541_slimes_draw_walk_row_zero(gd):
     gd("slimeart", "EV541")
+
+
+def test_EV596_king_drawn_three_times(gd):
+    gd("slimeart", "EV596")
+
+
+def test_EV597_split_pops_out(gd):
+    gd("slimeart", "EV597")

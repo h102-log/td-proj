@@ -230,3 +230,24 @@ func ev398():
 	click(c, MOUSE_BUTTON_RIGHT, px(Vector2i(15, 9)))
 	var rally: bool = c.facility == f and f.rally == Vector2i(15, 9) and two.all(func(u): return u.path.is_empty())
 	return check(empty and built and base and rally, "빈 드래그 뒤 그대로 %s · 병영만 든 드래그에 비고 판매 후보 %s · 거점 고르기 뒤 그대로 %s · 고른 유닛 없을 때 우클릭은 집결 %s" % [empty, built, base, rally])
+
+# EV593 · S36 2026-10-29 변경: 홀드를 켜고 2칸 틈을 막은 병사 둘 사이로 영웅을 보내도 병사가 밀리지 않고 길이 열리지 않는다
+func _gap_walk(hold: bool) -> Array:
+	var b = battle({"heroes": [{"kind": "sylvia", "cell": Vector2i(9, 10)}]})
+	for y in 20:
+		if y != 9 and y != 10:
+			b.build("wall", Vector2i(12, y))
+	var ms := [b.place_merc("soldier", Vector2i(12, 9)), b.place_merc("soldier", Vector2i(12, 10))]
+	b.set_hold(ms, hold)
+	var h = b.heroes[0]
+	b.order_move([h], Vector2i(16, 10))
+	run(b, 10.0)
+	return [ms, h]
+
+func ev593():
+	var r := _gap_walk(true)
+	var moved: Array = r[0].map(func(m): return snappedf(m.pos.distance_to(m.anchor), 0.01))
+	if moved.any(func(d): return d > 0.1) or r[1].pos.x >= 12.0:
+		return "홀드: 병사가 기준 지점에서 %s칸 밀렸고 영웅 x %.2f(12 미만이어야 한다)" % [moved, r[1].pos.x]
+	var free := _gap_walk(false)
+	return check(free[1].pos.x > 13.0, "홀드를 끈 병사 사이로 영웅이 지나가지 못했다(x %.2f)" % free[1].pos.x)

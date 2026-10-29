@@ -32,3 +32,7 @@ def test_EV63_empty_click_clears_sell_candidate(gd):
 
 def test_EV237_battle_click_selects_merc(gd):
     gd("sell", "EV237")
+
+
+def test_EV594_click_picks_nearest_body(gd):
+    gd("sell", "EV594")

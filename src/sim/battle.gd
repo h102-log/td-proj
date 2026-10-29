@@ -185,6 +185,7 @@ class Enemy:
 	var boss := false  # 보스 표시(I185). 종류 수치의 boss 칸
 	var split := {}  # 죽으면 갈라져 나올 {kind, count}(S234). 비어 있으면 갈라지지 않는다
 	var girth := 0.0  # 나온 때의 몸 반지름. 줄어듦(S236)이 걸음마다 여기서 다시 센다
+	var split_from = null  # 갈라져 나왔으면 죽은 적의 자리(S234). 화면이 거기서 튀어나오게 그린다
 	var vault := {}  # 도약(S239). 비어 있으면 성벽에 올라도 밀치지 않는다
 	var vaulted := false  # 한 번 뛰어올랐다. 성벽에서 내려오면 다시 오르지 않는다(I191 ⑥)
 	var night := {}  # 어둠에 세짐(S240). 비어 있으면 어둠과 상관없다
@@ -974,6 +975,7 @@ func _divide(dead: Enemy) -> void:
 		var e := _enemy(dead.split.kind, Vector2i(at.round()), {"reward": 0, "xp": 0})
 		e.pos = at
 		e.via = dead.via
+		e.split_from = dead.pos
 		_field(e)
 
 # 지금 라운드의 적 체력 배율(S144). stage에 hp_mult가 없거나 짧으면 1이다
@@ -3224,23 +3226,29 @@ func _touch(mover, body) -> bool:
 	return true
 
 # 같은 편(bodies)끼리 겹친 만큼 반씩 밀어낸다. 상대 편(others)과는 겹치지 않게 민다. 비행 적은 밀지도 밀리지도 않는다(I79).
+# 홀드를 켜고 서 있는 용병은 아군에게 밀리지 않고 겹친 쪽이 다 밀려난다. 둘 다 그러면 반씩이다(S36 2026-10-29 변경)
 # 경로는 그대로라 밀려난 쪽은 _move·_act가 다시 데려간다(I51)
-# 1칸 버킷의 이웃 아홉 칸만 비교한다. 몸 반지름 합은 한 판에 함께 나오는 가장 큰 쌍(슬라임 킹 0.55 + 큰 슬라임 0.45)이 1.0이라 겹친 쌍은 늘 이웃 버킷이다. 차례는 전수 비교(i < j)와 같다
+# 1칸 버킷의 이웃 아홉 칸만 비교한다. 반지름 0.5칸 이하 몸끼리는 반지름 합이 1.0 이하라 겹친 쌍은 늘 이웃 버킷이다. 차례는 전수 비교(i < j)와 같다.
+# 그보다 큰 몸(슬라임 킹 2칸, S236 2026-10-29 변경)은 버킷에 넣지 않고 그 뒤에 모든 몸과 비교한다
 # ponytail: 버킷은 스텝 처음 자리로 나눈다. 한 스텝 안에서 0.1칸 넘게 밀려 새로 겹친 쌍은 다음 스텝에 민다
 func _push_apart(bodies: Array, others: Array) -> void:
 	var near := {}  # 버킷 칸 → 비행 적이 아닌 bodies 번호들
 	var home := []
+	var big := []  # 반지름 0.5칸을 넘는 몸의 번호
 	for i in bodies.size():
 		var k := Vector2i(bodies[i].pos.floor())
 		home.append(k)
-		if not (bodies[i].get("flying") or _aloft(bodies[i])):  # 뜬 적(S236)도 밀지도 밀리지도 않는다
-			if near.has(k):
-				near[k].append(i)
-			else:
-				near[k] = [i]
+		if bodies[i].get("flying") or _aloft(bodies[i]):  # 뜬 적(S236)도 밀지도 밀리지도 않는다
+			continue
+		if bodies[i].radius > 0.5:
+			big.append(i)
+		elif near.has(k):
+			near[k].append(i)
+		else:
+			near[k] = [i]
 	for i in bodies.size():
 		var a = bodies[i]
-		if a.get("flying") or _aloft(a):
+		if a.get("flying") or _aloft(a) or i in big:
 			continue
 		var js := []
 		for dy in range(-1, 2):
@@ -3250,13 +3258,28 @@ func _push_apart(bodies: Array, others: Array) -> void:
 						js.append(j)
 		js.sort()
 		for j in js:
+			_part(a, bodies[j], others)
+	for i in big:
+		for j in bodies.size():
 			var o = bodies[j]
-			var gap: Vector2 = o.pos - a.pos
-			var overlap: float = a.radius + o.radius - gap.length()
-			if overlap > 0.0:
-				var push := (gap.normalized() if gap != Vector2.ZERO else Vector2.RIGHT) * overlap / 2.0
-				_shove(a, -push, others)
-				_shove(o, push, others)
+			if j != i and not (o.get("flying") or _aloft(o)) and not (j in big and j < i):
+				_part(bodies[i], o, others)
+
+# 겹친 두 몸 a·o를 떼어 놓는다(_push_apart)
+func _part(a, o, others: Array) -> void:
+	var gap: Vector2 = o.pos - a.pos
+	var overlap: float = a.radius + o.radius - gap.length()
+	if overlap > 0.0:
+		var push := (gap.normalized() if gap != Vector2.ZERO else Vector2.RIGHT) * overlap
+		var share := 0.5 if _planted(a) == _planted(o) else (1.0 if _planted(a) else 0.0)  # o가 밀리는 몫
+		if share < 1.0:
+			_shove(a, -push * (1.0 - share), others)
+		if share > 0.0:
+			_shove(o, push * share, others)
+
+# 홀드를 켜고 서 있는(걷는 길이 없는) 용병(S36). 적에는 hold가 없다
+func _planted(x) -> bool:
+	return x.get("hold") == true and x.path.is_empty()
 
 # 쏘는 구조물은 사거리 안에서 가장 가까운 적을 쏜다(S28, I29). 피해·반격·범위 피해·축복은 투사체가 닿을 때다(_land, S178).
 # 마법 타워는 마법 피해다(S110, S149). 공격 속도·공격력·사거리는 영웅 효과를 받는다(_haste·_might·_reach, S150)
@@ -3364,7 +3387,7 @@ func _act(u: Unit, dt: float) -> void:
 	var zone := u.hold_radius if u.hold and u.path.is_empty() else INF
 	var top = walls.get(Vector2i(u.pos.round()))
 	var wall_only: bool = u.on_wall and u.range < WALL_RANGE and not (top and top.open)  # 성벽 위 근접 유닛은 열린 성문 위에서만 들판의 적을 치고(S88, S89), 성벽 위의 적은 친다(I78)
-	var foe = _hunt(u, wall_only) if u.prey else _nearest_enemy(u.pos, _reach(u), u.anchor, zone, wall_only)
+	var foe = _hunt(u, wall_only) if u.prey else _nearest_enemy(u.pos, _reach(u), u.anchor, zone, wall_only, u.radius)
 	var walking := not u.path.is_empty()
 	if walking and u.move_mode == "move":  # 순수 이동·대상에게 걸어가는 동안은 치지 않는다(S14, S196)
 		foe = null
@@ -3478,7 +3501,7 @@ func _hunt(u: Unit, wall_only: bool):
 		u.prey = null
 		_halt(u)
 		return null
-	if e.pos.distance_to(u.pos) <= _reach(u) and (e.on_wall or not wall_only):
+	if (e.pos.distance_to(u.pos) <= _reach(u) or _touching(u, e)) and (e.on_wall or not wall_only):
 		u.path.clear()
 		u.after.clear()
 		return e
@@ -3489,16 +3512,22 @@ func _hunt(u: Unit, wall_only: bool):
 		_route(u, c)
 	return null
 
-# from에서 reach 안의 가장 가까운 적. center에서 zone보다 먼 적은 뺀다(홀드 반경). on_wall이면 성벽 위의 적만 본다(I78)
-func _nearest_enemy(from: Vector2, reach: float, center := Vector2.ZERO, zone := INF, on_wall := false):
+# from에서 reach 안의 가장 가까운 적. center에서 zone보다 먼 적은 뺀다(홀드 반경). on_wall이면 성벽 위의 적만 본다(I78).
+# body(유닛 몸 반지름)를 주면 몸이 닿은 적은 reach·zone 밖이어도 든다(S236 2026-10-29 변경: 킹은 몸이 커서 근접 사거리보다 멀리서 닿는다)
+func _nearest_enemy(from: Vector2, reach: float, center := Vector2.ZERO, zone := INF, on_wall := false, body := 0.0):
 	var best = null
-	var best_d := reach
+	var best_d := INF
 	for e in enemies:
 		var d: float = e.pos.distance_to(from)
-		if d <= best_d and e.pos.distance_to(center) <= zone and (e.on_wall or not on_wall) and not _aloft(e):
+		var touch: bool = body > 0.0 and d <= body + e.radius + 0.01  # 밀어낸 직후 거리는 반지름 합과 같아서 0.01 여유(적 쪽 S13과 같다)
+		if d <= best_d and (touch or (d <= reach and e.pos.distance_to(center) <= zone)) and (e.on_wall or not on_wall) and not _aloft(e):
 			best = e
 			best_d = d
 	return best
+
+# 유닛 u와 적 e의 몸이 닿았다(_nearest_enemy와 같은 0.01 여유)
+func _touching(u: Unit, e: Enemy) -> bool:
+	return e.pos.distance_to(u.pos) <= u.radius + e.radius + 0.01
 
 # 맵 밖이나 막힌 칸·거점 칸으로는 들어가지 않는다. 막히면 한 축으로만 움직여 벽을 따라 미끄러진다
 # 2026-10-12

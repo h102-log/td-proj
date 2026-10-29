@@ -20,3 +20,7 @@ def test_EV534_airborne_king_is_not_hit(gd):
 
 def test_EV535_shrink_size_speed_haste(gd):
     gd("slimeking", "EV535")
+
+
+def test_EV595_king_body_two_cells(gd):
+    gd("slimeking", "EV595")

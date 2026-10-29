@@ -104,3 +104,19 @@ func ev237():
 	var goal := Vector2i(10, 1)
 	click(c, MOUSE_BUTTON_RIGHT, px(goal))
 	return check(run(b, 10.0, func(): return near(m.pos, goal)), "우클릭한 칸에 닿지 못했다(%s)" % m.pos)
+
+# EV594 · S204 2026-10-29 변경: 좌클릭은 누른 자리가 그림 자리(발 기준 가로 ±0.5칸, 위 0.9칸~아래 0.35칸) 안인 유닛 가운데 그 가운데가 가장 가까운 것을 고른다
+func ev594():
+	var b = battle({"heroes": [{"kind": "sylvia", "cell": Vector2i(12, 10)}]})
+	var m1 = b.place_merc("soldier", Vector2i(10, 10))
+	var m2 = b.place_merc("soldier", Vector2i(10, 10))
+	m2.pos = Vector2(10.4, 10)
+	var h = b.heroes[0]
+	var c = controls(b)
+	var got := []
+	for u in [m1, m2, h]:
+		click(c, MOUSE_BUTTON_LEFT, (u.pos + Vector2(0.5, 0.0)) * CELL_PX)  # 몸통 자리 = 발 자리 + (0, −0.5)칸, 칸 왼쪽 위가 0
+		got.append(c.selected == [u])
+	click(c, MOUSE_BUTTON_LEFT, (m1.pos + Vector2(0.5, 0.5 - 0.8)) * CELL_PX)  # 첫째 병사 머리(발 자리에서 0.8칸 위, 위 칸에 든다)
+	got.append(c.selected == [m1])
+	return check(got == [true, true, true, true], "첫째·둘째 병사·영웅 몸통, 첫째 머리 칸을 눌러 고른 것이 맞나: %s" % [got])
