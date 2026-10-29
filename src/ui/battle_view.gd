@@ -110,6 +110,10 @@ const STEEL_COLS := [Color("d0d6e0"), Color("4f78ad")]  # 강철 점 윗줄·아
 const LIFT := 0.4  # 보스 스킬 예고의 마지막 이만큼 그림을 들어 올린다(초, S198)
 const VAULT_RISE := 0.15  # 도약 늑대가 웅크림을 끝내고 성벽 위로 올라서는 시간(초, S244). 임시값
 const SLAM_POSE := 0.15  # 보스 스킬이 발동한 뒤 공격 자세(초, S198)
+const GROW := {"slime_king": [3.0, 5.0]}  # 몸이 큰 종류(S236 2026-10-29 변경: 킹 몸 반지름 2칸)의 [그림 배율, 배율 전 그림을 내리는 px]. 정수배라 도트가 고르고, 내리면 그림 가운데가 몸 가운데에 온다
+const POP := 0.3  # 갈라져 나온 적이 죽은 자리에서 제자리로 튀어나오는 시간(초, S234 2026-10-29 변경)
+const POP_UP := 6.0  # 그동안 포물선으로 뛰는 높이(px)
+const POP_FROM := 0.5  # 튀어나오기 시작할 때의 그림 배율. POP초에 1이 된다
 const FILL := 2  # 발동한 처음 이만큼의 프레임은 예고 모양을 채운다(S198). 시간이 아니라 프레임으로 세어 프레임률과 상관없이 2프레임이다
 const SLIDE := 400.0  # 넉백·끌어옴 미끄러짐: 거리/SLIDE초, 0.12~0.3초(S198)
 const DUST := Color("927e6a")  # 먼지(F24+)
@@ -237,6 +241,7 @@ var _tell := {}  # 보스 id → [예고 가운데(맵 px), 반경(px)]. 예고�
 var _dots := []  # 효과 점(I172): {p0, p1, rise, t0, life, fade, col, size, ground}
 var _fade := 1.0  # 지금 그리는 흔적의 불투명도(S179 2026-10-29). 아트 px 도우미가 색 알파에 곱한다
 var _slides := {}  # id → [지난 화면 자리, 시작 시각, 길이](S198 미끄러짐)
+var _pops := {}  # 갈라져 나온 적 id → 나온 시각(S234 2026-10-29 변경)
 var _fills := []  # [보스 스킬 흔적, 남은 프레임](S198 발동 채움). tick마다 하나씩 줄인다
 var _zone_t0 := []  # [장판, 처음 본 화면 시각](4.1s 펼침). 장판은 Dictionary라 is_same으로 찾는다
 var _ghost := []  # 놓기 미리보기 [종류, 칸, 구조물 수, 구한 시각(ms), ghost]. 공병 길찾기(I125)가 한 번에 10~25ms라 이것이 바뀌거나 0.5초 지나야 다시 구한다
@@ -1639,27 +1644,35 @@ func _paint(x, i: int, next: Dictionary, tint: Color) -> void:
 	else:
 		draw_circle(_spot(x), CELL * x.radius, (HERO_COLORS.get(x.kind, COLORS.merc) if x.is_hero else COLORS.get(x.kind, COLORS.merc)) * tint)
 
-# 줄어든 몸(S236)의 그림 배율: 지금 반지름 ÷ 나온 때 반지름. 줄어들지 않는 몸은 1
+# 몸의 그림 배율: 지금 반지름 ÷ 나온 때 반지름(줄어듦, S236)에 몸이 큰 종류의 배율(GROW)을 곱한다. 보통 몸은 1
 func _shrunk(x) -> float:
-	return x.radius / x.girth if x.get("girth") else 1.0
+	return (x.radius / x.girth if x.get("girth") else 1.0) * GROW.get(x.kind, [1.0])[0]
 
 # 몸통 그림의 [발밑 기준 배율, 들어 올림 px](S198 2026-10-27 둘째 변경). 방향 없는 그림의 보스(슬라임 킹)는 점프(S236) 웅크림 동안
-# CROUCH까지 점점 납작해지고, 뜬 동안 포물선으로 한가운데 LEAP_UP까지 오르며, 착지한 뒤 SLAM_POSE 동안 CROUCH에서 돌아온다
+# CROUCH까지 점점 납작해지고, 뜬 동안 포물선으로 한가운데 LEAP_UP(× 큰 몸 배율)까지 오르며, 착지한 뒤 SLAM_POSE 동안 CROUCH에서 돌아온다.
+# 큰 몸(GROW)은 그만큼 내려 그리고(음수 들어 올림), 갈라져 나오는 몸(S234 2026-10-29 변경)은 POP초 동안 POP_FROM배에서 커지며 POP_UP 포물선으로 뛴다
 func _look(x) -> Array:
 	var s := Vector2.ONE * _shrunk(x)
+	var g: Array = GROW.get(x.kind, [1.0, 0.0])
+	var up: float = -g[1] * s.y
+	var t: float = clock - _pops.get(x.get_instance_id(), -INF)
+	if t < POP:
+		var k := t / POP
+		s *= lerpf(POP_FROM, 1.0, k)
+		up += POP_UP * 4.0 * k * (1.0 - k)
 	if not (_boss(x) and ART.has(x.kind) and ART[x.kind].get("one", false)):
-		return [s, 0.0]
+		return [s, up]
 	var c = x.cast
 	if c != null and c.has("at"):
 		var sk: Dictionary = x.skills[c.id]
 		if c.get("air", false):
-			var t: float = 1.0 - c.left / sk.air
-			return [s, LEAP_UP * 4.0 * t * (1.0 - t)]
-		return [s * Vector2.ONE.lerp(CROUCH, 1.0 - c.left / sk.windup), 0.0]
+			var a: float = 1.0 - c.left / sk.air
+			return [s, up + LEAP_UP * g[0] * 4.0 * a * (1.0 - a)]
+		return [s * Vector2.ONE.lerp(CROUCH, 1.0 - c.left / sk.windup), up]
 	var tr = _boss_trace(x)
 	if tr != null:
-		return [s * CROUCH.lerp(Vector2.ONE, tr.age / SLAM_POSE), 0.0]
-	return [s, 0.0]
+		return [s * CROUCH.lerp(Vector2.ONE, tr.age / SLAM_POSE), up]
+	return [s, up]
 
 # 뜬 몸의 그림자(S198): 땅 자리에 납작한 반투명 타원
 func _shadow(at: Vector2, r: float) -> void:
@@ -1894,15 +1907,17 @@ func _corpse(d: Array, tint := Color.WHITE) -> void:
 	var x = d[0]
 	var hero: bool = x.get("is_hero") == true
 	var s := _last_blow(x, d[1])
+	var k := _shrunk(x)
+	var down := Vector2(0, GROW.get(x.kind, [1.0, 0.0])[1] * k)  # 큰 몸은 선 몸처럼 내려 그린다(_look)
 	if s[0]:
 		var soft: bool = s[1] and Settings.soft_flash  # 번쩍임 줄이기(S184)면 선 자세 위에 흰 40%를 덧그린다(S197)
-		_frame(ART[x.kind], "idle", s[4], 0, _spot(x) + s[2], Color(255, 255, 255) if s[1] and not soft else Color.WHITE)  # 흰 실루엣은 _body의 피격 번쩍임과 같은 255배 modulate
+		_frame(ART[x.kind], "idle", s[4], 0, _spot(x) + s[2] + down, Color(255, 255, 255) if s[1] and not soft else Color.WHITE, Vector2.ONE * k)  # 흰 실루엣은 _body의 피격 번쩍임과 같은 255배 modulate
 		if soft:
-			_frame(ART[x.kind], "idle", s[4], 0, _spot(x) + s[2], SOFT_FLASH)
+			_frame(ART[x.kind], "idle", s[4], 0, _spot(x) + s[2] + down, SOFT_FLASH, Vector2.ONE * k)
 		return
-	var p: Vector2 = (_spot(x) if x.on_wall else _center(x.pos) + (Vector2(0, CELL * 0.4) if x.get("flying") == true else Vector2.ZERO)) + s[2]
+	var p: Vector2 = (_spot(x) if x.on_wall else _center(x.pos) + (Vector2(0, CELL * 0.4) if x.get("flying") == true else Vector2.ZERO)) + s[2] + down
 	var a := 1.0 if hero else clampf((battle.FALLEN - d[1]) / CORPSE_FADE, 0.0, 1.0)
-	_frame(ART[x.kind], "fall", 0, mini(int(s[3] / FALL_STEP), 4) if hero else 0, p, Color(1, 1, 1, a) * tint, Vector2.ONE * _shrunk(x))
+	_frame(ART[x.kind], "fall", 0, mini(int(s[3] / FALL_STEP), 4) if hero else 0, p, Color(1, 1, 1, a) * tint, Vector2.ONE * k)
 
 # 쓰러지는 영웅의 고리(S180 2026-10-29): [가운데(맵 px, X 자리), 반경(px), 굵기, 불투명도]. 누운 때부터 쓰러짐 5프레임(FALL_RING) 동안
 # 몸에서 FALL_REACH칸까지 퍼지며 굵기 2 → 1로 옅어진다. 그동안 몸은 다른 몸통 위에 덧그린다(_bodies). 아니면 []
@@ -2336,11 +2351,17 @@ func _slide_scan() -> void:
 			_slides[id] = [was[0], clock, DROP]
 		elif was != null:  # 상태가 바뀐 스텝: 성벽 오르내리기·기어오르기 끝
 			_slides[id] = [was[0], clock, STEP]
+		elif x.get("split_from") != null:  # 막 갈라져 나온 적(S234 2026-10-29 변경): 죽은 자리에서 POP초에 걸쳐 튀어나온다(_look)
+			_slides[id] = [_center(x.split_from), clock, POP]
+			_pops[id] = clock
 		next[id] = [_spot(x), c, state]
 	_last = next
 	for id in _slides.keys():
 		if clock - _slides[id][1] >= _slides[id][2]:
 			_slides.erase(id)
+	for id in _pops.keys():
+		if clock - _pops[id] >= POP:
+			_pops.erase(id)
 
 # 미끄러지는 몸을 그릴 자리와 시뮬레이션 자리의 차(S198)
 func _slip(x) -> Vector2:

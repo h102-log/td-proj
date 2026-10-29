@@ -13,6 +13,7 @@ const STILL := {"speed": 0, "sight": 0, "damage": 0}
 const MERC := {"hp": BIG, "damage": 0, "range": 0, "sight": 0}
 const THREE := [Vector2i(13, 10), Vector2i(13, 9), Vector2i(13, 11)]
 const TOL := 0.5
+const SINK := 15.0  # 킹 그림 3배를 배율 전 5px 내려 그린다(S236 2026-10-29 변경). 발밑 기준점이 몸 자리보다 이만큼 아래다
 
 # 그림 한 장·그림자를 그리는 대신 모으는 화면
 class Rec extends "res://src/ui/battle_view.gd":
@@ -179,7 +180,7 @@ func ev539():
 		e.cast.left = case[0]
 		var d = _one(v, e)
 		var want: Vector2 = r0.size * case[1]
-		if d == null or not _size_ok(d[0], want) or _foot(d[0], a).distance_to(v._spot(e)) > TOL or d[2] != 0 or not _idle_src(d[1], a):
+		if d == null or not _size_ok(d[0], want) or _foot(d[0], a).distance_to(v._spot(e) + Vector2(0, SINK)) > TOL or d[2] != 0 or not _idle_src(d[1], a):
 			bad.append("웅크림 %.2f초 남음: %s(크기 %s · 발밑 %s=%s)" % [case[0], d, want, _foot(d[0], a) if d else null, v._spot(e)])
 	e.cast.left = windup
 	run(b, 2.0, func(): return _aloft(e))
@@ -188,7 +189,7 @@ func ev539():
 	var air: float = e.cast.left
 	e.cast.left = 0.3
 	var d = _one(v, e)
-	if d == null or not _size_ok(d[0], r0.size) or absf(v._spot(e).y - _foot(d[0], a).y - 10.0) > TOL or d[2] < 1 or not _idle_src(d[1], a):
+	if d == null or not _size_ok(d[0], r0.size) or absf(v._spot(e).y - _foot(d[0], a).y - (30.0 - SINK)) > TOL or d[2] < 1 or not _idle_src(d[1], a):
 		bad.append("뜬 한가운데: %s(발밑 %s · 화면 자리 %s)" % [d, _foot(d[0], a) if d else null, v._spot(e)])
 	e.cast.left = air
 	run(b, 2.0, func(): return e.cast == null)
@@ -211,13 +212,13 @@ func ev539():
 	v.free()
 	return check(bad.is_empty(), "%s" % [bad])
 
-# 영웅을 킹 위 0~1.5칸에 0.1칸 간격으로 옮겨 가며 [가린 영웅 판정과 그린 사각형 겹침 25% 초과가 다른 자리들, 참 수, 거짓 수]
+# 영웅을 킹 위 0~4.5칸에 0.1칸 간격으로 옮겨 가며 [가린 영웅 판정과 그린 사각형 겹침 25% 초과가 다른 자리들, 참 수, 거짓 수]
 func _cover(v, e, h, king: Rect2) -> Array:
 	var ha: Dictionary = View.ART[h.kind]
 	var odd := []
 	var yes := 0
 	var no := 0
-	for k in 16:
+	for k in 46:  # 킹 그림이 4칸 남짓이라 그 위까지(S236 2026-10-29 변경)
 		h.pos = e.pos - Vector2(0, 0.1 * k)
 		var hr := Rect2(v._spot(h) - Vector2(ha.anchor[0], ha.anchor[1]), Vector2(ha.c, ha.c))
 		var want: bool = hr.intersection(king).get_area() > 0.25 * hr.get_area()
@@ -248,14 +249,15 @@ func ev540():
 	var cover := [_cover(v, e, h, full[0])]
 	e.hp = e.max_hp * 0.5
 	run(b, DT)
-	if absf(e.radius - 0.55 * 0.8) > 0.01:
+	if absf(e.radius - 2.0 * 0.8) > 0.01:
 		return "체력 50%% 킹 반지름 %.3f" % e.radius
 	var half = _one(v, e)
-	if half == null or not _size_ok(half[0], full[0].size * 0.8) or _foot(half[0], a).distance_to(_foot(full[0], a)) > TOL:
+	if half == null or not _size_ok(half[0], full[0].size * 0.8) or half[0].get_center().distance_to(full[0].get_center()) > TOL:  # 큰 몸은 그림 가운데가 몸 가운데라 가운데가 그대로다(S236 2026-10-29 변경)
 		bad.append("50%%: %s(가득 %s)" % [half, full])
 	var drop: float = (v.hp_bar_at(e) - e.pos - bar_full).y * CELL_PX
-	if absf(drop - a.anchor[1] * 0.2) > TOL:
-		bad.append("50%% 막대 %.2fpx 낮음(기대 %.2f)" % [drop, a.anchor[1] * 0.2])
+	var want: float = (a.anchor[1] - 5.0) * 3.0 * 0.2  # 3배로 그리고 배율 전 5px 내린다(S236 2026-10-29 변경)
+	if absf(drop - want) > TOL:
+		bad.append("50%% 막대 %.2fpx 낮음(기대 %.2f)" % [drop, want])
 	if half:
 		cover.append(_cover(v, e, h, half[0]))
 	var t = _king(THREE)
@@ -269,7 +271,7 @@ func ev540():
 	else:
 		e2.cast.left = 0.3
 		var rise: float = (ground - (v2.hp_bar_at(e2) - e2.pos)).y * CELL_PX
-		if absf(rise - 10.0) > TOL:
+		if absf(rise - 30.0) > TOL:  # LEAP_UP 10 × 3배(S236 2026-10-29 변경)
 			bad.append("뜬 한가운데 막대 %.2fpx 높음" % rise)
 		var up = _one(v2, e2)
 		if up:
@@ -313,5 +315,55 @@ func ev541():
 			if d == null or not is_equal_approx(d[1].position.y, row) or not (is_equal_approx(d[1].position.x, x) or is_equal_approx(d[1].position.x, x + a.c)):
 				bad.append("%s %s쪽: %s(기대 y %s · x %s 또는 %s)" % [k, step, d, row, x, x + a.c])
 		b.enemies.erase(e)
+	v.free()
+	return check(bad.is_empty(), "%s" % [bad])
+
+# EV596 · S236 2026-10-29 변경: 킹 정지 그림은 3배(32px 칸 → 96px)이고 그 가운데가 몸 자리(칸 가운데)다
+func ev596():
+	var s = _king([])
+	if s is String:
+		return s
+	var e = s[1]
+	var v = s[2]
+	var got = _one(v, e)
+	var at: Vector2 = v._spot(e)
+	v.free()
+	if got == null:
+		return "킹 몸통이 그림 한 장이 아니다"
+	return check(got[0].size.is_equal_approx(Vector2(96, 96)) and got[0].get_center().distance_to(at) <= TOL, "킹 그림 %s, 가운데 %s(몸 자리 %s)" % [got[0], got[0].get_center(), at])
+
+# EV597 · S234 2026-10-29 변경: 갈라져 나온 꼬마 슬라임은 처음 훑을 때 배율 0.5이고 발밑(미끄러짐 더함)이 죽은 자리다.
+# 0.15초 뒤 배율은 0.5와 1 사이, 0.35초 뒤 배율 1·미끄러짐 없음이다. 출현 지점에서 나온 슬라임은 처음부터 배율 1이다
+func ev597():
+	var b = battle({"base_hp": BIG})
+	var p = b.spawn_enemy("slime", KING, STILL)
+	var v = Rec.new()
+	v.battle = b
+	v._slide_scan()
+	b.damage(p, BIG)
+	b.step(DT)
+	var kids: Array = b.enemies.filter(func(x): return x.kind == "slimelet")
+	if kids.size() != 2:
+		v.free()
+		return "갈라져 나온 꼬마 슬라임 %d마리(2)" % kids.size()
+	var o = b.spawn_enemy("slime", Vector2i(20, 10), STILL)
+	v._slide_scan()
+	var dead: Vector2 = v._center(Vector2(KING))
+	var bad := []
+	for k in kids:
+		var foot: Vector2 = v._spot(k) + v._slip(k)
+		if not is_equal_approx(v._look(k)[0].y, 0.5) or foot.distance_to(dead) > TOL:
+			bad.append("처음 배율 %s, 발밑 %s(죽은 자리 %s)" % [v._look(k)[0], foot, dead])
+	if not is_equal_approx(v._look(o)[0].y, 1.0):
+		bad.append("출현 지점 슬라임 배율 %s" % [v._look(o)[0]])
+	v.clock += 0.15
+	for k in kids:
+		var y: float = v._look(k)[0].y
+		if y <= 0.5 or y >= 1.0:
+			bad.append("0.15초 배율 %.3f" % y)
+	v.clock += 0.2
+	for k in kids:
+		if not is_equal_approx(v._look(k)[0].y, 1.0) or v._slip(k).length() > TOL:
+			bad.append("0.35초 배율 %s, 미끄러짐 %s" % [v._look(k)[0], v._slip(k)])
 	v.free()
 	return check(bad.is_empty(), "%s" % [bad])

@@ -48,3 +48,7 @@ def test_EV397_merc_key_keeps_units_selected(gd):
 
 def test_EV398_empty_drag_and_hud_picks_keep_units(gd):
     gd("merc", "EV398")
+
+
+def test_EV593_held_merc_not_pushed_by_ally(gd):
+    gd("merc", "EV593")

@@ -19,6 +19,7 @@ extends RefCounted
 
 # ponytail: 맵 px 기준이라 줌에 따라 화면에서 느끼는 거리가 달라진다. 거슬리면 화면 px로 잰다
 const CLICK_SLOP := 4.0  # 이보다 덜 끌고 떼면 클릭이다(맵 px)
+const BODY := Rect2(-0.5, -0.9, 1.0, 1.25)  # 좌클릭으로 유닛을 고르는 그림 자리(칸, 발 자리 기준, S204 2026-10-29 변경). 병사 그림은 발에서 약 13px(0.8칸) 솟는다
 const BattleView := preload("res://src/ui/battle_view.gd")
 const SKILL_KEYS := {KEY_Q: "q", KEY_W: "w", KEY_E: "e", KEY_R: "r"}  # 영웅 스킬 칸(S145)
 const PLACE_KEYS := {KEY_1: "wall", KEY_2: "tower", KEY_MINUS: "magic", KEY_3: "soldier", KEY_4: "barracks", KEY_5: "engineer", KEY_6: "workshop", KEY_7: "archer", KEY_8: "cannon", KEY_9: "archery", KEY_0: "house", KEY_EQUAL: "church", KEY_BACKSLASH: "shelter"}
@@ -161,7 +162,8 @@ func _release(rect: Rect2, at: Vector2) -> void:
 	var units := []  # 누르거나 끈 영웅·용병. 비었으면 고른 유닛은 그대로다(S204, I173)
 	if rect.size.length() < CLICK_SLOP:
 		var cell := Vector2i((rect.position / cell_px).floor())
-		units = battle.heroes.filter(func(h): return h.alive and Vector2i(h.pos.round()) == cell).slice(0, 1)  # 클릭한 칸의 영웅(I9, I101)
+		var mine = _unit_at(battle.heroes.filter(func(h): return h.alive) + mercs, rect.position / cell_px - Vector2(0.5, 0.5))  # 누른 자리가 그림 자리 안인 영웅·용병(S204 2026-10-29 변경)
+		units = [mine] if mine and mine.is_hero else []
 		var hit = battle.structure_at(cell)
 		facility = hit if hit and not hit.produces.is_empty() and hit.complete else null
 		fort = BattleView.side_at(battle, rect.position)  # 동·서 성벽·닫힌 문루·모서리 탑은 올려 그린 그림으로(S219)
@@ -169,9 +171,8 @@ func _release(rect: Rect2, at: Vector2) -> void:
 			fort = battle.walls.get(cell, battle.debris.get(cell))  # 성곽 차지 칸 어디를 눌러도(S217)
 		village = cell == battle.base.cell
 		picked = [hit] if hit and (not prep or (battle.live() and not hit.complete)) else []  # live 준비 단계의 미완성은 판매 대신 이어 짓기·취소(S83, I57)
-		for m in mercs:
-			if Vector2i(m.pos.round()) == cell:
-				hit = m
+		if mine and not mine.is_hero:
+			hit = mine
 		selling = [hit] if prep and hit and hit not in picked else []
 		if hit in mercs:
 			units = [hit]
@@ -337,6 +338,14 @@ func _aim_at(px: Vector2) -> void:
 # 고르거나 노릴 수 있는 적: 어둠 속에 숨은 적(S213)은 뺀다
 func _foes() -> Array:
 	return battle.enemies if battle.dark <= 0.0 else battle.enemies.filter(func(e): return battle.seen(e.pos))
+
+# 누른 자리(칸 좌표 at)가 그림 자리(BODY) 안인 유닛 가운데 그 사각형 가운데가 가장 가까운 것. 없으면 null
+func _unit_at(pool: Array, at: Vector2):
+	var best = null
+	for u in pool:
+		if BODY.has_point(at - u.pos) and (best == null or at.distance_to(u.pos + BODY.get_center()) < at.distance_to(best.pos + BODY.get_center())):
+			best = u
+	return best
 
 func _closest(pool: Array, at: Vector2):
 	var best = null
