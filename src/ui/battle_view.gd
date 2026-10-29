@@ -24,7 +24,7 @@ const EYES := Color("f0e060")  # 어둠 속에 숨은 밤 늑대의 눈빛(S240,
 
 const UNITS := preload("res://art/units/heroes.png")  # 영웅 6명과 용병·적 시트를 한 장에 모은 아틀라스(tools/art/atlas.py)
 static var ART: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/units/heroes.json"))  # 종류 → 캔버스·발밑·시트 y
-const LUNGE := 6.0  # 근접 돌진 거리(px). 림월드 0.35칸을 16px 칸으로 옮겼다(06 §4)
+const LUNGE := 6.0  # 근접 돌진 거리(px). 대상 몸까지의 틈을 더한다(_lunge). 림월드 0.35칸을 16px 칸으로 옮겼다(06 §4)
 const CONTACT := 0.08  # 근접 공격이 대상에 닿는 때(친 뒤 초). 돌진(_lunge)이 가장 멀리 나간 때다
 const FLASH := 0.1  # 피격 흰 번쩍임 길이(초, S177)
 const FLINCH := 3.0  # 피격 밀림(px, S177). 림월드 0.17칸을 16px 칸으로 옮겼다(06 §4)
@@ -1982,13 +1982,15 @@ func _prop(p: Array, now: float) -> void:
 		var w: Rect2 = PROP_ART.wheel
 		draw_texture_rect_region(PROPS, Rect2(Vector2(Folk.MILL[1]) * CELL + PROP_AT.wheel, w.size), Rect2(w.position + Vector2(w.size.x * (int(now * PROP_WHEEL_FPS) % 4), 0), w.size))
 
-# 근접 용병·적의 돌진(px): 친 뒤 0.08초에 대상 쪽으로 LUNGE만큼 나가고 0.32초에 걸쳐 돌아온다. 발밑 표시도 함께 옮긴다.
-# 영웅(8방향 공격 프레임, S165)과 원거리(사거리 2칸 초과)는 돌진하지 않는다
+# 근접 용병·적의 돌진(px): 친 뒤 0.08초에 대상 쪽으로 LUNGE + 대상 몸까지의 틈만큼 나가고 0.32초에 걸쳐 돌아온다. 발밑 표시도 함께 옮긴다.
+# 영웅(8방향 공격 프레임, S165)과 원거리(사거리 2칸 초과)는 돌진하지 않는다. 몸 반지름이 없는 구조물은 틈이 0이다(S172 2026-10-30 변경)
 func _lunge(x) -> Vector2:
 	var a := _ago(x)
 	if x.get("is_hero") or (x.get("range") != null and x.range > 2.0) or not x.target or a >= 0.4:
 		return Vector2.ZERO
-	return (_pos_of(x.target) - x.pos).normalized() * LUNGE * (a / CONTACT if a < CONTACT else 1.0 - (a - CONTACT) / 0.32)
+	var to: Vector2 = _pos_of(x.target) - x.pos
+	var gap: float = maxf(to.length() - x.radius - x.target.radius, 0.0) * CELL if x.target.get("radius") != null else 0.0
+	return to.normalized() * (LUNGE + gap) * (a / CONTACT if a < CONTACT else 1.0 - (a - CONTACT) / 0.32)
 
 # 공격자 xs 가운데 방금 친 것의 대상 → [맞은 뒤 지난 시간(초), 공격자 → 대상 방향, 밀림(px), 돌아오는 시간(초), 강철 점](S177). 여럿에게 맞으면 가장 최근 타격이다.
 # 근접 기본 공격은 시뮬레이션에 상태를 두지 않고 공격자의 친 뒤 시간에서 구한다(06 §4). 원거리는 시뮬레이션 투사체가 닿은 때부터다(battle.landed, S178).
