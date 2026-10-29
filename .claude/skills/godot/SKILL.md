@@ -38,7 +38,18 @@ timeout 60 "$G" --headless --path . -s "<스크래치패드 절대 경로>/x.gd"
 - `load("res://src/main.tscn").instantiate()`를 `root.add_child`해도 `_ready`는 바로 돌지 않는다. `_process`에서 `main.is_node_ready()`를 확인한 뒤 손댄다. 그 전에 `set_process(false)`를 하면 READY 알림이 도로 켠다.
 - `add_child`로 붙인 씬은 `current_scene`이 null이다. 진입 씬으로 띄우면 `current_scene`이 자기 자신이다.
 - `_initialize` 안에서는 root가 아직 트리 밖이라, 붙인 노드의 `_ready`가 돌지 않는다. 평가 러너가 이 상태라서 평가 코드는 static 함수를 직접 부른다.
-- `-s`로 띄운 것은 편집기 빌드다(feature `editor`). export 템플릿이 없어서, 내보낸 빌드에서만 생기는 동작은 확인할 수 없다.
+- `-s`로 띄운 것은 편집기 빌드다(feature `editor`). 내보낸 빌드(feature `template`, 전체화면으로 켜짐)에서만 생기는 동작은 아래 내보내기로 확인한다.
+
+## 내보내기(exe)
+
+```bash
+timeout 600 "$G" --headless --path . --export-release "Windows Desktop" "C:/Users/bhy99/Desktop/td-proj.exe"
+```
+
+- `export_presets.cfg`의 프리셋이다. pck를 exe에 넣어 파일 하나가 나온다(약 185MB, 2026-10-29).
+- 템플릿은 1번 PC `%APPDATA%\Godot\export_templates\4.7.2.stable`에 Windows x86_64용만 있다. 없으면 `Godot_v4.7.2-stable_export_templates.tpz`(1.28GB, 위 godot-builds 릴리스)에서 `version.txt`와 `windows_*x86_64*`만 풀어 넣는다.
+- 내보내면 art/ `.import`가 생기고 바뀐다. 뒷정리는 아래 .uid와 --import와 같다.
+- 저장 데이터는 편집기 실행과 같은 `%APPDATA%\Godot\app_userdata\td-proj`를 쓴다.
 
 ## .uid와 --import
 
