@@ -1,6 +1,6 @@
 {
-  "approvedAt": "2026-10-28T22:13:10.536Z",
-  "evalMd": "7f1d26c6",
+  "approvedAt": "2026-10-29T04:39:25.988Z",
+  "evalMd": "ade3494c",
   "tests": {
     "tests/eval/conftest.py": "e6bb5f0b",
     "tests/eval/gd/aura.gd": "010cc38a",
@@ -95,6 +95,8 @@
     "tests/eval/gd/wall.gd.uid": "5931bc74",
     "tests/eval/gd/wolf.gd": "acc4f81b",
     "tests/eval/gd/wolf.gd.uid": "f8e3b505",
+    "tests/eval/gd/wolfart.gd": "bc1e2900",
+    "tests/eval/gd/wolfart.gd.uid": "c0110452",
     "tests/eval/test_aura.py": "bb2c72b8",
     "tests/eval/test_boss.py": "43142238",
     "tests/eval/test_buff.py": "9ead7511",
@@ -139,7 +141,8 @@
     "tests/eval/test_units.py": "05de9e3b",
     "tests/eval/test_village.py": "54fa0d71",
     "tests/eval/test_wall.py": "8ea59b76",
-    "tests/eval/test_wolf.py": "a4baf809"
+    "tests/eval/test_wolf.py": "a4baf809",
+    "tests/eval/test_wolfart.py": "2b4515ca"
   },
   "sentences": {
     "S1": "03bece56",
@@ -415,7 +418,7 @@
     "S220": "d205e4eb",
     "I181": "0cd2b7a4",
     "S221": "44b69362",
-    "S172": "c94bf865",
+    "S172": "6dfa4bda",
     "S222": "0226b181",
     "S223": "b88e5958",
     "S224": "7e1b8744",
@@ -436,7 +439,7 @@
     "I187": "1414ce21",
     "S235": "8cd06bd8",
     "S236": "63c9b853",
-    "I189": "b3fbe0f5",
+    "I189": "3c3f60a6",
     "S198": "ffa42bee",
     "S238": "42eb30d6",
     "I190": "3e59dca2",
@@ -450,6 +453,7 @@
     "I194": "28ec85f0",
     "S242": "a6e674ff",
     "S243": "03711a53",
-    "I195": "9bb8c6e1"
+    "I195": "9bb8c6e1",
+    "S244": "1a4c0755"
   }
 }

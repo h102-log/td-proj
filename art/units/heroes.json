@@ -205,6 +205,57 @@
   "attack": 6068,
   "fall": 6132
  },
+ "wolf": {
+  "c": 24,
+  "anchor": [
+   12.0,
+   18
+  ],
+  "x": 88,
+  "idle": 6196,
+  "walk": 6292,
+  "attack": 6388,
+  "fall": 6580
+ },
+ "leap_wolf": {
+  "c": 26,
+  "anchor": [
+   13.0,
+   15
+  ],
+  "x": 88,
+  "idle": 6628,
+  "walk": 6732,
+  "attack": 6836,
+  "fall": 7044,
+  "crouch": 7096
+ },
+ "night_wolf": {
+  "c": 26,
+  "anchor": [
+   13.0,
+   18
+  ],
+  "x": 88,
+  "idle": 7200,
+  "walk": 7304,
+  "attack": 7408,
+  "fall": 7616
+ },
+ "alpha_wolf": {
+  "c": 50,
+  "anchor": [
+   25.0,
+   38
+  ],
+  "x": 88,
+  "idle": 7668,
+  "walk": 7868,
+  "attack": 8068,
+  "fall": 8468,
+  "crouch": 8568,
+  "air": 8768
+ },
  "folk_man_0": {
   "c": 23,
   "anchor": [

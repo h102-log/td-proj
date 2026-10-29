@@ -12,7 +12,7 @@ const COLORS := {
 const ENEMY_COLORS := {  # 적 종류마다 다른 색(I81)
 	"basic": Color("d04040"), "fast": Color("f08030"), "armored": Color("807070"), "flying": Color("e050c0"), "boss": Color("801010"),
 	"slime": Color("50b050"), "slimelet": Color("98e070"), "big_slime": Color("2f7a3a"), "slime_king": Color("3aa0a0"),
-	"wolf": Color("8a7a68"), "leap_wolf": Color("b08850"), "night_wolf": Color("3a3a58"), "alpha_wolf": Color("d8d8d0"),  # 그림(2라운드 PR ③) 전까지 색 원
+	"wolf": Color("8a7a68"), "leap_wolf": Color("b08850"), "night_wolf": Color("3a3a58"), "alpha_wolf": Color("d8d8d0"),
 }
 const HERO_COLORS := {  # 영웅 종류마다 다른 색(S56, S157, I101)
 	"aias": Color("b060f0"), "sylvia": Color("a0ff40"), "seraphina": Color("f0f0f0"), "vesper": Color("40c060"), "ignis": Color("ff5020"), "chronos": Color("ffd020"),
@@ -108,6 +108,7 @@ const ARMORED := 10.0  # 장갑으로 보는 지금 방어력(battle.armor_of, �
 const STEEL := 0.2  # 장갑이 물리로 맞은 면의 강철 점이 남는 시간(초). 번쩍임(FLASH)이 끝난 뒤 0.1초 더 보인다
 const STEEL_COLS := [Color("d0d6e0"), Color("4f78ad")]  # 강철 점 윗줄·아랫줄(F24+): 흰 번쩍임 위에서도 장갑 몸(807070) 위에서도 보이게
 const LIFT := 0.4  # 보스 스킬 예고의 마지막 이만큼 그림을 들어 올린다(초, S198)
+const VAULT_RISE := 0.15  # 도약 늑대가 웅크림을 끝내고 성벽 위로 올라서는 시간(초, S244). 임시값
 const SLAM_POSE := 0.15  # 보스 스킬이 발동한 뒤 공격 자세(초, S198)
 const FILL := 2  # 발동한 처음 이만큼의 프레임은 예고 모양을 채운다(S198). 시간이 아니라 프레임으로 세어 프레임률과 상관없이 2프레임이다
 const SLIDE := 400.0  # 넉백·끌어옴 미끄러짐: 거리/SLIDE초, 0.12~0.3초(S198)
@@ -1755,7 +1756,10 @@ func _lift(x) -> float:
 	if top:
 		return 3 + WALL_H - CELL / 2.0 + _rise(p)
 	if x.get("climbed"):
-		return (3 + WALL_H + rise_at(battle, Vector2i(p.round()) + Vector2i.UP)) * x.climbed / x.climb
+		var r: float = x.climbed / x.climb
+		if x.get("vault"):  # 도약 늑대는 마지막 VAULT_RISE초에만 그만큼의 비율로 오른다(S244 ①)
+			r = clampf((x.climbed - x.climb + VAULT_RISE) / VAULT_RISE, 0.0, 1.0)
+		return (3 + WALL_H + rise_at(battle, Vector2i(p.round()) + Vector2i.UP)) * r
 	return 0.0
 
 # 성벽 위 자리 p의 바닥 높이(px, S170 2026-10-28): 둘레 네 칸 가운데의 rise_at을 이어 칸 사이를 비탈로 만든다. 성곽이 아닌 이웃은 선 칸 높이로 본다
@@ -1837,6 +1841,8 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 	var col := 0
 	if pose:
 		anim = "attack"
+	elif x.get("climbed") and x.get("vault"):  # 도약 늑대(S244 ①): 성벽 밑에서 웅크리다 마지막 VAULT_RISE초에 정지 그림으로 올라선다
+		anim = "crouch" if x.climb - x.climbed > VAULT_RISE else "idle"
 	elif moving or x.get("climbed"):
 		anim = "walk"
 		col = int(Time.get_ticks_msec() / 125.0) % 2
@@ -1852,6 +1858,10 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 			col = 0  # 4방향 시트의 공격은 키 포즈 한 칸이다. 밀려 걷는 위상이 남으면 빈 칸을 그린다
 			dir = 0 if c.aim == null else _four(Vector2(c.aim) - c.at)
 			off.y = 1.0
+		elif x.cast and x.cast.id == "pounce":  # 덮치기(S244 ②): 예고는 대상 쪽 웅크림, 뜬 동안은 뜀. S198의 들어 올림은 쓰지 않는다
+			anim = "air" if x.cast.get("air", false) else "crouch"
+			col = 0
+			dir = _four(x.cast.at - x.pos)
 		elif x.cast and x.cast.left < LIFT:
 			anim = "idle"
 			col = 0
