@@ -251,3 +251,41 @@ func ev593():
 		return "홀드: 병사가 기준 지점에서 %s칸 밀렸고 영웅 x %.2f(12 미만이어야 한다)" % [moved, r[1].pos.x]
 	var free := _gap_walk(false)
 	return check(free[1].pos.x > 13.0, "홀드를 끈 병사 사이로 영웅이 지나가지 못했다(x %.2f)" % free[1].pos.x)
+
+# EV598 · S172 2026-10-30 변경: 근접 돌진은 6px + 대상 몸까지의 틈이다. 몸이 겹쳤거나 구조물을 치면 6px
+func ev598():
+	var b = battle()
+	var m = b.place_merc("soldier", Vector2i(10, 10), {"hp": BIG, "sight": 0})
+	var e = b.spawn_enemy("basic", Vector2i(11, 10), {"speed": 0, "damage": 0, "sight": 0, "hp": BIG})
+	if not run(b, 5, func(): return m.target == e):
+		return "병사가 1칸 떨어진 적을 치지 않았다"
+	var wall = b.build("wall", Vector2i(12, 10))
+	if wall == null:
+		return "(12,10)에 방벽을 짓지 못했다"
+	var v = load("res://src/ui/battle_view.gd").new()
+	v.battle = b
+	var body: float = m.radius + e.radius
+	var bad := []
+	m.cooldown = m.attack_gap - v.CONTACT  # 돌진이 가장 멀리 나간 때
+	var got: Vector2 = v._lunge(m)
+	var want := Vector2(6.0 + (1.0 - body) * 16.0, 0)
+	if got.distance_to(want) > 0.5:
+		bad.append("1칸 떨어진 적: %s(%s)" % [got, want])
+	e.pos = m.pos + Vector2(body - 0.05, 0)
+	got = v._lunge(m)
+	if got.distance_to(Vector2(6, 0)) > 0.5:
+		bad.append("몸이 겹친 적: %s(6px)" % got)
+	e.pos = m.pos + Vector2(0.9, 0)
+	e.target = m
+	e.cooldown = e.attack_gap - v.CONTACT
+	got = v._lunge(e)
+	want = Vector2(-(6.0 + (0.9 - body) * 16.0), 0)
+	if got.distance_to(want) > 0.5:
+		bad.append("병사를 친 적: %s(%s)" % [got, want])
+	e.pos = Vector2(11, 10)
+	e.target = wall
+	got = v._lunge(e)
+	if got.distance_to(Vector2(6, 0)) > 0.5:
+		bad.append("방벽을 친 적: %s(6px)" % got)
+	v.free()
+	return check(bad.is_empty(), "%s" % [bad])

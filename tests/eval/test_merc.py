@@ -52,3 +52,7 @@ def test_EV398_empty_drag_and_hud_picks_keep_units(gd):
 
 def test_EV593_held_merc_not_pushed_by_ally(gd):
     gd("merc", "EV593")
+
+
+def test_EV598_melee_lunge_reaches_body(gd):
+    gd("merc", "EV598")
