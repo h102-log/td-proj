@@ -28,32 +28,34 @@ q = {
 "might": 0.2
 }
 w = {
-"id": "rewind",
-"aim": "ally",
-"targets": "hero",
+"id": "aging",
+"aim": "point",
 "gap": 14.0,
-"mana": 70.0,
-"mana_back": 0.25,
-"cut": 5.0
+"mana": 60.0,
+"radius": 2.0,
+"time": 6.0,
+"weaken": 0.4,
+"burn": 0.01
 }
 e = {
-"id": "golden_law",
-"aim": "self",
-"gap": 20.0,
-"mana": 60.0,
-"radius": 3.0,
-"time": 6.0,
-"bonus": 0.3
+"id": "time_loop",
+"aim": "point",
+"gap": 18.0,
+"mana": 70.0,
+"radius": 1.0,
+"time": 5.0,
+"count": 5,
+"delay": 2.0,
+"blast": 1.5,
+"damage": 15.0
 }
 r = {
-"id": "time_warp",
-"aim": "point",
-"gap": 70.0,
-"mana": 180.0,
-"radius": 3.5,
-"time": 6.0,
-"haste": 0.5,
-"cdr": 0.5,
-"slow": 0.5,
-"lag": 0.5
+"id": "wind_up",
+"aim": "self",
+"gap": 80.0,
+"mana": 160.0,
+"time": 5.0,
+"slow": 0.8,
+"radius": 4.0,
+"pace": 3.0
 }

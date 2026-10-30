@@ -19,7 +19,7 @@ extends CanvasLayer
 # 준비·전투 단계 왼쪽 아래 구석에 미니맵을 둔다(S209, hud_minimap.gd)
 
 const NAMES := {"wall": "방벽", "tower": "타워", "magic": "마법 타워", "soldier": "용병", "barracks": "병영", "engineer": "공병", "workshop": "작업장", "archer": "궁수", "cannon": "대포", "archery": "사격장", "house": "집", "church": "교회", "shelter": "대피소"}
-const HEROES := {"aias": "아이아스(탱커)", "sylvia": "실비아(원거리)", "seraphina": "세라피나(힐러)", "vesper": "베스퍼(디버퍼)", "ignis": "이그니스(마법사)", "chronos": "크로노스(버퍼)"}  # 이름(역할), S97·S157
+const HEROES := {"aias": "아이아스(탱커)", "sylvia": "실비아(원거리)", "seraphina": "세라피나(힐러)", "vesper": "베스퍼(디버퍼)", "ignis": "이그니스(마법사)", "chronos": "크로노스(제어형)"}  # 이름(역할), S97·S157
 const GRADES := ["1성", "2성", "3성"]  # S94
 const GAPS := {"none": "공병 없음", "far": "닿는 공병 없음"}  # 공병 지시를 맡을 공병이 없는 이유(I128). 툴팁·정보 칸의 빨간 줄(✕는 그 줄이 붙인다)
 const SKILLS := {  # 영웅마다 Q·W·E·R의 [이름, 요약, 수치 줄 틀](S97 표). 툴팁(S187)이 쓴다. 틀은 skill_lines가 채운다
@@ -50,9 +50,9 @@ const SKILLS := {  # 영웅마다 Q·W·E·R의 [이름, 요약, 수치 줄 틀]
 		["메테오 스웜", "운석·용암", "운석 {count}개({delay}초 간격): {radius}칸 마법 {damage}\n기절 {stun}초, 용암 {lava}초(초당 최대 체력 {burn%})"]],
 	"chronos": [
 		["무기 과충전", "자동 시전", "{time}초 동안 공격 속도 +{haste%}, 공격력 +{might%}"],
-		["시간 되감기", "마나·대기", "대상 영웅 마나 {mana_back%} 채움\nQ·W·E 대기 {cut}초 줄임"],
-		["황금의 율법", "골드 증가", "둘레 {radius}칸 {time}초: 안에서 잡은 적 골드 +{bonus%}"],
-		["시간 왜곡장", "가속·감속", "{radius}칸 {time}초: 아군 공격 속도 +{haste%}, 스킬 대기 +{cdr%}\n적 둔화 {slow%}, 공격 느려짐 {lag%}"]],
+		["노화", "공격력 감소·지속 피해", "{radius}칸 적 {time}초: 공격력 −{weaken%}\n초당 최대 체력 {burn%} 마법 피해"],
+		["타임 루프", "되돌리기", "{radius}칸 문 {time}초: 처음 든 적 {count}명\n{delay}초 뒤 든 자리로 되돌림, 둘레 {blast}칸 마법 {damage}"],
+		["태엽 감기", "전장 감속·가속", "{time}초: 모든 적 이동 속도 −{slow%}\n둘레 {radius}칸 영웅 스킬 대기·타워 공격 ×{pace}"]],
 }
 const HOLE := "\\{(\\w+)(%?)\\}"  # 수치 줄 틀의 자리: {키}는 값, {키%}는 백분율
 const HudTheme := preload("res://src/ui/hud_theme.gd")

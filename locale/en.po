@@ -158,8 +158,8 @@ msgstr "Vesper (Debuffer)"
 msgid "이그니스(마법사)"
 msgstr "Ignis (Mage)"
 
-msgid "크로노스(버퍼)"
-msgstr "Chronos (Buffer)"
+msgid "크로노스(제어형)"
+msgstr "Chronos (Controller)"
 
 msgid "아이아스"
 msgstr "Aias"
@@ -334,23 +334,23 @@ msgstr "Overcharge"
 msgid "자동 시전"
 msgstr "Autocast"
 
-msgid "시간 되감기"
-msgstr "Rewind"
+msgid "노화"
+msgstr "Aging"
 
-msgid "마나·대기"
-msgstr "Mana, cooldowns"
+msgid "공격력 감소·지속 피해"
+msgstr "Weaken, damage over time"
 
-msgid "황금의 율법"
-msgstr "Golden Law"
+msgid "타임 루프"
+msgstr "Time Loop"
 
-msgid "골드 증가"
-msgstr "Gold up"
+msgid "되돌리기"
+msgstr "Send back"
 
-msgid "시간 왜곡장"
-msgstr "Time Warp"
+msgid "태엽 감기"
+msgstr "Wind-Up"
 
-msgid "가속·감속"
-msgstr "Haste, slow"
+msgid "전장 감속·가속"
+msgstr "Battlefield slow, haste"
 
 # ── 적(hud.gd ENEMIES·TRAITS·SIDES) ──
 
@@ -1207,20 +1207,20 @@ msgstr "stun %ss, lava %ss (%s max HP/s)"
 msgid "%s초 동안 공격 속도 +%s, 공격력 +%s"
 msgstr "%ss: +%s attack speed, +%s damage"
 
-msgid "대상 영웅 마나 %s 채움"
-msgstr "Restores %s of the target hero's mana"
+msgid "%s칸 적 %s초: 공격력 −%s"
+msgstr "Foes within %s cells, %ss: −%s damage"
 
-msgid "Q·W·E 대기 %s초 줄임"
-msgstr "Q·W·E cooldowns −%ss"
+msgid "%s칸 문 %s초: 처음 든 적 %s명"
+msgstr "%s-cell gate, %ss: first %s foes in"
 
-msgid "둘레 %s칸 %s초: 안에서 잡은 적 골드 +%s"
-msgstr "%s cells, %ss: +%s gold from kills inside"
+msgid "%s초 뒤 든 자리로 되돌림, 둘레 %s칸 마법 %s"
+msgstr "sent back to where they entered after %ss, %s-cell blast for %s magic"
 
-msgid "%s칸 %s초: 아군 공격 속도 +%s, 스킬 대기 +%s"
-msgstr "%s cells, %ss: allies +%s attack speed, +%s cooldown rate"
+msgid "%s초: 모든 적 이동 속도 −%s"
+msgstr "%ss: all foes −%s move speed"
 
-msgid "적 둔화 %s, 공격 느려짐 %s"
-msgstr "foes slowed %s, attacks slowed %s"
+msgid "둘레 %s칸 영웅 스킬 대기·타워 공격 ×%s"
+msgstr "Within %s cells: heroes' cooldowns and towers' attacks ×%s"
 
 msgid "시전 거리 %s칸"
 msgstr "Cast range %s cells"

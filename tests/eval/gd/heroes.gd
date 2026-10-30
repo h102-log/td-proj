@@ -18,7 +18,7 @@ const S151_158 := {  # 종류 → [패시브 id, 오라 키들, [Q·W·E·R마�
 	"seraphina": ["overflow", ["armor"], [["holy_beam", "ally", 6, 45], ["sanctum", "point", 12, 70], ["guardian", "ally", 16, 85], ["miracle", "self", 70, 200]]],
 	"vesper": ["contagion", ["foe_armor"], [["corrosion", "point", 8, 50], ["enfeeble", "point", 11, 65], ["soul_chain", "enemy", 15, 80], ["abyss", "point", 60, 160]]],
 	"ignis": ["overload", ["mana"], [["fireball", "point", 6, 50], ["frost_ring", "point", 9, 65], ["black_hole", "point", 14, 80], ["meteor_swarm", "point", 65, 180]]],
-	"chronos": ["", ["haste", "stride"], [["overcharge", "ally", 4, 35], ["rewind", "ally", 14, 70], ["golden_law", "self", 20, 60], ["time_warp", "point", 70, 180]]],
+	"chronos": ["", ["haste", "stride"], [["overcharge", "ally", 4, 35], ["aging", "point", 14, 60], ["time_loop", "point", 18, 70], ["wind_up", "self", 80, 160]]],
 }
 const S121 := {  # 등급, 체력, 공격력, 사거리, 공격 간격, 속도
 	"aias": [3, 100, 3, 1.5, 1.0, 3], "sylvia": [3, 70, 3, 4, 1.0, 3], "seraphina": [3, 90, 2, 3, 1.0, 3],
@@ -133,6 +133,7 @@ func ev175():
 	if c.selected != [m]:
 		return "크로노스를 고르지 못했다(%s)" % [c.selected]
 	_key(c, KEY_E)
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(m.pos.round())))  # 크로노스 E는 지점 칸이다(S158 2026-10-30)
 	return check(first == [1, 0] and k.skill_uses == 1 and m.skill_uses == 1 and k.cd.e <= 0.0 and m.cd.e > 0.0,
 		"고르지 않고 W: 아이아스·크로노스 %s · 크로노스를 고르고 E: 아이아스 %d·크로노스 %d, E 대기 아이아스 %s·크로노스 %s" % [first, k.skill_uses, m.skill_uses, k.cd.e, m.cd.e])
 
@@ -171,10 +172,11 @@ func ev231():
 	return check(free_e == 1 and picked and de[0].heroes[1].skill_uses == 1,
 		"고르지 않고 E: 크로노스 %d번 · 아이아스를 고른 채(%s) 아이아스가 쓰러진 뒤 E: 크로노스 %d번" % [free_e, picked, de[0].heroes[1].skill_uses])
 
-# 첫 영웅(아이아스)을 쓰러뜨린 뒤 E(아이아스·크로노스 모두 즉시 칸)를 누른다
+# 첫 영웅(아이아스)을 쓰러뜨린 뒤 E를 누르고 크로노스 칸을 누른다(크로노스 E는 지점 칸, S158 2026-10-30)
 func _down_first_then_e(bc: Array) -> void:
 	bc[0].damage(bc[0].heroes[0], BIG)
 	_key(bc[1], KEY_E)
+	click(bc[1], MOUSE_BUTTON_LEFT, px(Vector2i(bc[0].heroes[1].pos.round())))
 
 # EV238 · S136: 준비 단계의 스킬 키는 아무 일도 하지 않고 재사용 대기도 시작하지 않으며 마나도 그대로다. 전투 단계에는 쓴다
 func ev238():

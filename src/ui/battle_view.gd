@@ -40,7 +40,7 @@ const MUZZLE_FLASH := 0.05  # 타워가 쏠 때 쏘는 곳의 금·크림 십자
 const RECOIL := 0.1  # 대포를 쏜 뒤 그림이 대상 반대쪽으로 1px 물러나 있는 시간
 const PUFFS := 4  # 대포를 쏠 때 포신 끝에서 피어오르는 포연 점 수
 const FX := 0.3  # 즉시 스킬 흔적(S179)이 퍼지고 사라지는 시간(초). 범위 원(S72)의 0.3초를 이었다
-const MISSABLE := ["shield_bash", "war_cry", "burst", "fireball", "frost_ring", "meteor", "piercing_gale", "enfeeble"]  # 적을 노리는 즉시 스킬(S179 2026-10-29)
+const MISSABLE := ["shield_bash", "war_cry", "burst", "fireball", "frost_ring", "meteor", "piercing_gale", "enfeeble", "aging"]  # 적을 노리는 즉시 스킬(S179 2026-10-29)
 const MISS_FADE := 0.5  # 그 스킬이 아무도 못 맞힌 흔적의 불투명도
 const FX_TEX := preload("res://art/fx/fx.png")  # 이펙트 도트 조각 아틀라스(tools/art/fx.py, 4.1s)
 static var FX_ART: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/fx/fx.json"))  # 조각 → [x, y, 폭, 높이, 프레임 수]
@@ -81,9 +81,8 @@ const FIZZ_CYCLE := 1.1  # 거품 하나가 다시 오르는 주기
 const RIPPLES := 4  # 늪 장판 하나의 물결 자리 수
 const RIPPLE_CYCLE := 1.4  # 물결 하나가 다시 퍼지는 주기
 # 크로노스(금·얼음)(fx-4). 시간은 초다
-const CHARGE_STEP := 4.0 / 60.0  # 과충전 번개·되감기 화살 조각 한 프레임
-const REWIND_SWEEP := 0.25  # 시간 되감기 호가 대상 둘레를 12시에서 반시계로 한 바퀴 쓸어 가는 시간
-const HAND_TURN := 2.4  # 황금률 긴 바늘이 시계 방향으로 한 바퀴 도는 시간. 짧은 바늘은 HAND_RATIO배 느리다
+const CHARGE_STEP := 4.0 / 60.0  # 과충전 번개 조각 한 프레임
+const HAND_TURN := 2.4  # 시간의 문 긴 바늘이 시계 방향으로 한 바퀴 도는 시간. 짧은 바늘은 HAND_RATIO배 느리다
 const HAND_RATIO := 4.0
 const WARP_SPIN := 0.8  # 왜곡장 바깥 점선 고리가 시계 방향으로 도는 빠르기(라디안/초). 안쪽 고리는 1.5배로 거꾸로, 눈금은 0.25배로 거꾸로 돈다
 const WARP_TICKS := 12  # 왜곡장 고리 사이의 일그러진 눈금 수
@@ -540,7 +539,7 @@ func missed(c) -> bool:
 
 # 즉시 스킬 흔적(S179): 쓴 뒤 영웅 색으로. 범위 스킬은 반경까지 퍼지는 고리, 방향·대상 스킬은 영웅에서 잇는 선이다.
 # 이그니스의 화염구 작렬·운석 착탄·서리 고리는 단계 있는 폭발·결정이다(4.1s fx-1). 아이아스·실비아는 베기·충격파·방패·터짐·바람이다(fx-2).
-# 세라피나는 뻗는 빛줄기·날개·빛기둥, 베스퍼는 조여드는 저주 고리·사슬 거는 줄이다(fx-3). 크로노스는 금 번개 줄·반시계로 쓸어 가는 얼음 호다(fx-4).
+# 세라피나는 뻗는 빛줄기·날개·빛기둥, 베스퍼는 조여드는 저주 고리·사슬 거는 줄이다(fx-3). 크로노스는 금 번개 줄(fx-4)과, 노화·타임 루프 되돌림의 퍼지는 금 고리다(I199).
 # 보스 스킬 흔적은 예고색 램프 고리다(S198). 모두 아트 px로 그리고, 적을 노린 스킬이 아무도 못 맞혔으면 MISS_FADE로 그린다(S179 2026-10-29).
 # top이 아니면 몸통 아래 층(폭발 연기·운석 그림자·포효 먼지·꽂힌 화살·천사 날개)만 그린다. 떨어지는 운석·화살과 영혼 사슬도 그린다. 무엇을 어디에 썼는지는 시뮬레이션이 남긴 흔적(traces)이 준다
 func _traces(top: bool) -> void:
@@ -605,9 +604,10 @@ func _traces(top: bool) -> void:
 				if top:
 					_charge(h, c.aim, c.age)
 				continue
-			"rewind":
-				if top:
-					_rewind(h, c.aim, c.age)
+			"aging", "loop":  # 노화·타임 루프 되돌림 충격파(I199): 반경까지 퍼지는 크림 → 금 고리
+				var kk: float = c.age / FX
+				if top and kk < 1.0:
+					_pring(at, int(CELL * c.radius * _out(kk)), 2 if kk < 0.5 else 1, _ramp(["cream", "gold"], kk))
 				continue
 		var k: float = c.age / FX
 		if top and k < 1.0 and _boss(h):  # 보스 스킬(S198): 고리가 반경의 절반에서 1.1배까지 퍼진다. 예고색 램프(F24+, fx-4)
@@ -930,20 +930,6 @@ func _charge(h, x, t: float) -> void:
 		var kk := t / 0.2
 		_pring(p, int(3.0 + 7.0 * _pow3(kk)), int(ceil(2.0 * (1.0 - kk))), _ramp(["cream", "gold"], kk))
 
-# 시간 되감기(크로노스 W, fx-4): 영웅 손에서 대상 가슴까지 얼음 줄(굵기 2 → 1)과, 대상 둘레를 12시에서 반시계로 REWIND_SWEEP초에 한 바퀴
-# 쓸어 가는 호(머리가 밝고 꼬리로 갈수록 어두운 세 마디), 머리 위에서 반시계로 도는 화살 고리 조각
-func _rewind(h, x, t: float) -> void:
-	if t >= FX:
-		return
-	var k := t / FX
-	var p := Vector2i(_chest(x).floor())
-	_pline(Vector2i(_muzzle(h).floor()), p, _ramp(["ice0", "ice1", "ice2"], k), 2 if k < 0.5 else 1)
-	var head := -PI / 2.0 - TAU * minf(t / REWIND_SWEEP, 1.0)  # 화면 y가 아래라 각이 줄면 반시계
-	var cols := ["ice0", "ice1", "ice3"]
-	for i in 3:
-		_parc(p, 9, 1, head + i * 0.5, head + (i + 1) * 0.5, PX[cols[i]])
-	_spr("back", int(t / CHARGE_STEP), Vector2i((_spot(x) + _slip(x)).floor()) - Vector2i(0, int(_head(x)) + 6))
-
 # 장판(I101, S168, 4.1s): 처음 본 때부터 ZONE_OPEN초에 펼쳐지고 마지막 ZONE_CLOSE초에 줄어든다. 판정 경계는 밝은 1px + 바깥 어두운 1px이고,
 # 같은 종류 장판끼리 겹친 곳은 빼서 바깥 테두리만 남는다. 장판은 모두 무늬 대신 재질이다(이그니스 4.1s, 실비아 fx-2, 세라피나·베스퍼 fx-3, 크로노스 fx-4, S168).
 # 떨어지는 중인 운석은 _fall, 화살비의 화살은 _rain, 절대 방어선 둘레는 _capsule이 그린다. 덫은 플레이어에게만 보인다
@@ -1045,7 +1031,7 @@ func _lava_zone(c: Vector2i, r: int, left: float, seed: int, others: Array) -> v
 	_edge(c, r, PX.red if left >= 0.8 else PX.blood, PX.soot, others)
 
 # 성역(세라피나 W, fx-3): 엷은 모래빛 칠 + 바닥 문양(안쪽 금 점선 고리, 네 방위의 짧은 금 획, 가운데 성휘 조각) + 떠오르는 빛 점.
-# 같은 금빛인 황금률(크로노스 E)과는 이 바닥 문양으로 갈린다
+# 같은 금빛인 시간의 문(크로노스 E)과는 이 바닥 문양으로 갈린다
 func _sanctum_zone(c: Vector2i, r: int, seed: int, others: Array) -> void:
 	_pnoise(c, r - 1, PX.tan, 2, posmod(seed, 4))
 	_pring(c, int(r * 0.65), 1, PX.gold, 2)
@@ -1085,9 +1071,8 @@ func _swamp_zone(c: Vector2i, r: int, seed: int, others: Array) -> void:
 		_pring(p, 1 + int(5.0 * ph), 1, PX.teal if ph < 0.5 else PX.midteal)
 	_edge(c, r, PX.teal, PX.soot, others)
 
-# 황금률(크로노스 E, fx-4): 구리 성긴 칠 + 12시에서 시계 방향으로 도는 짧은 바늘(금 2px)·긴 바늘(크림 1px) + 가운데 축 조각 + 금 테두리.
-# 결계는 크로노스를 따라다니고 반경이 오라와 같아, 오라 원의 시계 눈금 12개(S160)가 그대로 문자판이 된다. 그래서 눈금은 긋지 않는다.
-# 같은 금빛인 성역(모래 칠·바닥 문양·빛 점)과는 바늘과 칠 색으로 갈린다
+# 시간의 문(크로노스 E 타임 루프, I199): 구리 성긴 칠 + 12시에서 시계 방향으로 도는 짧은 바늘(금 2px)·긴 바늘(크림 1px) + 가운데 축 조각 + 금 테두리.
+# 옛 황금률 결계(fx-4) 재질을 그대로 쓴다. 같은 금빛인 성역(모래 칠·바닥 문양·빛 점)과는 바늘과 칠 색으로 갈린다
 func _law_zone(c: Vector2i, r: int, age: float, seed: int, others: Array) -> void:
 	_pnoise(c, r - 1, PX.bronze, 2, posmod(seed, 4))
 	var turn := TAU * age / HAND_TURN  # 12시(-PI/2)에서 잰 긴 바늘 각. 화면 y가 아래라 각이 늘면 시계 방향
@@ -1096,7 +1081,7 @@ func _law_zone(c: Vector2i, r: int, age: float, seed: int, others: Array) -> voi
 	_spr("hub", 1 if fmod(age, HAND_TURN) < 0.15 else 0, c)
 	_edge(c, r, PX.gold, PX.soot, others)
 
-# 왜곡장(크로노스 R, fx-4): 어두운 얼음 성긴 칠 두 겹(가운데가 밝음) + 서로 거꾸로 도는 흰 얼음 점선 고리 둘(0.65·0.35배) +
+# 태엽 감기 둘레(크로노스 R, I199. 옛 왜곡장 fx-4 재질): 어두운 얼음 성긴 칠 두 겹(가운데가 밝음) + 서로 거꾸로 도는 흰 얼음 점선 고리 둘(0.65·0.35배) +
 # 바깥 고리 밖에서 각이 일그러진 채 천천히 거꾸로 흐르는 짧은 눈금 + 회청 테두리. 같은 얼음색인 절대 방어선 둘레(칠 + 떠오르는 점, 흰 테두리)와는 도는 고리와 눈금으로 갈린다
 func _warp_zone(c: Vector2i, r: int, seed: int, others: Array) -> void:
 	_pnoise(c, r - 1, PX.ice4, 4, posmod(seed, 4))
