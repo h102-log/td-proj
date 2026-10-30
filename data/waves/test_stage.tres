@@ -5,12 +5,12 @@
 [resource]
 script = ExtResource("1_83rh7")
 waves = Array[Dictionary]([{
-"slime": 30
+"slime": 36
 }, {
-"slime": 20,
-"big_slime": 8
+"slime": 24,
+"big_slime": 10
 }, {
-"slime": 30,
-"big_slime": 12,
+"slime": 36,
+"big_slime": 14,
 "slime_king": 1
 }])

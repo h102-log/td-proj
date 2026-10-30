@@ -18,7 +18,7 @@ const BARRACKS := Vector2i(10, 3)  # 마을 칸
 const HOUSE := Vector2i(6, 3)
 const ONE := [{"kind": "basic", "count": 1}]
 const ONE_ONE := [[ONE], [ONE]]  # 라운드 2개, 라운드마다 적 1마리짜리 웨이브 하나
-const S111 := [{"slime": 30}, {"slime": 20, "big_slime": 8}, {"slime": 30, "big_slime": 12, "slime_king": 1}]  # S111 2026-10-27 변경: 1라운드 슬라임 테마(10배를 하지 않는다)
+const S111 := [{"slime": 36}, {"slime": 24, "big_slime": 10}, {"slime": 36, "big_slime": 14, "slime_king": 1}]  # S111 2026-10-30 변경: 1라운드 슬라임 테마, 보스 빼고 1.2배 반올림(10배를 하지 않는다)
 # I91 2026-10-27 변경: 2라운드는 늑대 테마(마릿수, 10배를 하지 않는다)
 const WOLF := [{"wolf": 320}, {"wolf": 300, "leap_wolf": 100}, {"wolf": 240, "leap_wolf": 80, "night_wolf": 80}, {"wolf": 320, "leap_wolf": 100, "night_wolf": 100, "alpha_wolf": 1}]
 # I91 표(2026-10-21 개정): 2~6라운드 웨이브마다 종류별 적 수
@@ -380,8 +380,8 @@ func ev427():
 	b.enemy_spawned.connect(func(e): cells.append(Vector2i(e.pos.round())))
 	b.start_battle()
 	clear_wave(b)
-	if cells.size() != 30:
-		return "1라운드 첫 웨이브에 적이 %d명 나왔다(30명이어야 한다)" % cells.size()
+	if cells.size() != 36:
+		return "1라운드 첫 웨이브에 적이 %d명 나왔다(36명이어야 한다)" % cells.size()
 	var xs := {}
 	for k in cells.size():
 		var s: Vector2i = plan[k][1]
