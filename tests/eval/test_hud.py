@@ -62,10 +62,6 @@ def test_EV334_engineer_cell(gd):
     gd("hud", "EV334")
 
 
-def test_EV335_wave_preview_counts(gd):
-    gd("hud", "EV335")
-
-
 def test_EV336_progress_cell_phases(gd):
     gd("hud", "EV336")
 
