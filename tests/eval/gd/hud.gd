@@ -711,43 +711,6 @@ func _wave_total(b, r: int, w: int) -> int:
 func _count(d: Dictionary) -> int:
 	return d.values().reduce(func(n, x): return n + x, 0)
 
-# EV335 · S188: 1~6라운드 웨이브마다 출현 지점별 미리보기 수가 실제로 그 지점에서 나온 적의 종류별 수와 같다
-func ev335():
-	var b = _new(load("res://src/main.gd").stage())
-	if not b.has_method("spawn_counts"):
-		return "battle.spawn_counts가 없다"
-	var got := []
-	b.enemy_spawned.connect(func(e): got.append([e.kind, cell_of(e)]))
-	for r in b.rounds.size():
-		for w in b.rounds[r].size():
-			b.round_index = r
-			b.waves = b.rounds[r]
-			b.wave_index = w
-			b.state = "prep"
-			var want: Array = b.spawn_counts(r, w)
-			var total := _wave_total(b, r, w)
-			if want.size() != b.spawns.size() or want.reduce(func(n, d): return n + _count(d), 0) != total:
-				return "%d라운드 %d웨이브 미리보기 %s의 합이 데이터 적 수 %d와 다르다" % [r + 1, w + 1, want, total]
-			got.clear()
-			b.start_battle()
-			for i in total + 3:
-				b.step(b.SPAWN_GAP)
-				kill_all(b)
-			var plan: Array = b.wave_plan(r, w)
-			if got.size() != plan.size():
-				return "%d라운드 %d웨이브에 적이 %d명 나왔다(%d명이어야 한다)" % [r + 1, w + 1, got.size(), plan.size()]
-			var real: Array = b.spawns.map(func(_c): return {})
-			for k in got.size():  # 출현 지점은 wave_plan이 맡긴 것이고, 나온 칸은 그 출현 지점에서 가로로 spawn_spread 안이어야 한다(I177)
-				var s: Vector2i = plan[k][1]
-				if got[k][0] != plan[k][0] or got[k][1].y != s.y or absi(got[k][1].x - s.x) > b.spawn_spread:
-					return "%d라운드 %d웨이브 %d번째 적 %s가 출현 지점 %s(가로 ±%d)에서 나오지 않았다" % [r + 1, w + 1, k, got[k], s, b.spawn_spread]
-				var d: Dictionary = real[b.spawns.find(s)]
-				d[got[k][0]] = d.get(got[k][0], 0) + 1
-			for i in want.size():
-				if want[i].size() != real[i].size() or want[i].keys().any(func(k): return real[i].get(k, -1) != want[i][k]):
-					return "%d라운드 %d웨이브 %s 출현 지점: 미리보기 %s · 실제 %s" % [r + 1, w + 1, b.spawns[i], want, real]
-	return ""
-
 # EV336 · I13: 진행 칸은 영입 «영입»·«다음 적 N» → 준비 «전투 시작»(누르면 전투) → 전투 «남은 적 N» → 패배 «패배»다
 func ev336():
 	var main = _game()

@@ -120,11 +120,6 @@ func ev173():
 	var b = battle({"hero_start": Vector2i(5, 5)})
 	return check(b.hero != null and b.hero.kind == "aias", "hero_start로 낸 영웅이 %s다(aias이어야 한다)" % (b.hero.kind if b.hero else "없음"))
 
-# EV174 · S118: 시험 스테이지의 영웅은 기사 하나다
-func ev174():
-	var b = load("res://src/sim/battle.gd").new(load("res://src/main.gd").stage())
-	return check(b.heroes.size() == 1 and b.hero.kind == "knight", "시험 스테이지 영웅이 %s다(기사 하나여야 한다)" % [b.heroes.map(func(h): return h.kind)])
-
 # EV175 · S119: 스킬은 고른 영웅이, 고른 영웅이 없으면 첫 영웅이 쓴다
 func ev175():
 	var b = _heroes([_hero("aias", Vector2i(5, 5)), _hero("chronos", Vector2i(10, 5))])

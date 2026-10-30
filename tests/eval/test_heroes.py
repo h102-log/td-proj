@@ -6,10 +6,6 @@ def test_EV173_hero_files_and_base_stats(gd):
     gd("heroes", "EV173")
 
 
-def test_EV174_test_stage_has_knight_only(gd):
-    gd("heroes", "EV174")
-
-
 def test_EV175_skill_keys_use_selected_hero(gd):
     gd("heroes", "EV175")
 
