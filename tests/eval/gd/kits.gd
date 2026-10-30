@@ -753,57 +753,67 @@ func ev289():
 	run(b, 1.0, func(): return d.hp < d.max_hp)
 	return check(first and second and _near_f(_lost(d, BIG), tw.damage * (1.0 + ch.q.might)), "첫 자동: 이그니스 %s · 둘째: 마법 타워 %s · Q 받은 타워 한 방 %s(%s)" % [first, second, _lost(d, BIG), tw.damage * (1.0 + ch.q.might)])
 
-# EV290 · S158·I145: W는 영웅(자기 포함)의 마나를 최대 마나 25%만큼 채우고 Q·W·E 대기를 5초씩 줄인다
+# EV290 · S158: W 노화에 걸린 적은 공격력 −40%이고 초당 최대 체력 1%를 마법 피해로 잃는다. 반경 밖 적은 그대로다
 func ev290():
-	var b = _kit([["chronos", H], ["aias", H + Vector2i(2, 0)]])
-	var ch = b.hero
-	var k = b.heroes[1]
-	_start(b)
-	k.mana = 50.0
-	k.cd.q = 6.0
-	k.cd.w = 10.0
-	b.cast(ch, "w", k)
-	var other: bool = _near_f(k.mana, 50.0 + ch.w.mana_back * k.max_mana) and _near_f(k.cd.q, 1.0) and _near_f(k.cd.w, 5.0)
-	ch.cd.w = 0.0
-	ch.cd.q = 6.0
-	ch.mana = 100.0
-	var self_ok: bool = b.cast(ch, "w", ch)
-	return check(other and self_ok and _near_f(ch.mana, 100.0 - ch.w.mana + ch.w.mana_back * ch.max_mana) and _near_f(ch.cd.q, 1.0) and _near_f(ch.cd.w, ch.w.gap - ch.w.cut),
-		"다른 영웅 %s · 자기에게 씀 %s(마나 %s, Q 대기 %s, W 대기 %s)" % [other, self_ok, ch.mana, ch.cd.q, ch.cd.w])
-# EV291 · S158·I149: E 결계 안에서 처치된 적의 골드는 보상 × 1.3을 반올림한 값이다(기본 5 → 7, 장갑 8 → 10). 결계 밖은 그대로다
-func ev291():
-	var b = _kit([["chronos", H]])
+	var b = _kit([["chronos", Vector2i(10, 4)]], {"base": Vector2i(2, 15), "spawns": [Vector2i(29, 15)]})
 	var ch = b.hero
 	_quiet(b)
-	var inside = _dummy(b, H + Vector2i(1, 0))
-	var armored = b.spawn_enemy("armored", H + Vector2i(0, 1), {"speed": 0, "sight": 0, "damage": 0})
-	var outside = _dummy(b, H + Vector2i(6, 0))
+	var m = b.place_merc("soldier", Vector2i(12, 10), {"hp": BIG, "damage": 0})
+	var striker = b.spawn_enemy("basic", Vector2i(13, 10), {"speed": 0, "damage": 10.0, "hp": BIG})
+	var d = _dummy(b, Vector2i(12, 9), {"hp": 1000})
+	var far_d = _dummy(b, Vector2i(12, 12), {"hp": 1000})
 	_start(b)
-	b.cast(ch, "e")
-	var g0: int = b.gold
-	b.damage(inside, BIG)
-	var g1: int = b.gold
-	b.damage(armored, BIG)
-	var g2: int = b.gold
-	b.damage(outside, BIG)
-	return check(g1 - g0 == 7 and g2 - g1 == 10 and b.gold - g2 == 5, "결계 안 기본 +%d(7) · 장갑 +%d(10) · 밖 기본 +%d(5)" % [g1 - g0, g2 - g1, b.gold - g2])
+	b.cast(ch, "w", Vector2(12, 9))
+	var hp0: float = m.hp
+	var bite := 0.0
+	for i in 80:
+		b.step(DT)
+		if bite == 0.0 and m.hp < hp0:
+			bite = _lost(m, hp0)
+	var rot: float = 1000.0 - d.hp
+	var far_ok: bool = far_d.hp == far_d.max_hp and b.effect(far_d, "weaken") == null
+	return check(_near_f(bite, 10.0 * (1.0 - ch.w.weaken)) and _near_f(rot, 80 * DT * ch.w.burn * 1000.0, 1.0) and far_ok and striker.alive,
+		"용병이 받은 첫 한 방 %s(6) · 과녁 4초 피해 %s(40) · 반경 밖 그대로 %s" % [bite, rot, far_ok])
 
-# EV292 · S158: R 왜곡장 안의 적은 이동·공격 속도가 반이 되고, 안의 영웅은 스킬 대기가 1.5배 빠르게 준다
+# EV291 · I197: E 문에 든 적은 delay초 뒤 든 자리로 돌아오고, 그 자리 반경 blast 안 적이 마법 피해를 받는다
+func ev291():
+	var b = _kit([["chronos", Vector2i(12, 6)]], {"base": Vector2i(2, 10), "spawns": [Vector2i(29, 10)]})
+	var ch = b.hero
+	_quiet(b)
+	var walker = b.spawn_enemy("basic", Vector2i(20, 10), {"sight": 0, "hp": BIG})
+	var near_d = _dummy(b, Vector2i(15, 11))
+	var far_d = _dummy(b, Vector2i(15, 14))
+	_start(b)
+	var gate := Vector2(14, 10)
+	b.cast(ch, "e", gate)
+	run(b, 5.0, func(): return walker.pos.distance_to(gate) <= ch.e.radius)
+	var entry: Vector2 = walker.pos
+	run(b, ch.e.delay - 0.2)
+	var ahead: float = entry.x - walker.pos.x
+	var back := run(b, 0.5, func(): return walker.pos.distance_to(entry) < 0.3)
+	return check(ahead > 1.0 and back and _near_f(_lost(near_d, BIG), ch.e.damage) and far_d.hp == far_d.max_hp,
+		"든 자리 %s · 2초 안에 앞으로 %s칸 · 돌아옴 %s(지금 %s) · 1칸 과녁 피해 %s(%s) · 4칸 과녁 그대로 %s" % [entry, ahead, back, walker.pos, _lost(near_d, BIG), ch.e.damage, far_d.hp == far_d.max_hp])
+
+# EV292 · S158·I198: R은 맵의 모든 적을 느리게 하고, 크로노스 반경 4 안 타워의 공격 대기와 영웅의 스킬 대기를 3배 빠르게 줄인다
 func ev292():
 	var b = _kit([["chronos", H]], {"base": Vector2i(2, 15), "spawns": [Vector2i(29, 15)]})
 	var ch = b.hero
 	_quiet(b)
-	var walker = b.spawn_enemy("basic", Vector2i(13, 10), {"sight": 0, "hp": BIG})
+	var walker = b.spawn_enemy("basic", Vector2i(27, 10), {"sight": 0, "hp": BIG})
+	var near_t = b.build("tower", H + Vector2i(3, 2))  # 3.6칸: 오라(3칸) 밖, 반경 4 안
+	var far_t = b.build("tower", H + Vector2i(0, 8))
 	_start(b)
-	b.cast(ch, "r", Vector2(12, 10))
+	b.cast(ch, "r")
 	b.step(DT)
 	ch.cd.q = 5.0
+	near_t.cooldown = 1.0
+	far_t.cooldown = 1.0
 	walker.cooldown = 0.5  # 친 뒤 공격 자세(S196)는 지난 때
 	var p0: Vector2 = walker.pos
 	b.step(DT)
 	var moved: float = walker.pos.distance_to(p0)
-	return check(_near_f(moved, walker.speed * DT * (1.0 - ch.r.slow), 0.002) and _near_f(0.5 - walker.cooldown, DT * (1.0 - ch.r.lag), 0.0001) and _near_f(5.0 - ch.cd.q, DT * (1.0 + ch.r.cdr), 0.0001),
-		"적 한 스텝 걸음 %s · 적 공격 대기 줄음 %s · 영웅 Q 대기 줄음 %s" % [moved, 0.5 - walker.cooldown, 5.0 - ch.cd.q])
+	return check(_near_f(moved, walker.speed * DT * (1.0 - ch.r.slow), 0.002) and _near_f(1.0 - near_t.cooldown, DT * ch.r.pace, 0.0001) and _near_f(1.0 - far_t.cooldown, DT, 0.0001) and _near_f(5.0 - ch.cd.q, DT * ch.r.pace, 0.0001),
+		"17칸 적 한 스텝 걸음 %s · 반경 안 타워 대기 줄음 %s · 밖 타워 %s · 영웅 Q 대기 줄음 %s" % [moved, 1.0 - near_t.cooldown, 1.0 - far_t.cooldown, 5.0 - ch.cd.q])
 
 # ── 추론 문장 ──
 
@@ -982,3 +992,40 @@ func ev302():
 	var moved: float = bh.pos.distance_to(p0)
 	return check(moved > 0.1 and seen.kept and bh.block == 4 and held.size() == 4 and gone.size() == 2,
 		"쫓아 움직임 %.2f칸 · 요새화 이어짐 %s · 블록 %d · 붙잡음 %d(4) · 지나감 %d(2)" % [moved, seen.kept, bh.block, held.size(), gone.size()])
+
+# ── 크로노스 W·E·R 개편(2026-10-30) ──
+
+# EV599 · I197: 문 하나는 처음 든 적 count명만 되돌리고, 돌아온 적은 두 번 돌아오지 않는다
+func ev599():
+	var b = _kit([["chronos", Vector2i(12, 6)]], {"base": Vector2i(2, 10), "spawns": [Vector2i(29, 10)]})
+	var ch = b.hero
+	_quiet(b)
+	var walkers := []
+	for x in range(16, 22):
+		walkers.append(b.spawn_enemy("basic", Vector2i(x, 10), {"sight": 0, "hp": BIG}))
+	_start(b)
+	b.cast(ch, "e", Vector2(14, 10))
+	var jumps := walkers.map(func(_w): return 0)
+	var last: Array = walkers.map(func(w): return w.pos.x)
+	for i in 160:
+		b.step(DT)
+		for k in walkers.size():
+			if walkers[k].pos.x - last[k] > 1.0:
+				jumps[k] += 1
+			last[k] = walkers[k].pos.x
+	return check(jumps == [1, 1, 1, 1, 1, 0], "적마다 되돌려진 횟수 %s([1, 1, 1, 1, 1, 0])" % [jumps])
+
+# EV600 · I196: W 노화는 쓴 순간 반경 안의 적에게만 걸린다. 쓴 뒤 걸어 들어온 적에는 걸리지 않는다
+func ev600():
+	var b = _kit([["chronos", Vector2i(10, 5)]], {"base": Vector2i(2, 10), "spawns": [Vector2i(29, 10)]})
+	var ch = b.hero
+	_quiet(b)
+	var walker = b.spawn_enemy("basic", Vector2i(17, 10), {"sight": 0, "hp": BIG})
+	var d = _dummy(b, Vector2i(12, 11))
+	_start(b)
+	var spot := Vector2(12, 10)
+	b.cast(ch, "w", spot)
+	var hit_now: bool = b.effect(d, "weaken") != null
+	var inside := run(b, 4.0, func(): return walker.pos.distance_to(spot) <= 1.0)
+	return check(hit_now and inside and b.effect(walker, "weaken") == null,
+		"쓴 순간 과녁 걸림 %s · 걸어 들어옴 %s · 들어온 적 걸림 %s" % [hit_now, inside, b.effect(walker, "weaken") != null])

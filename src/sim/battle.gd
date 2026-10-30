@@ -362,6 +362,7 @@ var rubble := {}  # 성곽의 칸 → 부서진 성곽 Block(I88). 지나갈 수
 var debris := {}  # 잔해 차지 칸 → 잔해 Block
 var barriers := {}  # Vector2i → 에너지 성벽 칸 Block(S151, I142). 그 장판(zones)이 끝나면 사라진다
 var zones := []  # 장판(S150, I141): {src, pos, radius, left, owner, 수치…}. 웨이브가 끝나면 모두 사라진다(I143)
+var loops := []  # 타임 루프가 되돌릴 적(I197): {e, at, wall, left, owner, blast, damage}. 웨이브가 끝나면 사라진다(I143)
 var traces := []  # 즉시 스킬 흔적(S179): {hero, slot, aim, at, radius, hits, marked, age}. 그리기만 읽고 1초 지나면 지운다
 var fallen := []  # 쓰러진 영웅·용병·적(S180): {who, age}. 그리기만 읽고 FALLEN초 지나면 지운다
 var _dotting := false  # 초당 피해를 주는 중. 뜬 적(S236)도 이것만은 받는다
@@ -586,6 +587,7 @@ func step(dt: float) -> void:
 			n += 1
 	_tick(dt)
 	_zones(dt)
+	_loops(dt)
 	_count_holds()
 	_howls()
 	for e in enemies:
@@ -1449,11 +1451,12 @@ func _age(t, dt: float) -> void:
 		if t.fx[src].left <= 0.0:
 			t.fx.erase(src)
 
-# 웨이브가 끝나면 장판·에너지 성벽·효과·보호막·날던 투사체가 모두 사라진다(I143). 준비 단계에 공짜 회복·효과가 남지 않게
+# 웨이브가 끝나면 장판·에너지 성벽·타임 루프 되돌림·효과·보호막·날던 투사체가 모두 사라진다(I143, I197). 준비 단계에 공짜 회복·효과가 남지 않게
 func _clear_effects() -> void:
 	for z in zones:
 		_end_zone(z)
 	zones.clear()
+	loops.clear()
 	missiles.clear()
 	for t in enemies + units + structures.values() + castle.values():
 		t.fx.clear()
@@ -1478,7 +1481,7 @@ func _inside(z: Dictionary, p: Vector2) -> bool:
 
 func _zones(dt: float) -> void:
 	for z in zones.duplicate():
-		if z.has("follow"):  # 영웅을 따라다니는 결계(크로노스 E)
+		if z.has("follow"):  # 영웅을 따라다니는 장판(크로노스 R 둘레). 쓰러지면 쓰러진 자리에 남는다(I198)
 			z.pos = z.owner.pos
 		if z.get("delay", 0.0) > 0.0:  # 떨어지는 중인 운석(S156)
 			z.delay -= dt
@@ -1529,12 +1532,17 @@ func _zones(dt: float) -> void:
 			"ignis_r":  # 용암: 초당 최대 체력 비율 마법 피해
 				for e in foes:
 					damage(e, z.burn * e.max_hp * dt, "magic", z.owner)
-			"chronos_r":  # 시간 왜곡장: 안의 아군 영웅·쏘는 구조물은 빨라지고, 안의 적은 느려진다
+			"chronos_e":  # 시간의 문: 처음 든 적 count명을 든 자리와 함께 표시한다. 되돌리기는 _loops
+				for e in foes:
+					if z.marked.size() < z.count and not z.marked.has(e):
+						z.marked.append(e)
+						loops.append({"e": e, "at": e.pos, "wall": e.on_wall, "left": z.wait, "owner": z.owner, "blast": z.blast, "damage": z.damage})
+			"chronos_r":  # 태엽 감기 둘레: 안의 영웅은 스킬 대기가, 쏘는 구조물은 공격 대기가 pace배 빨리 준다. 맵의 모든 적은 느려진다
 				for t in heroes.filter(func(x): return x.alive) + structures.values().filter(func(x): return x.range > 0.0 and x.complete):
 					if _inside(z, _where(t)):
-						_fx(t, "chronos_r", {"haste": z.haste, "cdr": z.cdr}, STAY)
-				for e in foes:
-					_fx(e, "chronos_r", {"slow": z.slow, "lag": z.lag}, STAY)
+						_fx(t, "chronos_r", {"cdr": z.pace - 1.0} if t is Unit else {"haste": z.pace - 1.0}, STAY)
+				for e in enemies:
+					_fx(e, "chronos_r", {"slow": z.slow}, STAY)
 		z.left -= dt
 		if z.left <= 0.0:
 			_end_zone(z)
@@ -1550,6 +1558,28 @@ func _end_zone(z: Dictionary) -> void:
 		for c in z.cells:
 			barriers.erase(c)
 		_repath = true
+
+# 타임 루프 되돌림(I197): 시간의 문이 표시한 적은 delay초 뒤 든 자리로 옮겨지고 길을 다시 찾는다. 그 자리 반경 blast 안 적은 마법 피해를 받는다.
+# 뜬 적이거나, 그 자리가 그 사이 막혔으면(성벽 위도 비행도 아닌데 막힌 칸) 옮기지 않는다
+func _loops(dt: float) -> void:
+	for l in loops:
+		l.left -= dt
+	var due := loops.filter(func(l): return l.left <= 0.0)
+	loops = loops.filter(func(l): return l.left > 0.0)
+	for l in due:
+		var e: Enemy = l.e
+		if not e.alive or _aloft(e) or (grid.block_at(Vector2i(l.at.round())) and not l.wall and not e.flying):
+			continue
+		if e.grip:
+			_grip(e, 0.0, true)  # 붙잡은 아군을 놓는다(S242)
+		e.pos = l.at
+		e.on_wall = l.wall
+		_find_path(e)
+		_trace(l.owner, "loop", null, l.at, l.blast)
+		for o in enemies.duplicate():
+			if o.pos.distance_to(l.at) <= l.blast and not _aloft(o):
+				damage(o, l.damage, "magic", l.owner)
+		_tracing = null
 
 # ── 아이아스(S151) ──
 
@@ -1788,19 +1818,19 @@ func _autocast(h: Unit) -> void:
 	if best:
 		_use(h, "q", best)
 
-# W 시간 되감기: 영웅(자기 포함)의 마나를 최대 마나 비율만큼 채우고 Q·W·E 대기를 줄인다
-func _cast_rewind(_h: Unit, sk: Dictionary, aim, _grow: float) -> void:
-	aim.mana = minf(aim.mana + sk.mana_back * aim.max_mana, aim.max_mana)
-	for slot in ["q", "w", "e"]:
-		aim.cd[slot] = maxf(aim.cd[slot] - sk.cut, 0.0)
+# W 노화: 쓴 순간 지점 반경 안의 적에게 공격력 감소와 최대 체력 비례 초당 마법 피해를 건다(I196). 장판이 아니다
+func _cast_aging(_h: Unit, sk: Dictionary, aim, grow: float) -> void:
+	for e in enemies:
+		if e.pos.distance_to(aim) <= sk.radius * grow:
+			_fx(e, "chronos_w", {"weaken": sk.weaken, "dot": sk.burn * e.max_hp}, sk.time)
 
-# E 황금의 율법: 크로노스를 따라다니는 결계. 안에서 처치된 적의 골드가 늘어난다(damage)
-func _cast_golden_law(h: Unit, sk: Dictionary, _aim, grow: float) -> void:
-	_zone("chronos_e", h, h.pos, sk.radius * grow, sk.time, {"bonus": sk.bonus, "follow": true})
+# E 타임 루프: 지점에 시간의 문을 놓는다. 표시는 _zones, 되돌리기는 _loops(I197)
+func _cast_time_loop(h: Unit, sk: Dictionary, aim, grow: float) -> void:
+	_zone("chronos_e", h, aim, sk.radius * grow, sk.time, {"count": sk.count, "wait": sk.delay, "blast": sk.blast, "damage": sk.damage, "marked": []})  # 장판의 delay는 운석 낙하라 wait로 담는다
 
-# R 시간 왜곡장
-func _cast_time_warp(h: Unit, sk: Dictionary, aim, _grow: float) -> void:
-	_zone("chronos_r", h, aim, sk.radius, sk.time, {"haste": sk.haste, "cdr": sk.cdr, "slow": sk.slow, "lag": sk.lag})
+# R 태엽 감기: 크로노스를 따라다니는 둘레 장판. 효과는 _zones(I198)
+func _cast_wind_up(h: Unit, sk: Dictionary, _aim, _grow: float) -> void:
+	_zone("chronos_r", h, h.pos, sk.radius, sk.time, {"slow": sk.slow, "pace": sk.pace, "follow": true})
 
 # 지을 수 있는 칸에 짓는다(_buildable). 마을 레벨이 모자란 종류는 거부한다(S99). live가 아닌 준비 단계엔 바로 완성된다(S18, I175).
 # live()엔 진행률 0의 미완성 구조물을 놓고 놀고 있는 가장 가까운 공병을 보낸다. 그런 공병이 없으면 거부한다(S22, I39, I62)
@@ -2773,11 +2803,7 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 		settled = [mission, commission].filter(func(n): return n != "").map(func(n): return [n, false])  # 진 라운드의 미션·의뢰는 모두 실패다(I131)
 	elif target is Enemy:
 		enemies.erase(target)
-		var bonus := 0.0  # 크로노스 E 결계 안에서 처치되면 골드가 는다(S158). 겹쳐도 한 번, 반올림(I149)
-		for z in zones:
-			if z.src == "chronos_e" and target.pos.distance_to(z.pos) <= z.radius:
-				bonus = maxf(bonus, z.bonus)
-		_spare += roundi(target.reward * (1.0 + bonus)) * _stage.get("reward_scale", 1.0)  # 처치 보상 배율(I176). 1골드에 못 미치는 나머지는 쌓아 둔다
+		_spare += target.reward * _stage.get("reward_scale", 1.0)  # 처치 보상 배율(I176). 1골드에 못 미치는 나머지는 쌓아 둔다
 		gold += floori(_spare)
 		_spare -= floori(_spare)
 		_spread(target)

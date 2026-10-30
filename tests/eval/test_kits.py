@@ -142,15 +142,15 @@ def test_EV289_chronos_q_autocast(gd):
     gd("kits", "EV289")
 
 
-def test_EV290_chronos_w_rewind(gd):
+def test_EV290_chronos_w_aging(gd):
     gd("kits", "EV290")
 
 
-def test_EV291_chronos_e_gold(gd):
+def test_EV291_chronos_e_time_loop(gd):
     gd("kits", "EV291")
 
 
-def test_EV292_chronos_r_warp(gd):
+def test_EV292_chronos_r_wind_up(gd):
     gd("kits", "EV292")
 
 
@@ -192,3 +192,11 @@ def test_EV301_block_count(gd):
 
 def test_EV302_fortify_kept_while_chasing(gd):
     gd("kits", "EV302")
+
+
+def test_EV599_chronos_e_loop_limit(gd):
+    gd("kits", "EV599")
+
+
+def test_EV600_chronos_w_cast_only(gd):
+    gd("kits", "EV600")

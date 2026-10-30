@@ -590,11 +590,6 @@ func _skills(h) -> void:
 				var weak = _weakest(h, r)
 				if weak and weak.hp < weak.max_hp * (0.6 if sk.id == "holy_beam" else 0.35):
 					b.cast(h, slot, weak)
-			"rewind":
-				for o in b.heroes:
-					if o != h and o.alive and o.mana < o.max_mana * 0.4 and o.pos.distance_to(h.pos) <= r:
-						b.cast(h, slot, o)
-						break
 			"miracle":
 				if b.units.filter(func(u): return u.hp < u.max_hp * 0.5).size() >= 3:
 					b.cast(h, slot)

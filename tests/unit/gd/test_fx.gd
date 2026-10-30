@@ -11,8 +11,9 @@ extends RefCounted
 #         기적은 아군마다 내려오는 빛기둥, 쇠약은 조여드는 고리와 머리 위 저주 문양, 영혼 사슬은 거는 줄과 청록 고리 도트다.
 #         성역·독안개·늪은 무늬 대신 재질(성휘·빛 점 / 안개·거품 / 진흙·물결)이고, 늪은 보라를 쓰지 않는다. 색은 팔레트 안이다.
 #   S179·S168·S198·I101 2026-10-28 변경(fx-4). 크로노스(금·얼음): 과충전은 대상의 쏘는 곳까지 금 줄과 번개 조각(영웅·구조물 대상 모두),
-#         되감기는 대상 둘레를 12시에서 반시계로 쓸어 가는 호, 황금률은 햇살 대신 시계 방향으로 도는 바늘 둘(눈금은 오라가 맡는다),
-#         왜곡장은 서로 거꾸로 도는 점선 고리 둘과 일그러진 눈금이다. 보스 예고는 F24+ 빨강 두 겹 테와 차오르는 성긴 칠, 발동 채움은 원판이고,
+#         시간의 문(옛 황금률 재질)은 햇살 대신 시계 방향으로 도는 바늘 둘, 태엽 감기 둘레(옛 왜곡장 재질)는 서로 거꾸로 도는 점선 고리 둘과
+#         일그러진 눈금이다(2026-10-30 I199). 노화·타임 루프 되돌림 흔적은 반경까지 퍼지는 크림 → 금 고리 하나다(I199).
+#         보스 예고는 F24+ 빨강 두 겹 테와 차오르는 성긴 칠, 발동 채움은 원판이고,
 #         조준 미리보기(사거리·범위·부채꼴·방향·설 칸)는 아트 px 도우미로 그린다(덮개 위 층 _cv).
 #   I101 2026-10-28 셋째 변경. 명령 표식·홀드 기준 반경·대포알 고리도 아트 px 고리라 맵에 화면 px 원·호(draw_arc)가 없다.
 
@@ -714,33 +715,33 @@ func test_overcharge_gold_line_and_bolt_on_hero_and_tower():
 	v.free()
 	return why
 
-func test_rewind_arc_sweeps_counterclockwise_from_twelve():
+func test_aging_and_loop_traces_are_one_spreading_cream_to_gold_ring():
 	var b = _chrono()[0]
 	var ch = b.heroes[0]
-	var a = b.heroes[1]
 	var v = Rec.new()
 	v.battle = b
-	var heads := []
 	var why := ""
-	for t in [0.02, 0.08, 0.14]:
-		v.wipe()
-		v._rewind(ch, a, t)
-		if v.arcs.size() != 3:
-			why = "%.2f초에 되감기 호가 %d마디다(셋이어야 한다)" % [t, v.arcs.size()]
+	for slot in ["w", "loop"]:  # W는 노화(aging), loop는 타임 루프 되돌림 충격파
+		b.traces = [{"hero": ch, "slot": slot, "aim": Vector2(12, 14), "at": Vector2(12, 14), "radius": 2.0, "hits": [ch], "marked": true, "age": 0.0}]
+		var rs := []
+		for t in [0.05, 0.25]:
+			b.traces[0].age = t
+			v.wipe()
+			v._traces(true)
+			if v.rings.size() != 1:
+				why = "%s 흔적 %.2f초 고리가 %d개다(하나여야 한다)" % [slot, t, v.rings.size()]
+				break
+			rs.append(v.rings[0])
+		if why == "" and (rs[1][1] <= rs[0][1] or rs[1][1] > int(View.CELL * 2.0)):
+			why = "%s 고리 반지름이 %d → %d다(반경 %dpx까지 퍼져야 한다)" % [slot, rs[0][1], rs[1][1], int(View.CELL * 2.0)]
+		elif why == "" and _off_palette([rs[0][3], rs[1][3]]) != "":
+			why = "%s 고리 색이 팔레트 밖이다" % slot
+		if why != "":
 			break
-		heads.append(v.arcs[0][2])
-	# 머리 마디의 각은 12시(-PI/2)에서 시작해 줄어든다. 화면 y가 아래라 각이 줄면 반시계다
-	if why == "" and (absf(heads[0] + PI / 2.0) > 0.6 or heads[1] >= heads[0] or heads[2] >= heads[1]):
-		why = "호 머리 각이 %s다(12시에서 시작해 줄어들어야 한다)" % [heads]
-	elif why == "" and (v.arcs[0][4] != View.PX.ice0 or v.arcs[2][4] != View.PX.ice3):
-		why = "호 마디 색이 %s다(머리 밝고 꼬리 어두운 얼음 램프여야 한다)" % [v.arcs.map(func(x): return x[4].to_html(false))]
-	var back: Array = v.spr.filter(func(q): return q[0] == "back")
-	if why == "" and (back.size() != 1 or back[0][2].y >= int(v._spot(a).y - v._head(a))):
-		why = "되감기 화살 조각이 %s다(대상 머리 위에 하나여야 한다)" % [back]
 	v.free()
 	return why
 
-func test_golden_law_is_two_clockwise_hands_without_rays():
+func test_time_gate_is_two_clockwise_hands_without_rays():
 	var v = _zone_draw("chronos_e")
 	var c := Vector2i(v._center(Vector2(12, 12)).floor())
 	var why := ""
@@ -749,7 +750,7 @@ func test_golden_law_is_two_clockwise_hands_without_rays():
 		if l[0] == c and l[3] == 1:
 			long0 = l[1]
 	if v.lines.size() != 2 or v.lines.any(func(l): return l[0] != c) or long0 == null:
-		why = "황금률 줄이 %s다(가운데에서 나온 바늘 둘만이어야 한다. 햇살 12줄 없음)" % [v.lines.map(func(l): return [l[0], l[1], l[3]])]
+		why = "시간의 문 줄이 %s다(가운데에서 나온 바늘 둘만이어야 한다. 햇살 12줄 없음)" % [v.lines.map(func(l): return [l[0], l[1], l[3]])]
 	elif not v.spr.any(func(q): return q[0] == "hub"):
 		why = "가운데 축 조각이 없다"
 	elif v.fills.has(View.PX.tan) or v.edges.is_empty():
@@ -768,12 +769,12 @@ func test_golden_law_is_two_clockwise_hands_without_rays():
 	v.free()
 	return why
 
-func test_time_warp_dashed_rings_turn_opposite_ways():
+func test_wind_up_dashed_rings_turn_opposite_ways():
 	var v = _zone_draw("chronos_r")
 	var why := ""
 	var s0: Array = v.rings.filter(func(r): return r[4] > 0).map(func(r): return r[5])
 	if s0.size() != 2 or v.lines.size() != View.WARP_TICKS:
-		why = "왜곡장이 점선 고리 %d · 눈금 %d다(고리 둘 · 눈금 %d이어야 한다)" % [s0.size(), v.lines.size(), View.WARP_TICKS]
+		why = "태엽 감기 둘레가 점선 고리 %d · 눈금 %d다(고리 둘 · 눈금 %d이어야 한다)" % [s0.size(), v.lines.size(), View.WARP_TICKS]
 	if why == "":
 		v.clock = 1.5
 		v.wipe()
@@ -869,7 +870,6 @@ func test_fx4_draws_only_palette_colors():
 	for t in [0.0, 0.05, 0.1, 0.15, 0.2, 0.25]:
 		v._charge(ch, a, t)
 		v._charge(ch, bt[1], t)
-		v._rewind(ch, a, t)
 		b.traces[-1].age = t
 		v._traces(true)
 	v._tells()

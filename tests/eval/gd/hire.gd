@@ -289,7 +289,8 @@ func ev203():
 	_key(c, KEY_F2)
 	var picked: bool = c.selected == [m]
 	b.start_battle()  # 스킬은 전투 단계에만 쓴다(S136)
-	_key(c, KEY_E)  # 아이아스·크로노스의 E는 모두 즉시 칸이다
+	_key(c, KEY_E)
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(m.pos.round())))  # 크로노스 E는 지점 칸이다(S158 2026-10-30). 아이아스 E는 즉시 칸이다
 	var second_e: bool = m.skill_uses == 1 and k.skill_uses == 0
 	if not clear_wave(b) or not _win_round(b):
 		return "1라운드를 이기지 못했다(%s)" % b.state
