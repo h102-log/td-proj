@@ -8,3 +8,9 @@ cost = 15
 hp = 30.0
 speed = 2.5
 light = 1.5
+ranks = [{
+"speed": 3.0
+}, {
+"hp": 45.0
+}]
+rank_cost = [30, 45]

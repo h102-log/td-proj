@@ -1329,3 +1329,33 @@ msgstr "Loot: %s +%d → +%d"
 
 msgid "장비 있음 +%d"
 msgstr "Gear in bag +%d"
+
+msgid "%s 강화"
+msgstr "%s upgrade"
+
+msgid "%s 강화 %d"
+msgstr "%s upgrade %d"
+
+msgid "%s 강화 최대"
+msgstr "%s upgrade max"
+
+msgid "체력 %s → %s"
+msgstr "HP %s → %s"
+
+msgid "공격력 %s → %s"
+msgstr "ATK %s → %s"
+
+msgid "블록 수 %s → %s"
+msgstr "Block %s → %s"
+
+msgid "공격 간격 %s → %s초"
+msgstr "Hit every %ss → %ss"
+
+msgid "사거리 %s → %s칸"
+msgstr "Range %s → %s"
+
+msgid "인식 범위 %s → %s칸"
+msgstr "Sight %s → %s"
+
+msgid "이동 %s → %s칸/초"
+msgstr "Move %s/s → %s/s"
