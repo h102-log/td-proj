@@ -92,3 +92,31 @@ def test_EV623_merc_rank_popup(gd):
 
 def test_EV624_merc_rank_recruit(gd):
     gd("gear", "EV624")
+
+
+def test_EV625_aias_still_and_block(gd):
+    gd("gear", "EV625")
+
+
+def test_EV626_aias_wall_length_preview(gd):
+    gd("gear", "EV626")
+
+
+def test_EV627_aias_wall_resonance(gd):
+    gd("gear", "EV627")
+
+
+def test_EV628_transfer_moves_gear(gd):
+    gd("gear", "EV628")
+
+
+def test_EV629_transfer_without_gear(gd):
+    gd("gear", "EV629")
+
+
+def test_EV630_transfer_tip_gear_line(gd):
+    gd("gear", "EV630")
+
+
+def test_EV631_gear_data_check(gd):
+    gd("gear", "EV631")

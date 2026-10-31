@@ -14,6 +14,8 @@ extends "res://tests/eval/gd/hud.gd"
 #   PR3 용병 종류 강화(S254·S255·I203): Battle.rank_up(용병 종류) -> bool — 한 단계 강화. 못 하면 false이고 아무것도 바뀌지 않는다
 #     Battle.merc_rank — 용병 종류 → 산 강화 단계 수. 키가 없으면 0 · MERC_KINDS[종류].ranks(단계마다 {키: 값}) · rank_cost(단계마다 골드)
 #     저장 snapshot의 강화 칸 이름은 "ranks"다 · 게임 장면: 시설 팝업(main.hud.popup)의 «이름 강화 …» 버튼
+#   아이아스 방패(S256~S258·I204): data/gear/aias.tres(+0~+9) · BattleView.wall_preview(판, 영웅, 지점) -> Array[Vector2i] — R 조준 미리보기 칸(static)
+#     성벽 공명 흔적: Battle.traces의 slot "resonate"(성벽 칸마다 하나) · 이관(transfer)이 장비 수치도 옮긴다 · main.hud._members[i][2] — 보유 i의 이관 버튼
 # 단계 수치는 데이터(GEAR_KINDS)에서 읽는다. 임시값이라(S249) 수치를 바꿔도 동작을 재는 평가는 깨지지 않게
 
 const CELLS := [Vector2i(10, 5), Vector2i(12, 5), Vector2i(14, 5)]  # 출전 칸(I107)
@@ -326,9 +328,9 @@ func ev610():
 		_frame(main)
 		_layout(main)
 		var rows: Array = _labels(win).filter(func(t): return t.begins_with(title + " — 없음"))
-		out = check(_starts(win, "리롤") == null and rows.size() == 1 and _button(win, craft) != null, "«장비» 뒤: 리롤 %s · 줄 %s · «%s» %s" % [_starts(win, "리롤") != null, _labels(win), craft, _button(win, craft) != null])
+		out = check(_starts(win, "리롤") == null and rows.size() == 1 and _row_button(win, title + " — 없음", craft) != null, "«장비» 뒤: 리롤 %s · 줄 %s · 왕홀 줄 «%s» %s" % [_starts(win, "리롤") != null, _labels(win), craft, _row_button(win, title + " — 없음", craft) != null])
 	if out == "":
-		_press(win, craft)
+		_row_button(win, title + " — 없음", craft).pressed.emit()
 		_frame(main)
 		_layout(main)
 		var rows: Array = _labels(win).filter(func(t): return t.begins_with(title + " +0"))
@@ -340,6 +342,15 @@ func ev610():
 		out = check(_starts(win, "리롤") != null, "«영입»을 눌러도 영입 칸이 다시 보이지 않는다")
 	_done(main)
 	return out
+
+# 글이 head로 시작하는 장비 탭 줄에서 글이 text인 보이는 버튼. 없으면 null. 장비가 여럿이면 줄마다 «제작» 버튼이 있다
+func _row_button(win: Node, head: String, text: String):
+	for l in win.find_children("*", "Label", true, false):
+		if l.is_visible_in_tree() and l.text.begins_with(head):
+			for n in l.get_parent().find_children("*", "BaseButton", true, false):
+				if n.is_visible_in_tree() and n.text == text:
+					return n
+	return null
 
 # ── PR2 전리품 ──
 
@@ -731,3 +742,178 @@ func ev624():
 	var m = b.recruit(f)
 	var want: float = b.MERC_KINDS.soldier.ranks[0].get("hp", 0.0)
 	return check(m != null and want > _mdata("soldier").hp and m.hp == want and m.max_hp == want, "강화 뒤 전투 단계에 산 용병 %s(기대 체력 %s)" % [[m.max_hp, m.hp] if m else null, want])
+
+const ABILITY_KEYS := ["ignite", "resonate"]  # 장비가 처음 넣는 능력 키(S250·S257, I204)
+
+# 방패 +n(음수면 장비 없음) 아이아스 하나의 전투 단계. 구석 과녁으로 전투가 이어진다. 시간은 흐르지 않는다
+func _aias(n: int):
+	var t := {"kind": "aias", "cell": Vector2i(10, 10)}
+	if n >= 0:
+		t.gear = n
+	var b = battle({"heroes": [t], "base_hp": BIG, "waves": [NO_ENEMY, NO_ENEMY], "seed": 11})
+	if b.hero == null:
+		return b
+	_target(b, Vector2(0, 19))
+	b.start_battle()
+	b.hero.mana = 1e4
+	return b
+
+# 방패 데이터가 없으면 그 이유. 없으면 _refit이 멈춰 판이 반쯤 만들어진다
+func _shield(b) -> String:
+	if _api(b) != "":
+		return _api(b)
+	return "" if b.GEAR_KINDS.has("aias") and b.GEAR_KINDS.aias.steps.size() == 10 and b.hero != null else "data/gear/aias.tres(+0~+9)가 없다"
+
+# EV625 · S256: 방패 +0은 요새화 대기를 1.5초로 줄이고, +3은 요새화 블록 수를 1 늘린다. +7~+9 비용
+func ev625():
+	var probe = battle()
+	var out := _shield(_aias(0))
+	if out != "":
+		return out
+	var got := []
+	for n in [-1, 0]:
+		var b = _aias(n)
+		run(b, 1.6)
+		got.append(b.hero.fort)
+	var blocks := []
+	for n in [2, 3]:
+		var b = _aias(n)
+		run(b, 2.1)
+		blocks.append([b.hero.fort, b.hero.block])
+	var base: int = probe.HERO_KINDS.aias.block + _data("aias").passive.block
+	var cost: Array = probe.HIRE.gear_cost.slice(7, 10)
+	return check(got == [false, true] and blocks == [[true, base], [true, base + 1]] and base == 4 and cost == [100, 120, 150],
+		"1.6초 요새화(장비 없음, +0) %s(기대 [false, true]) · +2·+3 요새화·블록 %s(기대 %d, %d) · +7~+9 비용 %s" % [got, blocks, base, base + 1, cost])
+
+# EV626 · S256: 방패 +6 R은 성벽 5칸(+5는 3칸), 조준 미리보기 칸이 세운 칸과 같다
+func ev626():
+	var out := _shield(_aias(6))
+	if out != "":
+		return out
+	var view = load("res://src/ui/battle_view.gd")
+	if not "wall_preview" in view.get_script_method_list().map(func(m): return m.name):
+		return "BattleView.wall_preview가 없다"
+	var got := []
+	for n in [5, 6]:
+		var b = _aias(n)
+		var aim := Vector2(14, 10)
+		var want: Array = view.wall_preview(b, b.hero, aim)
+		if not b.cast(b.hero, "r", aim):
+			return "방패 +%d 아이아스의 R이 거부됐다" % n
+		var cells: Array = b.barriers.keys()
+		cells.sort()
+		want.sort()
+		got.append([cells.size(), cells == want])
+	return check(got == [[3, true], [5, true]], "+5·+6 R [성벽 칸 수, 미리보기와 같음] %s(기대 [[3, true], [5, true]])" % [got])
+
+# EV627 · S257: 성벽 공명. 성벽이 서 있을 때 태세가 터지면 성벽 칸마다 1칸 안 적도 맞고, 두 범위에 드는 적은 한 번만 맞는다
+func ev627():
+	var out := _shield(_aias(9))
+	if out != "":
+		return out
+	var res := {}
+	for n in [8, 9]:
+		var b = _aias(n)
+		var h = b.hero
+		var side = _target(b, Vector2(13, 8))  # 성벽 칸 (12,8)에서 1칸, 아이아스에서 3.6칸
+		var both = _target(b, Vector2(11, 9))  # 아이아스에서 1.4칸, 성벽 칸 (12,9)에서 1칸
+		var far = _target(b, Vector2(15, 10))  # 성벽에서 3칸, 아이아스에서 5칸
+		if not b.cast(h, "r", Vector2(12, 10)) or not b.cast(h, "e"):
+			return "방패 +%d 아이아스의 R·E가 거부됐다" % n
+		b.damage(h, 20.0)
+		var hp := [side.hp, both.hp, far.hp]
+		b.cast(h, "e")  # 태세 중에 다시 누르면 바로 터진다(S151)
+		res[n] = [hp[0] - side.hp, hp[1] - both.hp, hp[2] - far.hp, b.traces.filter(func(c): return c.slot == "resonate").size(), b.barriers.size()]
+	var r8: Array = res[8]
+	var r9: Array = res[9]
+	return check(r9[0] > 0.0 and is_equal_approx(r9[0], r9[1]) and r9[2] == 0.0 and r9[3] == r9[4] and r9[4] == 5
+		and r8[0] == 0.0 and r8[1] > 0.0 and r8[2] == 0.0 and r8[3] == 0,
+		"[성벽 옆, 둘 다, 밖 피해, 공명 흔적, 성벽 칸] +9 %s · +8 %s" % [r9, r8])
+
+# 아이아스(방패 a)와 둘째 영웅(kind, 장비 g. 음수면 없음)을 Lv1로 보유한 라운드 사이. 아이아스 경험치 10
+func _pair(a: int, kind: String, g: int):
+	var second := {"kind": kind, "cell": CELLS[1], "level": 1}
+	if g >= 0:
+		second.gear = g
+	var b = _board(2, [{"kind": "aias", "cell": CELLS[0], "gear": a, "level": 1}, second])
+	if _shield(b) != "" or not _win_bare(b):
+		return null
+	b.add_xp(b.roster[0], 10)
+	return b
+
+# EV628 · S258: 이관하면 강화 수치도 받는 장비로 옮기고, 최대 단계에서 넘친 수치는 주는 장비에 남는다
+func ev628():
+	var b = _pair(5, "ignis", 2)
+	if b == null:
+		return _shield(_aias(0)) if _shield(_aias(0)) != "" else "아이아스·이그니스 판이 라운드 사이가 되지 않았다"
+	var a = b.roster[0]
+	var g = b.roster[1]
+	var xp: int = a.xp + g.xp
+	var ok: bool = b.transfer(a, g)
+	var top: int = b.GEAR_KINDS.ignis.steps.size() - 1
+	var bad: Array = _differ(a, _fitted(b, "aias", 5 - (top - 2))) + _differ(g, _fitted(b, "ignis", top))
+	return check(ok and b.bag == {"aias": 5 - (top - 2), "ignis": top} and bad.is_empty() and g.xp == xp and a.xp == 0,
+		"이관 %s · 가방 %s(기대 aias %d, ignis %d) · 장비 값과 다른 칸 %s · 경험치 %d/%d(기대 0/%d)" % [ok, b.bag, 5 - (top - 2), top, bad, a.xp, g.xp, xp])
+
+# EV629 · S258: 둘 중 하나의 장비가 가방에 없으면 경험치만 옮긴다
+func ev629():
+	var b = _pair(5, "sylvia", -1)
+	if b == null:
+		return _shield(_aias(0)) if _shield(_aias(0)) != "" else "아이아스·실비아 판이 라운드 사이가 되지 않았다"
+	var a = b.roster[0]
+	var s = b.roster[1]
+	var xp1: int = a.xp + s.xp
+	var ok: bool = b.transfer(a, s)
+	var first := [ok, b.bag.duplicate(), s.xp == xp1 and a.xp == 0]
+	var xp2: int = a.xp + s.xp
+	var back: bool = b.transfer(s, a)
+	return check(first == [true, {"aias": 5}, true] and back and b.bag == {"aias": 5} and a.xp == xp2 and s.xp == 0 and _differ(a, _fitted(b, "aias", 5)).is_empty(),
+		"아이아스 → 실비아 [이관, 가방, 경험치 옮김] %s(기대 [true, {aias: 5}, true]) · 실비아 → 아이아스 %s · 가방 %s · 경험치 아이아스 %d·실비아 %d(기대 %d·0)" % [first, back, b.bag, a.xp, s.xp, xp2])
+
+# EV630 · S258: 주는 영웅을 고른 뒤 받는 영웅 «여기로» 툴팁에 받는 장비 «이름 +전 → +뒤»
+func ev630():
+	var main = _game()
+	var b = main.view.battle
+	var out := _api(b)
+	if out == "" and not b.GEAR_KINDS.has("aias"):
+		out = "data/gear/aias.tres가 없다"
+	b.gold = BIG
+	if out == "":
+		b.offers[0] = "aias"
+		b.offers[1] = "ignis"
+		for i in 2:
+			b.hire(i)
+		b.next_round()
+		out = check(_win(b) and b.roster.size() == 2 and b.roster[0].kind == "aias" and b.roster[1].kind == "ignis", "1라운드를 이겨 라운드 사이가 되지 않았다(%s, 보유 %s)" % [b.state, b.roster.map(func(h): return h.kind)])
+	if out == "":
+		var title: String = b.GEAR_KINDS.ignis.title
+		b.bag = {"aias": 5, "ignis": 2}
+		_frame(main)
+		main.hud._members[0][2].pressed.emit()
+		_frame(main)
+		var with := _tip_of(main, main.hud._members[1][2])
+		b.bag = {"aias": 5}
+		_frame(main)
+		var without := _tip_of(main, main.hud._members[1][2])
+		out = check(("%s +2 → +6" % title) in with and not title in without, "«여기로» 툴팁: 둘 다 있을 때 «%s» · 왕홀 없을 때 «%s»" % [with, without])
+	_done(main)
+	return out
+
+# EV631 · I204: 장비 데이터 검사. 경로 «칸.키», 칸·키가 영웅 데이터에 있거나 능력 키, steps·notes 수, gear_cost 길이
+func ev631():
+	var b = battle()
+	if not b.get("GEAR_KINDS") is Dictionary or not b.GEAR_KINDS.has("aias"):
+		return "장비 데이터에 aias가 없다"
+	var bad := []
+	for k in b.GEAR_KINDS:
+		var g: Dictionary = b.GEAR_KINDS[k]
+		var hero := _data(k)
+		if g.steps.size() != g.notes.size() or b.HIRE.gear_cost.size() < g.steps.size():
+			bad.append("%s 단계 %d · 줄 %d · 비용 %d" % [k, g.steps.size(), g.notes.size(), b.HIRE.gear_cost.size()])
+		for step in g.steps:
+			for path in step:
+				var parts: PackedStringArray = String(path).split(".")
+				var slot_ok: bool = parts.size() == 2 and parts[0] in SIX and hero.get(parts[0]) is Dictionary and not hero.get(parts[0]).is_empty()
+				if not slot_ok or not (parts[1] in hero.get(parts[0]) or parts[1] in ABILITY_KEYS):
+					bad.append("%s %s" % [k, path])
+	return check(bad.is_empty() and b.HIRE.gear_cost.size() >= 10, "어긋난 장비 데이터 %s · gear_cost %d칸" % [bad, b.HIRE.gear_cost.size()])

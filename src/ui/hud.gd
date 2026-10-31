@@ -1159,7 +1159,12 @@ func _give_tip(i: int) -> Array:
 		return ["이관", "", "", "경험치를 모두 다른 영웅에게 옮긴다 · 이 영웅은 Lv1로", "경험치가 없다" if h.xp == 0 else ""]
 	if _giver == h:
 		return ["취소", "", "", "이관을 그만둔다", ""]
-	return ["여기로", "", "", "이 영웅이 경험치를 받는다", "" if battle.can_transfer(_giver, h) else "받으면 레벨 상한을 넘는다"]
+	return ["여기로", "", "", "이 영웅이 경험치를 받는다" + _gear_move_line(_giver, h), "" if battle.can_transfer(_giver, h) else "받으면 레벨 상한을 넘는다"]
+
+# 이관 때 받는 장비가 오르는 줄(S258). 옮길 수치가 없으면 ""
+func _gear_move_line(from, to) -> String:
+	var n: int = battle.gear_move(from, to)
+	return "" if n == 0 else "\n%s +%d → +%d" % [battle.GEAR_KINDS[to.kind].title, battle.bag[to.kind], battle.bag[to.kind] + n]
 
 # 보유가 상한이면 영입할 수 없는 이유(I127). 아니면 ""
 func _cap_note() -> String:
