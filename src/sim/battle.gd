@@ -15,6 +15,7 @@ var HERO_KINDS := _kinds("res://data/heroes/")  # 칸의 뜻은 src/data/hero_de
 var HIRE = load("res://data/hire.tres")  # 영입소 수치(S123, I103)
 var LEVELS = load("res://data/levels.tres")  # 영웅 레벨 수치(S126, I111)
 var QUEST_KINDS := _kinds("res://data/quests/")  # 미션·의뢰 정의(S77, I118). 칸의 뜻은 src/data/quest_def.gd 머리 주석
+var GEAR_KINDS := _kinds("res://data/gear/")  # 영웅 전용장비(S246). 파일 이름이 주인 영웅 종류다. 칸의 뜻은 src/data/gear_def.gd 머리 주석
 const VILLAGE_UP := [60]  # 마을 레벨 n→n+1 비용(S99). 길이+1이 최대 레벨이다. 임시값(Claude 예시, 사용자 2026-10-13 수락)
 const MERC_CAP := 10  # 배치 상한 기본값(S25). 임시값(사용자 2026-10-13), 스테이지의 merc_cap이 덮어쓴다
 const HOUSE_CAP := 6  # 마을에 지을 수 있는 집 수(S101). 임시값(사용자 2026-10-13)
@@ -249,6 +250,7 @@ class Unit:
 	var w := {}
 	var e := {}
 	var r := {}
+	var worn := false  # 전용장비를 꼈다(S247). 강화 수치는 판의 bag에 있다
 	var cd := {"q": 0.0, "w": 0.0, "e": 0.0, "r": 0.0}  # 칸마다 남은 재사용 대기(초)
 	var skill_uses := 0  # 쓴 스킬 수(모든 칸)
 	var order = null  # 시전 사거리 밖이라 걸어가서 쓸 스킬 {slot, aim}(S147). 없으면 null
@@ -374,6 +376,8 @@ var heroes := []  # 전장에 나온 출전 영웅(Unit)들, 보유 순서(I108)
 var hero  # 첫 출전 영웅(S119, I108). 영웅이 없으면 null
 var roster := []  # 보유 영웅, 영입 순서(S58, S59). 새 도전이면 비운다(S64)
 var lineup := []  # 다음 라운드에 출전할 영웅(S59, I106). 영입 창에서 바꾸고 다음 라운드로 넘어갈 때 전장에 반영한다(S124)
+var bag := {}  # 가진 전용장비: 영웅 종류 → 강화 수치(+0부터, S246). 새 도전이면 비운다
+var forged := {}  # 이번 라운드 사이 창에서 장비마다 제작·강화한 횟수(S246). 다음 라운드로 넘어갈 때 비운다
 var offers := []  # 영입소 목록: 칸마다 영웅 종류, 영입한 칸은 ""(I103, I104)
 var quests := []  # 이 도전에서 뜰 수 있는 미션·의뢰 이름(I118). 스테이지의 quests가 정한다. 비어 있으면 미션·의뢰가 없다
 var mission := ""  # 지금 라운드의 미션(S77, I120). 없으면 ""
@@ -527,6 +531,8 @@ func restart() -> void:
 	base.produces = ["engineer"]  # live_prep 판에서는 거점도 공병을 판다(S98 2026-10-25 변경, sellers)
 	var exit = _exit_of(base)
 	base.rally = exit if exit != null else base.cell
+	bag.clear()
+	forged.clear()
 	heroes.clear()
 	# 영웅 목록(I102). 목록이 없고 hero_start만 있으면 아이아스 하나다. 이 영웅들은 보유·출전한 채 시작한다(평가용 스테이지)
 	# 레벨(level)을 정하지 않으면 최대 레벨이다(I115)
@@ -536,6 +542,10 @@ func restart() -> void:
 		h.is_hero = true
 		h.home = t.cell
 		_set_xp(h, LEVELS.steps.slice(0, t.get("level", LEVELS.steps.size() + 1) - 1).reduce(func(s, x): return s + x, 0))
+		if t.has("gear"):  # 평가용: 그 수치의 전용장비를 가방에 넣고 낀 채 시작한다
+			bag[t.kind] = t.gear
+			h.worn = true
+			_refit(h)
 		heroes.append(h)
 		units.append(h)
 	hero = heroes[0] if heroes else null
@@ -765,6 +775,7 @@ func next_round() -> bool:
 		wave_index = 0
 		commission_offers.clear()
 		settled.clear()
+		forged.clear()  # 창당 횟수는 라운드 사이 창마다 새로 센다(S246)
 		_reset_tally()  # 새 라운드의 집계와 미션(I119, I120). 수락한 의뢰는 이 라운드에 걸린다(I121)
 		_draw_mission()
 	elif live_prep:  # 도전의 첫 준비 단계: 시작 공병(S208)
@@ -818,6 +829,9 @@ func hire(i: int):
 	gold -= cost
 	var h := Unit.new(offers[i], Vector2i.ZERO, stats)
 	h.is_hero = true
+	if bag.has(h.kind):  # 가방에 그 영웅 장비가 있으면 저절로 낀다(S247)
+		h.worn = true
+		_refit(h)
 	offers[i] = ""
 	roster.append(h)
 	if lineup.size() < HIRE.lineup:
@@ -901,6 +915,39 @@ func transfer(from: Unit, to: Unit) -> bool:
 		_set_xp(pair[0], pair[1])
 		pair[0].hp = ratio * pair[0].max_hp
 	return true
+
+# 라운드 사이에만 장비 k를 제작(+0)하거나 한 단계 강화한다(S246). 장비 하나는 창마다 forge_cap번, 데이터의 마지막 단계가 최대다.
+# 처음 만든 장비는 주인을 보유하고 있으면 저절로 낀다(S247)
+func forge(k: String) -> bool:
+	var n: int = bag.get(k, -1) + 1
+	if state != "cleared" or not GEAR_KINDS.has(k) or n >= GEAR_KINDS[k].steps.size() or forged.get(k, 0) >= HIRE.forge_cap or gold < HIRE.gear_cost[n]:
+		return false
+	gold -= HIRE.gear_cost[n]
+	bag[k] = n
+	forged[k] = forged.get(k, 0) + 1
+	for h in roster.filter(func(x): return x.kind == k):
+		h.worn = h.worn or n == 0
+		_refit(h)
+	return true
+
+# 라운드 사이에만 보유 영웅에게 그 영웅의 장비를 끼우거나 뺀다(S247)
+func wear(h, on: bool) -> bool:
+	if state != "cleared" or h not in roster or not bag.has(h.kind):
+		return false
+	h.worn = on
+	_refit(h)
+	return true
+
+# 영웅의 패시브·오라·Q·W·E·R를 데이터 사본으로 되돌리고, 장비를 꼈으면 +0부터 지금 수치까지 단계마다 «칸.키 → 값»을 차례로 덮는다(I200).
+# 데이터(HERO_KINDS)는 고치지 않는다. 수치가 데이터의 단계 수를 넘으면(단계를 줄인 데이터로 옛 저장) 마지막 단계까지다
+func _refit(h: Unit) -> void:
+	for slot in ["passive", "aura", "q", "w", "e", "r"]:
+		h.set(slot, HERO_KINDS[h.kind][slot].duplicate(true))
+	if h.worn and bag.has(h.kind):
+		var steps: Array = GEAR_KINDS[h.kind].steps
+		for step in steps.slice(0, mini(bag[h.kind], steps.size() - 1) + 1):
+			for path in step:
+				h.get(path.get_slice(".", 0))[path.get_slice(".", 1)] = step[path]
 
 # 라운드 집계(I119)를 0으로 돌린다. 도전을 시작할 때와 다음 라운드로 넘어갈 때
 func _reset_tally() -> void:
@@ -1231,13 +1278,12 @@ func _aim_ok(h, sk: Dictionary, aim) -> bool:
 # 칸을 쓴다: 마나를 내고 재사용 대기를 시작하고 그 칸의 효과를 낸다. 이그니스 패시브(S156)가 커진 칸을 고른다
 func _use(h, slot: String, aim) -> void:
 	var sk: Dictionary = h.get(slot)
-	var grow := 1.0
+	var grow := grow_of(h, slot)
 	h.mana -= sk.mana
 	h.cd[slot] = sk.gap
 	h.skill_uses += 1
 	if h.passive.get("id") == "overload":
 		if h.charged and slot != "r":
-			grow += h.passive.grow
 			h.cd[slot] = maxf(sk.gap - h.passive.cut, 0.0)
 			h.charged = false
 		h.casts += 1
@@ -1246,6 +1292,10 @@ func _use(h, slot: String, aim) -> void:
 	_trace(h, slot, aim, aim if sk.aim == "point" else h.pos, sk.get("radius", 0.0) * grow)
 	call("_cast_" + sk.id, h, sk, aim, grow)
 	_tracing = null
+
+# 스킬 반경 배율: 과부하(S156) 차례의 Q·W·E는 1 + grow, 그 밖은 1이다. 조준 원(S251)도 이 값을 쓴다
+func grow_of(h, slot: String) -> float:
+	return 1.0 + h.passive.grow if h.passive.get("id") == "overload" and h.charged and slot != "r" else 1.0
 
 # 즉시 스킬 흔적을 남긴다(S179). at은 흔적의 가운데(지점 스킬은 지점, 나머지는 쓴 때 영웅 자리)다. _tracing을 비울 때까지 맞은 대상이 hits에 쌓이고,
 # 효과(_fx)를 건 대상이 있으면 marked가 참이다(빗나감, S179 2026-10-29). 보스 강타(S195)도 남긴다. 그때 h는 그 적이고 slot은 스킬 이름이다
@@ -1529,6 +1579,8 @@ func _zones(dt: float) -> void:
 					var to: Vector2 = z.pos - e.pos
 					_knock(e, to.limit_length(z.pull * dt))
 					_fx(e, "ignis_e", {"mr": z.mr}, STAY)  # 중력장 안에 있는 동안만
+					if z.has("lit"):  # 불타는 블랙홀(S250): 안의 적에게 화염구 발화
+						_fx(e, "ignis_q", {"dot": z.lit.dot}, z.lit.burn)
 			"ignis_r":  # 용암: 초당 최대 체력 비율 마법 피해
 				for e in foes:
 					damage(e, z.burn * e.max_hp * dt, "magic", z.owner)
@@ -1767,6 +1819,10 @@ func _cast_fireball(h: Unit, sk: Dictionary, aim, grow: float) -> void:
 			if e.alive:
 				_fx(e, "ignis_q", {"dot": sk.dps}, sk.burn)
 	_zone("ignis_q", h, aim, sk.radius * grow, sk.fire, {"dps": sk.fire_dps})
+	if sk.get("ignite", false):  # 블랙홀 점화(S250, 왕홀 +6): 이 영웅의 블랙홀 안에 쓰면 그 블랙홀이 불탄다
+		for z in zones:
+			if z.src == "ignis_e" and z.owner == h and _inside(z, aim):
+				z.lit = {"dot": sk.dps, "burn": sk.burn}
 
 # W 서리 고리: 범위 마법 피해와 둔화. 발화 중인 적은 열충격(피해 더하고 빙결)
 func _cast_frost_ring(h: Unit, sk: Dictionary, aim, grow: float) -> void:

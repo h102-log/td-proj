@@ -192,6 +192,11 @@ var _giver = null  # 이관(I116)에서 먼저 고른 주는 영웅
 var _quests := VBoxContainer.new()  # 라운드 사이 영입 칸 안의 의뢰 목록(I121)
 var _quests_info := Label.new()
 var _commissions := []  # 의뢰 목록 칸마다 수락 버튼
+var _tabs := HBoxContainer.new()  # 라운드 사이 창 머리의 «영입»·«장비» 전환(S248)
+var _gear_tab := false  # 장비 칸을 보는 중. 창이 새로 뜨면 영입 칸이다
+var _gear := VBoxContainer.new()  # 장비 칸(S248)
+var _gear_info := Label.new()
+var _gear_rows := []  # 장비마다 [영웅 종류, 줄 글, 제작·강화 버튼, 장착·해제 버튼]
 var _seen := ""  # 마지막으로 본 판 단계. 바뀌었을 때 결과 창이 떠 있으면 포커스를 준다
 var _wait := 0.0  # 결과 창이 뜨기까지 남은 시간(초, S117). 트리가 멈추는 ESC 메뉴 동안에는 줄지 않는다
 var tags := []  # 고른 영웅·용병의 상황 태그 [A 공격 이동, S 정지, H 홀드](I139)
@@ -332,7 +337,29 @@ func _ready() -> void:
 	window.add_child(box)
 	_result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(_result_label)
+	box.add_child(_tabs)
+	for on in [false, true]:
+		var t := _window_button(_tabs, func(): _gear_tab = on)
+		t.text = "장비" if on else "영입"
+		t.toggle_mode = true
+		t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	box.add_child(_hire)
+	box.add_child(_gear)
+	_gear_info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_gear.add_child(_gear_info)
+	var gears: Array = battle.GEAR_KINDS.keys()
+	gears.sort()
+	for k in gears:  # 장비 데이터가 있는 영웅마다 한 줄
+		var row := HBoxContainer.new()
+		_gear.add_child(row)
+		var line := Label.new()
+		line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(line)
+		var make := _window_button(row, func(): battle.forge(k))
+		tip.add(make, func(): return _forge_tip(k))
+		var wear := _window_button(row, func(): battle.wear(_owner(k), not _owner(k).worn))
+		tip.add(wear, func(): return ["해제", "", "", "장비 효과를 끈다 · 장비는 가방에 남는다", ""] if _owner(k) and _owner(k).worn else ["장착", "", "", "이 영웅이 장비 효과를 받는다", ""])
+		_gear_rows.append([k, line, make, wear])
 	_hire_info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_hire.add_child(_hire_info)
 	var cols := HBoxContainer.new()
@@ -343,7 +370,7 @@ func _ready() -> void:
 	for col in [left, right]:
 		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		cols.add_child(col)
-	for v in [box, _hire, _quests, left, right]:
+	for v in [box, _hire, _gear, _quests, left, right]:
 		v.add_theme_constant_override("separation", 2)
 	for i in battle.HIRE.slots:
 		_offers.append(_card(left, i))
@@ -500,12 +527,19 @@ func _process(delta: float) -> void:
 	if fresh:
 		_seen = battle.state
 		_giver = null
+		_gear_tab = false  # 창이 새로 뜨면 영입 칸(S248)
 		_note.text = ""  # 상한 리롤 이유는 그 창에서만(I127)
 	if window.visible and (fresh or not was):  # 포커스는 창이 처음 보이는 프레임에(I110, S117)
 		_next.grab_focus()
-	_hire.visible = battle.hiring_open()
+	_tabs.visible = battle.state == "cleared"  # 장비 전환은 라운드 사이 창에만(S248)
+	_tabs.get_child(0).button_pressed = not _gear_tab
+	_tabs.get_child(1).button_pressed = _gear_tab
+	_gear.visible = _tabs.visible and _gear_tab
+	_hire.visible = battle.hiring_open() and not _gear.visible
 	if _hire.visible:
 		_show_hire()
+	if _gear.visible:
+		_show_gear()
 	window.reset_size()
 	if not prep or controls.placing != "":  # 전투가 시작되거나 놓기 모드에 들어가면 판매 팝업을 닫는다(I58)
 		controls.selling = []
@@ -1022,6 +1056,47 @@ func _show_hire() -> void:
 			var q: Dictionary = battle.QUEST_KINDS[battle.commission_offers[i]]
 			var on: bool = battle.commission == battle.commission_offers[i]
 			_commissions[i].text = "%s · +%d골드 · %s" % [q.text, q.reward, "수락함 (다시 누르면 무름)" if on else "수락"]
+
+# 장비 칸(S248): 골드·창당 횟수, 장비마다 «이름 +N · 주인(역할) · 장착/해제/미보유»(장비가 없으면 보유/미보유) 줄, 제작·강화 버튼, 주인을 보유하고 장비가 있으면 장착·해제
+func _show_gear() -> void:
+	_gear_info.text = "골드 %d · 장비 하나는 이 창에서 %d번까지 제작·강화" % [battle.gold, battle.HIRE.forge_cap]
+	for row in _gear_rows:
+		var k: String = row[0]
+		var g: Dictionary = battle.GEAR_KINDS[k]
+		var n: int = battle.bag.get(k, -1)
+		var h = _owner(k)
+		row[1].text = "%s · %s · %s" % ["%s +%d" % [g.title, n] if n >= 0 else "%s — 없음" % g.title, HEROES[k], "미보유" if h == null else ("보유" if n < 0 else ("장착" if h.worn else "해제"))]
+		if n + 1 >= g.steps.size():
+			row[2].text = "최대"
+		else:
+			row[2].text = "제작 %d골드" % battle.HIRE.gear_cost[0] if n < 0 else "강화 +%d · %d골드" % [n + 1, battle.HIRE.gear_cost[n + 1]]
+		row[2].disabled = _forge_why(k) != ""
+		row[3].visible = h != null and n >= 0
+		row[3].text = "해제" if h and h.worn else "장착"
+
+# 장비 k의 주인인 보유 영웅. 없으면 null
+func _owner(k: String):
+	for h in battle.roster:
+		if h.kind == k:
+			return h
+	return null
+
+# 제작·강화를 못 하는 이유(S248). 할 수 있으면 ""
+func _forge_why(k: String) -> String:
+	var up: int = battle.bag.get(k, -1) + 1
+	if up >= battle.GEAR_KINDS[k].steps.size():
+		return "최대 단계"
+	if battle.forged.get(k, 0) >= battle.HIRE.forge_cap:
+		return "이번 창에서 %d번 다 씀" % battle.HIRE.forge_cap
+	var cost: int = battle.HIRE.gear_cost[up]
+	return "골드 %d 모자람" % (cost - battle.gold) if battle.gold < cost else ""
+
+# 제작·강화 버튼 툴팁(S248): 다음 단계 효과와 못 누르는 이유
+func _forge_tip(k: String) -> Array:
+	var g: Dictionary = battle.GEAR_KINDS[k]
+	var up: int = battle.bag.get(k, -1) + 1
+	var about: String = "+%d: %s" % [up, g.notes[up]] if up < g.steps.size() else "모든 단계를 받았다"
+	return ["제작" if up == 0 else "강화", "", "", about, _forge_why(k)]
 
 # 영입 카드(I110): 초상·이름(역할)·이명·등급, 오른쪽에 비용 숫자. 툴팁은 누르면 생기는 일과 모자란 조건만
 func _card(parent: Control, i: int) -> Button:

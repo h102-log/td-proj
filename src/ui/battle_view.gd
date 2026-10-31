@@ -958,6 +958,10 @@ func _zones() -> void:
 				_fire_zone(c, r, seed, others)
 			"ignis_e":
 				_hole_zone(c, r, age, seed, others)
+				if z.has("lit"):  # 불타는 블랙홀(S250): 소용돌이 위에 불길 장판의 불꽃 조각과 붉은 테두리
+					for i in FLAMES:
+						_spr("flame", int(clock * 10.0) + i * 3, c + Vector2i(Vector2.from_angle(_hf(seed, i) * TAU) * sqrt(_hf(seed, i + 50)) * (r - 4)), true)
+					_edge(c, r, PX.red, PX.soot, others)
 			"ignis_r":
 				_lava_zone(c, r, z.left, seed, others)
 			"sylvia_e":  # 덫: 엷은 연두 칠 + 가운데 덫 조각(1.2초마다 반짝)
@@ -2862,9 +2866,13 @@ func _aim_preview() -> void:
 					for e in [[Vector2i.ZERO, Vector2i(CELL, 1)], [Vector2i(0, CELL - 1), Vector2i(CELL, 1)], [Vector2i.ZERO, Vector2i(1, CELL)], [Vector2i(CELL - 1, 0), Vector2i(1, CELL)]]:
 						_px(q + e[0], Color.WHITE, e[1])
 			else:
-				_pring(Vector2i(_center(at).floor()), int(CELL * sk.get("radius", 0.5)), 1, Color.WHITE)
+				_pring(Vector2i(_center(at).floor()), aim_r(battle, h, controls.aiming), 1, Color.WHITE)
 		_:
 			_pring(Vector2i(_center(at).floor()), int(CELL * 0.7), 1, Color.WHITE)
+
+# 지점 스킬 조준 원 반지름(아트 px, S251): 스킬 반경 × 과부하 배율(battle.grow_of). 반경이 없으면 0.5칸
+static func aim_r(b, h, slot: String) -> int:
+	return int(CELL * h.get(slot).get("radius", 0.5) * b.grow_of(h, slot))
 
 # at: 칸 단위 위치(칸 (x,y)의 중심 = Vector2(x,y)). 그 칸 위쪽 가운데에 그린다. tiers면 구조물·성곽·거점 막대의 3단 색(S199)
 func _hp_bar(at: Vector2, b, size := Vector2(CELL, 2), tiers := false) -> void:
