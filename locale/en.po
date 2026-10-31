@@ -1227,3 +1227,96 @@ msgstr "Cast range %s cells"
 
 msgid "한 방에 마나 %d"
 msgstr "%d mana per shot"
+
+msgid "장비"
+msgstr "Gear"
+
+msgid "골드 %d · 장비 하나는 이 창에서 %d번까지 제작·강화"
+msgstr "Gold %d · Each gear can be crafted or upgraded %d times per break"
+
+msgid "%s +%d"
+msgstr "%s +%d"
+
+msgid "%s — 없음"
+msgstr "%s — none"
+
+msgid "%s · %s · 장착"
+msgstr "%s · %s · equipped"
+
+msgid "%s · %s · 해제"
+msgstr "%s · %s · unequipped"
+
+msgid "%s · %s · 미보유"
+msgstr "%s · %s · not owned"
+
+msgid "장착"
+msgstr "Equip"
+
+msgid "해제"
+msgstr "Unequip"
+
+msgid "미보유"
+msgstr "Not owned"
+
+msgid "최대"
+msgstr "Max"
+
+msgid "최대 단계"
+msgstr "Max level"
+
+msgid "제작 %d골드"
+msgstr "Craft %d gold"
+
+msgid "강화 +%d · %d골드"
+msgstr "Upgrade +%d · %d gold"
+
+msgid "이번 창에서 %d번 다 씀"
+msgstr "Used all %d this break"
+
+msgid "제작"
+msgstr "Craft"
+
+msgid "강화"
+msgstr "Upgrade"
+
+msgid "모든 단계를 받았다"
+msgstr "All levels reached"
+
+msgid "장비 효과를 끈다"
+msgstr "Turns the gear's effects off"
+
+msgid "장비는 가방에 남는다"
+msgstr "The gear stays in the bag"
+
+msgid "이 영웅이 장비 효과를 받는다"
+msgstr "This hero gets the gear's effects"
+
+msgid "잉걸불 왕홀"
+msgstr "Ember Scepter"
+
+msgid "화염구 발화 5초"
+msgstr "Fireball burn 5s"
+
+msgid "화염구 피해 27"
+msgstr "Fireball damage 27"
+
+msgid "서리 고리 피해 17"
+msgstr "Frost Ring damage 17"
+
+msgid "화염구 반경 2칸"
+msgstr "Fireball radius 2 cells"
+
+msgid "화염구 피해 29"
+msgstr "Fireball damage 29"
+
+msgid "블랙홀 3초"
+msgstr "Black Hole 3s"
+
+msgid "블랙홀 점화 — 블랙홀 안에 화염구를 쓰면 안의 적이 계속 발화한다"
+msgstr "Ignition — a Fireball cast inside the Black Hole keeps every foe in it burning"
+
+msgid "보유"
+msgstr "Owned"
+
+msgid "%s · %s · 보유"
+msgstr "%s · %s · owned"

@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="GearDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/gear_def.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+title = "잉걸불 왕홀"
+steps = [{
+"q.burn": 5.0
+}, {
+"q.damage": 27.0
+}, {
+"w.damage": 17.0
+}, {
+"q.radius": 2.0
+}, {
+"q.damage": 29.0
+}, {
+"e.time": 3.0
+}, {
+"q.ignite": true
+}]
+notes = ["화염구 발화 5초", "화염구 피해 27", "서리 고리 피해 17", "화염구 반경 2칸", "화염구 피해 29", "블랙홀 3초", "블랙홀 점화 — 블랙홀 안에 화염구를 쓰면 안의 적이 계속 발화한다"]
