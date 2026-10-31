@@ -70,6 +70,7 @@ const REPAIR_TIME := 5.0  # 전투 중 공병이 성곽·거점을 0에서 가�
 const WALL_RANGE := 2.0  # 성벽 위에서 치려면 필요한 사거리(칸, S88). 열린 성문 위는 예외다(S89). 임시값
 const SLOTS := ["q", "w", "e", "r"]  # 영웅 스킬 칸(S145)
 const CAST_RANGE := 6.0  # 지점·대상을 고르는 스킬의 시전 사거리(칸, S147). 임시값
+const TRAP_STEP := 0.5  # 실비아 덫이 밟히는 거리(칸, S153). 덫 꿰기(S260)의 줄 판정도 이 거리다
 const CRIT := 2.0  # 치명타 피해 배율(S149). 임시값
 const STAY := 0.6  # 장판 안에 있는 동안 거는 효과의 남은 시간(초, I141). 장판을 나오면 곧 풀린다
 const FALLEN := 2.0  # 쓰러진 몸(fallen)을 지우는 때(쓰러진 뒤 초, S180). 화면은 끝 0.5초 동안 흐린다
@@ -1607,12 +1608,8 @@ func _zones(dt: float) -> void:
 					if _inside(z, _where(t)) and (not t is Block or t.complete):
 						_fx(t, "aias_r", {"dr": z.dr, "regen": z.regen * t.max_hp}, STAY)
 			"sylvia_e":  # 덫: 땅 적이 밟으면 터진다
-				if enemies.any(func(e): return not _flies(e) and e.pos.distance_to(z.pos) <= 0.5):
-					for e in foes:
-						_fx(e, "sylvia_e", {"root": true, "crit": z.crit}, z.root)
-					z.left = 0.0
-					_trace(z.owner, "trap", null, z.pos, z.radius)
-					_tracing = null
+				if enemies.any(func(e): return not _flies(e) and e.pos.distance_to(z.pos) <= TRAP_STEP):
+					_spring(z)
 			"sylvia_r":  # 화살비: 초당 물리 피해(보스 ×), 체력 비율 이하 보스 아닌 적은 처형
 				for e in foes:
 					damage(e, z.dps * dt * (z.boss if e.boss else 1.0), "phys", z.owner)
@@ -1775,6 +1772,10 @@ func _cast_piercing_gale(h: Unit, sk: Dictionary, aim, _grow: float) -> void:
 	var hit := enemies.filter(func(e):
 		return (e.pos - h.pos).dot(dir) >= 0.0 and absf((e.pos - h.pos).cross(dir)) <= sk.width / 2.0 + e.radius)
 	hit.sort_custom(func(a, b): return (a.pos - h.pos).dot(dir) < (b.pos - h.pos).dot(dir))
+	if sk.get("thread"):  # 덫 꿰기(장궁 +9, S260): 줄 위 자기 덫을 먼저 터뜨려, 꿰뚫는 적이 속박·치명타 확률을 받은 채 맞는다
+		for z in zones.filter(func(z): return z.src == "sylvia_e" and z.owner == h and (z.pos - h.pos).dot(dir) >= 0.0 and absf((z.pos - h.pos).cross(dir)) <= sk.width / 2.0 + TRAP_STEP):
+			_spring(z)
+			zones.erase(z)
 	var hurt: float = h.damage * _might(h) * sk.ratio
 	for e in hit:
 		if e == hit[0]:
@@ -1789,6 +1790,14 @@ func _cast_split_shot(_h: Unit, _sk: Dictionary, _aim, _grow: float) -> void:
 # E 폭풍의 덫: 지점에 덫을 깐다. 개수와 시간 제한이 없고 밟히면 터진다(웨이브가 끝나면 사라진다, I143)
 func _cast_storm_trap(h: Unit, sk: Dictionary, aim, grow: float) -> void:
 	_zone("sylvia_e", h, aim, sk.radius * grow, INF, {"root": sk.root, "crit": sk.crit})
+
+# 덫이 터진다: 반경 안 적(뜬 적 빼고)에게 속박과 치명타 확률(S153). 밟히거나 덫 꿰기(S260)로
+func _spring(z: Dictionary) -> void:
+	for e in enemies.filter(func(e): return _inside(z, e.pos) and not _aloft(e)):
+		_fx(e, "sylvia_e", {"root": true, "crit": z.crit}, z.root)
+	z.left = 0.0
+	_trace(z.owner, "trap", null, z.pos, z.radius)
+	_tracing = null
 
 # R 천공의 화살비
 func _cast_arrow_rain(h: Unit, sk: Dictionary, aim, _grow: float) -> void:

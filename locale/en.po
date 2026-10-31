@@ -1395,3 +1395,36 @@ msgstr "Wall Resonance — while your wall stands, Brace also bursts within 1 ce
 
 msgid "%s +%d → +%d"
 msgstr "%s +%d → +%d"
+
+msgid "취풍 장궁"
+msgstr "Gale Longbow"
+
+msgid "약점 포착 공격 속도 +10%"
+msgstr "Weak Point attack speed +10%"
+
+msgid "관통의 바람살 220%"
+msgstr "Piercing Gale 220%"
+
+msgid "천공의 화살비 초당 10"
+msgstr "Arrow Rain 10/s"
+
+msgid "관통의 바람살 중첩 5"
+msgstr "Piercing Gale stacks 5"
+
+msgid "관통의 바람살 240%"
+msgstr "Piercing Gale 240%"
+
+msgid "폭풍의 덫 속박 3.5초"
+msgstr "Storm Trap root 3.5s"
+
+msgid "돌풍 갈래살 4명 · 마나 6"
+msgstr "Split Shot 4 targets · 6 mana"
+
+msgid "천공의 화살비 6초"
+msgstr "Arrow Rain 6s"
+
+msgid "폭풍의 덫 치명타 35%"
+msgstr "Storm Trap crit 35%"
+
+msgid "덫 꿰기 — 관통의 바람살이 지나가는 줄의 덫을 먼저 모두 터뜨린다"
+msgstr "Trap Thread — Piercing Gale first springs every trap on its line"
