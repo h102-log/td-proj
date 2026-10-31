@@ -36,3 +36,27 @@ def test_EV609_overload_aim_ring(gd):
 
 def test_EV610_hud_gear_tab(gd):
     gd("gear", "EV610")
+
+
+def test_EV611_loot_on_round_win_only(gd):
+    gd("gear", "EV611")
+
+
+def test_EV612_loot_wears_and_skips_max(gd):
+    gd("gear", "EV612")
+
+
+def test_EV613_loot_rng_apart(gd):
+    gd("gear", "EV613")
+
+
+def test_EV614_loot_save_roundtrip(gd):
+    gd("gear", "EV614")
+
+
+def test_EV615_loot_result_line(gd):
+    gd("gear", "EV615")
+
+
+def test_EV616_hire_card_gear_tip(gd):
+    gd("gear", "EV616")

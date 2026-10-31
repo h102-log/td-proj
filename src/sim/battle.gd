@@ -378,6 +378,7 @@ var roster := []  # 보유 영웅, 영입 순서(S58, S59). 새 도전이면 비
 var lineup := []  # 다음 라운드에 출전할 영웅(S59, I106). 영입 창에서 바꾸고 다음 라운드로 넘어갈 때 전장에 반영한다(S124)
 var bag := {}  # 가진 전용장비: 영웅 종류 → 강화 수치(+0부터, S246). 새 도전이면 비운다
 var forged := {}  # 이번 라운드 사이 창에서 장비마다 제작·강화한 횟수(S246). 다음 라운드로 넘어갈 때 비운다
+var dropped := []  # 이번 라운드 사이의 전리품 [영웅 종류, 전 수치(없던 장비면 -1), 뒤 수치](S252). 없으면 []. 결과 창이 보인다
 var offers := []  # 영입소 목록: 칸마다 영웅 종류, 영입한 칸은 ""(I103, I104)
 var quests := []  # 이 도전에서 뜰 수 있는 미션·의뢰 이름(I118). 스테이지의 quests가 정한다. 비어 있으면 미션·의뢰가 없다
 var mission := ""  # 지금 라운드의 미션(S77, I120). 없으면 ""
@@ -424,6 +425,7 @@ var _stage: Dictionary  # 재시작할 때 다시 읽는다
 var _rng := RandomNumberGenerator.new()  # 영입소 목록을 뽑는다. 스테이지에 seed가 있으면 그 씨앗이다(평가용)
 var _luck := RandomNumberGenerator.new()  # 치명타·요새화 기절(S149, S151). 영입소 목록이 전투에 따라 바뀌지 않게 따로 둔다
 var _kin := RandomNumberGenerator.new()  # 집의 가족(S221). 영입소·전투 난수가 집 짓기에 따라 바뀌지 않게 따로 둔다
+var _loot := RandomNumberGenerator.new()  # 전리품(S252). 영입소·의뢰·미션 목록이 전리품에 따라 바뀌지 않게 따로 둔다(I202)
 var _chains := 0  # 영혼 사슬(S154)마다 붙이는 번호
 var _holds := {}  # 유닛 → 그 유닛이 붙잡은 적 수(S159). 스텝마다 적의 engaged로 다시 센다
 var _howled := {}  # 적 → 울부짖음(S242)으로 더하는 이동·공격 속도 비율. 스텝마다 다시 센다(I195)
@@ -533,6 +535,7 @@ func restart() -> void:
 	base.rally = exit if exit != null else base.cell
 	bag.clear()
 	forged.clear()
+	dropped.clear()
 	heroes.clear()
 	# 영웅 목록(I102). 목록이 없고 hero_start만 있으면 아이아스 하나다. 이 영웅들은 보유·출전한 채 시작한다(평가용 스테이지)
 	# 레벨(level)을 정하지 않으면 최대 레벨이다(I115)
@@ -555,10 +558,12 @@ func restart() -> void:
 		_rng.seed = stage.seed
 		_luck.seed = stage.seed + 1
 		_kin.seed = stage.seed + 2
+		_loot.seed = stage.seed + 3
 	else:
 		_rng.randomize()
 		_luck.randomize()
 		_kin.randomize()
+		_loot.randomize()
 	_draw_offers()  # 도전을 시작할 때 무료로 뽑는다(I104)
 	var q = stage.get("quests", [])  # 미션·의뢰(I118): true면 data/quests의 모든 것, 배열이면 그 이름들만(평가용). 없으면 뜨지 않는다
 	quests = QUEST_KINDS.keys() if q is bool and q else (q.duplicate() if q is Array else [])
@@ -619,6 +624,7 @@ func step(dt: float) -> void:
 		elif round_index + 1 < rounds.size():
 			state = "cleared"  # 라운드 사이(S117). 다음 라운드는 next_round로 간다
 			_draw_offers()  # 목록은 라운드를 이길 때 무료로 새로 뽑는다(I104)
+			_drop_gear()
 		else:
 			state = "won"  # 마지막 라운드를 이겨 도전에 성공했다(I92)
 		if state != "prep":  # 라운드를 이겼다: 미션과 수락한 의뢰를 판정해 보상을 준다(S77, I120). 라운드 사이에는 새 의뢰 목록을 보인다(I121)
@@ -776,6 +782,7 @@ func next_round() -> bool:
 		commission_offers.clear()
 		settled.clear()
 		forged.clear()  # 창당 횟수는 라운드 사이 창마다 새로 센다(S246)
+		dropped.clear()
 		_reset_tally()  # 새 라운드의 집계와 미션(I119, I120). 수락한 의뢰는 이 라운드에 걸린다(I121)
 		_draw_mission()
 	elif live_prep:  # 도전의 첫 준비 단계: 시작 공병(S208)
@@ -923,12 +930,27 @@ func forge(k: String) -> bool:
 	if state != "cleared" or not GEAR_KINDS.has(k) or n >= GEAR_KINDS[k].steps.size() or forged.get(k, 0) >= HIRE.forge_cap or gold < HIRE.gear_cost[n]:
 		return false
 	gold -= HIRE.gear_cost[n]
-	bag[k] = n
 	forged[k] = forged.get(k, 0) + 1
+	_gain(k, n)
+	return true
+
+# 장비 k를 수치 n으로 가방에 둔다. 처음 얻은 장비(n = 0)는 주인을 보유하고 있으면 저절로 낀다(S247, S252)
+func _gain(k: String, n: int) -> void:
+	bag[k] = n
 	for h in roster.filter(func(x): return x.kind == k):
 		h.worn = h.worn or n == 0
 		_refit(h)
-	return true
+
+# 라운드를 이겨 라운드 사이로 넘어갈 때 장비 하나를 전리품으로 준다(S252). 최대 단계가 아닌 장비 가운데 같은 확률로 고르고(_loot, I202),
+# 없던 장비면 +0, 있던 장비면 +1이다. 창당 횟수(forged)에는 세지 않는다. 후보가 없으면 주지 않는다
+func _drop_gear() -> void:
+	dropped.clear()
+	var pool := GEAR_KINDS.keys().filter(func(k): return bag.get(k, -1) + 1 < GEAR_KINDS[k].steps.size())
+	if pool.is_empty():
+		return
+	var k: String = pool[_loot.randi_range(0, pool.size() - 1)]
+	dropped.assign([k, bag.get(k, -1), bag.get(k, -1) + 1])
+	_gain(k, dropped[2])
 
 # 라운드 사이에만 보유 영웅에게 그 영웅의 장비를 끼우거나 뺀다(S247)
 func wear(h, on: bool) -> bool:

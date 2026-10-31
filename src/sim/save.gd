@@ -17,7 +17,8 @@ const SKIP := ["present", "target", "worker", "job", "order", "mark", "rally_fro
 static var path := ""  # 저장 파일. 비어 있으면 쓰지 않는다. 진입 장면(menu.gd)이 정하고, 평가는 평가용 파일로 바꾼다
 
 static func snapshot(b) -> Dictionary:
-	var d := {"version": VERSION, "rng": b._rng.state, "luck": b._luck.state, "kin": b._kin.state, "spare": b._spare, "bag": b.bag.duplicate(), "forged": b.forged.duplicate()}
+	var d := {"version": VERSION, "rng": b._rng.state, "luck": b._luck.state, "kin": b._kin.state, "spare": b._spare, "bag": b.bag.duplicate(), "forged": b.forged.duplicate(),
+		"loot": b._loot.state, "dropped": b.dropped.duplicate()}
 	for k in KEYS:
 		d[k] = _copy(b.get(k))
 	d.base = _fields(b.base)
@@ -45,6 +46,9 @@ static func apply(b, d: Dictionary) -> void:
 	b._spare = d.get("spare", 0.0)  # 쌓인 처치 보상 나머지(I176). 이 칸이 생기기 전 저장은 0
 	b.bag = d.get("bag", {}).duplicate()  # 전용장비 가방과 창당 횟수(I201). 이 칸이 생기기 전 저장은 비어 있다. 장착 여부는 영웅 칸 worn이다
 	b.forged = d.get("forged", {}).duplicate()
+	b.dropped = d.get("dropped", []).duplicate()  # 이번 전리품과 전리품 난수(I202). 이 칸이 생기기 전 저장은 전리품 없음, 난수는 새 판 그대로
+	if d.has("loot"):
+		b._loot.state = d.loot
 	b.base = _block(d.base)
 	for k in ["castle", "rubble", "structures"]:
 		b.get(k).clear()
