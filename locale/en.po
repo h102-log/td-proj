@@ -1428,3 +1428,36 @@ msgstr "Storm Trap crit 35%"
 
 msgid "덫 꿰기 — 관통의 바람살이 지나가는 줄의 덫을 먼저 모두 터뜨린다"
 msgstr "Trap Thread — Piercing Gale first springs every trap on its line"
+
+msgid "여명의 성수병"
+msgstr "Dawnlight Vial"
+
+msgid "성스러운 빛줄기 회복 25"
+msgstr "Holy Beam heal 25"
+
+msgid "성스러운 빛줄기 피해 18"
+msgstr "Holy Beam damage 18"
+
+msgid "정화의 성역 초당 회복 6"
+msgstr "Sanctum heal 6/s"
+
+msgid "성스러운 빛줄기 도약 4칸 · 횟수 7"
+msgstr "Holy Beam hop 4 cells · 7 hits"
+
+msgid "성스러운 빛줄기 피해 21"
+msgstr "Holy Beam damage 21"
+
+msgid "수호 천사의 날개 5초"
+msgstr "Guardian Wings 5s"
+
+msgid "정화의 성역 2.5칸 · 5초"
+msgstr "Sanctum 2.5 cells · 5s"
+
+msgid "수호 천사 불사 3.25초"
+msgstr "Guardian undying 3.25s"
+
+msgid "기적의 강림 회복 60%"
+msgstr "Miracle heal 60%"
+
+msgid "성역 공명 — 자기 성역 안의 아군에게 쓴 성스러운 빛줄기는 횟수 2배"
+msgstr "Sanctum Echo — Holy Beam cast on an ally inside your Sanctum hits twice as many times"

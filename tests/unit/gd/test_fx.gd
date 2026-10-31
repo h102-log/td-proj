@@ -526,6 +526,31 @@ func test_holy_beam_hops_target_to_target_in_order():
 	v.free()
 	return why
 
+func test_long_holy_beam_lasts_until_last_hop():
+	var b = _duo()
+	var s = b.heroes[0]
+	var ally = b.heroes[1]
+	var e = _target(b, Vector2i(12, 12))
+	var long := []
+	for i in 7:
+		long.append_array([ally, e])
+	var v = Rec.new()
+	v.battle = b
+	var why := ""
+	v._beam(s, [ally, e, s], View.FX)
+	if not v.lines.is_empty():
+		why = "3마디 빛줄기가 FX(%.2f초)에도 그려진다" % View.FX
+	v.wipe()
+	v._beam(s, long, long.size() * View.BEAM_HOP)
+	if why == "" and v.lines.size() < long.size():
+		why = "14마디 빛줄기가 다 뻗은 순간 줄이 %d개다(14개여야 한다)" % v.lines.size()
+	v.wipe()
+	v._beam(s, long, long.size() * View.BEAM_HOP + View.BEAM_TAIL)
+	if why == "" and not v.lines.is_empty():
+		why = "14마디 빛줄기가 다 뻗고 BEAM_TAIL이 지나도 그려진다"
+	v.free()
+	return why
+
 func test_guardian_wings_behind_body_and_line_ring_above():
 	var b = _duo()
 	var s = b.heroes[0]

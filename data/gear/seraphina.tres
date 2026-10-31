@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="GearDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/gear_def.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+title = "여명의 성수병"
+steps = [{
+"q.heal": 25.0
+}, {
+"q.damage": 18.0
+}, {
+"w.hps": 6.0
+}, {
+"q.hop": 4.0,
+"q.hits": 7
+}, {
+"q.damage": 21.0
+}, {
+"e.time": 5.0
+}, {
+"w.radius": 2.5,
+"w.time": 5.0
+}, {
+"e.undying": 3.25
+}, {
+"r.heal": 0.6
+}, {
+"q.echo": 2
+}]
+notes = ["성스러운 빛줄기 회복 25", "성스러운 빛줄기 피해 18", "정화의 성역 초당 회복 6", "성스러운 빛줄기 도약 4칸 · 횟수 7", "성스러운 빛줄기 피해 21", "수호 천사의 날개 5초", "정화의 성역 2.5칸 · 5초", "수호 천사 불사 3.25초", "기적의 강림 회복 60%", "성역 공명 — 자기 성역 안의 아군에게 쓴 성스러운 빛줄기는 횟수 2배"]
