@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="GearDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/gear_def.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+title = "맹약의 철벽 방패"
+steps = [{
+"passive.still": 1.5
+}, {
+"q.damage": 18.0
+}, {
+"w.time": 5.0
+}, {
+"passive.block": 4
+}, {
+"q.damage": 21.0
+}, {
+"e.time": 3.5
+}, {
+"r.length": 5
+}, {
+"e.ratio": 1.75
+}, {
+"r.time": 7.0
+}, {
+"e.resonate": 1.0
+}]
+notes = ["요새화 대기 1.5초", "방패 강타 피해 18", "전장의 포효 5초", "요새화 블록 수 +4", "방패 강타 피해 21", "반격의 태세 3.5초", "절대 방어선 5칸", "태세 터짐 1.75배", "절대 방어선 7초", "성벽 공명 — 성벽이 서 있을 때 태세가 터지면 성벽 칸마다 1칸 안에도 터진다"]

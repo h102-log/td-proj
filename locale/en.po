@@ -1359,3 +1359,39 @@ msgstr "Sight %s → %s"
 
 msgid "이동 %s → %s칸/초"
 msgstr "Move %s/s → %s/s"
+
+msgid "맹약의 철벽 방패"
+msgstr "Oathbound Aegis"
+
+msgid "요새화 대기 1.5초"
+msgstr "Fortify wait 1.5s"
+
+msgid "방패 강타 피해 18"
+msgstr "Shield Bash damage 18"
+
+msgid "전장의 포효 5초"
+msgstr "War Cry 5s"
+
+msgid "요새화 블록 수 +4"
+msgstr "Fortify block +4"
+
+msgid "방패 강타 피해 21"
+msgstr "Shield Bash damage 21"
+
+msgid "반격의 태세 3.5초"
+msgstr "Brace 3.5s"
+
+msgid "절대 방어선 5칸"
+msgstr "Bulwark 5 cells"
+
+msgid "태세 터짐 1.75배"
+msgstr "Brace burst ×1.75"
+
+msgid "절대 방어선 7초"
+msgstr "Bulwark 7s"
+
+msgid "성벽 공명 — 성벽이 서 있을 때 태세가 터지면 성벽 칸마다 1칸 안에도 터진다"
+msgstr "Wall Resonance — while your wall stands, Brace also bursts within 1 cell of each wall cell"
+
+msgid "%s +%d → +%d"
+msgstr "%s +%d → +%d"

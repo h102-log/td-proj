@@ -915,7 +915,7 @@ func can_transfer(from, to) -> bool:
 	return state == "cleared" and from != to and from in roster and to in roster and to.xp + from.xp <= LEVELS.steps.reduce(func(s, x): return s + x, 0)
 
 # 라운드 사이에만, 주는 영웅의 경험치를 전부 받는 영웅에게 옮긴다(S127, U14). 주는 영웅은 Lv1로 돌아가 보유 목록에 남는다. 비용은 없다.
-# 레벨이 바뀐 두 영웅의 체력 비율은 그대로다(I116)
+# 레벨이 바뀐 두 영웅의 체력 비율은 그대로다(I116). 장비 강화 수치도 gear_move만큼 옮긴다(S258)
 func transfer(from: Unit, to: Unit) -> bool:
 	if not can_transfer(from, to):
 		return false
@@ -923,7 +923,19 @@ func transfer(from: Unit, to: Unit) -> bool:
 		var ratio: float = pair[0].hp / pair[0].max_hp
 		_set_xp(pair[0], pair[1])
 		pair[0].hp = ratio * pair[0].max_hp
+	var n := gear_move(from, to)
+	if n > 0:
+		bag[from.kind] -= n
+		bag[to.kind] += n
+		_refit(from)
+		_refit(to)
 	return true
+
+# 이관 때 주는 영웅 장비에서 받는 영웅 장비로 옮길 강화 수치(S258). 둘 다 가방에 있어야 하고, 받는 장비의 최대 단계까지만이다. 넘치는 수치는 주는 장비에 남는다
+func gear_move(from: Unit, to: Unit) -> int:
+	if not (bag.has(from.kind) and bag.has(to.kind)):
+		return 0
+	return clampi(GEAR_KINDS[to.kind].steps.size() - 1 - bag[to.kind], 0, bag[from.kind])
 
 # 라운드 사이에만 장비 k를 제작(+0)하거나 한 단계 강화한다(S246). 장비 하나는 창마다 forge_cap번, 데이터의 마지막 단계가 최대다.
 # 처음 만든 장비는 주인을 보유하고 있으면 저절로 낀다(S247)
@@ -1716,7 +1728,8 @@ func _cast_brace(h: Unit, sk: Dictionary, _aim, _grow: float) -> void:
 	h.braced = 0.0
 	_fx(h, "aias_e", {"dr": sk.dr}, sk.time)
 
-# 태세 동안 들어온 피해(줄이기 전 값) × ratio를 주변 적에게 물리 피해로 낸다
+# 태세 동안 들어온 피해(줄이기 전 값) × ratio를 주변 적에게 물리 피해로 낸다.
+# 성벽 공명(방패 +9, S257): 자기 에너지 성벽이 서 있으면 성벽 칸마다 resonate칸 안 적도 맞는다. 적 하나는 한 번만 맞는다
 func _burst(h: Unit) -> void:
 	var sk: Dictionary = h.e
 	var hurt: float = h.braced * sk.ratio
@@ -1724,10 +1737,18 @@ func _burst(h: Unit) -> void:
 	h.braced = 0.0
 	h.fx.erase("aias_e")
 	if hurt > 0.0:
+		var walls := []
+		if sk.get("resonate", 0.0) > 0.0:
+			for z in zones:
+				if z.src == "aias_r" and z.owner == h:
+					walls += z.cells
 		_trace(h, "burst", null, h.pos, sk.radius)
 		for e in enemies.duplicate():
-			if e.pos.distance_to(h.pos) <= sk.radius:
+			if e.pos.distance_to(h.pos) <= sk.radius or walls.any(func(c): return e.pos.distance_to(Vector2(c)) <= sk.resonate):
 				damage(e, hurt, "phys", h)
+		_tracing = null
+		for c in walls:  # 성벽 칸마다 터짐 그림
+			_trace(h, "resonate", null, Vector2(c), sk.resonate)
 		_tracing = null
 
 # R 절대 방어선: 지점 칸을 가운데로, 영웅 → 지점 방향에 수직인 length칸 줄에 에너지 성벽을 세운다(I142)

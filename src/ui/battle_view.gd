@@ -570,7 +570,7 @@ func _traces(top: bool) -> void:
 				if top and c.age < FX:
 					_spr("aegis", 0 if c.age < 0.05 else (1 if c.age < 0.2 else 2), Vector2i((_spot(h) + _slip(h) - Vector2(0, _head(h) * 0.5)).floor()))
 				continue
-			"burst":
+			"burst", "resonate":  # 성벽 공명(S257)도 같은 터짐이다
 				if top:
 					_burst(at, CELL * c.radius, c.age, seed)
 				continue
@@ -2859,16 +2859,24 @@ func _aim_preview() -> void:
 				_pline(o, o + Vector2i((d * CELL * sk.get("radius", 40.0)).round()), Color.WHITE)  # 실비아 Q는 맵 끝까지
 		"point":
 			if sk.id == "bulwark":
-				var d: Vector2 = battle._toward(h, at)
-				var side := Vector2i(0, 1) if absf(d.x) > absf(d.y) else Vector2i(1, 0)
-				for i in range(-1, 2):  # 칸 안쪽 1px 테두리 네 변
-					var q := (Vector2i(at.round()) + side * i) * CELL
+				for wc in wall_preview(battle, h, at):  # 칸 안쪽 1px 테두리 네 변
+					var q: Vector2i = wc * CELL
 					for e in [[Vector2i.ZERO, Vector2i(CELL, 1)], [Vector2i(0, CELL - 1), Vector2i(CELL, 1)], [Vector2i.ZERO, Vector2i(1, CELL)], [Vector2i(CELL - 1, 0), Vector2i(1, CELL)]]:
 						_px(q + e[0], Color.WHITE, e[1])
 			else:
 				_pring(Vector2i(_center(at).floor()), aim_r(battle, h, controls.aiming), 1, Color.WHITE)
 		_:
 			_pring(Vector2i(_center(at).floor()), int(CELL * 0.7), 1, Color.WHITE)
+
+# 절대 방어선(아이아스 R) 조준 미리보기 칸(S256): 지점 칸을 가운데로 영웅 → 지점에 수직인 length칸 줄. 세울 때(_cast_bulwark)와 같은 줄이다
+static func wall_preview(b, h, at: Vector2) -> Array:
+	var d: Vector2 = b._toward(h, at)
+	var side := Vector2i(0, 1) if absf(d.x) > absf(d.y) else Vector2i(1, 0)
+	var n := int(h.r.length)
+	var out := []
+	for i in range(-(n / 2), n - n / 2):
+		out.append(Vector2i(at.round()) + side * i)
+	return out
 
 # 지점 스킬 조준 원 반지름(아트 px, S251): 스킬 반경 × 과부하 배율(battle.grow_of). 반경이 없으면 0.5칸
 static func aim_r(b, h, slot: String) -> int:
