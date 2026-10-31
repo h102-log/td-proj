@@ -1806,11 +1806,15 @@ func _cast_arrow_rain(h: Unit, sk: Dictionary, aim, _grow: float) -> void:
 # ── 세라피나(S152) ──
 
 # Q 성스러운 빛줄기: 아군 회복 → 가까운 적 마법 피해 → 가까운 다른 아군(또는 깎인 구조물) 회복 … 모두 hits번. 같은 대상은 다시 맞지 않는다
+# 성역 공명(S262, 성수병 +9): 자기 성역 안에 선 아군에게 쓰면 hits × echo
 func _cast_holy_beam(h: Unit, sk: Dictionary, aim, _grow: float) -> void:
+	var hits: int = sk.hits
+	if zones.any(func(z): return z.src == "seraphina_w" and z.owner == h and _inside(z, aim.pos)):
+		hits *= sk.get("echo", 1)
 	var hit := [aim]
 	_heal(aim, sk.heal, h)
 	var next_foe := true
-	while hit.size() < sk.hits:
+	while hit.size() < hits:
 		var from := _where(hit[-1])
 		var pool: Array = enemies if next_foe else units + structures.values().filter(func(s): return s.complete and s.hp < s.max_hp)
 		var best = null

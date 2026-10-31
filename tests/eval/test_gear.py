@@ -128,3 +128,11 @@ def test_EV632_sylvia_stacks_and_split(gd):
 
 def test_EV633_sylvia_trap_thread(gd):
     gd("gear", "EV633")
+
+
+def test_EV634_seraphina_flask_steps(gd):
+    gd("gear", "EV634")
+
+
+def test_EV635_seraphina_sanctum_echo(gd):
+    gd("gear", "EV635")
