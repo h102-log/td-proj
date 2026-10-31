@@ -523,6 +523,10 @@ func _process(delta: float) -> void:
 	for s in battle.settled:  # 지난 라운드의 미션·의뢰 판정(I120, I122)
 		var q: Dictionary = battle.QUEST_KINDS[s[0]]
 		_result_label.text += "\n%s «%s» %s" % ["의뢰" if q.commission else "미션", q.text, "달성 +%d골드" % q.reward if s[1] else "실패"]
+	if not battle.dropped.is_empty():  # 이번 전리품(S252)
+		var d: Array = battle.dropped
+		var title: String = battle.GEAR_KINDS[d[0]].title
+		_result_label.text += "\n" + ("전리품 %s" % title if d[1] < 0 else "전리품 %s +%d → +%d" % [title, d[1], d[2]])
 	_next.text = {"hiring": "1라운드 시작 (Enter)", "cleared": "다음 라운드 (Enter)"}.get(battle.state, "새 도전 (Enter)")
 	if fresh:
 		_seen = battle.state
@@ -1110,8 +1114,12 @@ func _card(parent: Control, i: int) -> Button:
 	cost.offset_right = -4
 	cost.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	cost.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tip.add(b, func(): return ["영입", "", "", "누르면 보유에 넣고 빈 출전 자리에 든다", _offer_why(i)])
+	tip.add(b, func(): return ["영입", "", "", "누르면 보유에 넣고 빈 출전 자리에 든다" + _gear_line(battle.offers[i]), _offer_why(i)])
 	return b
+
+# 영입 카드 툴팁에 붙는 그 영웅 장비 줄(S253). 가방에 없으면 ""
+func _gear_line(k: String) -> String:
+	return "\n장비 있음 +%d" % battle.bag[k] if battle.bag.has(k) else ""
 
 func _offer_why(i: int) -> String:
 	var k: String = battle.offers[i]

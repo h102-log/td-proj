@@ -1320,3 +1320,12 @@ msgstr "Owned"
 
 msgid "%s · %s · 보유"
 msgstr "%s · %s · owned"
+
+msgid "전리품 %s"
+msgstr "Loot: %s"
+
+msgid "전리품 %s +%d → +%d"
+msgstr "Loot: %s +%d → +%d"
+
+msgid "장비 있음 +%d"
+msgstr "Gear in bag +%d"
