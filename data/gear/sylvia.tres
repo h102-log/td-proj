@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="GearDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/gear_def.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+title = "취풍 장궁"
+steps = [{
+"passive.haste": 0.1
+}, {
+"q.ratio": 2.2
+}, {
+"r.dps": 10.0
+}, {
+"q.stacks": 5
+}, {
+"q.ratio": 2.4
+}, {
+"e.root": 3.5
+}, {
+"w.extra": 4,
+"w.mana": 6.0
+}, {
+"r.time": 6.0
+}, {
+"e.crit": 0.35
+}, {
+"q.thread": true
+}]
+notes = ["약점 포착 공격 속도 +10%", "관통의 바람살 220%", "천공의 화살비 초당 10", "관통의 바람살 중첩 5", "관통의 바람살 240%", "폭풍의 덫 속박 3.5초", "돌풍 갈래살 4명 · 마나 6", "천공의 화살비 6초", "폭풍의 덫 치명타 35%", "덫 꿰기 — 관통의 바람살이 지나가는 줄의 덫을 먼저 모두 터뜨린다"]

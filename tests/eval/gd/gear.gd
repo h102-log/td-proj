@@ -16,6 +16,7 @@ extends "res://tests/eval/gd/hud.gd"
 #     저장 snapshot의 강화 칸 이름은 "ranks"다 · 게임 장면: 시설 팝업(main.hud.popup)의 «이름 강화 …» 버튼
 #   아이아스 방패(S256~S258·I204): data/gear/aias.tres(+0~+9) · BattleView.wall_preview(판, 영웅, 지점) -> Array[Vector2i] — R 조준 미리보기 칸(static)
 #     성벽 공명 흔적: Battle.traces의 slot "resonate"(성벽 칸마다 하나) · 이관(transfer)이 장비 수치도 옮긴다 · main.hud._members[i][2] — 보유 i의 이관 버튼
+#   실비아 장궁(S259·S260): data/gear/sylvia.tres(+0~+9) · 덫은 Battle.zones의 src "sylvia_e"(pos = 깐 지점), 터지면 흔적 slot "trap", 걸린 적은 fx "sylvia_e"
 # 단계 수치는 데이터(GEAR_KINDS)에서 읽는다. 임시값이라(S249) 수치를 바꿔도 동작을 재는 평가는 깨지지 않게
 
 const CELLS := [Vector2i(10, 5), Vector2i(12, 5), Vector2i(14, 5)]  # 출전 칸(I107)
@@ -743,7 +744,7 @@ func ev624():
 	var want: float = b.MERC_KINDS.soldier.ranks[0].get("hp", 0.0)
 	return check(m != null and want > _mdata("soldier").hp and m.hp == want and m.max_hp == want, "강화 뒤 전투 단계에 산 용병 %s(기대 체력 %s)" % [[m.max_hp, m.hp] if m else null, want])
 
-const ABILITY_KEYS := ["ignite", "resonate"]  # 장비가 처음 넣는 능력 키(S250·S257, I204)
+const THRESHOLDS := [3, 6, 9]  # 문턱 단계. 장비가 처음 넣는 능력 키는 여기에만 나온다(I204)
 
 # 방패 +n(음수면 장비 없음) 아이아스 하나의 전투 단계. 구석 과녁으로 전투가 이어진다. 시간은 흐르지 않는다
 func _aias(n: int):
@@ -899,7 +900,7 @@ func ev630():
 	_done(main)
 	return out
 
-# EV631 · I204: 장비 데이터 검사. 경로 «칸.키», 칸·키가 영웅 데이터에 있거나 능력 키, steps·notes 수, gear_cost 길이
+# EV631 · I204: 장비 데이터 검사. 경로 «칸.키», 칸이 영웅 데이터에 있고 키는 그 칸에 있거나 문턱 단계, steps·notes 수, gear_cost 길이
 func ev631():
 	var b = battle()
 	if not b.get("GEAR_KINDS") is Dictionary or not b.GEAR_KINDS.has("aias"):
@@ -910,10 +911,71 @@ func ev631():
 		var hero := _data(k)
 		if g.steps.size() != g.notes.size() or b.HIRE.gear_cost.size() < g.steps.size():
 			bad.append("%s 단계 %d · 줄 %d · 비용 %d" % [k, g.steps.size(), g.notes.size(), b.HIRE.gear_cost.size()])
-		for step in g.steps:
-			for path in step:
+		for i in g.steps.size():
+			for path in g.steps[i]:
 				var parts: PackedStringArray = String(path).split(".")
 				var slot_ok: bool = parts.size() == 2 and parts[0] in SIX and hero.get(parts[0]) is Dictionary and not hero.get(parts[0]).is_empty()
-				if not slot_ok or not (parts[1] in hero.get(parts[0]) or parts[1] in ABILITY_KEYS):
+				if not slot_ok or not (parts[1] in hero.get(parts[0]) or i in THRESHOLDS):
 					bad.append("%s %s" % [k, path])
 	return check(bad.is_empty() and b.HIRE.gear_cost.size() >= 10, "어긋난 장비 데이터 %s · gear_cost %d칸" % [bad, b.HIRE.gear_cost.size()])
+
+# 장궁 +n(음수면 장비 없음) 실비아 하나의 전투 단계. 구석 과녁으로 전투가 이어진다. 시간은 흐르지 않는다
+func _sylvia(n: int):
+	var t := {"kind": "sylvia", "cell": Vector2i(10, 10)}
+	if n >= 0:
+		t.gear = n
+	var b = battle({"heroes": [t], "base_hp": BIG, "waves": [NO_ENEMY, NO_ENEMY], "seed": 11})
+	if b.hero == null:
+		return b
+	_target(b, Vector2(0, 19))
+	b.start_battle()
+	b.hero.mana = 1e4
+	return b
+
+# 장궁 데이터가 없으면 그 이유. 없으면 _refit이 멈춰 판이 반쯤 만들어진다
+func _bow(b) -> String:
+	if _api(b) != "":
+		return _api(b)
+	return "" if b.GEAR_KINDS.has("sylvia") and b.GEAR_KINDS.sylvia.steps.size() == 10 and b.hero != null else "data/gear/sylvia.tres(+0~+9)가 없다"
+
+# EV632 · S259: 장궁 +3은 Q 첫 적 중첩 5, +6은 갈래살 4명·마나 6
+func ev632():
+	var out := _bow(_sylvia(3))
+	if out != "":
+		return out
+	var got := []
+	for n in [2, 3]:
+		var b = _sylvia(n)
+		var e = _target(b, Vector2(14, 10))
+		if not b.cast(b.hero, "q", Vector2(15, 10)):
+			return "장궁 +%d 실비아의 Q가 거부됐다" % n
+		got.append([b.hero.mark == e, b.hero.stacks])
+	var split := []
+	for n in [5, 6]:
+		var b = _sylvia(n)
+		split.append([b.hero.w.extra, b.hero.w.mana])
+	return check(got == [[true, 3], [true, 5]] and split == [[3, 8.0], [4, 6.0]],
+		"+2·+3 Q [첫 적이 직전 대상, 중첩] %s(기대 [[true, 3], [true, 5]]) · +5·+6 갈래살 [추가 대상, 마나] %s(기대 [[3, 8], [4, 6]])" % [got, split])
+
+# EV633 · S260: 덫 꿰기. Q가 줄 위 덫을 먼저 터뜨려 그 안 적이 속박되고 덫이 사라진다. 줄 밖 덫은 그대로
+func ev633():
+	var out := _bow(_sylvia(9))
+	if out != "":
+		return out
+	var res := {}
+	for n in [8, 9]:
+		var b = _sylvia(n)
+		var h = b.hero
+		var on_line = _target(b, Vector2(15, 10))  # (14,10) 덫 반경 1.5 안, 밟는 거리 0.5 밖
+		var off_line = _target(b, Vector2(14, 15))  # (14,14) 덫 반경 안
+		for at in [Vector2(14, 10), Vector2(14, 14)]:
+			h.cd.e = 0.0
+			if not b.cast(h, "e", at):
+				return "장궁 +%d 실비아가 %s에 덫을 깔지 못했다" % [n, at]
+		if not b.cast(h, "q", Vector2(15, 10)):
+			return "장궁 +%d 실비아의 Q가 거부됐다" % n
+		var traps: Array = b.zones.filter(func(z): return z.src == "sylvia_e").map(func(z): return Vector2(z.pos))
+		traps.sort()
+		res[n] = [traps, on_line.fx.has("sylvia_e"), off_line.fx.has("sylvia_e"), b.traces.filter(func(c): return c.slot == "trap").size()]
+	return check(res[9] == [[Vector2(14, 14)], true, false, 1] and res[8] == [[Vector2(14, 10), Vector2(14, 14)], false, false, 0],
+		"[남은 덫, 줄 위 적 속박, 줄 밖 적 속박, 덫 흔적] +9 %s · +8 %s" % [res[9], res[8]])

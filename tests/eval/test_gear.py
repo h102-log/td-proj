@@ -120,3 +120,11 @@ def test_EV630_transfer_tip_gear_line(gd):
 
 def test_EV631_gear_data_check(gd):
     gd("gear", "EV631")
+
+
+def test_EV632_sylvia_stacks_and_split(gd):
+    gd("gear", "EV632")
+
+
+def test_EV633_sylvia_trap_thread(gd):
+    gd("gear", "EV633")
