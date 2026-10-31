@@ -92,6 +92,9 @@ const HOLD_TIPS := ["홀드 끔\n켜면 기준 지점 반경 안의 적만 친�
 const HOLD_LOOK := [Color(0.4, 0.4, 0.4), Color.WHITE, Color(0.7, 0.7, 0.7)]  # 홀드 방패 밝기: 끔·켬·섞임
 const HAMMER := [".#####.", ".#####.", "...#...", "...#...", "...#...", "...#..."]  # 팝업 완성·수리(I58)
 const UP := ["..#..", ".###.", "#####", ".###.", ".###."]  # 팝업 업그레이드(I58)
+# 용병 강화 툴팁의 수치 줄(S255): 키 → «이름 지금 → 다음» 틀
+const RANK_TEXT := {"hp": "체력 %s → %s", "damage": "공격력 %s → %s", "block": "블록 수 %s → %s", "attack_gap": "공격 간격 %s → %s초",
+	"range": "사거리 %s → %s칸", "sight": "인식 범위 %s → %s칸", "speed": "이동 %s → %s칸/초"}
 const TOP := Rect2(0, 0, 640, 30)  # 팝업이 피하는 위 띠(I137)
 const POP_GAP := 2.0  # 팝업과 고른 칸 사이(I58)
 const CONFIRM := 2.0  # 철거를 다시 눌러 확정하는 초(S74 임시값)
@@ -167,6 +170,8 @@ var _mark := Control.new()  # 그 칸의 빨간 ✕를 그린다
 var _sell: Button
 var _finish: Button
 var _buy := {}  # 용병 kind → 구매 버튼
+var _rank := {}  # 용병 kind → 강화 버튼(S255)
+var _steps := {}  # 강화 버튼 → 다음 단계 효과 줄(툴팁)
 var _demolish: Button
 var _move: Button
 var _resume: Button
@@ -427,6 +432,8 @@ func _ready() -> void:
 	_finish = _pop(rows[0], func(): _apply(battle.finish, battle.unfinished(controls.selling)), "완성", hammer)
 	for kind in battle.MERC_KINDS:
 		_buy[kind] = _pop(rows[0], func(): battle.recruit(controls.facility, kind), "%s 구매" % NAMES[kind], HudBuild.icon(kind))
+	for kind in battle.MERC_KINDS:
+		_rank[kind] = _pop(rows[0], func(): battle.rank_up(kind), "%s 강화" % NAMES[kind], HudBuild.dots(UP, {"#": HudTheme.ACCENT}))
 	_demolish = _pop(rows[0], _demolish_press, "철거")
 	_move = _pop(rows[0], _start_move, "옮기기")
 	_resume = _pop(rows[0], func(): _apply(battle.resume, battle.unfinished(controls.picked)), "이어 짓기")
@@ -556,6 +563,14 @@ func _process(delta: float) -> void:
 	for kind in _buy:
 		_buy[kind].visible = battle.live() and controls.facility != null and kind in controls.facility.produces
 		_buy[kind].text = "%s %d" % [NAMES[kind], battle.MERC_KINDS[kind].cost]
+	for kind in _rank:  # 강화는 준비 단계에만(S255)
+		var d: Dictionary = battle.MERC_KINDS[kind]
+		var n: int = battle.merc_rank.get(kind, 0)
+		var top: bool = n >= d.ranks.size()
+		_rank[kind].visible = prep and controls.facility != null and kind in controls.facility.produces and not d.ranks.is_empty()
+		_rank[kind].text = "%s 강화 최대" % NAMES[kind] if top else "%s 강화 %d" % [NAMES[kind], d.rank_cost[n]]
+		_rank[kind].disabled = top
+		_steps[_rank[kind]] = "" if top else _rank_line(kind, d.ranks[n])
 	if not battle.live() or controls.placing != "":
 		controls.picked = []
 	controls.picked = controls.picked.filter(func(s): return s.alive)  # 부서지거나 허물거나 취소된 것은 뺀다
@@ -641,8 +656,13 @@ func _pop(row: Control, on_press: Callable, name: String, icon: Texture2D = null
 	b.icon = icon
 	b.add_theme_constant_override("icon_max_width", 10)
 	b.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	tip.add(b, func(): return [name, "", "", _opens if b == _village else "", "✕ " + _why[b] if _why.get(b, "") != "" else ""], popup)
+	tip.add(b, func(): return [name, "", "", _opens if b == _village else _steps.get(b, ""), "✕ " + _why[b] if _why.get(b, "") != "" else ""], popup)
 	return b
+
+# 용병 강화 다음 단계 step의 효과 줄(S255): «체력 50 → 65»처럼 지금 값 → 다음 값
+func _rank_line(kind: String, step: Dictionary) -> String:
+	var now: Dictionary = battle.merc_stats(kind)
+	return "\n".join(step.keys().map(func(k): return RANK_TEXT[k] % [_num(now[k]), _num(step[k])]))
 
 # 철거(S74): 첫 클릭은 «철거?», 같은 대상을 고른 채 CONFIRM초 안에 다시 누르면 철거한다
 func _demolish_press() -> void:

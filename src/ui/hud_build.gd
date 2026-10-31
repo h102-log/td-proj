@@ -233,7 +233,7 @@ func _press(kind: String) -> void:
 
 # 정보 칸 줄: [이름, 비용, [키], 한 줄 설명, 상태·해결 길, 이유]
 func _lines(kind: String) -> Array:
-	var d = battle.STRUCTURE_KINDS.get(kind, battle.MERC_KINDS.get(kind))
+	var d = battle.STRUCTURE_KINDS[kind] if kind in battle.STRUCTURE_KINDS else battle.merc_stats(kind)  # 용병은 강화한 수치(S255)
 	var why := _lock(kind)
 	var path := ""
 	if why.begins_with("마을 Lv"):

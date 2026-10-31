@@ -379,6 +379,7 @@ var lineup := []  # 다음 라운드에 출전할 영웅(S59, I106). 영입 창�
 var bag := {}  # 가진 전용장비: 영웅 종류 → 강화 수치(+0부터, S246). 새 도전이면 비운다
 var forged := {}  # 이번 라운드 사이 창에서 장비마다 제작·강화한 횟수(S246). 다음 라운드로 넘어갈 때 비운다
 var dropped := []  # 이번 라운드 사이의 전리품 [영웅 종류, 전 수치(없던 장비면 -1), 뒤 수치](S252). 없으면 []. 결과 창이 보인다
+var merc_rank := {}  # 용병 종류 → 산 강화 단계 수(S254). 키가 없으면 0. 새 도전이면 비운다
 var offers := []  # 영입소 목록: 칸마다 영웅 종류, 영입한 칸은 ""(I103, I104)
 var quests := []  # 이 도전에서 뜰 수 있는 미션·의뢰 이름(I118). 스테이지의 quests가 정한다. 비어 있으면 미션·의뢰가 없다
 var mission := ""  # 지금 라운드의 미션(S77, I120). 없으면 ""
@@ -536,6 +537,7 @@ func restart() -> void:
 	bag.clear()
 	forged.clear()
 	dropped.clear()
+	merc_rank.clear()
 	heroes.clear()
 	# 영웅 목록(I102). 목록이 없고 hero_start만 있으면 아이아스 하나다. 이 영웅들은 보유·출전한 채 시작한다(평가용 스테이지)
 	# 레벨(level)을 정하지 않으면 최대 레벨이다(I115)
@@ -1096,12 +1098,38 @@ func can_buy(kind: String) -> bool:
 func sellers(kind: String) -> Array:
 	return structures.values().filter(func(s): return s.complete and kind in s.produces) + ([base] if live_prep and kind in base.produces else [])
 
+# 용병 종류의 수치: 데이터 사본에 산 강화 단계(S254)의 «키 → 값»을 1단계부터 차례로 덮은 것. MERC_KINDS는 고치지 않는다(I203)
+func merc_stats(kind: String) -> Dictionary:
+	var d: Dictionary = MERC_KINDS[kind].duplicate()
+	for step in d.ranks.slice(0, merc_rank.get(kind, 0)):
+		d.merge(step, true)
+	return d
+
+# 준비 단계에, 그 용병을 파는 곳이 있으면 골드로 그 종류를 한 단계 강화한다(S254). 산 용병 수에 하나로 센다(I119).
+# 지금 있는 그 종류 용병은 단계가 바꾼 만큼 수치가 바뀌고, 최대 체력이 오르면 체력도 같은 만큼 올라 입은 피해는 그대로다(I203)
+func rank_up(kind: String) -> bool:
+	var d: Dictionary = MERC_KINDS.get(kind, {})
+	var n: int = merc_rank.get(kind, 0)
+	if state != "prep" or n >= d.get("ranks", []).size() or sellers(kind).is_empty() or gold < d.rank_cost[n]:
+		return false
+	var old := merc_stats(kind)
+	gold -= d.rank_cost[n]
+	merc_rank[kind] = n + 1
+	tally.merc_bought += 1  # 라운드 집계(I119)
+	for u in units.filter(func(x): return x.kind == kind and x.alive):
+		for key in d.ranks[n]:
+			var gain = d.ranks[n][key] - old[key]
+			u.set(key, u.get(key) + gain)
+			if key == "hp":
+				u.max_hp += gain
+	return true
+
 # 준비 단계에만, 놓을 수 있는 칸(_merc_cell)에 바로 놓는다(S18). live_prep 판의 플레이어는 시설에서 산다(recruit, I20). 이것은 판을 차리는 길이다(I175). 성곽 칸이면 그 칸의 성벽 위에 선다(I134). 골드가 모자라면 거부한다(I16)
 # 시설 조건(S50)은 보지 않는다. 플레이어의 구매는 Controls가 can_buy로 먼저 묻는다
 func place_merc(kind: String, cell: Vector2i, overrides := {}):
 	if state != "prep" or not _merc_cell(cell):
 		return null
-	var stats: Dictionary = MERC_KINDS[kind].merged(overrides, true)
+	var stats: Dictionary = merc_stats(kind).merged(overrides, true)
 	if gold < stats.cost or _mercs() >= merc_cap:
 		return null
 	gold -= stats.cost
@@ -2041,7 +2069,7 @@ func recruit(f, kind := ""):
 		kind = f.produces[0]
 	if kind not in f.produces:
 		return null
-	var stats: Dictionary = MERC_KINDS[kind]
+	var stats: Dictionary = merc_stats(kind)
 	var exit = _exit_of(f)
 	if exit == null or gold < stats.cost or _mercs() >= merc_cap:
 		return null

@@ -12,3 +12,11 @@ range = 1.2
 sight = 4.0
 hold_radius = 2.0
 light = 3.5
+ranks = [{
+"hp": 65.0
+}, {
+"damage": 3.0
+}, {
+"block": 2
+}]
+rank_cost = [40, 60, 90]

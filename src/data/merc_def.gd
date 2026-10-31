@@ -15,3 +15,5 @@ extends Resource
 @export var sight := 0.0  # 인식 범위(칸, I36)
 @export var hold_radius := 0.0  # 홀드 반경(칸, I37)
 @export var light := 0.0  # 밤 불빛 반경(칸, S211): 어둠 1일 때. 어둠 d면 ÷ d
+@export var ranks := []  # 강화 단계(S254): 칸마다 {키: 값}. [0]이 1단계다. 임시값
+@export var rank_cost := []  # 단계마다 골드(S254). 임시값

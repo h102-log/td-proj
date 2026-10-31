@@ -60,3 +60,35 @@ def test_EV615_loot_result_line(gd):
 
 def test_EV616_hire_card_gear_tip(gd):
     gd("gear", "EV616")
+
+
+def test_EV617_merc_rank_gate(gd):
+    gd("gear", "EV617")
+
+
+def test_EV618_merc_rank_existing_and_new(gd):
+    gd("gear", "EV618")
+
+
+def test_EV619_merc_rank_block_two(gd):
+    gd("gear", "EV619")
+
+
+def test_EV620_merc_rank_restart(gd):
+    gd("gear", "EV620")
+
+
+def test_EV621_merc_rank_tally(gd):
+    gd("gear", "EV621")
+
+
+def test_EV622_merc_rank_save(gd):
+    gd("gear", "EV622")
+
+
+def test_EV623_merc_rank_popup(gd):
+    gd("gear", "EV623")
+
+
+def test_EV624_merc_rank_recruit(gd):
+    gd("gear", "EV624")
