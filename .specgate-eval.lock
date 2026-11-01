@@ -1,6 +1,6 @@
 {
-  "approvedAt": "2026-10-31T06:26:06.842Z",
-  "evalMd": "ca044052",
+  "approvedAt": "2026-11-01T02:04:45.028Z",
+  "evalMd": "89162d57",
   "tests": {
     "tests/eval/conftest.py": "e6bb5f0b",
     "tests/eval/gd/aura.gd": "010cc38a",
@@ -27,7 +27,7 @@
     "tests/eval/gd/footprint.gd.uid": "e16153f2",
     "tests/eval/gd/gates.gd": "7b7665ae",
     "tests/eval/gd/gates.gd.uid": "b0cc756e",
-    "tests/eval/gd/gear.gd": "cd93522a",
+    "tests/eval/gd/gear.gd": "873236d9",
     "tests/eval/gd/gear.gd.uid": "f0141d87",
     "tests/eval/gd/grow.gd": "74fd7d71",
     "tests/eval/gd/grow.gd.uid": "ef494385",
@@ -111,7 +111,7 @@
     "tests/eval/test_evac.py": "ec0a00d5",
     "tests/eval/test_footprint.py": "aa9b87d4",
     "tests/eval/test_gates.py": "38beb2e1",
-    "tests/eval/test_gear.py": "e63be7cc",
+    "tests/eval/test_gear.py": "de8c9662",
     "tests/eval/test_grow.py": "f82b7707",
     "tests/eval/test_hero.py": "038406d7",
     "tests/eval/test_heroes.py": "0a8af240",
@@ -470,6 +470,8 @@
     "S259": "f77b59d9",
     "S260": "7d46eb31",
     "S261": "c9a98a72",
-    "S262": "512e95e6"
+    "S262": "512e95e6",
+    "S263": "722d8e56",
+    "S264": "89822925"
   }
 }

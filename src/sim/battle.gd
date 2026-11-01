@@ -1877,6 +1877,11 @@ func _cast_soul_chain(h: Unit, sk: Dictionary, aim, grow: float) -> void:
 	_chains += 1
 	for e in [aim] + others.slice(0, sk.links):
 		_fx(e, "vesper_e", {"chain": _chains, "share": sk.share, "spread": h.passive.radius}, sk.time)
+	if sk.get("infect"):  # 사슬 감염(향로 +9, S264): 대상의 중독·저주를 묶인 적에게 남은 시간만큼. 더 오래 남은 같은 효과는 그대로
+		for e in others.slice(0, sk.links):
+			for src in ["vesper_q", "vesper_w"]:
+				if aim.fx.has(src) and not _aloft(e) and (not e.fx.has(src) or e.fx[src].left < aim.fx[src].left):
+					e.fx[src] = aim.fx[src].duplicate()
 
 # R 심연의 늪
 func _cast_abyss(h: Unit, sk: Dictionary, aim, _grow: float) -> void:
