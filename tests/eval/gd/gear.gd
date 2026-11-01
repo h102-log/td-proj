@@ -605,7 +605,7 @@ func ev618():
 		return "병영이 있는 준비 단계에서 용병 강화가 거부됐다"
 	var s3 = b.place_merc("soldier", Vector2i(18, 12))
 	return check(s1.max_hp == want and s1.hp == want and s2.max_hp == want and s2.hp == want - 10.0 and [a.max_hp, a.hp, a.damage] == arch
-		and s3 != null and s3.hp == want and s3.max_hp == want and b.MERC_KINDS.soldier.hp == base_hp and base_hp == 50.0,
+		and s3 != null and s3.hp == want and s3.max_hp == want and b.MERC_KINDS.soldier.hp == base_hp,
 		"강화 뒤 용병 최대·체력 %s/%s, %s/%s(기대 %s, %s, 피해 10) · 궁수 %s(전 %s) · 새 용병 %s · 판 데이터 hp %s · 디스크 hp %s" % [s1.max_hp, s1.hp, s2.max_hp, s2.hp, want, want - 10.0, [a.max_hp, a.hp, a.damage], arch, [s3.max_hp, s3.hp] if s3 else null, b.MERC_KINDS.soldier.hp, base_hp])
 
 # EV619 · S254: 3단계 용병(블록 수 2)은 EV301 배치에서 적 셋 가운데 둘을 붙잡고 하나는 지나간다
@@ -648,8 +648,7 @@ func ev620():
 	var e = b.place_merc("engineer", Vector2i(14, 12))
 	var sd := _mdata("soldier")
 	var ed := _mdata("engineer")
-	return check(b.merc_rank.is_empty() and m != null and e != null and m.hp == sd.hp and m.max_hp == sd.hp and m.damage == sd.damage and m.block == sd.block and e.speed == ed.speed
-		and [sd.hp, sd.damage, sd.block, ed.speed] == [50.0, 2.0, 1, 2.5],
+	return check(b.merc_rank.is_empty() and m != null and e != null and m.hp == sd.hp and m.max_hp == sd.hp and m.damage == sd.damage and m.block == sd.block and e.speed == ed.speed,
 		"restart 뒤 단계 %s · 새 용병 %s · 새 공병 속도 %s · 디스크 데이터 %s" % [b.merc_rank, [m.hp, m.max_hp, m.damage, m.block] if m else null, e.speed if e else null, [sd.hp, sd.damage, sd.block, ed.speed]])
 
 # EV621 · S254: 강화 한 번은 라운드 집계의 산 용병 수에 하나로 센다. 거부된 강화는 세지 않는다
@@ -768,26 +767,26 @@ func _shield(b) -> String:
 		return _api(b)
 	return "" if b.GEAR_KINDS.has("aias") and b.GEAR_KINDS.aias.steps.size() == 10 and b.hero != null else "data/gear/aias.tres(+0~+9)가 없다"
 
-# EV625 · S256: 방패 +0은 요새화 대기를 1.5초로 줄이고, +3은 요새화 블록 수를 1 늘린다. +7~+9 비용
+# EV625 · S256: 방패 +0은 요새화 대기를 줄이고(값은 데이터), +3은 요새화 블록 수를 1 늘린다
 func ev625():
 	var probe = battle()
 	var out := _shield(_aias(0))
 	if out != "":
 		return out
+	var wait: float = _fitted(probe, "aias", 0).passive.still + 0.1
 	var got := []
 	for n in [-1, 0]:
 		var b = _aias(n)
-		run(b, 1.6)
+		run(b, wait)
 		got.append(b.hero.fort)
 	var blocks := []
 	for n in [2, 3]:
 		var b = _aias(n)
-		run(b, 2.1)
+		run(b, _fitted(probe, "aias", n).passive.still + 0.1)
 		blocks.append([b.hero.fort, b.hero.block])
 	var base: int = probe.HERO_KINDS.aias.block + _data("aias").passive.block
-	var cost: Array = probe.HIRE.gear_cost.slice(7, 10)
-	return check(got == [false, true] and blocks == [[true, base], [true, base + 1]] and base == 4 and cost == [100, 120, 150],
-		"1.6초 요새화(장비 없음, +0) %s(기대 [false, true]) · +2·+3 요새화·블록 %s(기대 %d, %d) · +7~+9 비용 %s" % [got, blocks, base, base + 1, cost])
+	return check(got == [false, true] and blocks == [[true, base], [true, base + 1]],
+		"%s초 요새화(장비 없음, +0) %s(기대 [false, true]) · +2·+3 요새화·블록 %s(기대 %d, %d)" % [wait, got, blocks, base, base + 1])
 
 # EV626 · S256: 방패 +6 R은 성벽 5칸(+5는 3칸), 조준 미리보기 칸이 세운 칸과 같다
 func ev626():
@@ -1005,24 +1004,28 @@ func _flask(b) -> String:
 		return _api(b)
 	return "" if b.GEAR_KINDS.has("seraphina") and b.GEAR_KINDS.seraphina.steps.size() == 10 and b.hero != null else "data/gear/seraphina.tres(+0~+9)가 없다"
 
-# EV634 · S261: 성수병 +0은 Q 회복 25, +3은 Q 도약 4·횟수 7, +6은 W 반경 2.5·지속 5
+# 문턱 단계 n마다 «칸.키»가 바로 앞 단계(n − 1, −1은 장비 없음)와 달라지고, 두 단계 모두 영웅 값이 데이터에 장비를 덮어쓴 값(_fitted)과 같은지.
+# hero(n)은 장비 +n 영웅. 수치는 데이터에서 읽어, 밸런스를 바꿔도 깨지지 않는다(2026-11-01)
+func _thresholds(kind: String, hero: Callable, keys: Dictionary) -> String:
+	var probe = battle()
+	var bad := []
+	for n in keys:
+		var pair := [hero.call(n - 1), hero.call(n)]
+		for path in keys[n]:
+			var slot: String = path.get_slice(".", 0)
+			var key: String = path.get_slice(".", 1)
+			var got := [pair[0].get(slot)[key], pair[1].get(slot)[key]]
+			var want := [_fitted(probe, kind, n - 1)[slot][key], _fitted(probe, kind, n)[slot][key]]
+			if got != want or want[0] == want[1]:
+				bad.append("+%d·+%d %s %s(기대 %s, 두 값이 달라야 한다)" % [n - 1, n, path, got, want])
+	return " · ".join(bad)
+
+# EV634 · S261: 성수병 +0·+3·+6 문턱이 올리는 칸(Q 회복, Q 도약·횟수, W 반경·지속). 값은 데이터대로
 func ev634():
 	var out := _flask(_seraphina(0))
 	if out != "":
 		return out
-	var heal := []
-	for n in [-1, 0]:
-		heal.append(_seraphina(n).hero.q.heal)
-	var q := []
-	for n in [2, 3]:
-		var h = _seraphina(n).hero
-		q.append([h.q.hop, h.q.hits])
-	var w := []
-	for n in [5, 6]:
-		var h = _seraphina(n).hero
-		w.append([h.w.radius, h.w.time])
-	return check(heal == [20.0, 25.0] and q == [[3.0, 5], [4.0, 7]] and w == [[2.0, 4.0], [2.5, 5.0]],
-		"장비 없음·+0 Q 회복 %s(기대 [20, 25]) · +2·+3 Q [도약, 횟수] %s(기대 [[3, 5], [4, 7]]) · +5·+6 W [반경, 지속] %s(기대 [[2, 4], [2.5, 5]])" % [heal, q, w])
+	return _thresholds("seraphina", func(n): return _seraphina(n).hero, {0: ["q.heal"], 3: ["q.hop", "q.hits"], 6: ["w.radius", "w.time"]})
 
 # EV635 · S262: 성역 공명. 자기 성역 안 용병에게 쓴 Q는 용병 7·과녁 7을 모두 맞히고, 성역 밖 용병이나 +8이면 용병 4·과녁 3
 func ev635():
@@ -1065,24 +1068,12 @@ func _censer(b) -> String:
 		return _api(b)
 	return "" if b.GEAR_KINDS.has("vesper") and b.GEAR_KINDS.vesper.steps.size() == 10 and b.hero != null else "data/gear/vesper.tres(+0~+9)가 없다"
 
-# EV636 · S263: 향로 +0은 오라 적 방어력 7, +3은 Q 반경 2.5·지속 7, +6은 E 6명·나누기 0.45
+# EV636 · S263: 향로 +0·+3·+6 문턱이 올리는 칸(오라 적 방어력 감소, Q 반경·지속, E 묶는 적 수·나누기). 값은 데이터대로
 func ev636():
 	var out := _censer(_vesper(0)[0])
 	if out != "":
 		return out
-	var aura := []
-	for n in [-1, 0]:
-		aura.append(_vesper(n)[0].hero.aura.foe_armor)
-	var q := []
-	for n in [2, 3]:
-		var h = _vesper(n)[0].hero
-		q.append([h.q.radius, h.q.time])
-	var e := []
-	for n in [5, 6]:
-		var h = _vesper(n)[0].hero
-		e.append([h.e.links, h.e.share])
-	return check(aura == [5.0, 7.0] and q == [[2.0, 5.0], [2.5, 7.0]] and e == [[4, 0.35], [6, 0.45]],
-		"장비 없음·+0 오라 적 방어력 %s(기대 [5, 7]) · +2·+3 Q [반경, 지속] %s(기대 [[2, 5], [2.5, 7]]) · +5·+6 E [명 수, 나누기] %s(기대 [[4, 0.35], [6, 0.45]])" % [aura, q, e])
+	return _thresholds("vesper", func(n): return _vesper(n)[0].hero, {0: ["aura.foe_armor"], 3: ["q.radius", "q.time"], 6: ["e.links", "e.share"]})
 
 # EV637 · S264: 사슬 감염. 대상에만 건 중독·저주가 E로 묶인 적 넷에게 같은 남은 시간으로 옮는다. +8이면 옮지 않는다
 func ev637():
@@ -1132,24 +1123,12 @@ func _watch(b) -> String:
 		return _api(b)
 	return "" if b.GEAR_KINDS.has("chronos") and b.GEAR_KINDS.chronos.steps.size() == 10 and b.hero != null else "data/gear/chronos.tres(+0~+9)가 없다"
 
-# EV638 · S265: 회중시계 +0은 오라 반경 3.5, +3은 W 반경 2.5·공격력 감소 0.5, +6은 E 8명·충격파 25
+# EV638 · S265: 회중시계 +0·+3·+6 문턱이 올리는 칸(오라 반경, W 반경·공격력 감소, E 표시하는 적 수·충격파). 값은 데이터대로
 func ev638():
 	var out := _watch(_chronos(0)[0])
 	if out != "":
 		return out
-	var aura := []
-	for n in [-1, 0]:
-		aura.append(_chronos(n)[0].hero.aura.radius)
-	var w := []
-	for n in [2, 3]:
-		var h = _chronos(n)[0].hero
-		w.append([h.w.radius, h.w.weaken])
-	var e := []
-	for n in [5, 6]:
-		var h = _chronos(n)[0].hero
-		e.append([h.e.count, h.e.damage])
-	return check(aura == [3.0, 3.5] and w == [[2.0, 0.4], [2.5, 0.5]] and e == [[5, 15.0], [8, 25.0]],
-		"장비 없음·+0 오라 반경 %s(기대 [3, 3.5]) · +2·+3 W [반경, 공격력 감소] %s(기대 [[2, 0.4], [2.5, 0.5]]) · +5·+6 E [명 수, 충격파] %s(기대 [[5, 15], [8, 25]])" % [aura, w, e])
+	return _thresholds("chronos", func(n): return _chronos(n)[0].hero, {0: ["aura.radius"], 3: ["w.radius", "w.weaken"], 6: ["e.count", "e.damage"]})
 
 # EV639 · S266: 노화 되감기. 되돌리는 순간 A에 노화가 걸려 있으면(문 앞에 걸었든 문을 편 뒤 걸었든) 곁 B가 받는 충격파가 2배, +8이면 1배
 func ev639():
@@ -1189,23 +1168,12 @@ func _scepter(n: int):
 	b.start_battle()
 	return b
 
-# EV640 · S267: 왕홀 +7은 R 피해 50, +8은 W 피해 20, +9는 R 운석 5개·간격 1.5
+# EV640 · S267: 왕홀 +7·+8·+9 문턱이 올리는 칸(R 피해, W 피해, R 운석 수·간격). 값은 데이터대로
 func ev640():
 	var probe = _scepter(9)
 	if probe is String:
 		return probe
-	var r := []
-	for n in [6, 7]:
-		r.append(_scepter(n).hero.r.damage)
-	var w := []
-	for n in [7, 8]:
-		w.append(_scepter(n).hero.w.damage)
-	var swarm := []
-	for n in [8, 9]:
-		var h = _scepter(n).hero
-		swarm.append([h.r.count, h.r.spread])
-	return check(r == [40.0, 50.0] and w == [17.0, 20.0] and swarm == [[3, 1.0], [5, 1.5]],
-		"+6·+7 R 피해 %s(기대 [40, 50]) · +7·+8 W 피해 %s(기대 [17, 20]) · +8·+9 R [운석, 간격] %s(기대 [[3, 1], [5, 1.5]])" % [r, w, swarm])
+	return _thresholds("ignis", func(n): return _scepter(n).hero, {7: ["r.damage"], 8: ["w.damage"], 9: ["r.count", "r.spread"]})
 
 # EV641 · S268: 운석 자리. 동쪽 4칸 지점에 R → 지점, 남북 ±간격, ±2간격 차례로 0.5초씩 늦게
 func ev641():
