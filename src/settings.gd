@@ -6,6 +6,8 @@ static var quickcast := false  # 퀵캐스트(S147, I158)
 static var revive := true  # 부활(I28)
 static var fullscreen = null  # 창 모드. null이면 아직 고르지 않았다(첫 실행은 S163대로)
 static var volume := 100  # 마스터 음량(%)
+static var music_volume := 100  # 음악 음량(%, S184 2026-11-01 변경). «Music» 버스
+static var sfx_volume := 100  # 효과음 음량(%, S184 2026-11-01 변경). «SFX» 버스
 static var camera_speed := 100  # 카메라 속도(%, S184). 가장자리·방향키 이동 속도에 곱한다(S53)
 static var shake := 2  # 화면 흔들림(S184, S200): 0 끔 · 1 약하게 · 2 보통
 static var soft_flash := false  # 번쩍임 줄이기(S184): 흰 실루엣 대신 흰 40% 덧그림(S177, S197)
@@ -23,6 +25,8 @@ static func load_file() -> void:
 	revive = c.get_value("settings", "revive", true)
 	fullscreen = c.get_value("settings", "fullscreen") if c.has_section_key("settings", "fullscreen") else null
 	volume = c.get_value("settings", "volume", 100)
+	music_volume = c.get_value("settings", "music_volume", 100)
+	sfx_volume = c.get_value("settings", "sfx_volume", 100)
 	camera_speed = c.get_value("settings", "camera_speed", 100)
 	shake = c.get_value("settings", "shake", 2)
 	soft_flash = c.get_value("settings", "soft_flash", false)
@@ -39,6 +43,8 @@ static func save_file() -> void:
 	c.set_value("settings", "revive", revive)
 	c.set_value("settings", "fullscreen", fullscreen)  # null이면 칸이 생기지 않는다
 	c.set_value("settings", "volume", volume)
+	c.set_value("settings", "music_volume", music_volume)
+	c.set_value("settings", "sfx_volume", sfx_volume)
 	c.set_value("settings", "camera_speed", camera_speed)
 	c.set_value("settings", "shake", shake)
 	c.set_value("settings", "soft_flash", soft_flash)
@@ -63,7 +69,18 @@ static func apply_language() -> void:
 static func fullscreen_at_start(exported: bool) -> bool:
 	return exported if fullscreen == null else fullscreen
 
-# 마스터 버스에 음량을 건다. 0%면 소리를 끈다(I160)
+# 마스터 버스에 음량을, «Music»·«SFX» 버스에 음악·효과음 음량을 건다. 0%면 그 버스 소리를 끈다(I160, S184)
 static func apply_volume() -> void:
-	AudioServer.set_bus_volume_db(0, linear_to_db(volume / 100.0))
-	AudioServer.set_bus_mute(0, volume == 0)
+	for pair in [[0, volume], [bus("Music"), music_volume], [bus("SFX"), sfx_volume]]:
+		AudioServer.set_bus_volume_db(pair[0], linear_to_db(pair[1] / 100.0))
+		AudioServer.set_bus_mute(pair[0], pair[1] == 0)
+
+# 이름이 name인 버스 번호. 없으면 마스터로 보내는 버스를 만든다(I205)
+static func bus(name: String) -> int:
+	var i := AudioServer.get_bus_index(name)
+	if i < 0:
+		i = AudioServer.bus_count
+		AudioServer.add_bus(i)
+		AudioServer.set_bus_name(i, name)
+		AudioServer.set_bus_send(i, "Master")
+	return i

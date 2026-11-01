@@ -5,6 +5,7 @@ extends Control
 const HudTheme := preload("res://src/ui/hud_theme.gd")
 const HudBuild := preload("res://src/ui/hud_build.gd")
 const BattleView := preload("res://src/ui/battle_view.gd")
+const Audio := preload("res://src/audio.gd")
 const ORDER := ["base", "gate", "hero", "broken", "field", "wall"]  # 한 프레임에 여럿이면 이 차례로 알린다(거점 > 성문 > 영웅 > 구조물)
 const COOL := {"base": 10.0, "gate": 20.0}  # 같은 대상을 다시 알리는 간격(초, S189 임시값)
 const NEAR := 4  # 거점·성문 밖의 경보는 같은 종류가 이 칸 안에서
@@ -66,6 +67,7 @@ func step(delta: float) -> void:
 		if _raise(e[0], e[1], e[2], e[3]):
 			fresh.append(e[1])
 	if not fresh.is_empty():
+		Audio.of(get_tree()).play("alert")  # S269
 		recent = (fresh + recent).slice(0, KEEP)
 		_back = -1
 	_show_marks()

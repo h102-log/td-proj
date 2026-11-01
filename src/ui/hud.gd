@@ -68,6 +68,7 @@ const Hints := preload("res://src/ui/hints.gd")
 const BattleView := preload("res://src/ui/battle_view.gd")
 const SkillCell := preload("res://src/ui/skill_cell.gd")
 const Battle := preload("res://src/sim/battle.gd")
+const Audio := preload("res://src/audio.gd")
 const BAR := {  # 위 띠 칸 자리(S185, 임시값)
 	"status": Rect2(4, 2, 96, 24), "mission": Rect2(104, 2, 24, 24), "engineer": Rect2(130, 2, 20, 24),
 	"hero0": Rect2(156, 2, 104, 24), "hero1": Rect2(264, 2, 104, 24), "hero2": Rect2(372, 2, 104, 24),
@@ -1307,6 +1308,7 @@ func _skill_refuse(h, slot: String) -> void:
 	if why != "" and i >= 0:
 		slots[i][slot].reject()
 		toasts.push(why)
+		Audio.of(get_tree()).play("refuse")  # S269
 
 # 스킬 버튼 우클릭: 그 칸의 자동 시전을 켜고 끈다(S158, I151)
 func _auto_click(e: InputEvent, i: int, slot: String) -> void:
@@ -1417,6 +1419,8 @@ func _start_move() -> void:
 
 # 팔린 용병은 고른 상태에서도 뺀다
 func _sell_now() -> void:
+	if battle.state == "prep" and not controls.selling.is_empty():  # 판매는 준비 단계에만 된다
+		Audio.of(get_tree()).play("sell")  # S269
 	battle.sell(controls.selling)
 	controls.selling = []
 	controls.selected = controls.selected.filter(func(u): return u.alive)
