@@ -116,19 +116,41 @@ func ev404():
 	return check(no_counter and counter and calm and absf(blessed - s.r.bless) < 0.01,
 		"쏜 step에 반격 대상 없음 %s · 닿은 뒤 반격 대상이 그 탑 %s · 쏜 step에 과녁·옆 적 그대로 %s · 옆 적 축복 피해 %s(%s)" % [no_counter, counter, calm, blessed, s.r.bless])
 
-# EV405 · S178: 실비아 W가 켜져 있으면 갈래 대상마다 화살을 따로 쏜다. 쏜 step에는 네 적이 모두 그대로이며, 화살이 닿으면 넷이 저마다 공격력만큼 잃는다
+# 실비아와 궁수들이 선 판. quiet면 실비아 공격력을 0으로 둔다. 궁수는 한 번만 쏜다(공격 간격 100초). [판, 궁수들]
+func _archers(hero_cell: Vector2i, cells: Array, quiet := true) -> Array:
+	var b = battle({"heroes": [{"kind": "sylvia", "cell": hero_cell}], "base_hp": BIG, "waves": [[{"kind": "basic", "count": 0}]], "merc_cap": cells.size()})
+	if b.hero and quiet:
+		b.hero.damage = 0.0
+	return [b, cells.map(func(c): return b.place_merc("archer", c, {"attack_gap": 100.0}))]
+
+# EV405 · I212: 순풍 장판(실비아 W)을 지나는 궁수 화살은 speed배 빨라져, 장판을 지나지 않는 같은 거리(5칸)의 화살보다 먼저 닿고 피해는 같다(궁수 공격력).
+# 그 화살을 쏜 궁수에는 공격 속도 +haste가 걸려 haste_time초 뒤 풀리고, 장판을 지나지 않은 궁수에는 걸리지 않는다
 func ev405():
-	var b = _sylvia(Vector2i(10, 10))
+	var pair := _archers(Vector2i(8, 9), [Vector2i(3, 5), Vector2i(3, 14)])
+	var b = pair[0]
+	var a = pair[1][0]
+	var c = pair[1][1]
 	var s = b.hero
-	var foes := [_dummy(b, Vector2i(12, 10)), _dummy(b, Vector2i(13, 10)), _dummy(b, Vector2i(13, 11)), _dummy(b, Vector2i(13, 9)), _dummy(b, Vector2i(13, 12))]
+	var ta = _dummy(b, Vector2i(8, 5))
+	var tc = _dummy(b, Vector2i(8, 14))
 	_start(b)
-	b.cast(s, "w")
-	var shot := _until_shot(b, s) >= 0.0
-	var calm: bool = foes.all(func(e): return e.hp == e.max_hp)
-	run(b, 0.6)
-	var lost := foes.map(func(e): return BIG - e.hp)
-	var ok: bool = lost.slice(0, 4).all(func(x): return absf(x - s.damage) < 0.01) and lost[4] == 0.0
-	return check(shot and calm and ok, "쏨 %s · 쏜 step에 모두 그대로 %s · 0.6초 뒤 잃은 체력 %s(앞 넷 %s, 다섯째 0)" % [shot, calm, lost, s.damage])
+	var used: bool = b.cast(s, "w", Vector2(5, 5))
+	var t := 0.0
+	var at := [-1.0, -1.0]
+	while t < 2.0 and (at[0] < 0.0 or at[1] < 0.0):
+		b.step(DT)
+		t += DT
+		if at[0] < 0.0 and ta.hp < BIG:
+			at[0] = t
+		if at[1] < 0.0 and tc.hp < BIG:
+			at[1] = t
+	var haste := [b.effect(a, "haste"), b.effect(c, "haste")]
+	var lost := [BIG - ta.hp, BIG - tc.hp]
+	run(b, s.w.haste_time + 0.2)
+	var faded: bool = b.effect(a, "haste") == null
+	var ok: bool = used and at[0] > 0.0 and at[1] > 0.0 and at[0] < at[1] and absf(lost[0] - a.damage) < 0.001 and absf(lost[1] - a.damage) < 0.001
+	return check(ok and haste[0] != null and absf(haste[0] - s.w.haste) < 0.001 and haste[1] == null and faded,
+		"씀 %s · 닿은 때 [지남, 안 지남] %s · 피해 %s(둘 다 %s) · 궁수 공격 속도 증가 %s(%s, 없음) · %s초 뒤 풀림 %s" % [used, at, lost, a.damage, haste, s.w.haste, s.w.haste_time, faded])
 
 # EV406 · I174: 궁수가 친 뒤 화살이 나가기 전(0.08초 안)에 쓰러지면 화살은 나가지 않는다. 궁수탑이 쏜 뒤 부서져도 화살은 닿고, 부서진 탑은 반격 대상이 되지 않는다
 func ev406():
@@ -165,25 +187,48 @@ func ev407():
 	return check(fired and flying == 1 and b.state == "prep" and ms != null and ms.is_empty(),
 		"대포가 쏨 %s · 쏜 뒤 나는 투사체 %d개(1) · 판 단계 %s(prep) · 웨이브가 끝난 뒤 투사체 %s(빈 목록)" % [fired, flying, b.state, ms])
 
-# EV408 · I148: 실비아의 중첩은 쏜 때 센다. 넷째 중첩에서 같은 적을 쏘면 쏜 step에 중첩이 다섯이 되지만 체력은 그대로이고,
-# 닿으면 대상과 W 갈래 대상이 모두 방어력 15의 35%를 무시한 피해를 잃는다
+# EV408 · I213: 정조준 비율은 쏠 때 거리로 정해 화살에 담는다. 실비아가 far칸 앞 과녁을 쏜 step에는 과녁 체력이 그대로이고,
+# 쏜 뒤 과녁을 near칸 앞으로 옮겨도 닿은 피해는 far칸 값(공격력 × (1 + might))이다
 func ev408():
-	var b = _sylvia(Vector2i(10, 10))
+	var b = _sylvia(Vector2i(3, 10))
 	var s = b.hero
-	var t = _dummy(b, Vector2i(12, 10), {"armor": 15.0})
-	var n = _dummy(b, Vector2i(13, 10), {"armor": 15.0})
+	var p: Dictionary = s.passive
+	var t = _dummy(b, Vector2i(3 + roundi(p.far), 10))
+	t.pos = Vector2(3.0 + p.far, 10.0)
 	_start(b)
-	b.cast(s, "w")
-	s.mark = t
-	s.stacks = s.passive.stacks - 1
 	var shot := _until_shot(b, s) >= 0.0
-	var counted: bool = s.stacks == s.passive.stacks
-	var calm: bool = t.hp == t.max_hp and n.hp == n.max_hp
+	var calm: bool = t.hp == t.max_hp
+	t.pos = Vector2(3.0 + p.near, 10.0)
 	run(b, 0.6)
-	var want: float = s.damage * b.armor_mult(15.0 * (1.0 - s.passive.ignore))
-	var got := [BIG - t.hp, BIG - n.hp]
-	return check(shot and counted and calm and absf(got[0] - want) < 0.001 and absf(got[1] - want) < 0.001,
-		"쏨 %s · 쏜 step에 중첩 %d(%d) · 쏜 step에 둘 다 그대로 %s · 닿은 뒤 잃은 체력 %s(둘 다 %s)" % [shot, s.stacks, s.passive.stacks, calm, got, want])
+	var want: float = s.damage * (1.0 + p.might)
+	return check(shot and calm and absf((BIG - t.hp) - want) < 0.001,
+		"쏨 %s · 쏜 step에 그대로 %s · 가까이 옮긴 뒤 닿은 피해 %s(먼 값 %s)" % [shot, calm, BIG - t.hp, want])
+
+# EV667 · I212: 렌즈와 바람의 길은 화살만 받는다. 렌즈를 지난 마법 타워 구슬의 피해는 타워 공격력 그대로다.
+# 실비아 R 바람의 길을 지난 궁수 화살은 방어력 15 과녁에 궁수 공격력 × (1 + might) × armor_mult(15 × (1 − ignore_max))를 준다
+func ev667():
+	var pair := _archers(Vector2i(6, 5), [])
+	var b = pair[0]
+	var s = b.hero
+	var mt = b.build("magic", Vector2i(5, 10))
+	var e = _dummy(b, Vector2i(9, 10))
+	_start(b)
+	var lensed: bool = b.cast(s, "e", Vector2(7, 10))
+	run(b, 1.5, func(): return e.hp < BIG)
+	var bolt: float = BIG - e.hp
+	pair = _archers(Vector2i(3, 10), [Vector2i(12, 7)], false)  # R 저격에 공격력이 든다. 적은 모두 실비아 사거리 밖이라 기본 공격은 닿지 않는다
+	var c = pair[0]
+	var h = c.hero
+	var a = pair[1][0]
+	var tgt = _dummy(c, Vector2i(12, 12), {"armor": 15.0})
+	_dummy(c, Vector2i(28, 10))  # 가장 먼 적: 바람의 길이 (3,10)에서 (28,10)까지
+	_start(c)
+	var pathed: bool = c.cast(h, "r")
+	run(c, 1.5, func(): return tgt.hp < BIG)
+	var arrow: float = BIG - tgt.hp
+	var want: float = a.damage * (1.0 + h.passive.might) * c.armor_mult(15.0 * (1.0 - h.passive.ignore_max))
+	return check(lensed and mt != null and absf(bolt - mt.damage) < 0.001 and pathed and absf(arrow - want) < 0.001,
+		"렌즈 %s · 렌즈 지난 구슬 피해 %s(타워 공격력 %s) · 길 %s · 길 지난 궁수 화살 %s(%s)" % [lensed, bolt, mt.damage if mt else null, pathed, arrow, want])
 
 # 화면을 붙인 판에서 secs 동안 step과 tick을 함께 돌리고, 프레임마다 [과녁 체력, 과녁이 살아 있나, 그 프레임 사건 종류]를 모은다
 func _frames(b, e, secs: float) -> Array:

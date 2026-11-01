@@ -82,7 +82,7 @@ func hear(events: Array, seen: Rect2) -> void:
 		for h in levels:
 			if levels[h] > _levels.get(h, levels[h]):
 				_play("level_up")
-			if toggles[h] and not _toggles.get(h, true):  # 돌풍 갈래살을 켰다(끌 때는 소리가 없다)
+			if toggles[h] and not _toggles.get(h, true):  # 토글 칸을 켰다(끌 때는 소리가 없다)
 				_play("skill_" + _toggle_id(h))
 		for s in _building:
 			if s.complete and s.alive:

@@ -64,10 +64,6 @@ const CRY_ECHO := 0.08  # 전장의 포효 둘째 충격파가 늦게 나오는 
 const SPARK_STEP := 3.0 / 60.0  # 스킬에 맞은 섬광 한 프레임
 const GALE_REACH := 0.06  # 관통의 바람살이 맵 끝까지 뻗는 시간
 const WALL_RISE := 0.2  # 에너지 성벽 칸이 아래에서부터 드러나는 시간
-const RAIN := 14  # 화살비 장판 하나에 화살이 떨어지는 자리 수
-const RAIN_CYCLE := 0.9  # 한 자리에 화살이 다시 떨어지는 주기
-const RAIN_FALL := 0.12  # 화살이 떨어지는 시간. 그 뒤 꽂힌다
-const RAIN_STUCK := 0.6  # 꽂힌 화살이 남는 시간
 # 세라피나(크림·금)·베스퍼(청록)(fx-3). 시간은 초다
 const BEAM_HOP := 0.04  # 성스러운 빛줄기가 대상 하나를 건너는 시간
 const BEAM_TAIL := 0.1  # 빛줄기 흔적은 FX와 «마지막 마디가 뻗은 뒤 이만큼» 가운데 늦은 때까지 남는다(S179). 성역 공명(S262)의 긴 줄도 끝까지 보이게
@@ -528,7 +524,7 @@ func _chest(x) -> Vector2:
 func _ranged(x) -> bool:
 	return x.get("pos") == null or (x.get("range") != null and x.range > 2.0)
 
-# 흔적의 스킬 이름: 칸(Q·W·E·R)이면 그 칸 스킬, 아니면(운석 착탄·덫 터짐·태세 터뜨림·보스 스킬) slot 그대로
+# 흔적의 스킬 이름: 칸(Q·W·E·R)이면 그 칸 스킬, 아니면(운석 착탄·태세 터뜨림·보스 스킬) slot 그대로
 func _skill(c) -> String:
 	return c.hero.get(c.slot).id if c.slot in battle.SLOTS else c.slot
 
@@ -577,8 +573,9 @@ func _traces(top: bool) -> void:
 				if top:
 					_gale(at, (c.aim - c.at).normalized(), c.age, seed, c.hits)
 				continue
-			"trap":
-				_whirl(at, CELL * c.radius, c.age, seed, top)
+			"wind_path":
+				if top:
+					_snipe(at, Vector2i(_center(c.aim).floor()), c.age, c.hits)
 				continue
 			"holy_beam":
 				if top:
@@ -616,8 +613,6 @@ func _traces(top: bool) -> void:
 		var d: float = z.get("delay", 0.0)
 		if d > 0.0 and d < FALL:
 			_fall(z, d, top)
-		if z.src == "sylvia_r":  # 화살비(실비아 R): 떨어지는 화살은 몸통 위, 꽂힌 화살은 몸통 아래 층
-			_rain(z, top)
 	if not top:
 		return
 	var links := {}  # 영혼 사슬(S154): 같은 사슬에 묶인 적을 처음 적에게서 청록 사슬 고리 도트로 잇는다. 숨은 적(S213)은 잇지 않는다
@@ -774,48 +769,15 @@ func _gale(c: Vector2i, dir: Vector2, t: float, seed: int, hits: Array) -> void:
 			_pline(p0, p0 + Vector2i((dir * 6.0).round()), PX.lime0 if k < 0.5 else PX.lime2)
 	_sparks(hits, t)
 
-# 폭풍의 덫 터짐(실비아 E, fx-2): 앞 0.2초 고리 하나(굵기 2 → 0, 연두 램프) + 돌며 퍼지는 바람 호 셋. 몸통 아래 층에는 흙 부스러기가 튄다
-func _whirl(c: Vector2i, rad: float, t: float, seed: int, top: bool) -> void:
-	if not top:
-		if t < 0.35:
-			var k := t / 0.35
-			for i in 6:
-				var dir := Vector2.from_angle(TAU * i / 6.0 + _hf(seed, i))
-				_px(c + Vector2i((dir * rad * (0.2 + 0.5 * _pow3(k))).round()) - Vector2i(0, int(6.0 * k)), _ramp(["ash", "smoke", "dark"], k))
-		return
-	if t < 0.2:
-		var k := t / 0.2
-		_pring(c, int(rad * (0.2 + 0.8 * _pow3(k))), int(ceil(2.0 * (1.0 - k))), _ramp(["lime0", "lime1", "lime2"], k))
-	if t < 0.35:
-		var k := t / 0.35
-		for j in 3:
-			var a := j * TAU / 3.0 + t * 9.0 + _hf(seed, j)
-			_parc(c, int(rad * (0.35 + 0.55 * _pow3(k))), 1, a, a + 1.2, _ramp(["lime0", "lime1", "lime2"], k))
-
-# 화살비(실비아 R, fx-2): 장판 안 RAIN 자리마다 RAIN_CYCLE초마다 화살 하나가 RAIN_FALL초에 떨어지고(위 층) 꽂힌 채 RAIN_STUCK초 남는다(아래 층).
-# 자리는 주기마다 해시로 바뀌고, 장판이 펼쳐지고 줄어드는 반지름을 따른다
-func _rain(z: Dictionary, top: bool) -> void:
-	var age := _zone_age(z)
-	var r := zone_r(z, age)
-	if r < 4:
-		return
-	var c := Vector2i(_center(z.pos).floor())
-	var seed := hash(str(z.pos) + z.src)
-	for i in RAIN:
-		var u := age + _hf(seed, i) * RAIN_CYCLE
-		var ph := fmod(u, RAIN_CYCLE)
-		var n := int(u / RAIN_CYCLE)
-		var p := c + Vector2i((Vector2.from_angle(_hf(seed + n, i + 30) * TAU) * sqrt(_hf(seed + n, i + 60)) * (r - 3)).round())
-		if ph < RAIN_FALL:
-			if top:  # 왼쪽 위에서 비스듬히: 몸통은 크림, 깃은 연두
-				var head := p - Vector2i((Vector2(2, 7) * 3.0 * (1.0 - ph / RAIN_FALL)).round())
-				_pline(head - Vector2i(2, 7), head, PX.cream)
-				_px(head - Vector2i(2, 7), PX.lime1)
-		elif ph < RAIN_FALL + RAIN_STUCK and not top:
-			_spr("stuck", 0, p + Vector2i(0, 1), true)
-			if ph < RAIN_FALL + 0.06:  # 꽂힌 순간 흙먼지
-				for sx in [-2, 2]:
-					_px(p + Vector2i(sx, 0), PX.ash)
+# 폭풍의 대동맥 저격(실비아 R, I215): 영웅 자리에서 표적까지 관통의 바람살과 같은 연두 줄(굵기 3 → 1, 앞 절반은 밝은 심 1px)과 맞은 적 섬광.
+# 새 이펙트 전까지의 자리 표시다
+func _snipe(c: Vector2i, end: Vector2i, t: float, hits: Array) -> void:
+	if t < FX:
+		var k := t / FX
+		_pline(c, end, _ramp(["lime1", "lime2", "lime3"], k), 3 if k < 0.3 else (2 if k < 0.6 else 1))
+		if k < 0.5:
+			_pline(c, end, PX.lime0)
+	_sparks(hits, t)
 
 # 적인가(흔적의 hits에는 영웅·용병·구조물·적이 섞인다). 벽 오르기 배율은 적만 가졌다
 func _is_foe(x) -> bool:
@@ -931,7 +893,7 @@ func _charge(h, x, t: float) -> void:
 
 # 장판(I101, S168, 4.1s): 처음 본 때부터 ZONE_OPEN초에 펼쳐지고 마지막 ZONE_CLOSE초에 줄어든다. 판정 경계는 밝은 1px + 바깥 어두운 1px이고,
 # 같은 종류 장판끼리 겹친 곳은 빼서 바깥 테두리만 남는다. 장판은 모두 무늬 대신 재질이다(이그니스 4.1s, 실비아 fx-2, 세라피나·베스퍼 fx-3, 크로노스 fx-4, S168).
-# 떨어지는 중인 운석은 _fall, 화살비의 화살은 _rain, 절대 방어선 둘레는 _capsule이 그린다. 덫은 플레이어에게만 보인다
+# 떨어지는 중인 운석은 _fall, 절대 방어선 둘레는 _capsule, 바람의 길(실비아 R)은 _path_zone이 그린다
 func _zones() -> void:
 	_zone_t0 = _zone_t0.filter(func(e): return battle.zones.any(func(z): return is_same(z, e[0])))
 	var caps := false
@@ -939,6 +901,9 @@ func _zones() -> void:
 		if z.has("cells"):
 			_capsule(z)
 			caps = true
+			continue
+		if z.has("to"):
+			_path_zone(z, _zone_age(z))
 			continue
 		if z.get("delay", 0.0) > 0.0:
 			continue
@@ -963,12 +928,8 @@ func _zones() -> void:
 					_edge(c, r, PX.red, PX.soot, others)
 			"ignis_r":
 				_lava_zone(c, r, z.left, seed, others)
-			"sylvia_e":  # 덫: 엷은 연두 칠 + 가운데 덫 조각(1.2초마다 반짝)
-				_pnoise(c, r - 1, PX.lime3, 2, posmod(seed, 4))
-				_spr("trap", 1 if fmod(clock + _hf(seed, 1) * 1.2, 1.2) < 0.15 else 0, c)
-				_edge(c, r, PX.lime1, PX.soot, others)
-			"sylvia_r":  # 화살비: 연두 칠. 떨어지고 꽂히는 화살은 _rain이 그린다
-				_pnoise(c, r - 1, PX.lime3, 3, posmod(seed, 4))
+			"sylvia_w", "sylvia_e":  # 순풍 장판·바람의 렌즈(I215): 연두 성긴 칠과 판정 경계. 새 이펙트 전까지의 자리 표시다
+				_pnoise(c, r - 1, PX.lime3, 3 if z.src == "sylvia_w" else 2, posmod(seed, 4))
 				_edge(c, r, PX.lime1, PX.soot, others)
 			"seraphina_w":
 				_sanctum_zone(c, r, seed, others)
@@ -984,6 +945,24 @@ func _zones() -> void:
 				_edge(c, r, PX.cream, PX.soot, others)
 	if not caps:
 		_caps.clear()
+
+# 바람의 길(실비아 R, I215): 길 선분을 따라 연두 성긴 칠과 양옆 판정 경계(밝은 1px + 바깥 어두운 1px). 폭은 원 장판처럼 펼쳐지고 줄어든다.
+# 새 이펙트 전까지의 자리 표시다
+func _path_zone(z: Dictionary, age: float) -> void:
+	var a := _center(z.pos)
+	var b := _center(z.to)
+	var half: float = CELL * z.radius * _pow3(age / ZONE_OPEN) * clampf(z.left / ZONE_CLOSE, 0.0, 1.0)
+	var length := a.distance_to(b)
+	if half < 1.0 or length < 1.0:
+		return
+	var dir := (b - a) / length
+	var side := dir.orthogonal()
+	var seed := hash(str(z.pos) + z.src)
+	for i in int(length * half / 6.0):
+		_px(Vector2i((a + dir * _hf(seed, i) * length + side * (_hf(seed + 1, i) * 2.0 - 1.0) * half).floor()), PX.lime3)
+	for sgn in [-1.0, 1.0]:
+		_pline(Vector2i((a + side * (half + 1.0) * sgn).round()), Vector2i((b + side * (half + 1.0) * sgn).round()), PX.soot)
+		_pline(Vector2i((a + side * half * sgn).round()), Vector2i((b + side * half * sgn).round()), PX.lime1)
 
 # 그릴 장판 반지름(아트 px): 처음 본 뒤 age초 동안 ZONE_OPEN초에 걸쳐 빠르게 펼쳐지고, 남은 시간이 ZONE_CLOSE초 밑이면 줄어든다
 static func zone_r(z, age: float) -> int:
@@ -1158,7 +1137,7 @@ func status_marks(x, ally: bool) -> Array:
 				var a := clock * 3.0 + _hf(n, 6) * TAU
 				out.append({k = "ring", p = feet - Vector2i(0, int(tall * 0.45)), r = int(tall * 0.6) + 1, c = PX.gold if fmod(clock * 2.0, 1.0) < 0.5 else PX.cream})
 				out.append({k = "star", p = feet + Vector2i(int(cos(a) * tall * 0.6), -int(tall * 0.45) + int(sin(a) * tall * 0.3)), f = 0})
-	if ally and x.get("toggle"):  # 켜진 돌풍 갈래살(실비아 W, fx-2): 발 둘레를 도는 연두 바람 줄
+	if ally and x.get("toggle"):  # 켜진 토글 칸(S147, fx-2): 발 둘레를 도는 연두 바람 줄
 		out.append({k = "gust", p = feet + Vector2i(0, 1), f = int(clock * 12.0)})
 	for i in icons.size():  # 머리 위 기호는 별(기절) 위로 한 줄에
 		out.append({k = icons[i], p = head + Vector2i(int((i - (icons.size() - 1) / 2.0) * 8.0), -9), f = 0})
@@ -1825,7 +1804,7 @@ func _sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 	var at := _spot(x) + _flinch(x) + _slip(x) - Vector2(a.anchor[0], a.anchor[1]) - Vector2.ONE * (size - c) / 2.0
 	_region(UNITS, Rect2(at, Vector2(size, size)), Rect2(col * size, a[anim] + dir * size, size, size), tint)
 
-# 이 영웅이 가장 최근에 쓴 스킬의 흔적(Q·W·E·R·반격의 태세 터뜨림, S165 2026-10-29). 운석 착탄·덫 터짐은 쓴 때가 아니라서 뺀다. 없으면 null
+# 이 영웅이 가장 최근에 쓴 스킬의 흔적(Q·W·E·R·반격의 태세 터뜨림, S165 2026-10-29). 운석 착탄은 쓴 때가 아니라서 뺀다. 없으면 null
 func _cast_of(h):
 	var out = null
 	for c in battle.traces:

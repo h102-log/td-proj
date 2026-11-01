@@ -320,44 +320,6 @@ func test_gale_reaches_map_end_fast_with_core_and_sparks_on_hits():
 	v.free()
 	return why
 
-func test_trap_burst_one_ring_and_three_swirls_above_debris_below():
-	var v = Rec.new()
-	v._whirl(Vector2i(100, 100), 24.0, 0.05, 7, true)
-	var why := ""
-	if v.rings.size() != 1 or v.arcs.size() != 3:
-		why = "덫 터짐 위 층이 고리 %d · 호 %d다(1 · 3이어야 한다)" % [v.rings.size(), v.arcs.size()]
-	v.wipe()
-	v._whirl(Vector2i(100, 100), 24.0, 0.05, 7, false)
-	if why == "" and (not v.rings.is_empty() or not v.arcs.is_empty() or v.pxs.size() != 6):
-		why = "덫 터짐 아래 층이 %s다(부스러기 여섯뿐이어야 한다)" % [[v.rings.size(), v.arcs.size(), v.pxs.size()]]
-	v.free()
-	return why
-
-func test_arrow_rain_falls_above_bodies_and_sticks_below():
-	var v = Rec.new()
-	var z := {"src": "sylvia_r", "pos": Vector2(10, 10), "radius": 2.5, "left": 4.0}
-	v._zone_age(z)
-	var fell := 0
-	var stuck := 0
-	for i in 12:
-		v.clock = 0.5 + i * 0.1
-		v.wipe()
-		v._rain(z, true)
-		if v.spr.any(func(s): return s[0] == "stuck"):
-			v.free()
-			return "%.1f초 위 층에 꽂힌 화살이 있다" % (0.5 + i * 0.1)
-		fell += v.lines.size()
-		v.wipe()
-		v._rain(z, false)
-		if not v.lines.is_empty():
-			v.free()
-			return "%.1f초 아래 층에 떨어지는 화살이 있다" % (0.5 + i * 0.1)
-		stuck += v.spr.filter(func(s): return s[0] == "stuck").size()
-	v.free()
-	if fell == 0 or stuck == 0:
-		return "떨어진 화살 %d · 꽂힌 화살 %d다(둘 다 있어야 한다)" % [fell, stuck]
-	return ""
-
 func test_bulwark_capsule_is_union_of_cell_circles_with_two_tone_edge():
 	var offs := [Vector2i(0, 0), Vector2i(16, 0), Vector2i(32, 0)]
 	var m: Array = View.capsule_cells(offs, 32)
@@ -405,7 +367,7 @@ func test_aias_sylvia_casts_draw_their_own_pieces():
 	var e = b.spawn_enemy("basic", Vector2i(10, 12), {"speed": 0, "sight": 0, "damage": 0, "hp": 1e9})
 	var v = Rec.new()
 	v.battle = b
-	var want := [["q", a, Vector2(10, 12), "spark"], ["e", a, null, "aegis"], ["e", a, null, "burst"], ["e", s, Vector2(10, 12), "arc"]]
+	var want := [["q", a, Vector2(10, 12), "spark"], ["e", a, null, "aegis"], ["e", a, null, "burst"], ["r", s, null, "spark"]]
 	for w in want:
 		if w[3] == "burst":
 			a.braced = 30.0
@@ -429,7 +391,7 @@ func test_aias_sylvia_casts_draw_their_own_pieces():
 	v.free()
 	return ""
 
-func test_split_shot_on_shows_wind_at_feet_only_while_on():
+func test_toggle_on_shows_wind_at_feet_only_while_on():
 	var b = _pair()
 	var v = Rec.new()
 	v.battle = b
@@ -437,11 +399,38 @@ func test_split_shot_on_shows_wind_at_feet_only_while_on():
 	var feet: Vector2i = Vector2i((v._spot(s) + v._slip(s)).floor())
 	var why := ""
 	if v.status_marks(s, true).any(func(m): return m.k == "gust"):
-		why = "갈래살을 켜지 않았는데 바람 줄이 있다"
-	_ready_cast(b, s, "w")
+		why = "토글을 켜지 않았는데 바람 줄이 있다"
+	s.toggle = true  # 지금 영웅 데이터에는 토글 칸이 없어 켠 상태를 직접 둔다
 	var g: Array = v.status_marks(s, true).filter(func(m): return m.k == "gust")
 	if why == "" and (g.size() != 1 or absi(g[0].p.y - feet.y) > 2):
-		why = "켠 갈래살이 %s다(발밑 바람 줄 하나여야 한다)" % [g]
+		why = "켠 토글이 %s다(발밑 바람 줄 하나여야 한다)" % [g]
+	v.free()
+	return why
+
+# I215: 바람의 길은 양옆 경계(밝은 연두 1px + 바깥 어두운 1px)와 연두 점 칠, 저격 흔적은 실비아에서 표적까지 닿는 줄이다
+func test_wind_path_band_edges_and_snipe_line_reach_target():
+	var b = _pair()
+	var s = b.heroes[1]
+	var e = b.spawn_enemy("basic", Vector2i(24, 10), {"speed": 0, "sight": 0, "damage": 0, "hp": 1e9})
+	var v = Rec.new()
+	v.battle = b
+	if not _ready_cast(b, s, "r"):
+		v.free()
+		return "실비아 R을 못 썼다"
+	v.clock = 0.0
+	v._zones()  # 처음 본 때를 기억한다(아직 펼쳐지지 않아 그리지 않는다)
+	v.clock = 1.0
+	v.wipe()
+	v._zones()
+	var why := ""
+	var cols: Array = v.lines.map(func(l): return l[2])
+	if cols.count(View.PX.lime1) != 2 or cols.count(View.PX.soot) != 2 or v.pxs.is_empty() or v.pxs.any(func(p): return p[1] != View.PX.lime3):
+		why = "바람의 길이 선 %s · 점 %d개다(밝은 연두·어두운 경계 둘씩과 연두 점이어야 한다)" % [cols, v.pxs.size()]
+	v.wipe()
+	v._traces(true)
+	var tip := Vector2i(v._center(e.pos).floor())
+	if why == "" and not v.lines.any(func(l): return l[1] == tip):
+		why = "저격 줄 끝이 %s다(표적 %s에 닿아야 한다)" % [v.lines.map(func(l): return l[1]), tip]
 	v.free()
 	return why
 

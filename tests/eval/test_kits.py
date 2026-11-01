@@ -66,7 +66,7 @@ def test_EV272_seraphina_w_sanctum(gd):
     gd("kits", "EV272")
 
 
-def test_EV273_sylvia_stacks_ignore_armor(gd):
+def test_EV273_sylvia_true_aim_distance(gd):
     gd("kits", "EV273")
 
 
@@ -74,15 +74,15 @@ def test_EV274_sylvia_q_pierce(gd):
     gd("kits", "EV274")
 
 
-def test_EV275_sylvia_w_toggle(gd):
+def test_EV275_sylvia_w_tailwind_zone(gd):
     gd("kits", "EV275")
 
 
-def test_EV276_sylvia_e_trap_crit(gd):
+def test_EV276_sylvia_e_lens_archers(gd):
     gd("kits", "EV276")
 
 
-def test_EV277_sylvia_r_rain_execute(gd):
+def test_EV277_sylvia_r_snipe_wind_path(gd):
     gd("kits", "EV277")
 
 
@@ -166,7 +166,7 @@ def test_EV296_hero_roster(gd):
     gd("kits", "EV296")
 
 
-def test_EV297_sylvia_traps_unlimited(gd):
+def test_EV297_sylvia_r_target_boss_hidden(gd):
     gd("kits", "EV297")
 
 

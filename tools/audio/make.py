@@ -255,23 +255,29 @@ def s_piercing_gale():
     return mix(whoosh(n, 800, 5000, 0.5) * env(n, 0.005, 0.05, 0.8, 0.3) * 1.6, sfx_arrow() * 0.5)
 
 
-def s_split_shot():
-    a = sfx_arrow()
-    return mix(a, at(a * 0.8, 0.07), at(osc("tri", slide(900, 1300, n_of(0.1)), n_of(0.1)) * decay(n_of(0.1), 30) * 0.4, 0.0))
+def s_tailwind():
+    """순풍: 천천히 부풀며 오르는 바람과 위로 미끄러지는 삼각파"""
+    n = n_of(0.7)
+    gust = whoosh(n, 500, 2200, 0.7) * env(n, 0.25, 0.1, 0.7, 0.3) * 1.5
+    m = n_of(0.35)
+    lift = osc("tri", slide(600, 1200, m), m) * env(m, 0.05, 0.05, 0.6, 0.2) * 0.25
+    return mix(gust, at(lift, 0.15))
 
 
-def s_storm_trap():
-    clicks = ticks([0.0, 0.08], 1800, 120)
-    n = n_of(0.4)
-    return mix(clicks, at(whoosh(n, 1200, 600, 0.8) * env(n, 0.05, 0.05, 0.6, 0.2) * 0.8, 0.1))
+def s_wind_lens():
+    """렌즈: 도는 바람 위에 5도로 겹친 맑은 사인이 떨린다"""
+    n = n_of(0.6)
+    swirl = whoosh(n, 1500, 1100, 0.4) * env(n, 0.05, 0.1, 0.6, 0.3) * 0.9
+    shim = (osc("sine", hz("A5"), n) + osc("sine", hz("E6"), n) * 0.7) * (0.6 + 0.4 * np.sin(2 * np.pi * 9 * tt(n))) * env(n, 0.02, 0.1, 0.5, 0.3) * 0.25
+    return mix(swirl, shim)
 
 
-def s_arrow_rain():
-    r = np.random.default_rng(9)
-    n = n_of(1.1)
-    one = n_of(0.25)
-    shafts = [at(osc("sine", slide(r.uniform(2500, 3500), r.uniform(600, 900), one, 0.6), one) * decay(one, 10) * 0.3, r.uniform(0, 0.8), n) for _ in range(12)]
-    return mix(*shafts)[:n] + whoosh(n, 2000, 800, 0.8) * env(n, 0.2, 0.1, 0.6, 0.5) * 0.6
+def s_wind_path():
+    """대동맥: 화살 한 발과 날카로운 터짐, 길게 남는 내려가는 바람"""
+    crack = hp(noise(n_of(0.05)), 3000) * decay(n_of(0.05), 80) * 0.8
+    n = n_of(1.0)
+    trail = whoosh(n, 4000, 700, 0.5) * env(n, 0.01, 0.1, 0.7, 0.6) * 1.4
+    return mix(sfx_arrow() * 0.7, crack, at(trail, 0.02))
 
 
 def s_holy_beam():
@@ -384,7 +390,7 @@ def alert():
 
 SKILLS = {"shield_bash": s_shield_bash, "war_cry": s_war_cry, "brace": s_brace, "bulwark": s_bulwark,
           "fireball": s_fireball, "frost_ring": s_frost_ring, "black_hole": s_black_hole, "meteor_swarm": s_meteor_swarm,
-          "piercing_gale": s_piercing_gale, "split_shot": s_split_shot, "storm_trap": s_storm_trap, "arrow_rain": s_arrow_rain,
+          "piercing_gale": s_piercing_gale, "tailwind": s_tailwind, "wind_lens": s_wind_lens, "wind_path": s_wind_path,
           "holy_beam": s_holy_beam, "sanctum": s_sanctum, "guardian": s_guardian, "miracle": s_miracle,
           "corrosion": s_corrosion, "enfeeble": s_enfeeble, "soul_chain": s_soul_chain, "abyss": s_abyss,
           "overcharge": s_overcharge, "aging": s_aging, "time_loop": s_time_loop, "wind_up": s_wind_up}

@@ -145,15 +145,6 @@ func ev644():
 			main.hud._sell_now()
 		why = _after(main, audio, "판매", sell_it, "sell")
 	if why == "":
-		why = _after(main, audio, "실비아 W 켜기", func(): h.toggle = true, "skill_split_shot")
-	if why == "":
-		audio._process(1.0)
-		audio.played.clear()
-		h.toggle = false
-		_frame(main)
-		if "skill_split_shot" in audio.played:
-			why = "실비아 W를 끌 때도 skill_split_shot이 났다"
-	if why == "":
 		why = _after(main, audio, "웨이브 시작", func(): b.start_battle(), "wave_start")
 	if why == "":
 		why = _after(main, audio, "보스 출현", func(): b.spawn_enemy("boss", b.spawns[0]), "boss_appear")
