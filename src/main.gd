@@ -10,6 +10,8 @@ const Hud := preload("res://src/ui/hud.gd")
 const Menus := preload("res://src/ui/menus.gd")
 const Save := preload("res://src/sim/save.gd")
 const Settings := preload("res://src/settings.gd")
+const Audio := preload("res://src/audio.gd")
+const Sfx := preload("res://src/sfx.gd")
 const QUIET := ["hiring", "prep", "cleared"]  # 전투 단계가 아닌 판 단계. 이때만 저장한다(S181)
 # 도전의 라운드 순서(S63, I91): data/waves/의 웨이브 파일 이름. 1라운드는 시험 스테이지(S111, 슬라임 테마)다
 # ponytail: 2~6라운드는 5.1(WBS.md:129)까지 쓰는 임시값이다. 실제 라운드 수와 웨이브는 그때 정한다
@@ -23,6 +25,7 @@ var view
 var controls
 var hud
 var menus  # ESC 메뉴(S183)
+var sfx  # 효과음 연결(S269)
 var _seen := ""  # 마지막으로 본 판 단계. 바뀌면 저장하거나 지운다(S181, I157)
 
 func _ready() -> void:
@@ -51,6 +54,9 @@ func _ready() -> void:
 	menus = Menus.new()
 	menus.chosen.connect(_on_menu)
 	add_child(menus)
+	sfx = Sfx.new(view.battle, controls)
+	add_child(sfx)
+	Audio.of(get_tree()).follow(view.battle.state, false, true)  # 이어하기로 라운드 사이에 와도 징글은 없다(S271)
 	setup_window(get_window(), false)  # 창 크기·시작 모드는 진입 장면(menu.gd)이 정했다
 	_check()
 
@@ -71,7 +77,11 @@ static func map_viewport(w: Window) -> SubViewportContainer:
 func _process(delta: float) -> void:
 	view.battle.step(delta)
 	view.tick(delta)  # 화면 시계와 사건 목록(I170, I171). step과 같은 delta라 ESC 메뉴면 같이 멈춘다
-	get_viewport().get_camera_2d().rumble(view.events, delta)  # 화면 흔들림(S200): 방금 낸 사건 목록을 읽는다
+	var cam := get_viewport().get_camera_2d()
+	cam.rumble(view.events, delta)  # 화면 흔들림(S200): 방금 낸 사건 목록을 읽는다
+	sfx.hear(view.events, cam.steady().affine_inverse() * Hud.VIEW)  # 효과음(S269, S270): 위 띠 아래 보이는 맵 영역
+	var b = view.battle
+	Audio.of(get_tree()).follow(b.state, b.enemies.any(func(e): return e.alive and e.boss))  # 음악(S271)
 	view.queue_redraw()
 	_check()
 

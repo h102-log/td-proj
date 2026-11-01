@@ -73,6 +73,12 @@ msgstr "Volume"
 msgid "카메라 속도"
 msgstr "Camera Speed"
 
+msgid "음악"
+msgstr "Music"
+
+msgid "효과음"
+msgstr "Sound Effects"
+
 msgid "언어"
 msgstr "Language"
 

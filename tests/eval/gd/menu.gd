@@ -54,8 +54,8 @@ func _reachable(node: Node, page: String) -> String:
 			return "%s의 %s가 키보드 포커스를 받지 않는다" % [page, n.get("text") if n is BaseButton else n.get_class()]
 		if n is BaseButton and n.text == "":
 			return "%s에 글자 없는 버튼이 있다" % page
-		if n is Range and not n.get_parent().get_children().any(func(s): return s is Label and s.text in ["음량", "카메라 속도"]):
-			return "%s의 슬라이더 옆에 «음량»이나 «카메라 속도» 글자가 없다" % page
+		if n is Range and not n.get_parent().get_children().any(func(s): return s is Label and s.text in ["음량", "음악", "효과음", "카메라 속도"]):
+			return "%s의 슬라이더 옆에 «음량»·«음악»·«효과음»·«카메라 속도» 글자가 없다" % page
 	return ""
 
 # EV310 · S182: 메인 메뉴의 네 버튼, 이어하기 켜짐·포커스, 새 게임 확인 창
