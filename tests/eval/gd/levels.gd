@@ -85,7 +85,7 @@ func ev205():
 	ok = ok and xps.size() == want.size() and want.keys().all(func(k): return xps.get(k) == want[k])
 	return check(ok, "다음 레벨까지 %s · 비율 %s · 열리는 레벨 %s · 적 경험치 %s" % [r.steps, r.growth, r.unlock, xps])
 
-# EV206 · S126: 누적 경험치 20·50·100·170에 닿는 순간 Lv2·3·4·5가 되고, 그 뒤로는 Lv5다
+# EV206 · S126: 누적 경험치(레벨 표 LEVELS.steps의 누적값)에 닿는 순간 Lv2·3·4·5가 되고, 그 뒤로는 Lv5다
 func ev206():
 	var kb = _aias()
 	var b = kb[0]
@@ -97,8 +97,12 @@ func ev206():
 		if k.level != lv:
 			seen.append([k.xp, k.level])
 			lv = k.level
-	var want := [[20, 2], [50, 3], [100, 4], [170, 5]]
-	return check(seen == want and k.level == 5 and k.xp == 170, "레벨이 바뀐 순간 %s(%s여야 한다) · 끝 Lv%d 경험치 %d" % [seen, want, k.level, k.xp])
+	var want := []
+	var sum := 0
+	for i in b.LEVELS.steps.size():
+		sum += b.LEVELS.steps[i]
+		want.append([sum, i + 2])
+	return check(seen == want and k.level == want.size() + 1 and k.xp == sum, "레벨이 바뀐 순간 %s(%s여야 한다) · 끝 Lv%d 경험치 %d(%d여야 한다)" % [seen, want, k.level, k.xp, sum])
 
 # EV207 · I112: 레벨마다 최대 체력·공격력이 Lv1 값의 비율만큼 오르고, 체력도 오른 만큼 오른다. 스킬·오라 수치는 그대로다
 func ev207():

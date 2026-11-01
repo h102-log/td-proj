@@ -380,8 +380,8 @@ func ev427():
 	b.enemy_spawned.connect(func(e): cells.append(Vector2i(e.pos.round())))
 	b.start_battle()
 	clear_wave(b)
-	if cells.size() != 36:
-		return "1라운드 첫 웨이브에 적이 %d명 나왔다(36명이어야 한다)" % cells.size()
+	if cells.size() != plan.size():
+		return "1라운드 첫 웨이브에 적이 %d명 나왔다(계획 %d명)" % [cells.size(), plan.size()]
 	var xs := {}
 	for k in cells.size():
 		var s: Vector2i = plan[k][1]
