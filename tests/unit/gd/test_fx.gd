@@ -16,6 +16,9 @@ extends RefCounted
 #         보스 예고는 F24+ 빨강 두 겹 테와 차오르는 성긴 칠, 발동 채움은 원판이고,
 #         조준 미리보기(사거리·범위·부채꼴·방향·설 칸)는 아트 px 도우미로 그린다(덮개 위 층 _cv).
 #   I101 2026-10-28 셋째 변경. 명령 표식·홀드 기준 반경·대포알 고리도 아트 px 고리라 맵에 화면 px 원·호(draw_arc)가 없다.
+#   I215·S153 2026-11-01 변경. 실비아 바람: 순풍 장판은 실비아 → 장판 쪽으로 흐르는 줄, 렌즈는 실비아 → 지점에 수직인 관문(양옆 경계·양 끝 기둥),
+#         바람의 길은 두 가닥 나선, 저격은 표적 괄호(SNIPE_MARK초)와 화면 밖 꺾쇠, 렌즈를 지난 화살은 굵은 촉과 막 지날 때 번쩍 고리,
+#         순풍에서 온 공격 속도는 발 둘레 바람 줄 조각(다른 공격 속도가 함께면 사각형도).
 
 const View := preload("res://src/ui/battle_view.gd")
 const Battle := preload("res://src/sim/battle.gd")
@@ -31,6 +34,9 @@ class Rec extends "res://src/ui/battle_view.gd":
 	var noise := []  # 성긴 칠 [반지름, 밀도]
 	var discs := []  # 원판 [가운데, 반지름, 색]
 	var edges := []  # 판정 경계 [밝은 색, 어두운 색]
+	var shown := Rect2()  # 화면에 보이는 맵 영역으로 칠 사각형(트리 밖이라 직접 준다)
+	func shown_rect() -> Rect2:
+		return shown
 	func _spr(name: String, frame: int, at: Vector2i, bottom := false) -> void:
 		spr.append([name, frame, at])
 	func _pring(c: Vector2i, r: int, th: int, col: Color, dash := 0, spin := 0.0) -> void:
@@ -407,8 +413,12 @@ func test_toggle_on_shows_wind_at_feet_only_while_on():
 	v.free()
 	return why
 
-# I215: 바람의 길은 양옆 경계(밝은 연두 1px + 바깥 어두운 1px)와 연두 점 칠, 저격 흔적은 실비아에서 표적까지 닿는 줄이다
-func test_wind_path_band_edges_and_snipe_line_reach_target():
+func _len(l: Array) -> float:
+	return Vector2(l[1] - l[0]).length()
+
+# I215 2026-11-01 변경: 바람의 길은 길 끝까지 닿는 양옆 경계(밝은 연두 1px + 바깥 어두운 1px), 짧은 마디로 이은 두 가닥 나선(앞 밝은 연두·뒤 어두운 연두),
+# 연두 점 칠이다. 저격 흔적은 실비아에서 표적까지 닿는 줄이고, 표적 둘레 괄호(짧은 줄 여덟)가 SNIPE_MARK초까지만 남는다
+func test_wind_path_helix_edges_and_snipe_brackets():
 	var b = _pair()
 	var s = b.heroes[1]
 	var e = b.spawn_enemy("basic", Vector2i(24, 10), {"speed": 0, "sight": 0, "damage": 0, "hp": 1e9})
@@ -417,20 +427,187 @@ func test_wind_path_band_edges_and_snipe_line_reach_target():
 	if not _ready_cast(b, s, "r"):
 		v.free()
 		return "실비아 R을 못 썼다"
+	var c0 := Vector2i(v._center(s.pos).floor())
+	var tip := Vector2i(v._center(e.pos).floor())
+	var length := Vector2(tip - c0).length()
 	v.clock = 0.0
 	v._zones()  # 처음 본 때를 기억한다(아직 펼쳐지지 않아 그리지 않는다)
 	v.clock = 1.0
 	v.wipe()
 	v._zones()
 	var why := ""
-	var cols: Array = v.lines.map(func(l): return l[2])
-	if cols.count(View.PX.lime1) != 2 or cols.count(View.PX.soot) != 2 or v.pxs.is_empty() or v.pxs.any(func(p): return p[1] != View.PX.lime3):
-		why = "바람의 길이 선 %s · 점 %d개다(밝은 연두·어두운 경계 둘씩과 연두 점이어야 한다)" % [cols, v.pxs.size()]
+	var long: Array = v.lines.filter(func(l): return _len(l) > length - 2.0).map(func(l): return l[2])
+	var helix: Array = v.lines.filter(func(l): return _len(l) < 8.0).map(func(l): return l[2])
+	if long.count(View.PX.lime1) != 2 or long.count(View.PX.soot) != 2:
+		why = "바람의 길 긴 줄이 %s다(밝은 연두·어두운 경계 둘씩이어야 한다)" % [long]
+	elif helix.size() < 2 * int(length / 3.0) - 2 or not helix.has(View.PX.lime1) or not helix.has(View.PX.lime3):
+		why = "나선 마디가 %d개 · 색 %s다(두 가닥 %d개 넘게, 밝은·어두운 연두 둘 다)" % [helix.size(), helix.slice(0, 6), 2 * int(length / 3.0) - 2]
+	elif v.pxs.is_empty() or v.pxs.any(func(p): return p[1] != View.PX.lime3):
+		why = "바람의 길 칠이 %d점이다(연두 점이어야 한다)" % v.pxs.size()
+	if why == "":
+		why = _off_palette(_colors(v))
+	if why == "":
+		v.wipe()
+		v._traces(true)
+		if not v.lines.any(func(l): return l[1] == tip):
+			why = "저격 줄 끝이 %s다(표적 %s에 닿아야 한다)" % [v.lines.map(func(l): return l[1]), tip]
+	if why == "":
+		v.wipe()
+		v._snipe(c0, tip, 0.45, [])
+		var marks: Array = v.lines.filter(func(l): return _len(l) <= 3.5 and Vector2(l[0] - tip).length() < 16.0)
+		if marks.size() != 8 or v.lines.any(func(l): return _len(l) > 20.0):
+			why = "0.45초 저격 흔적이 괄호 줄 %d개 · 긴 줄 %d개다(괄호 여덟, 긴 줄 없음)" % [marks.size(), v.lines.filter(func(l): return _len(l) > 20.0).size()]
+	if why == "":
+		v.wipe()
+		v._snipe(c0, tip, View.SNIPE_MARK + 0.05, [])
+		if not v.lines.is_empty():
+			why = "SNIPE_MARK초 뒤에도 저격 흔적 줄 %d개가 남았다" % v.lines.size()
+	v.free()
+	return why
+
+# I215 2026-11-01 변경: 순풍 장판은 밀도 1 연두 칠 위로 실비아 → 장판 쪽으로 흐르는 바람 줄(머리 밝음)과 판정 경계(밝은 연두 + 어두운)다
+func test_tailwind_streaks_run_from_sylvia_toward_zone():
+	var b = _pair()
+	var s = b.heroes[1]
+	b.zones = [{"src": "sylvia_w", "owner": s, "pos": Vector2(14, 16), "radius": 2.0, "left": 3.0}]
+	var v = Rec.new()
+	v.battle = b
+	v._zones()
+	v.clock = 1.0
 	v.wipe()
-	v._traces(true)
-	var tip := Vector2i(v._center(e.pos).floor())
-	if why == "" and not v.lines.any(func(l): return l[1] == tip):
-		why = "저격 줄 끝이 %s다(표적 %s에 닿아야 한다)" % [v.lines.map(func(l): return l[1]), tip]
+	v._zones()
+	var why := ""
+	var runs: Array = v.lines.filter(func(l): return _len(l) >= 2.0)
+	if runs.size() < 6 or runs.any(func(l): return absf(Vector2(l[1] - l[0]).normalized().cross(Vector2.DOWN)) > 0.2):
+		why = "바람 줄 %d개가 실비아 → 장판(아래) 쪽이 아니다: %s" % [runs.size(), runs.slice(0, 4).map(func(l): return l[1] - l[0])]
+	elif not runs.any(func(l): return l[2] == View.PX.lime0):
+		why = "바람 줄 머리(밝은 연두)가 없다"
+	elif v.edges != [[View.PX.lime1, View.PX.soot]] or v.noise.size() != 1 or v.noise[0][1] != 1:
+		why = "경계 %s · 칠 %s다(밝은 연두·어두운 경계 하나, 밀도 1 칠 하나)" % [v.edges, v.noise]
+	if why == "":
+		why = _off_palette(_colors(v))
+	v.free()
+	return why
+
+# S153·I215 2026-11-01 변경: 렌즈는 지점을 가운데로 실비아 → 지점에 수직인 길이 length 관문이다. 원 판정 경계는 없고,
+# 관문 길이만큼 긴 양옆 경계 둘씩(밝은 연두 + 어두운)과 양 끝 바람 기둥 둘(어두운 테 5×9)을 그린다
+func test_lens_is_gate_with_side_edges_and_posts():
+	var b = _pair()
+	var s = b.heroes[1]
+	if not _ready_cast(b, s, "e", Vector2(14, 14)):
+		return "실비아 E를 못 썼다"
+	var z = b.zones.filter(func(x): return x.src == "sylvia_e")[0]
+	var why := ""
+	if not z.has("to") or absf(z.pos.distance_to(z.to) - s.e.length) > 0.01 or absf(z.to.y - z.pos.y) > 0.01 or absf((z.pos.x + z.to.x) / 2.0 - 14.0) > 0.01:
+		why = "렌즈가 %s → %s다((14,14)를 가운데로 동서 길이 %s 관문이어야 한다)" % [z.pos, z.get("to"), s.e.length]
+	var v = Rec.new()
+	v.battle = b
+	v._zones()
+	v.clock = 1.0
+	v.wipe()
+	v._zones()
+	var long: Array = v.lines.filter(func(l): return _len(l) > View.CELL * s.e.length - 2.0)
+	var posts: Array = v.pxs.filter(func(p): return p[1] == View.PX.soot and p[2] == Vector2i(5, 9))
+	if why == "" and (long.map(func(l): return l[2]).count(View.PX.lime0) != 2 or long.map(func(l): return l[2]).count(View.PX.soot) != 2 or long.any(func(l): return l[1].y != l[0].y)):
+		why = "관문 긴 줄이 %s다(동서로 밝은 연두·어두운 둘씩)" % [long.map(func(l): return [l[0], l[1], l[2].to_html(false)])]
+	elif why == "" and (posts.size() != 2 or not v.edges.is_empty() or not v.rings.is_empty()):
+		why = "기둥 %d개 · 원 경계 %d · 고리 %d다(기둥 둘, 원 없음)" % [posts.size(), v.edges.size(), v.rings.size()]
+	if why == "":
+		why = _off_palette(_colors(v))
+	v.free()
+	return why
+
+# 쏜 쪽·지난 바람만 가진 가짜 화살(_arrow_wind가 읽는 것만)
+class Shot:
+	var src
+	var passed := []
+	var aim := 0.0
+	var lensed := false
+
+# I215 2026-11-01 변경: 렌즈를 지난 화살은 촉이 2px 굵기 연두이고, 관문 경계에서 10px 안이면 촉 둘레 번쩍 고리(반지름 4)가 난다.
+# 바람의 길을 지난 화살은 연두 꼬리를 달되, 쏜 자리 가까이에서는 꼬리를 내지 않는다
+func test_lensed_arrow_bright_head_and_flash_near_gate():
+	var b = _pair()
+	var a = b.heroes[0]
+	var v = Rec.new()
+	v.battle = b
+	var gate := {"src": "sylvia_e", "pos": Vector2(12, 14), "to": Vector2(16, 14), "radius": 0.25, "amp": 0.6}
+	var m := Shot.new()
+	m.src = a
+	m.passed = [gate]
+	m.lensed = true
+	var why := ""
+	v._arrow_wind(m, v._center(Vector2(14, 14)) + Vector2(0, 8), Vector2.DOWN)
+	if v.lines.filter(func(l): return l[3] == 2).size() != 2 or not v.rings.any(func(r): return r[1] == 4):
+		why = "관문을 막 지난 렌즈 화살이 굵은 줄 %d · 고리 %s다(굵은 줄 둘, 반지름 4 고리)" % [v.lines.filter(func(l): return l[3] == 2).size(), v.rings]
+	v.wipe()
+	v._arrow_wind(m, v._center(Vector2(14, 19)), Vector2.DOWN)
+	if why == "" and (v.lines.filter(func(l): return l[3] == 2).size() != 2 or not v.rings.is_empty()):
+		why = "관문에서 먼 렌즈 화살에 고리 %s가 있다" % [v.rings]
+	m.lensed = false
+	m.passed = [{"src": "sylvia_r"}]
+	v.wipe()
+	v._arrow_wind(m, v._muzzle(a) + Vector2(40, 0), Vector2.RIGHT)
+	if why == "" and (v.lines.size() != 2 or v.lines.any(func(l): return l[3] != 1 or l[0].x < int(v._muzzle(a).x))):
+		why = "바람의 길을 지난 화살 꼬리가 %s다(가는 줄 둘)" % [v.lines]
+	v.wipe()
+	v._arrow_wind(m, v._muzzle(a) + Vector2(5, 0), Vector2.RIGHT)
+	if why == "" and not v.lines.is_empty():
+		why = "쏜 자리 5px 앞 화살에 꼬리 %s가 있다" % [v.lines]
+	v.free()
+	return why
+
+# I215 2026-11-01 변경: 순풍(sylvia_w)에서 온 공격 속도는 발 둘레 바람 줄 조각(gust) 하나이고 금·주황 사각형이 없다. 다른 공격 속도가 함께면 사각형도 그린다
+func test_tailwind_haste_is_wind_at_feet_and_other_haste_keeps_squares():
+	var b = _pair()
+	var a = b.heroes[0]
+	var v = Rec.new()
+	v.battle = b
+	var feet: Vector2i = Vector2i((v._spot(a) + v._slip(a)).floor())
+	b._fx(a, "sylvia_w", {"haste": 0.3}, 3.0)
+	var sq := func(ms: Array): return ms.filter(func(x): return x.k == "px" and (x.c == View.PX.gold or x.c == View.PX.orange)).size()
+	var marks: Array = v.status_marks(a, true)
+	var gust: Array = marks.filter(func(x): return x.k == "gust")
+	var why := ""
+	if gust.size() != 1 or absi(gust[0].p.y - feet.y) > 2 or sq.call(marks) != 0:
+		why = "순풍 공격 속도가 바람 줄 %s · 사각형 %d다(발밑 바람 줄 하나, 사각형 없음)" % [gust.map(func(x): return x.p), sq.call(marks)]
+	b._fx(a, "chronos_q", {"haste": 0.2}, 3.0)
+	marks = v.status_marks(a, true)
+	if why == "" and (marks.filter(func(x): return x.k == "gust").size() != 1 or sq.call(marks) != 3):
+		why = "순풍 + 다른 공격 속도가 바람 줄 %d · 사각형 %d다(하나 · 셋)" % [marks.filter(func(x): return x.k == "gust").size(), sq.call(marks)]
+	v.free()
+	return why
+
+# I215 2026-11-01 변경: 저격 표적이 화면 밖이면 SNIPE_MARK초 동안 화면 가장자리(SNIPE_EDGE 안쪽)에 표적 쪽 꺾쇠 둘(어두운 3px 테 + 연두)을 그린다.
+# 표적이 화면 안이거나 시간이 지나면 그리지 않는다
+func test_snipe_pointer_only_while_target_off_screen():
+	var b = _pair()
+	var s = b.heroes[1]
+	var e = b.spawn_enemy("basic", Vector2i(24, 10), {"speed": 0, "sight": 0, "damage": 0, "hp": 1e9})
+	var v = Rec.new()
+	v.battle = b
+	if not _ready_cast(b, s, "r"):
+		v.free()
+		return "실비아 R을 못 썼다"
+	var c0: Vector2 = v._center(s.pos)
+	v.shown = Rect2(c0 - Vector2(80, 80), Vector2(160, 160))  # 표적(오른쪽 160px)은 밖
+	v._snipe_pointers()
+	var why := ""
+	var thick: Array = v.lines.filter(func(l): return l[3] == 3 and l[2] == View.PX.soot)
+	var right: float = v.shown.end.x - View.SNIPE_EDGE
+	if thick.size() != 4 or v.lines.size() != 8 or v.lines.any(func(l): return l[1].x > right + 0.5 or l[1].x < right - 7.0):
+		why = "화면 밖 표적 꺾쇠가 줄 %d(테 %d)개 · 끝 %s다(줄 여덟·테 넷, 오른쪽 가장자리 %s 안쪽)" % [v.lines.size(), thick.size(), v.lines.map(func(l): return l[1]), right]
+	v.wipe()
+	v.shown = Rect2(c0 - Vector2(80, 80), Vector2(400, 160))
+	v._snipe_pointers()
+	if why == "" and not v.lines.is_empty():
+		why = "표적이 화면 안인데 꺾쇠 %d줄을 그렸다" % v.lines.size()
+	v.wipe()
+	v.shown = Rect2(c0 - Vector2(80, 80), Vector2(160, 160))
+	b.traces[0].age = View.SNIPE_MARK + 0.01
+	v._snipe_pointers()
+	if why == "" and not v.lines.is_empty():
+		why = "SNIPE_MARK초 뒤에도 꺾쇠 %d줄이 남았다" % v.lines.size()
 	v.free()
 	return why
 
@@ -848,7 +1025,7 @@ func test_aim_preview_draws_with_art_px_helpers():
 		why = "아이아스 Q 부채꼴이 호 %d · 줄 %d다(호 하나 · 양옆 줄 둘이어야 한다)" % [v.arcs.size(), v.lines.size()]
 	var cases := [[a, "r", "설 칸 세 칸의 네 변", func(): return v.pxs.size() == 12],
 		[s, "q", "방향 줄 하나", func(): return v.lines.size() == 1 and v.lines[0][0] == Vector2i(v._center(s.pos).floor())],
-		[s, "e", "사거리 고리와 범위 고리", func(): return v.rings.size() == 2]]
+		[s, "e", "사거리 고리와 영웅 → 지점에 수직인 관문 줄", func(): return v.rings.size() == 1 and v.lines.size() == 1 and absf(Vector2(v.lines[0][1] - v.lines[0][0]).normalized().dot(Vector2(-1, 1).normalized())) < 0.1]]
 	for k in cases:
 		if why != "":
 			break

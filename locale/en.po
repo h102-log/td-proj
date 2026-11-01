@@ -1136,8 +1136,8 @@ msgstr "%s cells, %ss: %s physical/s to foes"
 msgid "지나는 투사체 ×%s, 쏜 아군 공격 속도 +%s %s초"
 msgstr "Passing projectiles ×%s, shooter attack speed +%s for %ss"
 
-msgid "%s칸 렌즈 %s초"
-msgstr "%s-cell lens for %ss"
+msgid "길이 %s칸 관문 %s초"
+msgstr "%s-cell gate for %ss"
 
 msgid "지나는 아군 화살 피해 +%s(화살마다 한 번)"
 msgstr "Passing ally arrows deal +%s damage (once per arrow)"

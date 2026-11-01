@@ -86,6 +86,10 @@ def test_EV277_sylvia_r_snipe_wind_path(gd):
     gd("kits", "EV277")
 
 
+def test_EV668_sylvia_e_lens_is_gate_line(gd):
+    gd("kits", "EV668")
+
+
 def test_EV516_boss_flag_sylvia_r(gd):
     gd("kits", "EV516")
 

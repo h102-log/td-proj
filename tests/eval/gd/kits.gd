@@ -1016,3 +1016,30 @@ func ev600():
 	var inside := run(b, 4.0, func(): return walker.pos.distance_to(spot) <= 1.0)
 	return check(hit_now and inside and b.effect(walker, "weaken") == null,
 		"쓴 순간 과녁 걸림 %s · 걸어 들어옴 %s · 들어온 적 걸림 %s" % [hit_now, inside, b.effect(walker, "weaken") != null])
+
+# EV668 · S153: E 바람의 렌즈는 지점을 가운데로 실비아 → 지점 방향에 수직인 길이 length 관문(선분)이다. 실비아(8,13)가 (8,8)에 깔면 관문은 동서로 놓인다.
+# 판마다 궁수 하나가 과녁을 한 번 쏜다: 관문을 세로로 가로지르는 (9,4) → (9,9) 화살은 궁수 공격력 × (1 + amp),
+# 관문 끝 너머 열을 세로로 지나는 화살과 관문과 나란히 1칸 떨어져 (3,7) → (8,7)로 지나는 화살은 궁수 공격력 그대로다
+func ev668():
+	var got := []
+	var want := []
+	var amp := 0.0
+	for i in 3:
+		var b = _kit([["sylvia", Vector2i(8, 13)]], {"merc_cap": 1})
+		var s = b.hero
+		_quiet(b)
+		var past := 8 + int(ceil(s.e.get("length", 2.0) / 2.0)) + 1  # 관문 끝 너머 열
+		var lanes := [[Vector2i(9, 4), Vector2i(9, 9)], [Vector2i(past, 4), Vector2i(past, 9)], [Vector2i(3, 7), Vector2i(8, 7)]]
+		var a = b.place_merc("archer", lanes[i][0], {"attack_gap": 100.0})
+		var e = _dummy(b, lanes[i][1])
+		_start(b)
+		if not b.cast(s, "e", Vector2(8, 8)):
+			return check(false, "실비아가 (8,8)에 렌즈를 깔지 못했다")
+		run(b, 1.0)
+		amp = s.e.amp
+		got.append(_lost(e, BIG))
+		want.append(a.damage * (1.0 + amp) if i == 0 else a.damage)
+	var ok := true
+	for i in 3:
+		ok = ok and _near_f(got[i], want[i], 0.001)
+	return check(ok, "[관문을 가로지름, 관문 끝 너머, 관문과 나란히 1칸] 궁수 화살 피해 %s(기대 %s)" % [got, want])

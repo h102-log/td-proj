@@ -1603,7 +1603,7 @@ func _zone(src: String, h: Unit, at: Vector2, radius: float, secs: float, extra 
 func _inside(z: Dictionary, p: Vector2) -> bool:
 	if z.has("cells"):  # 에너지 성벽 둘레(S151): 성벽 칸 가운데 하나에서 radius 안
 		return z.cells.any(func(c): return p.distance_to(Vector2(c)) <= z.radius)
-	if z.has("to"):  # 바람의 길(실비아 R, I214): 선분 pos → to에서 radius(폭의 절반) 안
+	if z.has("to"):  # 바람의 길(실비아 R, I214)·렌즈 관문(실비아 E, S153): 선분 pos → to에서 radius(폭의 절반) 안
 		return Geometry2D.get_closest_point_to_segment(p, z.pos, z.to).distance_to(p) <= z.radius
 	return p.distance_to(z.pos) <= z.radius
 
@@ -1789,18 +1789,22 @@ func _aim_ignore(h: Unit, t: float) -> float:
 	return lerpf(h.passive.ignore, h.passive.ignore_max, t)
 
 # Q 관통의 바람살: 지점 쪽 일직선(맵 끝까지)의 모든 적을 가까운 차례로 꿰뚫는다. 피해는 공격력 × ratio에 그 적 거리의 정조준(I213)을 곱하고, 꿰뚫을 때마다 준다.
-# 렌즈 꿰기(장궁 +9, S260): 줄 위 자기 렌즈 가운데 가장 가까운 것보다 먼 적은 × (1 + 렌즈 amp)
+# 렌즈 꿰기(장궁 +9, S260): 줄이 자기 렌즈 관문을 가로지르는 자리 가운데 가장 가까운 곳보다 먼 적은 × (1 + 렌즈 amp)(S153 2026-11-01 변경)
 func _cast_piercing_gale(h: Unit, sk: Dictionary, aim, _grow: float) -> void:
 	var dir := _toward(h, aim)
 	var hit := enemies.filter(func(e):
 		return (e.pos - h.pos).dot(dir) >= 0.0 and absf((e.pos - h.pos).cross(dir)) <= sk.width / 2.0 + e.radius)
 	hit.sort_custom(func(a, b): return (a.pos - h.pos).dot(dir) < (b.pos - h.pos).dot(dir))
-	var lens := INF  # 줄 위 가장 가까운 자기 렌즈 가운데까지(줄 방향 거리)
+	var lens := INF  # 줄이 가장 가까운 자기 렌즈 관문을 가로지르는 자리까지(줄 방향 거리)
 	var amp := 0.0
 	if sk.get("lens"):
+		var far := h.pos + dir * float(size.x + size.y)  # 맵 끝 너머
 		for z in zones:
-			var along: float = (z.pos - h.pos).dot(dir)
-			if z.src == "sylvia_e" and z.owner == h and along >= 0.0 and absf((z.pos - h.pos).cross(dir)) <= z.radius + sk.width / 2.0 and along < lens:
+			if z.src != "sylvia_e" or z.owner != h:
+				continue
+			var ends := Geometry2D.get_closest_points_between_segments(h.pos, far, z.pos, z.to)
+			var along: float = (ends[0] - h.pos).dot(dir)
+			if ends[0].distance_to(ends[1]) <= z.radius + sk.width / 2.0 and along < lens:
 				lens = along
 				amp = z.amp
 	var hurt: float = h.damage * _might(h) * sk.ratio
@@ -1814,9 +1818,16 @@ func _cast_piercing_gale(h: Unit, sk: Dictionary, aim, _grow: float) -> void:
 func _cast_tailwind(h: Unit, sk: Dictionary, aim, grow: float) -> void:
 	_zone("sylvia_w", h, aim, sk.radius * grow, sk.time, {"dps": sk.dps, "speed": sk.speed, "haste": sk.haste, "haste_time": sk.haste_time})
 
-# E 바람의 렌즈: 지점에 렌즈. 지나는 아군 화살은 피해가 늘어난다(_wind, I212)
+# E 바람의 렌즈: 지점을 가운데로 실비아 → 지점에 수직인 관문(선분 장판 pos → to, radius = 폭의 절반, S153 2026-11-01 변경).
+# 지나는 아군 화살은 피해가 늘어난다(_wind, I212)
 func _cast_wind_lens(h: Unit, sk: Dictionary, aim, grow: float) -> void:
-	_zone("sylvia_e", h, aim, sk.radius * grow, sk.time, {"amp": sk.amp})
+	var ends := lens_gate(h, aim, sk.length * grow)
+	_zone("sylvia_e", h, ends[0], sk.width / 2.0, sk.time, {"amp": sk.amp, "to": ends[1]})
+
+# 렌즈 관문의 두 끝(S153): 지점 at을 가운데로 h → at 방향에 수직인 길이 length 선분. at이 h 자리면 동서다(_toward가 아래를 준다). 조준 미리보기도 쓴다
+func lens_gate(h, at: Vector2, length: float) -> Array:
+	var side := _toward(h, at).orthogonal() * length / 2.0
+	return [at - side, at + side]
 
 # R 폭풍의 대동맥(I214): 표적을 정조준 최대로 저격하고, 실비아 자리에서 표적 자리까지 바람의 길(선분 장판)을 남긴다.
 # 길은 지나는 화살에 정조준 최대를 준다(_wind). 흔적의 aim은 표적 자리다(화면이 줄을 긋는다)
@@ -1836,7 +1847,7 @@ func _snipe_target(h: Unit):
 	pool.sort_custom(func(a, b): return a.pos.distance_to(h.pos) > b.pos.distance_to(h.pos))
 	return pool[0] if not pool.is_empty() else null
 
-# 실비아의 바람을 지나는 투사체(I212): 이 step에 지난 선분 a → m.pos가 순풍 장판·렌즈의 반경이나 바람의 길(선분에서 폭의 절반) 안에 들면
+# 실비아의 바람을 지나는 투사체(I212): 이 step에 지난 선분 a → m.pos가 순풍 장판의 반경이나 렌즈 관문·바람의 길(선분에서 폭의 절반) 안에 들면
 # 그 장판을 한 번 지난다. 순풍은 모든 투사체, 렌즈·길은 화살만이다
 func _wind(m: Missile, a: Vector2) -> void:
 	for z in zones:

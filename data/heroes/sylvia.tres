@@ -46,7 +46,8 @@ e = {
 "id": "wind_lens",
 "aim": "point",
 "gap": 14.0,
-"radius": 1.0,
+"length": 4.0,
+"width": 0.5,
 "time": 5.0,
 "amp": 0.6
 }
