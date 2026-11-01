@@ -63,10 +63,12 @@ const HudMinimap := preload("res://src/ui/hud_minimap.gd")
 const HudToast := preload("res://src/ui/hud_toast.gd")
 const HudAlert := preload("res://src/ui/hud_alert.gd")
 const HudEvac := preload("res://src/ui/hud_evac.gd")
+const HudShop := preload("res://src/ui/hud_shop.gd")
 const Hints := preload("res://src/ui/hints.gd")
 const BattleView := preload("res://src/ui/battle_view.gd")
 const SkillCell := preload("res://src/ui/skill_cell.gd")
 const Battle := preload("res://src/sim/battle.gd")
+const Audio := preload("res://src/audio.gd")
 const BAR := {  # 위 띠 칸 자리(S185, 임시값)
 	"status": Rect2(4, 2, 96, 24), "mission": Rect2(104, 2, 24, 24), "engineer": Rect2(130, 2, 20, 24),
 	"hero0": Rect2(156, 2, 104, 24), "hero1": Rect2(264, 2, 104, 24), "hero2": Rect2(372, 2, 104, 24),
@@ -115,6 +117,7 @@ const VIEW := Rect2(0, 28, 640, 332)  # 위 띠 아래 맵이 보이는 화면. 
 const EDGE_X := Vector2(68, 500)  # 아래 가장자리 표식이 놓이는 x 범위(S188 임시값). y는 344. 왼끝은 미니맵(S209) 오른쪽
 const DOUBLE := 0.4  # 초상·F키를 이 초 안에 두 번 누르면 카메라가 그 영웅에게(I165 임시값)
 const LOW := 0.33  # 체력이 이 비율 밑이면 초상이 빨갛게 맥박친다(I129)
+const GEAR_DIM := 0.35  # 가방에 없는 장비 아이콘의 불투명도(I209). 흐린 칸은 건설 격자(hud_build)와 같은 값
 
 signal menu_pressed  # 메뉴 칸(S185). main이 ESC 메뉴를 연다
 
@@ -133,6 +136,7 @@ var grid  # 건설 격자·정보 칸(S186)
 var select  # 선택 패널(S206). 건설 격자 바로 왼쪽
 var minimap  # 미니맵(S209). 왼쪽 아래 구석
 var evac  # 대피령 버튼(S230). 미니맵 바로 위
+var shop  # «영입» 버튼(S272, I207). 대피령 버튼 바로 위
 var hp_button: Button  # 체력바 버튼(S276). 대피령 버튼 오른쪽, 누르면 V 키와 같다
 var view  # 맵 그림(BattleView). 미니맵이 구운 바닥을 빌린다. main이 넣는다
 var _hp: Label
@@ -188,6 +192,9 @@ var _heal := []  # 교회 팝업: 출전 영웅마다 치료 버튼(S137, I140)
 var window := PanelContainer.new()  # 결과·영입 창(S117). 영입·라운드 사이는 [16,34] 폭 608, 결과는 [170,110,300,110](I136)
 var dim := ColorRect.new()  # 창이 떠 있으면 띠 아래 맵을 덮는다(S117)
 var _result_label := Label.new()
+var _loot := HBoxContainer.new()  # 라운드 승리 창의 전리품 줄(S252): 장비 큰 아이콘(S274)과 글
+var _loot_pic: TextureRect
+var _loot_text := Label.new()
 var _next: Button  # 결과 창의 «1라운드 시작»·«다음 라운드»·«새 도전»
 var _hire := VBoxContainer.new()  # 결과 창 안의 영입 칸
 var _hire_info := Label.new()
@@ -204,7 +211,7 @@ var _tabs := HBoxContainer.new()  # 라운드 사이 창 머리의 «영입»·�
 var _gear_tab := false  # 장비 칸을 보는 중. 창이 새로 뜨면 영입 칸이다
 var _gear := VBoxContainer.new()  # 장비 칸(S248)
 var _gear_info := Label.new()
-var _gear_rows := []  # 장비마다 [영웅 종류, 줄 글, 제작·강화 버튼, 장착·해제 버튼]
+var _gear_rows := []  # 장비마다 [영웅 종류, 줄 글, 제작·강화 버튼, 장착·해제 버튼, 줄 머리 아이콘(S274)]
 var _seen := ""  # 마지막으로 본 판 단계. 바뀌었을 때 결과 창이 떠 있으면 포커스를 준다
 var _wait := 0.0  # 결과 창이 뜨기까지 남은 시간(초, S117). 트리가 멈추는 ESC 메뉴 동안에는 줄지 않는다
 var tags := []  # 고른 영웅·용병의 상황 태그 [A 공격 이동, S 정지, H 홀드](I139)
@@ -266,6 +273,8 @@ func _ready() -> void:
 		row.lv.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		row.lv.position = Vector2(12, 16)
 		row.lv.size = Vector2(11, 8)
+		row.gear = _pic(face, null, Vector2(8, 8))  # 낀 장비 작은 아이콘(S274): 초상 왼쪽 아래 귀퉁이
+		row.gear.position = Vector2(1, 15)
 		tip.add(face, func(): return _hero_tip(i))
 		portraits.append(face)
 		var cells_of := {}
@@ -357,6 +366,10 @@ func _ready() -> void:
 	window.add_child(box)
 	_result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(_result_label)
+	_loot.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_child(_loot)
+	_loot_pic = _pic(_loot, null, Vector2(16, 16))
+	_loot.add_child(_loot_text)
 	box.add_child(_tabs)
 	for on in [false, true]:
 		var t := _window_button(_tabs, func(): _gear_tab = on)
@@ -372,6 +385,7 @@ func _ready() -> void:
 	for k in gears:  # 장비 데이터가 있는 영웅마다 한 줄
 		var row := HBoxContainer.new()
 		_gear.add_child(row)
+		var pic := _pic(row, HudBuild.gear_icon(k), Vector2(16, 16))
 		var line := Label.new()
 		line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(line)
@@ -379,7 +393,7 @@ func _ready() -> void:
 		tip.add(make, func(): return _forge_tip(k))
 		var wear := _window_button(row, func(): battle.wear(_owner(k), not _owner(k).worn))
 		tip.add(wear, func(): return ["해제", "", "", "장비 효과를 끈다 · 장비는 가방에 남는다", ""] if _owner(k) and _owner(k).worn else ["장착", "", "", "이 영웅이 장비 효과를 받는다", ""])
-		_gear_rows.append([k, line, make, wear])
+		_gear_rows.append([k, line, make, wear, pic])
 	_hire_info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_hire.add_child(_hire_info)
 	var cols := HBoxContainer.new()
@@ -431,6 +445,8 @@ func _ready() -> void:
 	root.add_child(minimap)
 	evac = HudEvac.new(self)
 	root.add_child(evac)
+	shop = HudShop.new(self)
+	root.add_child(shop)
 	hp_button = _bar_button(root, "", func(): controls.show_hp = not controls.show_hp)  # 체력바 버튼(S276): 그림 10×10을 2배로, 왼쪽 위에 키 글자
 	hp_button.position = HP_AT.position
 	hp_button.size = HP_AT.size
@@ -555,19 +571,25 @@ func _process(delta: float) -> void:
 		_wait = RESULT_WAIT if _seen == "battle" and battle.state in ["cleared", "won", "lost"] else 0.0
 	_wait = maxf(_wait - delta, 0.0)
 	var was: bool = window.visible
-	window.visible = battle.state in ["hiring", "cleared", "won", "lost"] and _wait == 0.0
-	dim.visible = window.visible
-	window.position = Vector2(16, 34) if battle.hiring_open() else Vector2(170, 110)  # I136 임시값
-	window.custom_minimum_size = Vector2(608, 0) if battle.hiring_open() else Vector2(300, 110)
-	_result_label.text = {"hiring": "도전 시작 — 영웅 영입", "cleared": "%d라운드 승리" % round_no, "won": "도전 성공!", "lost": "%d라운드 패배 — 도전 끝" % round_no}.get(battle.state, "")
+	if controls.shop and battle.state not in ["prep", "battle"]:  # 준비·전투 단계를 벗어나면 언제든 영입 창은 닫힌다(S272)
+		controls.set_shop(false)
+	var anytime: bool = controls.shop  # 언제든 영입 창(S272, I206)
+	var wide: bool = battle.hiring_open() or anytime
+	window.visible = (battle.state in ["hiring", "cleared", "won", "lost"] and _wait == 0.0) or anytime
+	dim.visible = window.visible and not anytime  # 언제든 영입 창은 판을 덮지 않는다(I206)
+	window.position = Vector2(16, 34) if wide else Vector2(170, 110)  # I136 임시값
+	window.custom_minimum_size = Vector2(608, 0) if wide else Vector2(300, 110)
+	_result_label.text = "영입" if anytime else {"hiring": "도전 시작 — 영웅 영입", "cleared": "%d라운드 승리" % round_no, "won": "도전 성공!", "lost": "%d라운드 패배 — 도전 끝" % round_no}.get(battle.state, "")
 	for s in battle.settled:  # 지난 라운드의 미션·의뢰 판정(I120, I122)
 		var q: Dictionary = battle.QUEST_KINDS[s[0]]
 		_result_label.text += "\n%s «%s» %s" % ["의뢰" if q.commission else "미션", q.text, "달성 +%d골드" % q.reward if s[1] else "실패"]
-	if not battle.dropped.is_empty():  # 이번 전리품(S252)
+	_loot.visible = not battle.dropped.is_empty() and not anytime  # 이번 전리품(S252): 장비 큰 아이콘과 글(S274)
+	if _loot.visible:
 		var d: Array = battle.dropped
 		var title: String = battle.GEAR_KINDS[d[0]].title
-		_result_label.text += "\n" + ("전리품 %s" % title if d[1] < 0 else "전리품 %s +%d → +%d" % [title, d[1], d[2]])
-	_next.text = {"hiring": "1라운드 시작 (Enter)", "cleared": "다음 라운드 (Enter)"}.get(battle.state, "새 도전 (Enter)")
+		_loot_pic.texture = HudBuild.gear_icon(d[0])
+		_loot_text.text = "전리품 %s" % title if d[1] < 0 else "전리품 %s +%d → +%d" % [title, d[1], d[2]]
+	_next.text = "닫기 (T)" if anytime else {"hiring": "1라운드 시작 (Enter)", "cleared": "다음 라운드 (Enter)"}.get(battle.state, "새 도전 (Enter)")
 	if fresh:
 		_seen = battle.state
 		_giver = null
@@ -579,7 +601,7 @@ func _process(delta: float) -> void:
 	_tabs.get_child(0).button_pressed = not _gear_tab
 	_tabs.get_child(1).button_pressed = _gear_tab
 	_gear.visible = _tabs.visible and _gear_tab
-	_hire.visible = battle.hiring_open() and not _gear.visible
+	_hire.visible = wide and not _gear.visible
 	if _hire.visible:
 		_show_hire()
 	if _gear.visible:
@@ -1037,6 +1059,9 @@ func _start_battle() -> void:
 
 # 결과 창의 버튼(S117): 영입 창이면 1라운드나 다음 라운드로, 도전이 끝났으면 새 도전을 시작한다. main이 Enter로도 부른다(I94)
 func proceed() -> void:
+	if controls.shop:  # 언제든 영입 창의 «닫기 (T)»(I206)
+		controls.set_shop(false)
+		return
 	if _wait > 0.0:  # 결과 창을 기다리는 동안 Enter는 넘어가지 않고 창만 연다(S117)
 		_wait = 0.0
 		return
@@ -1063,11 +1088,17 @@ func _show_hire() -> void:
 	_hire_info.text = "골드 %d · 보유 %d/%d · 출전 %d/%d" % [battle.gold, battle.roster.size(), hire.cap, battle.lineup.size(), hire.lineup]
 	if battle.state == "hiring":  # 도전 시작 전에는 지을 골드를 남기라고 알린다(O-1)
 		_hire_info.text += " · 준비 단계에 지을 골드도 남긴다"
+	var anytime: bool = controls.shop  # 언제든 영입 창(I206): 출전 전환·내보내기·이관은 라운드 사이에만
+	if anytime:
+		_hire_info.text += " · 출전·내보내기는 라운드 사이에"
 	var full: bool = battle.roster.size() >= hire.cap
 	for i in _offers.size():  # 영입 카드(I110): 영입한 칸은 초상을 흐리게 «영입함», 골드가 모자라면 비용만 빨강
 		var k: String = battle.offers[i]
 		var card: Button = _offers[i]
 		var cost: Label = card.get_child(0)
+		var mini: TextureRect = card.get_child(1)
+		mini.visible = k != "" and battle.bag.has(k)
+		mini.texture = HudBuild.gear_icon(k, true) if mini.visible else null
 		if k != "":
 			_offer_kinds[i] = k
 		var was: String = _offer_kinds[i]
@@ -1081,8 +1112,8 @@ func _show_hire() -> void:
 		card.text = "%s «%s» · %s" % [HEROES[k], battle.HERO_KINDS[k].title, GRADES[grade - 1]]  # 이명(S157)
 		cost.text = str(hire.cost[grade - 1])
 		cost.add_theme_color_override("font_color", HudTheme.DANGER if battle.gold < hire.cost[grade - 1] else HudTheme.TEXT)
-	_reroll.text = "리롤 %d골드" % hire.reroll
-	_reroll.disabled = battle.gold < hire.reroll and not full
+	_reroll.text = "리롤 %d골드" % battle.reroll_cost()  # 리롤할수록 오른다(S273)
+	_reroll.disabled = battle.gold < battle.reroll_cost() and not full
 	_reroll.modulate.a = 0.35 if full else 1.0  # 상한이면 흐리게 두고 누르면 이유를 보인다(I127)
 	if not full:
 		_note.text = ""
@@ -1100,7 +1131,8 @@ func _show_hire() -> void:
 			var out: bool = h in battle.lineup
 			_members[i][0].text = "%s · %s · %s · %s" % [HEROES[h.kind], GRADES[h.grade - 1], _level(h), "출전" if out else "대기"]
 			_members[i][0].button_pressed = out
-			_members[i][0].disabled = not out and battle.lineup.size() >= hire.lineup
+			_members[i][0].disabled = anytime or (not out and battle.lineup.size() >= hire.lineup)
+			_members[i][1].visible = not anytime
 			_members[i][1].text = "내보내기"
 			_members[i][2].visible = battle.state == "cleared"  # 이관은 라운드 사이에만(S127)
 			_members[i][2].text = "이관" if _giver == null else ("취소" if _giver == h else "여기로")
@@ -1130,6 +1162,7 @@ func _show_gear() -> void:
 		row[2].disabled = _forge_why(k) != ""
 		row[3].visible = h != null and n >= 0
 		row[3].text = "해제" if h and h.worn else "장착"
+		row[4].modulate.a = 1.0 if n >= 0 else GEAR_DIM  # 가방에 없는 장비는 흐리게(S274)
 
 # 장비 k의 주인인 보유 영웅. 없으면 null
 func _owner(k: String):
@@ -1167,6 +1200,13 @@ func _card(parent: Control, i: int) -> Button:
 	cost.offset_right = -4
 	cost.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	cost.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var mini := _pic(b, null, Vector2(8, 8))  # 가방에 그 영웅 장비가 있으면 작은 아이콘(S274). 비용 숫자 왼쪽
+	mini.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
+	mini.offset_left = -50
+	mini.offset_right = -42
+	mini.offset_top = -4
+	mini.offset_bottom = 4
+	mini.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tip.add(b, func(): return ["영입", "", "", "누르면 보유에 넣고 빈 출전 자리에 든다" + _gear_line(battle.offers[i]), _offer_why(i)])
 	return b
 
@@ -1251,6 +1291,8 @@ func _show_heroes() -> void:
 		var pulse := 0.5 + 0.5 * sin(_now * TAU * 2.0)
 		row.pic.modulate = Color(0.4, 0.4, 0.4) if not h.alive else Color.WHITE.lerp(HudTheme.DANGER, pulse) if h.hp < h.max_hp * LOW else Color.WHITE
 		row.lv.text = str(h.level)
+		row.gear.visible = h.worn and battle.bag.has(h.kind)
+		row.gear.texture = HudBuild.gear_icon(h.kind, true) if row.gear.visible else null
 		var r: float = clampf(h.hp / h.max_hp, 0.0, 1.0)
 		row.hp.size.x = 75.0 * r
 		row.hp.color = HudTheme.DANGER if r < 0.25 else HudBuild.WARN if r < 0.5 else HudTheme.GOOD
@@ -1302,6 +1344,7 @@ func _skill_refuse(h, slot: String) -> void:
 	if why != "" and i >= 0:
 		slots[i][slot].reject()
 		toasts.push(why)
+		Audio.of(get_tree()).play("refuse")  # S269
 
 # 스킬 버튼 우클릭: 그 칸의 자동 시전을 켜고 끈다(S158, I151)
 func _auto_click(e: InputEvent, i: int, slot: String) -> void:
@@ -1412,6 +1455,8 @@ func _start_move() -> void:
 
 # 팔린 용병은 고른 상태에서도 뺀다
 func _sell_now() -> void:
+	if battle.state == "prep" and not controls.selling.is_empty():  # 판매는 준비 단계에만 된다
+		Audio.of(get_tree()).play("sell")  # S269
 	battle.sell(controls.selling)
 	controls.selling = []
 	controls.selected = controls.selected.filter(func(u): return u.alive)

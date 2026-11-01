@@ -7,6 +7,7 @@ const HudCursor := preload("res://src/ui/hud_cursor.gd")
 const Save := preload("res://src/sim/save.gd")
 const Settings := preload("res://src/settings.gd")
 const Menus := preload("res://src/ui/menus.gd")
+const Audio := preload("res://src/audio.gd")
 
 func _ready() -> void:
 	if Save.path == "":  # 게임을 막 켰다. 평가는 경로를 먼저 정해 이 준비를 건너뛴다
@@ -17,6 +18,7 @@ func _ready() -> void:
 		Settings.apply_language()  # S193
 		Main.setup_window(get_window(), true)
 		Main.live_prep = true  # 준비 단계 실시간(I175). 평가는 이 준비를 건너뛰어 옛 규칙 판을 쓴다
+	Audio.of(get_tree()).follow("title", false)  # 메인 메뉴 곡(S271). 버튼 누름 소리도 이 노드가 단다
 	var menus := Menus.new()
 	menus.can_resume = not Save.read().is_empty()
 	menus.chosen.connect(_on_menu)

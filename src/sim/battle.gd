@@ -383,6 +383,7 @@ var forged := {}  # 이번 라운드 사이 창에서 장비마다 제작·강�
 var dropped := []  # 이번 라운드 사이의 전리품 [영웅 종류, 전 수치(없던 장비면 -1), 뒤 수치](S252). 없으면 []. 결과 창이 보인다
 var merc_rank := {}  # 용병 종류 → 산 강화 단계 수(S254). 키가 없으면 0. 새 도전이면 비운다
 var offers := []  # 영입소 목록: 칸마다 영웅 종류, 영입한 칸은 ""(I103, I104)
+var rerolls := 0  # 이번 라운드에 리롤한 횟수(S273). 도전을 시작할 때와 라운드를 이겨 목록을 무료로 새로 뽑을 때 0이 된다
 var quests := []  # 이 도전에서 뜰 수 있는 미션·의뢰 이름(I118). 스테이지의 quests가 정한다. 비어 있으면 미션·의뢰가 없다
 var mission := ""  # 지금 라운드의 미션(S77, I120). 없으면 ""
 var commission := ""  # 수락한 의뢰(S77, I121). 다음 라운드 하나에 걸린다. 없으면 ""
@@ -570,6 +571,7 @@ func restart() -> void:
 		_kin.randomize()
 		_loot.randomize()
 	_draw_offers()  # 도전을 시작할 때 무료로 뽑는다(I104)
+	rerolls = 0
 	var q = stage.get("quests", [])  # 미션·의뢰(I118): true면 data/quests의 모든 것, 배열이면 그 이름들만(평가용). 없으면 뜨지 않는다
 	quests = QUEST_KINDS.keys() if q is bool and q else (q.duplicate() if q is Array else [])
 	quests.sort()
@@ -629,7 +631,8 @@ func step(dt: float) -> void:
 			state = "prep"
 		elif round_index + 1 < rounds.size():
 			state = "cleared"  # 라운드 사이(S117). 다음 라운드는 next_round로 간다
-			_draw_offers()  # 목록은 라운드를 이길 때 무료로 새로 뽑는다(I104)
+			_draw_offers()  # 목록은 라운드를 이길 때 무료로 새로 뽑고, 리롤 비용은 처음 값으로 돌아간다(I104, S273)
+			rerolls = 0
 			_drop_gear()
 		else:
 			state = "won"  # 마지막 라운드를 이겨 도전에 성공했다(I92)
@@ -811,9 +814,17 @@ func live() -> bool:
 func begin_hiring() -> void:
 	state = "hiring"
 
-# 영입 창(도전 시작 전·라운드 사이)이 떠 있다. 영입·리롤·내보내기·출전 선택은 이때만 한다(I104)
+# 영입 창(도전 시작 전·라운드 사이)이 떠 있다. 내보내기·출전 선택은 이때만 한다(I104, I206)
 func hiring_open() -> bool:
 	return state in ["hiring", "cleared"]
+
+# 영입·리롤을 받는 때: 영입 창과 준비·전투 단계(S272)
+func can_hire() -> bool:
+	return hiring_open() or state in ["prep", "battle"]
+
+# 지금 리롤 비용: 기본값 + 이번 라운드에 리롤한 횟수 × 오름값(S273)
+func reroll_cost() -> int:
+	return HIRE.reroll + rerolls * HIRE.reroll_step
 
 # 목록을 모두 새로 뽑는다(I103): 칸마다 보유하지 않았고 이 목록에 아직 없는 영웅이 후보다. 후보가 있는 등급만 등장 확률 비율대로 고르고,
 # 그 등급의 후보 가운데 하나를 같은 확률로 고른다. 후보가 없으면 빈 칸이다
@@ -829,10 +840,10 @@ func _draw_offers() -> void:
 		var kinds := free.filter(func(k): return HERO_KINDS[k].grade == grade)
 		offers.append(kinds[_rng.randi_range(0, kinds.size() - 1)])
 
-# 목록의 i번째 영웅을 영입한다(S54). 빈 칸이거나, 골드가 모자라거나(I104), 보유 상한(S123)이면 거부한다
-# 출전 목록이 차지 않았으면 바로 출전 목록에 넣는다(I106)
+# 목록의 i번째 영웅을 영입한다(S54, S272). 빈 칸이거나, 골드가 모자라거나(I104), 보유 상한(S123)이면 거부한다
+# 출전 목록이 차지 않았으면 바로 출전 목록에 넣고(I106), 준비·전투 단계면 그 순간 빈 출전 칸에 세운다(I206)
 func hire(i: int):
-	if not hiring_open() or offers[i] == "" or roster.size() >= HIRE.cap:
+	if not can_hire() or offers[i] == "" or roster.size() >= HIRE.cap:
 		return null
 	var stats: Dictionary = HERO_KINDS[offers[i]]
 	var cost: int = HIRE.cost[stats.grade - 1]
@@ -848,13 +859,16 @@ func hire(i: int):
 	roster.append(h)
 	if lineup.size() < HIRE.lineup:
 		lineup.append(h)
+		if state in ["prep", "battle"]:
+			_deploy()
 	return h
 
-# 리롤 비용(S123)을 내고 목록을 모두 새로 뽑는다(S57, I104). 골드가 모자라거나 보유 영웅이 상한이면 거부한다(I127)
+# 지금 리롤 비용(S273)을 내고 목록을 모두 새로 뽑는다(S57, I104). 골드가 모자라거나 보유 영웅이 상한이면 거부한다(I127)
 func reroll() -> bool:
-	if not hiring_open() or gold < HIRE.reroll or roster.size() >= HIRE.cap:
+	if not can_hire() or gold < reroll_cost() or roster.size() >= HIRE.cap:
 		return false
-	gold -= HIRE.reroll
+	gold -= reroll_cost()
+	rerolls += 1
 	_draw_offers()
 	return true
 

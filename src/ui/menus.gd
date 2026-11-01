@@ -87,6 +87,8 @@ func open(p: String, note := false) -> void:
 				Settings.volume = int(v)
 				Settings.apply_volume()
 				_changed())
+			_volume("음악", Settings.music_volume, func(v): Settings.music_volume = v)  # S184 2026-11-01 변경
+			_volume("효과음", Settings.sfx_volume, func(v): Settings.sfx_volume = v)
 			var cam_row := HBoxContainer.new()  # 카메라 속도(S184, S53). 음량 다음에 둔다
 			_box.add_child(cam_row)
 			_label("카메라 속도", cam_row)
@@ -186,6 +188,24 @@ func _check(text: String, on: bool, set_to: Callable) -> CheckButton:
 		_changed())
 	_box.add_child(b)
 	return b
+
+# 글자 text 옆 음량 슬라이더(0~100%, 10씩). 바꾸면 set_to로 넣고 버스에 건다
+func _volume(text: String, value: int, set_to: Callable) -> void:
+	var row := HBoxContainer.new()
+	_box.add_child(row)
+	_label(text, row)
+	var s := HSlider.new()
+	s.step = 10
+	s.value = value
+	s.custom_minimum_size.x = 100
+	s.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(s)
+	var pct := _label("%d%%" % value, row)
+	s.value_changed.connect(func(v):
+		pct.text = "%d%%" % v
+		set_to.call(int(v))
+		Settings.apply_volume()
+		_changed())
 
 func _label(text: String, parent: Control = null) -> Label:
 	var l := Label.new()

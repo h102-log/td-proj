@@ -6,6 +6,7 @@ extends Resource
 @export var odds := []  # 칸마다 그 등급이 나올 확률
 @export var cost := []  # 영입 비용(골드)
 @export var reroll := 0  # 리롤 비용(골드)
+@export var reroll_step := 0  # 리롤할 때마다 오르는 비용(골드, S273). 라운드를 이기면 reroll로 돌아간다
 @export var cap := 0  # 보유 상한
 @export var lineup := 0  # 출전 인원
 @export var gear_cost := []  # 전용장비 단계마다 비용(골드, S246). [0]이 제작(+0), [n]이 +n으로 강화. 장비 단계 수보다 짧으면 안 된다
