@@ -20,7 +20,7 @@ extends "res://tests/eval/gd/save.gd"
 #   battle.spawn_counts(라운드, 웨이브) — 출현 지점(battle.spawns 차례)마다 {적 종류: 수}(S188). 라운드·웨이브는 0부터
 #   main.hud.portraits — 출전 칸 차례마다 영웅 초상(BaseButton, I129·I165). 누르면 그 영웅을 고른다
 #   main.hud.slots — 출전 칸 차례마다 {"q"·"w"·"e"·"r": 스킬 칸(BaseButton, I151)}. 버튼 글은 쓸 수 있으면 칸 글자(«Q»), 재사용 대기면 보이는 칸 글에 올림한 초.
-#     self_modulate: 마나 부족 (0.5,0.5,1) · 잠김 (0.4,0.4,0.4) · 그 밖 흰색. 스킬 칸.lock — 자물쇠(CanvasItem). 잠겼을 때만 보인다
+#     self_modulate: 잠김 (0.4,0.4,0.4) · 그 밖 흰색. 스킬 칸.lock — 자물쇠(CanvasItem). 잠겼을 때만 보인다
 #   main.hud.tags — 상황 태그 [A, H](BaseButton, I139). 버튼 글은 없고, 안의 첫 TextureRect가 상태 그림이다(텍스처·modulate)
 #   main.hud.popup — 맵 위 팝업(Control, I58). 그 안의 보이는 BaseButton이 팝업 버튼이고, 못 누르는 버튼은 disabled다
 #   main.hud.hint — 놓기·조준 안내 글(Label, S147·I128). main.hud.chip — 그 글을 담은 안내 칩(Control, S147)
@@ -153,7 +153,7 @@ func _starts(node: Node, head: String):
 			return n
 	return null
 
-# EV321 · S187: 준비 단계 첫 영웅 Q 툴팁은 S97 표의 이름과 «마나»에 빨간 줄 «전투 단계». 놓기 칸 글은 EV323(정보 칸)이 본다
+# EV321 · S187: 준비 단계 첫 영웅 Q 툴팁은 S97 표의 이름과 «재사용»에 빨간 줄 «전투 단계». 놓기 칸 글은 EV323(정보 칸)이 본다
 func ev321():
 	var main = _prep()
 	var tip = main.hud.tip
@@ -169,8 +169,8 @@ func ev321():
 		tip._process(0.25)
 		var s := _tip_text(tip)
 		var name: String = QNAME[b.heroes[0].kind]
-		if not (name in s and "마나" in s) or not "전투 단계" in tip.reason.text:
-			out = "준비 단계 첫 영웅 Q 툴팁이 «%s», 빨간 줄이 «%s»다(기대 «%s»·«마나»·«전투 단계»)" % [s, tip.reason.text, name]
+		if not (name in s and "재사용" in s) or not "전투 단계" in tip.reason.text:
+			out = "준비 단계 첫 영웅 Q 툴팁이 «%s», 빨간 줄이 «%s»다(기대 «%s»·«재사용»·«전투 단계»)" % [s, tip.reason.text, name]
 	elif out == "":
 		out = "«Q» 버튼이 없다"
 	_done(main)
@@ -842,7 +842,7 @@ func _shown(c) -> String:
 	return " ".join([c.text] + _labels(c))
 
 # EV339 · I151: 준비 단계 Q는 칸 글자·흰색, 잠긴 R은 어둡고 자물쇠(«Lv» 글 없음), Q를 누르면 «전투 단계에만» 토스트,
-# 재사용 대기면 올림한 초, 마나가 모자라면 파란 틴트
+# 재사용 대기면 올림한 초
 func ev339():
 	var main = _prep()
 	var slots = main.hud.get("slots")
@@ -868,11 +868,6 @@ func ev339():
 		main.hud._process(0.0)
 		var s := _shown(q)
 		out = check("4" in s and not "3" in s, "재사용 대기 3.2초인 Q 칸 글이 «%s»다(기대 «4», «3» 없음)" % s)
-	if out == "":
-		h.cd["q"] = 0.0
-		h.mana = 0.0
-		main.hud._process(0.0)
-		out = check(q.self_modulate.is_equal_approx(Color(0.5, 0.5, 1.0)), "마나 0인 Q 칸 self_modulate가 %s다(기대 (0.5,0.5,1))" % q.self_modulate)
 	_done(main)
 	return out
 
@@ -1401,8 +1396,6 @@ func ev349():
 	b.next_round()
 	b.start_battle()
 	_frame(main)
-	var h = b.heroes[0]
-	h.mana = h.max_mana
 	_key(KEY_F1)
 	_key(KEY_Q)
 	hud._process(0.0)

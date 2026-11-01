@@ -125,7 +125,7 @@ func ev208():
 	b.start_battle()  # 스킬은 전투 단계에만 쓴다(S136)
 	var q: bool = b.can_cast(k, "q")
 	_key(c, KEY_W)
-	var locked: bool = k.cd.w == 0.0 and k.skill_uses == 0 and k.mana == k.max_mana
+	var locked: bool = k.cd.w == 0.0 and k.skill_uses == 0
 	b.add_xp(k, 20)
 	_key(c, KEY_W)
 	var w: bool = k.level == 2 and k.skill_uses == 1 and k.cd.w > 0.0
@@ -133,7 +133,6 @@ func ev208():
 	_key(c, KEY_E)
 	var e: bool = k.level == 3 and k.skill_uses == 2 and k.cd.e > 0.0
 	b.add_xp(k, 50)
-	k.mana = k.max_mana
 	var r_shut: bool = k.level == 4 and not b.can_cast(k, "r")
 	b.add_xp(k, 70)
 	var r_open: bool = k.level == 5 and b.can_cast(k, "r")

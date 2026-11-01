@@ -116,21 +116,19 @@ func ev404():
 	return check(no_counter and counter and calm and absf(blessed - s.r.bless) < 0.01,
 		"쏜 step에 반격 대상 없음 %s · 닿은 뒤 반격 대상이 그 탑 %s · 쏜 step에 과녁·옆 적 그대로 %s · 옆 적 축복 피해 %s(%s)" % [no_counter, counter, calm, blessed, s.r.bless])
 
-# EV405 · S178: 실비아 W가 켜져 있으면 갈래 대상마다 화살을 따로 쏜다. 쏜 step에는 마나 8을 내고 네 적이 모두 그대로이며, 화살이 닿으면 넷이 저마다 공격력만큼 잃는다
+# EV405 · S178: 실비아 W가 켜져 있으면 갈래 대상마다 화살을 따로 쏜다. 쏜 step에는 네 적이 모두 그대로이며, 화살이 닿으면 넷이 저마다 공격력만큼 잃는다
 func ev405():
 	var b = _sylvia(Vector2i(10, 10))
 	var s = b.hero
 	var foes := [_dummy(b, Vector2i(12, 10)), _dummy(b, Vector2i(13, 10)), _dummy(b, Vector2i(13, 11)), _dummy(b, Vector2i(13, 9)), _dummy(b, Vector2i(13, 12))]
 	_start(b)
 	b.cast(s, "w")
-	var m0: float = s.mana
 	var shot := _until_shot(b, s) >= 0.0
-	var paid: bool = s.mana <= m0 - s.w.mana + 0.5
 	var calm: bool = foes.all(func(e): return e.hp == e.max_hp)
 	run(b, 0.6)
 	var lost := foes.map(func(e): return BIG - e.hp)
 	var ok: bool = lost.slice(0, 4).all(func(x): return absf(x - s.damage) < 0.01) and lost[4] == 0.0
-	return check(shot and paid and calm and ok, "쏨 %s · 마나 냄 %s · 쏜 step에 모두 그대로 %s · 0.6초 뒤 잃은 체력 %s(앞 넷 %s, 다섯째 0)" % [shot, paid, calm, lost, s.damage])
+	return check(shot and calm and ok, "쏨 %s · 쏜 step에 모두 그대로 %s · 0.6초 뒤 잃은 체력 %s(앞 넷 %s, 다섯째 0)" % [shot, calm, lost, s.damage])
 
 # EV406 · I174: 궁수가 친 뒤 화살이 나가기 전(0.08초 안)에 쓰러지면 화살은 나가지 않는다. 궁수탑이 쏜 뒤 부서져도 화살은 닿고, 부서진 탑은 반격 대상이 되지 않는다
 func ev406():

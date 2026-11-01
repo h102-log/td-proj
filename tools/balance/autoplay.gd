@@ -579,9 +579,8 @@ func _skills(h) -> void:
 			continue
 		var sk: Dictionary = h.get(slot)
 		match sk.id:
-			"split_shot":  # 토글: 적이 셋 넘게 사거리 안이고 마나가 넉넉하면 켜고, 아니면 끈다
-				var want: bool = _near(h.pos, h.range).size() >= 3 and h.mana > 60.0
-				if want != h.toggle:
+			"split_shot":  # 토글: 비용이 없어 켜 둔다
+				if not h.toggle:
 					b.cast(h, slot)
 			"overcharge":  # 자동 시전에 맡긴다
 				if not h.auto:

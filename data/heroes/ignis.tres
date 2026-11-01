@@ -19,13 +19,12 @@ passive = {
 }
 aura = {
 "radius": 3.0,
-"mana": 2.5
+"cdr": 0.25
 }
 q = {
 "id": "fireball",
 "aim": "point",
 "gap": 6.0,
-"mana": 50.0,
 "radius": 1.5,
 "damage": 25.0,
 "burn": 4.0,
@@ -37,7 +36,6 @@ w = {
 "id": "frost_ring",
 "aim": "point",
 "gap": 9.0,
-"mana": 65.0,
 "radius": 2.0,
 "damage": 15.0,
 "slow": 0.4,
@@ -49,7 +47,6 @@ e = {
 "id": "black_hole",
 "aim": "point",
 "gap": 14.0,
-"mana": 80.0,
 "radius": 2.5,
 "time": 2.5,
 "pull": 1.5,
@@ -59,7 +56,6 @@ r = {
 "id": "meteor_swarm",
 "aim": "point",
 "gap": 65.0,
-"mana": 180.0,
 "count": 3,
 "delay": 0.5,
 "spread": 1.0,

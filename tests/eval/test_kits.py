@@ -2,12 +2,8 @@ def test_EV255_aura_from_lv1(gd):
     gd("kits", "EV255")
 
 
-def test_EV256_mana_regen_and_cost(gd):
+def test_EV256_cooldown_only_no_mana(gd):
     gd("kits", "EV256")
-
-
-def test_EV257_mana_fresh_full_returned_zero(gd):
-    gd("kits", "EV257")
 
 
 def test_EV258_cast_range_walk_then_cast(gd):
@@ -130,7 +126,7 @@ def test_EV286_ignis_r_meteors(gd):
     gd("kits", "EV286")
 
 
-def test_EV287_ignis_passive_and_mana_aura(gd):
+def test_EV287_ignis_passive_and_cdr_aura(gd):
     gd("kits", "EV287")
 
 

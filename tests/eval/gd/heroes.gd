@@ -4,21 +4,21 @@ extends "res://tests/eval/gd/lib.gd"
 #   stage 키 heroes: [{kind, cell, level?}, …] — 영웅 목록. 첫 영웅이 Battle.hero다. 없으면 hero_start가 아이아스 하나다
 #   Battle.HERO_KINDS — 종류 → 수치(data/heroes/<종류>.tres, 스크립트 변수 사전) · Battle.heroes · Battle.SLOTS ["q","w","e","r"]
 #   Battle.cast(영웅, 칸, aim = null) -> bool · Battle.can_cast(영웅, 칸) · Battle.toggle_auto(영웅, 칸)
-#   영웅: kind · grade · mana · max_mana · cd[칸] · skill_uses · passive · aura · q·w·e·r(사전: id·aim·gap·mana·수치)
+#   영웅: kind · grade · cd[칸] · skill_uses · passive · aura · q·w·e·r(사전: id·aim·gap·수치)
 #   Controls.skill_key(칸, shift = false) · Controls.aiming · Q·W·E·R 키(KEY_Q…)
 # 수치는 영웅 필드에서 읽는다. 임시값이라 밸런스를 바꿔도 효과를 재는 평가는 깨지지 않게. EV172·EV173만 표를 대조한다
-# 스킬과 그 대기·마나는 전투 단계에만 돈다(S136). 그래서 그것을 재는 평가는 _start로 전투 단계를 연 뒤 잰다
+# 스킬과 그 대기는 전투 단계에만 돈다(S136). 그래서 그것을 재는 평가는 _start로 전투 단계를 연 뒤 잰다
 
 const H := Vector2i(10, 10)
 const GATES := [Vector2i(5, 9), Vector2i(15, 9), Vector2i(25, 9)]
 const ONE := [{"kind": "basic", "count": 1}]  # 적 하나짜리 웨이브
-const S151_158 := {  # 종류 → [패시브 id, 오라 키들, [Q·W·E·R마다 id, 조준, 대기, 마나]]
-	"aias": ["fortress", [], [["shield_bash", "dir", 6, 40], ["war_cry", "self", 12, 60], ["brace", "self", 14, 70], ["bulwark", "point", 60, 150]]],
-	"sylvia": ["weak_point", ["reach"], [["piercing_gale", "dir", 7, 45], ["split_shot", "toggle", 1, 8], ["storm_trap", "point", 11, 55], ["arrow_rain", "point", 55, 140]]],
-	"seraphina": ["overflow", ["armor"], [["holy_beam", "ally", 6, 45], ["sanctum", "point", 12, 70], ["guardian", "ally", 16, 85], ["miracle", "self", 70, 200]]],
-	"vesper": ["contagion", ["foe_armor"], [["corrosion", "point", 8, 50], ["enfeeble", "point", 11, 65], ["soul_chain", "enemy", 15, 80], ["abyss", "point", 60, 160]]],
-	"ignis": ["overload", ["mana"], [["fireball", "point", 6, 50], ["frost_ring", "point", 9, 65], ["black_hole", "point", 14, 80], ["meteor_swarm", "point", 65, 180]]],
-	"chronos": ["", ["haste", "stride"], [["overcharge", "ally", 4, 35], ["aging", "point", 14, 60], ["time_loop", "point", 18, 70], ["wind_up", "self", 80, 160]]],
+const S151_158 := {  # 종류 → [패시브 id, 오라 키들, [Q·W·E·R마다 id, 조준, 대기]]
+	"aias": ["fortress", [], [["shield_bash", "dir", 6], ["war_cry", "self", 12], ["brace", "self", 14], ["bulwark", "point", 60]]],
+	"sylvia": ["weak_point", ["reach"], [["piercing_gale", "dir", 7], ["split_shot", "toggle", 1], ["storm_trap", "point", 11], ["arrow_rain", "point", 55]]],
+	"seraphina": ["overflow", ["armor"], [["holy_beam", "ally", 6], ["sanctum", "point", 12], ["guardian", "ally", 16], ["miracle", "self", 70]]],
+	"vesper": ["contagion", ["foe_armor"], [["corrosion", "point", 8], ["enfeeble", "point", 11], ["soul_chain", "enemy", 15], ["abyss", "point", 60]]],
+	"ignis": ["overload", ["cdr"], [["fireball", "point", 6], ["frost_ring", "point", 9], ["black_hole", "point", 14], ["meteor_swarm", "point", 65]]],
+	"chronos": ["", ["haste", "stride"], [["overcharge", "ally", 4], ["aging", "point", 14], ["time_loop", "point", 18], ["wind_up", "self", 80]]],
 }
 const S121 := {  # 등급, 체력, 공격력, 사거리, 공격 간격, 속도
 	"aias": [3, 100, 3, 1.5, 1.0, 3], "sylvia": [3, 70, 3, 4, 1.0, 3], "seraphina": [3, 90, 2, 3, 1.0, 3],
@@ -83,7 +83,7 @@ func _start(b) -> void:
 		if x != idle:
 			b.damage(x, BIG)
 
-# EV172 · S97: 6명의 패시브·오라·Q·W·E·R(id·조준·대기·마나)이 S151~S158 표와 같고, 오라 반경은 3이다
+# EV172 · S97: 6명의 패시브·오라·Q·W·E·R(id·조준·대기)이 S151~S158 표와 같고, 오라 반경은 3이다
 func ev172():
 	var kinds: Dictionary = battle().HERO_KINDS
 	for k in S151_158:
@@ -98,8 +98,8 @@ func ev172():
 			return "%s의 오라가 %s다(%s, 반경 3이어야 한다)" % [k, got.aura, want[1]]
 		for i in 4:
 			var sk: Dictionary = got[["q", "w", "e", "r"][i]]
-			var row := [sk.id, sk.aim, sk.gap, sk.mana]
-			if row[0] != want[2][i][0] or row[1] != want[2][i][1] or not is_equal_approx(float(row[2]), float(want[2][i][2])) or not is_equal_approx(float(row[3]), float(want[2][i][3])):
+			var row := [sk.id, sk.aim, sk.gap]
+			if row[0] != want[2][i][0] or row[1] != want[2][i][1] or not is_equal_approx(float(row[2]), float(want[2][i][2])):
 				return "%s의 %s가 %s다(%s여야 한다)" % [k, ["Q", "W", "E", "R"][i], row, want[2][i]]
 	return ""
 
@@ -178,22 +178,21 @@ func _down_first_then_e(bc: Array) -> void:
 	_key(bc[1], KEY_E)
 	click(bc[1], MOUSE_BUTTON_LEFT, px(Vector2i(bc[0].heroes[1].pos.round())))
 
-# EV238 · S136: 준비 단계의 스킬 키는 아무 일도 하지 않고 재사용 대기도 시작하지 않으며 마나도 그대로다. 전투 단계에는 쓴다
+# EV238 · S136: 준비 단계의 스킬 키는 아무 일도 하지 않고 재사용 대기도 시작하지 않는다. 전투 단계에는 쓴다
 func ev238():
 	var b = _heroes([_hero("aias", H)])
 	var c = controls(b)
 	var k = b.hero
 	_key(c, KEY_W)
 	_key(c, KEY_E)
-	var idle: bool = k.skill_uses == 0 and k.cd.w == 0.0 and k.cd.e == 0.0 and k.mana == k.max_mana
+	var idle: bool = k.skill_uses == 0 and k.cd.w == 0.0 and k.cd.e == 0.0
 	b.start_battle()
 	_key(c, KEY_W)
 	_key(c, KEY_E)
-	var spent: float = k.w.mana + k.e.mana
-	return check(idle and k.skill_uses == 2 and is_equal_approx(k.cd.w, k.w.gap) and is_equal_approx(k.cd.e, k.e.gap) and is_equal_approx(k.mana, k.max_mana - spent),
-		"준비 단계 W·E 뒤 그대로 %s · 전투 단계: %d번, W 대기 %s, E 대기 %s, 마나 %s(%s여야 한다)" % [idle, k.skill_uses, k.cd.w, k.cd.e, k.mana, k.max_mana - spent])
+	return check(idle and k.skill_uses == 2 and is_equal_approx(k.cd.w, k.w.gap) and is_equal_approx(k.cd.e, k.e.gap),
+		"준비 단계 W·E 뒤 그대로 %s · 전투 단계: %d번, W 대기 %s, E 대기 %s" % [idle, k.skill_uses, k.cd.w, k.cd.e])
 
-# EV239 · S136: 전투 단계가 아닐 때(준비 단계·라운드 사이)는 스킬 대기가 줄지 않고 마나도 차지 않는다
+# EV239 · S136: 전투 단계가 아닐 때(준비 단계·라운드 사이)는 스킬 대기가 줄지 않는다
 func ev239():
 	var b = _heroes([_hero("aias", H)], {"rounds": [[ONE, ONE], [ONE]]})
 	var k = b.hero
@@ -201,17 +200,17 @@ func ev239():
 	b.cast(k, "w")
 	b.cast(k, "e")
 	clear_wave(b)
-	var now := func(): return [k.cd.w, k.cd.e, k.mana]
+	var now := func(): return [k.cd.w, k.cd.e]
 	var at: Array = now.call()
 	run(b, 10.0)
 	var prep: bool = b.state == "prep" and now.call() == at
 	var after_prep: Array = now.call()
 	_start(b)
 	run(b, 1.0)
-	var fight: bool = k.cd.w < at[0] and k.mana > at[2]
+	var fight: bool = k.cd.w < at[0]
 	clear_wave(b)
 	var between: Array = now.call()
 	run(b, 10.0)
 	var cleared: bool = b.state == "cleared" and now.call() == between
 	return check(prep and fight and cleared,
-		"준비 단계 10초 [W 대기, E 대기, 마나] %s → %s · 전투 단계 1초에 줄고 참 %s · 라운드 사이(%s) 10초 %s → %s" % [at, after_prep, fight, b.state, between, now.call()])
+		"준비 단계 10초 [W 대기, E 대기] %s → %s · 전투 단계 1초에 줄고 참 %s · 라운드 사이(%s) 10초 %s → %s" % [at, after_prep, fight, b.state, between, now.call()])

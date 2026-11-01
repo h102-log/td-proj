@@ -1,7 +1,7 @@
 extends "res://tests/eval/gd/lib.gd"
 # 2라운드 늑대 PR ①: 무리 출현(S238·I190), 도약 늑대(S239·I191), 아군 기절(I192). lib.gd·kits.gd 머리의 계약에 더하는 API:
 #   적 kind "wolf"(늑대) · "leap_wolf"(도약 늑대) · 적 on_wall·fx·goal · stage 키 spawn_gap(출현 간격)·spawn_spread(출현 퍼짐, I177)·castle
-#   Battle.spawn_counts(라운드, 웨이브) · Battle.effect(대상, 키) · Battle.cast(영웅, 칸, aim) · 용병 on_wall·anchor · 영웅 mana·max_mana·cd
+#   Battle.spawn_counts(라운드, 웨이브) · Battle.effect(대상, 키) · Battle.cast(영웅, 칸, aim) · 용병 on_wall·anchor · 영웅 cd
 # wolf-3(S242·S243·I195): 적 kind "alpha_wolf" · 적 cast {id "pounce", who 대상} · 붙잡힘 효과 키 "pin" · Battle.damage(대상, 양, "magic")
 
 const SPAWNS := [Vector2i(0, 5), Vector2i(0, 10), Vector2i(0, 15)]
@@ -275,21 +275,18 @@ func _with_seraphina(cell: Vector2i, over := {}):
 	stage.merge(over, true)
 	return battle(stage)
 
-# EV554 · I192: 기절한 영웅은 스킬을 쓰지 못하고 마나·대기 시간이 들지 않는다. 풀리면 쓴다
+# EV554 · I192: 기절한 영웅은 스킬을 쓰지 못하고 대기 시간이 들지 않는다. 풀리면 쓴다
 func ev554():
 	var b = _with_seraphina(Vector2i(10, 4))
 	var h = b.hero
 	h.damage = 0.0
 	b.spawn_enemy("basic", Vector2i(0, 19), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})
 	b.start_battle()
-	h.mana = h.max_mana
 	h.fx["test"] = {"stun": true, "left": 1.0}
-	var mana0: float = h.mana
 	var cd0: float = h.cd.w
-	if b.cast(h, "w", Vector2(10, 6)) or h.mana != mana0 or h.cd.w != cd0:
-		return "기절한 영웅의 W: 마나 %s → %s · 대기 %s → %s(쓰이지 않아야 한다)" % [mana0, h.mana, cd0, h.cd.w]
+	if b.cast(h, "w", Vector2(10, 6)) or h.cd.w != cd0:
+		return "기절한 영웅의 W: 대기 %s → %s(쓰이지 않아야 한다)" % [cd0, h.cd.w]
 	run(b, 1.1)
-	h.mana = h.max_mana
 	return check(b.cast(h, "w", Vector2(10, 6)), "기절이 풀린 뒤에도 W를 쓰지 못했다")
 
 # EV555 · I192·S152: 도약 늑대가 건 기절도 해로운 효과라 정화(세라피나 W)로 지워진다
@@ -310,7 +307,6 @@ func ev555():
 		return "도약 늑대가 2초 안에 성벽 위에 서지 않았다"
 	if not _stunned(b, m):
 		return "도약 늑대가 선 스텝에 용병이 기절하지 않았다"
-	h.mana = h.max_mana
 	if not b.cast(h, "w", m.pos):
 		return "세라피나가 W를 쓰지 못했다"
 	b.step(DT)
@@ -451,7 +447,6 @@ func ev561():
 	if not run(b, 1.0, func(): return _bleed_of(m) != null):
 		return "밤 늑대가 1초 안에 물어 출혈을 걸지 않았다"
 	b.damage(w, BIG)
-	h.mana = h.max_mana
 	if not b.cast(h, "w", m.pos):
 		return "세라피나가 W를 쓰지 못했다"
 	b.step(DT)
@@ -641,7 +636,6 @@ func ev580():
 	b.start_battle()
 	if not _land(g) or not _pinned(b, a):
 		return "알파가 2초 안에 궁수를 붙잡지 않았다"
-	h.mana = h.max_mana
 	if not b.cast(h, "w", a.pos):
 		return "세라피나가 W를 쓰지 못했다"
 	b.step(DT)

@@ -172,7 +172,7 @@ static var CASTLE_K: ImageTexture = crack_atlas(CASTLE, _wall_pieces())
 static var FACILITY_K: ImageTexture = crack_atlas(FACILITY, FAC.values().map(func(f): return Rect2i(FAC_N * int(f[0]), int(f[1]), FAC_N, int(f[2] - f[1]))))
 static var KEEP_K: ImageTexture = crack_atlas(KEEP, [Rect2i(0, 0, 80, 80), Rect2i(80, 0, 80, 80)])
 const BLUEPRINT := Color(0.55, 0.78, 1.0, 0.6)  # 청사진 색(사용자 2026-10-20, 림월드 설계도). 회색 바탕에 곱한다
-const GHOST := Color(1, 1, 1, 0.4)  # 거점에 가려진 유닛·시설을 덧그리는 색(C1, 사용자 2026-10-20). 성벽·거점에 가려진 영웅의 마나 막대도 이 색이다
+const GHOST := Color(1, 1, 1, 0.4)  # 거점에 가려진 유닛·시설을 덧그리는 색(C1, 사용자 2026-10-20)
 const SHADE := Color(0, 0, 0, 0.55)  # 성벽에 가려진 부분의 실루엣 색(S175). 55%는 사용자가 고른 시안의 합성 색에 맞춘 Claude 값
 const WALL_H := 24  # 성벽 앞면 높이(px, 4.0 확정값)
 const TEAM := [Color("3c9f9c"), Color("ef3a0c")]  # 발밑 팀 색(S166): 아군 청록, 적 빨강(F24+ 팔레트)
@@ -374,12 +374,6 @@ func _draw() -> void:
 		_status(u, true)  # 걸린 효과(I101 2026-10-27 변경): 효과마다 수단 하나
 	for e in _foes:
 		_status(e, false)
-	for u in battle.units:  # 마나 막대(S146): 영웅 발밑. 붙잡힌 적에 가리지 않게 적보다 나중에 그린다. 성벽·거점에 가린 영웅은 덧그림처럼 반투명(사용자 2026-10-20)
-		if u.is_hero and u.alive:
-			var bar := Rect2(_spot(u) + _slip(u) + Vector2(-CELL, CELL) / 2.0, Vector2(CELL, 2))
-			var tint := GHOST if _behind(u) else Color.WHITE
-			draw_rect(bar, Color.BLACK * tint)
-			draw_rect(Rect2(bar.position, Vector2(CELL * u.mana / u.max_mana, 2)), Color("4080ff") * tint)
 	for h in battle.heroes:  # 쓰러진 영웅: 복귀할 때까지 쓰러진 자리에 그 영웅 색의 X(I130). 누운 몸(S180) 위에, 막타가 닿은 때부터 밀린 자리에(S197)
 		var at = _cross_at(h)
 		if at != null:
