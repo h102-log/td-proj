@@ -70,6 +70,7 @@ const RAIN_FALL := 0.12  # 화살이 떨어지는 시간. 그 뒤 꽂힌다
 const RAIN_STUCK := 0.6  # 꽂힌 화살이 남는 시간
 # 세라피나(크림·금)·베스퍼(청록)(fx-3). 시간은 초다
 const BEAM_HOP := 0.04  # 성스러운 빛줄기가 대상 하나를 건너는 시간
+const BEAM_TAIL := 0.1  # 빛줄기 흔적은 FX와 «마지막 마디가 뻗은 뒤 이만큼» 가운데 늦은 때까지 남는다(S179). 성역 공명(S262)의 긴 줄도 끝까지 보이게
 const MEND_STEP := 4.0 / 60.0  # 회복 반짝 한 프레임
 const PILLAR := 0.12  # 기적의 강림 빛기둥이 내려오는 시간
 const PILLAR_H := 40  # 빛기둥 높이(px)
@@ -825,7 +826,7 @@ func _is_foe(x) -> bool:
 # 성스러운 빛줄기(세라피나 Q, fx-3): 영웅 손에서 맞은 차례대로 BEAM_HOP초에 한 마디씩 뻗는 금빛 줄(굵기 3 → 1, 앞 절반은 크림 심 1px).
 # 줄이 닿은 아군에는 회복 반짝이 오르고, 적에는 작은 섬광이 난다. 숨은 적(S213)에는 섬광을 그리지 않는다
 func _beam(h, hits: Array, t: float) -> void:
-	var k := t / FX
+	var k := t / maxf(FX, hits.size() * BEAM_HOP + BEAM_TAIL)
 	if k >= 1.0:
 		return
 	var p0 := Vector2i(_muzzle(h).floor())

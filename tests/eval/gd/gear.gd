@@ -17,6 +17,7 @@ extends "res://tests/eval/gd/hud.gd"
 #   아이아스 방패(S256~S258·I204): data/gear/aias.tres(+0~+9) · BattleView.wall_preview(판, 영웅, 지점) -> Array[Vector2i] — R 조준 미리보기 칸(static)
 #     성벽 공명 흔적: Battle.traces의 slot "resonate"(성벽 칸마다 하나) · 이관(transfer)이 장비 수치도 옮긴다 · main.hud._members[i][2] — 보유 i의 이관 버튼
 #   실비아 장궁(S259·S260): data/gear/sylvia.tres(+0~+9) · 덫은 Battle.zones의 src "sylvia_e"(pos = 깐 지점), 터지면 흔적 slot "trap", 걸린 적은 fx "sylvia_e"
+#   세라피나 성수병(S261·S262): data/gear/seraphina.tres(+0~+9) · 용병은 Battle.units에 놓은 차례로 든다
 # 단계 수치는 데이터(GEAR_KINDS)에서 읽는다. 임시값이라(S249) 수치를 바꿔도 동작을 재는 평가는 깨지지 않게
 
 const CELLS := [Vector2i(10, 5), Vector2i(12, 5), Vector2i(14, 5)]  # 출전 칸(I107)
@@ -979,3 +980,66 @@ func ev633():
 		res[n] = [traps, on_line.fx.has("sylvia_e"), off_line.fx.has("sylvia_e"), b.traces.filter(func(c): return c.slot == "trap").size()]
 	return check(res[9] == [[Vector2(14, 14)], true, false, 1] and res[8] == [[Vector2(14, 10), Vector2(14, 14)], false, false, 0],
 		"[남은 덫, 줄 위 적 속박, 줄 밖 적 속박, 덫 흔적] +9 %s · +8 %s" % [res[9], res[8]])
+
+# 성수병 +n(음수면 장비 없음) 세라피나(10,10)의 전투 단계. 그 앞 한 줄에 체력 10 용병 7과 과녁 7을 (11,13)부터 번갈아 둔다. 시간은 흐르지 않는다
+func _seraphina(n: int):
+	var t := {"kind": "seraphina", "cell": Vector2i(10, 10)}
+	if n >= 0:
+		t.gear = n
+	var b = battle({"heroes": [t], "base_hp": BIG, "waves": [NO_ENEMY, NO_ENEMY], "seed": 11, "merc_cap": 7})
+	if b.hero == null:
+		return b
+	for i in 7:
+		var m = b.place_merc("soldier", Vector2i(11 + 2 * i, 13), {"damage": 0})
+		if m != null:
+			m.hp = 10.0
+		_target(b, Vector2(12 + 2 * i, 13))
+	_target(b, Vector2(0, 19))
+	b.start_battle()
+	b.hero.mana = 1e4
+	return b
+
+# 성수병 데이터가 없으면 그 이유. 없으면 _refit이 멈춰 판이 반쯤 만들어진다
+func _flask(b) -> String:
+	if _api(b) != "":
+		return _api(b)
+	return "" if b.GEAR_KINDS.has("seraphina") and b.GEAR_KINDS.seraphina.steps.size() == 10 and b.hero != null else "data/gear/seraphina.tres(+0~+9)가 없다"
+
+# EV634 · S261: 성수병 +0은 Q 회복 25, +3은 Q 도약 4·횟수 7, +6은 W 반경 2.5·지속 5
+func ev634():
+	var out := _flask(_seraphina(0))
+	if out != "":
+		return out
+	var heal := []
+	for n in [-1, 0]:
+		heal.append(_seraphina(n).hero.q.heal)
+	var q := []
+	for n in [2, 3]:
+		var h = _seraphina(n).hero
+		q.append([h.q.hop, h.q.hits])
+	var w := []
+	for n in [5, 6]:
+		var h = _seraphina(n).hero
+		w.append([h.w.radius, h.w.time])
+	return check(heal == [20.0, 25.0] and q == [[3.0, 5], [4.0, 7]] and w == [[2.0, 4.0], [2.5, 5.0]],
+		"장비 없음·+0 Q 회복 %s(기대 [20, 25]) · +2·+3 Q [도약, 횟수] %s(기대 [[3, 5], [4, 7]]) · +5·+6 W [반경, 지속] %s(기대 [[2, 4], [2.5, 5]])" % [heal, q, w])
+
+# EV635 · S262: 성역 공명. 자기 성역 안 용병에게 쓴 Q는 용병 7·과녁 7을 모두 맞히고, 성역 밖 용병이나 +8이면 용병 4·과녁 3
+func ev635():
+	var out := _flask(_seraphina(9))
+	if out != "":
+		return out
+	var got := []
+	for c in [[9, Vector2(11, 13)], [9, Vector2(6, 8)], [8, Vector2(11, 13)]]:
+		var b = _seraphina(c[0])
+		var h = b.hero
+		var mercs: Array = b.units.filter(func(u): return u != h)
+		if mercs.size() != 7:
+			return "용병 7을 놓지 못했다(%d)" % mercs.size()
+		if not b.cast(h, "w", c[1]):
+			return "성수병 +%d 세라피나가 %s에 성역을 펴지 못했다" % c
+		if not b.cast(h, "q", mercs[0]):
+			return "성수병 +%d 세라피나의 Q가 거부됐다" % c[0]
+		got.append([mercs.filter(func(m): return m.hp > 10.0).size(), b.enemies.filter(func(e): return e.hp < BIG).size()])
+	return check(got == [[7, 7], [4, 3], [4, 3]],
+		"[회복된 용병, 피해 받은 과녁] +9 성역 안 %s · +9 성역 밖 %s · +8 성역 안 %s(기대 [7, 7] · [4, 3] · [4, 3])" % got)
