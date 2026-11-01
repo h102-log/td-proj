@@ -75,3 +75,7 @@ def test_EV420_starting_engineers(gd):
 
 def test_EV424_base_sells_engineers(gd):
     gd("engineer", "EV424")
+
+
+def test_EV664_auto_fix_tag(gd):
+    gd("engineer", "EV664")

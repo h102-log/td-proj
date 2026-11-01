@@ -3501,3 +3501,96 @@ func ev571():
 	var top_ok: bool = top is StyleBoxFlat and top.shadow_size == 0
 	_done(main)
 	return check(bad.is_empty() and top_ok, "어긋난 패널 %s · 위 띠 그림자 없음 %s" % [bad, top_ok])
+
+# 커서 스크립트(S278·I211). 구현 전에도 스위트가 불러와지게 preload 대신 load로 부르고, 파일이 없으면 null
+func _cursor():
+	var path := "res://src/ui/hud_cursor.gd"
+	return load(path) if ResourceLoader.exists(path) else null
+
+# Controls에 키 하나를 누른다(눌림만)
+func _ctl_key(c, key: int) -> void:
+	var ev := InputEventKey.new()
+	ev.keycode = key
+	ev.pressed = true
+	c.handle(ev)
+
+# EV665 · S278: 커서 상태. 고른 것이 없으면 적 위도 기본, 고른 병사가 있고 적 0.7칸 안이면 칼, 적에서 2칸 떨어진 땅은 기본,
+# A 모드는 적 위·빈 땅 모두 과녁, 놓기 모드는 십자, HUD 위라고 넣으면 어느 상태든 기본
+func ev665():
+	var cur = _cursor()
+	if cur == null:
+		return "hud_cursor.gd 없음"
+	var b = battle()
+	var s = b.place_merc("soldier", Vector2i(10, 10))
+	var e = b.spawn_enemy("basic", Vector2i(14, 10), {"speed": 0, "damage": 0, "sight": 0})
+	var c = controls(b)
+	var foot: Vector2 = (e.pos + Vector2(0.5, 0.5)) * CELL_PX  # 적 발 자리(맵 px). Controls의 맵 px → 칸 식(px / cell_px - 0.5)을 거꾸로
+	var close: Vector2 = foot + Vector2(0.5 * CELL_PX, 0)  # 적 발 자리에서 0.5칸
+	var land: Vector2 = foot + Vector2(0, 2 * CELL_PX)  # 적에서 2칸 떨어진 땅
+	var got := {}
+	got["안 고름·적 위"] = cur.kind(c, foot, false)
+	c.selected = [s]
+	got["고름·적 0.5칸"] = cur.kind(c, close, false)
+	got["고름·2칸 땅"] = cur.kind(c, land, false)
+	got["고름·적 0.5칸·HUD 위"] = cur.kind(c, close, true)
+	_ctl_key(c, KEY_A)
+	var aimed: bool = c.attacking
+	got["A·적 위"] = cur.kind(c, foot, false)
+	got["A·빈 땅"] = cur.kind(c, land, false)
+	got["A·적 위·HUD 위"] = cur.kind(c, foot, true)
+	_ctl_key(c, KEY_1)  # 놓기 키(방벽)
+	var placed: bool = c.placing != ""
+	got["놓기·적 위"] = cur.kind(c, foot, false)
+	got["놓기·빈 땅"] = cur.kind(c, land, false)
+	got["놓기·빈 땅·HUD 위"] = cur.kind(c, land, true)
+	var want := {
+		"안 고름·적 위": "arrow", "고름·적 0.5칸": "sword", "고름·2칸 땅": "arrow", "고름·적 0.5칸·HUD 위": "arrow",
+		"A·적 위": "attack", "A·빈 땅": "attack", "A·적 위·HUD 위": "arrow",
+		"놓기·적 위": "cross", "놓기·빈 땅": "cross", "놓기·빈 땅·HUD 위": "arrow",
+	}
+	var bad := []
+	for k in want:
+		if got[k] != want[k]:
+			bad.append("%s: %s(기대 %s)" % [k, got[k], want[k]])
+	return check(aimed and placed and bad.is_empty(), "어긋난 상태 %s · A 키로 A 모드 %s · 놓기 키로 놓기 모드 %s" % [bad, aimed, placed])
+
+# EV666 · S278·I211: 커서 그림은 12×12 도트를 배율만큼 키운 것(배율 2·6 → 24·72px)이고, 핫스팟은 기본·칼 (0,0)·과녁·십자 가운데다.
+# 과녁에 빨강 ef3a0c가 있고 네 그림이 서로 다르다. 같은 상태·배율로 다시 걸면 걸지 않는다
+func ev666():
+	var cur = _cursor()
+	if cur == null:
+		return "hud_cursor.gd 없음"
+	var kinds := ["arrow", "sword", "attack", "cross"]
+	var bad := []
+	for sc in [2, 6]:
+		var imgs := {}
+		for k in kinds:
+			var img = cur.image(k, sc)
+			if not img is Image:
+				bad.append([k, sc, "그림 없음", img])
+				continue
+			imgs[k] = img
+			if img.get_size() != Vector2i(12, 12) * sc:
+				bad.append([k, sc, "크기", img.get_size()])
+			var hs = cur.hotspot(k, sc)
+			var want: Vector2 = Vector2.ZERO if k in ["arrow", "sword"] else Vector2(12, 12) * sc / 2.0
+			if not (typeof(hs) in [TYPE_VECTOR2, TYPE_VECTOR2I] and Vector2(hs) == want):
+				bad.append([k, sc, "핫스팟", hs, "기대", want])
+		for i in kinds.size():
+			for j in range(i + 1, kinds.size()):
+				var p = imgs.get(kinds[i])
+				var q = imgs.get(kinds[j])
+				if p != null and q != null and p.get_size() == q.get_size() and p.get_data() == q.get_data():
+					bad.append([kinds[i], kinds[j], sc, "같은 그림"])
+	var red := false
+	var mark = cur.image("attack", 2)
+	if mark is Image:
+		for y in mark.get_height():
+			for x in mark.get_width():
+				var px_c: Color = mark.get_pixel(x, y)
+				red = red or (px_c.a > 0.5 and px_c.to_html(false) == DANGER.to_html(false))
+	cur.apply("arrow", 2)
+	var changed = cur.apply("cross", 2)  # 직전과 다른 상태 → 다시 건다
+	var again = cur.apply("cross", 2)  # 같은 상태·배율 → 걸지 않는다
+	var rescaled = cur.apply("cross", 3)  # 같은 상태라도 배율이 다르면 → 다시 건다(같음은 상태·배율 짝으로 본다)
+	return check(bad.is_empty() and red and changed == true and again == false and rescaled == true, "어긋난 그림 %s · 과녁에 ef3a0c %s · 다른 상태로 걸기 %s(기대 true) · 같은 상태로 다시 걸기 %s(기대 false) · 배율만 바꿔 걸기 %s(기대 true)" % [bad, red, changed, again, rescaled])

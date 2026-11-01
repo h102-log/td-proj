@@ -97,6 +97,9 @@ const UP := ["..#..", ".###.", "#####", ".###.", ".###."]  # 팝업 업그레이
 # 용병 강화 툴팁의 수치 줄(S255): 키 → «이름 지금 → 다음» 틀
 const RANK_TEXT := {"hp": "체력 %s → %s", "damage": "공격력 %s → %s", "block": "블록 수 %s → %s", "attack_gap": "공격 간격 %s → %s초",
 	"range": "사거리 %s → %s칸", "sight": "인식 범위 %s → %s칸", "speed": "이동 %s → %s칸/초"}
+const HP_AT := Rect2(65, 266, 24, 24)  # 체력바 버튼 자리(S276 Claude 임시값): 대피령 버튼 오른쪽
+const HP_PIC := ["..........", "..........", "..........", "..........", "##########", "#ggggggkk#", "#ggggggkk#", "##########", "..........", ".........."]  # 체력바 버튼 그림(S276 Claude 임시값)
+const FIX_AT := Rect2(582, 182, 24, 24)  # 자동 수리 태그 자리(I210 Claude 임시값): A 태그 왼쪽
 const TOP := Rect2(0, 0, 640, 30)  # 팝업이 피하는 위 띠(I137)
 const POP_GAP := 2.0  # 팝업과 고른 칸 사이(I58)
 const CONFIRM := 2.0  # 철거를 다시 눌러 확정하는 초(S74 임시값)
@@ -134,6 +137,7 @@ var select  # 선택 패널(S206). 건설 격자 바로 왼쪽
 var minimap  # 미니맵(S209). 왼쪽 아래 구석
 var evac  # 대피령 버튼(S230). 미니맵 바로 위
 var shop  # «영입» 버튼(S272, I207). 대피령 버튼 바로 위
+var hp_button: Button  # 체력바 버튼(S276). 대피령 버튼 오른쪽, 누르면 V 키와 같다
 var view  # 맵 그림(BattleView). 미니맵이 구운 바닥을 빌린다. main이 넣는다
 var _hp: Label
 var _lv: Label
@@ -213,6 +217,8 @@ var _wait := 0.0  # 결과 창이 뜨기까지 남은 시간(초, S117). 트리�
 var tags := []  # 고른 영웅·용병의 상황 태그 [A 공격 이동, S 정지, H 홀드](I139)
 var _tag_pics := []  # 태그마다 그림
 var _hold_tip := ""  # 홀드 태그 툴팁의 지금 상태 글
+var fix_tag: Button  # 고른 공병의 자동 수리 태그(I210). tags(A·S·H)와 따로 둔다. 누르면 F 키와 같다
+var _fix_pic: TextureRect  # 자동 수리 태그의 망치 그림. 밝기가 끔·켬·섞임이다
 var portraits := []  # 출전 칸마다 초상 버튼(I129). 누르면 그 영웅을 고른다(I165)
 var slots := []  # 출전 칸마다 {칸: 스킬 칸}(I151)
 var _rows := []  # 출전 칸마다 {pic: 초상 그림, lv: 레벨 글, hp·mp: 막대, down: «쓰러짐»}(I129)
@@ -323,6 +329,18 @@ func _ready() -> void:
 	tip.add(tags[0], func(): return ["공격 이동", "A", "", "누른 뒤 땅: 가는 길의 적을 친다\n적: 그 적만 친다", ""])  # 툴팁 폭 160이라 줄을 나눈다
 	tip.add(tags[1], func(): return ["정지", "S", "", "그 자리에 선다", ""])
 	tip.add(tags[2], func(): return ["홀드", "H", "", _hold_tip, ""])
+	fix_tag = _bar_button(root, "", controls.toggle_auto_fix)  # 자동 수리 태그(I210): 망치 7×6을 2배로, 왼쪽 위에 키 글자
+	fix_tag.position = FIX_AT.position
+	fix_tag.size = FIX_AT.size
+	_fix_pic = _pic(fix_tag, HudBuild.dots(HAMMER, {"#": HudTheme.TEXT}), Vector2(14, 12))
+	_fix_pic.position = Vector2(5, 6)
+	var fix_key := _text(fix_tag, 7, HudTheme.ACCENT)
+	fix_key.text = "F"
+	fix_key.position = Vector2(1, -1)
+	fix_key.size = Vector2(8, 8)
+	for n in fix_tag.get_children():
+		n.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tip.add(fix_tag, func(): return ["자동 수리", "", "[F]", "켜면 둘레의 깎인 것을 스스로 고친다", ""])
 	chip.position = Vector2(134, 30)  # 위 띠 바로 아래(S147 임시값). 글이 길면 오른쪽으로 는다
 	chip.custom_minimum_size = Vector2(180, 14)
 	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -429,6 +447,17 @@ func _ready() -> void:
 	root.add_child(evac)
 	shop = HudShop.new(self)
 	root.add_child(shop)
+	hp_button = _bar_button(root, "", func(): controls.show_hp = not controls.show_hp)  # 체력바 버튼(S276): 그림 10×10을 2배로, 왼쪽 위에 키 글자
+	hp_button.position = HP_AT.position
+	hp_button.size = HP_AT.size
+	_pic(hp_button, HudBuild.dots(HP_PIC, {"#": HudTheme.TEXT, "g": Color.GREEN, "k": Color.BLACK}), Vector2(20, 20)).position = Vector2(2, 2)
+	var hp_key := _text(hp_button, 7, HudTheme.ACCENT)
+	hp_key.text = "V"
+	hp_key.position = Vector2(1, -1)
+	hp_key.size = Vector2(8, 8)
+	for n in hp_button.get_children():
+		n.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tip.add(hp_button, func(): return ["체력바", "", "[V]", "영웅·용병·적의 체력바를 늘 보인다", ""])
 	_mark.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_mark.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -500,6 +529,8 @@ func _process(delta: float) -> void:
 	alerts.visible = on
 	minimap.visible = on
 	minimap.queue_redraw()
+	hp_button.visible = on
+	hp_button.modulate.a = 1.0 if controls.show_hp else 0.35  # 꺼져 있으면 흐리게(S276). 대피령 버튼의 흐림과 같은 값
 	if on:
 		alerts.step(delta)
 	hints.step()
@@ -515,6 +546,11 @@ func _process(delta: float) -> void:
 		var h := 0 if held == 0 else 1 if held == mercs.size() else 2  # 끔·켬·섞임
 		_tag_pics[2].modulate = HOLD_LOOK[h]
 		_hold_tip = HOLD_TIPS[h]
+	var engineers: Array = mercs.filter(func(u): return u.kind == "engineer")  # 자동 수리 태그(I210): 밝기는 홀드와 같은 끔·켬·섞임
+	fix_tag.visible = on and not engineers.is_empty()
+	if fix_tag.visible:
+		var fixing: int = engineers.filter(func(u): return u.auto_fix).size()
+		_fix_pic.modulate = HOLD_LOOK[0 if fixing == 0 else 1 if fixing == engineers.size() else 2]
 	var refusing: bool = _now - _refused[1] < REFUSE_HINT
 	chip.visible = (controls.placing != "" or controls.moving != null or controls.aiming != "" or controls.attacking or refusing) and not tip.shows_in(bar)  # 위 띠 툴팁이 뜨면 숨는다(S147)
 	hint.text = "%s 놓기: 좌클릭 · 끝: 우클릭·ESC" % NAMES.get(controls.placing, "")
@@ -700,7 +736,7 @@ func _place_popup() -> void:
 	var cell: Rect2 = t * Rect2((controls.sell_at / BattleView.CELL).floor() * BattleView.CELL, Vector2.ONE * BattleView.CELL)
 	var screen := Rect2(Vector2.ZERO, get_viewport().get_visible_rect().size)
 	var away := (cell.get_center() - screen.get_center()).sign()
-	var avoid: Array = [TOP, grid.get_global_rect(), grid.info_box()] + tags.filter(func(g): return g.visible).map(func(g): return g.get_global_rect())
+	var avoid: Array = [TOP, grid.get_global_rect(), grid.info_box()] + (tags + [fix_tag]).filter(func(g): return g.visible).map(func(g): return g.get_global_rect())
 	var s := popup.size
 	for flip in [Vector2(1, 1), Vector2(-1, 1), Vector2(1, -1), Vector2(-1, -1)]:
 		var d: Vector2 = away * flip
@@ -1223,7 +1259,7 @@ func _face(kind: String) -> Texture2D:
 # ESC 메뉴가 열리면 건설 격자·정보 칸·태그를 숨긴다(S183). 멈춘 동안 HUD가 돌지 않아 main이 부르고, 메뉴가 닫히면 다음 _process가 다시 보인다
 func cover() -> void:
 	grid.visible = false
-	for t in tags:
+	for t in tags + [fix_tag]:
 		t.visible = false
 
 # 미션·수락한 의뢰 줄(I122): «미션: 조건 (+N골드)»와 «의뢰: 조건 (+N골드)». 조건이 깨졌으면 «— 실패»를 붙인다(I131)

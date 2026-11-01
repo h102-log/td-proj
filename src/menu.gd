@@ -3,6 +3,7 @@ extends Node
 # ESC 메뉴의 «메인 메뉴로»(I161)는 이 장면으로 돌아온다. 게임을 막 켰을 때는 저장·설정 파일을 정하고 창을 준비한다(S161, S163)
 
 const Main := preload("res://src/main.gd")
+const HudCursor := preload("res://src/ui/hud_cursor.gd")
 const Save := preload("res://src/sim/save.gd")
 const Settings := preload("res://src/settings.gd")
 const Menus := preload("res://src/ui/menus.gd")
@@ -23,6 +24,9 @@ func _ready() -> void:
 	menus.chosen.connect(_on_menu)
 	add_child(menus)
 	menus.open("title")
+
+func _process(_delta: float) -> void:
+	HudCursor.apply("arrow", Main.cursor_scale(get_window()))  # 메뉴 장면은 기본 화살표(S278). 창 배율이 바뀌면 다시 건다(I211)
 
 func _on_menu(what: String) -> void:
 	match what:

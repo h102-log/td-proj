@@ -28,3 +28,11 @@ def test_EV157_interrupted_repair_resumes_free(gd):
 
 def test_EV158_battle_restore_rises_when_engineer_arrives(gd):
     gd("repair", "EV158")
+
+
+def test_EV662_auto_fix_takes_near_hurt_castle(gd):
+    gd("repair", "EV662")
+
+
+def test_EV663_auto_fix_refusals_and_f_key(gd):
+    gd("repair", "EV663")

@@ -5,6 +5,7 @@ extends "res://tests/eval/gd/lib.gd"
 #   Battle.REPAIR_RATE — {"castle_wall", "gate", "base"} → 체력 1당 수리비(골드)
 #   Battle.refund(대상) — 판매 환불(S69). 구조물 수리비는 «낸 골드 − 환불»이다(S114)
 #   Battle.upgrade(성곽 칸) — 성곽 업그레이드(S86)
+#   자동 수리(S277): 유닛.auto_fix(bool, 처음 false) · Battle.set_auto_fix(units, on) — 공병만 바뀐다 · Controls의 F 키(toggle_auto_fix)
 # 성곽 맵은 wall.gd와 같다: 9행이 가로 성곽(성문 5·15·25열, 모두 닫힘), 위쪽(0~8행)이 마을, 아래쪽이 들판
 
 const T := Vector2i(12, 10)  # 기본 맵의 타워 칸
@@ -178,3 +179,171 @@ func ev158():
 	if not run(b, 30.0, func(): return b.castle.get(TOP) == k):
 		return "공병이 가도 성곽이 다시 서지 않았다"
 	return check(run(b, 20.0, func(): return k.hp >= k.max_hp), "다시 선 성곽 체력이 %s/%s다" % [k.hp, k.max_hp])
+
+# 자동 수리 판(S277): 성곽 맵에 공병 (12,12)·타워 (20,12)를 두고, 성벽 칸 TOP 체력을 hurt 비율, 타워를 50%로 깎는다.
+# 공병 발 자리에서 가장 가까운 차지 칸까지 TOP은 3칸, 타워는 8칸이다. live면 판을 차린 뒤 live_prep을 켠다. [판, 공병, 성벽 칸, 타워]
+func _fix_board(hurt := 0.6, live := true) -> Array:
+	var b = _castle()
+	var eng = b.place_merc("engineer", Vector2i(12, 12))
+	var t = b.build("tower", Vector2i(20, 12))
+	var k = b.castle[TOP]
+	k.hp = k.max_hp * hurt
+	if t:
+		t.hp = t.max_hp * 0.5
+	b.live_prep = live
+	return [b, eng, k, t]
+
+# 판이 EV 문장대로 차려졌나(공병·타워가 있고 거리가 3칸·8칸이며, 성곽 칸·타워 모두 수리할 수 있는 것). 맞으면 ""
+func _fix_setup(s: Array) -> String:
+	if s[1] == null or s[3] == null:
+		return "시험 판을 차리지 못했다(공병 %s · 타워 %s)" % [s[1], s[3]]
+	var B = load("res://src/sim/battle.gd")
+	var dk: float = s[1].pos.distance_to(B.nearest(s[2], s[1].pos))
+	var dw: float = s[1].pos.distance_to(B.nearest(s[3], s[1].pos))
+	if not s[0].can_repair(s[2]) or not s[0].can_repair(s[3]):
+		return "시험 조건이 틀렸다: 수리할 수 있음 — 성곽 칸 %s · 타워 %s(둘 다 true여야 한다)" % [s[0].can_repair(s[2]), s[0].can_repair(s[3])]
+	return check(is_equal_approx(dk, 3.0) and is_equal_approx(dw, 8.0), "시험 조건이 틀렸다: 성곽 칸까지 %.2f칸(3이어야 한다) · 타워까지 %.2f칸(8이어야 한다)" % [dk, dw])
+
+# 자동 수리를 켜고 끈다. Battle.set_auto_fix가 아직 없으면 아무것도 하지 않는다
+func _fix(b, us: Array, on: bool) -> void:
+	if b.has_method("set_auto_fix"):
+		b.call("set_auto_fix", us, on)
+
+# secs초 돌리는 동안 u가 일을 맡은 적이 있나
+func _took(b, u, secs: float) -> bool:
+	var took := [false]
+	run(b, secs, func():
+		took[0] = took[0] or u.job != null
+		return false)
+	return took[0]
+
+func _tap(c, key: int) -> void:
+	var ev := InputEventKey.new()
+	ev.keycode = key
+	ev.pressed = true
+	c.handle(ev)
+
+# EV662 · S277: 자동 수리를 켠 공병은 6칸 안에서 80% 밑인 성곽 칸을 맡고 맡는 순간 수리비를 낸다. 끝까지 고친다.
+# 체력 비율이 더 낮아도 8칸인 타워는 맡지 않는다. 끈 공병과 85%인 성곽 칸은 맡지 않는다
+func ev662():
+	var s := _fix_board()
+	var why := _fix_setup(s)
+	if why != "":
+		return why
+	var b = s[0]
+	var eng = s[1]
+	var k = s[2]
+	var t = s[3]
+	if not b.has_method("set_auto_fix"):
+		return "Battle.set_auto_fix가 없다(구현 없음)"
+	var g0: int = b.gold
+	_fix(b, [eng], true)
+	# «그 순간의 수리비»: 맡기 직전 스텝의 수리비·골드를 들고 있다가, 맡은 스텝 뒤 골드와 비교한다(도착해서 내면 0이다)
+	var seen := {"cost": b.repair_cost(k), "gold": b.gold, "paid": -1, "want": -1, "tower": false}
+	run(b, 1.0, func():
+		seen.tower = seen.tower or t.worker != null
+		if seen.paid < 0:
+			if eng.job == k:
+				seen.paid = seen.gold - b.gold
+				seen.want = seen.cost
+			else:
+				seen.cost = b.repair_cost(k)
+				seen.gold = b.gold
+		return false)
+	if seen.paid < 0 or seen.paid != seen.want or g0 - b.gold != seen.want or seen.tower:
+		return "켠 공병 1초: 성곽 칸을 맡음 %s · 맡은 순간 낸 골드 %d · 1초 동안 낸 골드 %d(둘 다 맡기 직전 수리비 %d여야 한다) · 타워를 맡음 %s" % [seen.paid >= 0, seen.paid, g0 - b.gold, seen.want if seen.paid >= 0 else seen.cost, seen.tower]
+	if not run(b, 20.0, func(): return k.hp >= k.max_hp):
+		return "20초가 지나도 성곽 칸 체력이 %.1f/%.1f다" % [k.hp, k.max_hp]
+	s = _fix_board()
+	b = s[0]
+	eng = s[1]
+	g0 = b.gold
+	_fix(b, [eng], true)
+	_fix(b, [eng], false)
+	var off = eng.get("auto_fix")
+	var off_took := _took(b, eng, 1.0)
+	if off != false or off_took or b.gold != g0:
+		return "켰다 끈 공병: 자동 수리 %s · 1초 안에 맡음 %s · 골드 %d → %d" % [off, off_took, g0, b.gold]
+	s = _fix_board(0.85)
+	b = s[0]
+	eng = s[1]
+	g0 = b.gold
+	_fix(b, [eng], true)
+	var on = eng.get("auto_fix")
+	var full_took := _took(b, eng, 1.0)
+	return check(on == true and not full_took and b.gold == g0, "성곽 칸 85%%: 자동 수리 %s · 1초 안에 맡음 %s · 골드 %d → %d" % [on, full_took, g0, b.gold])
+
+# EV663 · S277: 켠 공병도 골드가 수리비보다 적거나, 이동 지시로 걷는 중이거나, 멈춘 자리에서 6칸 밖이거나, live가 아닌 판이면 맡지 않는다.
+# F 키는 고른 공병이 모두 켜져 있으면 끄고 아니면 켠다. 병사만 고르면 아무 공병도 바뀌지 않는다. 새로 산 공병은 꺼져 있다
+func ev663():
+	var s := _fix_board()
+	var why := _fix_setup(s)
+	if why != "":
+		return why
+	var b = s[0]
+	var eng = s[1]
+	var k = s[2]
+	if not b.has_method("set_auto_fix"):
+		return "Battle.set_auto_fix가 없다(구현 없음)"
+	b.gold = b.repair_cost(k) - 1
+	var g0: int = b.gold
+	var hp0: float = k.hp
+	_fix(b, [eng], true)
+	var poor := _took(b, eng, 1.0)
+	if poor or b.gold != g0 or k.hp != hp0:
+		return "골드 %d < 수리비 %d: 1초 안에 맡음 %s · 골드 → %d · 성곽 칸 체력 %.1f → %.1f" % [g0, g0 + 1, poor, b.gold, hp0, k.hp]
+	s = _fix_board()
+	b = s[0]
+	eng = s[1]
+	k = s[2]
+	_fix(b, [eng], true)
+	b.order_move([eng], Vector2i(12, 18))
+	if eng.path.is_empty():
+		return "이동 지시 뒤 걸을 길이 없다"
+	var walk := [false]
+	var stopped := run(b, 10.0, func():
+		walk[0] = walk[0] or eng.job != null
+		return eng.path.is_empty())
+	if not stopped or walk[0]:
+		return "켠 공병을 성곽 칸에서 멀리 보냄: 10초 안에 멈춤 %s · 걷는 동안 맡음 %s" % [stopped, walk[0]]
+	var far: float = eng.pos.distance_to(load("res://src/sim/battle.gd").nearest(k, eng.pos))
+	if far <= 6.0:
+		return "시험 조건이 틀렸다: 멈춘 자리 %s가 성곽 칸에서 %.2f칸이다(6칸 밖이어야 한다)" % [eng.pos, far]
+	var stay := _took(b, eng, 1.5)
+	if stay or eng.get("auto_fix") != true:
+		return "멈춘 자리(성곽 칸에서 %.1f칸): 1.5초 안에 맡음 %s · 자동 수리 %s(켜진 채여야 한다)" % [far, stay, eng.get("auto_fix")]
+	s = _fix_board(0.6, false)
+	b = s[0]
+	eng = s[1]
+	g0 = b.gold
+	_fix(b, [eng], true)
+	var on = eng.get("auto_fix")
+	var dead := _took(b, eng, 1.0)
+	if on != true or dead or b.gold != g0:
+		return "live가 아닌 준비 단계 판: 자동 수리 %s · 1초 안에 맡음 %s · 골드 %d → %d" % [on, dead, g0, b.gold]
+	b = _castle()
+	var e1 = b.place_merc("engineer", Vector2i(12, 12))
+	var e2 = b.place_merc("engineer", Vector2i(14, 12))
+	var sol = b.place_merc("soldier", Vector2i(10, 12))
+	var c = controls(b)
+	_fix(b, [e1], true)
+	c.selected = [e1, e2]
+	_tap(c, KEY_F)
+	var both := [e1.get("auto_fix"), e2.get("auto_fix")]
+	_tap(c, KEY_F)
+	var none := [e1.get("auto_fix"), e2.get("auto_fix")]
+	if both != [true, true] or none != [false, false]:
+		return "하나만 켠 공병 둘에 F 키: 첫 번째 %s(둘 다 true) · 두 번째 %s(둘 다 false)" % [both, none]
+	_fix(b, [e1], true)
+	c.selected = [sol]
+	_tap(c, KEY_F)
+	var kept := [e1.get("auto_fix"), e2.get("auto_fix")]
+	if kept != [true, false]:
+		return "병사만 고르고 F 키: 공병 자동 수리 %s([true, false] 그대로여야 한다)" % [kept]
+	b = _castle()
+	b.live_prep = true
+	var m = b.recruit(b.base, "engineer")
+	if m == null:
+		return "live 판 거점에서 공병을 사지 못했다"
+	var v = m.get("auto_fix")
+	return check(typeof(v) == TYPE_BOOL and not v, "새로 산 공병의 자동 수리가 %s다(꺼져 있어야 한다)" % [v])

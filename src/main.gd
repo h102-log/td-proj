@@ -7,6 +7,7 @@ const BattleView := preload("res://src/ui/battle_view.gd")
 const Camera := preload("res://src/ui/camera.gd")
 const Controls := preload("res://src/ui/controls.gd")
 const Hud := preload("res://src/ui/hud.gd")
+const HudCursor := preload("res://src/ui/hud_cursor.gd")
 const Menus := preload("res://src/ui/menus.gd")
 const Save := preload("res://src/sim/save.gd")
 const Settings := preload("res://src/settings.gd")
@@ -27,6 +28,7 @@ var hud
 var menus  # ESC 메뉴(S183)
 var sfx  # 효과음 연결(S269)
 var _seen := ""  # 마지막으로 본 판 단계. 바뀌면 저장하거나 지운다(S181, I157)
+var _map_press := false  # 마지막 좌버튼 누름이 맵(controls)에 갔다. 더블클릭의 둘째 누름을 맵에 줄지 본다(S275)
 
 func _ready() -> void:
 	view = BattleView.new()
@@ -58,6 +60,7 @@ func _ready() -> void:
 	add_child(sfx)
 	Audio.of(get_tree()).follow(view.battle.state, false, true)  # 이어하기로 라운드 사이에 와도 징글은 없다(S271)
 	setup_window(get_window(), false)  # 창 크기·시작 모드는 진입 장면(menu.gd)이 정했다
+	get_window().size_changed.connect(_resized)
 	_check()
 
 # 맵(전장)을 기준 해상도로 그려 정수배·Nearest로 키우는 SubViewport. 게임은 2026-10-25부터 맵을 루트에 바로 그리고(S30 변경),
@@ -84,6 +87,8 @@ func _process(delta: float) -> void:
 	Audio.of(get_tree()).follow(b.state, b.enemies.any(func(e): return e.alive and e.boss))  # 음악(S271)
 	view.queue_redraw()
 	_check()
+	var at: Vector2 = get_viewport().get_camera_2d().steady().affine_inverse() * get_viewport().get_mouse_position()  # 지금 마우스 자리 → 맵 px(handle에 넘기는 것과 같은 변환)
+	HudCursor.apply(HudCursor.kind(controls, at, get_viewport().gui_get_hovered_control() != null), cursor_scale(get_window()))  # 커서 모양(S278, I211). 가장자리 스크롤 중에도 맞게 매 프레임 정한다
 
 # 판 단계가 바뀌면 전투 단계가 아닌 단계는 저장하고(S181), 도전이 끝났으면 저장을 지운다(S65, I157)
 func _check() -> void:
@@ -101,6 +106,13 @@ func pause() -> void:
 	menus.open("pause", view.battle.state == "battle")
 	hud.cover()
 	get_tree().paused = true
+	_map_press = false  # 메뉴 버튼 누름은 멈춘 동안이라 _input이 보지 못한다
+	HudCursor.apply("arrow", cursor_scale(get_window()))  # ESC 메뉴 위는 기본 화살표(S278). 멈춘 동안 _process가 커서를 정하지 않는다
+
+# 멈춘 동안 창 배율이 바뀌면(ESC 메뉴 설정의 전체화면·창 크기 끌기) 커서를 그 배율로 다시 건다(I211). 멈추지 않았으면 _process가 건다
+func _resized() -> void:
+	if get_tree().paused:
+		HudCursor.apply("arrow", cursor_scale(get_window()))
 
 func _on_menu(what: String) -> void:
 	match what:
@@ -129,6 +141,16 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST and view and view.battle.state in QUIET:
 		Save.write(view.battle)
 
+# 더블클릭의 둘째 좌누름은 첫 누름이 맵에 갔으면 HUD보다 먼저 맵에 준다. 첫 클릭으로 새로 뜬 선택 패널·태그가 그 자리를 덮어도
+# 용병 더블클릭(S275)이 되게 한다. 뗌은 누름을 받은 HUD가 없으니 그대로 _unhandled_input으로 온다
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		var to_map: bool = event.double_click and _map_press
+		_map_press = false
+		if to_map:
+			get_viewport().set_input_as_handled()
+			_unhandled_input(event)
+
 # 전투 시작은 HUD 버튼 말고 Enter·Space(기본 ui_accept)로도 된다. 결과 창·영입 창이 떠 있으면 그 버튼을 누른다(I94)
 # 창의 버튼에 키보드 포커스가 있으면 그 버튼이 누른다(I110). 버튼은 ui_accept를 소비하지 않아 여기서 거르지 않으면 둘 다 눌린다
 # ESC는 조준·놓기·대포 옮기기 중이거나 맵 팝업이 떠 있으면 Controls가 그것을 취소하거나 닫고, 아니면 ESC 메뉴를 연다(S183)
@@ -153,6 +175,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			hud.proceed()
 		else:
 			view.battle.start_battle()
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		_map_press = true
+	controls.view = hud.minimap.seen()  # 용병 더블클릭이 고르는 화면 안(S275)
 	controls.handle(event.xformed_by(get_viewport().get_camera_2d().steady().affine_inverse()))  # 화면 좌표 → 맵 px(카메라 줌·이동 반영, 흔들림은 뺌 S200)
 
 # 창 준비: 최소 크기는 늘 기준 해상도의 2배(S164). 창 크기·시작 모드는 게임을 막 켰을 때(진입 장면 menu.gd)만 정한다(S161, S163, I153)
@@ -176,6 +201,10 @@ static func fit_window(w: Window) -> void:
 static func window_scale(usable: Vector2i, deco: Vector2i, base: Vector2i) -> int:
 	var k := (usable - deco) / base
 	return maxi(1, mini(k.x, k.y))
+
+# 커서 그림 배율(I211): 창 크기를 기준 해상도로 나눈 정수 몫, 최소 1. 루트 stretch의 정수배와 같다
+static func cursor_scale(w: Window) -> int:
+	return window_scale(w.size, Vector2i.ZERO, w.content_scale_size)
 
 # 전체화면이면 창 모드로 돌아가며 그때의 화면에 맞춰 크기를 다시 정하고, 아니면 전체화면으로 간다(S162, I154)
 static func toggle_fullscreen(w: Window) -> void:

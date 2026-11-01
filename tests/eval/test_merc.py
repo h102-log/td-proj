@@ -56,3 +56,7 @@ def test_EV593_held_merc_not_pushed_by_ally(gd):
 
 def test_EV598_melee_lunge_reaches_body(gd):
     gd("merc", "EV598")
+
+
+def test_EV659_double_click_selects_same_kind_on_screen(gd):
+    gd("merc", "EV659")

@@ -2,6 +2,7 @@ extends RefCounted
 # 마우스·키 입력을 전투 명령으로 바꾼다. 마우스 좌표는 맵 px(칸 (x,y)가 [x, x+1) × cell_px)로 받는다.
 # 좌클릭: 영웅·용병이나 생산 시설·성곽 칸·거점을 고른다(I9, S81, S85, S86, S100). 빈 땅·적을 누르면 팝업만 닫고 고른 유닛은 그대로다(S204).
 # 누른 적은 선택 패널에 보인다(shown, S206)
+# 용병 더블클릭(엔진의 double_click): 발 자리가 화면(view) 안인 살아 있는 같은 종류 용병을 모두 고른다. 영웅은 한 번 클릭과 같고 판매 후보는 누른 하나다(S275)
 # 좌드래그: 사각형 안의 영웅과 용병을 고른다(S16, I9). 유닛도 구조물도 없는 사각형은 빈 땅 클릭과 같다(I173)
 # 우클릭: 고른 유닛에게 명령: 커서 0.7칸 안에 적이 있으면 대상 공격, 아니면 순수 이동(S14, S35). 명령이 가면 표식을 띄운다(S205).
 # 살아 있는 고른 유닛 없이 생산 시설을 골랐으면 그 칸을 집결 지점으로(S82, I173)
@@ -9,7 +10,7 @@ extends RefCounted
 # 전투 단계의 좌클릭·좌드래그는 철거·취소·이어 짓기 후보(picked)를 정한다(S74, S83). live 판(I175)의 준비 단계에는 미완성 구조물만 이어 짓기·취소 후보다(I57)
 # Q·W·E·R: 영웅 스킬(S145, I10). 고른 영웅이, 없으면 첫 영웅이 쓴다(S119). 즉시·켜고 끄는 칸은 바로 쓰고, 지점·방향·대상을 고르는 칸은
 # 조준 상태가 된다(퀵캐스트를 켜면 키를 누르는 순간 커서 자리에 쓴다, I158). 조준 중 좌클릭은 그 지점·대상에 쓰고, 우클릭·ESC는 취소한다(S147). Shift+키와 HUD 스킬 버튼 우클릭은 자동 시전을 켜고 끈다(S158, I151)
-# A: 공격 명령 조준(S35). 그동안 좌클릭은 땅이면 공격 이동·적이면 대상 공격이고, 우클릭·ESC는 취소한다 · S: 정지(S35) · H: 홀드 전환(S36) · V: 체력바 표시 전환(S73) · B: 대피령(S225)
+# A: 공격 명령 조준(S35). 그동안 좌클릭은 땅이면 공격 이동·적이면 대상 공격이고, 우클릭·ESC는 취소한다 · S: 정지(S35) · H: 홀드 전환(S36) · V: 체력바 표시 전환(S73) · B: 대피령(S225) · F: 자동 수리 전환(S277)
 # ESC: 조준·놓기·옮기기가 없으면 맵 팝업과 패널의 적을 닫는다(S183, S206). 고른 유닛은 풀지 않는다(S204)
 # F1·F2·F3: 출전 영웅 1·2·3을 고른다(I108)
 # 1 방벽 · 2 타워 · - 마법 타워(S110) · 3 용병 · 4 병영 · 5 공병 · 6 작업장 · 7 궁수(I71) · 8 대포(S92) · 9 사격장(S98) · 0 집(S103) · = 교회(I140) · \ 대피소(S226): 놓기 모드. 그동안 좌클릭은 그 칸에 짓거나 놓고, 우클릭·ESC·같은 키는 모드를 끝낸다(사용자 2026-10-12, S186)
@@ -36,6 +37,8 @@ var cell_px: int
 var selected := []
 var drag_rect := Rect2()  # 끌고 있는 선택 사각형(맵 px). 그리기용이고, 끌고 있지 않으면 크기 0
 var _press = null  # 좌버튼을 누른 위치(맵 px)
+var _double := false  # 마지막 좌버튼 누름이 더블클릭인가(S275). 뗄 때 _release에 넘기고 지운다
+var view := Rect2()  # 화면에 보이는 맵 사각형(칸). main이 입력마다 미니맵의 seen()으로 넣는다(S275)
 var placing := ""  # 놓기 모드의 종류(구조물 kind 또는 용병 kind). 빈 문자열이면 모드가 아니다
 var selling := []  # 판매 후보(구조물·용병). 비어 있지 않으면 화면에 판매 팝업이 뜬다(I58)
 var sell_at := Vector2()  # 판매 팝업을 띄울 곳: 클릭하거나 드래그를 놓은 지점(맵 px)
@@ -99,6 +102,8 @@ func handle(event: InputEvent) -> void:
 				stop()
 			KEY_H:
 				toggle_hold()
+			KEY_F:
+				toggle_auto_fix()
 			KEY_V:
 				show_hp = not show_hp
 			KEY_B:
@@ -156,8 +161,9 @@ func handle(event: InputEvent) -> void:
 	if event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
 			_press = event.position
+			_double = event.double_click
 		elif _press != null:
-			_release(Rect2(_press, event.position - _press).abs(), event.position)
+			_release(Rect2(_press, event.position - _press).abs(), event.position, _double)
 	elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 		var cell := Vector2i((event.position / cell_px).floor())
 		if facility and not selected.any(func(u): return u.alive):  # 고른 유닛이 있으면 시설을 골랐어도 유닛 명령이다(I173)
@@ -165,8 +171,9 @@ func handle(event: InputEvent) -> void:
 		else:
 			_command(event.position, false)
 
-func _release(rect: Rect2, at: Vector2) -> void:
+func _release(rect: Rect2, at: Vector2, double := false) -> void:
 	_press = null
+	_double = false
 	drag_rect = Rect2()
 	sell_at = at
 	missing = ""
@@ -189,6 +196,8 @@ func _release(rect: Rect2, at: Vector2) -> void:
 		selling = [hit] if prep and hit and hit not in picked else []
 		if hit in mercs:
 			units = [hit]
+			if double:  # 화면 안 같은 종류 용병을 더한다. 일하는 공병도(S275)
+				units += mercs.filter(func(u): return u != hit and u.alive and u.kind == hit.kind and view.has_point(u.pos + Vector2(0.5, 0.5)))
 		if hit == null and fort == null and units.is_empty():  # 문루·문 양옆 탑 그림 안(S218)
 			fort = BattleView.raised_at(battle, rect.position)
 		if hit == null and fort == null and units.is_empty() and BattleView.keep_rect(battle).has_point(rect.position):  # 망루 그림 안(S100)
@@ -303,6 +312,12 @@ func _command(px: Vector2, attack: bool) -> void:
 func toggle_hold() -> void:
 	var mercs := selected.filter(func(u): return not u.is_hero)
 	battle.set_hold(mercs, not mercs.all(func(u): return u.hold))
+
+# 고른 것 가운데 살아 있는 공병의 자동 수리(S277)를 바꾼다: 모두 켜져 있으면 끄고 아니면 켠다. 공병이 없으면 그대로다. F 키와 HUD 태그(I210)가 부른다
+func toggle_auto_fix() -> void:
+	var engineers := selected.filter(func(u): return u.alive and u.kind == "engineer")
+	if not engineers.is_empty():
+		battle.set_auto_fix(engineers, not engineers.all(func(u): return u.auto_fix))
 
 # 스킬 키(S145, S147, S158). Q·W·E·R 키와 테스트가 부른다. shift면 자동 시전을 켜고 끈다.
 # 즉시·켜고 끄는 칸(그리고 태세 중인 반격의 태세)은 바로 쓰고, 고르는 칸은 지금 쓸 수 있을 때만 조준 상태가 된다

@@ -289,3 +289,45 @@ func ev598():
 		bad.append("방벽을 친 적: %s(6px)" % got)
 	v.free()
 	return check(bad.is_empty(), "%s" % [bad])
+
+# p를 좌클릭한 뒤 둘째 누름에 double_click을 켜 다시 좌클릭한다(엔진의 두 번 누름 판정, S275)
+func _double_click(c, p: Vector2) -> void:
+	click(c, MOUSE_BUTTON_LEFT, p)
+	for pressed in [true, false]:
+		var ev := InputEventMouseButton.new()
+		ev.button_index = MOUSE_BUTTON_LEFT
+		ev.pressed = pressed
+		ev.double_click = pressed
+		ev.position = p
+		c.handle(ev)
+
+# EV659 · S275: 용병을 더블클릭하면 화면 안의 같은 종류 용병을 모두 고르고, 판매 후보는 누른 하나다. 한 번 클릭과 영웅 더블클릭은 그 하나다
+func ev659():
+	var b = battle({"size": Vector2i(50, 20), "heroes": [{"kind": "sylvia", "cell": Vector2i(16, 10)}]})
+	if b.state != "prep" or b.heroes.size() != 1:
+		return "준비 단계에 실비아가 출전한 판이 아니다 (%s, %d명)" % [b.state, b.heroes.size()]
+	var sylvia = b.heroes[0]
+	var soldiers := [Vector2i(10, 10), Vector2i(12, 10), Vector2i(14, 12), Vector2i(40, 10)].map(func(cell): return b.place_merc("soldier", cell))
+	var others := [b.place_merc("archer", Vector2i(11, 10)), b.place_merc("engineer", Vector2i(13, 10))]
+	if (soldiers + others).has(null):
+		return "병사 넷·궁수·공병을 두지 못했다"
+	var c = controls(b)
+	if c.get("view") == null:
+		return "Controls에 화면 사각형 view가 없다(S275 구현 없음)"
+	c.set("view", Rect2(0, 0, 30, 20))
+	var pressed = soldiers[0]
+	var on_screen: Array = soldiers.slice(0, 3)
+	_double_click(c, px(Vector2i(10, 10)))
+	var sel: Array = c.selected.duplicate()
+	var group: bool = sel.size() == 3 and on_screen.all(func(m): return m in sel)
+	var sale: bool = c.selling == [pressed]
+	var sale_n: int = c.selling.size()
+	var single := true
+	var single_n := []
+	for i in 2:  # 둘째 클릭은 이미 혼자 고른 병사를 다시 누른다. 더블클릭은 엔진 판정(double_click)으로만 안다
+		click(c, MOUSE_BUTTON_LEFT, px(Vector2i(10, 10)))
+		single = single and c.selected == [pressed]
+		single_n.append(c.selected.size())
+	_double_click(c, px(Vector2i(16, 10)))
+	var hero: bool = c.selected == [sylvia]
+	return check(group and sale and single and hero, "더블클릭에 화면 안 병사 셋 %s(%d개) · 판매 후보 누른 병사 하나 %s(%d개) · double_click 없는 클릭 두 번에 매번 그 하나 %s(%s개) · 실비아 더블클릭에 실비아 하나 %s(%d개)" % [group, sel.size(), sale, sale_n, single, single_n, hero, c.selected.size()])
