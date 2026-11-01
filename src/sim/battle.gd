@@ -67,6 +67,10 @@ const SPLIT_RING := 0.25  # 갈라져 나온 적을 죽은 자리에서 이만�
 # 수리(S114): 성곽·거점의 체력 1당 수리비(골드). 구조물은 낸 골드 ÷ 최대 체력이다. 수치는 임시값
 const REPAIR_RATE := {"castle_wall": 0.1, "gate": 0.1, "base": 1.0}
 const REPAIR_TIME := 5.0  # 전투 중 공병이 성곽·거점을 0에서 가득 채우는 시간(초, I87). 구조물은 건설 시간이다
+# 자동 수리(S277): 켜진 공병이 맡는 거리(칸, 가장 가까운 차지 칸까지)·체력 비율 상한(이 밑)·판정 간격(초). Claude 임시값
+const AUTO_FIX_RANGE := 6.0
+const AUTO_FIX_BELOW := 0.8
+const AUTO_FIX_EVERY := 0.5
 const WALL_RANGE := 2.0  # 성벽 위에서 치려면 필요한 사거리(칸, S88). 열린 성문 위는 예외다(S89). 임시값
 const SLOTS := ["q", "w", "e", "r"]  # 영웅 스킬 칸(S145)
 const CAST_RANGE := 6.0  # 지점·대상을 고르는 스킬의 시전 사거리(칸, S147). 임시값
@@ -232,6 +236,7 @@ class Unit:
 	var hold := false  # 켜지면 anchor에서 hold_radius 안에서만 싸운다(S36)
 	var hold_radius := 0.0
 	var anchor: Vector2  # 홀드 기준 지점(I37)
+	var auto_fix := false  # 공병 자동 수리가 켜져 있다(S277). 이동·정지 지시로는 꺼지지 않는다
 	var armor := 0.0  # 방어력(S149). 기본 0이고 세라피나 오라로만 오른다
 	var block := 1  # 블록 수(S159): 동시에 붙잡는 적 수. 요새화한 아이아스는 더 많다
 	var fx := {}  # 걸린 효과: 출처 → {효과 키: 값, left: 남은 초}(S150, I141)
@@ -416,6 +421,7 @@ var grid := CostGrid.new()
 var _wall := AStarGrid2D.new()  # 성벽 위 길. 성곽 칸만 걸을 수 있다(I69)
 var _repath := false  # 막힌 칸이 바뀌어 적 경로를 다시 구해야 한다
 var _stale := {}  # 경로를 다시 구할 적, 먼저 밀린 순서(I155)
+var _fix_clock := 0.0  # 다음 자동 수리 판정(S277)까지 남은 초
 var _queue := []      # 이번 웨이브에서 아직 안 나온 적 [종류, 출현 지점, 나올 칸](wave_plan)
 var _spawn_timer := 0.0
 var _spare := 0.0  # 아직 1골드가 되지 않은 처치 보상(I176)
@@ -610,6 +616,7 @@ func step(dt: float) -> void:
 		var near := _fort.grow(Folk.NEAR)
 		near_wall = enemies.any(func(e): return near.has_point(Vector2i(e.pos.round())))
 	_push_apart(enemies, units)
+	_auto_fix(dt)
 	var ground := units.filter(func(u): return not u.on_wall)  # 성벽 위 유닛은 밀리지 않는다(I70)
 	for u in units:
 		_act(u, dt)
@@ -1269,6 +1276,12 @@ func set_hold(group: Array, on: bool) -> void:
 		if not u.is_hero:
 			u.hold = on
 			u.anchor = u.pos  # 기준 지점은 켠 순간의 위치(I37)
+
+# 공병의 자동 수리(S277)를 켜고 끈다. 다른 유닛에는 걸지 않고, 일을 맡기는 것은 step이 한다(_auto_fix)
+func set_auto_fix(group: Array, on: bool) -> void:
+	for u in group:
+		if u.kind == "engineer":
+			u.auto_fix = on
 
 # 살아 있는 출전 영웅 가운데 첫 영웅(I126). 없으면 null
 # ── 영웅 스킬(S145~S158) ──────────────────────────────────────────────
@@ -2220,12 +2233,37 @@ func repair(t) -> void:
 	var engineer = _idle_engineer(t) if live() else null
 	if (live() and not engineer) or gold < repair_cost(t):
 		return
+	_pay_fix(t, engineer)
+
+# 수리비를 내고 잃은 체력을 낸 몫으로 채운 뒤, 공병이 있으면 보내고(I87) 없으면 바로 채운다(I86). repair와 자동 수리(S277)가 쓴다
+func _pay_fix(t: Block, engineer) -> void:
 	gold -= repair_cost(t)
 	t.mend = t.max_hp - t.hp
 	if engineer:
 		_send(engineer, t)
 	else:
 		_mend(t, t.mend)
+
+# 자동 수리(S277): live 판(live_prep, I175)의 준비·전투 단계에 AUTO_FIX_EVERY초마다, 켜진 공병 가운데 살아 있고 성벽 위가 아니며(I69) 일과 걷는 길이 없는 공병마다
+# 수리할 수 있는 것(구조물·성곽 칸·거점, can_repair) 가운데 체력이 AUTO_FIX_BELOW 밑이고 가장 가까운 차지 칸(I178)이 AUTO_FIX_RANGE칸 안이고
+# 막힌 칸 없이 닿는(I125) 것 가운데 체력 비율이 가장 낮은 하나를 고른다. 골드가 수리비만큼 있으면 맡는 순간 낸다. 잔해 복구·이어 짓기는 하지 않는다
+func _auto_fix(dt: float) -> void:
+	if not (live_prep and state in ["prep", "battle"]):  # live()와 달리 옛 규칙 판의 전투 단계에서도 돌지 않는다
+		return
+	_fix_clock -= dt
+	if _fix_clock > 0.0:
+		return
+	_fix_clock = AUTO_FIX_EVERY
+	for u in units:
+		if not (u.auto_fix and u.alive and u.kind == "engineer" and not u.on_wall and u.job == null and u.path.is_empty() and u.after.is_empty()):
+			continue
+		var best = null
+		for t in structures.values() + castle.values() + [base]:
+			if can_repair(t) and t.hp < t.max_hp * AUTO_FIX_BELOW and u.pos.distance_to(nearest(t, u.pos)) <= AUTO_FIX_RANGE \
+					and (best == null or t.hp / t.max_hp < best.hp / best.max_hp) and _reaches(u, _spot(u, t)):  # 길찾기는 더 낮은 후보에만
+				best = t
+		if best and gold >= repair_cost(best):
+			_pay_fix(best, u)
 
 # 교회 치료비(S137): 잃은 체력 × 체력 1당 값(교회 데이터의 heal), 1골드 미만은 올린다(I140)
 func heal_cost(h: Unit) -> int:

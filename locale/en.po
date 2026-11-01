@@ -1067,6 +1067,22 @@ msgstr "A new family moved in"
 msgid "아기가 태어났다"
 msgstr "A baby was born"
 
+# ── 체력바 버튼(hud.gd, S276) ──
+
+msgid "체력바"
+msgstr "HP bars"
+
+msgid "영웅·용병·적의 체력바를 늘 보인다"
+msgstr "Always show hero, merc and enemy HP bars"
+
+# ── 자동 수리 태그(hud.gd, S277·I210) ──
+
+msgid "자동 수리"
+msgstr "Auto repair"
+
+msgid "켜면 둘레의 깎인 것을 스스로 고친다"
+msgstr "When on, repairs damaged things nearby by itself"
+
 # ── 한글 없는 조립 틀: 끼운 값을 다시 번역하려고 넣는다 ──
 
 msgid "%s «%s» · %s"

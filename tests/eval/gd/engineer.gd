@@ -8,6 +8,8 @@ extends "res://tests/eval/gd/lib.gd"
 #   Battle.finish(구조물) — 준비 단계에, 미완성 구조물을 바로 완성한다
 #   Battle.demolish(things: Array) — 전투 단계에, 완성된 방벽·타워마다 놀고 있는 가장 가까운 공병을 보내 허문다
 #   Controls.picked — 전투 단계에 고른 플레이어 구조물(철거·취소·이어 짓기 대상)
+#   main.hud.fix_tag — 자동 수리 태그(BaseButton, I210). hud.tags(A·S·H)와 따로다. 안의 첫 TextureRect가 그림이고 그 modulate가 밝기다
+#     툴팁(main.hud.tip)에 «자동 수리»·«[F]». 누르면 F 키(Controls.toggle_auto_fix)와 같다. 유닛.auto_fix — 자동 수리 켬(S277)
 
 const T := Vector2i(12, 10)  # 짓는 칸(들판)
 const NEAR := Vector2i(12, 13)
@@ -386,3 +388,94 @@ func ev424():
 	var og: int = off.gold
 	var oe = off.recruit(off.base, "engineer")
 	return check(off.state == "battle" and off.sellers("engineer") == [] and oe == null and off.gold == og, "끈 판 %s 단계: 파는 곳 %s · 거점 구매 %s · 골드 %d → %d" % [off.state, off.sellers("engineer"), oe, og, off.gold])
+
+# 영웅 둘을 영입해 출전시키고 1라운드 준비 단계로 간 게임 장면(hud.gd _prep과 같다). 저장·설정은 평가용 파일로 바꿔 실제 파일을 건드리지 않는다
+func _scene():
+	load("res://src/sim/save.gd").path = "user://eval_save.dat"
+	load("res://src/settings.gd").path = "user://eval_settings.cfg"
+	load("res://src/main.gd").resume = {}
+	var main = load("res://src/main.tscn").instantiate()
+	Engine.get_main_loop().root.add_child(main)
+	var b = main.view.battle
+	b.gold = BIG
+	for i in 2:
+		b.hire(i)
+	b.next_round()
+	main._process(0.0)
+	main.hud._process(0.0)
+	for i in 2:  # 컨테이너 배치는 다음 프레임으로 미뤄진다. 평가는 한 프레임 안에서 돌아 직접 정렬한다(hud.gd _layout)
+		for c in main.hud.find_children("*", "Container", true, false):
+			c.notification(Container.NOTIFICATION_SORT_CHILDREN)
+	return main
+
+func _scene_done(main) -> void:
+	Engine.get_main_loop().paused = false
+	main.free()
+
+func _mouse_to(at: Vector2) -> void:
+	var e := InputEventMouseMotion.new()
+	e.position = at
+	e.global_position = at
+	Engine.get_main_loop().root.push_input(e, true)
+
+# 빈 맵 (320,300)에서 툴팁을 닫고, 버튼에 커서를 0.25초 두었을 때 툴팁 안의 보이는 글. 뜨지 않으면 ""
+func _tip_on(tip, btn) -> String:
+	_mouse_to(Vector2(320, 300))
+	tip._process(0.3)
+	_mouse_to(btn.get_global_rect().get_center())
+	tip._process(0.25)
+	if not tip.visible:
+		return ""
+	return " ".join(tip.find_children("*", "Label", true, false).filter(func(l): return l.is_visible_in_tree()).map(func(l): return l.text))
+
+# 태그의 그림: 안의 첫 TextureRect의 [텍스처, modulate]
+func _pic_of(tag) -> Array:
+	var pics: Array = tag.find_children("*", "TextureRect", true, false)
+	return [pics[0].texture, pics[0].modulate] if not pics.is_empty() else [null, null]
+
+# EV664 · I210: 공병을 고르면 A 태그 왼쪽 [582,182,24,24]에 자동 수리 태그가 뜬다. 보이는 글은 키 글자 «F» 하나이고 그림이 있으며
+# hud.tags(A·S·H)와 따로다. 툴팁은 «자동 수리»·«[F]». 누르면 그 공병의 자동 수리가 켜지고 그림이 밝아진다. 병사만 고르면 숨는다
+func ev664():
+	var main = _scene()
+	var b = main.view.battle
+	var c = main.hud.controls
+	var tag = main.hud.get("fix_tag")
+	if not tag is BaseButton:
+		_scene_done(main)
+		return "main.hud.fix_tag가 BaseButton이 아니다(%s · 구현 없음)" % [tag]
+	var eng = b.place_merc("engineer", Vector2i(20, 14))
+	var sol = b.place_merc("soldier", Vector2i(21, 14))
+	if eng == null or sol == null:
+		_scene_done(main)
+		return "준비 단계에 공병·병사를 놓지 못했다(%s · %s)" % [eng, sol]
+	c.selected = [eng]
+	main.hud._process(0.0)
+	var out := ""
+	var r: Rect2 = tag.get_global_rect()
+	var want := Rect2(582, 182, 24, 24)
+	var said: Array = tag.find_children("*", "Label", true, false).filter(func(l): return l.is_visible_in_tree()).map(func(l): return l.text)
+	var text = tag.get("text")
+	var tags = main.hud.get("tags")
+	if not tag.is_visible_in_tree() or r.position.distance_to(want.position) > 0.5 or r.size.distance_to(want.size) > 0.5:
+		out = "자동 수리 태그 %s · 보임 %s(기대 %s)" % [r, tag.is_visible_in_tree(), want]
+	elif (text != null and text != "") or " ".join(said) != "F" or _pic_of(tag)[0] == null:
+		out = "자동 수리 태그: 버튼 글 «%s» · 보이는 글 %s · 그림 %s(기대: 버튼 글 없음, 보이는 글은 «F» 하나, 그림 있음)" % [text, said, _pic_of(tag)[0]]
+	elif not tags is Array or tags.size() != 3 or tag in tags:
+		out = "hud.tags가 %s다(A·S·H 셋 그대로이고 자동 수리 태그는 따로여야 한다)" % [tags]
+	if out == "":
+		var tip := _tip_on(main.hud.tip, tag)
+		if not "자동 수리" in tip or not "[F]" in tip:
+			out = "자동 수리 태그 툴팁 «%s»(«자동 수리»·«[F]»가 있어야 한다)" % tip
+	if out == "":
+		var off: Color = _pic_of(tag)[1]
+		tag.pressed.emit()
+		main.hud._process(0.0)
+		var lit: Color = _pic_of(tag)[1]
+		if eng.get("auto_fix") != true or lit.get_luminance() <= off.get_luminance():
+			out = "태그를 누른 뒤 공병 자동 수리 %s · 그림 밝기 %.2f → %.2f(밝아져야 한다)" % [eng.get("auto_fix"), off.get_luminance(), lit.get_luminance()]
+	if out == "":
+		c.selected = [sol]
+		main.hud._process(0.0)
+		out = check(not tag.is_visible_in_tree(), "병사만 골랐는데 자동 수리 태그가 보인다")
+	_scene_done(main)
+	return out

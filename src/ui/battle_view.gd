@@ -121,6 +121,7 @@ const CRACK := [Color("1f240a"), Color("a56243")]  # 바닥 균열의 어두운 
 const JOLT := 0.05  # 맞은 구조물·성곽 칸·거점 그림을 1px 옮겨 그리는 시간(초, 3프레임, S199)
 const DEBRIS := Color("efd8a1")  # 구조물 부스러기(S199): 돌 회청색·나무 갈색과 다른 밝은 모래색(F24+). 시안의 재질 색은 거의 안 보였다
 const HERO_LOW := 0.5  # 영웅 체력이 이 비율 밑이면 V와 상관없이 막대를 그린다(S73 2026-10-29)
+const HP_BAR_DROP := 8  # 영웅·용병·적(보스 빼고) 체력바 윗변이 발 자리보다 아래인 px(S276 Claude 임시값)
 const BAR_TIERS := [Color("ef3a0c"), Color("e0c040"), Color("7cc85a")]  # 구조물·성곽·거점 막대(S199): 25% 밑·50% 밑·그 위. 위 띠 거점 막대(S190)의 HudTheme.DANGER·HudBuild.WARN·HudTheme.GOOD와 같은 값
 const SOFT_FLASH := Color(255, 255, 255, 0.4)  # 번쩍임 줄이기(S184): 같은 그림을 255배·알파 0.4로 덧그리면 흰 40%다(S177, S197)
 const STONE := Color("7a86a0")  # 무너진 성곽 칸에서 떨어지는 돌 조각(S200, F24+ 성벽 돌색)
@@ -259,6 +260,7 @@ var _top: Node2D  # 덮개 위 층: 조준 미리보기·출현 배지·체력 �
 var _cv: CanvasItem = self  # _draw_top의 그리기 함수가 그리는 곳. 층이 없으면(트리 밖에서 만든 맵) 맵 자신이다
 var _foes := []  # 이번 프레임에 보이는 적(S213). 숨은 적은 몸·발밑·막대·효과 테두리·예고를 그리지 않는다
 var _folk_now := []  # 이번 프레임의 주민 [주민 몸(battle.people), folk_of]. 덮개 위 층이 야경꾼 등불을 그 자리에 그린다(S223)
+var _hammer: Texture2D  # 자동 수리 표식(I210). 처음 그릴 때 만든다(_fix_mark)
 
 func _ready() -> void:
 	if battle:
@@ -369,6 +371,8 @@ func _draw() -> void:
 		var at := _spot(u) + _slip(u)  # 넉백으로 미끄러지는 몸을 테두리·숫자가 따라간다(S198)
 		if u.is_hero:  # 영웅 레벨(I117): 오른쪽 위에 작게
 			draw_string(PIXEL_FONT, at + Vector2(CELL * 0.3, -CELL * 0.3), str(u.level), HORIZONTAL_ALIGNMENT_LEFT, -1, 8)
+		if u.auto_fix:  # 자동 수리가 켜진 공병(I210): 오른쪽 위에 작은 망치
+			draw_texture(_fix_mark(), (at + Vector2(CELL * 0.3, -CELL * 0.75)).floor())
 		if u in controls.selected and u.hold:  # 고른 유닛의 표시는 발밑(_feet_mark, S207). 홀드면 기준 반경을 그린다(S36)
 			_pring(Vector2i((u.anchor * CELL + Vector2(CELL, CELL) / 2).floor()), int(CELL * u.hold_radius), 1, Color(1, 1, 1, 0.4))
 		_status(u, true)  # 걸린 효과(I101 2026-10-27 변경): 효과마다 수단 하나
@@ -409,10 +413,10 @@ func _draw_top() -> void:
 	_pounce_tells()
 	if battle.state == "prep":
 		_spawn_badges()
-	for u in battle.units + _foes:
+	for u in battle.units + _foes:  # 영웅·용병·적 막대는 hp_bar_rect 자리에(S276)
 		var bar := hp_bar_size(u, controls.show_hp)
 		if bar != Vector2.ZERO:
-			_hp_bar(hp_bar_at(u), u, bar)
+			_bar_in(hp_bar_rect(u, bar), u)
 	for v in battle.people:  # 다친 주민(S227)은 V와 상관없이 막대를 그린다
 		if v.hp < v.max_hp and not v.inside:
 			_hp_bar(v.pos, v)
@@ -1674,9 +1678,20 @@ func _behind(x) -> bool:
 	var d: Vector2i = c - battle.base.cell
 	return absi(d.x) <= 1 and d.y >= -2 and d.y < 0
 
+# 발 자리(맵 px, S166): 성벽 위면 올린 자리, 비행 적은 그림자 자리. 돌진·움찔·미끄러짐을 따른다. 발밑 타원과 체력바(S276)가 같이 쓴다
+func _foot(x) -> Vector2:
+	return (_spot(x) if x.on_wall else _center(x.pos)) + (Vector2(0, CELL * 0.4) if x.get("flying") == true else Vector2.ZERO) + _lunge(x) + _flinch(x) + _slip(x)
+
+# 자동 수리 표식(I210): HUD 팝업 망치(I58) 그림 7×6을 1배로. hud.gd가 이 파일을 preload하므로 거꾸로는 그릴 때 load한다
+func _fix_mark() -> Texture2D:
+	if _hammer == null:
+		var hud = load("res://src/ui/hud.gd")
+		_hammer = hud.HudBuild.dots(hud.HAMMER, {"#": hud.HudTheme.TEXT})
+	return _hammer
+
 # 발밑 팀 색(S166). i는 battle.units + battle.enemies 안의 번호다. 비행 적은 그림자 자리에 그린다
 func _feet_mark(x, i: int) -> void:
-	var foot := (_spot(x) if x.on_wall else _center(x.pos)) + (Vector2(0, CELL * 0.4) if x.get("flying") == true else Vector2.ZERO) + _lunge(x) + _flinch(x) + _slip(x)
+	var foot := _foot(x)
 	var rect := Rect2(foot + Vector2(-7, -2), Vector2(14, 6))
 	var region := Rect2(14 * int(i >= battle.units.size()), 0, 14, 6)
 	draw_texture_rect_region(FEET, rect, region)
@@ -2882,9 +2897,16 @@ static func aim_r(b, h, slot: String) -> int:
 
 # at: 칸 단위 위치(칸 (x,y)의 중심 = Vector2(x,y)). 그 칸 위쪽 가운데에 그린다. tiers면 구조물·성곽·거점 막대의 3단 색(S199)
 func _hp_bar(at: Vector2, b, size := Vector2(CELL, 2), tiers := false) -> void:
-	var bar := Rect2(at * CELL + Vector2((CELL - size.x) / 2, -2 - size.y), size)
+	_bar_in(_bar_over(at, size), b, tiers)
+
+# 칸 단위 위치 at 위쪽 가운데의 막대 사각형(맵 px)
+static func _bar_over(at: Vector2, size: Vector2) -> Rect2:
+	return Rect2(at * CELL + Vector2((CELL - size.x) / 2, -2 - size.y), size)
+
+# 막대 사각형 bar(맵 px)에 검은 바탕과 체력만큼의 색을 그린다
+func _bar_in(bar: Rect2, b, tiers := false) -> void:
 	_cv.draw_rect(bar, Color.BLACK)
-	_cv.draw_rect(Rect2(bar.position, Vector2(size.x * b.hp / b.max_hp, size.y)), bar_color(b, tiers))
+	_cv.draw_rect(Rect2(bar.position, Vector2(bar.size.x * b.hp / b.max_hp, bar.size.y)), bar_color(b, tiers))
 
 # 체력 막대 색(S73, S199): 구조물·성곽·거점(tiers)은 50% 밑 노랑·25% 밑 빨강, 영웅·용병·적·보스는 늘 초록
 static func bar_color(b, tiers: bool) -> Color:
@@ -2950,7 +2972,7 @@ static func keep_rect(b) -> Rect2:
 	var body: Rect2 = KEEP_BODY[clampi(b.village_level, 1, 2) - 1]
 	return Rect2(Vector2(b.base.cell * CELL) + KEEP_AT + body.position, body.size)
 
-# 유닛·적 체력바 자리(칸): 성벽 위와 미끄러짐을 따른다. 보스(I185) 그림은 기본 적보다 키가 커서 막대를 그만큼 올린다(머리 위).
+# 머리 위 체력바 자리(칸, 보스 막대가 쓴다): 성벽 위와 미끄러짐을 따른다. 보스(I185) 그림은 기본 적보다 키가 커서 막대를 그만큼 올린다(머리 위).
 # 줄어들고 늘고 뜬 보스 그림(S198 2026-10-27 둘째 변경)은 그린 그림의 머리를 따른다
 func hp_bar_at(u) -> Vector2:
 	var head := 0.0
@@ -2958,6 +2980,13 @@ func hp_bar_at(u) -> Vector2:
 		var lk := _look(u)
 		head = (ART[u.kind].anchor[1] * lk[0].y + lk[1] - ART.basic.anchor[1]) / CELL
 	return u.pos - Vector2(0, _lift(u) / CELL + head) + _slip(u) / CELL
+
+# 유닛·적 체력바를 그리는 사각형(맵 px). 보스와 성벽 위는 머리 위(hp_bar_at), 나머지는 발 자리 아래 HP_BAR_DROP px에 가운데 맞춤(S276)
+# 성벽 위가 머리 위인 까닭: 발 아래면 그 성곽 칸 막대(I59·S173)와 1px 차이로 겹쳐 덮는다
+func hp_bar_rect(u, size: Vector2) -> Rect2:
+	if u.get("boss") or u.on_wall:
+		return _bar_over(hp_bar_at(u), size)
+	return Rect2(_foot(u) + Vector2(-size.x / 2, HP_BAR_DROP), size)
 
 # 유닛·적 체력바 크기(S73). 보스(I185 boss 칸)는 V 표시와 상관없이 늘 크게, 체력 HERO_LOW 밑 영웅도 V와 상관없이, 나머지는 켰을 때만. 그리지 않으면 Vector2.ZERO
 static func hp_bar_size(u, show_all: bool) -> Vector2:

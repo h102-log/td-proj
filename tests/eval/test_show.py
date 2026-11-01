@@ -12,3 +12,11 @@ def test_EV362_boss_hp_bar_always(gd):
 
 def test_EV514_boss_flag_hp_bar(gd):
     gd("show", "EV514")
+
+
+def test_EV660_hp_bar_under_feet(gd):
+    gd("show", "EV660")
+
+
+def test_EV661_hp_bar_button(gd):
+    gd("show", "EV661")

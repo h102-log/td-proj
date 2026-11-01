@@ -362,3 +362,11 @@ def test_EV571_bottom_panels_two_tone_frame(gd):
 
 def test_EV584_alpha_wolf_trait_line(gd):
     gd("hud", "EV584")
+
+
+def test_EV665_cursor_state(gd):
+    gd("hud", "EV665")
+
+
+def test_EV666_cursor_images_and_cache(gd):
+    gd("hud", "EV666")
