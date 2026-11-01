@@ -575,12 +575,12 @@ func _near(pos: Vector2, r: float) -> Array:
 func _skills(h) -> void:
 	var r: float = b.CAST_RANGE
 	for slot in b.SLOTS:
-		if not b.can_cast(h, slot) and not (slot == "w" and h.toggle):
+		if not b.can_cast(h, slot):
 			continue
 		var sk: Dictionary = h.get(slot)
 		match sk.id:
-			"split_shot":  # 토글: 비용이 없어 켜 둔다
-				if not h.toggle:
+			"wind_path":  # 표적은 스스로 고른다(보스 아니면 가장 먼 적, I214)
+				if not b.enemies.is_empty():
 					b.cast(h, slot)
 			"overcharge":  # 자동 시전에 맡긴다
 				if not h.auto:

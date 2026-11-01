@@ -14,7 +14,7 @@ extends Resource
 @export var light := 2.5  # 밤 불빛 반경(칸, S211). 모든 영웅이 같은 임시값이라 파일마다 적지 않는다
 @export var attack_gap := 1.0  # 공격 간격(초)
 @export var block := 1  # 블록 수(S159): 동시에 붙잡는 적 수. 모든 영웅이 같은 임시값이라 파일마다 적지 않는다
-# 패시브(S145): id와 수치. 아이아스 fortress · 실비아 weak_point · 세라피나 overflow · 베스퍼 contagion · 이그니스 overload. 없으면 비운다
+# 패시브(S145): id와 수치. 아이아스 fortress · 실비아 true_aim · 세라피나 overflow · 베스퍼 contagion · 이그니스 overload. 없으면 비운다
 @export var passive := {}
 # 오라(S96, S145): radius칸 안에 늘. reach 사거리 +비율(영웅·쏘는 구조물) · armor 방어력 +(아군·방벽) · foe_armor 적 방어력 −
 # cdr 재사용 대기가 주는 속도 +비율(영웅) · haste 공격 속도 +비율(영웅·쏘는 구조물) · stride 이동 속도 +비율(영웅). 없으면 비운다

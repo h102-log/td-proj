@@ -4,7 +4,7 @@ extends "res://tests/eval/gd/lib.gd"
 #   Battle.can_cast(영웅, 칸) · Battle.toggle_auto(영웅, 칸) · Battle.damage(대상, 양, 종류 = "phys", 낸 쪽 = null)
 #   Battle.effect(대상, 키) — 걸린 효과의 값(없으면 null) · Battle.effect_sum(대상, 키) — 더하는 효과의 합 · Battle.armor_of(대상)
 #   Battle.armor_mult(방어력) — 물리 피해 배율(S149) · Battle.zones · Battle.barriers(칸 → 막힌 칸) · Battle.CAST_RANGE
-#   영웅: cd[칸] · skill_uses · fort · block · shields(출처 → {hp, left}) · stacks · mark · toggle · auto · order · 적: engaged(붙잡은 유닛)
+#   영웅: cd[칸] · skill_uses · fort · block · shields(출처 → {hp, left}) · toggle · auto · order · 적: engaged(붙잡은 유닛)
 #   Controls.skill_key(칸, shift) · Controls.aiming · 구조물: cooldown(다음 사격까지 남은 초)
 # 수치는 영웅 필드(q·w·e·r·passive·aura 사전)에서 읽는다. 임시값이라(S151~S158) 밸런스를 바꿔도 효과를 재는 평가는 깨지지 않게
 # 영웅의 기본 공격이 재는 값을 흐리지 않게, 기본 공격을 재지 않는 평가는 영웅의 공격력을 0으로 둔다
@@ -372,114 +372,123 @@ func ev272():
 
 # ── 실비아(S153) ──
 
-# EV273 · S153: 같은 적을 이어 치면 중첩이 쌓이고, 5중첩(여섯째 한 방)부터 방어력의 35%를 무시한다. 다른 적을 치면 0부터다
-func ev273():
-	var b = _kit([["sylvia", H]])
-	var s = b.hero
-	var a = _dummy(b, H + Vector2i(2, 0), {"armor": 15.0})
-	_start(b)
-	var hits := []
-	for i in 6:
-		var hp0: float = a.hp
-		run(b, 5.0, func(): return a.hp < hp0)
-		hits.append(hp0 - a.hp)
-	var plain: float = s.damage * b.armor_mult(15.0)
-	var pierced: float = s.damage * b.armor_mult(15.0 * (1.0 - s.passive.ignore))
-	var ok := hits.slice(0, 5).all(func(x): return _near_f(x, plain, 0.001)) and _near_f(hits[5], pierced, 0.001)
-	return check(ok and s.stacks == s.passive.stacks, "한 방들 %s(다섯은 %s, 여섯째 %s) · 중첩 %d" % [hits, plain, pierced, s.stacks])
+# 정조준 비율(I213): 실비아에게서 d칸인 적의 t. 데이터의 near·far에서 읽는다
+func _aim_t(s, d: float) -> float:
+	return clampf((d - s.passive.near) / (s.passive.far - s.passive.near), 0.0, 1.0)
 
-# EV274 · S153: Q는 지점 쪽 일직선(맵 끝까지)의 적을 가까운 차례로 꿰뚫어 공격력의 200%를 주고, 하나 맞힐 때마다 피해가 10%씩 준다. 첫 적에 중첩 3
+# EV273 · S153·I213: 정조준 거리. 실비아가 near·(near + far) ÷ 2·far칸 앞의 방어력 15 과녁을 한 방 치면, 피해는 공격력 × (1 + might × t) ×
+# armor_mult(15 × (1 − 무시))다. t는 0·0.5·1이고 무시는 ignore에서 ignore_max까지 t에 비례한다. 과녁마다 판을 따로 만든다
+func ev273():
+	var got := []
+	var want := []
+	for k in [0.0, 0.5, 1.0]:
+		var b = _kit([["sylvia", Vector2i(3, 10)]])
+		var s = b.hero
+		var p: Dictionary = s.passive
+		var d: float = p.near + (p.far - p.near) * k
+		var a = _dummy(b, Vector2i(3 + roundi(d), 10), {"armor": 15.0})
+		a.pos = Vector2(3.0 + d, 10.0)
+		_start(b)
+		run(b, 5.0, func(): return a.hp < a.max_hp)
+		got.append(_lost(a, BIG))
+		want.append(s.damage * (1.0 + p.might * k) * b.armor_mult(15.0 * (1.0 - (p.ignore + (p.ignore_max - p.ignore) * k))))
+	var ok := true
+	for i in 3:
+		ok = ok and _near_f(got[i], want[i], 0.001)
+	return check(ok, "near·가운데·far칸 한 방 %s(기대 %s)" % [got, want])
+
+# EV274 · S153·I213: Q는 지점 쪽 일직선(맵 끝까지)의 적을 가까운 차례로 꿰뚫어 공격력 × ratio를 주고, 하나 맞힐 때마다 falloff씩 약해진다.
+# 꿰뚫는 적마다 그 적의 거리(2·4·23칸)로 정조준 피해가 붙는다
 func ev274():
 	var b = _kit([["sylvia", Vector2i(3, 10)]])
 	var s = b.hero
-	var atk: float = s.damage
 	var line := [_dummy(b, Vector2i(5, 10)), _dummy(b, Vector2i(7, 10)), _dummy(b, Vector2i(26, 10))]
 	var off = _dummy(b, Vector2i(6, 12))
 	_start(b)
 	b.cast(s, "q", Vector2(6, 10))
 	var got := line.map(func(e): return _lost(e, BIG))
-	var want := [atk * s.q.ratio, atk * s.q.ratio * 0.9, atk * s.q.ratio * 0.81]
+	var want := []
+	var dist := [2.0, 4.0, 23.0]
+	for i in 3:
+		want.append(s.damage * s.q.ratio * pow(1.0 - s.q.falloff, i) * (1.0 + s.passive.might * _aim_t(s, dist[i])))
 	var ok := true
 	for i in 3:
 		ok = ok and _near_f(got[i], want[i], 0.001)
-	return check(ok and off.hp == off.max_hp and s.mark == line[0] and s.stacks == s.q.stacks, "직선 위 %s(%s, 23칸 떨어진 적 포함) · 직선 밖 그대로 %s · 첫 적 중첩 %d" % [got, want, off.hp == off.max_hp, s.stacks])
-# EV275 · S153: W를 켜면 기본 공격마다 대상과 가까운 적 3명에게도 같은 피해를 준다. 켜 두면 끌 때까지 켜져 있다
+	return check(ok and off.hp == off.max_hp, "직선 위 %s(%s, 23칸 떨어진 적 포함) · 직선 밖 그대로 %s" % [got, want, off.hp == off.max_hp])
+# EV275 · S153: W 순풍의 영역은 지점 반경 안의 적에게 초당 물리 dps를 주고 반경 밖 적은 그대로다. time초가 지나면 장판(src "sylvia_w")이 사라진다
 func ev275():
 	var b = _kit([["sylvia", H]])
 	var s = b.hero
-	var foes := [_dummy(b, H + Vector2i(2, 0)), _dummy(b, H + Vector2i(3, 0)), _dummy(b, H + Vector2i(3, 1)), _dummy(b, H + Vector2i(3, -1)), _dummy(b, H + Vector2i(3, 2))]
+	_quiet(b)
+	var inside = _dummy(b, H + Vector2i(4, 0), {"hp": 1000})
+	var outside = _dummy(b, H + Vector2i(4, 3), {"hp": 1000})
 	_start(b)
-	b.cast(s, "w")
-	run(b, 3.0, func(): return foes.any(func(e): return e.hp < e.max_hp))
-	run(b, 0.3)  # 갈래 화살은 대상마다 따로 날아 멀수록 늦게 닿는다(S178)
-	var hit_n: int = foes.filter(func(e): return e.hp < e.max_hp).size()
-	run(b, 60.0)  # 마나가 있던 때(200, 한 방에 8)라면 이 사이에 꺼졌다
-	var before := foes.map(func(e): return e.hp)
-	run(b, 3.0, func(): return foes.any(func(e): return e.hp < before[foes.find(e)]))
-	run(b, 0.3)
-	var after_n: int = 0
-	for i in foes.size():
-		if foes[i].hp < before[i]:
-			after_n += 1
-	return check(hit_n == 1 + s.w.extra and after_n == 1 + s.w.extra and s.toggle, "켜고 한 방에 %d명(4) · 60초 뒤 한 방에 %d명 · 켜짐 %s" % [hit_n, after_n, s.toggle])
+	var used: bool = b.cast(s, "w", Vector2(H + Vector2i(4, 0)))
+	run(b, 1.0)
+	var got: float = 1000.0 - inside.hp
+	var calm: bool = outside.hp == 1000.0
+	run(b, s.w.time)
+	var gone: bool = not b.zones.any(func(z): return z.src == "sylvia_w")
+	return check(used and _near_f(got, s.w.dps, 0.3) and calm and gone,
+		"씀 %s · 반경 안 1초 피해 %s(%s) · 반경 밖 그대로 %s · %s초 뒤 장판 사라짐 %s" % [used, got, s.w.dps, calm, s.w.time, gone])
 
-# EV276 · S153·S149: E 덫은 땅 적이 밟으면 터져 반경 1.5 적을 3초 속박한다(제자리, 닿는 용병은 친다). 속박된 적에게 쏘는 구조물의 치명타(피해 ×2) 확률은 25%다
+# EV276 · S153·I212: E 바람의 렌즈(src "sylvia_e")를 지난 궁수 화살은 피해가 궁수 공격력 × (1 + amp)이고, 렌즈를 지나지 않는 궁수 화살은 공격력 그대로다.
+# 렌즈 둘을 지나는 화살도 × (1 + amp) 한 번이다. 궁수 셋이 저마다 5칸 안 과녁을 한 번 쏜다
 func ev276():
-	var b = _kit([["sylvia", Vector2i(5, 4)]], {"base": Vector2i(2, 10), "spawns": [Vector2i(29, 10)]})
+	var b = _kit([["sylvia", Vector2i(8, 9)]], {"merc_cap": 3})
 	var s = b.hero
 	_quiet(b)
-	var t = b.build("tower", Vector2i(25, 3))  # 전투 단계에는 공병이 지어야 해서 준비 단계에 짓는다
+	var arch := []
+	var foes := []
+	for row in [[Vector2i(5, 5), Vector2i(9, 5)], [Vector2i(5, 8), Vector2i(9, 8)], [Vector2i(5, 12), Vector2i(10, 12)]]:
+		arch.append(b.place_merc("archer", row[0], {"attack_gap": 100.0}))
+		foes.append(_dummy(b, row[1]))
 	_start(b)
-	b.cast(s, "e", Vector2(10, 10))
-	var walker = b.spawn_enemy("basic", Vector2i(13, 10), {"sight": 0, "hp": BIG})
-	run(b, 5.0, func(): return b.effect(walker, "root") != null)
-	var at: Vector2 = walker.pos
-	run(b, s.e.root - 0.2)
-	var held: bool = walker.pos.distance_to(at) < 0.01
-	run(b, 0.5)
-	var freed: bool = walker.pos.distance_to(at) > 0.1
-	s.cd.e = 0.0
-	var d = _dummy(b, Vector2i(8, 7))
-	b.cast(s, "e", Vector2(8, 7))
-	b.step(DT)
-	var crits := 0
-	for i in 400:
-		var hp0: float = d.hp
-		b.damage(d, 10.0, "phys", t)
-		if _near_f(hp0 - d.hp, 20.0, 0.001):
-			crits += 1
-	return check(held and freed and crits >= 70 and crits <= 130, "3초 제자리 %s · 풀림 %s · 치명타 %d/400(100 안팎)" % [held, freed, crits])
+	var lensed := 0
+	for at in [Vector2(7, 5), Vector2(7, 12), Vector2(9, 12)]:
+		s.cd.e = 0.0
+		if b.cast(s, "e", at):
+			lensed += 1
+	run(b, 1.0)
+	var atk: float = arch[0].damage
+	var got := foes.map(func(e): return _lost(e, BIG))
+	var want := [atk * (1.0 + s.e.amp), atk, atk * (1.0 + s.e.amp)]
+	var ok := true
+	for i in 3:
+		ok = ok and _near_f(got[i], want[i], 0.001)
+	return check(lensed == 3 and ok, "깐 렌즈 %d(3) · [렌즈 하나, 렌즈 없음, 렌즈 둘] 지난 화살 피해 %s(기대 %s)" % [lensed, got, want])
 
-# EV277 · S153: R 화살비 안의 적은 초당 물리 8(보스 ×1.5)을 받고, 체력이 15% 이하인 보스 아닌 적은 처형된다
+# EV277 · S153·I214: R 폭풍의 대동맥은 보스가 없으면 가장 먼 적을 공격력 × ratio × (1 + might)로 저격하고, 실비아에서 그 적까지 바람의 길(src "sylvia_r")을
+# time초 남긴다. 길 위의 적은 둔화 slow·방어력 armor를 받고 길 밖 적은 받지 않는다. time초 뒤 길이 사라지고 길 위 적의 둔화가 풀린다
 func ev277():
-	var b = _kit([["sylvia", Vector2i(5, 10)]])
+	var b = _kit([["sylvia", Vector2i(3, 4)]])
 	var s = b.hero
-	_quiet(b)
-	var plain = _dummy(b, Vector2i(10, 10), {"hp": 1000})
-	var boss = b.spawn_enemy("boss", Vector2i(10, 12), {"speed": 0, "sight": 0, "damage": 0, "hp": 1000})
-	var low = _dummy(b, Vector2i(11, 11), {"hp": 100})
-	low.hp = 15.5
+	var far = _dummy(b, Vector2i(27, 4))
+	var on_path = _dummy(b, Vector2i(15, 4))
+	var off_path = _dummy(b, Vector2i(15, 7))
 	_start(b)
-	b.cast(s, "r", Vector2(10, 11))
-	run(b, 1.0)
-	return check(_near_f(1000.0 - plain.hp, s.r.dps, 0.5) and _near_f(1000.0 - boss.hp, s.r.dps * s.r.boss, 0.6) and not low.alive,
-		"1초 피해 %s(%s) · 보스 %s(%s) · 15%% 이하 처형 %s" % [1000.0 - plain.hp, s.r.dps, 1000.0 - boss.hp, s.r.dps * s.r.boss, not low.alive])
+	var used: bool = b.cast(s, "r")
+	var shot: float = _lost(far, BIG)
+	var want: float = s.damage * s.r.ratio * (1.0 + s.passive.might)
+	b.step(DT)
+	var slow = b.effect(on_path, "slow")
+	var on_ok: bool = slow != null and _near_f(slow, s.r.slow) and _near_f(b.armor_of(on_path), s.r.armor)
+	var off_ok: bool = b.effect(off_path, "slow") == null and b.armor_of(off_path) == 0.0
+	run(b, s.r.time + 1.0)
+	var gone: bool = not b.zones.any(func(z): return z.src == "sylvia_r") and b.effect(on_path, "slow") == null
+	return check(used and _near_f(shot, want, 0.001) and on_ok and off_ok and gone,
+		"씀 %s · 가장 먼 적 저격 %s(%s) · 길 위 둔화 %s·방어력 %s(%s, %s) · 길 밖 받지 않음 %s · %s초 뒤 길·둔화 사라짐 %s" % [used, shot, want, slow, b.armor_of(on_path), s.r.slow, s.r.armor, off_ok, s.r.time, gone])
 
-# EV516 · I185: 화살비의 보스 배율과 처형 제외는 boss 칸으로 가른다. boss 칸을 켠 기본 적은 ×1.5에 처형되지 않고, 끈 오우거는 처형된다
+# EV516 · I185: R 폭풍의 대동맥의 «보스 먼저»는 boss 칸으로 가른다. boss 칸을 켠 기본 적이, boss 칸을 끈 더 먼 오우거보다 먼저 저격된다
 func ev516():
-	var b = _kit([["sylvia", Vector2i(5, 10)]])
+	var b = _kit([["sylvia", Vector2i(3, 4)]])
 	var s = b.hero
-	_quiet(b)
-	var big = _dummy(b, Vector2i(10, 10), {"hp": 1000, "boss": true})
-	var low = _dummy(b, Vector2i(11, 11), {"hp": 100, "boss": true})
-	var ogre = b.spawn_enemy("boss", Vector2i(10, 12), {"speed": 0, "sight": 0, "damage": 0, "hp": 100, "boss": false})
-	low.hp = 15.5
-	ogre.hp = 15.5
+	var flagged = _dummy(b, Vector2i(10, 4), {"boss": true})
+	var ogre = b.spawn_enemy("boss", Vector2i(27, 4), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG, "boss": false})
 	_start(b)
-	b.cast(s, "r", Vector2(10, 11))
-	run(b, 1.0)
-	return check(_near_f(1000.0 - big.hp, s.r.dps * s.r.boss, 0.6) and low.alive and not ogre.alive,
-		"boss 칸 켠 기본 적 1초 피해 %s(%s) · 15%% 이하 boss 칸 켠 기본 적 살아 있음 %s · 끈 오우거 처형 %s" % [1000.0 - big.hp, s.r.dps * s.r.boss, low.alive, not ogre.alive])
+	var used: bool = b.cast(s, "r")
+	return check(used and flagged.hp < BIG and ogre.hp == BIG,
+		"씀 %s · boss 칸 켠 기본 적 맞음 %s · boss 칸 끈 더 먼 오우거 그대로 %s" % [used, flagged.hp < BIG, ogre.hp == BIG])
 
 # ── 베스퍼(S154·S155) ──
 
@@ -851,19 +860,29 @@ func ev296():
 
 # ── 기획서 원문대로 고친 곳(2026-10-18) ──
 
-# EV297 · S153: 폭풍의 덫은 개수와 시간 제한이 없다. 둘을 깔아도 둘 다 남고, 35초가 지나도 밟히지 않은 덫은 남는다
+# EV297 · S153·I214: R 표적은 boss 칸이 켜진 적이 있으면 그 적이다(더 먼 일반 적보다 먼저). 어둠 1인 밤에 숨은 적(S213)만 있으면 R을 쓰지 않고
+# 재사용 대기도 시작하지 않는다. 실비아 불빛 안에 적이 생기면 그 적을 공격력 × ratio × (1 + might)로 저격한다
 func ev297():
-	var b = _kit([["sylvia", H]])
+	var b = _kit([["sylvia", Vector2i(3, 4)]])
 	var s = b.hero
-	_quiet(b)
+	var boss = _dummy(b, Vector2i(10, 4), {"boss": true})
+	var far = _dummy(b, Vector2i(27, 4))
 	_start(b)
-	b.cast(s, "e", Vector2(H + Vector2i(3, 0)))
-	s.cd.e = 0.0
-	b.cast(s, "e", Vector2(H + Vector2i(0, 3)))
-	var two: int = b.zones.filter(func(z): return z.src == "sylvia_e").size()
-	run(b, 35.0)
-	var later: int = b.zones.filter(func(z): return z.src == "sylvia_e").size()
-	return check(two == 2 and later == 2 and b.state == "battle", "덫 둘 %d · 35초 뒤 %d" % [two, later])
+	var used: bool = b.cast(s, "r")
+	var picked: bool = boss.hp < BIG and far.hp == BIG
+	var night := {"at": 0.0, "dark": 1.0, "fade": 0.05}
+	var n = _kit([["sylvia", Vector2i(3, 4)]], {"nights": [[night, night]]})
+	var h = n.hero
+	var hidden = _dummy(n, Vector2i(12, 4))
+	_start(n)
+	run(n, 0.3)
+	var refused: bool = not n.cast(h, "r") and h.cd.r <= 0.0 and hidden.hp == BIG  # 전투 중 대기는 0 밑으로 내려간다. 쓰면 gap이 된다
+	var lit = _dummy(n, Vector2i(4, 4))
+	n.step(DT)
+	var snipe: float = h.damage * h.r.ratio * (1.0 + h.passive.might)
+	var after: bool = n.cast(h, "r") and h.cd.r > 0.0 and _near_f(_lost(lit, BIG), snipe, 0.001) and hidden.hp == BIG
+	return check(used and picked and refused and after,
+		"낮: 씀 %s · 보스가 맞고 더 먼 적 그대로 %s · 밤: 숨은 적만 있을 때 쓰지 않고 대기 0 %s · 불빛 안 적 저격 %s(어둠 %s)" % [used, picked, refused, after, n.dark])
 
 # EV298 · S156: Q의 바닥 불길은 발화와 따로 초당 마법 피해를 준다. 화염구가 떨어진 뒤 불길에 들어온 적은 피해를 받지만 발화 상태가 아니다
 func ev298():
@@ -997,3 +1016,30 @@ func ev600():
 	var inside := run(b, 4.0, func(): return walker.pos.distance_to(spot) <= 1.0)
 	return check(hit_now and inside and b.effect(walker, "weaken") == null,
 		"쓴 순간 과녁 걸림 %s · 걸어 들어옴 %s · 들어온 적 걸림 %s" % [hit_now, inside, b.effect(walker, "weaken") != null])
+
+# EV668 · S153: E 바람의 렌즈는 지점을 가운데로 실비아 → 지점 방향에 수직인 길이 length 관문(선분)이다. 실비아(8,13)가 (8,8)에 깔면 관문은 동서로 놓인다.
+# 판마다 궁수 하나가 과녁을 한 번 쏜다: 관문을 세로로 가로지르는 (9,4) → (9,9) 화살은 궁수 공격력 × (1 + amp),
+# 관문 끝 너머 열을 세로로 지나는 화살과 관문과 나란히 1칸 떨어져 (3,7) → (8,7)로 지나는 화살은 궁수 공격력 그대로다
+func ev668():
+	var got := []
+	var want := []
+	var amp := 0.0
+	for i in 3:
+		var b = _kit([["sylvia", Vector2i(8, 13)]], {"merc_cap": 1})
+		var s = b.hero
+		_quiet(b)
+		var past := 8 + int(ceil(s.e.get("length", 2.0) / 2.0)) + 1  # 관문 끝 너머 열
+		var lanes := [[Vector2i(9, 4), Vector2i(9, 9)], [Vector2i(past, 4), Vector2i(past, 9)], [Vector2i(3, 7), Vector2i(8, 7)]]
+		var a = b.place_merc("archer", lanes[i][0], {"attack_gap": 100.0})
+		var e = _dummy(b, lanes[i][1])
+		_start(b)
+		if not b.cast(s, "e", Vector2(8, 8)):
+			return check(false, "실비아가 (8,8)에 렌즈를 깔지 못했다")
+		run(b, 1.0)
+		amp = s.e.amp
+		got.append(_lost(e, BIG))
+		want.append(a.damage * (1.0 + amp) if i == 0 else a.damage)
+	var ok := true
+	for i in 3:
+		ok = ok and _near_f(got[i], want[i], 0.001)
+	return check(ok, "[관문을 가로지름, 관문 끝 너머, 관문과 나란히 1칸] 궁수 화살 피해 %s(기대 %s)" % [got, want])

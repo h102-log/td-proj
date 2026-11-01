@@ -14,14 +14,14 @@ const GATES := [Vector2i(5, 9), Vector2i(15, 9), Vector2i(25, 9)]
 const ONE := [{"kind": "basic", "count": 1}]  # 적 하나짜리 웨이브
 const S151_158 := {  # 종류 → [패시브 id, 오라 키들, [Q·W·E·R마다 id, 조준, 대기]]
 	"aias": ["fortress", [], [["shield_bash", "dir", 6], ["war_cry", "self", 12], ["brace", "self", 14], ["bulwark", "point", 60]]],
-	"sylvia": ["weak_point", ["reach"], [["piercing_gale", "dir", 7], ["split_shot", "toggle", 1], ["storm_trap", "point", 11], ["arrow_rain", "point", 55]]],
+	"sylvia": ["true_aim", ["reach"], [["piercing_gale", "dir", 7], ["tailwind", "point", 12], ["wind_lens", "point", 14], ["wind_path", "self", 55]]],
 	"seraphina": ["overflow", ["armor"], [["holy_beam", "ally", 6], ["sanctum", "point", 12], ["guardian", "ally", 16], ["miracle", "self", 70]]],
 	"vesper": ["contagion", ["foe_armor"], [["corrosion", "point", 8], ["enfeeble", "point", 11], ["soul_chain", "enemy", 15], ["abyss", "point", 60]]],
 	"ignis": ["overload", ["cdr"], [["fireball", "point", 6], ["frost_ring", "point", 9], ["black_hole", "point", 14], ["meteor_swarm", "point", 65]]],
 	"chronos": ["", ["haste", "stride"], [["overcharge", "ally", 4], ["aging", "point", 14], ["time_loop", "point", 18], ["wind_up", "self", 80]]],
 }
 const S121 := {  # 등급, 체력, 공격력, 사거리, 공격 간격, 속도
-	"aias": [3, 100, 3, 1.5, 1.0, 3], "sylvia": [3, 70, 3, 4, 1.0, 3], "seraphina": [3, 90, 2, 3, 1.0, 3],
+	"aias": [3, 100, 3, 1.5, 1.0, 3], "sylvia": [3, 70, 3, 6, 1.0, 3], "seraphina": [3, 90, 2, 3, 1.0, 3],
 	"vesper": [3, 90, 3, 3.5, 1.0, 3], "ignis": [3, 90, 5, 4, 1.2, 3], "chronos": [3, 110, 4, 3, 1.0, 3],
 }
 

@@ -74,8 +74,7 @@ const AUTO_FIX_EVERY := 0.5
 const WALL_RANGE := 2.0  # 성벽 위에서 치려면 필요한 사거리(칸, S88). 열린 성문 위는 예외다(S89). 임시값
 const SLOTS := ["q", "w", "e", "r"]  # 영웅 스킬 칸(S145)
 const CAST_RANGE := 6.0  # 지점·대상을 고르는 스킬의 시전 사거리(칸, S147). 임시값
-const TRAP_STEP := 0.5  # 실비아 덫이 밟히는 거리(칸, S153). 덫 꿰기(S260)의 줄 판정도 이 거리다
-const CRIT := 2.0  # 치명타 피해 배율(S149). 임시값
+const WINDS := ["sylvia_w", "sylvia_e", "sylvia_r"]  # 투사체가 지나는 실비아 바람(I212): 순풍 장판 · 바람의 렌즈 · 바람의 길
 const STAY := 0.6  # 장판 안에 있는 동안 거는 효과의 남은 시간(초, I141). 장판을 나오면 곧 풀린다
 const FALLEN := 2.0  # 쓰러진 몸(fallen)을 지우는 때(쓰러진 뒤 초, S180). 화면은 끝 0.5초 동안 흐린다
 const STAGGER := 2.0  # 예고 중 기절로 스킬이 끊긴 보스가 비틀거리는 시간(초, S194). 임시값
@@ -257,12 +256,10 @@ class Unit:
 	var cd := {"q": 0.0, "w": 0.0, "e": 0.0, "r": 0.0}  # 칸마다 남은 재사용 대기(초)
 	var skill_uses := 0  # 쓴 스킬 수(모든 칸)
 	var order = null  # 시전 사거리 밖이라 걸어가서 쓸 스킬 {slot, aim}(S147). 없으면 null
-	var toggle := false  # 켜고 끄는 칸(실비아 W)이 켜져 있다(S153)
+	var toggle := false  # 켜고 끄는 칸(S147)이 켜져 있다. 지금 영웅 데이터에는 토글 칸이 없다
 	var auto := false  # 자동 시전(크로노스 Q)이 켜져 있다(S158)
 	var casts := 0  # 이그니스 패시브: 쓴 스킬 수(S156)
 	var charged := false  # 이그니스 패시브: 다음 Q·W·E가 커진다
-	var mark = null  # 실비아 패시브: 직전에 친 적(S153)
-	var stacks := 0  # 실비아 패시브 중첩
 	var still := 0.0  # 아이아스 패시브: 이동 지시 없이 지난 시간(초, S151, I147)
 	var fort := false  # 요새화
 	var brace := 0.0  # 아이아스 E: 남은 시간(초). 0보다 크면 태세 중이다
@@ -289,7 +286,10 @@ class Missile:
 	var at: Vector2  # 날아가는 곳: 대상의 지금 자리, 대상이 쓰러졌으면 마지막 자리
 	var hurt := 0.0  # 피해량(공격력 × 공격력 배율)
 	var kind := "phys"  # 피해 종류(S149)
-	var ignore := 0.0  # 방어 무시 비율(I148)
+	var ignore := 0.0  # 방어 무시 비율(I213)
+	var aim := 0.0  # 정조준 비율(I213). 실비아 화살은 쏠 때 정하고, 바람의 길을 지나면 1이 된다(I212)
+	var lensed := false  # 바람의 렌즈를 지났다(I212). 화살 하나는 한 번만 늘어난다
+	var passed := []  # 지난 실비아 바람 장판(I212). 한 장판은 한 번만 지난다
 	var splash := 0.0  # 범위 피해 반경(대포, S90)
 	var bless := 0.0  # 축복 마법 피해(S152). 없으면 0
 	var bless_r := 0.0  # 축복 반경
@@ -428,7 +428,7 @@ var _spawn_timer := 0.0
 var _spare := 0.0  # 아직 1골드가 되지 않은 처치 보상(I176)
 var _stage: Dictionary  # 재시작할 때 다시 읽는다
 var _rng := RandomNumberGenerator.new()  # 영입소 목록을 뽑는다. 스테이지에 seed가 있으면 그 씨앗이다(평가용)
-var _luck := RandomNumberGenerator.new()  # 치명타·요새화 기절(S149, S151). 영입소 목록이 전투에 따라 바뀌지 않게 따로 둔다
+var _luck := RandomNumberGenerator.new()  # 요새화 기절(S151). 영입소 목록이 전투에 따라 바뀌지 않게 따로 둔다
 var _kin := RandomNumberGenerator.new()  # 집의 가족(S221). 영입소·전투 난수가 집 짓기에 따라 바뀌지 않게 따로 둔다
 var _loot := RandomNumberGenerator.new()  # 전리품(S252). 영입소·의뢰·미션 목록이 전리품에 따라 바뀌지 않게 따로 둔다(I202)
 var _chains := 0  # 영혼 사슬(S154)마다 붙이는 번호
@@ -1323,6 +1323,8 @@ func cast(h, slot: String, aim = null) -> bool:
 		return false
 	match sk.aim:
 		"self":
+			if sk.id == "wind_path" and _snipe_target(h) == null:  # 폭풍의 대동맥은 표적이 없으면 쓰지 않는다(I214)
+				return false
 			_use(h, slot, null)
 		"toggle":
 			h.toggle = true
@@ -1469,13 +1471,11 @@ func _aura(key: String, pos: Vector2) -> float:
 			best = maxf(best, h.aura[key])
 	return best
 
-# 공격 속도 증가율(S150): 영웅·쏘는 구조물은 크로노스 오라, 그리고 걸린 효과의 합. 실비아는 패시브 중첩(S153)도 더한다
+# 공격 속도 증가율(S150): 영웅·쏘는 구조물은 크로노스 오라, 그리고 걸린 효과의 합
 func _haste(x) -> float:
 	var up := _fx_sum(x, "haste")
 	if x is Block or x.is_hero:
 		up += _aura("haste", _where(x))
-	if x is Unit and x.passive.get("id") == "weak_point":
-		up += x.stacks * x.passive.haste
 	return up
 
 # 공격력 배율: 걸린 «공격력 +» 효과의 합(크로노스 Q, S158)
@@ -1536,13 +1536,6 @@ func _heal(t, amount: float, src = null, repath := true) -> void:
 	if t is Block and repath:
 		_repath = true  # 남은 체력이 적의 경로 비용이다(S7)
 
-# 치명타(S149): 실비아·쏘는 구조물이 «치명타 확률 +»가 걸린 적을 치면 그 확률로 피해 ×CRIT
-func _crits(target: Enemy, src) -> bool:
-	if not (src is Block or (src is Unit and src.passive.get("id") == "weak_point")):
-		return false
-	var odds := _fx_sum(target, "crit")
-	return odds > 0.0 and _luck.randf() < odds
-
 # 넉백·끌어당김: 땅 적은 막힌 칸·몸에 막히면 멈추고(_shove), 나는 적은 그대로 옮긴다
 func _knock(e: Enemy, by: Vector2) -> void:
 	if _aloft(e):  # 뜬 적(S236)은 밀리지 않는다
@@ -1598,7 +1591,6 @@ func _clear_effects() -> void:
 		u.shields.clear()
 		u.brace = 0.0
 		u.order = null
-		u.mark = null
 
 # ── 장판(S150, I141) ──
 
@@ -1611,6 +1603,8 @@ func _zone(src: String, h: Unit, at: Vector2, radius: float, secs: float, extra 
 func _inside(z: Dictionary, p: Vector2) -> bool:
 	if z.has("cells"):  # 에너지 성벽 둘레(S151): 성벽 칸 가운데 하나에서 radius 안
 		return z.cells.any(func(c): return p.distance_to(Vector2(c)) <= z.radius)
+	if z.has("to"):  # 바람의 길(실비아 R, I214)·렌즈 관문(실비아 E, S153): 선분 pos → to에서 radius(폭의 절반) 안
+		return Geometry2D.get_closest_point_to_segment(p, z.pos, z.to).distance_to(p) <= z.radius
 	return p.distance_to(z.pos) <= z.radius
 
 func _zones(dt: float) -> void:
@@ -1628,14 +1622,12 @@ func _zones(dt: float) -> void:
 				for t in heroes.filter(func(x): return x.alive) + structures.values().filter(func(x): return x.range > 0.0):
 					if _inside(z, _where(t)) and (not t is Block or t.complete):
 						_fx(t, "aias_r", {"dr": z.dr, "regen": z.regen * t.max_hp}, STAY)
-			"sylvia_e":  # 덫: 땅 적이 밟으면 터진다
-				if enemies.any(func(e): return not _flies(e) and e.pos.distance_to(z.pos) <= TRAP_STEP):
-					_spring(z)
-			"sylvia_r":  # 화살비: 초당 물리 피해(보스 ×), 체력 비율 이하 보스 아닌 적은 처형
+			"sylvia_w":  # 순풍 장판: 안의 적에게 초당 물리 피해. 지나는 투사체는 _wind가 다룬다
 				for e in foes:
-					damage(e, z.dps * dt * (z.boss if e.boss else 1.0), "phys", z.owner)
-					if e.alive and not e.boss and e.hp <= z.execute * e.max_hp:
-						damage(e, e.hp, "true", z.owner)
+					damage(e, z.dps * dt, "phys", z.owner)
+			"sylvia_r":  # 바람의 길: 길 위의 적은 둔화·방어력 감소(I214). 지나는 화살은 _wind가 다룬다
+				for e in foes:
+					_fx(e, "sylvia_r", {"slow": z.slow, "armor": z.armor}, STAY)
 			"seraphina_w":  # 성역: 안의 아군은 초당 회복과 정화, 안의 적은 둔화
 				for u in units.filter(func(x): return _inside(z, x.pos)):
 					for src in u.fx.keys():
@@ -1788,42 +1780,102 @@ func _cast_bulwark(h: Unit, sk: Dictionary, aim, _grow: float) -> void:
 
 # ── 실비아(S153) ──
 
-# Q 관통의 바람살: 지점 쪽 일직선(맵 끝까지)의 모든 적을 가까운 차례로 꿰뚫는다. 피해는 공격력 × ratio, 꿰뚫을 때마다 준다. 첫 적에게 약점 포착 중첩
+# 정조준 비율(I213): 실비아 h에게서 d칸 떨어진 적. near칸 이하 0, far칸 이상 1
+func _aim_t(h: Unit, d: float) -> float:
+	return clampf((d - h.passive.near) / (h.passive.far - h.passive.near), 0.0, 1.0)
+
+# 정조준 방어 무시(I213): 비율 t에서 ignore → ignore_max
+func _aim_ignore(h: Unit, t: float) -> float:
+	return lerpf(h.passive.ignore, h.passive.ignore_max, t)
+
+# Q 관통의 바람살: 지점 쪽 일직선(맵 끝까지)의 모든 적을 가까운 차례로 꿰뚫는다. 피해는 공격력 × ratio에 그 적 거리의 정조준(I213)을 곱하고, 꿰뚫을 때마다 준다.
+# 렌즈 꿰기(장궁 +9, S260): 줄이 자기 렌즈 관문을 가로지르는 자리 가운데 가장 가까운 곳보다 먼 적은 × (1 + 렌즈 amp)(S153 2026-11-01 변경)
 func _cast_piercing_gale(h: Unit, sk: Dictionary, aim, _grow: float) -> void:
 	var dir := _toward(h, aim)
 	var hit := enemies.filter(func(e):
 		return (e.pos - h.pos).dot(dir) >= 0.0 and absf((e.pos - h.pos).cross(dir)) <= sk.width / 2.0 + e.radius)
 	hit.sort_custom(func(a, b): return (a.pos - h.pos).dot(dir) < (b.pos - h.pos).dot(dir))
-	if sk.get("thread"):  # 덫 꿰기(장궁 +9, S260): 줄 위 자기 덫을 먼저 터뜨려, 꿰뚫는 적이 속박·치명타 확률을 받은 채 맞는다
-		for z in zones.filter(func(z): return z.src == "sylvia_e" and z.owner == h and (z.pos - h.pos).dot(dir) >= 0.0 and absf((z.pos - h.pos).cross(dir)) <= sk.width / 2.0 + TRAP_STEP):
-			_spring(z)
-			zones.erase(z)
+	var lens := INF  # 줄이 가장 가까운 자기 렌즈 관문을 가로지르는 자리까지(줄 방향 거리)
+	var amp := 0.0
+	if sk.get("lens"):
+		var far := h.pos + dir * float(size.x + size.y)  # 맵 끝 너머
+		for z in zones:
+			if z.src != "sylvia_e" or z.owner != h:
+				continue
+			var ends := Geometry2D.get_closest_points_between_segments(h.pos, far, z.pos, z.to)
+			var along: float = (ends[0] - h.pos).dot(dir)
+			if ends[0].distance_to(ends[1]) <= z.radius + sk.width / 2.0 and along < lens:
+				lens = along
+				amp = z.amp
 	var hurt: float = h.damage * _might(h) * sk.ratio
 	for e in hit:
-		if e == hit[0]:
-			h.stacks = maxi(h.stacks if h.mark == e else 0, sk.stacks)
-			h.mark = e
-		damage(e, hurt, "phys", h)
+		var t := _aim_t(h, h.pos.distance_to(e.pos))
+		var thru := (1.0 + amp) if (e.pos - h.pos).dot(dir) > lens else 1.0
+		damage(e, hurt * (1.0 + h.passive.might * t) * thru, "phys", h, _aim_ignore(h, t))
 		hurt *= 1.0 - sk.falloff
 
-func _cast_split_shot(_h: Unit, _sk: Dictionary, _aim, _grow: float) -> void:
-	pass  # 켜고 끄는 칸이라 cast가 직접 다룬다. 효과는 _strike
+# W 순풍의 영역: 지점에 순풍 장판. 안의 적은 초당 물리 피해, 지나는 아군 투사체는 빨라지고 쏜 쪽은 공격 속도가 오른다(_wind, I212)
+func _cast_tailwind(h: Unit, sk: Dictionary, aim, grow: float) -> void:
+	_zone("sylvia_w", h, aim, sk.radius * grow, sk.time, {"dps": sk.dps, "speed": sk.speed, "haste": sk.haste, "haste_time": sk.haste_time})
 
-# E 폭풍의 덫: 지점에 덫을 깐다. 개수와 시간 제한이 없고 밟히면 터진다(웨이브가 끝나면 사라진다, I143)
-func _cast_storm_trap(h: Unit, sk: Dictionary, aim, grow: float) -> void:
-	_zone("sylvia_e", h, aim, sk.radius * grow, INF, {"root": sk.root, "crit": sk.crit})
+# E 바람의 렌즈: 지점을 가운데로 실비아 → 지점에 수직인 관문(선분 장판 pos → to, radius = 폭의 절반, S153 2026-11-01 변경).
+# 지나는 아군 화살은 피해가 늘어난다(_wind, I212)
+func _cast_wind_lens(h: Unit, sk: Dictionary, aim, grow: float) -> void:
+	var ends := lens_gate(h, aim, sk.length * grow)
+	_zone("sylvia_e", h, ends[0], sk.width / 2.0, sk.time, {"amp": sk.amp, "to": ends[1]})
 
-# 덫이 터진다: 반경 안 적(뜬 적 빼고)에게 속박과 치명타 확률(S153). 밟히거나 덫 꿰기(S260)로
-func _spring(z: Dictionary) -> void:
-	for e in enemies.filter(func(e): return _inside(z, e.pos) and not _aloft(e)):
-		_fx(e, "sylvia_e", {"root": true, "crit": z.crit}, z.root)
-	z.left = 0.0
-	_trace(z.owner, "trap", null, z.pos, z.radius)
-	_tracing = null
+# 렌즈 관문의 두 끝(S153): 지점 at을 가운데로 h → at 방향에 수직인 길이 length 선분. at이 h 자리면 동서다(_toward가 아래를 준다). 조준 미리보기도 쓴다
+func lens_gate(h, at: Vector2, length: float) -> Array:
+	var side := _toward(h, at).orthogonal() * length / 2.0
+	return [at - side, at + side]
 
-# R 천공의 화살비
-func _cast_arrow_rain(h: Unit, sk: Dictionary, aim, _grow: float) -> void:
-	_zone("sylvia_r", h, aim, sk.radius, sk.time, {"dps": sk.dps, "execute": sk.execute, "boss": sk.boss})
+# R 폭풍의 대동맥(I214): 표적을 정조준 최대로 저격하고, 실비아 자리에서 표적 자리까지 바람의 길(선분 장판)을 남긴다.
+# 길은 지나는 화살에 정조준 최대를 준다(_wind). 흔적의 aim은 표적 자리다(화면이 줄을 긋는다)
+func _cast_wind_path(h: Unit, sk: Dictionary, _aim, _grow: float) -> void:
+	var t = _snipe_target(h)
+	_tracing.aim = t.pos
+	_zone("sylvia_r", h, h.pos, sk.width / 2.0, sk.time, {"to": t.pos, "slow": sk.slow, "armor": sk.armor, "speed": sk.speed, "might": h.passive.might, "ignore": h.passive.ignore_max})
+	damage(t, h.damage * _might(h) * sk.ratio * (1.0 + h.passive.might), "phys", h, h.passive.ignore_max)
+
+# 폭풍의 대동맥 표적(I214): 살아 있고 뜨지 않았고 보이는 적 가운데 boss 칸이 켜진 적이 있으면 체력이 가장 많은 그 적, 없으면 h에게서 가장 먼 적. 없으면 null
+func _snipe_target(h: Unit):
+	var pool := enemies.filter(func(e): return e.alive and not _aloft(e) and seen(e.pos))
+	var bosses := pool.filter(func(e): return e.boss)
+	if not bosses.is_empty():
+		bosses.sort_custom(func(a, b): return a.hp > b.hp)
+		return bosses[0]
+	pool.sort_custom(func(a, b): return a.pos.distance_to(h.pos) > b.pos.distance_to(h.pos))
+	return pool[0] if not pool.is_empty() else null
+
+# 실비아의 바람을 지나는 투사체(I212): 이 step에 지난 선분 a → m.pos가 순풍 장판의 반경이나 렌즈 관문·바람의 길(선분에서 폭의 절반) 안에 들면
+# 그 장판을 한 번 지난다. 순풍은 모든 투사체, 렌즈·길은 화살만이다
+func _wind(m: Missile, a: Vector2) -> void:
+	for z in zones:
+		if not z.src in WINDS or (z.src != "sylvia_w" and m.look != "arrow") or m.passed.any(func(p): return is_same(p, z)):
+			continue
+		var gap: float
+		if z.has("to"):
+			var ends := Geometry2D.get_closest_points_between_segments(a, m.pos, z.pos, z.to)
+			gap = ends[0].distance_to(ends[1])
+		else:
+			gap = Geometry2D.get_closest_point_to_segment(z.pos, a, m.pos).distance_to(z.pos)
+		if gap > z.radius:
+			continue
+		m.passed.append(z)
+		match z.src:
+			"sylvia_w":
+				m.speed *= z.speed
+				if m.src.alive:
+					_fx(m.src, "sylvia_w", {"haste": z.haste}, z.haste_time)
+			"sylvia_e":
+				if not m.lensed:
+					m.lensed = true
+					m.hurt *= 1.0 + z.amp
+			"sylvia_r":
+				m.speed *= z.speed
+				m.hurt *= (1.0 + z.might) / (1.0 + z.might * m.aim)
+				m.ignore = maxf(m.ignore, z.ignore)
+				m.aim = 1.0
 
 # ── 세라피나(S152) ──
 
@@ -2949,7 +3001,7 @@ func refund(t) -> int:
 	return floori(t.paid * t.hp / t.max_hp)
 
 # 피해(S149): kind는 phys 물리 · magic 마법 · true 고정. src는 피해를 낸 영웅·용병·구조물(없으면 null), ignore는 양수 방어력을 무시하는 비율(S153).
-# 적: 치명타 → 물리는 방어력, 마법은 마법 저항 → 받는 피해 증가. 고정 피해는 아무것도 받지 않는다.
+# 적: 물리는 방어력, 마법은 마법 저항 → 받는 피해 증가. 고정 피해는 아무것도 받지 않는다.
 # 아군 유닛: 불사면 받지 않고, 방어력과 받는 피해 감소를 받은 뒤 보호막이 먼저 받는다. 구조물·성곽: 방어력과 받는 피해 감소. 에너지 성벽은 부서지지 않는다(I142)
 func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) -> void:
 	if not target.alive or (target is Block and target.kind == "barrier"):
@@ -2963,8 +3015,6 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 		_tracing.hits.append(target)
 	if target is Enemy:
 		if kind != "true":
-			if _crits(target, src):
-				amount *= CRIT
 			if kind == "phys":
 				var a := armor_of(target)
 				amount *= armor_mult(a * (1.0 - ignore) if a > 0.0 else a)
@@ -3522,8 +3572,8 @@ func _fire(dt: float) -> void:
 			_shoot(s, best, s.damage * _might(s), "magic" if s.pierce else "phys")
 
 # 원거리 기본 공격의 투사체를 낸다(S178, I174). 유닛은 친 뒤 CONTACT초에 그때 선 자리에서, 구조물은 바로 그 칸에서 출발한다.
-# 피해량·종류·방어 무시·축복은 지금 정해 담는다. 축복은 한 공격에 한 번이라 갈래 화살(S153)에는 싣지 않는다
-func _shoot(src, e: Enemy, hurt: float, kind: String, ignore := 0.0, blessed := true) -> void:
+# 피해량·종류·방어 무시·정조준 비율(I213)·축복은 지금 정해 담는다
+func _shoot(src, e: Enemy, hurt: float, kind: String, ignore := 0.0, aim := 0.0) -> void:
 	var m := Missile.new()
 	m.src = src
 	m.target = e
@@ -3536,15 +3586,16 @@ func _shoot(src, e: Enemy, hurt: float, kind: String, ignore := 0.0, blessed := 
 	m.hurt = hurt
 	m.kind = kind
 	m.ignore = ignore
+	m.aim = aim
 	m.splash = src.splash if src is Block else 0.0
-	var b = _fx_on(src, "bless") if blessed else null
+	var b = _fx_on(src, "bless")
 	if b != null:
 		m.bless = b
 		m.bless_r = src.fx.seraphina_r.splash
 	missiles.append(m)
 
 # 투사체를 날린다(S178, I174). 출발 전에 쏜 유닛이 쓰러지면 나가지 않는다. 대상을 따라가고, 대상이 쓰러지면 화살·구슬은 사라지고
-# 대포알은 마지막 자리로 간다. 닿으면 _land. 쏜 쪽이 날아가는 동안 쓰러지거나 팔려도 닿는다
+# 대포알은 마지막 자리로 간다. 닿으면 _land. 쏜 쪽이 날아가는 동안 쓰러지거나 팔려도 닿는다. 닿기 전에 이 step에 지난 길로 실비아의 바람을 받는다(_wind)
 func _fly(dt: float) -> void:
 	var flying := []
 	for m in missiles:
@@ -3563,12 +3614,15 @@ func _fly(dt: float) -> void:
 			m.at = m.target.pos
 		elif m.look != "ball":
 			continue
+		var was: Vector2 = m.pos
 		var to: Vector2 = m.at - m.pos
 		if to.length() > m.speed * left:
 			m.pos += to.normalized() * m.speed * left
+			_wind(m, was)
 			flying.append(m)
 		else:
 			m.pos = m.at
+			_wind(m, was)
 			_land(m)
 	missiles = flying
 
@@ -3672,30 +3726,22 @@ func _hero_tick(h: Unit, dt: float) -> void:
 		_follow_order(h)
 	_autocast(h)
 
-# 기본 공격 한 방(S15). 실비아(I148): 같은 적을 이어 치면 중첩이 쌓이고 다 차면 방어력 일부를 무시한다, W가 켜져 있으면 둘레 적에게도 들어간다(S153).
+# 기본 공격 한 방(S15). 실비아(I213): 쏘는 순간 거리로 정조준 피해·방어 무시를 정한다(S153).
 # 아이아스: 요새화 중이면 확률로 기절시킨다(S151). 축복이 걸렸으면 맞은 곳에 마법 피해를 더한다(S152).
-# 원거리(사거리 RANGED칸 초과)는 맞을 적마다 투사체를 쏘고, 피해·축복은 닿을 때다(S178, I174). 중첩은 쏜 때 센다(I148)
+# 원거리(사거리 RANGED칸 초과)는 투사체를 쏘고, 피해·축복은 닿을 때다(S178, I174)
 func _strike(u: Unit, foe: Enemy) -> void:
 	var hurt := u.damage * _might(u)
 	var ignore := 0.0
-	var hit := [foe]
-	if u.passive.get("id") == "weak_point":
-		u.stacks = mini(u.stacks + 1, u.passive.stacks) if foe == u.mark else 0
-		u.mark = foe
-		if u.stacks >= u.passive.stacks:
-			ignore = u.passive.ignore
-	if u.toggle:
-		var reach := _reach(u)
-		var more := enemies.filter(func(e): return e != foe and e.pos.distance_to(u.pos) <= reach)
-		more.sort_custom(func(a, b): return a.pos.distance_to(foe.pos) < b.pos.distance_to(foe.pos))
-		hit += more.slice(0, u.w.extra)
+	var aim := 0.0
+	if u.passive.get("id") == "true_aim":
+		aim = _aim_t(u, u.pos.distance_to(foe.pos))
+		hurt *= 1.0 + u.passive.might * aim
+		ignore = _aim_ignore(u, aim)
 	if u.range > RANGED:
-		for e in hit:
-			_shoot(u, e, hurt, "phys", ignore, e == foe)
+		_shoot(u, foe, hurt, "phys", ignore, aim)
 		return
 	var at: Vector2 = foe.pos
-	for e in hit:
-		damage(e, hurt, "phys", u, ignore)
+	damage(foe, hurt, "phys", u, ignore)
 	if u.fort and foe.alive and _luck.randf() < u.passive.stun_odds:
 		_fx(foe, "aias_p_stun", {"stun": true}, u.passive.stun)
 	_bless(u, at)

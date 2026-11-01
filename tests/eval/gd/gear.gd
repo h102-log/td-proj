@@ -16,7 +16,7 @@ extends "res://tests/eval/gd/hud.gd"
 #     저장 snapshot의 강화 칸 이름은 "ranks"다 · 게임 장면: 시설 팝업(main.hud.popup)의 «이름 강화 …» 버튼
 #   아이아스 방패(S256~S258·I204): data/gear/aias.tres(+0~+9) · BattleView.wall_preview(판, 영웅, 지점) -> Array[Vector2i] — R 조준 미리보기 칸(static)
 #     성벽 공명 흔적: Battle.traces의 slot "resonate"(성벽 칸마다 하나) · 이관(transfer)이 장비 수치도 옮긴다 · main.hud._members[i][2] — 보유 i의 이관 버튼
-#   실비아 장궁(S259·S260): data/gear/sylvia.tres(+0~+9) · 덫은 Battle.zones의 src "sylvia_e"(pos = 깐 지점), 터지면 흔적 slot "trap", 걸린 적은 fx "sylvia_e"
+#   실비아 장궁(S259·S260): data/gear/sylvia.tres(+0~+9) · 바람의 렌즈는 Battle.zones의 src "sylvia_e"(pos = 깐 지점)
 #   세라피나 성수병(S261·S262): data/gear/seraphina.tres(+0~+9) · 용병은 Battle.units에 놓은 차례로 든다
 #   베스퍼 향로(S263·S264): data/gear/vesper.tres(+0~+9) · 적 fx "vesper_q"(중독)·"vesper_w"(저주), 남은 시간은 그 효과의 left
 #   크로노스 회중시계(S265·S266): data/gear/chronos.tres(+0~+9) · 노화가 걸린 적은 fx "chronos_w"
@@ -939,47 +939,39 @@ func _bow(b) -> String:
 		return _api(b)
 	return "" if b.GEAR_KINDS.has("sylvia") and b.GEAR_KINDS.sylvia.steps.size() == 10 and b.hero != null else "data/gear/sylvia.tres(+0~+9)가 없다"
 
-# EV632 · S259: 장궁 +3은 Q 첫 적 중첩 5, +6은 갈래살 4명
+# EV632 · S259: 장궁 +0·+3·+6 문턱이 올리는 칸(정조준 최대 피해, 렌즈 피해 증가, 바람의 길 지속). 값은 데이터대로
 func ev632():
-	var out := _bow(_sylvia(3))
+	var out := _bow(_sylvia(0))
 	if out != "":
 		return out
-	var got := []
-	for n in [2, 3]:
-		var b = _sylvia(n)
-		var e = _target(b, Vector2(14, 10))
-		if not b.cast(b.hero, "q", Vector2(15, 10)):
-			return "장궁 +%d 실비아의 Q가 거부됐다" % n
-		got.append([b.hero.mark == e, b.hero.stacks])
-	var split := []
-	for n in [5, 6]:
-		var b = _sylvia(n)
-		split.append(b.hero.w.extra)
-	return check(got == [[true, 3], [true, 5]] and split == [3, 4],
-		"+2·+3 Q [첫 적이 직전 대상, 중첩] %s(기대 [[true, 3], [true, 5]]) · +5·+6 갈래살 추가 대상 %s(기대 [3, 4])" % [got, split])
+	return _thresholds("sylvia", func(n): return _sylvia(n).hero, {0: ["passive.might"], 3: ["e.amp"], 6: ["r.time"]})
 
-# EV633 · S260: 덫 꿰기. Q가 줄 위 덫을 먼저 터뜨려 그 안 적이 속박되고 덫이 사라진다. 줄 밖 덫은 그대로
+# 실비아 h의 Q가 d칸 떨어진 i번째(0부터) 적에게 주는 피해(S153·I213): 공격력 × ratio × (1 − falloff)^i × (1 + might × 정조준 비율)
+func _gale(h, d: float, i: int) -> float:
+	var p: Dictionary = h.passive
+	return h.damage * h.q.ratio * pow(1.0 - h.q.falloff, i) * (1.0 + p.might * clampf((d - p.near) / (p.far - p.near), 0.0, 1.0))
+
+# EV633 · S260: 렌즈 꿰기. 장궁 +9 실비아(10,10)가 (13,10)에 렌즈를 깔고 동쪽(15,10)으로 Q를 쓰면, 렌즈보다 먼 (15,10) 적은 바람살 피해 × (1 + amp)이고
+# 렌즈보다 가까운 (12,10) 적은 그대로다. +8이면 둘 다 그대로다. 피해는 그 적의 바람살 피해(_gale)에 대한 배수로 잰다
 func ev633():
 	var out := _bow(_sylvia(9))
 	if out != "":
 		return out
 	var res := {}
+	var amp := 0.0
 	for n in [8, 9]:
 		var b = _sylvia(n)
 		var h = b.hero
-		var on_line = _target(b, Vector2(15, 10))  # (14,10) 덫 반경 1.5 안, 밟는 거리 0.5 밖
-		var off_line = _target(b, Vector2(14, 15))  # (14,14) 덫 반경 안
-		for at in [Vector2(14, 10), Vector2(14, 14)]:
-			h.cd.e = 0.0
-			if not b.cast(h, "e", at):
-				return "장궁 +%d 실비아가 %s에 덫을 깔지 못했다" % [n, at]
+		var near_e = _target(b, Vector2(12, 10))
+		var far_e = _target(b, Vector2(15, 10))
+		if not b.cast(h, "e", Vector2(13, 10)):
+			return "장궁 +%d 실비아가 (13,10)에 렌즈를 깔지 못했다" % n
 		if not b.cast(h, "q", Vector2(15, 10)):
 			return "장궁 +%d 실비아의 Q가 거부됐다" % n
-		var traps: Array = b.zones.filter(func(z): return z.src == "sylvia_e").map(func(z): return Vector2(z.pos))
-		traps.sort()
-		res[n] = [traps, on_line.fx.has("sylvia_e"), off_line.fx.has("sylvia_e"), b.traces.filter(func(c): return c.slot == "trap").size()]
-	return check(res[9] == [[Vector2(14, 14)], true, false, 1] and res[8] == [[Vector2(14, 10), Vector2(14, 14)], false, false, 0],
-		"[남은 덫, 줄 위 적 속박, 줄 밖 적 속박, 덫 흔적] +9 %s · +8 %s" % [res[9], res[8]])
+		res[n] = [snappedf((BIG - near_e.hp) / _gale(h, 2.0, 0), 0.001), snappedf((BIG - far_e.hp) / _gale(h, 5.0, 1), 0.001)]
+		amp = h.e.amp
+	return check(res[9] == [1.0, snappedf(1.0 + amp, 0.001)] and res[8] == [1.0, 1.0],
+		"[렌즈보다 가까운 적, 먼 적] 바람살 피해 배수 +9 %s(기대 [1, %s]) · +8 %s(기대 [1, 1])" % [res[9], 1.0 + amp, res[8]])
 
 # 성수병 +n(음수면 장비 없음) 세라피나(10,10)의 전투 단계. 그 앞 한 줄에 체력 10 용병 7과 과녁 7을 (11,13)부터 번갈아 둔다. 시간은 흐르지 않는다
 func _seraphina(n: int):

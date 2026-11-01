@@ -63,11 +63,13 @@ const SWEEP := 0.18  # 방패 강타 베기가 반경까지 퍼지는 시간. �
 const CRY_ECHO := 0.08  # 전장의 포효 둘째 충격파가 늦게 나오는 시간
 const SPARK_STEP := 3.0 / 60.0  # 스킬에 맞은 섬광 한 프레임
 const GALE_REACH := 0.06  # 관통의 바람살이 맵 끝까지 뻗는 시간
+const WIND_FLOW := 40.0  # 순풍 장판 바람 줄이 흐르는 빠르기(맵 px/초, I215)
+const WIND_RUSH := 120.0  # 바람의 길 나선이 표적 쪽으로 흐르는 빠르기(맵 px/초)
+const WIND_WAVE := 22.0  # 바람의 길 나선 한 바퀴 길이(맵 px)
+const SNIPE_MARK := 0.6  # 저격 표적 괄호·화면 밖 꺾쇠가 남는 시간
+const SNIPE_EDGE := 12.0  # 화면 밖 표적 꺾쇠를 화면 가장자리에서 이만큼(맵 px) 안쪽에 그린다
+const HUD_BAND := 30.0  # 화면 위 HUD 띠 높이(기준 해상도 px, hud.gd TOP과 같다)
 const WALL_RISE := 0.2  # 에너지 성벽 칸이 아래에서부터 드러나는 시간
-const RAIN := 14  # 화살비 장판 하나에 화살이 떨어지는 자리 수
-const RAIN_CYCLE := 0.9  # 한 자리에 화살이 다시 떨어지는 주기
-const RAIN_FALL := 0.12  # 화살이 떨어지는 시간. 그 뒤 꽂힌다
-const RAIN_STUCK := 0.6  # 꽂힌 화살이 남는 시간
 # 세라피나(크림·금)·베스퍼(청록)(fx-3). 시간은 초다
 const BEAM_HOP := 0.04  # 성스러운 빛줄기가 대상 하나를 건너는 시간
 const BEAM_TAIL := 0.1  # 빛줄기 흔적은 FX와 «마지막 마디가 뻗은 뒤 이만큼» 가운데 늦은 때까지 남는다(S179). 성역 공명(S262)의 긴 줄도 끝까지 보이게
@@ -411,6 +413,7 @@ func _draw() -> void:
 func _draw_top() -> void:
 	_aim_preview()
 	_pounce_tells()
+	_snipe_pointers()
 	if battle.state == "prep":
 		_spawn_badges()
 	for u in battle.units + _foes:  # 영웅·용병·적 막대는 hp_bar_rect 자리에(S276)
@@ -471,6 +474,7 @@ func _missile(m, starts: Dictionary) -> void:
 	match m.look:
 		"arrow":
 			draw_line(p - d * 7, p, Color("e8dcc0"), 1.0)
+			_arrow_wind(m, p, d)
 		"bolt":
 			var col: Color = HERO_COLORS.get(m.src.kind, Color("80b0ff"))
 			_blob(p - d * 3, 1, Color(col, 0.5))
@@ -479,6 +483,31 @@ func _missile(m, starts: Dictionary) -> void:
 		"ball":
 			_blob(_spot(m.src).lerp(_spot(m.target), k), 1, Color(0, 0, 0, 0.35))
 			_blob(p - Vector2(0, 4.0 * BALL_ARC * k * (1.0 - k)), 2, Color("2a2a30"))
+
+# 실비아 바람을 지난 화살(I215 2026-11-01 변경). p는 화살촉, d는 나는 방향이다.
+# 순풍·바람의 길을 지난 화살과 실비아 화살(정조준 비율만큼)은 연두 꼬리를 달되 쏜 자리 뒤로는 내지 않는다.
+# 렌즈를 지난 화살은 촉 쪽이 굵고 밝으며, 렌즈 관문 경계에서 10px 안이면(막 지났을 때) 촉 둘레에 번쩍 고리가 난다
+func _arrow_wind(m, p: Vector2, d: Vector2) -> void:
+	var srcs: Array = m.passed.map(func(z): return z.src)
+	var tail := 0.0
+	if "sylvia_w" in srcs:
+		tail = 8.0
+	if m.src.kind == "sylvia":
+		tail = maxf(tail, 4.0 + 8.0 * m.aim)
+	if "sylvia_r" in srcs:
+		tail = 16.0
+	tail = minf(tail, p.distance_to(_muzzle(m.src)) - 7.0)
+	if tail > 0.0:
+		_pline(Vector2i((p - d * (7.0 + tail)).round()), Vector2i((p - d * 7.0).round()), PX.lime3)
+		_pline(Vector2i((p - d * (7.0 + tail * 0.5)).round()), Vector2i((p - d * 4.0).round()), PX.lime2)
+	if not m.lensed:
+		return
+	_pline(Vector2i((p - d * 6.0).round()), Vector2i(p.round()), PX.lime1, 2)
+	_pline(Vector2i((p - d * 2.0).round()), Vector2i(p.round()), PX.lime0, 2)
+	for z in m.passed:
+		if z.src == "sylvia_e" and Geometry2D.get_closest_point_to_segment(p, _center(z.pos), _center(z.to)).distance_to(p) < CELL * z.radius + 10.0:
+			_pring(Vector2i(p.round()), 4, 1, PX.lime0)
+			break
 
 # 착탄 표시(S178 2026-10-28)와 장갑의 강철 점(S177 2026-10-28). 사각형만 쓴다.
 # 화살은 맞은 몸에 박힌 꼬리와 닿은 자리의 크림색 «ㅅ», 구슬은 쏜 쪽 색 십자, 대포알은 BOOM_STEP마다 주황 → 크림 덩어리다
@@ -528,7 +557,7 @@ func _chest(x) -> Vector2:
 func _ranged(x) -> bool:
 	return x.get("pos") == null or (x.get("range") != null and x.range > 2.0)
 
-# 흔적의 스킬 이름: 칸(Q·W·E·R)이면 그 칸 스킬, 아니면(운석 착탄·덫 터짐·태세 터뜨림·보스 스킬) slot 그대로
+# 흔적의 스킬 이름: 칸(Q·W·E·R)이면 그 칸 스킬, 아니면(운석 착탄·태세 터뜨림·보스 스킬) slot 그대로
 func _skill(c) -> String:
 	return c.hero.get(c.slot).id if c.slot in battle.SLOTS else c.slot
 
@@ -577,8 +606,9 @@ func _traces(top: bool) -> void:
 				if top:
 					_gale(at, (c.aim - c.at).normalized(), c.age, seed, c.hits)
 				continue
-			"trap":
-				_whirl(at, CELL * c.radius, c.age, seed, top)
+			"wind_path":
+				if top:
+					_snipe(at, Vector2i(_center(c.aim).floor()), c.age, c.hits)
 				continue
 			"holy_beam":
 				if top:
@@ -616,8 +646,6 @@ func _traces(top: bool) -> void:
 		var d: float = z.get("delay", 0.0)
 		if d > 0.0 and d < FALL:
 			_fall(z, d, top)
-		if z.src == "sylvia_r":  # 화살비(실비아 R): 떨어지는 화살은 몸통 위, 꽂힌 화살은 몸통 아래 층
-			_rain(z, top)
 	if not top:
 		return
 	var links := {}  # 영혼 사슬(S154): 같은 사슬에 묶인 적을 처음 적에게서 청록 사슬 고리 도트로 잇는다. 숨은 적(S213)은 잇지 않는다
@@ -774,48 +802,77 @@ func _gale(c: Vector2i, dir: Vector2, t: float, seed: int, hits: Array) -> void:
 			_pline(p0, p0 + Vector2i((dir * 6.0).round()), PX.lime0 if k < 0.5 else PX.lime2)
 	_sparks(hits, t)
 
-# 폭풍의 덫 터짐(실비아 E, fx-2): 앞 0.2초 고리 하나(굵기 2 → 0, 연두 램프) + 돌며 퍼지는 바람 호 셋. 몸통 아래 층에는 흙 부스러기가 튄다
-func _whirl(c: Vector2i, rad: float, t: float, seed: int, top: bool) -> void:
-	if not top:
-		if t < 0.35:
-			var k := t / 0.35
-			for i in 6:
-				var dir := Vector2.from_angle(TAU * i / 6.0 + _hf(seed, i))
-				_px(c + Vector2i((dir * rad * (0.2 + 0.5 * _pow3(k))).round()) - Vector2i(0, int(6.0 * k)), _ramp(["ash", "smoke", "dark"], k))
-		return
-	if t < 0.2:
-		var k := t / 0.2
-		_pring(c, int(rad * (0.2 + 0.8 * _pow3(k))), int(ceil(2.0 * (1.0 - k))), _ramp(["lime0", "lime1", "lime2"], k))
+# 폭풍의 대동맥 저격(실비아 R, I215 2026-11-01 변경): 0.05초 동안 총구 섬광(크림 원판 + 고리)과 가는 조준선 →
+# FX까지 굵은 탄도(굵기 3 → 1, 앞쪽은 밝은 심, 양옆 충격 줄이 벌어지며 사라짐) → 0.35초 동안 착탄 바람 터짐(고리 + 방사 줄 8) →
+# 표적 가슴 둘레의 괄호 넷이 SNIPE_MARK초 동안 조여든다. 맞은 적 섬광
+func _snipe(c: Vector2i, end: Vector2i, t: float, hits: Array) -> void:
+	var side := Vector2(end - c).normalized().orthogonal()
+	if t < 0.05:
+		_pline(c, end, PX.lime0)
+		_pdisc(c, 3, PX.cream)
+		_pring(c, 5, 1, PX.lime0)
+	elif t < FX:
+		var k := (t - 0.05) / (FX - 0.05)
+		_pline(c, end, _ramp(["lime1", "lime2", "lime3"], k), 3 if k < 0.3 else (2 if k < 0.6 else 1))
+		if k < 0.5:
+			_pline(c, end, PX.cream if k < 0.15 else PX.lime0)
+		if k < 0.4:
+			for sgn: float in [-1.0, 1.0]:
+				var off := side * (3.0 + 4.0 * k) * sgn
+				_pline(Vector2i((Vector2(c) + off).round()), Vector2i((Vector2(end) + off).round()), PX.lime2)
 	if t < 0.35:
 		var k := t / 0.35
-		for j in 3:
-			var a := j * TAU / 3.0 + t * 9.0 + _hf(seed, j)
-			_parc(c, int(rad * (0.35 + 0.55 * _pow3(k))), 1, a, a + 1.2, _ramp(["lime0", "lime1", "lime2"], k))
+		if t < 0.08:
+			_pdisc(end, 3, PX.cream)
+		_pring(end, int(3.0 + 11.0 * _pow3(k)), 2 if k < 0.5 else 1, _ramp(["cream", "lime0", "lime1", "lime2"], k))
+		for i in 8:
+			var d := Vector2.from_angle(TAU * i / 8.0 + 0.4)
+			var p0 := Vector2(end) + d * (4.0 + 12.0 * _pow3(k))
+			_pline(Vector2i(p0.round()), Vector2i((p0 - d * (4.0 * (1.0 - k) + 1.0)).round()), _ramp(["lime0", "lime1", "lime2"], k))
+	if t < SNIPE_MARK:
+		var k := t / SNIPE_MARK
+		var g := int(12.0 - 5.0 * _pow3(k))
+		var col: Color = PX.lime0 if k < 0.6 else PX.lime2
+		for sx: int in [-1, 1]:
+			for sy: int in [-1, 1]:
+				var corner := end + Vector2i(g * sx, g * sy - 6)
+				_pline(corner, corner - Vector2i(3 * sx, 0), col)
+				_pline(corner, corner - Vector2i(0, 3 * sy), col)
+	_sparks(hits, t)
 
-# 화살비(실비아 R, fx-2): 장판 안 RAIN 자리마다 RAIN_CYCLE초마다 화살 하나가 RAIN_FALL초에 떨어지고(위 층) 꽂힌 채 RAIN_STUCK초 남는다(아래 층).
-# 자리는 주기마다 해시로 바뀌고, 장판이 펼쳐지고 줄어드는 반지름을 따른다
-func _rain(z: Dictionary, top: bool) -> void:
-	var age := _zone_age(z)
-	var r := zone_r(z, age)
-	if r < 4:
+# 화면 밖 저격 표적(I215 2026-11-01 변경): 저격 뒤 SNIPE_MARK초 동안, 표적 자리가 화면 밖이면 화면 가장자리(SNIPE_EDGE 안쪽)에
+# 표적 쪽을 가리키는 연두 꺾쇠 둘(어두운 테두리). 덮개 위 층(_cv)에 그린다
+func _snipe_pointers() -> void:
+	var view := shown_rect()
+	if view.size == Vector2.ZERO:
 		return
-	var c := Vector2i(_center(z.pos).floor())
-	var seed := hash(str(z.pos) + z.src)
-	for i in RAIN:
-		var u := age + _hf(seed, i) * RAIN_CYCLE
-		var ph := fmod(u, RAIN_CYCLE)
-		var n := int(u / RAIN_CYCLE)
-		var p := c + Vector2i((Vector2.from_angle(_hf(seed + n, i + 30) * TAU) * sqrt(_hf(seed + n, i + 60)) * (r - 3)).round())
-		if ph < RAIN_FALL:
-			if top:  # 왼쪽 위에서 비스듬히: 몸통은 크림, 깃은 연두
-				var head := p - Vector2i((Vector2(2, 7) * 3.0 * (1.0 - ph / RAIN_FALL)).round())
-				_pline(head - Vector2i(2, 7), head, PX.cream)
-				_px(head - Vector2i(2, 7), PX.lime1)
-		elif ph < RAIN_FALL + RAIN_STUCK and not top:
-			_spr("stuck", 0, p + Vector2i(0, 1), true)
-			if ph < RAIN_FALL + 0.06:  # 꽂힌 순간 흙먼지
-				for sx in [-2, 2]:
-					_px(p + Vector2i(sx, 0), PX.ash)
+	var inner := view.grow(-SNIPE_EDGE)
+	for c in battle.traces:
+		if c.age >= SNIPE_MARK or _skill(c) != "wind_path":
+			continue
+		var at := _center(c.aim)
+		if view.has_point(at):
+			continue
+		var tip := at.clamp(inner.position, inner.end)
+		var d := (at - tip).normalized()
+		var side := d.orthogonal()
+		var col: Color = PX.lime0 if c.age < SNIPE_MARK * 0.6 else PX.lime2
+		for layer in 2:  # 어두운 3px 테두리를 먼저 깔아 연두 길·탄도 위에서도 보이게
+			for j in 2:
+				var p := tip - d * 6.0 * j
+				for sgn: float in [-1.0, 1.0]:
+					var wing := Vector2i((p - d * 5.0 + side * 5.0 * sgn).round())
+					if layer == 0:
+						_pline(wing, Vector2i(p.round()), PX.soot, 3)
+					else:
+						_pline(wing, Vector2i(p.round()), col if j == 0 else PX.lime1)
+
+# 화면에서 위 HUD 띠(HUD_BAND, 화면 폭 전체)에 가리지 않는 맵 영역(맵 px). 오른쪽 아래 건설 격자(S186)는 모서리라 빼지 않는다. 트리 밖(시험의 기록 화면)이면 빈 사각형이다
+func shown_rect() -> Rect2:
+	if not is_inside_tree():
+		return Rect2()
+	var s := get_viewport_rect().size
+	return get_canvas_transform().affine_inverse() * Rect2(0.0, HUD_BAND, s.x, s.y - HUD_BAND)
 
 # 적인가(흔적의 hits에는 영웅·용병·구조물·적이 섞인다). 벽 오르기 배율은 적만 가졌다
 func _is_foe(x) -> bool:
@@ -931,7 +988,7 @@ func _charge(h, x, t: float) -> void:
 
 # 장판(I101, S168, 4.1s): 처음 본 때부터 ZONE_OPEN초에 펼쳐지고 마지막 ZONE_CLOSE초에 줄어든다. 판정 경계는 밝은 1px + 바깥 어두운 1px이고,
 # 같은 종류 장판끼리 겹친 곳은 빼서 바깥 테두리만 남는다. 장판은 모두 무늬 대신 재질이다(이그니스 4.1s, 실비아 fx-2, 세라피나·베스퍼 fx-3, 크로노스 fx-4, S168).
-# 떨어지는 중인 운석은 _fall, 화살비의 화살은 _rain, 절대 방어선 둘레는 _capsule이 그린다. 덫은 플레이어에게만 보인다
+# 떨어지는 중인 운석은 _fall, 절대 방어선 둘레는 _capsule, 바람의 길(실비아 R)은 _path_zone이 그린다
 func _zones() -> void:
 	_zone_t0 = _zone_t0.filter(func(e): return battle.zones.any(func(z): return is_same(z, e[0])))
 	var caps := false
@@ -939,6 +996,12 @@ func _zones() -> void:
 		if z.has("cells"):
 			_capsule(z)
 			caps = true
+			continue
+		if z.has("to"):
+			if z.src == "sylvia_e":
+				_gate_zone(z, _zone_age(z))
+			else:
+				_path_zone(z, _zone_age(z))
 			continue
 		if z.get("delay", 0.0) > 0.0:
 			continue
@@ -963,13 +1026,8 @@ func _zones() -> void:
 					_edge(c, r, PX.red, PX.soot, others)
 			"ignis_r":
 				_lava_zone(c, r, z.left, seed, others)
-			"sylvia_e":  # 덫: 엷은 연두 칠 + 가운데 덫 조각(1.2초마다 반짝)
-				_pnoise(c, r - 1, PX.lime3, 2, posmod(seed, 4))
-				_spr("trap", 1 if fmod(clock + _hf(seed, 1) * 1.2, 1.2) < 0.15 else 0, c)
-				_edge(c, r, PX.lime1, PX.soot, others)
-			"sylvia_r":  # 화살비: 연두 칠. 떨어지고 꽂히는 화살은 _rain이 그린다
-				_pnoise(c, r - 1, PX.lime3, 3, posmod(seed, 4))
-				_edge(c, r, PX.lime1, PX.soot, others)
+			"sylvia_w":
+				_tail_zone(z, c, r, seed, others)
 			"seraphina_w":
 				_sanctum_zone(c, r, seed, others)
 			"vesper_q":
@@ -984,6 +1042,94 @@ func _zones() -> void:
 				_edge(c, r, PX.cream, PX.soot, others)
 	if not caps:
 		_caps.clear()
+
+# 순풍 장판(실비아 W, I215 2026-11-01 변경): 엷은 연두 성긴 칠 위로, 실비아에서 장판 쪽으로 흐르는 바람 줄 12개(길이 10, 머리가 밝다.
+# 경계 가까이 30%에서는 어둡게 들고 난다)와 판정 경계
+func _tail_zone(z: Dictionary, c: Vector2i, r: int, seed: int, others: Array) -> void:
+	_pnoise(c, r - 1, PX.lime3, 1, posmod(seed, 4))
+	var dir: Vector2 = (z.pos - z.owner.pos).normalized() if z.pos != z.owner.pos else Vector2.DOWN
+	var side := dir.orthogonal()
+	for i in 12:
+		var u := (_hf(seed, i) * 2.0 - 1.0) * (r - 4)
+		var half := sqrt(maxf(float(r * r) - u * u, 0.0)) - 3.0
+		if half < 8.0:
+			continue
+		var s := fposmod(_hf(seed, i + 20) * 2.0 * half + clock * WIND_FLOW * (0.8 + 0.4 * _hf(seed, i + 40)), 2.0 * half) - half
+		var tail := minf(10.0, s + half)
+		var head := Vector2(c) + side * u + dir * s
+		var dim := absf(s) > half * 0.7
+		_pline(Vector2i((head - dir * tail).round()), Vector2i((head - dir * 4.0).round()), PX.lime3 if dim else PX.lime2)
+		_pline(Vector2i((head - dir * 3.0).round()), Vector2i(head.round()), PX.lime2 if dim else PX.lime0)
+	_edge(c, r, PX.lime1, PX.soot, others)
+
+# 바람의 렌즈 관문(실비아 E, S153·I215 2026-11-01 변경): 가운데에서 양 끝으로 ZONE_OPEN초에 펼쳐지고 마지막 ZONE_CLOSE초에 줄어든다.
+# 양옆 판정 경계(관문 선에서 폭의 절반, 순풍보다 밝은 1px + 바깥 어두운 1px), 그 사이를 따라 흐르는 연두 막(엷은 칠 + 흐르는 토막),
+# 실비아 → 지점 쪽(face)을 가리키며 차례로 밝아지는 꺾쇠 셋, 양 끝의 바람 기둥
+func _gate_zone(z: Dictionary, age: float) -> void:
+	var a := _center(z.pos)
+	var b := _center(z.to)
+	var along := (b - a).normalized()
+	var face := -along.orthogonal()  # 렌즈를 깔 때 관문 방향은 (실비아 → 지점).orthogonal()이라 그 반대 회전이 실비아 → 지점이다(battle.lens_gate)
+	var mid := (a + b) / 2.0
+	var half_len := a.distance_to(b) / 2.0 * _pow3(age / ZONE_OPEN) * clampf(z.left / ZONE_CLOSE, 0.0, 1.0)
+	if half_len < 1.0:
+		return
+	var w := maxf(CELL * z.radius, 2.0)
+	var p0 := mid - along * half_len
+	var p1 := mid + along * half_len
+	var seed := hash(str(z.pos) + z.src)
+	for i in int(half_len * w / 4.0):
+		_px(Vector2i((mid + along * (_hf(seed, i) * 2.0 - 1.0) * half_len + face * (_hf(seed + 1, i) * 2.0 - 1.0) * w).floor()), PX.lime2)
+	for lane in 3:  # 흐르는 막: 관문을 따라 흐르는 밝은 토막
+		var u := (lane - 1) * w * 0.5
+		var s := fposmod(clock * WIND_FLOW * 1.5 + lane * 7.0, 12.0)
+		while s < 2.0 * half_len:
+			var q := p0 + along * s + face * u
+			_pline(Vector2i(q.round()), Vector2i((q + along * minf(3.0, 2.0 * half_len - s)).round()), PX.lime0 if lane == 1 else PX.lime1)
+			s += 12.0
+	if half_len >= 8.0:
+		for j in 3:  # 꺾쇠: 뒤에서 앞으로 차례로 밝아진다
+			var tip := mid + along * (j - 1) * half_len * 0.5 + face * 2.0
+			var col: Color = PX.lime0 if fmod(clock * 2.0 + j / 3.0, 1.0) < 0.5 else PX.lime2
+			for sgn: float in [-1.0, 1.0]:
+				_pline(Vector2i((tip - face * 3.0 + along * 3.0 * sgn).round()), Vector2i(tip.round()), col)
+	for sgn: float in [-1.0, 1.0]:
+		_pline(Vector2i((p0 + face * (w + 1.0) * sgn).round()), Vector2i((p1 + face * (w + 1.0) * sgn).round()), PX.soot)
+		_pline(Vector2i((p0 + face * w * sgn).round()), Vector2i((p1 + face * w * sgn).round()), PX.lime0)
+	for p in [p0, p1]:  # 바람 기둥: 어두운 테 안의 연두 기둥, 머리가 깜박인다
+		var q := Vector2i(p.round())
+		_px(q - Vector2i(2, 7), PX.soot, Vector2i(5, 9))
+		_px(q - Vector2i(1, 6), PX.lime2, Vector2i(3, 7))
+		_px(q - Vector2i(0, 6), PX.lime1, Vector2i(1, 6))
+		_px(q - Vector2i(0, 6), PX.lime0 if fmod(clock, 0.8) < 0.5 else PX.cream)
+
+# 바람의 길(실비아 R, I215 2026-11-01 변경): 길 선분을 따라 엷은 연두 성긴 칠, 표적 쪽으로 감겨 흐르는 두 가닥 나선(WIND_WAVE마다 한 바퀴,
+# 앞 가닥 밝음·뒤 가닥 어두움), 양옆 판정 경계(밝은 1px + 바깥 어두운 1px). 폭은 원 장판처럼 펼쳐지고 줄어든다
+func _path_zone(z: Dictionary, age: float) -> void:
+	var a := _center(z.pos)
+	var b := _center(z.to)
+	var half: float = CELL * z.radius * _pow3(age / ZONE_OPEN) * clampf(z.left / ZONE_CLOSE, 0.0, 1.0)
+	var length := a.distance_to(b)
+	if half < 1.0 or length < 1.0:
+		return
+	var dir := (b - a) / length
+	var side := dir.orthogonal()
+	var seed := hash(str(z.pos) + z.src)
+	for i in int(length * half / 12.0):
+		_px(Vector2i((a + dir * _hf(seed, i) * length + side * (_hf(seed + 1, i) * 2.0 - 1.0) * half).floor()), PX.lime3)
+	var amp := maxf(half - 2.0, 0.0)
+	for strand in 2:
+		var prev := a + side * sin(-clock * WIND_RUSH / WIND_WAVE * TAU + strand * PI) * amp
+		var s := 3.0
+		while s < length + 3.0:
+			var ph := (minf(s, length) - clock * WIND_RUSH) / WIND_WAVE * TAU + strand * PI
+			var q := a + dir * minf(s, length) + side * sin(ph) * amp
+			_pline(Vector2i(prev.round()), Vector2i(q.round()), PX.lime1 if cos(ph) > 0.0 else PX.lime3)
+			prev = q
+			s += 3.0
+	for sgn in [-1.0, 1.0]:
+		_pline(Vector2i((a + side * (half + 1.0) * sgn).round()), Vector2i((b + side * (half + 1.0) * sgn).round()), PX.soot)
+		_pline(Vector2i((a + side * half * sgn).round()), Vector2i((b + side * half * sgn).round()), PX.lime1)
 
 # 그릴 장판 반지름(아트 px): 처음 본 뒤 age초 동안 ZONE_OPEN초에 걸쳐 빠르게 펼쳐지고, 남은 시간이 ZONE_CLOSE초 밑이면 줄어든다
 static func zone_r(z, age: float) -> int:
@@ -1144,7 +1290,12 @@ func status_marks(x, ally: bool) -> Array:
 				var bob := int(round(sin(clock * 3.0 + _hf(n, 4) * TAU)))
 				for sx in [-7, 7]:
 					out.append({k = "guard", p = feet + Vector2i(sx, -int(tall * 0.5) + bob), f = 0})
-			"haste":  # 발에서 오르는 작은 사각형
+			"haste":  # 발에서 오르는 작은 사각형. 실비아 순풍에서 온 공격 속도는 발 둘레를 도는 바람 줄 조각이다(I215 2026-11-01 변경)
+				var wind: float = x.fx.sylvia_w.get("haste", 0.0) if x.fx.has("sylvia_w") else 0.0
+				if wind > 0.0:
+					out.append({k = "gust", p = feet + Vector2i(0, 1), f = int(clock * 12.0)})
+					if battle.effect_sum(x, "haste") <= wind:
+						continue
 				for i in 3:
 					var ph := fmod(clock * 1.5 + i / 3.0 + _hf(n, 5), 1.0)
 					out.append({k = "px", p = feet + Vector2i(-4 + i * 4, -int(10.0 * ph)), c = PX.gold if ph < 0.5 else PX.orange})
@@ -1158,7 +1309,7 @@ func status_marks(x, ally: bool) -> Array:
 				var a := clock * 3.0 + _hf(n, 6) * TAU
 				out.append({k = "ring", p = feet - Vector2i(0, int(tall * 0.45)), r = int(tall * 0.6) + 1, c = PX.gold if fmod(clock * 2.0, 1.0) < 0.5 else PX.cream})
 				out.append({k = "star", p = feet + Vector2i(int(cos(a) * tall * 0.6), -int(tall * 0.45) + int(sin(a) * tall * 0.3)), f = 0})
-	if ally and x.get("toggle"):  # 켜진 돌풍 갈래살(실비아 W, fx-2): 발 둘레를 도는 연두 바람 줄
+	if ally and x.get("toggle"):  # 켜진 토글 칸(S147, fx-2): 발 둘레를 도는 연두 바람 줄
 		out.append({k = "gust", p = feet + Vector2i(0, 1), f = int(clock * 12.0)})
 	for i in icons.size():  # 머리 위 기호는 별(기절) 위로 한 줄에
 		out.append({k = icons[i], p = head + Vector2i(int((i - (icons.size() - 1) / 2.0) * 8.0), -9), f = 0})
@@ -1825,7 +1976,7 @@ func _sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 	var at := _spot(x) + _flinch(x) + _slip(x) - Vector2(a.anchor[0], a.anchor[1]) - Vector2.ONE * (size - c) / 2.0
 	_region(UNITS, Rect2(at, Vector2(size, size)), Rect2(col * size, a[anim] + dir * size, size, size), tint)
 
-# 이 영웅이 가장 최근에 쓴 스킬의 흔적(Q·W·E·R·반격의 태세 터뜨림, S165 2026-10-29). 운석 착탄·덫 터짐은 쓴 때가 아니라서 뺀다. 없으면 null
+# 이 영웅이 가장 최근에 쓴 스킬의 흔적(Q·W·E·R·반격의 태세 터뜨림, S165 2026-10-29). 운석 착탄은 쓴 때가 아니라서 뺀다. 없으면 null
 func _cast_of(h):
 	var out = null
 	for c in battle.traces:
@@ -2873,6 +3024,9 @@ func _aim_preview() -> void:
 					var q: Vector2i = wc * CELL
 					for e in [[Vector2i.ZERO, Vector2i(CELL, 1)], [Vector2i(0, CELL - 1), Vector2i(CELL, 1)], [Vector2i.ZERO, Vector2i(1, CELL)], [Vector2i(CELL - 1, 0), Vector2i(1, CELL)]]:
 						_px(q + e[0], Color.WHITE, e[1])
+			elif sk.id == "wind_lens":  # 렌즈 관문(S153): 지점을 가운데로 영웅 → 지점에 수직인 선. 깔 때(battle.lens_gate)와 같은 선이다
+				var ends: Array = battle.lens_gate(h, at, sk.length * battle.grow_of(h, controls.aiming))
+				_pline(Vector2i(_center(ends[0]).floor()), Vector2i(_center(ends[1]).floor()), Color.WHITE)
 			elif sk.id == "meteor_swarm":  # 운석이 떨어질 자리마다 원(S268)
 				for p in battle.meteor_spots(h, at):
 					_pring(Vector2i(_center(p).floor()), aim_r(battle, h, controls.aiming), 1, Color.WHITE)

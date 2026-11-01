@@ -122,11 +122,11 @@ def test_EV631_gear_data_check(gd):
     gd("gear", "EV631")
 
 
-def test_EV632_sylvia_stacks_and_split(gd):
+def test_EV632_sylvia_bow_thresholds(gd):
     gd("gear", "EV632")
 
 
-def test_EV633_sylvia_trap_thread(gd):
+def test_EV633_sylvia_lens_thread(gd):
     gd("gear", "EV633")
 
 
