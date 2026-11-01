@@ -175,13 +175,6 @@ def meteor():
     return mix(blast * 0.9 + body, crack)
 
 
-def trap():
-    n = n_of(0.45)
-    snap = hp(noise(n_of(0.02)), 3000) * 1.2
-    gust = whoosh(n, 3000, 500, 0.9) * env(n, 0.005, 0.05, 0.7, 0.3)
-    return mix(snap, gust * 1.5)
-
-
 def burst():
     n = n_of(0.7)
     return mix(clang(196, n, 6) * 0.8, boom() * 0.8)
@@ -401,7 +394,7 @@ SFX = {
     "swing": (swing, 0.4), "hit": (sfx_hit, 0.4), "boom": (boom, 0.65), "hurt": (hurt, 0.45), "struct_hit": (struct_hit, 0.45),
     "enemy_die": (sfx_enemy_die, 0.5), "ally_down": (ally_down, 0.6), "hero_down": (hero_down, 0.8),
     "boss_skill": (boss_skill, 0.85), "interrupt": (interrupt, 0.75), "collapse": (collapse, 0.8),
-    "meteor": (meteor, 0.85), "trap": (trap, 0.7), "burst": (burst, 0.8), "loop": (loop_back, 0.75), "resonate": (resonate, 0.7),
+    "meteor": (meteor, 0.85), "burst": (burst, 0.8), "loop": (loop_back, 0.75), "resonate": (resonate, 0.7),
     "build": (sfx_build, 0.6), "complete": (complete, 0.55), "sell": (sfx_coin, 0.55), "hire": (hire, 0.6),
     "level_up": (level_up, 0.65), "wave_start": (sfx_wave_start, 0.8), "boss_appear": (boss_appear, 0.9),
     "alert": (alert, 0.55), "click": (sfx_ui_click, 0.35), "refuse": (sfx_refuse, 0.5),

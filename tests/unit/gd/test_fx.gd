@@ -254,7 +254,7 @@ func _ready_cast(b, h, slot: String, aim = null) -> bool:
 	return b.cast(h, slot, aim)
 
 func test_fx2_pieces_and_bright_first_burst_frame():
-	for name in ["spark", "aegis", "burst", "ward", "trap", "gust", "stuck"]:
+	for name in ["spark", "aegis", "burst", "ward", "gust"]:
 		if not View.FX_ART.has(name):
 			return "이펙트 아틀라스에 %s 조각이 없다" % name
 	var img: Image = load("res://art/fx/fx.png").get_image()
@@ -396,22 +396,6 @@ func test_aias_sylvia_casts_draw_their_own_pieces():
 		b.traces.clear()
 	v.free()
 	return ""
-
-func test_toggle_on_shows_wind_at_feet_only_while_on():
-	var b = _pair()
-	var v = Rec.new()
-	v.battle = b
-	var s = b.heroes[1]
-	var feet: Vector2i = Vector2i((v._spot(s) + v._slip(s)).floor())
-	var why := ""
-	if v.status_marks(s, true).any(func(m): return m.k == "gust"):
-		why = "토글을 켜지 않았는데 바람 줄이 있다"
-	s.toggle = true  # 지금 영웅 데이터에는 토글 칸이 없어 켠 상태를 직접 둔다
-	var g: Array = v.status_marks(s, true).filter(func(m): return m.k == "gust")
-	if why == "" and (g.size() != 1 or absi(g[0].p.y - feet.y) > 2):
-		why = "켠 토글이 %s다(발밑 바람 줄 하나여야 한다)" % [g]
-	v.free()
-	return why
 
 func _len(l: Array) -> float:
 	return Vector2(l[1] - l[0]).length()

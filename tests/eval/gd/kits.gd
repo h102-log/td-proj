@@ -4,7 +4,7 @@ extends "res://tests/eval/gd/lib.gd"
 #   Battle.can_cast(영웅, 칸) · Battle.toggle_auto(영웅, 칸) · Battle.damage(대상, 양, 종류 = "phys", 낸 쪽 = null)
 #   Battle.effect(대상, 키) — 걸린 효과의 값(없으면 null) · Battle.effect_sum(대상, 키) — 더하는 효과의 합 · Battle.armor_of(대상)
 #   Battle.armor_mult(방어력) — 물리 피해 배율(S149) · Battle.zones · Battle.barriers(칸 → 막힌 칸) · Battle.CAST_RANGE
-#   영웅: cd[칸] · skill_uses · fort · block · shields(출처 → {hp, left}) · toggle · auto · order · 적: engaged(붙잡은 유닛)
+#   영웅: cd[칸] · skill_uses · fort · block · shields(출처 → {hp, left}) · auto · order · 적: engaged(붙잡은 유닛)
 #   Controls.skill_key(칸, shift) · Controls.aiming · 구조물: cooldown(다음 사격까지 남은 초)
 # 수치는 영웅 필드(q·w·e·r·passive·aura 사전)에서 읽는다. 임시값이라(S151~S158) 밸런스를 바꿔도 효과를 재는 평가는 깨지지 않게
 # 영웅의 기본 공격이 재는 값을 흐리지 않게, 기본 공격을 재지 않는 평가는 영웅의 공격력을 0으로 둔다

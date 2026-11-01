@@ -1,13 +1,13 @@
 extends Button
 # 영웅 칸의 스킬 칸 18×18(I151). HUD가 매 프레임 show_state로 상태를 넣고, 칸은 글 대신 그림으로 보인다:
 # 쓸 수 있음 = 칸 글자, 재사용 대기 = 위에서 덮는 검정 막(남은 비율)과 가운데 올림한 초(칸 글자는 왼쪽 위로),
-# 잠김 = 어둡게 + 자물쇠, 자동 시전 = 네 귀퉁이 금색 꺾쇠, 조준 중 = 금색 테두리 맥박, 토글 켬 = 청록 안쪽 테두리, 준비 단계 = 오른쪽 아래 모래시계
+# 잠김 = 어둡게 + 자물쇠, 자동 시전 = 네 귀퉁이 금색 꺾쇠, 조준 중 = 금색 테두리 맥박, 준비 단계 = 오른쪽 아래 모래시계
 
 const HudTheme := preload("res://src/ui/hud_theme.gd")
 const HudBuild := preload("res://src/ui/hud_build.gd")
 const LOCKED := Color(0.4, 0.4, 0.4)
 const CURTAIN := Color(0, 0, 0, 0.6)  # 재사용 대기 막(ui_research 4.9)
-const TEAL := Color("3c9f9c")  # 토글 켬(ui_research 4.9 아군 색)
+const TEAL := Color("3c9f9c")  # ui_research 4.9 아군 색. 홀드 태그(hud.gd)가 쓴다
 const FLASH := 0.3  # 거부 표시 초(I151 임시값)
 const LOCK := [".###.", "#...#", "#...#", "#####", "##.##", "##.##", "#####"]
 const GLASS := ["#####", ".#.#.", "..#..", ".#.#.", "#####"]  # 모래시계
@@ -52,7 +52,7 @@ func _ready() -> void:
 	for n in get_children():
 		n.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-# s: letter(칸 글자) · cd(남은 재사용 대기 초) · gap(재사용 대기 초) · lock · auto · aim · on(토글 켬) · prep(준비 단계) · now(HUD 시계)
+# s: letter(칸 글자) · cd(남은 재사용 대기 초) · gap(재사용 대기 초) · lock · auto · aim · prep(준비 단계) · now(HUD 시계)
 func show_state(s: Dictionary) -> void:
 	_st = s
 	var wait: bool = s.cd > 0.0 and not s.lock
@@ -81,8 +81,6 @@ func _paint() -> void:
 			for y in [0.0, size.y - 1.0]:
 				_over.draw_rect(Rect2(minf(x, size.x - 4.0), y, 4, 1), HudTheme.ACCENT)
 				_over.draw_rect(Rect2(x, minf(y, size.y - 4.0), 1, 4), HudTheme.ACCENT)
-	if _st.on:
-		_over.draw_rect(r.grow(-2.0), TEAL, false, 2.0)
 	if _st.aim:
 		_over.draw_rect(r.grow(-0.5), Color(HudTheme.ACCENT, 0.55 + 0.45 * sin(_st.now * TAU * 2.0)), false, 1.0)
 	if _st.now - _reject < FLASH:

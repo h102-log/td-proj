@@ -256,7 +256,6 @@ class Unit:
 	var cd := {"q": 0.0, "w": 0.0, "e": 0.0, "r": 0.0}  # 칸마다 남은 재사용 대기(초)
 	var skill_uses := 0  # 쓴 스킬 수(모든 칸)
 	var order = null  # 시전 사거리 밖이라 걸어가서 쓸 스킬 {slot, aim}(S147). 없으면 null
-	var toggle := false  # 켜고 끄는 칸(S147)이 켜져 있다. 지금 영웅 데이터에는 토글 칸이 없다
 	var auto := false  # 자동 시전(크로노스 Q)이 켜져 있다(S158)
 	var casts := 0  # 이그니스 패시브: 쓴 스킬 수(S156)
 	var charged := false  # 이그니스 패시브: 다음 Q·W·E가 커진다
@@ -1316,9 +1315,6 @@ func cast(h, slot: String, aim = null) -> bool:
 	if sk.get("id") == "brace" and h.brace > 0.0:  # 반격의 태세를 다시 누르면 바로 터뜨린다(S151)
 		_burst(h)
 		return true
-	if sk.get("aim") == "toggle" and h.toggle:  # 켜진 토글은 언제든 끈다(S153)
-		h.toggle = false
-		return true
 	if not can_cast(h, slot):
 		return false
 	match sk.aim:
@@ -1326,9 +1322,6 @@ func cast(h, slot: String, aim = null) -> bool:
 			if sk.id == "wind_path" and _snipe_target(h) == null:  # 폭풍의 대동맥은 표적이 없으면 쓰지 않는다(I214)
 				return false
 			_use(h, slot, null)
-		"toggle":
-			h.toggle = true
-			h.cd[slot] = sk.gap
 		_:
 			if not _aim_ok(h, sk, aim):
 				return false
