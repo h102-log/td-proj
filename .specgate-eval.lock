@@ -1,6 +1,6 @@
 {
-  "approvedAt": "2026-11-01T05:49:43.618Z",
-  "evalMd": "2723ce22",
+  "approvedAt": "2026-11-01T07:45:18.820Z",
+  "evalMd": "9232683f",
   "tests": {
     "tests/eval/conftest.py": "8c3584e8",
     "tests/eval/gd/aura.gd": "010cc38a",
@@ -35,7 +35,7 @@
     "tests/eval/gd/hero.gd.uid": "890522fc",
     "tests/eval/gd/heroes.gd": "62ed406b",
     "tests/eval/gd/heroes.gd.uid": "36f71d91",
-    "tests/eval/gd/hire.gd": "7bdb3005",
+    "tests/eval/gd/hire.gd": "ca956059",
     "tests/eval/gd/hire.gd.uid": "47433f7e",
     "tests/eval/gd/house.gd": "1df77dae",
     "tests/eval/gd/house.gd.uid": "5fd6fb28",
@@ -77,6 +77,8 @@
     "tests/eval/gd/save.gd.uid": "5c7f6374",
     "tests/eval/gd/sell.gd": "150cab15",
     "tests/eval/gd/sell.gd.uid": "5c77653c",
+    "tests/eval/gd/shop.gd": "afb2f88e",
+    "tests/eval/gd/shop.gd.uid": "247888fb",
     "tests/eval/gd/show.gd": "7037f8af",
     "tests/eval/gd/show.gd.uid": "be479de2",
     "tests/eval/gd/slimeart.gd": "3318267a",
@@ -115,7 +117,7 @@
     "tests/eval/test_grow.py": "f82b7707",
     "tests/eval/test_hero.py": "038406d7",
     "tests/eval/test_heroes.py": "0a8af240",
-    "tests/eval/test_hire.py": "8a8e108d",
+    "tests/eval/test_hire.py": "5069c2f8",
     "tests/eval/test_house.py": "4cbc5613",
     "tests/eval/test_hud.py": "e642c335",
     "tests/eval/test_kits.py": "81a2651b",
@@ -134,6 +136,7 @@
     "tests/eval/test_rounds.py": "854e02bb",
     "tests/eval/test_save.py": "c47d5574",
     "tests/eval/test_sell.py": "925c7772",
+    "tests/eval/test_shop.py": "3f501124",
     "tests/eval/test_show.py": "74378302",
     "tests/eval/test_slimeart.py": "cd2b7457",
     "tests/eval/test_slimeking.py": "7b73f590",
@@ -277,7 +280,7 @@
     "S123": "d870bf26",
     "I103": "c131e52c",
     "S124": "f4bca52f",
-    "I104": "790bed54",
+    "I104": "28312590",
     "I105": "66bee11d",
     "I106": "dd6b32cd",
     "I107": "93138029",
@@ -476,6 +479,13 @@
     "S265": "8ab29390",
     "S266": "678acd10",
     "S267": "41444548",
-    "S268": "164e8a29"
+    "S268": "164e8a29",
+    "S272": "4aaa3bf3",
+    "I206": "61302aaa",
+    "S273": "8b4a99ee",
+    "I208": "4c7169c8",
+    "I207": "92b723bc",
+    "I209": "a332654f",
+    "S274": "a27dd07c"
   }
 }

@@ -52,3 +52,19 @@ def test_EV232_reroll_refused_at_roster_cap(gd):
 
 def test_EV400_offers_have_no_duplicates_or_owned(gd):
     gd("hire", "EV400")
+
+
+def test_EV649_hire_and_reroll_in_prep_and_battle(gd):
+    gd("hire", "EV649")
+
+
+def test_EV650_hired_mid_round_takes_free_hero_cell(gd):
+    gd("hire", "EV650")
+
+
+def test_EV651_reroll_cost_rises_and_resets_per_round(gd):
+    gd("hire", "EV651")
+
+
+def test_EV652_reroll_count_saved(gd):
+    gd("hire", "EV652")

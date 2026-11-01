@@ -18,7 +18,7 @@ static var path := ""  # 저장 파일. 비어 있으면 쓰지 않는다. 진�
 
 static func snapshot(b) -> Dictionary:
 	var d := {"version": VERSION, "rng": b._rng.state, "luck": b._luck.state, "kin": b._kin.state, "spare": b._spare, "bag": b.bag.duplicate(), "forged": b.forged.duplicate(),
-		"loot": b._loot.state, "dropped": b.dropped.duplicate(), "ranks": b.merc_rank.duplicate()}
+		"loot": b._loot.state, "dropped": b.dropped.duplicate(), "ranks": b.merc_rank.duplicate(), "rerolls": b.rerolls}
 	for k in KEYS:
 		d[k] = _copy(b.get(k))
 	d.base = _fields(b.base)
@@ -50,6 +50,7 @@ static func apply(b, d: Dictionary) -> void:
 	if d.has("loot"):
 		b._loot.state = d.loot
 	b.merc_rank = d.get("ranks", {}).duplicate()  # 용병 강화 단계(I203). 이 칸이 생기기 전 저장은 0. 용병 수치는 유닛 칸에 담긴다
+	b.rerolls = d.get("rerolls", 0)  # 이번 라운드 리롤 횟수(I208). 이 칸이 생기기 전 저장은 0
 	b.base = _block(d.base)
 	for k in ["castle", "rubble", "structures"]:
 		b.get(k).clear()
