@@ -1515,3 +1515,12 @@ msgstr "Wind-Up cooldowns 3.5× faster"
 
 msgid "노화 되감기 — 노화가 걸린 적이 타임 루프로 되돌아가면 충격파 피해 2배"
 msgstr "Aged Rewind — Time Loop shockwave deals double damage when the returned enemy is Aged"
+
+msgid "메테오 스웜 피해 50"
+msgstr "Meteor Swarm damage 50"
+
+msgid "서리 고리 피해 20"
+msgstr "Frost Ring damage 20"
+
+msgid "메테오 스웜 운석 5개 · 간격 1.5칸"
+msgstr "Meteor Swarm 5 meteors · 1.5-cell spacing"
