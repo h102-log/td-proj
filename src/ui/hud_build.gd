@@ -16,6 +16,8 @@ const FLASH := 0.3  # 거부 표시 길이(초, I132 임시값)
 const WARN := Color("e0c040")  # 골드가 모자란 비용(절반 이상 있음). 절반도 없으면 DANGER
 const THINGS := {"castle_wall": "성벽", "gate": "성문", "base": "거점"}  # 고른 것 가운데 NAMES에 없는 이름
 const CROSS := ["#...#", ".#.#.", "..#..", ".#.#.", "#...#"]  # ✕ 도트
+const GEAR := preload("res://art/gear/gear.png")  # 장비 아이콘(S274, I209): y 0에 16×16, y 16에 8×8. tools/art/gear.py가 그린다
+const GEAR_ART := ["aias", "chronos", "ignis", "seraphina", "sylvia", "vesper"]  # GEAR의 열 차례(tools/art/gear.py ORDER와 같다)
 
 var hud
 var battle
@@ -96,7 +98,7 @@ func _ready() -> void:
 		n.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 func _process(delta: float) -> void:
-	visible = battle.state in ["prep", "battle"]
+	visible = battle.state in ["prep", "battle"] and not controls.shop  # 언제든 영입 창이 떠 있으면 숨는다(I206)
 	if not visible:
 		return
 	_none = battle.live() and battle.engineer_gap([]) == "none"
@@ -163,6 +165,14 @@ func _label(parent: Control, text: String, font: int, color: Color) -> Label:
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parent.add_child(l)
 	return l
+
+# 영웅 종류 kind의 장비 아이콘(S274): 큰 것 16×16, small이면 8×8
+static func gear_icon(kind: String, small := false) -> AtlasTexture:
+	var t := AtlasTexture.new()
+	t.atlas = GEAR
+	var i := GEAR_ART.find(kind)
+	t.region = Rect2(i * 8, 16, 8, 8) if small else Rect2(i * 16, 0, 16, 16)
+	return t
 
 # 시설·용병 그림을 잘라 칸 그림 대역으로 쓴다(S30, ui_research/00_brief.md §7). 빈 여백을 잘라 칸을 채우고, 칸에 맞춰 줄이는 것은 TextureRect가 한다
 static func icon(kind: String) -> AtlasTexture:

@@ -1530,3 +1530,15 @@ msgstr "Frost Ring damage 20"
 
 msgid "메테오 스웜 운석 5개 · 간격 1.5칸"
 msgstr "Meteor Swarm 5 meteors · 1.5-cell spacing"
+
+msgid "닫기 (T)"
+msgstr "Close (T)"
+
+msgid "출전·내보내기는 라운드 사이에"
+msgstr "Lineup and dismissal between rounds"
+
+msgid "영웅을 영입하고 목록을 리롤한다"
+msgstr "Hire heroes and reroll the list"
+
+msgid "판은 멈추지 않는다"
+msgstr "The game keeps running"
