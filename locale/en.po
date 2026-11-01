@@ -1461,3 +1461,36 @@ msgstr "Miracle heal 60%"
 
 msgid "성역 공명 — 자기 성역 안의 아군에게 쓴 성스러운 빛줄기는 횟수 2배"
 msgstr "Sanctum Echo — Holy Beam cast on an ally inside your Sanctum hits twice as many times"
+
+msgid "역병 향로"
+msgstr "Plague Censer"
+
+msgid "오라 적 방어력 −7"
+msgstr "Aura enemy armor −7"
+
+msgid "부식의 독안개 초당 피해 4"
+msgstr "Corrosion damage 4/s"
+
+msgid "쇠약의 저주 둔화 50%"
+msgstr "Enfeeble slow 50%"
+
+msgid "부식의 독안개 2.5칸 · 7초"
+msgstr "Corrosion 2.5 cells · 7s"
+
+msgid "부식의 독안개 초당 피해 5"
+msgstr "Corrosion damage 5/s"
+
+msgid "심연의 늪 6초"
+msgstr "Abyss 6s"
+
+msgid "영혼 사슬 6명 · 나누기 45%"
+msgstr "Soul Chain 6 targets · 45% shared"
+
+msgid "전염 반경 2.5칸"
+msgstr "Contagion radius 2.5 cells"
+
+msgid "심연의 늪 초당 최대 체력 5%"
+msgstr "Abyss 5% max HP/s"
+
+msgid "사슬 감염 — 영혼 사슬을 쓰면 대상의 중독·저주가 묶인 적 모두에게 옮는다"
+msgstr "Chain Infection — Soul Chain spreads the target's poison and curse to every chained enemy"

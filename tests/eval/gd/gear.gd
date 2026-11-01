@@ -18,6 +18,7 @@ extends "res://tests/eval/gd/hud.gd"
 #     성벽 공명 흔적: Battle.traces의 slot "resonate"(성벽 칸마다 하나) · 이관(transfer)이 장비 수치도 옮긴다 · main.hud._members[i][2] — 보유 i의 이관 버튼
 #   실비아 장궁(S259·S260): data/gear/sylvia.tres(+0~+9) · 덫은 Battle.zones의 src "sylvia_e"(pos = 깐 지점), 터지면 흔적 slot "trap", 걸린 적은 fx "sylvia_e"
 #   세라피나 성수병(S261·S262): data/gear/seraphina.tres(+0~+9) · 용병은 Battle.units에 놓은 차례로 든다
+#   베스퍼 향로(S263·S264): data/gear/vesper.tres(+0~+9) · 적 fx "vesper_q"(중독)·"vesper_w"(저주), 남은 시간은 그 효과의 left
 # 단계 수치는 데이터(GEAR_KINDS)에서 읽는다. 임시값이라(S249) 수치를 바꿔도 동작을 재는 평가는 깨지지 않게
 
 const CELLS := [Vector2i(10, 5), Vector2i(12, 5), Vector2i(14, 5)]  # 출전 칸(I107)
@@ -1043,3 +1044,73 @@ func ev635():
 		got.append([mercs.filter(func(m): return m.hp > 10.0).size(), b.enemies.filter(func(e): return e.hp < BIG).size()])
 	return check(got == [[7, 7], [4, 3], [4, 3]],
 		"[회복된 용병, 피해 받은 과녁] +9 성역 안 %s · +9 성역 밖 %s · +8 성역 안 %s(기대 [7, 7] · [4, 3] · [4, 3])" % got)
+
+# 향로 n을 낀 베스퍼(10,6)와 (12,10) 대상 하나, 대상에서 대각선 2.83칸 떨어진 적 넷. 반환 [판, 대상, 넷]
+func _vesper(n: int) -> Array:
+	var t := {"kind": "vesper", "cell": Vector2i(10, 6)}
+	if n >= 0:
+		t.gear = n
+	var b = battle({"heroes": [t], "base_hp": BIG, "waves": [NO_ENEMY, NO_ENEMY], "seed": 11})
+	if b.hero == null:
+		return [b, null, []]
+	var aim = _target(b, Vector2(12, 10))
+	var four := []
+	for c in [Vector2(10, 8), Vector2(14, 8), Vector2(10, 12), Vector2(14, 12)]:
+		four.append(_target(b, c))
+	b.start_battle()
+	b.hero.mana = 1e4
+	return [b, aim, four]
+
+# 향로 데이터가 없으면 그 이유. 없으면 _refit이 멈춰 판이 반쯤 만들어진다
+func _censer(b) -> String:
+	if _api(b) != "":
+		return _api(b)
+	return "" if b.GEAR_KINDS.has("vesper") and b.GEAR_KINDS.vesper.steps.size() == 10 and b.hero != null else "data/gear/vesper.tres(+0~+9)가 없다"
+
+# EV636 · S263: 향로 +0은 오라 적 방어력 7, +3은 Q 반경 2.5·지속 7, +6은 E 6명·나누기 0.45
+func ev636():
+	var out := _censer(_vesper(0)[0])
+	if out != "":
+		return out
+	var aura := []
+	for n in [-1, 0]:
+		aura.append(_vesper(n)[0].hero.aura.foe_armor)
+	var q := []
+	for n in [2, 3]:
+		var h = _vesper(n)[0].hero
+		q.append([h.q.radius, h.q.time])
+	var e := []
+	for n in [5, 6]:
+		var h = _vesper(n)[0].hero
+		e.append([h.e.links, h.e.share])
+	return check(aura == [5.0, 7.0] and q == [[2.0, 5.0], [2.5, 7.0]] and e == [[4, 0.35], [6, 0.45]],
+		"장비 없음·+0 오라 적 방어력 %s(기대 [5, 7]) · +2·+3 Q [반경, 지속] %s(기대 [[2, 5], [2.5, 7]]) · +5·+6 E [명 수, 나누기] %s(기대 [[4, 0.35], [6, 0.45]])" % [aura, q, e])
+
+# EV637 · S264: 사슬 감염. 대상에만 건 중독·저주가 E로 묶인 적 넷에게 같은 남은 시간으로 옮는다. +8이면 옮지 않는다
+func ev637():
+	var out := _censer(_vesper(9)[0])
+	if out != "":
+		return out
+	var got := []
+	for n in [9, 8]:
+		var r := _vesper(n)
+		var b = r[0]
+		var h = b.hero
+		var aim = r[1]
+		var four: Array = r[2]
+		if not b.cast(h, "q", Vector2(12, 10)):
+			return "향로 +%d 베스퍼의 Q가 거부됐다" % n
+		b.step(DT)
+		if not b.cast(h, "w", Vector2(12, 10)):
+			return "향로 +%d 베스퍼의 W가 거부됐다" % n
+		var bare := four.all(func(o): return not o.fx.has("vesper_q") and not o.fx.has("vesper_w"))
+		if not (aim.fx.has("vesper_q") and aim.fx.has("vesper_w") and bare):
+			return "향로 +%d: Q·W 뒤 대상 중독 %s·저주 %s, 넷은 깨끗 %s(기대 true·true·true)" % [n, aim.fx.has("vesper_q"), aim.fx.has("vesper_w"), bare]
+		if not b.cast(h, "e", aim):
+			return "향로 +%d 베스퍼의 E가 거부됐다" % n
+		var row := []
+		for src in ["vesper_q", "vesper_w"]:
+			row.append(four.filter(func(o): return o.fx.has(src) and is_equal_approx(o.fx[src].left, aim.fx[src].left)).size())
+		got.append(row)
+	return check(got == [[4, 4], [0, 0]],
+		"[대상과 같은 남은 시간의 중독, 저주]을 받은 적 수 +9 %s · +8 %s(기대 [4, 4] · [0, 0])" % got)

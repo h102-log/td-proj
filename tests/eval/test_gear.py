@@ -136,3 +136,11 @@ def test_EV634_seraphina_flask_steps(gd):
 
 def test_EV635_seraphina_sanctum_echo(gd):
     gd("gear", "EV635")
+
+
+def test_EV636_vesper_censer_steps(gd):
+    gd("gear", "EV636")
+
+
+def test_EV637_vesper_chain_infect(gd):
+    gd("gear", "EV637")
