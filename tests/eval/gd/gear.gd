@@ -19,6 +19,7 @@ extends "res://tests/eval/gd/hud.gd"
 #   실비아 장궁(S259·S260): data/gear/sylvia.tres(+0~+9) · 덫은 Battle.zones의 src "sylvia_e"(pos = 깐 지점), 터지면 흔적 slot "trap", 걸린 적은 fx "sylvia_e"
 #   세라피나 성수병(S261·S262): data/gear/seraphina.tres(+0~+9) · 용병은 Battle.units에 놓은 차례로 든다
 #   베스퍼 향로(S263·S264): data/gear/vesper.tres(+0~+9) · 적 fx "vesper_q"(중독)·"vesper_w"(저주), 남은 시간은 그 효과의 left
+#   크로노스 회중시계(S265·S266): data/gear/chronos.tres(+0~+9) · 노화가 걸린 적은 fx "chronos_w"
 # 단계 수치는 데이터(GEAR_KINDS)에서 읽는다. 임시값이라(S249) 수치를 바꿔도 동작을 재는 평가는 깨지지 않게
 
 const CELLS := [Vector2i(10, 5), Vector2i(12, 5), Vector2i(14, 5)]  # 출전 칸(I107)
@@ -1114,3 +1115,70 @@ func ev637():
 		got.append(row)
 	return check(got == [[4, 4], [0, 0]],
 		"[대상과 같은 남은 시간의 중독, 저주]을 받은 적 수 +9 %s · +8 %s(기대 [4, 4] · [0, 0])" % got)
+
+# 회중시계 n을 낀 크로노스(10,6)와 움직이지 않는 적 A(15,10), A에서 1.2칸 옆 적 B. 반환 [판, A, B]
+func _chronos(n: int) -> Array:
+	var t := {"kind": "chronos", "cell": Vector2i(10, 6)}
+	if n >= 0:
+		t.gear = n
+	var b = battle({"heroes": [t], "base_hp": BIG, "waves": [NO_ENEMY, NO_ENEMY], "seed": 11})
+	if b.hero == null:
+		return [b, null, null]
+	var a = _target(b, Vector2(15, 10))
+	var by = _target(b, Vector2(16.2, 10))
+	b.start_battle()
+	b.hero.mana = 1e4
+	return [b, a, by]
+
+# 회중시계 데이터가 없으면 그 이유. 없으면 _refit이 멈춰 판이 반쯤 만들어진다
+func _watch(b) -> String:
+	if _api(b) != "":
+		return _api(b)
+	return "" if b.GEAR_KINDS.has("chronos") and b.GEAR_KINDS.chronos.steps.size() == 10 and b.hero != null else "data/gear/chronos.tres(+0~+9)가 없다"
+
+# EV638 · S265: 회중시계 +0은 오라 반경 3.5, +3은 W 반경 2.5·공격력 감소 0.5, +6은 E 8명·충격파 25
+func ev638():
+	var out := _watch(_chronos(0)[0])
+	if out != "":
+		return out
+	var aura := []
+	for n in [-1, 0]:
+		aura.append(_chronos(n)[0].hero.aura.radius)
+	var w := []
+	for n in [2, 3]:
+		var h = _chronos(n)[0].hero
+		w.append([h.w.radius, h.w.weaken])
+	var e := []
+	for n in [5, 6]:
+		var h = _chronos(n)[0].hero
+		e.append([h.e.count, h.e.damage])
+	return check(aura == [3.0, 3.5] and w == [[2.0, 0.4], [2.5, 0.5]] and e == [[5, 15.0], [8, 25.0]],
+		"장비 없음·+0 오라 반경 %s(기대 [3, 3.5]) · +2·+3 W [반경, 공격력 감소] %s(기대 [[2, 0.4], [2.5, 0.5]]) · +5·+6 E [명 수, 충격파] %s(기대 [[5, 15], [8, 25]])" % [aura, w, e])
+
+# EV639 · S266: 노화 되감기. 되돌리는 순간 A에 노화가 걸려 있으면(문 앞에 걸었든 문을 편 뒤 걸었든) 곁 B가 받는 충격파가 2배, +8이면 1배
+func ev639():
+	var out := _watch(_chronos(9)[0])
+	if out != "":
+		return out
+	var got := []
+	for c in [[9, "before"], [9, ""], [8, "before"], [9, "after"]]:  # 노화를 문 앞에 거나, 걸지 않거나, 문을 펴고 0.5초 뒤에 건다
+		var r := _chronos(c[0])
+		var b = r[0]
+		var h = b.hero
+		var a = r[1]
+		var by = r[2]
+		if c[1] == "before" and not b.cast(h, "w", Vector2(13, 10)):
+			return "회중시계 +%d 크로노스의 W가 거부됐다" % c[0]
+		if not b.cast(h, "e", Vector2(15, 10)):
+			return "회중시계 +%d 크로노스의 E가 거부됐다" % c[0]
+		for i in 10:
+			b.step(DT)
+		if c[1] == "after" and not b.cast(h, "w", Vector2(13, 10)):
+			return "회중시계 +%d 크로노스의 W가 거부됐다(문 뒤)" % c[0]
+		if a.fx.has("chronos_w") != (c[1] != "") or by.fx.has("chronos_w"):
+			return "회중시계 +%d %s: A 노화 %s(기대 %s) · B 노화 %s(기대 false)" % [c[0], c[1], a.fx.has("chronos_w"), c[1] != "", by.fx.has("chronos_w")]
+		for i in 40:
+			b.step(DT)
+		got.append(BIG - by.hp)
+	return check(got[1] > 0.0 and is_equal_approx(got[0], 2.0 * got[1]) and is_equal_approx(got[2], got[1]) and is_equal_approx(got[3], 2.0 * got[1]),
+		"B가 받은 피해 +9 문 앞 노화 %s · +9 노화 없음 %s · +8 문 앞 노화 %s · +9 문 뒤 노화 %s(기대 2배 · 1배 · 1배 · 2배, 1배 > 0)" % got)

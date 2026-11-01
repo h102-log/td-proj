@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="GearDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/gear_def.gd" id="1_gear"]
+
+[resource]
+script = ExtResource("1_gear")
+title = "태엽 회중시계"
+steps = [{
+"aura.radius": 3.5
+}, {
+"q.haste": 0.4
+}, {
+"w.time": 7.0
+}, {
+"w.radius": 2.5,
+"w.weaken": 0.5
+}, {
+"q.haste": 0.45
+}, {
+"q.time": 7.0
+}, {
+"e.count": 8,
+"e.damage": 25.0
+}, {
+"r.time": 6.0
+}, {
+"r.pace": 3.5
+}, {
+"e.aged": 2.0
+}]
+notes = ["가속의 오라 반경 3.5칸", "무기 과충전 공격 속도 +40%", "노화 7초", "노화 2.5칸 · 공격력 −50%", "무기 과충전 공격 속도 +45%", "무기 과충전 7초", "타임 루프 8명 · 충격파 25", "태엽 감기 6초", "태엽 감기 대기 3.5배 빠르게", "노화 되감기 — 노화가 걸린 적이 타임 루프로 되돌아가면 충격파 피해 2배"]

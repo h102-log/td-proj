@@ -144,3 +144,11 @@ def test_EV636_vesper_censer_steps(gd):
 
 def test_EV637_vesper_chain_infect(gd):
     gd("gear", "EV637")
+
+
+def test_EV638_chronos_watch_steps(gd):
+    gd("gear", "EV638")
+
+
+def test_EV639_chronos_aged_rewind(gd):
+    gd("gear", "EV639")
