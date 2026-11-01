@@ -365,7 +365,7 @@ var rubble := {}  # 성곽의 칸 → 부서진 성곽 Block(I88). 지나갈 수
 var debris := {}  # 잔해 차지 칸 → 잔해 Block
 var barriers := {}  # Vector2i → 에너지 성벽 칸 Block(S151, I142). 그 장판(zones)이 끝나면 사라진다
 var zones := []  # 장판(S150, I141): {src, pos, radius, left, owner, 수치…}. 웨이브가 끝나면 모두 사라진다(I143)
-var loops := []  # 타임 루프가 되돌릴 적(I197): {e, at, wall, left, owner, blast, damage}. 웨이브가 끝나면 사라진다(I143)
+var loops := []  # 타임 루프가 되돌릴 적(I197): {e, at, wall, left, owner, blast, damage, aged(S266)}. 웨이브가 끝나면 사라진다(I143)
 var traces := []  # 즉시 스킬 흔적(S179): {hero, slot, aim, at, radius, hits, marked, age}. 그리기만 읽고 1초 지나면 지운다
 var fallen := []  # 쓰러진 영웅·용병·적(S180): {who, age}. 그리기만 읽고 FALLEN초 지나면 지운다
 var _dotting := false  # 초당 피해를 주는 중. 뜬 적(S236)도 이것만은 받는다
@@ -1647,7 +1647,7 @@ func _zones(dt: float) -> void:
 				for e in foes:
 					if z.marked.size() < z.count and not z.marked.has(e):
 						z.marked.append(e)
-						loops.append({"e": e, "at": e.pos, "wall": e.on_wall, "left": z.wait, "owner": z.owner, "blast": z.blast, "damage": z.damage})
+						loops.append({"e": e, "at": e.pos, "wall": e.on_wall, "left": z.wait, "owner": z.owner, "blast": z.blast, "damage": z.damage, "aged": z.aged})
 			"chronos_r":  # 태엽 감기 둘레: 안의 영웅은 스킬 대기가, 쏘는 구조물은 공격 대기가 pace배 빨리 준다. 맵의 모든 적은 느려진다
 				for t in heroes.filter(func(x): return x.alive) + structures.values().filter(func(x): return x.range > 0.0 and x.complete):
 					if _inside(z, _where(t)):
@@ -1687,9 +1687,10 @@ func _loops(dt: float) -> void:
 		e.on_wall = l.wall
 		_find_path(e)
 		_trace(l.owner, "loop", null, l.at, l.blast)
+		var dmg: float = l.damage * (l.aged if e.fx.has("chronos_w") else 1.0)  # 노화 되감기(회중시계 +9, S266): 되돌리는 순간 노화가 걸려 있으면 × aged
 		for o in enemies.duplicate():
 			if o.pos.distance_to(l.at) <= l.blast and not _aloft(o):
-				damage(o, l.damage, "magic", l.owner)
+				damage(o, dmg, "magic", l.owner)
 		_tracing = null
 
 # ── 아이아스(S151) ──
@@ -1971,7 +1972,7 @@ func _cast_aging(_h: Unit, sk: Dictionary, aim, grow: float) -> void:
 
 # E 타임 루프: 지점에 시간의 문을 놓는다. 표시는 _zones, 되돌리기는 _loops(I197)
 func _cast_time_loop(h: Unit, sk: Dictionary, aim, grow: float) -> void:
-	_zone("chronos_e", h, aim, sk.radius * grow, sk.time, {"count": sk.count, "wait": sk.delay, "blast": sk.blast, "damage": sk.damage, "marked": []})  # 장판의 delay는 운석 낙하라 wait로 담는다
+	_zone("chronos_e", h, aim, sk.radius * grow, sk.time, {"count": sk.count, "wait": sk.delay, "blast": sk.blast, "damage": sk.damage, "aged": sk.get("aged", 1.0), "marked": []})  # 장판의 delay는 운석 낙하라 wait로 담는다
 
 # R 태엽 감기: 크로노스를 따라다니는 둘레 장판. 효과는 _zones(I198)
 func _cast_wind_up(h: Unit, sk: Dictionary, _aim, _grow: float) -> void:

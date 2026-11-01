@@ -1494,3 +1494,36 @@ msgstr "Abyss 5% max HP/s"
 
 msgid "사슬 감염 — 영혼 사슬을 쓰면 대상의 중독·저주가 묶인 적 모두에게 옮는다"
 msgstr "Chain Infection — Soul Chain spreads the target's poison and curse to every chained enemy"
+
+msgid "태엽 회중시계"
+msgstr "Clockwork Pocket Watch"
+
+msgid "가속의 오라 반경 3.5칸"
+msgstr "Haste aura radius 3.5 cells"
+
+msgid "무기 과충전 공격 속도 +40%"
+msgstr "Overcharge attack speed +40%"
+
+msgid "노화 7초"
+msgstr "Aging 7s"
+
+msgid "노화 2.5칸 · 공격력 −50%"
+msgstr "Aging 2.5 cells · attack −50%"
+
+msgid "무기 과충전 공격 속도 +45%"
+msgstr "Overcharge attack speed +45%"
+
+msgid "무기 과충전 7초"
+msgstr "Overcharge 7s"
+
+msgid "타임 루프 8명 · 충격파 25"
+msgstr "Time Loop 8 targets · shockwave 25"
+
+msgid "태엽 감기 6초"
+msgstr "Wind-Up 6s"
+
+msgid "태엽 감기 대기 3.5배 빠르게"
+msgstr "Wind-Up cooldowns 3.5× faster"
+
+msgid "노화 되감기 — 노화가 걸린 적이 타임 루프로 되돌아가면 충격파 피해 2배"
+msgstr "Aged Rewind — Time Loop shockwave deals double damage when the returned enemy is Aged"
