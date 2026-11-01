@@ -2858,6 +2858,9 @@ func _aim_preview() -> void:
 					var q: Vector2i = wc * CELL
 					for e in [[Vector2i.ZERO, Vector2i(CELL, 1)], [Vector2i(0, CELL - 1), Vector2i(CELL, 1)], [Vector2i.ZERO, Vector2i(1, CELL)], [Vector2i(CELL - 1, 0), Vector2i(1, CELL)]]:
 						_px(q + e[0], Color.WHITE, e[1])
+			elif sk.id == "meteor_swarm":  # 운석이 떨어질 자리마다 원(S268)
+				for p in battle.meteor_spots(h, at):
+					_pring(Vector2i(_center(p).floor()), aim_r(battle, h, controls.aiming), 1, Color.WHITE)
 			else:
 				_pring(Vector2i(_center(at).floor()), aim_r(battle, h, controls.aiming), 1, Color.WHITE)
 		_:

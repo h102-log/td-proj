@@ -20,6 +20,7 @@ extends "res://tests/eval/gd/hud.gd"
 #   세라피나 성수병(S261·S262): data/gear/seraphina.tres(+0~+9) · 용병은 Battle.units에 놓은 차례로 든다
 #   베스퍼 향로(S263·S264): data/gear/vesper.tres(+0~+9) · 적 fx "vesper_q"(중독)·"vesper_w"(저주), 남은 시간은 그 효과의 left
 #   크로노스 회중시계(S265·S266): data/gear/chronos.tres(+0~+9) · 노화가 걸린 적은 fx "chronos_w"
+#   왕홀 +7~+9(S267·S268): 운석은 Battle.zones의 src "ignis_r"(pos = 떨어질 자리, delay = 떨어지기까지 초), 만든 차례가 운석 차례
 # 단계 수치는 데이터(GEAR_KINDS)에서 읽는다. 임시값이라(S249) 수치를 바꿔도 동작을 재는 평가는 깨지지 않게
 
 const CELLS := [Vector2i(10, 5), Vector2i(12, 5), Vector2i(14, 5)]  # 출전 칸(I107)
@@ -845,7 +846,7 @@ func _pair(a: int, kind: String, g: int):
 
 # EV628 · S258: 이관하면 강화 수치도 받는 장비로 옮기고, 최대 단계에서 넘친 수치는 주는 장비에 남는다
 func ev628():
-	var b = _pair(5, "ignis", 2)
+	var b = _pair(5, "ignis", 6)
 	if b == null:
 		return _shield(_aias(0)) if _shield(_aias(0)) != "" else "아이아스·이그니스 판이 라운드 사이가 되지 않았다"
 	var a = b.roster[0]
@@ -853,9 +854,9 @@ func ev628():
 	var xp: int = a.xp + g.xp
 	var ok: bool = b.transfer(a, g)
 	var top: int = b.GEAR_KINDS.ignis.steps.size() - 1
-	var bad: Array = _differ(a, _fitted(b, "aias", 5 - (top - 2))) + _differ(g, _fitted(b, "ignis", top))
-	return check(ok and b.bag == {"aias": 5 - (top - 2), "ignis": top} and bad.is_empty() and g.xp == xp and a.xp == 0,
-		"이관 %s · 가방 %s(기대 aias %d, ignis %d) · 장비 값과 다른 칸 %s · 경험치 %d/%d(기대 0/%d)" % [ok, b.bag, 5 - (top - 2), top, bad, a.xp, g.xp, xp])
+	var bad: Array = _differ(a, _fitted(b, "aias", 5 - (top - 6))) + _differ(g, _fitted(b, "ignis", top))
+	return check(ok and b.bag == {"aias": 5 - (top - 6), "ignis": top} and bad.is_empty() and g.xp == xp and a.xp == 0,
+		"이관 %s · 가방 %s(기대 aias %d, ignis %d) · 장비 값과 다른 칸 %s · 경험치 %d/%d(기대 0/%d)" % [ok, b.bag, 5 - (top - 6), top, bad, a.xp, g.xp, xp])
 
 # EV629 · S258: 둘 중 하나의 장비가 가방에 없으면 경험치만 옮긴다
 func ev629():
@@ -889,7 +890,7 @@ func ev630():
 		out = check(_win(b) and b.roster.size() == 2 and b.roster[0].kind == "aias" and b.roster[1].kind == "ignis", "1라운드를 이겨 라운드 사이가 되지 않았다(%s, 보유 %s)" % [b.state, b.roster.map(func(h): return h.kind)])
 	if out == "":
 		var title: String = b.GEAR_KINDS.ignis.title
-		b.bag = {"aias": 5, "ignis": 2}
+		b.bag = {"aias": 5, "ignis": 6}
 		_frame(main)
 		main.hud._members[0][2].pressed.emit()
 		_frame(main)
@@ -897,7 +898,7 @@ func ev630():
 		b.bag = {"aias": 5}
 		_frame(main)
 		var without := _tip_of(main, main.hud._members[1][2])
-		out = check(("%s +2 → +6" % title) in with and not title in without, "«여기로» 툴팁: 둘 다 있을 때 «%s» · 왕홀 없을 때 «%s»" % [with, without])
+		out = check(("%s +6 → +9" % title) in with and not title in without, "«여기로» 툴팁: 둘 다 있을 때 «%s» · 왕홀 없을 때 «%s»" % [with, without])
 	_done(main)
 	return out
 
@@ -1156,3 +1157,42 @@ func ev639():
 		got.append(BIG - by.hp)
 	return check(got[1] > 0.0 and is_equal_approx(got[0], 2.0 * got[1]) and is_equal_approx(got[2], got[1]) and is_equal_approx(got[3], 2.0 * got[1]),
 		"B가 받은 피해 +9 문 앞 노화 %s · +9 노화 없음 %s · +8 문 앞 노화 %s · +9 문 뒤 노화 %s(기대 2배 · 1배 · 1배 · 2배, 1배 > 0)" % got)
+
+# 왕홀 n을 낀 이그니스 판(전투 단계). 왕홀이 +9까지 없으면 그 이유
+func _scepter(n: int):
+	var b = _board(2, _ignis(n))
+	if _api(b) != "":
+		return _api(b)
+	if b.GEAR_KINDS.ignis.steps.size() != 10 or b.hero == null:
+		return "data/gear/ignis.tres가 +9까지가 아니다(%d단계)" % b.GEAR_KINDS.ignis.steps.size()
+	b.start_battle()
+	return b
+
+# EV640 · S267: 왕홀 +7·+8·+9 문턱이 올리는 칸(R 피해, W 피해, R 운석 수·간격). 값은 데이터대로
+func ev640():
+	var probe = _scepter(9)
+	if probe is String:
+		return probe
+	return _thresholds("ignis", func(n): return _scepter(n).hero, {7: ["r.damage"], 8: ["w.damage"], 9: ["r.count", "r.spread"]})
+
+# EV641 · S268: 운석 자리. 동쪽 4칸 지점에 R → 지점, 남북 ±간격, ±2간격 차례로 0.5초씩 늦게
+func ev641():
+	var probe = _scepter(9)
+	if probe is String:
+		return probe
+	var got := []
+	for n in [9, 8]:
+		var b = _scepter(n)
+		var h = b.hero
+		var aim: Vector2 = h.pos + Vector2(4, 0)
+		if not b.cast(h, "r", aim):
+			return "왕홀 +%d 이그니스의 R이 거부됐다" % n
+		var row := []
+		for z in b.zones.filter(func(z): return z.src == "ignis_r"):
+			var d: Vector2 = z.pos - aim
+			row.append([snappedf(absf(d.x), 0.01), snappedf(absf(d.y), 0.01), z.delay])
+		got.append(row)
+	var want9 := [[0.0, 0.0, 0.5], [0.0, 1.5, 1.0], [0.0, 1.5, 1.5], [0.0, 3.0, 2.0], [0.0, 3.0, 2.5]]
+	var want8 := [[0.0, 0.0, 0.5], [0.0, 1.0, 1.0], [0.0, 1.0, 1.5]]
+	return check(got == [want9, want8],
+		"운석 [지점에서 동서, 남북 거리, 늦음] +9 %s(기대 %s) · +8 %s(기대 %s)" % [got[0], want9, got[1], want8])

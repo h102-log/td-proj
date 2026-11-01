@@ -152,3 +152,11 @@ def test_EV638_chronos_watch_steps(gd):
 
 def test_EV639_chronos_aged_rewind(gd):
     gd("gear", "EV639")
+
+
+def test_EV640_ignis_scepter_top_steps(gd):
+    gd("gear", "EV640")
+
+
+def test_EV641_ignis_meteor_spots(gd):
+    gd("gear", "EV641")
