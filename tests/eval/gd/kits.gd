@@ -4,7 +4,7 @@ extends "res://tests/eval/gd/lib.gd"
 #   Battle.can_cast(영웅, 칸) · Battle.toggle_auto(영웅, 칸) · Battle.damage(대상, 양, 종류 = "phys", 낸 쪽 = null)
 #   Battle.effect(대상, 키) — 걸린 효과의 값(없으면 null) · Battle.effect_sum(대상, 키) — 더하는 효과의 합 · Battle.armor_of(대상)
 #   Battle.armor_mult(방어력) — 물리 피해 배율(S149) · Battle.zones · Battle.barriers(칸 → 막힌 칸) · Battle.CAST_RANGE
-#   영웅: mana · max_mana · cd[칸] · skill_uses · fort · block · shields(출처 → {hp, left}) · stacks · mark · toggle · auto · order · 적: engaged(붙잡은 유닛)
+#   영웅: cd[칸] · skill_uses · fort · block · shields(출처 → {hp, left}) · stacks · mark · toggle · auto · order · 적: engaged(붙잡은 유닛)
 #   Controls.skill_key(칸, shift) · Controls.aiming · 구조물: cooldown(다음 사격까지 남은 초)
 # 수치는 영웅 필드(q·w·e·r·passive·aura 사전)에서 읽는다. 임시값이라(S151~S158) 밸런스를 바꿔도 효과를 재는 평가는 깨지지 않게
 # 영웅의 기본 공격이 재는 값을 흐리지 않게, 기본 공격을 재지 않는 평가는 영웅의 공격력을 0으로 둔다
@@ -57,42 +57,17 @@ func ev255():
 	return check(b.hero.level == 1 and e1.hp < e1.max_hp and e2.hp == e2.max_hp,
 		"Lv%d · 오라 안 타워가 4.12칸 적을 쏨 %s · 오라 밖 타워가 쏨 %s" % [b.hero.level, e1.hp < e1.max_hp, e2.hp < e2.max_hp])
 
-# EV256 · S146: 마나는 전투 단계에만 초당 2씩 차고, 모자라면 스킬을 쓰지 않으며 대기도 시작하지 않는다
+# EV256 · S146: 마나가 없다. 스킬은 재사용 대기만 보고 쓴다 — 대기가 끝날 때마다 Q를 10번 쓰면 10번 모두 쓴다
 func ev256():
 	var b = _kit([["aias", H]])
 	var k = b.hero
 	_start(b)
-	b.cast(k, "w")
-	var m0: float = k.mana
-	run(b, 10.0)
-	var gained: float = k.mana - m0
-	run(b, 100.0)
-	var capped: bool = _near_f(k.mana, k.max_mana)
-	for e in b.enemies.duplicate():
-		b.damage(e, BIG)
-	run(b, 0.1)
-	k.mana = 30.0
-	run(b, 10.0)
-	var prep: bool = b.state == "prep" and k.mana == 30.0
-	_start(b)
-	k.cd.q = 0.0
-	var refused: bool = not b.cast(k, "q", Vector2(H + Vector2i(2, 0))) and k.cd.q == 0.0 and _near_f(k.mana, 30.0, 0.001)
-	return check(m0 == k.max_mana - k.w.mana and _near_f(gained, 20.0, 0.2) and capped and prep and refused,
-		"W 뒤 마나 %s · 전투 10초에 +%s · 상한 %s · 준비 단계 그대로 %s · 마나 30에 Q(40) 거부 %s" % [m0, gained, capped, prep, refused])
-
-# EV257 · S146: 새로 출전한 영웅은 마나가 가득 찬 채 서고, 쓰러졌다 돌아온 영웅은 마나 0으로 선다
-func ev257():
-	var b = battle({"hero_cells": [Vector2i(10, 5), Vector2i(12, 5), Vector2i(14, 5)], "base_hp": BIG, "rounds": [[ONE, ONE]], "seed": 3})
-	b.begin_hiring()
-	b.offers = ["aias", "aias", "aias"]
-	var k = b.hire(0)
-	b.next_round()
-	var fresh: bool = k.mana == k.max_mana
-	b.start_battle()
-	run(b, 0.5)
-	b.damage(k, BIG)
-	clear_wave(b)
-	return check(fresh and b.state == "prep" and k.present and k.mana == 0.0, "새로 출전 마나 가득 %s · 돌아온 영웅(%s) 마나 %s" % [fresh, b.state, k.mana])
+	var used := 0
+	for i in 10:
+		if b.cast(k, "q", Vector2(H + Vector2i(2, 0))):
+			used += 1
+		run(b, k.q.gap + DT)
+	return check(used == 10 and k.skill_uses == 10, "대기마다 Q 10번 가운데 %d번 씀(사용 횟수 %d)" % [used, k.skill_uses])
 
 # EV258 · S147: 시전 사거리(6칸) 안이면 바로 쓰고, 밖이면 그쪽으로 걸어가 사거리에 들면 쓴다. 가는 동안 이동 지시를 받으면 쓰지 않는다
 func ev258():
@@ -109,7 +84,6 @@ func ev258():
 	var cast_at: Vector2 = h.pos
 	var walked: bool = h.skill_uses == 2 and cast_at.distance_to(Vector2(20, 10)) <= b.CAST_RANGE + 0.2 and far_e.hp < far_e.max_hp
 	h.cd.q = 0.0
-	h.mana = h.max_mana
 	b.order_move([h], Vector2i(3, 10))
 	run(b, 5.0)
 	b.cast(h, "q", Vector2(20, 10))
@@ -264,7 +238,6 @@ func ev266():
 	b.cast(k, "e")
 	var burst: bool = _near_f(_lost(near_e, BIG), 40.0 * k.e.ratio) and far_e.hp == far_e.max_hp and k.brace == 0.0
 	k.cd.e = 0.0
-	k.mana = k.max_mana
 	var before: float = near_e.hp
 	b.cast(k, "e")
 	b.damage(k, 20.0)
@@ -339,7 +312,6 @@ func ev269():
 	m.shields.clear()
 	for i in 2:  # 상한이 없어 넘친 회복이 계속 쌓인다(20 + 20 = 40 > 최대 체력 50%)
 		s.cd.q = 0.0
-		s.mana = s.max_mana
 		b.cast(s, "q", m)
 	var stacked: float = m.shields.seraphina.hp
 	return check(_near_f(shield, s.q.heal) and absorbed and _near_f(_lost(far_m, hp0), 10.0) and _near_f(stacked, 2.0 * s.q.heal) and stacked > 0.5 * m.max_hp,
@@ -431,26 +403,25 @@ func ev274():
 	for i in 3:
 		ok = ok and _near_f(got[i], want[i], 0.001)
 	return check(ok and off.hp == off.max_hp and s.mark == line[0] and s.stacks == s.q.stacks, "직선 위 %s(%s, 23칸 떨어진 적 포함) · 직선 밖 그대로 %s · 첫 적 중첩 %d" % [got, want, off.hp == off.max_hp, s.stacks])
-# EV275 · S153: W를 켜면 기본 공격마다 마나 8을 내고 대상과 가까운 적 3명에게도 같은 피해를 준다. 마나가 모자라면 꺼진다
+# EV275 · S153: W를 켜면 기본 공격마다 대상과 가까운 적 3명에게도 같은 피해를 준다. 켜 두면 끌 때까지 켜져 있다
 func ev275():
 	var b = _kit([["sylvia", H]])
 	var s = b.hero
 	var foes := [_dummy(b, H + Vector2i(2, 0)), _dummy(b, H + Vector2i(3, 0)), _dummy(b, H + Vector2i(3, 1)), _dummy(b, H + Vector2i(3, -1)), _dummy(b, H + Vector2i(3, 2))]
 	_start(b)
 	b.cast(s, "w")
-	var m0: float = s.mana
 	run(b, 3.0, func(): return foes.any(func(e): return e.hp < e.max_hp))
-	var paid: bool = s.mana <= m0 - s.w.mana + 0.5
 	run(b, 0.3)  # 갈래 화살은 대상마다 따로 날아 멀수록 늦게 닿는다(S178)
 	var hit_n: int = foes.filter(func(e): return e.hp < e.max_hp).size()
-	s.mana = 5.0
+	run(b, 60.0)  # 마나가 있던 때(200, 한 방에 8)라면 이 사이에 꺼졌다
 	var before := foes.map(func(e): return e.hp)
 	run(b, 3.0, func(): return foes.any(func(e): return e.hp < before[foes.find(e)]))
+	run(b, 0.3)
 	var after_n: int = 0
 	for i in foes.size():
 		if foes[i].hp < before[i]:
 			after_n += 1
-	return check(hit_n == 1 + s.w.extra and paid and after_n == 1 and not s.toggle, "켜고 한 방에 %d명(4) · 마나 냄 %s · 마나 5면 %d명이고 꺼짐 %s" % [hit_n, paid, after_n, not s.toggle])
+	return check(hit_n == 1 + s.w.extra and after_n == 1 + s.w.extra and s.toggle, "켜고 한 방에 %d명(4) · 60초 뒤 한 방에 %d명 · 켜짐 %s" % [hit_n, after_n, s.toggle])
 
 # EV276 · S153·S149: E 덫은 땅 적이 밟으면 터져 반경 1.5 적을 3초 속박한다(제자리, 닿는 용병은 친다). 속박된 적에게 쏘는 구조물의 치명타(피해 ×2) 확률은 25%다
 func ev276():
@@ -468,7 +439,6 @@ func ev276():
 	run(b, 0.5)
 	var freed: bool = walker.pos.distance_to(at) > 0.1
 	s.cd.e = 0.0
-	s.mana = s.max_mana
 	var d = _dummy(b, Vector2i(8, 7))
 	b.cast(s, "e", Vector2(8, 7))
 	b.step(DT)
@@ -688,7 +658,7 @@ func ev286():
 	var lava: int = b.zones.filter(func(z): return z.src == "ignis_r").size()
 	return check(none and first and three and lava == 3 and top.hp == top.max_hp, "0.4초 그대로 %s · 0.55초 첫 운석 %s · 1.65초 셋 %s(%s) · 용암 %d곳 · 2칸 밖 그대로 %s" % [none, first, three, mid.max_hp - mid.hp, lava, top.hp == top.max_hp])
 
-# EV287 · S156: 스킬을 3번 쓰면 다음 Q의 반경이 ×1.3이 되고 대기가 2초 준다. 오라 안 영웅은 초당 마나가 2.5 더 찬다
+# EV287 · S156: 스킬을 3번 쓰면 다음 Q의 반경이 ×1.3이 되고 대기가 2초 준다. 오라 안 영웅은 재사용 대기가 25% 빨리 준다
 func ev287():
 	var b = _kit([["ignis", H], ["aias", H + Vector2i(0, 2)], ["aias", Vector2i(25, 3)]])
 	var g = b.hero
@@ -697,7 +667,6 @@ func ev287():
 	_start(b)
 	for slot in ["q", "w", "e"]:
 		b.cast(g, slot, Vector2(12, 14))  # 과녁에서 멀리
-	g.mana = g.max_mana
 	g.cd.q = 0.0
 	var spot := Vector2(15.1, 10)  # 과녁에서 1.9칸: 반경 1.5 밖, 1.5 × 1.3 = 1.95 안
 	var untouched: bool = edge.hp == edge.max_hp and spot.distance_to(Vector2(17, 10)) > g.q.radius
@@ -705,11 +674,13 @@ func ev287():
 	var grown: bool = untouched and edge.hp < edge.max_hp and _near_f(g.cd.q, g.q.gap - g.passive.cut)
 	var near_b = b.heroes[1]
 	var far_b = b.heroes[2]
-	near_b.mana = 0.0
-	far_b.mana = 0.0
+	near_b.cd.w = 10.0
+	far_b.cd.w = 10.0
 	run(b, 2.0)
-	return check(grown and _near_f(near_b.mana, 2.0 * (near_b.mana_regen + g.aura.mana), 0.2) and _near_f(far_b.mana, 2.0 * far_b.mana_regen, 0.2),
-		"넷째 Q 반경·대기 %s(대기 %s) · 오라 안 2초 마나 %s · 밖 %s" % [grown, g.cd.q, near_b.mana, far_b.mana])
+	var near_cut: float = 10.0 - near_b.cd.w
+	var far_cut: float = 10.0 - far_b.cd.w
+	return check(grown and _near_f(near_cut, 2.0 * (1.0 + g.aura.cdr), 0.1) and _near_f(far_cut, 2.0, 0.1),
+		"넷째 Q 반경·대기 %s(대기 %s) · 2초에 준 W 대기: 오라 안 %s · 밖 %s" % [grown, g.cd.q, near_cut, far_cut])
 
 # ── 크로노스(S158) ──
 
@@ -817,7 +788,7 @@ func ev292():
 
 # ── 추론 문장 ──
 
-# EV293 · I143: 웨이브가 끝나면 장판·에너지 성벽·보호막·태세가 사라지고, 재사용 대기와 마나는 그대로다
+# EV293 · I143: 웨이브가 끝나면 장판·에너지 성벽·보호막·태세가 사라지고, 재사용 대기는 그대로다
 func ev293():
 	var b = _kit([["aias", H]])
 	var k = b.hero
@@ -826,20 +797,19 @@ func ev293():
 	_start(b)
 	b.cast(k, "w")
 	b.cast(k, "e")
-	k.mana = k.max_mana
 	b.cast(k, "r", Vector2(H + Vector2i(4, 0)))
 	var had: bool = not b.zones.is_empty() and not b.barriers.is_empty() and not k.shields.is_empty() and k.brace > 0.0
-	var keep := [k.cd.w, k.cd.e, k.cd.r, k.mana]
+	var keep := [k.cd.w, k.cd.e, k.cd.r]
 	b.damage(foe, BIG)
 	for e in b.enemies.duplicate():
 		b.damage(e, BIG)
 	b.step(DT)
-	var now := [k.cd.w, k.cd.e, k.cd.r, k.mana]
-	var kept := true  # 마지막 전투 스텝 한 번만큼(대기 −DT, 마나 +2·DT)만 다르다
-	for i in 4:
+	var now := [k.cd.w, k.cd.e, k.cd.r]
+	var kept := true  # 마지막 전투 스텝 한 번만큼(대기 −DT)만 다르다
+	for i in 3:
 		kept = kept and _near_f(now[i], keep[i], 0.11)
 	return check(had and b.state == "prep" and b.zones.is_empty() and b.barriers.is_empty() and k.shields.is_empty() and k.brace == 0.0 and kept,
-		"있었음 %s · %s · 장판 %d · 성벽 %d · 보호막 %d · 태세 %s · 대기·마나 그대로 %s(%s → %s)" % [had, b.state, b.zones.size(), b.barriers.size(), k.shields.size(), k.brace, kept, keep, now])
+		"있었음 %s · %s · 장판 %d · 성벽 %d · 보호막 %d · 태세 %s · 대기 그대로 %s(%s → %s)" % [had, b.state, b.zones.size(), b.barriers.size(), k.shields.size(), k.brace, kept, keep, now])
 
 # EV294 · I145: 대상이 맞지 않으면 쓰지 않는다(세라피나 Q를 적에게, 베스퍼 E를 용병에게). 조준 중 맞는 대상이 없는 곳을 누르면 조준이 이어진다
 func ev294():
@@ -889,7 +859,6 @@ func ev297():
 	_start(b)
 	b.cast(s, "e", Vector2(H + Vector2i(3, 0)))
 	s.cd.e = 0.0
-	s.mana = s.max_mana
 	b.cast(s, "e", Vector2(H + Vector2i(0, 3)))
 	var two: int = b.zones.filter(func(z): return z.src == "sylvia_e").size()
 	run(b, 35.0)
@@ -941,7 +910,6 @@ func ev300():
 	var c = _dummy(b, Vector2i(14, 4))
 	var d = _dummy(b, Vector2i(15, 4))  # 저주 지점에서 3칸(반경 2 밖), c에서 1칸(전염 반경 2 안)
 	v.cd.w = 0.0
-	v.mana = v.max_mana
 	b.cast(v, "w", Vector2(12, 4))
 	var cursed_before: bool = b.effect(d, "weaken") == null
 	b.damage(c, BIG)

@@ -242,9 +242,6 @@ class Unit:
 	var grade := 0
 	var level := 1  # 영웅 레벨(S60, S126). 경험치로 정해진다(Battle._set_xp)
 	var xp := 0
-	var mana := 0.0  # 지금 마나(S146). 만들 때 HeroDef의 최대 마나가 들어온다
-	var max_mana := 0.0
-	var mana_regen := 0.0
 	var passive := {}
 	var aura := {}
 	var q := {}
@@ -274,7 +271,6 @@ class Unit:
 		for key in stats:
 			set(key, stats[key])
 		max_hp = hp
-		max_mana = mana
 
 # 원거리 기본 공격의 투사체(S178, I174). 대상을 따라가 닿을 때 피해를 준다. 쏜 쪽의 상태(피해량·종류·방어 무시·축복)는 쏜 때 담는다
 class Missile:
@@ -715,11 +711,10 @@ func seen(p: Vector2) -> bool:
 	return false
 
 # 영웅을 자기 시작 칸에 세운다. 체력은 쓰러졌다 돌아올 때(S26, I102) 1이고(S138, I27), 새로 출전할 때(S124) 가득 찬다.
-# 마나도 돌아올 때 0, 새로 출전할 때 가득이다(S146). 공격·스킬 대기는 쓰러질 때 값을 이어 간다(S67)
+# 공격·스킬 대기는 쓰러질 때 값을 이어 간다(S67)
 func _return_hero(h: Unit, fresh := false) -> void:
 	h.alive = true
 	h.hp = h.max_hp if fresh else 1.0
-	h.mana = h.max_mana if fresh else 0.0
 	h.order = null
 	h.pos = Vector2(h.home)
 	h.still = 0.0  # 요새화 시간도 새로 센다(I147)
@@ -1278,10 +1273,10 @@ func set_hold(group: Array, on: bool) -> void:
 # 살아 있는 출전 영웅 가운데 첫 영웅(I126). 없으면 null
 # ── 영웅 스킬(S145~S158) ──────────────────────────────────────────────
 
-# 영웅 h가 칸 slot을 지금 쓸 수 있다(S145~S147): 전투 단계(S136), 살아 있음, 기절 아님(I192), 열린 칸(S76), 재사용 대기, 마나
+# 영웅 h가 칸 slot을 지금 쓸 수 있다(S145~S147): 전투 단계(S136), 살아 있음, 기절 아님(I192), 열린 칸(S76), 재사용 대기
 func can_cast(h, slot: String) -> bool:
 	var sk: Dictionary = h.get(slot)
-	return state == "battle" and h.alive and not _seized(h) and not sk.is_empty() and h.level >= LEVELS.unlock[slot] and h.cd[slot] <= 0.0 and h.mana >= sk.mana
+	return state == "battle" and h.alive and not _seized(h) and not sk.is_empty() and h.level >= LEVELS.unlock[slot] and h.cd[slot] <= 0.0
 
 # 영웅 h(없거나 쓰러졌으면 살아 있는 첫 영웅, S119, I126)가 칸 slot을 쓴다(S145). 명령으로만 쓴다(S15).
 # aim은 지점·방향이면 칸 좌표(Vector2), 아군·적 대상이면 그 유닛·구조물이다. 즉시·켜고 끄는 칸은 aim이 없다.
@@ -1338,11 +1333,10 @@ func _aim_ok(h, sk: Dictionary, aim) -> bool:
 					return aim is Unit and aim.alive and aim in heroes
 	return false
 
-# 칸을 쓴다: 마나를 내고 재사용 대기를 시작하고 그 칸의 효과를 낸다. 이그니스 패시브(S156)가 커진 칸을 고른다
+# 칸을 쓴다: 재사용 대기를 시작하고 그 칸의 효과를 낸다. 이그니스 패시브(S156)가 커진 칸을 고른다
 func _use(h, slot: String, aim) -> void:
 	var sk: Dictionary = h.get(slot)
 	var grow := grow_of(h, slot)
-	h.mana -= sk.mana
 	h.cd[slot] = sk.gap
 	h.skill_uses += 1
 	if h.passive.get("id") == "overload":
@@ -3603,14 +3597,14 @@ func _act(u: Unit, dt: float) -> void:
 	if u.job and u.path.is_empty():
 		_work(u, dt)
 
-# 영웅 칸의 시간(S136, S146): 전투 단계에만 재사용 대기가 줄고(크로노스 R은 빠르게) 마나가 찬다(이그니스 오라는 더).
+# 영웅 칸의 시간(S136): 전투 단계에만 재사용 대기가 준다(크로노스 R과 이그니스 오라 안에서는 빠르게).
 # 반격의 태세가 끝나면 터뜨리고(S151), 걸어가서 쓸 스킬(S147)과 자동 시전(S158)을 본다
 func _hero_tick(h: Unit, dt: float) -> void:
 	if state != "battle":
 		return
+	var pace := 1.0 + _fx_sum(h, "cdr") + _aura("cdr", h.pos)
 	for slot in SLOTS:
-		h.cd[slot] -= dt * (1.0 + _fx_sum(h, "cdr"))
-	h.mana = minf(h.mana + (h.mana_regen + _aura("mana", h.pos)) * dt, h.max_mana)
+		h.cd[slot] -= dt * pace
 	if h.brace > 0.0:
 		h.brace -= dt
 		if h.brace <= 0.0:
@@ -3632,14 +3626,10 @@ func _strike(u: Unit, foe: Enemy) -> void:
 		if u.stacks >= u.passive.stacks:
 			ignore = u.passive.ignore
 	if u.toggle:
-		if u.mana >= u.w.mana:
-			u.mana -= u.w.mana
-			var reach := _reach(u)
-			var more := enemies.filter(func(e): return e != foe and e.pos.distance_to(u.pos) <= reach)
-			more.sort_custom(func(a, b): return a.pos.distance_to(foe.pos) < b.pos.distance_to(foe.pos))
-			hit += more.slice(0, u.w.extra)
-		else:
-			u.toggle = false
+		var reach := _reach(u)
+		var more := enemies.filter(func(e): return e != foe and e.pos.distance_to(u.pos) <= reach)
+		more.sort_custom(func(a, b): return a.pos.distance_to(foe.pos) < b.pos.distance_to(foe.pos))
+		hit += more.slice(0, u.w.extra)
 	if u.range > RANGED:
 		for e in hit:
 			_shoot(u, e, hurt, "phys", ignore, e == foe)

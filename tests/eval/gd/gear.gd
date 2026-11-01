@@ -759,7 +759,6 @@ func _aias(n: int):
 		return b
 	_target(b, Vector2(0, 19))
 	b.start_battle()
-	b.hero.mana = 1e4
 	return b
 
 # 방패 데이터가 없으면 그 이유. 없으면 _refit이 멈춰 판이 반쯤 만들어진다
@@ -932,7 +931,6 @@ func _sylvia(n: int):
 		return b
 	_target(b, Vector2(0, 19))
 	b.start_battle()
-	b.hero.mana = 1e4
 	return b
 
 # 장궁 데이터가 없으면 그 이유. 없으면 _refit이 멈춰 판이 반쯤 만들어진다
@@ -941,7 +939,7 @@ func _bow(b) -> String:
 		return _api(b)
 	return "" if b.GEAR_KINDS.has("sylvia") and b.GEAR_KINDS.sylvia.steps.size() == 10 and b.hero != null else "data/gear/sylvia.tres(+0~+9)가 없다"
 
-# EV632 · S259: 장궁 +3은 Q 첫 적 중첩 5, +6은 갈래살 4명·마나 6
+# EV632 · S259: 장궁 +3은 Q 첫 적 중첩 5, +6은 갈래살 4명
 func ev632():
 	var out := _bow(_sylvia(3))
 	if out != "":
@@ -956,9 +954,9 @@ func ev632():
 	var split := []
 	for n in [5, 6]:
 		var b = _sylvia(n)
-		split.append([b.hero.w.extra, b.hero.w.mana])
-	return check(got == [[true, 3], [true, 5]] and split == [[3, 8.0], [4, 6.0]],
-		"+2·+3 Q [첫 적이 직전 대상, 중첩] %s(기대 [[true, 3], [true, 5]]) · +5·+6 갈래살 [추가 대상, 마나] %s(기대 [[3, 8], [4, 6]])" % [got, split])
+		split.append(b.hero.w.extra)
+	return check(got == [[true, 3], [true, 5]] and split == [3, 4],
+		"+2·+3 Q [첫 적이 직전 대상, 중첩] %s(기대 [[true, 3], [true, 5]]) · +5·+6 갈래살 추가 대상 %s(기대 [3, 4])" % [got, split])
 
 # EV633 · S260: 덫 꿰기. Q가 줄 위 덫을 먼저 터뜨려 그 안 적이 속박되고 덫이 사라진다. 줄 밖 덫은 그대로
 func ev633():
@@ -998,7 +996,6 @@ func _seraphina(n: int):
 		_target(b, Vector2(12 + 2 * i, 13))
 	_target(b, Vector2(0, 19))
 	b.start_battle()
-	b.hero.mana = 1e4
 	return b
 
 # 성수병 데이터가 없으면 그 이유. 없으면 _refit이 멈춰 판이 반쯤 만들어진다
@@ -1059,7 +1056,6 @@ func _vesper(n: int) -> Array:
 	for c in [Vector2(10, 8), Vector2(14, 8), Vector2(10, 12), Vector2(14, 12)]:
 		four.append(_target(b, c))
 	b.start_battle()
-	b.hero.mana = 1e4
 	return [b, aim, four]
 
 # 향로 데이터가 없으면 그 이유. 없으면 _refit이 멈춰 판이 반쯤 만들어진다
@@ -1127,7 +1123,6 @@ func _chronos(n: int) -> Array:
 	var a = _target(b, Vector2(15, 10))
 	var by = _target(b, Vector2(16.2, 10))
 	b.start_battle()
-	b.hero.mana = 1e4
 	return [b, a, by]
 
 # 회중시계 데이터가 없으면 그 이유. 없으면 _refit이 멈춰 판이 반쯤 만들어진다

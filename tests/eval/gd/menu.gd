@@ -166,17 +166,17 @@ func ev314():
 	var bc := _ignis(true)
 	var h = bc[0].hero
 	_key_to(bc[1], KEY_Q)
-	if bc[1].aiming != "" or h.mana >= h.max_mana or h.cd.q <= 0.0:
-		return "퀵캐스트를 켜도 Q 키가 바로 쓰지 않았다(조준 «%s», 마나 %.0f, 대기 %.1f)" % [bc[1].aiming, h.mana, h.cd.q]
+	if bc[1].aiming != "" or h.cd.q <= 0.0:
+		return "퀵캐스트를 켜도 Q 키가 바로 쓰지 않았다(조준 «%s», 대기 %.1f)" % [bc[1].aiming, h.cd.q]
 	bc = _ignis(false)
 	h = bc[0].hero
 	_key_to(bc[1], KEY_Q)
-	if bc[1].aiming != "q" or h.mana < h.max_mana:
+	if bc[1].aiming != "q" or h.cd.q > 0.0:
 		return "퀵캐스트를 끄면 Q 키가 조준 상태만 만들어야 한다"
 	bc = _ignis(true)
 	h = bc[0].hero
 	bc[1].skill_for(h, "q")
-	if bc[1].aiming != "q" or h.mana < h.max_mana:
+	if bc[1].aiming != "q" or h.cd.q > 0.0:
 		return "퀵캐스트를 켜도 HUD 버튼 경로는 조준 상태만 만들어야 한다"
 	return ""
 

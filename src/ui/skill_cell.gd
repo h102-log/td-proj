@@ -1,11 +1,10 @@
 extends Button
 # 영웅 칸의 스킬 칸 18×18(I151). HUD가 매 프레임 show_state로 상태를 넣고, 칸은 글 대신 그림으로 보인다:
-# 쓸 수 있음 = 칸 글자, 재사용 대기 = 위에서 덮는 검정 막(남은 비율)과 가운데 올림한 초(칸 글자는 왼쪽 위로), 마나 부족 = 파란 틴트,
+# 쓸 수 있음 = 칸 글자, 재사용 대기 = 위에서 덮는 검정 막(남은 비율)과 가운데 올림한 초(칸 글자는 왼쪽 위로),
 # 잠김 = 어둡게 + 자물쇠, 자동 시전 = 네 귀퉁이 금색 꺾쇠, 조준 중 = 금색 테두리 맥박, 토글 켬 = 청록 안쪽 테두리, 준비 단계 = 오른쪽 아래 모래시계
 
 const HudTheme := preload("res://src/ui/hud_theme.gd")
 const HudBuild := preload("res://src/ui/hud_build.gd")
-const MANA := Color(0.5, 0.5, 1.0)  # 마나 부족 틴트(ui_research 4.7)
 const LOCKED := Color(0.4, 0.4, 0.4)
 const CURTAIN := Color(0, 0, 0, 0.6)  # 재사용 대기 막(ui_research 4.9)
 const TEAL := Color("3c9f9c")  # 토글 켬(ui_research 4.9 아군 색)
@@ -53,7 +52,7 @@ func _ready() -> void:
 	for n in get_children():
 		n.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-# s: letter(칸 글자) · cd(남은 재사용 대기 초) · gap(재사용 대기 초) · mana(모자람) · lock · auto · aim · on(토글 켬) · prep(준비 단계) · now(HUD 시계)
+# s: letter(칸 글자) · cd(남은 재사용 대기 초) · gap(재사용 대기 초) · lock · auto · aim · on(토글 켬) · prep(준비 단계) · now(HUD 시계)
 func show_state(s: Dictionary) -> void:
 	_st = s
 	var wait: bool = s.cd > 0.0 and not s.lock
@@ -64,7 +63,7 @@ func show_state(s: Dictionary) -> void:
 	_secs.visible = wait
 	lock.visible = s.lock
 	_glass.visible = s.prep and not s.lock
-	self_modulate = LOCKED if s.lock else MANA if s.mana else Color.WHITE
+	self_modulate = LOCKED if s.lock else Color.WHITE
 	_over.queue_redraw()
 
 # 거부 표시(I151): 테두리가 FLASH초 빨갛다

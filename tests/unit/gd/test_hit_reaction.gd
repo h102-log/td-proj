@@ -816,9 +816,8 @@ func _fight(v):
 	v.battle = b
 	return b
 
-# 마나·재사용 대기를 채우고 쓴다
+# 재사용 대기를 비우고 쓴다
 func _ready_cast(b, h, slot: String, aim = null) -> bool:
-	h.mana = h.max_mana
 	for k in h.cd.keys():
 		h.cd[k] = 0.0
 	return b.cast(h, slot, aim)

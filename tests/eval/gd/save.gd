@@ -85,7 +85,7 @@ func _sum(b) -> Array:
 	for e in b.enemies:
 		out.append([e.kind, e.pos, e.hp])
 	for u in b.units:
-		out.append([u.kind, u.pos, u.hp, u.mana])
+		out.append([u.kind, u.pos, u.hp, u.cd])
 	for c in b.structures:
 		out.append([c, b.structures[c].kind, b.structures[c].hp])
 	for c in b.castle:
@@ -114,7 +114,7 @@ func _twin(a, stage: Dictionary, go: Callable) -> String:
 			return "20초 뒤 요약 %d번째가 다르다: %s / %s" % [i, sa[i], sb[i]]
 	return "" if sa.size() == sb.size() else "20초 뒤 요약 길이가 다르다: %d / %d" % [sa.size(), sb.size()]
 
-# 출전 영웅이 저마다 Q(방향 스킬)를 아래쪽으로 쓴다. 재사용 대기·마나가 저장에 담겼는지 다음 웨이브 첫 시전이 가린다
+# 출전 영웅이 저마다 Q(방향 스킬)를 아래쪽으로 쓴다. 재사용 대기가 저장에 담겼는지 다음 웨이브 첫 시전이 가린다
 func _cast_q(x) -> void:
 	for h in x.heroes:
 		x.cast(h, "q", h.pos + Vector2(0, 3))

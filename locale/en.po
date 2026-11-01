@@ -860,8 +860,8 @@ msgstr "Click to view the enemy nearest the Keep"
 msgid "다음 라운드 첫 웨이브"
 msgstr "Next round, first wave"
 
-msgid "Lv%d · 체력 %d/%d · 마나 %d/%d\n누르면 고름 · 두 번이면 카메라"
-msgstr "Lv%d · HP %d/%d · Mana %d/%d\nClick to select · twice to view"
+msgid "Lv%d · 체력 %d/%d\n누르면 고름 · 두 번이면 카메라"
+msgstr "Lv%d · HP %d/%d\nClick to select · twice to view"
 
 msgid "스킬은 전투 단계에만"
 msgstr "Skills only in battle"
@@ -869,14 +869,8 @@ msgstr "Skills only in battle"
 msgid "재사용 대기 %d초"
 msgstr "Cooldown %ds"
 
-msgid "마나 %d 더 필요"
-msgstr "Needs %d more mana"
-
 msgid "Lv%d에 열림"
 msgstr "Unlocks at Lv%d"
-
-msgid "마나 %d 모자람"
-msgstr "%d mana short"
 
 msgid "%s · 재사용 %s초"
 msgstr "%s · cooldown %ss"
@@ -886,9 +880,6 @@ msgstr "Cooldown %ss"
 
 msgid "우클릭: 자동 시전"
 msgstr "RMB: autocast"
-
-msgid "마나 %d"
-msgstr "Mana %d"
 
 msgid "Lv%d 최대"
 msgstr "Lv%d max"
@@ -1225,9 +1216,6 @@ msgstr "Within %s cells: heroes' cooldowns and towers' attacks ×%s"
 msgid "시전 거리 %s칸"
 msgstr "Cast range %s cells"
 
-msgid "한 방에 마나 %d"
-msgstr "%d mana per shot"
-
 msgid "장비"
 msgstr "Gear"
 
@@ -1417,8 +1405,8 @@ msgstr "Piercing Gale 240%"
 msgid "폭풍의 덫 속박 3.5초"
 msgstr "Storm Trap root 3.5s"
 
-msgid "돌풍 갈래살 4명 · 마나 6"
-msgstr "Split Shot 4 targets · 6 mana"
+msgid "돌풍 갈래살 4명"
+msgstr "Split Shot 4 targets"
 
 msgid "천공의 화살비 6초"
 msgstr "Arrow Rain 6s"

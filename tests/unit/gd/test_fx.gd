@@ -243,7 +243,6 @@ func _pair():
 	return b
 
 func _ready_cast(b, h, slot: String, aim = null) -> bool:
-	h.mana = h.max_mana
 	for k in h.cd.keys():
 		h.cd[k] = 0.0
 	return b.cast(h, slot, aim)
