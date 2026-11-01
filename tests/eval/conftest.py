@@ -27,10 +27,30 @@ def _godot():
 # [이유] EV마다 Godot를 띄우면 기동 약 0.5초 × 282번이라 final이 119초로 eval-run 한도(120초)에 닿았다(실측 2026-10-20)
 _suites = {}
 
+# 2026-11-01
+# [동작] 화면 배치·그림을 박은 평가(C)는 평소 pytest에서 Godot에 넘기지 않고 건너뛴다. EVAL_FULL=1이거나 eval-run(specgate_report 플러그인)이면 돈다
+# [이유] 사용자 2026-11-01 «1, 3 진행»(C는 머지 직전에만). 목록과 고른 기준은 insights/2026-11-01_eval_triage.md 5장
+MERGE_ONLY = {f"EV{n}" for n in (
+    322, 325, 327, 328, 341, 342, 343, 349, 352, 354, 356, 374, 410, 413, 415, 431, 433, 434, 437, 466, 470, 477, 486, 501, 512,
+    515, 522, 523, 524, 525, 571,  # hud
+    537, 538, 539, 540, 541, 596, 597,  # slimeart
+    586, 587, 588, 589, 590,  # wolfart
+    566, 567, 568, 573, 575,  # thick
+    442,  # night
+    362, 514,  # show
+)}
+_full = os.environ.get("EVAL_FULL") == "1"
+
+
+def pytest_configure(config):
+    global _full
+    _full = _full or config.pluginmanager.hasplugin("specgate_report")
+
 
 def _run_suite(suite):
     src = (ROOT / "tests" / "eval" / "gd" / f"{suite}.gd").read_text(encoding="utf-8")
     pending = [e.upper() for e in re.findall(r"^func (ev\d+)\(", src, re.M)]
+    pending = [e for e in pending if _full or e not in MERGE_ONLY]
     got, tail = {}, ""
     while pending:
         timed_out = False
@@ -109,6 +129,8 @@ def pytest_sessionfinish(session):
 def gd():
     """tests/eval/gd/<suite>.gd 의 ev<번호>()를 headless Godot로 돌린다. 그 EV 출력 조각에 PASS 줄이 있으면 통과다."""
     def run(suite, ev):
+        if not _full and ev in MERGE_ONLY:
+            pytest.skip("머지 전용(C) — EVAL_FULL=1이나 eval-run final에서 돈다")
         if suite in _ready:
             _ready[suite].wait()
         elif suite not in _suites:
