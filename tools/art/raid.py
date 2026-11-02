@@ -55,6 +55,11 @@ def place(prims, s, at, yaw=0.0):
     return [(lambda p, f=f: s * f(((p - at) @ rot) / s), mat, part) for f, mat, part in prims]
 
 
+def lift(P, dz):
+    """형체 목록을 dz만큼 올린다. 걷기 통과 자세(bob)에서 바퀴 위 차체·하늘 탈것을 1px 덜컹·출렁이게 한다"""
+    return [(lambda p, f=f: f(p - np.array([0, 0, dz])), mat, part) for f, mat, part in P] if dz else P
+
+
 def crew(s, at, yaw=0.0, pose=IDLE, club=False):
     """작은 고블린 하나(고블린 시트 몸, 고블린 기본 0.8배에 s를 곱한 크기)"""
     body = [q for q in B.body(pose, 0) if club or q[2] != "club"]
@@ -125,8 +130,15 @@ def sapper(pose, bob_unit):
 
 
 def glider(pose, bob_unit):
-    """글라이더 고블린: 가로대를 쥐고 매달린 고블린 + 위의 뒤로 꺾인 삼각 천 날개(안쪽 기운 천, 날개 끝 넝마), 가운데 용골"""
-    p = dict(pose, sh_l=165, el_l=10, ab_l=0.3, sh_r=165, el_r=10, ab_r=0.3, hip_l=-15, hip_r=10, knee_l=40, knee_r=25)
+    """글라이더 고블린: 가로대를 쥐고 매달린 고블린 + 위의 뒤로 꺾인 삼각 천 날개(안쪽 기운 천, 날개 끝 넝마), 가운데 용골.
+    걷기 통과 자세(bob)에서 1px 출렁이며 늘어뜨린 다리를 바꾼다. 공격(pose의 landed)은 내린 뒤 날개를 등에 접어 멘 고블린의 몽둥이 내려치기다(사용자 2026-11-02)"""
+    if pose.get("landed"):
+        U = H.rig(pose, bob_unit)[0]
+        return B.body(pose, bob_unit) + [(R.capsule(U([-0.16, -0.21, 0.3]), U([0.2, -0.24, 1.25]), 0.06), m("canvas"), "gear"),  # 접은 날개 묶음
+                                         (R.capsule(U([-0.2, -0.25, 0.22]), U([0.24, -0.28, 1.36]), 0.018), m("wood"), "gear"),  # 용골
+                                         (R.ellipsoid(U([0.02, -0.22, 0.78]), (0.07, 0.07, 0.03)), m("rag"), "gear")]  # 묶은 넝마 띠
+    legs = dict(hip_l=10, hip_r=-15, knee_l=25, knee_r=40) if pose["bob"] else dict(hip_l=-15, hip_r=10, knee_l=40, knee_r=25)
+    p = dict(pose, sh_l=165, el_l=10, ab_l=0.3, sh_r=165, el_r=10, ab_r=0.3, bob=0, **legs)
     P = [q for q in B.body(p, bob_unit) if q[2] != "club"]
     z = 1.2
     nose = np.array([0, 0.38, z + 0.06])
@@ -145,7 +157,7 @@ def glider(pose, bob_unit):
         P += [(R.box(nose + d * 1.02 * t - y * s * 0.14 + ax[2] * 0.016, (0.09, 0.07, 0.006), ax), m(mat), "gear")
               for t, mat in {-1: ((0.27, "dark"),), 1: ((0.15, "dark"), (0.42, "iron"))}[s]]  # 기운 조각: 좌우 다르게(Gemini 2026-11-02 «패치워크»)
         P.append((R.capsule(nose, nose + d * 1.02, 0.018), m("wood"), "gear"))  # 앞 날개살
-    return P
+    return lift(P, pose["bob"] * bob_unit)
 
 
 SEATED = dict(IDLE, lean=0, hip_l=80, hip_r=80, knee_l=80, knee_r=80)  # 왕좌에 앉은 왕(전쟁 기계 위)
@@ -197,12 +209,14 @@ def chief(pose, bob_unit):
 
 def ram(pose, bob_unit):
     """공성 망치: 바퀴 넷 위 그을린 가죽 맞배지붕(비대칭으로 덧댄 판) 아래 큰 숫양 쇠머리 통나무(지붕 앞으로 길게 나옴), 뒤에서 미는 고블린.
-    밝은 천 지붕과 줄무늬는 «푸드트럭 포장마차»로 읽혔다(Gemini 2026-11-02)"""
-    P = []
+    밝은 천 지붕과 줄무늬는 «푸드트럭 포장마차»로 읽혔다(Gemini 2026-11-02).
+    걷기 통과 자세(bob)에서 바퀴 위 차체가 1px 덜컹이고, 공격(pose의 ram)은 통나무를 앞(+)·뒤(−)로 민다"""
+    W = []
     for x in (-0.4, 0.4):
         for y in (-0.42, 0.42):
-            P += wheel(x, y, 0.15)
-    P.append((R.box([0, 0, 0.29], (0.36, 0.62, 0.045)), m("plank"), "hull"))
+            W += wheel(x, y, 0.15)
+    push = np.array([0, pose.get("ram", 0.0), 0])
+    P = [(R.box([0, 0, 0.29], (0.36, 0.62, 0.045)), m("plank"), "hull")]
     for x in (-0.32, 0.32):
         for y in (-0.55, 0.5):
             P.append((R.capsule([x, y, 0.3], [x, y, 0.55], 0.03), m("plank"), "hull"))
@@ -212,22 +226,24 @@ def ram(pose, bob_unit):
         P.append((R.box(c, (0.25, 0.64, 0.03), ax, 0.01), m("dark"), "hull"))  # 그을린 가죽
         boards = {-1: ((0.06, -0.3, 0.13, 0.16, "canvas"), (-0.08, 0.38, 0.1, 0.12, "iron")), 1: ((-0.04, 0.12, 0.16, 0.1, "canvas"),)}[s]
         P += [(R.box(np.asarray(c) + ax[0] * u + ax[1] * v + ax[2] * 0.035, (hu, hv, 0.012), ax), m(mat), "hull") for u, v, hu, hv, mat in boards]  # 덧댄 판: 좌우가 다르게
-    P.append((R.capsule([0, -0.62, 0.42], [0, 1.02, 0.42], 0.085), m("wood"), "gear"))  # 통나무: 북쪽에서도 쇠머리가 지붕 너머로 보이게 길게(Gemini 2026-11-02)
-    P.append((R.ellipsoid([0, 1.12, 0.44], (0.17, 0.13, 0.17)), m("iron"), "gear"))  # 숫양 쇠머리: 크게, 둥글게 만 뿔
+    P.append((R.capsule(push + [0, -0.62, 0.42], push + [0, 1.02, 0.42], 0.085), m("wood"), "gear"))  # 통나무: 북쪽에서도 쇠머리가 지붕 너머로 보이게 길게(Gemini 2026-11-02)
+    P.append((R.ellipsoid(push + [0, 1.12, 0.44], (0.17, 0.13, 0.17)), m("iron"), "gear"))  # 숫양 쇠머리: 크게, 둥글게 만 뿔
     for s in (-1, 1):
-        horn = [[s * 0.1, 1.1, 0.56], [s * 0.24, 1.02, 0.6], [s * 0.3, 1.04, 0.44], [s * 0.22, 1.13, 0.36]]
+        horn = [push + p for p in ([s * 0.1, 1.1, 0.56], [s * 0.24, 1.02, 0.6], [s * 0.3, 1.04, 0.44], [s * 0.22, 1.13, 0.36])]
         P += [(R.capsule(a, b, 0.05 - 0.01 * i, 0.04 - 0.01 * i), m("iron"), "gear") for i, (a, b) in enumerate(zip(horn, horn[1:]))]
-    P += crew(0.85 / KINDS["ram"][1], [0, -0.92, 0])  # 망치를 키워도 미는 고블린은 보통 크기
-    return P
+    W += crew(0.85 / KINDS["ram"][1], [0, -0.92 + 0.5 * push[1], 0], pose=pose)  # 망치를 키워도 미는 고블린은 보통 크기. 땅을 걸으니 덜컹이지 않는다
+    return W + lift(P, pose["bob"] * bob_unit)
 
 
 def catapult(pose, bob_unit):
     """투석기: 낮은 바퀴 틀, 꼬인 밧줄 굴대, 뒤 위로 치켜든 팔 끝 큰 바구니의 불붙은 타르 통, 옆에 고블린.
-    팔을 틀 위로 들어 북쪽 뒷모습에서도 바구니와 돌이 틀 밖으로 솟는다(Gemini 2026-11-02 «개집»)"""
-    P = []
+    팔을 틀 위로 들어 북쪽 뒷모습에서도 바구니와 돌이 틀 밖으로 솟는다(Gemini 2026-11-02 «개집»).
+    걷기 통과 자세(bob)에서 바퀴 위 틀이 1px 덜컹이고, 공격(pose의 throw)은 팔이 앞으로 넘어가 앞 가로대에 부딪히며 타르 통이 앞 위로 날아간다"""
+    W = []
     for x in (-0.34, 0.34):
         for y in (-0.36, 0.36):
-            P += wheel(x, y, 0.13)
+            W += wheel(x, y, 0.13)
+    P = []
     for x in (-0.28, 0.28):
         P.append((R.box([x, 0, 0.22], (0.04, 0.5, 0.04)), m("plank"), "hull"))
     for y in (-0.4, 0.4):
@@ -236,13 +252,15 @@ def catapult(pose, bob_unit):
         P.append((R.capsule([x, 0.14, 0.24], [x, 0.14, 0.58], 0.035), m("plank"), "hull"))
     P.append((R.capsule([-0.25, 0.14, 0.56], [0.25, 0.14, 0.56], 0.03), m("plank"), "hull"))
     P.append((R.ellipsoid([0, 0.0, 0.28], (0.24, 0.06, 0.06)), m("rope"), "hull"))  # 꼬인 밧줄 굴대
-    end = np.array([0, -0.48, 0.82])
+    throw = pose.get("throw")
+    end = np.array([0, 0.27, 1.03] if throw else [0, -0.48, 0.82])  # 던진 팔: 굴대에서 거의 곧게 서서 앞 가로대(y 0.14, z 0.56)에 닿는다
     P.append((R.capsule([0, 0.08, 0.26], end, 0.045), m("wood"), "gear"))  # 치켜든 팔
     P.append((R.cut_above(R.ellipsoid(end + [0, -0.02, 0.03], (0.2, 0.2, 0.12)), end[2] - 0.06), m("dark"), "gear"))  # 큰 바구니(1.5배)
-    P.append((R.ellipsoid(end + [0, -0.02, 0.12], (0.13, 0.13, 0.11)), m("bomb"), "gear"))  # 타르 통: 흰 돌은 «눈알»로 읽혔다(Gemini 2026-11-02)
-    P.append((R.ellipsoid(end + [0, -0.02, 0.27], (0.08, 0.08, 0.11)), m("flame"), "gear"))
-    P += crew(0.85, [0.5, -0.3, 0], yaw=20)
-    return P
+    keg = np.array([0, 0.8, 1.35]) if throw else end + [0, -0.02, 0.12]  # 던지면 통이 앞 위로 날고 불은 뒤로 끌린다
+    P.append((R.ellipsoid(keg, (0.13, 0.13, 0.11)), m("bomb"), "gear"))  # 타르 통: 흰 돌은 «눈알»로 읽혔다(Gemini 2026-11-02)
+    P.append((R.ellipsoid(keg + ([0, -0.17, -0.04] if throw else [0, 0, 0.15]), (0.08, 0.08, 0.11)), m("flame"), "gear"))
+    W += crew(0.85, [0.5, -0.3, 0], yaw=20, pose=pose)  # 땅을 걸으니 덜컹이지 않는다
+    return W + lift(P, pose["bob"] * bob_unit)
 
 
 TOWER_TOP = 3.2 / KINDS["siege_tower"][1]  # 공성탑 꼭대기 바닥 높이. 배율을 곱한 3.2(모델 단위)가 성벽 윗면(약 2.4)보다 화면에서 10px쯤 위다(Gemini 2026-11-02 «8~12px»).
@@ -252,11 +270,13 @@ TOWER_TOP = 3.2 / KINDS["siege_tower"][1]  # 공성탑 꼭대기 바닥 높이. 
 def tower(pose, bob_unit):
     """공성탑: 바퀴 위 위로 좁아지는 세 단 판자 탑(가운데 단은 옆으로 비껴 쌓고 아래 단 옆에 덧붙인 상자), 옆·뒤 X자 버팀목, 뒷면 들쭉날쭉한 사다리,
     앞면 아래는 천, 가운데는 큰 철판 방패, 위는 쇠 이빨 달린 접은 다리판과 사슬, 꼭대기 난간에 고블린·깃발·앞 횃불 둘(Gemini 2026-11-02).
-    매끈한 대칭 상자는 «옷장·아파트»로 읽혔고, 횃불은 밤에도 보이게 한다"""
-    P = []
+    매끈한 대칭 상자는 «옷장·아파트»로 읽혔고, 횃불은 밤에도 보이게 한다.
+    걷기 통과 자세(bob)에서 바퀴 위 탑이 1px 덜컹이고, 공격(pose의 bridge, 도)은 다리판을 위 끝 경첩으로 앞으로 들어 걸친다(설계 문서 3.5 «사다리를 내린다»)"""
+    W = []
     for x in (-0.49, 0.49):
         for y in (-0.3, 0.3):
-            P += wheel(x, y, 0.14)
+            W += wheel(x, y, 0.14)
+    P = []
     T = TOWER_TOP
     stages = ((0.15, 0.375 * T, 0.46, 0.0), (0.375 * T, 0.7 * T, 0.4, 0.07), (0.7 * T, T, 0.34, 0.0))  # (아래 z, 위 z, 반폭, 옆으로 비낀 x)
     for z0, z1, w, dx in stages:
@@ -279,10 +299,13 @@ def tower(pose, bob_unit):
     P.append((R.box([0, 0.465, 0.6], (0.38, 0.02, 0.4)), m("canvas"), "hull"))  # 앞면 아래 천
     P += [(R.box([x, 0.49, z], (hx, 0.012, hz)), m(mat), "hull") for x, z, hx, hz, mat in
           ((-0.17, 0.82, 0.14, 0.1, "dark"), (0.19, 0.42, 0.12, 0.15, "dark"), (-0.05, 0.3, 0.08, 0.07, "iron"))]  # 덧댄 판: 비대칭
-    P.append((R.box([0, 0.37, T - 0.55], (0.26, 0.04, 0.42)), m("dark"), "gear"))  # 접은 다리판(줄무늬 없음)
-    P += [(R.box([0, 0.41, T - z], (0.27, 0.015, 0.018)), m("iron"), "gear") for z in (0.8, 0.4)]
-    P += [(R.capsule([x, 0.41, T - 0.15], [x, 0.47, T - 0.03], 0.022, 0.006), m("light"), "gear") for x in (-0.18, -0.06, 0.06, 0.18)]  # 쇠 이빨
-    P += [(R.capsule([s * 0.3, 0.32, T], [s * 0.24, 0.41, T - 0.17], 0.012), m("iron"), "gear") for s in (-1, 1)]  # 사슬
+    # 경첩은 다리판 위 끝. 아래 끝 경첩으로 내리면 다리판(z+y 2.7)이 북쪽 그림에서 탑 꼭대기 앞 모서리(z+y 2.8)에 늘 가렸다
+    hinge, rot = np.array([0, 0.37, T - 0.13]), tilt_x(-pose.get("bridge", 0))
+    board = [(R.box([0, 0.37, T - 0.55], (0.26, 0.04, 0.42)), m("dark"), "gear")]  # 접은 다리판(줄무늬 없음)
+    board += [(R.box([0, 0.41, T - z], (0.27, 0.015, 0.018)), m("iron"), "gear") for z in (0.8, 0.4)]
+    board += [(R.capsule([x, 0.41, T - 0.15], [x, 0.47, T - 0.03], 0.022, 0.006), m("light"), "gear") for x in (-0.18, -0.06, 0.06, 0.18)]  # 쇠 이빨
+    P += [(lambda p, f=f: f(hinge + (p - hinge) @ rot), mat, part) for f, mat, part in board]
+    P += [(R.capsule([s * 0.3, 0.32, T], hinge + rot @ (np.array([s * 0.24, 0.41, T - 0.17]) - hinge), 0.012), m("iron"), "gear") for s in (-1, 1)]  # 사슬
     P.append((R.box([0, 0, T + 0.02], (0.36, 0.36, 0.03)), m("dark"), "hull"))  # 꼭대기 바닥
     for x in (-0.31, 0.31):
         for y in (-0.31, 0.31):
@@ -294,7 +317,7 @@ def tower(pose, bob_unit):
     for x in (-0.38, 0.38):  # 앞 횃불 둘
         P += [(R.capsule([x, 0.36, T], [x, 0.4, T + 0.42], 0.022), m("wood"), "gear"),
               (R.ellipsoid([x, 0.41, T + 0.5], (0.06, 0.06, 0.09)), m("flame"), "gear")]
-    return P
+    return W + lift(P, pose["bob"] * bob_unit)
 
 
 KING_ON_MACHINE = 1.6  # 전쟁 기계 위 왕의 크기 배율(내린 대장은 KINDS의 값). Claude 시안 값
@@ -464,12 +487,15 @@ def war_machine(pose, bob_unit):
 # ── 하늘 ───────────────────────────────────────────
 
 def balloon(pose, bob_unit):
-    """폭탄 열기구: 회갈색 천 풍선에 비대칭으로 기워 붙인 조각, 불씨, 밧줄, 고리버들 바구니의 고블린, 양옆 긴 밧줄에 늘어뜨린 폭탄"""
+    """폭탄 열기구: 회갈색 천 풍선에 비대칭으로 기워 붙인 조각, 불씨, 밧줄, 고리버들 바구니의 고블린, 양옆 긴 밧줄에 늘어뜨린 폭탄.
+    걷기 통과 자세(bob)에서 1px 출렁이며 불씨가 커진다. 공격(pose의 drop)은 0이면 고블린이 오른쪽으로 몸을 내밀어 밧줄을 잡고, 1이면 그 폭탄이 떨어진다"""
     z0 = 0.25
+    drop = pose.get("drop", -1)
     env = R.ellipsoid([0, 0, 1.32], (0.42, 0.42, 0.48))
     shell = R.ellipsoid([0, 0, 1.32], (0.428, 0.428, 0.488))
+    fl = 0.01 * pose["bob"]
     P = [(env, m("canvas"), "hull"),
-         (R.ellipsoid([0, 0, 0.86], (0.05, 0.05, 0.07)), m("flame"), "gear")]
+         (R.ellipsoid([0, 0, 0.86], (0.05 + fl, 0.05 + fl, 0.07 + 2 * fl)), m("flame"), "gear")]
     P += [(patch(shell, c, h), m(mat), "hull") for c, h, mat in
           (([0.2, 0.3, 1.5], (0.14, 0.2, 0.11), "dark"), ([-0.32, -0.1, 1.2], (0.2, 0.14, 0.13), "iron"),
            ([0.1, -0.35, 1.62], (0.16, 0.2, 0.09), "dark"))]  # 기운 조각(Gemini 2026-11-02 «패치워크»)
@@ -477,19 +503,25 @@ def balloon(pose, bob_unit):
         for y in (-0.15, 0.15):
             P.append((R.capsule([x, y, z0 + 0.26], [x * 1.7, y * 1.7, 0.98], 0.012), m("rope"), "gear"))
     P.append((R.box([0, 0, z0 + 0.13], (0.17, 0.17, 0.13), rnd=0.02), m("plank"), "hull"))
-    P += crew(0.85, [0, -0.02, 0.02])
+    P += crew(0.85, [0, -0.02, 0.02]) if drop < 0 else crew(0.85, [0.03, -0.02, 0.02], yaw=-90, pose=dict(IDLE, lean=35, sh_l=90, el_l=10, sh_r=90, el_r=10))
     for s in (-1, 1):  # 바구니 밑 장식으로 읽히지 않게 옆으로 빼서 길게 늘어뜨린다(Gemini 2026-11-02)
+        if s == 1 and drop == 1:  # 놓은 밧줄은 짧게 늘어지고 폭탄은 바구니 아래로 떨어진다
+            P += [(R.capsule([0.17, 0, z0 + 0.2], [0.21, 0, z0 + 0.02], 0.01), m("rope"), "gear"),
+                  (R.ellipsoid([0.3, 0, z0 - 0.6], (0.075, 0.075, 0.075)), m("bomb"), "gear")]
+            continue
         P += [(R.capsule([s * 0.17, 0, z0 + 0.2], [s * 0.27, 0, z0 - 0.12], 0.01), m("rope"), "gear"),
               (R.ellipsoid([s * 0.28, 0, z0 - 0.2], (0.075, 0.075, 0.075)), m("bomb"), "gear")]
-    return P
+    return lift(P, pose["bob"] * bob_unit)
 
 
 def airship(pose, bob_unit):
     """수송 비행선(떼를 나르는 모함): 크기가 다른 두 풍선을 벌려 묶은 들보, 풍선보다 긴 나무 배의 고블린 넷, 뒤 돛대의 찢어진 돛,
     선미 나무 프로펠러 둘, 오른쪽 뱃전의 밧줄 사다리. 크기는 Gemini 권장 가로 2.5칸 × 세로 4칸(약 40×64px).
     풍선 하나에 작은 배는 «1인승 카누»로, 붙은 같은 풍선 둘은 북쪽에서 배를 가려 «소시지 두 개»로 읽혔다(Gemini 2026-11-02, 사용자 «웅장한 느낌이 안 듬»).
-    그래서 풍선 사이를 벌려 갑판·돛이 보이게 하고, 배를 풍선보다 길게 해 선미·프로펠러가 북쪽 그림에서 밖으로 나오게 한다"""
+    그래서 풍선 사이를 벌려 갑판·돛이 보이게 하고, 배를 풍선보다 길게 해 선미·프로펠러가 북쪽 그림에서 밖으로 나오게 한다.
+    걷기 통과 자세(bob)에서 1px 출렁이며 프로펠러가 45° 돈다. 공격(pose의 drop)은 사다리 곁 고블린이 0이면 밧줄 사다리에 매달려 내려가고, 1이면 그 아래로 떨어진다"""
     zd = 0.91  # 갑판 높이
+    drop = pose.get("drop", -1)
     envs = ((-0.72, 2.1, (0.36, 1.3, 0.38)), (0.74, 2.2, (0.42, 1.45, 0.44)))  # (x, z, 반지름): 작은 왼쪽, 큰 오른쪽
     P = []
     for x, z, r in envs:
@@ -505,8 +537,12 @@ def airship(pose, bob_unit):
     P.append((R.ellipsoid([0, 0, zd], (0.4, 1.6, 0.025)), m("dark"), "hull"))  # 갑판
     P += [(R.box([s * 0.36, 0, zd + 0.06], (0.02, 1.1, 0.05)), m("plank"), "hull") for s in (-1, 1)]  # 뱃전
     P += [(R.capsule([s * 0.36, t * 1.0, zd + 0.06], [envs[(s + 1) // 2][0], t * 0.95, 1.75], 0.012), m("rope"), "gear") for s in (-1, 1) for t in (-1, 1)]
-    for x, y in ((-0.15, 1.0), (0.18, 0.45), (-0.18, -0.15), (0.15, -0.7)):  # 탄 고블린 넷
+    for x, y in ((-0.15, 1.0), (-0.18, -0.15), (0.15, -0.7)) + (((0.18, 0.45),) if drop < 0 else ()):  # 탄 고블린 넷
         P += crew(0.8, [x, y, zd])
+    if drop >= 0:  # 사다리(x 0.41) 바깥에 매달린 고블린, 이어서 떨어지는 고블린
+        P += crew(0.8, [0.5, 0.45, 0.15] if drop == 0 else [0.55, 0.45, -0.5], yaw=90,
+                  pose=dict(IDLE, lean=0, sh_l=170, el_l=10, sh_r=170, el_r=10, hip_l=30, knee_l=60, hip_r=10, knee_r=30) if drop == 0
+                  else dict(IDLE, lean=-10, sh_l=150, el_l=30, ab_l=0.8, sh_r=150, el_r=30, ab_r=0.8, hip_l=-20, hip_r=30, knee_l=40, knee_r=40))
     sy = -1.2
     sail = R.box([0, sy, 1.45], (0.28, 0.012, 0.28))
     tears = [R.box(c, h, tilt_y(45)) for c, h in (([0.1, sy, 1.18], (0.07, 0.05, 0.07)), ([-0.18, sy, 1.2], (0.05, 0.05, 0.05)), ([0.26, sy, 1.62], (0.05, 0.05, 0.05)))]
@@ -515,10 +551,10 @@ def airship(pose, bob_unit):
     for s in (-1, 1):  # 선미 나무 프로펠러
         P += [(R.capsule([s * 0.12, -1.45, zd - 0.08], [s * 0.24, -1.74, 0.82], 0.025), m("wood"), "gear"),
               (R.ellipsoid([s * 0.24, -1.76, 0.82], (0.04, 0.04, 0.04)), m("iron"), "gear")]
-        P += [(R.box([s * 0.24, -1.79, 0.82], (0.17, 0.012, 0.035), tilt_y(a)), m("wood"), "gear") for a in (45, -45)]
+        P += [(R.box([s * 0.24, -1.79, 0.82], (0.17, 0.012, 0.035), tilt_y(a + 45 * pose["bob"])), m("wood"), "gear") for a in (45, -45)]
     P += [(R.capsule([0.4, y, zd], [0.42, y, 0.05], 0.012), m("rope"), "gear") for y in (0.35, 0.55)]  # 밧줄 사다리
     P += [(R.capsule([0.41, 0.35, z], [0.41, 0.55, z], 0.01), m("rope"), "gear") for z in np.linspace(0.15, 0.8, 6)]
-    return P
+    return lift(P, pose["bob"] * bob_unit)
 
 
 def model(kind):
@@ -533,7 +569,19 @@ SAPPER_FUSE = [dict(CROUCH, sh_l=100, el_l=20, ab_l=-0.6, torch=(0.22, -0.06, 0.
                dict(CROUCH, sh_l=35, el_l=40, ab_l=0.9, torch=(0, 0.03, 0.2), fuse=0.06)]  # 도화선이 탄다(불꽃을 키운다)
 # 대장 내려침: 철퇴 머리가 오른쪽 앞 땅에 닿는다. 고블린 몽둥이 각(110)이면 땅을 뚫었고, 바깥 기울기(sword_side)가 0이면 북쪽에서 철퇴가 몸에 가렸다
 CHIEF_SWING = [dict(B.ATTACK[0], swing=True), dict(B.ATTACK[1], sword=90, sword_side=45, swing=True)]
-MOVES = {"sapper": {"walk": B.WALK, "attack": SAPPER_FUSE}, "chief": {"walk": B.WALK, "attack": CHIEF_SWING}}  # 종류 → 정지 말고 더 굽는 동작
+# 기계 셋(사용자 2026-11-02 Claude 안 승인): 걷기는 고블린 걷기 그대로 넘겨 통과 자세(bob)에서 차체가 1px 덜컹이고 땅의 고블린은 걷는다
+RAM_HIT = [dict(IDLE, ram=-0.18, lean=-5, sh_l=60, el_l=60, sh_r=60, el_r=60),  # 통나무를 뒤로 당긴다
+           dict(IDLE, ram=0.3, lean=30, sh_l=85, el_l=10, sh_r=85, el_r=10, hip_r=30, hip_l=-25, knee_l=10)]  # 앞으로 내지르고 미는 고블린이 숙인다
+CATAPULT_THROW = [dict(IDLE, lean=20, sh_r=60, el_r=60), dict(IDLE, throw=True, sh_r=150, el_r=20)]  # 장전한 채 버틴다 → 던지고 팔을 든다
+TOWER_DROP = [dict(IDLE, bridge=45), dict(IDLE, bridge=90)]  # 다리판을 반쯤 → 수평으로 걸친다. 성벽 윗면까지 기울이면 북쪽 그림에서 다시 가린다
+# 하늘 셋(사용자 2026-11-02 Claude 안 승인): 걷기는 정지와 1px 출렁임을 번갈아. 글라이더 공격은 내린 뒤의 고블린 공격, 열기구·비행선은 투하
+SWAY = [IDLE, dict(IDLE, bob=1)] * 2
+DROP = [dict(IDLE, drop=0), dict(IDLE, drop=1)]
+MOVES = {"sapper": {"walk": B.WALK, "attack": SAPPER_FUSE}, "chief": {"walk": B.WALK, "attack": CHIEF_SWING},
+         "ram": {"walk": B.WALK, "attack": RAM_HIT}, "catapult": {"walk": B.WALK, "attack": CATAPULT_THROW},
+         "siege_tower": {"walk": B.WALK, "attack": TOWER_DROP},
+         "glider": {"walk": SWAY, "attack": [dict(a, landed=True) for a in B.ATTACK]},
+         "balloon": {"walk": SWAY, "attack": DROP}, "airship": {"walk": SWAY, "attack": DROP}}  # 종류 → 정지 말고 더 굽는 동작
 
 
 def fits(kind, out=None):
