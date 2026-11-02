@@ -36,11 +36,12 @@ PARTS = B.PARTS + ["gear", "hull"]
 SIZES = (24,)
 TAG = f"m5 ppu{H.PPU24} raid30"
 IDLE = B.IDLE
-# 종류 → (형체를 만드는 함수 이름, 크기 배율, 맞춤 폭 span, 나는가). 망치·공성탑·대장 배율과 전쟁 기계·비행선 형체 크기는
-# Gemini 권장(art/trial/preview/gemini_raid/feedback_3.md 표)을 따랐고, 나머지는 Claude 시안 값이다
+# 종류 → (형체를 만드는 함수 이름, 크기 배율, 맞춤 폭 span, 나는가). 망치·공성탑 배율과 전쟁 기계·비행선 형체 크기는
+# Gemini 권장(art/trial/preview/gemini_raid/feedback_3.md 표)을 따랐고, 대장 배율은 사용자 값, 나머지는 Claude 시안 값이다
 KINDS = {"sapper": ("sapper", 0.8, 3.0, False), "ram": ("ram", 1.25, 5.0, False), "catapult": ("catapult", 1.0, 4.0, False),
          "siege_tower": ("tower", 1.3, 8.5, False), "glider": ("glider", 0.8, 4.0, True), "balloon": ("balloon", 1.0, 5.0, True),
-         "airship": ("airship", 1.0, 8.0, True), "war_machine": ("war_machine", 1.0, 8.0, False), "chief": ("chief", 2.5, 6.5, False)}  # 대장 2.5: Gemini 권장 가로 2칸 × 세로 2.5칸(사용자 2026-11-02 «gemini 권장»)을 남·북 그림 모두 40px 안팎으로
+         "airship": ("airship", 1.0, 8.0, True), "war_machine": ("war_machine", 1.0, 8.0, False), "chief": ("chief", 4.0, 11.0, False),  # 대장 4배: 2페이즈는 홀로 남은 왕이라 «엄청 강하게»(사용자 2026-11-02 «크기 4배»). 앞 값 2.5는 Gemini 권장 가로 2칸 × 세로 2.5칸이었다
+         "wreck": ("wreck", 1.0, 8.0, False)}  # 전쟁 기계 잔해: 전쟁 기계와 같은 배율
 
 
 def m(name):
@@ -171,16 +172,19 @@ def chief(pose, bob_unit):
     p = dict(pose, lean=pose["lean"] + 10)
     if not swing:
         p.update(sh_r=10, el_r=30, ab_r=0.6)  # 철퇴 쥔 손을 옆구리로. 손이 몸 앞에 있으면 북쪽(뒷모습)에서 철퇴가 높이 솟아 남쪽보다 1.5배 컸다
-    U, _, up_r, _, arms = H.rig(p, bob_unit)
+    if pose.get("claw", True):
+        p.update(ab_l=pose.get("claw_ab", 0.7), el_l=10)  # 집게 낀 왼팔을 옆으로 벌려 늘어뜨린다. 몸에 붙이면 북쪽(뒷모습)에서 집게가 망토에 가렸고, 아래팔을 앞으로 들면 북쪽에서 짧은 토막으로 보였다
+    U, G, up_r, legs, arms = H.rig(p, bob_unit)
     P = [q for q in B.body(p, bob_unit) if q[2] != "club"]
     bites = [R.box([0.27 * np.sin(a), -0.19 * np.cos(a), 0.22], (w, 0.3, h), np.array([[np.cos(a), np.sin(a), 0], [-np.sin(a), np.cos(a), 0], [0, 0, 1.0]]))
              for a, w, h in ((np.radians(-55), 0.04, 0.1), (0.0, 0.03, 0.2), (np.radians(30), 0.04, 0.08), (np.radians(70), 0.035, 0.12))]
     def cape(q):  # 망토: 넓어지는 원뿔의 뒤 반, 무릎까지. 자락을 물어뜯고, 왼 어깨에서 비스듬히 걸쳐 오른쪽 등·다리를 드러낸다
         d = np.maximum(np.maximum(H.flare(q, 0.7, 0.22, 0.2, 0.27, depth=0.7), q[:, 1] + 0.01), -np.min([b(q) for b in bites], 0))
         return np.maximum(d, q[:, 0] - (-0.1 + 0.46 * (q[:, 2] - 0.22)))  # 등 전체를 덮으면 북쪽에서 «중갑 전사»로 읽혔다(Gemini 2026-11-02)
-    P.append((H.local(U, up_r, cape), m("red"), "torso"))
-    P += [(H.local(U, up_r, patch(lambda q: cape(q) - 0.008, c, h)), m(mat), "torso") for c, h, mat in
-          (([-0.16, -0.2, 0.45], (0.06, 0.15, 0.07), "dark"), ([-0.04, -0.2, 0.63], (0.05, 0.15, 0.04), "rag"))]  # 망토 얼룩·땜질
+    if pose.get("cape", True):  # 분노(체력 25% 아래)에는 망토를 찢어 던진다(설계 문서 3.9)
+        P.append((H.local(U, up_r, cape), m("red"), "torso"))
+        P += [(H.local(U, up_r, patch(lambda q: cape(q) - 0.008, c, h)), m(mat), "torso") for c, h, mat in
+              (([-0.16, -0.2, 0.45], (0.06, 0.15, 0.07), "dark"), ([-0.04, -0.2, 0.63], (0.05, 0.15, 0.04), "rag"))]  # 망토 얼룩·땜질
     P += [(R.ellipsoid(U([0.02, -0.16, 0.62]), (0.07, 0.05, 0.065)), m("horn"), "torso")]  # 등에 진 짐승 두개골과 뿔
     P += [(R.capsule(U([0.02 + 0.05 * s, -0.18, 0.66]), U([0.02 + 0.13 * s, -0.2, 0.78]), 0.022, 0.006), m("horn"), "torso") for s in (-1, 1)]
     P += [(R.box(U([0.02 + 0.025 * s, -0.212, 0.63]), (0.015, 0.006, 0.012), up_r), m("dark"), "torso") for s in (-1, 1)]
@@ -202,6 +206,24 @@ def chief(pose, bob_unit):
           for v in (np.array(u) / np.linalg.norm(u) for u in ((1, 0, 0.2), (-1, 0, 0.2), (0, 1, 0.1), (0, -1, 0.1), (0, 0, 1), (0.6, 0.6, -0.5)))]  # 철퇴 가시
     P += [(R.ellipsoid(U([-0.12, 0.05 + 0.07 * k, 0.43 - 0.03 * k]), (0.05, 0.05, 0.05)), m("bomb"), "gear") for k in (0, 1)]  # 허리 폭탄(2페이즈 폭탄 흩뿌리기)
     P.append((R.ellipsoid(U([-0.13, 0.12, 0.47]), (0.02, 0.02, 0.025)), m("flame"), "gear"))
+    if pose.get("claw", True):  # 2페이즈: 부서진 전쟁 기계에서 뜯은 집게팔을 왼 아래팔에 낀다(설계 문서 3.9, 사용자 2026-11-02 승인). 기계 위 왕은 맨손이다
+        el, hd_l = U(arms["l"][1]), U(arms["l"][2])
+        d = (hd_l - el) / np.linalg.norm(hd_l - el)
+        side = np.cross(d, [0, 1.0, 0])  # 손가락은 몸 좌우로 벌린다: 게임에서 주로 보이는 남·북 그림에서 집게 틈이 보이게
+        side = side / np.linalg.norm(side) if np.linalg.norm(side) > 0.3 else np.cross(d, [0, 0, 1.0]) / np.linalg.norm(np.cross(d, [0, 0, 1.0]))
+        P += [(R.capsule(el + d * 0.03, hd_l, 0.065), m("iron"), "gear"),  # 쇠 토시(아래팔)
+              (R.capsule(hd_l - side * 0.06, hd_l + side * 0.06, 0.035), m("hole"), "gear"),  # 손목 경첩
+              (R.box(hd_l + d * 0.05, (0.075, 0.075, 0.06), np.array([side, np.cross(d, side), d]), 0.01), m("bomb"), "gear")]  # 손바닥 뭉치
+        for k in (-1, 1):  # 집게 두 손가락: 기계 집게와 같은 꼴(쇠 뿌리, 검은 마디, 밝은 끝). 늘어뜨린 손 높이라 길이 0.36이면 끝이 땅에 닿기 직전이다
+            base, mid, tip = hd_l + d * 0.09 + side * k * 0.05, hd_l + d * 0.22 + side * k * 0.12, hd_l + d * 0.36 + side * k * 0.035
+            P += [(R.capsule(base, mid, 0.042, 0.036), m("iron"), "gear"), (R.ellipsoid(mid, (0.03, 0.03, 0.03)), m("hole"), "gear"),
+                  (R.capsule(mid, tip, 0.034, 0.008), m("light"), "gear")]
+        if pose.get("held"):  # 폭탄 흩뿌리기: 불붙은 폭탄 셋을 두 손가락 사이에 쥔다. 불꽃은 늘 위로 둔다. 폭탄 하나는 손바닥 뭉치와 같은 색이라 남쪽에서 묻혔다
+            for c in (hd_l + d * 0.2 - side * 0.06, hd_l + d * 0.2 + side * 0.06, hd_l + d * 0.3):
+                P += [(R.ellipsoid(c, (0.065, 0.065, 0.065)), m("bomb"), "gear"), (R.ellipsoid(c + [0, 0, 0.085], (0.032, 0.032, 0.04)), m("flame"), "gear")]
+    if pose.get("ground"):  # 다리를 굽힌 자세: 낮은 발목이 선 자세의 발목 높이(0.03)에 오게 몸 전체를 내린다(폭파병 쪼그림과 같다)
+        drop = min(G(legs[s][2])[2] for s in "lr") - 0.03
+        P = [(lambda q, f=f: f(q + np.array([0, 0, drop])), mat, part) for f, mat, part in P]
     return P
 
 
@@ -328,12 +350,16 @@ def war_machine(pose, bob_unit):
     아래 단: 쇠바퀴 여섯, 앞 가시 파쇄기, 비스듬한 앞 철판, 덧댄 판·옆 가시. 가운데 단: 쇠 성채와 흉벽, 검은 주철 큰 대포 하나. 아래 단 앞 모서리: 앞 아래로 뻗은 집게 기계팔 둘, 그 안쪽에 앞을 겨눈 기관총 둘과 고블린 사수 둘.
     위 단: 붉은 천막 아래 금 왕좌에 앉은 왕(대장 그림), 가운데 단 앞 모서리 큰 붉은 깃발 둘. 차체 크기는 Gemini 권장 가로 3.5칸 × 세로 4.5칸(약 56×72px). 기계팔까지 넣으면 남쪽 약 78×81px.
     뒷면(게임에서 주로 보이는 북쪽 그림): 아가리에 불이 비치는 검은 배기통 둘과 밝은 연기, 엔진 화로, 덧댄 철판·징, 뒤로 뻗은 가시, 늘어진 사슬,
-    휘장 위 가시 윤곽·뒤 해골 문장, 휘장의 찢김·얼룩. 민무늬 뒷벽은 «깃발 꽂은 보급 마차»로, 배기통이 쇠 차체와 같은 색이면 묻혀 읽혔다(Gemini 2026-11-02)"""
-    P = []
+    휘장 위 가시 윤곽·뒤 해골 문장, 휘장의 찢김·얼룩. 민무늬 뒷벽은 «깃발 꽂은 보급 마차»로, 배기통이 쇠 차체와 같은 색이면 묻혀 읽혔다(Gemini 2026-11-02)
+    동작(pose): bob 걷기 덜컹, cannon 1 조준·2 발사, mg 기관총 좌우 각(도, 있으면 쏜다), arm_l·arm_r 기계팔 자세(ARM 참고), dust 내려찍은 흙먼지,
+    wreck 잔해(왕·왼 기계팔·사수·앞 깃발·앞 왼바퀴를 빼고 포신을 처뜨린다. 더하는 것은 wreck 함수)"""
+    P, wheels = [], []
+    wreck = pose.get("wreck")
     W = 1.28  # 아래 단 반폭. 1.08이면 공성탑과 체급이 비슷해 보였다(Gemini 2026-11-02 «좌우 3~4px씩»)
     for x in (-(W + 0.14), W + 0.14):  # 아래 단
         for y in (-0.75, 0.0, 0.75):
-            P += wheel(x, y, 0.36, 0.1, mat="iron")
+            if not (wreck and x < 0 and y > 0):  # 잔해: 앞 왼바퀴가 빠졌다
+                wheels += wheel(x, y, 0.36, 0.1, mat="iron")
     P.append((R.box([0, 0, 0.62], (W, 1.05, 0.3), rnd=0.03), m("plank"), "hull"))
     P += [(R.box([0, y, 0.62], (W + 0.01, 0.05, 0.305)), m("iron"), "hull") for y in (-0.55, 0.35)]  # 쇠띠
     P += [(R.box([s * (W + 0.02), y, z], (0.012, hy, hz)), m(mat), "hull") for s, y, z, hy, hz, mat in
@@ -352,8 +378,9 @@ def war_machine(pose, bob_unit):
     # [의도] 정면에 큰 주철 대포 하나, 양옆에 앞을 겨눈 기관총 둘(사용자 2026-11-02). 가는 쌍열 대포(굵기 0.13)는 «너무 작고 조잡해» 보였다
     P.append((R.box([0, 0.47, 1.36], (0.36, 0.12, 0.3), rnd=0.05), m("iron"), "gear"))  # 포 방패
     P += [(R.ellipsoid([x, 0.59, z], (0.03, 0.02, 0.03)), m("light"), "gear") for x in (-0.28, 0.28) for z in (1.14, 1.58)]  # 징
-    b0 = np.array([0, 0.5, 1.38])
-    ax = np.array([0, np.cos(np.radians(3)), np.sin(np.radians(3))])  # 포신을 거의 수평으로 둔다. 12° 들면 북쪽 그림에서 포구 끝이 휘장 위로 솟아 «투구 쓴 머리»로 읽혔다(Gemini 2026-11-02 v7 평가)
+    cannon = pose.get("cannon", 0)
+    ax = np.array([0, np.cos(np.radians(-12 if wreck else 3)), np.sin(np.radians(-12 if wreck else 3))])  # 포신을 거의 수평으로 둔다. 12° 들면 북쪽 그림에서 포구 끝이 휘장 위로 솟아 «투구 쓴 머리»로 읽혔다(Gemini 2026-11-02 v7 평가)
+    b0 = np.array([0, 0.5, 1.38]) - ax * (0.15 if cannon == 2 else 0)  # 쏘면 포신이 뒤로 밀린다
     b1 = b0 + ax * 1.15
 
     def cyl(c, r, h):  # 포신 축을 따른 납작한 원통(반지름 r, 반길이 h)
@@ -366,17 +393,29 @@ def war_machine(pose, bob_unit):
     P.append((R.capsule(b0, b1 - ax * 0.25, 0.25, 0.21), m("bomb"), "gear"))  # 둥근 끝이 포구 밖으로 나오지 않게
     P += [(cyl(b0 + ax * t, r, 0.04), m("iron"), "gear") for t, r in ((0.4, 0.28), (0.78, 0.25))]  # 포신 쇠테
     P += [(cyl(b1, 0.31, 0.12), m("iron"), "gear"),  # 포구: 둥근 공 모양 테는 북쪽에서 휘장 위로 솟은 «투구»로 읽혔다
-          (cyl(b1 + ax * 0.12, 0.18, 0.012), m("hole"), "gear")]  # 포구 구멍
+          (cyl(b1 + ax * 0.12, 0.23, 0.012), m("hole"), "gear")]  # 포구 구멍: 반지름 0.18이면 남쪽에서 «막힌 쇠기둥 끝»으로 읽혔다(Gemini 2026-11-02 v8 평가)
+    if cannon == 1:  # 조준: 포미 도화선에 불꽃(배기통도 불을 뿜는다, 아래)
+        P.append((R.ellipsoid(b0 + [0, -0.05, 0.3], (0.06, 0.06, 0.07)), m("flame"), "gear"))
+    if cannon == 2:  # 발사: 포구 앞 큰 불꽃과 연기. 북쪽 그림에서는 차양이 포신을 가리므로 불꽃을 차양 위·옆으로 크게 낸다(Gemini 2026-11-02 v8 평가)
+        P += [(R.ellipsoid(b1 + ax * 0.45, (0.42, 0.32, 0.34)), m("flame"), "gear"), (R.ellipsoid(b1 + ax * 0.72, (0.17, 0.1, 0.15)), m("light"), "gear")]  # 남쪽에서 흰 속불이 보이게 앞에 둔다
+        P.append((R.ellipsoid(b1 + ax * 0.55 + [0, 0, 0.45], (0.3, 0.26, 0.42)), m("flame"), "gear"))  # 위로 솟는 불기둥: 북쪽에서 차양 위로 보인다
+        P += [(R.ellipsoid(b1 + ax * 0.3 + [x, 0, z], (0.2, 0.18, 0.17)), m("smoke"), "gear") for x, z in ((-0.5, 0.12), (0.48, 0.2), (0.0, 0.95))]  # 연기는 불꽃 옆·위: 앞에 두면 남쪽에서 불꽃을 가렸다
+    mg = pose.get("mg")  # 기관총 좌우 각(도, 반시계): 두 총이 사수와 함께 같이 돌아 부채꼴로 쓸고(와이퍼), 쏘는 동안 총구에 불꽃
     for s in (-1, 1):  # 기관총: 아래 단 앞 모서리, 사수가 뒤에 서서 앞을 겨눈다
         c = np.array([s * 0.8, 0.86, 1.22])
-        P += [(R.capsule([s * 0.8, 0.86, 0.92], c, 0.05), m("dark"), "gear"),  # 받침 기둥
-              (R.box(c + [0, 0.02, 0], (0.13, 0.22, 0.11), rnd=0.02), m("iron"), "gear"),  # 기관부
-              (R.ellipsoid(c + [s * 0.2, -0.02, -0.02], (0.07, 0.13, 0.13)), m("brass"), "gear"),  # 원통 탄창
-              (R.box(c + [0, 0.3, 0.14], (0.24, 0.025, 0.16), tilt_x(-15)), m("dark"), "gear"),  # 방패판: 쇠색이면 차체에 묻혀 «난간 기둥»으로 읽혔다(Gemini 2026-11-02 v6 평가)
-              (R.capsule(c + [0, 0.2, 0.03], c + [0, 0.62, 0.03], 0.075), m("bomb"), "gear")]  # 총열 덮개
-        P += [(R.capsule(c + [dx, 0.6, 0.03 + dz], c + [dx, 0.86, 0.04 + dz], 0.032), m("bomb"), "gear") for dx, dz in ((-0.04, -0.02), (0.04, -0.02), (0.0, 0.05))]  # 총열 셋
-        P.append((R.ellipsoid(c + [0, 0.82, 0.04], (0.085, 0.03, 0.085)), m("light"), "gear"))  # 총구 테
-    P += crew(0.95, [-0.78, 0.55, 0.92]) + crew(0.95, [0.78, 0.55, 0.92])  # 사수
+        P.append((R.capsule([s * 0.8, 0.86, 0.92], c, 0.05), m("dark"), "gear"))  # 받침 기둥
+        gun = [(R.box([0, 0.02, 0], (0.13, 0.22, 0.11), rnd=0.02), m("iron"), "gear"),  # 기관부
+               (R.ellipsoid([s * 0.2, -0.02, -0.02], (0.07, 0.13, 0.13)), m("brass"), "gear"),  # 원통 탄창
+               (R.box([0, 0.3, 0.14], (0.24, 0.025, 0.16), tilt_x(-15)), m("dark"), "gear"),  # 방패판: 쇠색이면 차체에 묻혀 «난간 기둥»으로 읽혔다(Gemini 2026-11-02 v6 평가)
+               (R.capsule([0, 0.2, 0.03], [0, 0.62, 0.03], 0.075), m("bomb"), "gear")]  # 총열 덮개
+        gun += [(R.capsule([dx, 0.6, 0.03 + dz], [dx, 0.86, 0.04 + dz], 0.032), m("bomb"), "gear") for dx, dz in ((-0.04, -0.02), (0.04, -0.02), (0.0, 0.05))]  # 총열 셋
+        gun.append((R.ellipsoid([0, 0.82, 0.04], (0.085, 0.03, 0.085)), m("light"), "gear"))  # 총구 테
+        if mg is not None:
+            gun += [(R.ellipsoid([0, 1.06, 0.07], (0.16, 0.22, 0.16)), m("flame"), "gear"), (R.ellipsoid([0, 1.26, 0.07], (0.06, 0.06, 0.06)), m("light"), "gear")]
+        yaw = mg or 0.0
+        P += place(gun, 1.0, c, yaw)
+        a = np.radians(yaw)
+        P += [] if wreck else crew(0.95, c + np.array([[np.cos(a), -np.sin(a), 0], [np.sin(a), np.cos(a), 0], [0, 0, 1]]) @ [-s * 0.02, -0.31, -0.3], yaw)  # 사수
     # [의도] 가까이 온 아군을 치거나 집어 던지는 기능을 나중에 더하려는 기계팔(사용자 2026-11-02). 아래 단 앞 모서리에 달아 양옆으로 벌려 앞으로 뻗는다.
     # 어깨가 가운데 단 옆구리에 높이 있으면 북쪽에서 차체 윗부분·배기통을 가리고 땅의 적을 집으려면 팔이 기형적으로 꺾였다(Gemini 2026-11-02 v5·v6 평가).
     # 팔·집게는 일부러 과장해 키운다(집게 하나가 사수 고블린보다 크다): 굵기 0.1·집게 길이 0.44일 때는 «사람 손»처럼 읽혔다(사용자 2026-11-02,
@@ -394,8 +433,20 @@ def war_machine(pose, bob_unit):
     # 팔은 게 집게처럼 양옆 바깥으로 벌려 앞으로 뻗고, 집게는 옆으로 벌린다. 위로 들었다 앞 아래로 꺾으면 북쪽에서 집게날이 차체에 가려
     # «양쪽 굴뚝·로켓 포대»로 읽혔다(Gemini 2026-11-02 v7 평가)
     for s, el, wr, spread in ((-1, [-1.72, 1.05, 1.48], [-1.76, 1.6, 1.22], 0.5), (1, [1.7, 1.0, 1.4], [1.74, 1.55, 1.15], 0.44)):  # 왼 집게를 조금 더 벌려 좌우를 다르게
+        if wreck and s < 0:  # 잔해: 왼팔은 대장이 뜯어 왼 아래팔에 꼈다(설계 문서 3.9)
+            continue
         sh, el, wr = np.array([s * 1.36, 0.8, 1.2]), np.array(el), np.array(wr)
-        cd = np.array([-s * 0.22, 0.9, -0.38])  # 집게는 앞 안쪽 조금 아래를 겨눈다
+        cd = np.array([-s * 0.15, 0.9, -0.12])  # 집게는 앞 안쪽 조금 아래를 겨눈다. 더 숙이면(z −0.38) 북쪽에서 두 손가락이 손바닥 위로 짧게 뭉쳐 «드릴·쇠뿔»로 읽혔다(Gemini 2026-11-02 v8 평가)
+        tip_w = 0.2  # 손가락 끝의 벌림(뿌리와 같으면 끝이 안으로 굽은 열린 집게)
+        spec = pose.get("arm_l" if s < 0 else "arm_r")
+        if spec:  # 동작 자세: 정지 그림의 팔 길이(윗팔 약 0.48, 아래팔 0.61)를 지키며 각으로 놓는다
+            def out(a, p):  # 앞(+y)에서 바깥으로 돈 각 a, 든 각 p(도) → 단위 벡터
+                a, p = np.radians(a), np.radians(p)
+                return np.array([s * np.sin(a) * np.cos(p), np.cos(a) * np.cos(p), np.sin(p)])
+            a1, p1, a2, p2, a3, p3, spread, tip_w = spec
+            el = sh + out(a1, p1) * 0.48
+            wr = el + out(a2, p2) * 0.61
+            cd = out(a3, p3)
         cd /= np.linalg.norm(cd)
         side = np.cross(cd, [0, 0, 1.0])
         side /= np.linalg.norm(side)
@@ -417,9 +468,13 @@ def war_machine(pose, bob_unit):
         for k in (-1, 1):  # 집게 두 손가락: 크게 벌렸다가 끝이 안으로 굽는다
             base = wr + cd * 0.28 + side * k * 0.2
             mid = wr + cd * 0.72 + side * k * spread
-            tip = wr + cd * 1.2 + side * k * 0.2
+            tip = wr + cd * 1.2 + side * k * tip_w
             P += [(R.capsule(base, mid, 0.16, 0.13), m("iron"), "gear"), (R.ellipsoid(mid, (0.11, 0.11, 0.11)), m("hole"), "gear"),
                   (R.capsule(mid, tip, 0.12, 0.03), m("light"), "gear")]
+        if pose.get("dust"):  # 내려찍은 집게 둘레의 흙먼지
+            hit = wr + cd * 1.0
+            P += [(R.ellipsoid([hit[0] + dx, hit[1] + dy, 0.08 + dz], (r, r * 0.8, r * 0.5)), m("canvas"), "gear")
+                  for dx, dy, dz, r in ((-0.35, 0.05, 0, 0.2), (0.35, -0.05, 0.02, 0.22), (0.05, 0.35, 0, 0.17), (0.1, -0.3, 0.1, 0.14))]
     # [의도] 게임에서 가장 오래 보이는 뒷모습(북쪽 그림)을 채운다. 넓은 판자 벽과 가는 배기통 둘뿐이라 «많이 허전하다»(사용자 2026-11-02 v7).
     #        가운데 구리 보일러 통과 빛나는 화실 문, 높이가 다른 배기통 셋과 연기, 큰 황동 톱니 바퀴, 약탈품 자루·술통·포탄, 오른쪽 뒤 붉은 깃발
     P.append((R.capsule([-0.75, -0.98, 1.16], [0.75, -0.98, 1.16], 0.26), m("copper"), "hull"))  # 보일러 통
@@ -431,10 +486,13 @@ def war_machine(pose, bob_unit):
     P += [(R.box([x, -1.12, 0.59], (0.016, 0.012, 0.16)), m("hole"), "hull") for x in (-0.18, -0.06, 0.06, 0.18)]  # 화실 창살
     for x, y, r, top, lean in ((-0.6, -0.98, 0.15, 2.45, 0.0), (-0.88, -1.0, 0.1, 1.95, -0.12), (0.64, -0.98, 0.13, 2.2, 0.05)):  # 배기통 셋: 왼쪽에 둘, 오른쪽에 하나
         t = np.array([x + lean, y, top])
-        P += [(R.capsule([x, y, 1.2], t, r), m("soot"), "gear"), (R.ellipsoid(t + [0, 0, 0.01], (r + 0.05, r + 0.05, 0.05)), m("iron"), "gear"),
-              (R.ellipsoid(t + [0, 0, 0.04], (r * 0.75, r * 0.75, 0.035)), m("flame"), "gear")]  # 아가리의 불
-        P += [(R.ellipsoid(t + [lean + np.sign(x) * (0.08 + 0.14 * i), -0.03 * i, 0.2 + 0.24 * i], (rr, rr * 0.8, rr * 0.7)), m("smoke"), "gear")
-              for i, rr in enumerate((r * 0.8, r * 1.2))]  # 연기: 작게, 바깥으로 흘린다. 굵은 연기 기둥은 북쪽에서 붉은 휘장 양옆을 가리는 회색 기둥이 됐다
+        P += [(R.capsule([x, y, 1.2], t, r), m("soot"), "gear"), (R.ellipsoid(t + [0, 0, 0.01], (r + 0.05, r + 0.05, 0.05)), m("iron"), "gear")]
+        if cannon == 1:  # 대포 조준: 배기통이 불을 뿜는다. 게임에서 주로 보이는 북쪽 그림의 예고
+            P.append((R.ellipsoid(t + [0, 0, 0.14], (r * 1.1, r * 1.1, 0.16)), m("flame"), "gear"))
+        else:
+            P.append((R.ellipsoid(t + [0, 0, 0.04], (r * 0.75, r * 0.75, 0.035)), m("flame"), "gear"))  # 아가리의 불
+        P += [(R.ellipsoid(t + [lean + np.sign(x) * (0.08 + 0.14 * i), -0.03 * i, 0.2 + 0.24 * i + 0.1 * pose["bob"]], (rr, rr * 0.8, rr * 0.7)), m("smoke"), "gear")
+              for i, rr in enumerate((r * 0.8, r * 1.2))]  # 연기: 작게, 바깥으로 흘린다(걷기 통과 자세에서 더 오른다). 굵은 연기 기둥은 북쪽에서 붉은 휘장 양옆을 가리는 회색 기둥이 됐다
     cog = np.array([0.74, -1.12, 0.62])  # 큰 황동 톱니 바퀴(뒷벽 오른쪽). 쇠색이면 바퀴·차체에 묻혔다
     P += [(R.capsule(cog + [0, -0.03, 0], cog + [0, 0.03, 0], 0.28), m("brass"), "hull"), (R.ellipsoid(cog + [0, -0.06, 0], (0.09, 0.03, 0.09)), m("bomb"), "hull")]
     P += [(R.box(cog + [0.33 * np.cos(np.radians(a)), 0, 0.33 * np.sin(np.radians(a))], (0.055, 0.035, 0.055), tilt_y(-a)), m("brass"), "hull") for a in range(0, 360, 40)]
@@ -456,31 +514,64 @@ def war_machine(pose, bob_unit):
     P.append((R.box([0, -0.62, 2.02], (0.24, 0.05, 0.34)), m("brass"), "hull"))  # 왕좌 등받이
     P.append((R.box([0, -0.45, 1.76], (0.22, 0.17, 0.08)), m("brass"), "hull"))
     k = KING_ON_MACHINE
-    P += [(R.cut_above(f, 1.68), mat, part) for f, mat, part in place(chief(SEATED, 0), k, [0, -0.47, 1.84 - (0.41 - 0.04) * k])]  # 단상 아래로 내려간 망토·정강이는 자른다
+    P += [] if wreck else [(R.cut_above(f, 1.68), mat, part) for f, mat, part in place(chief(dict(SEATED, claw=False), 0), k, [0, -0.47, 1.84 - (0.41 - 0.04) * k])]  # 단상 아래로 내려간 망토·정강이는 자른다
     drape = R.box([0, -0.74, 2.45], (0.42, 0.025, 0.75))
     rips = [R.box(c, h, tilt_y(45)) for c, h in (([-0.25, -0.74, 1.72], (0.06, 0.05, 0.06)), ([0.08, -0.74, 1.74], (0.05, 0.05, 0.05)), ([0.3, -0.74, 1.7], (0.07, 0.05, 0.07)))]
     P.append((lambda p: np.maximum(drape(p), -np.min([r(p) for r in rips], 0)), m("red"), "hull"))  # 붉은 천막: 왕 뒤 높은 휘장(자락이 찢김)과 앞으로 기운 차양.
     # [의도] 높고 넓은 붉은 차양이 북쪽 그림에서 대포 포구 끝을 가린다(Gemini 2026-11-02 v7 평가 «투구 쓴 머리»). 왕 머리 위 3.1 높이의 지붕은 왕 머리·철퇴가 뚫고 나와
     #        뒤쪽만 덮는 작은 차양으로 줄였었다. 포신을 수평으로 낮춰도 포구 끝은 북쪽에서 휘장 위로 나와 차양 앞 끝을 3.5 위로 올린다
-    hood, hc = tilt_x(-12), np.array([0, -0.35, 3.6])
-    P.append((R.box(hc, (0.52, 0.45, 0.03), hood), m("red"), "hull"))
+    # 차양은 용마루를 둔 천막 지붕 두 면이다. 판 한 장(앞으로 12° 기울임)은 북쪽에서 한 색으로 칠해져 휘장과 이어진 «세운 붉은 현수막»으로 읽혔다
+    # (Gemini 2026-11-02 v8 평가). 앞면을 28°로 기울이면 북쪽 그림에서 뒷면(9b1a0a)보다 어둡게(300f0a·550f0a) 칠해진다. 앞 끝은 판 한 장일 때 자리다
+    roof = np.array([[-0.79, 3.69], [-0.55, 3.85], [0.09, 3.51]])  # 지붕 단면 (y, z): 뒤 처마, 용마루, 앞 끝
+
+    def panel(a, b):  # 단면 두 점 사이의 천 한 면 → (형체, 축)
+        d = b - a
+        t = tilt_x(np.degrees(np.arctan2(d[1], d[0])))
+        return R.box([0, *(a + b) / 2], (0.52, np.linalg.norm(d) / 2 + 0.02, 0.03), t), t
+    (back, tb), (front_p, tf) = panel(roof[0], roof[1]), panel(roof[1], roof[2])
+    P += [(back, m("red"), "hull"), (front_p, m("red"), "hull")]
+    P += [(R.capsule([-0.54, *roof[i]], [0.54, *roof[i]], r), m("dark"), "hull") for i, r in ((0, 0.045), (1, 0.035))]  # 뒤 처마 들보·용마루: 휘장과 차양 사이를 어둡게 끊는다
     P += [(R.box([x, y, z], (hx, 0.006, hz)), m(mat), "hull") for x, y, z, hx, hz, mat in
           ((-0.15, -0.768, 2.05, 0.12, 0.16, "dark"), (0.18, -0.768, 2.9, 0.1, 0.09, "rag"), (0.12, -0.768, 2.25, 0.07, 0.1, "rag"),
            (0.27, -0.712, 2.6, 0.1, 0.12, "dark"), (-0.3, -0.712, 2.2, 0.08, 0.1, "rag"))]  # 휘장 얼룩·땜질: 깨끗한 붉은 네모를 깬다(Gemini 2026-11-02)
-    P += [(R.box(hc + hood[0] * x + hood[1] * y + hood[2] * 0.035, (hx, hy, 0.008), hood), m(mat), "hull") for x, y, hx, hy, mat in
-          ((0.2, -0.1, 0.12, 0.12, "dark"), (-0.28, 0.18, 0.1, 0.08, "rag"), (-0.05, -0.3, 0.08, 0.07, "rag"))]  # 차양 얼룩·땜질
-    front = hc + hood[1] * 0.45
-    P += [(R.capsule(front + hood[0] * x, front + hood[0] * x * 1.15 + (hood[2] * 0.9 + hood[1] * 0.35) * h, 0.045, 0.006), m("iron"), "hull")
+    P += [(R.box([x, *(roof[i] + (roof[i + 1] - roof[i]) * f)] + t[2] * 0.035, (hx, hy, 0.008), t), m(mat), "hull") for i, t, x, f, hx, hy, mat in
+          ((0, tb, -0.28, 0.5, 0.1, 0.07, "rag"), (1, tf, 0.22, 0.6, 0.08, 0.07, "rag"))]  # 차양 땜질. 앞면의 큰 검은 얼룩은 어두운 앞면을 갈색 덩어리로 만들었다
+    front, rise = np.array([0, *roof[2]]), np.array([0, 0.53, 0.81])  # 앞 끝 가시는 판 한 장일 때처럼 앞 위로 솟는다
+    P += [(R.capsule(front + [x, 0, 0], front + [x * 1.15, 0, 0] + rise * h, 0.045, 0.006), m("iron"), "hull")
           for x, h in ((-0.46, 0.2), (-0.23, 0.3), (0.0, 0.4), (0.23, 0.26), (0.46, 0.18))]  # 차양 앞 끝 가시: 매끈한 붉은 판을 깨고 북쪽에서 위 윤곽을 들쭉날쭉하게
-    P += [(R.capsule([x, y, 1.68], [x, y, top], 0.03), m("dark"), "hull") for x in (-0.48, 0.48) for y, top in ((-0.38, 3.57), (0.02, 3.49))]  # 차양 기둥
+    P += [(R.capsule([x, y, 1.68], [x, y, np.interp(y, roof[:, 0], roof[:, 1]) - 0.03], 0.03), m("dark"), "hull") for x in (-0.48, 0.48) for y in (-0.38, 0.02)]  # 차양 기둥
     P += [(R.capsule([x, -0.74, 3.15], [x * 1.3, -0.78, 3.15 + h], 0.045, 0.006), m("iron"), "hull")
           for x, h in ((-0.38, 0.22), (-0.19, 0.32), (0.0, 0.42), (0.19, 0.28), (0.38, 0.18))]  # 휘장 위 가시 돋친 고철 왕좌 윤곽(Gemini 2026-11-02 «사각형 등받이»)
     P += [(R.box([x, -0.77, 2.45], (0.025, 0.012, 0.75)), m("iron"), "hull") for x in (-0.3, 0.3)]  # 휘장 뒤 쇠띠
     P += [(R.ellipsoid([0, -0.77, 2.62], (0.09, 0.015, 0.08)), m("horn"), "hull")] + [(R.box([x, -0.785, 2.63], (0.025, 0.006, 0.02)), m("dark"), "hull") for x in (-0.035, 0.035)]  # 뒤 해골 문장
-    for x, side, h in ((-0.66, -1, 2.63), (0.66, 1, 2.3)):  # 가운데 단 앞 모서리의 큰 붉은 깃발 둘(키를 달리해 비대칭).
+    for x, side, h in () if wreck else ((-0.66, -1, 2.63), (0.66, 1, 2.3)):  # 가운데 단 앞 모서리의 큰 붉은 깃발 둘(키를 달리해 비대칭).
         P += flag(x, 0.3, 1.52, h, side, mat="red", size=3.0)  # 뒤에 두면 북쪽(뒷모습)에서 낮아 기계가 47px로 작았다
         if side < 0:  # 군기의 해골 자리(뼈색 점)
             P.append((R.box([x - 0.3, 0.3, 1.52 + h - 0.21], (0.08, 0.016, 0.07)), m("horn"), "gear"))
+    return wheels + lift(P, pose["bob"] * bob_unit)  # 걷기 통과 자세에서 바퀴 위 차체가 1px 덜컹인다(망치·투석기·공성탑과 같다)
+
+
+SLUMP = (70, -20, 30, -55, 20, -15, 0.45, 0.3)  # 잔해의 오른 기계팔: 힘없이 늘어져 집게가 땅에 눕는다(기계팔 자세 꼴은 REACH 참고)
+
+
+def wreck(pose, bob_unit):
+    """전쟁 기계 잔해(2페이즈로 바뀔 때 잠시, 설계 문서 3.9): 대장이 뛰어내린 빈 수레.
+    왕·왼 기계팔(대장이 뜯어 감)·사수·앞 왼바퀴가 없고 포신이 처진다(war_machine의 wreck). 오른 기계팔은 땅에 늘어진다.
+    뜯긴 왼 어깨의 토막과 불꽃, 바깥으로 꺾여 쓰러진 큰 깃발과 부러진 깃대, 갑판의 불과 피어오르는 검은 연기"""
+    P = war_machine(dict(pose, wreck=True, arm_r=SLUMP), bob_unit)
+    P += [(R.box([-1.25, 0.8, 1.0], (0.2, 0.24, 0.16), rnd=0.03), m("iron"), "gear"),  # 왼 어깨 받침
+          (R.capsule([-1.36, 0.8, 1.2], [-1.58, 1.02, 1.3], 0.15, 0.11), m("iron"), "gear"),  # 뜯긴 윗팔 토막
+          (R.capsule([-1.5, 0.95, 1.25], [-1.66, 1.08, 1.0], 0.04), m("bomb"), "gear"),  # 끊겨 늘어진 유압 관
+          (R.ellipsoid([-1.66, 1.08, 1.42], (0.13, 0.13, 0.18)), m("flame"), "gear")]  # 끊긴 자리의 불꽃
+    base = np.array([-0.66, 0.3, 1.52])  # 왼 깃발: 깃대 뿌리에서 바깥 아래로 꺾여 차체 옆에 늘어진다
+    fall = tilt_y(-115)
+    P += [(lambda p, f=f: f((p - base) @ fall.T + base), mat, part) for f, mat, part in flag(*base, 1.7, -1, mat="red", size=3.0)]
+    P.append((R.capsule([0.66, 0.3, 1.52], [0.72, 0.28, 2.05], 0.048), m("wood"), "gear"))  # 오른 깃발은 부러진 깃대만 남았다
+    P += [(R.ellipsoid(c, r), m("flame"), "gear") for c, r in
+          (([0.35, 0.5, 1.62], (0.16, 0.14, 0.2)), ([-0.5, -1.05, 1.5], (0.14, 0.12, 0.18)), ([0.9, -0.5, 1.1], (0.12, 0.12, 0.15)))]  # 갑판·보일러 위 불
+    for x, y, z, s in ((0.35, 0.5, 1.85, 1.0), (-1.7, 1.1, 1.6, 0.8)):  # 연기 기둥(갑판 앞, 뜯긴 어깨): 밑동만 검고 위로 갈수록 크고 밝게. 모두 검은 공이면 남쪽에서 포탄 더미로 읽혔다
+        P += [(R.ellipsoid([x + dx * s, y, z + dz * s], (r * s, r * s * 0.9, r * s * 0.85)), m(mat), "gear") for dx, dz, r, mat in
+              ((0.0, 0.0, 0.16, "soot"), (-0.1, 0.32, 0.22, "smoke"), (0.05, 0.7, 0.28, "smoke"))]
     return P
 
 
@@ -569,6 +660,24 @@ SAPPER_FUSE = [dict(CROUCH, sh_l=100, el_l=20, ab_l=-0.6, torch=(0.22, -0.06, 0.
                dict(CROUCH, sh_l=35, el_l=40, ab_l=0.9, torch=(0, 0.03, 0.2), fuse=0.06)]  # 도화선이 탄다(불꽃을 키운다)
 # 대장 내려침: 철퇴 머리가 오른쪽 앞 땅에 닿는다. 고블린 몽둥이 각(110)이면 땅을 뚫었고, 바깥 기울기(sword_side)가 0이면 북쪽에서 철퇴가 몸에 가렸다
 CHIEF_SWING = [dict(B.ATTACK[0], swing=True), dict(B.ATTACK[1], sword=90, sword_side=45, swing=True)]
+# 2페이즈 스킬(설계 문서 3.9, 자세는 Claude 안). 2배 캔버스는 attack·fall 이름만이라 정지 캔버스(94px)에 맞춘다
+# 휘두르기: 오른쪽 뒤로 젖힘 → 앞을 쓸어 왼쪽 앞에서 멈춤. 손을 더 벌리거나(ab_r 0.5) 앞으로 들면(sh_r 80) 철퇴가 칸을 5~7px 넘었다
+CHIEF_CLEAVE = [dict(B.ATTACK[1], sh_r=-25, el_r=20, ab_r=0.3, sword=-78, sword_side=25, lean=B.ATTACK[1]["lean"] - 10, swing=True),
+                dict(B.ATTACK[1], sh_r=60, el_r=10, ab_r=-0.3, sword=80, sword_side=-75, swing=True)]
+# 집게 팔 sh_l = 세상 각(0 아래, 90 앞, 180 위, 270 뒤) + lean. 집게는 아래팔 방향으로만 뻗는다(옆 벌림은 위팔 길이뿐).
+# 앞 수평으로 뻗으면 동쪽 칸을, 앞 아래로 깊이 뻗으면 남쪽 발밑(22px)을, 앞 위로 들면 북쪽 칸 위를 넘었다. 그래서 앞 아래 얕게, 곧장 위, 뒤 위로만 둔다
+# 돌진: 웅크려 집게를 뒤로 → 앞으로 크게 기울어 내닫고 집게를 치켜든다
+CHIEF_CHARGE = [dict(B.IDLE, hip_l=65, knee_l=90, hip_r=40, knee_r=110, lean=37, sh_l=27, claw_ab=0.4, ground=True),
+                dict(B.IDLE, hip_l=55, knee_l=50, hip_r=-55, knee_r=10, lean=40, sh_l=220, claw_ab=0.2, ground=True)]
+# 집게 던지기: 숙여 앞 아래를 집음 → 집게를 어깨 뒤 위로 젖힘(집힌 유닛은 게임이 집게에 붙인다)
+CHIEF_FLING = [dict(B.IDLE, lean=42, sh_l=62, claw_ab=1.0, hip_l=45, knee_l=70, hip_r=-10, knee_r=30, ground=True),
+               dict(B.IDLE, sh_l=254, claw_ab=0.3, hip_l=-10, hip_r=14, knee_l=10, knee_r=10)]
+# 폭탄 흩뿌리기: 불붙은 폭탄 셋을 쥔 집게를 어깨 뒤로 → 앞 아래로 내던짐. 허리 뒤로 낮게 쥐면 남쪽에서 몸에 가렸고, 뒤 위 45°(sh_l 237~)면 남쪽 칸 위를 넘었다
+CHIEF_BOMBS = [dict(B.IDLE, sh_l=267, claw_ab=0.3, held=True),
+               dict(B.IDLE, lean=17, sh_l=67, claw_ab=0.8, hip_l=-10, hip_r=14, knee_l=10, knee_r=10)]
+# 등장: 공중(다리 웅크림, 철퇴를 머리 위 뒤로) → 착지 웅크림(집게를 뒤로 뻗어 균형). 곧장 아래로 두면 집게가 땅을 뚫었다
+CHIEF_LEAP = [dict(B.IDLE, hip_l=80, knee_l=100, hip_r=60, knee_r=90, lean=6, sh_l=-34, claw_ab=0.6, sh_r=150, el_r=20, ab_r=0.35, sword=-100, sword_side=0, swing=True),
+              dict(B.IDLE, hip_l=100, knee_l=130, hip_r=80, knee_r=120, lean=42, sh_l=-28, claw_ab=0.8, ground=True)]
 # 기계 셋(사용자 2026-11-02 Claude 안 승인): 걷기는 고블린 걷기 그대로 넘겨 통과 자세(bob)에서 차체가 1px 덜컹이고 땅의 고블린은 걷는다
 RAM_HIT = [dict(IDLE, ram=-0.18, lean=-5, sh_l=60, el_l=60, sh_r=60, el_r=60),  # 통나무를 뒤로 당긴다
            dict(IDLE, ram=0.3, lean=30, sh_l=85, el_l=10, sh_r=85, el_r=10, hip_r=30, hip_l=-25, knee_l=10)]  # 앞으로 내지르고 미는 고블린이 숙인다
@@ -577,7 +686,21 @@ TOWER_DROP = [dict(IDLE, bridge=45), dict(IDLE, bridge=90)]  # 다리판을 반�
 # 하늘 셋(사용자 2026-11-02 Claude 안 승인): 걷기는 정지와 1px 출렁임을 번갈아. 글라이더 공격은 내린 뒤의 고블린 공격, 열기구·비행선은 투하
 SWAY = [IDLE, dict(IDLE, bob=1)] * 2
 DROP = [dict(IDLE, drop=0), dict(IDLE, drop=1)]
-MOVES = {"sapper": {"walk": B.WALK, "attack": SAPPER_FUSE}, "chief": {"walk": B.WALK, "attack": CHIEF_SWING},
+# 전쟁 기계 1페이즈(사용자 2026-11-02: 대포는 논타겟 범위 공격, 기관총은 제자리에서 부채꼴로 좌우 와이퍼처럼 빠르게 난사, 가까이 오면 휘둘러 집어 멀리 던지기, 내려찍기).
+# 자세는 Claude 안이다. 기계팔 자세 = (윗팔, 아래팔, 집게 방향 각 쌍 셋 — 앞에서 바깥으로 돈 각·든 각(도), 집게 가운데 벌림, 끝 벌림)
+REACH = (75, 5, 35, -40, 25, -40, 0.6, 0.25)  # 바깥 앞 아래로 휘둘러 집게를 크게 벌린다
+GRIP = (75, 5, 35, -40, 25, -30, 0.2, 0.04)  # 집게를 닫아 집는다(집힌 유닛은 게임이 그린다)
+FLING = (70, 50, 60, 55, 35, 30, 0.55, 0.3)  # 바깥 위로 높이 들어 집게를 벌린다(놓는다)
+RAISE = (70, 45, 40, 45, 20, 35, 0.2, 0.04)  # 집게를 닫고 높이 든다. 더 들면(아래팔 60°·집게 60°) 동쪽 그림 위가 캔버스 밖으로 잘렸다
+SMASH = (45, -5, 5, -45, 0, -35, 0.2, 0.04)  # 앞 땅을 내려찍는다
+WAR = {"cannon": [dict(IDLE, cannon=1), dict(IDLE, cannon=2)],  # 조준 → 발사
+       "mgun": [dict(IDLE, mg=a) for a in (40, 0, -40)],  # 왼쪽 → 가운데 → 오른쪽(게임이 오가며 돌린다)
+       "grab": [dict(IDLE, arm_r=a) for a in (REACH, GRIP, FLING)],  # 휘둘러 벌림 → 집음 → 들어 놓음
+       "slam": [dict(IDLE, arm_l=RAISE, arm_r=RAISE), dict(IDLE, arm_l=SMASH, arm_r=SMASH, dust=True)]}  # 들어 올림 → 내려찍음
+MOVES = {"sapper": {"walk": B.WALK, "attack": SAPPER_FUSE}, "chief": {"walk": B.WALK, "attack": CHIEF_SWING, "cleave": CHIEF_CLEAVE, "charge": CHIEF_CHARGE, "fling": CHIEF_FLING,
+                   "bombs": CHIEF_BOMBS, "leap": CHIEF_LEAP,
+                   "rage_idle": [dict(IDLE, cape=False)], "rage_walk": [dict(w, cape=False) for w in B.WALK]},  # 분노: 망토를 찢어 던진 정지·걷기. 붉은 칠은 게임 몫
+         "war_machine": {"walk": B.WALK, **WAR},
          "ram": {"walk": B.WALK, "attack": RAM_HIT}, "catapult": {"walk": B.WALK, "attack": CATAPULT_THROW},
          "siege_tower": {"walk": B.WALK, "attack": TOWER_DROP},
          "glider": {"walk": SWAY, "attack": [dict(a, landed=True) for a in B.ATTACK]},
