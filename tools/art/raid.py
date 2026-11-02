@@ -1,4 +1,4 @@
-# 3라운드 고블린 약탈단 새 적 9종의 3D 형체와 스프라이트 굽기(insights/2026-10-27_round3_goblin.md 3.11). 시안 단계라 정지 4방향만 굽는다.
+# 3라운드 고블린 약탈단 새 적 9종의 3D 형체와 스프라이트 굽기(insights/2026-10-27_round3_goblin.md 3.11). 시안 단계라 정지만 굽고, MOVES에 둔 종류는 걷기·공격도 굽는다.
 # 사람형(폭파병·글라이더·대장)은 고블린 시트(goblin.py) 몸에 부착물을 붙이고, 기계·하늘 탈것은 상자·캡슐·타원체로 짓고 작은 고블린을 태운다.
 # 색은 고블린 테마(잿빛 피부·어두운 빨강 넝마)에 나무·쇠·기운 천을 더한다. 마법 표지는 두지 않는다(사용자 2026-10-27 결정 0)
 # 사용: python tools/art/raid.py [preview]  → art/trial/<종류>/, 확대본은 art/trial/preview/raid_*
@@ -95,19 +95,32 @@ def patch(shell, c, half, axes=np.eye(3)):
 
 # ── 사람형 ───────────────────────────────────────────
 
+def keg(at, spark=0.035):
+    """화약통(밝은 쇠테·넝마 띠)과 도화선 불꽃. at: 통 가운데 기준 오프셋 → 월드 좌표"""
+    return ([(R.ellipsoid(at([0, 0, 0]), (0.17, 0.155, 0.23)), m("dark"), "gear")]  # 화약통: 시안 v1의 1.3배(Gemini 2026-11-02)
+            + [(R.ellipsoid(at([0, 0, dz]), (0.175, 0.16, 0.025)), m("light"), "gear") for dz in (-0.13, 0.13)]
+            + [(R.ellipsoid(at([0, 0, 0]), (0.176, 0.161, 0.03)), m("rag"), "gear"),  # 넝마 띠
+               (R.capsule(at([0, 0, 0.22]), at([0.05, -0.06, 0.32]), 0.014), m("rope"), "gear"),  # 도화선
+               (R.ellipsoid(at([0.055, -0.07, 0.35]), (spark, spark, spark + 0.005)), m("flame"), "gear")])
+
+
 def sapper(pose, bob_unit):
-    """폭파병: 고블린 + 등에 진 큰 화약통(밝은 쇠테·넝마 띠, 머리 위로 솟음), 몸 밖으로 내민 왼손 횃불(몽둥이 없음)"""
-    p = dict(pose, sh_l=35, el_l=40, ab_l=0.9)
-    U, _, _, _, arms = H.rig(p, bob_unit)
+    """폭파병: 고블린 + 등에 진 큰 화약통(밝은 쇠테·넝마 띠, 머리 위로 솟음), 몸 밖으로 내민 왼손 횃불(몽둥이 없음).
+    공격(pose에 fuse)은 화약통을 앞 왼쪽 땅에 내려놓고 그 곁에 쪼그린다(설계 문서 3.11 «도화선이 타는 동안 쪼그린 자세»). 팔과 횃불 방향(torch)은 자세가 정한다"""
+    fuse = pose.get("fuse")
+    p = pose if fuse else dict(pose, sh_l=35, el_l=40, ab_l=0.9)
+    U, G, _, legs, arms = H.rig(p, bob_unit)
     P = [q for q in B.body(p, bob_unit) if q[2] != "club"]
-    P += [(R.ellipsoid(U([0, -0.23, 0.76]), (0.17, 0.155, 0.23)), m("dark"), "gear")]  # 화약통: 시안 v1의 1.3배(Gemini 2026-11-02)
-    P += [(R.ellipsoid(U([0, -0.23, 0.76 + dz]), (0.175, 0.16, 0.025)), m("light"), "gear") for dz in (-0.13, 0.13)]
-    P += [(R.ellipsoid(U([0, -0.23, 0.76]), (0.176, 0.161, 0.03)), m("rag"), "gear")]  # 넝마 띠
-    P += [(R.capsule(U([0, -0.23, 0.98]), U([0.05, -0.29, 1.08]), 0.014), m("rope"), "gear"),  # 도화선
-          (R.ellipsoid(U([0.055, -0.3, 1.11]), (0.035, 0.035, 0.04)), m("flame"), "gear")]
+    if not fuse:
+        P += keg(lambda v: U(np.array([0, -0.23, 0.76]) + v))
     hd = U(arms["l"][2])
-    P += [(R.capsule(hd - [0, 0, 0.05], hd + [0, 0.03, 0.2], 0.024), m("wood"), "gear"),
-          (R.ellipsoid(hd + [0, 0.04, 0.3], (0.075, 0.075, 0.11)), m("flame"), "gear")]  # 횃불을 키워 몸 밖으로
+    t = np.asarray(pose["torch"], float) if fuse else np.array([0, 0.03, 0.2])
+    P += [(R.capsule(hd - [0, 0, 0.05] if not fuse else hd - t * 0.25, hd + t, 0.024), m("wood"), "gear"),
+          (R.ellipsoid(hd + [0, 0.04, 0.3] if not fuse else hd + t * 1.5, (0.075, 0.075, 0.11)), m("flame"), "gear")]  # 횃불을 키워 몸 밖으로
+    if fuse:  # 쪼그림: 낮은 발목이 선 자세의 발목 높이(0.03)에 오게 몸 전체를 내린다(folk.py drop과 같다)
+        drop = min(G(legs[s][2])[2] for s in "lr") - 0.03
+        P = [(lambda q, f=f: f(q + np.array([0, 0, drop])), mat, part) for f, mat, part in P]
+        P += keg(lambda v: np.array([*pose["keg"], 0.23]) + v, spark=fuse)
     return P
 
 
@@ -142,7 +155,10 @@ def chief(pose, bob_unit):
     """전쟁 기계 2페이즈 대장(고블린 왕): 더 구부정한 큰 고블린 + 왼 어깨에서 비스듬히 걸친 무릎까지의 찢어진 붉은 망토(얼룩·땜질),
     등에 진 짐승 두개골, 왕관 옆으로 길게 뻗은 귀, 금관, 금 어깨, 오른손에 세워 쥔 거대 철퇴, 왼 허리 폭탄. 가로 폭은 망토·귀로, 비대칭은 철퇴·망토로 낸다.
     v2의 놋쇠 흉갑은 «노란 멜빵바지 인부»로, v3의 바닥까지 끌리는 매끈한 망토와 곧은 등은 «인간 성기사»로 읽혔다(Gemini 2026-11-02)"""
-    p = dict(pose, lean=pose["lean"] + 10, sh_r=10, el_r=30, ab_r=0.6)  # 철퇴 쥔 손을 옆구리로. 손이 몸 앞에 있으면 북쪽(뒷모습)에서 철퇴가 높이 솟아 남쪽보다 1.5배 컸다
+    swing = pose.get("swing")  # 공격: 고블린 공격 자세의 오른팔·무기 각(sword)을 따라 철퇴를 휘두른다
+    p = dict(pose, lean=pose["lean"] + 10)
+    if not swing:
+        p.update(sh_r=10, el_r=30, ab_r=0.6)  # 철퇴 쥔 손을 옆구리로. 손이 몸 앞에 있으면 북쪽(뒷모습)에서 철퇴가 높이 솟아 남쪽보다 1.5배 컸다
     U, _, up_r, _, arms = H.rig(p, bob_unit)
     P = [q for q in B.body(p, bob_unit) if q[2] != "club"]
     bites = [R.box([0.27 * np.sin(a), -0.19 * np.cos(a), 0.22], (w, 0.3, h), np.array([[np.cos(a), np.sin(a), 0], [-np.sin(a), np.cos(a), 0], [0, 0, 1.0]]))
@@ -165,6 +181,8 @@ def chief(pose, bob_unit):
     P += [(R.ellipsoid(U(arms[s][0] + [0, 0, 0.02]), (0.085, 0.08, 0.06)), m("brass"), "torso") for s in "lr"]  # 금 어깨
     hd = U(arms["r"][2])
     d = up_r @ (np.array([0.06, -0.6, 1.0]) / np.linalg.norm([0.06, -0.6, 1.0]))  # 숙인 윗몸보다 조금 더 뒤로 젖힌다. 앞으로 기울면 남쪽에서 짧고 북쪽에서 높이 솟았다
+    if swing:
+        d = H.blade_axes(p, up_r)[0]
     head = hd + d * 0.55
     P.append((R.capsule(hd - d * 0.14, head, 0.026), m("dark"), "gear"))  # 철퇴 자루
     P.append((R.ellipsoid(head, (0.1, 0.1, 0.11)), m("iron"), "gear"))
@@ -508,16 +526,29 @@ def model(kind):
     return H.scaled(globals()[fn], s)
 
 
+# 공격 자세: 게임은 둘째 자세(행동의 정점)만 쓴다(atlas.py FOUR_COLS). 대장은 고블린 공격(들어 올림·내려침)에 철퇴를 쥐인다
+# 폭파병: 쪼그림 다리는 folk.py squat. 화약통(keg, 발밑 기준 x·y)은 오른쪽 앞에 둔다. 북쪽(뒷모습)에서 횃불·몸·화약통이 왼쪽부터 나란히 갈린다
+CROUCH = dict(IDLE, hip_l=105, hip_r=95, knee_l=145, knee_r=135, lean=15, sh_r=60, el_r=40, ab_r=0.2, keg=(0.28, 0.26))
+SAPPER_FUSE = [dict(CROUCH, sh_l=100, el_l=20, ab_l=-0.6, torch=(0.22, -0.06, 0.1), fuse=0.035),  # 왼손 횃불을 도화선 끝에 댄다
+               dict(CROUCH, sh_l=35, el_l=40, ab_l=0.9, torch=(0, 0.03, 0.2), fuse=0.06)]  # 도화선이 탄다(불꽃을 키운다)
+# 대장 내려침: 철퇴 머리가 오른쪽 앞 땅에 닿는다. 고블린 몽둥이 각(110)이면 땅을 뚫었고, 바깥 기울기(sword_side)가 0이면 북쪽에서 철퇴가 몸에 가렸다
+CHIEF_SWING = [dict(B.ATTACK[0], swing=True), dict(B.ATTACK[1], sword=90, sword_side=45, swing=True)]
+MOVES = {"sapper": {"walk": B.WALK, "attack": SAPPER_FUSE}, "chief": {"walk": B.WALK, "attack": CHIEF_SWING}}  # 종류 → 정지 말고 더 굽는 동작
+
+
 def fits(kind, out=None):
-    return H.fits(out or TRIAL / kind, [IDLE], model(kind), f"{TAG} {kind} {KINDS[kind][1]}", SIZES, span=KINDS[kind][2])
+    poses = [IDLE] + MOVES.get(kind, {}).get("walk", [])  # 공격 자세는 넣지 않는다(H.save가 2배 캔버스로 굽는다)
+    return H.fits(out or TRIAL / kind, poses, model(kind), f"{TAG} {kind} {KINDS[kind][1]}", SIZES, span=KINDS[kind][2])
 
 
 def bake(kind, out=None):
-    """정지 시트(8방향)와 fit.json → art/trial/<종류>/. → 24px 맞춤"""
+    """정지 시트(8방향)와 fit.json, MOVES에 있으면 걷기·공격 시트도 → art/trial/<종류>/. → 24px 맞춤"""
     out = out or TRIAL / kind
     out.mkdir(parents=True, exist_ok=True)
     fts = fits(kind, out)
-    H.save("idle", "idle", 45, "D", "f24p", fts, model(kind), BASE, {"idle": [IDLE]}, out, PARTS)
+    anims = {"idle": [IDLE], **MOVES.get(kind, {})}
+    for a in anims:
+        H.save(a, a, 45, "D", "f24p", fts, model(kind), BASE, anims, out, PARTS)
     return fts[24]
 
 
