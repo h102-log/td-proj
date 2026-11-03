@@ -301,3 +301,24 @@ func ev670():
 		and cols[0] == Color("ef692f") and cols[1] == Color("ef692f") and cols[2] == Color("ef3a0c"),
 		"어둠 %.2f · 예고를 그리는 적: 투석기 %s · 폭파병 %s · 그리는 적: 투석기 %s · 폭파병 %s · 어둠 0 예고: 투석기 %s · 폭파병 %s · 색 %s" % [
 			dark, c in dark_t, s in dark_t, c in drawn, s in drawn, c in day_t, s in day_t, cols.map(func(x): return x.to_html(false))])
+
+# EV689 · S286·S285·S279: 숨은 열기구의 폭탄 예고와 비행선의 투하 표식은 그리고 몸은 숨긴다. 둘 다 일반 적 예고(주황)다
+func ev689():
+	var got := _night_game()
+	var main = got[0]
+	var b = main.view.battle
+	if not b.ENEMY_KINDS.has("balloon") or not b.ENEMY_KINDS.has("airship"):
+		_done(main)
+		return "적 종류 balloon·airship이 없다"
+	var e = b.spawn_enemy("balloon", Vector2i(20, 13), FAR)
+	var a = b.spawn_enemy("airship", Vector2i(20, 15), FAR)
+	e.cast = {"id": "bomb", "left": 1.0, "at": Vector2(22, 13)}
+	a.cast = {"id": "drop", "left": 1.0, "at": Vector2(22, 15)}
+	var told: Array = main.view.tellers()
+	var drawn: Array = main.view.foes()
+	var dark: float = b.dark
+	var cols := [main.view.tell_color(e), main.view.tell_color(a)]
+	_done(main)
+	return check(dark > 0.0 and (e in told) and (a in told) and not (e in drawn) and not (a in drawn) and cols.all(func(c): return c == Color("ef692f")),
+		"어둠 %.2f · 예고를 그리는 적: 열기구 %s · 비행선 %s · 그리는 적: 열기구 %s · 비행선 %s · 색 %s" % [
+			dark, e in told, a in told, e in drawn, a in drawn, cols.map(func(x): return x.to_html(false))])

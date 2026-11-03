@@ -3469,6 +3469,17 @@ func ev677():
 	return check("폭파병: 성문을 폭파한다" in one and "공성 망치: 성문만 친다, 화살에 강하다" in one
 		and "투석기: 성벽 밖에서 돌을 던진다" in two and "글라이더 고블린: 성벽을 넘어 내린다" in two, "3라운드 1웨이브 줄 «%s» · 2웨이브 줄 «%s»" % [one, two])
 
+# EV693 · S188: 3라운드 3웨이브 줄에 공성탑·폭탄 열기구 특성이 있고, 수송 비행선의 특성·이름이 표에 있다
+func ev693():
+	var H = load("res://src/ui/hud.gd")
+	var main = _prep()
+	var three: String = main.hud._wave_lines([2, 2])
+	_done(main)
+	var feat: String = H.TRAITS.get("airship", "")
+	var name: String = H.ENEMIES.get("airship", "")
+	return check("공성탑: 성벽에 사다리를 놓는다" in three and "폭탄 열기구: 시설에 폭탄을 떨군다" in three and feat == "고블린을 떨군다" and name == "수송 비행선",
+		"3라운드 3웨이브 줄 «%s» · 비행선 특성 «%s» · 이름 «%s»" % [three, feat, name])
+
 # EV570 · S187: 스킬 툴팁 수치 줄은 그 스킬 사전의 값으로 채운다. 지점·대상을 고르는 스킬은 시전 거리 줄을 더한다
 func ev570():
 	var H = load("res://src/ui/hud.gd")
