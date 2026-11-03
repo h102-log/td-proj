@@ -700,13 +700,14 @@ WAR = {"cannon": [dict(IDLE, cannon=1), dict(IDLE, cannon=2)],  # 조준 → 발
        "mgun": [dict(IDLE, mg=a) for a in (40, 0, -40)],  # 왼쪽 → 가운데 → 오른쪽(게임이 오가며 돌린다)
        "grab": [dict(IDLE, arm_r=a) for a in (REACH, GRIP, FLING)],  # 휘둘러 벌림 → 집음 → 들어 놓음
        "slam": [dict(IDLE, arm_l=RAISE, arm_r=RAISE), dict(IDLE, arm_l=SMASH, arm_r=SMASH, dust=True)]}  # 들어 올림 → 내려찍음
-MOVES = {"sapper": {"walk": B.WALK, "attack": SAPPER_FUSE}, "chief": {"walk": B.WALK, "attack": CHIEF_SWING, "cleave": CHIEF_CLEAVE, "charge": CHIEF_CHARGE, "fling": CHIEF_FLING,
+MOVES = {"sapper": {"walk": B.WALK, "attack": SAPPER_FUSE, "fall": H.FALL}, "chief": {"walk": B.WALK, "attack": CHIEF_SWING, "cleave": CHIEF_CLEAVE, "charge": CHIEF_CHARGE, "fling": CHIEF_FLING,
                    "bombs": CHIEF_BOMBS, "leap": CHIEF_LEAP,
                    "rage_idle": [dict(IDLE, cape=False)], "rage_walk": [dict(w, cape=False) for w in B.WALK]},  # 분노: 망토를 찢어 던진 정지·걷기. 붉은 칠은 게임 몫
          "war_machine": {"walk": B.WALK, **WAR},
          "ram": {"walk": B.WALK, "attack": RAM_HIT}, "catapult": {"walk": B.WALK, "attack": CATAPULT_THROW},
          "siege_tower": {"walk": B.WALK, "attack": TOWER_DROP},
-         "glider": {"walk": SWAY, "attack": [dict(a, landed=True) for a in B.ATTACK]},
+         "glider": {"walk": SWAY, "attack": [dict(a, landed=True) for a in B.ATTACK],  # 내려앉은 뒤(S283)의 정지·걷기·쓰러짐은 날개를 등에 접은 고블린(S172 2026-11-03 변경)
+                    "land_idle": [dict(IDLE, landed=True)], "land_walk": [dict(w, landed=True) for w in B.WALK], "fall": [dict(f, landed=True) for f in H.FALL]},
          "balloon": {"walk": SWAY, "attack": DROP}, "airship": {"walk": SWAY, "attack": DROP}}  # 종류 → 정지 말고 더 굽는 동작
 
 
@@ -716,7 +717,7 @@ def fits(kind, out=None):
 
 
 def bake(kind, out=None):
-    """정지 시트(8방향)와 fit.json, MOVES에 있으면 걷기·공격 시트도 → art/trial/<종류>/. → 24px 맞춤"""
+    """정지 시트(8방향)와 fit.json, MOVES에 둔 동작(걷기·공격·쓰러짐 등) 시트도 → art/trial/<종류>/. → 24px 맞춤"""
     out = out or TRIAL / kind
     out.mkdir(parents=True, exist_ok=True)
     fts = fits(kind, out)
