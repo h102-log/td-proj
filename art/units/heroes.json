@@ -337,6 +337,20 @@
   "walk": 7756,
   "attack": 8076
  },
+ "war_machine": {
+  "c": 120,
+  "anchor": [
+   60.0,
+   66
+  ],
+  "x": 468,
+  "idle": 5644,
+  "walk": 6124,
+  "cannon": 6604,
+  "mgun": 7084,
+  "grab": 7564,
+  "slam": 8044
+ },
  "folk_man_0": {
   "c": 23,
   "anchor": [
