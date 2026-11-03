@@ -1,0 +1,229 @@
+extends "res://tests/eval/gd/lib.gd"
+# 3라운드 고블린 약탈단 묶음 ②-b: 고블린 전쟁 기계 1페이즈(S287·I223).
+# lib.gd·boss.gd 머리의 계약에 더하는 API:
+#   적 kind "war_machine"(고블린 전쟁 기계) · 적 skills(스킬 이름 → 수치: slam·grab·cannon·mgun) · 적 cast {id, left, at?}
+#   Battle.effect(대상, 키) · Battle.castle(칸 → 성곽) · Battle.area_of(구조물) -> Rect2i
+# 기절은 적 fx에 직접 넣어 건다(boss.gd와 같다)
+
+const GATE := Vector2i(12, 9)
+const WM := Vector2i(10, 10)  # 성곽 없는 판의 기계 자리
+const QUIET := {"damage": 0, "range": 0, "sight": 0, "hp": BIG}  # 치지도 쫓지도 않는 병사(체력 큼)
+
+# 9행 성곽(성문은 GATE 하나, 나머지 열은 성벽), 마을 0~8행, 거점 (12,2). 3라운드 준비 단계로 간다(siege2.gd _raid와 같다)
+func _raid():
+	var walls := []
+	for x in 30:
+		if x != GATE.x:
+			walls.append(Vector2i(x, 9))
+	var w := [[{"kind": "basic", "count": 1}]]
+	var b = battle({"size": Vector2i(30, 20), "base": Vector2i(12, 2), "base_hp": BIG, "spawns": [Vector2i(12, 19)],
+		"village": Rect2i(0, 0, 30, 9), "castle": {"walls": walls, "gates": [GATE], "wall_hp": 300, "gate_hp": 150}, "rounds": [w, w, w]})
+	for i in 2:
+		b.start_battle()
+		if not clear_wave(b) or not b.next_round():
+			return null
+	return b if b.round_index == 2 and b.state == "prep" else null
+
+func _need(b) -> String:
+	if b == null:
+		return "3라운드 준비 단계로 가지 못했다"
+	return "" if b.ENEMY_KINDS.has("war_machine") else "적 종류 war_machine이 없다"
+
+# 전쟁 기계(체력 큼). only가 배열이면 그 스킬만 남긴다(빈 배열이면 스킬 없음)
+func _wm(b, cell: Vector2i, only = null):
+	var sk: Dictionary = b.ENEMY_KINDS.war_machine.get("skills", {})
+	var keep := {}
+	for id in sk:
+		if only == null or id in only:
+			keep[id] = sk[id]
+	return b.spawn_enemy("war_machine", cell, {"hp": BIG, "skills": keep})
+
+func _soldier(b, cell: Vector2i):
+	return b.place_merc("soldier", cell, QUIET)
+
+func _casting(e, id: String) -> bool:
+	return e.cast != null and e.cast.get("id") == id
+
+func _lost(m) -> float:
+	return m.max_hp - m.hp
+
+# 8의 배수(8 이상)만큼 잃었다
+func _riddled(m) -> bool:
+	var n := _lost(m) / 8.0
+	return n >= 1.0 and is_equal_approx(n, roundf(n))
+
+func _stun(e) -> void:
+	e.fx["test_stun"] = {"stun": true, "left": 1.0}
+
+# EV694 · S287: 인식 범위 0이라 곁의 병사를 노리지 않고 성문으로 가서 친다. 길을 막은 병사는 친다
+func ev694():
+	var b = _raid()
+	var why := _need(b)
+	if why != "":
+		return why
+	var gate = b.castle.get(GATE)
+	var side = _soldier(b, Vector2i(14, 14))
+	if gate == null or side == null:
+		return "성문이나 병사를 두지 못했다"
+	_wm(b, Vector2i(12, 16), [])
+	var hit := run(b, 30.0, func(): return gate.hp < gate.max_hp)
+	var spared: bool = side.hp == side.max_hp
+	var c = _raid()
+	var m = _soldier(c, Vector2i(12, 13))
+	if m == null:
+		return "길에 병사를 두지 못했다"
+	_wm(c, Vector2i(12, 16), [])
+	var blocked := run(c, 10.0, func(): return m.hp < m.max_hp)
+	return check(hit and spared and blocked, "30초 안 성문 피해 %s · 곁 병사 그대로 %s · 길을 막은 병사 피해 %s" % [hit, spared, blocked])
+
+# EV695 · S287: 대포는 가장 몰린 아군 자리에 원 예고 1.2초 뒤 아군 −30·넉백. 아군이 없으면 가장 가까운 성벽 열에 −40
+func ev695():
+	var b = battle({"base_hp": BIG})
+	if not b.ENEMY_KINDS.has("war_machine"):
+		return "적 종류 war_machine이 없다"
+	var three := [Vector2i(9, 4), Vector2i(10, 4), Vector2i(11, 4)]
+	var ms: Array = three.map(func(c): return _soldier(b, c))
+	var lone = _soldier(b, Vector2i(16, 10))
+	var e = _wm(b, WM, ["cannon"])
+	if not run(b, 0.1, func(): return _casting(e, "cannon")):
+		return "0.1초 안에 대포 예고를 시작하지 않았다(cast %s)" % [e.cast]
+	var aim: bool = e.cast.has("at") and Vector2(e.cast.at).distance_to(Vector2(10, 4)) <= 0.01
+	var at: Vector2 = e.pos
+	var d0: Array = ms.map(func(m): return m.pos.distance_to(Vector2(10, 4)))
+	run(b, 1.1)
+	var held: bool = e.pos.distance_to(at) <= 0.01 and ms.all(func(m): return m.hp == m.max_hp) and lone.hp == lone.max_hp
+	run(b, 0.2)
+	var hit: bool = ms.all(func(m): return is_equal_approx(_lost(m), 30.0)) and lone.hp == lone.max_hp
+	var pushed := true
+	for i in ms.size():
+		pushed = pushed and ms[i].pos.distance_to(Vector2(10, 4)) > d0[i] + 0.5
+	var c = _raid()
+	var why := _need(c)
+	if why != "":
+		return why
+	var col = c.castle.get(Vector2i(20, 9))
+	var w = _wm(c, Vector2i(20, 13), ["cannon"])
+	var wall := run(c, 0.1, func(): return _casting(w, "cannon"))
+	var on_col: bool = wall and w.cast.has("at") and Vector2(w.cast.at).distance_to(Vector2(20, 9)) <= 0.01 and c.area_of(col).has_point(Vector2i(20, 9))
+	run(c, 1.3)
+	var broke: bool = col != null and is_equal_approx(col.max_hp - col.hp, 40.0)
+	return check(aim and held and hit and pushed and on_col and broke,
+		"자리 (10,4) %s · 1.1초 그대로 %s · 1.3초 셋 −30·외톨이 그대로 %s · 넉백 %s · 아군 없을 때 성벽 열 원 %s · 그 열 −40 %s" % [aim, held, hit, pushed, on_col, broke])
+
+# EV696 · S287: 기관총은 가장 가까운 아군 쪽 부채꼴(각 120°)을 1초 예고한 뒤 2초 쏜다. 부채꼴 밖·성벽에 가린 땅 아군은 맞지 않는다
+func ev696():
+	var b = battle({"base_hp": BIG})
+	if not b.ENEMY_KINDS.has("war_machine"):
+		return "적 종류 war_machine이 없다"
+	var a = _soldier(b, Vector2i(10, 7))
+	var bb = _soldier(b, Vector2i(12, 7))
+	var cc = _soldier(b, Vector2i(6, 10))
+	var d = _soldier(b, Vector2i(10, 14))
+	var all := [a, bb, cc, d]
+	var e = _wm(b, WM, ["mgun"])
+	if not run(b, 0.1, func(): return _casting(e, "mgun")):
+		return "0.1초 안에 기관총 예고를 시작하지 않았다(cast %s)" % [e.cast]
+	run(b, 0.95)
+	var quiet: bool = all.all(func(m): return m.hp == m.max_hp)
+	run(b, 2.25)
+	var hit: bool = _riddled(a) and _riddled(bb) and cc.hp == cc.max_hp and d.hp == d.max_hp
+	var lost := [_lost(a), _lost(bb), _lost(cc), _lost(d)]
+	var rest := not run(b, 2.8, func(): return e.cast != null)
+	var c = _raid()
+	var why := _need(c)
+	if why != "":
+		return why
+	var top = _soldier(c, Vector2i(18, 5))  # 마을에 두고 성벽 위 (20,9)로 올린다(wolf.gd _merc_on과 같다)
+	var inside = _soldier(c, Vector2i(21, 7))
+	if top == null or inside == null:
+		return "성벽 위·마을에 병사를 두지 못했다"
+	top.pos = Vector2(20, 9)
+	top.anchor = top.pos
+	top.on_wall = true
+	_wm(c, Vector2i(20, 11), ["mgun"])
+	run(c, 3.2)
+	var shot: bool = top.hp < top.max_hp
+	var hid: bool = inside.hp == inside.max_hp
+	return check(quiet and hit and rest and shot and hid,
+		"0.95초 그대로 %s · 3.2초 A·B 8의 배수·C·D 그대로 %s(잃은 체력 %s) · 6초까지 다시 예고 안 함 %s · 성벽 위 맞음 %s · 성벽 너머 마을 그대로 %s" % [quiet, hit, lost, rest, shot, hid])
+
+# EV697 · I223: 집어 던지기는 붙은 병사를 0.8초 뒤 보스 너머 4칸에 던지고 −25. 예고 중 원 밖으로 나가면 헛친다
+func ev697():
+	var b = battle({"base_hp": BIG})
+	if not b.ENEMY_KINDS.has("war_machine"):
+		return "적 종류 war_machine이 없다"
+	var m = _soldier(b, Vector2i(10, 9))
+	var e = _wm(b, WM, ["grab"])
+	if not run(b, 0.1, func(): return _casting(e, "grab")):
+		return "0.1초 안에 집어 던지기 예고를 시작하지 않았다(cast %s)" % [e.cast]
+	run(b, 0.75)
+	var held: bool = m.pos.distance_to(Vector2(10, 9)) <= 0.05 and m.hp == m.max_hp
+	run(b, 0.15)
+	var thrown: bool = m.pos.distance_to(Vector2(10, 14)) <= 1.0 and is_equal_approx(_lost(m), 25.0)
+	var where: Vector2 = m.pos
+	var c = battle({"base_hp": BIG})
+	var n = _soldier(c, Vector2i(10, 9))
+	var f = _wm(c, WM, ["grab"])
+	run(c, 0.1, func(): return _casting(f, "grab"))
+	run(c, 0.4)
+	n.pos = Vector2(10, 6)
+	n.anchor = Vector2(10, 6)
+	run(c, 0.5)
+	var miss: bool = n.hp == n.max_hp and n.pos.distance_to(Vector2(10, 6)) <= 1.0
+	return check(held and thrown and miss, "0.75초 그대로 %s · 0.9초 (10,14) 1칸 안·−25 %s(자리 %s, 잃은 체력 %s) · 원 밖이면 헛침 %s" % [held, thrown, where, _lost(m), miss])
+
+# EV698 · S287: 땅 아군 둘이 붙으면 스킬 넷 가운데 내려찍기가 먼저다. 1.2초 예고 뒤 −30·넉백·둔화 0.3
+func ev698():
+	var b = battle({"base_hp": BIG})
+	if not b.ENEMY_KINDS.has("war_machine"):
+		return "적 종류 war_machine이 없다"
+	var ms := [_soldier(b, Vector2i(11, 10)), _soldier(b, Vector2i(10, 11))]
+	var e = _wm(b, WM)
+	var all4: bool = ["slam", "grab", "cannon", "mgun"].all(func(id): return e.skills.has(id))
+	if not run(b, 0.1, func(): return e.cast != null):
+		return "0.1초 안에 예고를 시작하지 않았다"
+	var first: String = e.cast.get("id", "")
+	var d0: Array = ms.map(func(m): return m.pos.distance_to(e.pos))
+	run(b, 1.25)
+	var hit: bool = ms.all(func(m): return is_equal_approx(_lost(m), 30.0))
+	var pushed: bool = ms[0].pos.distance_to(e.pos) > d0[0] + 0.5 and ms[1].pos.distance_to(e.pos) > d0[1] + 0.5
+	var slowed: bool = ms.all(func(m): return b.effect(m, "slow") != null and is_equal_approx(b.effect(m, "slow"), 0.3))
+	return check(all4 and first == "slam" and hit and pushed and slowed,
+		"스킬 넷 %s · 첫 예고 %s(slam이어야 한다) · −30 %s · 넉백 %s · 둔화 0.3 %s" % [all4, first, hit, pushed, slowed])
+
+# EV699 · S287·S194: 대포 예고 중 기절이면 취소되고 비틀거린다. 기관총 발사 중 기절이면 멈추고 비틀거린다
+func ev699():
+	var b = battle({"base_hp": BIG})
+	if not b.ENEMY_KINDS.has("war_machine"):
+		return "적 종류 war_machine이 없다"
+	var ms: Array = [Vector2i(9, 4), Vector2i(10, 4), Vector2i(11, 4)].map(func(c): return _soldier(b, c))
+	_soldier(b, Vector2i(16, 10))
+	var e = _wm(b, WM, ["cannon"])
+	if not run(b, 0.1, func(): return _casting(e, "cannon")):
+		return "0.1초 안에 대포 예고를 시작하지 않았다"
+	run(b, 0.5)
+	_stun(e)
+	b.step(DT)
+	var off: bool = e.cast == null
+	run(b, 0.85)
+	var spared: bool = ms.all(func(m): return m.hp == m.max_hp)
+	var reel = b.effect(e, "expose")
+	var stagger: bool = reel != null and is_equal_approx(reel, 0.5)
+	var c = battle({"base_hp": BIG})
+	var guns := [_soldier(c, Vector2i(10, 7)), _soldier(c, Vector2i(12, 7)), _soldier(c, Vector2i(6, 10)), _soldier(c, Vector2i(10, 14))]
+	var w = _wm(c, WM, ["mgun"])
+	if not run(c, 0.1, func(): return _casting(w, "mgun")):
+		return "0.1초 안에 기관총 예고를 시작하지 않았다"
+	run(c, 1.6)
+	var firing: bool = w.cast != null
+	_stun(w)
+	c.step(DT)
+	var stop: bool = w.cast == null
+	var reel2 = c.effect(w, "expose")
+	var hp0: Array = guns.map(func(m): return m.hp)
+	run(c, 0.9)
+	var still := true
+	for i in guns.size():
+		still = still and guns[i].hp == hp0[i]
+	return check(off and spared and stagger and firing and stop and reel2 != null and still,
+		"대포: 취소 %s · 1.4초 무피해 %s · 비틀거림 %s / 기관총: 1.6초 발사 중 %s · 멈춤 %s · 비틀거림 %s · 기절 동안 피해 없음 %s" % [off, spared, stagger, firing, stop, reel2 != null, still])

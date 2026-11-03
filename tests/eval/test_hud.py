@@ -378,3 +378,7 @@ def test_EV666_cursor_images_and_cache(gd):
 
 def test_EV693_raid2_trait_lines(gd):
     gd("hud", "EV693")
+
+
+def test_EV701_war_machine_trait_line(gd):
+    gd("hud", "EV701")

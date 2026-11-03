@@ -36,3 +36,7 @@ def test_EV670_siege_tells_in_dark(gd):
 
 def test_EV689_raid_tells_in_dark(gd):
     gd("night", "EV689")
+
+
+def test_EV700_war_machine_cannon_in_dark(gd):
+    gd("night", "EV700")
