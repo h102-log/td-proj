@@ -214,6 +214,7 @@ class Enemy:
 	var last = null  # 열기구가 방금 폭격한 시설(S285)
 	var spot = null  # 수송 비행선의 투하 칸(I222). 아직 안 골랐으면 null
 	var by_house := false  # 투하 칸이 집 둘레다(S286)
+	var loosed := INF  # 열기구가 폭탄을, 비행선이 고블린을 떨군 뒤 초(S172 2026-11-03 둘째 변경 ②). 그리기만 읽는다
 
 	func _init(k: String, cell: Vector2i, stats: Dictionary) -> void:
 		kind = k
@@ -3278,6 +3279,7 @@ func _move(e: Enemy, dt: float) -> void:
 	var howl: float = 1.0 + _howled.get(e, 0.0)  # 울부짖음(S242)
 	e.cooldown -= dt * (1.0 - _fx_cut(e, "lag")) * (1.0 + (e.skills.rage.haste if rage else 0.0)) * (1.0 + sh.get("haste_max", 0.0) * quick) * (1.0 + e.night.get("haste", 0.0) * dusk) * howl  # 공격 속도 감소(S158), 분노(S195), 줄어듦(S236), 어둠(S240), 울부짖음(S242)
 	e.held -= dt
+	e.loosed += dt
 	var aloft := _aloft(e)
 	var stunned := _fx_on(e, "stun") != null and not aloft  # 뜬 동안(S236)은 발동 중이라 끊기지 않는다
 	for id in e.cd:  # 일반 적 행동(S279)의 대기는 여기서 센다. 보스 스킬의 대기는 _skills가 센다
@@ -4171,6 +4173,7 @@ func _bomb_aim(e: Enemy):
 func _bomb(e: Enemy, sk: Dictionary) -> void:
 	_blast(e.cast.at, sk.radius, sk.structure, sk.unit)
 	e.last = e.cast.get("on")
+	e.loosed = 0.0
 
 # 수송 비행선(S286, I222): 표식을 띄우기 전까지 투하 칸을 고르고 그 칸 가운데로 간다. 닿으면 표식(cast drop)을 띄운다.
 # 집 둘레가 거점 둘레보다 앞선다. 아직 고를 칸이 없으면 거짓(거점 쪽으로 보통처럼 난다)
@@ -4236,6 +4239,7 @@ func _drop_cell(e: Enemy, s) -> Vector2i:
 func _drop(e: Enemy, _sk: Dictionary) -> void:
 	_unload(e, e.cast.at, 1.0)
 	e.spot = null
+	e.loosed = 0.0
 
 # 몸 무시(I218)가 켜져 있다. 봉인되면 꺼진다(S281)
 func _plows(e) -> bool:

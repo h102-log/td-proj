@@ -653,6 +653,33 @@ def model(kind):
     return H.scaled(globals()[fn], s)
 
 
+LADDER_W = 14  # 사다리 띠 폭(px). 기둥이 가운데 ±4.5px이고 외곽선까지 들어간다. ±3px에 가로대 4.6px 간격이면 기둥 사이가 외곽선으로 거의 다 메워졌다
+
+
+def ladder(out=None):
+    """사다리 그림(S172 2026-11-03 둘째 변경 ④) → art/trial/ladder/ladder_45_D_f24p.png. 성벽에 45° 기댄 사다리를 카메라 위쪽 축을 따라 세워
+    줄어들지 않게 3칸(16px × 3) 띠로 굽는다. 게임은 성벽 열 칸마다 이 띠의 한 칸을 차례로 잘라 잇는다(battle_view.gd _ladders).
+    기둥은 곧게 두어 칸 경계에서 이어지고, 공성탑 뒷면 사다리처럼 가로대의 간격·기울기·재질(나무·밧줄)이 들쭉날쭉하고 하나가 빠졌다"""
+    n, ppu = 48, 16.0  # 모델 단위 1 = 칸 하나
+    cam = R.Cam(45)
+
+    def at(x, s):
+        return x * cam.u + s * cam.v
+
+    P = [(R.capsule(at(x, -0.5), at(x, 3.5), 0.05), m("wood"), "gear") for x in (-0.28, 0.28)]
+    P += [(R.capsule(at(-0.28, s - k), at(0.28, s + k), 0.035 if mat == "wood" else 0.03), m(mat), "gear")
+          for s, k, mat in ((0.18, 0.0, "rope"), (0.55, 0.04, "wood"), (0.93, -0.03, "rope"), (1.3, 0.0, "wood"),
+                            (2.05, 0.03, "rope"), (2.42, -0.04, "wood"), (2.79, 0.0, "rope"))]  # 1.68 자리가 빠졌다
+    pal = R.PALETTES["f24p"]
+    ramps = [H.ramp(BASE[k], pal) for k in BASE]
+    pid, lam, depth = R.trace(P, cam, cam.facing(0, 1), n, ppu, (n / 2, n))
+    mats = np.array([q[1] for q in P])
+    idx = R.shade(np.where(pid >= 0, mats[pid], -1), lam, depth, ramps, "D", R.darkest(pal), edge=0.1 + 1.5 / ppu)
+    out = out or TRIAL / "ladder"
+    out.mkdir(parents=True, exist_ok=True)
+    R.rgba(idx, pal).crop((n // 2 - LADDER_W // 2, 0, n // 2 + LADDER_W // 2, n)).save(out / "ladder_45_D_f24p.png")
+
+
 # 공격 자세: 게임은 둘째 자세(행동의 정점)만 쓴다(atlas.py FOUR_COLS). 대장은 고블린 공격(들어 올림·내려침)에 철퇴를 쥐인다
 # 폭파병: 쪼그림 다리는 folk.py squat. 화약통(keg, 발밑 기준 x·y)은 오른쪽 앞에 둔다. 북쪽(뒷모습)에서 횃불·몸·화약통이 왼쪽부터 나란히 갈린다
 CROUCH = dict(IDLE, hip_l=105, hip_r=95, knee_l=145, knee_r=135, lean=15, sh_r=60, el_r=40, ab_r=0.2, keg=(0.28, 0.26))
@@ -787,4 +814,5 @@ if __name__ == "__main__":
     for kind in KINDS:
         ppu, anc, c = bake(kind)
         print(f"{kind} ppu={ppu:.2f} anchor={anc} canvas={c}")
+    ladder()
     print("ok")
