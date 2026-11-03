@@ -304,6 +304,39 @@
   "land_idle": 8148,
   "land_walk": 8268
  },
+ "siege_tower": {
+  "c": 76,
+  "anchor": [
+   38.0,
+   61
+  ],
+  "x": 308,
+  "idle": 5644,
+  "walk": 5948,
+  "attack": 6252
+ },
+ "balloon": {
+  "c": 36,
+  "anchor": [
+   18.0,
+   28
+  ],
+  "x": 308,
+  "idle": 6860,
+  "walk": 7004,
+  "attack": 7148
+ },
+ "airship": {
+  "c": 80,
+  "anchor": [
+   40.0,
+   55
+  ],
+  "x": 308,
+  "idle": 7436,
+  "walk": 7756,
+  "attack": 8076
+ },
  "folk_man_0": {
   "c": 23,
   "anchor": [

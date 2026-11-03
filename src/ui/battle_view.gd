@@ -167,6 +167,7 @@ const SIDE_GATE_RISE := 8  # 동·서 닫힌 문루 바닥이 통로보다 높�
 const CORNER_RISE := 12  # 모서리 탑 바닥이 통로보다 높은 px(S219, tools/art/wall.py와 같다)
 const TOP_BAND := 92  # 맵 위 맵 밖 띠 높이(맵 px): 카메라가 위로 보이는 최대(1배 줌, I50 2026-10-26 변경). 4의 배수라 밤 덮개 디더가 맵 칸과 맞는다
 const RING := 4  # 문루·탑 둘레 난간 높이(px). 그 그림 윗변은 바닥보다 이만큼 더 높다(wall.py ph 0.32 = 3.6px)
+const LADDER := preload("res://art/castle/ladder.png")  # 공성탑 사다리 띠(S172 2026-11-03 둘째 변경 ④): 성벽 열 한 칸(16px)씩 3칸. 칸마다 차례로 잘라 잇는다(tools/art/raid.py ladder)
 const KEEP := preload("res://art/castle/keep.png")  # 거점 망루 80×80, 마을 레벨 1·2. 칸 앞쪽 아래 왼쪽 모서리가 그림의 (32, 72)다(tools/art/keep.py)
 const KEEP_AT := Vector2(-32, CELL - 72)  # 거점 칸 왼쪽 위에서 본 망루 그림 왼쪽 위
 const KEEP_BODY := [Rect2(29, 23, 22, 49), Rect2(21, 13, 38, 59)]  # 마을 레벨 1·2 망루 그림의 불투명 사각형(keep.png를 잼). 그림을 바꾸면 다시 잰다
@@ -250,7 +251,8 @@ var _dots := []  # 효과 점(I172): {p0, p1, rise, t0, life, fade, col, size, g
 var _fade := 1.0  # 지금 그리는 흔적의 불투명도(S179 2026-10-29). 아트 px 도우미가 색 알파에 곱한다
 var _slides := {}  # id → [지난 화면 자리, 시작 시각, 길이](S198 미끄러짐)
 var _pops := {}  # 갈라져 나온 적 id → 나온 시각(S234 2026-10-29 변경)
-var _fills := []  # [보스 스킬 흔적, 남은 프레임](S198 발동 채움). tick마다 하나씩 줄인다
+var _fills := []  # [보스 스킬 흔적, 남은 프레임](S198 발동 채움). tick마다 하나씩 줄인다. 기관총은 흔적 대신 {at, dir, range, arc}다
+var _firing := {}  # 발사 중으로 본 기관총 적(S198 발동 채움). tick이 처음 본 발사에 채움을 넣는다
 var _zone_t0 := []  # [장판, 처음 본 화면 시각](4.1s 펼침). 장판은 Dictionary라 is_same으로 찾는다
 var _ghost := []  # 놓기 미리보기 [종류, 칸, 구조물 수, 구한 시각(ms), ghost]. 공병 길찾기(I125)가 한 번에 10~25ms라 이것이 바뀌거나 0.5초 지나야 다시 구한다
 static var _cells := {}  # Vector3i(반지름, 굵기, 0 고리 · 1 원판) → 아트 px 칸 오프셋
@@ -1756,8 +1758,12 @@ static func side_at(bt, p: Vector2):
 # 그림 한 장을 대상 사각형에 그린다(보통 원본과 같은 크기, 슬라임 킹은 늘이고 줄인다). _clip보다 위 줄은 뺀다
 func _region(tex: Texture2D, dst: Rect2, src: Rect2, tint: Color) -> void:
 	var cut := clampf(_clip - dst.position.y, 0.0, dst.size.y)
-	if cut < dst.size.y:
-		draw_texture_rect_region(tex, dst.grow_side(SIDE_TOP, -cut), src.grow_side(SIDE_TOP, -cut * src.size.y / dst.size.y), tint)
+	if cut < dst.size.y:  # 덮개 위 층의 사다리(_ladders)도 그리므로 _cv에 그린다
+		_cv.draw_texture_rect_region(tex, dst.grow_side(SIDE_TOP, -cut), src.grow_side(SIDE_TOP, -cut * src.size.y / dst.size.y), tint)
+
+# 다각형 하나를 칠한다(기관총 부채꼴 예고의 차오름·발동 채움)
+func _poly(pts: PackedVector2Array, col: Color) -> void:
+	_cv.draw_colored_polygon(pts, col)
 
 # 시설 하나(4.1e, 사용자 2026-10-20). 미완성은 청사진 위에 진행률만큼 아래부터 그림을 채우고, 철거 중은 거꾸로 위부터 청사진으로 돌아간다.
 # 다 접힌 대포는 접힌 그림이다(I74). 성벽 위 대포(I44)는 올려 그린다
@@ -2007,10 +2013,17 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 	var pose: bool = x.target != null and a >= CONTACT and a < battle.POSE
 	var cast = x.get("cast")
 	var thrown: float = -1.0 if cast == null or cast.id != "throw" else x.throw.windup - cast.left  # 투석기 던지기 예고가 시작된 뒤 초
+	var drops: bool = x.get("loosed") != null and (not x.bomb.is_empty() or not x.drop.is_empty())  # 열기구·비행선
+	var raised: bool = x.get("col") != null and ((cast != null and cast.id == "ladder") or battle.ladders.values().has(x))  # 사다리를 내리거나 놓은 공성탑
+	if drops:  # 열기구·비행선(S172 2026-11-03 둘째 변경 ②): 폭탄·투하 뒤 0.08~0.22초만 공격 키 포즈다. 기본 공격에는 쓰지 않는다
+		pose = x.loosed >= CONTACT and x.loosed < battle.POSE
 	if thrown >= CONTACT and thrown < battle.POSE:  # 투석기(S172 2026-11-03 변경 ②): 예고가 시작되면 원 가운데 쪽으로 던진다
 		pose = true
 		dir = _four(cast.at - x.pos)
-	elif pose or (x.target and not moving):  # 공격 자세는 밀려도 대상 쪽을 친다(S172)
+	elif raised:  # 공성탑(S172 2026-11-03 둘째 변경 ①): 사다리를 내리기 시작한 때부터 부서질 때까지 성벽 열 쪽으로 다리판을 건다
+		pose = true
+		dir = _four(battle.nearest(x.col, x.pos) - x.pos)
+	elif (pose and not drops) or (x.target and not moving):  # 공격 자세는 밀려도 대상 쪽을 친다(S172)
 		dir = _four(_pos_of(x.target) - x.pos)
 	elif moving:
 		dir = _four(v)
@@ -2261,6 +2274,13 @@ func tick(dt: float) -> void:
 		night.visible = battle.dark > 0.0
 	events = []
 	_fills = _fills.map(func(f): return [f[0], f[1] - 1]).filter(func(f): return f[1] > 0)
+	var firing := {}
+	for e in battle.enemies:  # 기관총(S287)은 발사를 시작한 때가 발동이다. 보스 스킬 흔적을 남기지 않아서 여기서 채움을 넣는다(S198)
+		if e.cast != null and e.cast.id == "mgun" and e.cast.get("fire", false):
+			firing[e] = true
+			if not _firing.has(e):
+				_fills.append([{"at": e.pos, "dir": e.cast.dir, "range": e.skills.mgun.range, "arc": e.skills.mgun.arc}, FILL])
+	_firing = firing
 	_scan()
 	for e in events:
 		_react(e)
@@ -2544,7 +2564,7 @@ func _slip(x) -> Vector2:
 	return s[0].lerp(p, _out(clampf((clock - s[1]) / s[2], 0.0, 1.0))) - p
 
 # 보스 스킬 예고(S194, S198 fx-4): 예고 원은 F24+ 빨강 밝은 1px과 바깥 어두운 1px 테이고, 안쪽 성긴 칠이 남은 시간만큼 가운데에서 차오른다.
-# 발동하면(S198) 처음 FILL프레임은 예고 원 안을 예고색 60%로 채운다. 숨은 보스(S213)의 예고와 안 보이는 자리의 채움은 그리지 않는다
+# 발동하면(S198) 처음 FILL프레임은 예고 모양(원, 기관총은 부채꼴) 안을 예고색 60%로 채운다. 숨은 보스(S213)의 예고와 안 보이는 자리의 채움은 그리지 않는다
 func _tells() -> void:
 	for e in _foes:  # 울부짖음(S242): 알파 둘레 반경 고리를 옅게
 		if e.skills.has("howl") and battle.effect(e, "seal") == null:
@@ -2560,7 +2580,11 @@ func _tells() -> void:
 			continue
 		_boss_tell(e)
 	for f in _fills.filter(func(f): return battle.seen(f[0].at)):
-		_pdisc(Vector2i(_center(f[0].at).floor()), int(CELL * f[0].radius), Color(TELL, 0.6))
+		if f[0].has("arc"):
+			var c := _center(f[0].at)
+			_poly(PackedVector2Array([c]) + _fan_rim(c, CELL * f[0].range, f[0].dir, f[0].arc), Color(TELL, 0.6))
+		else:
+			_pdisc(Vector2i(_center(f[0].at).floor()), int(CELL * f[0].radius), Color(TELL, 0.6))
 
 # 보스 원 예고(S194): 빨강 테와 차오르는 성긴 칠
 func _boss_tell(e) -> void:
@@ -2576,12 +2600,8 @@ func _fan_tell(e) -> void:
 	var sk: Dictionary = e.skills.mgun
 	var c := _center(e.pos)
 	var r: float = CELL * sk.range
-	var arc := deg_to_rad(sk.arc)
-	var a0: float = e.cast.dir - arc / 2.0
-	var n := 24
-	var rim := PackedVector2Array()
-	for i in n + 1:
-		rim.append(c + Vector2.from_angle(a0 + arc * i / n) * r)
+	var rim := _fan_rim(c, r, e.cast.dir, sk.arc)
+	var n := rim.size() - 1
 	if e.cast.get("fire", false):
 		var to := c + Vector2.from_angle(battle.muzzle(e.cast.dir, sk, sk.fire - e.cast.left)) * r
 		_pline(Vector2i(c.floor()), Vector2i(to.floor()), TELL, 2)
@@ -2591,11 +2611,19 @@ func _fan_tell(e) -> void:
 			var fill := PackedVector2Array([c])
 			for p in rim:
 				fill.append(c + (p - c) * k)
-			_cv.draw_colored_polygon(fill, Color(TELL, 0.25 * _fade))
+			_poly(fill, Color(TELL, 0.25 * _fade))
 	_pline(Vector2i(c.floor()), Vector2i(rim[0].floor()), TELL)
 	_pline(Vector2i(c.floor()), Vector2i(rim[n].floor()), TELL)
 	for i in n:
 		_pline(Vector2i(rim[i].floor()), Vector2i(rim[i + 1].floor()), TELL)
+
+# 부채꼴(가운데 c, 반경 r px, 가운데 방향 dir, 각 arc도)의 테 점 n + 1개
+func _fan_rim(c: Vector2, r: float, dir: float, arc: float, n := 24) -> PackedVector2Array:
+	var a := deg_to_rad(arc)
+	var rim := PackedVector2Array()
+	for i in n + 1:
+		rim.append(c + Vector2.from_angle(dir - a / 2.0 + a * i / n) * r)
+	return rim
 
 # 덮치기 예고(S242): 알파에서 대상까지 곧은 선(폭 1)과 대상 발밑 표식이 차오른다. 성벽 위 대상의 올려 그린 발밑에 닿고,
 # 숨은 알파의 예고도 보이게(S213 2026-10-28 변경) 성곽·어둠 덮개 위 층에 그린다
@@ -2626,8 +2654,8 @@ func _foe_tell(e) -> void:
 		var p: Vector2 = _center(e.pos).lerp(_center(at), k) + Vector2(0, -sin(k * PI) * CELL * 1.5)
 		_pdisc(Vector2i(p.floor()), 2, PX.dark)
 
-# 사다리(S284): 놓인 사다리와 내리는 중인 사다리를 성벽 열 위에 기둥 둘과 가로대로 그린다. 내리는 동안은 공성탑 쪽 끝에서 자란다.
-# 성곽 그림 위에 보이게 덮개 위 층에 그린다. 그림은 따로 PR이다
+# 사다리(S284, S172 2026-11-03 둘째 변경 ④): 놓인 사다리와 내리는 중인 사다리를 성벽 열 가운데에 사다리 띠(LADDER)로 그린다.
+# 성벽 열 칸마다 띠의 한 칸(CELL px)을 차례로 잘라 잇고, 내리는 동안은 공성탑 쪽 끝에서 자란 길이만큼만 그린다. 성곽 그림 위에 보이게 덮개 위 층에 그린다
 func _ladders() -> void:
 	var grow := {}
 	for t in battle.ladders.values():
@@ -2635,16 +2663,24 @@ func _ladders() -> void:
 	for e in battle.enemies:
 		if e.cast != null and e.cast.id == "ladder" and e.col != null:
 			grow[e] = clampf(1.0 - e.cast.left / e.ladder.windup, 0.0, 1.0)
+	var w := LADDER.get_width()
+	var cells := int(LADDER.get_height() / float(CELL))
 	for t in grow:
 		var r: Rect2i = battle.area_of(t.col)
-		var x := int((r.position.x + r.size.x / 2.0) * CELL)
+		var x := int((r.position.x + r.size.x / 2.0) * CELL - w / 2.0)
+		var top := r.position.y * CELL
+		var bottom := r.end.y * CELL
+		var reach := int(roundf((bottom - top) * grow[t]))
 		var south: bool = t.pos.y >= r.position.y
-		var foot: int = r.end.y * CELL if south else r.position.y * CELL
-		var tip: int = foot + int((r.position.y * CELL - foot if south else r.end.y * CELL - foot) * grow[t])
-		_pline(Vector2i(x - 3, foot), Vector2i(x - 3, tip), PX.bronze)
-		_pline(Vector2i(x + 3, foot), Vector2i(x + 3, tip), PX.bronze)
-		for y in range(mini(foot, tip), maxi(foot, tip) + 1, 4):
-			_pline(Vector2i(x - 2, y), Vector2i(x + 2, y), PX.tan)
+		var lo := bottom - reach if south else top  # 그릴 줄 [lo, hi)
+		var hi := bottom if south else top + reach
+		for row in range(r.position.y, r.end.y):
+			var y0 := row * CELL
+			var a := maxi(y0, lo)
+			var b := mini(y0 + CELL, hi)
+			if a < b:
+				var k := (row - r.position.y) % cells
+				_region(LADDER, Rect2(x, a, w, b - a), Rect2(0, k * CELL + a - y0, w, b - a), Color.WHITE)
 
 # 숨어도 그리는 예고: 일반 적(S279)의 던지기·폭탄·투하와 전쟁 기계 대포(S287, S213 2026-11-03 변경)는 성곽·어둠 덮개 위 층에 그린다
 func _foe_tells() -> void:
