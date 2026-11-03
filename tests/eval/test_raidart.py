@@ -76,3 +76,11 @@ def test_EV716_war_machine_fourth_side_column(gd):
 
 def test_EV717_aloft_corpse_drawn_over_buildings(gd):
     gd("raidart", "EV717")
+
+
+def test_EV718_ladder_drawn_in_body_layer(gd):
+    gd("raidart", "EV718")
+
+
+def test_EV719_balloon_drop_bomb_bigger_with_spark(gd):
+    gd("raidart", "EV719")
