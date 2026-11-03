@@ -117,6 +117,11 @@ const STEEL_COLS := [Color("d0d6e0"), Color("4f78ad")]  # 강철 점 윗줄·아
 const LIFT := 0.4  # 보스 스킬 예고의 마지막 이만큼 그림을 들어 올린다(초, S198)
 const VAULT_RISE := 0.15  # 도약 늑대가 웅크림을 끝내고 성벽 위로 올라서는 시간(초, S244). 임시값
 const SLAM_POSE := 0.15  # 보스 스킬이 발동한 뒤 공격 자세(초, S198)
+# 스킬 이름의 시트가 있는 보스(전쟁 기계, S172 2026-11-03 셋째 변경): 예고 끝 준비 열, 발동 뒤 SLAM_POSE마다 넘기는 정점 열, 기관총 왼·오른 자세로 넘어가는 각(도)
+const READY := {"mgun": 1}  # 없으면 0열
+const PEAK := {"grab": [1, 2]}  # 없으면 [1]. 집어 던지기는 집음 → 놓음
+const FAN_TURN := 20.0  # 시트 자세 ±40°의 가운데
+const BLOW := {"war_machine": ["slam", 1]}  # 공격 칸이 없는 종류의 기본 공격 키 포즈 [시트, 열](S172 2026-11-03 셋째 변경 ④)
 const GROW := {"slime_king": [3.0, 5.0]}  # 몸이 큰 종류(S236 2026-10-29 변경: 킹 몸 반지름 2칸)의 [그림 배율, 배율 전 그림을 내리는 px]. 정수배라 도트가 고르고, 내리면 그림 가운데가 몸 가운데에 온다
 const POP := 0.3  # 갈라져 나온 적이 죽은 자리에서 제자리로 튀어나오는 시간(초, S234 2026-10-29 변경)
 const POP_UP := 6.0  # 그동안 포물선으로 뛰는 높이(px)
@@ -1622,7 +1627,10 @@ func _bodies() -> void:
 	var dead := _fallen()
 	for k in dead.size():
 		var x = dead[k][0]
-		if _last_blow(x)[0]:  # 막타를 기다리거나 번쩍이는 선 몸은 산 몸과 같은 차례(S197)
+		var stand: bool = _last_blow(x)[0]
+		if x.get("flying") == true and (stand or not ART[x.kind].has("fall")):  # 날던 자리의 몸(S180 2026-11-03 변경)은 나는 몸의 층: 망루·시설 뒤에 가리지 않는다
+			keys.append((2 << 44) | ((int(_center(x.pos).y) + 64) << 20) | (grave + k))
+		elif stand:  # 막타를 기다리거나 번쩍이는 선 몸은 산 몸과 같은 차례(S197)
 			keys.append((1 << 44) | ((int(_wall_line(Vector2i(x.pos.round())) if x.on_wall else _center(x.pos).y) + 64) << 20) | (grave + k))
 		elif x.on_wall:  # 성벽 위의 쓰러진 몸은 낮아서 흉벽에 다 가리므로, 성벽 위 발밑 표시처럼 앞층 다음(바닥선 + 3)에
 			keys.append((1 << 44) | ((_wall_line(Vector2i(x.pos.round())) + 5 + 64) << 20) | (grave + k))
@@ -2041,16 +2049,38 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 		col = int(Time.get_ticks_msec() / 125.0) % 2
 	var off := Vector2.ZERO
 	if _boss(x):  # 보스 스킬(S198): 예고 끝에 들어 올렸다가 발동하면 내리찍는다. 원 모양 스킬은 화면 쪽(S)을, 방향 스킬은 그쪽을 본다
-		var c = _boss_trace(x)
+		var c = _boss_trace(x, SLAM_POSE * 2.0)
+		var rig: bool = c != null and ART[x.kind].has(c.slot)
+		if c != null and c.age >= SLAM_POSE * (PEAK.get(c.slot, [1]).size() if rig else 1):
+			c = null
 		if ART[x.kind].get("one", false):  # 방향 없는 그림(슬라임 킹, S198 2026-10-27 둘째 변경)은 웅크림·뜸·착지를 정지 그림으로 하고 모양은 _look이 정한다
 			if c != null or x.cast:
 				anim = "idle"
 				col = 0
+		elif rig:  # 스킬 시트의 정점 열(S172 2026-11-03 셋째 변경 ②③): 대포는 원 가운데 쪽을 본다
+			anim = c.slot
+			col = PEAK.get(c.slot, [1])[int(c.age / SLAM_POSE)]
+			dir = _four(c.at - x.pos) if c.slot == "cannon" else (0 if c.aim == null else _four(Vector2(c.aim) - c.at))
+			off.y = 1.0 if c.age < SLAM_POSE else 0.0
 		elif c != null:
 			anim = "attack"
 			col = 0  # 4방향 시트의 공격은 키 포즈 한 칸이다. 밀려 걷는 위상이 남으면 빈 칸을 그린다
 			dir = 0 if c.aim == null else _four(Vector2(c.aim) - c.at)
 			off.y = 1.0
+		elif x.cast and ART[x.kind].has(x.cast.id):  # 스킬 시트의 예고·발사(S172 2026-11-03 셋째 변경 ①③): 대포는 원 가운데, 기관총은 부채꼴 가운데 쪽을 본다
+			var k: Dictionary = x.cast
+			dir = _four(k.at - x.pos) if k.has("at") else (_four(Vector2.from_angle(k.dir)) if k.has("dir") else 0)
+			anim = "idle"
+			col = 0
+			if k.get("fire", false):  # 기관총 발사: 총구(S287)가 보는 쪽에서 FAN_TURN° 넘게 돌았으면 그쪽 자세. 0열이 기계의 왼쪽이다
+				var sk: Dictionary = x.skills[k.id]
+				var turn := rad_to_deg(angle_difference(deg_to_rad(90.0 - 90.0 * dir), battle.muzzle(k.dir, sk, sk.fire - k.left)))
+				anim = k.id
+				col = 0 if turn < -FAN_TURN else (2 if turn > FAN_TURN else 1)
+			elif k.left < LIFT:
+				anim = k.id
+				col = READY.get(k.id, 0)
+				off.y = -2.0
 		elif x.cast and x.cast.id == "pounce":  # 덮치기(S244 ②): 예고는 대상 쪽 웅크림, 뜬 동안은 뜀. S198의 들어 올림은 쓰지 않는다
 			anim = "air" if x.cast.get("air", false) else "crouch"
 			col = 0
@@ -2062,6 +2092,9 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 			off.y = -2.0
 		if x.fx.has("stagger"):  # 비틀거리는 동안 8프레임마다 좌우로 1px 떤다
 			off.x = 1.0 if int(clock * 60.0 / 8.0) % 2 == 0 else -1.0
+	if anim == "attack" and BLOW.has(x.kind):
+		anim = BLOW[x.kind][0]
+		col = BLOW[x.kind][1]
 	next[id] = [x.pos, dir]
 	var p := _spot(x) + _lunge(x) + _flinch(x) + _slip(x) + off
 	var lk := _look(x)
@@ -2694,11 +2727,11 @@ func _foe_tells() -> void:
 func _boss(x) -> bool:
 	return x != null and x.get("skills") is Dictionary and not x.skills.is_empty()
 
-# 보스 x가 SLAM_POSE초 안에 남긴 가장 최근 스킬 흔적. 없으면 null
-func _boss_trace(x):
+# 보스 x가 keep초 안에 남긴 가장 최근 스킬 흔적. 없으면 null
+func _boss_trace(x, keep := SLAM_POSE):
 	for i in range(battle.traces.size() - 1, -1, -1):
 		var c = battle.traces[i]
-		if c.hero == x and c.age < SLAM_POSE:
+		if c.hero == x and c.age < keep:
 			return c
 	return null
 

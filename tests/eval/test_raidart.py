@@ -44,3 +44,35 @@ def test_EV707_ladder_sprite(gd):
 
 def test_EV708_siege_third_side_column(gd):
     gd("raidart", "EV708")
+
+
+def test_EV710_war_machine_atlas_cells_and_icon(gd):
+    gd("raidart", "EV710")
+
+
+def test_EV711_war_machine_walk_idle_and_basic_attack_pose(gd):
+    gd("raidart", "EV711")
+
+
+def test_EV712_war_machine_cannon_poses(gd):
+    gd("raidart", "EV712")
+
+
+def test_EV713_war_machine_grab_and_slam_poses(gd):
+    gd("raidart", "EV713")
+
+
+def test_EV714_war_machine_machine_gun_poses(gd):
+    gd("raidart", "EV714")
+
+
+def test_EV715_war_machine_corpse_fading_idle(gd):
+    gd("raidart", "EV715")
+
+
+def test_EV716_war_machine_fourth_side_column(gd):
+    gd("raidart", "EV716")
+
+
+def test_EV717_aloft_corpse_drawn_over_buildings(gd):
+    gd("raidart", "EV717")
