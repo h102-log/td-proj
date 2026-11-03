@@ -596,9 +596,10 @@ def balloon(pose, bob_unit):
     P.append((R.box([0, 0, z0 + 0.13], (0.17, 0.17, 0.13), rnd=0.02), m("plank"), "hull"))
     P += crew(0.85, [0, -0.02, 0.02]) if drop < 0 else crew(0.85, [0.03, -0.02, 0.02], yaw=-90, pose=dict(IDLE, lean=35, sh_l=90, el_l=10, sh_r=90, el_r=10))
     for s in (-1, 1):  # 바구니 밑 장식으로 읽히지 않게 옆으로 빼서 길게 늘어뜨린다(Gemini 2026-11-02)
-        if s == 1 and drop == 1:  # 놓은 밧줄은 짧게 늘어지고 폭탄은 바구니 아래로 떨어진다
+        if s == 1 and drop == 1:  # 놓은 밧줄은 짧게 늘어지고 폭탄은 바구니 아래로 떨어진다. 떨어지는 폭탄은 2배에 도화선 불꽃(S172 2026-11-03 넷째 변경 ②)
             P += [(R.capsule([0.17, 0, z0 + 0.2], [0.21, 0, z0 + 0.02], 0.01), m("rope"), "gear"),
-                  (R.ellipsoid([0.3, 0, z0 - 0.6], (0.075, 0.075, 0.075)), m("bomb"), "gear")]
+                  (R.ellipsoid([0.3, 0, z0 - 0.9], (0.15, 0.15, 0.15)), m("bomb"), "gear"),
+                  (R.ellipsoid([0.3, 0, z0 - 0.9 + 0.195], (0.06, 0.06, 0.075)), m("flame"), "gear")]
             continue
         P += [(R.capsule([s * 0.17, 0, z0 + 0.2], [s * 0.27, 0, z0 - 0.12], 0.01), m("rope"), "gear"),
               (R.ellipsoid([s * 0.28, 0, z0 - 0.2], (0.075, 0.075, 0.075)), m("bomb"), "gear")]
