@@ -2003,20 +2003,26 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 	var moving := v.length_squared() > 1e-8
 	var a := _ago(x)  # 친 뒤 지난 시간(초)
 	var pose: bool = x.target != null and a >= CONTACT and a < battle.POSE
-	if pose or (x.target and not moving):  # 공격 자세는 밀려도 대상 쪽을 친다(S172)
+	var cast = x.get("cast")
+	var thrown: float = -1.0 if cast == null or cast.id != "throw" else x.throw.windup - cast.left  # 투석기 던지기 예고가 시작된 뒤 초
+	if thrown >= CONTACT and thrown < battle.POSE:  # 투석기(S172 2026-11-03 변경 ②): 예고가 시작되면 원 가운데 쪽으로 던진다
+		pose = true
+		dir = _four(cast.at - x.pos)
+	elif pose or (x.target and not moving):  # 공격 자세는 밀려도 대상 쪽을 친다(S172)
 		dir = _four(_pos_of(x.target) - x.pos)
 	elif moving:
 		dir = _four(v)
 	if x.get("climbed"):
 		dir = 2
-	var anim := "idle"
+	var land: bool = ART[x.kind].has("land_idle") and not x.flying  # 내려앉은 글라이더(S172 2026-11-03 변경 ③): 날개를 접은 정지·걷기
+	var anim := "land_idle" if land else "idle"
 	var col := 0
-	if pose:
+	if pose or (cast != null and cast.id == "fuse"):  # 폭파병(S172 2026-11-03 변경 ①): 도화선이 타는 동안 내내 공격 키 포즈
 		anim = "attack"
 	elif x.get("climbed") and x.get("vault"):  # 도약 늑대(S244 ①): 성벽 밑에서 웅크리다 마지막 VAULT_RISE초에 정지 그림으로 올라선다
 		anim = "crouch" if x.climb - x.climbed > VAULT_RISE else "idle"
 	elif moving or x.get("climbed"):
-		anim = "walk"
+		anim = "land_walk" if land else "walk"
 		col = int(Time.get_ticks_msec() / 125.0) % 2
 	var off := Vector2.ZERO
 	if _boss(x):  # 보스 스킬(S198): 예고 끝에 들어 올렸다가 발동하면 내리찍는다. 원 모양 스킬은 화면 쪽(S)을, 방향 스킬은 그쪽을 본다
@@ -2076,6 +2082,9 @@ func _corpse(d: Array, tint := Color.WHITE) -> void:
 		return
 	var p: Vector2 = (_spot(x) if x.on_wall else _center(x.pos) + (Vector2(0, CELL * 0.4) if x.get("flying") == true else Vector2.ZERO)) + s[2] + down
 	var a := 1.0 if hero else clampf((battle.FALLEN - d[1]) / CORPSE_FADE, 0.0, 1.0)
+	if not ART[x.kind].has("fall"):  # 망치·투석기(S172 2026-11-03 변경 ④): 누운 그림 없이 쓰러질 때 보던 쪽의 정지 그림이 흐려진다
+		_frame(ART[x.kind], "idle", s[4], 0, _spot(x) + s[2] + down, Color(1, 1, 1, a) * tint, Vector2.ONE * k)
+		return
 	_frame(ART[x.kind], "fall", 0, mini(int(s[3] / FALL_STEP), 4) if hero else 0, p, Color(1, 1, 1, a) * tint, Vector2.ONE * k)
 
 # 쓰러지는 영웅의 고리(S180 2026-10-29): [가운데(맵 px, X 자리), 반경(px), 굵기, 불투명도]. 누운 때부터 쓰러짐 5프레임(FALL_RING) 동안

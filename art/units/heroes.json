@@ -256,6 +256,54 @@
   "crouch": 8568,
   "air": 8768
  },
+ "sapper": {
+  "c": 22,
+  "anchor": [
+   11.0,
+   16
+  ],
+  "x": 188,
+  "idle": 5644,
+  "walk": 5732,
+  "attack": 5820,
+  "fall": 5996
+ },
+ "ram": {
+  "c": 60,
+  "anchor": [
+   30.0,
+   32
+  ],
+  "x": 188,
+  "idle": 6040,
+  "walk": 6280,
+  "attack": 6520
+ },
+ "catapult": {
+  "c": 38,
+  "anchor": [
+   19.0,
+   24
+  ],
+  "x": 188,
+  "idle": 7000,
+  "walk": 7152,
+  "attack": 7304
+ },
+ "glider": {
+  "c": 30,
+  "anchor": [
+   15.0,
+   25
+  ],
+  "x": 188,
+  "idle": 7608,
+  "walk": 7728,
+  "attack": 7848,
+  "fall": 8088,
+  "land_idle": 8148,
+  "land_walk": 8268
+ },
  "folk_man_0": {
   "c": 23,
   "anchor": [

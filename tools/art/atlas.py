@@ -5,6 +5,7 @@
 # 용병·적(4.1d)은 C 절충안에 쓰는 칸만 골라 영웅 아래에 붙인다: 행 S·E·N·W, 정지 1열, 걷기 2위상 2열, 공격 키 포즈 1열, 누운 자세 1장
 # 방향 없는 적(1라운드 슬라임, I189)은 남쪽 한 행만 잘라 용병·적 칸 구역 오른쪽에 쌓는다(x·one). 아래에 붙이면 Godot 텍스처 상한 16384px을 넘는다
 # 2라운드 늑대(I189 2026-10-29 변경)는 4방향 칸을 같은 옆 열 슬라임 아래에 쌓는다(x만, one 없음). 도약 늑대는 웅크림, 알파는 웅크림·뜀 칸을 더한다(S244)
+# 3라운드 고블린 네 종(I189 2026-11-03 변경)은 그 옆 열 오른쪽의 둘째 옆 열에 위에서부터 쌓는다(x만). 누운 자세는 폭파병·글라이더만 있고, 글라이더는 내린 뒤 정지·걷기를 더한다
 # 주민(S172 2026-10-26·27 변경)은 몸마다 folk.py 시트 한 장을 그대로 붙이고, look마다 x로 가른다(folk_<몸>_<look>). 일 자세는 자세 이름이 그 첫 행의 y다
 # 시설(4.1e)은 48×48 칸을 따로 한 장에 모은다(facility())
 # 사용: python tools/art/atlas.py → art/units/heroes.png, art/units/heroes.json, art/castle/walls.png, art/castle/facility.png
@@ -19,9 +20,10 @@ FOUR = {"soldier": "soldier", "archer": "archer", "engineer": "engineer", "basic
         "armored": "orc", "flying": "harpy", "boss": "ogre"}
 FOLK = ["man", "woman", "boy", "girl", "old_man", "old_woman", "lad", "lass"]  # 주민 몸(S221, 청소년 S232)
 FOUR_ROWS = [0, 2, 4, 6]  # 8방향 시트(render.DIRS 순서)에서 S·E·N·W
-FOUR_COLS = {"idle": [0], "walk": [0, 1], "attack": [1], "fall": [4], "crouch": [0], "air": [0]}  # 걷기 접지·통과, 공격 내려침, 쓰러짐 마지막(누운 자세)
+FOUR_COLS = {"idle": [0], "walk": [0, 1], "attack": [1], "fall": [4], "crouch": [0], "air": [0], "land_idle": [0], "land_walk": [0, 1]}  # 걷기 접지·통과, 공격 내려침, 쓰러짐 마지막(누운 자세)
 ONE = {k: k for k in ("slimelet", "slime", "big_slime", "slime_king")}  # 방향 없는 적(S172 2026-10-27 넷째 변경): 게임 종류 → 그림 폴더
 WOLVES = {"wolf": (), "leap_wolf": ("crouch",), "night_wolf": (), "alpha_wolf": ("crouch", "air")}  # 옆 열 4방향 적(S172 2026-10-29 변경) → 더 굽는 자세
+RAID = {"sapper": ("fall",), "ram": (), "catapult": (), "glider": ("fall", "land_idle", "land_walk")}  # 둘째 옆 열 4방향 적(S172 2026-11-03 변경) → 정지·걷기·공격 말고 넣는 자세
 
 
 def _sheet(folder, a):
@@ -76,6 +78,17 @@ def main():
             oy += im.height
         meta[kind] = m
     assert oy <= y, f"옆 열 칸({top}~{oy})이 용병·적 칸 구역({top}~{y})을 넘는다"
+    x2 = max(ox + im.width for im, ox, _ in sheets if ox == x)  # 둘째 옆 열: 첫 옆 열에서 가장 넓은 칸 폭만큼 옆(I189 2026-11-03 변경)
+    oy = top
+    for kind, extra in RAID.items():
+        m = dict(_fit(kind), x=x2)
+        for a in ["idle", "walk", "attack"] + list(extra):
+            im = _cut(_sheet(kind, a), m["c"], a, [0] if a == "fall" else FOUR_ROWS)
+            sheets.append((im, x2, oy))
+            m[a] = oy
+            oy += im.height
+        meta[kind] = m
+    assert oy <= y, f"둘째 옆 열 칸({top}~{oy})이 용병·적 칸 구역({top}~{y})을 넘는다"
     fit = json.loads(Path("art/trial/folk/fit.json").read_text(encoding="utf-8"))
     c = fit["c"]
     for body in FOLK:  # look마다 가로 2칸 띠: 0~3행 정지(1열), 4~7행 걷기(2열), 그 아래 일 자세(S172 2026-10-27 변경, 첫 행은 fit.json rows)
