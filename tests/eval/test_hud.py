@@ -364,6 +364,10 @@ def test_EV584_alpha_wolf_trait_line(gd):
     gd("hud", "EV584")
 
 
+def test_EV677_siege_trait_lines(gd):
+    gd("hud", "EV677")
+
+
 def test_EV665_cursor_state(gd):
     gd("hud", "EV665")
 
