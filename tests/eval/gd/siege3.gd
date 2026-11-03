@@ -227,3 +227,82 @@ func ev699():
 		still = still and guns[i].hp == hp0[i]
 	return check(off and spared and stagger and firing and stop and reel2 != null and still,
 		"대포: 취소 %s · 1.4초 무피해 %s · 비틀거림 %s / 기관총: 1.6초 발사 중 %s · 멈춤 %s · 비틀거림 %s · 기절 동안 피해 없음 %s" % [off, spared, stagger, firing, stop, reel2 != null, still])
+
+# 다각형 칠하기만 모으고 선·성긴 칠·테·원 칠은 그리지 않는 화면(트리 밖)
+class Fan extends "res://src/ui/battle_view.gd":
+	var polys := []  # [점들, 색]
+
+	func _poly(pts: PackedVector2Array, col: Color) -> void:
+		polys.append([pts, col])
+
+	func _pline(_a: Vector2i, _b: Vector2i, _col: Color, _w := 1) -> void:
+		pass
+
+	func _pnoise(_c: Vector2i, _r: int, _col: Color, _lim: int, _salt := 0) -> void:
+		pass
+
+	func _edge(_c: Vector2i, _r: int, _light: Color, _dark: Color, _others := []) -> void:
+		pass
+
+	func _pdisc(_c: Vector2i, _r: int, _col: Color) -> void:
+		pass
+
+# 이번 그림의 발동 채움 다각형: 색이 예고색이고 알파 0.6(±0.01)
+func _hot(v) -> Array:
+	var tell: Color = load("res://src/ui/battle_view.gd").TELL
+	return v.polys.filter(func(p): return Color(p[1], 1.0).is_equal_approx(Color(tell, 1.0)) and absf(p[1].a - 0.6) <= 0.01)
+
+# 부채꼴 채움 다각형 pts가 가운데 c, 반경 r(px), 방향 dir ± half(라디안) 안이면 ""
+func _fan_ok(pts: PackedVector2Array, c: Vector2, r: float, dir: float, half: float) -> String:
+	var rim := 0
+	for p in pts:
+		var d := p.distance_to(c)
+		if d > r + 1.0:
+			return "점 %s가 반경 %s 밖(%s)" % [p, r, d]
+		if absf(d - r) <= 1.0:
+			rim += 1
+		if d > 1.0 and absf(angle_difference(dir, (p - c).angle())) > half + deg_to_rad(1.0):
+			return "점 %s가 방향 %s ± %s 밖" % [p, dir, half]
+	return "" if rim >= 2 else "반경 위 점이 %d개" % rim
+
+# EV709 · S198: 기관총 발사를 시작한 프레임부터 2프레임은 부채꼴 안을 예고색 60%로 채운다
+func ev709():
+	var b = battle({"base_hp": BIG})
+	if not b.ENEMY_KINDS.has("war_machine"):
+		return "적 종류 war_machine이 없다"
+	_soldier(b, Vector2i(10, 7))
+	var e = _wm(b, WM, ["mgun"])
+	var sk: Dictionary = e.skills.mgun
+	var v = Fan.new()
+	v.battle = b
+	var hot := []  # 스텝마다 발동 채움 다각형들
+	var start := -1
+	var dir := 0.0
+	for i in int(round(4.0 / DT)):
+		b.step(DT)
+		v.tick(DT)
+		v._foes = v.foes()
+		v.polys = []
+		v._tells()
+		hot.append(_hot(v))
+		if start < 0 and e.cast != null and e.cast.get("id") == "mgun" and e.cast.get("fire", false):
+			start = i
+			dir = e.cast.dir
+		if start >= 0 and i >= start + 2:
+			break
+	if start < 0:
+		v.free()
+		return "4초 안에 기관총 발사를 시작하지 않았다(cast %s)" % [e.cast]
+	var bad := []
+	var c: Vector2 = v._center(e.pos)
+	for k in 2:
+		if hot[start + k].size() != 1:
+			bad.append("발사 %d번째 스텝 채움 %d개" % [k + 1, hot[start + k].size()])
+		else:
+			var msg := _fan_ok(hot[start + k][0][0], c, sk.range * CELL_PX, dir, deg_to_rad(sk.arc) / 2.0)
+			if msg != "":
+				bad.append("발사 %d번째 스텝: %s" % [k + 1, msg])
+	if hot.size() <= start + 2 or not hot[start + 2].is_empty():
+		bad.append("셋째 스텝 채움 %s" % [hot.slice(start + 2)])
+	v.free()
+	return check(bad.is_empty(), "%s" % [bad])

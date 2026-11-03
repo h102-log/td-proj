@@ -20,3 +20,7 @@ def test_EV698_war_machine_slam_first(gd):
 
 def test_EV699_war_machine_interrupted(gd):
     gd("siege3", "EV699")
+
+
+def test_EV709_war_machine_machine_gun_fire_fill(gd):
+    gd("siege3", "EV709")
