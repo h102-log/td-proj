@@ -3413,6 +3413,8 @@ func _skills(e: Enemy, dt: float, sealed: bool) -> bool:
 		return true
 	if e.cast:
 		e.cast.left -= dt
+		if e.cast.get("fire", false):  # 기관총 발사 단계(S287): 지난 틱마다 쏜다
+			_spray(e, e.skills[e.cast.id])
 		if e.cast.left <= 0.0:
 			var c: Dictionary = e.cast
 			var sk: Dictionary = deed(e, c.id)
@@ -3536,6 +3538,92 @@ func _grip(e: Enemy, dt: float, broken: bool) -> bool:
 		return false
 	damage(u, e.skills.pounce.bite * dt, "phys", e)
 	return true
+
+# ── 고블린 전쟁 기계(S287, I223) ── 내려찍기는 대지 강타(slam)를 그대로 쓴다
+
+# 집어 던지기를 쓸 수 있다: 둘레 radius 안에 땅 위 아군
+func _grab_ready(e: Enemy, sk: Dictionary) -> bool:
+	return not _ground_near(e.pos, sk.radius).is_empty()
+
+# 집어 던지기: 원 안 땅 위 아군 가운데 가장 가까운 하나를 보스 너머 toss칸으로 던지고 물리 unit. 아무도 없으면 헛친다.
+# 떨어질 칸에 설 수 없으면 가장 가까운 빈 칸 가운데다(I223). 옮긴 몸은 화면이 넉백처럼 미끄러뜨린다(S198)
+func _grab(e: Enemy, sk: Dictionary) -> void:
+	_trace(e, "grab", null, e.pos, sk.radius)
+	var best = null
+	for u in _ground_near(e.pos, sk.radius):
+		if best == null or e.pos.distance_to(u.pos) < e.pos.distance_to(best.pos):
+			best = u
+	if best:
+		var way: Vector2 = (e.pos - best.pos).normalized()
+		var to: Vector2 = e.pos + (way if way != Vector2.ZERO else Vector2.DOWN) * sk.toss
+		if not _bare(Vector2i(to.round())):
+			to = Vector2(_bare_near(Vector2i(to.round())))
+		best.pos = to
+		damage(best, sk.unit, "phys", e)
+	_tracing = null
+
+# 대포를 쓸 수 있다: range 안 아군(성벽 위 포함) 가운데 radius 안에 아군이 가장 많이 몰린 아군의 자리(같으면 유닛 차례에서 앞선 것).
+# 아군이 없으면 range 안 가장 가까운 성곽 조각(성문·성벽 열)의 가장 가까운 칸 가운데(I223). 떨어질 자리를 예고에 둔다
+func _cannon_ready(e: Enemy, sk: Dictionary):
+	var at = null
+	var most := 0
+	for u in units:
+		if e.pos.distance_to(u.pos) <= sk.range:
+			var n := units.filter(func(m): return m.pos.distance_to(u.pos) <= sk.radius).size()
+			if n > most:
+				at = u.pos
+				most = n
+	if at == null:
+		for s in castle.values():
+			var c := _cell_near(s, e.pos)
+			if s.alive and e.pos.distance_to(c) <= sk.range and (at == null or e.pos.distance_to(c) < e.pos.distance_to(at)):
+				at = c
+	return {"at": at} if at != null else false
+
+# 대포: 예고 원 안 구조물에 물리 structure, 아군에 물리 unit(I219). 땅 위 아군은 원 가운데에서 멀어지게 knock칸 민다(가운데면 남쪽, I223)
+func _cannon(e: Enemy, sk: Dictionary) -> void:
+	var at: Vector2 = e.cast.at
+	_trace(e, "cannon", null, at, sk.radius)
+	var near := _ground_near(at, sk.radius)
+	_blast(at, sk.radius, sk.structure, sk.unit)
+	for u in near:
+		if u.alive:
+			var d: Vector2 = (u.pos - at).normalized()
+			_shove(u, (d if d != Vector2.ZERO else Vector2.DOWN) * sk.knock, enemies)
+	_tracing = null
+
+# 기관총을 쓸 수 있다: range 안 아군 가운데 가장 가까운 것(같으면 유닛 차례에서 앞선 것) 쪽을 부채꼴 가운데 방향(dir, 라디안)으로 예고에 둔다
+func _mgun_ready(e: Enemy, sk: Dictionary):
+	var best = null
+	for u in units:
+		if e.pos.distance_to(u.pos) <= sk.range and (best == null or e.pos.distance_to(u.pos) < e.pos.distance_to(best.pos)):
+			best = u
+	return {"dir": (best.pos - e.pos).angle()} if best else false
+
+# 기관총 예고가 끝나면 fire초 발사 단계(fire)가 된다. 쏜 틱 수는 shot이다. 발사가 끝나면 아무것도 하지 않는다
+func _mgun(e: Enemy, sk: Dictionary) -> void:
+	if not e.cast.get("fire", false):
+		e.cast = {"id": "mgun", "left": sk.fire, "fire": true, "dir": e.cast.dir, "shot": 0}
+
+# 기관총 발사 t초 뒤 총구 방향(라디안, I223): 가운데 dir에서 −arc/2 → +arc/2 → −arc/2로 같은 빠르기로 돈다
+func muzzle(dir: float, sk: Dictionary, t: float) -> float:
+	var half: float = sk.fire / 2.0
+	var s: float = t / half if t <= half else 2.0 - t / half
+	return dir + deg_to_rad(sk.arc) * (s - 0.5)
+
+# 발사 단계에서 지난 틱마다(첫 틱은 tick초 뒤) 총구 방향 ±spread° 안, range 안의 아군에 물리 unit.
+# 성벽 위 아군과, 보스에서 곧은 선이 막힌 칸을 지나지 않는 땅 위 아군만 맞는다(S287)
+func _spray(e: Enemy, sk: Dictionary) -> void:
+	var c: Dictionary = e.cast
+	var due := int((sk.fire - c.left) / sk.tick + 0.001)
+	while c.shot < due:
+		c.shot += 1
+		var aim := muzzle(c.dir, sk, c.shot * sk.tick)
+		for u in units.duplicate():
+			var hit: bool = (u.alive and e.pos.distance_to(u.pos) <= sk.range and absf(angle_difference(aim, (u.pos - e.pos).angle())) <= deg_to_rad(sk.spread)
+				and (u.on_wall or _clear_line(e.pos, u.pos)))
+			if hit:
+				damage(u, sk.unit, "phys", e)
 
 # 울부짖음(S242, I195): 봉인되지 않은 적의 howl 반경 안 늑대 종류는 이동·공격 속도 × (1 + haste). 같은 오라가 여럿 닿아도 하나만 든다
 func _howls() -> void:

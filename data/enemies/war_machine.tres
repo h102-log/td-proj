@@ -1,0 +1,53 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/enemy_def.gd" id="1_ldbao"]
+
+[resource]
+script = ExtResource("1_ldbao")
+hp = 200.0
+speed = 0.8
+wall_k = 0.3
+damage = 40.0
+attack_gap = 2.5
+radius = 0.7
+reward = 50
+armor = 15.0
+boss = true
+skills = {
+"slam": {
+"radius": 2.0,
+"count": 2,
+"windup": 1.2,
+"cd": 12.0,
+"damage": 30.0,
+"knock": 1.0,
+"slow": 0.3,
+"slow_time": 3.0
+},
+"grab": {
+"radius": 1.5,
+"windup": 0.8,
+"cd": 10.0,
+"toss": 4.0,
+"unit": 25.0
+},
+"cannon": {
+"range": 7.0,
+"radius": 1.5,
+"windup": 1.2,
+"cd": 8.0,
+"unit": 30.0,
+"structure": 40.0,
+"knock": 1.0
+},
+"mgun": {
+"range": 5.0,
+"arc": 120.0,
+"spread": 15.0,
+"windup": 1.0,
+"fire": 2.0,
+"tick": 0.25,
+"cd": 10.0,
+"unit": 8.0
+}
+}
