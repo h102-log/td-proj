@@ -410,8 +410,8 @@ def war_machine(pose, bob_unit):
                (R.capsule([0, 0.2, 0.03], [0, 0.62, 0.03], 0.075), m("bomb"), "gear")]  # 총열 덮개
         gun += [(R.capsule([dx, 0.6, 0.03 + dz], [dx, 0.86, 0.04 + dz], 0.032), m("bomb"), "gear") for dx, dz in ((-0.04, -0.02), (0.04, -0.02), (0.0, 0.05))]  # 총열 셋
         gun.append((R.ellipsoid([0, 0.82, 0.04], (0.085, 0.03, 0.085)), m("light"), "gear"))  # 총구 테
-        if mg is not None:
-            gun += [(R.ellipsoid([0, 1.06, 0.07], (0.16, 0.22, 0.16)), m("flame"), "gear"), (R.ellipsoid([0, 1.26, 0.07], (0.06, 0.06, 0.06)), m("light"), "gear")]
+        if mg is not None:  # 총구 불꽃: 짧으면(길이 0.22) 북쪽(뒷모습)에서 차체·기계팔에 가려 난사가 «반쯤» 읽혔다(Gemini 2026-11-03 v10 평가)
+            gun += [(R.ellipsoid([0, 1.3, 0.07], (0.24, 0.5, 0.24)), m("flame"), "gear"), (R.ellipsoid([0, 1.68, 0.07], (0.09, 0.09, 0.09)), m("light"), "gear")]
         yaw = mg or 0.0
         P += place(gun, 1.0, c, yaw)
         a = np.radians(yaw)
@@ -669,11 +669,14 @@ CHIEF_CLEAVE = [dict(B.ATTACK[1], sh_r=-25, el_r=20, ab_r=0.3, sword=-78, sword_
 # 돌진: 웅크려 집게를 뒤로 → 앞으로 크게 기울어 내닫고 집게를 치켜든다
 CHIEF_CHARGE = [dict(B.IDLE, hip_l=65, knee_l=90, hip_r=40, knee_r=110, lean=37, sh_l=27, claw_ab=0.4, ground=True),
                 dict(B.IDLE, hip_l=55, knee_l=50, hip_r=-55, knee_r=10, lean=40, sh_l=220, claw_ab=0.2, ground=True)]
-# 집게 던지기: 숙여 앞 아래를 집음 → 집게를 어깨 뒤 위로 젖힘(집힌 유닛은 게임이 집게에 붙인다)
-CHIEF_FLING = [dict(B.IDLE, lean=42, sh_l=62, claw_ab=1.0, hip_l=45, knee_l=70, hip_r=-10, knee_r=30, ground=True),
-               dict(B.IDLE, sh_l=254, claw_ab=0.3, hip_l=-10, hip_r=14, knee_l=10, knee_r=10)]
-# 폭탄 흩뿌리기: 불붙은 폭탄 셋을 쥔 집게를 어깨 뒤로 → 앞 아래로 내던짐. 허리 뒤로 낮게 쥐면 남쪽에서 몸에 가렸고, 뒤 위 45°(sh_l 237~)면 남쪽 칸 위를 넘었다
-CHIEF_BOMBS = [dict(B.IDLE, sh_l=267, claw_ab=0.3, held=True),
+# 집게 던지기: 숙여 옆 아래를 집음 → 다리를 벌려 버티고 집게를 머리 왼쪽 위로 곧게 치켜듦(집힌 유닛은 게임이 집게에 붙인다).
+# 덜 벌리고(claw_ab 1.0) 어깨 뒤 위로 젖히면(sh_l 254) 북쪽에서 집게가 망토와 겹치고 1→2 변화가 작아 «안 읽힘»이었다(Gemini 2026-11-03 v10 평가).
+# 선 채 곧게 들면 동쪽 칸 위를 7px 넘어 다리를 굽혀 몸을 낮췄다
+CHIEF_FLING = [dict(B.IDLE, lean=42, sh_l=62, claw_ab=2.2, hip_l=45, knee_l=70, hip_r=-10, knee_r=30, ground=True),
+               dict(B.IDLE, sh_l=200, claw_ab=1.0, hip_l=60, knee_l=100, hip_r=-30, knee_r=70, ground=True)]
+# 폭탄 흩뿌리기: 불붙은 폭탄 셋을 쥔 집게를 옆으로 벌려 어깨 높이 뒤로 → 앞 아래로 내던짐. 허리 뒤로 낮게 쥐면 남쪽에서 몸에 가렸고,
+# 덜 벌리면(claw_ab 0.3) 북쪽에서 폭탄이 몸에 묻혀 «안 읽힘»이었다(Gemini 2026-11-03 v10 평가). 덜 벌린 채 뒤 위 45°(sh_l 237~)면 남쪽 칸 위를 넘었다
+CHIEF_BOMBS = [dict(B.IDLE, sh_l=245, claw_ab=1.1, held=True),
                dict(B.IDLE, lean=17, sh_l=67, claw_ab=0.8, hip_l=-10, hip_r=14, knee_l=10, knee_r=10)]
 # 등장: 공중(다리 웅크림, 철퇴를 머리 위 뒤로) → 착지 웅크림(집게를 뒤로 뻗어 균형). 곧장 아래로 두면 집게가 땅을 뚫었다
 CHIEF_LEAP = [dict(B.IDLE, hip_l=80, knee_l=100, hip_r=60, knee_r=90, lean=6, sh_l=-34, claw_ab=0.6, sh_r=150, el_r=20, ab_r=0.35, sword=-100, sword_side=0, swing=True),
