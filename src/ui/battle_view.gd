@@ -14,6 +14,7 @@ const ENEMY_COLORS := {  # 적 종류마다 다른 색(I81)
 	"slime": Color("50b050"), "slimelet": Color("98e070"), "big_slime": Color("2f7a3a"), "slime_king": Color("3aa0a0"),
 	"wolf": Color("8a7a68"), "leap_wolf": Color("b08850"), "night_wolf": Color("3a3a58"), "alpha_wolf": Color("d8d8d0"),
 	"sapper": Color("c05828"), "ram": Color("6a4a30"), "catapult": Color("a08048"), "glider": Color("c8b868"),
+	"siege_tower": Color("586068"), "balloon": Color("e8d0a0"), "airship": Color("7090b0"),
 }
 const HERO_COLORS := {  # 영웅 종류마다 다른 색(S56, S157, I101)
 	"aias": Color("b060f0"), "sylvia": Color("a0ff40"), "seraphina": Color("f0f0f0"), "vesper": Color("40c060"), "ignis": Color("ff5020"), "chronos": Color("ffd020"),
@@ -95,7 +96,7 @@ const ALLY_FX := ["dr", "haste", "shield", "invuln", "stun", "bleed"]  # 아군�
 const FOE_FX := ["stun", "root", "slow", "expose", "taunt", "seal", "chain", "dot"]  # 적에 걸린 효과(I101)
 const FOE_TELL := Color("ef692f")  # 일반 적 예고(S279): F24+ 주황 1px 테가 BLINK초마다 켜졌다 꺼진다. 안쪽은 칠하지 않는다
 const BLINK := 0.25
-const UNSEEN_TELLS := ["pounce", "throw"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기(S279). 덮개 위 층에 그린다
+const UNSEEN_TELLS := ["pounce", "throw", "bomb", "drop"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286). 덮개 위 층에 그린다
 const TELL := Color("ef3a0c")  # 보스 스킬 예고(S194): F24+ 빨강 테(바깥 어두운 테는 PX.maroon), 안쪽 성긴 칠이 차오른다(S198 fx-4)
 const RAGE := Color(1.5, 0.55, 0.55)  # 분노한 보스(S195)를 붉게 그리는 modulate
 const CROUCH := Vector2(1.15, 0.75)  # 슬라임 킹이 웅크림 끝에 납작해지는 배율(가로·세로, S198). 임시값
@@ -309,7 +310,7 @@ func foes() -> Array:
 # 예고를 그리는 적(S194): 예고 중인 보이는 적. 덮치기 예고(S242)와 투석기 던지기(S279)는 적이 어둠 속에 숨어도 그린다(S213 2026-10-28 변경)
 func tellers(shown = null) -> Array:
 	var vis: Array = foes() if shown == null else shown
-	return battle.enemies.filter(func(e): return e.cast != null and (e.cast.id in UNSEEN_TELLS or e in vis))
+	return battle.enemies.filter(func(e): return e.cast != null and e.cast.id != "ladder" and (e.cast.id in UNSEEN_TELLS or e in vis))  # 사다리 내리기는 예고가 없다(S284)
 
 # 적 e의 예고 색: 보스 스킬(S194)은 빨강, 일반 적 행동(S279)은 주황
 func tell_color(e) -> Color:
@@ -421,6 +422,7 @@ func _draw() -> void:
 func _draw_top() -> void:
 	_aim_preview()
 	_pounce_tells()
+	_ladders()
 	_foe_tells()
 	_snipe_pointers()
 	if battle.state == "prep":
@@ -2579,11 +2581,37 @@ func _foe_tell(e) -> void:
 	var sk: Dictionary = battle.deed(e, e.cast.id)
 	var at: Vector2 = e.cast.get("at", e.pos)
 	if int(clock / BLINK) % 2 == 0:
-		_pring(Vector2i(_center(at).floor()), int(CELL * sk.radius), 1, FOE_TELL)
+		if e.cast.id == "drop":  # 투하 표식(S286): 투하 칸에 아래를 가리키는 화살표
+			var c := Vector2i(_center(at).floor())
+			_pline(c + Vector2i(0, -12), c + Vector2i(0, -2), FOE_TELL)
+			_pline(c + Vector2i(-4, -6), c + Vector2i(0, -2), FOE_TELL)
+			_pline(c + Vector2i(4, -6), c + Vector2i(0, -2), FOE_TELL)
+		else:
+			_pring(Vector2i(_center(at).floor()), int(CELL * sk.radius), 1, FOE_TELL)
 	if e.cast.id == "throw":
 		var k: float = clampf(1.0 - e.cast.left / sk.windup, 0.0, 1.0)
 		var p: Vector2 = _center(e.pos).lerp(_center(at), k) + Vector2(0, -sin(k * PI) * CELL * 1.5)
 		_pdisc(Vector2i(p.floor()), 2, PX.dark)
+
+# 사다리(S284): 놓인 사다리와 내리는 중인 사다리를 성벽 열 위에 기둥 둘과 가로대로 그린다. 내리는 동안은 공성탑 쪽 끝에서 자란다.
+# 성곽 그림 위에 보이게 덮개 위 층에 그린다. 그림은 따로 PR이다
+func _ladders() -> void:
+	var grow := {}
+	for t in battle.ladders.values():
+		grow[t] = 1.0
+	for e in battle.enemies:
+		if e.cast != null and e.cast.id == "ladder" and e.col != null:
+			grow[e] = clampf(1.0 - e.cast.left / e.ladder.windup, 0.0, 1.0)
+	for t in grow:
+		var r: Rect2i = battle.area_of(t.col)
+		var x := int((r.position.x + r.size.x / 2.0) * CELL)
+		var south: bool = t.pos.y >= r.position.y
+		var foot: int = r.end.y * CELL if south else r.position.y * CELL
+		var tip: int = foot + int((r.position.y * CELL - foot if south else r.end.y * CELL - foot) * grow[t])
+		_pline(Vector2i(x - 3, foot), Vector2i(x - 3, tip), PX.bronze)
+		_pline(Vector2i(x + 3, foot), Vector2i(x + 3, tip), PX.bronze)
+		for y in range(mini(foot, tip), maxi(foot, tip) + 1, 4):
+			_pline(Vector2i(x - 2, y), Vector2i(x + 2, y), PX.tan)
 
 # 숨어도 그리는 일반 적 예고(S279): 던지기는 성곽·어둠 덮개 위 층에 그린다
 func _foe_tells() -> void:

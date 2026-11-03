@@ -30,3 +30,7 @@ extends Resource
 @export var ranged_cut := 0.0  # 투사체로 맞은 물리 피해를 이만큼 덜 받는다(I217). 봉인되면 꺼진다(S281)
 @export var ignore_units := false  # 아군 몸에 막히지 않고 밀어낸다(I218). 봉인되면 꺼진다(S281)
 @export var glide := 0.0  # 글라이더(S283, I220): 마을에 들어선 뒤 이만큼(칸) 더 날면 내려앉는다. 0이면 내려앉지 않는다
+@export var ladder := {}  # 공성탑 사다리(S284): {windup 내리는 초, climb 오르는 초}. 비어 있으면 공성탑이 아니다
+@export var cargo := 0  # 탄 고블린 수(S284 공성탑, S286 수송 비행선). 0이면 태우지 않는다
+@export var bomb := {}  # 폭탄 열기구(S285): {radius 원 반경, windup 예고 초, cd 대기 초, structure 구조물 피해, unit 아군 피해}
+@export var drop := {}  # 수송 비행선 투하(S286): {range 거점 둘레 칸, house 집 거리 칸, windup 표식 초, crash_hp 투하 전 격추 때 체력 배율}

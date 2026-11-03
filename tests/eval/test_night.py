@@ -32,3 +32,7 @@ def test_EV585_alpha_pounce_tell_in_dark(gd):
 
 def test_EV670_siege_tells_in_dark(gd):
     gd("night", "EV670")
+
+
+def test_EV689_raid_tells_in_dark(gd):
+    gd("night", "EV689")

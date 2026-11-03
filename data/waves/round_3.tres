@@ -16,10 +16,13 @@ waves = Array[Dictionary]([{
 "catapult": 8,
 "glider": 80
 }, {
-"basic": 220,
-"fast": 100,
-"armored": 100,
-"flying": 80
+"basic": 310,
+"sapper": 30,
+"ram": 4,
+"catapult": 6,
+"glider": 60,
+"siege_tower": 3,
+"balloon": 6
 }, {
 "basic": 280,
 "fast": 140,
