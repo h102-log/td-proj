@@ -156,16 +156,16 @@ const PAVE := Color("56607a")  # 돌길·광장 박석 색(S202)
 # 수로·연못(S220, tools/art/water.py): 바닥 위 물 덮개와 북벽 수문 덮개, 얹는 맵 px 왼쪽 위.
 # ponytail: 자리는 _plan의 물 칸(45열 수로·44~49열 연못)에 맞춘 지금 판 값이다. 판이 늘면 _plan과 함께 옮긴다
 const WATER := preload("res://art/tiles/water.png")
-const WATER_AT := Vector2i(672, 0)
+const WATER_AT := Vector2i(704, 32)  # tools/art/water.py 덮개 왼쪽 위(옛 마을 (3,3) 기준 맵 px (672, 0))를 PLAN_SHIFT칸만큼 옮긴 자리
 const CULVERT := preload("res://art/castle/culvert.png")
-const CULVERT_AT := Vector2i(712, 16)
+const CULVERT_AT := Vector2i(744, 48)  # 수문 덮개 자리(옛 (712, 16) + PLAN_SHIFT칸). 그림은 아래 24px에 있어 높아진 북벽 안쪽 앞면(48~80) 아래에 앉는다
 const FOREST_FLOOR := Color("2a1d0d")  # 맵 아래 맵 밖 띠(I50)의 바닥(S201): 마른 나무가 선 그을린 흙
-const CASTLE := preload("res://art/castle/walls.png")  # 성곽 조각(두께 3칸, S217): 행 단계 1~3마다 몸체·앞층, 통로 그늘, 잔해. 열 성벽 한 열·열린 문·닫힌 문·문 양옆 탑(tools/art/atlas.py castle)
-const WALL_PIECE_H := 105  # 성곽 조각 높이(px). 맨 아랫줄이 앞줄 바닥선 바로 위 줄이고 윗줄은 양옆 탑 뒤 모서리다
+const CASTLE := preload("res://art/castle/walls.png")  # 성곽 조각(두께 5칸, S217 2026-11-03 변경): 행 단계 1~3마다 몸체·앞층, 통로 그늘, 잔해. 열 성벽 한 열·열린 문·닫힌 문·문 양옆 탑(tools/art/atlas.py castle)
+const WALL_PIECE_H := 145  # 성곽 조각 높이(px, tools/art/wall.py PIECE_H). 맨 아랫줄이 앞줄 바닥선 바로 위 줄이고 윗줄은 양옆 탑 뒤 모서리다
 const WALL_COLS := {"castle_wall": [0, 16], "open": [16, 48], "closed": [64, 48], "tower_l": [112, 16], "tower_r": [128, 16],
-	"n_wall": [144, 16], "n_closed": [160, 48], "n_tower_l": [208, 16], "n_tower_r": [224, 16], "sc_l": [240, 48], "sc_r": [288, 48],
-	"nc_l": [336, 48], "nc_r": [384, 48], "w_strip": [432, 48], "e_strip": [480, 48], "w_gate": [528, 48], "e_gate": [576, 48]}  # 조각 열 [x, 폭](px)
-const WALL_TOP_UP := 25  # 성벽 그림 윗변이 성곽 윗줄 위끝보다 높은 px(S175)
+	"n_wall": [144, 16], "n_closed": [160, 48], "n_tower_l": [208, 16], "n_tower_r": [224, 16], "sc_l": [240, 80], "sc_r": [320, 80],
+	"nc_l": [400, 80], "nc_r": [480, 80], "w_strip": [560, 80], "e_strip": [640, 80], "w_gate": [720, 80], "e_gate": [800, 80]}  # 조각 열 [x, 폭](px). 모서리·동서 조각은 두께 5칸(80px)
+const WALL_TOP_UP := 33  # 성벽 그림 윗변이 성곽 윗줄 위끝보다 높은 px(S175, S170 2026-11-03 변경: 앞면 32px)
 const GATE_RISE := 17  # 문루 바닥이 성벽 통로보다 높은 px(S170, tools/art/wall.py와 같다)
 const TOWER_RISE := 27  # 문 양옆 탑 바닥이 성벽 통로보다 높은 px(S170, tools/art/wall.py와 같다)
 const SIDE_GATE_RISE := 8  # 동·서 닫힌 문루 바닥이 통로보다 높은 px(S219, tools/art/wall.py와 같다)
@@ -189,7 +189,7 @@ static var KEEP_K: ImageTexture = crack_atlas(KEEP, [Rect2i(0, 0, 80, 80), Rect2
 const BLUEPRINT := Color(0.55, 0.78, 1.0, 0.6)  # 청사진 색(사용자 2026-10-20, 림월드 설계도). 회색 바탕에 곱한다
 const GHOST := Color(1, 1, 1, 0.4)  # 거점에 가려진 유닛·시설을 덧그리는 색(C1, 사용자 2026-10-20)
 const SHADE := Color(0, 0, 0, 0.55)  # 성벽에 가려진 부분의 실루엣 색(S175). 55%는 사용자가 고른 시안의 합성 색에 맞춘 Claude 값
-const WALL_H := 24  # 성벽 앞면 높이(px, 4.0 확정값)
+const WALL_H := 32  # 성벽 앞면 높이(px). S170 2026-11-03 변경(사용자 «성벽 높이도 조금더 키우자» → «32px», 옛 4.0 확정값 24)
 const TEAM := [Color("3c9f9c"), Color("ef3a0c")]  # 발밑 팀 색(S166): 아군 청록, 적 빨강(F24+ 팔레트)
 const ORDER_MARK := 0.4  # 명령 표식이 보이는 시간(초, S205)
 const ORDER_COLORS := [Color("40ff80"), Color("ef3a0c")]  # 명령 표식(S205): 이동 초록, 공격 빨강(적 발밑 색)
@@ -1707,7 +1707,7 @@ func _bodies() -> void:
 	_seen = next
 
 # 가려진 몸통을 덧그릴 색. 성곽 그림이 발(칸 가운데)을 4px 넘게 덮는 줄은 그림 윗변(_clip)보다 아래만 어두운 실루엣이고(S175),
-# 그보다 적게(발만) 덮는 줄은 덧그리지 않는다(투명). 성벽은 바로 뒤 한 줄, 문루·문 양옆 탑은 뒤 세 줄이 실루엣이다. 거점 뒤는 통째로 40%다(S171)
+# 그보다 적게(발만) 덮는 줄은 덧그리지 않는다(투명). 성벽은 뒤 두 줄, 문루는 뒤 세 줄, 문 양옆 탑은 뒤 네 줄이 실루엣이다(S175 2026-11-03 변경). 거점 뒤는 통째로 40%다(S171)
 func _shade(x) -> Color:
 	_clip = -INF
 	if not _behind(x):
@@ -1719,22 +1719,29 @@ func _shade(x) -> Color:
 		return SHADE
 	return Color.TRANSPARENT if cover > 0 else GHOST
 
-# 땅 칸 c 앞(아래) 세 줄 안의 첫 성곽 칸 그림이 c의 발(칸 가운데)보다 위로 덮는 px. 앞에 성곽이 없으면 -INF
+# 땅 칸 c 앞(아래) 네 줄 안의 첫 성곽 칸 그림이 c의 발(칸 가운데)보다 위로 덮는 px. 앞에 성곽이 없으면 -INF.
+# 네 줄은 가장 높은 탑 열 그림이 닿는 줄 수다(S175 2026-11-03 변경)
 func _cover(c: Vector2i) -> float:
-	for k in range(1, 4):
+	for k in range(1, 5):
 		if battle.walls.has(c + Vector2i(0, k)):
 			var r := rise_at(battle, c + Vector2i(0, k))
 			return WALL_TOP_UP + (r + RING if r > 0 else 0) - CELL / 2.0 - CELL * (k - 1)
 	return -INF
+
+# 성곽 두께(줄, S217 2026-11-03 변경): 사방 성곽 판(마을이 맵 가장자리에서 떨어진 판)은 마을 왼끝 열이다.
+# 사방 성곽이 아닌 평가 판은 두께 3 시절 값 3을 그대로 써서 그 판의 모서리·동서 판정이 바뀌지 않는다
+static func depth(bt) -> int:
+	return bt.village.position.x if bt.village.position.x > 0 else 3
 
 # 성곽 칸 c에 선 유닛·대포를 성벽 통로보다 더 올리는 px(S170): 문루는 GATE_RISE, 문 양옆 탑 열은 TOWER_RISE, 그 밖은 0
 static func rise_at(bt, c: Vector2i) -> int:
 	var k = bt.walls.get(c)
 	if k == null:
 		return 0
+	var t := depth(bt)
 	if k.kind == "gate":
-		return SIDE_GATE_RISE if k.size == Vector2i(3, 3) and (k.cell.x == 0 or k.cell.x + 3 == bt.size.x) else GATE_RISE
-	if k.size == Vector2i(1, 3) and (k.cell.x < 3 or k.cell.x >= bt.size.x - 3):  # 모서리 탑(S219)
+		return SIDE_GATE_RISE if k.size == Vector2i(t, 3) and (k.cell.x == 0 or k.cell.x + t == bt.size.x) else GATE_RISE
+	if k.size == Vector2i(1, t) and (k.cell.x < t or k.cell.x >= bt.size.x - t):  # 모서리 탑(S219)
 		return CORNER_RISE
 	return TOWER_RISE if tower_of(bt, k) != "" else 0
 
@@ -1751,18 +1758,19 @@ static func tower_of(bt, k) -> String:
 # 맵 px p가 문루·문 양옆 탑 그림 가운데 성곽 뒤 땅 칸 쪽으로 솟은 부분이면 그 성곽 Block, 아니면 null(S218). 보통 성벽 열은 null이다
 static func raised_at(bt, p: Vector2):
 	var c := Vector2i((p / CELL).floor())
-	for k in range(1, 4):
+	for k in range(1, 5):  # 성곽 윗줄 뒤 네 줄 안(S218 2026-11-03 변경)
 		var w = bt.walls.get(c + Vector2i(0, k))
 		if w != null:
 			var r := rise_at(bt, c + Vector2i(0, k))
 			return w if r > 0 and p.y >= (c.y + k) * CELL - WALL_TOP_UP - r - RING else null  # 그 열 그림 윗변 아래
 	return null
 
-# 맵 px p가 동·서 성벽·닫힌 문루·모서리 탑 그림(통로 24px + 그 바닥 높이만큼 올려 그림, S219) 안이면 그 성곽 Block, 아니면 null.
+# 맵 px p가 동·서 성벽·닫힌 문루·모서리 탑 그림(통로 앞면 높이 + 그 바닥 높이만큼 올려 그림, S219) 안이면 그 성곽 Block, 아니면 null.
 # 남·북 성벽 열은 null이다(문루·탑은 raised_at)
 static func side_at(bt, p: Vector2):
 	var x := int(floor(p.x / CELL))
-	if x >= 3 and x < bt.size.x - 3:
+	var t := depth(bt)
+	if x >= t and x < bt.size.x - t:
 		return null
 	for up in [WALL_H + CORNER_RISE, WALL_H + SIDE_GATE_RISE, WALL_H]:
 		var c := Vector2i(x, int(floor((p.y + up) / CELL)))
@@ -1851,7 +1859,7 @@ func _shadow(at: Vector2, r: float) -> void:
 	draw_circle(Vector2.ZERO, r, Color(0, 0, 0, 0.3))
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
-# 성벽·거점 그림이 덮는 자리에 선 땅 유닛이나 시설: 성곽 그림이 발을 덮는 뒤 줄(성벽 두 줄, 문루 세 줄, 탑 세 줄), 거점 칸 뒤 두 줄과 그 양옆(C1, 사용자 2026-10-20)
+# 성벽·거점 그림이 덮는 자리에 선 땅 유닛이나 시설: 성곽 그림이 발을 덮는 뒤 줄(성벽 두 줄, 문루 세 줄, 탑 네 줄), 거점 칸 뒤 두 줄과 그 양옆(C1, 사용자 2026-10-20)
 func _behind(x) -> bool:
 	if x.get("on_wall") == true or x.get("flying") == true or x.get("climbed"):
 		return false
@@ -1908,7 +1916,7 @@ func _wall_piece(b, front: int) -> void:
 	var col: Array = wall_col(battle, b)
 	var dst := Rect2(at, Vector2(col[1], WALL_PIECE_H))
 	draw_texture_rect_region(CASTLE_K, dst, Rect2(col[0], (2 * (b.level - 1) + front) * WALL_PIECE_H + crack_y(b, CASTLE.get_height()), col[1], WALL_PIECE_H))
-	if front == 1 and not battle.water.is_empty() and b.size == Vector2i(1, 3) and b.cell.y < battle.base.cell.y:  # 수로 수문(S220): 북벽은 앞층이 마을 쪽 벽면이라 그 위에, 그 열 폭만큼
+	if front == 1 and not battle.water.is_empty() and b.size == Vector2i(1, depth(battle)) and b.cell.y < battle.base.cell.y:  # 수로 수문(S220): 북벽은 앞층이 마을 쪽 벽면이라 그 위에, 그 열 폭만큼
 		var x0 := maxi(b.cell.x * CELL, CULVERT_AT.x)
 		var x1 := mini((b.cell.x + 1) * CELL, CULVERT_AT.x + CULVERT.get_width())
 		if x1 > x0:
@@ -1916,20 +1924,21 @@ func _wall_piece(b, front: int) -> void:
 	if front == 0 and b.kind == "gate" and b.open:
 		draw_texture_rect_region(CASTLE_K, dst, Rect2(col[0], 6 * WALL_PIECE_H, col[1], WALL_PIECE_H))
 
-# 성곽 Block의 조각 열 [x, 폭](S219). 북벽(거점보다 위)은 흉벽이 뒤인 열, 동·서는 행 띠·닫힌 문루, 네 모서리 3열은 모서리 탑을 열마다 자른다
+# 성곽 Block의 조각 열 [x, 폭](S219). 북벽(거점보다 위)은 흉벽이 뒤인 열, 동·서는 행 띠·닫힌 문루, 네 모서리 열(두께만큼)은 모서리 탑을 열마다 자른다
 static func wall_col(bt, b) -> Array:
 	var n: bool = b.cell.y < bt.base.cell.y
-	if b.size == Vector2i(3, 1):
+	var d := depth(bt)
+	if b.size == Vector2i(d, 1):
 		return WALL_COLS["w_strip" if b.cell.x == 0 else "e_strip"]
 	if b.kind == "gate" and b.cell.x == 0:
 		return WALL_COLS.w_gate
-	if b.kind == "gate" and b.cell.x + 3 == bt.size.x:
+	if b.kind == "gate" and b.cell.x + d == bt.size.x:
 		return WALL_COLS.e_gate
 	if b.kind == "gate":
 		return WALL_COLS["n_closed"] if n else WALL_COLS["open" if b.open else "closed"]
-	if b.cell.x < 3 or b.cell.x >= bt.size.x - 3:
-		var c: Array = WALL_COLS[("nc" if n else "sc") + ("_l" if b.cell.x < 3 else "_r")]
-		return [c[0] + (b.cell.x if b.cell.x < 3 else b.cell.x - (bt.size.x - 3)) * CELL, CELL]
+	if b.cell.x < d or b.cell.x >= bt.size.x - d:
+		var c: Array = WALL_COLS[("nc" if n else "sc") + ("_l" if b.cell.x < d else "_r")]
+		return [c[0] + (b.cell.x if b.cell.x < d else b.cell.x - (bt.size.x - d)) * CELL, CELL]
 	var t := tower_of(bt, b)
 	if n:
 		return WALL_COLS["n_wall" if t == "" else "n_" + t]
@@ -2904,7 +2913,10 @@ static func _well(b) -> Vector2i:
 
 # 마을 길 골격(S202·S169 2026-10-26 넷째 변경, 사방 성곽): 박석 칸·흙 꼭짓점·텃밭 칸·자갈 마당, 짓지 못하는 길 칸(S43 2026-10-26 둘째 변경).
 # 북동 두 고리 사이 블록(44~49열, 13~19행)은 연못, 그 북쪽 45열(4~12행)은 수로의 물 칸(S220)이다. 수로가 성벽 안쪽 길·바깥 고리 길과 만나는 다리 칸은 길 칸이다.
-# ponytail: 자리는 거점 (30,30)·60×60 성인 지금 판(main.gd stage) 하나에 맞춘 칸 값이다. 판이 늘면 거점 칸 기준 상대값으로 옮긴다
+# 표의 칸은 옛 마을 왼쪽 위 (3,3)·거점 (30,30) 기준이고, 돌려줄 때 PLAN_SHIFT만큼 옮긴다(S217 2026-11-03 변경: 성곽 다섯 줄, 마을은 (5,5)부터).
+# ponytail: 자리는 지금 판(main.gd stage) 하나에 맞춘 칸 값이다. 판이 늘면 거점 칸 기준 상대값으로 옮긴다
+const PLAN_SHIFT := Vector2i(2, 2)  # main.gd WALL_T − 3
+
 static func _plan() -> Dictionary:
 	var pave := {}
 	var dirt := {}
@@ -2964,9 +2976,18 @@ static func _plan() -> Dictionary:
 			water[Vector2i(x, y)] = true
 	for c in [Vector2i(45, 3), Vector2i(45, 10), Vector2i(45, 11)]:  # 다리 칸: 집이 다리를 막지 못하게 길 칸으로 둔다
 		roads[c] = true
-	return {"pave": pave, "dirt": dirt, "garden": garden, "slabs": slabs, "gravel": gravel, "roads": roads, "water": water}
+	return {"pave": _moved(pave), "dirt": _moved(dirt), "garden": _moved(garden), "slabs": _moved(slabs), "gravel": _moved(gravel), "roads": _moved(roads), "water": _moved(water)}
 
-# 사방 성곽 안쪽 그늘(S219). 동·서 성벽은 마을 쪽에 남벽 앞면 벽돌색 벽면 띠 6px(원근 속임)과 그 바깥 땅 그늘 3px을, 통로처럼 24px 올린 자리에 그린다.
+# 표의 칸·꼭짓점을 PLAN_SHIFT만큼 옮긴다(사전은 키, 배열은 원소)
+static func _moved(d):
+	if d is Dictionary:
+		var o := {}
+		for k in d:
+			o[k + PLAN_SHIFT] = d[k]
+		return o
+	return d.map(func(c): return c + PLAN_SHIFT)
+
+# 사방 성곽 안쪽 그늘(S219). 동·서 성벽은 마을 쪽에 남벽 앞면 벽돌색 벽면 띠 6px(원근 속임)과 그 바깥 땅 그늘 3px을, 통로처럼 앞면 높이(WALL_H)만큼 올린 자리에 그린다.
 # 닫힌 문루 행은 그 높이만큼 더 올리고 띠 자리에 나무 문짝을 넣는다. 남벽 통로 뒤 모서리 위 마을 땅에는 4px 그늘을, 정문 문루 뒤(박석 길 위)에는 터널 입구 그늘을 깐다.
 # 사방 성곽(마을이 맵 가장자리에서 떨어진 판)에서만 그린다
 static func _wall_shade(b, img: Image) -> void:
@@ -3053,14 +3074,14 @@ static func _clusters(b, img: Image, deco: Image) -> void:
 	var spots := []
 	var x := r.randi_range(1, 4)
 	while x < b.size.x - 1:  # 남벽 밑 띠: 성벽 안쪽 길 위끝 둘레. 정문 안 공터와 모서리 텃밭은 비운다
-		if absi(x - b.base.cell.x) > 6 and x > 5 and x < 54:
+		if absi(x - b.base.cell.x) > 6 and x > 5 + PLAN_SHIFT.x and x < 54 + PLAN_SHIFT.x:
 			spots.append(Vector2(x * CELL + 8, r.randf_range(y1 - 76, y1 - 60)))
 		x += r.randi_range(5, 9)
 	for side in [-1, 1]:  # 광장 양 가장자리: 광장 반폭 104px(6.5칸)보다 8~18px 바깥
-		for y in [28, 33]:
+		for y in [28 + PLAN_SHIFT.y, 33 + PLAN_SHIFT.y]:
 			spots.append(Vector2(cx + side * r.randf_range(112, 122), y * CELL + r.randf_range(-6, 6)))
 	for c in [Vector2i(24, 12), Vector2i(42, 25), Vector2i(38, 38), Vector2i(9, 35), Vector2i(18, 22), Vector2i(43, 33), Vector2i(10, 28), Vector2i(50, 32), Vector2i(40, 5), Vector2i(20, 54)]:  # 고리 길·골목 갈림목(_plan)
-		spots.append(Vector2(c * CELL) + Vector2(12, 4))
+		spots.append(Vector2((c + PLAN_SHIFT) * CELL) + Vector2(12, 4))
 	spots.append(Vector2(_well(b) * CELL) + Vector2(18, 4))
 	spots.append(Vector2(_well(b) * CELL) + Vector2(-4, 10))
 	for s in spots:

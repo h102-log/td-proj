@@ -1110,8 +1110,8 @@ func ev344():
 		return "main.hud.popup·hint가 없다"
 	var b = main.view.battle
 	var c = main.controls
-	var e = b.place_merc("engineer", Vector2i(10, 4))  # 마을. 성문은 닫힌 채 시작한다(I67)
-	var t = b.build("tower", Vector2i(20, 62))
+	var e = b.place_merc("engineer", Vector2i(12, 6))  # 마을. 성문은 닫힌 채 시작한다(I67)
+	var t = b.build("tower", Vector2i(22, 66))
 	if e == null or t == null:
 		_done(main)
 		return "준비 단계에 공병(%s)이나 타워(%s)를 놓지 못했다" % [e, t]
@@ -1136,12 +1136,12 @@ func ev344():
 	if out == "":
 		c.picked = []
 		_key(KEY_2)
-		click(c, MOUSE_BUTTON_LEFT, px(Vector2i(22, 62)))
+		click(c, MOUSE_BUTTON_LEFT, px(Vector2i(24, 66)))
 		hud._process(0.0)
 		var now: String = hud.hint.text if hud.hint.is_visible_in_tree() else ""
 		hud._process(1.6)
-		if c.placing != "tower" or b.structures.has(Vector2i(22, 62)) or not "닿는 공병 없음" in now or "닿는 공병 없음" in hud.hint.text:
-			out = "놓기 모드 «%s» · 지어짐 %s · 누른 직후 안내 줄 «%s» · 1.6초 뒤 «%s»" % [c.placing, b.structures.has(Vector2i(22, 62)), now, hud.hint.text]
+		if c.placing != "tower" or b.structures.has(Vector2i(24, 66)) or not "닿는 공병 없음" in now or "닿는 공병 없음" in hud.hint.text:
+			out = "놓기 모드 «%s» · 지어짐 %s · 누른 직후 안내 줄 «%s» · 1.6초 뒤 «%s»" % [c.placing, b.structures.has(Vector2i(24, 66)), now, hud.hint.text]
 	_done(main)
 	return out
 
@@ -1161,12 +1161,12 @@ func ev359():
 	var built: int = b.structures.size()
 	_key(KEY_2)
 	var said := []  # 칸을 누른 직후 안내 줄 글
-	for cell in [Vector2i(10, 4), walls[0]]:
+	for cell in [Vector2i(12, 6), walls[0]]:
 		click(c, MOUSE_BUTTON_LEFT, px(cell))
 		hud._process(0.0)
 		said.append(hud.hint.text)
 	b.gold = 10
-	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(22, 62)))
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(24, 66)))
 	hud._process(0.0)
 	said.append(hud.hint.text)
 	var poor := "골드 %d 모자람" % (b.STRUCTURE_KINDS.tower.cost - 10)
@@ -1195,11 +1195,11 @@ func ev345():
 		return "main.hud.popup이 없다"
 	var b = main.view.battle
 	var c = main.controls
-	var g = b.castle[Vector2i(29, 59)]  # 정문 문루(S217)
-	var top := Vector2i(30, 57)  # 문루 윗줄 가운데. 앞줄(59행)을 누르면 팝업이 화면 아래끝에 붙는다
+	var g = b.castle[Vector2i(31, 63)]  # 정문 문루(S217)
+	var top := Vector2i(32, 59)  # 문루 윗줄 가운데. 앞줄(63행)을 누르면 팝업이 화면 아래끝에 붙는다
 	b.set_gate(g, true)
 	var m = b.place_merc("soldier", g.cell)
-	var church = b.build("church", Vector2i(5, 6))  # 북벽(0~2행, S203) 아래
+	var church = b.build("church", Vector2i(7, 8))  # 북벽(0~4행, S203) 아래
 	var h = b.heroes[0]
 	b.damage(h, 10, "true")
 	if not g.open or m == null or church == null or h.hp >= h.max_hp:
@@ -1246,10 +1246,10 @@ func ev346():
 		return "main.hud.popup이 없다"
 	var b = main.view.battle
 	var c = main.controls
-	var es := [b.place_merc("engineer", Vector2i(22, 62)), b.place_merc("engineer", Vector2i(22, 63))]
-	var t1 = b.build("tower", Vector2i(20, 62))
-	var t2 = b.build("tower", Vector2i(24, 62))
-	var t3 = b.build("tower", Vector2i(26, 62))
+	var es := [b.place_merc("engineer", Vector2i(24, 66)), b.place_merc("engineer", Vector2i(24, 67))]
+	var t1 = b.build("tower", Vector2i(22, 66))
+	var t2 = b.build("tower", Vector2i(26, 66))
+	var t3 = b.build("tower", Vector2i(28, 66))
 	if null in es or t1 == null or t2 == null or t3 == null:
 		_done(main)
 		return "준비 단계에 공병 %s나 타워(%s, %s, %s)를 놓지 못했다" % [es, t1, t2, t3]
@@ -1315,7 +1315,7 @@ func ev347():
 	var main = _prep()
 	var b = main.view.battle
 	var c = main.controls
-	var f = b.build("barracks", Vector2i(4, 4))
+	var f = b.build("barracks", Vector2i(6, 6))
 	if f == null:
 		_done(main)
 		return "준비 단계에 마을 (4,4)에 병영을 짓지 못했다"
@@ -1352,8 +1352,8 @@ func ev348():
 	var b = main.view.battle
 	var c = main.controls
 	var g = main.hud.grid
-	var f1 = b.build("barracks", Vector2i(4, 4))
-	var f2 = b.build("barracks", Vector2i(8, 4))
+	var f1 = b.build("barracks", Vector2i(6, 6))
+	var f2 = b.build("barracks", Vector2i(10, 6))
 	if f1 == null or f2 == null:
 		_done(main)
 		return "준비 단계에 마을에 병영 둘(%s, %s)을 짓지 못했다" % [f1, f2]
@@ -1452,7 +1452,7 @@ func ev350():
 	_pass(main, 10.0)  # 준비 단계 미션 토스트를 흘려 보낸다
 	b.mission = ""  # 미션이 깨진 토스트가 끼지 않게(미션은 판마다 다르다)
 	b.commission = ""
-	_cam(main).focus(Vector2(600, 930))  # 거점이 화면 밖(위)
+	_cam(main).focus(Vector2(632, 978))  # 거점이 화면 밖(위). 남벽 가운데 줄(S217 2026-11-03 변경 칸)
 	_cam(main).force_update_scroll()
 	b.damage(b.base, 5, "true")
 	hud._process(0.0)
@@ -1492,7 +1492,7 @@ func ev351():
 	_pass(main, 10.0)  # 준비 단계 미션 토스트를 흘려 보낸다
 	b.mission = ""  # 미션이 깨진 토스트가 끼지 않게(미션은 판마다 다르다)
 	b.commission = ""
-	var g1 = b.castle[Vector2i(29, 59)]  # 정문 문루(S217)
+	var g1 = b.castle[Vector2i(31, 63)]  # 정문 문루(S217)
 	var g0 = b.base
 	b.damage(g1, 5, "true")
 	hud._process(0.0)
@@ -1505,7 +1505,7 @@ func ev351():
 	if t1.size() != 1 or not t1[0].begins_with("정문 공격받음") or t2.size() != 2 or not t2[1].begins_with("거점 공격받음"):
 		out = "정문 피해 뒤 토스트 %s · 3.6초 뒤 거점 피해 뒤 %s" % [t1, t2]
 	if out == "":
-		_cam(main).focus(Vector2(760, 1218))
+		_cam(main).focus(Vector2(792, 1282))
 		var far := _off(main, g1.cell)
 		var pressed := _press_toast(main, "정문")
 		var near := _off(main, g1.cell)
@@ -1520,7 +1520,7 @@ func ev351():
 		if later.any(func(t): return "정문" in t) or hud.alerts.recent != [g0.cell, g1.cell]:
 			out = "첫 피해 5초 뒤 정문이 또 맞은 뒤 토스트 %s · 최근 경보 %s(정문 토스트가 없고 [거점, 정문]이어야 한다)" % [later, hud.alerts.recent]
 	if out == "":
-		_cam(main).focus(Vector2(760, 1218))
+		_cam(main).focus(Vector2(792, 1282))
 		var a0 := _off(main, g0.cell)
 		_key(KEY_C)
 		var a1 := _off(main, g0.cell)
@@ -1668,8 +1668,8 @@ func ev361():
 	if not hud.get("alerts") is Control:
 		_done(main)
 		return "main.hud.alerts가 없다"
-	var far = b.build("tower", Vector2i(20, 62))
-	var seen = b.build("tower", Vector2i(36, 62))
+	var far = b.build("tower", Vector2i(22, 66))
+	var seen = b.build("tower", Vector2i(38, 66))
 	if far == null or seen == null:
 		_done(main)
 		return "준비 단계에 타워 (20,32)·(36,32)를 짓지 못했다(%s, %s)" % [far, seen]
@@ -1678,7 +1678,7 @@ func ev361():
 	_pass(main, 10.0)  # 준비 단계 미션 토스트를 흘려 보낸다
 	b.mission = ""  # 미션이 깨진 토스트가 끼지 않게
 	b.commission = ""
-	_cam(main).focus(Vector2(760, 1218))
+	_cam(main).focus(Vector2(792, 1282))
 	_cam(main).force_update_scroll()
 	var out := ""
 	if _on_screen(main, far.cell):
@@ -1708,7 +1708,7 @@ func ev361():
 		b.damage(seen, seen.max_hp * 0.6, "true")
 		hud._process(0.0)
 		var after := _toasts(main)
-		_cam(main).focus(Vector2(760, 1218))  # 이미 절반 아래인 타워에서 카메라만 돌린다
+		_cam(main).focus(Vector2(792, 1282))  # 이미 절반 아래인 타워에서 카메라만 돌린다
 		_cam(main).force_update_scroll()
 		hud._process(0.0)
 		out = check(shown and after == before and not _on_screen(main, seen.cell) and _toasts(main) == before,
@@ -1746,7 +1746,7 @@ func ev364():
 	var b = main.view.battle
 	var hud = main.hud
 	var c = main.controls
-	var church = b.build("church", Vector2i(5, 6))  # 북벽(0~2행, S203) 아래
+	var church = b.build("church", Vector2i(7, 8))  # 북벽(0~4행, S203) 아래
 	if church == null or b.heroes.size() != 2 or b.heroes.any(func(h): return h.hp < h.max_hp):
 		_done(main)
 		return "준비가 틀렸다: 교회 %s · 영웅 %d · 체력 %s" % [church, b.heroes.size(), b.heroes.map(func(h): return [h.hp, h.max_hp])]
@@ -1892,7 +1892,7 @@ func ev356():
 		if not "move" in st.hints_done or not "짓는다" in said:
 			out = "영웅 이동 뒤 끝낸 힌트 %s · 글 «%s»(기대: move가 있고 글은 «짓는다»)" % [st.hints_done, said]
 	if out == "":
-		if b.build("tower", Vector2i(20, 62)) == null:
+		if b.build("tower", Vector2i(22, 66)) == null:
 			out = "타워를 짓지 못했다"
 		else:
 			_frame(main)
@@ -1905,7 +1905,7 @@ func ev356():
 		said = _hint_says(main)
 		if not "keep" in st.hints_done or not "전투 시작" in said:
 			out = "거점을 누른 뒤 끝낸 힌트 %s · 글 «%s»(기대: keep이 있고 «전투 시작»)" % [st.hints_done, said]
-	var f = b.build("barracks", Vector2i(4, 4)) if out == "" else null
+	var f = b.build("barracks", Vector2i(6, 6)) if out == "" else null
 	if out == "" and f == null:
 		out = "준비 단계에 마을 (4,4)에 병영을 짓지 못했다"
 	if out == "":
@@ -2010,11 +2010,11 @@ func ev368():
 			var said := _hint_says(main)
 			if b.state != "prep" or b.wave_index != 1 or not "병영" in said or hud.hints.axis.text != "용병":
 				out = "1웨이브 뒤(단계 %s, 웨이브 %d) 힌트 글 «%s» · 축 «%s»(기대: 2웨이브 준비 단계, «병영», «용병»)" % [b.state, b.wave_index + 1, said, hud.hints.axis.text]
-	var f = b.build("barracks", Vector2i(4, 4)) if out == "" else null
+	var f = b.build("barracks", Vector2i(6, 6)) if out == "" else null
 	if out == "" and f == null:
 		out = "2웨이브 준비 단계에 마을 (4,4)에 병영을 짓지 못했다"
 	if out == "":
-		if b.place_merc("soldier", Vector2i(10, 14)) == null:
+		if b.place_merc("soldier", Vector2i(12, 16)) == null:
 			out = "2웨이브 준비 단계에 (10,14)에 용병을 놓지 못했다"
 		else:
 			_frame(main)
@@ -2138,11 +2138,11 @@ func ev372():
 	_key(KEY_2)
 	hud._process(0.0)
 	_gather(main, "타워 놓기 중", seen)
-	click(main.controls, MOUSE_BUTTON_LEFT, px(Vector2i(5, 5)))  # 성 안(마을) 칸: 타워는 성 밖에만
+	click(main.controls, MOUSE_BUTTON_LEFT, px(Vector2i(7, 7)))  # 성 안(마을) 칸: 타워는 성 밖에만
 	hud._process(0.0)
 	_gather(main, "놓기 거부", seen)
 	_key(KEY_ESCAPE)
-	var f = b.build("barracks", Vector2i(4, 4))
+	var f = b.build("barracks", Vector2i(6, 6))
 	b.start_battle()
 	_frame(main)
 	if f:
@@ -2428,9 +2428,9 @@ func ev411():
 	if s == null:
 		_done(main)
 		return "main.hud.select가 없다"
-	for p in [Vector2i(28, 62), Vector2i(30, 62), Vector2i(32, 62)]:  # 성곽 앞줄(59행)·출전 칸(61행) 아래(S203 2026-10-26 둘째 변경)
+	for p in [Vector2i(30, 66), Vector2i(32, 66), Vector2i(34, 66)]:  # 성곽 앞줄(63행)·출전 칸(65행) 아래(S203 2026-11-03 변경)
 		b.place_merc("soldier", p)
-	drag(c, px(Vector2i(27, 60)), px(Vector2i(33, 63)))
+	drag(c, px(Vector2i(29, 64)), px(Vector2i(35, 67)))
 	_frame(main)
 	var btns: Array = s.find_children("*", "BaseButton", true, false).filter(func(x): return x.is_visible_in_tree())
 	var r: Rect2 = s.get_global_rect()
@@ -2459,8 +2459,8 @@ func ev412():
 	var h = b.heroes[0]
 	var name: String = main.hud.HEROES[h.kind]
 	_key(KEY_F1)
-	var e = b.spawn_enemy("basic", Vector2i(30, 33), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})
-	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(30, 33)))
+	var e = b.spawn_enemy("basic", Vector2i(32, 35), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(32, 35)))
 	_frame(main)
 	var foe: bool = c.selected == [h] and _missing(_sel_text(main), ["기본 적", "사거리 근접"]).is_empty() and not name in _sel_text(main)
 	_key(KEY_ESCAPE)
@@ -2469,20 +2469,20 @@ func ev412():
 	_key(KEY_ESCAPE)
 	var menu: bool = main.get_tree().paused
 	main._on_menu("continue")  # 메뉴의 «계속»
-	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(30, 33)))
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(32, 35)))
 	_key(KEY_F1)
 	_frame(main)
 	var again: bool = name in _sel_text(main)
-	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(30, 33)))
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(32, 35)))
 	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(h.pos.round())))  # 영웅을 클릭으로 다시 고름
 	_frame(main)
 	var clicked: bool = c.selected == [h] and name in _sel_text(main)
-	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(30, 33)))
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(32, 35)))
 	click(c, MOUSE_BUTTON_LEFT, px(b.base.cell))  # 거점을 누름: 유닛 선택이 빈다(S204)
 	_frame(main)
 	var base: bool = c.selected.is_empty() and not main.hud.select.is_visible_in_tree()
 	_key(KEY_F1)
-	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(30, 33)))
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(32, 35)))
 	_frame(main)
 	var shown: bool = "기본 적" in _sel_text(main)
 	b.damage(e, BIG, "true")
@@ -3029,11 +3029,11 @@ func ev463():
 	var c = main.controls
 	var built: int = b.structures.size()
 	_key(KEY_0)
-	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(26, 29)))
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(28, 31)))
 	hud._process(0.0)
 	var said: String = hud.hint.text
 	var refused: bool = b.structures.size() == built
-	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(22, 21)))
+	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(24, 23)))
 	var out := check(refused and "길에는 지을 수 없다" in said and b.structures.size() == built + 1,
 		"광장 칸 거부 %s · 누른 직후 안내 줄 «%s» · 고리 길 칸 뒤 구조물 %d → %d" % [refused, said, built, b.structures.size()])
 	_done(main)
@@ -3094,14 +3094,14 @@ func ev470():
 	if not st.has("water"):
 		return "시험 스테이지에 물 칸(water)이 없다"
 	var waters := ["276468", "3c9f9c", "a4aec2"]  # 깊은 물색 183f39는 풀 점 색과 같아 세지 않는다
-	var spots := [Vector2i(748, 268), Vector2i(728, 120)]
+	var spots := [Vector2i(780, 300), Vector2i(760, 152)]  # 옛 (748,268)·(728,120)을 마을 이동(+32, +32)만큼
 	var ground: ImageTexture = BV.bake_ground(battle(st))
 	var wet: Array = spots.map(func(p): return ground.get_image().get_pixelv(p).to_html(false))
 	var dry_st := st.duplicate()
 	dry_st.erase("water")
 	var dry_img: Image = BV.bake_ground(battle(dry_st)).get_image()
 	var dry: Array = spots.map(func(p): return dry_img.get_pixelv(p).to_html(false))
-	var c: Color = load("res://src/ui/hud_minimap.gd").shrink(ground, st.size).get_image().get_pixel(46, 16)
+	var c: Color = load("res://src/ui/hud_minimap.gd").shrink(ground, st.size).get_image().get_pixel(48, 18)
 	return check(wet.all(func(h): return h in waters) and not dry.any(func(h): return h in waters) and c.g - c.r > 0.1 and c.b - c.r > 0.1,
 		"물 판 두 픽셀 %s · 물 없는 판 %s · 미니맵 연못 칸 %s" % [wet, dry, c.to_html(false)])
 
@@ -3308,14 +3308,15 @@ func ev515():
 		return "main.hud.minimap.marks가 없다"
 	var b = main.view.battle
 	var still := {"speed": 0, "sight": 0, "damage": 0, "hp": BIG}
-	b.spawn_enemy("basic", Vector2i(20, 70), still.merged({"boss": true}))
-	b.spawn_enemy("boss", Vector2i(40, 70), still.merged({"boss": false}))
+	b.spawn_enemy("basic", Vector2i(22, 74), still.merged({"boss": true}))
+	b.spawn_enemy("boss", Vector2i(42, 74), still.merged({"boss": false}))
 	_cam(main).force_update_scroll()
 	m.follow()
-	var t: int = m.top  # 점 자리는 칸 + 1 − 창 맨 윗줄
+	var t: int = m.top  # 점 자리는 칸 + 1 − 창 맨 왼줄 l·맨 윗줄 t
+	var l: int = m.left
 	var foes: Array = m.marks().filter(func(k): return k[1].is_equal_approx(Color("ff3b3b"))).map(func(k): return k[0])
 	_done(main)
-	var want := [Rect2(21, 71 - t, 2, 2), Rect2(41, 71 - t, 1, 1)]
+	var want := [Rect2(23 - l, 75 - t, 2, 2), Rect2(43 - l, 75 - t, 1, 1)]
 	return check(want.all(func(w): return foes.any(func(r): return r.is_equal_approx(w))), "적 점 %s에 boss 칸 켠 기본 적 %s·끈 오우거 %s가 없다" % [foes, want[0], want[1]])
 
 # EV517 · I185: 진행 칸 해골과 «다음 웨이브에 보스» 토스트는 웨이브에 든 종류의 boss 칸으로 가른다
@@ -3687,7 +3688,7 @@ func ev724():
 	m.left = 2
 	var p: Vector2 = cam.position
 	_button_at(_mini(Vector2(10, 20)), MOUSE_BUTTON_LEFT, true)
-	_drag_to(_mini(Vector2(13, 20)))
+	_drag_to(_mini(Vector2(14, 20)))  # 4px: 3px 안은 클릭이다(S209 SLOP)
 	var l1: int = m.left
 	_drag_to(_mini(Vector2(5, 20)))
 	var l2: int = m.left

@@ -76,7 +76,7 @@ func ev654():
 	var b = main.view.battle
 	var hud = main.hud
 	var c = main.controls
-	var t = b.build("tower", Vector2i(20, 62))
+	var t = b.build("tower", Vector2i(22, 66))
 	if t == null:
 		_done(main)
 		return "준비 단계에 타워를 놓지 못했다"

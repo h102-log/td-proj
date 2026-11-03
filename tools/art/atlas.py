@@ -135,29 +135,31 @@ def main():
     print(out.size)
 
 
-# 성곽 조각(S217): 두께 3칸·문 폭 3칸 장면(원점 픽셀 (4, 그림 높이 − 4), tools/art/wall.py GAME_GATES)에서 자른다. 조각 맨 아랫줄이 원점 줄(앞줄 바닥선)이다.
+# 성곽 조각(S217): 두께 5칸(2026-11-03 변경)·문 폭 3칸 장면(원점 픽셀 (4, 그림 높이 − 4), tools/art/wall.py GAME_GATES)에서 자른다. 조각 맨 아랫줄이 원점 줄(앞줄 바닥선)이다.
 # 행은 단계 1~3(S86)마다 몸체·앞층(흉벽·앞면, 성벽 위 유닛의 발을 가린다), 그다음 통로 그늘, 잔해(I88, 성벽 한 열만)다.
 # 열은 성벽 한 열(16px)·열린 문(48px)·닫힌 문(48px)·문 왼쪽·오른쪽 탑(16px씩)이다. battle_view.gd WALL_COLS와 같다
 # 거점 망루(tools/art/keep.py)는 마을 레벨 1·2를 80×80 두 칸으로 따로 모은다
-WALL_LAYERS = ["wall_t3_L1", "front_t3_L1", "wall_t3_L2", "front_t3_L2", "wall_t3_L3", "front_t3_L3", "shade_t3", "rubble_t3"]
+WALL_LAYERS = ["wall_t5_L1", "front_t5_L1", "wall_t5_L2", "front_t5_L2", "wall_t5_L3", "front_t5_L3", "shade_t5", "rubble_t5"]
 WALL_STRIPS = [(6, 1), (1, 3), (9, 3), (8, 1), (12, 1)]  # (시험 그림의 칸 번호, 폭 칸): 성벽 한 열, 열린 문, 닫힌 문, 문 왼쪽 탑, 문 오른쪽 탑
-WALL_H = 105  # 조각 높이: 원점 줄부터 양옆 탑 뒤 모서리까지(문루·탑 전에는 통로 뒤 모서리까지 74)
+WALL_H = 145  # 조각 높이: 원점 줄부터 양옆 탑 뒤 모서리까지(두께 5·앞면 32px, tools/art/wall.py PIECE_H. 두께 3·앞면 24px일 때 105)
 # 사방 성곽(S219) 열: 남쪽 열 다음에 (그림 이름, 자를 칸들). 자를 칸이 None이면 wall.py가 이미 자른 48px 조각이다(side_piece).
 # 북벽 열·닫힌 문루·양옆 탑, 남·북 모서리 탑(왼쪽·오른쪽), 서·동 성벽 행 띠, 서·동 닫힌 문루. battle_view.gd WALL_COLS와 같다
-SQUARE = [("wall_n_t3", [(6, 1), (9, 3), (8, 1), (12, 1)]), ("corner_s", [(0, 3), (5, 3)]), ("corner_n", [(0, 3), (5, 3)]),
+SQUARE = [("wall_n_t5", [(6, 1), (9, 3), (8, 1), (12, 1)]), ("corner_s", [(0, 5), (7, 5)]), ("corner_n", [(0, 5), (7, 5)]),
           ("side_w", None), ("side_e", None), ("gate_w", None), ("gate_e", None)]
 
 
 def _layer(name, front):
-    """사방 성곽 그림 파일 이름(단계 접미사 앞): 몸체는 name, 앞층은 wall_n_t3 → front_n_t3, 그 밖은 front_ + name"""
+    """사방 성곽 그림 파일 이름(단계 접미사 앞): 몸체는 name, 앞층은 wall_n_t5 → front_n_t5, 그 밖은 front_ + name"""
     if not front:
         return name
-    return "front_n_t3" if name == "wall_n_t3" else "front_" + name
+    return "front_n_t5" if name == "wall_n_t5" else "front_" + name
 
 
 def castle():
+    from wall import GAME_T, PIECE_H  # 동·서 띠·닫힌 문루 조각 폭(칸)
+    assert PIECE_H == WALL_H
     h = WALL_H
-    out = Image.new("RGBA", (16 * sum(w for _, w in WALL_STRIPS) + 16 * sum(sum(w for _, w in st) if st else 3 for _, st in SQUARE), h * len(WALL_LAYERS)))
+    out = Image.new("RGBA", (16 * sum(w for _, w in WALL_STRIPS) + 16 * sum(sum(w for _, w in st) if st else GAME_T for _, st in SQUARE), h * len(WALL_LAYERS)))
     for r, layer in enumerate(WALL_LAYERS):
         im = Image.open(f"art/trial/walls/{layer}.png").convert("RGBA")
         base = im.height - 4
@@ -170,7 +172,7 @@ def castle():
         x = 16 * sum(w for _, w in WALL_STRIPS)
         for name, strips in SQUARE:
             if front and name.startswith("side_"):  # 동·서 성벽 띠는 발을 가릴 앞면이 없다
-                x += 48
+                x += 16 * GAME_T
                 continue
             im = Image.open(f"art/trial/walls/{_layer(name, front)}_L{level}.png").convert("RGBA")
             if strips is None:

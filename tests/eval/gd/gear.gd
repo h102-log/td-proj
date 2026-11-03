@@ -701,7 +701,7 @@ func ev623():
 	var out := _rank_api(b)
 	var f = null
 	if out == "":
-		f = b.build("barracks", Vector2i(4, 4))
+		f = b.build("barracks", Vector2i(6, 6))
 		out = check(f != null, "준비 단계에 마을 (4,4)에 병영을 짓지 못했다")
 	var btn = null
 	if out == "":

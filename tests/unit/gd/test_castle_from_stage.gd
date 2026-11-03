@@ -24,7 +24,7 @@ func test_w1_stage_has_main_gate_and_three_sealed_weaker_than_walls():
 	var b = load("res://src/sim/battle.gd").new(load("res://src/main.gd").stage())
 	var gates = b.castle.values().filter(func(p): return p.kind == "gate")
 	var walls = b.castle.values().filter(func(p): return p.kind == "castle_wall")
-	if gates.size() != 4 or gates.filter(func(g): return g.sealed).size() != 3 or b.castle[Vector2i(29, 59)].sealed:
+	if gates.size() != 4 or gates.filter(func(g): return g.sealed).size() != 3 or b.castle[Vector2i(31, 63)].sealed:
 		return "성문 %d개 가운데 닫힌 문루 %d개다(정문 하나와 닫힌 문루 셋이어야 한다, S39)" % [gates.size(), gates.filter(func(g): return g.sealed).size()]
 	if not gates.all(func(g): return walls.all(func(w): return g.max_hp < w.max_hp)):
 		return "성벽보다 약하지 않은 성문이 있다"

@@ -11,7 +11,9 @@ from hero import OUT as HERO, fits
 
 W = 6  # 성벽 칸 수
 GATES = {"open": 1.5, "closed": 4.5}  # 문 가운데 x(칸). 열림·닫힘을 한 장면에서 함께 본다(사용자 2026-10-18 ②)
-GAME_GATES = {"open": 2.5, "closed": 10.5}  # 게임 성곽(두께 3, 문 폭 3) 14칸 장면의 문 가운데 x(칸)
+GAME_GATES = {"open": 2.5, "closed": 10.5}  # 게임 성곽(문 폭 3) 14칸 장면의 문 가운데 x(칸)
+GAME_T, GAME_H = 5, 32  # 게임 성곽 두께(칸)·앞면 높이(px)(S217·S170 2026-11-03 변경). src/main.gd WALL_T·battle_view.gd WALL_H와 같다
+PIECE_H = 145  # 게임 성곽 조각 높이(px): 원점 줄부터 양옆 탑 뒤 모서리까지. atlas.py WALL_H·battle_view.gd WALL_PIECE_H와 같다
 GATE_RISE, TOWER_RISE = 17, 27  # 문루·양옆 탑 바닥이 성벽 통로보다 높은 px(시안 C, 사용자 2026-10-26). battle_view.gd와 같다
 SIDE_GATE_RISE, CORNER_RISE = 8, 12  # 동·서 닫힌 문루·모서리 탑 바닥이 통로보다 높은 px(S219, 사용자 2026-10-26 «절반으로 낮춤»). battle_view.gd와 같다
 FAR = {"open": -10.0, "closed": -20.0}  # 문이 없는 장면(모서리 탑): 문 구멍을 몸 밖에 둔다
@@ -50,7 +52,7 @@ def turret(x0, x1, y0, y1, floor, pd, ph, cd, back=False):
 def wall(elev, H, pal, level=1, thick=1, gate_w=1, W=W, gates=GATES, house=False, back=False, corners=False):
     """앞면 높이 H px. 원점 = 성벽 앞쪽 아래 왼쪽 모서리. → (팔레트 번호 이미지, 원점 픽셀, 흉벽·앞면 마스크, 통로 그늘 불투명도).
     level은 성곽 업그레이드 단계(1~3, S86): 2부터 앞면에 쇠 띠 두 줄, 3은 흉벽 윗면을 금빛으로(4.1c, 사용자 2026-10-20).
-    thick은 성벽 두께(칸), gate_w는 문 폭(칸)이다. 게임은 3·3(S217, 사용자 2026-10-26 «성벽 3칸 정도, 성문도 더 크게»).
+    thick은 성벽 두께(칸), gate_w는 문 폭(칸)이다. 게임은 GAME_T·3(S217 2026-11-03 변경, 사용자 «한 5칸으로 확장하자»).
     house면 문마다 문루를 GATE_RISE, 양옆 성벽 한 열을 탑으로 TOWER_RISE만큼 높이고 문 아치를 키운다(시안 C, 사용자 2026-10-26)"""
     cam = R.Cam(elev)
     D1 = 1 / cam.sin  # 바닥 깊이 1칸이 화면 16px이 되게(02 §2)
@@ -75,12 +77,12 @@ def wall(elev, H, pal, level=1, thick=1, gate_w=1, W=W, gates=GATES, house=False
                 x = g + s * (gate_w / 2 + 0.5)
                 o = 1 / 16  # 바깥 외곽선이 옆 열 조각으로 넘어가지 않게 바깥쪽을 1px 안으로 들인다
                 raised.append((turret(x - 0.5 + (o if s < 0 else 0), x + 0.5 - (o if s > 0 else 0), 0, D, ft, pd, ph, cd, back), ft))
-    if corners:  # 모서리 탑(S219): 양 끝 3칸을 통로보다 CORNER_RISE 높이로
+    if corners:  # 모서리 탑(S219): 양 끝 thick칸을 통로보다 CORNER_RISE 높이로
         ft = h + CORNER_RISE / (16 * cam.cos)
-        for x0 in (0, W - 3):
-            raised.append((turret(x0, x0 + 3, 0, D, ft, pd, ph, cd, back), ft))
+        for x0 in (0, W - thick):
+            raised.append((turret(x0, x0 + thick, 0, D, ft, pd, ph, cd, back), ft))
 
-    # 남벽 안쪽 턱(S219): 게임 성벽(두께 3)의 마을 쪽 가장자리에 총안 없는 낮은 돌 턱. 통로가 마을 땅보다 높아 보이게 한다(Gemini 2026-10-26)
+    # 남벽 안쪽 턱(S219): 게임 성벽(두께 2칸 이상)의 마을 쪽 가장자리에 총안 없는 낮은 돌 턱. 통로가 마을 땅보다 높아 보이게 한다(Gemini 2026-10-26)
     lip = R.box([W / 2, D - 0.05 * D1, h + 0.08], [W / 2, 0.05 * D1, 0.08]) if thick > 1 and not back else None
 
     def stone(p):
@@ -157,23 +159,23 @@ def wall(elev, H, pal, level=1, thick=1, gate_w=1, W=W, gates=GATES, house=False
     return idx, anchor, (st | (mat == IRON)) & (y < (0.01 if back else pd + 0.01)), shade  # 흉벽·앞면(쇠 띠 포함): 성벽 위 유닛보다 나중에 그려 발을 가린다. 북벽은 앞면만
 
 
-def vwall(elev, H, pal, level=1, rows=8, east=False, gate=None):
-    """동·서 성벽(두께 3칸, 남북 길이 rows칸)을 남쪽 끝 앞쪽 아래 왼쪽 모서리가 원점인 장면으로 굽는다(S219).
-    흉벽·총안은 바깥(서벽 x=0, 동벽 x=3)에 둔다. 지금 카메라는 x 방향 면을 옆에서 보므로 통로 윗면·흉벽 윗면·남쪽 면만 보인다.
+def vwall(elev, H, pal, level=1, rows=8, east=False, gate=None, thick=3):
+    """동·서 성벽(두께 thick칸, 남북 길이 rows칸)을 남쪽 끝 앞쪽 아래 왼쪽 모서리가 원점인 장면으로 굽는다(S219).
+    흉벽·총안은 바깥(서벽 x=0, 동벽 x=thick)에 둔다. 지금 카메라는 x 방향 면을 옆에서 보므로 통로 윗면·흉벽 윗면·남쪽 면만 보인다.
     gate는 닫힌 문루가 선 행(남쪽 끝에서 센 첫 행, 3행). → (팔레트 번호, 원점 픽셀, 앞층 마스크, 모델 좌표, 부품 번호)"""
     cam = R.Cam(elev)
     D1 = 1 / cam.sin
     L, h = rows * D1, H / (16 * cam.cos)
     pd, ph, cd = 0.12 * D1, 0.32, 0.16
     px = 0.25  # 흉벽 두께(칸): 화면 4px. 2px는 총안 요철이 안 보여 평평한 연석으로 읽혔다(Gemini 2026-10-26)
-    xo = 3 - px / 2 if east else px / 2
-    body = R.box([1.5, L / 2, h / 2], [1.5, L / 2, h / 2])
+    xo = thick - px / 2 if east else px / 2
+    body = R.box([thick / 2, L / 2, h / 2], [thick / 2, L / 2, h / 2])
     parapet = R.box([xo, L / 2, h + ph / 2], [px / 2, L / 2, ph / 2])
     crenels = [R.box([xo, (0.39 + k * 0.5) * D1, h + ph - cd / 2 + 0.01], [px, 0.11 * D1, cd / 2 + 0.01]) for k in range(rows * 2 - 1)]
     raised = []
     if gate is not None:
         fg = h + SIDE_GATE_RISE / (16 * cam.cos)
-        raised.append((turret(0, 3, gate * D1, (gate + 3) * D1, fg, pd, ph, cd), fg))
+        raised.append((turret(0, thick, gate * D1, (gate + 3) * D1, fg, pd, ph, cd), fg))
 
     def stone(p):
         top = np.maximum(parapet(p), -np.min([c(p) for c in crenels], axis=0))
@@ -204,14 +206,14 @@ def vwall(elev, H, pal, level=1, rows=8, east=False, gate=None):
     idx = np.where(up, gold, idx)
     walk_top = st & ~rm & (z > h - 0.01) & (z < h + 0.01)
     idx = np.where((walk_top | floors) & ((np.mod(x, 1.0) < 0.06) | (np.mod(y, D1) < 0.05)), rp[STONE][2], idx)  # 판석 줄눈
-    inner = (x < 1 / 16) if east else (x > 3 - 1 / 16)
+    inner = (x < 1 / 16) if east else (x > thick - 1 / 16)
     idx = np.where(walk_top & inner, rp[STONE][4], idx)  # 안쪽 모서리 하이라이트 1px(Gemini 2026-10-26 (나))
     front_mask = st & rm & (y < (gate or 0) * D1 + pd + 0.01)  # 문루 앞 난간·남쪽 면: 문루 위 유닛의 발을 가린다
     return idx, anchor, front_mask, pos, pid
 
 
-def side_piece(idx, anchor, pos, pid, k0, k1, h=105):
-    """vwall() 장면에서 남쪽 끝부터 k0~k1행을 조각(높이 h, 폭 3칸)으로 자른다. 지금 카메라는 화면 세로가 세계 남북과 같지 않아
+def side_piece(idx, anchor, pos, pid, k0, k1, h=PIECE_H, thick=GAME_T):
+    """vwall() 장면에서 남쪽 끝부터 k0~k1행을 조각(높이 h, 폭 thick칸)으로 자른다. 지금 카메라는 화면 세로가 세계 남북과 같지 않아
     화면 y로 못 자르고 맞은 점의 모델 y로 자른다. 외곽선(물체 밖 픽셀)은 이웃한 그 행 픽셀을 따라간다. 조각 맨 아랫줄은 k0행 앞 바닥선이다"""
     D1 = 1 / R.Cam(45).sin
     y = pos[..., 1]
@@ -220,7 +222,7 @@ def side_piece(idx, anchor, pos, pid, k0, k1, h=105):
     near = pi[:-2, 1:-1] | pi[2:, 1:-1] | pi[1:-1, :-2] | pi[1:-1, 2:]
     out = np.where(inrow | ((idx >= 0) & (pid < 0) & near), idx, -1)
     base = anchor[1] - 16 * k0
-    return out[base - h + 1: base + 1, anchor[0]: anchor[0] + 48]
+    return out[base - h + 1: base + 1, anchor[0]: anchor[0] + 16 * thick]
 
 
 def rubble(elev, H, pal, thick=1, n=104):
@@ -297,24 +299,24 @@ if __name__ == "__main__":
     # 게임 성곽(S217): 두께 3칸, 문 폭 3칸. 14칸 장면에 열린 문(1~4칸)·닫힌 문(9~12칸)을 두고 그 사이를 성벽 칸으로 자른다(atlas.py castle).
     # 문마다 문루와 양옆 탑(열린 문 0·4칸, 닫힌 문 8·12칸)을 세운다. 성벽 열은 양옆이 모두 성벽인 6칸에서 자른다
     for level in (1, 2, 3):
-        idx, anc, front, shade = wall(45, 24, pal, level, thick=3, gate_w=3, W=14, gates=GAME_GATES, house=True)
-        R.rgba(idx, pal).save(walls / f"wall_t3_L{level}.png")
-        R.rgba(np.where(front, idx, -1), pal).save(walls / f"front_t3_L{level}.png")
-    shade_img(shade).save(walls / "shade_t3.png")
-    R.rgba(rubble(45, 24, pal, thick=3, n=idx.shape[0]), pal).save(walls / "rubble_t3.png")
-    # 사방 성곽(S219): 북벽(흉벽 뒤)은 같은 14칸 장면, 모서리 탑은 문 없는 8칸 장면(양 끝 3칸), 동·서 성벽·닫힌 문루는 세로 장면에서 행으로 자른 조각
+        idx, anc, front, shade = wall(45, GAME_H, pal, level, thick=GAME_T, gate_w=3, W=14, gates=GAME_GATES, house=True)
+        R.rgba(idx, pal).save(walls / f"wall_t5_L{level}.png")
+        R.rgba(np.where(front, idx, -1), pal).save(walls / f"front_t5_L{level}.png")
+    shade_img(shade).save(walls / "shade_t5.png")
+    R.rgba(rubble(45, GAME_H, pal, thick=GAME_T, n=idx.shape[0]), pal).save(walls / "rubble_t5.png")
+    # 사방 성곽(S219): 북벽(흉벽 뒤)은 같은 14칸 장면, 모서리 탑은 문 없는 (2 × GAME_T + 2)칸 장면(양 끝 GAME_T칸), 동·서 성벽·닫힌 문루는 세로 장면에서 행으로 자른 조각
     for level in (1, 2, 3):
-        idx, _, front, _ = wall(45, 24, pal, level, thick=3, gate_w=3, W=14, gates=GAME_GATES, house=True, back=True)
-        R.rgba(idx, pal).save(walls / f"wall_n_t3_L{level}.png")
-        R.rgba(np.where(front, idx, -1), pal).save(walls / f"front_n_t3_L{level}.png")
+        idx, _, front, _ = wall(45, GAME_H, pal, level, thick=GAME_T, gate_w=3, W=14, gates=GAME_GATES, house=True, back=True)
+        R.rgba(idx, pal).save(walls / f"wall_n_t5_L{level}.png")
+        R.rgba(np.where(front, idx, -1), pal).save(walls / f"front_n_t5_L{level}.png")
         for back, side in ((False, "s"), (True, "n")):
-            idx, _, front, _ = wall(45, 24, pal, level, thick=3, gate_w=3, W=8, gates=FAR, back=back, corners=True)
+            idx, _, front, _ = wall(45, GAME_H, pal, level, thick=GAME_T, gate_w=3, W=2 * GAME_T + 2, gates=FAR, back=back, corners=True)
             R.rgba(idx, pal).save(walls / f"corner_{side}_L{level}.png")
             R.rgba(np.where(front, idx, -1), pal).save(walls / f"front_corner_{side}_L{level}.png")
         for east, side in ((False, "w"), (True, "e")):
-            idx, anc, _, pos, pid = vwall(45, 24, pal, level, rows=8, east=east)
+            idx, anc, _, pos, pid = vwall(45, GAME_H, pal, level, rows=8, east=east, thick=GAME_T)
             R.rgba(side_piece(idx, anc, pos, pid, 3, 4), pal).save(walls / f"side_{side}_L{level}.png")
-            idx, anc, front, pos, pid = vwall(45, 24, pal, level, rows=8, east=east, gate=2)
+            idx, anc, front, pos, pid = vwall(45, GAME_H, pal, level, rows=8, east=east, gate=2, thick=GAME_T)
             R.rgba(side_piece(idx, anc, pos, pid, 2, 5), pal).save(walls / f"gate_{side}_L{level}.png")
             R.rgba(side_piece(np.where(front, idx, -1), anc, pos, pid, 2, 5), pal).save(walls / f"front_gate_{side}_L{level}.png")
     print(out.size)

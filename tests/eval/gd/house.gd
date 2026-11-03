@@ -162,10 +162,10 @@ func ev129():
 func ev462():
 	var b = battle(load("res://src/main.gd").stage())
 	b.gold = BIG
-	for at in [Vector2i(26, 29), Vector2i(29, 15), Vector2i(10, 31), Vector2i(30, 45), Vector2i(27, 55), Vector2i(28, 4), Vector2i(4, 30)]:
+	for at in [Vector2i(28, 31), Vector2i(31, 17), Vector2i(12, 33), Vector2i(32, 47), Vector2i(29, 57), Vector2i(30, 6), Vector2i(6, 32)]:
 		if b.build("house", at) != null or b.gold != BIG:
 			return "길 칸에 걸친 %s에 집이 지어졌다(골드 %d → %d)" % [at, BIG, b.gold]
-	for at in [Vector2i(22, 21), Vector2i(31, 15)]:
+	for at in [Vector2i(24, 23), Vector2i(33, 17)]:
 		if b.build("house", at) == null:
 			return "길 칸이 아닌 %s에 집이 지어지지 않았다" % [at]
 	return ""
@@ -176,17 +176,17 @@ func ev468():
 	var w = b.get("water")
 	if not w is Dictionary or w.size() != 49:
 		return "물 칸이 49칸이 아니다(%s)" % [w.size() if w is Dictionary else w]
-	for c in [Vector2i(45, 4), Vector2i(45, 9), Vector2i(45, 12), Vector2i(44, 13), Vector2i(49, 19)]:
+	for c in [Vector2i(47, 6), Vector2i(47, 11), Vector2i(47, 14), Vector2i(46, 15), Vector2i(51, 21)]:
 		if not w.has(c):
 			return "%s가 물 칸이 아니다" % [c]
-	for c in [Vector2i(45, 3), Vector2i(45, 10), Vector2i(45, 11)]:
+	for c in [Vector2i(47, 5), Vector2i(47, 12), Vector2i(47, 13)]:
 		if w.has(c) or not b.roads.has(c):
 			return "다리 칸 %s가 물 칸이거나 길 칸이 아니다" % [c]
 	b.gold = BIG
-	for at in [Vector2i(44, 14), Vector2i(43, 17), Vector2i(45, 6), Vector2i(44, 11)]:
+	for at in [Vector2i(46, 16), Vector2i(45, 19), Vector2i(47, 8), Vector2i(46, 13)]:
 		if b.build("house", at) != null or b.gold != BIG:
 			return "물·다리 칸에 걸친 %s에 집이 지어졌다(골드 %d → %d)" % [at, BIG, b.gold]
-	for at in [Vector2i(42, 15), Vector2i(43, 8), Vector2i(46, 9)]:
+	for at in [Vector2i(44, 17), Vector2i(45, 10), Vector2i(48, 11)]:
 		if b.build("house", at) == null:
 			return "물가 옆 %s에 집이 지어지지 않았다" % [at]
 	return ""
@@ -317,7 +317,7 @@ const POSE := {"farmer": "hoe", "gleaner": "squat", "herbalist": "squat", "washe
 	"water_carrier": "carry_water", "porter": "carry_sack", "miller": "carry_sack", "midwife": "carry_basket",
 	"watchman": "carry_lantern", "goose_herd": "carry_stick", "play": "walk"}
 const ROW6 := [Vector2i(2, 3), Vector2i(6, 3), Vector2i(10, 3), Vector2i(14, 3), Vector2i(18, 3), Vector2i(22, 3)]
-const TOWN6 := [Vector2i(22, 17), Vector2i(31, 15), Vector2i(40, 8), Vector2i(40, 16), Vector2i(14, 24), Vector2i(36, 40)]  # 시험 스테이지 집 자리(안 고리 변 밖)
+const TOWN6 := [Vector2i(24, 19), Vector2i(33, 17), Vector2i(42, 10), Vector2i(42, 18), Vector2i(16, 26), Vector2i(38, 42)]  # 시험 스테이지 집 자리(안 고리 변 밖)
 const BV := "res://src/ui/battle_view.gd"
 
 # 가족의 주민마다 역할: 첫 어른 head, 둘째 어른 spouse, 아이 child, 노인 elder(I182 ①)
@@ -479,13 +479,13 @@ func _off_work(b, f: Dictionary, p: Vector2) -> String:
 		"farmer", "gleaner", "herbalist":
 			ok = near_any.call(plan.garden, 1.5)
 		"fisher":
-			ok = near_any.call([Vector2i(43, 14), Vector2i(50, 17), Vector2i(44, 8), Vector2i(46, 8)], 1.5)
+			ok = near_any.call([Vector2i(45, 16), Vector2i(52, 19), Vector2i(46, 10), Vector2i(48, 10)], 1.5)
 		"washer":
-			ok = near_any.call([Vector2i(43, 16), Vector2i(43, 17)], 1.5)
+			ok = near_any.call([Vector2i(45, 18), Vector2i(45, 19)], 1.5)
 		"baker":
-			ok = near_any.call([Vector2i(25, 28)], 1.5)
+			ok = near_any.call([Vector2i(27, 30)], 1.5)
 		"merchant":
-			ok = near_any.call([Vector2i(25, 33), Vector2i(35, 28)], 1.5)
+			ok = near_any.call([Vector2i(27, 35), Vector2i(37, 30)], 1.5)
 		"mason", "carpenter":
 			ok = near_any.call(plan.slabs + plan.gravel, 1.5)
 		"spinner", "weaver", "brewer", "innkeeper", "woodcutter":
@@ -500,7 +500,7 @@ func _off_work(b, f: Dictionary, p: Vector2) -> String:
 
 # EV483 · S223·S224: 낮에는 모두 일터에서 그 직업의 일 자세로 일하고 집 둘레에도 있으며, 걷는 길은 물·남의 구조물 위가 아니다
 func ev483():
-	var b = _town(3, [["workshop", Vector2i(20, 44)], ["archery", Vector2i(12, 44)], ["church", Vector2i(38, 24)]])
+	var b = _town(3, [["workshop", Vector2i(22, 46)], ["archery", Vector2i(14, 46)], ["church", Vector2i(40, 26)]])
 	if b is String:
 		return b
 	var view = load(BV)
@@ -537,18 +537,18 @@ func ev483():
 			return "%s(%s)가 일 %s · 집 둘레 %s" % [who[i].job, who[i].body, worked.has(i), homed.has(i)]
 	return ""
 
-# 안 고리 직사각형(18~42열, 21~38행)의 변에서 0.6칸 안인가
+# 안 고리 직사각형(20~44열, 23~40행, S217 2026-11-03 변경으로 옮긴 칸)의 변에서 0.6칸 안인가
 func _on_ring(p: Vector2) -> bool:
-	var in_x := p.x >= 17.4 and p.x <= 42.6
-	var in_y := p.y >= 20.4 and p.y <= 38.6
-	return (in_y and minf(absf(p.x - 18), absf(p.x - 42)) <= 0.6) or (in_x and minf(absf(p.y - 21), absf(p.y - 38)) <= 0.6)
+	var in_x := p.x >= 19.4 and p.x <= 44.6
+	var in_y := p.y >= 22.4 and p.y <= 40.6
+	return (in_y and minf(absf(p.x - 20), absf(p.x - 44)) <= 0.6) or (in_x and minf(absf(p.y - 23), absf(p.y - 40)) <= 0.6)
 
 # EV484 · S223: 어둠 0.3이면 야경꾼 말고 모두 집 안이고, 야경꾼은 등불을 들고 안 고리를 돈다. 어둠 0이면 집 안인 주민이 없다
 func ev484():
 	var view = load(BV)
 	var b = null
 	for sd in range(1, 51):
-		var c = _town(sd, [["church", Vector2i(38, 24)]])
+		var c = _town(sd, [["church", Vector2i(40, 26)]])
 		if c is String:
 			return c
 		if view.folk_of(c).any(func(f): return f.job == "watchman"):
@@ -578,7 +578,7 @@ func ev485():
 	var view = load(BV)
 	var b = battle(load("res://src/main.gd").stage())
 	var pr: Dictionary = view.props(b)
-	if pr.get("mill") != [Vector2i(45, 5), Vector2i(45, 6)] or pr.get("oven") != [Vector2i(25, 28)] or pr.get("stalls") != [Vector2i(25, 33), Vector2i(35, 28)]:
+	if pr.get("mill") != [Vector2i(47, 7), Vector2i(47, 8)] or pr.get("oven") != [Vector2i(27, 30)] or pr.get("stalls") != [Vector2i(27, 35), Vector2i(37, 30)]:
 		return "소품 자리 %s" % [pr]
 	if not pr.mill.all(func(c): return b.water.has(c)) or not (pr.oven + pr.stalls).all(func(c): return b.roads.has(c)):
 		return "물레방아가 물 칸이 아니거나 화덕·좌판이 길 칸이 아니다"
