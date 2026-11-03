@@ -47,7 +47,8 @@ func _basics(b) -> Array:
 func _arrive(b, t, col: Vector2i, secs := 15.0) -> bool:
 	return run(b, secs, func(): return t.pos.distance_to(Vector2(col)) <= 1.01)
 
-func _near_all(es: Array, p: Vector2, tol := 0.5) -> bool:
+# 내린 넷이 모두 p에서 tol칸 안이다. 적끼리 밀어내기(S13)로 0.25칸 둘레에서 곧 0.4칸 넘게 벌어지고 걸어가기도 해서 1칸이다
+func _near_all(es: Array, p: Vector2, tol := 1.0) -> bool:
 	return es.size() == 4 and es.all(func(e): return e.pos.distance_to(p) <= tol)
 
 # 가운데 at(칸 가운데)가 구조물 s의 차지 칸 가운데 하나인가

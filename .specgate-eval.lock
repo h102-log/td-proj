@@ -1,6 +1,6 @@
 {
-  "approvedAt": "2026-11-03T02:21:50.122Z",
-  "evalMd": "32f9aadb",
+  "approvedAt": "2026-11-03T02:49:02.475Z",
+  "evalMd": "3b3a261b",
   "tests": {
     "tests/eval/conftest.py": "86a76b90",
     "tests/eval/gd/aura.gd": "010cc38a",
@@ -85,7 +85,8 @@
     "tests/eval/gd/show.gd.uid": "be479de2",
     "tests/eval/gd/siege.gd": "472839e1",
     "tests/eval/gd/siege.gd.uid": "78e8d071",
-    "tests/eval/gd/siege2.gd": "0959bdb7",
+    "tests/eval/gd/siege2.gd": "70d41fe6",
+    "tests/eval/gd/siege2.gd.uid": "7d7e5e02",
     "tests/eval/gd/slimeart.gd": "3318267a",
     "tests/eval/gd/slimeart.gd.uid": "1b226045",
     "tests/eval/gd/slimeking.gd": "6ad216a3",
@@ -514,7 +515,7 @@
     "I217": "4008d97f",
     "S282": "54565de4",
     "S283": "52fe8625",
-    "S284": "c31f8473",
+    "S284": "29136564",
     "I221": "4c233511",
     "S285": "53bf3b5a",
     "S286": "eb01e7bf",
