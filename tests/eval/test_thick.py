@@ -64,3 +64,11 @@ def test_EV574_raised_top_right_click_goes_on_wall(gd):
 
 def test_EV575_tunnel_shade_gone_with_gate(gd):
     gd("thick", "EV575")
+
+
+def test_EV720_cannons_on_five_rows_and_fifteen_cell_gate(gd):
+    gd("thick", "EV720")
+
+
+def test_EV721_spawn_hero_engineer_cells(gd):
+    gd("thick", "EV721")

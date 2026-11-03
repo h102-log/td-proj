@@ -382,3 +382,15 @@ def test_EV693_raid2_trait_lines(gd):
 
 def test_EV701_war_machine_trait_line(gd):
     gd("hud", "EV701")
+
+
+def test_EV722_wall_top_lift_32(gd):
+    gd("hud", "EV722")
+
+
+def test_EV723_silhouette_rows_32(gd):
+    gd("hud", "EV723")
+
+
+def test_EV724_minimap_horizontal_scroll(gd):
+    gd("hud", "EV724")
