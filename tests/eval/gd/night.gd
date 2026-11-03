@@ -322,3 +322,24 @@ func ev689():
 	return check(dark > 0.0 and (e in told) and (a in told) and not (e in drawn) and not (a in drawn) and cols.all(func(c): return c == Color("ef692f")),
 		"어둠 %.2f · 예고를 그리는 적: 열기구 %s · 비행선 %s · 그리는 적: 열기구 %s · 비행선 %s · 색 %s" % [
 			dark, e in told, a in told, e in drawn, a in drawn, cols.map(func(x): return x.to_html(false))])
+
+# EV700 · S213·S287: 숨은 전쟁 기계의 대포 예고는 그리고(보스 빨강) 몸은 숨긴다. 기관총 예고는 몸 둘레라 함께 숨긴다
+func ev700():
+	var got := _night_game()
+	var main = got[0]
+	var b = main.view.battle
+	if not b.ENEMY_KINDS.has("war_machine"):
+		_done(main)
+		return "적 종류 war_machine이 없다"
+	var w = b.spawn_enemy("war_machine", Vector2i(20, 13), FAR)
+	w.cast = {"id": "cannon", "left": 1.0, "at": Vector2(23, 13)}
+	var told: Array = main.view.tellers()
+	var drawn: Array = main.view.foes()
+	var col: Color = main.view.tell_color(w)
+	w.cast = {"id": "mgun", "left": 1.0}
+	var gun: Array = main.view.tellers()
+	var dark: float = b.dark
+	_done(main)
+	return check(dark > 0.0 and (w in told) and not (w in drawn) and col == Color("ef3a0c") and not (w in gun),
+		"어둠 %.2f · 대포 예고를 그리는 적에 %s · 몸을 그리는 적에 %s · 색 %s · 기관총 예고를 그리는 적에 %s" % [
+			dark, w in told, w in drawn, col.to_html(false), w in gun])

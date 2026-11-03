@@ -3480,6 +3480,13 @@ func ev693():
 	return check("공성탑: 성벽에 사다리를 놓는다" in three and "폭탄 열기구: 시설에 폭탄을 떨군다" in three and feat == "고블린을 떨군다" and name == "수송 비행선",
 		"3라운드 3웨이브 줄 «%s» · 비행선 특성 «%s» · 이름 «%s»" % [three, feat, name])
 
+# EV701 · S188: 3라운드 4웨이브 줄에 고블린 전쟁 기계의 이름과 특성이 있다
+func ev701():
+	var main = _prep()
+	var four: String = main.hud._wave_lines([2, 3])
+	_done(main)
+	return check("고블린 전쟁 기계: 대포와 기관총을 쏘고, 가까운 유닛을 집어 던진다" in four, "3라운드 4웨이브 줄 «%s»" % four)
+
 # EV570 · S187: 스킬 툴팁 수치 줄은 그 스킬 사전의 값으로 채운다. 지점·대상을 고르는 스킬은 시전 거리 줄을 더한다
 func ev570():
 	var H = load("res://src/ui/hud.gd")
