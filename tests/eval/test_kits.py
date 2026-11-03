@@ -200,3 +200,7 @@ def test_EV599_chronos_e_loop_limit(gd):
 
 def test_EV600_chronos_w_cast_only(gd):
     gd("kits", "EV600")
+
+
+def test_EV725_downed_hero_effects_cleared_at_wave_end(gd):
+    gd("kits", "EV725")

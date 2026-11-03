@@ -936,3 +936,23 @@ func ev719():
 		if n < 25 or red < 200:
 			bad.append("행 %d: 아래 픽셀 %d · 가장 큰 R %d" % [row, n, red])
 	return check(bad.is_empty(), "%s" % [bad])
+
+# EV727 · S172 2026-11-03 셋째 변경 ②③: 스킬 시트 정점 열을 다 보인 뒤 흔적이 아직 남은 동안에도 전쟁 기계를 그린다. 흔적이 없을 때와 같은 한 장이다
+func ev727():
+	var a = _war_art()
+	if a == null:
+		return "heroes.json에 war_machine 칸(%s)이 없다" % [WAR.keys()]
+	var s := _machine()
+	var b = s[0]
+	var v = s[1]
+	var e = s[2]
+	var want = _one(v, e)
+	var bad := []
+	for slot in ["cannon", "mgun", "slam"]:
+		b.traces.clear()
+		b.traces.append(_trace_of(e, slot, e.pos + Vector2(0, 3), View.SLAM_POSE * 1.5))  # 자세 시간(SLAM_POSE × 정점 열 1개)을 지났고 흔적 창(× 2) 안
+		var got = _one(v, e)
+		if want == null or got == null or not got[0].is_equal_approx(want[0]) or not got[1].is_equal_approx(want[1]):
+			bad.append("%s 흔적 %s초: %s(기대 %s)" % [slot, View.SLAM_POSE * 1.5, got, want])
+	v.free()
+	return check(want != null and bad.is_empty(), "%s" % [bad])
