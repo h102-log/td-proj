@@ -198,6 +198,14 @@ class Enemy:
 	var grip = null  # 덮치기로 붙잡은 아군과 그동안 받은 피해 {who, hurt}(S242). 없으면 null
 	var aimed = null  # 지난 스텝에 노린 대상(덮치기 ②, S242)
 	var away := 0.0  # 노린 아군이 far 넘게 떨어진 채 지난 시간(초)
+	var siege := false  # 공성(S280~S282): 유닛·반격 대상·도발·마을 구조물을 노리지 않는다
+	var fuse := {}  # 폭파병 도화선(S280). 비어 있지 않으면 치는 대신 도화선을 켠다
+	var range := 0.0  # 멈춰서 행동하는 거리(I216). 투석기 던지기(S282)
+	var throw := {}  # 투석기 던지기(S282)
+	var ranged_cut := 0.0  # 투사체 물리 피해 덜 받기(I217)
+	var ignore_units := false  # 아군 몸 무시(I218)
+	var glide := 0.0  # 글라이더가 마을에 들어선 뒤 더 나는 칸(S283)
+	var glided := 0.0  # 마을 안에서 날아간 거리(칸, I220)
 
 	func _init(k: String, cell: Vector2i, stats: Dictionary) -> void:
 		kind = k
@@ -612,8 +620,10 @@ func step(dt: float) -> void:
 	_loops(dt)
 	_count_holds()
 	_howls()
-	for e in enemies:
-		_move(e, dt)
+	for e in enemies.duplicate():  # 폭파병(S280)은 제 차례에 터져 죽는다. 목록을 베껴 돌아 다음 적을 건너뛰지 않게
+		if e.alive:
+			_move(e, dt)
+	_bulldoze()
 	if state == "battle" and not near_wall:  # 대피령 판정(S229, I183 ⑤): 이 웨이브에 적이 성벽 바깥 NEAR칸 안에 들어왔나
 		var near := _fort.grow(Folk.NEAR)
 		near_wall = enemies.any(func(e): return near.has_point(Vector2i(e.pos.round())))
@@ -3151,6 +3161,9 @@ func _forecast() -> void:
 # 3라운드부터 땅 적은 ③ 앞에 출현 지점에서 가장 가까운 성문을 먼저 노린다. 그 칸에 들어서거나 잔해가 되면 거점이다(S143).
 # 마을 안의 적에게는 인식 범위 안의 마을 구조물(집·생산 시설, S43)과 밖에 나온 주민(S227)도 ①이다(I49). 들판의 구조물은 ①이 아니다(I7). 쏘지 않는 구조물은 attacker가 되지 않는다(_fire). 반격 대상이 부서지면 ②가 끝난다(I8)
 func _target_of(e: Enemy):
+	if e.siege:  # 공성(S280~S282): 유닛·반격 대상·도발·마을 구조물을 노리지 않고 ③ 성문 → ④ 거점만 노린다
+		_engage(e, null)
+		return _gate_or_base(e)
 	var taunt = _fx_on(e, "taunt")  # 도발(S151): 도발한 영웅만 노린다. 블록 수와 상관없다. 그 영웅이 쓰러지면 풀린다
 	if taunt and taunt.alive:
 		_engage(e, taunt)
@@ -3184,6 +3197,10 @@ func _target_of(e: Enemy):
 		return best
 	if e.attacker and e.attacker.alive:
 		return e.attacker
+	return _gate_or_base(e)
+
+# S4 ③④: 먼저 노리는 성문(S143)이 남아 있으면 그 성문, 아니면 거점
+func _gate_or_base(e: Enemy):
 	if e.via != null:
 		if castle.has(e.via) and not area_of(castle[e.via]).has_point(Vector2i(e.pos.round())):  # 문루 칸에 들어서면 거점이다(S217)
 			return castle[e.via]
@@ -3204,10 +3221,14 @@ func _move(e: Enemy, dt: float) -> void:
 	e.held -= dt
 	var aloft := _aloft(e)
 	var stunned := _fx_on(e, "stun") != null and not aloft  # 뜬 동안(S236)은 발동 중이라 끊기지 않는다
-	if e.cast and not aloft and (stunned or sealed):  # 예고가 끊긴다. 기절이면 비틀거리고, 봉인이면 그냥 취소된다(S194)
-		e.cd[e.cast.id] = e.skills[e.cast.id].cd
+	for id in e.cd:  # 일반 적 행동(S279)의 대기는 여기서 센다. 보스 스킬의 대기는 _skills가 센다
+		if not e.skills.has(id):
+			e.cd[id] -= dt
+	if e.cast and not aloft and (stunned or sealed):  # 예고가 끊긴다. 보스 스킬은 기절이면 비틀거리고, 봉인이면 그냥 취소된다(S194). 일반 적은 비틀거리지 않는다(S279)
+		var mine: bool = e.skills.has(e.cast.id)
+		e.cd[e.cast.id] = deed(e, e.cast.id).get("cd", 0.0)
 		e.cast = null
-		if stunned:
+		if stunned and mine:
 			_fx(e, "stagger", {"expose": STAGGER_EXPOSE}, STAGGER)
 	if e.grip and _grip(e, dt, stunned or sealed):  # 붙잡은 동안은 그 아군만 문다(S242)
 		return
@@ -3217,12 +3238,23 @@ func _move(e: Enemy, dt: float) -> void:
 		return
 	if e.attack_gap - e.cooldown < POSE:  # 친 뒤 공격 자세 동안 제자리에 선다(S196)
 		return
+	if not e.fuse.is_empty() and units.any(func(u): return not u.on_wall and e.pos.distance_to(u.pos) <= e.radius + u.radius + 0.01 and _touch(e, u)):
+		_attack(e, null)  # 폭파병(S280): 아군 몸에 막혀 멈추면 그 자리에서 도화선을 켠다
+		return
+	if e.range > 0.0:  # 투석기(S282, I216): 사거리 안에 구조물이 들면 멈추고, 대기가 끝났으면 가장 가까운 구조물 칸에 던지기 예고를 띄운다
+		var mark = _mark(e)
+		if mark != null:
+			if not sealed and e.cd.get("throw", 0.0) <= 0.0:
+				e.cast = {"id": "throw", "left": e.throw.windup, "at": mark}
+			return
 	var rooted := _fx_on(e, "root") != null  # 속박(S150): 움직이지 않지만 닿는 대상은 친다
 	var speed: float = 0.0 if rooted else e.speed * (1.0 - _fx_cut(e, "slow")) * (1.0 + (e.skills.rage.stride if rage else 0.0)) * (1.0 + sh.get("stride_max", 0.0) * quick) * (1.0 + e.night.get("stride", 0.0) * dusk) * howl
 	if e.on_wall and not _climbable(Vector2i(e.pos.round())):  # 성벽에서 내려왔거나 그 성벽이 부서졌다(I76)
 		e.on_wall = false
 		if e.vaulted:  # 한 번만 뛴다. 내려온 뒤로는 기어오르지 않는 땅 적이다(I191 ⑥)
 			e.climb = 0.0
+	if e.glide > 0.0 and e.flying and (sealed or e.glided >= e.glide):  # 글라이더(S283): 마을에서 glide칸 더 날았거나 봉인되면 내려앉는다
+		_alight(e)
 	var aim = _target_of(e)
 	if e.skills.has("pounce"):  # 덮치기 ②(S242): 노린 아군이 far 넘게 떨어진 채 지난 시간. 대상이 바뀌면 새로 센다
 		var far: bool = aim is Unit and e.pos.distance_to(aim.pos) > e.skills.pounce.far
@@ -3249,7 +3281,10 @@ func _move(e: Enemy, dt: float) -> void:
 		elif sealed:
 			_shove(e, (to - e.pos).limit_length(speed * dt), units)
 		else:
+			var was := e.pos
 			e.pos = e.pos.move_toward(to, speed * dt)
+			if e.glide > 0.0 and village.has_point(Vector2i(e.pos.round())):  # 마을 안에서 날아간 거리(I220)
+				e.glided += was.distance_to(e.pos)
 		return
 	if rooted:  # 길 위 막힌 칸이 닿아 있으면 그것만 친다
 		var near = null if e.path.is_empty() else (base if e.path[0] == base.cell else grid.block_at(e.path[0]))
@@ -3303,7 +3338,8 @@ func raging(e: Enemy) -> bool:
 # 조건이 사전을 돌려주면 예고에 더하고(점프의 착지 자리), 효과는 예고를 다음 단계로 바꿔 둘 수 있다(뜬 단계, I188)
 func _skills(e: Enemy, dt: float, sealed: bool) -> bool:
 	for id in e.cd:
-		e.cd[id] -= dt
+		if e.skills.has(id):
+			e.cd[id] -= dt
 	if _aloft(e):
 		_soar(e, dt)
 		return true
@@ -3311,8 +3347,9 @@ func _skills(e: Enemy, dt: float, sealed: bool) -> bool:
 		e.cast.left -= dt
 		if e.cast.left <= 0.0:
 			var c: Dictionary = e.cast
-			e.cd[c.id] = e.skills[c.id].cd
-			call("_" + c.id, e, e.skills[c.id])
+			var sk: Dictionary = deed(e, c.id)
+			e.cd[c.id] = sk.get("cd", 0.0)
+			call("_" + c.id, e, sk)
 			if is_same(e.cast, c):
 				e.cast = null
 		return true
@@ -3492,10 +3529,10 @@ func _count_holds() -> void:
 
 # 몸끼리 닿는가(S13, S159): 유닛과 적 사이는 그 유닛이 그 적을 붙잡을 수 있을 때만 막는다. 비행 적은 막지 않는다(S109). 아군은 에너지 성벽을 지나간다(I142)
 func _touch(mover, body) -> bool:
-	if body is Enemy and (_flies(body) or _aloft(body)):
+	if body is Enemy and (_flies(body) or _aloft(body) or _plows(body)):
 		return false
 	if mover is Enemy and body is Unit:
-		return _free(body, mover)
+		return not _plows(mover) and _free(body, mover)
 	if mover is Unit and body is Enemy:
 		return _free(mover, body)
 	return true
@@ -3639,7 +3676,8 @@ func _land(m: Missile) -> void:
 				e.held = COUNTER_HOLD
 			if e != m.target:
 				m.side.append(e)
-			damage(e, m.hurt, m.kind, s, m.ignore)
+			var cut: float = e.ranged_cut if m.kind == "phys" and _fx_on(e, "seal") == null else 0.0  # 투사체 물리 피해 덜 받기(I217). 봉인되면 꺼진다(S281)
+			damage(e, m.hurt * (1.0 - cut), m.kind, s, m.ignore)
 			if e == m.target and s is Block and s.slow > 0.0 and e.alive:  # 마법 타워 둔화(S110 2026-10-29 변경): 출처가 하나라 다시 맞으면 시간만 새로 된다
 				_fx(e, "magic_tower", {"slow": s.slow}, s.slow_time)
 	if m.bless > 0.0:
@@ -3842,7 +3880,108 @@ func _vault(e: Enemy, cell: Vector2i) -> void:
 func _climbable(c: Vector2i) -> bool:
 	return walls.has(c) and walls[c].kind == "castle_wall"
 
+# ── 3라운드 고블린 약탈단(S279~S283) ──
+
+# 적 e의 예고 행동 id의 수치: 보스 스킬이면 skills의 칸(S194), 아니면 같은 이름의 적 칸(폭파병 fuse·투석기 throw, S279)
+func deed(e: Enemy, id: String) -> Dictionary:
+	return e.skills[id] if e.skills.has(id) else e.get(id)
+
+# 구조물 s에서 p(칸 좌표)에 가장 가까운 차지 칸의 가운데(I216·I219)
+static func _cell_near(s, p: Vector2) -> Vector2:
+	var r := area_of(s)
+	return Vector2(clampi(roundi(p.x), r.position.x, r.end.x - 1), clampi(roundi(p.y), r.position.y, r.end.y - 1))
+
+# 폭파·던지기가 노리는 구조물: 거점·성곽·지은 구조물(S280·S282)
+func _works() -> Array:
+	return [base] + castle.values() + structures.values()
+
+# 투석기 사거리(I216): 가장 가까운 칸 가운데까지 range 안인 구조물 가운데 가장 가까운 것의 그 칸 가운데. 없으면 null
+func _mark(e: Enemy):
+	var best = null
+	var best_d: float = e.range
+	for s in _works():
+		var c := _cell_near(s, e.pos)
+		var d := e.pos.distance_to(c)
+		if d <= best_d:
+			best = c
+			best_d = d
+	return best
+
+# 폭파·던지기 원(I219): 칸 가운데가 하나라도 원 안인 구조물과 몸 중심이 원 안인 영웅·용병·공병(성벽 위 포함)에 물리 피해
+func _blast(at: Vector2, r: float, hit_s: float, hit_u: float) -> void:
+	for s in _works():
+		if s.alive and at.distance_to(_cell_near(s, at)) <= r:
+			damage(s, hit_s)
+	for u in units.duplicate():
+		if u.alive and u.pos.distance_to(at) <= r:
+			damage(u, hit_u)
+
+# 도화선이 다 탔다(S280): 둘레 원에 피해를 주고, 폭파병은 처치 골드·경험치 없이 죽는다
+func _fuse(e: Enemy, sk: Dictionary) -> void:
+	_blast(e.pos, sk.radius, sk.structure, sk.unit)
+	e.reward = 0
+	e.xp = 0
+	damage(e, e.hp, "true")
+
+# 던지기 예고가 끝났다(S282): 예고 원에 피해를 준다
+func _throw(e: Enemy, sk: Dictionary) -> void:
+	_blast(e.cast.at, sk.radius, sk.structure, sk.unit)
+
+# 몸 무시(I218)가 켜져 있다. 봉인되면 꺼진다(S281)
+func _plows(e) -> bool:
+	return e is Enemy and e.ignore_units and _fx_on(e, "seal") == null
+
+# 몸 무시(I218): 그 적과 겹친 땅 위 아군을 그 적이 나아가는 쪽의 옆, 몸 바깥으로 옮긴다. 막힌 칸이면 옮기지 않는다(_shove)
+func _bulldoze() -> void:
+	for e in enemies:
+		if not _plows(e):
+			continue
+		var ahead: Vector2 = Vector2.UP if e.path.is_empty() or Vector2(e.path[0]) == e.pos else (Vector2(e.path[0]) - e.pos).normalized()
+		for u in units:
+			var gap: Vector2 = u.pos - e.pos
+			var need: float = e.radius + u.radius
+			if u.on_wall or gap.length() >= need:
+				continue
+			var along: float = gap.dot(ahead)
+			var side: Vector2 = gap - ahead * along
+			if side.length() < 0.01:  # 바로 앞이면 나아가는 쪽의 오른쪽으로 민다
+				side = -ahead.orthogonal()
+			_shove(u, e.pos + ahead * along + side.normalized() * need - u.pos, [])
+
+# 글라이더가 내려앉는다(S283, I220): 그 뒤로는 날지 않는 땅 적이다. 막힌 칸이면 가장 가까운 빈 칸 가운데에 내린다.
+# 마을 밖에 내리면 땅 적처럼 성문(S143)을 거친다. 노리는 칸을 비워 다음 길 찾기가 새로 돌게 한다
+func _alight(e: Enemy) -> void:
+	e.flying = false
+	var c := Vector2i(e.pos.round())
+	if not _bare(c):
+		c = _bare_near(c)
+		e.pos = Vector2(c)
+	if not village.has_point(c):
+		e.via = _gate_of(c)
+	e.goal = Vector2i(-1, -1)
+
+# 땅 적이 설 수 있는 칸: 맵 안이고 막힌 칸·거점·물이 아니다
+func _bare(c: Vector2i) -> bool:
+	return grid.is_in_boundsv(c) and not grid.block_at(c) and c != base.cell and not water.has(c)
+
+# c에서 가장 가까운(직선 거리) 빈 칸. 5칸 안에 없으면 c
+func _bare_near(c: Vector2i) -> Vector2i:
+	var best := c
+	var best_d := INF
+	for dy in range(-5, 6):
+		for dx in range(-5, 6):
+			var k := c + Vector2i(dx, dy)
+			var d := Vector2(dx, dy).length()
+			if d < best_d and _bare(k):
+				best = k
+				best_d = d
+	return best
+
 func _attack(e: Enemy, target) -> void:
+	if not e.fuse.is_empty():  # 폭파병(S280): 치지 않고 그 자리에 화약통을 놓아 도화선을 켠다. 봉인 중에는 켜지 않는다(S279)
+		if e.cast == null and _fx_on(e, "seal") == null:
+			e.cast = {"id": "fuse", "left": e.fuse.time, "at": e.pos}
+		return
 	if e.cooldown <= 0.0:
 		e.cooldown = e.attack_gap
 		e.target = target
