@@ -28,3 +28,7 @@ def test_EV564_night_wolf_eyes(gd):
 
 def test_EV585_alpha_pounce_tell_in_dark(gd):
     gd("night", "EV585")
+
+
+def test_EV670_siege_tells_in_dark(gd):
+    gd("night", "EV670")

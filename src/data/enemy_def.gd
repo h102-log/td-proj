@@ -23,3 +23,10 @@ extends Resource
 @export var vault := {}  # 도약(S239): {shove 밀어내는 칸, stun 기절 초, slow 뛴 뒤 둔화, slow_time 둔화 초}. 비어 있으면 성벽에 올라도 밀치지 않는다
 @export var night := {}  # 어둠에 세짐(S240): {stride 이동, haste 공격 속도}에 어둠을 곱해 더한다. 비어 있으면 어둠과 상관없다
 @export var bleed := {}  # 물면 거는 출혈(S240): {dps 초당 물리 피해, time 초}. 비어 있으면 걸지 않는다
+@export var siege := false  # 공성(S280~S282): 유닛·반격 대상·도발·마을 구조물을 노리지 않고 성문 → 거점만 노린다
+@export var fuse := {}  # 폭파병 도화선(S280): {time 예고 초, radius 원 반경, structure 구조물 피해, unit 아군 피해}. 비어 있으면 치는 대신 터지지 않는다
+@export var range := 0.0  # 멈춰서 행동하는 거리(칸, I216). 0이면 닿는 거리(1칸)에서 친다
+@export var throw := {}  # 투석기 던지기(S282): {radius 원 반경, windup 예고 초, cd 대기 초, structure 구조물 피해, unit 아군 피해}
+@export var ranged_cut := 0.0  # 투사체로 맞은 물리 피해를 이만큼 덜 받는다(I217). 봉인되면 꺼진다(S281)
+@export var ignore_units := false  # 아군 몸에 막히지 않고 밀어낸다(I218). 봉인되면 꺼진다(S281)
+@export var glide := 0.0  # 글라이더(S283, I220): 마을에 들어선 뒤 이만큼(칸) 더 날면 내려앉는다. 0이면 내려앉지 않는다

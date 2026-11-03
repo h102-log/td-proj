@@ -3460,6 +3460,15 @@ func ev584():
 	_done(main)
 	return check("알파 늑대: 성벽 위 원거리를 덮쳐 붙잡는다, 둘레 늑대를 빠르게 한다" in four, "2라운드 4웨이브 줄 «%s»에 알파 늑대 특성이 없다" % four)
 
+# EV677 · S188: 3라운드 1·2웨이브 줄에 폭파병·공성 망치·투석기·글라이더 고블린 특성이 있다
+func ev677():
+	var main = _prep()
+	var one: String = main.hud._wave_lines([2, 0])
+	var two: String = main.hud._wave_lines([2, 1])
+	_done(main)
+	return check("폭파병: 성문을 폭파한다" in one and "공성 망치: 성문만 친다, 화살에 강하다" in one
+		and "투석기: 성벽 밖에서 돌을 던진다" in two and "글라이더 고블린: 성벽을 넘어 내린다" in two, "3라운드 1웨이브 줄 «%s» · 2웨이브 줄 «%s»" % [one, two])
+
 # EV570 · S187: 스킬 툴팁 수치 줄은 그 스킬 사전의 값으로 채운다. 지점·대상을 고르는 스킬은 시전 거리 줄을 더한다
 func ev570():
 	var H = load("res://src/ui/hud.gd")

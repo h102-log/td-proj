@@ -13,6 +13,7 @@ const ENEMY_COLORS := {  # 적 종류마다 다른 색(I81)
 	"basic": Color("d04040"), "fast": Color("f08030"), "armored": Color("807070"), "flying": Color("e050c0"), "boss": Color("801010"),
 	"slime": Color("50b050"), "slimelet": Color("98e070"), "big_slime": Color("2f7a3a"), "slime_king": Color("3aa0a0"),
 	"wolf": Color("8a7a68"), "leap_wolf": Color("b08850"), "night_wolf": Color("3a3a58"), "alpha_wolf": Color("d8d8d0"),
+	"sapper": Color("c05828"), "ram": Color("6a4a30"), "catapult": Color("a08048"), "glider": Color("c8b868"),
 }
 const HERO_COLORS := {  # 영웅 종류마다 다른 색(S56, S157, I101)
 	"aias": Color("b060f0"), "sylvia": Color("a0ff40"), "seraphina": Color("f0f0f0"), "vesper": Color("40c060"), "ignis": Color("ff5020"), "chronos": Color("ffd020"),
@@ -92,6 +93,9 @@ const WARP_TICKS := 12  # 왜곡장 고리 사이의 일그러진 눈금 수
 const TELL_FILL := 5  # 보스 스킬 예고 안쪽 성긴 칠의 밀도(/16, fx-4)
 const ALLY_FX := ["dr", "haste", "shield", "invuln", "stun", "bleed"]  # 아군에 걸린 효과(I101, 기절은 I192, 출혈은 I193 ③)
 const FOE_FX := ["stun", "root", "slow", "expose", "taunt", "seal", "chain", "dot"]  # 적에 걸린 효과(I101)
+const FOE_TELL := Color("ef692f")  # 일반 적 예고(S279): F24+ 주황 1px 테가 BLINK초마다 켜졌다 꺼진다. 안쪽은 칠하지 않는다
+const BLINK := 0.25
+const UNSEEN_TELLS := ["pounce", "throw"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기(S279). 덮개 위 층에 그린다
 const TELL := Color("ef3a0c")  # 보스 스킬 예고(S194): F24+ 빨강 테(바깥 어두운 테는 PX.maroon), 안쪽 성긴 칠이 차오른다(S198 fx-4)
 const RAGE := Color(1.5, 0.55, 0.55)  # 분노한 보스(S195)를 붉게 그리는 modulate
 const CROUCH := Vector2(1.15, 0.75)  # 슬라임 킹이 웅크림 끝에 납작해지는 배율(가로·세로, S198). 임시값
@@ -302,10 +306,14 @@ func eyes() -> Array:
 func foes() -> Array:
 	return battle.enemies if battle.dark <= 0.0 else battle.enemies.filter(func(e): return battle.seen(e.pos))
 
-# 예고를 그리는 적(S194): 예고 중인 보이는 적. 덮치기 예고(S242)는 알파가 어둠 속에 숨어도 그린다(S213 2026-10-28 변경)
+# 예고를 그리는 적(S194): 예고 중인 보이는 적. 덮치기 예고(S242)와 투석기 던지기(S279)는 적이 어둠 속에 숨어도 그린다(S213 2026-10-28 변경)
 func tellers(shown = null) -> Array:
 	var vis: Array = foes() if shown == null else shown
-	return battle.enemies.filter(func(e): return e.cast != null and (e.cast.id == "pounce" or e in vis))
+	return battle.enemies.filter(func(e): return e.cast != null and (e.cast.id in UNSEEN_TELLS or e in vis))
+
+# 적 e의 예고 색: 보스 스킬(S194)은 빨강, 일반 적 행동(S279)은 주황
+func tell_color(e) -> Color:
+	return TELL if e.cast != null and e.skills.has(e.cast.id) else FOE_TELL
 
 # 덮개 셰이더에 지금 어둠과 불빛(맵 px 가운데·지금 반경 px)을 넘긴다. 낮이면 그리지 않는다
 func night_params() -> Dictionary:
@@ -413,6 +421,7 @@ func _draw() -> void:
 func _draw_top() -> void:
 	_aim_preview()
 	_pounce_tells()
+	_foe_tells()
 	_snipe_pointers()
 	if battle.state == "prep":
 		_spawn_badges()
@@ -2347,7 +2356,7 @@ func _scan() -> void:
 	for e in battle.enemies:  # 보스 스킬 예고가 기절·빙결로 끊김(S194, S198)
 		var id: int = e.get_instance_id()
 		if e.cast:
-			tell[id] = [_center(e.cast.get("at", e.pos)), CELL * e.skills[e.cast.id].get("radius", 6.0 / CELL)]  # 조각은 예고 원 둘레에(점프는 착지 자리, S198). 덮치기(S242)는 대상 발밑 표식 6px
+			tell[id] = [_center(e.cast.get("at", e.pos)), CELL * battle.deed(e, e.cast.id).get("radius", 6.0 / CELL)]  # 조각은 예고 원 둘레에(점프는 착지 자리, S198). 덮치기(S242)는 대상 발밑 표식 6px
 		elif _tell.has(id) and e.fx.has("stagger") and e.fx.stagger.left > battle.STAGGER - 0.25:  # 이번에 막 걸린 비틀거림만
 			_emit("interrupt", _tell[id][0], Vector2.ZERO, e, null, {"radius": _tell[id][1]})
 	_tell = tell
@@ -2530,7 +2539,10 @@ func _tells() -> void:
 		if e.skills.has("howl") and battle.effect(e, "seal") == null:
 			_pring(Vector2i(_center(e.pos).floor()), int(CELL * e.skills.howl.radius), 1, Color(PX.ash, 0.5))
 	for e in tellers(_foes):
-		if e.cast.id == "pounce":  # 덮치기(S242)는 덮개 위 층에 그린다(_pounce_tells)
+		if e.cast.id in UNSEEN_TELLS:  # 덮치기(S242)·던지기(S279)는 덮개 위 층에 그린다(_pounce_tells·_foe_tells)
+			continue
+		if not e.skills.has(e.cast.id):  # 일반 적 예고(S279): 폭파병 도화선
+			_foe_tell(e)
 			continue
 		var sk: Dictionary = e.skills[e.cast.id]
 		var k: float = 1.0 if e.cast.get("air", false) else 1.0 - e.cast.left / sk.windup
@@ -2552,6 +2564,23 @@ func _pounce_tells() -> void:
 		_pline(Vector2i(_spot(e).floor()), to, TELL, 1)
 		_pnoise(to, int(6 * k), TELL, TELL_FILL)
 		_edge(to, 6, TELL, PX.maroon)
+
+# 일반 적 예고(S279): 예고 원을 주황 1px 테로 BLINK초마다 켜고 끈다. 던지기(S282)는 예고 동안 돌이 투석기에서 원 가운데로 포물선을 그리며 난다
+func _foe_tell(e) -> void:
+	var sk: Dictionary = battle.deed(e, e.cast.id)
+	var at: Vector2 = e.cast.get("at", e.pos)
+	if int(clock / BLINK) % 2 == 0:
+		_pring(Vector2i(_center(at).floor()), int(CELL * sk.radius), 1, FOE_TELL)
+	if e.cast.id == "throw":
+		var k: float = clampf(1.0 - e.cast.left / sk.windup, 0.0, 1.0)
+		var p: Vector2 = _center(e.pos).lerp(_center(at), k) + Vector2(0, -sin(k * PI) * CELL * 1.5)
+		_pdisc(Vector2i(p.floor()), 2, PX.dark)
+
+# 숨어도 그리는 일반 적 예고(S279): 던지기는 성곽·어둠 덮개 위 층에 그린다
+func _foe_tells() -> void:
+	for e in tellers(_foes):
+		if e.cast.id in UNSEEN_TELLS and not e.skills.has(e.cast.id):
+			_foe_tell(e)
 
 # 보스: 스킬(S194)이 있는 적
 func _boss(x) -> bool:
