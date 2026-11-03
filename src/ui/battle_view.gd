@@ -172,7 +172,8 @@ const SIDE_GATE_RISE := 8  # 동·서 닫힌 문루 바닥이 통로보다 높�
 const CORNER_RISE := 12  # 모서리 탑 바닥이 통로보다 높은 px(S219, tools/art/wall.py와 같다)
 const TOP_BAND := 92  # 맵 위 맵 밖 띠 높이(맵 px): 카메라가 위로 보이는 최대(1배 줌, I50 2026-10-26 변경). 4의 배수라 밤 덮개 디더가 맵 칸과 맞는다
 const RING := 4  # 문루·탑 둘레 난간 높이(px). 그 그림 윗변은 바닥보다 이만큼 더 높다(wall.py ph 0.32 = 3.6px)
-const LADDER := preload("res://art/castle/ladder.png")  # 공성탑 사다리 띠(S172 2026-11-03 둘째 변경 ④): 성벽 열 한 칸(16px)씩 3칸. 칸마다 차례로 잘라 잇는다(tools/art/raid.py ladder)
+const LADDER := preload("res://art/castle/ladder.png")  # 공성탑 사다리 띠(S172 2026-11-03 둘째 변경 ④): 성벽 열 한 칸(16px)씩 3칸. 사다리 먼 끝부터 이어 자른다(tools/art/raid.py ladder)
+const TOWER_TOP := 59  # 공성탑 다리판 자세 북쪽 그림 맨 윗줄이 발밑보다 높은 px(heroes.png 공격 칸에서 잼). 사다리가 여기서 성벽 위로 걸친다(S172 2026-11-03 넷째 변경 ①)
 const KEEP := preload("res://art/castle/keep.png")  # 거점 망루 80×80, 마을 레벨 1·2. 칸 앞쪽 아래 왼쪽 모서리가 그림의 (32, 72)다(tools/art/keep.py)
 const KEEP_AT := Vector2(-32, CELL - 72)  # 거점 칸 왼쪽 위에서 본 망루 그림 왼쪽 위
 const KEEP_BODY := [Rect2(29, 23, 22, 49), Rect2(21, 13, 38, 59)]  # 마을 레벨 1·2 망루 그림의 불투명 사각형(keep.png를 잼). 그림을 바꾸면 다시 잰다
@@ -429,7 +430,6 @@ func _draw() -> void:
 func _draw_top() -> void:
 	_aim_preview()
 	_pounce_tells()
-	_ladders()
 	_foe_tells()
 	_snipe_pointers()
 	if battle.state == "prep":
@@ -1661,11 +1661,18 @@ func _bodies() -> void:
 	var prop0 := grave + dead.size()  # 이 번호부터 일터 소품(S224)
 	for k in pl.size():
 		keys.append((1 << 44) | ((pl[k][2] + 64) << 20) | (prop0 + k))
+	var grow := _ladder_grow()
+	var lads: Array = grow.keys()
+	var lad0 := prop0 + pl.size()  # 이 번호부터 사다리: 그 성벽 열 몸체 다음, 성벽 위 몸·공성탑 전
+	for k in lads.size():
+		keys.append((1 << 44) | (((lads[k].col.cell.y + 1) * CELL - 3 + 64) << 20) | (lad0 + k))
 	keys.sort()
 	var next := {}
 	for k in keys:
 		var i: int = k & 0xFFFFF
-		if i >= prop0:
+		if i >= lad0:
+			_ladder(lads[i - lad0], grow[lads[i - lad0]])
+		elif i >= prop0:
 			_prop(pl[i - prop0], now)
 		elif i >= grave:
 			_corpse(dead[i - grave])
@@ -1766,7 +1773,7 @@ static func side_at(bt, p: Vector2):
 # 그림 한 장을 대상 사각형에 그린다(보통 원본과 같은 크기, 슬라임 킹은 늘이고 줄인다). _clip보다 위 줄은 뺀다
 func _region(tex: Texture2D, dst: Rect2, src: Rect2, tint: Color) -> void:
 	var cut := clampf(_clip - dst.position.y, 0.0, dst.size.y)
-	if cut < dst.size.y:  # 덮개 위 층의 사다리(_ladders)도 그리므로 _cv에 그린다
+	if cut < dst.size.y:  # 덮개 위 층(_draw_top)에서 불러도 그 층에 그리도록 _cv에 그린다
 		_cv.draw_texture_rect_region(tex, dst.grow_side(SIDE_TOP, -cut), src.grow_side(SIDE_TOP, -cut * src.size.y / dst.size.y), tint)
 
 # 다각형 하나를 칠한다(기관총 부채꼴 예고의 차오름·발동 채움)
@@ -2687,33 +2694,40 @@ func _foe_tell(e) -> void:
 		var p: Vector2 = _center(e.pos).lerp(_center(at), k) + Vector2(0, -sin(k * PI) * CELL * 1.5)
 		_pdisc(Vector2i(p.floor()), 2, PX.dark)
 
-# 사다리(S284, S172 2026-11-03 둘째 변경 ④): 놓인 사다리와 내리는 중인 사다리를 성벽 열 가운데에 사다리 띠(LADDER)로 그린다.
-# 성벽 열 칸마다 띠의 한 칸(CELL px)을 차례로 잘라 잇고, 내리는 동안은 공성탑 쪽 끝에서 자란 길이만큼만 그린다. 성곽 그림 위에 보이게 덮개 위 층에 그린다
-func _ladders() -> void:
+# 사다리(S284)를 놓았거나 내리는 공성탑 → 자란 비율(0~1)
+func _ladder_grow() -> Dictionary:
 	var grow := {}
 	for t in battle.ladders.values():
 		grow[t] = 1.0
 	for e in battle.enemies:
 		if e.cast != null and e.cast.id == "ladder" and e.col != null:
 			grow[e] = clampf(1.0 - e.cast.left / e.ladder.windup, 0.0, 1.0)
+	return grow
+
+# 공성탑 t의 사다리 하나(S172 2026-11-03 넷째 변경 ①): 성벽 열 가운데에 성벽 위 몸 높이로 올려, 열의 먼 끝에서 공성탑 그림 꼭대기까지
+# 사다리 띠(LADDER)를 잇는다. 내리는 동안은 공성탑 쪽 끝에서 자란 길이만큼만 그린다. 몸 층(_bodies)에서 그 열 몸체 다음에 그린다
+func _ladder(t, grow: float) -> void:
 	var w := LADDER.get_width()
-	var cells := int(LADDER.get_height() / float(CELL))
-	for t in grow:
-		var r: Rect2i = battle.area_of(t.col)
-		var x := int((r.position.x + r.size.x / 2.0) * CELL - w / 2.0)
-		var top := r.position.y * CELL
-		var bottom := r.end.y * CELL
-		var reach := int(roundf((bottom - top) * grow[t]))
-		var south: bool = t.pos.y >= r.position.y
-		var lo := bottom - reach if south else top  # 그릴 줄 [lo, hi)
-		var hi := bottom if south else top + reach
-		for row in range(r.position.y, r.end.y):
-			var y0 := row * CELL
-			var a := maxi(y0, lo)
-			var b := mini(y0 + CELL, hi)
-			if a < b:
-				var k := (row - r.position.y) % cells
-				_region(LADDER, Rect2(x, a, w, b - a), Rect2(0, k * CELL + a - y0, w, b - a), Color.WHITE)
+	var h := LADDER.get_height()
+	var r: Rect2i = battle.area_of(t.col)
+	var x := int((r.position.x + r.size.x / 2.0) * CELL - w / 2.0)
+	var lift := int(roundf(3 + WALL_H - CELL / 2.0 + rise_at(battle, t.col.cell)))
+	var top := r.position.y * CELL - lift
+	var bottom := r.end.y * CELL - lift
+	var south: bool = t.pos.y >= r.position.y
+	if south:
+		bottom = mini(bottom, int(_spot(t).y) - TOWER_TOP)
+	if bottom <= top:
+		return
+	var reach := int(roundf((bottom - top) * grow))
+	var lo := bottom - reach if south else top  # 그릴 줄 [lo, hi)
+	var hi := bottom if south else top + reach
+	var y := lo
+	while y < hi:
+		var sy := posmod(y - top, h)
+		var n := mini(hi - y, h - sy)
+		_region(LADDER, Rect2(x, y, w, n), Rect2(0, sy, w, n), Color.WHITE)
+		y += n
 
 # 숨어도 그리는 예고: 일반 적(S279)의 던지기·폭탄·투하와 전쟁 기계 대포(S287, S213 2026-11-03 변경)는 성곽·어둠 덮개 위 층에 그린다
 func _foe_tells() -> void:

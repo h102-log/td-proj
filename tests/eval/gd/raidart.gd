@@ -490,41 +490,45 @@ func _union(cuts: Array) -> Rect2:
 		r = r.merge(k[0])
 	return r
 
-# EV707 · S172 2026-11-03 둘째 변경 ④: 사다리는 선이 아니라 ladder.png 그림이고, 내리는 동안은 공성탑 쪽 끝에서 자란 길이만큼
+# 9~11행이 두께 3줄 성곽(성벽 열 1×3, 성문 문루 (12~14, 9~11)), 마을 0~8행, 거점 (12,2)(thick 스위트와 같은 성곽)
+func _thick():
+	var walls := []
+	for x in 30:
+		if x < 12 or x > 14:
+			walls.append(Vector2i(x, 11))
+	return battle({"size": Vector2i(30, 24), "base": Vector2i(12, 2), "base_hp": BIG, "spawns": [Vector2i(12, 23)], "village": Rect2i(0, 0, 30, 9),
+		"castle": {"walls": walls, "gates": [Vector2i(12, 11)], "wall_hp": 300, "gate_hp": 150, "wall_size": Vector2i(1, 3), "gate_size": Vector2i(3, 3)}})
+
+# EV707 · S172 2026-11-03 넷째 변경 ①: 사다리는 ladder.png 그림이고, 성벽 위 높이로 올려 열의 먼 끝에서 공성탑 꼭대기까지. 내리는 동안은 공성탑 쪽 끝에서 자란 길이만큼
 func ev707():
-	var b = _walled()
+	var b = _thick()
 	var v = _rec(b)
-	var t = b.spawn_enemy("siege_tower", Vector2i(20, 11), STILL)
-	var col = b.castle.get(Vector2i(20, 9))
+	var t = b.spawn_enemy("siege_tower", Vector2i(20, 12), STILL)
+	var col = b.castle.get(Vector2i(20, 11))
 	if col == null:
-		return "성벽 열 (20,9)가 없다"
+		return "성벽 열 (20,11)가 없다"
+	if not v.has_method("_ladder"):
+		v.free()
+		return "BattleView에 _ladder(탑, 자란 비율)가 없다"
 	var area: Rect2i = b.area_of(col)
-	var full: float = area.size.y * CELL_PX
 	var mid: float = (area.position.x + area.size.x / 2.0) * CELL_PX
+	var top: float = area.position.y * CELL_PX - (3 + 24 - 8 + View.rise_at(b, col.cell))
+	var bottom: float = v._spot(t).y - 59
 	var bad := []
 	t.col = col
 	for cell in b.cells_in(area):
 		b.ladders[cell] = t
-	v.cuts = []
-	v.lines = []
-	v._ladders()
-	var r := _union(v.cuts)
-	if not v.lines.is_empty():
-		bad.append("놓인 사다리에 선 %d개" % v.lines.size())
-	if v.cuts.is_empty() or v.cuts.any(func(k): return k[3] != LADDER):
-		bad.append("놓인 사다리 그림: %s" % [v.cuts.map(func(k): return k[3])])
-	elif absf(r.size.y - full) > 1.0 or absf(r.get_center().x - mid) > 2.0:
-		bad.append("놓인 사다리 %s(기대 높이 %s · 가운데 x %s)" % [r, full, mid])
-	b.ladders.clear()
-	t.cast = {"id": "ladder", "left": t.ladder.windup * 0.5}
-	v.cuts = []
-	v.lines = []
-	v._ladders()
-	var h := _union(v.cuts)
-	if not v.lines.is_empty() or v.cuts.is_empty() or v.cuts.any(func(k): return k[3] != LADDER):
-		bad.append("내리는 사다리: 선 %d · 그림 %s" % [v.lines.size(), v.cuts.map(func(k): return k[3])])
-	elif absf(h.size.y - full / 2.0) > 1.0 or absf(h.end.y - area.end.y * CELL_PX) > 1.0:
-		bad.append("내리는 사다리 %s(기대 높이 %s · 아래 끝 %s)" % [h, full / 2.0, area.end.y * CELL_PX])
+	for case in [[1.0, bottom - top], [0.5, (bottom - top) / 2.0]]:
+		v.cuts = []
+		v.lines = []
+		v._ladder(t, case[0])
+		var r := _union(v.cuts)
+		if not v.lines.is_empty() or v.cuts.is_empty() or v.cuts.any(func(k): return k[3] != LADDER):
+			bad.append("자란 비율 %s: 선 %d · 그림 %s" % [case[0], v.lines.size(), v.cuts.map(func(k): return k[3])])
+		elif absf(r.end.y - bottom) > 1.0 or absf(r.size.y - case[1]) > 1.0 or absf(r.get_center().x - mid) > 2.0:
+			bad.append("자란 비율 %s: %s(기대 아랫변 %s · 높이 %s · 가운데 x %s)" % [case[0], r, bottom, case[1], mid])
+		elif case[0] == 1.0 and absf(r.position.y - top) > 1.0:
+			bad.append("놓인 사다리 윗변 %s(기대 %s)" % [r.position.y, top])
 	v.free()
 	return check(bad.is_empty(), "%s" % [bad])
 
@@ -829,8 +833,11 @@ class Order extends Rec:
 	func _prop(_p: Array, _now: float) -> void:
 		pass
 
-	func _wall_piece(_b, _front: int) -> void:
-		pass
+	func _wall_piece(b, front: int) -> void:
+		order.append(["wall%d" % front, b])  # wall0 몸체, wall1 앞층
+
+	func _ladder(t, _grow: float) -> void:
+		order.append(["ladder", t])
 
 # order에서 [무엇, 대상]이 처음 나온 자리와 나온 수
 func _seen_at(order: Array, what: String, x) -> Array:
@@ -874,4 +881,58 @@ func ev717():
 		bad.append("열기구 시체 %d번째 · 집 %d · 병사 %d" % [air[0], fac[0], man[0]])
 	if ground[0] > fac[0]:
 		bad.append("basic 시체 %d번째 · 집 %d" % [ground[0], fac[0]])
+	return check(bad.is_empty(), "%s" % [bad])
+
+# EV718 · S172 2026-11-03 넷째 변경 ①: 사다리는 몸 층에서 그 성벽 열 몸체 다음, 성벽 위 몸·공성탑 전
+func ev718():
+	var b = _thick()
+	var t = b.spawn_enemy("siege_tower", Vector2i(20, 12), STILL)
+	var col = b.castle.get(Vector2i(20, 11))
+	if col == null:
+		return "성벽 열 (20,11)가 없다"
+	t.col = col
+	for cell in b.cells_in(b.area_of(col)):
+		b.ladders[cell] = t
+	var g = b.spawn_enemy("basic", Vector2i(20, 10), STILL)
+	g.on_wall = true
+	var v = Order.new()
+	v.battle = b
+	v._foes = [t, g]
+	v._bodies()
+	var o: Array = v.order
+	v.free()
+	var lad := _seen_at(o, "ladder", t)
+	var wall := _seen_at(o, "wall0", col)
+	var man := _seen_at(o, "body", g)
+	var tower := _seen_at(o, "body", t)
+	if lad[1] != 1 or wall[0] < 0 or man[0] < 0 or tower[0] < 0:
+		return "그린 수: 사다리 %s · 성벽 몸체 %s · basic %s · 공성탑 %s" % [lad, wall, man, tower]
+	return check(lad[0] > wall[0] and lad[0] < man[0] and lad[0] < tower[0], "차례: 사다리 %d · 성벽 몸체 %d · basic %d · 공성탑 %d" % [lad[0], wall[0], man[0], tower[0]])
+
+# EV719 · S172 2026-11-03 넷째 변경 ②: 열기구 투하 자세의 떨어지는 폭탄은 2배 크기에 도화선 불꽃
+func ev719():
+	var art := _art()
+	if not art.has("balloon"):
+		return "heroes.json에 balloon 칸이 없다"
+	var a: Dictionary = art.balloon
+	var img: Image = load("res://art/units/heroes.png").get_image()
+	var c: int = int(a.c)
+	var x: int = int(a.x)
+	var ay: int = int(a.anchor[1])
+	var bad := []
+	for row in [0, 2]:  # 남·북(4방향 시트 행 S·E·N·W)
+		var idle := img.get_region(Rect2i(x, int(a.idle) + row * c, c, c))
+		var below: int = idle.get_used_rect().end.y - ay  # 정지 그림 맨 아랫줄이 발밑 아래로 내려간 거리
+		var att := img.get_region(Rect2i(x, int(a.attack) + row * 2 * c, 2 * c, 2 * c))
+		var foot: int = ay + c / 2
+		var n := 0
+		var red := 0.0
+		for yy in 2 * c:
+			for xx in 2 * c:
+				var p := att.get_pixel(xx, yy)
+				if p.a > 0.0 and yy - foot > below + 2:
+					n += 1
+					red = maxf(red, p.r8)
+		if n < 25 or red < 200:
+			bad.append("행 %d: 아래 픽셀 %d · 가장 큰 R %d" % [row, n, red])
 	return check(bad.is_empty(), "%s" % [bad])
