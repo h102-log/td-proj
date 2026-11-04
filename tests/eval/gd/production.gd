@@ -159,3 +159,85 @@ func ev395():
 		return foe.hp < foe.max_hp)
 	var left: float = m.pos.distance_to(Vector2(R1))
 	return check(hit and left > 1.0, "길 위 적 체력이 줄었나 %s · 그때 병사와 집결 지점 거리 %.2f" % [hit, left])
+
+# ── 인구(S25 2026-11-04 변경, I225) ──
+# 더하는 API: Battle.POP_BASE — 거점 몫 · Battle.pop_cap() -> int — 지금 배치 상한 · data/structures/house.tres의 pop — 집 몫
+
+# 디스크에서 새로 읽은 집 몫. 없으면 0
+func _house_pop() -> int:
+	var d: Resource = ResourceLoader.load("res://data/structures/house.tres", "", ResourceLoader.CACHE_MODE_IGNORE)
+	var v = d.get("pop")
+	return int(v) if v != null else 0
+
+# 인구 API가 없으면 그 이유
+func _pop_api(b) -> String:
+	if b.get("POP_BASE") == null or not b.has_method("pop_cap"):
+		return "Battle에 POP_BASE·pop_cap()이 없다"
+	if _house_pop() <= 0:
+		return "house.tres에 pop이 없다"
+	return ""
+
+# 들판 칸들에 kinds를 차례로 섞어 n명 놓는다. 놓인 수를 돌려준다
+func _fill(b, n: int, row: int) -> int:
+	var kinds := ["soldier", "archer", "engineer"]
+	var placed := 0
+	for i in n:
+		if b.place_merc(kinds[i % 3], Vector2i(2 + i % 20, row + i / 20)) != null:
+			placed += 1
+	return placed
+
+# EV739 · S25: 마을 판의 배치 상한은 거점 몫 + 다 지은 집마다 집 몫이다. 용병·궁수·공병을 섞어 센다. 전투 중 구매도 같은 상한이다
+func ev739():
+	var b = _battle()
+	var out := _pop_api(b)
+	if out != "":
+		return out
+	var per := _house_pop()
+	var placed := _fill(b, b.POP_BASE, 10)
+	var g: int = b.gold
+	var over = b.place_merc("soldier", Vector2i(2, 12))
+	var refused: bool = over == null and b.gold == g
+	var h = b.build("house", Vector2i(2, 1))
+	var more := _fill(b, per, 13)
+	var refused2: bool = b.place_merc("soldier", Vector2i(2, 15)) == null
+	var f = b.build("barracks", F)
+	b.start_battle()
+	var g2: int = b.gold
+	var bought = b.recruit(f)
+	return check(placed == b.POP_BASE and refused and h != null and h.complete and more == per and refused2 and f != null and bought == null and b.gold == g2,
+		"집 0채에 놓인 수 %d(%d) · 하나 더 거부 %s · 집 %s · 집 뒤 더 놓인 수 %d(%d) · 그다음 거부 %s · 전투 중 구매 %s(거부) · 골드 %d → %d" % [placed, b.POP_BASE, refused, h, more, per, refused2, bought, g2, b.gold])
+
+# EV740 · S25: 마을이 없는 판(배치 상한을 정하지 않음)은 배치 상한 10이다
+func ev740():
+	var b = battle({"base_hp": BIG})
+	var n := 0
+	for i in 10:
+		if b.place_merc("soldier", Vector2i(2 + i, 12)) != null:
+			n += 1
+	var over = b.place_merc("soldier", Vector2i(2, 14))
+	return check(n == 10 and over == null, "마을 없는 판에 놓인 용병 %d(10) · 11번째 %s(거부)" % [n, over])
+
+# EV741 · I225: 짓는 중인 집은 상한을 올리지 않는다. 다 지은 집을 팔면 상한이 집 몫만큼 줄고, 이미 놓인 용병은 그대로이며 더 놓이지 않는다
+func ev741():
+	var b = _battle()
+	var out := _pop_api(b)
+	if out != "":
+		return out
+	var per := _house_pop()
+	var h1 = b.build("house", Vector2i(2, 1))
+	var h2 = b.build("house", Vector2i(5, 1))
+	var cap2: int = b.pop_cap()
+	var placed := _fill(b, cap2, 10)
+	b.sell([h2])
+	var cap1: int = b.pop_cap()
+	var kept: int = b.units.filter(func(u): return not u.is_hero).size()
+	var refused: bool = b.place_merc("soldier", Vector2i(2, 16)) == null
+	var c = _battle()
+	var eng = c.place_merc("engineer", Vector2i(25, 18))  # 멀리 선 공병: 집에 닿기 전에 잰다
+	c.start_battle()
+	var cap0: int = c.pop_cap()
+	var bp = c.build("house", Vector2i(2, 1))
+	_calm(c, 1.0, func(): return false)
+	return check(h1 != null and h2 != null and cap2 == b.POP_BASE + 2 * per and placed == cap2 and cap1 == b.POP_BASE + per and kept == cap2 and refused
+		and eng != null and bp != null and not bp.complete and c.pop_cap() == cap0,
+		"집 둘 상한 %d(%d) · 놓인 수 %d · 한 채 판 뒤 상한 %d(%d) · 남은 용병 %d(%d) · 더 놓기 거부 %s · 전투 중 짓는 집 %s(미완성 %s) · 상한 %d → %d(그대로)" % [cap2, b.POP_BASE + 2 * per, placed, cap1, b.POP_BASE + per, kept, cap2, refused, bp, bp.complete if bp else null, cap0, c.pop_cap()])
