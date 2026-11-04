@@ -1421,6 +1421,9 @@ msgstr "Range %s → %s"
 msgid "인식 범위 %s → %s칸"
 msgstr "Sight %s → %s"
 
+msgid "명중률 %s → %s%%"
+msgstr "Accuracy %s → %s%%"
+
 msgid "이동 %s → %s칸/초"
 msgstr "Move %s/s → %s/s"
 

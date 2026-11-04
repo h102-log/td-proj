@@ -71,7 +71,7 @@ func test_contact_event_once_per_attack():
 	var v = s[1]
 	var foe = b.spawn_enemy("basic", Vector2i(10, 5), {"speed": 0, "damage": 0, "hp": 1000})
 	var soldier = b.place_merc("soldier", Vector2i(9, 5))
-	var archer = b.place_merc("archer", Vector2i(10, 9))
+	var archer = b.place_merc("archer", Vector2i(10, 9), {"accuracy": 1.0})
 	_go(b, v)
 	soldier.target = foe
 	soldier.cooldown = soldier.attack_gap  # 막 쳤다
@@ -91,7 +91,7 @@ func test_contact_event_once_per_attack():
 	b = s[0]
 	v = s[1]
 	var far = b.spawn_enemy("basic", Vector2i(10, 5), {"speed": 0, "damage": 0, "hp": 1000})
-	b.place_merc("archer", Vector2i(10, 9))
+	b.place_merc("archer", Vector2i(10, 9), {"accuracy": 1.0})
 	v.tick(0.0)
 	got = _play(b, v, 3, DT)
 	if why == "" and got.has("hit"):
@@ -129,7 +129,7 @@ func test_kill_event_waits_for_last_contact():
 	b = s[0]
 	v = s[1]
 	var weak = b.spawn_enemy("basic", Vector2i(10, 5), {"speed": 0, "damage": 0, "hp": 1.0})
-	b.place_merc("archer", Vector2i(10, 9))
+	b.place_merc("archer", Vector2i(10, 9), {"accuracy": 1.0})
 	v.tick(0.0)
 	var frames := []
 	for i in 30:
@@ -193,7 +193,7 @@ func test_ranged_and_skill_kills_flash_and_push_at_once():
 	var b = s[0]
 	var v = s[1]
 	var weak = b.spawn_enemy("basic", Vector2i(10, 5), {"speed": 0, "damage": 0, "hp": 1.0})
-	b.place_merc("archer", Vector2i(10, 9))
+	b.place_merc("archer", Vector2i(10, 9), {"accuracy": 1.0})
 	v.tick(0.0)
 	var why := ""
 	for i in 60:
@@ -392,7 +392,7 @@ func test_hit_table_counts_from_contact_and_holds_hero_hits():
 	v.battle = b
 	var foe = b.spawn_enemy("basic", Vector2i(10, 5))
 	var soldier = b.place_merc("soldier", Vector2i(9, 5))
-	var archer = b.place_merc("archer", Vector2i(10, 9))
+	var archer = b.place_merc("archer", Vector2i(10, 9), {"accuracy": 1.0})
 	var why := ""
 	if _hit(v, soldier, foe, View.CONTACT - 0.02) != null:
 		why = "근접이 돌진 끝에 닿기 전에 맞은 것으로 셌다"
@@ -753,7 +753,7 @@ func test_armor_pushes_one_px_with_steel_dot_for_physical_hits():
 	var tank = b.spawn_enemy("armored", Vector2i(10, 5), {"speed": 0, "damage": 0, "hp": 1000})
 	var foe = b.spawn_enemy("basic", Vector2i(10, 7), {"speed": 0, "damage": 0, "hp": 1000})
 	var soldier = b.place_merc("soldier", Vector2i(9, 5))
-	var archer = b.place_merc("archer", Vector2i(10, 9))
+	var archer = b.place_merc("archer", Vector2i(10, 9), {"accuracy": 1.0})
 	var why := ""
 	var h = _hit(v, soldier, tank, View.CONTACT + 0.05)
 	if h == null or h[2] != View.ARMOR or not h[4]:
