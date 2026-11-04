@@ -73,8 +73,10 @@ const SNIPE_EDGE := 12.0  # 화면 밖 표적 꺾쇠를 화면 가장자리에�
 const HUD_BAND := 30.0  # 화면 위 HUD 띠 높이(기준 해상도 px, hud.gd TOP과 같다)
 const WALL_RISE := 0.2  # 에너지 성벽 칸이 아래에서부터 드러나는 시간
 # 세라피나(크림·금)·베스퍼(청록)(fx-3). 시간은 초다
-const BEAM_HOP := 0.04  # 성스러운 빛줄기가 대상 하나를 건너는 시간
-const BEAM_TAIL := 0.1  # 빛줄기 흔적은 FX와 «마지막 마디가 뻗은 뒤 이만큼» 가운데 늦은 때까지 남는다(S179). 성역 공명(S262)의 긴 줄도 끝까지 보이게
+const BEAM_HOP := 0.08  # 성스러운 빛줄기의 빛 구슬이 대상 하나를 건너는 시간(I227 ①). 마디가 많으면 BEAM_SPAN을 나눈다(beam_hop)
+const BEAM_SPAN := 0.56  # 구슬이 마지막 대상에 닿기까지의 상한. 성역 공명(S262) 14마디도 흔적 수명(1초) 안에 다 식는다
+const BEAM_COOL := 0.3  # 마디가 다 그어진 뒤 금 → 모래 → 구리로 식는 시간
+const ORB_FADE := 0.12  # 마지막 대상에 닿은 구슬이 줄며 사라지는 시간
 const MEND_STEP := 4.0 / 60.0  # 회복 반짝 한 프레임
 const PILLAR := 0.12  # 기적의 강림 빛기둥이 내려오는 시간
 const PILLAR_H := 40  # 빛기둥 높이(px)
@@ -98,6 +100,15 @@ const COG_SPIN := 0.25  # 톱니가 시계 방향으로 도는 빠르기(라디�
 const WIND_KICK := 1.5  # 쓴 순간부터 WIND_KICK_T초 동안 톱니가 더 도는 각(라디안)
 const WIND_KICK_T := 0.6
 const KEY_FLIP := 0.12  # 태엽 열쇠 손잡이가 정면 ↔ 옆으로 뒤집히는 간격
+# 세라피나(fx-8, I227). 시간은 초다
+const CLEANSE_RISE := 0.45  # 정화된 아군 몸 양옆 빛 점 두 줄기가 발에서 머리 위로 솟는 시간(점 넷이 0.05초씩 늦게 0.3초에 솟는다)
+const HEAL_TICK := 0.6  # 성역 안 아군의 금 십자가 오르는 주기
+const SAVE_FLASH := 0.12  # 불사가 된 순간 크림 원판이 번쩍이는 시간
+const FEATHERS := 6  # 그때 흩어지는 깃털 수
+const FEATHER_FALL := 0.6
+const BLESS_BLINK := 0.15  # 축복 마름모 빛 맺힘의 밝기가 바뀌는 간격
+const BLESS_BURST := 0.2  # 축복 터짐 조각이 반경까지 튀는 시간
+const FOLD := {-10: 1, -9: 2, -8: 3, -7: 3, -6: 4, -5: 4, -4: 4, -3: 3, -2: 3, -1: 2, 0: 2, 1: 1}  # 접힌 날개 한쪽: 어깨 기준 줄 y → 몸 가운데 4px 밖부터의 폭
 # 베스퍼(fx-9, I226). 시간은 초다
 const HEX_WISPS := 10  # 쇠약의 저주 고리에서 안으로 끌려 드는 검은 연기 가닥 수
 const CHAIN_HOP := 0.1  # 피해 나누기 빛이 사슬 한 마디를 흐르는 시간
@@ -402,6 +413,7 @@ func _draw() -> void:
 	_tells()  # 보스 스킬 예고와 발동 채움(S194·S198)
 	_fx_dots(true)  # 바닥 균열(S198)은 몸통 아래
 	_traces(false)  # 폭발 연기·운석 그림자는 몸통 아래(4.1s, Gemini 고칠 점 2)
+	_folded_wings()  # 수호 천사·불사의 등 뒤 날개(I227 ③)
 	for p in battle.forecast:  # 기본 적의 예상 경로(S142): 엷은 빨간 선, 유닛 아래에. 너비 1이면 1배 줌에서 칸 중심을 지나는 가로·세로 구간이 안 그려진다
 		draw_polyline(PackedVector2Array(p.map(func(c): return _center(Vector2(c)))), Color(COLORS.spawn, 0.5), 1.5)
 	for h in battle.heroes:  # 오라 반경(S113): 오라가 있는 살아 있는 영웅마다 둘레에 늘 엷게, 유닛 아래에(I101)
@@ -410,6 +422,7 @@ func _draw() -> void:
 	_bodies()
 	_marks()
 	_chrono_marks()
+	_sera_marks()
 	_mire_marks()
 	for u in battle.units:
 		var at := _spot(u) + _slip(u)  # 넉백으로 미끄러지는 몸을 테두리·숫자가 따라간다(S198)
@@ -619,7 +632,7 @@ func missed(c) -> bool:
 
 # 즉시 스킬 흔적(S179): 쓴 뒤 영웅 색으로. 범위 스킬은 반경까지 퍼지는 고리, 방향·대상 스킬은 영웅에서 잇는 선이다.
 # 이그니스의 화염구 작렬·운석 착탄·서리 고리는 단계 있는 폭발·결정이다(4.1s fx-1). 아이아스·실비아는 베기·충격파·방패·터짐·바람이다(fx-2).
-# 세라피나는 뻗는 빛줄기·날개·빛기둥(fx-3), 베스퍼는 조여드는 검은 연기 고리·사슬 거는 줄·전염 고리와 해골이다(I226). 크로노스는 금 번개 줄(fx-4)과, 노화의 모래빛 점선 테·모래시계, 되돌림의 조여드는 얼음 고리·잔상이다(I199 2026-11-04 변경).
+# 세라피나는 빛 구슬이 건너가는 빛줄기·날개·빛기둥과, 정화 빛 점·불사 깃털·축복 터짐 조각이다(fx-3, I227). 베스퍼는 조여드는 검은 연기 고리·사슬 거는 줄·전염 고리와 해골이다(I226). 크로노스는 금 번개 줄(fx-4)과, 노화의 모래빛 점선 테·모래시계, 되돌림의 조여드는 얼음 고리·잔상이다(I199 2026-11-04 변경).
 # 보스 스킬 흔적은 예고색 램프 고리다(S198). 모두 아트 px로 그리고, 적을 노린 스킬이 아무도 못 맞혔으면 MISS_FADE로 그린다(S179 2026-10-29).
 # top이 아니면 몸통 아래 층(폭발 연기·운석 그림자·포효 먼지·꽂힌 화살·천사 날개·되돌림 잔상·되돌아갈 자리)만 그린다. 떨어지는 운석·화살과 영혼 사슬도 그린다. 무엇을 어디에 썼는지는 시뮬레이션이 남긴 흔적(traces)이 준다
 func _traces(top: bool) -> void:
@@ -672,6 +685,18 @@ func _traces(top: bool) -> void:
 			"miracle":
 				if top:
 					_miracle(c.hits, c.age)
+				continue
+			"cleanse":
+				if top:
+					_cleanse(c.aim, c.age)
+				continue
+			"saved":
+				if top:
+					_rescue(c.aim, c.age)
+				continue
+			"bless":
+				if top and battle.seen(c.at):
+					_bless_burst(at - Vector2i(0, 6), CELL * c.radius, c.age)
 				continue
 			"enfeeble":
 				if top:
@@ -1041,31 +1066,165 @@ func shown_rect() -> Rect2:
 func _is_foe(x) -> bool:
 	return x.get("wall_k") != null
 
-# 성스러운 빛줄기(세라피나 Q, fx-3): 영웅 손에서 맞은 차례대로 BEAM_HOP초에 한 마디씩 뻗는 금빛 줄(굵기 3 → 1, 앞 절반은 크림 심 1px).
-# 줄이 닿은 아군에는 회복 반짝이 오르고, 적에는 작은 섬광이 난다. 숨은 적(S213)에는 섬광을 그리지 않는다
+# 빛줄기 한 마디를 건너는 시간(I227 ①): BEAM_HOP, 마디가 많아 BEAM_SPAN을 넘으면 BEAM_SPAN을 마디 수로 나눈다
+static func beam_hop(n: int) -> float:
+	return minf(BEAM_HOP, BEAM_SPAN / maxf(n, 1))
+
+# 성스러운 빛줄기(세라피나 Q, I227 ①): 영웅 손에서 빛 구슬이 맞은 차례대로 한 마디씩 건너가며 금빛 줄(굵기 2 + 크림 심)을 남긴다.
+# 마디는 다 그어진 때부터 BEAM_COOL초에 금 → 모래 → 구리로 식어(굵기 2 → 1) 먼저 지난 마디가 먼저 흐려진다. 마지막 대상에 닿은 구슬은 ORB_FADE초에 준다.
+# 닿은 아군에는 회복 반짝이 오르고, 적에는 크림 빛살 여덟과 원판이 난다. 숨은 적(S213)에는 그리지 않는다
 func _beam(h, hits: Array, t: float) -> void:
-	var k := t / maxf(FX, hits.size() * BEAM_HOP + BEAM_TAIL)
-	if k >= 1.0:
+	var n := hits.size()
+	var hop := beam_hop(n)
+	if n == 0 or t >= n * hop + BEAM_COOL:
 		return
 	var p0 := Vector2i(_muzzle(h).floor())
-	for i in hits.size():
+	for i in n:
 		var x = hits[i]
-		var g := (t - i * BEAM_HOP) / BEAM_HOP  # 이 마디가 뻗은 정도
+		var g := (t - i * hop) / hop  # 구슬이 이 마디를 건넌 정도
 		if g <= 0.0:
 			return
 		var p1 := Vector2i(_chest(x).floor())
-		var end := p0 + Vector2i((Vector2(p1 - p0) * minf(g, 1.0)).round())
-		_pline(p0, end, _ramp(["gold", "tan", "bronze"], k), 3 if k < 0.3 else (2 if k < 0.6 else 1))
-		if k < 0.5:
+		if g < 1.0:
+			var end := p0 + Vector2i((Vector2(p1 - p0) * g).round())
+			_pline(p0, end, PX.gold, 2)
 			_pline(p0, end, PX.cream)
-		if g >= 1.0:
-			var f := int((t - (i + 1) * BEAM_HOP) / MEND_STEP)
-			if not _is_foe(x):
-				if f < int(FX_ART.mend[4]):
-					_spr("mend", f, p1 - Vector2i(0, 2 * f))
-			elif battle.seen(x.pos) and f < int(FX_ART.spark[4]):
-				_spr("spark", f, p1)
+			_orb(end, 0.0)
+			return
+		var age := t - (i + 1) * hop  # 이 마디가 다 그어진 뒤
+		if age < BEAM_COOL:
+			var k := age / BEAM_COOL
+			_pline(p0, p1, _ramp(["gold", "tan", "bronze"], k), 2 if k < 0.5 else 1)
+			if k < 0.25:
+				_pline(p0, p1, PX.cream)
+		if not _is_foe(x):
+			var f := int(age / MEND_STEP)
+			if f < int(FX_ART.mend[4]):
+				_spr("mend", f, p1 - Vector2i(0, 2 * f))
+		elif age < 0.25 and battle.seen(x.pos):
+			var kk := age / 0.25
+			_rays(p1, 2.0 + 3.0 * kk, 5.0 + 5.0 * kk, PX.cream if kk < 0.4 else PX.gold)
+			if kk < 0.4:
+				_pdisc(p1, 2, PX.cream)
 		p0 = p1
+	var last := (t - n * hop) / ORB_FADE
+	if last < 1.0:
+		_orb(p0, last)
+
+# 빛 구슬(I227 ①): 크림 원판 반지름 2 + 금 고리 반지름 3. k(0 → 1) 뒤 절반은 작아지며 모래빛
+func _orb(p: Vector2i, k: float) -> void:
+	_pring(p, 3, 1, PX.gold if k < 0.5 else PX.tan)
+	_pdisc(p, 2 if k < 0.5 else 1, PX.cream)
+
+# 여덟 갈래 빛살: 반지름 r0 ~ r1, 12시부터
+func _rays(p: Vector2i, r0: float, r1: float, col: Color) -> void:
+	for i in 8:
+		var d := Vector2.from_angle(i * TAU / 8.0 - PI / 2.0)
+		_pline(p + Vector2i((d * r0).round()), p + Vector2i((d * r1).round()), col)
+
+# 3×3 금 십자 + 그을음 1px 테두리(성역 회복, I227 ②)
+func _plus(p: Vector2i, col: Color, rim: Color) -> void:
+	_px(p + Vector2i(-1, -2), rim, Vector2i(3, 5))
+	_px(p + Vector2i(-2, -1), rim, Vector2i(5, 3))
+	_px(p + Vector2i(0, -1), col, Vector2i(1, 3))
+	_px(p + Vector2i(-1, 0), col, Vector2i(3, 1))
+
+# 정화(I227 ②): 아군 u 몸 양옆(가운데에서 4~5px)에서 크림 → 금 빛 점 넷씩이 0.05초씩 늦게 발에서 머리 위로 솟는다. 몸 가운데는 비운다
+func _cleanse(u, t: float) -> void:
+	if t >= CLEANSE_RISE:
+		return
+	var feet := Vector2i((_spot(u) + _slip(u)).floor())
+	var top := int(_head(u) * 0.75) + 6
+	for side in [-1, 1]:
+		for i in 4:
+			var k := (t - i * 0.05) / (CLEANSE_RISE - 0.15)
+			if k >= 0.0 and k < 1.0:
+				_px(feet + Vector2i(side * (4 + i % 2), -int(top * _out(k))), PX.cream if k < 0.5 else PX.gold, Vector2i(1, 2))
+
+# 불사가 된 순간(I227 ③): 몸 가운데 크림 원판(반지름 6) SAVE_FLASH초 + 위로 부채꼴로 흩어지며 떨어지는 깃털(1×2 크림 + 모래 끝)
+func _rescue(u, t: float) -> void:
+	if t >= FEATHER_FALL:
+		return
+	var c := Vector2i((_spot(u) + _slip(u)).floor()) - Vector2i(0, int(_head(u) * 0.5))
+	if t < SAVE_FLASH:
+		_pdisc(c, 6, PX.cream)
+	for i in FEATHERS:
+		var d := Vector2.from_angle(deg_to_rad(-160.0 + i * 28.0))
+		var p := c + Vector2i((d * (4.0 + 14.0 * _pow3(t / FEATHER_FALL))).round()) + Vector2i(0, int(10.0 * t))
+		_px(p, PX.cream, Vector2i(1, 2))
+		_px(p + Vector2i(0, 2), PX.tan)
+
+# 축복 터짐(I227 ④): 가운데 크림 십자 섬광(팔 2 → 1 → 없음) + 대각선으로 반지름 rad까지 튀는 2×2 조각 넷(크림 → 금)
+func _bless_burst(c: Vector2i, rad: float, t: float) -> void:
+	if t >= BLESS_BURST:
+		return
+	var k := t / BLESS_BURST
+	var arm := 2 if k < 0.4 else (1 if k < 0.7 else 0)
+	if arm > 0:
+		_px(c - Vector2i(arm, 0), PX.cream, Vector2i(2 * arm + 1, 1))
+		_px(c - Vector2i(0, arm), PX.cream, Vector2i(1, 2 * arm + 1))
+	for i in 4:
+		var d := Vector2.from_angle(PI / 4.0 + i * PI / 2.0)
+		_px(c + Vector2i((d * (3.0 + (rad - 3.0) * _out(k))).round()) - Vector2i.ONE, PX.cream if k < 0.5 else PX.gold, Vector2i(2, 2))
+
+# 축복 마름모 빛 맺힘(I227 ④, 5×5): 크림 안 + 금 테 + 그을음 1px. BLESS_BLINK초마다 금 안 + 모래 테로 어두워진다
+func _bless_mark(p: Vector2i) -> void:
+	var lit := fmod(clock, 2.0 * BLESS_BLINK) < BLESS_BLINK
+	for r in [3, 2, 1]:
+		var col: Color = PX.soot if r == 3 else ((PX.gold if lit else PX.tan) if r == 2 else (PX.cream if lit else PX.gold))
+		for y in range(-r, r + 1):
+			var w: int = r - absi(y)
+			_px(p + Vector2i(-w, y), col, Vector2i(2 * w + 1, 1))
+
+# 세라피나 표시(I227 ②·④): 성역 안 아군의 오르는 금 십자, 축복이 걸린 영웅 머리 위·쏘는 구조물 쏘는 곳 옆의 마름모 빛 맺힘. _marks 다음(몸통 위)에 그린다
+func _sera_marks() -> void:
+	var inside := {}
+	for z in battle.zones:
+		if z.src == "seraphina_w":
+			for u in battle.units:
+				if u.alive and u.pos.distance_to(z.pos) <= z.radius:
+					inside[u] = true
+	for u in inside:
+		var ph := fmod(clock + _hf(u.get_instance_id(), 3) * HEAL_TICK, HEAL_TICK) / HEAL_TICK
+		if ph < 0.8:
+			_plus(Vector2i(_chest(u).floor()) - Vector2i(4, int(10.0 * ph / 0.8)), PX.gold, PX.soot)
+	for h in battle.heroes:
+		if h.alive and h.fx.has("seraphina_r"):
+			_bless_mark(bless_spot(h))
+	for s in battle.structures.values():
+		if s.fx.has("seraphina_r"):
+			_bless_mark(bless_spot(s))
+
+# 축복 빛 맺힘 자리(I227 ④): 영웅은 머리 위(시트에 머리 위 여백이 있어 몸 높이의 3/4 + 4px. 손 옆은 받는 피해 감소 방패 조각과 겹친다), 쏘는 구조물은 쏘는 곳 왼쪽
+func bless_spot(x) -> Vector2i:
+	if x.get("pos") == null:
+		return Vector2i(_muzzle(x).floor()) + Vector2i(-7, -2)
+	return Vector2i((_spot(x) + _slip(x)).floor()) - Vector2i(0, int(_head(x) * 0.75) + 4)
+
+# 등 뒤 날개(I227 ③, 몸통 아래 층): 수호 천사가 걸린 동안은 어깨 위로 솟는 접힌 날개 둘(FOLD, 위 줄 크림·아래 줄 모래·안쪽 금, 바깥 그을음 1px),
+# 불사 동안은 날개 조각(불사 흔적 나이로 펼침 → 날개 → 테만, 테만은 0.5초에 0.35초 보임)
+func _folded_wings() -> void:
+	for u in battle.units:
+		if not u.alive:
+			continue
+		var feet := Vector2i((_spot(u) + _slip(u)).floor())
+		if u.fx.has("seraphina_e"):
+			var s := feet - Vector2i(0, int(_head(u) * 0.45))
+			for side in [-1, 1]:
+				_px(s + Vector2i(4 * side, -11), PX.soot)
+				for y in FOLD:
+					var w: int = FOLD[y]
+					_px(s + Vector2i((4 + w) * side, y), PX.soot)
+					for i in w:
+						_px(s + Vector2i((4 + i) * side, y), PX.gold if i == 0 else (PX.cream if y <= -5 else PX.tan))
+		elif u.fx.has("seraphina_e_saved"):
+			var t := 1.0
+			for c in battle.traces:
+				if c.slot == "saved" and is_same(c.aim, u):
+					t = c.age
+			var f := 0 if t < 0.05 else (1 if t < 0.25 else 2)
+			if f < 2 or fmod(clock, 0.5) < 0.35:
+				_spr("wing", f, feet - Vector2i(0, int(_head(u) * 0.5) + 2))
 
 # 수호 천사의 날개(세라피나 E, fx-3): 영웅에서 대상까지 금빛 줄(굵기 2 → 1)과 대상 몸 둘레 고리 하나(앞 0.2초, 굵기 2 → 0).
 # 몸통 아래 층에는 대상 등 뒤로 날개 조각(크림 번쩍 → 날개 → 테만)이 펼쳐져 몸이 가운데를 가린다
@@ -1587,8 +1746,12 @@ func status_marks(x, ally: bool) -> Array:
 				for i in 3:
 					var ph := fmod(clock * 1.5 + i / 3.0 + _hf(n, 5), 1.0)
 					out.append({k = "px", p = feet + Vector2i(-4 + i * 4, -int(10.0 * ph)), c = PX.gold if ph < 0.5 else PX.orange})
-			"shield":  # 몸 둘레 테 하나
-				out.append({k = "ring", p = feet - Vector2i(0, int(tall * 0.45)), r = int(tall * 0.6), c = PX.ice0})
+			"shield":  # 몸 둘레 테 하나. 세라피나 빛의 보호막은 같은 자리 금 점선 테이고, 다른 보호막도 있을 때만 얼음 테를 함께 그린다(I227 ⑤)
+				var sera: bool = x.shields.has("seraphina")
+				if sera:
+					out.append({k = "ring", p = feet - Vector2i(0, int(tall * 0.45)), r = int(tall * 0.6), c = PX.gold, dash = 2})
+				if x.shields.size() > (1 if sera else 0):
+					out.append({k = "ring", p = feet - Vector2i(0, int(tall * 0.45)), r = int(tall * 0.6), c = PX.ice0})
 			"bleed":  # 출혈(I193 ③): 몸에서 떨어지는 핏방울
 				for i in 3:
 					var ph := fmod(clock + _hf(n, i + 7) * 0.6, 0.6) / 0.6
@@ -1639,7 +1802,7 @@ func _status(x, ally: bool) -> void:
 			"px":
 				draw_rect(Rect2(Vector2(m.p), Vector2.ONE), m.c)
 			"ring":
-				_pring(m.p, m.r, 1, m.c)
+				_pring(m.p, m.r, 1, m.c, m.get("dash", 0))
 			_:
 				_spr(m.k, m.f, m.p, m.k == "flame_s")
 

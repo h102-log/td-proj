@@ -78,6 +78,7 @@ const SLOTS := ["q", "w", "e", "r"]  # 영웅 스킬 칸(S145)
 const CAST_RANGE := 6.0  # 지점·대상을 고르는 스킬의 시전 사거리(칸, S147). 임시값
 const WINDS := ["sylvia_w", "sylvia_e", "sylvia_r"]  # 투사체가 지나는 실비아 바람(I212): 순풍 장판 · 바람의 렌즈 · 바람의 길
 const STAY := 0.6  # 장판 안에 있는 동안 거는 효과의 남은 시간(초, I141). 장판을 나오면 곧 풀린다
+const CLEANSE_GAP := 0.5  # 같은 아군의 성역 정화 흔적(I227 ⑥)을 다시 남기는 간격(초). 장판이 매 스텝 거는 해로운 효과를 지울 때마다 흔적이 쌓이지 않게
 const FALLEN := 2.0  # 쓰러진 몸(fallen)을 지우는 때(쓰러진 뒤 초, S180). 화면은 끝 0.5초 동안 흐린다
 const STAGGER := 2.0  # 예고 중 기절로 스킬이 끊긴 보스가 비틀거리는 시간(초, S194). 임시값
 const STAGGER_EXPOSE := 0.5  # 비틀거리는 동안 받는 피해 증가(S194). 임시값
@@ -396,7 +397,7 @@ var ladders := {}  # 사다리 칸 → 그 사다리를 놓은 공성탑(S284). 
 var barriers := {}  # Vector2i → 에너지 성벽 칸 Block(S151, I142). 그 장판(zones)이 끝나면 사라진다
 var zones := []  # 장판(S150, I141): {src, pos, radius, left, owner, 수치…}. 웨이브가 끝나면 모두 사라진다(I143)
 var loops := []  # 타임 루프가 되돌릴 적(I197): {e, at, wall, left, owner, blast, damage, aged(S266)}. 웨이브가 끝나면 사라진다(I143)
-var traces := []  # 즉시 스킬 흔적(S179): {hero, slot, aim, at, radius, hits, marked, age}. 타임 루프 되돌림(loop)은 aim이 옛 자리이고 foe·aged가 더 있다. 사슬 나누기(share)는 aim이 맞은 적이고 chain이, 전염(spread)은 foes(옮은 적)가 더 있다(I226). 그리기만 읽고 1초 지나면 지운다
+var traces := []  # 즉시 스킬 흔적(S179): {hero, slot, aim, at, radius, hits, marked, age}. 타임 루프 되돌림(loop)은 aim이 옛 자리이고 foe·aged가 더 있다. 정화(cleanse)·불사(saved)는 aim이 그 아군, 축복 터짐(bless)은 hero가 쏜 쪽이고 셋 다 hits가 비었다(I227). 사슬 나누기(share)는 aim이 맞은 적이고 chain이, 전염(spread)은 foes(옮은 적)가 더 있다(I226). 그리기만 읽고 1초 지나면 지운다
 var fallen := []  # 쓰러진 영웅·용병·적(S180): {who, age}. 그리기만 읽고 FALLEN초 지나면 지운다
 var _dotting := false  # 초당 피해를 주는 중. 뜬 적(S236)도 이것만은 받는다
 var missiles := []  # 날고 있거나 출발을 기다리는 투사체(Missile, S178). 웨이브가 끝나면 사라진다(I143)
@@ -1693,9 +1694,15 @@ func _zones(dt: float) -> void:
 					_fx(e, "sylvia_r", {"slow": z.slow, "armor": z.armor}, STAY)
 			"seraphina_w":  # 성역: 안의 아군은 초당 회복과 정화, 안의 적은 둔화
 				for u in units.filter(func(x): return _inside(z, x.pos)):
+					var wiped := false
 					for src in u.fx.keys():
 						if _harmful(u.fx[src]):
 							u.fx.erase(src)
+							wiped = true
+					if wiped and not traces.any(func(t): return t.slot == "cleanse" and is_same(t.aim, u) and t.age < CLEANSE_GAP):
+						var keep = _tracing
+						_trace(z.owner, "cleanse", u, u.pos, 0.0)  # 정화 그림(I227 ②)만 읽는다. 맞은 대상이 없다
+						_tracing = keep
 					_heal(u, z.hps * dt, z.owner)
 				for e in foes:
 					_fx(e, "seraphina_w", {"slow": z.slow}, STAY)
@@ -1994,6 +2001,9 @@ func _bless(src, at: Vector2) -> void:
 		_blessing(src, at, b, src.fx.seraphina_r.splash)
 
 func _blessing(src, at: Vector2, amount: float, radius: float) -> void:
+	var keep = _tracing
+	_trace(src, "bless", null, at, radius)  # 축복 터짐 그림(I227 ④)만 읽는다. 맞은 대상을 비워 둬 소리·피격 반응이 없다
+	_tracing = keep
 	for e in enemies.duplicate():
 		if e.pos.distance_to(at) <= radius:
 			damage(e, amount, "magic", src)
@@ -3129,6 +3139,9 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 			target.fx.erase("seraphina_e")
 			_fx(target, "seraphina_e_saved", {"invuln": true}, secs)
 			target.hp = 1.0
+			var keep = _tracing
+			_trace(target, "saved", target, target.pos, 0.0)  # 불사 순간 그림(I227 ③)만 읽는다. 맞은 대상이 없다
+			_tracing = keep
 			return
 	else:
 		amount *= armor_mult(armor_of(target)) * (1.0 - _fx_cut(target, "dr"))
