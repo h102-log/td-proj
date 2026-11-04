@@ -109,6 +109,10 @@ const SKULL_BLINK := 0.15
 const SKULL := [".###.", "#.#.#", "#####", ".###.", ".#.#."]  # 해골 5×5(#이 크림, 둘레가 그을음)
 const BOG_WAVES := 2  # 늪 가운데서 퍼지는 물결 고리 수
 const BOG_WAVE_T := 1.8  # 물결 하나가 반경의 0.85배까지 퍼지는 주기
+const HEX_SEGS := 12  # 쇠약의 저주 고리를 끊는 마디 수(마디마다 앞쪽 0.45~0.8만 그린다)
+const HEX_SPIN := 1.0  # 저주 고리가 조여드는 동안 반시계로 도는 각(라디안)
+const PLAGUE_DASH := 6  # 전염 고리 점선 한 주기(px). 앞쪽 반만 그린다
+const BOG_DASH := 2  # 늪 물결 점선의 그린 칸·틈 길이(px)
 const TELL_FILL := 5  # 보스 스킬 예고 안쪽 성긴 칠의 밀도(/16, fx-4)
 const ALLY_FX := ["dr", "haste", "shield", "invuln", "stun", "bleed"]  # 아군에 걸린 효과(I101, 기절은 I192, 출혈은 I193 ③)
 const FOE_FX := ["stun", "root", "expose", "taunt", "seal", "chain", "dot"]  # 적에 걸린 효과(I101). 둔화는 능력치 감소 줄(DEBUFFS)이다
@@ -759,9 +763,14 @@ func _chain(p: Vector2, q: Vector2) -> void:
 		var ph := j % 4
 		_px(Vector2i(p.lerp(q, float(j) / n).floor()), PX.night if ph == 3 else (PX.cream if ph == 0 else PX.ash), Vector2i(2, 1))
 
-# 피해 나누기 빛(I226 ③): 맞은 적에서 나무를 따라 마디마다 CHAIN_HOP초에 흐르는 청록 빛(5×3px, 가운데 크림 3×1px).
-# 빛이 닿은 적 가슴에 CHAIN_RING초 동안 반지름 6 → 3px로 작아지는 청록 고리
+# 피해 나누기 빛(I226 ③): 맞은 적 가슴에서 CHAIN_RING초 동안 반지름 3 → 7px로 퍼지는 크림 고리(바깥 검정 1px)와, 맞은 적에서 나무를 따라
+# 마디마다 CHAIN_HOP초에 흐르는 크림 빛(5×3px, 가운데 청록 3×1px, 바깥 검정 1px). 빛이 닿은 적 가슴에 CHAIN_RING초 동안 반지름 6 → 3px로 작아지는 청록 고리
 func _chain_flow(origin, edges: Array, t: float) -> void:
+	if t < CHAIN_RING:
+		var o := Vector2i(_chest(origin).floor())
+		var rr := 3 + int(4.0 * t / CHAIN_RING)
+		_pring(o, rr + 1, 1, PX.night)
+		_pring(o, rr, 1, PX.cream)
 	var lvl := {origin: 0}
 	var par := {}
 	var order := [origin]
@@ -781,21 +790,21 @@ func _chain_flow(origin, edges: Array, t: float) -> void:
 		var k: float = (t - CHAIN_HOP * lvl[a]) / CHAIN_HOP
 		if k >= 0.0 and k <= 1.0:
 			var p := Vector2i(_chest(a).lerp(_chest(y), k).floor())
-			_px(p - Vector2i(2, 1), PX.teal, Vector2i(5, 3))
-			_px(p - Vector2i(1, 0), PX.cream, Vector2i(3, 1))
+			_px(p - Vector2i(3, 2), PX.night, Vector2i(7, 5))
+			_px(p - Vector2i(2, 1), PX.cream, Vector2i(5, 3))
+			_px(p - Vector2i(1, 0), PX.teal, Vector2i(3, 1))
 		var k2: float = (t - CHAIN_HOP * lvl[y]) / CHAIN_RING
 		if k2 >= 0.0 and k2 < 1.0:
 			_pring(Vector2i(_chest(y).floor()), 6 - int(3.0 * k2), 1, PX.teal if k2 < 0.5 else PX.midteal)
 
-# 전염(I226 ④): 죽은 적 자리에서 전염 반경까지 PLAGUE초에 퍼지는 고리(청록 → 짙은 청록 → 깊은 청록, 굵기 2 → 1, 바깥 검정 1px)와,
+# 전염(I226 ④): 죽은 적 자리에서 전염 반경까지 PLAGUE초에 퍼지는 점선 고리(청록 → 짙은 청록 → 깊은 청록, 굵기 2 → 1, 바깥 검정 1px, 약 PLAGUE_DASH px 주기)와,
 # 옮은 적마다 머리 위 해골(SKULL_IN~SKULL_OUT초에 4px 떠오르고 마지막 SKULL_BLINK초 깜박)
 func _plague(at: Vector2i, c) -> void:
 	var t: float = c.age
 	if t < PLAGUE:
 		var k := t / PLAGUE
 		var r := int(4.0 + (CELL * c.radius - 4.0) * _out(k))
-		_pring(at, r + 1, 1, PX.night)
-		_pring(at, r, 2 if k < 0.5 else 1, _ramp(["teal", "midteal", "deepteal"], k))
+		_seg_ring(at, r, 2 if k < 0.5 else 1, _ramp(["teal", "midteal", "deepteal"], k), maxi(4, int(TAU * r / PLAGUE_DASH)), 0.0)
 	var k2 := (t - SKULL_IN) / (SKULL_OUT - SKULL_IN)
 	if k2 < 0.0 or k2 >= 1.0 or (t > SKULL_OUT - SKULL_BLINK and fmod(t, 0.1) < 0.05):
 		return
@@ -1094,14 +1103,14 @@ func _miracle(hits: Array, t: float) -> void:
 			if f < int(FX_ART.mend[4]):
 				_spr("mend", f, Vector2i(_chest(x).floor()) - Vector2i(0, 2 * f))
 
-# 쇠약의 저주(베스퍼 W, I226 ①): 그림자. 반경 자리에 나타난 그을음 → 어둠 → 연기 고리(굵기 2 → 1, 바깥 검정 1px)가 HEX_CLOSE초에 반경의 0.6배까지 조여들고
-# 고리에서 검은 연기 가닥 HEX_WISPS개(2px + 꼬리)가 안으로 끌려 든다. 저주가 걸린 반경 안 적마다 머리 위로 아래 겹화살이 가라앉는다
+# 쇠약의 저주(베스퍼 W, I226 ①): 그림자. 반경 자리에 나타난 그을음 → 어둠 → 연기 고리(굵기 2 → 1, 바깥 검정 1px)가 HEX_CLOSE초에 반경의 0.6배까지 조여들며
+# 반시계로 HEX_SPIN 돌고, 고리는 HEX_SEGS마디로 들쭉날쭉 끊긴 연기 테두리다. 고리에서 검은 연기 가닥 HEX_WISPS개(2px + 꼬리)가 안으로 끌려 든다.
+# 저주가 걸린 반경 안 적마다 머리 위로 아래 겹화살이 가라앉는다
 func _hex(c: Vector2i, rad: float, t: float, seed: int) -> void:
 	if t < HEX_CLOSE:
 		var k := t / HEX_CLOSE
 		var r := int(rad * (1.0 - 0.4 * _pow3(k)))
-		_pring(c, r + 1, 1, PX.night)
-		_pring(c, r, 2 if k < 0.5 else 1, _ramp(["soot", "dark", "smoke"], k))
+		_seg_ring(c, r, 2 if k < 0.5 else 1, _ramp(["soot", "dark", "smoke"], k), HEX_SEGS, -HEX_SPIN * k, absi(seed))
 		for i in HEX_WISPS:
 			var dir := Vector2.from_angle(TAU * i / HEX_WISPS + _hf(seed, i) * 0.5)
 			var p := c + Vector2i((dir * rad * (1.0 - 0.75 * _pow3(k))).round())
@@ -1468,7 +1477,7 @@ func _fog_zone(c: Vector2i, r: int, seed: int, others: Array) -> void:
 	_edge(c, r, PX.teal, PX.soot, others)
 
 # 늪(베스퍼 R, I226 ⑥): 짙은 진흙 성긴 칠(어둠 7/16, 0.75배 안 그을음 7/16) + 0.55배 안 깊은 청록 물(8/16)과 0.4배 안 짙은 청록(3/16) +
-# 가운데서 반경의 0.85배까지 BOG_WAVE_T초 주기로 엇갈려 퍼지는 1px 물결 고리 BOG_WAVES개. 보라를 쓰지 않아 블랙홀(이그니스 E)과 갈린다
+# 가운데서 반경의 0.85배까지 BOG_WAVE_T초 주기로 엇갈려 퍼지는 1px 물결 고리 BOG_WAVES개(BOG_DASH px마다 끊긴 점선). 보라를 쓰지 않아 블랙홀(이그니스 E)과 갈린다
 func _swamp_zone(c: Vector2i, r: int, seed: int, others: Array) -> void:
 	_pnoise(c, r - 1, PX.dark, 7, posmod(seed, 4))
 	_pnoise(c, int(r * 0.75), PX.soot, 7, posmod(seed + 1, 4))
@@ -1476,7 +1485,7 @@ func _swamp_zone(c: Vector2i, r: int, seed: int, others: Array) -> void:
 	_pnoise(c, int(r * 0.4), PX.midteal, 3, posmod(seed + 3, 4))
 	for i in BOG_WAVES:
 		var ph := fmod(clock / BOG_WAVE_T + float(i) / BOG_WAVES, 1.0)
-		_pring(c, int(r * (0.15 + 0.7 * ph)), 1, PX.teal if ph < 0.4 else PX.midteal)
+		_pring(c, int(r * (0.15 + 0.7 * ph)), 1, PX.teal if ph < 0.4 else PX.midteal, BOG_DASH)
 	_edge(c, r, PX.teal, PX.soot, others)
 
 # 늪에 든 적(I226 ⑥): 발이 진흙에 잠긴다. 발 −2~+1px를 덮는 진흙 띠(그을음·어둠, 폭 11~13px)와 띠에서 오르다 터지는 거품 하나(초당 1.3번).
@@ -1682,6 +1691,16 @@ func _pring(c: Vector2i, r: int, th: int, col: Color, dash := 0, spin := 0.0) ->
 	for o in px_cells(r, th):  # 둘레를 dash px 길이로 끊어 하나 걸러. 끊는 자리를 spin(라디안)만큼 시계 방향으로 돌린다(왜곡장, fx-4)
 		if int(floor(fposmod(atan2(o.y + 0.5, o.x + 0.5) + PI - spin, TAU) * r / dash)) % 2 == 0:
 			_cv.draw_rect(Rect2(Vector2(c + o), Vector2.ONE), col)
+
+# 끊긴 고리(I226 ①·④): 둘레를 n 마디로 나눠 마디마다 앞쪽만 그리고, 바깥 1px 검정도 같은 각에서 끊는다(_pring 점선은 반지름마다 끊는 자리가 달라 테두리가 어긋난다).
+# seed가 0 이상이면 마디마다 그리는 몫이 0.45~0.8로 들쭉날쭉하다(연기), 아니면 반이다(점선). spin(라디안)만큼 시계 방향으로 돌린다
+func _seg_ring(c: Vector2i, r: int, th: int, col: Color, n: int, spin: float, seed := -1) -> void:
+	for ring in [[r + 1, 1, PX.night], [r, th, col]]:
+		for o in px_cells(ring[0], ring[1]):
+			var u := fposmod(atan2(o.y + 0.5, o.x + 0.5) - spin, TAU) / TAU * n
+			var i := int(u)
+			if u - i < (0.5 if seed < 0 else 0.45 + 0.35 * _hf(seed, i)):
+				_px(c + o, ring[2])
 
 # 고리에서 각 a0~a1(라디안) 사이 칸만
 func _parc(c: Vector2i, r: int, th: int, a0: float, a1: float, col: Color) -> void:
