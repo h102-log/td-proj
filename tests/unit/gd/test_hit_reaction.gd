@@ -910,7 +910,7 @@ func test_chain_share_is_not_a_skill_hit():
 	for e in [near, far]:  # 베스퍼 E 영혼 사슬로 묶인 둘
 		b._fx(e, "vesper_e", {"chain": 1, "share": 0.5, "spread": 0.0}, 5.0)
 	_ready_cast(b, h, "q", h.pos + Vector2(3, 0))
-	var c = b.traces[-1]
+	var c = b.traces.filter(func(t): return t.slot == "q")[-1]  # 나누기 흔적(I226 ③)이 그 뒤에 붙는다
 	var why := ""
 	if far.hp >= 1000:
 		why = "사슬로 나눈 피해가 들지 않았다(시험 판이 틀렸다)"
