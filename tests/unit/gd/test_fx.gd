@@ -26,6 +26,11 @@ extends RefCounted
 #         성역 정화는 몸 양옆에서 솟는 빛 점 두 줄기(정화 흔적은 0.5초에 하나), 성역 안 아군은 오르는 금 십자, 수호 천사 4초는 등 뒤 접힌 날개,
 #         불사 순간은 크림 원판 + 깃털(공용 금 테·별은 그대로), 축복은 쏘는 곳 옆 마름모 빛 맺힘, 축복 터짐은 크림 십자 + 대각선 조각 넷,
 #         세라피나 보호막은 금 점선 테다. 정화·축복 터짐·불사 흔적에는 맞은 대상이 없다.
+#   I226 2026-11-04(fx-9, 위 fx-3의 베스퍼 쇠약·사슬·늪보다 우선). 베스퍼: 쇠약의 저주는 조여들며 반시계로 도는 그림자 고리(HEX_SEGS마디로 들쭉날쭉 끊긴 연기 테두리,
+#         바깥 검정 1px도 같은 각에서 끊김) + 검은 연기 가닥 HEX_WISPS, 영혼 사슬은 E 대상(hub)에서 시작하는 나무 모양 쇠사슬(굵기 2, 크림·재),
+#         피해 나누기는 흔적 share(초당 피해 빼고)와 맞은 적 가슴에서 퍼지는 크림 고리 + 맞은 적에서 사슬을 따라 흐르는 크림 빛(가운데 청록, 바깥 검정),
+#         전염은 옮은 적이 있을 때만 흔적 spread와 전염 반경까지 퍼지는 점선 고리(약 PLAGUE_DASH px 주기) + 옮은 적 머리 위 해골(떠오르고 끝에 깜박),
+#         늪은 진흙·깊은 청록 물 칠 + 가운데서 퍼지는 1px 물결 BOG_WAVES(BOG_DASH px마다 끊긴 점선), 늪에 든 적은 발이 진흙 띠에 잠긴다. 색은 팔레트 안이다.
 
 const View := preload("res://src/ui/battle_view.gd")
 const Battle := preload("res://src/sim/battle.gd")
@@ -36,6 +41,7 @@ class Rec extends "res://src/ui/battle_view.gd":
 	var lines := []  # [a, b, 색, 굵기]
 	var arcs := []  # [반지름, 굵기, a0, a1, 색]
 	var rings := []  # [가운데, 반지름, 굵기, 색, 점선, 점선 돌림]
+	var segs := []  # 끊긴 고리 [가운데, 반지름, 굵기, 색, 마디 수, 돌림, 해시]. 칸은 그대로 그려 pxs에 남는다
 	var pxs := []  # [자리, 색, 크기]
 	var fills := []  # 성긴 칠 색
 	var noise := []  # 성긴 칠 [반지름, 밀도]
@@ -49,6 +55,9 @@ class Rec extends "res://src/ui/battle_view.gd":
 	func _pring(c: Vector2i, r: int, th: int, col: Color, dash := 0, spin := 0.0) -> void:
 		spr.append(["ring", th])
 		rings.append([c, r, th, col, dash, spin])
+	func _seg_ring(c: Vector2i, r: int, th: int, col: Color, n: int, spin: float, seed := -1) -> void:
+		segs.append([c, r, th, col, n, spin, seed])
+		super(c, r, th, col, n, spin, seed)
 	func _pline(a: Vector2i, b: Vector2i, col: Color, w := 1) -> void:
 		lines.append([a, b, col, w])
 	func _parc(c: Vector2i, r: int, th: int, a0: float, a1: float, col: Color) -> void:
@@ -63,7 +72,7 @@ class Rec extends "res://src/ui/battle_view.gd":
 	func _edge(c: Vector2i, r: int, light: Color, dark: Color, others := []) -> void:
 		edges.append([light, dark])
 	func wipe() -> void:
-		for a in [spr, lines, arcs, rings, pxs, fills, noise, discs, edges]:
+		for a in [spr, lines, arcs, rings, segs, pxs, fills, noise, discs, edges]:
 			a.clear()
 
 func _battle():
@@ -796,7 +805,23 @@ func test_miracle_pillar_falls_on_each_healed_ally_then_ring():
 	v.free()
 	return why
 
-func test_enfeeble_ring_closes_inward_and_marks_cursed_heads():
+# 끊긴 고리 sg(Rec.segs 한 줄)가 그린 칸(I226 ①·④): 고리 칸의 10~90%만 그렸고(끊김), 바깥 검정 1px 칸마다 같은 각(±1.5px)에 고리 칸이 있다. 맞으면 ""
+func _broken(v, sg: Array) -> String:
+	var c: Vector2i = sg[0]
+	var r: int = sg[1]
+	var main: Array = v.pxs.filter(func(p): return p[1] == sg[3] and p[2] == Vector2i.ONE and absf(Vector2(p[0] - c).length() - r) <= sg[2] + 1).map(func(p): return Vector2(p[0] - c))
+	var rim: Array = v.pxs.filter(func(p): return p[1] == View.PX.night and p[2] == Vector2i.ONE and absf(Vector2(p[0] - c).length() - r - 0.5) < 1.5).map(func(p): return Vector2(p[0] - c))
+	var all: int = v.px_cells(r, sg[2]).size()
+	if main.size() < all * 0.1 or main.size() > all * 0.9:
+		return "고리 칸 %d/%d를 그렸다(끊겨야 한다)" % [main.size(), all]
+	if rim.is_empty():
+		return "바깥 검정이 없다"
+	for q in rim:
+		if not main.any(func(m): return absf(angle_difference(m.angle(), q.angle())) * r <= 1.5):
+			return "바깥 검정 %s 둘레에 고리 칸이 없다(같은 각에서 끊겨야 한다)" % [q]
+	return ""
+
+func test_enfeeble_dark_ring_closes_inward_with_wisps_and_marks_cursed_heads():
 	var b = _duo()
 	var e = _target(b, Vector2i(14, 13))
 	if not _ready_cast(b, b.heroes[1], "w", Vector2(14, 13)):
@@ -807,39 +832,91 @@ func test_enfeeble_ring_closes_inward_and_marks_cursed_heads():
 	v._foes = b.enemies
 	var c := Vector2i(v._center(Vector2(14, 13)).floor())
 	var rad := View.CELL * 2.0
-	v._hex(c, rad, 0.01, 7)
-	var r0: Array = v.rings.map(func(r): return r[1])
-	v.wipe()
-	v._hex(c, rad, View.HEX_CLOSE * 0.9, 7)
-	var r1: Array = v.rings.map(func(r): return r[1])
+	var shade: Array = ["soot", "dark", "smoke"].map(func(n): return View.PX[n])
 	var why := ""
-	if r0.size() != 1 or r1.size() != 1 or r0[0] < int(rad * 0.9) or r1[0] >= r0[0] or r1[0] < int(rad * 0.6):
-		why = "고리 반지름이 %s → %s다(반경에서 0.6배까지 조여들어야 한다)" % [r0, r1]
+	var main0 := []
+	var spins := []
+	for t in [0.01, View.HEX_CLOSE * 0.9]:
+		v.wipe()
+		v._hex(c, rad, t, 7)
+		var sg: Array = v.segs
+		var wisps: Array = v.pxs.filter(func(p): return p[1] == View.PX.night and p[2] == Vector2i(2, 2))
+		if sg.size() != 1 or not sg[0][3] in shade or sg[0][4] != View.HEX_SEGS or sg[0][6] < 0 or not v.rings.is_empty():
+			why = "%.2f초 고리가 끊긴 고리 %s · 이은 고리 %s다(그림자 색, %d마디 들쭉날쭉한 연기 테두리 하나여야 한다)" % [t, sg, v.rings, View.HEX_SEGS]
+		elif wisps.size() != View.HEX_WISPS:
+			why = "%.2f초 검은 연기 가닥이 %d개다(%d개여야 한다)" % [t, wisps.size(), View.HEX_WISPS]
+		elif _colors(v).any(func(col): return col in [View.PX.teal, View.PX.midteal, View.PX.deepteal]):
+			why = "%.2f초 저주 흔적에 청록이 있다(독안개와 같은 색이라 묻힌다)" % t
+		else:
+			why = _broken(v, sg[0])
+		if why != "":
+			break
+		main0.append(sg[0][1])
+		spins.append(sg[0][5])
+	if why == "" and (main0[0] < int(rad * 0.9) or main0[1] >= main0[0] or main0[1] < int(rad * 0.6)):
+		why = "고리 반지름이 %s다(반경에서 0.6배까지 조여들어야 한다)" % [main0]
+	elif why == "" and spins[1] >= spins[0]:
+		why = "조여드는 동안 고리가 반시계로 돌지 않는다: 돌림 %s" % [spins]
 	var hx: Array = v.spr.filter(func(q): return q[0] == "hex")
 	if why == "" and (hx.size() != 1 or hx[0][2].y >= int(v._spot(e).y - v._head(e))):
 		why = "저주 문양이 %s다(걸린 적 머리 위에 하나여야 한다)" % [hx]
 	v.free()
 	return why
 
-func test_soul_chain_cast_draws_line_ring_and_teal_links():
+# 영혼 사슬 셋: 처음 적 a(13, 13)·b(17, 13)를 먼저 세우고 E 대상 hub(15, 14)에 E를 쓴다. 돌려주는 것: [판, hub, a, b]
+func _chained() -> Array:
 	var b = _duo()
-	var e = _target(b, Vector2i(14, 13))
-	_target(b, Vector2i(16, 13))
-	if not _ready_cast(b, b.heroes[1], "e", e):
-		return "베스퍼 E를 못 썼다"
+	var a = _target(b, Vector2i(13, 13))
+	var c = _target(b, Vector2i(17, 13))
+	var hub = _target(b, Vector2i(15, 14))
+	_ready_cast(b, b.heroes[1], "e", hub)
 	b.step(1.0 / 60.0)
+	return [b, hub, a, c]
+
+# 줄 p → q 가운데 둘레(±1px)에 그려진 칸이 있다
+func _near_mid(v, p: Vector2, q: Vector2) -> bool:
+	var m := Vector2i(((p + q) / 2.0).floor())
+	return v.pxs.any(func(x): return absi(x[0].x - m.x) <= 1 and absi(x[0].y - m.y) <= 1)
+
+func test_soul_chain_is_iron_links_tree_from_target():
+	var bt := _chained()
+	var b = bt[0]
+	var hub = bt[1]
+	var a = bt[2]
+	var c = bt[3]
+	if not [hub, a, c].all(func(x): return x.fx.has("vesper_e")) or hub.fx.vesper_e.get("hub") != hub or a.fx.vesper_e.get("hub") != hub:
+		return "셋이 E 대상을 적어 둔 사슬에 묶이지 않았다"
 	var v = Rec.new()
 	v.battle = b
 	v._foes = b.enemies
 	v._traces(true)
 	var why := ""
-	var to := Vector2i(v._chest(e).floor())
+	var to := Vector2i(v._chest(hub).floor())
 	if not v.lines.any(func(l): return l[1] == to and l[2] in [View.PX.teal, View.PX.midteal, View.PX.deepteal]):
 		why = "베스퍼에서 대상까지 청록 줄이 없다: %s" % [v.lines]
 	elif v.rings.size() != 1:
 		why = "대상 둘레 고리가 %d개다(하나여야 한다)" % v.rings.size()
-	elif not v.spr.any(func(q): return q[0] == "link"):
-		why = "묶인 적끼리 잇는 사슬 고리가 없다"
+	elif v.spr.any(func(q): return q[0] == "link"):
+		why = "옛 청록 고리 조각으로 잇는다"
+	if why == "":
+		v.wipe()
+		b.traces.clear()
+		v._traces(true)
+		var body: Array = v.pxs.filter(func(p): return p[1] in [View.PX.cream, View.PX.ash])
+		if body.is_empty() or not body.all(func(p): return p[2] == Vector2i(2, 1)):
+			why = "사슬 몸이 %s다(굵기 2의 크림·재 칸이어야 한다)" % [body.map(func(p): return [p[1].to_html(false), p[2]])]
+		elif body.filter(func(p): return p[1] == View.PX.cream).size() * 3 > body.size():
+			why = "크림 반짝이 너무 많다(4px마다 하나)"
+		elif not (_near_mid(v, v._chest(hub), v._chest(a)) and _near_mid(v, v._chest(hub), v._chest(c))):
+			why = "E 대상에서 두 적으로 가는 사슬이 없다"
+		elif _near_mid(v, v._chest(a), v._chest(c)):
+			why = "처음 적 a에서 b로 잇는다(E 대상에서 시작하는 나무여야 한다)"
+	if why == "":
+		v._foes = b.enemies.filter(func(x): return x != hub)  # E 대상이 숨으면 남은 적 가운데 처음 적에서 시작한다
+		v.wipe()
+		v._traces(true)
+		if not _near_mid(v, v._chest(a), v._chest(c)):
+			why = "E 대상이 없을 때 남은 둘을 잇지 않는다"
 	v.free()
 	return why
 
@@ -856,8 +933,11 @@ func test_sanctum_fog_swamp_are_materials_without_old_patterns():
 	v.free()
 	v = _zone_draw("vesper_r")
 	var vio: Array = ["vio0", "vio1", "vio2", "vio3", "vio4"].map(func(n): return View.PX[n])
-	if why == "" and (v.rings.size() != View.RIPPLES or not v.lines.is_empty() or _colors(v).any(func(c): return c in vio)):
-		why = "늪이 물결 %d · 줄 %d · 색 %s다(물결 %d, 물결 가로줄 없음, 보라 없음이어야 한다)" % [v.rings.size(), v.lines.size(), _colors(v), View.RIPPLES]
+	var mid := Vector2i(v._center(Vector2(12, 12)).floor())
+	if why == "" and (v.rings.size() != View.BOG_WAVES or v.rings.any(func(r): return r[0] != mid or r[2] != 1 or r[4] != View.BOG_DASH) or not v.lines.is_empty() or _colors(v).any(func(c): return c in vio)):
+		why = "늪이 물결 %s · 줄 %d · 색 %s다(가운데서 퍼지는 1px 물결 %d, %dpx마다 끊긴 점선, 물결 가로줄 없음, 보라 없음이어야 한다)" % [v.rings.map(func(r): return [r[0], r[1], r[2], r[4]]), v.lines.size(), _colors(v), View.BOG_WAVES, View.BOG_DASH]
+	elif why == "" and not (View.PX.deepteal in v.fills and View.PX.dark in v.fills and View.PX.soot in v.fills):
+		why = "늪 칠이 %s다(진흙 어둠·그을음과 깊은 청록 물이어야 한다)" % [v.fills.map(func(c): return c.to_html(false))]
 	v.free()
 	return why
 
@@ -1540,4 +1620,181 @@ func test_fx8_draws_only_palette_colors():
 	v.free()
 	if off != "":
 		return "fx-8 그림에 팔레트 밖 색 %s가 있다" % off
+	return ""
+
+# ── fx-9: 베스퍼(I226) ──
+
+func test_shared_damage_leaves_share_trace_and_light_flows_along_chain():
+	var bt := _chained()
+	var b = bt[0]
+	var hub = bt[1]
+	var a = bt[2]
+	var c = bt[3]
+	b.traces.clear()
+	b.damage(a, 10.0, "phys", b.heroes[1])
+	var sh: Array = b.traces.filter(func(t): return t.slot == "share")
+	var why := ""
+	if sh.size() != 1 or sh[0].aim != a or sh[0].chain != a.fx.vesper_e.chain or not sh[0].hits.is_empty() or sh[0].hero != b.heroes[1]:
+		why = "a가 맞았는데 나누기 흔적이 %s다(a·사슬 번호·맞은 대상 없음·주인 베스퍼여야 한다)" % [sh]
+	if why == "":
+		b.traces.clear()
+		b._fx(a, "vesper_q", {"dot": 3.0}, 3.0)  # 초당 피해에서 나뉜 것은 남기지 않는다
+		for i in 10:
+			b._tick(1.0 / 60.0)
+		if b.traces.any(func(t): return t.slot == "share"):
+			why = "중독 초당 피해가 나뉠 때도 나누기 흔적을 남긴다"
+		b.traces = sh
+	var v = Rec.new()
+	v.battle = b
+	v._foes = b.enemies
+	var ch := [v._chest(a), v._chest(hub), v._chest(c)]
+	var bead := func(): return v.pxs.filter(func(p): return p[1] == View.PX.cream and p[2] == Vector2i(5, 3))
+	for step in [[0.5, 0, 1], [1.5, 1, 2]]:  # 맞은 a → hub(첫 마디) → c(둘째 마디)
+		if why != "":
+			break
+		sh[0].age = View.CHAIN_HOP * step[0]
+		v.wipe()
+		v._traces(true)
+		var bs: Array = bead.call()
+		var want := Vector2i(ch[step[1]].lerp(ch[step[2]], 0.5).floor())
+		var burst: Array = v.rings.filter(func(r): return r[0] == Vector2i(ch[0].floor()) and r[3] == View.PX.cream)
+		if bs.size() != 1 or (bs[0][0] + Vector2i(2, 1) - want).length() > 1.5:
+			why = "%.2f초 크림 빛이 %s다(%s 둘레 하나여야 한다)" % [sh[0].age, bs.map(func(p): return p[0] + Vector2i(2, 1)), want]
+		elif not v.pxs.any(func(p): return p[0] == bs[0][0] - Vector2i(1, 1) and p[1] == View.PX.night and p[2] == Vector2i(7, 5)):
+			why = "%.2f초 빛에 바깥 검정 1px이 없다" % sh[0].age
+		elif not v.pxs.any(func(p): return p[0] == bs[0][0] + Vector2i(1, 1) and p[1] == View.PX.teal and p[2] == Vector2i(3, 1)):
+			why = "%.2f초 빛 가운데에 청록 3×1이 없다" % sh[0].age
+		elif step[0] < 1.0 and (burst.size() != 1 or burst[0][1] < 3 or burst[0][1] > 7 or not v.rings.any(func(r): return r[0] == burst[0][0] and r[1] == burst[0][1] + 1 and r[3] == View.PX.night)):
+			why = "%.2f초 맞은 적 가슴에 퍼지는 크림 고리(반지름 3~7, 바깥 검정 1px)가 %s다" % [sh[0].age, v.rings]
+		elif step[0] > 1.0 and not v.rings.any(func(r): return r[0] == Vector2i(ch[1].floor()) and r[3] == View.PX.teal):
+			why = "빛이 지난 E 대상 가슴에 청록 고리가 없다: %s" % [v.rings]
+	if why == "":  # 맞은 적 고리는 퍼진다
+		var rs := []
+		for t in [0.01, View.CHAIN_RING * 0.9]:
+			sh[0].age = t
+			v.wipe()
+			v._traces(true)
+			rs.append(v.rings.filter(func(r): return r[0] == Vector2i(ch[0].floor()) and r[3] == View.PX.cream).map(func(r): return r[1]))
+		if rs[0].size() != 1 or rs[1].size() != 1 or rs[1][0] <= rs[0][0]:
+			why = "맞은 적 크림 고리 반지름이 %s다(퍼져야 한다)" % [rs]
+	if why == "":
+		sh[0].age = View.CHAIN_HOP * 2.0 + View.CHAIN_RING + 0.01
+		v.wipe()
+		v._traces(true)
+		if not bead.call().is_empty() or not v.rings.is_empty():
+			why = "다 흐른 뒤에도 빛 %d · 고리 %d가 남는다" % [bead.call().size(), v.rings.size()]
+	v.free()
+	return why
+
+func test_contagion_leaves_spread_trace_then_ring_and_rising_skulls():
+	var b = _duo()
+	var ves = b.heroes[1]
+	var carrier = _target(b, Vector2i(14, 13))
+	var near = _target(b, Vector2i(15, 14))
+	var lone = _target(b, Vector2i(24, 24))
+	b._fx(carrier, "vesper_w", {"slow": 0.4, "spread": 2.0}, 4.0)
+	b._fx(lone, "vesper_w", {"slow": 0.4, "spread": 2.0}, 4.0)
+	b.traces.clear()
+	b.damage(lone, 2e9, "true", ves)  # 둘레에 옮을 적이 없으면 흔적이 없다
+	var why := ""
+	if b.traces.any(func(t): return t.slot == "spread"):
+		why = "옮은 적이 없는데 전염 흔적을 남긴다"
+	b.damage(carrier, 2e9, "true", ves)
+	var sp: Array = b.traces.filter(func(t): return t.slot == "spread")
+	if why == "" and (sp.size() != 1 or sp[0].foes != [near] or not sp[0].hits.is_empty() or sp[0].radius != 2.0 or sp[0].at != carrier.pos or sp[0].hero != ves):
+		why = "전염 흔적이 %s다(죽은 자리·반경 2·옮은 적 near·맞은 대상 없음·주인 베스퍼여야 한다)" % [sp]
+	if why != "":
+		return why
+	var v = Rec.new()
+	v.battle = b
+	v._foes = b.enemies
+	var at := Vector2i(v._center(carrier.pos).floor()) - Vector2i(0, 2)
+	var crown: Vector2i = v._crown(near)
+	var skull := func(): return v.pxs.filter(func(p): return p[1] == View.PX.cream)
+	var rs := []
+	for t in [0.05, 0.25]:
+		sp[0].age = t
+		v.wipe()
+		v._traces(true)
+		var main: Array = v.segs.filter(func(r): return r[0] == at)
+		if main.size() != 1 or main[0][6] >= 0 or main[0][1] < 4 or main[0][1] > View.CELL * 2 or absf(main[0][4] - TAU * main[0][1] / View.PLAGUE_DASH) > 1.0 or v.rings.any(func(r): return r[0] == at):
+			why = "%.2f초 전염 고리가 끊긴 고리 %s · 이은 고리 %s다(죽은 자리에서 전염 반경까지, 약 %dpx 주기 점선 하나)" % [t, v.segs, v.rings, View.PLAGUE_DASH]
+		else:
+			why = _broken(v, main[0])
+		if why != "":
+			break
+		rs.append(main[0][1])
+	if why == "" and rs[1] <= rs[0]:
+		why = "전염 고리가 퍼지지 않는다"
+	if why == "":
+		sp[0].age = 0.1
+		v.wipe()
+		v._traces(true)
+		if not skull.call().is_empty():
+			why = "SKULL_IN 전에 해골이 보인다"
+	var ys := []
+	for t in [0.2, 0.6]:
+		if why != "":
+			break
+		sp[0].age = t
+		v.wipe()
+		v._traces(true)
+		var body: Array = skull.call()
+		if body.size() != 16 or not body.all(func(p): return absi(p[0].x - crown.x) <= 2 and p[0].y <= crown.y + 2):
+			why = "%.2f초 해골이 %s다(옮은 적 머리 위 크림 16칸이어야 한다)" % [t, body.map(func(p): return p[0])]
+		else:
+			ys.append(body.map(func(p): return p[0].y).min())
+	if why == "" and ys[1] >= ys[0]:
+		why = "해골이 떠오르지 않는다: %s" % [ys]
+	for t in [0.72, View.SKULL_OUT + 0.01]:  # 끝 SKULL_BLINK초는 깜박이고, SKULL_OUT 뒤로는 없다
+		if why != "":
+			break
+		sp[0].age = t
+		v.wipe()
+		v._traces(true)
+		if not skull.call().is_empty():
+			why = "%.2f초에 해골이 보인다" % t
+	v.free()
+	return why
+
+func test_swamp_foes_sink_feet_in_mud_band():
+	var b = _duo()
+	var e = _target(b, Vector2i(14, 13))
+	var dry = _target(b, Vector2i(20, 13))
+	b._fx(e, "vesper_r", {"slow": 0.6, "seal": true}, 0.1)
+	var v = Rec.new()
+	v.battle = b
+	v._foes = [e, dry]
+	v._mire_marks()
+	var f := _feet_px(v, e)
+	var why := ""
+	if not v.pxs.any(func(p): return p[0] == f + Vector2i(-5, -2) and p[1] == View.PX.soot and p[2] == Vector2i(11, 1)):
+		why = "늪에 든 적 발 위에 그을음 띠가 없다: %s" % [v.pxs]
+	elif not v.pxs.any(func(p): return p[0] == f + Vector2i(-6, -1) and p[1] == View.PX.dark and p[2] == Vector2i(13, 2)):
+		why = "늪에 든 적 발을 덮는 진흙 띠가 없다"
+	elif v.pxs.any(func(p): return absi(p[0].x - _feet_px(v, dry).x) < 8):
+		why = "늪 밖 적에도 진흙 띠를 그린다"
+	v.free()
+	return why
+
+func test_fx9_draws_only_palette_colors():
+	var bt := _chained()
+	var b = bt[0]
+	b.damage(bt[2], 10.0, "phys", b.heroes[1])
+	b.traces.append({"hero": b.heroes[1], "slot": "spread", "aim": null, "at": Vector2(15, 16), "radius": 2.0, "hits": [], "marked": false, "age": 0.0, "foes": [bt[1]]})
+	b._fx(bt[2], "vesper_r", {"slow": 0.6}, 1.0)
+	var v = Rec.new()
+	v.battle = b
+	v._foes = b.enemies
+	for t in [0.0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.5, 0.7]:
+		for c in b.traces:
+			c.age = t
+		v._traces(true)
+		v._hex(Vector2i(100, 100), 32.0, t, 7)
+		v.clock = t
+		v._mire_marks()
+	var off := _off_palette(_colors(v))
+	v.free()
+	if off != "":
+		return "fx-9 흔적에 팔레트 밖 색 %s가 있다" % off
 	return ""

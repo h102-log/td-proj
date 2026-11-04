@@ -397,7 +397,7 @@ var ladders := {}  # 사다리 칸 → 그 사다리를 놓은 공성탑(S284). 
 var barriers := {}  # Vector2i → 에너지 성벽 칸 Block(S151, I142). 그 장판(zones)이 끝나면 사라진다
 var zones := []  # 장판(S150, I141): {src, pos, radius, left, owner, 수치…}. 웨이브가 끝나면 모두 사라진다(I143)
 var loops := []  # 타임 루프가 되돌릴 적(I197): {e, at, wall, left, owner, blast, damage, aged(S266)}. 웨이브가 끝나면 사라진다(I143)
-var traces := []  # 즉시 스킬 흔적(S179): {hero, slot, aim, at, radius, hits, marked, age}. 타임 루프 되돌림(loop)은 aim이 옛 자리이고 foe·aged가 더 있다. 정화(cleanse)·불사(saved)는 aim이 그 아군, 축복 터짐(bless)은 hero가 쏜 쪽이고 셋 다 hits가 비었다(I227). 그리기만 읽고 1초 지나면 지운다
+var traces := []  # 즉시 스킬 흔적(S179): {hero, slot, aim, at, radius, hits, marked, age}. 타임 루프 되돌림(loop)은 aim이 옛 자리이고 foe·aged가 더 있다. 정화(cleanse)·불사(saved)는 aim이 그 아군, 축복 터짐(bless)은 hero가 쏜 쪽이고 셋 다 hits가 비었다(I227). 사슬 나누기(share)는 aim이 맞은 적이고 chain이, 전염(spread)은 foes(옮은 적)가 더 있다(I226). 그리기만 읽고 1초 지나면 지운다
 var fallen := []  # 쓰러진 영웅·용병·적(S180): {who, age}. 그리기만 읽고 FALLEN초 지나면 지운다
 var _dotting := false  # 초당 피해를 주는 중. 뜬 적(S236)도 이것만은 받는다
 var missiles := []  # 날고 있거나 출발을 기다리는 투사체(Missile, S178). 웨이브가 끝나면 사라진다(I143)
@@ -2025,8 +2025,8 @@ func _cast_soul_chain(h: Unit, sk: Dictionary, aim, grow: float) -> void:
 	var others := enemies.filter(func(e): return e != aim and e.pos.distance_to(aim.pos) <= sk.radius * grow)
 	others.sort_custom(func(a, b): return a.hp > b.hp)
 	_chains += 1
-	for e in [aim] + others.slice(0, sk.links):
-		_fx(e, "vesper_e", {"chain": _chains, "share": sk.share, "spread": h.passive.radius}, sk.time)
+	for e in [aim] + others.slice(0, sk.links):  # hub(E 대상)는 그림이 사슬을 잇기 시작하는 적이다(I226 ②)
+		_fx(e, "vesper_e", {"chain": _chains, "hub": aim, "share": sk.share, "spread": h.passive.radius}, sk.time)
 	if sk.get("infect"):  # 사슬 감염(향로 +9, S264): 대상의 중독·저주를 묶인 적에게 남은 시간만큼. 더 오래 남은 같은 효과는 그대로
 		for e in others.slice(0, sk.links):
 			for src in ["vesper_q", "vesper_w"]:
@@ -2038,15 +2038,32 @@ func _cast_abyss(h: Unit, sk: Dictionary, aim, _grow: float) -> void:
 	_zone("vesper_r", h, aim, sk.radius, sk.time, {"slow": sk.slow, "burn": sk.burn})
 
 # 전염(S154 패시브): 베스퍼의 디버프(Q 중독·W 저주·E 사슬·R 늪)가 걸린 적이 죽으면 둘레 적에게 남은 시간만큼 옮긴다.
-# 더 오래 남은 같은 효과는 그대로 둔다. 사슬이 옮으면 그 적도 같은 사슬에 묶인다
+# 더 오래 남은 같은 효과는 그대로 둔다. 사슬이 옮으면 그 적도 같은 사슬에 묶인다. 한 적에게라도 옮으면 흔적 «spread»를 남긴다(I226 ④·⑤)
 func _spread(dead: Enemy) -> void:
+	var got := []
+	var reach := 0.0
 	for src in ["vesper_q", "vesper_w", "vesper_e", "vesper_r"]:
 		if not dead.fx.has(src) or not dead.fx[src].has("spread"):
 			continue
 		var v: Dictionary = dead.fx[src]
+		reach = maxf(reach, v.spread)
 		for o in enemies:
 			if not _aloft(o) and o.pos.distance_to(dead.pos) <= v.spread and (not o.fx.has(src) or o.fx[src].left < v.left):
 				o.fx[src] = v.duplicate()
+				if not o in got:
+					got.append(o)
+	if not got.is_empty():
+		_paint("spread", dead.pos, reach, {"foes": got})
+
+# 그림만 읽는 흔적(I226 ⑤): 맞은 대상(hits)이 없어 맞은 반응·소리가 없고, 지금 쓰는 스킬의 흔적(_tracing)은 건드리지 않는다. 주인은 전염을 가진 출전 영웅(베스퍼)이다
+func _paint(slot: String, at: Vector2, radius: float, more: Dictionary) -> void:
+	var by = null
+	for h in heroes:
+		if h.passive.get("id") == "contagion":
+			by = h
+	var c := {"hero": by, "slot": slot, "aim": null, "at": at, "radius": radius, "hits": [], "marked": false, "age": 0.0}
+	c.merge(more, true)
+	traces.append(c)
 
 # ── 이그니스(S156) ──
 
@@ -3202,6 +3219,8 @@ func _share(e: Enemy, amount: float, src) -> void:
 	if link == null:
 		return
 	var part: float = amount * e.fx.vesper_e.share
+	if not _dotting and part > 0.0:  # 나누기 흔적(I226 ③): 초당 피해에서 나뉜 것은 프레임마다라 남기지 않는다
+		_paint("share", e.pos, 0.0, {"aim": e, "chain": link})
 	var tr = _tracing  # 나눈 피해는 스킬에 맞은 것이 아니다(S179 2026-10-29): 흔적의 맞은 대상에 넣지 않는다
 	_tracing = null
 	for o in enemies.duplicate():
