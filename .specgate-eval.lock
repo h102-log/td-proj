@@ -1,8 +1,8 @@
 {
-  "approvedAt": "2026-11-03T08:17:38.594Z",
-  "evalMd": "c4470810",
+  "approvedAt": "2026-11-04T00:20:17.966Z",
+  "evalMd": "849c5a2b",
   "tests": {
-    "tests/eval/conftest.py": "87e388bc",
+    "tests/eval/conftest.py": "c5a92c8e",
     "tests/eval/gd/aura.gd": "010cc38a",
     "tests/eval/gd/aura.gd.uid": "40dd7bb8",
     "tests/eval/gd/boss.gd": "5ce3b68b",
@@ -17,6 +17,8 @@
     "tests/eval/gd/climb.gd.uid": "92a73d52",
     "tests/eval/gd/data.gd": "ab272414",
     "tests/eval/gd/data.gd.uid": "5a13beba",
+    "tests/eval/gd/debuff.gd": "991abea6",
+    "tests/eval/gd/debuff.gd.uid": "c967bf87",
     "tests/eval/gd/enemy.gd": "5860ac71",
     "tests/eval/gd/enemy.gd.uid": "e1e29647",
     "tests/eval/gd/engineer.gd": "8627752b",
@@ -118,6 +120,7 @@
     "tests/eval/test_church.py": "3fc2efc3",
     "tests/eval/test_climb.py": "a1347f1b",
     "tests/eval/test_data.py": "33d27efc",
+    "tests/eval/test_debuff.py": "c218fa12",
     "tests/eval/test_enemy.py": "e7f4f856",
     "tests/eval/test_engineer.py": "14f8e8c9",
     "tests/eval/test_evac.py": "ec0a00d5",
@@ -525,6 +528,7 @@
     "I222": "a6598f97",
     "S287": "5acffc1d",
     "I223": "644b5ef3",
-    "S180": "1b1e3ab9"
+    "S180": "1b1e3ab9",
+    "I101": "a1f7e63e"
   }
 }
