@@ -160,3 +160,11 @@ def test_EV640_ignis_scepter_top_steps(gd):
 
 def test_EV641_ignis_meteor_spots(gd):
     gd("gear", "EV641")
+
+
+def test_EV737_archer_accuracy_rises_with_rank(gd):
+    gd("gear", "EV737")
+
+
+def test_EV738_archer_rank_tip_shows_accuracy(gd):
+    gd("gear", "EV738")
