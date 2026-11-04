@@ -189,7 +189,7 @@ func ev442():
 		if not p.lights[i].is_equal_approx(want):
 			bad.append("%s → %s(%s)" % [l, p.lights[i], want])
 	var shader: Dictionary = {"dark": v.night.material.get_shader_parameter("dark"), "count": v.night.material.get_shader_parameter("count")}
-	var out := check(size == Vector2(960, 92 + rows * 16 + 72) and placed and not day_shown and day_count == 0
+	var out := check(size == Vector2(1024, 92 + rows * 16 + 72) and placed and not day_shown and day_count == 0
 			and v.night.visible and p.dark == 0.5 and p.count == b.lights.size() and b.lights.size() >= 4 and bad.is_empty() and shader.dark == 0.5 and shader.count == p.count,
 			"크기 %s · 자리·부모·클릭 무시 %s · 낮 보임 %s·불빛 %d · 밤 보임 %s·어둠 %.2f·불빛 %d(%d) · 셰이더 %s · 어긋난 불빛 %s" % [size, placed, day_shown, day_count, v.night.visible, p.dark, p.count, b.lights.size(), shader, bad.slice(0, 3)])
 	_done(main)

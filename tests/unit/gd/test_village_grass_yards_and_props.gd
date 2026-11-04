@@ -23,11 +23,11 @@ static func _share(img: Image, c: Vector2i, col: Color) -> float:
 func test_village_is_grass_but_roads_and_wall_road():
 	var b = Battle.new(Main.stage())
 	var img: Image = View.bake_ground(b).get_image()
-	for c in [Vector2i(13, 25), Vector2i(46, 8), Vector2i(25, 45), Vector2i(36, 15)]:  # 길·텃밭에서 먼 성 안 칸, 수로 옆 칸(46,8)
+	for c in [Vector2i(15, 27), Vector2i(48, 10), Vector2i(27, 47), Vector2i(38, 17)]:  # 길·텃밭에서 먼 성 안 칸, 수로 옆 칸(48,10)
 		if _share(img, c, Color("2d472d")) < 0.5:
 			return "성 안 %s가 풀이 아니다(풀색 %.2f)" % [c, _share(img, c, Color("2d472d"))]
-	for c in [Vector2i(20, 56), Vector2i(3, 20), Vector2i(20, 3), Vector2i(30, 15), Vector2i(15, 30), Vector2i(45, 30), Vector2i(6, 6), Vector2i(52, 50),  # 성벽 안쪽 길(남·서·북), 북·서·동 큰길, 모서리 텃밭
-			Vector2i(15, 7), Vector2i(14, 16), Vector2i(13, 41), Vector2i(47, 41), Vector2i(24, 51)]:  # 빈 블록 텃밭 다섯
+	for c in [Vector2i(22, 58), Vector2i(5, 22), Vector2i(22, 5), Vector2i(32, 17), Vector2i(17, 32), Vector2i(47, 32), Vector2i(8, 8), Vector2i(54, 52),  # 성벽 안쪽 길(남·서·북), 북·서·동 큰길, 모서리 텃밭
+			Vector2i(17, 9), Vector2i(16, 18), Vector2i(15, 43), Vector2i(49, 43), Vector2i(26, 53)]:  # 빈 블록 텃밭 다섯
 		if _share(img, c, Color("2d472d")) > 0.05:
 			return "%s가 흙이 아니다(풀색 %.2f)" % [c, _share(img, c, Color("2d472d"))]
 	return ""

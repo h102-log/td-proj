@@ -384,6 +384,18 @@ def test_EV701_war_machine_trait_line(gd):
     gd("hud", "EV701")
 
 
+def test_EV722_wall_top_lift_32(gd):
+    gd("hud", "EV722")
+
+
+def test_EV723_silhouette_rows_32(gd):
+    gd("hud", "EV723")
+
+
+def test_EV724_minimap_horizontal_scroll(gd):
+    gd("hud", "EV724")
+
+
 def test_EV742_population_chip_under_top_bar(gd):
     gd("hud", "EV742")
 

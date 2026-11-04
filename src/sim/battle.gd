@@ -554,7 +554,7 @@ func restart() -> void:
 	for kind in ["castle_wall", "gate"]:  # 크기(S217)가 없으면 칸 하나다. 성벽은 열마다, 성문은 문마다 Block 하나
 		for c in fort.get("walls" if kind == "castle_wall" else "gates", []):
 			var k := Block.new(c, kind, fort.wall_hp if kind == "castle_wall" else fort.gate_hp)
-			k.size = fort.get("wall_size" if kind == "castle_wall" else "gate_size", Vector2i.ONE)
+			k.size = fort.get("wall_size", Vector2i.ONE) if kind == "castle_wall" else gate_size(fort, c)
 			_put(castle, walls, k)
 	for c in fort.get("side_walls", []):  # 사방 성곽의 동·서 성벽은 행마다 Block 하나(S217 2026-10-26 둘째 변경)
 		var k := Block.new(c, "castle_wall", fort.wall_hp)
@@ -1121,6 +1121,10 @@ func _hp_mult() -> float:
 	var m: Array = _stage.get("hp_mult", [])
 	return m[round_index] if round_index < m.size() else 1.0
 
+# 성문 c의 크기(S217): 동·서 닫힌 문루(side_gates)는 side_gate_size, 그 밖은 gate_size다(2026-11-03 변경, 문루는 성곽 두께만큼 깊다). 없으면 칸 하나
+static func gate_size(fort: Dictionary, c: Vector2i) -> Vector2i:
+	return fort.get("side_gate_size", Vector2i.ONE) if c in fort.get("side_gates", []) else fort.get("gate_size", Vector2i.ONE)
+
 # GATE_SPLIT_ROUND부터 그 칸에서 가장 가까운(직선 거리) 성문 칸. 거리가 같으면 성문 목록에서 앞선 것이다. 그 전이거나 성문이 없으면 null(S143)
 func _gate_of(cell: Vector2i):
 	if round_index + 1 < GATE_SPLIT_ROUND:
@@ -1129,7 +1133,7 @@ func _gate_of(cell: Vector2i):
 	var best = null
 	var best_d := INF
 	for g in fort.get("gates", []):  # 거리는 문루에서 가장 가까운 칸까지(S217). 칸 하나인 문은 그 칸이다
-		var r := area_at(g, fort.get("gate_size", Vector2i.ONE))
+		var r := area_at(g, gate_size(fort, g))
 		var d := Vector2(cell).distance_to(Vector2(cell).clamp(Vector2(r.position), Vector2(r.end - Vector2i.ONE)))
 		if d < best_d:
 			best = g
@@ -1143,7 +1147,7 @@ func _via_of(cell: Vector2i, lad: bool):
 	if best == null or not lad:
 		return best
 	var fort: Dictionary = _stage.get("castle", {})
-	var r := area_at(best, fort.get("gate_size", Vector2i.ONE))
+	var r := area_at(best, gate_size(fort, best))
 	var best_d := Vector2(cell).distance_to(Vector2(cell).clamp(Vector2(r.position), Vector2(r.end - Vector2i.ONE)))
 	for t in _laid():
 		var d := Vector2(cell).distance_to(nearest(t.col, Vector2(cell)))

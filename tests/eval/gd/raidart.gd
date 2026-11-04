@@ -512,7 +512,7 @@ func ev707():
 		return "BattleView에 _ladder(탑, 자란 비율)가 없다"
 	var area: Rect2i = b.area_of(col)
 	var mid: float = (area.position.x + area.size.x / 2.0) * CELL_PX
-	var top: float = area.position.y * CELL_PX - (3 + 24 - 8 + View.rise_at(b, col.cell))
+	var top: float = area.position.y * CELL_PX - (3 + View.WALL_H - 8 + View.rise_at(b, col.cell))
 	var bottom: float = v._spot(t).y - 59
 	var bad := []
 	t.col = col

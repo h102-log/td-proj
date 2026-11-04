@@ -35,14 +35,14 @@ const POSE := {"farmer": "hoe", "gleaner": "squat", "herbalist": "squat", "washe
 	"merchant": "stir", "brewer": "stir", "baker": "stir", "innkeeper": "stir", "priest": "stir",
 	"water_carrier": "carry_water", "porter": "carry_sack", "miller": "carry_sack", "midwife": "carry_basket",
 	"watchman": "carry_lantern", "goose_herd": "carry_stick", "play": "walk"}
-# 시험 스테이지 일터 자리(I182 ⑦). ponytail: 지금 판(main.gd stage) 하나의 칸 값이다. 판이 늘면 _plan처럼 거점 기준 상대값으로 옮긴다
-const MILL := [Vector2i(45, 5), Vector2i(45, 6)]  # 수로 위 물레방아(방앗간 지붕, 바퀴)
-const OVEN := [Vector2i(25, 28)]  # 광장 서북쪽 공동 화덕
-const STALLS := [Vector2i(25, 33), Vector2i(35, 28)]  # 광장 좌판 둘
-const FISH_SPOTS := [[Vector2i(43, 14), 0], [Vector2i(50, 17), 1], [Vector2i(44, 8), 0], [Vector2i(46, 8), 1]]  # 물가 낚시 자리 [칸, 보는 쪽 0 동·1 서]
-const WASH_SPOTS := [Vector2i(43, 16), Vector2i(43, 17)]  # 연못 서쪽 빨래 판석
-const WATCH_RING := [Vector2i(18, 21), Vector2i(42, 21), Vector2i(42, 38), Vector2i(18, 38)]  # 야경꾼 길: 안 고리 직사각형 꼭짓점
-const POND_RING := [Vector2i(43, 12), Vector2i(50, 12), Vector2i(50, 20), Vector2i(43, 20)]  # 거위 지기 길: 연못 둘레
+# 시험 스테이지 일터 자리(I182 ⑦). ponytail: 지금 판(main.gd stage) 하나의 칸 값이다. 판이 늘면 _plan처럼 거점 기준 상대값으로 옮긴다 마을이 (5,5)부터라 옛 칸에 (+2, +2)를 더한 값이다(S217 2026-11-03 변경)
+const MILL := [Vector2i(47, 7), Vector2i(47, 8)]  # 수로 위 물레방아(방앗간 지붕, 바퀴)
+const OVEN := [Vector2i(27, 30)]  # 광장 서북쪽 공동 화덕
+const STALLS := [Vector2i(27, 35), Vector2i(37, 30)]  # 광장 좌판 둘
+const FISH_SPOTS := [[Vector2i(45, 16), 0], [Vector2i(52, 19), 1], [Vector2i(46, 10), 0], [Vector2i(48, 10), 1]]  # 물가 낚시 자리 [칸, 보는 쪽 0 동·1 서]
+const WASH_SPOTS := [Vector2i(45, 18), Vector2i(45, 19)]  # 연못 서쪽 빨래 판석
+const WATCH_RING := [Vector2i(20, 23), Vector2i(44, 23), Vector2i(44, 40), Vector2i(20, 40)]  # 야경꾼 길: 안 고리 직사각형 꼭짓점
+const POND_RING := [Vector2i(45, 14), Vector2i(52, 14), Vector2i(52, 22), Vector2i(45, 22)]  # 거위 지기 길: 연못 둘레
 const NONE := Vector2i(-1, -1)
 
 # t초 때 주민 위치(칸 단위, folk_of 차례). 집 안(chores의 inside)인 주민은 문 칸에 둔다

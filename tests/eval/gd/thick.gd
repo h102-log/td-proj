@@ -35,29 +35,29 @@ func _start(b):
 			b.damage(x, BIG)
 	return idle
 
-# EV453 · S217: 시험 스테이지(사방 성곽)의 성곽은 남·북 성벽 열 114개(1×3, 칸 59·2행), 동·서 성벽 행 102개(3×1, 칸 0·57열, 3~56행에서 29~31행 뺌),
-# 문루 넷(3×3)이고 차지 칸 684개가 서로 겹치지 않는다. 맵 60 × (60 + 들판 줄 수 FIELD_ROWS), 들판 첫 줄 60, 마을 (3,3)부터 54×54, 거점 (30,30)
+# EV453 · S217: 시험 스테이지(사방 다섯 줄 성곽, S217 2026-11-03 변경)의 성곽은 남·북 성벽 열 122개(1×5, 칸 63·4행), 동·서 성벽 행 102개(5×1, 칸 0·59열, 5~58행에서 31~33행 뺌),
+# 문루 넷(남·북 3×5, 동·서 5×3)이고 차지 칸 1,180개가 서로 겹치지 않는다. 맵 64 × (64 + 들판 줄 수 FIELD_ROWS), 들판 첫 줄 64, 마을 (5,5)부터 54×54, 거점 (32,32)
 func ev453():
 	var b = load("res://src/sim/battle.gd").new(Main.stage())
-	var cols: Array = b.castle.values().filter(func(k): return k.kind == "castle_wall" and k.size == Vector2i(1, 3))
-	var rows: Array = b.castle.values().filter(func(k): return k.kind == "castle_wall" and k.size == Vector2i(3, 1))
+	var cols: Array = b.castle.values().filter(func(k): return k.kind == "castle_wall" and k.size == Vector2i(1, 5))
+	var rows: Array = b.castle.values().filter(func(k): return k.kind == "castle_wall" and k.size == Vector2i(5, 1))
 	var gates: Array = b.castle.values().filter(func(k): return k.kind == "gate")
-	if cols.size() != 114 or rows.size() != 102 or gates.size() != 4 or b.castle.size() != 220 or b.walls.size() != 684:
-		return "성벽 열 %d·행 %d·문루 %d·Block %d·차지 칸 %d다(114·102·4·220·684여야 한다)" % [cols.size(), rows.size(), gates.size(), b.castle.size(), b.walls.size()]
-	if not cols.all(func(k): return k.cell.y in [2, 59]) or not rows.all(func(k): return k.cell.x in [0, 57] and k.cell.y >= 3 and k.cell.y <= 56 and (k.cell.y < 29 or k.cell.y > 31)):
+	if cols.size() != 122 or rows.size() != 102 or gates.size() != 4 or b.castle.size() != 228 or b.walls.size() != 1180:
+		return "성벽 열 %d·행 %d·문루 %d·Block %d·차지 칸 %d다(122·102·4·228·1180이어야 한다)" % [cols.size(), rows.size(), gates.size(), b.castle.size(), b.walls.size()]
+	if not cols.all(func(k): return k.cell.y in [4, 63]) or not rows.all(func(k): return k.cell.x in [0, 59] and k.cell.y >= 5 and k.cell.y <= 58 and (k.cell.y < 31 or k.cell.y > 33)):
 		return "성벽 열·행의 칸이 틀렸다"
-	if gates.map(func(k): return k.cell) != [Vector2i(29, 59), Vector2i(29, 2), Vector2i(0, 31), Vector2i(57, 31)] or not gates.all(func(k): return k.size == Vector2i(3, 3)):
+	if gates.map(func(k): return k.cell) != [Vector2i(31, 63), Vector2i(31, 4), Vector2i(0, 33), Vector2i(59, 33)] or gates.map(func(k): return k.size) != [Vector2i(3, 5), Vector2i(3, 5), Vector2i(5, 3), Vector2i(5, 3)]:
 		return "문루가 %s다" % [gates.map(func(k): return [k.cell, k.size])]
 	var area := 0
 	for k in b.castle.values():
 		area += k.size.x * k.size.y
 	if area != b.walls.size():
 		return "차지 칸이 겹친다(크기 합 %d · 차지 칸 %d)" % [area, b.walls.size()]
-	for pair in [[Vector2i(1, 10), Vector2i(0, 10)], [Vector2i(2, 10), Vector2i(0, 10)], [Vector2i(0, 0), Vector2i(0, 2)], [Vector2i(58, 57), Vector2i(58, 59)],
-			[Vector2i(30, 1), Vector2i(29, 2)], [Vector2i(59, 30), Vector2i(57, 31)], [Vector2i(10, 57), Vector2i(10, 59)]]:
+	for pair in [[Vector2i(2, 12), Vector2i(0, 12)], [Vector2i(4, 12), Vector2i(0, 12)], [Vector2i(0, 0), Vector2i(0, 4)], [Vector2i(61, 59), Vector2i(61, 63)],
+			[Vector2i(32, 2), Vector2i(31, 4)], [Vector2i(63, 32), Vector2i(59, 33)], [Vector2i(12, 59), Vector2i(12, 63)]]:
 		if b.walls.get(pair[0]) != b.castle.get(pair[1]) or b.grid.block_at(pair[0]) != b.castle.get(pair[1]):
 			return "%s가 %s의 Block이 아니다" % pair
-	return check(b.size == Vector2i(60, 60 + Main.FIELD_ROWS) and b.field_y == 60 and b.village == Rect2i(3, 3, 54, 54) and b.base.cell == Vector2i(30, 30),
+	return check(b.size == Vector2i(64, 64 + Main.FIELD_ROWS) and b.field_y == 64 and b.village == Rect2i(5, 5, 54, 54) and b.base.cell == Vector2i(32, 32),
 		"맵 %s·들판 첫 줄 %d·마을 %s·거점 %s다" % [b.size, b.field_y, b.village, b.base.cell])
 
 # EV454 · S217: 열린 문루는 아홉 칸이 모두 지나갈 수 있고, 뒤 줄에 적이 서 있으면 닫히지 않는다
@@ -176,35 +176,35 @@ func ev464():
 	b.next_round()
 	if b.state != "prep":
 		return "준비 단계가 아니다(%s)" % b.state
-	for c in [Vector2i(29, 2), Vector2i(0, 31), Vector2i(57, 31)]:
+	for c in [Vector2i(31, 4), Vector2i(0, 33), Vector2i(59, 33)]:
 		var g = b.castle.get(c)
 		if g == null or g.kind != "gate":
 			return "%s가 문루가 아니다" % c
 		b.set_gate(g, true)
 		if g.open:
 			return "닫힌 문루 %s가 열렸다" % c
-	var main_gate = b.castle[Vector2i(29, 59)]
+	var main_gate = b.castle[Vector2i(31, 63)]
 	b.set_gate(main_gate, true)
 	return check(main_gate.open, "정문 문루가 열리지 않았다")
 
-# EV465 · S217: 시험 스테이지 전투 단계에 마을 (20,40)의 병사를 북쪽 성벽 위 (10,1)로 보내면 90초 안에 성벽 위로 닿고,
-# 이어 서쪽 성벽 위 (1,20)으로 보내면 90초 안에 성벽 위로 닿는다(사방 성벽 위 고리)
+# EV465 · S217: 시험 스테이지 전투 단계에 마을 (22,42)의 병사를 북쪽 성벽 위 (12,2)로 보내면 90초 안에 성벽 위로 닿고,
+# 이어 서쪽 성벽 위 (2,22)로 보내면 90초 안에 성벽 위로 닿는다(사방 성벽 위 고리)
 func ev465():
 	var b = _square_battle()
-	var m = b.place_merc("soldier", Vector2i(20, 40))
+	var m = b.place_merc("soldier", Vector2i(22, 42))
 	if m == null:
-		return "병사를 마을 (20,40)에 두지 못했다"
+		return "병사를 마을 (22,42)에 두지 못했다"
 	b.start_battle()
 	run(b, 5.0, func(): return not b.enemies.is_empty())
 	var idle = b.spawn_enemy("basic", Vector2i(0, 92), {"speed": 0, "sight": 0, "damage": 0})
 	for x in b.enemies.duplicate():
 		if x != idle:
 			b.damage(x, BIG)
-	b.order_move([m], Vector2i(10, 1))
-	if not run(b, 90.0, func(): return m.on_wall and near(m.pos, Vector2i(10, 1))):
-		return "병사가 북쪽 성벽 위 (10,1)에 닿지 못했다(%s, 성벽 위 %s)" % [m.pos, m.on_wall]
-	b.order_move([m], Vector2i(1, 20))
-	return check(run(b, 90.0, func(): return m.on_wall and near(m.pos, Vector2i(1, 20))), "병사가 서쪽 성벽 위 (1,20)에 닿지 못했다(%s, 성벽 위 %s)" % [m.pos, m.on_wall])
+	b.order_move([m], Vector2i(12, 2))
+	if not run(b, 90.0, func(): return m.on_wall and near(m.pos, Vector2i(12, 2))):
+		return "병사가 북쪽 성벽 위 (12,2)에 닿지 못했다(%s, 성벽 위 %s)" % [m.pos, m.on_wall]
+	b.order_move([m], Vector2i(2, 22))
+	return check(run(b, 90.0, func(): return m.on_wall and near(m.pos, Vector2i(2, 22))), "병사가 서쪽 성벽 위 (2,22)에 닿지 못했다(%s, 성벽 위 %s)" % [m.pos, m.on_wall])
 
 # 성곽 조각·발밑·몸통·장판을 그리는 대신 부른 차례를 모으는 화면
 class Rec extends "res://src/ui/battle_view.gd":
@@ -364,7 +364,7 @@ func ev575():
 	var v = BV.new()
 	v.battle = b
 	var whole: Array = v.tunnel_patch()
-	b.damage(b.castle[Vector2i(29, 59)], BIG)
+	b.damage(b.castle[Vector2i(31, 63)], BIG)
 	var broken: Array = v.tunnel_patch()
 	v.free()
 	if not whole.is_empty() or broken.size() != 2 or not broken[0] is Texture2D:
@@ -374,3 +374,35 @@ func ev575():
 	var lit: float = img.get_pixel(img.get_width() / 2, img.get_height() - 1).get_luminance()
 	var dark: float = ground.get_pixel(at.x, at.y).get_luminance()
 	return check(lit >= dark + 0.02, "조각 맨 아랫줄 가운데 밝기 %.3f · 바닥 %s 밝기 %.3f" % [lit, at, dark])
+
+# EV720 · S217 2026-11-03: 시험 스테이지 남벽 12열 다섯 칸 (12, 59..63)에 대포를 하나씩 짓는다. 정문 문루 (31,63)을 열면 열다섯 칸이 비고,
+# 문루 맨 뒷줄 (32,59)에 적이 서 있으면 닫히지 않는다
+func ev720():
+	var b = _square_battle()
+	b.gold = BIG
+	for y in range(59, 64):
+		if b.build("cannon", Vector2i(12, y)) == null:
+			return "남벽 (12,%d)에 대포를 짓지 못했다" % y
+	var g = b.castle.get(Vector2i(31, 63))
+	if g == null or g.kind != "gate":
+		return "(31,63)이 정문 문루가 아니다(%s)" % g
+	b.set_gate(g, true)
+	for y in range(59, 64):
+		for x in range(31, 34):
+			if b.grid.block_at(Vector2i(x, y)) != null:
+				return "열린 문루 (%d,%d)가 막혔다" % [x, y]
+	b.spawn_enemy("basic", Vector2i(32, 59), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})  # 문루 맨 뒷줄(마을 쪽)
+	b.set_gate(g, false)
+	return check(g.open, "문루 맨 뒷줄 (32,59)에 적이 서 있는데 성문이 닫혔다")
+
+# EV721 · S203 2026-11-03: 시험 스테이지의 출현·출전·시작 공병 칸과 거점에서 출현 줄까지의 거리(31 + FIELD_ROWS)
+func ev721():
+	var st: Dictionary = Main.stage()
+	var f: int = Main.FIELD_ROWS
+	var want := {"spawns": [Vector2i(11, 63 + f), Vector2i(32, 63 + f), Vector2i(52, 63 + f)], "spawn_spread": 10,
+		"hero_cells": [Vector2i(31, 65), Vector2i(33, 65), Vector2i(32, 65)], "engineer_cells": [Vector2i(32, 33), Vector2i(30, 65)]}
+	for k in want:
+		if st[k] != want[k]:
+			return "%s가 %s다(%s여야 한다)" % [k, st[k], want[k]]
+	var gap: int = st.spawns[0].y - st.base.y
+	return check(gap == 31 + f, "거점 %s에서 출현 줄 %d까지 %d줄이다(%d여야 한다)" % [st.base, st.spawns[0].y, gap, 31 + f])

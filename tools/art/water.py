@@ -8,8 +8,8 @@ import numpy as np
 from PIL import Image
 
 ART = Path(__file__).resolve().parents[2] / "art"
-X0, Y0, W, H = 672, 0, 160, 340  # 덮개 영역(맵 px)
-CX0, CY0, CW, CH = 712, 16, 32, 34  # 수문 덮개 영역
+X0, Y0, W, H = 672, 0, 160, 340  # 덮개 영역(옛 마을 (3,3) 기준 맵 px. 게임은 battle_view.gd WATER_AT로 옮겨 깐다)
+CX0, CY0, CW, CH = 712, 16, 32, 34  # 수문 덮개 영역(옛 맵 px. 게임은 battle_view.gd CULVERT_AT)
 PAL = {"deep": "183f39", "base": "276468", "light": "3c9f9c", "spark": "a4aec2"}
 STONE = {"hi": "7a86a0", "mid": "56607a", "lo": "3a4357", "edge": "151a26"}
 WOOD = {"hi": "a56243", "mid": "773421", "lo": "45230d"}

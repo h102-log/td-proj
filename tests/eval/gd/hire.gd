@@ -261,7 +261,7 @@ func ev201():
 # EV202 · I107: 시험 스테이지의 출전 칸은 정문 문루 앞 (29,61)·(31,61)·(30,61)이고, 영웅은 보유 순서대로 서며, 출전 칸에는 짓지 못한다
 func ev202():
 	var cells: Array = load("res://src/main.gd").stage().get("hero_cells", [])
-	if cells != [Vector2i(29, 61), Vector2i(31, 61), Vector2i(30, 61)]:
+	if cells != [Vector2i(31, 65), Vector2i(33, 65), Vector2i(32, 65)]:
 		return "출전 칸이 %s다" % [cells]
 	var b = _main()
 	b.begin_hiring()
