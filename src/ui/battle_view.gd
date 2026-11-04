@@ -59,7 +59,16 @@ const EMBER := ["gold", "orange", "red", "blood"]  # 불티가 식는 차례
 const ZONE_OPEN := 0.2  # 장판이 펼쳐지는 시간(초, 4.1s)
 const ZONE_CLOSE := 0.3  # 장판이 사라지며 줄어드는 시간(초, 4.1s)
 const BOOM_STEP := 4.0 / 60.0  # 폭발 조각 한 프레임(초). Saint11 예시 80ms에 가깝게(vfx_research/02)
-const FLAMES := 7  # 불길 장판의 불꽃 조각 수. 시안 C의 9개가 고블린을 가렸다(Gemini 고칠 점 2)
+# 이그니스(I229, fx-11). 값은 시안 값이다(insights/2026-11-04_ignis_new_fx.md)
+const WALL_GAP := 9.0  # 불길 장판 경계 안쪽 불꽃 줄의 불꽃 사이(아트 px)
+const ICE_FLASH := 0.1  # 서리 고리를 쓴 뒤 빙결한 적의 얼음 테가 크림인 시간(초)
+const FLOWER_GROW := 0.2  # 서리꽃이 반경까지 뻗는 시간(초)
+const FLOWER_COOL := 1.0  # 서리꽃이 밝은 얼음에서 어두운 얼음으로 식는 시간(초)
+const HOLE_CORE := 0.28  # 블랙홀 검은 심 반지름(반경에 곱한다)
+const STREAKS := 4  # 블랙홀에 감겨 드는 줄 수
+const STREAK_STEPS := 12  # 감겨 드는 줄 하나의 마디 수
+const SUCK_FLAMES := 6  # 불타는 블랙홀의 줄을 따라 빨려 드는 불꽃 수
+const OVERLOAD_RING := 9  # 과부하 차례에 발 둘레 고리 반지름(아트 px)
 # 아이아스·실비아(fx-2). 시간은 초다
 const SWEEP := 0.18  # 방패 강타 베기가 반경까지 퍼지는 시간. 그 뒤 FX까지 가는 호가 남는다
 const CRY_ECHO := 0.08  # 전장의 포효 둘째 충격파가 늦게 나오는 시간
@@ -431,6 +440,7 @@ func _draw() -> void:
 	_chrono_marks()
 	_sera_marks()
 	_mire_marks()
+	_ignis_marks()
 	for u in battle.units:
 		var at := _spot(u) + _slip(u)  # 넉백으로 미끄러지는 몸을 테두리·숫자가 따라간다(S198)
 		if u.is_hero:  # 영웅 레벨(I117): 오른쪽 위에 작게
@@ -638,7 +648,7 @@ func missed(c) -> bool:
 	return _skill(c) in MISSABLE and c.hits.is_empty() and not c.marked
 
 # 즉시 스킬 흔적(S179): 쓴 뒤 영웅 색으로. 범위 스킬은 반경까지 퍼지는 고리, 방향·대상 스킬은 영웅에서 잇는 선이다.
-# 이그니스의 화염구 작렬·운석 착탄·서리 고리는 단계 있는 폭발·결정이다(4.1s fx-1). 실비아는 바람이다(fx-2). 아이아스는 밀려 나가는 방패·베기·충격파·팔각 충격파·공명 고리다(I228).
+# 이그니스의 화염구 작렬·운석 착탄은 단계 있는 폭발, 서리 고리는 결정과 서리꽃이다(4.1s fx-1, I229). 실비아는 바람이다(fx-2). 아이아스는 밀려 나가는 방패·베기·충격파·팔각 충격파·공명 고리다(I228).
 # 세라피나는 빛 구슬이 건너가는 빛줄기·날개·빛기둥과, 정화 빛 점·불사 깃털·축복 터짐 조각이다(fx-3, I227). 베스퍼는 조여드는 검은 연기 고리·사슬 거는 줄·전염 고리와 해골이다(I226). 크로노스는 금 번개 줄(fx-4)과, 노화의 모래빛 점선 테·모래시계, 되돌림의 조여드는 얼음 고리·잔상이다(I199 2026-11-04 변경).
 # 보스 스킬 흔적은 예고색 램프 고리다(S198). 모두 아트 px로 그리고, 적을 노린 스킬이 아무도 못 맞혔으면 MISS_FADE로 그린다(S179 2026-10-29).
 # top이 아니면 몸통 아래 층(폭발 연기·운석 그림자·포효 먼지·밀린 적 흙먼지·터뜨림 균열·요새화 돌담·꽂힌 화살·천사 날개·되돌림 잔상·되돌아갈 자리)만 그린다. 떨어지는 운석·화살과 영혼 사슬도 그린다. 무엇을 어디에 썼는지는 시뮬레이션이 남긴 흔적(traces)이 준다
@@ -895,34 +905,53 @@ func _boom(c: Vector2i, rad: float, t: float, seed: int, big: bool, top: bool) -
 			var v := 70.0 + 50.0 * _hf(seed, i + 61)
 			_spr("rock", i, c + Vector2i(Vector2(dir.x * v * t, dir.y * v * t + 160.0 * t * t)))
 
-# 서리 고리(4.1s): 앞 0.25초 고리(굵기 2 → 1, 얼음 램프) + 고리 자리에 솟는 얼음 결정 10개(자람 · 다 자람 · 금 감) + 반짝이
+# 서리 고리(4.1s, I229 ④): 앞 0.25초 고리(굵기 2 → 1, 얼음 램프) + 바닥 서리꽃(지점에서 반경 0.95배까지 FLOWER_GROW초에 뻗는 여섯 갈래,
+# 갈래마다 반경 0.45·0.7배 자리에 양쪽 잔가지, FLOWER_COOL초에 걸쳐 밝은 얼음 → 어두운 얼음) + 고리 자리에 솟는 얼음 결정 10개(자람 · 다 자람 · 금 감)
 func _frost(c: Vector2i, rad: float, t: float, seed: int) -> void:
 	if t < 0.25:
 		var k := t / 0.25
 		_pring(c, int(rad * (0.2 + 0.9 * _pow3(k))), 2 if k < 0.5 else 1, _ramp(["ice0", "ice1", "ice2"], k))
+	if t < FLOWER_COOL:
+		var grow := _pow3(t / FLOWER_GROW)
+		var col := _ramp(["ice0", "ice0", "ice1", "ice2"], t / FLOWER_COOL)
+		for i in 6:
+			var a := TAU * i / 6.0 + _hf(seed, 0) * TAU
+			var d := Vector2.from_angle(a)
+			_pline(c, c + Vector2i((d * rad * 0.95 * grow).round()), col)
+			for j in 2:
+				var at := d * rad * (0.45 + 0.25 * j) * grow
+				for sgn: float in [-1.0, 1.0]:
+					_pline(c + Vector2i(at.round()), c + Vector2i((at + Vector2.from_angle(a + sgn * 0.7) * 5.0 * grow).round()), col)
 	for i in 10:
 		var k := (t - 0.06 - 0.12 * _hf(seed, i)) / 0.55
 		if k >= 0.0 and k < 1.0:
 			var p := c + Vector2i(Vector2.from_angle(TAU * i / 10.0 + _hf(seed, i + 30) * 0.5) * rad * (0.8 + 0.2 * _hf(seed, i + 31)))
 			_spr("shard", 0 if k < 0.15 else (1 if k < 0.7 else 2), p, true)
-	if t < 0.6:
-		for i in 6:
-			if posmod(int(t * 30.0) + i, 3) == 0:
-				_px(c + Vector2i(Vector2.from_angle(_hf(seed, i + 50) * TAU) * rad * _hf(seed, i + 51)), PX.ice0)
 
-# 떨어지는 운석(4.1s): 몸통 아래 층은 땅 그림자(성긴 칠이 짙어지고 커짐)와 떨어질 자리 점선, 위 층은 꼬리와 운석 조각
+# 떨어지는 운석(4.1s, I229 ⑥): 몸통 아래 층은 땅 그림자(성긴 칠이 짙어지고 커짐), 위 층은 꼬리 여덟과 불 원판(빨강 4 · 주황 3 · 금 2px) 위의 운석 조각.
+# 떨어질 자리는 _meteor_tell이 그린다
 func _fall(z: Dictionary, d: float, top: bool) -> void:
 	var k := 1.0 - d / FALL
 	var g := Vector2i(_center(z.pos).floor())
 	if not top:
 		_pnoise(g, 2 + int(6.0 * k), PX.soot, 4 + int(8.0 * k))
-		_pring(g, int(CELL * z.radius), 1, PX.orange, 2)
 		return
 	var dir := Vector2(0.5, -1.0).normalized()
 	var p := g + Vector2i(Vector2(0.5, -1.0) * 80.0 * d / FALL)
-	for i in range(5, 0, -1):  # 꼬리: 뒤로 갈수록 작고 어둡다
-		_pdisc(p + Vector2i(dir * i * 4.0), maxi(2 - i / 2, 0), _ramp(["orange", "red", "blood", "smoke", "dark"], i / 5.0))
+	for i in range(8, 0, -1):  # 꼬리: 뒤로 갈수록 작고 어둡다
+		_pdisc(p + Vector2i(dir * i * 4.0), maxi(3 - i / 2, 0), _ramp(["orange", "red", "blood", "smoke", "dark"], i / 8.0))
+	_pdisc(p, 4, PX.red)
+	_pdisc(p, 3, PX.orange)
+	_pdisc(p - Vector2i(1, 1), 2, PX.gold)
 	_spr("meteor", int(clock * 12.0), p)
+
+# 아직 떨어지지 않은 운석 자리(I229 ⑥, 몸통 아래 층): 반경 자리를 도는 주황 점선 테 + 가운데에서 차오르는 주황 칠(3/16, 반지름 = 반경 × 지연이 지나간 몫)
+func _meteor_tell(z: Dictionary) -> void:
+	var g := Vector2i(_center(z.pos).floor())
+	var r := int(CELL * z.radius)
+	var k: float = 1.0 - z.delay / z.fall if z.get("fall", 0.0) > 0.0 else 0.0
+	_pring(g, r, 1, PX.orange, 3, clock * 2.0)
+	_pnoise(g, maxi(int(r * k), 1), PX.orange, 3, 1)
 
 # 스킬에 맞은 적마다 작은 섬광(fx-2, 방패 강타·관통의 바람살): spark 3프레임. 숨은 적(S213)에는 그리지 않는다
 func _sparks(hits: Array, t: float) -> void:
@@ -1495,7 +1524,7 @@ func _chrono_marks() -> void:
 
 # 장판(I101, S168, 4.1s): 처음 본 때부터 ZONE_OPEN초에 펼쳐지고 마지막 ZONE_CLOSE초에 줄어든다. 판정 경계는 밝은 1px + 바깥 어두운 1px이고,
 # 같은 종류 장판끼리 겹친 곳은 빼서 바깥 테두리만 남는다. 장판은 모두 무늬 대신 재질이다(이그니스 4.1s, 실비아 fx-2, 세라피나·베스퍼 fx-3, 크로노스 fx-4, S168).
-# 떨어지는 중인 운석은 _fall, 절대 방어선 둘레는 _capsule, 바람의 길(실비아 R)은 _path_zone이 그린다
+# 떨어지는 중인 운석은 _fall, 아직 안 떨어진 운석 자리는 _meteor_tell, 절대 방어선 둘레는 _capsule, 바람의 길(실비아 R)은 _path_zone이 그린다
 func _zones() -> void:
 	_zone_t0 = _zone_t0.filter(func(e): return battle.zones.any(func(z): return is_same(z, e[0])))
 	var caps := false
@@ -1511,6 +1540,8 @@ func _zones() -> void:
 				_path_zone(z, _zone_age(z))
 			continue
 		if z.get("delay", 0.0) > 0.0:
+			if z.src == "ignis_r":
+				_meteor_tell(z)
 			continue
 		var age := _zone_age(z)
 		var r := zone_r(z, age)
@@ -1524,13 +1555,9 @@ func _zones() -> void:
 				others.append([_center(o.pos), CELL * o.radius])
 		match z.src:
 			"ignis_q":
-				_fire_zone(c, r, seed, others)
+				_fire_zone(c, r, seed, others, _in_lit_hole(z.pos))
 			"ignis_e":
-				_hole_zone(c, r, age, seed, others)
-				if z.has("lit"):  # 불타는 블랙홀(S250): 소용돌이 위에 불길 장판의 불꽃 조각과 붉은 테두리
-					for i in FLAMES:
-						_spr("flame", int(clock * 10.0) + i * 3, c + Vector2i(Vector2.from_angle(_hf(seed, i) * TAU) * sqrt(_hf(seed, i + 50)) * (r - 4)), true)
-					_edge(c, r, PX.red, PX.soot, others)
+				_hole_zone(c, r, age, seed, others, z.has("lit"))  # 불타는 블랙홀(S250, I229 ⑤)
 			"ignis_r":
 				_lava_zone(c, r, z.left, seed, others)
 			"sylvia_w":
@@ -1649,31 +1676,53 @@ func _zone_age(z) -> float:
 	_zone_t0.append([z, clock])
 	return 0.0
 
-# 불길(이그니스 Q): 그을린 땅(성긴 칠) + 일렁이는 불꽃 조각 + 떠오르는 불티
-func _fire_zone(c: Vector2i, r: int, seed: int, others: Array) -> void:
-	_pnoise(c, r - 1, PX.dark, 4, posmod(seed, 4))
-	for i in FLAMES:
-		_spr("flame", int(clock * 10.0) + i * 3, c + Vector2i(Vector2.from_angle(_hf(seed, i) * TAU) * sqrt(_hf(seed, i + 50)) * (r - 4)), true)
-	for i in 5:
-		var ph := fmod(clock + _hf(seed, i + 90) * 0.7, 0.7) / 0.7
-		var p := c + Vector2i(Vector2.from_angle(_hf(seed, i + 70) * TAU) * _hf(seed, i + 80) * (r - 3)) + Vector2i(0, -int(12.0 * ph))
-		draw_rect(Rect2(Vector2(p), Vector2.ONE), _ramp(EMBER, ph))
+# 불길(이그니스 Q, I229 ③): 판정 경계 안쪽 3px 고리를 따라 WALL_GAP px마다 선 불꽃 줄(셋에 하나는 큰 불꽃) + 가운데 깜박이는 빨강·그을음 칠 1/16 +
+# 떠오르는 불티 넷. bare(불타는 블랙홀 안)면 가운데 칠과 불티를 뺀다(블랙홀 칠과 섞여 탁해진다, 시안 fx-11)
+func _fire_zone(c: Vector2i, r: int, seed: int, others: Array, bare := false) -> void:
+	if not bare:
+		_pnoise(c, r - 3, PX.red, 1, posmod(seed + int(clock * 5.0), 4))
+		_pnoise(c, r - 3, PX.soot, 1, posmod(seed + 2, 4))
+	var n := maxi(int(TAU * (r - 3) / WALL_GAP), 6)
+	for i in n:
+		var p := c + Vector2i((Vector2.from_angle(TAU * i / n + _hf(seed, i) * 0.2) * (r - 3)).round())
+		_spr("flame" if i % 3 == 0 else "flame_s", int(clock * 10.0) + i, p + Vector2i(0, 2), true)
+	if not bare:
+		for i in 4:
+			var ph := fmod(clock + _hf(seed, i + 90) * 0.7, 0.7) / 0.7
+			var p := c + Vector2i(Vector2.from_angle(_hf(seed, i + 70) * TAU) * _hf(seed, i + 80) * (r - 6)) + Vector2i(0, -int(10.0 * ph))
+			_px(p, _ramp(EMBER, ph))
 	_edge(c, r, PX.orange, PX.soot, others)
 
-# 블랙홀(이그니스 E): 보라 성긴 칠 세 겹(바깥이 성기고 심은 꽉 참) + 안으로 말려 드는 조각(다섯은 돌) + 가운데 소용돌이 눈
-func _hole_zone(c: Vector2i, r: int, age: float, seed: int, others: Array) -> void:
-	_pnoise(c, r, PX.vio4, 4, posmod(seed, 4))
-	_pnoise(c, int(r * 0.62), PX.vio3, 8, posmod(seed + 1, 4))
-	_pdisc(c, int(r * 0.3), PX.night)
-	for i in 20:
-		var ph := fmod(age * 0.8 + _hf(seed, i), 1.0)
-		var p := c + Vector2i(Vector2.from_angle(_hf(seed, i + 30) * TAU + ph * 3.2 + age * 0.6) * r * (1.0 - _pow3(ph)))
-		if i % 4 == 0:
-			_spr("rock", i, p)
-		else:
-			draw_rect(Rect2(Vector2(p), Vector2.ONE), PX.vio0 if ph > 0.7 else PX.vio1)
-	_spr("eye", int(clock * 10.0), c)
-	_edge(c, r, PX.vio2, PX.night, others)
+# p가 불타는 블랙홀(S250) 안인가
+func _in_lit_hole(p: Vector2) -> bool:
+	return battle.zones.any(func(o): return o.src == "ignis_e" and o.has("lit") and o.get("delay", 0.0) <= 0.0 and p.distance_to(o.pos) <= o.radius)
+
+# 블랙홀(이그니스 E, I229 ⑤): 바깥 엷은 보라 칠 2/16 + 가장자리에서 검은 심까지 감겨 드는 줄 STREAKS개(바깥 어두운 보라 → 안 밝음) +
+# 검은 심(반경 × HOLE_CORE)과 그 둘레를 도는 밝은 보라 점선 테·안쪽 보라 테. lit(불타는 블랙홀, S250)이면 줄이 핏빛 → 금, 테가 크림·금이고
+# 불꽃 SUCK_FLAMES개가 줄을 따라 빨려 들며 경계가 빨강이다
+func _hole_zone(c: Vector2i, r: int, age: float, seed: int, others: Array, lit := false) -> void:
+	_pnoise(c, r, PX.vio4, 2, posmod(seed, 4))
+	var cols := ["blood", "red", "orange", "gold"] if lit else ["vio3", "vio2", "vio1", "vio0"]
+	var core := int(r * HOLE_CORE)
+	for arm in STREAKS:
+		var prev := c + _streak(arm, 0.0, r, core, age)
+		for j in range(1, STREAK_STEPS + 1):
+			var s := float(j) / STREAK_STEPS
+			var q := c + _streak(arm, s, r, core, age)
+			_pline(prev, q, _ramp(cols, s))
+			prev = q
+	_pdisc(c, core, PX.night)
+	_pring(c, core + 1, 1, PX.cream if lit else PX.vio0, 3, age * 4.0)
+	_pring(c, core, 1, PX.gold if lit else PX.vio2)
+	if lit:
+		for i in SUCK_FLAMES:
+			var ph := fmod(age * 0.7 + float(i) / SUCK_FLAMES, 1.0)
+			_spr("flame_s" if ph > 0.5 else "flame", int(clock * 10.0) + i, c + _streak(i, ph, r, core, age, SUCK_FLAMES), true)
+	_edge(c, r, PX.red if lit else PX.vio2, PX.soot if lit else PX.night, others)
+
+# 감겨 드는 줄(n개 가운데 arm번째)의 s 자리(0 = 가장자리 안쪽 2px, 1 = 심). 시계 방향으로 감기며 돈다
+func _streak(arm: int, s: float, r: int, core: int, age: float, n := STREAKS) -> Vector2i:
+	return Vector2i((Vector2.from_angle(arm * TAU / n + s * 2.6 + age * 2.6) * (core + (r - 2 - core) * (1.0 - s))).round())
 
 # 용암(이그니스 R): 굳은 껍질과 가지 친 균열 자국 + 솟았다 터지는 거품. 마지막 0.8초는 식어 어두워진다
 func _lava_zone(c: Vector2i, r: int, left: float, seed: int, others: Array) -> void:
@@ -1744,6 +1793,51 @@ func _mire_marks() -> void:
 			_px(f + Vector2i(bx - 1, -5), PX.teal)
 			_px(f + Vector2i(bx + 1, -5), PX.teal)
 
+# 이그니스(I229 ①②): 빙결한 적의 얼음 판과 과부하 영웅 발밑 세 점. 몸통 위 층이라 _draw가 _marks 다음에 부른다
+func _ignis_marks() -> void:
+	for e in _foes:
+		if e.fx.has("ignis_w_freeze"):
+			_ice_plate(e)
+	for u in battle.units:
+		if u.is_hero and u.alive and u.passive.get("id") == "overload":
+			_overload_pips(u)
+
+# 기절이 서리 고리 빙결 하나뿐인가(그때는 머리 위 별을 그리지 않는다, I229 ①)
+func _ice_only(x) -> bool:
+	if not x.fx.has("ignis_w_freeze"):
+		return false
+	for src in x.fx:
+		if src != "ignis_w_freeze" and x.fx[src].get("stun", false):
+			return false
+	return true
+
+# 빙결한 적: 몸 아래 4/5(폭 12)를 덮는 엷은 얼음 판과 비낀 빛 줄, 얼음 테(왼쪽·위 밝음, 오른쪽 어두움, 아래 남빛). 그 적을 맞힌 서리 고리 뒤 ICE_FLASH초는 테가 크림
+func _ice_plate(e) -> void:
+	var o := Vector2i((_spot(e) + _slip(e)).floor())
+	var h := int(_head(e) * 0.8)
+	o -= Vector2i(6, h - 1)
+	var flash: bool = battle.traces.any(func(c): return c.age < ICE_FLASH and e in c.hits and _skill(c) == "frost_ring")
+	var hi: Color = PX.cream if flash else PX.ice0
+	_px(o, Color(PX.ice0, 0.4), Vector2i(12, h))
+	_pline(o + Vector2i(2, h - 3), o + Vector2i(6, 1), Color(PX.cream, 0.6))
+	_px(o - Vector2i(1, 1), hi, Vector2i(13, 1))
+	_px(o - Vector2i(1, 0), hi, Vector2i(1, h))
+	_px(o + Vector2i(12, 0), PX.ice2, Vector2i(1, h))
+	_px(o + Vector2i(0, h), PX.ice3, Vector2i(13, 1))
+
+# 과부하 영웅: 발밑 팀 타원 아래 점 every개(3×3, 검은 테)가 쓴 스킬 수를 센다(금 = 쓴 것). 차례면 모두 금으로 깜박이고(0.5초에 0.35초) 발 둘레에 주황 고리
+func _overload_pips(h) -> void:
+	var f := Vector2i((_spot(h) + _slip(h)).floor())
+	var every := int(h.passive.every)
+	var n: int = every if h.charged else h.casts % every
+	var dim: bool = h.charged and fmod(clock, 0.5) >= 0.35
+	if h.charged:
+		_pring(f - Vector2i(0, 1), OVERLOAD_RING, 1, PX.orange)
+	for i in every:
+		var p := f + Vector2i(-(5 * every - 2) / 2 + 5 * i, 5)
+		_px(p - Vector2i(1, 1), PX.soot, Vector2i(5, 5))
+		_px(p, PX.gold if i < n and not dim else PX.dark, Vector2i(3, 3))
+
 # 시간의 문(크로노스 E 타임 루프, I199 2026-11-04 변경): 되감기. 얼음 성긴 칠(2/16) + 12·3·6·9시 눈금 + 12시에서 반시계로 도는 짧은 바늘(얼음 2px)·긴 바늘(크림 1px) +
 # 가운데 어두운 축 + 얼음 테두리
 func _law_zone(c: Vector2i, r: int, age: float, seed: int, others: Array) -> void:
@@ -1789,7 +1883,9 @@ func status_marks(x, ally: bool) -> Array:
 		if not on:
 			continue
 		match key:
-			"stun":  # 머리 위를 도는 별 둘
+			"stun":  # 머리 위를 도는 별 둘. 서리 고리 빙결만으로 기절한 적은 별 대신 얼음 판이다(_ignis_marks, I229 ①)
+				if not ally and _ice_only(x):
+					continue
 				for i in 2:
 					var a := clock * 5.0 + i * PI + _hf(n, 1) * TAU
 					out.append({k = "star", p = head + Vector2i(int(cos(a) * 5.0), -3 + int(sin(a) * 2.0)), f = int(clock * 8.0) + i})

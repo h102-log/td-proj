@@ -2094,11 +2094,11 @@ func _cast_frost_ring(h: Unit, sk: Dictionary, aim, grow: float) -> void:
 func _cast_black_hole(h: Unit, sk: Dictionary, aim, grow: float) -> void:
 	_zone("ignis_e", h, aim, sk.radius * grow, sk.time, {"pull": sk.pull, "mr": sk.mr})
 
-# R 메테오 스웜: meteor_spots 자리에 차례로 delay초 간격으로 운석. 떨어진 자리는 용암
+# R 메테오 스웜: meteor_spots 자리에 차례로 delay초 간격으로 운석. 떨어진 자리는 용암. fall은 처음 지연이고 그림(떨어질 자리 예고, I229 ⑥)만 읽는다
 func _cast_meteor_swarm(h: Unit, sk: Dictionary, aim, _grow: float) -> void:
 	var spots := meteor_spots(h, aim)
 	for i in spots.size():
-		_zone("ignis_r", h, spots[i], sk.radius, sk.lava, {"delay": sk.delay * (i + 1), "damage": sk.damage, "stun": sk.stun, "burn": sk.burn})
+		_zone("ignis_r", h, spots[i], sk.radius, sk.lava, {"delay": sk.delay * (i + 1), "fall": sk.delay * (i + 1), "damage": sk.damage, "stun": sk.stun, "burn": sk.burn})
 
 # 메테오 스웜 운석 자리(S268): i번째는 지점에서 영웅 → 지점 방향에 수직으로 spread × (0, +1, −1, +2, −2, …)칸. 조준 미리보기도 이 자리를 그린다
 func meteor_spots(h: Unit, aim: Vector2) -> Array:

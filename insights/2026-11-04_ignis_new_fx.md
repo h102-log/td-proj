@@ -143,3 +143,30 @@
   - 4는 추천을 내지 않은 질문이라 판정을 받지 않고 구현으로 갔다. 필요하면 전후 비교 시트로 나중에 받을 수 있다.
 - 평가 방식은 fx-7~10과 같이 새 EV 없이 유닛 시험만 쓴다(Claude 가정).
 
+## fx-11 구현 (2026-11-04)
+
+- SPEC: 새 문장 I229(이그니스 그림). S168·S179·S250·I101의 이그니스 그림 언급보다 우선한다.
+  - §3.1 줄 참조는 difflib로 옮겼다(546개). 글이 바뀐 줄을 가리킨 두 참조는 같은 자리를 고친 줄이다.
+- `battle_view.gd`
+  - 빙결
+    - `status_marks`는 기절이 빙결뿐이면 별을 빼고(`_ice_only`), `_ignis_marks`가 얼음 판을 그린다(`_ice_plate`).
+    - 크림 테는 그 적을 맞힌 서리 고리 흔적(`hits`)이 `ICE_FLASH`초 안일 때다. 시안과 달리 화면이 따로 시각을 기억하지 않는다.
+  - 과부하: `_overload_pips`. 점 3×3에 검은 테를 두르고, 차례면 실선 고리(`OVERLOAD_RING`)를 그린다. 점 수는 데이터의 `every`다.
+  - 불길·블랙홀
+    - `_fire_zone`에 `bare`(불타는 블랙홀 안, `_in_lit_hole`)를 더했다.
+    - `_hole_zone`에 `lit`를 더했다. 줄 자리는 `_streak`다. `_zones`에 있던 불타는 블랙홀의 따로 그리기(불꽃 7 + 붉은 테)는 지웠다.
+  - 서리 고리: `_frost`에 서리꽃을 더했다. 지금 판의 반짝이 여섯은 시안 B처럼 뺐다.
+  - 운석
+    - `_fall` 아래 층의 떨어질 자리 점선을 지웠다. 위 층은 몸통을 키웠다.
+    - 아직 안 떨어진 운석 장판은 `_zones`가 `_meteor_tell`로 그린다.
+  - 손잡이 상수: `WALL_GAP`·`ICE_FLASH`·`FLOWER_GROW`·`FLOWER_COOL`·`HOLE_CORE`·`STREAKS`·`STREAK_STEPS`·`SUCK_FLAMES`·`OVERLOAD_RING`. 쓰지 않게 된 `FLAMES`는 지웠다.
+  - 아틀라스 `eye` 조각은 이제 쓰지 않는다. 조각 배치를 바꾸지 않으려 그대로 뒀다.
+- `battle.gd`: 운석 장판에 처음 지연 `fall`을 더했다. 그림만 읽는다.
+- `test_fx.gd`
+  - 62 → 70개다(새 8, 고친 1).
+  - 고친 시험은 `test_foe_effects_are_one_mark_each_not_stacked_rings`다. 기절 별을 빙결 대신 운석 기절(`ignis_r`)로 확인한다. 빙결만이면 별이 없다는 I229 ① 때문이다.
+  - 구현 전 red(새 상수·인자가 없어 불러오지 못함) → ALL PASS
+  - 망가뜨리기 22가지는 각자 해당 시험이 잡았다.
+- 전후 비교: [`fx11_ignis_now_vs_impl.png`](../art/trial/preview/hero_fx/fx11_ignis_now_vs_impl.png)(+`_zoom`).
+  - 같은 장면이고, 시뮬레이션 기록 해시가 구현 전과 같다.
+  - 비용(찍은 9프레임): draw call 38~58, `_draw` 3.5~4.7ms. 지금은 38~64, 3.3~5.6ms였다.
