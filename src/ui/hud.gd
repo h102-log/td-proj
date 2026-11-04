@@ -73,6 +73,7 @@ const BAR := {  # 위 띠 칸 자리(S185, 임시값)
 	"status": Rect2(4, 2, 96, 24), "mission": Rect2(104, 2, 24, 24), "engineer": Rect2(130, 2, 20, 24),
 	"hero0": Rect2(156, 2, 104, 24), "hero1": Rect2(264, 2, 104, 24), "hero2": Rect2(372, 2, 104, 24),
 	"progress": Rect2(480, 2, 136, 24), "menu": Rect2(620, 2, 16, 24)}
+const POP_AT := Rect2(4, 30, 52, 12)  # 인구 칸(I225 ③): 위 띠 바로 아래 왼쪽, 상태 묶음 밑
 const FLASH := 0.2  # 거점이 맞으면 체력 막대가 하얗게 번쩍이는 초(S190 임시값)
 const MISSION_SECS := 6.0  # 라운드 첫 미션 토스트를 보이는 초(I122 임시값)
 const RESULT_WAIT := 1.0  # 전투에서 넘어온 결과 창을 늦추는 초(S117, 사용자 2026-10-22)
@@ -96,7 +97,7 @@ const HAMMER := [".#####.", ".#####.", "...#...", "...#...", "...#...", "...#...
 const UP := ["..#..", ".###.", "#####", ".###.", ".###."]  # 팝업 업그레이드(I58)
 # 용병 강화 툴팁의 수치 줄(S255): 키 → «이름 지금 → 다음» 틀
 const RANK_TEXT := {"hp": "체력 %s → %s", "damage": "공격력 %s → %s", "block": "블록 수 %s → %s", "attack_gap": "공격 간격 %s → %s초",
-	"range": "사거리 %s → %s칸", "sight": "인식 범위 %s → %s칸", "speed": "이동 %s → %s칸/초"}
+	"range": "사거리 %s → %s칸", "sight": "인식 범위 %s → %s칸", "speed": "이동 %s → %s칸/초", "accuracy": "명중률 %s → %s%%"}
 const HP_AT := Rect2(65, 266, 24, 24)  # 체력바 버튼 자리(S276 Claude 임시값): 대피령 버튼 오른쪽
 const HP_PIC := ["..........", "..........", "..........", "..........", "##########", "#ggggggkk#", "#ggggggkk#", "##########", "..........", ".........."]  # 체력바 버튼 그림(S276 Claude 임시값)
 const FIX_AT := Rect2(582, 182, 24, 24)  # 자동 수리 태그 자리(I210 Claude 임시값): A 태그 왼쪽
@@ -130,6 +131,7 @@ var controls
 var map: Viewport  # 맵(전장)을 그리는 뷰포트(S30, 2026-10-25부터 루트). 팝업 위치를 그 카메라 변환으로 잡는다. 기준 해상도 단위다
 var bar: Panel  # 위 띠(S185). 칸은 좌표로 두고, 띠 바탕이 클릭을 받아 맵으로 흘리지 않는다
 var cells := {}  # 위 띠 칸 이름(BAR) → Control
+var pop: Label  # 인구 칸(S25 2026-11-04 변경, I225 ③): «인구 n/m», 상한에 닿으면 빨강
 var hp_bar := ColorRect.new()  # 상태 묶음의 거점 체력 막대(S190)
 var marks := []  # 임무 칸의 점 둘(I122): 왼쪽 미션·오른쪽 의뢰
 var toasts := HudToast.new()  # 토스트(I163)
@@ -262,6 +264,15 @@ func _ready() -> void:
 	_eng.position = Vector2(0, 12)
 	_eng.size = Vector2(20, 11)
 	tip.add(e, func(): return ["공병", "", "", "놀고 있는 공병 %d · 전체 %d — 누르면 놀고 있는 공병에게 카메라가 간다" % [_idle().size(), battle.units.filter(func(u): return u.kind == "engineer").size()], ""])
+	pop = _text(root, 8, HudTheme.TEXT)
+	pop.position = POP_AT.position
+	pop.size = POP_AT.size
+	pop.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	pop.mouse_filter = Control.MOUSE_FILTER_STOP  # 툴팁을 받고, 클릭이 맵으로 가지 않는다
+	var pop_box := HudTheme.box("panel", "PanelContainer", HudTheme.PANEL, HudTheme.LINE)
+	pop_box.set_content_margin_all(0)  # 12px 높이에 8px 글자가 들어가게
+	pop.add_theme_stylebox_override("normal", pop_box)
+	tip.add(pop, func(): return ["인구", "", "", _pop_line(), ""])
 	for i in battle.HIRE.lineup:  # 영웅 칸: 초상 24×24, 스킬 칸 18×18 넷, 그 아래 체력 막대(I129). 좌표는 임시값(ui_research 4.3)
 		var cell := _cell("hero%d" % i, Control.new())
 		cell.draw.connect(func(): _empty_slot(cell, i))
@@ -525,6 +536,11 @@ func _process(delta: float) -> void:
 	_show_status(delta, round_no)
 	for k in ["mission", "engineer"]:  # 준비·전투 단계에만(S185)
 		cells[k].visible = on
+	pop.visible = on and battle.village.has_area()  # 마을이 있는 판의 준비·전투 단계에만(I225 ③)
+	if pop.visible:
+		var used: int = battle.pop_used()
+		pop.text = "인구 %d/%d" % [used, battle.pop_cap()]
+		pop.add_theme_color_override("font_color", HudTheme.DANGER if used >= battle.pop_cap() else HudTheme.TEXT)
 	if on:
 		_show_quests()
 		_eng.text = str(_idle().size())
@@ -619,9 +635,12 @@ func _process(delta: float) -> void:
 	_finish.visible = not battle.unfinished(controls.selling).is_empty()
 	if controls.facility and not controls.facility.alive:  # 파괴되거나 팔린 시설
 		controls.facility = null
+	var pop_full: bool = battle.pop_used() >= battle.pop_cap()  # 인구 가득이면 구매 버튼을 끄고 이유를 툴팁에(I225 ④)
 	for kind in _buy:
 		_buy[kind].visible = battle.live() and controls.facility != null and kind in controls.facility.produces
 		_buy[kind].text = "%s %d" % [NAMES[kind], battle.MERC_KINDS[kind].cost]
+		_buy[kind].disabled = pop_full
+		_why[_buy[kind]] = ("인구 가득 — 집을 지으면 %d명 늘어난다" % battle.STRUCTURE_KINDS.house.pop if battle.village.has_area() else "인구 가득") if pop_full else ""
 	for kind in _rank:  # 강화는 준비 단계에만(S255)
 		var d: Dictionary = battle.MERC_KINDS[kind]
 		var n: int = battle.merc_rank.get(kind, 0)
@@ -694,7 +713,7 @@ func _process(delta: float) -> void:
 			_why[_heal[i]] = "준비 단계에만" if not prep else "쓰러짐" if not h.alive else "체력 가득" if full else ""
 			_heal[i].disabled = _why[_heal[i]] != ""
 	var shown: Array = _why.keys().filter(func(b): return b.visible and _why[b] != "")
-	info_lines = [_opens, _why[shown[0]] if not shown.is_empty() else ""]
+	info_lines = [_opens, _why[shown[0]].get_slice(" — ", 0) if not shown.is_empty() else ""]  # 정보 칸은 좁아 이유의 « — » 앞만(툴팁은 전체, I225 ④)
 	for r in popup.get_children():
 		r.visible = r.get_children().any(func(b): return b.visible)
 	_place_popup()
@@ -718,10 +737,15 @@ func _pop(row: Control, on_press: Callable, name: String, icon: Texture2D = null
 	tip.add(b, func(): return [name, "", "", _opens if b == _village else _steps.get(b, ""), "✕ " + _why[b] if _why.get(b, "") != "" else ""], popup)
 	return b
 
-# 용병 강화 다음 단계 step의 효과 줄(S255): «체력 50 → 65»처럼 지금 값 → 다음 값
+# 인구 칸 툴팁(I225 ③): «용병 n명 · 상한 m(거점 4 + 집 k채 × 4)»
+func _pop_line() -> String:
+	return "용병 %d명 · 상한 %d(거점 %d + 집 %d채 × %d)" % [battle.pop_used(), battle.pop_cap(), battle.POP_BASE, battle.pop_houses().size(), battle.STRUCTURE_KINDS.house.pop]
+
+# 용병 강화 다음 단계 step의 효과 줄(S255): «체력 50 → 65»처럼 지금 값 → 다음 값. 명중률은 백분율이다(«명중률 50 → 60%»)
 func _rank_line(kind: String, step: Dictionary) -> String:
 	var now: Dictionary = battle.merc_stats(kind)
-	return "\n".join(step.keys().map(func(k): return RANK_TEXT[k] % [_num(now[k]), _num(step[k])]))
+	var shown := func(k, v): return str(roundi(v * 100.0)) if k == "accuracy" else _num(v)
+	return "\n".join(step.keys().map(func(k): return RANK_TEXT[k] % [shown.call(k, now[k]), shown.call(k, step[k])]))
 
 # 철거(S74): 첫 클릭은 «철거?», 같은 대상을 고른 채 CONFIRM초 안에 다시 누르면 철거한다
 func _demolish_press() -> void:

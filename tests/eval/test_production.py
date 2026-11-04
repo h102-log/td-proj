@@ -40,3 +40,15 @@ def test_EV68_right_click_sets_rally(gd):
 
 def test_EV395_rally_walk_is_attack_move(gd):
     gd("production", "EV395")
+
+
+def test_EV739_village_cap_is_population(gd):
+    gd("production", "EV739")
+
+
+def test_EV740_no_village_cap_stays_ten(gd):
+    gd("production", "EV740")
+
+
+def test_EV741_unfinished_or_sold_house_population(gd):
+    gd("production", "EV741")

@@ -441,7 +441,7 @@ func ev276():
 	var arch := []
 	var foes := []
 	for row in [[Vector2i(5, 5), Vector2i(9, 5)], [Vector2i(5, 8), Vector2i(9, 8)], [Vector2i(5, 12), Vector2i(10, 12)]]:
-		arch.append(b.place_merc("archer", row[0], {"attack_gap": 100.0}))
+		arch.append(b.place_merc("archer", row[0], {"attack_gap": 100.0, "accuracy": 1.0}))  # 명중률 1(S178 2026-11-04 변경)
 		foes.append(_dummy(b, row[1]))
 	_start(b)
 	var lensed := 0
@@ -1030,7 +1030,7 @@ func ev668():
 		_quiet(b)
 		var past := 8 + int(ceil(s.e.get("length", 2.0) / 2.0)) + 1  # 관문 끝 너머 열
 		var lanes := [[Vector2i(9, 4), Vector2i(9, 9)], [Vector2i(past, 4), Vector2i(past, 9)], [Vector2i(3, 7), Vector2i(8, 7)]]
-		var a = b.place_merc("archer", lanes[i][0], {"attack_gap": 100.0})
+		var a = b.place_merc("archer", lanes[i][0], {"attack_gap": 100.0, "accuracy": 1.0})  # 명중률 1(S178 2026-11-04 변경)
 		var e = _dummy(b, lanes[i][1])
 		_start(b)
 		if not b.cast(s, "e", Vector2(8, 8)):

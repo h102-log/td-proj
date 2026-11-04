@@ -14,9 +14,12 @@ func ev12():
 	var b = battle({"base": Vector2i(28, 10), "base_hp": BIG})
 	var tower := Vector2i(8, 16)
 	var t = b.build("tower", tower, {"range": 8, "damage": 1})
-	var e = b.spawn_enemy("basic", Vector2i(0, 10), {"sight": 3, "hp": BIG})
+	var e = b.spawn_enemy("basic", Vector2i(4, 10), {"sight": 3, "hp": BIG})  # 탑 (8,16)의 사거리 8 안
+	var walk: float = e.speed
+	e.speed = 0.0  # 궁수탑 화살은 쏜 때의 자리로 곧게 난다(S178 2026-11-04 변경). 첫 화살이 닿을 때까지 세워 둔다
 	if not run(b, 60, func(): return e.hp < e.max_hp):
 		return "타워가 적을 쏘지 않았다"
+	e.speed = walk
 	var d0: float = e.pos.distance_to(Vector2(tower))
 	run(b, 1)
 	if e.pos.distance_to(Vector2(tower)) >= d0:

@@ -17,7 +17,8 @@ var LEVELS = load("res://data/levels.tres")  # 영웅 레벨 수치(S126, I111)
 var QUEST_KINDS := _kinds("res://data/quests/")  # 미션·의뢰 정의(S77, I118). 칸의 뜻은 src/data/quest_def.gd 머리 주석
 var GEAR_KINDS := _kinds("res://data/gear/")  # 영웅 전용장비(S246). 파일 이름이 주인 영웅 종류다. 칸의 뜻은 src/data/gear_def.gd 머리 주석
 const VILLAGE_UP := [60]  # 마을 레벨 n→n+1 비용(S99). 길이+1이 최대 레벨이다. 임시값(Claude 예시, 사용자 2026-10-13 수락)
-const MERC_CAP := 10  # 배치 상한 기본값(S25). 임시값(사용자 2026-10-13), 스테이지의 merc_cap이 덮어쓴다
+const MERC_CAP := 10  # 마을이 없는 판의 배치 상한(S25 2026-11-04 변경). 임시값(사용자 2026-10-13), 스테이지의 merc_cap이 덮어쓴다
+const POP_BASE := 4  # 거점이 주는 인구(S25 2026-11-04 변경). 집 몫은 집의 pop이다. 임시값(사용자 2026-11-04 «거점도 4명»)
 const HOUSE_CAP := 6  # 마을에 지을 수 있는 집 수(S101). 임시값(사용자 2026-10-13)
 # 가구 유형(S221): [가중치, 어른, 아이 최소, 아이 최대, 노인]. 어른 둘은 남녀 한 쌍, 하나는 남녀 반반이다. 손잡이 값(사용자 2026-10-26 «조사 표 그대로»)
 const HOUSEHOLDS := [
@@ -52,6 +53,7 @@ const CONTACT := 0.08  # 걷기 명령을 받은 영웅이 다시 걷는 때(친
 const RANGED := 2.0  # 사거리가 이보다 큰 영웅·용병은 원거리다. 쏘는 구조물은 모두 원거리다(S178, I174)
 const MISSILES := {"archer": "arrow", "sylvia": "arrow", "tower": "arrow", "cannon": "ball"}  # 원거리 기본 공격의 투사체(S178). 나머지(마법 타워·마법 영웅)는 구슬(bolt)
 const SPEED := {"arrow": 15.0, "bolt": 10.0, "ball": 7.5}  # 투사체 속도(칸/초, S178)
+const FREE := ["tower", "cannon", "archer"]  # 논타겟팅 투사체를 쏘는 쪽(S178 2026-11-04 변경). 궁수는 명중하면 대상을 따라가고(_aim), 마법 타워와 원거리 영웅은 늘 따라간다
 const REPATH_PER_STEP := 8  # 한 스텝에 경로를 다시 구하는 적 수(I155). 적 40명을 한 번에 구하면 61ms(디버그)라 나눈다(사용자 2026-10-20)
 const UNIT_WALL_K := 1e6  # 유닛 경로의 막힌 칸 비용 배율. 돌아갈 길이 있으면 막힌 칸(닫힌 성문 포함, I42)을 지나지 않는다
 const WORK_REACH := 2.0  # 공병이 일하는 거리(중심 사이). 옆 칸 대각선(1.41)에, 무리에 밀려 0.5칸 못 미친 도착(I51)을 더했다
@@ -76,6 +78,7 @@ const SLOTS := ["q", "w", "e", "r"]  # 영웅 스킬 칸(S145)
 const CAST_RANGE := 6.0  # 지점·대상을 고르는 스킬의 시전 사거리(칸, S147). 임시값
 const WINDS := ["sylvia_w", "sylvia_e", "sylvia_r"]  # 투사체가 지나는 실비아 바람(I212): 순풍 장판 · 바람의 렌즈 · 바람의 길
 const STAY := 0.6  # 장판 안에 있는 동안 거는 효과의 남은 시간(초, I141). 장판을 나오면 곧 풀린다
+const CLEANSE_GAP := 0.5  # 같은 아군의 성역 정화 흔적(I227 ⑥)을 다시 남기는 간격(초). 장판이 매 스텝 거는 해로운 효과를 지울 때마다 흔적이 쌓이지 않게
 const FALLEN := 2.0  # 쓰러진 몸(fallen)을 지우는 때(쓰러진 뒤 초, S180). 화면은 끝 0.5초 동안 흐린다
 const STAGGER := 2.0  # 예고 중 기절로 스킬이 끊긴 보스가 비틀거리는 시간(초, S194). 임시값
 const STAGGER_EXPOSE := 0.5  # 비틀거리는 동안 받는 피해 증가(S194). 임시값
@@ -108,6 +111,7 @@ class Block:
 	var produces := []  # 생산 시설이면 파는 용병 kind들. 첫째가 기본이다(S20, S87)
 	var rally: Vector2i  # 생산 시설의 집결 지점(S21)
 	var tax := 0  # 집이면 준비 단계마다 내는 세금(S101)
+	var pop := 0  # 다 지으면 주는 인구(S25 2026-11-04 변경). 집만 준다
 	var folk := []  # 집이면 사는 가족(S221), 교회면 사제(S222): {body, look, job, n(원래 차례), hp·away·t0(S227·I183)} 배열. 다 지은 때 정해진다(_move_in)
 	var lost := 0  # 죽은 식구 수(S228). 그 집 세금에서 계속 빠진다
 	var progress := 1.0  # 건설 진행률(0~1). 1 미만이면 미완성이다(I62)
@@ -239,6 +243,7 @@ class Unit:
 	var damage := 0.0
 	var range := 0.0  # 사거리(칸). 0보다 커야 적을 친다
 	var attack_gap := 1.0  # 공격 간격(초)
+	var accuracy := 1.0  # 명중률(궁수, S178 2026-11-04 변경): 한 발이 대상을 따라가는 화살이 될 확률. 아니면 논타겟팅 화살이다
 	var cooldown := 0.0
 	var target  # 마지막으로 친 적. 화면이 친 직후 공격선을 그린다(S71)
 	var paid := 0  # 놓을 때 낸 골드. 판매 환불의 기준(S69)
@@ -300,7 +305,10 @@ class Missile:
 	var wait := 0.0  # 출발까지 남은 초. 유닛은 CONTACT, 구조물은 0
 	var from: Vector2  # 출발한 자리. 화면이 날아간 비율을 센다
 	var pos: Vector2  # 지금 자리
-	var at: Vector2  # 날아가는 곳: 대상의 지금 자리, 대상이 쓰러졌으면 마지막 자리
+	var at: Vector2  # 날아가는 곳: 대상의 지금 자리, 대상이 쓰러졌으면 마지막 자리. 논타겟팅 화살은 사거리 끝, 대포알은 조준점이다
+	var free := false  # 논타겟팅(S178 2026-11-04 변경): 대상을 따라가지 않고 at으로 곧게 난다. 화살이 닿으면 target은 맞은 적이 된다
+	var mark: Vector2  # 조준점(_aim): 나가는 때 노린 적의 자리. 화면이 이 자리의 가슴 높이로 화살을 잇는다
+	var missed := false  # 떨어진 대포알이 노린 적을 맞히지 못했다(I224 ⑤). 화면이 주 대상 반응을 내지 않는다
 	var hurt := 0.0  # 피해량(공격력 × 공격력 배율)
 	var kind := "phys"  # 피해 종류(S149)
 	var ignore := 0.0  # 방어 무시 비율(I213)
@@ -389,7 +397,7 @@ var ladders := {}  # 사다리 칸 → 그 사다리를 놓은 공성탑(S284). 
 var barriers := {}  # Vector2i → 에너지 성벽 칸 Block(S151, I142). 그 장판(zones)이 끝나면 사라진다
 var zones := []  # 장판(S150, I141): {src, pos, radius, left, owner, 수치…}. 웨이브가 끝나면 모두 사라진다(I143)
 var loops := []  # 타임 루프가 되돌릴 적(I197): {e, at, wall, left, owner, blast, damage, aged(S266)}. 웨이브가 끝나면 사라진다(I143)
-var traces := []  # 즉시 스킬 흔적(S179): {hero, slot, aim, at, radius, hits, marked, age}. 그리기만 읽고 1초 지나면 지운다
+var traces := []  # 즉시 스킬 흔적(S179): {hero, slot, aim, at, radius, hits, marked, age}. 타임 루프 되돌림(loop)은 aim이 옛 자리이고 foe·aged가 더 있다. 정화(cleanse)·불사(saved)는 aim이 그 아군, 축복 터짐(bless)은 hero가 쏜 쪽이고 셋 다 hits가 비었다(I227). 사슬 나누기(share)는 aim이 맞은 적이고 chain이, 전염(spread)은 foes(옮은 적)가 더 있다(I226). 그리기만 읽고 1초 지나면 지운다
 var fallen := []  # 쓰러진 영웅·용병·적(S180): {who, age}. 그리기만 읽고 FALLEN초 지나면 지운다
 var _dotting := false  # 초당 피해를 주는 중. 뜬 적(S236)도 이것만은 받는다
 var missiles := []  # 날고 있거나 출발을 기다리는 투사체(Missile, S178). 웨이브가 끝나면 사라진다(I143)
@@ -453,6 +461,7 @@ var _rng := RandomNumberGenerator.new()  # 영입소 목록을 뽑는다. 스테
 var _luck := RandomNumberGenerator.new()  # 요새화 기절(S151). 영입소 목록이 전투에 따라 바뀌지 않게 따로 둔다
 var _kin := RandomNumberGenerator.new()  # 집의 가족(S221). 영입소·전투 난수가 집 짓기에 따라 바뀌지 않게 따로 둔다
 var _loot := RandomNumberGenerator.new()  # 전리품(S252). 영입소·의뢰·미션 목록이 전리품에 따라 바뀌지 않게 따로 둔다(I202)
+var _shot := RandomNumberGenerator.new()  # 궁수 명중(S178 2026-11-04 변경, I224 ③). 다른 난수가 사격에 따라 바뀌지 않게 따로 둔다
 var _chains := 0  # 영혼 사슬(S154)마다 붙이는 번호
 var _holds := {}  # 유닛 → 그 유닛이 붙잡은 적 수(S159). 스텝마다 적의 engaged로 다시 센다
 var _howled := {}  # 적 → 울부짖음(S242)으로 더하는 이동·공격 속도 비율. 스텝마다 다시 센다(I195)
@@ -589,11 +598,13 @@ func restart() -> void:
 		_luck.seed = stage.seed + 1
 		_kin.seed = stage.seed + 2
 		_loot.seed = stage.seed + 3
+		_shot.seed = stage.seed + 4
 	else:
 		_rng.randomize()
 		_luck.randomize()
 		_kin.randomize()
 		_loot.randomize()
+		_shot.randomize()
 	_draw_offers()  # 도전을 시작할 때 무료로 뽑는다(I104)
 	rerolls = 0
 	var q = stage.get("quests", [])  # 미션·의뢰(I118): true면 data/quests의 모든 것, 배열이면 그 이름들만(평가용). 없으면 뜨지 않는다
@@ -1212,7 +1223,7 @@ func place_merc(kind: String, cell: Vector2i, overrides := {}):
 	if state != "prep" or not _merc_cell(cell):
 		return null
 	var stats: Dictionary = merc_stats(kind).merged(overrides, true)
-	if gold < stats.cost or _mercs() >= merc_cap:
+	if gold < stats.cost or _mercs() >= pop_cap():
 		return null
 	gold -= stats.cost
 	var m := Unit.new(kind, cell, stats)
@@ -1683,9 +1694,15 @@ func _zones(dt: float) -> void:
 					_fx(e, "sylvia_r", {"slow": z.slow, "armor": z.armor}, STAY)
 			"seraphina_w":  # 성역: 안의 아군은 초당 회복과 정화, 안의 적은 둔화
 				for u in units.filter(func(x): return _inside(z, x.pos)):
+					var wiped := false
 					for src in u.fx.keys():
 						if _harmful(u.fx[src]):
 							u.fx.erase(src)
+							wiped = true
+					if wiped and not traces.any(func(t): return t.slot == "cleanse" and is_same(t.aim, u) and t.age < CLEANSE_GAP):
+						var keep = _tracing
+						_trace(z.owner, "cleanse", u, u.pos, 0.0)  # 정화 그림(I227 ②)만 읽는다. 맞은 대상이 없다
+						_tracing = keep
 					_heal(u, z.hps * dt, z.owner)
 				for e in foes:
 					_fx(e, "seraphina_w", {"slow": z.slow}, STAY)
@@ -1749,10 +1766,13 @@ func _loops(dt: float) -> void:
 			continue
 		if e.grip:
 			_grip(e, 0.0, true)  # 붙잡은 아군을 놓는다(S242)
+		var from := e.pos
 		e.pos = l.at
 		e.on_wall = l.wall
 		_find_path(e)
-		_trace(l.owner, "loop", null, l.at, l.blast)
+		_trace(l.owner, "loop", from, l.at, l.blast)  # 그림(I199 2026-11-04 변경)이 옛 자리(aim) → 되돌아간 자리 잔상과 노화 되감기를 그린다
+		_tracing.foe = e
+		_tracing.aged = e.fx.has("chronos_w") and l.aged > 1.0
 		var dmg: float = l.damage * (l.aged if e.fx.has("chronos_w") else 1.0)  # 노화 되감기(회중시계 +9, S266): 되돌리는 순간 노화가 걸려 있으면 × aged
 		for o in enemies.duplicate():
 			if o.pos.distance_to(l.at) <= l.blast and not _aloft(o):
@@ -1981,6 +2001,9 @@ func _bless(src, at: Vector2) -> void:
 		_blessing(src, at, b, src.fx.seraphina_r.splash)
 
 func _blessing(src, at: Vector2, amount: float, radius: float) -> void:
+	var keep = _tracing
+	_trace(src, "bless", null, at, radius)  # 축복 터짐 그림(I227 ④)만 읽는다. 맞은 대상을 비워 둬 소리·피격 반응이 없다
+	_tracing = keep
 	for e in enemies.duplicate():
 		if e.pos.distance_to(at) <= radius:
 			damage(e, amount, "magic", src)
@@ -2002,8 +2025,8 @@ func _cast_soul_chain(h: Unit, sk: Dictionary, aim, grow: float) -> void:
 	var others := enemies.filter(func(e): return e != aim and e.pos.distance_to(aim.pos) <= sk.radius * grow)
 	others.sort_custom(func(a, b): return a.hp > b.hp)
 	_chains += 1
-	for e in [aim] + others.slice(0, sk.links):
-		_fx(e, "vesper_e", {"chain": _chains, "share": sk.share, "spread": h.passive.radius}, sk.time)
+	for e in [aim] + others.slice(0, sk.links):  # hub(E 대상)는 그림이 사슬을 잇기 시작하는 적이다(I226 ②)
+		_fx(e, "vesper_e", {"chain": _chains, "hub": aim, "share": sk.share, "spread": h.passive.radius}, sk.time)
 	if sk.get("infect"):  # 사슬 감염(향로 +9, S264): 대상의 중독·저주를 묶인 적에게 남은 시간만큼. 더 오래 남은 같은 효과는 그대로
 		for e in others.slice(0, sk.links):
 			for src in ["vesper_q", "vesper_w"]:
@@ -2015,15 +2038,32 @@ func _cast_abyss(h: Unit, sk: Dictionary, aim, _grow: float) -> void:
 	_zone("vesper_r", h, aim, sk.radius, sk.time, {"slow": sk.slow, "burn": sk.burn})
 
 # 전염(S154 패시브): 베스퍼의 디버프(Q 중독·W 저주·E 사슬·R 늪)가 걸린 적이 죽으면 둘레 적에게 남은 시간만큼 옮긴다.
-# 더 오래 남은 같은 효과는 그대로 둔다. 사슬이 옮으면 그 적도 같은 사슬에 묶인다
+# 더 오래 남은 같은 효과는 그대로 둔다. 사슬이 옮으면 그 적도 같은 사슬에 묶인다. 한 적에게라도 옮으면 흔적 «spread»를 남긴다(I226 ④·⑤)
 func _spread(dead: Enemy) -> void:
+	var got := []
+	var reach := 0.0
 	for src in ["vesper_q", "vesper_w", "vesper_e", "vesper_r"]:
 		if not dead.fx.has(src) or not dead.fx[src].has("spread"):
 			continue
 		var v: Dictionary = dead.fx[src]
+		reach = maxf(reach, v.spread)
 		for o in enemies:
 			if not _aloft(o) and o.pos.distance_to(dead.pos) <= v.spread and (not o.fx.has(src) or o.fx[src].left < v.left):
 				o.fx[src] = v.duplicate()
+				if not o in got:
+					got.append(o)
+	if not got.is_empty():
+		_paint("spread", dead.pos, reach, {"foes": got})
+
+# 그림만 읽는 흔적(I226 ⑤): 맞은 대상(hits)이 없어 맞은 반응·소리가 없고, 지금 쓰는 스킬의 흔적(_tracing)은 건드리지 않는다. 주인은 전염을 가진 출전 영웅(베스퍼)이다
+func _paint(slot: String, at: Vector2, radius: float, more: Dictionary) -> void:
+	var by = null
+	for h in heroes:
+		if h.passive.get("id") == "contagion":
+			by = h
+	var c := {"hero": by, "slot": slot, "aim": null, "at": at, "radius": radius, "hits": [], "marked": false, "age": 0.0}
+	c.merge(more, true)
+	traces.append(c)
 
 # ── 이그니스(S156) ──
 
@@ -2244,7 +2284,7 @@ func recruit(f, kind := ""):
 		return null
 	var stats: Dictionary = merc_stats(kind)
 	var exit = _exit_of(f)
-	if exit == null or gold < stats.cost or _mercs() >= merc_cap:
+	if exit == null or gold < stats.cost or _mercs() >= pop_cap():
 		return null
 	gold -= stats.cost
 	var m := Unit.new(kind, exit, stats)
@@ -3032,6 +3072,20 @@ func _work(u: Unit, dt: float) -> void:
 func _mercs() -> int:
 	return units.filter(func(u): return not u.is_hero).size()
 
+# 화면의 인구 칸(I225 ③)이 읽는 용병 수(_mercs)
+func pop_used() -> int:
+	return _mercs()
+
+# 인구를 주는 다 지은 구조물(집, I225 ①). 짓는 중인 집은 빼고 깎인 집은 센다. 팔거나 부서지면 structures에서 빠진다
+func pop_houses() -> Array:
+	return structures.values().filter(func(s): return s.complete and s.pop > 0)
+
+# 배치 상한(S25 2026-11-04 변경): 스테이지가 정했으면 그 값, 마을이 있는 판은 인구(거점 POP_BASE + 다 지은 집마다 그 집의 pop), 아니면 MERC_CAP
+func pop_cap() -> int:
+	if _stage.has("merc_cap") or not village.has_area():
+		return merc_cap
+	return POP_BASE + pop_houses().reduce(func(n, s): return n + s.pop, 0)
+
 # 준비 단계에만, 플레이어가 놓은 구조물·용병을 판다(S69). 성곽·영웅 등 나머지는 건너뛴다(I56)
 func sell(things: Array) -> void:
 	if state != "prep":
@@ -3085,6 +3139,9 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 			target.fx.erase("seraphina_e")
 			_fx(target, "seraphina_e_saved", {"invuln": true}, secs)
 			target.hp = 1.0
+			var keep = _tracing
+			_trace(target, "saved", target, target.pos, 0.0)  # 불사 순간 그림(I227 ③)만 읽는다. 맞은 대상이 없다
+			_tracing = keep
 			return
 	else:
 		amount *= armor_mult(armor_of(target)) * (1.0 - _fx_cut(target, "dr"))
@@ -3162,6 +3219,8 @@ func _share(e: Enemy, amount: float, src) -> void:
 	if link == null:
 		return
 	var part: float = amount * e.fx.vesper_e.share
+	if not _dotting and part > 0.0:  # 나누기 흔적(I226 ③): 초당 피해에서 나뉜 것은 프레임마다라 남기지 않는다
+		_paint("share", e.pos, 0.0, {"aim": e, "chain": link})
 	var tr = _tracing  # 나눈 피해는 스킬에 맞은 것이 아니다(S179 2026-10-29): 흔적의 맞은 대상에 넣지 않는다
 	_tracing = null
 	for o in enemies.duplicate():
@@ -3792,10 +3851,24 @@ func _shoot(src, e: Enemy, hurt: float, kind: String, ignore := 0.0, aim := 0.0)
 	if b != null:
 		m.bless = b
 		m.bless_r = src.fx.seraphina_r.splash
+	m.free = src.kind in FREE
+	if m.free and m.wait <= 0.0:
+		_aim(m)
 	missiles.append(m)
 
+# 논타겟팅 투사체의 조준점(S178 2026-11-04 변경, I224 ③): 나가는 때 노린 적이 선 자리(쓰러졌으면 마지막 자리)다.
+# 화살은 조준점을 지나 쏜 자리에서 사거리만큼 간 곳(at)까지, 대포알은 조준점까지 난다. 궁수는 노린 적이 살아 있으면 명중률의 확률로 대상을 따라가는 화살이 된다(free를 끈다)
+func _aim(m: Missile) -> void:
+	if m.src is Unit and m.target.alive and _shot.randf() < m.src.accuracy:
+		m.free = false
+		return
+	m.mark = m.target.pos
+	var dir: Vector2 = (m.mark - m.from).normalized()
+	m.at = m.from + dir * _reach(m.src) if m.look == "arrow" else m.mark
+
 # 투사체를 날린다(S178, I174). 출발 전에 쏜 유닛이 쓰러지면 나가지 않는다. 대상을 따라가고, 대상이 쓰러지면 화살·구슬은 사라지고
-# 대포알은 마지막 자리로 간다. 닿으면 _land. 쏜 쪽이 날아가는 동안 쓰러지거나 팔려도 닿는다. 닿기 전에 이 step에 지난 길로 실비아의 바람을 받는다(_wind)
+# 대포알은 마지막 자리로 간다. 닿으면 _land. 쏜 쪽이 날아가는 동안 쓰러지거나 팔려도 닿는다. 닿기 전에 이 step에 지난 길로 실비아의 바람을 받는다(_wind).
+# 논타겟팅 투사체는 대상을 따라가지 않는다(_glide)
 func _fly(dt: float) -> void:
 	var flying := []
 	for m in missiles:
@@ -3810,6 +3883,12 @@ func _fly(dt: float) -> void:
 			m.from = _where(m.src)
 			m.pos = m.from
 			left = -m.wait
+			if m.free:
+				_aim(m)
+		if m.free:
+			if _glide(m, left):
+				flying.append(m)
+			continue
 		if m.target.alive:
 			m.at = m.target.pos
 		elif m.look != "ball":
@@ -3826,14 +3905,49 @@ func _fly(dt: float) -> void:
 			_land(m)
 	missiles = flying
 
+# 논타겟팅 투사체를 left초 날린다(S178 2026-11-04 변경, I224). 화살은 이 step에 지난 선분에서 몸이 닿은 첫 적(_struck)에게 닿고, 그 적이 target이 된다.
+# 아무도 맞히지 못하고 at(사거리 끝)에 닿으면 사라진다. 대포알은 at(조준점)에 떨어진다. 노린 적이 범위 밖이면 missed다. 아직 날면 true
+func _glide(m: Missile, left: float) -> bool:
+	var was: Vector2 = m.pos
+	m.pos = m.pos.move_toward(m.at, m.speed * left)
+	if m.look == "arrow":
+		var hit = _struck(was, m.pos)
+		if hit:
+			m.pos = Geometry2D.get_closest_point_to_segment(hit.pos, was, m.pos)
+			_wind(m, was)
+			m.target = hit
+			m.at = hit.pos  # 맞은 적 둘레가 축복 자리다(I224 ②)
+			_land(m)
+			return false
+	_wind(m, was)
+	if m.pos != m.at:
+		return true
+	if m.look == "ball":
+		m.missed = not (m.target.alive and m.target.pos.distance_to(m.at) <= m.splash)
+		_land(m)
+	return false
+
+# 선분 a → b에서 몸이 닿은 첫 적(I224 ①): 몸 가운데에서 선분까지가 몸 반지름 이하인 적 가운데, 선분 위 가장 가까운 점이 a에 가장 가까운 적.
+# 쏘는 쪽이 노리지 못하는 공중에 뜬 적(_aloft)은 지나간다. 없으면 null
+func _struck(a: Vector2, b: Vector2):
+	var best = null
+	var best_d := INF
+	for e in enemies:
+		var p := Geometry2D.get_closest_point_to_segment(e.pos, a, b)
+		var d := a.distance_to(p)
+		if p.distance_to(e.pos) <= e.radius and d < best_d and not _aloft(e):
+			best = e
+			best_d = d
+	return best
+
 # 투사체가 닿았다(S178, I174). 화살·구슬은 대상에게, 대포알은 떨어진 자리 둘레 splash칸 안의 적 모두에게 같은 피해를 준다(S90).
 # 쏜 구조물이 서 있으면 맞은 적은 그 구조물에 반격한다(S5, I73): 반격 대상이 있으면 그 대상이 COUNTER_HOLD초 동안 쏘지 않았을 때만 바꾼다.
-# 같은 step이면 먼저 쏜 투사체가 먼저 닿는다(S140). 축복이 실렸으면 닿은 자리 둘레에 마법 피해를 더한다(S152)
+# 같은 step이면 먼저 쏜 투사체가 먼저 닿는다(S140). 축복이 실렸으면 닿은 자리 둘레에 마법 피해를 더한다(S152). 놓친 대포알(missed)의 노린 적은 맞지 않는다
 func _land(m: Missile) -> void:
 	var s = m.src
 	var stands: bool = s is Block and s.alive and structures.get(s.cell) == s
 	for e in enemies.duplicate():
-		if e == m.target or (m.splash > 0.0 and e.pos.distance_to(m.at) <= m.splash):
+		if (e == m.target and not m.missed) or (m.splash > 0.0 and e.pos.distance_to(m.at) <= m.splash):
 			if stands and (e.attacker == s or e.held <= 0.0 or not (e.attacker and e.attacker.alive)):
 				e.attacker = s
 				e.held = COUNTER_HOLD
