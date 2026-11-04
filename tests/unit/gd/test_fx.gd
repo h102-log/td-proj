@@ -31,6 +31,9 @@ extends RefCounted
 #         피해 나누기는 흔적 share(초당 피해 빼고)와 맞은 적 가슴에서 퍼지는 크림 고리 + 맞은 적에서 사슬을 따라 흐르는 크림 빛(가운데 청록, 바깥 검정),
 #         전염은 옮은 적이 있을 때만 흔적 spread와 전염 반경까지 퍼지는 점선 고리(약 PLAGUE_DASH px 주기) + 옮은 적 머리 위 해골(떠오르고 끝에 깜박),
 #         늪은 진흙·깊은 청록 물 칠 + 가운데서 퍼지는 1px 물결 BOG_WAVES(BOG_DASH px마다 끊긴 점선), 늪에 든 적은 발이 진흙 띠에 잠긴다. 색은 팔레트 안이다.
+#   I228(fx-10). 아이아스: 요새화는 발 앞 돌담 다섯(아래 층), 자기 받는 피해 감소에는 공용 방패가 없다. 방패 강타는 밀려 나가는 방패 조각 + 2px 호,
+#         밀린 적은 발 양옆 흙먼지. 포효는 충격파 둘 + 외침 선 다섯, 포효 보호막만이면 머리 위 지붕 호. 태세는 방패 테두리 + 쌓인 피해 테(막으면 번쩍),
+#         터뜨림은 납작한 팔각 충격파 + 아래 층 균열, 공명은 벽 테두리 번쩍 + 떠오르는 작은 고리, 둘레 칠 1/16, 성벽 북쪽 끝 흉벽 이빨 셋이다.
 
 const View := preload("res://src/ui/battle_view.gd")
 const Battle := preload("res://src/sim/battle.gd")
@@ -210,7 +213,7 @@ func test_ally_effects_use_halo_only_for_shield_and_invuln():
 	v.battle = b
 	var h = b.heroes[0] if not b.heroes.is_empty() else b.units[0]
 	h.shields["test"] = {"hp": 10.0, "left": 2.0}
-	b._fx(h, "aias_e", {"dr": 0.3}, 2.0)
+	b._fx(h, "aias_r", {"dr": 0.3}, 2.0)  # 절대 방어선 둘레에서 온 받는 피해 감소는 공용 방패 둘이다(아이아스 자기 것은 I228 ②)
 	b._fx(h, "chronos_q", {"haste": 0.3}, 2.0)
 	var marks: Array = v.status_marks(h, true)
 	var why := ""
@@ -286,39 +289,91 @@ func test_fx2_pieces_and_bright_first_burst_frame():
 		return "터뜨림 첫 프레임 가운데가 %s다(밝은 크림 efd8a1이어야 한다)" % mid.to_html(false)
 	return ""
 
-func test_shield_bash_is_thick_band_inside_fan_then_one_thin_arc():
+# I228 ③: 방패 조각이 0.12초에 부채꼴 쪽으로 밀려 나가고, 베기 띠는 앞 가장자리 크림·겹 수 4 → 2, 그 뒤 0.4초까지 2px 호 하나
+func test_shield_bash_slams_shield_out_then_thick_band_and_two_px_arc():
 	var v = Rec.new()
+	var c := Vector2i(100, 100)
 	var d := 0.5
 	var half := PI / 4.0
-	v._bash(Vector2i(100, 100), 32.0, d, half, 0.02, [])
+	v._bash(c, 32.0, d, half, 0.02, [])
 	var why := ""
 	var radii: Array = v.arcs.map(func(a): return a[0])
-	if v.arcs.size() < 3 or radii.max() - radii.min() != v.arcs.size() - 1 or v.arcs.any(func(a): return absf(a[2] - (d - half)) > 1e-4 or absf(a[3] - (d + half)) > 1e-4):
-		why = "쓴 직후 베기가 %s다(부채꼴 안 이어진 띠 셋 이상이어야 한다)" % [v.arcs]
-	elif v.arcs.filter(func(a): return a[0] == radii.max())[0][4] != View.PX.cream:
-		why = "베기 앞 가장자리가 크림이 아니다"
+	var near: Array = v.spr.filter(func(s): return s[0] == "aegis")
+	if v.arcs.size() < 2 or radii.max() - radii.min() != v.arcs.size() - 1 or v.arcs.any(func(a): return absf(a[2] - (d - half)) > 1e-4 or absf(a[3] - (d + half)) > 1e-4):
+		why = "쓴 직후 베기가 %s다(부채꼴 안 이어진 띠 둘 이상이어야 한다)" % [v.arcs]
+	elif v.arcs.filter(func(a): return a[0] >= radii.max() - 1).any(func(a): return a[4] != View.PX.cream):
+		why = "베기 앞 가장자리 두 겹이 크림이 아니다"
+	elif near.size() != 1 or near[0][1] != 0:
+		why = "쓴 직후 방패 조각이 %s다(흰 번쩍 프레임 하나여야 한다)" % [near]
 	v.wipe()
-	v._bash(Vector2i(100, 100), 32.0, d, half, View.SWEEP + 0.05, [])
-	if why == "" and (v.arcs.size() != 1 or v.arcs[0][0] != 32):
-		why = "베기 뒤 %s다(반경 32의 호 하나여야 한다)" % [v.arcs]
+	v._bash(c, 32.0, d, half, 0.1, [])
+	var far: Array = v.spr.filter(func(s): return s[0] == "aegis")
+	var dir := Vector2.from_angle(d)
+	if why == "" and (far.size() != 1 or far[0][1] != 1 or Vector2(far[0][2] - near[0][2]).dot(dir) < 6.0):
+		why = "0.1초 방패 조각이 %s다(보라 방패가 부채꼴 쪽으로 6px 넘게 나가야 한다)" % [far]
 	v.wipe()
-	v._bash(Vector2i(100, 100), 32.0, d, half, View.FX, [])
+	v._bash(c, 32.0, d, half, View.SWEEP + 0.05, [])
+	if why == "" and (v.arcs.size() != 1 or v.arcs[0][0] != 32 or v.arcs[0][1] != 2 or v.spr.any(func(s): return s[0] == "aegis")):
+		why = "베기 뒤 %s · %s다(반경 32의 2px 호 하나, 방패 조각 없음이어야 한다)" % [v.arcs, v.spr]
+	v.wipe()
+	v._bash(c, 32.0, d, half, View.FX + 0.05, [])
+	if why == "" and v.arcs.size() != 1:
+		why = "0.35초에 호가 %d개다(0.4초까지 남아야 한다)" % v.arcs.size()
+	v.wipe()
+	v._bash(c, 32.0, d, half, View.FX + 0.1, [])
 	if why == "" and not v.arcs.is_empty():
-		why = "FX초 뒤에도 호를 그린다"
+		why = "0.4초 뒤에도 호를 그린다"
 	v.free()
 	return why
 
-func test_war_cry_two_shock_rings_above_and_dust_below():
+# I228 ③: 요새화 중 방패 강타에 밀린 적(둔화가 걸린 적)만 발 양옆으로 흙먼지(2×2)가 퍼진다(0.45초, 몸통 아래 층)
+func test_shield_bash_shoves_kick_dust_beside_feet_below_bodies():
+	var b = _pair()
+	var v = Rec.new()
+	v.battle = b
+	var pushed = b.spawn_enemy("basic", Vector2i(10, 12), {"speed": 0, "sight": 0, "damage": 0, "hp": 1e9})
+	var still = b.spawn_enemy("basic", Vector2i(12, 12), {"speed": 0, "sight": 0, "damage": 0, "hp": 1e9})
+	b._fx(pushed, "aias_q_slow", {"slow": 0.3}, 3.0)
+	v._foes = [pushed, still]
+	var c := Vector2i(v._center(Vector2(10, 10)).floor())
+	v._shove(c, [pushed, still], 0.1)
+	var feet: Vector2i = Vector2i((v._spot(pushed) + v._slip(pushed)).floor())
+	var dust: Array = v.pxs.filter(func(p): return p[2] == Vector2i(2, 2))
+	var why := ""
+	if dust.size() != 6 or dust.any(func(p): return absi(p[0].x - feet.x) < 4 or absi(p[0].y - feet.y) > 4) or dust.any(func(p): return not p[1] in [View.PX.cream, View.PX.ash, View.PX.smoke]):
+		why = "밀린 적 흙먼지가 %s다(발 양옆 2×2 여섯, 크림·재·연기여야 한다)" % [dust]
+	elif dust.filter(func(p): return p[0].x < feet.x).size() != 3:
+		why = "흙먼지가 한쪽으로 쏠렸다: %s" % [dust]
+	v.wipe()
+	v._shove(c, [pushed], 0.45)
+	if why == "" and not v.pxs.is_empty():
+		why = "0.45초 뒤에도 흙먼지를 그린다"
+	v.free()
+	return why
+
+# I228 ④: 충격파 고리 둘은 그대로, 외침 선은 머리 위 부채꼴 다섯(굵기 2 → 1, 크림 → 금)
+func test_war_cry_two_shock_rings_five_shouts_above_and_dust_below():
 	var b = _pair()
 	var v = Rec.new()
 	v.battle = b
 	var h = b.heroes[0]
 	v._cry(Vector2i(100, 100), 48.0, View.CRY_ECHO + 0.02, 7, h, true)
 	var why := ""
+	var top := int(v._spot(h).y - v._head(h)) + 6
 	if v.rings.size() != 2 or v.rings[0][1] <= v.rings[1][1] or v.rings.any(func(r): return r[2] < 1):
 		why = "충격파가 %s다(바깥 고리와 늦게 나온 안쪽 고리 둘이어야 한다)" % [v.rings.map(func(r): return [r[1], r[2]])]
-	elif v.lines.size() != 3 or v.lines.any(func(l): return l[0].y >= int((v._spot(h)).y - v._head(h))):
-		why = "외침 선이 %s다(머리 위 셋이어야 한다)" % [v.lines]
+	elif v.lines.size() != 5 or v.lines.any(func(l): return l[0].y >= top or l[1].y >= l[0].y or l[3] != 2 or l[2] != View.PX.cream):
+		why = "외침 선이 %s다(머리 위로 뻗는 크림 2px 다섯이어야 한다)" % [v.lines]
+	elif v.lines.map(func(l): return l[1].x - l[0].x).min() >= 0 or v.lines.map(func(l): return l[1].x - l[0].x).max() <= 0:
+		why = "외침 선이 부채꼴로 퍼지지 않는다: %s" % [v.lines]
+	v.wipe()
+	v._cry(Vector2i(100, 100), 48.0, 0.25, 7, h, true)
+	if why == "" and (v.lines.size() != 5 or v.lines.any(func(l): return l[3] != 1 or l[2] != View.PX.gold)):
+		why = "0.25초 외침 선이 %s다(금 1px로 식어야 한다)" % [v.lines]
+	v.wipe()
+	v._cry(Vector2i(100, 100), 48.0, 0.3, 7, h, true)
+	if why == "" and not v.lines.is_empty():
+		why = "0.3초 뒤에도 외침 선을 그린다"
 	v.wipe()
 	v._cry(Vector2i(100, 100), 48.0, 0.1, 7, h, false)
 	if why == "" and (not v.rings.is_empty() or v.pxs.size() != 10):
@@ -372,8 +427,8 @@ func test_bulwark_capsule_is_union_of_cell_circles_with_two_tone_edge():
 			if img.get_pixel(x, y).a > 0.5:
 				lit += 1
 	var inside := 3.14159 * 32 * 32 + 64 * 64
-	if lit < inside * 0.08 or lit > inside * 0.18:
-		return "성긴 칠이 %d칸이다(안쪽의 약 2/16이어야 한다)" % lit
+	if lit < inside * 0.03 or lit > inside * 0.07:  # inside는 실제 캡슐보다 커서 2/16이면 약 0.09다
+		return "성긴 칠이 %d칸이다(안쪽의 약 1/16이어야 한다, I228 ⑦)" % lit
 	return ""
 
 func test_energy_wall_cells_join_into_one_wall():
@@ -394,9 +449,9 @@ func test_aias_sylvia_casts_draw_their_own_pieces():
 	var e = b.spawn_enemy("basic", Vector2i(10, 12), {"speed": 0, "sight": 0, "damage": 0, "hp": 1e9})
 	var v = Rec.new()
 	v.battle = b
-	var want := [["q", a, Vector2(10, 12), "spark"], ["e", a, null, "aegis"], ["e", a, null, "burst"], ["r", s, null, "spark"]]
+	var want := [["q", a, Vector2(10, 12), "spark"], ["e", a, null, "aegis"], ["e", a, null, "line"], ["r", s, null, "spark"]]  # 터뜨림은 팔각 충격파 선(I228 ⑥)
 	for w in want:
-		if w[3] == "burst":
+		if w[3] == "line":
 			a.braced = 30.0
 			b.cast(a, "e")
 		elif not _ready_cast(b, w[1], w[0], w[2]):
@@ -405,7 +460,10 @@ func test_aias_sylvia_casts_draw_their_own_pieces():
 		b.step(1.0 / 60.0)
 		v.wipe()
 		v._traces(true)
-		var got: Array = v.spr.map(func(x): return x[0]) + (["arc"] if not v.arcs.is_empty() else [])
+		var got: Array = v.spr.map(func(x): return x[0]) + (["arc"] if not v.arcs.is_empty() else []) + (["line"] if not v.lines.is_empty() else [])
+		if w[3] == "line" and got.has("burst"):
+			v.free()
+			return "터뜨림에 터짐 조각이 남았다: %s" % [got]
 		if not got.has(w[3]):
 			v.free()
 			return "%s %s 뒤 그린 것이 %s다(%s가 있어야 한다)" % [w[1].kind, w[0], got, w[3]]
@@ -417,6 +475,222 @@ func test_aias_sylvia_casts_draw_their_own_pieces():
 		b.traces.clear()
 	v.free()
 	return ""
+
+# ── fx-10: 아이아스(I228) ──
+
+# ① 요새화가 켜진 동안 발 앞 반원에 돌담 다섯(그을음 그림자 + 연기 몸 + 재 윗줄). 켜진 순간은 그림자만이고 0.25초에 솟는다
+func test_fortify_stone_wall_rises_in_front_half_of_feet():
+	var b = _pair()
+	var v = Rec.new()
+	v.battle = b
+	var a = b.heroes[0]
+	var feet: Vector2i = Vector2i((v._spot(a) + v._slip(a)).floor())
+	v._fort_wall(a)
+	var why := ""
+	if not v.pxs.is_empty():
+		why = "요새화 전에 돌담을 그린다: %s" % [v.pxs]
+	a.still = a.passive.still
+	a.fort = true
+	v.wipe()
+	v._fort_wall(a)
+	var shadows: Array = v.pxs.filter(func(p): return p[1] == View.PX.soot and p[2] == Vector2i(4, 1))
+	if why == "" and (shadows.size() != 5 or v.pxs.any(func(p): return p[1] == View.PX.smoke and p[2].y > 1)):
+		why = "켜진 순간이 %s다(그림자 다섯, 아직 솟지 않음이어야 한다)" % [v.pxs]
+	a.still = a.passive.still + 0.3
+	v.wipe()
+	v._fort_wall(a)
+	var bodies: Array = v.pxs.filter(func(p): return p[1] == View.PX.smoke and p[2] == Vector2i(4, 3))
+	var tops: Array = v.pxs.filter(func(p): return p[1] == View.PX.ash and p[2] == Vector2i(4, 1))
+	if why == "" and (bodies.size() != 5 or tops.size() != 5):
+		why = "0.3초 돌담이 몸 %d · 윗줄 %d다(다섯씩이어야 한다)" % [bodies.size(), tops.size()]
+	elif why == "" and bodies.any(func(p): return p[0].y + 3 < feet.y - 2):
+		why = "돌담이 발 위쪽(몸 뒤)에 있다: %s" % [bodies.map(func(p): return p[0])]
+	elif why == "" and (bodies.map(func(p): return p[0].x).min() > feet.x - 8 or bodies.map(func(p): return p[0].x + 4).max() < feet.x + 8):
+		why = "돌담이 발 양옆까지 닿지 않는다: %s" % [bodies.map(func(p): return p[0])]
+	a.still = a.passive.still + 2.0
+	v.wipe()
+	v._fort_wall(a)
+	if why == "" and v.pxs.size() != 15:
+		why = "먼지가 0.4초 뒤에도 남았다(칸 %d개, 돌담 15칸이어야 한다)" % v.pxs.size()
+	v.free()
+	return why
+
+# ② 아이아스 자기 받는 피해 감소(요새화·태세)에는 공용 방패 둘이 없고, 다른 데서 온 받는 피해 감소가 함께면 공용 방패 둘이 다시 보인다
+func test_aias_own_damage_cut_hides_shared_guard():
+	var b = _pair()
+	var v = Rec.new()
+	v.battle = b
+	var a = b.heroes[0]
+	b._fx(a, "aias_p", {"dr": 0.25}, 1.0)
+	var why := ""
+	if v.status_marks(a, true).any(func(m): return m.k == "guard"):
+		why = "요새화만 걸렸는데 공용 방패가 있다"
+	b._fx(a, "aias_r", {"dr": 0.4}, 1.0)
+	if why == "" and v.status_marks(a, true).filter(func(m): return m.k == "guard").size() != 2:
+		why = "절대 방어선 둘레가 함께인데 공용 방패 둘이 없다"
+	var s = b.heroes[1]
+	b._fx(s, "aias_e", {"dr": 0.5}, 1.0)
+	if why == "" and v.status_marks(s, true).filter(func(m): return m.k == "guard").size() != 2:
+		why = "아이아스가 아닌 영웅의 받는 피해 감소가 공용 방패 둘이 아니다"
+	v.free()
+	return why
+
+# ④ 전장의 포효 보호막만 있으면 공용 얼음 테 대신 머리 위 지붕 호 셋(바깥 밝은 보라 · 보라 · 안쪽 어두운 보라). 다른 보호막이 함께면 공용 테
+func test_war_cry_shield_alone_is_roof_arc_above_head():
+	var b = _pair()
+	var v = Rec.new()
+	v.battle = b
+	var a = b.heroes[0]
+	a.shields["aias_w"] = {"hp": 10.0, "left": 5.0}
+	var marks: Array = v.status_marks(a, true)
+	var arcs: Array = marks.filter(func(m): return m.k == "arc")
+	var why := ""
+	if marks.any(func(m): return m.k == "ring"):
+		why = "포효 보호막만인데 공용 테가 있다"
+	elif arcs.size() != 3 or arcs.any(func(m): return m.a0 >= m.a1 or m.a1 > 0.0 or m.a0 < -PI) or arcs.map(func(m): return m.c) != [View.PX.vio0, View.PX.vio1, View.PX.vio3]:
+		why = "지붕 호가 %s다(머리 위 반원 셋, 바깥부터 밝은 보라 · 보라 · 어두운 보라여야 한다)" % [arcs]
+	elif arcs.map(func(m): return m.r) != [arcs[1].r + 1, arcs[1].r, arcs[1].r - 1]:
+		why = "지붕 호 반지름이 %s다(1px씩 붙어야 한다)" % [arcs.map(func(m): return m.r)]
+	a.shields["test"] = {"hp": 10.0, "left": 2.0}
+	marks = v.status_marks(a, true)
+	if why == "" and (marks.filter(func(m): return m.k == "ring").size() != 1 or marks.any(func(m): return m.k == "arc")):
+		why = "다른 보호막이 함께인데 공용 테 하나가 아니다: %s" % [marks.map(func(m): return m.k)]
+	v.free()
+	return why
+
+# ⑤ 태세가 걸린 동안(0.3초 뒤부터) 몸 앞 방패 테두리 프레임 + 쌓인 피해 테(최대 체력 20%면 반지름 11 크림). 막은 직후 흰 번쩍, 마지막 0.5초 깜박
+func test_brace_shows_outline_shield_and_charge_ring_until_burst():
+	var b = _pair()
+	var v = Rec.new()
+	v.battle = b
+	var a = b.heroes[0]
+	b.spawn_enemy("basic", Vector2i(25, 25), {"speed": 0, "sight": 0, "damage": 0, "hp": 1e9})  # 적이 없으면 첫 스텝 뒤 판이 끝나 태세가 지워진다
+	if not _ready_cast(b, a, "e"):
+		v.free()
+		return "태세를 못 썼다"
+	var why := ""
+	if v.status_marks(a, true).any(func(m): return m.k == "aegis"):
+		why = "쓴 직후(흔적의 방패 조각 0.3초 안)에도 걸린 동안 표시를 그린다"
+	a.brace = a.e.time - View.FX - 0.1
+	var marks: Array = v.status_marks(a, true)
+	var shield: Array = marks.filter(func(m): return m.k == "aegis")
+	var ring: Array = marks.filter(func(m): return m.k == "ring")
+	if why == "" and (shield.size() != 1 or shield[0].f != 2 or ring.size() != 1 or ring[0].r != 8 or ring[0].c != View.PX.vio2 or ring[0].p != shield[0].p):
+		why = "받은 피해 없는 태세가 %s다(방패 테두리 프레임 + 반지름 8 어두운 보라 테여야 한다)" % [marks]
+	elif why == "" and marks.any(func(m): return m.k == "guard"):
+		why = "태세에 공용 방패 둘이 있다"
+	b.damage(a, a.max_hp * View.BRACE_FULL, "true", null)
+	b.step(1.0 / 60.0)
+	marks = v.status_marks(a, true)
+	shield = marks.filter(func(m): return m.k == "aegis")
+	ring = marks.filter(func(m): return m.k == "ring")
+	if why == "" and (shield.size() != 1 or shield[0].f != 0 or ring.size() != 1 or ring[0].r != 11 or ring[0].c != View.PX.cream):
+		why = "최대 체력 20%%를 막은 직후가 %s다(흰 번쩍 프레임 + 반지름 11 크림 테여야 한다)" % [marks]
+	for i in 10:
+		b.step(1.0 / 60.0)
+	if why == "" and v.status_marks(a, true).filter(func(m): return m.k == "aegis").any(func(m): return m.f != 2):
+		why = "막고 0.18초 뒤에도 흰 번쩍이다"
+	a.brace = 0.3
+	var seen := []
+	for t in [0.0, 0.05, 0.1, 0.13, 0.15, 0.18]:
+		v.clock = t
+		seen.append(v.status_marks(a, true).any(func(m): return m.k == "aegis"))
+	if why == "" and (not seen.has(true) or not seen.has(false)):
+		why = "남은 0.5초 밑에서 깜박이지 않는다: %s" % [seen]
+	v.free()
+	return why
+
+# ⑧ 태세 중 받은 피해는 맞은 대상이 없는 block 흔적을 남긴다. 태세가 아니면 남기지 않는다
+func test_braced_hit_leaves_block_trace_without_hits():
+	var b = _pair()
+	var a = b.heroes[0]
+	b.damage(a, 5.0, "phys", null)
+	if b.traces.any(func(t): return t.slot == "block"):
+		return "태세가 아닌데 block 흔적이 남았다"
+	if not _ready_cast(b, a, "e"):
+		return "태세를 못 썼다"
+	b.traces.clear()
+	b.damage(a, 5.0, "phys", null)
+	var blk: Array = b.traces.filter(func(t): return t.slot == "block")
+	if blk.size() != 1 or blk[0].hero != a or not blk[0].hits.is_empty():
+		return "태세 중 피해의 흔적이 %s다(아이아스의 block 하나, 맞은 대상 없음이어야 한다)" % [blk]
+	return ""
+
+# ⑥ 터뜨림은 터짐 조각·고리 없이 납작한 팔각 충격파(앞 절반은 두 겹), 몸통 아래 층 균열 여덟(0.6초), 맞은 적 섬광
+func test_burst_is_flat_octagon_shock_cracks_below_and_sparks():
+	var b = _pair()
+	var v = Rec.new()
+	v.battle = b
+	var e = b.spawn_enemy("basic", Vector2i(10, 12), {"speed": 0, "sight": 0, "damage": 0, "hp": 1e9})
+	var c := Vector2i(100, 100)
+	v._burst(c, 32.0, 0.02, 7, [e], true)
+	var why := ""
+	var w: int = v.lines.map(func(l): return absi(l[0].x - c.x)).max() if not v.lines.is_empty() else 0
+	var h: int = v.lines.map(func(l): return absi(l[0].y - c.y)).max() if not v.lines.is_empty() else 0
+	if v.spr.any(func(s): return s[0] == "burst") or not v.rings.is_empty():
+		why = "터뜨림에 터짐 조각이나 고리가 있다: %s" % [v.spr]
+	elif v.lines.size() != 16 or v.lines.any(func(l): return l[2] != View.PX.cream and l[2] != View.PX.vio0):
+		why = "터뜨림 직후 선이 %d개다(크림 · 밝은 보라 팔각 둘, 16개여야 한다)" % v.lines.size()
+	elif h >= w:
+		why = "팔각이 납작하지 않다(가로 %d, 세로 %d)" % [w, h]
+	elif not v.spr.any(func(s): return s[0] == "spark"):
+		why = "맞은 적에 섬광이 없다"
+	v.wipe()
+	v._burst(c, 32.0, 0.2, 7, [e], true)
+	if why == "" and v.lines.size() != 8:
+		why = "0.2초 팔각이 선 %d개다(한 겹 8개여야 한다)" % v.lines.size()
+	v.wipe()
+	v._burst(c, 32.0, 0.3, 7, [e], false)
+	if why == "" and (v.lines.size() != 16 or v.lines.any(func(l): return l[2] != View.PX.soot)):
+		why = "0.3초 아래 층 균열이 %s다(그을음 꺾인 줄 여덟, 선 16개여야 한다)" % [v.lines.size()]
+	v.wipe()
+	v._burst(c, 32.0, 0.6, 7, [e], false)
+	v._burst(c, 32.0, 0.3, 7, [e], true)
+	if why == "" and not v.lines.is_empty():
+		why = "0.6초 균열이나 0.3초 충격파가 남았다: %d" % v.lines.size()
+	v.free()
+	return why
+
+# ⑥ 성벽 공명은 성벽 칸마다 벽 조각 위·아래 테두리 번쩍(0.12초)과, 벽 위로 떠오르며 퍼지는 보라 고리(0.3초)
+func test_resonance_flashes_wall_edges_and_lifts_small_ring():
+	var v = Rec.new()
+	var q := Vector2i(6, 8)
+	var c := Vector2i(v._center(Vector2(q)).floor())
+	var tall := int(View.FX_ART.ward[3])
+	var top := q * View.CELL - Vector2i(0, tall - View.CELL)
+	v._resonate(c, 0.02)
+	var why := ""
+	var edges: Array = v.pxs.filter(func(p): return p[2] == Vector2i(View.CELL, 1))
+	if edges.size() != 2 or edges.map(func(p): return p[0]) != [top, top + Vector2i(0, tall - 1)] or edges.any(func(p): return p[1] != View.PX.cream):
+		why = "공명 직후 벽 테두리가 %s다(그림 위끝 %s와 아래끝의 크림 줄 둘이어야 한다)" % [edges, top]
+	elif v.rings.size() != 1 or v.rings[0][1] > 4 or v.rings[0][0].y >= c.y:
+		why = "공명 직후 고리가 %s다(가운데 위에 작은 고리 하나여야 한다)" % [v.rings]
+	v.wipe()
+	v._resonate(c, 0.2)
+	if why == "" and (not v.pxs.is_empty() or v.rings.size() != 1 or v.rings[0][1] < 8):
+		why = "0.2초 공명이 테두리 %d · 고리 %s다(번쩍 없이 커진 고리 하나여야 한다)" % [v.pxs.size(), v.rings]
+	v.wipe()
+	v._resonate(c, 0.3)
+	if why == "" and not (v.pxs.is_empty() and v.rings.is_empty()):
+		why = "0.3초 뒤에도 공명을 그린다"
+	v.free()
+	return why
+
+# ⑦ 에너지 성벽 줄의 북쪽 끝 칸 윗면 뒤끝에 흉벽 이빨 셋(2×3 얼음 + 위 1px 밝은 얼음, 옆 남색 1px)
+func test_energy_wall_north_end_cells_carry_three_merlons():
+	var v = Rec.new()
+	var q := Vector2i(6, 8)
+	var tall := int(View.FX_ART.ward[3])
+	var top := q * View.CELL - Vector2i(0, tall - View.CELL)
+	v._merlons(top)
+	var teeth: Array = v.pxs.filter(func(p): return p[1] == View.PX.ice1 and p[2] == Vector2i(2, 3))
+	var why := ""
+	if teeth.size() != 3 or teeth.any(func(p): return p[0].y != top.y - 3) or teeth.map(func(p): return p[0].x - top.x) != [1, 7, 13]:
+		why = "흉벽 이빨이 %s다(윗면 뒤끝 위 x 1·7·13에 셋이어야 한다)" % [teeth]
+	elif v.pxs.filter(func(p): return p[1] == View.PX.navy and p[2] == Vector2i(4, 3)).size() != 3 or v.pxs.filter(func(p): return p[1] == View.PX.ice0 and p[2] == Vector2i(2, 1)).size() != 3:
+		why = "흉벽 이빨의 남색 옆선·밝은 윗줄이 셋씩이 아니다"
+	v.free()
+	return why
 
 func test_toggle_on_shows_wind_at_feet_only_while_on():
 	var b = _pair()
