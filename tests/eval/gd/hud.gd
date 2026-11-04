@@ -3697,3 +3697,74 @@ func ev724():
 	_done(main)
 	return check(first == 2 and ends == [0, 4] and l1 == 0 and l2 == 4 and stays,
 		"처음 맨 왼줄 %d(2여야 한다) · 맨 위 왼쪽·맨 아래 오른쪽 %s([0, 4]여야 한다) · 끌기 → %d · %d([0, 4]여야 한다) · 카메라 그대로 %s" % [first, ends, l1, l2, stays])
+
+# ── 인구 칸(S25 2026-11-04 변경, I225) ──
+# 더하는 API: main.hud.pop — 위 띠 바로 아래 인구 칸(Label) · Battle.POP_BASE — 거점 몫 · data/structures/house.tres의 pop — 집 몫
+
+# 디스크에서 새로 읽은 집 몫. 없으면 0
+func _house_pop() -> int:
+	var d: Resource = ResourceLoader.load("res://data/structures/house.tres", "", ResourceLoader.CACHE_MODE_IGNORE)
+	var v = d.get("pop")
+	return int(v) if v != null else 0
+
+# 들판(성 아래)에 용병을 n명 놓는다. 놓인 수
+func _field_mercs(b, n: int) -> int:
+	var placed := 0
+	for i in n:
+		if b.place_merc("soldier", Vector2i(10 + 2 * i, 66)) != null:
+			placed += 1
+	return placed
+
+# EV742 · I225: 인구 칸은 위 띠 바로 아래 [4,30,52,12]에 «인구 n/m»이다. 상한에 닿으면 빨강이고, 툴팁에 상한 내역이 있다
+func ev742():
+	var main = _prep()
+	var b = main.view.battle
+	var pop = main.hud.get("pop")
+	var per := _house_pop()
+	var out := ""
+	if pop == null or b.get("POP_BASE") == null or per <= 0:
+		out = "인구 칸(main.hud.pop)·Battle.POP_BASE·house.tres pop 가운데 없는 것이 있다"
+	if out == "":
+		var r: Rect2 = pop.get_global_rect()
+		var want := "인구 0/%d" % b.POP_BASE
+		out = check(pop.is_visible_in_tree() and r.position.distance_to(Vector2(4, 30)) <= 0.5 and r.size.distance_to(Vector2(52, 12)) <= 0.5 and pop.text == want,
+			"인구 칸 %s(보임 %s) · 글 «%s»(기대 [4,30,52,12] «%s»)" % [r, pop.is_visible_in_tree(), pop.text, want])
+	if out == "":
+		var placed := _field_mercs(b, b.POP_BASE)
+		_frame(main)
+		var full := "인구 %d/%d" % [b.POP_BASE, b.POP_BASE]
+		var red: bool = pop.get_theme_color("font_color").is_equal_approx(DANGER)
+		var tip := _tip_of(main, pop)
+		var line := "상한 %d(거점 %d + 집 0채 × %d)" % [b.POP_BASE, b.POP_BASE, per]
+		out = check(placed == b.POP_BASE and pop.text == full and red and line in tip,
+			"놓인 용병 %d(%d) · 글 «%s»(기대 «%s») · 빨강 %s · 툴팁 «%s»에 «%s»" % [placed, b.POP_BASE, pop.text, full, red, tip, line])
+	_done(main)
+	return out
+
+# EV743 · I225: 상한에 닿으면 생산 시설 팝업의 구매 버튼이 꺼지고 툴팁에 «✕ 인구 가득 — 집을 지으면 (집 몫)명 늘어난다»가 있다
+func ev743():
+	var main = _prep()
+	var b = main.view.battle
+	var per := _house_pop()
+	var out := "" if b.get("POP_BASE") != null and per > 0 else "Battle.POP_BASE·house.tres pop 가운데 없는 것이 있다"
+	var f = null
+	if out == "":
+		f = b.build("barracks", Vector2i(6, 6))
+		out = check(f != null, "준비 단계에 마을 (6,6)에 병영을 짓지 못했다")
+	if out == "":
+		b.start_battle()
+		main.controls.facility = f
+		_frame(main)
+		var btn = _starts(main.hud.popup, "용병")
+		out = check(btn != null and not btn.disabled, "전투 단계 병영 팝업의 «용병» 구매 버튼 %s(켜져 있어야)" % [btn])
+		if out == "":
+			var n := 0
+			while n < 40 and b.recruit(f) != null:
+				n += 1
+			_frame(main)
+			var tip := _tip_of(main, btn)
+			var line := "✕ 인구 가득 — 집을 지으면 %d명 늘어난다" % per
+			out = check(n == b.POP_BASE and btn.disabled and line in tip,
+				"산 용병 %d(%d) · 버튼 꺼짐 %s · 툴팁 «%s»에 «%s»" % [n, b.POP_BASE, btn.disabled, tip, line])
+	_done(main)
+	return out

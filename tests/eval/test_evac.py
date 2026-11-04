@@ -52,3 +52,7 @@ def test_EV499_shelter_data_village_only(gd):
 
 def test_EV500_shelter_destroyed_folk_go_home(gd):
     gd("evac", "EV500")
+
+
+def test_EV726_hit_table_with_folk_target(gd):
+    gd("evac", "EV726")

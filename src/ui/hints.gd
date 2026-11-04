@@ -88,9 +88,9 @@ func _current() -> String:
 			return h[0]
 	return ""
 
-# 출전 영웅이 쓴 스킬 수. 켜 둔 토글 칸도 하나로 센다(S192)
+# 출전 영웅이 쓴 스킬 수(S192)
 func _skills() -> int:
-	return battle.heroes.reduce(func(s, h): return s + h.skill_uses + int(h.toggle), 0)
+	return battle.heroes.reduce(func(s, h): return s + h.skill_uses, 0)
 
 func _finish(name: String) -> void:
 	if name == "" or name in Settings.hints_done:

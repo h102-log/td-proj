@@ -39,6 +39,7 @@ MERGE_ONLY = {f"EV{n}" for n in (
     566, 567, 568, 573, 575,  # thick
     442,  # night
     362, 514,  # show
+    728, 729,  # debuff
 )}
 _full = os.environ.get("EVAL_FULL") == "1"
 

@@ -7,12 +7,12 @@ extends "res://tests/eval/gd/menu.gd"
 #     _process(delta): 시간이 흐른다. 몰림의 0.05초는 이 시간으로 센다
 #   main.sfx — 게임 장면의 효과음 연결(res://src/sfx.gd). static key_for(사건) -> 효과음 키(소리 없으면 "")
 #     사건은 화면 사건(I171) {kind, at, dir, src, dst, n, heavy, slot}. hear(사건 목록, seen: Rect2) — seen은 보이는 맵 영역(맵 px)
-#     main._process가 프레임마다 화면 사건과 판 변화(놓기·완성·영입·레벨·토글)를 소리로 낸다
+#     main._process가 프레임마다 화면 사건과 판 변화(놓기·완성·영입·레벨)를 소리로 낸다
 #   settings.gd — static var music_volume · sfx_volume(0~100, 기본 100). apply_volume()이 «Music»·«SFX» 버스에도 건다
 #   소리 파일: res://audio/sfx/<키>.wav · res://audio/music/<키>.wav (PCM WAV)
 
 const KEYS := ["arrow", "bolt", "cannon", "swing", "hit", "boom", "hurt", "struct_hit", "enemy_die", "ally_down", "hero_down",
-	"boss_skill", "interrupt", "collapse", "meteor", "trap", "burst", "loop", "resonate", "build", "complete", "sell", "hire",
+	"boss_skill", "interrupt", "collapse", "meteor", "burst", "loop", "resonate", "build", "complete", "sell", "hire",
 	"level_up", "wave_start", "boss_appear", "alert", "click", "refuse"]  # S269 표에서 영웅 스킬 24개를 뺀 키
 const SONGS := ["title", "prep", "battle", "boss"]
 const JINGLES := ["clear", "win", "lose"]

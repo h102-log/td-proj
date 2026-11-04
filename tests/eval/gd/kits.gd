@@ -4,7 +4,7 @@ extends "res://tests/eval/gd/lib.gd"
 #   Battle.can_cast(영웅, 칸) · Battle.toggle_auto(영웅, 칸) · Battle.damage(대상, 양, 종류 = "phys", 낸 쪽 = null)
 #   Battle.effect(대상, 키) — 걸린 효과의 값(없으면 null) · Battle.effect_sum(대상, 키) — 더하는 효과의 합 · Battle.armor_of(대상)
 #   Battle.armor_mult(방어력) — 물리 피해 배율(S149) · Battle.zones · Battle.barriers(칸 → 막힌 칸) · Battle.CAST_RANGE
-#   영웅: cd[칸] · skill_uses · fort · block · shields(출처 → {hp, left}) · toggle · auto · order · 적: engaged(붙잡은 유닛)
+#   영웅: cd[칸] · skill_uses · fort · block · shields(출처 → {hp, left}) · auto · order · 적: engaged(붙잡은 유닛)
 #   Controls.skill_key(칸, shift) · Controls.aiming · 구조물: cooldown(다음 사격까지 남은 초)
 # 수치는 영웅 필드(q·w·e·r·passive·aura 사전)에서 읽는다. 임시값이라(S151~S158) 밸런스를 바꿔도 효과를 재는 평가는 깨지지 않게
 # 영웅의 기본 공격이 재는 값을 흐리지 않게, 기본 공격을 재지 않는 평가는 영웅의 공격력을 0으로 둔다
@@ -441,7 +441,7 @@ func ev276():
 	var arch := []
 	var foes := []
 	for row in [[Vector2i(5, 5), Vector2i(9, 5)], [Vector2i(5, 8), Vector2i(9, 8)], [Vector2i(5, 12), Vector2i(10, 12)]]:
-		arch.append(b.place_merc("archer", row[0], {"attack_gap": 100.0}))
+		arch.append(b.place_merc("archer", row[0], {"attack_gap": 100.0, "accuracy": 1.0}))  # 명중률 1(S178 2026-11-04 변경)
 		foes.append(_dummy(b, row[1]))
 	_start(b)
 	var lensed := 0
@@ -1030,7 +1030,7 @@ func ev668():
 		_quiet(b)
 		var past := 8 + int(ceil(s.e.get("length", 2.0) / 2.0)) + 1  # 관문 끝 너머 열
 		var lanes := [[Vector2i(9, 4), Vector2i(9, 9)], [Vector2i(past, 4), Vector2i(past, 9)], [Vector2i(3, 7), Vector2i(8, 7)]]
-		var a = b.place_merc("archer", lanes[i][0], {"attack_gap": 100.0})
+		var a = b.place_merc("archer", lanes[i][0], {"attack_gap": 100.0, "accuracy": 1.0})  # 명중률 1(S178 2026-11-04 변경)
 		var e = _dummy(b, lanes[i][1])
 		_start(b)
 		if not b.cast(s, "e", Vector2(8, 8)):
@@ -1043,3 +1043,23 @@ func ev668():
 	for i in 3:
 		ok = ok and _near_f(got[i], want[i], 0.001)
 	return check(ok, "[관문을 가로지름, 관문 끝 너머, 관문과 나란히 1칸] 궁수 화살 피해 %s(기대 %s)" % [got, want])
+
+# EV725 · I143: 쓰러진 영웅에게 남은 효과·반격의 태세도 웨이브가 끝나면 사라져, 체력 1로 돌아온 영웅이 준비 단계에서 다시 쓰러지지 않는다
+func ev725():
+	var b = _kit([["aias", H]])
+	var k = b.hero
+	_quiet(b)
+	_start(b)
+	b._fx(k, "bleed", {"bleed": 2.0}, 10.0)  # 출혈(S240)은 늑대만 걸어 평가가 직접 건다
+	k.brace = 1.0  # 반격의 태세(S151) 중
+	b.damage(k, BIG)
+	var down: bool = not k.alive
+	for e in b.enemies.duplicate():
+		b.damage(e, BIG)
+	b.step(DT)
+	var back: bool = b.state == "prep" and k.alive
+	var left: Array = k.fx.keys()
+	var brace: float = k.brace
+	run(b, 2.0)
+	return check(down and back and left.is_empty() and brace == 0.0 and k.alive and k.hp >= 1.0,
+		"쓰러짐 %s · 준비 단계에 돌아옴 %s(%s) · 남은 효과 %s · 태세 %s · 2초 뒤 살아 있음 %s(체력 %s)" % [down, back, b.state, left, brace, k.alive, k.hp])

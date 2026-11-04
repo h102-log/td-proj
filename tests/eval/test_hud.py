@@ -394,3 +394,11 @@ def test_EV723_silhouette_rows_32(gd):
 
 def test_EV724_minimap_horizontal_scroll(gd):
     gd("hud", "EV724")
+
+
+def test_EV742_population_chip_under_top_bar(gd):
+    gd("hud", "EV742")
+
+
+def test_EV743_buy_button_off_at_population_cap(gd):
+    gd("hud", "EV743")
