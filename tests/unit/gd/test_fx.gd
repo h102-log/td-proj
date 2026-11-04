@@ -11,14 +11,17 @@ extends RefCounted
 #         기적은 아군마다 내려오는 빛기둥, 쇠약은 조여드는 고리와 머리 위 저주 문양, 영혼 사슬은 거는 줄과 청록 고리 도트다.
 #         성역·독안개·늪은 무늬 대신 재질(성휘·빛 점 / 안개·거품 / 진흙·물결)이고, 늪은 보라를 쓰지 않는다. 색은 팔레트 안이다.
 #   S179·S168·S198·I101 2026-10-28 변경(fx-4). 크로노스(금·얼음): 과충전은 대상의 쏘는 곳까지 금 줄과 번개 조각(영웅·구조물 대상 모두),
-#         시간의 문(옛 황금률 재질)은 햇살 대신 시계 방향으로 도는 바늘 둘, 태엽 감기 둘레(옛 왜곡장 재질)는 서로 거꾸로 도는 점선 고리 둘과
-#         일그러진 눈금이다(2026-10-30 I199). 노화·타임 루프 되돌림 흔적은 반경까지 퍼지는 크림 → 금 고리 하나다(I199).
 #         보스 예고는 F24+ 빨강 두 겹 테와 차오르는 성긴 칠, 발동 채움은 원판이고,
 #         조준 미리보기(사거리·범위·부채꼴·방향·설 칸)는 아트 px 도우미로 그린다(덮개 위 층 _cv).
 #   I101 2026-10-28 셋째 변경. 명령 표식·홀드 기준 반경·대포알 고리도 아트 px 고리라 맵에 화면 px 원·호(draw_arc)가 없다.
 #   I215·S153 2026-11-01 변경. 실비아 바람: 순풍 장판은 실비아 → 장판 쪽으로 흐르는 줄, 렌즈는 실비아 → 지점에 수직인 관문(양옆 경계·양 끝 기둥),
 #         바람의 길은 두 가닥 나선, 저격은 표적 괄호(SNIPE_MARK초)와 화면 밖 꺾쇠, 렌즈를 지난 화살은 굵은 촉과 막 지날 때 번쩍 고리,
 #         순풍에서 온 공격 속도는 발 둘레 바람 줄 조각(다른 공격 속도가 함께면 사각형도).
+#   I199 2026-11-04 변경(fx-7). «크로노스 새 칸의 그림은 색으로 시간의 방향을 나눈다. 노화는 앞으로 감기(시계 방향, 모래빛), 시간의 문과 되돌림은
+#         되감기(반시계, 얼음 램프), 태엽 감기는 놋쇠 태엽(금·구리)이다.» 노화는 시계 방향 점선 테 + 모래알 16 + 걸린 적 머리 위 모래시계,
+#         시간의 문은 얼음 칠 2/16 · 눈금 넷 · 반시계 바늘 둘 · 어두운 축, 문에 든 적은 머리 위 남은 시간 고리(마지막 0.5초 깜박)와 되돌아갈 자리 점 + 흐린 점선,
+#         되돌림은 조여드는 반시계 얼음 점선 → 얼음 번쩍 + 옛 자리 쪽부터 사라지는 잔상 넷(노화 되감기면 터지는 금 고리),
+#         태엽 감기 둘레는 금 테두리 + 시계 방향 톱니 28(쓴 순간 빨리) · 칠 1/16 이하, 둘레 안 아군 영웅·탑은 어두운 테두리 태엽 열쇠(0.12초마다 뒤집힘)다.
 
 const View := preload("res://src/ui/battle_view.gd")
 const Battle := preload("res://src/sim/battle.gd")
@@ -910,73 +913,265 @@ func test_overcharge_gold_line_and_bolt_on_hero_and_tower():
 	v.free()
 	return why
 
-func test_aging_and_loop_traces_are_one_spreading_cream_to_gold_ring():
+# ── fx-7: 크로노스 새 칸(I199 2026-11-04 변경) ──
+
+# 발 자리(아트 px). 머리 위 표시는 여기서 _head만큼 위다
+func _feet_px(v, x) -> Vector2i:
+	return Vector2i((v._spot(x) + v._slip(x)).floor())
+
+func test_aging_is_clockwise_dashed_sand_rim_with_hourglass_over_aged_foes():
 	var b = _chrono()[0]
 	var ch = b.heroes[0]
+	var aged = _target(b, Vector2i(12, 15))
+	var plain = _target(b, Vector2i(13, 13))
+	b._fx(aged, "chronos_w", {"weaken": 0.1, "dot": 0.0}, 2.0)
+	b.traces = [{"hero": ch, "slot": "w", "aim": Vector2(12, 14), "at": Vector2(12, 14), "radius": 2.0, "hits": [], "marked": true, "age": 0.0}]
 	var v = Rec.new()
 	v.battle = b
+	var sand := [View.PX.cream, View.PX.tan, View.PX.ash]
 	var why := ""
-	for slot in ["w", "loop"]:  # W는 노화(aging), loop는 타임 루프 되돌림 충격파
-		b.traces = [{"hero": ch, "slot": slot, "aim": Vector2(12, 14), "at": Vector2(12, 14), "radius": 2.0, "hits": [ch], "marked": true, "age": 0.0}]
-		var rs := []
-		for t in [0.05, 0.25]:
-			b.traces[0].age = t
-			v.wipe()
-			v._traces(true)
-			if v.rings.size() != 1:
-				why = "%s 흔적 %.2f초 고리가 %d개다(하나여야 한다)" % [slot, t, v.rings.size()]
-				break
-			rs.append(v.rings[0])
-		if why == "" and (rs[1][1] <= rs[0][1] or rs[1][1] > int(View.CELL * 2.0)):
-			why = "%s 고리 반지름이 %d → %d다(반경 %dpx까지 퍼져야 한다)" % [slot, rs[0][1], rs[1][1], int(View.CELL * 2.0)]
-		elif why == "" and _off_palette([rs[0][3], rs[1][3]]) != "":
-			why = "%s 고리 색이 팔레트 밖이다" % slot
+	var spins := []
+	for t in [0.05, 0.25]:
+		b.traces[0].age = t
+		v._foes = []
+		v.wipe()
+		v._traces(true)
+		var rim: Array = v.rings.filter(func(r): return r[4] > 0)
+		var grains: Array = v.pxs.filter(func(p): return p[2] == Vector2i.ONE and p[1].a == 1.0 and p[1] in sand)
+		if v.rings.size() != 1 or rim.size() != 1 or rim[0][1] != int(View.CELL * 2.0) or not (rim[0][3] in sand):
+			why = "노화 %.2f초 고리가 %s다(반경 자리 모래빛 점선 테 하나여야 한다)" % [t, v.rings.map(func(r): return [r[1], r[3].to_html(false), r[4]])]
+		elif grains.size() != 16:
+			why = "노화 %.2f초 모래알이 %d개다(16개여야 한다)" % [t, grains.size()]
 		if why != "":
 			break
+		spins.append(rim[0][5])
+		v._foes = [aged, plain]
+		v.wipe()
+		v._traces(true)
+		for x in [aged, plain]:
+			var feet := _feet_px(v, x)
+			var glass: bool = v.pxs.any(func(p): return p[2] == Vector2i(5, 1) and p[0].x + 2 == feet.x and p[0].y < feet.y - int(v._head(x)))
+			if glass != (x == aged):
+				why = "노화 %.2f초 %s 머리 위 모래시계가 %s다(노화 걸린 적에만 있어야 한다)" % [t, "걸린 적" if x == aged else "안 걸린 적", glass]
+		if why != "":
+			break
+	if why == "" and spins[1] <= spins[0]:
+		why = "점선 테 돌림이 %.2f → %.2f다(시계 방향으로 돌아야 한다)" % spins
+	if why == "" and _off_palette(_colors(v)) != "":
+		why = "노화 흔적에 팔레트 밖 색 %s가 있다" % _off_palette(_colors(v))
 	v.free()
 	return why
 
-func test_time_gate_is_two_clockwise_hands_without_rays():
+func test_loop_shock_closes_counterclockwise_then_flashes_with_afterimages_from_old_spot():
+	var b = _chrono()[0]
+	var ch = b.heroes[0]
+	var e = _target(b, Vector2i(12, 14))
+	b.traces = [{"hero": ch, "slot": "loop", "aim": Vector2(12, 8), "at": Vector2(12, 14), "radius": 1.5, "hits": [e], "marked": false, "age": 0.0, "foe": e, "aged": false}]
+	var v = Rec.new()
+	v.battle = b
+	v._foes = [e]
+	var ice := [View.PX.ice0, View.PX.ice1, View.PX.ice2]
+	var r0 := int(View.CELL * 1.5)
+	var why := ""
+	var seen := []
+	for t in [0.02, 0.15]:
+		b.traces[0].age = t
+		v.wipe()
+		v._traces(true)
+		if v.rings.size() != 1 or v.rings[0][4] == 0 or not (v.rings[0][3] in ice):
+			why = "되돌림 %.2f초 고리가 %s다(얼음 점선 고리 하나여야 한다)" % [t, v.rings.map(func(r): return [r[1], r[3].to_html(false), r[4]])]
+			break
+		seen.append(v.rings[0])
+	if why == "" and not (seen[1][1] < seen[0][1] and seen[0][1] <= r0 and seen[1][5] < seen[0][5]):
+		why = "되돌림 고리가 반지름 %d → %d · 돌림 %.2f → %.2f다(반경 %d에서 안으로 조여들며 반시계로 돌아야 한다)" % [seen[0][1], seen[1][1], seen[0][5], seen[1][5], r0]
+	if why == "":
+		b.traces[0].age = 0.24
+		v.wipe()
+		v._traces(true)
+		if not v.rings.is_empty() or not v.discs.any(func(d): return d[1] == 3 and d[2] == View.PX.ice0):
+			why = "되돌림 0.24초가 고리 %d · 원판 %s다(조여든 뒤 가운데 얼음 번쩍만 있어야 한다)" % [v.rings.size(), v.discs]
+	if why == "":
+		var counts := []
+		var tops := []
+		for t in [0.1, 0.25]:  # 잔상(몸통 아래 층): 옛 자리 (12, 8) 쪽부터 사라진다
+			b.traces[0].age = t
+			v.wipe()
+			v._traces(false)
+			var ghosts: Array = v.pxs.filter(func(p): return p[2].x == 3 and p[1] in [View.PX.ice1, View.PX.ice2, View.PX.ice3])
+			counts.append(ghosts.size())
+			tops.append(ghosts.map(func(p): return p[0].y).min() if not ghosts.is_empty() else 0)
+		if counts != [4, 2] or tops[1] <= tops[0]:
+			why = "잔상이 %s개 · 맨 위 y %s다(넷이었다가 옛 자리 쪽부터 둘이 사라져야 한다)" % [counts, tops]
+	if why == "":
+		var gold := [View.PX.cream, View.PX.gold, View.PX.tan]
+		for aged in [false, true]:  # 노화 되감기(S266)로 피해가 커졌으면 조여든 뒤 금 고리가 반경 너머로 터진다
+			b.traces[0].aged = aged
+			var rs := []
+			for t in [0.25, 0.39]:
+				b.traces[0].age = t
+				v.wipe()
+				v._traces(true)
+				var burst: Array = v.rings.filter(func(r): return r[3] in gold and r[4] == 0)
+				rs.append(burst[0][1] if burst.size() == 1 else -1)
+			if not aged and rs != [-1, -1]:
+				why = "노화 되감기가 아닌데 금 고리 %s가 있다" % [rs]
+			elif aged and not (rs[0] > int(r0 * 0.25) and rs[1] > rs[0] and rs[1] > r0):
+				why = "노화 되감기 금 고리 반지름이 %s다(반경의 0.25배에서 반경 너머로 터져야 한다)" % [rs]
+			if why != "":
+				break
+	if why == "" and _off_palette(_colors(v)) != "":
+		why = "되돌림 흔적에 팔레트 밖 색 %s가 있다" % _off_palette(_colors(v))
+	v.free()
+	return why
+
+func test_time_gate_is_counterclockwise_ice_hands_with_four_ticks():
 	var v = _zone_draw("chronos_e")
 	var c := Vector2i(v._center(Vector2(12, 12)).floor())
 	var why := ""
+	var ice := [View.PX.ice0, View.PX.ice1, View.PX.ice2, View.PX.ice3, View.PX.ice4]
 	var long0 = null
 	for l in v.lines:
-		if l[0] == c and l[3] == 1:
+		if l[0] == c and l[3] == 1 and l[2] == View.PX.cream:
 			long0 = l[1]
-	if v.lines.size() != 2 or v.lines.any(func(l): return l[0] != c) or long0 == null:
-		why = "시간의 문 줄이 %s다(가운데에서 나온 바늘 둘만이어야 한다. 햇살 12줄 없음)" % [v.lines.map(func(l): return [l[0], l[1], l[3]])]
-	elif not v.spr.any(func(q): return q[0] == "hub"):
-		why = "가운데 축 조각이 없다"
-	elif v.fills.has(View.PX.tan) or v.edges.is_empty():
-		why = "칠이 %s · 경계 %s다(성역의 모래 칠과 달라야 하고 경계가 있어야 한다)" % [v.fills, v.edges]
+	var hands: Array = v.lines.filter(func(l): return l[0] == c)
+	var ticks: Array = v.lines.filter(func(l): return l[0] != c)
+	if hands.size() != 2 or ticks.size() != 4 or long0 == null or not ticks.all(func(l): return l[2] in ice):
+		why = "시간의 문 줄이 %s다(가운데 바늘 둘 · 얼음 눈금 넷이어야 한다)" % [v.lines.map(func(l): return [l[0], l[1], l[2].to_html(false), l[3]])]
+	elif v.fills.size() != 1 or not (v.fills[0] in ice) or v.noise[0][1] != 2:
+		why = "칠이 %s · %s다(얼음 성긴 칠 2/16이어야 한다)" % [v.fills, v.noise]
+	elif v.edges != [[View.PX.ice0, View.PX.night]]:
+		why = "경계가 %s다(얼음 밝은 1px + 어두운 1px이어야 한다)" % [v.edges]
+	elif not v.pxs.any(func(p): return p[0] == c - Vector2i(1, 1) and p[2] == Vector2i(3, 3) and p[1] == View.PX.night):
+		why = "가운데 축(어두운 3×3px)이 없다"
 	if why == "":
 		v.clock = 1.2
 		v.wipe()
 		v._zones()
 		var long1 = null
 		for l in v.lines:
-			if l[0] == c and l[3] == 1:
+			if l[0] == c and l[3] == 1 and l[2] == View.PX.cream:
 				long1 = l[1]
-		# 화면 y가 아래라 각이 늘면 시계 방향
-		if long1 == null or angle_difference(Vector2(long0 - c).angle(), Vector2(long1 - c).angle()) <= 0.0:
-			why = "긴 바늘 끝이 %s → %s다(시계 방향으로 돌아야 한다)" % [long0, long1]
+		# 화면 y가 아래라 각이 줄면 반시계 방향
+		if long1 == null or angle_difference(Vector2(long0 - c).angle(), Vector2(long1 - c).angle()) >= 0.0:
+			why = "긴 바늘 끝이 %s → %s다(반시계 방향으로 돌아야 한다)" % [long0, long1]
 	v.free()
 	return why
 
-func test_wind_up_dashed_rings_turn_opposite_ways():
+# 태엽 감기 둘레를 clock초에 그려 첫 톱니(금 2×2px)의 각을 잰다. 톱니가 없으면 NAN
+func _tooth_angle(v, c: Vector2i, at: float) -> float:
+	v.clock = at
+	v.wipe()
+	v._zones()
+	var teeth: Array = v.pxs.filter(func(p): return p[2] == Vector2i(2, 2) and p[1] == View.PX.gold)
+	return Vector2(teeth[0][0] - c).angle() if not teeth.is_empty() else NAN
+
+func test_wind_up_is_gold_rim_with_clockwise_teeth_and_thin_fill():
 	var v = _zone_draw("chronos_r")
+	var c := Vector2i(v._center(Vector2(12, 12)).floor())
 	var why := ""
-	var s0: Array = v.rings.filter(func(r): return r[4] > 0).map(func(r): return r[5])
-	if s0.size() != 2 or v.lines.size() != View.WARP_TICKS:
-		why = "태엽 감기 둘레가 점선 고리 %d · 눈금 %d다(고리 둘 · 눈금 %d이어야 한다)" % [s0.size(), v.lines.size(), View.WARP_TICKS]
+	var teeth: Array = v.pxs.filter(func(p): return p[2] == Vector2i(2, 2) and p[1] == View.PX.gold)
+	var shades: Array = v.pxs.filter(func(p): return p[2] == Vector2i(3, 3) and p[1] == View.PX.soot)
+	if teeth.size() != 28 or shades.size() != 28:
+		why = "톱니가 금 %d · 그림자 %d다(28개씩이어야 한다)" % [teeth.size(), shades.size()]
+	elif v.rings.any(func(r): return r[4] > 0) or not v.lines.is_empty():
+		why = "점선 고리 %d · 줄 %d가 있다(안쪽 점선 고리와 눈금이 없어야 한다)" % [v.rings.filter(func(r): return r[4] > 0).size(), v.lines.size()]
+	elif v.edges != [[View.PX.gold, View.PX.soot]]:
+		why = "경계가 %s다(금 밝은 1px + 어두운 1px이어야 한다)" % [v.edges]
+	elif v.noise.any(func(n): return n[1] > 1):
+		why = "칠 밀도가 %s다(1/16 이하여야 한다)" % [v.noise]
 	if why == "":
-		v.clock = 1.5
+		# 화면 y가 아래라 각이 늘면 시계 방향. 쓴 순간부터 0.6초는 빨리 돈다(_zone_draw는 0초에 처음 봤다)
+		var burst := angle_difference(_tooth_angle(v, c, 0.1), _tooth_angle(v, c, 0.3))
+		var steady := angle_difference(_tooth_angle(v, c, 1.0), _tooth_angle(v, c, 1.5))
+		if steady <= 0.0 or burst <= steady:
+			why = "톱니가 처음 0.2초에 %.3f · 1초 뒤 0.5초에 %.3f rad 돌았다(시계 방향으로, 처음에 더 빨리 돌아야 한다)" % [burst, steady]
+	v.free()
+	return why
+
+func test_time_gate_foes_show_return_timer_over_head_and_dim_dashes_to_return_spot():
+	var b = _chrono()[0]
+	var ch = b.heroes[0]
+	var e = _target(b, Vector2i(12, 14))
+	var delay: float = ch.e.delay
+	var back := Vector2(12, 10)
+	b.loops = [{"e": e, "at": back, "wall": false, "left": delay, "owner": ch, "blast": 1.5, "damage": 0.0, "aged": 1.0}]
+	var v = Rec.new()
+	v.battle = b
+	v._foes = [e]
+	var feet := _feet_px(v, e)
+	var why := ""
+	for k in [0.75, 0.25]:
+		b.loops[0].left = delay * k
 		v.wipe()
-		v._zones()
-		var s1: Array = v.rings.filter(func(r): return r[4] > 0).map(func(r): return r[5])
-		if (s1[0] - s0[0]) * (s1[1] - s0[1]) >= 0.0:
-			why = "점선 고리 돌림이 %s → %s다(두 고리가 서로 거꾸로 돌아야 한다)" % [s0, s1]
+		v._chrono_marks()
+		var disc: Array = v.discs.filter(func(d): return d[1] == 3 and d[2] == View.PX.night)
+		if disc.size() != 1 or disc[0][0].x != feet.x or disc[0][0].y + 3 >= feet.y - int(v._head(e)):
+			why = "남은 시간 %.2f 원판이 %s다(발 %s 머리 바로 위에 하나여야 한다)" % [k, disc, feet]
+		elif v.arcs.size() != 1 or v.arcs[0][4] != View.PX.ice0 or absf(v.arcs[0][3] - v.arcs[0][2] - TAU * k) > 0.01 or absf(v.arcs[0][3] + PI / 2.0) > 0.01:
+			why = "남은 시간 %.2f 호가 %s다(12시에서 반시계로 비율만큼인 얼음 호여야 한다)" % [k, v.arcs]
+		if why != "":
+			break
+	if why == "":
+		for left in [0.45, 0.35]:  # 마지막 0.5초는 0.2초마다 0.1초씩 꺼진다
+			b.loops[0].left = left
+			v.wipe()
+			v._chrono_marks()
+			if v.discs.is_empty() != (left == 0.45):
+				why = "남은 %.2f초에 고리가 %s다(마지막 0.5초는 깜박여야 한다)" % [left, "없다" if v.discs.is_empty() else "있다"]
+				break
+	if why == "":
+		b.loops[0].left = 1.0
+		v.wipe()
+		v._traces(false)
+		var anchor := Vector2i(v._center(back).floor())
+		var dashes: Array = v.pxs.filter(func(p): return p[1] == View.PX.ice3 and p[2] == Vector2i.ONE)
+		if not v.rings.any(func(r): return r[0] == anchor and r[1] == 3 and r[3] == View.PX.ice1) or not v.pxs.any(func(p): return p[0] == anchor and p[1] == View.PX.ice0):
+			why = "되돌아갈 자리 %s 점이 없다: %s" % [anchor, v.rings]
+		var box := Rect2i(anchor, Vector2i.ZERO).expand(feet).grow(1)
+		if why == "" and (dashes.size() < 4 or not dashes.all(func(p): return box.has_point(p[0]))):
+			why = "적 %s → 되돌아갈 자리 %s 흐린 점선이 %s다" % [feet, anchor, dashes.map(func(p): return p[0])]
+	if why == "":
+		v._foes = []  # 숨은 적(S213)에는 그리지 않는다
+		v.wipe()
+		v._chrono_marks()
+		v._traces(false)
+		if not v.discs.is_empty() or not v.rings.is_empty():
+			why = "숨은 적에도 남은 시간 고리 %d · 자리 점 %d가 있다" % [v.discs.size(), v.rings.size()]
+	v.free()
+	return why
+
+func test_wind_up_allies_show_flipping_wind_key_with_dark_outline():
+	var bt := _chrono()
+	var b = bt[0]
+	var a = b.heroes[1]
+	var tower = bt[1]
+	if tower == null or not tower.complete:
+		return "궁수탑을 못 지었다"
+	b._fx(a, "chronos_r", {"cdr": 0.5}, 2.0)
+	b._fx(tower, "chronos_r", {"haste": 0.5}, 2.0)
+	b._fx(b.enemies[0], "chronos_r", {"slow": 0.3}, 2.0)  # 적도 같은 이름 효과(둔화)라 열쇠가 없어야 한다
+	var v = Rec.new()
+	v.battle = b
+	v._foes = b.enemies.duplicate()
+	var hero_feet := _feet_px(v, a)
+	var spots := [hero_feet + Vector2i(6, -int(v._head(a) * 0.6)), Vector2i(v._muzzle(tower).floor()) + Vector2i(7, 3)]
+	var why := ""
+	for pose in [[0.0, Vector2i(9, 5)], [0.12, Vector2i(5, 5)]]:  # 정면은 손잡이 7×3 + 테두리, 옆은 3×3 + 테두리
+		v.clock = pose[0]
+		v.wipe()
+		v._chrono_marks()
+		var rims: Array = v.pxs.filter(func(p): return p[1] == View.PX.night and p[2] == pose[1])
+		for s in spots:
+			if not rims.any(func(p): return p[0] == s + Vector2i(-pose[1].x / 2, -6)):
+				why = "%.2f초 열쇠 자리 %s에 어두운 테두리 %s가 없다: %s" % [pose[0], s, pose[1], rims.map(func(p): return p[0])]
+			elif not v.pxs.any(func(p): return p[1] == View.PX.gold and p[0].y < s.y - 2 and absi(p[0].x - s.x) <= 3):
+				why = "%.2f초 열쇠 자리 %s에 금 손잡이가 없다" % [pose[0], s]
+		if why == "" and rims.size() != 2:
+			why = "%.2f초 열쇠가 %d개다(둘레 안 아군 영웅 하나 · 탑 하나여야 한다)" % [pose[0], rims.size()]
+		if why != "":
+			break
+	if why == "" and _off_palette(_colors(v)) != "":
+		why = "태엽 열쇠에 팔레트 밖 색 %s가 있다" % _off_palette(_colors(v))
 	v.free()
 	return why
 
