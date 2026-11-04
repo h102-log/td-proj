@@ -10,7 +10,7 @@
 #   병영 Barracks · 작업장 Workshop · 사격장 Archery Range · 용병 Merc · 공병 Engineer · 궁수 Archer
 #   영입 Recruit · 리롤 Reroll · 이관 Transfer · 내보내기 Dismiss · 출전 Deployed · 대기 Reserve · 보유 Roster
 #   미션 Mission · 의뢰 Contract · 준비 단계 Prep · 전투 단계 Battle · 웨이브 Wave · 라운드 Round · 도전 Run
-#   적: 기본 Grunt · 빠름 Runner · 장갑 Armored · 비행 Flyer · 보스 Boss · 슬라임 Slime · 꼬마 슬라임 Slimelet · 큰 슬라임 Big Slime · 슬라임 킹 Slime King · 늑대 Wolf · 도약 늑대 Leaping Wolf · 밤 늑대 Night Wolf · 알파 늑대 Alpha Wolf
+#   적: 기본 Grunt · 빠름 Runner · 장갑 Armored · 비행 Flyer · 보스 Boss · 슬라임 Slime · 꼬마 슬라임 Slimelet · 큰 슬라임 Big Slime · 슬라임 킹 Slime King · 늑대 Wolf · 도약 늑대 Leaping Wolf · 밤 늑대 Night Wolf · 알파 늑대 Alpha Wolf · 폭파병 Sapper · 공성 망치 Battering Ram · 투석기 Catapult · 글라이더 고블린 Glider Goblin · 공성탑 Siege Tower · 폭탄 열기구 Bomb Balloon · 수송 비행선 Troop Airship · 고블린 전쟁 기계 Goblin War Machine
 #   영웅 이름은 음역한다: 아이아스 Aias · 실비아 Sylvia · 세라피나 Seraphina · 베스퍼 Vesper · 이그니스 Ignis · 크로노스 Chronos
 msgid ""
 msgstr ""
@@ -411,6 +411,30 @@ msgstr "Night Wolf"
 msgid "알파 늑대"
 msgstr "Alpha Wolf"
 
+msgid "폭파병"
+msgstr "Sapper"
+
+msgid "공성 망치"
+msgstr "Battering Ram"
+
+msgid "투석기"
+msgstr "Catapult"
+
+msgid "글라이더 고블린"
+msgstr "Glider Goblin"
+
+msgid "공성탑"
+msgstr "Siege Tower"
+
+msgid "폭탄 열기구"
+msgstr "Bomb Balloon"
+
+msgid "수송 비행선"
+msgstr "Troop Airship"
+
+msgid "고블린 전쟁 기계"
+msgstr "Goblin War Machine"
+
 msgid "무리로 온다"
 msgstr "Comes in packs"
 
@@ -422,6 +446,30 @@ msgstr "Stronger in the dark; bites cause bleeding"
 
 msgid "성벽 위 원거리를 덮쳐 붙잡는다, 둘레 늑대를 빠르게 한다"
 msgstr "Pounces on ranged defenders on walls and pins them; hastens nearby wolves"
+
+msgid "성문을 폭파한다"
+msgstr "Blows up gates"
+
+msgid "성문만 친다, 화살에 강하다"
+msgstr "Hits only gates; resists arrows"
+
+msgid "성벽 밖에서 돌을 던진다"
+msgstr "Hurls stones from beyond the walls"
+
+msgid "성벽을 넘어 내린다"
+msgstr "Glides over the walls and lands"
+
+msgid "성벽에 사다리를 놓는다"
+msgstr "Raises ladders against the walls"
+
+msgid "시설에 폭탄을 떨군다"
+msgstr "Drops bombs on buildings"
+
+msgid "고블린을 떨군다"
+msgstr "Drops goblins"
+
+msgid "대포와 기관총을 쏘고, 가까운 유닛을 집어 던진다"
+msgstr "Fires a cannon and machine guns; grabs and hurls nearby units"
 
 msgid "죽으면 둘로 갈라진다"
 msgstr "Splits in two on death"
@@ -1372,6 +1420,24 @@ msgstr "Range %s → %s"
 
 msgid "인식 범위 %s → %s칸"
 msgstr "Sight %s → %s"
+
+msgid "명중률 %s → %s%%"
+msgstr "Accuracy %s → %s%%"
+
+msgid "인구"
+msgstr "Population"
+
+msgid "인구 %d/%d"
+msgstr "Pop %d/%d"
+
+msgid "용병 %d명 · 상한 %d(거점 %d + 집 %d채 × %d)"
+msgstr "Mercenaries %d · cap %d (base %d + %d houses × %d)"
+
+msgid "인구 가득 — 집을 지으면 %d명 늘어난다"
+msgstr "Population full — each house adds %d"
+
+msgid "인구 가득"
+msgstr "Population full"
 
 msgid "이동 %s → %s칸/초"
 msgstr "Move %s/s → %s/s"

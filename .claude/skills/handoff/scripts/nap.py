@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
 """handoff 스킬 보조 스크립트. 표준 라이브러리만 쓴다 (python3 + git).
 
-작업지시서(NAP)는 next/yyyy-mm-dd/rN.md 다. archive 를 뺀 가장 최근 날짜 폴더의 가장 큰 번호가 "지금 할 일"이다.
+작업지시서(NAP)는 handoff/yyyy-mm-dd/rN.md 다. archive 를 뺀 가장 최근 날짜 폴더의 가장 큰 번호가 "지금 할 일"이다.
 frontmatter 없이 직접 쓴 rN.md 도 같은 번호 체계에 들어간다 (드리프트 판정만 못 한다).
 
 하위 명령
-  snapshot  현재 git·next/ 상태 요약. 스킬 로드 시 주입되므로 어떤 경우에도 exit 0.
+  snapshot  현재 git·handoff/ 상태 요약. 스킬 로드 시 주입되므로 어떤 경우에도 exit 0.
   prepare   오늘 날짜 폴더에 다음 번호 rN.md 초안(status draft) 생성·기계 필드 출력. 기존 파일은 건드리지 않는다.
             같은 브랜치의 활성 NAP 에 변화가 없으면 --force 없이는 멈춘다 (새 세션에서의 오발동 방지).
   check     NAP 검증: 구조·기록 상태 일치·경로·시크릿·맥락 의존 표현 (오류 시 exit 1).
             통과하면 draft → active 로 승격하고, previous 의 같은 브랜치 NAP 를 superseded 로 바꾼다.
-  drift     NAP 기록 시점과 현재 상태 비교 (드리프트 시 exit 1). next/ 만 바꾼 커밋은 드리프트가 아니다.
+  drift     NAP 기록 시점과 현재 상태 비교 (드리프트 시 exit 1). handoff/ 만 바꾼 커밋은 드리프트가 아니다.
   mark      NAP 상태 변경: resumed | done
 
 상태 전이: draft(prepare) → active(check 통과) → resumed(mark) → done(mark) | superseded(다음 NAP 의 check)
 어느 단계에서 세션이 끊겨도 디스크가 사실을 말하도록, 이전 NAP 의 상태는 새 NAP 가 검사를 통과할 때 바꾼다.
-날짜 폴더에 살아 있는(active·resumed) NAP 가 없어지면 폴더째 next/archive/ 로 옮긴다 (check·mark done 시점).
+날짜 폴더에 살아 있는(active·resumed) NAP 가 없어지면 폴더째 handoff/archive/ 로 옮긴다 (check·mark done 시점).
 """
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-NEXT, ARC = "next", "archive"
+NEXT, ARC = "handoff", "archive"
 DATE_DIR = re.compile(r"\d{4}-\d{2}-\d{2}$")
 NAP_NAME = re.compile(r"r(\d+)\.md$")
 MANIFEST_IGNORE = f"/{NEXT}/**/.*.files"  # 해시 기록 파일만 로컬 무시 — 작업지시서(rN.md)는 사용자가 커밋한다
@@ -126,7 +126,7 @@ def status_v2(root):
 
     [이유] 이 PC 는 git 하위 프로세스 1회에 1~2초가 걸려(2026-09-29 실측) 호출 수가 곧 스킬 로드 지연이다.
            rev-parse·symbolic-ref·status 3회를 1회로 합친다.
-    항목은 (XY, 경로). XY 는 v1 표기(변경 없음 = 공백)로 맞추고, next/ 아래는 제외한다.
+    항목은 (XY, 경로). XY 는 v1 표기(변경 없음 = 공백)로 맞추고, handoff/ 아래는 제외한다.
     """
     raw = git(root, "status", "--porcelain=v2", "--branch", "-z", "--untracked-files=all", "--no-renames")
     if raw is None:
@@ -335,7 +335,7 @@ def read_nap(path):
 
 
 def nap_list(nd):
-    """next/ 바로 아래 날짜 폴더의 rN.md 를 (날짜, 번호) 순으로. archive 는 제외."""
+    """handoff/ 바로 아래 날짜 폴더의 rN.md 를 (날짜, 번호) 순으로. archive 는 제외."""
     found = []
     if nd.is_dir():
         for d in nd.iterdir():
@@ -351,7 +351,7 @@ def nap_path(arg, root):
         naps = nap_list(root / NEXT)
         return naps[-1] if naps else None
     p = Path(arg).expanduser()
-    # 상대 경로는 --root 기준이 먼저다 — next/<날짜>/rN.md 는 저장소마다 겹쳐서, cwd 기준으로 풀면 다른 저장소의 파일을 고친다
+    # 상대 경로는 --root 기준이 먼저다 — handoff/<날짜>/rN.md 는 저장소마다 겹쳐서, cwd 기준으로 풀면 다른 저장소의 파일을 고친다
     if p.is_absolute() or (root / p).exists():
         return root / p
     return p if p.exists() else root / p
@@ -360,7 +360,7 @@ def nap_path(arg, root):
 # ---------------------------------------------------------------- 보관
 
 def sweep(root, folder):
-    """날짜 폴더에 살아 있는(active·resumed) NAP 가 없으면 폴더째 next/archive/ 로 옮긴다. 옮긴 경로, 아니면 None.
+    """날짜 폴더에 살아 있는(active·resumed) NAP 가 없으면 폴더째 handoff/archive/ 로 옮긴다. 옮긴 경로, 아니면 None.
 
     draft(끊긴 초안)와 frontmatter 없이 직접 쓴 rN.md 는 살아 있는 것으로 세지 않는다.
     """
@@ -450,7 +450,7 @@ def drift(root, fm, s, nap=None):
 # ---------------------------------------------------------------- snapshot
 
 def next_lines(root, is_git, s):
-    out = ["### next/"]
+    out = ["### handoff/"]
     nd = root / NEXT
     if is_git:
         out.append("- 해시 기록 파일 로컬 무시: " + ("됨" if is_ignored(root) else "안 됨 (준비 명령이 .git/info/exclude에 등록)"))
@@ -534,7 +534,7 @@ def cmd_prepare(a):
     root, is_git = resolve_root(a.root)
     nd = root / NEXT
     nd.mkdir(parents=True, exist_ok=True)
-    msgs = [f"- next/: {nd}"]
+    msgs = [f"- handoff/: {nd}"]
     if is_git:
         if is_ignored(root):
             msgs.append("- 해시 기록 파일 로컬 무시: 이미 됨")
@@ -826,7 +826,7 @@ def cmd_check(a):
                 continue  # 브랜치 등 ref
             warns.append(f"[경로] {no}행: `{c}` 없음 — 새로 만들 파일이 아니면 경로 확인")
 
-    # 통과한 next/ 의 작업지시서는 여기서 비로소 "살아 있는" NAP 가 된다: draft → active, 이전 NAP → superseded
+    # 통과한 handoff/ 의 작업지시서는 여기서 비로소 "살아 있는" NAP 가 된다: draft → active, 이전 NAP → superseded
     promoted = []
     if not errors and path.resolve() in {p.resolve() for p in nap_list(root / NEXT)}:
         if fm.get("status") == DRAFT:

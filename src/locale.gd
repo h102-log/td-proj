@@ -26,11 +26,15 @@ func _init() -> void:
 	found.sort_custom(func(a, b): return a[0] > b[0])
 	_templates = found.map(func(t): return t.slice(1))
 
-# 틀 글 → 정규식: 글자는 그대로, %d는 정수, %s는 아무 글(짧게)
+# 틀 글 → 정규식: 글자는 그대로, %d는 정수, %s는 아무 글(짧게), %%는 글자 %(화면에는 % 하나로 나온다)
 func _pattern(key: String) -> String:
 	var out := ""
 	var i := 0
 	while i < key.length():
+		if key[i] == "%" and i + 1 < key.length() and key[i + 1] == "%":
+			out += "%"
+			i += 2
+			continue
 		if key[i] == "%" and i + 1 < key.length() and key[i + 1] in "ds":
 			out += "(-?\\d+)" if key[i + 1] == "d" else "(.+?)"
 			i += 2

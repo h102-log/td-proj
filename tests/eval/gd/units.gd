@@ -25,6 +25,14 @@ const TABLE := {
 	"leap_wolf": [12, 3, 3, 0.8, 0.25, 3, 7, 1],
 	"night_wolf": [12, 2.8, 4, 1, 0.28, 3, 7, 1],
 	"alpha_wolf": [160, 2, 20, 1.5, 0.45, 4, 50, 0.3],
+	"sapper": [12, 2.2, 0, 1, 0.25, 0, 6, 1],  # 3라운드 고블린 묶음 ①(S106 2026-11-03 변경)
+	"ram": [80, 1, 40, 2, 0.45, 0, 40, 1],
+	"catapult": [40, 1, 0, 1, 0.5, 0, 20, 1],
+	"glider": [8, 3, 4, 1, 0.25, 3, 4, 1],
+	"siege_tower": [120, 0.8, 0, 1, 0.6, 0, 60, 1],  # 3라운드 고블린 묶음 ②-a(S106 2026-11-03 둘째 변경)
+	"balloon": [60, 0.8, 0, 1, 0.6, 0, 30, null],
+	"airship": [100, 0.9, 5, 1.5, 0.7, 0, 50, null],
+	"war_machine": [200, 0.8, 40, 2.5, 0.7, 0, 50, 0.3],  # 3라운드 고블린 묶음 ②-b(S106 2026-11-03 셋째 변경)
 }
 const PACK := {"wolf": 4, "leap_wolf": 2, "night_wolf": 2}  # 무리(S238). 나머지 종류는 1
 const KEYS := ["hp", "speed", "damage", "attack_gap", "radius", "sight", "reward", "wall_k"]
@@ -85,10 +93,13 @@ func ev130():
 	return check(d.fast.climb == 3.0 and d.armored.armor == 15.0 and d.flying.flying and not d.basic.flying and d.basic.climb == 0.0
 		and d.slime.get("split") == {"kind": "slimelet", "count": 2} and d.big_slime.get("split") == {"kind": "slime", "count": 2}
 		and plain.all(func(k): return d[k].get("split", {}).is_empty()) and d.slime_king.get("boss") == true and d.alpha_wolf.get("boss") == true
-		and TABLE.keys().all(func(k): return d[k].get("pack", 1) == PACK.get(k, 1)) and is_equal_approx(d.leap_wolf.climb, 0.8),
-		"특수: fast.climb %s · armored.armor %s · flying.flying %s · 갈라짐 %s · boss %s · 무리 %s · leap_wolf.climb %s" % [d.fast.climb, d.armored.armor, d.flying.flying,
+		and TABLE.keys().all(func(k): return d[k].get("pack", 1) == PACK.get(k, 1)) and is_equal_approx(d.leap_wolf.climb, 0.8) and d.glider.flying
+		and d.balloon.flying and d.airship.flying and d.siege_tower.armor == 15.0 and d.war_machine.get("boss") == true and d.war_machine.armor == 15.0,
+		"특수: fast.climb %s · armored.armor %s · flying.flying %s · 갈라짐 %s · boss %s · 무리 %s · leap_wolf.climb %s · glider.flying %s · balloon·airship.flying %s · siege_tower.armor %s · war_machine boss·armor %s" % [d.fast.climb, d.armored.armor, d.flying.flying,
 			TABLE.keys().map(func(k): return [k, d[k].get("split")]), [d.slime_king.get("boss"), d.alpha_wolf.get("boss")],
-			TABLE.keys().map(func(k): return [k, d[k].get("pack")]), d.leap_wolf.climb])
+			TABLE.keys().map(func(k): return [k, d[k].get("pack")]), d.leap_wolf.climb, d.get("glider", {}).get("flying"),
+			[d.get("balloon", {}).get("flying"), d.get("airship", {}).get("flying")], d.get("siege_tower", {}).get("armor"),
+			[d.get("war_machine", {}).get("boss"), d.get("war_machine", {}).get("armor")]])
 
 # 방어력 a의 물리 피해 배율(S149, 워크3식): a ≥ 0이면 1 − 0.06a ÷ (1 + 0.06a)
 func _armor(a: float) -> float:

@@ -3460,6 +3460,33 @@ func ev584():
 	_done(main)
 	return check("알파 늑대: 성벽 위 원거리를 덮쳐 붙잡는다, 둘레 늑대를 빠르게 한다" in four, "2라운드 4웨이브 줄 «%s»에 알파 늑대 특성이 없다" % four)
 
+# EV677 · S188: 3라운드 1·2웨이브 줄에 폭파병·공성 망치·투석기·글라이더 고블린 특성이 있다
+func ev677():
+	var main = _prep()
+	var one: String = main.hud._wave_lines([2, 0])
+	var two: String = main.hud._wave_lines([2, 1])
+	_done(main)
+	return check("폭파병: 성문을 폭파한다" in one and "공성 망치: 성문만 친다, 화살에 강하다" in one
+		and "투석기: 성벽 밖에서 돌을 던진다" in two and "글라이더 고블린: 성벽을 넘어 내린다" in two, "3라운드 1웨이브 줄 «%s» · 2웨이브 줄 «%s»" % [one, two])
+
+# EV693 · S188: 3라운드 3웨이브 줄에 공성탑·폭탄 열기구 특성이 있고, 수송 비행선의 특성·이름이 표에 있다
+func ev693():
+	var H = load("res://src/ui/hud.gd")
+	var main = _prep()
+	var three: String = main.hud._wave_lines([2, 2])
+	_done(main)
+	var feat: String = H.TRAITS.get("airship", "")
+	var name: String = H.ENEMIES.get("airship", "")
+	return check("공성탑: 성벽에 사다리를 놓는다" in three and "폭탄 열기구: 시설에 폭탄을 떨군다" in three and feat == "고블린을 떨군다" and name == "수송 비행선",
+		"3라운드 3웨이브 줄 «%s» · 비행선 특성 «%s» · 이름 «%s»" % [three, feat, name])
+
+# EV701 · S188: 3라운드 4웨이브 줄에 고블린 전쟁 기계의 이름과 특성이 있다
+func ev701():
+	var main = _prep()
+	var four: String = main.hud._wave_lines([2, 3])
+	_done(main)
+	return check("고블린 전쟁 기계: 대포와 기관총을 쏘고, 가까운 유닛을 집어 던진다" in four, "3라운드 4웨이브 줄 «%s»" % four)
+
 # EV570 · S187: 스킬 툴팁 수치 줄은 그 스킬 사전의 값으로 채운다. 지점·대상을 고르는 스킬은 시전 거리 줄을 더한다
 func ev570():
 	var H = load("res://src/ui/hud.gd")
@@ -3594,3 +3621,74 @@ func ev666():
 	var again = cur.apply("cross", 2)  # 같은 상태·배율 → 걸지 않는다
 	var rescaled = cur.apply("cross", 3)  # 같은 상태라도 배율이 다르면 → 다시 건다(같음은 상태·배율 짝으로 본다)
 	return check(bad.is_empty() and red and changed == true and again == false and rescaled == true, "어긋난 그림 %s · 과녁에 ef3a0c %s · 다른 상태로 걸기 %s(기대 true) · 같은 상태로 다시 걸기 %s(기대 false) · 배율만 바꿔 걸기 %s(기대 true)" % [bad, red, changed, again, rescaled])
+
+# ── 인구 칸(S25 2026-11-04 변경, I225) ──
+# 더하는 API: main.hud.pop — 위 띠 바로 아래 인구 칸(Label) · Battle.POP_BASE — 거점 몫 · data/structures/house.tres의 pop — 집 몫
+
+# 디스크에서 새로 읽은 집 몫. 없으면 0
+func _house_pop() -> int:
+	var d: Resource = ResourceLoader.load("res://data/structures/house.tres", "", ResourceLoader.CACHE_MODE_IGNORE)
+	var v = d.get("pop")
+	return int(v) if v != null else 0
+
+# 들판(성 아래)에 용병을 n명 놓는다. 놓인 수
+func _field_mercs(b, n: int) -> int:
+	var placed := 0
+	for i in n:
+		if b.place_merc("soldier", Vector2i(10 + 2 * i, 66)) != null:
+			placed += 1
+	return placed
+
+# EV742 · I225: 인구 칸은 위 띠 바로 아래 [4,30,52,12]에 «인구 n/m»이다. 상한에 닿으면 빨강이고, 툴팁에 상한 내역이 있다
+func ev742():
+	var main = _prep()
+	var b = main.view.battle
+	var pop = main.hud.get("pop")
+	var per := _house_pop()
+	var out := ""
+	if pop == null or b.get("POP_BASE") == null or per <= 0:
+		out = "인구 칸(main.hud.pop)·Battle.POP_BASE·house.tres pop 가운데 없는 것이 있다"
+	if out == "":
+		var r: Rect2 = pop.get_global_rect()
+		var want := "인구 0/%d" % b.POP_BASE
+		out = check(pop.is_visible_in_tree() and r.position.distance_to(Vector2(4, 30)) <= 0.5 and r.size.distance_to(Vector2(52, 12)) <= 0.5 and pop.text == want,
+			"인구 칸 %s(보임 %s) · 글 «%s»(기대 [4,30,52,12] «%s»)" % [r, pop.is_visible_in_tree(), pop.text, want])
+	if out == "":
+		var placed := _field_mercs(b, b.POP_BASE)
+		_frame(main)
+		var full := "인구 %d/%d" % [b.POP_BASE, b.POP_BASE]
+		var red: bool = pop.get_theme_color("font_color").is_equal_approx(DANGER)
+		var tip := _tip_of(main, pop)
+		var line := "상한 %d(거점 %d + 집 0채 × %d)" % [b.POP_BASE, b.POP_BASE, per]
+		out = check(placed == b.POP_BASE and pop.text == full and red and line in tip,
+			"놓인 용병 %d(%d) · 글 «%s»(기대 «%s») · 빨강 %s · 툴팁 «%s»에 «%s»" % [placed, b.POP_BASE, pop.text, full, red, tip, line])
+	_done(main)
+	return out
+
+# EV743 · I225: 상한에 닿으면 생산 시설 팝업의 구매 버튼이 꺼지고 툴팁에 «✕ 인구 가득 — 집을 지으면 (집 몫)명 늘어난다»가 있다
+func ev743():
+	var main = _prep()
+	var b = main.view.battle
+	var per := _house_pop()
+	var out := "" if b.get("POP_BASE") != null and per > 0 else "Battle.POP_BASE·house.tres pop 가운데 없는 것이 있다"
+	var f = null
+	if out == "":
+		f = b.build("barracks", Vector2i(4, 4))
+		out = check(f != null, "준비 단계에 마을 (4,4)에 병영을 짓지 못했다")
+	if out == "":
+		b.start_battle()
+		main.controls.facility = f
+		_frame(main)
+		var btn = _starts(main.hud.popup, "용병")
+		out = check(btn != null and not btn.disabled, "전투 단계 병영 팝업의 «용병» 구매 버튼 %s(켜져 있어야)" % [btn])
+		if out == "":
+			var n := 0
+			while n < 40 and b.recruit(f) != null:
+				n += 1
+			_frame(main)
+			var tip := _tip_of(main, btn)
+			var line := "✕ 인구 가득 — 집을 지으면 %d명 늘어난다" % per
+			out = check(n == b.POP_BASE and btn.disabled and line in tip,
+				"산 용병 %d(%d) · 버튼 꺼짐 %s · 툴팁 «%s»에 «%s»" % [n, b.POP_BASE, btn.disabled, tip, line])
+	_done(main)
+	return out

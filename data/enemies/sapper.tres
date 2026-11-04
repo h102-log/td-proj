@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/enemy_def.gd" id="1_ldbao"]
+
+[resource]
+script = ExtResource("1_ldbao")
+hp = 12.0
+speed = 2.2
+radius = 0.25
+reward = 6
+siege = true
+fuse = {
+"time": 3.0,
+"radius": 1.5,
+"structure": 80.0,
+"unit": 30.0
+}

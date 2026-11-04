@@ -441,7 +441,7 @@ func ev276():
 	var arch := []
 	var foes := []
 	for row in [[Vector2i(5, 5), Vector2i(9, 5)], [Vector2i(5, 8), Vector2i(9, 8)], [Vector2i(5, 12), Vector2i(10, 12)]]:
-		arch.append(b.place_merc("archer", row[0], {"attack_gap": 100.0}))
+		arch.append(b.place_merc("archer", row[0], {"attack_gap": 100.0, "accuracy": 1.0}))  # 명중률 1(S178 2026-11-04 변경)
 		foes.append(_dummy(b, row[1]))
 	_start(b)
 	var lensed := 0
@@ -1030,7 +1030,7 @@ func ev668():
 		_quiet(b)
 		var past := 8 + int(ceil(s.e.get("length", 2.0) / 2.0)) + 1  # 관문 끝 너머 열
 		var lanes := [[Vector2i(9, 4), Vector2i(9, 9)], [Vector2i(past, 4), Vector2i(past, 9)], [Vector2i(3, 7), Vector2i(8, 7)]]
-		var a = b.place_merc("archer", lanes[i][0], {"attack_gap": 100.0})
+		var a = b.place_merc("archer", lanes[i][0], {"attack_gap": 100.0, "accuracy": 1.0})  # 명중률 1(S178 2026-11-04 변경)
 		var e = _dummy(b, lanes[i][1])
 		_start(b)
 		if not b.cast(s, "e", Vector2(8, 8)):
@@ -1043,3 +1043,23 @@ func ev668():
 	for i in 3:
 		ok = ok and _near_f(got[i], want[i], 0.001)
 	return check(ok, "[관문을 가로지름, 관문 끝 너머, 관문과 나란히 1칸] 궁수 화살 피해 %s(기대 %s)" % [got, want])
+
+# EV725 · I143: 쓰러진 영웅에게 남은 효과·반격의 태세도 웨이브가 끝나면 사라져, 체력 1로 돌아온 영웅이 준비 단계에서 다시 쓰러지지 않는다
+func ev725():
+	var b = _kit([["aias", H]])
+	var k = b.hero
+	_quiet(b)
+	_start(b)
+	b._fx(k, "bleed", {"bleed": 2.0}, 10.0)  # 출혈(S240)은 늑대만 걸어 평가가 직접 건다
+	k.brace = 1.0  # 반격의 태세(S151) 중
+	b.damage(k, BIG)
+	var down: bool = not k.alive
+	for e in b.enemies.duplicate():
+		b.damage(e, BIG)
+	b.step(DT)
+	var back: bool = b.state == "prep" and k.alive
+	var left: Array = k.fx.keys()
+	var brace: float = k.brace
+	run(b, 2.0)
+	return check(down and back and left.is_empty() and brace == 0.0 and k.alive and k.hp >= 1.0,
+		"쓰러짐 %s · 준비 단계에 돌아옴 %s(%s) · 남은 효과 %s · 태세 %s · 2초 뒤 살아 있음 %s(체력 %s)" % [down, back, b.state, left, brace, k.alive, k.hp])

@@ -359,7 +359,6 @@ sprites = {
         [".....", ".....", ".....", "..W..", ".WIi.", ".WIiD", ".WIiN", ".WiN.", "..N.."],
         ["..W..", ".WWi.", ".WIi.", "WWIiD", "WIIiD", "WIIiD", ".WIiN", ".WiN.", "..N.."],
         ["..W..", ".W.i.", ".WI..", "W.Ii.", "WI..D", ".II.D", ".W.iN", "..iN.", "....."])],
-    "frost": [ascii([".N.N.N.", "NWNWNWN", ".NWWWN.", "NWWDWWN", ".NWWWN.", "NWNWNWN", ".N.N.N."], {"W": ICE[0], "D": ICE[3], "N": NIGHT})],  # 둔화: 몸 왼쪽 눈송이, 어두운 테(fx-5 판정 후속)
     "star": [ascii(["..Y..", "..W..", "YWWWY", "..W..", "..Y.."], SP), ascii([".....", ".Y.Y.", "..W..", ".Y.Y.", "....."], SP)],
     "rock": [ascii(["AS.", "SSD", ".DD"], RP), ascii([".A.", "ASD", "SD."], RP)],
     "meteor": [meteor(0), meteor(1)],
@@ -410,6 +409,8 @@ sprites = {
         ["..BBB..", ".BGGGB.", "BGGGGGB", "BGGCGGB", "BGGGGGB", ".BGGGB.", "..BBB.."],
         ["..BBB..", ".BCGGB.", "BCGGGGB", "BGGCGGB", "BGGGGGB", ".BGGGB.", "..BBB.."])],
     "venom": [ascii([".N.", "NTN", "NTN", "NtN", ".N."], {"N": NIGHT, "T": TEAL[0], "t": TEAL[1]})],  # 초당 피해(독) 방울, 어두운 테(fx-5 판정 후속)
+    # 능력치 감소 줄(I101 2026-11-04 변경): 어두운 테의 아래 화살표, 프레임이 둔화·공격력·방어력·마법 저항(battle_view.gd DEBUFFS 차례)
+    "down": [ascii(["NNNNN", "NCCCN", ".NCN.", "..N.."], {"N": NIGHT, "C": rgb(c)}) for c in ("d0d6e0", "ef3a0c", "efac28", "b080e0")],
 }
 for f in range(3):
     im = canvas(9, 9)

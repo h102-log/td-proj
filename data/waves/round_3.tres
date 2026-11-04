@@ -6,25 +6,33 @@
 script = ExtResource("1_83rh7")
 hp_mult = 1.37
 waves = Array[Dictionary]([{
-"basic": 220,
-"fast": 100,
-"flying": 80
+"basic": 260,
+"sapper": 30,
+"ram": 6
 }, {
-"basic": 220,
-"armored": 100,
-"flying": 120,
-"fast": 60
+"basic": 350,
+"sapper": 30,
+"ram": 6,
+"catapult": 8,
+"glider": 80
 }, {
-"basic": 220,
-"fast": 100,
-"armored": 100,
-"flying": 80
+"basic": 310,
+"sapper": 30,
+"ram": 4,
+"catapult": 6,
+"glider": 60,
+"siege_tower": 3,
+"balloon": 6
 }, {
-"basic": 280,
-"fast": 140,
-"armored": 100,
-"flying": 120,
-"boss": 1
+"basic": 300,
+"sapper": 40,
+"ram": 6,
+"catapult": 8,
+"glider": 80,
+"siege_tower": 3,
+"balloon": 6,
+"airship": 6,
+"war_machine": 1
 }])
 nights = Array[Dictionary]([{}, {}, {
 "at": 30.0,

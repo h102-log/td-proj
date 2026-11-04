@@ -20,6 +20,10 @@ const ONE := [{"kind": "basic", "count": 1}]
 const ONE_ONE := [[ONE], [ONE]]  # 라운드 2개, 라운드마다 적 1마리짜리 웨이브 하나
 const S111 := [{"slime": 36}, {"slime": 24, "big_slime": 10}, {"slime": 36, "big_slime": 14, "slime_king": 1}]  # S111 2026-10-30 변경: 1라운드 슬라임 테마, 보스 빼고 1.2배 반올림(10배를 하지 않는다)
 # I91 2026-10-27 변경: 2라운드는 늑대 테마(마릿수, 10배를 하지 않는다)
+# I91 2026-11-03 변경·둘째 변경·셋째 변경: 3라운드 1~4웨이브는 고블린 약탈단(마릿수, 10배를 하지 않는다)
+const RAID := [{"basic": 260, "sapper": 30, "ram": 6}, {"basic": 350, "sapper": 30, "ram": 6, "catapult": 8, "glider": 80},
+	{"basic": 310, "sapper": 30, "ram": 4, "catapult": 6, "glider": 60, "siege_tower": 3, "balloon": 6},
+	{"basic": 300, "sapper": 40, "ram": 6, "catapult": 8, "glider": 80, "siege_tower": 3, "balloon": 6, "airship": 6, "war_machine": 1}]
 const WOLF := [{"wolf": 320}, {"wolf": 300, "leap_wolf": 100}, {"wolf": 240, "leap_wolf": 80, "night_wolf": 80}, {"wolf": 320, "leap_wolf": 100, "night_wolf": 100, "alpha_wolf": 1}]
 # I91 표(2026-10-21 개정): 2~6라운드 웨이브마다 종류별 적 수
 const I91 := [
@@ -261,6 +265,7 @@ func ev169():
 	if b.rounds.size() != 6:
 		return "라운드가 %d개다(6개여야 한다)" % b.rounds.size()
 	var table := [S111, WOLF] + I91.slice(1).map(func(r): return _ten(r))
+	table[2] = RAID  # I91 2026-11-03 변경·둘째 변경·셋째 변경: 3라운드 네 웨이브 모두 고블린 약탈단(마릿수)
 	for k in 6:
 		var got := _counts(b.rounds[k])
 		if got != table[k]:

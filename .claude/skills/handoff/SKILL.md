@@ -1,7 +1,7 @@
 ---
 name: handoff
 description: >-
-  코딩 세션을 안전한 지점에서 멈추고 next/yyyy-mm-dd/rN.md에 다음 세션용 인수인계
+  코딩 세션을 안전한 지점에서 멈추고 handoff/yyyy-mm-dd/rN.md에 다음 세션용 인수인계
   작업지시서(Next Action Plan, NAP)를 쓰거나, 새 세션에서 그 문서를 검증하며
   작업을 재개한다. 사용자가 인수인계·handoff·NAP 작성, 세션 정리·전환, 재개를 요청하면 반드시 이 스킬을
   쓴다. 사용자가 요청하지 않았는데 먼저 실행하지 않는다. "다음에 뭐 하면 돼?"
@@ -9,7 +9,7 @@ description: >-
   작성에는 쓰지 않는다. DB·HTTP·로그인 세션 코드 작업이나 배치·서버·잡의 재시작·재개에도
   쓰지 않는다 — 여기서 세션·재개는 코딩 대화의 세션·재개만 뜻한다.
 argument-hint: "[resume [NAP 경로] | [lite] 메모]"
-allowed-tools: Bash(/bin/sh ${CLAUDE_SKILL_DIR}/scripts/nap.sh *), Edit(next/**), Write(next/**)
+allowed-tools: Bash(/bin/sh ${CLAUDE_SKILL_DIR}/scripts/nap.sh *), Edit(handoff/**), Write(handoff/**)
 compatibility: Claude Code v2.1.196+ 전용 (git, python3 필요 — scripts/nap.sh 가 PATH·인터프리터를 보정)
 ---
 
@@ -35,9 +35,9 @@ compatibility: Claude Code v2.1.196+ 전용 (git, python3 필요 — scripts/nap
   활성 NAP면, 재개 모드가 맞는지 사용자에게 먼저 확인한다. 준비 명령도 이 경우 "변화 없음"으로 멈춘다.
 - 스냅샷의 최신 작업지시서가 `draft` 면 이전 세션의 인수인계가 도중에 끊긴 것이다 → 재개 모드 1단계.
 
-작업지시서는 `next/yyyy-mm-dd/rN.md` 다. archive 를 뺀 가장 최근 날짜 폴더의 가장 큰 번호가 "지금 할 일"이고,
+작업지시서는 `handoff/yyyy-mm-dd/rN.md` 다. archive 를 뺀 가장 최근 날짜 폴더의 가장 큰 번호가 "지금 할 일"이고,
 frontmatter 없이 직접 쓴 rN.md 도 같은 번호 체계에 들어간다. 날짜 폴더에 살아 있는(active·resumed) NAP 가
-없어지면 스크립트가 폴더째 `next/archive/` 로 옮긴다.
+없어지면 스크립트가 폴더째 `handoff/archive/` 로 옮긴다.
 
 선택한 모드의 파일만 읽는다. 스킬 본문과 읽은 파일은 세션이 끝날 때까지 컨텍스트에
 남기 때문에, 재개한 새 세션에 작성 절차가 섞이면 깨끗한 컨텍스트를 낭비하게 된다.
