@@ -87,10 +87,19 @@ const RIPPLES := 4  # 늪 장판 하나의 물결 자리 수
 const RIPPLE_CYCLE := 1.4  # 물결 하나가 다시 퍼지는 주기
 # 크로노스(금·얼음)(fx-4). 시간은 초다
 const CHARGE_STEP := 4.0 / 60.0  # 과충전 번개 조각 한 프레임
-const HAND_TURN := 2.4  # 시간의 문 긴 바늘이 시계 방향으로 한 바퀴 도는 시간. 짧은 바늘은 HAND_RATIO배 느리다
+const HAND_TURN := 2.4  # 시간의 문 긴 바늘이 반시계 방향으로 한 바퀴 도는 시간. 짧은 바늘은 HAND_RATIO배 느리다
 const HAND_RATIO := 4.0
-const WARP_SPIN := 0.8  # 왜곡장 바깥 점선 고리가 시계 방향으로 도는 빠르기(라디안/초). 안쪽 고리는 1.5배로 거꾸로, 눈금은 0.25배로 거꾸로 돈다
-const WARP_TICKS := 12  # 왜곡장 고리 사이의 일그러진 눈금 수
+# 크로노스 새 칸(fx-7, I199 2026-11-04 변경). 시간은 초다
+const SAND_GRAINS := 16  # 노화 흔적 안에서 떨어지는 모래알 수
+const LOOP_CLOSE := 0.2  # 되돌림 고리가 반경에서 0.25배로 조여드는 시간. 이어서 LOOP_FLASH초 동안 가운데가 번쩍인다
+const LOOP_FLASH := 0.08
+const GHOSTS := 4  # 옛 자리 → 되돌아간 자리 잔상 수
+const GATE_BLINK := 0.5  # 문에 든 적의 남은 시간 고리가 깜박이기 시작하는 남은 시간
+const COGS := 28  # 태엽 감기 둘레 바깥 톱니 수
+const COG_SPIN := 0.25  # 톱니가 시계 방향으로 도는 빠르기(라디안/초)
+const WIND_KICK := 1.5  # 쓴 순간부터 WIND_KICK_T초 동안 톱니가 더 도는 각(라디안)
+const WIND_KICK_T := 0.6
+const KEY_FLIP := 0.12  # 태엽 열쇠 손잡이가 정면 ↔ 옆으로 뒤집히는 간격
 const TELL_FILL := 5  # 보스 스킬 예고 안쪽 성긴 칠의 밀도(/16, fx-4)
 const ALLY_FX := ["dr", "haste", "shield", "invuln", "stun", "bleed"]  # 아군에 걸린 효과(I101, 기절은 I192, 출혈은 I193 ③)
 const FOE_FX := ["stun", "root", "expose", "taunt", "seal", "chain", "dot"]  # 적에 걸린 효과(I101). 둔화는 능력치 감소 줄(DEBUFFS)이다
@@ -387,6 +396,7 @@ func _draw() -> void:
 			_aura_ring(h)
 	_bodies()
 	_marks()
+	_chrono_marks()
 	for u in battle.units:
 		var at := _spot(u) + _slip(u)  # 넉백으로 미끄러지는 몸을 테두리·숫자가 따라간다(S198)
 		if u.is_hero:  # 영웅 레벨(I117): 오른쪽 위에 작게
@@ -418,7 +428,7 @@ func _draw() -> void:
 	_impacts()  # 사각형이라 구슬·대포알과 한 배치다. 대포알 고리도 아트 px 사각형이라 이어진다
 	for m in battle.landed:  # 대포알이 떨어진 곳에 범위 피해 반경까지 퍼지는 2px 주황 고리(S178 2026-10-28, I101 2026-10-28 셋째 변경)
 		if m.look == "ball" and m.age < BLAST:
-			_pring(Vector2i(_spot(m.target).floor()), int(CELL * m.splash * m.age / BLAST), 2, Color(PX.orange, 1.0 - m.age / BLAST))
+			_pring(Vector2i(_drop_at(m).floor()), int(CELL * m.splash * m.age / BLAST), 2, Color(PX.orange, 1.0 - m.age / BLAST))
 	_fx_dots(false)  # 먼지·조각(I172): 투사체 다음 층에 모아서
 	_traces(true)
 	# 어둠 덮개(S212)는 맵의 자식이라 여기까지(효과) 위에 그려진다. 그 위 층(_top)이 조준 미리보기·체력 막대·명령 표식·드래그 사각형이다
@@ -480,16 +490,21 @@ func _spawn_badges() -> void:
 		_cv.draw_string(PIXEL_FONT, box.position + Vector2(2, 8), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8)
 
 # 날고 있는 투사체 하나(S178). 출발 자리(처음 그릴 때 쏜 쪽의 쏘는 곳 _muzzle, starts에 남긴다)에서 대상 가슴까지, 시뮬레이션에서 날아간 비율만큼 간 자리에 그린다.
-# 화살은 짧은 선, 마법은 쏜 쪽 색 구슬, 대포알은 포물선이다. 대상이 쓰러져 마지막 자리로 가는 대포알은 쓰러진 몸 쪽으로 간다
+# 화살은 짧은 선, 마법은 쏜 쪽 색 구슬, 대포알은 포물선이다. 대상이 쓰러져 마지막 자리로 가는 대포알은 쓰러진 몸 쪽으로 간다.
+# 논타겟팅 투사체(S178 2026-11-04 변경)는 대상 대신 조준점의 노린 적 가슴 높이로 간다. 화살은 조준점 너머로 그 높이를 지키며 사거리 끝까지 난다(I224 ⑤)
 func _missile(m, starts: Dictionary) -> void:
 	var id: int = m.get_instance_id()
 	var from: Vector2 = _shots.get(id, _muzzle(m.src))
 	starts[id] = from
-	var to := _chest(m.target)
+	var ground: Vector2 = _center(m.mark) - Vector2(0, _lift(m.target)) if m.free else _spot(m.target)
+	var to := ground + Vector2(0, -6)  # 가슴(_chest)
 	var gone: float = m.from.distance_to(m.pos)
 	var k := gone / maxf(gone + m.pos.distance_to(m.at), 1e-6)
 	var d := (to - from).normalized()
 	var p := from.lerp(to, k)
+	if m.free and m.look == "arrow":
+		var f := minf(gone / maxf(m.from.distance_to(m.mark), 0.01), 1.0)
+		p = _center(m.pos) + Vector2(0, lerpf(from.y - _center(m.from).y, to.y - _center(m.mark).y, f))
 	match m.look:
 		"arrow":
 			draw_line(p - d * 7, p, Color("e8dcc0"), 1.0)
@@ -500,7 +515,7 @@ func _missile(m, starts: Dictionary) -> void:
 			_blob(p, 2, col)
 			_blob(p, 0, Color.WHITE)
 		"ball":
-			_blob(_spot(m.src).lerp(_spot(m.target), k), 1, Color(0, 0, 0, 0.35))
+			_blob(_spot(m.src).lerp(ground, k), 1, Color(0, 0, 0, 0.35))
 			_blob(p - Vector2(0, 4.0 * BALL_ARC * k * (1.0 - k)), 2, Color("2a2a30"))
 
 # 실비아 바람을 지난 화살(I215 2026-11-01 변경). p는 화살촉, d는 나는 방향이다.
@@ -550,7 +565,7 @@ func _impacts() -> void:
 			"ball":
 				if m.age < 2.0 * BOOM_STEP:
 					var first: bool = m.age < BOOM_STEP
-					_blob(_spot(t) - Vector2(0, 3), 3 if first else 2, PX.orange if first else PX.cream)
+					_blob(_drop_at(m) - Vector2(0, 3), 3 if first else 2, PX.orange if first else PX.cream)
 	for x in battle.units + _foes:  # 강철 점: 맞은 면(공격자 쪽) 2px, 윗줄 밝게 아랫줄 어둡게
 		var h = _hits.get(x.get_instance_id())
 		if h != null and h[4] and h[0] < STEEL:
@@ -572,6 +587,10 @@ func _muzzle(x) -> Vector2:
 func _chest(x) -> Vector2:
 	return _spot(x) + Vector2(0, -6)
 
+# 대포알이 떨어진 곳(맵 px): 시뮬레이션이 떨어뜨린 자리(at)에 노린 적의 높이(성벽 위면 성벽 위)를 준다
+func _drop_at(m) -> Vector2:
+	return _center(m.at) - Vector2(0, _lift(m.target))
+
 # 원거리: 타워, 사거리 2칸을 넘는 영웅·용병. 나머지는 근접이다
 func _ranged(x) -> bool:
 	return x.get("pos") == null or (x.get("range") != null and x.range > 2.0)
@@ -586,9 +605,9 @@ func missed(c) -> bool:
 
 # 즉시 스킬 흔적(S179): 쓴 뒤 영웅 색으로. 범위 스킬은 반경까지 퍼지는 고리, 방향·대상 스킬은 영웅에서 잇는 선이다.
 # 이그니스의 화염구 작렬·운석 착탄·서리 고리는 단계 있는 폭발·결정이다(4.1s fx-1). 아이아스·실비아는 베기·충격파·방패·터짐·바람이다(fx-2).
-# 세라피나는 뻗는 빛줄기·날개·빛기둥, 베스퍼는 조여드는 저주 고리·사슬 거는 줄이다(fx-3). 크로노스는 금 번개 줄(fx-4)과, 노화·타임 루프 되돌림의 퍼지는 금 고리다(I199).
+# 세라피나는 뻗는 빛줄기·날개·빛기둥, 베스퍼는 조여드는 저주 고리·사슬 거는 줄이다(fx-3). 크로노스는 금 번개 줄(fx-4)과, 노화의 모래빛 점선 테·모래시계, 되돌림의 조여드는 얼음 고리·잔상이다(I199 2026-11-04 변경).
 # 보스 스킬 흔적은 예고색 램프 고리다(S198). 모두 아트 px로 그리고, 적을 노린 스킬이 아무도 못 맞혔으면 MISS_FADE로 그린다(S179 2026-10-29).
-# top이 아니면 몸통 아래 층(폭발 연기·운석 그림자·포효 먼지·꽂힌 화살·천사 날개)만 그린다. 떨어지는 운석·화살과 영혼 사슬도 그린다. 무엇을 어디에 썼는지는 시뮬레이션이 남긴 흔적(traces)이 준다
+# top이 아니면 몸통 아래 층(폭발 연기·운석 그림자·포효 먼지·꽂힌 화살·천사 날개·되돌림 잔상·되돌아갈 자리)만 그린다. 떨어지는 운석·화살과 영혼 사슬도 그린다. 무엇을 어디에 썼는지는 시뮬레이션이 남긴 흔적(traces)이 준다
 func _traces(top: bool) -> void:
 	for c in battle.traces:
 		var h = c.hero
@@ -652,10 +671,12 @@ func _traces(top: bool) -> void:
 				if top:
 					_charge(h, c.aim, c.age)
 				continue
-			"aging", "loop":  # 노화·타임 루프 되돌림 충격파(I199): 반경까지 퍼지는 크림 → 금 고리
-				var kk: float = c.age / FX
-				if top and kk < 1.0:
-					_pring(at, int(CELL * c.radius * _out(kk)), 2 if kk < 0.5 else 1, _ramp(["cream", "gold"], kk))
+			"aging":
+				if top:
+					_aging(at, int(CELL * c.radius), c, seed)
+				continue
+			"loop":
+				_rewind(at, int(CELL * c.radius), c, top)
 				continue
 		var k: float = c.age / FX
 		if top and k < 1.0 and _boss(h):  # 보스 스킬(S198): 고리가 반경의 절반에서 1.1배까지 퍼진다. 예고색 램프(F24+, fx-4)
@@ -666,6 +687,12 @@ func _traces(top: bool) -> void:
 		if d > 0.0 and d < FALL:
 			_fall(z, d, top)
 	if not top:
+		for l in battle.loops:  # 문에 든 적(I199 2026-11-04 변경): 되돌아갈 자리 점과, 적에서 그 자리 쪽으로 흐르는 흐린 얼음 점선. 숨은 적(S213)은 그리지 않는다
+			if l.e in _foes:
+				var p := Vector2i(_center(l.at).floor())
+				_dash_line(Vector2((_spot(l.e) + _slip(l.e)).floor()), Vector2(p), PX.ice3, 2, 2, -clock * 8.0)
+				_pring(p, 3, 1, PX.ice1)
+				_px(p, PX.ice0)
 		return
 	var links := {}  # 영혼 사슬(S154): 같은 사슬에 묶인 적을 처음 적에게서 청록 사슬 고리 도트로 잇는다. 숨은 적(S213)은 잇지 않는다
 	for e in _foes:
@@ -1005,6 +1032,109 @@ func _charge(h, x, t: float) -> void:
 		var kk := t / 0.2
 		_pring(p, int(3.0 + 7.0 * _pow3(kk)), int(ceil(2.0 * (1.0 - kk))), _ramp(["cream", "gold"], kk))
 
+# 노화(크로노스 W, I199 2026-11-04 변경): 앞으로 감기. 반경 자리 점선 테가 FX초에 두 바퀴 시계 방향으로 돌고, 안에서 모래알이 떨어진다.
+# 반경 안 노화 걸린 적 머리 위에는 위 칸 모래가 빠지는 모래시계가 뜬다
+func _aging(at: Vector2i, r: int, c, seed: int) -> void:
+	var k: float = c.age / FX
+	if k >= 1.0:
+		return
+	var col := _ramp(["cream", "tan", "ash"], k)
+	_pring(at, r, 1, col, 2, TAU * 2.0 * k)
+	for i in SAND_GRAINS:
+		var o := Vector2.from_angle(_hf(seed, i) * TAU) * sqrt(_hf(seed, i + 30)) * (r - 3)
+		var p := at + Vector2i((o + Vector2(0, 14.0 * k * k + 3.0 * k - 6.0)).round())
+		_px(p, col)
+		_px(p - Vector2i(0, 1), Color(col, 0.5))
+	for e in _foes:
+		if e.fx.has("chronos_w") and e.pos.distance_to(c.at) <= c.radius + 0.5:  # 쓴 뒤 FX초 동안 반경 밖으로 걸어 나간 적도 잡게 반 칸 여유
+			_hourglass(_crown(e), 1.0 - k, PX.tan, PX.cream, PX.soot)
+
+# 타임 루프 되돌림 충격파(크로노스 E, I199 2026-11-04 변경): 되감기. 반경 자리 반시계 얼음 점선이 LOOP_CLOSE초에 0.25배로 조여든 뒤 가운데가 번쩍인다.
+# 몸통 아래 층에는 옛 자리(aim) → 되돌아간 자리 잔상이 옛 자리 쪽부터 사라진다. 노화 되감기(S266)로 피해가 커졌으면(aged) 조여든 뒤 금 고리가 반경 너머로 터진다
+func _rewind(at: Vector2i, r: int, c, top: bool) -> void:
+	var t: float = c.age
+	if not top:
+		if c.foe in _foes:  # 숨은 적(S213)의 잔상은 그리지 않는다
+			var a := _center(c.aim)
+			var b := _center(c.at)
+			var tall := int(_head(c.foe) * 0.8)
+			for i in GHOSTS:
+				var u := float(i) / GHOSTS
+				var life := 0.15 + 0.25 * u
+				if t < life:
+					var p := Vector2i(a.lerp(b, u).round())
+					var col := _ramp(["ice1", "ice2", "ice3"], t / life)
+					_px(p + Vector2i(-1, -tall), col, Vector2i(3, tall))
+					_px(p + Vector2i(-2, -tall + 2), col, Vector2i(5, tall - 4))
+		return
+	if t < LOOP_CLOSE:
+		var k := t / LOOP_CLOSE
+		_pring(at, int(r * (1.0 - 0.75 * _pow3(k))), 2 if k < 0.5 else 1, _ramp(["ice0", "ice1", "ice2"], k), 3, -PI * k)
+	elif t < LOOP_CLOSE + LOOP_FLASH:
+		_pdisc(at, 3, PX.ice0)
+	var k2 := (t - 0.18) / 0.22
+	if c.aged and k2 >= 0.0 and k2 < 1.0:
+		_pring(at, int(r * (0.25 + 0.9 * _out(k2))), 2 if k2 < 0.5 else 1, _ramp(["cream", "gold", "tan"], k2))
+		for i in 10:
+			var d := Vector2.from_angle(TAU * i / 10 + 0.2)
+			_px(at + Vector2i((d * r * (0.3 + 0.9 * _out(k2))).round()), PX.tan if k2 < 0.5 else PX.ash, Vector2i(2, 2))
+
+# 머리 바로 위 표시(모래시계·남은 시간 고리)의 가운데: 발에서 몸 높이 + 5px 위
+func _crown(x) -> Vector2i:
+	return Vector2i((_spot(x) + _slip(x)).floor()) - Vector2i(0, int(_head(x)) + 5)
+
+# 아트 px 점선: on px 켜고 off px 끈다. shift가 줄면 무늬가 b 쪽으로 흐른다
+func _dash_line(a: Vector2, b: Vector2, col: Color, on := 2, off := 2, shift := 0.0) -> void:
+	var n := int(a.distance_to(b))
+	for i in n + 1:
+		if fposmod(i + shift, on + off) < on:
+			_px(Vector2i(a.lerp(b, float(i) / maxf(n, 1)).round()), col)
+
+# 모래시계(5×7px, p가 가운데): k = 위 칸에 남은 모래 비율
+func _hourglass(p: Vector2i, k: float, glass: Color, sand: Color, dark: Color) -> void:
+	_px(p + Vector2i(-2, -3), dark, Vector2i(5, 1))
+	_px(p + Vector2i(-2, 3), dark, Vector2i(5, 1))
+	for q in [Vector2i(-2, -2), Vector2i(2, -2), Vector2i(-1, -1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(1, 1), Vector2i(-2, 2), Vector2i(2, 2)]:
+		_px(p + q, glass)
+	var up := [Vector2i(0, -1), Vector2i(-1, -2), Vector2i(0, -2), Vector2i(1, -2)]
+	var down := [Vector2i(-1, 2), Vector2i(0, 2), Vector2i(1, 2), Vector2i(0, 1)]
+	var n := int(round(4.0 * clampf(k, 0.0, 1.0)))
+	for i in n:
+		_px(p + up[i], sand)
+	for i in 4 - n:
+		_px(p + down[i], sand)
+	_px(p, sand if k > 0.0 and k < 1.0 else glass)
+
+# 태엽 열쇠(p = 축 아래 끝): f 0이면 손잡이가 정면(7×3px), 1이면 옆(3×3px). 탑 지붕·주황 테두리 위에서도 보이게 어두운 1px 테두리를 두른다(fx-7 Gemini 고칠 점 3)
+func _wind_key(p: Vector2i, f: int) -> void:
+	var w := 7 if f == 0 else 3
+	_px(p + Vector2i(-w / 2 - 1, -6), PX.night, Vector2i(w + 2, 5))
+	_px(p + Vector2i(-1, -2), PX.night, Vector2i(3, 3))
+	_px(p + Vector2i(0, -2), PX.bronze, Vector2i(1, 2))
+	_px(p + Vector2i(-w / 2, -5), PX.soot, Vector2i(w, 3))
+	if f == 1:
+		_px(p + Vector2i(0, -5), PX.gold, Vector2i(1, 3))
+		return
+	for q in [Vector2i(-2, -5), Vector2i(-1, -5), Vector2i(1, -5), Vector2i(2, -5), Vector2i(-3, -4), Vector2i(0, -4), Vector2i(3, -4), Vector2i(-2, -3), Vector2i(-1, -3), Vector2i(1, -3), Vector2i(2, -3)]:
+		_px(p + q, PX.gold)
+
+# 크로노스 표시(I199 2026-11-04 변경): 문에 든 적 머리 위 남은 시간 고리(어두운 원판 위 얼음 호가 12시에서 반시계로 줄어든다, 마지막 GATE_BLINK초는 깜박),
+# 태엽 감기 둘레 안 아군 영웅·쏘는 구조물의 태엽 열쇠. _marks 다음(몸통 위)에 그린다. 숨은 적(S213)에는 그리지 않는다
+func _chrono_marks() -> void:
+	for l in battle.loops:
+		if l.e in _foes and not (l.left < GATE_BLINK and fmod(l.left, 0.2) < 0.1):
+			var p := _crown(l.e)
+			_pdisc(p, 3, PX.night)
+			_parc(p, 3, 1, -PI / 2.0 - TAU * clampf(l.left / l.owner.e.delay, 0.0, 1.0), -PI / 2.0, PX.ice0)
+			_px(p, PX.ice0)
+	var f := int(clock / KEY_FLIP) % 2
+	for h in battle.heroes:
+		if h.alive and h.fx.has("chronos_r"):
+			_wind_key(Vector2i((_spot(h) + _slip(h)).floor()) + Vector2i(6, -int(_head(h) * 0.6)), f)
+	for s in battle.structures.values():
+		if s.fx.has("chronos_r"):
+			_wind_key(Vector2i(_muzzle(s).floor()) + Vector2i(7, 3), f)
+
 # 장판(I101, S168, 4.1s): 처음 본 때부터 ZONE_OPEN초에 펼쳐지고 마지막 ZONE_CLOSE초에 줄어든다. 판정 경계는 밝은 1px + 바깥 어두운 1px이고,
 # 같은 종류 장판끼리 겹친 곳은 빼서 바깥 테두리만 남는다. 장판은 모두 무늬 대신 재질이다(이그니스 4.1s, 실비아 fx-2, 세라피나·베스퍼 fx-3, 크로노스 fx-4, S168).
 # 떨어지는 중인 운석은 _fall, 절대 방어선 둘레는 _capsule, 바람의 길(실비아 R)은 _path_zone이 그린다
@@ -1056,7 +1186,7 @@ func _zones() -> void:
 			"chronos_e":
 				_law_zone(c, r, age, seed, others)
 			"chronos_r":
-				_warp_zone(c, r, seed, others)
+				_warp_zone(c, r, age, seed, others)
 			_:  # 재질을 정하지 않은 장판: 판정 경계만
 				_edge(c, r, PX.cream, PX.soot, others)
 	if not caps:
@@ -1239,28 +1369,30 @@ func _swamp_zone(c: Vector2i, r: int, seed: int, others: Array) -> void:
 		_pring(p, 1 + int(5.0 * ph), 1, PX.teal if ph < 0.5 else PX.midteal)
 	_edge(c, r, PX.teal, PX.soot, others)
 
-# 시간의 문(크로노스 E 타임 루프, I199): 구리 성긴 칠 + 12시에서 시계 방향으로 도는 짧은 바늘(금 2px)·긴 바늘(크림 1px) + 가운데 축 조각 + 금 테두리.
-# 옛 황금률 결계(fx-4) 재질을 그대로 쓴다. 같은 금빛인 성역(모래 칠·바닥 문양·빛 점)과는 바늘과 칠 색으로 갈린다
+# 시간의 문(크로노스 E 타임 루프, I199 2026-11-04 변경): 되감기. 얼음 성긴 칠(2/16) + 12·3·6·9시 눈금 + 12시에서 반시계로 도는 짧은 바늘(얼음 2px)·긴 바늘(크림 1px) +
+# 가운데 어두운 축 + 얼음 테두리
 func _law_zone(c: Vector2i, r: int, age: float, seed: int, others: Array) -> void:
-	_pnoise(c, r - 1, PX.bronze, 2, posmod(seed, 4))
-	var turn := TAU * age / HAND_TURN  # 12시(-PI/2)에서 잰 긴 바늘 각. 화면 y가 아래라 각이 늘면 시계 방향
-	_pline(c, c + Vector2i((Vector2.from_angle(turn / HAND_RATIO - PI / 2.0) * r * 0.5).round()), PX.gold, 2)
+	_pnoise(c, r - 1, PX.ice3, 2, posmod(seed, 4))
+	for i in 4:
+		var d := Vector2.from_angle(i * PI / 2.0)
+		_pline(c + Vector2i((d * (r - 1)).round()), c + Vector2i((d * (r - 4)).round()), PX.ice1)
+	var turn := -TAU * age / HAND_TURN  # 12시(-PI/2)에서 잰 긴 바늘 각. 화면 y가 아래라 각이 줄면 반시계 방향
+	_pline(c, c + Vector2i((Vector2.from_angle(turn / HAND_RATIO - PI / 2.0) * r * 0.5).round()), PX.ice1, 2)
 	_pline(c, c + Vector2i((Vector2.from_angle(turn - PI / 2.0) * r * 0.8).round()), PX.cream)
-	_spr("hub", 1 if fmod(age, HAND_TURN) < 0.15 else 0, c)
-	_edge(c, r, PX.gold, PX.soot, others)
+	_px(c - Vector2i(1, 1), PX.night, Vector2i(3, 3))
+	_px(c, PX.cream)
+	_edge(c, r, PX.ice0, PX.night, others)
 
-# 태엽 감기 둘레(크로노스 R, I199. 옛 왜곡장 fx-4 재질): 어두운 얼음 성긴 칠 두 겹(가운데가 밝음) + 서로 거꾸로 도는 흰 얼음 점선 고리 둘(0.65·0.35배) +
-# 바깥 고리 밖에서 각이 일그러진 채 천천히 거꾸로 흐르는 짧은 눈금 + 회청 테두리. 같은 얼음색인 절대 방어선 둘레(칠 + 떠오르는 점, 흰 테두리)와는 도는 고리와 눈금으로 갈린다
-func _warp_zone(c: Vector2i, r: int, seed: int, others: Array) -> void:
-	_pnoise(c, r - 1, PX.ice4, 4, posmod(seed, 4))
-	_pnoise(c, int(r * 0.5), PX.ice3, 3, posmod(seed + 1, 4))
-	_pring(c, int(r * 0.65), 1, PX.ice0, 3, clock * WARP_SPIN)
-	_pring(c, int(r * 0.35), 1, PX.ice0, 2, -clock * WARP_SPIN * 1.5)
-	for i in WARP_TICKS:
-		var u := TAU * i / WARP_TICKS
-		var d := Vector2.from_angle(u - clock * WARP_SPIN * 0.25 + 0.3 * sin(3.0 * u + clock * 1.3))
-		_pline(c + Vector2i((d * r * 0.76).round()), c + Vector2i((d * r * 0.88).round()), PX.ice1)
-	_edge(c, r, PX.ice1, PX.night, others)
+# 태엽 감기 둘레(크로노스 R, I199 2026-11-04 변경): 놋쇠 태엽. 구리 성긴 칠(1/16) + 금 테두리 + 바깥 톱니 COGS개(금 2×2px + 그을음 그림자 3×3px)가
+# 시계 방향으로 COG_SPIN rad/s 돌고, 쓴 순간부터 WIND_KICK_T초 동안 WIND_KICK rad를 더 돈다
+func _warp_zone(c: Vector2i, r: int, age: float, seed: int, others: Array) -> void:
+	_pnoise(c, r - 1, PX.bronze, 1, posmod(seed, 4))
+	_edge(c, r, PX.gold, PX.soot, others)
+	var rot := clock * COG_SPIN + WIND_KICK * _pow3(age / WIND_KICK_T)
+	for i in COGS:
+		var p := c + Vector2i((Vector2.from_angle(TAU * i / COGS + rot) * (r + 2.5)).round())
+		_px(p - Vector2i(1, 1), PX.soot, Vector2i(3, 3))
+		_px(p - Vector2i(1, 1), PX.gold, Vector2i(2, 2))
 
 # 걸린 효과(I101 2026-10-27 변경): 효과마다 수단 하나로, 고리를 겹쳐 쌓지 않는다.
 # 1차(기절·도발·봉인·속박·불사)는 머리 위 기호나 몸에 감긴 밧줄, 2차(받는 피해 증가·초당 피해·받는 피해 감소·공격 속도·보호막)는 몸·발의 작은 조각이다.
@@ -2262,7 +2394,7 @@ func hit_table(xs: Array) -> Dictionary:
 		var t: float = maxf(m.age - HITSTOP, 0.0) if m.src.get("is_hero") == true else m.age
 		var id: int = m.target.get_instance_id()
 		var w := _weight(m.target, m.kind, HEAVY, HEAVY_BACK) if m.src.kind == "cannon" else _weight(m.target, m.kind)
-		if t < _keep(w) and t < hits.get(id, [INF])[0]:
+		if not m.missed and t < _keep(w) and t < hits.get(id, [INF])[0]:  # 놓친 대포알의 노린 적은 맞지 않았다(I224 ⑤)
 			hits[id] = [t, (m.target.pos - m.from).normalized()] + w
 		for s in m.side:
 			w = _weight(s, m.kind, SIDE, HEAVY_BACK)
@@ -2418,7 +2550,7 @@ func _scan() -> void:
 		if _landed.has(mid):
 			continue
 		if m.look == "ball":  # 대포알(S178 2026-10-28): 빈 자리에 떨어져도 먼지 6점. 범위 곁 대상이 이것에 쓰러졌으면 떨어진 곳 반대쪽으로 막타(S197)
-			var foot: Vector2 = _spot(m.target).floor()
+			var foot: Vector2 = _drop_at(m).floor()
 			for i in (6 if _live else 0):
 				var d := Vector2.from_angle(deg_to_rad(i * 60.0 + _h(mid, i, -15, 15)))
 				_dot({"p0": foot, "p1": foot + Vector2(d.x, d.y * 0.5) * _h(mid, 10 + i, 6, 10), "rise": _h(mid, 20 + i, 1, 3), "col": DUST, "size": Vector2(2, 2), "life": 0.35, "fade": 0.15})
@@ -2428,6 +2560,8 @@ func _scan() -> void:
 					var away: Vector2 = (o.pos - m.at).normalized()
 					_kill(o, away)
 					_emit("kill", _chest(o), away, m.src, o, {"heavy": true})
+		if m.missed:  # 노린 적을 놓친 대포알(I224 ⑤)은 주 대상 사건을 내지 않는다
+			continue
 		var t = m.target
 		var tid: int = t.get_instance_id()
 		var kind := "hit"

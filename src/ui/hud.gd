@@ -97,7 +97,7 @@ const HAMMER := [".#####.", ".#####.", "...#...", "...#...", "...#...", "...#...
 const UP := ["..#..", ".###.", "#####", ".###.", ".###."]  # 팝업 업그레이드(I58)
 # 용병 강화 툴팁의 수치 줄(S255): 키 → «이름 지금 → 다음» 틀
 const RANK_TEXT := {"hp": "체력 %s → %s", "damage": "공격력 %s → %s", "block": "블록 수 %s → %s", "attack_gap": "공격 간격 %s → %s초",
-	"range": "사거리 %s → %s칸", "sight": "인식 범위 %s → %s칸", "speed": "이동 %s → %s칸/초"}
+	"range": "사거리 %s → %s칸", "sight": "인식 범위 %s → %s칸", "speed": "이동 %s → %s칸/초", "accuracy": "명중률 %s → %s%%"}
 const HP_AT := Rect2(65, 266, 24, 24)  # 체력바 버튼 자리(S276 Claude 임시값): 대피령 버튼 오른쪽
 const HP_PIC := ["..........", "..........", "..........", "..........", "##########", "#ggggggkk#", "#ggggggkk#", "##########", "..........", ".........."]  # 체력바 버튼 그림(S276 Claude 임시값)
 const FIX_AT := Rect2(582, 182, 24, 24)  # 자동 수리 태그 자리(I210 Claude 임시값): A 태그 왼쪽
@@ -741,10 +741,11 @@ func _pop(row: Control, on_press: Callable, name: String, icon: Texture2D = null
 func _pop_line() -> String:
 	return "용병 %d명 · 상한 %d(거점 %d + 집 %d채 × %d)" % [battle.pop_used(), battle.pop_cap(), battle.POP_BASE, battle.pop_houses().size(), battle.STRUCTURE_KINDS.house.pop]
 
-# 용병 강화 다음 단계 step의 효과 줄(S255): «체력 50 → 65»처럼 지금 값 → 다음 값
+# 용병 강화 다음 단계 step의 효과 줄(S255): «체력 50 → 65»처럼 지금 값 → 다음 값. 명중률은 백분율이다(«명중률 50 → 60%»)
 func _rank_line(kind: String, step: Dictionary) -> String:
 	var now: Dictionary = battle.merc_stats(kind)
-	return "\n".join(step.keys().map(func(k): return RANK_TEXT[k] % [_num(now[k]), _num(step[k])]))
+	var shown := func(k, v): return str(roundi(v * 100.0)) if k == "accuracy" else _num(v)
+	return "\n".join(step.keys().map(func(k): return RANK_TEXT[k] % [shown.call(k, now[k]), shown.call(k, step[k])]))
 
 # 철거(S74): 첫 클릭은 «철거?», 같은 대상을 고른 채 CONFIRM초 안에 다시 누르면 철거한다
 func _demolish_press() -> void:
