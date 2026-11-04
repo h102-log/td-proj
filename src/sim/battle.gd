@@ -52,8 +52,7 @@ const CONTACT := 0.08  # 걷기 명령을 받은 영웅이 다시 걷는 때(친
 const RANGED := 2.0  # 사거리가 이보다 큰 영웅·용병은 원거리다. 쏘는 구조물은 모두 원거리다(S178, I174)
 const MISSILES := {"archer": "arrow", "sylvia": "arrow", "tower": "arrow", "cannon": "ball"}  # 원거리 기본 공격의 투사체(S178). 나머지(마법 타워·마법 영웅)는 구슬(bolt)
 const SPEED := {"arrow": 15.0, "bolt": 10.0, "ball": 7.5}  # 투사체 속도(칸/초, S178)
-const FREE := ["tower", "cannon", "archer"]  # 논타겟팅 투사체를 쏘는 쪽(S178 2026-11-04 변경). 마법 타워와 원거리 영웅은 대상을 따라간다
-const STRAY := 1.0  # 궁수가 명중하지 못하면 조준점을 쏘는 방향에 수직으로 비키는 거리(칸, S178 2026-11-04 변경)
+const FREE := ["tower", "cannon", "archer"]  # 논타겟팅 투사체를 쏘는 쪽(S178 2026-11-04 변경). 궁수는 명중하면 대상을 따라가고(_aim), 마법 타워와 원거리 영웅은 늘 따라간다
 const REPATH_PER_STEP := 8  # 한 스텝에 경로를 다시 구하는 적 수(I155). 적 40명을 한 번에 구하면 61ms(디버그)라 나눈다(사용자 2026-10-20)
 const UNIT_WALL_K := 1e6  # 유닛 경로의 막힌 칸 비용 배율. 돌아갈 길이 있으면 막힌 칸(닫힌 성문 포함, I42)을 지나지 않는다
 const WORK_REACH := 2.0  # 공병이 일하는 거리(중심 사이). 옆 칸 대각선(1.41)에, 무리에 밀려 0.5칸 못 미친 도착(I51)을 더했다
@@ -241,7 +240,7 @@ class Unit:
 	var damage := 0.0
 	var range := 0.0  # 사거리(칸). 0보다 커야 적을 친다
 	var attack_gap := 1.0  # 공격 간격(초)
-	var accuracy := 1.0  # 명중률(궁수, S178 2026-11-04 변경): 논타겟팅 화살의 조준점을 노린 적의 자리로 정하는 확률
+	var accuracy := 1.0  # 명중률(궁수, S178 2026-11-04 변경): 한 발이 대상을 따라가는 화살이 될 확률. 아니면 논타겟팅 화살이다
 	var cooldown := 0.0
 	var target  # 마지막으로 친 적. 화면이 친 직후 공격선을 그린다(S71)
 	var paid := 0  # 놓을 때 낸 골드. 판매 환불의 기준(S69)
@@ -305,7 +304,7 @@ class Missile:
 	var pos: Vector2  # 지금 자리
 	var at: Vector2  # 날아가는 곳: 대상의 지금 자리, 대상이 쓰러졌으면 마지막 자리. 논타겟팅 화살은 사거리 끝, 대포알은 조준점이다
 	var free := false  # 논타겟팅(S178 2026-11-04 변경): 대상을 따라가지 않고 at으로 곧게 난다. 화살이 닿으면 target은 맞은 적이 된다
-	var mark: Vector2  # 조준점(_aim): 노린 적의 자리, 궁수가 명중하지 못했으면 비킨 자리. 화면이 이 자리의 가슴 높이로 화살을 잇는다
+	var mark: Vector2  # 조준점(_aim): 나가는 때 노린 적의 자리. 화면이 이 자리의 가슴 높이로 화살을 잇는다
 	var missed := false  # 떨어진 대포알이 노린 적을 맞히지 못했다(I224 ⑤). 화면이 주 대상 반응을 내지 않는다
 	var hurt := 0.0  # 피해량(공격력 × 공격력 배율)
 	var kind := "phys"  # 피해 종류(S149)
@@ -3806,14 +3805,14 @@ func _shoot(src, e: Enemy, hurt: float, kind: String, ignore := 0.0, aim := 0.0)
 		_aim(m)
 	missiles.append(m)
 
-# 논타겟팅 투사체의 조준점(S178 2026-11-04 변경, I224 ③). 나가는 때 노린 적이 선 자리(쓰러졌으면 마지막 자리)이고, 궁수는 명중률의 확률이 아니면
-# 쏘는 방향에 수직으로 STRAY칸 비킨 자리(왼쪽·오른쪽 반반)다. 화살은 조준점을 지나 쏜 자리에서 사거리만큼 간 곳(at)까지, 대포알은 조준점까지 난다
+# 논타겟팅 투사체의 조준점(S178 2026-11-04 변경, I224 ③): 나가는 때 노린 적이 선 자리(쓰러졌으면 마지막 자리)다.
+# 화살은 조준점을 지나 쏜 자리에서 사거리만큼 간 곳(at)까지, 대포알은 조준점까지 난다. 궁수는 노린 적이 살아 있으면 명중률의 확률로 대상을 따라가는 화살이 된다(free를 끈다)
 func _aim(m: Missile) -> void:
+	if m.src is Unit and m.target.alive and _shot.randf() < m.src.accuracy:
+		m.free = false
+		return
 	m.mark = m.target.pos
 	var dir: Vector2 = (m.mark - m.from).normalized()
-	if m.src is Unit and _shot.randf() >= m.src.accuracy:
-		m.mark += dir.orthogonal() * STRAY * (1.0 if _shot.randf() < 0.5 else -1.0)
-		dir = (m.mark - m.from).normalized()
 	m.at = m.from + dir * _reach(m.src) if m.look == "arrow" else m.mark
 
 # 투사체를 날린다(S178, I174). 출발 전에 쏜 유닛이 쓰러지면 나가지 않는다. 대상을 따라가고, 대상이 쓰러지면 화살·구슬은 사라지고

@@ -11,7 +11,7 @@ extends Resource
 @export var damage := 0.0
 @export var range := 0.0  # 사거리(칸). 0보다 커야 적을 친다
 @export var attack_gap := 1.0  # 공격 간격(초)
-@export var accuracy := 1.0  # 명중률(S178 2026-11-04 변경): 논타겟팅 화살(궁수)의 조준점을 노린 적의 자리로 정하는 확률. 임시값(S254)
+@export var accuracy := 1.0  # 명중률(S178 2026-11-04 변경): 궁수의 한 발이 대상을 따라가는 화살이 될 확률. 아니면 논타겟팅 화살이다. 임시값(S254)
 @export var block := 1  # 블록 수(S159): 동시에 붙잡는 적 수. 임시값
 @export var sight := 0.0  # 인식 범위(칸, I36)
 @export var hold_radius := 0.0  # 홀드 반경(칸, I37)
