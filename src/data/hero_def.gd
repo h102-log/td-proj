@@ -19,7 +19,7 @@ extends Resource
 # 오라(S96, S145): radius칸 안에 늘. reach 사거리 +비율(영웅·쏘는 구조물) · armor 방어력 +(아군·방벽) · foe_armor 적 방어력 −
 # cdr 재사용 대기가 주는 속도 +비율(영웅) · haste 공격 속도 +비율(영웅·쏘는 구조물) · stride 이동 속도 +비율(영웅). 없으면 비운다
 @export var aura := {}
-# 스킬 칸(S145~S148): id, aim(self 즉시 · point 지점 · dir 방향 · ally 아군 대상 · enemy 적 대상 · toggle 켜고 끄기), gap 재사용 대기(초), 그 밖의 수치
+# 스킬 칸(S145~S148): id, aim(self 즉시 · point 지점 · dir 방향 · ally 아군 대상 · enemy 적 대상), gap 재사용 대기(초), 그 밖의 수치
 @export var q := {}
 @export var w := {}
 @export var e := {}

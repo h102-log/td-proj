@@ -1853,8 +1853,6 @@ func status_marks(x, ally: bool) -> Array:
 				var a := clock * 3.0 + _hf(n, 6) * TAU
 				out.append({k = "ring", p = feet - Vector2i(0, int(tall * 0.45)), r = int(tall * 0.6) + 1, c = PX.gold if fmod(clock * 2.0, 1.0) < 0.5 else PX.cream})
 				out.append({k = "star", p = feet + Vector2i(int(cos(a) * tall * 0.6), -int(tall * 0.45) + int(sin(a) * tall * 0.3)), f = 0})
-	if ally and x.get("toggle"):  # 켜진 토글 칸(S147, fx-2): 발 둘레를 도는 연두 바람 줄
-		out.append({k = "gust", p = feet + Vector2i(0, 1), f = int(clock * 12.0)})
 	for i in icons.size():  # 머리 위 기호는 별(기절) 위로 한 줄에
 		out.append({k = icons[i], p = head + Vector2i(int((i - (icons.size() - 1) / 2.0) * 8.0), -9), f = 0})
 	if not ally:

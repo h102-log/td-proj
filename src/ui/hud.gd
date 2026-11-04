@@ -1365,7 +1365,7 @@ func _skill_refuse(h, slot: String) -> void:
 	var why := ""
 	if battle.state != "battle":
 		why = "스킬은 전투 단계에만"
-	elif sk.is_empty() or h.level < battle.LEVELS.unlock[slot] or (sk.get("id") == "brace" and h.brace > 0.0) or (sk.get("aim") == "toggle" and h.toggle):  # 태세 중인 반격은 터뜨리고(S151) 켜진 토글은 끈다(S153)
+	elif sk.is_empty() or h.level < battle.LEVELS.unlock[slot] or (sk.get("id") == "brace" and h.brace > 0.0):  # 태세 중인 반격은 터뜨린다(S151)
 		why = ""
 	elif h.cd[slot] > 0.0:
 		why = "재사용 대기 %d초" % ceili(h.cd[slot])
@@ -1383,7 +1383,7 @@ func _auto_click(e: InputEvent, i: int, slot: String) -> void:
 func _slot_state(h, slot: String) -> Dictionary:
 	var sk: Dictionary = h.get(slot)
 	return {"letter": slot.to_upper(), "cd": h.cd[slot], "gap": sk.gap, "lock": h.level < battle.LEVELS.unlock[slot],
-		"auto": h.auto and sk.get("auto", false), "aim": controls.aiming == slot and controls.aim_hero == h, "on": h.toggle and sk.get("aim") == "toggle",
+		"auto": h.auto and sk.get("auto", false), "aim": controls.aiming == slot and controls.aim_hero == h,
 		"prep": battle.state == "prep", "now": _now}
 
 # 4.0 → «4», 1.5 → «1.5»

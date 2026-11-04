@@ -383,11 +383,7 @@ sprites = {
     "aegis": [aegis(f) for f in range(3)],
     "burst": [burst(f) for f in range(5)],
     "ward": [ward(f) for f in range(4)],
-    "trap": [ascii(rows, {"I": ICE[1], "i": ICE[3], "S": ICE[0], "L": LIME[1], "G": LIME[0]}) for rows in (  # 폭풍의 덫: 쇠 테 + 안쪽 이빨 + 가운데 바람 문양(1프레임은 반짝)
-        ["...IIIIIII...", ".IIiSiSiSiII.", "Ii.........iI", "I....LLL....I", "I...LGGGL...I", "I....LLL....I", "Ii.........iI", ".IIiSiSiSiII.", "...IIIIIII..."],
-        ["...IIIIIII...", ".IISiSiSiSII.", "Ii.........iI", "I....GGG....I", "I...GGGGG...I", "I....GGG....I", "Ii.........iI", ".IISiSiSiSII.", "...IIIIIII..."])],
     "gust": [gust(f) for f in range(4)],
-    "stuck": [ascii(["L.L", ".L.", ".B.", ".B.", ".B.", ".N."], {"L": LIME[1], "B": rgb("efb775"), "N": rgb("392a1c")})],  # 화살비: 땅에 꽂힌 화살
     # fx-3: 세라피나(크림·금)·베스퍼(청록)
     "mend": [ascii(rows, {"C": HOLY[0], "G": HOLY[1], "T": HOLY[2]}) for rows in (  # 회복 반짝(빛줄기·기적): 십자가 작아지며 식는다
         ["...G...", "...C...", "..GCG..", "GCCCCCG", "..GCG..", "...C...", "...G..."],

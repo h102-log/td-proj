@@ -338,7 +338,7 @@ func skill_for(h, slot: String, shift := false) -> void:
 		battle.toggle_auto(h, slot)
 		return
 	var sk: Dictionary = h.get(slot)
-	if sk.get("aim") in ["self", "toggle"] or (sk.get("id") == "brace" and h.brace > 0.0):
+	if sk.get("aim") == "self" or (sk.get("id") == "brace" and h.brace > 0.0):
 		battle.cast(h, slot)
 	elif battle.can_cast(h, slot):
 		aiming = slot

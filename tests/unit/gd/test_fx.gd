@@ -278,7 +278,7 @@ func _ready_cast(b, h, slot: String, aim = null) -> bool:
 	return b.cast(h, slot, aim)
 
 func test_fx2_pieces_and_bright_first_burst_frame():
-	for name in ["spark", "aegis", "burst", "ward", "trap", "gust", "stuck"]:
+	for name in ["spark", "aegis", "burst", "ward", "gust"]:
 		if not View.FX_ART.has(name):
 			return "이펙트 아틀라스에 %s 조각이 없다" % name
 	var img: Image = load("res://art/fx/fx.png").get_image()
@@ -689,22 +689,6 @@ func test_energy_wall_north_end_cells_carry_three_merlons():
 		why = "흉벽 이빨이 %s다(윗면 뒤끝 위 x 1·7·13에 셋이어야 한다)" % [teeth]
 	elif v.pxs.filter(func(p): return p[1] == View.PX.navy and p[2] == Vector2i(4, 3)).size() != 3 or v.pxs.filter(func(p): return p[1] == View.PX.ice0 and p[2] == Vector2i(2, 1)).size() != 3:
 		why = "흉벽 이빨의 남색 옆선·밝은 윗줄이 셋씩이 아니다"
-	v.free()
-	return why
-
-func test_toggle_on_shows_wind_at_feet_only_while_on():
-	var b = _pair()
-	var v = Rec.new()
-	v.battle = b
-	var s = b.heroes[1]
-	var feet: Vector2i = Vector2i((v._spot(s) + v._slip(s)).floor())
-	var why := ""
-	if v.status_marks(s, true).any(func(m): return m.k == "gust"):
-		why = "토글을 켜지 않았는데 바람 줄이 있다"
-	s.toggle = true  # 지금 영웅 데이터에는 토글 칸이 없어 켠 상태를 직접 둔다
-	var g: Array = v.status_marks(s, true).filter(func(m): return m.k == "gust")
-	if why == "" and (g.size() != 1 or absi(g[0].p.y - feet.y) > 2):
-		why = "켠 토글이 %s다(발밑 바람 줄 하나여야 한다)" % [g]
 	v.free()
 	return why
 
