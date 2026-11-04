@@ -343,3 +343,24 @@ func ev700():
 	return check(dark > 0.0 and (w in told) and not (w in drawn) and col == Color("ef3a0c") and not (w in gun),
 		"어둠 %.2f · 대포 예고를 그리는 적에 %s · 몸을 그리는 적에 %s · 색 %s · 기관총 예고를 그리는 적에 %s" % [
 			dark, w in told, w in drawn, col.to_html(false), w in gun])
+
+# EV753 · S288: 숨은 고블린 대장의 폭탄 원은 그리고(보스 빨강) 몸은 숨긴다. 철퇴 부채꼴은 몸 둘레라 함께 숨긴다
+func ev753():
+	var got := _night_game()
+	var main = got[0]
+	var b = main.view.battle
+	if not b.ENEMY_KINDS.has("chief"):
+		_done(main)
+		return "적 종류 chief가 없다"
+	var e = b.spawn_enemy("chief", Vector2i(20, 13), FAR)
+	e.cast = {"id": "bombs", "left": 0.5, "spots": [Vector2(22, 13)]}
+	var told: Array = main.view.tellers()
+	var drawn: Array = main.view.foes()
+	var col: Color = main.view.tell_color(e)
+	e.cast = {"id": "cleave", "left": 0.5, "dir": 0.0}
+	var fan: Array = main.view.tellers()
+	var dark: float = b.dark
+	_done(main)
+	return check(dark > 0.0 and (e in told) and not (e in drawn) and col == Color("ef3a0c") and not (e in fan),
+		"어둠 %.2f · 폭탄 예고를 그리는 적에 %s · 몸을 그리는 적에 %s · 색 %s · 철퇴 예고를 그리는 적에 %s" % [
+			dark, e in told, e in drawn, col.to_html(false), e in fan])
