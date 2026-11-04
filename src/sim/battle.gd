@@ -17,7 +17,8 @@ var LEVELS = load("res://data/levels.tres")  # 영웅 레벨 수치(S126, I111)
 var QUEST_KINDS := _kinds("res://data/quests/")  # 미션·의뢰 정의(S77, I118). 칸의 뜻은 src/data/quest_def.gd 머리 주석
 var GEAR_KINDS := _kinds("res://data/gear/")  # 영웅 전용장비(S246). 파일 이름이 주인 영웅 종류다. 칸의 뜻은 src/data/gear_def.gd 머리 주석
 const VILLAGE_UP := [60]  # 마을 레벨 n→n+1 비용(S99). 길이+1이 최대 레벨이다. 임시값(Claude 예시, 사용자 2026-10-13 수락)
-const MERC_CAP := 10  # 배치 상한 기본값(S25). 임시값(사용자 2026-10-13), 스테이지의 merc_cap이 덮어쓴다
+const MERC_CAP := 10  # 마을이 없는 판의 배치 상한(S25 2026-11-04 변경). 임시값(사용자 2026-10-13), 스테이지의 merc_cap이 덮어쓴다
+const POP_BASE := 4  # 거점이 주는 인구(S25 2026-11-04 변경). 집 몫은 집의 pop이다. 임시값(사용자 2026-11-04 «거점도 4명»)
 const HOUSE_CAP := 6  # 마을에 지을 수 있는 집 수(S101). 임시값(사용자 2026-10-13)
 # 가구 유형(S221): [가중치, 어른, 아이 최소, 아이 최대, 노인]. 어른 둘은 남녀 한 쌍, 하나는 남녀 반반이다. 손잡이 값(사용자 2026-10-26 «조사 표 그대로»)
 const HOUSEHOLDS := [
@@ -109,6 +110,7 @@ class Block:
 	var produces := []  # 생산 시설이면 파는 용병 kind들. 첫째가 기본이다(S20, S87)
 	var rally: Vector2i  # 생산 시설의 집결 지점(S21)
 	var tax := 0  # 집이면 준비 단계마다 내는 세금(S101)
+	var pop := 0  # 다 지으면 주는 인구(S25 2026-11-04 변경). 집만 준다
 	var folk := []  # 집이면 사는 가족(S221), 교회면 사제(S222): {body, look, job, n(원래 차례), hp·away·t0(S227·I183)} 배열. 다 지은 때 정해진다(_move_in)
 	var lost := 0  # 죽은 식구 수(S228). 그 집 세금에서 계속 빠진다
 	var progress := 1.0  # 건설 진행률(0~1). 1 미만이면 미완성이다(I62)
@@ -1220,7 +1222,7 @@ func place_merc(kind: String, cell: Vector2i, overrides := {}):
 	if state != "prep" or not _merc_cell(cell):
 		return null
 	var stats: Dictionary = merc_stats(kind).merged(overrides, true)
-	if gold < stats.cost or _mercs() >= merc_cap:
+	if gold < stats.cost or _mercs() >= pop_cap():
 		return null
 	gold -= stats.cost
 	var m := Unit.new(kind, cell, stats)
@@ -2255,7 +2257,7 @@ func recruit(f, kind := ""):
 		return null
 	var stats: Dictionary = merc_stats(kind)
 	var exit = _exit_of(f)
-	if exit == null or gold < stats.cost or _mercs() >= merc_cap:
+	if exit == null or gold < stats.cost or _mercs() >= pop_cap():
 		return null
 	gold -= stats.cost
 	var m := Unit.new(kind, exit, stats)
@@ -3042,6 +3044,20 @@ func _work(u: Unit, dt: float) -> void:
 # 배치 상한에 세는 살아 있는 용병 수(공병 포함, 영웅 제외, I23)
 func _mercs() -> int:
 	return units.filter(func(u): return not u.is_hero).size()
+
+# 화면의 인구 칸(I225 ③)이 읽는 용병 수(_mercs)
+func pop_used() -> int:
+	return _mercs()
+
+# 인구를 주는 다 지은 구조물(집, I225 ①). 짓는 중인 집은 빼고 깎인 집은 센다. 팔거나 부서지면 structures에서 빠진다
+func pop_houses() -> Array:
+	return structures.values().filter(func(s): return s.complete and s.pop > 0)
+
+# 배치 상한(S25 2026-11-04 변경): 스테이지가 정했으면 그 값, 마을이 있는 판은 인구(거점 POP_BASE + 다 지은 집마다 그 집의 pop), 아니면 MERC_CAP
+func pop_cap() -> int:
+	if _stage.has("merc_cap") or not village.has_area():
+		return merc_cap
+	return POP_BASE + pop_houses().reduce(func(n, s): return n + s.pop, 0)
 
 # 준비 단계에만, 플레이어가 놓은 구조물·용병을 판다(S69). 성곽·영웅 등 나머지는 건너뛴다(I56)
 func sell(things: Array) -> void:

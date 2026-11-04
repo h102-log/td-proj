@@ -382,3 +382,11 @@ def test_EV693_raid2_trait_lines(gd):
 
 def test_EV701_war_machine_trait_line(gd):
     gd("hud", "EV701")
+
+
+def test_EV742_population_chip_under_top_bar(gd):
+    gd("hud", "EV742")
+
+
+def test_EV743_buy_button_off_at_population_cap(gd):
+    gd("hud", "EV743")
