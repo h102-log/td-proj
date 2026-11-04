@@ -144,9 +144,9 @@ func test_foe_effects_are_one_mark_each_not_stacked_rings():
 	var stars := marks.filter(func(m): return m.k == "star")
 	if why == "" and (stars.size() != 2 or stars.any(func(m): return m.p.y > feet.y - 10)):
 		why = "기절 별이 %s다(머리 위에 둘이어야 한다, 발밑 y %d)" % [stars.map(func(m): return m.p), feet.y]
-	var frost := marks.filter(func(m): return m.k == "frost")
-	if why == "" and frost.size() != 1:
-		why = "둔화 눈송이가 %s다(하나여야 한다)" % [frost.map(func(m): return m.p)]
+	var down := marks.filter(func(m): return m.k == "down")
+	if why == "" and (down.map(func(m): return m.f) != [0] or kinds.has("frost")):
+		why = "둔화가 능력치 감소 줄 화살표 하나(프레임 0)가 아니다: %s" % [kinds]  # I101 2026-11-04 변경
 	if why == "" and (not kinds.has("flame_s") or marks.filter(func(m): return m.k == "px").size() < 4):
 		why = "발화가 작은 불꽃 + 불티 넷이 아니다: %s" % [kinds]
 	var icons := marks.filter(func(m): return m.k in ["taunt", "seal"])
@@ -155,8 +155,9 @@ func test_foe_effects_are_one_mark_each_not_stacked_rings():
 	v.free()
 	return why
 
-# fx-5 판정: 속박·둔화·독 방울이 발밑 팀 타원(발밑 y −2~+3, _feet_mark)에 묻혔다. 조각 아랫줄이 타원 윗줄보다 위여야 한다
-func test_root_slow_poison_marks_stay_above_team_ellipse():
+# fx-5 판정: 속박·둔화·독 방울이 발밑 팀 타원(발밑 y −2~+3, _feet_mark)에 묻혔다. 조각 아랫줄이 타원 윗줄보다 위여야 한다.
+# 둔화는 능력치 감소 줄(I101 2026-11-04 변경)로 옮겨 타원 아랫줄보다 아래여야 한다(체력바를 끈 때)
+func test_root_poison_above_team_ellipse_and_debuff_row_below():
 	var b = _battle()
 	var v = View.new()
 	v.battle = b
@@ -170,12 +171,16 @@ func test_root_slow_poison_marks_stay_above_team_ellipse():
 		v.clock = t
 		var marks: Array = v.status_marks(e, false)
 		var kinds := marks.map(func(m): return m.k)
-		if kinds.count("bind") != 1 or kinds.count("frost") != 1 or kinds.count("venom") != 2:
-			why = "밧줄 1·눈송이 1·방울 2가 아니다: %s" % [kinds]
+		if kinds.count("bind") != 1 or kinds.count("down") != 1 or kinds.count("venom") != 2:
+			why = "밧줄 1·줄 화살표 1·방울 2가 아니다: %s" % [kinds]
 			break
 		for m in marks:
 			var h: int = View.FX_ART[m.k][3]
-			if m.p.y - h / 2 + h - 1 >= feet.y - 2:
+			if m.k == "down":
+				if m.p.y - h / 2 <= feet.y + 3:
+					why = "줄 화살표 윗줄이 %d다(발밑 %d, 타원 아랫줄 %d보다 아래여야 한다)" % [m.p.y - h / 2, feet.y, feet.y + 3]
+					break
+			elif m.p.y - h / 2 + h - 1 >= feet.y - 2:
 				why = "%s 아랫줄이 %d다(발밑 %d, 타원 윗줄 %d보다 위여야 한다, 시각 %.2f)" % [m.k, m.p.y - h / 2 + h - 1, feet.y, feet.y - 2, t]
 				break
 		if why != "":

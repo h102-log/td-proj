@@ -93,7 +93,8 @@ const WARP_SPIN := 0.8  # 왜곡장 바깥 점선 고리가 시계 방향으로 
 const WARP_TICKS := 12  # 왜곡장 고리 사이의 일그러진 눈금 수
 const TELL_FILL := 5  # 보스 스킬 예고 안쪽 성긴 칠의 밀도(/16, fx-4)
 const ALLY_FX := ["dr", "haste", "shield", "invuln", "stun", "bleed"]  # 아군에 걸린 효과(I101, 기절은 I192, 출혈은 I193 ③)
-const FOE_FX := ["stun", "root", "slow", "expose", "taunt", "seal", "chain", "dot"]  # 적에 걸린 효과(I101)
+const FOE_FX := ["stun", "root", "expose", "taunt", "seal", "chain", "dot"]  # 적에 걸린 효과(I101). 둔화는 능력치 감소 줄(DEBUFFS)이다
+const DEBUFFS := ["slow", "weaken", "armor", "mr"]  # 적 능력치 감소 줄의 왼쪽부터 차례(I101 2026-11-04 변경). fx 아틀라스 «down» 프레임 차례와 같다(tools/art/fx.py)
 const FOE_TELL := Color("ef692f")  # 일반 적 예고(S279): F24+ 주황 1px 테가 BLINK초마다 켜졌다 꺼진다. 안쪽은 칠하지 않는다
 const BLINK := 0.25
 const UNSEEN_TELLS := ["pounce", "throw", "bomb", "drop", "cannon"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287). 덮개 위 층에 그린다
@@ -1262,7 +1263,8 @@ func _warp_zone(c: Vector2i, r: int, seed: int, others: Array) -> void:
 	_edge(c, r, PX.ice1, PX.night, others)
 
 # 걸린 효과(I101 2026-10-27 변경): 효과마다 수단 하나로, 고리를 겹쳐 쌓지 않는다.
-# 1차(기절·도발·봉인·속박·불사)는 머리 위 기호나 몸에 감긴 밧줄, 2차(둔화·받는 피해 증가·초당 피해·받는 피해 감소·공격 속도·보호막)는 몸·발의 작은 조각이다.
+# 1차(기절·도발·봉인·속박·불사)는 머리 위 기호나 몸에 감긴 밧줄, 2차(받는 피해 증가·초당 피해·받는 피해 감소·공격 속도·보호막)는 몸·발의 작은 조각이다.
+# 적의 둔화·공격력·방어력·마법 저항 감소는 능력치 감소 줄(_debuff_row)이다.
 # 사슬은 적끼리 잇는 고리 도트(_traces)가 보인다. 돌려주는 것: {k 조각 이름 또는 "px"·"ring", p 아트 px 자리, f 프레임, c 색, r 반지름}
 func status_marks(x, ally: bool) -> Array:
 	var feet := Vector2i((_spot(x) + _slip(x)).floor())
@@ -1288,8 +1290,6 @@ func status_marks(x, ally: bool) -> Array:
 				icons.append(key)
 			"root":  # 몸 아래쪽에 감긴 밧줄 띠(fx-5 판정: 발밑 고리는 팀 타원에 묻혔다)
 				out.append({k = "bind", p = feet - Vector2i(0, 5), f = 0})
-			"slow":  # 몸 왼쪽 눈송이, 오른쪽 금 간 방패와 짝(fx-5 판정: 발밑 서리는 타원·얼음 장판에 묻혔다)
-				out.append({k = "frost", p = feet + Vector2i(-8, -int(tall * 0.55)), f = 0})
 			"expose":  # 몸 옆 금 간 방패, 1초에 0.7초 보임
 				if fmod(clock + _hf(n, 2), 1.0) < 0.7:
 					out.append({k = "expose", p = feet + Vector2i(7, -int(tall * 0.55)), f = 0})
@@ -1331,6 +1331,36 @@ func status_marks(x, ally: bool) -> Array:
 		out.append({k = "gust", p = feet + Vector2i(0, 1), f = int(clock * 12.0)})
 	for i in icons.size():  # 머리 위 기호는 별(기절) 위로 한 줄에
 		out.append({k = icons[i], p = head + Vector2i(int((i - (icons.size() - 1) / 2.0) * 8.0), -9), f = 0})
+	if not ally:
+		out.append_array(_debuff_row(x))
+	return out
+
+# 적 능력치 감소 줄(I101 2026-11-04 변경): 걸린 것만 DEBUFFS 차례로 5×4px 아래 화살표를 이웃과 테두리 1px 겹쳐(4px 간격) 가운데 맞춘다.
+# 자리는 체력바가 보이면 막대 바로 아래(보스·성벽 위는 머리 위 막대 바로 위), 안 보이면 발밑 팀 타원(발 −2~+3px) 바로 아래다
+func _debuff_row(x) -> Array:
+	var on := []
+	for i in DEBUFFS.size():
+		var key: String = DEBUFFS[i]
+		var sum: float = battle.effect_sum(x, key)
+		if (battle.effect(x, key) != null) if key == "slow" else (sum > 0.0 if key == "weaken" else sum < 0.0):
+			on.append(i)
+	if on.is_empty():
+		return []
+	var size := hp_bar_size(x, controls != null and controls.show_hp)
+	var cx: int
+	var top: int
+	if size != Vector2.ZERO:
+		var bar := hp_bar_rect(x, size)
+		cx = int(bar.position.x + bar.size.x / 2)
+		top = int(bar.position.y) - 5 if x.get("boss") or x.on_wall else int(bar.end.y) + 1
+	else:
+		var ft := _foot(x)
+		cx = int(ft.x)
+		top = int(ft.y) + 4
+	var left := cx - 2 * on.size()  # 줄 폭 4n + 1의 절반
+	var out := []
+	for j in on.size():
+		out.append({k = "down", p = Vector2i(left + 4 * j + 2, top + 2), f = on[j]})  # p는 조각 가운데(_spr)
 	return out
 
 func _status(x, ally: bool) -> void:
