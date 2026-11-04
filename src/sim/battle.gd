@@ -394,7 +394,7 @@ var ladders := {}  # 사다리 칸 → 그 사다리를 놓은 공성탑(S284). 
 var barriers := {}  # Vector2i → 에너지 성벽 칸 Block(S151, I142). 그 장판(zones)이 끝나면 사라진다
 var zones := []  # 장판(S150, I141): {src, pos, radius, left, owner, 수치…}. 웨이브가 끝나면 모두 사라진다(I143)
 var loops := []  # 타임 루프가 되돌릴 적(I197): {e, at, wall, left, owner, blast, damage, aged(S266)}. 웨이브가 끝나면 사라진다(I143)
-var traces := []  # 즉시 스킬 흔적(S179): {hero, slot, aim, at, radius, hits, marked, age}. 그리기만 읽고 1초 지나면 지운다
+var traces := []  # 즉시 스킬 흔적(S179): {hero, slot, aim, at, radius, hits, marked, age}. 타임 루프 되돌림(loop)은 aim이 옛 자리이고 foe·aged가 더 있다. 그리기만 읽고 1초 지나면 지운다
 var fallen := []  # 쓰러진 영웅·용병·적(S180): {who, age}. 그리기만 읽고 FALLEN초 지나면 지운다
 var _dotting := false  # 초당 피해를 주는 중. 뜬 적(S236)도 이것만은 받는다
 var missiles := []  # 날고 있거나 출발을 기다리는 투사체(Missile, S178). 웨이브가 끝나면 사라진다(I143)
@@ -1757,10 +1757,13 @@ func _loops(dt: float) -> void:
 			continue
 		if e.grip:
 			_grip(e, 0.0, true)  # 붙잡은 아군을 놓는다(S242)
+		var from := e.pos
 		e.pos = l.at
 		e.on_wall = l.wall
 		_find_path(e)
-		_trace(l.owner, "loop", null, l.at, l.blast)
+		_trace(l.owner, "loop", from, l.at, l.blast)  # 그림(I199 2026-11-04 변경)이 옛 자리(aim) → 되돌아간 자리 잔상과 노화 되감기를 그린다
+		_tracing.foe = e
+		_tracing.aged = e.fx.has("chronos_w") and l.aged > 1.0
 		var dmg: float = l.damage * (l.aged if e.fx.has("chronos_w") else 1.0)  # 노화 되감기(회중시계 +9, S266): 되돌리는 순간 노화가 걸려 있으면 × aged
 		for o in enemies.duplicate():
 			if o.pos.distance_to(l.at) <= l.blast and not _aloft(o):
