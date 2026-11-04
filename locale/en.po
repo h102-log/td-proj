@@ -1421,6 +1421,21 @@ msgstr "Range %s → %s"
 msgid "인식 범위 %s → %s칸"
 msgstr "Sight %s → %s"
 
+msgid "인구"
+msgstr "Population"
+
+msgid "인구 %d/%d"
+msgstr "Pop %d/%d"
+
+msgid "용병 %d명 · 상한 %d(거점 %d + 집 %d채 × %d)"
+msgstr "Mercenaries %d · cap %d (base %d + %d houses × %d)"
+
+msgid "인구 가득 — 집을 지으면 %d명 늘어난다"
+msgstr "Population full — each house adds %d"
+
+msgid "인구 가득"
+msgstr "Population full"
+
 msgid "이동 %s → %s칸/초"
 msgstr "Move %s/s → %s/s"
 
