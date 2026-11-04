@@ -396,7 +396,7 @@ var ladders := {}  # 사다리 칸 → 그 사다리를 놓은 공성탑(S284). 
 var barriers := {}  # Vector2i → 에너지 성벽 칸 Block(S151, I142). 그 장판(zones)이 끝나면 사라진다
 var zones := []  # 장판(S150, I141): {src, pos, radius, left, owner, 수치…}. 웨이브가 끝나면 모두 사라진다(I143)
 var loops := []  # 타임 루프가 되돌릴 적(I197): {e, at, wall, left, owner, blast, damage, aged(S266)}. 웨이브가 끝나면 사라진다(I143)
-var traces := []  # 즉시 스킬 흔적(S179): {hero, slot, aim, at, radius, hits, marked, age}. 타임 루프 되돌림(loop)은 aim이 옛 자리이고 foe·aged가 더 있다. 그리기만 읽고 1초 지나면 지운다
+var traces := []  # 즉시 스킬 흔적(S179): {hero, slot, aim, at, radius, hits, marked, age}. 타임 루프 되돌림(loop)은 aim이 옛 자리이고 foe·aged가 더 있다. 태세가 막음(block)은 hero가 막은 영웅이고 hits가 비었다(I228). 그리기만 읽고 1초 지나면 지운다
 var fallen := []  # 쓰러진 영웅·용병·적(S180): {who, age}. 그리기만 읽고 FALLEN초 지나면 지운다
 var _dotting := false  # 초당 피해를 주는 중. 뜬 적(S236)도 이것만은 받는다
 var missiles := []  # 날고 있거나 출발을 기다리는 투사체(Missile, S178). 웨이브가 끝나면 사라진다(I143)
@@ -3104,6 +3104,9 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 	elif target is Unit:
 		if target.brace > 0.0:  # 반격의 태세는 줄이기 전 값을 센다(S151). 불사 중에 들어온 피해도 센다(I147)
 			target.braced += amount
+			var keep = _tracing
+			_trace(target, "block", null, target.pos, 0.0)  # 태세가 막은 순간의 그림(I228 ⑧)만 읽는다. 맞은 대상이 없다
+			_tracing = keep
 		if _fx_on(target, "invuln") != null:
 			return
 		amount = _absorb(target, amount * armor_mult(armor_of(target)) * (1.0 - _fx_cut(target, "dr")))

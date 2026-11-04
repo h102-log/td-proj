@@ -218,3 +218,49 @@
 | R 둘레·벽 | B 흉벽 + A 칠 1/16 | 둘레 A, 벽 B | **같다** |
 
 - 결정(사용자 2026-11-04, Gemini 판정 뒤): «Gemini 반영 새 추천». 위 표의 Claude 새 추천 열 그대로다.
+- 평가 방식(사용자 2026-11-04): «유닛 시험만». 태세 테가 다 차는 기준은 «최대 체력 20% (시안 값)»이다.
+
+## fx-10 구현 (2026-11-04)
+
+- SPEC 새 문장 I228(① 요새화 돌담 ~ ⑧ block 흔적)이다. «S179·I101의 아이아스 그림 언급보다 우선한다»를 적었고, S179·I101 본문은 고치지 않았다.
+- 그림: `src/ui/battle_view.gd`
+  - `_bash`: 방패 조각이 밀려 나가는 시간 `BASH_SLAM` 0.12초, 머무는 시간은 뺐다.
+  - `_shove`(새, 몸통 아래 층): 밀린 적 흙먼지. 시안 A를 2×2로 키우고 크림부터 시작했다(Gemini 고칠 점 3).
+  - `_cry`: 외침 선 다섯
+  - `_burst`(층 인자): 팔각 충격파·균열·섬광. 도우미 `_octa`
+  - `_resonate`(새): 공명을 터뜨림과 따로 그린다.
+  - `_fort_wall`(새, `_traces(false)` 끝에서): 요새화 돌담
+  - `status_marks`
+    - «dr»: 아이아스 자기 것이면 공용 방패를 뺀다.
+    - `_brace_marks`(새): 태세 테두리·테
+    - «shield»: 포효 보호막만 있으면 지붕 호 셋. Gemini 고칠 점 2대로 1px 셋으로 다듬었다.
+    - `_status`: «arc» 종류를 더했다.
+  - `capsule_cells`: 칠 2/16 → 1/16
+  - `_wards` → `_merlons`(새): 흉벽 이빨
+- 상수: `BASH_SLAM`·`BASH_TAIL`·`SHOVE`·`FORT_RISE`·`BLOCK_FLASH`·`BRACE_FULL`(손잡이, 0.2)
+- 시뮬레이션: `src/sim/battle.gd` `damage`
+  - 태세 중 피해마다 `block` 흔적을 남긴다(fx-8 cleanse·bless·saved와 같은 `keep = _tracing` 꼴).
+  - 맞은 대상이 없어 피격 반응이 없다. `sfx.gd`의 BURSTS에도 없어 소리도 나지 않는다.
+- 전후 비교(같은 판 seed 7, 그리기만 다름): [`fx10_aias_now_vs_impl.png`](../art/trial/preview/hero_fx/fx10_aias_now_vs_impl.png)·[`_zoom`](../art/trial/preview/hero_fx/fx10_aias_now_vs_impl_zoom.png)
+  - 유닛·적 자리·효과 기록의 해시가 구현 전 «지금» 캡처와 같다.
+  - 구현 열의 draw call은 27~38이다(지금 28~44).
+- 시험: `tests/unit/gd/test_fx.gd` 44 → 53개
+  - 새 시험 9: 돌담 · 자기 받는 피해 감소 · 지붕 호 · 태세 표시 · block 흔적 · 팔각 · 공명 · 흉벽 · 밀침 흙먼지
+  - 고친 시험 5
+    - 방패 강타·포효: 새 그림
+    - 공용 표시 시험: 받는 피해 감소 출처를 `aias_e` → `aias_r`로 바꿨다(I228 ②).
+    - 둘레 칠: 1/16, 상한 0.07
+    - 시전 시험: 터뜨림은 선
+  - 망가뜨리기 12가지가 모두 해당 시험에서 떨어졌다.
+    - 처음에는 «둘레 칠 2/16로»가 통과했다. 시험의 넓이 근사가 실제 캡슐보다 커서 상한 0.10 안에 2/16(약 0.09)이 들었다. 상한을 0.07로 좁히자 떨어졌다.
+- 검증
+  - `test_fx.gd` ALL PASS
+  - `python -m pytest -q` → 658 passed, 73 skipped(155초)
+  - `eval-run.mjs . --phase final` → runOk true, 710 green
+  - `spec-verify.mjs SPEC.md` → 위반 0
+- §3.1 줄 참조: 두 파일의 참조를 difflib로 옮겼다(805개).
+  - 옮긴 뒤 줄 글이 달라진 참조는 2개다. 둘 다 이번에 고친 줄이다(`_traces` 머리 주석, «shield» 줄).
+- 남은 것
+  - 아틀라스 조각 `burst`(32×32, 5프레임)는 이제 그리기가 쓰지 않는다. 아틀라스 배치를 바꾸지 않으려 `tools/art/fx.py`와 `fx.png`에 그대로 두었다.
+    - `test_fx2_pieces_and_bright_first_burst_frame`은 아직 이 조각을 본다.
+  - 세라피나 fx-8(#296)은 축복 마름모를 아이아스 머리 위로 옮겼다. 포효 지붕 호와 자리가 겹칠 수 있다. #296이 머지되면 둘이 함께 걸린 화면을 본다.
