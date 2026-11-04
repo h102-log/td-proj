@@ -277,7 +277,7 @@ func ev409():
 		"체력이 준 프레임 %d · 닿음 사건 프레임 %s · 쓰러진 프레임 %d · 처치 사건 프레임 %s · 그 적의 닿음 사건 %d번(0)" % [drop, hits, died, kills, khits])
 
 # ── 논타겟팅 투사체(S178 2026-11-04 변경, I224) ──
-# 투사체(Battle.missiles의 하나)에 더하는 API: mark — 조준점(쏜 때 노린 적이 선 자리, 궁수는 명중이 아니면 1칸 비킨 자리)
+# 투사체(Battle.missiles의 하나)에 더하는 API: free — 논타겟팅인가(궁수는 화살이 나갈 때 정한다) · mark — 조준점(나가는 때 노린 적이 선 자리)
 # 용병 수치 accuracy — 궁수 명중률(0~1). place_merc의 덮어쓰기로 정할 수 있다
 
 # 화살이 다 날아 투사체 목록이 빌 때까지(초). «쏜 step이 시작한 때»부터 «빈 step이 끝난 때»까지다. secs 안에 비지 않으면 INF
@@ -388,21 +388,22 @@ func ev735():
 	return check(fired and fell and ha == null and hn != null and hn[2] == View.SIDE,
 		"대포가 쏨 %s · 떨어짐 %s · 비켜난 노린 과녁의 표 %s(없어야) · 범위 안 과녁의 표 %s(밀림 %spx)" % [fired, fell, ha, hn, View.SIDE])
 
-# EV736 · S178: 궁수 화살도 논타겟팅이다. 명중률 1인 궁수가 3칸 앞 멈춘 과녁을 치면 화살의 조준점이 과녁 자리이고 과녁이 맞는다.
-# 명중률 1이어도 화살이 나간 뒤 과녁을 2칸 옮기면 맞지 않는다. 명중률 0이면 조준점이 과녁에서 1칸 떨어지고 과녁은 맞지 않는다
+# EV736 · S178: 궁수는 명중률의 확률로 대상을 따라가는 화살, 아니면 논타겟팅 화살을 쏜다. 명중률 1인 궁수의 화살은 나간 뒤 과녁을 2칸 옮겨도 맞는다.
+# 명중률 0인 궁수의 화살은 논타겟팅(free)이고 조준점(mark)이 과녁 자리다. 나간 뒤 과녁을 2칸 옮기면 맞지 않고, 옮기지 않으면 맞는다
 func ev736():
 	var got := []
-	for c in [[1.0, false], [1.0, true], [0.0, false]]:
+	for c in [[1.0, true], [0.0, true], [0.0, false]]:
 		var b = battle()
 		var a = b.place_merc("archer", Vector2i(5, 5), {"attack_gap": 100.0, "accuracy": c[0]})
 		var e = _dummy(b, Vector2i(8, 5))
 		var shot := _until_shot(b, a) >= 0.0
 		run(b, 0.1)  # 화살이 나가는 때(친 뒤 0.08초)를 지난다
 		var m = b.missiles[0] if not b.missiles.is_empty() else null
-		var off: float = m.get("mark").distance_to(e.pos) if m != null and m.get("mark") != null else -1.0
+		var free = m.get("free") if m != null else null
+		var off: float = m.get("mark").distance_to(e.pos) if free == true else -1.0
 		if c[1]:
 			e.pos = Vector2(8, 7)
 		run(b, 1.0)
-		got.append([shot, snappedf(off, 0.01), e.hp < e.max_hp])
-	var ok: bool = got.all(func(g): return g[0]) and got[0][1] < 0.01 and got[0][2] and not got[1][2] and absf(got[2][1] - 1.0) < 0.01 and not got[2][2]
-	return check(ok, "[명중률 1, 명중률 1 + 쏜 뒤 2칸 옮김, 명중률 0]의 [침, 조준점에서 과녁까지, 맞음] %s(기대 [참, 0, 참] · [참, 0, 거짓] · [참, 1, 거짓])" % [got])
+		got.append([shot, free, snappedf(off, 0.01), e.hp < e.max_hp])
+	var ok: bool = got.all(func(g): return g[0]) and got[0][1] == false and got[0][3] and got[1][1] == true and got[1][2] < 0.01 and not got[1][3] and got[2][1] == true and got[2][2] < 0.01 and got[2][3]
+	return check(ok, "[명중률 1 + 옮김, 명중률 0 + 옮김, 명중률 0]의 [침, 논타겟팅, 조준점에서 과녁까지, 맞음] %s(기대 [참, 거짓, -, 참] · [참, 참, 0, 거짓] · [참, 참, 0, 참])" % [got])
