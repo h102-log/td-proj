@@ -1188,3 +1188,70 @@ func ev641():
 	var want8 := [[0.0, 0.0, 0.5], [0.0, 1.0, 1.0], [0.0, 1.0, 1.5]]
 	return check(got == [want9, want8],
 		"운석 [지점에서 동서, 남북 거리, 늦음] +9 %s(기대 %s) · +8 %s(기대 %s)" % [got[0], want9, got[1], want8])
+
+# EV737 · S254: 궁수 명중률(accuracy, S178 2026-11-04 변경)은 강화 단계마다 오른다. 디스크 데이터의 강화 전·1·2·3단계 값이 차례로 커지고,
+# 강화할 때마다 이미 있는 궁수의 명중률이 그 단계 값이다. seed를 준 판에서 강화 전 명중률 p인 궁수가 쏜 화살 200발 가운데 대상을 따라가는 화살(나갈 때 free가 거짓)의 비율이 p ± 0.1이다
+func ev737():
+	var d := _mdata("archer")
+	if d.get("accuracy") == null:
+		return "archer.tres에 accuracy가 없다"
+	var steps := [float(d.accuracy)]
+	for r in d.ranks:
+		steps.append(float(r.get("accuracy", -1.0)))
+	var rising := true
+	for i in range(1, steps.size()):
+		rising = rising and steps[i] > steps[i - 1]
+	var b = _camp(false)
+	b.village_level = 2
+	var f = b.build("archery", BARRACKS)
+	var a = b.place_merc("archer", Vector2i(16, 12))
+	if f == null or a == null:
+		return "마을 판에 사격장 %s · 궁수 %s를 두지 못했다" % [f, a]
+	var seen := [a.get("accuracy")]
+	for i in d.ranks.size():
+		b.rank_up("archer")
+		seen.append(a.get("accuracy"))
+	var same := seen.size() == steps.size()
+	for i in mini(seen.size(), steps.size()):
+		same = same and seen[i] != null and absf(seen[i] - steps[i]) < 0.001
+	var c = battle({"seed": 7})
+	var x = c.place_merc("archer", Vector2i(5, 5), {"attack_gap": 0.2})
+	c.spawn_enemy("basic", Vector2i(8, 5), {"speed": 0, "sight": 0, "damage": 0, "hp": BIG})  # 멈춘 과녁
+	var flown := {}  # 나간 화살 → 대상을 따라가나
+	var t := 0.0
+	while flown.size() < 200 and t < 120.0:
+		c.step(DT)
+		t += DT
+		for m in c.missiles:
+			if m.src == x and m.wait <= 0.0 and not flown.has(m) and flown.size() < 200:
+				flown[m] = m.get("free") == false
+	var homing: int = flown.values().count(true)
+	var rate: float = float(homing) / maxf(flown.size(), 1.0)
+	return check(rising and same and flown.size() == 200 and absf(rate - steps[0]) <= 0.1,
+		"단계별 명중률 %s(차례로 커져야) · 강화하며 본 궁수의 명중률 %s · 나간 화살 %d(200) · 대상을 따라가는 비율 %.3f(%.2f ± 0.1)" % [steps, seen, flown.size(), rate, steps[0]])
+
+# EV738 · S255: 사격장을 고른 준비 단계 팝업의 «궁수 강화 N» 버튼 툴팁에 다음 단계 명중률 줄 «명중률 (강화 전 × 100) → (1단계 × 100)%»가 있다
+func ev738():
+	var main = _prep()
+	var b = main.view.battle
+	var out := _rank_api(b)
+	var d := _mdata("archer")
+	if out == "" and d.get("accuracy") == null:
+		out = "archer.tres에 accuracy가 없다"
+	var f = null
+	if out == "":
+		b.village_level = 2
+		f = b.build("archery", Vector2i(4, 4))
+		out = check(f != null, "준비 단계에 마을 (4,4)에 사격장을 짓지 못했다")
+	if out == "":
+		main.controls.facility = f
+		_frame(main)
+		var btn = _starts(main.hud.popup, "궁수 강화")
+		if btn == null:
+			out = "사격장 팝업에 «궁수 강화» 버튼이 없다"
+		else:
+			var tip := _tip_of(main, btn)
+			var line := "명중률 %d → %d%%" % [roundi(d.accuracy * 100.0), roundi(d.ranks[0].accuracy * 100.0)]
+			out = check(line in tip, "궁수 강화 버튼 툴팁 «%s»에 «%s»가 없다" % [tip, line])
+	_done(main)
+	return out

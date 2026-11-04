@@ -79,6 +79,7 @@ func ev92():
 	var a = _up(b, "archer", TOP)
 	if a == null:
 		return "궁수가 성벽에 오르지 못했다"
+	a.accuracy = 1.0  # 명중률 1(S178 2026-11-04 변경): 화살이 늘 노린 과녁에게 간다
 	var e = _dummy(b, TOP + Vector2i(0, 3))
 	if a.range < 3.0:
 		return "궁수 사거리 %s로는 3칸 앞 과녁에 닿지 않는다" % a.range

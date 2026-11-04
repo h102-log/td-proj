@@ -428,7 +428,7 @@ func _draw() -> void:
 	_impacts()  # 사각형이라 구슬·대포알과 한 배치다. 대포알 고리도 아트 px 사각형이라 이어진다
 	for m in battle.landed:  # 대포알이 떨어진 곳에 범위 피해 반경까지 퍼지는 2px 주황 고리(S178 2026-10-28, I101 2026-10-28 셋째 변경)
 		if m.look == "ball" and m.age < BLAST:
-			_pring(Vector2i(_spot(m.target).floor()), int(CELL * m.splash * m.age / BLAST), 2, Color(PX.orange, 1.0 - m.age / BLAST))
+			_pring(Vector2i(_drop_at(m).floor()), int(CELL * m.splash * m.age / BLAST), 2, Color(PX.orange, 1.0 - m.age / BLAST))
 	_fx_dots(false)  # 먼지·조각(I172): 투사체 다음 층에 모아서
 	_traces(true)
 	# 어둠 덮개(S212)는 맵의 자식이라 여기까지(효과) 위에 그려진다. 그 위 층(_top)이 조준 미리보기·체력 막대·명령 표식·드래그 사각형이다
@@ -490,16 +490,21 @@ func _spawn_badges() -> void:
 		_cv.draw_string(PIXEL_FONT, box.position + Vector2(2, 8), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8)
 
 # 날고 있는 투사체 하나(S178). 출발 자리(처음 그릴 때 쏜 쪽의 쏘는 곳 _muzzle, starts에 남긴다)에서 대상 가슴까지, 시뮬레이션에서 날아간 비율만큼 간 자리에 그린다.
-# 화살은 짧은 선, 마법은 쏜 쪽 색 구슬, 대포알은 포물선이다. 대상이 쓰러져 마지막 자리로 가는 대포알은 쓰러진 몸 쪽으로 간다
+# 화살은 짧은 선, 마법은 쏜 쪽 색 구슬, 대포알은 포물선이다. 대상이 쓰러져 마지막 자리로 가는 대포알은 쓰러진 몸 쪽으로 간다.
+# 논타겟팅 투사체(S178 2026-11-04 변경)는 대상 대신 조준점의 노린 적 가슴 높이로 간다. 화살은 조준점 너머로 그 높이를 지키며 사거리 끝까지 난다(I224 ⑤)
 func _missile(m, starts: Dictionary) -> void:
 	var id: int = m.get_instance_id()
 	var from: Vector2 = _shots.get(id, _muzzle(m.src))
 	starts[id] = from
-	var to := _chest(m.target)
+	var ground: Vector2 = _center(m.mark) - Vector2(0, _lift(m.target)) if m.free else _spot(m.target)
+	var to := ground + Vector2(0, -6)  # 가슴(_chest)
 	var gone: float = m.from.distance_to(m.pos)
 	var k := gone / maxf(gone + m.pos.distance_to(m.at), 1e-6)
 	var d := (to - from).normalized()
 	var p := from.lerp(to, k)
+	if m.free and m.look == "arrow":
+		var f := minf(gone / maxf(m.from.distance_to(m.mark), 0.01), 1.0)
+		p = _center(m.pos) + Vector2(0, lerpf(from.y - _center(m.from).y, to.y - _center(m.mark).y, f))
 	match m.look:
 		"arrow":
 			draw_line(p - d * 7, p, Color("e8dcc0"), 1.0)
@@ -510,7 +515,7 @@ func _missile(m, starts: Dictionary) -> void:
 			_blob(p, 2, col)
 			_blob(p, 0, Color.WHITE)
 		"ball":
-			_blob(_spot(m.src).lerp(_spot(m.target), k), 1, Color(0, 0, 0, 0.35))
+			_blob(_spot(m.src).lerp(ground, k), 1, Color(0, 0, 0, 0.35))
 			_blob(p - Vector2(0, 4.0 * BALL_ARC * k * (1.0 - k)), 2, Color("2a2a30"))
 
 # 실비아 바람을 지난 화살(I215 2026-11-01 변경). p는 화살촉, d는 나는 방향이다.
@@ -560,7 +565,7 @@ func _impacts() -> void:
 			"ball":
 				if m.age < 2.0 * BOOM_STEP:
 					var first: bool = m.age < BOOM_STEP
-					_blob(_spot(t) - Vector2(0, 3), 3 if first else 2, PX.orange if first else PX.cream)
+					_blob(_drop_at(m) - Vector2(0, 3), 3 if first else 2, PX.orange if first else PX.cream)
 	for x in battle.units + _foes:  # 강철 점: 맞은 면(공격자 쪽) 2px, 윗줄 밝게 아랫줄 어둡게
 		var h = _hits.get(x.get_instance_id())
 		if h != null and h[4] and h[0] < STEEL:
@@ -581,6 +586,10 @@ func _muzzle(x) -> Vector2:
 # 투사체가 닿는 곳: 몸통 가운데(발밑에서 6px 위)
 func _chest(x) -> Vector2:
 	return _spot(x) + Vector2(0, -6)
+
+# 대포알이 떨어진 곳(맵 px): 시뮬레이션이 떨어뜨린 자리(at)에 노린 적의 높이(성벽 위면 성벽 위)를 준다
+func _drop_at(m) -> Vector2:
+	return _center(m.at) - Vector2(0, _lift(m.target))
 
 # 원거리: 타워, 사거리 2칸을 넘는 영웅·용병. 나머지는 근접이다
 func _ranged(x) -> bool:
@@ -2385,7 +2394,7 @@ func hit_table(xs: Array) -> Dictionary:
 		var t: float = maxf(m.age - HITSTOP, 0.0) if m.src.get("is_hero") == true else m.age
 		var id: int = m.target.get_instance_id()
 		var w := _weight(m.target, m.kind, HEAVY, HEAVY_BACK) if m.src.kind == "cannon" else _weight(m.target, m.kind)
-		if t < _keep(w) and t < hits.get(id, [INF])[0]:
+		if not m.missed and t < _keep(w) and t < hits.get(id, [INF])[0]:  # 놓친 대포알의 노린 적은 맞지 않았다(I224 ⑤)
 			hits[id] = [t, (m.target.pos - m.from).normalized()] + w
 		for s in m.side:
 			w = _weight(s, m.kind, SIDE, HEAVY_BACK)
@@ -2541,7 +2550,7 @@ func _scan() -> void:
 		if _landed.has(mid):
 			continue
 		if m.look == "ball":  # 대포알(S178 2026-10-28): 빈 자리에 떨어져도 먼지 6점. 범위 곁 대상이 이것에 쓰러졌으면 떨어진 곳 반대쪽으로 막타(S197)
-			var foot: Vector2 = _spot(m.target).floor()
+			var foot: Vector2 = _drop_at(m).floor()
 			for i in (6 if _live else 0):
 				var d := Vector2.from_angle(deg_to_rad(i * 60.0 + _h(mid, i, -15, 15)))
 				_dot({"p0": foot, "p1": foot + Vector2(d.x, d.y * 0.5) * _h(mid, 10 + i, 6, 10), "rise": _h(mid, 20 + i, 1, 3), "col": DUST, "size": Vector2(2, 2), "life": 0.35, "fade": 0.15})
@@ -2551,6 +2560,8 @@ func _scan() -> void:
 					var away: Vector2 = (o.pos - m.at).normalized()
 					_kill(o, away)
 					_emit("kill", _chest(o), away, m.src, o, {"heavy": true})
+		if m.missed:  # 노린 적을 놓친 대포알(I224 ⑤)은 주 대상 사건을 내지 않는다
+			continue
 		var t = m.target
 		var tid: int = t.get_instance_id()
 		var kind := "hit"
