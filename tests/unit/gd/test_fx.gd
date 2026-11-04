@@ -34,6 +34,10 @@ extends RefCounted
 #   I228(fx-10). 아이아스: 요새화는 발 앞 돌담 다섯(아래 층), 자기 받는 피해 감소에는 공용 방패가 없다. 방패 강타는 밀려 나가는 방패 조각 + 2px 호,
 #         밀린 적은 발 양옆 흙먼지. 포효는 충격파 둘 + 외침 선 다섯, 포효 보호막만이면 머리 위 지붕 호. 태세는 방패 테두리 + 쌓인 피해 테(막으면 번쩍),
 #         터뜨림은 납작한 팔각 충격파 + 아래 층 균열, 공명은 벽 테두리 번쩍 + 떠오르는 작은 고리, 둘레 칠 1/16, 성벽 북쪽 끝 흉벽 이빨 셋이다.
+#   I229(fx-11, 위 fx-1의 이그니스 빙결 별·불길·블랙홀·떨어질 자리 점선보다 우선). 이그니스: 빙결만으로 기절한 적은 별 대신 엷은 얼음 판과 얼음 테(서리 고리 직후 ICE_FLASH초는 크림),
+#         과부하 영웅은 발밑 세 점이 쓴 수를 세고 차례면 깜박 + 주황 고리, 불길은 경계 안쪽 불꽃 줄(WALL_GAP px마다) + 가운데 빨강·그을음 칠(불타는 블랙홀 안이면 뺌),
+#         서리 고리는 서리꽃 여섯 갈래(잔가지 둘씩, 식음), 블랙홀은 감겨 드는 줄 STREAKS · 검은 심 + 도는 점선 테(눈·조각 없음, 불타면 불 색 줄과 빨려 드는 불꽃 SUCK_FLAMES),
+#         떨어질 운석 자리마다 도는 주황 점선 테와 차오르는 칠(운석 장판의 fall), 떨어지는 운석은 불 원판 + 꼬리 여덟이다.
 
 const View := preload("res://src/ui/battle_view.gd")
 const Battle := preload("res://src/sim/battle.gd")
@@ -149,7 +153,7 @@ func test_foe_effects_are_one_mark_each_not_stacked_rings():
 	var v = View.new()
 	v.battle = b
 	var e = b.spawn_enemy("basic", Vector2i(10, 10), {"speed": 0})
-	b._fx(e, "ignis_w_freeze", {"stun": true}, 2.0)
+	b._fx(e, "ignis_r", {"stun": true}, 2.0)  # 운석 기절. 서리 고리 빙결만이면 별 대신 얼음이다(I229 ①)
 	b._fx(e, "ignis_w", {"slow": 0.4}, 2.0)
 	b._fx(e, "ignis_q", {"dot": 3.0}, 2.0)
 	b._fx(e, "aias_w", {"taunt": b.heroes[0] if not b.heroes.is_empty() else true}, 2.0)
@@ -2055,4 +2059,289 @@ func test_fx9_draws_only_palette_colors():
 	v.free()
 	if off != "":
 		return "fx-9 흔적에 팔레트 밖 색 %s가 있다" % off
+	return ""
+
+# ── fx-11 이그니스(I229) ──
+
+func _mage(gear := -1):
+	var t := {"kind": "ignis", "cell": Vector2i(10, 14)}
+	if gear >= 0:
+		t["gear"] = gear
+	var b = Battle.new({"size": Vector2i(30, 30), "base": Vector2i(28, 28), "base_hp": 100, "spawns": [Vector2i(0, 20)], "heroes": [t], "waves": [[{"kind": "basic", "count": 1}]]})
+	b.start_battle()
+	b._queue = []
+	return b
+
+# I229 ①: 빙결만 걸린 적은 별이 없고 엷은 얼음 판 + 얼음 테. 운석 기절이 함께면 별이 있다. 발화 불꽃은 그대로. 서리 고리 직후 테가 크림
+func test_frost_freeze_is_ice_plate_without_stars():
+	var b = _mage()
+	var e = _target(b, Vector2i(12, 12))
+	var bonk = _target(b, Vector2i(18, 12))
+	b._fx(e, "ignis_w_freeze", {"stun": true}, 1.5)
+	b._fx(e, "ignis_q", {"dot": 3.0}, 2.0)
+	b._fx(bonk, "ignis_w_freeze", {"stun": true}, 1.5)
+	b._fx(bonk, "ignis_r", {"stun": true}, 1.0)
+	var v = Rec.new()
+	v.battle = b
+	v._foes = [e, bonk]
+	var why := ""
+	var kinds: Array = v.status_marks(e, false).map(func(m): return m.k)
+	if kinds.has("star"):
+		why = "빙결만 걸린 적에 기절 별이 있다: %s" % [kinds]
+	elif not kinds.has("flame_s"):
+		why = "빙결 중인 적에 발화 불꽃이 없다: %s" % [kinds]
+	elif not v.status_marks(bonk, false).any(func(m): return m.k == "star"):
+		why = "운석 기절이 함께 걸린 적에 별이 없다"
+	var f := _feet_px(v, e)
+	var h := int(v._head(e) * 0.8)
+	var o := f - Vector2i(6, h - 1)
+	var rim := func(col): return v.pxs.any(func(p): return p[0] == o - Vector2i(1, 1) and p[1] == col and p[2] == Vector2i(13, 1))
+	if why == "":
+		v._ignis_marks()
+		var plate: Array = v.pxs.filter(func(p): return p[0] == o and p[2] == Vector2i(12, h))
+		if plate.size() != 1 or plate[0][1].to_html(false) != View.PX.ice0.to_html(false) or not is_equal_approx(plate[0][1].a, 0.4):
+			why = "빙결한 적 몸에 엷은 얼음 판(12×%d, 밝은 얼음 0.4)이 없다: %s" % [h, v.pxs.slice(0, 8)]
+		elif not rim.call(View.PX.ice0):
+			why = "얼음 테 윗줄이 밝은 얼음이 아니다"
+		elif not v.pxs.any(func(p): return p[0] == o + Vector2i(0, h) and p[1] == View.PX.ice3):
+			why = "얼음 테 아랫줄이 남빛이 아니다"
+		elif not v.pxs.any(func(p): return p[0] == o + Vector2i(12, 0) and p[1] == View.PX.ice2):
+			why = "얼음 테 오른쪽이 어두운 얼음이 아니다"
+	if why == "":
+		b.traces = [{"hero": b.heroes[0], "slot": "w", "aim": e.pos, "at": e.pos, "radius": 2.0, "hits": [e], "marked": true, "age": 0.05}]
+		v.wipe()
+		v._ignis_marks()
+		if not rim.call(View.PX.cream):
+			why = "서리 고리 0.05초 뒤 얼음 테가 크림이 아니다"
+		b.traces[0].age = View.ICE_FLASH + 0.05
+		v.wipe()
+		v._ignis_marks()
+		if why == "" and rim.call(View.PX.cream):
+			why = "서리 고리 %.2f초 뒤에도 테가 크림이다" % b.traces[0].age
+	v.free()
+	return why
+
+# I229 ②: 과부하 영웅 발밑(팀 타원 아래) 세 점이 쓴 수를 센다. 차례면 셋 다 금으로 깜박이고 주황 고리. 과부하가 없는 영웅은 없다
+func test_overload_pips_count_casts_and_ring_on_charged_turn():
+	var b = _mage()
+	var h = b.heroes[0]
+	var v = Rec.new()
+	v.battle = b
+	v._foes = []
+	var f := _feet_px(v, h)
+	var pips := func(col): return v.pxs.filter(func(p): return p[2] == Vector2i(3, 3) and p[1] == col)
+	var why := ""
+	h.casts = 4
+	h.charged = false
+	v._ignis_marks()
+	var gold: Array = pips.call(View.PX.gold)
+	if gold.size() != 1 or pips.call(View.PX.dark).size() != 2:
+		why = "쓴 수 4(3마다 처음부터 → 1)에 금 %d · 어둠 %d다(1 · 2여야 한다)" % [gold.size(), pips.call(View.PX.dark).size()]
+	elif (gold + pips.call(View.PX.dark)).any(func(p): return p[0].y - 1 <= f.y + 3):
+		why = "세 점이 팀 타원(발밑 +3) 아래가 아니다: %s" % [gold]
+	elif v.pxs.filter(func(p): return p[2] == Vector2i(5, 5) and p[1] == View.PX.soot).size() != 3:
+		why = "세 점에 검은 테가 없다"
+	elif not v.rings.is_empty():
+		why = "과부하 차례가 아닌데 고리가 있다"
+	h.casts = 3
+	h.charged = true
+	v.wipe()
+	v.clock = 0.1
+	v._ignis_marks()
+	if why == "" and pips.call(View.PX.gold).size() != 3:
+		why = "과부하 차례에 금 점이 %d개다(셋이어야 한다)" % pips.call(View.PX.gold).size()
+	elif why == "" and not v.rings.any(func(r): return r[1] == View.OVERLOAD_RING and r[2] == 1 and r[3] == View.PX.orange and r[4] == 0):
+		why = "과부하 차례에 발 둘레 주황 고리가 없다: %s" % [v.rings]
+	v.wipe()
+	v.clock = 0.4
+	v._ignis_marks()
+	if why == "" and not pips.call(View.PX.gold).is_empty():
+		why = "과부하 차례의 세 점이 깜박이지 않는다(0.4초에도 금)"
+	v.free()
+	var d = _duo()
+	v = Rec.new()
+	v.battle = d
+	v._foes = []
+	v._ignis_marks()
+	if why == "" and not v.pxs.is_empty():
+		why = "과부하가 없는 영웅에도 세 점을 그린다"
+	v.free()
+	return why
+
+# I229 ③: 불길은 경계 안쪽 고리의 불꽃 줄 + 가운데 빨강·그을음 칠 1/16 + 불티 넷. 불타는 블랙홀 안이면 칠·불티가 없다
+func test_fire_zone_is_ring_of_flames_inside_edge():
+	var v = Rec.new()
+	var c := Vector2i(100, 100)
+	var r := 32
+	v._fire_zone(c, r, 7, [], false)
+	var fl: Array = v.spr.filter(func(s): return s[0] in ["flame", "flame_s"])
+	var n := int(TAU * (r - 3) / View.WALL_GAP)
+	var why := ""
+	if fl.size() != n:
+		why = "불꽃이 %d개다(경계 안쪽 고리에 %d개여야 한다)" % [fl.size(), n]
+	elif fl.any(func(s): return absf(Vector2(s[2] - Vector2i(0, 2) - c).length() - (r - 3)) > 1.5):
+		why = "불꽃이 경계 안쪽 %dpx 고리에 서 있지 않다: %s" % [r - 3, fl.map(func(s): return s[2])]
+	elif fl.filter(func(s): return s[0] == "flame").size() != (n + 2) / 3:
+		why = "큰 불꽃이 %d개다(셋에 하나여야 한다)" % fl.filter(func(s): return s[0] == "flame").size()
+	elif v.noise != [[r - 3, 1], [r - 3, 1]] or v.fills != [View.PX.red, View.PX.soot]:
+		why = "가운데 칠이 %s %s다(빨강·그을음 1/16이어야 한다)" % [v.noise, v.fills]
+	elif v.edges != [[View.PX.orange, View.PX.soot]] or v.pxs.size() != 4:
+		why = "경계 %s · 불티 %d다" % [v.edges, v.pxs.size()]
+	v.wipe()
+	v._fire_zone(c, r, 7, [], true)
+	if why == "" and (not v.noise.is_empty() or not v.pxs.is_empty() or v.spr.size() != n):
+		why = "불타는 블랙홀 안 불길에 가운데 칠 %s · 불티 %d가 있다" % [v.noise, v.pxs.size()]
+	v.free()
+	if why != "":
+		return why
+	var b = _mage()  # 장판으로: 불타는 블랙홀 안 불길은 칠이 없고, 블랙홀 불꽃은 빨려 드는 SUCK_FLAMES개뿐이다
+	b.zones = [{"src": "ignis_e", "owner": b.heroes[0], "pos": Vector2(12, 12), "radius": 2.5, "left": 3.0, "lit": {"dot": 3.0, "burn": 4.0}},
+		{"src": "ignis_q", "owner": b.heroes[0], "pos": Vector2(12, 12), "radius": 2.0, "left": 3.0}]
+	v = Rec.new()
+	v.battle = b
+	v._zones()
+	v.clock = 1.0
+	v.wipe()
+	v._zones()
+	var big: int = v.spr.filter(func(s): return s[0] in ["flame", "flame_s"]).size()
+	var wall := int(TAU * (int(View.CELL * 2.0) - 3) / View.WALL_GAP)
+	if View.PX.red in v.fills:
+		why = "불타는 블랙홀 안 불길에 빨강 칠이 있다: %s" % [v.fills]
+	elif big != wall + View.SUCK_FLAMES:
+		why = "불꽃이 %d개다(불벽 %d + 빨려 드는 %d여야 한다)" % [big, wall, View.SUCK_FLAMES]
+	v.free()
+	return why
+
+# I229 ④: 서리꽃 여섯 갈래(반경 0.95배, 잔가지 양쪽 둘씩)가 0.2초에 뻗고 1초에 걸쳐 식는다
+func test_frost_ring_flower_six_branches_and_cools():
+	var v = Rec.new()
+	var c := Vector2i(100, 100)
+	var why := ""
+	v._frost(c, 32.0, 0.3, 7)
+	var mains: Array = v.lines.filter(func(l): return l[0] == c)
+	if mains.size() != 6 or mains.any(func(l): return absf(Vector2(l[1] - c).length() - 32.0 * 0.95) > 1.5):
+		why = "서리꽃 갈래가 %s다(가운데에서 반경 0.95배까지 여섯이어야 한다)" % [mains.map(func(l): return l[1] - c)]
+	elif v.lines.size() != 6 * 5:
+		why = "서리꽃 줄이 %d개다(갈래 여섯 × (1 + 잔가지 넷))" % v.lines.size()
+	elif v.lines.any(func(l): return l[2] != View.PX.ice0):
+		why = "0.3초 서리꽃이 밝은 얼음이 아니다"
+	v.wipe()
+	v._frost(c, 32.0, 0.1, 7)
+	if why == "" and v.lines.filter(func(l): return l[0] == c).any(func(l): return Vector2(l[1] - c).length() >= 32.0 * 0.95 - 1.0):
+		why = "0.1초에 서리꽃이 이미 다 뻗었다"
+	v.wipe()
+	v._frost(c, 32.0, 0.8, 7)
+	if why == "" and (v.lines.size() != 30 or v.lines.any(func(l): return l[2] != View.PX.ice2)):
+		why = "0.8초 서리꽃이 어두운 얼음으로 식지 않았다"
+	v.free()
+	return why
+
+# I229 ⑤: 블랙홀은 감겨 드는 줄 넷(바깥 → 심), 검은 심 + 도는 밝은 보라 점선 테·안쪽 보라 테, 눈·돌 조각 없음. 불타면 불 색 줄·크림·금 테·빨려 드는 불꽃·빨강 경계
+func test_black_hole_streaks_core_rim_without_eye_and_lit_fire():
+	var v = Rec.new()
+	var c := Vector2i(100, 100)
+	var r := 40
+	var core := int(r * View.HOLE_CORE)
+	v._hole_zone(c, r, 1.0, 7, [], false)
+	var names: Array = v.spr.map(func(s): return s[0])
+	var vio: Array = ["vio3", "vio2", "vio1", "vio0"].map(func(k): return View.PX[k])
+	var ends: Array = v.lines.map(func(l): return Vector2(l[1] - c).length())
+	var why := ""
+	if names.has("eye") or names.has("rock"):
+		why = "블랙홀에 눈·돌 조각이 있다: %s" % [names]
+	elif v.lines.size() != View.STREAKS * View.STREAK_STEPS or v.lines.any(func(l): return not (l[2] in vio)):
+		why = "감겨 드는 줄이 %d마디 · 색 %s다(%d × %d, 보라)" % [v.lines.size(), v.lines.map(func(l): return l[2].to_html(false)).slice(0, 4), View.STREAKS, View.STREAK_STEPS]
+	elif absf(ends.min() - core) > 1.5 or absf(Vector2(v.lines[0][0] - c).length() - (r - 2)) > 1.5:
+		why = "줄이 가장자리(%d)에서 심(%d)까지가 아니다: 시작 %.1f · 끝 %.1f" % [r - 2, core, Vector2(v.lines[0][0] - c).length(), ends.min()]
+	elif not v.discs.any(func(d): return d[0] == c and d[1] == core and d[2] == View.PX.night):
+		why = "검은 심(반지름 %d)이 없다: %s" % [core, v.discs]
+	elif not v.rings.any(func(g): return g[1] == core + 1 and g[3] == View.PX.vio0 and g[4] > 0) or not v.rings.any(func(g): return g[1] == core and g[3] == View.PX.vio2 and g[4] == 0):
+		why = "심 둘레 점선 테·안쪽 테가 아니다: %s" % [v.rings]
+	elif v.noise != [[r, 2]] or v.fills != [View.PX.vio4] or v.edges != [[View.PX.vio2, View.PX.night]]:
+		why = "칠 %s %s · 경계 %s다(바깥 보라 2/16, 보라 경계)" % [v.noise, v.fills, v.edges]
+	v.wipe()
+	v._hole_zone(c, r, 1.0, 7, [], true)
+	var fire: Array = ["blood", "red", "orange", "gold"].map(func(k): return View.PX[k])
+	if why == "" and v.lines.any(func(l): return not (l[2] in fire)):
+		why = "불타는 블랙홀 줄이 불 색이 아니다"
+	elif why == "" and v.spr.filter(func(s): return s[0] in ["flame", "flame_s"]).size() != View.SUCK_FLAMES:
+		why = "불타는 블랙홀에 빨려 드는 불꽃이 %d개다" % v.spr.size()
+	elif why == "" and (not v.rings.any(func(g): return g[1] == core + 1 and g[3] == View.PX.cream and g[4] > 0) or not v.rings.any(func(g): return g[1] == core and g[3] == View.PX.gold)):
+		why = "불타는 블랙홀 심 테가 크림·금이 아니다: %s" % [v.rings]
+	elif why == "" and v.edges != [[View.PX.red, View.PX.soot]]:
+		why = "불타는 블랙홀 경계가 %s다" % [v.edges]
+	v.free()
+	return why
+
+# I229 ⑥: 운석 장판은 처음 지연(fall)을 갖고, 아직 안 떨어진 자리마다 도는 주황 점선 테와 지연이 지나간 몫만큼 차오르는 칠. 떨어진 자리는 없다
+func test_meteor_spots_show_turning_tell_filling_with_wait():
+	var b = _mage(9)
+	var h = b.heroes[0]
+	if not b.cast(h, "r", h.pos + Vector2(0, -4)):
+		return "왕홀 +9 이그니스의 R이 거부됐다"
+	var zs: Array = b.zones.filter(func(z): return z.src == "ignis_r")
+	if zs.size() != 5 or zs.any(func(z): return not z.has("fall") or not is_equal_approx(z.fall, z.delay)):
+		return "운석 장판 %s에 처음 지연 fall이 없다" % [zs.map(func(z): return [z.get("fall"), z.delay])]
+	var v = Rec.new()
+	v.battle = b
+	var r := int(View.CELL * zs[0].radius)
+	var tells := func(): return v.rings.filter(func(g): return g[1] == r and g[3] == View.PX.orange and g[4] > 0)
+	var why := ""
+	v._zones()
+	if tells.call().size() != 5:
+		why = "떨어질 자리 테가 %d개다(다섯이어야 한다)" % tells.call().size()
+	zs[0].delay = zs[0].fall * 0.5
+	v.wipe()
+	v._zones()
+	if why == "" and not v.noise.has([int(r * 0.5), 3]):
+		why = "지연이 반 지난 자리의 칠이 %s다(반지름 %d, 3/16이어야 한다)" % [v.noise, int(r * 0.5)]
+	zs[0].delay = 0.0
+	v.wipe()
+	v._zones()
+	if why == "" and tells.call().size() != 4:
+		why = "떨어진 자리에도 테가 있다(%d개)" % tells.call().size()
+	v.free()
+	return why
+
+# I229 ⑥: 떨어지는 운석은 조각 뒤 불 원판(빨강 4·주황 3·금 2)과 꼬리 여덟, 아래 층은 그림자만(점선 없음)
+func test_falling_meteor_fire_core_and_eight_tail_without_dashed_spot():
+	var v = Rec.new()
+	v.battle = _mage()
+	var z := {"src": "ignis_r", "pos": Vector2(10, 10), "radius": 1.5, "delay": 0.25, "fall": 0.5}
+	v._fall(z, 0.25, true)
+	var why := ""
+	var radii: Array = v.discs.map(func(d): return [d[1], d[2]])
+	if v.discs.size() != 8 + 3 or not radii.has([4, View.PX.red]) or not radii.has([3, View.PX.orange]) or not radii.has([2, View.PX.gold]):
+		why = "떨어지는 운석 원판이 %s다(꼬리 여덟 + 빨강 4·주황 3·금 2)" % [radii]
+	elif not v.spr.any(func(s): return s[0] == "meteor"):
+		why = "운석 조각이 없다"
+	v.wipe()
+	v._fall(z, 0.25, false)
+	if why == "" and (v.noise.size() != 1 or not v.rings.is_empty()):
+		why = "아래 층이 그림자 %s · 고리 %s다(그림자만이어야 한다)" % [v.noise, v.rings]
+	v.free()
+	return why
+
+func test_fx11_draws_only_palette_colors():
+	var b = _mage(9)
+	var h = b.heroes[0]
+	var e = _target(b, Vector2i(12, 12))
+	b._fx(e, "ignis_w_freeze", {"stun": true}, 1.5)
+	b.cast(h, "r", h.pos + Vector2(0, -4))
+	var v = Rec.new()
+	v.battle = b
+	v._foes = [e]
+	for t in [0.0, 0.05, 0.1, 0.2, 0.3, 0.5, 0.8]:
+		v.clock = t
+		h.charged = t > 0.2
+		v._fire_zone(Vector2i(100, 100), 32, 7, [], false)
+		v._hole_zone(Vector2i(100, 100), 40, t, 7, [], t > 0.2)
+		v._frost(Vector2i(100, 100), 32.0, t, 7)
+		v._fall({"src": "ignis_r", "pos": Vector2(10, 10), "radius": 1.5, "delay": 0.25, "fall": 0.5}, 0.25, true)
+		v._zones()
+		v._ignis_marks()
+	var off := _off_palette(_colors(v))
+	v.free()
+	if off != "":
+		return "fx-11 그림에 팔레트 밖 색 %s가 있다" % off
 	return ""
