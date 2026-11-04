@@ -84,3 +84,7 @@ def test_EV718_ladder_drawn_in_body_layer(gd):
 
 def test_EV719_balloon_drop_bomb_bigger_with_spark(gd):
     gd("raidart", "EV719")
+
+
+def test_EV727_war_machine_drawn_after_skill_pose(gd):
+    gd("raidart", "EV727")

@@ -446,3 +446,33 @@ func ev500():
 	if b.structure_at(SHELTER) != null:
 		return "대피소가 부서지지 않았다"
 	return check(run(b, 30.0, func(): return kept.all(func(v): return _to(v) == "home")), "대피소가 부서진 30초 뒤 행선지 %s" % [kept.map(func(v): return _to(v))])
+
+# 오류를 센다. 스크립트 오류가 나도 함수가 기본값을 돌려주고 이어 가서, 돌려받은 값으로는 가를 수 없다
+class Errors extends Logger:
+	var n := 0
+	func _log_error(_function: String, _file: String, _line: int, _code: String, _rationale: String, _editor_notify: bool, _error_type: int, _script_backtraces: Array[ScriptBacktrace]) -> void:
+		n += 1
+
+# EV726 · S227: 마을 안 적이 밖의 주민을 친 뒤 화면이 맞은 몸 표를 구하는 동안 오류가 나지 않는다(주민에게 없는 방어력을 묻지 않는다)
+func ev726():
+	var b = _battle({"seed": 1})
+	b.build("house", H1)
+	var bad := _lacks(b)
+	if bad != "":
+		return bad
+	b.start_battle()
+	b.step(DT)
+	var out: Array = b.people.filter(func(v): return not v.inside and not b.footprint.has(Vector2i(v.pos.round())))
+	if out.is_empty():
+		return "밖에 나와 있는 주민이 없다"
+	var foe = b.spawn_enemy("basic", Vector2i(out[0].pos.round()), {"hp": BIG, "sight": 3.0})
+	if not run(b, 10.0, func(): return foe.target in b.people):
+		return "마을 안 적이 10초 동안 주민을 치지 않았다"
+	var v = load("res://src/ui/battle_view.gd").new()
+	v.battle = b
+	var errs := Errors.new()
+	OS.add_logger(errs)
+	v.hit_table([foe])
+	OS.remove_logger(errs)
+	v.free()
+	return check(errs.n == 0, "주민을 친 적의 맞은 몸 표를 구하는 동안 오류 %d개(0)" % errs.n)

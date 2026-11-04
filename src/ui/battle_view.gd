@@ -2537,7 +2537,7 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 			if c != null or x.cast:
 				anim = "idle"
 				col = 0
-		elif rig:  # 스킬 시트의 정점 열(S172 2026-11-03 셋째 변경 ②③): 대포는 원 가운데 쪽을 본다
+		elif rig and c != null:  # 스킬 시트의 정점 열(S172 2026-11-03 셋째 변경 ②③): 대포는 원 가운데 쪽을 본다. 정점 열을 다 보였으면(c를 비웠으면) 흔적이 없을 때처럼 그린다
 			anim = c.slot
 			col = PEAK.get(c.slot, [1])[int(c.age / SLAM_POSE)]
 			dir = _four(c.at - x.pos) if c.slot == "cannon" else (0 if c.aim == null else _four(Vector2(c.aim) - c.at))

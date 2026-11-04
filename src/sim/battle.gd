@@ -1551,13 +1551,13 @@ func _reach(x) -> float:
 	var base_range: float = x.range
 	return base_range * (1.0 + _aura("reach", _where(x))) if x is Block or x.is_hero else base_range
 
-# 방어력(S149): 적은 기본값 + 걸린 증감 − 베스퍼 오라, 아군 유닛은 기본값 + 세라피나 오라 + 걸린 증감, 구조물은 방벽만 세라피나 오라를 받는다
+# 방어력(S149): 적은 기본값 + 걸린 증감 − 베스퍼 오라, 아군 유닛은 기본값 + 세라피나 오라 + 걸린 증감, 구조물은 방벽만 세라피나 오라를 받는다. 주민은 방어가 없다(S227)
 func armor_of(t) -> float:
 	if t is Enemy:
 		return t.armor + _fx_sum(t, "armor") - _aura("foe_armor", t.pos)
 	if t is Unit:
 		return t.armor + _aura("armor", t.pos) + _fx_sum(t, "armor")
-	return t.armor + (_aura("armor", Vector2(t.cell)) if t.kind == "wall" else 0.0)
+	return 0.0 if t is Villager else t.armor + (_aura("armor", Vector2(t.cell)) if t.kind == "wall" else 0.0)
 
 # 워크3식 방어 공식(S149): 방어력 a의 물리 피해 배율. a ≥ 0이면 1 − 0.06a ÷ (1 + 0.06a), 음수면 2 − 0.94^(−a)
 static func armor_mult(a: float) -> float:
@@ -1649,9 +1649,9 @@ func _clear_effects() -> void:
 	zones.clear()
 	loops.clear()
 	missiles.clear()
-	for t in enemies + units + structures.values() + castle.values():
+	for t in enemies + units + heroes + structures.values() + castle.values():  # 쓰러진 영웅은 units에 없고 heroes에만 있다. 남은 출혈이 체력 1로 돌아온 영웅을 다시 쓰러뜨렸다
 		t.fx.clear()
-	for u in units:
+	for u in units + heroes:
 		u.shields.clear()
 		u.brace = 0.0
 		u.order = null
