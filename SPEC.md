@@ -1309,7 +1309,7 @@
 | I105 | src/sim/battle.gd:909-913 · src/sim/battle.gd:928-930 |
 | I106 | src/sim/battle.gd:897-898 · src/sim/battle.gd:915-923 · src/sim/battle.gd:411 |
 | I107 | src/main.gd:235 · src/sim/battle.gd:926 · src/sim/battle.gd:2187 · src/main.gd:236 |
-| I108 | src/sim/battle.gd:408-409 · src/sim/battle.gd:931 · src/ui/controls.gd:14 · src/ui/controls.gd:349 |
+| I108 | src/sim/battle.gd:408-409 · src/sim/battle.gd:931 · src/ui/controls.gd:15-16 · src/ui/controls.gd:26 · src/ui/controls.gd:113-114 · src/ui/controls.gd:234-238 · src/ui/hud.gd:284 · src/ui/hud.gd:1345 · src/ui/hud_build.gd:148 · src/ui/hud_build.gd:271 · src/ui/hints.gd:13-15 |
 | I109 | src/ui/controls.gd:75-78 · src/sim/battle.gd:770-772 · src/sim/battle.gd:1224-1225 · src/sim/battle.gd:2149-2150 |
 | I110 | src/ui/hud.gd:363-422 · src/ui/hud.gd:1178-1187 · src/ui/hud.gd:555-568 · src/ui/hud.gd:1040-1096 · src/main.gd:144-157 · src/ui/hud.gd:1058-1075 · src/ui/hud.gd:1150-1177 · src/ui/hud.gd:1205-1210 |
 | S125 | src/sim/battle.gd:3135-3137 · src/sim/battle.gd:941-943 · src/sim/battle.gd:172 · src/data/enemy_def.gd:15 |

@@ -591,14 +591,14 @@ msgstr "Click the Keep to level the Village\n(unlocks new buildings)"
 msgid "준비가 끝나면 위 오른쪽\n▶ 전투 시작 (Enter)"
 msgstr "When ready, top right:\n▶ Start Battle (Enter)"
 
-msgid "병영(4)을 짓고 3으로 용병을 산다\n용병은 적을 몸으로 붙잡는다"
-msgstr "Build Barracks (4), buy Mercs (3)\nMercs hold enemies in place"
+msgid "병영(4)을 짓고 용병 칸으로 산다\n용병은 적을 몸으로 붙잡는다"
+msgstr "Build Barracks (4), buy via slot\nMercs hold enemies in place"
 
-msgid "전투 중에도 3·5·7로 용병을 산다\n짓기는 공병(5)이 가서 한다"
-msgstr "In battle, buy with 3·5·7 too\nEngineers (5) go and build"
+msgid "전투 중에도 용병 칸·5·7로 산다\n짓기는 공병(5)이 가서 한다"
+msgstr "In battle, buy with slot·5·7 too\nEngineers (5) go and build"
 
-msgid "영웅을 누르고(F1)\n우클릭한 칸으로 보낸다"
-msgstr "Select a hero (F1)\nright-click to send it"
+msgid "영웅을 누르고(1)\n우클릭한 칸으로 보낸다"
+msgstr "Select a hero (1)\nright-click to send it"
 
 msgid "Q로 영웅 스킬을 쓴다\n조준하는 칸은 맵을 눌러 쓴다"
 msgstr "Press Q for a hero skill\nclick the map to aim"

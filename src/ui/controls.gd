@@ -12,8 +12,8 @@ extends RefCounted
 # 조준 상태가 된다(퀵캐스트를 켜면 키를 누르는 순간 커서 자리에 쓴다, I158). 조준 중 좌클릭은 그 지점·대상에 쓰고, 우클릭·ESC는 취소한다(S147). Shift+키와 HUD 스킬 버튼 우클릭은 자동 시전을 켜고 끈다(S158, I151)
 # A: 공격 명령 조준(S35). 그동안 좌클릭은 땅이면 공격 이동·적이면 대상 공격이고, 우클릭·ESC는 취소한다 · S: 정지(S35) · H: 홀드 전환(S36) · V: 체력바 표시 전환(S73) · B: 대피령(S225) · F: 자동 수리 전환(S277)
 # ESC: 조준·놓기·옮기기가 없으면 맵 팝업과 패널의 적을 닫는다(S183, S206). 고른 유닛은 풀지 않는다(S204)
-# F1·F2·F3: 출전 영웅 1·2·3을 고른다(I108)
-# 1 방벽 · 2 타워 · - 마법 타워(S110) · 3 용병 · 4 병영 · 5 공병 · 6 작업장 · 7 궁수(I71) · 8 대포(S92) · 9 사격장(S98) · 0 집(S103) · = 교회(I140) · \ 대피소(S226): 놓기 모드. 그동안 좌클릭은 그 칸에 짓거나 놓고, 우클릭·ESC·같은 키는 모드를 끝낸다(사용자 2026-10-12, S186)
+# 1·2·3: 출전 영웅 1·2·3을 고른다. F1·F2·F3은 영웅을 고르지 않는다(I108 2026-11-06 변경)
+# - 마법 타워(S110) · 4 병영 · 5 공병 · 6 작업장 · 7 궁수(I71) · 8 대포(S92) · 9 사격장(S98) · 0 집(S103) · = 교회(I140) · \ 대피소(S226): 놓기 모드(방벽·타워·용병은 키 없이 건설 격자 칸으로, I108 2026-11-06 변경). 그동안 좌클릭은 그 칸에 짓거나 놓고, 우클릭·ESC·같은 키는 모드를 끝낸다(사용자 2026-10-12, S186)
 # 전투 단계엔 구조물만 짓는다(공병이 가서 짓는다, S22). 단계가 바뀌면 모드가 끝난다
 # 옮길 대포(moving)가 있으면 다음 좌클릭한 칸으로 옮기고(S91), 우클릭·ESC·단계 변경은 옮기기를 그만둔다
 # 결과 창(라운드 사이·도전 끝)과 도전 시작 전 영입 창이 떠 있는 동안에는 아무 입력도 받지 않는다(S117, I109)
@@ -23,9 +23,9 @@ const CLICK_SLOP := 4.0  # 이보다 덜 끌고 떼면 클릭이다(맵 px)
 const BODY := Rect2(-0.5, -0.9, 1.0, 1.25)  # 좌클릭으로 유닛을 고르는 그림 자리(칸, 발 자리 기준, S204 2026-10-29 변경). 병사 그림은 발에서 약 13px(0.8칸) 솟는다
 const BattleView := preload("res://src/ui/battle_view.gd")
 const SKILL_KEYS := {KEY_Q: "q", KEY_W: "w", KEY_E: "e", KEY_R: "r"}  # 영웅 스킬 칸(S145)
-const PLACE_KEYS := {KEY_1: "wall", KEY_2: "tower", KEY_MINUS: "magic", KEY_3: "soldier", KEY_4: "barracks", KEY_5: "engineer", KEY_6: "workshop", KEY_7: "archer", KEY_8: "cannon", KEY_9: "archery", KEY_0: "house", KEY_EQUAL: "church", KEY_BACKSLASH: "shelter"}
+const PLACE_KEYS := {KEY_MINUS: "magic", KEY_4: "barracks", KEY_5: "engineer", KEY_6: "workshop", KEY_7: "archer", KEY_8: "cannon", KEY_9: "archery", KEY_0: "house", KEY_EQUAL: "church", KEY_BACKSLASH: "shelter"}
 
-signal hero_key(i: int)  # 출전 영웅 i를 F키나 초상으로 골랐다. HUD가 두 번 누름을 잰다(I165)
+signal hero_key(i: int)  # 출전 영웅 i를 1·2·3 키나 초상으로 골랐다. HUD가 두 번 누름을 잰다(I165)
 signal skill_keyed(h, slot: String)  # Q·W·E·R 키(shift 없이). HUD가 못 쓰는 칸이면 번쩍임과 토스트로 알린다(I151)
 signal refused(cell: Vector2i, why: String)  # 구조물 놓기가 거부됐다. HUD가 빨간 ✕와 안내 줄의 첫 이유로 보인다(I128)
 signal facility_key(f)  # 전투 단계 용병 키로 시설을 골랐다. HUD가 카메라를 그 시설로 옮긴다(S81, I164)
@@ -110,8 +110,8 @@ func handle(event: InputEvent) -> void:
 				battle.evacuate()
 			KEY_C:
 				alert_key.emit()
-			KEY_F1, KEY_F2, KEY_F3:
-				pick_hero(event.keycode - KEY_F1)
+			KEY_1, KEY_2, KEY_3:
+				pick_hero(event.keycode - KEY_1)
 			KEY_ESCAPE:
 				if placing == "" and moving == null and aiming == "" and not attacking:  # 취소할 것이 없으면 맵 팝업을 닫는다(S183)
 					_close_popups()
@@ -230,7 +230,7 @@ func _release(rect: Rect2, at: Vector2, double := false) -> void:
 		selected = units
 		shown = null
 
-# 출전 영웅 i를 고른다(I108). F키와 HUD 초상(I165)이 부른다. 쓰러진 영웅은 고르지 않는다. 우클릭이 집결 지점 대신 영웅을 옮기게 시설 선택을 푼다
+# 출전 영웅 i를 고른다(I108). 1·2·3 키와 HUD 초상(I165)이 부른다. 쓰러진 영웅은 고르지 않는다. 우클릭이 집결 지점 대신 영웅을 옮기게 시설 선택을 푼다
 func pick_hero(i: int) -> void:
 	selected = battle.heroes.slice(i, i + 1).filter(func(h): return h.alive)
 	facility = null
@@ -247,7 +247,7 @@ func pick_unit(u) -> void:
 func pick_base() -> void:
 	_pick_at((Vector2(battle.base.cell) + Vector2(0.5, 0.5)) * cell_px)
 
-# HUD가 맵의 칸을 고른다(3·5·7의 시설, 잠긴 칸의 거점). 그 칸을 누른 것과 같되 고른 유닛은 그대로다(S81, I173)
+# HUD가 맵의 칸을 고른다(5·7·용병 칸의 시설, 잠긴 칸의 거점). 그 칸을 누른 것과 같되 고른 유닛은 그대로다(S81, I173)
 func _pick_at(at: Vector2) -> void:
 	var units := selected
 	_release(Rect2(at, Vector2.ZERO), at)
@@ -265,7 +265,7 @@ func _close_popups() -> void:
 	selling = []
 	picked = []
 
-# 전투 단계 용병 키(S81). 3·5·7과 건설 격자 용병 칸이 부른다. 그 용병을 파는 곳(sellers: 완성된 시설, 공병은 거점도)을 클릭한 것처럼 고르고(구매 팝업),
+# 전투 단계 용병 키(S81). 5·7 키와 건설 격자 용병 칸이 부른다. 그 용병을 파는 곳(sellers: 완성된 시설, 공병은 거점도)을 클릭한 것처럼 고르고(구매 팝업),
 # 그 종류의 시설을 고른 채면 한 명 산다. next(Shift)면 같은 종류의 다음 시설(지은 차례)을 고른다. 시설이 없으면 missing에 둔다
 func merc_key(kind: String, next := false) -> void:
 	var sellers: Array = battle.sellers(kind)

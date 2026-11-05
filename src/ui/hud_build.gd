@@ -115,7 +115,7 @@ func _process(delta: float) -> void:
 			_styles[kind][i].border_color = HudTheme.DANGER if red else [HudTheme.LINE, HudTheme.HOVER, HudTheme.ACCENT][i]
 	_show_info()
 
-# 칸 하나: 그림, 오른쪽 위 노란 단축키, 아래 비용. 1단계 테마의 칸 안쪽 여백 대신 자기 크기(20×20)를 따로 준다
+# 칸 하나: 그림, 오른쪽 위 노란 단축키(없는 칸은 비움, I108), 아래 비용. 1단계 테마의 칸 안쪽 여백 대신 자기 크기(20×20)를 따로 준다
 func _cell(kind: String, cost: int, at: Vector2) -> Button:
 	var b := Button.new()
 	b.toggle_mode = true
@@ -145,7 +145,7 @@ func _cell(kind: String, cost: int, at: Vector2) -> Button:
 	pic.size = Vector2(16, 16)
 	pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	b.add_child(pic)
-	var key := _label(b, _keys[kind], 8, HudTheme.ACCENT)
+	var key := _label(b, _keys.get(kind, ""), 8, HudTheme.ACCENT)
 	key.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	key.position = Vector2(8, -2)
 	key.size = Vector2(11, 10)
@@ -241,7 +241,7 @@ func _press(kind: String) -> void:
 		controls.placing = ""
 		controls.pick_base()
 
-# 정보 칸 줄: [이름, 비용, [키], 한 줄 설명, 상태·해결 길, 이유]
+# 정보 칸 줄: [이름, 비용, [키](단축키가 없는 칸은 빈 글), 한 줄 설명, 상태·해결 길, 이유]
 func _lines(kind: String) -> Array:
 	var d = battle.STRUCTURE_KINDS[kind] if kind in battle.STRUCTURE_KINDS else battle.merc_stats(kind)  # 용병은 강화한 수치(S255)
 	var why := _lock(kind)
@@ -268,7 +268,7 @@ func _lines(kind: String) -> Array:
 		about = "마을 · 대피령 때 주민 %d명" % d.seats
 	elif d.range > 0.0:
 		about = "사거리 %s칸 · 공격력 %s" % [hud._num(d.range), hud._num(d.damage)] + (" · 범위 피해" if d.splash > 0.0 else "")
-	return [hud.NAMES[kind], "%d골드" % d.cost, "[%s]" % _keys[kind], about, path, why]
+	return [hud.NAMES[kind], "%d골드" % d.cost, ("[%s]" % _keys[kind] if kind in _keys else ""), about, path, why]
 
 # 고른 것(구조물·성곽·거점)의 이름과 체력. 없으면 []. 고른 용병(판매 후보 포함)은 선택 패널이 보인다(S206)
 func _picked() -> Array:
