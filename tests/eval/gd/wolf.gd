@@ -3,6 +3,7 @@ extends "res://tests/eval/gd/lib.gd"
 #   적 kind "wolf"(늑대) · "leap_wolf"(도약 늑대) · 적 on_wall·fx·goal · stage 키 spawn_gap(출현 간격)·spawn_spread(출현 퍼짐, I177)·castle
 #   Battle.spawn_counts(라운드, 웨이브) · Battle.effect(대상, 키) · Battle.cast(영웅, 칸, aim) · 용병 on_wall·anchor · 영웅 cd
 # wolf-3(S242·S243·I195): 적 kind "alpha_wolf" · 적 cast {id "pounce", who 대상} · 붙잡힘 효과 키 "pin" · Battle.damage(대상, 양, "magic")
+# 도약 늑대 돌진(S293·I243): 영웅 sight(인식 범위). 알파 함께 나옴·광분(S294·S295): 더하는 API 없음(용병 armor는 EV576 판과 같다)
 
 const SPAWNS := [Vector2i(0, 5), Vector2i(0, 10), Vector2i(0, 15)]
 const WALL := Vector2i(12, 9)  # 도약 늑대가 뛰어오르는 성벽 칸
@@ -718,3 +719,199 @@ func ev583():
 	var d0 := _wolf_walk()
 	var two := _wolf_walk([[Vector2i(7, 12), false], [Vector2i(7, 8), false]])
 	return check(absf(two - 1.3 * d0) <= 0.05, "알파 둘 곁에서 1초 거리 %.2f(1.3 × %.2f = %.2f여야 한다)" % [two, d0, 1.3 * d0])
+
+# ── 도약 늑대 돌진(S293·I243) ──
+
+# 성곽 판에 도약 늑대 1마리 웨이브(출현 지점 (12,19))
+func _dash_board(over := {}):
+	return _castle([], {"waves": [[{"kind": "leap_wolf", "count": 1}]]}.merged(over, true))
+
+# 전투를 시작해 한 스텝 돌리고, 그 스텝에 웨이브에서 나온 도약 늑대를 돌려준다(없으면 null)
+func _dash_go(b):
+	var got := []
+	b.enemy_spawned.connect(func(e): got.append(e))
+	b.start_battle()
+	b.step(DT)
+	return got[0] if got.size() == 1 and got[0].kind == "leap_wolf" else null
+
+# 들판 p에 선 용병(병사, 체력 큼, 공격력 0, 인식 범위 0). over로 수치를 덮어쓴다
+func _merc_at(b, p: Vector2i, over := {}):
+	var m = b.place_merc("soldier", Vector2i(12, 5), {"hp": BIG, "damage": 0, "sight": 0}.merged(over, true))
+	m.pos = Vector2(p)
+	m.anchor = Vector2(p)
+	return m
+
+# EV780 · S293: 웨이브에서 나온 도약 늑대는 나온 열을 따라 초당 6칸으로 곧게 달려, 인식 범위 안의 용병을 노리지 않고 성벽 위로 뛴다
+func ev780():
+	var b = _dash_board()
+	if not b.ENEMY_KINDS.has("leap_wolf"):
+		return "적 종류 leap_wolf가 없다"
+	_merc_at(b, Vector2i(14, 14))
+	var w = _dash_go(b)
+	if w == null:
+		return "웨이브에서 도약 늑대가 나오지 않았다"
+	var off := 0.0
+	for i in 20:
+		b.step(DT)
+		off = maxf(off, absf(w.pos.x - 12.0))
+	var at: Vector2 = w.pos
+	if at.distance_to(Vector2(12, 13)) > 0.4 or off > 0.05:
+		return "나온 뒤 1초 자리 %s((12,13) ± 0.4여야 한다) · 열에서 벗어난 최대 %.2f칸(0.05 이하여야 한다)" % [at, off]
+	var up := run(b, 1.55, func(): return w.on_wall)
+	return check(up and cell_of(w) == WALL, "나온 뒤 2.6초 안에 성벽 칸 (12,9) 위에 서지 않았다(%s, on_wall %s)" % [w.pos, w.on_wall])
+
+# EV781 · S293: 돌진 중 피해를 받으면 돌진이 끝나 초당 3칸으로 돌아온다
+func ev781():
+	var b = _dash_board()
+	if not b.ENEMY_KINDS.has("leap_wolf"):
+		return "적 종류 leap_wolf가 없다"
+	var w = _dash_go(b)
+	if w == null:
+		return "웨이브에서 도약 늑대가 나오지 않았다"
+	var p0: Vector2 = w.pos
+	run(b, 0.5)
+	var d0: float = w.pos.distance_to(p0)
+	b.damage(w, 1.0)
+	var p1: Vector2 = w.pos
+	run(b, 1.0)
+	var d1: float = w.pos.distance_to(p1)
+	return check(absf(d0 - 3.0) <= 0.35 and absf(d1 - 3.0) <= 0.35, "피해 전 0.5초 %.2f칸(3 ± 0.35, 초당 6칸) · 피해 1 뒤 1초 %.2f칸(3 ± 0.35, 초당 3칸)" % [d0, d1])
+
+# EV782 · S293: 돌진 중에는 인식 범위 안의 아이아스를 노리지 않고, 피해 없는 효과(W 도발)가 걸리면 돌진이 끝나 도발한 아이아스에게 간다
+func ev782():
+	var b = _dash_board({"heroes": [{"kind": "aias", "cell": Vector2i(14, 13)}], "seed": 11})
+	if not b.ENEMY_KINDS.has("leap_wolf"):
+		return "적 종류 leap_wolf가 없다"
+	var k = b.hero
+	k.damage = 0.0
+	k.sight = 0.0
+	var w = _dash_go(b)
+	if w == null:
+		return "웨이브에서 도약 늑대가 나오지 않았다"
+	var off := 0.0
+	var t := DT
+	while w.pos.y > 14.0 and t < 1.0 - 0.001:
+		b.step(DT)
+		t += DT
+		off = maxf(off, absf(w.pos.x - 12.0))
+	if w.pos.y > 14.0 or off > 0.05:
+		return "나온 뒤 %.2f초 자리 %s(1초 안에 y 14 이하여야 한다) · 열에서 벗어난 최대 %.2f칸(0.05 이하여야 한다)" % [t, w.pos, off]
+	b.cast(k, "w")
+	if b.effect(w, "taunt") != k:
+		return "W 뒤 늑대에 아이아스의 도발이 걸리지 않았다(%s)" % b.effect(w, "taunt")
+	var met := run(b, 1.0, func(): return w.pos.distance_to(k.pos) <= 1.05)
+	return check(met, "도발 뒤 1초 안에 아이아스를 칠 수 있는 거리(중심 사이 1.05)에 들지 않았다(늑대 %s · 아이아스 %s)" % [w.pos, k.pos])
+
+# EV783 · S293: 열 위에 선 용병 몸에 가로막히면 돌진이 끝나고 그 용병을 문다
+func ev783():
+	var b = _dash_board()
+	if not b.ENEMY_KINDS.has("leap_wolf"):
+		return "적 종류 leap_wolf가 없다"
+	var m = _merc_at(b, Vector2i(12, 15), {"range": 0})  # 사거리가 있으면 몸이 닿기 전에 용병이 먼저 쳐서 «가로막힘»을 따로 재지 못한다
+	var w = _dash_go(b)
+	if w == null:
+		return "웨이브에서 도약 늑대가 나오지 않았다"
+	if not run(b, 0.7, func(): return w.pos.distance_to(m.pos) <= w.radius + m.radius + 0.02):
+		return "나온 뒤 0.75초 안에 용병 몸에 닿지 않았다(늑대 %s)" % w.pos
+	return check(run(b, 1.5, func(): return m.hp < m.max_hp), "닿은 뒤 1.5초 안에 용병을 물지 않았다(용병 체력 %s/%s)" % [m.hp, m.max_hp])
+
+# EV784 · I243: 열 위의 방벽에 닿으면 돌진이 끝나고, 평소 속도로 방벽을 돌아간다(방벽은 그대로)
+func ev784():
+	var b = _dash_board()
+	if not b.ENEMY_KINDS.has("leap_wolf"):
+		return "적 종류 leap_wolf가 없다"
+	var s = b.build("wall", Vector2i(12, 14))
+	if s == null:
+		return "(12,14)에 방벽을 짓지 못했다"
+	var w = _dash_go(b)
+	if w == null:
+		return "웨이브에서 도약 늑대가 나오지 않았다"
+	if not run(b, 0.8, func(): return w.pos.distance_to(Vector2(12, 14)) <= 1.05):
+		return "나온 뒤 0.85초 안에 방벽 칸 (12,14) 앞에 닿지 않았다(늑대 %s)" % w.pos
+	var hp0: float = s.hp
+	var d := 0.0  # 걸은 길이: 방벽을 돌아가는 길은 곧지 않다
+	for i in 20:
+		var p: Vector2 = w.pos
+		b.step(DT)
+		d += w.pos.distance_to(p)
+	return check(absf(d - 3.0) <= 0.35 and w.pos.y <= 13.5 and s.hp == hp0,
+		"닿은 뒤 1초 걸은 길이 %.2f칸(3 ± 0.35) · 자리 %s(y 13.5 이하) · 방벽 체력 %s(닿은 때 %s 그대로여야 한다)" % [d, w.pos, s.hp, hp0])
+
+# EV785 · I243: 판에 바로 놓은 도약 늑대는 돌진하지 않는다(초당 3칸)
+func ev785():
+	var b = _castle()
+	if not b.ENEMY_KINDS.has("leap_wolf"):
+		return "적 종류 leap_wolf가 없다"
+	var w = _leap(b, Vector2i(12, 15), {"sight": 0})
+	var p: Vector2 = w.pos
+	run(b, 1.0)
+	var d: float = w.pos.distance_to(p)
+	return check(absf(d - 3.0) <= 0.15, "판에 놓은 도약 늑대가 1초에 %.2f칸 갔다(3 ± 0.15여야 한다)" % d)
+
+# ── 알파 늑대 함께 나옴(S294)·광분(S295) ──
+
+# EV786 · S294: 함께 나오는 종류는 웨이브의 그 종류가 모두 한 차례에, 출현 지점마다 고르게 나뉘어 같은 순간 나온다
+func ev786():
+	var b = battle({"spawns": SPAWNS, "spawn_gap": 1.0, "waves": [[{"kind": "basic", "count": 3}, {"kind": "alpha_wolf", "count": 6}]]})
+	if not _has_alpha(b):
+		return "적 종류 alpha_wolf가 없다"
+	var log := []
+	var t := [0.0]
+	_watch(b, log, t)
+	b.start_battle()
+	_steps(b, t, 3.5)
+	var g := _groups(log)
+	var alpha := log.filter(func(x): return x[1] == "alpha_wolf")
+	var per := SPAWNS.map(func(s): return alpha.filter(func(x): return x[2] == s).size())
+	var ok: bool = g.size() == 4 and g[3][1] == 6 and absf(g[3][0] - 3.0) <= 0.06 and alpha.size() == 6 and per == [2, 2, 2]
+	if not ok:
+		return "나온 차례 %s(넷째 차례 3초 ± 0.06에 6마리여야 한다) · 알파 %d마리 · 출현 지점마다 %s([2, 2, 2]여야 한다)" % [g.map(func(x): return [x[0], x[1]]), alpha.size(), per]
+	var counts: Array = b.spawn_counts(0, 0).map(func(d): return [d.get("basic", 0), d.get("alpha_wolf", 0)])
+	return check(counts == [[1, 2], [1, 2], [1, 2]], "미리보기 수 [기본, 알파] %s([[1, 2], [1, 2], [1, 2]]여야 한다)" % [counts])
+
+# m이 다음에 맞을 때까지(3초 안) 돌리고 그 피해. 3초 안에 맞지 않으면 -1
+func _next_hit(b, m) -> float:
+	var hp0: float = m.hp
+	for i in 60:
+		b.step(DT)
+		if m.hp < hp0:
+			return hp0 - m.hp
+	return -1.0
+
+# EV787 · S295: 다른 알파가 쓰러질 때마다 무는 피해가 바탕의 25%씩 오른다. 늑대가 쓰러져도 오르지 않고, 봉인되면 꺼진다
+func ev787():
+	var b = battle({"base_hp": BIG})
+	if not _has_alpha(b):
+		return "적 종류 alpha_wolf가 없다"
+	var m = b.place_merc("soldier", Vector2i(11, 10), {"hp": BIG, "damage": 0})
+	m.armor = 0.0
+	var w = _alpha(b, Vector2i(10, 10), {"damage": 20, "sight": 2})
+	var others := [_alpha(b, Vector2i(3, 3)), _alpha(b, Vector2i(3, 17))]
+	var wolf = b.spawn_enemy("wolf", Vector2i(20, 3), {"hp": BIG, "speed": 0, "sight": 0, "damage": 0})
+	var hits := [_next_hit(b, m)]
+	b.damage(wolf, BIG)
+	hits.append(_next_hit(b, m))
+	for o in others:
+		b.damage(o, BIG)
+		hits.append(_next_hit(b, m))
+	w.fx["test"] = {"seal": true, "left": 9.0}
+	hits.append(_next_hit(b, m))
+	var want := [20.0, 20.0, 25.0, 30.0, 20.0]
+	return check(range(5).all(func(i): return absf(hits[i] - want[i]) <= 0.01), "무는 피해 %s(처음·늑대 처치·알파 하나·둘·봉인 %s여야 한다)" % [hits, want])
+
+# EV788 · S295: 광분은 덮치기 착지 피해와 붙잡은 동안 무는 피해에도 걸린다
+func ev788():
+	if not _has_alpha(battle()):
+		return "적 종류 alpha_wolf가 없다"
+	var g := _pounce_board()
+	var b = g[0]
+	var a = g[1]
+	b.damage(_alpha(b, Vector2i(25, 17)), BIG)
+	var hp0: float = a.hp
+	if not _land(g):
+		return "알파가 2초 안에 성벽 위에 서지 않았다"
+	var land: float = hp0 - a.hp
+	var hp1: float = a.hp
+	run(b, 2.0)
+	var bite: float = hp1 - a.hp
+	return check(absf(land - 31.25) <= 0.5 and absf(bite - 20.0) <= 0.5, "다른 알파 하나가 쓰러진 뒤 착지 피해 %.2f(31.25) · 붙잡은 2초 문 피해 %.2f(20)" % [land, bite])
