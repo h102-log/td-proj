@@ -1545,5 +1545,33 @@
   "squat": 15426,
   "carry_basket": 15472,
   "carry_pack": 15564
+ },
+ "chief": {
+  "c": 94,
+  "anchor": [
+   47.0,
+   71
+  ],
+  "x": 414,
+  "idle": 9676,
+  "walk": 10052,
+  "attack": 10428,
+  "rage_idle": 11180,
+  "rage_walk": 11556,
+  "cleave": 11932,
+  "charge": 12308,
+  "fling": 12684,
+  "bombs": 13060,
+  "leap": 13436,
+  "fall": 13812
+ },
+ "wreck": {
+  "c": 128,
+  "anchor": [
+   64.0,
+   62
+  ],
+  "x": 414,
+  "idle": 14000
  }
 }

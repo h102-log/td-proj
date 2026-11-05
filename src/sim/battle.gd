@@ -80,6 +80,7 @@ const WINDS := ["sylvia_w", "sylvia_e", "sylvia_r"]  # 투사체가 지나는 �
 const STAY := 0.6  # 장판 안에 있는 동안 거는 효과의 남은 시간(초, I141). 장판을 나오면 곧 풀린다
 const CLEANSE_GAP := 0.5  # 같은 아군의 성역 정화 흔적(I227 ⑥)을 다시 남기는 간격(초). 장판이 매 스텝 거는 해로운 효과를 지울 때마다 흔적이 쌓이지 않게
 const FALLEN := 2.0  # 쓰러진 몸(fallen)을 지우는 때(쓰러진 뒤 초, S180). 화면은 끝 0.5초 동안 흐린다
+const WRECK := 5.0  # 수레 잔해(wrecks)를 지우는 때(부서진 뒤 초, S172 2026-11-05 변경 ⑥). 임시값
 const STAGGER := 2.0  # 예고 중 기절로 스킬이 끊긴 보스가 비틀거리는 시간(초, S194). 임시값
 const STAGGER_EXPOSE := 0.5  # 비틀거리는 동안 받는 피해 증가(S194). 임시값
 const DUSK := 10.0  # 밤 웨이브에 fade가 없을 때 어둠이 dark까지 오르는 시간(초, S210). 임시값
@@ -399,6 +400,7 @@ var zones := []  # 장판(S150, I141): {src, pos, radius, left, owner, 수치…
 var loops := []  # 타임 루프가 되돌릴 적(I197): {e, at, wall, left, owner, blast, damage, aged(S266)}. 웨이브가 끝나면 사라진다(I143)
 var traces := []  # 즉시 스킬 흔적(S179): {hero, slot, aim, at, radius, hits, marked, age}. 타임 루프 되돌림(loop)은 aim이 옛 자리이고 foe·aged가 더 있다. 정화(cleanse)·불사(saved)는 aim이 그 아군, 축복 터짐(bless)은 hero가 쏜 쪽이고 셋 다 hits가 비었다(I227). 사슬 나누기(share)는 aim이 맞은 적이고 chain이, 전염(spread)은 foes(옮은 적)가 더 있다(I226). 태세가 막음(block)은 hero가 막은 영웅이고 hits가 비었다(I228). 그리기만 읽고 1초 지나면 지운다
 var fallen := []  # 쓰러진 영웅·용병·적(S180): {who, age}. 그리기만 읽고 FALLEN초 지나면 지운다
+var wrecks := []  # 부서진 전쟁 기계의 수레 잔해(S172 2026-11-05 변경 ⑥): {who(바뀐 대장), at, age}. 그리기만 읽고 WRECK초 지나면 지운다
 var _dotting := false  # 초당 피해를 주는 중. 뜬 적(S236)도 이것만은 받는다
 var missiles := []  # 날고 있거나 출발을 기다리는 투사체(Missile, S178). 웨이브가 끝나면 사라진다(I143)
 var landed := []  # 닿은 투사체(Missile). 그리기만 읽고(맞은 반응·사건, S177·I171) 1초 지나면 지운다
@@ -620,11 +622,12 @@ func restart() -> void:
 	_light_up()
 
 func step(dt: float) -> void:
-	for t in traces + fallen + landed:
+	for t in traces + fallen + landed + wrecks:
 		t.age += dt
 	traces = traces.filter(func(t): return t.age < 1.0)
 	landed = landed.filter(func(m): return m.age < 1.0)
 	fallen = fallen.filter(func(f): return f.age < FALLEN)
+	wrecks = wrecks.filter(func(w): return w.age < WRECK)
 	if state == "battle":
 		_spawn_wave(dt)
 		tally.battle_time += dt  # 라운드 집계(I119)
@@ -3695,9 +3698,11 @@ func _spray(e: Enemy, sk: Dictionary) -> void:
 # ── 고블린 대장(S288, I230) ── 등장 착지(leap)는 뜬 단계(_soar)와 대지 강타(_slam)를 그대로 쓴다
 
 # 전쟁 기계가 부서진다: 쓰러지지 않고 같은 자리에서 phase2 종류가 된다. 체력은 그 종류 체력 × 라운드 배율로 가득 차고,
-# 하던 예고·붙잡힘·효과·스킬 대기·먼저 노리는 성문·반격 대상은 비운다. 착지 스킬이 있으면 그 자리에서 뜬 단계로 시작한다(I230 ①)
+# 하던 예고·붙잡힘·효과·스킬 대기·먼저 노리는 성문·반격 대상은 비운다. 착지 스킬이 있으면 그 자리에서 뜬 단계로 시작한다(I230 ①).
+# 그 자리에 그리기용 수레 잔해를 남긴다(S172 2026-11-05 변경 ⑥)
 func _break(e: Enemy) -> void:
 	var k: String = e.phase2
+	wrecks.append({"who": e, "at": e.pos, "age": 0.0})
 	_engage(e, null)
 	e.kind = k
 	for key in ENEMY_KINDS[k]:

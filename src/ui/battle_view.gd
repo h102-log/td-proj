@@ -168,9 +168,12 @@ const STEEL_COLS := [Color("d0d6e0"), Color("4f78ad")]  # 강철 점 윗줄·아
 const LIFT := 0.4  # 보스 스킬 예고의 마지막 이만큼 그림을 들어 올린다(초, S198)
 const VAULT_RISE := 0.15  # 도약 늑대가 웅크림을 끝내고 성벽 위로 올라서는 시간(초, S244). 임시값
 const SLAM_POSE := 0.15  # 보스 스킬이 발동한 뒤 공격 자세(초, S198)
-# 스킬 이름의 시트가 있는 보스(전쟁 기계, S172 2026-11-03 셋째 변경): 예고 끝 준비 열, 발동 뒤 SLAM_POSE마다 넘기는 정점 열, 기관총 왼·오른 자세로 넘어가는 각(도)
+# 스킬 이름의 시트가 있는 보스(전쟁 기계 S172 2026-11-03 셋째 변경, 대장 2026-11-05 변경): 예고 끝 준비 열, 발동 뒤 SLAM_POSE마다 넘기는 정점 열, 기관총 왼·오른 자세로 넘어가는 각(도)
 const READY := {"mgun": 1}  # 없으면 0열
-const PEAK := {"grab": [1, 2]}  # 없으면 [1]. 집어 던지기는 집음 → 놓음
+const STILL_TELL := ["fling"]  # 예고 끝에도 정지 그림인 스킬 시트(대장 집게 던지기)
+const PEAK := {"grab": [1, 2], "fling": [0, 1]}  # 없으면 [1]. 집어 던지기는 집음 → 놓음, 집게 던지기는 집음 → 치켜듦
+const LANDING := "leap"  # 착지 흔적(slam)의 시트가 없는 보스가 착지 뒤 그리는 시트(대장 착지 웅크림)
+const WRECK_FADE := 0.5  # 수레 잔해가 지워지기(battle.WRECK) 전에 흐려지는 시간(초, S172 2026-11-05 변경 ⑥)
 const FAN_TURN := 20.0  # 시트 자세 ±40°의 가운데
 const BLOW := {"war_machine": ["slam", 1]}  # 공격 칸이 없는 종류의 기본 공격 키 포즈 [시트, 열](S172 2026-11-03 셋째 변경 ④)
 const GROW := {"slime_king": [3.0, 5.0]}  # 몸이 큰 종류(S236 2026-10-29 변경: 킹 몸 반지름 2칸)의 [그림 배율, 배율 전 그림을 내리는 px]. 정수배라 도트가 고르고, 내리면 그림 가운데가 몸 가운데에 온다
@@ -285,6 +288,7 @@ void fragment() {
 var battle
 var controls  # 고른 유닛에 테두리를 그린다
 var _seen := {}  # 영웅·용병·적 → [지난 위치, 방향]
+var _wreck_dirs := {}  # 수레 잔해를 남긴 몸 → 잔해가 보는 쪽(처음 그릴 때 그 몸의 _seen 방향, S172 2026-11-05 변경 ⑥)
 var _hits := {}  # 방금 맞은 영웅·용병·적 id → [맞은 뒤 지난 시간(초), 공격자 → 대상 방향, 밀림(px), 돌아오는 시간(초), 강철 점](S177, S198, hit_table). _bodies마다 다시 구한다
 var ground: ImageTexture  # 바닥을 한 장으로 구운 것. 마을·출현 지점은 도전 내내 같아서(I91) 처음 한 번만 굽는다
 var _decor := []  # 바닥 소품(S201·S202): [칸, decor.png 0행 열]. 바닥과 함께 처음 한 번만 정한다
@@ -2307,6 +2311,9 @@ func _bodies() -> void:
 	var folk := feet + n  # 이 번호부터 주민
 	var grave := folk + day.size()  # 이 번호부터 성벽 위의 쓰러진 몸
 	var keys := PackedInt64Array()
+	for w in battle.wrecks:  # 수레 잔해(S172 2026-11-05 변경 ⑥)는 땅의 쓰러진 몸처럼 모든 몸통 아래. 어둠 속이면 그리지 않는다(S213)
+		if ART.has("wreck") and battle.seen(w.at):
+			_wreck(w)
 	var dead := _fallen()
 	for k in dead.size():
 		var x = dead[k][0]
@@ -2747,25 +2754,42 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 		anim = "land_walk" if land else "walk"
 		col = int(Time.get_ticks_msec() / 125.0) % 2
 	var off := Vector2.ZERO
+	var hop := 0.0  # 그림자는 그대로 두고 그림만 드는 높이(px)
 	if _boss(x):  # 보스 스킬(S198): 예고 끝에 들어 올렸다가 발동하면 내리찍는다. 원 모양 스킬은 화면 쪽(S)을, 방향 스킬은 그쪽을 본다
 		var c = _boss_trace(x, SLAM_POSE * 2.0)
-		var rig: bool = c != null and ART[x.kind].has(c.slot)
-		if c != null and c.age >= SLAM_POSE * (PEAK.get(c.slot, [1]).size() if rig else 1):
+		var sheet: String = "" if c == null else c.slot
+		if sheet == "slam" and not ART[x.kind].has("slam") and ART[x.kind].has(LANDING):  # 대장 착지 뒤 착지 웅크림(S172 2026-11-05 변경 ③)
+			sheet = LANDING
+		var rig: bool = c != null and ART[x.kind].has(sheet)
+		if c != null and c.age >= SLAM_POSE * (PEAK.get(sheet, [1]).size() if rig else 1):
 			c = null
 		if ART[x.kind].get("one", false):  # 방향 없는 그림(슬라임 킹, S198 2026-10-27 둘째 변경)은 웅크림·뜸·착지를 정지 그림으로 하고 모양은 _look이 정한다
 			if c != null or x.cast:
 				anim = "idle"
 				col = 0
-		elif rig and c != null:  # 스킬 시트의 정점 열(S172 2026-11-03 셋째 변경 ②③): 대포는 원 가운데 쪽을 본다. 정점 열을 다 보였으면(c를 비웠으면) 흔적이 없을 때처럼 그린다
-			anim = c.slot
-			col = PEAK.get(c.slot, [1])[int(c.age / SLAM_POSE)]
-			dir = _four(c.at - x.pos) if c.slot == "cannon" else (0 if c.aim == null else _four(Vector2(c.aim) - c.at))
+		elif rig and c != null:  # 스킬 시트의 정점 열(S172 2026-11-03 셋째 변경 ②③, 2026-11-05 변경 ②): 대포는 원 가운데 쪽을 본다. 정점 열을 다 보였으면(c를 비웠으면) 흔적이 없을 때처럼 그린다
+			anim = sheet
+			col = PEAK.get(sheet, [1])[int(c.age / SLAM_POSE)]
+			if c.slot == "cannon":
+				dir = _four(c.at - x.pos)
+			elif c.has("dir"):  # 철퇴: 부채꼴 가운데 쪽(S198)
+				dir = _four(Vector2.from_angle(c.dir))
+			elif c.has("from"):  # 돌진: 내달린 쪽(S198)
+				dir = _four(c.at - c.from)
+			else:
+				dir = 0 if c.aim == null else _four(Vector2(c.aim) - c.at)
 			off.y = 1.0 if c.age < SLAM_POSE else 0.0
 		elif c != null:
 			anim = "attack"
 			col = 0  # 4방향 시트의 공격은 키 포즈 한 칸이다. 밀려 걷는 위상이 남으면 빈 칸을 그린다
 			dir = 0 if c.aim == null else _four(Vector2(c.aim) - c.at)
 			off.y = 1.0
+		elif x.cast and x.cast.get("air", false) and ART[x.kind].has(x.cast.id):  # 대장 등장 착지(S172 2026-11-05 변경 ③): 뜬 동안 내내 공중 자세를 한가운데 LEAP_UP까지 포물선으로 든다. 화면 쪽을 본다
+			var t: float = 1.0 - x.cast.left / x.skills[x.cast.id].air
+			anim = x.cast.id
+			col = 0
+			dir = 0
+			hop = LEAP_UP * 4.0 * t * (1.0 - t)
 		elif x.cast and ART[x.kind].has(x.cast.id):  # 스킬 시트의 예고·발사(S172 2026-11-03 셋째 변경 ①③): 대포는 원 가운데, 기관총은 부채꼴 가운데 쪽을 본다
 			var k: Dictionary = x.cast
 			dir = _four(k.at - x.pos) if k.has("at") else (_four(Vector2.from_angle(k.dir)) if k.has("dir") else 0)
@@ -2777,8 +2801,9 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 				anim = k.id
 				col = 0 if turn < -FAN_TURN else (2 if turn > FAN_TURN else 1)
 			elif k.left < LIFT:
-				anim = k.id
-				col = READY.get(k.id, 0)
+				if not STILL_TELL.has(k.id):
+					anim = k.id
+					col = READY.get(k.id, 0)
 				off.y = -2.0
 		elif x.cast and x.cast.id == "pounce":  # 덮치기(S244 ②): 예고는 대상 쪽 웅크림, 뜬 동안은 뜀. S198의 들어 올림은 쓰지 않는다
 			anim = "air" if x.cast.get("air", false) else "crouch"
@@ -2794,12 +2819,14 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 	if anim == "attack" and BLOW.has(x.kind):
 		anim = BLOW[x.kind][0]
 		col = BLOW[x.kind][1]
+	if (anim == "idle" or anim == "walk") and ART[x.kind].has("rage_" + anim) and battle.raging(x):  # 분노 중 정지·걷기는 망토를 찢어 던진 몸(S172 2026-11-05 변경 ④)
+		anim = "rage_" + anim
 	next[id] = [x.pos, dir]
 	var p := _spot(x) + _lunge(x) + _flinch(x) + _slip(x) + off
 	var lk := _look(x)
 	if x.get("cast") and x.cast.get("air", false):
 		_shadow(p, CELL * x.radius)
-	_frame(ART[x.kind], anim, dir, col, p - Vector2(0, lk[1]), tint, lk[0])
+	_frame(ART[x.kind], anim, dir, col, p - Vector2(0, lk[1] + hop), tint, lk[0])
 
 # 그릴 쓰러진 몸(S180) [몸, 쓰러진 뒤 초]: 시뮬레이션이 아직 지우지 않은 적·용병과 복귀 전 영웅. 영웅은 지워진 뒤에도 마지막 자세로 남는다
 func _fallen() -> Array:
@@ -2812,6 +2839,15 @@ func _fallen() -> Array:
 			var f: Array = battle.fallen.filter(func(e): return e.who == h)
 			out.append([h, f[0].age if f else battle.FALLEN])
 	return out
+
+# 수레 잔해 하나(S172 2026-11-05 변경 ⑥): 부서질 때 기계가 보던 쪽의 잔해 그림을 그 자리에 두고, 지워지기(battle.WRECK) 전 WRECK_FADE 동안 흐린다
+func _wreck(w: Dictionary) -> void:
+	var id: int = w.who.get_instance_id()
+	if not _wreck_dirs.has(id):
+		var seen = _seen.get(id)
+		_wreck_dirs[id] = seen[1] if seen else 0
+	var a := clampf((battle.WRECK - w.age) / WRECK_FADE, 0.0, 1.0)
+	_frame(ART.wreck, "idle", _wreck_dirs[id], 0, _center(w.at), Color(1, 1, 1, a))
 
 # 쓰러진 몸 하나(S180): 4.1d 누운 자세. 영웅은 쓰러짐 5프레임을 지나 누운 채 남고, 적·용병은 바로 누워 지워지기 전 CORPSE_FADE 동안 흐려진다.
 # 성벽 위에서 쓰러지면 성벽 위에, 오르던 적은 성벽 밑에, 비행 적은 그림자 자리에 눕는다. 막타를 기다리거나 번쩍이는 동안은 선 자세다(S197)

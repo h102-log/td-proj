@@ -88,3 +88,35 @@ def test_EV719_balloon_drop_bomb_bigger_with_spark(gd):
 
 def test_EV727_war_machine_drawn_after_skill_pose(gd):
     gd("raidart", "EV727")
+
+
+def test_EV756_chief_atlas_cells_wreck_and_icon(gd):
+    gd("raidart", "EV756")
+
+
+def test_EV757_chief_walk_rage_and_basic_attack_pose(gd):
+    gd("raidart", "EV757")
+
+
+def test_EV758_chief_cleave_and_charge_poses(gd):
+    gd("raidart", "EV758")
+
+
+def test_EV759_chief_bombs_and_fling_poses(gd):
+    gd("raidart", "EV759")
+
+
+def test_EV760_chief_leap_air_and_landing_poses(gd):
+    gd("raidart", "EV760")
+
+
+def test_EV761_war_machine_wreck_drawn_and_fades(gd):
+    gd("raidart", "EV761")
+
+
+def test_EV762_chief_corpse_lies_and_fades(gd):
+    gd("raidart", "EV762")
+
+
+def test_EV763_chief_and_wreck_beside_folk_strips(gd):
+    gd("raidart", "EV763")
