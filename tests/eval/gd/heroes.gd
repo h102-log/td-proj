@@ -166,7 +166,7 @@ func ev231():
 	_down_first_then_e(bc)
 	var free_e: int = bc[0].heroes[1].skill_uses
 	var de := _pair_in_battle()
-	_key(de[1], KEY_F1)
+	_key(de[1], KEY_1)
 	var picked: bool = de[1].selected == [de[0].heroes[0]]
 	_down_first_then_e(de)
 	return check(free_e == 1 and picked and de[0].heroes[1].skill_uses == 1,

@@ -98,7 +98,7 @@ func ev259():
 	var c = controls(b)
 	var ig = b.heroes[1]
 	_start(b)
-	_key(c, KEY_F2)
+	_key(c, KEY_2)
 	_key(c, KEY_Q)
 	var aiming: bool = c.aiming == "q" and ig.skill_uses == 0
 	click(c, MOUSE_BUTTON_RIGHT, px(H + Vector2i(3, 0)))
@@ -109,7 +109,7 @@ func ev259():
 	_key(c, KEY_Q)
 	click(c, MOUSE_BUTTON_LEFT, px(H + Vector2i(3, 0)))
 	var used: bool = c.aiming == "" and ig.skill_uses == 1
-	_key(c, KEY_F1)
+	_key(c, KEY_1)
 	_key(c, KEY_W)
 	var instant: bool = c.aiming == "" and b.heroes[0].skill_uses == 1
 	return check(aiming and cancel and esc and used and instant,
@@ -828,7 +828,7 @@ func ev294():
 	var m = b.place_merc("soldier", H + Vector2i(-2, 0))
 	_start(b)
 	var bad: bool = not b.cast(b.heroes[0], "q", foe) and not b.cast(b.heroes[1], "e", m) and b.heroes[0].skill_uses == 0 and b.heroes[1].skill_uses == 0
-	_key(c, KEY_F1)
+	_key(c, KEY_1)
 	_key(c, KEY_Q)
 	click(c, MOUSE_BUTTON_LEFT, px(H + Vector2i(5, 5)))
 	var waiting: bool = c.aiming == "q" and b.heroes[0].skill_uses == 0

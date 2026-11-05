@@ -406,3 +406,11 @@ def test_EV743_buy_button_off_at_population_cap(gd):
 
 def test_EV754_war_machine_trait_chief(gd):
     gd("hud", "EV754")
+
+
+def test_EV789_hero_number_keys(gd):
+    gd("hud", "EV789")
+
+
+def test_EV790_hero_number_key_labels(gd):
+    gd("hud", "EV790")

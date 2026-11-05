@@ -281,7 +281,7 @@ func _ready() -> void:
 		var row := {"pic": _pic(face, null, Vector2(22, 22))}
 		row.pic.position = Vector2(1, 1)
 		var key := _text(face, 7, HudTheme.ACCENT)
-		key.text = "F%d" % (i + 1)
+		key.text = str(i + 1)
 		key.position = Vector2(1, -1)
 		key.size = Vector2(12, 8)
 		row.lv = _text(face, 7, HudTheme.TEXT)
@@ -1338,13 +1338,13 @@ func _empty_slot(cell: Control, i: int) -> void:
 	for k in 4:
 		cell.draw_dashed_line(corners[k], corners[(k + 1) % 4], HudTheme.LINE, 1.0, 3.0)
 
-# 초상 툴팁(I129): 이름(역할)·F키, 레벨·체력 수치. 쓰러졌으면 빨간 줄에 돌아오는 때(I28·I93)
+# 초상 툴팁(I129): 이름(역할)·1·2·3 키, 레벨·체력 수치. 쓰러졌으면 빨간 줄에 돌아오는 때(I28·I93)
 func _hero_tip(i: int) -> Array:
 	var h = battle.heroes[i]
 	var back := "" if h.alive else "쓰러짐 — " + ("다음 준비 단계에 복귀" if battle.revive else "다음 라운드에 복귀")
-	return [HEROES[h.kind], "F%d" % (i + 1), "", "Lv%d · 체력 %d/%d\n누르면 고름 · 두 번이면 카메라" %[h.level, ceili(h.hp), ceili(h.max_hp)], back]
+	return [HEROES[h.kind], str(i + 1), "", "Lv%d · 체력 %d/%d\n누르면 고름 · 두 번이면 카메라" %[h.level, ceili(h.hp), ceili(h.max_hp)], back]
 
-# F키·초상을 DOUBLE초 안에 두 번 누르면 카메라가 그 영웅에게 간다(I165, I164)
+# 1·2·3 키·초상을 DOUBLE초 안에 두 번 누르면 카메라가 그 영웅에게 간다(I165, I164)
 func _tap(i: int) -> void:
 	var again: bool = _now - _taps.get(i, -INF) <= DOUBLE
 	_taps[i] = -INF if again else _now

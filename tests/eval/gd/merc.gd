@@ -190,7 +190,7 @@ func ev396():
 	var built: bool = c.selected.is_empty() and c.facility == f and c.selling == [f]
 	return check(ground and foe and built, "빈 땅 누름 뒤 그대로 %s · 적 누름 뒤 그대로 %s · 병영 누름에 비고 병영 골라짐 %s(고른 것 %d개)" % [ground, foe, built, c.selected.size()])
 
-# EV397 · S81: 전투 중 3 키로 병영을 골라도 고른 기사·병사는 그대로이고, 그때 우클릭은 집결 지점이 아니라 둘의 이동이다. A 뒤 땅 좌클릭은 공격 이동이다
+# EV397 · S81: 전투 중 건설 격자 용병 칸(merc_key)으로 병영을 골라도 고른 기사·병사는 그대로이고, 그때 우클릭은 집결 지점이 아니라 둘의 이동이다. A 뒤 땅 좌클릭은 공격 이동이다
 func ev397():
 	var s := _picked_pair()
 	var b = s[0]
@@ -200,7 +200,7 @@ func ev397():
 	if f == null or two.has(null) or c.selected != two:
 		return "병영·병사를 두거나 기사와 병사를 함께 고르지 못했다(병영 %s · 고른 것 %d개)" % [f, c.selected.size()]
 	b.start_battle()
-	_key(c, KEY_3)
+	c.merc_key("soldier")  # 건설 격자 용병 칸과 같다. 용병 키 3은 없다(I108 2026-11-06 변경)
 	var kept: bool = c.facility == f and c.selected == two
 	var rally = f.rally
 	click(c, MOUSE_BUTTON_RIGHT, px(Vector2i(10, 12)))
@@ -208,7 +208,7 @@ func ev397():
 	_key(c, KEY_A)
 	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(12, 12)))
 	var marched: bool = two.all(func(u): return not u.path.is_empty() and u.move_mode == "attack_move")
-	return check(kept and moved and marched, "3 키 뒤 병영 골라짐·둘 그대로 %s(고른 것 %d개) · 우클릭에 둘 이동·집결 그대로 %s · A 뒤 땅 좌클릭 공격 이동 %s" % [kept, c.selected.size(), moved, marched])
+	return check(kept and moved and marched, "용병 칸 뒤 병영 골라짐·둘 그대로 %s(고른 것 %d개) · 우클릭에 둘 이동·집결 그대로 %s · A 뒤 땅 좌클릭 공격 이동 %s" % [kept, c.selected.size(), moved, marched])
 
 # EV398 · I173: 빈 드래그는 고른 것을 그대로 두고, 구조물만 든 드래그는 유닛 선택을 비우고 그 구조물을 판매 후보로 고른다.
 # 건설 격자의 잠긴 칸처럼 HUD가 거점을 고르면(pick_base) 고른 유닛은 그대로다. 고른 유닛이 없으면 우클릭은 고른 시설의 집결 지점이다
