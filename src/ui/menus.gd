@@ -1,6 +1,6 @@
 extends CanvasLayer
 # 메인 메뉴·ESC 메뉴·설정·확인 창(S182~S184, I159). 메인 메뉴 장면(menu.gd)과 게임 장면(main.gd)이 붙이고 open으로 연다.
-# 고른 것은 chosen으로 알린다: "new" 새 게임 · "resume" 이어하기 · "quit" 종료 · "continue" 계속 · "title" 메인 메뉴로 · "settings" 설정을 바꿨다
+# 고른 것은 chosen으로 알린다: "new" 새 게임 · "resume" 이어하기 · "test" 테스트 모드(S290) · "quit" 종료 · "continue" 계속 · "title" 메인 메뉴로 · "settings" 설정을 바꿨다
 # 트리가 멈춰도 돈다. ESC 메뉴는 일시정지(I11) 중에 뜨기 때문이다. HUD(층 1) 위에 그린다
 
 const Settings := preload("res://src/settings.gd")
@@ -11,6 +11,7 @@ const SHAKES := ["끔", "약하게", "보통"]  # 설정 «화면 흔들림»의
 signal chosen(what: String)
 
 var can_resume := false  # 메인 메뉴의 «이어하기»를 누를 수 있다(저장이 있다, S182)
+var can_test := false  # 메인 메뉴에 «테스트 모드»를 보인다(테스트 빌드·에디터 실행, S290)
 var page := ""  # 보이는 화면: "title" · "confirm" · "pause" · "settings". 닫혀 있으면 ""
 var _note := false  # ESC 메뉴에 «저장되지 않습니다» 안내를 보인다(전투 단계, S183)
 var _back := ""  # 설정을 연 화면. 설정의 ESC·«뒤로»가 돌아간다(I159)
@@ -50,6 +51,8 @@ func open(p: String, note := false) -> void:
 			var fresh := _button("새 게임", _new_game)
 			var go := _button("이어하기", func(): chosen.emit("resume"))
 			go.disabled = not can_resume
+			if can_test:
+				_button("테스트 모드", func(): chosen.emit("test"))  # 메뉴 글이라 번역한다(I239)
 			_button("설정", _settings)
 			_button("종료", func(): chosen.emit("quit"))
 			first = go if can_resume else fresh

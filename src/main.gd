@@ -1,6 +1,6 @@
 extends Node2D
-# 게임 장면. 시험 스테이지 맵에서 6라운드 도전을 띄운다(S63, I91). 메인 메뉴 장면(menu.tscn)의 새 게임·이어하기로 온다(S182).
-# 진행 저장(S181)과 ESC 메뉴(S183)를 맡고, 창 준비·F11 전체화면 함수(S161~S164)도 여기 둔다
+# 게임 장면. 시험 스테이지 맵에서 6라운드 도전을 띄운다(S63, I91). 메인 메뉴 장면(menu.tscn)의 새 게임·이어하기·테스트 모드로 온다(S182, S290).
+# 진행 저장(S181)과 ESC 메뉴(S183)를 맡고, 창 준비·F11 전체화면 함수(S161~S164)도 여기 둔다. 테스트 모드면 수치 조정·테스트 패널·배속을 붙인다(S289~S292)
 
 const Battle := preload("res://src/sim/battle.gd")
 const BattleView := preload("res://src/ui/battle_view.gd")
@@ -13,6 +13,8 @@ const Save := preload("res://src/sim/save.gd")
 const Settings := preload("res://src/settings.gd")
 const Audio := preload("res://src/audio.gd")
 const Sfx := preload("res://src/sfx.gd")
+const Tuning := preload("res://src/sim/tuning.gd")
+const TestPanel := preload("res://src/ui/test_panel.gd")
 const QUIET := ["hiring", "prep", "cleared"]  # 전투 단계가 아닌 판 단계. 이때만 저장한다(S181)
 # 도전의 라운드 순서(S63, I91): data/waves/의 웨이브 파일 이름. 1라운드는 시험 스테이지(S111, 슬라임 테마)다
 # ponytail: 2~6라운드는 5.1(WBS.md:129)까지 쓰는 임시값이다. 실제 라운드 수와 웨이브는 그때 정한다
@@ -22,6 +24,7 @@ const WALL_T := 5  # 시험 스테이지 성곽 두께(줄, S217 2026-11-03 변�
 
 static var resume := {}  # 이어하기(S182)로 올 때 메인 메뉴 장면이 넣는 저장. 비어 있으면 새 도전이다
 static var live_prep := false  # 판에 옮기는 준비 단계 실시간(I175). 메인 메뉴가 게임을 막 켰을 때와 관찰 하네스가 켠다. 게임 장면을 바로 띄우는 평가는 끈 채 쓴다
+static var test := false  # 테스트 모드(S289, I231). 메인 메뉴의 «테스트 모드»가 켜고 «메인 메뉴로»가 끈다. 이 판은 진행 저장을 쓰지도 지우지도 않는다
 
 var view
 var controls
@@ -30,10 +33,15 @@ var menus  # ESC 메뉴(S183)
 var sfx  # 효과음 연결(S269)
 var _seen := ""  # 마지막으로 본 판 단계. 바뀌면 저장하거나 지운다(S181, I157)
 var _map_press := false  # 마지막 좌버튼 누름이 맵(controls)에 갔다. 더블클릭의 둘째 누름을 맵에 줄지 본다(S275)
+var tuning  # 테스트 모드의 수치 조정(Tuning, I240). 테스트 모드가 아니면 null
+var panel  # 테스트 패널(I232). 테스트 모드가 아니면 null
+var speed := 1  # 배속(I236): 한 프레임에 판을 돌리는 횟수. 테스트 패널만 바꾼다
 
 func _ready() -> void:
 	view = BattleView.new()
 	view.battle = Battle.new(stage())
+	if test:
+		tuning = Tuning.new(view.battle)  # 데이터 표를 이 판만의 사본으로 바꾼다(I240). HUD가 표를 읽기 전에
 	view.battle.live_prep = live_prep  # 저장에 담지 않는다. 이어하기도 이 값이다
 	if resume.is_empty():
 		view.battle.begin_hiring()  # 도전은 영입 창에서 시작한다(S122)
@@ -41,7 +49,7 @@ func _ready() -> void:
 		Save.apply(view.battle, resume)
 		resume = {}
 	view.battle.revive = Settings.revive  # I28, I160
-	view.battle.wave_starting.connect(func(): Save.write(view.battle))  # 웨이브를 시작하기 직전에도 저장한다(S181)
+	view.battle.wave_starting.connect(_store)  # 웨이브를 시작하기 직전에도 저장한다(S181)
 	controls = Controls.new(view.battle, BattleView.CELL)
 	controls.quickcast = Settings.quickcast  # I158
 	view.controls = controls
@@ -59,6 +67,9 @@ func _ready() -> void:
 	add_child(menus)
 	sfx = Sfx.new(view.battle, controls)
 	add_child(sfx)
+	if test:
+		panel = TestPanel.new(self)  # HUD와 같은 층에서 HUD 뒤에 붙어 HUD 위·ESC 메뉴 아래에 그린다(I232)
+		add_child(panel)
 	Audio.of(get_tree()).follow(view.battle.state, false, true)  # 이어하기로 라운드 사이에 와도 징글은 없다(S271)
 	setup_window(get_window(), false)  # 창 크기·시작 모드는 진입 장면(menu.gd)이 정했다
 	get_window().size_changed.connect(_resized)
@@ -79,8 +90,12 @@ static func map_viewport(w: Window) -> SubViewportContainer:
 	return box
 
 func _process(delta: float) -> void:
-	view.battle.step(delta)
-	view.tick(delta)  # 화면 시계와 사건 목록(I170, I171). step과 같은 delta라 ESC 메뉴면 같이 멈춘다
+	var heard := []
+	for i in speed:  # 배속(I236): 같은 delta로 speed번 돌리고, 그 사이에 생긴 사건을 모두 연출·효과음에 넘긴다
+		view.battle.step(delta)
+		view.tick(delta)  # 화면 시계와 사건 목록(I170, I171). step과 같은 delta라 ESC 메뉴면 같이 멈춘다
+		heard += view.events
+	view.events = heard
 	var cam := get_viewport().get_camera_2d()
 	cam.rumble(view.events, delta)  # 화면 흔들림(S200): 방금 낸 사건 목록을 읽는다
 	sfx.hear(view.events, cam.steady().affine_inverse() * Hud.VIEW)  # 효과음(S269, S270): 위 띠 아래 보이는 맵 영역
@@ -91,16 +106,21 @@ func _process(delta: float) -> void:
 	var at: Vector2 = get_viewport().get_camera_2d().steady().affine_inverse() * get_viewport().get_mouse_position()  # 지금 마우스 자리 → 맵 px(handle에 넘기는 것과 같은 변환)
 	HudCursor.apply(HudCursor.kind(controls, at, get_viewport().gui_get_hovered_control() != null), cursor_scale(get_window()))  # 커서 모양(S278, I211). 가장자리 스크롤 중에도 맞게 매 프레임 정한다
 
-# 판 단계가 바뀌면 전투 단계가 아닌 단계는 저장하고(S181), 도전이 끝났으면 저장을 지운다(S65, I157)
+# 판 단계가 바뀌면 전투 단계가 아닌 단계는 저장하고(S181), 도전이 끝났으면 저장을 지운다(S65, I157). 테스트 모드는 둘 다 하지 않는다(I231)
 func _check() -> void:
 	var s: String = view.battle.state
 	if s == _seen:
 		return
 	_seen = s
 	if s in QUIET:
-		Save.write(view.battle)
-	elif s in ["won", "lost"]:
+		_store()
+	elif s in ["won", "lost"] and not test:
 		Save.erase()
+
+# 진행 저장(S181). 테스트 모드 판은 저장 파일을 쓰지 않는다(I231)
+func _store() -> void:
+	if not test:
+		Save.write(view.battle)
 
 # 게임을 멈추고 ESC 메뉴를 연다(S183, I11). 전투 단계면 나가도 이번 웨이브가 저장되지 않는다고 알린다
 func pause() -> void:
@@ -127,10 +147,11 @@ func _on_menu(what: String) -> void:
 		"title", "quit":
 			leave(what == "title")
 
-# 메인 메뉴로·게임 종료(I161): 전투 단계가 아니면 그때 상태를 저장하고 나간다
+# 메인 메뉴로·게임 종료(I161): 전투 단계가 아니면 그때 상태를 저장하고 나간다. 나가면 테스트 모드가 끝난다(I231)
 func leave(to_title: bool) -> void:
 	if view.battle.state in QUIET:
-		Save.write(view.battle)
+		_store()
+	test = false
 	get_tree().paused = false
 	if to_title:
 		get_tree().change_scene_to_file("res://src/menu.tscn")
@@ -140,7 +161,7 @@ func leave(to_title: bool) -> void:
 # 창 닫기(× 단추)도 «게임 종료»와 같이 저장한다(I161)
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST and view and view.battle.state in QUIET:
-		Save.write(view.battle)
+		_store()
 
 # 더블클릭의 둘째 좌누름은 첫 누름이 맵에 갔으면 HUD보다 먼저 맵에 준다. 첫 클릭으로 새로 뜬 선택 패널·태그가 그 자리를 덮어도
 # 용병 더블클릭(S275)이 되게 한다. 뗌은 누름을 받은 HUD가 없으니 그대로 _unhandled_input으로 온다
