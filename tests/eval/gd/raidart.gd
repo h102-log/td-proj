@@ -956,3 +956,355 @@ func ev727():
 			bad.append("%s 흔적 %s초: %s(기대 %s)" % [slot, View.SLAM_POSE * 1.5, got, want])
 	v.free()
 	return check(want != null and bad.is_empty(), "%s" % [bad])
+
+const CHIEF := {"idle": 1, "walk": 2, "rage_idle": 1, "rage_walk": 2, "cleave": 2, "charge": 2, "fling": 2, "bombs": 2, "leap": 2}  # 고블린 대장 칸의 c×c 자세 → 열 수(S172 2026-11-05 변경). 공격·누운 자세는 2배 칸
+const NO_CHIEF := "heroes.json에 chief 칸(%s·attack·fall)이 없다"
+
+# 대장 칸에 CHIEF 자세와 공격·누운 자세가 다 있으면 그 칸, 아니면 null
+func _chief_art():
+	if not View.ART.has("chief"):
+		return null
+	var a: Dictionary = View.ART.chief
+	for n in CHIEF.keys() + ["attack", "fall"]:
+		if not a.has(n):
+			return null
+	return a
+
+# 성곽 없는 판의 (10,10)에 움직이지도 치지도 않는 대장을 두고 한 번 그린 [판, 기록 화면, 대장]
+func _chief() -> Array:
+	var b = battle({"base_hp": BIG})
+	var v = _rec(b)
+	var e = b.spawn_enemy("chief", Vector2i(10, 10), STILL)
+	_one(v, e)
+	return [b, v, e]
+
+func _chief_trace(e, slot: String, at: Vector2, age: float, more := {}) -> Dictionary:
+	var t := {"hero": e, "slot": slot, "aim": null, "at": at, "radius": 0.0, "hits": [], "marked": false, "age": age}
+	t.merge(more, true)
+	return t
+
+# EV756 · S172 2026-11-05 변경: 대장 칸(4방향, x·fall 있음, one·slam 없음)과 자세 열, 잔해 칸, HUD 아이콘
+func ev756():
+	var art := _art()
+	if not art.has("chief") or not art.has("wreck"):
+		return "heroes.json에 chief·wreck 칸이 없다"
+	var a: Dictionary = art.chief
+	var img: Image = load("res://art/units/heroes.png").get_image()
+	var whole := Rect2i(Vector2i.ZERO, img.get_size())
+	var bad := []
+	if not a.has("x") or not a.has("fall") or a.has("one") or a.has("slam"):
+		bad.append("x %s · fall %s · one %s · slam %s" % [a.get("x"), a.get("fall"), a.get("one"), a.get("slam")])
+	var c: int = int(a.c)
+	var x: int = int(a.get("x", 0))
+	var cells := []  # [이름, 칸]
+	for n in CHIEF:
+		if not a.has(n):
+			bad.append("%s 자세가 없다" % n)
+			continue
+		for r in 4:
+			for k in CHIEF[n]:
+				cells.append(["%s %d열 %d행" % [n, k, r], Rect2i(x + k * c, int(a[n]) + r * c, c, c)])
+	if a.has("attack"):
+		for r in 4:
+			cells.append(["attack %d행" % r, Rect2i(x, int(a.attack) + 2 * r * c, 2 * c, 2 * c)])
+	if a.has("fall"):
+		cells.append(["fall", Rect2i(x, int(a.fall), 2 * c, 2 * c)])
+	var w: Dictionary = art.wreck
+	var wc: int = int(w.c)
+	if not w.has("x") or not w.has("idle"):
+		bad.append("wreck x %s · idle %s" % [w.get("x"), w.get("idle")])
+	for r in 4:
+		cells.append(["wreck %d행" % r, Rect2i(int(w.get("x", 0)), int(w.get("idle", 0)) + r * wc, wc, wc)])
+	for d in cells:
+		if not whole.encloses(d[1]):
+			bad.append("%s %s가 그림 밖" % d)
+		elif _opaque(img, d[1]) == 0:
+			bad.append("%s 빈 칸" % d[0])
+	var t: AtlasTexture = load("res://src/ui/hud_build.gd").icon("chief")
+	var south := Rect2(x, a.get("idle", 0), c, c)
+	if t == null or not t.region.has_area() or not south.encloses(t.region):
+		bad.append("아이콘 %s(칸 %s)" % [t.region if t else null, south])
+	return check(bad.is_empty(), "%s" % [bad])
+
+# EV757 · S172 2026-11-05 변경 ①④: 걷기·정지 동쪽 행, 분노면 망토 없는 걷기·정지, 병사를 친 기본 공격은 공격 칸
+func ev757():
+	var a = _chief_art()
+	if a == null:
+		return NO_CHIEF % [CHIEF.keys()]
+	var c: float = a.c
+	var bad := []
+	var b = battle({"base_hp": BIG})
+	var v = _rec(b)
+	var e = b.spawn_enemy("chief", Vector2i(10, 12), STILL)
+	var msg = _east(v, e, a, "walk")
+	if msg != "":
+		bad.append(msg)
+	_expect(bad, "정지", _one(v, e), Rect2(a.x, a.idle + c, c, c))
+	e.hp = e.max_hp * 0.2
+	if not b.raging(e):
+		bad.append("체력 20%에 분노가 아니다")
+	msg = _east(v, e, a, "rage_walk")
+	if msg != "":
+		bad.append(msg)
+	_expect(bad, "분노 정지", _one(v, e), Rect2(a.x, a.rage_idle + c, c, c))
+	v.free()
+	var w = battle({"base_hp": BIG})
+	var u = _rec(w)
+	var m = w.spawn_enemy("chief", Vector2i(10, 12), {"hp": BIG, "skills": {}, "speed": 0})
+	var s = w.place_merc("soldier", Vector2i(10, 11), {"hp": BIG, "speed": 0})
+	if s == null:
+		u.free()
+		return "병사를 세우지 못했다"
+	var h0: float = s.hp
+	var step := 1.0 / 60.0
+	var hit := false
+	for i in 20 * 60:
+		w.step(step)
+		u.tick(step)
+		_one(u, m)
+		if s.hp < h0:
+			hit = true
+			break
+	if not hit:
+		u.free()
+		return "20초 안에 병사를 치지 않았다(자리 %s)" % m.pos
+	for i in 9:
+		w.step(step)
+		u.tick(step)
+		_one(u, m)
+	var d = _one(u, m)
+	if not _attack_cell(d, a):
+		bad.append("병사를 친 뒤 0.15초: %s(기대 공격 칸 y %s~)" % [d, a.attack])
+	u.free()
+	return check(bad.is_empty(), "%s" % [bad])
+
+# EV758 · S172 2026-11-05 변경 ①②: 철퇴 젖힘(2px 듦) → 쓸어 멈춤(북쪽 행), 돌진 웅크림 → 내닫음(동쪽 행)
+func ev758():
+	var a = _chief_art()
+	if a == null:
+		return NO_CHIEF % [CHIEF.keys()]
+	var c: float = a.c
+	var s := _chief()
+	var b = s[0]
+	var v = s[1]
+	var e = s[2]
+	var bad := []
+	var north := -PI / 2.0
+	e.cast = {"id": "cleave", "left": 1.0, "dir": north}
+	var early = _one(v, e)
+	_expect(bad, "철퇴 예고 left 1.0", early, Rect2(a.x, a.idle + 2 * c, c, c))
+	e.cast = {"id": "cleave", "left": 0.3, "dir": north}
+	var late = _one(v, e)
+	_expect(bad, "철퇴 예고 left 0.3", late, Rect2(a.x, a.cleave + 2 * c, c, c))
+	if early != null and late != null and absf(late[0].position.y - (early[0].position.y - 2.0)) > 0.01:
+		bad.append("철퇴 예고 들어 올림: y %s → %s" % [early[0].position.y, late[0].position.y])
+	e.cast = null
+	b.traces.append(_chief_trace(e, "cleave", Vector2(10, 10), 0.05, {"dir": north, "range": 2.5, "arc": 120.0}))
+	_expect(bad, "철퇴 흔적 0.05초", _one(v, e), Rect2(a.x + c, a.cleave + 2 * c, c, c))
+	b.traces.clear()
+	e.cast = {"id": "charge", "left": 0.3, "dir": 0.0, "to": Vector2(16, 10)}
+	_expect(bad, "돌진 예고 left 0.3", _one(v, e), Rect2(a.x, a.charge + c, c, c))
+	e.cast = null
+	b.traces.append(_chief_trace(e, "charge", Vector2(10, 10), 0.05, {"from": Vector2(4, 10), "width": 1.0}))
+	_expect(bad, "돌진 흔적 0.05초", _one(v, e), Rect2(a.x + c, a.charge + c, c, c))
+	v.free()
+	return check(bad.is_empty(), "%s" % [bad])
+
+# EV759 · S172 2026-11-05 변경 ①②: 폭탄 듦 → 내던짐(남쪽 행), 집게 던지기 예고는 정지 그림(2px 듦), 발동 뒤 집음 → 치켜듦
+func ev759():
+	var a = _chief_art()
+	if a == null:
+		return NO_CHIEF % [CHIEF.keys()]
+	var c: float = a.c
+	var s := _chief()
+	var b = s[0]
+	var v = s[1]
+	var e = s[2]
+	var bad := []
+	e.cast = {"id": "bombs", "left": 0.3, "spots": [Vector2(10, 6)]}
+	_expect(bad, "폭탄 예고 left 0.3", _one(v, e), Rect2(a.x, a.bombs, c, c))
+	e.cast = null
+	b.traces.append(_chief_trace(e, "bombs", Vector2(10, 6), 0.05, {"radius": 0.8}))
+	_expect(bad, "폭탄 흔적 0.05초", _one(v, e), Rect2(a.x + c, a.bombs, c, c))
+	b.traces.clear()
+	e.cast = {"id": "fling", "left": 1.0}
+	var early = _one(v, e)
+	_expect(bad, "집게 던지기 예고 left 1.0", early, Rect2(a.x, a.idle, c, c))
+	e.cast = {"id": "fling", "left": 0.3}
+	var late = _one(v, e)
+	_expect(bad, "집게 던지기 예고 left 0.3", late, Rect2(a.x, a.idle, c, c))
+	if early != null and late != null and absf(late[0].position.y - (early[0].position.y - 2.0)) > 0.01:
+		bad.append("집게 던지기 예고 들어 올림: y %s → %s" % [early[0].position.y, late[0].position.y])
+	e.cast = null
+	for k in [[0.05, 0], [0.2, 1]]:
+		b.traces.clear()
+		b.traces.append(_chief_trace(e, "fling", e.pos, k[0]))
+		_expect(bad, "집게 던지기 흔적 %s초" % k[0], _one(v, e), Rect2(a.x + k[1] * c, a.fling, c, c))
+	b.traces.clear()
+	b.traces.append(_chief_trace(e, "fling", e.pos, 0.35))
+	var gone = _one(v, e)
+	if gone == null or Rect2(a.x, a.fling, 2 * c, 4 * c).encloses(gone[1]):
+		bad.append("집게 던지기 흔적 0.35초: %s(기대 fling 띠 밖)" % [gone])
+	v.free()
+	return check(bad.is_empty(), "%s" % [bad])
+
+# 뜬 몸의 그림자 수도 세는 기록 화면
+class Shade extends Rec:
+	var shades := 0
+
+	func _shadow(_at: Vector2, _r: float) -> void:
+		shades += 1
+
+# EV760 · S172 2026-11-05 변경 ③: 부서진 뒤 뜬 동안 착지 0열(한가운데 10px 듦, 그림자), 착지 뒤 0.15초 착지 1열, 그 뒤 정지
+func ev760():
+	var a = _chief_art()
+	if a == null:
+		return NO_CHIEF % [CHIEF.keys()]
+	var c: float = a.c
+	var b = battle({"base_hp": BIG})
+	var v = Shade.new()
+	v.battle = b
+	var e = b.spawn_enemy("war_machine", Vector2i(10, 10), STILL.merged({"hp": 10}))
+	_one(v, e)
+	b.damage(e, 50.0, "true")
+	if e.kind != "chief" or e.cast == null or not e.cast.get("air", false):
+		v.free()
+		return "부서진 뒤 종류 %s · cast %s" % [e.kind, e.cast]
+	var bad := []
+	_expect(bad, "부서진 직후", _one(v, e), Rect2(a.x, a.leap, c, c))
+	e.cast.left = e.skills.leap.air / 2.0
+	v.shades = 0
+	var mid = _one(v, e)
+	_expect(bad, "뜬 한가운데", mid, Rect2(a.x, a.leap, c, c))
+	if v.shades != 1:
+		bad.append("그림자 %d개" % v.shades)
+	e.cast = null
+	var ground = _one(v, e)
+	if mid == null or ground == null or absf(mid[0].position.y - (ground[0].position.y - 10.0)) > 0.01:
+		bad.append("뜬 높이: %s → 땅 %s" % [mid, ground])
+	b.traces.append(_chief_trace(e, "slam", e.pos, 0.05, {"radius": 2.5}))
+	_expect(bad, "착지 흔적 0.05초", _one(v, e), Rect2(a.x + c, a.leap, c, c))
+	b.traces.clear()
+	b.traces.append(_chief_trace(e, "slam", e.pos, 0.3, {"radius": 2.5}))
+	var after = _one(v, e)
+	if not _small_cell(after, a) or after[1].position.y < a.idle or after[1].position.y >= a.idle + 4 * c:
+		bad.append("착지 흔적 0.3초: %s(기대 정지 칸 y %s~)" % [after, a.idle])
+	v.free()
+	return check(bad.is_empty(), "%s" % [bad])
+
+# 차례 기록 화면에 잔해 그리기도 모으는 화면
+class WreckOrder extends Order:
+	func _wreck(w: Dictionary) -> void:
+		order.append(["wreck", w])
+
+# (10,11)에서 (10,10)으로 옮겨 북쪽을 보게 그린 뒤 참 피해 50으로 부순 전쟁 기계(체력 10)
+func _broken(b, v):
+	var e = b.spawn_enemy("war_machine", Vector2i(10, 11), STILL.merged({"hp": 10}))
+	_one(v, e)
+	e.pos = Vector2(10, 10)
+	_one(v, e)
+	b.damage(e, 50.0, "true")
+	return e
+
+# EV761 · S172 2026-11-05 변경 ⑥: 부서진 자리에 기계가 보던 쪽의 잔해, 끝 0.5초 흐림, 5초 뒤 지움, 대장 몸통보다 먼저
+func ev761():
+	if not View.ART.has("wreck"):
+		return "heroes.json에 wreck 칸이 없다"
+	var w: Dictionary = View.ART.wreck
+	var c: float = w.c
+	var b = battle({"base_hp": BIG})
+	var v = _rec(b)
+	if not v.has_method("_wreck"):
+		v.free()
+		return "화면에 _wreck이 없다"
+	var e = _broken(b, v)
+	var list = b.get("wrecks")
+	if list == null or list.size() != 1 or not list[0].at.is_equal_approx(Vector2(10, 10)):
+		v.free()
+		return "잔해 기록 %s(종류 %s)" % [list, e.kind]
+	var bad := []
+	var want := Rect2(w.get("x", 0), w.idle + 2 * c, c, c)
+	for case in [[0.0, 1.0], [4.75, 0.5]]:
+		list[0].age = case[0]
+		v.cuts = []
+		v._wreck(list[0])
+		if v.cuts.size() != 1 or not v.cuts[0][1].is_equal_approx(want) or absf(v.cuts[0][2].a - case[1]) > 0.01:
+			bad.append("%.2f초: %s(기대 %s · 알파 %s)" % [case[0], v.cuts, want, case[1]])
+	list[0].age = 4.75
+	b.step(0.3)
+	if not b.wrecks.is_empty():
+		bad.append("5초 뒤 잔해 기록 %s" % [b.wrecks])
+	v.free()
+	var b2 = battle({"base_hp": BIG})
+	var o = WreckOrder.new()
+	o.battle = b2
+	var m = _broken(b2, o)
+	o._foes = [m]
+	o.order = []
+	o._bodies()
+	var order: Array = o.order
+	o.free()
+	var at_w := -1
+	for i in order.size():
+		if order[i][0] == "wreck":
+			at_w = i
+			break
+	var at_m := _seen_at(order, "body", m)
+	if at_w < 0 or at_m[0] < 0 or at_w > at_m[0]:
+		bad.append("잔해 %d번째 · 대장 몸통 %s" % [at_w, at_m])
+	return check(bad.is_empty(), "%s" % [bad])
+
+# EV762 · S172 2026-11-05 변경 ⑤: 대장은 누운 자세로 눕고 끝 0.5초 동안 흐려진다
+func ev762():
+	var a = _chief_art()
+	if a == null:
+		return NO_CHIEF % [CHIEF.keys()]
+	var c: float = a.c
+	var b = battle({"base_hp": BIG})
+	var v = _rec(b)
+	var e = b.spawn_enemy("chief", Vector2i(10, 12), STILL)
+	var bad := []
+	var want := Rect2(a.x, a.fall, 2 * c, 2 * c)
+	for case in [[1.0, 1.0], [1.75, 0.5]]:
+		v.cuts = []
+		v._corpse([e, case[0]])
+		if v.cuts.size() != 1 or not v.cuts[0][1].is_equal_approx(want) or absf(v.cuts[0][2].a - case[1]) > 0.01:
+			bad.append("%.2f초: %s(기대 %s · 알파 %s)" % [case[0], v.cuts, want, case[1]])
+	v.free()
+	return check(bad.is_empty(), "%s" % [bad])
+
+# EV763 · I189 2026-11-05 변경: 대장·잔해 칸은 주민 띠 구역 오른쪽, 아틀라스 크기 그대로
+func ev763():
+	var art := _art()
+	if not art.has("chief") or not art.has("wreck"):
+		return "heroes.json에 chief·wreck 칸이 없다"
+	var size: Vector2i = load("res://art/units/heroes.png").get_image().get_size()
+	var bad := []
+	if size != Vector2i(828, 15656):
+		bad.append("heroes.png %s" % size)
+	var right := 0
+	var top := size.y
+	for k in art:
+		if k.begins_with("folk_"):
+			right = maxi(right, int(art[k].x) + 2 * int(art[k].c))
+			top = mini(top, int(art[k].idle))
+	var a: Dictionary = art.chief
+	var w: Dictionary = art.wreck
+	if int(a.get("x", -1)) != int(w.get("x", -2)) or int(a.get("x", 0)) < right:
+		bad.append("x 대장 %s · 잔해 %s · 주민 띠 오른쪽 %d" % [a.get("x"), w.get("x"), right])
+	var c: int = int(a.c)
+	var x: int = int(a.get("x", 0))
+	var rects := []  # [이름, 그림 사각형]
+	for n in CHIEF:
+		rects.append([n, Rect2i(x, int(a.get(n, 0)), CHIEF[n] * c, 4 * c)])
+	rects.append(["attack", Rect2i(x, int(a.get("attack", 0)), 2 * c, 8 * c)])
+	rects.append(["fall", Rect2i(x, int(a.get("fall", 0)), 2 * c, 2 * c)])
+	rects.append(["wreck", Rect2i(int(w.get("x", 0)), int(w.get("idle", 0)), int(w.c), 4 * int(w.c))])
+	for i in rects.size():
+		var r: Rect2i = rects[i][1]
+		if r.position.y < top or r.end.y > size.y:
+			bad.append("%s %s가 구역 y %d~%d 밖" % [rects[i][0], r, top, size.y])
+		for j in i:
+			if r.intersects(rects[j][1]):
+				bad.append("%s %s가 %s와 겹침" % [rects[i][0], r, rects[j][0]])
+	return check(bad.is_empty(), "%s" % [bad])
