@@ -140,9 +140,9 @@ func ev312():
 		if main.controls.aiming != "" or main.get_tree().paused or _button(main, "계속") != null:
 			why = "조준 중 ESC가 조준만 풀지 않았다"
 	if why == "":
-		_key(KEY_1)
-		if main.controls.placing != "wall":
-			why = "1 키로 놓기 모드가 되지 않았다"
+		_key(KEY_MINUS)
+		if main.controls.placing != "magic":
+			why = "- 키로 놓기 모드가 되지 않았다"
 		else:
 			_key(KEY_ESCAPE)
 			if main.controls.placing != "" or main.get_tree().paused or _button(main, "계속") != null:

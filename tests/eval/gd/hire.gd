@@ -86,7 +86,7 @@ func ev193():
 	var b = _hiring({"gold": 500})
 	var c = controls(b)
 	var cell := Vector2i(15, 10)
-	_key(c, KEY_1)
+	_key(c, KEY_MINUS)
 	click(c, MOUSE_BUTTON_LEFT, px(cell))
 	b.start_battle()
 	var wall = b.build("wall", cell + Vector2i(0, 2))
@@ -294,7 +294,7 @@ func ev203():
 	if b.heroes != [k, m] or b.hero != k:
 		return "출전 영웅 %s · hero %s (아이아스, 크로노스 순이어야 한다)" % [b.heroes.map(func(h): return h.kind), b.hero.kind if b.hero else "없음"]
 	var c = controls(b)
-	_key(c, KEY_F2)
+	_key(c, KEY_2)
 	var picked: bool = c.selected == [m]
 	b.start_battle()  # 스킬은 전투 단계에만 쓴다(S136)
 	_key(c, KEY_E)
@@ -308,7 +308,7 @@ func ev203():
 	b.start_battle()
 	_key(c, KEY_E)
 	var first_e: bool = k.skill_uses == 1 and m.skill_uses == 1 and p.skill_uses == 0
-	return check(picked and second_e and first_e, "F2로 크로노스 고름 %s · 크로노스가 E %s · 다음 라운드엔 아이아스가 E %s" % [picked, second_e, first_e])
+	return check(picked and second_e and first_e, "2 키로 크로노스 고름 %s · 크로노스가 E %s · 다음 라운드엔 아이아스가 E %s" % [picked, second_e, first_e])
 
 # EV232 · I127: 보유 영웅이 상한이면 리롤은 거부되고 골드와 목록이 그대로다
 func ev232():

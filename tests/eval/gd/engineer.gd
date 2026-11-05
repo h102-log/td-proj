@@ -217,12 +217,6 @@ func _live(b):
 	b.live_prep = true
 	return b
 
-func _tap(c, key: int) -> void:
-	var ev := InputEventKey.new()
-	ev.keycode = key
-	ev.pressed = true
-	c.handle(ev)
-
 # 그 종류를 놓을 수 있는 칸 가운데 want에 가장 가까운 칸
 func _nearest(b, kind: String, want: Vector2i) -> Vector2i:
 	var best: Vector2i = b.placeable_cells(kind)[0]
@@ -278,7 +272,7 @@ func ev416():
 	var vl: int = b.village_level
 	return check(b.raise_village() and b.village_level == vl + 1, "마을 레벨 올리기 %d → %d" % [vl, b.village_level])
 
-# EV417 · I20: 준비 단계 실시간 판의 준비 단계 구매는 시설 옆에 나와 집결 지점으로 걷는다. 3 키는 시설을 고르고 다시 누르면 산다. 칸을 눌러 놓지 않는다
+# EV417 · I20: 준비 단계 실시간 판의 준비 단계 구매는 시설 옆에 나와 집결 지점으로 걷는다. 건설 격자 용병 칸(merc_key)은 시설을 고르고 다시 누르면 산다. 칸을 눌러 놓지 않는다
 func ev417():
 	var b = _battle()
 	var f = b.build("barracks", Vector2i(10, 3))
@@ -293,12 +287,12 @@ func ev417():
 		return "10초 안에 집결 지점에 닿지 않았다(%s)" % m.pos
 	var c = controls(b)
 	var n: int = b.units.size()
-	_tap(c, KEY_3)
+	c.merc_key("soldier")  # 건설 격자 용병 칸과 같다. 용병 키 3은 없다(I108 2026-11-06 변경)
 	if c.placing != "" or c.facility != f:
-		return "3 키 뒤 놓기 모드 «%s» · 고른 시설 %s" % [c.placing, c.facility]
-	_tap(c, KEY_3)
+		return "용병 칸 뒤 놓기 모드 «%s» · 고른 시설 %s" % [c.placing, c.facility]
+	c.merc_key("soldier")  # 건설 격자 용병 칸과 같다. 용병 키 3은 없다(I108 2026-11-06 변경)
 	if b.units.size() != n + 1:
-		return "3 키를 다시 넣어도 용병 %d → %d" % [n, b.units.size()]
+		return "용병 칸을 다시 눌러도 용병 %d → %d" % [n, b.units.size()]
 	var cell := Vector2i(20, 14)
 	click(c, MOUSE_BUTTON_LEFT, px(cell))
 	return check(b.units.size() == n + 1 and not b.occupied(cell), "빈 칸 클릭 뒤 유닛 %d(%d여야 한다) · 그 칸에 유닛 %s" % [b.units.size(), n + 1, b.occupied(cell)])

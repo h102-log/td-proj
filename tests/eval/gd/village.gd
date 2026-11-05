@@ -23,8 +23,8 @@ func _key(c, key: int) -> void:
 	ev.pressed = true
 	c.handle(ev)
 
-func _soldiers(b) -> int:
-	return b.units.filter(func(u): return u.kind == "soldier").size()
+func _archers(b) -> int:
+	return b.units.filter(func(u): return u.kind == "archer").size()
 
 # EV110 · S98: 병영은 궁수를 팔지 않는다. 종류를 비우면 용병이다
 func ev110():
@@ -83,28 +83,29 @@ func ev115():
 	click(c, MOUSE_BUTTON_LEFT, px(OUT))
 	return check(not c.village, "빈 칸을 클릭해도 거점이 골라져 있다")
 
-# EV116 · S50: 마을이 있으면 병영이 있어야 준비 단계에 용병을 산다
+# EV116 · S50: 마을이 있으면 그 용병의 시설이 있어야 준비 단계에 용병을 산다. 궁수(7)와 사격장으로 잰다(용병 키 3은 없다, I108 2026-11-06 변경)
 func ev116():
 	var b = _battle()
 	var c = controls(b)
 	var gold0: int = b.gold
-	_key(c, KEY_3)
+	_key(c, KEY_7)
 	click(c, MOUSE_BUTTON_LEFT, px(OUT))
-	if _soldiers(b) != 0 or b.gold != gold0:
-		return "병영 없이 용병이 놓였다(골드 %d → %d)" % [gold0, b.gold]
-	click(c, MOUSE_BUTTON_RIGHT, px(OUT))  # 놓기 모드를 끝낸다. 켜진 채 3 키를 다시 누르면 모드가 꺼진다(S186)
-	b.build("barracks", F)
-	_key(c, KEY_3)
+	if _archers(b) != 0 or b.gold != gold0:
+		return "사격장 없이 궁수가 놓였다(골드 %d → %d)" % [gold0, b.gold]
+	click(c, MOUSE_BUTTON_RIGHT, px(OUT))  # 놓기 모드를 끝낸다. 켜진 채 7 키를 다시 누르면 모드가 꺼진다(S186)
+	b.raise_village()  # 사격장은 마을 Lv2부터(S98)
+	b.build("archery", F)
+	_key(c, KEY_7)
 	click(c, MOUSE_BUTTON_LEFT, px(OUT))
-	return check(_soldiers(b) == 1, "병영을 지은 뒤에도 용병이 놓이지 않았다")
+	return check(_archers(b) == 1, "사격장을 지은 뒤에도 궁수가 놓이지 않았다(마을 Lv%d · 사격장 %s)" % [b.village_level, b.structure_at(F)])
 
-# EV117 · S50: 마을이 없으면 시설 없이 준비 단계에 용병을 산다
+# EV117 · S50: 마을이 없으면 시설 없이 준비 단계에 용병을 산다. 궁수(7)로 잰다(용병 키 3은 없다, I108 2026-11-06 변경)
 func ev117():
 	var b = battle({"base_hp": BIG})
 	var c = controls(b)
-	_key(c, KEY_3)
+	_key(c, KEY_7)
 	click(c, MOUSE_BUTTON_LEFT, px(OUT))
-	return check(_soldiers(b) == 1, "마을이 없는데 용병이 놓이지 않았다")
+	return check(_archers(b) == 1, "마을이 없는데 궁수가 놓이지 않았다")
 
 # EV118 · S98: 레벨 2에서 9 키 뒤 마을 칸을 좌클릭하면 사격장이 지어진다
 func ev118():

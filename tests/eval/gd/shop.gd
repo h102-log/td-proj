@@ -84,7 +84,7 @@ func ev654():
 	var picks_closed: bool = not (c.picked + c.selling).is_empty()
 	c.picked = []
 	c.selling = []
-	_key(KEY_1)
+	_key(KEY_MINUS)
 	_frame(main)
 	var placing_before: bool = c.placing != ""
 	_key(KEY_T)
@@ -94,7 +94,7 @@ func ev654():
 	var words := " ".join(_labels(hud.window))
 	var toggles: Array = hud.window.find_children("*", "BaseButton", true, false).filter(func(n): return n.is_visible_in_tree() and (n.text.ends_with("출전") or n.text.ends_with("대기")))
 	if not (picks_closed and placing_before):
-		out = "준비가 틀렸다: 창이 닫혀 있을 때 클릭으로 골라짐 %s · 1 키로 놓기 모드 %s" % [picks_closed, placing_before]
+		out = "준비가 틀렸다: 창이 닫혀 있을 때 클릭으로 골라짐 %s · - 키로 놓기 모드 %s" % [picks_closed, placing_before]
 	elif not hud.window.visible or hud.dim.visible:
 		out = "창 보임 %s · 맵 덮개 보임 %s(창은 보이고 덮개는 없어야 한다)" % [hud.window.visible, hud.dim.visible]
 	elif not ("영입" in words and "출전·내보내기는 라운드 사이에" in words) or _focus_text(main) != "닫기 (T)":
@@ -106,12 +106,12 @@ func ev654():
 	elif hud.grid.visible or c.placing != "":
 		out = "창을 연 뒤 건설 격자 보임 %s · 놓기 모드 «%s»(숨고 꺼져야 한다)" % [hud.grid.visible, c.placing]
 	if out == "":
-		_key(KEY_1)
+		_key(KEY_MINUS)
 		_frame(main)
 		click(c, MOUSE_BUTTON_LEFT, px(t.cell))
 		_frame(main)
 		if c.placing != "" or not (c.picked + c.selling).is_empty():
-			out = "창이 열린 동안 1 키에 놓기 모드 «%s» · 타워 클릭에 골라짐 %s(둘 다 없어야 한다)" % [c.placing, c.picked + c.selling]
+			out = "창이 열린 동안 - 키에 놓기 모드 «%s» · 타워 클릭에 골라짐 %s(둘 다 없어야 한다)" % [c.placing, c.picked + c.selling]
 	if out == "":
 		b.offers = ["seraphina", "", ""]
 		_frame(main)  # 카드 글은 HUD 프레임에서 목록을 읽어 정한다
