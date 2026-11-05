@@ -730,7 +730,8 @@ WAR = {"cannon": [dict(IDLE, cannon=1), dict(IDLE, cannon=2)],  # 조준 → 발
        "slam": [dict(IDLE, arm_l=RAISE, arm_r=RAISE), dict(IDLE, arm_l=SMASH, arm_r=SMASH, dust=True)]}  # 들어 올림 → 내려찍음
 MOVES = {"sapper": {"walk": B.WALK, "attack": SAPPER_FUSE, "fall": H.FALL}, "chief": {"walk": B.WALK, "attack": CHIEF_SWING, "cleave": CHIEF_CLEAVE, "charge": CHIEF_CHARGE, "fling": CHIEF_FLING,
                    "bombs": CHIEF_BOMBS, "leap": CHIEF_LEAP,
-                   "rage_idle": [dict(IDLE, cape=False)], "rage_walk": [dict(w, cape=False) for w in B.WALK]},  # 분노: 망토를 찢어 던진 정지·걷기. 붉은 칠은 게임 몫
+                   "rage_idle": [dict(IDLE, cape=False)], "rage_walk": [dict(w, cape=False) for w in B.WALK],  # 분노: 망토를 찢어 던진 정지·걷기. 붉은 칠은 게임 몫
+                   "fall": [dict(f, cape=False) for f in H.FALL]},  # 쓰러짐: 망토 없는 몸(대개 분노 중에 죽는다, S172 2026-11-05 변경 ⑤)
          "war_machine": {"walk": B.WALK, **WAR},
          "ram": {"walk": B.WALK, "attack": RAM_HIT}, "catapult": {"walk": B.WALK, "attack": CATAPULT_THROW},
          "siege_tower": {"walk": B.WALK, "attack": TOWER_DROP},

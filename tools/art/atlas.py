@@ -9,6 +9,7 @@
 # 묶음 ②-a 세 종(I189 2026-11-03 둘째 변경)은 둘째 옆 열 오른쪽의 셋째 옆 열에 위에서부터 쌓는다(x만, 누운 자세 없음). 둘째 옆 열에 남은 높이가 모자라 아틀라스 폭이 는다
 # 전쟁 기계(I189 2026-11-03 셋째 변경)는 셋째 옆 열 오른쪽의 넷째 옆 열에 쌓는다(x만). 스킬 자세(대포·기관총·집어 던지기·내려찍기)는 시트 열을 모두 담은 c×c 칸이다
 # 주민(S172 2026-10-26·27 변경)은 몸마다 folk.py 시트 한 장을 그대로 붙이고, look마다 x로 가른다(folk_<몸>_<look>). 일 자세는 자세 이름이 그 첫 행의 y다
+# 고블린 대장과 수레 잔해(I189 2026-11-05 변경)는 주민 띠 구역 오른쪽에 위에서부터 쌓는다(x만). 대장 칸 4324px은 옆 열 구역 4032px에 들지 않는다
 # 시설(4.1e)은 48×48 칸을 따로 한 장에 모은다(facility())
 # 사용: python tools/art/atlas.py → art/units/heroes.png, art/units/heroes.json, art/castle/walls.png, art/castle/keep.png, art/castle/ladder.png, art/castle/facility.png
 import json
@@ -23,12 +24,15 @@ FOUR = {"soldier": "soldier", "archer": "archer", "engineer": "engineer", "basic
 FOLK = ["man", "woman", "boy", "girl", "old_man", "old_woman", "lad", "lass"]  # 주민 몸(S221, 청소년 S232)
 FOUR_ROWS = [0, 2, 4, 6]  # 8방향 시트(render.DIRS 순서)에서 S·E·N·W
 FOUR_COLS = {"idle": [0], "walk": [0, 1], "attack": [1], "fall": [4], "crouch": [0], "air": [0], "land_idle": [0], "land_walk": [0, 1],
-             "cannon": [0, 1], "mgun": [0, 1, 2], "grab": [0, 1, 2], "slam": [0, 1]}  # 걷기 접지·통과, 공격 내려침, 쓰러짐 마지막(누운 자세). 전쟁 기계 스킬은 시트 열을 모두 쓴다
+             "cannon": [0, 1], "mgun": [0, 1, 2], "grab": [0, 1, 2], "slam": [0, 1],
+             "rage_idle": [0], "rage_walk": [0, 1], "cleave": [0, 1], "charge": [0, 1], "fling": [0, 1], "bombs": [0, 1], "leap": [0, 1]}  # 걷기 접지·통과, 공격 내려침, 쓰러짐 마지막(누운 자세). 전쟁 기계·대장 스킬은 시트 열을 모두 쓴다
 ONE = {k: k for k in ("slimelet", "slime", "big_slime", "slime_king")}  # 방향 없는 적(S172 2026-10-27 넷째 변경): 게임 종류 → 그림 폴더
 WOLVES = {"wolf": (), "leap_wolf": ("crouch",), "night_wolf": (), "alpha_wolf": ("crouch", "air")}  # 옆 열 4방향 적(S172 2026-10-29 변경) → 더 굽는 자세
 RAID = {"sapper": ("fall",), "ram": (), "catapult": (), "glider": ("fall", "land_idle", "land_walk")}  # 둘째 옆 열 4방향 적(S172 2026-11-03 변경) → 정지·걷기·공격 말고 넣는 자세
 SIEGE = ["siege_tower", "balloon", "airship"]  # 셋째 옆 열 4방향 적(S172 2026-11-03 둘째 변경): 정지·걷기·공격만
 WAR = {"war_machine": ["idle", "walk", "cannon", "mgun", "grab", "slam"]}  # 넷째 옆 열 4방향 적(S172 2026-11-03 셋째 변경) → 자세. 공격·누운 자세 없음
+TOWN_SIDE = {"chief": ["idle", "walk", "attack", "rage_idle", "rage_walk", "cleave", "charge", "fling", "bombs", "leap", "fall"],
+             "wreck": ["idle"]}  # 주민 띠 오른쪽 4방향 칸(S172 2026-11-05 변경): 고블린 대장, 그 아래 수레 잔해 → 자세
 
 
 def _sheet(folder, a):
@@ -116,6 +120,7 @@ def main():
             oy += im.height
         meta[kind] = m
     assert oy <= y, f"넷째 옆 열 칸({top}~{oy})이 용병·적 칸 구역({top}~{y})을 넘는다"
+    town = y  # 주민 띠 구역이 시작하는 y
     fit = json.loads(Path("art/trial/folk/fit.json").read_text(encoding="utf-8"))
     c = fit["c"]
     for body in FOLK:  # look마다 가로 2칸 띠: 0~3행 정지(1열), 4~7행 걷기(2열), 그 아래 일 자세(S172 2026-10-27 변경, 첫 행은 fit.json rows)
@@ -126,6 +131,17 @@ def main():
             meta[f"folk_{body}_{look}"] = dict(m, **have)  # 굽지 않은 자세(사제 띠의 일 자세·등짐, I187 ③)는 키를 두지 않는다
         sheets.append((im, 0, y))
         y += im.height
+    x5 = max(ox + im.width for im, ox, oy in sheets if oy >= town)  # 주민 띠 오른쪽: 가장 넓은 주민 띠 폭만큼 옆(I189 2026-11-05 변경)
+    oy = town
+    for kind, anims in TOWN_SIDE.items():
+        m = dict(_fit(kind), x=x5)
+        for a in anims:
+            im = _cut(_sheet(kind, a), m["c"], a, [0] if a == "fall" else FOUR_ROWS)
+            sheets.append((im, x5, oy))
+            m[a] = oy
+            oy += im.height
+        meta[kind] = m
+    assert oy <= y, f"주민 띠 오른쪽 칸({town}~{oy})이 주민 띠 구역({town}~{y})을 넘는다"
     out = Image.new("RGBA", (max(ox + im.width for im, ox, _ in sheets), y))
     for im, ox, oy in sheets:
         out.paste(im, (ox, oy))
