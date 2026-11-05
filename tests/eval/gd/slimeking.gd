@@ -199,3 +199,13 @@ func ev595():
 	var gap: float = s.pos.distance_to(e.pos) - (s.radius + e.radius)
 	var hit := run(b, 2.0, func(): return e.hp < e.max_hp)
 	return check(hit and gap > -0.01, "몸이 닿은 병사가 킹을 %s, 겹친 슬라임과의 틈 %.3f칸" % ["쳤다" if hit else "치지 않았다", gap])
+
+# EV755 · S13 2026-11-05 변경: 몸이 큰 킹도 몸에 닿은 유닛을 친다(중심 거리가 1칸보다 멀어도)
+func ev755():
+	var b = battle({"base_hp": BIG})
+	if not b.ENEMY_KINDS.has("slime_king"):
+		return "적 종류 slime_king이 없다"
+	b.spawn_enemy("slime_king", KING, {"speed": 0, "sight": 0, "skills": {}})
+	var m = b.place_merc("soldier", Vector2i(12, 10), MERC)
+	var hit := run(b, 3.0, func(): return m.hp < m.max_hp)
+	return check(hit, "3초 안 병사 피해 %s(병사 자리 %s)" % [hit, m.pos])

@@ -15,6 +15,7 @@ const ENEMY_COLORS := {  # 적 종류마다 다른 색(I81)
 	"wolf": Color("8a7a68"), "leap_wolf": Color("b08850"), "night_wolf": Color("3a3a58"), "alpha_wolf": Color("d8d8d0"),
 	"sapper": Color("c05828"), "ram": Color("6a4a30"), "catapult": Color("a08048"), "glider": Color("c8b868"),
 	"siege_tower": Color("586068"), "balloon": Color("e8d0a0"), "airship": Color("7090b0"), "war_machine": Color("4a4038"),
+	"chief": Color("a02838"),
 }
 const HERO_COLORS := {  # 영웅 종류마다 다른 색(S56, S157, I101)
 	"aias": Color("b060f0"), "sylvia": Color("a0ff40"), "seraphina": Color("f0f0f0"), "vesper": Color("40c060"), "ignis": Color("ff5020"), "chronos": Color("ffd020"),
@@ -146,7 +147,7 @@ const FOE_FX := ["stun", "root", "expose", "taunt", "seal", "chain", "dot"]  # �
 const DEBUFFS := ["slow", "weaken", "armor", "mr"]  # 적 능력치 감소 줄의 왼쪽부터 차례(I101 2026-11-04 변경). fx 아틀라스 «down» 프레임 차례와 같다(tools/art/fx.py)
 const FOE_TELL := Color("ef692f")  # 일반 적 예고(S279): F24+ 주황 1px 테가 BLINK초마다 켜졌다 꺼진다. 안쪽은 칠하지 않는다
 const BLINK := 0.25
-const UNSEEN_TELLS := ["pounce", "throw", "bomb", "drop", "cannon"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287). 덮개 위 층에 그린다
+const UNSEEN_TELLS := ["pounce", "throw", "bomb", "drop", "cannon", "bombs"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287)·대장 폭탄(S288). 덮개 위 층에 그린다
 const TELL := Color("ef3a0c")  # 보스 스킬 예고(S194): F24+ 빨강 테(바깥 어두운 테는 PX.maroon), 안쪽 성긴 칠이 차오른다(S198 fx-4)
 const RAGE := Color(1.5, 0.55, 0.55)  # 분노한 보스(S195)를 붉게 그리는 modulate
 const CROUCH := Vector2(1.15, 0.75)  # 슬라임 킹이 웅크림 끝에 납작해지는 배율(가로·세로, S198). 임시값
@@ -746,7 +747,7 @@ func _traces(top: bool) -> void:
 				_rewind(at, int(CELL * c.radius), c, top)
 				continue
 		var k: float = c.age / FX
-		if top and k < 1.0 and _boss(h):  # 보스 스킬(S198): 고리가 반경의 절반에서 1.1배까지 퍼진다. 예고색 램프(F24+, fx-4)
+		if top and k < 1.0 and _boss(h) and c.radius > 0.0:  # 보스 스킬(S198): 원 모양 스킬의 고리가 반경의 절반에서 1.1배까지 퍼진다. 예고색 램프(F24+, fx-4). 부채꼴·직선(대장 철퇴·돌진, S288)은 반경 0이라 고리가 없다
 			_pring(at, int(CELL * c.radius * (0.5 + 0.6 * _out(k))), 2 if k < 0.5 else 1, _ramp(["orange", "red", "blood"], k))
 	_fade = 1.0
 	for z in battle.zones:  # 떨어지는 운석(이그니스 R): 마지막 FALL초 동안 오른쪽 위에서 내려온다
@@ -3308,29 +3309,35 @@ func _tells() -> void:
 		if not e.skills.has(e.cast.id):  # 일반 적 예고(S279): 폭파병 도화선
 			_foe_tell(e)
 			continue
-		if e.cast.id == "mgun":  # 전쟁 기계 기관총(S287)은 부채꼴
+		if e.cast.id == "mgun" or e.cast.id == "cleave":  # 전쟁 기계 기관총(S287)·대장 철퇴(S288)는 부채꼴
 			_fan_tell(e)
+			continue
+		if e.cast.id == "charge":  # 대장 돌진(S288)은 직선
+			_line_tell(e)
 			continue
 		_boss_tell(e)
 	for f in _fills.filter(func(f): return battle.seen(f[0].at)):
 		if f[0].has("arc"):
 			var c := _center(f[0].at)
 			_poly(PackedVector2Array([c]) + _fan_rim(c, CELL * f[0].range, f[0].dir, f[0].arc), Color(TELL, 0.6))
+		elif f[0].has("from"):  # 대장 돌진(S288): 지나간 길
+			_poly(_strip(_center(f[0].from), _center(f[0].at), CELL * f[0].width), Color(TELL, 0.6))
 		else:
 			_pdisc(Vector2i(_center(f[0].at).floor()), int(CELL * f[0].radius), Color(TELL, 0.6))
 
-# 보스 원 예고(S194): 빨강 테와 차오르는 성긴 칠
+# 보스 원 예고(S194): 빨강 테와 차오르는 성긴 칠. 대장 폭탄(S288)은 자리(spots)마다 하나씩
 func _boss_tell(e) -> void:
 	var sk: Dictionary = e.skills[e.cast.id]
 	var k: float = 1.0 if e.cast.get("air", false) else 1.0 - e.cast.left / sk.windup
-	var at := Vector2i(_center(e.cast.get("at", e.pos)).floor())  # 점프(S236)는 착지 자리에, 뜬 동안은 가득 찬 채로(S198)
 	var r := int(CELL * sk.radius)
-	_pnoise(at, int(r * k), TELL, TELL_FILL)
-	_edge(at, r, TELL, PX.maroon)
+	for p in e.cast.get("spots", [e.cast.get("at", e.pos)]):  # 점프(S236)·착지(S288)는 착지 자리에, 뜬 동안은 가득 찬 채로(S198)
+		var at := Vector2i(_center(p).floor())
+		_pnoise(at, int(r * k), TELL, TELL_FILL)
+		_edge(at, r, TELL, PX.maroon)
 
-# 기관총 예고(S287): 부채꼴(반경 range, 각 arc) 빨강 테와 차오르는 안쪽. 발사 동안은 테와 지금 총구 방향의 선(I223)
+# 기관총 예고(S287)·대장 철퇴 예고(S288): 부채꼴(반경 range, 각 arc) 빨강 테와 차오르는 안쪽. 기관총 발사 동안은 테와 지금 총구 방향의 선(I223)
 func _fan_tell(e) -> void:
-	var sk: Dictionary = e.skills.mgun
+	var sk: Dictionary = e.skills[e.cast.id]
 	var c := _center(e.pos)
 	var r: float = CELL * sk.range
 	var rim := _fan_rim(c, r, e.cast.dir, sk.arc)
@@ -3349,6 +3356,24 @@ func _fan_tell(e) -> void:
 	_pline(Vector2i(c.floor()), Vector2i(rim[n].floor()), TELL)
 	for i in n:
 		_pline(Vector2i(rim[i].floor()), Vector2i(rim[i + 1].floor()), TELL)
+
+# 대장 돌진 예고(S288): 대장에서 멈출 자리(to, I230 ④)까지 폭 width 띠의 빨강 테와, 대장 쪽에서 남은 시간만큼 차오르는 안쪽
+func _line_tell(e) -> void:
+	var sk: Dictionary = e.skills[e.cast.id]
+	var a := _center(e.pos)
+	var b := _center(e.cast.to)
+	var w: float = CELL * sk.width
+	var k: float = clampf(1.0 - e.cast.left / sk.windup, 0.0, 1.0)
+	if k > 0.05:
+		_poly(_strip(a, a.lerp(b, k), w), Color(TELL, 0.25 * _fade))
+	var rim := _strip(a, b, w)
+	for i in 4:
+		_pline(Vector2i(rim[i].floor()), Vector2i(rim[(i + 1) % 4].floor()), TELL)
+
+# a에서 b까지(px) 폭 w px 띠의 네 모서리
+func _strip(a: Vector2, b: Vector2, w: float) -> PackedVector2Array:
+	var n := (b - a).normalized().orthogonal() * w / 2.0
+	return PackedVector2Array([a + n, b + n, b - n, a - n])
 
 # 부채꼴(가운데 c, 반경 r px, 가운데 방향 dir, 각 arc도)의 테 점 n + 1개
 func _fan_rim(c: Vector2, r: float, dir: float, arc: float, n := 24) -> PackedVector2Array:
@@ -3422,12 +3447,12 @@ func _ladder(t, grow: float) -> void:
 		_region(LADDER, Rect2(x, y, w, n), Rect2(0, sy, w, n), Color.WHITE)
 		y += n
 
-# 숨어도 그리는 예고: 일반 적(S279)의 던지기·폭탄·투하와 전쟁 기계 대포(S287, S213 2026-11-03 변경)는 성곽·어둠 덮개 위 층에 그린다
+# 숨어도 그리는 예고: 일반 적(S279)의 던지기·폭탄·투하와 전쟁 기계 대포(S287, S213 2026-11-03 변경)·대장 폭탄(S288)은 성곽·어둠 덮개 위 층에 그린다
 func _foe_tells() -> void:
 	for e in tellers(_foes):
 		if e.cast.id in UNSEEN_TELLS and not e.skills.has(e.cast.id):
 			_foe_tell(e)
-		elif e.cast.id == "cannon":
+		elif e.cast.id == "cannon" or e.cast.id == "bombs":  # 대장 폭탄(S288)도 대포처럼 숨어도 그린다
 			_boss_tell(e)
 
 # 보스: 스킬(S194)이 있는 적

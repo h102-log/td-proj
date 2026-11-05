@@ -316,6 +316,11 @@ const STILL := {"hp": BIG, "speed": 0.0, "damage": 0.0}  # 움직이지도 치�
 func _no_chief(b) -> String:
 	return "" if b.ENEMY_KINDS.has("chief") else "적 종류 chief가 없다"
 
+# secs초를 스텝 수로 센다. run()은 DT를 더해 가며 재서 0.5초가 11스텝이 되기도 한다
+func _steps(b, secs: float) -> void:
+	for i in roundi(secs / DT):
+		b.step(DT)
+
 # 고블린 대장(움직이지도 치지도 않음). only가 배열이면 그 스킬만 남긴다
 func _chief(b, cell: Vector2i, only = null, over := {}):
 	var sk: Dictionary = b.ENEMY_KINDS.chief.get("skills", {})
@@ -360,13 +365,13 @@ func ev745():
 	if not run(b, 0.1, func(): return _casting(e, "cannon")):
 		return "0.1초 안에 대포 예고를 시작하지 않았다(cast %s)" % [e.cast]
 	b.damage(e, 50.0, "true")
-	run(b, 0.5)
+	_steps(b, 0.5)
 	var hp0: float = e.hp
 	b.damage(e, 50.0, "true")
 	var aloft: bool = e.kind == "chief" and e.hp == hp0
-	run(b, 0.4)
+	_steps(b, 0.4)
 	var calm: bool = a.hp == a.max_hp and far.hp == far.max_hp
-	run(b, 0.2)
+	_steps(b, 0.2)
 	var hit: bool = is_equal_approx(_lost(a), 30.0) and a.pos.distance_to(Vector2(10, 10)) > 3.0 and far.hp == far.max_hp
 	return check(aloft and calm and hit,
 		"0.5초 맞지 않음 %s · 0.9초 그대로 %s · 1.1초 A −30·3칸 밖·B 그대로 %s(A 잃은 체력 %s, 자리 %s)" % [aloft, calm, hit, _lost(a), a.pos])

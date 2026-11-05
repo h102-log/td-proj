@@ -24,3 +24,7 @@ def test_EV535_shrink_size_speed_haste(gd):
 
 def test_EV595_king_body_two_cells(gd):
     gd("slimeking", "EV595")
+
+
+def test_EV755_king_hits_touching_unit(gd):
+    gd("slimeking", "EV755")

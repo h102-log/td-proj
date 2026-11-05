@@ -10,9 +10,11 @@ wall_k = 0.3
 damage = 40.0
 attack_gap = 2.5
 radius = 0.7
-reward = 50
+reward = 0
+xp = 0
 armor = 15.0
 boss = true
+phase2 = "chief"
 skills = {
 "slam": {
 "radius": 2.0,
