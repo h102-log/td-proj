@@ -3495,6 +3495,13 @@ func ev701():
 	_done(main)
 	return check("고블린 전쟁 기계: 대포와 기관총을 쏘고, 가까운 유닛을 집어 던진다" in four, "3라운드 4웨이브 줄 «%s»" % four)
 
+# EV754 · S288: 전쟁 기계의 특성 줄에 «부서지면 대장이 내린다»가 붙는다
+func ev754():
+	var main = _prep()
+	var four: String = main.hud._wave_lines([2, 3])
+	_done(main)
+	return check("고블린 전쟁 기계: 대포와 기관총을 쏘고, 가까운 유닛을 집어 던진다. 부서지면 대장이 내린다" in four, "3라운드 4웨이브 줄 «%s»" % four)
+
 # EV570 · S187: 스킬 툴팁 수치 줄은 그 스킬 사전의 값으로 채운다. 지점·대상을 고르는 스킬은 시전 거리 줄을 더한다
 func ev570():
 	var H = load("res://src/ui/hud.gd")

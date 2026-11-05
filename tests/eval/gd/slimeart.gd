@@ -164,6 +164,7 @@ func ev539():
 	var b = s[0]
 	var e = s[1]
 	var v = s[2]
+	e.cooldown = BIG  # 착지한 뒤 몸에 닿은 병사를 치지 않게(S13 2026-11-05 변경). 이 평가는 웅크림·뜸·착지 그림만 잰다
 	var a: Dictionary = View.ART.slime_king
 	var base = _one(v, e)
 	if base == null:

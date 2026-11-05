@@ -402,3 +402,7 @@ def test_EV742_population_chip_under_top_bar(gd):
 
 def test_EV743_buy_button_off_at_population_cap(gd):
     gd("hud", "EV743")
+
+
+def test_EV754_war_machine_trait_chief(gd):
+    gd("hud", "EV754")

@@ -34,3 +34,4 @@ extends Resource
 @export var cargo := 0  # 탄 고블린 수(S284 공성탑, S286 수송 비행선). 0이면 태우지 않는다
 @export var bomb := {}  # 폭탄 열기구(S285): {radius 원 반경, windup 예고 초, cd 대기 초, structure 구조물 피해, unit 아군 피해}
 @export var drop := {}  # 수송 비행선 투하(S286): {range 거점 둘레 칸, house 집 거리 칸, windup 표식 초, crash_hp 투하 전 격추 때 체력 배율}
+@export var phase2 := ""  # 체력이 0이 되면 쓰러지지 않고 이 종류가 된다(S288 전쟁 기계 → 대장). 비어 있으면 쓰러진다

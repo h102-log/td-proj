@@ -219,6 +219,7 @@ class Enemy:
 	var spot = null  # 수송 비행선의 투하 칸(I222). 아직 안 골랐으면 null
 	var by_house := false  # 투하 칸이 집 둘레다(S286)
 	var loosed := INF  # 열기구가 폭탄을, 비행선이 고블린을 떨군 뒤 초(S172 2026-11-03 둘째 변경 ②). 그리기만 읽는다
+	var phase2 := ""  # 체력이 0이 되면 쓰러지지 않고 될 종류(S288 전쟁 기계 → 대장). 비어 있으면 쓰러진다
 
 	func _init(k: String, cell: Vector2i, stats: Dictionary) -> void:
 		kind = k
@@ -3154,6 +3155,9 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 		_share(target, amount, src)
 	if target.hp > 0.0:
 		return
+	if target is Enemy and target.phase2 != "":  # 전쟁 기계는 쓰러지지 않고 대장이 된다(S288). 처치가 아니다
+		_break(target)
+		return
 	target.alive = false
 	if target is Enemy or target is Unit:
 		fallen.append({"who": target, "age": 0.0})
@@ -3392,7 +3396,8 @@ func _move(e: Enemy, dt: float) -> void:
 		_find_path(e)
 	# 기어오르는 적은 땅에서 성벽 위 유닛을 치지 않고, 그 칸으로 올라가서 친다(I77)
 	var below: bool = aim is Unit and e.climb > 0.0 and not e.on_wall and aim.on_wall and _climbable(goal)
-	if body and e.pos.distance_to(aim.pos) <= REACH and not below:
+	var reach: float = maxf(REACH, e.radius + aim.radius + 0.01) if aim is Unit else REACH  # 몸이 큰 적도 몸에 닿은 유닛은 친다(S13 2026-11-05 변경)
+	if body and e.pos.distance_to(aim.pos) <= reach and not below:
 		_attack(e, aim)
 		return
 	# 성벽 위 대포는 성벽 위에서 친다(S112). 땅에서는 아래 성벽을 치지 않고 기어오른다(S107)
@@ -3507,7 +3512,7 @@ func _ground_near(at: Vector2, r: float) -> Array:
 	return units.filter(func(u): return not u.on_wall and u.pos.distance_to(at) <= r)
 
 # 대지 강타(S195): 반경 안 땅 위 영웅·용병에게 물리 피해, 보스에게서 멀어지는 쪽으로 넉백(막힌 칸·몸에서 멈춘다), 둔화.
-# 보스와 같은 자리에 선 몸은 away 쪽으로 민다(점프 착지, S236). 오우거는 away가 없어 그 몸은 밀리지 않는다
+# 보스와 같은 자리에 선 몸은 away 쪽으로 민다(점프 착지, S236). 오우거는 away가 없어 그 몸은 밀리지 않는다. 둔화 칸이 없으면(대장 착지, S288) 둔화하지 않는다
 func _slam(e: Enemy, sk: Dictionary, away := Vector2.ZERO) -> void:
 	_trace(e, "slam", null, e.pos, sk.radius)
 	for u in _ground_near(e.pos, sk.radius):
@@ -3515,7 +3520,8 @@ func _slam(e: Enemy, sk: Dictionary, away := Vector2.ZERO) -> void:
 		if u.alive:
 			var d: Vector2 = (u.pos - e.pos).normalized()
 			_shove(u, (d if d != Vector2.ZERO else away) * sk.knock, enemies)
-			_fx(u, "slam", {"slow": sk.slow}, sk.slow_time)
+			if sk.has("slow"):
+				_fx(u, "slam", {"slow": sk.slow}, sk.slow_time)
 	_tracing = null
 
 # 점프 내려찍기(S236)를 쓸 수 있다: range 안 땅 위 영웅·용병 가운데 반경 안에 땅 아군이 count 이상 몰렸고, 보스에서 곧은 선이
@@ -3607,9 +3613,9 @@ func _grab_ready(e: Enemy, sk: Dictionary) -> bool:
 	return not _ground_near(e.pos, sk.radius).is_empty()
 
 # 집어 던지기: 원 안 땅 위 아군 가운데 가장 가까운 하나를 보스 너머 toss칸으로 던지고 물리 unit. 아무도 없으면 헛친다.
-# 떨어질 칸에 설 수 없으면 가장 가까운 빈 칸 가운데다(I223). 옮긴 몸은 화면이 넉백처럼 미끄러뜨린다(S198)
-func _grab(e: Enemy, sk: Dictionary) -> void:
-	_trace(e, "grab", null, e.pos, sk.radius)
+# 떨어질 칸에 설 수 없으면 가장 가까운 빈 칸 가운데다(I223). 옮긴 몸은 화면이 넉백처럼 미끄러뜨린다(S198). 대장의 집게 던지기(S288)는 흔적 이름만 fling이다
+func _grab(e: Enemy, sk: Dictionary, id := "grab") -> void:
+	_trace(e, id, null, e.pos, sk.radius)
 	var best = null
 	for u in _ground_near(e.pos, sk.radius):
 		if best == null or e.pos.distance_to(u.pos) < e.pos.distance_to(best.pos):
@@ -3685,6 +3691,124 @@ func _spray(e: Enemy, sk: Dictionary) -> void:
 				and (u.on_wall or _clear_line(e.pos, u.pos)))
 			if hit:
 				damage(u, sk.unit, "phys", e)
+
+# ── 고블린 대장(S288, I230) ── 등장 착지(leap)는 뜬 단계(_soar)와 대지 강타(_slam)를 그대로 쓴다
+
+# 전쟁 기계가 부서진다: 쓰러지지 않고 같은 자리에서 phase2 종류가 된다. 체력은 그 종류 체력 × 라운드 배율로 가득 차고,
+# 하던 예고·붙잡힘·효과·스킬 대기·먼저 노리는 성문·반격 대상은 비운다. 착지 스킬이 있으면 그 자리에서 뜬 단계로 시작한다(I230 ①)
+func _break(e: Enemy) -> void:
+	var k: String = e.phase2
+	_engage(e, null)
+	e.kind = k
+	for key in ENEMY_KINDS[k]:
+		e.set(key, ENEMY_KINDS[k][key])
+	e.hp *= _hp_mult()
+	e.max_hp = e.hp
+	e.girth = e.radius
+	e.cd = {}
+	e.fx.clear()
+	e.via = null
+	e.attacker = null
+	var sk: Dictionary = e.skills.get("leap", {})
+	e.cast = null if sk.is_empty() else {"id": "leap", "left": sk.air, "air": true, "from": e.pos, "at": e.pos}
+	_find_path(e)
+
+# 철퇴를 쓸 수 있다: 둘레 range 안 땅 위 아군 가운데 가장 가까운 것(같으면 유닛 차례에서 앞선 것) 쪽을 부채꼴 가운데 방향(dir, 라디안)으로 둔다
+func _cleave_ready(e: Enemy, sk: Dictionary):
+	var best = null
+	for u in _ground_near(e.pos, sk.range):
+		if best == null or e.pos.distance_to(u.pos) < e.pos.distance_to(best.pos):
+			best = u
+	return {"dir": (best.pos - e.pos).angle()} if best else false
+
+# 철퇴: 부채꼴(반경 range, 각 arc) 안 땅 위 아군에 물리 unit, 대장에게서 멀어지는 쪽으로 knock칸(같은 자리면 가운데 방향, I230 ②)
+func _cleave(e: Enemy, sk: Dictionary) -> void:
+	var dir: float = e.cast.dir
+	_trace(e, "cleave", null, e.pos, 0.0)
+	_tracing.merge({"dir": dir, "range": sk.range, "arc": sk.arc})  # 발동 채움(S198)을 부채꼴로 칠한다
+	for u in _ground_near(e.pos, sk.range):
+		var v: Vector2 = u.pos - e.pos
+		if v == Vector2.ZERO or absf(angle_difference(dir, v.angle())) <= deg_to_rad(sk.arc) / 2.0:
+			damage(u, sk.unit, "phys", e)
+			if u.alive:
+				_shove(u, (v.normalized() if v != Vector2.ZERO else Vector2.from_angle(dir)) * sk.knock, enemies)
+	_tracing = null
+
+# 집게 던지기: 1페이즈 집어 던지기와 같다(S288 ③)
+func _fling_ready(e: Enemy, sk: Dictionary) -> bool:
+	return _grab_ready(e, sk)
+
+func _fling(e: Enemy, sk: Dictionary) -> void:
+	_grab(e, sk, "fling")
+
+# 폭탄을 쓸 수 있다: 둘레 range 안 땅 위 아군을 유닛 차례로 보며, 앞서 고른 자리와 모두 gap칸 넘게 떨어진 아군의 자리를 count곳까지(I230 ⑤)
+func _bombs_ready(e: Enemy, sk: Dictionary):
+	var spots := []
+	for u in _ground_near(e.pos, sk.range):
+		if spots.size() < sk.count and spots.all(func(p): return p.distance_to(u.pos) > sk.gap):
+			spots.append(u.pos)
+	return {"spots": spots} if not spots.is_empty() else false
+
+# 폭탄: 자리마다 원(반경 radius) 안 구조물과 아군(성벽 위 포함, I219)에 물리 unit
+func _bombs(e: Enemy, sk: Dictionary) -> void:
+	for at in e.cast.spots:
+		_trace(e, "bombs", null, at, sk.radius)
+		_blast(at, sk.radius, sk.unit, sk.unit)
+	_tracing = null
+
+# 돌진을 쓸 수 있다: length 안 땅 위 아군 가운데 min칸 넘게 떨어진 가장 가까운 것(같으면 유닛 차례에서 앞선 것) 쪽.
+# 방향(dir, 라디안)과 지금 멈출 자리(to, 예고가 그린다, I230 ④)를 둔다
+func _charge_ready(e: Enemy, sk: Dictionary):
+	var best = null
+	for u in _ground_near(e.pos, sk.length):
+		var d := e.pos.distance_to(u.pos)
+		if d > sk.min and (best == null or d < e.pos.distance_to(best.pos)):
+			best = u
+	if best == null:
+		return false
+	var dir: Vector2 = (best.pos - e.pos).normalized()
+	return {"dir": dir.angle(), "to": _dash(e.pos, dir, sk.length)[0]}
+
+# 돌진 길(I230 ③): from에서 dir 쪽으로 length칸을 0.25칸 간격으로 짚는다. 막힌 칸(I188 곧은 선의 칸)·거점·물·맵 밖이면 바로 앞 짚은 점에서 멈춘다.
+# [멈출 자리, 부딪힌 성곽·구조물·거점(없으면 null)]
+func _dash(from: Vector2, dir: Vector2, length: float) -> Array:
+	var at := from
+	for i in range(1, ceili(length / 0.25) + 1):
+		var p := from + dir * minf(0.25 * i, length)
+		var c := Vector2i(p.round())
+		if not grid.is_in_boundsv(c) or water.has(c):
+			return [at, null]
+		if c == base.cell:
+			return [at, base]
+		var block = grid.block_at(c)
+		if block:
+			return [at, block]
+		at = p
+	return [at, null]
+
+# 돌진: 대장이 길 끝으로 옮겨 간다. 지나간 길에서 가운데 선과 width/2 안인 땅 위 아군에 물리 unit을 주고 길 옆(그 아군 쪽, 선 위면 왼쪽)으로 side칸 민다.
+# 부딪힌 성곽·구조물·거점에는 물리 structure. 옮긴 몸은 화면이 미끄러뜨린다(S198)
+func _charge(e: Enemy, sk: Dictionary) -> void:
+	var dir := Vector2.from_angle(e.cast.dir)
+	var from := e.pos
+	var got := _dash(from, dir, sk.length)
+	var to: Vector2 = got[0]
+	var span := from.distance_to(to)
+	_engage(e, null)
+	e.pos = to
+	_trace(e, "charge", null, to, 0.0)
+	_tracing.merge({"from": from, "width": sk.width})  # 발동 채움(S198)을 지나간 길로 칠한다
+	var left := dir.orthogonal()  # 화면(y 아래)에서 길 방향의 왼쪽
+	for u in units.duplicate():
+		var v: Vector2 = u.pos - from
+		if u.alive and not u.on_wall and (from + dir * clampf(v.dot(dir), 0.0, span)).distance_to(u.pos) <= sk.width / 2.0:
+			damage(u, sk.unit, "phys", e)
+			if u.alive:
+				_shove(u, (left if dir.cross(v) <= 0.01 else -left) * sk.side, enemies)
+	if got[1] != null:
+		damage(got[1], sk.structure, "phys", e)
+	_tracing = null
+	_find_path(e)
 
 # 울부짖음(S242, I195): 봉인되지 않은 적의 howl 반경 안 늑대 종류는 이동·공격 속도 × (1 + haste). 같은 오라가 여럿 닿아도 하나만 든다
 func _howls() -> void:
