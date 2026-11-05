@@ -1,6 +1,6 @@
 {
-  "approvedAt": "2026-11-05T02:31:24.753Z",
-  "evalMd": "61f9c841",
+  "approvedAt": "2026-11-05T04:18:25.330Z",
+  "evalMd": "1a4982d8",
   "tests": {
     "tests/eval/conftest.py": "726a1378",
     "tests/eval/gd/aura.gd": "010cc38a",
@@ -103,6 +103,8 @@
     "tests/eval/gd/thick.gd.uid": "95204401",
     "tests/eval/gd/tower.gd": "cdec25a2",
     "tests/eval/gd/tower.gd.uid": "0885cf1d",
+    "tests/eval/gd/tuning.gd": "dac42f08",
+    "tests/eval/gd/tuning.gd.uid": "174d5dd9",
     "tests/eval/gd/units.gd": "6a1b3bcd",
     "tests/eval/gd/units.gd.uid": "935b134a",
     "tests/eval/gd/village.gd": "87428dd5",
@@ -161,6 +163,7 @@
     "tests/eval/test_split.py": "2bbb793b",
     "tests/eval/test_thick.py": "f911d241",
     "tests/eval/test_tower.py": "9ca639b5",
+    "tests/eval/test_tuning.py": "b4003da3",
     "tests/eval/test_units.py": "05de9e3b",
     "tests/eval/test_village.py": "54fa0d71",
     "tests/eval/test_wall.py": "8ea59b76",
@@ -534,6 +537,19 @@
     "I101": "a1f7e63e",
     "I224": "2df6a4f0",
     "I225": "883823ad",
-    "S288": "334fee64"
+    "S288": "334fee64",
+    "S290": "63cd47a9",
+    "I231": "10b2a087",
+    "I232": "23dfe65a",
+    "I233": "834caf8d",
+    "S291": "83edb0d2",
+    "I241": "c3181132",
+    "I234": "c085f528",
+    "I235": "fc3dc11e",
+    "I236": "b36c5b1f",
+    "I237": "8ad0284e",
+    "I238": "d5c7b2f5",
+    "I240": "3f30a235",
+    "S289": "e62bdadb"
   }
 }

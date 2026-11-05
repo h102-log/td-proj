@@ -1,5 +1,5 @@
 extends Node
-# 진입 장면: 메인 메뉴(S182). 새 게임·이어하기를 고르면 게임 장면(main.tscn)으로 가고,
+# 진입 장면: 메인 메뉴(S182). 새 게임·이어하기·테스트 모드(테스트 빌드·에디터 실행만, S290)를 고르면 게임 장면(main.tscn)으로 가고,
 # ESC 메뉴의 «메인 메뉴로»(I161)는 이 장면으로 돌아온다. 게임을 막 켰을 때는 저장·설정 파일을 정하고 창을 준비한다(S161, S163)
 
 const Main := preload("res://src/main.gd")
@@ -8,6 +8,7 @@ const Save := preload("res://src/sim/save.gd")
 const Settings := preload("res://src/settings.gd")
 const Menus := preload("res://src/ui/menus.gd")
 const Audio := preload("res://src/audio.gd")
+const Tuning := preload("res://src/sim/tuning.gd")
 
 func _ready() -> void:
 	if Save.path == "":  # 게임을 막 켰다. 평가는 경로를 먼저 정해 이 준비를 건너뛴다
@@ -21,6 +22,7 @@ func _ready() -> void:
 	Audio.of(get_tree()).follow("title", false)  # 메인 메뉴 곡(S271). 버튼 누름 소리도 이 노드가 단다
 	var menus := Menus.new()
 	menus.can_resume = not Save.read().is_empty()
+	menus.can_test = Tuning.shown(["test", "editor"].filter(func(f): return OS.has_feature(f)))  # 테스트 빌드·에디터 실행만(S290)
 	menus.chosen.connect(_on_menu)
 	add_child(menus)
 	menus.open("title")
@@ -36,6 +38,10 @@ func _on_menu(what: String) -> void:
 			get_tree().change_scene_to_file("res://src/main.tscn")
 		"resume":
 			Main.resume = Save.read()
+			get_tree().change_scene_to_file("res://src/main.tscn")
+		"test":  # 저장은 그대로 두고 새 도전으로 연다(I231)
+			Main.test = true
+			Main.resume = {}
 			get_tree().change_scene_to_file("res://src/main.tscn")
 		"quit":
 			get_tree().quit()

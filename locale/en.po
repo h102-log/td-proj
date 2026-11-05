@@ -25,6 +25,9 @@ msgstr "New Game"
 msgid "이어하기"
 msgstr "Continue"
 
+msgid "테스트 모드"
+msgstr "Test Mode"
+
 msgid "설정"
 msgstr "Settings"
 
