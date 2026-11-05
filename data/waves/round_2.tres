@@ -18,7 +18,7 @@ waves = Array[Dictionary]([{
 "wolf": 320,
 "leap_wolf": 100,
 "night_wolf": 100,
-"alpha_wolf": 1
+"alpha_wolf": 6
 }])
 nights = Array[Dictionary]([{}, {}, {}, {
 "at": 30.0,

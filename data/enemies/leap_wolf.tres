@@ -19,3 +19,6 @@ vault = {
 "slow": 0.5,
 "slow_time": 3.0
 }
+dash = {
+"stride": 2.0
+}

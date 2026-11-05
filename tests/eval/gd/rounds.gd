@@ -24,7 +24,7 @@ const S111 := [{"slime": 36}, {"slime": 24, "big_slime": 10}, {"slime": 36, "big
 const RAID := [{"basic": 260, "sapper": 30, "ram": 6}, {"basic": 350, "sapper": 30, "ram": 6, "catapult": 8, "glider": 80},
 	{"basic": 310, "sapper": 30, "ram": 4, "catapult": 6, "glider": 60, "siege_tower": 3, "balloon": 6},
 	{"basic": 300, "sapper": 40, "ram": 6, "catapult": 8, "glider": 80, "siege_tower": 3, "balloon": 6, "airship": 6, "war_machine": 1}]
-const WOLF := [{"wolf": 320}, {"wolf": 300, "leap_wolf": 100}, {"wolf": 240, "leap_wolf": 80, "night_wolf": 80}, {"wolf": 320, "leap_wolf": 100, "night_wolf": 100, "alpha_wolf": 1}]
+const WOLF := [{"wolf": 320}, {"wolf": 300, "leap_wolf": 100}, {"wolf": 240, "leap_wolf": 80, "night_wolf": 80}, {"wolf": 320, "leap_wolf": 100, "night_wolf": 100, "alpha_wolf": 6}]  # I91 2026-11-05 변경: 알파 늑대 6
 # I91 표(2026-10-21 개정): 2~6라운드 웨이브마다 종류별 적 수
 const I91 := [
 	[{"basic": 18, "fast": 8, "flying": 6}, {"basic": 18, "armored": 8, "flying": 10, "fast": 4}, {"basic": 18, "fast": 8, "armored": 8, "flying": 6}, {"basic": 22, "fast": 12, "armored": 8, "flying": 10, "boss": 1}],

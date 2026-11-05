@@ -1,6 +1,6 @@
 {
-  "approvedAt": "2026-11-05T04:18:25.330Z",
-  "evalMd": "1a4982d8",
+  "approvedAt": "2026-11-05T06:01:42.696Z",
+  "evalMd": "d32be2da",
   "tests": {
     "tests/eval/conftest.py": "726a1378",
     "tests/eval/gd/aura.gd": "010cc38a",
@@ -73,7 +73,7 @@
     "tests/eval/gd/raidart.gd.uid": "a6fc79af",
     "tests/eval/gd/repair.gd": "f1889745",
     "tests/eval/gd/repair.gd.uid": "722b125d",
-    "tests/eval/gd/rounds.gd": "ded01ec4",
+    "tests/eval/gd/rounds.gd": "9d2cf328",
     "tests/eval/gd/rounds.gd.uid": "7f117ee0",
     "tests/eval/gd/runner.gd": "9007f73b",
     "tests/eval/gd/runner.gd.uid": "729df9cb",
@@ -111,7 +111,7 @@
     "tests/eval/gd/village.gd.uid": "cf32acf7",
     "tests/eval/gd/wall.gd": "f0c4b507",
     "tests/eval/gd/wall.gd.uid": "5931bc74",
-    "tests/eval/gd/wolf.gd": "52917535",
+    "tests/eval/gd/wolf.gd": "e69af530",
     "tests/eval/gd/wolf.gd.uid": "f8e3b505",
     "tests/eval/gd/wolfart.gd": "bc1e2900",
     "tests/eval/gd/wolfart.gd.uid": "c0110452",
@@ -167,7 +167,7 @@
     "tests/eval/test_units.py": "05de9e3b",
     "tests/eval/test_village.py": "54fa0d71",
     "tests/eval/test_wall.py": "8ea59b76",
-    "tests/eval/test_wolf.py": "a4baf809",
+    "tests/eval/test_wolf.py": "ebecf39b",
     "tests/eval/test_wolfart.py": "2b4515ca"
   },
   "sentences": {
@@ -290,7 +290,7 @@
     "S64": "6e53ffe8",
     "I92": "5a185d59",
     "I93": "d2d69fd1",
-    "I91": "6d8a9cdc",
+    "I91": "1f28c124",
     "S112": "5ac80006",
     "S97": "fd60e91f",
     "S121": "8c311f61",
@@ -550,6 +550,10 @@
     "I237": "8ad0284e",
     "I238": "d5c7b2f5",
     "I240": "3f30a235",
-    "S289": "e62bdadb"
+    "S289": "e62bdadb",
+    "S293": "e96e9b40",
+    "I243": "5efcd038",
+    "S294": "cf21e8c3",
+    "S295": "2c64c16b"
   }
 }

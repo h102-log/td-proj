@@ -108,3 +108,39 @@ def test_EV582_howl_haste(gd):
 
 def test_EV583_enemy_aura_once(gd):
     gd("wolf", "EV583")
+
+
+def test_EV780_leap_wolf_dashes_up_its_column(gd):
+    gd("wolf", "EV780")
+
+
+def test_EV781_dash_ends_on_damage(gd):
+    gd("wolf", "EV781")
+
+
+def test_EV782_dash_ends_on_effect(gd):
+    gd("wolf", "EV782")
+
+
+def test_EV783_dash_ends_on_body_block(gd):
+    gd("wolf", "EV783")
+
+
+def test_EV784_dash_ends_at_structure(gd):
+    gd("wolf", "EV784")
+
+
+def test_EV785_placed_leap_wolf_does_not_dash(gd):
+    gd("wolf", "EV785")
+
+
+def test_EV786_together_splits_across_spawns(gd):
+    gd("wolf", "EV786")
+
+
+def test_EV787_frenzy_raises_bite(gd):
+    gd("wolf", "EV787")
+
+
+def test_EV788_frenzy_raises_pounce_and_grip(gd):
+    gd("wolf", "EV788")
