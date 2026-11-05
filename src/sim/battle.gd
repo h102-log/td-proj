@@ -198,11 +198,15 @@ class Enemy:
 	var split_from = null  # 갈라져 나왔으면 죽은 적의 자리(S234). 화면이 거기서 튀어나오게 그린다
 	var vault := {}  # 도약(S239). 비어 있으면 성벽에 올라도 밀치지 않는다
 	var vaulted := false  # 한 번 뛰어올랐다. 성벽에서 내려오면 다시 오르지 않는다(I191 ⑥)
+	var dash := {}  # 돌진(S293). 비어 있으면 웨이브에서 나와도 돌진하지 않는다
+	var dashing := false  # 돌진 중이다. 끝나면 다시 켜지지 않는다(I243 ⑤)
+	var lane := 0  # 돌진하는 열(나온 칸의 x)
 	var night := {}  # 어둠에 세짐(S240). 비어 있으면 어둠과 상관없다
 	var bleed := {}  # 물면 거는 출혈(S240). 비어 있으면 걸지 않는다
 	var grip = null  # 덮치기로 붙잡은 아군과 그동안 받은 피해 {who, hurt}(S242). 없으면 null
 	var aimed = null  # 지난 스텝에 노린 대상(덮치기 ②, S242)
 	var away := 0.0  # 노린 아군이 far 넘게 떨어진 채 지난 시간(초)
+	var grief := 0  # 광분(S295): 나와 있는 동안 쓰러진 다른 같은 종류 수
 	var siege := false  # 공성(S280~S282): 유닛·반격 대상·도발·마을 구조물을 노리지 않는다
 	var fuse := {}  # 폭파병 도화선(S280). 비어 있지 않으면 치는 대신 도화선을 켠다
 	var range := 0.0  # 멈춰서 행동하는 거리(I216). 투석기 던지기(S282)
@@ -783,27 +787,38 @@ func start_battle() -> void:
 	wave_time = 0.0
 	near_wall = false
 
-# 라운드 r·웨이브 w의 적을 나오는 차례대로 [종류, 출현 지점, 나올 칸, 무리 마릿수]. 항목 차례로 나오고, 무리(S238)는 한 차례에 함께 나오며
+# 라운드 r·웨이브 w의 적을 나오는 차례대로 [종류, 출현 지점, 나올 칸, 한꺼번에 나오는 마릿수]. 항목 차례로 나오고, 무리(S238)는 한 차례에 함께 나오며
 # 출현 지점은 차례마다 돌아간다. 나올 칸은 출현 지점에서 n번째 차례마다 황금비 수열로 가로 ±spawn_spread 안에 흩는다(I177).
 # 무리는 그 칸부터 동쪽으로 잇고, 퍼짐 구역·맵 끝을 넘으면 안으로 당긴다(I190). 씨앗을 쓰지 않는다.
+# 함께 나오는 종류(S294)는 그 수 모두가 한꺼번에 나오고, 출현 지점마다 고르게 나눈 몫을 이어지는 차례의 출현 지점에 무리처럼 놓는다.
 # 전투(start_battle)와 미리보기(spawn_counts, S188)가 함께 써서 미리보기가 실제와 어긋나지 않는다
 func wave_plan(r: int, w: int) -> Array:
 	var out := []
 	var turns := 0  # 지금까지의 차례 수. 무리 하나가 한 차례다
 	for entry in rounds[r][w]:
+		if ENEMY_KINDS[entry.kind].get("together", false) and entry.count > 0:  # 함께 나옴(S294): 나머지는 앞 출현 지점부터 하나씩 더 받는다
+			var m := mini(entry.count, spawns.size())
+			for j in m:
+				_pack(out, entry.kind, turns + j, entry.count / m + (1 if j < entry.count % m else 0), entry.count)
+			turns += m
+			continue
 		var pack: int = maxi(1, ENEMY_KINDS[entry.kind].get("pack", 1))
 		var left: int = entry.count
 		while left > 0:
 			var n := mini(pack, left)  # 나머지는 작은 무리 하나로 그 종류의 마지막에 나온다(S238)
-			var s: Vector2i = spawns[turns % spawns.size()]
-			var k := turns / spawns.size()
-			var x := s.x - spawn_spread + int(fposmod(k * 0.6180339887, 1.0) * (2 * spawn_spread + 1))
-			x = maxi(0, mini(x, mini(s.x + spawn_spread - n + 1, size.x - n))) if spawn_spread > 0 else s.x
-			for i in n:
-				out.append([entry.kind, s, Vector2i(clampi(x + (i if spawn_spread > 0 else 0), 0, size.x - 1), s.y), n])
+			_pack(out, entry.kind, turns, n, n)
 			turns += 1
 			left -= n
 	return out
+
+# 차례 turn의 출현 지점에서 n마리가 나올 칸을 out에 더한다(I177·I190). group은 그 차례에 한꺼번에 나오는 마릿수다(S238·S294)
+func _pack(out: Array, kind: String, turn: int, n: int, group: int) -> void:
+	var s: Vector2i = spawns[turn % spawns.size()]
+	var k := turn / spawns.size()
+	var x := s.x - spawn_spread + int(fposmod(k * 0.6180339887, 1.0) * (2 * spawn_spread + 1))
+	x = maxi(0, mini(x, mini(s.x + spawn_spread - n + 1, size.x - n))) if spawn_spread > 0 else s.x
+	for i in n:
+		out.append([kind, s, Vector2i(clampi(x + (i if spawn_spread > 0 else 0), 0, size.x - 1), s.y), group])
 
 # 출현 지점(spawns 차례)마다 {적 종류: 수}(S188)
 func spawn_counts(r: int, w: int) -> Array:
@@ -1493,6 +1508,8 @@ func _first_alive():
 func _fx(t, src: String, eff: Dictionary, secs: float) -> void:
 	if _aloft(t):  # 뜬 적(S236)에는 새 효과가 걸리지 않는다
 		return
+	if t is Enemy and t.dashing:  # 효과가 걸리면 돌진이 끝난다(S293). 도약 늑대가 스스로 거는 둔화(_vault)는 돌진이 끝난 뒤다
+		_end_dash(t)
 	if _tracing != null:
 		_tracing.marked = true
 	var entry := eff.duplicate()
@@ -3122,6 +3139,8 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 	if _tracing != null:
 		_tracing.hits.append(target)
 	if target is Enemy:
+		if target.dashing:  # 공격받으면 돌진이 끝난다(S293)
+			_end_dash(target)
 		if kind != "true":
 			if kind == "phys":
 				var a := armor_of(target)
@@ -3169,6 +3188,9 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 		settled = [mission, commission].filter(func(n): return n != "").map(func(n): return [n, false])  # 진 라운드의 미션·의뢰는 모두 실패다(I131)
 	elif target is Enemy:
 		enemies.erase(target)
+		for o in enemies:  # 광분(S295): 같은 종류의 다른 알파가 쓰러지면 하나 쌓인다
+			if o.kind == target.kind and o.skills.has("frenzy"):
+				o.grief += 1
 		_spare += target.reward * _stage.get("reward_scale", 1.0)  # 처치 보상 배율(I176). 1골드에 못 미치는 나머지는 쌓아 둔다
 		gold += floori(_spare)
 		_spare -= floori(_spare)
@@ -3240,11 +3262,15 @@ func _spawn_wave(dt: float) -> void:
 	if _queue.is_empty() or _spawn_timer > 0.0:
 		return
 	var gap: float = _stage.get("spawn_gap", SPAWN_GAP)  # 시험 스테이지는 적 10배라 0.25초(I91)
-	var n: int = _queue[0][3]  # 무리는 한꺼번에 나오고, 다음 차례는 그 마릿수만큼 늦다(S238)
+	var n: int = _queue[0][3]  # 무리·함께 나오는 종류는 한꺼번에 나오고, 다음 차례는 그 마릿수만큼 늦다(S238, S294)
 	var due := false
 	for i in n:
 		var next: Array = _queue.pop_front()
-		spawn_enemy(next[0], next[2])
+		var e = spawn_enemy(next[0], next[2])
+		if not e.dash.is_empty():  # 웨이브에서 나온 도약 늑대는 돌진한다(S293, I243 ①)
+			e.dashing = true
+			e.lane = next[2].x
+			_find_path(e)
 		due = due or _queue.size() % maxi(1, roundi(SPAWN_GAP / gap)) == 0  # 성곽이 깎인 만큼 길이 바뀌었을 수 있다. 다시 구하는 것은 2.5초에 한 번꼴(S142)
 	_spawn_timer += gap * n  # 그 스텝에 넘친 시간을 이어 간다. 새로 놓으면 차례마다 한 스텝씩 늦어져 쌓인다
 	if due:
@@ -3254,6 +3280,17 @@ func _spawn_wave(dt: float) -> void:
 # 그래서 반격 대상이 성벽에 둘러싸여 있으면 비용이 가장 싼 성벽을 뚫고 간다(S6)
 func _find_path(e: Enemy) -> void:
 	if e.flying:  # 길을 찾지 않고 곧장 난다(I79)
+		return
+	if e.dashing:  # 돌진 길(I243 ②): 열을 따라 북쪽으로 처음 막힌 칸까지 곧게. 마을 칸은 넣지 않는다
+		e.path.clear()
+		var c := Vector2i(e.lane, roundi(e.pos.y))
+		while true:
+			c += Vector2i.UP
+			if not grid.is_in_boundsv(c) or village.has_point(c):
+				break
+			e.path.append(c)
+			if grid.block_at(c) or c == base.cell:
+				break
 		return
 	grid.wall_k = e.wall_k
 	grid.climb = e.climb * e.speed
@@ -3278,6 +3315,9 @@ func _forecast() -> void:
 # 3라운드부터 땅 적은 ③ 앞에 출현 지점에서 가장 가까운 성문을 먼저 노린다. 그 칸에 들어서거나 잔해가 되면 거점이다(S143).
 # 마을 안의 적에게는 인식 범위 안의 마을 구조물(집·생산 시설, S43)과 밖에 나온 주민(S227)도 ①이다(I49). 들판의 구조물은 ①이 아니다(I7). 쏘지 않는 구조물은 attacker가 되지 않는다(_fire). 반격 대상이 부서지면 ②가 끝난다(I8)
 func _target_of(e: Enemy):
+	if e.dashing:  # 돌진(S293, I243 ③): 아무도 노리지 않고 돌진 길을 간다. 돌진 길은 goal을 보지 않는다(_find_path)
+		_engage(e, null)
+		return base
 	if not e.ladder.is_empty():  # 공성탑(S284): 유닛·도발을 무시하고 가장 가까운 성곽 성벽 열, 없으면 거점
 		_engage(e, null)
 		return _tower_aim(e)
@@ -3377,8 +3417,10 @@ func _move(e: Enemy, dt: float) -> void:
 			if not sealed and e.cd.get("throw", 0.0) <= 0.0:
 				e.cast = {"id": "throw", "left": e.throw.windup, "at": mark}
 			return
+	if e.dashing and (e.path.is_empty() or units.any(func(u): return u.alive and _touching(u, e) and _touch(e, u))):  # 아군 몸에 막히거나 길이 끝나면 돌진이 끝난다(I243 ④)
+		_end_dash(e)
 	var rooted := _fx_on(e, "root") != null  # 속박(S150): 움직이지 않지만 닿는 대상은 친다
-	var speed: float = 0.0 if rooted else e.speed * (1.0 - _fx_cut(e, "slow")) * (1.0 + (e.skills.rage.stride if rage else 0.0)) * (1.0 + sh.get("stride_max", 0.0) * quick) * (1.0 + e.night.get("stride", 0.0) * dusk) * howl
+	var speed: float = 0.0 if rooted else e.speed * (1.0 - _fx_cut(e, "slow")) * (1.0 + (e.skills.rage.stride if rage else 0.0)) * (1.0 + sh.get("stride_max", 0.0) * quick) * (1.0 + e.night.get("stride", 0.0) * dusk) * howl * (e.dash.stride if e.dashing else 1.0)  # 돌진(S293)
 	if e.on_wall and not _climbable(Vector2i(e.pos.round())):  # 성벽에서 내려왔거나 그 성벽이 부서졌다(I76)
 		e.on_wall = false
 		if e.vaulted:  # 한 번만 뛴다. 내려온 뒤로는 기어오르지 않는 땅 적이다(I191 ⑥)
@@ -3449,6 +3491,9 @@ func _move(e: Enemy, dt: float) -> void:
 			if d <= REACH:  # 노리는 사다리가 아직 놓이지 않았다(공성탑에서 내린 고블린, S284): 치지 않고 그 앞에서 기다린다
 				return
 		elif block:
+			if d <= REACH and e.dashing:  # 성곽 성벽이 아닌 막힌 칸에 닿으면 치지 않고 돌진이 끝난다(I243 ④). 다음 스텝부터 평소대로 노린다
+				_end_dash(e)
+				return
 			if d <= REACH:  # 막힌 칸은 부수고(I6, S9), 거점은 친다(S4 ④)
 				_attack(e, block)
 				return
@@ -3587,7 +3632,7 @@ func _pounce_land(e: Enemy, sk: Dictionary, u) -> void:
 	e.on_wall = u.on_wall and _climbable(Vector2i(e.pos.round()))
 	if not u.alive:
 		return
-	damage(u, sk.damage, "phys", e)
+	damage(u, sk.damage * _fury(e), "phys", e)
 	if u.alive:
 		_control(u, "pin", {"pin": e}, sk.pin_time)
 		e.grip = {"who": u, "hurt": 0.0}
@@ -3606,8 +3651,15 @@ func _grip(e: Enemy, dt: float, broken: bool) -> bool:
 	if key == null:
 		e.grip = null
 		return false
-	damage(u, e.skills.pounce.bite * dt, "phys", e)
+	damage(u, e.skills.pounce.bite * dt * _fury(e), "phys", e)
 	return true
+
+# 광분(S295)의 피해 배율: 쓰러진 다른 같은 종류 수가 n이면 1 + frenzy.damage × n. 봉인 중에는 꺼진다(S194)
+func _fury(e: Enemy) -> float:
+	var f: Dictionary = e.skills.get("frenzy", {})
+	if f.is_empty() or _fx_on(e, "seal") != null:
+		return 1.0
+	return 1.0 + f.damage * e.grief
 
 # ── 고블린 전쟁 기계(S287, I223) ── 내려찍기는 대지 강타(slam)를 그대로 쓴다
 
@@ -4271,6 +4323,8 @@ func _shove(e, by: Vector2, bodies: Array) -> void:
 # ponytail: 성벽이 가로로만 놓여(S203) 이웃은 동·서다. 세로 성벽이 생기면 성벽 위 길(_wall)의 이웃으로 고른다
 func _vault(e: Enemy, cell: Vector2i) -> void:
 	e.vaulted = true
+	if e.dashing:  # 뛰어오르면 돌진이 끝난다(S293)
+		_end_dash(e)
 	var by := Vector2i(int(e.vault.shove), 0)
 	for u in units:
 		if u.alive and u.on_wall and Vector2i(u.pos.round()) == cell:
@@ -4281,6 +4335,11 @@ func _vault(e: Enemy, cell: Vector2i) -> void:
 					break
 			_control(u, "vault", {"stun": true}, e.vault.stun)
 	_fx(e, "vault", {"slow": e.vault.slow}, e.vault.slow_time)
+
+# 돌진(S293)을 끝낸다. goal을 비워 평소 대상으로 길을 다시 구하게 하고, 다시 돌진하지 않는다(I243 ⑤)
+func _end_dash(e: Enemy) -> void:
+	e.dashing = false
+	e.goal = Vector2i(-1, -1)
 
 # 기어오를 수 있는 칸: 성곽의 성벽 칸. 성문은 오르지 않는다(I76)
 func _climbable(c: Vector2i) -> bool:
@@ -4553,6 +4612,6 @@ func _attack(e: Enemy, target) -> void:
 	if e.cooldown <= 0.0:
 		e.cooldown = e.attack_gap
 		e.target = target
-		damage(target, e.damage * (1.0 - _fx_cut(e, "weaken")))  # 공격력 감소(S154)
+		damage(target, e.damage * (1.0 - _fx_cut(e, "weaken")) * _fury(e))  # 공격력 감소(S154), 광분(S295)
 		if not e.bleed.is_empty() and target is Unit and target.alive:  # 출혈(S240): 아군 유닛에만, 하나만 걸려 다시 물면 시간이 새로 된다
 			_fx(target, "bleed", {"bleed": e.bleed.dps}, e.bleed.time)

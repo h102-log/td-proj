@@ -20,7 +20,9 @@ extends Resource
 @export var boss := false  # 보스 표시(I185). 체력바·미니맵 점·진행 칸 해골·실비아 R은 종류 이름 대신 이 칸으로 가른다
 @export var split := {}  # 죽으면 갈라져 나올 {kind, count}(S234). count가 갈라지는 수의 손잡이다. 비어 있으면 갈라지지 않는다
 @export var pack := 1  # 한 무리로 함께 나오는 마릿수(S238). 1이면 한 마리씩 나온다
+@export var together := false  # 함께 나옴(S294): 참이면 웨이브의 이 종류는 모두 한 차례에 출현 지점마다 고르게 나뉘어 같은 순간 나온다. pack보다 우선한다
 @export var vault := {}  # 도약(S239): {shove 밀어내는 칸, stun 기절 초, slow 뛴 뒤 둔화, slow_time 둔화 초}. 비어 있으면 성벽에 올라도 밀치지 않는다
+@export var dash := {}  # 돌진(S293): {stride 돌진하는 동안의 이동 속도 배율}. 비어 있으면 웨이브에서 나와도 돌진하지 않는다
 @export var night := {}  # 어둠에 세짐(S240): {stride 이동, haste 공격 속도}에 어둠을 곱해 더한다. 비어 있으면 어둠과 상관없다
 @export var bleed := {}  # 물면 거는 출혈(S240): {dps 초당 물리 피해, time 초}. 비어 있으면 걸지 않는다
 @export var siege := false  # 공성(S280~S282): 유닛·반격 대상·도발·마을 구조물을 노리지 않고 성문 → 거점만 노린다

@@ -13,7 +13,11 @@ radius = 0.45
 sight = 4.0
 reward = 50
 boss = true
+together = true
 skills = {
+"frenzy": {
+"damage": 0.25
+},
 "pounce": {
 "range": 7.0,
 "ranged": 2.0,
