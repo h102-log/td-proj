@@ -101,7 +101,7 @@ func _process(delta: float) -> void:
 	visible = battle.state in ["prep", "battle"] and not controls.shop  # 언제든 영입 창이 떠 있으면 숨는다(I206)
 	if not visible:
 		return
-	_none = battle.live() and battle.engineer_gap([]) == "none"
+	_none = battle.crewed() and battle.engineer_gap([]) == "none"
 	band.visible = _none
 	for kind in cells:
 		var c: Button = cells[kind]

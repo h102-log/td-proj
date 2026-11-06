@@ -418,6 +418,6 @@ func _refusal(kind: String, cell: Vector2i) -> String:
 		return "골드 %d 모자람" % (d.cost - battle.gold)
 	if d.tax > 0 and battle.structures.values().filter(func(s): return s.tax > 0).size() >= battle.HOUSE_CAP:
 		return "집은 %d채까지" % battle.HOUSE_CAP
-	if battle.live():
+	if battle.crewed():  # 준비 단계엔 공병 없이 짓는다(S18 2026-11-06 변경)
 		return {"none": "공병 없음", "far": "닿는 공병 없음"}.get(battle.engineer_gap([cell]), "")
 	return ""
