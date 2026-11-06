@@ -79,3 +79,11 @@ def test_EV424_base_sells_engineers(gd):
 
 def test_EV664_auto_fix_tag(gd):
     gd("engineer", "EV664")
+
+
+def test_EV792_build_on_idle_engineer_cell_in_battle(gd):
+    gd("engineer", "EV792")
+
+
+def test_EV793_build_on_idle_engineer_cell_in_prep(gd):
+    gd("engineer", "EV793")

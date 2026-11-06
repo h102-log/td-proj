@@ -178,3 +178,26 @@ func ev244():
 	if not run(b, 60.0, func(): return not hurt.call().is_empty()):
 		return "60초 안에 적이 성곽을 치지 않았다"
 	return check(hurt.call() == [GATE], "적이 친 성곽 칸이 %s다(성문 %s여야 한다)" % [hurt.call(), GATE])
+
+# EV794 · I51: 무리를 한꺼번에 열린 성문 너머로 보내면 서로 멈춰 세우지 않고 모두 성곽 밖에 닿는다.
+# 두께 5 성곽(20~24행)의 폭 3 성문(x 19~21) 앞에서 길이 한 칸으로 모여도 걸리지 않는다
+func ev794():
+	var fails := []
+	for t in [[Vector2i(6, 8), Vector2i(30, 32)], [Vector2i(6, 8), Vector2i(20, 32)], [Vector2i(25, 10), Vector2i(10, 32)], [Vector2i(14, 14), Vector2i(30, 34)]]:
+		var walls := []
+		for x in 40:
+			if x < 19 or x > 21:
+				walls.append(Vector2i(x, 24))
+		var b = battle({"size": Vector2i(40, 40), "base": Vector2i(20, 3), "spawns": [Vector2i(20, 39)], "merc_cap": 40, "village": Rect2i(0, 0, 40, 20),
+			"castle": {"walls": walls, "gates": [Vector2i(19, 24)], "wall_hp": 300, "gate_hp": 150, "wall_size": Vector2i(1, 5), "gate_size": Vector2i(3, 5)}})
+		b.set_gate(b.castle[Vector2i(19, 24)], true)
+		var us := []
+		for i in 15:
+			us.append(b.place_merc(["soldier", "archer", "engineer"][i % 3], t[0] + Vector2i(i % 5, i / 5)))
+		if us.has(null):
+			return "%s에서 용병 15명을 두지 못했다" % t[0]
+		b.order_move(us, t[1])
+		var out := func(): return us.all(func(u): return u.pos.y > 24.5 and not u.on_wall and u.path.is_empty())
+		if not run(b, 30.0, out):
+			fails.append("%s → %s: 밖 %d명·성벽 위 %d명·걷는 중 %d명" % [t[0], t[1], us.filter(func(u): return u.pos.y > 24.5).size(), us.filter(func(u): return u.on_wall).size(), us.filter(func(u): return not u.path.is_empty()).size()])
+	return check(fails.is_empty(), "30초 안에 15명 모두 성곽 밖에 닿지 못했다: %s" % [fails])
