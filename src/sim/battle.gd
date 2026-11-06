@@ -2201,13 +2201,14 @@ func build(kind: String, cell: Vector2i, overrides := {}):
 	_repath = true
 	return s
 
-# 차지 칸(S216)이 모두 빈 칸(구조물·거점·유닛·적이 없는 맵 안 칸, I24)이다. 생산 시설·집·교회는 마을 안, 나머지는 마을 밖이고,
-# 성곽 칸에는 대포만 성벽 칸(성문 제외)에 짓는다(S43, I72). taken은 유닛·적이 선 칸(_taken)이고, 칸을 여럿 물을 때 한 번 모아 넘긴다
+# 차지 칸(S216)이 모두 빈 칸(구조물·거점·유닛·적이 없는 맵 안 칸, I24)이다. 놀고 있는 땅 위 공병이 선 칸은 빈 칸으로 본다(I24 2026-11-06 변경, _step_aside).
+# 생산 시설·집·교회는 마을 안, 나머지는 마을 밖이고, 성곽 칸에는 대포만 성벽 칸(성문 제외)에 짓는다(S43, I72).
+# taken은 막는 유닛·적이 선 칸(_taken(true))이고, 칸을 여럿 물을 때 한 번 모아 넘긴다
 func _buildable(kind: String, cell: Vector2i, taken = null) -> bool:
 	var def: Dictionary = STRUCTURE_KINDS[kind]
 	var inside: bool = not def.produces.is_empty() or def.tax > 0 or def.heal > 0 or def.seats > 0  # 생산 시설·집·교회·대피소(S226)
 	if taken == null:
-		taken = _taken()
+		taken = _taken(true)
 	for c in cells_in(area_at(cell, def.size)):
 		if not grid.is_in_boundsv(c) or footprint.has(c) or c == base.cell or debris.has(c) or barriers.has(c) or roads.has(c) or water.has(c):  # 잔해(I88)·에너지 성벽(I142)·길(S43)·물(S220) 칸에는 짓지 못한다
 			return false
@@ -2249,6 +2250,17 @@ static func middle(s) -> Vector2:
 
 func _occupy(s: Block) -> void:
 	_put(structures, footprint, s)
+	_step_aside(s)
+
+# 차지 칸 안에 선 유닛(_buildable이 지나 보낸 놀고 있는 땅 위 공병)은 걷던 길을 그만두고 차지 칸 둘레의 첫 빈 칸(_exit_of)으로 비켜선다(I24 2026-11-06 변경).
+# 둘레가 다 막혔으면 그 자리에 둔다
+func _step_aside(s: Block) -> void:
+	var r := area_of(s)
+	for u in units:
+		var to = _exit_of(s) if r.has_point(Vector2i(u.pos.round())) else null
+		if to != null:
+			u.pos = Vector2(to)
+			_halt(u)
 
 func _vacate(s: Block) -> void:
 	_cut(structures, footprint, s)
@@ -2265,11 +2277,14 @@ func _cut(d: Dictionary, fp: Dictionary, s: Block) -> void:
 	for c in cells_in(area_of(s)):
 		fp.erase(c)
 
-# 유닛·적이 선 칸(I24)
-func _taken() -> Dictionary:
+# 유닛·적이 선 칸(I24). build면 짓기를 막는 칸만이라 놀고 있는 땅 위 공병이 선 칸은 뺀다(I24 2026-11-06 변경)
+func _taken(build := false) -> Dictionary:
 	var out := {}
-	for u in units + enemies:
-		out[Vector2i(u.pos.round())] = true
+	for u in units:
+		if not (build and _idle(u)):
+			out[Vector2i(u.pos.round())] = true
+	for e in enemies:
+		out[Vector2i(e.pos.round())] = true
 	return out
 
 # 놓기 모드에서 지금 그 지시가 받아들여지는 칸(S45, I138). 골드·공병은 보지 않는다
@@ -2277,7 +2292,7 @@ func placeable_cells(kind: String) -> Array:
 	var building := kind in STRUCTURE_KINDS
 	if (STRUCTURE_KINDS[kind].village_level > village_level) if building else (state != "prep" or not can_buy(kind)):
 		return []
-	var taken := _taken()  # 칸마다 유닛·적을 훑으면 40×32 맵에서 18ms라 한 번 모은다
+	var taken := _taken(true)  # 칸마다 유닛·적을 훑으면 40×32 맵에서 18ms라 한 번 모은다
 	var out := []
 	for x in size.x:
 		for y in size.y:
@@ -2577,13 +2592,17 @@ func _idle_engineer(cell):
 	var best = null
 	var best_d := INF
 	for u in units:
-		if u.kind == "engineer" and u.job == null and not u.on_wall:
+		if _idle(u):
 			var c := _spot(u, cell)
 			var d: float = u.pos.distance_to(Vector2(c))
 			if d < best_d and _reaches(u, c):
 				best = u
 				best_d = d
 	return best
+
+# 일을 맡을 수 있는 공병: 짓거나 허무는 일을 맡지 않았고 성벽 위가 아니다(I39, I69)
+func _idle(u: Unit) -> bool:
+	return u.kind == "engineer" and u.job == null and not u.on_wall
 
 # 공병이 그 일을 하러 가는 칸(I178): 칸이면 그 칸, Block이면 차지 칸 가운데 공병에게 가장 가까운 칸이고 접은 대포는 새 칸(I74)이다.
 # 성벽 위 대포 칸은 성곽과 구조물이 겹쳐서 칸이 아니라 Block으로 묻는다
@@ -4180,9 +4199,10 @@ func _act(u: Unit, dt: float) -> void:
 				_shove(u, to.limit_length(left), enemies)
 			left -= to.length()  # 적에게 막혀 못 갔어도 줄인다
 			var d := u.pos.distance_to(Vector2(u.path[0]))
-			# 마지막 칸은 다른 유닛과 몸이 닿은 채 0.5칸 안에 들어도 도착이다. 같은 칸으로 보낸 무리가 서로 밀며 끝없이 걷지 않게(I51).
+			# 길의 칸(목적지 포함)은 다른 유닛과 몸이 닿은 채 0.5칸 안에 들어도 닿은 것이다. 같은 칸을 지나거나 같은 칸으로 가는 무리가 서로 밀며 끝없이 걷지 않게(I51).
+			# 마지막 칸만 봐주던 때는 성문 앞에서 길이 한 칸으로 모인 무리가 그 칸 가운데를 서로 다투다 멈췄다(EV794)
 			# 길의 칸(목적지 포함)에 적이 서 있으면 그 적 몸에 닿을 때 그 칸에 닿은 것으로 친다(S14). 그래야 막은 몸을 돌아 다음 칸으로 간다
-			var crowded := u.path.size() == 1 and d <= 0.5 and units.any(func(o): return o != u and o.pos.distance_to(u.pos) < u.radius + o.radius + 0.01)
+			var crowded := d <= 0.5 and units.any(func(o): return o != u and o.pos.distance_to(u.pos) < u.radius + o.radius + 0.01)
 			var taken := d <= 1.1 and enemies.any(func(e): return not _flies(e) and not _aloft(e) and e.pos.distance_to(Vector2(u.path[0])) <= 0.5 and e.pos.distance_to(u.pos) < u.radius + e.radius + 0.01)
 			if d < 0.01 or crowded or taken:
 				u.path.remove_at(0)

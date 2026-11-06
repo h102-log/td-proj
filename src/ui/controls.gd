@@ -3,7 +3,7 @@ extends RefCounted
 # 좌클릭: 영웅·용병이나 생산 시설·성곽 칸·거점을 고른다(I9, S81, S85, S86, S100). 빈 땅·적을 누르면 팝업만 닫고 고른 유닛은 그대로다(S204).
 # 누른 적은 선택 패널에 보인다(shown, S206)
 # 용병 더블클릭(엔진의 double_click): 발 자리가 화면(view) 안인 살아 있는 같은 종류 용병을 모두 고른다. 영웅은 한 번 클릭과 같고 판매 후보는 누른 하나다(S275)
-# 좌드래그: 사각형 안의 영웅과 용병을 고른다(S16, I9). 유닛도 구조물도 없는 사각형은 빈 땅 클릭과 같다(I173)
+# 좌드래그: 사각형 안의 영웅과 용병을 고른다(S16, I9). 유닛이 든 사각형은 구조물을 고르지 않고, 유닛도 구조물도 없는 사각형은 빈 땅 클릭과 같다(I173)
 # 우클릭: 고른 유닛에게 명령: 커서 0.7칸 안에 적이 있으면 대상 공격, 아니면 순수 이동(S14, S35). 명령이 가면 표식을 띄운다(S205).
 # 살아 있는 고른 유닛 없이 생산 시설을 골랐으면 그 칸을 집결 지점으로(S82, I173)
 # 준비 단계의 좌클릭·좌드래그는 판매 후보도 정한다(S70, I57). 좌클릭한 용병은 두 단계 모두 고른 상태가 된다(I135)
@@ -219,7 +219,7 @@ func _release(rect: Rect2, at: Vector2, double := false) -> void:
 		var heroes: Array = battle.heroes.filter(func(h): return h.alive and inside.call(h.pos))  # 출전 순서대로 앞에 둔다. Q·W·E·R은 앞선 영웅이 쓴다(I9)
 		var picks: Array = mercs.filter(func(u): return inside.call(u.pos))
 		units = heroes + picks
-		var built: Array = battle.structures.values().filter(func(s): return battle.cells_in(battle.area_of(s)).any(func(c): return inside.call(Vector2(c))))  # 차지 칸이 걸치면(S216)
+		var built: Array = [] if not units.is_empty() else battle.structures.values().filter(func(s): return battle.cells_in(battle.area_of(s)).any(func(c): return inside.call(Vector2(c))))  # 유닛이 들면 구조물은 고르지 않는다(I173 2026-11-06 변경). 차지 칸이 걸치면(S216)
 		var todo: Array = built.filter(func(s): return not s.complete) if prep and battle.live() else []
 		selling = (picks + built.filter(func(s): return s not in todo)) if prep else []
 		picked = todo if prep else built
