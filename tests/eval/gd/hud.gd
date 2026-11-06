@@ -2577,38 +2577,45 @@ func _live_prep():
 	M.live_prep = false
 	return main
 
-# EV418 · S83: 준비 단계 실시간 게임 장면의 준비 단계에 미완성 병영을 누르면 «이어 짓기»·«취소»가 뜨고 «완성»·«판매»는 없다
+# EV418 · S83: 준비 단계 실시간 게임 장면의 준비 단계에 지은 병영은 바로 완성된다(S18 2026-11-06 변경). 전투에서 짓다 만 미완성 병영을 준비 단계에 누르면
+# «이어 짓기»·«취소»가 뜨고 «완성»·«판매»는 없다. «이어 짓기»는 골드를 더 내지 않고 바로 완성하고, «취소»는 건설비를 모두 돌려준다
 func ev418():
 	var main = _live_prep()
 	var b = main.view.battle
 	var c = main.controls
-	var f = b.build("barracks", _near(b, "barracks", Vector2i(26, 32)))
+	var done = b.build("barracks", _near(b, "barracks", Vector2i(26, 32)))
 	var texts := func(): return _pops(main).map(func(n): return n.text)
 	var out := ""
-	if f == null or f.complete or f.worker == null:
-		out = "준비 단계 병영: %s · 완성 %s · 일꾼 %s" % [f, f.complete if f else null, f.worker if f else null]
+	if done == null or not done.complete or done.worker != null:
+		out = "준비 단계 병영: %s · 완성 %s · 일꾼 %s" % [done, done.complete if done else null, done.worker if done else null]
+	var half := []
 	if out == "":
-		click(c, MOUSE_BUTTON_LEFT, px(f.cell))
-		_frame(main)
-		if texts.call() != ["취소"]:
-			out = "공병이 일하는 병영을 누른 팝업 버튼: %s(«취소» 하나여야 한다)" % [texts.call()]
+		b.state = "battle"  # 전투에서 짓다 만 병영 둘을 만든다. 일꾼을 멀리 보내 일을 그만두게 한다
+		for i in 2:
+			var f = b.build("barracks", _near(b, "barracks", Vector2i(26, 32)))
+			if f and f.worker:
+				b.order_move([f.worker], Vector2i(40, 5))
+			half.append(f)
+		b.state = "prep"
+		if half.has(null) or half.any(func(f): return f.complete or f.worker != null):
+			out = "전투 단계 병영 둘: %s" % [half.map(func(f): return [f.complete, f.worker] if f else null)]
 	if out == "":
-		b.order_move([f.worker], Vector2i(40, 5))
+		click(c, MOUSE_BUTTON_LEFT, px(half[0].cell))
 		_frame(main)
 		var t: Array = texts.call()
 		if not ("이어 짓기" in t and "취소" in t) or t.any(func(s): return s == "완성" or s.begins_with("판매")):
-			out = "일을 그만둔 병영의 팝업 버튼: %s" % [t]
+			out = "미완성 병영의 팝업 버튼: %s" % [t]
 	if out == "":
+		var g: int = b.gold
 		_press(main.hud.popup, "이어 짓기")
-		if f.worker == null:
-			out = "«이어 짓기»를 눌러도 일꾼이 없다"
+		if not half[0].complete or half[0].worker != null or b.gold != g:
+			out = "«이어 짓기» 뒤 완성 %s · 일꾼 %s · 골드 %d → %d" % [half[0].complete, half[0].worker, g, b.gold]
 	if out == "":
-		b.order_move([f.worker], Vector2i(40, 5))
-		click(c, MOUSE_BUTTON_LEFT, px(f.cell))  # 버튼을 누르면 팝업이 닫힌다(_apply)
+		click(c, MOUSE_BUTTON_LEFT, px(half[1].cell))
 		_frame(main)
 		var g: int = b.gold
 		_press(main.hud.popup, "취소")
-		out = check(b.structure_at(f.cell) == null and b.gold == g + f.paid, "«취소» 뒤 병영 %s · 골드 %d → %d(건설비 %d)" % [b.structure_at(f.cell), g, b.gold, f.paid])
+		out = check(b.structure_at(half[1].cell) == null and b.gold == g + half[1].paid, "«취소» 뒤 병영 %s · 골드 %d → %d(건설비 %d)" % [b.structure_at(half[1].cell), g, b.gold, half[1].paid])
 	_done(main)
 	return out
 
@@ -3860,5 +3867,44 @@ func ev790():
 		if "[" in tower or not "[-]" in magic:
 			out = "타워 칸 정보 칸 «%s»(«[»가 없어야 한다) · 마법 타워 칸 정보 칸 «%s»(«[-]»가 있어야 한다)" % [tower, magic]
 	_move(EMPTY)
+	_done(main)
+	return out
+
+# EV795 · S18 2026-11-06 변경: 준비 단계 실시간 게임 장면의 준비 단계에는 공병이 없어도 짓고 고친다. 격자 잠금·«공병 없음» 띠·미리보기·거부·수리 버튼이 공병을 보지 않는다
+func ev795():
+	var main = _live_prep()
+	var b = main.view.battle
+	var c = main.controls
+	b.sell(b.units.filter(func(u): return u.kind == "engineer"))
+	_frame(main)
+	main.hud.grid._process(0.0)
+	var why: String = main.hud.grid._lock("tower")
+	var out := ""
+	if b.units.any(func(u): return u.kind == "engineer") or why != "" or main.hud.grid.band.visible:
+		out = "공병을 판 뒤 남은 공병 %d · 타워 칸 잠금 «%s» · 공병 없음 띠 %s" % [b.units.filter(func(u): return u.kind == "engineer").size(), why, main.hud.grid.band.visible]
+	var cell := _near(b, "tower", Vector2i(20, 70))
+	if out == "" and not load("res://src/ui/battle_view.gd").ghost(b, "tower", cell)[1]:
+		out = "%s 타워 미리보기가 지을 수 없음이다" % cell
+	if out == "":
+		var bad := []
+		c.refused.connect(func(at, w): bad.append(w))
+		c.handle(InputEventMouseMotion.new())  # 컨트롤이 판 단계(준비)를 먼저 보게 한다. 안 보면 다음 입력이 단계 변화로 놓기 모드를 끈다
+		main.hud.grid.cells.tower.pressed.emit()
+		click(c, MOUSE_BUTTON_LEFT, px(cell))
+		var s = b.structure_at(cell)
+		if c.placing != "tower" or s == null or not s.complete or not bad.is_empty():
+			out = "놓기 모드 «%s» · %s 타워 %s(완성 %s) · 거부 %s" % [c.placing, cell, s, s.complete if s else null, bad]
+		click(c, MOUSE_BUTTON_RIGHT, px(cell))  # 놓기 모드를 끝낸다
+	if out == "":
+		var k = b.castle.values().filter(func(x): return x.kind == "castle_wall")[0]
+		k.hp = k.max_hp * 0.5
+		c.fort = k
+		_frame(main)
+		var fix = _starts(main.hud.popup, "수리")
+		if fix == null or fix.disabled:
+			out = "깎인 성벽 칸을 고른 팝업 «수리» 버튼 %s(눌리지 않음 %s)" % [fix, fix.disabled if fix else null]
+		else:
+			fix.pressed.emit()
+			out = check(k.hp >= k.max_hp, "«수리»를 누른 뒤 체력 %.0f/%.0f" % [k.hp, k.max_hp])
 	_done(main)
 	return out

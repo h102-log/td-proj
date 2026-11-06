@@ -331,8 +331,10 @@ func ev422():
 	if a.hire(0) == null:
 		return "영입하지 못했다"
 	a.next_round()
+	a.state = "battle"  # 준비 단계 짓기는 바로 끝난다(S18 2026-11-06 변경). 공병이 일하는 판을 만들려고 잠시 전투 단계로 둔다
 	var t = a.build("tower", _near(a, "tower", Vector2i(28, 61)))
 	var f = a.build("barracks", _near(a, "barracks", Vector2i(26, 32)))
+	a.state = "prep"
 	if t == null or f == null or t.worker == null or f.worker == null:
 		return "공병이 짓게 하지 못했다(타워 %s · 병영 %s)" % [t, f]
 	run(a, 1.0)
