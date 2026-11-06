@@ -3888,7 +3888,7 @@ static func bake_yard(b, s, under: Image) -> Array:
 
 # 놓기 미리보기(S216): [커서 칸을 구조물의 칸으로 한 차지 칸, 지을 수 있나]. 실시간 단계에는 닿는 공병(I125)도 본다(I138 2026-10-28)
 static func ghost(b, kind: String, cell: Vector2i) -> Array:
-	return [b.area_at(cell, b.STRUCTURE_KINDS[kind].size), b.can_build(kind, cell) and (not b.live() or b.engineer_gap([cell]) == "")]
+	return [b.area_at(cell, b.STRUCTURE_KINDS[kind].size), b.can_build(kind, cell) and (not b.crewed() or b.engineer_gap([cell]) == "")]
 
 # 터 반지름(S215 2026-10-26 변경): (가로 칸 × 8 + 18 + 종류 보탬, 깊이 칸 × 8 + 12)px
 static func yard_radius(s) -> Vector2:

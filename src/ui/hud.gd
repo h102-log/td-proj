@@ -544,7 +544,7 @@ func _process(delta: float) -> void:
 	if on:
 		_show_quests()
 		_eng.text = str(_idle().size())
-		_eng.add_theme_color_override("font_color", HudTheme.DANGER if battle.live() and _idle().is_empty() else HudTheme.TEXT)  # I128
+		_eng.add_theme_color_override("font_color", HudTheme.DANGER if battle.crewed() and _idle().is_empty() else HudTheme.TEXT)  # I128. 준비 단계엔 공병이 없어도 된다(S18 2026-11-06 변경)
 	toasts.visible = on
 	alerts.visible = on
 	minimap.visible = on
@@ -1418,10 +1418,10 @@ func _skill_tip(i: int, slot: String) -> Array:
 	about += "\n" + "\n".join(skill_lines(h.kind, slot, sk))
 	return [name_about[0], slot.to_upper(), "", about, why]
 
-# 고른 것의 칸에 공병 지시를 맡을 공병이 없는 이유(I128). live()가 아니거나 고른 것이 없으면 ""
+# 고른 것의 칸에 공병 지시를 맡을 공병이 없는 이유(I128). 전투 단계(crewed)가 아니거나 고른 것이 없으면 ""
 # ponytail: 닿는지 보는 A*가 무거워(성문이 모두 닫히면 1회 7ms) 같은 칸이면 0.3초마다만 다시 잰다. 그사이 바뀐 공병 사정은 늦게 보인다
 func _engineer_gap(cells: Array) -> String:
-	if not battle.live() or cells.is_empty():
+	if not battle.crewed() or cells.is_empty():
 		return ""
 	if cells != _gap_for or Time.get_ticks_msec() - _gap_at > 300:
 		_gap = battle.engineer_gap(cells)

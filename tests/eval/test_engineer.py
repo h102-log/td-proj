@@ -57,7 +57,7 @@ def test_EV229_unreachable_engineer_order_refused(gd):
 def test_EV230_reachable_engineer_takes_the_job(gd):
     gd("engineer", "EV230")
 
-def test_EV416_live_prep_engineer_builds(gd):
+def test_EV416_live_prep_work_finishes_at_once(gd):
     gd("engineer", "EV416")
 
 
@@ -65,7 +65,7 @@ def test_EV417_live_prep_buy_walks_out(gd):
     gd("engineer", "EV417")
 
 
-def test_EV419_live_prep_work_carries_into_battle(gd):
+def test_EV419_battle_work_stops_and_prep_resume_finishes(gd):
     gd("engineer", "EV419")
 
 

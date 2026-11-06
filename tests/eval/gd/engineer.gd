@@ -225,52 +225,52 @@ func _nearest(b, kind: String, want: Vector2i) -> Vector2i:
 			best = c
 	return best
 
-# EV416 · S18: 준비 단계 실시간 판의 준비 단계 짓기·업그레이드·수리·복구는 공병이 가서 시간을 들인다. 마을 레벨 올리기는 바로 된다
+# EV416 · S18 2026-11-06 변경: 준비 단계 실시간 판의 준비 단계 짓기·업그레이드·수리·복구는 지시하는 순간 끝나고 공병은 일을 맡지 않는다. 공병이 없어도 짓는다.
+# 마을 레벨 올리기는 바로 된다. 전투 단계 짓기는 그대로 공병이 가서 시간을 들인다
 func ev416():
 	var b = _walled()
 	var e = b.place_merc("engineer", NEAR)
 	_live(b)
 	var g: int = b.gold
 	var s = b.build("tower", T)
-	if s == null or s.complete or s.progress != 0.0 or b.gold != g - b.STRUCTURE_KINDS.tower.cost or e.job != s:
-		return "지시 직후: 구조물 %s · 완성 %s · 진행률 %s · 골드 %d → %d · 공병의 일 %s" % [s, s.complete if s else null, s.progress if s else null, g, b.gold, e.job]
-	g = b.gold
-	if b.build("tower", Vector2i(14, 10)) != null or b.gold != g:
-		return "공병이 일하는 동안 둘째 타워가 받아들여졌다(골드 %d → %d)" % [g, b.gold]
-	b.finish(s)
-	if s.complete:
-		return "finish로 바로 완성됐다"
-	run(b, 1.0)
-	if s.complete:
-		return "1초 만에 완성됐다"
-	if not run(b, 30.0, func(): return s.complete):
-		return "30초 안에 완성되지 않았다(진행률 %.2f)" % s.progress
+	if s == null or not s.complete or s.hp != s.max_hp or b.gold != g - b.STRUCTURE_KINDS.tower.cost or e.job != null:
+		return "짓기 지시 직후: 구조물 %s · 완성 %s · 골드 %d → %d · 공병의 일 %s" % [s, s.complete if s else null, g, b.gold, e.job]
 	var k = b.castle[Vector2i(12, 6)]
 	var lv: int = k.level
+	g = b.gold
+	var cost: int = b.upgrade_cost(k)
 	b.upgrade(k)
-	if k.level != lv or e.job != k:
-		return "업그레이드 지시 직후 단계 %d → %d · 공병의 일 %s" % [lv, k.level, e.job]
-	if not run(b, 30.0, func(): return k.level == lv + 1):
-		return "30초 안에 업그레이드되지 않았다"
+	if k.level != lv + 1 or b.gold != g - cost or e.job != null:
+		return "업그레이드 지시 직후 단계 %d → %d · 골드 %d → %d(비용 %d) · 공병의 일 %s" % [lv, k.level, g, b.gold, cost, e.job]
 	var w = b.castle[Vector2i(10, 6)]
 	b.damage(w, w.max_hp / 2.0)
+	g = b.gold
+	cost = b.repair_cost(w)
 	b.repair(w)
-	if w.hp >= w.max_hp or e.job != w:
-		return "수리 지시 직후 체력 %.0f/%.0f · 공병의 일 %s" % [w.hp, w.max_hp, e.job]
-	if not run(b, 30.0, func(): return w.hp >= w.max_hp):
-		return "30초 안에 수리되지 않았다(%.0f/%.0f)" % [w.hp, w.max_hp]
+	if w.hp < w.max_hp or b.gold != g - cost or e.job != null:
+		return "수리 지시 직후 체력 %.0f/%.0f · 골드 %d → %d(비용 %d) · 공병의 일 %s" % [w.hp, w.max_hp, g, b.gold, cost, e.job]
 	var c := Vector2i(8, 6)
 	b.damage(b.castle[c], BIG)
 	var r = b.rubble.get(c)
 	if r == null:
 		return "성벽 칸이 잔해가 되지 않았다"
+	g = b.gold
+	cost = b.repair_cost(r)
 	b.restore(r)
-	if not b.rubble.has(c) or e.job != r:
-		return "복구 지시 직후 잔해 %s · 공병의 일 %s" % [b.rubble.has(c), e.job]
-	if not run(b, 30.0, func(): return b.castle.has(c)):
-		return "30초 안에 복구되지 않았다"
+	var up = b.castle.get(c)
+	if up == null or up.hp < up.max_hp or b.gold != g - cost or e.job != null:
+		return "복구 지시 직후 성곽 칸 %s · 체력 %s · 골드 %d → %d(비용 %d) · 공병의 일 %s" % [up, [up.hp, up.max_hp] if up else null, g, b.gold, cost, e.job]
+	b.sell([e])
+	var s2 = b.build("tower", Vector2i(14, 10))
+	if b.units.any(func(u): return u.kind == "engineer") or s2 == null or not s2.complete:
+		return "공병을 판 뒤 지은 타워 %s(완성 %s)" % [s2, s2.complete if s2 else null]
 	var vl: int = b.village_level
-	return check(b.raise_village() and b.village_level == vl + 1, "마을 레벨 올리기 %d → %d" % [vl, b.village_level])
+	if not b.raise_village() or b.village_level != vl + 1:
+		return "마을 레벨 올리기 %d → %d" % [vl, b.village_level]
+	var e2 = b.place_merc("engineer", NEAR)
+	_start(b)
+	var s3 = b.build("tower", Vector2i(16, 10))
+	return check(s3 != null and not s3.complete and s3.progress == 0.0 and s3.worker == e2, "전투 단계 타워 %s · 완성 %s · 진행률 %s · 일꾼이 새 공병 %s" % [s3, s3.complete if s3 else null, s3.progress if s3 else null, s3.worker == e2 if s3 else null])
 
 # EV417 · I20: 준비 단계 실시간 판의 준비 단계 구매는 시설 옆에 나와 집결 지점으로 걷는다. 건설 격자 용병 칸(merc_key)은 시설을 고르고 다시 누르면 산다. 칸을 눌러 놓지 않는다
 func ev417():
@@ -297,26 +297,27 @@ func ev417():
 	click(c, MOUSE_BUTTON_LEFT, px(cell))
 	return check(b.units.size() == n + 1 and not b.occupied(cell), "빈 칸 클릭 뒤 유닛 %d(%d여야 한다) · 그 칸에 유닛 %s" % [b.units.size(), n + 1, b.occupied(cell)])
 
-# EV419 · I19: 준비 단계 실시간 판의 준비 단계에 시작한 일은 전투를 시작해도 이어지고, 웨이브가 끝나면 멈춘다
+# EV419 · I19: 준비 단계 실시간 판의 전투 단계에 짓기 시작한 일은 웨이브가 끝나면 멈추고 미완성으로 남는다.
+# 준비 단계에 이어 짓기를 하면 골드를 더 내지 않고 바로 완성된다(S18 2026-11-06 변경)
 func ev419():
 	var b = _battle()
 	var e = b.place_merc("engineer", NEAR)
 	_live(b)
-	var s = b.build("tower", T, {"build_time": 60.0})
-	run(b, 2.0)
-	if s == null or s.progress <= 0.0:
-		return "준비 단계 2초 뒤 진행률이 0이다(%s)" % [s.progress if s else null]
 	var idle = _start(b)
-	var p: float = s.progress
-	run(b, 2.0)
-	if e.job != s or s.progress <= p:
-		return "전투 시작 뒤 공병의 일 %s · 진행률 %.3f → %.3f" % [e.job, p, s.progress]
+	var s = b.build("tower", T, {"build_time": 60.0})
+	run(b, 4.0)
+	if s == null or s.progress <= 0.0 or e.job != s:
+		return "전투 단계 4초 뒤 진행률 %s · 공병의 일이 그 타워 %s" % [s.progress if s else null, e.job == s if s else null]
 	b.damage(idle, BIG)
 	if not run(b, 5.0, func(): return b.state == "prep"):
 		return "웨이브가 끝나지 않았다(%s)" % b.state
-	p = s.progress
+	var p: float = s.progress
 	run(b, 1.0)
-	return check(e.job == null and s.worker == null and p < 1.0 and s.progress == p, "웨이브 뒤 공병의 일 %s · 일꾼 %s · 진행률 %.3f → %.3f" % [e.job, s.worker, p, s.progress])
+	if e.job != null or s.worker != null or p >= 1.0 or s.progress != p:
+		return "웨이브 뒤 공병의 일 %s · 일꾼 %s · 진행률 %.3f → %.3f" % [e.job, s.worker, p, s.progress]
+	var g: int = b.gold
+	var got = b.resume(s)
+	return check(s.complete and got == null and b.gold == g and e.job == null, "준비 단계 이어 짓기 뒤 완성 %s · 돌려받은 공병 %s · 골드 %d → %d · 공병의 일 %s" % [s.complete, got, g, b.gold, e.job])
 
 # EV420 · S208: 준비 단계 실시간 판은 1라운드로 갈 때 공병 둘을 마을 안·밖에 무료로 세운다
 func ev420():
@@ -341,12 +342,12 @@ func ev420():
 		return "마을 안 공병 %d · 밖 공병 %d" % [inner.size(), outer.size()]
 	var t = b.build("tower", _nearest(b, "tower", Vector2i(28, 31)))
 	var f = b.build("barracks", _nearest(b, "barracks", Vector2i(26, 15)))
-	if t == null or f == null or t.worker != outer[0] or f.worker != inner[0]:
-		return "타워 %s(일꾼 %s) · 병영 %s(일꾼 %s)" % [t, t.worker if t else null, f, f.worker if f else null]
+	if t == null or f == null or not t.complete or not f.complete or t.worker != null or f.worker != null or es.any(func(u): return u.job != null):  # 준비 단계 짓기는 바로 끝난다(S18 2026-11-06 변경)
+		return "타워 %s(완성 %s) · 병영 %s(완성 %s) · 일을 맡은 공병 %d" % [t, t.complete if t else null, f, f.complete if f else null, es.filter(func(u): return u.job != null).size()]
 	var g: int = b.gold
 	b.sell([inner[0]])
-	if b.gold != g or f.worker != null:
-		return "병영 짓는 공병을 팔자 골드 %d → %d · 병영 일꾼 %s" % [g, b.gold, f.worker]
+	if b.gold != g:
+		return "마을 안 공병을 팔자 골드 %d → %d" % [g, b.gold]
 	b.state = "cleared"
 	b.next_round()
 	var left: int = b.units.filter(func(u): return u.kind == "engineer").size()
@@ -369,10 +370,8 @@ func ev424():
 	if e == null or e.kind != "engineer" or b.gold != g - b.MERC_KINDS.engineer.cost or absi(d.x) + absi(d.y) != 1 or b.base.rally != cell_of(e):
 		return "거점에서 산 공병 %s · 골드 %d → %d · 자리 %s(거점 %s · 집결 지점 %s)" % [e, g, b.gold, e.pos if e else null, b.base.cell, b.base.rally]
 	var w = b.build("workshop", _nearest(b, "workshop", Vector2i(26, 32)))
-	if w == null or w.worker != e:
-		return "작업장 %s · 일꾼 %s(거점에서 산 공병 %s)" % [w, w.worker if w else null, e]
-	if not run(b, 30.0, func(): return w.complete):
-		return "작업장이 30초 안에 완성되지 않았다(진행 %s)" % w.progress
+	if w == null or not w.complete or w.worker != null:  # 준비 단계 짓기는 바로 끝난다(S18 2026-11-06 변경)
+		return "작업장 %s · 완성 %s · 일꾼 %s" % [w, w.complete if w else null, w.worker if w else null]
 	if b.sellers("engineer") != [w, b.base]:
 		return "작업장을 지은 뒤 파는 곳 %s(작업장 %s · 거점 %s)" % [b.sellers("engineer"), w, b.base]
 	var off = load("res://src/sim/battle.gd").new(stage)

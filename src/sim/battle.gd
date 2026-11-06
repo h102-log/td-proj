@@ -859,9 +859,13 @@ func next_round() -> bool:
 	_forecast()  # 라운드에 따라 길이 성문을 지난다(S142, S143)
 	return true
 
-# 공병이 가서 일하고 용병을 생산 시설에서 사는 단계: 전투 단계와, live_prep이면 준비 단계(S18, I175)
+# 용병을 생산 시설에서 사고 미완성 구조물을 이어 짓거나 취소하는 단계: 전투 단계와, live_prep이면 준비 단계(S18, I175)
 func live() -> bool:
 	return state == "battle" or (live_prep and state == "prep")
+
+# 짓기·업그레이드·수리·복구·이어 짓기를 공병이 가서 시간을 들여 하는 단계: 전투 단계뿐이다. 준비 단계에는 공병 없이 바로 끝난다(S18 2026-11-06 변경)
+func crewed() -> bool:
+	return state == "battle"
 
 # [동작] 도전 시작 전 영입 창(S122)을 연다. main·HUD가 새 도전(restart) 직후에 부른다
 # [이유] restart()가 곧바로 열지 않는 것은 동결된 평가(EV36·EV80·EV165·EV170)가
@@ -2169,8 +2173,8 @@ func _cast_time_loop(h: Unit, sk: Dictionary, aim, grow: float) -> void:
 func _cast_wind_up(h: Unit, sk: Dictionary, _aim, _grow: float) -> void:
 	_zone("chronos_r", h, h.pos, sk.radius, sk.time, {"slow": sk.slow, "pace": sk.pace, "follow": true})
 
-# 지을 수 있는 칸에 짓는다(_buildable). 마을 레벨이 모자란 종류는 거부한다(S99). live가 아닌 준비 단계엔 바로 완성된다(S18, I175).
-# live()엔 진행률 0의 미완성 구조물을 놓고 놀고 있는 가장 가까운 공병을 보낸다. 그런 공병이 없으면 거부한다(S22, I39, I62)
+# 지을 수 있는 칸에 짓는다(_buildable). 마을 레벨이 모자란 종류는 거부한다(S99). 준비 단계엔 공병 없이 바로 완성된다(S18 2026-11-06 변경).
+# 전투 단계(crewed)엔 진행률 0의 미완성 구조물을 놓고 놀고 있는 가장 가까운 공병을 보낸다. 그런 공병이 없으면 거부한다(S22, I39, I62)
 # 생산 시설의 집결 지점 기본값은 출구 칸이다(I61). 건설비는 지시하는 순간 내고, 모자라면 거부한다(I16, I17)
 func build(kind: String, cell: Vector2i, overrides := {}):
 	if state not in ["prep", "battle"] or not _buildable(kind, cell) or STRUCTURE_KINDS[kind].village_level > village_level:
@@ -2178,8 +2182,8 @@ func build(kind: String, cell: Vector2i, overrides := {}):
 	var stats: Dictionary = STRUCTURE_KINDS[kind].merged(overrides, true)
 	if gold < stats.cost or (stats.tax > 0 and structures.values().filter(func(s): return s.tax > 0).size() >= HOUSE_CAP):  # 집 상한(S101)
 		return null
-	var engineer = _idle_engineer(cell) if live() else null
-	if live() and not engineer:
+	var engineer = _idle_engineer(cell) if crewed() else null
+	if crewed() and not engineer:
 		return null
 	gold -= stats.cost
 	var s := Block.new(cell, kind, stats.hp)
@@ -2376,13 +2380,13 @@ func set_gate(g: Block, open: bool) -> void:
 func upgrade_cost(k: Block) -> int:
 	return UPGRADE_COST[k.kind] * (1 << (k.level - 1))
 
-# 성곽 칸 하나를 한 단계 올린다(S86). 골드는 지시할 때 낸다(I16). live가 아닌 준비 단계엔 바로 오르고, live()엔 놀고 있는
+# 성곽 칸 하나를 한 단계 올린다(S86). 골드는 지시할 때 낸다(I16). 준비 단계엔 바로 오르고(S18 2026-11-06 변경), 전투 단계(crewed)엔 놀고 있는
 # 가장 가까운 공병을 보낸다. 그런 공병이 없으면 거부한다. 그만둔 업그레이드는 골드를 더 내지 않고 이어 올린다(I68)
 func upgrade(k: Block) -> void:
 	if state not in ["prep", "battle"] or castle.get(k.cell) != k or k.level >= UPGRADE_MAX or k.worker:
 		return
-	var engineer = _idle_engineer(k) if live() else null
-	if live() and not engineer:
+	var engineer = _idle_engineer(k) if crewed() else null
+	if crewed() and not engineer:
 		return
 	if k.lift < 0.0:
 		if gold < upgrade_cost(k):
@@ -2417,13 +2421,13 @@ func repair_cost(t: Block) -> int:
 func can_repair(t) -> bool:
 	return t is Block and state in ["prep", "battle"] and t.complete and t.worker == null and t.hp < t.max_hp and (structures.get(t.cell) == t or castle.get(t.cell) == t or t == base)
 
-# 깎인 것을 고친다(S80). live가 아닌 준비 단계엔 수리비를 내고 바로 가득 차고(I86), live()엔 지시할 때 내고
+# 깎인 것을 고친다(S80). 준비 단계엔 수리비를 내고 바로 가득 차고(I86, S18 2026-11-06 변경), 전투 단계(crewed)엔 지시할 때 내고
 # 놀고 있는 가장 가까운 공병이 가서 낸 만큼 채운다(S115, I87). 공병이 없거나 골드가 모자라면 거부한다
 func repair(t) -> void:
 	if not can_repair(t):
 		return
-	var engineer = _idle_engineer(t) if live() else null
-	if (live() and not engineer) or gold < repair_cost(t):
+	var engineer = _idle_engineer(t) if crewed() else null
+	if (crewed() and not engineer) or gold < repair_cost(t):
 		return
 	_pay_fix(t, engineer)
 
@@ -2470,13 +2474,13 @@ func heal(h: Unit) -> void:
 	gold -= heal_cost(h)
 	h.hp = h.max_hp
 
-# 잔해를 되살린다(I89). 복구비는 지시할 때 낸다. live가 아닌 준비 단계엔 바로 가득 찬 채 서고, live()엔 놀고 있는
+# 잔해를 되살린다(I89). 복구비는 지시할 때 낸다. 준비 단계엔 바로 가득 찬 채 서고(S18 2026-11-06 변경), 전투 단계(crewed)엔 놀고 있는
 # 가장 가까운 공병이 가서 닿으면 다시 세운 뒤 채운다(_work). 지시할 때 칸에 누가 있으면 거부한다
 func restore(k: Block) -> void:
 	if state not in ["prep", "battle"] or rubble.get(k.cell) != k or k.worker or occupied_area(k):
 		return
-	var engineer = _idle_engineer(k) if live() else null
-	if (live() and not engineer) or gold < repair_cost(k):
+	var engineer = _idle_engineer(k) if crewed() else null
+	if (crewed() and not engineer) or gold < repair_cost(k):
 		return
 	gold -= repair_cost(k)
 	k.mend = k.max_hp
@@ -2523,9 +2527,13 @@ func cancel(s) -> void:
 		_remove(s)
 		gold += s.paid
 
-# 전투 단계(live)에만, 짓는 공병이 없는 미완성 구조물에 놀고 있는 가장 가까운 공병을 보낸다(S24, S83)
+# live()에만, 짓는 공병이 없는 미완성 구조물을 이어 짓는다(S24, S83). 전투 단계엔 놀고 있는 가장 가까운 공병을 보내고 그 공병을 돌려준다.
+# 준비 단계엔 골드를 더 내지 않고 바로 완성하고 null을 돌려준다(S18 2026-11-06 변경)
 func resume(s):
 	if not live() or s.complete or s.worker or structures.get(s.cell) != s:
+		return null
+	if not crewed():
+		_grow(s, 1.0)
 		return null
 	var engineer = _idle_engineer(s)
 	if engineer:

@@ -414,3 +414,7 @@ def test_EV789_hero_number_keys(gd):
 
 def test_EV790_hero_number_key_labels(gd):
     gd("hud", "EV790")
+
+
+def test_EV795_live_prep_builds_without_engineer(gd):
+    gd("hud", "EV795")
