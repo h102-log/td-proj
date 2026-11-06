@@ -18,7 +18,7 @@ def test_EV58_click_tower_makes_sell_candidate(gd):
     gd("sell", "EV58")
 
 
-def test_EV59_drag_picks_structures_and_merc_only(gd):
+def test_EV59_drag_with_merc_sells_merc_only(gd):
     gd("sell", "EV59")
 
 
@@ -36,3 +36,7 @@ def test_EV237_battle_click_selects_merc(gd):
 
 def test_EV594_click_picks_nearest_body(gd):
     gd("sell", "EV594")
+
+
+def test_EV791_drag_with_units_skips_structures(gd):
+    gd("sell", "EV791")

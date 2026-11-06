@@ -473,3 +473,31 @@ func ev664():
 		out = check(not tag.is_visible_in_tree(), "병사만 골랐는데 자동 수리 태그가 보인다")
 	_scene_done(main)
 	return out
+
+# EV792 · I24 2026-11-06 변경: 전투 단계에 놀고 있는 공병이 선 칸에도 짓고, 공병은 차지 칸 둘레 첫 빈 칸(앞 줄)으로 비켜서서 짓는다.
+# 일을 맡은 공병이 선 칸에는 짓지 못한다
+func ev792():
+	var b = _battle()
+	var e = b.place_merc("engineer", T)
+	_start(b)
+	var ok_cell: bool = b.can_build("tower", T) and T in b.placeable_cells("tower")
+	var s = b.build("tower", T)
+	if s == null:
+		return "공병이 선 칸에 짓지 못했다(can_build·미리보기 %s)" % ok_cell
+	var aside: bool = e.pos.distance_to(Vector2(T + Vector2i(0, 1))) <= 0.01 and e.job == s
+	var busy: bool = not b.can_build("tower", T + Vector2i(0, 1))
+	var done := run(b, 30.0, func(): return s.complete)
+	return check(ok_cell and aside and busy and done, "can_build·미리보기 %s · 공병이 앞 칸에서 일 맡음 %s(자리 %s) · 일하는 공병 칸 거부 %s · 30초 안 완성 %s(진행률 %.2f)" % [ok_cell, aside, e.pos, busy, done, s.progress])
+
+# EV793 · I24 2026-11-06 변경: 준비 단계에 병사가 선 칸은 그대로 거부하고, 걷던 공병이 선 칸에 지으면 바로 완성되고 공병은 비켜서며 걷기를 그만둔다
+func ev793():
+	var b = _battle()
+	var e = b.place_merc("engineer", T)
+	b.place_merc("soldier", T + Vector2i(4, 0))
+	var refused: bool = not b.can_build("tower", T + Vector2i(4, 0)) and b.build("tower", T + Vector2i(4, 0)) == null
+	b.order_move([e], FAR)
+	var s = b.build("tower", T)
+	if s == null:
+		return "걷던 공병이 선 칸에 짓지 못했다(병사 칸 거부 %s)" % refused
+	var aside: bool = s.complete and e.pos.distance_to(Vector2(T + Vector2i(0, 1))) <= 0.01 and e.path.is_empty()
+	return check(refused and aside, "병사 칸 거부 %s · 완성·공병 앞 칸·걷기 그만둠 %s(완성 %s, 자리 %s, 길 %d칸)" % [refused, aside, s.complete, e.pos, e.path.size()])

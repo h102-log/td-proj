@@ -32,3 +32,7 @@ def test_EV88_interrupted_upgrade_resumes_free(gd):
 
 def test_EV244_upgraded_gate_keeps_enemy_route(gd):
     gd("castle", "EV244")
+
+
+def test_EV794_crowd_passes_open_gate(gd):
+    gd("castle", "EV794")

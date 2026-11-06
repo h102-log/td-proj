@@ -62,15 +62,19 @@ func ev58():
 	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(10, 5)))
 	return check(c.selling == [t], "판매 후보가 %s다" % [c.selling])
 
-# EV59 · S70·I57: 준비 단계에 타워·방벽·용병 하나씩과 영웅·성벽·성문을 함께 덮는 사각형을 드래그하면 판매 후보가 앞의 셋이다
+# EV59 · S70·I57: 준비 단계에 타워·방벽·용병 하나씩과 영웅·성벽·성문을 함께 덮는 사각형을 드래그하면 판매 후보가 용병 하나뿐이다(I173 2026-11-06 변경).
+# 타워·방벽·성벽·성문만 덮는 사각형이면 타워·방벽 둘뿐이다
 func ev59():
 	var b = battle({"hero_start": Vector2i(10, 7),
 		"castle": {"walls": [Vector2i(12, 4)], "gates": [Vector2i(13, 4)], "wall_hp": 300, "gate_hp": 150}})
-	var want := [b.build("tower", Vector2i(10, 5)), b.build("wall", Vector2i(11, 5)), b.place_merc("soldier", Vector2i(12, 6))]
+	var built := [b.build("tower", Vector2i(10, 5)), b.build("wall", Vector2i(11, 5))]
+	var m = b.place_merc("soldier", Vector2i(12, 6))
 	var c = controls(b)
 	drag(c, px(Vector2i(9, 4)), px(Vector2i(13, 7)))
-	var ok: bool = c.selling.size() == 3 and want.all(func(x): return x in c.selling)
-	return check(ok, "판매 후보가 %d개다" % c.selling.size())
+	var mixed: bool = c.selling == [m]
+	drag(c, px(Vector2i(9, 4)), Vector2(14, 6) * CELL_PX)
+	var only: bool = c.selling.size() == 2 and built.all(func(x): return x in c.selling)
+	return check(mixed and only, "함께 덮은 상자의 판매 후보가 용병 하나 %s · 구조물만 덮은 상자의 판매 후보가 타워·방벽 %s(%d개)" % [mixed, only, c.selling.size()])
 
 # EV60 · I57: 전투 단계의 클릭은 판매 후보를 만들지 않는다
 func ev60():
@@ -120,3 +124,22 @@ func ev594():
 	click(c, MOUSE_BUTTON_LEFT, (m1.pos + Vector2(0.5, 0.5 - 0.8)) * CELL_PX)  # 첫째 병사 머리(발 자리에서 0.8칸 위, 위 칸에 든다)
 	got.append(c.selected == [m1])
 	return check(got == [true, true, true, true], "첫째·둘째 병사·영웅 몸통, 첫째 머리 칸을 눌러 고른 것이 맞나: %s" % [got])
+
+# EV791 · I173 2026-11-06 변경: 드래그 상자에 용병이 들면 두 단계 모두 상자 안 구조물은 고르지 않는다. 구조물만 든 상자는 그 구조물을 고른다
+func ev791():
+	var b = battle({"base_hp": BIG, "waves": _waves(1)})
+	var built := [b.build("tower", Vector2i(10, 5)), b.build("wall", Vector2i(11, 5))]
+	var m = b.place_merc("soldier", Vector2i(12, 6))
+	if built.has(null) or m == null:
+		return "타워·방벽·용병을 놓지 못했다"
+	var c = controls(b)
+	drag(c, Vector2(9, 4) * CELL_PX, Vector2(14, 8) * CELL_PX)  # 칸 (9,4)~(13,7)
+	var prep: bool = c.selected == [m] and c.selling == [m] and c.picked.is_empty()
+	var prep_n := [c.selected.size(), c.selling.size(), c.picked.size()]
+	b.start_battle()
+	drag(c, Vector2(9, 4) * CELL_PX, Vector2(14, 8) * CELL_PX)
+	var fight: bool = b.state == "battle" and c.selected == [m] and c.picked.is_empty() and c.selling.is_empty()
+	var fight_n := [c.selected.size(), c.selling.size(), c.picked.size()]
+	drag(c, Vector2(9, 4) * CELL_PX, Vector2(12, 6) * CELL_PX)  # 칸 (9,4)~(11,5): 타워·방벽만
+	var only: bool = c.selected.is_empty() and c.picked.size() == 2 and built.all(func(x): return x in c.picked)
+	return check(prep and fight and only, "[고른 것·판매·picked 수] 준비 단계 상자 %s %s · 전투 단계 상자 %s %s · 구조물만 든 상자 %s %s" % [prep, prep_n, fight, fight_n, only, [c.selected.size(), c.selling.size(), c.picked.size()]])
