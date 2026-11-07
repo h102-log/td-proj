@@ -22,7 +22,7 @@ extends SceneTree
 # ponytail: 봇은 «무난한 플레이어» 하나를 흉내 낼 뿐이다. 사람의 손을 대신하지 않는다. 판정은 사람이 한다
 # 준비 단계는 적 없는 전투다(live_prep, S18 2026-10-25 변경). 봇은 정문을 열어 두고 짓고 산 것이 다 될 때까지만 판을 돌린 뒤(PREP_MAX 상한) 정문을 닫는다.
 # 사람과 다른 점: 준비 단계 Q·오라 회복을 쓰지 않는다. 영웅을 마을로 부르지 않고 그 밖에는 성문을 여닫지 않고
-# 리롤하지 않는다. 의뢰는 보상만 보고 수락하고 조건에 맞춰 운영을 바꾸지 않는다. 잔해 위 유닛은 한 칸 물려 세운다(사람이 준비 단계에 걸어서 비키는 손을 대신한다, 복구 거부 I89를 피한다)
+# 리롤하지 않는다. 미션 조건에 맞춰 운영을 바꾸지 않는다. 잔해 위 유닛은 한 칸 물려 세운다(사람이 준비 단계에 걸어서 비키는 손을 대신한다, 복구 거부 I89를 피한다)
 
 const BOT := {
 	"name": "balanced",
@@ -45,7 +45,6 @@ const BOT := {
 	"village_from": 3,      # 이 라운드부터
 	"station": [[32, 34], [30, 33]],
 	"vlead": 9.0,           # 마을 영웅이 쫓는 거리(거점에서, 칸)
-	"accept": true,         # 라운드 사이에 보상이 가장 큰 의뢰를 수락한다(실패해도 벌칙이 없다, I54)
 }
 
 const GATE := Vector2i(32, 63)  # 정문 문루(S217) 앞줄 가운데 칸. 성문은 b.walls로 찾고, 행·열 기준점으로도 쓴다
@@ -300,7 +299,7 @@ func _fight() -> bool:
 	cur.gate_min = snappedf(cur.gate_min, 0.01)
 	cur.gold_out = b.gold
 	cur.state = b.state
-	if b.state in ["cleared", "won"]:  # 라운드를 이겼다: 미션·의뢰 판정 [이름, 달성, 보상](I120)
+	if b.state in ["cleared", "won"]:  # 라운드를 이겼다: 미션 판정 [이름, 달성, 보상](I120)
 		cur.quests = b.settled.map(func(s): return [s[0], s[1], b.QUEST_KINDS[s[0]].reward])
 	log.append(cur)
 	return not cur.has("stall")
@@ -335,12 +334,6 @@ func _hire() -> void:
 		var kind: String = b.offers[best]
 		if b.hire(best):
 			hires.append("R%d:%s" % [b.round_index + 1 + (1 if b.state == "cleared" else 0), kind])
-	if bot.accept and b.state == "cleared" and not b.commission_offers.is_empty():
-		var best := 0
-		for i in b.commission_offers.size():
-			if b.QUEST_KINDS[b.commission_offers[i]].reward > b.QUEST_KINDS[b.commission_offers[best]].reward:
-				best = i
-		b.accept(best)
 	# 출전 중인 영웅보다 높은 등급이 목록에 있고 넉넉하면 산 뒤 경험치를 옮겨 바꿔 낸다(S62의 의도)
 	if b.state == "cleared" and b.roster.size() < hire.cap:
 		for i in b.offers.size():

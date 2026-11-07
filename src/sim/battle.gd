@@ -14,11 +14,12 @@ var STRUCTURE_KINDS := _kinds("res://data/structures/")
 var HERO_KINDS := _kinds("res://data/heroes/")  # 칸의 뜻은 src/data/hero_def.gd 머리 주석(S97, I95)
 var HIRE = load("res://data/hire.tres")  # 영입소 수치(S123, I103)
 var LEVELS = load("res://data/levels.tres")  # 영웅 레벨 수치(S126, I111)
-var QUEST_KINDS := _kinds("res://data/quests/")  # 미션·의뢰 정의(S77, I118). 칸의 뜻은 src/data/quest_def.gd 머리 주석
+var QUEST_KINDS := _kinds("res://data/quests/")  # 미션 정의(S77, I118). 칸의 뜻은 src/data/quest_def.gd 머리 주석
 var GEAR_KINDS := _kinds("res://data/gear/")  # 영웅 전용장비(S246). 파일 이름이 주인 영웅 종류다. 칸의 뜻은 src/data/gear_def.gd 머리 주석
 const VILLAGE_UP := [60]  # 마을 레벨 n→n+1 비용(S99). 길이+1이 최대 레벨이다. 임시값(Claude 예시, 사용자 2026-10-13 수락)
 const MERC_CAP := 10  # 마을이 없는 판의 배치 상한(S25 2026-11-04 변경). 임시값(사용자 2026-10-13), 스테이지의 merc_cap이 덮어쓴다
 const POP_BASE := 4  # 거점이 주는 인구(S25 2026-11-04 변경). 집 몫은 집의 pop이다. 임시값(사용자 2026-11-04 «거점도 4명»)
+const TOWER_BASE := 4  # 거점이 주는 쏘는 구조물 몫(S299). 집 몫은 집의 towers다. 임시값(Claude 초안, 사용자 2026-11-07 «진행»)
 const HOUSE_CAP := 6  # 마을에 지을 수 있는 집 수(S101). 임시값(사용자 2026-10-13)
 # 가구 유형(S221): [가중치, 어른, 아이 최소, 아이 최대, 노인]. 어른 둘은 남녀 한 쌍, 하나는 남녀 반반이다. 손잡이 값(사용자 2026-10-26 «조사 표 그대로»)
 const HOUSEHOLDS := [
@@ -43,7 +44,6 @@ const JOB_SEX := {"farmer": [1.0, 0.6], "fisher": [1.0, 0.5], "woodcutter": [1.0
 const UNIQUE_JOBS := ["priest", "blacksmith", "miller", "baker", "innkeeper", "watchman", "midwife", "bowyer"]  # 마을에 한 사람
 const FACILITY_JOBS := {"workshop": "blacksmith", "archery": "bowyer"}  # 그 시설을 다 지어야 생기는 고유 직업. 가장이 바뀌어 맡는다
 const JOB_CAPS := {"fisher": 4, "merchant": 2}  # 물가 자리·좌판 수(I182)
-const QUEST_OFFERS := 2  # 라운드 사이에 보이는 의뢰 수(I121). 임시값(Claude 예시)
 const TALLY_KEYS := ["base_hit", "castle_lost", "structure_lost", "merc_lost", "hero_down", "merc_bought", "built", "battle_time"]  # 라운드 집계의 키(I119)
 const SPAWN_GAP := 2.5  # 웨이브 안에서 적이 나오는 간격(초). 임시값: 1.0 → 0.9(2026-10-15 3장 자체 점검, 사용자 승인 2026-10-16 — insights/2026-10-15_ch3_self_check_balance.md §8) → 2.5(2026-10-21 5.1 판 길이, I91 — insights/2026-10-21_round_design.md)
 const REACH := 1.0      # 적이 막힌 칸·거점·유닛을 칠 수 있는 거리(중심 사이). 옆 칸 중심까지가 1이다
@@ -68,6 +68,8 @@ const GATE_SPLIT_ROUND := 3  # 이 라운드부터 땅 적은 출현 지점에�
 const SPLIT_RING := 0.25  # 갈라져 나온 적을 죽은 자리에서 이만큼 떨어진 둘레에 놓는다(칸, S234). 임시값
 # 수리(S114): 성곽·거점의 체력 1당 수리비(골드). 구조물은 낸 골드 ÷ 최대 체력이다. 수치는 임시값
 const REPAIR_RATE := {"castle_wall": 0.1, "gate": 0.1, "base": 1.0}
+const REPAIR_MARKUP := 1.25  # 수리비 배율(S114 2026-11-07 변경). 구조물·성곽·거점·잔해 복구·자동 수리가 모두 받는다. 임시값
+const SELL_RATE := 0.8  # 구조물 판매 환불 비율(S69 2026-11-07 변경). 용병은 받지 않는다. 임시값
 const REPAIR_TIME := 5.0  # 전투 중 공병이 성곽·거점을 0에서 가득 채우는 시간(초, I87). 구조물은 건설 시간이다
 # 자동 수리(S277): 켜진 공병이 맡는 거리(칸, 가장 가까운 차지 칸까지)·체력 비율 상한(이 밑)·판정 간격(초). Claude 임시값
 const AUTO_FIX_RANGE := 6.0
@@ -116,6 +118,7 @@ class Block:
 	var rally: Vector2i  # 생산 시설의 집결 지점(S21)
 	var tax := 0  # 집이면 준비 단계마다 내는 세금(S101)
 	var pop := 0  # 다 지으면 주는 인구(S25 2026-11-04 변경). 집만 준다
+	var towers := 0  # 다 지으면 주는 쏘는 구조물 몫(S299). 집만 준다
 	var folk := []  # 집이면 사는 가족(S221), 교회면 사제(S222): {body, look, job, n(원래 차례), hp·away·t0(S227·I183)} 배열. 다 지은 때 정해진다(_move_in)
 	var lost := 0  # 죽은 식구 수(S228). 그 집 세금에서 계속 빠진다
 	var progress := 1.0  # 건설 진행률(0~1). 1 미만이면 미완성이다(I62)
@@ -186,6 +189,7 @@ class Enemy:
 	var fx := {}  # 걸린 효과: 출처 → {효과 키: 값, left: 남은 초}(S150, I141)
 	var engaged = null  # 이 적을 붙잡은 유닛(S159). 블록 자리를 하나 차지한다. 없으면 null
 	var alive := true
+	var lit := true  # 보이는 적(S300, I247 ①): 나올 때와 스텝 끝에 정한다. 아군이 스스로 고르는 대상은 이 값이 참인 적이다
 	var attacker  # 반격 대상인 구조물. 살아 있는 동안 반격한다(S4 ②). 바뀌는 때는 _fire(S140)
 	var held := 0.0  # 반격 대상을 바꾸지 않는 남은 초(S140). 반격 대상이 쏠 때마다 COUNTER_HOLD로 돌아간다
 	var target  # 마지막으로 친 대상. 화면이 친 직후 공격선을 그린다(S71)
@@ -212,7 +216,7 @@ class Enemy:
 	var grief := 0  # 광분(S295): 나와 있는 동안 쓰러진 다른 같은 종류 수
 	var siege := false  # 공성(S280~S282): 유닛·반격 대상·도발·마을 구조물을 노리지 않는다
 	var fuse := {}  # 폭파병 도화선(S280). 비어 있지 않으면 치는 대신 도화선을 켠다
-	var range := 0.0  # 멈춰서 행동하는 거리(I216). 투석기 던지기(S282)
+	var range := 0.0  # 멈춰서 행동하는 거리(I216). 투석기 던지기(S282)·불화살(S302)
 	var throw := {}  # 투석기 던지기(S282)
 	var ranged_cut := 0.0  # 투사체 물리 피해 덜 받기(I217)
 	var ignore_units := false  # 아군 몸 무시(I218)
@@ -228,6 +232,9 @@ class Enemy:
 	var by_house := false  # 투하 칸이 집 둘레다(S286)
 	var loosed := INF  # 열기구가 폭탄을, 비행선이 고블린을 떨군 뒤 초(S172 2026-11-03 둘째 변경 ②). 그리기만 읽는다
 	var phase2 := ""  # 체력이 0이 되면 쓰러지지 않고 될 종류(S288 전쟁 기계 → 대장). 비어 있으면 쓰러진다
+	var guard := 0.0  # 남은 방패 내구도(S301, I248). 궁수탑·궁수 용병 화살 피해를 몸보다 먼저 받고 다시 차지 않는다
+	var max_guard := 0.0  # 나온 때의 방패 내구도. 화면이 남은 방패 막대(I248 ④)를 그린다
+	var flame := {}  # 불화살(S302)
 
 	func _init(k: String, cell: Vector2i, stats: Dictionary) -> void:
 		kind = k
@@ -235,6 +242,7 @@ class Enemy:
 		for key in stats:
 			set(key, stats[key])
 		max_hp = hp
+		max_guard = guard
 		girth = radius
 
 # 영웅과 용병(I1). 스킬은 영웅만, 홀드는 용병만 쓴다(S16)
@@ -425,11 +433,9 @@ var dropped := []  # 이번 라운드 사이의 전리품 [영웅 종류, 전 �
 var merc_rank := {}  # 용병 종류 → 산 강화 단계 수(S254). 키가 없으면 0. 새 도전이면 비운다
 var offers := []  # 영입소 목록: 칸마다 영웅 종류, 영입한 칸은 ""(I103, I104)
 var rerolls := 0  # 이번 라운드에 리롤한 횟수(S273). 도전을 시작할 때와 라운드를 이겨 목록을 무료로 새로 뽑을 때 0이 된다
-var quests := []  # 이 도전에서 뜰 수 있는 미션·의뢰 이름(I118). 스테이지의 quests가 정한다. 비어 있으면 미션·의뢰가 없다
+var quests := []  # 이 도전에서 뜰 수 있는 미션 이름(I118). 스테이지의 quests가 정한다. 비어 있으면 미션이 없다
 var mission := ""  # 지금 라운드의 미션(S77, I120). 없으면 ""
-var commission := ""  # 수락한 의뢰(S77, I121). 다음 라운드 하나에 걸린다. 없으면 ""
-var commission_offers := []  # 라운드 사이에 고를 수 있는 의뢰 이름(I121)
-var settled := []  # 지난 라운드의 미션·의뢰 판정 [이름, 달성 여부](I120). 결과 창이 보인다(I122)
+var settled := []  # 지난 라운드의 미션 판정 [이름, 달성 여부](I120). 결과 창이 보인다(I122)
 var tally := {}  # 라운드 집계(I119): TALLY_KEYS → 수. 라운드가 시작될 때 0이 된다
 var revive := true  # 쓰러진 영웅이 다음 준비 단계에 돌아온다(S27). 기본값 켜짐(I28)
 # 준비 단계를 적 없는 전투로 돈다(S18 2026-10-25 변경, I175): 짓기·업그레이드·수리·복구는 공병, 용병은 시설에서 산다. 시작 공병(S208)도 이것이 켜졌을 때다
@@ -471,7 +477,7 @@ var _stage: Dictionary  # 재시작할 때 다시 읽는다
 var _rng := RandomNumberGenerator.new()  # 영입소 목록을 뽑는다. 스테이지에 seed가 있으면 그 씨앗이다(평가용)
 var _luck := RandomNumberGenerator.new()  # 요새화 기절(S151). 영입소 목록이 전투에 따라 바뀌지 않게 따로 둔다
 var _kin := RandomNumberGenerator.new()  # 집의 가족(S221). 영입소·전투 난수가 집 짓기에 따라 바뀌지 않게 따로 둔다
-var _loot := RandomNumberGenerator.new()  # 전리품(S252). 영입소·의뢰·미션 목록이 전리품에 따라 바뀌지 않게 따로 둔다(I202)
+var _loot := RandomNumberGenerator.new()  # 전리품(S252). 영입소 목록·미션이 전리품에 따라 바뀌지 않게 따로 둔다(I202)
 var _shot := RandomNumberGenerator.new()  # 궁수 명중(S178 2026-11-04 변경, I224 ③). 다른 난수가 사격에 따라 바뀌지 않게 따로 둔다
 var _chains := 0  # 영혼 사슬(S154)마다 붙이는 번호
 var _holds := {}  # 유닛 → 그 유닛이 붙잡은 적 수(S159). 스텝마다 적의 engaged로 다시 센다
@@ -618,12 +624,10 @@ func restart() -> void:
 		_shot.randomize()
 	_draw_offers()  # 도전을 시작할 때 무료로 뽑는다(I104)
 	rerolls = 0
-	var q = stage.get("quests", [])  # 미션·의뢰(I118): true면 data/quests의 모든 것, 배열이면 그 이름들만(평가용). 없으면 뜨지 않는다
+	var q = stage.get("quests", [])  # 미션(I118): true면 data/quests의 모든 것, 배열이면 그 이름들만(평가용). 없으면 뜨지 않는다
 	quests = QUEST_KINDS.keys() if q is bool and q else (q.duplicate() if q is Array else [])
 	quests.sort()
 	mission = ""
-	commission = ""
-	commission_offers.clear()
 	settled.clear()
 	_reset_tally()
 	_draw_mission()  # 1라운드의 미션(I120)
@@ -685,10 +689,8 @@ func step(dt: float) -> void:
 			_drop_gear()
 		else:
 			state = "won"  # 마지막 라운드를 이겨 도전에 성공했다(I92)
-		if state != "prep":  # 라운드를 이겼다: 미션과 수락한 의뢰를 판정해 보상을 준다(S77, I120). 라운드 사이에는 새 의뢰 목록을 보인다(I121)
+		if state != "prep":  # 라운드를 이겼다: 미션을 판정해 보상을 준다(S77, I120)
 			_settle_quests()
-			if state == "cleared":
-				_draw_commissions()
 		_judge()  # 대피령 판정·떠남(S229)은 세금보다 먼저다(I183 ⑥)
 		if state != "won":  # 준비 단계나 라운드 사이로 넘어갈 때 걷는다(I46)
 			gold += tax()
@@ -705,6 +707,8 @@ func step(dt: float) -> void:
 	_night(dt)
 	_folk(dt)
 	_light_up()
+	for e in enemies:  # 다음 스텝의 고르기가 쓰는 보이는 적(I247 ①). 고를 때마다 seen을 부르지 않게 한 번만 정한다
+		e.lit = seen(e.pos)
 
 # 라운드 r·웨이브 w의 밤(S210): {at, dark, fade}. 낮이면 {}
 func night(r: int, w: int) -> Dictionary:
@@ -807,6 +811,12 @@ func wave_plan(r: int, w: int) -> Array:
 				_pack(out, entry.kind, turns + j, entry.count / m + (1 if j < entry.count % m else 0), entry.count)
 			turns += m
 			continue
+		var esc: Dictionary = ENEMY_KINDS[entry.kind].get("escort", {})
+		if not esc.is_empty():  # 호위(S301): 한 마리가 한 차례이고 그 차례에 호위와 함께 나온다
+			for j in entry.count:
+				_escort(out, entry.kind, turns + j, esc)
+			turns += entry.count
+			continue
 		var pack: int = maxi(1, ENEMY_KINDS[entry.kind].get("pack", 1))
 		var left: int = entry.count
 		while left > 0:
@@ -824,6 +834,18 @@ func _pack(out: Array, kind: String, turn: int, n: int, group: int) -> void:
 	x = maxi(0, mini(x, mini(s.x + spawn_spread - n + 1, size.x - n))) if spawn_spread > 0 else s.x
 	for i in n:
 		out.append([kind, s, Vector2i(clampi(x + (i if spawn_spread > 0 else 0), 0, size.x - 1), s.y), group])
+
+# 호위(S301, I248 ⑤): 차례 turn의 나올 칸(I177)을 가운데로 그 줄 양옆 이웃 칸에 호위 count마리, 가운데 칸 한 줄 북쪽에 kind 한 마리를 더한다.
+# 한 차례에 함께 나오고, 호위가 맵 끝을 넘으면 가운데를 안으로 당긴다
+func _escort(out: Array, kind: String, turn: int, esc: Dictionary) -> void:
+	var n: int = esc.count
+	_pack(out, kind, turn, 1, n + 1)
+	var lead: Array = out[-1]
+	var c: Vector2i = lead[2]
+	c.x = clampi(c.x, n / 2, size.x - 1 - (n - n / 2))
+	lead[2] = Vector2i(c.x, maxi(c.y - 1, 0))
+	for i in n:
+		out.append([esc.kind, lead[1], Vector2i(c.x - n / 2 + i + int(i >= n / 2), c.y), n + 1])  # 가운데를 비운다: 4마리면 −2·−1·+1·+2
 
 # 출현 지점(spawns 차례)마다 {적 종류: 수}(S188)
 func spawn_counts(r: int, w: int) -> Array:
@@ -847,11 +869,10 @@ func next_round() -> bool:
 		round_index += 1
 		waves = rounds[round_index]
 		wave_index = 0
-		commission_offers.clear()
 		settled.clear()
 		forged.clear()  # 창당 횟수는 라운드 사이 창마다 새로 센다(S246)
 		dropped.clear()
-		_reset_tally()  # 새 라운드의 집계와 미션(I119, I120). 수락한 의뢰는 이 라운드에 걸린다(I121)
+		_reset_tally()  # 새 라운드의 집계와 미션(I119, I120)
 		_draw_mission()
 	elif live_prep:  # 도전의 첫 준비 단계: 시작 공병(S208)
 		for c in _stage.get("engineer_cells", []):
@@ -1073,38 +1094,22 @@ func _reset_tally() -> void:
 
 # 이 도전의 미션 가운데 하나를 같은 확률로 뽑아 이번 라운드의 미션으로 둔다(I120). 둘 이상이면 지난 라운드의 미션은 피한다. 없으면 ""
 func _draw_mission() -> void:
-	var pool := quests.filter(func(n): return not QUEST_KINDS[n].commission)
+	var pool := quests.duplicate()
 	if pool.size() > 1:
 		pool.erase(mission)
 	mission = pool[_rng.randi_range(0, pool.size() - 1)] if not pool.is_empty() else ""
 
-# 이 도전의 의뢰 가운데 QUEST_OFFERS개를 서로 다르게 같은 확률로 뽑아 목록에 둔다(I121). 의뢰가 그보다 적으면 있는 만큼이다
-func _draw_commissions() -> void:
-	var pool := quests.filter(func(n): return QUEST_KINDS[n].commission)
-	commission_offers.clear()
-	for i in mini(QUEST_OFFERS, pool.size()):
-		commission_offers.append(pool.pop_at(_rng.randi_range(0, pool.size() - 1)))
-
-# 라운드 사이에만, 의뢰 목록의 i번째를 수락한다(S77, I121). 수락한 의뢰를 다시 수락하면 무른다. 의뢰는 하나만 수락한다
-func accept(i: int) -> bool:
-	if state != "cleared" or i < 0 or i >= commission_offers.size():
-		return false
-	commission = "" if commission == commission_offers[i] else commission_offers[i]
-	return true
-
-# 라운드를 이긴 순간 미션과 수락한 의뢰를 판정한다(S77, I120): 조건을 채웠으면 보상 골드를 받는다(S66). 실패해도 벌칙은 없다(I54)
-# 판정은 settled에 남기고(I122), 수락한 의뢰는 다 쓴 것이라 비운다. 미션은 다음 라운드를 뽑을 때까지 둔다(_draw_mission이 피한다)
+# 라운드를 이긴 순간 미션을 판정한다(S77, I120): 조건을 채웠으면 보상 골드를 받는다(S66). 실패해도 벌칙은 없다(I54)
+# 판정은 settled에 남긴다(I122). 미션은 다음 라운드를 뽑을 때까지 둔다(_draw_mission이 피한다)
 func _settle_quests() -> void:
 	settled.clear()
-	for name in [mission, commission]:
-		if name != "":
-			var done := quest_met(name)
-			if done:
-				gold += QUEST_KINDS[name].reward
-			settled.append([name, done])
-	commission = ""
+	if mission != "":
+		var done := quest_met(mission)
+		if done:
+			gold += QUEST_KINDS[mission].reward
+		settled.append([mission, done])
 
-# 미션·의뢰의 조건(I118)을 지금 집계가 채우나: zero의 집계가 모두 0이고, 시간 상한이 있으면 전투 시간 합이 그 이하다
+# 미션의 조건(I118)을 지금 집계가 채우나: zero의 집계가 모두 0이고, 시간 상한이 있으면 전투 시간 합이 그 이하다
 func quest_met(name: String) -> bool:
 	var q: Dictionary = QUEST_KINDS[name]
 	return q.zero.all(func(k): return tally[k] == 0) and (q.time_limit <= 0.0 or tally.battle_time <= q.time_limit)
@@ -1117,16 +1122,18 @@ func spawn_enemy(kind: String, cell: Vector2i, overrides := {}):
 	enemy_spawned.emit(e)
 	return e
 
-# 종류 수치에 덮어쓸 수치를 얹어 적을 만든다. 체력에는 라운드 체력 배율(S144)을 곱하고, 처치 보상은 그대로다
+# 종류 수치에 덮어쓸 수치를 얹어 적을 만든다. 체력과 방패 내구도(S301)에는 라운드 체력 배율(S144)을 곱하고, 처치 보상은 그대로다
 func _enemy(kind: String, cell: Vector2i, overrides: Dictionary) -> Enemy:
 	var stats: Dictionary = ENEMY_KINDS[kind].merged(overrides, true)
 	stats.hp *= _hp_mult()
+	stats.guard *= _hp_mult()
 	return Enemy.new(kind, cell, stats)
 
-# 적을 전장에 넣고 거점까지 길을 찾는다
+# 적을 전장에 넣고 거점까지 길을 찾는다. 보이는지는 지난 스텝 끝의 불빛으로 정한다(I247 ①)
 func _field(e: Enemy) -> void:
 	e.goal = base.cell
 	_find_path(e)
+	e.lit = seen(e.pos)
 	enemies.append(e)
 
 # 갈라짐(S234, I186): 죽은 적 둘레 SPLIT_RING칸에 split.kind를 split.count마리, 동쪽부터 같은 각도로 놓는다.
@@ -1478,10 +1485,10 @@ func _trace(h, slot: String, aim, at: Vector2, radius: float) -> void:
 	_tracing = {"hero": h, "slot": slot, "aim": aim, "at": at, "radius": radius, "hits": [], "marked": false, "age": 0.0}
 	traces.append(_tracing)
 
-# 걸어가서 쓰기(S147, I145): 대상이 사라졌거나 길이 끝났는데 닿지 못했으면 그만둔다. 사거리에 들면 멈춰서 쓴다
+# 걸어가서 쓰기(S147, I145): 대상이 사라졌거나 대상 적이 어둠 속에 숨었거나(I247 ④) 길이 끝났는데 닿지 못했으면 그만둔다. 사거리에 들면 멈춰서 쓴다
 func _follow_order(h: Unit) -> void:
 	var aim = h.order.aim
-	if not (aim is Vector2) and not (aim.alive and (aim in units or aim in enemies or structures.get(aim.get("cell")) == aim)):
+	if not (aim is Vector2) and not (aim.alive and (aim in units or aim in enemies or structures.get(aim.get("cell")) == aim) and (not aim is Enemy or aim.lit)):
 		h.order = null
 		return
 	if h.pos.distance_to(_where(aim)) <= CAST_RANGE:
@@ -1636,7 +1643,7 @@ func _knock(e: Enemy, by: Vector2) -> void:
 	else:
 		_shove(e, by, units)
 
-# 효과·보호막의 남은 시간을 줄이고, 초당 피해(발화·중독)와 초당 회복을 낸다. 영웅 칸의 시간도 여기서 돈다
+# 효과·보호막의 남은 시간을 줄이고, 초당 피해(발화·중독·구조물 불)와 초당 회복을 낸다. 영웅 칸의 시간도 여기서 돈다
 func _tick(dt: float) -> void:
 	for e in enemies.duplicate():
 		_age(e, dt)
@@ -1662,6 +1669,14 @@ func _tick(dt: float) -> void:
 		var regen := _fx_sum(s, "regen")
 		if regen > 0.0 and s.complete:
 			_heal(s, regen * dt, null, false)
+	for s in structures.values():  # 불(S302, I249 ④⑤): 붙은 지 spread_at초에 한 번 번지고, 초당 burn 피해를 구조물 피해 규칙대로 받는다
+		var f = s.fx.get("flame")
+		if f == null or not s.alive:
+			continue
+		f.burnt += dt
+		if f.has("spread_at") and f.burnt >= f.spread_at:
+			_catch(s, f)
+		damage(s, f.burn * dt)
 
 func _age(t, dt: float) -> void:
 	for src in t.fx.keys():
@@ -1939,7 +1954,7 @@ func _cast_wind_path(h: Unit, sk: Dictionary, _aim, _grow: float) -> void:
 
 # 폭풍의 대동맥 표적(I214): 살아 있고 뜨지 않았고 보이는 적 가운데 boss 칸이 켜진 적이 있으면 체력이 가장 많은 그 적, 없으면 h에게서 가장 먼 적. 없으면 null
 func _snipe_target(h: Unit):
-	var pool := enemies.filter(func(e): return e.alive and not _aloft(e) and seen(e.pos))
+	var pool := enemies.filter(func(e): return e.alive and not _aloft(e) and e.lit)
 	var bosses := pool.filter(func(e): return e.boss)
 	if not bosses.is_empty():
 		bosses.sort_custom(func(a, b): return a.hp > b.hp)
@@ -1979,7 +1994,7 @@ func _wind(m: Missile, a: Vector2) -> void:
 
 # ── 세라피나(S152) ──
 
-# Q 성스러운 빛줄기: 아군 회복 → 가까운 적 마법 피해 → 가까운 다른 아군(또는 깎인 구조물) 회복 … 모두 hits번. 같은 대상은 다시 맞지 않는다
+# Q 성스러운 빛줄기: 아군 회복 → 가까운 보이는 적(I247 ②) 마법 피해 → 가까운 다른 아군(또는 깎인 구조물) 회복 … 모두 hits번. 같은 대상은 다시 맞지 않는다
 # 성역 공명(S262, 성수병 +9): 자기 성역 안에 선 아군에게 쓰면 hits × echo
 func _cast_holy_beam(h: Unit, sk: Dictionary, aim, _grow: float) -> void:
 	var hits: int = sk.hits
@@ -1994,7 +2009,7 @@ func _cast_holy_beam(h: Unit, sk: Dictionary, aim, _grow: float) -> void:
 		var best = null
 		for t in pool:
 			var d := from.distance_to(_where(t))
-			if t not in hit and t.alive and d <= sk.hop and (best == null or d < from.distance_to(_where(best))):
+			if t not in hit and t.alive and d <= sk.hop and (not next_foe or t.lit) and (best == null or d < from.distance_to(_where(best))):
 				best = t
 		if best == null:
 			break
@@ -2047,9 +2062,9 @@ func _cast_enfeeble(h: Unit, sk: Dictionary, aim, grow: float) -> void:
 		if e.pos.distance_to(aim) <= sk.radius * grow:
 			_fx(e, "vesper_w", {"slow": sk.slow, "weaken": sk.weaken, "expose": sk.expose, "spread": h.passive.radius}, sk.time)
 
-# E 영혼 사슬: 대상과 radius칸 안 다른 적 links명(체력 높은 차례)을 묶는다. 피해 나누기는 damage
+# E 영혼 사슬: 대상과 radius칸 안 다른 보이는 적(I247 ②) links명(체력 높은 차례)을 묶는다. 피해 나누기는 damage
 func _cast_soul_chain(h: Unit, sk: Dictionary, aim, grow: float) -> void:
-	var others := enemies.filter(func(e): return e != aim and e.pos.distance_to(aim.pos) <= sk.radius * grow)
+	var others := enemies.filter(func(e): return e != aim and e.lit and e.pos.distance_to(aim.pos) <= sk.radius * grow)
 	others.sort_custom(func(a, b): return a.hp > b.hp)
 	_chains += 1
 	for e in [aim] + others.slice(0, sk.links):  # hub(E 대상)는 그림이 사슬을 잇기 시작하는 적이다(I226 ②)
@@ -2166,9 +2181,9 @@ func _autocast(h: Unit, dt: float) -> void:
 			if not aim.is_empty():
 				cast(h, slot, aim[0])
 
-# 오토가 칸 sk를 쓸 곳(I244, tools/balance/autoplay.gd의 _skills를 옮김). [aim]이면 쓰고(즉시 칸은 [null]), 빈 배열이면 쓰지 않는다
+# 오토가 칸 sk를 쓸 곳(I244, tools/balance/autoplay.gd의 _skills를 옮김). [aim]이면 쓰고(즉시 칸은 [null]), 빈 배열이면 쓰지 않는다. 적은 보이는 적만 센다(I247 ②)
 func _auto_aim(h: Unit, sk: Dictionary) -> Array:
-	var near := enemies.filter(func(e): return e.pos.distance_to(h.pos) <= CAST_RANGE)
+	var near := enemies.filter(func(e): return e.lit and e.pos.distance_to(h.pos) <= CAST_RANGE)
 	match sk.id:
 		"wind_path":  # ① 표적은 스스로 고른다(I214)
 			return [] if enemies.is_empty() else [null]
@@ -2205,9 +2220,9 @@ func _auto_aim(h: Unit, sk: Dictionary) -> Array:
 			most = n
 	return [spot.pos] if spot and (most >= AUTO.crowd or spot.boss) else []
 
-# at 둘레 r칸 안의 적 수
+# at 둘레 r칸 안의 보이는 적 수(I247 ②)
 func _crowd(at: Vector2, r: float) -> int:
-	return enemies.filter(func(e): return e.pos.distance_to(at) <= r).size()
+	return enemies.filter(func(e): return e.lit and e.pos.distance_to(at) <= r).size()
 
 # W 노화: 쓴 순간 지점 반경 안의 적에게 공격력 감소와 최대 체력 비례 초당 마법 피해를 건다(I196). 장판이 아니다
 func _cast_aging(_h: Unit, sk: Dictionary, aim, grow: float) -> void:
@@ -2231,6 +2246,8 @@ func build(kind: String, cell: Vector2i, overrides := {}):
 		return null
 	var stats: Dictionary = STRUCTURE_KINDS[kind].merged(overrides, true)
 	if gold < stats.cost or (stats.tax > 0 and structures.values().filter(func(s): return s.tax > 0).size() >= HOUSE_CAP):  # 집 상한(S101)
+		return null
+	if STRUCTURE_KINDS[kind].range > 0.0 and towers_full():  # 쏘는 구조물 상한(S299). 거부는 여기 한 곳이다(I246 ③)
 		return null
 	var engineer = _idle_engineer(cell) if crewed() else null
 	if crewed() and not engineer:
@@ -2461,11 +2478,12 @@ func _lift(k: Block, dp: float) -> void:
 	_release(k)
 	_repath = true  # 깎인 칸은 오른 체력만큼 적의 경로 비용도 바뀐다(S7, S139)
 
-# 수리비(S114, I85): 아직 내지 않은 잃은 체력 × 체력 1당 값, 1골드 미만은 올린다.
-# 구조물은 낸 골드 ÷ 최대 체력이라 판매 환불(S69)의 나머지와 같다. 잔해는 체력 0이라 복구비가 된다(I89)
+# 수리비(S114, I85): 아직 내지 않은 잃은 체력 × 체력 1당 값 × REPAIR_MARKUP, 1골드 미만은 올린다.
+# 구조물은 낸 골드 ÷ 최대 체력이고, 팔고 다시 짓는 값(낸 골드 − 판매 환불, S69)을 넘지 않는다. 잔해는 체력 0이라 복구비가 된다(I89)
 func repair_cost(t: Block) -> int:
 	var owed := maxf(t.max_hp - t.hp - t.mend, 0.0)
-	return ceili(owed * REPAIR_RATE.get(t.kind, t.paid / t.max_hp) - 0.0001)  # ponytail: 부동소수 오차로 1골드 더 받지 않게
+	var cost := ceili(owed * REPAIR_RATE.get(t.kind, t.paid / t.max_hp) * REPAIR_MARKUP - 0.0001)  # ponytail: 부동소수 오차로 1골드 더 받지 않게
+	return cost if REPAIR_RATE.has(t.kind) else mini(cost, t.paid - refund(t))
 
 # 판에 있는 완성된 구조물·성곽 칸·거점이고, 깎였고, 일하는 공병이 없다(I85, I86)
 func can_repair(t) -> bool:
@@ -2491,8 +2509,8 @@ func _pay_fix(t: Block, engineer) -> void:
 		_mend(t, t.mend)
 
 # 자동 수리(S277): live 판(live_prep, I175)의 준비·전투 단계에 AUTO_FIX_EVERY초마다, 켜진 공병 가운데 살아 있고 성벽 위가 아니며(I69) 일과 걷는 길이 없는 공병마다
-# 수리할 수 있는 것(구조물·성곽 칸·거점, can_repair) 가운데 체력이 AUTO_FIX_BELOW 밑이고 가장 가까운 차지 칸(I178)이 AUTO_FIX_RANGE칸 안이고
-# 막힌 칸 없이 닿는(I125) 것 가운데 체력 비율이 가장 낮은 하나를 고른다. 골드가 수리비만큼 있으면 맡는 순간 낸다. 잔해 복구·이어 짓기는 하지 않는다
+# 수리할 수 있는 것(구조물·성곽 칸·거점, can_repair) 가운데 체력이 AUTO_FIX_BELOW 밑이거나 불붙었고(I249 ⑥) 가장 가까운 차지 칸(I178)이 AUTO_FIX_RANGE칸 안이고
+# 막힌 칸 없이 닿는(I125) 것 가운데 불붙은 것을 먼저, 그다음 체력 비율이 가장 낮은 하나를 고른다. 골드가 수리비만큼 있으면 맡는 순간 낸다. 잔해 복구·이어 짓기는 하지 않는다
 func _auto_fix(dt: float) -> void:
 	if not (live_prep and state in ["prep", "battle"]):  # live()와 달리 옛 규칙 판의 전투 단계에서도 돌지 않는다
 		return
@@ -2505,8 +2523,10 @@ func _auto_fix(dt: float) -> void:
 			continue
 		var best = null
 		for t in structures.values() + castle.values() + [base]:
-			if can_repair(t) and t.hp < t.max_hp * AUTO_FIX_BELOW and u.pos.distance_to(nearest(t, u.pos)) <= AUTO_FIX_RANGE \
-					and (best == null or t.hp / t.max_hp < best.hp / best.max_hp) and _reaches(u, _spot(u, t)):  # 길찾기는 더 낮은 후보에만
+			var hot: bool = t.fx.has("flame")
+			if can_repair(t) and (hot or t.hp < t.max_hp * AUTO_FIX_BELOW) and u.pos.distance_to(nearest(t, u.pos)) <= AUTO_FIX_RANGE \
+					and (best == null or (hot and not best.fx.has("flame")) or (hot == best.fx.has("flame") and t.hp / t.max_hp < best.hp / best.max_hp)) \
+					and _reaches(u, _spot(u, t)):  # 길찾기는 더 앞선 후보에만
 				best = t
 		if best and gold >= repair_cost(best):
 			_pay_fix(best, u)
@@ -3149,6 +3169,7 @@ func _work(u: Unit, dt: float) -> void:
 		_send(u, s)
 	elif s.mend > 0.0:
 		if rubble.get(s.cell) != s:
+			s.fx.erase("flame")  # 고치기 시작하면 불이 꺼진다(I249 ⑥)
 			_mend(s, s.max_hp / (s.build_time if structures.get(s.cell) == s else REPAIR_TIME) * dt)
 		elif not occupied_area(s):  # 잔해는 칸이 비어야 다시 세운다(I89)
 			_raise(s)
@@ -3181,6 +3202,22 @@ func pop_cap() -> int:
 		return merc_cap
 	return POP_BASE + pop_houses().reduce(func(n, s): return n + s.pop, 0)
 
+# 타워 상한에 세는 쏘는 구조물(데이터 range > 0) 수. 완성·미완성·청사진과 성벽 위 대포를 모두 센다(I246 ①)
+func towers_used() -> int:
+	return structures.values().filter(func(s): return STRUCTURE_KINDS[s.kind].range > 0.0).size()
+
+# 쏘는 구조물 몫을 주는 다 지은 집(I246 ②). 짓는 중인 집은 빼고 깎인 집은 센다
+func tower_houses() -> Array:
+	return structures.values().filter(func(s): return s.complete and s.towers > 0)
+
+# 쏘는 구조물 상한(S299): 거점 TOWER_BASE + 다 지은 집마다 그 집의 towers. 마을이 없는 판은 상한이 없다(towers_full)
+func tower_cap() -> int:
+	return TOWER_BASE + tower_houses().reduce(func(n, s): return n + s.towers, 0)
+
+# 마을이 있는 판에서 쏘는 구조물이 상한에 닿았다. 짓기(build)를 거부하고 화면이 이유를 보인다(I246 ③⑤)
+func towers_full() -> bool:
+	return village.has_area() and towers_used() >= tower_cap()
+
 # 준비 단계에만, 플레이어가 놓은 구조물·용병을 판다(S69). 성곽·영웅 등 나머지는 건너뛴다(I56)
 func sell(things: Array) -> void:
 	if state != "prep":
@@ -3198,8 +3235,10 @@ func sell(things: Array) -> void:
 		t.alive = false
 		gold += refund(t)
 
-# 판매로 돌려받는 골드: 낸 골드 × 남은 체력 비율, 1골드 미만은 버린다(S69, I56)
+# 판매로 돌려받는 골드: 낸 골드 × 남은 체력 비율(구조물은 × SELL_RATE), 1골드 미만은 버린다(S69, I56)
 func refund(t) -> int:
+	if t is Block:
+		return floori(t.paid * t.hp / t.max_hp * SELL_RATE + 0.0001)  # ponytail: 부동소수 오차로 1골드 덜 주지 않게
 	return floori(t.paid * t.hp / t.max_hp)
 
 # 피해(S149): kind는 phys 물리 · magic 마법 · true 고정. src는 피해를 낸 영웅·용병·구조물(없으면 null), ignore는 양수 방어력을 무시하는 비율(S153).
@@ -3262,7 +3301,7 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 		fallen.append({"who": target, "age": 0.0})
 	if target == base:
 		state = "lost"
-		settled = [mission, commission].filter(func(n): return n != "").map(func(n): return [n, false])  # 진 라운드의 미션·의뢰는 모두 실패다(I131)
+		settled = [[mission, false]] if mission != "" else []  # 진 라운드의 미션은 실패다(I131)
 	elif target is Enemy:
 		enemies.erase(target)
 		for o in enemies:  # 광분(S295): 같은 종류의 다른 알파가 쓰러지면 하나 쌓인다
@@ -3488,11 +3527,12 @@ func _move(e: Enemy, dt: float) -> void:
 	if not e.fuse.is_empty() and units.any(func(u): return not u.on_wall and e.pos.distance_to(u.pos) <= e.radius + u.radius + 0.01 and _touch(e, u)):
 		_attack(e, null)  # 폭파병(S280): 아군 몸에 막혀 멈추면 그 자리에서 도화선을 켠다
 		return
-	if e.range > 0.0:  # 투석기(S282, I216): 사거리 안에 구조물이 들면 멈추고, 대기가 끝났으면 가장 가까운 구조물 칸에 던지기 예고를 띄운다
-		var mark = _mark(e)
-		if mark != null:
-			if not sealed and e.cd.get("throw", 0.0) <= 0.0:
-				e.cast = {"id": "throw", "left": e.throw.windup, "at": mark}
+	if e.range > 0.0 and not (e.throw.is_empty() and e.flame.is_empty()):  # 투석기(S282)·불화살(S302)(I216): 사거리 안에 노릴 구조물이 들면 멈추고, 대기가 끝났으면 가장 가까운 것의 칸 가운데에 예고를 띄운다
+		var id := "throw" if e.flame.is_empty() else "flame"
+		var s = _mark(e, _works() if id == "throw" else structures.values().filter(_shooter))
+		if s != null:
+			if not sealed and e.cd.get(id, 0.0) <= 0.0:
+				e.cast = {"id": id, "left": deed(e, id).windup, "at": _cell_near(s, e.pos), "on": s}
 			return
 	if e.dashing and (e.path.is_empty() or units.any(func(u): return u.alive and _touching(u, e) and _touch(e, u))):  # 아군 몸에 막히거나 길이 끝나면 돌진이 끝난다(I243 ④)
 		_end_dash(e)
@@ -4212,7 +4252,12 @@ func _land(m: Missile) -> void:
 			if e != m.target:
 				m.side.append(e)
 			var cut: float = e.ranged_cut if m.kind == "phys" and _fx_on(e, "seal") == null else 0.0  # 투사체 물리 피해 덜 받기(I217). 봉인되면 꺼진다(S281)
-			damage(e, m.hurt * (1.0 - cut), m.kind, s, m.ignore)
+			var hurt: float = m.hurt * (1.0 - cut)
+			if e.guard > 0.0 and m.look == "arrow" and s.kind in ["tower", "archer"]:  # 방패(S301, I248 ①②): 궁수탑·궁수 용병 화살은 방어력 전 피해를 방패가 먼저 받는다
+				var took := minf(e.guard, hurt)
+				e.guard -= took
+				hurt -= took
+			damage(e, hurt, m.kind, s, m.ignore)
 			if e == m.target and s is Block and s.slow > 0.0 and e.alive:  # 마법 타워 둔화(S110 2026-10-29 변경): 출처가 하나라 다시 맞으면 시간만 새로 된다
 				_fx(e, "magic_tower", {"slow": s.slow}, s.slow_time)
 	if m.bless > 0.0:
@@ -4334,11 +4379,11 @@ func _fortify(h: Unit, dt: float) -> void:
 	else:  # 풀리면 바로 끝난다(장판의 «안에 있는 동안» 효과와 달리 남지 않는다)
 		h.fx.erase("aias_p")
 
-# 대상 공격(S35): 대상이 죽거나 사라졌으면 그 자리에 서고 null. 칠 수 있는 거리면 서서 그 적을 돌려준다.
+# 대상 공격(S35): 대상이 죽거나 사라졌거나, 몸이 닿지 않은 채 어둠 속에 숨었으면(I247 ④) 그 자리에 서고 null. 칠 수 있는 거리면 서서 그 적을 돌려준다.
 # 아니면 null이고, 대상이 길을 구한 칸에서 1칸 넘게 옮겼으면 그 칸으로 길을 다시 구한다
 func _hunt(u: Unit, wall_only: bool):
 	var e = u.prey
-	if not (e.alive and e in enemies) or _aloft(e):
+	if not (e.alive and e in enemies) or _aloft(e) or not (e.lit or _touching(u, e)):
 		u.prey = null
 		_halt(u)
 		return null
@@ -4354,14 +4399,15 @@ func _hunt(u: Unit, wall_only: bool):
 	return null
 
 # from에서 reach 안의 가장 가까운 적. center에서 zone보다 먼 적은 뺀다(홀드 반경). on_wall이면 성벽 위의 적만 본다(I78).
-# body(유닛 몸 반지름)를 주면 몸이 닿은 적은 reach·zone 밖이어도 든다(S236 2026-10-29 변경: 킹은 몸이 커서 근접 사거리보다 멀리서 닿는다)
+# body(유닛 몸 반지름)를 주면 몸이 닿은 적은 reach·zone 밖이어도 든다(S236 2026-10-29 변경: 킹은 몸이 커서 근접 사거리보다 멀리서 닿는다).
+# 어둠 속에 숨은 적(lit 거짓)은 몸이 닿았을 때만 든다(S300, I247 ③)
 func _nearest_enemy(from: Vector2, reach: float, center := Vector2.ZERO, zone := INF, on_wall := false, body := 0.0):
 	var best = null
 	var best_d := INF
 	for e in enemies:
 		var d: float = e.pos.distance_to(from)
 		var touch: bool = body > 0.0 and d <= body + e.radius + 0.01  # 밀어낸 직후 거리는 반지름 합과 같아서 0.01 여유(적 쪽 S13과 같다)
-		if d <= best_d and (touch or (d <= reach and e.pos.distance_to(center) <= zone)) and (e.on_wall or not on_wall) and not _aloft(e):
+		if d <= best_d and (touch or (e.lit and d <= reach and e.pos.distance_to(center) <= zone)) and (e.on_wall or not on_wall) and not _aloft(e):
 			best = e
 			best_d = d
 	return best
@@ -4425,7 +4471,7 @@ func _climbable(c: Vector2i) -> bool:
 
 # ── 3라운드 고블린 약탈단(S279~S283) ──
 
-# 적 e의 예고 행동 id의 수치: 보스 스킬이면 skills의 칸(S194), 아니면 같은 이름의 적 칸(폭파병 fuse·투석기 throw, S279)
+# 적 e의 예고 행동 id의 수치: 보스 스킬이면 skills의 칸(S194), 아니면 같은 이름의 적 칸(폭파병 fuse·투석기 throw·불화살 flame, S279)
 func deed(e: Enemy, id: String) -> Dictionary:
 	return e.skills[id] if e.skills.has(id) else e.get(id)
 
@@ -4438,17 +4484,39 @@ static func _cell_near(s, p: Vector2) -> Vector2:
 func _works() -> Array:
 	return [base] + castle.values() + structures.values()
 
-# 투석기 사거리(I216): 가장 가까운 칸 가운데까지 range 안인 구조물 가운데 가장 가까운 것의 그 칸 가운데. 없으면 null
-func _mark(e: Enemy):
+# 투석기·불화살 사거리(I216): pool 가운데 가장 가까운 칸 가운데까지 range 안인 구조물 가운데 가장 가까운 것. 없으면 null
+func _mark(e: Enemy, pool: Array):
 	var best = null
 	var best_d: float = e.range
-	for s in _works():
-		var c := _cell_near(s, e.pos)
-		var d := e.pos.distance_to(c)
+	for s in pool:
+		var d := e.pos.distance_to(_cell_near(s, e.pos))
 		if d <= best_d:
-			best = c
+			best = s
 			best_d = d
 	return best
+
+# 불화살이 노리는 쏘는 구조물(S302): 다 지은 타워·마법 타워·대포(성벽 위 대포 포함). 쏘는지는 타워 상한(I246 ①)처럼 데이터 range로 본다
+func _shooter(s: Block) -> bool:
+	return s.complete and STRUCTURE_KINDS[s.kind].range > 0.0
+
+# 불화살 예고가 끝났다(S302, I249 ②): 노린 구조물(cast.on)이 남아 있으면 물리 피해를 주고 불을 붙인다. 없어졌으면 쏘지 않고 대기만 돈다(_skills)
+# 이미 불붙었으면 남은 시간·번짐을 새로 센다(I249 ③, _fx가 같은 출처를 바꾼다)
+func _flame(e: Enemy, sk: Dictionary) -> void:
+	var s: Block = e.cast.on
+	if structures.get(s.cell) != s:
+		return
+	damage(s, sk.hit)
+	if s.alive:
+		_fx(s, "flame", {"burn": sk.dps, "burnt": 0.0, "spread_at": sk.spread}, sk.time)
+
+# 구조물 s의 불 f가 번진다(I249 ④): 8방향으로 맞닿은 불붙지 않은 쏘는 구조물(미완성 포함, I246 ①)에 남은 시간 그대로, 한 번만. 남은 시간이 0인 불은 _age가 이미 지웠다
+func _catch(s: Block, f: Dictionary) -> void:
+	var at: float = f.spread_at
+	f.erase("spread_at")
+	for c in cells_in(area_of(s).grow(1)):
+		var n = footprint.get(c)
+		if n != null and n != s and STRUCTURE_KINDS[n.kind].range > 0.0 and not n.fx.has("flame"):
+			_fx(n, "flame", {"burn": f.burn, "burnt": 0.0, "spread_at": at}, f.left)
 
 # 폭파·던지기 원(I219): 칸 가운데가 하나라도 원 안인 구조물과 몸 중심이 원 안인 영웅·용병·공병(성벽 위 포함)에 물리 피해
 func _blast(at: Vector2, r: float, hit_s: float, hit_u: float) -> void:

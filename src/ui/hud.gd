@@ -6,8 +6,8 @@ extends CanvasLayer
 # 성곽 칸을 고르면 같은 자리에 성문 열기·닫기(S85)와 업그레이드(S86) 버튼을 띄운다. 거점을 고르면 마을 레벨 올리기(S100) 버튼을 띄운다.
 # 고른 것 가운데 깎인 것이 있으면 수리(S116, I90), 잔해를 고르면 복구(I89) 버튼도 같은 자리에 띄운다.
 # 영입 창(도전 시작 전 S122·라운드 사이 S117)이면 결과 창 안에 영입 칸을 띄운다: 목록 영입·리롤·출전 전환·내보내기(S54, I110),
-# 보유 영웅의 레벨·경험치(I117), 라운드 사이의 경험치 이관(S127, I116), 라운드 사이의 의뢰 목록과 수락(S77, I121).
-# 준비·전투 단계에는 임무 칸에 미션·수락한 의뢰의 점을 보이고, 라운드 첫 준비 단계와 조건이 깨질 때 토스트를 띄운다. 결과 창에 지난 라운드의 달성·실패를 보인다(I122).
+# 보유 영웅의 레벨·경험치(I117), 라운드 사이의 경험치 이관(S127, I116).
+# 준비·전투 단계에는 임무 칸에 미션의 점을 보이고, 라운드 첫 준비 단계와 조건이 깨질 때 토스트를 띄운다. 결과 창에 지난 라운드의 달성·실패를 보인다(I122).
 # 결과 창의 버튼만 키보드 포커스를 받는다. 창이 열리면 «1라운드 시작»·«다음 라운드»·«새 도전»에 포커스가 간다(I12, I110)
 # 출전 영웅 칸마다 초상(누르면 고르기, 두 번이면 카메라, I165)·그림 상태 스킬 칸(좌클릭은 쓰기, 우클릭은 자동 시전, I151, skill_cell.gd)·체력 막대와 쓰러짐(I129)을,
 # 화면 오른쪽 가장자리에 고른 영웅·용병의 공격 이동·정지 태그와, 용병을 골랐으면 홀드 태그(그림이 상태, 상태 글은 툴팁)를 보인다(I139).
@@ -74,6 +74,7 @@ const BAR := {  # 위 띠 칸 자리(S185, 임시값)
 	"hero0": Rect2(156, 2, 104, 24), "hero1": Rect2(264, 2, 104, 24), "hero2": Rect2(372, 2, 104, 24),
 	"progress": Rect2(480, 2, 136, 24), "menu": Rect2(620, 2, 16, 24)}
 const POP_AT := Rect2(4, 30, 52, 12)  # 인구 칸(I225 ③): 위 띠 바로 아래 왼쪽, 상태 묶음 밑
+const TOWERS_AT := Rect2(60, 30, 52, 12)  # 타워 칸(I246 ④): 인구 칸 오른쪽
 const FLASH := 0.2  # 거점이 맞으면 체력 막대가 하얗게 번쩍이는 초(S190 임시값)
 const MISSION_SECS := 6.0  # 라운드 첫 미션 토스트를 보이는 초(I122 임시값)
 const RESULT_WAIT := 1.0  # 전투에서 넘어온 결과 창을 늦추는 초(S117, 사용자 2026-10-22)
@@ -108,7 +109,8 @@ const REFUSE_MARK := 0.5  # 거부된 놓기 칸의 빨간 ✕ 초(I128 임시�
 const REFUSE_HINT := 1.5  # 그때 안내 줄을 거부 이유로 바꾸는 초. 놓기 모드가 끝나도 그동안 칩이 남는다(I128 임시값)
 const ENEMIES := {"basic": "기본", "fast": "빠름", "armored": "장갑", "flying": "비행", "boss": "보스", "slime": "슬라임", "slimelet": "꼬마 슬라임", "big_slime": "큰 슬라임", "slime_king": "슬라임 킹",
 	"wolf": "늑대", "leap_wolf": "도약 늑대", "night_wolf": "밤 늑대", "alpha_wolf": "알파 늑대",
-	"sapper": "폭파병", "ram": "공성 망치", "catapult": "투석기", "glider": "글라이더 고블린", "siege_tower": "공성탑", "balloon": "폭탄 열기구", "airship": "수송 비행선", "war_machine": "고블린 전쟁 기계", "chief": "고블린 대장"}  # S106
+	"sapper": "폭파병", "ram": "공성 망치", "catapult": "투석기", "glider": "글라이더 고블린", "siege_tower": "공성탑", "balloon": "폭탄 열기구", "airship": "수송 비행선", "war_machine": "고블린 전쟁 기계", "chief": "고블린 대장",
+	"shieldbearer": "방패 고블린", "fire_archer": "불화살 고블린"}  # S106
 const TRAITS := {"fast": "성벽을 오른다", "flying": "길을 무시한다", "armored": "받는 피해를 줄인다", "boss": "성벽을 뚫고 온다. 대지 강타·분노",
 	"slime": "죽으면 둘로 갈라진다", "big_slime": "두 번 갈라진다", "slimelet": "보상이 없다",
 	"slime_king": "웅크린 뒤 뛰어내려 찍는다. 맞을수록 작아지고 빨라진다",
@@ -116,7 +118,8 @@ const TRAITS := {"fast": "성벽을 오른다", "flying": "길을 무시한다",
 	"alpha_wolf": "성벽 위 원거리를 덮쳐 붙잡는다, 둘레 늑대를 빠르게 한다",
 	"sapper": "성문을 폭파한다", "ram": "성문만 친다, 화살에 강하다", "catapult": "성벽 밖에서 돌을 던진다", "glider": "성벽을 넘어 내린다",
 	"siege_tower": "성벽에 사다리를 놓는다", "balloon": "시설에 폭탄을 떨군다", "airship": "고블린을 떨군다",
-	"war_machine": "대포와 기관총을 쏘고, 가까운 유닛을 집어 던진다. 부서지면 대장이 내린다"}  # S107·S109·S108, 보스는 wall_k 0.3과 스킬(S195), 슬라임은 갈라짐(S188·S234), 늑대는 무리·도약·덮치기(S238·S239·S242), 3라운드 고블린(S188 2026-11-03 변경·둘째 변경·셋째 변경, 대장은 S288)
+	"war_machine": "대포와 기관총을 쏘고, 가까운 유닛을 집어 던진다. 부서지면 대장이 내린다",
+	"shieldbearer": "화살을 방패로 받는다 · 호위 고블린 4", "fire_archer": "사거리 9, 쏘는 구조물에 불화살"}  # S107·S109·S108, 보스는 wall_k 0.3과 스킬(S195), 슬라임은 갈라짐(S188·S234), 늑대는 무리·도약·덮치기(S238·S239·S242), 3라운드 고블린(S188 2026-11-03 변경·둘째 변경·셋째 변경, 대장은 S288, 방패·불화살은 S301·S302)
 const SIDES := ["왼쪽", "가운데", "오른쪽"]  # ponytail: 출현 지점 이름은 시험 스테이지(왼쪽부터 셋) 차례다. 지점이 다른 맵이 생기면 x로 이름을 정한다
 const VIEW := Rect2(0, 28, 640, 332)  # 위 띠 아래 맵이 보이는 화면. 출현 지점이 이 밖이면 아래 가장자리 표식(S188)
 const EDGE_X := Vector2(68, 500)  # 아래 가장자리 표식이 놓이는 x 범위(S188 임시값). y는 344. 왼끝은 미니맵(S209) 오른쪽
@@ -132,8 +135,9 @@ var map: Viewport  # 맵(전장)을 그리는 뷰포트(S30, 2026-10-25부터 �
 var bar: Panel  # 위 띠(S185). 칸은 좌표로 두고, 띠 바탕이 클릭을 받아 맵으로 흘리지 않는다
 var cells := {}  # 위 띠 칸 이름(BAR) → Control
 var pop: Label  # 인구 칸(S25 2026-11-04 변경, I225 ③): «인구 n/m», 상한에 닿으면 빨강
+var towers: Label  # 타워 칸(S299, I246 ④): «타워 n/m», 상한에 닿으면 빨강
 var hp_bar := ColorRect.new()  # 상태 묶음의 거점 체력 막대(S190)
-var marks := []  # 임무 칸의 점 둘(I122): 왼쪽 미션·오른쪽 의뢰
+var marks := []  # 임무 칸의 점(I122): 미션 하나
 var toasts := HudToast.new()  # 토스트(I163)
 var alerts  # 경보(S189, hud_alert.gd)
 var hints  # 처음 하는 사람 힌트(S191, hints.gd)
@@ -166,7 +170,7 @@ var _dot_tex := {}  # «웨이브 수/지금» → 웨이브 점 그림
 var _laid := ""  # 진행 칸 자리를 마지막으로 정한 단계
 var _flash := 0.0  # 거점 체력 막대가 하얗게 남은 초
 var _hp_seen := -INF  # 지난 프레임의 거점 체력
-var _ok := {}  # 이번 라운드 미션·의뢰 이름 → 지난 프레임에 조건을 지켰나(I122)
+var _ok := {}  # 이번 라운드 미션 이름 → 지난 프레임에 조건을 지켰나(I122)
 var _eng_next := -1  # 공병 칸을 누를 때 다음에 갈 놀고 있는 공병 차례
 var _dot := HudBuild.dots(DOT)
 var _cross := HudBuild.dots(HudBuild.CROSS)
@@ -210,9 +214,6 @@ var _note := Label.new()  # 상한에서 리롤을 누르면 보이는 빨간 �
 var _reroll: Button
 var _members := []  # 보유 영웅마다 [출전·대기 전환 버튼, 내보내기 버튼, 이관 버튼]
 var _giver = null  # 이관(I116)에서 먼저 고른 주는 영웅
-var _quests := VBoxContainer.new()  # 라운드 사이 영입 칸 안의 의뢰 목록(I121)
-var _quests_info := Label.new()
-var _commissions := []  # 의뢰 목록 칸마다 수락 버튼
 var _tabs := HBoxContainer.new()  # 라운드 사이 창 머리의 «영입»·«장비» 전환(S248)
 var _gear_tab := false  # 장비 칸을 보는 중. 창이 새로 뜨면 영입 칸이다
 var _gear := VBoxContainer.new()  # 장비 칸(S248)
@@ -253,10 +254,9 @@ func _ready() -> void:
 	_make_status()
 	var m := _cell("mission", _bar_button(bar, "", Callable()))
 	_pic(m, HudBuild.dots(SCROLL, {"o": Color("6b5537"), "p": Color("e8d8a8"), "l": Color("8a7550")}), Vector2(12, 12)).position = Vector2(6, 2)
-	for i in 2:
-		marks.append(_pic(m, _dot, Vector2(5, 5)))
-		marks[i].position = Vector2(5 + 9 * i, 17)
-	tip.add(m, func(): return ["미션·의뢰", "", "", "\n".join(_quest_lines()), ""])
+	marks.append(_pic(m, _dot, Vector2(5, 5)))
+	marks[0].position = Vector2(10, 17)  # 두루마리 아래 가운데
+	tip.add(m, func(): return ["미션", "", "", "\n".join(_quest_lines()), ""])
 	var e := _cell("engineer", _bar_button(bar, "", _next_engineer))
 	_pic(e, HudBuild.icon("engineer"), Vector2(12, 12)).position = Vector2(4, 1)
 	_eng = _text(e, 8, HudTheme.TEXT)
@@ -273,6 +273,13 @@ func _ready() -> void:
 	pop_box.set_content_margin_all(0)  # 12px 높이에 8px 글자가 들어가게
 	pop.add_theme_stylebox_override("normal", pop_box)
 	tip.add(pop, func(): return ["인구", "", "", _pop_line(), ""])
+	towers = _text(root, 8, HudTheme.TEXT)
+	towers.position = TOWERS_AT.position
+	towers.size = TOWERS_AT.size
+	towers.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	towers.mouse_filter = Control.MOUSE_FILTER_STOP  # 툴팁을 받고, 클릭이 맵으로 가지 않는다
+	towers.add_theme_stylebox_override("normal", pop_box)
+	tip.add(towers, func(): return ["타워", "", "", _towers_line(), ""])
 	for i in battle.HIRE.lineup:  # 영웅 칸: 초상 24×24, 스킬 칸 18×18 넷, 그 아래 체력 막대(I129). 좌표는 임시값(ui_research 4.3)
 		var cell := _cell("hero%d" % i, Control.new())
 		cell.draw.connect(func(): _empty_slot(cell, i))
@@ -370,7 +377,7 @@ func _ready() -> void:
 	root.add_child(chip)
 	controls.refused.connect(func(cell, why): _refused = [cell, _now, why])
 	controls.facility_key.connect(func(f): _focus(Vector2(f.cell)))  # 용병 키로 고른 시설로 카메라(S81, I164)
-	# 창은 윗변을 고정해 아래로만 자란다(I136). 영입·라운드 사이는 두 칸: 왼쪽 영입 카드·리롤, 오른쪽 보유 5칸, 아래 의뢰, 진행 버튼은 오른쪽 아래
+	# 창은 윗변을 고정해 아래로만 자란다(I136). 영입·라운드 사이는 두 칸: 왼쪽 영입 카드·리롤, 오른쪽 보유 5칸, 진행 버튼은 오른쪽 아래
 	dim.position = VIEW.position
 	dim.size = VIEW.size
 	dim.color = Color(0, 0, 0, 0.5)
@@ -419,7 +426,7 @@ func _ready() -> void:
 	for col in [left, right]:
 		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		cols.add_child(col)
-	for v in [box, _hire, _gear, _quests, left, right]:
+	for v in [box, _hire, _gear, left, right]:
 		v.add_theme_constant_override("separation", 2)
 	for i in battle.HIRE.slots:
 		_offers.append(_card(left, i))
@@ -440,13 +447,6 @@ func _ready() -> void:
 		tip.add(drop, func(): return ["내보내기", "", "", "보유에서 뺀다 · 골드는 돌려받지 못한다", ""])
 		tip.add(give, func(): return _give_tip(i))
 		_members.append([toggle, drop, give])
-	_hire.add_child(_quests)
-	_quests_info.text = "의뢰 — 다음 라운드에 걸린다. 하나만 수락한다"
-	_quests.add_child(_quests_info)
-	for i in battle.QUEST_OFFERS:
-		var take := _window_button(_quests, func(): battle.accept(i))
-		tip.add(take, func(): return ["의뢰", "", "", "다음 라운드에 걸린다 · 하나만 수락한다", ""])
-		_commissions.append(take)
 	var foot := HBoxContainer.new()
 	foot.alignment = BoxContainer.ALIGNMENT_END
 	foot.size_flags_vertical = Control.SIZE_EXPAND | Control.SIZE_SHRINK_END  # 결과 창(높이 110 고정)에서도 진행 버튼이 오른쪽 아래
@@ -541,6 +541,10 @@ func _process(delta: float) -> void:
 		var used: int = battle.pop_used()
 		pop.text = "인구 %d/%d" % [used, battle.pop_cap()]
 		pop.add_theme_color_override("font_color", HudTheme.DANGER if used >= battle.pop_cap() else HudTheme.TEXT)
+	towers.visible = pop.visible  # 인구 칸과 같은 때에만(I246 ④)
+	if towers.visible:
+		towers.text = "타워 %d/%d" % [battle.towers_used(), battle.tower_cap()]
+		towers.add_theme_color_override("font_color", HudTheme.DANGER if battle.towers_full() else HudTheme.TEXT)
 	if on:
 		_show_quests()
 		_eng.text = str(_idle().size())
@@ -600,9 +604,9 @@ func _process(delta: float) -> void:
 	window.position = Vector2(16, 34) if wide else Vector2(170, 110)  # I136 임시값
 	window.custom_minimum_size = Vector2(608, 0) if wide else Vector2(300, 110)
 	_result_label.text = "영입" if anytime else {"hiring": "도전 시작 — 영웅 영입", "cleared": "%d라운드 승리" % round_no, "won": "도전 성공!", "lost": "%d라운드 패배 — 도전 끝" % round_no}.get(battle.state, "")
-	for s in battle.settled:  # 지난 라운드의 미션·의뢰 판정(I120, I122)
+	for s in battle.settled:  # 지난 라운드의 미션 판정(I120, I122)
 		var q: Dictionary = battle.QUEST_KINDS[s[0]]
-		_result_label.text += "\n%s «%s» %s" % ["의뢰" if q.commission else "미션", q.text, "달성 +%d골드" % q.reward if s[1] else "실패"]
+		_result_label.text += "\n%s «%s» %s" % ["미션", q.text, "달성 +%d골드" % q.reward if s[1] else "실패"]
 	_loot.visible = not battle.dropped.is_empty() and not anytime  # 이번 전리품(S252): 장비 큰 아이콘과 글(S274)
 	if _loot.visible:
 		var d: Array = battle.dropped
@@ -740,6 +744,10 @@ func _pop(row: Control, on_press: Callable, name: String, icon: Texture2D = null
 # 인구 칸 툴팁(I225 ③): «용병 n명 · 상한 m(거점 4 + 집 k채 × 4)»
 func _pop_line() -> String:
 	return "용병 %d명 · 상한 %d(거점 %d + 집 %d채 × %d)" % [battle.pop_used(), battle.pop_cap(), battle.POP_BASE, battle.pop_houses().size(), battle.STRUCTURE_KINDS.house.pop]
+
+# 타워 칸 툴팁(I246 ④): «타워·마법 타워·대포 n개 · 상한 m(거점 4 + 집 k채 × 4)»
+func _towers_line() -> String:
+	return "타워·마법 타워·대포 %d개 · 상한 %d(거점 %d + 집 %d채 × %d)" % [battle.towers_used(), battle.tower_cap(), battle.TOWER_BASE, battle.tower_houses().size(), battle.STRUCTURE_KINDS.house.towers]
 
 # 용병 강화 다음 단계 step의 효과 줄(S255): «체력 50 → 65»처럼 지금 값 → 다음 값. 명중률은 백분율이다(«명중률 50 → 60%»)
 func _rank_line(kind: String, step: Dictionary) -> String:
@@ -979,7 +987,7 @@ func _next_wave() -> Array:
 	return []
 
 func _total(rw: Array) -> int:
-	return battle.rounds[rw[0]][rw[1]].reduce(func(n, e): return n + e.count, 0)
+	return battle.rounds[rw[0]][rw[1]].reduce(func(n, e): return n + e.count * (1 + battle.ENEMY_KINDS[e.kind].escort.get("count", 0)), 0)  # 호위(S301)도 적 수에 든다(I248 ⑤)
 
 func _boss(rw: Array) -> bool:
 	return not rw.is_empty() and battle.rounds[rw[0]][rw[1]].any(func(e): return battle.ENEMY_KINDS[e.kind].boss)  # 보스 표시(I185)
@@ -1054,17 +1062,16 @@ func _show_edges() -> void:
 
 # 임무 칸의 점(I122): 조건을 지키는 중이면 흰 점, 깨졌으면 빨간 ✕, 없으면 비운다. 깨지는 순간 토스트를 띄운다
 func _show_quests() -> void:
-	for i in 2:
-		var name: String = [battle.mission, battle.commission][i]
-		marks[i].visible = name != ""
-		if name == "":
-			continue
-		var ok: bool = battle.quest_met(name)
-		marks[i].texture = _dot if ok else _cross
-		marks[i].modulate = Color.WHITE if ok else HudTheme.DANGER
-		if _ok.get(name, true) and not ok:
-			toasts.push("%s 실패: %s" % [["미션", "의뢰"][i], battle.QUEST_KINDS[name].text])
-		_ok[name] = ok
+	var name: String = battle.mission
+	marks[0].visible = name != ""
+	if name == "":
+		return
+	var ok: bool = battle.quest_met(name)
+	marks[0].texture = _dot if ok else _cross
+	marks[0].modulate = Color.WHITE if ok else HudTheme.DANGER
+	if _ok.get(name, true) and not ok:
+		toasts.push("%s 실패: %s" % ["미션", battle.QUEST_KINDS[name].text])
+	_ok[name] = ok
 
 # 놀고 있는 공병(engineer_gap과 같은 기준, I128)
 func _idle() -> Array:
@@ -1165,14 +1172,6 @@ func _show_hire() -> void:
 			_members[i][2].visible = battle.state == "cleared"  # 이관은 라운드 사이에만(S127)
 			_members[i][2].text = "이관" if _giver == null else ("취소" if _giver == h else "여기로")
 			_members[i][2].disabled = (_giver == null and h.xp == 0) or (_giver not in [null, h] and not battle.can_transfer(_giver, h))  # 넘치는 이관은 «여기로»를 끈다(I116)
-	_quests.visible = battle.state == "cleared" and not battle.commission_offers.is_empty()  # 의뢰는 라운드 사이에만(I121)
-	for i in _commissions.size():
-		var here: bool = i < battle.commission_offers.size()
-		_commissions[i].visible = here
-		if here:
-			var q: Dictionary = battle.QUEST_KINDS[battle.commission_offers[i]]
-			var on: bool = battle.commission == battle.commission_offers[i]
-			_commissions[i].text = "%s · +%d골드 · %s" % [q.text, q.reward, "수락함 (다시 누르면 무름)" if on else "수락"]
 
 # 장비 칸(S248): 골드·창당 횟수, 장비마다 «이름 +N · 주인(역할) · 장착/해제/미보유»(장비가 없으면 보유/미보유) 줄, 제작·강화 버튼, 주인을 보유하고 장비가 있으면 장착·해제
 func _show_gear() -> void:
@@ -1290,14 +1289,12 @@ func cover() -> void:
 	for t in tags + [fix_tag]:
 		t.visible = false
 
-# 미션·수락한 의뢰 줄(I122): «미션: 조건 (+N골드)»와 «의뢰: 조건 (+N골드)». 조건이 깨졌으면 «— 실패»를 붙인다(I131)
+# 미션 줄(I122): «미션: 조건 (+N골드)». 조건이 깨졌으면 «— 실패»를 붙인다(I131)
 func _quest_lines() -> Array:
-	var out := []
-	for pair in [["미션", battle.mission], ["의뢰", battle.commission]]:
-		if pair[1] != "":
-			var q: Dictionary = battle.QUEST_KINDS[pair[1]]
-			out.append("%s: %s (+%d골드)" % [pair[0], q.text, q.reward] + ("" if battle.quest_met(pair[1]) else " — 실패"))
-	return out
+	if battle.mission == "":
+		return []
+	var q: Dictionary = battle.QUEST_KINDS[battle.mission]
+	return ["%s: %s (+%d골드)" % ["미션", q.text, q.reward] + ("" if battle.quest_met(battle.mission) else " — 실패")]
 
 # 출전 영웅 칸(I129, I151): 준비·전투 단계에 칸 셋이 늘 보이고, 빈 칸은 점선 테두리다. 초상(체력 LOW 밑이면 빨간 맥박, 쓰러지면 회색)·레벨,
 # 스킬 칸 상태, 체력 막대. 쓰러졌으면 스킬 칸 대신 «쓰러짐». 준비 단계 스킬 칸의 모래시계가 «스킬은 전투 단계에만»을 대신한다(S136)

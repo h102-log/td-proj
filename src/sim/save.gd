@@ -6,7 +6,7 @@ extends RefCounted
 const Battle := preload("res://src/sim/battle.gd")
 const VERSION := 7  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179). 4: 집의 가족(S221). 5: 주민의 원래 직업(S222). 6: 주민 체력·대피·신뢰(S225~S229). 7: 숙련·성장·다 큰 자녀(S231~S233, 주민 사전 xp·grow·grown)
 # 판에서 담는 칸. 맵·라운드·마을 칸은 같은 스테이지로 새 판을 만들면 같다
-const KEYS := ["state", "round_index", "wave_index", "gold", "village_level", "offers", "quests", "mission", "commission", "commission_offers", "settled", "tally", "_chains",
+const KEYS := ["state", "round_index", "wave_index", "gold", "village_level", "offers", "quests", "mission", "settled", "tally", "_chains",
 	"trust", "calm", "evac_round", "folk_clock"]  # 주민의 체력·가는 길·일과 위상과 집의 죽은 식구 수는 구조물 folk·lost에 담긴다(I183 ⑩)
 
 # 유닛·구조물에서 담지 않는 칸: 읽기만 하는 present와, 다른 객체를 가리키는 칸(지난 공격 대상·공병 일·스킬 지시·실비아 표식·나온 생산 시설).
@@ -39,6 +39,8 @@ static func snapshot(b) -> Dictionary:
 static func apply(b, d: Dictionary) -> void:
 	for k in KEYS:
 		b.set(k, _copy(d[k]))
+	b.quests = b.quests.filter(func(n): return n in b.QUEST_KINDS)  # 옛 저장에 든 지운 의뢰의 기록은 버린다(S77 2026-11-07 변경). 저장 판은 그대로
+	b.settled = b.settled.filter(func(s): return s[0] in b.QUEST_KINDS)
 	b.waves = b.rounds[b.round_index]
 	b._rng.state = d.rng
 	b._luck.state = d.luck
