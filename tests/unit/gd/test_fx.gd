@@ -1239,7 +1239,7 @@ func _chrono() -> Array:
 	var tower = b.build("tower", Vector2i(12, 7))
 	b.start_battle()
 	b._queue = []
-	b.heroes[0].auto = false
+	b.heroes[0].auto.q = false
 	_target(b, Vector2i(24, 24))
 	return [b, tower]
 

@@ -1374,7 +1374,7 @@ func _skill_refuse(h, slot: String) -> void:
 		toasts.push(why)
 		Audio.of(get_tree()).play("refuse")  # S269
 
-# 스킬 버튼 우클릭: 그 칸의 자동 시전을 켜고 끈다(S158, I151)
+# 스킬 버튼 우클릭: 그 칸의 오토(자동 시전)를 켜고 끈다(S296, I151)
 func _auto_click(e: InputEvent, i: int, slot: String) -> void:
 	if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_RIGHT and e.pressed and i < battle.heroes.size():
 		battle.toggle_auto(battle.heroes[i], slot)
@@ -1383,7 +1383,7 @@ func _auto_click(e: InputEvent, i: int, slot: String) -> void:
 func _slot_state(h, slot: String) -> Dictionary:
 	var sk: Dictionary = h.get(slot)
 	return {"letter": slot.to_upper(), "cd": h.cd[slot], "gap": sk.gap, "lock": h.level < battle.LEVELS.unlock[slot],
-		"auto": h.auto and sk.get("auto", false), "aim": controls.aiming == slot and controls.aim_hero == h,
+		"auto": h.auto[slot], "aim": controls.aiming == slot and controls.aim_hero == h,
 		"prep": battle.state == "prep", "now": _now}
 
 # 4.0 → «4», 1.5 → «1.5»
@@ -1414,7 +1414,7 @@ func _skill_tip(i: int, slot: String) -> Array:
 		why = "스킬은 전투 단계에만"
 	elif h.cd[slot] > 0.0:
 		why = "재사용 대기 %d초" % ceili(h.cd[slot])
-	var about := "%s · 재사용 %s초" % [name_about[1], _num(sk.gap)] + (" · 우클릭: 자동 시전" if sk.get("auto", false) else "")
+	var about := "%s · 재사용 %s초 · 우클릭: 자동 시전" % [name_about[1], _num(sk.gap)]  # 모든 칸에 오토가 있다(S296, I245)
 	about += "\n" + "\n".join(skill_lines(h.kind, slot, sk))
 	return [name_about[0], slot.to_upper(), "", about, why]
 
