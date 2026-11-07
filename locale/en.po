@@ -935,6 +935,9 @@ msgstr "Unlocks at Lv%d"
 msgid "%s · 재사용 %s초"
 msgstr "%s · cooldown %ss"
 
+msgid "%s · 재사용 %s초 · 우클릭: 자동 시전"
+msgstr "%s · cooldown %ss · RMB: autocast"
+
 msgid "재사용 %s초"
 msgstr "Cooldown %ss"
 
