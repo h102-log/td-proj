@@ -276,7 +276,6 @@ func ev509():
 			return "60초 안에 새 가족이 집에 들지 않았다"
 		b.next_round()
 		b.mission = ""
-		b.commission = ""
 		gold0 = b.gold
 		bad = _win(b)
 		if bad != "" or b.state != "cleared":

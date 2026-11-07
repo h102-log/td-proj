@@ -4,6 +4,7 @@ extends "res://tests/eval/gd/lib.gd"
 #   ENEMY_KINDS[kind] 키: armor(방어력, S149) · flying(비행) · climb(성벽 오르는 시간, 초. 0이면 오르지 않는다)
 #   구조물 kind "magic"(마법 타워, 장갑 무시) · 단축키: - 마법 타워 놓기
 #   BattleView(res://src/ui/battle_view.gd).ENEMY_COLORS — 적 kind → 색
+#   적 kind "shieldbearer"(방패 고블린, S301) · "fire_archer"(불화살 고블린, S302). ENEMY_KINDS 키: guard(방패 내구도) · escort({kind, count}, 호위) · flame(불화살 {windup, cd, hit, dps, time, spread}) · range(I216)
 # 성곽 맵은 wall.gd와 같다: 9행이 가로 성곽(성문 5·15·25열, 모두 닫힘), 위쪽(0~8행)이 마을, 아래쪽이 들판
 
 const TOP := Vector2i(12, 9)  # 성벽 칸
@@ -34,9 +35,12 @@ const TABLE := {
 	"airship": [100, 0.9, 5, 1.5, 0.7, 0, 50, null],
 	"war_machine": [200, 0.8, 40, 2.5, 0.7, 0, 0, 0.3],  # 3라운드 고블린 묶음 ②-b(S106 2026-11-03 셋째 변경). 처치 보상은 대장으로(2026-11-05 변경)
 	"chief": [200, 1.2, 30, 1.5, 0.9, 4, 50, 0.3],  # 3라운드 고블린 묶음 ②-c(S106 2026-11-05 변경)
+	"shieldbearer": [15, 2, 5, 1, 0.4, 3, 10, 1],  # 방패 고블린·불화살 고블린(S106 2026-11-07 변경)
+	"fire_archer": [10, 2, 3, 1, 0.25, 0, 8, 1],
 }
 const PACK := {"wolf": 4, "leap_wolf": 2, "night_wolf": 2}  # 무리(S238). 나머지 종류는 1
 const KEYS := ["hp", "speed", "damage", "attack_gap", "radius", "sight", "reward", "wall_k"]
+const FLAME := {"windup": 1.0, "cd": 6.0, "hit": 5.0, "dps": 4.0, "time": 9.0, "spread": 3.0}  # 불화살 고블린 flame(S302)
 
 func _castle(gates := GATES, walls = null):
 	if walls == null:
@@ -91,17 +95,24 @@ func ev130():
 				return "%s.%s = %s, 표는 %s" % [k, KEYS[i], got, want]
 	var d: Dictionary = b.ENEMY_KINDS
 	var plain: Array = TABLE.keys().filter(func(k): return k != "slime" and k != "big_slime")
+	var sb: Dictionary = d.get("shieldbearer", {})
+	var fa: Dictionary = d.get("fire_archer", {})
+	var esc = sb.get("escort", {})
+	var fl = fa.get("flame", {})
+	var shield: bool = is_equal_approx(float(sb.get("guard", 0.0)), 40.0) and esc is Dictionary and esc.get("kind") == "basic" and int(esc.get("count", 0)) == 4
+	var archer: bool = is_equal_approx(float(fa.get("range", 0.0)), 9.0) and fl is Dictionary and FLAME.keys().all(func(k): return fl.has(k) and is_equal_approx(float(fl[k]), FLAME[k]))
 	return check(d.fast.climb == 3.0 and d.armored.armor == 15.0 and d.flying.flying and not d.basic.flying and d.basic.climb == 0.0
 		and d.slime.get("split") == {"kind": "slimelet", "count": 2} and d.big_slime.get("split") == {"kind": "slime", "count": 2}
 		and plain.all(func(k): return d[k].get("split", {}).is_empty()) and d.slime_king.get("boss") == true and d.alpha_wolf.get("boss") == true
 		and TABLE.keys().all(func(k): return d[k].get("pack", 1) == PACK.get(k, 1)) and is_equal_approx(d.leap_wolf.climb, 0.8) and d.glider.flying
 		and d.balloon.flying and d.airship.flying and d.siege_tower.armor == 15.0 and d.war_machine.get("boss") == true and d.war_machine.armor == 15.0
-		and d.chief.get("boss") == true and d.chief.armor == 10.0,
+		and d.chief.get("boss") == true and d.chief.armor == 10.0 and shield and archer,
 		"특수: fast.climb %s · armored.armor %s · flying.flying %s · 갈라짐 %s · boss %s · 무리 %s · leap_wolf.climb %s · glider.flying %s · balloon·airship.flying %s · siege_tower.armor %s · war_machine boss·armor %s · chief boss·armor %s" % [d.fast.climb, d.armored.armor, d.flying.flying,
 			TABLE.keys().map(func(k): return [k, d[k].get("split")]), [d.slime_king.get("boss"), d.alpha_wolf.get("boss")],
 			TABLE.keys().map(func(k): return [k, d[k].get("pack")]), d.leap_wolf.climb, d.get("glider", {}).get("flying"),
 			[d.get("balloon", {}).get("flying"), d.get("airship", {}).get("flying")], d.get("siege_tower", {}).get("armor"),
-			[d.get("war_machine", {}).get("boss"), d.get("war_machine", {}).get("armor")], [d.get("chief", {}).get("boss"), d.get("chief", {}).get("armor")]])
+			[d.get("war_machine", {}).get("boss"), d.get("war_machine", {}).get("armor")], [d.get("chief", {}).get("boss"), d.get("chief", {}).get("armor")]]
+			+ " · shieldbearer guard·escort %s(40, basic 4) · fire_archer range·flame %s(9, %s)" % [[sb.get("guard"), esc], [fa.get("range"), fl], FLAME])
 
 # 방어력 a의 물리 피해 배율(S149, 워크3식): a ≥ 0이면 1 − 0.06a ÷ (1 + 0.06a)
 func _armor(a: float) -> float:

@@ -40,3 +40,7 @@ def test_EV594_click_picks_nearest_body(gd):
 
 def test_EV791_drag_with_units_skips_structures(gd):
     gd("sell", "EV791")
+
+
+def test_EV805_sell_structures_80_mercs_full(gd):
+    gd("sell", "EV805")

@@ -81,7 +81,7 @@ func _near(b, kind: String, want: Vector2i) -> Vector2i:
 
 # 두 판을 비교할 요약
 func _sum(b) -> Array:
-	var out := [b.state, b.round_index, b.wave_index, b.gold, b.base.hp, b.mission, b.commission, b.offers]
+	var out := [b.state, b.round_index, b.wave_index, b.gold, b.base.hp, b.mission, b.offers]
 	for e in b.enemies:
 		out.append([e.kind, e.pos, e.hp])
 	for u in b.units:
@@ -160,7 +160,6 @@ func ev306():
 		clear_wave(a)
 	if a.state != "cleared":
 		return "1라운드를 이기지 못했다(%s)" % a.state
-	a.accept(0)
 	a.dismiss(a.roster[1])
 	why = _twin(a, stage, func(x):
 		x.next_round()

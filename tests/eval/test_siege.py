@@ -24,3 +24,27 @@ def test_EV675_catapult_throw(gd):
 
 def test_EV676_glider_lands(gd):
     gd("siege", "EV676")
+
+
+def test_EV822_fire_archer_aims_shooter(gd):
+    gd("siege", "EV822")
+
+
+def test_EV823_fire_archer_ignores_units(gd):
+    gd("siege", "EV823")
+
+
+def test_EV824_fire_spreads(gd):
+    gd("siege", "EV824")
+
+
+def test_EV825_fire_put_out(gd):
+    gd("siege", "EV825")
+
+
+def test_EV826_fire_archer_tell_cancel(gd):
+    gd("siege", "EV826")
+
+
+def test_EV827_fire_archer_tell_in_dark(gd):
+    gd("siege", "EV827")

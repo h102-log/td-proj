@@ -376,10 +376,14 @@ func ev575():
 	return check(lit >= dark + 0.02, "조각 맨 아랫줄 가운데 밝기 %.3f · 바닥 %s 밝기 %.3f" % [lit, at, dark])
 
 # EV720 · S217 2026-11-03: 시험 스테이지 남벽 12열 다섯 칸 (12, 59..63)에 대포를 하나씩 짓는다. 정문 문루 (31,63)을 열면 열다섯 칸이 비고,
-# 문루 맨 뒷줄 (32,59)에 적이 서 있으면 닫히지 않는다
+# 문루 맨 뒷줄 (32,59)에 적이 서 있으면 닫히지 않는다. 대포 다섯이 타워 상한(집 0채면 4, S299)에 걸리지 않게 집 한 채를 먼저 짓는다
 func ev720():
 	var b = _square_battle()
 	b.gold = BIG
+	var spots: Array = b.placeable_cells("house")
+	var h = b.build("house", spots[0]) if not spots.is_empty() else null
+	if h == null or not h.complete:
+		return "마을에 집 한 채를 먼저 짓지 못했다(%s)" % h
 	for y in range(59, 64):
 		if b.build("cannon", Vector2i(12, y)) == null:
 			return "남벽 (12,%d)에 대포를 짓지 못했다" % y

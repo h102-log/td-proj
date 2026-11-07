@@ -6,6 +6,7 @@ extends "res://tests/eval/gd/lib.gd"
 #   Battle.next_round() -> bool — 라운드 사이에서 다음 라운드의 첫 준비 단계로 넘어간다. 라운드 사이가 아니면 거부한다(false)
 #   Battle.restart() — 새 도전(S64, I92)
 #   Battle.set_gate(성문, 열기) · Battle.upgrade(성곽 칸) · Battle.raise_village() -> bool · 영웅: present
+#   적 kind "shieldbearer"(방패 고블린, S301·I248) — 웨이브에서 나올 때 호위(기본 4)를 데려온다. 호위는 battle.spawn_counts(hud.gd 머리)에도 든다
 # 성곽 맵은 repair.gd와 같다: 9행이 가로 성곽(성문 5·15·25열, 모두 닫힘), 위쪽(0~8행)이 마을, 아래쪽이 들판
 
 const TOP := Vector2i(12, 9)  # 성곽 맵의 성벽 칸
@@ -21,9 +22,11 @@ const ONE_ONE := [[ONE], [ONE]]  # 라운드 2개, 라운드마다 적 1마리�
 const S111 := [{"slime": 36}, {"slime": 24, "big_slime": 10}, {"slime": 36, "big_slime": 14, "slime_king": 1}]  # S111 2026-10-30 변경: 1라운드 슬라임 테마, 보스 빼고 1.2배 반올림(10배를 하지 않는다)
 # I91 2026-10-27 변경: 2라운드는 늑대 테마(마릿수, 10배를 하지 않는다)
 # I91 2026-11-03 변경·둘째 변경·셋째 변경: 3라운드 1~4웨이브는 고블린 약탈단(마릿수, 10배를 하지 않는다)
-const RAID := [{"basic": 260, "sapper": 30, "ram": 6}, {"basic": 350, "sapper": 30, "ram": 6, "catapult": 8, "glider": 80},
-	{"basic": 310, "sapper": 30, "ram": 4, "catapult": 6, "glider": 60, "siege_tower": 3, "balloon": 6},
-	{"basic": 300, "sapper": 40, "ram": 6, "catapult": 8, "glider": 80, "siege_tower": 3, "balloon": 6, "airship": 6, "war_machine": 1}]
+# S301: 2~4웨이브에 방패 고블린·불화살 고블린을 더하고, 기본은 호위 고블린(방패 고블린 × 4) 수만큼 줄인 웨이브 데이터의 수다
+const RAID := [{"basic": 260, "sapper": 30, "ram": 6},
+	{"shieldbearer": 10, "fire_archer": 6, "basic": 310, "sapper": 30, "ram": 6, "catapult": 8, "glider": 80},
+	{"shieldbearer": 12, "fire_archer": 8, "basic": 262, "sapper": 30, "ram": 4, "catapult": 6, "glider": 60, "siege_tower": 3, "balloon": 6},
+	{"shieldbearer": 15, "fire_archer": 10, "basic": 240, "sapper": 40, "ram": 6, "catapult": 8, "glider": 80, "siege_tower": 3, "balloon": 6, "airship": 6, "war_machine": 1}]
 const WOLF := [{"wolf": 320}, {"wolf": 300, "leap_wolf": 100}, {"wolf": 240, "leap_wolf": 80, "night_wolf": 80}, {"wolf": 320, "leap_wolf": 100, "night_wolf": 100, "alpha_wolf": 6}]  # I91 2026-11-05 변경: 알파 늑대 6
 # I91 표(2026-10-21 개정): 2~6라운드 웨이브마다 종류별 적 수
 const I91 := [
@@ -402,3 +405,46 @@ func ev427():
 	clear_wave(h)
 	return check(xs.size() >= 20 and at == [Vector2i(0, 5), Vector2i(0, 5), Vector2i(0, 5)],
 		"나온 x %d가지(20가지 이상이어야 한다) · 헬퍼 판 나온 칸 %s(모두 (0, 5)여야 한다)" % [xs.size(), at])
+
+# EV820 · I248: 방패 고블린이 나오는 스텝에 같은 출현 지점에서 기본 고블린 4가 함께 나온다(호위, S301). 출현 지점 (8,19)·(22,19), 퍼짐 0인 판에서
+# 호위는 출현 칸 줄(19행)의 서로 다른 칸에 방패 고블린을 가운데 두고(가로 평균이 방패 고블린 열과 0.5칸 안) 가로 2칸 안에 서고, 방패 고블린은 한 줄 북쪽(18행)·8열에서 1칸 안이다.
+# 웨이브 미리보기 수(spawn_counts)에 호위 기본 4가 그 출현 지점 몫으로 들고, 시험 스테이지 3라운드 2웨이브 미리보기 수의 합은 방패 고블린 10·기본 350(데이터 310 + 호위 40)이다
+func ev820():
+	var b = battle({"spawns": [Vector2i(8, 19), Vector2i(22, 19)], "base_hp": BIG, "waves": [[{"kind": "shieldbearer", "count": 1}]]})
+	if not b.ENEMY_KINDS.has("shieldbearer"):
+		return "구현 없음: 적 종류 shieldbearer(방패 고블린, S106 표)가 없다"
+	var counts: Array = b.spawn_counts(0, 0)
+	var preview: bool = counts.size() == 2 and counts[0].size() == 2 and counts[0].get("shieldbearer") == 1 and counts[0].get("basic") == 4 and counts[1].is_empty()
+	b.start_battle()
+	run(b, 1.0, func(): return not b.enemies.is_empty())
+	var out: Array = b.enemies.map(func(e): return [e.kind, cell_of(e)])  # 첫 적이 나온 스텝 끝의 모든 적
+	var lead: Array = out.filter(func(o): return o[0] == "shieldbearer").map(func(o): return o[1])
+	var guards: Array = out.filter(func(o): return o[0] == "basic").map(func(o): return o[1])
+	var placed := false
+	if out.size() == 5 and lead.size() == 1 and guards.size() == 4:
+		var c: Vector2i = lead[0]
+		var cells := {}
+		for g in guards:
+			cells[g] = true
+		var mean: float = guards.reduce(func(s, g): return s + g.x, 0) / 4.0
+		placed = c.y == 18 and absi(c.x - 8) <= 1 and cells.size() == 4 and absf(mean - c.x) <= 0.5 and guards.all(func(g): return g.y == 19 and absi(g.x - c.x) <= 2)
+	var m = load("res://src/sim/battle.gd").new(load("res://src/main.gd").stage())
+	var sum := {}
+	for d in m.spawn_counts(2, 1):
+		for k in d:
+			sum[k] = sum.get(k, 0) + d[k]
+	return check(preview and placed and sum.get("shieldbearer") == 10 and sum.get("basic") == 350,
+		"미리보기 수 %s([{shieldbearer 1, basic 4}, {}]) · 첫 스텝에 나온 적 [종류, 칸] %s(방패 고블린 18행, 기본 4가 19행 양옆) · 시험 스테이지 3라운드 2웨이브 미리보기 합 %s(shieldbearer 10, basic 350)" % [counts, out, sum])
+
+# EV829 · S301: data/waves/round_3.tres의 2·3·4웨이브는 S301의 수이고, 웨이브 사전의 키 차례가 S301의 나오는 차례(방패 고블린 → 불화살 고블린 → 기본 → …)다.
+# RAID 2~4웨이브가 S301 문장의 차례대로 적혀 있다. Dictionary ==는 키 차례를 보지 않아 keys() 배열을 따로 견준다
+func ev829():
+	var w = load("res://data/waves/round_3.tres")
+	if w == null or not w.get("waves") is Array or w.waves.size() != 4:
+		return "3라운드 웨이브 Resource의 waves가 웨이브 4개 배열이 아니다(%s)" % [w.get("waves") if w != null else null]
+	var bad := []
+	for i in [1, 2, 3]:
+		var d: Dictionary = w.waves[i]
+		if d != RAID[i] or d.keys() != RAID[i].keys():
+			bad.append("%d웨이브 %s(%s여야 한다)" % [i + 1, d, RAID[i]])
+	return check(bad.is_empty(), "수나 차례가 다른 웨이브 %s" % [bad])

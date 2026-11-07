@@ -4,6 +4,7 @@ extends "res://tests/eval/gd/lib.gd"
 #   Battle.missiles — 날고 있거나 출발을 기다리는 투사체 목록. 웨이브가 끝나면 빈다(I143)
 #   쏘는 쪽(유닛·구조물): cooldown(다음 공격까지 남은 초). 친 step에 공격 간격으로 돌아간다 · 적: attacker(반격 대상)
 #   BattleView(src/ui/battle_view.gd): new() 뒤 battle을 넣고 tick(dt)을 부르면 events에 이번 프레임의 사건({kind, dst, …})이 든다(I171)
+#   적 kind "shieldbearer"(방패 고블린, S301·I248) — 궁수탑·궁수 용병 화살 피해를 방패가 먼저 받는다. 방패는 체력·위치로만 잰다
 # 시간은 «쏜 step이 시작한 때»부터 «피해가 난 step이 끝난 때»까지 잰다. 그래서 허용 범위는 [닿는 때, 닿는 때 + DT]다
 
 # 움직이지도 치지도 않는 과녁
@@ -407,3 +408,112 @@ func ev736():
 		got.append([shot, free, snappedf(off, 0.01), e.hp < e.max_hp])
 	var ok: bool = got.all(func(g): return g[0]) and got[0][1] == false and got[0][3] and got[1][1] == true and got[1][2] < 0.01 and not got[1][3] and got[2][1] == true and got[2][2] < 0.01 and got[2][3]
 	return check(ok, "[명중률 1 + 옮김, 명중률 0 + 옮김, 명중률 0]의 [침, 논타겟팅, 조준점에서 과녁까지, 맞음] %s(기대 [참, 거짓, -, 참] · [참, 참, 0, 거짓] · [참, 참, 0, 참])" % [got])
+
+# ── 방패 고블린(S301, I248) ──
+
+# 움직이지도 치지도 않는 방패 고블린. 호위(S301)가 함께 놓였으면 걷어 내 과녁 하나만 잰다
+func _shield(b, cell: Vector2i, over := {}):
+	var before: Array = b.enemies.duplicate()
+	var e = b.spawn_enemy("shieldbearer", cell, {"speed": 0, "sight": 0, "damage": 0}.merged(over, true))
+	for o in b.enemies.duplicate():
+		if o != e and o not in before:
+			b.damage(o, BIG * 2.0, "true")
+	return e
+
+# x가 한 번 쏘고 화살이 닿은 뒤(0.5초) e의 체력. 5초 안에 쏘지 않으면 -1
+func _volley(b, x, e) -> float:
+	if _until_shot(b, x) < 0.0:
+		return -1.0
+	run(b, 0.5)
+	return e.hp
+
+# e의 체력이 처음 줄 때까지 돌려(5초까지) 잃은 체력
+func _first_loss(b, e) -> float:
+	run(b, 5.0, func(): return e.hp < e.max_hp)
+	return e.max_hp - e.hp
+
+# EV817 · S301: 궁수탑·궁수 용병의 화살 피해는 방패(40)가 먼저 받는다. 피해 25 화살 한 발 뒤 체력 15는 그대로이고, 둘째 화살은 방패를 넘은 10만 몸이 받아 5가 된다.
+# 궁수는 명중률 1(유도 화살)과 0(논타겟팅 화살)이 같다. 체력 배율 1.37인 판에서는 방패가 54.8이라 피해 30 화살 두 발에 몸이 5.2를 잃는다.
+# 방패는 적마다 따로 준다(I248 ③): 사거리 밖에 둔 둘째 방패 고블린은 첫째가 두 발에 방패를 잃은 뒤 사거리에 들여도 첫 화살에 체력 15, 둘째 화살에 5다
+func ev817():
+	if not battle().ENEMY_KINDS.has("shieldbearer"):
+		return "구현 없음: 적 종류 shieldbearer(방패 고블린, S106 표)가 없다"
+	var got := []
+	for c in [["tower", 0.0], ["archer", 1.0], ["archer", 0.0]]:
+		var b = battle()
+		var x = b.build("tower", Vector2i(5, 5), {"damage": 25.0}) if c[0] == "tower" else b.place_merc("archer", Vector2i(5, 5), {"damage": 25.0, "accuracy": c[1]})
+		var e = _shield(b, Vector2i(8, 5))
+		got.append([c[0], c[1], _volley(b, x, e), _volley(b, x, e)])
+	var ok: bool = got.all(func(g): return is_equal_approx(g[2], 15.0) and is_equal_approx(g[3], 5.0))
+	var m = battle({"hp_mult": [1.37]})
+	var t = m.build("tower", Vector2i(5, 5), {"damage": 30.0})
+	var s = _shield(m, Vector2i(8, 5))
+	var lost := [s.max_hp - _volley(m, t, s), s.max_hp - _volley(m, t, s)]
+	var p = battle()
+	var pt = p.build("tower", Vector2i(5, 5), {"damage": 25.0})
+	var one = _shield(p, Vector2i(8, 5))
+	var two = _shield(p, Vector2i(20, 15))  # 궁수탑 사거리(8) 밖
+	var worn := [_volley(p, pt, one), _volley(p, pt, one)]
+	one.pos = Vector2(22, 15)
+	two.pos = Vector2(8, 5)
+	var own := [_volley(p, pt, two), _volley(p, pt, two)]
+	var apart: bool = is_equal_approx(worn[0], 15.0) and is_equal_approx(worn[1], 5.0) and is_equal_approx(own[0], 15.0) and is_equal_approx(own[1], 5.0)
+	return check(ok and absf(lost[0]) < 0.001 and absf(lost[1] - 5.2) < 0.01 and apart,
+		"[쏜 쪽, 명중률, 첫 화살 뒤 체력, 둘째 화살 뒤 체력] %s(15·5여야 한다) · 체력 배율 1.37 판에서 피해 30 화살 두 발에 잃은 체력 %s(0·5.2여야 한다, 최대 체력 %s) · 방패 고블린 둘: 첫째가 두 발 뒤 %s(15·5), 그다음 들인 둘째가 두 발 뒤 %s(15·5)" % [got, lost, s.max_hp, worn, own])
+
+# EV818 · I248: 마법 타워 구슬·대포알·실비아 화살·병사의 근접 공격은 방패를 거치지 않아 첫 한 방에 체력이 준다(마법 타워·대포는 그 공격력만큼).
+# 방패는 방어력을 받기 전 피해를 받는다: 방어력 15를 준 방패 고블린은 피해 20 화살 두 발에 체력이 그대로이고, 셋째 화살에 20 × 방어력 배율(15)을 잃는다.
+# 방패는 다시 차지 않는다: 피해 25 화살 한 발 뒤 20초 동안 사거리 밖에 두었다가 다시 들이면 다음 화살에 10을 잃어 체력 5가 된다
+func ev818():
+	if not battle().ENEMY_KINDS.has("shieldbearer"):
+		return "구현 없음: 적 종류 shieldbearer(방패 고블린, S106 표)가 없다"
+	var skip := []
+	for c in [["magic", Vector2i(8, 5)], ["cannon", Vector2i(9, 5)]]:
+		var b = battle()
+		var x = b.build(c[0], Vector2i(5, 5))
+		var e = _shield(b, c[1], {"hp": BIG})
+		skip.append([c[0], _first_loss(b, e), x.damage])
+	var s = _sylvia(Vector2i(3, 10))
+	var se = _shield(s, Vector2i(6, 10), {"hp": BIG})
+	_start(s)
+	skip.append(["sylvia", _first_loss(s, se), null])
+	var p = battle()
+	p.place_merc("soldier", Vector2i(10, 10))
+	var pe = _shield(p, Vector2i(11, 10), {"hp": BIG})
+	skip.append(["soldier", _first_loss(p, pe), null])
+	var bypass: bool = skip.all(func(k): return k[1] > 0.0 and (k[2] == null or absf(k[1] - k[2]) < 0.01))
+	var a = battle()
+	var at = a.build("tower", Vector2i(5, 5), {"damage": 20.0})
+	var ae = _shield(a, Vector2i(8, 5), {"hp": BIG, "armor": 15.0})
+	var armored := []
+	for i in 3:
+		armored.append(ae.max_hp - _volley(a, at, ae))
+	var want := 20.0 * (1.0 - 0.9 / 1.9)  # 방어력 15의 물리 피해 배율(S149): 1 − 0.06×15 ÷ (1 + 0.06×15)
+	var before_armor: bool = absf(armored[0]) < 0.001 and absf(armored[1]) < 0.001 and absf(armored[2] - want) < 0.01
+	var r = battle()
+	var rt = r.build("tower", Vector2i(5, 5), {"damage": 25.0})
+	var re = _shield(r, Vector2i(8, 5))
+	var first := _volley(r, rt, re)
+	re.pos = Vector2(20, 15)  # 궁수탑 사거리(8) 밖
+	run(r, 20.0)
+	re.pos = Vector2(8, 5)
+	var second := _volley(r, rt, re)
+	return check(bypass and before_armor and is_equal_approx(first, 15.0) and is_equal_approx(second, 5.0),
+		"[공격, 첫 한 방에 잃은 체력, 공격력] %s(모두 0보다 크고 마법 타워·대포는 공격력만큼) · 방어력 15에 피해 20 화살 세 발 누적 잃은 체력 %s(0·0·%.2f) · 사거리 밖에 20초 둔 앞뒤 체력 %s·%s(15·5)" % [skip, armored, want, first, second])
+
+# EV819 · S301: 화살은 길 위의 첫 몸에 닿으므로(S178) 앞의 방패 고블린이 뒤 과녁 대신 화살을 방패로 받는다. 궁수탑(피해 25)이 (8,5) 과녁을 쏜 뒤
+# 길 위 (7,5)에 방패 고블린을 놓으면 그 화살에 과녁과 방패 고블린의 체력이 그대로이고, 다음 화살(더 가까운 방패 고블린을 노린다)에 방패 고블린 체력이 5가 된다
+func ev819():
+	var b = battle()
+	if not b.ENEMY_KINDS.has("shieldbearer"):
+		return "구현 없음: 적 종류 shieldbearer(방패 고블린, S106 표)가 없다"
+	var t = b.build("tower", Vector2i(5, 5), {"damage": 25.0})
+	var a = _dummy(b, Vector2i(8, 5))
+	var shot := _until_shot(b, t) >= 0.0
+	var e = _shield(b, Vector2i(7, 5))
+	run(b, 0.5)
+	var calm: bool = a.hp == a.max_hp
+	var kept: float = e.hp
+	var second := _volley(b, t, e)
+	return check(shot and calm and is_equal_approx(kept, 15.0) and is_equal_approx(second, 5.0),
+		"탑이 쏨 %s · 뒤 과녁 그대로 %s · 그 화살 뒤 방패 고블린 체력 %s(15) · 다음 화살 뒤 %s(5)" % [shot, calm, kept, second])

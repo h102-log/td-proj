@@ -420,7 +420,7 @@ func ev612():
 		out = check(_win(b) and b.bag.ignis == last and b.dropped.is_empty(), "마지막 단계에서 라운드 승리: 가방 %s · 전리품 %s" % [b.bag, b.dropped])
 	return out
 
-# EV613 · I202: 같은 씨앗이면 전리품이 있든 없든 영입 목록·의뢰 목록·다음 라운드 미션이 같다
+# EV613 · I202: 같은 씨앗이면 전리품이 있든 없든 영입 목록·다음 라운드 미션이 같다
 func ev613():
 	var a = _rounds([1, 1], [], ["ignis", "sylvia", "vesper"], {"quests": true})
 	var z = _rounds([1, 1], [], ["ignis", "sylvia", "vesper"], {"quests": true})
@@ -429,13 +429,13 @@ func ev613():
 		return out
 	z.GEAR_KINDS = {}
 	var won: bool = _win(a) and _win(z)
-	out = check(won and not a.dropped.is_empty() and z.dropped.is_empty() and not a.commission_offers.is_empty(), "준비: 승리 %s · 전리품 %s / %s · 의뢰 %s" % [won, a.dropped, z.dropped, a.commission_offers])
+	out = check(won and not a.dropped.is_empty() and z.dropped.is_empty(), "준비: 승리 %s · 전리품 %s / %s" % [won, a.dropped, z.dropped])
 	if out == "":
-		var lists := [a.offers == z.offers, a.commission_offers == z.commission_offers]
+		var lists := [a.offers == z.offers]
 		a.next_round()
 		z.next_round()
 		lists.append(a.mission == z.mission)
-		out = check(lists == [true, true, true], "[영입 목록, 의뢰 목록, 미션] 같음 %s" % [lists])
+		out = check(lists == [true, true], "[영입 목록, 미션] 같음 %s" % [lists])
 	return out
 
 # EV614 · I202: 전리품과 전리품 난수가 저장을 왕복하고, 그 칸이 없는 저장은 전리품 없음이다

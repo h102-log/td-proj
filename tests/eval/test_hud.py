@@ -422,3 +422,11 @@ def test_EV795_live_prep_builds_without_engineer(gd):
 
 def test_EV803_auto_right_click_any_slot(gd):
     gd("hud", "EV803")
+
+
+def test_EV821_shield_trait_line(gd):
+    gd("hud", "EV821")
+
+
+def test_EV828_fire_archer_trait_line(gd):
+    gd("hud", "EV828")

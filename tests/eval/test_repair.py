@@ -36,3 +36,7 @@ def test_EV662_auto_fix_takes_near_hurt_castle(gd):
 
 def test_EV663_auto_fix_refusals_and_f_key(gd):
     gd("repair", "EV663")
+
+
+def test_EV804_prep_repair_cost_markup_capped(gd):
+    gd("repair", "EV804")
