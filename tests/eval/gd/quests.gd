@@ -1,10 +1,11 @@
 extends "res://tests/eval/gd/lib.gd"
-# WBS 3.9 미션·의뢰(S66·S77·I54·I118~I121). lib.gd·rounds.gd·hire.gd 머리의 계약에 더하는 API:
-#   stage 키 quests: true(data/quests의 모든 미션·의뢰) | [이름, …](그것들만, 평가용). 없으면 미션·의뢰가 없다
-#   res://data/quests/<이름>.tres — commission · text · reward · zero(0이어야 하는 집계 키) · time_limit (I118). Battle.QUEST_KINDS[이름]이 그 수치다
-#   Battle.quests — 이 도전의 미션·의뢰 이름 · Battle.mission — 이번 라운드의 미션 이름("" 없음) · Battle.commission — 수락한 의뢰 이름
-#   Battle.commission_offers — 라운드 사이의 의뢰 목록 · Battle.accept(칸 번호) -> bool — 라운드 사이에만. 다시 수락하면 무른다
+# WBS 3.9 미션(S66·S77·I54·I118~I120). lib.gd·rounds.gd·hire.gd 머리의 계약에 더하는 API:
+#   stage 키 quests: true(data/quests의 모든 미션) | [이름, …](그것들만, 평가용). 없으면 미션이 없다
+#   res://data/quests/<이름>.tres — text · reward · zero(0이어야 하는 집계 키) · time_limit (I118). Battle.QUEST_KINDS[이름]이 그 수치다
+#   Battle.quests — 이 도전의 미션 이름 · Battle.mission — 이번 라운드의 미션 이름("" 없음)
 #   Battle.settled — 지난 라운드의 판정 [[이름, 달성], …] · Battle.tally — 라운드 집계(I119) · Battle.quest_met(이름) -> bool
+#   의뢰는 없다(S77 2026-11-07 변경): Battle에 commission·commission_offers·accept가 없고, 퀘스트 데이터에 미션·의뢰를 가르는 칸(commission)이 없다
+#   Save.apply(res://src/sim/save.gd, save.gd 머리) — 옛 저장의 quests·settled에 든 지운 의뢰 이름은 버리고, 옛 저장의 commission·commission_offers 칸은 읽지 않는다
 # 수치는 Battle.QUEST_KINDS에서 읽는다. 임시값이라(I118) EV212만 표를 대조한다
 
 const H := Vector2i(20, 14)  # 성곽 맵의 영웅 시작 칸
@@ -14,16 +15,13 @@ const T := Vector2i(12, 12)  # 성곽 맵의 들판 칸(타워)
 const M := Vector2i(3, 15)  # 성곽 맵의 들판 칸(용병)
 const ONE := [{"kind": "basic", "count": 1}]
 const ONE_ONE := [[ONE], [ONE]]  # 라운드 2개, 라운드마다 적 1마리짜리 웨이브 하나
-const TABLE := {  # I118 표: 이름 → [의뢰?, 보상, 0이어야 하는 집계, 시간 상한]
-	"base_safe": [false, 20, ["base_hit"], 0.0],
-	"castle_safe": [false, 20, ["castle_lost"], 0.0],
-	"mercs_safe": [false, 20, ["merc_lost"], 0.0],
-	"heroes_safe": [false, 20, ["hero_down"], 0.0],
-	"flawless": [true, 60, ["base_hit", "castle_lost", "structure_lost"], 0.0],
-	"no_buying": [true, 50, ["merc_bought"], 0.0],
-	"no_building": [true, 50, ["built"], 0.0],
-	"swift": [true, 50, [], 120.0],
+const TABLE := {  # I118 표(2026-11-07 변경, 미션 넷): 이름 → [보상, 0이어야 하는 집계, 시간 상한]
+	"base_safe": [20, ["base_hit"], 0.0],
+	"castle_safe": [20, ["castle_lost"], 0.0],
+	"mercs_safe": [20, ["merc_lost"], 0.0],
+	"heroes_safe": [20, ["hero_down"], 0.0],
 }
+const GONE := ["flawless", "no_buying", "no_building", "swift"]  # S77 2026-11-07 변경으로 지운 의뢰 넷
 
 # 성곽 맵(rounds.gd와 같다): 9행이 가로 성곽(성문 5·15·25열, 모두 닫힘), 위쪽이 마을, 아래쪽이 들판
 func _castle(over := {}):
@@ -59,7 +57,7 @@ func _sorted(a: Array) -> Array:
 	out.sort()
 	return out
 
-# EV212 · I118: data/quests의 파일 = 판의 미션·의뢰 종류이고, 값이 표와 같다
+# EV212 · I118: data/quests의 파일 = 판의 미션 종류(미션 넷)이고, 값이 표와 같으며, 미션·의뢰를 가르는 칸이 없다
 func ev212():
 	var b = battle()
 	var files := _files("res://data/quests")
@@ -68,15 +66,17 @@ func ev212():
 	for name in TABLE:
 		var q: Dictionary = b.QUEST_KINDS[name]
 		var want: Array = TABLE[name]
-		if q.commission != want[0] or q.reward != want[1] or Array(q.zero) != want[2] or q.time_limit != want[3] or q.text == "":
-			return "%s: 의뢰 %s 보상 %d 집계 %s 상한 %s 문장 «%s»(표는 %s)" % [name, q.commission, q.reward, q.zero, q.time_limit, q.text, want]
+		if q.has("commission"):
+			return "%s에 미션·의뢰를 가르는 칸(commission)이 남았다" % name
+		if q.reward != want[0] or Array(q.zero) != want[1] or q.time_limit != want[2] or q.text == "":
+			return "%s: 보상 %d 집계 %s 상한 %s 문장 «%s»(표는 %s)" % [name, q.reward, q.zero, q.time_limit, q.text, want]
 	return ""
 
 # EV213 · I120: 미션은 라운드를 이기는 순간 판정되어 달성이면 보상 골드를 받고, 실패면 아무 일도 없다. 마지막 라운드도 판정한다
 func ev213():
 	var b = battle({"gold": 100, "base_hp": BIG, "rounds": ONE_ONE, "quests": ["base_safe"]})
-	if b.mission != "base_safe" or b.commission != "" or not b.settled.is_empty():
-		return "1라운드 미션이 %s다(base_safe여야 한다) · 의뢰 %s · 판정 %s" % [b.mission, b.commission, b.settled]
+	if b.mission != "base_safe" or not b.settled.is_empty():
+		return "1라운드 미션이 %s다(base_safe여야 한다) · 판정 %s" % [b.mission, b.settled]
 	if not _win_round(b) or b.state != "cleared":
 		return "1라운드를 이기지 못했다(%s)" % b.state
 	var reward: int = b.ENEMY_KINDS.basic.reward
@@ -92,48 +92,44 @@ func ev213():
 	return check(first and fresh and second, "1라운드: 골드 %d(%d여야 한다) 판정 %s · 2라운드 준비: 미션 %s 판정 %s · 2라운드: 골드 %d(%d여야 한다) 판정 %s" %
 		[gold1, 100 + reward + bonus, b.settled if not first else "달성", b.mission, fresh, b.gold, gold1 + reward, b.settled])
 
-# EV214 · I121: 의뢰는 라운드 사이에만 고른다. 목록은 2개이고, 하나만 수락하며, 다시 누르면 무른다. 도전 시작 전·준비 단계에서는 거부된다
-func ev214():
-	var b = battle({"base_hp": BIG, "rounds": ONE_ONE, "seed": 3, "quests": ["no_buying", "no_building", "swift"]})
-	b.begin_hiring()
-	var before: bool = b.mission == "" and b.commission_offers.is_empty() and not b.accept(0) and b.commission == ""
-	b.next_round()
-	if not _win_round(b) or b.state != "cleared":
-		return "1라운드를 이기지 못했다(%s)" % b.state
-	var offers: Array = b.commission_offers.duplicate()
-	var listed: bool = offers.size() == 2 and offers[0] != offers[1] and offers.all(func(n): return b.QUEST_KINDS[n].commission) and b.commission == ""
-	var a: bool = b.accept(0) and b.commission == offers[0]
-	var undo: bool = b.accept(0) and b.commission == ""
-	var other: bool = b.accept(1) and b.commission == offers[1] and b.accept(0) and b.commission == offers[0]
-	var bad: bool = not b.accept(5) and b.commission == offers[0]
-	b.next_round()
-	var kept: bool = b.state == "prep" and b.commission == offers[0] and b.commission_offers.is_empty() and not b.accept(0) and b.commission == offers[0]
-	return check(before and listed and a and undo and other and bad and kept,
-		"도전 시작 전 없음 %s · 목록 %s(%s) · 수락 %s · 무름 %s · 바꿈 %s · 범위 밖 거부 %s · 준비 단계 %s(의뢰 %s)" % [before, offers, listed, a, undo, other, bad, kept, b.commission])
-
-# EV215 · S77: 수락한 의뢰는 다음 라운드 하나에 걸린다. 실패하면 벌칙 없이 보상만 없고(I54), 달성하면 보상 골드를 받는다(S66)
+# EV215 · S77: 의뢰가 없다. 라운드 사이에 의뢰 목록·수락이 없고, 판정은 라운드마다 자동으로 뜬 미션 하나뿐이며 달성하면 보상 골드를 받는다.
+#   data/quests에는 미션 넷만 있다. 지운 의뢰가 든 옛 저장을 불러오면 그 의뢰의 기록은 버리고 나머지는 저장 그대로다. 저장 판(Save.VERSION)은 7 그대로다
 func ev215():
-	var b = battle({"gold": 100, "base_hp": BIG, "rounds": [[ONE], [ONE], [ONE]], "quests": ["no_buying"]})
-	var reward: int = b.ENEMY_KINDS.basic.reward
-	var bonus: int = b.QUEST_KINDS.no_buying.reward
-	if not _win_round(b) or b.commission_offers != ["no_buying"] or not b.accept(0):
-		return "1라운드를 이기고 의뢰를 수락하지 못했다(%s, 목록 %s)" % [b.state, b.commission_offers]
-	b.next_round()
-	var cost: int = b.MERC_KINDS.soldier.cost
-	if b.place_merc("soldier", Vector2i(20, 3)) == null:
-		return "2라운드 준비 단계에 용병을 사지 못했다"
-	if not _win_round(b) or b.state != "cleared":
-		return "2라운드를 이기지 못했다(%s)" % b.state
-	var failed: bool = b.gold == 100 + 2 * reward - cost and b.settled == [["no_buying", false]] and b.commission == ""
-	var gold2: int = b.gold
-	if b.commission_offers != ["no_buying"] or not b.accept(0):
-		return "2라운드 뒤 의뢰를 수락하지 못했다(목록 %s)" % [b.commission_offers]
-	b.next_round()
-	if not _win_round(b) or b.state != "won":
-		return "3라운드를 이기지 못했다(%s)" % b.state
-	var done: bool = b.gold == gold2 + reward + bonus and b.settled == [["no_buying", true]]
-	return check(failed and done, "2라운드(용병을 삼): 골드 %d(%d여야 한다) 판정 %s · 3라운드: 골드 %d(%d여야 한다) 판정 %s" %
-		[gold2, 100 + 2 * reward - cost, b.settled if not failed else "실패", b.gold, gold2 + reward + bonus, b.settled])
+	var S = load("res://src/sim/save.gd")
+	var version = S.get_script_constant_map().get("VERSION")
+	if version != 7:  # S77 «저장 판은 그대로». 다른 기능이 저장 판을 올리면 이 줄을 함께 고친다
+		return "저장 판 Save.VERSION이 %s다(의뢰를 지워도 저장 판은 그대로 7이어야 한다, S77)" % [version]
+	var stage := {"gold": 100, "base_hp": BIG, "rounds": ONE_ONE, "quests": true}
+	var b = battle(stage)
+	var left: Array = ["commission", "commission_offers"].filter(func(k): return b.get(k) != null)
+	if b.has_method("accept"):
+		left.append("accept")
+	if not left.is_empty():
+		return "의뢰가 남았다: Battle의 %s" % [left]
+	var files := _files("res://data/quests")
+	if files != _sorted(TABLE.keys()):
+		return "data/quests가 %s다(미션 넷 %s만 있어야 한다)" % [files, _sorted(TABLE.keys())]
+	var m1: String = b.mission
+	if not m1 in TABLE or not _win_round(b) or b.state != "cleared":
+		return "1라운드 미션 «%s»로 1라운드를 이기지 못했다(%s)" % [m1, b.state]
+	var bonus: int = b.QUEST_KINDS[m1].reward
+	var gold1: int = 100 + b.ENEMY_KINDS.basic.reward + bonus
+	if b.settled != [[m1, true]] or bonus <= 0 or b.gold != gold1:
+		return "1라운드 뒤 판정 %s · 골드 %d(판정은 [[%s, true]] 하나, 골드는 %d여야 한다)" % [b.settled, b.gold, m1, gold1]
+	var old: Dictionary = S.snapshot(b)
+	old["quests"] = old["quests"] + GONE
+	old["settled"] = old["settled"] + [["no_buying", false]]
+	old["commission"] = "no_buying"
+	old["commission_offers"] = ["flawless", "swift"]
+	var c = battle(stage)
+	S.apply(c, old)
+	if _sorted(c.quests) != _sorted(TABLE.keys()) or c.settled != [[m1, true]] or c.gold != gold1 or c.state != "cleared" or c.mission != m1:
+		return "옛 저장을 불러온 판: 미션 목록 %s · 판정 %s · 골드 %d · 단계 %s · 미션 %s(지운 의뢰는 버리고 나머지는 저장 그대로여야 한다)" % [c.quests, c.settled, c.gold, c.state, c.mission]
+	c.next_round()
+	var m2: String = c.mission
+	if not m2 in TABLE or not _win_round(c) or c.state != "won":
+		return "불러온 판의 2라운드 미션 «%s»로 2라운드를 이기지 못했다(%s)" % [m2, c.state]
+	return check(c.settled == [[m2, true]], "불러온 판의 2라운드 판정 %s([[%s, true]] 하나여야 한다)" % [c.settled, m2])
 
 # EV216 · I119: 라운드 집계는 사는 것·짓는 것·거점이 맞는 것·부서지는 것·잃는 것·전투 시간을 세고, 판매는 세지 않으며, 다음 라운드에 0이 된다
 func ev216():
@@ -162,7 +158,7 @@ func ev216():
 	var reset: bool = b.TALLY_KEYS.all(func(k): return b.tally[k] == 0)
 	return check(counted and timed and reset, "집계 %s(%s여야 한다) · 전투 2초 뒤 시간 %.2f · 다음 라운드에 0 %s(%s)" % [got, want, time, reset, b.tally])
 
-# EV217 · I120: 미션은 도전의 미션 가운데 뽑히고, 둘 이상이면 지난 라운드와 같은 미션이 잇달아 나오지 않는다. 미션·의뢰가 없는 스테이지는 아무것도 바뀌지 않는다
+# EV217 · I120: 미션은 도전의 미션 가운데 뽑히고, 둘 이상이면 지난 라운드와 같은 미션이 잇달아 나오지 않는다. 미션이 없는 스테이지는 아무것도 바뀌지 않는다
 func ev217():
 	var b = battle({"base_hp": BIG, "seed": 11, "rounds": [[ONE], [ONE], [ONE], [ONE]], "quests": ["base_safe", "castle_safe"]})
 	var seq := [b.mission]
@@ -175,28 +171,23 @@ func ev217():
 	var none: bool = d.quests.is_empty() and d.mission == ""
 	if not _win_round(d) or d.state != "cleared":
 		return "미션 없는 판의 1라운드를 이기지 못했다(%s)" % d.state
-	var plain: bool = d.gold == 100 + d.ENEMY_KINDS.basic.reward and d.settled.is_empty() and d.commission_offers.is_empty()
-	return check(alternates and none and plain, "미션 순서 %s · 미션 없는 판: 처음 %s, 이긴 뒤 골드 %d 판정 %s 의뢰 목록 %s" % [seq, none, d.gold, d.settled, d.commission_offers])
+	var plain: bool = d.gold == 100 + d.ENEMY_KINDS.basic.reward and d.settled.is_empty()
+	return check(alternates and none and plain, "미션 순서 %s · 미션 없는 판: 처음 %s, 이긴 뒤 골드 %d 판정 %s" % [seq, none, d.gold, d.settled])
 
-# EV218 · I118: 시험 스테이지(`main.gd` stage())는 data/quests의 미션·의뢰를 모두 쓴다. 1라운드에 미션이 하나 있고, 이기면 서로 다른 의뢰 2개가 뜬다
+# EV218 · I118: 시험 스테이지(`main.gd` stage())는 data/quests의 미션을 모두 쓰고, 1라운드에 미션이 하나 있다
 func ev218():
 	var b = load("res://src/sim/battle.gd").new(load("res://src/main.gd").stage())
 	var all: bool = _sorted(b.quests) == _sorted(b.QUEST_KINDS.keys())
-	var has: bool = b.mission != "" and b.mission in b.QUEST_KINDS and not b.QUEST_KINDS[b.mission].commission and b.commission == ""
-	if not _win_round(b) or b.state != "cleared":
-		return "1라운드를 이기지 못했다(%s)" % b.state
-	var o: Array = b.commission_offers
-	var offered: bool = o.size() == 2 and o[0] != o[1] and o.all(func(n): return n in b.QUEST_KINDS and b.QUEST_KINDS[n].commission)
-	return check(all and has and offered, "모두 씀 %s(%s) · 1라운드 미션 %s · 의뢰 목록 %s" % [all, b.quests, b.mission, o])
+	var has: bool = b.mission != "" and b.mission in b.QUEST_KINDS
+	return check(all and has, "모두 씀 %s(%s) · 1라운드 미션 %s" % [all, b.quests, b.mission])
 
-# EV219 · I118: 조건마다 집계를 본다 — 용병을 잃으면 mercs_safe가, 영웅이 쓰러지면 heroes_safe가, 성곽 칸이 부서지면 castle_safe가,
-#   구조물이 부서지면 flawless가, 지으면 no_building이 실패한다. 판매·수리·업그레이드는 조건을 깨지 않는다
+# EV219 · I118: 조건마다 집계를 본다 — 용병을 잃으면 mercs_safe가, 영웅이 쓰러지면 heroes_safe가, 성곽 칸이 부서지면 castle_safe가 실패한다.
+#   용병을 사는 것·판매·수리·업그레이드와, 짓거나 성곽이 아닌 구조물이 부서지는 것은 미션을 깨지 않는다
 func ev219():
 	var b = _castle({"hero_start": H, "gold": 1000})
 	var m = b.place_merc("soldier", M)
 	var m2 = b.place_merc("soldier", M + Vector2i(2, 0))
-	var all_met: bool = ["base_safe", "castle_safe", "mercs_safe", "heroes_safe", "flawless", "no_building"].all(b.quest_met)
-	var bought: bool = not b.quest_met("no_buying")
+	var all_met: bool = TABLE.keys().all(b.quest_met)
 	b.sell([m2])
 	var sold_ok: bool = b.quest_met("mercs_safe")
 	b.damage(m, BIG)
@@ -207,62 +198,38 @@ func ev219():
 	b.damage(k, 100)
 	b.repair(k)
 	b.upgrade(b.castle[TOP + Vector2i(1, 0)])
-	var fixed_ok: bool = b.quest_met("castle_safe") and b.quest_met("flawless") and b.quest_met("no_building") and k.hp == k.max_hp
+	var fixed_ok: bool = b.quest_met("castle_safe") and k.hp == k.max_hp
 	b.damage(k, BIG)
-	var castle_lost: bool = not b.quest_met("castle_safe") and not b.quest_met("flawless") and b.quest_met("base_safe")
+	var castle_lost: bool = not b.quest_met("castle_safe") and b.quest_met("base_safe")
 	var d = _castle({"gold": 1000})
 	var t = d.build("tower", T)
-	var built: bool = t != null and not d.quest_met("no_building") and d.quest_met("flawless")
 	d.damage(t, BIG)
-	var structure_lost: bool = not d.quest_met("flawless") and d.quest_met("castle_safe") and d.quest_met("base_safe")
-	return check(all_met and bought and sold_ok and merc_lost and hero_down and fixed_ok and castle_lost and built and structure_lost,
-		"처음 모두 달성 %s · 사면 no_buying 실패 %s · 판매는 괜찮음 %s · 용병 잃음 %s · 영웅 다운 %s · 수리·업그레이드는 괜찮음 %s · 성곽 칸 부서짐 %s · 지음 %s · 구조물 부서짐 %s" %
-		[all_met, bought, sold_ok, merc_lost, hero_down, fixed_ok, castle_lost, built, structure_lost])
+	var structure_lost: bool = t != null and TABLE.keys().all(d.quest_met)
+	return check(all_met and sold_ok and merc_lost and hero_down and fixed_ok and castle_lost and structure_lost,
+		"용병 둘을 사도 모두 달성 %s · 판매는 괜찮음 %s · 용병 잃음 %s · 영웅 다운 %s · 수리·업그레이드는 괜찮음 %s · 성곽 칸 부서짐 %s · 타워를 짓고 부서져도 모두 달성 %s" %
+		[all_met, sold_ok, merc_lost, hero_down, fixed_ok, castle_lost, structure_lost])
 
-# EV220 · I118: swift는 라운드의 전투 시간 합이 상한 이하일 때만 달성이다
-func ev220():
-	var limit: float = battle().QUEST_KINDS.swift.time_limit
-	var results := []
-	for slow in [false, true]:
-		var b = battle({"gold": 100, "base_hp": BIG, "rounds": ONE_ONE, "quests": ["swift"]})
-		if not _win_round(b) or b.commission_offers != ["swift"] or not b.accept(0):
-			return "1라운드를 이기고 swift를 수락하지 못했다(%s, 목록 %s)" % [b.state, b.commission_offers]
-		b.next_round()
-		var gold1: int = b.gold
-		b.start_battle()
-		if slow:
-			run(b, limit + 5.0)
-		if not clear_wave(b) or b.state != "won":
-			return "2라운드를 이기지 못했다(%s)" % b.state
-		results.append([b.tally.battle_time, b.settled, b.gold - gold1])
-	var reward: int = battle().ENEMY_KINDS.basic.reward
-	var bonus: int = battle().QUEST_KINDS.swift.reward
-	var quick: bool = results[0][0] <= limit and results[0][1] == [["swift", true]] and results[0][2] == reward + bonus
-	var late: bool = results[1][0] > limit and results[1][1] == [["swift", false]] and results[1][2] == reward
-	return check(quick and late, "빨리 끝냄: 전투 %.1f초 판정 %s +%d골드 · 늦게 끝냄: 전투 %.1f초 판정 %s +%d골드(상한 %.0f초, 보상 %d)" %
-		[results[0][0], results[0][1], results[0][2], results[1][0], results[1][1], results[1][2], limit, bonus])
-
-# EV221 · I92: 새 도전은 수락한 의뢰·의뢰 목록·판정·집계를 비우고 1라운드 미션을 새로 뽑는다
+# EV221 · I92: 새 도전은 판정·집계를 비우고 1라운드 미션을 새로 뽑는다
 func ev221():
-	var b = battle({"base_hp": BIG, "rounds": ONE_ONE, "quests": ["base_safe", "no_buying"]})
+	var b = battle({"base_hp": BIG, "rounds": ONE_ONE, "quests": ["base_safe"]})
 	b.place_merc("soldier", Vector2i(20, 3))
 	b.damage(b.base, 1)
-	if not _win_round(b) or not b.accept(0):
-		return "1라운드를 이기고 의뢰를 수락하지 못했다(%s, 목록 %s)" % [b.state, b.commission_offers]
-	if b.commission != "no_buying" or b.settled.is_empty() or b.tally.merc_bought != 1:
-		return "준비가 되지 않았다(의뢰 %s, 판정 %s, 집계 %s)" % [b.commission, b.settled, b.tally]
+	if not _win_round(b) or b.state != "cleared":
+		return "1라운드를 이기지 못했다(%s)" % b.state
+	if b.settled.is_empty() or b.tally.merc_bought != 1:
+		return "준비가 되지 않았다(판정 %s, 집계 %s)" % [b.settled, b.tally]
 	b.restart()
-	var clean: bool = b.mission == "base_safe" and b.commission == "" and b.commission_offers.is_empty() and b.settled.is_empty() and b.TALLY_KEYS.all(func(k): return b.tally[k] == 0)
-	return check(clean, "새 도전: 미션 %s · 의뢰 %s · 목록 %s · 판정 %s · 집계 %s" % [b.mission, b.commission, b.commission_offers, b.settled, b.tally])
+	var clean: bool = b.mission == "base_safe" and b.settled.is_empty() and b.TALLY_KEYS.all(func(k): return b.tally[k] == 0)
+	return check(clean, "새 도전: 미션 %s · 판정 %s · 집계 %s" % [b.mission, b.settled, b.tally])
 
-# EV234 · I131: 라운드에 지면 그 라운드의 미션과 수락한 의뢰는 모두 실패로 판정되고 보상이 없다
+# EV234 · I131: 라운드에 지면 그 라운드의 미션은 실패로 판정되고 보상이 없다
 func ev234():
-	var b = battle({"base_hp": BIG, "rounds": ONE_ONE, "quests": ["mercs_safe", "no_buying"]})
-	if not _win_round(b) or b.commission_offers != ["no_buying"] or not b.accept(0):
-		return "1라운드를 이기고 no_buying을 수락하지 못했다(%s, 목록 %s)" % [b.state, b.commission_offers]
+	var b = battle({"base_hp": BIG, "rounds": ONE_ONE, "quests": ["mercs_safe"]})
+	if not _win_round(b) or b.state != "cleared":
+		return "1라운드를 이기지 못했다(%s)" % b.state
 	b.next_round()
 	b.start_battle()
 	var gold: int = b.gold
 	b.damage(b.base, BIG)
-	return check(b.state == "lost" and b.settled == [["mercs_safe", false], ["no_buying", false]] and b.gold == gold,
+	return check(b.state == "lost" and b.settled == [["mercs_safe", false]] and b.gold == gold,
 		"단계 %s · 판정 %s · 골드 %d → %d" % [b.state, b.settled, gold, b.gold])

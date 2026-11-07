@@ -15,7 +15,7 @@ const ENEMY_COLORS := {  # 적 종류마다 다른 색(I81)
 	"wolf": Color("8a7a68"), "leap_wolf": Color("b08850"), "night_wolf": Color("3a3a58"), "alpha_wolf": Color("d8d8d0"),
 	"sapper": Color("c05828"), "ram": Color("6a4a30"), "catapult": Color("a08048"), "glider": Color("c8b868"),
 	"siege_tower": Color("586068"), "balloon": Color("e8d0a0"), "airship": Color("7090b0"), "war_machine": Color("4a4038"),
-	"chief": Color("a02838"),
+	"chief": Color("a02838"), "shieldbearer": Color("4a6a8a"), "fire_archer": Color("f0b020"),
 }
 const HERO_COLORS := {  # 영웅 종류마다 다른 색(S56, S157, I101)
 	"aias": Color("b060f0"), "sylvia": Color("a0ff40"), "seraphina": Color("f0f0f0"), "vesper": Color("40c060"), "ignis": Color("ff5020"), "chronos": Color("ffd020"),
@@ -147,7 +147,8 @@ const FOE_FX := ["stun", "root", "expose", "taunt", "seal", "chain", "dot"]  # �
 const DEBUFFS := ["slow", "weaken", "armor", "mr"]  # 적 능력치 감소 줄의 왼쪽부터 차례(I101 2026-11-04 변경). fx 아틀라스 «down» 프레임 차례와 같다(tools/art/fx.py)
 const FOE_TELL := Color("ef692f")  # 일반 적 예고(S279): F24+ 주황 1px 테가 BLINK초마다 켜졌다 꺼진다. 안쪽은 칠하지 않는다
 const BLINK := 0.25
-const UNSEEN_TELLS := ["pounce", "throw", "bomb", "drop", "cannon", "bombs"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287)·대장 폭탄(S288). 덮개 위 층에 그린다
+const UNSEEN_TELLS := ["pounce", "throw", "bomb", "drop", "cannon", "bombs", "flame"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287)·대장 폭탄(S288)·불화살(I249 ①). 덮개 위 층에 그린다
+const FLAME_RING := 0.5  # 불화살 예고 원 반경(칸, S302). 판정에 쓰지 않는 그림 값이라 flame 데이터에 없다
 const TELL := Color("ef3a0c")  # 보스 스킬 예고(S194): F24+ 빨강 테(바깥 어두운 테는 PX.maroon), 안쪽 성긴 칠이 차오른다(S198 fx-4)
 const RAGE := Color(1.5, 0.55, 0.55)  # 분노한 보스(S195)를 붉게 그리는 modulate
 const CROUCH := Vector2(1.15, 0.75)  # 슬라임 킹이 웅크림 끝에 납작해지는 배율(가로·세로, S198). 임시값
@@ -188,6 +189,7 @@ const JOLT := 0.05  # 맞은 구조물·성곽 칸·거점 그림을 1px 옮겨 
 const DEBRIS := Color("efd8a1")  # 구조물 부스러기(S199): 돌 회청색·나무 갈색과 다른 밝은 모래색(F24+). 시안의 재질 색은 거의 안 보였다
 const HERO_LOW := 0.5  # 영웅 체력이 이 비율 밑이면 V와 상관없이 막대를 그린다(S73 2026-10-29)
 const HP_BAR_DROP := 8  # 영웅·용병·적(보스 빼고) 체력바 윗변이 발 자리보다 아래인 px(S276 Claude 임시값)
+const GUARD_BAR := Color("a0a0a0")  # 남은 방패 막대(I248 ④): 체력 막대 바로 위 회색
 const BAR_TIERS := [Color("ef3a0c"), Color("e0c040"), Color("7cc85a")]  # 구조물·성곽·거점 막대(S199): 25% 밑·50% 밑·그 위. 위 띠 거점 막대(S190)의 HudTheme.DANGER·HudBuild.WARN·HudTheme.GOOD와 같은 값
 const SOFT_FLASH := Color(255, 255, 255, 0.4)  # 번쩍임 줄이기(S184): 같은 그림을 255배·알파 0.4로 덧그리면 흰 40%다(S177, S197)
 const STONE := Color("7a86a0")  # 무너진 성곽 칸에서 떨어지는 돌 조각(S200, F24+ 성벽 돌색)
@@ -370,7 +372,7 @@ func eyes() -> Array:
 func foes() -> Array:
 	return battle.enemies if battle.dark <= 0.0 else battle.enemies.filter(func(e): return battle.seen(e.pos))
 
-# 예고를 그리는 적(S194): 예고 중인 보이는 적. UNSEEN_TELLS(덮치기 S242, 던지기·폭탄·투하 S279, 대포 S287)는 적이 어둠 속에 숨어도 그린다(S213)
+# 예고를 그리는 적(S194): 예고 중인 보이는 적. UNSEEN_TELLS(덮치기 S242, 던지기·폭탄·투하 S279, 대포 S287, 불화살 I249)는 적이 어둠 속에 숨어도 그린다(S213)
 func tellers(shown = null) -> Array:
 	var vis: Array = foes() if shown == null else shown
 	return battle.enemies.filter(func(e): return e.cast != null and e.cast.id != "ladder" and (e.cast.id in UNSEEN_TELLS or e in vis))  # 사다리 내리기는 예고가 없다(S284)
@@ -446,6 +448,7 @@ func _draw() -> void:
 	_sera_marks()
 	_mire_marks()
 	_ignis_marks()
+	_burning()
 	for u in battle.units:
 		var at := _spot(u) + _slip(u)  # 넉백으로 미끄러지는 몸을 테두리·숫자가 따라간다(S198)
 		if u.is_hero:  # 영웅 레벨(I117): 오른쪽 위에 작게
@@ -497,7 +500,12 @@ func _draw_top() -> void:
 	for u in battle.units + _foes:  # 영웅·용병·적 막대는 hp_bar_rect 자리에(S276)
 		var bar := hp_bar_size(u, controls.show_hp)
 		if bar != Vector2.ZERO:
-			_bar_in(hp_bar_rect(u, bar), u)
+			var r := hp_bar_rect(u, bar)
+			_bar_in(r, u)
+			if u.get("guard"):  # 남은 방패(I248 ④): 체력 막대 바로 위에 같은 크기 회색 막대
+				var top := Rect2(r.position - Vector2(0, r.size.y), r.size)
+				_cv.draw_rect(top, Color.BLACK)
+				_cv.draw_rect(Rect2(top.position, Vector2(top.size.x * u.guard / u.max_guard, top.size.y)), GUARD_BAR)
 	for v in battle.people:  # 다친 주민(S227)은 V와 상관없이 막대를 그린다
 		if v.hp < v.max_hp and not v.inside:
 			_hp_bar(v.pos, v)
@@ -1806,6 +1814,20 @@ func _ignis_marks() -> void:
 	for u in battle.units:
 		if u.is_hero and u.alive and u.passive.get("id") == "overload":
 			_overload_pips(u)
+
+# 불붙은 구조물(I249 ⑦): 칸 아래쪽에 이그니스 불길과 같은 불꽃 조각 셋(가운데는 큰 불꽃)과, 쏘는 곳 높이까지 떠오르며 식는 불티 넷. 몸통 위 층이다
+func _burning() -> void:
+	for s in battle.structures.values():
+		if not s.fx.has("flame"):
+			continue
+		var c := Vector2i(_spot(s).floor())
+		var rise := 4 - int(MUZZLE.get(s.kind, Vector2(0, -10)).y)
+		var seed: int = s.get_instance_id()
+		for i in 3:
+			_spr("flame" if i == 1 else "flame_s", int(clock * 10.0) + i, c + Vector2i(5 * i - 5, 6 if i != 1 else 3), true)
+		for i in 4:
+			var ph := fmod(clock + _hf(seed, i) * 0.7, 0.7) / 0.7
+			_px(c + Vector2i(int(_hf(seed, i + 10) * 10.0) - 5, 2 - int(rise * ph)), _ramp(EMBER, ph))
 
 # 기절이 서리 고리 빙결 하나뿐인가(그때는 머리 위 별을 그리지 않는다, I229 ①)
 func _ice_only(x) -> bool:
@@ -3431,7 +3453,8 @@ func _pounce_tells() -> void:
 		_pnoise(to, int(6 * k), TELL, TELL_FILL)
 		_edge(to, 6, TELL, PX.maroon)
 
-# 일반 적 예고(S279): 예고 원을 주황 1px 테로 BLINK초마다 켜고 끈다. 던지기(S282)는 예고 동안 돌이 투석기에서 원 가운데로 포물선을 그리며 난다
+# 일반 적 예고(S279): 예고 원을 주황 1px 테로 BLINK초마다 켜고 끈다. 던지기(S282)는 예고 동안 돌이 투석기에서 원 가운데로 포물선을 그리며 난다.
+# 불화살(I249 ②)은 예고 동안 고블린에서 구조물 칸 가운데로 낮은 포물선을 그리며 나는 화살이고, 촉에 불꽃이 붙어 있다
 func _foe_tell(e) -> void:
 	var sk: Dictionary = battle.deed(e, e.cast.id)
 	var at: Vector2 = e.cast.get("at", e.pos)
@@ -3442,11 +3465,18 @@ func _foe_tell(e) -> void:
 			_pline(c + Vector2i(-4, -6), c + Vector2i(0, -2), FOE_TELL)
 			_pline(c + Vector2i(4, -6), c + Vector2i(0, -2), FOE_TELL)
 		else:
-			_pring(Vector2i(_center(at).floor()), int(CELL * sk.radius), 1, FOE_TELL)
+			_pring(Vector2i(_center(at).floor()), int(CELL * (FLAME_RING if e.cast.id == "flame" else sk.radius)), 1, FOE_TELL)
 	if e.cast.id == "throw":
 		var k: float = clampf(1.0 - e.cast.left / sk.windup, 0.0, 1.0)
 		var p: Vector2 = _center(e.pos).lerp(_center(at), k) + Vector2(0, -sin(k * PI) * CELL * 1.5)
 		_pdisc(Vector2i(p.floor()), 2, PX.dark)
+	elif e.cast.id == "flame":
+		var k: float = clampf(1.0 - e.cast.left / sk.windup, 0.0, 1.0)
+		var arc := CELL * 0.75
+		var p: Vector2 = _center(e.pos).lerp(_center(at), k) + Vector2(0, -sin(k * PI) * arc)
+		var d: Vector2 = (_center(at) - _center(e.pos) + Vector2(0, -cos(k * PI) * PI * arc)).normalized()  # 포물선의 접선: 나는 쪽을 향한다
+		_pline(Vector2i((p - d * 6.0).round()), Vector2i(p.round()), Color("e8dcc0"))
+		_spr("flame_s", int(clock * 10.0), Vector2i(p.round()), true)
 
 # 사다리(S284)를 놓았거나 내리는 공성탑 → 자란 비율(0~1)
 func _ladder_grow() -> Dictionary:
@@ -3483,7 +3513,7 @@ func _ladder(t, grow: float) -> void:
 		_region(LADDER, Rect2(x, y, w, n), Rect2(0, sy, w, n), Color.WHITE)
 		y += n
 
-# 숨어도 그리는 예고: 일반 적(S279)의 던지기·폭탄·투하와 전쟁 기계 대포(S287, S213 2026-11-03 변경)·대장 폭탄(S288)은 성곽·어둠 덮개 위 층에 그린다
+# 숨어도 그리는 예고: 일반 적(S279)의 던지기·폭탄·투하·불화살과 전쟁 기계 대포(S287, S213 2026-11-03 변경)·대장 폭탄(S288)은 성곽·어둠 덮개 위 층에 그린다
 func _foe_tells() -> void:
 	for e in tellers(_foes):
 		if e.cast.id in UNSEEN_TELLS and not e.skills.has(e.cast.id):

@@ -1,6 +1,7 @@
 extends "res://tests/eval/gd/lib.gd"
 # WBS 2.12 판매(S69·S70·I56·I57·I58). lib.gd 머리의 계약에 더하는 API:
-#   Battle.sell(things: Array) — 준비 단계에만, 플레이어가 놓은 구조물·용병을 팔고 낸 골드 × 남은 체력 비율을 돌려준다
+#   Battle.sell(things: Array) — 준비 단계에만, 플레이어가 놓은 구조물·용병을 판다. 구조물은 낸 골드 × 남은 체력 비율 × 0.8,
+#     용병은 낸 골드 × 남은 체력 비율을 돌려준다(1골드 미만 버림, S69 2026-11-07 변경)
 #   Controls.selling — 판매 후보 배열(클릭·드래그로 정해진다)
 
 func _waves(n: int) -> Array:
@@ -9,18 +10,20 @@ func _waves(n: int) -> Array:
 		ws.append([{"kind": "basic", "count": 1}])
 	return ws
 
-# EV54 · S69: 준비 단계에 놓은 타워와 용병을 팔면 낸 골드가 모두 돌아오고 둘 다 사라진다
+# EV54 · S69 2026-11-07 변경: 준비 단계에 놓은 타워와 병사를 팔면 타워는 낸 골드의 80%(20 → 16), 병사는 낸 골드 모두가 돌아오고 둘 다 사라진다
 func ev54():
 	var b = battle({"gold": 100})
 	var t = b.build("tower", Vector2i(10, 5))
+	var paid_t: int = 100 - b.gold
 	var m = b.place_merc("soldier", Vector2i(12, 5))
-	if t == null or m == null or b.gold >= 100:
+	if t == null or m == null or paid_t <= 0 or b.gold >= 100 - paid_t:
 		return "타워·용병을 놓지 못했다(골드 %d)" % b.gold
 	b.sell([t, m])
-	var ok: bool = b.gold == 100 and b.structure_at(Vector2i(10, 5)) == null and m not in b.units
-	return check(ok, "판 뒤 골드 %d, 타워 칸 %s, 용병이 전장에 %s" % [b.gold, b.structure_at(Vector2i(10, 5)), m in b.units])
+	var want: int = 100 - paid_t + floori(paid_t * 0.8)
+	var ok: bool = b.gold == want and b.structure_at(Vector2i(10, 5)) == null and m not in b.units
+	return check(ok, "판 뒤 골드 %d(%d여야 한다: 타워 %d골드의 80%%와 병사 값 전액), 타워 칸 %s, 용병이 전장에 %s" % [b.gold, want, paid_t, b.structure_at(Vector2i(10, 5)), m in b.units])
 
-# EV55 · S69: 앞 웨이브에서 깎인 타워를 다음 준비 단계에 팔면 낸 골드 × 남은 체력 비율(내림)이 돌아온다
+# EV55 · S69 2026-11-07 변경: 앞 웨이브에서 깎인 타워를 다음 준비 단계에 팔면 낸 골드 × 남은 체력 비율 × 0.8(내림)이 돌아온다
 func ev55():
 	var b = battle({"gold": 100, "base_hp": BIG, "waves": _waves(2)})
 	var t = b.build("tower", Vector2i(5, 5))
@@ -28,8 +31,8 @@ func ev55():
 	b.start_battle()
 	b.damage(t, t.max_hp * 0.4)
 	clear_wave(b)
-	var want: int = floori(paid * float(t.hp) / t.max_hp)
-	if b.state != "prep" or want >= paid:
+	var want: int = floori(paid * float(t.hp) / t.max_hp * 0.8)
+	if b.state != "prep" or t.hp >= t.max_hp:
 		return "다음 준비 단계에 깎인 타워가 없다(%s, 체력 %d/%d)" % [b.state, t.hp, t.max_hp]
 	var before: int = b.gold
 	b.sell([t])
@@ -143,3 +146,29 @@ func ev791():
 	drag(c, Vector2(9, 4) * CELL_PX, Vector2(12, 6) * CELL_PX)  # 칸 (9,4)~(11,5): 타워·방벽만
 	var only: bool = c.selected.is_empty() and c.picked.size() == 2 and built.all(func(x): return x in c.picked)
 	return check(prep and fight and only, "[고른 것·판매·picked 수] 준비 단계 상자 %s %s · 전투 단계 상자 %s %s · 구조물만 든 상자 %s %s" % [prep, prep_n, fight, fight_n, only, [c.selected.size(), c.selling.size(), c.picked.size()]])
+
+# EV805 · S69 2026-11-07 변경: 준비 단계에 집·병영·방벽(가득 참)을 팔면 낸 골드 × 0.8, 깎인 병사(52%)·궁수(50%)를 팔면 낸 골드 × 남은 체력 비율이
+# 돌아오고(1골드 미만 버림) 판 것은 모두 사라진다
+func ev805():
+	var b = battle({"village": Rect2i(0, 0, 30, 6), "gold": 1000})
+	var plan := [["house", Vector2i(10, 3), 1.0, 0.8], ["barracks", Vector2i(15, 3), 1.0, 0.8], ["wall", Vector2i(5, 12), 1.0, 0.8],
+		["soldier", Vector2i(12, 12), 0.52, 1.0], ["archer", Vector2i(14, 12), 0.5, 1.0]]  # [종류, 칸, 남길 체력 비율, 판매 비율]
+	var made := []
+	for p in plan:
+		var g: int = b.gold
+		var x = b.build(p[0], p[1]) if p[0] in ["house", "barracks", "wall"] else b.place_merc(p[0], p[1])
+		if x == null or g - b.gold <= 0:
+			return "시험 조건이 틀렸다: %s를 %s에 놓지 못했다(골드 %d → %d)" % [p[0], p[1], g, b.gold]
+		x.hp = x.max_hp * p[2]
+		made.append([x, g - b.gold])
+	var got := []
+	var want := []
+	for i in plan.size():
+		var x = made[i][0]
+		want.append(floori(made[i][1] * x.hp / x.max_hp * plan[i][3]))
+		var g: int = b.gold
+		b.sell([x])
+		got.append(b.gold - g)
+	var gone: bool = b.structure_at(Vector2i(10, 3)) == null and b.structure_at(Vector2i(15, 3)) == null \
+		and b.structure_at(Vector2i(5, 12)) == null and made[3][0] not in b.units and made[4][0] not in b.units
+	return check(got == want and gone, "집·병영·방벽·병사·궁수를 판 환불 %s(%s여야 한다, 낸 골드 %s) · 모두 사라짐 %s" % [got, want, made.map(func(m): return m[1]), gone])

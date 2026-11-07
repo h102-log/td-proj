@@ -64,3 +64,15 @@ def test_EV735_cannon_miss_has_no_main_reaction(gd):
 
 def test_EV736_archer_accuracy_sets_mark(gd):
     gd("missile", "EV736")
+
+
+def test_EV817_shield_takes_arrows_first(gd):
+    gd("missile", "EV817")
+
+
+def test_EV818_shield_skips_other_attacks(gd):
+    gd("missile", "EV818")
+
+
+def test_EV819_shield_blocks_arrow_for_target_behind(gd):
+    gd("missile", "EV819")

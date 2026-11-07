@@ -82,7 +82,7 @@ func ev205():
 		xps[k] = b.ENEMY_KINDS[k].get("xp")
 	var want := {"basic": 1, "fast": 1, "armored": 1, "flying": 1, "boss": 1, "slime_king": 1, "slime": 3, "big_slime": 7, "slimelet": 0,
 		"wolf": 1, "leap_wolf": 1, "night_wolf": 1, "alpha_wolf": 1, "sapper": 1, "ram": 1, "catapult": 1, "glider": 1,
-		"siege_tower": 1, "balloon": 1, "airship": 1, "war_machine": 0, "chief": 1}  # S126 2026-10-27 변경, 늑대·3라운드 고블린은 기본 1. 전쟁 기계는 부서질 때 처치가 아니라 대장이 받는다(S288·I230)
+		"siege_tower": 1, "balloon": 1, "airship": 1, "war_machine": 0, "chief": 1, "shieldbearer": 1, "fire_archer": 1}  # S126 2026-10-27 변경, 늑대·3라운드 고블린은 기본 1. 전쟁 기계는 부서질 때 처치가 아니라 대장이 받는다(S288·I230)
 	ok = ok and xps.size() == want.size() and want.keys().all(func(k): return xps.get(k) == want[k])
 	return check(ok, "다음 레벨까지 %s · 비율 %s · 열리는 레벨 %s · 적 경험치 %s" % [r.steps, r.growth, r.unlock, xps])
 

@@ -9,6 +9,10 @@ extends "res://tests/eval/gd/hud.gd"
 #   main.view.tick(delta) — 덮개 값을 셰이더(night.material)에 넘기고, 어둠이 0이면 덮개를 숨긴다
 #   main.hud.moon — 진행 칸의 달(CanvasItem, S214) · main.hud._wave_tip() — 웨이브 버튼 툴팁 [제목, 단축키, 비용, 본문, 이유]
 #   main.hud.minimap.marks() — 미니맵 점 [사각형, 색](S209). 적 점 색은 ff3b3b
+# 밤 전투(S300·I247, EV811~EV816): 더하는 API 없음. 체력·자리·재사용 대기로 잰다. 이미 있는 것을 더 쓴다:
+#   stage 키 heroes [{kind, cell}](최대 레벨) · 용병 overrides accuracy · 적 overrides radius(몸 반지름)
+#   Battle.cast(영웅, 칸, aim) · Battle.toggle_auto(영웅, 칸) · Battle.effect(대상, 키) · 영웅 cd[칸](kits.gd 머리)
+#   몸이 닿음(I247 ③, S13): 두 몸 중심 거리 ≤ 두 몸 반지름 합 + 0.01(_touching과 같은 여유). 용병·영웅 몸 반지름은 기본 0.3이다(EV813)
 
 const W := [{"kind": "basic", "count": 1}]
 const FOE := Color("ff3b3b")
@@ -364,3 +368,197 @@ func ev753():
 	return check(dark > 0.0 and (e in told) and not (e in drawn) and col == Color("ef3a0c") and not (e in fan),
 		"어둠 %.2f · 폭탄 예고를 그리는 적에 %s · 몸을 그리는 적에 %s · 색 %s · 철퇴 예고를 그리는 적에 %s" % [
 			dark, e in told, e in drawn, col.to_html(false), e in fan])
+
+# ── 밤 전투(S300·I247) ──
+# 판은 lib 판(거점 (25,10), 불빛 4칸)이고 시험은 모두 거점 불빛 밖 위쪽에서 한다. 과녁은 준비 단계에 놓고, 첫 스텝은 아직 낮의 불빛으로 고르니(I247 ①)
+# 그 사이에 쏜 것이 닿을 1초 뒤부터 잰다
+
+const NONE := [{"kind": "basic", "count": 0}]  # 적이 나오지 않는 웨이브. 판에 적이 남아 있는 동안 전투 단계가 이어진다
+const LAMP := {"damage": 0.0, "sight": 0.0}  # 불빛만 내는 병사: 치지도 쫓지도 않는다
+
+# 어둠 dark인 밤 웨이브 판(적이 나오지 않는다). heroes는 [[종류, 칸], ...]이고 기본 공격을 끈다
+func _dusk(dark := 1.0, heroes := []):
+	var b = _night_battle({"waves": [NONE], "heroes": heroes.map(func(h): return {"kind": h[0], "cell": h[1]})}, dark)
+	for h in b.heroes:
+		h.damage = 0.0
+	return b
+
+# 칸 좌표 at에 선 움직이지도 치지도 않는 과녁
+func _post(b, at: Vector2, over := {}):
+	var e = b.spawn_enemy("basic", Vector2i(at.round()), FAR.merged(over, true))
+	e.pos = at
+	return e
+
+# t0초 돌린 뒤 secs초 동안 과녁마다 잃은 체력
+func _losses(b, foes: Array, t0: float, secs: float) -> Array:
+	run(b, t0)
+	var hp0: Array = foes.map(func(e): return e.hp)
+	run(b, secs)
+	return range(foes.size()).map(func(i): return hp0[i] - foes[i].hp)
+
+# EV811 · S300·I247 ①②: 어둠 1에서 타워(불빛 2칸)는 5칸 앞, 궁수(불빛 2칸)는 4칸 앞, 이그니스(불빛 2.5칸, 사거리 4칸)의 기본 공격은 3칸 앞의 숨은 과녁을 3초 동안 쏘지 않는다.
+# 과녁 옆 칸에 불빛만 내는 병사가 서 있으면(시야 공유) 쏘고, 어둠 0이면 쏜다
+func ev811():
+	var bad := []
+	for kind in ["tower", "archer", "hero"]:
+		var at: Vector2i = {"tower": Vector2i(10, 4), "archer": Vector2i(9, 4), "hero": Vector2i(8, 4)}[kind]
+		for mode in ["숨음", "공유", "어둠 0"]:
+			var dark := 0.0 if mode == "어둠 0" else 1.0
+			# 영웅 판은 _dusk가 끄는 공격력을 살려 둔다
+			var b = _night_battle({"waves": [NONE], "heroes": [{"kind": "ignis", "cell": Vector2i(5, 4)}]}, dark) if kind == "hero" else _dusk(dark)
+			if mode == "공유":
+				b.place_merc("soldier", at + Vector2i(1, 0), LAMP)
+			var shooter = b.build("tower", Vector2i(5, 4)) if kind == "tower" else (b.place_merc("archer", Vector2i(5, 4)) if kind == "archer" else (b.heroes[0] if not b.heroes.is_empty() else null))
+			var e = _post(b, Vector2(at))
+			b.start_battle()
+			var lost: float = _losses(b, [e], 1.0, 3.0)[0]
+			var lit: bool = b.seen(e.pos)
+			var want: bool = mode != "숨음"
+			if shooter == null or lit != want or (lost > 0.0) != want:
+				bad.append("%s %s: 보임 %s · 3초 동안 잃은 체력 %s(%s)" % [kind, mode, lit, lost, "> 0" if want else "0"])
+	return check(bad.is_empty(), "; ".join(bad))
+
+# EV812 · S300·I247 ②: 어둠 1에서 병사는 인식 범위(4칸) 안이지만 자기 불빛(3.5칸) 밖인 3.9칸의 숨은 과녁을 쫓지 않고 서 있다.
+# 과녁 옆 칸에 공격력 0 타워(불빛 2칸)가 있으면 쫓아가 친다
+func ev812():
+	var got := []
+	for shared in [false, true]:
+		var b = _dusk()
+		var s = b.place_merc("soldier", Vector2i(5, 4))
+		if shared:
+			b.build("tower", Vector2i(10, 4), {"damage": 0.0})
+		var e = _post(b, Vector2(8.9, 4))
+		b.start_battle()
+		run(b, 0.5)
+		var p0: Vector2 = s.pos
+		var lit: bool = b.seen(e.pos)
+		run(b, 2.5)
+		got.append({"lit": lit, "moved": s.pos.distance_to(p0), "gap": s.pos.distance_to(e.pos), "hit": e.hp < e.max_hp})
+	var hid: Dictionary = got[0]
+	var seen: Dictionary = got[1]
+	return check(not hid.lit and hid.moved < 0.05 and not hid.hit and seen.lit and seen.gap <= 1.3 and seen.hit,
+		"숨은 과녁: 보임 %s · 0.5~3초에 병사가 움직인 거리 %.2f(0) · 맞음 %s · 타워가 비춘 과녁: 보임 %s · 3초 뒤 병사와의 거리 %.2f(1.3 이하) · 맞음 %s" % [
+			hid.lit, hid.moved, hid.hit, seen.lit, seen.gap, seen.hit])
+
+# EV813 · S300·I247 ③: 어둠 1에서 궁수(불빛 2칸, 명중률 1)는 중심이 2.305칸 떨어진 숨은 과녁을, 몸이 닿는 큰 과녁(반지름 2)이면 쏘고
+# 몸이 닿지 않는 보통 과녁(반지름 0.3)이면 사거리(5칸) 안이어도 쏘지 않는다
+func ev813():
+	var got := []
+	for r in [2.0, 0.3]:
+		var b = _dusk()
+		b.place_merc("archer", Vector2i(5, 4), {"accuracy": 1.0})
+		var e = _post(b, Vector2(7.305, 4), {"radius": r})
+		b.start_battle()
+		got.append([_losses(b, [e], 1.0, 3.0)[0], b.seen(e.pos)])
+	return check(got[0][0] > 0.0 and got[1][0] == 0.0 and not got[0][1] and not got[1][1],
+		"3초 동안 잃은 체력: 몸이 닿은 큰 과녁 %s(> 0, 보임 %s) · 닿지 않은 보통 과녁 %s(0, 보임 %s)" % [got[0][0], got[0][1], got[1][0], got[1][1]])
+
+# EV814 · S300·I247 ④: 어둠 1에서 12칸 앞 과녁을 대상 공격하러 걸어가던 병사는 과녁을 비추던 병사가 쓰러져 과녁이 숨으면 대상 공격을 놓아 더 걸어가지 않는다.
+# 12칸 앞 과녁에게 걸어가서 E를 쓰려던 베스퍼도 과녁이 숨으면 E를 쓰지 않는다(재사용 대기가 시작되지 않고 사슬이 걸리지 않는다)
+func ev814():
+	var b = _dusk()
+	var s = b.place_merc("soldier", Vector2i(3, 4))
+	var lamp = b.place_merc("soldier", Vector2i(16, 4), LAMP)
+	var e = _post(b, Vector2(15, 4))
+	b.start_battle()
+	run(b, 0.3)
+	var lit: bool = b.seen(e.pos)
+	b.order_attack([s], e)
+	var p0: Vector2 = s.pos
+	run(b, 1.0)
+	var went: float = s.pos.distance_to(p0)
+	b.damage(lamp, BIG)
+	run(b, 0.2)
+	var hid: bool = not b.seen(e.pos)
+	var p1: Vector2 = s.pos
+	run(b, 2.0)
+	var on: float = s.pos.distance_to(p1)
+	var v = _dusk(1.0, [["vesper", Vector2i(2, 4)]])
+	var h = v.heroes[0]
+	var lamp2 = v.place_merc("soldier", Vector2i(15, 4), LAMP)
+	var f = _post(v, Vector2(14, 4))
+	v.start_battle()
+	run(v, 0.3)
+	var ordered: bool = v.seen(f.pos) and v.cast(h, "e", f)
+	var q0: Vector2 = h.pos
+	run(v, 0.5)
+	var walked: float = h.pos.distance_to(q0)
+	v.damage(lamp2, BIG)
+	run(v, 4.0)
+	var unused: bool = h.cd.e <= 0.0 and v.effect(f, "chain") == null
+	return check(lit and went > 1.0 and hid and on < 0.05 and ordered and walked > 0.5 and unused,
+		"병사: 보이는 과녁에 걸어감 %.2f칸(%s) · 숨은 뒤(%s) 2초에 더 걸은 거리 %.2f(0) · 베스퍼: E 걸어가기 %s · %.2f칸 · 숨은 뒤 E를 쓰지 않음 %s(대기 %.2f)" % [
+			went, lit, hid, on, ordered, walked, unused, h.cd.e])
+
+# EV815 · S300·I247 ⑤: 어둠 1에서 타워는 가장 가까운 숨은 적(3칸) 대신 병사 불빛 안의 보이는 적(7칸)을 노리고, 그 화살 길 위 4칸의 숨은 적이 화살에 맞는다.
+# 대포도 가장 가까운 숨은 적 대신 보이는 적을 노리고, 그 적 0.8칸 옆 범위 피해(1칸) 안의 숨은 적도 맞는다.
+# 공격력 0 베스퍼(불빛 2.5칸)가 4칸 앞 숨은 과녁 자리에 쓴 Q 독안개(장판)는 그 과녁을 3초 동안 깎는다
+func ev815():
+	var bad := []
+	for kind in ["tower", "cannon"]:
+		var b = _dusk()
+		var s = b.build(kind, Vector2i(5, 4))
+		b.place_merc("soldier", Vector2i(15, 4), LAMP)
+		var first = _post(b, Vector2(5, 7))
+		var lit = _post(b, Vector2(12, 4))
+		var side = _post(b, Vector2(9, 4) if kind == "tower" else Vector2(11.2, 4))  # 화살 길 위 · 범위 피해 안
+		b.start_battle()
+		var lost: Array = _losses(b, [first, lit, side], 1.0, 5.0)
+		var seen: Array = [first, lit, side].map(func(x): return b.seen(x.pos))
+		var ok: bool = s != null and seen == [false, true, false] and lost[0] == 0.0 and lost[2] > 0.0 and (kind == "tower" or lost[1] > 0.0)
+		if not ok:
+			bad.append("%s: 보임(가까운 숨은 적·보이는 적·%s) %s · 5초 동안 잃은 체력 %s — 가까운 숨은 적 0, 화살 길·범위 안 숨은 적 > 0, 대포의 보이는 적 > 0이어야 한다" % [kind, "화살 길 위 숨은 적" if kind == "tower" else "범위 안 숨은 적", seen, lost])
+	var v = _dusk(1.0, [["vesper", Vector2i(4, 4)]])
+	var z = _post(v, Vector2(8, 4))
+	v.start_battle()
+	run(v, 0.3)
+	var hp0: float = z.hp
+	var used: bool = not v.heroes.is_empty() and v.cast(v.heroes[0], "q", z.pos)
+	run(v, 3.0)
+	var zoned: float = hp0 - z.hp
+	if not used or zoned <= 0.0 or v.seen(z.pos):
+		bad.append("베스퍼 Q 독안개: 씀 %s · 3초 동안 숨은 과녁이 잃은 체력 %s(> 0) · 보임 %s(false)" % [used, zoned, v.seen(z.pos)])
+	return check(bad.is_empty(), "; ".join(bad))
+
+# EV816 · S300·I247 ②: 어둠 1에서 E 오토를 켠 베스퍼는 사거리 안 숨은 적 셋 무리에는 1초 동안 E를 쓰지 않고, 그 무리를 병사 불빛이 비추면 쓴다.
+# 세라피나가 궁수(불빛 2칸)에게 쓴 Q는 궁수 2.5칸 옆의 숨은 적에게 튀지 않고(피해 0), 어둠 0이면 튄다.
+# 베스퍼가 병사 불빛 안의 보이는 과녁에 손으로 쓴 E(영혼 사슬, 반경 3칸)는 그 과녁 2.5칸 옆의 숨은 과녁을 묶지 않고, 어둠 0이면 묶는다
+func ev816():
+	var auto := []
+	for shared in [false, true]:
+		var b = _dusk(1.0, [["vesper", Vector2i(4, 4)]])
+		var h = b.heroes[0]
+		if shared:
+			b.place_merc("soldier", Vector2i(10, 4), LAMP)
+		var pack: Array = [Vector2(8.5, 4), Vector2(9, 3), Vector2(9, 5)].map(func(p): return _post(b, p))
+		b.start_battle()
+		run(b, 0.3)
+		b.toggle_auto(h, "e")
+		run(b, 1.0)
+		auto.append([h.cd.e > 0.0, pack.filter(func(x): return b.seen(x.pos)).size()])
+	var hop := []
+	for dark in [1.0, 0.0]:
+		var b = _dusk(dark, [["seraphina", Vector2i(4, 14)]])
+		var h = b.heroes[0]
+		var a = b.place_merc("archer", Vector2i(7, 14), {"damage": 0.0})
+		var e = _post(b, Vector2(9.5, 14))
+		b.start_battle()
+		run(b, 0.3)
+		var hp0: float = e.hp
+		var used: bool = b.cast(h, "q", a)
+		hop.append([used, hp0 - e.hp, b.seen(e.pos)])
+	var tie := []
+	for dark in [1.0, 0.0]:
+		var b = _dusk(dark, [["vesper", Vector2i(4, 4)]])
+		b.place_merc("soldier", Vector2i(8, 6), LAMP)  # 사슬 대상만 비춘다
+		var hub = _post(b, Vector2(8, 4))
+		var side = _post(b, Vector2(8, 1.5))  # 대상에서 2.5칸 · 병사에서 4.5칸 · 베스퍼에서 4.7칸
+		b.start_battle()
+		run(b, 0.3)
+		var seen := [b.seen(hub.pos), b.seen(side.pos)]
+		var used: bool = not b.heroes.is_empty() and b.cast(b.heroes[0], "e", hub)
+		tie.append([used, seen, b.effect(hub, "chain") != null, b.effect(side, "chain") != null])
+	return check(auto[0] == [false, 0] and auto[1] == [true, 3] and hop[0][0] and hop[0][1] == 0.0 and not hop[0][2] and hop[1][0] and hop[1][1] > 0.0
+			and tie[0] == [true, [true, false], true, false] and tie[1] == [true, [true, true], true, true],
+		"베스퍼 E 오토 [썼나, 보이는 적 수]: 숨은 무리 %s([false, 0]) · 비춘 무리 %s([true, 3]) · 세라피나 Q [썼나, 옆 적이 잃은 체력, 보임]: 어둠 1 %s([true, 0, false]) · 어둠 0 %s(체력 > 0) · 베스퍼 E [썼나, [대상 보임, 옆 과녁 보임], 대상 사슬, 옆 과녁 사슬]: 어둠 1 %s([true, [true, false], true, false]) · 어둠 0 %s([true, [true, true], true, true])" % [
+			auto[0], auto[1], hop[0], hop[1], tie[0], tie[1]])

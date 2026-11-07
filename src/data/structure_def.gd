@@ -18,6 +18,7 @@ extends Resource
 @export var village_level := 1  # 이 마을 레벨부터 짓는다(S99)
 @export var tax := 0  # 집이면 준비 단계마다 내는 세금(S101, I46)
 @export var pop := 0  # 다 지으면 주는 인구(S25 2026-11-04 변경). 집만 준다. 임시값
+@export var towers := 0  # 다 지으면 주는 쏘는 구조물 몫(S299). 집만 준다. 임시값
 @export var heal := 0.0  # 교회면 영웅 체력 1당 치료비(골드, S137)
 @export var seats := 0  # 대피소면 대피령 때 들어가는 주민 수(S226)
 @export var light := 0.0  # 다 지었을 때 밤 불빛 반경(칸, S211). 0이면 빛이 없다(방벽)

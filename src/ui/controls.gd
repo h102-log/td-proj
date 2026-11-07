@@ -403,7 +403,7 @@ func _place(cell: Vector2i) -> void:
 	elif battle.can_buy(placing):  # 마을이 있으면 그 용병의 시설이 있어야 산다(S50)
 		battle.place_merc(placing, cell)
 
-# 구조물 놓기가 거부된 첫 이유(I128): 마을 레벨 → 구역(S43) → 길 칸(S43) → 빈 칸 → 골드 → 집 상한(S101) → 전투 단계 공병. 받아들여질 칸이면 ""
+# 구조물 놓기가 거부된 첫 이유(I128): 마을 레벨 → 구역(S43) → 길 칸(S43) → 빈 칸 → 골드 → 집 상한(S101) → 쏘는 구조물 상한(S299) → 전투 단계 공병. 받아들여질 칸이면 ""
 func _refusal(kind: String, cell: Vector2i) -> String:
 	var d: Dictionary = battle.STRUCTURE_KINDS[kind]
 	var inner: bool = not d.produces.is_empty() or d.tax > 0 or d.heal > 0 or d.seats > 0  # 마을 시설
@@ -422,6 +422,8 @@ func _refusal(kind: String, cell: Vector2i) -> String:
 		return "골드 %d 모자람" % (d.cost - battle.gold)
 	if d.tax > 0 and battle.structures.values().filter(func(s): return s.tax > 0).size() >= battle.HOUSE_CAP:
 		return "집은 %d채까지" % battle.HOUSE_CAP
+	if d.range > 0.0 and battle.towers_full():
+		return "타워 가득 — 집을 지으면 %d개 늘어난다" % battle.STRUCTURE_KINDS.house.towers
 	if battle.crewed():  # 준비 단계엔 공병 없이 짓는다(S18 2026-11-06 변경)
 		return {"none": "공병 없음", "far": "닿는 공병 없음"}.get(battle.engineer_gap([cell]), "")
 	return ""

@@ -64,3 +64,11 @@ def test_EV426_kill_reward_scale_carries_fraction(gd):
 
 def test_EV427_spawn_spread_along_bottom_row(gd):
     gd("rounds", "EV427")
+
+
+def test_EV820_shield_escort_spawns_with_it(gd):
+    gd("rounds", "EV820")
+
+
+def test_EV829_round3_waves_match_s301_order(gd):
+    gd("rounds", "EV829")

@@ -211,12 +211,14 @@ static func _cross() -> TextureRect:
 	r.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	return r
 
-# 칸을 놓을 수 없는 이유(I132, I128): 마을 레벨(S99), 전투 단계의 공병, 그 용병의 시설이 없음(준비 단계 S50, 전투 단계 S81). 놓을 수 있으면 ""
+# 칸을 놓을 수 없는 이유(I132, I128): 마을 레벨(S99), 쏘는 구조물 상한(S299), 전투 단계의 공병, 그 용병의 시설이 없음(준비 단계 S50, 전투 단계 S81). 놓을 수 있으면 ""
 func _lock(kind: String) -> String:
 	if kind in battle.STRUCTURE_KINDS:
 		var need: int = battle.STRUCTURE_KINDS[kind].village_level
 		if need > battle.village_level:
 			return "마을 Lv%d 필요" % need
+		if battle.STRUCTURE_KINDS[kind].range > 0.0 and battle.towers_full():
+			return "타워 가득"
 		return "놀고 있는 공병 없음" if _none else ""
 	if battle.can_buy(kind):
 		return ""
@@ -249,6 +251,8 @@ func _lines(kind: String) -> Array:
 	if why.begins_with("마을 Lv"):
 		var up: int = battle.VILLAGE_UP[battle.village_level - 1]
 		path = "거점에서 Lv%d로 올린다(%d)" % [battle.village_level + 1, up] if battle.state == "prep" else "준비 단계에 거점에서 올린다(%d)" % up
+	elif why == "타워 가득":
+		path = "집을 지으면 %d개 늘어난다" % battle.STRUCTURE_KINDS.house.towers
 	elif why == "놀고 있는 공병 없음":
 		path = "거점에서 공병을 산다" if battle.base in battle.sellers("engineer") else "작업장에서 공병을 산다"
 	if why == "" and battle.gold < d.cost:

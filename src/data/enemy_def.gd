@@ -37,3 +37,6 @@ extends Resource
 @export var bomb := {}  # 폭탄 열기구(S285): {radius 원 반경, windup 예고 초, cd 대기 초, structure 구조물 피해, unit 아군 피해}
 @export var drop := {}  # 수송 비행선 투하(S286): {range 거점 둘레 칸, house 집 거리 칸, windup 표식 초, crash_hp 투하 전 격추 때 체력 배율}
 @export var phase2 := ""  # 체력이 0이 되면 쓰러지지 않고 이 종류가 된다(S288 전쟁 기계 → 대장). 비어 있으면 쓰러진다
+@export var guard := 0.0  # 방패 내구도(S301, I248): 궁수탑·궁수 용병의 화살 피해를 방어력보다 먼저 받는다. 라운드 체력 배율(S144)을 곱한다. 0이면 방패가 없다
+@export var escort := {}  # 호위(S301, I248 ⑤): 웨이브에서 나올 때 한 차례에 함께 나오는 {kind, count}. 비어 있으면 혼자 나온다
+@export var flame := {}  # 불화살(S302, I249): {windup 예고 초, cd 대기 초, hit 화살 피해, dps 불 초당 피해, time 불 초, spread 번지는 때(붙은 뒤 초)}

@@ -9,8 +9,8 @@
 #   방벽 Barricade · 타워 Tower · 마법 타워 Mage Tower · 대포 Cannon
 #   병영 Barracks · 작업장 Workshop · 사격장 Archery Range · 용병 Merc · 공병 Engineer · 궁수 Archer
 #   영입 Recruit · 리롤 Reroll · 이관 Transfer · 내보내기 Dismiss · 출전 Deployed · 대기 Reserve · 보유 Roster
-#   미션 Mission · 의뢰 Contract · 준비 단계 Prep · 전투 단계 Battle · 웨이브 Wave · 라운드 Round · 도전 Run
-#   적: 기본 Grunt · 빠름 Runner · 장갑 Armored · 비행 Flyer · 보스 Boss · 슬라임 Slime · 꼬마 슬라임 Slimelet · 큰 슬라임 Big Slime · 슬라임 킹 Slime King · 늑대 Wolf · 도약 늑대 Leaping Wolf · 밤 늑대 Night Wolf · 알파 늑대 Alpha Wolf · 폭파병 Sapper · 공성 망치 Battering Ram · 투석기 Catapult · 글라이더 고블린 Glider Goblin · 공성탑 Siege Tower · 폭탄 열기구 Bomb Balloon · 수송 비행선 Troop Airship · 고블린 전쟁 기계 Goblin War Machine · 고블린 대장 Goblin Chief
+#   미션 Mission · 준비 단계 Prep · 전투 단계 Battle · 웨이브 Wave · 라운드 Round · 도전 Run
+#   적: 기본 Grunt · 빠름 Runner · 장갑 Armored · 비행 Flyer · 보스 Boss · 슬라임 Slime · 꼬마 슬라임 Slimelet · 큰 슬라임 Big Slime · 슬라임 킹 Slime King · 늑대 Wolf · 도약 늑대 Leaping Wolf · 밤 늑대 Night Wolf · 알파 늑대 Alpha Wolf · 폭파병 Sapper · 공성 망치 Battering Ram · 투석기 Catapult · 글라이더 고블린 Glider Goblin · 공성탑 Siege Tower · 폭탄 열기구 Bomb Balloon · 수송 비행선 Troop Airship · 고블린 전쟁 기계 Goblin War Machine · 고블린 대장 Goblin Chief · 방패 고블린 Shield Goblin · 불화살 고블린 Fire Archer Goblin
 #   영웅 이름은 음역한다: 아이아스 Aias · 실비아 Sylvia · 세라피나 Seraphina · 베스퍼 Vesper · 이그니스 Ignis · 크로노스 Chronos
 msgid ""
 msgstr ""
@@ -441,6 +441,12 @@ msgstr "Goblin War Machine"
 msgid "고블린 대장"
 msgstr "Goblin Chief"
 
+msgid "방패 고블린"
+msgstr "Shield Goblin"
+
+msgid "불화살 고블린"
+msgstr "Fire Archer Goblin"
+
 msgid "무리로 온다"
 msgstr "Comes in packs"
 
@@ -477,6 +483,18 @@ msgstr "Drops goblins"
 msgid "대포와 기관총을 쏘고, 가까운 유닛을 집어 던진다. 부서지면 대장이 내린다"
 msgstr "Fires a cannon and machine guns; grabs and hurls nearby units. When wrecked, its chief leaps out"
 
+msgid "화살을 방패로 받는다"
+msgstr "Blocks arrows with a shield"
+
+msgid "호위 고블린"
+msgstr "Escort goblins"
+
+msgid "사거리"
+msgstr "Range"
+
+msgid "쏘는 구조물에 불화살"
+msgstr "Shoots fire arrows at towers"
+
 msgid "죽으면 둘로 갈라진다"
 msgstr "Splits in two on death"
 
@@ -498,7 +516,7 @@ msgstr "Center"
 msgid "오른쪽"
 msgstr "Right"
 
-# ── 미션·의뢰(data/quests) ──
+# ── 미션(data/quests) ──
 
 msgid "거점이 피해를 입지 않는다"
 msgstr "The Keep takes no damage"
@@ -506,23 +524,11 @@ msgstr "The Keep takes no damage"
 msgid "성곽 칸이 부서지지 않는다"
 msgstr "No rampart tile is lost"
 
-msgid "거점이 피해를 입지 않고 성곽·구조물이 부서지지 않는다"
-msgstr "No Keep damage, no rampart or building lost"
-
 msgid "영웅이 쓰러지지 않는다"
 msgstr "No hero goes down"
 
 msgid "용병을 잃지 않는다"
 msgstr "Lose no mercs"
-
-msgid "구조물을 짓지 않는다"
-msgstr "Build nothing"
-
-msgid "용병을 사지 않는다"
-msgstr "Buy no mercs"
-
-msgid "전투 시간을 모두 합쳐 120초 안에 끝낸다"
-msgstr "Finish all battles within 120s total"
 
 # ── 놓기·거부 이유(controls.gd, hud_build.gd) ──
 
@@ -815,14 +821,8 @@ msgstr "East gate"
 
 # ── 위 띠·진행 칸·툴팁(hud.gd) ──
 
-msgid "미션·의뢰"
-msgstr "Missions & Contracts"
-
 msgid "미션"
 msgstr "Mission"
-
-msgid "의뢰"
-msgstr "Contract"
 
 msgid "%s: %s (+%d골드)"
 msgstr "%s: %s (+%d gold)"
@@ -935,6 +935,9 @@ msgstr "Unlocks at Lv%d"
 msgid "%s · 재사용 %s초"
 msgstr "%s · cooldown %ss"
 
+msgid "%s · 재사용 %s초 · 우클릭: 자동 시전"
+msgstr "%s · cooldown %ss · RMB: autocast"
+
 msgid "재사용 %s초"
 msgstr "Cooldown %ss"
 
@@ -1020,21 +1023,6 @@ msgstr "Transfer"
 
 msgid "여기로"
 msgstr "Here"
-
-msgid "의뢰 — 다음 라운드에 걸린다. 하나만 수락한다"
-msgstr "Contracts — apply next round. Accept only one"
-
-msgid "다음 라운드에 걸린다 · 하나만 수락한다"
-msgstr "Applies next round · accept only one"
-
-msgid "%s · +%d골드 · %s"
-msgstr "%s · +%d gold · %s"
-
-msgid "수락함 (다시 누르면 무름)"
-msgstr "Accepted (click again to undo)"
-
-msgid "수락"
-msgstr "Accept"
 
 msgid "누르면 보유에 넣고 빈 출전 자리에 든다"
 msgstr "Adds to roster and fills an open deploy slot"
@@ -1444,6 +1432,21 @@ msgstr "Population full — each house adds %d"
 
 msgid "인구 가득"
 msgstr "Population full"
+
+msgid "타워 %d/%d"
+msgstr "Towers %d/%d"
+
+msgid "타워·마법 타워·대포 %d개 · 상한 %d(거점 %d + 집 %d채 × %d)"
+msgstr "Towers, magic towers and cannons %d · cap %d (base %d + %d houses × %d)"
+
+msgid "타워 가득 — 집을 지으면 %d개 늘어난다"
+msgstr "Towers full — each house adds %d"
+
+msgid "타워 가득"
+msgstr "Towers full"
+
+msgid "집을 지으면 %d개 늘어난다"
+msgstr "Each house adds %d"
 
 msgid "이동 %s → %s칸/초"
 msgstr "Move %s/s → %s/s"

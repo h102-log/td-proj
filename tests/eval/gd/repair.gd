@@ -2,8 +2,8 @@ extends "res://tests/eval/gd/lib.gd"
 # WBS 3.3 시설 파괴·수리(S80·S114·S115·I85~I89). lib.gd·engineer.gd·wall.gd 머리의 계약에 더하는 API:
 #   Battle.repair(구조물·성곽 칸·거점) — 깎인 것을 고친다. 준비 단계엔 바로, 전투 단계엔 공병이 간다
 #   Battle.restore(성곽 칸) — 부서진 성곽 칸(잔해)을 되살린다. 부서지기 전에 쥐고 있던 성곽 칸 객체를 넘긴다
-#   Battle.REPAIR_RATE — {"castle_wall", "gate", "base"} → 체력 1당 수리비(골드)
-#   Battle.refund(대상) — 판매 환불(S69). 구조물 수리비는 «낸 골드 − 환불»이다(S114)
+#   Battle.refund(대상) — 판매 환불(S69). 구조물 수리비는 «잃은 체력 × 낸 골드 ÷ 최대 체력 × 1.25»(올림)와 «낸 골드 − 환불» 가운데
+#     작은 값이다(S114 2026-11-07 변경)
 #   Battle.upgrade(성곽 칸) — 성곽 업그레이드(S86)
 #   자동 수리(S277): 유닛.auto_fix(bool, 처음 false) · Battle.set_auto_fix(units, on) — 공병만 바뀐다 · Controls의 F 키(toggle_auto_fix)
 # 성곽 맵은 wall.gd와 같다: 9행이 가로 성곽(성문 5·15·25열, 모두 닫힘), 위쪽(0~8행)이 마을, 아래쪽이 들판
@@ -46,22 +46,35 @@ func ev151():
 	b.repair(t)
 	return check(t.hp == t.max_hp and b.gold == before - owed, "체력 %s/%s · 골드 %d → %d(%d 줄어야 한다)" % [t.hp, t.max_hp, before, b.gold, owed])
 
-# EV152 · S114: 성벽 칸·거점을 깎고 준비 단계에 수리하면 골드가 잃은 체력 × 각 단가만큼 준다
+# EV152 · S114 2026-11-07 변경: 성벽 칸·성문·거점을 깎고 준비 단계에 수리하면 골드가 «잃은 체력 × 각 단가 × 1.25»(올림)만큼 준다.
+# 성벽 칸 100 깎임 10 → 13골드, 성문 40 깎임(성곽 단가 0.1) 4 → 5골드, 거점 30 깎임 30 → 38골드
 func ev152():
 	var b = _castle()
 	var k = b.castle[TOP]
 	b.damage(k, 100.0)
+	if not is_equal_approx(k.max_hp - k.hp, 100.0):
+		return "시험 조건이 틀렸다: 성벽 칸이 %s 깎였다(100이어야 한다)" % (k.max_hp - k.hp)
 	var g0: int = b.gold
 	b.repair(k)
-	var want_k := ceili(100.0 * b.REPAIR_RATE.castle_wall)
-	if k.hp != k.max_hp or g0 - b.gold != want_k:
-		return "성벽 칸: 체력 %s/%s · 낸 골드 %d(%d여야 한다)" % [k.hp, k.max_hp, g0 - b.gold, want_k]
+	if k.hp != k.max_hp or g0 - b.gold != 13:
+		return "성벽 칸: 체력 %s/%s · 낸 골드 %d(13이어야 한다)" % [k.hp, k.max_hp, g0 - b.gold]
+	var gate = b.castle.get(GATES[1])
+	if gate == null or gate.kind != "gate":
+		return "시험 조건이 틀렸다: %s가 성문이 아니다(%s)" % [GATES[1], gate]
+	b.damage(gate, 40.0)
+	if not is_equal_approx(gate.max_hp - gate.hp, 40.0):
+		return "시험 조건이 틀렸다: 성문이 %s 깎였다(40이어야 한다)" % (gate.max_hp - gate.hp)
+	var g2: int = b.gold
+	b.repair(gate)
+	if gate.hp != gate.max_hp or g2 - b.gold != 5:
+		return "성문: 체력 %s/%s · 낸 골드 %d(5여야 한다)" % [gate.hp, gate.max_hp, g2 - b.gold]
 	b.damage(b.base, 30.0)
+	if not is_equal_approx(b.base.max_hp - b.base.hp, 30.0):
+		return "시험 조건이 틀렸다: 거점이 %s 깎였다(30이어야 한다)" % (b.base.max_hp - b.base.hp)
 	var g1: int = b.gold
 	b.repair(b.base)
-	var want_b := ceili(30.0 * b.REPAIR_RATE.base)
-	return check(b.base.hp == b.base.max_hp and g1 - b.gold == want_b,
-		"거점: 체력 %s/%s · 낸 골드 %d(%d여야 한다)" % [b.base.hp, b.base.max_hp, g1 - b.gold, want_b])
+	return check(b.base.hp == b.base.max_hp and g1 - b.gold == 38,
+		"거점: 체력 %s/%s · 낸 골드 %d(38이어야 한다)" % [b.base.hp, b.base.max_hp, g1 - b.gold])
 
 # EV153 · I86: 골드가 수리비보다 적으면 수리가 거부되고 체력·골드가 그대로다
 func ev153():
@@ -90,7 +103,8 @@ func ev154():
 		return "적이 거점에 닿지 않았다(%s)" % e.pos
 	return check(crossed[0] and _intact(b), "잔해 칸을 지났나 %s · 남은 성곽이 온전한가 %s" % [crossed[0], _intact(b)])
 
-# EV155 · I89: 2단계 성벽 칸을 부순 뒤 준비 단계에 복구하면 골드가 복구비만큼 줄고 2단계 최대 체력으로 돌아온다
+# EV155 · I89·S114 2026-11-07 변경: 2단계 성벽 칸을 부순 뒤 준비 단계에 복구하면 골드가 «2단계 최대 체력 × 0.1 × 1.25»(올림)만큼 줄고
+# 2단계 최대 체력으로 돌아온다
 func ev155():
 	var b = _castle()
 	var k = b.castle[TOP]
@@ -101,7 +115,7 @@ func ev155():
 	b.damage(k, BIG)
 	var g0: int = b.gold
 	b.restore(k)
-	var want := ceili(top_hp * b.REPAIR_RATE.castle_wall)
+	var want := ceili(top_hp * 0.1 * 1.25 - 0.0001)  # 성곽 단가 0.1 × 1.25(S114). 부동소수 오차로 1골드 올리지 않게
 	return check(b.castle.get(TOP) == k and k.level == 2 and k.hp == top_hp and g0 - b.gold == want,
 		"복구 뒤 성곽 %s · 단계 %d · 체력 %s/%s · 낸 골드 %d(%d여야 한다)" % [b.castle.get(TOP), k.level, k.hp, top_hp, g0 - b.gold, want])
 
@@ -152,8 +166,8 @@ func ev157():
 		return "이어 고치는데 골드가 %d → %d로 줄었다" % [g0, b.gold]
 	return check(run(b, 20.0, func(): return t.hp >= t.max_hp), "이어 고쳐도 체력이 %s/%s다" % [t.hp, t.max_hp])
 
-# EV158 · I89: 전투 중 복구는 지시하는 순간 복구비를 낸다. 공병이 닿기 전엔 잔해 그대로고, 닿은 뒤 성곽으로 다시 서서 가득 찬다.
-# 공병이 없으면 거부된다
+# EV158 · I89·S114 2026-11-07 변경: 전투 중 복구는 지시하는 순간 복구비(체력 300 성벽 칸 × 0.1 × 1.25 = 37.5 → 38골드)를 낸다.
+# 공병이 닿기 전엔 잔해 그대로고, 닿은 뒤 성곽으로 다시 서서 가득 찬다. 공병이 없으면 거부된다
 func ev158():
 	var b = _castle({"waves": WAVES})
 	var k = b.castle[TOP]
@@ -169,10 +183,11 @@ func ev158():
 	_start(b)
 	b.damage(k, BIG)
 	g0 = b.gold
+	if k.max_hp != 300.0:
+		return "시험 조건이 틀렸다: 성벽 칸 최대 체력이 %s다(300이어야 한다)" % k.max_hp
 	b.restore(k)
-	var want := ceili(k.max_hp * b.REPAIR_RATE.castle_wall)
-	if g0 - b.gold != want:
-		return "지시할 때 낸 골드가 %d다(%d여야 한다)" % [g0 - b.gold, want]
+	if g0 - b.gold != 38:
+		return "지시할 때 낸 골드가 %d다(38이어야 한다)" % (g0 - b.gold)
 	run(b, 0.5)
 	if b.castle.has(TOP):
 		return "공병이 닿기도 전에 성곽이 섰다"
@@ -347,3 +362,20 @@ func ev663():
 		return "live 판 거점에서 공병을 사지 못했다"
 	var v = m.get("auto_fix")
 	return check(typeof(v) == TYPE_BOOL and not v, "새로 산 공병의 자동 수리가 %s다(꺼져 있어야 한다)" % [v])
+
+# EV804 · S114 2026-11-07 변경: 준비 단계에 20골드·체력 100 타워를 체력 90·50·10으로 두고 수리하면 골드가 3·12·19 줄고
+# («ceil(잃은 체력 × 낸 골드 ÷ 최대 체력 × 1.25)»와 «낸 골드 − 판매 환불» 가운데 작은 값) 체력이 가득 찬다
+func ev804():
+	var b = battle()
+	var g0: int = b.gold
+	var t = b.build("tower", T)
+	if t == null or g0 - b.gold != 20 or t.max_hp != 100.0:
+		return "시험 조건이 틀렸다: 타워 %s · 낸 골드 %d(20이어야 한다) · 최대 체력 %s(100이어야 한다)" % [t, g0 - b.gold, t.max_hp if t else null]
+	var got := []
+	for hp in [90.0, 50.0, 10.0]:
+		t.hp = hp
+		var g: int = b.gold
+		b.repair(t)
+		got.append([g - b.gold, t.hp == t.max_hp])
+	return check(got == [[3, true], [12, true], [19, true]],
+		"체력 90·50·10에서 수리한 [낸 골드, 가득 참] %s([3, true]·[12, true]·[19, true]여야 한다)" % [got])

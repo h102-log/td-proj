@@ -44,3 +44,27 @@ def test_EV700_war_machine_cannon_in_dark(gd):
 
 def test_EV753_chief_bombs_in_dark(gd):
     gd("night", "EV753")
+
+
+def test_EV811_night_shooters_skip_hidden_shared_sight(gd):
+    gd("night", "EV811")
+
+
+def test_EV812_night_no_chase_hidden(gd):
+    gd("night", "EV812")
+
+
+def test_EV813_night_touching_hidden_is_hit(gd):
+    gd("night", "EV813")
+
+
+def test_EV814_night_hidden_target_drops_order(gd):
+    gd("night", "EV814")
+
+
+def test_EV815_night_missiles_and_splash_hit_hidden(gd):
+    gd("night", "EV815")
+
+
+def test_EV816_night_auto_and_hop_skip_hidden(gd):
+    gd("night", "EV816")

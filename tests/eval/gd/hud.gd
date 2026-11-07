@@ -12,7 +12,7 @@ extends "res://tests/eval/gd/save.gd"
 #   main.hud.cells — 위 띠 칸(S185) 이름 → Control: status · mission · engineer · hero0 · hero1 · hero2 · progress · menu.
 #     status·mission·engineer·menu는 BaseButton이다. status 안 Label 하나가 거점 체력 숫자, engineer 안 Label이 놀고 있는 공병 수다
 #   main.hud.hp_bar — 거점 체력 막대의 채운 부분(ColorRect, S190) · main.hud._process(delta)로 시간을 흘린다
-#   main.hud.marks — 임무 칸의 점 둘(CanvasItem, 왼쪽 미션·오른쪽 의뢰, I122). 실패면 modulate가 #ef3a0c
+#   main.hud.marks — 임무 칸의 점(CanvasItem 배열, [0]이 미션, I122). 실패면 modulate가 #ef3a0c
 #   main.hud.toasts — 토스트 층(Control, I163). 보이는 자식 하나가 토스트 하나이고 그 안 Label에 글이 있다. push(글) · _process(delta)
 #   main.hud.start — 진행 칸의 전투 시작 버튼(BaseButton, I13) · main.hud.gauge — 진행 칸의 웨이브 버튼(BaseButton, 준비 단계 다음 웨이브·전투 단계 계기판)
 #   main.hud.skull — 진행 칸의 보스 해골(CanvasItem, S188)
@@ -591,7 +591,7 @@ func _toasts(main) -> Array:
 			out.append(" ".join(_labels(t)))
 	return out
 
-# EV331 · I122: 라운드 첫 준비 단계에 미션 토스트가 뜨고, 미션이 깨지면 임무 칸 왼쪽 점이 빨갛고 «미션 실패» 토스트가 하나 뜬다. 툴팁에 조건 문장
+# EV331 · I122: 라운드 첫 준비 단계에 미션 토스트가 뜨고, 미션이 깨지면 임무 칸 왼쪽 점이 빨갛고 «미션 실패» 토스트가 하나 뜬다. 툴팁은 제목 «미션»에 조건 문장이고 «의뢰»가 없다
 func ev331():
 	var main = _prep()
 	var marks = main.hud.get("marks")
@@ -608,7 +608,10 @@ func ev331():
 	if out == "":
 		_fresh(main.hud.tip, cells.mission)
 		main.hud.tip._process(0.25)
-		out = check(q.text in _tip_text(main.hud.tip), "임무 칸 툴팁 «%s»에 미션 조건 «%s»가 없다" % [_tip_text(main.hud.tip), q.text])
+		var said: Array = _labels(main.hud.tip)
+		var text := " ".join(said)
+		out = check(not said.is_empty() and said[0] == "미션" and q.text in text and not "의뢰" in text,
+			"임무 칸 툴팁 «%s»(기대: 제목 «미션», 미션 조건 «%s», «의뢰» 없음, I122 2026-11-07 변경)" % [text, q.text])
 		_move(EMPTY)
 		main.hud.tip._process(0.3)
 	if out == "":
@@ -1453,7 +1456,6 @@ func ev350():
 	_frame(main)
 	_pass(main, 10.0)  # 준비 단계 미션 토스트를 흘려 보낸다
 	b.mission = ""  # 미션이 깨진 토스트가 끼지 않게(미션은 판마다 다르다)
-	b.commission = ""
 	_cam(main).focus(Vector2(632, 978))  # 거점이 화면 밖(위). 남벽 가운데 줄(S217 2026-11-03 변경 칸)
 	_cam(main).force_update_scroll()
 	b.damage(b.base, 5, "true")
@@ -1493,7 +1495,6 @@ func ev351():
 	_frame(main)
 	_pass(main, 10.0)  # 준비 단계 미션 토스트를 흘려 보낸다
 	b.mission = ""  # 미션이 깨진 토스트가 끼지 않게(미션은 판마다 다르다)
-	b.commission = ""
 	var g1 = b.castle[Vector2i(31, 63)]  # 정문 문루(S217)
 	var g0 = b.base
 	b.damage(g1, 5, "true")
@@ -1592,7 +1593,7 @@ func ev353():
 	_done(main)
 	return out
 
-# EV354 · I136: 보유 5명·의뢰 2개인 라운드 사이 창은 [16,34]에서 폭 608로 뜨고 아래끝이 356 이하다. 한 명을 내보낸 뒤 영입해도 리롤·진행 버튼 자리가 같다
+# EV354 · I136: 보유 5명인 라운드 사이 창은 [16,34]에서 폭 608로 뜨고 아래끝이 356 이하다. 한 명을 내보낸 뒤 영입해도 리롤·진행 버튼 자리가 같다
 func ev354():
 	var main = _game()
 	var b = main.view.battle
@@ -1608,10 +1609,10 @@ func ev354():
 	_layout(main)
 	var w: Rect2 = hud.window.get_global_rect()
 	var out := ""
-	if not won or b.roster.size() != 5 or b.commission_offers.size() != 2:
-		out = "준비가 틀렸다: 1라운드 승리 %s · 보유 %d · 의뢰 %d" % [won, b.roster.size(), b.commission_offers.size()]
+	if not won or b.roster.size() != 5:
+		out = "준비가 틀렸다: 1라운드 승리 %s · 보유 %d" % [won, b.roster.size()]
 	elif not w.position.is_equal_approx(Vector2(16, 34)) or absf(w.size.x - 608.0) > 0.5 or w.end.y > 356.5:
-		out = "보유 5명·의뢰 2개 라운드 사이 창 %s(기대: [16,34] 폭 608, 아래끝 356 이하)" % w
+		out = "보유 5명 라운드 사이 창 %s(기대: [16,34] 폭 608, 아래끝 356 이하)" % w
 	if out == "":
 		b.dismiss(b.roster[4])
 		_frame(main)
@@ -1679,7 +1680,6 @@ func ev361():
 	_frame(main)
 	_pass(main, 10.0)  # 준비 단계 미션 토스트를 흘려 보낸다
 	b.mission = ""  # 미션이 깨진 토스트가 끼지 않게
-	b.commission = ""
 	_cam(main).focus(Vector2(792, 1282))
 	_cam(main).force_update_scroll()
 	var out := ""
@@ -1824,7 +1824,7 @@ func _tip_of(main, btn) -> String:
 	main.hud.tip._process(0.25)
 	return _tip_text(main.hud.tip) if main.hud.tip.visible else ""
 
-# EV360 · I110: 라운드 사이 창의 내보내기·이관·의뢰 버튼과 이관 중 «여기로»에 툴팁이 있다
+# EV360 · I110: 라운드 사이 창에 의뢰 수락 버튼·의뢰 글이 없고(S77), 내보내기·이관 버튼과 이관 중 «여기로»에 툴팁이 있다
 func ev360():
 	var main = _game()
 	var b = main.view.battle
@@ -1842,17 +1842,20 @@ func ev360():
 	var shown: Array = hud.window.find_children("*", "BaseButton", true, false).filter(func(n): return n.is_visible_in_tree())
 	var drop: Array = shown.filter(func(n): return n.text == "내보내기")
 	var give: Array = shown.filter(func(n): return n.text == "이관" and not n.disabled)
-	var take: Array = shown.filter(func(n): return n.text.ends_with("수락"))
-	if not won or drop.is_empty() or give.is_empty() or take.is_empty():
+	if not won or drop.is_empty() or give.is_empty():
 		_done(main)
-		return "준비가 틀렸다: 1라운드 승리 %s · 내보내기 %d · 눌리는 이관 %d · 의뢰 수락 %d" % [won, drop.size(), give.size(), take.size()]
-	var said := [_tip_of(main, drop[0]), _tip_of(main, give[0]), _tip_of(main, take[0])]
+		return "준비가 틀렸다: 1라운드 승리 %s · 내보내기 %d · 눌리는 이관 %d" % [won, drop.size(), give.size()]
+	var take: Array = shown.map(func(n): return str(n.get("text"))).filter(func(t): return "수락" in t)
+	var named: Array = _labels(hud.window).filter(func(t): return "의뢰" in t)
+	var said := [_tip_of(main, drop[0]), _tip_of(main, give[0])]
 	give[0].pressed.emit()
 	_frame(main)
 	var to = _starts(hud.window, "여기로")
 	said.append(_tip_of(main, to) if to else "«여기로» 버튼 없음")
-	var out := check("골드는 돌려받지 못한다" in said[0] and "Lv1로" in said[1] and "다음 라운드에 걸린다" in said[2] and "경험치를 받는다" in said[3],
-		"툴팁 글 내보내기·이관·의뢰·여기로 %s" % [said])
+	var out := check(take.is_empty() and named.is_empty(), "라운드 사이 창에 «수락» 버튼 %s · «의뢰» 글 %s가 보인다(의뢰는 없다, S77 2026-11-07 변경)" % [take, named])
+	if out == "":
+		out = check("골드는 돌려받지 못한다" in said[0] and "Lv1로" in said[1] and "경험치를 받는다" in said[2],
+			"툴팁 글 내보내기·이관·여기로 %s" % [said])
 	_done(main)
 	return out
 
@@ -3222,7 +3225,6 @@ func ev502():
 	_frame(main)
 	_pass(main, 10.0)  # 준비 단계 미션 토스트를 흘려 보낸다
 	b.mission = ""
-	b.commission = ""
 	e._process(0.0)
 	b.damage(b.people[0], load("res://src/sim/folk.gd").HP * 0.5)
 	e._process(0.0)
@@ -3296,7 +3298,6 @@ func ev513():
 		return "main.hud.evac·Battle.folk_news가 없다"
 	_pass(main, 10.0)  # 준비 단계 미션 토스트를 흘려 보낸다
 	b.mission = ""
-	b.commission = ""
 	e._process(0.0)
 	b.folk_news = ["split", "moved", "born"]
 	e._process(0.0)
@@ -3939,3 +3940,19 @@ func ev803():
 	var ok: bool = on == {"q": false, "w": true, "e": false, "r": false} and shown and texts.all(func(s): return "우클릭: 자동 시전" in s) \
 		and off == {"q": false, "w": false, "e": false, "r": false}
 	return check(ok, "%s W 칸 우클릭 뒤 오토 %s · 칸 상태 auto %s · W·Q 툴팁 %s · 다시 우클릭 %s" % [h.kind, on, shown, texts, off])
+
+# EV821 · S301: 3라운드 2웨이브 줄에 방패 고블린 특성 줄 «방패 고블린: 화살을 방패로 받는다 · 호위 고블린 4»가 있다
+func ev821():
+	var main = _prep()
+	var two = main.hud._wave_lines([2, 1])
+	_done(main)
+	var text: String = two if two is String else ""
+	return check("방패 고블린: 화살을 방패로 받는다 · 호위 고블린 4" in text, "3라운드 2웨이브 줄 «%s»" % text)
+
+# EV828 · S302: 3라운드 2웨이브 줄에 불화살 고블린 특성 줄 «불화살 고블린: 사거리 9, 쏘는 구조물에 불화살»이 있다
+func ev828():
+	var main = _prep()
+	var two = main.hud._wave_lines([2, 1])
+	_done(main)
+	var text: String = two if two is String else ""
+	return check("불화살 고블린: 사거리 9, 쏘는 구조물에 불화살" in text, "3라운드 2웨이브 줄 «%s»" % text)
