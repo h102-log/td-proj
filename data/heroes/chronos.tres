@@ -20,7 +20,6 @@ q = {
 "id": "overcharge",
 "aim": "ally",
 "targets": "hero_tower",
-"auto": true,
 "gap": 4.0,
 "time": 6.0,
 "haste": 0.35,

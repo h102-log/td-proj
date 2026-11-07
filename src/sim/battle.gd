@@ -76,6 +76,9 @@ const AUTO_FIX_EVERY := 0.5
 const WALL_RANGE := 2.0  # 성벽 위에서 치려면 필요한 사거리(칸, S88). 열린 성문 위는 예외다(S89). 임시값
 const SLOTS := ["q", "w", "e", "r"]  # 영웅 스킬 칸(S145)
 const CAST_RANGE := 6.0  # 지점·대상을 고르는 스킬의 시전 사거리(칸, S147). 임시값
+# 오토(S297, I244)의 기준값. 밸런스 봇(tools/balance/autoplay.gd의 _skills·_think) 값을 옮겼다(사용자 2026-11-07 «봇 규칙 옮기기»).
+# think 쓸 곳이 없던 칸을 다시 보는 간격(초) · crowd 광역 칸을 쓰는 적 수 · heal·guard 빛줄기·성역 / 수호 천사를 쓰는 체력 비율 · hurt·hurt_n 기적의 체력 비율·아군 수 · chain 영혼 사슬 적 수 · spread 반경 없는 칸의 반경(칸)
+const AUTO := {"think": 0.25, "crowd": 2, "heal": 0.6, "guard": 0.35, "hurt": 0.5, "hurt_n": 3, "chain": 3, "spread": 2.0}
 const WINDS := ["sylvia_w", "sylvia_e", "sylvia_r"]  # 투사체가 지나는 실비아 바람(I212): 순풍 장판 · 바람의 렌즈 · 바람의 길
 const STAY := 0.6  # 장판 안에 있는 동안 거는 효과의 남은 시간(초, I141). 장판을 나오면 곧 풀린다
 const CLEANSE_GAP := 0.5  # 같은 아군의 성역 정화 흔적(I227 ⑥)을 다시 남기는 간격(초). 장판이 매 스텝 거는 해로운 효과를 지울 때마다 흔적이 쌓이지 않게
@@ -284,7 +287,8 @@ class Unit:
 	var cd := {"q": 0.0, "w": 0.0, "e": 0.0, "r": 0.0}  # 칸마다 남은 재사용 대기(초)
 	var skill_uses := 0  # 쓴 스킬 수(모든 칸)
 	var order = null  # 시전 사거리 밖이라 걸어가서 쓸 스킬 {slot, aim}(S147). 없으면 null
-	var auto := false  # 자동 시전(크로노스 Q)이 켜져 있다(S158)
+	var auto := {"q": false, "w": false, "e": false, "r": false}  # 칸마다 오토(자동 시전)가 켜져 있다(S296)
+	var auto_in := 0.0  # 오토가 켜진 칸을 다시 볼 때까지 남은 시간(초, I244)
 	var casts := 0  # 이그니스 패시브: 쓴 스킬 수(S156)
 	var charged := false  # 이그니스 패시브: 다음 Q·W·E가 커진다
 	var still := 0.0  # 아이아스 패시브: 이동 지시 없이 지난 시간(초, S151, I147)
@@ -412,6 +416,7 @@ var enemies := []
 var units := []  # 살아 있는 영웅·용병
 var heroes := []  # 전장에 나온 출전 영웅(Unit)들, 보유 순서(I108). 쓰러진 영웅도 들어 있다(I102)
 var hero  # 첫 출전 영웅(S119, I108). 영웅이 없으면 null
+var held = null  # 플레이어가 스킬을 조준 중인 영웅(S298). 조작(controls.gd)이 정하고, 그 영웅은 오토가 쉰다
 var roster := []  # 보유 영웅, 영입 순서(S58, S59). 새 도전이면 비운다(S64)
 var lineup := []  # 다음 라운드에 출전할 영웅(S59, I106). 영입 창에서 바꾸고 다음 라운드로 넘어갈 때 전장에 반영한다(S124)
 var bag := {}  # 가진 전용장비: 영웅 종류 → 강화 수치(+0부터, S246). 새 도전이면 비운다
@@ -1395,7 +1400,7 @@ func can_cast(h, slot: String) -> bool:
 	var sk: Dictionary = h.get(slot)
 	return state == "battle" and h.alive and not _seized(h) and not sk.is_empty() and h.level >= LEVELS.unlock[slot] and h.cd[slot] <= 0.0
 
-# 영웅 h(없거나 쓰러졌으면 살아 있는 첫 영웅, S119, I126)가 칸 slot을 쓴다(S145). 명령으로만 쓴다(S15).
+# 영웅 h(없거나 쓰러졌으면 살아 있는 첫 영웅, S119, I126)가 칸 slot을 쓴다(S145). 명령과 오토(S296)가 쓴다(S15).
 # aim은 지점·방향이면 칸 좌표(Vector2), 아군·적 대상이면 그 유닛·구조물이다. 즉시·켜고 끄는 칸은 aim이 없다.
 # 시전 사거리 밖이면 그쪽으로 걸어가 사거리에 들면 쓴다(S147). 쓰거나 걸어가기 시작하면 참
 func cast(h, slot: String, aim = null) -> bool:
@@ -1424,10 +1429,10 @@ func cast(h, slot: String, aim = null) -> bool:
 			_use(h, slot, aim)
 	return true
 
-# 자동 시전(S158)을 켜고 끈다. 자동 시전이 있는 칸(크로노스 Q)만이다. 단계와 상관없다
+# 칸 slot의 오토(자동 시전, S296)를 켜고 끈다. 잠긴 칸도 켜 둘 수 있다(I245). 단계와 상관없다
 func toggle_auto(h, slot: String) -> void:
-	if h and h.get(slot).get("auto", false):
-		h.auto = not h.auto
+	if h:
+		h.auto[slot] = not h.auto[slot]
 
 # 대상이 그 칸의 조준 종류에 맞는다(S147, I145). 지점·방향은 맵 안 칸, 아군은 targets대로, 적은 살아 있는 적
 func _aim_ok(h, sk: Dictionary, aim) -> bool:
@@ -2148,16 +2153,61 @@ func _meteor(z: Dictionary) -> void:
 func _cast_overcharge(_h: Unit, sk: Dictionary, aim, _grow: float) -> void:
 	_fx(aim, "chronos_q", {"haste": sk.haste, "might": sk.might}, sk.time)
 
-# 자동 시전(S158, I146): 켜져 있고 쓸 수 있으면 시전 사거리 안에서 아직 안 걸린 가장 공격력 높은 영웅·쏘는 구조물에 쓴다
-func _autocast(h: Unit) -> void:
-	if not h.auto or h.order or not can_cast(h, "q"):
+# 오토(S296~S298, I244): 켜진 칸이 쓸 수 있으면 _auto_aim이 고른 곳에 그 자리에서 쓴다(고른 곳은 늘 시전 사거리 안이라 걷지 않는다).
+# 쓸 수 있는 칸을 본 뒤에는 AUTO.think초 동안 다시 보지 않는다. 걸어가서 쓰는 중이거나 플레이어가 조준 중인 영웅(held)은 쉰다
+func _autocast(h: Unit, dt: float) -> void:
+	h.auto_in -= dt
+	if h.order or h == held or h.auto_in > 0.0:
 		return
-	var best = null
-	for t in heroes + structures.values():
-		if _aim_ok(h, h.q, t) and not t.fx.has("chronos_q") and _where(t).distance_to(h.pos) <= CAST_RANGE and (best == null or t.damage > best.damage):
-			best = t
-	if best:
-		_use(h, "q", best)
+	for slot in SLOTS:
+		if h.auto[slot] and can_cast(h, slot):
+			h.auto_in = AUTO.think
+			var aim := _auto_aim(h, h.get(slot))
+			if not aim.is_empty():
+				cast(h, slot, aim[0])
+
+# 오토가 칸 sk를 쓸 곳(I244, tools/balance/autoplay.gd의 _skills를 옮김). [aim]이면 쓰고(즉시 칸은 [null]), 빈 배열이면 쓰지 않는다
+func _auto_aim(h: Unit, sk: Dictionary) -> Array:
+	var near := enemies.filter(func(e): return e.pos.distance_to(h.pos) <= CAST_RANGE)
+	match sk.id:
+		"wind_path":  # ① 표적은 스스로 고른다(I214)
+			return [] if enemies.is_empty() else [null]
+		"overcharge":  # ② 아직 안 걸린 가장 공격력 높은 영웅·쏘는 구조물(I146)
+			var best = null
+			for t in heroes + structures.values():
+				if _aim_ok(h, sk, t) and not t.fx.has("chronos_q") and _where(t).distance_to(h.pos) <= CAST_RANGE and (best == null or t.damage > best.damage):
+					best = t
+			return [best] if best else []
+		"holy_beam", "guardian", "sanctum":  # ③④⑤ 사거리 안 체력 비율이 가장 낮은 아군
+			var low = null
+			for u in units:
+				if u.pos.distance_to(h.pos) <= CAST_RANGE and (low == null or u.hp / u.max_hp < low.hp / low.max_hp):
+					low = u
+			if low == null or low.hp >= low.max_hp * (AUTO.guard if sk.id == "guardian" else AUTO.heal):
+				return []
+			return [low.pos if sk.id == "sanctum" else low]
+		"miracle":  # ⑥
+			return [null] if units.filter(func(u): return u.hp < u.max_hp * AUTO.hurt).size() >= AUTO.hurt_n else []
+		"soul_chain":  # ⑦ 체력이 가장 높은 적
+			var big = null
+			for e in near:
+				if _aim_ok(h, sk, e) and (big == null or e.hp > big.hp):
+					big = e
+			return [big] if big and _crowd(big.pos, sk.radius) >= AUTO.chain else []
+	if sk.aim == "self":  # ⑧
+		return [null] if _crowd(h.pos, sk.radius) >= AUTO.crowd else []
+	var spot = null  # ⑨ 가장 몰린 적(같으면 먼저 나온 적)
+	var most := 0
+	for e in near:
+		var n := _crowd(e.pos, sk.get("radius", AUTO.spread))
+		if n > most:
+			spot = e
+			most = n
+	return [spot.pos] if spot and (most >= AUTO.crowd or spot.boss) else []
+
+# at 둘레 r칸 안의 적 수
+func _crowd(at: Vector2, r: float) -> int:
+	return enemies.filter(func(e): return e.pos.distance_to(at) <= r).size()
 
 # W 노화: 쓴 순간 지점 반경 안의 적에게 공격력 감소와 최대 체력 비례 초당 마법 피해를 건다(I196). 장판이 아니다
 func _cast_aging(_h: Unit, sk: Dictionary, aim, grow: float) -> void:
@@ -4235,7 +4285,7 @@ func _act(u: Unit, dt: float) -> void:
 		_work(u, dt)
 
 # 영웅 칸의 시간(S136): 전투 단계에만 재사용 대기가 준다(크로노스 R과 이그니스 오라 안에서는 빠르게).
-# 반격의 태세가 끝나면 터뜨리고(S151), 걸어가서 쓸 스킬(S147)과 자동 시전(S158)을 본다
+# 반격의 태세가 끝나면 터뜨리고(S151), 걸어가서 쓸 스킬(S147)과 오토(S296)를 본다
 func _hero_tick(h: Unit, dt: float) -> void:
 	if state != "battle":
 		return
@@ -4248,7 +4298,7 @@ func _hero_tick(h: Unit, dt: float) -> void:
 			_burst(h)
 	if h.order:
 		_follow_order(h)
-	_autocast(h)
+	_autocast(h, dt)
 
 # 기본 공격 한 방(S15). 실비아(I213): 쏘는 순간 거리로 정조준 피해·방어 무시를 정한다(S153).
 # 아이아스: 요새화 중이면 확률로 기절시킨다(S151). 축복이 걸렸으면 맞은 곳에 마법 피해를 더한다(S152).

@@ -583,7 +583,7 @@ func _skills(h) -> void:
 				if not b.enemies.is_empty():
 					b.cast(h, slot)
 			"overcharge":  # 자동 시전에 맡긴다
-				if not h.auto:
+				if not h.auto[slot]:
 					b.toggle_auto(h, slot)
 			"holy_beam", "guardian":
 				var weak = _weakest(h, r)

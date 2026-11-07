@@ -204,3 +204,31 @@ def test_EV600_chronos_w_cast_only(gd):
 
 def test_EV725_downed_hero_effects_cleared_at_wave_end(gd):
     gd("kits", "EV725")
+
+
+def test_EV796_auto_per_slot_toggle(gd):
+    gd("kits", "EV796")
+
+
+def test_EV797_auto_point_dir_cluster(gd):
+    gd("kits", "EV797")
+
+
+def test_EV798_auto_self_slots(gd):
+    gd("kits", "EV798")
+
+
+def test_EV799_auto_seraphina_heals(gd):
+    gd("kits", "EV799")
+
+
+def test_EV800_auto_soul_chain(gd):
+    gd("kits", "EV800")
+
+
+def test_EV801_auto_yields_to_player(gd):
+    gd("kits", "EV801")
+
+
+def test_EV802_auto_state_save_carry_locked(gd):
+    gd("kits", "EV802")

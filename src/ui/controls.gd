@@ -9,7 +9,7 @@ extends RefCounted
 # 준비 단계의 좌클릭·좌드래그는 판매 후보도 정한다(S70, I57). 좌클릭한 용병은 두 단계 모두 고른 상태가 된다(I135)
 # 전투 단계의 좌클릭·좌드래그는 철거·취소·이어 짓기 후보(picked)를 정한다(S74, S83). live 판(I175)의 준비 단계에는 미완성 구조물만 이어 짓기·취소 후보다(I57)
 # Q·W·E·R: 영웅 스킬(S145, I10). 고른 영웅이, 없으면 첫 영웅이 쓴다(S119). 즉시·켜고 끄는 칸은 바로 쓰고, 지점·방향·대상을 고르는 칸은
-# 조준 상태가 된다(퀵캐스트를 켜면 키를 누르는 순간 커서 자리에 쓴다, I158). 조준 중 좌클릭은 그 지점·대상에 쓰고, 우클릭·ESC는 취소한다(S147). Shift+키와 HUD 스킬 버튼 우클릭은 자동 시전을 켜고 끈다(S158, I151)
+# 조준 상태가 된다(퀵캐스트를 켜면 키를 누르는 순간 커서 자리에 쓴다, I158). 조준 중 좌클릭은 그 지점·대상에 쓰고, 우클릭·ESC는 취소한다(S147). Shift+키와 HUD 스킬 버튼 우클릭은 그 칸의 오토(자동 시전)를 켜고 끈다(S296, I151)
 # A: 공격 명령 조준(S35). 그동안 좌클릭은 땅이면 공격 이동·적이면 대상 공격이고, 우클릭·ESC는 취소한다 · S: 정지(S35) · H: 홀드 전환(S36) · V: 체력바 표시 전환(S73) · B: 대피령(S225) · F: 자동 수리 전환(S277)
 # ESC: 조준·놓기·옮기기가 없으면 맵 팝업과 패널의 적을 닫는다(S183, S206). 고른 유닛은 풀지 않는다(S204)
 # 1·2·3: 출전 영웅 1·2·3을 고른다. F1·F2·F3은 영웅을 고르지 않는다(I108 2026-11-06 변경)
@@ -49,7 +49,11 @@ var picked := []  # 전투 단계에 고른 플레이어 구조물. 철거·취�
 var fort = null  # 고른 성곽 칸이나 잔해(I88). 그 옆에 여닫기·업그레이드·수리·복구 팝업이 뜬다(S85, S86, S116, I89)
 var moving = null  # 옮길 대포. 팝업의 «옮기기» 버튼이 넣는다(S91)
 var village := false  # 거점을 골랐다. 그 옆에 마을 레벨 팝업이 뜬다(S100)
-var aiming := ""  # 조준 중인 스킬 칸(S147). 빈 문자열이면 조준 중이 아니다
+var aiming := "":  # 조준 중인 스킬 칸(S147). 빈 문자열이면 조준 중이 아니다
+	set(v):
+		aiming = v
+		if battle:
+			battle.held = aim_hero if v != "" else null  # 조준 중인 영웅은 오토가 쉰다(S298)
 var aim_hero = null  # 조준 중인 칸을 쓸 영웅
 var attacking := false  # 공격 명령 조준 중(S35). A 키와 HUD 태그(I139)가 켠다
 var mouse := Vector2()  # 마지막 마우스 위치(맵 px). 화면이 조준 범위를 그린다
@@ -341,8 +345,8 @@ func skill_for(h, slot: String, shift := false) -> void:
 	if sk.get("aim") == "self" or (sk.get("id") == "brace" and h.brace > 0.0):
 		battle.cast(h, slot)
 	elif battle.can_cast(h, slot):
-		aiming = slot
 		aim_hero = h
+		aiming = slot
 		placing = ""
 		moving = null
 		attacking = false
