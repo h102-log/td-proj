@@ -4,7 +4,7 @@ extends "res://tests/eval/gd/lib.gd"
 #   Battle.can_cast(영웅, 칸) · Battle.toggle_auto(영웅, 칸) · Battle.damage(대상, 양, 종류 = "phys", 낸 쪽 = null)
 #   Battle.effect(대상, 키) — 걸린 효과의 값(없으면 null) · Battle.effect_sum(대상, 키) — 더하는 효과의 합 · Battle.armor_of(대상)
 #   Battle.armor_mult(방어력) — 물리 피해 배율(S149) · Battle.zones · Battle.barriers(칸 → 막힌 칸) · Battle.CAST_RANGE
-#   영웅: cd[칸] · skill_uses · fort · block · shields(출처 → {hp, left}) · auto · order · 적: engaged(붙잡은 유닛)
+#   영웅: cd[칸] · skill_uses · fort · block · shields(출처 → {hp, left}) · auto(칸 → 오토 켬, S296) · order · 적: engaged(붙잡은 유닛)
 #   Controls.skill_key(칸, shift) · Controls.aiming · 구조물: cooldown(다음 사격까지 남은 초)
 # 수치는 영웅 필드(q·w·e·r·passive·aura 사전)에서 읽는다. 임시값이라(S151~S158) 밸런스를 바꿔도 효과를 재는 평가는 깨지지 않게
 # 영웅의 기본 공격이 재는 값을 흐리지 않게, 기본 공격을 재지 않는 평가는 영웅의 공격력을 0으로 둔다
@@ -721,13 +721,13 @@ func ev289():
 	c.skill_key("q", true)
 	ig.damage = 7.0
 	b.step(DT)
-	var first: bool = ch.auto and b.effect_sum(ig, "might") > 0.0 and b.effect_sum(mg, "might") == 0.0
+	var first: bool = ch.auto.q and b.effect_sum(ig, "might") > 0.0 and b.effect_sum(mg, "might") == 0.0
 	run(b, ch.q.gap + 0.1)
 	var second: bool = b.effect_sum(mg, "might") > 0.0 and b.effect_sum(tw, "might") == 0.0
 	ig.damage = 0.0
 	var d = _dummy(b, H + Vector2i(4, 1))
 	ch.cd.q = 0.0
-	ch.auto = false
+	ch.auto.q = false
 	b.cast(ch, "q", tw)
 	tw.cooldown = 0.0
 	run(b, 1.0, func(): return d.hp < d.max_hp)
@@ -1063,3 +1063,208 @@ func ev725():
 	run(b, 2.0)
 	return check(down and back and left.is_empty() and brace == 0.0 and k.alive and k.hp >= 1.0,
 		"쓰러짐 %s · 준비 단계에 돌아옴 %s(%s) · 남은 효과 %s · 태세 %s · 2초 뒤 살아 있음 %s(체력 %s)" % [down, back, b.state, left, brace, k.alive, k.hp])
+
+# ── 오토(S296~S298, I244·I245) ──
+
+const OFF := {"q": false, "w": false, "e": false, "r": false}
+
+# 영웅 하나 판의 전투 단계에서 slots 칸만 오토를 켠다. 영웅의 기본 공격은 끈다
+func _auto(kind: String, slots: Array):
+	var b = _kit([[kind, H]])
+	_quiet(b)
+	_start(b)
+	for s in slots:
+		b.toggle_auto(b.hero, s)
+	return b
+
+# 영웅 h가 secs초 안에 칸 slot을 썼다(재사용 대기가 시작됐다)
+func _used(b, h, slot: String, secs := 0.4) -> bool:
+	return run(b, secs, func(): return h.cd[slot] > 0.0)
+
+# EV796 · S296: 오토는 칸마다 켜고 끈다. Shift+칸 키는 켜기만 하고 조준하지 않는다. 켠 칸만 저절로 쓴다
+func ev796():
+	var b = _kit([["ignis", H]])
+	var ig = b.hero
+	_quiet(b)
+	_start(b)
+	var c = controls(b)
+	b.toggle_auto(ig, "w")
+	var one = ig.auto.duplicate()
+	b.toggle_auto(ig, "w")
+	var none = ig.auto.duplicate()
+	c.skill_key("e", true)
+	var e_on = ig.auto.duplicate()
+	var aim: String = c.aiming
+	var e_cd: float = ig.cd.e
+	b.toggle_auto(ig, "e")
+	b.toggle_auto(ig, "q")
+	_dummy(b, Vector2i(13, 10))
+	_dummy(b, Vector2i(14, 10))
+	var q := _used(b, ig, "q")
+	run(b, 1.0)
+	var rest: Array = ["w", "e", "r"].map(func(s): return ig.cd[s])
+	var ok: bool = one == OFF.merged({"w": true}, true) and none == OFF and e_on == OFF.merged({"e": true}, true) and aim == "" and e_cd == 0.0 \
+		and q and rest.all(func(x): return x <= 0.0)
+	return check(ok, "W 켬 %s · 다시 %s · Shift+E %s(조준 «%s», E 대기 %s) · Q 씀 %s · W·E·R 대기 %s" % [one, none, e_on, aim, e_cd, q, rest])
+
+# EV797 · I244 ⑨: 지점·방향 칸은 사거리 안에서 둘 이상 몰린 곳(보스면 하나)에 쓰고, 사거리 밖이면 걷지 않고 쓰지도 않는다
+func ev797():
+	var b = _auto("ignis", ["q"])
+	var ig = b.hero
+	_dummy(b, Vector2i(17, 10))
+	_dummy(b, Vector2i(18, 10))
+	var far: bool = _used(b, ig, "q", 1.0) or not ig.path.is_empty() or ig.order != null
+	_dummy(b, Vector2i(13, 10))
+	var one := _used(b, ig, "q", 1.0)
+	_dummy(b, Vector2i(14, 10))
+	var two := _used(b, ig, "q")
+	var at = b.traces[-1].at if two and not b.traces.is_empty() else null
+	var b2 = _auto("ignis", ["q"])
+	_dummy(b2, Vector2i(13, 10), {"boss": true})
+	var boss := _used(b2, b2.hero, "q")
+	var b3 = _auto("aias", ["q"])
+	_dummy(b3, Vector2i(12, 10))
+	_dummy(b3, Vector2i(13, 10))
+	var dir := _used(b3, b3.hero, "q")
+	var ok: bool = not far and not one and two and at is Vector2 and at.distance_to(Vector2(13, 10)) <= 0.01 and boss and dir
+	return check(ok, "사거리 밖 둘: 씀·걸음 %s · 안에 하나: 씀 %s · 둘: 씀 %s(자리 %s) · 보스 하나: 씀 %s · 아이아스 Q 둘: 씀 %s" % [far, one, two, at, boss, dir])
+
+# EV798 · I244 ⑧①: 즉시 칸은 둘레 반경 안 적이 둘 이상이면 쓰고, 폭풍의 대동맥은 적이 있으면 쓴다
+func ev798():
+	var b = _auto("aias", ["w"])
+	var k = b.hero
+	_dummy(b, Vector2i(12, 10))
+	var one := _used(b, k, "w", 1.0)
+	_dummy(b, Vector2i(11, 12))
+	var two := _used(b, k, "w")
+	var b2 = _auto("sylvia", ["r"])
+	var snipe := _used(b2, b2.hero, "r")
+	return check(not one and two and snipe, "아이아스 W 적 하나: 씀 %s · 둘: 씀 %s · 실비아 R(구석 과녁 하나): 씀 %s" % [one, two, snipe])
+
+# 세라피나(10,10)와 준비 단계에 놓은 병사 셋((12,10)·(12,11)·(12,12), 최대 체력 100). 칸 on만 오토를 켜고 전투 단계를 연다
+func _sera(on: String) -> Array:
+	var b = _kit([["seraphina", H]])
+	_quiet(b)
+	var men := []
+	for y in [10, 11, 12]:
+		men.append(b.place_merc("soldier", Vector2i(12, y), {"hp": 100.0, "damage": 0.0}))
+	_start(b)
+	b.toggle_auto(b.hero, on)
+	return [b, men]
+
+# EV799 · I244 ③~⑥: 세라피나 회복 칸은 가장 깎인 아군의 체력 비율(60%·35%·60%)과 50% 밑 아군 수(셋)로 쓴다
+func ev799():
+	var r := _sera("q")
+	var b = r[0]
+	var m = r[1][0]
+	m.hp = 70.0
+	var q_hi := _used(b, b.hero, "q", 1.0)
+	m.hp = 50.0
+	var q_lo := _used(b, b.hero, "q")
+	var healed: bool = m.hp > 50.0
+	r = _sera("e")
+	b = r[0]
+	m = r[1][0]
+	m.hp = 50.0
+	var e_hi := _used(b, b.hero, "e", 1.0)
+	m.hp = 30.0
+	var e_lo := _used(b, b.hero, "e")
+	var angel = b.effect(m, "angel")
+	r = _sera("w")
+	b = r[0]
+	m = r[1][0]
+	m.hp = 50.0
+	var w_lo := _used(b, b.hero, "w")
+	var at: Vector2 = m.pos
+	var zone: bool = b.zones.any(func(z): return z.src == "seraphina_w" and z.pos.distance_to(at) <= 0.01)
+	r = _sera("r")
+	b = r[0]
+	var men: Array = r[1]
+	men[0].hp = 40.0
+	men[1].hp = 40.0
+	var r_two := _used(b, b.hero, "r", 1.0)
+	men[2].hp = 40.0
+	var r_three := _used(b, b.hero, "r")
+	var ok: bool = not q_hi and q_lo and healed and not e_hi and e_lo and angel != null and w_lo and zone and not r_two and r_three
+	return check(ok, "Q 70: %s · 50: %s(회복 %s) · E 50: %s · 30: %s(수호 천사 %s) · W 50: %s(성역 %s) · R 둘: %s · 셋: %s" % [q_hi, q_lo, healed, e_hi, e_lo, angel, w_lo, zone, r_two, r_three])
+
+# EV800 · I244 ⑦: 영혼 사슬은 사거리 안 체력이 가장 높은 적 둘레 3칸에 적이 셋 이상이면 그 적에게 쓴다
+func ev800():
+	var b = _auto("vesper", ["e"])
+	var big = _dummy(b, Vector2i(13, 10), {"hp": 5000})
+	_dummy(b, Vector2i(13, 12), {"hp": 1000})
+	var two := _used(b, b.hero, "e", 1.0)
+	_dummy(b, Vector2i(14, 11), {"hp": 1000})
+	var three := _used(b, b.hero, "e")
+	var hub = b.effect(big, "hub")
+	return check(not two and three and hub == big, "적 둘: 씀 %s · 셋: 씀 %s · 사슬 중심이 체력 5000 과녁 %s" % [two, three, hub == big])
+
+# EV801 · S298: 조준 중·걸어가서 쓰는 중인 영웅은 오토가 쉬고, 이동 지시로 걷는 중에는 쓴다. 직접 써도 오토는 켜진 채다
+func ev801():
+	var b = _auto("ignis", ["q"])
+	var ig = b.hero
+	_dummy(b, Vector2i(13, 10))
+	_dummy(b, Vector2i(14, 10))
+	var c = controls(b)
+	c.skill_key("q")
+	var aiming: String = c.aiming
+	var held := _used(b, ig, "q", 1.0)
+	_key(c, KEY_ESCAPE)
+	var free: bool = c.aiming == "" and _used(b, ig, "q")
+	var b2 = _auto("ignis", ["q"])
+	var ig2 = b2.hero
+	_dummy(b2, Vector2i(13, 10))
+	_dummy(b2, Vector2i(14, 10))
+	var walked: bool = b2.cast(ig2, "w", Vector2(10, 18)) and ig2.order != null
+	var early := false
+	var t := 0.0
+	while ig2.order != null and t < 5.0:
+		b2.step(DT)
+		t += DT
+		early = early or (ig2.order != null and ig2.cd.q > 0.0)
+	var b3 = _auto("ignis", ["q"])
+	var ig3 = b3.hero
+	_dummy(b3, Vector2i(13, 10))
+	_dummy(b3, Vector2i(14, 10))
+	b3.order_move([ig3], Vector2i(10, 14))
+	var moving: bool = _used(b3, ig3, "q") and not ig3.path.is_empty()
+	ig3.cd.q = 0.0
+	var direct: bool = b3.cast(ig3, "q", Vector2(13, 10)) and ig3.auto.q
+	var ok: bool = aiming == "q" and not held and free and walked and not early and moving and direct
+	return check(ok, "조준 «%s» 중 씀 %s · 취소 뒤 씀 %s · 걸어가서 쓰기 %s(그동안 Q 씀 %s) · 이동 중 씀 %s · 직접 쓴 뒤 오토 %s" % [aiming, held, free, walked, early, moving, direct])
+
+# EV802 · I245: 오토 켬은 저장·다음 웨이브로 이어지고, 처음과 옛 저장(참거짓 하나)은 모두 꺼짐이다. 잠긴 칸도 켜 두면 열린 뒤 쓴다
+func ev802():
+	var S = load("res://src/sim/save.gd")
+	var b = _kit([["aias", H]])
+	var k = b.hero
+	var start = k.auto.duplicate()
+	b.toggle_auto(k, "q")
+	b.toggle_auto(k, "r")
+	var snap: Dictionary = S.snapshot(b)
+	var b2 = _kit([["aias", H]])
+	S.apply(b2, snap)
+	var back = b2.heroes[0].auto.duplicate()
+	var old: Dictionary = snap.duplicate(true)
+	for f in old.heroes:
+		f.auto = true
+	var b3 = _kit([["aias", H]])
+	S.apply(b3, old)
+	var off = b3.heroes[0].auto.duplicate()
+	b.start_battle()
+	clear_wave(b)
+	var kept = k.auto.duplicate()
+	var b4 = _kit([["aias", H]])
+	var k4 = b4.hero
+	_quiet(b4)
+	k4.level = 1
+	_start(b4)
+	b4.toggle_auto(k4, "w")
+	_dummy(b4, Vector2i(12, 10))
+	_dummy(b4, Vector2i(11, 12))
+	var locked: bool = k4.auto.w and not _used(b4, k4, "w", 1.0)
+	k4.level = 2
+	var opened := _used(b4, k4, "w")
+	var on := OFF.merged({"q": true, "r": true}, true)
+	var ok: bool = start == OFF and back == on and off == OFF and b.state == "prep" and kept == on and locked and opened
+	return check(ok, "처음 %s · 저장 뒤 %s · 옛 저장 %s · 다음 준비 단계(%s) %s · Lv1 W 켬·안 씀 %s · Lv2 씀 %s" % [start, back, off, b.state, kept, locked, opened])

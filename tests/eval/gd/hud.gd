@@ -21,6 +21,7 @@ extends "res://tests/eval/gd/save.gd"
 #   main.hud.portraits — 출전 칸 차례마다 영웅 초상(BaseButton, I129·I165). 누르면 그 영웅을 고른다
 #   main.hud.slots — 출전 칸 차례마다 {"q"·"w"·"e"·"r": 스킬 칸(BaseButton, I151)}. 버튼 글은 쓸 수 있으면 칸 글자(«Q»), 재사용 대기면 보이는 칸 글에 올림한 초.
 #     self_modulate: 잠김 (0.4,0.4,0.4) · 그 밖 흰색. 스킬 칸.lock — 자물쇠(CanvasItem). 잠겼을 때만 보인다
+#     스킬 칸._st — 마지막으로 보인 칸 상태(skill_cell.gd show_state의 사전). auto가 참이면 금색 꺾쇠다(I151). gui_input의 우클릭이 오토를 켜고 끈다(S296)
 #   main.hud.tags — 상황 태그 [A, H](BaseButton, I139). 버튼 글은 없고, 안의 첫 TextureRect가 상태 그림이다(텍스처·modulate)
 #   main.hud.popup — 맵 위 팝업(Control, I58). 그 안의 보이는 BaseButton이 팝업 버튼이고, 못 누르는 버튼은 disabled다
 #   main.hud.hint — 놓기·조준 안내 글(Label, S147·I128). main.hud.chip — 그 글을 담은 안내 칩(Control, S147)
@@ -3908,3 +3909,33 @@ func ev795():
 			out = check(k.hp >= k.max_hp, "«수리»를 누른 뒤 체력 %.0f/%.0f" % [k.hp, k.max_hp])
 	_done(main)
 	return out
+
+# EV803 · I245: 스킬 칸 우클릭은 어느 칸이든 그 칸의 오토를 켜고 끄고(S296), 켜진 칸 상태는 auto다. 툴팁에 «우클릭: 자동 시전»
+func ev803():
+	var main = _prep()
+	var slots = main.hud.get("slots")
+	var h = main.view.battle.heroes[0]
+	if not slots is Array or slots.is_empty() or not slots[0] is Dictionary or not slots[0].get("w") is BaseButton or not h.get("auto") is Dictionary:
+		_done(main)
+		return "main.hud.slots[0]의 w 칸이 없거나 영웅 auto가 칸 사전이 아니다(%s)" % [h.get("auto")]
+	var w: BaseButton = slots[0]["w"]
+	var right := InputEventMouseButton.new()
+	right.button_index = MOUSE_BUTTON_RIGHT
+	right.pressed = true
+	w.gui_input.emit(right)
+	var on: Dictionary = h.auto.duplicate()
+	main.hud._process(0.0)
+	var st = w.get("_st")
+	var shown: bool = st is Dictionary and st.get("auto", false)
+	var tip = main.hud.tip
+	var texts := []
+	for k in ["w", "q"]:
+		_fresh(tip, slots[0][k])
+		tip._process(0.25)
+		texts.append(_tip_text(tip))
+	w.gui_input.emit(right)
+	var off: Dictionary = h.auto.duplicate()
+	_done(main)
+	var ok: bool = on == {"q": false, "w": true, "e": false, "r": false} and shown and texts.all(func(s): return "우클릭: 자동 시전" in s) \
+		and off == {"q": false, "w": false, "e": false, "r": false}
+	return check(ok, "%s W 칸 우클릭 뒤 오토 %s · 칸 상태 auto %s · W·Q 툴팁 %s · 다시 우클릭 %s" % [h.kind, on, shown, texts, off])
