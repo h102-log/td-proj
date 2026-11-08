@@ -142,7 +142,7 @@ const HEX_SPIN := 1.0  # 저주 고리가 조여드는 동안 반시계로 도�
 const PLAGUE_DASH := 6  # 전염 고리 점선 한 주기(px). 앞쪽 반만 그린다
 const BOG_DASH := 2  # 늪 물결 점선의 그린 칸·틈 길이(px)
 const TELL_FILL := 5  # 보스 스킬 예고 안쪽 성긴 칠의 밀도(/16, fx-4)
-const ALLY_FX := ["dr", "haste", "shield", "invuln", "stun", "bleed"]  # 아군에 걸린 효과(I101, 기절은 I192, 출혈은 I193 ③)
+const ALLY_FX := ["dr", "haste", "shield", "invuln", "stun", "bleed", "burn"]  # 아군에 걸린 효과(I101, 기절은 I192, 출혈은 I193 ③, 불화살의 불은 S302 2026-11-08 변경)
 const FOE_FX := ["stun", "root", "expose", "taunt", "seal", "chain", "dot"]  # 적에 걸린 효과(I101). 둔화는 능력치 감소 줄(DEBUFFS)이다
 const DEBUFFS := ["slow", "weaken", "armor", "mr"]  # 적 능력치 감소 줄의 왼쪽부터 차례(I101 2026-11-04 변경). fx 아틀라스 «down» 프레임 차례와 같다(tools/art/fx.py)
 const FOE_TELL := Color("ef692f")  # 일반 적 예고(S279): F24+ 주황 1px 테가 BLINK초마다 켜졌다 꺼진다. 안쪽은 칠하지 않는다
@@ -1972,6 +1972,9 @@ func status_marks(x, ally: bool) -> Array:
 				for i in 3:
 					var ph := fmod(clock + _hf(n, i + 7) * 0.6, 0.6) / 0.6
 					out.append({k = "px", p = feet + Vector2i(int(_hf(n, i + 11) * 8.0) - 4, -int(tall * 0.5) + int(8.0 * ph)), c = PX.blood if ph < 0.6 else PX.maroon})
+			"burn":  # 불화살의 불(S302 2026-11-08 변경): 발치 양옆의 불꽃 조각 둘. 불붙은 구조물(_burning)과 같은 조각이다
+				for i in 2:
+					out.append({k = "flame_s", p = feet + Vector2i(i * 8 - 4, -2), f = int(clock * 10.0) + i})
 			"invuln":  # 금 테가 맥동하고 별 하나가 돈다
 				var a := clock * 3.0 + _hf(n, 6) * TAU
 				out.append({k = "ring", p = feet - Vector2i(0, int(tall * 0.45)), r = int(tall * 0.6) + 1, c = PX.gold if fmod(clock * 2.0, 1.0) < 0.5 else PX.cream})

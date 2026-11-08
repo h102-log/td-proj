@@ -470,3 +470,17 @@ func ev652():
 	var r: int = a.HIRE.reroll
 	var s: int = a.HIRE.reroll_step
 	return check(paid == [r + 2 * s, r + 2 * s, r], "다음 리롤로 준 골드 [원래 판, 불러온 판, 칸 없는 저장] %s(기대 %s)" % [paid, [r + 2 * s, r + 2 * s, r]])
+
+# EV832 · I245(2026-11-08 변경): live 판(live_prep)에서 영입한 영웅은 모든 칸의 오토가 켜진 채 오고, 옛 규칙 판에서 영입한 영웅은 모두 꺼진 채다
+func ev832():
+	var b = _hiring()
+	b.live_prep = true
+	var h = b.hire(0)
+	var c = _hiring()
+	var k = c.hire(0)
+	if h == null or k == null:
+		return "영입하지 못했다(live 판 %s · 옛 규칙 판 %s)" % [h, k]
+	var on = h.get("auto")
+	var off = k.get("auto")
+	return check(on == {"q": true, "w": true, "e": true, "r": true} and off == {"q": false, "w": false, "e": false, "r": false},
+		"live 판에서 영입한 %s의 오토 %s(모두 참) · 옛 규칙 판에서 영입한 %s의 오토 %s(모두 거짓)" % [h.kind, on, k.kind, off])

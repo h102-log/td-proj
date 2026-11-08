@@ -937,6 +937,9 @@ func hire(i: int):
 	gold -= cost
 	var h := Unit.new(offers[i], Vector2i.ZERO, stats)
 	h.is_hero = true
+	if live_prep:  # live 판에서 영입한 영웅은 모든 칸의 오토가 켜진 채 온다(I245 2026-11-08 변경). 옛 규칙 판(평가)은 꺼진 채다
+		for slot in h.auto:
+			h.auto[slot] = true
 	if bag.has(h.kind):  # 가방에 그 영웅 장비가 있으면 저절로 낀다(S247)
 		h.worn = true
 		_refit(h)
@@ -1664,6 +1667,9 @@ func _tick(dt: float) -> void:
 		var bleed := _fx_sum(u, "bleed")  # 출혈(S240): 초당 물리 피해라 방어력을 받는다(I193 ②)
 		if bleed > 0.0 and u.alive:
 			damage(u, bleed * dt, "phys")
+		var burn := _fx_sum(u, "burn")  # 불화살의 불(S302 2026-11-08 변경): 출혈과 같은 초당 물리 피해. 구조물의 불과 달리 번지지 않는다
+		if burn > 0.0 and u.alive:
+			damage(u, burn * dt, "phys")
 	for s in structures.values() + castle.values():
 		_age(s, dt)
 		var regen := _fx_sum(s, "regen")
@@ -1784,9 +1790,9 @@ func _zones(dt: float) -> void:
 			_end_zone(z)
 			zones.erase(z)
 
-# 해로운 효과(S152 정화가 지운다): 기절·속박·둔화·도발·봉인·공격력·공격 속도 감소, 받는 피해 증가, 초당 피해, 방어력·마법 저항 감소, 붙잡힘(S242)
+# 해로운 효과(S152 정화가 지운다): 기절·속박·둔화·도발·봉인·공격력·공격 속도 감소, 받는 피해 증가, 초당 피해(불화살의 불 포함, S302 2026-11-08 변경), 방어력·마법 저항 감소, 붙잡힘(S242)
 func _harmful(v: Dictionary) -> bool:
-	return ["stun", "root", "slow", "taunt", "seal", "weaken", "lag", "expose", "dot", "chain", "bleed", "pin"].any(func(k): return v.has(k)) or v.get("armor", 0.0) < 0.0 or v.get("mr", 0.0) < 0.0
+	return ["stun", "root", "slow", "taunt", "seal", "weaken", "lag", "expose", "dot", "chain", "bleed", "burn", "pin"].any(func(k): return v.has(k)) or v.get("armor", 0.0) < 0.0 or v.get("mr", 0.0) < 0.0
 
 # 장판이 끝날 때: 에너지 성벽 칸을 치운다(S151)
 func _end_zone(z: Dictionary) -> void:
@@ -3527,12 +3533,12 @@ func _move(e: Enemy, dt: float) -> void:
 	if not e.fuse.is_empty() and units.any(func(u): return not u.on_wall and e.pos.distance_to(u.pos) <= e.radius + u.radius + 0.01 and _touch(e, u)):
 		_attack(e, null)  # 폭파병(S280): 아군 몸에 막혀 멈추면 그 자리에서 도화선을 켠다
 		return
-	if e.range > 0.0 and not (e.throw.is_empty() and e.flame.is_empty()):  # 투석기(S282)·불화살(S302)(I216): 사거리 안에 노릴 구조물이 들면 멈추고, 대기가 끝났으면 가장 가까운 것의 칸 가운데에 예고를 띄운다
+	if e.range > 0.0 and not (e.throw.is_empty() and e.flame.is_empty()):  # 투석기(S282)·불화살(S302)(I216): 사거리 안에 노릴 것이 들면 멈추고, 대기가 끝났으면 가장 가까운 것(구조물은 칸 가운데, 유닛은 중심)에 예고를 띄운다
 		var id := "throw" if e.flame.is_empty() else "flame"
-		var s = _mark(e, _works() if id == "throw" else structures.values().filter(_shooter))
+		var s = _mark(e, _works()) if id == "throw" else _flame_mark(e)
 		if s != null:
 			if not sealed and e.cd.get(id, 0.0) <= 0.0:
-				e.cast = {"id": id, "left": deed(e, id).windup, "at": _cell_near(s, e.pos), "on": s}
+				e.cast = {"id": id, "left": deed(e, id).windup, "at": _aim_of(s, e.pos), "on": s}
 			return
 	if e.dashing and (e.path.is_empty() or units.any(func(u): return u.alive and _touching(u, e) and _touch(e, u))):  # 아군 몸에 막히거나 길이 끝나면 돌진이 끝난다(I243 ④)
 		_end_dash(e)
@@ -3644,6 +3650,8 @@ func _skills(e: Enemy, dt: float, sealed: bool) -> bool:
 		return true
 	if e.cast:
 		e.cast.left -= dt
+		if e.cast.id == "flame" and e.cast.on is Unit:  # 유닛을 노린 불화살 예고는 그 유닛을 따라간다(S302 2026-11-08 변경)
+			e.cast.at = e.cast.on.pos
 		if e.cast.get("fire", false):  # 기관총 발사 단계(S287): 지난 틱마다 쏜다
 			_spray(e, e.skills[e.cast.id])
 		if e.cast.left <= 0.0:
@@ -4484,12 +4492,16 @@ static func _cell_near(s, p: Vector2) -> Vector2:
 func _works() -> Array:
 	return [base] + castle.values() + structures.values()
 
-# 투석기·불화살 사거리(I216): pool 가운데 가장 가까운 칸 가운데까지 range 안인 구조물 가운데 가장 가까운 것. 없으면 null
+# 투석기·불화살이 노리는 자리: 구조물은 p에 가장 가까운 칸 가운데, 유닛(S302 2026-11-08 변경)은 중심
+static func _aim_of(t, p: Vector2) -> Vector2:
+	return t.pos if t is Unit else _cell_near(t, p)
+
+# 투석기·불화살 사거리(I216): pool 가운데 노리는 자리(_aim_of)까지 range 안인 것 가운데 가장 가까운 것. 없으면 null
 func _mark(e: Enemy, pool: Array):
 	var best = null
 	var best_d: float = e.range
 	for s in pool:
-		var d := e.pos.distance_to(_cell_near(s, e.pos))
+		var d := e.pos.distance_to(_aim_of(s, e.pos))
 		if d <= best_d:
 			best = s
 			best_d = d
@@ -4499,9 +4511,26 @@ func _mark(e: Enemy, pool: Array):
 func _shooter(s: Block) -> bool:
 	return s.complete and STRUCTURE_KINDS[s.kind].range > 0.0
 
+# 불화살이 노리는 것(S302 2026-11-08 변경): 사거리 안의 ① 도발한 영웅 ② 쏘는 구조물 ③ 살아 있는 유닛 가운데 가장 가까운 것.
+# 도발한 영웅이 사거리 밖이면 null이라 쏘지 않고 그 영웅에게 걸어간다(_target_of)
+func _flame_mark(e: Enemy):
+	var taunt = _fx_on(e, "taunt")
+	if taunt and taunt.alive:
+		return taunt if e.pos.distance_to(taunt.pos) <= e.range else null
+	var s = _mark(e, structures.values().filter(_shooter))
+	return s if s != null else _mark(e, units.filter(func(u): return u.alive))
+
 # 불화살 예고가 끝났다(S302, I249 ②): 노린 구조물(cast.on)이 남아 있으면 물리 피해를 주고 불을 붙인다. 없어졌으면 쏘지 않고 대기만 돈다(_skills)
 # 이미 불붙었으면 남은 시간·번짐을 새로 센다(I249 ③, _fx가 같은 출처를 바꾼다)
+# 유닛(S302 2026-11-08 변경)은 살아 있으면 물리 피해와 번지지 않는 불(초당 burn, _tick)을 받는다
 func _flame(e: Enemy, sk: Dictionary) -> void:
+	if e.cast.on is Unit:
+		var u: Unit = e.cast.on
+		if u.alive and u in units:
+			damage(u, sk.hit)
+			if u.alive:
+				_fx(u, "flame", {"burn": sk.dps}, sk.time)
+		return
 	var s: Block = e.cast.on
 	if structures.get(s.cell) != s:
 		return
