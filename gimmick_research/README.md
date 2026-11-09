@@ -369,4 +369,5 @@
 | [03_idea_b_raid.md](03_idea_b_raid.md) | 아이디어 B: 지금 보스 틀, 경량 패턴 다섯과 보상 구조, 시련 보스(→ 던전 층 보스), 역제안 근거 |
 | [04_more_gimmicks.md](04_more_gimmicks.md) | 추가 기믹 C1~C4 |
 | [05_dungeon_expedition.md](05_dungeon_expedition.md) | 아이디어 A′(1순위): 원작식 정비기간 던전 원정 — 규칙·반대 근거 풀기·루프·데이터·코드·MVP·판정표·정할 것 |
+| [Defense_Gimmick_Spec.md](Defense_Gimmick_Spec.md) | 사용자가 붙여 넣은 외부 기획 보고서 원문(2026-11-09, 검증하지 않음): 레퍼런스 6종, 수성전 ↔ 호수 던전 이중 루프·전초기지 역습, 레이드 보스 패턴 셋, 시련 계약·정지 사격, ROI·MVP 지표, 병목 셋, 역제안·우선순위 |
 | [99_sources.md](99_sources.md) | 출처와 신뢰도, 웹 조사 방법·한계, 보고서 반박 검토 기록 |
