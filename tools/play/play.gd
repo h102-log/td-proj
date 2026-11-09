@@ -11,7 +11,7 @@ extends SceneTree
 # 게임 시간은 wait에서만 흐른다. seed를 주면 영입 목록·미션이 매번 같아서, log.txt를 새 폴더의 하네스에 통째로 보내면 같은 판이 재생된다.
 # 실행마다 새 폴더를 쓴다(캡처 번호가 001부터 다시 시작하고 log.txt는 이어 붙는다).
 
-const DT := 0.05  # autoplay.gd의 기본 한 걸음과 같다
+const DT := 0.05
 const GAP := 3  # 명령 사이·캡처 전에 쉬는 프레임. HUD가 _process에서 팝업을 갱신하고 그려질 틈이다
 const HOVER := 30  # move 뒤에 쉬는 프레임. 툴팁 지연(hud_tip.gd DELAY 0.2초)을 실시간으로 넘긴다
 
