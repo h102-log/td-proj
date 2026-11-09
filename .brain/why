@@ -1,0 +1,4 @@
+#!/bin/sh
+# .brain/why — td-proj 세컨드 브레인(why). 사용법은 .claude/skills/codebase-brain/SKILL.md
+set -- why "$@"
+. "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/_py.sh"

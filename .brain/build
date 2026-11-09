@@ -1,0 +1,4 @@
+#!/bin/sh
+# .brain/build — td-proj 세컨드 브레인(build). 사용법은 .claude/skills/codebase-brain/SKILL.md
+set -- build "$@"
+. "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/_py.sh"
