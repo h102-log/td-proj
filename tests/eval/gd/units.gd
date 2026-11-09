@@ -6,6 +6,7 @@ extends "res://tests/eval/gd/lib.gd"
 #   BattleView(res://src/ui/battle_view.gd).ENEMY_COLORS — 적 kind → 색
 #   적 kind "shieldbearer"(방패 고블린, S301) · "fire_archer"(불화살 고블린, S302). ENEMY_KINDS 키: guard(방패 내구도) · escort({kind, count}, 호위) · flame(불화살 {windup, cd, hit, dps, time, spread}) · range(I216)
 #   적 kind "feather_harpy"·"dive_harpy"·"song_harpy"(하피 셋, S304~S306). ENEMY_KINDS 키: feather({range, speed}) · dive({windup, air, cd, damage, radius, push, stun, shields}) · song({radius, heal, lag})
+#   적 kind "storm_harpy"·"snatch_harpy"(하피 둘, S307·S308). ENEMY_KINDS 키: gust({range, reach, arc, windup, cd}) · snatch({range, reach, toss, windup, radius, hit, structure, fall, pick, cd})
 # 성곽 맵은 wall.gd와 같다: 9행이 가로 성곽(성문 5·15·25열, 모두 닫힘), 위쪽(0~8행)이 마을, 아래쪽이 들판
 
 const TOP := Vector2i(12, 9)  # 성벽 칸
@@ -41,6 +42,8 @@ const TABLE := {
 	"feather_harpy": [8, 2.2, 3, 1.5, 0.3, 0, 8, null],  # 4라운드 하늘 둥지 묶음 ①(S106 2026-11-09 변경)
 	"dive_harpy": [10, 2.8, 4, 1, 0.3, 4, 8, null],
 	"song_harpy": [12, 2.2, 3, 1, 0.3, 3, 10, null],
+	"storm_harpy": [14, 2.2, 3, 1, 0.3, 0, 10, null],  # 4라운드 하늘 둥지 묶음 ②(S106 2026-11-10 변경)
+	"snatch_harpy": [12, 2.6, 3, 1, 0.3, 0, 12, null],
 }
 const PACK := {"wolf": 4, "leap_wolf": 2, "night_wolf": 2, "flying": 4}  # 무리(S238). 비행은 2026-11-09 변경. 나머지 종류는 1
 const KEYS := ["hp", "speed", "damage", "attack_gap", "radius", "sight", "reward", "wall_k"]
@@ -48,6 +51,8 @@ const FLAME := {"windup": 1.0, "cd": 6.0, "hit": 5.0, "dps": 4.0, "time": 9.0, "
 const FEATHER := {"range": 5.0, "speed": 12.0}  # 깃털 사수 하피 feather(S304)
 const DIVE := {"windup": 1.0, "air": 0.4, "cd": 6.0, "damage": 8.0, "radius": 1.0, "push": 1.0, "stun": 2.0, "shields": ["soldier", "aias"]}  # 박치기 하피 dive(S305)
 const SONG := {"radius": 3.0, "heal": 0.03, "lag": 0.3}  # 노래하는 하피 song(S306)
+const GUST := {"range": 4.0, "reach": 6.0, "arc": 60.0, "windup": 1.0, "cd": 4.0}  # 폭풍날개 하피 gust(S307)
+const SNATCH := {"range": 5.0, "reach": 0.5, "toss": 5.0, "windup": 2.0, "radius": 1.0, "hit": 10.0, "structure": 15.0, "fall": 12.0, "pick": 1.5, "cd": 5.0}  # 낚아채기 하피 snatch(S308)
 
 func _castle(gates := GATES, walls = null):
 	if walls == null:
@@ -113,6 +118,10 @@ func ev130():
 	var sky: bool = harpies.all(func(x): return x.get("flying") == true) and _same(gifts[0], FEATHER) and _same(gifts[1], DIVE) and _same(gifts[2], SONG)
 	if not sky:
 		return "하피 셋(S106 2026-11-09 변경): 비행 %s · feather %s(%s) · dive %s(%s) · song %s(%s)" % [harpies.map(func(x): return x.get("flying")), gifts[0], FEATHER, gifts[1], DIVE, gifts[2], SONG]
+	var two: Array = ["storm_harpy", "snatch_harpy"].map(func(k): return d.get(k, {}))
+	var gifts2: Array = [two[0].get("gust", {}), two[1].get("snatch", {})]
+	if not (two.all(func(x): return x.get("flying") == true) and _same(gifts2[0], GUST) and _same(gifts2[1], SNATCH)):
+		return "하피 둘(S106 2026-11-10 변경): 비행 %s · gust %s(%s) · snatch %s(%s)" % [two.map(func(x): return x.get("flying")), gifts2[0], GUST, gifts2[1], SNATCH]
 	return check(d.fast.climb == 3.0 and d.armored.armor == 15.0 and d.flying.flying and not d.basic.flying and d.basic.climb == 0.0
 		and d.slime.get("split") == {"kind": "slimelet", "count": 2} and d.big_slime.get("split") == {"kind": "slime", "count": 2}
 		and plain.all(func(k): return d[k].get("split", {}).is_empty()) and d.slime_king.get("boss") == true and d.alpha_wolf.get("boss") == true
