@@ -1,0 +1,2 @@
+# 셸 래퍼(build·query·why·_py.sh)가 CRLF로 체크아웃되면 /bin/sh 가 깨진다(core.autocrlf=true 환경) — handoff 스킬과 같은 조치
+* text=auto eol=lf

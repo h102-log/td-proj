@@ -2,3 +2,5 @@
 .specgate-log.jsonl
 __pycache__/
 .specgate-eval.json
+.brain/brain.db
+.brain/brain.db.tmp
