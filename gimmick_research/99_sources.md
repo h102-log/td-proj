@@ -8,7 +8,7 @@
 |---|---|---|
 | 저장소 판독 | 메인 세션 | 코드·데이터·SPEC·선행 조사(README §2.1). 기준 `main` `3c5fc84` |
 | deep-research 워크플로 | 검색 각도 5개: ① 해외 하이브리드 디펜스의 출정·파밍 루프 ② 국내 유즈맵·랜덤 디펜스의 사냥터와 미션 보스 ③ 레이드 보스 패턴 문법·수치·난이도 단계 ④ 자발적 위험-보상과 템포·피로도 ⑤ 플레이테스트 재미 판정 지표 | 검색 결과 30개(R-01~R-30). 원문 읽기는 25개를 시도했고(5개는 예산 밖) **모두 실패**했다. 이 세션의 네트워크 정책이 namu.wiki·gamedeveloper.com·*.wiki.gg·*.fandom.com·bloonswiki.com·icy-veins.com·arxiv.org·en.wikipedia.org 등을 막았다. 그래서 주장 추출이 0이 되어 워크플로의 3표 반박 검증 단계가 돌지 않았다 |
-| 보충 반박 검증 V | 보조 에이전트 둘. 본문이 기대는 핵심 주장 20개(V1~V20)를 처음과 다른 검색어(영어·한국어·다른 표현)로 다시 찾아 확인·반박 | **확인 6 · 부분 확인 11 · 판단 불가 3 · 반박 0**(§3). 부분 확인은 수치·판본·범위를 고쳐 본문에 반영했다. 두 에이전트가 함께 쓰는 검색 한도가 끝에 바닥나 V9는 조회하지 못했다 |
+| 보충 반박 검증 V | 보조 에이전트 둘. 본문이 기대는 핵심 주장 20개(V1~V20)를 처음과 다른 검색어(영어·한국어·다른 표현)로 다시 찾아 확인·반박 | **확인 6 · 부분 확인 12 · 판단 불가 2 · 반박 0**(§3). 부분 확인은 수치·판본·범위를 고쳐 본문에 반영했다. 두 에이전트가 함께 쓰는 검색 한도가 끝에 바닥나 V9는 메인 세션이 다음 턴에 한 번 더 찾았다 |
 
 - 본문의 외부 사실은 **검색 요약 기준**이다. 반박 검증도 원문을 열지 못하고 검색 요약·스니펫으로 판정했다.
 - 검색 결과 요약은 이 세션이 끝나면 남지 않는다. 이 표와 본문 인용이 기록이다.
@@ -33,7 +33,7 @@
 | R-10 | 프로젝트 디펜스(캐슬 디펜스 + 보스 레이드) | https://namu.wiki/w/%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%20%EB%94%94%ED%8E%9C%EC%8A%A4 | 위키 | 낮음(검증 대상 아님) |
 | R-11 | 防守亿万年 개인 사냥터(练功房) | https://www.18183.com/xiazai/bd_24263.html | 다운로드 사이트 맵 소개 한 곳 | 낮음 |
 | R-12 | 守护雅典娜 사냥방·거점 무적, 랜덤 다이스·아이마스 디펜스 협동 보스 | https://www.taptap.cn/moment/790527417117575001 , 나무위키 «아이마스 디펜스(유즈맵)»·«랜덤 다이스» | 플레이어 글 한 건 + 위키 | 낮음 |
-| R-13 | Kingdom Rush 웨이브 조기 호출 | https://www.gamedeveloper.com/design/kingdom-rush---the-wonderful-campaign-level-design , https://steamcommunity.com/app/816340/discussions/0/1734342161871096889 , toucharcade 포럼, levelwinner KR5 가이드 | 칼럼 + 포럼 | 낮음(V9 판단 불가) |
+| R-13 | Kingdom Rush 웨이브 조기 호출 | https://www.gamedeveloper.com/design/kingdom-rush---the-wonderful-campaign-level-design , https://steamcommunity.com/app/816340/discussions/0/1734342161871096889 , https://www.levelwinner.com/?p=114026 , https://www.trueachievements.com/a382017/daring-achievement , toucharcade 포럼 | 칼럼 + 가이드 둘 + 포럼 | 중간(보너스 골드·타이머 고리 확인, «남은 시간 비례»는 못 찾음) |
 | R-14 | Risk of Rain 2 산의 성소 | https://riskofrain2.wiki.gg/wiki/Shrine_of_the_Mountain , gamepur·gamewith | 위키·가이드 | 중간(검증 대상 아님) |
 | R-15 | Path of Exile Delirium | https://www.pcgamer.com/path-of-exile-delirium/ | 보도 | 중간(검증 대상 아님) |
 | R-16 | They Are Billions 아이언맨 | https://www.player2.net.au/2019/07/they-are-billions-a-half-baked-console-experience/ , https://www.ausgamers.com/games/they-are-billions/review/ , https://www.moddb.com/news/they-are-billions-update-ready-for-the-survival , Steam 토론(2019~2024) | 리뷰 둘 + 개발사 소식 + 포럼 | 중간 |
@@ -66,7 +66,7 @@
 | V6 | Loop Hero 100·60·30% | 확인 | 캠프 옆 칸 100%·불멸의 오브 예외를 덧붙임 |
 | V7 | Dome Keeper 인터뷰: 채굴·방어 두 단계가 서로를 키움 | 부분 확인 | 직접 인용 대신 요지로 |
 | V8 | They Are Billions: 수동 저장 없음, «웨이브마다 자동 저장» 요청 | 부분 확인 | «종료할 때 한 칸 자동 저장, 되돌리기 불가», 요청은 «수동 저장·아이언맨 아닌 모드», 백업 파일 우회 |
-| V9 | Kingdom Rush 조기 호출 보너스(남은 시간 비례) | 판단 불가(검색 한도 소진) | «반박 검증 못 함»으로 표시 |
+| V9 | Kingdom Rush 조기 호출 보너스(남은 시간 비례) | 부분 확인(메인 세션 검색 1회) | 보너스 골드(KR5는 주문 쿨다운도)와 아이콘 둘레 타이머 고리는 가이드로 확인. «남은 시간에 비례»는 못 찾았고, 플레이어 글은 오히려 «빨리 불러도 골드가 아주 적다, 빨리 부를수록 더 달라»고 한다. 본문의 «비례하게»는 우리 안(C4)으로만 둔다 |
 | V10 | Thronefall «Challenge the Turtle God» 적 체력 +75%·점수 +40% | 부분 확인 | +75%만 확인, +40%는 미확인(AI 생성 페이지뿐) |
 | V11 | WoW LFR: 기믹 수는 줄이고 남은 기믹은 위협적으로, «켜고 끄는 능력은 뺀다»(2012) | 부분 확인 | 시기를 Legion(2017 무렵)으로. 2012 발언은 지움 |
 | V12 | Ta'yak 60초마다 +5%, 하드 인레이지 대개 5~10분 | 부분 확인 | Ta'yak 확인, 일반 범위는 지우고 «Ta'yak 약 8분»으로 |
