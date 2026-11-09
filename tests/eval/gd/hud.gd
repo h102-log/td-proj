@@ -3956,3 +3956,15 @@ func ev828():
 	_done(main)
 	var text: String = two if two is String else ""
 	return check("불화살 고블린: 사거리 9, 쏘는 구조물에 불화살" in text, "3라운드 2웨이브 줄 «%s»" % text)
+
+# EV839 · S303: 4라운드 1웨이브 줄에 비행·깃털 사수 하피, 2웨이브 줄에 박치기 하피·노래하는 하피 특성 줄이 있다(S304~S306)
+func ev839():
+	var main = _prep()
+	var one = main.hud._wave_lines([3, 0])
+	var two = main.hud._wave_lines([3, 1])
+	_done(main)
+	var a: String = one if one is String else ""
+	var b: String = two if two is String else ""
+	return check("비행: 길을 무시하고 무리로 온다, 근접은 못 친다" in a and "깃털 사수 하피: 사거리 5, 멈춰서 유닛에 깃털을 쏜다" in a
+		and "박치기 하피: 활강해 박고 밀친다, 방패병에 박으면 기절한다" in b and "노래하는 하피: 둘레 적을 회복시키고 아군 공격을 늦춘다" in b,
+		"4라운드 1웨이브 줄 «%s» · 2웨이브 줄 «%s»" % [a, b])

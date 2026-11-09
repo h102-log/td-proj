@@ -16,7 +16,12 @@ const ENEMY_COLORS := {  # 적 종류마다 다른 색(I81)
 	"sapper": Color("c05828"), "ram": Color("6a4a30"), "catapult": Color("a08048"), "glider": Color("c8b868"),
 	"siege_tower": Color("586068"), "balloon": Color("e8d0a0"), "airship": Color("7090b0"), "war_machine": Color("4a4038"),
 	"chief": Color("a02838"), "shieldbearer": Color("4a6a8a"), "fire_archer": Color("f0b020"),
+	"feather_harpy": Color("70c8e8"), "dive_harpy": Color("e88850"), "song_harpy": Color("b890f0"),
 }
+# 그림이 아직 없어 다른 종류의 그림을 빌리는 종류 → [빌리는 종류, 곱하는 색](I250 ⑤). 4라운드 하피 셋은 비행(하피) 그림이다
+const LOOKS := {"feather_harpy": ["flying", Color(0.75, 1.2, 1.7)], "dive_harpy": ["flying", Color(1.7, 1.0, 0.6)], "song_harpy": ["flying", Color(1.45, 0.85, 1.75)]}  # 하피 그림이 어두워 1을 넘겨 밝힌다
+const NOTE := Color("d8b0ff")  # 노래(S306)로 공격 속도가 느려진 아군 머리 위 음표와 노래 반경 고리의 색(I252 ④)
+const FEATHER := Color("f4f0e8")  # 날아가는 깃털(I250 ④)
 const HERO_COLORS := {  # 영웅 종류마다 다른 색(S56, S157, I101)
 	"aias": Color("b060f0"), "sylvia": Color("a0ff40"), "seraphina": Color("f0f0f0"), "vesper": Color("40c060"), "ignis": Color("ff5020"), "chronos": Color("ffd020"),
 }
@@ -26,7 +31,7 @@ const MARKS := {"dr": Color("80c0ff"), "haste": Color.ORANGE}
 const EYES := Color("f0e060")  # 어둠 속에 숨은 밤 늑대의 눈빛(S240, I193 ④)
 
 const UNITS := preload("res://art/units/heroes.png")  # 영웅 6명과 용병·적 시트를 한 장에 모은 아틀라스(tools/art/atlas.py)
-static var ART: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/units/heroes.json"))  # 종류 → 캔버스·발밑·시트 y
+static var ART: Dictionary = _art()  # 종류 → 캔버스·발밑·시트 y
 const LUNGE := 6.0  # 근접 돌진 거리(px). 대상 몸까지의 틈을 더한다(_lunge). 림월드 0.35칸을 16px 칸으로 옮겼다(06 §4)
 const CONTACT := 0.08  # 근접 공격이 대상에 닿는 때(친 뒤 초). 돌진(_lunge)이 가장 멀리 나간 때다
 const FLASH := 0.1  # 피격 흰 번쩍임 길이(초, S177)
@@ -142,12 +147,12 @@ const HEX_SPIN := 1.0  # 저주 고리가 조여드는 동안 반시계로 도�
 const PLAGUE_DASH := 6  # 전염 고리 점선 한 주기(px). 앞쪽 반만 그린다
 const BOG_DASH := 2  # 늪 물결 점선의 그린 칸·틈 길이(px)
 const TELL_FILL := 5  # 보스 스킬 예고 안쪽 성긴 칠의 밀도(/16, fx-4)
-const ALLY_FX := ["dr", "haste", "shield", "invuln", "stun", "bleed"]  # 아군에 걸린 효과(I101, 기절은 I192, 출혈은 I193 ③)
+const ALLY_FX := ["dr", "haste", "shield", "invuln", "stun", "bleed", "lag"]  # 아군에 걸린 효과(I101, 기절은 I192, 출혈은 I193 ③, 노래의 공격 속도 감소는 I252 ④)
 const FOE_FX := ["stun", "root", "expose", "taunt", "seal", "chain", "dot"]  # 적에 걸린 효과(I101). 둔화는 능력치 감소 줄(DEBUFFS)이다
 const DEBUFFS := ["slow", "weaken", "armor", "mr"]  # 적 능력치 감소 줄의 왼쪽부터 차례(I101 2026-11-04 변경). fx 아틀라스 «down» 프레임 차례와 같다(tools/art/fx.py)
 const FOE_TELL := Color("ef692f")  # 일반 적 예고(S279): F24+ 주황 1px 테가 BLINK초마다 켜졌다 꺼진다. 안쪽은 칠하지 않는다
 const BLINK := 0.25
-const UNSEEN_TELLS := ["pounce", "throw", "bomb", "drop", "cannon", "bombs", "flame"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287)·대장 폭탄(S288)·불화살(I249 ①). 덮개 위 층에 그린다
+const UNSEEN_TELLS := ["pounce", "throw", "bomb", "drop", "cannon", "bombs", "flame", "dive"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287)·대장 폭탄(S288)·불화살(I249 ①)·박치기(I251 ⑦). 덮개 위 층에 그린다
 const FLAME_RING := 0.5  # 불화살 예고 원 반경(칸, S302). 판정에 쓰지 않는 그림 값이라 flame 데이터에 없다
 const TELL := Color("ef3a0c")  # 보스 스킬 예고(S194): F24+ 빨강 테(바깥 어두운 테는 PX.maroon), 안쪽 성긴 칠이 차오른다(S198 fx-4)
 const RAGE := Color(1.5, 0.55, 0.55)  # 분노한 보스(S195)를 붉게 그리는 modulate
@@ -477,6 +482,7 @@ func _draw() -> void:
 	for m in shots:
 		_missile(m, starts)
 	_shots = starts
+	_feathers()
 	_impacts()  # 사각형이라 구슬·대포알과 한 배치다. 대포알 고리도 아트 px 사각형이라 이어진다
 	for m in battle.landed:  # 대포알이 떨어진 곳에 범위 피해 반경까지 퍼지는 2px 주황 고리(S178 2026-10-28, I101 2026-10-28 셋째 변경)
 		if m.look == "ball" and m.age < BLAST:
@@ -545,6 +551,13 @@ func _spawn_badges() -> void:
 		var box := Rect2((Vector2(battle.spawns[i]) * CELL + Vector2(CELL / 2.0 - w / 2.0 - 2.0, -10.0)).round(), Vector2(w + 4.0, 9.0).round())
 		_cv.draw_rect(box, Color.BLACK)
 		_cv.draw_string(PIXEL_FONT, box.position + Vector2(2, 8), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8)
+
+# 날아가는 깃털(S304, I250 ④): 깃털 자리에서 가슴 높이(6px 위)에 대상 쪽을 향한 흰 깃 7px 선
+func _feathers() -> void:
+	for f in battle.feathers:
+		var p: Vector2 = _center(f.pos) + Vector2(0, -6)
+		var d: Vector2 = (f.target.pos - f.pos).normalized()
+		_pline(Vector2i((p - d * 6.0).round()), Vector2i(p.round()), FEATHER)
 
 # 날고 있는 투사체 하나(S178). 출발 자리(처음 그릴 때 쏜 쪽의 쏘는 곳 _muzzle, starts에 남긴다)에서 대상 가슴까지, 시뮬레이션에서 날아간 비율만큼 간 자리에 그린다.
 # 화살은 짧은 선, 마법은 쏜 쪽 색 구슬, 대포알은 포물선이다. 대상이 쓰러져 마지막 자리로 가는 대포알은 쓰러진 몸 쪽으로 간다.
@@ -648,9 +661,9 @@ func _chest(x) -> Vector2:
 func _drop_at(m) -> Vector2:
 	return _center(m.at) - Vector2(0, _lift(m.target))
 
-# 원거리: 타워, 사거리 2칸을 넘는 영웅·용병. 나머지는 근접이다
+# 원거리: 타워, 사거리 2칸을 넘는 영웅·용병, 깃털을 쏘는 깃털 사수 하피(S304). 나머지는 근접이다
 func _ranged(x) -> bool:
-	return x.get("pos") == null or (x.get("range") != null and x.range > 2.0)
+	return x.get("pos") == null or (x.get("range") != null and x.range > 2.0) or (x.get("feather") is Dictionary and not x.feather.is_empty())
 
 # 흔적의 스킬 이름: 칸(Q·W·E·R)이면 그 칸 스킬, 아니면(운석 착탄·태세 터뜨림·보스 스킬) slot 그대로
 func _skill(c) -> String:
@@ -1972,6 +1985,10 @@ func status_marks(x, ally: bool) -> Array:
 				for i in 3:
 					var ph := fmod(clock + _hf(n, i + 7) * 0.6, 0.6) / 0.6
 					out.append({k = "px", p = feet + Vector2i(int(_hf(n, i + 11) * 8.0) - 4, -int(tall * 0.5) + int(8.0 * ph)), c = PX.blood if ph < 0.6 else PX.maroon})
+			"lag":  # 노래(I252 ④): 머리 오른쪽 위에서 오르내리는 음표 하나(대 4px, 깃발 2px, 머리 3px)
+				var at := head + Vector2i(5, int(round(sin(clock * 4.0 + _hf(n, 8) * TAU))))
+				for d in [Vector2i(0, -4), Vector2i(0, -3), Vector2i(0, -2), Vector2i(0, -1), Vector2i(1, -4), Vector2i(1, -3), Vector2i(-1, -1), Vector2i(-1, 0), Vector2i(0, 0)]:
+					out.append({k = "px", p = at + d, c = NOTE})
 			"invuln":  # 금 테가 맥동하고 별 하나가 돈다
 				var a := clock * 3.0 + _hf(n, 6) * TAU
 				out.append({k = "ring", p = feet - Vector2i(0, int(tall * 0.45)), r = int(tall * 0.6) + 1, c = PX.gold if fmod(clock * 2.0, 1.0) < 0.5 else PX.cream})
@@ -2525,9 +2542,17 @@ func _body(x, i: int, next: Dictionary, tint := Color.WHITE, flash := true) -> v
 	if white and Settings.soft_flash:  # 번쩍임 줄이기(S184): 원래 그림 위에 같은 그림을 흰 40%로 한 번 더(S177)
 		_paint(x, i, next, tint * SOFT_FLASH)
 
+# 그림 칸 표(heroes.json, tools/art/atlas.py). 그림이 아직 없는 종류(LOOKS)는 빌리는 종류의 칸을 함께 쓴다(I250 ⑤)
+static func _art() -> Dictionary:
+	var a: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/units/heroes.json"))
+	for k in LOOKS:
+		if a.has(LOOKS[k][0]):
+			a[k] = a[LOOKS[k][0]]
+	return a
+
 func _paint(x, i: int, next: Dictionary, tint: Color) -> void:
 	if ART.has(x.kind) and not x.get("is_hero"):
-		_four_sprite(x, next, tint)
+		_four_sprite(x, next, tint * (LOOKS[x.kind][1] if LOOKS.has(x.kind) else Color.WHITE))  # 빌린 그림은 종류마다 색을 곱한다(I250 ⑤)
 	elif i >= battle.units.size():  # 그림이 없는 적은 색 원(I81)
 		draw_circle(_spot(x), CELL * x.radius, ENEMY_COLORS.get(x.kind, ENEMY_COLORS.basic) * tint)
 	elif x.is_hero and ART.has(x.kind):
@@ -3358,9 +3383,11 @@ func _slip(x) -> Vector2:
 # 보스 스킬 예고(S194, S198 fx-4): 예고 원은 F24+ 빨강 밝은 1px과 바깥 어두운 1px 테이고, 안쪽 성긴 칠이 남은 시간만큼 가운데에서 차오른다.
 # 발동하면(S198) 처음 FILL프레임은 예고 모양(원, 기관총은 부채꼴) 안을 예고색 60%로 채운다. 숨은 보스(S213)의 예고와 안 보이는 자리의 채움은 그리지 않는다
 func _tells() -> void:
-	for e in _foes:  # 울부짖음(S242): 알파 둘레 반경 고리를 옅게
+	for e in _foes:  # 울부짖음(S242): 알파 둘레 반경 고리를 옅게. 노래(S306, I252 ④): 노래하는 동안 하피 둘레 반경 고리를 옅은 음표 색으로
 		if e.skills.has("howl") and battle.effect(e, "seal") == null:
 			_pring(Vector2i(_center(e.pos).floor()), int(CELL * e.skills.howl.radius), 1, Color(PX.ash, 0.5))
+		if battle.sings(e):
+			_pring(Vector2i(_center(e.pos).floor()), int(CELL * e.song.radius), 1, Color(NOTE, 0.5))
 	for e in tellers(_foes):
 		if e.cast.id in UNSEEN_TELLS:  # 덮치기(S242)·던지기(S279)는 덮개 위 층에 그린다(_pounce_tells·_foe_tells)
 			continue
@@ -3454,8 +3481,15 @@ func _pounce_tells() -> void:
 		_edge(to, 6, TELL, PX.maroon)
 
 # 일반 적 예고(S279): 예고 원을 주황 1px 테로 BLINK초마다 켜고 끈다. 던지기(S282)는 예고 동안 돌이 투석기에서 원 가운데로 포물선을 그리며 난다.
-# 불화살(I249 ②)은 예고 동안 고블린에서 구조물 칸 가운데로 낮은 포물선을 그리며 나는 화살이고, 촉에 불꽃이 붙어 있다
+# 불화살(I249 ②)은 예고 동안 고블린에서 구조물 칸 가운데로 낮은 포물선을 그리며 나는 화살이고, 촉에 불꽃이 붙어 있다.
+# 박치기(S305, I251 ⑦)는 하피에서 대상 발밑까지 곧은 선과 발밑 고리다. 활강하는 동안은 그리지 않는다
 func _foe_tell(e) -> void:
+	if e.cast.id == "dive":
+		if not e.cast.get("air", false) and int(clock / BLINK) % 2 == 0:
+			var to := Vector2i(_spot(e.cast.who).floor())
+			_pline(Vector2i(_spot(e).floor()), to, FOE_TELL)
+			_pring(to, 5, 1, FOE_TELL)
+		return
 	var sk: Dictionary = battle.deed(e, e.cast.id)
 	var at: Vector2 = e.cast.get("at", e.pos)
 	if int(clock / BLINK) % 2 == 0:

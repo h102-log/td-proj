@@ -40,3 +40,6 @@ extends Resource
 @export var guard := 0.0  # 방패 내구도(S301, I248): 궁수탑·궁수 용병의 화살 피해를 방어력보다 먼저 받는다. 라운드 체력 배율(S144)을 곱한다. 0이면 방패가 없다
 @export var escort := {}  # 호위(S301, I248 ⑤): 웨이브에서 나올 때 한 차례에 함께 나오는 {kind, count}. 비어 있으면 혼자 나온다
 @export var flame := {}  # 불화살(S302, I249): {windup 예고 초, cd 대기 초, hit 화살 피해, dps 불 초당 피해, time 불 초, spread 번지는 때(붙은 뒤 초)}
+@export var feather := {}  # 깃털(S304, I250): {range 사거리 칸, speed 초당 칸}. 피해·쏘는 간격은 damage·attack_gap이다. 비어 있으면 쏘지 않는다
+@export var dive := {}  # 박치기(S305, I251): {windup 예고 초, air 활강 초, cd 대기 초, damage 피해, radius 반경, push 미는 칸, stun 방패병에 박았을 때 기절 초, shields 방패병 종류}. 대상은 인식 범위 안이다
+@export var song := {}  # 노래(S306, I252): {radius 반경, heal 초당 최대 체력 비율, lag 아군 공격 속도 감소}. 비어 있으면 노래하지 않는다

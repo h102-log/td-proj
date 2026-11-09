@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/enemy_def.gd" id="1_ldbao"]
+
+[resource]
+script = ExtResource("1_ldbao")
+hp = 10.0
+speed = 2.8
+damage = 4.0
+sight = 4.0
+reward = 8
+flying = true
+dive = {
+"windup": 1.0,
+"air": 0.4,
+"cd": 6.0,
+"damage": 8.0,
+"radius": 1.0,
+"push": 1.0,
+"stun": 2.0,
+"shields": ["soldier", "aias"]
+}
