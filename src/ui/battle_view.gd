@@ -17,11 +17,17 @@ const ENEMY_COLORS := {  # 적 종류마다 다른 색(I81)
 	"siege_tower": Color("586068"), "balloon": Color("e8d0a0"), "airship": Color("7090b0"), "war_machine": Color("4a4038"),
 	"chief": Color("a02838"), "shieldbearer": Color("4a6a8a"), "fire_archer": Color("f0b020"),
 	"feather_harpy": Color("70c8e8"), "dive_harpy": Color("e88850"), "song_harpy": Color("b890f0"),
+	"storm_harpy": Color("90e0c8"), "snatch_harpy": Color("d8c048"),
 }
-# 그림이 아직 없어 다른 종류의 그림을 빌리는 종류 → [빌리는 종류, 곱하는 색](I250 ⑤). 4라운드 하피 셋은 비행(하피) 그림이다
-const LOOKS := {"feather_harpy": ["flying", Color(0.75, 1.2, 1.7)], "dive_harpy": ["flying", Color(1.7, 1.0, 0.6)], "song_harpy": ["flying", Color(1.45, 0.85, 1.75)]}  # 하피 그림이 어두워 1을 넘겨 밝힌다
+# 그림이 아직 없어 다른 종류의 그림을 빌리는 종류 → [빌리는 종류, 곱하는 색](I250 ⑤·I253 ⑤). 4라운드 하피 다섯은 비행(하피) 그림이다
+const LOOKS := {"feather_harpy": ["flying", Color(0.75, 1.2, 1.7)], "dive_harpy": ["flying", Color(1.7, 1.0, 0.6)], "song_harpy": ["flying", Color(1.45, 0.85, 1.75)],
+	"storm_harpy": ["flying", Color(0.85, 1.65, 1.35)], "snatch_harpy": ["flying", Color(1.65, 1.5, 0.65)]}  # 하피 그림이 어두워 1을 넘겨 밝힌다
 const NOTE := Color("d8b0ff")  # 노래(S306)로 공격 속도가 느려진 아군 머리 위 음표와 노래 반경 고리의 색(I252 ④)
 const FEATHER := Color("f4f0e8")  # 날아가는 깃털(I250 ④)
+const GUST := Color(1.0, 1.0, 1.0, 0.45)  # 뿜는 돌풍의 부채꼴 테두리·바람 줄과 날린 화살 자국(I253 ③④)
+const HANG := 10.0  # 낚아채기 하피가 든 용병·주민을 땅 자리에서 들어 올려 그리는 높이(px, I254 ⑥)
+const CARRY_UP := 20.0  # 용병·주민을 든 낚아채기 하피 그림을 들어 올리는 높이(px). 발톱이 든 몸 머리에 걸려 매달려 보이게 캡처를 보고 맞춘 Claude 값
+const ROCK := Color("9a948a")  # 낚아채기 하피의 돌(I254 ⑥)
 const HERO_COLORS := {  # 영웅 종류마다 다른 색(S56, S157, I101)
 	"aias": Color("b060f0"), "sylvia": Color("a0ff40"), "seraphina": Color("f0f0f0"), "vesper": Color("40c060"), "ignis": Color("ff5020"), "chronos": Color("ffd020"),
 }
@@ -152,7 +158,7 @@ const FOE_FX := ["stun", "root", "expose", "taunt", "seal", "chain", "dot"]  # �
 const DEBUFFS := ["slow", "weaken", "armor", "mr"]  # 적 능력치 감소 줄의 왼쪽부터 차례(I101 2026-11-04 변경). fx 아틀라스 «down» 프레임 차례와 같다(tools/art/fx.py)
 const FOE_TELL := Color("ef692f")  # 일반 적 예고(S279): F24+ 주황 1px 테가 BLINK초마다 켜졌다 꺼진다. 안쪽은 칠하지 않는다
 const BLINK := 0.25
-const UNSEEN_TELLS := ["pounce", "throw", "bomb", "drop", "cannon", "bombs", "flame", "dive"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287)·대장 폭탄(S288)·불화살(I249 ①)·박치기(I251 ⑦). 덮개 위 층에 그린다
+const UNSEEN_TELLS := ["pounce", "throw", "bomb", "drop", "cannon", "bombs", "flame", "dive", "gust", "snatch"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287)·대장 폭탄(S288)·불화살(I249 ①)·박치기(I251 ⑦)·돌풍(I253 ④)·낚아채기(I254 ⑥). 덮개 위 층에 그린다
 const FLAME_RING := 0.5  # 불화살 예고 원 반경(칸, S302). 판정에 쓰지 않는 그림 값이라 flame 데이터에 없다
 const TELL := Color("ef3a0c")  # 보스 스킬 예고(S194): F24+ 빨강 테(바깥 어두운 테는 PX.maroon), 안쪽 성긴 칠이 차오른다(S198 fx-4)
 const RAGE := Color(1.5, 0.55, 0.55)  # 분노한 보스(S195)를 붉게 그리는 modulate
@@ -483,6 +489,8 @@ func _draw() -> void:
 		_missile(m, starts)
 	_shots = starts
 	_feathers()
+	_blown()
+	_stones()
 	_impacts()  # 사각형이라 구슬·대포알과 한 배치다. 대포알 고리도 아트 px 사각형이라 이어진다
 	for m in battle.landed:  # 대포알이 떨어진 곳에 범위 피해 반경까지 퍼지는 2px 주황 고리(S178 2026-10-28, I101 2026-10-28 셋째 변경)
 		if m.look == "ball" and m.age < BLAST:
@@ -558,6 +566,26 @@ func _feathers() -> void:
 		var p: Vector2 = _center(f.pos) + Vector2(0, -6)
 		var d: Vector2 = (f.target.pos - f.pos).normalized()
 		_pline(Vector2i((p - d * 6.0).round()), Vector2i(p.round()), FEATHER)
+
+# 돌풍에 날린 화살 자국(I253 ③): 날린 자리 가슴 높이(6px 위)에서 BLOWN초 동안 양옆으로 흩어지는 짧은 흰 선 둘
+func _blown() -> void:
+	for w in battle.blown:
+		var p: Vector2 = _center(w.pos) + Vector2(0, -6)
+		var s: float = 2.0 + 6.0 * w.age / battle.BLOWN
+		_pline(Vector2i((p + Vector2(-s, -1)).floor()), Vector2i((p + Vector2(-s + 3.0, -2)).floor()), GUST)
+		_pline(Vector2i((p + Vector2(s - 3.0, 1)).floor()), Vector2i((p + Vector2(s, 0)).floor()), GUST)
+
+# 낚아채기 하피의 돌(I254 ⑥): 든 돌은 하피 발톱 자리(몸 가운데 1px 아래), 줍는 동안은 발밑 그림자 자리의 회색 돌
+func _stones() -> void:
+	for e in _foes:
+		if e.get("carry") is String:
+			_pdisc(Vector2i((_center(e.pos) + Vector2(0, 1)).floor()), 2, ROCK)
+		elif e.cast != null and e.cast.id == "snatch" and e.cast.get("pick", false):
+			_pdisc(Vector2i((_center(e.pos) + Vector2(0, CELL * 0.4)).floor()), 2, ROCK)
+
+# 들린 주민(S308, away «lift»)
+static func _hung(v) -> bool:
+	return v.m.get("away", {}).get("to") == "lift"
 
 # 날고 있는 투사체 하나(S178). 출발 자리(처음 그릴 때 쏜 쪽의 쏘는 곳 _muzzle, starts에 남긴다)에서 대상 가슴까지, 시뮬레이션에서 날아간 비율만큼 간 자리에 그린다.
 # 화살은 짧은 선, 마법은 쏜 쪽 색 구슬, 대포알은 포물선이다. 대상이 쓰러져 마지막 자리로 가는 대포알은 쓰러진 몸 쪽으로 간다.
@@ -2367,12 +2395,13 @@ func _bodies() -> void:
 			_corpse(dead[k])
 	for i in n:
 		var x = all[i]
-		var fly: bool = x.get("flying") == true
-		if not x.on_wall:
-			_feet_mark(x, i)
-		else:
+		var hung: bool = x.get("is_hero") != null and battle.effect(x, "lift") != null  # 들린 용병(I254 ⑥)은 나는 몸의 층에서 하피보다 먼저(유닛 번호가 앞선다) 그린다
+		var fly: bool = x.get("flying") == true or hung
+		if x.on_wall:
 			keys.append((1 << 44) | ((_wall_line(Vector2i(x.pos.round())) + 5 + 64) << 20) | (feet + i))
-		if fly:
+		elif not hung:
+			_feet_mark(x, i)
+		if fly and not hung:
 			draw_circle(_center(x.pos) + Vector2(0, CELL * 0.4), CELL * x.radius * 0.8, Color(0, 0, 0, 0.35))
 		var y: float = _wall_line(Vector2i(x.pos.round())) if x.on_wall else ((roundf(x.pos.y) + 1) * CELL + 1 if x.get("climbed") else _center(x.pos).y)
 		keys.append(((2 if fly else 1) << 44) | ((int(y) + 64) << 20) | i)
@@ -2385,7 +2414,9 @@ func _bodies() -> void:
 		keys.append((1 << 44) | (((_wall_line(blds[j].cell) if on else (blds[j].cell.y + 1) * CELL) + 64) << 20) | (m + j))
 	keys.append((1 << 44) | (((battle.base.cell.y + 1) * CELL + 64) << 20) | (m + blds.size()))
 	for k in day.size():
-		if not day[k].inside:  # 집 안이면 그리지 않는다(S223)
+		if _hung(day[k]):  # 들린 주민(I254 ⑥)은 나는 몸의 층에서 같은 자리의 하피보다 먼저 그린다
+			keys.append((2 << 44) | ((int(_center(day[k].pos).y) - 1 + 64) << 20) | (folk + k))
+		elif not day[k].inside:  # 집 안이면 그리지 않는다(S223)
 			keys.append((1 << 44) | ((int(_center(day[k].pos).y) + 64) << 20) | (folk + k))
 	var prop0 := grave + dead.size()  # 이 번호부터 일터 소품(S224)
 	for k in pl.size():
@@ -2692,6 +2723,10 @@ func _wall_line(c: Vector2i) -> int:
 # 위로 올려 그리는 정도(맵 px). 성벽 위 유닛·대포는 흉벽 바로 뒤(앞면에서 바닥 3px)에 서고, 기어오르는 적은 오른 만큼 오른다(4.1c, 05 §2).
 # 문루·문 양옆 탑 칸은 그 바닥 높이만큼 더 올린다(S170). 성벽 위는 선 자리대로 그려 칸 경계에서 튀지 않는다(S170 2026-10-28)
 func _lift(x) -> float:
+	if x.get("is_hero") != null and battle.effect(x, "lift") != null:  # 들린 용병(I254 ⑥)은 하피 몸 아래에 매달아 그린다
+		return HANG
+	if x.get("carry") is Object:  # 용병·주민을 든 낚아채기 하피는 더 높이 난다
+		return CARRY_UP
 	var p := _pos_of(x)
 	var top: bool = x.on_wall if x.get("pos") != null else (x.kind in battle.STRUCTURE_KINDS and battle.walls.has(x.cell))
 	if top:
@@ -2949,7 +2984,7 @@ func _folk_body(x, now: float) -> void:
 	var a: Dictionary = ART["folk_%s_%d" % [x.f.body, x.f.look]]
 	var v: Vector2 = x.pos - x.was
 	var moving := v.length_squared() > 1e-8
-	var at := _center(x.pos)
+	var at := _center(x.pos) - Vector2(0, HANG if _hung(x) else 0.0)  # 들린 주민(I254 ⑥)은 하피 몸 아래에 매달아 그린다
 	if x.pose.begins_with("carry") and a.has(x.pose):
 		_frame(a, x.pose, _four(v) if moving else 0, int(now * 8.0) % 2 if moving else 0, at)
 	elif x.dir >= 0 and a.has(x.pose):
@@ -3484,6 +3519,11 @@ func _pounce_tells() -> void:
 # 불화살(I249 ②)은 예고 동안 고블린에서 구조물 칸 가운데로 낮은 포물선을 그리며 나는 화살이고, 촉에 불꽃이 붙어 있다.
 # 박치기(S305, I251 ⑦)는 하피에서 대상 발밑까지 곧은 선과 발밑 고리다. 활강하는 동안은 그리지 않는다
 func _foe_tell(e) -> void:
+	if e.cast.id == "gust":
+		_gust_tell(e)
+		return
+	if e.cast.id == "snatch" and e.cast.get("pick", false):  # 돌 줍기에는 예고가 없다(돌은 _stones)
+		return
 	if e.cast.id == "dive":
 		if not e.cast.get("air", false) and int(clock / BLINK) % 2 == 0:
 			var to := Vector2i(_spot(e.cast.who).floor())
@@ -3511,6 +3551,34 @@ func _foe_tell(e) -> void:
 		var d: Vector2 = (_center(at) - _center(e.pos) + Vector2(0, -cos(k * PI) * PI * arc)).normalized()  # 포물선의 접선: 나는 쪽을 향한다
 		_pline(Vector2i((p - d * 6.0).round()), Vector2i(p.round()), Color("e8dcc0"))
 		_spr("flame_s", int(clock * 10.0), Vector2i(p.round()), true)
+
+# 돌풍(S307, I253 ④): 하피 몸 가운데(땅 자리)에서 reach칸 부채꼴의 두 변과 호(6조각). 예고 동안은 일반 적 예고(S279)대로 깜빡이고,
+# 뿜는 동안은 옅은 흰색으로 늘 그리며 흰 바람 줄 셋이 하피에서 바깥쪽으로 흐른다
+func _gust_tell(e) -> void:
+	var blow: bool = e.cast.get("blow", false)
+	if not blow and int(clock / BLINK) % 2 != 0:
+		return
+	var col: Color = GUST if blow else FOE_TELL
+	var o: Vector2 = _center(e.pos)
+	var r: float = CELL * e.gust.reach
+	var half: float = deg_to_rad(e.gust.arc) / 2.0
+	var a0: float = e.cast.dir - half
+	var a1: float = e.cast.dir + half
+	var c := Vector2i(o.floor())
+	_pline(c, Vector2i((o + Vector2.from_angle(a0) * r).floor()), col)
+	_pline(c, Vector2i((o + Vector2.from_angle(a1) * r).floor()), col)
+	for i in 6:
+		var p: Vector2 = o + Vector2.from_angle(lerpf(a0, a1, i / 6.0)) * r
+		var q: Vector2 = o + Vector2.from_angle(lerpf(a0, a1, (i + 1) / 6.0)) * r
+		_pline(Vector2i(p.floor()), Vector2i(q.floor()), col)
+	if not blow:
+		return
+	for k in 3:  # 바람 줄: 부채꼴 안 세 갈래에서 0.6초마다 하피 쪽에서 끝까지 흐르는 6px 선
+		var a: float = lerpf(a0, a1, (k + 1) / 4.0)
+		var t: float = fposmod(clock / 0.6 + k / 3.0, 1.0)
+		var p: Vector2 = o + Vector2.from_angle(a) * r * t
+		var q: Vector2 = o + Vector2.from_angle(a) * minf(r * t + 6.0, r)
+		_pline(Vector2i(p.floor()), Vector2i(q.floor()), col)
 
 # 사다리(S284)를 놓았거나 내리는 공성탑 → 자란 비율(0~1)
 func _ladder_grow() -> Dictionary:

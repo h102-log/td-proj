@@ -1,6 +1,6 @@
 {
   "approvedAt": "2026-11-09T23:37:43.741Z",
-  "evalMd": "73e49f9b",
+  "evalMd": "e73872e2",
   "tests": {
     "tests/eval/conftest.py": "726a1378",
     "tests/eval/gd/aura.gd": "010cc38a",
@@ -93,7 +93,7 @@
     "tests/eval/gd/siege3.gd.uid": "e233a3c5",
     "tests/eval/gd/sky.gd": "5a8a5e38",
     "tests/eval/gd/sky.gd.uid": "899ebbab",
-    "tests/eval/gd/sky2.gd": "486b1316",
+    "tests/eval/gd/sky2.gd": "575f30c4",
     "tests/eval/gd/sky2.gd.uid": "9a47c597",
     "tests/eval/gd/slimeart.gd": "b4d61220",
     "tests/eval/gd/slimeart.gd.uid": "1b226045",

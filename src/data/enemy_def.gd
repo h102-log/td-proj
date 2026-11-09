@@ -43,3 +43,5 @@ extends Resource
 @export var feather := {}  # 깃털(S304, I250): {range 사거리 칸, speed 초당 칸}. 피해·쏘는 간격은 damage·attack_gap이다. 비어 있으면 쏘지 않는다
 @export var dive := {}  # 박치기(S305, I251): {windup 예고 초, air 활강 초, cd 대기 초, damage 피해, radius 반경, push 미는 칸, stun 방패병에 박았을 때 기절 초, shields 방패병 종류}. 대상은 인식 범위 안이다
 @export var song := {}  # 노래(S306, I252): {radius 반경, heal 초당 최대 체력 비율, lag 아군 공격 속도 감소}. 비어 있으면 노래하지 않는다
+@export var gust := {}  # 돌풍(S307, I253): {range 멈추는 성곽 거리 칸, reach 부채꼴 반경 칸, arc 각도°, windup 예고 초, cd 끊긴 뒤 대기 초}. 비어 있으면 뿜지 않는다
+@export var snatch := {}  # 낚아채기(S308, I254): {range 탐색 칸, reach 드는 거리 칸, toss 떨어뜨릴 자리 거리 칸, windup 예고 초, radius 원 반경, hit 아군 피해, structure 구조물 피해, fall 낙하 피해, pick 돌 줍기 초, cd 대기 초}. 비어 있으면 낚아채지 않는다

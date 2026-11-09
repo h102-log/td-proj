@@ -377,8 +377,8 @@ func ev857():
 	while e.get("carry") == a:
 		b.step(DT)
 		off = off and not a.on_wall
-	if not off or a.on_wall or a.pos.distance_to(s1.pos) > 0.6:
-		return "성벽에서 들린 궁수: 든 동안 성벽 위가 아님 %s · 떨어진 뒤 성벽 위 %s · 자리 %s((12,6) 병사 %s에서 0.6칸 안)" % [off, a.on_wall, a.pos, s1.pos]
+	if not off or a.on_wall or a.pos.distance_to(Vector2(12, 6)) > 0.6:
+		return "성벽에서 들린 궁수: 든 동안 성벽 위가 아님 %s · 떨어진 뒤 성벽 위 %s · 자리 %s((12,6)에서 0.6칸 안, 병사 %s)" % [off, a.on_wall, a.pos, s1.pos]
 	var c = _fort()
 	var a1 = _up(c, "archer", TOP, {"hp": 100.0, "damage": 0})
 	var a2 = _up(c, "archer", Vector2i(13, 9), {"hp": 100.0, "damage": 0})
@@ -398,9 +398,9 @@ func ev857():
 	return check(m.on_wall and m.pos.distance_to(Vector2(TOP)) <= 0.001 and is_equal_approx(w0 - c.walls[TOP].hp, want),
 		"성벽 칸에 떨어진 병사: 성벽 위 %s · 자리 %s((12,9)여야 한다) · (12,9) 성벽 체력 %.1f 줄었다(%.1f여야 한다)" % [m.on_wall, m.pos, w0 - c.walls[TOP].hp, want])
 
-# 마을(0~5행) 들판 판에 집 (10,3)을 지은 판. 어둠 dark. 주민이 없으면 까닭(글)
-func _folk_board(dark := 0.0):
-	var b = battle({"village": Rect2i(0, 0, 30, 6), "base_hp": BIG, "waves": [[{"kind": "basic", "count": 1}]]})
+# 마을(0~5행) 들판 판에 집 (10,3)을 지은 판(씨앗 sd). 어둠 dark. 주민이 없으면 까닭(글)
+func _folk_board(dark := 0.0, sd := 1):
+	var b = battle({"village": Rect2i(0, 0, 30, 6), "base_hp": BIG, "waves": [[{"kind": "basic", "count": 1}]], "seed": sd})
 	if b.build("house", Vector2i(10, 3)) == null:
 		return "집 (10,3)을 짓지 못했다"
 	b.dark = dark
@@ -463,11 +463,16 @@ func ev858():
 	run(c, 3.0, func(): return y[1].get("carry") == null)
 	if u.alive or home.lost != lost0 + 1:
 		return "체력 10인 주민: 떨어진 뒤 살아 있음 %s · 죽은 식구 수 %d → %d" % [u.alive, lost0, home.lost]
-	var d = _folk_board(1.0)
-	if d is String:
-		return d
-	if not d.people.all(func(p): return p.inside):
-		return "어둠 1인 판에 밖에 나와 있는 주민이 있다"
+	var d = null
+	for sd in range(1, 21):  # 야경꾼(S223)은 밤에도 밖을 돌아서, 주민이 모두 집 안인 씨앗을 고른다
+		var k = _folk_board(1.0, sd)
+		if k is String:
+			return k
+		if k.people.all(func(p): return p.inside):
+			d = k
+			break
+	if d == null:
+		return "씨앗 1~20 가운데 어둠 1에 주민이 모두 집 안인 판이 없다"
 	var q = d.spawn_enemy(SN, Vector2i(13, 3), {"hp": BIG})
 	var grabbed := false
 	for i in int(5.0 / DT):

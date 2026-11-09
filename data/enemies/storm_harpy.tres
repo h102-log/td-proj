@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/enemy_def.gd" id="1_ldbao"]
+
+[resource]
+script = ExtResource("1_ldbao")
+hp = 14.0
+speed = 2.2
+damage = 3.0
+reward = 10
+flying = true
+gust = {
+"range": 4.0,
+"reach": 6.0,
+"arc": 60.0,
+"windup": 1.0,
+"cd": 4.0
+}
