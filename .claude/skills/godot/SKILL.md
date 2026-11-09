@@ -17,7 +17,7 @@ G="${GODOT:-$(ls -d "$LOCALAPPDATA"/Microsoft/WinGet/Packages/GodotEngine.*/Godo
 ```
 
 - 셸 변수는 Bash 툴 호출 사이에 남지 않는다. 호출마다 첫 줄을 다시 붙인다.
-- pytest는 `GODOT` → PATH → winget 순서로 스스로 찾는다. `tools/balance/sweep.py`는 winget을 찾지 않으니 `GODOT="$G"`를 넣어 부른다.
+- pytest는 `GODOT` → PATH → winget 순서로 스스로 찾는다.
 - 클라우드(Linux) 세션은 스크래치패드에서 받는다. 받은 뒤 `--import`를 먼저 한 번 돌린다.
   ```bash
   curl -sSL -o godot.zip https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip
@@ -130,5 +130,4 @@ O=<스크래치패드>/old; mkdir -p "$O" && git archive HEAD | tar -x -C "$O" &
 ## 다른 도구
 
 사용법은 각 파일 머리 주석에 있다.
-- `tools/balance/autoplay.gd`·`sweep.py`: 봇 밸런스 측정(headless). sweep이 도는 동안에는 평가 final을 돌리지 않고 `autoplay.gd`도 고치지 않는다.
 - `tools/bench/*.gd`: 렌더 측정과 장면 캡처(4.1a).

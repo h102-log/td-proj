@@ -30,7 +30,7 @@ def test_EV822_fire_archer_aims_shooter(gd):
     gd("siege", "EV822")
 
 
-def test_EV823_fire_archer_ignores_units(gd):
+def test_EV823_fire_archer_shoots_unit(gd):
     gd("siege", "EV823")
 
 
@@ -48,3 +48,11 @@ def test_EV826_fire_archer_tell_cancel(gd):
 
 def test_EV827_fire_archer_tell_in_dark(gd):
     gd("siege", "EV827")
+
+
+def test_EV830_fire_archer_target_order(gd):
+    gd("siege", "EV830")
+
+
+def test_EV831_unit_fire(gd):
+    gd("siege", "EV831")

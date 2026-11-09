@@ -3949,10 +3949,10 @@ func ev821():
 	var text: String = two if two is String else ""
 	return check("방패 고블린: 화살을 방패로 받는다 · 호위 고블린 4" in text, "3라운드 2웨이브 줄 «%s»" % text)
 
-# EV828 · S302: 3라운드 2웨이브 줄에 불화살 고블린 특성 줄 «불화살 고블린: 사거리 9, 쏘는 구조물에 불화살»이 있다
+# EV828 · S302(2026-11-08 변경): 3라운드 2웨이브 줄에 불화살 고블린 특성 줄 «불화살 고블린: 사거리 9, 쏘는 구조물·유닛에 불화살»이 있다
 func ev828():
 	var main = _prep()
 	var two = main.hud._wave_lines([2, 1])
 	_done(main)
 	var text: String = two if two is String else ""
-	return check("불화살 고블린: 사거리 9, 쏘는 구조물에 불화살" in text, "3라운드 2웨이브 줄 «%s»" % text)
+	return check("불화살 고블린: 사거리 9, 쏘는 구조물·유닛에 불화살" in text, "3라운드 2웨이브 줄 «%s»" % text)

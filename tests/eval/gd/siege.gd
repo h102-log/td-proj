@@ -328,33 +328,41 @@ func ev822():
 			return "%s 판: 멈춘 거리 %.2f(8.8~9) · 예고 at이 그 칸 %s · 맞기까지 %.2f초(1) · 맞은 피해 %.2f(5)" % [kind, gap2, aim2, wait, loss2]
 	return ""
 
-# EV823 · S302: 불화살 고블린은 인식 범위의 병사를 치지 않고 자기를 치는 병사에게 반격하지 않으며 도발에도 걸리지 않고,
-# 쏘는 구조물이 없으면 성문까지 가서 근접으로 3을 친다
+# EV823 · S302(2026-11-08 변경): 쏘는 구조물이 없으면 사거리 안의 가장 가까운 유닛에 불화살을 쏜다. 예고는 그 유닛을 따라가고,
+# 1초 뒤 물리 5를 준다. 쏠 것이 없으면 성문까지 가서 근접으로 3을 친다
 func ev823():
 	var b = _siege()
 	var why := _need(b, FA)
 	if why != "":
 		return why
-	var side = b.place_merc("soldier", Vector2i(10, 13), QUIET.merged({"hp": 100}))
-	var lure = b.place_merc("soldier", Vector2i(4, 15), QUIET.merged({"hp": 100}))
-	# 사거리와 인식 범위가 같아 다가가지 않고 제자리에서 쏜다. 다가가 몸으로 막으면 고블린이 계속 가는지 잴 수 없다
-	var shooter = b.place_merc("soldier", Vector2i(14, 14), {"hp": 100, "damage": 1, "range": 4, "sight": 4})
-	if side == null or lure == null or shooter == null:
-		return "시험 판을 차리지 못했다(병사 %s · 미끼 %s · 쏘는 병사 %s)" % [side, lure, shooter]
-	var f = b.spawn_enemy(FA, Vector2i(12, 16), {"sight": 3, "hp": BIG})
-	f.fx["test_taunt"] = {"taunt": lure, "left": 30.0}
+	var side = b.place_merc("soldier", Vector2i(10, 13), QUIET.merged({"hp": 100, "armor": 0}))
+	if side == null:
+		return "시험 판을 차리지 못했다(병사 %s)" % side
+	var f = b.spawn_enemy(FA, Vector2i(12, 16), {"hp": BIG})
+	if not run(b, 1.0, func(): return _casting(f, FLAME)):
+		return "1초 안에 불화살 예고를 시작하지 않았다(자리 %s · 병사 %.1f)" % [f.pos, side.hp]
+	var on = f.cast.get("on")
+	side.pos = Vector2(8, 13)
+	b.step(DT)
+	var at = f.cast.get("at") if f.cast != null else null
+	var follows: bool = typeof(at) == TYPE_VECTOR2 and at.distance_to(side.pos) < 0.01
+	var hp0: float = side.hp
+	var hit_t := DT
+	while hit_t < 2.0 and side.hp == hp0:
+		b.step(DT)
+		hit_t += DT
+	var loss: float = hp0 - side.hp
+	if not (on == side and follows and hit_t >= 0.95 and hit_t <= 1.1 and loss >= 4.99 and loss <= 5.21):
+		return "노린 것이 병사 %s · 옮긴 뒤 예고 at %s가 병사 자리 %s를 따라감 %s · 맞기까지 %.2f초(1) · 맞은 피해 %.2f(5)" % [
+			on == side, at, side.pos, follows, hit_t, loss]
+	b.damage(side, BIG)
 	var g = b.castle[GATE]
-	var hp0: float = g.hp
-	var seen := {"cast": false}
-	var hit := run(b, 15.0, func():
-		seen.cast = seen.cast or f.cast != null
-		return g.hp < hp0)
+	var g0: float = g.hp
+	var hit := run(b, 15.0, func(): return g.hp < g0)
 	if not hit:
-		return "15초 안에 성문을 치지 않았다(자리 %s · 병사 %.1f · 미끼 %.1f · 쏘는 병사 %.1f)" % [f.pos, side.hp, lure.hp, shooter.hp]
-	return check(is_equal_approx(hp0 - g.hp, 3.0) and f.pos.distance_to(Vector2(12, 10)) <= 1.1 and side.hp == 100.0 and lure.hp == 100.0 and not seen.cast
-		and f.hp < f.max_hp and shooter.hp == 100.0,
-		"성문 %.1f→%.1f(−3) · 친 자리 %s · 길 옆 병사 %.1f · 도발한 병사 %.1f · 예고를 띄움 %s · 병사에게 맞음 %s · 쏜 병사 %.1f(100)" % [
-			hp0, g.hp, f.pos, side.hp, lure.hp, seen.cast, f.hp < f.max_hp, shooter.hp])
+		return "병사가 쓰러진 뒤 15초 안에 성문을 치지 않았다(자리 %s · 병사 살아 있음 %s)" % [f.pos, side.alive]
+	return check(is_equal_approx(g0 - g.hp, 3.0) and f.pos.distance_to(Vector2(12, 10)) <= 1.1,
+		"성문 %.1f→%.1f(−3) · 친 자리 %s((12,10)에서 1.1칸 안)" % [g0, g.hp, f.pos])
 
 # EV824 · S302·I249: 불은 초당 4로 9초 타고, 붙은 지 3초에 8방향 이웃 쏘는 구조물로 남은 시간 그대로 옮겨붙는다. 옮은 불도 3초 뒤 번지고
 # 남은 시간이 0이면 번지지 않는다. 2칸 떨어진 타워와 곁 방벽은 붙지 않는다. 불붙은 타워가 또 맞으면 남은 시간이 9초로 새로 되고 번짐도 새로 센다
@@ -425,7 +433,8 @@ func ev825():
 	if why != "":
 		return why
 	var t = b.build("tower", T0)
-	var eng = b.place_merc("engineer", T0 + Vector2i(0, 2))
+	# 타워 북쪽 곁. 남쪽 (12,8)이면 걸어오는 고블린 사거리에 타워보다 먼저 들어 공병을 쏜다(S302 2026-11-08 변경)
+	var eng = b.place_merc("engineer", T0 + Vector2i(0, -2))
 	if t == null or eng == null:
 		return "시험 판을 차리지 못했다(타워 %s · 공병 %s)" % [t, eng]
 	_fight(b)
@@ -565,3 +574,120 @@ func ev827():
 	v.free()
 	return check(told and not drawn and col == Color("ef692f"),
 		"숨은 고블린: 예고를 그림 %s · 몸을 그림 %s · 예고 색 %s(ef692f)" % [told, drawn, col.to_html(false)])
+
+# 불화살 예고가 유닛 u를 노리는가
+func _aims_at(f, u) -> bool:
+	return f.cast != null and f.cast.get("id") == FLAME and f.cast.get("on") == u
+
+# EV830 · S302(2026-11-08 변경): 사거리 안에 쏘는 구조물이 있으면 더 가까운 병사가 있어도 구조물에 쏜다.
+# 도발한 병사가 사거리 안이면 구조물보다 먼저 그 병사에 쏘고, 사거리 밖이면 쏘지 않고 다가가 사거리에 들면 쏜다
+func ev830():
+	var b = battle({"waves": WW})
+	var why := _need(b, FA)
+	if why != "":
+		return why
+	var t = b.build("tower", Vector2i(5, 5))
+	var near = b.place_merc("soldier", Vector2i(2, 10), QUIET.merged({"hp": 100}))
+	if t == null or near == null:
+		return "시험 판을 차리지 못했다(타워 %s · 병사 %s)" % [t, near]
+	_fight(b)
+	var f = b.spawn_enemy(FA, Vector2i(0, 10), {"hp": BIG})
+	if not run(b, 5.0, func(): return _casting(f, FLAME)):
+		return "5초 안에 불화살 예고를 시작하지 않았다(자리 %s)" % f.pos
+	var chose := _aims(f, t.cell)
+	var landed := run(b, 2.0, func(): return t.hp < t.max_hp)
+	if not (chose and landed and near.hp == 100.0):
+		return "타워 (5,5)·병사 (2,10): 예고 at이 타워 칸 %s · 2초 안에 타워를 깎음 %s · 병사 %.1f(100)" % [chose, landed, near.hp]
+	var c = battle({"waves": WW})
+	var t2 = c.build("tower", Vector2i(5, 5))
+	var lure = c.place_merc("soldier", Vector2i(2, 10), QUIET.merged({"hp": 100}))
+	if t2 == null or lure == null:
+		return "둘째 판을 차리지 못했다(타워 %s · 병사 %s)" % [t2, lure]
+	_fight(c)
+	var g = c.spawn_enemy(FA, Vector2i(0, 10), {"hp": BIG})
+	g.fx["test_taunt"] = {"taunt": lure, "left": 30.0}
+	if not run(c, 5.0, func(): return _aims_at(g, lure)):
+		return "둘째 판: 도발한 병사 (2,10)을 노린 예고를 5초 안에 띄우지 않았다(cast %s)" % [g.cast]
+	var d = battle({"waves": WW})
+	var t3 = d.build("tower", Vector2i(5, 5))
+	var far = d.place_merc("soldier", Vector2i(20, 10), QUIET.merged({"hp": 100}))
+	if t3 == null or far == null:
+		return "셋째 판을 차리지 못했다(타워 %s · 병사 %s)" % [t3, far]
+	_fight(d)
+	var h = d.spawn_enemy(FA, Vector2i(0, 10), {"hp": BIG})
+	h.fx["test_taunt"] = {"taunt": far, "left": 30.0}
+	var seen := {"cast": false}
+	run(d, 5.0, func():
+		seen.cast = seen.cast or h.cast != null
+		return false)
+	var x5: float = h.pos.x
+	var later := run(d, 15.0, func(): return _aims_at(h, far))
+	return check(not seen.cast and x5 > 2.0 and later,
+		"셋째 판(도발한 병사 (20,10), 사거리 밖): 5초 동안 예고 %s(없음) · 5초 뒤 x %.2f(2보다 큼) · 20초 안에 그 병사를 노림 %s" % [seen.cast, x5, later])
+
+# EV831 · S302(2026-11-08 변경): 유닛의 불은 9초 동안 초당 4 물리 피해이고 곁 유닛·쏘는 구조물로 번지지 않는다. 발치에 불꽃 조각을 그린다.
+# 성역(정화)이 지우고, 웨이브가 끝나면 꺼진다
+func ev831():
+	var b = battle({"waves": WW})
+	var why := _need(b, FA)
+	if why != "":
+		return why
+	var a = b.place_merc("soldier", Vector2i(4, 10), QUIET.merged({"hp": 1000, "armor": 0}))
+	var other = b.place_merc("soldier", Vector2i(5, 10), QUIET.merged({"hp": 1000, "armor": 0}))
+	var eng = b.place_merc("engineer", Vector2i(6, 12))
+	if a == null or other == null or eng == null:
+		return "시험 판을 차리지 못했다(병사 a %s · 곁 병사 %s · 공병 %s)" % [a, other, eng]
+	_fight(b)
+	var f = b.spawn_enemy(FA, Vector2i(0, 10), {"hp": BIG})
+	if not run(b, 5.0, func(): return a.hp < a.max_hp):
+		return "5초 안에 병사 a를 맞히지 않았다(cast %s · 곁 병사 %.1f)" % [f.cast, other.hp]
+	b.damage(f, BIG)
+	var u = b.build("tower", Vector2i(4, 9))
+	b.damage(eng, BIG)  # 짓는 공병이 없어 미완성으로 남는다(EV822와 같다). 구조물의 불은 미완성 쏘는 구조물에도 번진다(I249 ④)
+	if u == null or u.complete:
+		return "시험 조건이 틀렸다: a 곁에 미완성 타워를 두지 못했다(%s)" % u
+	var u0: float = u.hp
+	var v = load("res://src/ui/battle_view.gd").new()
+	v.battle = b
+	var lit: bool = v.status_marks(a, true).any(func(m): return m.k == "flame_s")
+	var plain: bool = not v.status_marks(other, true).any(func(m): return m.k == "flame_s")
+	v.free()
+	run(b, 0.5)
+	var h05: float = a.hp
+	run(b, 8.0)
+	var h85: float = a.hp
+	run(b, 1.5)
+	var h10: float = a.hp
+	run(b, 1.0)
+	var h11: float = a.hp
+	if not (_about(h05 - h85, 32.0) and h11 == h10 and other.hp == other.max_hp and u.hp == u0 and lit and plain):
+		return "맞은 뒤 0.5~8.5초 불 피해 %.2f(32±0.5) · 10~11초 %.2f → %.2f(그대로) · 곁 병사 %.1f/%.1f · 곁 미완성 타워 %.1f → %.1f · 불꽃 조각 a %s · 곁 병사 없음 %s" % [
+			h05 - h85, h10, h11, other.hp, other.max_hp, u0, u.hp, lit, plain]
+	var c = battle({"waves": WW, "heroes": [{"kind": "seraphina", "cell": Vector2i(6, 12)}]})
+	var a2 = c.place_merc("soldier", Vector2i(4, 10), QUIET.merged({"hp": 1000, "armor": 0}))
+	if a2 == null or c.heroes.is_empty():
+		return "둘째 판을 차리지 못했다(병사 %s · 영웅 %s)" % [a2, c.heroes]
+	var sera = c.heroes[0]
+	_fight(c)
+	var g = c.spawn_enemy(FA, Vector2i(0, 10), {"hp": BIG})
+	if not run(c, 5.0, func(): return a2.hp < a2.max_hp):
+		return "둘째 판: 5초 안에 병사를 맞히지 않았다(cast %s)" % [g.cast]
+	c.damage(g, BIG)
+	var burning: bool = c.effect_sum(a2, "burn") > 0.0
+	var cast_ok = c.cast(sera, "w", a2.pos)
+	var wiped := run(c, 0.5, func(): return c.effect_sum(a2, "burn") == 0.0)
+	if not (burning and cast_ok and wiped):
+		return "둘째 판: 맞은 병사 불 %s · 성역 씀 %s · 0.5초 안에 불이 0 %s(남은 불 %.2f)" % [burning, cast_ok, wiped, c.effect_sum(a2, "burn")]
+	var d = battle({"waves": WW})
+	var a3 = d.place_merc("soldier", Vector2i(4, 10), QUIET.merged({"hp": 1000, "armor": 0}))
+	if a3 == null:
+		return "셋째 판을 차리지 못했다"
+	_fight(d)
+	d.spawn_enemy(FA, Vector2i(0, 10), {"hp": BIG})
+	if not run(d, 5.0, func(): return a3.hp < a3.max_hp):
+		return "셋째 판: 5초 안에 병사를 맞히지 않았다"
+	var hot: bool = d.effect_sum(a3, "burn") > 0.0
+	if not clear_wave(d) or d.state != "prep":
+		return "셋째 판: 웨이브가 끝나 준비 단계로 가지 않았다(%s)" % d.state
+	return check(hot and d.effect_sum(a3, "burn") == 0.0,
+		"셋째 판: 웨이브 끝나기 전 불 %s · 준비 단계의 불 %.2f(0)" % [hot, d.effect_sum(a3, "burn")])

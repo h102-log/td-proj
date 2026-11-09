@@ -68,3 +68,7 @@ def test_EV651_reroll_cost_rises_and_resets_per_round(gd):
 
 def test_EV652_reroll_count_saved(gd):
     gd("hire", "EV652")
+
+
+def test_EV832_live_hire_auto_on(gd):
+    gd("hire", "EV832")

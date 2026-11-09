@@ -492,8 +492,8 @@ msgstr "Escort goblins"
 msgid "사거리"
 msgstr "Range"
 
-msgid "쏘는 구조물에 불화살"
-msgstr "Shoots fire arrows at towers"
+msgid "쏘는 구조물·유닛에 불화살"
+msgstr "Shoots fire arrows at towers and units"
 
 msgid "죽으면 둘로 갈라진다"
 msgstr "Splits in two on death"
