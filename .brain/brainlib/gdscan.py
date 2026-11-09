@@ -607,8 +607,10 @@ def _scan_lit(code: list, i: int, src: str, fs: FileScan) -> None:
     v = lit_value(t.text)
     if HANGUL.search(v):
         fs.hangul[src] = fs.hangul.get(src, 0) + 1
-    if "func " in v and CODEGEN_FUNC.search(v):
-        names = CODEGEN_FUNC.findall(v)
+    if "func " in v:
+        # 한 줄 문자열의 \n·\t 이스케이프로 쓴 코드도 있다(show.gd BARS_SRC) → 풀어서 본다
+        code_v = v.replace("\\n", "\n").replace("\\t", "\t").replace('\\"', '"') if "\\" in v else v
+        names = CODEGEN_FUNC.findall(code_v)
         if names:
             fs.codegen.append((src, t.line, names))
     for base in CODEGEN_BASE.findall(v):  # 'extends "res://x.gd"\n' + code — 만든 스크립트의 부모

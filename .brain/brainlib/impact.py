@@ -202,7 +202,8 @@ def run(con, targets: list[str], kind: str, depth: int = 6, follow_ambiguous: bo
         out.append("[경로] 이 심볼을 쓰는 코드를 정적으로 찾지 못했다" + (" (미확인 후보는 아래)" if ambiguous else ""))
 
     # ── 미확인·동적·글 의존 ──
-    dyn = sorted(((n, i) for n, i in code.items() if i["conf"] in ("dynamic", "virtual")), key=lambda x: x[0])
+    # 동적 연결은 테스트 쪽도 보인다(평가가 문자열 GDScript로 덮어쓰거나 has_method·call로 부르는 것이 숨은 의존이다). 코드 먼저
+    dyn = sorted(((n, i) for n, i in direct.items() if i["conf"] in ("dynamic", "virtual")), key=lambda x: (_is_test(x[0]), x[0]))
     textdeps = _textdeps(con, files)
     if ambiguous or dyn or textdeps:
         out.append("")

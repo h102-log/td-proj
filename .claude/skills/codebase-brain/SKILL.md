@@ -1,6 +1,6 @@
 ---
 name: codebase-brain
-description: td-proj의 코드 의존 그래프와 설계·장애 히스토리 검색(.brain). 정의된 파일 밖에서 쓰이는 함수·상수·시그널·필드(특히 src/sim/battle.gd, src/data/*_def.gd, tests/eval/gd/lib.gd)를 바꾸기 전에 N단계 영향(호출자·화면·봇·평가 스위트)과 «돌릴 테스트»를 뽑고, SPEC ID 주석·ponytail·[이유] 메모가 붙은 분기나 이유를 모르는 예외 처리를 지우거나 바꾸기 전에 그 이유(SPEC 문장·변경 이력·지키는 EV·도입 커밋)를 찾는다. SPEC 문장·EV의 내력, 과거 결정·장애를 낱말로 찾을 때도 쓴다. 파일 1~2개 안의 국소 수정(그 파일 안에서만 부르는 비공개 함수, 주석·문구만), data/ 수치 조정, 그림·소리 생성, SPEC·EVAL 장부 편집에는 쓰지 않는다.
+description: td-proj의 코드 의존 그래프와 설계·장애 히스토리 검색(.brain). 정의된 파일 밖에서 쓰이는 함수·상수·시그널·필드(특히 src/sim/battle.gd, src/data/*_def.gd, tests/eval/gd/lib.gd)를 바꾸기 전에 N단계 영향(호출자·화면·도구·평가 스위트)과 «돌릴 테스트»를 뽑고, SPEC ID 주석·ponytail·[이유] 메모가 붙은 분기나 이유를 모르는 예외 처리를 지우거나 바꾸기 전에 그 이유(SPEC 문장·변경 이력·지키는 EV·도입 커밋)를 찾는다. SPEC 문장·EV의 내력, 과거 결정·장애를 낱말로 찾을 때도 쓴다. 파일 1~2개 안의 국소 수정(그 파일 안에서만 부르는 비공개 함수, 주석·문구만), data/ 수치 조정, 그림·소리 생성, SPEC·EVAL 장부 편집에는 쓰지 않는다.
 ---
 
 # 세컨드 브레인 (.brain)
@@ -61,7 +61,7 @@ sh .brain/why 성문 핑퐁
 - [테스트] 1순위는 SPEC 연결이다: 대상 줄과 겹치는 SPEC §3.1 줄 참조 + 대상 주석의 ID → 그 문장을 지키는 EV. 2순위는 허브를 거치지 않고 3단계 안에서 닿는 평가·유닛이다. 둘을 «돌릴 것» 명령으로 낸다. 그 밖(허브 경유)은 커밋 전 전체 pytest가 맡는다(CLAUDE.md 순서 그대로).
 - `⚠ 지키는 EV가 없는 문장`: 그 동작은 지우거나 바꿔도 평가가 못 잡는다. 사용자에게 알리거나 더 조심한다.
 - `글 tests/eval/gd/locale.gd:… 폴더째 읽음(src/**)`: 그 평가는 호출이 아니라 소스 글을 읽는다(EV373 한글 리터럴 → en.po). 대상에 한글 리터럴이 있으면 «돌릴 것»에 locale이 붙는다.
-- impact가 봇(`tools/balance/autoplay.gd`)을 보여 주면 봇 코드를 함께 고친다. sweep 측정은 돌리지 않는다(CLAUDE.md).
+- impact가 `tools/`(play 하네스·bench 등)를 보여 주면 그 도구도 같은 커밋에서 고친다. 난이도 측정(봇 sweep 등)은 돌리지 않는다(CLAUDE.md).
 
 ## 미확인 연결 — 정적 색인이 원리상 못 정하는 곳
 
@@ -75,7 +75,7 @@ sh .brain/why 성문 핑퐁
 | dynamic-method · duck-typing | `call("x")`, `has_method("forge")` | 함수 이름이 문자열이다. 이름을 바꾸면 오류 없이 조용히 어긋난다 | 이름을 바꿀 때 `query unresolved --category duck-typing` |
 | dynamic-load | `load("res://data/waves/%s.tres" % r)` | 경로가 실행 중 값으로 정해진다. glob(`data/waves/*.tres`)으로만 잇는다 | 그 폴더 파일을 바꾸면 impact가 «경로 틀로 불러옴»으로 보인다 |
 | reflection | `Enemy._init`의 `set(key, stats[key])`, `_kinds`의 `get_property_list()` | 데이터 정의 필드(EnemyDef.guard)가 같은 이름의 런타임 필드(Enemy.guard)로 이름 문자열을 거쳐 옮겨진다 | impact가 «동적(이름 대응)»으로 잇는다. 필드 이름을 바꾸면 양쪽을 함께 바꾼다 |
-| codegen | `autoplay.gd#_battle_class` | 봇이 문자열로 GDScript를 만들어 실행 중에 컴파일하고 battle.gd의 `build`·`_fly`·`spawn_enemy`를 덮어써 `super()`를 부른다 | battle.gd 그 함수의 서명을 바꾸면 autoplay.gd 문자열도 고친다 |
+| codegen | `tests/eval/gd/show.gd`의 `BARS_SRC` | 문자열로 GDScript를 만들어 `GDScript.new()`로 실행 중에 컴파일하고 부모 함수(battle_view.gd `hp_bar_rect`)를 덮어쓴다. 문자열 안은 코드가 아니라 글이다 | 덮어쓰인 함수의 서명을 바꾸면 그 문자열도 고친다. impact가 «동적(overrides) … codegen»으로 보인다 |
 | string-key | `stage["castle"]`, 저장 사전 키 | 사전 키는 문자열이라 쓰는 곳과 읽는 곳을 잇지 못한다(1,259곳, 수만 센다) | 저장 형식(save.gd)·스테이지 사전 키를 바꿀 때 Grep으로 키 이름을 찾는다 |
 
 그 밖에 색인이 보지 않는 연결: 시그널을 람다로 이은 곳은 이은 함수까지만, 노드 경로(`$Node`·`get_node`), pytest → Godot 실행(관례 `test_X.py` ↔ `gd/X.gd`·`ev번호`로 잇는다), `tools/play/send.py` ↔ `play.gd`(파일 주고받기).

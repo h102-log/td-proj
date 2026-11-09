@@ -136,6 +136,14 @@ def test_codegen_detected_with_base():
     assert fs.codegen_bases == ["b.gd"]
 
 
+def test_codegen_in_escaped_one_line_string():
+    # tests/eval/gd/show.gd BARS_SRC 꼴: 한 줄 문자열 안 \n 이스케이프로 쓴 GDScript
+    src = 'const SRC := "extends \\"res://v.gd\\"\\nvar asked := []\\n\\nfunc hp_bar_rect(u = null):\\n\\treturn Rect2()\\n"\n'
+    fs = gdscan.scan(src, "t.gd")
+    assert fs.codegen and fs.codegen[0][2] == ["hp_bar_rect"]
+    assert fs.codegen_bases == ["v.gd"]
+
+
 def test_container_chains_for_loops_and_lambdas():
     src = (
         "func f(b):\n"
