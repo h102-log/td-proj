@@ -5,6 +5,7 @@ extends "res://tests/eval/gd/lib.gd"
 #   구조물 kind "magic"(마법 타워, 장갑 무시) · 단축키: - 마법 타워 놓기
 #   BattleView(res://src/ui/battle_view.gd).ENEMY_COLORS — 적 kind → 색
 #   적 kind "shieldbearer"(방패 고블린, S301) · "fire_archer"(불화살 고블린, S302). ENEMY_KINDS 키: guard(방패 내구도) · escort({kind, count}, 호위) · flame(불화살 {windup, cd, hit, dps, time, spread}) · range(I216)
+#   적 kind "feather_harpy"·"dive_harpy"·"song_harpy"(하피 셋, S304~S306). ENEMY_KINDS 키: feather({range, speed}) · dive({windup, air, cd, damage, radius, push, stun, shields}) · song({radius, heal, lag})
 # 성곽 맵은 wall.gd와 같다: 9행이 가로 성곽(성문 5·15·25열, 모두 닫힘), 위쪽(0~8행)이 마을, 아래쪽이 들판
 
 const TOP := Vector2i(12, 9)  # 성벽 칸
@@ -37,10 +38,16 @@ const TABLE := {
 	"chief": [200, 1.2, 30, 1.5, 0.9, 4, 50, 0.3],  # 3라운드 고블린 묶음 ②-c(S106 2026-11-05 변경)
 	"shieldbearer": [15, 2, 5, 1, 0.4, 3, 10, 1],  # 방패 고블린·불화살 고블린(S106 2026-11-07 변경)
 	"fire_archer": [10, 2, 3, 1, 0.25, 0, 8, 1],
+	"feather_harpy": [8, 2.2, 3, 1.5, 0.3, 0, 8, null],  # 4라운드 하늘 둥지 묶음 ①(S106 2026-11-09 변경)
+	"dive_harpy": [10, 2.8, 4, 1, 0.3, 4, 8, null],
+	"song_harpy": [12, 2.2, 3, 1, 0.3, 3, 10, null],
 }
-const PACK := {"wolf": 4, "leap_wolf": 2, "night_wolf": 2}  # 무리(S238). 나머지 종류는 1
+const PACK := {"wolf": 4, "leap_wolf": 2, "night_wolf": 2, "flying": 4}  # 무리(S238). 비행은 2026-11-09 변경. 나머지 종류는 1
 const KEYS := ["hp", "speed", "damage", "attack_gap", "radius", "sight", "reward", "wall_k"]
 const FLAME := {"windup": 1.0, "cd": 6.0, "hit": 5.0, "dps": 4.0, "time": 9.0, "spread": 3.0}  # 불화살 고블린 flame(S302)
+const FEATHER := {"range": 5.0, "speed": 12.0}  # 깃털 사수 하피 feather(S304)
+const DIVE := {"windup": 1.0, "air": 0.4, "cd": 6.0, "damage": 8.0, "radius": 1.0, "push": 1.0, "stun": 2.0, "shields": ["soldier", "aias"]}  # 박치기 하피 dive(S305)
+const SONG := {"radius": 3.0, "heal": 0.03, "lag": 0.3}  # 노래하는 하피 song(S306)
 
 func _castle(gates := GATES, walls = null):
 	if walls == null:
@@ -101,6 +108,11 @@ func ev130():
 	var fl = fa.get("flame", {})
 	var shield: bool = is_equal_approx(float(sb.get("guard", 0.0)), 40.0) and esc is Dictionary and esc.get("kind") == "basic" and int(esc.get("count", 0)) == 4
 	var archer: bool = is_equal_approx(float(fa.get("range", 0.0)), 9.0) and fl is Dictionary and FLAME.keys().all(func(k): return fl.has(k) and is_equal_approx(float(fl[k]), FLAME[k]))
+	var harpies: Array = ["feather_harpy", "dive_harpy", "song_harpy"].map(func(k): return d.get(k, {}))
+	var gifts: Array = [harpies[0].get("feather", {}), harpies[1].get("dive", {}), harpies[2].get("song", {})]
+	var sky: bool = harpies.all(func(x): return x.get("flying") == true) and _same(gifts[0], FEATHER) and _same(gifts[1], DIVE) and _same(gifts[2], SONG)
+	if not sky:
+		return "하피 셋(S106 2026-11-09 변경): 비행 %s · feather %s(%s) · dive %s(%s) · song %s(%s)" % [harpies.map(func(x): return x.get("flying")), gifts[0], FEATHER, gifts[1], DIVE, gifts[2], SONG]
 	return check(d.fast.climb == 3.0 and d.armored.armor == 15.0 and d.flying.flying and not d.basic.flying and d.basic.climb == 0.0
 		and d.slime.get("split") == {"kind": "slimelet", "count": 2} and d.big_slime.get("split") == {"kind": "slime", "count": 2}
 		and plain.all(func(k): return d[k].get("split", {}).is_empty()) and d.slime_king.get("boss") == true and d.alpha_wolf.get("boss") == true
@@ -113,6 +125,20 @@ func ev130():
 			[d.get("balloon", {}).get("flying"), d.get("airship", {}).get("flying")], d.get("siege_tower", {}).get("armor"),
 			[d.get("war_machine", {}).get("boss"), d.get("war_machine", {}).get("armor")], [d.get("chief", {}).get("boss"), d.get("chief", {}).get("armor")]]
 			+ " · shieldbearer guard·escort %s(40, basic 4) · fire_archer range·flame %s(9, %s)" % [[sb.get("guard"), esc], [fa.get("range"), fl], FLAME])
+
+# 수치 사전 got이 want와 같은 키를 갖고 값이 같다(수는 근사, 배열은 그대로)
+func _same(got, want: Dictionary) -> bool:
+	if not got is Dictionary or got.size() != want.size():
+		return false
+	for k in want:
+		if not got.has(k):
+			return false
+		if want[k] is Array:
+			if got[k] != want[k]:
+				return false
+		elif not is_equal_approx(float(got[k]), want[k]):
+			return false
+	return true
 
 # 방어력 a의 물리 피해 배율(S149, 워크3식): a ≥ 0이면 1 − 0.06a ÷ (1 + 0.06a)
 func _armor(a: float) -> float:
@@ -173,12 +199,16 @@ func ev135():
 		return "비행 적이 거점에 닿지 못했다(용병 %s)" % m.pos
 	return check(m.hp == m.max_hp, "비행 적이 길 위 용병을 쳤다(체력 %s)" % m.hp)
 
-# EV136 · S109: 비행 적도 근접 용병·타워·대포 범위 피해에 맞는다
+# EV136 · S109: 비행 적도 궁수 용병·타워·대포 범위 피해에 맞고, 근접 용병(병사)에게는 맞지 않는다(S109 2026-11-09 변경)
 func ev136():
 	var b = battle()
 	b.place_merc("soldier", Vector2i(10, 10))
-	if _first_hit(b, _still(b, "flying", Vector2i(11, 10))) <= 0.0:
-		return "근접 용병이 비행 적을 치지 못했다"
+	if _first_hit(b, _still(b, "flying", Vector2i(11, 10))) > 0.0:
+		return "근접 용병이 5초 안에 날고 있는 비행 적을 쳤다"
+	b = battle()
+	b.place_merc("archer", Vector2i(10, 10))
+	if _first_hit(b, _still(b, "flying", Vector2i(12, 10))) <= 0.0:
+		return "궁수 용병이 비행 적을 쏘지 못했다"
 	b = battle()
 	b.build("tower", Vector2i(10, 8))
 	if _first_hit(b, _still(b, "flying", Vector2i(10, 10))) <= 0.0:

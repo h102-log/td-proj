@@ -430,3 +430,7 @@ def test_EV821_shield_trait_line(gd):
 
 def test_EV828_fire_archer_trait_line(gd):
     gd("hud", "EV828")
+
+
+def test_EV839_round4_harpy_trait_lines(gd):
+    gd("hud", "EV839")

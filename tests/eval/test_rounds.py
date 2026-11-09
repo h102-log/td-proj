@@ -72,3 +72,7 @@ def test_EV820_shield_escort_spawns_with_it(gd):
 
 def test_EV829_round3_waves_match_s301_order(gd):
     gd("rounds", "EV829")
+
+
+def test_EV838_round4_waves_and_harpy_pack(gd):
+    gd("rounds", "EV838")
