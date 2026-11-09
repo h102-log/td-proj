@@ -10,3 +10,4 @@ damage = 4.0
 sight = 3.0
 reward = 6
 flying = true
+pack = 4

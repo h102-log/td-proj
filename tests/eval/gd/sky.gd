@@ -482,7 +482,8 @@ func ev846():
 			return "%s 걸린 하피 곁의 적이 1초에 %.2f 늘었다(0)" % [key, m.hp - 50.0]
 	return ""
 
-# EV847 · S306: 노래 반경 안 병사의 공격 간격은 1 ÷ 0.7배가 되고 겹쳐도 같다. 걸린 공격 속도 감소는 0.3이고, 하피가 기절하면 곧 풀린다
+# EV847 · S306: 노래 반경 안 병사의 공격 간격은 1 ÷ 0.7배가 되고 겹쳐도 같다. 걸린 공격 속도 감소는 0.3이고, 하피가 기절하면 곧 풀린다.
+# 하피는 병사에게서 3칸 안, 과녁에서 3칸 밖이다(과녁이 노래로 회복하면 맞은 때를 세지 못한다)
 func ev847():
 	var gaps := []
 	for n in [0, 1, 2]:
@@ -492,8 +493,8 @@ func ev847():
 			var why := _need(b, [SH])
 			if why != "":
 				return why
-		for i in n:
-			_still(b, SH, Vector2(10 - i, 12))
+		for p in [Vector2(8, 11.5), Vector2(7.5, 10.5)].slice(0, n):
+			_still(b, SH, p)
 		var e = _still(b, "basic", Vector2(11, 10))
 		var times := []
 		var t := 0.0

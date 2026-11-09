@@ -10,7 +10,7 @@
 #   병영 Barracks · 작업장 Workshop · 사격장 Archery Range · 용병 Merc · 공병 Engineer · 궁수 Archer
 #   영입 Recruit · 리롤 Reroll · 이관 Transfer · 내보내기 Dismiss · 출전 Deployed · 대기 Reserve · 보유 Roster
 #   미션 Mission · 준비 단계 Prep · 전투 단계 Battle · 웨이브 Wave · 라운드 Round · 도전 Run
-#   적: 기본 Grunt · 빠름 Runner · 장갑 Armored · 비행 Flyer · 보스 Boss · 슬라임 Slime · 꼬마 슬라임 Slimelet · 큰 슬라임 Big Slime · 슬라임 킹 Slime King · 늑대 Wolf · 도약 늑대 Leaping Wolf · 밤 늑대 Night Wolf · 알파 늑대 Alpha Wolf · 폭파병 Sapper · 공성 망치 Battering Ram · 투석기 Catapult · 글라이더 고블린 Glider Goblin · 공성탑 Siege Tower · 폭탄 열기구 Bomb Balloon · 수송 비행선 Troop Airship · 고블린 전쟁 기계 Goblin War Machine · 고블린 대장 Goblin Chief · 방패 고블린 Shield Goblin · 불화살 고블린 Fire Archer Goblin
+#   적: 기본 Grunt · 빠름 Runner · 장갑 Armored · 비행 Flyer · 보스 Boss · 슬라임 Slime · 꼬마 슬라임 Slimelet · 큰 슬라임 Big Slime · 슬라임 킹 Slime King · 늑대 Wolf · 도약 늑대 Leaping Wolf · 밤 늑대 Night Wolf · 알파 늑대 Alpha Wolf · 폭파병 Sapper · 공성 망치 Battering Ram · 투석기 Catapult · 글라이더 고블린 Glider Goblin · 공성탑 Siege Tower · 폭탄 열기구 Bomb Balloon · 수송 비행선 Troop Airship · 고블린 전쟁 기계 Goblin War Machine · 고블린 대장 Goblin Chief · 방패 고블린 Shield Goblin · 불화살 고블린 Fire Archer Goblin · 깃털 사수 하피 Feather Harpy · 박치기 하피 Diving Harpy · 노래하는 하피 Singing Harpy
 #   영웅 이름은 음역한다: 아이아스 Aias · 실비아 Sylvia · 세라피나 Seraphina · 베스퍼 Vesper · 이그니스 Ignis · 크로노스 Chronos
 msgid ""
 msgstr ""
@@ -381,8 +381,8 @@ msgstr "Boss"
 msgid "성벽을 오른다"
 msgstr "Climbs walls"
 
-msgid "길을 무시한다"
-msgstr "Ignores paths"
+msgid "길을 무시하고 무리로 온다, 근접은 못 친다"
+msgstr "Ignores paths, comes in flocks; melee can't hit it"
 
 msgid "받는 피해를 줄인다"
 msgstr "Takes less damage"
@@ -494,6 +494,24 @@ msgstr "Range"
 
 msgid "쏘는 구조물에 불화살"
 msgstr "Shoots fire arrows at towers"
+
+msgid "깃털 사수 하피"
+msgstr "Feather Harpy"
+
+msgid "박치기 하피"
+msgstr "Diving Harpy"
+
+msgid "노래하는 하피"
+msgstr "Singing Harpy"
+
+msgid "멈춰서 유닛에 깃털을 쏜다"
+msgstr "Hovers and shoots feathers at units"
+
+msgid "활강해 박고 밀친다, 방패병에 박으면 기절한다"
+msgstr "Dives in and knocks units back; stunned by shields"
+
+msgid "둘레 적을 회복시키고 아군 공격을 늦춘다"
+msgstr "Heals nearby foes and slows your attacks"
 
 msgid "죽으면 둘로 갈라진다"
 msgstr "Splits in two on death"
