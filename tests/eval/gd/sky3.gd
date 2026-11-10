@@ -540,33 +540,26 @@ func ev871():
 	return check(hidden and tells and rings.any(func(r): return Vector2(r[0]).distance_to(o) <= 1.5 and r[1] == 8),
 		"숨음 %s · 예고를 그리는 적 %s · 고리 %s(하피 발 자리 %s에 반지름 8)" % [hidden, tells, rings, o])
 
-# EV872 · I256: 와이번·떨어진 와이번은 비행 그림을 2배로 키우고 색을 곱한다. 불붙은 아군에 작은 불꽃을 그리고, 급강하·융단 폭격 예고는 와이번이 숨어도 그린다
+# EV872 · I256: 와이번·떨어진 와이번은 자기 칸 그림(S172 2026-11-10 변경). 불붙은 아군에 작은 불꽃을 그리고, 급강하·융단 폭격 예고는 와이번이 숨어도 그린다
 func ev872():
 	var b = battle()
-	var why := _need(b, [WY, WF, NH, CH])
+	var why := _need(b, [WY, WF])
 	if why != "":
 		return why
 	var v = _rec(b)
-	var got := []
-	for k in ["flying", NH, CH, WY, WF]:
-		var e = _still(b, k, Vector2(3 + got.size() * 4, 5))
-		var one = _cut(v, e)
-		if one == null:
+	var view := load("res://src/ui/battle_view.gd")
+	for k in [WY, WF]:  # 와이번 두 벌은 자기 칸의 정지 남쪽 칸을 칸 크기로 그린다(S172 2026-11-10 변경)
+		if not view.ART.has(k):
 			v.free()
-			return "%s 몸통이 그림 한 장이 아니다(%d장)" % [k, v.cuts.size()]
-		got.append(one)
+			return "그림 칸 표에 %s가 없다" % k
+		var a: Dictionary = view.ART[k]
+		var e = _still(b, k, Vector2(5 + 8 * [WY, WF].find(k), 5))
+		var one = _cut(v, e)
+		var want := Rect2(a.get("x", 0), a.idle, a.c, a.c)
+		if one == null or not one[1].is_equal_approx(want) or one[0].size.distance_to(Vector2(a.c, a.c)) > 0.01:
+			v.free()
+			return "%s 몸통 %s(원본 %s, 크기 %s여야 한다)" % [k, one, want, Vector2(a.c, a.c)]
 	v.free()
-	if got.any(func(x): return x[1] != got[0][1]):
-		return "원본 사각형이 비행과 다르다: %s" % [got.map(func(x): return x[1])]
-	var size0: Vector2 = got[0][0].size
-	for i in [3, 4]:
-		if got[i][0].size.distance_to(size0 * 2.0) > 0.5:
-			return "%s 그림 크기 %s(비행 %s의 2배여야 한다)" % [[WY, WF][i - 3], got[i][0].size, size0]
-	var tints: Array = got.map(func(x): return x[2])
-	for i in tints.size():
-		for j in range(i + 1, tints.size()):
-			if tints[i] == tints[j]:
-				return "색이 같다: %s" % [tints]
 	var c = battle()
 	var a1 = c.place_merc("archer", Vector2i(10, 10), A0)
 	var a2 = c.place_merc("archer", Vector2i(14, 10), A0)
