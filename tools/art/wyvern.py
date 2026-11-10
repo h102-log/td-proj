@@ -21,25 +21,27 @@ BASE = {"scale": ["151a26", "2a1d0d", "45230d", "773421", "a56243"],  # 녹슨 �
 MATS = list(BASE)
 PARTS = ["leg", "torso", "head", "arm", "tail"]
 SIZES = (24,)
-SCALE = 2.0  # 하피(0.9)의 두 배쯤. 게임 몸 반지름 0.6칸은 하피 0.3칸의 두 배다(S106)
-SPAN = 6.0  # 맞춤이 재는 화면 폭(모델 단위, H.fit). 4.0이면 든 날개가 캔버스 위에서 잘렸다(시안 v1)
-TAG = f"m5 ppu{H.PPU24} wyvern2 s{SCALE} span{SPAN}"
+SCALE = 2.7  # 하피(0.9)의 세 배. 게임 몸 반지름 0.9칸도 하피 0.3칸의 세 배다(S106). 두 배(2.0)는 3라운드 보스 고블린 대장보다 몸이 작았다(사용자 2026-11-10 «하피의 약 3배»)
+SPAN = 3.0 * SCALE  # 맞춤이 재는 화면 폭(모델 단위, H.fit). 좁으면 든 날개가 캔버스 위에서 잘린다(시안 v1의 4.0)
+TAG = f"m5 ppu{H.PPU24} wyvern3 s{SCALE} span{SPAN}"
 
 # 자세: wing 날개 위팔 높이(도, 0 수평·양수 위), fold 날개 접음(0 폄 ~ 1 접음), legs "tuck"(접음)·"stand"(섬), stride 걸음 위상 각(도, 왼다리 앞이 양수),
-# lean 몸 앞숙임(도), neck 목 숙임(도), jaw 입 벌림(도), tail 꼬리 옆 휘두름(도, 오른쪽 양수), torn 찢긴 날개, flame 입 앞 불길, bob 오르내림(px)
-FLY = dict(wing=10, fold=0.0, legs="tuck", stride=0, lift=0, lean=0, neck=0, jaw=0, tail=0, torn=False, flame=False, bob=0, fall=0)
-UP = dict(FLY, wing=45)
+# lean 몸 기울임(도, 양수면 머리 쪽이 들리고 음수면 앞으로 낮게 숙인다. 그려서 확인), neck 목 숙임(도), reach 목 앞으로 뻗음, jaw 입 벌림(도), tail 꼬리 옆 휘두름(도, 오른쪽 양수), smear 꼬리 휘두름 잔상 호,
+# crouch 선 몸 낮춤, torn 찢긴 날개, flame 입 앞 불길, bob 오르내림(px)
+FLY = dict(wing=10, fold=0.0, legs="tuck", stride=0, lift=0, lean=0, neck=0, reach=0.0, jaw=0, tail=0, smear=False, crouch=0.0, torn=False, flame=False, bob=0, fall=0)
+UP = dict(FLY, wing=60)  # 45°면 가까운 날개 판이 45° 카메라와 나란해 동·서에서 가슴 앞 가로 막대로 보였다(art/trial/preview/gemini_wyvern/feedback_1.md)
 DOWN = dict(FLY, wing=-25, bob=1)
-STAND = dict(FLY, wing=-55, fold=0.55, legs="stand", torn=True)  # 2페이즈: 찢긴 날개를 반쯤 접어 늘어뜨린다
+STAND = dict(FLY, wing=-25, fold=0.42, legs="stand", torn=True)  # 2페이즈: 찢긴 날개를 반쯤 접어 옆으로 늘어뜨린다. −55°로 몸에 붙이면 남·북에서 «펭귄»으로 읽혔다(feedback_1.md)
 ANIMS1 = {"idle": [FLY], "walk": [UP, DOWN, UP, DOWN],
-          "attack": [dict(UP, lean=-10, neck=-10, jaw=0), dict(FLY, lean=15, neck=20, jaw=35, legs="claw"), dict(FLY, lean=5)],  # 물어뜯기 공격 키 포즈
+          "attack": [dict(UP, lean=-10, neck=-10, jaw=0), dict(FLY, lean=15, neck=20, reach=0.15, jaw=50, legs="claw"), dict(FLY, lean=5)],  # 물어뜯기 공격 키 포즈: 목을 뻗어 크게 문다
           "plunge": [dict(FLY, wing=70, fold=0.2, neck=-15), dict(FLY, wing=-40, fold=0.6, lean=30, neck=25, legs="claw")],  # 급강하: 날개를 높이 들어 → 접고 내리꽂음
           "carpet": [dict(FLY, wing=20, lean=10, neck=10, jaw=20), dict(FLY, wing=0, lean=15, neck=15, jaw=40, flame=True)]}  # 융단 폭격: 입을 벌림 → 불을 뿜으며 지나감
 ANIMS2 = {"idle": [STAND], "walk": [dict(STAND, stride=45), dict(STAND, stride=0, bob=1, lift=1), dict(STAND, stride=-45), dict(STAND, stride=0, bob=1, lift=-1)],
-          "attack": [dict(STAND, neck=-15, jaw=10), dict(STAND, lean=15, neck=25, jaw=40), dict(STAND, lean=5)],
+          "attack": [dict(STAND, neck=-15, jaw=10), dict(STAND, lean=15, neck=25, reach=0.15, jaw=55), dict(STAND, lean=5)],
           "breath": [dict(STAND, neck=-20, jaw=15, lean=-5), dict(STAND, neck=15, jaw=45, lean=10, flame=True)],  # 화염 숨결: 목을 젖혀 → 앞으로 뿜음
-          "rush": [dict(STAND, lean=20, neck=20, stride=20), dict(STAND, lean=35, neck=30, jaw=25, stride=-25)],  # 맹진: 웅크림 → 내닫음
-          "tail": [dict(STAND, tail=-60), dict(STAND, tail=70)],  # 꼬리 휘두르기: 왼쪽으로 감음 → 오른쪽으로 쓸기
+          "rush": [dict(STAND, lean=-20, neck=30, stride=20, crouch=0.10, wing=-20, fold=0.35),  # 맹진: 몸을 낮게 숙이고 날개 관절을 벌려 웅크림 → 낮게 내닫음
+                   dict(STAND, lean=-35, neck=20, reach=0.08, jaw=30, stride=-30, crouch=0.06, wing=-10, fold=0.4)],
+          "tail": [dict(STAND, tail=-60), dict(STAND, tail=70, smear=True)],  # 꼬리 휘두르기: 왼쪽으로 감음 → 오른쪽으로 쓸기(지나온 자리에 잔상 호)
           "fall": [dict(STAND, fall=f, neck=f / 3, jaw=f / 4) for f in (0, 20, 45, 65, 80)]}  # 쓰러짐: 옆으로 눕는다. 게임은 마지막 칸(누운 자세)만 쓴다(atlas.py FOUR_COLS)
 
 
@@ -103,7 +105,7 @@ HOLES = [((0.46, -0.12), 0.06), ((0.20, -0.18), 0.045)]
 def body(pose, bob_unit):
     m = MATS.index
     stand = pose["legs"] == "stand"
-    lift = np.array([0, 0, 0.0 if stand else 0.08]) + np.array([0, 0, pose["bob"] * bob_unit])
+    lift = np.array([0, 0, -pose["crouch"] if stand else 0.08]) + np.array([0, 0, pose["bob"] * bob_unit])
     pivot = np.array([0, -0.05, 0.50])
     tilt = rx(pose["lean"] + (8 if stand else 0))  # 선 몸은 조금 앞으로 숙인다
 
@@ -123,7 +125,7 @@ def body(pose, bob_unit):
     # 목·머리: 가슴 앞에서 위로. neck 양수면 머리를 앞아래로 숙인다
     nb = np.array([0, 0.26, 0.64])
     nr = rx(pose["neck"] - 20)
-    neck_top = nb + nr @ np.array([0, 0.0, 0.26])
+    neck_top = nb + nr @ np.array([0, pose["reach"], 0.26])
     head_r = rx(pose["neck"] * 0.6)
     hax = np.stack([side, tilt @ head_r @ [0, 1.0, 0], tilt @ head_r @ [0, 0, 1.0]])
     H0 = neck_top + head_r @ np.array([0, 0.06, 0.03])
@@ -142,9 +144,9 @@ def body(pose, bob_unit):
     for s in (-1, 1):
         P += [(R.capsule(Hd([0.045 * s, -0.04, 0.05]), Hd([0.07 * s, -0.17, 0.10]), 0.022, 0.006), m("horn"), "head"),  # 뿔
               (ell(Hd([0.05 * s, 0.07, 0.025]), (0.016, 0.02, 0.014), hax), m("eye"), "head")]  # 눈
-    if pose["flame"]:  # 입 앞 불길: 앞으로 넓어지는 불덩이 셋
-        for k, r in enumerate((0.06, 0.09, 0.12, 0.14)):
-            P.append((ell(Hd([0, 0.24 + 0.14 * k, -0.04 - 0.03 * k]), (r, r * 1.2, r * 0.8), hax), m("flame"), "head"))
+    if pose["flame"]:  # 입 앞 불길: 앞아래로 넓어지는 원뿔. 앞으로만 뻗으면 남쪽에서 몸 위에 겹쳐 «배가 빛남»으로 읽혔다(feedback_1.md)
+        mouth = Hd([0, 0.18, -0.05])  # 끝은 머리 각도와 상관없이 몸 기준 앞아래. 더 길면 1배 캔버스(스킬 자세 칸) 동·서·북 가장자리에서 잘렸다
+        P.append((R.capsule(mouth, mouth + np.array([0, 0.42, -0.30]), 0.04, 0.14), m("flame"), "head"))
     # 꼬리: 엉덩이 뒤에서 아래로 늘어진 마디 셋과 끝 가시판. tail이 옆으로 휘두른다
     tr = rz(pose["tail"])
     tail = [np.array(p) for p in ([0, -0.26, 0.50], [0, -0.46, 0.45], [0, -0.64, 0.39], [0, -0.80, 0.34])]  # v1(끝 −1.0)은 옆에서 꼬리가 몸을 덮었다
@@ -157,6 +159,11 @@ def body(pose, bob_unit):
     tside = np.cross(td, [0, 0, 1.0])
     tside /= np.linalg.norm(tside)
     P.append((sheet(T(tip), tilt @ tside, tilt @ td, [(-0.07, 0.0), (0.0, 0.14), (0.07, 0.0), (0.0, -0.03)], 0.012), m("wing"), "tail"))  # 끝 가시판
+    if pose["smear"]:  # 꼬리 끝이 지나온 자리(꼬리 각 −40° → 60°)에 끝으로 갈수록 가늘어지는 반달 잔상. 꼬리 끝 방향은 rz(각) @ (0, −1)
+        ts = np.linspace(-40, 60, 11)
+        outer = [(-0.60 * np.sin(np.radians(t)), -0.60 * np.cos(np.radians(t))) for t in ts]
+        inner = [(-(0.60 - w) * np.sin(np.radians(t)), -(0.60 - w) * np.cos(np.radians(t))) for t, w in zip(ts, np.linspace(0.02, 0.17, len(ts)))]
+        P.append((sheet(T(base + [0, 0, -0.13]), tilt @ side, tilt @ [0, 1.0, 0], outer + inner[::-1], 0.012), m("horn"), "tail"))
     # 날개: 어깨에서 날개 평면(바깥으로 wing도 들고, 뒤로 펼침). fold면 바깥 길이가 줄고 아래로 처진다
     for s in (-1, 1):
         sh = np.array([0.12 * s, 0.14, 0.66])
@@ -174,7 +181,7 @@ def body(pose, bob_unit):
         wp = lambda uv: o + e1 * uv[0] + e2 * uv[1]
         elbow, wrist = wp(pts[1]), wp(pts[2])
         P += [(R.capsule(o, elbow, 0.045, 0.035), m("scale"), "arm"), (R.capsule(elbow, wrist, 0.035, 0.028), m("scale"), "arm"),
-              (R.capsule(wrist, wrist + e1 * 0.05 + np.array([0, 0.03, 0.03]), 0.02, 0.004), m("horn"), "arm")]  # 손목 발톱
+              (R.capsule(wrist, wrist + e1 * (0.09 if pose["torn"] else 0.05) + np.array([0, 0.03, 0.03]), 0.03 if pose["torn"] else 0.02, 0.004), m("horn"), "arm")]  # 손목 발톱. 찢긴 날개는 크게(땅을 짚는 날개 관절)
         for tp in tips:
             P.append((R.capsule(wrist, wp(tp), 0.02, 0.008), m("scale"), "arm"))  # 손가락 뼈
     # 다리: 접은 새 다리(1페이즈) · 선 다리(2페이즈, stride로 앞뒤) · 발톱 내밂(claw, 1페이즈 공격·급강하)
@@ -211,7 +218,8 @@ wyvern = H.scaled(body, SCALE)
 
 def fits(kind):
     anims = ANIMS1 if kind == "wyvern" else ANIMS2
-    return H.fits(TRIAL / kind, [anims["idle"][0]] + anims["walk"], wyvern, f"{TAG} {kind}", SIZES, span=SPAN)
+    fire = [p for a in ("carpet", "breath") for p in anims.get(a, []) if p["flame"]]  # 불 뿜는 자세도 잰다. 정지·걷기로만 재면 북쪽 불이 1배 캔버스 위에서 잘렸다
+    return H.fits(TRIAL / kind, [anims["idle"][0]] + anims["walk"] + fire, wyvern, f"{TAG} {kind}", SIZES, span=SPAN)
 
 
 def bake(kind):
@@ -256,8 +264,9 @@ def preview():
     for k, anims in (("wyvern", ANIMS1), ("wyvern_fallen", ANIMS2)):
         rows = []
         for a in anims:
-            big = a == "attack"
-            fr = [frame(k, a, d, col, big) for d in ("S", "E", "N", "W") for col in range(len(anims[a]))]
+            big = a in ("attack", "fall")  # 2배 칸(H.save)
+            ds = ("S",) if a == "fall" else ("S", "E", "N", "W")  # 쓰러짐은 방향 없는 한 벌. 네 방향 1배 칸으로 자르면 행이 잘려 보였다(feedback_1.md)
+            fr = [frame(k, a, d, col, big) for d in ds for col in range(len(anims[a]))]
             boxes = [f.getbbox() for f in fr if f.getbbox()]
             x0, y0, x1, y1 = (min(b[0] for b in boxes), min(b[1] for b in boxes), max(b[2] for b in boxes), max(b[3] for b in boxes))
             row = V.up(V.on(R.sheet([f.crop((x0 - 1, y0 - 1, x1 + 1, y1 + 1)) for f in fr], len(fr), gap=3), pad=2), 4)

@@ -154,32 +154,32 @@
   "fall": 9588
  },
  "wyvern": {
-  "c": 80,
+  "c": 106,
   "anchor": [
-   40.0,
-   55
+   53.0,
+   74
   ],
   "x": 320,
   "idle": 0,
-  "walk": 320,
-  "attack": 640,
-  "plunge": 1280,
-  "carpet": 1600
+  "walk": 424,
+  "attack": 848,
+  "plunge": 1696,
+  "carpet": 2120
  },
  "wyvern_fallen": {
-  "c": 68,
+  "c": 96,
   "anchor": [
-   34.0,
-   41
+   48.0,
+   61
   ],
   "x": 320,
-  "idle": 1920,
-  "walk": 2192,
-  "attack": 2464,
-  "breath": 3008,
-  "rush": 3280,
-  "tail": 3552,
-  "fall": 3824
+  "idle": 2544,
+  "walk": 2928,
+  "attack": 3312,
+  "breath": 4080,
+  "rush": 4464,
+  "tail": 4848,
+  "fall": 5232
  },
  "slimelet": {
   "c": 14,

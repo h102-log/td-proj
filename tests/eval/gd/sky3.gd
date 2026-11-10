@@ -426,8 +426,8 @@ func ev868():
 	var r := _rushed(c, f)
 	if r != "":
 		return "병사 판: " + r
-	if f.pos.distance_to(Vector2(7, 10)) > 0.05 or not is_equal_approx(c.effect_sum(f, "expose"), 0.5):
-		return "병사 판: 멈춘 자리 %s((7,10)) · expose %s(0.5)" % [f.pos, c.effect_sum(f, "expose")]
+	if f.pos.distance_to(Vector2(6.75, 10)) > 0.05 or not is_equal_approx(c.effect_sum(f, "expose"), 0.5):
+		return "병사 판: 멈춘 자리 %s((6.75,10)) · expose %s(0.5)" % [f.pos, c.effect_sum(f, "expose")]
 	if s.pos.distance_to(Vector2(8, 10)) > 0.05 or s.hp != 100.0 or _burns(c, s):
 		return "병사 판: 병사 자리 %s · 체력 %s · 불 %s(그대로·100·거짓)" % [s.pos, s.hp, _burns(c, s)]
 	var d = battle()
