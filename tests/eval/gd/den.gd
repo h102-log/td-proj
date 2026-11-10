@@ -197,7 +197,7 @@ func ev890():
 	b.dash([g], Vector2(100, 82))
 	return check(g.dash_cd > 0.0 and g.pos.x > 92.0 and g.pos.x < 93.5, "바위 쪽 대시 뒤 x %.2f(92보다 크고 93.5 미만) · 대기 %.2f" % [g.pos.x, g.dash_cd])
 
-# EV891 · S316·I262 ⑥⑦: 처치로 끝나면 3초 뒤 원정 직전 몸으로 돌아오고, 깬 층이 1 는다. 골드·웨이브·집계는 그대로다
+# EV891 · S316·I262 ⑥⑦: 처치로 끝나면 3초 뒤 원정 직전 몸으로 돌아오고, 깬 층이 1 는다. 골드는 층 골드(S333) 120만 늘고 웨이브·집계는 그대로다
 func ev891():
 	var b = _den()
 	var a = b.heroes[0]
@@ -220,8 +220,8 @@ func ev891():
 	if mid != "raid" or b.state != "prep":
 		return "처치 뒤 2.9초 %s(기대 raid) · 3.1초 %s(기대 prep)" % [mid, b.state]
 	var count: Array = b.heroes.map(func(h): return b.units.count(h))
-	if b.floors_cleared != 1 or b.torches != torches - 1 or b.gold != gold or b.wave_index != wave or b.tally != tally:
-		return "깬 층 %d(1) · 횃불 %d(%d) · 골드 %d(%d) · 웨이브 %d(%d) · 집계 %s(기대 %s)" % [b.floors_cleared, b.torches, torches - 1, b.gold, gold, b.wave_index, wave, b.tally, tally]
+	if b.floors_cleared != 1 or b.torches != torches - 1 or b.gold != gold + 120 or b.wave_index != wave or b.tally != tally:
+		return "깬 층 %d(1) · 횃불 %d(%d) · 골드 %d(%d) · 웨이브 %d(%d) · 집계 %s(기대 %s)" % [b.floors_cleared, b.torches, torches - 1, b.gold, gold + 120, b.wave_index, wave, b.tally, tally]
 	if not a.alive or a.hp != 40.0 or a.pos != Vector2(30, 70) or c.cd.q != 3.0 or count != [1, 1, 1]:
 		return "아이아스 살았나 %s 체력 %s 자리 %s(기대 40, (30,70)) · 이그니스 Q 대기 %s(3) · units 안 횟수 %s(기대 1·1·1)" % [a.alive, a.hp, a.pos, c.cd.q, count]
 	return check(b.enemies.is_empty() and b.zones.is_empty() and b.missiles.is_empty() and b.loops.is_empty() and b.raid_block() == "done",
@@ -1266,3 +1266,285 @@ func ev955():
 	_done(main)
 	_hints_reset()
 	return out
+
+# ── 층 보상·유물(S333·S334·I278) ── 더하는 API:
+#   FloorDef.relic(유물 id)·gold(층 골드) · data/relics/<유물 id>.tres(title·steps·notes) · HireDef.relic_cost·relic_cap
+#   Battle.RELIC_KINDS · relics(유물 id → 강화 수치) · relic_forged(이번 창 강화 횟수) · Unit.relic(낀 유물 id, 없으면 "")·relic_fx(낀 유물 효과 사전)
+#     wear_relic(영웅, 유물 id) -> bool(""면 뺀다) · forge_relic(유물 id) -> bool. 못 하면 거짓이고 판은 그대로
+#   main.hud.relic_rows — 유물마다 [유물 id, 줄(Control), 글(Label), 강화 버튼, 영웅 바꾸기 버튼]
+
+const CROWN := "slime_crown"
+
+# EV956 · S333·S334: 1층 층 정의의 유물·층 골드, 점액 왕관의 단계, 강화 비용과 창당 횟수
+func ev956():
+	var f = load("res://data/dungeon/floor_1.tres")
+	if f.get("relic") != CROWN or f.get("gold") != 120:
+		return "floor_1 relic %s(slime_crown) · gold %s(120)" % [f.get("relic"), f.get("gold")]
+	if not ResourceLoader.exists("res://data/relics/slime_crown.tres"):
+		return "data/relics/slime_crown.tres가 없다"
+	var r = load("res://data/relics/slime_crown.tres")
+	var steps = r.get("steps")
+	var want := [0.05, 0.07, 0.09, 0.11, 0.13]
+	if r.get("title") != "점액 왕관" or not steps is Array or steps.size() != 5 or range(5).any(func(i): return absf(steps[i].get("cdr", -1.0) - want[i]) > 0.000001):
+		return "점액 왕관 이름 %s · 단계 %s(기대 cdr %s)" % [r.get("title"), steps, want]
+	var hire = load("res://data/hire.tres")
+	return check(hire.get("relic_cost") == [60, 90, 130, 180] and hire.get("relic_cap") == 1, "relic_cost %s([60, 90, 130, 180]) · relic_cap %s(1)" % [hire.get("relic_cost"), hire.get("relic_cap")])
+
+# EV957 · S333·I278 ①: 처치로 돌아오면 층 골드와 유물 +0을 받고 출전 첫째 영웅이 저절로 낀다. 전멸·철수로는 받지 않는다
+func ev957():
+	var b = _den()
+	if b.get("relics") == null:
+		return "Battle에 relics가 없다"
+	var gold: int = b.gold
+	b.start_raid()
+	_slay(b)
+	_go(b, 3.1)
+	var worn: Array = b.heroes.map(func(h): return h.relic)
+	if b.state != "prep" or b.gold != gold + 120 or b.relics != {CROWN: 0} or worn != [CROWN, "", ""] or absf(b.heroes[0].relic_fx.get("cdr", 0.0) - 0.05) > 0.000001:
+		return "① 처치 뒤 판 %s(prep) · 골드 %d → %d(120 늘어야) · 가방 %s({slime_crown: 0}) · 낀 유물 %s(첫째만) · 첫째 relic_fx %s(cdr 0.05)" % [b.state, gold, b.gold, b.relics, worn, b.heroes[0].relic_fx]
+	var c = _den()
+	c.torches = 4
+	var g: int = c.gold
+	c.start_raid()
+	for h in c.party:
+		c.damage(h, BIG)
+	_go(c, 2.6)
+	c.retreat()
+	c.start_raid()
+	c.retreat()
+	return check(c.state == "prep" and c.gold == g and c.relics.is_empty() and c.heroes.all(func(h): return h.relic == ""),
+		"② 전멸 뒤 철수·바로 철수 뒤 판 %s(prep) · 골드 %d → %d(그대로) · 가방 %s(비어야) · 낀 유물 %s(없어야)" % [c.state, g, c.gold, c.relics, c.heroes.map(func(h): return h.relic)])
+
+# 라운드 사이에 가방에 점액 왕관 +n을 두고 who번째 영웅에게 끼운 뒤 2라운드 첫 준비 단계로 넘긴 판. 유물 API가 없으면 null.
+# 출전 셋은 스킬 대기 오라가 없는 영웅이다(이그니스 오라는 셋 모두의 대기를 25% 빠르게 한다)
+func _crowned(n: int, who: int):
+	var st := _stage()
+	st.heroes = [TEAM[0], {"kind": "sylvia", "cell": Vector2i(33, 65)}, TEAM[2]]
+	var b = _new(st)
+	if not b.has_method("wear_relic") or b.get("relics") == null:
+		return null
+	b.state = "cleared"
+	b.relics[CROWN] = n
+	if not b.wear_relic(b.heroes[who], CROWN):
+		return null
+	b.next_round()
+	return b
+
+# 출전 영웅의 오토를 끄고 Q 대기 50초·대시 대기 5초로 둔 뒤 1초 돌려, 영웅마다 [준 Q 대기, 준 대시 대기]
+func _drain(b) -> Array:
+	for h in b.heroes:
+		for k in h.auto:
+			h.auto[k] = false
+		h.cd.q = 50.0
+		h.dash_cd = 5.0
+	_go(b, 1.0)
+	return b.heroes.map(func(h): return [50.0 - h.cd.q, 5.0 - h.dash_cd])
+
+# rows(영웅마다 [준 Q 대기, 준 대시 대기])가 둘째 영웅만 Q 대기 fast초, 나머지는 1초이고 대시 대기는 모두 1초인가
+func _paced(rows: Array, fast: float) -> bool:
+	return rows.size() == 3 and range(3).all(func(i): return absf(rows[i][0] - (fast if i == 1 else 1.0)) < 0.001 and absf(rows[i][1] - 1.0) < 0.001)
+
+# EV958 · S334·I278 ③: 왕관을 낀 영웅만 스킬 대기가 5% 빨리 준다. 전투 단계와 원정 모두에서, 대시 대기는 그대로. +2면 9%다
+func ev958():
+	var b = _crowned(0, 1)
+	if b == null:
+		return "유물 API(relics·wear_relic)가 없거나 라운드 사이에 끼우지 못했다"
+	b.start_battle()
+	var war := _drain(b)
+	if b.state != "battle" or not _paced(war, 1.05):
+		return "① 전투 단계(판 %s) 1초에 [준 Q 대기, 준 대시 대기] %s(기대 둘째만 1.05, 나머지 1 · 대시 모두 1)" % [b.state, war]
+	var c = _crowned(0, 1)
+	c.start_raid()
+	_freeze(c)
+	var raid := _drain(c)
+	if c.state != "raid" or not _paced(raid, 1.05):
+		return "② 원정(판 %s) 1초에 [준 Q 대기, 준 대시 대기] %s(기대 둘째만 1.05, 나머지 1 · 대시 모두 1)" % [c.state, raid]
+	var d = _crowned(2, 1)
+	d.start_battle()
+	var up := _drain(d)
+	return check(_paced(up, 1.09), "③ 왕관 +2에서 전투 1초에 [준 Q 대기, 준 대시 대기] %s(기대 둘째만 1.09)" % [up])
+
+# EV959 · S334·I278 ④: 끼기·빼기는 라운드 사이에만 되고, 유물 하나는 한 영웅만 낀다. 내보낸 영웅의 유물은 가방에 남는다
+func ev959():
+	var b = _den()
+	if not b.has_method("wear_relic") or b.get("relics") == null:
+		return "Battle에 wear_relic·relics가 없다"
+	b.relics[CROWN] = 0
+	var a = b.heroes[0]
+	var c = b.heroes[1]
+	var d = b.heroes[2]
+	var early: bool = b.wear_relic(a, CROWN)
+	if early or a.relic != "":
+		return "준비 단계 끼기 %s(거짓) · 낀 유물 «%s»(없어야)" % [early, a.relic]
+	b.state = "cleared"
+	var first: bool = b.wear_relic(a, CROWN)
+	if not first or a.relic != CROWN or absf(a.relic_fx.get("cdr", 0.0) - 0.05) > 0.000001:
+		return "라운드 사이 끼기 %s(참) · 첫째 relic «%s» · relic_fx %s(cdr 0.05)" % [first, a.relic, a.relic_fx]
+	var moved: bool = b.wear_relic(c, CROWN)
+	if not moved or a.relic != "" or not a.relic_fx.is_empty() or c.relic != CROWN:
+		return "둘째에게 끼우기 %s(참) · 첫째 relic «%s»·relic_fx %s(비어야) · 둘째 relic «%s»" % [moved, a.relic, a.relic_fx, c.relic]
+	var none: bool = b.wear_relic(c, "no_such_relic")
+	var off: bool = b.wear_relic(c, "")
+	if none or not off or b.heroes.any(func(h): return h.relic != ""):
+		return "없는 유물 끼기 %s(거짓) · 빼기 %s(참) · 낀 유물 %s(없어야)" % [none, off, b.heroes.map(func(h): return h.relic)]
+	var last: bool = b.wear_relic(d, CROWN)
+	b.dismiss(d)
+	var gone: bool = b.wear_relic(d, CROWN)
+	return check(last and d not in b.roster and d.relic == "" and b.relics == {CROWN: 0} and not gone,
+		"셋째에게 끼우기 %s(참) · 내보낸 뒤 보유 %s(거짓) · relic «%s»(없어야) · 가방 %s · 내보낸 영웅에게 끼우기 %s(거짓)" % [last, d in b.roster, d.relic, b.relics, gone])
+
+# EV960 · S334·I278 ④: 강화는 라운드 사이에만, 창마다 한 번, 60·90·130·180골드로 +4까지다
+func ev960():
+	var b = _den()
+	if not b.has_method("forge_relic") or not b.has_method("wear_relic") or b.get("relics") == null:
+		return "Battle에 forge_relic·wear_relic·relics가 없다"
+	b.relics[CROWN] = 0
+	b.gold = 1000
+	var a = b.heroes[0]
+	var early: bool = b.forge_relic(CROWN)
+	b.state = "cleared"
+	b.wear_relic(a, CROWN)
+	var first: bool = b.forge_relic(CROWN)
+	if early or not first or b.gold != 940 or b.relics[CROWN] != 1 or absf(a.relic_fx.get("cdr", 0.0) - 0.07) > 0.000001:
+		return "준비 단계 강화 %s(거짓) · 라운드 사이 강화 %s(참) · 골드 %d(940) · 유물 +%d(1) · relic_fx %s(cdr 0.07)" % [early, first, b.gold, b.relics[CROWN], a.relic_fx]
+	var twice: bool = b.forge_relic(CROWN)
+	if twice or b.gold != 940 or b.relics[CROWN] != 1:
+		return "같은 창 둘째 강화 %s(거짓) · 골드 %d(940) · 유물 +%d(1)" % [twice, b.gold, b.relics[CROWN]]
+	b.next_round()
+	b.state = "cleared"
+	var next: bool = b.forge_relic(CROWN)
+	if not next or b.gold != 850 or b.relics[CROWN] != 2:
+		return "다음 라운드 사이 강화 %s(참) · 골드 %d(850) · 유물 +%d(2)" % [next, b.gold, b.relics[CROWN]]
+	b.relic_forged.clear()
+	b.gold = 100
+	var poor: bool = b.forge_relic(CROWN)
+	b.gold = 1000
+	var more := []
+	for i in 3:
+		b.relic_forged.clear()
+		more.append(b.forge_relic(CROWN))
+	if poor or more != [true, true, false] or b.relics[CROWN] != 4 or b.gold != 690:
+		return "골드 100에서 강화 %s(거짓) · 창당 횟수를 비우며 세 번 %s(기대 [참, 참, 거짓]) · 유물 +%d(4) · 골드 %d(690)" % [poor, more, b.relics[CROWN], b.gold]
+	b.relic_forged.clear()
+	b.relics.erase(CROWN)
+	var lost: bool = b.forge_relic(CROWN)
+	var none: bool = b.forge_relic("no_such_relic")
+	return check(not lost and not none and b.gold == 690, "가방에 없는 유물 강화 %s · 없는 유물 id 강화 %s(둘 다 거짓) · 골드 %d(690)" % [lost, none, b.gold])
+
+# EV961 · S334·I278 ②: 유물 가방·창당 횟수·낀 유물은 저장에 담긴다. 옛 저장과 새 도전은 유물이 없고, 라운드 전리품에 유물이 나오지 않는다
+func ev961():
+	var st := _stage()
+	st.heroes = TEAM
+	var b = _new(st)
+	if not b.has_method("forge_relic") or not b.has_method("wear_relic") or b.get("relics") == null:
+		return "Battle에 forge_relic·wear_relic·relics가 없다"
+	b.state = "cleared"
+	b.relics[CROWN] = 0
+	b.wear_relic(b.heroes[1], CROWN)
+	b.forge_relic(CROWN)
+	var s = _save()
+	var d: Dictionary = s.snapshot(b)
+	var fresh = _new(st)
+	s.apply(fresh, d.duplicate(true))
+	var h = fresh.heroes[1] if fresh.heroes.size() == 3 else null
+	if h == null or fresh.relics != {CROWN: 1} or fresh.relic_forged != {CROWN: 1} or h.relic != CROWN or absf(h.relic_fx.get("cdr", 0.0) - 0.07) > 0.000001:
+		return "① 되돌린 판 가방 %s({slime_crown: 1}) · 창당 횟수 %s({slime_crown: 1}) · 둘째 영웅 relic «%s»·relic_fx %s(cdr 0.07)" % [fresh.relics, fresh.relic_forged, h.relic if h else null, h.relic_fx if h else null]
+	var old: Dictionary = d.duplicate(true)
+	old.erase("relics")
+	old.erase("relic_forged")
+	for f in old.heroes:
+		f.erase("relic")
+		f.erase("relic_fx")
+	var aged = _new(st)
+	s.apply(aged, old)
+	if not aged.relics.is_empty() or not aged.relic_forged.is_empty() or aged.heroes.any(func(x): return x.relic != "" or not x.relic_fx.is_empty()):
+		return "② 옛 저장을 되돌린 판 가방 %s · 창당 횟수 %s(비어야) · 낀 유물 %s(없어야)" % [aged.relics, aged.relic_forged, aged.heroes.map(func(x): return x.relic)]
+	fresh.restart()
+	if not fresh.relics.is_empty() or not fresh.relic_forged.is_empty():
+		return "③ 새 도전 뒤 가방 %s · 창당 횟수 %s(비어야)" % [fresh.relics, fresh.relic_forged]
+	var odd := []
+	for i in 40:
+		b._drop_gear()
+		if not b.dropped.is_empty() and not b.GEAR_KINDS.has(b.dropped[0]):
+			odd.append(b.dropped[0])
+	return check(odd.is_empty() and not b.bag.has(CROWN), "④ 전리품 40번에 전용장비가 아닌 것 %s(없어야) · 전용장비 가방에 slime_crown %s(거짓)" % [odd, b.bag.has(CROWN)])
+
+# EV962 · S334·I278 ⑤: 장비 칸의 유물 줄. 없으면 숨고, 있으면 이름·수치·낀 영웅과 강화·영웅 바꾸기 버튼이 있다
+func ev962():
+	var main = _prep()
+	var b = main.view.battle
+	var hud = main.hud
+	if not hud.get("relic_rows") is Array or not b.has_method("wear_relic"):
+		_done(main)
+		return "main.hud.relic_rows나 Battle.wear_relic이 없다"
+	if not _win(b):
+		_done(main)
+		return "1라운드를 이기지 못했다(%s)" % b.state
+	_frame(main)
+	hud._gear_tab = true
+	_frame(main)
+	_layout(main)
+	var rows: Array = hud.relic_rows.filter(func(r): return r[0] == CROWN)
+	if rows.size() != 1 or not hud.window.is_visible_in_tree() or rows[0][1].is_visible_in_tree():
+		_done(main)
+		return "장비 칸의 slime_crown 줄 %d개(1) · 창 보임 %s(참) · 유물이 없을 때 줄 보임 %s(거짓)" % [rows.size(), hud.window.is_visible_in_tree(), rows[0][1].is_visible_in_tree() if rows.size() == 1 else null]
+	var row: Array = rows[0]
+	var names: Array = b.roster.map(func(h): return hud.HEROES[h.kind].get_slice("(", 0))
+	b.relics[CROWN] = 0
+	b.wear_relic(b.roster[0], CROWN)
+	b.gold = 1000
+	_frame(main)
+	_layout(main)
+	if not row[1].is_visible_in_tree() or not "점액 왕관 +0" in row[2].text or not names[0] in row[2].text or row[3].text != "강화 +1 · 60골드" or row[3].disabled:
+		_done(main)
+		return "유물 줄 보임 %s(참) · 글 «%s»(«점액 왕관 +0»·«%s») · 강화 버튼 «%s»(강화 +1 · 60골드) 꺼짐 %s(거짓)" % [row[1].is_visible_in_tree(), row[2].text, names[0], row[3].text, row[3].disabled]
+	row[3].pressed.emit()
+	_frame(main)
+	_layout(main)
+	var tip := _tip_of(main, row[3])
+	if not "점액 왕관 +1" in row[2].text or not row[3].disabled or not "다 씀" in tip or b.gold != 940:
+		_done(main)
+		return "강화 뒤 글 «%s»(«점액 왕관 +1») · 강화 버튼 꺼짐 %s(참) · 툴팁 «%s»(«다 씀») · 골드 %d(940)" % [row[2].text, row[3].disabled, tip, b.gold]
+	row[4].pressed.emit()
+	_frame(main)
+	var second := [b.roster[0].relic, b.roster[1].relic, names[1] in row[2].text]
+	row[4].pressed.emit()
+	_frame(main)
+	var third := [b.roster.all(func(h): return h.relic == ""), "아무도 안 낌" in row[2].text]
+	_done(main)
+	return check(second == ["", CROWN, true] and third == [true, true],
+		"영웅 바꾸기 한 번 뒤 [첫째 relic, 둘째 relic, 글에 둘째 이름] %s(기대 [\"\", slime_crown, 참]) · 두 번 뒤 [아무도 안 낌, 글에 «아무도 안 낌»] %s(기대 [참, 참])" % [second, third])
+
+# 토스트를 0.5초씩 20번 돌리는 동안 보인 토스트 글들
+func _toast_texts(main) -> Array:
+	var seen := []
+	for i in 20:
+		main.hud._process(0.0)
+		main.hud.toasts._process(0.5)
+		for t in _labels(main.hud.toasts):
+			if t not in seen:
+				seen.append(t)
+	return seen
+
+# EV963 · S333·I278 ⑥: 처치로 돌아오면 유물 이름과 층 골드가 든 토스트가 뜬다. 철수로는 뜨지 않는다
+func ev963():
+	var main = _den_game()
+	var b = main.view.battle
+	b.start_raid()
+	_frame(main)
+	_slay(b)
+	_spin(main, 3.1)
+	var state: String = b.state
+	var texts := _toast_texts(main)
+	_done(main)
+	if state != "prep" or not texts.any(func(t): return "점액 왕관" in t and "120" in t):
+		return "처치 뒤 판 %s(prep) · 보인 토스트 %s(«점액 왕관»과 «120»이 함께 든 것이 있어야)" % [state, texts]
+	main = _den_game()
+	b = main.view.battle
+	b.start_raid()
+	_frame(main)
+	b.retreat()
+	_frame(main)
+	texts = _toast_texts(main)
+	_done(main)
+	return check(not texts.any(func(t): return "점액 왕관" in t), "철수 뒤 보인 토스트 %s(«점액 왕관»이 없어야)" % [texts])

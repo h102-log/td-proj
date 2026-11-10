@@ -120,3 +120,35 @@ def test_EV954_deflect_fx_outside_counter_window(gd):
 
 def test_EV955_first_raid_hint(gd):
     gd("den", "EV955")
+
+
+def test_EV956_floor1_relic_gold_and_crown_steps(gd):
+    gd("den", "EV956")
+
+
+def test_EV957_kill_gives_floor_gold_and_relic(gd):
+    gd("den", "EV957")
+
+
+def test_EV958_crown_speeds_skill_cooldown(gd):
+    gd("den", "EV958")
+
+
+def test_EV959_wear_relic_only_between_rounds(gd):
+    gd("den", "EV959")
+
+
+def test_EV960_forge_relic_once_per_window(gd):
+    gd("den", "EV960")
+
+
+def test_EV961_relics_saved_and_not_in_loot(gd):
+    gd("den", "EV961")
+
+
+def test_EV962_relic_row_in_gear_tab(gd):
+    gd("den", "EV962")
+
+
+def test_EV963_floor_reward_toast(gd):
+    gd("den", "EV963")
