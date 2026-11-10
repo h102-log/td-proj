@@ -24,8 +24,46 @@ skills = {
 "slow_time": 3.0,
 "step": 0.5,
 "windup": 1.5
+},
+"slam": {
+"color": "blue",
+"counter": 1.0,
+"damage": 30.0,
+"knock": 1.5,
+"radius": 3.0,
+"slow": 0.3,
+"slow_time": 3.0,
+"windup": 2.0
+},
+"soak": {
+"color": "gold",
+"counter": 1.0,
+"damage": 60.0,
+"far": 5.0,
+"heal": 0.05,
+"miss": 20.0,
+"need": 2,
+"radius": 1.5,
+"turn": 90.0,
+"windup": 4.0
+},
+"brand": {
+"color": "violet",
+"damage": 30.0,
+"radius": 2.0,
+"windup": 3.0
 }
 }
+plan = [{
+"id": "slam",
+"wait": 5.0
+}, {
+"id": "soak",
+"wait": 6.0
+}, {
+"id": "brand",
+"wait": 6.0
+}]
 gens = [{
 "gap": 6.0,
 "hp": 400.0,
