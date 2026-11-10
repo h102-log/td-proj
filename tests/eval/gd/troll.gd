@@ -4,7 +4,8 @@ extends "res://tests/eval/gd/orc.gd"
 #   적 cast: 쓸기 {id swat, left, dir} · 집어 먹기 {id devour, left, who} · 형제 던지기 {id twin, left, at} · 집어 던지기 {id lob, left, at, who(오크, 바위면 null)}
 #   Battle.lobs — 날아가는 바위·몸 [{from, at, left, air, radius, hit, by, look("rock"|"twin"), who}] · Battle._zone(출처, 영웅, 자리, 반경, 초, 더할 칸) · zones
 #   Battle.armor_of(유닛) · Battle.armor_mult(방어력) · effect(대상, 효과 키)
-#   BattleView: LOOKS · GROW · TWINS · _regen_marks() · _lob_marks() · _twin_bodies() · _tells() · _foe_tells() · _edge(가운데, 반지름, 밝은 색, 어두운 색) · _pdisc(가운데, 반지름, 색)
+#   BattleView: LOOKS · GROW · TWINS · _regen_marks() · _feed_marks() · _lob_marks() · _twin_bodies() · _tells() · _foe_tells() · _edge(가운데, 반지름, 밝은 색, 어두운 색) · _pdisc(가운데, 반지름, 색)
+#     · _poly(점들, 색) · _shadow(자리, 반지름) · _px(자리, 색, 크기) · _chest(몸) · CELL · tick(dt) · events([{kind, src, …}])
 # 판은 lib.gd battle()의 들판(30×20, 거점 (25,10))이다
 
 const TR := "troll"
@@ -18,6 +19,8 @@ class TRec extends "res://src/ui/battle_view.gd":
 	var rings := []  # [가운데, 반지름]
 	var discs := []  # [가운데, 반지름]
 	var edges := []  # [가운데, 반지름]
+	var polys := []  # [점들, 색]
+	var shadows := []  # [자리, 반지름]
 
 	func _region(_tex: Texture2D, dst: Rect2, src: Rect2, tint: Color) -> void:
 		cuts.append([dst, src, tint])
@@ -37,7 +40,13 @@ class TRec extends "res://src/ui/battle_view.gd":
 	func _pnoise(_c: Vector2i, _r: int, _col: Color, _lim: int, _salt := 0) -> void:
 		pass
 
-	func _shadow(_at: Vector2, _r: float) -> void:
+	func _shadow(at: Vector2, r: float) -> void:
+		shadows.append([at, r])
+
+	func _poly(pts: PackedVector2Array, col: Color) -> void:
+		polys.append([pts, col])
+
+	func _px(_p: Vector2i, _col: Color, _size := Vector2i.ONE) -> void:
 		pass
 
 func _trec(b):
@@ -419,7 +428,8 @@ func ev945():
 func _cells() -> Dictionary:
 	return JSON.parse_string(FileAccess.get_file_as_string("res://art/units/heroes.json"))
 
-# EV946 · I271 ③·I272 ③·I273 ⑥·I274: 트롤 그림과 쌍둥이의 2배·색, 재생 십자, 쓸기 부채꼴 테두리, 던지기 원 테(숨어도), 날아가는 바위·몸, 맡은 몸
+# EV946 · I271 ③·I272 ③·I273 ⑥·I274: 트롤 그림과 쌍둥이의 2배·색, 테 두른 재생 십자, 쓸기 부채꼴 테두리와 안쪽 칠, 던지기 원 테(숨어도), 날아가는 바위·몸과 그림자,
+# 던진 뒤 자세, 집어 먹기 예고(졸개 둘레 테와 선)와 사건, 맡은 몸
 func ev946():
 	var b = battle()
 	var why := _need(b, [TR, TT])
@@ -433,7 +443,7 @@ func ev946():
 	var idle := Rect2(int(a.x), int(a.idle), c, c)
 	var lying := Rect2(int(a.x), int(a.fall), 2 * c, 2 * c)
 	var v = _trec(b)
-	for need in ["_regen_marks", "_lob_marks", "_twin_bodies"]:
+	for need in ["_regen_marks", "_feed_marks", "_lob_marks", "_twin_bodies"]:
 		if not v.has_method(need):
 			v.free()
 			return "BattleView에 %s가 없다" % need
@@ -457,8 +467,8 @@ func ev946():
 	rt.fx["test_stun"] = {"stun": true, "left": BIG}
 	var stunned: int = cross.call()
 	rv.free()
-	if full != 0 or half != 2 or stunned != 0:
-		return "재생 표시 선 수: 체력 가득 %d(0) · 절반 %d(2) · 기절 %d(0)" % [full, half, stunned]
+	if full != 0 or half != 4 or stunned != 0:
+		return "재생 표시 선 수: 체력 가득 %d(0) · 절반 %d(4: 어두운 테 둘과 십자 둘) · 기절 %d(0)" % [full, half, stunned]
 	var g := _brawl([Vector2i(11, 10), Vector2i(11, 11), Vector2i(9, 10)])
 	if not _ever(g[0], g[1], "swat", 0.1):
 		return "0.1초 안에 쓸기 예고를 시작하지 않았다(cast %s)" % [g[1].cast]
@@ -469,9 +479,15 @@ func ev946():
 	sv._foes = sv.foes()
 	sv._tells()
 	var rim: int = sv.lines.size()
+	var fill: Array = sv.polys
+	sv.clock = 0.25
+	sv.lines = []
+	sv.polys = []
+	sv._tells()
+	var dim: Array = [sv.lines.size(), sv.polys.size()]
 	sv.free()
-	if not told or col != Color("ef692f") or rim != 8:
-		return "쓸기 예고: 그리는 적에 %s · 색 %s(ef692f) · 테두리 선 %d(8)" % [told, col.to_html(false), rim]
+	if not told or col != Color("ef692f") or rim != 8 or fill.size() != 1 or fill[0][0].size() != 8 or not fill[0][1].is_equal_approx(Color(Color("ef692f"), 0.2)) or dim != [0, 1]:
+		return "쓸기 예고: 그리는 적에 %s · 색 %s(ef692f) · 켜진 때 테두리 선 %d(8)·안쪽 칠 %s(점 8개에 ef692f 알파 0.2 하나) · 꺼진 때 [선, 칠] %s([0, 1])" % [told, col.to_html(false), rim, fill.map(func(x): return [x[0].size(), x[1]]), dim]
 	var l := _lair(Vector2i(15, 10))
 	var w = l[2]
 	if not _ever(l[0], w, "lob", 0.1):
@@ -485,17 +501,57 @@ func ev946():
 	if not run(l[0], 2.0, func(): return not l[0].lobs.is_empty()):
 		lv.free()
 		return "2초 안에 바위를 던지지 않았다"
-	_steps(l[0], 5)
+	_steps(l[0], 2)
+	var toss = _cut(lv, w)  # 던진 뒤 0.1초: 던진 쪽(동)을 보는 공격 키 포즈
+	_steps(l[0], 3)
 	lv.edges = []
 	lv._foes = lv.foes()
 	lv._foe_tells()
 	var air_ring: bool = lv.edges.any(func(x): return x[0] == mid and x[1] == 24)
 	lv._lob_marks()
-	var rock: bool = lv.discs.size() == 1 and lv.discs[0][1] == 3 and lv.discs[0][0].y < int(lv._center(w.pos).y)
+	var line: float = lv._center(w.pos).y
 	var discs: Array = lv.discs
+	var shade: Array = lv.shadows
+	var rock: bool = discs.size() == 2 and discs[0][1] == 4 and discs[1][1] == 3 and discs[0][0] == discs[1][0] and discs[0][0].y < int(line)
+	var shaded: bool = shade.size() == 1 and absf(shade[0][0].y - line) < 0.01 and shade[0][0].x > lv._center(w.pos).x and shade[0][0].x < float(mid.x)
+	run(l[0], 2.0, func(): return l[0].lobs.is_empty())
+	_steps(l[0], 1)
+	var landed = _cut(lv, w)  # 바위가 떨어진 뒤: 자세를 바꾸지 않는다
 	lv.free()
-	if red != Color("ef3a0c") or not ring or not air_ring or not rock:
-		return "집어 던지기: 예고 색 %s(ef3a0c) · 예고 테(가운데 %s, 반지름 24) %s · 바위가 나는 동안 테 %s · 바위 점 원 %s(반지름 3 하나, 선분보다 위)" % [red.to_html(false), mid, ring, air_ring, discs]
+	var swing := Rect2(int(a.x), int(a.attack) + 2 * c, 2 * c, 2 * c)
+	if red != Color("ef3a0c") or not ring or not air_ring or not rock or not shaded:
+		return "집어 던지기: 예고 색 %s(ef3a0c) · 예고 테(가운데 %s, 반지름 24) %s · 바위가 나는 동안 테 %s · 바위 점 원 %s(같은 자리에 반지름 4·3, 선분보다 위) · 그림자 %s(선분 위 하나)" % [red.to_html(false), mid, ring, air_ring, discs, shade]
+	if toss == null or toss[1] != swing or landed == null or landed[1].size != Vector2(c, c):
+		return "집어 던지기 자세: 던진 뒤 0.1초 원본 %s(공격 동쪽 칸 %s) · 떨어진 뒤 원본 %s(정지 칸 크기 %d)" % [toss[1] if toss else null, swing, landed[1] if landed else null, c]
+	var hg := _hungry(400.0)
+	var hw = hg[1]
+	var prey = hg[0].spawn_enemy("armored", Vector2i(11, 10), PREY)
+	if not _ever(hg[0], hw, "devour", 0.1) or not is_same(hw.cast.get("who"), prey):
+		return "0.1초 안에 장갑을 집은 집어 먹기 예고를 시작하지 않았다(cast %s)" % [hw.cast]
+	var dv = _trec(hg[0])
+	dv._foes = dv.foes()
+	dv._tells()
+	var rings: int = dv.edges.size()
+	dv.lines = []
+	dv._feed_marks()
+	var chest := Vector2i(dv._chest(prey).floor())
+	var girth: int = int(dv.CELL * prey.radius) + 4
+	var grip: bool = dv.edges == [[chest, girth]] and dv.lines == [[Vector2i(dv._chest(hw).floor()), chest]]
+	var marks: Array = [dv.edges, dv.lines]
+	dv.free()
+	if rings != 0 or not grip:
+		return "집어 먹기 예고: 예고·오라 그리기의 테 %d(0) · 졸개 둘레 [테, 선] %s(테 [%s, %d] 하나와 쌍둥이 가슴에서 졸개 가슴까지 선 하나)" % [rings, marks, chest, girth]
+	var fv = load("res://src/ui/battle_view.gd").new()
+	fv.battle = hg[0]
+	fv.tick(0.0)
+	var kinds := []
+	for i in 40:
+		hg[0].step(DT)
+		fv.tick(DT)
+		kinds.append_array(fv.events.filter(func(x): return x.src == hw).map(func(x): return x.kind))
+	fv.free()
+	if kinds != ["feed"]:
+		return "집어 먹기 예고부터 2초 동안 쌍둥이 트롤이 낸 사건 %s([feed] 하나, boss 없음)" % [kinds]
 	var n := _one("ignis", Vector2i(10, 10), {}, {"nights": NIGHT})
 	var nb = n[0]
 	n[1].sight = 0.0
@@ -527,11 +583,14 @@ func ev946():
 	pv._twin_bodies()
 	var left: int = pv.cuts.size()
 	pv.cuts = []
+	pv.shadows = []
 	pv._lob_marks()
 	var flown: Array = pv.cuts
+	var under: int = pv.shadows.size()
+	var hurl = _cut(pv, p[2])  # 던진 뒤 0.15초: 몸이 나는 쪽(동)을 보는 공격 키 포즈
 	pv.free()
-	return check(body.size() == 1 and body[0][1] == lying and left == 0 and flown.size() == 1 and flown[0][1] == lying,
-		"맡은 몸: 3초 뒤 그림 %s(원본 %s 한 장) · 몸이 나는 동안 맡은 몸 그림 %d(0) · 나는 몸 그림 %s(원본 %s 한 장)" % [body.map(func(x): return x[1]), lying, left, flown.map(func(x): return x[1]), lying])
+	return check(body.size() == 1 and body[0][1] == lying and left == 0 and flown.size() == 1 and flown[0][1] == lying and under == 1 and hurl != null and hurl[1] == swing,
+		"맡은 몸: 3초 뒤 그림 %s(원본 %s 한 장) · 몸이 나는 동안 맡은 몸 그림 %d(0) · 나는 몸 그림 %s(원본 %s 한 장) · 그림자 %d(1) · 던진 쌍둥이 원본 %s(공격 동쪽 칸 %s)" % [body.map(func(x): return x[1]), lying, left, flown.map(func(x): return x[1]), lying, under, hurl[1] if hurl else null, swing])
 
 # EV947 · I274: 트롤 칸(x 있음, one 없음)의 4행 모든 칸과 누운 자세, 빌린 그림·큰 몸·쌍둥이 색 표, 아틀라스 자리(주민 띠 오른쪽 잔해 아래)
 func ev947():
