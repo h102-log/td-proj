@@ -34,65 +34,65 @@ def test_EV895_wall_torches_and_fade(gd):
     gd("den", "EV895")
 
 
-def test_EV905_floor1_generation_table(gd):
-    gd("den", "EV905")
+def test_EV921_floor1_generation_table(gd):
+    gd("den", "EV921")
 
 
-def test_EV906_king_hops_no_walk_no_basic_attack(gd):
-    gd("den", "EV906")
+def test_EV922_king_hops_no_walk_no_basic_attack(gd):
+    gd("den", "EV922")
 
 
-def test_EV907_landing_circles_never_overlap(gd):
-    gd("den", "EV907")
+def test_EV923_landing_circles_never_overlap(gd):
+    gd("den", "EV923")
 
 
-def test_EV908_split_into_two_smaller_bodies(gd):
-    gd("den", "EV908")
+def test_EV924_split_into_two_smaller_bodies(gd):
+    gd("den", "EV924")
 
 
-def test_EV909_raid_ends_when_all_bodies_dead(gd):
-    gd("den", "EV909")
+def test_EV925_raid_ends_when_all_bodies_dead(gd):
+    gd("den", "EV925")
 
 
-def test_EV910_boss_bar_total_hp_and_body_scale(gd):
-    gd("den", "EV910")
+def test_EV926_boss_bar_total_hp_and_body_scale(gd):
+    gd("den", "EV926")
 
 
-def test_EV911_floor1_raid_knobs(gd):
-    gd("den", "EV911")
+def test_EV927_floor1_raid_knobs(gd):
+    gd("den", "EV927")
 
 
-def test_EV912_ward_and_groggy_damage(gd):
-    gd("den", "EV912")
+def test_EV928_ward_and_groggy_damage(gd):
+    gd("den", "EV928")
 
 
-def test_EV913_aimed_hop_miss_opens_groggy(gd):
-    gd("den", "EV913")
+def test_EV929_aimed_hop_miss_opens_groggy(gd):
+    gd("den", "EV929")
 
 
-def test_EV914_super_armor_and_no_displacement(gd):
-    gd("den", "EV914")
+def test_EV930_super_armor_and_no_displacement(gd):
+    gd("den", "EV930")
 
 
-def test_EV915_enrage_ramps_landing_damage(gd):
-    gd("den", "EV915")
+def test_EV931_enrage_ramps_landing_damage(gd):
+    gd("den", "EV931")
 
 
-def test_EV916_floor1_king_patterns_and_plan(gd):
-    gd("den", "EV916")
+def test_EV932_floor1_king_patterns_and_plan(gd):
+    gd("den", "EV932")
 
 
-def test_EV917_king_plan_order_and_waits(gd):
-    gd("den", "EV917")
+def test_EV933_king_plan_order_and_waits(gd):
+    gd("den", "EV933")
 
 
-def test_EV918_slam_hits_ring_and_counter_cut(gd):
-    gd("den", "EV918")
+def test_EV934_slam_hits_ring_and_counter_cut(gd):
+    gd("den", "EV934")
 
 
-def test_EV919_soak_share_fail_heal_counter(gd):
-    gd("den", "EV919")
+def test_EV935_soak_share_fail_heal_counter(gd):
+    gd("den", "EV935")
 
 
-def test_EV920_brand_follows_turn_hero(gd):
-    gd("den", "EV920")
+def test_EV936_brand_follows_turn_hero(gd):
+    gd("den", "EV936")

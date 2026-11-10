@@ -434,8 +434,8 @@ func _left(b) -> float:
 			sum += GEN_HP[k] * pow(2.0, k - e.gen)
 	return sum
 
-# EV905 · S322: 1층 층 정의의 세대 표와 뜀 수치. 디펜스 슬라임 킹 종류는 그대로다
-func ev905():
+# EV921 · S322: 1층 층 정의의 세대 표와 뜀 수치. 디펜스 슬라임 킹 종류는 그대로다
+func ev921():
 	var f = load("res://data/dungeon/floor_1.tres")
 	var gens = f.get("gens")
 	if not gens is Array or gens.size() != 4:
@@ -455,15 +455,15 @@ func ev905():
 	return check(king.speed == 1.0 and king.skills.has("shrink") and king.skills.leap.count == 3 and king.skills.leap.radius == 2.0,
 		"디펜스 slime_king 속도 %s(1) · shrink %s · 점프 몰린 수 %s(3) · 반경 %s(2)" % [king.speed, king.skills.has("shrink"), king.skills.leap.get("count"), king.skills.leap.get("radius")])
 
-# EV906 · S322: 왕은 걷지도 기본 공격도 하지 않고, 3초 선 뒤 가장 가까운 영웅 자리로 뛰어 원 안에만 피해를 준다. 뜀 거리 밖 영웅에게는 그쪽으로 5칸만 뛴다
-func ev906():
+# EV922 · S322: 왕은 걷지도 기본 공격도 하지 않고, 3초 선 뒤 가장 가까운 영웅 자리로 뛰어 원 안에만 피해를 준다. 뜀 거리 밖 영웅에게는 그쪽으로 5칸만 뛴다
+func ev922():
 	var b = _den()
 	var e = _king(b)
 	if e == null:
 		return "원정 몸에 gen이 없거나 원정이 되지 않았다(판 %s · 적 %d)" % [b.state, b.enemies.size()]
 	var a = b.party[0]
 	a.pos = Vector2(84, 81.5)
-	e.rest = 999.0  # 대본(S324)의 강타가 끼지 않게 쉼을 아주 길게 둔다
+	e.rest = 999.0  # 대본(S326)의 강타가 끼지 않게 쉼을 아주 길게 둔다
 	if e.hp != 400.0 or e.radius != 1.6:
 		return "왕 체력 %s(400) · 몸 반지름 %s(1.6)" % [e.hp, e.radius]
 	var from: Vector2 = e.pos
@@ -507,8 +507,8 @@ func _pair(b) -> Array:
 		k.pull = 0.0
 	return b.enemies.duplicate()
 
-# EV907 · I266 ①: 착지 원은 서로 겹치지 않고 선 몸 위에 내리지 않는다. 자리가 없으면 뛰지 않고 0.5초 뒤 다시 고른다
-func ev907():
+# EV923 · I266 ①: 착지 원은 서로 겹치지 않고 선 몸 위에 내리지 않는다. 자리가 없으면 뛰지 않고 0.5초 뒤 다시 고른다
+func ev923():
 	var b = _den()
 	var kids := _pair(b)
 	if kids.size() != 2:
@@ -551,8 +551,8 @@ func ev907():
 			out.append(two[1].cast != null)
 	return check(out == [true, true, true], "③ 고리 범위 0: 한 스텝 뒤 예고 없음·0.4초 뒤 없음·되돌리고 0.2초 뒤 있음 %s(기대 모두 참)" % [out])
 
-# EV908 · S322·I266 ②③: 죽으면 한 세대 작은 몸 둘로 갈라진다. 좌우 자리·가득 찬 체력·효과 없음·보상 없음·1.5초 쉼·엇갈린 박자, 방 밖에 놓이지 않고 넷째 세대는 갈라지지 않는다
-func ev908():
+# EV924 · S322·I266 ②③: 죽으면 한 세대 작은 몸 둘로 갈라진다. 좌우 자리·가득 찬 체력·효과 없음·보상 없음·1.5초 쉼·엇갈린 박자, 방 밖에 놓이지 않고 넷째 세대는 갈라지지 않는다
+func ev924():
 	var b = _den()
 	var e = _king(b)
 	if e == null:
@@ -599,8 +599,8 @@ func ev908():
 	b.damage(g3[0], BIG)
 	return check(b.enemies.size() == n - 1, "3세대 처치 뒤 적 %d → %d(1 줄어야)" % [n, b.enemies.size()])
 
-# EV909 · S322·I266 ④: 몸이 남으면 끝나지 않고, 모두 처치하면 처치로 끝난다. 불꽃이 다 타면 모든 몸이 사라지고, 전멸 뒤에는 어느 몸도 움직이지 않는다
-func ev909():
+# EV925 · S322·I266 ④: 몸이 남으면 끝나지 않고, 모두 처치하면 처치로 끝난다. 불꽃이 다 타면 모든 몸이 사라지고, 전멸 뒤에는 어느 몸도 움직이지 않는다
+func ev925():
 	var b = _den()
 	var e = _king(b)
 	if e == null:
@@ -635,8 +635,8 @@ func ev909():
 	return check(kids.map(func(k): return k.pos) == at and kids.all(func(k): return k.cast == null) and d.state == "raid",
 		"③ 전멸 뒤 2초에 자리 %s → %s(그대로여야) · 예고 %s(없어야) · 판 %s(raid)" % [at, kids.map(func(k): return k.pos), kids.map(func(k): return k.cast), d.state])
 
-# EV910 · S322: 보스 막대는 남은 총 체력 ÷ 1600이고, 몸 그림은 세대 몸 반지름에 비례해 작아진다
-func ev910():
+# EV926 · S322: 보스 막대는 남은 총 체력 ÷ 1600이고, 몸 그림은 세대 몸 반지름에 비례해 작아진다
+func ev926():
 	var main = _den_game()
 	var b = main.view.battle
 	var hud = main.hud
@@ -670,14 +670,14 @@ func ev910():
 func _groggy(b, e) -> bool:
 	return b._fx_on(e, "groggy") != null
 
-# EV911 · S323: 1층 층 정의의 경감·그로기·광폭 수치
-func ev911():
+# EV927 · S323: 1층 층 정의의 경감·그로기·광폭 수치
+func ev927():
 	var f = load("res://data/dungeon/floor_1.tres")
 	return check(f.get("ward") == 0.88 and f.get("groggy") == {"time": 5.0, "mult": 1.5} and f.get("enrage") == {"soft": 80.0, "step": 10.0, "ramp": 0.15},
 		"ward %s(0.88) · groggy %s(time 5 · mult 1.5) · enrage %s(soft 80 · step 10 · ramp 0.15)" % [f.get("ward"), f.get("groggy"), f.get("enrage")])
 
-# EV912 · S323 ①②: 평소 12%만 받고 고정 피해는 그대로, 그로기 중에는 1.5배. 디펜스 슬라임 킹은 그대로다
-func ev912():
+# EV928 · S323 ①②: 평소 12%만 받고 고정 피해는 그대로, 그로기 중에는 1.5배. 디펜스 슬라임 킹은 그대로다
+func ev928():
 	var b = _den()
 	var e = _king(b)
 	if e == null:
@@ -699,8 +699,8 @@ func ev912():
 	c.damage(k, 100.0, "magic")
 	return check(absf(before - k.hp - 100.0) < 0.001, "디펜스 슬라임 킹이 마법 100에 잃은 체력 %s(100)" % [before - k.hp])
 
-# EV913 · S323 ②: 겨눈 뜀이 아무도 못 맞히면 그 몸만 5초 그로기다. 맞히면 없고, 이동 뜀은 비어도 없다
-func ev913():
+# EV929 · S323 ②: 겨눈 뜀이 아무도 못 맞히면 그 몸만 5초 그로기다. 맞히면 없고, 이동 뜀은 비어도 없다
+func ev929():
 	var b = _den()
 	var e = _king(b)
 	if e == null:
@@ -747,8 +747,8 @@ func ev913():
 	return check(aimed == false and m.cast == null and not _groggy(d, m) and far.hp == hp2 and m.pos != Vector2(BOSS),
 		"③ 먼 영웅 쪽 뜀 aimed %s(거짓) · 착지 뒤 예고 %s(없어야) · 그로기 %s(거짓) · 영웅 체력 %s → %s · 왕 자리 %s(옮겨야)" % [aimed, m.cast, _groggy(d, m), hp2, far.hp, m.pos])
 
-# EV914 · S323 ③④: 기절·봉인은 걸리지 않고 둔화는 걸린다. 예고가 끊기지 않고, 밀기·되감기가 자리를 옮기지 않는다. 그로기 중에도 같다
-func ev914():
+# EV930 · S323 ③④: 기절·봉인은 걸리지 않고 둔화는 걸린다. 예고가 끊기지 않고, 밀기·되감기가 자리를 옮기지 않는다. 그로기 중에도 같다
+func ev930():
 	var b = _den()
 	var e = _king(b)
 	if e == null:
@@ -788,8 +788,8 @@ func _landed(flame: float) -> float:
 	_go(b, 5.4)
 	return hp - u.hp
 
-# EV915 · S323 ⑤: 불꽃 80초부터 10초마다 착지 피해가 15%씩 는다
-func ev915():
+# EV931 · S323 ⑤: 불꽃 80초부터 10초마다 착지 피해가 15%씩 는다
+func ev931():
 	var b = _den()
 	if not b.has_method("raid_ramp"):
 		return "raid_ramp가 없다"
@@ -807,7 +807,7 @@ func ev915():
 	var high := _landed(81.0)
 	return check(low > 0.0 and absf(high - low * 1.15) < 0.01, "착지에 잃은 체력: 불꽃 10 %s · 불꽃 81 %s(기대 앞의 1.15배 %s)" % [low, high, low * 1.15])
 
-# ── 왕의 대본(S324·I268) ── 더하는 API:
+# ── 왕의 대본(S326·I270) ── 더하는 API:
 #   FloorDef.plan [{id, wait}] · skills의 slam·soak·brand · Enemy.beat(대본 차례)·rest(그 패턴까지 남은 쉼)
 #   soak 예고의 cast.at(금색 원 자리) · brand 예고의 cast.mark(표식 영웅)·cast.at(원 자리)
 
@@ -845,8 +845,8 @@ func _casts(b, list: Array, secs: float) -> Array:
 				on[e] = id
 	return [starts, ends]
 
-# EV916 · S324: 1층 층 정의의 강타·점액 비·표식 수치와 대본
-func ev916():
+# EV932 · S326: 1층 층 정의의 강타·점액 비·표식 수치와 대본
+func ev932():
 	var f = load("res://data/dungeon/floor_1.tres")
 	var want := {
 		"slam": {"windup": 2.0, "radius": 3.0, "damage": 30.0, "knock": 1.5, "slow": 0.3, "slow_time": 3.0, "counter": 1.0, "color": "blue"},
@@ -860,8 +860,8 @@ func ev916():
 				return "%s.%s %s(기대 %s)" % [id, k, sk.get(k), want[id][k]]
 	return check(f.get("plan") == [{"id": "slam", "wait": 5.0}, {"id": "soak", "wait": 6.0}, {"id": "brand", "wait": 6.0}], "plan %s(기대 slam 5 → soak 6 → brand 6)" % [f.get("plan")])
 
-# EV917 · S324: 왕은 강타 → 점액 비 → 표식을 쉼을 두고 되풀이하고 그 사이에도 뛴다. 갈라진 몸은 뜀만 쓴다
-func ev917():
+# EV933 · S326: 왕은 강타 → 점액 비 → 표식을 쉼을 두고 되풀이하고 그 사이에도 뛴다. 갈라진 몸은 뜀만 쓴다
+func ev933():
 	var b = _den()
 	var e = _king(b)
 	if e == null or e.get("rest") == null:
@@ -891,8 +891,8 @@ func ev917():
 	var seen: Array = _casts(d, kids, 30.0)[0].map(func(s): return s[1])
 	return check(bare and not seen.is_empty() and seen.all(func(id): return id == "leap"), "③ 1세대 skills에 대본 패턴 없음 %s · 30초 동안 뜬 예고 %s(leap뿐이어야)" % [bare, seen])
 
-# EV918 · S324 ①④: 강타는 둘레 반경 안만 치고 빗나가도 창이 없다. 카운터 창 안 기절은 예고를 끊고 그로기를 연다
-func ev918():
+# EV934 · S326 ①④: 강타는 둘레 반경 안만 치고 빗나가도 창이 없다. 카운터 창 안 기절은 예고를 끊고 그로기를 연다
+func ev934():
 	var b = _den()
 	var e = _scripted(b, 0)
 	if e == null:
@@ -938,8 +938,8 @@ func _soaking() -> Array:
 		return []
 	return [b, e]
 
-# EV919 · S324 ②④·I268 ②: 점액 비는 2명 이상 모이면 나눠 받고 창이 열리며, 못 모이면 모두 맞고 왕이 회복한다. 카운터 창 안 기절은 끊는다
-func ev919():
+# EV935 · S326 ②④·I270 ②: 점액 비는 2명 이상 모이면 나눠 받고 창이 열리며, 못 모이면 모두 맞고 왕이 회복한다. 카운터 창 안 기절은 끊는다
+func ev935():
 	var s := _soaking()
 	if s.is_empty():
 		return "점액 비 예고가 뜨지 않았다(원정·대본 칸·한 스텝 뒤 soak)"
@@ -996,8 +996,8 @@ func ev919():
 	_go(b, 4.2)
 	return check(lone.hp < hp1 and not _groggy(b, e) and e.hp == 400.0, "④ 혼자 들어간 영웅 체력 %s → %s(줄어야) · 왕 그로기 %s(거짓) · 왕 체력 %s(400)" % [hp1, lone.hp, _groggy(b, e), e.hp])
 
-# EV920 · S324 ③·I268 ③: 표식은 출전 차례로 산 영웅에 붙어 따라다니고, 끝날 때 원 안 모두가 맞는다
-func ev920():
+# EV936 · S326 ③·I270 ③: 표식은 출전 차례로 산 영웅에 붙어 따라다니고, 끝날 때 원 안 모두가 맞는다
+func ev936():
 	var b = _den()
 	var e = _scripted(b, 2)
 	if e == null:
