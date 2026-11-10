@@ -17,6 +17,7 @@ var HIRE = load("res://data/hire.tres")  # 영입소 수치(S123, I103)
 var LEVELS = load("res://data/levels.tres")  # 영웅 레벨 수치(S126, I111)
 var QUEST_KINDS := _kinds("res://data/quests/")  # 미션 정의(S77, I118). 칸의 뜻은 src/data/quest_def.gd 머리 주석
 var FLOOR_KINDS := _kinds("res://data/dungeon/")  # 던전 층(S316). 파일 이름이 층 id다. 칸의 뜻은 src/data/floor_def.gd 머리 주석
+var RELIC_KINDS := _kinds("res://data/relics/")  # 유물(S334). 파일 이름이 유물 id다. 칸의 뜻은 src/data/relic_def.gd 머리 주석
 var GEAR_KINDS := _kinds("res://data/gear/")  # 영웅 전용장비(S246). 파일 이름이 주인 영웅 종류다. 칸의 뜻은 src/data/gear_def.gd 머리 주석
 const VILLAGE_UP := [60]  # 마을 레벨 n→n+1 비용(S99). 길이+1이 최대 레벨이다. 임시값(Claude 예시, 사용자 2026-10-13 수락)
 const MERC_CAP := 10  # 마을이 없는 판의 배치 상한(S25 2026-11-04 변경). 임시값(사용자 2026-10-13), 스테이지의 merc_cap이 덮어쓴다
@@ -324,6 +325,8 @@ class Unit:
 	var e := {}
 	var r := {}
 	var worn := false  # 전용장비를 꼈다(S247). 강화 수치는 판의 bag에 있다
+	var relic := ""  # 낀 유물 id(S334). 없으면 "". 강화 수치는 판의 relics에 있다
+	var relic_fx := {}  # 낀 유물의 효과(I278 ③): +0부터 지금 수치까지 단계 사전을 차례로 덮은 것. _refit이 채운다
 	var cd := {"q": 0.0, "w": 0.0, "e": 0.0, "r": 0.0}  # 칸마다 남은 재사용 대기(초)
 	var dash_cd := 0.0  # 대시(S315)의 남은 재사용 대기(초)
 	var skill_uses := 0  # 쓴 스킬 수(모든 칸)
@@ -466,6 +469,8 @@ var lineup := []  # 다음 라운드에 출전할 영웅(S59, I106). 영입 창�
 var bag := {}  # 가진 전용장비: 영웅 종류 → 강화 수치(+0부터, S246). 새 도전이면 비운다
 var forged := {}  # 이번 라운드 사이 창에서 장비마다 제작·강화한 횟수(S246). 다음 라운드로 넘어갈 때 비운다
 var dropped := []  # 이번 라운드 사이의 전리품 [영웅 종류, 전 수치(없던 장비면 -1), 뒤 수치](S252). 없으면 []. 결과 창이 보인다
+var relics := {}  # 가진 유물: 유물 id → 강화 수치(+0부터, S334). 새 도전이면 비운다
+var relic_forged := {}  # 이번 라운드 사이 창에서 유물마다 강화한 횟수(S334). 다음 라운드로 넘어갈 때 비운다
 var merc_rank := {}  # 용병 종류 → 산 강화 단계 수(S254). 키가 없으면 0. 새 도전이면 비운다
 var offers := []  # 영입소 목록: 칸마다 영웅 종류, 영입한 칸은 ""(I103, I104)
 var rerolls := 0  # 이번 라운드에 리롤한 횟수(S273). 도전을 시작할 때와 라운드를 이겨 목록을 무료로 새로 뽑을 때 0이 된다
@@ -654,6 +659,8 @@ func restart() -> void:
 	bag.clear()
 	forged.clear()
 	dropped.clear()
+	relics.clear()
+	relic_forged.clear()
 	merc_rank.clear()
 	heroes.clear()
 	# 영웅 목록(I102). 목록이 없고 hero_start만 있으면 아이아스 하나다. 이 영웅들은 보유·출전한 채 시작한다(평가용 스테이지)
@@ -942,6 +949,7 @@ func next_round() -> bool:
 		wave_index = 0
 		settled.clear()
 		forged.clear()  # 창당 횟수는 라운드 사이 창마다 새로 센다(S246)
+		relic_forged.clear()  # 유물 창당 횟수도(S334)
 		dropped.clear()
 		_reset_tally()  # 새 라운드의 집계와 미션(I119, I120)
 		_draw_mission()
@@ -1154,8 +1162,9 @@ func _end_raid(why: String, wait: float) -> void:
 	for e in _raiders():  # 돌아올 때까지 보스 몸은 움직이지 않는다
 		e.pull = INF
 
-# 돌아오기(I262 ⑦): 원정의 적·효과를 비우고 원정대를 떠 둔 몸으로, 라운드 집계를 떠 둔 값으로 되돌린다. 처치면 깬 층이 는다
+# 돌아오기(I262 ⑦): 원정의 적·효과를 비우고 원정대를 떠 둔 몸으로, 라운드 집계를 떠 둔 값으로 되돌린다. 처치면 깬 층이 늘고 층 보상(S333)을 받는다
 func _come_home(won: bool) -> void:
+	var cleared: Dictionary = raid_floor if won else {}
 	if won:
 		floors_cleared += 1
 	enemies.clear()
@@ -1181,6 +1190,8 @@ func _come_home(won: bool) -> void:
 	_raid_end = ["", 0.0]
 	flame = 0.0
 	state = "prep"
+	if won:  # 층 보상(S333)은 원정대 몸을 되돌린 뒤에 준다. 저절로 낀 유물이 떠 둔 몸에 덮이지 않게(I278 ①)
+		_reward_floor(cleared)
 
 # 영웅 몸의 칸(스크립트 변수)을 떠 둔다. 오토 켬끔(S296)은 원정 중에 바꾼 대로 두고, 다른 객체를 가리키는 칸은 돌아올 때 비운다
 func _body(h: Unit) -> Dictionary:
@@ -1260,6 +1271,9 @@ func dismiss(h) -> void:
 	if hiring_open():
 		roster.erase(h)
 		lineup.erase(h)
+		if h.relic != "":  # 끼던 유물은 가방에 남는다(S334)
+			h.relic = ""
+			_refit(h)
 
 # 보유 영웅을 출전 목록에 넣거나 뺀다(S59). 출전 인원(S123)이 차 있으면 넣기를 거부한다
 func set_lineup(h, on: bool) -> bool:
@@ -1384,6 +1398,46 @@ func _refit(h: Unit) -> void:
 		for step in steps.slice(0, mini(bag[h.kind], steps.size() - 1) + 1):
 			for path in step:
 				h.get(path.get_slice(".", 0))[path.get_slice(".", 1)] = step[path]
+	h.relic_fx = {}
+	if relics.has(h.relic):  # 낀 유물의 효과(I278 ③): 뒤 단계가 앞 단계의 같은 키를 덮는다
+		var steps: Array = RELIC_KINDS[h.relic].steps
+		for step in steps.slice(0, mini(relics[h.relic], steps.size() - 1) + 1):
+			h.relic_fx.merge(step, true)
+
+# 라운드 사이에만 보유 영웅 h에게 가방의 유물 id를 끼운다(S334, I278 ④). 그 유물을 끼던 다른 영웅에게서는 빠진다. id가 ""면 뺀다
+func wear_relic(h, id: String) -> bool:
+	if state != "cleared" or h not in roster or (id != "" and not relics.has(id)):
+		return false
+	for o in roster.filter(func(x): return x != h and id != "" and x.relic == id):
+		o.relic = ""
+		_refit(o)
+	h.relic = id
+	_refit(h)
+	return true
+
+# 라운드 사이에만 가방의 유물 id를 한 단계 강화한다(S334, I278 ④). 유물 하나는 창마다 relic_cap번, 데이터의 마지막 단계가 최대다
+func forge_relic(id: String) -> bool:
+	var n: int = relics.get(id, -1) + 1
+	if state != "cleared" or n == 0 or n >= RELIC_KINDS[id].steps.size() or relic_forged.get(id, 0) >= HIRE.relic_cap or gold < HIRE.relic_cost[n - 1]:
+		return false
+	gold -= HIRE.relic_cost[n - 1]
+	relic_forged[id] = relic_forged.get(id, 0) + 1
+	relics[id] = n
+	for h in roster.filter(func(x): return x.relic == id):
+		_refit(h)
+	return true
+
+# 층 보상(S333, I278 ①): 층 골드를 더하고 층의 유물을 +0으로 가방에 둔다. 유물은 유물을 끼지 않은 보유 출전 영웅 가운데 출전 차례 첫째가 저절로 낀다
+func _reward_floor(f: Dictionary) -> void:
+	gold += f.gold
+	if not RELIC_KINDS.has(f.relic):
+		return
+	relics[f.relic] = 0
+	for h in heroes:
+		if h in roster and h.relic == "":
+			h.relic = f.relic
+			_refit(h)
+			return
 
 # 라운드 집계(I119)를 0으로 돌린다. 도전을 시작할 때와 다음 라운드로 넘어갈 때
 func _reset_tally() -> void:
@@ -5545,7 +5599,7 @@ func _act(u: Unit, dt: float) -> void:
 func _hero_tick(h: Unit, dt: float) -> void:
 	if not fighting():
 		return
-	var pace := 1.0 + _fx_sum(h, "cdr") + _aura("cdr", h.pos)
+	var pace: float = 1.0 + _fx_sum(h, "cdr") + _aura("cdr", h.pos) + h.relic_fx.get("cdr", 0.0)  # 낀 유물(S334)의 빠르기도 더한다
 	for slot in SLOTS:
 		h.cd[slot] -= dt * pace
 	h.dash_cd = maxf(h.dash_cd - dt, 0.0)  # 대시 대기는 스킬 재사용 대기 감소(cdr)를 받지 않는다(I261 ⑥)
