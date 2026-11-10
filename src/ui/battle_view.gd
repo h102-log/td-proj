@@ -23,7 +23,7 @@ const ENEMY_COLORS := {  # 적 종류마다 다른 색(I81)
 # 그림이 아직 없어 다른 종류의 그림을 빌리는 종류 → [빌리는 종류, 곱하는 색](I250 ⑤·I253 ⑤). 4라운드 하피 다섯은 비행(하피) 그림이다
 const LOOKS := {"feather_harpy": ["flying", Color(0.75, 1.2, 1.7)], "dive_harpy": ["flying", Color(1.7, 1.0, 0.6)], "song_harpy": ["flying", Color(1.45, 0.85, 1.75)],
 	"storm_harpy": ["flying", Color(0.85, 1.65, 1.35)], "snatch_harpy": ["flying", Color(1.65, 1.5, 0.65)],
-	"nest_harpy": ["flying", Color(1.3, 1.6, 0.8)], "harpy_chick": ["flying", Color(1.8, 1.7, 1.6)], "wyvern": ["flying", Color(0.7, 1.4, 0.8)], "wyvern_fallen": ["flying", Color(1.5, 0.75, 0.6)]}  # 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피·와이번 둘(I255 ⑥·I256 ④·I257 ⑤)
+	"nest_harpy": ["flying", Color(1.3, 1.6, 0.8)], "harpy_chick": ["flying", Color(1.8, 1.7, 1.6)]}  # 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)
 const NOTE := Color("d8b0ff")  # 노래(S306)로 공격 속도가 느려진 아군 머리 위 음표와 노래 반경 고리의 색(I252 ④)
 const FEATHER := Color("f4f0e8")  # 날아가는 깃털(I250 ④)
 const GUST := Color(1.0, 1.0, 1.0, 0.45)  # 뿜는 돌풍의 부채꼴 테두리·바람 줄과 날린 화살 자국(I253 ③④)
@@ -191,7 +191,7 @@ const LANDING := "leap"  # 착지 흔적(slam)의 시트가 없는 보스가 착
 const WRECK_FADE := 0.5  # 수레 잔해가 지워지기(battle.WRECK) 전에 흐려지는 시간(초, S172 2026-11-05 변경 ⑥)
 const FAN_TURN := 20.0  # 시트 자세 ±40°의 가운데
 const BLOW := {"war_machine": ["slam", 1]}  # 공격 칸이 없는 종류의 기본 공격 키 포즈 [시트, 열](S172 2026-11-03 셋째 변경 ④)
-const GROW := {"slime_king": [3.0, 5.0], "wyvern": [2.0, 0.0], "wyvern_fallen": [2.0, 0.0]}  # 몸이 큰 종류(S236 2026-10-29 변경: 킹 몸 반지름 2칸)의 [그림 배율, 배율 전 그림을 내리는 px]. 정수배라 도트가 고르고, 내리면 그림 가운데가 몸 가운데에 온다
+const GROW := {"slime_king": [3.0, 5.0]}  # 몸이 큰 종류(S236 2026-10-29 변경: 킹 몸 반지름 2칸)의 [그림 배율, 배율 전 그림을 내리는 px]. 정수배라 도트가 고르고, 내리면 그림 가운데가 몸 가운데에 온다
 const POP := 0.3  # 갈라져 나온 적이 죽은 자리에서 제자리로 튀어나오는 시간(초, S234 2026-10-29 변경)
 const POP_UP := 6.0  # 그동안 포물선으로 뛰는 높이(px)
 const POP_FROM := 0.5  # 튀어나오기 시작할 때의 그림 배율. POP초에 1이 된다
@@ -2857,13 +2857,16 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 			if c != null or x.cast:
 				anim = "idle"
 				col = 0
+		elif x.fx.has("plunge") and ART[x.kind].has("plunge"):  # 와이번 급강하 뒤 내려앉음(S172 2026-11-10 변경 ①): 내리꽂은 자세를 보던(내리꽂은) 쪽으로, 들지 않는다
+			anim = "plunge"
+			col = 1
 		elif rig and c != null:  # 스킬 시트의 정점 열(S172 2026-11-03 셋째 변경 ②③, 2026-11-05 변경 ②): 대포는 원 가운데 쪽을 본다. 정점 열을 다 보였으면(c를 비웠으면) 흔적이 없을 때처럼 그린다
 			anim = sheet
 			col = PEAK.get(sheet, [1])[int(c.age / SLAM_POSE)]
 			if c.slot == "cannon":
 				dir = _four(c.at - x.pos)
-			elif c.has("dir"):  # 철퇴: 부채꼴 가운데 쪽(S198)
-				dir = _four(Vector2.from_angle(c.dir))
+			elif c.has("dir"):  # 철퇴: 부채꼴 가운데 쪽(S198). 꼬리 휘두르기는 부채꼴 반대쪽(노리는 대상 쪽, S172 2026-11-10 변경 ②)
+				dir = _four(Vector2.from_angle(c.dir) * (-1.0 if c.slot == "tail" else 1.0))
 			elif c.has("from"):  # 돌진: 내달린 쪽(S198)
 				dir = _four(c.at - c.from)
 			else:
@@ -2874,6 +2877,10 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 			col = 0  # 4방향 시트의 공격은 키 포즈 한 칸이다. 밀려 걷는 위상이 남으면 빈 칸을 그린다
 			dir = 0 if c.aim == null else _four(Vector2(c.aim) - c.at)
 			off.y = 1.0
+		elif x.cast and x.cast.get("air", false) and x.cast.id == "plunge" and ART[x.kind].has("plunge"):  # 와이번 내리꽂기(S172 2026-11-10 변경 ①): 내리꽂은 자세를 내리꽂는 쪽으로, 들지 않는다
+			anim = "plunge"
+			col = 1
+			dir = _four(x.cast.at - x.cast.from)
 		elif x.cast and x.cast.get("air", false) and ART[x.kind].has(x.cast.id):  # 대장 등장 착지(S172 2026-11-05 변경 ③): 뜬 동안 내내 공중 자세를 한가운데 LEAP_UP까지 포물선으로 든다. 화면 쪽을 본다
 			var t: float = 1.0 - x.cast.left / x.skills[x.cast.id].air
 			anim = x.cast.id
@@ -2882,7 +2889,7 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 			hop = LEAP_UP * 4.0 * t * (1.0 - t)
 		elif x.cast and ART[x.kind].has(x.cast.id):  # 스킬 시트의 예고·발사(S172 2026-11-03 셋째 변경 ①③): 대포는 원 가운데, 기관총은 부채꼴 가운데 쪽을 본다
 			var k: Dictionary = x.cast
-			dir = _four(k.at - x.pos) if k.has("at") else (_four(Vector2.from_angle(k.dir)) if k.has("dir") else 0)
+			dir = _four(k.at - x.pos) if k.has("at") else (_four(Vector2.from_angle(k.dir) * (-1.0 if k.id == "tail" else 1.0)) if k.has("dir") else 0)  # 꼬리 휘두르기 예고는 부채꼴 반대쪽(S172 2026-11-10 변경 ②)
 			anim = "idle"
 			col = 0
 			if k.get("fire", false):  # 기관총 발사: 총구(S287)가 보는 쪽에서 FAN_TURN° 넘게 돌았으면 그쪽 자세. 0열이 기계의 왼쪽이다
@@ -2890,6 +2897,9 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 				var turn := rad_to_deg(angle_difference(deg_to_rad(90.0 - 90.0 * dir), battle.muzzle(k.dir, sk, sk.fire - k.left)))
 				anim = k.id
 				col = 0 if turn < -FAN_TURN else (2 if turn > FAN_TURN else 1)
+			elif k.get("pass", false):  # 융단 폭격 지나가기(S172 2026-11-10 변경 ①): 내내 불을 뿜는 자세, 들지 않는다
+				anim = k.id
+				col = 1
 			elif k.left < LIFT:
 				if not STILL_TELL.has(k.id):
 					anim = k.id

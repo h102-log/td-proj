@@ -153,6 +153,34 @@
   "attack": 9236,
   "fall": 9588
  },
+ "wyvern": {
+  "c": 106,
+  "anchor": [
+   53.0,
+   74
+  ],
+  "x": 320,
+  "idle": 0,
+  "walk": 424,
+  "attack": 848,
+  "plunge": 1696,
+  "carpet": 2120
+ },
+ "wyvern_fallen": {
+  "c": 96,
+  "anchor": [
+   48.0,
+   61
+  ],
+  "x": 320,
+  "idle": 2544,
+  "walk": 2928,
+  "attack": 3312,
+  "breath": 4080,
+  "rush": 4464,
+  "tail": 4848,
+  "fall": 5232
+ },
  "slimelet": {
   "c": 14,
   "anchor": [

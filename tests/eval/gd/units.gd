@@ -47,8 +47,8 @@ const TABLE := {
 	"nest_harpy": [12, 2.4, 3, 1, 0.3, 0, 10, null],  # 4라운드 하늘 둥지 묶음 ③(S106 2026-11-10 둘째 변경)
 	"nest": [40, 0, 0, 1, 0.4, 0, 10, null],
 	"harpy_chick": [4, 3, 2, 1, 0.2, 3, 0, null],
-	"wyvern": [160, 1.6, 15, 1.5, 0.6, 4, 0, null],
-	"wyvern_fallen": [200, 1.2, 25, 1.5, 0.6, 4, 50, 0.3],
+	"wyvern": [160, 1.6, 15, 1.5, 0.9, 4, 0, null],
+	"wyvern_fallen": [200, 1.2, 25, 1.5, 0.9, 4, 50, 0.3],
 }
 const PACK := {"wolf": 4, "leap_wolf": 2, "night_wolf": 2, "flying": 4}  # 무리(S238). 비행은 2026-11-09 변경. 나머지 종류는 1
 const KEYS := ["hp", "speed", "damage", "attack_gap", "radius", "sight", "reward", "wall_k"]
