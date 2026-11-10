@@ -256,6 +256,10 @@ class Enemy:
 	var wall := {}  # 방패벽 오크의 방패벽(S319)
 	var frenzy := {}  # 광전사 오크의 격노(S320)
 	var drum := {}  # 전쟁 북 고수의 전쟁 북(S321)
+	var hurl := {}  # 오우거 투척꾼의 오크 던지기(S324)
+	var hoist = null  # 이 오크를 집은 투척꾼(S324 ②). 집히지 않았으면 null
+	var hook := {}  # 사슬 오크의 사슬(S325)
+	var snag = null  # 사슬 오크가 방금 던진 사슬의 끝(I269 ⑤): 맞힌 아군(Unit)이나 빗나간 띠 끝(Vector2). 던진 뒤 초는 loosed다. 그리기만 읽는다
 	var raid := {}  # 원정 보스(S316)의 층 정의. 비어 있으면 원정 보스가 아니다
 	var pull := 0.0  # 움직이지도 치지도 스킬을 쓰지도 않고 서 있을 남은 초(원정 보스, I262 ④⑥)
 
@@ -3767,7 +3771,7 @@ func _move(e: Enemy, dt: float) -> void:
 	for id in e.cd:  # 일반 적 행동(S279)의 대기는 여기서 센다. 보스 스킬의 대기는 _skills가 센다
 		if not e.skills.has(id):
 			e.cd[id] -= dt
-	var broke: bool = e.cast != null and e.cast.id == "nest" and not _climbable(e.cast.at)  # 짓던 성벽 칸이 부서졌다(S309)
+	var broke: bool = e.cast != null and ((e.cast.id == "nest" and not _climbable(e.cast.at)) or (e.cast.id == "hurl" and not e.cast.who.alive))  # 짓던 성벽 칸이 부서졌다(S309). 집은 오크가 쓰러졌다(S324 ④)
 	if e.cast and not aloft and (stunned or sealed or broke):  # 예고가 끊긴다. 보스 스킬은 기절이면 비틀거리고, 봉인이면 그냥 취소된다(S194). 일반 적은 비틀거리지 않는다(S279)
 		var mine: bool = e.skills.has(e.cast.id)
 		e.cd[e.cast.id] = deed(e, e.cast.id).get("cd", 0.0)
@@ -3780,6 +3784,11 @@ func _move(e: Enemy, dt: float) -> void:
 		e.cast = null
 		if stunned and mine:
 			_fx(e, "stagger", {"expose": STAGGER_EXPOSE}, STAGGER)
+	if e.hoist != null:  # 집힌 오크(S324 ②④): 투척꾼의 예고 동안 움직이지도 치지도 않는다. 예고가 끊겼거나 투척꾼이 쓰러졌으면 풀린다
+		var by: Enemy = e.hoist
+		if by.alive and by.cast != null and by.cast.id == "hurl" and is_same(by.cast.who, e):
+			return
+		e.hoist = null
 	if e.grip and _grip(e, dt, stunned or sealed):  # 붙잡은 동안은 그 아군만 문다(S242)
 		return
 	if e.carry != null:  # 낚아채기(S308): 든 동안은 떨어뜨릴 자리 쪽으로 날고, 예고가 끊겼으면 든 것을 내려놓는다
@@ -3815,6 +3824,10 @@ func _move(e: Enemy, dt: float) -> void:
 	if not e.snatch.is_empty() and not sealed and _swipe(e, dt):  # 낚아채기 하피(S308): 들 것으로 날아가거나 돌을 주우러 내려앉는다
 		return
 	if not e.nest.is_empty() and not sealed and _roost(e, dt):  # 둥지 하피(S309): 빈 성곽 성벽 칸으로 날아가 내려앉아 짓는다. 끊긴 뒤 대기 동안은 그 자리에 떠 있다
+		return
+	if not e.hurl.is_empty() and not sealed and _heave(e):  # 오우거 투척꾼(S324): 던질 대상과 던질 오크가 있으면 오크를 집고 예고를 띄운다
+		return
+	if not e.hook.is_empty() and not sealed and _sling(e):  # 사슬 오크(S325): 볼 아군이 있고 곧은 선이 트였으면 직선 예고를 띄운다
 		return
 	if e.dashing and (e.path.is_empty() or units.any(func(u): return u.alive and _touching(u, e) and _touch(e, u))):  # 아군 몸에 막히거나 길이 끝나면 돌진이 끝난다(I243 ④)
 		_end_dash(e)
@@ -4001,7 +4014,9 @@ func _soar(e: Enemy, dt: float) -> void:
 	if c.left > 0.0:
 		return
 	e.cast = null
-	if c.id == "pounce":
+	if c.id == "hurled":
+		_hurl_land(e, sk, c)
+	elif c.id == "pounce":
 		_pounce_land(e, sk, c.who)
 	elif c.id == "dive":
 		_dive_land(e, sk, c)
@@ -4466,6 +4481,93 @@ func _drums() -> void:
 				_heard[a] = true
 				if not _drummed.has(e):
 					_drummed[e] = a.drum
+
+# 오우거 투척꾼(S324 ①②, I268 ①): 대기가 끝났고 도발되지 않았으면, min칸 넘고 range칸 안의 가장 가까운 원거리 아군(성벽 위 포함, 들린 것 빼고)과
+# reach칸 안의 가장 가까운 땅 위 오크(kinds의 종류. 뜬 것·집힌 것 빼고)를 고른다. 둘 다 있으면 오크를 집고 대상의 지금 자리에 원 예고를 띄운다. 띄웠으면 true
+func _heave(e: Enemy) -> bool:
+	var taunt = _fx_on(e, "taunt")
+	if e.cd.get("hurl", 0.0) > 0.0 or (taunt and taunt.alive):
+		return false
+	var sk: Dictionary = e.hurl
+	var aim = null
+	for u in units:
+		var d := e.pos.distance_to(u.pos)
+		if u.range >= sk.ranged and d > sk.min and d <= sk.range and not _carried(u) and (aim == null or d < e.pos.distance_to(aim.pos)):
+			aim = u
+	if aim == null:
+		return false
+	var orc = null
+	for o in enemies:
+		var d := e.pos.distance_to(o.pos)
+		if o.kind in sk.kinds and d <= sk.reach and not o.on_wall and not _aloft(o) and o.hoist == null and (orc == null or d < e.pos.distance_to(orc.pos)):
+			orc = o
+	if orc == null:
+		return false
+	orc.hoist = e
+	e.cast = {"id": "hurl", "left": sk.windup, "at": aim.pos, "who": orc}
+	return true
+
+# 던지기(S324 ③): 예고가 끝나면 집힌 오크가 air초 동안 떠서 예고 자리로 난다(_soar). 붙잡던 유닛과의 블록은 풀린다(I268 ②)
+func _hurl(e: Enemy, sk: Dictionary) -> void:
+	var o: Enemy = e.cast.who
+	o.hoist = null
+	_engage(o, null)
+	o.cast = {"id": "hurled", "left": sk.air, "air": true, "from": o.pos, "at": e.cast.at, "sk": sk}
+
+# 던져진 오크의 착지(S324 ③, I268 ③④): 예고 자리의 칸이 성곽 성벽 칸이면 그 칸 가운데의 성벽 위, 땅 적이 설 수 있는 칸이면 예고 자리,
+# 아니면 가장 가까운 빈 칸 가운데에 선다. 예고 자리에서 radius칸 안 아군(성벽 위 포함, 들린 것 빼고)에 물리 hit.
+# 성벽 위나 마을 안에 떨어지면 먼저 노리던 성문을 버린다. 길은 _soar가 다시 구한다
+func _hurl_land(o: Enemy, sk: Dictionary, c: Dictionary) -> void:
+	var cell := Vector2i(c.at.round())
+	o.on_wall = _climbable(cell)
+	o.pos = Vector2(cell) if o.on_wall else (c.at if _bare(cell) else Vector2(_bare_near(cell)))
+	if o.on_wall or village.has_point(cell):
+		o.via = null
+	for u in units.duplicate():
+		if u.pos.distance_to(c.at) <= sk.radius and not _carried(u):
+			damage(u, sk.hit, "phys", o)
+
+# 사슬 오크(S325 ①, I269 ①②): 대기가 끝났고 도발되지 않았으면, min칸 넘고 range칸 안의 가장 가까운 땅 위 아군(들린 것 빼고)을 본다.
+# 그 아군까지 곧은 선이 트였으면 그쪽으로 직선 예고를 띄운다. 띠 끝(to)은 돌진 길(_dash)처럼 막힌 칸 앞에서 끊는다. 띄웠으면 true
+func _sling(e: Enemy) -> bool:
+	var taunt = _fx_on(e, "taunt")
+	if e.cd.get("hook", 0.0) > 0.0 or (taunt and taunt.alive):
+		return false
+	var sk: Dictionary = e.hook
+	var aim = null
+	for u in _ground_near(e.pos, sk.range):
+		var d := e.pos.distance_to(u.pos)
+		if d > sk.min and (aim == null or d < e.pos.distance_to(aim.pos)):
+			aim = u
+	if aim == null or not _clear_line(e.pos, aim.pos):
+		return false
+	var dir: Vector2 = (aim.pos - e.pos).normalized()
+	e.cast = {"id": "hook", "left": sk.windup, "dir": dir.angle(), "to": _dash(e.pos, dir, sk.range)[0]}
+	return true
+
+# 사슬(S325 ②, I269 ②③): 사슬 오크에서 띠 끝까지의 가운데 선에서 width/2 안인 땅 위 아군 가운데 가장 가까운 하나에 물리 hit를 주고
+# 오크 앞 gap칸 자리(설 수 없는 칸이면 가장 가까운 빈 칸 가운데)로 끌어온다. gap칸보다 가까운 아군은 옮기지 않는다.
+# 끌려온 아군은 명령·일을 놓고 그 자리에 선다. 사슬 끝(snag)과 던진 뒤 초(loosed)는 화면이 사슬 선을 그릴 때 읽는다
+func _hook(e: Enemy, sk: Dictionary) -> void:
+	var dir := Vector2.from_angle(e.cast.dir)
+	var span: float = e.pos.distance_to(e.cast.to)
+	var best = null
+	for u in _ground_near(e.pos, span + sk.width):
+		var v: Vector2 = u.pos - e.pos
+		if (e.pos + dir * clampf(v.dot(dir), 0.0, span)).distance_to(u.pos) <= sk.width / 2.0 and (best == null or v.length() < e.pos.distance_to(best.pos)):
+			best = u
+	e.loosed = 0.0
+	e.snag = best if best else e.cast.to
+	if best == null:
+		return
+	if e.pos.distance_to(best.pos) > sk.gap:
+		var to: Vector2 = e.pos + dir * sk.gap
+		if not _bare(Vector2i(to.round())):
+			to = Vector2(_bare_near(Vector2i(to.round())))
+		best.pos = to
+		_drop_orders(best)
+		_halt(best)
+	damage(best, sk.hit, "phys", e)
 
 # 폭풍날개 하피가 겨누는 자리(S307, I253 ①): p에서 가장 가까운 서 있는 성곽 칸 가운데. 성곽이 없으면 거점의 가장 가까운 차지 칸
 func _gale_mark(p: Vector2) -> Vector2:
@@ -5359,8 +5461,11 @@ func _climbable(c: Vector2i) -> bool:
 
 # ── 3라운드 고블린 약탈단(S279~S283) ──
 
-# 적 e의 예고 행동 id의 수치: 보스 스킬이면 skills의 칸(S194), 아니면 같은 이름의 적 칸(폭파병 fuse·투석기 throw·불화살 flame, S279)
+# 적 e의 예고 행동 id의 수치: 보스 스킬이면 skills의 칸(S194), 아니면 같은 이름의 적 칸(폭파병 fuse·투석기 throw·불화살 flame, S279).
+# 던져진 오크(S324)는 제 수치가 아니라 예고에 실린 투척꾼의 수치(sk)다
 func deed(e: Enemy, id: String) -> Dictionary:
+	if e.cast != null and e.cast.id == id and e.cast.has("sk"):
+		return e.cast.sk
 	return e.skills[id] if e.skills.has(id) else e.get(id)
 
 # 구조물 s에서 p(칸 좌표)에 가장 가까운 차지 칸의 가운데(I216·I219)
