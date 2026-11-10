@@ -232,3 +232,133 @@ func ev881():
 	var kept: Array = c.selected.duplicate()
 	return check(m != null and team.size() == 3 and picked == [team[0], team[2]] and kept == [m],
 		"용병 %s · 준비 단계에 고른 것 %s(기대 [아이아스, 세라피나]) · 영입 단계에 고른 것 %s(기대 [병사])" % [m, picked.map(func(x): return x.kind), kept.map(func(x): return x.kind)])
+
+# 대시 손잡이(S315). 아직 없으면 빈 사전
+func _dash_cfg() -> Dictionary:
+	return load("res://src/sim/battle.gd").get_script_constant_map().get("DASH", {})
+
+# 고른 것을 group으로 두고 커서를 칸 at 가운데에 둔 채 Space를 누른다
+func _dash_key(c, group: Array, at: Vector2) -> void:
+	c.selected = group
+	c.mouse = (at + Vector2(0.5, 0.5)) * CELL_PX
+	_key(c, KEY_SPACE)
+
+# from에서 at 쪽으로 n칸 간 자리
+func _toward(from: Vector2, at: Vector2, n: float) -> Vector2:
+	return from + (at - from).normalized() * n
+
+# EV882 · S315: 전투 단계 Space — 고른 출전 영웅만 저마다 커서 쪽으로 DASH.length칸, 대기 DASH.cd초. 대기 중엔 그대로, 대기가 끝나면 다시.
+# 고른 것에 영웅이 없으면 살아 있는 첫 영웅이 대시한다
+func ev882():
+	var dash := _dash_cfg()
+	if dash.is_empty():
+		return "Battle.DASH가 없다"
+	var team3 := [_hero("aias", H), _hero("ignis", H + Vector2i(0, 2)), _hero("seraphina", H + Vector2i(0, 4))]
+	var b = _heroes(team3, {"merc_cap": 2})
+	b.gold = BIG
+	var t: Array = b.heroes
+	var m = b.place_merc("soldier", Vector2i(14, 10))
+	_start(b)
+	var c = controls(b)
+	var at := Vector2(20, 10)
+	var p0: Array = [t[0].pos, t[1].pos, t[2].pos, m.pos]
+	_dash_key(c, [t[0], t[1], m], at)
+	var went: bool = t[0].pos.distance_to(_toward(p0[0], at, dash.length)) < 0.01 and t[1].pos.distance_to(_toward(p0[1], at, dash.length)) < 0.01
+	var still: bool = t[2].pos.distance_to(p0[2]) < 0.01 and m.pos.distance_to(p0[3]) < 0.01
+	var cds := [t[0].get("dash_cd"), t[1].get("dash_cd"), t[2].get("dash_cd")]
+	var cd_ok: bool = cds[0] == dash.cd and cds[1] == dash.cd and cds[2] == 0.0
+	var p1: Array = [t[0].pos, t[1].pos]
+	_key(c, KEY_SPACE)
+	var waited: bool = t[0].pos.distance_to(p1[0]) < 0.01 and t[1].pos.distance_to(p1[1]) < 0.01
+	run(b, dash.cd + 0.1)
+	var p2: Array = [t[0].pos, t[1].pos]
+	_key(c, KEY_SPACE)
+	var again: bool = absf(t[0].pos.distance_to(p2[0]) - dash.length) < 0.01 and absf(t[1].pos.distance_to(p2[1]) - dash.length) < 0.01
+	var b2 = _heroes(team3, {"merc_cap": 2})
+	b2.gold = BIG
+	var u: Array = b2.heroes
+	var m2 = b2.place_merc("soldier", Vector2i(14, 10))
+	_start(b2)
+	u[0].alive = false
+	var c2 = controls(b2)
+	var q0: Array = [u[1].pos, u[2].pos]
+	_dash_key(c2, [m2], at)
+	var first: bool = u[1].pos.distance_to(_toward(q0[0], at, dash.length)) < 0.01 and u[2].pos.distance_to(q0[1]) < 0.01
+	return check(went and still and cd_ok and waited and again and first,
+		"고른 둘 %s · 안 고른 둘 그대로 %s · dash_cd %s(기대 %s, %s, 0) · 대기 중 그대로 %s · 대기 뒤 다시 %s · 병사만 고르면 살아 있는 첫 영웅 %s"
+		% [went, still, cds, dash.cd, dash.cd, waited, again, first])
+
+# EV883 · I261 ④: 대시 길은 막힌 칸(타워) 바로 앞에서 멈추고, 에너지 성벽·몸은 지나간다. 한 걸음도 못 나가면 대기를 쓰지 않는다
+func ev883():
+	var dash := _dash_cfg()
+	if dash.is_empty():
+		return "Battle.DASH가 없다"
+	var at := Vector2(20, 10)
+	var out := []
+	for case in ["tower", "barrier", "body", "stuck"]:
+		var b = _heroes([_hero("aias", H)])
+		b.gold = BIG
+		if case == "tower":
+			b.build("tower", Vector2i(12, 10))
+		elif case == "stuck":
+			b.build("tower", Vector2i(11, 10))
+		_start(b)
+		var h = b.heroes[0]
+		h.pos = Vector2(10.3, 10) if case == "stuck" else Vector2(H)
+		if case == "barrier":
+			b.barriers[Vector2i(12, 10)] = load("res://src/sim/battle.gd").Block.new(Vector2i(12, 10), "barrier", 1e6)
+		elif case == "body":
+			_dummy(b, Vector2i(11, 10))
+		_dash_key(controls(b), [h], at)
+		var ok: bool
+		match case:
+			"tower":
+				ok = h.pos.x >= 11.0 and h.pos.x < 11.5 and absf(h.pos.y - 10.0) < 0.01
+			"stuck":
+				ok = h.pos.distance_to(Vector2(10.3, 10)) < 0.01 and h.get("dash_cd") == 0.0
+			_:
+				ok = h.pos.distance_to(Vector2(12, 10)) < 0.01
+		if not ok:
+			out.append("%s: 자리 %s · dash_cd %s" % [case, h.pos, h.get("dash_cd")])
+	return check(out.is_empty(), " / ".join(out))
+
+# EV884 · I261 ①②⑤: 준비 단계엔 대시하지 않는다. 기절·성벽 위 영웅은 빼고 나머지만 대시한다. 대시하면 이동 명령이 지워지고, 요새화가 풀린다
+func ev884():
+	var dash := _dash_cfg()
+	if dash.is_empty():
+		return "Battle.DASH가 없다"
+	var team3 := [_hero("aias", H), _hero("ignis", H + Vector2i(0, 2)), _hero("seraphina", H + Vector2i(0, 4))]
+	var at := Vector2(20, 12)
+	var b = _heroes(team3)
+	var t: Array = b.heroes
+	var c = controls(b)
+	var p0: Array = t.map(func(h): return h.pos)
+	_dash_key(c, t.duplicate(), at)
+	var prep: bool = range(3).all(func(i): return t[i].pos.distance_to(p0[i]) < 0.01 and t[i].get("dash_cd") == 0.0)
+	_start(b)
+	b._fx(t[0], "ev884", {"stun": true}, 3.0)
+	t[2].on_wall = true
+	var p1: Array = t.map(func(h): return h.pos)
+	_key(c, KEY_SPACE)
+	var some: bool = t[0].pos.distance_to(p1[0]) < 0.01 and t[2].pos.distance_to(p1[2]) < 0.01 \
+		and t[1].pos.distance_to(_toward(p1[1], at, dash.length)) < 0.01
+	var b2 = _heroes(team3)
+	_start(b2)
+	var ig = b2.heroes[1]
+	b2.order_move([ig], Vector2i(25, 18))
+	run(b2, 0.3)
+	_dash_key(controls(b2), [ig], Vector2(2, 12))
+	var land: Vector2 = ig.pos
+	var cleared: bool = ig.path.is_empty() and ig.after.is_empty()
+	run(b2, 1.0)
+	var stood: bool = ig.pos.distance_to(land) < 0.05
+	var b3 = _heroes(team3)
+	_start(b3)
+	var ai = b3.heroes[0]
+	run(b3, ai.passive.still + 1.0)
+	var fort0: bool = ai.fort
+	_dash_key(controls(b3), [ai], at)
+	b3.step(DT)
+	return check(prep and some and cleared and stood and fort0 and not ai.fort,
+		"준비 단계 그대로 %s · 기절·성벽 위 빼고 이그니스만 %s · 길 지움 %s · 1초 뒤 그 자리 %s(%s → %s) · 요새화 %s → %s"
+		% [prep, some, cleared, stood, land, ig.pos, fort0, ai.fort])

@@ -28,3 +28,15 @@ def test_EV239_cooldowns_and_regen_pause_outside_battle(gd):
 
 def test_EV881_select_all_heroes_key(gd):
     gd("heroes", "EV881")
+
+
+def test_EV882_dash_selected_heroes(gd):
+    gd("heroes", "EV882")
+
+
+def test_EV883_dash_path_stops_and_passes(gd):
+    gd("heroes", "EV883")
+
+
+def test_EV884_dash_skips_and_clears_orders(gd):
+    gd("heroes", "EV884")

@@ -645,8 +645,8 @@ msgstr "Pick a slot bottom right (keys)\nclick the map, an Engineer builds"
 msgid "거점을 누르면 마을 레벨을 올린다\n(새 시설이 열린다)"
 msgstr "Click the Keep to level the Village\n(unlocks new buildings)"
 
-msgid "준비가 끝나면 위 오른쪽\n▶ 전투 시작 (Enter)"
-msgstr "When ready, top right:\n▶ Start Battle (Enter)"
+msgid "준비가 끝나면 위 오른쪽\n▶ 전투 시작을 누른다"
+msgstr "When ready, top right:\nclick ▶ Start Battle"
 
 msgid "병영(4)을 짓고 용병 칸으로 산다\n용병은 적을 몸으로 붙잡는다"
 msgstr "Build Barracks (4), buy via slot\nMercs hold enemies in place"
