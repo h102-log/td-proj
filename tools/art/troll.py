@@ -8,7 +8,7 @@ import hero as H
 import render as R
 
 OUT = Path(__file__).resolve().parents[2] / "art" / "trial" / "troll"
-BASE = {"skin": "5f8f8a", "hide": "70462a", "tusk": ["2a1d0d", "927e6a", "927e6a", "efd8a1", "efd8a1"], "dark": ["151a26", "262d3d", "262d3d", "3a4357", "3a4357"]}
+BASE = {"skin": "5f8f8a", "hide": "70462a", "tusk": ["2a1d0d", "efd8a1", "efd8a1", "efd8a1", "efd8a1"], "dark": ["151a26", "262d3d", "262d3d", "3a4357", "3a4357"], "eye": ["efac28"] * 5}
 MATS = list(BASE)
 PARTS = ["leg", "torso", "head", "arm"]
 SIZES = (24,)
@@ -32,17 +32,17 @@ def body(pose, bob_unit):
               (R.ellipsoid(G(ankle + [0, 0.04, -0.005]), (0.055, 0.085, 0.034)), m("skin"), "leg")]
     P += [(R.ellipsoid(U([0, 0.0, 0.55]), (0.14, 0.12, 0.16)), m("skin"), "torso"),  # 몸통
           (R.box(U([0, 0, 0.42]), (0.125, 0.09, 0.055), up_r, 0.03), m("hide"), "torso"),  # 허리 가죽
-          (R.ellipsoid(U([0, -0.05, 0.7]), (0.19, 0.13, 0.09)), m("skin"), "torso"),  # 굽은 등·넓은 어깨
-          (R.ellipsoid(U([0, 0.07, 0.76]), (0.085, 0.09, 0.085)), m("skin"), "head"),  # 앞으로 내민 머리
-          (R.ellipsoid(U([0, 0.165, 0.745]), (0.03, 0.045, 0.035)), m("skin"), "head"),  # 큰 코
-          (R.box(U([0, 0.14, 0.705]), (0.05, 0.02, 0.012), up_r), m("dark"), "head")]  # 입
+          (R.ellipsoid(U([0, -0.04, 0.68]), (0.14, 0.13, 0.085)), m("skin"), "torso"),  # 굽은 등·넓은 어깨
+          (R.ellipsoid(U([0, 0.08, 0.765]), (0.085, 0.09, 0.082)), m("skin"), "head"),  # 앞으로 내민 머리
+          (R.ellipsoid(U([0, 0.175, 0.74]), (0.03, 0.045, 0.035)), m("skin"), "head"),  # 큰 코
+          (R.box(U([0, 0.15, 0.685]), (0.05, 0.02, 0.012), up_r), m("dark"), "head")]  # 입
     for s in (-1, 1):
-        P.append((R.capsule(U([0.04 * s, 0.15, 0.7]), U([0.055 * s, 0.165, 0.76]), 0.014, 0.007), m("tusk"), "head"))  # 아래 엄니
-        P.append((R.ellipsoid(U([0.085 * s, 0.05, 0.78]), (0.02, 0.03, 0.045)), m("skin"), "head"))  # 처진 귀
+        P.append((R.capsule(U([0.07 * s, 0.15, 0.655]), U([0.078 * s, 0.165, 0.71]), 0.017), m("tusk"), "head"))  # 아래 엄니
+        P.append((R.ellipsoid(U([0.04 * s, 0.175, 0.77]), (0.02, 0.014, 0.016)), m("eye"), "head"))  # 눈
     for side in "lr":  # 긴 팔과 큰 주먹
         sh, el, hd = arms[side]
-        P += [(R.capsule(U(sh), U(el), 0.058), m("skin"), "arm"), (R.capsule(U(el), U(hd), 0.06), m("skin"), "arm"),
-              (R.ellipsoid(U(hd), (0.075, 0.075, 0.075)), m("skin"), "arm")]
+        P += [(R.capsule(U(sh), U(el), 0.055), m("skin"), "arm"), (R.capsule(U(el), U(hd), 0.055, 0.05), m("skin"), "arm"),
+              (R.ellipsoid(U(hd), (0.1, 0.1, 0.1)), m("skin"), "arm")]
     return P
 
 
