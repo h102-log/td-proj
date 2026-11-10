@@ -590,10 +590,10 @@ func _process(delta: float) -> void:
 		_fade_t += delta
 	fade.visible = _fade_t < FADE
 	fade.color.a = 1.0 - _fade_t / FADE
-	boss_bar.visible = raiding and battle.raid_boss != null
+	boss_bar.visible = raiding
 	if boss_bar.visible:
 		_boss_name.text = tr(battle.raid_floor.title)
-		_boss_fill.size.x = 136.0 * clampf(battle.raid_boss.hp / battle.raid_boss.max_hp, 0.0, 1.0) if battle.raid_boss.alive else 0.0
+		_boss_fill.size.x = 136.0 * battle.raid_left()  # 남은 총 체력 비율(S322)
 	if prep:
 		_dusk = []
 	var dusk: Dictionary = battle.night(battle.round_index, battle.wave_index) if battle.state == "battle" else {}

@@ -173,6 +173,8 @@ const UNSEEN_TELLS := ["pounce", "throw", "bomb", "drop", "cannon", "bombs", "fl
 const FLAME_RING := 0.5  # 불화살 예고 원 반경(칸, S302). 판정에 쓰지 않는 그림 값이라 flame 데이터에 없다
 const NEST_RING := 0.5  # 둥지 짓기 예고 원 반경(칸, S309). 짓는 칸 하나다
 const TELL := Color("ef3a0c")  # 보스 스킬 예고(S194): F24+ 빨강 테(바깥 어두운 테는 PX.maroon), 안쪽 성긴 칠이 차오른다(S198 fx-4)
+const COUNTER := Color(0.6, 0.9, 1.8)  # 카운터 창(S326 ④) 동안 왕 몸을 파랗게 깜박이는 modulate
+const TELL_HUES := {"blue": ["ice3", "navy"], "gold": ["gold", "bronze"], "violet": ["vio1", "vio3"]}  # 대본 패턴 예고(S326)의 [칠·밝은 테, 어두운 테] 색. 없으면 빨강(TELL)
 const RAGE := Color(1.5, 0.55, 0.55)  # 분노한 보스(S195)를 붉게 그리는 modulate
 const CROUCH := Vector2(1.15, 0.75)  # 슬라임 킹이 웅크림 끝에 납작해지는 배율(가로·세로, S198). 임시값
 const LEAP_UP := 10.0  # 뜬 슬라임 킹을 한가운데에서 들어 올리는 높이(px, S198). 임시값
@@ -2616,6 +2618,8 @@ func _facility(s, tint := Color.WHITE) -> void:
 func _body(x, i: int, next: Dictionary, tint := Color.WHITE, flash := true) -> void:
 	if x.get("skills") and battle.raging(x):  # 분노(S195)
 		tint *= RAGE
+	if x.get("raid") and battle.countering(x) and int(clock / 0.1) % 2 == 0:  # 카운터 창(S326 ④): 0.1초마다 파랗게 깜박인다
+		tint *= COUNTER
 	if x.get("frenzy"):  # 격노(S320, I264 ③): 잃은 체력 비율만큼 분노 색 쪽으로 섞는다
 		tint = tint.lerp(tint * RAGE, battle.frenzy(x))
 	var white: bool = flash and _hits.get(x.get_instance_id(), [INF])[0] < FLASH  # 피격 번쩍임(S177): 255배 modulate가 그림을 흰 실루엣으로 만든다(유닛 그림에 0인 채널이 없다). 배치는 끊기지 않는다
@@ -2958,7 +2962,7 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 			col = 0
 			dir = 0
 			off.y = -2.0
-		if x.fx.has("stagger"):  # 비틀거리는 동안 8프레임마다 좌우로 1px 떤다
+		if x.fx.has("stagger") or x.fx.has("groggy"):  # 비틀거리는 동안과 그로기(S323 ②) 동안 8프레임마다 좌우로 1px 떤다
 			off.x = 1.0 if int(clock * 60.0 / 8.0) % 2 == 0 else -1.0
 	if cast != null and cast.id == "hurled":  # 던져진 오크(S324, I268 ⑤): 한가운데 HURL_UP까지 포물선으로 든다
 		var t: float = 1.0 - cast.left / battle.deed(x, cast.id).air
@@ -3305,7 +3309,7 @@ func _scan() -> void:
 		var id: int = e.get_instance_id()
 		if e.cast:
 			tell[id] = [_center(e.cast.get("at", e.pos)), CELL * battle.deed(e, e.cast.id).get("radius", 6.0 / CELL)]  # 조각은 예고 원 둘레에(점프는 착지 자리, S198). 덮치기(S242)는 대상 발밑 표식 6px
-		elif _tell.has(id) and e.fx.has("stagger") and e.fx.stagger.left > battle.STAGGER - 0.25:  # 이번에 막 걸린 비틀거림만
+		elif _tell.has(id) and ((e.fx.has("stagger") and e.fx.stagger.left > battle.STAGGER - 0.25) or (e.fx.has("groggy") and e.fx.groggy.left > e.raid.groggy.time - 0.25)):  # 이번에 막 걸린 비틀거림·그로기(I270 ⑦)만
 			_emit("interrupt", _tell[id][0], Vector2.ZERO, e, null, {"radius": _tell[id][1]})
 	_tell = tell
 	for c in battle.rubble:  # 성곽 칸 붕괴
@@ -3522,8 +3526,11 @@ func _boss_tell(e) -> void:
 	var r := int(CELL * sk.radius)
 	for p in e.cast.get("spots", [e.cast.get("at", e.pos)]):  # 점프(S236)·착지(S288)는 착지 자리에, 뜬 동안은 가득 찬 채로(S198)
 		var at := Vector2i(_center(p).floor())
-		_pnoise(at, int(r * k), TELL, TELL_FILL)
-		_edge(at, r, TELL, PX.maroon)
+		var hue: Array = TELL_HUES.get("blue" if battle.countering(e) else sk.get("color", ""), [])  # 대본 패턴(S326)은 칠 색으로 뜻을 가르고, 카운터 창 동안은 파랑이다
+		var lit: Color = PX[hue[0]] if not hue.is_empty() else TELL
+		if e.cast.get("aimed", true):  # 이동 뜀(S323 ②)은 테만 그린다
+			_pnoise(at, int(r * k), lit, TELL_FILL)
+		_edge(at, r, lit, PX[hue[1]] if not hue.is_empty() else PX.maroon)
 
 # 기관총 예고(S287)·대장 철퇴 예고(S288): 부채꼴(반경 range, 각 arc) 빨강 테와 차오르는 안쪽. 기관총 발사 동안은 테와 지금 총구 방향의 선(I223)
 func _fan_tell(e) -> void:
