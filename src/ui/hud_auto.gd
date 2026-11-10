@@ -18,7 +18,7 @@ func _ready() -> void:
 	theme_type_variation = "BarCell"
 	position = Vector2(3, 210)
 	size = Vector2(60, 26)
-	focus_mode = Control.FOCUS_NONE  # 포커스가 가면 Enter가 전투 시작으로 가지 않는다
+	focus_mode = Control.FOCUS_NONE  # 포커스가 가면 Enter·Space가 이 버튼을 다시 누른다
 	pressed.connect(func(): battle.toggle_auto_all())
 	_on_box = HudTheme.box("normal", "Button", HudTheme.CELL, HudTheme.ACCENT)
 	var mark := TextureRect.new()

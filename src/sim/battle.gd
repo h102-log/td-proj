@@ -81,6 +81,7 @@ const BLOWN := 0.3  # 돌풍에 날린 화살 자국이 남는 시간(초, I253 
 const GROUND_ONLY := ["shield_bash", "brace"]  # 날고 있는 적에 들지 않는 근접 영웅 칸: 아이아스 Q·E(S109 2026-11-09 변경). 오토도 날고 있는 적을 세지 않는다
 const SLOTS := ["q", "w", "e", "r"]  # 영웅 스킬 칸(S145)
 const CAST_RANGE := 6.0  # 지점·대상을 고르는 스킬의 시전 사거리(칸, S147). 임시값
+const DASH := {"length": 2.0, "cd": 5.0}  # 영웅 대시(S315): 거리(칸)·영웅마다 재사용 대기(초). 임시값
 # 오토(S297, I244)의 기준값. 밸런스 봇(tools/balance/autoplay.gd의 _skills·_think) 값을 옮겼다(사용자 2026-11-07 «봇 규칙 옮기기»).
 # think 쓸 곳이 없던 칸을 다시 보는 간격(초) · crowd 광역 칸을 쓰는 적 수 · heal·guard 빛줄기·성역 / 수호 천사를 쓰는 체력 비율 · hurt·hurt_n 기적의 체력 비율·아군 수 · chain 영혼 사슬 적 수 · spread 반경 없는 칸의 반경(칸)
 const AUTO := {"think": 0.25, "crowd": 2, "heal": 0.6, "guard": 0.35, "hurt": 0.5, "hurt_n": 3, "chain": 3, "spread": 2.0}
@@ -308,6 +309,7 @@ class Unit:
 	var r := {}
 	var worn := false  # 전용장비를 꼈다(S247). 강화 수치는 판의 bag에 있다
 	var cd := {"q": 0.0, "w": 0.0, "e": 0.0, "r": 0.0}  # 칸마다 남은 재사용 대기(초)
+	var dash_cd := 0.0  # 대시(S315)의 남은 재사용 대기(초)
 	var skill_uses := 0  # 쓴 스킬 수(모든 칸)
 	var order = null  # 시전 사거리 밖이라 걸어가서 쓸 스킬 {slot, aim}(S147). 없으면 null
 	var auto := {"q": false, "w": false, "e": false, "r": false}  # 칸마다 오토(자동 시전)가 켜져 있다(S296)
@@ -1324,6 +1326,26 @@ func stop(group: Array) -> void:
 	for u in group:
 		_drop_orders(u)
 		_halt(u)
+
+# 대시(S315, I261): 전투 단계에 group의 출전 영웅이 저마다 at(칸 좌표) 쪽으로 DASH.length칸 순간 이동한다. 길은 아군 돌진 길(_dash)이고,
+# 기절·붙잡힘·들림·성벽 위·대기 중인 영웅과 한 걸음도 못 나간 영웅은 빠진다. 대시하면 정지처럼 명령을 지우고 서며, 요새화가 풀린다(still)
+func dash(group: Array, at: Vector2) -> void:
+	if state != "battle":
+		return
+	for h in group:
+		if not (h is Unit and h.is_hero and h.alive) or _seized(h) or h.on_wall or h.dash_cd > 0.0:
+			continue
+		var dir: Vector2 = at - h.pos
+		if dir.length() < 0.01:
+			continue
+		var to: Vector2 = _dash(h.pos, dir.normalized(), DASH.length, true)[0]
+		if to == h.pos:
+			continue
+		_drop_orders(h)
+		h.pos = to
+		_halt(h)
+		h.still = 0.0
+		h.dash_cd = DASH.cd
 
 # 앞선 명령을 지운다: 집결(I22)·걸어가서 쓰려던 스킬(S147)·대상 공격(S35)·공병의 일(I63)
 func _drop_orders(u: Unit) -> void:
@@ -4035,8 +4057,8 @@ func _charge_ready(e: Enemy, sk: Dictionary):
 	return {"dir": dir.angle(), "to": _dash(e.pos, dir, sk.length)[0]}
 
 # 돌진 길(I230 ③): from에서 dir 쪽으로 length칸을 0.25칸 간격으로 짚는다. 막힌 칸(I188 곧은 선의 칸)·거점·물·맵 밖이면 바로 앞 짚은 점에서 멈춘다.
-# [멈출 자리, 부딪힌 성곽·구조물·거점(없으면 null)]
-func _dash(from: Vector2, dir: Vector2, length: float) -> Array:
+# ally면 아군 길이라 에너지 성벽(I142)은 지나간다(영웅 대시 I261 ④). [멈출 자리, 부딪힌 성곽·구조물·거점(없으면 null)]
+func _dash(from: Vector2, dir: Vector2, length: float, ally := false) -> Array:
 	var at := from
 	for i in range(1, ceili(length / 0.25) + 1):
 		var p := from + dir * minf(0.25 * i, length)
@@ -4046,7 +4068,7 @@ func _dash(from: Vector2, dir: Vector2, length: float) -> Array:
 		if c == base.cell:
 			return [at, base]
 		var block = grid.block_at(c)
-		if block:
+		if block and not (ally and block.kind == "barrier"):
 			return [at, block]
 		at = p
 	return [at, null]
@@ -4968,6 +4990,7 @@ func _hero_tick(h: Unit, dt: float) -> void:
 	var pace := 1.0 + _fx_sum(h, "cdr") + _aura("cdr", h.pos)
 	for slot in SLOTS:
 		h.cd[slot] -= dt * pace
+	h.dash_cd = maxf(h.dash_cd - dt, 0.0)  # 대시 대기는 스킬 재사용 대기 감소(cdr)를 받지 않는다(I261 ⑥)
 	if h.brace > 0.0:
 		h.brace -= dt
 		if h.brace <= 0.0:

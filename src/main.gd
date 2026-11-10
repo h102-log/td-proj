@@ -33,6 +33,7 @@ var menus  # ESC 메뉴(S183)
 var sfx  # 효과음 연결(S269)
 var _seen := ""  # 마지막으로 본 판 단계. 바뀌면 저장하거나 지운다(S181, I157)
 var _map_press := false  # 마지막 좌버튼 누름이 맵(controls)에 갔다. 더블클릭의 둘째 누름을 맵에 줄지 본다(S275)
+var _cursor := Vector2()  # 마지막 마우스 입력의 화면 자리. HUD 위 입력도 든다. 대시(S315)가 지금 카메라로 맵 자리를 다시 구한다
 var tuning  # 테스트 모드의 수치 조정(Tuning, I240). 테스트 모드가 아니면 null
 var panel  # 테스트 패널(I232). 테스트 모드가 아니면 null
 var speed := 1  # 배속(I236): 한 프레임에 판을 돌리는 횟수. 테스트 패널만 바꾼다
@@ -82,7 +83,7 @@ static func map_viewport(w: Window) -> SubViewportContainer:
 	box.size = Vector2(w.content_scale_size)
 	box.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	box.mouse_filter = Control.MOUSE_FILTER_PASS  # STOP이면 클릭이 main._unhandled_input에 가지 않고, IGNORE면 휠·가운데 버튼이 카메라에 가지 않는다
-	box.focus_mode = Control.FOCUS_NONE  # 기본값 FOCUS_CLICK이면 맵을 클릭할 때 키보드 포커스를 가져가 Enter·Space가 전투를 시작하지 못한다
+	box.focus_mode = Control.FOCUS_NONE  # 기본값 FOCUS_CLICK이면 맵을 클릭할 때 키보드 포커스를 가져가, 포커스가 없을 때만 받는 Enter·Space(I94)가 막힌다
 	var sv := SubViewport.new()
 	sv.size = w.content_scale_size  # stretch로 맞추면 트리 밖(평가)에서는 기본값 512×512 그대로였다
 	sv.canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
@@ -166,6 +167,8 @@ func _notification(what: int) -> void:
 # 더블클릭의 둘째 좌누름은 첫 누름이 맵에 갔으면 HUD보다 먼저 맵에 준다. 첫 클릭으로 새로 뜬 선택 패널·태그가 그 자리를 덮어도
 # 용병 더블클릭(S275)이 되게 한다. 뗌은 누름을 받은 HUD가 없으니 그대로 _unhandled_input으로 온다
 func _input(event: InputEvent) -> void:
+	if event is InputEventMouse:
+		_cursor = event.position
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		var to_map: bool = event.double_click and _map_press
 		_map_press = false
@@ -173,8 +176,9 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			_unhandled_input(event)
 
-# 전투 시작은 HUD 버튼 말고 Enter·Space(기본 ui_accept)로도 된다. 결과 창·영입 창이 떠 있으면 그 버튼을 누른다(I94)
+# 결과 창·영입 창이 떠 있으면 Enter·Space(기본 ui_accept)로 그 버튼을 누른다(I94). 전투 시작은 HUD 버튼을 마우스로 누를 때만이다(I13 2026-11-10 변경)
 # 창의 버튼에 키보드 포커스가 있으면 그 버튼이 누른다(I110). 버튼은 ui_accept를 소비하지 않아 여기서 거르지 않으면 둘 다 눌린다
+# Space는 그다음 controls로 가 전투 단계의 대시(S315)가 된다. 마우스 없이 카메라만 움직였을 수 있어 커서의 맵 자리를 지금 카메라로 다시 구한다(I261 ③)
 # ESC는 조준·놓기·대포 옮기기 중이거나 맵 팝업이 떠 있으면 Controls가 그것을 취소하거나 닫고, 아니면 ESC 메뉴를 연다(S183)
 # 준비·전투 단계의 T는 언제든 영입 창을 열고 닫고, 창이 떠 있으면 ESC는 ESC 메뉴 대신 창을 닫는다(S272)
 func _unhandled_input(event: InputEvent) -> void:
@@ -195,12 +199,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_accept") and get_viewport().gui_get_focus_owner() == null:
 		if view.battle.state in ["hiring", "cleared", "won", "lost"] or controls.shop:
 			hud.proceed()
-		else:
-			view.battle.start_battle()
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		_map_press = true
+	var to_map: Transform2D = get_viewport().get_camera_2d().steady().affine_inverse()  # 화면 좌표 → 맵 px(카메라 줌·이동 반영, 흔들림은 뺌 S200)
+	if event is InputEventKey and event.keycode == KEY_SPACE:
+		controls.mouse = to_map * _cursor
 	controls.view = hud.minimap.seen()  # 용병 더블클릭이 고르는 화면 안(S275)
-	controls.handle(event.xformed_by(get_viewport().get_camera_2d().steady().affine_inverse()))  # 화면 좌표 → 맵 px(카메라 줌·이동 반영, 흔들림은 뺌 S200)
+	controls.handle(event.xformed_by(to_map))
 
 # 창 준비: 최소 크기는 늘 기준 해상도의 2배(S164). 창 크기·시작 모드는 게임을 막 켰을 때(진입 장면 menu.gd)만 정한다(S161, S163, I153)
 # 시작 모드는 설정에 고른 창 모드, 고른 적이 없으면 내보낸 빌드만 전체화면이다(S163, S184)
