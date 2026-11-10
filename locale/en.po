@@ -10,7 +10,7 @@
 #   병영 Barracks · 작업장 Workshop · 사격장 Archery Range · 용병 Merc · 공병 Engineer · 궁수 Archer
 #   영입 Recruit · 리롤 Reroll · 이관 Transfer · 내보내기 Dismiss · 출전 Deployed · 대기 Reserve · 보유 Roster
 #   미션 Mission · 준비 단계 Prep · 전투 단계 Battle · 웨이브 Wave · 라운드 Round · 도전 Run
-#   적: 기본 Grunt · 빠름 Runner · 장갑 Armored · 비행 Flyer · 보스 Boss · 슬라임 Slime · 꼬마 슬라임 Slimelet · 큰 슬라임 Big Slime · 슬라임 킹 Slime King · 늑대 Wolf · 도약 늑대 Leaping Wolf · 밤 늑대 Night Wolf · 알파 늑대 Alpha Wolf · 폭파병 Sapper · 공성 망치 Battering Ram · 투석기 Catapult · 글라이더 고블린 Glider Goblin · 공성탑 Siege Tower · 폭탄 열기구 Bomb Balloon · 수송 비행선 Troop Airship · 고블린 전쟁 기계 Goblin War Machine · 고블린 대장 Goblin Chief · 방패 고블린 Shield Goblin · 불화살 고블린 Fire Archer Goblin · 깃털 사수 하피 Feather Harpy · 박치기 하피 Diving Harpy · 노래하는 하피 Singing Harpy · 폭풍날개 하피 Stormwing Harpy · 낚아채기 하피 Snatcher Harpy · 둥지 하피 Nesting Harpy · 둥지 Nest · 새끼 하피 Harpy Chick · 와이번 Wyvern · 떨어진 와이번 Grounded Wyvern
+#   적: 기본 Grunt · 빠름 Runner · 장갑 Armored · 비행 Flyer · 보스 Boss · 슬라임 Slime · 꼬마 슬라임 Slimelet · 큰 슬라임 Big Slime · 슬라임 킹 Slime King · 늑대 Wolf · 도약 늑대 Leaping Wolf · 밤 늑대 Night Wolf · 알파 늑대 Alpha Wolf · 폭파병 Sapper · 공성 망치 Battering Ram · 투석기 Catapult · 글라이더 고블린 Glider Goblin · 공성탑 Siege Tower · 폭탄 열기구 Bomb Balloon · 수송 비행선 Troop Airship · 고블린 전쟁 기계 Goblin War Machine · 고블린 대장 Goblin Chief · 방패 고블린 Shield Goblin · 불화살 고블린 Fire Archer Goblin · 깃털 사수 하피 Feather Harpy · 박치기 하피 Diving Harpy · 노래하는 하피 Singing Harpy · 폭풍날개 하피 Stormwing Harpy · 낚아채기 하피 Snatcher Harpy · 둥지 하피 Nesting Harpy · 둥지 Nest · 새끼 하피 Harpy Chick · 와이번 Wyvern · 떨어진 와이번 Grounded Wyvern · 방패벽 오크 Shieldwall Orc · 광전사 오크 Berserker Orc · 전쟁 북 고수 War Drummer · 오우거 투척꾼 Ogre Thrower · 사슬 오크 Chain Orc
 #   영웅 이름은 음역한다: 아이아스 Aias · 실비아 Sylvia · 세라피나 Seraphina · 베스퍼 Vesper · 이그니스 Ignis · 크로노스 Chronos
 msgid ""
 msgstr ""
@@ -545,6 +545,36 @@ msgstr "Lands on the walls and builds a nest that hatches chicks"
 
 msgid "급강하해 내려앉고, 줄지은 아군 위로 불을 뿌리며 지나간다. 쓰러지면 땅에서 다시 싸운다"
 msgstr "Dives and lands, sweeps fire over lined-up units; when downed it fights on the ground"
+
+msgid "방패벽 오크"
+msgstr "Shieldwall Orc"
+
+msgid "광전사 오크"
+msgstr "Berserker Orc"
+
+msgid "전쟁 북 고수"
+msgstr "War Drummer"
+
+msgid "오우거 투척꾼"
+msgstr "Ogre Thrower"
+
+msgid "사슬 오크"
+msgstr "Chain Orc"
+
+msgid "둘이 붙으면 둘레 적까지 정면 화살·구슬을 덜 받는다"
+msgstr "Paired up, they halve arrows and bolts from the front for nearby foes too"
+
+msgid "다칠수록 빨리 걷고 빨리 친다"
+msgstr "Moves and strikes faster the more it is hurt"
+
+msgid "둘레 적을 빠르게 한다, 들을 적이 있으면 싸우지 않는다"
+msgstr "Speeds up nearby foes; won't fight while any can hear it"
+
+msgid "옆의 오크를 집어 뒷줄 원거리 아군에게 던진다"
+msgstr "Grabs a nearby orc and hurls it at ranged units in the back line"
+
+msgid "사슬을 던져 줄 위의 아군을 끌어온다"
+msgstr "Throws a chain and drags in the first unit on the line"
 
 msgid "죽으면 둘로 갈라진다"
 msgstr "Splits in two on death"

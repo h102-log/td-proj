@@ -4046,3 +4046,24 @@ func ev886():
 	var cds_ok: bool = looks.size() == 3 and looks.all(func(x): return x == "")
 	_done(main)
 	return check(went and cds_ok, "자리 %s(기대 %s, 누르기 전 %s, 커서 아래 %s) · 막 %s" % [h.pos, want, from, aim, looks])
+
+# EV897 · S319~S321: 5라운드 1웨이브 줄에 방패벽 오크, 2웨이브 줄에 방패벽 오크·광전사 오크·전쟁 북 고수 특성 줄이 있다
+func ev897():
+	var main = _prep()
+	var one = main.hud._wave_lines([4, 0])
+	var two = main.hud._wave_lines([4, 1])
+	_done(main)
+	var a: String = one if one is String else ""
+	var b: String = two if two is String else ""
+	var wall := "방패벽 오크: 둘이 붙으면 둘레 적까지 정면 화살·구슬을 덜 받는다"
+	return check(wall in a and wall in b and "광전사 오크: 다칠수록 빨리 걷고 빨리 친다" in b and "전쟁 북 고수: 둘레 적을 빠르게 한다, 들을 적이 있으면 싸우지 않는다" in b,
+		"5라운드 1웨이브 줄 «%s» · 2웨이브 줄 «%s»" % [a, b])
+
+# EV913 · S324·S325: 5라운드 3웨이브 미리보기에 오우거 투척꾼·사슬 오크의 특성 줄이 있다
+func ev913():
+	var main = _prep()
+	var got = main.hud._wave_lines([4, 2])
+	_done(main)
+	var a: String = got if got is String else ""
+	return check("오우거 투척꾼: 옆의 오크를 집어 뒷줄 원거리 아군에게 던진다" in a and "사슬 오크: 사슬을 던져 줄 위의 아군을 끌어온다" in a,
+		"5라운드 3웨이브 줄 «%s»" % a)

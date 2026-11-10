@@ -19,13 +19,22 @@ const ENEMY_COLORS := {  # 적 종류마다 다른 색(I81)
 	"feather_harpy": Color("70c8e8"), "dive_harpy": Color("e88850"), "song_harpy": Color("b890f0"),
 	"storm_harpy": Color("90e0c8"), "snatch_harpy": Color("d8c048"),
 	"nest_harpy": Color("a8d070"), "nest": Color("7a5a30"), "harpy_chick": Color("f0d8c0"), "wyvern": Color("4a8a58"), "wyvern_fallen": Color("8a3a28"),
+	"shield_orc": Color("8898b0"), "berserker": Color("c84a3a"), "drummer": Color("c8a050"),
+	"ogre_thrower": Color("9a6a3a"), "chain_orc": Color("5a8a7a"),
 }
 # 그림이 아직 없어 다른 종류의 그림을 빌리는 종류 → [빌리는 종류, 곱하는 색](I250 ⑤·I253 ⑤). 4라운드 하피 다섯은 비행(하피) 그림이다
 const LOOKS := {"feather_harpy": ["flying", Color(0.75, 1.2, 1.7)], "dive_harpy": ["flying", Color(1.7, 1.0, 0.6)], "song_harpy": ["flying", Color(1.45, 0.85, 1.75)],
 	"storm_harpy": ["flying", Color(0.85, 1.65, 1.35)], "snatch_harpy": ["flying", Color(1.65, 1.5, 0.65)],
-	"nest_harpy": ["flying", Color(1.3, 1.6, 0.8)], "harpy_chick": ["flying", Color(1.8, 1.7, 1.6)]}  # 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)
+	"nest_harpy": ["flying", Color(1.3, 1.6, 0.8)], "harpy_chick": ["flying", Color(1.8, 1.7, 1.6)],
+	"shield_orc": ["armored", Color(0.8, 1.0, 1.5)], "berserker": ["armored", Color(1.25, 0.95, 0.8)], "drummer": ["armored", Color(1.4, 1.25, 0.6)],
+	"ogre_thrower": ["boss", Color(0.8, 1.2, 0.7)], "chain_orc": ["armored", Color(0.75, 1.35, 1.05)]}  # 오우거 투척꾼은 오우거 그림, 사슬 오크는 장갑(오크) 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)
 const NOTE := Color("d8b0ff")  # 노래(S306)로 공격 속도가 느려진 아군 머리 위 음표와 노래 반경 고리의 색(I252 ④)
 const FEATHER := Color("f4f0e8")  # 날아가는 깃털(I250 ④)
+const WALL := Color("e8f0ff")  # 방패벽(S319)을 선 방패벽 오크끼리 잇는 선(I263 ⑤)
+const DRUM := Color("e8c070")  # 전쟁 북(S321) 반경 고리(I265 ⑥)
+const HURL_UP := 14.0  # 던져진 오크(S324)를 한가운데에서 들어 올리는 높이(px, I268 ⑤). 임시값
+const CHAIN := Color("c8ccd4")  # 사슬 오크가 던진 사슬 선(I269 ⑤)
+const CHAIN_SHOW := 0.3  # 사슬을 던진 뒤 사슬 선을 그리는 시간(초, I269 ⑤). 임시값
 const GUST := Color(1.0, 1.0, 1.0, 0.45)  # 뿜는 돌풍의 부채꼴 테두리·바람 줄과 날린 화살 자국(I253 ③④)
 const HANG := 10.0  # 낚아채기 하피가 든 용병·주민을 땅 자리에서 들어 올려 그리는 높이(px, I254 ⑥)
 const CARRY_UP := 20.0  # 용병·주민을 든 낚아채기 하피 그림을 들어 올리는 높이(px). 발톱이 든 몸 머리에 걸려 매달려 보이게 캡처를 보고 맞춘 Claude 값
@@ -160,7 +169,7 @@ const FOE_FX := ["stun", "root", "expose", "taunt", "seal", "chain", "dot"]  # �
 const DEBUFFS := ["slow", "weaken", "armor", "mr"]  # 적 능력치 감소 줄의 왼쪽부터 차례(I101 2026-11-04 변경). fx 아틀라스 «down» 프레임 차례와 같다(tools/art/fx.py)
 const FOE_TELL := Color("ef692f")  # 일반 적 예고(S279): F24+ 주황 1px 테가 BLINK초마다 켜졌다 꺼진다. 안쪽은 칠하지 않는다
 const BLINK := 0.25
-const UNSEEN_TELLS := ["pounce", "throw", "bomb", "drop", "cannon", "bombs", "flame", "dive", "gust", "snatch", "nest", "plunge", "carpet"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287)·대장 폭탄(S288)·불화살(I249 ①)·박치기(I251 ⑦)·돌풍(I253 ④)·낚아채기(I254 ⑥)·둥지 짓기(I255 ⑥)·와이번 급강하·융단 폭격(S310). 덮개 위 층에 그린다
+const UNSEEN_TELLS := ["pounce", "throw", "bomb", "drop", "cannon", "bombs", "flame", "dive", "gust", "snatch", "nest", "plunge", "carpet", "hurl", "hurled"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287)·대장 폭탄(S288)·불화살(I249 ①)·박치기(I251 ⑦)·돌풍(I253 ④)·낚아채기(I254 ⑥)·둥지 짓기(I255 ⑥)·와이번 급강하·융단 폭격(S310)·오크 던지기와 던져진 오크가 떨어질 자리(I268 ⑤). 덮개 위 층에 그린다
 const FLAME_RING := 0.5  # 불화살 예고 원 반경(칸, S302). 판정에 쓰지 않는 그림 값이라 flame 데이터에 없다
 const NEST_RING := 0.5  # 둥지 짓기 예고 원 반경(칸, S309). 짓는 칸 하나다
 const TELL := Color("ef3a0c")  # 보스 스킬 예고(S194): F24+ 빨강 테(바깥 어두운 테는 PX.maroon), 안쪽 성긴 칠이 차오른다(S198 fx-4)
@@ -472,6 +481,8 @@ func _draw() -> void:
 		if h.alive and not h.aura.is_empty():
 			_aura_ring(h)
 	_bodies()
+	_wall_links()
+	_chain_links()
 	_marks()
 	_chrono_marks()
 	_sera_marks()
@@ -577,6 +588,24 @@ func _spawn_badges() -> void:
 		var box := Rect2((Vector2(battle.spawns[i]) * CELL + Vector2(CELL / 2.0 - w / 2.0 - 2.0, -10.0)).round(), Vector2(w + 4.0, 9.0).round())
 		_cv.draw_rect(box, Color.BLACK)
 		_cv.draw_string(PIXEL_FONT, box.position + Vector2(2, 8), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8)
+
+# 방패벽(S319, I263 ⑤): 방패벽을 선 오크끼리 near칸 안이면 가슴 높이(발밑에서 8px 위)를 2px 굵기 선으로 잇는다. 몸통 위에 그리고, 숨은 오크는 뺀다
+func _wall_links() -> void:
+	var row: Array = battle.ranks.filter(func(e): return battle.dark <= 0.0 or battle.seen(e.pos))
+	for i in row.size():
+		for j in range(i + 1, row.size()):
+			if row[i].pos.distance_to(row[j].pos) <= row[i].wall.near:
+				_pline(Vector2i((_spot(row[i]) + Vector2(0, -8)).floor()), Vector2i((_spot(row[j]) + Vector2(0, -8)).floor()), WALL, 2)
+
+# 사슬(S325, I269 ⑤): 사슬을 던진 뒤 CHAIN_SHOW초 동안 사슬 오크의 가슴 높이(발밑에서 8px 위)에서 사슬 끝(맞힌 아군, 빗나갔으면 띠 끝)까지 선을 그린다.
+# 몸통 위에 그리고, 숨은 사슬 오크는 뺀다
+func _chain_links() -> void:
+	var up := Vector2(0, -8)
+	for e in battle.enemies:
+		if e.snag == null or e.loosed >= CHAIN_SHOW or not (battle.dark <= 0.0 or battle.seen(e.pos)):
+			continue
+		var to: Vector2 = _center(e.snag) if e.snag is Vector2 else _spot(e.snag) + _slip(e.snag)
+		_pline(Vector2i((_spot(e) + up).floor()), Vector2i((to + up).floor()), CHAIN)
 
 # 날아가는 깃털(S304, I250 ④): 깃털 자리에서 가슴 높이(6px 위)에 대상 쪽을 향한 흰 깃 7px 선
 func _feathers() -> void:
@@ -2591,6 +2620,8 @@ func _body(x, i: int, next: Dictionary, tint := Color.WHITE, flash := true) -> v
 		tint *= RAGE
 	if x.get("raid") and battle.countering(x) and int(clock / 0.1) % 2 == 0:  # 카운터 창(S326 ④): 0.1초마다 파랗게 깜박인다
 		tint *= COUNTER
+	if x.get("frenzy"):  # 격노(S320, I264 ③): 잃은 체력 비율만큼 분노 색 쪽으로 섞는다
+		tint = tint.lerp(tint * RAGE, battle.frenzy(x))
 	var white: bool = flash and _hits.get(x.get_instance_id(), [INF])[0] < FLASH  # 피격 번쩍임(S177): 255배 modulate가 그림을 흰 실루엣으로 만든다(유닛 그림에 0인 채널이 없다). 배치는 끊기지 않는다
 	if white and not Settings.soft_flash:
 		tint *= Color(255, 255, 255)
@@ -2933,6 +2964,9 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 			off.y = -2.0
 		if x.fx.has("stagger") or x.fx.has("groggy"):  # 비틀거리는 동안과 그로기(S323 ②) 동안 8프레임마다 좌우로 1px 떤다
 			off.x = 1.0 if int(clock * 60.0 / 8.0) % 2 == 0 else -1.0
+	if cast != null and cast.id == "hurled":  # 던져진 오크(S324, I268 ⑤): 한가운데 HURL_UP까지 포물선으로 든다
+		var t: float = 1.0 - cast.left / battle.deed(x, cast.id).air
+		hop = HURL_UP * 4.0 * t * (1.0 - t)
 	if anim == "attack" and BLOW.has(x.kind):
 		anim = BLOW[x.kind][0]
 		col = BLOW[x.kind][1]
@@ -3412,6 +3446,9 @@ func _slide_scan() -> void:
 		elif e.kind == "collapse":
 			for c in battle.cells_in(battle.area_of(e.dst)):
 				fell[c] = true
+	for e in battle.enemies:  # 사슬(S325)에 끌려온 아군도 멀리까지 미끄러뜨린다(I269 ③)
+		if e.snag is Object and e.loosed < CHAIN_SHOW:
+			far[e.snag.get_instance_id()] = true
 	var next := {}
 	for x in battle.units + battle.enemies:
 		var id: int = x.get_instance_id()
@@ -3458,6 +3495,8 @@ func _tells() -> void:
 			_pring(Vector2i(_center(e.pos).floor()), int(CELL * e.skills.howl.radius), 1, Color(PX.ash, 0.5))
 		if battle.sings(e):
 			_pring(Vector2i(_center(e.pos).floor()), int(CELL * e.song.radius), 1, Color(NOTE, 0.5))
+		if battle.drums(e):  # 전쟁 북(S321, I265 ⑥): 북을 치는 동안 반경 고리를 옅게
+			_pring(Vector2i(_center(e.pos).floor()), int(CELL * e.drum.radius), 1, Color(DRUM, 0.5))
 	for e in tellers(_foes):
 		if e.cast.id in UNSEEN_TELLS:  # 덮치기(S242)·던지기(S279)는 덮개 위 층에 그린다(_pounce_tells·_foe_tells)
 			continue
@@ -3562,13 +3601,19 @@ func _foe_tell(e) -> void:
 		return
 	if e.cast.id == "snatch" and e.cast.get("pick", false):  # 돌 줍기에는 예고가 없다(돌은 _stones)
 		return
+	if e.cast.id == "hook":  # 사슬 예고(S325, I269 ④): 사슬 오크에서 띠 끝(to)까지 폭 width 띠의 테두리
+		if int(clock / BLINK) % 2 == 0:
+			var rim := _strip(_center(e.pos), _center(e.cast.to), CELL * e.hook.width)
+			for i in 4:
+				_pline(Vector2i(rim[i].floor()), Vector2i(rim[(i + 1) % 4].floor()), FOE_TELL)
+		return
 	if e.cast.id == "dive":
 		if not e.cast.get("air", false) and int(clock / BLINK) % 2 == 0:
 			var to := Vector2i(_spot(e.cast.who).floor())
 			_pline(Vector2i(_spot(e).floor()), to, FOE_TELL)
 			_pring(to, 5, 1, FOE_TELL)
 		return
-	var sk: Dictionary = battle.deed(e, e.cast.id)
+	var sk: Dictionary = battle.deed(e, e.cast.id)  # 던져진 오크(S324)의 수치는 투척꾼의 것이라 떨어질 자리에 같은 고리를 그린다(I268 ⑤)
 	var at := Vector2(e.cast.get("at", e.pos))  # 둥지 짓기(S309)의 at은 칸(Vector2i)이다
 	if int(clock / BLINK) % 2 == 0:
 		if e.cast.id == "drop":  # 투하 표식(S286): 투하 칸에 아래를 가리키는 화살표

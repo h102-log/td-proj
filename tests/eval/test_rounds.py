@@ -76,3 +76,7 @@ def test_EV829_round3_waves_match_s301_order(gd):
 
 def test_EV838_round4_waves_and_harpy_pack(gd):
     gd("rounds", "EV838")
+
+
+def test_EV896_round5_waves_and_orc_packs(gd):
+    gd("rounds", "EV896")
