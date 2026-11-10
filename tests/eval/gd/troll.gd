@@ -175,7 +175,7 @@ func ev940():
 	_steps(b, 8)
 	t.fx["test_stun"] = {"stun": true, "left": 0.5}
 	b.step(DT)
-	var off: bool = t.cast == null and b.effect(t, "stagger") == null
+	var off: bool = t.cast == null and not t.fx.has("stagger")
 	var calm := true
 	var early := false
 	for i in 114:
@@ -220,13 +220,13 @@ func ev941():
 		return why
 	var h = g[1]
 	var w = g[2]
-	var a = _still(b, "armored", Vector2(11, 10))
+	var a = _still(b, "armored", Vector2(11.5, 10))
 	var cut: float = b.armor_mult(b.armor_of(h))
 	if not _ever(b, w, "lob", 0.1) or w.cast.get("at") == null or w.cast.at.distance_to(Vector2(15, 10)) > 0.1 or not is_same(w.cast.get("who"), a):
 		return "0.1초 안에 (15,10)에 장갑을 집은 집어 던지기 예고를 시작하지 않았다(cast %s)" % [w.cast]
 	_steps(b, 22)
-	if a.pos.distance_to(Vector2(11, 10)) > 0.05 or _flying(a) or h.hp != h.max_hp:
-		return "예고 1.1초: 장갑 자리 %s((11,10)) · 떴다 %s · 영웅이 잃은 체력 %s(0)" % [a.pos, _flying(a), _lost(h)]
+	if a.pos.distance_to(Vector2(11.5, 10)) > 0.05 or _flying(a) or h.hp != h.max_hp:
+		return "예고 1.1초: 장갑 자리 %s((11.5,10)) · 떴다 %s · 영웅이 잃은 체력 %s(0)" % [a.pos, _flying(a), _lost(h)]
 	var rocks: bool = not b.lobs.is_empty()
 	var up := 22
 	while up < 28 and not _flying(a):
@@ -314,7 +314,7 @@ func ev943():
 	_steps(s[0], 10)
 	s[1].fx["test_stun"] = {"stun": true, "left": 1.0}
 	s[0].step(DT)
-	var off: bool = s[1].cast == null and s[0].effect(s[1], "stagger") != null
+	var off: bool = s[1].cast == null and s[1].fx.has("stagger")
 	var was: Vector2 = sa.pos
 	_steps(s[0], 20)
 	if not (off and sa.alive and sa.pos.distance_to(was) > 1.0 and s[1].hp == 400.0):
@@ -326,8 +326,8 @@ func ev943():
 	_steps(d[0], 10)
 	d[0].damage(da, BIG, "true")
 	d[0].step(DT)
-	if d[1].cast != null or d[1].hp != 400.0 or d[0].effect(d[1], "stagger") != null:
-		return "졸개가 먼저 쓰러진 다음 스텝: 예고 %s(없어야 한다) · 체력 %s(400) · 비틀거림 %s(없어야 한다)" % [d[1].cast, d[1].hp, d[0].effect(d[1], "stagger")]
+	if d[1].cast != null or d[1].hp != 400.0 or d[1].fx.has("stagger"):
+		return "졸개가 먼저 쓰러진 다음 스텝: 예고 %s(없어야 한다) · 체력 %s(400) · 비틀거림 %s(없어야 한다)" % [d[1].cast, d[1].hp, d[1].fx.has("stagger")]
 	for c in [["체력 60%", 600.0, "armored", Vector2(11, 10)], ["졸개가 3칸 밖", 400.0, "armored", Vector2(13, 10)], ["사슬 오크", 400.0, CH, Vector2(11, 10)]]:
 		var n := _hungry(c[1])
 		_still(n[0], c[2], c[3])

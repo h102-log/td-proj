@@ -561,6 +561,12 @@ msgstr "Ogre Thrower"
 msgid "사슬 오크"
 msgstr "Chain Orc"
 
+msgid "트롤 싸움꾼"
+msgstr "Troll Brawler"
+
+msgid "쌍둥이 트롤"
+msgstr "Twin Troll"
+
 msgid "둘이 붙으면 둘레 적까지 정면 화살·구슬을 덜 받는다"
 msgstr "Paired up, they halve arrows and bolts from the front for nearby foes too"
 
@@ -575,6 +581,12 @@ msgstr "Grabs a nearby orc and hurls it at ranged units in the back line"
 
 msgid "사슬을 던져 줄 위의 아군을 끌어온다"
 msgstr "Throws a chain and drags in the first unit on the line"
+
+msgid "체력이 저절로 찬다(불·기절·봉인에 멈춘다), 앞을 쓸어 밀친다"
+msgstr "Regenerates (fire, stun and seal stop it); sweeps units back"
+
+msgid "둘이 함께 나온다. 오크나 바위를 영웅에게 던지고, 다치면 졸개를 집어 먹는다. 하나가 쓰러지면 남은 쪽이 그 몸을 던진다"
+msgstr "Come as a pair. Throw orcs or rocks at heroes and eat minions when hurt. When one falls, the other throws its body"
 
 msgid "죽으면 둘로 갈라진다"
 msgstr "Splits in two on death"
