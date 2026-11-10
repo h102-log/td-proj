@@ -236,8 +236,8 @@ func ev904():
 	u.free()
 	return check(linked[0] and not linked[1] and ring, "방패벽 선: 1칸 %s(있어야 한다) · 3칸 %s(없어야 한다) · 북 고리(가운데 %s, 반지름 48) %s(그린 고리 %s)" % [linked[0], linked[1], mid, ring, rings])
 
-# ── 5라운드 오크 전쟁패 묶음 ②(S322·S323·I266·I267) ── 더하는 API:
-#   적 kind "ogre_thrower"(오우거 투척꾼, S322) · "chain_orc"(사슬 오크, S323)
+# ── 5라운드 오크 전쟁패 묶음 ②(S324·S325·I268·I269) ── 더하는 API:
+#   적 kind "ogre_thrower"(오우거 투척꾼, S324) · "chain_orc"(사슬 오크, S325)
 #   적 cast {id "hurl", left, at(떨어질 자리), who(집힌 오크)} · 뜬 오크 cast {id "hurled", air 참, at} · {id "hook", left, dir(라디안), to(띠 끝)}
 #   BattleView: _foe_tells() · _chain_links() · clock
 
@@ -278,8 +278,8 @@ func _snare(cells: Array) -> Array:
 func _ever(b, e, id: String, secs: float) -> bool:
 	return run(b, secs, func(): return _casting(e, id))
 
-# EV906 · S322: 옆의 장갑을 집어 2~6칸 원거리 아군 자리에 원 예고 1.2초 → 장갑이 0.6초 떠서 떨어져 원 안 아군에 12. 대기 8초 뒤 다음 오크를 집는다
-func ev906():
+# EV914 · S324: 옆의 장갑을 집어 2~6칸 원거리 아군 자리에 원 예고 1.2초 → 장갑이 0.6초 떠서 떨어져 원 안 아군에 12. 대기 8초 뒤 다음 오크를 집는다
+func ev914():
 	var g := _toss([Vector2(11, 10), Vector2(10, 11)], [["archer", Vector2i(15, 10), MUTE], ["archer", Vector2i(15, 12), MUTE]])
 	var b = g[0]
 	var why := _need(b, [OT])
@@ -310,8 +310,8 @@ func ev906():
 	_steps(b, 12)
 	return check(not early and _casting(t, "hurl"), "장갑이 뜬 뒤 7.7초 안에 다시 예고 %s(없어야 한다) · 8.3초에 예고 %s(있어야 한다, cast %s)" % [early, _casting(t, "hurl"), t.cast])
 
-# EV907 · S322: 오크가 1.5칸 밖·원거리 아군 없음·대상이 2칸 안·북 고수·봉인이면 던지지 않는다. 던질 것이 없으면 붙은 병사를 친다
-func ev907():
+# EV915 · S324: 오크가 1.5칸 밖·원거리 아군 없음·대상이 2칸 안·북 고수·봉인이면 던지지 않는다. 던질 것이 없으면 붙은 병사를 친다
+func ev915():
 	var cases := [
 		["오크가 1.5칸 밖", [Vector2(12, 10)], [["archer", Vector2i(15, 10), MUTE]], "armored", false],
 		["원거리 아군 없음", [Vector2(10, 11)], [["soldier", Vector2i(15, 10), QUIET]], "armored", false],
@@ -335,8 +335,8 @@ func ev907():
 	var hit: bool = run(b, 3.0, func(): return m.hp < m.max_hp)
 	return check(hit and not _casting(t, "hurl"), "던질 대상이 없는 투척꾼이 3초 안에 붙은 병사를 쳤다 %s · 예고 %s" % [hit, t.cast])
 
-# EV908 · S322: 예고 중 투척꾼이 기절하면 취소되고 집힌 장갑이 다시 걷는다. 집힌 장갑이 쓰러져도 취소되고, 대기는 취소된 때부터 8초다
-func ev908():
+# EV916 · S324: 예고 중 투척꾼이 기절하면 취소되고 집힌 장갑이 다시 걷는다. 집힌 장갑이 쓰러져도 취소되고, 대기는 취소된 때부터 8초다
+func ev916():
 	var g := _toss([], [["archer", Vector2i(15, 10), MUTE]])
 	var b = g[0]
 	var why := _need(b, [OT])
@@ -376,8 +376,8 @@ func ev908():
 	_steps(c, 12)
 	return check(cut and not early and _casting(u, "hurl"), "집힌 장갑이 쓰러진 다음 스텝에 예고 없음 %s · 그 뒤 7.7초 안에 다시 예고 %s(없어야 한다) · 8.3초에 예고 %s(있어야 한다)" % [cut, early, _casting(u, "hurl")])
 
-# EV909 · S322: 성벽 위 궁수도 던질 대상이다. 장갑은 그 성벽 위에 떨어져 궁수를 친다
-func ev909():
+# EV917 · S324: 성벽 위 궁수도 던질 대상이다. 장갑은 그 성벽 위에 떨어져 궁수를 친다
+func ev917():
 	var b = _castle()
 	var why := _need(b, [OT])
 	if why != "":
@@ -395,8 +395,8 @@ func ev909():
 		return "예고 2.0초: 장갑 성벽 위 %s · 자리 %s((14,9) 0.5칸 안) · 궁수가 잃은 체력 %s(12 이상)" % [a.on_wall, a.pos, lost]
 	return check(run(b, 3.0, func(): return _lost(m) > lost), "떨어진 장갑이 3초 안에 궁수를 더 치지 않았다(잃은 체력 %s)" % _lost(m))
 
-# EV910 · S323: 1.5~5칸의 땅 위 아군 쪽으로 직선 예고 1초 → 띠 안 가장 가까운 아군이 8을 잃고 오크 앞 1칸으로 끌려온다. 띠에서 비키면 빗나간다
-func ev910():
+# EV918 · S325: 1.5~5칸의 땅 위 아군 쪽으로 직선 예고 1초 → 띠 안 가장 가까운 아군이 8을 잃고 오크 앞 1칸으로 끌려온다. 띠에서 비키면 빗나간다
+func ev918():
 	var g := _snare([Vector2i(13, 10)])
 	var b = g[0]
 	var why := _need(b, [CH])
@@ -432,8 +432,8 @@ func ev910():
 	return check(near_m.pos.distance_to(Vector2(11, 10)) <= 0.1 and is_equal_approx(_lost(near_m), 8.0) and far_m.pos.distance_to(Vector2(14, 10)) <= 0.05 and far_m.hp == far_m.max_hp,
 		"둘이 줄에 선 판: 가까운 병사 자리 %s((11,10))·잃은 체력 %s(8) · 먼 병사 자리 %s((14,10))·잃은 체력 %s(0)" % [near_m.pos, _lost(near_m), far_m.pos, _lost(far_m)])
 
-# EV911 · S323: 1.5칸 안·5칸 밖·선이 막힘·봉인·성벽 위 아군이면 사슬을 던지지 않는다. 예고 중 기절하면 취소되고 대기는 취소된 때부터 7초다
-func ev911():
+# EV919 · S325: 1.5칸 안·5칸 밖·선이 막힘·봉인·성벽 위 아군이면 사슬을 던지지 않는다. 예고 중 기절하면 취소되고 대기는 취소된 때부터 7초다
+func ev919():
 	for c in [["1.5칸 안", Vector2i(11, 10), false, false], ["5칸 밖", Vector2i(16, 10), false, false], ["선이 막힘", Vector2i(13, 10), true, false], ["봉인", Vector2i(13, 10), false, true]]:
 		var g := _snare([c[1]])
 		var why := _need(g[0], [CH])
@@ -474,9 +474,9 @@ func ev911():
 	_steps(b, 12)
 	return check(cut and not early and _casting(e, "hook"), "기절한 다음 스텝에 예고 없음 %s · 그 뒤 6.7초 안에 다시 예고 %s(없어야 한다) · 7.3초에 예고 %s(있어야 한다)" % [cut, early, _casting(e, "hook")])
 
-# EV912 · I266·I267: 투척꾼은 오우거 그림, 사슬 오크는 장갑 그림에 색을 곱해 그린다. 던지기 원 예고는 고리로(오크가 뜬 동안에도, 투척꾼이 숨어도),
+# EV920 · I268·I269: 투척꾼은 오우거 그림, 사슬 오크는 장갑 그림에 색을 곱해 그린다. 던지기 원 예고는 고리로(오크가 뜬 동안에도, 투척꾼이 숨어도),
 # 사슬 직선 예고는 띠 테두리 선 넷으로(숨으면 그리지 않는다), 빗나간 사슬은 오크에서 띠 끝까지 선으로 그린다
-func ev912():
+func ev920():
 	var b = battle()
 	var why := _need(b, [OT, CH])
 	if why != "":

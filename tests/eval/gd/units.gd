@@ -7,7 +7,7 @@ extends "res://tests/eval/gd/lib.gd"
 #   적 kind "shieldbearer"(방패 고블린, S301) · "fire_archer"(불화살 고블린, S302). ENEMY_KINDS 키: guard(방패 내구도) · escort({kind, count}, 호위) · flame(불화살 {windup, cd, hit, dps, time, spread}) · range(I216)
 #   적 kind "feather_harpy"·"dive_harpy"·"song_harpy"(하피 셋, S304~S306). ENEMY_KINDS 키: feather({range, speed}) · dive({windup, air, cd, damage, radius, push, stun, shields}) · song({radius, heal, lag})
 #   적 kind "shield_orc"·"berserker"·"drummer"(오크 셋, S319~S321). ENEMY_KINDS 키: wall({near, cover, cut}) · frenzy({haste, stride}) · drum({radius, haste, stride, keep})
-#   적 kind "ogre_thrower"·"chain_orc"(오크 둘, S322·S323). ENEMY_KINDS 키: hurl({range, min, ranged, reach, kinds, windup, air, radius, hit, cd}) · hook({range, min, width, windup, hit, gap, cd})
+#   적 kind "ogre_thrower"·"chain_orc"(오크 둘, S324·S325). ENEMY_KINDS 키: hurl({range, min, ranged, reach, kinds, windup, air, radius, hit, cd}) · hook({range, min, width, windup, hit, gap, cd})
 #   적 kind "storm_harpy"·"snatch_harpy"(하피 둘, S307·S308). ENEMY_KINDS 키: gust({range, reach, arc, windup, cd}) · snatch({range, reach, toss, windup, radius, hit, structure, fall, pick, cd})
 # 성곽 맵은 wall.gd와 같다: 9행이 가로 성곽(성문 5·15·25열, 모두 닫힘), 위쪽(0~8행)이 마을, 아래쪽이 들판
 
@@ -68,8 +68,8 @@ const SNATCH := {"range": 5.0, "reach": 0.5, "toss": 5.0, "windup": 2.0, "radius
 const WALL := {"near": 1.5, "cover": 2.0, "cut": 0.5}  # 방패벽 오크 wall(S319)
 const FRENZY := {"haste": 1.0, "stride": 0.5}  # 광전사 오크 frenzy(S320)
 const DRUM := {"radius": 3.0, "haste": 0.3, "stride": 0.25, "keep": 2.0}  # 전쟁 북 고수 drum(S321)
-const HURL := {"range": 6.0, "min": 2.0, "ranged": 2.0, "reach": 1.5, "kinds": ["armored", "shield_orc", "berserker"], "windup": 1.2, "air": 0.6, "radius": 1.0, "hit": 12.0, "cd": 8.0}  # 오우거 투척꾼 hurl(S322)
-const HOOK := {"range": 5.0, "min": 1.5, "width": 0.6, "windup": 1.0, "hit": 8.0, "gap": 1.0, "cd": 7.0}  # 사슬 오크 hook(S323)
+const HURL := {"range": 6.0, "min": 2.0, "ranged": 2.0, "reach": 1.5, "kinds": ["armored", "shield_orc", "berserker"], "windup": 1.2, "air": 0.6, "radius": 1.0, "hit": 12.0, "cd": 8.0}  # 오우거 투척꾼 hurl(S324)
+const HOOK := {"range": 5.0, "min": 1.5, "width": 0.6, "windup": 1.0, "hit": 8.0, "gap": 1.0, "cd": 7.0}  # 사슬 오크 hook(S325)
 const NEST := {"build": 3.0, "cd": 4.0, "kind": "nest"}  # 둥지 하피 nest(S309)
 const BROOD := {"kind": "harpy_chick", "every": 4.0, "cap": 3}  # 둥지 brood(S309)
 const WYVERN := {"plunge": {"range": 6.0, "radius": 1.5, "windup": 1.0, "air": 0.5, "cd": 10.0, "damage": 30.0, "knock": 1.0, "down": 2.0},
