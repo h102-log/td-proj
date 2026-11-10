@@ -96,3 +96,27 @@ def test_EV935_soak_share_fail_heal_counter(gd):
 
 def test_EV936_brand_follows_turn_hero(gd):
     gd("den", "EV936")
+
+
+def test_EV950_wipe_waits_then_retry_restarts(gd):
+    gd("den", "EV950")
+
+
+def test_EV951_flame_wait_retry_refused_retreat_win(gd):
+    gd("den", "EV951")
+
+
+def test_EV952_retry_window_buttons(gd):
+    gd("den", "EV952")
+
+
+def test_EV953_save_on_each_torch(gd):
+    gd("den", "EV953")
+
+
+def test_EV954_deflect_fx_outside_counter_window(gd):
+    gd("den", "EV954")
+
+
+def test_EV955_first_raid_hint(gd):
+    gd("den", "EV955")

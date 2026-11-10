@@ -227,7 +227,7 @@ func ev891():
 	return check(b.enemies.is_empty() and b.zones.is_empty() and b.missiles.is_empty() and b.loops.is_empty() and b.raid_block() == "done",
 		"돌아온 뒤 적 %d · 장판 %d · 투사체 %d · 루프 %d · 이유 %s(기대 모두 0, done)" % [b.enemies.size(), b.zones.size(), b.missiles.size(), b.loops.size(), b.raid_block()])
 
-# EV892 · S316·I262 ⑥: 전멸·불꽃·철수로 끝난다. 전멸·불꽃은 2.5초 뒤, 철수는 바로 돌아오고, 쓴 횃불은 돌아오지 않는다
+# EV892 · S316·I262 ⑥: 전멸·불꽃·철수로 끝난다. 전멸·불꽃 뒤에는 «다시»를 기다리다(S331) 철수로, 철수는 바로 돌아오고, 쓴 횃불은 돌아오지 않는다
 func ev892():
 	var b = _den()
 	b.torches = 4
@@ -238,17 +238,19 @@ func ev892():
 	_go(b, 2.4)
 	var mid: String = b.state
 	_go(b, 0.2)
-	if mid != "raid" or b.state != "prep" or not b.heroes.all(func(h): return h.alive) or b.heroes.map(func(h): return h.hp) != hp or b.floors_cleared != 0:
-		return "전멸 뒤 2.4초 %s(raid) · 2.6초 %s(prep) · 체력 %s(기대 %s, 모두 살아) · 깬 층 %d(0)" % [mid, b.state, b.heroes.map(func(h): return h.hp), hp, b.floors_cleared]
+	var late: String = b.state
+	b.retreat()
+	if mid != "raid" or late != "raid" or b.state != "prep" or not b.heroes.all(func(h): return h.alive) or b.heroes.map(func(h): return h.hp) != hp or b.floors_cleared != 0:
+		return "전멸 뒤 2.4초 %s(raid) · 2.6초 %s(raid) · 철수 뒤 %s(prep) · 체력 %s(기대 %s, 모두 살아) · 깬 층 %d(0)" % [mid, late, b.state, b.heroes.map(func(h): return h.hp), hp, b.floors_cleared]
 	b.start_raid()
 	b.flame = 119.9
 	_go(b, 0.2)
 	var gone: bool = b.enemies.is_empty()
-	_go(b, 2.4)
+	_go(b, 2.6)
 	var left: String = b.state
-	_go(b, 0.2)
+	b.retreat()
 	if not gone or left != "raid" or b.state != "prep":
-		return "불꽃 120초 뒤 보스 사라짐 %s · 2.6초 %s(raid) · 2.8초 %s(prep)" % [gone, left, b.state]
+		return "불꽃 120초 뒤 보스 사라짐 %s · 2.8초 %s(raid) · 철수 뒤 %s(prep)" % [gone, left, b.state]
 	b.start_raid()
 	b.retreat()
 	return check(b.state == "prep" and b.torches == 1 and b.floors_cleared == 0, "철수 뒤 %s(prep) · 횃불 %d(1) · 깬 층 %d(0)" % [b.state, b.torches, b.floors_cleared])
@@ -1025,3 +1027,242 @@ func ev936():
 		marks.append(e.cast.get("mark") if e.cast != null else null)
 		_go(b, 3.2)
 	return check(marks == [p[2], p[1]], "다음 표식 차례 %s(기대 셋째 → 둘째 영웅)" % [marks.map(func(m): return m.kind if m != null else null)])
+
+# ── «다시» 창·첫 원정 힌트·튕김(S331·S332·I277) ── 더하는 API:
+#   Battle.raid_pending() -> bool(전멸·불꽃 뒤 «다시»·«철수»를 기다리는 중) · retry() -> bool(횃불 하나로 같은 층을 다시. 못 하면 거짓이고 판은 그대로)
+#   raid_left()는 원정이 끝난 뒤에는 끝난 순간의 값이다 · 튕김은 효과 출처 «deflect»({deflect: true})다
+#   main.hud.again — «다시» 창(Control) · main.hud.again_retry — «다시» 버튼 · main.hud.again_retreat — «철수» 버튼
+#   끝낸 힌트 이름 «raid»(Settings.hints_done)
+
+# EV950 · S331·I277 ①②: 전멸 뒤 2.5초가 지나면 «다시»를 기다리고 그동안 왕과 불꽃이 멈춘다. retry는 횃불 하나로 원정 직전 몸·새 왕·불꽃 0에서 다시 한다
+func ev950():
+	var b = _den()
+	if not b.has_method("retry") or not b.has_method("raid_pending"):
+		return "Battle에 retry·raid_pending이 없다"
+	var a = b.heroes[0]
+	a.hp = 40.0
+	a.pos = Vector2(30, 70)
+	b.heroes[1].cd.q = 3.0
+	var seen := []
+	b.raid_starting.connect(func(): seen.append([b.state, b.torches, a.pos]))
+	b.start_raid()
+	if b.state != "raid" or b.enemies.size() != 1:
+		return "원정이 되지 않았다(판 %s · 적 %d)" % [b.state, b.enemies.size()]
+	var king = b.enemies[0]
+	for h in b.party:
+		b.damage(h, BIG)
+	_go(b, 2.4)
+	var early: bool = b.raid_pending()
+	_go(b, 0.2)
+	if early or not b.raid_pending() or b.state != "raid":
+		return "전멸 뒤 2.4초 기다림 %s(거짓) · 2.6초 %s(참) · 판 %s(raid)" % [early, b.raid_pending(), b.state]
+	var at: Vector2 = king.pos
+	var flame: float = b.flame
+	_go(b, 1.0)
+	if king.pos != at or king.cast != null or b.flame != flame or not b.raid_pending():
+		return "기다리는 1초 동안 왕 자리 %s → %s · 예고 %s(없어야) · 불꽃 %s → %s(그대로여야) · 기다림 %s(참)" % [at, king.pos, king.cast, flame, b.flame, b.raid_pending()]
+	b.loops.append({"e": king, "at": Vector2(78, 80), "wall": false, "left": 5.0, "owner": a, "blast": 1.0, "damage": 5.0, "aged": 1.0})
+	var ok: bool = b.retry()
+	if not ok or b.torches != 0 or seen != [["prep", 1, Vector2(30, 70)], ["prep", 0, Vector2(30, 70)]]:
+		return "retry %s(참) · 횃불 %d(0) · 저장 신호 [판, 횃불, 첫째 영웅 자리] %s(기대 [prep, 1, (30,70)] · [prep, 0, (30,70)])" % [ok, b.torches, seen]
+	var spots: Array = b.party.map(func(h): return Vector2i(h.pos.round()))
+	var count: Array = b.heroes.map(func(h): return b.units.count(h))
+	if b.state != "raid" or b.party != b.heroes or not b.party.all(func(h): return h.alive) or spots != ENTRY or a.hp != 40.0 or b.heroes[1].cd.q != 3.0 or count != [1, 1, 1]:
+		return "다시 뒤 판 %s(raid) · 원정대 %d명 · 자리 %s(기대 %s) · 첫째 체력 %s(40) · 둘째 Q 대기 %s(3) · units 안 횟수 %s(1·1·1)" % [b.state, b.party.size(), spots, ENTRY, a.hp, b.heroes[1].cd.q, count]
+	var e = b.enemies[0] if b.enemies.size() == 1 else null
+	if e == null or e == king or Vector2i(e.pos.round()) != BOSS or e.hp != 400.0 or b.flame != 0.0 or b.raid_pending() or not b.zones.is_empty() or not b.missiles.is_empty() or not b.loops.is_empty():
+		return "다시 뒤 적 %d(새 왕 하나, (84,80), 체력 400) · 불꽃 %s(0) · 기다림 %s(거짓) · 장판 %d · 투사체 %d · 루프 %d(모두 0)" % [b.enemies.size(), b.flame, b.raid_pending(), b.zones.size(), b.missiles.size(), b.loops.size()]
+	_freeze(b)
+	var from: Vector2 = e.pos
+	_go(b, 2.9)
+	return check(e.pos == from and e.cast == null, "새 왕이 2.9초 안에 %s → %s · 예고 %s(서 있어야)" % [from, e.pos, e.cast])
+
+# EV951 · S331·I277 ①②: 불꽃이 다 타도 기다리고 끝난 순간의 남은 체력이 남는다. 횃불이 없거나 끝나기 전이면 retry가 거짓이다. 철수는 돌아오고, 처치는 기다림 없이 3초 뒤 돌아온다
+func ev951():
+	var b = _den()
+	if not b.has_method("retry") or not b.has_method("raid_pending"):
+		return "Battle에 retry·raid_pending이 없다"
+	var hp: Array = b.heroes.map(func(h): return h.hp)
+	var e = _king(b)
+	if e == null:
+		return "① 원정이 되지 않았다(판 %s · 적 %d)" % [b.state, b.enemies.size()]
+	b.damage(e, 100.0, "true")
+	b.flame = 119.9
+	_go(b, 0.2)
+	var gone: bool = b.enemies.is_empty()
+	_go(b, 2.4)
+	var early: bool = b.raid_pending()
+	_go(b, 0.2)
+	if not gone or early or not b.raid_pending() or absf(b.raid_left() - 1500.0 / 1600.0) > 0.0001:
+		return "① 불꽃 120초 뒤 적 없음 %s · 2.6초 기다림 %s(거짓) · 2.8초 %s(참) · 남은 체력 비율 %s(기대 %s)" % [gone, early, b.raid_pending(), b.raid_left(), 1500.0 / 1600.0]
+	b.torches = 0
+	var ok: bool = b.retry()
+	if ok or b.state != "raid" or b.torches != 0 or not b.raid_pending():
+		return "① 횃불 0에서 retry %s(거짓) · 판 %s(raid) · 횃불 %d(0) · 기다림 %s(참)" % [ok, b.state, b.torches, b.raid_pending()]
+	b.retreat()
+	if b.state != "prep" or b.heroes.map(func(h): return h.hp) != hp or b.floors_cleared != 0:
+		return "① 철수 뒤 판 %s(prep) · 체력 %s(기대 %s) · 깬 층 %d(0)" % [b.state, b.heroes.map(func(h): return h.hp), hp, b.floors_cleared]
+	var c = _den()
+	var k = _king(c)
+	if k == null:
+		return "② 원정이 되지 않았다"
+	var no: bool = c.retry()
+	if no or c.torches != 1 or c.enemies != [k]:
+		return "② 끝나기 전 retry %s(거짓) · 횃불 %d(1) · 적 %d(그대로 하나)" % [no, c.torches, c.enemies.size()]
+	_slay(c)
+	_go(c, 2.9)
+	var mid := [c.state, c.raid_pending()]
+	_go(c, 0.2)
+	return check(mid == ["raid", false] and c.state == "prep" and c.floors_cleared == 1, "② 처치 뒤 2.9초 [판, 기다림] %s(기대 [raid, 거짓]) · 3.1초 %s(prep) · 깬 층 %d(1)" % [mid, c.state, c.floors_cleared])
+
+# 게임 장면을 0.05초씩 secs초 돌린다(판과 HUD)
+func _spin(main, secs: float) -> void:
+	for i in roundi(secs / 0.05):
+		main._process(0.05)
+		main.hud._process(0.05)
+
+# EV952 · S331·I277 ③: 전멸 2.6초 뒤 «다시» 창이 뜨고 보스 남은 체력과 두 버튼이 있다. «다시»는 원정을 잇고, 횃불이 없으면 꺼진 채 이유를 보이며, «철수»는 돌아온다
+func ev952():
+	var main = _den_game()
+	var b = main.view.battle
+	var hud = main.hud
+	if not hud.get("again") is Control or not hud.get("again_retry") is BaseButton or not hud.get("again_retreat") is BaseButton or not b.has_method("raid_pending"):
+		_done(main)
+		return "main.hud.again·again_retry·again_retreat나 Battle.raid_pending이 없다"
+	b.start_raid()
+	_frame(main)
+	var first: bool = hud.again.is_visible_in_tree()
+	for h in b.party:
+		b.damage(h, BIG)
+	_spin(main, 2.6)
+	_layout(main)
+	var said := " ".join(_labels(hud.again))
+	var shown := [hud.again.is_visible_in_tree(), "보스 남은 체력 100%" in said, "다시" in hud.again_retry.text and "횃불 1" in hud.again_retry.text, "철수" in hud.again_retreat.text, hud.again_retry.disabled]
+	if b.state != "raid" or first or shown != [true, true, true, true, false]:
+		_done(main)
+		return "판 %s(raid) · 원정 시작 때 창 보임 %s(거짓) · 전멸 2.6초 뒤 [창 보임, «보스 남은 체력 100%%», «다시»·«횃불 1», «철수», «다시» 꺼짐] %s(기대 [참, 참, 참, 참, 거짓]) · 창 글 «%s» · 버튼 «%s»·«%s»" % [b.state, first, shown, said, hud.again_retry.text, hud.again_retreat.text]
+	hud.again_retry.pressed.emit()
+	_frame(main)
+	var again := [hud.again.is_visible_in_tree(), b.state, b.torches, not b.party.is_empty() and b.party.all(func(h): return h.alive)]
+	if again != [false, "raid", 0, true]:
+		_done(main)
+		return "«다시» 뒤 [창 보임, 판, 횃불, 원정대 모두 삶] %s(기대 [거짓, raid, 0, 참])" % [again]
+	for h in b.party:
+		b.damage(h, BIG)
+	_spin(main, 2.6)
+	_layout(main)
+	var open: bool = hud.again.is_visible_in_tree()
+	var tip := _tip_of(main, hud.again_retry) if open else ""
+	if not open or not hud.again_retry.disabled or not "횃불 없음" in tip:
+		_done(main)
+		return "횃불 0에서 전멸 2.6초 뒤 창 보임 %s(참) · «다시» 꺼짐 %s(참) · 툴팁 «%s»(«횃불 없음»이 있어야)" % [open, hud.again_retry.disabled, tip]
+	hud.again_retreat.pressed.emit()
+	_frame(main)
+	var back := [b.state, hud.again.is_visible_in_tree()]
+	_done(main)
+	return check(back == ["prep", false], "«철수» 뒤 [판, 창 보임] %s(기대 [prep, 거짓])" % [back])
+
+# EV953 · S331: 횃불을 쓸 때마다 원정 직전 몸·줄어든 횃불로 저장한다. «다시» 뒤 저장은 준비 단계·횃불 0이고 원정 중에는 바뀌지 않는다
+func ev953():
+	var main = _den_game()
+	var b = main.view.battle
+	if not b.has_method("retry"):
+		_done(main)
+		return "Battle에 retry가 없다"
+	var s = _save()
+	b.start_raid()
+	_frame(main)
+	var first: Dictionary = s.read()
+	for h in b.party:
+		b.damage(h, BIG)
+	_spin(main, 2.6)
+	var ok: bool = b.retry()
+	_frame(main)
+	var second: Dictionary = s.read()
+	var text := FileAccess.get_file_as_string(PATH)
+	var loaded = _loaded()
+	_spin(main, 1.0)
+	var during := FileAccess.get_file_as_string(PATH)
+	_done(main)
+	if first.get("state") != "prep" or first.get("torches") != 1 or not ok or second.get("state") != "prep" or second.get("torches") != 0:
+		return "원정 시작 저장 판 %s 횃불 %s(prep, 1) · retry %s(참) · «다시» 뒤 저장 판 %s 횃불 %s(prep, 0)" % [first.get("state"), first.get("torches"), ok, second.get("state"), second.get("torches")]
+	return check(loaded.state == "prep" and loaded.torches == 0 and not loaded.heroes.is_empty() and loaded.heroes.all(func(h): return h.alive) and during == text,
+		"불러온 판 %s 횃불 %d(prep, 0) · 출전 영웅 %d명 모두 삶 %s(참) · 원정 1초 동안 저장 파일 바뀜 %s(거짓)" % [loaded.state, loaded.torches, loaded.heroes.size(), loaded.heroes.all(func(h): return h.alive), during != text])
+
+# 서 있지도 뛰지도 대본을 돌지도 않는 왕. 원정이 안 됐거나 대본 칸이 없으면 null
+func _idle_king(b):
+	var e = _king(b)
+	if e == null or e.get("rest") == null:
+		return null
+	e.pull = 0.0
+	e.cd["leap"] = 999.0
+	e.rest = 999.0
+	return e
+
+# EV954 · I277 ⑤: 카운터 창 밖에서 지워진 기절·봉인은 0.5초 튕김 효과를 남긴다. 둔화만 든 효과와 카운터 창 안 끊기에는 없다
+func ev954():
+	var b = _den()
+	var e = _idle_king(b)
+	if e == null:
+		return "① 원정이 되지 않았거나 왕에 대본 칸(rest)이 없다"
+	b._fx(e, "t0", {"slow": 0.3}, 3.0)
+	var none = b.effect(e, "deflect")
+	b._fx(e, "t1", {"stun": true}, 3.0)
+	var got := [b.effect(e, "deflect") != null, b.effect(e, "stun")]
+	_go(b, 0.4)
+	var mid: bool = b.effect(e, "deflect") != null
+	_go(b, 0.2)
+	var after = b.effect(e, "deflect")
+	if none != null or got != [true, null] or not mid or after != null:
+		return "① 둔화만 건 뒤 튕김 %s(null) · 기절을 건 뒤 [튕김 있음, 기절] %s(기대 [참, null]) · 0.4초 뒤 있음 %s(참) · 0.6초 뒤 %s(null)" % [none, got, mid, after]
+	b._fx(e, "groggy", {"groggy": true}, 5.0)
+	b._fx(e, "t2", {"slow": 0.3, "seal": true}, 3.0)
+	if b.effect(e, "deflect") == null or b.effect(e, "seal") != null:
+		return "② 그로기 중 봉인을 건 뒤 튕김 %s(있어야) · 봉인 %s(null)" % [b.effect(e, "deflect"), b.effect(e, "seal")]
+	var c = _den()
+	var k = _scripted(c, 0)
+	if k == null:
+		return "③ 원정이 되지 않았다"
+	c.step(DT)
+	_go(c, 1.2)
+	var casting: bool = k.cast != null and k.cast.id == "slam"
+	c._fx(k, "t", {"stun": true}, 2.0)
+	return check(casting and k.cast == null and _groggy(c, k) and c.effect(k, "deflect") == null,
+		"③ 강타 예고 1.2초 뒤 예고 중 %s(참) · 기절을 건 뒤 예고 %s(없어야) · 그로기 %s(참) · 튕김 %s(null)" % [casting, k.cast, _groggy(c, k), c.effect(k, "deflect")])
+
+# EV955 · S332·I277 ④: 원정에 들어가면 첫 원정 힌트가 뜨고 그로기가 열리면 끝나 다음 원정에는 안 뜬다. 힌트 설정을 끄면 안 뜬다
+func ev955():
+	var st = _hints_reset()
+	var main = _den_game()
+	var b = main.view.battle
+	var hud = main.hud
+	var out := ""
+	var before: bool = hud.hints.is_visible_in_tree()
+	b.start_raid()
+	_frame(main)
+	var said := _hint_says(main)
+	if before or b.state != "raid" or b.enemies.is_empty() or not "그로기" in said or not "금색" in said:
+		out = "2라운드 준비 단계 힌트 칸 보임 %s(거짓) · 원정 판 %s · 힌트 글 «%s»(«그로기»·«금색»이 있어야)" % [before, b.state, said]
+	if out == "":
+		b._fx(b.enemies[0], "groggy", {"groggy": true}, 5.0)
+		_frame(main)
+		if hud.hints.is_visible_in_tree() or not "raid" in st.hints_done:
+			out = "그로기 뒤 힌트 칸 보임 %s(거짓) · 끝낸 힌트 %s(raid가 있어야)" % [hud.hints.is_visible_in_tree(), st.hints_done]
+	if out == "":
+		b.retreat()
+		_frame(main)
+		b.start_raid()
+		_frame(main)
+		if b.state != "raid" or hud.hints.is_visible_in_tree():
+			out = "다음 원정(판 %s)에 힌트 칸 보임 %s(거짓)" % [b.state, hud.hints.is_visible_in_tree()]
+	if out == "":
+		st.hints_done = []
+		st.hints = false
+		_frame(main)
+		var off: bool = hud.hints.is_visible_in_tree()
+		st.hints = true
+		_frame(main)
+		out = check(not off and hud.hints.is_visible_in_tree(), "끝낸 힌트를 비우고 힌트 설정을 끈 채 보임 %s(거짓) · 켠 뒤 %s(참)" % [off, hud.hints.is_visible_in_tree()])
+	_done(main)
+	_hints_reset()
+	return out
