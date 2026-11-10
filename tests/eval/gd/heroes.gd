@@ -214,3 +214,21 @@ func ev239():
 	var cleared: bool = b.state == "cleared" and now.call() == between
 	return check(prep and fight and cleared,
 		"준비 단계 10초 [W 대기, E 대기] %s → %s · 전투 단계 1초에 줄고 참 %s · 라운드 사이(%s) 10초 %s → %s" % [at, after_prep, fight, b.state, between, now.call()])
+
+# EV881 · S314·I260: ` 키는 살아 있는 출전 영웅을 출전 순서대로 모두 고른다(쓰러진 영웅·용병은 빠진다). 영입 단계에는 듣지 않는다
+func ev881():
+	var b = _heroes([_hero("aias", H), _hero("ignis", H + Vector2i(0, 2)), _hero("seraphina", H + Vector2i(0, 4))], {"merc_cap": 2})
+	b.gold = BIG
+	var team: Array = b.heroes
+	team[1].alive = false
+	var m = b.place_merc("soldier", Vector2i(14, 10))
+	var c = controls(b)
+	c.selected = [m]
+	_key(c, KEY_QUOTELEFT)
+	var picked: Array = c.selected.duplicate()
+	b.begin_hiring()
+	c.selected = [m]
+	_key(c, KEY_QUOTELEFT)
+	var kept: Array = c.selected.duplicate()
+	return check(m != null and team.size() == 3 and picked == [team[0], team[2]] and kept == [m],
+		"용병 %s · 준비 단계에 고른 것 %s(기대 [아이아스, 세라피나]) · 영입 단계에 고른 것 %s(기대 [병사])" % [m, picked.map(func(x): return x.kind), kept.map(func(x): return x.kind)])

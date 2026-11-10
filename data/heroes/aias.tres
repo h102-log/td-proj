@@ -16,8 +16,8 @@ passive = {
 "still": 2.0,
 "dr": 0.25,
 "block": 3,
-"stun_odds": 0.2,
-"stun": 1.0
+"guard_odds": 0.5,
+"guard_cut": 0.5
 }
 q = {
 "id": "shield_bash",

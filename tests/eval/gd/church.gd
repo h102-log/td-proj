@@ -27,6 +27,7 @@ func ev240():
 	if b.build("church", CHURCH) == null:
 		return "교회를 짓지 못했다"
 	var k = b.hero
+	k.passive.guard_odds = 0.0  # 아이아스 패시브 확률 감소(S151 2026-11-10 변경)가 깎은 양을 흔들지 않게 끈다
 	b.damage(k, 33)
 	var g: int = b.gold
 	b.heal(k)
@@ -46,6 +47,7 @@ func ev241():
 	if b.build("church", CHURCH) == null:
 		return "교회를 짓지 못했다"
 	var k = b.hero
+	k.passive.guard_odds = 0.0  # 아이아스 패시브 확률 감소(S151 2026-11-10 변경)가 깎은 양을 흔들지 않게 끈다
 	b.damage(k, 1)
 	var g: int = b.gold
 	b.heal(k)

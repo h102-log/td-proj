@@ -24,3 +24,7 @@ def test_EV238_prep_ignores_q_and_w(gd):
 
 def test_EV239_cooldowns_and_regen_pause_outside_battle(gd):
     gd("heroes", "EV239")
+
+
+def test_EV881_select_all_heroes_key(gd):
+    gd("heroes", "EV881")

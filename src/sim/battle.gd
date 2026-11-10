@@ -493,7 +493,7 @@ var _spawn_timer := 0.0
 var _spare := 0.0  # 아직 1골드가 되지 않은 처치 보상(I176)
 var _stage: Dictionary  # 재시작할 때 다시 읽는다
 var _rng := RandomNumberGenerator.new()  # 영입소 목록을 뽑는다. 스테이지에 seed가 있으면 그 씨앗이다(평가용)
-var _luck := RandomNumberGenerator.new()  # 요새화 기절(S151). 영입소 목록이 전투에 따라 바뀌지 않게 따로 둔다
+var _luck := RandomNumberGenerator.new()  # 아이아스 패시브 확률 감소(S151, I258). 영입소 목록이 전투에 따라 바뀌지 않게 따로 둔다
 var _kin := RandomNumberGenerator.new()  # 집의 가족(S221). 영입소·전투 난수가 집 짓기에 따라 바뀌지 않게 따로 둔다
 var _loot := RandomNumberGenerator.new()  # 전리품(S252). 영입소 목록·미션이 전리품에 따라 바뀌지 않게 따로 둔다(I202)
 var _shot := RandomNumberGenerator.new()  # 궁수 명중(S178 2026-11-04 변경, I224 ③). 다른 난수가 사격에 따라 바뀌지 않게 따로 둔다
@@ -1462,6 +1462,17 @@ func cast(h, slot: String, aim = null) -> bool:
 func toggle_auto(h, slot: String) -> void:
 	if h:
 		h.auto[slot] = not h.auto[slot]
+
+# 전체 오토(S313, I259 ②): 출전 영웅(쓰러진 영웅 포함) 모두의 칸 가운데 하나라도 꺼져 있으면 모두 켜고, 모두 켜져 있으면 모두 끈다
+func toggle_auto_all() -> void:
+	var on := not all_auto()
+	for h in heroes:
+		for slot in h.auto:
+			h.auto[slot] = on
+
+# 출전 영웅이 있고 그 모든 칸의 오토가 켜져 있다(I259 ③의 금색 테두리)
+func all_auto() -> bool:
+	return not heroes.is_empty() and heroes.all(func(h): return not h.auto.values().has(false))
 
 # 대상이 그 칸의 조준 종류에 맞는다(S147, I145). 지점·방향은 맵 안 칸, 아군은 targets대로, 적은 살아 있는 적
 func _aim_ok(h, sk: Dictionary, aim) -> bool:
@@ -3306,6 +3317,8 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 			_tracing = keep
 		if _fx_on(target, "invuln") != null:
 			return
+		if target.is_hero and target.passive.get("id") == "fortress" and _luck.randf() < target.passive.guard_odds:  # 강철의 요새(S151 2026-11-10 변경, I258): 요새화와 상관없이 맞을 때마다
+			amount *= 1.0 - target.passive.guard_cut
 		amount = _absorb(target, amount * armor_mult(armor_of(target)) * (1.0 - _fx_cut(target, "dr")))
 		if amount >= target.hp and _fx_on(target, "angel") != null:  # 수호 천사(S152): 쓰러지지 않고 불사
 			var secs: float = target.fx.seraphina_e.angel
@@ -4964,7 +4977,7 @@ func _hero_tick(h: Unit, dt: float) -> void:
 	_autocast(h, dt)
 
 # 기본 공격 한 방(S15). 실비아(I213): 쏘는 순간 거리로 정조준 피해·방어 무시를 정한다(S153).
-# 아이아스: 요새화 중이면 확률로 기절시킨다(S151). 축복이 걸렸으면 맞은 곳에 마법 피해를 더한다(S152).
+# 축복이 걸렸으면 맞은 곳에 마법 피해를 더한다(S152).
 # 원거리(사거리 RANGED칸 초과)는 투사체를 쏘고, 피해·축복은 닿을 때다(S178, I174)
 func _strike(u: Unit, foe: Enemy) -> void:
 	var hurt := u.damage * _might(u)
@@ -4979,8 +4992,6 @@ func _strike(u: Unit, foe: Enemy) -> void:
 		return
 	var at: Vector2 = foe.pos
 	damage(foe, hurt, "phys", u, ignore)
-	if u.fort and foe.alive and _luck.randf() < u.passive.stun_odds:
-		_fx(foe, "aias_p_stun", {"stun": true}, u.passive.stun)
 	_bless(u, at)
 
 # 아이아스 패시브 요새화(S151, I147): 이동 지시 없이 still초가 지나면 요새화. 받는 피해 감소, 블록 수 +3. 이동 지시를 받으면 풀린다.

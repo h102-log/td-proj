@@ -1690,3 +1690,15 @@ msgstr "Hire heroes and reroll the list"
 
 msgid "판은 멈추지 않는다"
 msgstr "The game keeps running"
+
+msgid "오토"
+msgstr "Auto"
+
+msgid "전체 오토"
+msgstr "Auto all"
+
+msgid "출전 영웅의 스킬 오토를 한 번에 켜고 끈다"
+msgstr "Turn autocast on or off for every lineup hero skill at once"
+
+msgid "하나라도 꺼져 있으면 모두 켠다"
+msgstr "Turns all on if any is off"

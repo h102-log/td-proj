@@ -232,3 +232,15 @@ def test_EV801_auto_yields_to_player(gd):
 
 def test_EV802_auto_state_save_carry_locked(gd):
     gd("kits", "EV802")
+
+
+def test_EV877_aias_passive_guard_chance(gd):
+    gd("kits", "EV877")
+
+
+def test_EV878_aias_fortify_no_stun(gd):
+    gd("kits", "EV878")
+
+
+def test_EV879_toggle_auto_all(gd):
+    gd("kits", "EV879")

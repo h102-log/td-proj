@@ -64,6 +64,7 @@ const HudToast := preload("res://src/ui/hud_toast.gd")
 const HudAlert := preload("res://src/ui/hud_alert.gd")
 const HudEvac := preload("res://src/ui/hud_evac.gd")
 const HudShop := preload("res://src/ui/hud_shop.gd")
+const HudAuto := preload("res://src/ui/hud_auto.gd")
 const Hints := preload("res://src/ui/hints.gd")
 const BattleView := preload("res://src/ui/battle_view.gd")
 const SkillCell := preload("res://src/ui/skill_cell.gd")
@@ -153,6 +154,7 @@ var select  # 선택 패널(S206). 건설 격자 바로 왼쪽
 var minimap  # 미니맵(S209). 왼쪽 아래 구석
 var evac  # 대피령 버튼(S230). 미니맵 바로 위
 var shop  # «영입» 버튼(S272, I207). 대피령 버튼 바로 위
+var auto_all  # «전체 오토» 버튼(S313, I259). 영입 버튼 바로 위
 var hp_button: Button  # 체력바 버튼(S276). 대피령 버튼 오른쪽, 누르면 V 키와 같다
 var view  # 맵 그림(BattleView). 미니맵이 구운 바닥을 빌린다. main이 넣는다
 var _hp: Label
@@ -468,6 +470,8 @@ func _ready() -> void:
 	root.add_child(evac)
 	shop = HudShop.new(self)
 	root.add_child(shop)
+	auto_all = HudAuto.new(self)
+	root.add_child(auto_all)
 	hp_button = _bar_button(root, "", func(): controls.show_hp = not controls.show_hp)  # 체력바 버튼(S276): 그림 10×10을 2배로, 왼쪽 위에 키 글자
 	hp_button.position = HP_AT.position
 	hp_button.size = HP_AT.size
