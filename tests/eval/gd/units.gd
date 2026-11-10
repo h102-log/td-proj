@@ -8,6 +8,7 @@ extends "res://tests/eval/gd/lib.gd"
 #   적 kind "feather_harpy"·"dive_harpy"·"song_harpy"(하피 셋, S304~S306). ENEMY_KINDS 키: feather({range, speed}) · dive({windup, air, cd, damage, radius, push, stun, shields}) · song({radius, heal, lag})
 #   적 kind "shield_orc"·"berserker"·"drummer"(오크 셋, S319~S321). ENEMY_KINDS 키: wall({near, cover, cut}) · frenzy({haste, stride}) · drum({radius, haste, stride, keep})
 #   적 kind "ogre_thrower"·"chain_orc"(오크 둘, S324·S325). ENEMY_KINDS 키: hurl({range, min, ranged, reach, kinds, windup, air, radius, hit, cd}) · hook({range, min, width, windup, hit, gap, cd})
+#   적 kind "wolf_rider"(늑대 기수, S335). ENEMY_KINDS 키: flank({ranged}) · mount(내릴 때 쓰러진 몸으로 남는 종류) · phase2
 #   적 kind "storm_harpy"·"snatch_harpy"(하피 둘, S307·S308). ENEMY_KINDS 키: gust({range, reach, arc, windup, cd}) · snatch({range, reach, toss, windup, radius, hit, structure, fall, pick, cd})
 # 성곽 맵은 wall.gd와 같다: 9행이 가로 성곽(성문 5·15·25열, 모두 닫힘), 위쪽(0~8행)이 마을, 아래쪽이 들판
 
@@ -58,8 +59,9 @@ const TABLE := {
 	"chain_orc": [20, 1.5, 6, 1.2, 0.35, 4, 10, 1],
 	"troll": [60, 1.3, 10, 1.6, 0.45, 4, 18, 1],  # 5라운드 오크 전쟁패 묶음 ③(S106 2026-11-10 다섯째 변경)
 	"twin_troll": [160, 1.2, 20, 2, 0.9, 4, 50, 0.3],
+	"wolf_rider": [14, 3, 5, 0.8, 0.35, 5, 0, 1],  # 6라운드 대족장 군단 묶음 ①(S106 2026-11-11 변경)
 }
-const PACK := {"wolf": 4, "leap_wolf": 2, "night_wolf": 2, "flying": 4, "armored": 4, "shield_orc": 2, "twin_troll": 2}  # 무리(S238). 비행은 2026-11-09 변경, 장갑·방패벽 오크는 2026-11-10 셋째 변경. 나머지 종류는 1
+const PACK := {"wolf": 4, "leap_wolf": 2, "night_wolf": 2, "flying": 4, "armored": 4, "shield_orc": 2, "twin_troll": 2, "wolf_rider": 2}  # 무리(S238). 비행은 2026-11-09 변경, 장갑·방패벽 오크는 2026-11-10 셋째 변경, 늑대 기수는 2026-11-11 변경. 나머지 종류는 1
 const KEYS := ["hp", "speed", "damage", "attack_gap", "radius", "sight", "reward", "wall_k"]
 const FLAME := {"windup": 1.0, "cd": 6.0, "hit": 5.0, "dps": 4.0, "time": 9.0, "spread": 3.0}  # 불화살 고블린 flame(S302)
 const FEATHER := {"range": 5.0, "speed": 12.0}  # 깃털 사수 하피 feather(S304)
@@ -70,7 +72,7 @@ const SNATCH := {"range": 5.0, "reach": 0.5, "toss": 5.0, "windup": 2.0, "radius
 const WALL := {"near": 1.5, "cover": 2.0, "cut": 0.5}  # 방패벽 오크 wall(S319)
 const FRENZY := {"haste": 1.0, "stride": 0.5}  # 광전사 오크 frenzy(S320)
 const DRUM := {"radius": 3.0, "haste": 0.3, "stride": 0.25, "keep": 2.0}  # 전쟁 북 고수 drum(S321)
-const HURL := {"range": 6.0, "min": 2.0, "ranged": 2.0, "reach": 1.5, "kinds": ["armored", "shield_orc", "berserker"], "windup": 1.2, "air": 0.6, "radius": 1.0, "hit": 12.0, "cd": 8.0}  # 오우거 투척꾼 hurl(S324)
+const HURL := {"range": 6.0, "min": 2.0, "ranged": 2.0, "reach": 1.5, "kinds": ["armored", "shield_orc", "berserker", "slime", "wolf"], "windup": 1.2, "air": 0.6, "radius": 1.0, "hit": 12.0, "cd": 8.0}  # 오우거 투척꾼 hurl(S324, kinds는 2026-11-11 변경)
 const HOOK := {"range": 5.0, "min": 1.5, "width": 0.6, "windup": 1.0, "hit": 8.0, "gap": 1.0, "cd": 7.0}  # 사슬 오크 hook(S325)
 const SWAT := {"range": 1.5, "arc": 120.0, "windup": 0.8, "hit": 8.0, "knock": 1.5, "cd": 6.0}  # 트롤 싸움꾼 swat(S328)
 const TWIN := {"devour": {"below": 0.5, "radius": 2.0, "kinds": ["armored", "shield_orc", "berserker", "troll"], "windup": 1.5, "heal": 0.25, "cd": 12.0},
@@ -177,6 +179,9 @@ func ev130():
 	if not (trolls[0].get("regen") == 0.03 and _same(trolls[0].get("swat", {}), SWAT) and trolls[1].get("regen") == 0.01 and trolls[1].get("boss") == true
 		and tsk is Dictionary and tsk.keys() == TWIN.keys() and TWIN.keys().all(func(k): return _same(tsk[k], TWIN[k]))):
 		return "트롤 둘(S106 2026-11-10 다섯째 변경): troll regen %s(0.03) · swat %s(%s) · twin_troll regen %s(0.01) · boss %s · skills %s(%s)" % [trolls[0].get("regen"), trolls[0].get("swat"), SWAT, trolls[1].get("regen"), trolls[1].get("boss"), tsk, TWIN]
+	var wr: Dictionary = d.get("wolf_rider", {})
+	if not (_same(wr.get("flank", {}), {"ranged": 2.0}) and wr.get("phase2") == "armored" and wr.get("mount") == "wolf" and wr.get("xp") == 0):
+		return "늑대 기수(S106 2026-11-11 변경): flank %s({ranged 2}) · phase2 %s(armored) · mount %s(wolf) · xp %s(0)" % [wr.get("flank"), wr.get("phase2"), wr.get("mount"), wr.get("xp")]
 	return check(d.fast.climb == 3.0 and d.armored.armor == 15.0 and d.flying.flying and not d.basic.flying and d.basic.climb == 0.0
 		and d.slime.get("split") == {"kind": "slimelet", "count": 2} and d.big_slime.get("split") == {"kind": "slime", "count": 2}
 		and plain.all(func(k): return d[k].get("split", {}).is_empty()) and d.slime_king.get("boss") == true and d.alpha_wolf.get("boss") == true

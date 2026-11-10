@@ -80,3 +80,7 @@ def test_EV838_round4_waves_and_harpy_pack(gd):
 
 def test_EV896_round5_waves_and_orc_packs(gd):
     gd("rounds", "EV896")
+
+
+def test_EV969_round6_waves_and_rider_pack(gd):
+    gd("rounds", "EV969")
