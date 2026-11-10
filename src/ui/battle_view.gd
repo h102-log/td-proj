@@ -2927,7 +2927,7 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 			col = 0
 			dir = 0
 			off.y = -2.0
-		if x.fx.has("stagger"):  # 비틀거리는 동안 8프레임마다 좌우로 1px 떤다
+		if x.fx.has("stagger") or x.fx.has("groggy"):  # 비틀거리는 동안과 그로기(S323 ②) 동안 8프레임마다 좌우로 1px 떤다
 			off.x = 1.0 if int(clock * 60.0 / 8.0) % 2 == 0 else -1.0
 	if anim == "attack" and BLOW.has(x.kind):
 		anim = BLOW[x.kind][0]
@@ -3483,7 +3483,8 @@ func _boss_tell(e) -> void:
 	var r := int(CELL * sk.radius)
 	for p in e.cast.get("spots", [e.cast.get("at", e.pos)]):  # 점프(S236)·착지(S288)는 착지 자리에, 뜬 동안은 가득 찬 채로(S198)
 		var at := Vector2i(_center(p).floor())
-		_pnoise(at, int(r * k), TELL, TELL_FILL)
+		if e.cast.get("aimed", true):  # 이동 뜀(S323 ②)은 테만 그린다
+			_pnoise(at, int(r * k), TELL, TELL_FILL)
 		_edge(at, r, TELL, PX.maroon)
 
 # 기관총 예고(S287)·대장 철퇴 예고(S288): 부채꼴(반경 range, 각 arc) 빨강 테와 차오르는 안쪽. 기관총 발사 동안은 테와 지금 총구 방향의 선(I223)

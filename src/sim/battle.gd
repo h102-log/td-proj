@@ -1062,6 +1062,13 @@ func raid_left() -> float:
 			left += gens[k].hp * (1 << (k - e.gen))
 	return clampf(left / all, 0.0, 1.0) if all > 0.0 else 0.0
 
+# 광폭(S323 ⑤, I267 ⑤): 불꽃이 soft초 넘게 탔으면 step초마다 ramp씩 느는 착지 피해 배율. 원정이 아니거나 enrage가 빈 층은 1이다
+func raid_ramp() -> float:
+	var en: Dictionary = raid_floor.get("enrage", {})
+	if en.is_empty() or flame < en.soft:
+		return 1.0
+	return 1.0 + en.ramp * (floori((flame - en.soft) / en.step) + 1)
+
 # «철수»(S316): 원정 중 언제든 바로 돌아온다. 쓴 횃불은 돌아오지 않는다
 func retreat() -> void:
 	if state == "raid":
@@ -1791,6 +1798,12 @@ func _first_alive():
 func _fx(t, src: String, eff: Dictionary, secs: float) -> void:
 	if _aloft(t):  # 뜬 적(S236)에는 새 효과가 걸리지 않는다
 		return
+	if t is Enemy and not t.raid.is_empty() and (eff.has("stun") or eff.has("seal")):  # 슈퍼아머(S323 ③, I267 ③): 기절·봉인 칸만 지운다
+		eff = eff.duplicate()
+		eff.erase("stun")
+		eff.erase("seal")
+		if eff.is_empty():
+			return
 	if t is Enemy and t.dashing:  # 효과가 걸리면 돌진이 끝난다(S293). 도약 늑대가 스스로 거는 둔화(_vault)는 돌진이 끝난 뒤다
 		_end_dash(t)
 	if _tracing != null:
@@ -1908,7 +1921,7 @@ func _heal(t, amount: float, src = null, repath := true) -> void:
 
 # 넉백·끌어당김: 땅 적은 막힌 칸·몸에 막히면 멈추고(_shove), 나는 적은 그대로 옮긴다
 func _knock(e: Enemy, by: Vector2) -> void:
-	if _aloft(e):  # 뜬 적(S236)은 밀리지 않는다
+	if _aloft(e) or not e.raid.is_empty():  # 뜬 적(S236)과 원정 보스 몸(S323 ④)은 밀리지 않는다
 		return
 	if _flies(e):
 		e.pos = (e.pos + by).clamp(Vector2.ZERO, Vector2(size - Vector2i.ONE))
@@ -2080,7 +2093,7 @@ func _loops(dt: float) -> void:
 	loops = loops.filter(func(l): return l.left > 0.0)
 	for l in due:
 		var e: Enemy = l.e
-		if not e.alive or _aloft(e) or (grid.block_at(Vector2i(l.at.round())) and not l.wall and not e.flying):
+		if not e.alive or _aloft(e) or not e.raid.is_empty() or (grid.block_at(Vector2i(l.at.round())) and not l.wall and not e.flying):  # 원정 보스 몸(S323 ④)은 건너뛴다
 			continue
 		if e.grip:
 			_grip(e, 0.0, true)  # 붙잡은 아군을 놓는다(S242)
@@ -3543,6 +3556,8 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 			else:
 				amount *= 1.0 - _fx_sum(target, "mr")  # 마법 저항은 기본 0이고, 깎이면 음수라 더 받는다
 			amount *= 1.0 + _fx_sum(target, "expose")
+			if not target.raid.is_empty():  # 레이드 규칙(S323 ①②): 평소에는 경감하고, 그로기 중에는 경감 없이 mult배다
+				amount *= target.raid.groggy.mult if _fx_on(target, "groggy") != null else 1.0 - target.raid.ward
 	elif target is Unit:
 		if target.brace > 0.0:  # 반격의 태세는 줄이기 전 값을 센다(S151). 불사 중에 들어온 피해도 센다(I147)
 			target.braced += amount
@@ -3786,6 +3801,8 @@ func _gate_or_base(e: Enemy):
 func _move(e: Enemy, dt: float) -> void:
 	if e.pull > 0.0:  # 원정 보스는 나온 뒤와 원정이 끝난 뒤 서 있기만 한다(I262 ④⑥)
 		e.pull -= dt
+		return
+	if _fx_on(e, "groggy") != null:  # 그로기(S323 ②): 움직이지도 뛰지도 않고 뜀 대기도 줄지 않는다
 		return
 	var sealed := _fx_on(e, "seal") != null  # 봉인(S155): 비행 적은 내려앉고 기어오르는 적은 오르지 못한다. 보스는 스킬을 쓰지 못한다(S194)
 	var rage := raging(e)
@@ -4045,7 +4062,7 @@ func _hop_spot(e: Enemy, sk: Dictionary):
 			var side: int = ceili(i / 2.0) * (1 if i % 2 == 1 else -1)
 			var at: Vector2 = want + Vector2.from_angle(turn + TAU * side / 12.0) * sk.step * ring
 			if _hop_free(e, sk, at):
-				return {"at": at}
+				return {"at": at, "aimed": party.any(func(h): return h.alive and h.pos.distance_to(at) <= sk.radius)}  # 겨눈 뜀(S323 ②, I267 ①)
 	e.cd["leap"] = sk.retry
 	return false
 
@@ -4065,7 +4082,7 @@ func _hop_free(e: Enemy, sk: Dictionary, at: Vector2) -> bool:
 # 웅크림이 끝나면 뜬다(S236): 붙잡던 유닛에서 풀리고, air초 동안 착지 자리로 곧장 난다
 func _leap(e: Enemy, sk: Dictionary) -> void:
 	_engage(e, null)
-	e.cast = {"id": "leap", "left": sk.air, "air": true, "from": e.pos, "at": e.cast.at}
+	e.cast = {"id": "leap", "left": sk.air, "air": true, "from": e.pos, "at": e.cast.at, "aimed": e.cast.get("aimed", false)}
 
 # 뜬 동안(S236): 뜬 자리에서 착지 자리로 곧장 옮겨 가고, 다 날면 그 자리에서 내려찍은 뒤 길을 다시 찾는다. 박치기 활강(S305)·와이번 급강하(S310)도 같다
 func _soar(e: Enemy, dt: float) -> void:
@@ -4083,7 +4100,10 @@ func _soar(e: Enemy, dt: float) -> void:
 	elif c.id == "plunge":
 		_plunge_land(e, sk, c)
 	else:
-		_slam(e, sk, (c.at - c.from).normalized())
+		var missed: bool = c.get("aimed", false) and not _ground_near(c.at, sk.radius).any(func(u): return u in party)
+		_slam(e, sk if e.raid.is_empty() else sk.merged({"damage": sk.damage * raid_ramp()}, true), (c.at - c.from).normalized())  # 광폭(S323 ⑤)
+		if missed:  # 겨눈 뜀이 아무도 못 맞혔다(S323 ②): 그 몸이 그로기가 된다
+			_fx(e, "groggy", {"groggy": true}, e.raid.groggy.time)
 	_find_path(e)
 
 # 덮치기(S242)를 쓸 수 있다: ① range 안 성벽 위 원거리 아군 가운데 가장 가까운 것, 없으면 ② 노린 아군이 far 넘게 떨어진 채
