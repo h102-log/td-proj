@@ -3963,11 +3963,14 @@ func ev839():
 	var one = main.hud._wave_lines([3, 0])
 	var two = main.hud._wave_lines([3, 1])
 	var three = main.hud._wave_lines([3, 2])
+	var four = main.hud._wave_lines([3, 3])
 	_done(main)
 	var a: String = one if one is String else ""
 	var b: String = two if two is String else ""
 	var c: String = three if three is String else ""
+	var d: String = four if four is String else ""
 	return check("비행: 길을 무시하고 무리로 온다, 근접은 못 친다" in a and "깃털 사수 하피: 사거리 5, 멈춰서 유닛에 깃털을 쏜다" in a
 		and "박치기 하피: 활강해 박고 밀친다, 방패병에 박으면 기절한다" in b and "노래하는 하피: 둘레 적을 회복시키고 아군 공격을 늦춘다" in b
-		and "폭풍날개 하피: 성곽 앞에 멈춰 돌풍으로 화살을 날린다" in c and "낚아채기 하피: 용병·주민을 낚아채 아군 위에 떨어뜨린다" in c,
-		"4라운드 1웨이브 줄 «%s» · 2웨이브 줄 «%s» · 3웨이브 줄 «%s»" % [a, b, c])
+		and "폭풍날개 하피: 성곽 앞에 멈춰 돌풍으로 화살을 날린다" in c and "낚아채기 하피: 용병·주민을 낚아채 아군 위에 떨어뜨린다" in c
+		and "둥지 하피: 성곽 성벽에 내려앉아 새끼를 낳는 둥지를 짓는다" in d and "와이번: 급강하해 내려앉고, 줄지은 아군 위로 불을 뿌리며 지나간다. 쓰러지면 땅에서 다시 싸운다" in d,
+		"4라운드 1웨이브 줄 «%s» · 2웨이브 줄 «%s» · 3웨이브 줄 «%s» · 4웨이브 줄 «%s»" % [a, b, c, d])
