@@ -19,13 +19,17 @@ const ENEMY_COLORS := {  # 적 종류마다 다른 색(I81)
 	"feather_harpy": Color("70c8e8"), "dive_harpy": Color("e88850"), "song_harpy": Color("b890f0"),
 	"storm_harpy": Color("90e0c8"), "snatch_harpy": Color("d8c048"),
 	"nest_harpy": Color("a8d070"), "nest": Color("7a5a30"), "harpy_chick": Color("f0d8c0"), "wyvern": Color("4a8a58"), "wyvern_fallen": Color("8a3a28"),
+	"shield_orc": Color("8898b0"), "berserker": Color("c84a3a"), "drummer": Color("c8a050"),
 }
 # 그림이 아직 없어 다른 종류의 그림을 빌리는 종류 → [빌리는 종류, 곱하는 색](I250 ⑤·I253 ⑤). 4라운드 하피 다섯은 비행(하피) 그림이다
 const LOOKS := {"feather_harpy": ["flying", Color(0.75, 1.2, 1.7)], "dive_harpy": ["flying", Color(1.7, 1.0, 0.6)], "song_harpy": ["flying", Color(1.45, 0.85, 1.75)],
 	"storm_harpy": ["flying", Color(0.85, 1.65, 1.35)], "snatch_harpy": ["flying", Color(1.65, 1.5, 0.65)],
-	"nest_harpy": ["flying", Color(1.3, 1.6, 0.8)], "harpy_chick": ["flying", Color(1.8, 1.7, 1.6)]}  # 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)
+	"nest_harpy": ["flying", Color(1.3, 1.6, 0.8)], "harpy_chick": ["flying", Color(1.8, 1.7, 1.6)],
+	"shield_orc": ["armored", Color(0.8, 1.0, 1.5)], "berserker": ["armored", Color(1.25, 0.95, 0.8)], "drummer": ["armored", Color(1.4, 1.25, 0.6)]}  # 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)
 const NOTE := Color("d8b0ff")  # 노래(S306)로 공격 속도가 느려진 아군 머리 위 음표와 노래 반경 고리의 색(I252 ④)
 const FEATHER := Color("f4f0e8")  # 날아가는 깃털(I250 ④)
+const WALL := Color("e8f0ff")  # 방패벽(S319)을 선 방패벽 오크끼리 잇는 선(I263 ⑤)
+const DRUM := Color("e8c070")  # 전쟁 북(S321) 반경 고리(I265 ⑥)
 const GUST := Color(1.0, 1.0, 1.0, 0.45)  # 뿜는 돌풍의 부채꼴 테두리·바람 줄과 날린 화살 자국(I253 ③④)
 const HANG := 10.0  # 낚아채기 하피가 든 용병·주민을 땅 자리에서 들어 올려 그리는 높이(px, I254 ⑥)
 const CARRY_UP := 20.0  # 용병·주민을 든 낚아채기 하피 그림을 들어 올리는 높이(px). 발톱이 든 몸 머리에 걸려 매달려 보이게 캡처를 보고 맞춘 Claude 값
@@ -470,6 +474,7 @@ func _draw() -> void:
 		if h.alive and not h.aura.is_empty():
 			_aura_ring(h)
 	_bodies()
+	_wall_links()
 	_marks()
 	_chrono_marks()
 	_sera_marks()
@@ -575,6 +580,14 @@ func _spawn_badges() -> void:
 		var box := Rect2((Vector2(battle.spawns[i]) * CELL + Vector2(CELL / 2.0 - w / 2.0 - 2.0, -10.0)).round(), Vector2(w + 4.0, 9.0).round())
 		_cv.draw_rect(box, Color.BLACK)
 		_cv.draw_string(PIXEL_FONT, box.position + Vector2(2, 8), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8)
+
+# 방패벽(S319, I263 ⑤): 방패벽을 선 오크끼리 near칸 안이면 가슴 높이(발밑에서 8px 위)를 2px 굵기 선으로 잇는다. 몸통 위에 그리고, 숨은 오크는 뺀다
+func _wall_links() -> void:
+	var row: Array = battle.ranks.filter(func(e): return battle.dark <= 0.0 or battle.seen(e.pos))
+	for i in row.size():
+		for j in range(i + 1, row.size()):
+			if row[i].pos.distance_to(row[j].pos) <= row[i].wall.near:
+				_pline(Vector2i((_spot(row[i]) + Vector2(0, -8)).floor()), Vector2i((_spot(row[j]) + Vector2(0, -8)).floor()), WALL, 2)
 
 # 날아가는 깃털(S304, I250 ④): 깃털 자리에서 가슴 높이(6px 위)에 대상 쪽을 향한 흰 깃 7px 선
 func _feathers() -> void:
@@ -2587,6 +2600,8 @@ func _facility(s, tint := Color.WHITE) -> void:
 func _body(x, i: int, next: Dictionary, tint := Color.WHITE, flash := true) -> void:
 	if x.get("skills") and battle.raging(x):  # 분노(S195)
 		tint *= RAGE
+	if x.get("frenzy"):  # 격노(S320, I264 ③): 잃은 체력 비율만큼 분노 색 쪽으로 섞는다
+		tint = tint.lerp(tint * RAGE, battle.frenzy(x))
 	var white: bool = flash and _hits.get(x.get_instance_id(), [INF])[0] < FLASH  # 피격 번쩍임(S177): 255배 modulate가 그림을 흰 실루엣으로 만든다(유닛 그림에 0인 채널이 없다). 배치는 끊기지 않는다
 	if white and not Settings.soft_flash:
 		tint *= Color(255, 255, 255)
@@ -3454,6 +3469,8 @@ func _tells() -> void:
 			_pring(Vector2i(_center(e.pos).floor()), int(CELL * e.skills.howl.radius), 1, Color(PX.ash, 0.5))
 		if battle.sings(e):
 			_pring(Vector2i(_center(e.pos).floor()), int(CELL * e.song.radius), 1, Color(NOTE, 0.5))
+		if battle.drums(e):  # 전쟁 북(S321, I265 ⑥): 북을 치는 동안 반경 고리를 옅게
+			_pring(Vector2i(_center(e.pos).floor()), int(CELL * e.drum.radius), 1, Color(DRUM, 0.5))
 	for e in tellers(_foes):
 		if e.cast.id in UNSEEN_TELLS:  # 덮치기(S242)·던지기(S279)는 덮개 위 층에 그린다(_pounce_tells·_foe_tells)
 			continue

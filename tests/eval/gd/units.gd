@@ -6,6 +6,7 @@ extends "res://tests/eval/gd/lib.gd"
 #   BattleView(res://src/ui/battle_view.gd).ENEMY_COLORS — 적 kind → 색
 #   적 kind "shieldbearer"(방패 고블린, S301) · "fire_archer"(불화살 고블린, S302). ENEMY_KINDS 키: guard(방패 내구도) · escort({kind, count}, 호위) · flame(불화살 {windup, cd, hit, dps, time, spread}) · range(I216)
 #   적 kind "feather_harpy"·"dive_harpy"·"song_harpy"(하피 셋, S304~S306). ENEMY_KINDS 키: feather({range, speed}) · dive({windup, air, cd, damage, radius, push, stun, shields}) · song({radius, heal, lag})
+#   적 kind "shield_orc"·"berserker"·"drummer"(오크 셋, S319~S321). ENEMY_KINDS 키: wall({near, cover, cut}) · frenzy({haste, stride}) · drum({radius, haste, stride, keep})
 #   적 kind "storm_harpy"·"snatch_harpy"(하피 둘, S307·S308). ENEMY_KINDS 키: gust({range, reach, arc, windup, cd}) · snatch({range, reach, toss, windup, radius, hit, structure, fall, pick, cd})
 # 성곽 맵은 wall.gd와 같다: 9행이 가로 성곽(성문 5·15·25열, 모두 닫힘), 위쪽(0~8행)이 마을, 아래쪽이 들판
 
@@ -49,8 +50,11 @@ const TABLE := {
 	"harpy_chick": [4, 3, 2, 1, 0.2, 3, 0, null],
 	"wyvern": [160, 1.6, 15, 1.5, 0.9, 4, 0, null],
 	"wyvern_fallen": [200, 1.2, 25, 1.5, 0.9, 4, 50, 0.3],
+	"shield_orc": [22, 1.4, 5, 1.2, 0.35, 3, 10, 1],  # 5라운드 오크 전쟁패 묶음 ①(S106 2026-11-10 셋째 변경)
+	"berserker": [20, 1.8, 7, 1, 0.35, 4, 8, 1],
+	"drummer": [14, 1.5, 3, 1.2, 0.3, 0, 12, 1],
 }
-const PACK := {"wolf": 4, "leap_wolf": 2, "night_wolf": 2, "flying": 4}  # 무리(S238). 비행은 2026-11-09 변경. 나머지 종류는 1
+const PACK := {"wolf": 4, "leap_wolf": 2, "night_wolf": 2, "flying": 4, "armored": 4, "shield_orc": 2}  # 무리(S238). 비행은 2026-11-09 변경, 장갑·방패벽 오크는 2026-11-10 셋째 변경. 나머지 종류는 1
 const KEYS := ["hp", "speed", "damage", "attack_gap", "radius", "sight", "reward", "wall_k"]
 const FLAME := {"windup": 1.0, "cd": 6.0, "hit": 5.0, "dps": 4.0, "time": 9.0, "spread": 3.0}  # 불화살 고블린 flame(S302)
 const FEATHER := {"range": 5.0, "speed": 12.0}  # 깃털 사수 하피 feather(S304)
@@ -58,6 +62,9 @@ const DIVE := {"windup": 1.0, "air": 0.4, "cd": 6.0, "damage": 8.0, "radius": 1.
 const SONG := {"radius": 3.0, "heal": 0.03, "lag": 0.3}  # 노래하는 하피 song(S306)
 const GUST := {"range": 4.0, "reach": 6.0, "arc": 60.0, "windup": 1.0, "cd": 4.0}  # 폭풍날개 하피 gust(S307)
 const SNATCH := {"range": 5.0, "reach": 0.5, "toss": 5.0, "windup": 2.0, "radius": 1.0, "hit": 10.0, "structure": 15.0, "fall": 12.0, "pick": 1.5, "cd": 5.0}  # 낚아채기 하피 snatch(S308)
+const WALL := {"near": 1.5, "cover": 2.0, "cut": 0.5}  # 방패벽 오크 wall(S319)
+const FRENZY := {"haste": 1.0, "stride": 0.5}  # 광전사 오크 frenzy(S320)
+const DRUM := {"radius": 3.0, "haste": 0.3, "stride": 0.25, "keep": 2.0}  # 전쟁 북 고수 drum(S321)
 const NEST := {"build": 3.0, "cd": 4.0, "kind": "nest"}  # 둥지 하피 nest(S309)
 const BROOD := {"kind": "harpy_chick", "every": 4.0, "cap": 3}  # 둥지 brood(S309)
 const WYVERN := {"plunge": {"range": 6.0, "radius": 1.5, "windup": 1.0, "air": 0.5, "cd": 10.0, "damage": 30.0, "knock": 1.0, "down": 2.0},
@@ -148,6 +155,9 @@ func ev130():
 	if not (nest_ok and fly_ok and boss_ok and skill_ok):
 		return "묶음 ③(S106 2026-11-10 둘째 변경): nest %s(%s) · brood %s(%s) · 비행 %s · boss·xp·phase2 %s · skills %s / %s" % [nh.get("nest"), NEST, d.get("nest", {}).get("brood"), BROOD,
 			[nh.get("flying"), ch.get("flying"), wy.get("flying"), wf.get("flying")], [wy.get("boss"), wf.get("boss"), ch.get("xp"), wy.get("xp"), wy.get("phase2")], skw, skf]
+	var orcs: Array = [d.get("shield_orc", {}), d.get("berserker", {}), d.get("drummer", {})]
+	if not (_same(orcs[0].get("wall", {}), WALL) and _same(orcs[1].get("frenzy", {}), FRENZY) and _same(orcs[2].get("drum", {}), DRUM) and orcs[0].get("armor") == 15.0):
+		return "오크 셋(S106 2026-11-10 셋째 변경): wall %s(%s) · frenzy %s(%s) · drum %s(%s) · shield_orc.armor %s(15)" % [orcs[0].get("wall"), WALL, orcs[1].get("frenzy"), FRENZY, orcs[2].get("drum"), DRUM, orcs[0].get("armor")]
 	return check(d.fast.climb == 3.0 and d.armored.armor == 15.0 and d.flying.flying and not d.basic.flying and d.basic.climb == 0.0
 		and d.slime.get("split") == {"kind": "slimelet", "count": 2} and d.big_slime.get("split") == {"kind": "slime", "count": 2}
 		and plain.all(func(k): return d[k].get("split", {}).is_empty()) and d.slime_king.get("boss") == true and d.alpha_wolf.get("boss") == true
