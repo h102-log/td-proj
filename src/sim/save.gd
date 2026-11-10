@@ -18,7 +18,8 @@ static var path := ""  # 저장 파일. 비어 있으면 쓰지 않는다. 진�
 
 static func snapshot(b) -> Dictionary:
 	var d := {"version": VERSION, "rng": b._rng.state, "luck": b._luck.state, "kin": b._kin.state, "spare": b._spare, "bag": b.bag.duplicate(), "forged": b.forged.duplicate(),
-		"loot": b._loot.state, "shot": b._shot.state, "dropped": b.dropped.duplicate(), "ranks": b.merc_rank.duplicate(), "rerolls": b.rerolls}
+		"loot": b._loot.state, "shot": b._shot.state, "dropped": b.dropped.duplicate(), "ranks": b.merc_rank.duplicate(), "rerolls": b.rerolls,
+		"torches": b.torches, "floors_cleared": b.floors_cleared}
 	for k in KEYS:
 		d[k] = _copy(b.get(k))
 	d.base = _fields(b.base)
@@ -55,6 +56,8 @@ static func apply(b, d: Dictionary) -> void:
 		b._shot.state = d.shot
 	b.merc_rank = d.get("ranks", {}).duplicate()  # 용병 강화 단계(I203). 이 칸이 생기기 전 저장은 0. 용병 수치는 유닛 칸에 담긴다
 	b.rerolls = d.get("rerolls", 0)  # 이번 라운드 리롤 횟수(I208). 이 칸이 생기기 전 저장은 0
+	b.torches = d.get("torches", 0)  # 횃불 자루와 깬 던전 층 수(S316, I262 ③). 이 칸이 생기기 전 저장은 0
+	b.floors_cleared = d.get("floors_cleared", 0)
 	b.base = _block(d.base)
 	for k in ["castle", "rubble", "structures"]:
 		b.get(k).clear()

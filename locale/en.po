@@ -1702,3 +1702,54 @@ msgstr "Turn autocast on or off for every lineup hero skill at once"
 
 msgid "하나라도 꺼져 있으면 모두 켠다"
 msgstr "Turns all on if any is off"
+
+msgid "원정"
+msgstr "Expedition"
+
+msgid "원정 %d층"
+msgstr "Expedition F%d"
+
+msgid "%d라운드부터"
+msgstr "From round %d"
+
+msgid "남은 횃불 %d"
+msgstr "Torches left %d"
+
+msgid "모든 층을 깸"
+msgstr "All floors cleared"
+
+msgid "횃불 없음"
+msgstr "No torches"
+
+msgid "나갈 영웅 없음"
+msgstr "No hero to send"
+
+msgid "철수"
+msgstr "Retreat"
+
+msgid "원정을 그만두고 돌아온다"
+msgstr "Leave the expedition and return"
+
+msgid "쓴 횃불은 돌아오지 않는다"
+msgstr "The burned torch is not refunded"
+
+msgid "불꽃 %d"
+msgstr "Flame %d"
+
+msgid "횃불 %d"
+msgstr "Torches %d"
+
+msgid "남은 불꽃 %d초"
+msgstr "Flame left %ds"
+
+msgid "횃불 %d자루"
+msgstr "%d torches"
+
+msgid "불꽃이 다 타면 이번 원정은 진다"
+msgstr "If the flame burns out, this expedition fails"
+
+msgid "지금 나가면 원정 전 준비 단계로 돌아갑니다(쓴 횃불은 돌아오지 않습니다)"
+msgstr "Leaving now returns you to the preparation phase before the expedition (the burned torch is not refunded)"
+
+msgid "점액 왕"
+msgstr "Slime Sovereign"

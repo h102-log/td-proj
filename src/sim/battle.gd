@@ -3,6 +3,7 @@ extends RefCounted
 
 signal enemy_spawned(enemy)
 signal wave_starting  # 웨이브를 시작하기 직전(준비 단계가 끝나는 때). main이 저장한다(S181)
+signal raid_starting  # 원정에 들어가기 직전(횃불을 쓴 뒤, 아직 준비 단계). main이 저장한다(S316, I262 ④)
 
 const Folk := preload("res://src/sim/folk.gd")  # 주민 일과·대피 손잡이(S223·S225~S229)
 
@@ -15,6 +16,7 @@ var HERO_KINDS := _kinds("res://data/heroes/")  # 칸의 뜻은 src/data/hero_de
 var HIRE = load("res://data/hire.tres")  # 영입소 수치(S123, I103)
 var LEVELS = load("res://data/levels.tres")  # 영웅 레벨 수치(S126, I111)
 var QUEST_KINDS := _kinds("res://data/quests/")  # 미션 정의(S77, I118). 칸의 뜻은 src/data/quest_def.gd 머리 주석
+var FLOOR_KINDS := _kinds("res://data/dungeon/")  # 던전 층(S316). 파일 이름이 층 id다. 칸의 뜻은 src/data/floor_def.gd 머리 주석
 var GEAR_KINDS := _kinds("res://data/gear/")  # 영웅 전용장비(S246). 파일 이름이 주인 영웅 종류다. 칸의 뜻은 src/data/gear_def.gd 머리 주석
 const VILLAGE_UP := [60]  # 마을 레벨 n→n+1 비용(S99). 길이+1이 최대 레벨이다. 임시값(Claude 예시, 사용자 2026-10-13 수락)
 const MERC_CAP := 10  # 마을이 없는 판의 배치 상한(S25 2026-11-04 변경). 임시값(사용자 2026-10-13), 스테이지의 merc_cap이 덮어쓴다
@@ -251,6 +253,8 @@ class Enemy:
 	var brood := {}  # 둥지의 새끼 낳기(S309). 비어 있지 않으면 둥지다
 	var kids := []  # 둥지가 낳은 새끼(S309). 쓰러진 새끼는 낳을 때마다 뺀다
 	var lay := 0.0  # 둥지가 다음 새끼를 낳을 때까지 남은 초(S309)
+	var raid := {}  # 원정 보스(S316)의 층 정의. 비어 있으면 원정 보스가 아니다
+	var pull := 0.0  # 움직이지도 치지도 스킬을 쓰지도 않고 서 있을 남은 초(원정 보스, I262 ④⑥)
 
 	func _init(k: String, cell: Vector2i, stats: Dictionary) -> void:
 		kind = k
@@ -461,13 +465,23 @@ var revive := true  # 쓰러진 영웅이 다음 준비 단계에 돌아온다(S
 # 준비 단계를 적 없는 전투로 돈다(S18 2026-10-25 변경, I175): 짓기·업그레이드·수리·복구는 공병, 용병은 시설에서 산다. 시작 공병(S208)도 이것이 켜졌을 때다
 # ponytail: 평가 300여 곳이 준비 단계 즉시 짓기·놓기로 판을 차려서, 끄면 옛 규칙인 길을 남긴다. 게임 장면(Main.live_prep)·하네스·봇이 켠다
 var live_prep := false
-var state := "prep"  # "prep" | "battle" | "hiring"(도전 시작 전 영입 창, S122) | "cleared"(라운드 사이, S117) | "won"(도전 성공) | "lost"
+var state := "prep"  # "prep" | "battle" | "raid"(보스방 원정, S316) | "hiring"(도전 시작 전 영입 창, S122) | "cleared"(라운드 사이, S117) | "won"(도전 성공) | "lost"
 var round_index := 0
 var wave_index := 0
 var gold := 0
 var village := Rect2i()  # 마을 칸. 생산 시설은 안에만, 나머지 구조물은 밖에만 짓는다(S43). 비어 있으면 모두 들판
 var roads := {}  # 길 칸 → true. 마을 안이라도 짓지 못한다(S43 2026-10-26 변경). 스테이지가 정하고, 없으면 비어 있다
 var water := {}  # 물 칸 → true(S220). 짓지 못하고 아무도 들어가지 않는다(I181). 스테이지가 정하고, 없으면 비어 있다
+var den := {}  # 숨은 띠·보스방·횃불 수치(S316·S317, I262). 스테이지 den이고, 비어 있으면 원정이 없다
+var rock := {}  # 띠의 보스방 밖 칸 → true(S317): 아무도 들어가지 않고 짓지 못한다
+var torches := 0  # 횃불 자루(S316)
+var floors_cleared := 0  # 깬 던전 층 수(S316)
+var party := []  # 원정대(S316): 원정에 들어간 출전 영웅, 출전 차례. 원정이 아니면 비어 있다
+var flame := 0.0  # 이번 원정의 불꽃이 탄 초(I262 ⑥)
+var raid_floor := {}  # 이번 원정의 층 정의(FLOOR_KINDS 값). 원정이 아니면 비어 있다
+var raid_boss = null  # 이번 원정의 보스(Enemy). 원정이 아니면 null
+var _snap := {}  # 원정 직전 몸(I262 ④): 원정대 영웅 → 칸 사전, "tally" → 라운드 집계
+var _raid_end := ["", 0.0]  # 끝난 까닭("win"·"wipe"·"flame")과 돌아오기까지 남은 초(I262 ⑥). 안 끝났으면 ""
 var merc_cap := MERC_CAP
 var village_level := 1  # 오를수록 지을 수 있는 생산 시설이 는다(S46, S99)
 var dark := 0.0  # 어둠(S210): 0 낮 ~ 1 한밤. 밤 웨이브의 전투 단계에 오르고, 전투가 끝나면 내린다. 저장에 담지 않는다(준비 단계는 낮)
@@ -527,7 +541,7 @@ func _init(stage: Dictionary) -> void:
 		assert(c.x == 0 or c.y == 0 or c.x == size.x - 1 or c.y == size.y - 1, "출현 지점 %s가 맵 가장자리가 아니다" % c)
 	rounds = stage.get("rounds", [stage.get("waves", [])])
 	nights = stage.get("nights", [])
-	grid.region = Rect2i(Vector2i.ZERO, size)
+	grid.region = Rect2i(Vector2i.ZERO, size + Vector2i(stage.get("den", {}).get("strip", 0), 0))  # 숨은 띠(S317)는 맵 크기 밖, 길 격자 안이다
 	grid.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
 	grid.update()
 	_wall.region = grid.region
@@ -555,6 +569,20 @@ func restart() -> void:
 	water = stage.get("water", {})
 	for c in water:  # 막힌 칸 비용으로 세지 않고 길 격자에서 뺀다(I181). 물 칸으로 가는 길은 가장 가까운 닿는 칸에서 끝난다(allow_partial_path)
 		grid.set_point_solid(c)
+	den = stage.get("den", {})
+	rock.clear()
+	for x in range(size.x, grid.region.end.x):  # 띠의 방 밖 칸은 바위다(S317). 물 칸처럼 길 격자에서 뺀다
+		for y in size.y:
+			if not in_room(Vector2i(x, y)):
+				rock[Vector2i(x, y)] = true
+				grid.set_point_solid(Vector2i(x, y))
+	torches = 0
+	floors_cleared = 0
+	party.clear()
+	raid_floor = {}
+	raid_boss = null
+	_snap = {}
+	_raid_end = ["", 0.0]
 	merc_cap = stage.get("merc_cap", MERC_CAP)
 	village_level = 1
 	dark = 0.0
@@ -698,11 +726,15 @@ func step(dt: float) -> void:
 	_auto_fix(dt)
 	var ground := units.filter(func(u): return not u.on_wall)  # 성벽 위 유닛은 밀리지 않는다(I70)
 	for u in units:
-		_act(u, dt)
+		if state != "raid" or u in party:  # 원정 동안 집에 남은 용병·공병은 행동하지 않는다(S316)
+			_act(u, dt)
 	_push_apart(ground, enemies)
-	_fire(dt)
+	if state != "raid":  # 원정 동안 구조물은 쏘지 않는다(S316)
+		_fire(dt)
 	_fly(dt)
 	_quills(dt)
+	if state == "raid":
+		_raid_step(dt)
 	if state == "battle" and _queue.is_empty() and enemies.is_empty():
 		wave_index += 1
 		if wave_index < waves.size():
@@ -898,6 +930,8 @@ func next_round() -> bool:
 		dropped.clear()
 		_reset_tally()  # 새 라운드의 집계와 미션(I119, I120)
 		_draw_mission()
+		if not den.is_empty():  # 2~6라운드 첫 준비 단계마다 횃불을 더한다(S316, I262 ③)
+			torches = mini(torches + den.torches, den.torch_cap)
 	elif live_prep:  # 도전의 첫 준비 단계: 시작 공병(S208)
 		for c in _stage.get("engineer_cells", []):
 			units.append(Unit.new("engineer", c, MERC_KINDS.engineer))
@@ -916,6 +950,136 @@ func live() -> bool:
 # 짓기·업그레이드·수리·복구·이어 짓기를 공병이 가서 시간을 들여 하는 단계: 전투 단계뿐이다. 준비 단계에는 공병 없이 바로 끝난다(S18 2026-11-06 변경)
 func crewed() -> bool:
 	return state == "battle"
+
+# 영웅이 싸우는 단계: 전투 단계와 원정(S316). 스킬·대시를 쓰고 재사용 대기가 준다
+func fighting() -> bool:
+	return state in ["battle", "raid"]
+
+# ── 보스방 원정(S316·S317, I262) ──
+
+# 보스방 칸: 띠 안 방 사각형에서 모서리마다 꼭짓점 칸과의 가로·세로 거리 합이 cut 미만인 칸을 뺀 팔각(S317, I262 ①)
+func in_room(c: Vector2i) -> bool:
+	var r: Rect2i = den.get("room", Rect2i())
+	if not r.has_point(c):
+		return false
+	return mini(c.x - r.position.x, r.end.x - 1 - c.x) + mini(c.y - r.position.y, r.end.y - 1 - c.y) >= den.cut
+
+# 숨은 띠(S317)의 칸: 맵 크기 오른쪽, 길 격자 안. 짓거나 용병을 놓지 못한다
+func in_strip(c: Vector2i) -> bool:
+	return c.x >= size.x and grid.is_in_boundsv(c)
+
+# 다음에 열 층 id(S316). 모든 층을 깼으면 ""
+func next_floor() -> String:
+	var floors: Array = den.get("floors", [])
+	return floors[floors_cleared] if floors_cleared < floors.size() else ""
+
+# 원정 버튼을 못 누르는 이유(S316, I262 ②): "state" 준비 단계가 아님 · "round" 층이 열리는 라운드 전 · "done" 모든 층을 깸 ·
+# "torch" 횃불 없음 · "party" 나갈 영웅 없음. 누를 수 있으면 ""
+func raid_block() -> String:
+	if state != "prep" or den.is_empty():
+		return "state"
+	var f := next_floor()
+	if f == "":
+		return "done"
+	if round_index + 1 < FLOOR_KINDS[f].opens:
+		return "round"
+	if torches <= 0:
+		return "torch"
+	if not heroes.any(func(h): return h.alive):
+		return "party"
+	return ""
+
+# 원정에 들어간다(S316, I262 ④): 횃불 하나를 쓰고 저장 신호를 낸 뒤, 살아 있는 출전 영웅의 몸을 떠 두고 보스방 입구에 세워 층 보스를 낸다
+func start_raid() -> bool:
+	if raid_block() != "":
+		return false
+	torches -= 1
+	raid_starting.emit()
+	raid_floor = FLOOR_KINDS[next_floor()]
+	party = heroes.filter(func(h): return h.alive)
+	_snap = {"tally": tally.duplicate(true)}
+	for h in party:
+		_snap[h] = _body(h)
+	state = "raid"
+	dark = 0.0
+	held = null
+	flame = 0.0
+	_raid_end = ["", 0.0]
+	for i in party.size():
+		var h: Unit = party[i]
+		_drop_orders(h)
+		h.pos = Vector2(den.entry[i])
+		_halt(h)
+		h.on_wall = false
+		h.still = 0.0
+	raid_boss = _enemy(raid_floor.kind, den.boss, raid_floor.stats.merged({"skills": raid_floor.skills, "raid": raid_floor, "pull": raid_floor.pull}))
+	_field(raid_boss)
+	enemy_spawned.emit(raid_boss)
+	return true
+
+# «철수»(S316): 원정 중 언제든 바로 돌아온다. 쓴 횃불은 돌아오지 않는다
+func retreat() -> void:
+	if state == "raid":
+		_come_home(false)
+
+# 원정 한 스텝(I262 ⑥): 끝나기를 기다리는 중이면 센다. 아니면 처치 → 전멸 → 불꽃 차례로 끝을 보고 불꽃을 태운다
+func _raid_step(dt: float) -> void:
+	if _raid_end[0] != "":
+		_raid_end[1] -= dt
+		if _raid_end[1] <= 0.0:
+			_come_home(_raid_end[0] == "win")
+		return
+	if not raid_boss.alive:
+		_end_raid("win", den.win_wait)
+	elif not party.any(func(h): return h.alive):
+		_end_raid("wipe", den.wipe_wait)
+	elif flame >= raid_floor.hard:  # 다 타면 보스가 사라진다
+		enemies.erase(raid_boss)
+		_end_raid("flame", den.wipe_wait)
+	else:
+		flame += dt
+
+func _end_raid(why: String, wait: float) -> void:
+	_raid_end = [why, wait]
+	raid_boss.pull = INF  # 돌아올 때까지 보스는 움직이지 않는다
+
+# 돌아오기(I262 ⑦): 원정의 적·효과를 비우고 원정대를 떠 둔 몸으로, 라운드 집계를 떠 둔 값으로 되돌린다. 처치면 깬 층이 는다
+func _come_home(won: bool) -> void:
+	if won:
+		floors_cleared += 1
+	enemies.clear()
+	_clear_effects()
+	traces.clear()
+	landed.clear()
+	fallen = fallen.filter(func(f): return f.who not in party and f.who != raid_boss)
+	for h in party:
+		for k in _snap[h]:
+			var v = _snap[h][k]
+			h.set(k, v.duplicate(true) if v is Array or v is Dictionary else v)
+		h.order = null
+		h.prey = null
+		h.target = null
+		while h in units:
+			units.erase(h)
+		if h.alive:
+			units.append(h)
+	tally = _snap.tally
+	party.clear()
+	raid_floor = {}
+	raid_boss = null
+	_snap = {}
+	_raid_end = ["", 0.0]
+	flame = 0.0
+	state = "prep"
+
+# 영웅 몸의 칸(스크립트 변수)을 떠 둔다. 오토 켬끔(S296)은 원정 중에 바꾼 대로 두고, 다른 객체를 가리키는 칸은 돌아올 때 비운다
+func _body(h: Unit) -> Dictionary:
+	var out := {}
+	for p in h.get_property_list():
+		if p.usage & PROPERTY_USAGE_SCRIPT_VARIABLE and p.name not in ["present", "auto", "auto_in", "order", "prey", "target"]:
+			var v = h.get(p.name)
+			out[p.name] = v.duplicate(true) if v is Array or v is Dictionary else v
+	return out
 
 # [동작] 도전 시작 전 영입 창(S122)을 연다. main·HUD가 새 도전(restart) 직후에 부른다
 # [이유] restart()가 곧바로 열지 않는 것은 동결된 평가(EV36·EV80·EV165·EV170)가
@@ -1146,11 +1310,13 @@ func spawn_enemy(kind: String, cell: Vector2i, overrides := {}):
 	enemy_spawned.emit(e)
 	return e
 
-# 종류 수치에 덮어쓸 수치를 얹어 적을 만든다. 체력과 방패 내구도(S301)에는 라운드 체력 배율(S144)을 곱하고, 처치 보상은 그대로다
+# 종류 수치에 덮어쓸 수치를 얹어 적을 만든다. 체력과 방패 내구도(S301)에는 라운드 체력 배율(S144)을 곱하고, 처치 보상은 그대로다.
+# 원정 보스(덮어쓸 수치에 raid가 있다)는 층 수치 그대로다(S316)
 func _enemy(kind: String, cell: Vector2i, overrides: Dictionary) -> Enemy:
 	var stats: Dictionary = ENEMY_KINDS[kind].merged(overrides, true)
-	stats.hp *= _hp_mult()
-	stats.guard *= _hp_mult()
+	var m := 1.0 if overrides.has("raid") else _hp_mult()
+	stats.hp *= m
+	stats.guard *= m
 	return Enemy.new(kind, cell, stats)
 
 # 적을 전장에 넣고 거점까지 길을 찾는다. 보이는지는 지난 스텝 끝의 불빛으로 정한다(I247 ①)
@@ -1167,7 +1333,7 @@ func _divide(dead: Enemy) -> void:
 	for i in n:
 		var at: Vector2 = dead.pos + Vector2.from_angle(TAU * i / n) * SPLIT_RING
 		var c := Vector2i(at.round())
-		if not grid.is_in_boundsv(c) or water.has(c) or grid.block_at(c):
+		if not grid.is_in_boundsv(c) or water.has(c) or rock.has(c) or grid.block_at(c):
 			at = dead.pos
 		var e := _enemy(dead.split.kind, Vector2i(at.round()), {"reward": 0, "xp": 0})
 		e.pos = at
@@ -1295,9 +1461,9 @@ func place_merc(kind: String, cell: Vector2i, overrides := {}):
 	tally.merc_bought += 1  # 라운드 집계(I119)
 	return m
 
-# 용병을 놓을 수 있는 칸: 거점·물(I181)이 아닌 맵 안 칸 가운데 막히지 않은 칸이나, 대포가 없는 성곽 칸(I134)
+# 용병을 놓을 수 있는 칸: 거점·물(I181)·숨은 띠(S317)가 아닌 맵 안 칸 가운데 막히지 않은 칸이나, 대포가 없는 성곽 칸(I134)
 func _merc_cell(cell: Vector2i) -> bool:
-	return grid.is_in_boundsv(cell) and cell != base.cell and not water.has(cell) and (not grid.block_at(cell) or (walls.has(cell) and not footprint.has(cell)))
+	return grid.is_in_boundsv(cell) and not in_strip(cell) and cell != base.cell and not water.has(cell) and (not grid.block_at(cell) or (walls.has(cell) and not footprint.has(cell)))
 
 # 유닛들을 그 칸으로 보낸다(S14). attack이면 공격 이동, 아니면 순수 이동이다(S35). 맵 밖 칸이면 무시한다. 성곽 칸이면 성벽 위의 그 칸으로 간다(I69)
 func order_move(group: Array, cell: Vector2i, attack := false) -> void:
@@ -1327,10 +1493,10 @@ func stop(group: Array) -> void:
 		_drop_orders(u)
 		_halt(u)
 
-# 대시(S315, I261): 전투 단계에 group의 출전 영웅이 저마다 at(칸 좌표) 쪽으로 DASH.length칸 순간 이동한다. 길은 아군 돌진 길(_dash)이고,
+# 대시(S315, I261): 전투 단계·원정(S316)에 group의 출전 영웅이 저마다 at(칸 좌표) 쪽으로 DASH.length칸 순간 이동한다. 길은 아군 돌진 길(_dash)이고,
 # 기절·붙잡힘·들림·성벽 위·대기 중인 영웅과 한 걸음도 못 나간 영웅은 빠진다. 대시하면 정지처럼 명령을 지우고 서며, 요새화가 풀린다(still)
 func dash(group: Array, at: Vector2) -> void:
-	if state != "battle":
+	if not fighting():
 		return
 	for h in group:
 		if not (h is Unit and h.is_hero and h.alive) or _seized(h) or h.on_wall or h.dash_cd > 0.0:
@@ -1446,17 +1612,17 @@ func set_auto_fix(group: Array, on: bool) -> void:
 # 살아 있는 출전 영웅 가운데 첫 영웅(I126). 없으면 null
 # ── 영웅 스킬(S145~S158) ──────────────────────────────────────────────
 
-# 영웅 h가 칸 slot을 지금 쓸 수 있다(S145~S147): 전투 단계(S136), 살아 있음, 기절 아님(I192), 열린 칸(S76), 재사용 대기
+# 영웅 h가 칸 slot을 지금 쓸 수 있다(S145~S147): 전투 단계(S136)·원정(S316), 살아 있음, 기절 아님(I192), 열린 칸(S76), 재사용 대기
 func can_cast(h, slot: String) -> bool:
 	var sk: Dictionary = h.get(slot)
-	return state == "battle" and h.alive and not _seized(h) and not sk.is_empty() and h.level >= LEVELS.unlock[slot] and h.cd[slot] <= 0.0
+	return fighting() and h.alive and not _seized(h) and not sk.is_empty() and h.level >= LEVELS.unlock[slot] and h.cd[slot] <= 0.0
 
 # 영웅 h(없거나 쓰러졌으면 살아 있는 첫 영웅, S119, I126)가 칸 slot을 쓴다(S145). 명령과 오토(S296)가 쓴다(S15).
 # aim은 지점·방향이면 칸 좌표(Vector2), 아군·적 대상이면 그 유닛·구조물이다. 즉시·켜고 끄는 칸은 aim이 없다.
 # 시전 사거리 밖이면 그쪽으로 걸어가 사거리에 들면 쓴다(S147). 쓰거나 걸어가기 시작하면 참
 func cast(h, slot: String, aim = null) -> bool:
 	h = h if h and h.alive else _first_alive()
-	if not h or state != "battle" or _seized(h):  # 기절·붙잡힌 영웅은 누른 스킬을 쓰지 않는다(I192·S242)
+	if not h or not fighting() or _seized(h):  # 기절·붙잡힌 영웅은 누른 스킬을 쓰지 않는다(I192·S242)
 		return false
 	var sk: Dictionary = h.get(slot)
 	if sk.get("id") == "brace" and h.brace > 0.0:  # 반격의 태세를 다시 누르면 바로 터뜨린다(S151)
@@ -1950,7 +2116,7 @@ func _cast_bulwark(h: Unit, sk: Dictionary, aim, _grow: float) -> void:
 	var cells := []
 	for i in range(-(int(sk.length) / 2), int(sk.length) - int(sk.length) / 2):
 		var c := at + side * i
-		if grid.is_in_boundsv(c) and not grid.block_at(c) and not debris.has(c) and c != base.cell and not taken.has(c):
+		if grid.is_in_boundsv(c) and not grid.block_at(c) and not debris.has(c) and not rock.has(c) and c != base.cell and not taken.has(c):
 			barriers[c] = Block.new(c, "barrier", 1e6)
 			cells.append(c)
 	if not cells.is_empty():
@@ -2348,7 +2514,7 @@ func _buildable(kind: String, cell: Vector2i, taken = null) -> bool:
 	if taken == null:
 		taken = _taken(true)
 	for c in cells_in(area_at(cell, def.size)):
-		if not grid.is_in_boundsv(c) or footprint.has(c) or c == base.cell or debris.has(c) or barriers.has(c) or roads.has(c) or water.has(c):  # 잔해(I88)·에너지 성벽(I142)·길(S43)·물(S220) 칸에는 짓지 못한다
+		if not grid.is_in_boundsv(c) or in_strip(c) or footprint.has(c) or c == base.cell or debris.has(c) or barriers.has(c) or roads.has(c) or water.has(c):  # 숨은 띠(S317)·잔해(I88)·에너지 성벽(I142)·길(S43)·물(S220) 칸에는 짓지 못한다
 			return false
 		if c in _stage.get("hero_cells", []):  # 출전 칸에는 짓지 못한다(I107). 영웅이 서거나 돌아올 칸이다
 			return false
@@ -2492,7 +2658,7 @@ func _exit_of(s: Block):
 	for x in range(r.position.x, r.end.x):
 		ring.append(Vector2i(x, r.position.y - 1))
 	for c in ring:
-		if grid.is_in_boundsv(c) and not grid.block_at(c) and c != base.cell and not water.has(c):  # 물 칸에는 나오지 않는다(I181)
+		if grid.is_in_boundsv(c) and not grid.block_at(c) and c != base.cell and not water.has(c) and not rock.has(c):  # 물·바위(S317) 칸에는 나오지 않는다(I181)
 			return c
 	return null
 
@@ -3524,6 +3690,13 @@ func _target_of(e: Enemy):
 	if taunt and taunt.alive:
 		_engage(e, taunt)
 		return taunt
+	if not e.raid.is_empty():  # 원정 보스(S316): 가장 가까운 산 원정대 영웅만 노린다
+		var near = null
+		for h in party:
+			if h.alive and (near == null or e.pos.distance_to(h.pos) < e.pos.distance_to(near.pos)):
+				near = h
+		_engage(e, near)
+		return near if near else base
 	var best = null
 	var best_d := INF
 	for m in units:
@@ -3564,6 +3737,9 @@ func _gate_or_base(e: Enemy):
 	return base
 
 func _move(e: Enemy, dt: float) -> void:
+	if e.pull > 0.0:  # 원정 보스는 나온 뒤와 원정이 끝난 뒤 서 있기만 한다(I262 ④⑥)
+		e.pull -= dt
+		return
 	var sealed := _fx_on(e, "seal") != null  # 봉인(S155): 비행 적은 내려앉고 기어오르는 적은 오르지 못한다. 보스는 스킬을 쓰지 못한다(S194)
 	var rage := raging(e)
 	var sh: Dictionary = e.skills.get("shrink", {})  # 줄어듦(S236): 몸은 늘 체력만큼 작아지고, 빨라짐은 봉인되면 꺼진다
@@ -4056,14 +4232,14 @@ func _charge_ready(e: Enemy, sk: Dictionary):
 	var dir: Vector2 = (best.pos - e.pos).normalized()
 	return {"dir": dir.angle(), "to": _dash(e.pos, dir, sk.length)[0]}
 
-# 돌진 길(I230 ③): from에서 dir 쪽으로 length칸을 0.25칸 간격으로 짚는다. 막힌 칸(I188 곧은 선의 칸)·거점·물·맵 밖이면 바로 앞 짚은 점에서 멈춘다.
+# 돌진 길(I230 ③): from에서 dir 쪽으로 length칸을 0.25칸 간격으로 짚는다. 막힌 칸(I188 곧은 선의 칸)·거점·물·바위(S317)·맵 밖이면 바로 앞 짚은 점에서 멈춘다.
 # ally면 아군 길이라 에너지 성벽(I142)은 지나간다(영웅 대시 I261 ④). [멈출 자리, 부딪힌 성곽·구조물·거점(없으면 null)]
 func _dash(from: Vector2, dir: Vector2, length: float, ally := false) -> Array:
 	var at := from
 	for i in range(1, ceili(length / 0.25) + 1):
 		var p := from + dir * minf(0.25 * i, length)
 		var c := Vector2i(p.round())
-		if not grid.is_in_boundsv(c) or water.has(c):
+		if not grid.is_in_boundsv(c) or water.has(c) or rock.has(c):
 			return [at, null]
 		if c == base.cell:
 			return [at, base]
@@ -4982,10 +5158,10 @@ func _act(u: Unit, dt: float) -> void:
 	if u.job and u.path.is_empty():
 		_work(u, dt)
 
-# 영웅 칸의 시간(S136): 전투 단계에만 재사용 대기가 준다(크로노스 R과 이그니스 오라 안에서는 빠르게).
+# 영웅 칸의 시간(S136): 전투 단계·원정(S316)에만 재사용 대기가 준다(크로노스 R과 이그니스 오라 안에서는 빠르게).
 # 반격의 태세가 끝나면 터뜨리고(S151), 걸어가서 쓸 스킬(S147)과 오토(S296)를 본다
 func _hero_tick(h: Unit, dt: float) -> void:
-	if state != "battle":
+	if not fighting():
 		return
 	var pace := 1.0 + _fx_sum(h, "cdr") + _aura("cdr", h.pos)
 	for slot in SLOTS:
@@ -5089,7 +5265,7 @@ func _shove(e, by: Vector2, bodies: Array) -> void:
 		var blk = grid.block_at(c)
 		if blk and blk.kind == "barrier" and e is Unit:  # 아군은 에너지 성벽을 지나간다(I142)
 			blk = null
-		if grid.is_in_boundsv(c) and (not blk or (e.on_wall and _climbable(c))) and c != base.cell and not water.has(c):  # 성벽 위의 적은 성벽 칸을 걷는다(I76). 물 칸에는 밀려도 들어가지 않는다(I181)
+		if grid.is_in_boundsv(c) and (not blk or (e.on_wall and _climbable(c))) and c != base.cell and not water.has(c) and not rock.has(c):  # 성벽 위의 적은 성벽 칸을 걷는다(I76). 물·바위(S317) 칸에는 밀려도 들어가지 않는다(I181)
 			e.pos = p
 			return
 
@@ -5374,9 +5550,9 @@ func _alight(e: Enemy) -> void:
 		e.via = _via_of(c, _ladderable(e))
 	e.goal = Vector2i(-1, -1)
 
-# 땅 적이 설 수 있는 칸: 맵 안이고 막힌 칸·거점·물이 아니다
+# 땅 적이 설 수 있는 칸: 맵 안이고 막힌 칸·거점·물·바위(S317)가 아니다
 func _bare(c: Vector2i) -> bool:
-	return grid.is_in_boundsv(c) and not grid.block_at(c) and c != base.cell and not water.has(c)
+	return grid.is_in_boundsv(c) and not grid.block_at(c) and c != base.cell and not water.has(c) and not rock.has(c)
 
 # c에서 가장 가까운(직선 거리) 빈 칸. 5칸 안에 없으면 c
 func _bare_near(c: Vector2i) -> Vector2i:

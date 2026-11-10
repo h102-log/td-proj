@@ -230,6 +230,16 @@ const WATER_AT := Vector2i(704, 32)  # tools/art/water.py 덮개 왼쪽 위(옛 
 const CULVERT := preload("res://art/castle/culvert.png")
 const CULVERT_AT := Vector2i(744, 48)  # 수문 덮개 자리(옛 (712, 16) + PLAN_SHIFT칸). 그림은 아래 24px에 있어 높아진 북벽 안쪽 앞면(48~80) 아래에 앉는다
 const FOREST_FLOOR := Color("2a1d0d")  # 맵 아래 맵 밖 띠(I50)의 바닥(S201): 마른 나무가 선 그을린 흙
+# 보스방(S317, I262 ⑧⑨): 방 밖 검은 바위, 방에 닿은 바위 벽, 흙 타일에 곱하는 동굴 바닥 색, 점액 얼룩, 계단 디딤·그늘, 횃불 받침·불꽃·빛. Claude 시안 값
+const DEN_ROCK := Color("0b0a10")
+const DEN_WALL := Color("2b2733")
+const DEN_LEDGE := Color("4a4456")
+const DEN_TINT := Color(0.42, 0.44, 0.55)
+const DEN_SLIME := Color(0.45, 0.85, 0.4, 0.55)
+const DEN_STEP := [Color("6a6272"), Color("3a3442")]
+const DEN_BRACKET := Color("1c1612")
+const DEN_FLAMES := [Color("ffd27a"), Color("ff8a2a")]
+const DEN_GLOW := Color(1.0, 0.62, 0.25, 0.06)
 const CASTLE := preload("res://art/castle/walls.png")  # 성곽 조각(두께 5칸, S217 2026-11-03 변경): 행 단계 1~3마다 몸체·앞층, 통로 그늘, 잔해. 열 성벽 한 열·열린 문·닫힌 문·문 양옆 탑(tools/art/atlas.py castle)
 const WALL_PIECE_H := 145  # 성곽 조각 높이(px, tools/art/wall.py PIECE_H). 맨 아랫줄이 앞줄 바닥선 바로 위 줄이고 윗줄은 양옆 탑 뒤 모서리다
 const WALL_COLS := {"castle_wall": [0, 16], "open": [16, 48], "closed": [64, 48], "tower_l": [112, 16], "tower_r": [128, 16],
@@ -308,6 +318,7 @@ var _wreck_dirs := {}  # 수레 잔해를 남긴 몸 → 잔해가 보는 쪽(�
 var _hits := {}  # 방금 맞은 영웅·용병·적 id → [맞은 뒤 지난 시간(초), 공격자 → 대상 방향, 밀림(px), 돌아오는 시간(초), 강철 점](S177, S198, hit_table). _bodies마다 다시 구한다
 var ground: ImageTexture  # 바닥을 한 장으로 구운 것. 마을·출현 지점은 도전 내내 같아서(I91) 처음 한 번만 굽는다
 var _decor := []  # 바닥 소품(S201·S202): [칸, decor.png 0행 열]. 바닥과 함께 처음 한 번만 정한다
+var _den_floor: ImageTexture  # 보스방 바닥(S317)을 방 사각형 크기로 구운 것. 처음 원정 때 한 번 굽는다
 var _under: Image  # 구운 바닥. 터(bake_yard)가 돌 위를 피하려고 읽는다
 var _yards := {}  # [칸, 종류] → bake_yard 결과. 시설이 처음 보일 때 한 번 굽고, 없어지면 버린다(S215)
 var _clip := -INF  # 덧그릴 때 이 화면 y보다 위 줄은 그리지 않는다(_shade)
@@ -416,6 +427,8 @@ func _draw() -> void:
 	# 맵 위 맵 밖 띠(I50): 사방 성곽의 북벽 그림이 맵 위로 솟는다(S219). 둘레 RIM까지 칠해 화면이 흔들려도(S200) 빈 곳이 안 보인다. 바닥 그림이 그 위를 덮는다
 	draw_rect(Rect2(-RIM, -TOP_BAND - RIM, battle.size.x * CELL + 2 * RIM, TOP_BAND + battle.size.y * CELL + int(Camera.BOTTOM) + 2 * RIM), FOREST_FLOOR)
 	draw_texture(ground, Vector2.ZERO)  # 카메라가 아래로 보이는 맵 밖(I50)까지 한 장이다
+	if battle.state == "raid":  # 보스방(S317)은 원정 동안만 그린다. 그 밖에는 카메라가 띠에 가지 않는다
+		_draw_den()
 	var tp := tunnel_patch()
 	if not tp.is_empty():  # 정문이 잔해면 터널 입구 그늘을 덮는다(S219 2026-10-28)
 		draw_texture(tp[0], tp[1])
@@ -3160,7 +3173,7 @@ func tick(dt: float) -> void:
 # 원거리는 시뮬레이션 투사체가 닿은 프레임에 투사체 하나에 한 번이다. 피해와 닿음이 같은 때라 처치가 기다리지 않는다(S178)
 func _scan() -> void:
 	var s: String = battle.state
-	if s == "battle":
+	if s in ["battle", "raid"]:  # 원정(S316)도 전투 단계처럼 사건을 낸다(I262 ⑤)
 		_from_battle = true
 	elif not s in ["cleared", "won", "lost"]:
 		_from_battle = false
@@ -3783,6 +3796,77 @@ static func _open_cells(b, road: Dictionary) -> Array:
 					and not b.spawns.any(func(s): return absi(s.x - x) <= 1 and absi(s.y - y) <= 1):
 				out.append(c)
 	return out
+
+# 켜진 벽 횃불 수(S317, I262 ⑨): 원정이 아니면 모두다. 원정 중이면 불꽃이 다 타는 시간의 1/4이 지날 때마다 하나씩 준다
+func den_torches() -> int:
+	var n: int = battle.den.get("lamps", []).size()
+	if battle.state != "raid" or battle.raid_floor.is_empty():
+		return n
+	return clampi(n - floori(battle.flame / (battle.raid_floor.hard / n)), 0, n)
+
+# 보스방 바닥(S317): 방 사각형 크기에 흙 타일 변종을 깔고 점액 얼룩을 몇 개 얹는다. 모서리 막힌 칸은 비운다(아래 바위가 보인다).
+# 동굴 색은 그릴 때 DEN_TINT를 곱한다
+static func bake_den(b) -> ImageTexture:
+	var r: Rect2i = b.den.room
+	var src := GROUND_TILES.get_image()
+	src.convert(Image.FORMAT_RGBA8)
+	var deco := DECOR.get_image()
+	deco.convert(Image.FORMAT_RGBA8)
+	var img := Image.create_empty(r.size.x * CELL, r.size.y * CELL, false, Image.FORMAT_RGBA8)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4
+	var open := []
+	for y in r.size.y:
+		for x in r.size.x:
+			var c := r.position + Vector2i(x, y)
+			if not b.in_room(c):
+				continue
+			open.append(Vector2i(x, y))
+			var v := rng.randi_range(0, 3)
+			var at := Vector2i(15, 0) if v == 0 else Vector2i(v + 2, 1)  # 흙 한 가지 칸과 그 변종(bake_ground의 k = 15)
+			img.blit_rect(src, Rect2i(at * CELL, Vector2i(CELL, CELL)), Vector2i(x, y) * CELL)
+	for i in 7:  # 점액 얼룩: 구덩이 그림을 초록으로 물들여 얹는다
+		var c: Vector2i = open[rng.randi() % open.size()]
+		var spot := deco.get_region(Rect2i(CELL * (5 + i % 2), 0, CELL, CELL))
+		for py in CELL:
+			for px in CELL:
+				var col := spot.get_pixel(px, py)
+				spot.set_pixel(px, py, Color(DEN_SLIME, col.a * DEN_SLIME.a))
+		img.blend_rect(spot, Rect2i(0, 0, CELL, CELL), c * CELL + Vector2i(rng.randi_range(-4, 4), rng.randi_range(-4, 4)))
+	return ImageTexture.create_from_image(img)
+
+# 보스방(S317, I262 ①⑧⑨): 띠 전체를 검은 바위로 칠하고, 방에 닿은 바위는 벽(북쪽 면은 밝은 턱)으로, 방 바닥, 남쪽 계단, 벽 횃불을 그린다
+func _draw_den() -> void:
+	var d: Dictionary = battle.den
+	var r: Rect2i = d.room
+	draw_rect(Rect2(Vector2(battle.size.x, 0) * CELL, Vector2(d.strip, battle.size.y) * CELL).grow(RIM), DEN_ROCK)
+	for y in range(r.position.y - 1, r.end.y + 1):  # 방에 닿은 바위(8방향)는 벽이다
+		for x in range(r.position.x - 1, r.end.x + 1):
+			var c := Vector2i(x, y)
+			if battle.rock.has(c) and [Vector2i(-1, -1), Vector2i(0, -1), Vector2i(1, -1), Vector2i(-1, 0), Vector2i(1, 0), Vector2i(-1, 1), Vector2i(0, 1), Vector2i(1, 1)].any(func(o): return battle.in_room(c + o)):
+				draw_rect(_rect(c), DEN_WALL)
+				if battle.in_room(c + Vector2i.DOWN):  # 바닥 바로 위 벽은 아래 끝에 밝은 턱
+					draw_rect(Rect2(Vector2(c) * CELL + Vector2(0, CELL - 3), Vector2(CELL, 3)), DEN_LEDGE)
+	if _den_floor == null:
+		_den_floor = bake_den(battle)
+	draw_texture(_den_floor, Vector2(r.position) * CELL, DEN_TINT)
+	var st: Rect2i = d.stairs
+	for i in st.size.y * 4:  # 계단: 4px 디딤판을 밝고 어둡게 번갈아, 아래(거점 쪽)로 갈수록 좁게
+		var inset := i
+		draw_rect(Rect2(st.position.x * CELL + inset, st.position.y * CELL + i * 4, st.size.x * CELL - 2 * inset, 4), DEN_STEP[i % 2])
+	var lit := den_torches()
+	for i in d.lamps.size():  # 꺼지는 차례가 앞이다. 켜진 것은 뒤의 lit개
+		var p: Vector2 = Vector2(d.lamps[i]) * CELL + Vector2(CELL, CELL) / 2.0
+		draw_rect(Rect2(p + Vector2(-2, 0), Vector2(4, 6)), DEN_BRACKET)
+		if i < d.lamps.size() - lit:
+			continue
+		var f := int(clock * 8.0 + i * 3) % 3  # 불꽃 흔들림 세 꼴
+		for k in [20, 12]:  # 불빛: 2px 줄로 쌓은 아트 px 원 둘을 겹친다
+			for dy in range(-k, k, 2):
+				var w := floorf(sqrt(k * k - (dy + 1) * (dy + 1)))
+				draw_rect(Rect2(p.round() + Vector2(-w, dy), Vector2(2 * w, 2)), DEN_GLOW)
+		draw_rect(Rect2(p + Vector2(-2, -5 + f % 2), Vector2(4, 5)), DEN_FLAMES[1])
+		draw_rect(Rect2(p + Vector2(-1, -4 + f), Vector2(2, 3)), DEN_FLAMES[0])
 
 # 바닥 소품: 들판(S201)에는 바위 9·그루터기 6(40×22 들판 기준, 넓이에 비례)을 서로 한 칸 넘게 띄워 빈 들판 칸에, 마을(S202)에는 광장 모서리(_well)에 우물. [칸, decor.png 0행 열]
 static func ground_props(b) -> Array:

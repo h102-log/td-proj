@@ -35,6 +35,7 @@ var _slide := [Vector2.ZERO, Vector2.ZERO]  # 미끄러짐의 출발·도착 자
 var _slide_t := 1.0     # 미끄러짐 진행(0~1). 1이면 멈춰 있다
 var _shake := [0, 0.0, 1.0]  # 지금 흔들림 [크기(기준 화면 px), 지난 초, 길이(초)]
 var _beat := 0          # rumble을 부른 프레임 수. 흔들림 방향을 고른다
+var _held = null        # 원정(S317) 동안 묶어 둔 [자리, 떠나기 전 자리, 떠나기 전 줌 단계]. 묶지 않았으면 null
 
 func _ready() -> void:
 	zoom = Vector2.ONE * ZOOMS[level]
@@ -145,8 +146,12 @@ func busy() -> bool:
 func _scale() -> float:
 	return maxf(get_viewport().get_stretch_transform().x.x, 1.0)
 
-# dir 방향으로 delta초만큼 옮기고 맵 안에 가둔다. 아래는 BOTTOM ÷ 줌, 위는 TOP + TOP_BAR ÷ 줌만큼 맵 밖으로 나간다(I50)
+# dir 방향으로 delta초만큼 옮기고 맵 안에 가둔다. 아래는 BOTTOM ÷ 줌, 위는 TOP + TOP_BAR ÷ 줌만큼 맵 밖으로 나간다(I50).
+# 묶여 있으면(원정, S317) 묶은 자리에 둔다. 가장자리·방향키·휠 버튼 끌기·미니맵·HUD 이동이 모두 여기를 지난다
 func pan(dir: Vector2, delta: float) -> void:
+	if _held != null:
+		position = _held[0]
+		return
 	var half := get_viewport_rect().size / 2 / zoom.x
 	position = (position + dir * SPEED * Settings.camera_speed / 100.0 * delta / zoom.x).clamp(half - Vector2(0, TOP + TOP_BAR / zoom.x), map_px - half + Vector2(0, BOTTOM / zoom.x))
 
@@ -173,10 +178,10 @@ func slide(at: Vector2) -> void:
 func at_bottom() -> bool:
 	return position.y >= map_px.y - get_viewport_rect().size.y / 2 / zoom.x + BOTTOM / zoom.x - 0.01
 
-# 휠 줌(S52): 단계를 바꾸고 화면 배율을 GLIDE초 동안 ease-out으로 옮긴다. 옮기는 중이면 지금 배율에서 이어 간다
+# 휠 줌(S52): 단계를 바꾸고 화면 배율을 GLIDE초 동안 ease-out으로 옮긴다. 옮기는 중이면 지금 배율에서 이어 간다. 묶여 있으면(S317) 듣지 않는다
 func zoom_smooth(step: int, cursor: Vector2) -> void:
 	var next := clampi(level + step, 0, ZOOMS.size() - 1)
-	if next == level:
+	if next == level or _held != null:
 		return
 	_zoom_from = zoom.x * _scale()
 	level = next
@@ -187,11 +192,34 @@ func zoom_smooth(step: int, cursor: Vector2) -> void:
 # 커서 아래 월드 지점이 그대로 있게 확대 단계를 바로 바꾼다(평가·유닛 시험이 판을 차릴 때)
 func zoom_at(step: int, cursor: Vector2) -> void:
 	var next := clampi(level + step, 0, ZOOMS.size() - 1)
-	if next == level:
+	if next == level or _held != null:
 		return
 	level = next
 	_zoom_t = 1.0
 	_set_zoom(ZOOMS[level], cursor)
+
+# 원정(S317, I262 ⑧): 1배 줌에서 맵 px at이 화면 FOCUS에 오게 묶는다. 떠나기 전 자리·줌은 release가 되돌린다
+func hold(at: Vector2) -> void:
+	_held = [Vector2.ZERO, position, level]
+	level = 0
+	_zoom_t = 1.0
+	_slide_t = 1.0
+	_vel = Vector2.ZERO
+	zoom = Vector2.ONE * ZOOMS[level]
+	_held[0] = at - (FOCUS - get_viewport_rect().size / 2) / zoom.x
+	position = _held[0]
+	force_update_scroll()
+
+# 원정에서 돌아오면 묶기를 풀고 떠나기 전 자리·줌으로 돌아간다(S317)
+func release() -> void:
+	if _held == null:
+		return
+	position = _held[1]
+	level = _held[2]
+	_held = null
+	zoom = Vector2.ONE * ZOOMS[level]
+	pan(Vector2.ZERO, 0.0)
+	force_update_scroll()
 
 # 커서 아래 월드 지점이 그대로 있게 줌을 z로 둔다(I50)
 func _set_zoom(z: float, cursor: Vector2) -> void:

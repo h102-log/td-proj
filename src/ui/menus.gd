@@ -13,7 +13,7 @@ signal chosen(what: String)
 var can_resume := false  # 메인 메뉴의 «이어하기»를 누를 수 있다(저장이 있다, S182)
 var can_test := false  # 메인 메뉴에 «테스트 모드»를 보인다(테스트 빌드·에디터 실행, S290)
 var page := ""  # 보이는 화면: "title" · "confirm" · "pause" · "settings". 닫혀 있으면 ""
-var _note := false  # ESC 메뉴에 «저장되지 않습니다» 안내를 보인다(전투 단계, S183)
+var _note := ""  # ESC 메뉴의 «저장되지 않습니다» 안내 글(전투 단계 S183·원정 S316). 비어 있으면 보이지 않는다
 var _back := ""  # 설정을 연 화면. 설정의 ESC·«뒤로»가 돌아간다(I159)
 var _root := Control.new()  # 보이고 숨기는 틀. 글자 크기도 여기서 준다
 var _dim := ColorRect.new()
@@ -36,8 +36,8 @@ func _ready() -> void:
 	if page == "":
 		_root.hide()
 
-# 화면 p를 연다. note는 ESC 메뉴의 «저장되지 않습니다» 안내
-func open(p: String, note := false) -> void:
+# 화면 p를 연다. note는 ESC 메뉴의 «저장되지 않습니다» 안내 글
+func open(p: String, note := "") -> void:
 	page = p
 	_note = note
 	for c in _box.get_children():
@@ -62,8 +62,8 @@ func open(p: String, note := false) -> void:
 			_button("지우고 새 게임", func(): chosen.emit("new"))
 		"pause":
 			_back = "pause"
-			if note:
-				_label("지금 나가면 이번 웨이브 진행은 저장되지 않습니다")
+			if note != "":
+				_label(note)
 			first = _button("계속", func(): chosen.emit("continue"))
 			_button("설정", _settings)
 			_button("메인 메뉴로", func(): chosen.emit("title"))

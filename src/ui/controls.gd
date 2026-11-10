@@ -93,7 +93,7 @@ func handle(event: InputEvent) -> void:
 		aiming = ""
 	if event is InputEventMouse:
 		mouse = event.position
-	if battle.state not in ["prep", "battle"] or shop:  # 창이 떠 있는 동안은 맵 명령을 받지 않는다(S117, I109, I206)
+	if battle.state not in ["prep", "battle", "raid"] or shop:  # 창이 떠 있는 동안은 맵 명령을 받지 않는다(S117, I109, I206). 원정(S316)은 받는다
 		_press = null
 		drag_rect = Rect2()
 		return

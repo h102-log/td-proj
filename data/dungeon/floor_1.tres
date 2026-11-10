@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="FloorDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/floor_def.gd" id="1_floor"]
+
+[resource]
+script = ExtResource("1_floor")
+title = "점액 왕"
+opens = 2
+kind = "slime_king"
+stats = {
+"attack_gap": 2.0,
+"damage": 6.0,
+"hp": 1300.0,
+"radius": 1.6,
+"reward": 0,
+"sight": 99.0,
+"speed": 1.0,
+"xp": 0
+}
+skills = {
+"leap": {
+"air": 0.6,
+"cd": 12.0,
+"count": 1,
+"damage": 35.0,
+"knock": 1.0,
+"radius": 2.5,
+"range": 5.0,
+"slow": 0.3,
+"slow_time": 3.0,
+"windup": 1.5
+},
+"shrink": {
+"haste_max": 0.5,
+"size_min": 0.6,
+"stride_max": 0.6
+}
+}
+pull = 3.0
+hard = 120.0
