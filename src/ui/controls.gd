@@ -116,6 +116,8 @@ func handle(event: InputEvent) -> void:
 				alert_key.emit()
 			KEY_1, KEY_2, KEY_3:
 				pick_hero(event.keycode - KEY_1)
+			KEY_QUOTELEFT:
+				pick_all()
 			KEY_ESCAPE:
 				if placing == "" and moving == null and aiming == "" and not attacking:  # 취소할 것이 없으면 맵 팝업을 닫는다(S183)
 					_close_popups()
@@ -240,6 +242,12 @@ func pick_hero(i: int) -> void:
 	facility = null
 	shown = null
 	hero_key.emit(i)
+
+# ` 키(S310, I257): 살아 있는 출전 영웅을 출전 순서대로 모두 고른다. 1·2·3 키처럼 시설 선택을 풀고, 카메라는 옮기지 않는다
+func pick_all() -> void:
+	selected = battle.heroes.filter(func(h): return h.alive)
+	facility = null
+	shown = null
 
 # 선택 패널의 그림 칸(S206)이 그 유닛 하나만 고른다. 우클릭이 그 유닛을 옮기게 시설 선택을 푼다
 func pick_unit(u) -> void:

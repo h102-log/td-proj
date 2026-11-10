@@ -136,6 +136,7 @@ func ev260():
 func ev261():
 	var b = _kit([["aias", H]])
 	var k = b.hero
+	k.passive.guard_odds = 0.0  # 아이아스 패시브 확률 감소(S151 2026-11-10 변경)가 깎은 양을 흔들지 않게 끈다
 	_quiet(b)
 	_start(b)
 	run(b, k.passive.still + 0.3)
@@ -186,6 +187,7 @@ func ev263():
 func ev264():
 	var b = _kit([["aias", H]])
 	var k = b.hero
+	k.passive.guard_odds = 0.0  # 아이아스 패시브 확률 감소(S151 2026-11-10 변경)가 깎은 양을 흔들지 않게 끈다
 	_quiet(b)
 	var front = _dummy(b, H + Vector2i(1, 0))
 	_start(b)
@@ -226,6 +228,7 @@ func ev265():
 func ev266():
 	var b = _kit([["aias", H]])
 	var k = b.hero
+	k.passive.guard_odds = 0.0  # 아이아스 패시브 확률 감소(S151 2026-11-10 변경)가 깎은 양을 흔들지 않게 끈다
 	_quiet(b)
 	var near_e = _dummy(b, H + Vector2i(1, 0))
 	var far_e = _dummy(b, H + Vector2i(3, 0))
