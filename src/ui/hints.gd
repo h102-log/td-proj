@@ -1,7 +1,8 @@
 extends Panel
 # 처음 하는 사람 힌트(S191)이자 튜토리얼(S192): 1라운드 k웨이브에 k웨이브 단계 가운데 지금 판 단계의 끝나지 않은 첫 단계를
 # [68,300,200,40](미니맵 S209 오른쪽)에 두 줄 + «건너뛰기»로 보이고, 오른쪽 위에 그 웨이브의 축 이름을 둔다. 힌트 설정(S184)을 끄면 숨는다.
-# 끝날 조건은 숨어 있을 때도 지난 프레임과 비교해 찾고, 끝낸 힌트는 설정 파일에 남긴다(I166). HUD가 매 프레임 step을 부른다
+# 끝날 조건은 숨어 있을 때도 지난 프레임과 비교해 찾고, 끝낸 힌트는 설정 파일에 남긴다(I166). HUD가 매 프레임 step을 부른다.
+# 원정 동안에는 라운드와 상관없이 첫 원정 힌트를 보인다(S332)
 
 const HudTheme := preload("res://src/ui/hud_theme.gd")
 const Settings := preload("res://src/settings.gd")
@@ -14,6 +15,7 @@ const HINTS := [  # [이름, 1라운드 웨이브, 판 단계, 글](S192 임시�
 	["buy", 2, "battle", "전투 중에도 용병 칸·5·7로 산다\n짓기는 공병(5)이 가서 한다"],
 	["move", 3, "prep", "영웅을 누르고(1)\n우클릭한 칸으로 보낸다"],
 	["skill", 3, "battle", "Q로 영웅 스킬을 쓴다\n조준하는 칸은 맵을 눌러 쓴다"],
+	["raid", 0, "raid", "보스는 그로기 때만 크게 맞는다\n빨강은 피하고 금색에 모인다"],  # 첫 원정 힌트(S332): 웨이브 0은 라운드·웨이브와 상관없이 원정 동안이다(I277 ④)
 ]
 
 var battle
@@ -66,6 +68,8 @@ func step() -> void:
 		_finish("buy" if battle.state == "battle" else "merc")
 	if controls.village:
 		_finish("keep")
+	if battle.state == "raid" and battle.enemies.any(func(e): return battle.effect(e, "groggy") != null):  # 첫 원정 힌트(S332)는 보스 몸이 그로기가 되면 끝난다
+		_finish("raid")
 	var used := _skills()
 	if _used >= 0 and used > _used:
 		_finish("skill")
@@ -77,10 +81,12 @@ func step() -> void:
 	for h in HINTS:
 		if h[0] == now:
 			text.text = h[3]
-			axis.text = AXES[h[1] - 1]
+			axis.text = AXES[h[1] - 1] if h[1] > 0 else "원정"
 
 # 1라운드 지금 웨이브의 단계 가운데 지금 판 단계의 끝나지 않은 첫 단계 이름(S192). 앞 웨이브에 남은 단계는 넘어오지 않는다. 없으면 ""
 func _current() -> String:
+	if battle.state == "raid":  # 첫 원정 힌트(S332)
+		return "" if "raid" in Settings.hints_done else "raid"
 	if battle.round_index > 0:
 		return ""
 	for h in HINTS:

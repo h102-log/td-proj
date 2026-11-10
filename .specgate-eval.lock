@@ -1,6 +1,6 @@
 {
-  "approvedAt": "2026-11-10T11:53:29.213Z",
-  "evalMd": "29401177",
+  "approvedAt": "2026-11-10T13:37:45.141Z",
+  "evalMd": "5419d175",
   "tests": {
     "tests/eval/conftest.py": "1d87ccc5",
     "tests/eval/gd/aura.gd": "010cc38a",
@@ -19,7 +19,7 @@
     "tests/eval/gd/data.gd.uid": "5a13beba",
     "tests/eval/gd/debuff.gd": "991abea6",
     "tests/eval/gd/debuff.gd.uid": "c967bf87",
-    "tests/eval/gd/den.gd": "5e05c923",
+    "tests/eval/gd/den.gd": "6f8696db",
     "tests/eval/gd/den.gd.uid": "350b8e87",
     "tests/eval/gd/enemy.gd": "233872ef",
     "tests/eval/gd/enemy.gd.uid": "e1e29647",
@@ -117,7 +117,7 @@
     "tests/eval/gd/tower.gd.uid": "0885cf1d",
     "tests/eval/gd/towercap.gd": "53fd5e5b",
     "tests/eval/gd/towercap.gd.uid": "0dd43388",
-    "tests/eval/gd/troll.gd": "3e435d3b",
+    "tests/eval/gd/troll.gd": "c65d3799",
     "tests/eval/gd/troll.gd.uid": "e31535ba",
     "tests/eval/gd/tuning.gd": "dac42f08",
     "tests/eval/gd/tuning.gd.uid": "174d5dd9",
@@ -139,7 +139,7 @@
     "tests/eval/test_climb.py": "a1347f1b",
     "tests/eval/test_data.py": "33d27efc",
     "tests/eval/test_debuff.py": "c218fa12",
-    "tests/eval/test_den.py": "eb8f0db2",
+    "tests/eval/test_den.py": "91e9dacd",
     "tests/eval/test_enemy.py": "e7f4f856",
     "tests/eval/test_engineer.py": "0c0414d9",
     "tests/eval/test_evac.py": "fc558366",
@@ -623,10 +623,20 @@
     "S324": "bb9b07a6",
     "S325": "f19ec869",
     "I268": "f55aa9bc",
+    "S322": "471a9fb2",
+    "I266": "ac9a69be",
+    "S323": "1d607461",
+    "S326": "241f7c1f",
+    "I270": "6e3ec210",
     "S329": "66b1173f",
     "S327": "50800418",
     "S328": "bd88f9d6",
-    "I273": "ff562e95",
-    "I274": "d58e829c"
+    "I273": "5200de19",
+    "I274": "f38ec118",
+    "S331": "3fc3bd13",
+    "I277": "6e44d3b6",
+    "S332": "aff13fce",
+    "S333": "7ce1f39a",
+    "S334": "fc7dbe03"
   }
 }

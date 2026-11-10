@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RelicDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/relic_def.gd" id="1_relic"]
+
+[resource]
+script = ExtResource("1_relic")
+title = "점액 왕관"
+steps = [{
+"cdr": 0.05
+}, {
+"cdr": 0.07
+}, {
+"cdr": 0.09
+}, {
+"cdr": 0.11
+}, {
+"cdr": 0.13
+}]
+notes = ["스킬 대기 5% 빠름", "스킬 대기 7% 빠름", "스킬 대기 9% 빠름", "스킬 대기 11% 빠름", "스킬 대기 13% 빠름"]

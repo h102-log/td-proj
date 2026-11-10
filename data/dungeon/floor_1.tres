@@ -8,33 +8,94 @@ title = "점액 왕"
 opens = 2
 kind = "slime_king"
 stats = {
-"attack_gap": 2.0,
-"damage": 6.0,
-"hp": 1300.0,
-"radius": 1.6,
 "reward": 0,
-"sight": 99.0,
-"speed": 1.0,
 "xp": 0
 }
 skills = {
 "leap": {
 "air": 0.6,
-"cd": 12.0,
-"count": 1,
+"born": 1.5,
 "damage": 35.0,
 "knock": 1.0,
-"radius": 2.5,
 "range": 5.0,
+"reach": 4.0,
+"retry": 0.5,
 "slow": 0.3,
 "slow_time": 3.0,
+"step": 0.5,
 "windup": 1.5
 },
-"shrink": {
-"haste_max": 0.5,
-"size_min": 0.6,
-"stride_max": 0.6
+"slam": {
+"color": "blue",
+"counter": 1.0,
+"damage": 30.0,
+"knock": 1.5,
+"radius": 3.0,
+"slow": 0.3,
+"slow_time": 3.0,
+"windup": 2.0
+},
+"soak": {
+"color": "gold",
+"counter": 1.0,
+"damage": 60.0,
+"far": 5.0,
+"heal": 0.05,
+"miss": 20.0,
+"need": 2,
+"radius": 1.5,
+"turn": 90.0,
+"windup": 4.0
+},
+"brand": {
+"color": "violet",
+"damage": 30.0,
+"radius": 2.0,
+"windup": 3.0
 }
+}
+plan = [{
+"id": "slam",
+"wait": 5.0
+}, {
+"id": "soak",
+"wait": 6.0
+}, {
+"id": "brand",
+"wait": 6.0
+}]
+gens = [{
+"gap": 6.0,
+"hp": 400.0,
+"land": 2.5,
+"radius": 1.6
+}, {
+"gap": 12.0,
+"hp": 200.0,
+"land": 2.0,
+"radius": 1.2
+}, {
+"gap": 12.0,
+"hp": 100.0,
+"land": 1.6,
+"radius": 0.9
+}, {
+"gap": 12.0,
+"hp": 50.0,
+"land": 1.3,
+"radius": 0.7
+}]
+ward = 0.88
+groggy = {
+"mult": 1.5,
+"time": 5.0
+}
+enrage = {
+"ramp": 0.15,
+"soft": 80.0,
+"step": 10.0
 }
 pull = 3.0
 hard = 120.0
+gold = 120
+relic = "slime_crown"

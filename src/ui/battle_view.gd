@@ -181,8 +181,11 @@ const UNSEEN_TELLS := ["pounce", "throw", "bomb", "drop", "cannon", "bombs", "fl
 const FLAME_RING := 0.5  # 불화살 예고 원 반경(칸, S302). 판정에 쓰지 않는 그림 값이라 flame 데이터에 없다
 const NEST_RING := 0.5  # 둥지 짓기 예고 원 반경(칸, S309). 짓는 칸 하나다
 const TELL := Color("ef3a0c")  # 보스 스킬 예고(S194): F24+ 빨강 테(바깥 어두운 테는 PX.maroon), 안쪽 성긴 칠이 차오른다(S198 fx-4)
+const COUNTER := Color(0.6, 0.9, 1.8)  # 카운터 창(S326 ④) 동안 왕 몸을 파랗게 깜박이는 modulate
+const TELL_HUES := {"blue": ["ice3", "navy"], "gold": ["gold", "bronze"], "violet": ["vio1", "vio3"]}  # 대본 패턴 예고(S326)의 [칠·밝은 테, 어두운 테] 색. 없으면 빨강(TELL)
 const RAGE := Color(1.5, 0.55, 0.55)  # 분노한 보스(S195)를 붉게 그리는 modulate
 const CROUCH := Vector2(1.15, 0.75)  # 슬라임 킹이 웅크림 끝에 납작해지는 배율(가로·세로, S198). 임시값
+const GROGGY_POSE := Vector2(1.2, 0.7)  # 그로기인 원정 보스 몸이 납작하게 퍼지는 배율(가로·세로, I277 ⑥). Claude 시안 값
 const LEAP_UP := 10.0  # 뜬 슬라임 킹을 한가운데에서 들어 올리는 높이(px, S198). 임시값
 const FALL := 0.5  # 운석이 보이며 떨어지는 시간(초). 이그니스 R의 첫 운석 지연(delay)과 같다
 const CORPSE_FADE := 0.5  # 쓰러진 적·용병의 몸이 시뮬레이션에서 지워지기(battle.FALLEN) 전에 흐려지는 시간(초, S180)
@@ -352,6 +355,7 @@ var _gone := {}  # 지난 프레임까지 본 쓰러짐(fallen) id
 var _known := []  # 본 흔적. traces는 step마다 새 배열이라 is_same으로 견준다
 var _rubble := {}  # 본 잔해 칸
 var _tell := {}  # 보스 id → [예고 가운데(맵 px), 반경(px)]. 예고가 끊기면 둘레에 조각을 흩는다(S198)
+var _bounced := {}  # 지난 프레임에 튕김 효과(I277 ⑤)가 있던 적 id. 새로 걸린 프레임에만 불티를 낸다
 var _dots := []  # 효과 점(I172): {p0, p1, rise, t0, life, fade, col, size, ground}
 var _fade := 1.0  # 지금 그리는 흔적의 불투명도(S179 2026-10-29). 아트 px 도우미가 색 알파에 곱한다
 var _slides := {}  # id → [지난 화면 자리, 시작 시각, 길이](S198 미끄러짐)
@@ -490,6 +494,7 @@ func _draw() -> void:
 	_wall_links()
 	_chain_links()
 	_marks()
+	_brand_marks()
 	_chrono_marks()
 	_sera_marks()
 	_mire_marks()
@@ -2628,6 +2633,8 @@ func _facility(s, tint := Color.WHITE) -> void:
 func _body(x, i: int, next: Dictionary, tint := Color.WHITE, flash := true) -> void:
 	if x.get("skills") and battle.raging(x):  # 분노(S195)
 		tint *= RAGE
+	if x.get("raid") and battle.countering(x) and int(clock / 0.1) % 2 == 0:  # 카운터 창(S326 ④): 0.1초마다 파랗게 깜박인다
+		tint *= COUNTER
 	if x.get("frenzy"):  # 격노(S320, I264 ③): 잃은 체력 비율만큼 분노 색 쪽으로 섞는다
 		tint = tint.lerp(tint * RAGE, battle.frenzy(x))
 	var white: bool = flash and _hits.get(x.get_instance_id(), [INF])[0] < FLASH  # 피격 번쩍임(S177): 255배 modulate가 그림을 흰 실루엣으로 만든다(유닛 그림에 0인 채널이 없다). 배치는 끊기지 않는다
@@ -2679,12 +2686,14 @@ func _look(x) -> Array:
 	if not (_boss(x) and ART.has(x.kind) and ART[x.kind].get("one", false)):
 		return [s, up]
 	var c = x.cast
-	if c != null and c.has("at"):
+	if c != null and c.has("at") and x.skills[c.id].has("air"):  # 웅크림은 뜀 예고뿐이다. 자리가 있는 다른 예고(점액 비·표식)에는 웅크리지 않는다(I277 ⑧)
 		var sk: Dictionary = x.skills[c.id]
 		if c.get("air", false):
 			var a: float = 1.0 - c.left / sk.air
 			return [s, up + LEAP_UP * g[0] * 4.0 * a * (1.0 - a)]
 		return [s * Vector2.ONE.lerp(CROUCH, 1.0 - c.left / sk.windup), up]
+	if x.fx.has("groggy"):  # 그로기(S323 ②)인 몸은 납작하게 퍼진다(I277 ⑥)
+		return [s * GROGGY_POSE, up]
 	var tr = _boss_trace(x)
 	if tr != null:
 		return [s * CROUCH.lerp(Vector2.ONE, tr.age / SLAM_POSE), up]
@@ -2981,7 +2990,7 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 			col = 0
 			dir = 0
 			off.y = -2.0
-		if x.fx.has("stagger"):  # 비틀거리는 동안 8프레임마다 좌우로 1px 떤다
+		if x.fx.has("stagger") or x.fx.has("groggy"):  # 비틀거리는 동안과 그로기(S323 ②) 동안 8프레임마다 좌우로 1px 떤다
 			off.x = 1.0 if int(clock * 60.0 / 8.0) % 2 == 0 else -1.0
 	if cast != null and cast.id == "hurled":  # 던져진 오크(S324, I268 ⑤): 한가운데 HURL_UP까지 포물선으로 든다
 		var t: float = 1.0 - cast.left / battle.deed(x, cast.id).air
@@ -3328,9 +3337,16 @@ func _scan() -> void:
 		var id: int = e.get_instance_id()
 		if e.cast:
 			tell[id] = [_chest(e.cast.who), CELL * e.cast.who.radius + 4.0] if e.cast.id == "devour" else [_center(e.cast.get("at", e.pos)), CELL * battle.deed(e, e.cast.id).get("radius", 6.0 / CELL)]  # 조각은 예고 원 둘레에(점프는 착지 자리, S198). 덮치기(S242)는 대상 발밑 표식 6px. 집어 먹기(I273 ⑥)는 졸개 둘레 테
-		elif _tell.has(id) and e.fx.has("stagger") and e.fx.stagger.left > battle.STAGGER - 0.25:  # 이번에 막 걸린 비틀거림만
+		elif _tell.has(id) and ((e.fx.has("stagger") and e.fx.stagger.left > battle.STAGGER - 0.25) or (e.fx.has("groggy") and e.fx.groggy.left > e.raid.groggy.time - 0.25)):  # 이번에 막 걸린 비틀거림·그로기(I270 ⑦)만
 			_emit("interrupt", _tell[id][0], Vector2.ZERO, e, null, {"radius": _tell[id][1]})
 	_tell = tell
+	var bounced := {}
+	for e in battle.enemies:  # 튕김(I277 ⑤): 원정 보스 몸에서 기절·봉인이 지워졌다. 효과가 새로 걸린 프레임에만 낸다
+		if e.fx.has("deflect"):
+			bounced[e.get_instance_id()] = true
+			if not _bounced.has(e.get_instance_id()):
+				_emit("deflect", _spot(e) - Vector2(0, _head(e) * _shrunk(e) * 0.5), Vector2.ZERO, null, e, {"radius": CELL * e.radius})
+	_bounced = bounced
 	for c in battle.rubble:  # 성곽 칸 붕괴
 		if not _rubble.has(c):
 			_emit("collapse", _center(battle.middle(battle.rubble[c])), Vector2.ZERO, null, battle.rubble[c], {"cell": c})
@@ -3426,6 +3442,11 @@ func _react(e: Dictionary) -> void:
 				var d := Vector2.from_angle(deg_to_rad(i * 30.0 + _h(e.n, i, -5, 5)))
 				var p: Vector2 = e.at + d * (e.radius + 1.0)
 				_dot({"p0": p, "p1": p + d * _h(e.n, 20 + i, 6, 9), "col": TELL, "to": Color("efac28"), "size": Vector2(3, 3), "life": 0.3, "fade": 0.15})
+		"deflect":  # 튕김(I277 ⑤): 가슴 높이의 몸 가장자리에서 불티 여섯이 위쪽 부채꼴로 흩어진다
+			for i in 6:
+				var d := Vector2.from_angle(deg_to_rad(-150.0 + i * 24.0 + _h(e.n, i, -8, 8)))
+				var p: Vector2 = e.at + d * e.radius * 0.8
+				_dot({"p0": p, "p1": p + d * _h(e.n, 10 + i, 10, 16), "col": PX.cream, "to": PX.gold, "size": Vector2(2, 2), "life": 0.3, "fade": 0.15})
 
 # 부스러기 2점(S199): 좌우로 하나씩 4~7px 튀어 올랐다가 떨어진다
 func _debris(at: Vector2, n: int) -> void:
@@ -3554,8 +3575,21 @@ func _boss_tell(e) -> void:
 	var r := int(CELL * sk.radius)
 	for p in e.cast.get("spots", [e.cast.get("at", e.pos)]):  # 점프(S236)·착지(S288)는 착지 자리에, 뜬 동안은 가득 찬 채로(S198)
 		var at := Vector2i(_center(p).floor())
-		_pnoise(at, int(r * k), TELL, TELL_FILL)
-		_edge(at, r, TELL, PX.maroon)
+		var hue: Array = TELL_HUES.get("blue" if battle.countering(e) else sk.get("color", ""), [])  # 대본 패턴(S326)은 칠 색으로 뜻을 가르고, 카운터 창 동안은 파랑이다
+		var lit: Color = PX[hue[0]] if not hue.is_empty() else TELL
+		if e.cast.get("aimed", true):  # 이동 뜀(S323 ②)은 테만 그린다
+			_pnoise(at, int(r * k), lit, TELL_FILL)
+		_edge(at, r, lit, PX[hue[1]] if not hue.is_empty() else PX.maroon)
+
+# 씨앗 표식(S326 ③)의 번호(I277 ⑦): 표식 원 가운데(표식 영웅) 머리 위에 그 영웅의 출전 칸 번호를 표식 색으로 그린다.
+# 예고(_tells)는 몸통 아래 층이라 몸에 가려서, 번호만 몸통 뒤에 따로 그린다
+func _brand_marks() -> void:
+	for e in tellers(_foes):
+		if e.cast.has("mark"):
+			var at := (_center(e.cast.at) + Vector2(-2, -_head(e.cast.mark) - 4)).floor()
+			var no := str(battle.heroes.find(e.cast.mark) + 1)
+			draw_string(PIXEL_FONT, at + Vector2(1, 1), no, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, PX[TELL_HUES.violet[1]])
+			draw_string(PIXEL_FONT, at, no, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, PX[TELL_HUES.violet[0]])
 
 # 기관총 예고(S287)·대장 철퇴 예고(S288): 부채꼴(반경 range, 각 arc) 빨강 테와 차오르는 안쪽. 기관총 발사 동안은 테와 지금 총구 방향의 선(I223)
 func _fan_tell(e) -> void:
