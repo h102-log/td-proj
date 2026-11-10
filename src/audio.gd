@@ -44,6 +44,8 @@ static func song_for(state: String, boss: bool) -> String:
 			return "title"
 		"battle":
 			return "boss" if boss else "battle"
+		"raid":  # 원정은 늘 보스 곡이다(S316, I262 ⑤)
+			return "boss"
 		"won", "lost":
 			return ""
 	return "prep"

@@ -79,6 +79,9 @@ const TOWERS_AT := Rect2(60, 30, 52, 12)  # 타워 칸(I246 ④): 인구 칸 오
 const FLASH := 0.2  # 거점이 맞으면 체력 막대가 하얗게 번쩍이는 초(S190 임시값)
 const MISSION_SECS := 6.0  # 라운드 첫 미션 토스트를 보이는 초(I122 임시값)
 const RESULT_WAIT := 1.0  # 전투에서 넘어온 결과 창을 늦추는 초(S117, 사용자 2026-10-22)
+const FADE := 0.4  # 원정에 들고 날 때 검은 덮개가 걷히는 초(S317, Claude 시안 값)
+const BOSS_BAR := Rect2(220, 31, 200, 14)  # 원정 보스 막대 자리(I262 ⑧): 위 띠 바로 아래 가운데
+const RAID_WHY := {"done": "모든 층을 깸", "torch": "횃불 없음", "party": "나갈 영웅 없음"}  # 원정 버튼을 못 누르는 이유(I262 ②). round는 _process가 라운드를 넣는다
 const SCROLL := [".oooooooooo.", "oppppppppppo", ".oooooooooo.", "..oppppppo..", "..opllllpo..", "..oppppppo..",
 	"..opllllpo..", "..oppppppo..", "..opllpppo..", ".oooooooooo.", "oppppppppppo", ".oooooooooo."]  # 임무 칸 두루마리(I122)
 const DOT := [".....", ".###.", ".###.", ".###.", "....."]  # 임무 칸: 조건을 지키는 중
@@ -164,6 +167,14 @@ var _tax: Label
 var _round: Label
 var _eng: Label  # 공병 칸의 놀고 있는 공병 수
 var start: Button  # 진행 칸의 «▶ 전투 시작»(I13). 준비 단계에만
+var retreat: Button  # 진행 칸의 «철수»(S317, I262 ⑧). 원정 중에만
+var raid: Button  # 거점 팝업의 «원정 N층»(S316, I262 ②). 준비 단계에만
+var boss_bar := Panel.new()  # 원정 보스 이름·체력 막대(S317, I262 ⑧). 위 띠 바로 아래 가운데, 원정 중에만
+var fade := ColorRect.new()  # 원정에 들고 날 때 화면 전체를 덮었다 걷히는 검은 덮개(S317, I262 ⑧)
+var _boss_name: Label
+var _boss_fill := ColorRect.new()
+var _raid_seen := false  # 지난 프레임에 원정이었나. 바뀌면 덮개를 다시 덮는다
+var _fade_t := FADE  # 덮개가 덮인 뒤 지난 초. FADE 넘으면 숨는다
 var gauge: Button  # 진행 칸의 웨이브 버튼: 준비 단계 다음 웨이브(S188)·전투 단계 계기판·영입·승패(I13)
 var skull: TextureRect  # 진행 칸의 보스 해골(S188)
 var moon: TextureRect  # 진행 칸의 달(S214): 준비 단계·영입·라운드 사이는 다음 웨이브, 전투 단계는 이번 웨이브가 밤이면
@@ -511,6 +522,7 @@ func _ready() -> void:
 	_resume = _pop(rows[0], func(): _apply(battle.resume, battle.unfinished(controls.picked)), "이어 짓기")
 	_cancel = _pop(rows[0], func(): _apply(battle.cancel, battle.unfinished(controls.picked)), "취소")
 	_village = _pop(rows[0], func(): battle.raise_village(), "마을 레벨 올리기")
+	raid = _pop(rows[0], func(): battle.start_raid(), "원정")
 	_upgrade = _pop(rows[0], func(): battle.upgrade(controls.fort), "업그레이드", HudBuild.dots(UP, {"#": HudTheme.ACCENT}))
 	_repair = _pop(rows[0], func(): _apply(battle.repair, _to_repair()), "수리", hammer)
 	_restore = _pop(rows[0], func(): battle.restore(controls.fort), "복구")
@@ -527,21 +539,58 @@ func _ready() -> void:
 	toasts.tip = tip
 	root.add_child(toasts)
 	root.add_child(tip)  # 맨 위에 그린다(I162)
+	boss_bar.position = BOSS_BAR.position
+	boss_bar.size = BOSS_BAR.size
+	boss_bar.add_theme_stylebox_override("panel", HudTheme.box("panel", "PanelContainer", Color(0, 0, 0, 0.7), HudTheme.DANGER))
+	boss_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	boss_bar.visible = false
+	root.add_child(boss_bar)
+	_boss_name = _text(boss_bar, 8, HudTheme.TEXT)
+	_boss_name.position = Vector2(4, 0)
+	_boss_name.size = Vector2(56, 14)
+	var track := ColorRect.new()
+	track.color = HudTheme.LINE
+	track.position = Vector2(60, 5)
+	track.size = Vector2(136, 4)
+	boss_bar.add_child(track)
+	_boss_fill.color = HudTheme.DANGER
+	_boss_fill.size = track.size
+	track.add_child(_boss_fill)
+	fade.color = Color.BLACK
+	fade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	fade.visible = false
+	root.add_child(fade)  # 툴팁까지 덮는다(화면 전체)
 
 func _process(delta: float) -> void:
 	_now += delta
 	select.refresh()  # 정보 칸 자리(hud_build.info_box)가 패널이 보이는지를 본다. 자식(격자)보다 먼저 돈다
 	var prep: bool = battle.state == "prep"
 	var on: bool = battle.state in ["prep", "battle"]
+	var raiding: bool = battle.state == "raid"
 	var round_no: int = battle.round_index + 1
-	if prep and _seen != "prep" and battle.wave_index == 0:  # 라운드 첫 준비 단계(I122)
+	var arrived: bool = prep and _seen not in ["prep", "raid"]  # 원정에서 돌아온 준비 단계(S316)는 새로 온 것이 아니다
+	if arrived and battle.wave_index == 0:  # 라운드 첫 준비 단계(I122)
 		_ok.clear()
 		if battle.mission != "":
 			toasts.push("이번 라운드 미션: %s" % battle.QUEST_KINDS[battle.mission].text, MISSION_SECS)
-	if prep and _seen != "prep" and _boss(_next_wave()):  # S188
+	if arrived and _boss(_next_wave()):  # S188
 		toasts.push("다음 웨이브에 보스")
-	if prep and _seen != "prep" and _night(_next_wave()):  # S214
+	if arrived and _night(_next_wave()):  # S214
 		toasts.push("다음 웨이브는 밤")
+	if raiding != _raid_seen:  # 원정에 들고 날 때 검은 덮개(S317, I262 ⑧)
+		_raid_seen = raiding
+		_fade_t = 0.0
+		if raiding:  # 건설 격자는 다음 _process에야 스스로 숨는다. 덮개가 걷히기 전에 숨긴다
+			grid.visible = false
+	else:
+		_fade_t += delta
+	fade.visible = _fade_t < FADE
+	fade.color.a = 1.0 - _fade_t / FADE
+	boss_bar.visible = raiding and battle.raid_boss != null
+	if boss_bar.visible:
+		_boss_name.text = tr(battle.raid_floor.title)
+		_boss_fill.size.x = 136.0 * clampf(battle.raid_boss.hp / battle.raid_boss.max_hp, 0.0, 1.0) if battle.raid_boss.alive else 0.0
 	if prep:
 		_dusk = []
 	var dusk: Dictionary = battle.night(battle.round_index, battle.wave_index) if battle.state == "battle" else {}
@@ -568,7 +617,7 @@ func _process(delta: float) -> void:
 	alerts.visible = on
 	minimap.visible = on
 	minimap.queue_redraw()
-	hp_button.visible = on
+	hp_button.visible = on or raiding
 	hp_button.modulate.a = 1.0 if controls.show_hp else 0.35  # 꺼져 있으면 흐리게(S276). 대피령 버튼의 흐림과 같은 값
 	if on:
 		alerts.step(delta)
@@ -577,7 +626,7 @@ func _process(delta: float) -> void:
 	_show_edges()
 	var picked: Array = controls.selected.filter(func(u): return u.alive)  # 고른 영웅·용병의 명령 태그, 용병의 홀드(I139)
 	var mercs: Array = picked.filter(func(u): return not u.is_hero)
-	tags[0].visible = on and not picked.is_empty()
+	tags[0].visible = (on or raiding) and not picked.is_empty()
 	tags[1].visible = tags[0].visible
 	tags[2].visible = on and not mercs.is_empty()
 	if tags[2].visible:
@@ -710,6 +759,14 @@ func _process(delta: float) -> void:
 		var opens: Array = battle.STRUCTURE_KINDS.keys().filter(func(s): return battle.STRUCTURE_KINDS[s].village_level == battle.village_level + 1).map(func(s): return NAMES[s])
 		_village.text = "마을 Lv%d %d" % [battle.village_level + 1, battle.VILLAGE_UP[battle.village_level - 1]]
 		_opens = "" if opens.is_empty() else "Lv%d에 %s" % [battle.village_level + 1, ", ".join(opens)]
+	raid.visible = controls.village and prep and not battle.den.is_empty()  # 원정 버튼(S316, I262 ②)
+	if raid.visible:
+		var f: String = battle.next_floor()
+		var why: String = battle.raid_block()
+		raid.text = tr("원정 %d층") % (battle.floors_cleared + 1) if f != "" else "원정"
+		raid.disabled = why != ""
+		_why[raid] = tr("%d라운드부터") % battle.FLOOR_KINDS[f].opens if why == "round" else RAID_WHY.get(why, "")
+		_steps[raid] = (tr(battle.FLOOR_KINDS[f].title) + " · " if f != "" else "") + tr("남은 횃불 %d") % battle.torches
 	var fix := _to_repair()
 	_repair.visible = not fix.is_empty()
 	if _repair.visible:
@@ -892,7 +949,7 @@ func _show_status(delta: float, round_no: int) -> void:
 	_tax.text = "+%d" % battle.tax()
 	_round.text = "%d/%d" % [round_no, battle.rounds.size()]
 
-# 진행 칸(S185): 준비 단계 금색 «▶ 전투 시작»과 다음 웨이브 버튼, 그 밖에는 칸 전체가 웨이브 버튼 하나다(I13)
+# 진행 칸(S185): 준비 단계 금색 «▶ 전투 시작»과 다음 웨이브 버튼, 원정은 «철수»와 불꽃·횃불 글(S317), 그 밖에는 칸 전체가 웨이브 버튼 하나다(I13)
 func _make_progress() -> void:
 	var p := _cell("progress", Control.new())
 	start = _bar_button(p, "", _start_battle)
@@ -905,6 +962,14 @@ func _make_progress() -> void:
 	go.position = Vector2(14, 6)  # 키 글자 줄이 없어(마우스로만 시작, I13 2026-11-10 변경) 가운데 줄에 둔다
 	go.size = Vector2(68, 12)
 	tip.add(start, func(): return ["전투 시작", "", "", "웨이브 %d/%d를 부른다" % [battle.wave_index + 1, battle.waves.size()], ""])
+	retreat = _bar_button(p, "", func(): battle.retreat())  # 원정 중 «철수»(S317, I262 ⑧)
+	retreat.size = Vector2(50, 24)
+	var back := _text(retreat, 9, HudTheme.DANGER)
+	back.text = "철수"
+	back.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	back.position = Vector2(0, 6)
+	back.size = Vector2(50, 12)
+	tip.add(retreat, func(): return ["철수", "", "", "원정을 그만두고 돌아온다 — 쓴 횃불은 돌아오지 않는다", ""])
 	gauge = _bar_button(p, "", _to_enemy)
 	_g1 = _text(gauge, 7, HudTheme.DIM)
 	_g2 = _text(gauge, 9, HudTheme.TEXT)
@@ -924,7 +989,8 @@ func _show_progress() -> void:
 	if st != _laid:  # 단계가 바뀔 때만 자리·글꼴을 다시 정한다
 		_laid = st
 		start.visible = st == "prep"
-		gauge.position.x = 86 if start.visible else 0
+		retreat.visible = st == "raid"
+		gauge.position.x = 86 if start.visible else 52 if retreat.visible else 0
 		gauge.size = Vector2(136 - gauge.position.x, 24)
 		_track.visible = st == "battle"
 		_dots.visible = st in ["prep", "battle"]
@@ -942,6 +1008,9 @@ func _show_progress() -> void:
 				_line(_g1, 9, HudTheme.TEXT, Rect2(4, 1, 60, 11))
 				_line(_g2, 8, HudTheme.DIM, Rect2(4, 12, 80, 11))
 				skull.position = Vector2(124, 14)
+			"raid":  # 원정(S317, I262 ⑧): 윗줄 남은 불꽃·횃불, 아랫줄 층
+				_line(_g1, 9, HudTheme.ACCENT, Rect2(3, 1, 80, 11))
+				_line(_g2, 8, HudTheme.DIM, Rect2(3, 12, 80, 11))
 			_:
 				_line(_g1, 10, HudTheme.ACCENT if st == "won" else HudTheme.DANGER, Rect2(4, 1, 128, 22))
 	skull.visible = st != "battle" and _boss(nw)
@@ -955,6 +1024,9 @@ func _show_progress() -> void:
 		"hiring", "cleared":
 			_g1.text = "영입"
 			_g2.text = "다음 적 %d" % _total(nw)
+		"raid":
+			_g1.text = tr("불꽃 %d · 횃불 %d") % [_flame_left(), battle.torches]
+			_g2.text = tr("원정 %d층") % (battle.floors_cleared + 1)
 		_:
 			_g1.text = {"won": "승리", "lost": "패배"}[st]
 	if _dots.visible:
@@ -1030,7 +1102,13 @@ func _wave_tip() -> Array:
 			return ["남은 적 %d" % battle.enemies_left(), "", "", ("다음 웨이브\n" + _wave_lines(nw) if not nw.is_empty() else "이 라운드의 마지막 웨이브") + "\n누르면 거점에 가장 가까운 적을 비춘다", ""]
 		"hiring", "cleared":
 			return ["다음 라운드 첫 웨이브", "", "", _wave_lines(nw), ""]
+		"raid":  # 원정(S317)
+			return [tr("원정 %d층") % (battle.floors_cleared + 1), "", "", tr("남은 불꽃 %d초 · 횃불 %d자루\n불꽃이 다 타면 이번 원정은 진다") % [_flame_left(), battle.torches], ""]
 	return [{"won": "승리", "lost": "패배"}[battle.state], "", "", "", ""]
+
+# 원정의 남은 불꽃 초(올림, I262 ⑧). 원정이 아니면 0
+func _flame_left() -> int:
+	return ceili(maxf(battle.raid_floor.get("hard", 0.0) - battle.flame, 0.0))
 
 # 전투 중 진행 칸을 누르면 거점에 가장 가까운 적에게 카메라가 간다(I13, I164)
 func _to_enemy() -> void:
@@ -1307,10 +1385,10 @@ func _quest_lines() -> Array:
 	var q: Dictionary = battle.QUEST_KINDS[battle.mission]
 	return ["%s: %s (+%d골드)" % ["미션", q.text, q.reward] + ("" if battle.quest_met(battle.mission) else " — 실패")]
 
-# 출전 영웅 칸(I129, I151): 준비·전투 단계에 칸 셋이 늘 보이고, 빈 칸은 점선 테두리다. 초상(체력 LOW 밑이면 빨간 맥박, 쓰러지면 회색)·레벨,
+# 출전 영웅 칸(I129, I151): 준비·전투 단계·원정(S316)에 칸 셋이 늘 보이고, 빈 칸은 점선 테두리다. 초상(체력 LOW 밑이면 빨간 맥박, 쓰러지면 회색)·레벨,
 # 스킬 칸 상태, 체력 막대. 쓰러졌으면 스킬 칸 대신 «쓰러짐». 준비 단계 스킬 칸의 모래시계가 «스킬은 전투 단계에만»을 대신한다(S136)
 func _show_heroes() -> void:
-	var on: bool = battle.state in ["prep", "battle"]
+	var on: bool = battle.state in ["prep", "battle", "raid"]  # 원정(S316)에도 보인다
 	for i in _rows.size():
 		var row: Dictionary = _rows[i]
 		var cell: Control = cells["hero%d" % i]
@@ -1374,7 +1452,7 @@ func _skill_refuse(h, slot: String) -> void:
 	var i: int = battle.heroes.find(h)
 	var sk: Dictionary = h.get(slot)
 	var why := ""
-	if battle.state != "battle":
+	if not battle.fighting():  # 원정(S316)에도 쓴다
 		why = "스킬은 전투 단계에만"
 	elif sk.is_empty() or h.level < battle.LEVELS.unlock[slot] or (sk.get("id") == "brace" and h.brace > 0.0):  # 태세 중인 반격은 터뜨린다(S151)
 		why = ""
@@ -1421,7 +1499,7 @@ func _skill_tip(i: int, slot: String) -> Array:
 	var why := ""
 	if h.level < battle.LEVELS.unlock[slot]:
 		why = "Lv%d에 열림" % battle.LEVELS.unlock[slot]
-	elif battle.state != "battle":
+	elif not battle.fighting():
 		why = "스킬은 전투 단계에만"
 	elif h.cd[slot] > 0.0:
 		why = "재사용 대기 %d초" % ceili(h.cd[slot])

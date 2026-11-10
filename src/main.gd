@@ -15,7 +15,11 @@ const Audio := preload("res://src/audio.gd")
 const Sfx := preload("res://src/sfx.gd")
 const Tuning := preload("res://src/sim/tuning.gd")
 const TestPanel := preload("res://src/ui/test_panel.gd")
-const QUIET := ["hiring", "prep", "cleared"]  # 전투 단계가 아닌 판 단계. 이때만 저장한다(S181)
+const QUIET := ["hiring", "prep", "cleared"]  # 전투 단계·원정(S316)이 아닌 판 단계. 이때만 저장한다(S181)
+const PAUSE_NOTES := {  # ESC 메뉴의 «저장되지 않습니다» 안내(S183): 판 단계 → 글
+	"battle": "지금 나가면 이번 웨이브 진행은 저장되지 않습니다",
+	"raid": "지금 나가면 원정 전 준비 단계로 돌아갑니다(쓴 횃불은 돌아오지 않습니다)",  # I262 ⑤
+}
 # 도전의 라운드 순서(S63, I91): data/waves/의 웨이브 파일 이름. 1라운드는 시험 스테이지(S111, 슬라임 테마)다
 # ponytail: 2~6라운드는 5.1(WBS.md:129)까지 쓰는 임시값이다. 실제 라운드 수와 웨이브는 그때 정한다
 const ROUNDS := ["test_stage", "round_2", "round_3", "round_4", "round_5", "round_6"]
@@ -51,6 +55,7 @@ func _ready() -> void:
 		resume = {}
 	view.battle.revive = Settings.revive  # I28, I160
 	view.battle.wave_starting.connect(_store)  # 웨이브를 시작하기 직전에도 저장한다(S181)
+	view.battle.raid_starting.connect(_store)  # 횃불을 쓴 직후 원정에 들어가기 전에도 저장한다(S316)
 	controls = Controls.new(view.battle, BattleView.CELL)
 	controls.quickcast = Settings.quickcast  # I158
 	view.controls = controls
@@ -107,12 +112,25 @@ func _process(delta: float) -> void:
 	var at: Vector2 = get_viewport().get_camera_2d().steady().affine_inverse() * get_viewport().get_mouse_position()  # 지금 마우스 자리 → 맵 px(handle에 넘기는 것과 같은 변환)
 	HudCursor.apply(HudCursor.kind(controls, at, get_viewport().gui_get_hovered_control() != null), cursor_scale(get_window()))  # 커서 모양(S278, I211). 가장자리 스크롤 중에도 맞게 매 프레임 정한다
 
-# 판 단계가 바뀌면 전투 단계가 아닌 단계는 저장하고(S181), 도전이 끝났으면 저장을 지운다(S65, I157). 테스트 모드는 둘 다 하지 않는다(I231)
+# 판 단계가 바뀌면 전투 단계가 아닌 단계는 저장하고(S181), 도전이 끝났으면 저장을 지운다(S65, I157). 테스트 모드는 둘 다 하지 않는다(I231).
+# 원정에 들어가면 카메라를 보스방에 묶고, 돌아오면 푼다(S317)
 func _check() -> void:
 	var s: String = view.battle.state
 	if s == _seen:
 		return
+	var was := _seen
 	_seen = s
+	var cam: Camera2D = get_viewport().get_camera_2d()
+	if s == "raid":  # 원정(S317): 카메라를 보스방에 묶고, 고른 것은 원정대만 남기고 놓기 모드를 끝낸다(I262 ④)
+		var room: Rect2i = view.battle.den.room
+		cam.hold((Vector2(room.position) + Vector2(room.size) / 2.0) * BattleView.CELL)
+		controls.selected = controls.selected.filter(func(u): return u in view.battle.party)
+		controls.facility = null
+		controls.village = false
+		controls.placing = ""
+		controls.moving = null
+	elif was == "raid":
+		cam.release()
 	if s in QUIET:
 		_store()
 	elif s in ["won", "lost"] and not test:
@@ -123,9 +141,9 @@ func _store() -> void:
 	if not test:
 		Save.write(view.battle)
 
-# 게임을 멈추고 ESC 메뉴를 연다(S183, I11). 전투 단계면 나가도 이번 웨이브가 저장되지 않는다고 알린다
+# 게임을 멈추고 ESC 메뉴를 연다(S183, I11). 전투 단계·원정(S316)이면 나가도 저장되지 않는다고 알린다
 func pause() -> void:
-	menus.open("pause", view.battle.state == "battle")
+	menus.open("pause", PAUSE_NOTES.get(view.battle.state, ""))
 	hud.cover()
 	get_tree().paused = true
 	_map_press = false  # 메뉴 버튼 누름은 멈춘 동안이라 _input이 보지 못한다
@@ -301,4 +319,10 @@ static func stage() -> Dictionary:
 		"nights": ROUNDS.map(func(r): return load("res://data/waves/%s.tres" % r).nights),  # 웨이브마다 밤(S210)
 		"quests": true,  # 미션(S77, I118): data/quests의 모든 미션이 뜬다
 		"waves": rounds[0],  # 1라운드. 라운드 하나뿐인 스테이지의 키라 시험 스테이지 평가(EV144)가 읽는다
+		# 보스방 원정(S316·S317, I262): 맵 오른쪽에 붙는 숨은 띠 폭(strip), 보스방 사각형(room)과 모서리 막는 거리(cut), 입구 칸(출전 차례)·보스 칸,
+		# 계단 칸·벽 횃불 칸(꺼지는 차례), 라운드마다 더하는 횃불(torches)·쌓임 상한(torch_cap), 층 차례(data/dungeon 파일 이름),
+		# 끝나고 돌아오기까지 초(처치 win_wait, 전멸·불꽃 wipe_wait). 수치는 임시값(05 §2.2·§2.3)
+		"den": {"strip": 40, "room": Rect2i(74, 76, 20, 12), "cut": 2, "entry": [Vector2i(83, 87), Vector2i(85, 87), Vector2i(84, 87)], "boss": Vector2i(84, 80),
+			"stairs": Rect2i(83, 88, 3, 2), "lamps": [Vector2i(73, 81), Vector2i(79, 75), Vector2i(88, 75), Vector2i(94, 81)],
+			"torches": 2, "torch_cap": 4, "floors": ["floor_1"], "win_wait": 3.0, "wipe_wait": 2.5},
 	}

@@ -41,7 +41,7 @@ func _ready() -> void:
 	_process(0.0)
 
 func _process(_delta: float) -> void:
-	visible = battle.state in ["prep", "battle"]
+	visible = battle.state in ["prep", "battle", "raid"]  # 원정(S316)에도 쓴다
 	if battle.all_auto():
 		add_theme_stylebox_override("normal", _on_box)
 	else:
