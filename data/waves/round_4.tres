@@ -14,10 +14,12 @@ waves = Array[Dictionary]([{
 "feather_harpy": 60,
 "dive_harpy": 100
 }, {
-"basic": 240,
-"fast": 120,
-"armored": 100,
-"flying": 80
+"flying": 280,
+"storm_harpy": 40,
+"feather_harpy": 60,
+"snatch_harpy": 60,
+"dive_harpy": 60,
+"song_harpy": 40
 }, {
 "basic": 300,
 "fast": 160,

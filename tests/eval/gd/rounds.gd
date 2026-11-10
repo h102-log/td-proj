@@ -29,7 +29,8 @@ const RAID := [{"basic": 260, "sapper": 30, "ram": 6},
 	{"shieldbearer": 15, "fire_archer": 10, "basic": 240, "sapper": 40, "ram": 6, "catapult": 8, "glider": 80, "siege_tower": 3, "balloon": 6, "airship": 6, "war_machine": 1}]
 const WOLF := [{"wolf": 320}, {"wolf": 300, "leap_wolf": 100}, {"wolf": 240, "leap_wolf": 80, "night_wolf": 80}, {"wolf": 320, "leap_wolf": 100, "night_wolf": 100, "alpha_wolf": 6}]  # I91 2026-11-05 변경: 알파 늑대 6
 # S303: 4라운드 1·2웨이브는 하늘 둥지(마릿수, 10배를 하지 않는다). 키 차례가 나오는 차례다. 3·4웨이브는 I91 표 그대로
-const SKY := [{"flying": 360, "feather_harpy": 60}, {"flying": 300, "song_harpy": 60, "feather_harpy": 60, "dive_harpy": 100}]
+const SKY := [{"flying": 360, "feather_harpy": 60}, {"flying": 300, "song_harpy": 60, "feather_harpy": 60, "dive_harpy": 100},
+	{"flying": 280, "storm_harpy": 40, "feather_harpy": 60, "snatch_harpy": 60, "dive_harpy": 60, "song_harpy": 40}]  # S303(3웨이브는 2026-11-10 변경)
 # I91 표(2026-10-21 개정): 2~6라운드 웨이브마다 종류별 적 수
 const I91 := [
 	[{"basic": 18, "fast": 8, "flying": 6}, {"basic": 18, "armored": 8, "flying": 10, "fast": 4}, {"basic": 18, "fast": 8, "armored": 8, "flying": 6}, {"basic": 22, "fast": 12, "armored": 8, "flying": 10, "boss": 1}],
@@ -271,7 +272,7 @@ func ev169():
 		return "라운드가 %d개다(6개여야 한다)" % b.rounds.size()
 	var table := [S111, WOLF] + I91.slice(1).map(func(r): return _ten(r))
 	table[2] = RAID  # I91 2026-11-03 변경·둘째 변경·셋째 변경: 3라운드 네 웨이브 모두 고블린 약탈단(마릿수)
-	table[3] = SKY + table[3].slice(2)  # S303: 4라운드 1·2웨이브는 하늘 둥지(마릿수), 3·4웨이브는 그대로
+	table[3] = SKY + table[3].slice(3)  # S303: 4라운드 1~3웨이브는 하늘 둥지(마릿수), 4웨이브는 그대로
 	for k in 6:
 		var got := _counts(b.rounds[k])
 		if got != table[k]:
@@ -452,17 +453,17 @@ func ev829():
 			bad.append("%d웨이브 %s(%s여야 한다)" % [i + 1, d, RAID[i]])
 	return check(bad.is_empty(), "수나 차례가 다른 웨이브 %s" % [bad])
 
-# EV838 · S303: data/waves/round_4.tres의 1·2웨이브는 S303의 수이고 키 차례가 나오는 차례(비행 → 깃털 사수 …)다. 3·4웨이브는 I91 표의 10배 그대로다.
+# EV838 · S303: data/waves/round_4.tres의 1~3웨이브는 S303의 수이고 키 차례가 나오는 차례(비행 → 깃털 사수 …)다. 4웨이브는 I91 표의 10배 그대로다.
 # 비행은 무리 4(S238)라 비행 8마리짜리 웨이브의 첫 차례에 4마리가 함께 나온다
 func ev838():
 	var w = load("res://data/waves/round_4.tres")
 	if w == null or not w.get("waves") is Array or w.waves.size() != 4:
 		return "4라운드 웨이브 Resource의 waves가 웨이브 4개 배열이 아니다(%s)" % [w.get("waves") if w != null else null]
-	var want: Array = SKY + _ten(I91[2]).slice(2)
+	var want: Array = SKY + _ten(I91[2]).slice(3)
 	var bad := []
 	for i in 4:
 		var d: Dictionary = w.waves[i]
-		if d != want[i] or (i < 2 and d.keys() != want[i].keys()):
+		if d != want[i] or (i < 3 and d.keys() != want[i].keys()):
 			bad.append("%d웨이브 %s(%s여야 한다)" % [i + 1, d, want[i]])
 	if not bad.is_empty():
 		return "수나 차례가 다른 웨이브 %s" % [bad]

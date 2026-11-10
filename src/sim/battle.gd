@@ -77,6 +77,7 @@ const AUTO_FIX_BELOW := 0.8
 const AUTO_FIX_EVERY := 0.5
 const WALL_RANGE := 2.0  # 성벽 위에서 치려면 필요한 사거리(칸, S88). 열린 성문 위는 예외다(S89). 임시값
 const AIR_RANGE := 2.0  # 날고 있는 적을 치려면 필요한 사거리(칸, S109 2026-11-09 변경). S88과 같은 선이다. 임시값
+const BLOWN := 0.3  # 돌풍에 날린 화살 자국이 남는 시간(초, I253 ③). 임시값
 const GROUND_ONLY := ["shield_bash", "brace"]  # 날고 있는 적에 들지 않는 근접 영웅 칸: 아이아스 Q·E(S109 2026-11-09 변경). 오토도 날고 있는 적을 세지 않는다
 const SLOTS := ["q", "w", "e", "r"]  # 영웅 스킬 칸(S145)
 const CAST_RANGE := 6.0  # 지점·대상을 고르는 스킬의 시전 사거리(칸, S147). 임시값
@@ -241,6 +242,9 @@ class Enemy:
 	var dive := {}  # 박치기 하피의 박치기(S305)
 	var back = null  # 박치기 뒤 돌아갈 자리(예고를 시작한 자리, S305). 돌아가는 중이 아니면 null
 	var song := {}  # 노래하는 하피의 노래(S306)
+	var gust := {}  # 폭풍날개 하피의 돌풍(S307)
+	var snatch := {}  # 낚아채기 하피의 낚아채기(S308)
+	var carry = null  # 낚아채기 하피가 든 것(S308): 용병(Unit)·주민(Villager)·"stone". 없으면 null
 
 	func _init(k: String, cell: Vector2i, stats: Dictionary) -> void:
 		kind = k
@@ -427,6 +431,8 @@ var _dotting := false  # 초당 피해를 주는 중. 뜬 적(S236)도 이것만
 var missiles := []  # 날고 있거나 출발을 기다리는 투사체(Missile, S178). 웨이브가 끝나면 사라진다(I143)
 var landed := []  # 닿은 투사체(Missile). 그리기만 읽고(맞은 반응·사건, S177·I171) 1초 지나면 지운다
 var feathers := []  # 깃털 사수 하피가 쏜 날아가는 깃털 {pos, target, src, hurt, speed}(S304, I250). 웨이브가 끝나면 사라진다(I143)
+var blown := []  # 돌풍에 날린 화살 자리 {pos, age}(S307, I253 ③). 그리기만 읽고 BLOWN초 지나면 지운다
+var _gales := []  # 이번 스텝에 돌풍을 뿜는 폭풍날개 하피(S307). 투사체를 날리기 전에 정한다
 var enemies := []
 var units := []  # 살아 있는 영웅·용병
 var heroes := []  # 전장에 나온 출전 영웅(Unit)들, 보유 순서(I108). 쓰러진 영웅도 들어 있다(I102)
@@ -570,6 +576,7 @@ func restart() -> void:
 	missiles.clear()
 	landed.clear()
 	feathers.clear()
+	blown.clear()
 	enemies.clear()
 	ladders.clear()
 	units.clear()
@@ -643,8 +650,9 @@ func restart() -> void:
 	_light_up()
 
 func step(dt: float) -> void:
-	for t in traces + fallen + landed + wrecks:
+	for t in traces + fallen + landed + wrecks + blown:
 		t.age += dt
+	blown = blown.filter(func(t): return t.age < BLOWN)
 	traces = traces.filter(func(t): return t.age < 1.0)
 	landed = landed.filter(func(m): return m.age < 1.0)
 	fallen = fallen.filter(func(f): return f.age < FALLEN)
@@ -1800,9 +1808,9 @@ func _zones(dt: float) -> void:
 			_end_zone(z)
 			zones.erase(z)
 
-# 해로운 효과(S152 정화가 지운다): 기절·속박·둔화·도발·봉인·공격력·공격 속도 감소, 받는 피해 증가, 초당 피해, 방어력·마법 저항 감소, 붙잡힘(S242)
+# 해로운 효과(S152 정화가 지운다): 기절·속박·둔화·도발·봉인·공격력·공격 속도 감소, 받는 피해 증가, 초당 피해, 방어력·마법 저항 감소, 붙잡힘(S242), 들림(S308)
 func _harmful(v: Dictionary) -> bool:
-	return ["stun", "root", "slow", "taunt", "seal", "weaken", "lag", "expose", "dot", "chain", "bleed", "pin"].any(func(k): return v.has(k)) or v.get("armor", 0.0) < 0.0 or v.get("mr", 0.0) < 0.0
+	return ["stun", "root", "slow", "taunt", "seal", "weaken", "lag", "expose", "dot", "chain", "bleed", "pin", "lift"].any(func(k): return v.has(k)) or v.get("armor", 0.0) < 0.0 or v.get("mr", 0.0) < 0.0
 
 # 장판이 끝날 때: 에너지 성벽 칸을 치운다(S151)
 func _end_zone(z: Dictionary) -> void:
@@ -2921,7 +2929,7 @@ func _folk(dt: float) -> void:
 		return
 	for v in people.duplicate():
 		var a = v.m.get("away")
-		if a == null:
+		if a == null or a.to == "lift":  # 들린 주민(S308)은 낚아채기 하피가 옮긴다
 			continue
 		var dest = structures.get(a.cell)
 		if a.to in ["church", "shelter"] and (dest == null or not dest.complete):
@@ -3323,6 +3331,8 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 		settled = [[mission, false]] if mission != "" else []  # 진 라운드의 미션은 실패다(I131)
 	elif target is Enemy:
 		enemies.erase(target)
+		if target.carry != null:  # 낚아채기 하피(S308 ⑤): 든 것을 그 자리에 다치지 않게 내려놓는다
+			_set_down(target, target.pos, 0.0)
 		for o in enemies:  # 광분(S295): 같은 종류의 다른 알파가 쓰러지면 하나 쌓인다
 			if o.kind == target.kind and o.skills.has("frenzy"):
 				o.grief += 1
@@ -3472,7 +3482,7 @@ func _target_of(e: Enemy):
 	var best = null
 	var best_d := INF
 	for m in units:
-		if not _free(m, e):  # 블록 자리가 찬 유닛은 노리지 않고 지나간다(S159)
+		if not _free(m, e) or _carried(m):  # 블록 자리가 찬 유닛은 노리지 않고 지나간다(S159). 들린 용병(S308)은 노리지 않는다
 			continue
 		var d := e.pos.distance_to(m.pos)
 		# 밀어낸 직후 거리는 반지름 합과 같아서 0.01 여유를 둔다(S13: 몸으로 막은 유닛은 인식 범위 밖이어도 친다)
@@ -3487,8 +3497,8 @@ func _target_of(e: Enemy):
 			if d < best_d and d <= e.sight:
 				best = s
 				best_d = d
-		for v in people:  # 밖에 나와 있는 주민도 노린다(I49 2026-10-27 변경). 안에 든 주민·떠나는 가족은 노리지 않는다
-			if not v.inside and _to(v) != "out":
+		for v in people:  # 밖에 나와 있는 주민도 노린다(I49 2026-10-27 변경). 안에 든 주민·떠나는 가족·들린 주민(S308)은 노리지 않는다
+			if not v.inside and not _to(v) in ["out", "lift"]:
 				var d := e.pos.distance_to(v.pos)
 				if d < best_d and d <= e.sight:
 					best = v
@@ -3537,6 +3547,8 @@ func _move(e: Enemy, dt: float) -> void:
 			_fx(e, "stagger", {"expose": STAGGER_EXPOSE}, STAGGER)
 	if e.grip and _grip(e, dt, stunned or sealed):  # 붙잡은 동안은 그 아군만 문다(S242)
 		return
+	if e.carry != null:  # 낚아채기(S308): 든 동안은 떨어뜨릴 자리 쪽으로 날고, 예고가 끊겼으면 든 것을 내려놓는다
+		_hold(e, dt)
 	if stunned:  # 기절·빙결(S150): 움직이지도 치지도 않는다
 		return
 	if _skills(e, dt, sealed):  # 예고 동안은 움직이지도 치지도 않는다(S194)
@@ -3556,6 +3568,10 @@ func _move(e: Enemy, dt: float) -> void:
 	if not e.feather.is_empty() and not sealed and _volley(e):  # 깃털 사수 하피(S304): 사거리 안 아군이 있으면 떠서 깃털을 쏜다
 		return
 	if not e.dive.is_empty() and _swoop(e, dt, sealed):  # 박치기 하피(S305): 돌아가는 중이거나 인식 범위에 아군이 있으면 떠서 대기 뒤 예고한다
+		return
+	if not e.gust.is_empty() and not sealed and _gale(e):  # 폭풍날개 하피(S307): 성곽 앞 range칸에 들면 떠서 멈추고 대기가 끝나면 예고한다
+		return
+	if not e.snatch.is_empty() and not sealed and _swipe(e, dt):  # 낚아채기 하피(S308): 들 것으로 날아가거나 돌을 주우러 내려앉는다
 		return
 	if e.dashing and (e.path.is_empty() or units.any(func(u): return u.alive and _touching(u, e) and _touch(e, u))):  # 아군 몸에 막히거나 길이 끝나면 돌진이 끝난다(I243 ④)
 		_end_dash(e)
@@ -3695,9 +3711,9 @@ func _skills(e: Enemy, dt: float, sealed: bool) -> bool:
 func _slam_ready(e: Enemy, sk: Dictionary) -> bool:
 	return _ground_near(e.pos, sk.radius).size() >= sk.count
 
-# 성벽 위가 아닌 영웅·용병 가운데 at에서 r 안에 있는 것
+# 성벽 위가 아닌 영웅·용병 가운데 at에서 r 안에 있는 것. 들린 용병(S308)은 하늘에 있어 뺀다
 func _ground_near(at: Vector2, r: float) -> Array:
-	return units.filter(func(u): return not u.on_wall and u.pos.distance_to(at) <= r)
+	return units.filter(func(u): return not u.on_wall and u.pos.distance_to(at) <= r and not _carried(u))
 
 # 대지 강타(S195): 반경 안 땅 위 영웅·용병에게 물리 피해, 보스에게서 멀어지는 쪽으로 넉백(막힌 칸·몸에서 멈춘다), 둔화.
 # 보스와 같은 자리에 선 몸은 away 쪽으로 민다(점프 착지, S236). 오우거는 away가 없어 그 몸은 밀리지 않는다. 둔화 칸이 없으면(대장 착지, S288) 둔화하지 않는다
@@ -4022,13 +4038,13 @@ func _howls() -> void:
 
 # ── 4라운드 하늘 둥지(S303~S306) ──
 
-# p에서 r칸 안의 살아 있는 아군(영웅·용병·공병, 성벽 위 포함) 가운데 가장 가까운 것. 없으면 null(I250 ①·I251 ①)
+# p에서 r칸 안의 살아 있는 아군(영웅·용병·공병, 성벽 위 포함, 들린 용병 빼고) 가운데 가장 가까운 것. 없으면 null(I250 ①·I251 ①·S308)
 func _nearest_unit(p: Vector2, r: float):
 	var best = null
 	var best_d := r
 	for u in units:
 		var d := p.distance_to(u.pos)
-		if u.alive and d <= best_d:
+		if u.alive and d <= best_d and not _carried(u):
 			best = u
 			best_d = d
 	return best
@@ -4143,16 +4159,187 @@ func _songs(dt: float) -> void:
 			if u.kind != "engineer" and u.pos.distance_to(a.pos) <= sk.radius:
 				_fx(u, "song", {"lag": sk.lag}, STAY)
 
-# 적이 아군에 거는 조작 효과(S243): 기절·붙잡힘은 하나만 걸리고 뒤에 건 것이 앞의 것을 지운다
+# 폭풍날개 하피가 겨누는 자리(S307, I253 ①): p에서 가장 가까운 서 있는 성곽 칸 가운데. 성곽이 없으면 거점의 가장 가까운 차지 칸
+func _gale_mark(p: Vector2) -> Vector2:
+	var best = null
+	for s in castle.values():
+		if s.alive:
+			var c := _cell_near(s, p)
+			if best == null or p.distance_to(c) < p.distance_to(best):
+				best = c
+	return best if best != null else nearest(base, p)
+
+# 폭풍날개 하피(S307): 겨누는 자리가 range칸 안이면 떠서 멈추고, 대기가 끝났으면 그쪽 부채꼴 예고를 시작한다. 멈췄으면 true.
+# 성곽을 다 덮는 사각형에서 range칸 넘게 떨어져 있으면 성곽 칸을 다 보지 않는다
+func _gale(e: Enemy) -> bool:
+	if not castle.is_empty() and not Rect2(_fort.position, _fort.size).grow(e.gust.range + 1.0).has_point(e.pos):
+		return false
+	var to := _gale_mark(e.pos)
+	if e.pos.distance_to(to) > e.gust.range:
+		return false
+	if e.cd.get("gust", 0.0) <= 0.0:
+		e.cast = {"id": "gust", "left": e.gust.windup, "dir": (to - e.pos).angle(), "blow": false}
+	return true
+
+# 돌풍 예고가 끝났다(S307): 같은 부채꼴로 끊길 때까지 뿜는다(left가 끝나지 않는다). 끊기면 _move가 대기를 처음부터 돌린다(S279)
+func _gust(e: Enemy, _sk: Dictionary) -> void:
+	e.cast = {"id": "gust", "left": INF, "dir": e.cast.dir, "blow": true}
+
+# 돌풍을 지나는 화살(S307, I253 ②): 이 step에 지난 선분 a → m.pos를 0.25칸 간격으로 짚어(두 끝 포함) 한 점이라도 뿜는 하피의 부채꼴
+# (몸 가운데에서 reach칸 안, 방향에서 arc/2° 안, 몸 가운데 0.01칸 안은 빼고) 안이면 날려 사라진다. 날린 자리를 blown에 남긴다
+func _gusted(m: Missile, a: Vector2) -> bool:
+	if m.look != "arrow" or _gales.is_empty():
+		return false
+	var n := maxi(ceili(a.distance_to(m.pos) / 0.25), 1)
+	for e in _gales:
+		var half: float = deg_to_rad(e.gust.arc) / 2.0
+		for i in n + 1:
+			var p: Vector2 = a.lerp(m.pos, float(i) / n)
+			var v: Vector2 = p - e.pos
+			if v.length() > 0.01 and v.length() <= e.gust.reach and absf(angle_difference(v.angle(), e.cast.dir)) <= half:
+				blown.append({"pos": p, "age": 0.0})
+				return true
+	return false
+
+# 들린 용병(S308 ④): 적이 노리지 않고, 몸으로 막지도 막히지도 않으며, 움직이지도 치지도 않는다
+func _carried(u) -> bool:
+	return u is Unit and _fx_on(u, "lift") != null
+
+# p에서 r칸 안의 들 수 있는 것 가운데 가장 가까운 것(S308 ①, I254 ①): 용병(같은 거리면 유닛 차례에서 앞선 것)이 주민보다 앞선다. 없으면 null
+func _liftable(p: Vector2, r: float):
+	var best = null
+	var best_d := INF
+	for u in units:
+		var d := p.distance_to(u.pos)
+		if u.alive and not u.is_hero and d <= r and d < best_d and not _carried(u):
+			best = u
+			best_d = d
+	for v in people:
+		var d := p.distance_to(v.pos)
+		if v.alive and not v.inside and not _to(v) in ["out", "lift"] and d <= r and d < best_d:
+			best = v
+			best_d = d
+	return best
+
+# 낚아채기 하피(S308 ①②): 들고 있지 않고 대기가 끝났고 도발되지 않았으면, 들 것으로 곧장 날아가 reach칸 안이면 든다. 들 것이 없는데 range칸 안에
+# 아군이 있으면 하피 칸(빈 칸이 아니면 가장 가까운 빈 칸) 가운데로 날아가 내려앉아 돌을 줍기 시작한다(I254 ①). 이 스텝을 여기서 썼으면 true
+func _swipe(e: Enemy, dt: float) -> bool:
+	var taunt = _fx_on(e, "taunt")
+	if e.carry != null or e.cd.get("snatch", 0.0) > 0.0 or (taunt and taunt.alive):
+		return false
+	var sk: Dictionary = e.snatch
+	var step: float = e.speed * (1.0 - _fx_cut(e, "slow")) * dt
+	var x = _liftable(e.pos, sk.range)
+	if x != null:
+		e.pos = e.pos.move_toward(x.pos, step)
+		if e.pos.distance_to(x.pos) <= sk.reach:
+			_pluck(e, x)
+		return true
+	if _nearest_unit(e.pos, sk.range) == null:
+		return false
+	var c := Vector2i(e.pos.round())
+	var spot := Vector2(c if _bare(c) else _bare_near(c))
+	e.pos = e.pos.move_toward(spot, step)
+	if e.pos.distance_to(spot) < 0.001:
+		e.cast = {"id": "snatch", "left": sk.pick, "pick": true}
+		_fx(e, "snatch", {"down": true}, sk.pick)
+	return true
+
+# 들기(S308 ③④, I254 ②): 용병은 들림(조작 효과, S243)이 걸리고 성벽 위가 아니게 되며 명령과 일을 놓는다. 붙잡던 적은 _target_of가 놓는다.
+# 주민은 일과에서 빠진다(away «lift»). 든 것을 하피 자리로 옮기고 떨어뜨릴 자리에 예고를 띄운다
+func _pluck(e: Enemy, x) -> void:
+	e.carry = x
+	if x is Unit:
+		_control(x, "snatch", {"lift": e}, e.snatch.windup + 1.0)
+		x.on_wall = false
+		_drop_orders(x)
+		_halt(x)
+	else:
+		x.m.away = {"to": "lift", "pts": [e.pos], "len": 0.0, "s": 0.0, "in": false}
+	_carry_to(x, e.pos)
+	e.cast = {"id": "snatch", "left": e.snatch.windup, "at": _toss_at(e)}
+
+# 떨어뜨릴 자리(S308 ③, I254 ①): 하피에서 toss칸 안의 아군(들린 것 빼고) 가운데 radius칸 안에 아군이 가장 많이 몰린 아군의 자리.
+# 같으면 유닛 차례에서 앞선 것, 없으면 하피 자리
+func _toss_at(e: Enemy) -> Vector2:
+	var sk: Dictionary = e.snatch
+	var free := units.filter(func(u): return u.alive and not _carried(u))
+	var at := e.pos
+	var most := 0
+	for u in free:
+		if e.pos.distance_to(u.pos) <= sk.toss:
+			var n := free.filter(func(m): return m.pos.distance_to(u.pos) <= sk.radius).size()
+			if n > most:
+				at = u.pos
+				most = n
+	return at
+
+# 든 것을 p로 옮긴다. 주민은 _place가 그 자리에 두게 길(away)도 바꾼다
+func _carry_to(x, p: Vector2) -> void:
+	if x is Unit or x is Villager:
+		x.pos = p
+	if x is Villager:
+		x.m.away.pts = [p]
+
+# 든 동안(S308 ③⑤, I254 ⑤): 떨어뜨릴 예고 중이면 그 자리 쪽으로 날고 든 것을 따라 옮긴다. 예고가 끊겼거나(기절·빙결·봉인)
+# 들림이 풀렸거나 들린 용병이 쓰러졌으면 예고를 거두고 대기를 처음부터 돌리며, 든 것을 하피 아래에 다치지 않게 내려놓는다
+func _hold(e: Enemy, dt: float) -> void:
+	var x = e.carry
+	var lost: bool = x is Unit and not (x.alive and x in units and is_same(_fx_on(x, "lift"), e))
+	if lost or e.cast == null or e.cast.id != "snatch":
+		e.cast = null
+		e.cd.snatch = e.snatch.cd
+		_set_down(e, e.pos, 0.0)
+		return
+	e.pos = e.pos.move_toward(e.cast.at, e.speed * (1.0 - _fx_cut(e, "slow")) * dt)
+	_carry_to(x, e.pos)
+
+# 든 것을 at에 놓는다(S308 ③⑤, I254 ③④). hurt는 낙하 피해다. 용병은 아군이 걷는 성곽 칸이면 그 칸 가운데의 성벽 위, 빈 칸이면 at,
+# 아니면 가장 가까운 빈 칸 가운데에 명령 없이 선다. 주민은 빈 칸이 아니면 가장 가까운 빈 칸 가운데에 놓이고, 다치면 교회나 집으로(_hurt), 아니면 집으로 걷는다
+func _set_down(e: Enemy, at: Vector2, hurt: float) -> void:
+	var x = e.carry
+	e.carry = null
+	var c := Vector2i(at.round())
+	if x is Unit:
+		for k in x.fx.keys():
+			if is_same(x.fx[k].get("lift"), e):
+				x.fx.erase(k)
+		if not (x.alive and x in units):
+			return
+		x.on_wall = walls.has(c)
+		x.pos = Vector2(c) if x.on_wall else (at if _bare(c) else Vector2(_bare_near(c)))
+		_halt(x)
+		if hurt > 0.0:
+			damage(x, hurt, "phys", e)
+	elif x is Villager:
+		x.m.erase("away")
+		x.pos = at if _bare(c) else Vector2(_bare_near(c))
+		if hurt > 0.0:
+			_hurt(x, hurt)
+		else:
+			_go(x, "home")
+
+# 낚아채기 예고가 끝났다(S308 ②③). 돌 줍기였으면 돌을 들고 떨어뜨릴 자리에 예고를 띄운다. 아니면 든 것을 예고 자리에 떨어뜨린다:
+# 원 안의 구조물·아군에 피해(I219, 들린 것은 _blast가 뺀다)를 주고, 떨어뜨린 용병·주민은 낙하 피해를 받는다. 대기는 _skills가 돌린다
+func _snatch(e: Enemy, sk: Dictionary) -> void:
+	if e.cast.get("pick", false):
+		e.carry = "stone"
+		e.cast = {"id": "snatch", "left": sk.windup, "at": _toss_at(e)}
+		return
+	var at: Vector2 = e.cast.at
+	_blast(at, sk.radius, sk.structure, sk.hit)
+	_set_down(e, at, sk.fall)
+
+# 적이 아군에 거는 조작 효과(S243): 기절·붙잡힘·들림(S308)은 하나만 걸리고 뒤에 건 것이 앞의 것을 지운다
 func _control(u, src: String, eff: Dictionary, secs: float) -> void:
 	for k in u.fx.keys():
-		if u.fx[k].has("stun") or u.fx[k].has("pin"):
+		if u.fx[k].has("stun") or u.fx[k].has("pin") or u.fx[k].has("lift"):
 			u.fx.erase(k)
 	_fx(u, src, eff, secs)
 
-# 조작을 빼앗긴 아군(I192·S242): 기절이나 붙잡힘. 움직이지도 치지도 스킬을 쓰지도 않는다
+# 조작을 빼앗긴 아군(I192·S242·S308): 기절·붙잡힘·들림. 움직이지도 치지도 스킬을 쓰지도 않는다
 func _seized(u) -> bool:
-	return _fx_on(u, "stun") != null or _fx_on(u, "pin") != null
+	return _fx_on(u, "stun") != null or _fx_on(u, "pin") != null or _fx_on(u, "lift") != null
 
 # 점프로 뜬 적(S236): 맞지 않고(대상·피해·효과·넉백·전염·장판), 몸에 막히지도 막지도 않는다(I188)
 func _aloft(e) -> bool:
@@ -4193,6 +4380,8 @@ func _count_holds() -> void:
 # 몸끼리 닿는가(S13, S159): 유닛과 적 사이는 그 유닛이 그 적을 붙잡을 수 있을 때만 막는다. 비행 적은 막지 않는다(S109). 아군은 에너지 성벽을 지나간다(I142)
 func _touch(mover, body) -> bool:
 	if body is Enemy and (_flies(body) or _aloft(body) or _plows(body)):
+		return false
+	if _carried(body):  # 들린 용병(S308)은 하늘에 있어 길을 막지 않는다
 		return false
 	if mover is Enemy and body is Unit:
 		return not _plows(mover) and _free(body, mover)
@@ -4243,7 +4432,7 @@ func _push_apart(bodies: Array, others: Array) -> void:
 
 # 같은 편과 밀지도 밀리지도 않는 몸(_push_apart): 비행 적(I79), 뜬 적(S236), 공성탑(S284)
 func _ghost(x) -> bool:
-	return x.get("flying") or _aloft(x) or (x is Enemy and not x.ladder.is_empty())
+	return x.get("flying") or _aloft(x) or (x is Enemy and not x.ladder.is_empty()) or _carried(x)
 
 # 겹친 두 몸 a·o를 떼어 놓는다(_push_apart)
 func _part(a, o, others: Array) -> void:
@@ -4316,6 +4505,7 @@ func _aim(m: Missile) -> void:
 # 대포알은 마지막 자리로 간다. 닿으면 _land. 쏜 쪽이 날아가는 동안 쓰러지거나 팔려도 닿는다. 닿기 전에 이 step에 지난 길로 실비아의 바람을 받는다(_wind).
 # 논타겟팅 투사체는 대상을 따라가지 않는다(_glide)
 func _fly(dt: float) -> void:
+	_gales = enemies.filter(func(e): return e.cast != null and e.cast.id == "gust" and e.cast.get("blow", false))  # 돌풍을 뿜는 폭풍날개 하피(S307)
 	var flying := []
 	for m in missiles:
 		var left := dt
@@ -4343,10 +4533,14 @@ func _fly(dt: float) -> void:
 		var to: Vector2 = m.at - m.pos
 		if to.length() > m.speed * left:
 			m.pos += to.normalized() * m.speed * left
+			if _gusted(m, was):  # 돌풍에 날린 화살(S307)
+				continue
 			_wind(m, was)
 			flying.append(m)
 		else:
 			m.pos = m.at
+			if _gusted(m, was):
+				continue
 			_wind(m, was)
 			_land(m)
 	missiles = flying
@@ -4360,10 +4554,14 @@ func _glide(m: Missile, left: float) -> bool:
 		var hit = _struck(was, m.pos)
 		if hit:
 			m.pos = Geometry2D.get_closest_point_to_segment(hit.pos, was, m.pos)
+			if _gusted(m, was):  # 닿기 전에 돌풍에 날렸다(S307, I253 ②)
+				return false
 			_wind(m, was)
 			m.target = hit
 			m.at = hit.pos  # 맞은 적 둘레가 축복 자리다(I224 ②)
 			_land(m)
+			return false
+		if _gusted(m, was):
 			return false
 	_wind(m, was)
 	if m.pos != m.at:
@@ -4667,13 +4865,13 @@ func _catch(s: Block, f: Dictionary) -> void:
 		if n != null and n != s and STRUCTURE_KINDS[n.kind].range > 0.0 and not n.fx.has("flame"):
 			_fx(n, "flame", {"burn": f.burn, "burnt": 0.0, "spread_at": at}, f.left)
 
-# 폭파·던지기 원(I219): 칸 가운데가 하나라도 원 안인 구조물과 몸 중심이 원 안인 영웅·용병·공병(성벽 위 포함)에 물리 피해
+# 폭파·던지기 원(I219): 칸 가운데가 하나라도 원 안인 구조물과 몸 중심이 원 안인 영웅·용병·공병(성벽 위 포함, 들린 용병 빼고, S308)에 물리 피해
 func _blast(at: Vector2, r: float, hit_s: float, hit_u: float) -> void:
 	for s in _works():
 		if s.alive and at.distance_to(_cell_near(s, at)) <= r:
 			damage(s, hit_s)
 	for u in units.duplicate():
-		if u.alive and u.pos.distance_to(at) <= r:
+		if u.alive and u.pos.distance_to(at) <= r and not _carried(u):
 			damage(u, hit_u)
 
 # 도화선이 다 탔다(S280): 둘레 원에 피해를 주고, 폭파병은 처치 골드·경험치 없이 죽는다

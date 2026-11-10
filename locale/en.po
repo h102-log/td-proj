@@ -10,7 +10,7 @@
 #   병영 Barracks · 작업장 Workshop · 사격장 Archery Range · 용병 Merc · 공병 Engineer · 궁수 Archer
 #   영입 Recruit · 리롤 Reroll · 이관 Transfer · 내보내기 Dismiss · 출전 Deployed · 대기 Reserve · 보유 Roster
 #   미션 Mission · 준비 단계 Prep · 전투 단계 Battle · 웨이브 Wave · 라운드 Round · 도전 Run
-#   적: 기본 Grunt · 빠름 Runner · 장갑 Armored · 비행 Flyer · 보스 Boss · 슬라임 Slime · 꼬마 슬라임 Slimelet · 큰 슬라임 Big Slime · 슬라임 킹 Slime King · 늑대 Wolf · 도약 늑대 Leaping Wolf · 밤 늑대 Night Wolf · 알파 늑대 Alpha Wolf · 폭파병 Sapper · 공성 망치 Battering Ram · 투석기 Catapult · 글라이더 고블린 Glider Goblin · 공성탑 Siege Tower · 폭탄 열기구 Bomb Balloon · 수송 비행선 Troop Airship · 고블린 전쟁 기계 Goblin War Machine · 고블린 대장 Goblin Chief · 방패 고블린 Shield Goblin · 불화살 고블린 Fire Archer Goblin · 깃털 사수 하피 Feather Harpy · 박치기 하피 Diving Harpy · 노래하는 하피 Singing Harpy
+#   적: 기본 Grunt · 빠름 Runner · 장갑 Armored · 비행 Flyer · 보스 Boss · 슬라임 Slime · 꼬마 슬라임 Slimelet · 큰 슬라임 Big Slime · 슬라임 킹 Slime King · 늑대 Wolf · 도약 늑대 Leaping Wolf · 밤 늑대 Night Wolf · 알파 늑대 Alpha Wolf · 폭파병 Sapper · 공성 망치 Battering Ram · 투석기 Catapult · 글라이더 고블린 Glider Goblin · 공성탑 Siege Tower · 폭탄 열기구 Bomb Balloon · 수송 비행선 Troop Airship · 고블린 전쟁 기계 Goblin War Machine · 고블린 대장 Goblin Chief · 방패 고블린 Shield Goblin · 불화살 고블린 Fire Archer Goblin · 깃털 사수 하피 Feather Harpy · 박치기 하피 Diving Harpy · 노래하는 하피 Singing Harpy · 폭풍날개 하피 Stormwing Harpy · 낚아채기 하피 Snatcher Harpy
 #   영웅 이름은 음역한다: 아이아스 Aias · 실비아 Sylvia · 세라피나 Seraphina · 베스퍼 Vesper · 이그니스 Ignis · 크로노스 Chronos
 msgid ""
 msgstr ""
@@ -512,6 +512,18 @@ msgstr "Dives in and knocks units back; stunned by shields"
 
 msgid "둘레 적을 회복시키고 아군 공격을 늦춘다"
 msgstr "Heals nearby foes and slows your attacks"
+
+msgid "폭풍날개 하피"
+msgstr "Stormwing Harpy"
+
+msgid "낚아채기 하피"
+msgstr "Snatcher Harpy"
+
+msgid "성곽 앞에 멈춰 돌풍으로 화살을 날린다"
+msgstr "Hovers before the walls; its gale blows arrows away"
+
+msgid "용병·주민을 낚아채 아군 위에 떨어뜨린다"
+msgstr "Snatches mercenaries or villagers and drops them on your units"
 
 msgid "죽으면 둘로 갈라진다"
 msgstr "Splits in two on death"
