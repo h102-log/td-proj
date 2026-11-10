@@ -661,3 +661,147 @@ func ev910():
 	if not fits or rows[0][0] <= 1500.0 or rows[1][0] > 1200.0 or rows[2][0] > 1000.0:
 		return "[남은 총 체력, 막대 폭] %s(폭 = 136 × 합 ÷ 1600 · 합은 1500 초과 → 1200 이하 → 1000 이하)" % [rows]
 	return check(is_equal_approx(big, 3.0) and is_equal_approx(small, big * 0.75), "그림 배율 왕 %s(3) · 1세대 %s(왕의 0.75배)" % [big, small])
+
+# ── 레이드 규칙(S323·I267) ── 더하는 API:
+#   FloorDef.ward(평소 받는 피해 감소 비율) · groggy {time, mult} · enrage {soft, step, ramp}
+#   그로기는 효과 출처 «groggy»({groggy: true})다 · 뜀 예고의 cast.aimed(겨눈 뜀이면 참) · Battle.raid_ramp() -> float(착지 피해 배율)
+
+func _groggy(b, e) -> bool:
+	return b._fx_on(e, "groggy") != null
+
+# EV911 · S323: 1층 층 정의의 경감·그로기·광폭 수치
+func ev911():
+	var f = load("res://data/dungeon/floor_1.tres")
+	return check(f.get("ward") == 0.88 and f.get("groggy") == {"time": 5.0, "mult": 1.5} and f.get("enrage") == {"soft": 80.0, "step": 10.0, "ramp": 0.15},
+		"ward %s(0.88) · groggy %s(time 5 · mult 1.5) · enrage %s(soft 80 · step 10 · ramp 0.15)" % [f.get("ward"), f.get("groggy"), f.get("enrage")])
+
+# EV912 · S323 ①②: 평소 12%만 받고 고정 피해는 그대로, 그로기 중에는 1.5배. 디펜스 슬라임 킹은 그대로다
+func ev912():
+	var b = _den()
+	var e = _king(b)
+	if e == null:
+		return "원정이 되지 않았다(판 %s · 적 %d)" % [b.state, b.enemies.size()]
+	var hp := [e.hp]
+	b.damage(e, 100.0, "magic")
+	hp.append(e.hp)
+	b.damage(e, 100.0, "true")
+	hp.append(e.hp)
+	b._fx(e, "groggy", {"groggy": true}, 5.0)
+	b.damage(e, 100.0, "magic")
+	hp.append(e.hp)
+	var lost := [hp[0] - hp[1], hp[1] - hp[2], hp[2] - hp[3]]
+	if absf(lost[0] - 12.0) > 0.001 or absf(lost[1] - 100.0) > 0.001 or absf(lost[2] - 150.0) > 0.001:
+		return "왕이 잃은 체력 %s(기대 마법 100 → 12 · 고정 100 → 100 · 그로기 중 마법 100 → 150)" % [lost]
+	var c = _den()
+	var k = c.spawn_enemy("slime_king", Vector2i(32, 100))
+	var before: float = k.hp
+	c.damage(k, 100.0, "magic")
+	return check(absf(before - k.hp - 100.0) < 0.001, "디펜스 슬라임 킹이 마법 100에 잃은 체력 %s(100)" % [before - k.hp])
+
+# EV913 · S323 ②: 겨눈 뜀이 아무도 못 맞히면 그 몸만 5초 그로기다. 맞히면 없고, 이동 뜀은 비어도 없다
+func ev913():
+	var b = _den()
+	var e = _king(b)
+	if e == null:
+		return "원정이 되지 않았다(판 %s · 적 %d)" % [b.state, b.enemies.size()]
+	var a = b.party[0]
+	a.pos = Vector2(84, 82)
+	_go(b, 3.2)
+	if e.cast == null or not e.cast.at.is_equal_approx(a.pos) or e.cast.get("aimed") != true:
+		return "① 3.2초 예고 %s(기대 착지 %s · aimed 참)" % [e.cast, a.pos]
+	a.pos = Vector2(80, 86)
+	_go(b, 2.2)
+	if not _groggy(b, e) or e.cast != null:
+		return "① 빈 착지 뒤 그로기 %s(참) · 예고 %s(없어야)" % [_groggy(b, e), e.cast]
+	var at: Vector2 = e.pos
+	var cd: float = e.cd.leap
+	_go(b, 4.5)
+	if e.pos != at or e.cd.leap != cd or e.cast != null or not _groggy(b, e):
+		return "① 그로기 4.5초 동안 자리 %s → %s · 뜀 대기 %s → %s(그대로여야) · 예고 %s(없어야) · 그로기 %s(참)" % [at, e.pos, cd, e.cd.leap, e.cast, _groggy(b, e)]
+	_go(b, 1.0)
+	if _groggy(b, e) or e.cd.leap >= cd:
+		return "① 5초 뒤 그로기 %s(거짓) · 뜀 대기 %s → %s(줄어야)" % [_groggy(b, e), cd, e.cd.leap]
+	var c = _den()
+	var k = _king(c)
+	if k == null:
+		return "② 원정이 되지 않았다"
+	var hit = c.party[0]
+	hit.pos = Vector2(84, 82)
+	var hp: float = hit.hp
+	_go(c, 5.4)
+	if hit.hp >= hp or _groggy(c, k):
+		return "② 맞은 영웅 체력 %s → %s(줄어야) · 왕 그로기 %s(거짓)" % [hp, hit.hp, _groggy(c, k)]
+	var d = _den()
+	var m = _king(d)
+	if m == null:
+		return "③ 원정이 되지 않았다"
+	d.damage(d.party[1], BIG)
+	d.damage(d.party[2], BIG)
+	var far = d.party[0]
+	far.pos = Vector2(75, 86)
+	var hp2: float = far.hp
+	_go(d, 3.2)
+	var aimed = m.cast.get("aimed") if m.cast != null else null
+	_go(d, 2.2)
+	return check(aimed == false and m.cast == null and not _groggy(d, m) and far.hp == hp2 and m.pos != Vector2(BOSS),
+		"③ 먼 영웅 쪽 뜀 aimed %s(거짓) · 착지 뒤 예고 %s(없어야) · 그로기 %s(거짓) · 영웅 체력 %s → %s · 왕 자리 %s(옮겨야)" % [aimed, m.cast, _groggy(d, m), hp2, far.hp, m.pos])
+
+# EV914 · S323 ③④: 기절·봉인은 걸리지 않고 둔화는 걸린다. 예고가 끊기지 않고, 밀기·되감기가 자리를 옮기지 않는다. 그로기 중에도 같다
+func ev914():
+	var b = _den()
+	var e = _king(b)
+	if e == null:
+		return "원정이 되지 않았다(판 %s · 적 %d)" % [b.state, b.enemies.size()]
+	_go(b, 3.2)
+	if e.cast == null:
+		return "3.2초에 왕이 예고 중이 아니다"
+	b._fx(e, "t1", {"stun": true}, 3.0)
+	b._fx(e, "t2", {"slow": 0.3, "seal": true}, 3.0)
+	var got := [b._fx_on(e, "stun"), b._fx_on(e, "seal"), b._fx_on(e, "slow"), e.fx.has("t1")]
+	b.step(DT)
+	if got != [null, null, 0.3, false] or e.cast == null or e.fx.has("stagger"):
+		return "기절·봉인·둔화·기절만 든 효과 %s(기대 [null, null, 0.3, 거짓]) · 한 스텝 뒤 예고 %s(있어야) · 비틀거림 %s(없어야)" % [got, e.cast, e.fx.has("stagger")]
+	var at: Vector2 = e.pos
+	b._knock(e, Vector2(2, 0))
+	var pushed: Vector2 = e.pos
+	b.loops.append({"e": e, "at": Vector2(78, 80), "wall": false, "left": 0.0, "owner": b.party[0], "blast": 1.0, "damage": 5.0, "aged": 1.0})
+	b.step(DT)
+	if pushed != at or e.pos != at:
+		return "밀기 뒤 %s · 되감기 뒤 %s(둘 다 %s여야)" % [pushed, e.pos, at]
+	b._fx(e, "groggy", {"groggy": true}, 5.0)
+	b._fx(e, "t3", {"stun": true}, 3.0)
+	b._knock(e, Vector2(2, 0))
+	return check(b._fx_on(e, "stun") == null and e.pos == at, "그로기 중 기절 %s(null) · 밀기 뒤 %s(기대 %s)" % [b._fx_on(e, "stun"), e.pos, at])
+
+# 둘째 영웅만 살려 (84,82)에 두고 불꽃을 flame으로 둔 원정에서 5.4초 뒤 그 영웅이 잃은 체력. 원정이 안 되면 -1
+func _landed(flame: float) -> float:
+	var b = _den()
+	if _king(b) == null:
+		return -1.0
+	b.damage(b.party[0], BIG)
+	b.damage(b.party[2], BIG)
+	var u = b.party[1]
+	u.pos = Vector2(84, 82)
+	var hp: float = u.hp
+	b.flame = flame
+	_go(b, 5.4)
+	return hp - u.hp
+
+# EV915 · S323 ⑤: 불꽃 80초부터 10초마다 착지 피해가 15%씩 는다
+func ev915():
+	var b = _den()
+	if not b.has_method("raid_ramp"):
+		return "raid_ramp가 없다"
+	var idle: float = b.raid_ramp()
+	if _king(b) == null:
+		return "원정이 되지 않았다"
+	var got := []
+	for t in [79.9, 80.0, 95.0, 119.0]:
+		b.flame = t
+		got.append(b.raid_ramp())
+	var want := [1.0, 1.15, 1.3, 1.6]
+	if idle != 1.0 or range(4).any(func(i): return absf(got[i] - want[i]) > 0.0001):
+		return "원정 밖 배율 %s(1) · 불꽃 79.9·80·95·119 배율 %s(기대 %s)" % [idle, got, want]
+	var low := _landed(10.0)
+	var high := _landed(81.0)
+	return check(low > 0.0 and absf(high - low * 1.15) < 0.01, "착지에 잃은 체력: 불꽃 10 %s · 불꽃 81 %s(기대 앞의 1.15배 %s)" % [low, high, low * 1.15])

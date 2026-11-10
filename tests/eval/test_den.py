@@ -56,3 +56,23 @@ def test_EV909_raid_ends_when_all_bodies_dead(gd):
 
 def test_EV910_boss_bar_total_hp_and_body_scale(gd):
     gd("den", "EV910")
+
+
+def test_EV911_floor1_raid_knobs(gd):
+    gd("den", "EV911")
+
+
+def test_EV912_ward_and_groggy_damage(gd):
+    gd("den", "EV912")
+
+
+def test_EV913_aimed_hop_miss_opens_groggy(gd):
+    gd("den", "EV913")
+
+
+def test_EV914_super_armor_and_no_displacement(gd):
+    gd("den", "EV914")
+
+
+def test_EV915_enrage_ramps_landing_damage(gd):
+    gd("den", "EV915")
