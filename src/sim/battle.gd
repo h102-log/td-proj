@@ -253,6 +253,9 @@ class Enemy:
 	var brood := {}  # 둥지의 새끼 낳기(S309). 비어 있지 않으면 둥지다
 	var kids := []  # 둥지가 낳은 새끼(S309). 쓰러진 새끼는 낳을 때마다 뺀다
 	var lay := 0.0  # 둥지가 다음 새끼를 낳을 때까지 남은 초(S309)
+	var wall := {}  # 방패벽 오크의 방패벽(S319)
+	var frenzy := {}  # 광전사 오크의 격노(S320)
+	var drum := {}  # 전쟁 북 고수의 전쟁 북(S321)
 	var raid := {}  # 원정 보스(S316)의 층 정의. 비어 있으면 원정 보스가 아니다
 	var pull := 0.0  # 움직이지도 치지도 스킬을 쓰지도 않고 서 있을 남은 초(원정 보스, I262 ④⑥)
 
@@ -516,6 +519,9 @@ var _shot := RandomNumberGenerator.new()  # 궁수 명중(S178 2026-11-04 변경
 var _chains := 0  # 영혼 사슬(S154)마다 붙이는 번호
 var _holds := {}  # 유닛 → 그 유닛이 붙잡은 적 수(S159). 스텝마다 적의 engaged로 다시 센다
 var _howled := {}  # 적 → 울부짖음(S242)으로 더하는 이동·공격 속도 비율. 스텝마다 다시 센다(I195)
+var ranks := []  # 방패벽을 선 방패벽 오크(S319). 스텝마다 다시 센다(I263 ①). 화면이 서로 잇는 선을 그린다
+var _drummed := {}  # 적 → 그 적에 든 전쟁 북(S321)의 수치. 스텝마다 다시 센다(I265 ①)
+var _heard := {}  # 들을 적이 있는 북 고수(S321). 스텝마다 다시 센다
 var _tracing = null  # 지금 내는 스킬 흔적(_trace). 그동안 피해·회복을 받은 대상이 hits에 쌓인다
 var _lit := {}  # 구역(LIGHT_CHUNK칸) → 그 구역에 닿는 [불빛 자리, 지금 반경²](seen)
 var _all_lit := true  # 어둠이 0이거나 불빛 하나가 맵을 다 덮어 모두 보인다
@@ -715,6 +721,8 @@ func step(dt: float) -> void:
 	_count_holds()
 	_howls()
 	_songs(dt)
+	_ranks()
+	_drums()
 	for e in enemies.duplicate():  # 폭파병(S280)은 제 차례에 터져 죽는다. 목록을 베껴 돌아 다음 적을 건너뛰지 않게
 		if e.alive:
 			_move(e, dt)
@@ -3749,7 +3757,9 @@ func _move(e: Enemy, dt: float) -> void:
 	var quick := 0.0 if sealed else worn
 	var dusk := 0.0 if sealed else dark  # 밤 늑대(S240)는 판 전체 어둠만큼 세진다(I193 ①). 봉인되면 세지지 않는다
 	var howl: float = 1.0 + _howled.get(e, 0.0)  # 울부짖음(S242)
-	e.cooldown -= dt * (1.0 - _fx_cut(e, "lag")) * (1.0 + (e.skills.rage.haste if rage else 0.0)) * (1.0 + sh.get("haste_max", 0.0) * quick) * (1.0 + e.night.get("haste", 0.0) * dusk) * howl  # 공격 속도 감소(S158), 분노(S195), 줄어듦(S236), 어둠(S240), 울부짖음(S242)
+	var mad := 0.0 if sealed else frenzy(e)  # 격노(S320): 잃은 체력 비율. 봉인되면 꺼진다
+	var beat: Dictionary = _drummed.get(e, {})  # 전쟁 북(S321)
+	e.cooldown -= dt * (1.0 - _fx_cut(e, "lag")) * (1.0 + (e.skills.rage.haste if rage else 0.0)) * (1.0 + sh.get("haste_max", 0.0) * quick) * (1.0 + e.night.get("haste", 0.0) * dusk) * howl * (1.0 + e.frenzy.get("haste", 0.0) * mad) * (1.0 + beat.get("haste", 0.0))  # 공격 속도 감소(S158), 분노(S195), 줄어듦(S236), 어둠(S240), 울부짖음(S242), 격노(S320), 전쟁 북(S321)
 	e.held -= dt
 	e.loosed += dt
 	var aloft := _aloft(e)
@@ -3809,7 +3819,7 @@ func _move(e: Enemy, dt: float) -> void:
 	if e.dashing and (e.path.is_empty() or units.any(func(u): return u.alive and _touching(u, e) and _touch(e, u))):  # 아군 몸에 막히거나 길이 끝나면 돌진이 끝난다(I243 ④)
 		_end_dash(e)
 	var rooted := _fx_on(e, "root") != null  # 속박(S150): 움직이지 않지만 닿는 대상은 친다
-	var speed: float = 0.0 if rooted else e.speed * (1.0 - _fx_cut(e, "slow")) * (1.0 + (e.skills.rage.stride if rage else 0.0)) * (1.0 + sh.get("stride_max", 0.0) * quick) * (1.0 + e.night.get("stride", 0.0) * dusk) * howl * (e.dash.stride if e.dashing else 1.0)  # 돌진(S293)
+	var speed: float = 0.0 if rooted else e.speed * (1.0 - _fx_cut(e, "slow")) * (1.0 + (e.skills.rage.stride if rage else 0.0)) * (1.0 + sh.get("stride_max", 0.0) * quick) * (1.0 + e.night.get("stride", 0.0) * dusk) * howl * (e.dash.stride if e.dashing else 1.0) * (1.0 + e.frenzy.get("stride", 0.0) * mad) * (1.0 + beat.get("stride", 0.0))  # 돌진(S293), 격노(S320), 전쟁 북(S321)
 	if e.on_wall and not _climbable(Vector2i(e.pos.round())):  # 성벽에서 내려왔거나 그 성벽이 부서졌다(I76)
 		e.on_wall = false
 		if e.vaulted:  # 한 번만 뛴다. 내려온 뒤로는 기어오르지 않는 땅 적이다(I191 ⑥)
@@ -3828,6 +3838,8 @@ func _move(e: Enemy, dt: float) -> void:
 	if goal != e.goal:  # 대상이 바뀌었다
 		e.goal = goal
 		_find_path(e)
+	if _heard.has(e) and e.pos.distance_to(aim.pos if body else nearest(aim, e.pos)) <= e.drum.keep:  # 전쟁 북 고수(S321, I265 ④): 들을 적이 있으면 대상에서 keep칸에 선다
+		return
 	# 기어오르는 적은 땅에서 성벽 위 유닛을 치지 않고, 그 칸으로 올라가서 친다(I77)
 	var below: bool = aim is Unit and e.climb > 0.0 and not e.on_wall and aim.on_wall and _climbable(goal)
 	var reach: float = maxf(REACH, e.radius + aim.radius + 0.01) if aim is Unit else REACH  # 몸이 큰 적도 몸에 닿은 유닛은 친다(S13 2026-11-05 변경)
@@ -4406,6 +4418,54 @@ func _songs(dt: float) -> void:
 		for u in units:
 			if u.kind != "engineer" and u.pos.distance_to(a.pos) <= sk.radius:
 				_fx(u, "song", {"lag": sk.lag}, STAY)
+
+# ── 5라운드 오크 전쟁패(S318~S321) ──
+
+# 방패벽을 설 수 있다(S319): 기절·빙결·봉인 중이거나 뜬 동안은 서지 않는다
+func _shielding(a: Enemy) -> bool:
+	return not a.wall.is_empty() and not _aloft(a) and _fx_on(a, "seal") == null and _fx_on(a, "stun") == null
+
+# 방패벽(S319, I263 ①): 설 수 있는 방패벽 오크 가운데 near칸 안에 그런 오크가 하나 더 있는 것을 ranks에 모은다
+func _ranks() -> void:
+	ranks.clear()
+	var able := enemies.filter(_shielding)
+	for a in able:
+		if able.any(func(o): return o != a and o.pos.distance_to(a.pos) <= a.wall.near):
+			ranks.append(a)
+
+# 방패벽이 투사체 m의 피해를 덜어 주는 비율(S319, I263 ②~④): 땅 적 e가 방패벽을 선 오크의 cover칸 안이고 m이 그 오크의 정면에서 출발한 화살·구슬이면 그 오크의 cut.
+# 정면은 오크 자리에서 노리는 칸 쪽 절반이다. 노리는 칸이 제 자리면 모든 쪽이 정면이다. 대포알은 줄지 않고, 여럿이 겹쳐도 한 번만 준다
+func _wall_cut(e: Enemy, m: Missile) -> float:
+	if m.look == "ball" or _flies(e) or _aloft(e):
+		return 0.0
+	for a in ranks:
+		if a.alive and e.pos.distance_to(a.pos) <= a.wall.cover:
+			var front: Vector2 = Vector2(a.goal) - a.pos
+			if front.length() <= 0.01 or front.dot(m.from - a.pos) > 0.0:
+				return a.wall.cut
+	return 0.0
+
+# 격노(S320, I264 ①): 잃은 체력 비율. 격노하지 않는 적은 0이다. 화면이 그만큼 붉게 그린다
+func frenzy(e: Enemy) -> float:
+	return 0.0 if e.frenzy.is_empty() else clampf(1.0 - e.hp / e.max_hp, 0.0, 1.0)
+
+# 전쟁 북 고수가 지금 북을 친다(S321): 기절·빙결·봉인 중이거나 뜬 동안은 치지 않는다. 화면이 반경 고리를 그린다
+func drums(a: Enemy) -> bool:
+	return not a.drum.is_empty() and not _aloft(a) and _fx_on(a, "seal") == null and _fx_on(a, "stun") == null
+
+# 전쟁 북(S321, I265): 북을 치는 북 고수 반경 안의 다른 적(북 고수 빼고)에 그 북의 수치를 건다. 겹치면 먼저 나온 북 고수의 것이다.
+# 반경 안에 그런 적이 하나라도 있는 북 고수는 들을 적이 있다(_heard)
+func _drums() -> void:
+	_drummed.clear()
+	_heard.clear()
+	for a in enemies:
+		if not drums(a):
+			continue
+		for e in enemies:
+			if e.drum.is_empty() and e.pos.distance_to(a.pos) <= a.drum.radius:
+				_heard[a] = true
+				if not _drummed.has(e):
+					_drummed[e] = a.drum
 
 # 폭풍날개 하피가 겨누는 자리(S307, I253 ①): p에서 가장 가까운 서 있는 성곽 칸 가운데. 성곽이 없으면 거점의 가장 가까운 차지 칸
 func _gale_mark(p: Vector2) -> Vector2:
@@ -5080,7 +5140,7 @@ func _land(m: Missile) -> void:
 			if e != m.target:
 				m.side.append(e)
 			var cut: float = e.ranged_cut if m.kind == "phys" and _fx_on(e, "seal") == null else 0.0  # 투사체 물리 피해 덜 받기(I217). 봉인되면 꺼진다(S281)
-			var hurt: float = m.hurt * (1.0 - cut)
+			var hurt: float = m.hurt * (1.0 - cut) * (1.0 - _wall_cut(e, m))  # 방패벽(S319, I263 ②)
 			if e.guard > 0.0 and m.look == "arrow" and s.kind in ["tower", "archer"]:  # 방패(S301, I248 ①②): 궁수탑·궁수 용병 화살은 방어력 전 피해를 방패가 먼저 받는다
 				var took := minf(e.guard, hurt)
 				e.guard -= took
@@ -5568,6 +5628,8 @@ func _bare_near(c: Vector2i) -> Vector2i:
 	return best
 
 func _attack(e: Enemy, target) -> void:
+	if _heard.has(e):  # 전쟁 북 고수(S321, I265 ⑤): 들을 적이 있는 동안은 아무것도 치지 않는다
+		return
 	if not e.fuse.is_empty():  # 폭파병(S280): 치지 않고 그 자리에 화약통을 놓아 도화선을 켠다. 봉인 중에는 켜지 않는다(S279)
 		if e.cast == null and _fx_on(e, "seal") == null:
 			e.cast = {"id": "fuse", "left": e.fuse.time, "at": e.pos}
