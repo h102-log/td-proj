@@ -32,3 +32,27 @@ def test_EV894_raid_button_camera_panels(gd):
 
 def test_EV895_wall_torches_and_fade(gd):
     gd("den", "EV895")
+
+
+def test_EV905_floor1_generation_table(gd):
+    gd("den", "EV905")
+
+
+def test_EV906_king_hops_no_walk_no_basic_attack(gd):
+    gd("den", "EV906")
+
+
+def test_EV907_landing_circles_never_overlap(gd):
+    gd("den", "EV907")
+
+
+def test_EV908_split_into_two_smaller_bodies(gd):
+    gd("den", "EV908")
+
+
+def test_EV909_raid_ends_when_all_bodies_dead(gd):
+    gd("den", "EV909")
+
+
+def test_EV910_boss_bar_total_hp_and_body_scale(gd):
+    gd("den", "EV910")
