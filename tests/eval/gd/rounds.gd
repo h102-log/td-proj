@@ -32,9 +32,10 @@ const WOLF := [{"wolf": 320}, {"wolf": 300, "leap_wolf": 100}, {"wolf": 240, "le
 const SKY := [{"flying": 360, "feather_harpy": 60}, {"flying": 300, "song_harpy": 60, "feather_harpy": 60, "dive_harpy": 100},
 	{"flying": 280, "storm_harpy": 40, "feather_harpy": 60, "snatch_harpy": 60, "dive_harpy": 60, "song_harpy": 40},
 	{"flying": 320, "nest_harpy": 20, "feather_harpy": 80, "dive_harpy": 80, "song_harpy": 60, "storm_harpy": 50, "snatch_harpy": 70, "wyvern": 1}]  # S303(3웨이브는 2026-11-10 변경, 4웨이브는 2026-11-10 둘째 변경)
-# S318: 5라운드 1~3웨이브는 오크 전쟁패(마릿수, 10배를 하지 않는다). 키 차례가 나오는 차례다. 4웨이브는 I91 표 그대로(3웨이브는 2026-11-10 변경)
+# S318: 5라운드 네 웨이브는 오크 전쟁패(마릿수, 10배를 하지 않는다). 키 차례가 나오는 차례다(3웨이브는 2026-11-10 변경, 4웨이브는 둘째 변경)
 const ORC := [{"shield_orc": 48, "armored": 160}, {"shield_orc": 40, "armored": 180, "drummer": 20, "berserker": 80},
-	{"shield_orc": 40, "armored": 140, "ogre_thrower": 20, "berserker": 40, "chain_orc": 30}]
+	{"shield_orc": 40, "armored": 140, "ogre_thrower": 20, "berserker": 40, "chain_orc": 30},
+	{"shield_orc": 40, "armored": 180, "troll": 30, "twin_troll": 2, "berserker": 80}]
 # I91 표(2026-10-21 개정): 2~6라운드 웨이브마다 종류별 적 수
 const I91 := [
 	[{"basic": 18, "fast": 8, "flying": 6}, {"basic": 18, "armored": 8, "flying": 10, "fast": 4}, {"basic": 18, "fast": 8, "armored": 8, "flying": 6}, {"basic": 22, "fast": 12, "armored": 8, "flying": 10, "boss": 1}],
@@ -277,7 +278,7 @@ func ev169():
 	var table := [S111, WOLF] + I91.slice(1).map(func(r): return _ten(r))
 	table[2] = RAID  # I91 2026-11-03 변경·둘째 변경·셋째 변경: 3라운드 네 웨이브 모두 고블린 약탈단(마릿수)
 	table[3] = SKY  # S303: 4라운드 네 웨이브 모두 하늘 둥지(마릿수)
-	table[4] = ORC + table[4].slice(3)  # S318: 5라운드 1~3웨이브는 오크 전쟁패(마릿수), 4웨이브는 그대로
+	table[4] = ORC  # S318: 5라운드 네 웨이브 모두 오크 전쟁패(마릿수)
 	for k in 6:
 		var got := _counts(b.rounds[k])
 		if got != table[k]:
@@ -479,17 +480,17 @@ func ev838():
 	var born: Array = b.enemies.map(func(e): return e.kind)
 	return check(born == ["flying", "flying", "flying", "flying"], "첫 적이 나온 스텝에 나온 적 %s(비행 4마리여야 한다)" % [born])
 
-# EV896 · S318: data/waves/round_5.tres의 1~3웨이브는 S318의 수이고 키 차례가 나오는 차례(방패벽 오크 → 장갑 …)다. 4웨이브는 I91 표의 10배 그대로다.
+# EV896 · S318: data/waves/round_5.tres의 네 웨이브는 S318의 수이고 키 차례가 나오는 차례(방패벽 오크 → 장갑 …)다.
 # 장갑은 무리 4, 방패벽 오크는 무리 2(S238)라 첫 차례에 그만큼 함께 나온다
 func ev896():
 	var w = load("res://data/waves/round_5.tres")
 	if w == null or not w.get("waves") is Array or w.waves.size() != 4:
 		return "5라운드 웨이브 Resource의 waves가 웨이브 4개 배열이 아니다(%s)" % [w.get("waves") if w != null else null]
-	var want: Array = ORC + _ten(I91[3]).slice(3)
+	var want: Array = ORC
 	var bad := []
 	for i in 4:
 		var d: Dictionary = w.waves[i]
-		if d != want[i] or (i < 3 and d.keys() != want[i].keys()):
+		if d != want[i] or d.keys() != want[i].keys():
 			bad.append("%d웨이브 %s(%s여야 한다)" % [i + 1, d, want[i]])
 	if not bad.is_empty():
 		return "수나 차례가 다른 웨이브 %s" % [bad]
