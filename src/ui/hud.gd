@@ -64,6 +64,7 @@ const HudToast := preload("res://src/ui/hud_toast.gd")
 const HudAlert := preload("res://src/ui/hud_alert.gd")
 const HudEvac := preload("res://src/ui/hud_evac.gd")
 const HudShop := preload("res://src/ui/hud_shop.gd")
+const HudAuto := preload("res://src/ui/hud_auto.gd")
 const Hints := preload("res://src/ui/hints.gd")
 const BattleView := preload("res://src/ui/battle_view.gd")
 const SkillCell := preload("res://src/ui/skill_cell.gd")
@@ -153,6 +154,7 @@ var select  # 선택 패널(S206). 건설 격자 바로 왼쪽
 var minimap  # 미니맵(S209). 왼쪽 아래 구석
 var evac  # 대피령 버튼(S230). 미니맵 바로 위
 var shop  # «영입» 버튼(S272, I207). 대피령 버튼 바로 위
+var auto_all  # «전체 오토» 버튼(S313, I259). 영입 버튼 바로 위
 var hp_button: Button  # 체력바 버튼(S276). 대피령 버튼 오른쪽, 누르면 V 키와 같다
 var view  # 맵 그림(BattleView). 미니맵이 구운 바닥을 빌린다. main이 넣는다
 var _hp: Label
@@ -234,7 +236,7 @@ var fix_tag: Button  # 고른 공병의 자동 수리 태그(I210). tags(A·S·H
 var _fix_pic: TextureRect  # 자동 수리 태그의 망치 그림. 밝기가 끔·켬·섞임이다
 var portraits := []  # 출전 칸마다 초상 버튼(I129). 누르면 그 영웅을 고른다(I165)
 var slots := []  # 출전 칸마다 {칸: 스킬 칸}(I151)
-var _rows := []  # 출전 칸마다 {pic: 초상 그림, lv: 레벨 글, hp·mp: 막대, down: «쓰러짐»}(I129)
+var _rows := []  # 출전 칸마다 {pic: 초상 그림, dash: 대시 대기 막(I261 ⑦), lv: 레벨 글, hp·mp: 막대, down: «쓰러짐»}(I129)
 var _faces := {}  # 영웅 종류 → 초상 대역 그림(S30)
 var _now := 0.0  # HUD 시계(초). 맥박·거부 표시·두 번 누름(I165)
 var _taps := {}  # 출전 칸 → 마지막으로 F키·초상을 누른 때(_now)
@@ -293,6 +295,11 @@ func _ready() -> void:
 		face.size = Vector2(24, 24)
 		var row := {"pic": _pic(face, null, Vector2(22, 22))}
 		row.pic.position = Vector2(1, 1)
+		row.dash = ColorRect.new()  # 대시 대기 막(S315, I261 ⑦): 스킬 칸 재사용 대기 막과 같은 색으로 초상을 위에서 덮는다
+		row.dash.color = SkillCell.CURTAIN
+		row.dash.position = Vector2(1, 1)
+		row.dash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		face.add_child(row.dash)
 		var key := _text(face, 7, HudTheme.ACCENT)
 		key.text = str(i + 1)
 		key.position = Vector2(1, -1)
@@ -468,6 +475,8 @@ func _ready() -> void:
 	root.add_child(evac)
 	shop = HudShop.new(self)
 	root.add_child(shop)
+	auto_all = HudAuto.new(self)
+	root.add_child(auto_all)
 	hp_button = _bar_button(root, "", func(): controls.show_hp = not controls.show_hp)  # 체력바 버튼(S276): 그림 10×10을 2배로, 왼쪽 위에 키 글자
 	hp_button.position = HP_AT.position
 	hp_button.size = HP_AT.size
@@ -893,13 +902,9 @@ func _make_progress() -> void:
 	_pic(start, HudBuild.dots(PLAY, {"#": HudTheme.ACCENT}), Vector2(4, 7)).position = Vector2(6, 8)
 	var go := _text(start, 9, HudTheme.ACCENT)
 	go.text = "전투 시작"
-	go.position = Vector2(14, 1)
+	go.position = Vector2(14, 6)  # 키 글자 줄이 없어(마우스로만 시작, I13 2026-11-10 변경) 가운데 줄에 둔다
 	go.size = Vector2(68, 12)
-	var key := _text(start, 7, HudTheme.DIM)
-	key.text = "Enter"
-	key.position = Vector2(14, 12)
-	key.size = Vector2(68, 11)
-	tip.add(start, func(): return ["전투 시작", "Enter", "", "웨이브 %d/%d를 부른다" % [battle.wave_index + 1, battle.waves.size()], ""])
+	tip.add(start, func(): return ["전투 시작", "", "", "웨이브 %d/%d를 부른다" % [battle.wave_index + 1, battle.waves.size()], ""])
 	gauge = _bar_button(p, "", _to_enemy)
 	_g1 = _text(gauge, 7, HudTheme.DIM)
 	_g2 = _text(gauge, 9, HudTheme.TEXT)
@@ -1322,6 +1327,9 @@ func _show_heroes() -> void:
 		var pulse := 0.5 + 0.5 * sin(_now * TAU * 2.0)
 		row.pic.modulate = Color(0.4, 0.4, 0.4) if not h.alive else Color.WHITE.lerp(HudTheme.DANGER, pulse) if h.hp < h.max_hp * LOW else Color.WHITE
 		row.lv.text = str(h.level)
+		var wait: float = clampf(h.dash_cd / battle.DASH.cd, 0.0, 1.0) if h.alive else 0.0
+		row.dash.visible = wait > 0.0
+		row.dash.size = Vector2(22, 22.0 * wait)
 		row.gear.visible = h.worn and battle.bag.has(h.kind)
 		row.gear.texture = HudBuild.gear_icon(h.kind, true) if row.gear.visible else null
 		var r: float = clampf(h.hp / h.max_hp, 0.0, 1.0)

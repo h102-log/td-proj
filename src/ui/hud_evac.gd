@@ -26,7 +26,7 @@ func _ready() -> void:
 	theme_type_variation = "BarCell"
 	position = Vector2(3, 266)
 	size = Vector2(60, 26)
-	focus_mode = Control.FOCUS_NONE  # 포커스가 가면 Enter가 전투 시작으로 가지 않는다
+	focus_mode = Control.FOCUS_NONE  # 포커스가 가면 Enter·Space가 이 버튼을 다시 누른다
 	pressed.connect(func(): battle.evacuate())
 	_on_box = HudTheme.box("normal", "Button", Color("3a1a12"), HudTheme.DANGER)
 	for c in [HudTheme.ACCENT, HudTheme.DANGER]:

@@ -81,6 +81,7 @@ const BLOWN := 0.3  # 돌풍에 날린 화살 자국이 남는 시간(초, I253 
 const GROUND_ONLY := ["shield_bash", "brace"]  # 날고 있는 적에 들지 않는 근접 영웅 칸: 아이아스 Q·E(S109 2026-11-09 변경). 오토도 날고 있는 적을 세지 않는다
 const SLOTS := ["q", "w", "e", "r"]  # 영웅 스킬 칸(S145)
 const CAST_RANGE := 6.0  # 지점·대상을 고르는 스킬의 시전 사거리(칸, S147). 임시값
+const DASH := {"length": 2.0, "cd": 5.0}  # 영웅 대시(S315): 거리(칸)·영웅마다 재사용 대기(초). 임시값
 # 오토(S297, I244)의 기준값. 밸런스 봇(tools/balance/autoplay.gd의 _skills·_think) 값을 옮겼다(사용자 2026-11-07 «봇 규칙 옮기기»).
 # think 쓸 곳이 없던 칸을 다시 보는 간격(초) · crowd 광역 칸을 쓰는 적 수 · heal·guard 빛줄기·성역 / 수호 천사를 쓰는 체력 비율 · hurt·hurt_n 기적의 체력 비율·아군 수 · chain 영혼 사슬 적 수 · spread 반경 없는 칸의 반경(칸)
 const AUTO := {"think": 0.25, "crowd": 2, "heal": 0.6, "guard": 0.35, "hurt": 0.5, "hurt_n": 3, "chain": 3, "spread": 2.0}
@@ -308,6 +309,7 @@ class Unit:
 	var r := {}
 	var worn := false  # 전용장비를 꼈다(S247). 강화 수치는 판의 bag에 있다
 	var cd := {"q": 0.0, "w": 0.0, "e": 0.0, "r": 0.0}  # 칸마다 남은 재사용 대기(초)
+	var dash_cd := 0.0  # 대시(S315)의 남은 재사용 대기(초)
 	var skill_uses := 0  # 쓴 스킬 수(모든 칸)
 	var order = null  # 시전 사거리 밖이라 걸어가서 쓸 스킬 {slot, aim}(S147). 없으면 null
 	var auto := {"q": false, "w": false, "e": false, "r": false}  # 칸마다 오토(자동 시전)가 켜져 있다(S296)
@@ -493,7 +495,7 @@ var _spawn_timer := 0.0
 var _spare := 0.0  # 아직 1골드가 되지 않은 처치 보상(I176)
 var _stage: Dictionary  # 재시작할 때 다시 읽는다
 var _rng := RandomNumberGenerator.new()  # 영입소 목록을 뽑는다. 스테이지에 seed가 있으면 그 씨앗이다(평가용)
-var _luck := RandomNumberGenerator.new()  # 요새화 기절(S151). 영입소 목록이 전투에 따라 바뀌지 않게 따로 둔다
+var _luck := RandomNumberGenerator.new()  # 아이아스 패시브 확률 감소(S151, I258). 영입소 목록이 전투에 따라 바뀌지 않게 따로 둔다
 var _kin := RandomNumberGenerator.new()  # 집의 가족(S221). 영입소·전투 난수가 집 짓기에 따라 바뀌지 않게 따로 둔다
 var _loot := RandomNumberGenerator.new()  # 전리품(S252). 영입소 목록·미션이 전리품에 따라 바뀌지 않게 따로 둔다(I202)
 var _shot := RandomNumberGenerator.new()  # 궁수 명중(S178 2026-11-04 변경, I224 ③). 다른 난수가 사격에 따라 바뀌지 않게 따로 둔다
@@ -1325,6 +1327,26 @@ func stop(group: Array) -> void:
 		_drop_orders(u)
 		_halt(u)
 
+# 대시(S315, I261): 전투 단계에 group의 출전 영웅이 저마다 at(칸 좌표) 쪽으로 DASH.length칸 순간 이동한다. 길은 아군 돌진 길(_dash)이고,
+# 기절·붙잡힘·들림·성벽 위·대기 중인 영웅과 한 걸음도 못 나간 영웅은 빠진다. 대시하면 정지처럼 명령을 지우고 서며, 요새화가 풀린다(still)
+func dash(group: Array, at: Vector2) -> void:
+	if state != "battle":
+		return
+	for h in group:
+		if not (h is Unit and h.is_hero and h.alive) or _seized(h) or h.on_wall or h.dash_cd > 0.0:
+			continue
+		var dir: Vector2 = at - h.pos
+		if dir.length() < 0.01:
+			continue
+		var to: Vector2 = _dash(h.pos, dir.normalized(), DASH.length, true)[0]
+		if to == h.pos:
+			continue
+		_drop_orders(h)
+		h.pos = to
+		_halt(h)
+		h.still = 0.0
+		h.dash_cd = DASH.cd
+
 # 앞선 명령을 지운다: 집결(I22)·걸어가서 쓰려던 스킬(S147)·대상 공격(S35)·공병의 일(I63)
 func _drop_orders(u: Unit) -> void:
 	u.rally_from = null
@@ -1462,6 +1484,17 @@ func cast(h, slot: String, aim = null) -> bool:
 func toggle_auto(h, slot: String) -> void:
 	if h:
 		h.auto[slot] = not h.auto[slot]
+
+# 전체 오토(S313, I259 ②): 출전 영웅(쓰러진 영웅 포함) 모두의 칸 가운데 하나라도 꺼져 있으면 모두 켜고, 모두 켜져 있으면 모두 끈다
+func toggle_auto_all() -> void:
+	var on := not all_auto()
+	for h in heroes:
+		for slot in h.auto:
+			h.auto[slot] = on
+
+# 출전 영웅이 있고 그 모든 칸의 오토가 켜져 있다(I259 ③의 금색 테두리)
+func all_auto() -> bool:
+	return not heroes.is_empty() and heroes.all(func(h): return not h.auto.values().has(false))
 
 # 대상이 그 칸의 조준 종류에 맞는다(S147, I145). 지점·방향은 맵 안 칸, 아군은 targets대로, 적은 살아 있는 적
 func _aim_ok(h, sk: Dictionary, aim) -> bool:
@@ -3306,6 +3339,8 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 			_tracing = keep
 		if _fx_on(target, "invuln") != null:
 			return
+		if target.is_hero and target.passive.get("id") == "fortress" and _luck.randf() < target.passive.guard_odds:  # 강철의 요새(S151 2026-11-10 변경, I258): 요새화와 상관없이 맞을 때마다
+			amount *= 1.0 - target.passive.guard_cut
 		amount = _absorb(target, amount * armor_mult(armor_of(target)) * (1.0 - _fx_cut(target, "dr")))
 		if amount >= target.hp and _fx_on(target, "angel") != null:  # 수호 천사(S152): 쓰러지지 않고 불사
 			var secs: float = target.fx.seraphina_e.angel
@@ -4022,8 +4057,8 @@ func _charge_ready(e: Enemy, sk: Dictionary):
 	return {"dir": dir.angle(), "to": _dash(e.pos, dir, sk.length)[0]}
 
 # 돌진 길(I230 ③): from에서 dir 쪽으로 length칸을 0.25칸 간격으로 짚는다. 막힌 칸(I188 곧은 선의 칸)·거점·물·맵 밖이면 바로 앞 짚은 점에서 멈춘다.
-# [멈출 자리, 부딪힌 성곽·구조물·거점(없으면 null)]
-func _dash(from: Vector2, dir: Vector2, length: float) -> Array:
+# ally면 아군 길이라 에너지 성벽(I142)은 지나간다(영웅 대시 I261 ④). [멈출 자리, 부딪힌 성곽·구조물·거점(없으면 null)]
+func _dash(from: Vector2, dir: Vector2, length: float, ally := false) -> Array:
 	var at := from
 	for i in range(1, ceili(length / 0.25) + 1):
 		var p := from + dir * minf(0.25 * i, length)
@@ -4033,7 +4068,7 @@ func _dash(from: Vector2, dir: Vector2, length: float) -> Array:
 		if c == base.cell:
 			return [at, base]
 		var block = grid.block_at(c)
-		if block:
+		if block and not (ally and block.kind == "barrier"):
 			return [at, block]
 		at = p
 	return [at, null]
@@ -4955,6 +4990,7 @@ func _hero_tick(h: Unit, dt: float) -> void:
 	var pace := 1.0 + _fx_sum(h, "cdr") + _aura("cdr", h.pos)
 	for slot in SLOTS:
 		h.cd[slot] -= dt * pace
+	h.dash_cd = maxf(h.dash_cd - dt, 0.0)  # 대시 대기는 스킬 재사용 대기 감소(cdr)를 받지 않는다(I261 ⑥)
 	if h.brace > 0.0:
 		h.brace -= dt
 		if h.brace <= 0.0:
@@ -4964,7 +5000,7 @@ func _hero_tick(h: Unit, dt: float) -> void:
 	_autocast(h, dt)
 
 # 기본 공격 한 방(S15). 실비아(I213): 쏘는 순간 거리로 정조준 피해·방어 무시를 정한다(S153).
-# 아이아스: 요새화 중이면 확률로 기절시킨다(S151). 축복이 걸렸으면 맞은 곳에 마법 피해를 더한다(S152).
+# 축복이 걸렸으면 맞은 곳에 마법 피해를 더한다(S152).
 # 원거리(사거리 RANGED칸 초과)는 투사체를 쏘고, 피해·축복은 닿을 때다(S178, I174)
 func _strike(u: Unit, foe: Enemy) -> void:
 	var hurt := u.damage * _might(u)
@@ -4979,8 +5015,6 @@ func _strike(u: Unit, foe: Enemy) -> void:
 		return
 	var at: Vector2 = foe.pos
 	damage(foe, hurt, "phys", u, ignore)
-	if u.fort and foe.alive and _luck.randf() < u.passive.stun_odds:
-		_fx(foe, "aias_p_stun", {"stun": true}, u.passive.stun)
 	_bless(u, at)
 
 # 아이아스 패시브 요새화(S151, I147): 이동 지시 없이 still초가 지나면 요새화. 받는 피해 감소, 블록 수 +3. 이동 지시를 받으면 풀린다.

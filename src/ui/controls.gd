@@ -13,6 +13,7 @@ extends RefCounted
 # A: 공격 명령 조준(S35). 그동안 좌클릭은 땅이면 공격 이동·적이면 대상 공격이고, 우클릭·ESC는 취소한다 · S: 정지(S35) · H: 홀드 전환(S36) · V: 체력바 표시 전환(S73) · B: 대피령(S225) · F: 자동 수리 전환(S277)
 # ESC: 조준·놓기·옮기기가 없으면 맵 팝업과 패널의 적을 닫는다(S183, S206). 고른 유닛은 풀지 않는다(S204)
 # 1·2·3: 출전 영웅 1·2·3을 고른다. F1·F2·F3은 영웅을 고르지 않는다(I108 2026-11-06 변경)
+# Space: 고른 출전 영웅이, 없으면 살아 있는 첫 영웅이 커서 쪽으로 대시한다(S315, I261). 전투 단계에만 된다
 # - 마법 타워(S110) · 4 병영 · 5 공병 · 6 작업장 · 7 궁수(I71) · 8 대포(S92) · 9 사격장(S98) · 0 집(S103) · = 교회(I140) · \ 대피소(S226): 놓기 모드(방벽·타워·용병은 키 없이 건설 격자 칸으로, I108 2026-11-06 변경). 그동안 좌클릭은 그 칸에 짓거나 놓고, 우클릭·ESC·같은 키는 모드를 끝낸다(사용자 2026-10-12, S186)
 # 전투 단계엔 구조물만 짓는다(공병이 가서 짓는다, S22). 단계가 바뀌면 모드가 끝난다
 # 옮길 대포(moving)가 있으면 다음 좌클릭한 칸으로 옮기고(S91), 우클릭·ESC·단계 변경은 옮기기를 그만둔다
@@ -116,6 +117,10 @@ func handle(event: InputEvent) -> void:
 				alert_key.emit()
 			KEY_1, KEY_2, KEY_3:
 				pick_hero(event.keycode - KEY_1)
+			KEY_QUOTELEFT:
+				pick_all()
+			KEY_SPACE:
+				dash()
 			KEY_ESCAPE:
 				if placing == "" and moving == null and aiming == "" and not attacking:  # 취소할 것이 없으면 맵 팝업을 닫는다(S183)
 					_close_popups()
@@ -240,6 +245,19 @@ func pick_hero(i: int) -> void:
 	facility = null
 	shown = null
 	hero_key.emit(i)
+
+# ` 키(S314, I260): 살아 있는 출전 영웅을 출전 순서대로 모두 고른다. 1·2·3 키처럼 시설 선택을 풀고, 카메라는 옮기지 않는다
+func pick_all() -> void:
+	selected = battle.heroes.filter(func(h): return h.alive)
+	facility = null
+	shown = null
+
+# Space(S315, I261 ②③): 고른 것 가운데 살아 있는 출전 영웅 모두가, 없으면 살아 있는 첫 영웅이 커서(mouse) 쪽으로 대시한다
+func dash() -> void:
+	var group: Array = selected.filter(func(u): return u.is_hero and u.alive and u in battle.heroes)
+	if group.is_empty() and battle._first_alive():
+		group = [battle._first_alive()]
+	battle.dash(group, mouse / cell_px - Vector2(0.5, 0.5))
 
 # 선택 패널의 그림 칸(S206)이 그 유닛 하나만 고른다. 우클릭이 그 유닛을 옮기게 시설 선택을 푼다
 func pick_unit(u) -> void:

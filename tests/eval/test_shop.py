@@ -20,3 +20,7 @@ def test_EV657_gear_icons_in_gear_tab_and_loot(gd):
 
 def test_EV658_gear_icons_on_portrait_and_hire_card(gd):
     gd("shop", "EV658")
+
+
+def test_EV880_auto_all_button(gd):
+    gd("shop", "EV880")

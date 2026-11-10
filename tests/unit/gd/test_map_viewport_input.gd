@@ -76,7 +76,8 @@ func test_wheel_and_middle_drag_reach_camera():
 		return "휠 위로 배율 %s, 커서 아래 지점 %s → %s(기대 3배, 그대로)" % [zoom, world, kept]
 	return "" if is_equal_approx(moved, 10.0) else "휠 버튼으로 왼쪽 30px 끌어 카메라가 %s 움직였다(기대 +10)" % moved
 
-func test_enter_starts_battle_after_map_click():
+# 맵 클릭이 키보드 포커스를 가져가지 않는다. 전투 시작은 마우스로만이라 Enter로는 준비 단계 그대로다(I13 2026-11-10 변경)
+func test_map_click_takes_no_focus_and_enter_keeps_prep():
 	var main = _main()
 	_button(MOUSE_BUTTON_LEFT, BOTTOM, true)
 	_button(MOUSE_BUTTON_LEFT, BOTTOM, false)
@@ -86,9 +87,9 @@ func test_enter_starts_battle_after_map_click():
 	key.pressed = true
 	_push(key)
 	var state: String = main.view.battle.state
-	var focus := str(main.get_viewport().gui_get_focus_owner())
+	var focus = main.get_viewport().gui_get_focus_owner()
 	main.free()
-	return "" if state == "battle" else "맵을 클릭한 뒤 Enter를 눌러도 %s 단계다(키보드 포커스: %s)" % [state, focus]
+	return "" if state == "prep" and focus == null else "맵을 클릭하고 Enter를 누른 뒤 %s 단계 · 키보드 포커스 %s(기대: 준비 단계 그대로, 포커스 없음)" % [state, focus]
 
 func test_sell_popup_opens_next_to_drag_release_point():
 	var main = _main()

@@ -270,3 +270,43 @@ func ev658():
 	var none: bool = cards.has("chronos") and cards.chronos.is_empty()
 	_done(main)
 	return check(worn and bare and has and none, "초상 귀퉁이: 낌 %s · 해제 뒤 없음 %s / 영입 카드: 가방에 있는 세라피나 %s · 없는 크로노스 숨음 %s" % [worn, bare, has, none])
+
+# EV880 · S313·I259: «전체 오토» 버튼의 자리·글·툴팁·보이는 단계, 눌러서 모두 켜고 끄기, 모두 켜진 동안 금색 테두리
+func ev880():
+	var main = _game()
+	var b = main.view.battle
+	var hud = main.hud
+	b.gold = BIG
+	var btn = hud.get("auto_all")
+	if not btn is BaseButton:
+		_done(main)
+		return "main.hud.auto_all(BaseButton)이 없다"
+	var tick := func():  # 버튼은 자기 _process에서 보이기·테두리를 정한다(EV655와 같다)
+		_frame(main)
+		btn._process(0.0)
+	tick.call()
+	var seen := [btn.visible]
+	b.offers = ["aias", "", ""]
+	b.hire(0)
+	b.next_round()
+	var k = b.heroes[0]
+	for s in k.auto:
+		k.auto[s] = false
+	tick.call()
+	var words := " ".join(_labels(btn))
+	var at := Rect2(btn.position, btn.size)
+	var tipped := _tip_of(main, btn)
+	seen.append(btn.visible and at == Rect2(3, 210, 60, 26) and "오토" in words and tipped.begins_with("전체 오토"))
+	btn.pressed.emit()
+	tick.call()
+	var box = btn.get_theme_stylebox("normal") if btn.has_theme_stylebox_override("normal") else null
+	var gold: Color = load("res://src/ui/hud_theme.gd").ACCENT
+	seen.append(k.auto.values().all(func(v): return v) and box is StyleBoxFlat and box.border_color == gold)
+	btn.pressed.emit()
+	tick.call()
+	seen.append(k.auto.values().all(func(v): return not v) and not btn.has_theme_stylebox_override("normal"))
+	b.start_battle()
+	tick.call()
+	seen.append(btn.visible)
+	_done(main)
+	return check(seen == [false, true, true, true, true], "[영입 창에 숨음, 준비 단계 자리·글·툴팁, 눌러 모두 켬·금색 테두리, 다시 눌러 모두 끔, 전투 단계 보임] %s(기대 [false, true, true, true, true]) · 자리 %s · 글 «%s» · 툴팁 «%s» · 오토 %s" % [seen, at, words, tipped, k.auto])

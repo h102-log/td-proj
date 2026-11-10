@@ -136,6 +136,7 @@ func ev260():
 func ev261():
 	var b = _kit([["aias", H]])
 	var k = b.hero
+	k.passive.guard_odds = 0.0  # 아이아스 패시브 확률 감소(S151 2026-11-10 변경)가 깎은 양을 흔들지 않게 끈다
 	_quiet(b)
 	_start(b)
 	run(b, k.passive.still + 0.3)
@@ -186,6 +187,7 @@ func ev263():
 func ev264():
 	var b = _kit([["aias", H]])
 	var k = b.hero
+	k.passive.guard_odds = 0.0  # 아이아스 패시브 확률 감소(S151 2026-11-10 변경)가 깎은 양을 흔들지 않게 끈다
 	_quiet(b)
 	var front = _dummy(b, H + Vector2i(1, 0))
 	_start(b)
@@ -226,6 +228,7 @@ func ev265():
 func ev266():
 	var b = _kit([["aias", H]])
 	var k = b.hero
+	k.passive.guard_odds = 0.0  # 아이아스 패시브 확률 감소(S151 2026-11-10 변경)가 깎은 양을 흔들지 않게 끈다
 	_quiet(b)
 	var near_e = _dummy(b, H + Vector2i(1, 0))
 	var far_e = _dummy(b, H + Vector2i(3, 0))
@@ -1268,3 +1271,84 @@ func ev802():
 	var on := OFF.merged({"q": true, "r": true}, true)
 	var ok: bool = start == OFF and back == on and off == OFF and b.state == "prep" and kept == on and locked and opened
 	return check(ok, "처음 %s · 저장 뒤 %s · 옛 저장 %s · 다음 준비 단계(%s) %s · Lv1 W 켬·안 씀 %s · Lv2 씀 %s" % [start, back, off, b.state, kept, locked, opened])
+
+# EV877 · S151 2026-11-10 변경·I258: 피해를 받을 때마다 guard_odds 확률로 그 피해를 guard_cut만큼 덜 받는다. 요새화와 상관없고, 요새화 감소와 곱으로 겹친다
+func ev877():
+	var b = _kit([["aias", H]])
+	var k = b.hero
+	_quiet(b)
+	_start(b)
+	k.passive.guard_odds = 1.0
+	var hp0: float = k.hp
+	b.damage(k, 10.0)
+	var half := _lost(k, hp0)
+	k.passive.guard_odds = 0.0
+	hp0 = k.hp
+	b.damage(k, 10.0)
+	var whole := _lost(k, hp0)
+	run(b, k.passive.still + 0.3)
+	var fort: bool = k.fort
+	k.passive.guard_odds = 1.0
+	hp0 = k.hp
+	b.damage(k, 10.0)
+	var both := _lost(k, hp0)
+	var b2 = _kit([["aias", H]])
+	var k2 = b2.hero
+	_quiet(b2)
+	_start(b2)
+	k2.max_hp = BIG
+	k2.hp = BIG
+	var halved := 0
+	for n in 2000:
+		var before: float = k2.hp
+		b2.damage(k2, 1.0)
+		if _near_f(before - k2.hp, 0.5, 0.001):
+			halved += 1
+	var share := halved / 2000.0
+	var data: Dictionary = load("res://data/heroes/aias.tres").passive
+	var odds_ok := is_equal_approx(float(data.get("guard_odds", -1.0)), 0.5) and is_equal_approx(float(data.get("guard_cut", -1.0)), 0.5)
+	var keys: bool = odds_ok and not data.has("stun_odds") and not data.has("stun")
+	return check(_near_f(half, 5.0) and _near_f(whole, 10.0) and fort and _near_f(both, 3.75) and share >= 0.45 and share <= 0.55 and keys,
+		"확률 1 피해 %s(기대 5) · 확률 0 피해 %s(기대 10) · 요새화 %s 뒤 확률 1 피해 %s(기대 3.75) · 2000번 가운데 반감 비율 %s(0.45~0.55) · 데이터 %s" % [half, whole, fort, both, share, data])
+
+# EV878 · S151 2026-11-10 변경: 요새화한 아이아스의 기본 공격은 대상을 기절시키지 않는다
+func ev878():
+	var b = _kit([["aias", H]])
+	var k = b.hero
+	for s in k.auto:  # 오토 Q(방패 강타)의 기절이 섞이지 않게 끈다
+		k.auto[s] = false
+	var foe = _dummy(b, H + Vector2i(1, 0))
+	_start(b)
+	var stunned := 0
+	var t := 0.0
+	while t < 60.0:
+		b.step(DT)
+		t += DT
+		if b.effect(foe, "stun") != null:
+			stunned += 1
+	return check(k.fort and foe.hp < foe.max_hp and stunned == 0, "요새화 %s · 과녁 체력 %s/%s · 기절이 걸린 스텝 %d(기대 0)" % [k.fort, foe.hp, foe.max_hp, stunned])
+
+# EV879 · S313·I259 ②: 전체 오토는 출전 영웅(쓰러진 영웅·잠긴 칸 포함) 모두의 칸을, 하나라도 꺼져 있으면 모두 켜고 모두 켜져 있으면 모두 끈다
+func ev879():
+	var b = battle({"heroes": [{"kind": "aias", "cell": H, "level": 1}, {"kind": "ignis", "cell": H + Vector2i(0, 2)}, {"kind": "seraphina", "cell": H + Vector2i(0, 4)}], "base_hp": BIG})
+	if not b.has_method("toggle_auto_all"):
+		return "Battle.toggle_auto_all()이 없다"
+	var team: Array = b.heroes
+	team[2].alive = false
+	for h in team:
+		for s in h.auto:
+			h.auto[s] = false
+	var all_on := func(): return team.all(func(h): return h.auto.values().all(func(v): return v))
+	var all_off := func(): return team.all(func(h): return h.auto.values().all(func(v): return not v))
+	b.toggle_auto(team[1], "w")
+	b.toggle_auto_all()
+	var on: bool = all_on.call()
+	b.toggle_auto_all()
+	var off: bool = all_off.call()
+	b.toggle_auto(team[0], "q")
+	b.toggle_auto_all()
+	var again: bool = all_on.call()
+	b.toggle_auto(team[1], "q")
+	var one: bool = not team[1].auto.q and team[1].auto.w and team[0].auto.q and team[2].auto.q
+	return check(team.size() == 3 and team[0].level == 1 and on and off and again and one,
+		"영웅 %d(첫 영웅 Lv%d) · 하나 켠 뒤 모두 켬 %s · 다시 모두 끔 %s · 하나 켠 뒤 다시 모두 켬 %s · 그 뒤 칸 하나만 끔 %s" % [team.size(), team[0].level, on, off, again, one])
