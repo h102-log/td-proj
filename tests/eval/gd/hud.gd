@@ -3974,3 +3974,75 @@ func ev839():
 		and "폭풍날개 하피: 성곽 앞에 멈춰 돌풍으로 화살을 날린다" in c and "낚아채기 하피: 용병·주민을 낚아채 아군 위에 떨어뜨린다" in c
 		and "둥지 하피: 성곽 성벽에 내려앉아 새끼를 낳는 둥지를 짓는다" in d and "와이번: 급강하해 내려앉고, 줄지은 아군 위로 불을 뿌리며 지나간다. 쓰러지면 땅에서 다시 싸운다" in d,
 		"4라운드 1웨이브 줄 «%s» · 2웨이브 줄 «%s» · 3웨이브 줄 «%s» · 4웨이브 줄 «%s»" % [a, b, c, d])
+
+# EV885 · I13 2026-11-10 변경·S192: 준비 단계에 Enter·Space는 전투를 시작하지 않는다. 전투 시작 버튼 글·툴팁·힌트에 Enter가 없다. 버튼을 누르면 시작한다
+func ev885():
+	var main = _prep()
+	var b = main.view.battle
+	_key(KEY_ENTER)
+	_frame(main)
+	var after_enter: String = b.state
+	_key(KEY_SPACE)
+	_frame(main)
+	var after_space: String = b.state
+	var labels := " ".join(_labels(main.hud.start))
+	var tip := _tip_of(main, main.hud.start)
+	var hint := ""
+	for row in load("res://src/ui/hints.gd").HINTS:
+		if row[0] == "start":
+			hint = row[3]
+	main.hud.start.pressed.emit()
+	var started: String = b.state
+	_done(main)
+	return check(after_enter == "prep" and after_space == "prep" and not "Enter" in labels and tip != "" and not "Enter" in tip \
+			and not "Enter" in hint and "전투 시작을 누른다" in hint and started == "battle",
+		"Enter 뒤 %s · Space 뒤 %s(둘 다 prep) · 버튼 글 «%s» · 툴팁 «%s» · 힌트 «%s» · 버튼을 누른 뒤 %s(battle)"
+		% [after_enter, after_space, labels, tip, hint.replace("\n", " / "), started])
+
+# EV886 · S315·I261 ③⑦: Space는 누른 순간 화면 커서 아래 맵 자리 쪽으로 대시한다(마우스는 그대로 두고 카메라만 옮겨도).
+# 초상의 대기 막은 남은 비율만큼 덮고, 대기가 끝나면 숨는다
+func ev886():
+	var dash: Dictionary = load("res://src/sim/battle.gd").get_script_constant_map().get("DASH", {})
+	if dash.is_empty():
+		return "Battle.DASH가 없다"
+	var main = _prep()
+	var b = main.view.battle
+	b.start_battle()
+	var h = b.heroes[0]
+	var spot := Vector2i(32, 40)
+	for x in range(-3, 4):
+		for y in range(-3, 4):
+			var c := spot + Vector2i(x, y)
+			if Vector2(x, y).length() <= 2.5 and (not b.grid.is_in_boundsv(c) or b.grid.block_at(c) or b.water.has(c) or c == b.base.cell):
+				_done(main)
+				return "시험 판 %s 둘레 2.5칸 안 %s가 막혀 있다" % [spot, c]
+	h.pos = Vector2(spot)
+	main.controls.selected = [h]
+	var cam = _cam(main)
+	cam.position = (Vector2(spot) + Vector2(0.5, 0.5)) * CELL_PX
+	cam.force_update_scroll()
+	var screen := Vector2(360, 180)
+	_move(screen)
+	cam.position += Vector2(0, 48)
+	cam.force_update_scroll()
+	var aim: Vector2 = (cam.steady().affine_inverse() * screen) / CELL_PX - Vector2(0.5, 0.5)
+	var from: Vector2 = h.pos
+	_key(KEY_SPACE)
+	var want: Vector2 = from + (aim - from).normalized() * dash.length
+	var went: bool = h.pos.distance_to(want) < 0.01
+	var row: Dictionary = main.hud._rows[0]
+	var curtain = row.get("dash")
+	var looks := []
+	for secs in [0.0, 2.0, dash.cd]:
+		run(b, secs)
+		main.hud._process(0.0)
+		var cd = h.get("dash_cd")
+		if curtain == null or cd == null:
+			looks.append("막 %s · dash_cd %s" % [curtain, cd])
+		elif cd > 0.0:
+			looks.append("" if curtain.is_visible_in_tree() and absf(curtain.size.y - 22.0 * cd / dash.cd) <= 0.5 else "dash_cd %s에 막 보임 %s 높이 %s(기대 %s)" % [cd, curtain.is_visible_in_tree(), curtain.size.y, 22.0 * cd / dash.cd])
+		else:
+			looks.append("" if not curtain.is_visible_in_tree() else "대기가 끝났는데 막이 보인다")
+	var cds_ok: bool = looks.size() == 3 and looks.all(func(x): return x == "")
+	_done(main)
+	return check(went and cds_ok, "자리 %s(기대 %s, 누르기 전 %s, 커서 아래 %s) · 막 %s" % [h.pos, want, from, aim, looks])

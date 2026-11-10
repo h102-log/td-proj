@@ -434,3 +434,11 @@ def test_EV828_fire_archer_trait_line(gd):
 
 def test_EV839_round4_harpy_trait_lines(gd):
     gd("hud", "EV839")
+
+
+def test_EV885_start_battle_click_only(gd):
+    gd("hud", "EV885")
+
+
+def test_EV886_dash_cursor_and_portrait_curtain(gd):
+    gd("hud", "EV886")
