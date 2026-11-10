@@ -1801,3 +1801,24 @@ msgstr "Boss HP left %d%%"
 
 msgid "보스는 그로기 때만 크게 맞는다\n빨강은 피하고 금색에 모인다"
 msgstr "Hit the boss hard when groggy\nDodge red, gather on gold"
+
+msgid "점액 왕관"
+msgstr "Slime Crown"
+
+msgid "원정 %d층 처치 — %s · +%d골드"
+msgstr "F%d cleared — %s · +%d gold"
+
+msgid "아무도 안 낌"
+msgstr "Unequipped"
+
+msgid "영웅 바꾸기"
+msgstr "Next hero"
+
+msgid "유물을 다음 보유 영웅에게 옮긴다"
+msgstr "Moves the relic to the next hero you own"
+
+msgid "마지막 영웅 다음에는 뺀다"
+msgstr "After the last hero it is taken off"
+
+msgid "스킬 대기 %d%% 빠름"
+msgstr "Skill cooldowns %d%% faster"

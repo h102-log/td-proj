@@ -89,6 +89,7 @@ const COIN := [".####.", "##oo##", "#o##o#", "#o##o#", "##oo##", ".####."]
 const FLAG := ["|####.", "|#####", "|####.", "|.....", "|.....", "|....."]
 const MENU := ["########", "........", "........", "########", "........", "........", "########"]  # ≡
 const PLAY := ["#...", "##..", "###.", "####", "###.", "##..", "#..."]  # ▶
+const CROWN := ["........", "#..##..#", "#..##..#", "##.##.##", "########", "########", ".######.", "........"]  # 유물 줄 머리의 왕관(I278 ⑤)
 const SKULL := [".#####.", "#######", "#..#..#", "#######", ".##.##.", ".#####.", ".#.#.#."]  # 보스(S188)
 const MOON := ["..###..", ".###...", "###....", "###....", "###....", ".###...", "..###.."]  # 밤 웨이브(S214)
 const MOON_COLOR := Color("e8e0b0")
@@ -245,6 +246,8 @@ var _gear_tab := false  # 장비 칸을 보는 중. 창이 새로 뜨면 영입 
 var _gear := VBoxContainer.new()  # 장비 칸(S248)
 var _gear_info := Label.new()
 var _gear_rows := []  # 장비마다 [영웅 종류, 줄 글, 제작·강화 버튼, 장착·해제 버튼, 줄 머리 아이콘(S274)]
+var relic_rows := []  # 유물마다 [유물 id, 줄, 줄 글, 강화 버튼, 영웅 바꾸기 버튼](S334, I278 ⑤). 장비 칸의 장비 줄 아래
+var _floors_seen := 0  # 지난 프레임의 깬 층 수. 늘면 층 보상 토스트를 띄운다(S333)
 var _seen := ""  # 마지막으로 본 판 단계. 바뀌었을 때 결과 창이 떠 있으면 포커스를 준다
 var _wait := 0.0  # 결과 창이 뜨기까지 남은 시간(초, S117). 트리가 멈추는 ESC 메뉴 동안에는 줄지 않는다
 var tags := []  # 고른 영웅·용병의 상황 태그 [A 공격 이동, S 정지, H 홀드](I139)
@@ -266,6 +269,7 @@ func _init(b, c, m) -> void:
 	battle = b
 	controls = c
 	map = m
+	_floors_seen = b.floors_cleared  # 이어하기로 온 판의 이미 깬 층에는 토스트를 띄우지 않는다
 
 func _ready() -> void:
 	var root := Control.new()  # 글자 크기를 한 번에 주는 틀. 클릭은 아래 맵으로 흘린다
@@ -447,6 +451,19 @@ func _ready() -> void:
 		var wear := _window_button(row, func(): battle.wear(_owner(k), not _owner(k).worn))
 		tip.add(wear, func(): return ["해제", "", "", "장비 효과를 끈다 · 장비는 가방에 남는다", ""] if _owner(k) and _owner(k).worn else ["장착", "", "", "이 영웅이 장비 효과를 받는다", ""])
 		_gear_rows.append([k, line, make, wear, pic])
+	for k in battle.RELIC_KINDS:  # 유물마다 한 줄(S334, I278 ⑤). 장비 줄 아래에 두고 가방에 있는 유물만 보인다
+		var row := HBoxContainer.new()
+		_gear.add_child(row)
+		_pic(row, HudBuild.dots(CROWN, {"#": HudTheme.ACCENT}), Vector2(16, 16))
+		var line := Label.new()
+		line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(line)
+		var up := _window_button(row, func(): battle.forge_relic(k))
+		tip.add(up, func(): return _relic_tip(k))
+		var swap := _window_button(row, func(): _relic_next(k))
+		swap.text = "영웅 바꾸기"
+		tip.add(swap, func(): return ["영웅 바꾸기", "", "", "유물을 다음 보유 영웅에게 옮긴다 · 마지막 영웅 다음에는 뺀다", ""])
+		relic_rows.append([k, row, line, up, swap])
 	_hire_info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_hire.add_child(_hire_info)
 	var cols := HBoxContainer.new()
@@ -613,6 +630,10 @@ func _process(delta: float) -> void:
 	if boss_bar.visible:
 		_boss_name.text = tr(battle.raid_floor.title)
 		_boss_fill.size.x = 136.0 * battle.raid_left()  # 남은 총 체력 비율(S322)
+	if battle.floors_cleared > _floors_seen:  # 층 보상 토스트(S333, I278 ⑥): 방금 깬 층의 유물 이름과 층 골드
+		var f: Dictionary = battle.FLOOR_KINDS[battle.den.floors[battle.floors_cleared - 1]]
+		toasts.push("원정 %d층 처치 — %s · +%d골드" % [battle.floors_cleared, battle.RELIC_KINDS[f.relic].title, f.gold])
+	_floors_seen = battle.floors_cleared
 	again.visible = raiding and battle.raid_pending()  # «다시» 창(S331)
 	if again.visible:
 		_again_text.text = tr("원정 실패") + " — " + tr("보스 남은 체력 %d%%") % ceili(battle.raid_left() * 100.0)
@@ -1306,6 +1327,40 @@ func _show_gear() -> void:
 		row[3].visible = h != null and n >= 0
 		row[3].text = "해제" if h and h.worn else "장착"
 		row[4].modulate.a = 1.0 if n >= 0 else GEAR_DIM  # 가방에 없는 장비는 흐리게(S274)
+	for row in relic_rows:  # 유물 줄(I278 ⑤): «유물 이름 +N · 낀 영웅 이름», 강화 버튼. 가방에 없으면 숨는다
+		var k: String = row[0]
+		var n: int = battle.relics.get(k, -1)
+		row[1].visible = n >= 0
+		if n < 0:
+			continue
+		var who: Array = battle.roster.filter(func(h): return h.relic == k)
+		row[2].text = "%s +%d · %s" % [battle.RELIC_KINDS[k].title, n, HEROES[who[0].kind].get_slice("(", 0) if not who.is_empty() else "아무도 안 낌"]
+		row[3].text = "최대" if n + 1 >= battle.RELIC_KINDS[k].steps.size() else "강화 +%d · %d골드" % [n + 1, battle.HIRE.relic_cost[n]]
+		row[3].disabled = _relic_why(k) != ""
+
+# 유물 강화 버튼을 못 누르는 이유(I278 ⑤). 누를 수 있으면 ""
+func _relic_why(k: String) -> String:
+	var up: int = battle.relics[k] + 1
+	if up >= battle.RELIC_KINDS[k].steps.size():
+		return "최대 단계"
+	if battle.relic_forged.get(k, 0) >= battle.HIRE.relic_cap:
+		return "이번 창에서 %d번 다 씀" % battle.HIRE.relic_cap
+	var cost: int = battle.HIRE.relic_cost[up - 1]
+	return "골드 %d 모자람" % (cost - battle.gold) if battle.gold < cost else ""
+
+# 유물 강화 버튼 툴팁(I278 ⑤): 다음 단계 효과와 못 누르는 이유
+func _relic_tip(k: String) -> Array:
+	var r: Dictionary = battle.RELIC_KINDS[k]
+	var up: int = battle.relics[k] + 1
+	return ["강화", "", "", "+%d: %s" % [up, r.notes[up]] if up < r.steps.size() else "모든 단계를 받았다", _relic_why(k)]
+
+# «영웅 바꾸기»(I278 ⑤): 유물 k를 보유 영웅 차례에서 다음 영웅에게 옮긴다. 아무도 안 꼈으면 첫째에게, 마지막 영웅 다음에는 뺀다
+func _relic_next(k: String) -> void:
+	var i: int = battle.roster.find_custom(func(h): return h.relic == k)
+	if i + 1 < battle.roster.size():
+		battle.wear_relic(battle.roster[i + 1], k)
+	elif i >= 0:
+		battle.wear_relic(battle.roster[i], "")
 
 # 장비 k의 주인인 보유 영웅. 없으면 null
 func _owner(k: String):

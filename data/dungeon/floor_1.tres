@@ -97,3 +97,5 @@ enrage = {
 }
 pull = 3.0
 hard = 120.0
+gold = 120
+relic = "slime_crown"
