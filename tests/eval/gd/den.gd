@@ -463,6 +463,7 @@ func ev906():
 		return "원정 몸에 gen이 없거나 원정이 되지 않았다(판 %s · 적 %d)" % [b.state, b.enemies.size()]
 	var a = b.party[0]
 	a.pos = Vector2(84, 81.5)
+	e.rest = 999.0  # 대본(S324)의 강타가 끼지 않게 쉼을 아주 길게 둔다
 	if e.hp != 400.0 or e.radius != 1.6:
 		return "왕 체력 %s(400) · 몸 반지름 %s(1.6)" % [e.hp, e.radius]
 	var from: Vector2 = e.pos
@@ -805,3 +806,222 @@ func ev915():
 	var low := _landed(10.0)
 	var high := _landed(81.0)
 	return check(low > 0.0 and absf(high - low * 1.15) < 0.01, "착지에 잃은 체력: 불꽃 10 %s · 불꽃 81 %s(기대 앞의 1.15배 %s)" % [low, high, low * 1.15])
+
+# ── 왕의 대본(S324·I268) ── 더하는 API:
+#   FloorDef.plan [{id, wait}] · skills의 slam·soak·brand · Enemy.beat(대본 차례)·rest(그 패턴까지 남은 쉼)
+#   soak 예고의 cast.at(금색 원 자리) · brand 예고의 cast.mark(표식 영웅)·cast.at(원 자리)
+
+# 왕을 바로 움직이게 하고(서 있기 0) 뜀을 막은 원정. 대본 칸이 없으면 null
+func _scripted(b, beat: int):
+	var e = _king(b)
+	if e == null or e.get("rest") == null or e.get("beat") == null:
+		return null
+	e.pull = 0.0
+	e.cd["leap"] = 999.0
+	e.beat = beat
+	e.rest = 0.0
+	return e
+
+# 영웅 h가 피해 amount에 잃을 체력(방어력·받는 피해 감소)
+func _take(b, h, amount: float) -> float:
+	return amount * b.armor_mult(b.armor_of(h)) * (1.0 - b._fx_cut(h, "dr"))
+
+# secs초 동안 적 list의 예고가 뜬 때 [초, id]와 끝난 때를 적는다
+func _casts(b, list: Array, secs: float) -> Array:
+	var starts := []
+	var ends := []
+	var on := {}
+	var t := 0.0
+	while t < secs:
+		b.step(DT)
+		t += DT
+		for e in list:
+			var id = e.cast.id if e.cast != null else null
+			if id != on.get(e):
+				if id != null:
+					starts.append([t, id])
+				if on.get(e) != null:
+					ends.append(t)
+				on[e] = id
+	return [starts, ends]
+
+# EV916 · S324: 1층 층 정의의 강타·점액 비·표식 수치와 대본
+func ev916():
+	var f = load("res://data/dungeon/floor_1.tres")
+	var want := {
+		"slam": {"windup": 2.0, "radius": 3.0, "damage": 30.0, "knock": 1.5, "slow": 0.3, "slow_time": 3.0, "counter": 1.0, "color": "blue"},
+		"soak": {"windup": 4.0, "radius": 1.5, "far": 5.0, "turn": 90.0, "damage": 60.0, "need": 2, "miss": 20.0, "heal": 0.05, "counter": 1.0, "color": "gold"},
+		"brand": {"windup": 3.0, "radius": 2.0, "damage": 30.0, "color": "violet"},
+	}
+	for id in want:
+		var sk: Dictionary = f.skills.get(id, {})
+		for k in want[id]:
+			if sk.get(k) != want[id][k]:
+				return "%s.%s %s(기대 %s)" % [id, k, sk.get(k), want[id][k]]
+	return check(f.get("plan") == [{"id": "slam", "wait": 5.0}, {"id": "soak", "wait": 6.0}, {"id": "brand", "wait": 6.0}], "plan %s(기대 slam 5 → soak 6 → brand 6)" % [f.get("plan")])
+
+# EV917 · S324: 왕은 강타 → 점액 비 → 표식을 쉼을 두고 되풀이하고 그 사이에도 뛴다. 갈라진 몸은 뜀만 쓴다
+func ev917():
+	var b = _den()
+	var e = _king(b)
+	if e == null or e.get("rest") == null:
+		return "원정이 되지 않았거나 왕에 대본 칸(rest)이 없다"
+	e.cd["leap"] = 999.0
+	var log := _casts(b, [e], 45.0)
+	var starts: Array = log[0]
+	var ends: Array = log[1]
+	if starts.size() < 4 or ends.size() < 3 or starts.slice(0, 4).map(func(s): return s[1]) != ["slam", "soak", "brand", "slam"]:
+		return "① 뜬 예고 %s(기대 slam·soak·brand·slam)" % [starts]
+	var gaps := [starts[0][0], starts[1][0] - ends[0], starts[2][0] - ends[1], starts[3][0] - ends[2]]
+	var lo := [7.8, 5.8, 5.8, 4.8]
+	if range(4).any(func(i): return gaps[i] < lo[i] - 0.001 or gaps[i] > lo[i] + 0.501):
+		return "① 첫 예고 때와 앞 예고가 끝난 뒤 쉼 %s(기대 7.8~8.3 · 5.8~6.3 · 5.8~6.3 · 4.8~5.3)" % [gaps]
+	var c = _den()
+	var k = _king(c)
+	if k == null:
+		return "② 원정이 되지 않았다"
+	var ids: Array = _casts(c, [k], 20.0)[0].map(func(s): return s[1])
+	if ids.count("leap") < 2 or not "slam" in ids:
+		return "② 20초 동안 뜬 예고 %s(뜀 2번 이상과 slam이 있어야)" % [ids]
+	var d = _den()
+	var kids := _pair(d)
+	if kids.size() != 2:
+		return "③ 왕을 처치했는데 몸이 둘이 아니다"
+	var bare: bool = kids.all(func(x): return not x.skills.has("slam") and not x.skills.has("soak") and not x.skills.has("brand"))
+	var seen: Array = _casts(d, kids, 30.0)[0].map(func(s): return s[1])
+	return check(bare and not seen.is_empty() and seen.all(func(id): return id == "leap"), "③ 1세대 skills에 대본 패턴 없음 %s · 30초 동안 뜬 예고 %s(leap뿐이어야)" % [bare, seen])
+
+# EV918 · S324 ①④: 강타는 둘레 반경 안만 치고 빗나가도 창이 없다. 카운터 창 안 기절은 예고를 끊고 그로기를 연다
+func ev918():
+	var b = _den()
+	var e = _scripted(b, 0)
+	if e == null:
+		return "원정이 되지 않았거나 왕에 대본 칸(beat·rest)이 없다"
+	var u = b.party[1]
+	u.pos = Vector2(84, 82)
+	b.step(DT)
+	if e.cast == null or e.cast.id != "slam" or absf(e.cast.left - 2.0) > 0.051:
+		return "한 스텝 뒤 예고 %s(기대 slam, 남은 2초)" % [e.cast]
+	var want: float = _take(b, u, 30.0)
+	var hp: float = u.hp
+	var far: float = e.pos.distance_to(u.pos)
+	var others := [b.party[0].hp, b.party[2].hp]
+	_go(b, 2.2)
+	if absf(hp - u.hp - want) > 0.01 or e.pos.distance_to(u.pos) <= far + 1.0 or b._fx_on(u, "slow") != 0.3 or [b.party[0].hp, b.party[2].hp] != others or _groggy(b, e):
+		return "① 잃은 체력 %s(기대 %s) · 거리 %.2f → %.2f(1칸 넘게 늘어야) · 둔화 %s(0.3) · 입구 둘 %s → %s · 왕 그로기 %s(거짓)" % [hp - u.hp, want, far, e.pos.distance_to(u.pos), b._fx_on(u, "slow"), others, [b.party[0].hp, b.party[2].hp], _groggy(b, e)]
+	var c = _den()
+	var k = _scripted(c, 0)
+	if k == null:
+		return "② 원정이 되지 않았다"
+	var v = c.party[1]
+	v.pos = Vector2(84, 82)
+	c.step(DT)
+	_go(c, 0.5)
+	c._fx(k, "t1", {"stun": true}, 2.0)
+	var early := [k.cast != null and k.cast.id == "slam", _groggy(c, k), c._fx_on(k, "stun")]
+	_go(c, 0.7)
+	c._fx(k, "t2", {"stun": true}, 2.0)
+	var late := [k.cast, _groggy(c, k), c._fx_on(k, "stun")]
+	var hp2: float = v.hp
+	_go(c, 2.0)
+	return check(early == [true, false, null] and late == [null, true, null] and v.hp == hp2 and k.beat == 1,
+		"② 창 앞 기절 뒤 [예고 있음, 그로기, 기절] %s(기대 [참, 거짓, null]) · 창 안 기절 뒤 [예고, 그로기, 기절] %s(기대 [null, 참, null]) · 영웅 체력 %s → %s · 대본 차례 %s(1)" % [early, late, hp2, v.hp, k.beat])
+
+# 점액 비 예고를 띄운 원정. [판, 왕]이고 안 되면 []
+func _soaking() -> Array:
+	var b = _den()
+	var e = _scripted(b, 1)
+	if e == null:
+		return []
+	b.step(DT)
+	if e.cast == null or e.cast.id != "soak":
+		return []
+	return [b, e]
+
+# EV919 · S324 ②④·I268 ②: 점액 비는 2명 이상 모이면 나눠 받고 창이 열리며, 못 모이면 모두 맞고 왕이 회복한다. 카운터 창 안 기절은 끊는다
+func ev919():
+	var s := _soaking()
+	if s.is_empty():
+		return "점액 비 예고가 뜨지 않았다(원정·대본 칸·한 스텝 뒤 soak)"
+	var b = s[0]
+	var e = s[1]
+	var at: Vector2 = e.cast.at
+	if not at.is_equal_approx(Vector2(79, 80)) or not b.in_room(Vector2i(at.round())):
+		return "금색 원 자리 %s(기대 (79,80), 보스방 칸)" % [at]
+	var p = b.party
+	p[1].pos = at + Vector2(0.4, 0)
+	p[2].pos = at - Vector2(0.4, 0)
+	var want := [_take(b, p[1], 30.0), _take(b, p[2], 30.0)]
+	var hp: Array = p.map(func(h): return h.hp)
+	_go(b, 4.2)
+	var lost: Array = range(3).map(func(i): return hp[i] - p[i].hp)
+	if lost[0] != 0.0 or absf(lost[1] - want[0]) > 0.01 or absf(lost[2] - want[1]) > 0.01 or not _groggy(b, e):
+		return "① 잃은 체력 %s(기대 0 · %s · %s) · 왕 그로기 %s(참)" % [lost, want[0], want[1], _groggy(b, e)]
+	s = _soaking()
+	if s.is_empty():
+		return "② 점액 비 예고가 뜨지 않았다"
+	b = s[0]
+	e = s[1]
+	p = b.party
+	b.damage(e, 100.0, "true")
+	p[1].pos = at
+	want = [_take(b, p[1], 20.0), _take(b, p[2], 20.0)]
+	hp = p.map(func(h): return h.hp)
+	_go(b, 4.2)
+	lost = range(3).map(func(i): return hp[i] - p[i].hp)
+	if lost[0] <= 0.0 or absf(lost[1] - want[0]) > 0.01 or absf(lost[2] - want[1]) > 0.01 or absf(e.hp - 320.0) > 0.001 or _groggy(b, e):
+		return "② 잃은 체력 %s(기대 0 초과 · %s · %s) · 왕 체력 %s(320) · 그로기 %s(거짓)" % [lost, want[0], want[1], e.hp, _groggy(b, e)]
+	s = _soaking()
+	if s.is_empty():
+		return "③ 점액 비 예고가 뜨지 않았다"
+	b = s[0]
+	e = s[1]
+	_go(b, 3.2)
+	b._fx(e, "t", {"stun": true}, 2.0)
+	var cut := [e.cast, _groggy(b, e)]
+	hp = b.party.map(func(h): return h.hp)
+	_go(b, 1.5)
+	if cut != [null, true] or b.party.map(func(h): return h.hp) != hp:
+		return "③ 창 안 기절 뒤 [예고, 그로기] %s(기대 [null, 참]) · 영웅 체력 %s → %s(그대로여야)" % [cut, hp, b.party.map(func(h): return h.hp)]
+	s = _soaking()
+	if s.is_empty():
+		return "④ 점액 비 예고가 뜨지 않았다"
+	b = s[0]
+	e = s[1]
+	b.damage(b.party[0], BIG)
+	b.damage(b.party[2], BIG)
+	var lone = b.party[1]
+	lone.pos = at
+	var hp1: float = lone.hp
+	_go(b, 4.2)
+	return check(lone.hp < hp1 and not _groggy(b, e) and e.hp == 400.0, "④ 혼자 들어간 영웅 체력 %s → %s(줄어야) · 왕 그로기 %s(거짓) · 왕 체력 %s(400)" % [hp1, lone.hp, _groggy(b, e), e.hp])
+
+# EV920 · S324 ③·I268 ③: 표식은 출전 차례로 산 영웅에 붙어 따라다니고, 끝날 때 원 안 모두가 맞는다
+func ev920():
+	var b = _den()
+	var e = _scripted(b, 2)
+	if e == null:
+		return "원정이 되지 않았거나 왕에 대본 칸(beat·rest)이 없다"
+	var p = b.party
+	b.damage(p[0], BIG)
+	b.step(DT)
+	if e.cast == null or e.cast.id != "brand" or e.cast.get("mark") != p[1] or not e.cast.at.is_equal_approx(p[1].pos):
+		return "한 스텝 뒤 예고 %s(기대 brand, 표식 둘째 영웅, 자리 %s)" % [e.cast, p[1].pos]
+	p[1].pos = Vector2(80, 80)
+	p[2].pos = Vector2(80.5, 80)
+	b.step(DT)
+	if e.cast == null or not e.cast.at.is_equal_approx(Vector2(80, 80)):
+		return "영웅을 옮긴 뒤 원 자리 %s(기대 (80,80))" % [e.cast]
+	var want := [_take(b, p[1], 30.0), _take(b, p[2], 30.0)]
+	var hp := [p[1].hp, p[2].hp]
+	_go(b, 3.2)
+	if absf(hp[0] - p[1].hp - want[0]) > 0.01 or absf(hp[1] - p[2].hp - want[1]) > 0.01 or _groggy(b, e) or e.cast != null:
+		return "잃은 체력 %s · %s(기대 %s · %s) · 왕 그로기 %s(거짓) · 예고 %s(없어야)" % [hp[0] - p[1].hp, hp[1] - p[2].hp, want[0], want[1], _groggy(b, e), e.cast]
+	var marks := []
+	for i in 2:
+		e.beat = 2
+		e.rest = 0.0
+		b.step(DT)
+		marks.append(e.cast.get("mark") if e.cast != null else null)
+		_go(b, 3.2)
+	return check(marks == [p[2], p[1]], "다음 표식 차례 %s(기대 셋째 → 둘째 영웅)" % [marks.map(func(m): return m.kind if m != null else null)])

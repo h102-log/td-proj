@@ -76,3 +76,23 @@ def test_EV914_super_armor_and_no_displacement(gd):
 
 def test_EV915_enrage_ramps_landing_damage(gd):
     gd("den", "EV915")
+
+
+def test_EV916_floor1_king_patterns_and_plan(gd):
+    gd("den", "EV916")
+
+
+def test_EV917_king_plan_order_and_waits(gd):
+    gd("den", "EV917")
+
+
+def test_EV918_slam_hits_ring_and_counter_cut(gd):
+    gd("den", "EV918")
+
+
+def test_EV919_soak_share_fail_heal_counter(gd):
+    gd("den", "EV919")
+
+
+def test_EV920_brand_follows_turn_hero(gd):
+    gd("den", "EV920")
