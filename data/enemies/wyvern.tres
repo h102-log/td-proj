@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/enemy_def.gd" id="1_ldbao"]
+
+[resource]
+script = ExtResource("1_ldbao")
+hp = 160.0
+speed = 1.6
+damage = 15.0
+attack_gap = 1.5
+radius = 0.6
+sight = 4.0
+xp = 0
+flying = true
+boss = true
+phase2 = "wyvern_fallen"
+skills = {
+"plunge": {
+"range": 6.0,
+"radius": 1.5,
+"windup": 1.0,
+"air": 0.5,
+"cd": 10.0,
+"damage": 30.0,
+"knock": 1.0,
+"down": 2.0
+},
+"carpet": {
+"length": 8.0,
+"width": 1.0,
+"count": 2,
+"windup": 1.2,
+"pass": 0.8,
+"cd": 14.0,
+"dps": 5.0,
+"time": 4.0,
+"flame_dps": 4.0,
+"flame_time": 9.0,
+"spread": 3.0
+}
+}

@@ -18,10 +18,12 @@ const ENEMY_COLORS := {  # 적 종류마다 다른 색(I81)
 	"chief": Color("a02838"), "shieldbearer": Color("4a6a8a"), "fire_archer": Color("f0b020"),
 	"feather_harpy": Color("70c8e8"), "dive_harpy": Color("e88850"), "song_harpy": Color("b890f0"),
 	"storm_harpy": Color("90e0c8"), "snatch_harpy": Color("d8c048"),
+	"nest_harpy": Color("a8d070"), "nest": Color("7a5a30"), "harpy_chick": Color("f0d8c0"), "wyvern": Color("4a8a58"), "wyvern_fallen": Color("8a3a28"),
 }
 # 그림이 아직 없어 다른 종류의 그림을 빌리는 종류 → [빌리는 종류, 곱하는 색](I250 ⑤·I253 ⑤). 4라운드 하피 다섯은 비행(하피) 그림이다
 const LOOKS := {"feather_harpy": ["flying", Color(0.75, 1.2, 1.7)], "dive_harpy": ["flying", Color(1.7, 1.0, 0.6)], "song_harpy": ["flying", Color(1.45, 0.85, 1.75)],
-	"storm_harpy": ["flying", Color(0.85, 1.65, 1.35)], "snatch_harpy": ["flying", Color(1.65, 1.5, 0.65)]}  # 하피 그림이 어두워 1을 넘겨 밝힌다
+	"storm_harpy": ["flying", Color(0.85, 1.65, 1.35)], "snatch_harpy": ["flying", Color(1.65, 1.5, 0.65)],
+	"nest_harpy": ["flying", Color(1.3, 1.6, 0.8)], "harpy_chick": ["flying", Color(1.8, 1.7, 1.6)], "wyvern": ["flying", Color(0.7, 1.4, 0.8)], "wyvern_fallen": ["flying", Color(1.5, 0.75, 0.6)]}  # 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피·와이번 둘(I255 ⑥·I256 ④·I257 ⑤)
 const NOTE := Color("d8b0ff")  # 노래(S306)로 공격 속도가 느려진 아군 머리 위 음표와 노래 반경 고리의 색(I252 ④)
 const FEATHER := Color("f4f0e8")  # 날아가는 깃털(I250 ④)
 const GUST := Color(1.0, 1.0, 1.0, 0.45)  # 뿜는 돌풍의 부채꼴 테두리·바람 줄과 날린 화살 자국(I253 ③④)
@@ -153,13 +155,14 @@ const HEX_SPIN := 1.0  # 저주 고리가 조여드는 동안 반시계로 도�
 const PLAGUE_DASH := 6  # 전염 고리 점선 한 주기(px). 앞쪽 반만 그린다
 const BOG_DASH := 2  # 늪 물결 점선의 그린 칸·틈 길이(px)
 const TELL_FILL := 5  # 보스 스킬 예고 안쪽 성긴 칠의 밀도(/16, fx-4)
-const ALLY_FX := ["dr", "haste", "shield", "invuln", "stun", "bleed", "lag"]  # 아군에 걸린 효과(I101, 기절은 I192, 출혈은 I193 ③, 노래의 공격 속도 감소는 I252 ④)
+const ALLY_FX := ["dr", "haste", "shield", "invuln", "stun", "bleed", "lag", "burn"]  # 아군에 걸린 효과(I101, 기절은 I192, 출혈은 I193 ③, 노래의 공격 속도 감소는 I252 ④, 와이번의 불은 I256 ③)
 const FOE_FX := ["stun", "root", "expose", "taunt", "seal", "chain", "dot"]  # 적에 걸린 효과(I101). 둔화는 능력치 감소 줄(DEBUFFS)이다
 const DEBUFFS := ["slow", "weaken", "armor", "mr"]  # 적 능력치 감소 줄의 왼쪽부터 차례(I101 2026-11-04 변경). fx 아틀라스 «down» 프레임 차례와 같다(tools/art/fx.py)
 const FOE_TELL := Color("ef692f")  # 일반 적 예고(S279): F24+ 주황 1px 테가 BLINK초마다 켜졌다 꺼진다. 안쪽은 칠하지 않는다
 const BLINK := 0.25
-const UNSEEN_TELLS := ["pounce", "throw", "bomb", "drop", "cannon", "bombs", "flame", "dive", "gust", "snatch"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287)·대장 폭탄(S288)·불화살(I249 ①)·박치기(I251 ⑦)·돌풍(I253 ④)·낚아채기(I254 ⑥). 덮개 위 층에 그린다
+const UNSEEN_TELLS := ["pounce", "throw", "bomb", "drop", "cannon", "bombs", "flame", "dive", "gust", "snatch", "nest", "plunge", "carpet"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287)·대장 폭탄(S288)·불화살(I249 ①)·박치기(I251 ⑦)·돌풍(I253 ④)·낚아채기(I254 ⑥)·둥지 짓기(I255 ⑥)·와이번 급강하·융단 폭격(S310). 덮개 위 층에 그린다
 const FLAME_RING := 0.5  # 불화살 예고 원 반경(칸, S302). 판정에 쓰지 않는 그림 값이라 flame 데이터에 없다
+const NEST_RING := 0.5  # 둥지 짓기 예고 원 반경(칸, S309). 짓는 칸 하나다
 const TELL := Color("ef3a0c")  # 보스 스킬 예고(S194): F24+ 빨강 테(바깥 어두운 테는 PX.maroon), 안쪽 성긴 칠이 차오른다(S198 fx-4)
 const RAGE := Color(1.5, 0.55, 0.55)  # 분노한 보스(S195)를 붉게 그리는 modulate
 const CROUCH := Vector2(1.15, 0.75)  # 슬라임 킹이 웅크림 끝에 납작해지는 배율(가로·세로, S198). 임시값
@@ -188,7 +191,7 @@ const LANDING := "leap"  # 착지 흔적(slam)의 시트가 없는 보스가 착
 const WRECK_FADE := 0.5  # 수레 잔해가 지워지기(battle.WRECK) 전에 흐려지는 시간(초, S172 2026-11-05 변경 ⑥)
 const FAN_TURN := 20.0  # 시트 자세 ±40°의 가운데
 const BLOW := {"war_machine": ["slam", 1]}  # 공격 칸이 없는 종류의 기본 공격 키 포즈 [시트, 열](S172 2026-11-03 셋째 변경 ④)
-const GROW := {"slime_king": [3.0, 5.0]}  # 몸이 큰 종류(S236 2026-10-29 변경: 킹 몸 반지름 2칸)의 [그림 배율, 배율 전 그림을 내리는 px]. 정수배라 도트가 고르고, 내리면 그림 가운데가 몸 가운데에 온다
+const GROW := {"slime_king": [3.0, 5.0], "wyvern": [2.0, 0.0], "wyvern_fallen": [2.0, 0.0]}  # 몸이 큰 종류(S236 2026-10-29 변경: 킹 몸 반지름 2칸)의 [그림 배율, 배율 전 그림을 내리는 px]. 정수배라 도트가 고르고, 내리면 그림 가운데가 몸 가운데에 온다
 const POP := 0.3  # 갈라져 나온 적이 죽은 자리에서 제자리로 튀어나오는 시간(초, S234 2026-10-29 변경)
 const POP_UP := 6.0  # 그동안 포물선으로 뛰는 높이(px)
 const POP_FROM := 0.5  # 튀어나오기 시작할 때의 그림 배율. POP초에 1이 된다
@@ -2017,6 +2020,11 @@ func status_marks(x, ally: bool) -> Array:
 				var at := head + Vector2i(5, int(round(sin(clock * 4.0 + _hf(n, 8) * TAU))))
 				for d in [Vector2i(0, -4), Vector2i(0, -3), Vector2i(0, -2), Vector2i(0, -1), Vector2i(1, -4), Vector2i(1, -3), Vector2i(-1, -1), Vector2i(-1, 0), Vector2i(0, 0)]:
 					out.append({k = "px", p = at + d, c = NOTE})
+			"burn":  # 와이번의 불(I256 ③): 발치의 작은 불꽃과 오르는 불티(이그니스 발화 표식과 같은 그림)
+				out.append({k = "flame_s", p = feet + Vector2i(posmod(n, 5) - 2, -4), f = int(clock * 10.0) + n})
+				for i in 4:
+					var ph := fmod(clock + _hf(n, i + 3) * 0.5, 0.5) / 0.5
+					out.append({k = "px", p = feet + Vector2i(int(_hf(n, i + 9) * 10.0) - 5, -4 - int(14.0 * ph)), c = _ramp(EMBER, ph)})
 			"invuln":  # 금 테가 맥동하고 별 하나가 돈다
 				var a := clock * 3.0 + _hf(n, 6) * TAU
 				out.append({k = "ring", p = feet - Vector2i(0, int(tall * 0.45)), r = int(tall * 0.6) + 1, c = PX.gold if fmod(clock * 2.0, 1.0) < 0.5 else PX.cream})
@@ -3429,10 +3437,10 @@ func _tells() -> void:
 		if not e.skills.has(e.cast.id):  # 일반 적 예고(S279): 폭파병 도화선
 			_foe_tell(e)
 			continue
-		if e.cast.id == "mgun" or e.cast.id == "cleave":  # 전쟁 기계 기관총(S287)·대장 철퇴(S288)는 부채꼴
+		if e.cast.id in ["mgun", "cleave", "breath", "tail"]:  # 전쟁 기계 기관총(S287)·대장 철퇴(S288)·떨어진 와이번 숨결·꼬리(S311)는 부채꼴
 			_fan_tell(e)
 			continue
-		if e.cast.id == "charge":  # 대장 돌진(S288)은 직선
+		if e.cast.id == "charge" or e.cast.id == "rush":  # 대장 돌진(S288)·떨어진 와이번 맹진(S311)은 직선
 			_line_tell(e)
 			continue
 		_boss_tell(e)
@@ -3531,7 +3539,7 @@ func _foe_tell(e) -> void:
 			_pring(to, 5, 1, FOE_TELL)
 		return
 	var sk: Dictionary = battle.deed(e, e.cast.id)
-	var at: Vector2 = e.cast.get("at", e.pos)
+	var at := Vector2(e.cast.get("at", e.pos))  # 둥지 짓기(S309)의 at은 칸(Vector2i)이다
 	if int(clock / BLINK) % 2 == 0:
 		if e.cast.id == "drop":  # 투하 표식(S286): 투하 칸에 아래를 가리키는 화살표
 			var c := Vector2i(_center(at).floor())
@@ -3539,7 +3547,8 @@ func _foe_tell(e) -> void:
 			_pline(c + Vector2i(-4, -6), c + Vector2i(0, -2), FOE_TELL)
 			_pline(c + Vector2i(4, -6), c + Vector2i(0, -2), FOE_TELL)
 		else:
-			_pring(Vector2i(_center(at).floor()), int(CELL * (FLAME_RING if e.cast.id == "flame" else sk.radius)), 1, FOE_TELL)
+			var o: Vector2 = _spot(e) if e.cast.id == "nest" else _center(at)  # 둥지 짓기 고리는 성벽 위로 들어 올려 그린 하피 발 자리에(I255 ⑥)
+			_pring(Vector2i(o.floor()), int(CELL * (FLAME_RING if e.cast.id == "flame" else (NEST_RING if e.cast.id == "nest" else sk.radius))), 1, FOE_TELL)
 	if e.cast.id == "throw":
 		var k: float = clampf(1.0 - e.cast.left / sk.windup, 0.0, 1.0)
 		var p: Vector2 = _center(e.pos).lerp(_center(at), k) + Vector2(0, -sin(k * PI) * CELL * 1.5)
@@ -3620,8 +3629,10 @@ func _foe_tells() -> void:
 	for e in tellers(_foes):
 		if e.cast.id in UNSEEN_TELLS and not e.skills.has(e.cast.id):
 			_foe_tell(e)
-		elif e.cast.id == "cannon" or e.cast.id == "bombs":  # 대장 폭탄(S288)도 대포처럼 숨어도 그린다
+		elif e.cast.id == "cannon" or e.cast.id == "bombs" or e.cast.id == "plunge":  # 대장 폭탄(S288)·와이번 급강하(S310)도 대포처럼 숨어도 그린다
 			_boss_tell(e)
+		elif e.cast.id == "carpet" and not e.cast.get("pass", false):  # 와이번 융단 폭격 직선(S310)도 숨어도 그린다. 지나가는 동안은 그리지 않는다
+			_line_tell(e)
 
 # 보스: 스킬(S194)이 있는 적
 func _boss(x) -> bool:

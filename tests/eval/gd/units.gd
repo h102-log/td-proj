@@ -44,6 +44,11 @@ const TABLE := {
 	"song_harpy": [12, 2.2, 3, 1, 0.3, 3, 10, null],
 	"storm_harpy": [14, 2.2, 3, 1, 0.3, 0, 10, null],  # 4라운드 하늘 둥지 묶음 ②(S106 2026-11-10 변경)
 	"snatch_harpy": [12, 2.6, 3, 1, 0.3, 0, 12, null],
+	"nest_harpy": [12, 2.4, 3, 1, 0.3, 0, 10, null],  # 4라운드 하늘 둥지 묶음 ③(S106 2026-11-10 둘째 변경)
+	"nest": [40, 0, 0, 1, 0.4, 0, 10, null],
+	"harpy_chick": [4, 3, 2, 1, 0.2, 3, 0, null],
+	"wyvern": [160, 1.6, 15, 1.5, 0.6, 4, 0, null],
+	"wyvern_fallen": [200, 1.2, 25, 1.5, 0.6, 4, 50, 0.3],
 }
 const PACK := {"wolf": 4, "leap_wolf": 2, "night_wolf": 2, "flying": 4}  # 무리(S238). 비행은 2026-11-09 변경. 나머지 종류는 1
 const KEYS := ["hp", "speed", "damage", "attack_gap", "radius", "sight", "reward", "wall_k"]
@@ -53,6 +58,13 @@ const DIVE := {"windup": 1.0, "air": 0.4, "cd": 6.0, "damage": 8.0, "radius": 1.
 const SONG := {"radius": 3.0, "heal": 0.03, "lag": 0.3}  # 노래하는 하피 song(S306)
 const GUST := {"range": 4.0, "reach": 6.0, "arc": 60.0, "windup": 1.0, "cd": 4.0}  # 폭풍날개 하피 gust(S307)
 const SNATCH := {"range": 5.0, "reach": 0.5, "toss": 5.0, "windup": 2.0, "radius": 1.0, "hit": 10.0, "structure": 15.0, "fall": 12.0, "pick": 1.5, "cd": 5.0}  # 낚아채기 하피 snatch(S308)
+const NEST := {"build": 3.0, "cd": 4.0, "kind": "nest"}  # 둥지 하피 nest(S309)
+const BROOD := {"kind": "harpy_chick", "every": 4.0, "cap": 3}  # 둥지 brood(S309)
+const WYVERN := {"plunge": {"range": 6.0, "radius": 1.5, "windup": 1.0, "air": 0.5, "cd": 10.0, "damage": 30.0, "knock": 1.0, "down": 2.0},
+	"carpet": {"length": 8.0, "width": 1.0, "count": 2, "windup": 1.2, "pass": 0.8, "cd": 14.0, "dps": 5.0, "time": 4.0, "flame_dps": 4.0, "flame_time": 9.0, "spread": 3.0}}  # 와이번 skills(S310)
+const FALLEN := {"breath": {"range": 3.0, "arc": 60.0, "windup": 0.8, "cd": 8.0, "dps": 5.0, "time": 4.0},
+	"rush": {"length": 6.0, "min": 2.0, "width": 1.0, "side": 1.0, "windup": 1.0, "cd": 12.0, "dps": 5.0, "time": 4.0, "shields": ["soldier", "aias"]},
+	"tail": {"range": 2.0, "arc": 120.0, "windup": 0.6, "cd": 6.0, "knock": 1.5}}  # 떨어진 와이번 skills(S311)
 
 func _castle(gates := GATES, walls = null):
 	if walls == null:
@@ -122,6 +134,20 @@ func ev130():
 	var gifts2: Array = [two[0].get("gust", {}), two[1].get("snatch", {})]
 	if not (two.all(func(x): return x.get("flying") == true) and _same(gifts2[0], GUST) and _same(gifts2[1], SNATCH)):
 		return "하피 둘(S106 2026-11-10 변경): 비행 %s · gust %s(%s) · snatch %s(%s)" % [two.map(func(x): return x.get("flying")), gifts2[0], GUST, gifts2[1], SNATCH]
+	var nh: Dictionary = d.get("nest_harpy", {})
+	var ch: Dictionary = d.get("harpy_chick", {})
+	var wy: Dictionary = d.get("wyvern", {})
+	var wf: Dictionary = d.get("wyvern_fallen", {})
+	var skw = wy.get("skills", {})
+	var skf = wf.get("skills", {})
+	var nest_ok: bool = _same(nh.get("nest", {}), NEST) and _same(d.get("nest", {}).get("brood", {}), BROOD)
+	var fly_ok: bool = [nh, ch, wy].all(func(x): return x.get("flying") == true) and wf.get("flying") == false
+	var boss_ok: bool = wy.get("boss") == true and wf.get("boss") == true and ch.get("xp") == 0 and wy.get("xp") == 0 and wy.get("phase2") == "wyvern_fallen"
+	var skill_ok: bool = (skw is Dictionary and skf is Dictionary and skw.keys() == WYVERN.keys() and skf.keys() == FALLEN.keys()
+		and WYVERN.keys().all(func(k): return _same(skw[k], WYVERN[k])) and FALLEN.keys().all(func(k): return _same(skf[k], FALLEN[k])))
+	if not (nest_ok and fly_ok and boss_ok and skill_ok):
+		return "묶음 ③(S106 2026-11-10 둘째 변경): nest %s(%s) · brood %s(%s) · 비행 %s · boss·xp·phase2 %s · skills %s / %s" % [nh.get("nest"), NEST, d.get("nest", {}).get("brood"), BROOD,
+			[nh.get("flying"), ch.get("flying"), wy.get("flying"), wf.get("flying")], [wy.get("boss"), wf.get("boss"), ch.get("xp"), wy.get("xp"), wy.get("phase2")], skw, skf]
 	return check(d.fast.climb == 3.0 and d.armored.armor == 15.0 and d.flying.flying and not d.basic.flying and d.basic.climb == 0.0
 		and d.slime.get("split") == {"kind": "slimelet", "count": 2} and d.big_slime.get("split") == {"kind": "slime", "count": 2}
 		and plain.all(func(k): return d[k].get("split", {}).is_empty()) and d.slime_king.get("boss") == true and d.alpha_wolf.get("boss") == true
@@ -142,7 +168,7 @@ func _same(got, want: Dictionary) -> bool:
 	for k in want:
 		if not got.has(k):
 			return false
-		if want[k] is Array:
+		if want[k] is Array or want[k] is String:
 			if got[k] != want[k]:
 				return false
 		elif not is_equal_approx(float(got[k]), want[k]):

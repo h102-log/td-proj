@@ -45,3 +45,5 @@ extends Resource
 @export var song := {}  # 노래(S306, I252): {radius 반경, heal 초당 최대 체력 비율, lag 아군 공격 속도 감소}. 비어 있으면 노래하지 않는다
 @export var gust := {}  # 돌풍(S307, I253): {range 멈추는 성곽 거리 칸, reach 부채꼴 반경 칸, arc 각도°, windup 예고 초, cd 끊긴 뒤 대기 초}. 비어 있으면 뿜지 않는다
 @export var snatch := {}  # 낚아채기(S308, I254): {range 탐색 칸, reach 드는 거리 칸, toss 떨어뜨릴 자리 거리 칸, windup 예고 초, radius 원 반경, hit 아군 피해, structure 구조물 피해, fall 낙하 피해, pick 돌 줍기 초, cd 대기 초}. 비어 있으면 낚아채지 않는다
+@export var nest := {}  # 둥지 짓기(S309, I255): {build 짓는 초, cd 끊긴 뒤 대기 초, kind 다 지으면 될 종류}. 비어 있으면 짓지 않는다
+@export var brood := {}  # 새끼 낳기(S309, I255): {kind 새끼 종류, every 낳는 간격 초, cap 살아 있는 새끼 상한}. 비어 있지 않으면 둥지다(움직이지도 치지도 않는다)

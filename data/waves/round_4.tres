@@ -21,11 +21,14 @@ waves = Array[Dictionary]([{
 "dive_harpy": 60,
 "song_harpy": 40
 }, {
-"basic": 300,
-"fast": 160,
-"armored": 100,
-"flying": 120,
-"boss": 1
+"flying": 320,
+"nest_harpy": 20,
+"feather_harpy": 80,
+"dive_harpy": 80,
+"song_harpy": 60,
+"storm_harpy": 50,
+"snatch_harpy": 70,
+"wyvern": 1
 }])
 nights = Array[Dictionary]([{}, {
 "at": 30.0,
