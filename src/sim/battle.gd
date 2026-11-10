@@ -255,6 +255,7 @@ class Enemy:
 	var lay := 0.0  # 둥지가 다음 새끼를 낳을 때까지 남은 초(S309)
 	var raid := {}  # 원정 보스(S316)의 층 정의. 비어 있으면 원정 보스가 아니다
 	var pull := 0.0  # 움직이지도 치지도 스킬을 쓰지도 않고 서 있을 남은 초(원정 보스, I262 ④⑥)
+	var gen := -1  # 원정 1층 몸의 세대(S322). 세대로 갈라지는 몸이 아니면 -1
 
 	func _init(k: String, cell: Vector2i, stats: Dictionary) -> void:
 		kind = k
@@ -479,7 +480,6 @@ var floors_cleared := 0  # 깬 던전 층 수(S316)
 var party := []  # 원정대(S316): 원정에 들어간 출전 영웅, 출전 차례. 원정이 아니면 비어 있다
 var flame := 0.0  # 이번 원정의 불꽃이 탄 초(I262 ⑥)
 var raid_floor := {}  # 이번 원정의 층 정의(FLOOR_KINDS 값). 원정이 아니면 비어 있다
-var raid_boss = null  # 이번 원정의 보스(Enemy). 원정이 아니면 null
 var _snap := {}  # 원정 직전 몸(I262 ④): 원정대 영웅 → 칸 사전, "tally" → 라운드 집계
 var _raid_end := ["", 0.0]  # 끝난 까닭("win"·"wipe"·"flame")과 돌아오기까지 남은 초(I262 ⑥). 안 끝났으면 ""
 var merc_cap := MERC_CAP
@@ -580,7 +580,6 @@ func restart() -> void:
 	floors_cleared = 0
 	party.clear()
 	raid_floor = {}
-	raid_boss = null
 	_snap = {}
 	_raid_end = ["", 0.0]
 	merc_cap = stage.get("merc_cap", MERC_CAP)
@@ -1012,36 +1011,84 @@ func start_raid() -> bool:
 		_halt(h)
 		h.on_wall = false
 		h.still = 0.0
-	raid_boss = _enemy(raid_floor.kind, den.boss, raid_floor.stats.merged({"skills": raid_floor.skills, "raid": raid_floor, "pull": raid_floor.pull}))
-	_field(raid_boss)
-	enemy_spawned.emit(raid_boss)
+	enemy_spawned.emit(_raid_body(0, Vector2(den.boss), raid_floor.pull))
 	return true
+
+# 원정 보스 몸 하나를 낸다(S316): 층 수치 그대로이고 wait초 동안 서 있는다. 층에 세대(gens)가 있으면(S322) g세대의 체력·몸 반지름과
+# 그 몸만의 뜀 수치(착지 원 반경·뜀 간격)를 얹고, 그림은 처음 몸 반지름에 견줘 줄여 그리게 한다(화면 _shrunk)
+func _raid_body(g: int, at: Vector2, wait: float) -> Enemy:
+	var over: Dictionary = raid_floor.stats.merged({"skills": raid_floor.skills, "raid": raid_floor, "pull": wait})
+	if not raid_floor.gens.is_empty():
+		var gen: Dictionary = raid_floor.gens[g]
+		var leap: Dictionary = raid_floor.skills.leap.merged({"radius": gen.land, "cd": gen.gap}, true)
+		over.merge({"hp": gen.hp, "radius": gen.radius, "gen": g, "skills": raid_floor.skills.merged({"leap": leap}, true)}, true)
+	var e := _enemy(raid_floor.kind, Vector2i(at.round()), over)
+	e.pos = at
+	if e.gen >= 0:
+		e.girth = raid_floor.gens[0].radius
+	_field(e)
+	return e
+
+# 원정 몸의 갈라짐(S322, I266 ②③): 죽은 자리에서 서·동으로 자식 몸 반지름만큼 떨어진 자리에 다음 세대 둘을 놓는다. 보스방 칸이 아니면 죽은 자리다.
+# 둘 다 born초 가만히 있고(원정이 끝나 기다리는 중이면 계속), 둘째는 그 뒤 뜀 간격의 반이 더 지나야 뛴다. 마지막 세대는 갈라지지 않는다
+func _bud(dead: Enemy) -> void:
+	if dead.gen < 0 or dead.gen + 1 >= dead.raid.gens.size() or state != "raid":
+		return
+	var gen: Dictionary = dead.raid.gens[dead.gen + 1]
+	for i in 2:
+		var at: Vector2 = dead.pos + Vector2(gen.radius * (2 * i - 1), 0.0)
+		if not in_room(Vector2i(at.round())):
+			at = dead.pos
+		var e := _raid_body(dead.gen + 1, at, dead.skills.leap.born if _raid_end[0] == "" else INF)
+		e.cd["leap"] = gen.gap * 0.5 * i
+		e.split_from = dead.pos
+
+# 원정에 나와 있는 보스 몸
+func _raiders() -> Array:
+	return enemies.filter(func(e): return not e.raid.is_empty())
+
+# 남은 보스 체력 비율(S322): 산 몸의 체력에 아직 나오지 않은 자손의 체력을 더해 전체 합으로 나눈다. 세대가 없는 층은 보스 하나의 체력 비율이다
+func raid_left() -> float:
+	var gens: Array = raid_floor.get("gens", [])
+	var left := 0.0
+	var all := 0.0
+	for g in gens.size():
+		all += gens[g].hp * (1 << g)
+	for e in _raiders():
+		left += e.hp
+		if gens.is_empty():
+			all += e.max_hp
+		for k in range(e.gen + 1, gens.size()):
+			left += gens[k].hp * (1 << (k - e.gen))
+	return clampf(left / all, 0.0, 1.0) if all > 0.0 else 0.0
 
 # «철수»(S316): 원정 중 언제든 바로 돌아온다. 쓴 횃불은 돌아오지 않는다
 func retreat() -> void:
 	if state == "raid":
 		_come_home(false)
 
-# 원정 한 스텝(I262 ⑥): 끝나기를 기다리는 중이면 센다. 아니면 처치 → 전멸 → 불꽃 차례로 끝을 보고 불꽃을 태운다
+# 원정 한 스텝(I262 ⑥): 끝나기를 기다리는 중이면 센다. 아니면 처치(방 안에 보스 몸이 없다, S322) → 전멸 → 불꽃 차례로 끝을 보고 불꽃을 태운다
 func _raid_step(dt: float) -> void:
 	if _raid_end[0] != "":
 		_raid_end[1] -= dt
 		if _raid_end[1] <= 0.0:
 			_come_home(_raid_end[0] == "win")
 		return
-	if not raid_boss.alive:
+	if _raiders().is_empty():
 		_end_raid("win", den.win_wait)
 	elif not party.any(func(h): return h.alive):
 		_end_raid("wipe", den.wipe_wait)
-	elif flame >= raid_floor.hard:  # 다 타면 보스가 사라진다
-		enemies.erase(raid_boss)
+	elif flame >= raid_floor.hard:  # 다 타면 보스 몸이 모두 사라진다
+		for e in _raiders():
+			enemies.erase(e)
 		_end_raid("flame", den.wipe_wait)
 	else:
 		flame += dt
 
 func _end_raid(why: String, wait: float) -> void:
 	_raid_end = [why, wait]
-	raid_boss.pull = INF  # 돌아올 때까지 보스는 움직이지 않는다
+	for e in _raiders():  # 돌아올 때까지 보스 몸은 움직이지 않는다
+		e.pull = INF
 
 # 돌아오기(I262 ⑦): 원정의 적·효과를 비우고 원정대를 떠 둔 몸으로, 라운드 집계를 떠 둔 값으로 되돌린다. 처치면 깬 층이 는다
 func _come_home(won: bool) -> void:
@@ -1051,7 +1098,7 @@ func _come_home(won: bool) -> void:
 	_clear_effects()
 	traces.clear()
 	landed.clear()
-	fallen = fallen.filter(func(f): return f.who not in party and f.who != raid_boss)
+	fallen = fallen.filter(func(f): return f.who not in party and not (f.who is Enemy and not f.who.raid.is_empty()))
 	for h in party:
 		for k in _snap[h]:
 			var v = _snap[h][k]
@@ -1066,7 +1113,6 @@ func _come_home(won: bool) -> void:
 	tally = _snap.tally
 	party.clear()
 	raid_floor = {}
-	raid_boss = null
 	_snap = {}
 	_raid_end = ["", 0.0]
 	flame = 0.0
@@ -3553,6 +3599,7 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 			if h.alive:
 				add_xp(h, target.xp)
 		_divide(target)  # 처치 골드·전염·경험치 다음이라 전염은 막 나온 적에게 옮지 않는다(S234)
+		_bud(target)
 		_disembark(target)  # 공성탑·수송 비행선(S284, S286)
 	elif target is Unit:  # 전장에서 빠진다. 영웅은 다음 준비 단계에 돌아온다(step, S26). 공병이 하던 일은 그 상태로 남는다(S24)
 		if target.job:
@@ -3784,6 +3831,8 @@ func _move(e: Enemy, dt: float) -> void:
 		return
 	if _skills(e, dt, sealed):  # 예고 동안은 움직이지도 치지도 않는다(S194)
 		return
+	if e.gen >= 0:  # 원정 1층 몸(S322): 걷지도 기본 공격도 하지 않고 뜀으로만 움직이고 친다
+		return
 	if e.attack_gap - e.cooldown < POSE:  # 친 뒤 공격 자세 동안 제자리에 선다(S196)
 		return
 	if not e.fuse.is_empty() and units.any(func(u): return not u.on_wall and e.pos.distance_to(u.pos) <= e.radius + u.radius + 0.01 and _touch(e, u)):
@@ -3966,6 +4015,8 @@ func _slam(e: Enemy, sk: Dictionary, away := Vector2.ZERO) -> void:
 # 점프 내려찍기(S236)를 쓸 수 있다: range 안 땅 위 영웅·용병 가운데 반경 안에 땅 아군이 count 이상 몰렸고, 보스에서 곧은 선이
 # 막힌 칸을 지나지 않는 자리. 가장 많이 몰린 자리, 같으면 유닛 차례가 앞선 쪽. 착지 자리를 예고에 둔다(I188)
 func _leap_ready(e: Enemy, sk: Dictionary):
+	if e.gen >= 0:
+		return _hop_spot(e, sk)
 	var best = null
 	var most: int = sk.count - 1
 	for u in _ground_near(e.pos, sk.range):
@@ -3974,6 +4025,42 @@ func _leap_ready(e: Enemy, sk: Dictionary):
 			best = u
 			most = n
 	return {"at": best.pos} if best else false
+
+# 원정 1층 몸의 뜀 자리(S322, I266 ①): 가장 가까운 산 원정대 영웅(도발이 이긴다)이 뜀 거리 안이면 그 자리, 밖이면 그쪽으로 뜀 거리만큼 간 자리를 바란다.
+# 바라는 자리부터 둘레 고리(step씩 reach까지, 12방향을 이 몸 쪽부터 좌우 번갈아)를 훑어 처음 비는 자리를 예고에 둔다. 없으면 retry초 뒤 다시 고른다
+func _hop_spot(e: Enemy, sk: Dictionary):
+	var u = _fx_on(e, "taunt")
+	if not (u and u.alive):
+		u = null
+		for h in party:
+			if h.alive and (u == null or e.pos.distance_to(h.pos) < e.pos.distance_to(u.pos)):
+				u = h
+	if u == null:
+		return false
+	var to: Vector2 = u.pos - e.pos
+	var want: Vector2 = u.pos if to.length() <= sk.range else e.pos + to.normalized() * sk.range
+	var turn: float = (e.pos - want).angle()
+	for ring in floori(sk.reach / sk.step) + 1:
+		for i in (12 if ring > 0 else 1):
+			var side: int = ceili(i / 2.0) * (1 if i % 2 == 1 else -1)
+			var at: Vector2 = want + Vector2.from_angle(turn + TAU * side / 12.0) * sk.step * ring
+			if _hop_free(e, sk, at):
+				return {"at": at}
+	e.cd["leap"] = sk.retry
+	return false
+
+# 뜀 자리가 빈다(I266 ①): 보스방 칸이고, 이 몸에서 뜀 거리 안이고, 다른 몸이 예고했거나 날아가는 착지 원·서 있는 다른 몸과 겹치지 않는다
+func _hop_free(e: Enemy, sk: Dictionary, at: Vector2) -> bool:
+	if not in_room(Vector2i(at.round())) or e.pos.distance_to(at) > sk.range + 0.001:
+		return false
+	for o in enemies:
+		if o == e or o.gen < 0:
+			continue
+		var landing: bool = o.cast != null and o.cast.id == "leap"
+		var room: float = sk.radius + o.skills.leap.radius if landing else e.radius + o.radius
+		if at.distance_to(o.cast.at if landing else o.pos) < room - 0.001:
+			return false
+	return true
 
 # 웅크림이 끝나면 뜬다(S236): 붙잡던 유닛에서 풀리고, air초 동안 착지 자리로 곧장 난다
 func _leap(e: Enemy, sk: Dictionary) -> void:
