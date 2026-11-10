@@ -4067,3 +4067,13 @@ func ev913():
 	var a: String = got if got is String else ""
 	return check("오우거 투척꾼: 옆의 오크를 집어 뒷줄 원거리 아군에게 던진다" in a and "사슬 오크: 사슬을 던져 줄 위의 아군을 끌어온다" in a,
 		"5라운드 3웨이브 줄 «%s»" % a)
+
+# EV937 · S328·S329: 5라운드 4웨이브 미리보기에 트롤 싸움꾼·쌍둥이 트롤의 특성 줄이 있다
+func ev937():
+	var main = _prep()
+	var got = main.hud._wave_lines([4, 3])
+	_done(main)
+	var a: String = got if got is String else ""
+	return check("트롤 싸움꾼: 체력이 저절로 찬다(불·기절·봉인에 멈춘다), 앞을 쓸어 밀친다" in a
+		and "쌍둥이 트롤: 둘이 함께 나온다. 오크나 바위를 영웅에게 던지고, 다치면 졸개를 집어 먹는다. 하나가 쓰러지면 남은 쪽이 그 몸을 던진다" in a,
+		"5라운드 4웨이브 줄 «%s»" % a)

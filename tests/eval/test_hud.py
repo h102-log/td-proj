@@ -450,3 +450,7 @@ def test_EV897_round5_orc_trait_lines(gd):
 
 def test_EV913_round5_thrower_chain_trait_lines(gd):
     gd("hud", "EV913")
+
+
+def test_EV937_round5_troll_trait_lines(gd):
+    gd("hud", "EV937")

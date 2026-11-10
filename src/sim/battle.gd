@@ -100,6 +100,8 @@ const DUSK := 10.0  # 밤 웨이브에 fade가 없을 때 어둠이 dark까지 �
 const DAWN := 3.0  # 전투 단계가 끝난 뒤 어둠이 1에서 0까지 내리는 시간(초, S210). 임시값
 const BASE_LIGHT := 4.0  # 거점의 밤 불빛 반경(칸, S211). 임시값
 const GATE_LIGHT := 2.0  # 성문 칸의 밤 불빛 반경(칸, S211). 임시값
+const GRABS := ["hurl", "lob", "devour"]  # 다른 적을 집고 있는 예고(S324·S329): 집힌 적이 쓰러지면 취소되고, 집힌 적은 그동안 서 있다
+const FIRES := ["ignis_q", "ignis_r", "vesper_r"]  # 재생(S327 ①)을 멈추는 불 장판: 이그니스 Q 바닥 불길·R 용암, 베스퍼 R 늪
 const FIRE_LIGHT := 2.5  # 불붙은 구조물의 밤 불빛 반경(칸, S312). 구조물 불빛과 큰 쪽을 쓴다. 임시값
 const LIGHT_CHUNK := 8  # 보이는지(seen) 물을 때 불빛을 나눠 담는 구역 크기(칸). 적 수백 명이 물어도 그 구역의 불빛만 본다
 
@@ -262,6 +264,10 @@ class Enemy:
 	var hoist = null  # 이 오크를 집은 투척꾼(S324 ②). 집히지 않았으면 null
 	var hook := {}  # 사슬 오크의 사슬(S325)
 	var snag = null  # 사슬 오크가 방금 던진 사슬의 끝(I269 ⑤): 맞힌 아군(Unit)이나 빗나간 띠 끝(Vector2). 던진 뒤 초는 loosed다. 그리기만 읽는다
+	var regen := 0.0  # 재생(S327): 초당 차는 최대 체력 비율. 0이면 재생하지 않는다
+	var swat := {}  # 트롤 싸움꾼의 쓸기(S328)
+	var mate := 0  # 쌍둥이 트롤의 짝 번호(I273 ①): 나올 때 살아 있던 같은 종류 수를 2로 나눈 나머지. 화면이 색을 가른다
+	var twin = null  # 쌍둥이 트롤이 맡은 쓰러진 형제의 몸(S329 ②). 없으면 null
 	var raid := {}  # 원정 보스(S316)의 층 정의. 비어 있으면 원정 보스가 아니다
 	var pull := 0.0  # 움직이지도 치지도 스킬을 쓰지도 않고 서 있을 남은 초(원정 보스, I262 ④⑥)
 	var gen := -1  # 원정 1층 몸의 세대(S322). 세대로 갈라지는 몸이 아니면 -1
@@ -456,6 +462,7 @@ var wrecks := []  # 부서진 전쟁 기계의 수레 잔해(S172 2026-11-05 변
 var _dotting := false  # 초당 피해를 주는 중. 뜬 적(S236)도 이것만은 받는다
 var missiles := []  # 날고 있거나 출발을 기다리는 투사체(Missile, S178). 웨이브가 끝나면 사라진다(I143)
 var landed := []  # 닿은 투사체(Missile). 그리기만 읽고(맞은 반응·사건, S177·I171) 1초 지나면 지운다
+var lobs := []  # 쌍둥이 트롤이 던져 날아가는 바위·형제의 몸 {from, at, left, air, radius, hit, by, look, who}(S329, I273 ④). 웨이브가 끝나면 사라진다(I143)
 var feathers := []  # 깃털 사수 하피가 쏜 날아가는 깃털 {pos, target, src, hurt, speed}(S304, I250). 웨이브가 끝나면 사라진다(I143)
 var blown := []  # 돌풍에 날린 화살 자리 {pos, age}(S307, I253 ③). 그리기만 읽고 BLOWN초 지나면 지운다
 var _gales := []  # 이번 스텝에 돌풍을 뿜는 폭풍날개 하피(S307). 투사체를 날리기 전에 정한다
@@ -629,6 +636,7 @@ func restart() -> void:
 	missiles.clear()
 	landed.clear()
 	feathers.clear()
+	lobs.clear()
 	blown.clear()
 	enemies.clear()
 	ladders.clear()
@@ -755,6 +763,7 @@ func step(dt: float) -> void:
 		_fire(dt)
 	_fly(dt)
 	_quills(dt)
+	_lobs(dt)
 	if state == "raid":
 		_raid_step(dt)
 	if state == "battle" and _queue.is_empty() and enemies.is_empty():
@@ -1470,6 +1479,8 @@ func spawn_enemy(kind: String, cell: Vector2i, overrides := {}):
 	var e := _enemy(kind, cell, overrides)
 	if not e.flying:
 		e.via = _via_of(cell, _ladderable(e))
+	if e.skills.has("twin"):  # 쌍둥이 트롤의 짝 번호(I273 ①)
+		e.mate = enemies.filter(func(o): return o.kind == kind).size() % 2
 	_field(e)
 	enemy_spawned.emit(e)
 	return e
@@ -2052,6 +2063,8 @@ func _tick(dt: float) -> void:
 			_dotting = true
 			damage(e, dot * dt, "magic")
 			_dotting = false
+		if e.alive and regrows(e):  # 재생(S327): 효과와 초당 피해를 센 다음에 찬다(I271 ①)
+			e.hp = minf(e.max_hp, e.hp + e.regen * e.max_hp * dt)
 	for u in units.duplicate():
 		_age(u, dt)
 		for src in u.shields.keys():
@@ -2095,6 +2108,7 @@ func _clear_effects() -> void:
 	loops.clear()
 	missiles.clear()
 	feathers.clear()  # 날던 깃털(S304)
+	lobs.clear()  # 날던 바위·몸(S329)
 	for t in enemies + units + heroes + structures.values() + castle.values():  # 쓰러진 영웅은 units에 없고 heroes에만 있다. 남은 출혈이 체력 1로 돌아온 영웅을 다시 쓰러뜨렸다
 		t.fx.clear()
 	for u in units + heroes:
@@ -3720,6 +3734,11 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 		for o in enemies:  # 광분(S295): 같은 종류의 다른 알파가 쓰러지면 하나 쌓인다
 			if o.kind == target.kind and o.skills.has("frenzy"):
 				o.grief += 1
+		if target.skills.has("twin"):  # 형제 던지기(S329 ②, I273 ③): 살아 있는 같은 종류 가운데 맡은 몸이 없는 첫째가 이 몸의 임자다
+			for o in enemies:
+				if o.kind == target.kind and o.twin == null:
+					o.twin = target
+					break
 		_spare += target.reward * _stage.get("reward_scale", 1.0)  # 처치 보상 배율(I176). 1골드에 못 미치는 나머지는 쌓아 둔다
 		gold += floori(_spare)
 		_spare -= floori(_spare)
@@ -3874,6 +3893,7 @@ func _target_of(e: Enemy):
 				near = h
 		_engage(e, near)
 		return near if near else base
+	var sight: float = 0.0 if _fetching(e) else e.sight  # 형제의 몸으로 가는 쌍둥이 트롤(S329 ②)은 몸이 닿은 아군만 노린다
 	var best = null
 	var best_d := INF
 	for m in units:
@@ -3883,19 +3903,19 @@ func _target_of(e: Enemy):
 		# 밀어낸 직후 거리는 반지름 합과 같아서 0.01 여유를 둔다(S13: 몸으로 막은 유닛은 인식 범위 밖이어도 친다)
 		# 성벽 위 유닛은 몸으로 길을 막을 때만 친다(U13, S89, I70). 비행 적·기어오르는 적은 그 성벽 위 유닛도 노리고(I77), 비행 적은 몸에 막히지 않는다(S109)
 		# 인식 범위 0은 아무것도 보지 않는다. 몸이 겹치는 비행 적이 거리 0에서 보게 되지 않게
-		if d < best_d and ((d <= e.sight and e.sight > 0.0 and (not m.on_wall or e.flying or e.climb > 0.0)) or (not _flies(e) and d <= e.radius + m.radius + 0.01)):
+		if d < best_d and ((d <= sight and sight > 0.0 and (not m.on_wall or e.flying or e.climb > 0.0)) or (not _flies(e) and d <= e.radius + m.radius + 0.01)):
 			best = m
 			best_d = d
 	if village.has_point(Vector2i(e.pos.round())):
 		for s in structures.values():
 			var d := e.pos.distance_to(nearest(s, e.pos))  # 가장 가까운 차지 칸까지(I178)
-			if d < best_d and d <= e.sight:
+			if d < best_d and d <= sight:
 				best = s
 				best_d = d
 		for v in people:  # 밖에 나와 있는 주민도 노린다(I49 2026-10-27 변경). 안에 든 주민·떠나는 가족·들린 주민(S308)은 노리지 않는다
 			if not v.inside and not _to(v) in ["out", "lift"]:
 				var d := e.pos.distance_to(v.pos)
-				if d < best_d and d <= e.sight:
+				if d < best_d and d <= sight:
 					best = v
 					best_d = d
 	_engage(e, best if best is Unit else null)
@@ -3938,7 +3958,7 @@ func _move(e: Enemy, dt: float) -> void:
 	for id in e.cd:  # 일반 적 행동(S279)의 대기는 여기서 센다. 보스 스킬의 대기는 _skills가 센다
 		if not e.skills.has(id):
 			e.cd[id] -= dt
-	var broke: bool = e.cast != null and ((e.cast.id == "nest" and not _climbable(e.cast.at)) or (e.cast.id == "hurl" and not e.cast.who.alive))  # 짓던 성벽 칸이 부서졌다(S309). 집은 오크가 쓰러졌다(S324 ④)
+	var broke: bool = e.cast != null and ((e.cast.id == "nest" and not _climbable(e.cast.at)) or (e.cast.id in GRABS and e.cast.who != null and not e.cast.who.alive))  # 짓던 성벽 칸이 부서졌다(S309). 집은 오크·졸개가 쓰러졌다(S324 ④·S329)
 	if e.cast and not aloft and (stunned or sealed or broke):  # 예고가 끊긴다. 보스 스킬은 기절이면 비틀거리고, 봉인이면 그냥 취소된다(S194). 일반 적은 비틀거리지 않는다(S279)
 		var mine: bool = e.skills.has(e.cast.id)
 		e.cd[e.cast.id] = deed(e, e.cast.id).get("cd", 0.0)
@@ -3951,9 +3971,9 @@ func _move(e: Enemy, dt: float) -> void:
 		e.cast = null
 		if stunned and mine:
 			_fx(e, "stagger", {"expose": STAGGER_EXPOSE}, STAGGER)
-	if e.hoist != null:  # 집힌 오크(S324 ②④): 투척꾼의 예고 동안 움직이지도 치지도 않는다. 예고가 끊겼거나 투척꾼이 쓰러졌으면 풀린다
+	if e.hoist != null:  # 집힌 오크·졸개(S324 ②④·S329): 집은 적의 예고 동안 움직이지도 치지도 않는다. 예고가 끊겼거나 집은 적이 쓰러졌으면 풀린다
 		var by: Enemy = e.hoist
-		if by.alive and by.cast != null and by.cast.id == "hurl" and is_same(by.cast.who, e):
+		if by.alive and by.cast != null and by.cast.id in GRABS and is_same(by.cast.who, e):
 			return
 		e.hoist = null
 	if e.grip and _grip(e, dt, stunned or sealed):  # 붙잡은 동안은 그 아군만 문다(S242)
@@ -3998,6 +4018,8 @@ func _move(e: Enemy, dt: float) -> void:
 		return
 	if not e.hook.is_empty() and not sealed and _sling(e):  # 사슬 오크(S325): 볼 아군이 있고 곧은 선이 트였으면 직선 예고를 띄운다
 		return
+	if not e.swat.is_empty() and not sealed and _brawl(e):  # 트롤 싸움꾼(S328): 닿는 거리 안에 땅 위 아군이 있으면 그쪽으로 부채꼴 예고를 띄운다
+		return
 	if e.dashing and (e.path.is_empty() or units.any(func(u): return u.alive and _touching(u, e) and _touch(e, u))):  # 아군 몸에 막히거나 길이 끝나면 돌진이 끝난다(I243 ④)
 		_end_dash(e)
 	var rooted := _fx_on(e, "root") != null  # 속박(S150): 움직이지 않지만 닿는 대상은 친다
@@ -4011,12 +4033,13 @@ func _move(e: Enemy, dt: float) -> void:
 	if e.cargo > 0 and not e.drop.is_empty() and _airlift(e, speed, dt, sealed):  # 수송 비행선(S286): 투하 칸으로 가서 표식을 띄운다
 		return
 	var aim = _target_of(e)
+	var fetch: bool = not aim is Unit and _fetching(e)  # 형제 던지기(S329 ②, I273 ③): 몸이 닿은 아군이 없으면 반격 대상·성문·거점 대신 몸의 칸으로 간다
 	if e.skills.has("pounce"):  # 덮치기 ②(S242): 노린 아군이 far 넘게 떨어진 채 지난 시간. 대상이 바뀌면 새로 센다
 		var far: bool = aim is Unit and e.pos.distance_to(aim.pos) > e.skills.pounce.far
 		e.away = ((e.away if aim == e.aimed else 0.0) + dt) if far else 0.0
 		e.aimed = aim
 	var body: bool = aim is Unit or aim is Villager  # 자리(pos)로 움직이는 대상
-	var goal: Vector2i = Vector2i(aim.pos.round()) if body else aim.cell
+	var goal: Vector2i = Vector2i(e.twin.pos.round()) if fetch else (Vector2i(aim.pos.round()) if body else aim.cell)
 	if goal != e.goal:  # 대상이 바뀌었다
 		e.goal = goal
 		_find_path(e)
@@ -4842,6 +4865,127 @@ func _hook(e: Enemy, sk: Dictionary) -> void:
 		_drop_orders(best)
 		_halt(best)
 	damage(best, sk.hit, "phys", e)
+
+# ── 5라운드 트롤(S327~S329) ──
+
+# 재생이 지금 돈다(S327): 체력이 가득이 아니고 봉인·기절·빙결·불이 아니다. 화면이 재생 표시를 그린다(I271 ③)
+func regrows(e: Enemy) -> bool:
+	return e.regen > 0.0 and e.hp < e.max_hp and _fx_on(e, "seal") == null and _fx_on(e, "stun") == null and not _ablaze(e)
+
+# 불(S327 ①, I271 ②): 발화(효과 출처 ignis_q)가 걸렸거나 불 장판(FIRES, 아직 떨어지지 않은 운석 자리는 빼고) 안이다
+func _ablaze(e: Enemy) -> bool:
+	return e.fx.has("ignis_q") or zones.any(func(z): return z.src in FIRES and z.get("delay", 0.0) <= 0.0 and _inside(z, e.pos))
+
+# 트롤 싸움꾼(S328 ①, I272 ①): 대기가 끝났고 도발되지 않았으면, range칸 안의 가장 가까운 땅 위 아군 쪽으로 부채꼴 예고를 띄운다. 띄웠으면 true
+func _brawl(e: Enemy) -> bool:
+	var taunt = _fx_on(e, "taunt")
+	if e.cd.get("swat", 0.0) > 0.0 or (taunt and taunt.alive):
+		return false
+	var aim = _cleave_ready(e, e.swat)
+	if not aim:
+		return false
+	e.cast = {"id": "swat", "left": e.swat.windup, "dir": aim.dir}
+	return true
+
+# 쓸기(S328 ②, I272 ②): 부채꼴 안 땅 위 아군에 물리 hit를 주고, 살아 있으면 트롤 싸움꾼에게서 멀어지는 쪽으로 knock칸 민다(같은 자리면 가운데 방향)
+func _swat(e: Enemy, sk: Dictionary) -> void:
+	var dir: float = e.cast.dir
+	for u in _fan(e.pos, dir, sk.range, sk.arc):
+		var v: Vector2 = u.pos - e.pos
+		damage(u, sk.hit, "phys", e)
+		if u.alive:
+			_shove(u, (v.normalized() if v != Vector2.ZERO else Vector2.from_angle(dir)) * sk.knock, enemies)
+
+# e에서 reach칸 안의 땅 위 적 가운데 kinds 종류이고 뜨지도 집히지도 않은 가장 가까운 것(S329 ①③, I273 ②). 없으면 null
+func _grabbable(e: Enemy, reach: float, kinds: Array):
+	var best = null
+	for o in enemies:
+		var d := e.pos.distance_to(o.pos)
+		if o.kind in kinds and d <= reach and not o.on_wall and not _aloft(o) and o.hoist == null and (best == null or d < e.pos.distance_to(best.pos)):
+			best = o
+	return best
+
+# 집어 먹기(S329 ①)를 쓸 수 있다: 체력이 below 이하이고 radius 안에 졸개가 있다. 가장 가까운 졸개를 집어 예고에 둔다
+func _devour_ready(e: Enemy, sk: Dictionary):
+	var prey = _grabbable(e, sk.radius, sk.kinds) if e.hp <= sk.below * e.max_hp else null
+	if prey == null:
+		return false
+	prey.hoist = e
+	return {"who": prey}
+
+# 집어 먹기: 집힌 졸개는 처치가 아니게 사라지고(보상·경험치·쓰러진 몸·갈라짐 없음, I273 ②) 쌍둥이 트롤은 최대 체력 × heal을 회복한다
+func _devour(e: Enemy, sk: Dictionary) -> void:
+	var o: Enemy = e.cast.who
+	_trace(e, "devour", null, e.pos, sk.radius)
+	_tracing = null
+	_engage(o, null)
+	o.hoist = null
+	o.alive = false
+	o.fx.clear()
+	enemies.erase(o)
+	e.hp = minf(e.max_hp, e.hp + sk.heal * e.max_hp)
+
+# 맡은 몸에서 range칸 안의 던질 아군(S329 ②, I273 ③): 가장 가까운 영웅, 없으면 가장 가까운 용병·공병(성벽 위 포함, 들린 것 빼고). 없으면 null
+func _twin_aim(e: Enemy):
+	var best = null
+	for u in units:
+		var d: float = e.twin.pos.distance_to(u.pos)
+		if d <= e.skills.twin.range and not _carried(u) and (best == null or (u.is_hero and not best.is_hero) or (u.is_hero == best.is_hero and d < e.twin.pos.distance_to(best.pos))):
+			best = u
+	return best
+
+# 형제의 몸으로 가거나 곁에 서 있다(S329 ②): 맡은 몸이 있고 봉인되지 않았으며 던질 아군이 있다. 그동안은 몸이 닿은 아군만 노린다
+func _fetching(e: Enemy) -> bool:
+	return e.twin != null and _fx_on(e, "seal") == null and _twin_aim(e) != null
+
+# 형제 던지기(S329 ②)를 쓸 수 있다: 맡은 몸에서 reach칸 안이고 던질 아군이 있다. 그 아군의 지금 자리를 예고에 둔다
+func _twin_ready(e: Enemy, sk: Dictionary):
+	if e.twin == null or e.pos.distance_to(e.twin.pos) > sk.reach:
+		return false
+	var aim = _twin_aim(e)
+	return {"at": aim.pos} if aim else false
+
+# 형제 던지기: 몸이 air초 날아 예고 자리에 떨어진다(_lobs). 몸은 한 번만 던지고 쓰러진 몸 목록에서 뺀다
+func _twin(e: Enemy, sk: Dictionary) -> void:
+	var body: Enemy = e.twin
+	e.twin = null
+	fallen = fallen.filter(func(f): return f.who != body)
+	lobs.append({"from": body.pos, "at": e.cast.at, "left": sk.air, "air": sk.air, "radius": sk.radius, "hit": sk.hit, "by": e, "look": "twin", "who": body})
+
+# 집어 던지기(S329 ③)를 쓸 수 있다: min칸 넘고 range칸 안의 가장 가까운 영웅(성벽 위 포함, 들린 것 빼고). 그 자리를 예고에 두고,
+# reach칸 안에 던질 오크가 있으면 집는다(who). 없으면 바위다(who null)
+func _lob_ready(e: Enemy, sk: Dictionary):
+	var aim = null
+	for u in units:
+		var d := e.pos.distance_to(u.pos)
+		if u.is_hero and d > sk.min and d <= sk.range and not _carried(u) and (aim == null or d < e.pos.distance_to(aim.pos)):
+			aim = u
+	if aim == null:
+		return false
+	var orc = _grabbable(e, sk.reach, sk.kinds)
+	if orc != null:
+		orc.hoist = e
+	return {"at": aim.pos, "who": orc}
+
+# 집어 던지기: 집은 오크는 오크 던지기(S324 ③)처럼 떠서 날아가고(_hurl), 오크가 없으면 바위가 air초 날아 떨어진다(_lobs)
+func _lob(e: Enemy, sk: Dictionary) -> void:
+	if e.cast.who != null:
+		_hurl(e, sk)
+	else:
+		lobs.append({"from": e.pos, "at": e.cast.at, "left": sk.air, "air": sk.air, "radius": sk.radius, "hit": sk.rock, "by": e, "look": "rock", "who": null})
+
+# 날아가는 바위·몸(S329 ②③, I273 ④): 다 날면 떨어진 자리에서 radius칸 안 아군(성벽 위 포함, 들린 것 빼고)에 물리 hit. 던진 적의 보스 스킬 흔적을 남긴다(S198)
+func _lobs(dt: float) -> void:
+	for l in lobs.duplicate():
+		l.left -= dt
+		if l.left > 0.0:
+			continue
+		lobs.erase(l)
+		_trace(l.by, l.look, null, l.at, l.radius)
+		for u in units.duplicate():
+			if u.pos.distance_to(l.at) <= l.radius and not _carried(u):
+				damage(u, l.hit, "phys", l.by)
+		_tracing = null
 
 # 폭풍날개 하피가 겨누는 자리(S307, I253 ①): p에서 가장 가까운 서 있는 성곽 칸 가운데. 성곽이 없으면 거점의 가장 가까운 차지 칸
 func _gale_mark(p: Vector2) -> Vector2:

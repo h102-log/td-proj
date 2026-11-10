@@ -52,3 +52,5 @@ extends Resource
 @export var drum := {}  # 전쟁 북(S321, I265): {radius 반경, haste 둘레 적 공격 속도, stride 둘레 적 이동 속도, keep 들을 적이 있을 때 대상에서 서는 거리 칸}. 비어 있으면 북을 치지 않는다
 @export var hurl := {}  # 오크 던지기(S324, I268): {range·min 던질 원거리 아군까지 거리 칸, ranged 원거리로 치는 사거리 칸, reach 집을 오크까지 거리 칸, kinds 집을 종류, windup 예고 초, air 나는 초, radius 원 반경, hit 아군 피해, cd 대기 초}. 비어 있으면 던지지 않는다
 @export var hook := {}  # 사슬(S325, I269): {range·min 볼 아군까지 거리 칸(range는 띠 길이), width 띠 폭 칸, windup 예고 초, hit 아군 피해, gap 끌어올 자리까지 거리 칸, cd 대기 초}. 비어 있으면 사슬을 던지지 않는다
+@export var regen := 0.0  # 재생(S327, I271): 초당 차는 최대 체력 비율. 불·기절·빙결·봉인 중에는 멈춘다. 0이면 재생하지 않는다
+@export var swat := {}  # 쓸기(S328, I272): {range 부채꼴 반경 칸, arc 각도°, windup 예고 초, hit 아군 피해, knock 미는 칸, cd 대기 초}. 비어 있으면 쓸지 않는다

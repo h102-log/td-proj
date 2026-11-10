@@ -20,11 +20,11 @@ waves = Array[Dictionary]([{
 "berserker": 40,
 "chain_orc": 30
 }, {
-"basic": 320,
-"fast": 160,
-"armored": 120,
-"flying": 140,
-"boss": 2
+"shield_orc": 40,
+"armored": 180,
+"troll": 30,
+"twin_troll": 2,
+"berserker": 80
 }])
 nights = Array[Dictionary]([{}, {
 "at": 20.0,

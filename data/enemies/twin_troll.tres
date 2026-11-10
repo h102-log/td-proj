@@ -1,0 +1,48 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/enemy_def.gd" id="1_ldbao"]
+
+[resource]
+script = ExtResource("1_ldbao")
+hp = 160.0
+speed = 1.2
+wall_k = 0.3
+damage = 20.0
+attack_gap = 2.0
+radius = 0.9
+sight = 4.0
+reward = 50
+boss = true
+pack = 2
+regen = 0.01
+skills = {
+"devour": {
+"below": 0.5,
+"radius": 2.0,
+"kinds": ["armored", "shield_orc", "berserker", "troll"],
+"windup": 1.5,
+"heal": 0.25,
+"cd": 12.0
+},
+"twin": {
+"reach": 1.5,
+"range": 8.0,
+"radius": 2.0,
+"windup": 1.5,
+"air": 0.6,
+"hit": 40.0,
+"cd": 6.0
+},
+"lob": {
+"range": 7.0,
+"min": 2.0,
+"reach": 2.0,
+"kinds": ["armored", "shield_orc", "berserker"],
+"windup": 1.2,
+"air": 0.6,
+"radius": 1.5,
+"hit": 15.0,
+"rock": 25.0,
+"cd": 9.0
+}
+}
