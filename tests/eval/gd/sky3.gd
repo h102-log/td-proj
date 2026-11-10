@@ -187,10 +187,16 @@ func ev862():
 		return "병사를 성벽 위 (13,9)에 올리지 못했다"
 	var e3 = d.spawn_enemy(NH, Vector2i(12, 15), {"hp": BIG})
 	var hp0: float = e3.hp
-	if not run(d, 10.0, func(): return _nesting(e3)):
+	var before: float = e3.hp  # 짓기 시작한 스텝 바로 앞의 체력. 내려앉은 그 스텝에 병사가 바로 칠 수 있다
+	var n := 0
+	while n < int(10.0 / DT) and not _nesting(e3):
+		before = e3.hp
+		d.step(DT)
+		n += 1
+	if not _nesting(e3):
 		return "병사 (13,9) 판: 10초 안에 짓기 시작하지 않았다(자리 %s)" % e3.pos
-	if e3.cast.at != SPOT or e3.hp != hp0:
-		return "병사 (13,9) 판: 짓는 칸 %s((12,9)) · 짓기 전 체력 %s → %s(그대로여야 한다)" % [e3.cast.at, hp0, e3.hp]
+	if e3.cast.at != SPOT or before != hp0:
+		return "병사 (13,9) 판: 짓는 칸 %s((12,9)) · 짓기 전 체력 %s → %s(그대로여야 한다)" % [e3.cast.at, hp0, before]
 	if not run(d, 1.0, func(): return e3.hp < hp0):
 		return "짓기 시작한 뒤 1초 안에 성벽 위 (13,9) 병사가 체력을 깎지 않았다"
 	var f = _fort()
@@ -243,8 +249,8 @@ func ev864():
 		return why
 	var arch := []
 	for y in [9, 10, 11]:
-		arch.append(b.place_merc("archer", Vector2i(10, y), A0))
-	b.place_merc("soldier", Vector2i(9, 12), {"hp": BIG, "damage": 1})
+		arch.append(b.place_merc("archer", Vector2i(10, y), A0.merged({"sight": 0})))
+	b.place_merc("soldier", Vector2i(11, 13), {"hp": BIG, "damage": 1})
 	var e = b.spawn_enemy(WY, Vector2i(2, 10), {"hp": BIG})
 	if not run(b, 10.0, func(): return _casting(e, "plunge")):
 		return "10초 안에 급강하 예고를 시작하지 않았다(자리 %s · cast %s)" % [e.pos, e.cast]
@@ -528,11 +534,11 @@ func ev871():
 	w.clock = 0.0
 	w.rings = []
 	w._foe_tells()
-	var o: Vector2 = w._center(Vector2(SPOT))
+	var o: Vector2 = w._spot(h)
 	var rings: Array = w.rings.duplicate()
 	w.free()
 	return check(hidden and tells and rings.any(func(r): return Vector2(r[0]).distance_to(o) <= 1.5 and r[1] == 8),
-		"숨음 %s · 예고를 그리는 적 %s · 고리 %s((12,9) 가운데 %s에 반지름 8)" % [hidden, tells, rings, o])
+		"숨음 %s · 예고를 그리는 적 %s · 고리 %s(하피 발 자리 %s에 반지름 8)" % [hidden, tells, rings, o])
 
 # EV872 · I256: 와이번·떨어진 와이번은 비행 그림을 2배로 키우고 색을 곱한다. 불붙은 아군에 작은 불꽃을 그리고, 급강하·융단 폭격 예고는 와이번이 숨어도 그린다
 func ev872():
@@ -587,7 +593,8 @@ func ev872():
 		var hidden: bool = not y in x._foes
 		var tells: bool = y in x.tellers()
 		x.lines = []
-		x._foe_tells()
+		if id == "carpet":  # 급강하 원은 모으지 않는 칠하기라 선만 세는 융단 폭격에서만 그린다
+			x._foe_tells()
 		var n: int = x.lines.size()
 		x.free()
 		if not hidden or not tells or (id == "carpet" and n < 4):

@@ -1,0 +1,43 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/enemy_def.gd" id="1_ldbao"]
+
+[resource]
+script = ExtResource("1_ldbao")
+hp = 200.0
+speed = 1.2
+wall_k = 0.3
+damage = 25.0
+attack_gap = 1.5
+radius = 0.6
+sight = 4.0
+reward = 50
+boss = true
+skills = {
+"breath": {
+"range": 3.0,
+"arc": 60.0,
+"windup": 0.8,
+"cd": 8.0,
+"dps": 5.0,
+"time": 4.0
+},
+"rush": {
+"length": 6.0,
+"min": 2.0,
+"width": 1.0,
+"side": 1.0,
+"windup": 1.0,
+"cd": 12.0,
+"dps": 5.0,
+"time": 4.0,
+"shields": ["soldier", "aias"]
+},
+"tail": {
+"range": 2.0,
+"arc": 120.0,
+"windup": 0.6,
+"cd": 6.0,
+"knock": 1.5
+}
+}

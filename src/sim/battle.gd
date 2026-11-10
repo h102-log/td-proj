@@ -95,6 +95,7 @@ const DUSK := 10.0  # 밤 웨이브에 fade가 없을 때 어둠이 dark까지 �
 const DAWN := 3.0  # 전투 단계가 끝난 뒤 어둠이 1에서 0까지 내리는 시간(초, S210). 임시값
 const BASE_LIGHT := 4.0  # 거점의 밤 불빛 반경(칸, S211). 임시값
 const GATE_LIGHT := 2.0  # 성문 칸의 밤 불빛 반경(칸, S211). 임시값
+const FIRE_LIGHT := 2.5  # 불붙은 구조물의 밤 불빛 반경(칸, S312). 구조물 불빛과 큰 쪽을 쓴다. 임시값
 const LIGHT_CHUNK := 8  # 보이는지(seen) 물을 때 불빛을 나눠 담는 구역 크기(칸). 적 수백 명이 물어도 그 구역의 불빛만 본다
 
 # 칸 하나를 차지하고 체력이 있는 것: 거점 "base" · 성곽 "castle_wall"·"gate" · 구조물 "wall" 등
@@ -245,6 +246,10 @@ class Enemy:
 	var gust := {}  # 폭풍날개 하피의 돌풍(S307)
 	var snatch := {}  # 낚아채기 하피의 낚아채기(S308)
 	var carry = null  # 낚아채기 하피가 든 것(S308): 용병(Unit)·주민(Villager)·"stone". 없으면 null
+	var nest := {}  # 둥지 하피의 둥지 짓기(S309)
+	var brood := {}  # 둥지의 새끼 낳기(S309). 비어 있지 않으면 둥지다
+	var kids := []  # 둥지가 낳은 새끼(S309). 쓰러진 새끼는 낳을 때마다 뺀다
+	var lay := 0.0  # 둥지가 다음 새끼를 낳을 때까지 남은 초(S309)
 
 	func _init(k: String, cell: Vector2i, stats: Dictionary) -> void:
 		kind = k
@@ -751,9 +756,8 @@ func light_of(x) -> float:
 		return BASE_LIGHT
 	if x.kind == "gate":
 		return GATE_LIGHT
-	if not x.complete or x.razed >= 1.0:  # 미완성(I18)·접어 옮기는 대포(I74)는 빛이 없다
-		return 0.0
-	return STRUCTURE_KINDS.get(x.kind, {}).get("light", 0.0)
+	var lit: float = 0.0 if not x.complete or x.razed >= 1.0 else STRUCTURE_KINDS.get(x.kind, {}).get("light", 0.0)  # 미완성(I18)·접어 옮기는 대포(I74)는 빛이 없다
+	return maxf(lit, FIRE_LIGHT) if x.fx.has("flame") else lit  # 불붙은 동안은 불빛을 낸다(S312)
 
 # 불빛(S211)을 모으고, 지금 어둠의 반경으로 구역마다 나눠 담는다. 어둠이 0이거나 불빛 하나가 맵을 다 덮으면 모두 보인다
 func _light_up() -> void:
@@ -1687,6 +1691,9 @@ func _tick(dt: float) -> void:
 		var bleed := _fx_sum(u, "bleed")  # 출혈(S240): 초당 물리 피해라 방어력을 받는다(I193 ②)
 		if bleed > 0.0 and u.alive:
 			damage(u, bleed * dt, "phys")
+		var burn := _fx_sum(u, "burn")  # 와이번의 불(S310 ③): 출혈과 같이 센다(I256 ③)
+		if burn > 0.0 and u.alive:
+			damage(u, burn * dt, "phys")
 	for s in structures.values() + castle.values():
 		_age(s, dt)
 		var regen := _fx_sum(s, "regen")
@@ -1810,7 +1817,7 @@ func _zones(dt: float) -> void:
 
 # 해로운 효과(S152 정화가 지운다): 기절·속박·둔화·도발·봉인·공격력·공격 속도 감소, 받는 피해 증가, 초당 피해, 방어력·마법 저항 감소, 붙잡힘(S242), 들림(S308)
 func _harmful(v: Dictionary) -> bool:
-	return ["stun", "root", "slow", "taunt", "seal", "weaken", "lag", "expose", "dot", "chain", "bleed", "pin", "lift"].any(func(k): return v.has(k)) or v.get("armor", 0.0) < 0.0 or v.get("mr", 0.0) < 0.0
+	return ["stun", "root", "slow", "taunt", "seal", "weaken", "lag", "expose", "dot", "chain", "bleed", "pin", "lift", "burn"].any(func(k): return v.has(k)) or v.get("armor", 0.0) < 0.0 or v.get("mr", 0.0) < 0.0
 
 # 장판이 끝날 때: 에너지 성벽 칸을 치운다(S151)
 func _end_zone(z: Dictionary) -> void:
@@ -3371,6 +3378,9 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 		for c in cells_in(area):  # 성벽이 부서지면 그 위 대포도 부서진다(I72)
 			if footprint.has(c):
 				damage(footprint[c], INF)
+		for o in enemies.duplicate():  # 앉은 성벽이 부서지면 둥지도 쓰러진다(S309). 처치다
+			if not o.brood.is_empty() and area.has_point(Vector2i(o.pos.round())):
+				damage(o, INF, "true")
 		# 그 칸들에 걸쳐 선(0.5칸 안) 유닛은 그 칸 땅으로 내려오고, 성벽 위로 그 칸을 지나려던 유닛은 멈춘다(I70)
 		var cells := cells_in(area)
 		for u in units:
@@ -3536,12 +3546,16 @@ func _move(e: Enemy, dt: float) -> void:
 	for id in e.cd:  # 일반 적 행동(S279)의 대기는 여기서 센다. 보스 스킬의 대기는 _skills가 센다
 		if not e.skills.has(id):
 			e.cd[id] -= dt
-	if e.cast and not aloft and (stunned or sealed):  # 예고가 끊긴다. 보스 스킬은 기절이면 비틀거리고, 봉인이면 그냥 취소된다(S194). 일반 적은 비틀거리지 않는다(S279)
+	var broke: bool = e.cast != null and e.cast.id == "nest" and not _climbable(e.cast.at)  # 짓던 성벽 칸이 부서졌다(S309)
+	if e.cast and not aloft and (stunned or sealed or broke):  # 예고가 끊긴다. 보스 스킬은 기절이면 비틀거리고, 봉인이면 그냥 취소된다(S194). 일반 적은 비틀거리지 않는다(S279)
 		var mine: bool = e.skills.has(e.cast.id)
 		e.cd[e.cast.id] = deed(e, e.cast.id).get("cd", 0.0)
 		if e.cast.id == "drop":  # 투하가 취소되면 풀린 뒤 투하 칸을 다시 고른다(S286)
 			e.spot = null
 			e.by_house = false
+		if e.cast.id == "nest":  # 짓기가 취소되면 다시 날고 성벽 위가 아니다(I255 ②)
+			e.fx.erase("nest")
+			e.on_wall = false
 		e.cast = null
 		if stunned and mine:
 			_fx(e, "stagger", {"expose": STAGGER_EXPOSE}, STAGGER)
@@ -3550,6 +3564,12 @@ func _move(e: Enemy, dt: float) -> void:
 	if e.carry != null:  # 낚아채기(S308): 든 동안은 떨어뜨릴 자리 쪽으로 날고, 예고가 끊겼으면 든 것을 내려놓는다
 		_hold(e, dt)
 	if stunned:  # 기절·빙결(S150): 움직이지도 치지도 않는다
+		return
+	if not e.brood.is_empty():  # 둥지(S309): 움직이지도 치지도 않고 새끼를 낳는다. 봉인 중에는 낳지도 세지도 않는다
+		if not sealed:
+			_lay(e, dt)
+		return
+	if _fx_on(e, "rest") != null:  # 급강하 뒤 내려앉음(S310 ①): 움직이지도 치지도 스킬을 쓰지도 않는다
 		return
 	if _skills(e, dt, sealed):  # 예고 동안은 움직이지도 치지도 않는다(S194)
 		return
@@ -3572,6 +3592,8 @@ func _move(e: Enemy, dt: float) -> void:
 	if not e.gust.is_empty() and not sealed and _gale(e):  # 폭풍날개 하피(S307): 성곽 앞 range칸에 들면 떠서 멈추고 대기가 끝나면 예고한다
 		return
 	if not e.snatch.is_empty() and not sealed and _swipe(e, dt):  # 낚아채기 하피(S308): 들 것으로 날아가거나 돌을 주우러 내려앉는다
+		return
+	if not e.nest.is_empty() and not sealed and _roost(e, dt):  # 둥지 하피(S309): 빈 성곽 성벽 칸으로 날아가 내려앉아 짓는다. 끊긴 뒤 대기 동안은 그 자리에 떠 있다
 		return
 	if e.dashing and (e.path.is_empty() or units.any(func(u): return u.alive and _touching(u, e) and _touch(e, u))):  # 아군 몸에 막히거나 길이 끝나면 돌진이 끝난다(I243 ④)
 		_end_dash(e)
@@ -3685,6 +3707,8 @@ func _skills(e: Enemy, dt: float, sealed: bool) -> bool:
 		e.cast.left -= dt
 		if e.cast.get("fire", false):  # 기관총 발사 단계(S287): 지난 틱마다 쏜다
 			_spray(e, e.skills[e.cast.id])
+		if e.cast.get("pass", false):  # 융단 폭격 지나가기(S310 ②): 직선을 따라 날며 불을 붙인다
+			_sweep(e, e.skills[e.cast.id])
 		if e.cast.left <= 0.0:
 			var c: Dictionary = e.cast
 			var sk: Dictionary = deed(e, c.id)
@@ -3745,7 +3769,7 @@ func _leap(e: Enemy, sk: Dictionary) -> void:
 	_engage(e, null)
 	e.cast = {"id": "leap", "left": sk.air, "air": true, "from": e.pos, "at": e.cast.at}
 
-# 뜬 동안(S236): 뜬 자리에서 착지 자리로 곧장 옮겨 가고, 다 날면 그 자리에서 내려찍은 뒤 길을 다시 찾는다. 박치기 활강(S305)도 같다
+# 뜬 동안(S236): 뜬 자리에서 착지 자리로 곧장 옮겨 가고, 다 날면 그 자리에서 내려찍은 뒤 길을 다시 찾는다. 박치기 활강(S305)·와이번 급강하(S310)도 같다
 func _soar(e: Enemy, dt: float) -> void:
 	var c: Dictionary = e.cast
 	var sk: Dictionary = deed(e, c.id)
@@ -3758,6 +3782,8 @@ func _soar(e: Enemy, dt: float) -> void:
 		_pounce_land(e, sk, c.who)
 	elif c.id == "dive":
 		_dive_land(e, sk, c)
+	elif c.id == "plunge":
+		_plunge_land(e, sk, c)
 	else:
 		_slam(e, sk, (c.at - c.from).normalized())
 	_find_path(e)
@@ -3907,12 +3933,25 @@ func _spray(e: Enemy, sk: Dictionary) -> void:
 
 # ── 고블린 대장(S288, I230) ── 등장 착지(leap)는 뜬 단계(_soar)와 대지 강타(_slam)를 그대로 쓴다
 
-# 전쟁 기계가 부서진다: 쓰러지지 않고 같은 자리에서 phase2 종류가 된다. 체력은 그 종류 체력 × 라운드 배율로 가득 차고,
-# 하던 예고·붙잡힘·효과·스킬 대기·먼저 노리는 성문·반격 대상은 비운다. 착지 스킬이 있으면 그 자리에서 뜬 단계로 시작한다(I230 ①).
-# 그 자리에 그리기용 수레 잔해를 남긴다(S172 2026-11-05 변경 ⑥)
+# 전쟁 기계가 부서진다: 쓰러지지 않고 같은 자리에서 phase2 종류가 된다(_turn). 착지 스킬이 있으면 그 자리에서 뜬 단계로 시작한다(I230 ①).
+# 그 자리에 그리기용 수레 잔해를 남긴다(S172 2026-11-05 변경 ⑥). 와이번(S311)은 하늘에서 떨어져 잔해가 없고, 땅 적이 설 수 있는 칸에 선다(I257 ①)
 func _break(e: Enemy) -> void:
-	var k: String = e.phase2
-	wrecks.append({"who": e, "at": e.pos, "age": 0.0})
+	var fell: bool = e.flying
+	if not fell:
+		wrecks.append({"who": e, "at": e.pos, "age": 0.0})
+	_turn(e, e.phase2)
+	if fell:
+		e.on_wall = false
+		var c := Vector2i(e.pos.round())
+		if not _bare(c):
+			e.pos = Vector2(_bare_near(c))
+	var sk: Dictionary = e.skills.get("leap", {})
+	e.cast = null if sk.is_empty() else {"id": "leap", "left": sk.air, "air": true, "from": e.pos, "at": e.pos}
+	_find_path(e)
+
+# 적 e를 그 자리에서 종류 k로 바꾼다(I230 ①·I255 ③·I257 ①): 종류 수치를 모두 k의 것으로 하고 체력은 k 체력 × 라운드 배율로 가득 채우며,
+# 하던 예고·붙잡힘·효과·스킬 대기·먼저 노리는 성문·반격 대상은 비운다
+func _turn(e: Enemy, k: String) -> void:
 	_engage(e, null)
 	e.kind = k
 	for key in ENEMY_KINDS[k]:
@@ -3924,9 +3963,7 @@ func _break(e: Enemy) -> void:
 	e.fx.clear()
 	e.via = null
 	e.attacker = null
-	var sk: Dictionary = e.skills.get("leap", {})
-	e.cast = null if sk.is_empty() else {"id": "leap", "left": sk.air, "air": true, "from": e.pos, "at": e.pos}
-	_find_path(e)
+	e.cast = null
 
 # 철퇴를 쓸 수 있다: 둘레 range 안 땅 위 아군 가운데 가장 가까운 것(같으면 유닛 차례에서 앞선 것) 쪽을 부채꼴 가운데 방향(dir, 라디안)으로 둔다
 func _cleave_ready(e: Enemy, sk: Dictionary):
@@ -4330,6 +4367,240 @@ func _snatch(e: Enemy, sk: Dictionary) -> void:
 	_blast(at, sk.radius, sk.structure, sk.hit)
 	_set_down(e, at, sk.fall)
 
+# ── 둥지 하피(S309, I255) ──
+
+# 둥지 하피(S309): 끊긴 뒤 대기 중이면 그 자리에 떠 있다. 아니면 빈 성곽 성벽 칸으로 곧장 날아가 칸 가운데에서 0.05칸 안에 들면
+# 그 성벽 위에 내려앉아 짓기 예고를 시작한다(짓는 동안은 down이라 근접에 맞는다). 빈 칸이 없으면 false라 비행 적처럼 간다
+func _roost(e: Enemy, dt: float) -> bool:
+	if e.cd.get("nest", 0.0) > 0.0:
+		return true
+	var c = _nest_spot(e)
+	if c == null:
+		return false
+	var to := Vector2(c)
+	e.pos = e.pos.move_toward(to, e.speed * (1.0 - _fx_cut(e, "slow")) * dt)
+	if e.pos.distance_to(to) <= 0.05:
+		e.pos = to
+		e.on_wall = true
+		e.cast = {"id": "nest", "left": e.nest.build, "at": c}
+		_fx(e, "nest", {"down": true}, e.nest.build + 1.0)
+	return true
+
+# 빈 성곽 성벽 칸(S309, I255 ①) 가운데 e에서 가장 가까운 칸. 성곽 칸 목록(castle) 차례로 보고 같은 거리면 앞선 칸이다. 없으면 null.
+# 성문·문루 칸, 구조물(성벽 위 대포)이 선 칸, 둥지·다른 하피가 짓는 칸, 칸 가운데 0.5칸 안에 아군 몸 가운데가 있는 칸은 뺀다
+func _nest_spot(e: Enemy):
+	var taken := {}
+	for o in enemies:
+		if o != e and not o.brood.is_empty():
+			taken[Vector2i(o.pos.round())] = true
+		elif o != e and o.cast != null and o.cast.id == "nest":
+			taken[o.cast.at] = true
+	for u in units:
+		var k := Vector2i(u.pos.round())
+		if not _carried(u) and u.pos.distance_to(Vector2(k)) <= 0.5:
+			taken[k] = true
+	var best = null
+	var best_d := INF
+	for s in castle.values():
+		if s.kind != "castle_wall" or not s.alive:
+			continue
+		for k in cells_in(area_of(s)):
+			var d := e.pos.distance_to(Vector2(k))
+			if d < best_d and not taken.has(k) and not footprint.has(k):
+				best = k
+				best_d = d
+	return best
+
+# 짓기가 끝났다(S309, I255 ③): 하피가 그 자리에서 둥지(nest.kind)가 된다. 처치가 아니다. 성벽 위이고 brood.every초 뒤에 처음 낳는다
+func _nest(e: Enemy, sk: Dictionary) -> void:
+	var at := Vector2(e.cast.at)
+	_turn(e, sk.kind)
+	e.pos = at
+	e.on_wall = true
+	e.lay = e.brood.get("every", 0.0)
+
+# 둥지가 낳는다(S309, I255 ④): 살아 있는 새끼가 cap마리면 every초부터 다시 센다. 아니면 every초마다 둥지 자리에 새끼 하나(보상·경험치 0, 출현 신호 없음)
+func _lay(e: Enemy, dt: float) -> void:
+	e.kids = e.kids.filter(func(x): return x.alive)
+	if e.kids.size() >= e.brood.cap:
+		e.lay = e.brood.every
+		return
+	e.lay -= dt
+	if e.lay > 0.001:  # ponytail: 스텝마다 dt를 빼 부동소수 누적이 남는다. 0.001 여유로 정확히 every초에 낳게 한다
+		return
+	e.lay = e.brood.every
+	var k := _enemy(e.brood.kind, Vector2i(e.pos.round()), {"reward": 0, "xp": 0})
+	k.pos = e.pos
+	_field(k)
+	e.kids.append(k)
+
+# ── 와이번(S310, I256)·떨어진 와이번(S311, I257) ── 급강하는 뜬 단계(_soar)를 쓰고, 2페이즈는 _break가 바꾼다
+
+# 급강하를 쓸 수 있다(S310 ①, I256 ①): range 안 아군(들린 용병 빼고) 가운데 radius 안에 아군이 가장 많이 몰린 아군(같으면 유닛 차례에서 앞선 것)의 자리
+func _plunge_ready(e: Enemy, sk: Dictionary):
+	var free := units.filter(func(u): return not _carried(u))
+	var at = null
+	var most := 0
+	for u in free:
+		if e.pos.distance_to(u.pos) <= sk.range:
+			var n := free.filter(func(m): return m.pos.distance_to(u.pos) <= sk.radius).size()
+			if n > most:
+				at = u.pos
+				most = n
+	return {"at": at} if at != null else false
+
+# 급강하 예고가 끝나면 air초 동안 예고 자리로 곧장 내리꽂는다(뜬 단계, _soar)
+func _plunge(e: Enemy, sk: Dictionary) -> void:
+	e.cast = {"id": "plunge", "left": sk.air, "air": true, "from": e.pos, "at": e.cast.at}
+
+# 급강하가 닿았다(S310 ①, I256 ①): 원 안 아군(성벽 위 포함, 들린 용병 빼고)에 물리 damage를 주고 원 가운데에서 그 아군 쪽으로 knock칸 민다(박치기 밀기 _bump).
+# 그 뒤 down초 내려앉는다(rest·down). 닿은 자리가 성곽 성벽 칸이면 그 성벽 위다
+func _plunge_land(e: Enemy, sk: Dictionary, c: Dictionary) -> void:
+	var dir: Vector2 = (c.at - c.from).normalized()
+	_trace(e, "plunge", null, e.pos, sk.radius)
+	for u in units.duplicate():
+		if u.alive and not _carried(u) and u.pos.distance_to(e.pos) <= sk.radius:
+			damage(u, sk.damage, "phys", e)
+			if u.alive:
+				_bump(u, e.pos, dir, sk.knock)
+	_tracing = null
+	e.on_wall = _climbable(Vector2i(e.pos.round()))
+	_fx(e, "plunge", {"rest": true, "down": true}, sk.down)
+
+# 융단 폭격을 쓸 수 있다(S310 ②, I256 ②): length 안 아군마다 그 쪽으로 길이 length·폭 width 직선을 세어, 직선 안 아군이 가장 많은 것
+# (같으면 유닛 차례에서 앞선 아군 쪽)이 count 이상이면 그 직선. 끝(to)이 맵 밖이면 맵 안으로 줄인다
+func _carpet_ready(e: Enemy, sk: Dictionary):
+	var free := units.filter(func(u): return not _carried(u))
+	var best = null
+	var most: int = sk.count - 1
+	var edge := Vector2(size - Vector2i.ONE)
+	for u in free:
+		var d := e.pos.distance_to(u.pos)
+		if d > sk.length or d < 0.01:
+			continue
+		var to: Vector2 = (e.pos + (u.pos - e.pos) / d * sk.length).clamp(Vector2.ZERO, edge)
+		var n := free.filter(func(m): return _off(m.pos, e.pos, to) <= sk.width / 2.0).size()
+		if n > most:
+			best = to
+			most = n
+	return {"dir": (best - e.pos).angle(), "to": best} if best != null else false
+
+# 점 p에서 선분 a–b까지의 거리(칸)
+static func _off(p: Vector2, a: Vector2, b: Vector2) -> float:
+	return p.distance_to(Geometry2D.get_closest_point_to_segment(p, a, b))
+
+# 융단 폭격 예고가 끝나면 pass초 동안 직선을 지나간다(pass 단계, _sweep). 다 지나가면 아무것도 하지 않는다(대기는 _skills가 돌린다)
+func _carpet(e: Enemy, sk: Dictionary) -> void:
+	if not e.cast.get("pass", false):
+		e.cast = {"id": "carpet", "left": sk["pass"], "pass": true, "from": e.pos, "to": e.cast.to, "dir": e.cast.dir, "hit": []}
+
+# 지나가는 스텝(S310 ②, I256 ②): 와이번 자리를 지난 시간 비율만큼 옮기고, 그 스텝에 지난 선분에서 width/2칸 안의 아군(들린 용병 빼고)에 불,
+# 칸 가운데가 그 안인 쏘는 구조물에 불화살 고블린의 불(S302)을 붙인다. 한 번 지나는 동안 같은 대상에는 한 번만
+func _sweep(e: Enemy, sk: Dictionary) -> void:
+	var c: Dictionary = e.cast
+	var was := e.pos
+	e.pos = c.from.lerp(c.to, clampf(1.0 - c.left / sk["pass"], 0.0, 1.0))
+	var r: float = sk.width / 2.0
+	for u in units:
+		if not _carried(u) and not u in c.hit and _off(u.pos, was, e.pos) <= r:
+			c.hit.append(u)
+			_burn(u, sk)
+	for s in structures.values():
+		if _shooter(s) and not s in c.hit and cells_in(area_of(s)).any(func(k): return _off(Vector2(k), was, e.pos) <= r):
+			c.hit.append(s)
+			_fx(s, "flame", {"burn": sk.flame_dps, "burnt": 0.0, "spread_at": sk.spread}, sk.flame_time)
+
+# 아군에 불을 붙인다(S310 ③): 출처 «burn» 하나라 다시 붙으면 그 스킬의 dps·time으로 새로 센다
+func _burn(u: Unit, sk: Dictionary) -> void:
+	_fx(u, "burn", {"burn": sk.dps}, sk.time)
+
+# 화염 숨결을 쓸 수 있다(S311 ①): 철퇴와 같이 둘레 range 안 가장 가까운 땅 위 아군 쪽 방향
+func _breath_ready(e: Enemy, sk: Dictionary):
+	return _cleave_ready(e, sk)
+
+# 화염 숨결: 부채꼴(반경 range, 각 arc) 안 땅 위 아군에 불(I257 ②)
+func _breath(e: Enemy, sk: Dictionary) -> void:
+	var dir: float = e.cast.dir
+	_trace(e, "breath", null, e.pos, 0.0)
+	_tracing.merge({"dir": dir, "range": sk.range, "arc": sk.arc})  # 발동 채움(S198)을 부채꼴로 칠한다
+	for u in _fan(e.pos, dir, sk.range, sk.arc):
+		_burn(u, sk)
+	_tracing = null
+
+# at에서 dir 쪽 부채꼴(반경 r, 각 arc°) 안 땅 위 아군(철퇴 I230 ②의 판정). at과 같은 자리면 든다
+func _fan(at: Vector2, dir: float, r: float, arc: float) -> Array:
+	var out := []
+	for u in _ground_near(at, r):
+		var v: Vector2 = u.pos - at
+		if v == Vector2.ZERO or absf(angle_difference(dir, v.angle())) <= deg_to_rad(arc) / 2.0:
+			out.append(u)
+	return out
+
+# 맹진을 쓸 수 있다(S311 ②): length 안 땅 위 아군 가운데 min칸 넘게 떨어진 가장 가까운 것(같으면 유닛 차례에서 앞선 것) 쪽. 멈출 자리(to)는 예고가 그린다(I257 ③)
+func _rush_ready(e: Enemy, sk: Dictionary):
+	var best = null
+	for u in _ground_near(e.pos, sk.length):
+		var d := e.pos.distance_to(u.pos)
+		if d > sk.min and (best == null or d < e.pos.distance_to(best.pos)):
+			best = u
+	if best == null:
+		return false
+	var dir: Vector2 = (best.pos - e.pos).normalized()
+	return {"dir": dir.angle(), "to": _rush_to(e, dir, sk)}
+
+# 맹진 멈출 자리(I257 ③): 대장 돌진 길(_dash)에서, 짚은 점에서 몸 가운데까지가 몸 반지름 합 이하인 땅 위 방패병이 있으면 바로 앞 짚은 점이다
+func _rush_to(e: Enemy, dir: Vector2, sk: Dictionary) -> Vector2:
+	var stop: Vector2 = _dash(e.pos, dir, sk.length)[0]
+	var guards := _ground_near(e.pos, sk.length + 1.0).filter(func(u): return u.kind in sk.shields)
+	var at := e.pos
+	for i in range(1, ceili(sk.length / 0.25) + 1):
+		var p := e.pos + dir * minf(0.25 * i, sk.length)
+		if e.pos.distance_to(p) > e.pos.distance_to(stop) + 0.001:
+			break
+		if guards.any(func(u): return p.distance_to(u.pos) <= e.radius + u.radius):
+			return at
+		at = p
+	return stop
+
+# 맹진(S311 ②): 떨어진 와이번이 멈출 자리로 옮겨 간다. 지나간 길에서 가운데 선과 width/2 안인 땅 위 아군을 길 옆(그 아군 쪽, 선 위면 왼쪽)으로 side칸 밀고 불을 붙인다.
+# length칸을 다 가지 못하고 멈췄으면 비틀거린다(S194). 옮긴 몸은 화면이 미끄러뜨린다(S198)
+func _rush(e: Enemy, sk: Dictionary) -> void:
+	var dir := Vector2.from_angle(e.cast.dir)
+	var from := e.pos
+	var to := _rush_to(e, dir, sk)
+	var span := from.distance_to(to)
+	_engage(e, null)
+	e.pos = to
+	_trace(e, "rush", null, to, 0.0)
+	_tracing.merge({"from": from, "width": sk.width})  # 발동 채움(S198)을 지나간 길로 칠한다
+	var left := dir.orthogonal()  # 화면(y 아래)에서 길 방향의 왼쪽
+	for u in units.duplicate():
+		var v: Vector2 = u.pos - from
+		if not u.on_wall and not _carried(u) and (from + dir * clampf(v.dot(dir), 0.0, span)).distance_to(u.pos) <= sk.width / 2.0:
+			_shove(u, (left if dir.cross(v) <= 0.01 else -left) * sk.side, enemies)
+			_burn(u, sk)
+	_tracing = null
+	if span < sk.length - 0.001:
+		_fx(e, "stagger", {"expose": STAGGER_EXPOSE}, STAGGER)
+	_find_path(e)
+
+# 꼬리 휘두르기를 쓸 수 있다(S311 ③, I257 ④): 노리는 칸(goal)의 반대쪽 부채꼴 안에 땅 위 아군이 있다. 노리는 칸이 제 칸이면 쓰지 않는다
+func _tail_ready(e: Enemy, sk: Dictionary):
+	if e.goal == Vector2i(e.pos.round()):
+		return false
+	var dir: float = (e.pos - Vector2(e.goal)).angle()
+	return {"dir": dir} if not _fan(e.pos, dir, sk.range, sk.arc).is_empty() else false
+
+# 꼬리 휘두르기: 부채꼴 안 땅 위 아군을 떨어진 와이번에서 멀어지는 쪽으로 knock칸 민다(같은 자리면 가운데 방향). 막힌 칸·몸에서 멈춘다(_shove)
+func _tail(e: Enemy, sk: Dictionary) -> void:
+	var dir: float = e.cast.dir
+	_trace(e, "tail", null, e.pos, 0.0)
+	_tracing.merge({"dir": dir, "range": sk.range, "arc": sk.arc})  # 발동 채움(S198)을 부채꼴로 칠한다
+	for u in _fan(e.pos, dir, sk.range, sk.arc):
+		var v: Vector2 = u.pos - e.pos
+		_shove(u, (v.normalized() if v != Vector2.ZERO else Vector2.from_angle(dir)) * sk.knock, enemies)
+	_tracing = null
+
 # 적이 아군에 거는 조작 효과(S243): 기절·붙잡힘·들림(S308)은 하나만 걸리고 뒤에 건 것이 앞의 것을 지운다
 func _control(u, src: String, eff: Dictionary, secs: float) -> void:
 	for k in u.fx.keys():
@@ -4430,9 +4701,9 @@ func _push_apart(bodies: Array, others: Array) -> void:
 			if j != i and not _ghost(o) and not (j in big and j < i):
 				_part(bodies[i], o, others)
 
-# 같은 편과 밀지도 밀리지도 않는 몸(_push_apart): 비행 적(I79), 뜬 적(S236), 공성탑(S284)
+# 같은 편과 밀지도 밀리지도 않는 몸(_push_apart): 비행 적(I79), 뜬 적(S236), 공성탑(S284), 둥지(S309)
 func _ghost(x) -> bool:
-	return x.get("flying") or _aloft(x) or (x is Enemy and not x.ladder.is_empty()) or _carried(x)
+	return x.get("flying") or _aloft(x) or (x is Enemy and not (x.ladder.is_empty() and x.brood.is_empty())) or _carried(x)
 
 # 겹친 두 몸 a·o를 떼어 놓는다(_push_apart)
 func _part(a, o, others: Array) -> void:
