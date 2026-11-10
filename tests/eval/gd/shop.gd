@@ -271,8 +271,8 @@ func ev658():
 	_done(main)
 	return check(worn and bare and has and none, "초상 귀퉁이: 낌 %s · 해제 뒤 없음 %s / 영입 카드: 가방에 있는 세라피나 %s · 없는 크로노스 숨음 %s" % [worn, bare, has, none])
 
-# EV863 · S309·I256: «전체 오토» 버튼의 자리·글·툴팁·보이는 단계, 눌러서 모두 켜고 끄기, 모두 켜진 동안 금색 테두리
-func ev863():
+# EV880 · S313·I259: «전체 오토» 버튼의 자리·글·툴팁·보이는 단계, 눌러서 모두 켜고 끄기, 모두 켜진 동안 금색 테두리
+func ev880():
 	var main = _game()
 	var b = main.view.battle
 	var hud = main.hud

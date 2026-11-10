@@ -26,5 +26,5 @@ def test_EV239_cooldowns_and_regen_pause_outside_battle(gd):
     gd("heroes", "EV239")
 
 
-def test_EV864_select_all_heroes_key(gd):
-    gd("heroes", "EV864")
+def test_EV881_select_all_heroes_key(gd):
+    gd("heroes", "EV881")

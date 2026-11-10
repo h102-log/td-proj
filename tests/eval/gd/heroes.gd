@@ -215,8 +215,8 @@ func ev239():
 	return check(prep and fight and cleared,
 		"준비 단계 10초 [W 대기, E 대기] %s → %s · 전투 단계 1초에 줄고 참 %s · 라운드 사이(%s) 10초 %s → %s" % [at, after_prep, fight, b.state, between, now.call()])
 
-# EV864 · S310·I257: ` 키는 살아 있는 출전 영웅을 출전 순서대로 모두 고른다(쓰러진 영웅·용병은 빠진다). 영입 단계에는 듣지 않는다
-func ev864():
+# EV881 · S314·I260: ` 키는 살아 있는 출전 영웅을 출전 순서대로 모두 고른다(쓰러진 영웅·용병은 빠진다). 영입 단계에는 듣지 않는다
+func ev881():
 	var b = _heroes([_hero("aias", H), _hero("ignis", H + Vector2i(0, 2)), _hero("seraphina", H + Vector2i(0, 4))], {"merc_cap": 2})
 	b.gold = BIG
 	var team: Array = b.heroes

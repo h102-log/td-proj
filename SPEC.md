@@ -291,7 +291,7 @@
   | 정화 | 아군에게 걸린 해로운 효과를 모두 지운다(S152). 지금 적은 아군에게 그런 효과를 걸지 않는다 |
 
 - S155. 봉인(베스퍼 R)은 적의 특수 능력을 막는다. 적 5종에는 보스 스킬·은신·체력 재생·회피가 없어서, 지금 있는 특수 능력을 막는다. 비행 적은 내려앉아 막힌 칸과 몸에 막히고(아군이 몸으로 막을 수 있다, S109의 예외), 기어오르는 적은 성벽을 오르지 못하고 그 자리에 선다. (근거: 사용자 2026-10-18 — Claude의 다시 해석 수락(`insights/2026-10-18_hero_redesign.md` §7 D6)) → **2026-10-18 변경:** 기획서의 «보스 스킬·은신·체력 재생·회피 등»의 «등»에 지금 적의 특수 능력인 비행·성벽 등반이 든다. 앞으로 보스 스킬·은신·체력 재생·회피를 가진 적이 생기면 그것도 봉인한다. (근거: 사용자 2026-10-18 — 세 안(«등»에 비행·등반 포함 / 적힌 네 가지만 / 네 능력을 가진 적도 추가) 가운데 고름, `insights/2026-10-18_hero_redesign.md` §10)
-- S151. 아이아스의 칸은 아래 표와 같다. 반경·길이는 칸, 시간은 초다. 수치는 임시값이다. (근거: 사용자 2026-10-18 — 기획서의 아이아스. 피해·반경과 빈칸(블록 수 → 몸 반지름, 흡수한 피해 = 줄이기 전 값, 성벽이 길을 다 막을 때)은 Claude 예시 수락(`insights/2026-10-18_hero_redesign.md` §7 D6)) → **2026-10-18 변경(기획서 원문대로):** 패시브의 블록 수 +3을 몸 반지름 대신 블록 수(S159)로 넣고, W 보호막의 상한(40%)을 없앴다. R 성벽은 «적들은 통과할 수 없다»라 아군은 지나가고, 둘레 효과는 «아군 영웅과 방어 타워»(쏘는 구조물)에만 건다. (근거: 사용자 2026-10-18 — 이번 기획서는 기획팀 제시안이라 원문대로 고친다, `insights/2026-10-18_hero_redesign.md` §10) → **2026-11-01 변경:** 마나가 없어져(S146) 표의 «대기 / 마나»는 대기만 남았다. (근거: 사용자 2026-11-01 «마나 개념을 빼자 그냥 삭제해버리자») → **2026-11-10 변경:** 패시브 «강철의 요새»의 기절을 없앴다. 요새화한 아이아스의 기본 공격은 대상을 기절시키지 않는다. 대신 아이아스는 피해를 받을 때마다 요새화와 상관없이 50% 확률로 그 피해를 50% 덜 받는다. 요새화의 받는 피해 −25%·블록 +3과 풀리는 규칙은 그대로이고, 요새화 중이면 두 감소가 곱으로 겹친다(받는 피해 평균 약 56%). 50%·50%는 `data/heroes/aias.tres` 패시브의 `guard_odds`·`guard_cut`에 둔 손잡이다. 세부는 I255다. 표의 패시브 줄을 고쳤고, 다른 문장의 아이아스 패시브 기절 언급보다 이 문장이 우선한다. (근거: 사용자 2026-11-10 «이거는 스킬을 바꾸자 탱커니깐 피격시 50% 확률도 데미지 50%감소받은피해가 되도록», 걸리는 때는 두 안(늘 / 요새화 중에만) 가운데 «늘 걸림», `gimmick_research/05_dungeon_expedition.md` 머리 두 번째 2026-11-10 블록)
+- S151. 아이아스의 칸은 아래 표와 같다. 반경·길이는 칸, 시간은 초다. 수치는 임시값이다. (근거: 사용자 2026-10-18 — 기획서의 아이아스. 피해·반경과 빈칸(블록 수 → 몸 반지름, 흡수한 피해 = 줄이기 전 값, 성벽이 길을 다 막을 때)은 Claude 예시 수락(`insights/2026-10-18_hero_redesign.md` §7 D6)) → **2026-10-18 변경(기획서 원문대로):** 패시브의 블록 수 +3을 몸 반지름 대신 블록 수(S159)로 넣고, W 보호막의 상한(40%)을 없앴다. R 성벽은 «적들은 통과할 수 없다»라 아군은 지나가고, 둘레 효과는 «아군 영웅과 방어 타워»(쏘는 구조물)에만 건다. (근거: 사용자 2026-10-18 — 이번 기획서는 기획팀 제시안이라 원문대로 고친다, `insights/2026-10-18_hero_redesign.md` §10) → **2026-11-01 변경:** 마나가 없어져(S146) 표의 «대기 / 마나»는 대기만 남았다. (근거: 사용자 2026-11-01 «마나 개념을 빼자 그냥 삭제해버리자») → **2026-11-10 변경:** 패시브 «강철의 요새»의 기절을 없앴다. 요새화한 아이아스의 기본 공격은 대상을 기절시키지 않는다. 대신 아이아스는 피해를 받을 때마다 요새화와 상관없이 50% 확률로 그 피해를 50% 덜 받는다. 요새화의 받는 피해 −25%·블록 +3과 풀리는 규칙은 그대로이고, 요새화 중이면 두 감소가 곱으로 겹친다(받는 피해 평균 약 56%). 50%·50%는 `data/heroes/aias.tres` 패시브의 `guard_odds`·`guard_cut`에 둔 손잡이다. 세부는 I258다. 표의 패시브 줄을 고쳤고, 다른 문장의 아이아스 패시브 기절 언급보다 이 문장이 우선한다. (근거: 사용자 2026-11-10 «이거는 스킬을 바꾸자 탱커니깐 피격시 50% 확률도 데미지 50%감소받은피해가 되도록», 걸리는 때는 두 안(늘 / 요새화 중에만) 가운데 «늘 걸림», `gimmick_research/05_dungeon_expedition.md` 머리 두 번째 2026-11-10 블록)
 
   | 칸 | 이름 | 조준 | 대기 | 효과 |
   | --- | --- | --- | --- | --- |
@@ -709,8 +709,8 @@
 
 **영웅 조작 — 전체 오토·모두 고르기** (2026-11-10)
 
-- S309. HUD에 «전체 오토» 버튼이 있다. 누르면 출전 영웅 모두의 스킬 칸(Q·W·E·R) 오토(S296)를 한 번에 켜거나 끈다. 칸마다 켜고 끄는 것(S296)은 그대로이고, 디펜스에서 쓴다. 세부는 I256이다. (근거: 사용자 2026-11-10 «3.전체 오토 활성화비활성화 버튼만 추가하면될듯 디펜스에서도 활용가능할테니» — 원정용 오토 켬끔을 따로 둘지 묻는 `gimmick_research/05_dungeon_expedition.md` §12-9에 답함, 같은 문서 머리 두 번째 2026-11-10 블록)
-- S310. «영웅 모두 고르기» 키를 누르면 살아 있는 출전 영웅을 모두 고른다. 세부는 I257이다. (근거: 사용자 2026-11-10 «4. 킴» — `gimmick_research/05_dungeon_expedition.md` §12-13 «드래그만 / 키 하나 더» 가운데 «키 하나 더», 같은 문서 머리 두 번째 2026-11-10 블록)
+- S313. HUD에 «전체 오토» 버튼이 있다. 누르면 출전 영웅 모두의 스킬 칸(Q·W·E·R) 오토(S296)를 한 번에 켜거나 끈다. 칸마다 켜고 끄는 것(S296)은 그대로이고, 디펜스에서 쓴다. 세부는 I259이다. (근거: 사용자 2026-11-10 «3.전체 오토 활성화비활성화 버튼만 추가하면될듯 디펜스에서도 활용가능할테니» — 원정용 오토 켬끔을 따로 둘지 묻는 `gimmick_research/05_dungeon_expedition.md` §12-9에 답함, 같은 문서 머리 두 번째 2026-11-10 블록)
+- S314. «영웅 모두 고르기» 키를 누르면 살아 있는 출전 영웅을 모두 고른다. 세부는 I260이다. (근거: 사용자 2026-11-10 «4. 킴» — `gimmick_research/05_dungeon_expedition.md` §12-13 «드래그만 / 키 하나 더» 가운데 «키 하나 더», 같은 문서 머리 두 번째 2026-11-10 블록)
 
 **완료 신호**
 
@@ -1073,9 +1073,9 @@
 
 **영웅 조작 — 아이아스 패시브·전체 오토·모두 고르기** (2026-11-10)
 
-- I255. 아이아스 패시브 확률 감소(S151 2026-11-10 변경)의 세부. ① «피해를 받을 때»는 아군 유닛이 받는 피해(S149) 한 번이다. 기본 공격·투사체·스킬·장판·초당 피해 한 번마다 따로 굴리고, 피해 종류(물리·마법·고정)와 상관없다. ② 줄이는 자리는 방어력·받는 피해 감소와 같은 곱이고 보호막보다 앞이다. 반격의 태세(S151 E)가 세는 값은 줄이기 전 값 그대로다. 불사 중에는 피해를 받지 않으니 굴리지 않는다. ③ 확률은 판의 전투 난수(`_luck`, 씨앗이 있는 판은 씨앗을 따른다)로 굴린다. ④ 확률 감소가 걸린 순간의 그림·소리는 없다. `[추론]`
-- I256. 전체 오토 버튼(S309)의 세부. ① 자리는 화면 왼쪽 아래 «영입» 버튼(S272) 바로 위 [3,210,60,26]이고, 영입 버튼처럼 준비·전투 단계에만 보인다. 그림은 금색 꺾쇠 넷(S296의 켜진 칸 표시)과 «오토» 글이다. ② 누르면 출전 영웅(쓰러진 영웅 포함) 모두의 Q·W·E·R 가운데 하나라도 꺼져 있으면 모두 켜고, 모두 켜져 있으면 모두 끈다. 잠긴 칸(S145)도 켜고 끈다(I245). 출전 영웅이 없으면 아무 일도 없다. ③ 모두 켜져 있는 동안 버튼은 금색 테두리다(영입 창이 떠 있는 동안의 영입 버튼과 같은 모양). ④ 툴팁은 «전체 오토»와 «출전 영웅의 스킬 오토를 한 번에 켜고 끈다 · 하나라도 꺼져 있으면 모두 켠다»다. 단축키는 없다. `[추론]`
-- I257. 모두 고르기 키(S310)의 세부. ① 키는 `` ` ``(숫자 1 왼쪽)다. 1·2·3 키(I108)처럼 준비·전투 단계에 맵 명령을 받을 때만 듣는다. ② 고르는 것은 살아 있는 출전 영웅 모두이고 출전 순서대로다(I9). 쓰러진 영웅과 용병은 들지 않고, 고른 시설은 푼다(1·2·3 키와 같다). 그래서 Q·W·E·R은 출전 순서에서 앞선 영웅이 쓴다(I9). ③ 두 번 눌러도 카메라는 움직이지 않는다(1·2·3 키의 두 번 누르기 I165와 다르다). `[추론]`
+- I258. 아이아스 패시브 확률 감소(S151 2026-11-10 변경)의 세부. ① «피해를 받을 때»는 아군 유닛이 받는 피해(S149) 한 번이다. 기본 공격·투사체·스킬·장판·초당 피해 한 번마다 따로 굴리고, 피해 종류(물리·마법·고정)와 상관없다. ② 줄이는 자리는 방어력·받는 피해 감소와 같은 곱이고 보호막보다 앞이다. 반격의 태세(S151 E)가 세는 값은 줄이기 전 값 그대로다. 불사 중에는 피해를 받지 않으니 굴리지 않는다. ③ 확률은 판의 전투 난수(`_luck`, 씨앗이 있는 판은 씨앗을 따른다)로 굴린다. ④ 확률 감소가 걸린 순간의 그림·소리는 없다. `[추론]`
+- I259. 전체 오토 버튼(S313)의 세부. ① 자리는 화면 왼쪽 아래 «영입» 버튼(S272) 바로 위 [3,210,60,26]이고, 영입 버튼처럼 준비·전투 단계에만 보인다. 그림은 금색 꺾쇠 넷(S296의 켜진 칸 표시)과 «오토» 글이다. ② 누르면 출전 영웅(쓰러진 영웅 포함) 모두의 Q·W·E·R 가운데 하나라도 꺼져 있으면 모두 켜고, 모두 켜져 있으면 모두 끈다. 잠긴 칸(S145)도 켜고 끈다(I245). 출전 영웅이 없으면 아무 일도 없다. ③ 모두 켜져 있는 동안 버튼은 금색 테두리다(영입 창이 떠 있는 동안의 영입 버튼과 같은 모양). ④ 툴팁은 «전체 오토»와 «출전 영웅의 스킬 오토를 한 번에 켜고 끈다 · 하나라도 꺼져 있으면 모두 켠다»다. 단축키는 없다. `[추론]`
+- I260. 모두 고르기 키(S314)의 세부. ① 키는 `` ` ``(숫자 1 왼쪽)다. 1·2·3 키(I108)처럼 준비·전투 단계에 맵 명령을 받을 때만 듣는다. ② 고르는 것은 살아 있는 출전 영웅 모두이고 출전 순서대로다(I9). 쓰러진 영웅과 용병은 들지 않고, 고른 시설은 푼다(1·2·3 키와 같다). 그래서 Q·W·E·R은 출전 순서에서 앞선 영웅이 쓴다(I9). ③ 두 번 눌러도 카메라는 움직이지 않는다(1·2·3 키의 두 번 누르기 I165와 다르다). `[추론]`
 
 **데이터·환경**
 
@@ -1691,16 +1691,16 @@
 | S306 | src/sim/battle.gd:244 · src/sim/battle.gd:682 · src/sim/battle.gd:4156-4173 · src/sim/battle.gd:4630 · src/data/enemy_def.gd:45 · data/enemies/song_harpy.tres:1-17 · src/ui/battle_view.gd:3424-3425 · src/ui/battle_view.gd:2016-2019 · src/ui/hud.gd:126 · locale/en.po:513-514 |
 | S307 | src/sim/battle.gd:245 · src/sim/battle.gd:3585-3586 · src/sim/battle.gd:4176-4199 · src/sim/battle.gd:4203-4215 · src/sim/battle.gd:4521 · src/sim/battle.gd:4549-4556 · src/sim/battle.gd:4570-4578 · src/data/enemy_def.gd:46 · data/enemies/storm_harpy.tres:1-18 · data/waves/round_4.tres:16-22 · src/ui/hud.gd:116 · src/ui/hud.gd:127 · locale/en.po:516-517 · locale/en.po:522-523 |
 | S308 | src/sim/battle.gd:246-247 · src/sim/battle.gd:3563-3564 · src/sim/battle.gd:3587-3588 · src/sim/battle.gd:4218-4344 · src/sim/battle.gd:4347-4355 · src/sim/battle.gd:3347-3348 · src/sim/battle.gd:3498 · src/sim/battle.gd:3514 · src/sim/battle.gd:4060 · src/sim/battle.gd:3729 · src/sim/battle.gd:4885 · src/sim/battle.gd:4397-4398 · src/sim/battle.gd:4448 · src/sim/battle.gd:1824 · src/sim/battle.gd:2943 · src/data/enemy_def.gd:47 · data/enemies/snatch_harpy.tres:1-23 · data/waves/round_4.tres:16-22 · src/ui/hud.gd:116 · src/ui/hud.gd:127 · locale/en.po:519-520 · locale/en.po:525-526 |
-| S309 | src/ui/hud_auto.gd:1-48 · src/ui/hud.gd:67 · src/ui/hud.gd:155 · src/ui/hud.gd:471-472 · src/sim/battle.gd:1462-1471 · locale/en.po:1673-1683 |
-| S310 | src/ui/controls.gd:119-120 · src/ui/controls.gd:246-250 |
+| S313 | src/ui/hud_auto.gd:1-48 · src/ui/hud.gd:67 · src/ui/hud.gd:155 · src/ui/hud.gd:471-472 · src/sim/battle.gd:1462-1471 · locale/en.po:1673-1683 |
+| S314 | src/ui/controls.gd:119-120 · src/ui/controls.gd:246-250 |
 | I250 | ① src/sim/battle.gd:4055-4063 · src/sim/battle.gd:4068-4073 · ② src/sim/battle.gd:4076-4079 · ③ src/sim/battle.gd:4083-4094 · ④ src/ui/battle_view.gd:26 · src/ui/battle_view.gd:491 · src/ui/battle_view.gd:563-568 · ⑤ src/ui/battle_view.gd:23 · src/ui/battle_view.gd:40 · src/ui/battle_view.gd:2576-2582 · src/ui/battle_view.gd:2586 · src/ui/battle_view.gd:694 |
 | I251 | ① src/sim/battle.gd:4108-4113 · ② src/sim/battle.gd:4117-4121 · ③ src/sim/battle.gd:4129 · ④ src/sim/battle.gd:4133-4153 · ⑤ src/sim/battle.gd:4130-4131 · src/sim/battle.gd:1631 · ⑥ src/sim/battle.gd:4099-4107 · ⑦ src/ui/battle_view.gd:161 · src/ui/battle_view.gd:3527-3532 |
 | I252 | ① src/sim/battle.gd:4168 · ② src/sim/battle.gd:4162-4170 · ③ src/sim/battle.gd:4171-4173 · src/sim/battle.gd:4630 · ④ src/ui/battle_view.gd:25 · src/ui/battle_view.gd:156 · src/ui/battle_view.gd:2016-2019 · src/ui/battle_view.gd:3424-3425 |
 | I253 | ① src/sim/battle.gd:4176-4183 · src/sim/battle.gd:4187-4195 · ② src/sim/battle.gd:4203-4215 · src/sim/battle.gd:4549-4556 · src/sim/battle.gd:4570-4578 · ③ src/sim/battle.gd:80 · src/sim/battle.gd:434 · src/sim/battle.gd:579 · src/sim/battle.gd:654-655 · src/ui/battle_view.gd:27 · src/ui/battle_view.gd:492 · src/ui/battle_view.gd:571-576 · ④ src/ui/battle_view.gd:161 · src/ui/battle_view.gd:3522-3524 · src/ui/battle_view.gd:3557-3581 · ⑤ src/ui/battle_view.gd:20 · src/ui/battle_view.gd:24 |
 | I254 | ① src/sim/battle.gd:4222-4235 · src/sim/battle.gd:4251-4259 · src/sim/battle.gd:4277-4288 · ② src/sim/battle.gd:4263-4273 · src/sim/battle.gd:4291-4295 · ③ src/sim/battle.gd:4312-4326 · ④ src/sim/battle.gd:3514 · src/sim/battle.gd:2943 · src/sim/battle.gd:4327-4333 · ⑤ src/sim/battle.gd:4299-4308 · src/sim/battle.gd:3347-3348 · ⑥ src/ui/battle_view.gd:28-30 · src/ui/battle_view.gd:493 · src/ui/battle_view.gd:579-588 · src/ui/battle_view.gd:2398-2405 · src/ui/battle_view.gd:2417-2418 · src/ui/battle_view.gd:2726-2729 · src/ui/battle_view.gd:2987 · src/ui/battle_view.gd:3525-3526 |
-| I255 | ① src/sim/battle.gd:3313-3314 · ② src/sim/battle.gd:3306-3315 · ③ src/sim/battle.gd:491 · src/sim/battle.gd:630 · src/sim/battle.gd:636 · data/heroes/aias.tres:19-20 |
-| I256 | ① src/ui/hud_auto.gd:18-20 · src/ui/hud_auto.gd:24-39 · src/ui/hud_auto.gd:44 · ② src/sim/battle.gd:1462-1467 · src/ui/hud_auto.gd:22 · ③ src/sim/battle.gd:1469-1471 · src/ui/hud_auto.gd:45-48 · ④ src/ui/hud_auto.gd:40 · locale/en.po:1673-1683 |
-| I257 | ① src/ui/controls.gd:119-120 · src/ui/controls.gd:95 · ② src/ui/controls.gd:246-250 · ③ src/ui/controls.gd:248 |
+| I258 | ① src/sim/battle.gd:3313-3314 · ② src/sim/battle.gd:3306-3315 · ③ src/sim/battle.gd:491 · src/sim/battle.gd:630 · src/sim/battle.gd:636 · data/heroes/aias.tres:19-20 |
+| I259 | ① src/ui/hud_auto.gd:18-20 · src/ui/hud_auto.gd:24-39 · src/ui/hud_auto.gd:44 · ② src/sim/battle.gd:1462-1467 · src/ui/hud_auto.gd:22 · ③ src/sim/battle.gd:1469-1471 · src/ui/hud_auto.gd:45-48 · ④ src/ui/hud_auto.gd:40 · locale/en.po:1673-1683 |
+| I260 | ① src/ui/controls.gd:119-120 · src/ui/controls.gd:95 · ② src/ui/controls.gd:246-250 · ③ src/ui/controls.gd:248 |
 
 ### 3.2 재확인 목록 (`선택 대기`)
 

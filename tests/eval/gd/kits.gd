@@ -1272,8 +1272,8 @@ func ev802():
 	var ok: bool = start == OFF and back == on and off == OFF and b.state == "prep" and kept == on and locked and opened
 	return check(ok, "처음 %s · 저장 뒤 %s · 옛 저장 %s · 다음 준비 단계(%s) %s · Lv1 W 켬·안 씀 %s · Lv2 씀 %s" % [start, back, off, b.state, kept, locked, opened])
 
-# EV860 · S151 2026-11-10 변경·I255: 피해를 받을 때마다 guard_odds 확률로 그 피해를 guard_cut만큼 덜 받는다. 요새화와 상관없고, 요새화 감소와 곱으로 겹친다
-func ev860():
+# EV877 · S151 2026-11-10 변경·I258: 피해를 받을 때마다 guard_odds 확률로 그 피해를 guard_cut만큼 덜 받는다. 요새화와 상관없고, 요새화 감소와 곱으로 겹친다
+func ev877():
 	var b = _kit([["aias", H]])
 	var k = b.hero
 	_quiet(b)
@@ -1311,8 +1311,8 @@ func ev860():
 	return check(_near_f(half, 5.0) and _near_f(whole, 10.0) and fort and _near_f(both, 3.75) and share >= 0.45 and share <= 0.55 and keys,
 		"확률 1 피해 %s(기대 5) · 확률 0 피해 %s(기대 10) · 요새화 %s 뒤 확률 1 피해 %s(기대 3.75) · 2000번 가운데 반감 비율 %s(0.45~0.55) · 데이터 %s" % [half, whole, fort, both, share, data])
 
-# EV861 · S151 2026-11-10 변경: 요새화한 아이아스의 기본 공격은 대상을 기절시키지 않는다
-func ev861():
+# EV878 · S151 2026-11-10 변경: 요새화한 아이아스의 기본 공격은 대상을 기절시키지 않는다
+func ev878():
 	var b = _kit([["aias", H]])
 	var k = b.hero
 	for s in k.auto:  # 오토 Q(방패 강타)의 기절이 섞이지 않게 끈다
@@ -1328,8 +1328,8 @@ func ev861():
 			stunned += 1
 	return check(k.fort and foe.hp < foe.max_hp and stunned == 0, "요새화 %s · 과녁 체력 %s/%s · 기절이 걸린 스텝 %d(기대 0)" % [k.fort, foe.hp, foe.max_hp, stunned])
 
-# EV862 · S309·I256 ②: 전체 오토는 출전 영웅(쓰러진 영웅·잠긴 칸 포함) 모두의 칸을, 하나라도 꺼져 있으면 모두 켜고 모두 켜져 있으면 모두 끈다
-func ev862():
+# EV879 · S313·I259 ②: 전체 오토는 출전 영웅(쓰러진 영웅·잠긴 칸 포함) 모두의 칸을, 하나라도 꺼져 있으면 모두 켜고 모두 켜져 있으면 모두 끈다
+func ev879():
 	var b = battle({"heroes": [{"kind": "aias", "cell": H, "level": 1}, {"kind": "ignis", "cell": H + Vector2i(0, 2)}, {"kind": "seraphina", "cell": H + Vector2i(0, 4)}], "base_hp": BIG})
 	if not b.has_method("toggle_auto_all"):
 		return "Battle.toggle_auto_all()이 없다"

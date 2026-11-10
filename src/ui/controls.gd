@@ -243,7 +243,7 @@ func pick_hero(i: int) -> void:
 	shown = null
 	hero_key.emit(i)
 
-# ` 키(S310, I257): 살아 있는 출전 영웅을 출전 순서대로 모두 고른다. 1·2·3 키처럼 시설 선택을 풀고, 카메라는 옮기지 않는다
+# ` 키(S314, I260): 살아 있는 출전 영웅을 출전 순서대로 모두 고른다. 1·2·3 키처럼 시설 선택을 풀고, 카메라는 옮기지 않는다
 func pick_all() -> void:
 	selected = battle.heroes.filter(func(h): return h.alive)
 	facility = null

@@ -22,5 +22,5 @@ def test_EV658_gear_icons_on_portrait_and_hire_card(gd):
     gd("shop", "EV658")
 
 
-def test_EV863_auto_all_button(gd):
-    gd("shop", "EV863")
+def test_EV880_auto_all_button(gd):
+    gd("shop", "EV880")

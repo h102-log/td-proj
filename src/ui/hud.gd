@@ -152,7 +152,7 @@ var select  # 선택 패널(S206). 건설 격자 바로 왼쪽
 var minimap  # 미니맵(S209). 왼쪽 아래 구석
 var evac  # 대피령 버튼(S230). 미니맵 바로 위
 var shop  # «영입» 버튼(S272, I207). 대피령 버튼 바로 위
-var auto_all  # «전체 오토» 버튼(S309, I256). 영입 버튼 바로 위
+var auto_all  # «전체 오토» 버튼(S313, I259). 영입 버튼 바로 위
 var hp_button: Button  # 체력바 버튼(S276). 대피령 버튼 오른쪽, 누르면 V 키와 같다
 var view  # 맵 그림(BattleView). 미니맵이 구운 바닥을 빌린다. main이 넣는다
 var _hp: Label

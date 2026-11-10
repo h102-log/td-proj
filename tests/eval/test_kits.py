@@ -234,13 +234,13 @@ def test_EV802_auto_state_save_carry_locked(gd):
     gd("kits", "EV802")
 
 
-def test_EV860_aias_passive_guard_chance(gd):
-    gd("kits", "EV860")
+def test_EV877_aias_passive_guard_chance(gd):
+    gd("kits", "EV877")
 
 
-def test_EV861_aias_fortify_no_stun(gd):
-    gd("kits", "EV861")
+def test_EV878_aias_fortify_no_stun(gd):
+    gd("kits", "EV878")
 
 
-def test_EV862_toggle_auto_all(gd):
-    gd("kits", "EV862")
+def test_EV879_toggle_auto_all(gd):
+    gd("kits", "EV879")
