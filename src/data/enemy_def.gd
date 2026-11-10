@@ -50,3 +50,5 @@ extends Resource
 @export var wall := {}  # 방패벽(S319, I263): {near 방패벽을 서는 거리 칸, cover 둘레 칸, cut 정면 화살·구슬 피해를 덜 받는 비율}. 비어 있으면 방패벽을 서지 않는다
 @export var frenzy := {}  # 격노(S320, I264): {haste 공격 속도, stride 이동 속도}에 잃은 체력 비율을 곱해 더한다. 비어 있으면 격노하지 않는다
 @export var drum := {}  # 전쟁 북(S321, I265): {radius 반경, haste 둘레 적 공격 속도, stride 둘레 적 이동 속도, keep 들을 적이 있을 때 대상에서 서는 거리 칸}. 비어 있으면 북을 치지 않는다
+@export var hurl := {}  # 오크 던지기(S322, I266): {range·min 던질 원거리 아군까지 거리 칸, ranged 원거리로 치는 사거리 칸, reach 집을 오크까지 거리 칸, kinds 집을 종류, windup 예고 초, air 나는 초, radius 원 반경, hit 아군 피해, cd 대기 초}. 비어 있으면 던지지 않는다
+@export var hook := {}  # 사슬(S323, I267): {range·min 볼 아군까지 거리 칸(range는 띠 길이), width 띠 폭 칸, windup 예고 초, hit 아군 피해, gap 끌어올 자리까지 거리 칸, cd 대기 초}. 비어 있으면 사슬을 던지지 않는다

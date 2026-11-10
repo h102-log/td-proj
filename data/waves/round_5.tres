@@ -14,10 +14,11 @@ waves = Array[Dictionary]([{
 "drummer": 20,
 "berserker": 80
 }, {
-"basic": 240,
-"fast": 120,
-"armored": 120,
-"flying": 100
+"shield_orc": 40,
+"armored": 140,
+"ogre_thrower": 20,
+"berserker": 40,
+"chain_orc": 30
 }, {
 "basic": 320,
 "fast": 160,

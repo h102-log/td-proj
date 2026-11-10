@@ -383,7 +383,7 @@ func ev909():
 	if why != "":
 		return why
 	var m = _up(b, "archer", Vector2i(14, 9), MUTE)
-	if m == null:
+	if m == null or not run(b, 5.0, func(): return m.path.is_empty() and m.after.is_empty()):  # 궁수가 멈춘 뒤에 둔다. 걷는 중이면 예고 자리와 다음 스텝의 궁수 자리가 어긋난다
 		return "궁수를 성벽 위 (14,9)에 올리지 못했다"
 	var t = _still(b, OT, Vector2(14, 13))
 	var a = b.spawn_enemy("armored", Vector2i(15, 13), {"speed": 0, "hp": BIG})
@@ -518,8 +518,10 @@ func ev912():
 	w._foe_tells()
 	var air_ring: bool = _flying(a) and w.rings.any(func(x): return x[0] == mid and x[1] == 16)
 	w.free()
-	if not (told and col == Color("ef692f") and ring and air_ring):
-		return "던지기 예고: 그리는 적에 %s · 색 %s(ef692f) · 고리(가운데 %s, 반지름 16) %s · 장갑이 뜬 동안 고리 %s" % [told, col.to_html(false), mid, ring, air_ring]
+	var borrowed = g[0].deed(a, a.cast.id) if _flying(a) else null  # 뜬 장갑의 예고 수치는 투척꾼의 hurl이다(화면의 프레임 훑기가 읽는다, 락 뒤 개정)
+	var lent: bool = borrowed is Dictionary and borrowed.get("radius") == 1.0 and borrowed.get("air") == 0.6
+	if not (told and col == Color("ef692f") and ring and air_ring and lent):
+		return "던지기 예고: 그리는 적에 %s · 색 %s(ef692f) · 고리(가운데 %s, 반지름 16) %s · 장갑이 뜬 동안 고리 %s · 뜬 장갑의 deed %s(radius 1·air 0.6)" % [told, col.to_html(false), mid, ring, air_ring, borrowed]
 	var nb = _one("archer", Vector2i(10, 10), MUTE, {"nights": NIGHT})[0]
 	_start(nb)
 	run(nb, 1.0)
