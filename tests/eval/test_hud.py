@@ -442,3 +442,7 @@ def test_EV885_start_battle_click_only(gd):
 
 def test_EV886_dash_cursor_and_portrait_curtain(gd):
     gd("hud", "EV886")
+
+
+def test_EV897_round5_orc_trait_lines(gd):
+    gd("hud", "EV897")
