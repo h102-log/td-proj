@@ -174,6 +174,10 @@ var retreat: Button  # 진행 칸의 «철수»(S317, I262 ⑧). 원정 중에�
 var raid: Button  # 거점 팝업의 «원정 N층»(S316, I262 ②). 준비 단계에만
 var boss_bar := Panel.new()  # 원정 보스 이름·체력 막대(S317, I262 ⑧). 위 띠 바로 아래 가운데, 원정 중에만
 var fade := ColorRect.new()  # 원정에 들고 날 때 화면 전체를 덮었다 걷히는 검은 덮개(S317, I262 ⑧)
+var again := PanelContainer.new()  # 전멸·불꽃 뒤의 «다시» 창(S331, I277 ③). 결과 창 자리에 뜨고 판을 덮지 않는다
+var again_retry: Button  # 그 창의 «다시 (횃불 1)». 횃불이 없으면 꺼진다
+var again_retreat: Button  # 그 창의 «철수»
+var _again_text := Label.new()
 var _boss_name: Label
 var _boss_fill := ColorRect.new()
 var _raid_seen := false  # 지난 프레임에 원정이었나. 바뀌면 덮개를 다시 덮는다
@@ -538,6 +542,21 @@ func _ready() -> void:
 	controls.alert_key.connect(alerts.back)
 	hints = Hints.new(battle, controls)
 	root.add_child(hints)
+	again.position = Vector2(170, 110)  # 결과 창 자리(I136)
+	again.custom_minimum_size = Vector2(300, 0)
+	again.visible = false
+	root.add_child(again)
+	var asks := VBoxContainer.new()
+	again.add_child(asks)
+	_again_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	asks.add_child(_again_text)
+	var picks := HBoxContainer.new()
+	picks.alignment = BoxContainer.ALIGNMENT_CENTER
+	asks.add_child(picks)
+	again_retry = _button(picks, "다시 (횃불 1)", func(): battle.retry())  # 포커스를 받지 않아 Enter·Space로는 눌리지 않는다(I277 ③)
+	again_retreat = _button(picks, "철수", func(): battle.retreat())
+	tip.add(again_retry, func(): return ["다시", "", "", "횃불 한 자루를 더 쓰고 이 층을 처음부터 다시 한다", "✕ " + RAID_WHY.torch if battle.torches <= 0 else ""])
+	tip.add(again_retreat, func(): return ["철수", "", "", "원정을 그만두고 돌아온다 — 쓴 횃불은 돌아오지 않는다", ""])
 	toasts.go.connect(func(cell): _focus(Vector2(cell)))  # 경보 토스트를 누르면 그 자리로(I163)
 	toasts.tip = tip
 	root.add_child(toasts)
@@ -594,6 +613,11 @@ func _process(delta: float) -> void:
 	if boss_bar.visible:
 		_boss_name.text = tr(battle.raid_floor.title)
 		_boss_fill.size.x = 136.0 * battle.raid_left()  # 남은 총 체력 비율(S322)
+	again.visible = raiding and battle.raid_pending()  # «다시» 창(S331)
+	if again.visible:
+		_again_text.text = tr("원정 실패") + " — " + tr("보스 남은 체력 %d%%") % ceili(battle.raid_left() * 100.0)
+		again_retry.disabled = battle.torches <= 0
+		again.reset_size()
 	if prep:
 		_dusk = []
 	var dusk: Dictionary = battle.night(battle.round_index, battle.wave_index) if battle.state == "battle" else {}

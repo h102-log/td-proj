@@ -94,6 +94,7 @@ const FALLEN := 2.0  # 쓰러진 몸(fallen)을 지우는 때(쓰러진 뒤 초,
 const WRECK := 5.0  # 수레 잔해(wrecks)를 지우는 때(부서진 뒤 초, S172 2026-11-05 변경 ⑥). 임시값
 const STAGGER := 2.0  # 예고 중 기절로 스킬이 끊긴 보스가 비틀거리는 시간(초, S194). 임시값
 const STAGGER_EXPOSE := 0.5  # 비틀거리는 동안 받는 피해 증가(S194). 임시값
+const DEFLECT := 0.5  # 원정 보스 몸에서 지워진 기절·봉인이 남기는 튕김 효과의 시간(초, I277 ⑤). 화면이 불티를 낸다
 const DUSK := 10.0  # 밤 웨이브에 fade가 없을 때 어둠이 dark까지 오르는 시간(초, S210). 임시값
 const DAWN := 3.0  # 전투 단계가 끝난 뒤 어둠이 1에서 0까지 내리는 시간(초, S210). 임시값
 const BASE_LIGHT := 4.0  # 거점의 밤 불빛 반경(칸, S211). 임시값
@@ -491,7 +492,7 @@ var party := []  # 원정대(S316): 원정에 들어간 출전 영웅, 출전 �
 var flame := 0.0  # 이번 원정의 불꽃이 탄 초(I262 ⑥)
 var raid_floor := {}  # 이번 원정의 층 정의(FLOOR_KINDS 값). 원정이 아니면 비어 있다
 var _snap := {}  # 원정 직전 몸(I262 ④): 원정대 영웅 → 칸 사전, "tally" → 라운드 집계
-var _raid_end := ["", 0.0]  # 끝난 까닭("win"·"wipe"·"flame")과 돌아오기까지 남은 초(I262 ⑥). 안 끝났으면 ""
+var _raid_end := ["", 0.0]  # 끝난 까닭("win"·"wipe"·"flame")과 돌아오기(처치)나 «다시» 기다림(전멸·불꽃, S331)까지 남은 초(I262 ⑥). 안 끝났으면 "". 끝났으면 셋째 칸이 그 순간의 보스 남은 체력 비율이다
 var merc_cap := MERC_CAP
 var village_level := 1  # 오를수록 지을 수 있는 생산 시설이 는다(S46, S99)
 var dark := 0.0  # 어둠(S210): 0 낮 ~ 1 한밤. 밤 웨이브의 전투 단계에 오르고, 전투가 끝나면 내린다. 저장에 담지 않는다(준비 단계는 낮)
@@ -1087,8 +1088,11 @@ func _interrupt(e: Enemy) -> void:
 func _raiders() -> Array:
 	return enemies.filter(func(e): return not e.raid.is_empty())
 
-# 남은 보스 체력 비율(S322): 산 몸의 체력에 아직 나오지 않은 자손의 체력을 더해 전체 합으로 나눈다. 세대가 없는 층은 보스 하나의 체력 비율이다
+# 남은 보스 체력 비율(S322): 산 몸의 체력에 아직 나오지 않은 자손의 체력을 더해 전체 합으로 나눈다. 세대가 없는 층은 보스 하나의 체력 비율이다.
+# 원정이 끝난 뒤에는 끝난 순간의 값이다(I277 ①)
 func raid_left() -> float:
+	if _raid_end[0] != "":
+		return _raid_end[2]
 	var gens: Array = raid_floor.get("gens", [])
 	var left := 0.0
 	var all := 0.0
@@ -1114,26 +1118,39 @@ func retreat() -> void:
 	if state == "raid":
 		_come_home(false)
 
-# 원정 한 스텝(I262 ⑥): 끝나기를 기다리는 중이면 센다. 아니면 처치(방 안에 보스 몸이 없다, S322) → 전멸 → 불꽃 차례로 끝을 보고 불꽃을 태운다
+# 전멸·불꽃으로 끝난 원정이 «다시»나 «철수»를 기다리는 중이다(S331, I277 ①). HUD가 «다시» 창을 띄운다
+func raid_pending() -> bool:
+	return state == "raid" and _raid_end[0] in ["wipe", "flame"] and _raid_end[1] <= 0.0
+
+# «다시»(S331, I277 ②): 기다리는 중이고 횃불이 있으면 원정대 몸·집계를 원정 직전으로 되돌린 뒤 들어가기를 처음부터 한다.
+# 횃불 쓰기·저장 신호·새 보스·불꽃 0은 start_raid가 맡는다. 못 하면 거짓이고 판은 그대로다
+func retry() -> bool:
+	if not raid_pending() or torches <= 0:
+		return false
+	_come_home(false)
+	return start_raid()
+
+# 원정 한 스텝(I262 ⑥): 끝났으면 기다림을 세어, 처치는 다 되면 돌아오고 전멸·불꽃은 «다시»·«철수»를 기다린다(S331).
+# 아니면 처치(방 안에 보스 몸이 없다, S322) → 전멸 → 불꽃 차례로 끝을 보고 불꽃을 태운다
 func _raid_step(dt: float) -> void:
 	if _raid_end[0] != "":
 		_raid_end[1] -= dt
-		if _raid_end[1] <= 0.0:
-			_come_home(_raid_end[0] == "win")
+		if _raid_end[1] <= 0.0 and _raid_end[0] == "win":
+			_come_home(true)
 		return
 	if _raiders().is_empty():
 		_end_raid("win", den.win_wait)
 	elif not party.any(func(h): return h.alive):
 		_end_raid("wipe", den.wipe_wait)
-	elif flame >= raid_floor.hard:  # 다 타면 보스 몸이 모두 사라진다
+	elif flame >= raid_floor.hard:  # 다 타면 보스 몸이 모두 사라진다. 남은 체력 비율은 사라지기 전에 굳힌다
+		_end_raid("flame", den.wipe_wait)
 		for e in _raiders():
 			enemies.erase(e)
-		_end_raid("flame", den.wipe_wait)
 	else:
 		flame += dt
 
 func _end_raid(why: String, wait: float) -> void:
-	_raid_end = [why, wait]
+	_raid_end = [why, wait, raid_left()]
 	for e in _raiders():  # 돌아올 때까지 보스 몸은 움직이지 않는다
 		e.pull = INF
 
@@ -1841,6 +1858,8 @@ func _fx(t, src: String, eff: Dictionary, secs: float) -> void:
 	if t is Enemy and not t.raid.is_empty() and (eff.has("stun") or eff.has("seal")):  # 슈퍼아머(S323 ③, I267 ③): 기절·봉인 칸만 지운다. 카운터 창 안이면 예고가 끊긴다(S326 ④)
 		if countering(t):
 			_interrupt(t)
+		else:  # 튕김(I277 ⑤): 끊기가 아닌 채 지워진 기절·봉인은 짧은 효과를 남긴다
+			t.fx["deflect"] = {"deflect": true, "left": DEFLECT}
 		eff = eff.duplicate()
 		eff.erase("stun")
 		eff.erase("seal")
