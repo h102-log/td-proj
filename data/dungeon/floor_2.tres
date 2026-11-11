@@ -56,6 +56,13 @@ plan = [{
 "wait": 5.0
 }]
 walks = false
+shift = {
+"below": 0.5,
+"rest": 0.3,
+"twice": "charge",
+"windup": 1.0
+}
+hunts = true
 ward = 0.88
 groggy = {
 "mult": 1.5,
@@ -69,3 +76,4 @@ enrage = {
 pull = 3.0
 hard = 120.0
 gold = 150
+relic = "wolf_fang"

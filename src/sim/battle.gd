@@ -284,6 +284,7 @@ class Enemy:
 	var beat := 0  # 대본 차례(S326, I270 ①): 층 정의 plan의 몇 번째 패턴을 다음에 쓰는가
 	var rest := 0.0  # 그 패턴의 예고까지 남은 쉼(초)
 	var turn := 0  # 씨앗 표식이 다음에 붙을 원정대 차례(I270 ③)
+	var shifted := false  # 체력이 층 정의 shift.below 이하가 된 적이 있다(S337 ⑥, I286 ①). 한 번 켜지면 꺼지지 않는다
 
 	func _init(k: String, cell: Vector2i, stats: Dictionary) -> void:
 		kind = k
@@ -1158,6 +1159,25 @@ func _next_beat(e: Enemy) -> void:
 	var plan := _plan_of(e)
 	e.beat = (e.beat + 1) % plan.size()
 	e.rest = plan[e.beat].wait * (1.0 - (e.skills.rage.get("rest", 0.0) if raging(e) else 0.0))  # 원정 대장의 분노(S342 ⑪, I284 ①): 차례가 넘어갈 때 분노 중이면 쉼이 짧다
+	if _shifted(e):  # 체력 50% 아래(S337 ⑥, I286 ①)
+		e.rest *= 1.0 - e.raid.shift.rest
+
+# 체력 문턱(S337 ⑥, I286 ①): 층 정의에 shift가 있고 이 몸의 체력이 최대 체력의 below 이하가 된 적이 있다. 한 번 참이면 체력이 다시 차도 참이다
+func _shifted(e: Enemy) -> bool:
+	var sh: Dictionary = e.raid.get("shift", {})
+	if not e.shifted and not sh.is_empty() and e.hp <= sh.below * e.max_hp:
+		e.shifted = true
+	return e.shifted
+
+# 지금 사냥감(S337 ⑨, I286 ④): 층 정의의 hunts가 참인 층의 원정에서, 보스 몸의 예고에 대상(who)이 있고 살아 있으면 그 영웅, 아니면 지금 고를 사냥감이다.
+# 원정이 아니거나 끝났거나 hunts가 거짓이면 null. 화면이 그 영웅의 머리 위에 표시를 그린다
+func raid_prey():
+	if state != "raid" or _raid_end[0] != "" or not raid_floor.get("hunts", false):
+		return null
+	for e in _raiders():
+		var who = e.cast.get("who") if e.cast != null else null
+		return who if who != null and who.alive else _prey(e)
+	return null
 
 # 카운터 창(S326 ④, I270 ④): 예고의 남은 시간이 그 패턴의 counter 이하다. 화면이 왕 몸을 파랗게 깜박인다
 func countering(e: Enemy) -> bool:
@@ -4279,6 +4299,8 @@ func _skills(e: Enemy, dt: float, sealed: bool) -> bool:
 		if e.skills.has(id):
 			e.cd[id] -= dt
 	var plan := _plan_of(e)
+	if not plan.is_empty():
+		_shifted(e)  # 체력 문턱(I286 ①)은 대본을 도는 스텝마다 본다
 	var scripted: bool = e.cast != null and plan.any(func(p): return p.id == e.cast.id)  # 대본 패턴을 예고하는 중
 	if not plan.is_empty() and not scripted:  # 대본의 쉼(I270 ①): 대본 패턴을 예고하는 동안에는 줄지 않는다
 		e.rest -= dt
@@ -4303,7 +4325,11 @@ func _skills(e: Enemy, dt: float, sealed: bool) -> bool:
 			call("_" + c.id, e, sk if not (scripted and sk.has("damage")) else sk.merged({"damage": sk.damage * raid_ramp() * _fury(e)}, true))  # 광폭(S323 ⑤)과 광분(S337 ④)은 대본 패턴 피해에도 든다(S326). 돌진은 _charge가 곱한다
 			if is_same(e.cast, c):
 				e.cast = null
-			if scripted and not (e.cast != null and e.cast.get("fire", false)):  # 기관총의 대본 차례는 발사가 끝난 때 넘어간다(I283 ④)
+			if scripted and e.cast == null and not c.get("again", false) and _shifted(e) and e.raid.shift.get("twice", "") == c.id and _fx_on(e, "groggy") == null:
+				var again: Dictionary = e.skills[c.id].merged({"windup": e.raid.shift.windup}, true)  # 둘째 돌진(S337 ⑥, I286 ②): 그로기가 아니면 그 자리에서 짧은 예고로 한 번 더 잇는다
+				e.cast = {"id": c.id, "left": again.windup, "again": true, "sk": again}
+				e.cast.merge(call("_%s_aim" % c.id, e, again))
+			elif scripted and not (e.cast != null and e.cast.get("fire", false)):  # 기관총의 대본 차례는 발사가 끝난 때 넘어간다(I283 ④)
 				_next_beat(e)
 		return true
 	if sealed:
@@ -4884,8 +4910,10 @@ func _charge(e: Enemy, sk: Dictionary) -> void:
 				_shove(u, (left if dir.cross(v) <= 0.01 else -left) * sk.side, enemies)
 	if got[1] != null:
 		damage(got[1], sk.get("structure", 0.0), "phys", e)
+	var mark: Dictionary = _tracing
 	_tracing = null
 	if not e.raid.is_empty() and not caught and _walled(from, got, sk.length, sk.get("run", 0.0)):  # 벽 돌진을 모두 피했다(S337 ①·S342 ⑧): 벽이나 잔해에 박혀 그로기가 된다
+		mark.crash = dir  # 박힌 쪽(I286 ⑤). 화면이 박힌 순간의 그림을 낸다
 		_fx(e, "groggy", {"groggy": true}, e.raid.groggy.time)
 	_find_path(e)
 

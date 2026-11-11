@@ -10,6 +10,8 @@ extends Resource
 @export var gens: Array = []  # 갈라지는 세대마다 {hp, radius, land(착지 원 반경), gap(뜀 간격 초)}(S322). 0번이 처음 몸이고, 비면 보스 하나가 걷고 친다(I266 ⑤)
 @export var plan: Array = []  # 대본 [{id, wait}](S326, I270 ①): 처음 몸이 skills의 id 패턴을 차례로 되풀이하고, wait은 그 패턴 앞의 쉼(초)이다. 비면 대본이 없다
 @export var walks := true  # 거짓이면 보스가 걷지도 기본 공격도 하지 않고 대본 패턴으로만 움직이고 친다(S337, I280 ①)
+@export var shift := {}  # 체력 문턱 {below, rest, twice, windup}(S337 ⑥, I286 ①②): 체력이 최대 체력의 below 이하가 된 뒤로는 대본의 쉼이 rest만큼 짧고, twice 패턴이 발동하면 예고 windup초로 한 번 더 잇는다. 비면 바뀌지 않는다
+@export var hunts := false  # 참이면 화면이 사냥감(지금 보스에서 가장 먼 산 원정대 영웅)의 머리 위에 표시를 그린다(S337 ⑨, I286 ④)
 @export var phase2 := {}  # 둘째 형태 {title, kind, stats, skills, plan}(S342 ④, I283 ①): 체력이 0이 되면 쓰러지지 않고 kind 종류로 바뀌어 이 수치·스킬·대본을 쓴다. 비면 한 형태다
 @export var scale := 0.0  # 몸 그림 배율(I283 ⑨). 0이면 층 수치의 몸 반지름 ÷ 그 종류의 몸 반지름으로 그린다(I280 ①). phase2에도 같은 뜻의 scale 칸을 둘 수 있다
 @export var wreck := 0.0  # 첫 형태가 부서진 자리에 남는 수레 잔해 원의 반지름(칸, S342 ④·⑧). 둘째 형태의 돌진이 이 원 앞에서 멈춘다. 0이면 막지 않는다
