@@ -3360,7 +3360,7 @@ func _scan() -> void:
 			_emit(("feed" if c.slot == "devour" else "boss") if _boss(c.hero) else "cast", _center(c.at), Vector2.ZERO, c.hero, null, {"ref": c, "slot": c.slot})
 			if c.has("crash"):  # 벽에 박힘(S337 ⑨, I286 ⑤): 박힌 쪽 몸 가장자리에서
 				_emit("crash", _center(c.at) + c.crash * CELL * c.hero.radius, c.crash, c.hero, null)
-			if c.has("thud"):  # 급강하가 빈 땅에 처박힘(S352 ⑭, I289 ②): 몸 둘레에서
+			if c.has("thud"):  # 급강하가 빈 땅에 처박힘(S352 ⑭, I290 ②): 몸 둘레에서
 				_emit("thud", _center(c.at), Vector2.ZERO, c.hero, null, {"radius": CELL * c.hero.radius})
 	_known = battle.traces.duplicate()
 	var tell := {}
@@ -3387,7 +3387,7 @@ func _scan() -> void:
 				_emit("wreck", _center(w.at), Vector2.ZERO, null, w.who, {"radius": CELL * battle.raid_floor.get("wreck", 1.0)})
 	_broken = broken
 	var fell := {}
-	for e in battle.enemies:  # 원정의 나는 몸이 떨어짐(S352 ⑭, I289 ③): 잔해를 남기지 않는 층의 몸이 둘째 형태로 바뀐 프레임에만 낸다
+	for e in battle.enemies:  # 원정의 나는 몸이 떨어짐(S352 ⑭, I290 ③): 잔해를 남기지 않는 층의 몸이 둘째 형태로 바뀐 프레임에만 낸다
 		if not e.raid.is_empty() and battle._second(e) and battle.raid_floor.get("wreck", 0.0) == 0.0:
 			var id: int = e.get_instance_id()
 			fell[id] = true
@@ -3497,7 +3497,7 @@ func _react(e: Dictionary) -> void:
 			for i in 6:
 				var along: float = (i - 2.5) / 2.5
 				_dot({"p0": e.at + side * along * 6.0, "p1": e.at + side * along * _h(e.n, 30 + i, 14, 28) - e.dir * _h(e.n, 40 + i, 8, 20), "rise": _h(e.n, 50 + i, 14, 24), "col": STONE, "size": Vector2(3, 3), "life": 0.6, "fade": 0.15, "wait": i * 0.02})
-		"thud":  # 급강하가 빈 땅에 처박힌 순간(S352 ⑭, I289 ②): 몸 둘레에서 먼지 10점이 바깥으로 퍼지고 돌 조각 6점이 튀어 올랐다 떨어진다
+		"thud":  # 급강하가 빈 땅에 처박힌 순간(S352 ⑭, I290 ②): 몸 둘레에서 먼지 10점이 바깥으로 퍼지고 돌 조각 6점이 튀어 올랐다 떨어진다
 			for i in 10:
 				var d := Vector2.from_angle(deg_to_rad(i * 36.0 + _h(e.n, i, -12, 12)))
 				var flat := Vector2(d.x, d.y * 0.5)
@@ -3505,7 +3505,7 @@ func _react(e: Dictionary) -> void:
 			for i in 6:
 				var d := Vector2.from_angle(deg_to_rad(i * 60.0 + _h(e.n, 60 + i, -15, 15)))
 				_dot({"p0": e.at, "p1": e.at + Vector2(d.x, d.y * 0.5) * (e.radius + _h(e.n, 70 + i, 8, 20)), "rise": _h(e.n, 80 + i, 14, 24), "col": STONE, "size": Vector2(3, 3), "life": 0.6, "fade": 0.15, "wait": i * 0.02})
-		"fall":  # 와이번이 떨어진 순간(S352 ⑭, I289 ③): 찢긴 날개 조각 8점이 머리 위에서 흩어져 떨어지고 먼지 8점이 몸 둘레에서 퍼진다
+		"fall":  # 와이번이 떨어진 순간(S352 ⑭, I290 ③): 찢긴 날개 조각 8점이 머리 위에서 흩어져 떨어지고 먼지 8점이 몸 둘레에서 퍼진다
 			for i in 8:
 				var x: float = (i - 3.5) * 5.0 + _h(e.n, i, -2, 2)
 				_dot({"p0": e.at + Vector2(x, -20 - _h(e.n, 10 + i, 0, 10)), "p1": e.at + Vector2(x * 1.7, _h(e.n, 20 + i, 2, 10)), "col": WING, "to": PX.maroon, "size": Vector2(4, 3), "life": 0.9, "fade": 0.2, "fall": true, "wait": i * 0.03})
@@ -3626,7 +3626,7 @@ func _tells() -> void:
 	for e in tellers(_foes):
 		if e.cast.id in UNSEEN_TELLS:  # 덮치기(S242)·던지기(S279)는 덮개 위 층에 그린다(_pounce_tells·_foe_tells)
 			continue
-		if e.cast.id == "perch":  # 급강하 뒤 내려앉은 틈(S352 ③): 바닥 예고가 없다. 카운터 창 동안 몸 둘레에 파란 테를 그린다(I288 ⑪)
+		if e.cast.id == "perch":  # 급강하 뒤 내려앉은 틈(S352 ③): 바닥 예고가 없다. 카운터 창 동안 몸 둘레에 파란 테를 그린다(I289 ⑪)
 			if battle.countering(e):
 				_edge(Vector2i(_center(e.pos).floor()), int(CELL * e.radius) + 3, PX[TELL_HUES.blue[0]], PX[TELL_HUES.blue[1]])
 			continue
@@ -3734,7 +3734,7 @@ func _fan_tell(e, back := false) -> void:
 	for i in n:
 		_pline(Vector2i(rim[i].floor()), Vector2i(rim[i + 1].floor()), TELL)
 
-# 불길 그림 자리(S352 ⑥, I288 ⑪): 불길 줄마다 가운데 선을 따라 8px쯤마다 하나씩, 줄 폭의 1/4만큼 좌우로 번갈아 어긋난 불꽃 자리(맵 px)
+# 불길 그림 자리(S352 ⑥, I289 ⑪): 불길 줄마다 가운데 선을 따라 8px쯤마다 하나씩, 줄 폭의 1/4만큼 좌우로 번갈아 어긋난 불꽃 자리(맵 px)
 func trail_marks() -> Array:
 	var out := []
 	for t in battle.trails:

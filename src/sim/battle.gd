@@ -469,7 +469,7 @@ var zones := []  # 장판(S150, I141): {src, pos, radius, left, owner, 수치…
 var loops := []  # 타임 루프가 되돌릴 적(I197): {e, at, wall, left, owner, blast, damage, aged(S266)}. 웨이브가 끝나면 사라진다(I143)
 var traces := []  # 즉시 스킬 흔적(S179): {hero, slot, aim, at, radius, hits, marked, age}. 타임 루프 되돌림(loop)은 aim이 옛 자리이고 foe·aged가 더 있다. 정화(cleanse)·불사(saved)는 aim이 그 아군, 축복 터짐(bless)은 hero가 쏜 쪽이고 셋 다 hits가 비었다(I227). 사슬 나누기(share)는 aim이 맞은 적이고 chain이, 전염(spread)은 foes(옮은 적)가 더 있다(I226). 태세가 막음(block)은 hero가 막은 영웅이고 hits가 비었다(I228). 그리기만 읽고 1초 지나면 지운다
 var fallen := []  # 쓰러진 영웅·용병·적(S180): {who, age}. 그리기만 읽고 FALLEN초 지나면 지운다
-var trails := []  # 원정의 불길(S352 ⑥, I288 ⑥): 융단 폭격이 지나간 줄 {from, to, width, left, dps, time}. 줄 안의 땅 위 원정대 영웅에 스텝마다 불이 붙는다
+var trails := []  # 원정의 불길(S352 ⑥, I289 ⑥): 융단 폭격이 지나간 줄 {from, to, width, left, dps, time}. 줄 안의 땅 위 원정대 영웅에 스텝마다 불이 붙는다
 var wrecks := []  # 부서진 전쟁 기계의 수레 잔해(S172 2026-11-05 변경 ⑥): {who(바뀐 대장), at, age, raid(원정의 잔해면 참), size(부서질 때의 몸 그림 배율)}. 원정의 잔해(S342 ④)는 돌아올 때까지 남아 대장 돌진을 막고, 그 밖의 잔해는 그리기만 읽고 WRECK초 지나면 지운다
 var _dotting := false  # 초당 피해를 주는 중. 뜬 적(S236)도 이것만은 받는다
 var missiles := []  # 날고 있거나 출발을 기다리는 투사체(Missile, S178). 웨이브가 끝나면 사라진다(I143)
@@ -1200,7 +1200,7 @@ func shell_touch(e: Enemy) -> bool:
 
 # 끊기(S326 ④): 예고를 지우고 그로기를 건 뒤 대본을 다음 차례로 넘긴다
 func _interrupt(e: Enemy) -> void:
-	var held: bool = e.cast != null and e.cast.get("held", false)  # 내려앉은 틈(S352 ③, I288 ③)은 대본 차례가 이미 넘어가 있다
+	var held: bool = e.cast != null and e.cast.get("held", false)  # 내려앉은 틈(S352 ③, I289 ③)은 대본 차례가 이미 넘어가 있다
 	e.cast = null
 	_fx(e, "groggy", {"groggy": true}, e.raid.groggy.time)
 	if not held:
@@ -2150,7 +2150,7 @@ static func armor_mult(a: float) -> float:
 func _flies(x) -> bool:
 	return x is Enemy and x.flying and _fx_on(x, "seal") == null and _fx_on(x, "down") == null and not _grounded(x)
 
-# 원정의 나는 보스 몸이 땅에 있다(S352 ④, I288 ④): 그로기이거나 급강하 뒤 내려앉아 있다. 근접도 치고 아이아스 Q·E도 닿는다
+# 원정의 나는 보스 몸이 땅에 있다(S352 ④, I289 ④): 그로기이거나 급강하 뒤 내려앉아 있다. 근접도 치고 아이아스 Q·E도 닿는다
 func _grounded(e: Enemy) -> bool:
 	return not e.raid.is_empty() and (_fx_on(e, "groggy") != null or (e.cast != null and e.cast.id == "perch"))
 
@@ -4339,7 +4339,7 @@ func _skills(e: Enemy, dt: float, sealed: bool) -> bool:
 				var again: Dictionary = e.skills[c.id].merged({"windup": e.raid.shift.windup}, true)  # 둘째 돌진(S337 ⑥, I286 ②): 그로기가 아니면 그 자리에서 짧은 예고로 한 번 더 잇는다
 				e.cast = {"id": c.id, "left": again.windup, "again": true, "sk": again}
 				e.cast.merge(call("_%s_aim" % c.id, e, again))
-			elif scripted and not c.get("held", false) and not (e.cast != null and (e.cast.get("fire", false) or e.cast.get("pass", false))):  # 기관총·융단 폭격의 대본 차례는 발사·지나가기가 끝난 때 넘어간다(I283 ④·I288 ⑤). 내려앉은 틈은 넘기지 않는다
+			elif scripted and not c.get("held", false) and not (e.cast != null and (e.cast.get("fire", false) or e.cast.get("pass", false))):  # 기관총·융단 폭격의 대본 차례는 발사·지나가기가 끝난 때 넘어간다(I283 ④·I289 ⑤). 내려앉은 틈은 넘기지 않는다
 				_next_beat(e)
 		return true
 	if sealed:
@@ -4918,7 +4918,7 @@ func _charge(e: Enemy, sk: Dictionary) -> void:
 			damage(u, sk.unit * raid_ramp() * _fury(e), "phys", e)  # 원정에서는 광폭(S323 ⑤)·광분(S337 ④)을 곱한다. 원정이 아니면 둘 다 1이다
 			if u.alive:
 				_shove(u, (left if dir.cross(v) <= 0.01 else -left) * sk.side, enemies)
-				if sk.has("dps"):  # 원정 4층의 맹진(S352 ⑩, I288 ⑨)은 맞은 영웅에 불도 붙인다
+				if sk.has("dps"):  # 원정 4층의 맹진(S352 ⑩, I289 ⑨)은 맞은 영웅에 불도 붙인다
 					_burn(u, sk)
 	if got[1] != null:
 		damage(got[1], sk.get("structure", 0.0), "phys", e)
@@ -5855,7 +5855,7 @@ func _plunge(e: Enemy, sk: Dictionary) -> void:
 func _plunge_land(e: Enemy, sk: Dictionary, c: Dictionary) -> void:
 	var dir: Vector2 = (c.at - c.from).normalized()
 	var raid: bool = not e.raid.is_empty()
-	var hit := false  # 원 안에 땅 위의 산 원정대 영웅이 있었다(S352 ②, I288 ②)
+	var hit := false  # 원 안에 땅 위의 산 원정대 영웅이 있었다(S352 ②, I289 ②)
 	_trace(e, "plunge", null, e.pos, sk.radius)
 	for u in units.duplicate():
 		if u.alive and not _carried(u) and u.pos.distance_to(e.pos) <= sk.radius:
@@ -5865,17 +5865,17 @@ func _plunge_land(e: Enemy, sk: Dictionary, c: Dictionary) -> void:
 				_bump(u, e.pos, dir, sk.knock)
 	var mark: Dictionary = _tracing
 	_tracing = null
-	if raid:  # 원정(S352 ②③): 모두 피했으면 처박혀 그로기다. 맞혔으면 down초 내려앉고 마지막 window초가 카운터 창이다(I288 ③). 급강하 예고 자체는 카운터 창이 없다
+	if raid:  # 원정(S352 ②③): 모두 피했으면 처박혀 그로기다. 맞혔으면 down초 내려앉고 마지막 window초가 카운터 창이다(I289 ③). 급강하 예고 자체는 카운터 창이 없다
 		if hit:
 			e.cast = {"id": "perch", "left": sk.down, "held": true, "sk": {"windup": sk.down, "counter": sk.get("window", 0.0)}}
 		else:
-			mark.thud = true  # 처박힌 순간(S352 ⑭, I289 ②): 화면이 그 프레임에 먼지와 돌 조각을 낸다
+			mark.thud = true  # 처박힌 순간(S352 ⑭, I290 ②): 화면이 그 프레임에 먼지와 돌 조각을 낸다
 			_fx(e, "groggy", {"groggy": true}, e.raid.groggy.time)
 		return
 	e.on_wall = _climbable(Vector2i(e.pos.round()))
 	_fx(e, "plunge", {"rest": true, "down": true}, sk.down)
 
-# 대본의 급강하(S352 ①, I288 ①): 사냥감이 선 자리(없으면 제자리)에 원을 띄운다. 따라가지 않는다
+# 대본의 급강하(S352 ①, I289 ①): 사냥감이 선 자리(없으면 제자리)에 원을 띄운다. 따라가지 않는다
 func _plunge_aim(e: Enemy, _sk: Dictionary) -> Dictionary:
 	var u = _prey(e)
 	return {"at": u.pos if u != null else e.pos}
@@ -5884,13 +5884,13 @@ func _plunge_aim(e: Enemy, _sk: Dictionary) -> Dictionary:
 func _perch(_e: Enemy, _sk: Dictionary) -> void:
 	pass
 
-# 대본의 융단 폭격(S352 ⑤, I288 ⑤): 사냥감 쪽(같은 자리거나 없으면 남쪽)으로 length칸을 돌진 길처럼 짚어 방 벽 앞에서 끝낸다
+# 대본의 융단 폭격(S352 ⑤, I289 ⑤): 사냥감 쪽(같은 자리거나 없으면 남쪽)으로 length칸을 돌진 길처럼 짚어 방 벽 앞에서 끝낸다
 func _carpet_aim(e: Enemy, sk: Dictionary) -> Dictionary:
 	var u = _prey(e)
 	var dir: Vector2 = (u.pos - e.pos).normalized() if u != null and u.pos.distance_to(e.pos) > 0.01 else Vector2.DOWN
 	return {"dir": dir.angle(), "to": _dash(e.pos, dir, sk.length)[0]}
 
-# 불길(S352 ⑥, I288 ⑥): 줄 안(가운데 선분에서 width/2칸 안)의 땅 위 산 원정대 영웅에 스텝마다 불을 새로 붙이고, 남은 시간이 다 되면 사라진다
+# 불길(S352 ⑥, I289 ⑥): 줄 안(가운데 선분에서 width/2칸 안)의 땅 위 산 원정대 영웅에 스텝마다 불을 새로 붙이고, 남은 시간이 다 되면 사라진다
 func _trails(dt: float) -> void:
 	for t in trails:
 		t.left -= dt
@@ -5974,7 +5974,7 @@ func _fan(at: Vector2, dir: float, r: float, arc: float) -> Array:
 func _lash_aim(e: Enemy, _sk: Dictionary) -> Dictionary:
 	return _face(e)
 
-# 앞뒤 휩쓸기(S352 ⑨, I288 ⑧): 앞 부채꼴 안 땅 위 영웅에 불을 붙이고, 정반대 쪽 뒤 부채꼴(back) 안 땅 위 영웅에 물리 피해를 주고 멀어지는 쪽으로 민다.
+# 앞뒤 휩쓸기(S352 ⑨, I289 ⑧): 앞 부채꼴 안 땅 위 영웅에 불을 붙이고, 정반대 쪽 뒤 부채꼴(back) 안 땅 위 영웅에 물리 피해를 주고 멀어지는 쪽으로 민다.
 # 판정은 철퇴 부채꼴(_fan)이다. 화면이 숨결·꼬리 그림을 쓰게 흔적은 breath·tail 둘로 남긴다
 func _lash(e: Enemy, sk: Dictionary) -> void:
 	var dir: float = e.cast.dir
@@ -5988,7 +5988,7 @@ func _lash(e: Enemy, sk: Dictionary) -> void:
 	_tracing.merge({"dir": dir + PI, "range": back.range, "arc": back.arc})
 	for u in _fan(e.pos, dir + PI, back.range, back.arc):
 		var v: Vector2 = u.pos - e.pos
-		damage(u, back.unit * raid_ramp(), "phys", e)  # 광폭(S323 ⑤)을 곱한다(I288 ⑩)
+		damage(u, back.unit * raid_ramp(), "phys", e)  # 광폭(S323 ⑤)을 곱한다(I289 ⑩)
 		if u.alive:
 			_shove(u, (v.normalized() if v != Vector2.ZERO else Vector2.from_angle(dir + PI)) * back.knock, enemies)
 	_tracing = null

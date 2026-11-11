@@ -2941,7 +2941,7 @@ func ev1028():
 	return check(groggy and crashes.size() == 1 and crashes[0][1].distance_to(want) < 0.01 and crashes[0][2].distance_to(Vector2(0, 1)) < 0.001,
 		"벽 돌진을 피한 2초 동안 그로기 %s(참) · 박힘 사건 %s(기대 하나, 자리 %s·방향 (0,1))" % [groggy, crashes, want])
 
-# ── 원정 4층(S352·I288) ── 더하는 API:
+# ── 원정 4층(S352·I289) ── 더하는 API:
 #   data/dungeon/floor_4.tres · Battle.trails(불길 목록 {from, to, width, left, dps, time}) · 내려앉음 예고 cast {id «perch», left, held}
 #   _flies(적) -> bool(날고 있나) · 영웅의 불 효과 fx.burn({burn, left})
 
@@ -2976,8 +2976,8 @@ func _fallen(b):
 	e.rest = 999.0
 	return e
 
-# EV1031 · S352: 4층 층 정의의 수치와 층 차례. 디펜스 와이번·떨어진 와이번 종류는 그대로다
-func ev1031():
+# EV1033 · S352: 4층 층 정의의 수치와 층 차례. 디펜스 와이번·떨어진 와이번 종류는 그대로다
+func ev1033():
 	if not ResourceLoader.exists("res://data/dungeon/floor_4.tres"):
 		return "data/dungeon/floor_4.tres가 없다"
 	var f = load("res://data/dungeon/floor_4.tres")
@@ -3012,8 +3012,8 @@ func ev1031():
 		and wyvern.skills.plunge.radius == 1.5 and wyvern.skills.carpet.count == 2 and not wyvern.skills.carpet.has("trail") and down.hp == 200.0 and down.skills.rush.length == 6.0 and down.skills.has("breath") and down.skills.has("tail"),
 		"층 차례 %s(기대 floor_1~floor_4) · 디펜스 와이번 체력 %s·몸 %s·비행 %s·둘째 형태 %s·급강하 반경 %s·융단 폭격 count %s·trail 칸 %s(160·0.9·참·wyvern_fallen·1.5·2·없음) · 디펜스 떨어진 와이번 체력 %s·맹진 길이 %s·숨결 %s·꼬리 %s(200·6·있음·있음)" % [_stage().den.floors, wyvern.hp, wyvern.radius, wyvern.flying, wyvern.phase2, wyvern.skills.plunge.radius, wyvern.skills.carpet.count, wyvern.skills.carpet.has("trail"), down.hp, down.skills.rush.length, down.skills.has("breath"), down.skills.has("tail")])
 
-# EV1032 · S352: 4층은 5라운드부터 열리고 와이번 하나가 층 수치로 날며 나온다. 와이번은 걷지도 기본 공격도 하지 않는다
-func ev1032():
+# EV1034 · S352: 4층은 5라운드부터 열리고 와이번 하나가 층 수치로 날며 나온다. 와이번은 걷지도 기본 공격도 하지 않는다
+func ev1034():
 	var a = _den3()
 	a.floors_cleared = 3
 	var early: String = a.raid_block()
@@ -3031,8 +3031,8 @@ func ev1032():
 	_go(b, 6.0)
 	return check(e.pos == Vector2(BOSS) and u.hp == hp and e.cast == null, "6초 뒤 와이번 자리 %s((84,80)) · 2칸 옆 영웅 체력 %s → %s · 예고 %s(없음)" % [e.pos, hp, u.hp, e.cast])
 
-# EV1033 · S352 ①: 급강하는 사냥감이 선 자리에 반경 2칸 원을 1.6초 예고하고 0.5초 동안 내리꽂는다. 자리는 사냥감을 따라가지 않고, 원 안의 영웅은 피해 30을 받고 1칸 밀린다
-func ev1033():
+# EV1035 · S352 ①: 급강하는 사냥감이 선 자리에 반경 2칸 원을 1.6초 예고하고 0.5초 동안 내리꽂는다. 자리는 사냥감을 따라가지 않고, 원 안의 영웅은 피해 30을 받고 1칸 밀린다
+func ev1035():
 	var b = _den4()
 	var e = _wyvern(b)
 	if e == null:
@@ -3061,8 +3061,8 @@ func ev1033():
 	return check(e.pos == Vector2(84, 86) and lost[0] == 0.0 and absf(lost[1] - want[0]) < 0.01 and absf(lost[2] - want[1]) < 0.01 and p[1].pos.distance_to(Vector2(84, 84)) < 0.01 and p[2].pos.distance_to(Vector2(86.5, 86)) < 0.01 and p[0].pos == FAR3[0],
 		"착지 뒤 와이번 %s((84,86)) · 잃은 체력 %s(기대 0 · %s · %s) · 둘째 영웅 %s((84,85)에서 (84,84)) · 셋째 영웅 %s((85.5,86)에서 (86.5,86)) · 첫째 영웅 %s(그대로)" % [e.pos, lost, want[0], want[1], p[1].pos, p[2].pos, p[0].pos])
 
-# EV1034 · S352 ②: 급강하를 모두 피하면 와이번이 처박혀 그로기가 된다. 다른 영웅이라도 원 안에서 맞으면 그로기가 아니다
-func ev1034():
+# EV1036 · S352 ②: 급강하를 모두 피하면 와이번이 처박혀 그로기가 된다. 다른 영웅이라도 원 안에서 맞으면 그로기가 아니다
+func ev1036():
 	var b = _den4()
 	var e = _wyvern(b)
 	if e == null:
@@ -3086,8 +3086,8 @@ func ev1034():
 	_go(k, 2.2)
 	return check(not _groggy(k, w) and w.cast != null and w.cast.id == "perch" and k.party[2].hp < was, "② 사냥감은 비키고 셋째 영웅이 원 안에 든 급강하 뒤 그로기 %s(거짓) · 예고 %s(perch) · 셋째 영웅 체력 %s → %s(줄어야)" % [_groggy(k, w), w.cast, was, k.party[2].hp])
 
-# EV1035 · S352 ③·I288 ③: 급강하가 맞히면 2초 내려앉는다. 앞 1초의 기절은 튕기고 마지막 1초에 걸면 그로기다. 못 끊으면 다시 뜰 뿐이고, 내려앉은 동안 대본의 쉼은 줄지 않는다
-func ev1035():
+# EV1037 · S352 ③·I289 ③: 급강하가 맞히면 2초 내려앉는다. 앞 1초의 기절은 튕기고 마지막 1초에 걸면 그로기다. 못 끊으면 다시 뜰 뿐이고, 내려앉은 동안 대본의 쉼은 줄지 않는다
+func ev1037():
 	var b = _den4()
 	var e = _wyvern(b)
 	if e == null:
@@ -3123,8 +3123,8 @@ func ev1035():
 	return check(late and up == [null, false, true, 1, Vector2(84, 86)] and k.party.map(func(h): return h.hp) == hp and w.rest < 4.0 and w.rest > 2.7,
 		"⑤ 못 끊은 내려앉음: 1.9초째 perch %s(참) · 2.1초 뒤 [예고, 그로기, 날고 있나, 대본 차례, 자리] %s(기대 [null, 거짓, 참, 1, (84,86)]) · 영웅 체력 %s → %s(그대로) · 다시 뜬 1초 뒤 쉼 %s(4.0에서 줄어 2.7~4.0)" % [late, up, hp, k.party.map(func(h): return h.hp), w.rest])
 
-# EV1036 · S352 ④·I288 ④: 날고 있는 와이번에는 아이아스 Q가 닿지 않고 근접이 치지 못한다. 그로기이거나 내려앉은 와이번에는 닿고, 끝나면 다시 난다
-func ev1036():
+# EV1038 · S352 ④·I289 ④: 날고 있는 와이번에는 아이아스 Q가 닿지 않고 근접이 치지 못한다. 그로기이거나 내려앉은 와이번에는 닿고, 끝나면 다시 난다
+func ev1038():
 	var b = _den4()
 	var e = _wyvern(b)
 	if e == null:
@@ -3175,8 +3175,8 @@ func _strafe() -> Array:
 func _fire(h) -> float:
 	return h.fx.burn.burn if h.fx.has("burn") else 0.0
 
-# EV1037 · S352 ⑤·I288 ⑤: 융단 폭격은 사냥감 쪽 12칸 직선을 1.4초 예고하고 0.8초 동안 지나가며 줄 위(0.75칸 안)의 영웅에만 불을 붙인다. 줄은 방 벽 앞에서 끝나고, 대본 차례는 다 지나간 때 넘어간다. 그로기가 없다
-func ev1037():
+# EV1039 · S352 ⑤·I289 ⑤: 융단 폭격은 사냥감 쪽 12칸 직선을 1.4초 예고하고 0.8초 동안 지나가며 줄 위(0.75칸 안)의 영웅에만 불을 붙인다. 줄은 방 벽 앞에서 끝나고, 대본 차례는 다 지나간 때 넘어간다. 그로기가 없다
+func ev1039():
 	var s := _strafe()
 	if s.is_empty():
 		return "① 융단 폭격 예고가 뜨지 않았다(4층 원정·대본 차례 1)"
@@ -3203,8 +3203,8 @@ func ev1037():
 	var d = _tell(k, w, 1)
 	return check(d != null and d.id == "carpet" and d.to.distance_to(Vector2(84, 87.25)) < 0.01 and absf(d.dir - PI / 2.0) < 0.001, "② 사냥감이 남쪽 (84,86)일 때 예고 %s(기대 줄 끝 (84,87.25): 방 벽 앞 · 방향 남쪽)" % [d])
 
-# EV1038 · S352 ⑥·I288 ⑥: 지나간 줄은 8초 동안 불길로 남는다. 불길 안의 영웅은 불이 계속 새로 붙고 밖은 붙지 않는다. 8초 뒤와 «다시»·철수에서 사라진다
-func ev1038():
+# EV1040 · S352 ⑥·I289 ⑥: 지나간 줄은 8초 동안 불길로 남는다. 불길 안의 영웅은 불이 계속 새로 붙고 밖은 붙지 않는다. 8초 뒤와 «다시»·철수에서 사라진다
+func ev1040():
 	var s := _strafe()
 	if s.is_empty():
 		return "① 융단 폭격 예고가 뜨지 않았다"
@@ -3256,8 +3256,8 @@ func ev1038():
 	b.retreat()
 	return check(lit == 1 and b.state == "prep" and b.trails.is_empty(), "⑥ 불길 %d(1) · 철수 뒤 판 %s(prep) · 불길 %d(0)" % [lit, b.state, b.trails.size()])
 
-# EV1039 · S352 ⑦·I288 ⑦: 와이번 체력이 0이 되면 처치가 아니라 그 자리 땅의 떨어진 와이번으로 바뀐다. 예고·효과는 사라지고 불길은 남으며, 떨어진 와이번은 바로 앞뒤 휩쓸기를 예고하고 다시 날지 않는다
-func ev1039():
+# EV1041 · S352 ⑦·I289 ⑦: 와이번 체력이 0이 되면 처치가 아니라 그 자리 땅의 떨어진 와이번으로 바뀐다. 예고·효과는 사라지고 불길은 남으며, 떨어진 와이번은 바로 앞뒤 휩쓸기를 예고하고 다시 날지 않는다
+func ev1041():
 	var s := _strafe()
 	if s.is_empty():
 		return "융단 폭격 예고가 뜨지 않았다"
@@ -3283,8 +3283,8 @@ func ev1039():
 	_go(b, 10.0)
 	return check(first == "lash" and b.state == "raid" and e.kind == "wyvern_fallen" and not e.flying and at.distance_to(e.pos) < 0.001, "한 스텝 뒤 예고 %s(lash) · 10초 뒤 판 %s(raid) · 종류 %s(wyvern_fallen) · 비행 %s(거짓) · 자리 %s(%s 그대로)" % [first, b.state, e.kind, e.flying, e.pos, at])
 
-# EV1040 · S352 ⑨·I288 ⑧: 앞뒤 휩쓸기는 가까운 영웅 쪽 앞 부채꼴에 불을, 정반대 쪽 뒤 부채꼴에 피해 20·넉백 1.5칸을 준다. 옆구리는 무사하고 방향은 예고 때 굳으며 그로기가 없다
-func ev1040():
+# EV1042 · S352 ⑨·I289 ⑧: 앞뒤 휩쓸기는 가까운 영웅 쪽 앞 부채꼴에 불을, 정반대 쪽 뒤 부채꼴에 피해 20·넉백 1.5칸을 준다. 옆구리는 무사하고 방향은 예고 때 굳으며 그로기가 없다
+func ev1042():
 	var b = _den4()
 	var e = _fallen(b)
 	if e == null:
@@ -3305,8 +3305,8 @@ func ev1040():
 		and p[1].pos.distance_to(Vector2(84, 83.5)) < 0.01 and p[0].pos == Vector2(84, 78) and p[2].pos == Vector2(85, 80) and e.pos == Vector2(BOSS),
 		"셋째 영웅이 더 가까이 와도 방향 %s(북쪽 -1.571 그대로) · 끝난 뒤 예고 %s(없음) · 그로기 %s(거짓) · 대본 차례 %s(1) · 영웅마다 불 %s(기대 [5, 0, 0]: 앞·뒤·옆구리) · 뒤의 둘째 영웅이 잃은 체력 %s(기대 %s)·자리 %s((84,82)에서 (84,83.5)) · 옆구리의 셋째 영웅이 잃은 체력 %s(0)·자리 %s · 첫째 영웅 자리 %s · 떨어진 와이번 %s((84,80))" % [turned, e.cast, _groggy(b, e), e.beat, p.map(_fire), lost[1], want, p[1].pos, lost[2], p[2].pos, p[0].pos, e.pos])
 
-# EV1041 · S352 ⑩·I288 ⑨: 맹진은 사냥감 쪽 8칸을 내달려 길 위의 영웅에 피해 30·옆 1칸·불을 준다. 벽 맹진을 모두 피하면 그로기이고 이동 맹진은 그로기가 없다. 아이아스가 막아 서도 멈추지 않는다
-func ev1041():
+# EV1043 · S352 ⑩·I289 ⑨: 맹진은 사냥감 쪽 8칸을 내달려 길 위의 영웅에 피해 30·옆 1칸·불을 준다. 벽 맹진을 모두 피하면 그로기이고 이동 맹진은 그로기가 없다. 아이아스가 막아 서도 멈추지 않는다
+func ev1043():
 	var b = _den4()
 	var e = _fallen(b)
 	if e == null:
@@ -3354,8 +3354,8 @@ func _pyre() -> Array:
 		return []
 	return [b, e]
 
-# EV1042 · S352 ⑪: 불덩이는 둘이 모이면 30씩 나눠 받고 그로기가 열린다. 하나면 모두 20을 받고 떨어진 와이번이 5% 회복한다. 카운터 창 안의 기절은 예고를 끊고 그로기를 연다
-func ev1042():
+# EV1044 · S352 ⑪: 불덩이는 둘이 모이면 30씩 나눠 받고 그로기가 열린다. 하나면 모두 20을 받고 떨어진 와이번이 5% 회복한다. 카운터 창 안의 기절은 예고를 끊고 그로기를 연다
+func ev1044():
 	var s := _pyre()
 	if s.is_empty():
 		return "불덩이 예고가 뜨지 않았다(4층 원정·떨어진 와이번·대본 차례 3)"
@@ -3399,8 +3399,8 @@ func ev1042():
 	b._fx(e, "t2", {"stun": true}, 2.0)
 	return check(early == [true, false] and e.cast == null and _groggy(b, e), "③ 예고 2.95초째(카운터 창 밖) 기절 뒤 [예고 그대로, 그로기] %s(기대 [참, 거짓]) · 3.15초째(카운터 창 안) 기절 뒤 예고 %s(없음) · 그로기 %s(참)" % [early, e.cast, _groggy(b, e)])
 
-# EV1043 · S352 ⑧·I288 ②⑤: 와이번의 대본은 급강하 → 융단 폭격 → 급강하를 쉼 4·4·3초로 돌고, 쉼은 내려앉음과 지나가기가 끝난 뒤부터 준다. 떨어진 와이번은 차례 0·쉼 0에서 시작해 앞뒤 휩쓸기 → 맹진 → 앞뒤 휩쓸기 → 불덩이를 쉼 3·4·3·5초로 돈다
-func ev1043():
+# EV1045 · S352 ⑧·I289 ②⑤: 와이번의 대본은 급강하 → 융단 폭격 → 급강하를 쉼 4·4·3초로 돌고, 쉼은 내려앉음과 지나가기가 끝난 뒤부터 준다. 떨어진 와이번은 차례 0·쉼 0에서 시작해 앞뒤 휩쓸기 → 맹진 → 앞뒤 휩쓸기 → 불덩이를 쉼 3·4·3·5초로 돈다
+func ev1045():
 	var b = _den4()
 	b.start_raid()
 	if b.state != "raid" or b.enemies.size() != 1 or b.enemies[0].kind != "wyvern":
@@ -3438,8 +3438,8 @@ func ev1043():
 	return check(born == ["wyvern_fallen", 0, 0.0] and seen == [["lash", 1, 4.0], ["charge", 2, 3.0], ["lash", 3, 5.0], ["soak", 0, 3.0]],
 		"② 떨어진 직후 [종류, 대본 차례, 쉼] %s(기대 [wyvern_fallen, 0, 0]) · 차례마다 [예고, 끝난 뒤 대본 차례, 다음 쉼] %s(기대 lash 1 4 · charge 2 3 · lash 3 5 · soak 0 3)" % [born, seen])
 
-# EV1044 · S352 ⑫: 떨어진 와이번을 처치하면 깬 층 4·층 골드 200이고 유물 비늘 +0을 받아 출전 첫째 영웅이 낀다. 불길도 사라진다
-func ev1044():
+# EV1046 · S352 ⑫: 떨어진 와이번을 처치하면 깬 층 4·층 골드 200이고 유물 비늘 +0을 받아 출전 첫째 영웅이 낀다. 불길도 사라진다
+func ev1046():
 	var s := _strafe()
 	if s.is_empty():
 		return "융단 폭격 예고가 뜨지 않았다"
@@ -3473,8 +3473,8 @@ func _scorch(id: String, flame: float) -> float:
 	_resolve(b, e)
 	return hp - u.hp
 
-# EV1045 · I288 ②⑩: 불꽃 100초부터의 광폭 배율은 급강하·꼬리·맹진의 피해에 들고 불의 초당 피해에는 들지 않는다. 불사(invuln)로 피해가 0이어도 급강하는 맞힌 것으로 친다
-func ev1045():
+# EV1047 · I289 ②⑩: 불꽃 100초부터의 광폭 배율은 급강하·꼬리·맹진의 피해에 들고 불의 초당 피해에는 들지 않는다. 불사(invuln)로 피해가 0이어도 급강하는 맞힌 것으로 친다
+func ev1047():
 	var rows := []
 	for id in ["plunge", "tail", "charge"]:
 		rows.append([id, _scorch(id, 10.0), _scorch(id, 101.0)])
@@ -3498,8 +3498,8 @@ func ev1045():
 	return check(rows.all(func(r): return r[1] > 0.0 and absf(r[2] - r[1] * 1.15) < 0.4) and fire == 5.0 and u.hp == hp and not _groggy(k, w) and w.cast != null and w.cast.id == "perch",
 		"[패턴, 불꽃 10초에 잃은 체력, 불꽃 101초에 잃은 체력] %s(뒤가 앞의 1.15배여야, 불 틱 0.4 안) · 불꽃 101초의 불 초당 피해 %s(5 그대로) · 불사(피해 0)인 사냥감이 맞은 급강하 뒤 체력 %s → %s(그대로)·그로기 %s(거짓)·예고 %s(perch)" % [rows, fire, hp, u.hp, _groggy(k, w), w.cast])
 
-# EV1046 · I288 ⑪: 보스 막대의 이름은 지금 형태를 따르고 두 형태의 그림 배율은 1이다. 사냥감 표시가 뜨고 불길을 그린다. 처치하면 유물 이름과 층 골드가 든 토스트가 뜬다
-func ev1046():
+# EV1048 · I289 ⑪: 보스 막대의 이름은 지금 형태를 따르고 두 형태의 그림 배율은 1이다. 사냥감 표시가 뜨고 불길을 그린다. 처치하면 유물 이름과 층 골드가 든 토스트가 뜬다
+func ev1048():
 	var main = _den_game()
 	var b = main.view.battle
 	var v = main.view
@@ -3547,7 +3547,7 @@ func ev1046():
 	return check(after == ["prep", 4, 200, {"wyvern_scale": 0}, "done", 0] and texts.any(func(t): return "4층" in t and "비늘" in t and "200" in t),
 		"처치 3.1초 뒤 [판, 깬 층, 는 골드, 가방, 원정 버튼 이유, 불길 그림 수] %s(기대 [prep, 4, 200, {wyvern_scale: 0}, done, 0]) · 보인 토스트 %s(«4층»·«비늘»·«200»이 함께 든 것이 있어야)" % [after, texts])
 
-# ── 원정 4층 묶음 ②(S352 2026-11-11 변경·S353·I289) ── 더하는 API:
+# ── 원정 4층 묶음 ②(S352 2026-11-11 변경·S353·I290) ── 더하는 API:
 #   유물 wyvern_scale(steps의 cdr_w) · 끝낸 힌트 이름 «raid4» · main.view.events의 사건 «thud»(처박힘)·«fall»(떨어짐)
 
 const SCALE := "wyvern_scale"
@@ -3580,8 +3580,8 @@ func _scaled(n: int) -> Array:
 func _plated(rows: Array, fast: float) -> bool:
 	return rows.size() == 3 and range(3).all(func(i): return range(4).all(func(k): return absf(rows[i][k] - (fast if i == 1 and k == 1 else 1.0)) < 0.001))
 
-# EV1047 · S353: 비늘의 단계 수치. 비늘을 낀 영웅은 W 칸 대기만 12% 빨리 줄고 +4면 28%다
-func ev1047():
+# EV1049 · S353: 비늘의 단계 수치. 비늘을 낀 영웅은 W 칸 대기만 12% 빨리 줄고 +4면 28%다
+func ev1049():
 	if not ResourceLoader.exists("res://data/relics/wyvern_scale.tres"):
 		return "data/relics/wyvern_scale.tres가 없다"
 	var r = load("res://data/relics/wyvern_scale.tres")
@@ -3593,8 +3593,8 @@ func ev1047():
 	var top := _scaled(4)
 	return check(_plated(base, 1.12) and _plated(top, 1.28), "전투 1초에 영웅마다 [준 Q 대기, 준 W 대기, 준 E 대기, 준 대시 대기]: 비늘 +0 %s(기대 둘째의 W만 1.12, 나머지 1) · 비늘 +4 %s(기대 둘째의 W만 1.28)" % [base, top])
 
-# EV1048 · S352 ⑬·I289 ①: 첫 원정 힌트가 끝나 있으면 4층 원정에 4층 힌트가 뜨고 그로기가 열리면 끝나 다음 4층 원정에 뜨지 않는다. 1층 원정에는 뜨지 않는다
-func ev1048():
+# EV1050 · S352 ⑬·I290 ①: 첫 원정 힌트가 끝나 있으면 4층 원정에 4층 힌트가 뜨고 그로기가 열리면 끝나 다음 4층 원정에 뜨지 않는다. 1층 원정에는 뜨지 않는다
+func ev1050():
 	var st = _hints_reset()
 	st.hints_done = ["raid"]
 	var main = _den_game()
@@ -3649,8 +3649,8 @@ func _events_of(main, kind: String, n: int) -> Array:
 				out.append([i, x.at, x.get("radius")])
 	return out
 
-# EV1049 · I289 ②③: 급강하가 빈 땅에 처박힌 프레임에만 처박힘 사건이 나고, 맞힌 급강하에는 나지 않는다. 와이번이 떨어진 프레임에만 떨어짐 사건이 난다
-func ev1049():
+# EV1051 · I290 ②③: 급강하가 빈 땅에 처박힌 프레임에만 처박힘 사건이 나고, 맞힌 급강하에는 나지 않는다. 와이번이 떨어진 프레임에만 떨어짐 사건이 난다
+func ev1051():
 	var main = _den_game()
 	var b = main.view.battle
 	for i in 3:
