@@ -633,7 +633,7 @@ func _process(delta: float) -> void:
 	boss_bar.visible = raiding
 	if boss_bar.visible:
 		var mad: int = battle.raid_frenzy()
-		_boss_name.text = tr(battle.raid_floor.title) + ("" if mad == 0 else " · " + tr("광분 %d") % mad)  # 광분 수(S337 ④)
+		_boss_name.text = tr(battle.raid_title()) + ("" if mad == 0 else " · " + tr("광분 %d") % mad)  # 지금 형태의 이름(S339)과 광분 수(S337 ④)
 		# 광분 글이 이름 칸(56px)을 넘으면 넘는 만큼 막대를 오른쪽으로 줄여 글과 겹치지 않게 한다
 		var over: float = 0.0 if mad == 0 else maxf(_boss_name.get_theme_font("font").get_string_size(_boss_name.text, HORIZONTAL_ALIGNMENT_LEFT, -1, _boss_name.get_theme_font_size("font_size")).x + 4.0 - 56.0, 0.0)
 		_boss_name.size.x = 56.0 + over

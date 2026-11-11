@@ -10,6 +10,9 @@ extends Resource
 @export var gens: Array = []  # 갈라지는 세대마다 {hp, radius, land(착지 원 반경), gap(뜀 간격 초)}(S322). 0번이 처음 몸이고, 비면 보스 하나가 걷고 친다(I266 ⑤)
 @export var plan: Array = []  # 대본 [{id, wait}](S326, I270 ①): 처음 몸이 skills의 id 패턴을 차례로 되풀이하고, wait은 그 패턴 앞의 쉼(초)이다. 비면 대본이 없다
 @export var walks := true  # 거짓이면 보스가 걷지도 기본 공격도 하지 않고 대본 패턴으로만 움직이고 친다(S337, I280 ①)
+@export var phase2 := {}  # 둘째 형태 {title, kind, stats, skills, plan}(S339 ④, I282 ①): 체력이 0이 되면 쓰러지지 않고 kind 종류로 바뀌어 이 수치·스킬·대본을 쓴다. 비면 한 형태다
+@export var scale := 0.0  # 몸 그림 배율(I282 ⑨). 0이면 층 수치의 몸 반지름 ÷ 그 종류의 몸 반지름으로 그린다(I280 ①). phase2에도 같은 뜻의 scale 칸을 둘 수 있다
+@export var wreck := 0.0  # 첫 형태가 부서진 자리에 남는 수레 잔해 원의 반지름(칸, S339 ④·⑧). 둘째 형태의 돌진이 이 원 앞에서 멈춘다. 0이면 막지 않는다
 @export var ward := 0.0  # 평소 받는 피해 감소 비율(S323 ①). 0이면 경감이 없다
 @export var groggy := {"time": 5.0, "mult": 1.5}  # 그로기 초와 그동안 받는 피해 배율(S323 ②)
 @export var enrage := {}  # 광폭 {soft, step, ramp}: 불꽃이 soft초 넘게 타면 step초마다 착지 피해가 ramp씩 는다(S323 ⑤). 비면 늘지 않는다

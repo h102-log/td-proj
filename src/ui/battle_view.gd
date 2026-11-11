@@ -3028,8 +3028,8 @@ func _wreck(w: Dictionary) -> void:
 	if not _wreck_dirs.has(id):
 		var seen = _seen.get(id)
 		_wreck_dirs[id] = seen[1] if seen else 0
-	var a := clampf((battle.WRECK - w.age) / WRECK_FADE, 0.0, 1.0)
-	_frame(ART.wreck, "idle", _wreck_dirs[id], 0, _center(w.at), Color(1, 1, 1, a))
+	var a := 1.0 if w.get("raid", false) else clampf((battle.WRECK - w.age) / WRECK_FADE, 0.0, 1.0)  # 원정의 잔해(S339 ④)는 흐려지지 않고 기계 그림 배율로 그린다(I282 ⑨)
+	_frame(ART.wreck, "idle", _wreck_dirs[id], 0, _center(w.at), Color(1, 1, 1, a), Vector2.ONE * w.get("size", 1.0))
 
 # 쓰러진 몸 하나(S180): 4.1d 누운 자세. 영웅은 쓰러짐 5프레임을 지나 누운 채 남고, 적·용병은 바로 누워 지워지기 전 CORPSE_FADE 동안 흐려진다.
 # 성벽 위에서 쓰러지면 성벽 위에, 오르던 적은 성벽 밑에, 비행 적은 그림자 자리에 눕는다. 막타를 기다리거나 번쩍이는 동안은 선 자세다(S197)
@@ -3578,7 +3578,8 @@ func _boss_tell(e) -> void:
 	var r := int(CELL * sk.radius)
 	for p in e.cast.get("spots", [e.cast.get("at", e.pos)]):  # 점프(S236)·착지(S288)는 착지 자리에, 뜬 동안은 가득 찬 채로(S198)
 		var at := Vector2i(_center(p).floor())
-		var hue: Array = TELL_HUES.get("blue" if battle.countering(e) else sk.get("color", ""), [])  # 대본 패턴(S326)은 칠 색으로 뜻을 가르고, 카운터 창 동안은 파랑이다
+		var stuck: bool = e.cast.has("mark") and e.cast.has("aimed")  # 굳은 포탄 원(S339 ①)은 빨강이다. 기계에 닿았으면 칠하고 아니면 테만 그린다
+		var hue: Array = TELL_HUES.get("blue" if battle.countering(e) else ("" if stuck else sk.get("color", "")), [])  # 대본 패턴(S326)은 칠 색으로 뜻을 가르고, 카운터 창 동안은 파랑이다
 		var lit: Color = PX[hue[0]] if not hue.is_empty() else TELL
 		if e.cast.get("aimed", true):  # 이동 뜀(S323 ②)은 테만 그린다
 			_pnoise(at, int(r * k), lit, TELL_FILL)
@@ -3588,7 +3589,7 @@ func _boss_tell(e) -> void:
 # 예고(_tells)는 몸통 아래 층이라 몸에 가려서, 번호만 몸통 뒤에 따로 그린다
 func _brand_marks() -> void:
 	for e in tellers(_foes):
-		if e.cast.has("mark"):
+		if e.cast.has("mark") and not e.cast.has("aimed"):  # 굳은 포탄 원(S339 ①)에는 번호를 그리지 않는다(I282 ⑨)
 			var at := (_center(e.cast.at) + Vector2(-2, -_head(e.cast.mark) - 4)).floor()
 			var no := str(battle.heroes.find(e.cast.mark) + 1)
 			draw_string(PIXEL_FONT, at + Vector2(1, 1), no, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, PX[TELL_HUES.violet[1]])

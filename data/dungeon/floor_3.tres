@@ -1,0 +1,144 @@
+[gd_resource type="Resource" script_class="FloorDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/floor_def.gd" id="1_floor"]
+
+[resource]
+script = ExtResource("1_floor")
+title = "전쟁 기계"
+opens = 4
+kind = "war_machine"
+stats = {
+"hp": 1000.0,
+"armor": 8.0,
+"radius": 1.4,
+"reward": 0,
+"xp": 0
+}
+skills = {
+"cannon": {
+"color": "violet",
+"knock": 1.0,
+"lock": 1.0,
+"radius": 1.5,
+"unit": 30.0,
+"windup": 4.0
+},
+"mgun": {
+"arc": 120.0,
+"fire": 2.0,
+"range": 5.0,
+"spread": 15.0,
+"tick": 0.25,
+"unit": 8.0,
+"windup": 1.4
+},
+"slam": {
+"color": "blue",
+"counter": 1.0,
+"damage": 30.0,
+"knock": 1.5,
+"radius": 3.0,
+"windup": 2.5
+}
+}
+plan = [{
+"id": "cannon",
+"wait": 5.0
+}, {
+"id": "mgun",
+"wait": 4.0
+}, {
+"id": "cannon",
+"wait": 5.0
+}, {
+"id": "slam",
+"wait": 5.0
+}]
+walks = false
+phase2 = {
+"title": "고블린 대장",
+"kind": "chief",
+"scale": 1.0,
+"stats": {
+"hp": 1000.0,
+"armor": 10.0,
+"radius": 1.5,
+"reward": 0,
+"xp": 0
+},
+"skills": {
+"leap": {
+"air": 0.6,
+"damage": 30.0,
+"knock": 1.5,
+"radius": 2.5,
+"range": 8.0,
+"windup": 1.5
+},
+"cleave": {
+"arc": 120.0,
+"knock": 1.5,
+"range": 3.5,
+"unit": 40.0,
+"windup": 1.4
+},
+"charge": {
+"length": 8.0,
+"run": 2.0,
+"side": 1.0,
+"unit": 30.0,
+"width": 1.0,
+"windup": 1.4
+},
+"bombs": {
+"count": 3,
+"gap": 1.5,
+"radius": 1.2,
+"unit": 25.0,
+"windup": 1.6
+},
+"soak": {
+"color": "gold",
+"counter": 1.0,
+"damage": 90.0,
+"far": 5.0,
+"heal": 0.05,
+"miss": 30.0,
+"need": 3,
+"radius": 1.5,
+"turn": 90.0,
+"windup": 4.5
+}
+},
+"plan": [{
+"id": "leap",
+"wait": 4.0
+}, {
+"id": "cleave",
+"wait": 2.0
+}, {
+"id": "charge",
+"wait": 4.0
+}, {
+"id": "bombs",
+"wait": 4.0
+}, {
+"id": "soak",
+"wait": 5.0
+}]
+}
+scale = 1.0
+wreck = 1.4
+ward = 0.89
+groggy = {
+"mult": 1.5,
+"time": 5.0
+}
+enrage = {
+"ramp": 0.15,
+"soft": 100.0,
+"step": 10.0
+}
+pull = 3.0
+hard = 150.0
+gold = 180
