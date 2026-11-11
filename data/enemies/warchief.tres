@@ -1,0 +1,44 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/enemy_def.gd" id="1_ldbao"]
+
+[resource]
+script = ExtResource("1_ldbao")
+hp = 160.0
+speed = 1.6
+wall_k = 0.3
+damage = 18.0
+attack_gap = 1.5
+radius = 0.9
+sight = 5.0
+reward = 0
+xp = 0
+boss = true
+phase2 = "warchief_foot"
+mount = "wolf"
+escort = {
+"kind": "warguard",
+"count": 4
+}
+skills = {
+"charge": {
+"length": 7.0,
+"min": 2.0,
+"width": 1.0,
+"side": 1.0,
+"windup": 1.0,
+"cd": 10.0,
+"unit": 30.0,
+"structure": 60.0
+},
+"chain": {
+"range": 6.0,
+"min": 1.5,
+"width": 0.8,
+"windup": 1.0,
+"hit": 15.0,
+"gap": 1.2,
+"stun": 1.5,
+"cd": 9.0
+}
+}

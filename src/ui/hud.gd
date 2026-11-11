@@ -120,7 +120,7 @@ const ENEMIES := {"basic": "기본", "fast": "빠름", "armored": "장갑", "fly
 	"storm_harpy": "폭풍날개 하피", "snatch_harpy": "낚아채기 하피",
 	"nest_harpy": "둥지 하피", "nest": "둥지", "harpy_chick": "새끼 하피", "wyvern": "와이번", "wyvern_fallen": "떨어진 와이번",
 	"shield_orc": "방패벽 오크", "berserker": "광전사 오크", "drummer": "전쟁 북 고수", "ogre_thrower": "오우거 투척꾼", "chain_orc": "사슬 오크", "troll": "트롤 싸움꾼", "twin_troll": "쌍둥이 트롤",
-	"wolf_rider": "늑대 기수"}  # S106
+	"wolf_rider": "늑대 기수", "warguard": "대족장 근위대", "warchief": "오크 대족장", "warchief_foot": "내린 대족장"}  # S106
 const TRAITS := {"fast": "성벽을 오른다", "flying": "길을 무시하고 무리로 온다, 근접은 못 친다", "armored": "받는 피해를 줄인다", "boss": "성벽을 뚫고 온다. 대지 강타·분노",
 	"slime": "죽으면 둘로 갈라진다", "big_slime": "두 번 갈라진다", "slimelet": "보상이 없다",
 	"slime_king": "웅크린 뒤 뛰어내려 찍는다. 맞을수록 작아지고 빨라진다",
@@ -137,7 +137,9 @@ const TRAITS := {"fast": "성벽을 오른다", "flying": "길을 무시하고 �
 	"ogre_thrower": "옆의 적을 집어 뒷줄 원거리 아군에게 던진다", "chain_orc": "사슬을 던져 줄 위의 아군을 끌어온다",
 	"troll": "체력이 저절로 찬다(불·기절·봉인에 멈춘다), 앞을 쓸어 밀친다",
 	"twin_troll": "둘이 함께 나온다. 오크나 바위를 영웅에게 던지고, 다치면 졸개를 집어 먹는다. 하나가 쓰러지면 남은 쪽이 그 몸을 던진다",
-	"wolf_rider": "뒷줄 원거리 아군부터 노린다. 늑대가 쓰러지면 오크가 내려 싸운다"}  # 5라운드 오크 다섯(S319~S325)과 트롤 둘(S328·S329). S107·S109·S108, 보스는 wall_k 0.3과 스킬(S195), 슬라임은 갈라짐(S188·S234), 늑대는 무리·도약·덮치기(S238·S239·S242), 3라운드 고블린(S188 2026-11-03 변경·둘째 변경·셋째 변경, 대장은 S288, 방패·불화살은 S301·S302), 4라운드 하피(비행 특성 줄은 S303, 셋은 S304~S306)
+	"wolf_rider": "뒷줄 원거리 아군부터 노린다. 늑대가 쓰러지면 오크가 내려 싸운다",
+	"warguard": "밀리지도 끌려오지도 않는다",
+	"warchief": "늑대를 타고 곧게 돌진하고 사슬로 영웅을 끌어온다. 늑대가 쓰러지면 내려서 땅을 가르고 군단을 부른다"}  # 5라운드 오크 다섯(S319~S325)과 트롤 둘(S328·S329). S107·S109·S108, 보스는 wall_k 0.3과 스킬(S195), 슬라임은 갈라짐(S188·S234), 늑대는 무리·도약·덮치기(S238·S239·S242), 3라운드 고블린(S188 2026-11-03 변경·둘째 변경·셋째 변경, 대장은 S288, 방패·불화살은 S301·S302), 4라운드 하피(비행 특성 줄은 S303, 셋은 S304~S306)
 const SIDES := ["왼쪽", "가운데", "오른쪽"]  # ponytail: 출현 지점 이름은 시험 스테이지(왼쪽부터 셋) 차례다. 지점이 다른 맵이 생기면 x로 이름을 정한다
 const VIEW := Rect2(0, 28, 640, 332)  # 위 띠 아래 맵이 보이는 화면. 출현 지점이 이 밖이면 아래 가장자리 표식(S188)
 const EDGE_X := Vector2(68, 500)  # 아래 가장자리 표식이 놓이는 x 범위(S188 임시값). y는 344. 왼끝은 미니맵(S209) 오른쪽
@@ -253,6 +255,7 @@ var _gear_info := Label.new()
 var _gear_rows := []  # 장비마다 [영웅 종류, 줄 글, 제작·강화 버튼, 장착·해제 버튼, 줄 머리 아이콘(S274)]
 var relic_rows := []  # 유물마다 [유물 id, 줄, 줄 글, 강화 버튼, 영웅 바꾸기 버튼](S334, I278 ⑤). 장비 칸의 장비 줄 아래
 var _floors_seen := 0  # 지난 프레임의 깬 층 수. 늘면 층 보상 토스트를 띄운다(S333)
+var _horns_seen := 0  # 지난 프레임의 군단 호출 횟수(battle.horns). 늘면 토스트를 띄운다(S341 ①)
 var _seen := ""  # 마지막으로 본 판 단계. 바뀌었을 때 결과 창이 떠 있으면 포커스를 준다
 var _wait := 0.0  # 결과 창이 뜨기까지 남은 시간(초, S117). 트리가 멈추는 ESC 메뉴 동안에는 줄지 않는다
 var tags := []  # 고른 영웅·용병의 상황 태그 [A 공격 이동, S 정지, H 홀드](I139)
@@ -647,6 +650,9 @@ func _process(delta: float) -> void:
 		else:  # 유물이 없는 층(I280 ⑨)
 			toasts.push("원정 %d층 처치 — +%d골드" % [battle.floors_cleared, f.gold])
 	_floors_seen = battle.floors_cleared
+	if battle.horns > _horns_seen:  # 군단 호출 토스트(S341 ①, I282 ④)
+		toasts.push("대족장이 군단을 불렀다")
+	_horns_seen = battle.horns
 	again.visible = raiding and battle.raid_pending()  # «다시» 창(S331)
 	if again.visible:
 		_again_text.text = tr("원정 실패") + " — " + tr("보스 남은 체력 %d%%") % ceili(battle.raid_left() * 100.0)

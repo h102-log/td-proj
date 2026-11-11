@@ -570,6 +570,15 @@ msgstr "Twin Troll"
 msgid "늑대 기수"
 msgstr "Wolf Rider"
 
+msgid "대족장 근위대"
+msgstr "Warchief's Guard"
+
+msgid "오크 대족장"
+msgstr "Orc Warchief"
+
+msgid "내린 대족장"
+msgstr "Dismounted Warchief"
+
 msgid "둘이 붙으면 둘레 적까지 정면 화살·구슬을 덜 받는다"
 msgstr "Paired up, they halve arrows and bolts from the front for nearby foes too"
 
@@ -593,6 +602,12 @@ msgstr "Come as a pair. Throw orcs or rocks at heroes and eat minions when hurt.
 
 msgid "뒷줄 원거리 아군부터 노린다. 늑대가 쓰러지면 오크가 내려 싸운다"
 msgstr "Goes for ranged units in the back line first. When the wolf falls, the orc dismounts and fights on"
+
+msgid "밀리지도 끌려오지도 않는다"
+msgstr "Cannot be pushed or pulled"
+
+msgid "늑대를 타고 곧게 돌진하고 사슬로 영웅을 끌어온다. 늑대가 쓰러지면 내려서 땅을 가르고 군단을 부른다"
+msgstr "Charges in a straight line on a wolf and drags a hero in with a chain. When the wolf falls, he dismounts, splits the ground and calls the warhost"
 
 msgid "죽으면 둘로 갈라진다"
 msgstr "Splits in two on death"
@@ -1828,6 +1843,9 @@ msgstr "F%d cleared — %s · +%d gold"
 
 msgid "원정 %d층 처치 — +%d골드"
 msgstr "F%d cleared — +%d gold"
+
+msgid "대족장이 군단을 불렀다"
+msgstr "The Warchief has called the warhost"
 
 msgid "광분 %d"
 msgstr "Frenzy %d"
