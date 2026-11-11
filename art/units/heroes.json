@@ -242,6 +242,60 @@
   "sway": 732,
   "head": 40
  },
+ "shield_orc": {
+  "c": 34,
+  "anchor": [
+   17.0,
+   26
+  ],
+  "x": 692,
+  "idle": 780,
+  "walk": 916,
+  "attack": 1052,
+  "fall": 1324,
+  "head": 26
+ },
+ "berserker": {
+  "c": 26,
+  "anchor": [
+   13.0,
+   19
+  ],
+  "x": 692,
+  "idle": 1392,
+  "walk": 1496,
+  "attack": 1600,
+  "fall": 1808,
+  "head": 19
+ },
+ "drummer": {
+  "c": 26,
+  "anchor": [
+   13.0,
+   20
+  ],
+  "x": 692,
+  "idle": 1860,
+  "walk": 1964,
+  "attack": 2068,
+  "sway": 2276,
+  "fall": 2380,
+  "head": 20
+ },
+ "chain_orc": {
+  "c": 36,
+  "anchor": [
+   18.0,
+   22
+  ],
+  "x": 692,
+  "idle": 2432,
+  "walk": 2576,
+  "attack": 2720,
+  "hook": 3008,
+  "fall": 3152,
+  "head": 18
+ },
  "slimelet": {
   "c": 14,
   "anchor": [
