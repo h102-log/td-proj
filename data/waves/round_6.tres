@@ -26,11 +26,18 @@ waves = Array[Dictionary]([{
 "song_harpy": 20,
 "dive_harpy": 20
 }, {
-"basic": 360,
-"fast": 180,
-"armored": 120,
-"flying": 140,
-"boss": 2
+"slime": 60,
+"armored": 80,
+"shield_orc": 24,
+"ogre_thrower": 6,
+"drummer": 10,
+"shieldbearer": 6,
+"basic": 80,
+"flying": 80,
+"dive_harpy": 20,
+"wolf": 96,
+"wolf_rider": 30,
+"warchief": 1
 }])
 fronts = Array[Dictionary]([{}, {}, {
 "wolf": 0,
@@ -39,7 +46,9 @@ fronts = Array[Dictionary]([{}, {}, {
 "flying": 2,
 "song_harpy": 2,
 "dive_harpy": 2
-}, {}])
+}, {
+"warchief": 1
+}])
 nights = Array[Dictionary]([{
 "at": 20.0,
 "dark": 0.8

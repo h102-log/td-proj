@@ -39,12 +39,14 @@ const SKY := [{"flying": 360, "feather_harpy": 60}, {"flying": 300, "song_harpy"
 const ORC := [{"shield_orc": 48, "armored": 160}, {"shield_orc": 40, "armored": 180, "drummer": 20, "berserker": 80},
 	{"shield_orc": 40, "armored": 140, "ogre_thrower": 20, "berserker": 40, "chain_orc": 30},
 	{"shield_orc": 40, "armored": 180, "troll": 30, "twin_troll": 2, "berserker": 80}]
-# S336: 6라운드 1~3웨이브는 대족장 군단(마릿수, 10배를 하지 않는다). 키 차례가 나오는 차례다(3웨이브는 2026-11-11 변경). 4웨이브는 I91 표 그대로
+# S336: 6라운드 네 웨이브는 대족장 군단(마릿수, 10배를 하지 않는다). 키 차례가 나오는 차례다(3웨이브는 2026-11-11 변경, 4웨이브는 둘째 변경)
 const HOST := [{"slime": 80, "armored": 40, "ogre_thrower": 10, "wolf": 112},
 	{"shieldbearer": 10, "basic": 160, "fire_archer": 10, "shield_orc": 48, "drummer": 20, "wolf": 96, "wolf_rider": 60},
-	{"wolf": 256, "armored": 140, "chain_orc": 25, "flying": 80, "song_harpy": 20, "dive_harpy": 20}]
+	{"wolf": 256, "armored": 140, "chain_orc": 25, "flying": 80, "song_harpy": 20, "dive_harpy": 20},
+	{"slime": 60, "armored": 80, "shield_orc": 24, "ogre_thrower": 6, "drummer": 10, "shieldbearer": 6, "basic": 80, "flying": 80, "dive_harpy": 20, "wolf": 96, "wolf_rider": 30, "warchief": 1}]
 # S336 2026-11-11 변경: 6라운드 3웨이브는 다지점(S338). 종류마다 묶인 출현 지점 차례(0 왼쪽 · 1 가운데 · 2 오른쪽)
 const HOST_FRONTS := {"wolf": 0, "armored": 1, "chain_orc": 1, "flying": 2, "song_harpy": 2, "dive_harpy": 2}
+const HOST_BOSS := {"warchief": 1}  # S336 2026-11-11 둘째 변경: 4웨이브의 오크 대족장은 가운데 출현 지점에 묶인다
 const THREE := [Vector2i(5, 19), Vector2i(15, 19), Vector2i(25, 19)]  # 출현 지점 셋짜리 헬퍼 판(S338 평가)
 # I91 표(2026-10-21 개정): 2~6라운드 웨이브마다 종류별 적 수
 const I91 := [
@@ -289,7 +291,7 @@ func ev169():
 	table[2] = RAID  # I91 2026-11-03 변경·둘째 변경·셋째 변경: 3라운드 네 웨이브 모두 고블린 약탈단(마릿수)
 	table[3] = SKY  # S303: 4라운드 네 웨이브 모두 하늘 둥지(마릿수)
 	table[4] = ORC  # S318: 5라운드 네 웨이브 모두 오크 전쟁패(마릿수)
-	table[5] = HOST + table[5].slice(3)  # S336: 6라운드 1~3웨이브는 대족장 군단(마릿수). 4웨이브는 I91 표의 10배 그대로
+	table[5] = HOST  # S336: 6라운드 네 웨이브 모두 대족장 군단(마릿수)
 	for k in 6:
 		var got := _counts(b.rounds[k])
 		if got != table[k]:
@@ -517,29 +519,34 @@ func ev896():
 			return "%s %d마리짜리 웨이브의 첫 적이 나온 스텝에 나온 적 %s(%d마리여야 한다)" % [pair[0], pair[1], born, pair[2]]
 	return ""
 
-# EV969 · S336: data/waves/round_6.tres의 1~3웨이브는 S336의 수이고 키 차례가 나오는 차례다. 4웨이브는 옛 구성 그대로다.
+# EV969 · S336: data/waves/round_6.tres의 네 웨이브는 S336의 수이고 키 차례가 나오는 차례다.
 # 3웨이브는 다지점(S338)이라 fronts의 3웨이브 칸이 종류마다 출현 지점을 묶고, 시험 스테이지 미리보기 수가 출현 지점마다 그 테마뿐이다.
+# 4웨이브는 오크 대족장만 가운데에 묶여, 미리보기에서 대족장과 호위 근위대 넷이 가운데에만 있다. 오우거(boss)와 빠름은 6라운드에 없다.
 # 늑대 기수는 무리 2(S238)라 첫 차례에 둘이 함께 나온다
 func ev969():
 	var w = load("res://data/waves/round_6.tres")
 	if w == null or not w.get("waves") is Array or w.waves.size() != 4:
 		return "6라운드 웨이브 Resource의 waves가 웨이브 4개 배열이 아니다(%s)" % [w.get("waves") if w != null else null]
-	var want: Array = HOST + [{"basic": 360, "fast": 180, "armored": 120, "flying": 140, "boss": 2}]
+	var want: Array = HOST
 	var bad := []
 	for i in 4:
 		var d: Dictionary = w.waves[i]
-		if d != want[i] or (i < 3 and d.keys() != want[i].keys()):
+		if d != want[i] or d.keys() != want[i].keys():
 			bad.append("%d웨이브 %s(%s여야 한다)" % [i + 1, d, want[i]])
 	if not bad.is_empty():
 		return "수나 차례가 다른 웨이브 %s" % [bad]
 	var fronts = w.get("fronts")
-	if not fronts is Array or fronts.size() != 4 or fronts[2] != HOST_FRONTS or [0, 1, 3].any(func(i): return not fronts[i].is_empty()):
-		return "6라운드 웨이브 Resource의 fronts가 %s다(3웨이브 칸만 %s이고 나머지는 비어야 한다)" % [fronts, HOST_FRONTS]
+	if not fronts is Array or fronts.size() != 4 or fronts[2] != HOST_FRONTS or fronts[3] != HOST_BOSS or [0, 1].any(func(i): return not fronts[i].is_empty()):
+		return "6라운드 웨이브 Resource의 fronts가 %s다(3웨이브 칸 %s · 4웨이브 칸 %s이고 1·2웨이브 칸은 비어야 한다)" % [fronts, HOST_FRONTS, HOST_BOSS]
 	var m = load("res://src/sim/battle.gd").new(load("res://src/main.gd").stage())
 	var counts: Array = m.spawn_counts(5, 2)
 	var themes := [{"wolf": 256}, {"armored": 140, "chain_orc": 25}, {"flying": 80, "song_harpy": 20, "dive_harpy": 20}]
 	if counts != themes:
 		return "시험 스테이지 6라운드 3웨이브 미리보기 수 %s(%s여야 한다)" % [counts, themes]
+	var last: Array = m.spawn_counts(5, 3)
+	var chiefs: Array = last.map(func(d): return [d.get("warchief", 0), d.get("warguard", 0)])
+	if chiefs != [[0, 0], [1, 4], [0, 0]] or m.rounds[5].any(func(wave): return wave.any(func(e): return e.kind in ["boss", "fast"])):
+		return "시험 스테이지 6라운드 4웨이브 미리보기의 출현 지점마다 [대족장, 근위대] %s([[0, 0], [1, 4], [0, 0]]여야 한다) · 6라운드에 boss·fast가 있다 %s" % [chiefs, m.rounds[5].any(func(wave): return wave.any(func(e): return e.kind in ["boss", "fast"]))]
 	var b = battle({"waves": [[{"kind": "wolf_rider", "count": 4}]]})
 	if not b.ENEMY_KINDS.has("wolf_rider"):
 		return "적 종류 wolf_rider가 없다"

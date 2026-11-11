@@ -4089,6 +4089,35 @@ func ev984():
 	var want := ["왼쪽 — 늑대 256", "가운데 — 장갑 140 · 사슬 오크 25", "오른쪽 — 비행 80 · 노래하는 하피 20 · 박치기 하피 20"]
 	return check(lines.size() >= 3 and Array(lines.slice(0, 3)) == want, "6라운드 3웨이브 줄 «%s»(첫 세 줄이 %s여야 한다)" % [a, want])
 
+# EV992 · S340·S339: 6라운드 4웨이브 미리보기에 오크 대족장·대족장 근위대의 특성 줄이 있고, 둘은 가운데 출현 지점 줄에만 있다
+func ev992():
+	var main = _prep()
+	var got = main.hud._wave_lines([5, 3])
+	_done(main)
+	var a: String = got if got is String else ""
+	var lines := Array(a.split("\n"))
+	var sides: bool = lines.size() >= 3 and "오크 대족장 1" in lines[1] and "대족장 근위대 4" in lines[1] and not "대족장" in lines[0] and not "대족장" in lines[2]
+	return check(sides and "오크 대족장: 늑대를 타고 곧게 돌진하고 사슬로 영웅을 끌어온다. 늑대가 쓰러지면 내려서 땅을 가르고 군단을 부른다" in lines
+		and "대족장 근위대: 밀리지도 끌려오지도 않는다" in lines, "6라운드 4웨이브 줄 «%s»" % a)
+
+# EV993 · S341 ①: 군단 호출로 부대가 나오면(battle.horns가 늘면) «대족장이 군단을 불렀다» 토스트가 하나 뜬다
+func ev993():
+	var main = _prep()
+	var b = main.view.battle
+	if not "horns" in b:
+		_done(main)
+		return "구현 없음: battle.horns가 없다"
+	main.hud._process(0.0)
+	main.hud.toasts._process(3.6)  # 미션 토스트가 막 떠서 3.5초 줄을 선다(I163)
+	var before: Array = _toasts(main).filter(func(t): return "대족장이 군단을 불렀다" in t)
+	b.horns += 1
+	main.hud._process(0.0)
+	main.hud._process(0.0)
+	main.hud.toasts._process(3.6)
+	var said: Array = _toasts(main).filter(func(t): return "대족장이 군단을 불렀다" in t)
+	_done(main)
+	return check(before.is_empty() and said.size() == 1, "부르기 전 토스트 %s(없어야 한다) · 부른 뒤 토스트 %s(하나여야 한다)" % [before, said])
+
 # EV937 · S328·S329: 5라운드 4웨이브 미리보기에 트롤 싸움꾼·쌍둥이 트롤의 특성 줄이 있다
 func ev937():
 	var main = _prep()
