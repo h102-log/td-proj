@@ -503,6 +503,7 @@ func _draw() -> void:
 	_chain_links()
 	_marks()
 	_brand_marks()
+	_prey_mark()
 	_chrono_marks()
 	_sera_marks()
 	_mire_marks()
@@ -3354,6 +3355,8 @@ func _scan() -> void:
 	for c in battle.traces:  # 새 흔적: 영웅 스킬 또는 보스 스킬 발동
 		if not _known.any(func(k): return is_same(k, c)):
 			_emit(("feed" if c.slot == "devour" else "boss") if _boss(c.hero) else "cast", _center(c.at), Vector2.ZERO, c.hero, null, {"ref": c, "slot": c.slot})
+			if c.has("crash"):  # 벽에 박힘(S337 ⑨, I286 ⑤): 박힌 쪽 몸 가장자리에서
+				_emit("crash", _center(c.at) + c.crash * CELL * c.hero.radius, c.crash, c.hero, null)
 	_known = battle.traces.duplicate()
 	var tell := {}
 	for e in battle.enemies:  # 보스 스킬 예고가 기절·빙결로 끊김(S194, S198)
@@ -3473,6 +3476,14 @@ func _react(e: Dictionary) -> void:
 				var d := Vector2.from_angle(deg_to_rad(i * 30.0 + _h(e.n, i, -5, 5)))
 				var p: Vector2 = e.at + d * (e.radius + 1.0)
 				_dot({"p0": p, "p1": p + d * _h(e.n, 20 + i, 6, 9), "col": TELL, "to": Color("efac28"), "size": Vector2(3, 3), "life": 0.3, "fade": 0.15})
+		"crash":  # 벽에 박힌 순간(S337 ⑨, I286 ⑤): 박힌 자리에서 먼지 8점이 벽을 따라 퍼지고 돌 조각 6점이 튀어 올랐다 떨어진다
+			var side: Vector2 = e.dir.orthogonal()
+			for i in 8:
+				var along: float = (i - 3.5) / 3.5
+				_dot({"p0": e.at + side * along * 8.0, "p1": e.at + side * along * _h(e.n, i, 22, 36) - e.dir * _h(e.n, 10 + i, 2, 8), "rise": _h(e.n, 20 + i, 3, 6), "col": DUST, "size": Vector2(4, 4), "life": 0.7, "fade": 0.3})
+			for i in 6:
+				var along: float = (i - 2.5) / 2.5
+				_dot({"p0": e.at + side * along * 6.0, "p1": e.at + side * along * _h(e.n, 30 + i, 14, 28) - e.dir * _h(e.n, 40 + i, 8, 20), "rise": _h(e.n, 50 + i, 14, 24), "col": STONE, "size": Vector2(3, 3), "life": 0.6, "fade": 0.15, "wait": i * 0.02})
 		"wreck":  # 원정의 수레가 부서진 순간(S342 ⑭, I284 ⑤): 잔해 둘레에서 먼지 12점이 바깥으로 퍼지고 부스러기 8점이 튀어 올랐다 떨어진다
 			for i in 12:
 				var d := Vector2.from_angle(deg_to_rad(i * 30.0 + _h(e.n, i, -12, 12)))
@@ -3632,6 +3643,24 @@ func shell_ring(e) -> Array:
 	var hue: Array = [] if e.cast.has("aimed") else TELL_HUES.violet
 	return [Vector2i(_center(e.pos).floor()), int(CELL * e.radius), PX[hue[0]] if not hue.is_empty() else TELL, PX[hue[1]] if not hue.is_empty() else PX.maroon]
 
+# 사냥감 표시(S337 ⑨, I286 ④): 사냥감이 있으면 [그 영웅, 세모 꼭짓점 px(머리 위, 0.5초마다 1px 오르내린다)]이고 없으면 []
+func prey_mark() -> Array:
+	var u = battle.raid_prey()
+	if u == null:
+		return []
+	return [u, Vector2i((_spot(u) - Vector2(0, _head(u) + 4 + int(clock / 0.5) % 2)).floor())]
+
+# 사냥감 머리 위에 아래로 뾰족한 빨간 세모(가로 7px·세로 4px)를 어두운 테와 함께 그린다
+func _prey_mark() -> void:
+	var m := prey_mark()
+	if m.is_empty():
+		return
+	var tip: Vector2i = m[1]
+	for row in 4:
+		_pline(tip + Vector2i(-row - 1, -row), tip + Vector2i(row + 1, -row), PX.maroon)
+	for row in 4:
+		_pline(tip + Vector2i(-row, -row - 1), tip + Vector2i(row, -row - 1), TELL)
+
 # 씨앗 표식(S326 ③)의 번호(I277 ⑦): 표식 원 가운데(표식 영웅) 머리 위에 그 영웅의 출전 칸 번호를 표식 색으로 그린다.
 # 예고(_tells)는 몸통 아래 층이라 몸에 가려서, 번호만 몸통 뒤에 따로 그린다
 func _brand_marks() -> void:
@@ -3666,7 +3695,7 @@ func _fan_tell(e) -> void:
 
 # 대장 돌진 예고(S288): 대장에서 멈출 자리(to, I230 ④)까지 폭 width 띠의 빨강 테와, 대장 쪽에서 남은 시간만큼 차오르는 안쪽
 func _line_tell(e) -> void:
-	var sk: Dictionary = e.skills[e.cast.id]
+	var sk: Dictionary = battle.deed(e, e.cast.id)  # 둘째 돌진(S337 ⑥)은 예고가 짧다
 	var a := _center(e.pos)
 	var b := _center(e.cast.to)
 	var w: float = CELL * sk.width
