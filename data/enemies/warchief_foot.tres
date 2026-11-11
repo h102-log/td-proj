@@ -32,6 +32,32 @@ skills = {
 "count": 8
 }]
 },
+"banner": {
+"windup": 1.5,
+"radius": 4.0,
+"kind": "warbanner",
+"cd": 30.0,
+"first": 8.0,
+"color": "gold"
+},
+"verdict": {
+"range": 8.0,
+"radius": 0.6,
+"windup": 0.8,
+"time": 5.0,
+"below": 0.6,
+"execute": 0.8,
+"graze": 0.1,
+"cd": 20.0,
+"first": 14.0
+},
+"roar": {
+"range": 3.5,
+"arc": 100.0,
+"windup": 0.8,
+"time": 6.0,
+"cd": 14.0
+},
 "rift": {
 "range": 6.0,
 "count": 4,

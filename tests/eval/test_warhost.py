@@ -44,3 +44,35 @@ def test_EV990_rift_circles(gd):
 
 def test_EV991_warchief_art_and_tells(gd):
     gd("warhost", "EV991")
+
+
+def test_EV1014_duel_ring_cut_and_outcome(gd):
+    gd("warhost", "EV1014")
+
+
+def test_EV1015_war_orders_rush_and_shield(gd):
+    gd("warhost", "EV1015")
+
+
+def test_EV1016_shackle_binds_two_heroes(gd):
+    gd("warhost", "EV1016")
+
+
+def test_EV1017_war_banner_keeps_enemies_alive(gd):
+    gd("warhost", "EV1017")
+
+
+def test_EV1018_verdict_heal_check(gd):
+    gd("warhost", "EV1018")
+
+
+def test_EV1019_roar_silences_heroes(gd):
+    gd("warhost", "EV1019")
+
+
+def test_EV1020_guard_takes_big_hit(gd):
+    gd("warhost", "EV1020")
+
+
+def test_EV1021_first_wait_and_feud_marks(gd):
+    gd("warhost", "EV1021")
