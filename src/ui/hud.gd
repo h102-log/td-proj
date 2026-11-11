@@ -90,6 +90,8 @@ const FLAG := ["|####.", "|#####", "|####.", "|.....", "|.....", "|....."]
 const MENU := ["########", "........", "........", "########", "........", "........", "########"]  # ≡
 const PLAY := ["#...", "##..", "###.", "####", "###.", "##..", "#..."]  # ▶
 const CROWN := ["........", "#..##..#", "#..##..#", "##.##.##", "########", "########", ".######.", "........"]  # 유물 줄 머리의 왕관(I278 ⑤)
+const COG := ["..#..#..", ".######.", "###..###", ".#....#.", ".#....#.", "###..###", ".######.", "..#..#.."]  # 유물 톱니(S343)
+const RELIC_PICS := {"iron_cog": COG}  # 유물 줄의 그림(I278 ⑤). 없는 유물은 왕관 그림이다
 const SKULL := [".#####.", "#######", "#..#..#", "#######", ".##.##.", ".#####.", ".#.#.#."]  # 보스(S188)
 const MOON := ["..###..", ".###...", "###....", "###....", "###....", ".###...", "..###.."]  # 밤 웨이브(S214)
 const MOON_COLOR := Color("e8e0b0")
@@ -461,10 +463,12 @@ func _ready() -> void:
 		var wear := _window_button(row, func(): battle.wear(_owner(k), not _owner(k).worn))
 		tip.add(wear, func(): return ["해제", "", "", "장비 효과를 끈다 · 장비는 가방에 남는다", ""] if _owner(k) and _owner(k).worn else ["장착", "", "", "이 영웅이 장비 효과를 받는다", ""])
 		_gear_rows.append([k, line, make, wear, pic])
-	for k in battle.RELIC_KINDS:  # 유물마다 한 줄(S334, I278 ⑤). 장비 줄 아래에 두고 가방에 있는 유물만 보인다
+	var relic_ids: Array = battle.RELIC_KINDS.keys()
+	relic_ids.sort_custom(func(a, b): return _relic_opens(a) < _relic_opens(b))  # 그 유물을 주는 층이 열리는 차례로(I284 ②)
+	for k in relic_ids:  # 유물마다 한 줄(S334, I278 ⑤). 장비 줄 아래에 두고 가방에 있는 유물만 보인다
 		var row := HBoxContainer.new()
 		_gear.add_child(row)
-		_pic(row, HudBuild.dots(CROWN, {"#": HudTheme.ACCENT}), Vector2(16, 16))
+		_pic(row, HudBuild.dots(RELIC_PICS.get(k, CROWN), {"#": HudTheme.ACCENT}), Vector2(16, 16))
 		var line := Label.new()
 		line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(line)
@@ -638,7 +642,7 @@ func _process(delta: float) -> void:
 	boss_bar.visible = raiding
 	if boss_bar.visible:
 		var mad: int = battle.raid_frenzy()
-		_boss_name.text = tr(battle.raid_floor.title) + ("" if mad == 0 else " · " + tr("광분 %d") % mad)  # 광분 수(S337 ④)
+		_boss_name.text = tr(battle.raid_title()) + ("" if mad == 0 else " · " + tr("광분 %d") % mad)  # 지금 형태의 이름(S342)과 광분 수(S337 ④)
 		# 광분 글이 이름 칸(56px)을 넘으면 넘는 만큼 막대를 오른쪽으로 줄여 글과 겹치지 않게 한다
 		var over: float = 0.0 if mad == 0 else maxf(_boss_name.get_theme_font("font").get_string_size(_boss_name.text, HORIZONTAL_ALIGNMENT_LEFT, -1, _boss_name.get_theme_font_size("font_size")).x + 4.0 - 56.0, 0.0)
 		_boss_name.size.x = 56.0 + over
@@ -1361,6 +1365,14 @@ func _show_gear() -> void:
 		row[2].text = "%s +%d · %s" % [battle.RELIC_KINDS[k].title, n, HEROES[who[0].kind].get_slice("(", 0) if not who.is_empty() else "아무도 안 낌"]
 		row[3].text = "최대" if n + 1 >= battle.RELIC_KINDS[k].steps.size() else "강화 +%d · %d골드" % [n + 1, battle.HIRE.relic_cost[n]]
 		row[3].disabled = _relic_why(k) != ""
+
+# 유물 k를 주는 층이 열리는 라운드(I284 ②). 주는 층이 없으면 맨 뒤다
+func _relic_opens(k: String) -> int:
+	var at := 999
+	for f in battle.FLOOR_KINDS.values():
+		if f.relic == k:
+			at = mini(at, f.opens)
+	return at
 
 # 유물 강화 버튼을 못 누르는 이유(I278 ⑤). 누를 수 있으면 ""
 func _relic_why(k: String) -> String:
