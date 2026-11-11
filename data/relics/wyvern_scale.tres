@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RelicDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/relic_def.gd" id="1_relic"]
+
+[resource]
+script = ExtResource("1_relic")
+title = "비늘"
+steps = [{
+"cdr_w": 0.12
+}, {
+"cdr_w": 0.16
+}, {
+"cdr_w": 0.2
+}, {
+"cdr_w": 0.24
+}, {
+"cdr_w": 0.28
+}]
+notes = ["W 대기 12% 빠름", "W 대기 16% 빠름", "W 대기 20% 빠름", "W 대기 24% 빠름", "W 대기 28% 빠름"]

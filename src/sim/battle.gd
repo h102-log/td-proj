@@ -5863,11 +5863,13 @@ func _plunge_land(e: Enemy, sk: Dictionary, c: Dictionary) -> void:
 			damage(u, sk.damage * (raid_ramp() if raid else 1.0), "phys", e)  # 광폭(S323 ⑤)은 원정의 급강하에만 든다
 			if u.alive:
 				_bump(u, e.pos, dir, sk.knock)
+	var mark: Dictionary = _tracing
 	_tracing = null
 	if raid:  # 원정(S352 ②③): 모두 피했으면 처박혀 그로기다. 맞혔으면 down초 내려앉고 마지막 window초가 카운터 창이다(I288 ③). 급강하 예고 자체는 카운터 창이 없다
 		if hit:
 			e.cast = {"id": "perch", "left": sk.down, "held": true, "sk": {"windup": sk.down, "counter": sk.get("window", 0.0)}}
 		else:
+			mark.thud = true  # 처박힌 순간(S352 ⑭, I289 ②): 화면이 그 프레임에 먼지와 돌 조각을 낸다
 			_fx(e, "groggy", {"groggy": true}, e.raid.groggy.time)
 		return
 	e.on_wall = _climbable(Vector2i(e.pos.round()))

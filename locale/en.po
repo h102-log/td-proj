@@ -1841,6 +1841,15 @@ msgstr "Q cooldown %d%% faster"
 msgid "벽 앞에서 돌진을 피하면 박힌다\n붙잡힌 동료는 때려서 구한다"
 msgstr "Dodge the charge by a wall\nHit the wolf to free an ally"
 
+msgid "비늘"
+msgstr "Scale"
+
+msgid "W 대기 %d%% 빠름"
+msgstr "W cooldown %d%% faster"
+
+msgid "급강하를 피하면 땅에 처박힌다\n떨어진 뒤엔 옆구리에 선다"
+msgstr "Dodge the dive to ground it\nThen stand by its flank"
+
 msgid "다시 (횃불 1)"
 msgstr "Retry (1 torch)"
 
