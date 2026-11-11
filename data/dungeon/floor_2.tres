@@ -1,0 +1,71 @@
+[gd_resource type="Resource" script_class="FloorDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/floor_def.gd" id="1_floor"]
+
+[resource]
+script = ExtResource("1_floor")
+title = "알파 늑대"
+opens = 3
+kind = "alpha_wolf"
+stats = {
+"hp": 1600.0,
+"radius": 0.9,
+"reward": 0,
+"xp": 0
+}
+skills = {
+"charge": {
+"length": 8.0,
+"side": 1.0,
+"unit": 30.0,
+"width": 1.0,
+"windup": 1.6
+},
+"pounce": {
+"air": 0.4,
+"bite": 8.0,
+"break_dmg": 5.0,
+"color": "blue",
+"counter": 0.8,
+"damage": 25.0,
+"pin_time": 4.0,
+"windup": 2.0
+},
+"brand": {
+"color": "violet",
+"damage": 30.0,
+"radius": 2.0,
+"windup": 3.0
+},
+"frenzy": {
+"cap": 3,
+"damage": 0.25
+}
+}
+plan = [{
+"id": "charge",
+"wait": 4.0
+}, {
+"id": "pounce",
+"wait": 5.0
+}, {
+"id": "charge",
+"wait": 4.0
+}, {
+"id": "brand",
+"wait": 5.0
+}]
+walks = false
+ward = 0.88
+groggy = {
+"mult": 1.5,
+"time": 5.0
+}
+enrage = {
+"ramp": 0.15,
+"soft": 80.0,
+"step": 10.0
+}
+pull = 3.0
+hard = 120.0
+gold = 150
