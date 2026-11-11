@@ -1925,7 +1925,7 @@ func ev981():
 	return check(after == ["prep", 2, 150, {}, "round"] and texts.any(func(t): return "2층" in t and "150" in t),
 		"처치 3.1초 뒤 [판, 깬 층, 는 골드, 가방, 원정 버튼 이유] %s(기대 [prep, 2, 150, {}, round]) · 보인 토스트 %s(«2층»과 «150»이 함께 든 것이 있어야)" % [after, texts])
 
-# ── 원정 3층 «전쟁 기계 → 고블린 대장»(S339·I282) ── 더하는 API:
+# ── 원정 3층 «전쟁 기계 → 고블린 대장»(S342·I283) ── 더하는 API:
 #   층 정의 floor_3 · FloorDef.phase2({title, kind, scale, stats, skills, plan}: 체력이 0이 되면 바뀔 둘째 형태)·scale(몸 그림 배율, 0이면 I280 ①)·wreck(수레 잔해 원의 반지름)
 #   대포 예고의 cast {mark(사냥감), at(원 자리), aimed(굳을 때 원이 기계 몸에 닿았나. 굳기 전에는 없다)} · 기관총 예고의 cast {dir, fire(발사 단계면 참)}
 #   도약 예고의 cast {at(착지 자리), aimed(겨눈 뜀이면 참), air(뜬 동안 참)} · 철퇴 예고의 cast.dir · 폭탄 예고의 cast.spots
@@ -1971,8 +1971,8 @@ func _resolve(b, e) -> void:
 
 const FAR3 := [Vector2(80, 76), Vector2(84, 86), Vector2(88, 76)]  # 둘째 영웅(이그니스)이 기계 (84,80)에서 가장 먼 남쪽 (84,86)이다
 
-# EV985 · S339: 3층 층 정의의 수치와 층 차례. 디펜스 전쟁 기계·대장 종류는 그대로다
-func ev985():
+# EV994 · S342: 3층 층 정의의 수치와 층 차례. 디펜스 전쟁 기계·대장 종류는 그대로다
+func ev994():
 	var f = load("res://data/dungeon/floor_3.tres")
 	if f.title != "전쟁 기계" or f.opens != 4 or f.kind != "war_machine" or f.stats != {"hp": 1000.0, "armor": 8.0, "radius": 1.4, "reward": 0, "xp": 0} or f.get("walks") != false or not f.gens.is_empty() or f.get("wreck") != 1.4 or f.get("scale") != 1.0:
 		return "이름 %s · 열림 %s · 종류 %s · 수치 %s · walks %s · 세대 %s · 잔해 %s · 그림 배율 %s(기대 전쟁 기계·4·war_machine·체력 1000 방어력 8 몸 1.4 보상 0·거짓·없음·1.4·1)" % [f.title, f.opens, f.kind, f.stats, f.get("walks"), f.gens, f.get("wreck"), f.get("scale")]
@@ -2008,8 +2008,8 @@ func ev985():
 		and machine.skills.cannon.windup == 1.2 and chief.hp == 200.0 and chief.radius == 0.9 and chief.armor == 10.0 and chief.skills.charge.length == 6.0 and not chief.skills.leap.has("windup"),
 		"층 차례 %s(기대 floor_1·floor_2·floor_3) · 디펜스 기계 체력 %s·몸 %s·방어력 %s·둘째 형태 %s·대포 예고 %s(200·0.7·15·chief·1.2) · 디펜스 대장 체력 %s·몸 %s·방어력 %s·돌진 길이 %s(200·0.9·10·6)" % [_stage().den.floors, machine.hp, machine.radius, machine.armor, machine.phase2, machine.skills.cannon.windup, chief.hp, chief.radius, chief.armor, chief.skills.charge.length])
 
-# EV986 · S339: 3층은 4라운드부터 열리고 기계 하나가 층 수치로 나온다. 기계는 걷지도 기본 공격도 하지 않는다
-func ev986():
+# EV995 · S342: 3층은 4라운드부터 열리고 기계 하나가 층 수치로 나온다. 기계는 걷지도 기본 공격도 하지 않는다
+func ev995():
 	var a = _den2()
 	a.floors_cleared = 2
 	var early: String = a.raid_block()
@@ -2027,8 +2027,8 @@ func ev986():
 	_go(b, 6.0)
 	return check(e.pos == Vector2(BOSS) and u.hp == hp and e.cast == null, "6초 뒤 기계 자리 %s((84,80)) · 2칸 옆 영웅 체력 %s → %s · 예고 %s(없음)" % [e.pos, hp, u.hp, e.cast])
 
-# EV987 · S339: 대포는 가장 먼 산 원정대 영웅을, 기관총은 가장 가까운 영웅을 노린다. 거리가 같으면 출전 차례가 앞선 쪽이고, 도발했으면 도발한 영웅이다
-func ev987():
+# EV996 · S342: 대포는 가장 먼 산 원정대 영웅을, 기관총은 가장 가까운 영웅을 노린다. 거리가 같으면 출전 차례가 앞선 쪽이고, 도발했으면 도발한 영웅이다
+func ev996():
 	var b = _den3()
 	var e = _machine(b)
 	if e == null:
@@ -2052,8 +2052,8 @@ func ev987():
 	return check(marks == [2, 0, 1] and ats == [Vector2(78, 80), Vector2(88, 80), Vector2(80, 80)] and dirs == [Vector2(1, 0), Vector2(-1, 0), Vector2(-1, 0)],
 		"대포 사냥감 [가장 먼 셋째, 같은 거리, 도발] %s(기대 [2, 0, 1]) · 원 자리 %s · 기관총 방향 [가장 가까운 첫째, 같은 거리, 도발] %s(기대 동·서·서)" % [marks, ats, dirs])
 
-# EV988 · S339 ①·I282 ③: 포탄 원은 사냥감을 따라다니다 마지막 1초에 굳는다. 기계에 닿은 채 굳은 원이 아무도 못 맞히면 기계가 그로기가 된다
-func ev988():
+# EV997 · S342 ①·I283 ③: 포탄 원은 사냥감을 따라다니다 마지막 1초에 굳는다. 기계에 닿은 채 굳은 원이 아무도 못 맞히면 기계가 그로기가 된다
+func ev997():
 	var b = _den3()
 	var e = _machine(b)
 	if e == null:
@@ -2084,8 +2084,8 @@ func ev988():
 	_go(b, 0.5)
 	return check(late and not _groggy(b, e), "그로기가 4.6초 뒤 %s(참) · 5.1초 뒤 %s(거짓)" % [late, _groggy(b, e)])
 
-# EV989 · S339 ①: 포탄에 맞으면 피해 30과 1칸 밀림이고 그로기가 없다. 기계에 닿지 않은 원은 아무도 못 맞혀도 그로기가 없다
-func ev989():
+# EV998 · S342 ①: 포탄에 맞으면 피해 30과 1칸 밀림이고 그로기가 없다. 기계에 닿지 않은 원은 아무도 못 맞혀도 그로기가 없다
+func ev998():
 	var b = _den3()
 	var e = _machine(b)
 	if e == null:
@@ -2115,8 +2115,8 @@ func ev989():
 	_go(k, 0.9)
 	return check(not _groggy(k, w) and k.party.map(func(h): return h.hp) == all and w.cast == null, "② 안 닿은 원이 빈 뒤 그로기 %s(거짓) · 영웅 체력 %s → %s · 예고 %s(없음)" % [_groggy(k, w), all, k.party.map(func(h): return h.hp), w.cast])
 
-# EV990 · S339 ②·I282 ④: 기관총은 가까운 영웅 쪽 부채꼴 안을 틱마다 8로 쏘고, 아무도 못 맞혀도 그로기가 없다. 대본 차례는 발사가 끝난 때 넘어간다
-func ev990():
+# EV999 · S342 ②·I283 ④: 기관총은 가까운 영웅 쪽 부채꼴 안을 틱마다 8로 쏘고, 아무도 못 맞혀도 그로기가 없다. 대본 차례는 발사가 끝난 때 넘어간다
+func ev999():
 	var b = _den3()
 	var e = _machine(b)
 	if e == null:
@@ -2145,8 +2145,8 @@ func ev990():
 	_go(k, 3.6)
 	return check(not _groggy(k, w) and k.party.map(func(h): return h.hp) == all and w.cast == null, "② 모두 피한 뒤 그로기 %s(거짓) · 영웅 체력 %s → %s · 예고 %s(없음)" % [_groggy(k, w), all, k.party.map(func(h): return h.hp), w.cast])
 
-# EV991 · S339 ③: 증기 배출은 둘레 반경 3칸에 피해 30·넉백 1.5칸이고 둔화가 없다. 카운터 창 안의 기절은 예고를 끊고 그로기를 연다
-func ev991():
+# EV1000 · S342 ③: 증기 배출은 둘레 반경 3칸에 피해 30·넉백 1.5칸이고 둔화가 없다. 카운터 창 안의 기절은 예고를 끊고 그로기를 연다
+func ev1000():
 	var b = _den3()
 	var e = _machine(b)
 	if e == null:
@@ -2181,8 +2181,8 @@ func ev991():
 	return check(not open and early == [true, false, true] and window and late == [null, true, null, 0] and k.party[1].hp == hp2,
 		"② 1.0초 카운터 창 %s(거짓) · 그때 기절 뒤 [예고 있음, 그로기, 튕김] %s(기대 [참, 거짓, 참]) · 1.6초 카운터 창 %s(참) · 그때 기절 뒤 [예고, 그로기, 기절, 대본 차례] %s(기대 [null, 참, null, 0]) · 영웅 체력 %s → %s" % [open, early, window, late, hp2, k.party[1].hp])
 
-# EV992 · S339 ④·I282 ①⑧: 기계 체력이 0이 되면 처치가 아니라 같은 자리에서 대장으로 바뀌고 잔해가 남는다. 대장은 바로 도약을 예고하고, 대장을 처치하면 깬 층 3·층 골드 180이다
-func ev992():
+# EV1001 · S342 ④·I283 ①⑧: 기계 체력이 0이 되면 처치가 아니라 같은 자리에서 대장으로 바뀌고 잔해가 남는다. 대장은 바로 도약을 예고하고, 대장을 처치하면 깬 층 3·층 골드 180이다
+func ev1001():
 	var b = _den3()
 	var e = _machine(b)
 	if e == null:
@@ -2214,8 +2214,8 @@ func ev992():
 	return check(kept == ["raid", 1] and b.state == "prep" and b.floors_cleared == 3 and b.gold - gold == 180 and b.wrecks.is_empty() and b.relics == {},
 		"부서지고 6초 뒤 [판, 잔해 수] %s(기대 [raid, 1]) · 대장 처치 3.1초 뒤 판 %s(prep) · 깬 층 %s(3) · 는 골드 %s(180) · 잔해 %s(없음) · 가방 %s(빔)" % [kept, b.state, b.floors_cleared, b.gold - gold, b.wrecks.size(), b.relics])
 
-# EV993 · S339 ⑥·I282 ⑦: 도약은 사냥감 자리에 뛰고 겨눈 뜀을 모두 피하면 그로기다. 맞으면 피해 30·넉백 1.5칸이고, 8칸보다 먼 사냥감에게는 8칸만 뛴다
-func ev993():
+# EV1002 · S342 ⑥·I283 ⑦: 도약은 사냥감 자리에 뛰고 겨눈 뜀을 모두 피하면 그로기다. 맞으면 피해 30·넉백 1.5칸이고, 8칸보다 먼 사냥감에게는 8칸만 뛴다
+func ev1002():
 	var b = _den3()
 	var e = _chief(b)
 	if e == null:
@@ -2257,8 +2257,8 @@ func ev993():
 	_go(m, 2.3)
 	return check(x.pos.distance_to(Vector2(92, 80)) < 0.01 and not _groggy(m, x) and m.party.map(func(h): return h.hp) == all, "③ 이동 뜀 뒤 대장 %s((92,80)) · 그로기 %s(거짓) · 영웅 체력 %s → %s" % [x.pos, _groggy(m, x), all, m.party.map(func(h): return h.hp)])
 
-# EV994 · S339 ⑦⑨: 철퇴는 가까운 영웅 쪽 부채꼴 안에 피해 40·넉백 1.5칸이다. 폭탄은 예고를 띄울 때의 영웅 자리마다 떨어져 원 안에 25를 준다. 둘 다 그로기가 없다
-func ev994():
+# EV1003 · S342 ⑦⑨: 철퇴는 가까운 영웅 쪽 부채꼴 안에 피해 40·넉백 1.5칸이다. 폭탄은 예고를 띄울 때의 영웅 자리마다 떨어져 원 안에 25를 준다. 둘 다 그로기가 없다
+func ev1003():
 	var b = _den3()
 	var e = _chief(b)
 	if e == null:
@@ -2292,8 +2292,8 @@ func ev994():
 	return check(lost2[0] == 0.0 and absf(lost2[1] - need[0]) < 0.01 and absf(lost2[2] - need[1]) < 0.01 and q[1].pos == Vector2(80, 85) and not _groggy(k, w) and w.cast == null and w.beat == 4,
 		"② 잃은 체력 %s(기대 원 밖 0 · %s · %s) · 둘째 영웅 자리 %s((80,85) 그대로) · 그로기 %s(거짓) · 예고 %s(없음) · 대본 차례 %s(4)" % [lost2, need[0], need[1], q[1].pos, _groggy(k, w), w.cast, w.beat])
 
-# EV995 · S339 ⑧·I282 ⑤⑥: 대장의 돌진은 잔해 앞에서 멈추고, 2칸 넘게 달려 박혔는데 아무도 못 맞혔으면 그로기다. 2칸을 못 달리면 이동 돌진이다. 잔해 안에서 출발하면 막히지 않고, 영웅 대시는 잔해를 지나간다
-func ev995():
+# EV1004 · S342 ⑧·I283 ⑤⑥: 대장의 돌진은 잔해 앞에서 멈추고, 2칸 넘게 달려 박혔는데 아무도 못 맞혔으면 그로기다. 2칸을 못 달리면 이동 돌진이다. 잔해 안에서 출발하면 막히지 않고, 영웅 대시는 잔해를 지나간다
+func ev1004():
 	var b = _den3()
 	var e = _chief(b)
 	if e == null:
@@ -2343,8 +2343,8 @@ func _feast(team := TEAM) -> Array:
 		return []
 	return [b, e]
 
-# EV996 · S339 ⑩: 금색 원은 셋이 모이면 30씩 나눠 받고 그로기가 열린다. 둘이면 모두 30을 받고 대장이 5% 회복한다. 원정대가 둘뿐이어도 3명 기준은 같다
-func ev996():
+# EV1005 · S342 ⑩: 금색 원은 셋이 모이면 30씩 나눠 받고 그로기가 열린다. 둘이면 모두 30을 받고 대장이 5% 회복한다. 원정대가 둘뿐이어도 3명 기준은 같다
+func ev1005():
 	var s := _feast()
 	if s.is_empty():
 		return "금색 원 예고가 뜨지 않았다(3층 원정·대장·한 스텝 뒤 soak)"
@@ -2388,8 +2388,8 @@ func ev996():
 	_go(b, 4.6)
 	return check(p.size() == 2 and absf(hp1 - p[1].hp - need) < 0.01 and not _groggy(b, e), "③ 원정대 %d명(2)이 다 모인 뒤 둘째 영웅이 잃은 체력 %s(기대 %s) · 그로기 %s(거짓)" % [p.size(), hp1 - p[1].hp, need, _groggy(b, e)])
 
-# EV997 · S339 ⑤·I282 ①④: 기계의 대본은 대포 → 기관총 → 대포 → 증기 배출을 쉼 5·4·5·5초로 돈다. 대장은 차례 0·쉼 0에서 시작해 도약 → 철퇴 → 돌진 → 폭탄 → 금색 원을 쉼 4·2·4·4·5초로 돈다
-func ev997():
+# EV1006 · S342 ⑤·I283 ①④: 기계의 대본은 대포 → 기관총 → 대포 → 증기 배출을 쉼 5·4·5·5초로 돈다. 대장은 차례 0·쉼 0에서 시작해 도약 → 철퇴 → 돌진 → 폭탄 → 금색 원을 쉼 4·2·4·4·5초로 돈다
+func ev1006():
 	var b = _den3()
 	b.start_raid()
 	if b.state != "raid" or b.enemies.size() != 1 or b.enemies[0].kind != "war_machine":
@@ -2425,8 +2425,8 @@ func ev997():
 	return check(born == ["chief", 0, 0.0] and seen == [["leap", 1, 2.0], ["cleave", 2, 4.0], ["charge", 3, 4.0], ["bombs", 4, 5.0], ["soak", 0, 4.0]],
 		"② 부서진 직후 [종류, 대본 차례, 쉼] %s(기대 [chief, 0, 0]) · 차례마다 [예고, 끝난 뒤 대본 차례, 다음 쉼] %s(기대 leap 1 2 · cleave 2 4 · charge 3 4 · bombs 4 5 · soak 0 4)" % [born, seen])
 
-# EV998 · I282 ⑨: 보스 막대의 이름은 지금 형태를 따르고 기계·대장·잔해의 그림 배율은 1이다. 대장을 처치하면 유물 없는 층의 토스트가 뜬다
-func ev998():
+# EV1007 · I283 ⑨: 보스 막대의 이름은 지금 형태를 따르고 기계·대장·잔해의 그림 배율은 1이다. 대장을 처치하면 유물 없는 층의 토스트가 뜬다
+func ev1007():
 	var main = _den_game()
 	var b = main.view.battle
 	for i in 2:
@@ -2458,8 +2458,8 @@ func ev998():
 	return check(after == ["prep", 3, 180, {}, "done"] and texts.any(func(t): return "3층" in t and "180" in t),
 		"처치 3.1초 뒤 [판, 깬 층, 는 골드, 가방, 원정 버튼 이유] %s(기대 [prep, 3, 180, {}, done]) · 보인 토스트 %s(«3층»과 «180»이 함께 든 것이 있어야)" % [after, texts])
 
-# EV999 · I282 ⑤⑧: 대장인 채 전멸해 «다시»를 하면 잔해가 사라지고 기계가 가득 찬 체력으로 새로 나온다. 철수해도 잔해가 사라진다
-func ev999():
+# EV1008 · I283 ⑤⑧: 대장인 채 전멸해 «다시»를 하면 잔해가 사라지고 기계가 가득 찬 체력으로 새로 나온다. 철수해도 잔해가 사라진다
+func ev1008():
 	var b = _den3()
 	var e = _chief(b)
 	if e == null or not b.get("wrecks") is Array or b.wrecks.size() != 1:
@@ -2498,8 +2498,8 @@ func _burn(id: String, flame: float) -> float:
 	_go(b, 4.2)
 	return hp - u.hp
 
-# EV1000 · I282 ④: 불꽃 100초부터의 광폭 배율은 포탄·기관총 틱·철퇴·폭탄의 피해에도 든다
-func ev1000():
+# EV1009 · I283 ④: 불꽃 100초부터의 광폭 배율은 포탄·기관총 틱·철퇴·폭탄의 피해에도 든다
+func ev1009():
 	var rows := []
 	for id in ["cannon", "mgun", "cleave", "bombs"]:
 		rows.append([id, _burn(id, 10.0), _burn(id, 101.0)])

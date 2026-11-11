@@ -460,7 +460,7 @@ var zones := []  # 장판(S150, I141): {src, pos, radius, left, owner, 수치…
 var loops := []  # 타임 루프가 되돌릴 적(I197): {e, at, wall, left, owner, blast, damage, aged(S266)}. 웨이브가 끝나면 사라진다(I143)
 var traces := []  # 즉시 스킬 흔적(S179): {hero, slot, aim, at, radius, hits, marked, age}. 타임 루프 되돌림(loop)은 aim이 옛 자리이고 foe·aged가 더 있다. 정화(cleanse)·불사(saved)는 aim이 그 아군, 축복 터짐(bless)은 hero가 쏜 쪽이고 셋 다 hits가 비었다(I227). 사슬 나누기(share)는 aim이 맞은 적이고 chain이, 전염(spread)은 foes(옮은 적)가 더 있다(I226). 태세가 막음(block)은 hero가 막은 영웅이고 hits가 비었다(I228). 그리기만 읽고 1초 지나면 지운다
 var fallen := []  # 쓰러진 영웅·용병·적(S180): {who, age}. 그리기만 읽고 FALLEN초 지나면 지운다
-var wrecks := []  # 부서진 전쟁 기계의 수레 잔해(S172 2026-11-05 변경 ⑥): {who(바뀐 대장), at, age, raid(원정의 잔해면 참), size(부서질 때의 몸 그림 배율)}. 원정의 잔해(S339 ④)는 돌아올 때까지 남아 대장 돌진을 막고, 그 밖의 잔해는 그리기만 읽고 WRECK초 지나면 지운다
+var wrecks := []  # 부서진 전쟁 기계의 수레 잔해(S172 2026-11-05 변경 ⑥): {who(바뀐 대장), at, age, raid(원정의 잔해면 참), size(부서질 때의 몸 그림 배율)}. 원정의 잔해(S342 ④)는 돌아올 때까지 남아 대장 돌진을 막고, 그 밖의 잔해는 그리기만 읽고 WRECK초 지나면 지운다
 var _dotting := false  # 초당 피해를 주는 중. 뜬 적(S236)도 이것만은 받는다
 var missiles := []  # 날고 있거나 출발을 기다리는 투사체(Missile, S178). 웨이브가 끝나면 사라진다(I143)
 var landed := []  # 닿은 투사체(Missile). 그리기만 읽고(맞은 반응·사건, S177·I171) 1초 지나면 지운다
@@ -721,7 +721,7 @@ func step(dt: float) -> void:
 	traces = traces.filter(func(t): return t.age < 1.0)
 	landed = landed.filter(func(m): return m.age < 1.0)
 	fallen = fallen.filter(func(f): return f.age < FALLEN)
-	wrecks = wrecks.filter(func(w): return w.age < WRECK or w.get("raid", false))  # 원정의 잔해(S339 ④)는 원정 시도가 끝날 때까지 남는다
+	wrecks = wrecks.filter(func(w): return w.age < WRECK or w.get("raid", false))  # 원정의 잔해(S342 ④)는 원정 시도가 끝날 때까지 남는다
 	if state == "battle":
 		_spawn_wave(dt)
 		tally.battle_time += dt  # 라운드 집계(I119)
@@ -1088,7 +1088,7 @@ func start_raid() -> bool:
 # 그 몸만의 뜀 수치(착지 원 반경·뜀 간격)를 얹고, 그림은 처음 몸 반지름에 견줘 줄여 그리게 한다(화면 _shrunk)
 func _raid_body(g: int, at: Vector2, wait: float) -> Enemy:
 	var over: Dictionary = raid_floor.stats.merged({"skills": raid_floor.skills, "raid": raid_floor, "pull": wait})
-	if not raid_floor.get("phase2", {}).is_empty():  # 둘째 형태가 있는 층(S339 ④, I282 ①): 체력이 0이 되면 그 종류로 바뀐다
+	if not raid_floor.get("phase2", {}).is_empty():  # 둘째 형태가 있는 층(S342 ④, I283 ①): 체력이 0이 되면 그 종류로 바뀐다
 		over.phase2 = raid_floor.phase2.kind
 	if not raid_floor.gens.is_empty():
 		var gen: Dictionary = raid_floor.gens[g]
@@ -1106,7 +1106,7 @@ func _raid_body(g: int, at: Vector2, wait: float) -> Enemy:
 	return e
 
 # 원정 보스 몸의 그림 기준 반지름(화면은 몸 반지름 ÷ 이 값을 그림 배율로 쓴다): 형태 정의 f(층 정의나 phase2)에 그림 배율(scale)이 있으면
-# 그 배율이 되게 하고(I282 ⑨), 없으면 그 종류의 몸 반지름이라 층 수치가 몸 반지름을 바꾼 비율대로 그린다(I280 ①)
+# 그 배율이 되게 하고(I283 ⑨), 없으면 그 종류의 몸 반지름이라 층 수치가 몸 반지름을 바꾼 비율대로 그린다(I280 ①)
 func _girth(e: Enemy, f: Dictionary) -> float:
 	var k: float = f.get("scale", 0.0)
 	return e.radius / k if k > 0.0 else ENEMY_KINDS[f.kind].radius
@@ -1131,7 +1131,7 @@ func _plan_of(e: Enemy) -> Array:
 		return []
 	return e.raid.phase2.plan if _second(e) else e.raid.get("plan", [])
 
-# 원정 보스 몸이 층의 둘째 형태다(S339 ④, I282 ①)
+# 원정 보스 몸이 층의 둘째 형태다(S342 ④, I283 ①)
 func _second(e: Enemy) -> bool:
 	var p: Dictionary = e.raid.get("phase2", {})
 	return not p.is_empty() and e.kind == p.kind
@@ -1176,20 +1176,20 @@ func raid_left() -> float:
 		for k in range(e.gen + 1, gens.size()):
 			left += gens[k].hp * (1 << (k - e.gen))
 	var p: Dictionary = raid_floor.get("phase2", {})
-	if not p.is_empty():  # 두 형태(I282 ⑧): 아직 나오지 않은 둘째 형태의 체력을 더해 두 형태의 합으로 나눈다
+	if not p.is_empty():  # 두 형태(I283 ⑧): 아직 나오지 않은 둘째 형태의 체력을 더해 두 형태의 합으로 나눈다
 		all = raid_floor.stats.hp + p.stats.hp
 		if _raiders().any(func(e): return not _second(e)):
 			left += p.stats.hp
 	return clampf(left / all, 0.0, 1.0) if all > 0.0 else 0.0
 
-# 지금 형태의 보스 이름(S339, I282 ⑨): 첫 형태가 부서져 잔해가 남았으면 둘째 형태의 이름이다. HUD의 보스 막대가 읽는다
+# 지금 형태의 보스 이름(S342, I283 ⑨): 첫 형태가 부서져 잔해가 남았으면 둘째 형태의 이름이다. HUD의 보스 막대가 읽는다
 func raid_title() -> String:
 	var p: Dictionary = raid_floor.get("phase2", {})
 	if not p.is_empty() and not _pile().is_empty():
 		return p.title
 	return raid_floor.get("title", "")
 
-# 원정의 수레 잔해 [가운데, 반지름](S339 ④, I282 ⑤). 잔해가 없으면 []
+# 원정의 수레 잔해 [가운데, 반지름](S342 ④, I283 ⑤). 잔해가 없으면 []
 func _pile() -> Array:
 	var r: float = raid_floor.get("wreck", 0.0)
 	for w in wrecks:
@@ -1262,7 +1262,7 @@ func _come_home(won: bool) -> void:
 	traces.clear()
 	landed.clear()
 	fallen = fallen.filter(func(f): return f.who not in party and not (f.who is Enemy and not f.who.raid.is_empty()))
-	wrecks = wrecks.filter(func(w): return not w.get("raid", false))  # 원정의 잔해(S339 ④)는 «다시»나 돌아오기에서 사라진다(I282 ⑤)
+	wrecks = wrecks.filter(func(w): return not w.get("raid", false))  # 원정의 잔해(S342 ④)는 «다시»나 돌아오기에서 사라진다(I283 ⑤)
 	for h in party:
 		for k in _snap[h]:
 			var v = _snap[h][k]
@@ -4233,10 +4233,10 @@ func _skills(e: Enemy, dt: float, sealed: bool) -> bool:
 		return true
 	if e.cast:
 		var loose: bool = e.cast.has("mark") and not e.cast.has("aimed")  # 굳지 않은 따라다니는 원
-		if loose and e.cast.mark.alive:  # 씨앗 표식(S326 ③)·포탄(S339 ①): 원이 표식 영웅을 따라다닌다
+		if loose and e.cast.mark.alive:  # 씨앗 표식(S326 ③)·포탄(S342 ①): 원이 표식 영웅을 따라다닌다
 			e.cast.at = e.cast.mark.pos
 		e.cast.left -= dt
-		if loose and e.cast.left <= e.skills[e.cast.id].get("lock", -INF):  # 포탄 원(S339 ①, I282 ③): 남은 시간이 lock 이하면 굳고, 그때 기계 몸에 닿았는지 적어 둔다
+		if loose and e.cast.left <= e.skills[e.cast.id].get("lock", -INF):  # 포탄 원(S342 ①, I283 ③): 남은 시간이 lock 이하면 굳고, 그때 기계 몸에 닿았는지 적어 둔다
 			e.cast.aimed = e.cast.at.distance_to(e.pos) <= e.skills[e.cast.id].radius + e.radius
 		if e.cast.get("fire", false):  # 기관총 발사 단계(S287): 지난 틱마다 쏜다
 			_spray(e, e.skills[e.cast.id])
@@ -4249,7 +4249,7 @@ func _skills(e: Enemy, dt: float, sealed: bool) -> bool:
 			call("_" + c.id, e, sk if not (scripted and sk.has("damage")) else sk.merged({"damage": sk.damage * raid_ramp() * _fury(e)}, true))  # 광폭(S323 ⑤)과 광분(S337 ④)은 대본 패턴 피해에도 든다(S326). 돌진은 _charge가 곱한다
 			if is_same(e.cast, c):
 				e.cast = null
-			if scripted and not (e.cast != null and e.cast.get("fire", false)):  # 기관총의 대본 차례는 발사가 끝난 때 넘어간다(I282 ④)
+			if scripted and not (e.cast != null and e.cast.get("fire", false)):  # 기관총의 대본 차례는 발사가 끝난 때 넘어간다(I283 ④)
 				_next_beat(e)
 		return true
 	if sealed:
@@ -4375,7 +4375,7 @@ func _hop_spot(e: Enemy, sk: Dictionary):
 	e.cd["leap"] = sk.retry
 	return false
 
-# 가까운 영웅(S322·S339): 원정 보스 몸 e에서 가장 가까운 산 원정대 영웅(같은 거리면 출전 차례가 앞선 쪽). 도발(S151)했으면 도발한 영웅이다. 없으면 null
+# 가까운 영웅(S322·S342): 원정 보스 몸 e에서 가장 가까운 산 원정대 영웅(같은 거리면 출전 차례가 앞선 쪽). 도발(S151)했으면 도발한 영웅이다. 없으면 null
 func _closest(e: Enemy):
 	var u = _fx_on(e, "taunt")
 	if u and u.alive:
@@ -4386,12 +4386,12 @@ func _closest(e: Enemy):
 			u = h
 	return u
 
-# 대본의 기관총·철퇴(S339 ②⑦, I282 ②): 가까운 영웅 쪽(같은 자리거나 없으면 남쪽)을 부채꼴 가운데 방향으로 둔다
+# 대본의 기관총·철퇴(S342 ②⑦, I283 ②): 가까운 영웅 쪽(같은 자리거나 없으면 남쪽)을 부채꼴 가운데 방향으로 둔다
 func _face(e: Enemy) -> Dictionary:
 	var u = _closest(e)
 	return {"dir": (u.pos - e.pos).angle() if u != null and u.pos.distance_to(e.pos) > 0.01 else PI / 2.0}
 
-# 대본의 도약(S339 ⑥, I282 ⑦): 사냥감 자리(뜀 거리보다 멀면 그쪽으로 뜀 거리만큼 간 자리, 사냥감이 없으면 제자리)를 착지 자리로 두고,
+# 대본의 도약(S342 ⑥, I283 ⑦): 사냥감 자리(뜀 거리보다 멀면 그쪽으로 뜀 거리만큼 간 자리, 사냥감이 없으면 제자리)를 착지 자리로 두고,
 # 그 순간 착지 원 안에 산 원정대 영웅이 있으면 겨눈 뜀이다
 func _leap_aim(e: Enemy, sk: Dictionary) -> Dictionary:
 	var u = _prey(e)
@@ -4583,13 +4583,13 @@ func _cannon_ready(e: Enemy, sk: Dictionary):
 				at = c
 	return {"at": at} if at != null else false
 
-# 대본의 대포(S339 ①, I282 ②): 포탄 원이 사냥감을 따라다닌다. 사냥감이 없으면 기계 자리다
+# 대본의 대포(S342 ①, I283 ②): 포탄 원이 사냥감을 따라다닌다. 사냥감이 없으면 기계 자리다
 func _cannon_aim(e: Enemy, _sk: Dictionary) -> Dictionary:
 	var u = _prey(e)
 	return {"mark": u, "at": u.pos} if u != null else {"at": e.pos}
 
 # 대포: 예고 원 안 구조물에 물리 structure, 아군에 물리 unit(I219). 땅 위 아군은 원 가운데에서 멀어지게 knock칸 민다(가운데면 남쪽, I223).
-# 원정에서는 광폭(S323 ⑤)을 곱하고, 기계 몸에 닿은 채 굳은 원이 산 원정대 영웅을 하나도 못 맞혔으면 기계가 그로기가 된다(되돌리기, S339 ①)
+# 원정에서는 광폭(S323 ⑤)을 곱하고, 기계 몸에 닿은 채 굳은 원이 산 원정대 영웅을 하나도 못 맞혔으면 기계가 그로기가 된다(되돌리기, S342 ①)
 func _cannon(e: Enemy, sk: Dictionary) -> void:
 	var at: Vector2 = e.cast.at
 	var back: bool = e.cast.get("aimed", false) and e.cast.has("mark")
@@ -4613,7 +4613,7 @@ func _mgun_ready(e: Enemy, sk: Dictionary):
 			best = u
 	return {"dir": (best.pos - e.pos).angle()} if best else false
 
-# 대본의 기관총(S339 ②): 가까운 영웅 쪽
+# 대본의 기관총(S342 ②): 가까운 영웅 쪽
 func _mgun_aim(e: Enemy, _sk: Dictionary) -> Dictionary:
 	return _face(e)
 
@@ -4640,7 +4640,7 @@ func _spray(e: Enemy, sk: Dictionary) -> void:
 			var hit: bool = (u.alive and e.pos.distance_to(u.pos) <= sk.range and absf(angle_difference(aim, (u.pos - e.pos).angle())) <= deg_to_rad(sk.spread)
 				and (u.on_wall or _clear_line(e.pos, u.pos)))
 			if hit:
-				damage(u, sk.unit * raid_ramp() * _fury(e), "phys", e)  # 원정에서는 광폭(S323 ⑤)을 곱한다(I282 ④). 원정이 아니면 1이다
+				damage(u, sk.unit * raid_ramp() * _fury(e), "phys", e)  # 원정에서는 광폭(S323 ⑤)을 곱한다(I283 ④). 원정이 아니면 1이다
 
 # ── 고블린 대장(S288, I230) ── 등장 착지(leap)는 뜬 단계(_soar)와 대지 강타(_slam)를 그대로 쓴다
 
@@ -4658,7 +4658,7 @@ func _break(e: Enemy) -> void:
 		body.alive = false
 		fallen.append({"who": body, "age": 0.0})
 	elif not fell:
-		wrecks.append({"who": e, "at": e.pos, "age": 0.0, "raid": not e.raid.is_empty(), "size": e.radius / e.girth if e.girth > 0.0 else 1.0})  # size는 부서질 때의 몸 그림 배율(I282 ⑨)
+		wrecks.append({"who": e, "at": e.pos, "age": 0.0, "raid": not e.raid.is_empty(), "size": e.radius / e.girth if e.girth > 0.0 else 1.0})  # size는 부서질 때의 몸 그림 배율(I283 ⑨)
 	_turn(e, e.phase2)
 	if rode:
 		e.via = via
@@ -4669,7 +4669,7 @@ func _break(e: Enemy) -> void:
 			e.pos = Vector2(_bare_near(c))
 	var sk: Dictionary = e.skills.get("leap", {})
 	e.cast = null if sk.is_empty() else {"id": "leap", "left": sk.air, "air": true, "from": e.pos, "at": e.pos}
-	if _second(e):  # 원정의 둘째 형태(S339 ④, I282 ①): 층의 수치·스킬을 얹고 체력을 그 값으로 가득 채운다. 등장 뜬 단계 없이 대본 차례 0·쉼 0에서 시작한다
+	if _second(e):  # 원정의 둘째 형태(S342 ④, I283 ①): 층의 수치·스킬을 얹고 체력을 그 값으로 가득 채운다. 등장 뜬 단계 없이 대본 차례 0·쉼 0에서 시작한다
 		var p: Dictionary = e.raid.phase2
 		for key in p.stats:
 			e.set(key, p.stats[key])
@@ -4705,7 +4705,7 @@ func _cleave_ready(e: Enemy, sk: Dictionary):
 			best = u
 	return {"dir": (best.pos - e.pos).angle()} if best else false
 
-# 대본의 철퇴(S339 ⑦): 가까운 영웅 쪽
+# 대본의 철퇴(S342 ⑦): 가까운 영웅 쪽
 func _cleave_aim(e: Enemy, _sk: Dictionary) -> Dictionary:
 	return _face(e)
 
@@ -4717,7 +4717,7 @@ func _cleave(e: Enemy, sk: Dictionary) -> void:
 	for u in _ground_near(e.pos, sk.range):
 		var v: Vector2 = u.pos - e.pos
 		if v == Vector2.ZERO or absf(angle_difference(dir, v.angle())) <= deg_to_rad(sk.arc) / 2.0:
-			damage(u, sk.unit * raid_ramp() * _fury(e), "phys", e)  # 원정에서는 광폭(S323 ⑤)을 곱한다(I282 ④). 원정이 아니면 1이다
+			damage(u, sk.unit * raid_ramp() * _fury(e), "phys", e)  # 원정에서는 광폭(S323 ⑤)을 곱한다(I283 ④). 원정이 아니면 1이다
 			if u.alive:
 				_shove(u, (v.normalized() if v != Vector2.ZERO else Vector2.from_angle(dir)) * sk.knock, enemies)
 	_tracing = null
@@ -4737,7 +4737,7 @@ func _bombs_ready(e: Enemy, sk: Dictionary):
 			spots.append(u.pos)
 	return {"spots": spots} if not spots.is_empty() else false
 
-# 대본의 폭탄(S339 ⑨, I282 ②): 산 원정대 영웅을 출전 차례로 보며, 앞서 고른 자리와 모두 gap칸 넘게 떨어진 자리를 count곳까지
+# 대본의 폭탄(S342 ⑨, I283 ②): 산 원정대 영웅을 출전 차례로 보며, 앞서 고른 자리와 모두 gap칸 넘게 떨어진 자리를 count곳까지
 func _bombs_aim(_e: Enemy, sk: Dictionary) -> Dictionary:
 	var spots := []
 	for h in party:
@@ -4745,7 +4745,7 @@ func _bombs_aim(_e: Enemy, sk: Dictionary) -> Dictionary:
 			spots.append(h.pos)
 	return {"spots": spots}
 
-# 폭탄: 자리마다 원(반경 radius) 안 구조물과 아군(성벽 위 포함, I219)에 물리 unit. 원정에서는 아군 피해에 광폭(S323 ⑤)을 곱한다(I282 ④)
+# 폭탄: 자리마다 원(반경 radius) 안 구조물과 아군(성벽 위 포함, I219)에 물리 unit. 원정에서는 아군 피해에 광폭(S323 ⑤)을 곱한다(I283 ④)
 func _bombs(e: Enemy, sk: Dictionary) -> void:
 	for at in e.cast.spots:
 		_trace(e, "bombs", null, at, sk.radius)
@@ -4772,8 +4772,8 @@ func _charge_aim(e: Enemy, sk: Dictionary) -> Dictionary:
 	var got := _dash(e.pos, dir, sk.length)
 	return {"dir": dir.angle(), "to": got[0], "aimed": _walled(e.pos, got, sk.length, sk.get("run", 0.0))}
 
-# 돌진 길(_dash가 돌려준 것)이 length에 못 미쳐 바위·물·맵 밖이나 원정의 수레 잔해(S339 ⑧)에서 멈췄다(I280 ③). 막힌 칸(에너지 성벽 등)이나 거점에 막힌 것은 아니다.
-# run이 있으면 달린 거리가 그 이상이어야 한다(I282 ⑥)
+# 돌진 길(_dash가 돌려준 것)이 length에 못 미쳐 바위·물·맵 밖이나 원정의 수레 잔해(S342 ⑧)에서 멈췄다(I280 ③). 막힌 칸(에너지 성벽 등)이나 거점에 막힌 것은 아니다.
+# run이 있으면 달린 거리가 그 이상이어야 한다(I283 ⑥)
 func _walled(from: Vector2, got: Array, length: float, run := 0.0) -> bool:
 	var ran := from.distance_to(got[0])
 	return got[1] == null and ran < length - 0.001 and ran >= run - 0.001
@@ -4782,7 +4782,7 @@ func _walled(from: Vector2, got: Array, length: float, run := 0.0) -> bool:
 # ally면 아군 길이라 에너지 성벽(I142)은 지나간다(영웅 대시 I261 ④). [멈출 자리, 부딪힌 성곽·구조물·거점(없으면 null)]
 func _dash(from: Vector2, dir: Vector2, length: float, ally := false) -> Array:
 	var at := from
-	var pile: Array = [] if ally else _pile()  # 원정의 수레 잔해(S339 ⑧, I282 ⑤): 적의 길이 잔해 원에 들어서면 그 앞에서 멈춘다. 원 안에서 출발하면 나설 때까지는 막히지 않는다
+	var pile: Array = [] if ally else _pile()  # 원정의 수레 잔해(S342 ⑧, I283 ⑤): 적의 길이 잔해 원에 들어서면 그 앞에서 멈춘다. 원 안에서 출발하면 나설 때까지는 막히지 않는다
 	var inside: bool = not pile.is_empty() and from.distance_to(pile[0]) < pile[1]
 	for i in range(1, ceili(length / 0.25) + 1):
 		var p := from + dir * minf(0.25 * i, length)
@@ -4826,7 +4826,7 @@ func _charge(e: Enemy, sk: Dictionary) -> void:
 	if got[1] != null:
 		damage(got[1], sk.get("structure", 0.0), "phys", e)
 	_tracing = null
-	if not e.raid.is_empty() and not caught and _walled(from, got, sk.length, sk.get("run", 0.0)):  # 벽 돌진을 모두 피했다(S337 ①·S339 ⑧): 벽이나 잔해에 박혀 그로기가 된다
+	if not e.raid.is_empty() and not caught and _walled(from, got, sk.length, sk.get("run", 0.0)):  # 벽 돌진을 모두 피했다(S337 ①·S342 ⑧): 벽이나 잔해에 박혀 그로기가 된다
 		_fx(e, "groggy", {"groggy": true}, e.raid.groggy.time)
 	_find_path(e)
 
