@@ -7,6 +7,8 @@ extends Panel
 const HudTheme := preload("res://src/ui/hud_theme.gd")
 const Settings := preload("res://src/settings.gd")
 const AXES := ["시설", "용병", "영웅"]  # 1라운드 1·2·3웨이브가 소개하는 축(S192)
+const AT := Vector2(68, 300)  # 힌트 칸의 자리(S191)
+const RAID_AT := Vector2(4, 29)  # 원정 동안의 자리(S332 2026-11-11 변경): 위 띠 바로 아래 왼쪽. 보스방 바닥을 가리지 않는다
 const HINTS := [  # [이름, 1라운드 웨이브, 판 단계, 글](S192 임시값)
 	["build", 1, "prep", "오른쪽 아래 칸(숫자 키)을 고르고\n맵을 누르면 공병이 가서 짓는다"],
 	["keep", 1, "prep", "거점을 누르면 마을 레벨을 올린다\n(새 시설이 열린다)"],
@@ -16,6 +18,7 @@ const HINTS := [  # [이름, 1라운드 웨이브, 판 단계, 글](S192 임시�
 	["move", 3, "prep", "영웅을 누르고(1)\n우클릭한 칸으로 보낸다"],
 	["skill", 3, "battle", "Q로 영웅 스킬을 쓴다\n조준하는 칸은 맵을 눌러 쓴다"],
 	["raid", 0, "raid", "보스는 그로기 때만 크게 맞는다\n빨강은 피하고 금색에 모인다"],  # 첫 원정 힌트(S332): 웨이브 0은 라운드·웨이브와 상관없이 원정 동안이다(I277 ④)
+	["raid2", 0, "raid", "벽 앞에서 돌진을 피하면 박힌다\n붙잡힌 동료는 때려서 구한다"],  # 2층 힌트(S337 ⑧)
 	["raid3", 0, "raid", "포탄 원을 기계 옆에서 굳힌다\n대장 돌진은 잔해나 벽에 박는다"],  # 3층 힌트(S342 ⑬): 이름 끝의 수가 층 번호다(I284 ③)
 ]
 
@@ -35,7 +38,7 @@ func _init(b, c) -> void:
 
 # 크기는 HUD 테마를 받은 뒤에 정한다. 그 전에는 기본 글꼴 크기로 최소 크기가 잡혀 버튼이 칸 밖으로 커진다
 func _ready() -> void:
-	position = Vector2(68, 300)
+	position = AT
 	size = Vector2(200, 40)
 	add_theme_stylebox_override("panel", HudTheme.framed(HudTheme.box("panel", "PanelContainer", Color(HudTheme.PANEL, 1.0), HudTheme.LINE)))
 	text.position = Vector2(4, 0)
@@ -81,6 +84,7 @@ func step() -> void:
 	_bought = t.merc_bought
 	_used = used
 	var now := _current()
+	position = RAID_AT if battle.state == "raid" else AT  # 원정 동안은 왼쪽 위다(I286 ③)
 	visible = Settings.hints and now != ""
 	for h in HINTS:
 		if h[0] == now:

@@ -1832,6 +1832,15 @@ msgstr "E cooldown %d%% faster"
 msgid "포탄 원을 기계 옆에서 굳힌다\n대장 돌진은 잔해나 벽에 박는다"
 msgstr "Lock the shell by the machine\nBait the charge into wreck or wall"
 
+msgid "송곳니"
+msgstr "Fang"
+
+msgid "Q 대기 %d%% 빠름"
+msgstr "Q cooldown %d%% faster"
+
+msgid "벽 앞에서 돌진을 피하면 박힌다\n붙잡힌 동료는 때려서 구한다"
+msgstr "Dodge the charge by a wall\nHit the wolf to free an ally"
+
 msgid "다시 (횃불 1)"
 msgstr "Retry (1 torch)"
 

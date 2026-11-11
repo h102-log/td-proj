@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RelicDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/relic_def.gd" id="1_relic"]
+
+[resource]
+script = ExtResource("1_relic")
+title = "송곳니"
+steps = [{
+"cdr_q": 0.15
+}, {
+"cdr_q": 0.2
+}, {
+"cdr_q": 0.25
+}, {
+"cdr_q": 0.3
+}, {
+"cdr_q": 0.35
+}]
+notes = ["Q 대기 15% 빠름", "Q 대기 20% 빠름", "Q 대기 25% 빠름", "Q 대기 30% 빠름", "Q 대기 35% 빠름"]
