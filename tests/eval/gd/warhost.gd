@@ -6,7 +6,7 @@ extends "res://tests/eval/gd/orc.gd"
 #   묶음 ③(S339·S340·S341·I282): 적 kind "warguard"(대족장 근위대) · "warchief"(오크 대족장) · "warchief_foot"(내린 대족장).
 #   적 칸 rooted(밀리지 않음) · calls(군단을 부른 횟수) · cd(스킬 → 남은 대기) · snag(던진 사슬의 끝) · Battle.horns(이 판에서 부대가 나온 횟수)
 #   예고 cast: charge·chain {id, left, dir, to} · horn {id, left} · rift {id, left, spots} · Battle.armor_mult(Battle.armor_of(유닛)) — 물리 피해 배율
-#   새 기믹(S342~S348·I283): 적 칸 duel({who, at, radius, left, need, dealt}) · doom({who, left}) · orders · banner({radius}) · bodyguard({big, reach}) · spent
+#   새 기믹(S344~S350·I285): 적 칸 duel({who, at, radius, left, need, dealt}) · doom({who, left}) · orders · banner({radius}) · bodyguard({big, reach}) · spent
 #   Battle.edict({kind "rush"|"shield", left}) · Battle.edicts · 영웅 효과 출처 «shackle»({shackle 짝, reach, share}) · «verdict» · 효과 키 silence
 #   예고 cast: duel {who, at} · shackle {pair, spots} · order · banner {at} · verdict {mark, at} · roar {dir} · 적 kind "warbanner"(전쟁 깃발)
 #   BattleView: _feud_marks() — 결투장·사슬 족쇄·처형 표식·침묵·군령·깃발 그리기
@@ -488,7 +488,7 @@ func ev991():
 	nv.free()
 	return check(hid[0] and hid[1], "밤 판: 숨은 내린 대족장의 균열 예고를 그림 %s(그려야 한다) · 숨은 대족장의 사슬 예고를 안 그림 %s(그리지 않아야 한다)" % hid)
 
-# ── 오크 대족장의 새 기믹(S342~S348, I283) ──
+# ── 오크 대족장의 새 기믹(S344~S350, I285) ──
 
 const NONE := [{"kind": "basic", "count": 0}]  # 적이 나오지 않는 웨이브
 
@@ -508,9 +508,9 @@ func _chief(b, kind: String, only: String, hp := 1000.0):
 		e.cd[id] = 0.0 if id == only else float(BIG)
 	return e
 
-# EV994 · S342: 결투 신청은 5칸 안의 가장 가까운 땅 위 영웅을 지목해 예고 1.2초 뒤 결투장(반경 2.5)을 연다. 8초 동안 그 영웅은 원 밖으로 못 나가고,
+# EV1014 · S344: 결투 신청은 5칸 안의 가장 가까운 땅 위 영웅을 지목해 예고 1.2초 뒤 결투장(반경 2.5)을 연다. 8초 동안 그 영웅은 원 밖으로 못 나가고,
 # 원 밖에서 준 피해는 80% 줄며, 대족장은 새 스킬을 시작하지 않는다. 지목된 영웅이 최대 체력의 5%를 깎으면 대족장이 비틀거리고, 못 깎으면 영웅이 40을 받는다
-func ev994():
+func ev1014():
 	var b = _team([["sylvia", Vector2i(12, 10)], ["ignis", Vector2i(14, 10)]])
 	var why := _need(b, [WC])
 	if why != "":
@@ -568,9 +568,9 @@ func ev994():
 	_steps(f, 26)
 	return check(y.duel.is_empty() and y.cast == null, "셋째 판: 예고 중에 원 밖 (14,10)으로 비킨 뒤 결투 %s(열리지 않아야 한다) · 예고 %s" % [y.duel, y.cast])
 
-# EV995 · S343: 군령은 예고 2초 뒤 전장의 모든 적에게 8초 걸린다. 첫 군령은 돌격령(이동·공격 속도 +30%), 둘째는 방패령(투사체 피해 −50%)이다.
+# EV1015 · S345: 군령은 예고 2초 뒤 전장의 모든 적에게 8초 걸린다. 첫 군령은 돌격령(이동·공격 속도 +30%), 둘째는 방패령(투사체 피해 −50%)이다.
 # 군령이 내려진 뒤 나온 적도 받는다. 예고 중 기절하면 내려지지 않는다
-func ev995():
+func ev1015():
 	var b = battle({"base_hp": BIG, "base": Vector2i(28, 2)})
 	var why := _need(b, [WC])
 	if why != "":
@@ -619,9 +619,9 @@ func ev995():
 	_steps(f, 40)
 	return check(off and f.edict.is_empty() and f.edicts == 0 and y.orders == 0, "예고 중 기절: 다음 스텝에 예고 없음·비틀거림 %s · 2초 뒤 군령 %s(없음) · 횟수 %d·%d(0)" % [off, f.edict, f.edicts, y.orders])
 
-# EV996 · S344: 사슬 족쇄는 6칸 안의 땅 위 영웅 둘의 자리에 원(반경 0.8) 예고 1초 뒤 둘을 10초 묶는다. 묶인 둘은 4칸 넘게 떨어지지 못하고,
+# EV1016 · S346: 사슬 족쇄는 6칸 안의 땅 위 영웅 둘의 자리에 원(반경 0.8) 예고 1초 뒤 둘을 10초 묶는다. 묶인 둘은 4칸 넘게 떨어지지 못하고,
 # 한쪽이 받은 피해의 절반을 다른 쪽도 받는다. 하나가 풀리면 함께 풀리고, 하나라도 원에서 비키면 묶이지 않으며, 영웅이 하나뿐이면 쓰지 않는다
-func ev996():
+func ev1016():
 	var b = _team([["sylvia", Vector2i(12, 10)], ["ignis", Vector2i(10, 13)]])
 	var why := _need(b, [WC])
 	if why != "":
@@ -670,9 +670,9 @@ func ev996():
 	var z = _chief(g, WC, "shackle")
 	return check(not _ever(g, z, "shackle", 3.0), "영웅이 하나뿐인데 사슬 족쇄 예고를 띄웠다(cast %s)" % [z.cast])
 
-# EV997 · S345: 전쟁 깃발은 예고 1.5초 뒤 대족장 자리에 깃발(체력 60, 밀리지 않음)을 세운다. 깃발 4칸 안의 적(대족장 포함)은 체력이 1 아래로 내려가지 않고,
+# EV1017 · S347: 전쟁 깃발은 예고 1.5초 뒤 대족장 자리에 깃발(체력 60, 밀리지 않음)을 세운다. 깃발 4칸 안의 적(대족장 포함)은 체력이 1 아래로 내려가지 않고,
 # 반경 밖의 적은 쓰러진다. 깃발은 부술 수 있고 처치 보상이 없으며, 부수면 불굴이 사라진다. 깃발이 서 있는 동안에는 새로 꽂지 않는다
-func ev997():
+func ev1017():
 	var b = battle({"base_hp": BIG})
 	var why := _need(b, [WF, "warbanner"])
 	if why != "":
@@ -719,9 +719,9 @@ func _doomed(ratio: float) -> Array:
 	_steps(b, 18)
 	return [b, e, h, b.heroes[1]]
 
-# EV998 · S346: 처형 선고는 8칸 안에서 체력(보호막 포함) 비율이 가장 낮은 땅 위 영웅에게 예고 0.8초 뒤 표식을 붙인다. 5초 뒤 대족장이 곁으로 뛰어가 내려찍어,
+# EV1018 · S348: 처형 선고는 8칸 안에서 체력(보호막 포함) 비율이 가장 낮은 땅 위 영웅에게 예고 0.8초 뒤 표식을 붙인다. 5초 뒤 대족장이 곁으로 뛰어가 내려찍어,
 # 비율이 60% 아래면 최대 체력의 80%, 아니면 10%를 물리 피해로 준다. 대족장이 기절해 있으면 사라진다
-func ev998():
+func ev1018():
 	var low := _doomed(0.5)
 	var b = low[0]
 	var why := _need(b, [WF])
@@ -758,9 +758,9 @@ func ev998():
 	return check(cut[2].alive and cut[2].hp == cut[2].max_hp * 0.5 and cut[1].doom.is_empty() and not cut[2].fx.has("verdict"),
 		"대족장이 기절한 판: 실비아 살아 있다 %s · 잃은 체력 비율 %s(0.5 그대로) · 선고 %s(없음) · 표식 %s(없음)" % [cut[2].alive, _lost(cut[2]) / cut[2].max_hp, cut[1].doom, cut[2].fx.has("verdict")])
 
-# EV999 · S347: 침묵의 포효는 3.5칸 안의 가장 가까운 땅 위 영웅 쪽 부채꼴(100°) 예고 0.8초 뒤 부채꼴 안 영웅에게 침묵을 6초 건다.
+# EV1019 · S349: 침묵의 포효는 3.5칸 안의 가장 가까운 땅 위 영웅 쪽 부채꼴(100°) 예고 0.8초 뒤 부채꼴 안 영웅에게 침묵을 6초 건다.
 # 침묵한 영웅은 스킬을 쓰지 못한다. 부채꼴 밖 영웅과 용병은 걸리지 않고, 침묵은 해로운 효과다
-func ev999():
+func ev1019():
 	var b = _team([["sylvia", Vector2i(12, 10)], ["ignis", Vector2i(10, 7)]])
 	var why := _need(b, [WF])
 	if why != "":
@@ -787,8 +787,8 @@ func ev999():
 	return check(held and b.effect(h, "silence") == null and b.can_cast(h, "q") and b._harmful({"silence": true}),
 		"걸린 뒤 5.5초에 침묵 %s(걸려 있어야 한다) · 6.2초에 침묵 %s(풀려야 한다)·Q %s(씀) · 해로운 효과 %s" % [held, b.effect(h, "silence") != null, b.can_cast(h, "q"), b._harmful({"silence": true})])
 
-# EV1000 · S348: 대족장이 한 번에 30 이상을 받으면 4칸 안의 아직 대신 맞지 않은 가장 가까운 근위대가 곁으로 뛰어들어 그 피해를 대신 받는다. 근위대마다 한 번이다
-func ev1000():
+# EV1020 · S350: 대족장이 한 번에 30 이상을 받으면 4칸 안의 아직 대신 맞지 않은 가장 가까운 근위대가 곁으로 뛰어들어 그 피해를 대신 받는다. 근위대마다 한 번이다
+func ev1020():
 	var b = battle({"base_hp": BIG})
 	var why := _need(b, [WC, WG])
 	if why != "":
@@ -811,9 +811,9 @@ func ev1000():
 	b.damage(e, 100.0, "true")
 	return check(absf(_lost(e) - 129.0) <= 0.01 and g3.hp == g3.max_hp and not g3.spent, "대신 맞을 근위대가 없을 때 고정 피해 100: 대족장이 잃은 체력 %s(129) · 10칸의 근위대 체력 %s/%s" % [_lost(e), g3.hp, g3.max_hp])
 
-# EV1001 · I283: 첫 대기(first)가 있는 스킬은 나온 때와 내린 때 대기가 그 초다. 결투장·깃발 반경은 고리로, 사슬 족쇄는 두 영웅을 잇는 선으로,
+# EV1021 · I285: 첫 대기(first)가 있는 스킬은 나온 때와 내린 때 대기가 그 초다. 결투장·깃발 반경은 고리로, 사슬 족쇄는 두 영웅을 잇는 선으로,
 # 처형 표식·침묵·군령은 머리 위 선으로 그린다. 결투·사슬 족쇄·처형 선고 예고는 숨어도 그리는 예고다
-func ev1001():
+func ev1021():
 	var b = _team([["sylvia", Vector2i(12, 10)], ["ignis", Vector2i(10, 13)]])
 	var why := _need(b, [WC, WF, "warbanner"])
 	if why != "":

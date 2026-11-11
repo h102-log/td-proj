@@ -38,8 +38,8 @@ const WALL := Color("e8f0ff")  # 방패벽(S319)을 선 방패벽 오크끼리 �
 const DRUM := Color("e8c070")  # 전쟁 북(S321) 반경 고리(I265 ⑥)
 const HURL_UP := 14.0  # 던져진 오크(S324)를 한가운데에서 들어 올리는 높이(px, I268 ⑤). 임시값
 const CHAIN := Color("c8ccd4")  # 사슬 오크가 던진 사슬 선(I269 ⑤)
-const EDICT := {"rush": Color("ef3a0c"), "shield": Color("60a8f0")}  # 군령(S343)이 걸린 적 머리 위 표시의 색(I283 ②): 돌격령 빨강 · 방패령 파랑
-const SILENCE := Color("9aa4b8")  # 침묵(S347)이 걸린 영웅 머리 위 ✕(I283 ⑥)
+const EDICT := {"rush": Color("ef3a0c"), "shield": Color("60a8f0")}  # 군령(S345)이 걸린 적 머리 위 표시의 색(I285 ②): 돌격령 빨강 · 방패령 파랑
+const SILENCE := Color("9aa4b8")  # 침묵(S349)이 걸린 영웅 머리 위 ✕(I285 ⑥)
 const REGEN := Color("7fbf3b")  # 재생(S327)이 도는 적 머리 위 십자(I271 ③)
 const LOB_UP := 20.0  # 쌍둥이 트롤이 던진 바위·몸(S329)을 한가운데에서 들어 올리는 높이(px, I273 ⑥). 임시값
 const BOULDER := [Color("684c3c"), Color("927e6a")]  # 쌍둥이 트롤이 던진 바위의 [몸, 밝은 면](I273 ⑥). 테는 PX.soot
@@ -3558,7 +3558,7 @@ func _tells() -> void:
 		if not e.skills.has(e.cast.id):  # 일반 적 예고(S279): 폭파병 도화선
 			_foe_tell(e)
 			continue
-		if e.cast.id in ["mgun", "cleave", "breath", "tail", "roar"]:  # 전쟁 기계 기관총(S287)·대장 철퇴(S288)·떨어진 와이번 숨결·꼬리(S311)·내린 대족장 포효(S347)는 부채꼴
+		if e.cast.id in ["mgun", "cleave", "breath", "tail", "roar"]:  # 전쟁 기계 기관총(S287)·대장 철퇴(S288)·떨어진 와이번 숨결·꼬리(S311)·내린 대족장 포효(S349)는 부채꼴
 			_fan_tell(e)
 			continue
 		if e.cast.id in ["charge", "rush", "chain"]:  # 대장 돌진(S288)·떨어진 와이번 맹진(S311)·오크 대족장 사슬 갈고리(S340 ②)는 직선
@@ -3790,7 +3790,7 @@ func _foe_tells() -> void:
 	for l in battle.lobs:  # 바위·몸이 나는 동안에도 떨어질 자리에 빨강 테(I273 ⑥)
 		_edge(Vector2i(_center(l.at).floor()), int(CELL * l.radius), TELL, PX.maroon)
 
-# 오크 대족장의 새 기믹 표시(S342~S347, I283). 몸통 위 층에 그린다.
+# 오크 대족장의 새 기믹 표시(S344~S349, I285). 몸통 위 층에 그린다.
 # 결투장: 열린 결투의 원(보라 두 겹). 사슬 족쇄: 묶인 두 영웅의 가슴을 잇는 사슬 선. 처형 선고: 표식 영웅 머리 위에 남은 시간만큼 줄어드는 빨강 고리와 ✕.
 # 침묵: 영웅 머리 위 회색 ✕. 군령: 보이는 적마다 머리 위 짧은 꺾쇠(돌격령 빨강 ∧ · 방패령 파랑 ∨). 전쟁 깃발: 깃대와 깃발, 불굴 반경 고리
 func _feud_marks() -> void:

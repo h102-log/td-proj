@@ -4118,8 +4118,8 @@ func ev993():
 	_done(main)
 	return check(before.is_empty() and said.size() == 1, "부르기 전 토스트 %s(없어야 한다) · 부른 뒤 토스트 %s(하나여야 한다)" % [before, said])
 
-# EV1002 · S343 ③: 군령이 내려지면(battle.edicts가 늘면) 그 군령의 토스트가 뜬다 — 돌격령 «군령: 돌격! …», 방패령 «군령: 방패! …»
-func ev1002():
+# EV1022 · S345 ③: 군령이 내려지면(battle.edicts가 늘면) 그 군령의 토스트가 뜬다 — 돌격령 «군령: 돌격! …», 방패령 «군령: 방패! …»
+func ev1022():
 	var main = _prep()
 	var b = main.view.battle
 	if not "edicts" in b:

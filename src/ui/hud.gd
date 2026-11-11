@@ -256,8 +256,8 @@ var _gear_rows := []  # 장비마다 [영웅 종류, 줄 글, 제작·강화 버
 var relic_rows := []  # 유물마다 [유물 id, 줄, 줄 글, 강화 버튼, 영웅 바꾸기 버튼](S334, I278 ⑤). 장비 칸의 장비 줄 아래
 var _floors_seen := 0  # 지난 프레임의 깬 층 수. 늘면 층 보상 토스트를 띄운다(S333)
 var _horns_seen := 0  # 지난 프레임의 군단 호출 횟수(battle.horns). 늘면 토스트를 띄운다(S341 ①)
-var _edicts_seen := 0  # 지난 프레임의 군령 횟수(battle.edicts). 늘면 토스트를 띄운다(S343 ③)
-const EDICT_TEXT := {"rush": "군령: 돌격! — 모든 적이 빨라진다", "shield": "군령: 방패! — 모든 적이 화살과 구슬을 덜 받는다"}  # 군령 토스트(S343 ③)
+var _edicts_seen := 0  # 지난 프레임의 군령 횟수(battle.edicts). 늘면 토스트를 띄운다(S345 ③)
+const EDICT_TEXT := {"rush": "군령: 돌격! — 모든 적이 빨라진다", "shield": "군령: 방패! — 모든 적이 화살과 구슬을 덜 받는다"}  # 군령 토스트(S345 ③)
 var _seen := ""  # 마지막으로 본 판 단계. 바뀌었을 때 결과 창이 떠 있으면 포커스를 준다
 var _wait := 0.0  # 결과 창이 뜨기까지 남은 시간(초, S117). 트리가 멈추는 ESC 메뉴 동안에는 줄지 않는다
 var tags := []  # 고른 영웅·용병의 상황 태그 [A 공격 이동, S 정지, H 홀드](I139)
@@ -655,7 +655,7 @@ func _process(delta: float) -> void:
 	if battle.horns > _horns_seen:  # 군단 호출 토스트(S341 ①, I282 ④)
 		toasts.push("대족장이 군단을 불렀다")
 	_horns_seen = battle.horns
-	if battle.edicts > _edicts_seen and EDICT_TEXT.has(battle.edict.get("kind", "")):  # 군령 토스트(S343 ③, I283 ②)
+	if battle.edicts > _edicts_seen and EDICT_TEXT.has(battle.edict.get("kind", "")):  # 군령 토스트(S345 ③, I285 ②)
 		toasts.push(EDICT_TEXT[battle.edict.kind])
 	_edicts_seen = battle.edicts
 	again.visible = raiding and battle.raid_pending()  # «다시» 창(S331)
