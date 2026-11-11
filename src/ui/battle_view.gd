@@ -29,8 +29,7 @@ const TWINS := [Color(1.45, 1.1, 0.4), Color(0.8, 0.95, 1.3)]  # 쌍둥이 트�
 const LOOKS := {"feather_harpy": ["flying", Color(0.75, 1.2, 1.7)], "dive_harpy": ["flying", Color(1.7, 1.0, 0.6)], "song_harpy": ["flying", Color(1.45, 0.85, 1.75)],
 	"storm_harpy": ["flying", Color(0.85, 1.65, 1.35)], "snatch_harpy": ["flying", Color(1.65, 1.5, 0.65)],
 	"nest_harpy": ["flying", Color(1.3, 1.6, 0.8)], "harpy_chick": ["flying", Color(1.8, 1.7, 1.6)],
-	"shield_orc": ["armored", Color(0.8, 1.0, 1.5)], "berserker": ["armored", Color(1.25, 0.95, 0.8)], "drummer": ["armored", Color(1.4, 1.25, 0.6)],
-	"ogre_thrower": ["boss", Color(0.8, 1.2, 0.7)], "chain_orc": ["armored", Color(0.75, 1.35, 1.05)], "twin_troll": ["troll", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발은 제 그림이다(I287). 오우거 투척꾼은 오우거 그림, 사슬 오크는 장갑(오크) 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)
+	"ogre_thrower": ["boss", Color(0.8, 1.2, 0.7)], "twin_troll": ["troll", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288)는 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)
 const NOTE := Color("d8b0ff")  # 노래(S306)로 공격 속도가 느려진 아군 머리 위 음표와 노래 반경 고리의 색(I252 ④)
 const FEATHER := Color("f4f0e8")  # 날아가는 깃털(I250 ④)
 const WALL := Color("e8f0ff")  # 방패벽(S319)을 선 방패벽 오크끼리 잇는 선(I263 ⑤)
@@ -213,7 +212,7 @@ const STILL_TELL := ["fling"]  # 예고 끝에도 정지 그림인 스킬 시트
 const PEAK := {"grab": [1, 2], "fling": [0, 1]}  # 없으면 [1]. 집어 던지기는 집음 → 놓음, 집게 던지기는 집음 → 치켜듦
 const WINDS := ["order", "horn", "banner", "duel"]  # 예고 내내 0열을 들고 있다가 끝 LIFT초에 1열을 그리는 스킬 시트(I287 ④): 발동 흔적이 없는 뿔나팔·깃대·결투 신청
 const STRUCK := ["verdict"]  # 발동 자세가 흔적 자리 쪽을 보는 스킬 시트(I287 ④): 처형 내려찍기는 내려찍은 영웅 쪽
-const SWAY := 0.4  # 전쟁 깃발 천이 흔들리는 간격(초, I287 ③). 임시값
+const SWAY := 0.4  # 정지 중 2열(sway 시트)을 번갈아 그리는 간격(초): 전쟁 깃발 천(I287 ③), 전쟁 북 고수의 북채(I288 ③). 임시값
 const LANDING := "leap"  # 착지 흔적(slam)의 시트가 없는 보스가 착지 뒤 그리는 시트(대장 착지 웅크림)
 const WRECK_FADE := 0.5  # 수레 잔해가 지워지기(battle.WRECK) 전에 흐려지는 시간(초, S172 2026-11-05 변경 ⑥)
 const FAN_TURN := 20.0  # 시트 자세 ±40°의 가운데
@@ -2928,6 +2927,14 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 	elif moving or x.get("climbed"):
 		anim = "land_walk" if land else "walk"
 		col = int(Time.get_ticks_msec() / 125.0) % 2
+	if x.get("snag") != null and x.loosed < CHAIN_SHOW and ART[x.kind].has("hook"):  # 사슬 오크(I288 ④): 던진 뒤 사슬 선을 그리는 동안은 던진 자세를 사슬 끝 쪽으로
+		anim = "hook"
+		col = 1
+		dir = _four((x.snag if x.snag is Vector2 else x.snag.pos) - x.pos)
+	elif cast != null and cast.id == "hook" and ART[x.kind].has("hook"):  # 사슬 예고 내내 갈고리를 머리 위로 돌리는 자세를 띠 쪽으로
+		anim = "hook"
+		col = 0
+		dir = _four(Vector2.from_angle(cast.dir))
 	var off := Vector2.ZERO
 	var hop := 0.0  # 그림자는 그대로 두고 그림만 드는 높이(px)
 	if _boss(x):  # 보스 스킬(S198): 예고 끝에 들어 올렸다가 발동하면 내리찍는다. 원 모양 스킬은 화면 쪽(S)을, 방향 스킬은 그쪽을 본다
@@ -3023,7 +3030,7 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 		col = BLOW[x.kind][1]
 	if (anim == "idle" or anim == "walk") and ART[x.kind].has("rage_" + anim) and battle.raging(x):  # 분노 중 정지·걷기는 망토를 찢어 던진 몸(S172 2026-11-05 변경 ④)
 		anim = "rage_" + anim
-	if anim == "idle" and ART[x.kind].has("sway"):  # 전쟁 깃발(I287 ③): 천이 SWAY초마다 좌우로 쏠린다
+	if anim == "idle" and ART[x.kind].has("sway"):  # 정지 중 2열을 SWAY초마다 번갈아 그리는 시트: 전쟁 깃발의 천(I287 ③), 전쟁 북 고수의 북채(I288 ③)
 		anim = "sway"
 		col = int(clock / SWAY) % 2
 	next[id] = [x.pos, dir]

@@ -200,16 +200,8 @@ func ev904():
 	hurt.hp = 25.0
 	var red = _cut(v, hurt)
 	v.free()
-	var srcs: Array = got.map(func(x): return x[1])
-	if srcs.any(func(x): return x != srcs[0]):
-		return "원본 사각형이 장갑과 다르다: %s" % [srcs]
-	var tints: Array = got.map(func(x): return x[2])
-	for i in tints.size():
-		for j in range(i + 1, tints.size()):
-			if tints[i] == tints[j]:
-				return "색이 같다: %s" % [tints]
-	if red == null or red[2] == tints[2]:
-		return "체력 25%%인 광전사 오크의 색이 가득일 때와 같다(%s)" % [tints[2]]
+	if red == null or red[2] == got[2][2]:
+		return "체력 25%%인 광전사 오크의 색이 가득일 때와 같다(%s)" % [got[2][2]]
 	var linked := []
 	for x in [11.0, 13.0]:
 		var c = battle()
@@ -484,7 +476,7 @@ func ev920():
 	var v = _rec(b)
 	var got := {}
 	var n := 0
-	for k in ["boss", OT, "armored", CH, SO, BK, DR]:
+	for k in ["boss", OT]:
 		var one = _cut(v, _still(b, k, Vector2(3 + n * 3, 5 + 6 * (n % 2)), {"hp": 100.0}))
 		n += 1
 		if one == null:
@@ -492,10 +484,8 @@ func ev920():
 			return "%s 몸통이 그림 한 장이 아니다(%d장)" % [k, v.cuts.size()]
 		got[k] = one
 	v.free()
-	if got[OT][1] != got["boss"][1] or got[CH][1] != got["armored"][1]:
-		return "원본 사각형: 투척꾼 %s(오우거 %s) · 사슬 오크 %s(장갑 %s)" % [got[OT][1], got["boss"][1], got[CH][1], got["armored"][1]]
-	if got[OT][2] == got["boss"][2] or ["armored", SO, BK, DR].any(func(k): return got[k][2] == got[CH][2]):
-		return "색이 같다: 투척꾼 %s·오우거 %s · 사슬 오크 %s·장갑 %s·방패벽 %s·광전사 %s·북 고수 %s" % [got[OT][2], got["boss"][2], got[CH][2], got["armored"][2], got[SO][2], got[BK][2], got[DR][2]]
+	if got[OT][1] != got["boss"][1] or got[OT][2] == got["boss"][2]:
+		return "투척꾼 원본 사각형 %s(오우거 %s) · 색 %s(오우거 %s와 달라야 한다)" % [got[OT][1], got["boss"][1], got[OT][2], got["boss"][2]]
 	var g := _toss([Vector2(11, 10)], [["archer", Vector2i(15, 10), MUTE]])
 	var t = g[1]
 	var a = g[2][0]
@@ -566,3 +556,129 @@ func ev920():
 	var gone: bool = not links.call()
 	u.free()
 	return check(shown and rim == 4 and drawn and gone and m.hp == m.max_hp, "사슬 예고: 그리는 적에 %s · 띠 테두리 선 %d(4) · 빗나간 다음 스텝에 사슬 선 %s · 0.5초 뒤 사슬 선 없음 %s · 병사가 잃은 체력 %s(0)" % [shown, rim, drawn, gone, _lost(m)])
+
+# ── 5라운드 오크 넷의 그림(I288) ──
+
+const HORDE_ART := {SO: ["idle", "walk", "attack", "fall"], BK: ["idle", "walk", "attack", "fall"],
+	DR: ["idle", "walk", "attack", "sway", "fall"], CH: ["idle", "walk", "attack", "hook", "fall"]}  # 종류 → 그림 칸의 자세
+const PAIR := ["walk", "sway", "hook"]  # 2열 자세(나머지는 1열)
+
+# EV1031 · I288: 네 종류의 그림 칸이 heroes.json에 있고 칸마다 그림이 있다. 칸은 근위대·깃발 열의 깃발 아래에 위에서부터 쌓이고
+# 서로도 근위대·깃발과도 겹치지 않는다. 칸마다 몸의 높이(head)가 정지 그림에 맞다. 아틀라스 크기는 그대로다
+func ev1031():
+	var art: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/units/heroes.json"))
+	var img: Image = load("res://art/units/heroes.png").get_image()
+	var whole := Rect2i(Vector2i.ZERO, img.get_size())
+	var bad := []
+	var rects := []  # [이름, 시트 사각형]
+	for k in HORDE_ART:
+		if not art.has(k):
+			return "heroes.json에 %s 칸이 없다" % k
+		var a: Dictionary = art[k]
+		var missing: Array = HORDE_ART[k].filter(func(s): return not a.has(s))
+		if not a.has("x") or a.has("one") or not missing.is_empty():
+			bad.append("%s 칸 x %s · one %s(없어야 한다) · 없는 자세 %s" % [k, a.get("x"), a.get("one"), missing])
+			continue
+		var c := int(a.c)
+		var x := int(a.x)
+		var top := c  # 정지 그림의 가장 높은 불투명 줄(칸 안 y)
+		for r in 4:
+			for y in top:
+				if not img.get_region(Rect2i(x, int(a.idle) + r * c + y, c, 1)).is_invisible():
+					top = y
+					break
+		if not a.has("head") or int(a.head) != int(a.anchor[1]) - maxi(0, top - 3):
+			bad.append("%s head %s(기준점 y %d − max(0, 정지 그림 맨 윗줄 %d − 3))" % [k, a.get("head"), int(a.anchor[1]), top])
+		for s in HORDE_ART[k]:
+			var n := c * (2 if s in ["attack", "fall"] else 1)
+			var cols := 2 if s in PAIR else 1
+			var rows := 1 if s == "fall" else 4
+			rects.append(["%s %s" % [k, s], Rect2i(x, int(a[s]), cols * n, rows * n)])
+			for r in rows:
+				for q in cols:
+					var cell := Rect2i(x + q * n, int(a[s]) + r * n, n, n)
+					if not whole.encloses(cell):
+						bad.append("%s %s %d행 %d열 %s가 그림 밖" % [k, s, r, q, cell])
+					elif img.get_region(cell).is_invisible():
+						bad.append("%s %s %d행 %d열 빈 칸" % [k, s, r, q])
+	if not bad.is_empty():
+		return "; ".join(bad.slice(0, 6))
+	var flag: Dictionary = art.warbanner
+	var floor_y: int = int(flag.sway) + int(flag.c)  # 깃발 칸의 아래 끝
+	var top_y: int = int(art.soldier.idle)  # 영웅 구역의 아래 끝
+	var order := [SO, BK, DR, CH]
+	for i in order.size():
+		if int(art[order[i]].x) != int(art.warguard.x):
+			bad.append("%s x %d(근위대·깃발 열 %d)" % [order[i], int(art[order[i]].x), int(art.warguard.x)])
+		if int(art[order[i]].idle) < (floor_y if i == 0 else int(art[order[i - 1]].idle) + 1):
+			bad.append("%s 정지 y %d가 %s 아래가 아니다" % [order[i], int(art[order[i]].idle), "깃발" if i == 0 else order[i - 1]])
+	for i in rects.size():
+		var r: Rect2i = rects[i][1]
+		if r.position.y < floor_y or r.end.y > top_y or not whole.encloses(r):
+			bad.append("%s %s가 깃발 아래(y %d~)·영웅 구역(~%d) 안이 아니다" % [rects[i][0], r, floor_y, top_y])
+		for j in i:
+			if r.intersects(rects[j][1]):
+				bad.append("%s와 %s가 겹친다" % [rects[i][0], rects[j][0]])
+	if img.get_size() != Vector2i(828, 15656):
+		bad.append("아틀라스 %s(828×15656)" % [img.get_size()])
+	return check(bad.is_empty(), "; ".join(bad.slice(0, 6)))
+
+# EV1032 · I288: 네 종류는 빌린 그림 표에 없이 제 칸의 그림 한 장을 흰색으로 그린다. 북 고수는 정지 중 북 치기 2열을 0.4초마다 번갈아 그리고,
+# 사슬 오크는 사슬 예고 내내 hook 0열을, 던진 뒤 사슬 선을 그리는 동안 hook 1열을 사슬 쪽으로 그린다
+func ev1032():
+	var b = battle()
+	var why := _need(b, [SO, BK, DR, CH])
+	if why != "":
+		return why
+	var looks: Dictionary = (load("res://src/ui/battle_view.gd") as Script).get_script_constant_map().get("LOOKS", {})
+	if [SO, BK, DR, CH].any(func(k): return looks.has(k)):
+		return "빌린 그림 표에 %s(넷 다 없어야 한다)" % [[SO, BK, DR, CH].filter(func(k): return looks.has(k))]
+	var v = _rec(b)
+	v.clock = 0.0
+	var art: Dictionary = v.ART
+	var bad := []
+	var n := 0
+	var body := {}
+	for k in [SO, BK, DR, CH]:
+		var e = _still(b, k, Vector2(4 + n * 5, 5), {"hp": 100.0})
+		body[k] = e
+		var one = _cut(v, e)
+		n += 1
+		if one == null:
+			bad.append("%s 몸통이 그림 한 장이 아니다(%d장)" % [k, v.cuts.size()])
+			continue
+		var a: Dictionary = art[k]
+		var c := float(a.c)
+		var sheet: String = "sway" if k == DR else "idle"
+		var src: Rect2 = one[1]
+		var own: bool = src.size == Vector2(c, c) and src.position.x == a.x and src.position.y >= a[sheet] and src.position.y < a[sheet] + 4 * c
+		if not own or one[0].size != Vector2(c, c) or one[2] != Color.WHITE:
+			bad.append("%s 원본 %s(제 %s 칸 x %d y %d, 칸 %d) · 대상 크기 %s(칸 그대로) · 색 %s(흰색)" % [k, src, sheet, int(a.x), int(a[sheet]), int(c), one[0].size, one[2]])
+	if not bad.is_empty():
+		v.free()
+		return "; ".join(bad)
+	var poses := []  # [이름, 그린 원본 자리, 맞는 원본 자리]
+	var shot := func(name: String, e, want: Vector2):
+		var one = _cut(v, e)
+		poses.append([name, one[1].position if one != null else null, want])
+	var dr: Dictionary = art[DR]
+	v.clock = 0.4
+	shot.call("북 고수 정지 0.4초(sway 1열)", body[DR], Vector2(dr.x + dr.c, _cut(v, body[DR])[1].position.y))
+	v.clock = 0.8
+	shot.call("북 고수 정지 0.8초(sway 0열)", body[DR], Vector2(dr.x, _cut(v, body[DR])[1].position.y))
+	var ch: Dictionary = art[CH]
+	var cc := float(ch.c)
+	var o = body[CH]
+	o.cast = {"id": "hook", "left": 0.5, "dir": 0.0, "to": o.pos + Vector2(5, 0)}
+	shot.call("사슬 예고 중(hook 0열, 띠 쪽 동)", o, Vector2(ch.x, ch.hook + cc))
+	o.cast = null
+	o.snag = o.pos + Vector2(5, 0)
+	o.loosed = 0.0
+	shot.call("사슬을 던진 직후(hook 1열, 사슬 끝 쪽 동)", o, Vector2(ch.x + cc, ch.hook + cc))
+	o.loosed = 0.5
+	shot.call("던진 뒤 0.5초(정지, 보던 쪽 동)", o, Vector2(ch.x, ch.idle + cc))
+	v.free()
+	for p in poses:
+		if p[1] == null or not Vector2(p[1]).is_equal_approx(p[2]):
+			bad.append("%s: 원본 자리 %s(%s)" % p)
+	return check(bad.is_empty(), "; ".join(bad))

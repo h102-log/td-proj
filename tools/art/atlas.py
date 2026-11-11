@@ -14,7 +14,7 @@
 # 트롤(I274)은 주민 띠 오른쪽의 수레 잔해 아래에 쌓는다(x만). 싸움꾼과 쌍둥이가 같은 칸을 쓴다
 # 늑대 기수(I279 ⑤)는 트롤 아래에 쌓는다(x만). 쓰러지지 않고 내리므로 누운 자세 칸이 없다
 # 오크 대족장 군단 넷(I287)은 와이번 오른쪽에 쌓는다(x만, 깃발은 one): 대족장 둘을 한 열에, 근위대와 깃발을 그 오른쪽 열에. 한 열로는 영웅 구역 높이를 넘는다.
-# 같은 자세를 쓰는 스킬은 같은 칸을 가리킨다(SAME).
+# 같은 자세를 쓰는 스킬은 같은 칸을 가리킨다(SAME). 5라운드 오크 넷(I288)은 근위대·깃발 열의 깃발 아래에 쌓는다.
 # 스킬 자세까지 넣어 캔버스를 맞춰 발밑 기준점이 머리보다 높으므로, 몸의 높이(head)를 따로 적는다
 # 시설(4.1e)은 48×48 칸을 따로 한 장에 모은다(facility())
 # 사용: python tools/art/atlas.py → art/units/heroes.png, art/units/heroes.json, art/castle/walls.png, art/castle/keep.png, art/castle/ladder.png, art/castle/facility.png
@@ -33,7 +33,7 @@ FOUR_COLS = {"idle": [0], "walk": [0, 1], "attack": [1], "fall": [4], "crouch": 
              "cannon": [0, 1], "mgun": [0, 1, 2], "grab": [0, 1, 2], "slam": [0, 1],
              "rage_idle": [0], "rage_walk": [0, 1], "cleave": [0, 1], "charge": [0, 1], "fling": [0, 1], "bombs": [0, 1], "leap": [0, 1],
              "plunge": [0, 1], "carpet": [0, 1], "breath": [0, 1], "rush": [0, 1], "tail": [0, 1],
-             "order": [0, 1], "aim": [0, 1], "horn": [0, 1], "banner": [0, 1], "roar": [0, 1], "verdict": [0, 1], "sway": [0, 1]}  # 걷기 접지·통과, 공격 내려침, 쓰러짐 마지막(누운 자세). 전쟁 기계·대장 스킬은 시트 열을 모두 쓴다
+             "order": [0, 1], "aim": [0, 1], "horn": [0, 1], "banner": [0, 1], "roar": [0, 1], "verdict": [0, 1], "sway": [0, 1], "hook": [0, 1]}  # 걷기 접지·통과, 공격 내려침, 쓰러짐 마지막(누운 자세). 전쟁 기계·대장 스킬은 시트 열을 모두 쓴다
 ONE = {k: k for k in ("slimelet", "slime", "big_slime", "slime_king")}  # 방향 없는 적(S172 2026-10-27 넷째 변경): 게임 종류 → 그림 폴더
 WOLVES = {"wolf": (), "leap_wolf": ("crouch",), "night_wolf": (), "alpha_wolf": ("crouch", "air")}  # 옆 열 4방향 적(S172 2026-10-29 변경) → 더 굽는 자세
 RAID = {"sapper": ("fall",), "ram": (), "catapult": (), "glider": ("fall", "land_idle", "land_walk")}  # 둘째 옆 열 4방향 적(S172 2026-11-03 변경) → 정지·걷기·공격 말고 넣는 자세
@@ -46,7 +46,9 @@ HERO_SIDE = {"wyvern": ["idle", "walk", "attack", "plunge", "carpet"],
              "wyvern_fallen": ["idle", "walk", "attack", "breath", "rush", "tail", "fall"]}  # 영웅 구역 오른쪽 4방향 칸(S172 2026-11-10 변경): 와이번, 그 아래 떨어진 와이번 → 자세
 WARHOST = [{"warchief": ["idle", "walk", "attack", "charge", "order", "aim", "fall"],  # 와이번 오른쪽 열(I287 ⑤): 오크 대족장(누운 자세는 내린 뒤 쓰러진 전쟁 늑대),
             "warchief_foot": ["idle", "walk", "attack", "horn", "banner", "roar", "verdict", "fall"]},  # 그 아래 내린 대족장
-           {"warguard": ["idle", "walk", "attack", "fall"], "warbanner": ["idle", "sway"]}]  # 그 오른쪽 열: 대족장 근위대, 그 아래 전쟁 깃발(방향 없는 한 행) → 자세
+           {"warguard": ["idle", "walk", "attack", "fall"], "warbanner": ["idle", "sway"],  # 그 오른쪽 열: 대족장 근위대, 그 아래 전쟁 깃발(방향 없는 한 행),
+            "shield_orc": ["idle", "walk", "attack", "fall"], "berserker": ["idle", "walk", "attack", "fall"],  # 그 아래 5라운드 오크 넷(I288 ⑤): 방패벽 오크, 광전사 오크,
+            "drummer": ["idle", "walk", "attack", "sway", "fall"], "chain_orc": ["idle", "walk", "attack", "hook", "fall"]}]  # 전쟁 북 고수(정지 중 북 치기 2열), 사슬 오크(갈고리 던지기 2열) → 자세
 SAME = {"warchief": {"chain": "aim", "shackle": "aim", "duel": "aim"}}  # 종류 → {스킬: 같은 칸을 쓰는 자세}. 사슬 갈고리·사슬 족쇄·결투 신청은 겨눔 자세 한 벌이다
 
 
