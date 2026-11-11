@@ -152,3 +152,47 @@ def test_EV962_relic_row_in_gear_tab(gd):
 
 def test_EV963_floor_reward_toast(gd):
     gd("den", "EV963")
+
+
+def test_EV971_floor2_data_and_floor_order(gd):
+    gd("den", "EV971")
+
+
+def test_EV972_floor2_opens_round3_alpha_stands_still(gd):
+    gd("den", "EV972")
+
+
+def test_EV973_prey_is_farthest_tie_taunt(gd):
+    gd("den", "EV973")
+
+
+def test_EV974_wall_charge_dodged_opens_groggy(gd):
+    gd("den", "EV974")
+
+
+def test_EV975_wall_charge_hit_and_move_charge_no_groggy(gd):
+    gd("den", "EV975")
+
+
+def test_EV976_pounce_pins_after_dash_and_damage_rescue(gd):
+    gd("den", "EV976")
+
+
+def test_EV977_cleanse_and_stun_attempt_rescue(gd):
+    gd("den", "EV977")
+
+
+def test_EV978_failed_rescue_stacks_frenzy_capped(gd):
+    gd("den", "EV978")
+
+
+def test_EV979_pounce_counter_window_interrupt(gd):
+    gd("den", "EV979")
+
+
+def test_EV980_floor2_plan_order_rests_and_brand(gd):
+    gd("den", "EV980")
+
+
+def test_EV981_boss_bar_frenzy_scale_and_floor2_reward(gd):
+    gd("den", "EV981")
