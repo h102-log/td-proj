@@ -196,3 +196,83 @@ def test_EV980_floor2_plan_order_rests_and_brand(gd):
 
 def test_EV981_boss_bar_frenzy_scale_and_floor2_reward(gd):
     gd("den", "EV981")
+
+
+def test_EV994_floor3_definition_and_floor_order(gd):
+    gd("den", "EV994")
+
+
+def test_EV995_floor3_opens_round4_machine_stands(gd):
+    gd("den", "EV995")
+
+
+def test_EV996_cannon_farthest_mgun_nearest_taunt(gd):
+    gd("den", "EV996")
+
+
+def test_EV997_shell_follows_locks_and_returns_groggy(gd):
+    gd("den", "EV997")
+
+
+def test_EV998_shell_hit_and_untouching_shell_no_groggy(gd):
+    gd("den", "EV998")
+
+
+def test_EV999_mgun_fan_ticks_no_groggy_beat_after_fire(gd):
+    gd("den", "EV999")
+
+
+def test_EV1000_steam_vent_hit_and_counter_window(gd):
+    gd("den", "EV1000")
+
+
+def test_EV1001_machine_breaks_into_chief_wreck_and_reward(gd):
+    gd("den", "EV1001")
+
+
+def test_EV1002_chief_leap_dodge_groggy_hit_and_far_hop(gd):
+    gd("den", "EV1002")
+
+
+def test_EV1003_cleave_fan_and_bombs_spots(gd):
+    gd("den", "EV1003")
+
+
+def test_EV1004_charge_stops_at_wreck_run_rule_and_dash_passes(gd):
+    gd("den", "EV1004")
+
+
+def test_EV1005_gold_circle_needs_three(gd):
+    gd("den", "EV1005")
+
+
+def test_EV1006_floor3_plans_order_and_rests(gd):
+    gd("den", "EV1006")
+
+
+def test_EV1007_boss_bar_names_scales_and_floor3_reward(gd):
+    gd("den", "EV1007")
+
+
+def test_EV1008_retry_and_retreat_clear_wreck(gd):
+    gd("den", "EV1008")
+
+
+def test_EV1009_enrage_ramp_on_shell_mgun_cleave_bombs(gd):
+    gd("den", "EV1009")
+
+
+def test_EV1010_chief_rage_shortens_rest(gd):
+    gd("den", "EV1010")
+
+
+def test_EV1011_cog_relic_speeds_e_slot_only(gd):
+    gd("den", "EV1011")
+
+
+def test_EV1012_floor3_hint_after_first_raid_hint(gd):
+    gd("den", "EV1012")
+
+
+def test_EV1013_shell_touch_ring_and_wreck_burst(gd):
+    gd("den", "EV1013")

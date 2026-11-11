@@ -1817,6 +1817,18 @@ msgstr "Leaving now returns you to the preparation phase before the expedition (
 msgid "점액 왕"
 msgstr "Slime Sovereign"
 
+msgid "전쟁 기계"
+msgstr "War Machine"
+
+msgid "톱니"
+msgstr "Cog"
+
+msgid "E 대기 %d%% 빠름"
+msgstr "E cooldown %d%% faster"
+
+msgid "포탄 원을 기계 옆에서 굳힌다\n대장 돌진은 잔해나 벽에 박는다"
+msgstr "Lock the shell by the machine\nBait the charge into wreck or wall"
+
 msgid "다시 (횃불 1)"
 msgstr "Retry (1 torch)"
 

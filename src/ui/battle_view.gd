@@ -336,6 +336,7 @@ void fragment() {
 var battle
 var controls  # 고른 유닛에 테두리를 그린다
 var _seen := {}  # 영웅·용병·적 → [지난 위치, 방향]
+var _broken := {}  # 지난 프레임에 있던 원정의 잔해(부서진 몸 id → true, S342 ⑭). 새로 생긴 프레임에만 부서짐 사건을 낸다
 var _wreck_dirs := {}  # 수레 잔해를 남긴 몸 → 잔해가 보는 쪽(처음 그릴 때 그 몸의 _seen 방향, S172 2026-11-05 변경 ⑥)
 var _hits := {}  # 방금 맞은 영웅·용병·적 id → [맞은 뒤 지난 시간(초), 공격자 → 대상 방향, 밀림(px), 돌아오는 시간(초), 강철 점](S177, S198, hit_table). _bodies마다 다시 구한다
 var ground: ImageTexture  # 바닥을 한 장으로 구운 것. 마을·출현 지점은 도전 내내 같아서(I91) 처음 한 번만 굽는다
@@ -3029,8 +3030,8 @@ func _wreck(w: Dictionary) -> void:
 	if not _wreck_dirs.has(id):
 		var seen = _seen.get(id)
 		_wreck_dirs[id] = seen[1] if seen else 0
-	var a := clampf((battle.WRECK - w.age) / WRECK_FADE, 0.0, 1.0)
-	_frame(ART.wreck, "idle", _wreck_dirs[id], 0, _center(w.at), Color(1, 1, 1, a))
+	var a := 1.0 if w.get("raid", false) else clampf((battle.WRECK - w.age) / WRECK_FADE, 0.0, 1.0)  # 원정의 잔해(S342 ④)는 흐려지지 않고 기계 그림 배율로 그린다(I283 ⑨)
+	_frame(ART.wreck, "idle", _wreck_dirs[id], 0, _center(w.at), Color(1, 1, 1, a), Vector2.ONE * w.get("size", 1.0))
 
 # 쓰러진 몸 하나(S180): 4.1d 누운 자세. 영웅은 쓰러짐 5프레임을 지나 누운 채 남고, 적·용병은 바로 누워 지워지기 전 CORPSE_FADE 동안 흐려진다.
 # 성벽 위에서 쓰러지면 성벽 위에, 오르던 적은 성벽 밑에, 비행 적은 그림자 자리에 눕는다. 막타를 기다리거나 번쩍이는 동안은 선 자세다(S197)
@@ -3351,6 +3352,14 @@ func _scan() -> void:
 			if not _bounced.has(e.get_instance_id()):
 				_emit("deflect", _spot(e) - Vector2(0, _head(e) * _shrunk(e) * 0.5), Vector2.ZERO, null, e, {"radius": CELL * e.radius})
 	_bounced = bounced
+	var broken := {}
+	for w in battle.wrecks:  # 원정의 수레가 부서짐(S342 ⑭, I284 ⑤): 원정의 잔해가 새로 생긴 프레임에만 낸다
+		if w.get("raid", false):
+			var id: int = w.who.get_instance_id()
+			broken[id] = true
+			if not _broken.has(id):
+				_emit("wreck", _center(w.at), Vector2.ZERO, null, w.who, {"radius": CELL * battle.raid_floor.get("wreck", 1.0)})
+	_broken = broken
 	for c in battle.rubble:  # 성곽 칸 붕괴
 		if not _rubble.has(c):
 			_emit("collapse", _center(battle.middle(battle.rubble[c])), Vector2.ZERO, null, battle.rubble[c], {"cell": c})
@@ -3446,6 +3455,14 @@ func _react(e: Dictionary) -> void:
 				var d := Vector2.from_angle(deg_to_rad(i * 30.0 + _h(e.n, i, -5, 5)))
 				var p: Vector2 = e.at + d * (e.radius + 1.0)
 				_dot({"p0": p, "p1": p + d * _h(e.n, 20 + i, 6, 9), "col": TELL, "to": Color("efac28"), "size": Vector2(3, 3), "life": 0.3, "fade": 0.15})
+		"wreck":  # 원정의 수레가 부서진 순간(S342 ⑭, I284 ⑤): 잔해 둘레에서 먼지 12점이 바깥으로 퍼지고 부스러기 8점이 튀어 올랐다 떨어진다
+			for i in 12:
+				var d := Vector2.from_angle(deg_to_rad(i * 30.0 + _h(e.n, i, -12, 12)))
+				var flat := Vector2(d.x, d.y * 0.5)
+				_dot({"p0": e.at + flat * e.radius, "p1": e.at + flat * (e.radius * 2.0 + _h(e.n, 20 + i, 4, 12)), "rise": _h(e.n, 40 + i, 3, 6), "col": DUST, "size": Vector2(4, 4), "life": 0.7, "fade": 0.3})
+			for i in 8:
+				var d := Vector2.from_angle(deg_to_rad(i * 45.0 + _h(e.n, 60 + i, -15, 15)))
+				_dot({"p0": e.at - Vector2(0, 10), "p1": e.at + Vector2(d.x, d.y * 0.5) * (e.radius + _h(e.n, 70 + i, 8, 20)), "rise": _h(e.n, 80 + i, 14, 24), "col": DEBRIS, "size": Vector2(3, 3), "life": 0.6, "fade": 0.15, "wait": i * 0.02})
 		"deflect":  # 튕김(I277 ⑤): 가슴 높이의 몸 가장자리에서 불티 여섯이 위쪽 부채꼴로 흩어진다
 			for i in 6:
 				var d := Vector2.from_angle(deg_to_rad(-150.0 + i * 24.0 + _h(e.n, i, -8, 8)))
@@ -3579,17 +3596,29 @@ func _boss_tell(e) -> void:
 	var r := int(CELL * sk.radius)
 	for p in e.cast.get("spots", [e.cast.get("at", e.pos)]):  # 점프(S236)·착지(S288)는 착지 자리에, 뜬 동안은 가득 찬 채로(S198)
 		var at := Vector2i(_center(p).floor())
-		var hue: Array = TELL_HUES.get("blue" if battle.countering(e) else sk.get("color", ""), [])  # 대본 패턴(S326)은 칠 색으로 뜻을 가르고, 카운터 창 동안은 파랑이다
+		var stuck: bool = e.cast.has("mark") and e.cast.has("aimed")  # 굳은 포탄 원(S342 ①)은 빨강이다. 기계에 닿았으면 칠하고 아니면 테만 그린다
+		var hue: Array = TELL_HUES.get("blue" if battle.countering(e) else ("" if stuck else sk.get("color", "")), [])  # 대본 패턴(S326)은 칠 색으로 뜻을 가르고, 카운터 창 동안은 파랑이다
 		var lit: Color = PX[hue[0]] if not hue.is_empty() else TELL
 		if e.cast.get("aimed", true):  # 이동 뜀(S323 ②)은 테만 그린다
 			_pnoise(at, int(r * k), lit, TELL_FILL)
 		_edge(at, r, lit, PX[hue[1]] if not hue.is_empty() else PX.maroon)
+	var ring := shell_ring(e)
+	if not ring.is_empty():
+		_edge(ring[0], ring[1], ring[2], ring[3])
+
+# 포탄이 기계에 닿았다는 테(S342 ⑭, I284 ④): 포탄 원이 기계 몸에 닿아 있으면 [기계 발밑 가운데 px, 몸 반지름 px, 밝은 테, 어두운 테]이고, 아니면 [].
+# 따라다니는 동안은 보라, 굳은 뒤는 빨강이다
+func shell_ring(e) -> Array:
+	if not battle.shell_touch(e):
+		return []
+	var hue: Array = [] if e.cast.has("aimed") else TELL_HUES.violet
+	return [Vector2i(_center(e.pos).floor()), int(CELL * e.radius), PX[hue[0]] if not hue.is_empty() else TELL, PX[hue[1]] if not hue.is_empty() else PX.maroon]
 
 # 씨앗 표식(S326 ③)의 번호(I277 ⑦): 표식 원 가운데(표식 영웅) 머리 위에 그 영웅의 출전 칸 번호를 표식 색으로 그린다.
 # 예고(_tells)는 몸통 아래 층이라 몸에 가려서, 번호만 몸통 뒤에 따로 그린다
 func _brand_marks() -> void:
 	for e in tellers(_foes):
-		if e.cast.has("mark"):
+		if e.cast.has("mark") and not e.cast.has("aimed"):  # 굳은 포탄 원(S342 ①)에는 번호를 그리지 않는다(I283 ⑨)
 			var at := (_center(e.cast.at) + Vector2(-2, -_head(e.cast.mark) - 4)).floor()
 			var no := str(battle.heroes.find(e.cast.mark) + 1)
 			draw_string(PIXEL_FONT, at + Vector2(1, 1), no, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, PX[TELL_HUES.violet[1]])

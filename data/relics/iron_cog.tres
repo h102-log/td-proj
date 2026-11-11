@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RelicDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/relic_def.gd" id="1_relic"]
+
+[resource]
+script = ExtResource("1_relic")
+title = "톱니"
+steps = [{
+"cdr_e": 0.12
+}, {
+"cdr_e": 0.16
+}, {
+"cdr_e": 0.2
+}, {
+"cdr_e": 0.24
+}, {
+"cdr_e": 0.28
+}]
+notes = ["E 대기 12% 빠름", "E 대기 16% 빠름", "E 대기 20% 빠름", "E 대기 24% 빠름", "E 대기 28% 빠름"]
