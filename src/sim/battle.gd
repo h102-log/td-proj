@@ -1061,7 +1061,7 @@ func _raid_body(g: int, at: Vector2, wait: float) -> Enemy:
 		e.rest = _plan_of(e)[0].wait
 	if e.gen >= 0:
 		e.girth = raid_floor.gens[0].radius
-	else:  # 층 수치가 몸 반지름을 바꿨으면 그림도 그 비율로 그린다(I279 ①)
+	else:  # 층 수치가 몸 반지름을 바꿨으면 그림도 그 비율로 그린다(I280 ①)
 		e.girth = ENEMY_KINDS[raid_floor.kind].radius
 	_field(e)
 	return e
@@ -1092,7 +1092,7 @@ func _next_beat(e: Enemy) -> void:
 
 # 카운터 창(S326 ④, I270 ④): 예고의 남은 시간이 그 패턴의 counter 이하다. 화면이 왕 몸을 파랗게 깜박인다
 func countering(e: Enemy) -> bool:
-	if e.cast == null or e.cast.get("air", false):  # 뜬 동안은 카운터 창이 아니다(I279 ④)
+	if e.cast == null or e.cast.get("air", false):  # 뜬 동안은 카운터 창이 아니다(I280 ④)
 		return false
 	var sk: Dictionary = deed(e, e.cast.id)
 	return sk.has("counter") and e.cast.left <= sk.counter
@@ -1132,7 +1132,7 @@ func raid_ramp() -> float:
 		return 1.0
 	return 1.0 + en.ramp * (floori((flame - en.soft) / en.step) + 1)
 
-# 원정 보스 몸에 쌓인 광분 수(S335 ④). HUD가 보스 막대에 보인다
+# 원정 보스 몸에 쌓인 광분 수(S337 ④). HUD가 보스 막대에 보인다
 func raid_frenzy() -> int:
 	var n := 0
 	for e in _raiders():
@@ -1932,7 +1932,7 @@ func _fx(t, src: String, eff: Dictionary, secs: float) -> void:
 	if t is Enemy and not t.raid.is_empty() and (eff.has("stun") or eff.has("seal")):  # 슈퍼아머(S323 ③, I267 ③): 기절·봉인 칸만 지운다. 카운터 창 안이면 예고가 끊긴다(S326 ④)
 		if countering(t):
 			_interrupt(t)
-		elif t.grip:  # 구출(S335 ③): 영웅을 붙잡은 알파에게 기절·봉인이 걸리려 하면 놓고 그로기가 된다
+		elif t.grip:  # 구출(S337 ③): 영웅을 붙잡은 알파에게 기절·봉인이 걸리려 하면 놓고 그로기가 된다
 			_let_go(t, true)
 		else:  # 튕김(I277 ⑤): 끊기가 아닌 채 지워진 기절·봉인은 짧은 효과를 남긴다
 			t.fx["deflect"] = {"deflect": true, "left": DEFLECT}
@@ -4001,7 +4001,7 @@ func _move(e: Enemy, dt: float) -> void:
 		return
 	if _skills(e, dt, sealed):  # 예고 동안은 움직이지도 치지도 않는다(S194)
 		return
-	if e.gen >= 0 or not e.raid.get("walks", true):  # 원정 1층 몸(S322)과 walks가 거짓인 층의 보스(S335, I279 ①): 걷지도 기본 공격도 하지 않고 패턴으로만 움직이고 친다
+	if e.gen >= 0 or not e.raid.get("walks", true):  # 원정 1층 몸(S322)과 walks가 거짓인 층의 보스(S337, I280 ①): 걷지도 기본 공격도 하지 않고 패턴으로만 움직이고 친다
 		return
 	if e.attack_gap - e.cooldown < POSE:  # 친 뒤 공격 자세 동안 제자리에 선다(S196)
 		return
@@ -4158,7 +4158,7 @@ func _skills(e: Enemy, dt: float, sealed: bool) -> bool:
 			var c: Dictionary = e.cast
 			var sk: Dictionary = deed(e, c.id)
 			e.cd[c.id] = sk.get("cd", 0.0)
-			call("_" + c.id, e, sk if not (scripted and sk.has("damage")) else sk.merged({"damage": sk.damage * raid_ramp() * _fury(e)}, true))  # 광폭(S323 ⑤)과 광분(S335 ④)은 대본 패턴 피해에도 든다(S326). 돌진은 _charge가 곱한다
+			call("_" + c.id, e, sk if not (scripted and sk.has("damage")) else sk.merged({"damage": sk.damage * raid_ramp() * _fury(e)}, true))  # 광폭(S323 ⑤)과 광분(S337 ④)은 대본 패턴 피해에도 든다(S326). 돌진은 _charge가 곱한다
 			if is_same(e.cast, c):
 				e.cast = null
 			if scripted:
@@ -4315,7 +4315,7 @@ func _soar(e: Enemy, dt: float) -> void:
 	var c: Dictionary = e.cast
 	var sk: Dictionary = deed(e, c.id)
 	c.left -= dt
-	if c.id == "pounce" and not e.raid.is_empty() and c.who.alive:  # 원정의 덮치기(S335 ②)는 뜬 동안 사냥감을 따라 착지 자리를 다시 맞춘다(I279 ④)
+	if c.id == "pounce" and not e.raid.is_empty() and c.who.alive:  # 원정의 덮치기(S337 ②)는 뜬 동안 사냥감을 따라 착지 자리를 다시 맞춘다(I280 ④)
 		c.at = _pounce_spot(e, c.who, c.from)
 	e.pos = c.at.lerp(c.from, maxf(c.left, 0.0) / sk.air)
 	if c.left > 0.0:
@@ -4359,11 +4359,11 @@ func _pounce(e: Enemy, sk: Dictionary) -> void:
 	_engage(e, null)
 	e.cast = {"id": "pounce", "left": sk.air, "air": true, "from": e.pos, "at": _pounce_spot(e, u, e.pos), "who": u}
 
-# 덮치기 착지 자리: 대상에서 뛴 자리 쪽으로 0.4칸. 원정 보스(S335)는 두 몸 반지름의 합만큼 떨어진다(I279 ④)
+# 덮치기 착지 자리: 대상에서 뛴 자리 쪽으로 0.4칸. 원정 보스(S337)는 두 몸 반지름의 합만큼 떨어진다(I280 ④)
 func _pounce_spot(e: Enemy, u, from: Vector2) -> Vector2:
 	return u.pos.move_toward(from, 0.4 if e.raid.is_empty() else e.radius + u.radius)
 
-# 사냥감(S335): 도발(S151)한 영웅, 아니면 이 몸에서 가장 먼 산 원정대 영웅. 거리가 같으면 출전 차례가 앞선 쪽이다. 없으면 null
+# 사냥감(S337): 도발(S151)한 영웅, 아니면 이 몸에서 가장 먼 산 원정대 영웅. 거리가 같으면 출전 차례가 앞선 쪽이다. 없으면 null
 func _prey(e: Enemy):
 	var taunt = _fx_on(e, "taunt")
 	if taunt and taunt.alive:
@@ -4374,7 +4374,7 @@ func _prey(e: Enemy):
 			far = h
 	return far
 
-# 대본의 덮치기(S335 ②, I279 ②): 사냥감을 예고에 둔다
+# 대본의 덮치기(S337 ②, I280 ②): 사냥감을 예고에 둔다
 func _pounce_aim(e: Enemy, _sk: Dictionary) -> Dictionary:
 	var u = _prey(e)
 	return {"who": u, "at": u.pos if u != null else e.pos}
@@ -4384,7 +4384,7 @@ func _pounce_land(e: Enemy, sk: Dictionary, u) -> void:
 	e.on_wall = u.on_wall and _climbable(Vector2i(e.pos.round()))
 	if not u.alive:
 		return
-	damage(u, sk.damage * raid_ramp() * _fury(e), "phys", e)  # 원정에서는 광폭(S323 ⑤)도 곱한다(S335 ④). 원정이 아니면 1이다
+	damage(u, sk.damage * raid_ramp() * _fury(e), "phys", e)  # 원정에서는 광폭(S323 ⑤)도 곱한다(S337 ④). 원정이 아니면 1이다
 	if u.alive:
 		_control(u, "pin", {"pin": e}, sk.pin_time)
 		e.grip = {"who": u, "hurt": 0.0, "held": 0.0}
@@ -4405,14 +4405,14 @@ func _grip(e: Enemy, dt: float, broken: bool) -> bool:
 	if key == null:
 		if e.raid.is_empty():
 			e.grip = null
-		else:  # 원정(S335 ③, I279 ⑤): 피해 합·정화로 풀렸으면 구출이고, 붙잡은 시간이 다 됐거나 붙잡힌 영웅이 쓰러졌으면 실패다
+		else:  # 원정(S337 ③, I280 ⑤): 피해 합·정화로 풀렸으면 구출이고, 붙잡은 시간이 다 됐거나 붙잡힌 영웅이 쓰러졌으면 실패다
 			# ponytail: held는 스텝마다 dt를 더해 부동소수 누적이 남는다. 0.001 여유로 정확히 pin_time에 닿게 한다
 			_let_go(e, u.alive and (freed or e.grip.held < e.skills.pounce.pin_time - 0.001))
 		return false
 	damage(u, e.skills.pounce.bite * dt * raid_ramp() * _fury(e), "phys", e)
 	return true
 
-# 원정의 알파가 붙잡은 영웅을 놓는다(S335 ③): 구출(saved)이면 그로기가 되고, 아니면 광분이 하나 쌓인다(상한 frenzy.cap)
+# 원정의 알파가 붙잡은 영웅을 놓는다(S337 ③): 구출(saved)이면 그로기가 되고, 아니면 광분이 하나 쌓인다(상한 frenzy.cap)
 func _let_go(e: Enemy, saved: bool) -> void:
 	var u = e.grip.who
 	for k in u.fx.keys():
@@ -4607,14 +4607,14 @@ func _charge_ready(e: Enemy, sk: Dictionary):
 	var dir: Vector2 = (best.pos - e.pos).normalized()
 	return {"dir": dir.angle(), "to": _dash(e.pos, dir, sk.length)[0]}
 
-# 대본의 돌진(S335 ①, I279 ③): 사냥감 쪽(같은 자리거나 사냥감이 없으면 남쪽)으로 길을 짚어 멈출 자리를 예고에 둔다. 벽 돌진이면 aimed가 참이다
+# 대본의 돌진(S337 ①, I280 ③): 사냥감 쪽(같은 자리거나 사냥감이 없으면 남쪽)으로 길을 짚어 멈출 자리를 예고에 둔다. 벽 돌진이면 aimed가 참이다
 func _charge_aim(e: Enemy, sk: Dictionary) -> Dictionary:
 	var u = _prey(e)
 	var dir: Vector2 = (u.pos - e.pos).normalized() if u != null and u.pos.distance_to(e.pos) > 0.01 else Vector2.DOWN
 	var got := _dash(e.pos, dir, sk.length)
 	return {"dir": dir.angle(), "to": got[0], "aimed": _walled(e.pos, got, sk.length)}
 
-# 돌진 길(_dash가 돌려준 것)이 length에 못 미쳐 바위·물·맵 밖에서 멈췄다(I279 ③). 막힌 칸(에너지 성벽 등)이나 거점에 막힌 것은 아니다
+# 돌진 길(_dash가 돌려준 것)이 length에 못 미쳐 바위·물·맵 밖에서 멈췄다(I280 ③). 막힌 칸(에너지 성벽 등)이나 거점에 막힌 것은 아니다
 func _walled(from: Vector2, got: Array, length: float) -> bool:
 	return got[1] == null and from.distance_to(got[0]) < length - 0.001
 
@@ -4648,18 +4648,18 @@ func _charge(e: Enemy, sk: Dictionary) -> void:
 	_trace(e, "charge", null, to, 0.0)
 	_tracing.merge({"from": from, "width": sk.width})  # 발동 채움(S198)을 지나간 길로 칠한다
 	var left := dir.orthogonal()  # 화면(y 아래)에서 길 방향의 왼쪽
-	var caught := false  # 길 위에서 맞은 산 원정대 영웅이 있다(S335 ①)
+	var caught := false  # 길 위에서 맞은 산 원정대 영웅이 있다(S337 ①)
 	for u in units.duplicate():
 		var v: Vector2 = u.pos - from
 		if u.alive and not u.on_wall and (from + dir * clampf(v.dot(dir), 0.0, span)).distance_to(u.pos) <= sk.width / 2.0:
 			caught = caught or u in party
-			damage(u, sk.unit * raid_ramp() * _fury(e), "phys", e)  # 원정에서는 광폭(S323 ⑤)·광분(S335 ④)을 곱한다. 원정이 아니면 둘 다 1이다
+			damage(u, sk.unit * raid_ramp() * _fury(e), "phys", e)  # 원정에서는 광폭(S323 ⑤)·광분(S337 ④)을 곱한다. 원정이 아니면 둘 다 1이다
 			if u.alive:
 				_shove(u, (left if dir.cross(v) <= 0.01 else -left) * sk.side, enemies)
 	if got[1] != null:
 		damage(got[1], sk.get("structure", 0.0), "phys", e)
 	_tracing = null
-	if not e.raid.is_empty() and not caught and _walled(from, got, sk.length):  # 벽 돌진을 모두 피했다(S335 ①): 벽에 박혀 그로기가 된다
+	if not e.raid.is_empty() and not caught and _walled(from, got, sk.length):  # 벽 돌진을 모두 피했다(S337 ①): 벽에 박혀 그로기가 된다
 		_fx(e, "groggy", {"groggy": true}, e.raid.groggy.time)
 	_find_path(e)
 

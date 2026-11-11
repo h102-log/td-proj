@@ -2633,7 +2633,7 @@ func _facility(s, tint := Color.WHITE) -> void:
 func _body(x, i: int, next: Dictionary, tint := Color.WHITE, flash := true) -> void:
 	if x.get("skills") and battle.raging(x):  # 분노(S195)
 		tint *= RAGE
-	if x.get("raid") and x.grief > 0:  # 광분(S335 ④): 쌓인 원정 보스 몸을 분노 색으로 붉게 그린다
+	if x.get("raid") and x.grief > 0:  # 광분(S337 ④): 쌓인 원정 보스 몸을 분노 색으로 붉게 그린다
 		tint *= RAGE
 	if x.get("raid") and battle.countering(x) and int(clock / 0.1) % 2 == 0:  # 카운터 창(S326 ④): 0.1초마다 파랗게 깜박인다
 		tint *= COUNTER
@@ -2983,7 +2983,7 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 					anim = k.id
 					col = READY.get(k.id, 0)
 				off.y = -2.0
-		elif x.cast and (x.cast.id == "pounce" or (x.cast.id == "charge" and ART[x.kind].has("crouch"))):  # 덮치기(S244 ②): 예고는 대상 쪽 웅크림, 뜬 동안은 뜀. S198의 들어 올림은 쓰지 않는다. 원정 알파의 돌진 예고(I279 ⑧)도 길 쪽 웅크림이다
+		elif x.cast and (x.cast.id == "pounce" or (x.cast.id == "charge" and ART[x.kind].has("crouch"))):  # 덮치기(S244 ②): 예고는 대상 쪽 웅크림, 뜬 동안은 뜀. S198의 들어 올림은 쓰지 않는다. 원정 알파의 돌진 예고(I280 ⑧)도 길 쪽 웅크림이다
 			anim = "air" if x.cast.get("air", false) else "crouch"
 			col = 0
 			dir = _four((x.cast.at if x.cast.has("at") else x.cast.to) - x.pos)
@@ -3622,7 +3622,7 @@ func _line_tell(e) -> void:
 	var b := _center(e.cast.to)
 	var w: float = CELL * sk.width
 	var k: float = clampf(1.0 - e.cast.left / sk.windup, 0.0, 1.0)
-	if k > 0.05 and e.cast.get("aimed", true):  # 원정의 이동 돌진(S335 ①)은 테만 그린다
+	if k > 0.05 and e.cast.get("aimed", true):  # 원정의 이동 돌진(S337 ①)은 테만 그린다
 		_poly(_strip(a, a.lerp(b, k), w), Color(TELL, 0.25 * _fade))
 	var rim := _strip(a, b, w)
 	for i in 4:
@@ -3649,7 +3649,7 @@ func _pounce_tells() -> void:
 			continue
 		var k: float = 1.0 if e.cast.get("air", false) else 1.0 - e.cast.left / e.skills.pounce.windup
 		var to := Vector2i(_spot(e.cast.who).floor())
-		var hue: Array = TELL_HUES.get(e.skills.pounce.get("color", ""), [])  # 원정의 덮치기(S335 ②)는 끊는 패턴이라 파랑이다
+		var hue: Array = TELL_HUES.get(e.skills.pounce.get("color", ""), [])  # 원정의 덮치기(S337 ②)는 끊는 패턴이라 파랑이다
 		var lit: Color = PX[hue[0]] if not hue.is_empty() else TELL
 		_pline(Vector2i(_spot(e).floor()), to, lit, 1)
 		_pnoise(to, int(6 * k), lit, TELL_FILL)

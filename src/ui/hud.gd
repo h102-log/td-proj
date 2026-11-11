@@ -183,7 +183,7 @@ var again_retreat: Button  # 그 창의 «철수»
 var _again_text := Label.new()
 var _boss_name: Label
 var _boss_fill := ColorRect.new()
-var _boss_track := ColorRect.new()  # 보스 체력 막대의 바탕. 광분 글(S335 ④)이 길면 그만큼 오른쪽으로 줄인다
+var _boss_track := ColorRect.new()  # 보스 체력 막대의 바탕. 광분 글(S337 ④)이 길면 그만큼 오른쪽으로 줄인다
 var _raid_seen := false  # 지난 프레임에 원정이었나. 바뀌면 덮개를 다시 덮는다
 var _fade_t := FADE  # 덮개가 덮인 뒤 지난 초. FADE 넘으면 숨는다
 var gauge: Button  # 진행 칸의 웨이브 버튼: 준비 단계 다음 웨이브(S188)·전투 단계 계기판·영입·승패(I13)
@@ -631,7 +631,7 @@ func _process(delta: float) -> void:
 	boss_bar.visible = raiding
 	if boss_bar.visible:
 		var mad: int = battle.raid_frenzy()
-		_boss_name.text = tr(battle.raid_floor.title) + ("" if mad == 0 else " · " + tr("광분 %d") % mad)  # 광분 수(S335 ④)
+		_boss_name.text = tr(battle.raid_floor.title) + ("" if mad == 0 else " · " + tr("광분 %d") % mad)  # 광분 수(S337 ④)
 		# 광분 글이 이름 칸(56px)을 넘으면 넘는 만큼 막대를 오른쪽으로 줄여 글과 겹치지 않게 한다
 		var over: float = 0.0 if mad == 0 else maxf(_boss_name.get_theme_font("font").get_string_size(_boss_name.text, HORIZONTAL_ALIGNMENT_LEFT, -1, _boss_name.get_theme_font_size("font_size")).x + 4.0 - 56.0, 0.0)
 		_boss_name.size.x = 56.0 + over
@@ -642,7 +642,7 @@ func _process(delta: float) -> void:
 		var f: Dictionary = battle.FLOOR_KINDS[battle.den.floors[battle.floors_cleared - 1]]
 		if battle.RELIC_KINDS.has(f.relic):
 			toasts.push("원정 %d층 처치 — %s · +%d골드" % [battle.floors_cleared, battle.RELIC_KINDS[f.relic].title, f.gold])
-		else:  # 유물이 없는 층(I279 ⑨)
+		else:  # 유물이 없는 층(I280 ⑨)
 			toasts.push("원정 %d층 처치 — +%d골드" % [battle.floors_cleared, f.gold])
 	_floors_seen = battle.floors_cleared
 	again.visible = raiding and battle.raid_pending()  # «다시» 창(S331)

@@ -1551,7 +1551,7 @@ func ev963():
 	_done(main)
 	return check(not texts.any(func(t): return "점액 왕관" in t), "철수 뒤 보인 토스트 %s(«점액 왕관»이 없어야)" % [texts])
 
-# ── 2층 알파 늑대(S335·I279) ── 더하는 API:
+# ── 2층 알파 늑대(S337·I280) ── 더하는 API:
 #   FloorDef.walks(거짓이면 걷지도 기본 공격도 하지 않는다) · 층 정의 floor_2 · Battle.raid_frenzy() -> int(원정 보스 몸의 광분 수)
 #   돌진 예고의 cast {dir, to, aimed(벽 돌진이면 참)} · 덮치기 예고의 cast.who(사냥감) · Enemy.grief(광분 수) · Enemy.grip(붙잡은 영웅 {who, …}, 없으면 null)
 #   main.hud._boss_name — 보스 막대의 이름 글
@@ -1605,8 +1605,8 @@ func _pinned() -> Array:
 		return []
 	return [b, e, b.party[1]]
 
-# EV964 · S335: 2층 층 정의의 수치와 층 차례. 1층은 걷는 층 기본값 그대로이고 디펜스 알파 늑대 종류도 그대로다
-func ev964():
+# EV971 · S337: 2층 층 정의의 수치와 층 차례. 1층은 걷는 층 기본값 그대로이고 디펜스 알파 늑대 종류도 그대로다
+func ev971():
 	var f = load("res://data/dungeon/floor_2.tres")
 	var sk: Dictionary = f.skills
 	if f.title != "알파 늑대" or f.opens != 3 or f.kind != "alpha_wolf" or f.stats.get("hp") != 1600.0 or f.stats.get("radius") != 0.9 or f.get("walks") != false or not f.gens.is_empty():
@@ -1625,8 +1625,8 @@ func ev964():
 		and wolf.hp == 160.0 and wolf.radius == 0.45 and wolf.skills.pounce.break_dmg == 40.0 and wolf.skills.frenzy == {"damage": 0.25},
 		"층 차례 %s(기대 floor_1·floor_2) · 1층 walks %s(참) · 디펜스 알파 체력 %s·몸 %s·break_dmg %s·광분 %s(기대 160·0.45·40·{damage 0.25})" % [_stage().den.floors, load("res://data/dungeon/floor_1.tres").get("walks"), wolf.hp, wolf.radius, wolf.skills.pounce.break_dmg, wolf.skills.frenzy])
 
-# EV965 · S335·I279 ①: 2층은 3라운드부터 열리고 알파 하나가 층 수치로 나온다. 알파는 걷지도 기본 공격도 하지 않는다
-func ev965():
+# EV972 · S337·I280 ①: 2층은 3라운드부터 열리고 알파 하나가 층 수치로 나온다. 알파는 걷지도 기본 공격도 하지 않는다
+func ev972():
 	var a = _den()
 	a.floors_cleared = 1
 	var early: String = a.raid_block()
@@ -1644,8 +1644,8 @@ func ev965():
 	_go(b, 6.0)
 	return check(e.pos == Vector2(BOSS) and u.hp == hp and e.cast == null, "6초 뒤 알파 자리 %s((84,80)) · 2칸 옆 영웅 체력 %s → %s · 예고 %s(없음)" % [e.pos, hp, u.hp, e.cast])
 
-# EV966 · S335·I279 ②: 사냥감은 가장 먼 산 원정대 영웅이고, 거리가 같으면 출전 차례가 앞선 쪽, 도발했으면 도발한 영웅이다. 덮치기도 같은 사냥감을 노린다
-func ev966():
+# EV973 · S337·I280 ②: 사냥감은 가장 먼 산 원정대 영웅이고, 거리가 같으면 출전 차례가 앞선 쪽, 도발했으면 도발한 영웅이다. 덮치기도 같은 사냥감을 노린다
+func ev973():
 	var b = _den2()
 	var e = _alpha(b)
 	if e == null:
@@ -1667,8 +1667,8 @@ func ev966():
 	return check(dirs == [Vector2(-1, 0), Vector2(0, 1), Vector2(1, 0), Vector2(0, 1)] and is_same(pounce.who, b.party[2]),
 		"돌진 방향 [가장 먼 셋째, 셋째가 쓰러짐, 같은 거리, 도발] %s(기대 서·남·동·남) · 덮치기 대상이 셋째 %s" % [dirs, is_same(pounce.who, b.party[2])])
 
-# EV967 · S335 ①: 벽 돌진을 모두 피하면 알파가 벽 앞에서 멈춰 그로기가 된다
-func ev967():
+# EV974 · S337 ①: 벽 돌진을 모두 피하면 알파가 벽 앞에서 멈춰 그로기가 된다
+func ev974():
 	var b = _den2()
 	var e = _alpha(b)
 	if e == null:
@@ -1689,8 +1689,8 @@ func ev967():
 	_go(b, 0.4)
 	return check(late and not _groggy(b, e), "그로기가 4.7초 뒤 %s(참) · 5.1초 뒤 %s(거짓)" % [late, _groggy(b, e)])
 
-# EV968 · S335 ①: 벽 돌진에 맞으면 피해 30과 옆으로 1칸 밀림이고 그로기가 없다. 이동 돌진은 아무도 못 맞혀도 그로기가 없다
-func ev968():
+# EV975 · S337 ①: 벽 돌진에 맞으면 피해 30과 옆으로 1칸 밀림이고 그로기가 없다. 이동 돌진은 아무도 못 맞혀도 그로기가 없다
+func ev975():
 	var b = _den2()
 	var e = _alpha(b)
 	if e == null:
@@ -1718,8 +1718,8 @@ func ev968():
 	return check(w.pos.distance_to(Vector2(92, 80)) < 0.01 and not _groggy(k, w) and k.party.map(func(h): return h.hp) == all and w.cast == null,
 		"② 이동 돌진 뒤 알파 %s((92,80)) · 그로기 %s(거짓) · 영웅 체력 %s → %s" % [w.pos, _groggy(k, w), all, k.party.map(func(h): return h.hp)])
 
-# EV969 · S335 ②③·I279 ④⑤: 덮치기는 뛴 뒤 대시로 벗어나도 붙잡고 초당 8로 문다. 붙잡은 동안 경감 뒤 피해 합이 5를 넘으면 놓고 그로기가 된다
-func ev969():
+# EV976 · S337 ②③·I280 ④⑤: 덮치기는 뛴 뒤 대시로 벗어나도 붙잡고 초당 8로 문다. 붙잡은 동안 경감 뒤 피해 합이 5를 넘으면 놓고 그로기가 된다
+func ev976():
 	var b = _den2()
 	var e = _alpha(b)
 	if e == null:
@@ -1752,8 +1752,8 @@ func ev969():
 	return check(held == [true, false] and b._fx_on(u, "pin") == null and e.grip == null and _groggy(b, e) and e.grief == 0,
 		"피해 40(경감 뒤 4.8) 뒤 [붙잡힘, 그로기] %s(기대 [참, 거짓]) · 2 더(합 5.04) 뒤 붙잡힘 %s(없음) · 그로기 %s(참) · 광분 %s(0)" % [held, b._fx_on(u, "pin"), _groggy(b, e), e.grief])
 
-# EV970 · S335 ③·I279 ⑤: 붙잡힘을 정화로 풀거나 알파에게 기절을 걸려 하면 알파가 놓고 그로기가 된다. 기절은 걸리지 않는다
-func ev970():
+# EV977 · S337 ③·I280 ⑤: 붙잡힘을 정화로 풀거나 알파에게 기절을 걸려 하면 알파가 놓고 그로기가 된다. 기절은 걸리지 않는다
+func ev977():
 	var p := _pinned()
 	if p.is_empty():
 		return "① 덮치기로 붙잡지 못했다"
@@ -1777,8 +1777,8 @@ func ev970():
 	return check(b._fx_on(u, "pin") == null and e.grip == null and _groggy(b, e) and b._fx_on(e, "stun") == null and b.effect(e, "deflect") == null and e.grief == 0,
 		"② 기절을 걸려 한 뒤 붙잡힘 %s(없음) · 알파가 붙잡은 영웅 %s(없음) · 그로기 %s(참) · 기절 %s(없음) · 튕김 %s(없음) · 광분 %s(0)" % [b._fx_on(u, "pin"), e.grip, _groggy(b, e), b._fx_on(e, "stun"), b.effect(e, "deflect"), e.grief])
 
-# EV971 · S335 ③④: 4초가 다 되거나 붙잡힌 영웅이 쓰러지면 그로기 없이 광분이 하나 쌓인다. 광분 하나마다 피해가 25% 늘고 3을 넘지 않는다
-func ev971():
+# EV978 · S337 ③④: 4초가 다 되거나 붙잡힌 영웅이 쓰러지면 그로기 없이 광분이 하나 쌓인다. 광분 하나마다 피해가 25% 늘고 3을 넘지 않는다
+func ev978():
 	var p := _pinned()
 	if p.is_empty():
 		return "① 덮치기로 붙잡지 못했다"
@@ -1817,8 +1817,8 @@ func ev971():
 	b.step(DT)
 	return check(e.grip == null and not _groggy(b, e) and e.grief == 1, "② 붙잡힌 영웅이 쓰러진 뒤 알파가 붙잡은 영웅 %s(없음) · 그로기 %s(거짓) · 광분 %s(1)" % [e.grip, _groggy(b, e), e.grief])
 
-# EV972 · S335 ②·I279 ④: 덮치기 예고의 마지막 0.8초에 기절을 걸려 하면 예고가 끊기고 그로기가 된다. 그 앞에서는 튕기고, 뜬 동안은 카운터 창이 아니다
-func ev972():
+# EV979 · S337 ②·I280 ④: 덮치기 예고의 마지막 0.8초에 기절을 걸려 하면 예고가 끊기고 그로기가 된다. 그 앞에서는 튕기고, 뜬 동안은 카운터 창이 아니다
+func ev979():
 	var b = _den2()
 	var e = _alpha(b)
 	if e == null:
@@ -1852,8 +1852,8 @@ func ev972():
 	return check(aloft and not counted and is_same(k._fx_on(k.party[1], "pin"), w) and not _groggy(k, w),
 		"② 2.15초에 뜬 중 %s(참) · 카운터 창 %s(거짓) · 기절을 걸려 한 뒤 붙잡힘 %s(참) · 그로기 %s(거짓)" % [aloft, counted, is_same(k._fx_on(k.party[1], "pin"), w), _groggy(k, w)])
 
-# EV973 · S335 ⑤·I279 ⑦: 대본은 돌진 → 덮치기 → 돌진 → 표식을 쉼 4·5·4·5초로 돌고, 쉼은 붙잡은 동안 줄지 않는다. 표식은 출전 차례의 영웅을 따라다니다 원 안 모두에게 30을 준다
-func ev973():
+# EV980 · S337 ⑤·I280 ⑦: 대본은 돌진 → 덮치기 → 돌진 → 표식을 쉼 4·5·4·5초로 돌고, 쉼은 붙잡은 동안 줄지 않는다. 표식은 출전 차례의 영웅을 따라다니다 원 안 모두에게 30을 준다
+func ev980():
 	var b = _den2()
 	b.start_raid()
 	if b.state != "raid" or b.enemies.size() != 1:
@@ -1892,8 +1892,8 @@ func ev973():
 	return check(follows and lost[0] == 0.0 and absf(lost[1] - _take(k, k.party[1], 30.0)) < 0.01 and absf(lost[2] - _take(k, k.party[2], 30.0)) < 0.01 and not _groggy(k, w) and w.cast == null,
 		"② 원이 표식 영웅을 따라갔나 %s · 잃은 체력 %s(기대 0·%s·%s) · 그로기 %s(거짓)" % [follows, lost, _take(k, k.party[1], 30.0), _take(k, k.party[2], 30.0), _groggy(k, w)])
 
-# EV974 · S335·I279 ①⑨: 보스 막대의 이름과 «광분 n», 그림 2배. 처치하면 깬 층 2·층 골드 150이고 유물 없는 층의 토스트가 뜬다
-func ev974():
+# EV981 · S337·I280 ①⑨: 보스 막대의 이름과 «광분 n», 그림 2배. 처치하면 깬 층 2·층 골드 150이고 유물 없는 층의 토스트가 뜬다
+func ev981():
 	var main = _den_game()
 	var b = main.view.battle
 	b.state = "cleared"
