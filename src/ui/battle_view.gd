@@ -29,7 +29,7 @@ const TWINS := [Color(1.45, 1.1, 0.4), Color(0.8, 0.95, 1.3)]  # 쌍둥이 트�
 const LOOKS := {"feather_harpy": ["flying", Color(0.75, 1.2, 1.7)], "dive_harpy": ["flying", Color(1.7, 1.0, 0.6)], "song_harpy": ["flying", Color(1.45, 0.85, 1.75)],
 	"storm_harpy": ["flying", Color(0.85, 1.65, 1.35)], "snatch_harpy": ["flying", Color(1.65, 1.5, 0.65)],
 	"nest_harpy": ["flying", Color(1.3, 1.6, 0.8)], "harpy_chick": ["flying", Color(1.8, 1.7, 1.6)],
-	"ogre_thrower": ["boss", Color(0.8, 1.2, 0.7)], "twin_troll": ["troll", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288)는 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)
+	"ogre_thrower": ["boss", Color(0.8, 1.2, 0.7)], "twin_troll": ["troll", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288), 방패 고블린·불화살 고블린·둥지(I291)는 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)
 const NOTE := Color("d8b0ff")  # 노래(S306)로 공격 속도가 느려진 아군 머리 위 음표와 노래 반경 고리의 색(I252 ④)
 const FEATHER := Color("f4f0e8")  # 날아가는 깃털(I250 ④)
 const WALL := Color("e8f0ff")  # 방패벽(S319)을 선 방패벽 오크끼리 잇는 선(I263 ⑤)
@@ -213,6 +213,7 @@ const PEAK := {"grab": [1, 2], "fling": [0, 1]}  # 없으면 [1]. 집어 던지�
 const WINDS := ["order", "horn", "banner", "duel"]  # 예고 내내 0열을 들고 있다가 끝 LIFT초에 1열을 그리는 스킬 시트(I287 ④): 발동 흔적이 없는 뿔나팔·깃대·결투 신청
 const STRUCK := ["verdict"]  # 발동 자세가 흔적 자리 쪽을 보는 스킬 시트(I287 ④): 처형 내려찍기는 내려찍은 영웅 쪽
 const SWAY := 0.4  # 정지 중 2열(sway 시트)을 번갈아 그리는 간격(초): 전쟁 깃발 천(I287 ③), 전쟁 북 고수의 북채(I288 ③). 임시값
+const SHOOT := [0.12, 0.3]  # 불화살 고블린(I291 ③)이 불화살 예고를 띄운 뒤 시위를 당긴 자세(shoot 0열)가 끝나는 초, 놓은 자세(1열)가 끝나는 초. 임시값
 const LANDING := "leap"  # 착지 흔적(slam)의 시트가 없는 보스가 착지 뒤 그리는 시트(대장 착지 웅크림)
 const WRECK_FADE := 0.5  # 수레 잔해가 지워지기(battle.WRECK) 전에 흐려지는 시간(초, S172 2026-11-05 변경 ⑥)
 const FAN_TURN := 20.0  # 시트 자세 ±40°의 가운데
@@ -2935,6 +2936,12 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 		anim = "hook"
 		col = 0
 		dir = _four(Vector2.from_angle(cast.dir))
+	elif cast != null and cast.id == "flame" and ART[x.kind].has("shoot"):  # 불화살 고블린(I291 ③): 예고(화살이 나는 동안) 내내 노린 구조물 쪽을 보고, 처음 SHOOT초 동안 시위를 당김 → 놓음
+		var shot: float = battle.deed(x, cast.id).windup - cast.left
+		dir = _four(Vector2(cast.at) - x.pos)
+		if shot < SHOOT[1]:
+			anim = "shoot"
+			col = int(shot >= SHOOT[0])
 	var off := Vector2.ZERO
 	var hop := 0.0  # 그림자는 그대로 두고 그림만 드는 높이(px)
 	if _boss(x):  # 보스 스킬(S198): 예고 끝에 들어 올렸다가 발동하면 내리찍는다. 원 모양 스킬은 화면 쪽(S)을, 방향 스킬은 그쪽을 본다

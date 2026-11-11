@@ -296,6 +296,44 @@
   "fall": 3152,
   "head": 18
  },
+ "shieldbearer": {
+  "c": 24,
+  "anchor": [
+   12.0,
+   17
+  ],
+  "x": 692,
+  "idle": 3224,
+  "walk": 3320,
+  "attack": 3416,
+  "fall": 3608,
+  "head": 17
+ },
+ "fire_archer": {
+  "c": 24,
+  "anchor": [
+   12.0,
+   17
+  ],
+  "x": 692,
+  "idle": 3656,
+  "walk": 3752,
+  "attack": 3848,
+  "shoot": 4040,
+  "fall": 4136,
+  "head": 17
+ },
+ "nest": {
+  "c": 24,
+  "anchor": [
+   12.0,
+   20
+  ],
+  "x": 692,
+  "one": true,
+  "idle": 4184,
+  "head": 17
+ },
  "slimelet": {
   "c": 14,
   "anchor": [
