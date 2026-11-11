@@ -2634,6 +2634,8 @@ func _facility(s, tint := Color.WHITE) -> void:
 func _body(x, i: int, next: Dictionary, tint := Color.WHITE, flash := true) -> void:
 	if x.get("skills") and battle.raging(x):  # 분노(S195)
 		tint *= RAGE
+	if x.get("raid") and x.grief > 0:  # 광분(S337 ④): 쌓인 원정 보스 몸을 분노 색으로 붉게 그린다
+		tint *= RAGE
 	if x.get("raid") and battle.countering(x) and int(clock / 0.1) % 2 == 0:  # 카운터 창(S326 ④): 0.1초마다 파랗게 깜박인다
 		tint *= COUNTER
 	if x.get("frenzy"):  # 격노(S320, I264 ③): 잃은 체력 비율만큼 분노 색 쪽으로 섞는다
@@ -2982,10 +2984,10 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 					anim = k.id
 					col = READY.get(k.id, 0)
 				off.y = -2.0
-		elif x.cast and x.cast.id == "pounce":  # 덮치기(S244 ②): 예고는 대상 쪽 웅크림, 뜬 동안은 뜀. S198의 들어 올림은 쓰지 않는다
+		elif x.cast and (x.cast.id == "pounce" or (x.cast.id == "charge" and ART[x.kind].has("crouch"))):  # 덮치기(S244 ②): 예고는 대상 쪽 웅크림, 뜬 동안은 뜀. S198의 들어 올림은 쓰지 않는다. 원정 알파의 돌진 예고(I280 ⑧)도 길 쪽 웅크림이다
 			anim = "air" if x.cast.get("air", false) else "crouch"
 			col = 0
-			dir = _four(x.cast.at - x.pos)
+			dir = _four((x.cast.at if x.cast.has("at") else x.cast.to) - x.pos)
 		elif x.cast and x.cast.left < LIFT:
 			anim = "idle"
 			col = 0
@@ -3621,7 +3623,7 @@ func _line_tell(e) -> void:
 	var b := _center(e.cast.to)
 	var w: float = CELL * sk.width
 	var k: float = clampf(1.0 - e.cast.left / sk.windup, 0.0, 1.0)
-	if k > 0.05:
+	if k > 0.05 and e.cast.get("aimed", true):  # 원정의 이동 돌진(S337 ①)은 테만 그린다
 		_poly(_strip(a, a.lerp(b, k), w), Color(TELL, 0.25 * _fade))
 	var rim := _strip(a, b, w)
 	for i in 4:
@@ -3644,13 +3646,15 @@ func _fan_rim(c: Vector2, r: float, dir: float, arc: float, n := 24) -> PackedVe
 # 숨은 알파의 예고도 보이게(S213 2026-10-28 변경) 성곽·어둠 덮개 위 층에 그린다
 func _pounce_tells() -> void:
 	for e in tellers(_foes):
-		if e.cast.id != "pounce":
+		if e.cast.id != "pounce" or e.cast.who == null:
 			continue
 		var k: float = 1.0 if e.cast.get("air", false) else 1.0 - e.cast.left / e.skills.pounce.windup
 		var to := Vector2i(_spot(e.cast.who).floor())
-		_pline(Vector2i(_spot(e).floor()), to, TELL, 1)
-		_pnoise(to, int(6 * k), TELL, TELL_FILL)
-		_edge(to, 6, TELL, PX.maroon)
+		var hue: Array = TELL_HUES.get(e.skills.pounce.get("color", ""), [])  # 원정의 덮치기(S337 ②)는 끊는 패턴이라 파랑이다
+		var lit: Color = PX[hue[0]] if not hue.is_empty() else TELL
+		_pline(Vector2i(_spot(e).floor()), to, lit, 1)
+		_pnoise(to, int(6 * k), lit, TELL_FILL)
+		_edge(to, 6, lit, PX[hue[1]] if not hue.is_empty() else PX.maroon)
 
 # 일반 적 예고(S279): 예고 원을 주황 1px 테로 BLINK초마다 켜고 끈다. 던지기(S282)는 예고 동안 돌이 투석기에서 원 가운데로 포물선을 그리며 난다.
 # 불화살(I249 ②)은 예고 동안 고블린에서 구조물 칸 가운데로 낮은 포물선을 그리며 나는 화살이고, 촉에 불꽃이 붙어 있다.

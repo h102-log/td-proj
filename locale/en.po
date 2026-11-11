@@ -1826,6 +1826,12 @@ msgstr "Slime Crown"
 msgid "원정 %d층 처치 — %s · +%d골드"
 msgstr "F%d cleared — %s · +%d gold"
 
+msgid "원정 %d층 처치 — +%d골드"
+msgstr "F%d cleared — +%d gold"
+
+msgid "광분 %d"
+msgstr "Frenzy %d"
+
 msgid "아무도 안 낌"
 msgstr "Unequipped"
 
