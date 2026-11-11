@@ -886,7 +886,7 @@ func start_battle() -> void:
 	near_wall = false
 
 # 라운드 r·웨이브 w의 적을 나오는 차례대로 [종류, 출현 지점, 나올 칸, 한꺼번에 나오는 마릿수]. 무리(S238)는 한 차례에 함께 나온다.
-# 출현 지점마다 줄을 두고(S337, I280 ②) 웨이브 항목을 차례대로 읽어 차례(무리 하나·한 마리·호위를 데린 한 마리)를 줄 끝에 세운다.
+# 출현 지점마다 줄을 두고(S338, I281 ②) 웨이브 항목을 차례대로 읽어 차례(무리 하나·한 마리·호위를 데린 한 마리)를 줄 끝에 세운다.
 # 출현 지점에 묶인 종류(항목의 front)는 그 줄에, 묶이지 않은 종류는 차례마다 돌아가며 맡은 출현 지점의 줄에 선다.
 # 그다음 출현 지점을 돌아가며 줄 맨 앞 차례를 하나씩 꺼낸다. 줄이 빈 출현 지점은 건너뛴다. 묶음이 없는 웨이브는 항목 차례 그대로 나온다.
 # 나올 칸은 그 줄에서 n번째 차례마다 황금비 수열로 출현 지점에서 가로 ±spawn_spread 안에 흩는다(I177). 씨앗을 쓰지 않는다.
@@ -902,11 +902,11 @@ func wave_plan(r: int, w: int) -> Array:
 	var turns := 0  # 지금까지 세운 묶이지 않은 차례 수. 무리 하나가 한 차례다
 	for entry in rounds[r][w]:
 		var stats: Dictionary = ENEMY_KINDS[entry.kind]
-		var at: int = entry.get("front", -1)  # 묶인 출현 지점(S337). 없거나 범위 밖이면 묶이지 않았다(I280 ①)
+		var at: int = entry.get("front", -1)  # 묶인 출현 지점(S338). 없거나 범위 밖이면 묶이지 않았다(I281 ①)
 		var bound := at >= 0 and at < lens.size()
 		if stats.get("together", false) and entry.count > 0:
 			var turn := out if direct else []
-			if bound:  # 묶인 함께 나옴(I280 ④): 모두가 묶인 출현 지점에서 무리처럼
+			if bound:  # 묶인 함께 나옴(I281 ④): 모두가 묶인 출현 지점에서 무리처럼
 				_pack(turn, entry.kind, at, lens[at], entry.count, entry.count)
 				lines[at].append(turn)
 				lens[at] += 1

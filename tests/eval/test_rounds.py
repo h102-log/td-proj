@@ -86,9 +86,9 @@ def test_EV969_round6_waves_and_rider_pack(gd):
     gd("rounds", "EV969")
 
 
-def test_EV971_bound_kinds_spawn_at_their_front(gd):
-    gd("rounds", "EV971")
+def test_EV982_bound_kinds_spawn_at_their_front(gd):
+    gd("rounds", "EV982")
 
 
-def test_EV972_front_cells_together_escort_and_range(gd):
-    gd("rounds", "EV972")
+def test_EV983_front_cells_together_escort_and_range(gd):
+    gd("rounds", "EV983")

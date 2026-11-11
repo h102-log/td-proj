@@ -7,7 +7,7 @@ extends "res://tests/eval/gd/lib.gd"
 #   Battle.restart() — 새 도전(S64, I92)
 #   Battle.set_gate(성문, 열기) · Battle.upgrade(성곽 칸) · Battle.raise_village() -> bool · 영웅: present
 #   적 kind "shieldbearer"(방패 고블린, S301·I248) — 웨이브에서 나올 때 호위(기본 4)를 데려온다. 호위는 battle.spawn_counts(hud.gd 머리)에도 든다
-#   웨이브 항목 키 front(S337·I280) — 그 종류를 묶은 출현 지점 차례(0부터, stage spawns 차례). 없으면 차례마다 돌아간다.
+#   웨이브 항목 키 front(S338·I281) — 그 종류를 묶은 출현 지점 차례(0부터, stage spawns 차례). 없으면 차례마다 돌아간다.
 #     웨이브 Resource(WavesDef)의 fronts: 웨이브 차례마다 {적 종류: 출현 지점 차례}. to_stage()가 항목의 front로 싣는다
 #   Battle.wave_plan(라운드, 웨이브) -> 나오는 차례대로 [종류, 출현 지점 칸, 나올 칸, 함께 나오는 마릿수]
 # 성곽 맵은 repair.gd와 같다: 9행이 가로 성곽(성문 5·15·25열, 모두 닫힘), 위쪽(0~8행)이 마을, 아래쪽이 들판
@@ -43,9 +43,9 @@ const ORC := [{"shield_orc": 48, "armored": 160}, {"shield_orc": 40, "armored": 
 const HOST := [{"slime": 80, "armored": 40, "ogre_thrower": 10, "wolf": 112},
 	{"shieldbearer": 10, "basic": 160, "fire_archer": 10, "shield_orc": 48, "drummer": 20, "wolf": 96, "wolf_rider": 60},
 	{"wolf": 256, "armored": 140, "chain_orc": 25, "flying": 80, "song_harpy": 20, "dive_harpy": 20}]
-# S336 2026-11-11 변경: 6라운드 3웨이브는 다지점(S337). 종류마다 묶인 출현 지점 차례(0 왼쪽 · 1 가운데 · 2 오른쪽)
+# S336 2026-11-11 변경: 6라운드 3웨이브는 다지점(S338). 종류마다 묶인 출현 지점 차례(0 왼쪽 · 1 가운데 · 2 오른쪽)
 const HOST_FRONTS := {"wolf": 0, "armored": 1, "chain_orc": 1, "flying": 2, "song_harpy": 2, "dive_harpy": 2}
-const THREE := [Vector2i(5, 19), Vector2i(15, 19), Vector2i(25, 19)]  # 출현 지점 셋짜리 헬퍼 판(S337 평가)
+const THREE := [Vector2i(5, 19), Vector2i(15, 19), Vector2i(25, 19)]  # 출현 지점 셋짜리 헬퍼 판(S338 평가)
 # I91 표(2026-10-21 개정): 2~6라운드 웨이브마다 종류별 적 수
 const I91 := [
 	[{"basic": 18, "fast": 8, "flying": 6}, {"basic": 18, "armored": 8, "flying": 10, "fast": 4}, {"basic": 18, "fast": 8, "armored": 8, "flying": 6}, {"basic": 22, "fast": 12, "armored": 8, "flying": 10, "boss": 1}],
@@ -518,7 +518,7 @@ func ev896():
 	return ""
 
 # EV969 · S336: data/waves/round_6.tres의 1~3웨이브는 S336의 수이고 키 차례가 나오는 차례다. 4웨이브는 옛 구성 그대로다.
-# 3웨이브는 다지점(S337)이라 fronts의 3웨이브 칸이 종류마다 출현 지점을 묶고, 시험 스테이지 미리보기 수가 출현 지점마다 그 테마뿐이다.
+# 3웨이브는 다지점(S338)이라 fronts의 3웨이브 칸이 종류마다 출현 지점을 묶고, 시험 스테이지 미리보기 수가 출현 지점마다 그 테마뿐이다.
 # 늑대 기수는 무리 2(S238)라 첫 차례에 둘이 함께 나온다
 func ev969():
 	var w = load("res://data/waves/round_6.tres")
@@ -585,9 +585,9 @@ func _same_turns(got: Array, want: Array, gap: float) -> bool:
 		at += gap * want[i][1]
 	return true
 
-# EV971 · S337: 묶인 종류는 묶인 출현 지점에서만 나온다. 출현 지점은 차례마다 돌아가며 제 줄의 다음 차례(무리나 한 마리)를 내고, 줄이 빈 출현 지점은 건너뛴다.
+# EV982 · S338: 묶인 종류는 묶인 출현 지점에서만 나온다. 출현 지점은 차례마다 돌아가며 제 줄의 다음 차례(무리나 한 마리)를 내고, 줄이 빈 출현 지점은 건너뛴다.
 # 묶이지 않은 종류는 지금처럼 차례마다 돌아가며 맡고, 묶음이 없는 웨이브는 차례가 그대로다. 미리보기 수(spawn_counts)도 묶인 대로다
-func ev971():
+func ev982():
 	var w := THREE[0]
 	var c := THREE[1]
 	var e := THREE[2]
@@ -612,10 +612,10 @@ func ev971():
 	var n_want := [["wolf", 4, w], ["wolf", 4, c], ["armored", 4, e], ["armored", 4, w], ["basic", 1, c], ["basic", 1, e], ["basic", 1, w]]
 	return check(_same_turns(n_got, n_want, 0.25), "묶음 없는 웨이브: 나온 차례 %s(%s여야 한다)" % [n_got, n_want])
 
-# EV972 · I280: ① WavesDef.fronts가 to_stage()에서 항목의 front로 실린다 ③ 나오는 칸의 n은 그 출현 지점의 줄에서 몇 번째 차례인가다
+# EV983 · I281: ① WavesDef.fronts가 to_stage()에서 항목의 front로 실린다 ③ 나오는 칸의 n은 그 출현 지점의 줄에서 몇 번째 차례인가다
 # ④ 묶인 함께 나오는 종류(S294)는 모두 그 출현 지점에서 한 차례에, 묶인 방패 고블린의 호위(S301)는 호위 종류의 묶음과 상관없이 방패 고블린을 따라 나온다
 # ① 출현 지점 수를 넘거나 음수인 front는 묶이지 않은 것이다
-func ev972():
+func ev983():
 	var def = load("res://src/data/waves_def.gd").new()
 	if not "fronts" in def:
 		return "구현 없음: WavesDef에 fronts 칸이 없다"
