@@ -2,7 +2,7 @@ extends Panel
 # 처음 하는 사람 힌트(S191)이자 튜토리얼(S192): 1라운드 k웨이브에 k웨이브 단계 가운데 지금 판 단계의 끝나지 않은 첫 단계를
 # [68,300,200,40](미니맵 S209 오른쪽)에 두 줄 + «건너뛰기»로 보이고, 오른쪽 위에 그 웨이브의 축 이름을 둔다. 힌트 설정(S184)을 끄면 숨는다.
 # 끝날 조건은 숨어 있을 때도 지난 프레임과 비교해 찾고, 끝낸 힌트는 설정 파일에 남긴다(I166). HUD가 매 프레임 step을 부른다.
-# 원정 동안에는 라운드와 상관없이 첫 원정 힌트를 보인다(S332)
+# 원정 동안에는 라운드와 상관없이 첫 원정 힌트를 보이고(S332), 그것이 끝났으면 그 층의 힌트를 보인다(S342 ⑬)
 
 const HudTheme := preload("res://src/ui/hud_theme.gd")
 const Settings := preload("res://src/settings.gd")
@@ -16,6 +16,7 @@ const HINTS := [  # [이름, 1라운드 웨이브, 판 단계, 글](S192 임시�
 	["move", 3, "prep", "영웅을 누르고(1)\n우클릭한 칸으로 보낸다"],
 	["skill", 3, "battle", "Q로 영웅 스킬을 쓴다\n조준하는 칸은 맵을 눌러 쓴다"],
 	["raid", 0, "raid", "보스는 그로기 때만 크게 맞는다\n빨강은 피하고 금색에 모인다"],  # 첫 원정 힌트(S332): 웨이브 0은 라운드·웨이브와 상관없이 원정 동안이다(I277 ④)
+	["raid3", 0, "raid", "포탄 원을 기계 옆에서 굳힌다\n대장 돌진은 잔해나 벽에 박는다"],  # 3층 힌트(S342 ⑬): 이름 끝의 수가 층 번호다(I284 ③)
 ]
 
 var battle
@@ -25,6 +26,7 @@ var axis := Label.new()  # 축 이름(S192)
 var _built := -1  # 지난 프레임의 라운드 집계(I119) built. -1이면 아직 보지 않았다
 var _bought := -1  # 지난 프레임의 라운드 집계 merc_bought
 var _used := -1  # 지난 프레임의 출전 영웅 스킬 수(_skills)
+var _groggy := false  # 지난 프레임에 원정 보스 몸이 그로기였나(I284 ③)
 
 func _init(b, c) -> void:
 	battle = b
@@ -68,8 +70,10 @@ func step() -> void:
 		_finish("buy" if battle.state == "battle" else "merc")
 	if controls.village:
 		_finish("keep")
-	if battle.state == "raid" and battle.enemies.any(func(e): return battle.effect(e, "groggy") != null):  # 첫 원정 힌트(S332)는 보스 몸이 그로기가 되면 끝난다
-		_finish("raid")
+	var groggy: bool = battle.state == "raid" and battle.enemies.any(func(e): return battle.effect(e, "groggy") != null)
+	if groggy and not _groggy:  # 원정 힌트(S332·S342 ⑬)는 보스 몸이 그로기가 된 프레임에 그때 보일 것 하나가 끝난다(I284 ③)
+		_finish(_current())
+	_groggy = groggy
 	var used := _skills()
 	if _used >= 0 and used > _used:
 		_finish("skill")
@@ -85,8 +89,11 @@ func step() -> void:
 
 # 1라운드 지금 웨이브의 단계 가운데 지금 판 단계의 끝나지 않은 첫 단계 이름(S192). 앞 웨이브에 남은 단계는 넘어오지 않는다. 없으면 ""
 func _current() -> String:
-	if battle.state == "raid":  # 첫 원정 힌트(S332)
-		return "" if "raid" in Settings.hints_done else "raid"
+	if battle.state == "raid":  # 첫 원정 힌트(S332), 그다음 그 층의 힌트(S342 ⑬, I284 ③)
+		for name in ["raid", "raid%d" % (battle.floors_cleared + 1)]:
+			if HINTS.any(func(h): return h[0] == name) and not name in Settings.hints_done:
+				return name
+		return ""
 	if battle.round_index > 0:
 		return ""
 	for h in HINTS:

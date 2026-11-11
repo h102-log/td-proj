@@ -1144,7 +1144,7 @@ func _second(e: Enemy) -> bool:
 func _next_beat(e: Enemy) -> void:
 	var plan := _plan_of(e)
 	e.beat = (e.beat + 1) % plan.size()
-	e.rest = plan[e.beat].wait
+	e.rest = plan[e.beat].wait * (1.0 - (e.skills.rage.get("rest", 0.0) if raging(e) else 0.0))  # 원정 대장의 분노(S342 ⑪, I284 ①): 차례가 넘어갈 때 분노 중이면 쉼이 짧다
 
 # 카운터 창(S326 ④, I270 ④): 예고의 남은 시간이 그 패턴의 counter 이하다. 화면이 왕 몸을 파랗게 깜박인다
 func countering(e: Enemy) -> bool:
@@ -1152,6 +1152,15 @@ func countering(e: Enemy) -> bool:
 		return false
 	var sk: Dictionary = deed(e, e.cast.id)
 	return sk.has("counter") and e.cast.left <= sk.counter
+
+# 포탄 원이 기계 몸에 닿아 있다(S342 ①·⑭, I284 ④): 굳지 않은 포탄 원은 지금 원 가운데와 몸 가운데 사이가 원 반경 + 몸 반지름 이하인가이고,
+# 굳은 뒤에는 굳을 때 적어 둔 값이다. 포탄 예고(lock이 있는 따라다니는 원)가 아니면 거짓이다. 화면이 기계 발밑 테를 그릴 때 읽는다
+func shell_touch(e: Enemy) -> bool:
+	if e.cast == null or not e.cast.has("mark") or not e.skills.get(e.cast.id, {}).has("lock"):
+		return false
+	if e.cast.has("aimed"):
+		return e.cast.aimed
+	return e.cast.at.distance_to(e.pos) <= e.skills[e.cast.id].radius + e.radius
 
 # 끊기(S326 ④): 예고를 지우고 그로기를 건 뒤 대본을 다음 차례로 넘긴다
 func _interrupt(e: Enemy) -> void:
@@ -4050,7 +4059,7 @@ func _move(e: Enemy, dt: float) -> void:
 	var howl: float = 1.0 + _howled.get(e, 0.0)  # 울부짖음(S242)
 	var mad := 0.0 if sealed else frenzy(e)  # 격노(S320): 잃은 체력 비율. 봉인되면 꺼진다
 	var beat: Dictionary = _drummed.get(e, {})  # 전쟁 북(S321)
-	e.cooldown -= dt * (1.0 - _fx_cut(e, "lag")) * (1.0 + (e.skills.rage.haste if rage else 0.0)) * (1.0 + sh.get("haste_max", 0.0) * quick) * (1.0 + e.night.get("haste", 0.0) * dusk) * howl * (1.0 + e.frenzy.get("haste", 0.0) * mad) * (1.0 + beat.get("haste", 0.0))  # 공격 속도 감소(S158), 분노(S195), 줄어듦(S236), 어둠(S240), 울부짖음(S242), 격노(S320), 전쟁 북(S321)
+	e.cooldown -= dt * (1.0 - _fx_cut(e, "lag")) * (1.0 + (e.skills.rage.get("haste", 0.0) if rage else 0.0)) * (1.0 + sh.get("haste_max", 0.0) * quick) * (1.0 + e.night.get("haste", 0.0) * dusk) * howl * (1.0 + e.frenzy.get("haste", 0.0) * mad) * (1.0 + beat.get("haste", 0.0))  # 공격 속도 감소(S158), 분노(S195), 줄어듦(S236), 어둠(S240), 울부짖음(S242), 격노(S320), 전쟁 북(S321)
 	e.held -= dt
 	e.loosed += dt
 	var aloft := _aloft(e)
@@ -4123,7 +4132,7 @@ func _move(e: Enemy, dt: float) -> void:
 	if e.dashing and (e.path.is_empty() or units.any(func(u): return u.alive and _touching(u, e) and _touch(e, u))):  # 아군 몸에 막히거나 길이 끝나면 돌진이 끝난다(I243 ④)
 		_end_dash(e)
 	var rooted := _fx_on(e, "root") != null  # 속박(S150): 움직이지 않지만 닿는 대상은 친다
-	var speed: float = 0.0 if rooted else e.speed * (1.0 - _fx_cut(e, "slow")) * (1.0 + (e.skills.rage.stride if rage else 0.0)) * (1.0 + sh.get("stride_max", 0.0) * quick) * (1.0 + e.night.get("stride", 0.0) * dusk) * howl * (e.dash.stride if e.dashing else 1.0) * (1.0 + e.frenzy.get("stride", 0.0) * mad) * (1.0 + beat.get("stride", 0.0))  # 돌진(S293), 격노(S320), 전쟁 북(S321)
+	var speed: float = 0.0 if rooted else e.speed * (1.0 - _fx_cut(e, "slow")) * (1.0 + (e.skills.rage.get("stride", 0.0) if rage else 0.0)) * (1.0 + sh.get("stride_max", 0.0) * quick) * (1.0 + e.night.get("stride", 0.0) * dusk) * howl * (e.dash.stride if e.dashing else 1.0) * (1.0 + e.frenzy.get("stride", 0.0) * mad) * (1.0 + beat.get("stride", 0.0))  # 돌진(S293), 격노(S320), 전쟁 북(S321)
 	if e.on_wall and not _climbable(Vector2i(e.pos.round())):  # 성벽에서 내려왔거나 그 성벽이 부서졌다(I76)
 		e.on_wall = false
 		if e.vaulted:  # 한 번만 뛴다. 내려온 뒤로는 기어오르지 않는 땅 적이다(I191 ⑥)
@@ -4241,7 +4250,7 @@ func _skills(e: Enemy, dt: float, sealed: bool) -> bool:
 			e.cast.at = e.cast.mark.pos
 		e.cast.left -= dt
 		if loose and e.cast.left <= e.skills[e.cast.id].get("lock", -INF):  # 포탄 원(S342 ①, I283 ③): 남은 시간이 lock 이하면 굳고, 그때 기계 몸에 닿았는지 적어 둔다
-			e.cast.aimed = e.cast.at.distance_to(e.pos) <= e.skills[e.cast.id].radius + e.radius
+			e.cast.aimed = shell_touch(e)
 		if e.cast.get("fire", false):  # 기관총 발사 단계(S287): 지난 틱마다 쏜다
 			_spray(e, e.skills[e.cast.id])
 		if e.cast.get("pass", false):  # 융단 폭격 지나가기(S310 ②): 직선을 따라 날며 불을 붙인다
@@ -6068,7 +6077,7 @@ func _hero_tick(h: Unit, dt: float) -> void:
 		return
 	var pace: float = 1.0 + _fx_sum(h, "cdr") + _aura("cdr", h.pos) + h.relic_fx.get("cdr", 0.0)  # 낀 유물(S334)의 빠르기도 더한다
 	for slot in SLOTS:
-		h.cd[slot] -= dt * pace
+		h.cd[slot] -= dt * (pace + h.relic_fx.get("cdr_" + slot, 0.0))  # 칸별 대기 효과(S343, I284 ②)는 그 칸에만 더한다
 	h.dash_cd = maxf(h.dash_cd - dt, 0.0)  # 대시 대기는 스킬 재사용 대기 감소(cdr)를 받지 않는다(I261 ⑥)
 	if h.brace > 0.0:
 		h.brace -= dt

@@ -108,6 +108,10 @@ phase2 = {
 "radius": 1.5,
 "turn": 90.0,
 "windup": 4.5
+},
+"rage": {
+"below": 0.25,
+"rest": 0.3
 }
 },
 "plan": [{
@@ -142,3 +146,4 @@ enrage = {
 pull = 3.0
 hard = 150.0
 gold = 180
+relic = "iron_cog"
