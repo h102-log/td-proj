@@ -270,6 +270,12 @@ class Enemy:
 	var mount := ""  # 늑대 기수가 탄 것(S335 ②): 내릴 때 그 자리에 쓰러진 몸으로 남는 종류. 비어 있으면 남기지 않는다
 	var rooted := false  # 밀리지 않음(S339, I282 ①): 넉백·끌어당김(_knock)에 자리가 바뀌지 않는다
 	var calls := 0  # 내린 대족장이 군단을 부른 횟수(S341 ①). 끊긴 예고는 세지 않는다
+	var duel := {}  # 열린 결투(S342): {who 지목된 영웅, at 결투장 가운데, radius, left 남은 초, need 깎아야 할 체력, dealt 깎은 체력, cut, lose}. 없으면 비어 있다
+	var orders := 0  # 오크 대족장이 내린 군령 수(S343). 짝수 번째는 돌격령, 홀수 번째는 방패령이다
+	var doom := {}  # 처형 선고(S346): {who 표식 영웅, left 남은 초, below, execute, graze}. 없으면 비어 있다
+	var banner := {}  # 전쟁 깃발(S345): {radius 불굴 반경}. 비어 있지 않으면 깃발이다
+	var bodyguard := {}  # 대신 맞기(S348): {big 대신 맞는 한 번의 피해, reach 보스까지 거리}. 비어 있으면 대신 맞지 않는다
+	var spent := false  # 대신 맞았다(S348). 근위대마다 한 번뿐이다
 	var mate := 0  # 쌍둥이 트롤의 짝 번호(I273 ①): 나올 때 살아 있던 같은 종류 수를 2로 나눈 나머지. 화면이 색을 가른다
 	var twin = null  # 쌍둥이 트롤이 맡은 쓰러진 형제의 몸(S329 ②). 없으면 null
 	var raid := {}  # 원정 보스(S316)의 층 정의. 비어 있으면 원정 보스가 아니다
@@ -505,6 +511,9 @@ var rock := {}  # 띠의 보스방 밖 칸 → true(S317): 아무도 들어가�
 var torches := 0  # 횃불 자루(S316)
 var floors_cleared := 0  # 깬 던전 층 수(S316)
 var horns := 0  # 이 판에서 군단 호출(S341 ①)로 부대가 나온 횟수. HUD가 늘어난 때 토스트를 띄운다(I282 ④)
+var edict := {}  # 내려진 군령(S343): {kind "rush" 돌격령 · "shield" 방패령, left 남은 초, stride, haste, cut}. 없으면 비어 있다
+var edicts := 0  # 이 판에서 군령이 내려진 횟수. HUD가 늘어난 때 토스트를 띄운다(I283 ②)
+var _yoking := false  # 사슬 족쇄(S344)가 피해를 나누는 중이다. 나눈 피해는 다시 나누지 않는다
 var party := []  # 원정대(S316): 원정에 들어간 출전 영웅, 출전 차례. 원정이 아니면 비어 있다
 var flame := 0.0  # 이번 원정의 불꽃이 탄 초(I262 ⑥)
 var raid_floor := {}  # 이번 원정의 층 정의(FLOOR_KINDS 값). 원정이 아니면 비어 있다
@@ -610,6 +619,8 @@ func restart() -> void:
 	torches = 0
 	floors_cleared = 0
 	horns = 0
+	edict = {}
+	edicts = 0
 	party.clear()
 	raid_floor = {}
 	_snap = {}
@@ -751,6 +762,7 @@ func step(dt: float) -> void:
 	_songs(dt)
 	_ranks()
 	_drums()
+	_feuds(dt)
 	for e in enemies.duplicate():  # 폭파병(S280)은 제 차례에 터져 죽는다. 목록을 베껴 돌아 다음 적을 건너뛰지 않게
 		if e.alive:
 			_move(e, dt)
@@ -888,6 +900,7 @@ func start_battle() -> void:
 	_spawn_timer = 0.0
 	wave_time = 0.0
 	near_wall = false
+	edict = {}
 
 # 라운드 r·웨이브 w의 적을 나오는 차례대로 [종류, 출현 지점, 나올 칸, 한꺼번에 나오는 마릿수]. 무리(S238)는 한 차례에 함께 나온다.
 # 출현 지점마다 줄을 두고(S338, I281 ②) 웨이브 항목을 차례대로 읽어 차례(무리 하나·한 마리·호위를 데린 한 마리)를 줄 끝에 세운다.
@@ -1542,7 +1555,14 @@ func _enemy(kind: String, cell: Vector2i, overrides: Dictionary) -> Enemy:
 	var m := 1.0 if overrides.has("raid") else _hp_mult()
 	stats.hp *= m
 	stats.guard *= m
-	return Enemy.new(kind, cell, stats)
+	return _prime(Enemy.new(kind, cell, stats))
+
+# 스킬의 첫 대기(I283 ①): skills의 칸에 first가 있으면 나온 때(종류가 바뀐 때)의 대기가 0이 아니라 그 초다
+func _prime(e: Enemy) -> Enemy:
+	for id in e.skills:
+		if e.skills[id] is Dictionary and e.skills[id].has("first"):
+			e.cd[id] = e.skills[id].first
+	return e
 
 # 적을 전장에 넣고 거점까지 길을 찾는다. 보이는지는 지난 스텝 끝의 불빛으로 정한다(I247 ①)
 func _field(e: Enemy) -> void:
@@ -1840,7 +1860,7 @@ func set_auto_fix(group: Array, on: bool) -> void:
 # 영웅 h가 칸 slot을 지금 쓸 수 있다(S145~S147): 전투 단계(S136)·원정(S316), 살아 있음, 기절 아님(I192), 열린 칸(S76), 재사용 대기
 func can_cast(h, slot: String) -> bool:
 	var sk: Dictionary = h.get(slot)
-	return fighting() and h.alive and not _seized(h) and not sk.is_empty() and h.level >= LEVELS.unlock[slot] and h.cd[slot] <= 0.0
+	return fighting() and h.alive and not _seized(h) and _fx_on(h, "silence") == null and not sk.is_empty() and h.level >= LEVELS.unlock[slot] and h.cd[slot] <= 0.0  # 침묵(S347)이면 쓰지 못한다
 
 # 영웅 h(없거나 쓰러졌으면 살아 있는 첫 영웅, S119, I126)가 칸 slot을 쓴다(S145). 명령과 오토(S296)가 쓴다(S15).
 # aim은 지점·방향이면 칸 좌표(Vector2), 아군·적 대상이면 그 유닛·구조물이다. 즉시·켜고 끄는 칸은 aim이 없다.
@@ -2256,7 +2276,7 @@ func _zones(dt: float) -> void:
 
 # 해로운 효과(S152 정화가 지운다): 기절·속박·둔화·도발·봉인·공격력·공격 속도 감소, 받는 피해 증가, 초당 피해, 방어력·마법 저항 감소, 붙잡힘(S242), 들림(S308)
 func _harmful(v: Dictionary) -> bool:
-	return ["stun", "root", "slow", "taunt", "seal", "weaken", "lag", "expose", "dot", "chain", "bleed", "pin", "lift", "burn"].any(func(k): return v.has(k)) or v.get("armor", 0.0) < 0.0 or v.get("mr", 0.0) < 0.0
+	return ["stun", "root", "slow", "taunt", "seal", "weaken", "lag", "expose", "dot", "chain", "bleed", "pin", "lift", "burn", "silence", "shackle"].any(func(k): return v.has(k)) or v.get("armor", 0.0) < 0.0 or v.get("mr", 0.0) < 0.0
 
 # 장판이 끝날 때: 에너지 성벽 칸을 치운다(S151)
 func _end_zone(z: Dictionary) -> void:
@@ -3730,6 +3750,15 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 	if target is Enemy:
 		if target.dashing:  # 공격받으면 돌진이 끝난다(S293)
 			_end_dash(target)
+		var guard = _cover(target, amount) if target.boss and not _dotting else null
+		if guard != null:  # 대신 맞기(S348): 가까운 근위대가 뛰어들어 이 피해를 대신 받는다
+			guard.spent = true
+			var out: Vector2 = guard.pos - target.pos
+			guard.pos = target.pos + (out.normalized() if out.length() > 0.01 else Vector2.DOWN) * (target.radius + guard.radius)
+			damage(guard, amount, kind, src, ignore)
+			return
+		if not target.duel.is_empty() and not _in_ring(target.duel, src):  # 결투(S342 ②): 결투장 밖에서 준 피해는 cut만큼 준다
+			amount *= 1.0 - target.duel.cut
 		if kind != "true":
 			if kind == "phys":
 				var a := armor_of(target)
@@ -3750,6 +3779,11 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 		if target.is_hero and target.passive.get("id") == "fortress" and _luck.randf() < target.passive.guard_odds:  # 강철의 요새(S151 2026-11-10 변경, I258): 요새화와 상관없이 맞을 때마다
 			amount *= 1.0 - target.passive.guard_cut
 		amount = _absorb(target, amount * armor_mult(armor_of(target)) * (1.0 - _fx_cut(target, "dr")))
+		var yoke = target.fx.get("shackle")
+		if yoke != null and not _yoking and yoke.shackle.alive:  # 사슬 족쇄(S344 ③): 받은 피해의 share를 묶인 짝도 받는다. 나눈 피해는 다시 나누지 않는다
+			_yoking = true
+			damage(yoke.shackle, amount * yoke.share, kind, src)
+			_yoking = false
 		if amount >= target.hp and _fx_on(target, "angel") != null:  # 수호 천사(S152): 쓰러지지 않고 불사
 			var secs: float = target.fx.seraphina_e.angel
 			target.fx.erase("seraphina_e")
@@ -3764,6 +3798,10 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 	if target == base and amount > 0.0:
 		tally.base_hit += 1  # 라운드 집계(I119)
 	target.hp = maxf(target.hp - amount, 0.0)
+	if target is Enemy and target.hp <= 0.0 and _undying(target):  # 전쟁 깃발(S345 ②): 깃발 반경 안의 적은 체력이 1 아래로 내려가지 않는다
+		target.hp = 1.0
+	if target is Enemy and not target.duel.is_empty() and src != null and is_same(src, target.duel.who):  # 결투(S342 ④): 결투 상대가 깎은 체력을 센다
+		target.duel.dealt += amount
 	if target is Enemy and target.grip:  # 붙잡은 동안 받은 피해 합(S242)
 		target.grip.hurt += amount
 	if target is Enemy and kind != "true":
@@ -3922,6 +3960,9 @@ func _target_of(e: Enemy):
 	if e.dashing:  # 돌진(S293, I243 ③): 아무도 노리지 않고 돌진 길을 간다. 돌진 길은 goal을 보지 않는다(_find_path)
 		_engage(e, null)
 		return base
+	if not e.duel.is_empty():  # 결투(S342 ③): 결투가 끝날 때까지 결투 상대만 노린다
+		_engage(e, e.duel.who)
+		return e.duel.who
 	if not e.ladder.is_empty():  # 공성탑(S284): 유닛·도발을 무시하고 가장 가까운 성곽 성벽 열, 없으면 거점
 		_engage(e, null)
 		return _tower_aim(e)
@@ -4014,7 +4055,7 @@ func _move(e: Enemy, dt: float) -> void:
 	var howl: float = 1.0 + _howled.get(e, 0.0)  # 울부짖음(S242)
 	var mad := 0.0 if sealed else frenzy(e)  # 격노(S320): 잃은 체력 비율. 봉인되면 꺼진다
 	var beat: Dictionary = _drummed.get(e, {})  # 전쟁 북(S321)
-	e.cooldown -= dt * (1.0 - _fx_cut(e, "lag")) * (1.0 + (e.skills.rage.haste if rage else 0.0)) * (1.0 + sh.get("haste_max", 0.0) * quick) * (1.0 + e.night.get("haste", 0.0) * dusk) * howl * (1.0 + e.frenzy.get("haste", 0.0) * mad) * (1.0 + beat.get("haste", 0.0))  # 공격 속도 감소(S158), 분노(S195), 줄어듦(S236), 어둠(S240), 울부짖음(S242), 격노(S320), 전쟁 북(S321)
+	e.cooldown -= dt * (1.0 - _fx_cut(e, "lag")) * (1.0 + (e.skills.rage.haste if rage else 0.0)) * (1.0 + sh.get("haste_max", 0.0) * quick) * (1.0 + e.night.get("haste", 0.0) * dusk) * howl * (1.0 + e.frenzy.get("haste", 0.0) * mad) * (1.0 + beat.get("haste", 0.0)) * (1.0 + _charged("haste"))  # 돌격령(S343). 공격 속도 감소(S158), 분노(S195), 줄어듦(S236), 어둠(S240), 울부짖음(S242), 격노(S320), 전쟁 북(S321)
 	e.held -= dt
 	e.loosed += dt
 	var aloft := _aloft(e)
@@ -4087,7 +4128,7 @@ func _move(e: Enemy, dt: float) -> void:
 	if e.dashing and (e.path.is_empty() or units.any(func(u): return u.alive and _touching(u, e) and _touch(e, u))):  # 아군 몸에 막히거나 길이 끝나면 돌진이 끝난다(I243 ④)
 		_end_dash(e)
 	var rooted := _fx_on(e, "root") != null  # 속박(S150): 움직이지 않지만 닿는 대상은 친다
-	var speed: float = 0.0 if rooted else e.speed * (1.0 - _fx_cut(e, "slow")) * (1.0 + (e.skills.rage.stride if rage else 0.0)) * (1.0 + sh.get("stride_max", 0.0) * quick) * (1.0 + e.night.get("stride", 0.0) * dusk) * howl * (e.dash.stride if e.dashing else 1.0) * (1.0 + e.frenzy.get("stride", 0.0) * mad) * (1.0 + beat.get("stride", 0.0))  # 돌진(S293), 격노(S320), 전쟁 북(S321)
+	var speed: float = 0.0 if rooted else e.speed * (1.0 - _fx_cut(e, "slow")) * (1.0 + (e.skills.rage.stride if rage else 0.0)) * (1.0 + sh.get("stride_max", 0.0) * quick) * (1.0 + e.night.get("stride", 0.0) * dusk) * howl * (e.dash.stride if e.dashing else 1.0) * (1.0 + e.frenzy.get("stride", 0.0) * mad) * (1.0 + beat.get("stride", 0.0)) * (1.0 + _charged("stride"))  # 돌진(S293), 격노(S320), 전쟁 북(S321)
 	if e.on_wall and not _climbable(Vector2i(e.pos.round())):  # 성벽에서 내려왔거나 그 성벽이 부서졌다(I76)
 		e.on_wall = false
 		if e.vaulted:  # 한 번만 뛴다. 내려온 뒤로는 기어오르지 않는 땅 적이다(I191 ⑥)
@@ -4224,6 +4265,8 @@ func _skills(e: Enemy, dt: float, sealed: bool) -> bool:
 		e.cast = {"id": id, "left": e.skills[id].windup}
 		e.cast.merge(call("_%s_aim" % id, e, e.skills[id]))
 		return true
+	if not e.duel.is_empty():  # 결투(S342 ③) 동안에는 새 스킬을 시작하지 않는다
+		return false
 	for id in e.skills:  # 쓸 수 있는 예고 스킬이 여럿이면 skills에 적힌 차례에서 앞선 것(I169)
 		var sk: Dictionary = e.skills[id]
 		if not sk.has("windup") or e.cd.get(id, 0.0) > 0.0 or plan.any(func(p): return p.id == id):  # 대본 패턴은 대본 차례에만 쓴다
@@ -4616,6 +4659,9 @@ func _turn(e: Enemy, k: String) -> void:
 	e.via = null
 	e.attacker = null
 	e.cast = null
+	e.duel = {}
+	e.doom = {}
+	_prime(e)
 
 # 철퇴를 쓸 수 있다: 둘레 range 안 땅 위 아군 가운데 가장 가까운 것(같으면 유닛 차례에서 앞선 것) 쪽을 부채꼴 가운데 방향(dir, 라디안)으로 둔다
 func _cleave_ready(e: Enemy, sk: Dictionary):
@@ -5082,6 +5128,194 @@ func _rift(e: Enemy, sk: Dictionary) -> void:
 		_trace(e, "rift", null, at, sk.radius)
 		for u in _ground_near(at, sk.radius):
 			damage(u, sk.unit, "phys", e)
+	_tracing = null
+
+# ── 오크 대족장의 새 기믹(S342~S348, I283) ──
+
+# at에서 r칸 안의 땅 위 영웅(들린 것 빼고), 가까운 차례
+func _heroes_near(at: Vector2, r: float) -> Array:
+	var out: Array = _ground_near(at, r).filter(func(u): return u.is_hero)
+	out.sort_custom(func(a, b): return at.distance_to(a.pos) < at.distance_to(b.pos))
+	return out
+
+# 결투 신청을 쓸 수 있다(S342 ①): range 안의 가장 가까운 땅 위 영웅을 지목하고, 결투장 가운데(at)는 예고를 띄울 때의 대족장 자리다
+func _duel_ready(e: Enemy, sk: Dictionary):
+	var near := _heroes_near(e.pos, sk.range)
+	return {"who": near[0], "at": e.pos} if not near.is_empty() else false
+
+# 결투가 열린다(S342 ②): 지목된 영웅이 예고가 끝날 때 결투장 안에 있어야 한다. 원 밖으로 비켰으면 열리지 않는다
+func _duel(e: Enemy, sk: Dictionary) -> void:
+	var who = e.cast.who
+	if not who.alive or who.on_wall or who.pos.distance_to(e.cast.at) > sk.radius:
+		return
+	e.duel = {"who": who, "at": e.cast.at, "radius": sk.radius, "left": sk.time, "need": sk.need * e.max_hp, "dealt": 0.0, "cut": sk.cut, "lose": sk.lose}
+
+# 결투장 안에서 준 피해인가(S342 ②): 출처(영웅·용병·구조물)의 자리가 결투장 안이다. 출처가 없는 피해(초당 피해)는 밖이다
+func _in_ring(d: Dictionary, src) -> bool:
+	if src == null:
+		return false
+	var at = src.pos if src is Unit else (Vector2(src.cell) if src is Block else null)
+	return at != null and at.distance_to(d.at) <= d.radius
+
+# 사슬 족쇄를 쓸 수 있다(S344 ①): range 안에 아직 묶이지 않은 땅 위 영웅이 둘 이상이다. 가까운 둘의 자리에 원을 예고한다
+func _shackle_ready(e: Enemy, sk: Dictionary):
+	var pool: Array = _heroes_near(e.pos, sk.range).filter(func(u): return not u.fx.has("shackle"))
+	return {"pair": [pool[0], pool[1]], "spots": [pool[0].pos, pool[1].pos]} if pool.size() >= 2 else false
+
+# 사슬 족쇄(S344 ②): 두 영웅이 모두 제 원 안에 있으면 서로 묶인다. 하나라도 비켰으면 묶이지 않는다
+func _shackle(e: Enemy, sk: Dictionary) -> void:
+	var pair: Array = e.cast.pair
+	for i in 2:
+		_trace(e, "shackle", null, e.cast.spots[i], sk.radius)
+	_tracing = null
+	if range(2).any(func(i): return not pair[i].alive or pair[i].on_wall or pair[i].pos.distance_to(e.cast.spots[i]) > sk.radius):
+		return
+	for i in 2:
+		_fx(pair[i], "shackle", {"shackle": pair[1 - i], "reach": sk.reach, "share": sk.share}, sk.time)
+
+# 군령을 쓸 수 있다(S343 ①): 대기만 본다. 아군이 가까이 없어도 쓴다
+func _order_ready(_e: Enemy, _sk: Dictionary) -> bool:
+	return true
+
+# 군령(S343 ②): 이 대족장의 짝수 번째 군령은 돌격령, 홀수 번째는 방패령이다. 전장의 모든 적에게 time초 걸린다(나중에 나온 적도)
+func _order(e: Enemy, sk: Dictionary) -> void:
+	edict = {"kind": "rush" if e.orders % 2 == 0 else "shield", "left": sk.time, "stride": sk.stride, "haste": sk.haste, "cut": sk.cut}
+	e.orders += 1
+	edicts += 1
+
+# 돌격령(S343 ②)이 걸려 있으면 그 칸(stride 이동 · haste 공격 속도)의 값, 아니면 0
+func _charged(key: String) -> float:
+	return edict[key] if edict.get("kind") == "rush" else 0.0
+
+# 전쟁 깃발을 쓸 수 있다(S345 ①): 전장에 깃발이 없다. 꽂을 자리(at)는 예고를 띄울 때의 대족장 자리다
+func _banner_ready(e: Enemy, _sk: Dictionary):
+	return {"at": e.pos} if not enemies.any(func(o): return not o.banner.is_empty()) else false
+
+# 전쟁 깃발(S345 ①): 꽂을 자리(설 수 없는 칸이면 가장 가까운 빈 칸)에 깃발(kind)을 세운다
+func _banner(e: Enemy, sk: Dictionary) -> void:
+	var c := Vector2i(e.cast.at.round())
+	spawn_enemy(sk.kind, c if _bare(c) else _bare_near(c))
+
+# 전쟁 깃발의 불굴(S345 ②): 깃발이 아닌 적 t가 살아 있는 깃발의 반경 안에 있다
+func _undying(t: Enemy) -> bool:
+	return t.banner.is_empty() and enemies.any(func(o): return o.alive and not o.banner.is_empty() and o.pos.distance_to(t.pos) <= o.banner.radius)
+
+# 처형 선고를 쓸 수 있다(S346 ①): 선고가 걸려 있지 않고 range 안에 땅 위 영웅이 있다. 체력(보호막 포함) 비율이 가장 낮은 영웅을 고른다(같으면 가까운 쪽)
+func _verdict_ready(e: Enemy, sk: Dictionary):
+	if not e.doom.is_empty():
+		return false
+	var who = null
+	for u in _heroes_near(e.pos, sk.range):
+		if who == null or _health(u) < _health(who):
+			who = u
+	return {"mark": who, "at": who.pos} if who != null else false
+
+# 영웅의 체력 비율(S346): 보호막을 더한 체력 ÷ 최대 체력
+func _health(u: Unit) -> float:
+	return (u.hp + u.shields.values().reduce(func(sum, sh): return sum + sh.hp, 0.0)) / u.max_hp
+
+# 처형 선고(S346 ②): 표식을 붙이고 time초를 센다. 그동안 대족장은 평소대로 움직이고 친다
+func _verdict(e: Enemy, sk: Dictionary) -> void:
+	var who = e.cast.mark
+	if not who.alive:
+		return
+	e.doom = {"who": who, "left": sk.time, "below": sk.below, "execute": sk.execute, "graze": sk.graze}
+	who.fx["verdict"] = {"verdict": e, "left": sk.time}
+
+# 침묵의 포효를 쓸 수 있다(S347 ①): range 안의 가장 가까운 땅 위 영웅 쪽을 부채꼴 가운데 방향으로 둔다
+func _roar_ready(e: Enemy, sk: Dictionary):
+	var near := _heroes_near(e.pos, sk.range)
+	return {"dir": (near[0].pos - e.pos).angle()} if not near.is_empty() else false
+
+# 침묵의 포효(S347 ②): 부채꼴 안 땅 위 영웅에게 침묵을 time초 건다. 용병은 걸리지 않는다
+func _roar(e: Enemy, sk: Dictionary) -> void:
+	var dir: float = e.cast.dir
+	_trace(e, "roar", null, e.pos, 0.0)
+	_tracing.merge({"dir": dir, "range": sk.range, "arc": sk.arc})  # 발동 채움(S198)을 부채꼴로 칠한다
+	for u in _heroes_near(e.pos, sk.range):
+		var v: Vector2 = u.pos - e.pos
+		if v == Vector2.ZERO or absf(angle_difference(dir, v.angle())) <= deg_to_rad(sk.arc) / 2.0:
+			_fx(u, "silence", {"silence": true}, sk.time)
+	_tracing = null
+
+# 대신 맞기(S348): 보스 boss가 한 번에 amount를 받을 때 대신 맞을 근위대. 아직 대신 맞지 않았고, amount가 big 이상이고, reach 안인 것 가운데 가장 가까운 것. 없으면 null
+func _cover(boss: Enemy, amount: float):
+	var best = null
+	for o in enemies:
+		if o.alive and o != boss and not o.bodyguard.is_empty() and not o.spent and amount >= o.bodyguard.big and o.pos.distance_to(boss.pos) <= o.bodyguard.reach:
+			if best == null or o.pos.distance_to(boss.pos) < best.pos.distance_to(boss.pos):
+				best = o
+	return best
+
+# 결투·처형 선고·사슬 족쇄·군령의 시간을 센다(S342~S346)
+func _feuds(dt: float) -> void:
+	if not edict.is_empty():
+		edict.left -= dt
+		if edict.left <= 0.0:
+			edict = {}
+	for e in enemies.duplicate():
+		if not e.alive:
+			continue
+		if not e.duel.is_empty():
+			_duel_step(e, dt)
+		if not e.doom.is_empty():
+			_doom_step(e, dt)
+	for u in units.duplicate():
+		var y = u.fx.get("shackle")
+		if y == null:
+			continue
+		var mate = y.shackle
+		if not mate.alive or mate.fx.get("shackle") == null:  # 짝이 쓰러졌거나 풀렸으면(정화) 함께 풀린다
+			u.fx.erase("shackle")
+			continue
+		var apart: Vector2 = mate.pos - u.pos
+		if apart.length() > y.reach and u.get_instance_id() < mate.get_instance_id():  # reach칸 넘게 떨어지면 넘은 만큼 둘을 서로 쪽으로 당긴다(막힌 칸·몸에서 멈춘다)
+			var pull: Vector2 = apart.normalized() * (apart.length() - y.reach) / 2.0
+			_shove(u, pull, enemies)
+			_shove(mate, -pull, enemies)
+
+# 결투 한 스텝(S342 ③④): 결투 상대와 대족장을 결투장 안에 가두고, 상대가 need만큼 깎았으면 대족장이 비틀거리고, 시간이 다 되면 상대가 lose를 받는다.
+# 상대가 쓰러지면 그냥 끝난다
+func _duel_step(e: Enemy, dt: float) -> void:
+	var d: Dictionary = e.duel
+	if not d.who.alive:
+		e.duel = {}
+		return
+	for x in [d.who, e]:
+		var off: Vector2 = x.pos - d.at
+		if off.length() > d.radius:
+			x.pos = d.at + off.normalized() * d.radius
+	d.left -= dt
+	if d.dealt >= d.need:
+		e.duel = {}
+		_fx(e, "stagger", {"expose": STAGGER_EXPOSE}, STAGGER)
+	elif d.left <= 0.0:
+		e.duel = {}
+		damage(d.who, d.lose, "phys", e)
+
+# 처형 선고 한 스텝(S346 ③): 시간이 다 되면 대족장이 표식 영웅 곁으로 뛰어가 내려찍는다. 그때 영웅의 체력 비율이 below 아래면 최대 체력의 execute,
+# 아니면 graze를 물리 피해로 준다. 대족장이 기절·빙결·봉인 중이거나 영웅이 쓰러졌거나 성벽 위면 선고는 그냥 사라진다
+func _doom_step(e: Enemy, dt: float) -> void:
+	var d: Dictionary = e.doom
+	var who = d.who
+	if not who.alive:
+		e.doom = {}
+		return
+	d.left -= dt
+	if d.left > 0.0:
+		return
+	e.doom = {}
+	who.fx.erase("verdict")
+	if who.on_wall or _fx_on(e, "stun") != null or _fx_on(e, "seal") != null or _aloft(e):
+		return
+	var out: Vector2 = e.pos - who.pos
+	var to: Vector2 = who.pos + (out.normalized() if out.length() > 0.01 else Vector2.DOWN) * (e.radius + who.radius)
+	if _bare(Vector2i(to.round())):
+		_engage(e, null)
+		e.pos = to
+		_find_path(e)
+	_trace(e, "verdict", null, who.pos, 0.8)
+	damage(who, who.max_hp * (d.execute if _health(who) < d.below else d.graze), "phys", e)
 	_tracing = null
 
 # ── 5라운드 트롤(S327~S329) ──
@@ -5710,9 +5944,9 @@ func _push_apart(bodies: Array, others: Array) -> void:
 			if j != i and not _ghost(o) and not (j in big and j < i):
 				_part(bodies[i], o, others)
 
-# 같은 편과 밀지도 밀리지도 않는 몸(_push_apart): 비행 적(I79), 뜬 적(S236), 공성탑(S284), 둥지(S309)
+# 같은 편과 밀지도 밀리지도 않는 몸(_push_apart): 비행 적(I79), 뜬 적(S236), 공성탑(S284), 둥지(S309), 전쟁 깃발(S345)
 func _ghost(x) -> bool:
-	return x.get("flying") or _aloft(x) or (x is Enemy and not (x.ladder.is_empty() and x.brood.is_empty())) or _carried(x)
+	return x.get("flying") or _aloft(x) or (x is Enemy and not (x.ladder.is_empty() and x.brood.is_empty() and x.banner.is_empty())) or _carried(x)
 
 # 겹친 두 몸 a·o를 떼어 놓는다(_push_apart)
 func _part(a, o, others: Array) -> void:
@@ -5878,7 +6112,7 @@ func _land(m: Missile) -> void:
 			if e != m.target:
 				m.side.append(e)
 			var cut: float = e.ranged_cut if m.kind == "phys" and _fx_on(e, "seal") == null else 0.0  # 투사체 물리 피해 덜 받기(I217). 봉인되면 꺼진다(S281)
-			var hurt: float = m.hurt * (1.0 - cut) * (1.0 - _wall_cut(e, m))  # 방패벽(S319, I263 ②)
+			var hurt: float = m.hurt * (1.0 - cut) * (1.0 - _wall_cut(e, m)) * (1.0 - (edict.cut if edict.get("kind") == "shield" else 0.0))  # 방패벽(S319, I263 ②), 방패령(S343)
 			if e.guard > 0.0 and m.look == "arrow" and s.kind in ["tower", "archer"]:  # 방패(S301, I248 ①②): 궁수탑·궁수 용병 화살은 방어력 전 피해를 방패가 먼저 받는다
 				var took := minf(e.guard, hurt)
 				e.guard -= took

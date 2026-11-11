@@ -13,3 +13,7 @@ sight = 4.0
 reward = 15
 armor = 20.0
 rooted = true
+bodyguard = {
+"big": 30.0,
+"reach": 4.0
+}

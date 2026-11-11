@@ -22,6 +22,7 @@ const ENEMY_COLORS := {  # 적 종류마다 다른 색(I81)
 	"shield_orc": Color("8898b0"), "berserker": Color("c84a3a"), "drummer": Color("c8a050"),
 	"ogre_thrower": Color("9a6a3a"), "chain_orc": Color("5a8a7a"), "troll": Color("5f8f8a"), "twin_troll": Color("3f6f9a"),
 	"wolf_rider": Color("94684e"), "warguard": Color("5c5470"), "warchief": Color("b03058"), "warchief_foot": Color("701c40"),
+	"warbanner": Color("d8a020"),
 }
 # 그림이 아직 없어 다른 종류의 그림을 빌리는 종류 → [빌리는 종류, 곱하는 색](I250 ⑤·I253 ⑤). 4라운드 하피 다섯은 비행(하피) 그림이다
 const TWINS := [Color(1.45, 1.1, 0.4), Color(0.8, 0.95, 1.3)]  # 쌍둥이 트롤 두 마리에 곱하는 색(I274): 짝 번호 0은 누런 쪽, 1은 푸른 쪽. 임시값
@@ -37,6 +38,8 @@ const WALL := Color("e8f0ff")  # 방패벽(S319)을 선 방패벽 오크끼리 �
 const DRUM := Color("e8c070")  # 전쟁 북(S321) 반경 고리(I265 ⑥)
 const HURL_UP := 14.0  # 던져진 오크(S324)를 한가운데에서 들어 올리는 높이(px, I268 ⑤). 임시값
 const CHAIN := Color("c8ccd4")  # 사슬 오크가 던진 사슬 선(I269 ⑤)
+const EDICT := {"rush": Color("ef3a0c"), "shield": Color("60a8f0")}  # 군령(S343)이 걸린 적 머리 위 표시의 색(I283 ②): 돌격령 빨강 · 방패령 파랑
+const SILENCE := Color("9aa4b8")  # 침묵(S347)이 걸린 영웅 머리 위 ✕(I283 ⑥)
 const REGEN := Color("7fbf3b")  # 재생(S327)이 도는 적 머리 위 십자(I271 ③)
 const LOB_UP := 20.0  # 쌍둥이 트롤이 던진 바위·몸(S329)을 한가운데에서 들어 올리는 높이(px, I273 ⑥). 임시값
 const BOULDER := [Color("684c3c"), Color("927e6a")]  # 쌍둥이 트롤이 던진 바위의 [몸, 밝은 면](I273 ⑥). 테는 PX.soot
@@ -179,7 +182,7 @@ const DEBUFFS := ["slow", "weaken", "armor", "mr"]  # 적 능력치 감소 줄�
 const FOE_TELL := Color("ef692f")  # 일반 적 예고(S279): F24+ 주황 1px 테가 BLINK초마다 켜졌다 꺼진다. 안쪽은 칠하지 않는다
 const BLINK := 0.25
 const SWAT_FILL := 0.2  # 쓸기 예고(S328) 부채꼴 안쪽 칠의 불투명도(I272 ③). 임시값
-const UNSEEN_TELLS := ["pounce", "throw", "bomb", "drop", "cannon", "bombs", "flame", "dive", "gust", "snatch", "nest", "plunge", "carpet", "hurl", "hurled", "lob", "twin", "rift"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287)·대장 폭탄(S288)·불화살(I249 ①)·박치기(I251 ⑦)·돌풍(I253 ④)·낚아채기(I254 ⑥)·둥지 짓기(I255 ⑥)·와이번 급강하·융단 폭격(S310)·오크 던지기와 던져진 오크가 떨어질 자리(I268 ⑤). 덮개 위 층에 그린다
+const UNSEEN_TELLS := ["pounce", "throw", "bomb", "drop", "cannon", "bombs", "flame", "dive", "gust", "snatch", "nest", "plunge", "carpet", "hurl", "hurled", "lob", "twin", "rift", "duel", "shackle", "verdict"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287)·대장 폭탄(S288)·불화살(I249 ①)·박치기(I251 ⑦)·돌풍(I253 ④)·낚아채기(I254 ⑥)·둥지 짓기(I255 ⑥)·와이번 급강하·융단 폭격(S310)·오크 던지기와 던져진 오크가 떨어질 자리(I268 ⑤). 덮개 위 층에 그린다
 const FLAME_RING := 0.5  # 불화살 예고 원 반경(칸, S302). 판정에 쓰지 않는 그림 값이라 flame 데이터에 없다
 const NEST_RING := 0.5  # 둥지 짓기 예고 원 반경(칸, S309). 짓는 칸 하나다
 const TELL := Color("ef3a0c")  # 보스 스킬 예고(S194): F24+ 빨강 테(바깥 어두운 테는 PX.maroon), 안쪽 성긴 칠이 차오른다(S198 fx-4)
@@ -504,6 +507,7 @@ func _draw() -> void:
 	_burning()
 	_regen_marks()
 	_feed_marks()
+	_feud_marks()
 	for u in battle.units:
 		var at := _spot(u) + _slip(u)  # 넉백으로 미끄러지는 몸을 테두리·숫자가 따라간다(S198)
 		if u.is_hero:  # 영웅 레벨(I117): 오른쪽 위에 작게
@@ -3554,7 +3558,7 @@ func _tells() -> void:
 		if not e.skills.has(e.cast.id):  # 일반 적 예고(S279): 폭파병 도화선
 			_foe_tell(e)
 			continue
-		if e.cast.id in ["mgun", "cleave", "breath", "tail"]:  # 전쟁 기계 기관총(S287)·대장 철퇴(S288)·떨어진 와이번 숨결·꼬리(S311)는 부채꼴
+		if e.cast.id in ["mgun", "cleave", "breath", "tail", "roar"]:  # 전쟁 기계 기관총(S287)·대장 철퇴(S288)·떨어진 와이번 숨결·꼬리(S311)·내린 대족장 포효(S347)는 부채꼴
 			_fan_tell(e)
 			continue
 		if e.cast.id in ["charge", "rush", "chain"]:  # 대장 돌진(S288)·떨어진 와이번 맹진(S311)·오크 대족장 사슬 갈고리(S340 ②)는 직선
@@ -3779,12 +3783,49 @@ func _foe_tells() -> void:
 	for e in tellers(_foes):
 		if e.cast.id in UNSEEN_TELLS and not e.skills.has(e.cast.id):
 			_foe_tell(e)
-		elif e.cast.id in ["cannon", "bombs", "plunge", "lob", "twin", "rift"]:  # 대장 폭탄(S288)·와이번 급강하(S310)·쌍둥이 트롤의 집어 던지기·형제 던지기(S329)·내린 대족장 균열(S341 ②)도 대포처럼 숨어도 그린다
+		elif e.cast.id in ["cannon", "bombs", "plunge", "lob", "twin", "rift", "duel", "shackle", "verdict"]:  # 대장 폭탄(S288)·와이번 급강하(S310)·쌍둥이 트롤의 집어 던지기·형제 던지기(S329)·내린 대족장 균열(S341 ②)도 대포처럼 숨어도 그린다
 			_boss_tell(e)
 		elif e.cast.id == "carpet" and not e.cast.get("pass", false):  # 와이번 융단 폭격 직선(S310)도 숨어도 그린다. 지나가는 동안은 그리지 않는다
 			_line_tell(e)
 	for l in battle.lobs:  # 바위·몸이 나는 동안에도 떨어질 자리에 빨강 테(I273 ⑥)
 		_edge(Vector2i(_center(l.at).floor()), int(CELL * l.radius), TELL, PX.maroon)
+
+# 오크 대족장의 새 기믹 표시(S342~S347, I283). 몸통 위 층에 그린다.
+# 결투장: 열린 결투의 원(보라 두 겹). 사슬 족쇄: 묶인 두 영웅의 가슴을 잇는 사슬 선. 처형 선고: 표식 영웅 머리 위에 남은 시간만큼 줄어드는 빨강 고리와 ✕.
+# 침묵: 영웅 머리 위 회색 ✕. 군령: 보이는 적마다 머리 위 짧은 꺾쇠(돌격령 빨강 ∧ · 방패령 파랑 ∨). 전쟁 깃발: 깃대와 깃발, 불굴 반경 고리
+func _feud_marks() -> void:
+	for e in _foes:
+		if not e.duel.is_empty():
+			var c := Vector2i(_center(e.duel.at).floor())
+			_pring(c, int(CELL * e.duel.radius), 1, PX.vio1)
+			_pring(c, int(CELL * e.duel.radius) - 2, 1, PX.vio3)
+		if not e.banner.is_empty():
+			var p := Vector2i(_spot(e).floor())
+			_pring(Vector2i(_center(e.pos).floor()), int(CELL * e.banner.radius), 1, Color(PX.gold, 0.5))
+			_pline(p, p - Vector2i(0, 18), PX.cream, 1)
+			for i in 6:  # 깃발: 깃대 위쪽에서 오른쪽으로 좁아지는 삼각
+				_pline(p - Vector2i(-1, 18 - i), p - Vector2i(-1 - (6 - i) * 2, 18 - i), PX.red)
+				_pline(p - Vector2i(-1, 7 + i), p - Vector2i(-1 - (6 - i) * 2, 7 + i), PX.red)
+		var kind: String = battle.edict.get("kind", "")
+		if kind != "" and e.banner.is_empty():
+			var top := Vector2i((_spot(e) - Vector2(0, _head(e) * _shrunk(e) + 3)).floor())
+			var dy := -2 if kind == "rush" else 2
+			_pline(top + Vector2i(-2, 0), top + Vector2i(0, dy), EDICT[kind])
+			_pline(top + Vector2i(0, dy), top + Vector2i(2, 0), EDICT[kind])
+	for u in battle.units:
+		var up := Vector2i((_spot(u) + _slip(u) - Vector2(0, _head(u) + 5)).floor())
+		var y = u.fx.get("shackle")
+		if y != null and y.shackle.alive and u.get_instance_id() < y.shackle.get_instance_id():
+			_pline(Vector2i((_spot(u) + _slip(u) + Vector2(0, -8)).floor()), Vector2i((_spot(y.shackle) + _slip(y.shackle) + Vector2(0, -8)).floor()), CHAIN)
+		var v = u.fx.get("verdict")
+		if v != null and v.verdict.alive and not v.verdict.doom.is_empty():
+			_pring(up, 3 + int(8.0 * clampf(v.verdict.doom.left / maxf(v.left + v.verdict.doom.left, 0.01) * 2.0, 0.0, 1.0)), 1, TELL)
+			_pline(up + Vector2i(-2, -2), up + Vector2i(2, 2), TELL)
+			_pline(up + Vector2i(-2, 2), up + Vector2i(2, -2), TELL)
+		if u.fx.has("silence"):
+			var at := up + Vector2i(7, 0)
+			_pline(at + Vector2i(-2, -2), at + Vector2i(2, 2), SILENCE)
+			_pline(at + Vector2i(-2, 2), at + Vector2i(2, -2), SILENCE)
 
 # 재생 표시(S327, I271 ③): 재생이 도는 보이는 적의 머리 위에 어두운 1px 테를 두른 초록 십자(가로·세로 5px). 0.5초마다 1px 오르내린다
 func _regen_marks() -> void:

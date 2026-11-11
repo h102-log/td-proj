@@ -120,7 +120,7 @@ const ENEMIES := {"basic": "기본", "fast": "빠름", "armored": "장갑", "fly
 	"storm_harpy": "폭풍날개 하피", "snatch_harpy": "낚아채기 하피",
 	"nest_harpy": "둥지 하피", "nest": "둥지", "harpy_chick": "새끼 하피", "wyvern": "와이번", "wyvern_fallen": "떨어진 와이번",
 	"shield_orc": "방패벽 오크", "berserker": "광전사 오크", "drummer": "전쟁 북 고수", "ogre_thrower": "오우거 투척꾼", "chain_orc": "사슬 오크", "troll": "트롤 싸움꾼", "twin_troll": "쌍둥이 트롤",
-	"wolf_rider": "늑대 기수", "warguard": "대족장 근위대", "warchief": "오크 대족장", "warchief_foot": "내린 대족장"}  # S106
+	"wolf_rider": "늑대 기수", "warguard": "대족장 근위대", "warchief": "오크 대족장", "warchief_foot": "내린 대족장", "warbanner": "전쟁 깃발"}  # S106
 const TRAITS := {"fast": "성벽을 오른다", "flying": "길을 무시하고 무리로 온다, 근접은 못 친다", "armored": "받는 피해를 줄인다", "boss": "성벽을 뚫고 온다. 대지 강타·분노",
 	"slime": "죽으면 둘로 갈라진다", "big_slime": "두 번 갈라진다", "slimelet": "보상이 없다",
 	"slime_king": "웅크린 뒤 뛰어내려 찍는다. 맞을수록 작아지고 빨라진다",
@@ -256,6 +256,8 @@ var _gear_rows := []  # 장비마다 [영웅 종류, 줄 글, 제작·강화 버
 var relic_rows := []  # 유물마다 [유물 id, 줄, 줄 글, 강화 버튼, 영웅 바꾸기 버튼](S334, I278 ⑤). 장비 칸의 장비 줄 아래
 var _floors_seen := 0  # 지난 프레임의 깬 층 수. 늘면 층 보상 토스트를 띄운다(S333)
 var _horns_seen := 0  # 지난 프레임의 군단 호출 횟수(battle.horns). 늘면 토스트를 띄운다(S341 ①)
+var _edicts_seen := 0  # 지난 프레임의 군령 횟수(battle.edicts). 늘면 토스트를 띄운다(S343 ③)
+const EDICT_TEXT := {"rush": "군령: 돌격! — 모든 적이 빨라진다", "shield": "군령: 방패! — 모든 적이 화살과 구슬을 덜 받는다"}  # 군령 토스트(S343 ③)
 var _seen := ""  # 마지막으로 본 판 단계. 바뀌었을 때 결과 창이 떠 있으면 포커스를 준다
 var _wait := 0.0  # 결과 창이 뜨기까지 남은 시간(초, S117). 트리가 멈추는 ESC 메뉴 동안에는 줄지 않는다
 var tags := []  # 고른 영웅·용병의 상황 태그 [A 공격 이동, S 정지, H 홀드](I139)
@@ -653,6 +655,9 @@ func _process(delta: float) -> void:
 	if battle.horns > _horns_seen:  # 군단 호출 토스트(S341 ①, I282 ④)
 		toasts.push("대족장이 군단을 불렀다")
 	_horns_seen = battle.horns
+	if battle.edicts > _edicts_seen and EDICT_TEXT.has(battle.edict.get("kind", "")):  # 군령 토스트(S343 ③, I283 ②)
+		toasts.push(EDICT_TEXT[battle.edict.kind])
+	_edicts_seen = battle.edicts
 	again.visible = raiding and battle.raid_pending()  # «다시» 창(S331)
 	if again.visible:
 		_again_text.text = tr("원정 실패") + " — " + tr("보스 남은 체력 %d%%") % ceili(battle.raid_left() * 100.0)

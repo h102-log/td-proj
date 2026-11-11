@@ -579,6 +579,9 @@ msgstr "Orc Warchief"
 msgid "내린 대족장"
 msgstr "Dismounted Warchief"
 
+msgid "전쟁 깃발"
+msgstr "War Banner"
+
 msgid "둘이 붙으면 둘레 적까지 정면 화살·구슬을 덜 받는다"
 msgstr "Paired up, they halve arrows and bolts from the front for nearby foes too"
 
@@ -1846,6 +1849,12 @@ msgstr "F%d cleared — +%d gold"
 
 msgid "대족장이 군단을 불렀다"
 msgstr "The Warchief has called the warhost"
+
+msgid "군령: 돌격! — 모든 적이 빨라진다"
+msgstr "War order: Charge! — every enemy speeds up"
+
+msgid "군령: 방패! — 모든 적이 화살과 구슬을 덜 받는다"
+msgstr "War order: Shields! — every enemy takes less from arrows and orbs"
 
 msgid "광분 %d"
 msgstr "Frenzy %d"
