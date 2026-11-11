@@ -30,8 +30,7 @@ const LOOKS := {"feather_harpy": ["flying", Color(0.75, 1.2, 1.7)], "dive_harpy"
 	"storm_harpy": ["flying", Color(0.85, 1.65, 1.35)], "snatch_harpy": ["flying", Color(1.65, 1.5, 0.65)],
 	"nest_harpy": ["flying", Color(1.3, 1.6, 0.8)], "harpy_chick": ["flying", Color(1.8, 1.7, 1.6)],
 	"shield_orc": ["armored", Color(0.8, 1.0, 1.5)], "berserker": ["armored", Color(1.25, 0.95, 0.8)], "drummer": ["armored", Color(1.4, 1.25, 0.6)],
-	"ogre_thrower": ["boss", Color(0.8, 1.2, 0.7)], "chain_orc": ["armored", Color(0.75, 1.35, 1.05)], "twin_troll": ["troll", TWINS],
-	"warguard": ["armored", Color(0.75, 0.7, 1.25)], "warchief": ["wolf_rider", Color(1.4, 0.8, 0.85)], "warchief_foot": ["armored", Color(1.5, 0.8, 0.9)]}  # 대족장 근위대·내린 대족장은 장갑(오크), 오크 대족장은 늑대 기수 그림이다(I282 ⑥). 오우거 투척꾼은 오우거 그림, 사슬 오크는 장갑(오크) 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)
+	"ogre_thrower": ["boss", Color(0.8, 1.2, 0.7)], "chain_orc": ["armored", Color(0.75, 1.35, 1.05)], "twin_troll": ["troll", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발은 제 그림이다(I287). 오우거 투척꾼은 오우거 그림, 사슬 오크는 장갑(오크) 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)
 const NOTE := Color("d8b0ff")  # 노래(S306)로 공격 속도가 느려진 아군 머리 위 음표와 노래 반경 고리의 색(I252 ④)
 const FEATHER := Color("f4f0e8")  # 날아가는 깃털(I250 ④)
 const WALL := Color("e8f0ff")  # 방패벽(S319)을 선 방패벽 오크끼리 잇는 선(I263 ⑤)
@@ -212,11 +211,14 @@ const SLAM_POSE := 0.15  # 보스 스킬이 발동한 뒤 공격 자세(초, S19
 const READY := {"mgun": 1}  # 없으면 0열
 const STILL_TELL := ["fling"]  # 예고 끝에도 정지 그림인 스킬 시트(대장 집게 던지기)
 const PEAK := {"grab": [1, 2], "fling": [0, 1]}  # 없으면 [1]. 집어 던지기는 집음 → 놓음, 집게 던지기는 집음 → 치켜듦
+const WINDS := ["order", "horn", "banner", "duel"]  # 예고 내내 0열을 들고 있다가 끝 LIFT초에 1열을 그리는 스킬 시트(I287 ④): 발동 흔적이 없는 뿔나팔·깃대·결투 신청
+const STRUCK := ["verdict"]  # 발동 자세가 흔적 자리 쪽을 보는 스킬 시트(I287 ④): 처형 내려찍기는 내려찍은 영웅 쪽
+const SWAY := 0.4  # 전쟁 깃발 천이 흔들리는 간격(초, I287 ③). 임시값
 const LANDING := "leap"  # 착지 흔적(slam)의 시트가 없는 보스가 착지 뒤 그리는 시트(대장 착지 웅크림)
 const WRECK_FADE := 0.5  # 수레 잔해가 지워지기(battle.WRECK) 전에 흐려지는 시간(초, S172 2026-11-05 변경 ⑥)
 const FAN_TURN := 20.0  # 시트 자세 ±40°의 가운데
 const BLOW := {"war_machine": ["slam", 1]}  # 공격 칸이 없는 종류의 기본 공격 키 포즈 [시트, 열](S172 2026-11-03 셋째 변경 ④)
-const GROW := {"slime_king": [3.0, 5.0], "twin_troll": [2.0, 0.0], "warchief": [2.0, 0.0], "warchief_foot": [2.0, 0.0]}  # 몸이 큰 종류(S236 2026-10-29 변경: 킹 몸 반지름 2칸)의 [그림 배율, 배율 전 그림을 내리는 px]. 정수배라 도트가 고르고, 내리면 그림 가운데가 몸 가운데에 온다
+const GROW := {"slime_king": [3.0, 5.0], "twin_troll": [2.0, 0.0]}  # 몸이 큰 종류(S236 2026-10-29 변경: 킹 몸 반지름 2칸)의 [그림 배율, 배율 전 그림을 내리는 px]. 정수배라 도트가 고르고, 내리면 그림 가운데가 몸 가운데에 온다
 const POP := 0.3  # 갈라져 나온 적이 죽은 자리에서 제자리로 튀어나오는 시간(초, S234 2026-10-29 변경)
 const POP_UP := 6.0  # 그동안 포물선으로 뛰는 높이(px)
 const POP_FROM := 0.5  # 튀어나오기 시작할 때의 그림 배율. POP초에 1이 된다
@@ -2152,10 +2154,10 @@ func _brace_marks(h) -> Array:
 	var hit: bool = battle.traces.any(func(c): return c.slot == "block" and c.hero == h and c.age < BLOCK_FLASH)
 	return [{k = "ring", p = at, r = 8 + int(round(3.0 * k)), c = _ramp(["vio2", "vio1", "vio0", "cream"], k)}, {k = "aegis", p = at, f = 0 if hit else 2}]
 
-# 몸의 높이(px): 발밑에서 머리까지. 그림이 있으면 시트의 발밑 기준점, 없으면 반지름으로
+# 몸의 높이(px): 발밑에서 머리까지. 그림이 있으면 시트의 발밑 기준점(칸에 머리 높이 head가 따로 있으면 그것, I287 ⑤), 없으면 반지름으로
 func _head(x) -> float:
 	var a = ART.get(x.kind)
-	return float(a.anchor[1]) if a else CELL * x.radius * 2.0 + 6.0
+	return float(a.get("head", a.anchor[1])) if a else CELL * x.radius * 2.0 + 6.0
 
 # ── 아트 px 그리기(4.1s): 맵을 창 해상도로 그려도(S30) 원·선이 도트 그림과 같은 격자에 찍힌다. 그리는 곳은 _cv다(덮개 위 층의 조준 미리보기, fx-4) ──
 
@@ -2955,6 +2957,8 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 				dir = _four(Vector2.from_angle(c.dir) * (-1.0 if c.slot == "tail" else 1.0))
 			elif c.has("from"):  # 돌진: 내달린 쪽(S198)
 				dir = _four(c.at - c.from)
+			elif c.slot in STRUCK:  # 처형 내려찍기(I287 ④): 내려찍은 영웅 쪽
+				dir = _four(c.at - x.pos)
 			else:
 				dir = 0 if c.aim == null else _four(Vector2(c.aim) - c.at)
 			off.y = 1.0 if c.age < SLAM_POSE else 0.0
@@ -2976,6 +2980,10 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 		elif x.cast and ART[x.kind].has(x.cast.id):  # 스킬 시트의 예고·발사(S172 2026-11-03 셋째 변경 ①③): 대포는 원 가운데, 기관총은 부채꼴 가운데 쪽을 본다
 			var k: Dictionary = x.cast
 			dir = _four(k.at - x.pos) if k.has("at") else (_four(Vector2.from_angle(k.dir) * (-1.0 if k.id == "tail" else 1.0)) if k.has("dir") else 0)  # 꼬리 휘두르기 예고는 부채꼴 반대쪽(S172 2026-11-10 변경 ②)
+			if k.has("who"):  # 결투 신청(I287 ④): 지목한 영웅 쪽
+				dir = _four(k.who.pos - x.pos)
+			elif k.has("at") and k.at.is_equal_approx(x.pos):  # 제 자리에 세우는 전쟁 깃발(I287 ④): 화면 쪽
+				dir = 0
 			anim = "idle"
 			col = 0
 			if k.get("fire", false):  # 기관총 발사: 총구(S287)가 보는 쪽에서 FAN_TURN° 넘게 돌았으면 그쪽 자세. 0열이 기계의 왼쪽이다
@@ -2989,8 +2997,10 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 			elif k.left < LIFT:
 				if not STILL_TELL.has(k.id):
 					anim = k.id
-					col = READY.get(k.id, 0)
+					col = 1 if WINDS.has(k.id) else READY.get(k.id, 0)
 				off.y = -2.0
+			elif WINDS.has(k.id):  # 뿔나팔·깃대·결투 신청(I287 ④): 예고 내내 0열을 든다
+				anim = k.id
 		elif x.cast and (x.cast.id == "pounce" or (x.cast.id == "charge" and ART[x.kind].has("crouch"))):  # 덮치기(S244 ②): 예고는 대상 쪽 웅크림, 뜬 동안은 뜀. S198의 들어 올림은 쓰지 않는다. 원정 알파의 돌진 예고(I280 ⑧)도 길 쪽 웅크림이다
 			anim = "air" if x.cast.get("air", false) else "crouch"
 			col = 0
@@ -3010,6 +3020,9 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 		col = BLOW[x.kind][1]
 	if (anim == "idle" or anim == "walk") and ART[x.kind].has("rage_" + anim) and battle.raging(x):  # 분노 중 정지·걷기는 망토를 찢어 던진 몸(S172 2026-11-05 변경 ④)
 		anim = "rage_" + anim
+	if anim == "idle" and ART[x.kind].has("sway"):  # 전쟁 깃발(I287 ③): 천이 SWAY초마다 좌우로 쏠린다
+		anim = "sway"
+		col = int(clock / SWAY) % 2
 	next[id] = [x.pos, dir]
 	var p := _spot(x) + _lunge(x) + _flinch(x) + _slip(x) + off
 	var lk := _look(x)
@@ -3022,7 +3035,7 @@ func _fallen() -> Array:
 	var out := []
 	for f in battle.fallen:  # 어둠 속에서 쓰러진 적(S213)은 그리지 않는다. 적에게는 is_hero가 없다
 		if f.who.get("is_hero") != true and ART.has(f.who.kind) and (f.who.get("is_hero") != null or battle.seen(f.who.pos)):
-			out.append([f.who, f.age])
+			out.append([f.who, f.age, f.get("rider", "")])
 	for h in battle.heroes:
 		if not h.alive and ART.has(h.kind):
 			var f: Array = battle.fallen.filter(func(e): return e.who == h)
@@ -3043,21 +3056,22 @@ func _wreck(w: Dictionary) -> void:
 func _corpse(d: Array, tint := Color.WHITE) -> void:
 	var x = d[0]
 	var hero: bool = x.get("is_hero") == true
+	var art: Dictionary = ART[d[2]] if d.size() > 2 and ART.get(d[2], {}).has("fall") else ART[x.kind]  # 탄 것의 쓰러진 몸(I287 ②): 탄 종류의 그림에 누운 자세가 있으면 그것으로
 	var s := _last_blow(x, d[1])
 	var k := _shrunk(x)
 	var down := Vector2(0, GROW.get(x.kind, [1.0, 0.0])[1] * k)  # 큰 몸은 선 몸처럼 내려 그린다(_look)
 	if s[0]:
 		var soft: bool = s[1] and Settings.soft_flash  # 번쩍임 줄이기(S184)면 선 자세 위에 흰 40%를 덧그린다(S197)
-		_frame(ART[x.kind], "idle", s[4], 0, _spot(x) + s[2] + down, Color(255, 255, 255) if s[1] and not soft else Color.WHITE, Vector2.ONE * k)  # 흰 실루엣은 _body의 피격 번쩍임과 같은 255배 modulate
+		_frame(art, "idle", s[4], 0, _spot(x) + s[2] + down, Color(255, 255, 255) if s[1] and not soft else Color.WHITE, Vector2.ONE * k)  # 흰 실루엣은 _body의 피격 번쩍임과 같은 255배 modulate
 		if soft:
-			_frame(ART[x.kind], "idle", s[4], 0, _spot(x) + s[2] + down, SOFT_FLASH, Vector2.ONE * k)
+			_frame(art, "idle", s[4], 0, _spot(x) + s[2] + down, SOFT_FLASH, Vector2.ONE * k)
 		return
 	var p: Vector2 = (_spot(x) if x.on_wall else _center(x.pos) + (Vector2(0, CELL * 0.4) if x.get("flying") == true else Vector2.ZERO)) + s[2] + down
 	var a := 1.0 if hero else clampf((battle.FALLEN - d[1]) / CORPSE_FADE, 0.0, 1.0)
-	if not ART[x.kind].has("fall"):  # 망치·투석기(S172 2026-11-03 변경 ④): 누운 그림 없이 쓰러질 때 보던 쪽의 정지 그림이 흐려진다
-		_frame(ART[x.kind], "idle", s[4], 0, _spot(x) + s[2] + down, Color(1, 1, 1, a) * tint, Vector2.ONE * k)
+	if not art.has("fall"):  # 망치·투석기(S172 2026-11-03 변경 ④): 누운 그림 없이 쓰러질 때 보던 쪽의 정지 그림이 흐려진다
+		_frame(art, "idle", s[4], 0, _spot(x) + s[2] + down, Color(1, 1, 1, a) * tint, Vector2.ONE * k)
 		return
-	_frame(ART[x.kind], "fall", 0, mini(int(s[3] / FALL_STEP), 4) if hero else 0, p, Color(1, 1, 1, a) * tint, Vector2.ONE * k)
+	_frame(art, "fall", 0, mini(int(s[3] / FALL_STEP), 4) if hero else 0, p, Color(1, 1, 1, a) * tint, Vector2.ONE * k)
 
 # 쓰러지는 영웅의 고리(S180 2026-10-29): [가운데(맵 px, X 자리), 반경(px), 굵기, 불투명도]. 누운 때부터 쓰러짐 5프레임(FALL_RING) 동안
 # 몸에서 FALL_REACH칸까지 퍼지며 굵기 2 → 1로 옅어진다. 그동안 몸은 다른 몸통 위에 덧그린다(_bodies). 아니면 []
@@ -3850,7 +3864,7 @@ func _foe_tells() -> void:
 
 # 오크 대족장의 새 기믹 표시(S344~S349, I285). 몸통 위 층에 그린다.
 # 결투장: 열린 결투의 원(보라 두 겹). 사슬 족쇄: 묶인 두 영웅의 가슴을 잇는 사슬 선. 처형 선고: 표식 영웅 머리 위에 남은 시간만큼 줄어드는 빨강 고리와 ✕.
-# 침묵: 영웅 머리 위 회색 ✕. 군령: 보이는 적마다 머리 위 짧은 꺾쇠(돌격령 빨강 ∧ · 방패령 파랑 ∨). 전쟁 깃발: 깃대와 깃발, 불굴 반경 고리
+# 침묵: 영웅 머리 위 회색 ✕. 군령: 보이는 적마다 머리 위 짧은 꺾쇠(돌격령 빨강 ∧ · 방패령 파랑 ∨). 전쟁 깃발: 불굴 반경 고리(깃발 몸은 제 그림이다, I287 ③)
 func _feud_marks() -> void:
 	for e in _foes:
 		if not e.duel.is_empty():
@@ -3858,12 +3872,7 @@ func _feud_marks() -> void:
 			_pring(c, int(CELL * e.duel.radius), 1, PX.vio1)
 			_pring(c, int(CELL * e.duel.radius) - 2, 1, PX.vio3)
 		if not e.banner.is_empty():
-			var p := Vector2i(_spot(e).floor())
 			_pring(Vector2i(_center(e.pos).floor()), int(CELL * e.banner.radius), 1, Color(PX.gold, 0.5))
-			_pline(p, p - Vector2i(0, 18), PX.cream, 1)
-			for i in 6:  # 깃발: 깃대 위쪽에서 오른쪽으로 좁아지는 삼각
-				_pline(p - Vector2i(-1, 18 - i), p - Vector2i(-1 - (6 - i) * 2, 18 - i), PX.red)
-				_pline(p - Vector2i(-1, 7 + i), p - Vector2i(-1 - (6 - i) * 2, 7 + i), PX.red)
 		var kind: String = battle.edict.get("kind", "")
 		if kind != "" and e.banner.is_empty():
 			var top := Vector2i((_spot(e) - Vector2(0, _head(e) * _shrunk(e) + 3)).floor())
@@ -4607,7 +4616,7 @@ func hp_bar_at(u) -> Vector2:
 	var head := 0.0
 	if u.get("boss") and ART.has(u.kind):
 		var lk := _look(u)
-		head = (ART[u.kind].anchor[1] * lk[0].y + lk[1] - ART.basic.anchor[1]) / CELL
+		head = (_head(u) * lk[0].y + lk[1] - ART.basic.anchor[1]) / CELL
 	return u.pos - Vector2(0, _lift(u) / CELL + head) + _slip(u) / CELL
 
 # 유닛·적 체력바를 그리는 사각형(맵 px). 보스와 성벽 위는 머리 위(hp_bar_at), 나머지는 발 자리 아래 HP_BAR_DROP px에 가운데 맞춤(S276)

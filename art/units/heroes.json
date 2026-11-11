@@ -181,6 +181,67 @@
   "tail": 4848,
   "fall": 5232
  },
+ "warchief": {
+  "c": 80,
+  "anchor": [
+   40.0,
+   56
+  ],
+  "x": 532,
+  "idle": 0,
+  "walk": 320,
+  "attack": 640,
+  "charge": 1280,
+  "order": 1600,
+  "aim": 1920,
+  "fall": 2240,
+  "chain": 1920,
+  "shackle": 1920,
+  "duel": 1920,
+  "head": 49
+ },
+ "warchief_foot": {
+  "c": 78,
+  "anchor": [
+   39.0,
+   54
+  ],
+  "x": 532,
+  "idle": 2400,
+  "walk": 2712,
+  "attack": 3024,
+  "horn": 3648,
+  "banner": 3960,
+  "roar": 4272,
+  "verdict": 4584,
+  "fall": 4896,
+  "head": 46
+ },
+ "warguard": {
+  "c": 38,
+  "anchor": [
+   19.0,
+   30
+  ],
+  "x": 692,
+  "idle": 0,
+  "walk": 152,
+  "attack": 304,
+  "fall": 608,
+  "head": 29
+ },
+ "warbanner": {
+  "c": 48,
+  "anchor": [
+   24.0,
+   40
+  ],
+  "x": 692,
+  "one": true,
+  "idle": 684,
+  "sway": 732,
+  "head": 40
+ },
  "slimelet": {
   "c": 14,
   "anchor": [
