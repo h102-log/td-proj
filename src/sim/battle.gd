@@ -885,50 +885,85 @@ func start_battle() -> void:
 	wave_time = 0.0
 	near_wall = false
 
-# 라운드 r·웨이브 w의 적을 나오는 차례대로 [종류, 출현 지점, 나올 칸, 한꺼번에 나오는 마릿수]. 항목 차례로 나오고, 무리(S238)는 한 차례에 함께 나오며
-# 출현 지점은 차례마다 돌아간다. 나올 칸은 출현 지점에서 n번째 차례마다 황금비 수열로 가로 ±spawn_spread 안에 흩는다(I177).
-# 무리는 그 칸부터 동쪽으로 잇고, 퍼짐 구역·맵 끝을 넘으면 안으로 당긴다(I190). 씨앗을 쓰지 않는다.
+# 라운드 r·웨이브 w의 적을 나오는 차례대로 [종류, 출현 지점, 나올 칸, 한꺼번에 나오는 마릿수]. 무리(S238)는 한 차례에 함께 나온다.
+# 출현 지점마다 줄을 두고(S337, I280 ②) 웨이브 항목을 차례대로 읽어 차례(무리 하나·한 마리·호위를 데린 한 마리)를 줄 끝에 세운다.
+# 출현 지점에 묶인 종류(항목의 front)는 그 줄에, 묶이지 않은 종류는 차례마다 돌아가며 맡은 출현 지점의 줄에 선다.
+# 그다음 출현 지점을 돌아가며 줄 맨 앞 차례를 하나씩 꺼낸다. 줄이 빈 출현 지점은 건너뛴다. 묶음이 없는 웨이브는 항목 차례 그대로 나온다.
+# 나올 칸은 그 줄에서 n번째 차례마다 황금비 수열로 출현 지점에서 가로 ±spawn_spread 안에 흩는다(I177). 씨앗을 쓰지 않는다.
+# 무리는 그 칸부터 동쪽으로 잇고, 퍼짐 구역·맵 끝을 넘으면 안으로 당긴다(I190).
 # 함께 나오는 종류(S294)는 그 수 모두가 한꺼번에 나오고, 출현 지점마다 고르게 나눈 몫을 이어지는 차례의 출현 지점에 무리처럼 놓는다.
 # 전투(start_battle)와 미리보기(spawn_counts, S188)가 함께 써서 미리보기가 실제와 어긋나지 않는다
 func wave_plan(r: int, w: int) -> Array:
 	var out := []
-	var turns := 0  # 지금까지의 차례 수. 무리 하나가 한 차례다
+	var lines := spawns.map(func(_c): return [])  # 출현 지점마다 낼 차례들. 차례 하나는 그 순간 함께 나오는 [종류, 출현 지점, 칸, 마릿수]들이다
+	var lens := spawns.map(func(_c): return 0)  # 줄마다 세운 차례 수. 빈 차례도 센다
+	# 묶인 종류가 없으면 세운 차례가 곧 나오는 차례라 줄을 만들지 않고 바로 out에 쓴다(프레임마다 부르는 미리보기 수가 전과 같은 비용이다)
+	var direct: bool = not rounds[r][w].any(func(e): return e.get("front", -1) >= 0 and e.get("front", -1) < lens.size())
+	var turns := 0  # 지금까지 세운 묶이지 않은 차례 수. 무리 하나가 한 차례다
 	for entry in rounds[r][w]:
-		if ENEMY_KINDS[entry.kind].get("together", false) and entry.count > 0:  # 함께 나옴(S294): 나머지는 앞 출현 지점부터 하나씩 더 받는다
-			var m := mini(entry.count, spawns.size())
+		var stats: Dictionary = ENEMY_KINDS[entry.kind]
+		var at: int = entry.get("front", -1)  # 묶인 출현 지점(S337). 없거나 범위 밖이면 묶이지 않았다(I280 ①)
+		var bound := at >= 0 and at < lens.size()
+		if stats.get("together", false) and entry.count > 0:
+			var turn := out if direct else []
+			if bound:  # 묶인 함께 나옴(I280 ④): 모두가 묶인 출현 지점에서 무리처럼
+				_pack(turn, entry.kind, at, lens[at], entry.count, entry.count)
+				lines[at].append(turn)
+				lens[at] += 1
+				continue
+			var m := mini(entry.count, lens.size())  # 함께 나옴(S294): 나머지는 앞 출현 지점부터 하나씩 더 받는다
 			for j in m:
-				_pack(out, entry.kind, turns + j, entry.count / m + (1 if j < entry.count % m else 0), entry.count)
+				var s := (turns + j) % lens.size()
+				_pack(turn, entry.kind, s, lens[s], entry.count / m + (1 if j < entry.count % m else 0), entry.count)
+				if not direct:
+					lines[s].append(turn if j == 0 else [])  # 첫 몫의 줄에서 한 차례로 꺼낸다. 나머지 줄은 빈 차례로 자리만 센다
+				lens[s] += 1
 			turns += m
 			continue
-		var esc: Dictionary = ENEMY_KINDS[entry.kind].get("escort", {})
-		if not esc.is_empty():  # 호위(S301): 한 마리가 한 차례이고 그 차례에 호위와 함께 나온다
-			for j in entry.count:
-				_escort(out, entry.kind, turns + j, esc)
-			turns += entry.count
-			continue
-		var pack: int = maxi(1, ENEMY_KINDS[entry.kind].get("pack", 1))
+		var esc: Dictionary = stats.get("escort", {})
+		var pack: int = maxi(1, stats.get("pack", 1))
 		var left: int = entry.count
 		while left > 0:
-			var n := mini(pack, left)  # 나머지는 작은 무리 하나로 그 종류의 마지막에 나온다(S238)
-			_pack(out, entry.kind, turns, n, n)
-			turns += 1
+			var s := at if bound else turns % lens.size()
+			var turn := out if direct else []
+			var n := 1
+			if not esc.is_empty():  # 호위(S301): 한 마리가 한 차례이고 그 차례에 호위와 함께 나온다
+				_escort(turn, entry.kind, s, lens[s], esc)
+			else:
+				n = mini(pack, left)  # 나머지는 작은 무리 하나로 그 종류의 마지막에 나온다(S238)
+				_pack(turn, entry.kind, s, lens[s], n, n)
+			if not direct:
+				lines[s].append(turn)
+			lens[s] += 1
+			turns += int(not bound)
 			left -= n
+	if direct:
+		return out
+	var heads := spawns.map(func(_c): return 0)  # 줄마다 다음에 꺼낼 차례
+	var rest: int = lens.reduce(func(sum, n): return sum + n, 0)
+	var i := 0
+	while rest > 0:  # 출현 지점은 차례마다 돌아간다. 줄이 빈 출현 지점은 건너뛴다
+		var s := i % lens.size()
+		if heads[s] < lens[s]:
+			out.append_array(lines[s][heads[s]])
+			heads[s] += 1
+			rest -= 1
+		i += 1
 	return out
 
-# 차례 turn의 출현 지점에서 n마리가 나올 칸을 out에 더한다(I177·I190). group은 그 차례에 한꺼번에 나오는 마릿수다(S238·S294)
-func _pack(out: Array, kind: String, turn: int, n: int, group: int) -> void:
-	var s: Vector2i = spawns[turn % spawns.size()]
-	var k := turn / spawns.size()
+# 출현 지점 at(spawns 차례)의 k번째 차례에 n마리가 나올 칸을 out에 더한다(I177·I190). group은 그 차례에 한꺼번에 나오는 마릿수다(S238·S294)
+func _pack(out: Array, kind: String, at: int, k: int, n: int, group: int) -> void:
+	var s: Vector2i = spawns[at]
 	var x := s.x - spawn_spread + int(fposmod(k * 0.6180339887, 1.0) * (2 * spawn_spread + 1))
 	x = maxi(0, mini(x, mini(s.x + spawn_spread - n + 1, size.x - n))) if spawn_spread > 0 else s.x
 	for i in n:
 		out.append([kind, s, Vector2i(clampi(x + (i if spawn_spread > 0 else 0), 0, size.x - 1), s.y), group])
 
-# 호위(S301, I248 ⑤): 차례 turn의 나올 칸(I177)을 가운데로 그 줄 양옆 이웃 칸에 호위 count마리, 가운데 칸 한 줄 북쪽에 kind 한 마리를 더한다.
+# 호위(S301, I248 ⑤): 출현 지점 at의 k번째 차례에 나올 칸(I177)을 가운데로 그 줄 양옆 이웃 칸에 호위 count마리, 가운데 칸 한 줄 북쪽에 kind 한 마리를 더한다.
 # 한 차례에 함께 나오고, 호위가 맵 끝을 넘으면 가운데를 안으로 당긴다
-func _escort(out: Array, kind: String, turn: int, esc: Dictionary) -> void:
+func _escort(out: Array, kind: String, at: int, k: int, esc: Dictionary) -> void:
 	var n: int = esc.count
-	_pack(out, kind, turn, 1, n + 1)
+	_pack(out, kind, at, k, 1, n + 1)
 	var lead: Array = out[-1]
 	var c: Vector2i = lead[2]
 	c.x = clampi(c.x, n / 2, size.x - 1 - (n - n / 2))
