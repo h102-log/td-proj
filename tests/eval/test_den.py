@@ -276,3 +276,27 @@ def test_EV1012_floor3_hint_after_first_raid_hint(gd):
 
 def test_EV1013_shell_touch_ring_and_wreck_burst(gd):
     gd("den", "EV1013")
+
+
+def test_EV1023_alpha_shift_shortens_rest_and_sticks(gd):
+    gd("den", "EV1023")
+
+
+def test_EV1024_alpha_second_charge_after_shift(gd):
+    gd("den", "EV1024")
+
+
+def test_EV1025_fang_relic_speeds_q_slot_and_floor2_reward(gd):
+    gd("den", "EV1025")
+
+
+def test_EV1026_floor2_hint_shows_once(gd):
+    gd("den", "EV1026")
+
+
+def test_EV1027_hint_box_moves_up_during_raid(gd):
+    gd("den", "EV1027")
+
+
+def test_EV1028_prey_mark_and_wall_crash_event(gd):
+    gd("den", "EV1028")

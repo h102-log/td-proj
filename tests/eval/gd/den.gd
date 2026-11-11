@@ -1620,8 +1620,10 @@ func ev971():
 	var brand := {"radius": 2.0, "windup": 3.0, "damage": 30.0, "color": "violet"}
 	if sk.get("charge") != charge or sk.get("pounce") != pounce or sk.get("brand") != brand or sk.get("frenzy") != {"damage": 0.25, "cap": 3}:
 		return "돌진 %s · 덮치기 %s · 표식 %s · 광분 %s" % [sk.get("charge"), sk.get("pounce"), sk.get("brand"), sk.get("frenzy")]
-	if f.ward != 0.88 or f.groggy != {"time": 5.0, "mult": 1.5} or f.enrage != {"soft": 80.0, "step": 10.0, "ramp": 0.15} or f.hard != 120.0 or f.gold != 150 or f.relic != "":
-		return "경감 %s · 그로기 %s · 광폭 %s · 불꽃 %s · 층 골드 %s · 유물 «%s»(기대 0.88·5초 1.5배·80초 10초 0.15·120·150·없음)" % [f.ward, f.groggy, f.enrage, f.hard, f.gold, f.relic]
+	if f.ward != 0.88 or f.groggy != {"time": 5.0, "mult": 1.5} or f.enrage != {"soft": 80.0, "step": 10.0, "ramp": 0.15} or f.hard != 120.0 or f.gold != 150 or f.relic != "wolf_fang":
+		return "경감 %s · 그로기 %s · 광폭 %s · 불꽃 %s · 층 골드 %s · 유물 «%s»(기대 0.88·5초 1.5배·80초 10초 0.15·120·150·wolf_fang)" % [f.ward, f.groggy, f.enrage, f.hard, f.gold, f.relic]
+	if f.get("shift") != {"below": 0.5, "rest": 0.3, "twice": "charge", "windup": 1.0} or f.get("hunts") != true:
+		return "체력 문턱 %s(기대 below 0.5·rest 0.3·twice charge·windup 1) · 사냥감 표시 %s(참)" % [f.get("shift"), f.get("hunts")]
 	var wolf = load("res://data/enemies/alpha_wolf.tres")
 	return check(_stage().den.floors == ["floor_1", "floor_2", "floor_3"] and load("res://data/dungeon/floor_1.tres").get("walks") == true
 		and wolf.hp == 160.0 and wolf.radius == 0.45 and wolf.skills.pounce.break_dmg == 40.0 and wolf.skills.frenzy == {"damage": 0.25},
@@ -1894,7 +1896,7 @@ func ev980():
 	return check(follows and lost[0] == 0.0 and absf(lost[1] - _take(k, k.party[1], 30.0)) < 0.01 and absf(lost[2] - _take(k, k.party[2], 30.0)) < 0.01 and not _groggy(k, w) and w.cast == null,
 		"② 원이 표식 영웅을 따라갔나 %s · 잃은 체력 %s(기대 0·%s·%s) · 그로기 %s(거짓)" % [follows, lost, _take(k, k.party[1], 30.0), _take(k, k.party[2], 30.0), _groggy(k, w)])
 
-# EV981 · S337·I280 ①⑨: 보스 막대의 이름과 «광분 n», 그림 2배. 처치하면 깬 층 2·층 골드 150이고 유물 없는 층의 토스트가 뜬다
+# EV981 · S337·I280 ①: 보스 막대의 이름과 «광분 n», 그림 2배. 처치하면 깬 층 2·층 골드 150이고 유물 이름과 층 골드가 든 토스트가 뜬다
 func ev981():
 	var main = _den_game()
 	var b = main.view.battle
@@ -1922,8 +1924,8 @@ func ev981():
 	_done(main)
 	if calm != "알파 늑대" or not is_equal_approx(scale, 2.0) or not ("알파 늑대" in mad and "광분 2" in mad):
 		return "보스 막대 이름 «%s»(알파 늑대) · 그림 배율 %s(2) · 광분 2일 때 «%s»(«알파 늑대»와 «광분 2»가 있어야)" % [calm, scale, mad]
-	return check(after == ["prep", 2, 150, {}, "round"] and texts.any(func(t): return "2층" in t and "150" in t),
-		"처치 3.1초 뒤 [판, 깬 층, 는 골드, 가방, 원정 버튼 이유] %s(기대 [prep, 2, 150, {}, round]) · 보인 토스트 %s(«2층»과 «150»이 함께 든 것이 있어야)" % [after, texts])
+	return check(after == ["prep", 2, 150, {"wolf_fang": 0}, "round"] and texts.any(func(t): return "2층" in t and "송곳니" in t and "150" in t),
+		"처치 3.1초 뒤 [판, 깬 층, 는 골드, 가방, 원정 버튼 이유] %s(기대 [prep, 2, 150, {wolf_fang: 0}, round]) · 보인 토스트 %s(«2층»·«송곳니»·«150»이 함께 든 것이 있어야)" % [after, texts])
 
 # ── 원정 3층 «전쟁 기계 → 고블린 대장»(S342·I283) ── 더하는 API:
 #   층 정의 floor_3 · FloorDef.phase2({title, kind, scale, stats, skills, plan}: 체력이 0이 되면 바뀔 둘째 형태)·scale(몸 그림 배율, 0이면 I280 ①)·wreck(수레 잔해 원의 반지름)
@@ -2695,3 +2697,244 @@ func ev1013():
 	if near[0] != true or near[1].size() != 4 or near[1].slice(0, 2) != ring or near[1][2] != violet or set[0] != true or set[1] != true or set[2].size() != 4 or set[2].slice(0, 2) != ring or set[2][2] != red:
 		return "닿은 채 따라다닐 때 [닿음, 테] %s(기대 참·[%s, 22, 보라]) · 닿은 채 굳은 뒤 [aimed, 닿음, 테] %s(기대 참·참·[%s, 22, 빨강])" % [near, ring[0], set, ring[0]]
 	return check(not calm and burst == [[px, 16.0 * 1.4]] and not after, "부서지기 전 프레임의 부서짐 사건 %s(없음) · 부서진 프레임 %s(기대 [[%s, 22.4]] 하나) · 다음 프레임 %s(없음)" % [calm, burst, px, after])
+
+# ── 원정 2층 묶음 ②(S337 2026-11-11 변경·S351·S332 2026-11-11 변경·I286) ── 더하는 API:
+#   FloorDef.shift({below, rest, twice, windup})·hunts · Enemy.shifted(체력 문턱을 넘은 적이 있나) · 둘째 돌진 예고의 cast.again · 돌진 흔적(traces)의 crash(박힌 방향)
+#   유물 wolf_fang(steps의 cdr_q) · Battle.raid_prey() -> 영웅|null · main.view.prey_mark() -> [] | [영웅, 세모 꼭짓점 px] · main.view.events의 사건 «crash»
+#   끝낸 힌트 이름 «raid2» · main.hud.hints(힌트 칸)
+
+const FANG := "wolf_fang"
+
+# EV1023 · S337 ⑥·I286 ①: 알파 체력이 50% 이하가 된 뒤로는 대본 차례가 넘어갈 때의 쉼이 30% 짧고, 체력이 다시 차도 그대로다
+func ev1023():
+	var b = _den2()
+	var e = _alpha(b)
+	if e == null:
+		return "2층 원정이 되지 않았다"
+	if e.get("shifted") == null:
+		return "Enemy에 shifted가 없다"
+	_stand(b, [Vector2(72, 80), Vector2(73, 80), Vector2(74, 80)])
+	var rows := []
+	for hp in [810.0, 800.0, 1600.0]:
+		for h in b.party:
+			h.hp = h.max_hp
+		e.hp = hp
+		var c = _tell(b, e, 3)
+		_resolve(b, e)
+		rows.append([c.id if c != null else null, e.shifted, e.beat, roundi(e.rest * 100.0)])
+	return check(rows == [["brand", false, 0, 400], ["brand", true, 0, 280], ["brand", true, 0, 280]],
+		"알파 체력 810 → 800 → 1600에서 표식이 끝난 뒤 [예고, 바뀜, 대본 차례, 쉼 × 100] %s(기대 brand 거짓 0 400 · brand 참 0 280 · brand 참 0 280)" % [rows])
+
+# EV1024 · S337 ⑥·I286 ②: 체력 50% 이하인 알파는 돌진 뒤 그 자리에서 예고 1초의 둘째 돌진을 잇고, 대본 차례는 둘째 뒤에 넘어간다. 벽에 박혀 그로기가 되면 잇지 않고, 체력이 50%를 넘으면 잇지 않는다
+func ev1024():
+	var b = _den2()
+	var e = _alpha(b)
+	if e == null:
+		return "2층 원정이 되지 않았다"
+	e.hp = 800.0
+	_stand(b, [Vector2(88, 80), Vector2(82, 80), Vector2(84, 82)])
+	var c = _tell(b, e, 0)
+	if c == null or c.id != "charge" or c.get("aimed") != false or c.to.distance_to(Vector2(92, 80)) > 0.01 or c.get("again", false):
+		return "① 예고 %s(기대 charge·이동 돌진·끝 (92,80)·첫 돌진)" % [c]
+	b.party[0].pos = Vector2(88, 84)
+	var hp: Array = b.party.map(func(h): return h.hp)
+	_go(b, 1.7)
+	var second = e.cast
+	if e.pos.distance_to(Vector2(92, 80)) > 0.01 or _groggy(b, e) or second == null or second.id != "charge" or second.get("again") != true or second.left > 1.001 or second.left < 0.85 or Vector2.from_angle(second.dir).round() != Vector2(-1, 0) or e.beat != 0:
+		return "① 1.7초 뒤 알파 %s((92,80)) · 그로기 %s(거짓) · 예고 %s(기대 charge·again·남은 0.85~1.0초·서쪽) · 대본 차례 %s(0)" % [e.pos, _groggy(b, e), second, e.beat]
+	_go(b, 1.1)
+	if e.pos.distance_to(Vector2(84, 80)) > 0.01 or e.cast != null or e.beat != 1 or e.rest > 3.501 or e.rest < 3.2 or _groggy(b, e) or b.party.map(func(h): return h.hp) != hp:
+		return "① 둘째 돌진 뒤 알파 %s((84,80)) · 예고 %s(없음) · 대본 차례 %s(1) · 쉼 %s(3.2~3.5 = 5 × 0.7에서 0.3초 안) · 그로기 %s(거짓) · 영웅 체력 %s → %s" % [e.pos, e.cast, e.beat, e.rest, _groggy(b, e), hp, b.party.map(func(h): return h.hp)]
+	var k = _den2()
+	var w = _alpha(k)
+	if w == null:
+		return "② 2층 원정이 되지 않았다"
+	w.hp = 800.0
+	_stand(k, HUNT)
+	_tell(k, w, 0)
+	k.party[1].pos = Vector2(86, 85)
+	_go(k, 1.7)
+	if not _groggy(k, w) or w.cast != null or w.beat != 1 or w.pos.distance_to(Vector2(84, 87.25)) > 0.01:
+		return "② 벽 돌진을 피한 뒤 그로기 %s(참) · 예고 %s(없음) · 대본 차례 %s(1) · 알파 %s((84,87.25))" % [_groggy(k, w), w.cast, w.beat, w.pos]
+	var m = _den2()
+	var x = _alpha(m)
+	if x == null:
+		return "③ 2층 원정이 되지 않았다"
+	_stand(m, [Vector2(88, 80), Vector2(82, 80), Vector2(84, 82)])
+	_tell(m, x, 0)
+	m.party[0].pos = Vector2(88, 84)
+	_go(m, 1.7)
+	return check(x.pos.distance_to(Vector2(92, 80)) < 0.01 and x.cast == null and x.beat == 1 and x.shifted == false, "③ 체력 가득인 알파의 돌진 뒤 자리 %s((92,80)) · 예고 %s(없음) · 대본 차례 %s(1) · 바뀜 %s(거짓)" % [x.pos, x.cast, x.beat, x.shifted])
+
+# 라운드 사이에 가방에 송곳니 +n을 두고 둘째 영웅에게 끼운 뒤 2라운드 전투를 열어, 오토를 끄고 Q·E 대기 50초·대시 대기 5초에서 1초 돌린다.
+# 영웅마다 [준 Q 대기, 준 E 대기, 준 대시 대기]이고 안 되면 []. 출전 셋은 스킬 대기 오라가 없는 영웅이다
+func _fanged(n: int) -> Array:
+	var st := _stage()
+	st.heroes = [TEAM[0], {"kind": "sylvia", "cell": Vector2i(33, 65)}, TEAM[2]]
+	var b = _new(st)
+	if not b.RELIC_KINDS.has(FANG):
+		return []
+	b.state = "cleared"
+	b.relics[FANG] = n
+	if not b.wear_relic(b.heroes[1], FANG):
+		return []
+	b.next_round()
+	b.start_battle()
+	for h in b.heroes:
+		for k in h.auto:
+			h.auto[k] = false
+		h.cd.q = 50.0
+		h.cd.e = 50.0
+		h.dash_cd = 5.0
+	_go(b, 1.0)
+	return b.heroes.map(func(h): return [50.0 - h.cd.q, 50.0 - h.cd.e, 5.0 - h.dash_cd])
+
+# rows(영웅마다 [준 Q 대기, 준 E 대기, 준 대시 대기])가 둘째 영웅의 Q 대기만 fast초이고 나머지는 모두 1초인가
+func _bitten(rows: Array, fast: float) -> bool:
+	return rows.size() == 3 and range(3).all(func(i): return absf(rows[i][0] - (fast if i == 1 else 1.0)) < 0.001 and absf(rows[i][1] - 1.0) < 0.001 and absf(rows[i][2] - 1.0) < 0.001)
+
+# EV1025 · S351·S337 ⑦: 송곳니의 단계 수치. 송곳니를 낀 영웅은 Q 칸 대기만 15% 빨리 줄고 +4면 35%다. 알파를 처치하면 층 골드 150과 송곳니 +0을 받고 출전 첫째 영웅이 낀다
+func ev1025():
+	if not ResourceLoader.exists("res://data/relics/wolf_fang.tres"):
+		return "data/relics/wolf_fang.tres가 없다"
+	var r = load("res://data/relics/wolf_fang.tres")
+	var steps = r.get("steps")
+	var want := [0.15, 0.2, 0.25, 0.3, 0.35]
+	if r.get("title") != "송곳니" or not steps is Array or steps.size() != 5 or range(5).any(func(i): return steps[i].size() != 1 or absf(steps[i].get("cdr_q", -1.0) - want[i]) > 0.000001) or r.get("notes").size() != 5:
+		return "송곳니 이름 %s · 단계 %s(기대 cdr_q %s뿐) · 단계 글 %s(다섯)" % [r.get("title"), steps, want, r.get("notes")]
+	var base := _fanged(0)
+	var top := _fanged(4)
+	if not _bitten(base, 1.15) or not _bitten(top, 1.35):
+		return "전투 1초에 영웅마다 [준 Q 대기, 준 E 대기, 준 대시 대기]: 송곳니 +0 %s(기대 둘째의 Q만 1.15, 나머지 1) · 송곳니 +4 %s(기대 둘째의 Q만 1.35)" % [base, top]
+	var b = _den2()
+	var e = _alpha(b)
+	if e == null:
+		return "2층 원정이 되지 않았다"
+	var gold: int = b.gold
+	b.damage(e, BIG)
+	_go(b, 3.1)
+	return check(b.state == "prep" and b.floors_cleared == 2 and b.gold - gold == 150 and b.relics == {FANG: 0} and b.heroes.map(func(h): return h.relic) == [FANG, "", ""],
+		"알파 처치 3.1초 뒤 판 %s(prep) · 깬 층 %s(2) · 는 골드 %s(150) · 가방 %s({wolf_fang: 0}) · 낀 유물 %s(첫째만)" % [b.state, b.floors_cleared, b.gold - gold, b.relics, b.heroes.map(func(h): return h.relic)])
+
+# EV1026 · S337 ⑧·I286 ③: 첫 원정 힌트가 끝나 있으면 2층 원정에 2층 힌트가 뜨고 그로기가 열리면 끝나 다음 2층 원정에 뜨지 않는다. 1층 원정에는 뜨지 않는다
+func ev1026():
+	var st = _hints_reset()
+	st.hints_done = ["raid"]
+	var main = _den_game()
+	var b = main.view.battle
+	var hud = main.hud
+	b.state = "cleared"
+	b.next_round()
+	b.floors_cleared = 1
+	b.torches = 9
+	_frame(main)
+	var out := ""
+	var before: bool = hud.hints.is_visible_in_tree()
+	b.start_raid()
+	_frame(main)
+	var said := _hint_says(main)
+	if before or b.state != "raid" or b.enemies.is_empty() or b.enemies[0].kind != "alpha_wolf" or not "돌진" in said or not "구한다" in said:
+		out = "3라운드 준비 단계 힌트 칸 보임 %s(거짓) · 2층 원정 판 %s · 힌트 글 «%s»(«돌진»·«구한다»가 있어야)" % [before, b.state, said]
+	if out == "":
+		b._fx(b.enemies[0], "groggy", {"groggy": true}, 5.0)
+		_frame(main)
+		if hud.hints.is_visible_in_tree() or st.hints_done != ["raid", "raid2"]:
+			out = "그로기 뒤 힌트 칸 보임 %s(거짓) · 끝낸 힌트 %s(기대 [raid, raid2])" % [hud.hints.is_visible_in_tree(), st.hints_done]
+	if out == "":
+		b.retreat()
+		_frame(main)
+		b.start_raid()
+		_frame(main)
+		if b.state != "raid" or hud.hints.is_visible_in_tree():
+			out = "다음 2층 원정(판 %s)에 힌트 칸 보임 %s(거짓)" % [b.state, hud.hints.is_visible_in_tree()]
+	if out == "":
+		b.retreat()
+		st.hints_done = ["raid"]
+		b.floors_cleared = 0
+		_frame(main)
+		b.start_raid()
+		_frame(main)
+		out = check(b.state == "raid" and b.enemies.size() > 0 and b.enemies[0].kind != "alpha_wolf" and not hud.hints.is_visible_in_tree(),
+			"끝낸 힌트 [raid]·깬 층 0의 1층 원정(판 %s)에 힌트 칸 보임 %s(거짓)" % [b.state, hud.hints.is_visible_in_tree()])
+	_done(main)
+	_hints_reset()
+	return out
+
+# EV1027 · S332(2026-11-11 변경)·I286 ③: 원정 동안 힌트 칸은 왼쪽 위 [4,29,200,40]이고, 원정 전과 철수 뒤에는 S191의 자리 [68,300,200,40]이다
+func ev1027():
+	_hints_reset()
+	var main = _den_game()
+	var b = main.view.battle
+	var hud = main.hud
+	var before: Rect2 = hud.hints.get_global_rect()
+	b.start_raid()
+	_frame(main)
+	var state: String = b.state
+	var shown: bool = hud.hints.is_visible_in_tree()
+	var during: Rect2 = hud.hints.get_global_rect()
+	b.retreat()
+	_frame(main)
+	var after := [b.state, hud.hints.get_global_rect()]
+	_done(main)
+	_hints_reset()
+	return check(before == Rect2(68, 300, 200, 40) and state == "raid" and shown and during == Rect2(4, 29, 200, 40) and after == ["prep", Rect2(68, 300, 200, 40)],
+		"원정 전 힌트 칸 %s([68,300,200,40]) · 원정(판 %s) 동안 보임 %s(참)·칸 %s([4,29,200,40]) · 철수 뒤 [판, 칸] %s(기대 prep·[68,300,200,40])" % [before, state, shown, during, after])
+
+# EV1028 · I286 ④⑤: 사냥감 표시는 2층 원정에서 지금 가장 먼 영웅(덮치기 예고 중에는 그 대상)을 가리키고 1층에는 없다. 벽에 박힌 프레임에만 박힘 사건이 난다
+func ev1028():
+	var main = _den_game()
+	var b = main.view.battle
+	var v = main.view
+	if not b.has_method("raid_prey") or not v.has_method("prey_mark"):
+		_done(main)
+		return "Battle.raid_prey나 BattleView.prey_mark가 없다"
+	var idle := [b.raid_prey(), v.prey_mark()]
+	b.state = "cleared"
+	b.next_round()
+	b.floors_cleared = 1
+	_frame(main)
+	b.start_raid()
+	_frame(main)
+	if b.state != "raid" or b.enemies.size() != 1 or b.enemies[0].kind != "alpha_wolf" or b.party.size() < 2:
+		_done(main)
+		return "2층 원정이 되지 않았다(판 %s · 적 %d · 원정대 %d)" % [b.state, b.enemies.size(), b.party.size()]
+	_freeze(b)
+	var e = b.enemies[0]
+	e.pull = 0.0
+	e.rest = 999.0
+	var p = b.party
+	var near: Array = range(2, p.size()).map(func(_i): return Vector2(83, 80))
+	_stand(b, [Vector2(82, 81), Vector2(84, 85)] + near)
+	var mark: Array = v.prey_mark()
+	var far := [is_same(b.raid_prey(), p[1]), mark.size() == 2 and is_same(mark[0], p[1])]
+	p[0].pos = Vector2(84, 73)
+	var swap: bool = is_same(b.raid_prey(), p[0])
+	p[0].pos = Vector2(82, 81)
+	_tell(b, e, 1)
+	p[0].pos = Vector2(84, 73)
+	var held: bool = is_same(b.raid_prey(), p[1])
+	e.cast = null
+	e.rest = 999.0
+	p[0].pos = Vector2(82, 81)
+	_tell(b, e, 0)
+	p[1].pos = Vector2(86, 85)
+	var crashes := []
+	for i in 40:
+		main._process(0.05)
+		main.hud._process(0.05)
+		for x in v.events:
+			if x.kind == "crash":
+				crashes.append([i, x.at, x.dir])
+	var groggy: bool = _groggy(b, e)
+	b.retreat()
+	_frame(main)
+	var gone := [b.raid_prey(), v.prey_mark()]
+	_done(main)
+	var k = _den()
+	var king = _king(k)
+	var first = k.raid_prey() if king != null else "원정 안 됨"
+	if idle != [null, []] or far != [true, true] or not swap or not held or gone != [null, []] or first != null:
+		return "준비 단계 [사냥감, 표시] %s(기대 [null, []]) · 둘째가 가장 멀 때 [사냥감이 둘째, 표시가 둘째] %s(참·참) · 첫째가 더 멀어지면 첫째 %s(참) · 덮치기 예고 중 대상 그대로 %s(참) · 철수 뒤 %s(기대 [null, []]) · 1층 원정의 사냥감 %s(null)" % [idle, far, swap, held, gone, first]
+	var want: Vector2 = Vector2(84, 87.25) * 16.0 + Vector2(8, 8) + Vector2(0, 1) * 16.0 * 0.9
+	return check(groggy and crashes.size() == 1 and crashes[0][1].distance_to(want) < 0.01 and crashes[0][2].distance_to(Vector2(0, 1)) < 0.001,
+		"벽 돌진을 피한 2초 동안 그로기 %s(참) · 박힘 사건 %s(기대 하나, 자리 %s·방향 (0,1))" % [groggy, crashes, want])
