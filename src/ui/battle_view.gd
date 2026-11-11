@@ -30,7 +30,7 @@ const LOOKS := {"feather_harpy": ["flying", Color(0.75, 1.2, 1.7)], "dive_harpy"
 	"storm_harpy": ["flying", Color(0.85, 1.65, 1.35)], "snatch_harpy": ["flying", Color(1.65, 1.5, 0.65)],
 	"nest_harpy": ["flying", Color(1.3, 1.6, 0.8)], "harpy_chick": ["flying", Color(1.8, 1.7, 1.6)],
 	"shield_orc": ["armored", Color(0.8, 1.0, 1.5)], "berserker": ["armored", Color(1.25, 0.95, 0.8)], "drummer": ["armored", Color(1.4, 1.25, 0.6)],
-	"ogre_thrower": ["boss", Color(0.8, 1.2, 0.7)], "chain_orc": ["armored", Color(0.75, 1.35, 1.05)], "twin_troll": ["troll", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발은 제 그림이다(I286). 오우거 투척꾼은 오우거 그림, 사슬 오크는 장갑(오크) 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)
+	"ogre_thrower": ["boss", Color(0.8, 1.2, 0.7)], "chain_orc": ["armored", Color(0.75, 1.35, 1.05)], "twin_troll": ["troll", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발은 제 그림이다(I287). 오우거 투척꾼은 오우거 그림, 사슬 오크는 장갑(오크) 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)
 const NOTE := Color("d8b0ff")  # 노래(S306)로 공격 속도가 느려진 아군 머리 위 음표와 노래 반경 고리의 색(I252 ④)
 const FEATHER := Color("f4f0e8")  # 날아가는 깃털(I250 ④)
 const WALL := Color("e8f0ff")  # 방패벽(S319)을 선 방패벽 오크끼리 잇는 선(I263 ⑤)
@@ -211,9 +211,9 @@ const SLAM_POSE := 0.15  # 보스 스킬이 발동한 뒤 공격 자세(초, S19
 const READY := {"mgun": 1}  # 없으면 0열
 const STILL_TELL := ["fling"]  # 예고 끝에도 정지 그림인 스킬 시트(대장 집게 던지기)
 const PEAK := {"grab": [1, 2], "fling": [0, 1]}  # 없으면 [1]. 집어 던지기는 집음 → 놓음, 집게 던지기는 집음 → 치켜듦
-const WINDS := ["order", "horn", "banner", "duel"]  # 예고 내내 0열을 들고 있다가 끝 LIFT초에 1열을 그리는 스킬 시트(I286 ④): 발동 흔적이 없는 뿔나팔·깃대·결투 신청
-const STRUCK := ["verdict"]  # 발동 자세가 흔적 자리 쪽을 보는 스킬 시트(I286 ④): 처형 내려찍기는 내려찍은 영웅 쪽
-const SWAY := 0.4  # 전쟁 깃발 천이 흔들리는 간격(초, I286 ③). 임시값
+const WINDS := ["order", "horn", "banner", "duel"]  # 예고 내내 0열을 들고 있다가 끝 LIFT초에 1열을 그리는 스킬 시트(I287 ④): 발동 흔적이 없는 뿔나팔·깃대·결투 신청
+const STRUCK := ["verdict"]  # 발동 자세가 흔적 자리 쪽을 보는 스킬 시트(I287 ④): 처형 내려찍기는 내려찍은 영웅 쪽
+const SWAY := 0.4  # 전쟁 깃발 천이 흔들리는 간격(초, I287 ③). 임시값
 const LANDING := "leap"  # 착지 흔적(slam)의 시트가 없는 보스가 착지 뒤 그리는 시트(대장 착지 웅크림)
 const WRECK_FADE := 0.5  # 수레 잔해가 지워지기(battle.WRECK) 전에 흐려지는 시간(초, S172 2026-11-05 변경 ⑥)
 const FAN_TURN := 20.0  # 시트 자세 ±40°의 가운데
@@ -2153,7 +2153,7 @@ func _brace_marks(h) -> Array:
 	var hit: bool = battle.traces.any(func(c): return c.slot == "block" and c.hero == h and c.age < BLOCK_FLASH)
 	return [{k = "ring", p = at, r = 8 + int(round(3.0 * k)), c = _ramp(["vio2", "vio1", "vio0", "cream"], k)}, {k = "aegis", p = at, f = 0 if hit else 2}]
 
-# 몸의 높이(px): 발밑에서 머리까지. 그림이 있으면 시트의 발밑 기준점(칸에 머리 높이 head가 따로 있으면 그것, I286 ⑤), 없으면 반지름으로
+# 몸의 높이(px): 발밑에서 머리까지. 그림이 있으면 시트의 발밑 기준점(칸에 머리 높이 head가 따로 있으면 그것, I287 ⑤), 없으면 반지름으로
 func _head(x) -> float:
 	var a = ART.get(x.kind)
 	return float(a.get("head", a.anchor[1])) if a else CELL * x.radius * 2.0 + 6.0
@@ -2956,7 +2956,7 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 				dir = _four(Vector2.from_angle(c.dir) * (-1.0 if c.slot == "tail" else 1.0))
 			elif c.has("from"):  # 돌진: 내달린 쪽(S198)
 				dir = _four(c.at - c.from)
-			elif c.slot in STRUCK:  # 처형 내려찍기(I286 ④): 내려찍은 영웅 쪽
+			elif c.slot in STRUCK:  # 처형 내려찍기(I287 ④): 내려찍은 영웅 쪽
 				dir = _four(c.at - x.pos)
 			else:
 				dir = 0 if c.aim == null else _four(Vector2(c.aim) - c.at)
@@ -2979,9 +2979,9 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 		elif x.cast and ART[x.kind].has(x.cast.id):  # 스킬 시트의 예고·발사(S172 2026-11-03 셋째 변경 ①③): 대포는 원 가운데, 기관총은 부채꼴 가운데 쪽을 본다
 			var k: Dictionary = x.cast
 			dir = _four(k.at - x.pos) if k.has("at") else (_four(Vector2.from_angle(k.dir) * (-1.0 if k.id == "tail" else 1.0)) if k.has("dir") else 0)  # 꼬리 휘두르기 예고는 부채꼴 반대쪽(S172 2026-11-10 변경 ②)
-			if k.has("who"):  # 결투 신청(I286 ④): 지목한 영웅 쪽
+			if k.has("who"):  # 결투 신청(I287 ④): 지목한 영웅 쪽
 				dir = _four(k.who.pos - x.pos)
-			elif k.has("at") and k.at.is_equal_approx(x.pos):  # 제 자리에 세우는 전쟁 깃발(I286 ④): 화면 쪽
+			elif k.has("at") and k.at.is_equal_approx(x.pos):  # 제 자리에 세우는 전쟁 깃발(I287 ④): 화면 쪽
 				dir = 0
 			anim = "idle"
 			col = 0
@@ -2998,7 +2998,7 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 					anim = k.id
 					col = 1 if WINDS.has(k.id) else READY.get(k.id, 0)
 				off.y = -2.0
-			elif WINDS.has(k.id):  # 뿔나팔·깃대·결투 신청(I286 ④): 예고 내내 0열을 든다
+			elif WINDS.has(k.id):  # 뿔나팔·깃대·결투 신청(I287 ④): 예고 내내 0열을 든다
 				anim = k.id
 		elif x.cast and (x.cast.id == "pounce" or (x.cast.id == "charge" and ART[x.kind].has("crouch"))):  # 덮치기(S244 ②): 예고는 대상 쪽 웅크림, 뜬 동안은 뜀. S198의 들어 올림은 쓰지 않는다. 원정 알파의 돌진 예고(I280 ⑧)도 길 쪽 웅크림이다
 			anim = "air" if x.cast.get("air", false) else "crouch"
@@ -3019,7 +3019,7 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 		col = BLOW[x.kind][1]
 	if (anim == "idle" or anim == "walk") and ART[x.kind].has("rage_" + anim) and battle.raging(x):  # 분노 중 정지·걷기는 망토를 찢어 던진 몸(S172 2026-11-05 변경 ④)
 		anim = "rage_" + anim
-	if anim == "idle" and ART[x.kind].has("sway"):  # 전쟁 깃발(I286 ③): 천이 SWAY초마다 좌우로 쏠린다
+	if anim == "idle" and ART[x.kind].has("sway"):  # 전쟁 깃발(I287 ③): 천이 SWAY초마다 좌우로 쏠린다
 		anim = "sway"
 		col = int(clock / SWAY) % 2
 	next[id] = [x.pos, dir]
@@ -3055,7 +3055,7 @@ func _wreck(w: Dictionary) -> void:
 func _corpse(d: Array, tint := Color.WHITE) -> void:
 	var x = d[0]
 	var hero: bool = x.get("is_hero") == true
-	var art: Dictionary = ART[d[2]] if d.size() > 2 and ART.get(d[2], {}).has("fall") else ART[x.kind]  # 탄 것의 쓰러진 몸(I286 ②): 탄 종류의 그림에 누운 자세가 있으면 그것으로
+	var art: Dictionary = ART[d[2]] if d.size() > 2 and ART.get(d[2], {}).has("fall") else ART[x.kind]  # 탄 것의 쓰러진 몸(I287 ②): 탄 종류의 그림에 누운 자세가 있으면 그것으로
 	var s := _last_blow(x, d[1])
 	var k := _shrunk(x)
 	var down := Vector2(0, GROW.get(x.kind, [1.0, 0.0])[1] * k)  # 큰 몸은 선 몸처럼 내려 그린다(_look)
@@ -3835,7 +3835,7 @@ func _foe_tells() -> void:
 
 # 오크 대족장의 새 기믹 표시(S344~S349, I285). 몸통 위 층에 그린다.
 # 결투장: 열린 결투의 원(보라 두 겹). 사슬 족쇄: 묶인 두 영웅의 가슴을 잇는 사슬 선. 처형 선고: 표식 영웅 머리 위에 남은 시간만큼 줄어드는 빨강 고리와 ✕.
-# 침묵: 영웅 머리 위 회색 ✕. 군령: 보이는 적마다 머리 위 짧은 꺾쇠(돌격령 빨강 ∧ · 방패령 파랑 ∨). 전쟁 깃발: 불굴 반경 고리(깃발 몸은 제 그림이다, I286 ③)
+# 침묵: 영웅 머리 위 회색 ✕. 군령: 보이는 적마다 머리 위 짧은 꺾쇠(돌격령 빨강 ∧ · 방패령 파랑 ∨). 전쟁 깃발: 불굴 반경 고리(깃발 몸은 제 그림이다, I287 ③)
 func _feud_marks() -> void:
 	for e in _foes:
 		if not e.duel.is_empty():

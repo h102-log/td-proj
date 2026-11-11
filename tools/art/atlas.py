@@ -13,7 +13,7 @@
 # 와이번과 떨어진 와이번(I189 2026-11-10 변경)은 영웅 구역 오른쪽에 위에서부터 쌓는다(x만). 주민 띠 오른쪽은 대장·잔해 아래 1144px만 남는다
 # 트롤(I274)은 주민 띠 오른쪽의 수레 잔해 아래에 쌓는다(x만). 싸움꾼과 쌍둥이가 같은 칸을 쓴다
 # 늑대 기수(I279 ⑤)는 트롤 아래에 쌓는다(x만). 쓰러지지 않고 내리므로 누운 자세 칸이 없다
-# 오크 대족장 군단 넷(I286)은 와이번 오른쪽에 쌓는다(x만, 깃발은 one): 대족장 둘을 한 열에, 근위대와 깃발을 그 오른쪽 열에. 한 열로는 영웅 구역 높이를 넘는다.
+# 오크 대족장 군단 넷(I287)은 와이번 오른쪽에 쌓는다(x만, 깃발은 one): 대족장 둘을 한 열에, 근위대와 깃발을 그 오른쪽 열에. 한 열로는 영웅 구역 높이를 넘는다.
 # 같은 자세를 쓰는 스킬은 같은 칸을 가리킨다(SAME).
 # 스킬 자세까지 넣어 캔버스를 맞춰 발밑 기준점이 머리보다 높으므로, 몸의 높이(head)를 따로 적는다
 # 시설(4.1e)은 48×48 칸을 따로 한 장에 모은다(facility())
@@ -44,7 +44,7 @@ TOWN_SIDE = {"chief": ["idle", "walk", "attack", "rage_idle", "rage_walk", "clea
              "wolf_rider": ["idle", "walk", "attack"]}  # 주민 띠 오른쪽 4방향 칸(S172 2026-11-05 변경): 고블린 대장, 그 아래 수레 잔해, 그 아래 트롤(I274), 그 아래 늑대 기수(I279 ⑤, 누운 자세 없음) → 자세
 HERO_SIDE = {"wyvern": ["idle", "walk", "attack", "plunge", "carpet"],
              "wyvern_fallen": ["idle", "walk", "attack", "breath", "rush", "tail", "fall"]}  # 영웅 구역 오른쪽 4방향 칸(S172 2026-11-10 변경): 와이번, 그 아래 떨어진 와이번 → 자세
-WARHOST = [{"warchief": ["idle", "walk", "attack", "charge", "order", "aim", "fall"],  # 와이번 오른쪽 열(I286 ⑤): 오크 대족장(누운 자세는 내린 뒤 쓰러진 전쟁 늑대),
+WARHOST = [{"warchief": ["idle", "walk", "attack", "charge", "order", "aim", "fall"],  # 와이번 오른쪽 열(I287 ⑤): 오크 대족장(누운 자세는 내린 뒤 쓰러진 전쟁 늑대),
             "warchief_foot": ["idle", "walk", "attack", "horn", "banner", "roar", "verdict", "fall"]},  # 그 아래 내린 대족장
            {"warguard": ["idle", "walk", "attack", "fall"], "warbanner": ["idle", "sway"]}]  # 그 오른쪽 열: 대족장 근위대, 그 아래 전쟁 깃발(방향 없는 한 행) → 자세
 SAME = {"warchief": {"chain": "aim", "shackle": "aim", "duel": "aim"}}  # 종류 → {스킬: 같은 칸을 쓰는 자세}. 사슬 갈고리·사슬 족쇄·결투 신청은 겨눔 자세 한 벌이다
@@ -60,7 +60,7 @@ def _fit(folder):
 
 
 def _head(folder, m):
-    """몸의 높이(px, I286 ⑤): 발밑 기준점에서 정지 그림의 머리 끝까지 + 여백 3px. 스킬 자세까지 넣어 캔버스를 맞춘 종류는 기준점 y가 머리보다 높다"""
+    """몸의 높이(px, I287 ⑤): 발밑 기준점에서 정지 그림의 머리 끝까지 + 여백 3px. 스킬 자세까지 넣어 캔버스를 맞춘 종류는 기준점 y가 머리보다 높다"""
     im = _sheet(folder, "idle")
     top = min(im.crop((0, r * m["c"], m["c"], (r + 1) * m["c"])).getbbox()[1] for r in ([0] if m.get("one") else FOUR_ROWS))  # 아틀라스에 넣는 행만
     return m["anchor"][1] - max(0, top - 3)
@@ -103,7 +103,7 @@ def main():
     assert oh <= top, f"영웅 구역 오른쪽 칸(0~{oh})이 영웅 구역(0~{top})을 넘는다"
     xw = xh
     for group in WARHOST:
-        xw = max(ox + im.width for im, ox, _ in sheets if ox == xw)  # 와이번 오른쪽: 앞 열의 가장 넓은 칸 폭만큼 옆(I286 ⑤)
+        xw = max(ox + im.width for im, ox, _ in sheets if ox == xw)  # 와이번 오른쪽: 앞 열의 가장 넓은 칸 폭만큼 옆(I287 ⑤)
         ow = 0
         for kind, anims in group.items():
             one = kind == "warbanner"

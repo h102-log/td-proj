@@ -78,9 +78,9 @@ def test_EV1021_first_wait_and_feud_marks(gd):
     gd("warhost", "EV1021")
 
 
-def test_EV1023_warhost_art_cells(gd):
-    gd("warhost", "EV1023")
+def test_EV1029_warhost_art_cells(gd):
+    gd("warhost", "EV1029")
 
 
-def test_EV1024_warhost_art_drawn(gd):
-    gd("warhost", "EV1024")
+def test_EV1030_warhost_art_drawn(gd):
+    gd("warhost", "EV1030")

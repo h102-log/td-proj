@@ -855,15 +855,15 @@ func ev1021():
 	return check(hidden and plain and drawn.all(func(x): return x),
 		"숨어도 그리는 예고에 결투·족쇄·선고 %s · 아무것도 없을 때 그림 없음 %s · [결투장 고리, 깃발 고리(선 없음), 족쇄 선, 침묵 선 둘, 처형 고리와 선 둘, 군령 선 둘] %s" % [hidden, plain, drawn])
 
-# ── 오크 대족장 군단 그림(I286) ──
+# ── 오크 대족장 군단 그림(I287) ──
 
 const HOST_ART := {WC: ["idle", "walk", "attack", "charge", "order", "aim", "fall"], WF: ["idle", "walk", "attack", "horn", "banner", "roar", "verdict", "fall"],
 	WG: ["idle", "walk", "attack", "fall"], WB: ["idle", "sway"]}  # 종류 → 그림 칸의 자세
 const TWO := ["walk", "charge", "order", "aim", "horn", "banner", "roar", "verdict", "sway"]  # 2열 자세(나머지는 1열)
 
-# EV1023 · I286: 네 종류의 그림 칸이 heroes.json에 있고 칸마다 그림이 있다. 사슬 갈고리·사슬 족쇄·결투 신청은 겨눔 칸을 함께 쓴다.
+# EV1029 · I287: 네 종류의 그림 칸이 heroes.json에 있고 칸마다 그림이 있다. 사슬 갈고리·사슬 족쇄·결투 신청은 겨눔 칸을 함께 쓴다.
 # 칸은 와이번 칸 오른쪽의 영웅 구역 안에 두 열(대족장 둘, 그 오른쪽에 근위대·깃발)로 위에서부터 쌓이고 서로 겹치지 않는다. 칸마다 몸의 높이(head)가 정지 그림에 맞다. 아틀라스 크기는 그대로다
-func ev1023():
+func ev1029():
 	var art: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/units/heroes.json"))
 	var img: Image = load("res://art/units/heroes.png").get_image()
 	var whole := Rect2i(Vector2i.ZERO, img.get_size())
@@ -925,9 +925,9 @@ func ev1023():
 		bad.append("아틀라스 %s(828×15656)" % [img.get_size()])
 	return check(bad.is_empty(), "; ".join(bad.slice(0, 6)))
 
-# EV1024 · I286: 네 종류는 빌린 그림·큰 몸 표에 없이 제 칸의 그림 한 장을 키우지 않고 그린다. 스킬 자세는 시트의 0열·1열을, 예고·발동의 때와 방향에 맞게 그린다.
+# EV1030 · I287: 네 종류는 빌린 그림·큰 몸 표에 없이 제 칸의 그림 한 장을 키우지 않고 그린다. 스킬 자세는 시트의 0열·1열을, 예고·발동의 때와 방향에 맞게 그린다.
 # 깃발은 흔들림 칸을 그리고, 오크 대족장이 내릴 때 남는 몸은 오크 대족장 칸의 누운 자세(쓰러진 전쟁 늑대)로 그린다
-func ev1024():
+func ev1030():
 	var r := _lone("sylvia", Vector2i(14, 10))
 	var b = r[0]
 	var h = r[1]
