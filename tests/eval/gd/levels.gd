@@ -86,7 +86,7 @@ func ev205():
 		"feather_harpy": 1, "dive_harpy": 1, "song_harpy": 1, "storm_harpy": 1, "snatch_harpy": 1,
 		"nest_harpy": 1, "nest": 1, "harpy_chick": 0, "wyvern": 0, "wyvern_fallen": 1,
 		"shield_orc": 1, "berserker": 1, "drummer": 1, "ogre_thrower": 1, "chain_orc": 1, "troll": 1, "twin_troll": 1, "wolf_rider": 0,
-		"warguard": 1, "warchief": 0, "warchief_foot": 1}  # 늑대 기수는 내릴 때 처치가 아니라 내린 장갑이 받는다(S335). S126 2026-10-27 변경, 늑대·3라운드 고블린·4라운드 하피는 기본 1. 전쟁 기계·와이번은 부서지거나 떨어질 때 처치가 아니라 대장·떨어진 와이번이 받는다(S288·I230·S311). 새끼 하피는 보상이 없다(S309)
+		"warguard": 1, "warchief": 0, "warchief_foot": 1, "warbanner": 0}  # 늑대 기수는 내릴 때 처치가 아니라 내린 장갑이 받는다(S335). S126 2026-10-27 변경, 늑대·3라운드 고블린·4라운드 하피는 기본 1. 전쟁 기계·와이번은 부서지거나 떨어질 때 처치가 아니라 대장·떨어진 와이번이 받는다(S288·I230·S311). 새끼 하피는 보상이 없다(S309)
 	ok = ok and xps.size() == want.size() and want.keys().all(func(k): return xps.get(k) == want[k])
 	return check(ok, "다음 레벨까지 %s · 비율 %s · 열리는 레벨 %s · 적 경험치 %s" % [r.steps, r.growth, r.unlock, xps])
 

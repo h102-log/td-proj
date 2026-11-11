@@ -4118,6 +4118,27 @@ func ev993():
 	_done(main)
 	return check(before.is_empty() and said.size() == 1, "부르기 전 토스트 %s(없어야 한다) · 부른 뒤 토스트 %s(하나여야 한다)" % [before, said])
 
+# EV1002 · S343 ③: 군령이 내려지면(battle.edicts가 늘면) 그 군령의 토스트가 뜬다 — 돌격령 «군령: 돌격! …», 방패령 «군령: 방패! …»
+func ev1002():
+	var main = _prep()
+	var b = main.view.battle
+	if not "edicts" in b:
+		_done(main)
+		return "구현 없음: battle.edicts가 없다"
+	main.hud._process(0.0)
+	main.hud.toasts._process(3.6)  # 미션 토스트가 막 떠서 3.5초 줄을 선다(I163)
+	var got := []
+	for kind in ["rush", "shield"]:
+		b.edict = {"kind": kind, "left": 8.0, "stride": 0.3, "haste": 0.3, "cut": 0.5}
+		b.edicts += 1
+		main.hud._process(0.0)
+		main.hud._process(0.0)
+		main.hud.toasts._process(3.6)
+		got.append(_toasts(main).filter(func(t): return "군령" in t))
+	_done(main)
+	return check(got[0].any(func(t): return "군령: 돌격! — 모든 적이 빨라진다" in t) and got[1].any(func(t): return "군령: 방패! — 모든 적이 화살과 구슬을 덜 받는다" in t),
+		"돌격령 뒤 토스트 %s · 방패령 뒤 토스트 %s" % got)
+
 # EV937 · S328·S329: 5라운드 4웨이브 미리보기에 트롤 싸움꾼·쌍둥이 트롤의 특성 줄이 있다
 func ev937():
 	var main = _prep()

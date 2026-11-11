@@ -6,6 +6,10 @@ extends "res://tests/eval/gd/orc.gd"
 #   묶음 ③(S339·S340·S341·I282): 적 kind "warguard"(대족장 근위대) · "warchief"(오크 대족장) · "warchief_foot"(내린 대족장).
 #   적 칸 rooted(밀리지 않음) · calls(군단을 부른 횟수) · cd(스킬 → 남은 대기) · snag(던진 사슬의 끝) · Battle.horns(이 판에서 부대가 나온 횟수)
 #   예고 cast: charge·chain {id, left, dir, to} · horn {id, left} · rift {id, left, spots} · Battle.armor_mult(Battle.armor_of(유닛)) — 물리 피해 배율
+#   새 기믹(S342~S348·I283): 적 칸 duel({who, at, radius, left, need, dealt}) · doom({who, left}) · orders · banner({radius}) · bodyguard({big, reach}) · spent
+#   Battle.edict({kind "rush"|"shield", left}) · Battle.edicts · 영웅 효과 출처 «shackle»({shackle 짝, reach, share}) · «verdict» · 효과 키 silence
+#   예고 cast: duel {who, at} · shackle {pair, spots} · order · banner {at} · verdict {mark, at} · roar {dir} · 적 kind "warbanner"(전쟁 깃발)
+#   BattleView: _feud_marks() — 결투장·사슬 족쇄·처형 표식·침묵·군령·깃발 그리기
 # 판은 lib.gd battle()의 들판(30×20, 거점 (25,10))이다. 처치 보상 배율이 없어 처치 보상이 그대로 골드에 든다
 
 const WR := "wolf_rider"
@@ -483,4 +487,387 @@ func ev991():
 	var hid := [x in tell, y not in tell]
 	nv.free()
 	return check(hid[0] and hid[1], "밤 판: 숨은 내린 대족장의 균열 예고를 그림 %s(그려야 한다) · 숨은 대족장의 사슬 예고를 안 그림 %s(그리지 않아야 한다)" % hid)
+
+# ── 오크 대족장의 새 기믹(S342~S348, I283) ──
+
+const NONE := [{"kind": "basic", "count": 0}]  # 적이 나오지 않는 웨이브
+
+# 치지 않는 영웅들(레벨 5, 체력 큼)을 [종류, 칸]대로 세운 들판 판. 영웅은 제자리에서 움직이지 않는다
+func _team(heroes: Array, stage := {}):
+	var b = battle({"base_hp": BIG, "waves": [NONE, NONE], "heroes": heroes.map(func(h): return {"kind": h[0], "cell": h[1], "level": 5})}.merged(stage, true))
+	for h in b.heroes:
+		h.damage = 0.0
+		h.max_hp = BIG
+		h.hp = BIG
+	return b
+
+# kind 대족장(움직이지도 치지도 않음, 최대 체력 hp)을 (10,10)에 두고 only 스킬만 바로 쓸 수 있게 한다(나머지 스킬은 대기를 크게 둔다)
+func _chief(b, kind: String, only: String, hp := 1000.0):
+	var e = _still(b, kind, Vector2(10, 10), {"hp": hp})
+	for id in e.skills:
+		e.cd[id] = 0.0 if id == only else float(BIG)
+	return e
+
+# EV994 · S342: 결투 신청은 5칸 안의 가장 가까운 땅 위 영웅을 지목해 예고 1.2초 뒤 결투장(반경 2.5)을 연다. 8초 동안 그 영웅은 원 밖으로 못 나가고,
+# 원 밖에서 준 피해는 80% 줄며, 대족장은 새 스킬을 시작하지 않는다. 지목된 영웅이 최대 체력의 5%를 깎으면 대족장이 비틀거리고, 못 깎으면 영웅이 40을 받는다
+func ev994():
+	var b = _team([["sylvia", Vector2i(12, 10)], ["ignis", Vector2i(14, 10)]])
+	var why := _need(b, [WC])
+	if why != "":
+		return why
+	var e = _chief(b, WC, "duel")
+	var h = b.heroes[0]
+	var m = b.place_merc("soldier", Vector2i(20, 10), QUIET)
+	if not _ever(b, e, "duel", 0.1) or e.cast.get("who") != h or e.cast.at.distance_to(Vector2(10, 10)) > 0.05:
+		return "0.1초 안에 실비아를 지목한 결투 예고를 시작하지 않았다(cast %s)" % [e.cast]
+	_steps(b, 22)
+	if not _casting(e, "duel") or not e.duel.is_empty():
+		return "예고 1.1초에 벌써 결투가 열렸다(cast %s · duel %s)" % [e.cast, e.duel]
+	_steps(b, 4)
+	var d: Dictionary = e.duel
+	if d.is_empty() or d.who != h or absf(d.radius - 2.5) > 0.001 or absf(d.left - 8.0) > 0.21 or absf(d.need - 50.0) > 0.01:
+		return "예고 1.3초: 결투 %s(실비아, 반경 2.5, 남은 초 8, 깎아야 할 체력 50)" % [d]
+	h.pos = Vector2(16, 10)
+	b.step(DT)
+	if absf(h.pos.distance_to(Vector2(10, 10)) - 2.5) > 0.01:
+		return "결투장 밖 (16,10)으로 옮긴 실비아가 다음 스텝에 가운데에서 %.2f칸이다(2.5칸이어야 한다)" % h.pos.distance_to(Vector2(10, 10))
+	e.cd["chain"] = 0.0
+	var hp0: float = e.hp
+	b.damage(e, 100.0, "true", m)
+	var outside: float = hp0 - e.hp
+	b.damage(e, 100.0, "true")
+	var nobody: float = hp0 - e.hp - outside
+	_steps(b, 20)
+	if absf(outside - 20.0) > 0.01 or absf(nobody - 20.0) > 0.01 or _casting(e, "chain") or e.duel.is_empty():
+		return "결투 중: 원 밖 병사가 준 고정 피해 100에 %s(20) · 출처 없는 100에 %s(20) · 사슬 예고 %s(없어야 한다) · 결투 %s(이어져야 한다)" % [outside, nobody, e.cast, e.duel]
+	hp0 = e.hp
+	b.damage(e, 100.0, "true", h)
+	var inside: float = hp0 - e.hp
+	b.step(DT)
+	if absf(inside - 100.0) > 0.01 or not e.duel.is_empty() or not e.fx.has("stagger") or h.hp != h.max_hp:
+		return "결투 상대가 준 고정 피해 100에 %s(100) · 다음 스텝 결투 %s(끝나야 한다) · 비틀거림 %s · 실비아가 잃은 체력 %s(0)" % [inside, e.duel, e.fx.has("stagger"), _lost(h)]
+	var c = _team([["sylvia", Vector2i(12, 10)]])
+	var x = _chief(c, WC, "duel")
+	var k = c.heroes[0]
+	if not _ever(c, x, "duel", 0.1):
+		return "둘째 판: 0.1초 안에 결투 예고를 시작하지 않았다"
+	_steps(c, 26)
+	_steps(c, 150)
+	if x.duel.is_empty() or k.hp != k.max_hp:
+		return "둘째 판: 결투 7.5초에 결투 %s(이어져야 한다) · 실비아가 잃은 체력 %s(0)" % [x.duel, _lost(k)]
+	_steps(c, 14)
+	var want: float = 40.0 * c.armor_mult(c.armor_of(k))
+	if not x.duel.is_empty() or absf(_lost(k) - want) > 0.01 or x.fx.has("stagger"):
+		return "둘째 판: 결투 8.2초에 결투 %s(끝나야 한다) · 실비아가 잃은 체력 %s(%s) · 비틀거림 %s(없어야 한다)" % [x.duel, _lost(k), want, x.fx.has("stagger")]
+	var f = _team([["sylvia", Vector2i(12, 10)]])
+	var y = _chief(f, WC, "duel")
+	if not _ever(f, y, "duel", 0.1):
+		return "셋째 판: 0.1초 안에 결투 예고를 시작하지 않았다"
+	f.heroes[0].pos = Vector2(14, 10)
+	f.heroes[0].anchor = Vector2(14, 10)
+	_steps(f, 26)
+	return check(y.duel.is_empty() and y.cast == null, "셋째 판: 예고 중에 원 밖 (14,10)으로 비킨 뒤 결투 %s(열리지 않아야 한다) · 예고 %s" % [y.duel, y.cast])
+
+# EV995 · S343: 군령은 예고 2초 뒤 전장의 모든 적에게 8초 걸린다. 첫 군령은 돌격령(이동·공격 속도 +30%), 둘째는 방패령(투사체 피해 −50%)이다.
+# 군령이 내려진 뒤 나온 적도 받는다. 예고 중 기절하면 내려지지 않는다
+func ev995():
+	var b = battle({"base_hp": BIG, "base": Vector2i(28, 2)})
+	var why := _need(b, [WC])
+	if why != "":
+		return why
+	var e = _chief(b, WC, "order")
+	var walker = b.spawn_enemy("basic", Vector2i(2, 18), {"sight": 0, "damage": 0, "hp": BIG})
+	if not _ever(b, e, "order", 0.1) or absf(e.cast.left - 2.0) > 0.11:
+		return "0.1초 안에 군령 예고(2초)를 시작하지 않았다(cast %s)" % [e.cast]
+	var slow := _walked(b, walker)
+	_steps(b, 22)
+	if b.edict.get("kind") != "rush" or absf(b.edict.left - 8.0) > 0.21 or b.edicts != 1 or e.orders != 1:
+		return "예고 2.1초: 군령 %s(rush, 남은 초 8) · 판 횟수 %d(1) · 대족장 횟수 %d(1)" % [b.edict, b.edicts, e.orders]
+	var fast := _walked(b, walker)
+	var late = b.spawn_enemy("basic", Vector2i(2, 16), {"sight": 0, "damage": 0, "hp": BIG})
+	var newer := _walked(b, late)
+	walker.cooldown = 10.0
+	_steps(b, 20)
+	var beat: float = 10.0 - walker.cooldown
+	if not _ratio(fast, slow, 1.3) or not _ratio(newer, slow, 1.3) or absf(beat - 1.3) > 0.03:
+		return "돌격령: 1초에 걸은 칸 %.2f(전 %.2f의 1.3배) · 뒤에 나온 적 %.2f(1.3배) · 1초에 준 공격 대기 %.3f(1.3)" % [fast, slow, newer, beat]
+	_steps(b, 120)
+	if not b.edict.is_empty():
+		return "군령이 내려진 뒤 9초: 군령 %s(없어야 한다)" % [b.edict]
+	var c = battle({"base_hp": BIG})
+	var x = _chief(c, WC, "order")
+	var prey = _still(c, "basic", Vector2(22, 16))
+	var bow = c.place_merc("archer", Vector2i(20, 16), SHOT)
+	var bare := _drop(c, [prey])
+	x.orders = 1
+	if not _ever(c, x, "order", 3.0):
+		return "둘째 판: 군령 예고를 시작하지 않았다"
+	_steps(c, 42)
+	if c.edict.get("kind") != "shield":
+		return "둘째 판: 대족장의 둘째 군령이 %s다(shield여야 한다)" % [c.edict]
+	var covered := _drop(c, [prey])
+	if absf(bare - 10.0) > 0.01 or absf(covered - 5.0) > 0.01:
+		return "방패령: 궁수 화살 피해 %s(전 %s의 절반 5)" % [covered, bare]
+	var f = battle({"base_hp": BIG})
+	var y = _chief(f, WC, "order")
+	if not _ever(f, y, "order", 0.1):
+		return "셋째 판: 0.1초 안에 군령 예고를 시작하지 않았다"
+	_steps(f, 20)
+	y.fx["test_stun"] = {"stun": true, "left": 0.5}
+	f.step(DT)
+	var off: bool = y.cast == null and y.fx.has("stagger")
+	_steps(f, 40)
+	return check(off and f.edict.is_empty() and f.edicts == 0 and y.orders == 0, "예고 중 기절: 다음 스텝에 예고 없음·비틀거림 %s · 2초 뒤 군령 %s(없음) · 횟수 %d·%d(0)" % [off, f.edict, f.edicts, y.orders])
+
+# EV996 · S344: 사슬 족쇄는 6칸 안의 땅 위 영웅 둘의 자리에 원(반경 0.8) 예고 1초 뒤 둘을 10초 묶는다. 묶인 둘은 4칸 넘게 떨어지지 못하고,
+# 한쪽이 받은 피해의 절반을 다른 쪽도 받는다. 하나가 풀리면 함께 풀리고, 하나라도 원에서 비키면 묶이지 않으며, 영웅이 하나뿐이면 쓰지 않는다
+func ev996():
+	var b = _team([["sylvia", Vector2i(12, 10)], ["ignis", Vector2i(10, 13)]])
+	var why := _need(b, [WC])
+	if why != "":
+		return why
+	var e = _chief(b, WC, "shackle")
+	var a = b.heroes[0]
+	var c = b.heroes[1]
+	if not _ever(b, e, "shackle", 0.1) or e.cast.get("spots", []).size() != 2 or e.cast.spots[0].distance_to(Vector2(12, 10)) > 0.05 or e.cast.spots[1].distance_to(Vector2(10, 13)) > 0.05:
+		return "0.1초 안에 두 영웅 자리에 사슬 족쇄 예고를 시작하지 않았다(cast %s)" % [e.cast]
+	_steps(b, 18)
+	if a.fx.has("shackle") or c.fx.has("shackle"):
+		return "예고 0.9초에 벌써 묶였다"
+	_steps(b, 4)
+	var ya = a.fx.get("shackle", {})
+	var yc = c.fx.get("shackle", {})
+	if ya.get("shackle") != c or yc.get("shackle") != a or absf(ya.get("left", 0.0) - 10.0) > 0.21:
+		return "예고 1.1초: 실비아의 족쇄 %s · 이그니스의 족쇄 %s(서로를 가리키고 남은 초 10)" % [ya, yc]
+	var before: Array = [a.hp, c.hp]
+	b.damage(a, 20.0)
+	var lost_a: float = before[0] - a.hp
+	var lost_c: float = before[1] - c.hp
+	var want: float = lost_a * 0.5 * b.armor_mult(b.armor_of(c))
+	if lost_a <= 0.0 or absf(lost_c - want) > 0.01:
+		return "실비아가 피해 20에 %s를 잃을 때 이그니스가 잃은 체력 %s(%s)" % [lost_a, lost_c, want]
+	a.pos = Vector2(20, 10)
+	a.anchor = Vector2(20, 10)
+	b.step(DT)
+	if absf(a.pos.distance_to(c.pos) - 4.0) > 0.1:
+		return "실비아를 (20,10)으로 옮긴 다음 스텝에 둘 사이 %.2f칸(4칸이어야 한다)" % a.pos.distance_to(c.pos)
+	if not b._harmful({"shackle": c}):
+		return "족쇄가 해로운 효과(정화가 지우는 효과)가 아니다"
+	a.fx.erase("shackle")
+	b.step(DT)
+	if c.fx.has("shackle"):
+		return "실비아의 족쇄를 지운 다음 스텝에 이그니스의 족쇄가 남아 있다"
+	var f = _team([["sylvia", Vector2i(12, 10)], ["ignis", Vector2i(10, 13)]])
+	var y = _chief(f, WC, "shackle")
+	if not _ever(f, y, "shackle", 0.1):
+		return "둘째 판: 0.1초 안에 사슬 족쇄 예고를 시작하지 않았다"
+	f.heroes[1].pos = Vector2(10, 15)
+	f.heroes[1].anchor = Vector2(10, 15)
+	_steps(f, 22)
+	if f.heroes.any(func(h): return h.fx.has("shackle")):
+		return "둘째 판: 이그니스가 원에서 비켰는데 묶였다"
+	var g = _team([["sylvia", Vector2i(12, 10)]])
+	var z = _chief(g, WC, "shackle")
+	return check(not _ever(g, z, "shackle", 3.0), "영웅이 하나뿐인데 사슬 족쇄 예고를 띄웠다(cast %s)" % [z.cast])
+
+# EV997 · S345: 전쟁 깃발은 예고 1.5초 뒤 대족장 자리에 깃발(체력 60, 밀리지 않음)을 세운다. 깃발 4칸 안의 적(대족장 포함)은 체력이 1 아래로 내려가지 않고,
+# 반경 밖의 적은 쓰러진다. 깃발은 부술 수 있고 처치 보상이 없으며, 부수면 불굴이 사라진다. 깃발이 서 있는 동안에는 새로 꽂지 않는다
+func ev997():
+	var b = battle({"base_hp": BIG})
+	var why := _need(b, [WF, "warbanner"])
+	if why != "":
+		return why
+	var e = _chief(b, WF, "banner", 100.0)
+	var near = _still(b, "armored", Vector2(13, 10), {"hp": 10.0})
+	var far = _still(b, "armored", Vector2(16, 10), {"hp": 10.0})
+	var gold: int = b.gold
+	if not _ever(b, e, "banner", 0.1) or e.cast.at.distance_to(Vector2(10, 10)) > 0.05:
+		return "0.1초 안에 깃발 예고를 시작하지 않았다(cast %s)" % [e.cast]
+	_steps(b, 28)
+	if b.enemies.any(func(o): return o.kind == "warbanner"):
+		return "예고 1.4초에 벌써 깃발이 섰다"
+	_steps(b, 4)
+	var flags: Array = b.enemies.filter(func(o): return o.kind == "warbanner")
+	if flags.size() != 1 or flags[0].pos.distance_to(Vector2(10, 10)) > 0.05 or not is_equal_approx(flags[0].max_hp, 60.0) or not flags[0].rooted:
+		return "예고 1.6초: 깃발 %s(하나, (10,10), 체력 60, 밀리지 않음)" % [flags.map(func(o): return [o.pos, o.max_hp, o.rooted])]
+	var flag = flags[0]
+	b.damage(near, 1000.0, "true")
+	b.damage(far, 1000.0, "true")
+	b.damage(e, 1000.0, "true")
+	if not near.alive or not is_equal_approx(near.hp, 1.0) or far.alive or not e.alive or not is_equal_approx(e.hp, 1.0):
+		return "고정 피해 1000 뒤: 3칸의 장갑 살아 있다 %s·체력 %s(1) · 6칸의 장갑 살아 있다 %s(쓰러져야 한다) · 대족장 살아 있다 %s·체력 %s(1)" % [near.alive, near.hp, far.alive, e.alive, e.hp]
+	e.cd["banner"] = 0.0
+	if _ever(b, e, "banner", 2.0):
+		return "깃발이 서 있는데 다시 깃발 예고를 띄웠다"
+	gold = b.gold
+	b.damage(flag, 1000.0, "true")
+	b.damage(near, 1.0, "true")
+	if flag.alive or near.alive or b.gold != gold + near.reward:
+		return "깃발에 고정 피해 1000: 깃발 살아 있다 %s · 그 뒤 장갑에 피해 1: 살아 있다 %s · 골드 %d(깃발 보상 없이 장갑 보상 %d만)" % [flag.alive, near.alive, b.gold - gold, near.reward]
+	return check(_ever(b, e, "banner", 1.0), "깃발이 부서진 뒤 1초 안에 다시 깃발 예고를 띄우지 않았다(cast %s)" % [e.cast])
+
+# 실비아(체력 비율 ratio)를 (13,10)에, 이그니스(체력 가득)를 (12,12)에 세우고 내린 대족장을 (10,10)에 둔 판에서 처형 선고가 붙을 때까지 돌린다. [판, 대족장, 실비아, 이그니스]
+func _doomed(ratio: float) -> Array:
+	var b = _team([["sylvia", Vector2i(13, 10)], ["ignis", Vector2i(12, 12)]])
+	if not b.ENEMY_KINDS.has(WF):
+		return [b, null, null, null]
+	var e = _chief(b, WF, "verdict")
+	var h = b.heroes[0]
+	h.hp = h.max_hp * ratio
+	if not _ever(b, e, "verdict", 0.1) or e.cast.get("mark") != h:
+		return [b, null, h, b.heroes[1]]
+	_steps(b, 18)
+	return [b, e, h, b.heroes[1]]
+
+# EV998 · S346: 처형 선고는 8칸 안에서 체력(보호막 포함) 비율이 가장 낮은 땅 위 영웅에게 예고 0.8초 뒤 표식을 붙인다. 5초 뒤 대족장이 곁으로 뛰어가 내려찍어,
+# 비율이 60% 아래면 최대 체력의 80%, 아니면 10%를 물리 피해로 준다. 대족장이 기절해 있으면 사라진다
+func ev998():
+	var low := _doomed(0.5)
+	var b = low[0]
+	var why := _need(b, [WF])
+	if why != "":
+		return why
+	var e = low[1]
+	var h = low[2]
+	if e == null:
+		return "0.1초 안에 체력 비율이 낮은 실비아에게 처형 선고 예고를 시작하지 않았다"
+	if e.doom.get("who") != h or absf(e.doom.left - 5.0) > 0.21 or not h.fx.has("verdict") or low[3].fx.has("verdict"):
+		return "예고 0.9초: 선고 %s(실비아, 남은 초 5) · 표식 실비아 %s·이그니스 %s" % [e.doom, h.fx.has("verdict"), low[3].fx.has("verdict")]
+	_steps(b, 90)
+	if not h.alive or h.hp != h.max_hp * 0.5 or e.pos.distance_to(Vector2(10, 10)) > 0.05:
+		return "선고 4.5초: 실비아 살아 있다 %s · 잃은 체력 비율 %s(0.5 그대로) · 대족장 자리 %s((10,10))" % [h.alive, _lost(h) / h.max_hp, e.pos]
+	var at: Vector2 = h.pos
+	_steps(b, 12)
+	if h.alive or not e.doom.is_empty() or absf(e.pos.distance_to(at) - (e.radius + h.radius)) > 0.1:
+		return "선고 5.1초: 체력 50%% 실비아가 살아 있다 %s(쓰러져야 한다) · 선고 %s(없음) · 대족장과 실비아 자리 사이 %.2f칸(몸 반지름 합 %.2f)" % [h.alive, e.doom, e.pos.distance_to(at), e.radius + h.radius]
+	var healed := _doomed(0.5)
+	healed[2].hp = healed[2].max_hp * 0.7
+	_steps(healed[0], 102)
+	var graze: float = healed[2].max_hp * 0.1 * healed[0].armor_mult(healed[0].armor_of(healed[2]))
+	if not healed[2].alive or absf(healed[2].max_hp * 0.7 - healed[2].hp - graze) > 1.0 or healed[2].fx.has("verdict"):
+		return "치유한 판: 실비아 살아 있다 %s · 내려찍기에 잃은 체력 %s(최대 체력의 10%% × 방어력 배율 %s) · 표식 %s(없음)" % [healed[2].alive, healed[2].max_hp * 0.7 - healed[2].hp, graze, healed[2].fx.has("verdict")]
+	var shielded := _doomed(0.5)
+	shielded[0]._shield(shielded[2], "test", shielded[2].max_hp * 0.2, 30.0, INF)
+	_steps(shielded[0], 102)
+	if not shielded[2].alive or shielded[2].hp != shielded[2].max_hp * 0.5:
+		return "보호막을 준 판(체력 50%% + 보호막 20%%): 실비아 살아 있다 %s · 체력 비율 %s(0.5 그대로 — 보호막이 받는다)" % [shielded[2].alive, shielded[2].hp / shielded[2].max_hp]
+	var cut := _doomed(0.5)
+	_steps(cut[0], 96)
+	cut[1].fx["test_stun"] = {"stun": true, "left": 0.5}
+	_steps(cut[0], 10)
+	return check(cut[2].alive and cut[2].hp == cut[2].max_hp * 0.5 and cut[1].doom.is_empty() and not cut[2].fx.has("verdict"),
+		"대족장이 기절한 판: 실비아 살아 있다 %s · 잃은 체력 비율 %s(0.5 그대로) · 선고 %s(없음) · 표식 %s(없음)" % [cut[2].alive, _lost(cut[2]) / cut[2].max_hp, cut[1].doom, cut[2].fx.has("verdict")])
+
+# EV999 · S347: 침묵의 포효는 3.5칸 안의 가장 가까운 땅 위 영웅 쪽 부채꼴(100°) 예고 0.8초 뒤 부채꼴 안 영웅에게 침묵을 6초 건다.
+# 침묵한 영웅은 스킬을 쓰지 못한다. 부채꼴 밖 영웅과 용병은 걸리지 않고, 침묵은 해로운 효과다
+func ev999():
+	var b = _team([["sylvia", Vector2i(12, 10)], ["ignis", Vector2i(10, 7)]])
+	var why := _need(b, [WF])
+	if why != "":
+		return why
+	var e = _chief(b, WF, "roar")
+	var h = b.heroes[0]
+	var back = b.heroes[1]
+	var m = b.place_merc("soldier", Vector2i(12, 11), QUIET)
+	b.start_battle()
+	if not b.can_cast(h, "q"):
+		return "시험 조건이 틀렸다: 침묵 전에 실비아가 Q를 쓸 수 없다"
+	if not _ever(b, e, "roar", 0.1) or absf(e.cast.dir) > 0.01:
+		return "0.1초 안에 실비아 쪽 포효 예고를 시작하지 않았다(cast %s)" % [e.cast]
+	_steps(b, 14)
+	if b.effect(h, "silence") != null:
+		return "예고 0.7초에 벌써 침묵이 걸렸다"
+	_steps(b, 4)
+	if b.effect(h, "silence") == null or b.effect(back, "silence") != null or b.effect(m, "silence") != null or b.can_cast(h, "q") or not b.can_cast(back, "q"):
+		return "예고 0.9초: 침묵 실비아 %s(걸림) · 뒤쪽 이그니스 %s(안 걸림) · 병사 %s(안 걸림) · 실비아 Q %s(못 씀) · 이그니스 Q %s(씀)" % [b.effect(h, "silence") != null, b.effect(back, "silence") != null, b.effect(m, "silence") != null, b.can_cast(h, "q"), b.can_cast(back, "q")]
+	e.cd["roar"] = float(BIG)
+	_steps(b, 110)
+	var held: bool = b.effect(h, "silence") != null
+	_steps(b, 14)
+	return check(held and b.effect(h, "silence") == null and b.can_cast(h, "q") and b._harmful({"silence": true}),
+		"걸린 뒤 5.5초에 침묵 %s(걸려 있어야 한다) · 6.2초에 침묵 %s(풀려야 한다)·Q %s(씀) · 해로운 효과 %s" % [held, b.effect(h, "silence") != null, b.can_cast(h, "q"), b._harmful({"silence": true})])
+
+# EV1000 · S348: 대족장이 한 번에 30 이상을 받으면 4칸 안의 아직 대신 맞지 않은 가장 가까운 근위대가 곁으로 뛰어들어 그 피해를 대신 받는다. 근위대마다 한 번이다
+func ev1000():
+	var b = battle({"base_hp": BIG})
+	var why := _need(b, [WC, WG])
+	if why != "":
+		return why
+	var e = _still(b, WC, Vector2(10, 10), {"hp": 1000.0})
+	for id in e.skills:
+		e.cd[id] = float(BIG)
+	var g1 = _still(b, WG, Vector2(12, 10), {"hp": 40.0})
+	var g2 = _still(b, WG, Vector2(10, 13), {"hp": 40.0})
+	var g3 = _still(b, WG, Vector2(20, 10), {"hp": 40.0})
+	b.damage(e, 29.0, "true")
+	if absf(_lost(e) - 29.0) > 0.01 or g1.hp != g1.max_hp or g1.spent:
+		return "고정 피해 29: 대족장이 잃은 체력 %s(29) · 근위대 체력 %s/%s · 대신 맞았다 %s(아니어야 한다)" % [_lost(e), g1.hp, g1.max_hp, g1.spent]
+	b.damage(e, 30.0, "true")
+	if absf(_lost(e) - 29.0) > 0.01 or absf(_lost(g1) - 30.0) > 0.01 or not g1.spent or g2.spent or absf(g1.pos.distance_to(e.pos) - (e.radius + g1.radius)) > 0.01:
+		return "고정 피해 30: 대족장이 잃은 체력 %s(29 그대로) · 2칸의 근위대가 잃은 체력 %s(30)·대신 맞았다 %s · 3칸의 근위대 대신 맞았다 %s(아니어야 한다) · 근위대와 대족장 사이 %.2f칸(몸 반지름 합 %.2f)" % [_lost(e), _lost(g1), g1.spent, g2.spent, g1.pos.distance_to(e.pos), e.radius + g1.radius]
+	b.damage(e, 100.0, "true")
+	if absf(_lost(e) - 29.0) > 0.01 or g2.alive or not g1.alive:
+		return "고정 피해 100: 대족장이 잃은 체력 %s(29 그대로) · 3칸의 근위대 살아 있다 %s(쓰러져야 한다) · 먼저 맞은 근위대 살아 있다 %s" % [_lost(e), g2.alive, g1.alive]
+	b.damage(e, 100.0, "true")
+	return check(absf(_lost(e) - 129.0) <= 0.01 and g3.hp == g3.max_hp and not g3.spent, "대신 맞을 근위대가 없을 때 고정 피해 100: 대족장이 잃은 체력 %s(129) · 10칸의 근위대 체력 %s/%s" % [_lost(e), g3.hp, g3.max_hp])
+
+# EV1001 · I283: 첫 대기(first)가 있는 스킬은 나온 때와 내린 때 대기가 그 초다. 결투장·깃발 반경은 고리로, 사슬 족쇄는 두 영웅을 잇는 선으로,
+# 처형 표식·침묵·군령은 머리 위 선으로 그린다. 결투·사슬 족쇄·처형 선고 예고는 숨어도 그리는 예고다
+func ev1001():
+	var b = _team([["sylvia", Vector2i(12, 10)], ["ignis", Vector2i(10, 13)]])
+	var why := _need(b, [WC, WF, "warbanner"])
+	if why != "":
+		return why
+	var e = b.spawn_enemy(WC, Vector2i(10, 10), STILL.merged({"hp": 10.0}, true))
+	var first: Array = [e.cd.get("duel"), e.cd.get("shackle"), e.cd.get("charge", 0.0), e.cd.get("order", 0.0)]
+	b.damage(e, 100.0, "true")
+	var second: Array = [e.cd.get("banner"), e.cd.get("verdict"), e.cd.get("horn", 0.0), e.cd.get("rift", 0.0)]
+	if first != [6.0, 12.0, 0.0, 0.0] or e.kind != WF or second != [8.0, 14.0, 0.0, 0.0]:
+		return "첫 대기: 나온 대족장 [결투, 족쇄, 돌진, 군령] %s([6, 12, 0, 0]) · 내린 대족장 [깃발, 선고, 호출, 균열] %s([8, 14, 0, 0])" % [first, second]
+	var v = _rec(b)
+	if not v.has_method("_feud_marks"):
+		v.free()
+		return "BattleView에 _feud_marks가 없다"
+	var hidden: bool = ["duel", "shackle", "verdict"].all(func(id): return id in v.UNSEEN_TELLS)
+	var a = b.heroes[0]
+	var c = b.heroes[1]
+	var marks := func() -> Array:
+		v.rings = []
+		v.lines = []
+		v._foes = v.foes()
+		v._feud_marks()
+		return [v.rings.duplicate(), v.lines.duplicate()]
+	var none: Array = marks.call()
+	e.duel = {"who": a, "at": Vector2(10, 10), "radius": 2.5, "left": 8.0, "need": 50.0, "dealt": 0.0, "cut": 0.8, "lose": 40.0}
+	var ring: Array = marks.call()
+	e.duel = {}
+	var flag = _still(b, "warbanner", Vector2(20, 5))
+	var staff: Array = marks.call()
+	b.damage(flag, BIG, "true")
+	a.fx["shackle"] = {"shackle": c, "reach": 4.0, "share": 0.5, "left": 10.0}
+	c.fx["shackle"] = {"shackle": a, "reach": 4.0, "share": 0.5, "left": 10.0}
+	var chain: Array = marks.call()
+	a.fx.erase("shackle")
+	c.fx.erase("shackle")
+	a.fx["silence"] = {"silence": true, "left": 6.0}
+	var mute: Array = marks.call()
+	a.fx.erase("silence")
+	e.doom = {"who": a, "left": 5.0, "below": 0.6, "execute": 0.8, "graze": 0.1}
+	a.fx["verdict"] = {"verdict": e, "left": 5.0}
+	var skull: Array = marks.call()
+	e.doom = {}
+	a.fx.erase("verdict")
+	b.edict = {"kind": "rush", "left": 8.0, "stride": 0.3, "haste": 0.3, "cut": 0.5}
+	var rush: Array = marks.call()
+	var mid := Vector2i(v._center(Vector2(10, 10)).floor())
+	var pole := Vector2i(v._center(Vector2(20, 5)).floor())
+	var from: Vector2 = v._spot(a)
+	var to: Vector2 = v._spot(c)
+	v.free()
+	var plain: bool = none[0].is_empty() and none[1].is_empty()
+	var drawn := [ring[0].any(func(r): return r[0] == mid and r[1] == 40), staff[0].any(func(r): return r[0] == pole and r[1] == 64) and staff[1].size() >= 3,
+		chain[1].any(func(l): return (Vector2(l[0]).distance_to(from) <= 12.0 and Vector2(l[1]).distance_to(to) <= 12.0) or (Vector2(l[0]).distance_to(to) <= 12.0 and Vector2(l[1]).distance_to(from) <= 12.0)),
+		mute[1].size() == 2, skull[0].size() == 1 and skull[1].size() == 2, rush[1].size() == 2]
+	return check(hidden and plain and drawn.all(func(x): return x),
+		"숨어도 그리는 예고에 결투·족쇄·선고 %s · 아무것도 없을 때 그림 없음 %s · [결투장 고리, 깃발 고리와 깃대, 족쇄 선, 침묵 선 둘, 처형 고리와 선 둘, 군령 선 둘] %s" % [hidden, plain, drawn])
 

@@ -470,3 +470,7 @@ def test_EV992_round6_warchief_guard_trait_lines(gd):
 
 def test_EV993_horn_toast(gd):
     gd("hud", "EV993")
+
+
+def test_EV1002_war_order_toasts(gd):
+    gd("hud", "EV1002")
