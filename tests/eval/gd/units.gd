@@ -9,6 +9,7 @@ extends "res://tests/eval/gd/lib.gd"
 #   적 kind "shield_orc"·"berserker"·"drummer"(오크 셋, S319~S321). ENEMY_KINDS 키: wall({near, cover, cut}) · frenzy({haste, stride}) · drum({radius, haste, stride, keep})
 #   적 kind "ogre_thrower"·"chain_orc"(오크 둘, S324·S325). ENEMY_KINDS 키: hurl({range, min, ranged, reach, kinds, windup, air, radius, hit, cd}) · hook({range, min, width, windup, hit, gap, cd})
 #   적 kind "wolf_rider"(늑대 기수, S335). ENEMY_KINDS 키: flank({ranged}) · mount(내릴 때 쓰러진 몸으로 남는 종류) · phase2
+#   적 kind "warguard"(대족장 근위대, S339) · "warchief"(오크 대족장, S340) · "warchief_foot"(내린 대족장, S341). ENEMY_KINDS 키: rooted(밀리지 않음) · escort · skills
 #   적 kind "storm_harpy"·"snatch_harpy"(하피 둘, S307·S308). ENEMY_KINDS 키: gust({range, reach, arc, windup, cd}) · snatch({range, reach, toss, windup, radius, hit, structure, fall, pick, cd})
 # 성곽 맵은 wall.gd와 같다: 9행이 가로 성곽(성문 5·15·25열, 모두 닫힘), 위쪽(0~8행)이 마을, 아래쪽이 들판
 
@@ -60,7 +61,16 @@ const TABLE := {
 	"troll": [60, 1.3, 10, 1.6, 0.45, 4, 18, 1],  # 5라운드 오크 전쟁패 묶음 ③(S106 2026-11-10 다섯째 변경)
 	"twin_troll": [160, 1.2, 20, 2, 0.9, 4, 50, 0.3],
 	"wolf_rider": [14, 3, 5, 0.8, 0.35, 5, 0, 1],  # 6라운드 대족장 군단 묶음 ①(S106 2026-11-11 변경)
+	"warguard": [40, 1.6, 10, 1.2, 0.4, 4, 15, 1],  # 6라운드 대족장 군단 묶음 ③(S106 2026-11-11 둘째 변경)
+	"warchief": [160, 1.6, 18, 1.5, 0.9, 5, 0, 0.3],
+	"warchief_foot": [240, 1.2, 25, 1.5, 0.9, 4, 50, 0.3],
 }
+# 오크 대족장 skills(S340): 직선 돌진 · 사슬 갈고리. 내린 대족장 skills(S341): 군단 호출 · 균열
+const WARCHIEF := {"charge": {"length": 7.0, "min": 2.0, "width": 1.0, "side": 1.0, "windup": 1.0, "cd": 10.0, "unit": 30.0, "structure": 60.0},
+	"chain": {"range": 6.0, "min": 1.5, "width": 0.8, "windup": 1.0, "hit": 15.0, "gap": 1.2, "stun": 1.5, "cd": 9.0}}
+const SQUADS := [{"kind": "wolf", "count": 8}, {"kind": "armored", "count": 4}, {"kind": "flying", "count": 8}]
+const WARFOOT := {"horn": {"windup": 2.5, "cd": 30.0, "max": 3, "radius": 1.5, "color": "gold", "squads": SQUADS},
+	"rift": {"range": 6.0, "count": 4, "gap": 1.5, "radius": 1.2, "windup": 1.2, "cd": 8.0, "unit": 30.0}}
 const PACK := {"wolf": 4, "leap_wolf": 2, "night_wolf": 2, "flying": 4, "armored": 4, "shield_orc": 2, "twin_troll": 2, "wolf_rider": 2}  # 무리(S238). 비행은 2026-11-09 변경, 장갑·방패벽 오크는 2026-11-10 셋째 변경, 늑대 기수는 2026-11-11 변경. 나머지 종류는 1
 const KEYS := ["hp", "speed", "damage", "attack_gap", "radius", "sight", "reward", "wall_k"]
 const FLAME := {"windup": 1.0, "cd": 6.0, "hit": 5.0, "dps": 4.0, "time": 9.0, "spread": 3.0}  # 불화살 고블린 flame(S302)
@@ -182,6 +192,20 @@ func ev130():
 	var wr: Dictionary = d.get("wolf_rider", {})
 	if not (_same(wr.get("flank", {}), {"ranged": 2.0}) and wr.get("phase2") == "armored" and wr.get("mount") == "wolf" and wr.get("xp") == 0):
 		return "늑대 기수(S106 2026-11-11 변경): flank %s({ranged 2}) · phase2 %s(armored) · mount %s(wolf) · xp %s(0)" % [wr.get("flank"), wr.get("phase2"), wr.get("mount"), wr.get("xp")]
+	var wg: Dictionary = d.get("warguard", {})
+	var wc: Dictionary = d.get("warchief", {})
+	var wt: Dictionary = d.get("warchief_foot", {})
+	if not (wg.get("armor") == 20.0 and wg.get("rooted") == true and TABLE.keys().all(func(k): return k == "warguard" or d[k].get("rooted", false) == false)):
+		return "대족장 근위대(S106 2026-11-11 둘째 변경): armor %s(20) · rooted %s(참, 나머지 종류는 거짓)" % [wg.get("armor"), wg.get("rooted")]
+	var csk = wc.get("skills", {})
+	if not (wc.get("boss") == true and wc.get("xp") == 0 and wc.get("phase2") == "warchief_foot" and wc.get("mount") == "wolf" and wc.get("escort") == {"kind": "warguard", "count": 4}
+		and csk is Dictionary and csk.keys() == WARCHIEF.keys() and WARCHIEF.keys().all(func(k): return _same(csk[k], WARCHIEF[k]))):
+		return "오크 대족장: boss %s · xp %s(0) · phase2 %s(warchief_foot) · mount %s(wolf) · escort %s(warguard 4) · skills %s(%s)" % [wc.get("boss"), wc.get("xp"), wc.get("phase2"), wc.get("mount"), wc.get("escort"), csk, WARCHIEF]
+	var fsk = wt.get("skills", {})
+	var horn: Dictionary = fsk.get("horn", {}) if fsk is Dictionary else {}
+	if not (wt.get("boss") == true and wt.get("armor") == 10.0 and fsk is Dictionary and fsk.keys() == WARFOOT.keys() and _same(fsk.rift, WARFOOT.rift)
+		and horn.get("squads") == SQUADS and horn.get("color") == "gold" and ["windup", "cd", "max", "radius"].all(func(k): return is_equal_approx(horn.get(k, -1.0), WARFOOT.horn[k]))):
+		return "내린 대족장: boss %s · armor %s(10) · skills %s(%s)" % [wt.get("boss"), wt.get("armor"), fsk, WARFOOT]
 	return check(d.fast.climb == 3.0 and d.armored.armor == 15.0 and d.flying.flying and not d.basic.flying and d.basic.climb == 0.0
 		and d.slime.get("split") == {"kind": "slimelet", "count": 2} and d.big_slime.get("split") == {"kind": "slime", "count": 2}
 		and plain.all(func(k): return d[k].get("split", {}).is_empty()) and d.slime_king.get("boss") == true and d.alpha_wolf.get("boss") == true

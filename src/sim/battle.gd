@@ -268,6 +268,8 @@ class Enemy:
 	var swat := {}  # 트롤 싸움꾼의 쓸기(S328)
 	var flank := {}  # 늑대 기수의 뒷줄 먼저(S335 ①): 인식 범위 안의 원거리 아군을 먼저 노린다. 비어 있으면 가장 가까운 아군을 노린다
 	var mount := ""  # 늑대 기수가 탄 것(S335 ②): 내릴 때 그 자리에 쓰러진 몸으로 남는 종류. 비어 있으면 남기지 않는다
+	var rooted := false  # 밀리지 않음(S339, I282 ①): 넉백·끌어당김(_knock)에 자리가 바뀌지 않는다
+	var calls := 0  # 내린 대족장이 군단을 부른 횟수(S341 ①). 끊긴 예고는 세지 않는다
 	var mate := 0  # 쌍둥이 트롤의 짝 번호(I273 ①): 나올 때 살아 있던 같은 종류 수를 2로 나눈 나머지. 화면이 색을 가른다
 	var twin = null  # 쌍둥이 트롤이 맡은 쓰러진 형제의 몸(S329 ②). 없으면 null
 	var raid := {}  # 원정 보스(S316)의 층 정의. 비어 있으면 원정 보스가 아니다
@@ -502,6 +504,7 @@ var den := {}  # 숨은 띠·보스방·횃불 수치(S316·S317, I262). 스테�
 var rock := {}  # 띠의 보스방 밖 칸 → true(S317): 아무도 들어가지 않고 짓지 못한다
 var torches := 0  # 횃불 자루(S316)
 var floors_cleared := 0  # 깬 던전 층 수(S316)
+var horns := 0  # 이 판에서 군단 호출(S341 ①)로 부대가 나온 횟수. HUD가 늘어난 때 토스트를 띄운다(I282 ④)
 var party := []  # 원정대(S316): 원정에 들어간 출전 영웅, 출전 차례. 원정이 아니면 비어 있다
 var flame := 0.0  # 이번 원정의 불꽃이 탄 초(I262 ⑥)
 var raid_floor := {}  # 이번 원정의 층 정의(FLOOR_KINDS 값). 원정이 아니면 비어 있다
@@ -606,6 +609,7 @@ func restart() -> void:
 				grid.set_point_solid(Vector2i(x, y))
 	torches = 0
 	floors_cleared = 0
+	horns = 0
 	party.clear()
 	raid_floor = {}
 	_snap = {}
@@ -2095,7 +2099,7 @@ func _heal(t, amount: float, src = null, repath := true) -> void:
 
 # 넉백·끌어당김: 땅 적은 막힌 칸·몸에 막히면 멈추고(_shove), 나는 적은 그대로 옮긴다
 func _knock(e: Enemy, by: Vector2) -> void:
-	if _aloft(e) or not e.raid.is_empty():  # 뜬 적(S236)과 원정 보스 몸(S323 ④)은 밀리지 않는다
+	if _aloft(e) or not e.raid.is_empty() or e.rooted:  # 뜬 적(S236)과 원정 보스 몸(S323 ④), 대족장 근위대(S339)는 밀리지 않는다
 		return
 	if _flies(e):
 		e.pos = (e.pos + by).clamp(Vector2.ZERO, Vector2(size - Vector2i.ONE))
@@ -4991,23 +4995,94 @@ func _sling(e: Enemy) -> bool:
 func _hook(e: Enemy, sk: Dictionary) -> void:
 	var dir := Vector2.from_angle(e.cast.dir)
 	var span: float = e.pos.distance_to(e.cast.to)
-	var best = null
-	for u in _ground_near(e.pos, span + sk.width):
-		var v: Vector2 = u.pos - e.pos
-		if (e.pos + dir * clampf(v.dot(dir), 0.0, span)).distance_to(u.pos) <= sk.width / 2.0 and (best == null or v.length() < e.pos.distance_to(best.pos)):
-			best = u
+	var best = _snared(e.pos, dir, span, sk.width, _ground_near(e.pos, span + sk.width))
 	e.loosed = 0.0
 	e.snag = best if best else e.cast.to
 	if best == null:
 		return
-	if e.pos.distance_to(best.pos) > sk.gap:
-		var to: Vector2 = e.pos + dir * sk.gap
-		if not _bare(Vector2i(to.round())):
-			to = Vector2(_bare_near(Vector2i(to.round())))
-		best.pos = to
-		_drop_orders(best)
-		_halt(best)
+	_reel(e, best, dir, sk.gap)
 	damage(best, sk.hit, "phys", e)
+
+# 사슬 띠(I269 ②): from에서 dir 쪽으로 span칸까지의 가운데 선에서 width/2 안인 pool의 아군 가운데 from에 가장 가까운 것. 없으면 null
+func _snared(from: Vector2, dir: Vector2, span: float, width: float, pool: Array):
+	var best = null
+	for u in pool:
+		var v: Vector2 = u.pos - from
+		if (from + dir * clampf(v.dot(dir), 0.0, span)).distance_to(u.pos) <= width / 2.0 and (best == null or v.length() < from.distance_to(best.pos)):
+			best = u
+	return best
+
+# 사슬에 맞은 아군 u를 e 앞 gap칸 자리(설 수 없는 칸이면 가장 가까운 빈 칸 가운데)로 끌어온다(I269 ③). gap칸보다 가까운 아군은 옮기지 않는다.
+# 끌려온 아군은 명령·일을 놓고 그 자리에 선다
+func _reel(e: Enemy, u: Unit, dir: Vector2, gap: float) -> void:
+	if e.pos.distance_to(u.pos) <= gap:
+		return
+	var to: Vector2 = e.pos + dir * gap
+	if not _bare(Vector2i(to.round())):
+		to = Vector2(_bare_near(Vector2i(to.round())))
+	u.pos = to
+	_drop_orders(u)
+	_halt(u)
+
+# ── 6라운드 오크 대족장(S340·S341, I282) ── 직선 돌진은 고블린 대장의 것(_charge)을 그대로 쓴다
+
+# 사슬 갈고리를 쓸 수 있다(S340 ②): min칸 넘고 range칸 안의 가장 가까운 땅 위 영웅까지 곧은 선이 트였다.
+# 방향(dir, 라디안)과 띠 끝(to — 돌진 길처럼 막힌 칸 앞에서 끊는다)을 예고에 둔다
+func _chain_ready(e: Enemy, sk: Dictionary):
+	var aim = null
+	for u in _ground_near(e.pos, sk.range):
+		var d := e.pos.distance_to(u.pos)
+		if u.is_hero and d > sk.min and (aim == null or d < e.pos.distance_to(aim.pos)):
+			aim = u
+	if aim == null or not _clear_line(e.pos, aim.pos):
+		return false
+	var dir: Vector2 = (aim.pos - e.pos).normalized()
+	return {"dir": dir.angle(), "to": _dash(e.pos, dir, sk.range)[0]}
+
+# 사슬 갈고리(S340 ②, I282 ②): 띠 안의 땅 위 영웅 가운데 가장 가까운 하나를 대족장 앞 gap칸으로 끌어와 물리 hit를 주고 stun초 기절시킨다.
+# 용병·공병은 맞지도 막지도 않는다. 사슬 끝(snag)과 던진 뒤 초(loosed)는 화면이 사슬 선을 그릴 때 읽는다(I269 ⑤)
+func _chain(e: Enemy, sk: Dictionary) -> void:
+	var dir := Vector2.from_angle(e.cast.dir)
+	var span: float = e.pos.distance_to(e.cast.to)
+	var best = _snared(e.pos, dir, span, sk.width, _ground_near(e.pos, span + sk.width).filter(func(u): return u.is_hero))
+	e.loosed = 0.0
+	e.snag = best if best else e.cast.to
+	_trace(e, "chain", null, e.cast.to, 0.0)
+	_tracing.merge({"from": e.pos, "width": sk.width})  # 발동 채움(S198)을 띠로 칠한다
+	if best != null:
+		_reel(e, best, dir, sk.gap)
+		damage(best, sk.hit, "phys", e)
+		if best.alive:
+			_control(best, "chain", {"stun": true}, sk.stun)
+	_tracing = null
+
+# 군단 호출을 쓸 수 있다(S341 ①): 이 대족장이 부른 횟수가 max보다 적다. 아군이 가까이 없어도 쓴다
+func _horn_ready(e: Enemy, sk: Dictionary) -> bool:
+	return e.calls < sk.max and not spawns.is_empty()
+
+# 군단 호출(S341 ①, I282 ④): 부대마다 출현 지점 하나씩에서 한꺼번에 나온다. 칸은 무리(I190)처럼 정하고 n은 그때까지 부른 횟수다.
+# 부른 적은 처치 보상·경험치가 0이고 출현 신호를 낸다. 끊긴 예고는 여기 오지 않아 횟수를 세지 않는다
+func _horn(e: Enemy, sk: Dictionary) -> void:
+	for i in sk.squads.size():
+		var squad: Dictionary = sk.squads[i]
+		var cells := []
+		_pack(cells, squad.kind, i % spawns.size(), e.calls, squad.count, squad.count)
+		for c in cells:
+			spawn_enemy(squad.kind, c[2], {"reward": 0, "xp": 0})
+	e.calls += 1
+	horns += 1
+
+# 균열을 쓸 수 있다(S341 ②): 자리 고르기는 대장 폭탄(_bombs_ready, I230 ⑤)과 같다
+func _rift_ready(e: Enemy, sk: Dictionary):
+	return _bombs_ready(e, sk)
+
+# 균열(S341 ②): 자리마다 원(반경 radius) 안 땅 위 영웅·용병에 물리 unit. 성벽 위 아군과 구조물은 맞지 않는다
+func _rift(e: Enemy, sk: Dictionary) -> void:
+	for at in e.cast.spots:
+		_trace(e, "rift", null, at, sk.radius)
+		for u in _ground_near(at, sk.radius):
+			damage(u, sk.unit, "phys", e)
+	_tracing = null
 
 # ── 5라운드 트롤(S327~S329) ──
 

@@ -21,7 +21,7 @@ const ENEMY_COLORS := {  # 적 종류마다 다른 색(I81)
 	"nest_harpy": Color("a8d070"), "nest": Color("7a5a30"), "harpy_chick": Color("f0d8c0"), "wyvern": Color("4a8a58"), "wyvern_fallen": Color("8a3a28"),
 	"shield_orc": Color("8898b0"), "berserker": Color("c84a3a"), "drummer": Color("c8a050"),
 	"ogre_thrower": Color("9a6a3a"), "chain_orc": Color("5a8a7a"), "troll": Color("5f8f8a"), "twin_troll": Color("3f6f9a"),
-	"wolf_rider": Color("94684e"),
+	"wolf_rider": Color("94684e"), "warguard": Color("5c5470"), "warchief": Color("b03058"), "warchief_foot": Color("701c40"),
 }
 # 그림이 아직 없어 다른 종류의 그림을 빌리는 종류 → [빌리는 종류, 곱하는 색](I250 ⑤·I253 ⑤). 4라운드 하피 다섯은 비행(하피) 그림이다
 const TWINS := [Color(1.45, 1.1, 0.4), Color(0.8, 0.95, 1.3)]  # 쌍둥이 트롤 두 마리에 곱하는 색(I274): 짝 번호 0은 누런 쪽, 1은 푸른 쪽. 임시값
@@ -29,7 +29,8 @@ const LOOKS := {"feather_harpy": ["flying", Color(0.75, 1.2, 1.7)], "dive_harpy"
 	"storm_harpy": ["flying", Color(0.85, 1.65, 1.35)], "snatch_harpy": ["flying", Color(1.65, 1.5, 0.65)],
 	"nest_harpy": ["flying", Color(1.3, 1.6, 0.8)], "harpy_chick": ["flying", Color(1.8, 1.7, 1.6)],
 	"shield_orc": ["armored", Color(0.8, 1.0, 1.5)], "berserker": ["armored", Color(1.25, 0.95, 0.8)], "drummer": ["armored", Color(1.4, 1.25, 0.6)],
-	"ogre_thrower": ["boss", Color(0.8, 1.2, 0.7)], "chain_orc": ["armored", Color(0.75, 1.35, 1.05)], "twin_troll": ["troll", TWINS]}  # 오우거 투척꾼은 오우거 그림, 사슬 오크는 장갑(오크) 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)
+	"ogre_thrower": ["boss", Color(0.8, 1.2, 0.7)], "chain_orc": ["armored", Color(0.75, 1.35, 1.05)], "twin_troll": ["troll", TWINS],
+	"warguard": ["armored", Color(0.75, 0.7, 1.25)], "warchief": ["wolf_rider", Color(1.4, 0.8, 0.85)], "warchief_foot": ["armored", Color(1.5, 0.8, 0.9)]}  # 대족장 근위대·내린 대족장은 장갑(오크), 오크 대족장은 늑대 기수 그림이다(I282 ⑥). 오우거 투척꾼은 오우거 그림, 사슬 오크는 장갑(오크) 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)
 const NOTE := Color("d8b0ff")  # 노래(S306)로 공격 속도가 느려진 아군 머리 위 음표와 노래 반경 고리의 색(I252 ④)
 const FEATHER := Color("f4f0e8")  # 날아가는 깃털(I250 ④)
 const WALL := Color("e8f0ff")  # 방패벽(S319)을 선 방패벽 오크끼리 잇는 선(I263 ⑤)
@@ -178,7 +179,7 @@ const DEBUFFS := ["slow", "weaken", "armor", "mr"]  # 적 능력치 감소 줄�
 const FOE_TELL := Color("ef692f")  # 일반 적 예고(S279): F24+ 주황 1px 테가 BLINK초마다 켜졌다 꺼진다. 안쪽은 칠하지 않는다
 const BLINK := 0.25
 const SWAT_FILL := 0.2  # 쓸기 예고(S328) 부채꼴 안쪽 칠의 불투명도(I272 ③). 임시값
-const UNSEEN_TELLS := ["pounce", "throw", "bomb", "drop", "cannon", "bombs", "flame", "dive", "gust", "snatch", "nest", "plunge", "carpet", "hurl", "hurled", "lob", "twin"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287)·대장 폭탄(S288)·불화살(I249 ①)·박치기(I251 ⑦)·돌풍(I253 ④)·낚아채기(I254 ⑥)·둥지 짓기(I255 ⑥)·와이번 급강하·융단 폭격(S310)·오크 던지기와 던져진 오크가 떨어질 자리(I268 ⑤). 덮개 위 층에 그린다
+const UNSEEN_TELLS := ["pounce", "throw", "bomb", "drop", "cannon", "bombs", "flame", "dive", "gust", "snatch", "nest", "plunge", "carpet", "hurl", "hurled", "lob", "twin", "rift"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287)·대장 폭탄(S288)·불화살(I249 ①)·박치기(I251 ⑦)·돌풍(I253 ④)·낚아채기(I254 ⑥)·둥지 짓기(I255 ⑥)·와이번 급강하·융단 폭격(S310)·오크 던지기와 던져진 오크가 떨어질 자리(I268 ⑤). 덮개 위 층에 그린다
 const FLAME_RING := 0.5  # 불화살 예고 원 반경(칸, S302). 판정에 쓰지 않는 그림 값이라 flame 데이터에 없다
 const NEST_RING := 0.5  # 둥지 짓기 예고 원 반경(칸, S309). 짓는 칸 하나다
 const TELL := Color("ef3a0c")  # 보스 스킬 예고(S194): F24+ 빨강 테(바깥 어두운 테는 PX.maroon), 안쪽 성긴 칠이 차오른다(S198 fx-4)
@@ -212,7 +213,7 @@ const LANDING := "leap"  # 착지 흔적(slam)의 시트가 없는 보스가 착
 const WRECK_FADE := 0.5  # 수레 잔해가 지워지기(battle.WRECK) 전에 흐려지는 시간(초, S172 2026-11-05 변경 ⑥)
 const FAN_TURN := 20.0  # 시트 자세 ±40°의 가운데
 const BLOW := {"war_machine": ["slam", 1]}  # 공격 칸이 없는 종류의 기본 공격 키 포즈 [시트, 열](S172 2026-11-03 셋째 변경 ④)
-const GROW := {"slime_king": [3.0, 5.0], "twin_troll": [2.0, 0.0]}  # 몸이 큰 종류(S236 2026-10-29 변경: 킹 몸 반지름 2칸)의 [그림 배율, 배율 전 그림을 내리는 px]. 정수배라 도트가 고르고, 내리면 그림 가운데가 몸 가운데에 온다
+const GROW := {"slime_king": [3.0, 5.0], "twin_troll": [2.0, 0.0], "warchief": [2.0, 0.0], "warchief_foot": [2.0, 0.0]}  # 몸이 큰 종류(S236 2026-10-29 변경: 킹 몸 반지름 2칸)의 [그림 배율, 배율 전 그림을 내리는 px]. 정수배라 도트가 고르고, 내리면 그림 가운데가 몸 가운데에 온다
 const POP := 0.3  # 갈라져 나온 적이 죽은 자리에서 제자리로 튀어나오는 시간(초, S234 2026-10-29 변경)
 const POP_UP := 6.0  # 그동안 포물선으로 뛰는 높이(px)
 const POP_FROM := 0.5  # 튀어나오기 시작할 때의 그림 배율. POP초에 1이 된다
@@ -3556,7 +3557,7 @@ func _tells() -> void:
 		if e.cast.id in ["mgun", "cleave", "breath", "tail"]:  # 전쟁 기계 기관총(S287)·대장 철퇴(S288)·떨어진 와이번 숨결·꼬리(S311)는 부채꼴
 			_fan_tell(e)
 			continue
-		if e.cast.id == "charge" or e.cast.id == "rush":  # 대장 돌진(S288)·떨어진 와이번 맹진(S311)은 직선
+		if e.cast.id in ["charge", "rush", "chain"]:  # 대장 돌진(S288)·떨어진 와이번 맹진(S311)·오크 대족장 사슬 갈고리(S340 ②)는 직선
 			_line_tell(e)
 			continue
 		if e.cast.id == "devour":  # 집어 먹기(S329 ①)는 몸통 위 층에 그린다(_feed_marks)
@@ -3778,7 +3779,7 @@ func _foe_tells() -> void:
 	for e in tellers(_foes):
 		if e.cast.id in UNSEEN_TELLS and not e.skills.has(e.cast.id):
 			_foe_tell(e)
-		elif e.cast.id in ["cannon", "bombs", "plunge", "lob", "twin"]:  # 대장 폭탄(S288)·와이번 급강하(S310)·쌍둥이 트롤의 집어 던지기·형제 던지기(S329)도 대포처럼 숨어도 그린다
+		elif e.cast.id in ["cannon", "bombs", "plunge", "lob", "twin", "rift"]:  # 대장 폭탄(S288)·와이번 급강하(S310)·쌍둥이 트롤의 집어 던지기·형제 던지기(S329)·내린 대족장 균열(S341 ②)도 대포처럼 숨어도 그린다
 			_boss_tell(e)
 		elif e.cast.id == "carpet" and not e.cast.get("pass", false):  # 와이번 융단 폭격 직선(S310)도 숨어도 그린다. 지나가는 동안은 그리지 않는다
 			_line_tell(e)
