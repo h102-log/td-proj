@@ -52,3 +52,11 @@ def test_EV919_chain_no_cast_and_cancel(gd):
 
 def test_EV920_thrower_chain_looks_and_tells(gd):
     gd("orc", "EV920")
+
+
+def test_EV1031_horde_art_cells(gd):
+    gd("orc", "EV1031")
+
+
+def test_EV1032_horde_art_drawn(gd):
+    gd("orc", "EV1032")
