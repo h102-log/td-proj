@@ -6,6 +6,7 @@ extends "res://tests/eval/gd/sky2.gd"
 #   적 cast {id "carpet", dir, to} — 융단 폭격 예고, {id "carpet", pass 참} — 지나가기 · effect(아군, "burn") — 불(S310)
 #   적 cast {id "breath", dir} · {id "rush", to} · {id "tail", dir}(S311) · 적 via · Battle.fallen · Battle.wrecks · Battle.light_of(x)
 #   BattleView: ART · ENEMY_COLORS · clock · status_marks(x, ally) · tellers() · _foe_tells()
+#   적 kind "shieldbearer"(방패 고블린) · "fire_archer"(불화살 고블린)와 적 cast {id "flame", left, at} — 불화살 예고(S302). 셋의 그림(I291): BattleView LOOKS · _spot(x)
 
 const NH := "nest_harpy"
 const CH := "harpy_chick"
@@ -14,6 +15,9 @@ const WF := "wyvern_fallen"
 const NIGHT := [[{"at": 0.0, "dark": 1.0, "fade": 0.05}]]  # 0초에 어둠 1인 밤 웨이브(sky.gd ev844와 같다)
 const SPOT := Vector2i(12, 9)  # (12,15)에서 내보낸 둥지 하피가 고르는 가장 가까운 성곽 성벽 칸
 const A0 := {"hp": 100.0, "damage": 0}  # 체력 100, 공격력 0인 용병
+const SB := "shieldbearer"
+const FA := "fire_archer"
+const TRIO_ART := {SB: ["idle", "walk", "attack", "fall"], FA: ["idle", "walk", "attack", "shoot", "fall"], "nest": ["idle"]}  # 종류 → 그림 칸의 자세(I291)
 
 func _nesting(e) -> bool:
 	return e.cast != null and e.cast.id == "nest"
@@ -495,7 +499,7 @@ func ev870():
 	b.step(DT)
 	return check(is_equal_approx(b.light_of(tw), 2.0) and not b.seen(p), "불이 꺼진 뒤: 타워 반경 %s(2) · (14.3,16) 보임 %s(거짓)" % [b.light_of(tw), b.seen(p)])
 
-# EV871 · I255: 둥지 하피·새끼 하피는 비행 그림에 색을 곱하고, 둥지는 색 원이다. 짓는 원 예고는 하피가 어둠에 숨어도 그린다
+# EV871 · I255: 둥지 하피·새끼 하피는 비행 그림에 색을 곱한다. 짓는 원 예고는 하피가 어둠에 숨어도 그린다. 둥지의 그림은 I291의 평가(EV1053)가 본다
 func ev871():
 	var b = battle()
 	var why := _need(b, [NH, CH, "nest"])
@@ -511,15 +515,10 @@ func ev871():
 			return "%s 몸통이 그림 한 장이 아니다(%d장)" % [k, v.cuts.size()]
 		got.append(one)
 	v.free()
-	var view := load("res://src/ui/battle_view.gd")
-	var drawn: bool = view.ART.has("nest")
-	var colored: bool = view.ENEMY_COLORS.has("nest")
 	if got.any(func(x): return x[1] != got[0][1]):
 		return "원본 사각형이 비행과 다르다: %s" % [got.map(func(x): return x[1])]
 	if got[0][2] == got[1][2] or got[0][2] == got[2][2] or got[1][2] == got[2][2]:
 		return "색이 같다: %s" % [got.map(func(x): return x[2])]
-	if drawn or not colored:
-		return "둥지: 그림 칸 표에 있음 %s(거짓) · 적 색 표에 있음 %s(참)" % [drawn, colored]
 	var c = _fort({"nights": NIGHT, "waves": [ONE]})
 	why = _dark(c)
 	if why != "":
@@ -593,3 +592,153 @@ func ev872():
 		if not hidden or not tells or (id == "carpet" and n < 4):
 			return "%s 예고: 숨음 %s · 예고를 그리는 적 %s · 숨어도 그린 선 %d(융단 폭격은 넷 이상)" % [id, hidden, tells, n]
 	return ""
+
+# ── 색 원으로 그리던 적 셋의 그림(I291) ──
+
+# EV1052 · I291: 방패 고블린·불화살 고블린·둥지의 그림 칸이 heroes.json에 있고 칸마다 그림이 있다. 칸은 근위대·깃발 열의 사슬 오크 아래에 위에서부터 쌓이고
+# 서로 겹치지 않는다. 칸마다 몸의 높이(head)가 정지 그림에 맞고, 둥지 그림은 발밑 기준점보다 위에만 있다. 아틀라스 크기는 그대로다
+func ev1052():
+	var art: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/units/heroes.json"))
+	var img: Image = load("res://art/units/heroes.png").get_image()
+	var whole := Rect2i(Vector2i.ZERO, img.get_size())
+	var bad := []
+	var rects := []  # [이름, 시트 사각형]
+	for k in TRIO_ART:
+		if not art.has(k):
+			return "heroes.json에 %s 칸이 없다" % k
+		var a: Dictionary = art[k]
+		var one: bool = k == "nest"
+		var missing: Array = TRIO_ART[k].filter(func(s): return not a.has(s))
+		var extra: Array = ["walk", "attack", "shoot", "fall"].filter(func(s): return a.has(s) and not s in TRIO_ART[k])
+		if not a.has("x") or a.get("one", false) != one or not missing.is_empty() or not extra.is_empty():
+			bad.append("%s 칸 x %s · one %s(%s) · 없는 자세 %s · 없어야 할 자세 %s" % [k, a.get("x"), a.get("one"), one, missing, extra])
+			continue
+		var c := int(a.c)
+		var x := int(a.x)
+		var rows_of := 1 if one else 4
+		var top := c  # 정지 그림의 가장 높은 불투명 줄(칸 안 y)
+		for r in rows_of:
+			for y in top:
+				if not img.get_region(Rect2i(x, int(a.idle) + r * c + y, c, 1)).is_invisible():
+					top = y
+					break
+		if not a.has("head") or int(a.head) != int(a.anchor[1]) - maxi(0, top - 3):
+			bad.append("%s head %s(기준점 y %d − max(0, 정지 그림 맨 윗줄 %d − 3))" % [k, a.get("head"), int(a.anchor[1]), top])
+		for s in TRIO_ART[k]:
+			var n := c * (2 if s in ["attack", "fall"] else 1)
+			var cols := 2 if s in ["walk", "shoot"] else 1
+			var rows := 1 if s == "fall" or one else 4
+			rects.append(["%s %s" % [k, s], Rect2i(x, int(a[s]), cols * n, rows * n)])
+			for r in rows:
+				for q in cols:
+					var cell := Rect2i(x + q * n, int(a[s]) + r * n, n, n)
+					if not whole.encloses(cell):
+						bad.append("%s %s %d행 %d열 %s가 그림 밖" % [k, s, r, q, cell])
+					elif img.get_region(cell).is_invisible():
+						bad.append("%s %s %d행 %d열 빈 칸" % [k, s, r, q])
+	if not bad.is_empty():
+		return "; ".join(bad.slice(0, 6))
+	var nest: Dictionary = art.nest
+	var low := -1  # 둥지 정지 그림의 가장 낮은 불투명 줄(칸 안 y)
+	for y in int(nest.c):
+		if not img.get_region(Rect2i(int(nest.x), int(nest.idle) + y, int(nest.c), 1)).is_invisible():
+			low = y
+	if low < 0 or low >= int(nest.anchor[1]):
+		bad.append("둥지 그림의 맨 아랫줄 %d가 발밑 기준점 y %d보다 위가 아니다" % [low, int(nest.anchor[1])])
+	var chain: Dictionary = art.chain_orc
+	var floor_y: int = int(chain.fall) + 2 * int(chain.c)  # 사슬 오크 칸의 아래 끝
+	var top_y: int = int(art.soldier.idle)  # 영웅 구역의 아래 끝
+	var order := [SB, FA, "nest"]
+	for i in order.size():
+		if int(art[order[i]].x) != int(art.warguard.x):
+			bad.append("%s x %d(근위대·깃발 열 %d)" % [order[i], int(art[order[i]].x), int(art.warguard.x)])
+		if int(art[order[i]].idle) < (floor_y if i == 0 else int(art[order[i - 1]].idle) + 1):
+			bad.append("%s 정지 y %d가 %s 아래가 아니다" % [order[i], int(art[order[i]].idle), "사슬 오크" if i == 0 else order[i - 1]])
+	for i in rects.size():
+		var r: Rect2i = rects[i][1]
+		if r.position.y < floor_y or r.end.y > top_y or not whole.encloses(r):
+			bad.append("%s %s가 사슬 오크 아래(y %d~)·영웅 구역(~%d) 안이 아니다" % [rects[i][0], r, floor_y, top_y])
+		for j in i:
+			if r.intersects(rects[j][1]):
+				bad.append("%s와 %s가 겹친다" % [rects[i][0], rects[j][0]])
+	if img.get_size() != Vector2i(828, 15656):
+		bad.append("아틀라스 %s(828×15656)" % [img.get_size()])
+	return check(bad.is_empty(), "; ".join(bad.slice(0, 6)))
+
+# EV1053 · I291: 셋은 빌린 그림 표에 없이 제 칸의 그림 한 장을 흰색으로 그린다. 불화살 고블린은 불화살 예고를 띄운 뒤 0.12초까지 시위를 당긴 자세,
+# 0.3초까지 놓은 자세를 노린 구조물 쪽으로 그리고 그 뒤는 그쪽을 보는 정지 그림이다. 성벽 위에 지은 둥지는 성벽 위로 들어 올린 자리에 그린다.
+# HUD 칸 그림도 셋 다 제 정지 그림에서 자른 조각이다
+func ev1053():
+	var b = battle()
+	var why := _need(b, [SB, FA, "nest"])
+	if why != "":
+		return why
+	var looks: Dictionary = (load("res://src/ui/battle_view.gd") as Script).get_script_constant_map().get("LOOKS", {})
+	if [SB, FA, "nest"].any(func(k): return looks.has(k)):
+		return "빌린 그림 표에 %s(셋 다 없어야 한다)" % [[SB, FA, "nest"].filter(func(k): return looks.has(k))]
+	var v = _rec(b)
+	v.clock = 0.0
+	var art: Dictionary = v.ART
+	var bad := []
+	var body := {}
+	for k in [SB, FA, "nest"]:
+		if not art.has(k):
+			v.free()
+			return "그림 칸 표에 %s가 없다" % k
+		var e = _still(b, k, Vector2(4 + body.size() * 5, 5), {"hp": 100.0})
+		body[k] = e
+		var one = _cut(v, e)
+		if one == null:
+			bad.append("%s 몸통이 그림 한 장이 아니다(%d장)" % [k, v.cuts.size()])
+			continue
+		var a: Dictionary = art[k]
+		var c := float(a.c)
+		var src: Rect2 = one[1]
+		var rows := 1 if k == "nest" else 4
+		var own: bool = src.size == Vector2(c, c) and src.position.x == a.x and src.position.y >= a.idle and src.position.y < a.idle + rows * c
+		if not own or one[0].size != Vector2(c, c) or one[2] != Color.WHITE:
+			bad.append("%s 원본 %s(제 정지 칸 x %d y %d, 칸 %d, %d행) · 대상 크기 %s(칸 그대로) · 색 %s(흰색)" % [k, src, int(a.x), int(a.idle), int(c), rows, one[0].size, one[2]])
+	var build = load("res://src/ui/hud_build.gd")
+	for k in [SB, FA, "nest"]:  # HUD 칸 그림(선택 패널의 적 그림, S206): 제 정지 남쪽 칸 안의 빈 그림이 아닌 조각
+		var t: AtlasTexture = build.icon(k)
+		var a: Dictionary = art[k]
+		if t.atlas == null or t.region.size.x < 1 or t.region.size.y < 1 or not Rect2(a.x, a.idle, a.c, a.c).encloses(t.region):
+			bad.append("%s HUD 칸 그림 %s(제 정지 남쪽 칸 %s 안의 조각)" % [k, t.region, Rect2(a.x, a.idle, a.c, a.c)])
+	if not bad.is_empty():
+		v.free()
+		return "; ".join(bad)
+	var fa: Dictionary = art[FA]
+	var c := float(fa.c)
+	var o = body[FA]
+	var windup: float = o.flame.windup
+	var poses := []  # [이름, 그린 원본 자리, 맞는 원본 자리]
+	var shot := func(name: String, want: Vector2):
+		var one = _cut(v, o)
+		poses.append([name, one[1].position if one != null else null, want])
+	for step in [[0.05, "shoot", 0.0, "예고 뒤 0.05초(shoot 0열, 구조물 쪽 동)"], [0.2, "shoot", 1.0, "예고 뒤 0.2초(shoot 1열, 구조물 쪽 동)"], [0.5, "idle", 0.0, "예고 뒤 0.5초(정지, 구조물 쪽 동)"]]:
+		o.cast = {"id": "flame", "left": windup - step[0], "at": o.pos + Vector2(5, 0), "on": null}
+		shot.call(step[3], Vector2(fa.x + step[2] * c, fa[step[1]] + c))
+	o.cast = null
+	shot.call("예고가 끝난 뒤(정지, 쏜 쪽 동)", Vector2(fa.x, fa.idle + c))
+	v.free()
+	for p in poses:
+		if p[1] == null or not Vector2(p[1]).is_equal_approx(p[2]):
+			bad.append("%s: 원본 자리 %s(%s)" % p)
+	if not bad.is_empty():
+		return "; ".join(bad)
+	var f = _fort()
+	var n = _nested(f)
+	if n is String:
+		return n
+	var w = _rec(f)
+	w.clock = 0.0
+	var cut = _cut(w, n)
+	var spot: Vector2 = w._spot(n)
+	var ground: Vector2 = w._center(n.pos)
+	w.free()
+	var na: Dictionary = art.nest
+	if cut == null:
+		return "성벽 위 둥지 몸통이 그림 한 장이 아니다"
+	var at: Vector2 = cut[0].position + Vector2(na.anchor[0], na.anchor[1])
+	return check(cut[1].is_equal_approx(Rect2(na.x, na.idle, na.c, na.c)) and at.distance_to(spot) <= 1.0 and spot.y < ground.y - 8.0,
+		"성벽 위 둥지: 원본 %s(%s) · 발밑 기준점 %s(들어 올린 자리 %s) · 땅 자리 %s(들어 올린 자리가 8px 넘게 위)" % [cut[1], Rect2(na.x, na.idle, na.c, na.c), at, spot, ground])
