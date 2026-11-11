@@ -364,3 +364,15 @@ def test_EV1045_floor4_enrage_ramp_and_undying_hit(gd):
 
 def test_EV1046_floor4_screen_names_marks_trail(gd):
     gd("den", "EV1046")
+
+
+def test_EV1047_scale_relic_speeds_w_slot(gd):
+    gd("den", "EV1047")
+
+
+def test_EV1048_floor4_hint_shows_once(gd):
+    gd("den", "EV1048")
+
+
+def test_EV1049_wyvern_crash_and_fall_events(gd):
+    gd("den", "EV1049")

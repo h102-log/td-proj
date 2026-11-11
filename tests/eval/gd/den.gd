@@ -3004,8 +3004,8 @@ func ev1031():
 			return "2형 %s %s(기대 %s)" % [id, got.get(id), want[id]]
 	if got.size() != 3 or p.get("plan") != [{"id": "lash", "wait": 3.0}, {"id": "charge", "wait": 4.0}, {"id": "lash", "wait": 3.0}, {"id": "soak", "wait": 5.0}]:
 		return "2형 스킬 수 %d(셋) · 대본 %s(기대 앞뒤 휩쓸기 3 → 맹진 4 → 앞뒤 휩쓸기 3 → 불덩이 5)" % [got.size(), p.get("plan")]
-	if f.ward != 0.89 or f.groggy != {"time": 5.0, "mult": 1.5} or f.enrage != {"soft": 100.0, "step": 10.0, "ramp": 0.15} or f.hard != 150.0 or f.gold != 200 or f.relic != "":
-		return "경감 %s · 그로기 %s · 광폭 %s · 불꽃 %s · 층 골드 %s · 유물 «%s»(기대 0.89·5초 1.5배·100초 10초 0.15·150·200·없음)" % [f.ward, f.groggy, f.enrage, f.hard, f.gold, f.relic]
+	if f.ward != 0.89 or f.groggy != {"time": 5.0, "mult": 1.5} or f.enrage != {"soft": 100.0, "step": 10.0, "ramp": 0.15} or f.hard != 150.0 or f.gold != 200 or f.relic != "wyvern_scale":
+		return "경감 %s · 그로기 %s · 광폭 %s · 불꽃 %s · 층 골드 %s · 유물 «%s»(기대 0.89·5초 1.5배·100초 10초 0.15·150·200·wyvern_scale)" % [f.ward, f.groggy, f.enrage, f.hard, f.gold, f.relic]
 	var wyvern = load("res://data/enemies/wyvern.tres")
 	var down = load("res://data/enemies/wyvern_fallen.tres")
 	return check(_stage().den.floors == ["floor_1", "floor_2", "floor_3", "floor_4"] and wyvern.hp == 160.0 and wyvern.radius == 0.9 and wyvern.flying == true and wyvern.phase2 == "wyvern_fallen"
@@ -3438,7 +3438,7 @@ func ev1043():
 	return check(born == ["wyvern_fallen", 0, 0.0] and seen == [["lash", 1, 4.0], ["charge", 2, 3.0], ["lash", 3, 5.0], ["soak", 0, 3.0]],
 		"② 떨어진 직후 [종류, 대본 차례, 쉼] %s(기대 [wyvern_fallen, 0, 0]) · 차례마다 [예고, 끝난 뒤 대본 차례, 다음 쉼] %s(기대 lash 1 4 · charge 2 3 · lash 3 5 · soak 0 3)" % [born, seen])
 
-# EV1044 · S352: 떨어진 와이번을 처치하면 깬 층 4·층 골드 200이고 유물은 없다. 불길도 사라진다
+# EV1044 · S352 ⑫: 떨어진 와이번을 처치하면 깬 층 4·층 골드 200이고 유물 비늘 +0을 받아 출전 첫째 영웅이 낀다. 불길도 사라진다
 func ev1044():
 	var s := _strafe()
 	if s.is_empty():
@@ -3453,8 +3453,8 @@ func ev1044():
 	var lit: int = b.trails.size()
 	b.damage(e, BIG)
 	_go(b, 3.1)
-	return check(lit == 1 and b.state == "prep" and b.floors_cleared == 4 and b.gold - gold == 200 and b.relics == {} and b.heroes.all(func(h): return h.relic == "") and b.trails.is_empty() and b.enemies.is_empty() and b.raid_block() == "done",
-		"떨어뜨린 뒤 불길 %d(1) · 처치 3.1초 뒤 판 %s(prep) · 깬 층 %s(4) · 는 골드 %s(200) · 가방 %s(빔) · 낀 유물 %s(없음) · 불길 %d(0) · 적 %d(0) · 원정 버튼 이유 %s(done)" % [lit, b.state, b.floors_cleared, b.gold - gold, b.relics, b.heroes.map(func(h): return h.relic), b.trails.size(), b.enemies.size(), b.raid_block()])
+	return check(lit == 1 and b.state == "prep" and b.floors_cleared == 4 and b.gold - gold == 200 and b.relics == {"wyvern_scale": 0} and b.heroes.map(func(h): return h.relic) == ["wyvern_scale", "", ""] and b.trails.is_empty() and b.enemies.is_empty() and b.raid_block() == "done",
+		"떨어뜨린 뒤 불길 %d(1) · 처치 3.1초 뒤 판 %s(prep) · 깬 층 %s(4) · 는 골드 %s(200) · 가방 %s({wyvern_scale: 0}) · 낀 유물 %s(첫째만) · 불길 %d(0) · 적 %d(0) · 원정 버튼 이유 %s(done)" % [lit, b.state, b.floors_cleared, b.gold - gold, b.relics, b.heroes.map(func(h): return h.relic), b.trails.size(), b.enemies.size(), b.raid_block()])
 
 # 불꽃이 flame초일 때 4층 패턴 하나가 둘째 영웅에게서 깎은 체력(예고가 끝난 스텝까지). plunge는 와이번이, tail(앞뒤 휩쓸기의 뒤)·charge는 떨어진 와이번이 쓴다. 안 되면 -1
 func _scorch(id: String, flame: float) -> float:
@@ -3498,7 +3498,7 @@ func ev1045():
 	return check(rows.all(func(r): return r[1] > 0.0 and absf(r[2] - r[1] * 1.15) < 0.4) and fire == 5.0 and u.hp == hp and not _groggy(k, w) and w.cast != null and w.cast.id == "perch",
 		"[패턴, 불꽃 10초에 잃은 체력, 불꽃 101초에 잃은 체력] %s(뒤가 앞의 1.15배여야, 불 틱 0.4 안) · 불꽃 101초의 불 초당 피해 %s(5 그대로) · 불사(피해 0)인 사냥감이 맞은 급강하 뒤 체력 %s → %s(그대로)·그로기 %s(거짓)·예고 %s(perch)" % [rows, fire, hp, u.hp, _groggy(k, w), w.cast])
 
-# EV1046 · I288 ⑪: 보스 막대의 이름은 지금 형태를 따르고 두 형태의 그림 배율은 1이다. 사냥감 표시가 뜨고 불길을 그린다. 처치하면 층 골드가 든 토스트가 뜬다
+# EV1046 · I288 ⑪: 보스 막대의 이름은 지금 형태를 따르고 두 형태의 그림 배율은 1이다. 사냥감 표시가 뜨고 불길을 그린다. 처치하면 유물 이름과 층 골드가 든 토스트가 뜬다
 func ev1046():
 	var main = _den_game()
 	var b = main.view.battle
@@ -3544,5 +3544,151 @@ func ev1046():
 	_done(main)
 	if first != ["와이번", 1.0, true, true, 0] or lit != [1, true, true] or second != ["떨어진 와이번", 1.0]:
 		return "와이번일 때 [이름, 그림 배율, 사냥감이 둘째, 표시가 둘째, 불길 그림 수] %s(기대 [와이번, 1, 참, 참, 0]) · 폭격 뒤 [불길 수, 불길 그림 있음, 그림이 줄 (84,80)~(96,80) 둘레] %s(기대 [1, 참, 참]) · 떨어진 뒤 [이름, 그림 배율] %s(기대 [떨어진 와이번, 1])" % [first, lit, second]
-	return check(after == ["prep", 4, 200, {}, "done", 0] and texts.any(func(t): return "4층" in t and "200" in t),
-		"처치 3.1초 뒤 [판, 깬 층, 는 골드, 가방, 원정 버튼 이유, 불길 그림 수] %s(기대 [prep, 4, 200, {}, done, 0]) · 보인 토스트 %s(«4층»과 «200»이 함께 든 것이 있어야)" % [after, texts])
+	return check(after == ["prep", 4, 200, {"wyvern_scale": 0}, "done", 0] and texts.any(func(t): return "4층" in t and "비늘" in t and "200" in t),
+		"처치 3.1초 뒤 [판, 깬 층, 는 골드, 가방, 원정 버튼 이유, 불길 그림 수] %s(기대 [prep, 4, 200, {wyvern_scale: 0}, done, 0]) · 보인 토스트 %s(«4층»·«비늘»·«200»이 함께 든 것이 있어야)" % [after, texts])
+
+# ── 원정 4층 묶음 ②(S352 2026-11-11 변경·S353·I289) ── 더하는 API:
+#   유물 wyvern_scale(steps의 cdr_w) · 끝낸 힌트 이름 «raid4» · main.view.events의 사건 «thud»(처박힘)·«fall»(떨어짐)
+
+const SCALE := "wyvern_scale"
+
+# 라운드 사이에 가방에 비늘 +n을 두고 둘째 영웅에게 끼운 뒤 2라운드 전투를 열어, 오토를 끄고 Q·W·E 대기 50초·대시 대기 5초에서 1초 돌린다.
+# 영웅마다 [준 Q 대기, 준 W 대기, 준 E 대기, 준 대시 대기]이고 안 되면 []. 출전 셋은 스킬 대기 오라가 없는 영웅이다
+func _scaled(n: int) -> Array:
+	var st := _stage()
+	st.heroes = [TEAM[0], {"kind": "sylvia", "cell": Vector2i(33, 65)}, TEAM[2]]
+	var b = _new(st)
+	if not b.RELIC_KINDS.has(SCALE):
+		return []
+	b.state = "cleared"
+	b.relics[SCALE] = n
+	if not b.wear_relic(b.heroes[1], SCALE):
+		return []
+	b.next_round()
+	b.start_battle()
+	for h in b.heroes:
+		for k in h.auto:
+			h.auto[k] = false
+		h.cd.q = 50.0
+		h.cd.w = 50.0
+		h.cd.e = 50.0
+		h.dash_cd = 5.0
+	_go(b, 1.0)
+	return b.heroes.map(func(h): return [50.0 - h.cd.q, 50.0 - h.cd.w, 50.0 - h.cd.e, 5.0 - h.dash_cd])
+
+# rows(영웅마다 [준 Q 대기, 준 W 대기, 준 E 대기, 준 대시 대기])가 둘째 영웅의 W 대기만 fast초이고 나머지는 모두 1초인가
+func _plated(rows: Array, fast: float) -> bool:
+	return rows.size() == 3 and range(3).all(func(i): return range(4).all(func(k): return absf(rows[i][k] - (fast if i == 1 and k == 1 else 1.0)) < 0.001))
+
+# EV1047 · S353: 비늘의 단계 수치. 비늘을 낀 영웅은 W 칸 대기만 12% 빨리 줄고 +4면 28%다
+func ev1047():
+	if not ResourceLoader.exists("res://data/relics/wyvern_scale.tres"):
+		return "data/relics/wyvern_scale.tres가 없다"
+	var r = load("res://data/relics/wyvern_scale.tres")
+	var steps = r.get("steps")
+	var want := [0.12, 0.16, 0.2, 0.24, 0.28]
+	if r.get("title") != "비늘" or not steps is Array or steps.size() != 5 or range(5).any(func(i): return steps[i].size() != 1 or absf(steps[i].get("cdr_w", -1.0) - want[i]) > 0.000001) or r.get("notes").size() != 5:
+		return "비늘 이름 %s · 단계 %s(기대 cdr_w %s뿐) · 단계 글 %s(다섯)" % [r.get("title"), steps, want, r.get("notes")]
+	var base := _scaled(0)
+	var top := _scaled(4)
+	return check(_plated(base, 1.12) and _plated(top, 1.28), "전투 1초에 영웅마다 [준 Q 대기, 준 W 대기, 준 E 대기, 준 대시 대기]: 비늘 +0 %s(기대 둘째의 W만 1.12, 나머지 1) · 비늘 +4 %s(기대 둘째의 W만 1.28)" % [base, top])
+
+# EV1048 · S352 ⑬·I289 ①: 첫 원정 힌트가 끝나 있으면 4층 원정에 4층 힌트가 뜨고 그로기가 열리면 끝나 다음 4층 원정에 뜨지 않는다. 1층 원정에는 뜨지 않는다
+func ev1048():
+	var st = _hints_reset()
+	st.hints_done = ["raid"]
+	var main = _den_game()
+	var b = main.view.battle
+	var hud = main.hud
+	for i in 3:
+		b.state = "cleared"
+		b.next_round()
+	b.floors_cleared = 3
+	b.torches = 9
+	_frame(main)
+	var out := ""
+	var before: bool = hud.hints.is_visible_in_tree()
+	b.start_raid()
+	_frame(main)
+	var said := _hint_says(main)
+	if before or b.state != "raid" or b.enemies.is_empty() or b.enemies[0].kind != "wyvern" or not "급강하" in said or not "옆구리" in said:
+		out = "5라운드 준비 단계 힌트 칸 보임 %s(거짓) · 4층 원정 판 %s · 힌트 글 «%s»(«급강하»·«옆구리»가 있어야)" % [before, b.state, said]
+	if out == "":
+		b._fx(b.enemies[0], "groggy", {"groggy": true}, 5.0)
+		_frame(main)
+		if hud.hints.is_visible_in_tree() or st.hints_done != ["raid", "raid4"]:
+			out = "그로기 뒤 힌트 칸 보임 %s(거짓) · 끝낸 힌트 %s(기대 [raid, raid4])" % [hud.hints.is_visible_in_tree(), st.hints_done]
+	if out == "":
+		b.retreat()
+		_frame(main)
+		b.start_raid()
+		_frame(main)
+		if b.state != "raid" or hud.hints.is_visible_in_tree():
+			out = "다음 4층 원정(판 %s)에 힌트 칸 보임 %s(거짓)" % [b.state, hud.hints.is_visible_in_tree()]
+	if out == "":
+		b.retreat()
+		st.hints_done = ["raid"]
+		b.floors_cleared = 0
+		_frame(main)
+		b.start_raid()
+		_frame(main)
+		out = check(b.state == "raid" and b.enemies.size() > 0 and b.enemies[0].kind != "wyvern" and not hud.hints.is_visible_in_tree(),
+			"끝낸 힌트 [raid]·깬 층 0의 1층 원정(판 %s)에 힌트 칸 보임 %s(거짓)" % [b.state, hud.hints.is_visible_in_tree()])
+	_done(main)
+	_hints_reset()
+	return out
+
+# 게임 장면을 0.05초씩 n번 돌리며 화면 사건 kind를 [프레임, 자리, 반지름]으로 모은다
+func _events_of(main, kind: String, n: int) -> Array:
+	var out := []
+	for i in n:
+		main._process(0.05)
+		main.hud._process(0.05)
+		for x in main.view.events:
+			if x.kind == kind:
+				out.append([i, x.at, x.get("radius")])
+	return out
+
+# EV1049 · I289 ②③: 급강하가 빈 땅에 처박힌 프레임에만 처박힘 사건이 나고, 맞힌 급강하에는 나지 않는다. 와이번이 떨어진 프레임에만 떨어짐 사건이 난다
+func ev1049():
+	var main = _den_game()
+	var b = main.view.battle
+	for i in 3:
+		b.state = "cleared"
+		b.next_round()
+	b.floors_cleared = 3
+	_frame(main)
+	b.start_raid()
+	_frame(main)
+	if b.state != "raid" or b.enemies.size() != 1 or b.enemies[0].kind != "wyvern" or b.party.size() < 2:
+		_done(main)
+		return "4층 원정이 되지 않았다(판 %s · 적 %d · 원정대 %d)" % [b.state, b.enemies.size(), b.party.size()]
+	_freeze(b)
+	var e = b.enemies[0]
+	var p = b.party
+	e.pull = 0.0
+	e.rest = 999.0
+	_stand(b, [Vector2(80, 76), Vector2(84, 86)])
+	_tell(b, e, 0)
+	var hit: Array = _events_of(main, "thud", 50)
+	var perched: bool = e.cast != null and e.cast.id == "perch"
+	e.cast = null
+	e.rest = 999.0
+	e.pos = Vector2(BOSS)
+	_stand(b, [Vector2(80, 76), Vector2(84, 86)])
+	_tell(b, e, 0)
+	p[1].pos = Vector2(84, 83)
+	var missed: Array = _events_of(main, "thud", 50)
+	var groggy: bool = _groggy(b, e)
+	var early: Array = _events_of(main, "fall", 4)
+	b.damage(e, BIG)
+	e.cast = null
+	e.rest = 999.0
+	var fell: Array = _events_of(main, "fall", 10)
+	var kind: String = e.kind
+	_done(main)
+	var spot: Vector2 = Vector2(84, 86) * 16.0 + Vector2(8, 8)
+	if not perched or not hit.is_empty() or not groggy or missed.size() != 1 or missed[0][1].distance_to(spot) > 0.01 or absf(missed[0][2] - 14.4) > 0.01:
+		return "맞힌 급강하: 내려앉음 %s(참) · 처박힘 사건 %s(없음) · 피한 급강하: 그로기 %s(참) · 처박힘 사건 %s(기대 하나, 자리 %s·반지름 14.4 = 16 × 0.9)" % [perched, hit, groggy, missed, spot]
+	return check(kind == "wyvern_fallen" and early.is_empty() and fell.size() == 1 and fell[0][0] == 0 and fell[0][1].distance_to(spot) < 0.01 and absf(fell[0][2] - 14.4) < 0.01,
+		"떨어뜨리기 전 떨어짐 사건 %s(없음) · 떨어뜨린 뒤 종류 %s(wyvern_fallen) · 떨어짐 사건 %s(기대 첫 프레임에 하나, 자리 %s·반지름 14.4)" % [early, kind, fell, spot])
