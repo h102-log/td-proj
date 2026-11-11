@@ -260,3 +260,19 @@ def test_EV1008_retry_and_retreat_clear_wreck(gd):
 
 def test_EV1009_enrage_ramp_on_shell_mgun_cleave_bombs(gd):
     gd("den", "EV1009")
+
+
+def test_EV1010_chief_rage_shortens_rest(gd):
+    gd("den", "EV1010")
+
+
+def test_EV1011_cog_relic_speeds_e_slot_only(gd):
+    gd("den", "EV1011")
+
+
+def test_EV1012_floor3_hint_after_first_raid_hint(gd):
+    gd("den", "EV1012")
+
+
+def test_EV1013_shell_touch_ring_and_wreck_burst(gd):
+    gd("den", "EV1013")
