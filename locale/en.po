@@ -1827,7 +1827,7 @@ msgid "E 대기 %d%% 빠름"
 msgstr "E cooldown %d%% faster"
 
 msgid "포탄 원을 기계 옆에서 굳힌다\n대장 돌진은 잔해나 벽에 박는다"
-msgstr "Lock the shell beside the machine\nBait the charge into wreck or wall"
+msgstr "Lock the shell by the machine\nBait the charge into wreck or wall"
 
 msgid "다시 (횃불 1)"
 msgstr "Retry (1 torch)"
