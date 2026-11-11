@@ -4079,6 +4079,16 @@ func ev968():
 	return check("오우거 투척꾼: 옆의 적을 집어 뒷줄 원거리 아군에게 던진다" in a and "늑대 기수: 뒷줄 원거리 아군부터 노린다. 늑대가 쓰러지면 오크가 내려 싸운다" in b,
 		"6라운드 1웨이브 줄 «%s» · 2웨이브 줄 «%s»" % [a, b])
 
+# EV984 · S338·S336: 6라운드 3웨이브(다지점) 미리보기의 출현 지점 줄이 묶인 테마뿐이다 — 왼쪽 늑대, 가운데 오크, 오른쪽 하피
+func ev984():
+	var main = _prep()
+	var got = main.hud._wave_lines([5, 2])
+	_done(main)
+	var a: String = got if got is String else ""
+	var lines := a.split("\n")
+	var want := ["왼쪽 — 늑대 256", "가운데 — 장갑 140 · 사슬 오크 25", "오른쪽 — 비행 80 · 노래하는 하피 20 · 박치기 하피 20"]
+	return check(lines.size() >= 3 and Array(lines.slice(0, 3)) == want, "6라운드 3웨이브 줄 «%s»(첫 세 줄이 %s여야 한다)" % [a, want])
+
 # EV937 · S328·S329: 5라운드 4웨이브 미리보기에 트롤 싸움꾼·쌍둥이 트롤의 특성 줄이 있다
 func ev937():
 	var main = _prep()

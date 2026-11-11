@@ -458,3 +458,7 @@ def test_EV937_round5_troll_trait_lines(gd):
 
 def test_EV968_round6_rider_thrower_trait_lines(gd):
     gd("hud", "EV968")
+
+
+def test_EV984_round6_wave3_fronts_preview_lines(gd):
+    gd("hud", "EV984")

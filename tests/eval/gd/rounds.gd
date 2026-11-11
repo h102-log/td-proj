@@ -7,6 +7,9 @@ extends "res://tests/eval/gd/lib.gd"
 #   Battle.restart() — 새 도전(S64, I92)
 #   Battle.set_gate(성문, 열기) · Battle.upgrade(성곽 칸) · Battle.raise_village() -> bool · 영웅: present
 #   적 kind "shieldbearer"(방패 고블린, S301·I248) — 웨이브에서 나올 때 호위(기본 4)를 데려온다. 호위는 battle.spawn_counts(hud.gd 머리)에도 든다
+#   웨이브 항목 키 front(S338·I281) — 그 종류를 묶은 출현 지점 차례(0부터, stage spawns 차례). 없으면 차례마다 돌아간다.
+#     웨이브 Resource(WavesDef)의 fronts: 웨이브 차례마다 {적 종류: 출현 지점 차례}. to_stage()가 항목의 front로 싣는다
+#   Battle.wave_plan(라운드, 웨이브) -> 나오는 차례대로 [종류, 출현 지점 칸, 나올 칸, 함께 나오는 마릿수]
 # 성곽 맵은 repair.gd와 같다: 9행이 가로 성곽(성문 5·15·25열, 모두 닫힘), 위쪽(0~8행)이 마을, 아래쪽이 들판
 
 const TOP := Vector2i(12, 9)  # 성곽 맵의 성벽 칸
@@ -36,9 +39,13 @@ const SKY := [{"flying": 360, "feather_harpy": 60}, {"flying": 300, "song_harpy"
 const ORC := [{"shield_orc": 48, "armored": 160}, {"shield_orc": 40, "armored": 180, "drummer": 20, "berserker": 80},
 	{"shield_orc": 40, "armored": 140, "ogre_thrower": 20, "berserker": 40, "chain_orc": 30},
 	{"shield_orc": 40, "armored": 180, "troll": 30, "twin_troll": 2, "berserker": 80}]
-# S336: 6라운드 1·2웨이브는 대족장 군단(마릿수, 10배를 하지 않는다). 키 차례가 나오는 차례다. 3·4웨이브는 I91 표 그대로
+# S336: 6라운드 1~3웨이브는 대족장 군단(마릿수, 10배를 하지 않는다). 키 차례가 나오는 차례다(3웨이브는 2026-11-11 변경). 4웨이브는 I91 표 그대로
 const HOST := [{"slime": 80, "armored": 40, "ogre_thrower": 10, "wolf": 112},
-	{"shieldbearer": 10, "basic": 160, "fire_archer": 10, "shield_orc": 48, "drummer": 20, "wolf": 96, "wolf_rider": 60}]
+	{"shieldbearer": 10, "basic": 160, "fire_archer": 10, "shield_orc": 48, "drummer": 20, "wolf": 96, "wolf_rider": 60},
+	{"wolf": 256, "armored": 140, "chain_orc": 25, "flying": 80, "song_harpy": 20, "dive_harpy": 20}]
+# S336 2026-11-11 변경: 6라운드 3웨이브는 다지점(S338). 종류마다 묶인 출현 지점 차례(0 왼쪽 · 1 가운데 · 2 오른쪽)
+const HOST_FRONTS := {"wolf": 0, "armored": 1, "chain_orc": 1, "flying": 2, "song_harpy": 2, "dive_harpy": 2}
+const THREE := [Vector2i(5, 19), Vector2i(15, 19), Vector2i(25, 19)]  # 출현 지점 셋짜리 헬퍼 판(S338 평가)
 # I91 표(2026-10-21 개정): 2~6라운드 웨이브마다 종류별 적 수
 const I91 := [
 	[{"basic": 18, "fast": 8, "flying": 6}, {"basic": 18, "armored": 8, "flying": 10, "fast": 4}, {"basic": 18, "fast": 8, "armored": 8, "flying": 6}, {"basic": 22, "fast": 12, "armored": 8, "flying": 10, "boss": 1}],
@@ -282,7 +289,7 @@ func ev169():
 	table[2] = RAID  # I91 2026-11-03 변경·둘째 변경·셋째 변경: 3라운드 네 웨이브 모두 고블린 약탈단(마릿수)
 	table[3] = SKY  # S303: 4라운드 네 웨이브 모두 하늘 둥지(마릿수)
 	table[4] = ORC  # S318: 5라운드 네 웨이브 모두 오크 전쟁패(마릿수)
-	table[5] = HOST + table[5].slice(2)  # S336: 6라운드 1·2웨이브는 대족장 군단(마릿수). 3·4웨이브는 I91 표의 10배 그대로
+	table[5] = HOST + table[5].slice(3)  # S336: 6라운드 1~3웨이브는 대족장 군단(마릿수). 4웨이브는 I91 표의 10배 그대로
 	for k in 6:
 		var got := _counts(b.rounds[k])
 		if got != table[k]:
@@ -510,20 +517,29 @@ func ev896():
 			return "%s %d마리짜리 웨이브의 첫 적이 나온 스텝에 나온 적 %s(%d마리여야 한다)" % [pair[0], pair[1], born, pair[2]]
 	return ""
 
-# EV969 · S336: data/waves/round_6.tres의 1·2웨이브는 S336의 수이고 키 차례가 나오는 차례다. 3·4웨이브는 옛 구성 그대로다.
+# EV969 · S336: data/waves/round_6.tres의 1~3웨이브는 S336의 수이고 키 차례가 나오는 차례다. 4웨이브는 옛 구성 그대로다.
+# 3웨이브는 다지점(S338)이라 fronts의 3웨이브 칸이 종류마다 출현 지점을 묶고, 시험 스테이지 미리보기 수가 출현 지점마다 그 테마뿐이다.
 # 늑대 기수는 무리 2(S238)라 첫 차례에 둘이 함께 나온다
 func ev969():
 	var w = load("res://data/waves/round_6.tres")
 	if w == null or not w.get("waves") is Array or w.waves.size() != 4:
 		return "6라운드 웨이브 Resource의 waves가 웨이브 4개 배열이 아니다(%s)" % [w.get("waves") if w != null else null]
-	var want: Array = HOST + [{"basic": 260, "fast": 140, "armored": 120, "flying": 100}, {"basic": 360, "fast": 180, "armored": 120, "flying": 140, "boss": 2}]
+	var want: Array = HOST + [{"basic": 360, "fast": 180, "armored": 120, "flying": 140, "boss": 2}]
 	var bad := []
 	for i in 4:
 		var d: Dictionary = w.waves[i]
-		if d != want[i] or (i < 2 and d.keys() != want[i].keys()):
+		if d != want[i] or (i < 3 and d.keys() != want[i].keys()):
 			bad.append("%d웨이브 %s(%s여야 한다)" % [i + 1, d, want[i]])
 	if not bad.is_empty():
 		return "수나 차례가 다른 웨이브 %s" % [bad]
+	var fronts = w.get("fronts")
+	if not fronts is Array or fronts.size() != 4 or fronts[2] != HOST_FRONTS or [0, 1, 3].any(func(i): return not fronts[i].is_empty()):
+		return "6라운드 웨이브 Resource의 fronts가 %s다(3웨이브 칸만 %s이고 나머지는 비어야 한다)" % [fronts, HOST_FRONTS]
+	var m = load("res://src/sim/battle.gd").new(load("res://src/main.gd").stage())
+	var counts: Array = m.spawn_counts(5, 2)
+	var themes := [{"wolf": 256}, {"armored": 140, "chain_orc": 25}, {"flying": 80, "song_harpy": 20, "dive_harpy": 20}]
+	if counts != themes:
+		return "시험 스테이지 6라운드 3웨이브 미리보기 수 %s(%s여야 한다)" % [counts, themes]
 	var b = battle({"waves": [[{"kind": "wolf_rider", "count": 4}]]})
 	if not b.ENEMY_KINDS.has("wolf_rider"):
 		return "적 종류 wolf_rider가 없다"
@@ -532,3 +548,104 @@ func ev969():
 		return "1초 안에 늑대 기수가 나오지 않았다"
 	var born: Array = b.enemies.map(func(e): return e.kind)
 	return check(born == ["wolf_rider", "wolf_rider"], "늑대 기수 4마리짜리 웨이브의 첫 적이 나온 스텝에 나온 적 %s(2마리여야 한다)" % [born])
+
+# 웨이브를 시작해 끝날 때까지(나오는 적은 그 스텝에 처치) 돌리고, 같은 스텝에 나온 적끼리 묶어 [종류, 수, 칸, 첫 차례부터 초]로 돌려준다.
+# 한 차례에 종류나 칸이 섞였으면 종류는 "섞임", 칸은 (-1, -1)이다
+func _turns(b) -> Array:
+	var out := []
+	var t := [0.0, -1.0]  # [지금 시각, 첫 차례 시각]
+	b.enemy_spawned.connect(func(e):
+		if t[1] < 0.0:
+			t[1] = t[0]
+		var c := Vector2i(e.pos.round())
+		if out.is_empty() or not is_equal_approx(out[-1][3], t[0] - t[1]):
+			out.append([e.kind, 0, c, t[0] - t[1]])
+		out[-1][1] += 1
+		if out[-1][0] != e.kind:
+			out[-1][0] = "섞임"
+		if out[-1][2] != c:
+			out[-1][2] = Vector2i(-1, -1))
+	b.start_battle()
+	for i in 2400:
+		if b.state != "battle":
+			break
+		b.step(DT)
+		t[0] += DT
+		kill_all(b)
+	return out
+
+# 차례들이 [종류, 수, 칸] 기대와 같고, 다음 차례까지의 간격이 gap × 그 차례의 마릿수(±0.06초)인가
+func _same_turns(got: Array, want: Array, gap: float) -> bool:
+	if got.size() != want.size():
+		return false
+	var at := 0.0
+	for i in want.size():
+		if got[i].slice(0, 3) != want[i] or absf(got[i][3] - at) > 0.06:
+			return false
+		at += gap * want[i][1]
+	return true
+
+# EV982 · S338: 묶인 종류는 묶인 출현 지점에서만 나온다. 출현 지점은 차례마다 돌아가며 제 줄의 다음 차례(무리나 한 마리)를 내고, 줄이 빈 출현 지점은 건너뛴다.
+# 묶이지 않은 종류는 지금처럼 차례마다 돌아가며 맡고, 묶음이 없는 웨이브는 차례가 그대로다. 미리보기 수(spawn_counts)도 묶인 대로다
+func ev982():
+	var w := THREE[0]
+	var c := THREE[1]
+	var e := THREE[2]
+	var over := {"spawns": THREE, "spawn_gap": 0.25, "base_hp": BIG}
+	# A: 셋 다 묶음 — 늑대(무리 4)는 왼쪽, 장갑(무리 4)은 가운데, 기본은 오른쪽
+	var a = battle(over.merged({"waves": [[{"kind": "wolf", "count": 8, "front": 0}, {"kind": "armored", "count": 8, "front": 1}, {"kind": "basic", "count": 3, "front": 2}]]}))
+	var a_counts: Array = a.spawn_counts(0, 0)
+	var a_got := _turns(a)
+	var a_want := [["wolf", 4, w], ["armored", 4, c], ["basic", 1, e], ["wolf", 4, w], ["armored", 4, c], ["basic", 1, e], ["basic", 1, e]]
+	if a_counts != [{"wolf": 8}, {"armored": 8}, {"basic": 3}] or not _same_turns(a_got, a_want, 0.25):
+		return "묶인 웨이브: 미리보기 수 %s([{wolf 8}, {armored 8}, {basic 3}]) · 나온 차례 [종류, 수, 칸, 초] %s(%s, 간격 0.25초 × 마릿수여야 한다)" % [a_counts, a_got, a_want]
+	# B: 늑대만 오른쪽에 묶고 기본은 묶지 않음 — 기본은 차례마다 왼쪽·가운데·오른쪽·왼쪽을 맡는다
+	var b = battle(over.merged({"waves": [[{"kind": "wolf", "count": 4, "front": 2}, {"kind": "basic", "count": 4}]]}))
+	var b_counts: Array = b.spawn_counts(0, 0)
+	var b_got := _turns(b)
+	var b_want := [["basic", 1, w], ["basic", 1, c], ["wolf", 4, e], ["basic", 1, w], ["basic", 1, e]]
+	if b_counts != [{"basic": 2}, {"basic": 1}, {"wolf": 4, "basic": 1}] or not _same_turns(b_got, b_want, 0.25):
+		return "섞인 웨이브: 미리보기 수 %s([{basic 2}, {basic 1}, {wolf 4, basic 1}]) · 나온 차례 %s(%s여야 한다)" % [b_counts, b_got, b_want]
+	# C: A에서 묶음을 뺀 웨이브 — 지금처럼 항목 차례대로, 출현 지점은 차례마다 돌아간다
+	var n = battle(over.merged({"waves": [[{"kind": "wolf", "count": 8}, {"kind": "armored", "count": 8}, {"kind": "basic", "count": 3}]]}))
+	var n_got := _turns(n)
+	var n_want := [["wolf", 4, w], ["wolf", 4, c], ["armored", 4, e], ["armored", 4, w], ["basic", 1, c], ["basic", 1, e], ["basic", 1, w]]
+	return check(_same_turns(n_got, n_want, 0.25), "묶음 없는 웨이브: 나온 차례 %s(%s여야 한다)" % [n_got, n_want])
+
+# EV983 · I281: ① WavesDef.fronts가 to_stage()에서 항목의 front로 실린다 ③ 나오는 칸의 n은 그 출현 지점의 줄에서 몇 번째 차례인가다
+# ④ 묶인 함께 나오는 종류(S294)는 모두 그 출현 지점에서 한 차례에, 묶인 방패 고블린의 호위(S301)는 호위 종류의 묶음과 상관없이 방패 고블린을 따라 나온다
+# ① 출현 지점 수를 넘거나 음수인 front는 묶이지 않은 것이다
+func ev983():
+	var def = load("res://src/data/waves_def.gd").new()
+	if not "fronts" in def:
+		return "구현 없음: WavesDef에 fronts 칸이 없다"
+	var ws: Array[Dictionary] = [{"wolf": 4, "basic": 2}, {"basic": 1}]
+	var fs: Array[Dictionary] = [{"wolf": 2}]
+	def.waves = ws
+	def.fronts = fs
+	var staged: Array = def.to_stage()
+	var want := [[{"kind": "wolf", "count": 4, "front": 2}, {"kind": "basic", "count": 2}], [{"kind": "basic", "count": 1}]]
+	if staged != want:
+		return "to_stage()가 %s다(%s여야 한다)" % [staged, want]
+	var spread = battle({"spawns": THREE, "spawn_spread": 3, "spawn_gap": 0.25, "base_hp": BIG, "waves": [[{"kind": "basic", "count": 5, "front": 1}]]})
+	var cells: Array = _turns(spread).map(func(t): return t[2])
+	var xs := range(5).map(func(k): return Vector2i(15 - 3 + int(fposmod(k * 0.6180339887, 1.0) * 7.0), 19))  # 12·16·13·17·15
+	if cells != xs:
+		return "퍼짐 3인 판에서 가운데에 묶인 기본 5마리가 나온 칸 %s(%s여야 한다)" % [cells, xs]
+	var pack = battle({"spawns": THREE, "spawn_gap": 0.25, "base_hp": BIG, "waves": [[{"kind": "alpha_wolf", "count": 3, "front": 1}]]})
+	if not pack.ENEMY_KINDS.has("alpha_wolf") or not pack.ENEMY_KINDS.alpha_wolf.get("together", false):
+		return "적 종류 alpha_wolf의 together가 꺼져 있다"
+	var alpha_counts: Array = pack.spawn_counts(0, 0)
+	var alpha := _turns(pack)
+	if alpha_counts != [{}, {"alpha_wolf": 3}, {}] or alpha.size() != 1 or alpha[0].slice(0, 3) != ["alpha_wolf", 3, THREE[1]]:
+		return "가운데에 묶인 알파 늑대 3: 미리보기 수 %s([{}, {alpha_wolf 3}, {}]) · 나온 차례 %s(한 차례에 셋이 (15,19)에서)" % [alpha_counts, alpha]
+	var esc = battle({"spawns": THREE, "base_hp": BIG, "waves": [[{"kind": "shieldbearer", "count": 1, "front": 2}, {"kind": "basic", "count": 2, "front": 0}]]})
+	var esc_counts: Array = esc.spawn_counts(0, 0)
+	if esc_counts != [{"basic": 2}, {}, {"shieldbearer": 1, "basic": 4}]:
+		return "오른쪽에 묶인 방패 고블린 1과 왼쪽에 묶인 기본 2의 미리보기 수 %s([{basic 2}, {}, {shieldbearer 1, basic 4}]여야 한다)" % [esc_counts]
+	var one = battle({"base_hp": BIG, "waves": [[{"kind": "basic", "count": 2, "front": 2}]]})  # 출현 지점이 (0,10) 하나뿐인 판
+	var neg = battle({"spawns": THREE, "base_hp": BIG, "waves": [[{"kind": "basic", "count": 3, "front": -1}]]})
+	var one_counts: Array = one.spawn_counts(0, 0)
+	var neg_counts: Array = neg.spawn_counts(0, 0)
+	return check(one_counts == [{"basic": 2}] and neg_counts == [{"basic": 1}, {"basic": 1}, {"basic": 1}],
+		"출현 지점 하나인 판의 front 2 미리보기 수 %s([{basic 2}]) · front −1 미리보기 수 %s([{basic 1}] 셋)" % [one_counts, neg_counts])
