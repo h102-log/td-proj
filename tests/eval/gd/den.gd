@@ -116,12 +116,14 @@ func ev888():
 	b.torches = 2
 	b.floors_cleared = 1
 	whys.append(b.raid_block())
+	b.floors_cleared = 2
+	whys.append(b.raid_block())
 	b.floors_cleared = 0
 	b.start_battle()
 	var battle_why: String = b.raid_block()
 	var started: bool = b.start_raid()
-	if whys != ["party", "torch", "done"] or battle_why != "state" or started or b.state != "battle" or b.torches != 2:
-		return "전멸·횃불 0·1층 깸 %s(기대 party·torch·done) · 전투 단계 %s(기대 state) · 시작 %s · 판 %s · 횃불 %d(기대 battle, 2)" % [whys, battle_why, started, b.state, b.torches]
+	if whys != ["party", "torch", "round", "done"] or battle_why != "state" or started or b.state != "battle" or b.torches != 2:
+		return "전멸·횃불 0·1층 깸·2층 깸 %s(기대 party·torch·round·done) · 전투 단계 %s(기대 state) · 시작 %s · 판 %s · 횃불 %d(기대 battle, 2)" % [whys, battle_why, started, b.state, b.torches]
 	return ""
 
 # EV889 · S316·I262 ④⑤: 들어가기. 저장 신호 때는 준비 단계·횃불 1이고, 산 영웅만 입구에 선다. 보스는 층 수치이고 라운드 배율을 받지 않는다. 원정 중 집은 멈추고 집 명령은 판을 바꾸지 않는다
@@ -224,8 +226,8 @@ func ev891():
 		return "깬 층 %d(1) · 횃불 %d(%d) · 골드 %d(%d) · 웨이브 %d(%d) · 집계 %s(기대 %s)" % [b.floors_cleared, b.torches, torches - 1, b.gold, gold + 120, b.wave_index, wave, b.tally, tally]
 	if not a.alive or a.hp != 40.0 or a.pos != Vector2(30, 70) or c.cd.q != 3.0 or count != [1, 1, 1]:
 		return "아이아스 살았나 %s 체력 %s 자리 %s(기대 40, (30,70)) · 이그니스 Q 대기 %s(3) · units 안 횟수 %s(기대 1·1·1)" % [a.alive, a.hp, a.pos, c.cd.q, count]
-	return check(b.enemies.is_empty() and b.zones.is_empty() and b.missiles.is_empty() and b.loops.is_empty() and b.raid_block() == "done",
-		"돌아온 뒤 적 %d · 장판 %d · 투사체 %d · 루프 %d · 이유 %s(기대 모두 0, done)" % [b.enemies.size(), b.zones.size(), b.missiles.size(), b.loops.size(), b.raid_block()])
+	return check(b.enemies.is_empty() and b.zones.is_empty() and b.missiles.is_empty() and b.loops.is_empty() and b.raid_block() == "round",
+		"돌아온 뒤 적 %d · 장판 %d · 투사체 %d · 루프 %d · 이유 %s(기대 모두 0, round)" % [b.enemies.size(), b.zones.size(), b.missiles.size(), b.loops.size(), b.raid_block()])
 
 # EV892 · S316·I262 ⑥: 전멸·불꽃·철수로 끝난다. 전멸·불꽃 뒤에는 «다시»를 기다리다(S331) 철수로, 철수는 바로 돌아오고, 쓴 횃불은 돌아오지 않는다
 func ev892():
@@ -1548,3 +1550,375 @@ func ev963():
 	texts = _toast_texts(main)
 	_done(main)
 	return check(not texts.any(func(t): return "점액 왕관" in t), "철수 뒤 보인 토스트 %s(«점액 왕관»이 없어야)" % [texts])
+
+# ── 2층 알파 늑대(S335·I279) ── 더하는 API:
+#   FloorDef.walks(거짓이면 걷지도 기본 공격도 하지 않는다) · 층 정의 floor_2 · Battle.raid_frenzy() -> int(원정 보스 몸의 광분 수)
+#   돌진 예고의 cast {dir, to, aimed(벽 돌진이면 참)} · 덮치기 예고의 cast.who(사냥감) · Enemy.grief(광분 수) · Enemy.grip(붙잡은 영웅 {who, …}, 없으면 null)
+#   main.hud._boss_name — 보스 막대의 이름 글
+
+# 3라운드 첫 준비 단계(횃불 4)에서 1층을 깬 것으로 둔 시험 스테이지 판
+func _den2(team := TEAM):
+	var b = _den(team)
+	b.state = "cleared"
+	b.next_round()
+	b.floors_cleared = 1
+	return b
+
+# 2층 원정을 시작해 원정대를 멈추고 알파의 서 있기를 0으로, 대본 쉼을 아주 길게 둔다. 알파(하나뿐인 적)를 돌려주고, 아니면 null
+func _alpha(b):
+	b.start_raid()
+	if b.state != "raid" or b.enemies.size() != 1 or b.enemies[0].kind != "alpha_wolf" or b.enemies[0].get("rest") == null:
+		return null
+	_freeze(b)
+	var e = b.enemies[0]
+	e.pull = 0.0
+	e.rest = 999.0
+	return e
+
+# 원정대 셋을 자리 at(출전 차례)에 둔다
+func _stand(b, at: Array) -> void:
+	for i in at.size():
+		b.party[i].pos = at[i]
+
+# 대본 차례 beat의 예고를 한 스텝 뒤에 띄운다. 띄운 예고를 돌려준다
+func _tell(b, e, beat: int):
+	e.cast = null
+	e.beat = beat
+	e.rest = 0.0
+	b.step(DT)
+	return e.cast
+
+# 사냥감 자리(출전 차례): 둘째 영웅(이그니스)이 알파 (84,80)에서 가장 먼 남쪽 (84,85)다.
+# 첫째 영웅(아이아스)은 맞을 때마다 50% 확률로 피해를 반만 받아(S151) 피해를 재는 사냥감으로 쓰지 않는다
+const HUNT := [Vector2(82, 81), Vector2(84, 85), Vector2(86, 81)]
+
+# 알파 (84,80), 둘째 영웅을 가장 먼 (84,85)에 두고 덮치기로 붙잡게 한다. [판, 알파, 붙잡힌 영웅]이고 안 되면 []
+func _pinned() -> Array:
+	var b = _den2()
+	var e = _alpha(b)
+	if e == null:
+		return []
+	_stand(b, HUNT)
+	_tell(b, e, 1)
+	_go(b, 2.6)
+	if e.get("grip") == null or not is_same(e.grip.who, b.party[1]) or not is_same(b._fx_on(b.party[1], "pin"), e):
+		return []
+	return [b, e, b.party[1]]
+
+# EV964 · S335: 2층 층 정의의 수치와 층 차례. 1층은 걷는 층 기본값 그대로이고 디펜스 알파 늑대 종류도 그대로다
+func ev964():
+	var f = load("res://data/dungeon/floor_2.tres")
+	var sk: Dictionary = f.skills
+	if f.title != "알파 늑대" or f.opens != 3 or f.kind != "alpha_wolf" or f.stats.get("hp") != 1600.0 or f.stats.get("radius") != 0.9 or f.get("walks") != false or not f.gens.is_empty():
+		return "이름 %s · 열림 %s · 종류 %s · 체력 %s · 몸 반지름 %s · walks %s · 세대 %s(기대 알파 늑대·3·alpha_wolf·1600·0.9·거짓·없음)" % [f.title, f.opens, f.kind, f.stats.get("hp"), f.stats.get("radius"), f.get("walks"), f.gens]
+	if f.plan != [{"id": "charge", "wait": 4.0}, {"id": "pounce", "wait": 5.0}, {"id": "charge", "wait": 4.0}, {"id": "brand", "wait": 5.0}]:
+		return "대본 %s(기대 돌진 4 → 덮치기 5 → 돌진 4 → 표식 5)" % [f.plan]
+	var charge := {"length": 8.0, "width": 1.0, "side": 1.0, "windup": 1.6, "unit": 30.0}
+	var pounce := {"windup": 2.0, "counter": 0.8, "air": 0.4, "damage": 25.0, "pin_time": 4.0, "bite": 8.0, "break_dmg": 5.0, "color": "blue"}
+	var brand := {"radius": 2.0, "windup": 3.0, "damage": 30.0, "color": "violet"}
+	if sk.get("charge") != charge or sk.get("pounce") != pounce or sk.get("brand") != brand or sk.get("frenzy") != {"damage": 0.25, "cap": 3}:
+		return "돌진 %s · 덮치기 %s · 표식 %s · 광분 %s" % [sk.get("charge"), sk.get("pounce"), sk.get("brand"), sk.get("frenzy")]
+	if f.ward != 0.88 or f.groggy != {"time": 5.0, "mult": 1.5} or f.enrage != {"soft": 80.0, "step": 10.0, "ramp": 0.15} or f.hard != 120.0 or f.gold != 150 or f.relic != "":
+		return "경감 %s · 그로기 %s · 광폭 %s · 불꽃 %s · 층 골드 %s · 유물 «%s»(기대 0.88·5초 1.5배·80초 10초 0.15·120·150·없음)" % [f.ward, f.groggy, f.enrage, f.hard, f.gold, f.relic]
+	var wolf = load("res://data/enemies/alpha_wolf.tres")
+	return check(_stage().den.floors == ["floor_1", "floor_2"] and load("res://data/dungeon/floor_1.tres").get("walks") == true
+		and wolf.hp == 160.0 and wolf.radius == 0.45 and wolf.skills.pounce.break_dmg == 40.0 and wolf.skills.frenzy == {"damage": 0.25},
+		"층 차례 %s(기대 floor_1·floor_2) · 1층 walks %s(참) · 디펜스 알파 체력 %s·몸 %s·break_dmg %s·광분 %s(기대 160·0.45·40·{damage 0.25})" % [_stage().den.floors, load("res://data/dungeon/floor_1.tres").get("walks"), wolf.hp, wolf.radius, wolf.skills.pounce.break_dmg, wolf.skills.frenzy])
+
+# EV965 · S335·I279 ①: 2층은 3라운드부터 열리고 알파 하나가 층 수치로 나온다. 알파는 걷지도 기본 공격도 하지 않는다
+func ev965():
+	var a = _den()
+	a.floors_cleared = 1
+	var early: String = a.raid_block()
+	var b = _den2()
+	var why: String = b.raid_block()
+	var torches: int = b.torches
+	var e = _alpha(b)
+	if early != "round" or why != "" or e == null:
+		return "2라운드 이유 %s(round) · 3라운드 이유 «%s»(없음) · 원정 %s · 적 %d(알파 하나)" % [early, why, b.state, b.enemies.size()]
+	if e.pos != Vector2(BOSS) or e.hp != 1600.0 or e.max_hp != 1600.0 or e.radius != 0.9 or e.reward != 0 or e.xp != 0 or e.raid.get("title") != "알파 늑대" or b.raid_left() != 1.0 or b.torches != torches - 1:
+		return "자리 %s · 체력 %s/%s · 몸 %s · 보상 %s·%s · 층 %s · 남은 비율 %s · 횃불 %d(기대 (84,80)·1600·0.9·0·0·알파 늑대·1·%d)" % [e.pos, e.hp, e.max_hp, e.radius, e.reward, e.xp, e.raid.get("title"), b.raid_left(), b.torches, torches - 1]
+	var u = b.party[0]
+	u.pos = Vector2(84, 82)
+	var hp: float = u.hp
+	_go(b, 6.0)
+	return check(e.pos == Vector2(BOSS) and u.hp == hp and e.cast == null, "6초 뒤 알파 자리 %s((84,80)) · 2칸 옆 영웅 체력 %s → %s · 예고 %s(없음)" % [e.pos, hp, u.hp, e.cast])
+
+# EV966 · S335·I279 ②: 사냥감은 가장 먼 산 원정대 영웅이고, 거리가 같으면 출전 차례가 앞선 쪽, 도발했으면 도발한 영웅이다. 덮치기도 같은 사냥감을 노린다
+func ev966():
+	var b = _den2()
+	var e = _alpha(b)
+	if e == null:
+		return "2층 원정이 되지 않았다"
+	var got := []
+	_stand(b, [Vector2(86, 80), Vector2(84, 84), Vector2(78, 80)])
+	got.append(_tell(b, e, 0))
+	var pounce = _tell(b, e, 1)
+	b.damage(b.party[2], BIG)
+	got.append(_tell(b, e, 0))
+	b._return_hero(b.party[2], true)
+	_stand(b, [Vector2(88, 80), Vector2(80, 80), Vector2(84, 82)])
+	got.append(_tell(b, e, 0))
+	b._fx(e, "t", {"taunt": b.party[2]}, 5.0)
+	got.append(_tell(b, e, 0))
+	if got.any(func(c): return c == null or c.id != "charge" or not c.has("dir")) or pounce == null or pounce.id != "pounce":
+		return "예고 %s · 덮치기 %s" % [got, pounce]
+	var dirs: Array = got.map(func(c): return Vector2.from_angle(c.dir).round())
+	return check(dirs == [Vector2(-1, 0), Vector2(0, 1), Vector2(1, 0), Vector2(0, 1)] and is_same(pounce.who, b.party[2]),
+		"돌진 방향 [가장 먼 셋째, 셋째가 쓰러짐, 같은 거리, 도발] %s(기대 서·남·동·남) · 덮치기 대상이 셋째 %s" % [dirs, is_same(pounce.who, b.party[2])])
+
+# EV967 · S335 ①: 벽 돌진을 모두 피하면 알파가 벽 앞에서 멈춰 그로기가 된다
+func ev967():
+	var b = _den2()
+	var e = _alpha(b)
+	if e == null:
+		return "2층 원정이 되지 않았다"
+	_stand(b, HUNT)
+	var c = _tell(b, e, 0)
+	if c == null or c.id != "charge" or c.get("aimed") != true or absf(c.left - 1.6) > 0.051 or c.to.distance_to(Vector2(84, 87.25)) > 0.01:
+		return "예고 %s(기대 charge·벽 돌진·남은 1.6초·끝 (84,87.25))" % [c]
+	b.party[1].pos = Vector2(86, 85)
+	var hp: Array = b.party.map(func(h): return h.hp)
+	_go(b, 1.5)
+	var before := [e.pos, e.cast != null]
+	_go(b, 0.2)
+	if before != [Vector2(BOSS), true] or e.pos.distance_to(Vector2(84, 87.25)) > 0.01 or not _groggy(b, e) or e.cast != null or b.party.map(func(h): return h.hp) != hp or e.beat != 1:
+		return "1.5초 [자리, 예고 중] %s(기대 (84,80)·참) · 1.7초 자리 %s((84,87.25)) · 그로기 %s(참) · 예고 %s(없음) · 영웅 체력 %s → %s · 대본 차례 %s(1)" % [before, e.pos, _groggy(b, e), e.cast, hp, b.party.map(func(h): return h.hp), e.beat]
+	_go(b, 4.7)
+	var late: bool = _groggy(b, e)
+	_go(b, 0.4)
+	return check(late and not _groggy(b, e), "그로기가 4.7초 뒤 %s(참) · 5.1초 뒤 %s(거짓)" % [late, _groggy(b, e)])
+
+# EV968 · S335 ①: 벽 돌진에 맞으면 피해 30과 옆으로 1칸 밀림이고 그로기가 없다. 이동 돌진은 아무도 못 맞혀도 그로기가 없다
+func ev968():
+	var b = _den2()
+	var e = _alpha(b)
+	if e == null:
+		return "2층 원정이 되지 않았다"
+	_stand(b, HUNT)
+	var u = b.party[1]
+	_tell(b, e, 0)
+	var want: float = _take(b, u, 30.0)
+	var hp: float = u.hp
+	var others := [b.party[0].hp, b.party[2].hp]
+	_go(b, 1.7)
+	if absf(hp - u.hp - want) > 0.01 or absf(absf(u.pos.x - 84.0) - 1.0) > 0.01 or absf(u.pos.y - 85.0) > 0.01 or e.pos.distance_to(Vector2(84, 87.25)) > 0.01 or _groggy(b, e) or [b.party[0].hp, b.party[2].hp] != others:
+		return "① 잃은 체력 %s(기대 %s) · 맞은 영웅 자리 %s(옆으로 1칸: (83,85)나 (85,85)) · 알파 %s((84,87.25)) · 그로기 %s(거짓) · 길 밖 둘 %s → %s" % [hp - u.hp, want, u.pos, e.pos, _groggy(b, e), others, [b.party[0].hp, b.party[2].hp]]
+	var k = _den2()
+	var w = _alpha(k)
+	if w == null:
+		return "② 2층 원정이 되지 않았다"
+	_stand(k, [Vector2(88, 80), Vector2(83, 81), Vector2(85, 81)])
+	var c = _tell(k, w, 0)
+	if c == null or c.get("aimed") != false or c.to.distance_to(Vector2(92, 80)) > 0.01:
+		return "② 예고 %s(기대 이동 돌진·끝 (92,80))" % [c]
+	k.party[0].pos = Vector2(88, 83)
+	var all: Array = k.party.map(func(h): return h.hp)
+	_go(k, 1.7)
+	return check(w.pos.distance_to(Vector2(92, 80)) < 0.01 and not _groggy(k, w) and k.party.map(func(h): return h.hp) == all and w.cast == null,
+		"② 이동 돌진 뒤 알파 %s((92,80)) · 그로기 %s(거짓) · 영웅 체력 %s → %s" % [w.pos, _groggy(k, w), all, k.party.map(func(h): return h.hp)])
+
+# EV969 · S335 ②③·I279 ④⑤: 덮치기는 뛴 뒤 대시로 벗어나도 붙잡고 초당 8로 문다. 붙잡은 동안 경감 뒤 피해 합이 5를 넘으면 놓고 그로기가 된다
+func ev969():
+	var b = _den2()
+	var e = _alpha(b)
+	if e == null:
+		return "2층 원정이 되지 않았다"
+	_stand(b, HUNT)
+	var u = b.party[1]
+	var c = _tell(b, e, 1)
+	if c == null or c.id != "pounce" or not is_same(c.who, u) or absf(c.left - 2.0) > 0.051:
+		return "예고 %s(기대 pounce·둘째 영웅·남은 2초)" % [c]
+	var hp: float = u.hp
+	_go(b, 2.1)
+	if e.cast == null or not e.cast.get("air", false) or u.hp != hp:
+		return "2.1초 뒤 예고 %s(뜬 덮치기) · 영웅 체력 %s → %s(그대로)" % [e.cast, hp, u.hp]
+	b.dash([u], Vector2(95, 85))
+	var dashed: Vector2 = u.pos
+	_go(b, 0.5)
+	var gap: float = e.pos.distance_to(u.pos)
+	if dashed.distance_to(Vector2(86, 85)) > 0.01 or not is_same(b._fx_on(u, "pin"), e) or e.get("grip") == null or absf(gap - (0.9 + u.radius)) > 0.3 or hp - u.hp < _take(b, u, 25.0) - 0.01:
+		return "대시한 자리 %s((86,85)) · 붙잡힘 %s(참) · 알파와의 거리 %.2f(몸 반지름 합 %.2f에서 0.3 안) · 잃은 체력 %s(착지 %s 이상)" % [dashed, is_same(b._fx_on(u, "pin"), e), gap, 0.9 + u.radius, hp - u.hp, _take(b, u, 25.0)]
+	var at: Vector2 = u.pos
+	hp = u.hp
+	_go(b, 1.0)
+	if absf(hp - u.hp - _take(b, u, 8.0)) > 0.05 or u.pos != at or _groggy(b, e):
+		return "붙잡힌 1초에 잃은 체력 %s(기대 %s) · 자리 %s → %s · 그로기 %s(거짓)" % [hp - u.hp, _take(b, u, 8.0), at, u.pos, _groggy(b, e)]
+	b.damage(e, 40.0)
+	b.step(DT)
+	var held := [is_same(b._fx_on(u, "pin"), e), _groggy(b, e)]
+	b.damage(e, 2.0)
+	b.step(DT)
+	return check(held == [true, false] and b._fx_on(u, "pin") == null and e.grip == null and _groggy(b, e) and e.grief == 0,
+		"피해 40(경감 뒤 4.8) 뒤 [붙잡힘, 그로기] %s(기대 [참, 거짓]) · 2 더(합 5.04) 뒤 붙잡힘 %s(없음) · 그로기 %s(참) · 광분 %s(0)" % [held, b._fx_on(u, "pin"), _groggy(b, e), e.grief])
+
+# EV970 · S335 ③·I279 ⑤: 붙잡힘을 정화로 풀거나 알파에게 기절을 걸려 하면 알파가 놓고 그로기가 된다. 기절은 걸리지 않는다
+func ev970():
+	var p := _pinned()
+	if p.is_empty():
+		return "① 덮치기로 붙잡지 못했다"
+	var b = p[0]
+	var e = p[1]
+	var u = p[2]
+	var sera = b.party[2]
+	sera.pos = u.pos + Vector2(2, 0)
+	sera.cd.w = 0.0
+	var cast: bool = b.cast(sera, "w", u.pos)
+	_go(b, 0.2)
+	if not cast or b._fx_on(u, "pin") != null or e.grip != null or not _groggy(b, e) or e.grief != 0:
+		return "① 성역을 썼나 %s · 붙잡힘 %s(없음) · 알파가 붙잡은 영웅 %s(없음) · 그로기 %s(참) · 광분 %s(0)" % [cast, b._fx_on(u, "pin"), e.grip, _groggy(b, e), e.grief]
+	p = _pinned()
+	if p.is_empty():
+		return "② 덮치기로 붙잡지 못했다"
+	b = p[0]
+	e = p[1]
+	u = p[2]
+	b._fx(e, "t", {"stun": true}, 2.0)
+	return check(b._fx_on(u, "pin") == null and e.grip == null and _groggy(b, e) and b._fx_on(e, "stun") == null and b.effect(e, "deflect") == null and e.grief == 0,
+		"② 기절을 걸려 한 뒤 붙잡힘 %s(없음) · 알파가 붙잡은 영웅 %s(없음) · 그로기 %s(참) · 기절 %s(없음) · 튕김 %s(없음) · 광분 %s(0)" % [b._fx_on(u, "pin"), e.grip, _groggy(b, e), b._fx_on(e, "stun"), b.effect(e, "deflect"), e.grief])
+
+# EV971 · S335 ③④: 4초가 다 되거나 붙잡힌 영웅이 쓰러지면 그로기 없이 광분이 하나 쌓인다. 광분 하나마다 피해가 25% 늘고 3을 넘지 않는다
+func ev971():
+	var p := _pinned()
+	if p.is_empty():
+		return "① 덮치기로 붙잡지 못했다"
+	var b = p[0]
+	var e = p[1]
+	var u = p[2]
+	_go(b, 3.2)
+	var mid := [is_same(b._fx_on(u, "pin"), e), e.grief]
+	_go(b, 0.8)
+	if mid != [true, 0] or b._fx_on(u, "pin") != null or e.grip != null or _groggy(b, e) or e.grief != 1 or b.raid_frenzy() != 1 or not u.alive:
+		return "① 붙잡고 3.5초 안 [붙잡힘, 광분] %s(기대 [참, 0]) · 4.2초 넘어 붙잡힘 %s(없음) · 그로기 %s(거짓) · 광분 %s·%s(1·1) · 영웅 살았나 %s" % [mid, b._fx_on(u, "pin"), _groggy(b, e), e.grief, b.raid_frenzy(), u.alive]
+	e.pos = Vector2(BOSS)
+	_stand(b, HUNT)
+	_tell(b, e, 0)
+	var want: float = _take(b, u, 30.0 * 1.25)
+	var hp: float = u.hp
+	_go(b, 1.7)
+	if absf(hp - u.hp - want) > 0.01:
+		return "① 광분 1의 돌진에 잃은 체력 %s(기대 %s = 30 × 1.25)" % [hp - u.hp, want]
+	e.grief = 3
+	e.pos = Vector2(BOSS)
+	u.hp = u.max_hp
+	_stand(b, HUNT)
+	_tell(b, e, 1)
+	_go(b, 2.6)
+	var again: bool = is_same(b._fx_on(u, "pin"), e)
+	_go(b, 4.2)
+	if not again or b._fx_on(u, "pin") != null or e.grief != 3:
+		return "① 광분 3에서 다시 붙잡았나 %s · 4초 뒤 붙잡힘 %s(없음) · 광분 %s(3 그대로)" % [again, b._fx_on(u, "pin"), e.grief]
+	p = _pinned()
+	if p.is_empty():
+		return "② 덮치기로 붙잡지 못했다"
+	b = p[0]
+	e = p[1]
+	b.damage(p[2], BIG)
+	b.step(DT)
+	return check(e.grip == null and not _groggy(b, e) and e.grief == 1, "② 붙잡힌 영웅이 쓰러진 뒤 알파가 붙잡은 영웅 %s(없음) · 그로기 %s(거짓) · 광분 %s(1)" % [e.grip, _groggy(b, e), e.grief])
+
+# EV972 · S335 ②·I279 ④: 덮치기 예고의 마지막 0.8초에 기절을 걸려 하면 예고가 끊기고 그로기가 된다. 그 앞에서는 튕기고, 뜬 동안은 카운터 창이 아니다
+func ev972():
+	var b = _den2()
+	var e = _alpha(b)
+	if e == null:
+		return "2층 원정이 되지 않았다"
+	_stand(b, HUNT)
+	var u = b.party[1]
+	_tell(b, e, 1)
+	_go(b, 1.0)
+	var open: bool = b.countering(e)
+	b._fx(e, "t1", {"stun": true}, 2.0)
+	var early := [e.cast != null and e.cast.id == "pounce", _groggy(b, e), b.effect(e, "deflect") != null]
+	_go(b, 0.4)
+	var window: bool = b.countering(e)
+	b._fx(e, "t2", {"stun": true}, 2.0)
+	var late := [e.cast, _groggy(b, e), b._fx_on(e, "stun"), e.beat]
+	var hp: float = u.hp
+	_go(b, 1.5)
+	if open or early != [true, false, true] or not window or late != [null, true, null, 2] or u.hp != hp or b._fx_on(u, "pin") != null:
+		return "① 1.0초 카운터 창 %s(거짓) · 그때 기절 뒤 [예고 있음, 그로기, 튕김] %s(기대 [참, 거짓, 참]) · 1.4초 카운터 창 %s(참) · 그때 기절 뒤 [예고, 그로기, 기절, 대본 차례] %s(기대 [null, 참, null, 2]) · 영웅 체력 %s → %s · 붙잡힘 %s(없음)" % [open, early, window, late, hp, u.hp, b._fx_on(u, "pin")]
+	var k = _den2()
+	var w = _alpha(k)
+	if w == null:
+		return "② 2층 원정이 되지 않았다"
+	_stand(k, HUNT)
+	_tell(k, w, 1)
+	_go(k, 2.15)
+	var aloft: bool = w.cast != null and w.cast.get("air", false)
+	var counted: bool = k.countering(w)
+	k._fx(w, "t", {"stun": true}, 2.0)
+	_go(k, 0.5)
+	return check(aloft and not counted and is_same(k._fx_on(k.party[1], "pin"), w) and not _groggy(k, w),
+		"② 2.15초에 뜬 중 %s(참) · 카운터 창 %s(거짓) · 기절을 걸려 한 뒤 붙잡힘 %s(참) · 그로기 %s(거짓)" % [aloft, counted, is_same(k._fx_on(k.party[1], "pin"), w), _groggy(k, w)])
+
+# EV973 · S335 ⑤·I279 ⑦: 대본은 돌진 → 덮치기 → 돌진 → 표식을 쉼 4·5·4·5초로 돌고, 쉼은 붙잡은 동안 줄지 않는다. 표식은 출전 차례의 영웅을 따라다니다 원 안 모두에게 30을 준다
+func ev973():
+	var b = _den2()
+	b.start_raid()
+	if b.state != "raid" or b.enemies.size() != 1:
+		return "2층 원정이 되지 않았다"
+	_freeze(b)
+	var e = b.enemies[0]
+	var got: Array = _casts(b, [e], 39.0)
+	var starts: Array = got[0]
+	var ends: Array = got[1]
+	var ids: Array = starts.map(func(s): return s[1])
+	if ids != ["charge", "pounce", "charge", "brand", "charge"] or ends.size() < 4:
+		return "예고 차례 %s(기대 돌진·덮치기·돌진·표식·돌진) · 끝난 예고 %d(4 이상)" % [ids, ends.size()]
+	var gaps := [starts[0][0]]
+	for i in range(1, 5):
+		gaps.append(starts[i][0] - ends[i - 1])
+	var want := [7.0, 5.0, 8.0, 5.0, 4.0]
+	if range(5).any(func(i): return absf(gaps[i] - want[i]) > 0.2):
+		return "첫 예고까지와 앞 예고가 끝난 때부터 다음 예고까지 %s(기대 %s, 0.2초 안: 서 있기 3 + 쉼 4 · 쉼 5 · 붙잡은 4 + 쉼 4 · 쉼 5 · 쉼 4)" % [gaps, want]
+	var k = _den2()
+	var w = _alpha(k)
+	if w == null:
+		return "② 2층 원정이 되지 않았다"
+	_stand(k, [Vector2(88, 84), Vector2(80, 84), Vector2(81, 84)])
+	w.turn = 1
+	var c = _tell(k, w, 3)
+	if c == null or c.id != "brand" or not is_same(c.get("mark"), k.party[1]) or absf(c.left - 3.0) > 0.051:
+		return "② 예고 %s(기대 brand·둘째 영웅·남은 3초)" % [c]
+	_go(k, 1.0)
+	k.party[1].pos = Vector2(80, 80)
+	k.party[2].pos = Vector2(81, 80)
+	var hp: Array = k.party.map(func(h): return h.hp)
+	k.step(DT)
+	var follows: bool = w.cast != null and w.cast.at == Vector2(80, 80)
+	_go(k, 2.2)
+	var lost: Array = [hp[0] - k.party[0].hp, hp[1] - k.party[1].hp, hp[2] - k.party[2].hp]
+	return check(follows and lost[0] == 0.0 and absf(lost[1] - _take(k, k.party[1], 30.0)) < 0.01 and absf(lost[2] - _take(k, k.party[2], 30.0)) < 0.01 and not _groggy(k, w) and w.cast == null,
+		"② 원이 표식 영웅을 따라갔나 %s · 잃은 체력 %s(기대 0·%s·%s) · 그로기 %s(거짓)" % [follows, lost, _take(k, k.party[1], 30.0), _take(k, k.party[2], 30.0), _groggy(k, w)])
+
+# EV974 · S335·I279 ①⑨: 보스 막대의 이름과 «광분 n», 그림 2배. 처치하면 깬 층 2·층 골드 150이고 유물 없는 층의 토스트가 뜬다
+func ev974():
+	var main = _den_game()
+	var b = main.view.battle
+	b.state = "cleared"
+	b.next_round()
+	b.floors_cleared = 1
+	_frame(main)
+	_toast_texts(main)
+	b.start_raid()
+	_frame(main)
+	if b.state != "raid" or b.enemies.size() != 1 or b.enemies[0].kind != "alpha_wolf":
+		_done(main)
+		return "2층 원정이 되지 않았다(판 %s · 적 %d)" % [b.state, b.enemies.size()]
+	var e = b.enemies[0]
+	var calm: String = main.hud._boss_name.text
+	var scale: float = main.view._shrunk(e)
+	e.grief = 2
+	_frame(main)
+	var mad: String = main.hud._boss_name.text
+	var gold: int = b.gold
+	b.damage(e, BIG)
+	_spin(main, 3.1)
+	var after := [b.state, b.floors_cleared, b.gold - gold, b.relics, b.raid_block()]
+	var texts := _toast_texts(main)
+	_done(main)
+	if calm != "알파 늑대" or not is_equal_approx(scale, 2.0) or not ("알파 늑대" in mad and "광분 2" in mad):
+		return "보스 막대 이름 «%s»(알파 늑대) · 그림 배율 %s(2) · 광분 2일 때 «%s»(«알파 늑대»와 «광분 2»가 있어야)" % [calm, scale, mad]
+	return check(after == ["prep", 2, 150, {}, "done"] and texts.any(func(t): return "2층" in t and "150" in t),
+		"처치 3.1초 뒤 [판, 깬 층, 는 골드, 가방, 원정 버튼 이유] %s(기대 [prep, 2, 150, {}, done]) · 보인 토스트 %s(«2층»과 «150»이 함께 든 것이 있어야)" % [after, texts])
