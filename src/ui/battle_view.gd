@@ -488,6 +488,7 @@ func _draw() -> void:
 			draw_rect(_rect(s.dest), Color(BLUEPRINT, 1.0), false, 1.0)
 			draw_dashed_line(_center(Vector2(s.cell)), _center(Vector2(s.dest)), Color(1, 1, 1, 0.7), 1.0, 3.0)
 	_zones()
+	_trails()  # 원정의 불길(S352 ⑥): 장판과 같은 바닥 층
 	_wards()  # 에너지 성벽 칸(S151, fx-2): 장판 다음, 몸통 아래
 	_tells()  # 보스 스킬 예고와 발동 채움(S194·S198)
 	_fx_dots(true)  # 바닥 균열(S198)은 몸통 아래
@@ -2940,7 +2941,7 @@ func _four_sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 			if c != null or x.cast:
 				anim = "idle"
 				col = 0
-		elif x.fx.has("plunge") and ART[x.kind].has("plunge"):  # 와이번 급강하 뒤 내려앉음(S172 2026-11-10 변경 ①): 내리꽂은 자세를 보던(내리꽂은) 쪽으로, 들지 않는다
+		elif (x.fx.has("plunge") or battle._grounded(x)) and ART[x.kind].has("plunge"):  # 원정의 내려앉은 틈·그로기(S352 ④)도 같다. 와이번 급강하 뒤 내려앉음(S172 2026-11-10 변경 ①): 내리꽂은 자세를 보던(내리꽂은) 쪽으로, 들지 않는다
 			anim = "plunge"
 			col = 1
 		elif threw != null:  # 쌍둥이 트롤(I273 ⑥): 던진 뒤 THROW초는 던진 쪽을 보는 공격 키 포즈
@@ -3597,8 +3598,16 @@ func _tells() -> void:
 	for e in tellers(_foes):
 		if e.cast.id in UNSEEN_TELLS:  # 덮치기(S242)·던지기(S279)는 덮개 위 층에 그린다(_pounce_tells·_foe_tells)
 			continue
+		if e.cast.id == "perch":  # 급강하 뒤 내려앉은 틈(S352 ③): 바닥 예고가 없다. 카운터 창 동안 몸 둘레에 파란 테를 그린다(I288 ⑪)
+			if battle.countering(e):
+				_edge(Vector2i(_center(e.pos).floor()), int(CELL * e.radius) + 3, PX[TELL_HUES.blue[0]], PX[TELL_HUES.blue[1]])
+			continue
 		if not e.skills.has(e.cast.id):  # 일반 적 예고(S279): 폭파병 도화선
 			_foe_tell(e)
+			continue
+		if e.cast.id == "lash":  # 떨어진 와이번의 앞뒤 휩쓸기(S352 ⑨): 앞 부채꼴과 정반대 쪽 뒤 부채꼴
+			_fan_tell(e)
+			_fan_tell(e, true)
 			continue
 		if e.cast.id in ["mgun", "cleave", "breath", "tail", "roar"]:  # 전쟁 기계 기관총(S287)·대장 철퇴(S288)·떨어진 와이번 숨결·꼬리(S311)·내린 대족장 포효(S349)는 부채꼴
 			_fan_tell(e)
@@ -3672,11 +3681,15 @@ func _brand_marks() -> void:
 			draw_string(PIXEL_FONT, at, no, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, PX[TELL_HUES.violet[0]])
 
 # 기관총 예고(S287)·대장 철퇴 예고(S288): 부채꼴(반경 range, 각 arc) 빨강 테와 차오르는 안쪽. 기관총 발사 동안은 테와 지금 총구 방향의 선(I223)
-func _fan_tell(e) -> void:
+func _fan_tell(e, back := false) -> void:
 	var sk: Dictionary = e.skills[e.cast.id]
 	var c := _center(e.pos)
+	var dir: float = e.cast.dir
+	if back:  # 앞뒤 휩쓸기의 뒤 부채꼴(S352 ⑨): 정반대 쪽이고 수치는 back에 있다. 예고 시간은 같다
+		sk = sk.back.merged({"windup": sk.windup})
+		dir += PI
 	var r: float = CELL * sk.range
-	var rim := _fan_rim(c, r, e.cast.dir, sk.arc)
+	var rim := _fan_rim(c, r, dir, sk.arc)
 	var n := rim.size() - 1
 	if e.cast.get("fire", false):
 		var to := c + Vector2.from_angle(battle.muzzle(e.cast.dir, sk, sk.fire - e.cast.left)) * r
@@ -3692,6 +3705,26 @@ func _fan_tell(e) -> void:
 	_pline(Vector2i(c.floor()), Vector2i(rim[n].floor()), TELL)
 	for i in n:
 		_pline(Vector2i(rim[i].floor()), Vector2i(rim[i + 1].floor()), TELL)
+
+# 불길 그림 자리(S352 ⑥, I288 ⑪): 불길 줄마다 가운데 선을 따라 8px쯤마다 하나씩, 줄 폭의 1/4만큼 좌우로 번갈아 어긋난 불꽃 자리(맵 px)
+func trail_marks() -> Array:
+	var out := []
+	for t in battle.trails:
+		var a := _center(t.from)
+		var b := _center(t.to)
+		var n := maxi(int(a.distance_to(b) / 8.0), 1)
+		var side: Vector2 = (b - a).normalized().orthogonal() * CELL * t.width * 0.25
+		for i in n + 1:
+			out.append(Vector2i((a.lerp(b, float(i) / n) + side * (1.0 if i % 2 == 0 else -1.0)).floor()))
+	return out
+
+# 원정의 불길(S352 ⑥): 줄 폭만큼 엷은 빨강 띠를 깔고 그 위에 작은 불꽃을 늘어놓는다(셋에 하나는 큰 불꽃). 몸통 아래 층이다
+func _trails() -> void:
+	for t in battle.trails:
+		_poly(_strip(_center(t.from), _center(t.to), CELL * t.width), Color(TELL, 0.2))
+	var marks := trail_marks()
+	for i in marks.size():
+		_spr("flame" if i % 3 == 1 else "flame_s", int(clock * 10.0) + i * 3, marks[i] + Vector2i(0, 3), true)
 
 # 대장 돌진 예고(S288): 대장에서 멈출 자리(to, I230 ④)까지 폭 width 띠의 빨강 테와, 대장 쪽에서 남은 시간만큼 차오르는 안쪽
 func _line_tell(e) -> void:

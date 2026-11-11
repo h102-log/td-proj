@@ -324,5 +324,5 @@ static func stage() -> Dictionary:
 		# 끝나고 돌아오기까지 초(처치 win_wait, 전멸·불꽃 wipe_wait). 수치는 임시값(05 §2.2·§2.3)
 		"den": {"strip": 40, "room": Rect2i(70, 72, 28, 16), "cut": 2, "entry": [Vector2i(83, 87), Vector2i(85, 87), Vector2i(84, 87)], "boss": Vector2i(84, 80),
 			"stairs": Rect2i(83, 88, 3, 2), "lamps": [Vector2i(69, 80), Vector2i(77, 71), Vector2i(90, 71), Vector2i(98, 80)],
-			"torches": 2, "torch_cap": 4, "floors": ["floor_1", "floor_2", "floor_3"], "win_wait": 3.0, "wipe_wait": 2.5},
+			"torches": 2, "torch_cap": 4, "floors": ["floor_1", "floor_2", "floor_3", "floor_4"], "win_wait": 3.0, "wipe_wait": 2.5},
 	}

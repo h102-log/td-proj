@@ -1,0 +1,122 @@
+[gd_resource type="Resource" script_class="FloorDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/floor_def.gd" id="1_floor"]
+
+[resource]
+script = ExtResource("1_floor")
+title = "와이번"
+opens = 5
+kind = "wyvern"
+stats = {
+"hp": 1000.0,
+"radius": 0.9,
+"reward": 0,
+"xp": 0
+}
+skills = {
+"plunge": {
+"air": 0.5,
+"damage": 30.0,
+"down": 2.0,
+"knock": 1.0,
+"radius": 2.0,
+"window": 1.0,
+"windup": 1.6
+},
+"carpet": {
+"dps": 5.0,
+"length": 12.0,
+"pass": 0.8,
+"time": 4.0,
+"trail": 8.0,
+"width": 1.5,
+"windup": 1.4
+}
+}
+plan = [{
+"id": "plunge",
+"wait": 4.0
+}, {
+"id": "carpet",
+"wait": 4.0
+}, {
+"id": "plunge",
+"wait": 3.0
+}]
+walks = false
+hunts = true
+phase2 = {
+"title": "떨어진 와이번",
+"kind": "wyvern_fallen",
+"scale": 1.0,
+"stats": {
+"hp": 1000.0,
+"radius": 0.9,
+"reward": 0,
+"xp": 0
+},
+"skills": {
+"lash": {
+"arc": 90.0,
+"back": {
+"arc": 120.0,
+"knock": 1.5,
+"range": 3.0,
+"unit": 20.0
+},
+"dps": 5.0,
+"range": 4.0,
+"time": 4.0,
+"windup": 1.35
+},
+"charge": {
+"dps": 5.0,
+"length": 8.0,
+"run": 2.0,
+"side": 1.0,
+"time": 4.0,
+"unit": 30.0,
+"width": 1.0,
+"windup": 1.35
+},
+"soak": {
+"color": "gold",
+"counter": 1.0,
+"damage": 60.0,
+"far": 5.0,
+"heal": 0.05,
+"miss": 20.0,
+"need": 2,
+"radius": 1.5,
+"turn": 90.0,
+"windup": 4.0
+}
+},
+"plan": [{
+"id": "lash",
+"wait": 3.0
+}, {
+"id": "charge",
+"wait": 4.0
+}, {
+"id": "lash",
+"wait": 3.0
+}, {
+"id": "soak",
+"wait": 5.0
+}]
+}
+scale = 1.0
+ward = 0.89
+groggy = {
+"mult": 1.5,
+"time": 5.0
+}
+enrage = {
+"ramp": 0.15,
+"soft": 100.0,
+"step": 10.0
+}
+pull = 3.0
+hard = 150.0
+gold = 200
