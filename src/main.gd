@@ -322,7 +322,7 @@ static func stage() -> Dictionary:
 		# 보스방 원정(S316·S317, I262): 맵 오른쪽에 붙는 숨은 띠 폭(strip), 보스방 사각형(room)과 모서리 막는 거리(cut), 입구 칸(출전 차례)·보스 칸,
 		# 계단 칸·벽 횃불 칸(꺼지는 차례), 라운드마다 더하는 횃불(torches)·쌓임 상한(torch_cap), 층 차례(data/dungeon 파일 이름),
 		# 끝나고 돌아오기까지 초(처치 win_wait, 전멸·불꽃 wipe_wait). 수치는 임시값(05 §2.2·§2.3)
-		"den": {"strip": 40, "room": Rect2i(74, 76, 20, 12), "cut": 2, "entry": [Vector2i(83, 87), Vector2i(85, 87), Vector2i(84, 87)], "boss": Vector2i(84, 80),
-			"stairs": Rect2i(83, 88, 3, 2), "lamps": [Vector2i(73, 81), Vector2i(79, 75), Vector2i(88, 75), Vector2i(94, 81)],
+		"den": {"strip": 40, "room": Rect2i(70, 72, 28, 16), "cut": 2, "entry": [Vector2i(83, 87), Vector2i(85, 87), Vector2i(84, 87)], "boss": Vector2i(84, 80),
+			"stairs": Rect2i(83, 88, 3, 2), "lamps": [Vector2i(69, 80), Vector2i(77, 71), Vector2i(90, 71), Vector2i(98, 80)],
 			"torches": 2, "torch_cap": 4, "floors": ["floor_1", "floor_2"], "win_wait": 3.0, "wipe_wait": 2.5},
 	}
