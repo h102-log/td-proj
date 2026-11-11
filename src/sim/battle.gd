@@ -242,7 +242,7 @@ class Enemy:
 	var spot = null  # 수송 비행선의 투하 칸(I222). 아직 안 골랐으면 null
 	var by_house := false  # 투하 칸이 집 둘레다(S286)
 	var loosed := INF  # 열기구가 폭탄을, 비행선이 고블린을 떨군 뒤 초(S172 2026-11-03 둘째 변경 ②). 그리기만 읽는다
-	var phase2 := ""  # 체력이 0이 되면 쓰러지지 않고 될 종류(S288 전쟁 기계 → 대장). 비어 있으면 쓰러진다
+	var phase2 := ""  # 체력이 0이 되면 쓰러지지 않고 될 종류(S288 전쟁 기계 → 대장, S335 늑대 기수 → 장갑). 비어 있으면 쓰러진다
 	var guard := 0.0  # 남은 방패 내구도(S301, I248). 궁수탑·궁수 용병 화살 피해를 몸보다 먼저 받고 다시 차지 않는다
 	var max_guard := 0.0  # 나온 때의 방패 내구도. 화면이 남은 방패 막대(I248 ④)를 그린다
 	var flame := {}  # 불화살(S302)
@@ -266,6 +266,8 @@ class Enemy:
 	var snag = null  # 사슬 오크가 방금 던진 사슬의 끝(I269 ⑤): 맞힌 아군(Unit)이나 빗나간 띠 끝(Vector2). 던진 뒤 초는 loosed다. 그리기만 읽는다
 	var regen := 0.0  # 재생(S327): 초당 차는 최대 체력 비율. 0이면 재생하지 않는다
 	var swat := {}  # 트롤 싸움꾼의 쓸기(S328)
+	var flank := {}  # 늑대 기수의 뒷줄 먼저(S335 ①): 인식 범위 안의 원거리 아군을 먼저 노린다. 비어 있으면 가장 가까운 아군을 노린다
+	var mount := ""  # 늑대 기수가 탄 것(S335 ②): 내릴 때 그 자리에 쓰러진 몸으로 남는 종류. 비어 있으면 남기지 않는다
 	var mate := 0  # 쌍둥이 트롤의 짝 번호(I273 ①): 나올 때 살아 있던 같은 종류 수를 2로 나눈 나머지. 화면이 색을 가른다
 	var twin = null  # 쌍둥이 트롤이 맡은 쓰러진 형제의 몸(S329 ②). 없으면 null
 	var raid := {}  # 원정 보스(S316)의 층 정의. 비어 있으면 원정 보스가 아니다
@@ -3907,16 +3909,28 @@ func _target_of(e: Enemy):
 	var sight: float = 0.0 if _fetching(e) else e.sight  # 형제의 몸으로 가는 쌍둥이 트롤(S329 ②)은 몸이 닿은 아군만 노린다
 	var best = null
 	var best_d := INF
+	var ranged: float = e.flank.get("ranged", INF)  # 늑대 기수(S335 ①): 후보 가운데 가장 가까운 원거리 아군(far)도 함께 찾는다. 다른 적은 INF라 찾지 않는다
+	var far = null
+	var far_d := INF
 	for m in units:
 		if not _free(m, e) or _carried(m):  # 블록 자리가 찬 유닛은 노리지 않고 지나간다(S159). 들린 용병(S308)은 노리지 않는다
 			continue
 		var d := e.pos.distance_to(m.pos)
+		if d >= best_d and (d >= far_d or m.range < ranged):
+			continue
 		# 밀어낸 직후 거리는 반지름 합과 같아서 0.01 여유를 둔다(S13: 몸으로 막은 유닛은 인식 범위 밖이어도 친다)
 		# 성벽 위 유닛은 몸으로 길을 막을 때만 친다(U13, S89, I70). 비행 적·기어오르는 적은 그 성벽 위 유닛도 노리고(I77), 비행 적은 몸에 막히지 않는다(S109)
 		# 인식 범위 0은 아무것도 보지 않는다. 몸이 겹치는 비행 적이 거리 0에서 보게 되지 않게
-		if d < best_d and ((d <= sight and sight > 0.0 and (not m.on_wall or e.flying or e.climb > 0.0)) or (not _flies(e) and d <= e.radius + m.radius + 0.01)):
-			best = m
-			best_d = d
+		if (d <= sight and sight > 0.0 and (not m.on_wall or e.flying or e.climb > 0.0)) or (not _flies(e) and d <= e.radius + m.radius + 0.01):
+			if d < best_d:
+				best = m
+				best_d = d
+			if d < far_d and m.range >= ranged:
+				far = m
+				far_d = d
+	if far != null and best_d > e.radius + best.radius + 0.01:  # 몸이 닿은 유닛이 없으면 원거리 아군이 먼저다(I279 ③). 고른 뒤에는 마을 안의 구조물·주민과 견주지 않는다
+		best = far
+		best_d = 0.0
 	if village.has_point(Vector2i(e.pos.round())):
 		for s in structures.values():
 			var d := e.pos.distance_to(nearest(s, e.pos))  # 가장 가까운 차지 칸까지(I178)
@@ -4323,6 +4337,8 @@ func _soar(e: Enemy, dt: float) -> void:
 	e.cast = null
 	if c.id == "hurled":
 		_hurl_land(e, sk, c)
+		if not e.alive:  # 던져진 슬라임(S324 ⑥)은 떨어진 때 갈라져 전장에 없다
+			return
 	elif c.id == "pounce":
 		_pounce_land(e, sk, c.who)
 	elif c.id == "dive":
@@ -4520,12 +4536,23 @@ func _spray(e: Enemy, sk: Dictionary) -> void:
 # ── 고블린 대장(S288, I230) ── 등장 착지(leap)는 뜬 단계(_soar)와 대지 강타(_slam)를 그대로 쓴다
 
 # 전쟁 기계가 부서진다: 쓰러지지 않고 같은 자리에서 phase2 종류가 된다(_turn). 착지 스킬이 있으면 그 자리에서 뜬 단계로 시작한다(I230 ①).
-# 그 자리에 그리기용 수레 잔해를 남긴다(S172 2026-11-05 변경 ⑥). 와이번(S311)은 하늘에서 떨어져 잔해가 없고, 땅 적이 설 수 있는 칸에 선다(I257 ①)
+# 그 자리에 그리기용 수레 잔해를 남긴다(S172 2026-11-05 변경 ⑥). 와이번(S311)은 하늘에서 떨어져 잔해가 없고, 땅 적이 설 수 있는 칸에 선다(I257 ①).
+# 늑대 기수(S335 ②, I279 ④)는 잔해 대신 탄 것(mount)의 쓰러진 몸을 남기고, 먼저 노리던 성문을 그대로 노린다
 func _break(e: Enemy) -> void:
 	var fell: bool = e.flying
-	if not fell:
+	var rode: bool = e.mount != ""
+	var via = e.via
+	if rode:
+		var body := _enemy(e.mount, Vector2i(e.pos.round()), {})
+		body.pos = e.pos
+		body.on_wall = e.on_wall
+		body.alive = false
+		fallen.append({"who": body, "age": 0.0})
+	elif not fell:
 		wrecks.append({"who": e, "at": e.pos, "age": 0.0})
 	_turn(e, e.phase2)
+	if rode:
+		e.via = via
 	if fell:
 		e.on_wall = false
 		var c := Vector2i(e.pos.round())
@@ -4846,7 +4873,7 @@ func _drums() -> void:
 					_drummed[e] = a.drum
 
 # 오우거 투척꾼(S324 ①②, I268 ①): 대기가 끝났고 도발되지 않았으면, min칸 넘고 range칸 안의 가장 가까운 원거리 아군(성벽 위 포함, 들린 것 빼고)과
-# reach칸 안의 가장 가까운 땅 위 오크(kinds의 종류. 뜬 것·집힌 것 빼고)를 고른다. 둘 다 있으면 오크를 집고 대상의 지금 자리에 원 예고를 띄운다. 띄웠으면 true
+# reach칸 안의 가장 가까운 땅 위 오크(kinds의 종류 — 오크 셋과 슬라임·늑대, S324 2026-11-11 변경. 뜬 것·집힌 것 빼고)를 고른다. 둘 다 있으면 오크를 집고 대상의 지금 자리에 원 예고를 띄운다. 띄웠으면 true
 func _heave(e: Enemy) -> bool:
 	var taunt = _fx_on(e, "taunt")
 	if e.cd.get("hurl", 0.0) > 0.0 or (taunt and taunt.alive):
@@ -4889,6 +4916,21 @@ func _hurl_land(o: Enemy, sk: Dictionary, c: Dictionary) -> void:
 	for u in units.duplicate():
 		if u.pos.distance_to(c.at) <= sk.radius and not _carried(u):
 			damage(u, sk.hit, "phys", o)
+	if not o.split.is_empty():  # 던져진 슬라임(S324 ⑥): 원 피해 다음에 그 자리에서 갈라진다
+		_sunder(o)
+
+# 던져진 적이 떨어진 자리에서 갈라진다(S324 ⑥, I279 ①): 처치가 아니어서 처치 보상·경험치·전염·쓰러진 몸 없이 몸을 전장에서 지우고,
+# 갈라져 나온 것을 떨어진 자리 둘레에 놓는다(_divide). 성벽 위에 떨어졌으면 갈라져 나온 것도 그 성벽 칸 위에 선다
+func _sunder(o: Enemy) -> void:
+	o.alive = false
+	enemies.erase(o)
+	o.fx.clear()
+	var n := enemies.size()
+	_divide(o)
+	if o.on_wall:
+		for k in enemies.slice(n):
+			k.on_wall = true
+			k.pos = o.pos
 
 # 사슬 오크(S325 ①, I269 ①②): 대기가 끝났고 도발되지 않았으면, min칸 넘고 range칸 안의 가장 가까운 땅 위 아군(들린 것 빼고)을 본다.
 # 그 아군까지 곧은 선이 트였으면 그쪽으로 직선 예고를 띄운다. 띠 끝(to)은 돌진 길(_dash)처럼 막힌 칸 앞에서 끊는다. 띄웠으면 true

@@ -16,7 +16,7 @@ hurl = {
 "min": 2.0,
 "ranged": 2.0,
 "reach": 1.5,
-"kinds": ["armored", "shield_orc", "berserker"],
+"kinds": ["armored", "shield_orc", "berserker", "slime", "wolf"],
 "windup": 1.2,
 "air": 0.6,
 "radius": 1.0,

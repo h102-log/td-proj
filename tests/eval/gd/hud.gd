@@ -4065,8 +4065,19 @@ func ev913():
 	var got = main.hud._wave_lines([4, 2])
 	_done(main)
 	var a: String = got if got is String else ""
-	return check("오우거 투척꾼: 옆의 오크를 집어 뒷줄 원거리 아군에게 던진다" in a and "사슬 오크: 사슬을 던져 줄 위의 아군을 끌어온다" in a,
-		"5라운드 3웨이브 줄 «%s»" % a)
+	return check("오우거 투척꾼: 옆의 적을 집어 뒷줄 원거리 아군에게 던진다" in a and "사슬 오크: 사슬을 던져 줄 위의 아군을 끌어온다" in a,
+		"5라운드 3웨이브 줄 «%s»" % a)  # 투척꾼 줄은 S324 2026-11-11 변경
+
+# EV968 · S335·S324: 6라운드 2웨이브 미리보기에 늑대 기수의 특성 줄이, 1웨이브에 투척꾼의 특성 줄이 있다
+func ev968():
+	var main = _prep()
+	var one = main.hud._wave_lines([5, 0])
+	var two = main.hud._wave_lines([5, 1])
+	_done(main)
+	var a: String = one if one is String else ""
+	var b: String = two if two is String else ""
+	return check("오우거 투척꾼: 옆의 적을 집어 뒷줄 원거리 아군에게 던진다" in a and "늑대 기수: 뒷줄 원거리 아군부터 노린다. 늑대가 쓰러지면 오크가 내려 싸운다" in b,
+		"6라운드 1웨이브 줄 «%s» · 2웨이브 줄 «%s»" % [a, b])
 
 # EV937 · S328·S329: 5라운드 4웨이브 미리보기에 트롤 싸움꾼·쌍둥이 트롤의 특성 줄이 있다
 func ev937():

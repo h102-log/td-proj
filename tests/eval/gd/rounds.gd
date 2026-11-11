@@ -36,6 +36,9 @@ const SKY := [{"flying": 360, "feather_harpy": 60}, {"flying": 300, "song_harpy"
 const ORC := [{"shield_orc": 48, "armored": 160}, {"shield_orc": 40, "armored": 180, "drummer": 20, "berserker": 80},
 	{"shield_orc": 40, "armored": 140, "ogre_thrower": 20, "berserker": 40, "chain_orc": 30},
 	{"shield_orc": 40, "armored": 180, "troll": 30, "twin_troll": 2, "berserker": 80}]
+# S336: 6라운드 1·2웨이브는 대족장 군단(마릿수, 10배를 하지 않는다). 키 차례가 나오는 차례다. 3·4웨이브는 I91 표 그대로
+const HOST := [{"slime": 80, "armored": 40, "ogre_thrower": 10, "wolf": 112},
+	{"shieldbearer": 10, "basic": 160, "fire_archer": 10, "shield_orc": 48, "drummer": 20, "wolf": 96, "wolf_rider": 60}]
 # I91 표(2026-10-21 개정): 2~6라운드 웨이브마다 종류별 적 수
 const I91 := [
 	[{"basic": 18, "fast": 8, "flying": 6}, {"basic": 18, "armored": 8, "flying": 10, "fast": 4}, {"basic": 18, "fast": 8, "armored": 8, "flying": 6}, {"basic": 22, "fast": 12, "armored": 8, "flying": 10, "boss": 1}],
@@ -279,6 +282,7 @@ func ev169():
 	table[2] = RAID  # I91 2026-11-03 변경·둘째 변경·셋째 변경: 3라운드 네 웨이브 모두 고블린 약탈단(마릿수)
 	table[3] = SKY  # S303: 4라운드 네 웨이브 모두 하늘 둥지(마릿수)
 	table[4] = ORC  # S318: 5라운드 네 웨이브 모두 오크 전쟁패(마릿수)
+	table[5] = HOST + table[5].slice(2)  # S336: 6라운드 1·2웨이브는 대족장 군단(마릿수). 3·4웨이브는 I91 표의 10배 그대로
 	for k in 6:
 		var got := _counts(b.rounds[k])
 		if got != table[k]:
@@ -505,3 +509,26 @@ func ev896():
 		if born.size() != pair[2] or born.any(func(k): return k != pair[0]):
 			return "%s %d마리짜리 웨이브의 첫 적이 나온 스텝에 나온 적 %s(%d마리여야 한다)" % [pair[0], pair[1], born, pair[2]]
 	return ""
+
+# EV969 · S336: data/waves/round_6.tres의 1·2웨이브는 S336의 수이고 키 차례가 나오는 차례다. 3·4웨이브는 옛 구성 그대로다.
+# 늑대 기수는 무리 2(S238)라 첫 차례에 둘이 함께 나온다
+func ev969():
+	var w = load("res://data/waves/round_6.tres")
+	if w == null or not w.get("waves") is Array or w.waves.size() != 4:
+		return "6라운드 웨이브 Resource의 waves가 웨이브 4개 배열이 아니다(%s)" % [w.get("waves") if w != null else null]
+	var want: Array = HOST + [{"basic": 260, "fast": 140, "armored": 120, "flying": 100}, {"basic": 360, "fast": 180, "armored": 120, "flying": 140, "boss": 2}]
+	var bad := []
+	for i in 4:
+		var d: Dictionary = w.waves[i]
+		if d != want[i] or (i < 2 and d.keys() != want[i].keys()):
+			bad.append("%d웨이브 %s(%s여야 한다)" % [i + 1, d, want[i]])
+	if not bad.is_empty():
+		return "수나 차례가 다른 웨이브 %s" % [bad]
+	var b = battle({"waves": [[{"kind": "wolf_rider", "count": 4}]]})
+	if not b.ENEMY_KINDS.has("wolf_rider"):
+		return "적 종류 wolf_rider가 없다"
+	b.start_battle()
+	if not run(b, 1.0, func(): return not b.enemies.is_empty()):
+		return "1초 안에 늑대 기수가 나오지 않았다"
+	var born: Array = b.enemies.map(func(e): return e.kind)
+	return check(born == ["wolf_rider", "wolf_rider"], "늑대 기수 4마리짜리 웨이브의 첫 적이 나온 스텝에 나온 적 %s(2마리여야 한다)" % [born])

@@ -36,7 +36,7 @@ extends Resource
 @export var cargo := 0  # 탄 고블린 수(S284 공성탑, S286 수송 비행선). 0이면 태우지 않는다
 @export var bomb := {}  # 폭탄 열기구(S285): {radius 원 반경, windup 예고 초, cd 대기 초, structure 구조물 피해, unit 아군 피해}
 @export var drop := {}  # 수송 비행선 투하(S286): {range 거점 둘레 칸, house 집 거리 칸, windup 표식 초, crash_hp 투하 전 격추 때 체력 배율}
-@export var phase2 := ""  # 체력이 0이 되면 쓰러지지 않고 이 종류가 된다(S288 전쟁 기계 → 대장). 비어 있으면 쓰러진다
+@export var phase2 := ""  # 체력이 0이 되면 쓰러지지 않고 이 종류가 된다(S288 전쟁 기계 → 대장, S335 늑대 기수 → 장갑). 비어 있으면 쓰러진다
 @export var guard := 0.0  # 방패 내구도(S301, I248): 궁수탑·궁수 용병의 화살 피해를 방어력보다 먼저 받는다. 라운드 체력 배율(S144)을 곱한다. 0이면 방패가 없다
 @export var escort := {}  # 호위(S301, I248 ⑤): 웨이브에서 나올 때 한 차례에 함께 나오는 {kind, count}. 비어 있으면 혼자 나온다
 @export var flame := {}  # 불화살(S302, I249): {windup 예고 초, cd 대기 초, hit 화살 피해, dps 불 초당 피해, time 불 초, spread 번지는 때(붙은 뒤 초)}
@@ -50,7 +50,9 @@ extends Resource
 @export var wall := {}  # 방패벽(S319, I263): {near 방패벽을 서는 거리 칸, cover 둘레 칸, cut 정면 화살·구슬 피해를 덜 받는 비율}. 비어 있으면 방패벽을 서지 않는다
 @export var frenzy := {}  # 격노(S320, I264): {haste 공격 속도, stride 이동 속도}에 잃은 체력 비율을 곱해 더한다. 비어 있으면 격노하지 않는다
 @export var drum := {}  # 전쟁 북(S321, I265): {radius 반경, haste 둘레 적 공격 속도, stride 둘레 적 이동 속도, keep 들을 적이 있을 때 대상에서 서는 거리 칸}. 비어 있으면 북을 치지 않는다
-@export var hurl := {}  # 오크 던지기(S324, I268): {range·min 던질 원거리 아군까지 거리 칸, ranged 원거리로 치는 사거리 칸, reach 집을 오크까지 거리 칸, kinds 집을 종류, windup 예고 초, air 나는 초, radius 원 반경, hit 아군 피해, cd 대기 초}. 비어 있으면 던지지 않는다
+@export var hurl := {}  # 오크 던지기(S324, I268): {range·min 던질 원거리 아군까지 거리 칸, ranged 원거리로 치는 사거리 칸, reach 집을 오크까지 거리 칸, kinds 집을 종류(오크·슬라임·늑대, S324 2026-11-11 변경), windup 예고 초, air 나는 초, radius 원 반경, hit 아군 피해, cd 대기 초}. 비어 있으면 던지지 않는다
 @export var hook := {}  # 사슬(S325, I269): {range·min 볼 아군까지 거리 칸(range는 띠 길이), width 띠 폭 칸, windup 예고 초, hit 아군 피해, gap 끌어올 자리까지 거리 칸, cd 대기 초}. 비어 있으면 사슬을 던지지 않는다
 @export var regen := 0.0  # 재생(S327, I271): 초당 차는 최대 체력 비율. 불·기절·빙결·봉인 중에는 멈춘다. 0이면 재생하지 않는다
 @export var swat := {}  # 쓸기(S328, I272): {range 부채꼴 반경 칸, arc 각도°, windup 예고 초, hit 아군 피해, knock 미는 칸, cd 대기 초}. 비어 있으면 쓸지 않는다
+@export var flank := {}  # 뒷줄 먼저(S335 ①, I279 ③): {ranged 원거리로 치는 사거리 칸}. 인식 범위 안의 원거리 아군을 더 가까운 근접 아군보다 먼저 노린다. 비어 있으면 가장 가까운 아군을 노린다
+@export var mount := ""  # 탄 것(S335 ②, I279 ④): 체력이 0이 되어 phase2 종류가 될 때 그 자리에 쓰러진 몸으로 남는 종류. 비어 있으면 남기지 않는다(전쟁 기계는 수레 잔해, 와이번은 없음)

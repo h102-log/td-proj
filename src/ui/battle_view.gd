@@ -21,6 +21,7 @@ const ENEMY_COLORS := {  # 적 종류마다 다른 색(I81)
 	"nest_harpy": Color("a8d070"), "nest": Color("7a5a30"), "harpy_chick": Color("f0d8c0"), "wyvern": Color("4a8a58"), "wyvern_fallen": Color("8a3a28"),
 	"shield_orc": Color("8898b0"), "berserker": Color("c84a3a"), "drummer": Color("c8a050"),
 	"ogre_thrower": Color("9a6a3a"), "chain_orc": Color("5a8a7a"), "troll": Color("5f8f8a"), "twin_troll": Color("3f6f9a"),
+	"wolf_rider": Color("94684e"),
 }
 # 그림이 아직 없어 다른 종류의 그림을 빌리는 종류 → [빌리는 종류, 곱하는 색](I250 ⑤·I253 ⑤). 4라운드 하피 다섯은 비행(하피) 그림이다
 const TWINS := [Color(1.45, 1.1, 0.4), Color(0.8, 0.95, 1.3)]  # 쌍둥이 트롤 두 마리에 곱하는 색(I274): 짝 번호 0은 누런 쪽, 1은 푸른 쪽. 임시값

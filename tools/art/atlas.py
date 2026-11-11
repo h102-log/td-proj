@@ -12,6 +12,7 @@
 # 고블린 대장과 수레 잔해(I189 2026-11-05 변경)는 주민 띠 구역 오른쪽에 위에서부터 쌓는다(x만). 대장 칸 4324px은 옆 열 구역 4032px에 들지 않는다
 # 와이번과 떨어진 와이번(I189 2026-11-10 변경)은 영웅 구역 오른쪽에 위에서부터 쌓는다(x만). 주민 띠 오른쪽은 대장·잔해 아래 1144px만 남는다
 # 트롤(I274)은 주민 띠 오른쪽의 수레 잔해 아래에 쌓는다(x만). 싸움꾼과 쌍둥이가 같은 칸을 쓴다
+# 늑대 기수(I279 ⑤)는 트롤 아래에 쌓는다(x만). 쓰러지지 않고 내리므로 누운 자세 칸이 없다
 # 시설(4.1e)은 48×48 칸을 따로 한 장에 모은다(facility())
 # 사용: python tools/art/atlas.py → art/units/heroes.png, art/units/heroes.json, art/castle/walls.png, art/castle/keep.png, art/castle/ladder.png, art/castle/facility.png
 import json
@@ -35,7 +36,8 @@ RAID = {"sapper": ("fall",), "ram": (), "catapult": (), "glider": ("fall", "land
 SIEGE = ["siege_tower", "balloon", "airship"]  # 셋째 옆 열 4방향 적(S172 2026-11-03 둘째 변경): 정지·걷기·공격만
 WAR = {"war_machine": ["idle", "walk", "cannon", "mgun", "grab", "slam"]}  # 넷째 옆 열 4방향 적(S172 2026-11-03 셋째 변경) → 자세. 공격·누운 자세 없음
 TOWN_SIDE = {"chief": ["idle", "walk", "attack", "rage_idle", "rage_walk", "cleave", "charge", "fling", "bombs", "leap", "fall"],
-             "wreck": ["idle"], "troll": ["idle", "walk", "attack", "fall"]}  # 주민 띠 오른쪽 4방향 칸(S172 2026-11-05 변경): 고블린 대장, 그 아래 수레 잔해, 그 아래 트롤(I274) → 자세
+             "wreck": ["idle"], "troll": ["idle", "walk", "attack", "fall"],
+             "wolf_rider": ["idle", "walk", "attack"]}  # 주민 띠 오른쪽 4방향 칸(S172 2026-11-05 변경): 고블린 대장, 그 아래 수레 잔해, 그 아래 트롤(I274), 그 아래 늑대 기수(I279 ⑤, 누운 자세 없음) → 자세
 HERO_SIDE = {"wyvern": ["idle", "walk", "attack", "plunge", "carpet"],
              "wyvern_fallen": ["idle", "walk", "attack", "breath", "rush", "tail", "fall"]}  # 영웅 구역 오른쪽 4방향 칸(S172 2026-11-10 변경): 와이번, 그 아래 떨어진 와이번 → 자세
 
