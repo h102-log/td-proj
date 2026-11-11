@@ -120,12 +120,14 @@ func ev888():
 	whys.append(b.raid_block())
 	b.floors_cleared = 3
 	whys.append(b.raid_block())
+	b.floors_cleared = 4
+	whys.append(b.raid_block())
 	b.floors_cleared = 0
 	b.start_battle()
 	var battle_why: String = b.raid_block()
 	var started: bool = b.start_raid()
-	if whys != ["party", "torch", "round", "round", "done"] or battle_why != "state" or started or b.state != "battle" or b.torches != 2:
-		return "전멸·횃불 0·1층 깸·2층 깸·3층 깸 %s(기대 party·torch·round·round·done) · 전투 단계 %s(기대 state) · 시작 %s · 판 %s · 횃불 %d(기대 battle, 2)" % [whys, battle_why, started, b.state, b.torches]
+	if whys != ["party", "torch", "round", "round", "round", "done"] or battle_why != "state" or started or b.state != "battle" or b.torches != 2:
+		return "전멸·횃불 0·1층 깸·2층 깸·3층 깸·4층 깸 %s(기대 party·torch·round·round·round·done) · 전투 단계 %s(기대 state) · 시작 %s · 판 %s · 횃불 %d(기대 battle, 2)" % [whys, battle_why, started, b.state, b.torches]
 	return ""
 
 # EV889 · S316·I262 ④⑤: 들어가기. 저장 신호 때는 준비 단계·횃불 1이고, 산 영웅만 입구에 선다. 보스는 층 수치이고 라운드 배율을 받지 않는다. 원정 중 집은 멈추고 집 명령은 판을 바꾸지 않는다
@@ -1625,9 +1627,9 @@ func ev971():
 	if f.get("shift") != {"below": 0.5, "rest": 0.3, "twice": "charge", "windup": 1.0} or f.get("hunts") != true:
 		return "체력 문턱 %s(기대 below 0.5·rest 0.3·twice charge·windup 1) · 사냥감 표시 %s(참)" % [f.get("shift"), f.get("hunts")]
 	var wolf = load("res://data/enemies/alpha_wolf.tres")
-	return check(_stage().den.floors == ["floor_1", "floor_2", "floor_3"] and load("res://data/dungeon/floor_1.tres").get("walks") == true
+	return check(_stage().den.floors == ["floor_1", "floor_2", "floor_3", "floor_4"] and load("res://data/dungeon/floor_1.tres").get("walks") == true
 		and wolf.hp == 160.0 and wolf.radius == 0.45 and wolf.skills.pounce.break_dmg == 40.0 and wolf.skills.frenzy == {"damage": 0.25},
-		"층 차례 %s(기대 floor_1·floor_2·floor_3) · 1층 walks %s(참) · 디펜스 알파 체력 %s·몸 %s·break_dmg %s·광분 %s(기대 160·0.45·40·{damage 0.25})" % [_stage().den.floors, load("res://data/dungeon/floor_1.tres").get("walks"), wolf.hp, wolf.radius, wolf.skills.pounce.break_dmg, wolf.skills.frenzy])
+		"층 차례 %s(기대 floor_1~floor_4) · 1층 walks %s(참) · 디펜스 알파 체력 %s·몸 %s·break_dmg %s·광분 %s(기대 160·0.45·40·{damage 0.25})" % [_stage().den.floors, load("res://data/dungeon/floor_1.tres").get("walks"), wolf.hp, wolf.radius, wolf.skills.pounce.break_dmg, wolf.skills.frenzy])
 
 # EV972 · S337·I280 ①: 2층은 3라운드부터 열리고 알파 하나가 층 수치로 나온다. 알파는 걷지도 기본 공격도 하지 않는다
 func ev972():
@@ -2007,9 +2009,9 @@ func ev994():
 		return "경감 %s · 그로기 %s · 광폭 %s · 불꽃 %s · 층 골드 %s · 유물 «%s»(기대 0.89·5초 1.5배·100초 10초 0.15·150·180·iron_cog)" % [f.ward, f.groggy, f.enrage, f.hard, f.gold, f.relic]
 	var machine = load("res://data/enemies/war_machine.tres")
 	var chief = load("res://data/enemies/chief.tres")
-	return check(_stage().den.floors == ["floor_1", "floor_2", "floor_3"] and machine.hp == 200.0 and machine.radius == 0.7 and machine.armor == 15.0 and machine.phase2 == "chief"
+	return check(_stage().den.floors == ["floor_1", "floor_2", "floor_3", "floor_4"] and machine.hp == 200.0 and machine.radius == 0.7 and machine.armor == 15.0 and machine.phase2 == "chief"
 		and machine.skills.cannon.windup == 1.2 and chief.hp == 200.0 and chief.radius == 0.9 and chief.armor == 10.0 and chief.skills.charge.length == 6.0 and not chief.skills.leap.has("windup"),
-		"층 차례 %s(기대 floor_1·floor_2·floor_3) · 디펜스 기계 체력 %s·몸 %s·방어력 %s·둘째 형태 %s·대포 예고 %s(200·0.7·15·chief·1.2) · 디펜스 대장 체력 %s·몸 %s·방어력 %s·돌진 길이 %s(200·0.9·10·6)" % [_stage().den.floors, machine.hp, machine.radius, machine.armor, machine.phase2, machine.skills.cannon.windup, chief.hp, chief.radius, chief.armor, chief.skills.charge.length])
+		"층 차례 %s(기대 floor_1~floor_4) · 디펜스 기계 체력 %s·몸 %s·방어력 %s·둘째 형태 %s·대포 예고 %s(200·0.7·15·chief·1.2) · 디펜스 대장 체력 %s·몸 %s·방어력 %s·돌진 길이 %s(200·0.9·10·6)" % [_stage().den.floors, machine.hp, machine.radius, machine.armor, machine.phase2, machine.skills.cannon.windup, chief.hp, chief.radius, chief.armor, chief.skills.charge.length])
 
 # EV995 · S342: 3층은 4라운드부터 열리고 기계 하나가 층 수치로 나온다. 기계는 걷지도 기본 공격도 하지 않는다
 func ev995():
@@ -2458,8 +2460,8 @@ func ev1007():
 	_done(main)
 	if first != ["전쟁 기계", 1.0] or second != ["고블린 대장", 1.0, 1.0]:
 		return "기계일 때 [이름, 그림 배율] %s(기대 [전쟁 기계, 1]) · 대장일 때 [이름, 그림 배율, 잔해 그림 배율] %s(기대 [고블린 대장, 1, 1])" % [first, second]
-	return check(after == ["prep", 3, 180, {"iron_cog": 0}, "done"] and texts.any(func(t): return "3층" in t and "톱니" in t and "180" in t),
-		"처치 3.1초 뒤 [판, 깬 층, 는 골드, 가방, 원정 버튼 이유] %s(기대 [prep, 3, 180, {iron_cog: 0}, done]) · 보인 토스트 %s(«3층»·«톱니»·«180»이 함께 든 것이 있어야)" % [after, texts])
+	return check(after == ["prep", 3, 180, {"iron_cog": 0}, "round"] and texts.any(func(t): return "3층" in t and "톱니" in t and "180" in t),
+		"처치 3.1초 뒤 [판, 깬 층, 는 골드, 가방, 원정 버튼 이유] %s(기대 [prep, 3, 180, {iron_cog: 0}, round]) · 보인 토스트 %s(«3층»·«톱니»·«180»이 함께 든 것이 있어야)" % [after, texts])
 
 # EV1008 · I283 ⑤⑧: 대장인 채 전멸해 «다시»를 하면 잔해가 사라지고 기계가 가득 찬 체력으로 새로 나온다. 철수해도 잔해가 사라진다
 func ev1008():
@@ -2938,3 +2940,609 @@ func ev1028():
 	var want: Vector2 = Vector2(84, 87.25) * 16.0 + Vector2(8, 8) + Vector2(0, 1) * 16.0 * 0.9
 	return check(groggy and crashes.size() == 1 and crashes[0][1].distance_to(want) < 0.01 and crashes[0][2].distance_to(Vector2(0, 1)) < 0.001,
 		"벽 돌진을 피한 2초 동안 그로기 %s(참) · 박힘 사건 %s(기대 하나, 자리 %s·방향 (0,1))" % [groggy, crashes, want])
+
+# ── 원정 4층(S352·I288) ── 더하는 API:
+#   data/dungeon/floor_4.tres · Battle.trails(불길 목록 {from, to, width, left, dps, time}) · 내려앉음 예고 cast {id «perch», left, held}
+#   _flies(적) -> bool(날고 있나) · 영웅의 불 효과 fx.burn({burn, left})
+
+# 5라운드 첫 준비 단계(횃불 4)·깬 층 3의 판
+func _den4(team := TEAM):
+	var b = _den3(team)
+	b.state = "cleared"
+	b.next_round()
+	b.floors_cleared = 3
+	return b
+
+# 4층 원정을 시작해 원정대를 멈추고 와이번의 서 있기를 0으로, 대본 쉼을 아주 길게 둔다. 와이번(하나뿐인 적)을 돌려주고, 아니면 null
+func _wyvern(b):
+	b.start_raid()
+	if b.state != "raid" or b.enemies.size() != 1 or b.enemies[0].kind != "wyvern" or b.enemies[0].get("rest") == null:
+		return null
+	_freeze(b)
+	var e = b.enemies[0]
+	e.pull = 0.0
+	e.rest = 999.0
+	return e
+
+# 4층 원정에서 와이번을 떨어뜨려 떨어진 와이번으로 바꾸고 대본 쉼을 아주 길게 둔다. 떨어진 와이번(같은 적)을 돌려주고, 아니면 null
+func _fallen(b):
+	var e = _wyvern(b)
+	if e == null:
+		return null
+	b.damage(e, BIG)
+	if e.kind != "wyvern_fallen" or not e.alive:
+		return null
+	e.cast = null
+	e.rest = 999.0
+	return e
+
+# EV1031 · S352: 4층 층 정의의 수치와 층 차례. 디펜스 와이번·떨어진 와이번 종류는 그대로다
+func ev1031():
+	if not ResourceLoader.exists("res://data/dungeon/floor_4.tres"):
+		return "data/dungeon/floor_4.tres가 없다"
+	var f = load("res://data/dungeon/floor_4.tres")
+	if f.title != "와이번" or f.opens != 5 or f.kind != "wyvern" or f.stats != {"hp": 1000.0, "radius": 0.9, "reward": 0, "xp": 0} or f.get("walks") != false or f.get("hunts") != true or not f.gens.is_empty() or f.get("scale") != 1.0 or f.get("wreck") != 0.0:
+		return "이름 %s · 열림 %s · 종류 %s · 수치 %s · walks %s · hunts %s · 세대 %s · 그림 배율 %s · 잔해 %s(기대 와이번·5·wyvern·체력 1000 몸 0.9 보상 0·거짓·참·없음·1·0)" % [f.title, f.opens, f.kind, f.stats, f.get("walks"), f.get("hunts"), f.gens, f.get("scale"), f.get("wreck")]
+	var sk: Dictionary = f.skills
+	var plunge := {"windup": 1.6, "air": 0.5, "radius": 2.0, "damage": 30.0, "knock": 1.0, "down": 2.0, "window": 1.0}
+	var carpet := {"windup": 1.4, "pass": 0.8, "length": 12.0, "width": 1.5, "dps": 5.0, "time": 4.0, "trail": 8.0}
+	if sk.get("plunge") != plunge or sk.get("carpet") != carpet or sk.size() != 2:
+		return "1형 스킬: 급강하 %s · 융단 폭격 %s · 수 %d(둘)" % [sk.get("plunge"), sk.get("carpet"), sk.size()]
+	if f.plan != [{"id": "plunge", "wait": 4.0}, {"id": "carpet", "wait": 4.0}, {"id": "plunge", "wait": 3.0}]:
+		return "1형 대본 %s(기대 급강하 4 → 융단 폭격 4 → 급강하 3)" % [f.plan]
+	var p: Dictionary = f.get("phase2")
+	if p.get("title") != "떨어진 와이번" or p.get("kind") != "wyvern_fallen" or p.get("scale") != 1.0 or p.get("stats") != {"hp": 1000.0, "radius": 0.9, "reward": 0, "xp": 0}:
+		return "2형 이름 %s · 종류 %s · 그림 배율 %s · 수치 %s(기대 떨어진 와이번·wyvern_fallen·1·체력 1000 몸 0.9 보상 0)" % [p.get("title"), p.get("kind"), p.get("scale"), p.get("stats")]
+	var want := {
+		"lash": {"windup": 1.35, "range": 4.0, "arc": 90.0, "dps": 5.0, "time": 4.0, "back": {"range": 3.0, "arc": 120.0, "unit": 20.0, "knock": 1.5}},
+		"charge": {"windup": 1.35, "length": 8.0, "width": 1.0, "side": 1.0, "unit": 30.0, "run": 2.0, "dps": 5.0, "time": 4.0},
+		"soak": {"windup": 4.0, "radius": 1.5, "far": 5.0, "turn": 90.0, "damage": 60.0, "need": 2, "miss": 20.0, "heal": 0.05, "color": "gold", "counter": 1.0},
+	}
+	var got: Dictionary = p.get("skills", {})
+	for id in want:
+		if got.get(id) != want[id]:
+			return "2형 %s %s(기대 %s)" % [id, got.get(id), want[id]]
+	if got.size() != 3 or p.get("plan") != [{"id": "lash", "wait": 3.0}, {"id": "charge", "wait": 4.0}, {"id": "lash", "wait": 3.0}, {"id": "soak", "wait": 5.0}]:
+		return "2형 스킬 수 %d(셋) · 대본 %s(기대 앞뒤 휩쓸기 3 → 맹진 4 → 앞뒤 휩쓸기 3 → 불덩이 5)" % [got.size(), p.get("plan")]
+	if f.ward != 0.89 or f.groggy != {"time": 5.0, "mult": 1.5} or f.enrage != {"soft": 100.0, "step": 10.0, "ramp": 0.15} or f.hard != 150.0 or f.gold != 200 or f.relic != "":
+		return "경감 %s · 그로기 %s · 광폭 %s · 불꽃 %s · 층 골드 %s · 유물 «%s»(기대 0.89·5초 1.5배·100초 10초 0.15·150·200·없음)" % [f.ward, f.groggy, f.enrage, f.hard, f.gold, f.relic]
+	var wyvern = load("res://data/enemies/wyvern.tres")
+	var down = load("res://data/enemies/wyvern_fallen.tres")
+	return check(_stage().den.floors == ["floor_1", "floor_2", "floor_3", "floor_4"] and wyvern.hp == 160.0 and wyvern.radius == 0.9 and wyvern.flying == true and wyvern.phase2 == "wyvern_fallen"
+		and wyvern.skills.plunge.radius == 1.5 and wyvern.skills.carpet.count == 2 and not wyvern.skills.carpet.has("trail") and down.hp == 200.0 and down.skills.rush.length == 6.0 and down.skills.has("breath") and down.skills.has("tail"),
+		"층 차례 %s(기대 floor_1~floor_4) · 디펜스 와이번 체력 %s·몸 %s·비행 %s·둘째 형태 %s·급강하 반경 %s·융단 폭격 count %s·trail 칸 %s(160·0.9·참·wyvern_fallen·1.5·2·없음) · 디펜스 떨어진 와이번 체력 %s·맹진 길이 %s·숨결 %s·꼬리 %s(200·6·있음·있음)" % [_stage().den.floors, wyvern.hp, wyvern.radius, wyvern.flying, wyvern.phase2, wyvern.skills.plunge.radius, wyvern.skills.carpet.count, wyvern.skills.carpet.has("trail"), down.hp, down.skills.rush.length, down.skills.has("breath"), down.skills.has("tail")])
+
+# EV1032 · S352: 4층은 5라운드부터 열리고 와이번 하나가 층 수치로 날며 나온다. 와이번은 걷지도 기본 공격도 하지 않는다
+func ev1032():
+	var a = _den3()
+	a.floors_cleared = 3
+	var early: String = a.raid_block()
+	var b = _den4()
+	var why: String = b.raid_block()
+	var torches: int = b.torches
+	var e = _wyvern(b)
+	if early != "round" or why != "" or e == null:
+		return "4라운드 이유 %s(round) · 5라운드 이유 «%s»(없음) · 원정 %s · 적 %d(와이번 하나)" % [early, why, b.state, b.enemies.size()]
+	if e.pos != Vector2(BOSS) or e.hp != 1000.0 or e.max_hp != 1000.0 or e.radius != 0.9 or e.flying != true or not b._flies(e) or e.reward != 0 or e.xp != 0 or b.raid_title() != "와이번" or b.raid_left() != 1.0 or b.torches != torches - 1:
+		return "자리 %s · 체력 %s/%s · 몸 %s · 비행 %s · 날고 있나 %s · 보상 %s·%s · 보스 이름 %s · 남은 비율 %s · 횃불 %d(기대 (84,80)·1000·0.9·참·참·0·0·와이번·1·%d)" % [e.pos, e.hp, e.max_hp, e.radius, e.flying, b._flies(e), e.reward, e.xp, b.raid_title(), b.raid_left(), b.torches, torches - 1]
+	var u = b.party[1]
+	u.pos = Vector2(84, 82)
+	var hp: float = u.hp
+	_go(b, 6.0)
+	return check(e.pos == Vector2(BOSS) and u.hp == hp and e.cast == null, "6초 뒤 와이번 자리 %s((84,80)) · 2칸 옆 영웅 체력 %s → %s · 예고 %s(없음)" % [e.pos, hp, u.hp, e.cast])
+
+# EV1033 · S352 ①: 급강하는 사냥감이 선 자리에 반경 2칸 원을 1.6초 예고하고 0.5초 동안 내리꽂는다. 자리는 사냥감을 따라가지 않고, 원 안의 영웅은 피해 30을 받고 1칸 밀린다
+func ev1033():
+	var b = _den4()
+	var e = _wyvern(b)
+	if e == null:
+		return "4층 원정이 되지 않았다"
+	_stand(b, FAR3)
+	var c = _tell(b, e, 0)
+	if c == null or c.id != "plunge" or c.get("at") != Vector2(84, 86) or absf(c.left - 1.6) > 0.001:
+		return "급강하 예고 %s(기대 plunge·자리 (84,86)·남은 1.6초)" % [c]
+	var p = b.party
+	p[1].pos = Vector2(84, 85)
+	p[2].pos = Vector2(85.5, 86)
+	var hp: Array = p.map(func(h): return h.hp)
+	var want := [_take(b, p[1], 30.0), _take(b, p[2], 30.0)]
+	_go(b, 1.5)
+	var open: bool = b.countering(e)
+	b._fx(e, "t0", {"stun": true}, 2.0)
+	var held = e.cast
+	if held == null or held.get("air", false) or held.at != Vector2(84, 86) or e.pos != Vector2(BOSS) or p.map(func(h): return h.hp) != hp or open or _groggy(b, e):
+		return "예고 1.55초째 예고 %s(기대 내리꽂기 전·자리 (84,86) 그대로) · 와이번 %s((84,80)) · 영웅 체력 %s → %s · 카운터 창 %s(거짓) · 기절을 건 뒤 그로기 %s(거짓: 급강하 예고는 끊기지 않는다)" % [held, e.pos, hp, p.map(func(h): return h.hp), open, _groggy(b, e)]
+	_go(b, 0.15)
+	var dive = e.cast
+	if dive == null or not dive.get("air", false) or not b._aloft(e) or e.beat != 1:
+		return "예고 1.7초째 예고 %s(내리꽂는 중이어야) · 뜬 적 %s(참) · 대본 차례 %s(1)" % [dive, b._aloft(e), e.beat]
+	_go(b, 0.5)
+	var lost: Array = range(3).map(func(i): return hp[i] - p[i].hp)
+	return check(e.pos == Vector2(84, 86) and lost[0] == 0.0 and absf(lost[1] - want[0]) < 0.01 and absf(lost[2] - want[1]) < 0.01 and p[1].pos.distance_to(Vector2(84, 84)) < 0.01 and p[2].pos.distance_to(Vector2(86.5, 86)) < 0.01 and p[0].pos == FAR3[0],
+		"착지 뒤 와이번 %s((84,86)) · 잃은 체력 %s(기대 0 · %s · %s) · 둘째 영웅 %s((84,85)에서 (84,84)) · 셋째 영웅 %s((85.5,86)에서 (86.5,86)) · 첫째 영웅 %s(그대로)" % [e.pos, lost, want[0], want[1], p[1].pos, p[2].pos, p[0].pos])
+
+# EV1034 · S352 ②: 급강하를 모두 피하면 와이번이 처박혀 그로기가 된다. 다른 영웅이라도 원 안에서 맞으면 그로기가 아니다
+func ev1034():
+	var b = _den4()
+	var e = _wyvern(b)
+	if e == null:
+		return "① 4층 원정이 되지 않았다"
+	_stand(b, FAR3)
+	_tell(b, e, 0)
+	b.party[1].pos = Vector2(84, 83.5)
+	var hp: Array = b.party.map(func(h): return h.hp)
+	_go(b, 2.2)
+	if not _groggy(b, e) or e.cast != null or e.pos != Vector2(84, 86) or e.beat != 1 or b.party.map(func(h): return h.hp) != hp:
+		return "① 사냥감이 2.5칸 비킨 급강하 뒤 그로기 %s(참) · 예고 %s(없음) · 와이번 %s((84,86)) · 대본 차례 %s(1) · 영웅 체력 %s → %s" % [_groggy(b, e), e.cast, e.pos, e.beat, hp, b.party.map(func(h): return h.hp)]
+	var k = _den4()
+	var w = _wyvern(k)
+	if w == null:
+		return "② 4층 원정이 되지 않았다"
+	_stand(k, FAR3)
+	_tell(k, w, 0)
+	k.party[1].pos = Vector2(84, 83.5)
+	k.party[2].pos = Vector2(85, 86)
+	var was: float = k.party[2].hp
+	_go(k, 2.2)
+	return check(not _groggy(k, w) and w.cast != null and w.cast.id == "perch" and k.party[2].hp < was, "② 사냥감은 비키고 셋째 영웅이 원 안에 든 급강하 뒤 그로기 %s(거짓) · 예고 %s(perch) · 셋째 영웅 체력 %s → %s(줄어야)" % [_groggy(k, w), w.cast, was, k.party[2].hp])
+
+# EV1035 · S352 ③·I288 ③: 급강하가 맞히면 2초 내려앉는다. 앞 1초의 기절은 튕기고 마지막 1초에 걸면 그로기다. 못 끊으면 다시 뜰 뿐이고, 내려앉은 동안 대본의 쉼은 줄지 않는다
+func ev1035():
+	var b = _den4()
+	var e = _wyvern(b)
+	if e == null:
+		return "① 4층 원정이 되지 않았다"
+	_stand(b, FAR3)
+	_tell(b, e, 0)
+	_go(b, 2.2)
+	var c = e.cast
+	if c == null or c.id != "perch" or c.left > 2.0 or c.left < 1.85 or _groggy(b, e) or b.countering(e) or e.beat != 1 or absf(e.rest - 4.0) > 0.001:
+		return "① 맞힌 급강하 뒤 예고 %s(기대 perch·남은 1.85~2.0초) · 그로기 %s(거짓) · 카운터 창 %s(거짓) · 대본 차례 %s(1) · 쉼 %s(4.0)" % [c, _groggy(b, e), b.countering(e), e.beat, e.rest]
+	b._fx(e, "t1", {"stun": true}, 2.0)
+	if e.cast == null or e.cast.id != "perch" or _groggy(b, e) or b._fx_on(e, "stun") != null or not e.fx.has("deflect"):
+		return "② 카운터 창 밖 기절 뒤 예고 %s(perch 그대로) · 그로기 %s(거짓) · 기절 %s(null) · 튕김 %s(참)" % [e.cast, _groggy(b, e), b._fx_on(e, "stun"), e.fx.has("deflect")]
+	_go(b, 1.0)
+	if not b.countering(e) or absf(e.rest - 4.0) > 0.001:
+		return "③ 내려앉은 지 1.05초 뒤 카운터 창 %s(참) · 쉼 %s(4.0 그대로)" % [b.countering(e), e.rest]
+	b._fx(e, "t2", {"stun": true}, 2.0)
+	if e.cast != null or not _groggy(b, e) or b._fx_on(e, "stun") != null or e.beat != 1 or absf(e.rest - 4.0) > 0.001:
+		return "④ 카운터 창 안 기절 뒤 예고 %s(없음) · 그로기 %s(참) · 기절 %s(null) · 대본 차례 %s(1 그대로) · 쉼 %s(4.0)" % [e.cast, _groggy(b, e), b._fx_on(e, "stun"), e.beat, e.rest]
+	var k = _den4()
+	var w = _wyvern(k)
+	if w == null:
+		return "⑤ 4층 원정이 되지 않았다"
+	_stand(k, FAR3)
+	_tell(k, w, 0)
+	_go(k, 2.2)
+	var hp: Array = k.party.map(func(h): return h.hp)
+	_go(k, 1.85)
+	var late: bool = w.cast != null and w.cast.id == "perch"
+	_go(k, 0.2)
+	var up := [w.cast, _groggy(k, w), k._flies(w), w.beat, w.pos]
+	_go(k, 1.0)
+	return check(late and up == [null, false, true, 1, Vector2(84, 86)] and k.party.map(func(h): return h.hp) == hp and w.rest < 4.0 and w.rest > 2.7,
+		"⑤ 못 끊은 내려앉음: 1.9초째 perch %s(참) · 2.1초 뒤 [예고, 그로기, 날고 있나, 대본 차례, 자리] %s(기대 [null, 거짓, 참, 1, (84,86)]) · 영웅 체력 %s → %s(그대로) · 다시 뜬 1초 뒤 쉼 %s(4.0에서 줄어 2.7~4.0)" % [late, up, hp, k.party.map(func(h): return h.hp), w.rest])
+
+# EV1036 · S352 ④·I288 ④: 날고 있는 와이번에는 아이아스 Q가 닿지 않고 근접이 치지 못한다. 그로기이거나 내려앉은 와이번에는 닿고, 끝나면 다시 난다
+func ev1036():
+	var b = _den4()
+	var e = _wyvern(b)
+	if e == null:
+		return "4층 원정이 되지 않았다"
+	var a = b.party[0]
+	if a.kind != "aias" or not b.has_method("_strikes"):
+		return "첫째 영웅 %s(aias) · _strikes %s" % [a.kind, b.has_method("_strikes")]
+	_stand(b, [Vector2(84, 81.5), Vector2(80, 76), Vector2(88, 76)])
+	var rows := []
+	a.cd.q = 0.0
+	var hp: float = e.hp
+	b.cast(a, "q", e.pos)
+	rows.append([b._flies(e), b._strikes(a, e), b._strikes(b.party[1], e), hp - e.hp > 0.0])
+	b._fx(e, "groggy", {"groggy": true}, 5.0)
+	a.cd.q = 0.0
+	hp = e.hp
+	b.cast(a, "q", e.pos)
+	rows.append([b._flies(e), b._strikes(a, e), b._strikes(b.party[1], e), hp - e.hp > 0.0])
+	_go(b, 5.1)
+	rows.append([b._flies(e), b._strikes(a, e), b._strikes(b.party[1], e), _groggy(b, e)])
+	if rows != [[true, false, true, false], [false, true, true, true], [true, false, true, false]]:
+		return "[날고 있나, 아이아스가 치나, 둘째 영웅이 치나, 아이아스 Q 피해(셋째 줄은 그로기)] 떠 있을 때·그로기·그로기 뒤 %s(기대 [참 거짓 참 거짓] · [거짓 참 참 참] · [참 거짓 참 거짓])" % [rows]
+	_stand(b, [Vector2(80, 76), Vector2(84, 86), Vector2(88, 76)])
+	_tell(b, e, 0)
+	_go(b, 2.2)
+	a.pos = Vector2(84, 84.5)
+	a.cd.q = 0.0
+	hp = e.hp
+	b.cast(a, "q", e.pos)
+	var perch := [e.cast != null and e.cast.id == "perch", b._flies(e), b._strikes(a, e), hp - e.hp > 0.0]
+	_go(b, 2.1)
+	return check(perch == [true, false, true, true] and e.cast == null and b._flies(e) and not b._strikes(a, e),
+		"내려앉은 와이번 [perch, 날고 있나, 아이아스가 치나, 아이아스 Q 피해] %s(기대 [참, 거짓, 참, 참]) · 2.1초 뒤 예고 %s(없음) · 날고 있나 %s(참) · 아이아스가 치나 %s(거짓)" % [perch, e.cast, b._flies(e), b._strikes(a, e)])
+
+# 융단 폭격 예고를 띄운 4층 1형: 와이번 (84,80), 원정대 (86,80.5)·(92,80)·(88,81). 사냥감은 동쪽의 둘째 영웅이다. [판, 와이번, 예고]이고 안 되면 []
+func _strafe() -> Array:
+	var b = _den4()
+	var e = _wyvern(b)
+	if e == null:
+		return []
+	_stand(b, [Vector2(86, 80.5), Vector2(92, 80), Vector2(88, 81)])
+	var c = _tell(b, e, 1)
+	if c == null or c.id != "carpet":
+		return []
+	return [b, e, c]
+
+# 영웅 h에 붙은 불의 초당 피해. 불이 없으면 0
+func _fire(h) -> float:
+	return h.fx.burn.burn if h.fx.has("burn") else 0.0
+
+# EV1037 · S352 ⑤·I288 ⑤: 융단 폭격은 사냥감 쪽 12칸 직선을 1.4초 예고하고 0.8초 동안 지나가며 줄 위(0.75칸 안)의 영웅에만 불을 붙인다. 줄은 방 벽 앞에서 끝나고, 대본 차례는 다 지나간 때 넘어간다. 그로기가 없다
+func ev1037():
+	var s := _strafe()
+	if s.is_empty():
+		return "① 융단 폭격 예고가 뜨지 않았다(4층 원정·대본 차례 1)"
+	var b = s[0]
+	var e = s[1]
+	var c = s[2]
+	var p = b.party
+	if absf(c.left - 1.4) > 0.001 or not c.to.is_equal_approx(Vector2(96, 80)) or absf(c.dir) > 0.001 or c.get("pass", false):
+		return "① 예고 %s(기대 남은 1.4초·줄 끝 (96,80)·방향 동쪽)" % [c]
+	p[1].pos = Vector2(92, 79.5)
+	_go(b, 1.5)
+	var mid = e.cast
+	if mid == null or not mid.get("pass", false) or not mid.to.is_equal_approx(Vector2(96, 80)) or e.beat != 1 or e.pos.x <= 84.0 or absf(e.pos.y - 80.0) > 0.001:
+		return "① 예고 1.55초째 예고 %s(지나가는 중·줄 끝 (96,80)) · 대본 차례 %s(1 그대로) · 와이번 %s(동쪽으로 가는 중)" % [mid, e.beat, e.pos]
+	_go(b, 0.8)
+	var fire: Array = p.map(_fire)
+	if e.cast != null or not e.pos.is_equal_approx(Vector2(96, 80)) or e.beat != 2 or e.rest > 3.0 or e.rest < 2.8 or _groggy(b, e) or fire != [5.0, 5.0, 0.0] or not b._flies(e):
+		return "① 지나간 뒤 예고 %s(없음) · 와이번 %s((96,80)) · 대본 차례 %s(2) · 쉼 %s(2.8~3.0) · 그로기 %s(거짓) · 영웅마다 불의 초당 피해 %s(기대 [5, 5, 0]: 줄에서 0.5·0.5·1.0칸) · 날고 있나 %s(참)" % [e.cast, e.pos, e.beat, e.rest, _groggy(b, e), fire, b._flies(e)]
+	var k = _den4()
+	var w = _wyvern(k)
+	if w == null:
+		return "② 4층 원정이 되지 않았다"
+	_stand(k, FAR3)
+	var d = _tell(k, w, 1)
+	return check(d != null and d.id == "carpet" and d.to.distance_to(Vector2(84, 87.25)) < 0.01 and absf(d.dir - PI / 2.0) < 0.001, "② 사냥감이 남쪽 (84,86)일 때 예고 %s(기대 줄 끝 (84,87.25): 방 벽 앞 · 방향 남쪽)" % [d])
+
+# EV1038 · S352 ⑥·I288 ⑥: 지나간 줄은 8초 동안 불길로 남는다. 불길 안의 영웅은 불이 계속 새로 붙고 밖은 붙지 않는다. 8초 뒤와 «다시»·철수에서 사라진다
+func ev1038():
+	var s := _strafe()
+	if s.is_empty():
+		return "① 융단 폭격 예고가 뜨지 않았다"
+	var b = s[0]
+	var e = s[1]
+	var p = b.party
+	if not b.get("trails") is Array:
+		return "Battle.trails가 없다"
+	_go(b, 2.25)
+	var t = b.trails[0] if b.trails.size() == 1 else {}
+	if t.is_empty() or not t.from.is_equal_approx(Vector2(84, 80)) or not t.to.is_equal_approx(Vector2(96, 80)) or t.width != 1.5 or t.left > 8.0 or t.left < 7.8:
+		return "① 지나간 뒤 불길 %s(기대 하나: (84,80)~(96,80)·폭 1.5·남은 7.8~8.0초)" % [b.trails]
+	p[0].pos = Vector2(86, 82)
+	p[2].pos = Vector2(90, 80.7)
+	b.step(DT)
+	if _fire(p[2]) != 5.0:
+		return "② 불길 안(줄에서 0.7칸)으로 들어선 셋째 영웅의 불 %s(5)" % [_fire(p[2])]
+	var hp: float = p[1].hp
+	_go(b, 4.1)
+	var lost: float = hp - p[1].hp
+	var want: float = _take(b, p[1], 20.5)
+	if _fire(p[0]) != 0.0 or _fire(p[1]) != 5.0 or p[1].fx.burn.left < 3.9 or absf(lost - want) > 0.6 or b.trails.size() != 1:
+		return "③ 4.1초 뒤 불길 밖으로 나온 첫째 영웅의 불 %s(0) · 불길 안에 선 둘째 영웅의 불 %s·남은 %s초(5·3.9 이상) · 둘째 영웅이 잃은 체력 %s(기대 %s, 0.6 안) · 불길 %d(1)" % [_fire(p[0]), _fire(p[1]), p[1].fx.burn.left if p[1].fx.has("burn") else null, lost, want, b.trails.size()]
+	_go(b, 3.9)
+	p[0].pos = Vector2(86, 80)
+	p[0].fx.erase("burn")
+	b.step(DT)
+	if not b.trails.is_empty() or _fire(p[0]) != 0.0:
+		return "④ 지나간 지 8.1초 뒤 불길 %d(0) · 옛 줄 위에 선 첫째 영웅의 불 %s(0)" % [b.trails.size(), _fire(p[0])]
+	s = _strafe()
+	if s.is_empty():
+		return "⑤ 융단 폭격 예고가 뜨지 않았다"
+	b = s[0]
+	_go(b, 2.25)
+	var lit: int = b.trails.size()
+	for h in b.party.duplicate():
+		b.damage(h, BIG)
+	_go(b, 2.6)
+	var kept: int = b.trails.size()
+	var ok: bool = b.retry()
+	if lit != 1 or not ok or b.state != "raid" or not b.trails.is_empty():
+		return "⑤ 불길 %d(1) · 전멸 2.6초 뒤 불길 %d · «다시» %s(참) · 판 %s(raid) · «다시» 뒤 불길 %d(0)" % [lit, kept, ok, b.state, b.trails.size()]
+	s = _strafe()
+	if s.is_empty():
+		return "⑥ 융단 폭격 예고가 뜨지 않았다"
+	b = s[0]
+	_go(b, 2.25)
+	lit = b.trails.size()
+	b.retreat()
+	return check(lit == 1 and b.state == "prep" and b.trails.is_empty(), "⑥ 불길 %d(1) · 철수 뒤 판 %s(prep) · 불길 %d(0)" % [lit, b.state, b.trails.size()])
+
+# EV1039 · S352 ⑦·I288 ⑦: 와이번 체력이 0이 되면 처치가 아니라 그 자리 땅의 떨어진 와이번으로 바뀐다. 예고·효과는 사라지고 불길은 남으며, 떨어진 와이번은 바로 앞뒤 휩쓸기를 예고하고 다시 날지 않는다
+func ev1039():
+	var s := _strafe()
+	if s.is_empty():
+		return "융단 폭격 예고가 뜨지 않았다"
+	var b = s[0]
+	var e = s[1]
+	_go(b, 2.25)
+	b.damage(e, 500.0, "true")
+	var half: float = b.raid_left()
+	_tell(b, e, 0)
+	b._fx(e, "t", {"slow": 0.3}, 9.0)
+	var gold: int = b.gold
+	var at: Vector2 = e.pos
+	b.damage(e, BIG)
+	var born := [b.state, b.enemies.size(), is_same(b.enemies[0], e) if b.enemies.size() == 1 else false, e.kind, e.alive, e.hp, e.max_hp, e.radius, e.flying, b._flies(e), e.reward, e.xp, e.cast, e.fx.size(), e.pos]
+	if born != ["raid", 1, true, "wyvern_fallen", true, 1000.0, 1000.0, 0.9, false, false, 0, 0, null, 0, at]:
+		return "떨어진 직후 [판, 적 수, 같은 적, 종류, 살아 있나, 체력, 최대 체력, 몸, 비행, 날고 있나, 처치 골드, 경험치, 예고, 효과 수, 자리] %s(기대 [raid, 1, 참, wyvern_fallen, 참, 1000, 1000, 0.9, 거짓, 거짓, 0, 0, null, 0, %s])" % [born, at]
+	if absf(half - 0.75) > 0.001 or b.raid_left() != 0.5 or b.gold != gold or b.floors_cleared != 3 or b.raid_title() != "떨어진 와이번" or b.trails.size() != 1:
+		return "고정 피해 500 뒤 남은 비율 %s(0.75) · 떨어진 뒤 %s(0.5) · 골드 %s → %s(그대로) · 깬 층 %s(3) · 보스 이름 %s(떨어진 와이번) · 불길 %d(1 그대로)" % [half, b.raid_left(), gold, b.gold, b.floors_cleared, b.raid_title(), b.trails.size()]
+	b.step(DT)
+	var first = e.cast.id if e.cast != null else null
+	e.cast = null
+	e.rest = 999.0
+	_go(b, 10.0)
+	return check(first == "lash" and b.state == "raid" and e.kind == "wyvern_fallen" and not e.flying and at.distance_to(e.pos) < 0.001, "한 스텝 뒤 예고 %s(lash) · 10초 뒤 판 %s(raid) · 종류 %s(wyvern_fallen) · 비행 %s(거짓) · 자리 %s(%s 그대로)" % [first, b.state, e.kind, e.flying, e.pos, at])
+
+# EV1040 · S352 ⑨·I288 ⑧: 앞뒤 휩쓸기는 가까운 영웅 쪽 앞 부채꼴에 불을, 정반대 쪽 뒤 부채꼴에 피해 20·넉백 1.5칸을 준다. 옆구리는 무사하고 방향은 예고 때 굳으며 그로기가 없다
+func ev1040():
+	var b = _den4()
+	var e = _fallen(b)
+	if e == null:
+		return "4층 원정에서 와이번이 떨어진 와이번으로 바뀌지 않았다"
+	var p = b.party
+	_stand(b, [Vector2(84, 78), Vector2(84, 82), Vector2(86.5, 80)])
+	var c = _tell(b, e, 0)
+	if c == null or c.id != "lash" or absf(c.left - 1.35) > 0.001 or absf(c.get("dir", 9.0) + PI / 2.0) > 0.001:
+		return "예고 %s(기대 lash·남은 1.35초·방향 북쪽: 가까운 첫째 영웅 쪽)" % [c]
+	p[2].pos = Vector2(85, 80)
+	b.step(DT)
+	var turned: float = e.cast.dir if e.cast != null else 9.0
+	var hp: Array = p.map(func(h): return h.hp)
+	var want: float = _take(b, p[1], 20.0)
+	_go(b, 1.4)
+	var lost: Array = range(3).map(func(i): return hp[i] - p[i].hp)
+	return check(absf(turned + PI / 2.0) < 0.001 and e.cast == null and not _groggy(b, e) and e.beat == 1 and p.map(_fire) == [5.0, 0.0, 0.0] and absf(lost[1] - want) < 0.01 and lost[2] == 0.0
+		and p[1].pos.distance_to(Vector2(84, 83.5)) < 0.01 and p[0].pos == Vector2(84, 78) and p[2].pos == Vector2(85, 80) and e.pos == Vector2(BOSS),
+		"셋째 영웅이 더 가까이 와도 방향 %s(북쪽 -1.571 그대로) · 끝난 뒤 예고 %s(없음) · 그로기 %s(거짓) · 대본 차례 %s(1) · 영웅마다 불 %s(기대 [5, 0, 0]: 앞·뒤·옆구리) · 뒤의 둘째 영웅이 잃은 체력 %s(기대 %s)·자리 %s((84,82)에서 (84,83.5)) · 옆구리의 셋째 영웅이 잃은 체력 %s(0)·자리 %s · 첫째 영웅 자리 %s · 떨어진 와이번 %s((84,80))" % [turned, e.cast, _groggy(b, e), e.beat, p.map(_fire), lost[1], want, p[1].pos, lost[2], p[2].pos, p[0].pos, e.pos])
+
+# EV1041 · S352 ⑩·I288 ⑨: 맹진은 사냥감 쪽 8칸을 내달려 길 위의 영웅에 피해 30·옆 1칸·불을 준다. 벽 맹진을 모두 피하면 그로기이고 이동 맹진은 그로기가 없다. 아이아스가 막아 서도 멈추지 않는다
+func ev1041():
+	var b = _den4()
+	var e = _fallen(b)
+	if e == null:
+		return "① 4층 원정에서 와이번이 떨어진 와이번으로 바뀌지 않았다"
+	var p = b.party
+	_stand(b, [Vector2(82, 80), Vector2(90, 80), Vector2(84, 82)])
+	var c = _tell(b, e, 1)
+	if c == null or c.id != "charge" or absf(c.left - 1.35) > 0.001 or not c.to.is_equal_approx(Vector2(92, 80)) or c.get("aimed") != false:
+		return "① 예고 %s(기대 charge·남은 1.35초·끝 (92,80)·이동 맹진)" % [c]
+	var hp: float = p[1].hp
+	var want: float = _take(b, p[1], 30.0)
+	_go(b, 1.4)
+	if not e.pos.is_equal_approx(Vector2(92, 80)) or _groggy(b, e) or e.cast != null or absf(hp - p[1].hp - want) > 0.3 or p[1].pos.distance_to(Vector2(90, 79)) > 0.01 or p.map(_fire) != [0.0, 5.0, 0.0]:
+		return "① 맹진 뒤 떨어진 와이번 %s((92,80)) · 그로기 %s(거짓) · 예고 %s(없음) · 길 위 둘째 영웅이 잃은 체력 %s(기대 %s, 불 한 틱 0.3 안)·자리 %s((90,79)) · 영웅마다 불 %s(기대 [0, 5, 0])" % [e.pos, _groggy(b, e), e.cast, hp - p[1].hp, want, p[1].pos, p.map(_fire)]
+	var k = _den4()
+	var w = _fallen(k)
+	if w == null:
+		return "② 떨어진 와이번으로 바뀌지 않았다"
+	_stand(k, HUNT)
+	var d = _tell(k, w, 1)
+	k.party[1].pos = Vector2(86, 85)
+	_go(k, 1.4)
+	if d == null or d.get("aimed") != true or not _groggy(k, w) or w.pos.distance_to(Vector2(84, 87.25)) > 0.01 or w.cast != null:
+		return "② 남쪽 벽 앞 사냥감이 비킨 맹진: 예고 %s(벽 맹진) · 그로기 %s(참) · 떨어진 와이번 %s((84,87.25)) · 예고 %s(없음)" % [d, _groggy(k, w), w.pos, w.cast]
+	var m = _den4()
+	var x = _fallen(m)
+	if x == null:
+		return "③ 떨어진 와이번으로 바뀌지 않았다"
+	_stand(m, [Vector2(87, 80), Vector2(90, 80), Vector2(84, 82)])
+	var a = m.party[0]
+	var was: float = a.hp
+	_tell(m, x, 1)
+	_go(m, 1.4)
+	return check(a.kind == "aias" and x.pos.is_equal_approx(Vector2(92, 80)) and not _groggy(m, x) and a.hp < was and b._fx_on(x, "stagger") == null, "③ 아이아스 %s가 길 (87,80)을 막아 선 맹진 뒤 떨어진 와이번 %s((92,80)까지) · 그로기 %s(거짓) · 비틀거림 %s(null) · 아이아스 체력 %s → %s(줄어야)" % [a.kind, x.pos, _groggy(m, x), m._fx_on(x, "stagger"), was, a.hp])
+
+# 불덩이 예고를 띄운 4층 2형. [판, 떨어진 와이번]이고 안 되면 []
+func _pyre() -> Array:
+	var b = _den4()
+	var e = _fallen(b)
+	if e == null:
+		return []
+	_stand(b, [Vector2(83, 84), Vector2(84, 84), Vector2(85, 84)])
+	var c = _tell(b, e, 3)
+	if c == null or c.id != "soak" or not c.has("at"):
+		return []
+	return [b, e]
+
+# EV1042 · S352 ⑪: 불덩이는 둘이 모이면 30씩 나눠 받고 그로기가 열린다. 하나면 모두 20을 받고 떨어진 와이번이 5% 회복한다. 카운터 창 안의 기절은 예고를 끊고 그로기를 연다
+func ev1042():
+	var s := _pyre()
+	if s.is_empty():
+		return "불덩이 예고가 뜨지 않았다(4층 원정·떨어진 와이번·대본 차례 3)"
+	var b = s[0]
+	var e = s[1]
+	var p = b.party
+	var at: Vector2 = e.cast.at
+	if not at.is_equal_approx(Vector2(79, 80)) or absf(e.cast.left - 4.0) > 0.001:
+		return "금색 원 자리 %s((79,80)) · 남은 %s초(4.0)" % [at, e.cast.left]
+	_stand(b, [Vector2(84, 86), at, at + Vector2(0, 0.7)])
+	var want := [_take(b, p[1], 30.0), _take(b, p[2], 30.0)]
+	var hp: Array = p.map(func(h): return h.hp)
+	_go(b, 4.1)
+	var lost: Array = range(3).map(func(i): return hp[i] - p[i].hp)
+	if lost[0] != 0.0 or absf(lost[1] - want[0]) > 0.01 or absf(lost[2] - want[1]) > 0.01 or not _groggy(b, e) or e.hp != 1000.0:
+		return "① 둘이 모인 뒤 잃은 체력 %s(기대 0 · %s · %s) · 그로기 %s(참) · 떨어진 와이번 체력 %s(1000)" % [lost, want[0], want[1], _groggy(b, e), e.hp]
+	s = _pyre()
+	if s.is_empty():
+		return "② 불덩이 예고가 뜨지 않았다"
+	b = s[0]
+	e = s[1]
+	p = b.party
+	b.damage(e, 100.0, "true")
+	_stand(b, [Vector2(84, 86), at, Vector2(88, 84)])
+	want = [_take(b, p[1], 20.0), _take(b, p[2], 20.0)]
+	hp = p.map(func(h): return h.hp)
+	_go(b, 4.1)
+	lost = range(3).map(func(i): return hp[i] - p[i].hp)
+	if lost[0] <= 0.0 or absf(lost[1] - want[0]) > 0.01 or absf(lost[2] - want[1]) > 0.01 or _groggy(b, e) or absf(e.hp - 950.0) > 0.001:
+		return "② 하나만 든 뒤 잃은 체력 %s(기대 0 초과 · %s · %s) · 그로기 %s(거짓) · 떨어진 와이번 체력 %s(900 + 50 = 950)" % [lost, want[0], want[1], _groggy(b, e), e.hp]
+	s = _pyre()
+	if s.is_empty():
+		return "③ 불덩이 예고가 뜨지 않았다"
+	b = s[0]
+	e = s[1]
+	_stand(b, [Vector2(84, 86), Vector2(86, 86), Vector2(88, 84)])
+	_go(b, 2.9)
+	b._fx(e, "t1", {"stun": true}, 2.0)
+	var early := [e.cast != null and e.cast.id == "soak", _groggy(b, e)]
+	_go(b, 0.2)
+	b._fx(e, "t2", {"stun": true}, 2.0)
+	return check(early == [true, false] and e.cast == null and _groggy(b, e), "③ 예고 2.95초째(카운터 창 밖) 기절 뒤 [예고 그대로, 그로기] %s(기대 [참, 거짓]) · 3.15초째(카운터 창 안) 기절 뒤 예고 %s(없음) · 그로기 %s(참)" % [early, e.cast, _groggy(b, e)])
+
+# EV1043 · S352 ⑧·I288 ②⑤: 와이번의 대본은 급강하 → 융단 폭격 → 급강하를 쉼 4·4·3초로 돌고, 쉼은 내려앉음과 지나가기가 끝난 뒤부터 준다. 떨어진 와이번은 차례 0·쉼 0에서 시작해 앞뒤 휩쓸기 → 맹진 → 앞뒤 휩쓸기 → 불덩이를 쉼 3·4·3·5초로 돈다
+func ev1043():
+	var b = _den4()
+	b.start_raid()
+	if b.state != "raid" or b.enemies.size() != 1 or b.enemies[0].kind != "wyvern":
+		return "① 4층 원정이 되지 않았다"
+	_freeze(b)
+	var e = b.enemies[0]
+	var got: Array = _casts(b, [e], 30.0)
+	var starts: Array = got[0]
+	var ids: Array = starts.map(func(s): return s[1])
+	if ids != ["plunge", "perch", "carpet", "plunge", "perch", "plunge"]:
+		return "① 30초 동안 뜬 예고 차례 %s(기대 급강하·내려앉음·융단 폭격·급강하·내려앉음·급강하)" % [ids]
+	var gaps := [starts[0][0]]
+	for i in range(1, 6):
+		gaps.append(starts[i][0] - starts[i - 1][0])
+	var want := [7.0, 2.1, 6.0, 5.2, 2.1, 6.0]
+	if range(6).any(func(i): return absf(gaps[i] - want[i]) > 0.2):
+		return "① 첫 예고까지와 앞 예고가 뜬 때부터 다음 예고까지 %s(기대 %s, 0.2초 안: 서 있기 3 + 쉼 4 · 예고 1.6 + 내리꽂기 0.5 · 내려앉음 2 + 쉼 4 · 폭격 1.4 + 0.8 + 쉼 3 · 2.1 · 내려앉음 2 + 쉼 4)" % [gaps, want]
+	var k = _den4()
+	var w = _wyvern(k)
+	if w == null:
+		return "② 4층 원정이 되지 않았다"
+	_stand(k, [Vector2(72, 80), Vector2(73, 80), Vector2(74, 80)])
+	k.damage(w, BIG)
+	var born := [w.kind, w.beat, w.rest]
+	var seen := []
+	for i in 4:
+		for h in k.party:
+			h.hp = h.max_hp
+		w.pos = Vector2(BOSS)
+		w.fx.erase("groggy")
+		_tell(k, w, i)
+		var id = w.cast.id if w.cast != null else null
+		_resolve(k, w)
+		seen.append([id, w.beat, snappedf(w.rest, 0.5)])
+	return check(born == ["wyvern_fallen", 0, 0.0] and seen == [["lash", 1, 4.0], ["charge", 2, 3.0], ["lash", 3, 5.0], ["soak", 0, 3.0]],
+		"② 떨어진 직후 [종류, 대본 차례, 쉼] %s(기대 [wyvern_fallen, 0, 0]) · 차례마다 [예고, 끝난 뒤 대본 차례, 다음 쉼] %s(기대 lash 1 4 · charge 2 3 · lash 3 5 · soak 0 3)" % [born, seen])
+
+# EV1044 · S352: 떨어진 와이번을 처치하면 깬 층 4·층 골드 200이고 유물은 없다. 불길도 사라진다
+func ev1044():
+	var s := _strafe()
+	if s.is_empty():
+		return "융단 폭격 예고가 뜨지 않았다"
+	var b = s[0]
+	var e = s[1]
+	_go(b, 2.25)
+	b.damage(e, BIG)
+	e.cast = null
+	e.rest = 999.0
+	var gold: int = b.gold
+	var lit: int = b.trails.size()
+	b.damage(e, BIG)
+	_go(b, 3.1)
+	return check(lit == 1 and b.state == "prep" and b.floors_cleared == 4 and b.gold - gold == 200 and b.relics == {} and b.heroes.all(func(h): return h.relic == "") and b.trails.is_empty() and b.enemies.is_empty() and b.raid_block() == "done",
+		"떨어뜨린 뒤 불길 %d(1) · 처치 3.1초 뒤 판 %s(prep) · 깬 층 %s(4) · 는 골드 %s(200) · 가방 %s(빔) · 낀 유물 %s(없음) · 불길 %d(0) · 적 %d(0) · 원정 버튼 이유 %s(done)" % [lit, b.state, b.floors_cleared, b.gold - gold, b.relics, b.heroes.map(func(h): return h.relic), b.trails.size(), b.enemies.size(), b.raid_block()])
+
+# 불꽃이 flame초일 때 4층 패턴 하나가 둘째 영웅에게서 깎은 체력(예고가 끝난 스텝까지). plunge는 와이번이, tail(앞뒤 휩쓸기의 뒤)·charge는 떨어진 와이번이 쓴다. 안 되면 -1
+func _scorch(id: String, flame: float) -> float:
+	var b = _den4()
+	var first: bool = id == "plunge"
+	var e = _wyvern(b) if first else _fallen(b)
+	if e == null:
+		return -1.0
+	var u = b.party[1]
+	_stand(b, {"plunge": FAR3, "tail": [Vector2(84, 78), Vector2(84, 82), Vector2(96, 80)], "charge": [Vector2(82, 80), Vector2(90, 80), Vector2(84, 82)]}[id])
+	b.flame = flame
+	var c = _tell(b, e, {"plunge": 0, "tail": 0, "charge": 1}[id])
+	if c == null:
+		return -1.0
+	var hp: float = u.hp
+	_resolve(b, e)
+	return hp - u.hp
+
+# EV1045 · I288 ②⑩: 불꽃 100초부터의 광폭 배율은 급강하·꼬리·맹진의 피해에 들고 불의 초당 피해에는 들지 않는다. 불사(invuln)로 피해가 0이어도 급강하는 맞힌 것으로 친다
+func ev1045():
+	var rows := []
+	for id in ["plunge", "tail", "charge"]:
+		rows.append([id, _scorch(id, 10.0), _scorch(id, 101.0)])
+	var s := _strafe()
+	if s.is_empty():
+		return "융단 폭격 예고가 뜨지 않았다"
+	var b = s[0]
+	b.flame = 101.0
+	_go(b, 2.25)
+	var fire: float = _fire(b.party[1])
+	var k = _den4()
+	var w = _wyvern(k)
+	if w == null:
+		return "4층 원정이 되지 않았다"
+	_stand(k, FAR3)
+	var u = k.party[1]
+	k._fx(u, "t", {"invuln": true}, 9.0)
+	var hp: float = u.hp
+	_tell(k, w, 0)
+	_go(k, 2.2)
+	return check(rows.all(func(r): return r[1] > 0.0 and absf(r[2] - r[1] * 1.15) < 0.4) and fire == 5.0 and u.hp == hp and not _groggy(k, w) and w.cast != null and w.cast.id == "perch",
+		"[패턴, 불꽃 10초에 잃은 체력, 불꽃 101초에 잃은 체력] %s(뒤가 앞의 1.15배여야, 불 틱 0.4 안) · 불꽃 101초의 불 초당 피해 %s(5 그대로) · 불사(피해 0)인 사냥감이 맞은 급강하 뒤 체력 %s → %s(그대로)·그로기 %s(거짓)·예고 %s(perch)" % [rows, fire, hp, u.hp, _groggy(k, w), w.cast])
+
+# EV1046 · I288 ⑪: 보스 막대의 이름은 지금 형태를 따르고 두 형태의 그림 배율은 1이다. 사냥감 표시가 뜨고 불길을 그린다. 처치하면 층 골드가 든 토스트가 뜬다
+func ev1046():
+	var main = _den_game()
+	var b = main.view.battle
+	var v = main.view
+	if not v.has_method("trail_marks"):
+		_done(main)
+		return "BattleView.trail_marks가 없다"
+	for i in 3:
+		b.state = "cleared"
+		b.next_round()
+	b.floors_cleared = 3
+	_frame(main)
+	_toast_texts(main)
+	b.start_raid()
+	_frame(main)
+	if b.state != "raid" or b.enemies.size() != 1 or b.enemies[0].kind != "wyvern" or b.party.size() < 2:
+		_done(main)
+		return "4층 원정이 되지 않았다(판 %s · 적 %d · 원정대 %d)" % [b.state, b.enemies.size(), b.party.size()]
+	_freeze(b)
+	var e = b.enemies[0]
+	var p = b.party
+	e.pull = 0.0
+	e.rest = 999.0
+	_stand(b, [Vector2(86, 80.5), Vector2(92, 80)].slice(0, 2))
+	_frame(main)
+	var mark: Array = v.prey_mark()
+	var first := [main.hud._boss_name.text, v._shrunk(e), is_same(b.raid_prey(), p[1]), mark.size() == 2 and is_same(mark[0], p[1]), v.trail_marks().size()]
+	_tell(b, e, 1)
+	_go(b, 2.25)
+	_frame(main)
+	var marks: Array = v.trail_marks()
+	var lit := [b.trails.size(), marks.size() > 0, marks.all(func(m): return m is Vector2i and absi(m.y - (80 * 16 + 8)) <= 12 and m.x >= 84 * 16 and m.x <= 96 * 16 + 16)]
+	b.damage(e, BIG)
+	e.cast = null
+	e.rest = 999.0
+	_frame(main)
+	var second := [main.hud._boss_name.text, v._shrunk(e)]
+	var gold: int = b.gold
+	b.damage(e, BIG)
+	_spin(main, 3.1)
+	var after := [b.state, b.floors_cleared, b.gold - gold, b.relics, b.raid_block(), v.trail_marks().size()]
+	var texts := _toast_texts(main)
+	_done(main)
+	if first != ["와이번", 1.0, true, true, 0] or lit != [1, true, true] or second != ["떨어진 와이번", 1.0]:
+		return "와이번일 때 [이름, 그림 배율, 사냥감이 둘째, 표시가 둘째, 불길 그림 수] %s(기대 [와이번, 1, 참, 참, 0]) · 폭격 뒤 [불길 수, 불길 그림 있음, 그림이 줄 (84,80)~(96,80) 둘레] %s(기대 [1, 참, 참]) · 떨어진 뒤 [이름, 그림 배율] %s(기대 [떨어진 와이번, 1])" % [first, lit, second]
+	return check(after == ["prep", 4, 200, {}, "done", 0] and texts.any(func(t): return "4층" in t and "200" in t),
+		"처치 3.1초 뒤 [판, 깬 층, 는 골드, 가방, 원정 버튼 이유, 불길 그림 수] %s(기대 [prep, 4, 200, {}, done, 0]) · 보인 토스트 %s(«4층»과 «200»이 함께 든 것이 있어야)" % [after, texts])
