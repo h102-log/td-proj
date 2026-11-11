@@ -9,7 +9,7 @@ extends "res://tests/eval/gd/hud.gd"
 #   main.hud.fade — 검은 덮개(ColorRect, 화면 전체). 불투명도는 color.a × modulate.a이고 숨으면 0으로 본다 · main.hud.minimap · main.hud.grid
 # 시험 스테이지(`main.gd` stage())를 쓴다. 영웅은 스테이지 heroes로 보유·출전한 채(최대 레벨) 2라운드 첫 준비 단계로 넘긴다
 
-const ROOM := Rect2i(74, 76, 20, 12)
+const ROOM := Rect2i(70, 72, 28, 16)
 const ENTRY := [Vector2i(83, 87), Vector2i(85, 87), Vector2i(84, 87)]
 const BOSS := Vector2i(84, 80)
 const TEAM := [{"kind": "aias", "cell": Vector2i(31, 65)}, {"kind": "ignis", "cell": Vector2i(33, 65)}, {"kind": "seraphina", "cell": Vector2i(32, 65)}]
@@ -17,7 +17,7 @@ const TEAM := [{"kind": "aias", "cell": Vector2i(31, 65)}, {"kind": "ignis", "ce
 # 모서리마다 꼭짓점 칸에서 가로·세로 거리 합이 2 미만인 세 칸(I262 ①)
 func _corners() -> Array:
 	var out := []
-	for k in [[74, 76, 1, 1], [93, 76, -1, 1], [74, 87, 1, -1], [93, 87, -1, -1]]:
+	for k in [[70, 72, 1, 1], [97, 72, -1, 1], [70, 87, 1, -1], [97, 87, -1, -1]]:
 		for d in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1)]:
 			out.append(Vector2i(k[0] + d.x * k[2], k[1] + d.y * k[3]))
 	return out
@@ -41,7 +41,7 @@ func _go(b, secs: float) -> void:
 		b.step(DT)
 		t += DT
 
-# EV887 · S317·I262 ①: 맵 크기는 그대로이고 길 격자만 띠까지 넓다. 방 안 228칸만 설 수 있고, 띠에는 짓거나 용병을 놓지 못한다. 웨이브 길은 띠 밖이다
+# EV887 · S317·I262 ①: 맵 크기는 그대로이고 길 격자만 띠까지 넓다. 방 안 436칸만 설 수 있고, 띠에는 짓거나 용병을 놓지 못한다. 웨이브 길은 띠 밖이다
 func ev887():
 	var M = load("res://src/main.gd")
 	var b = _new(_stage())
@@ -57,10 +57,10 @@ func ev887():
 				stand += 1
 			elif c not in corners:
 				return "방 칸 %s에 설 수 없다" % c
-	var rock := corners + [Vector2i(64, 0), Vector2i(73, 80), Vector2i(94, 80), Vector2i(84, 75), Vector2i(84, 88), Vector2i(103, 129)]
+	var rock := corners + [Vector2i(64, 0), Vector2i(69, 80), Vector2i(98, 80), Vector2i(84, 71), Vector2i(84, 88), Vector2i(103, 129)]
 	var walk: Array = rock.filter(func(c): return b._bare(c))
-	if stand != 228 or not walk.is_empty():
-		return "방에서 설 수 있는 칸 %d(기대 228) · 설 수 있는 바위 칸 %s(기대 없음)" % [stand, walk]
+	if stand != 436 or not walk.is_empty():
+		return "방에서 설 수 있는 칸 %d(기대 436) · 설 수 있는 바위 칸 %s(기대 없음)" % [stand, walk]
 	var gold: int = b.gold
 	var made := []
 	for c in [Vector2i(84, 82), Vector2i(70, 40)]:
@@ -195,9 +195,9 @@ func ev890():
 	if not ok or cd0 <= 0.0 or h.cd.q > cd0 - 0.9:
 		return "원정 중 Q 쓸 수 있나 %s · 대기 %.2f → 1초 뒤 %.2f(0.9 넘게 줄어야)" % [ok, cd0, h.cd.q]
 	var g = b.party[1]
-	g.pos = Vector2(92, 82)
+	g.pos = Vector2(96, 82)
 	b.dash([g], Vector2(100, 82))
-	return check(g.dash_cd > 0.0 and g.pos.x > 92.0 and g.pos.x < 93.5, "바위 쪽 대시 뒤 x %.2f(92보다 크고 93.5 미만) · 대기 %.2f" % [g.pos.x, g.dash_cd])
+	return check(g.dash_cd > 0.0 and g.pos.x > 96.0 and g.pos.x < 97.5, "바위 쪽 대시 뒤 x %.2f(96보다 크고 97.5 미만) · 대기 %.2f" % [g.pos.x, g.dash_cd])
 
 # EV891 · S316·I262 ⑥⑦: 처치로 끝나면 3초 뒤 원정 직전 몸으로 돌아오고, 깬 층이 1 는다. 골드는 층 골드(S333) 120만 늘고 웨이브·집계는 그대로다
 func ev891():
@@ -326,7 +326,7 @@ func ev894():
 		return "1라운드 버튼 보임·꺼짐·툴팁 %s(기대 참·참·«2라운드부터») · 2라운드 %s(기대 [참, 거짓, 원정 1층])" % [first, second]
 	hud.raid.pressed.emit()
 	_frame(main)
-	var room := Vector2(ROOM.position + ROOM.size / 2) * 16.0  # 보스방 가운데(맵 px) = (1344, 1312)
+	var room := Vector2(ROOM.position + ROOM.size / 2) * 16.0  # 보스방 가운데(맵 px) = (1344, 1280)
 	var z: float = cam.zoom.x
 	var spot := _screen(main, room)
 	var e := InputEventMouseButton.new()
@@ -589,12 +589,12 @@ func ev924():
 	_go(b, 0.4)
 	if not late or k1.cast == null:
 		return "둘째: 7.4초까지 안 뜀 %s(참) · 7.8초 예고 %s(있어야)" % [late, k1.cast]
-	k1.pos = Vector2(74, 81)
+	k1.pos = Vector2(70, 81)
 	b.damage(k1, BIG)
 	var g2: Array = b.enemies.filter(func(x): return x.gen == 2)
 	var inside: bool = b.enemies.all(func(x): return b.in_room(Vector2i(x.pos.round())))
 	if g2.size() != 2 or not g2.all(func(x): return _is_gen(x, 2)) or not inside:
-		return "방 서쪽 끝 (74,81)에서 처치 뒤 2세대 %d(2) %s · 모두 방 안 %s" % [g2.size(), g2.map(func(x): return [x.hp, x.radius, x.pos]), inside]
+		return "방 서쪽 끝 (70,81)에서 처치 뒤 2세대 %d(2) %s · 모두 방 안 %s" % [g2.size(), g2.map(func(x): return [x.hp, x.radius, x.pos]), inside]
 	b.damage(g2[0], BIG)
 	var g3: Array = b.enemies.filter(func(x): return x.gen == 3)
 	if g3.size() != 2 or not g3.all(func(x): return _is_gen(x, 3)):

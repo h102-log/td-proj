@@ -1,6 +1,6 @@
 {
-  "approvedAt": "2026-11-11T00:11:57.661Z",
-  "evalMd": "f2ad6006",
+  "approvedAt": "2026-11-11T00:39:48.427Z",
+  "evalMd": "a41713cc",
   "tests": {
     "tests/eval/conftest.py": "1d87ccc5",
     "tests/eval/gd/aura.gd": "010cc38a",
@@ -19,7 +19,7 @@
     "tests/eval/gd/data.gd.uid": "5a13beba",
     "tests/eval/gd/debuff.gd": "991abea6",
     "tests/eval/gd/debuff.gd.uid": "c967bf87",
-    "tests/eval/gd/den.gd": "b2edb793",
+    "tests/eval/gd/den.gd": "52afbece",
     "tests/eval/gd/den.gd.uid": "350b8e87",
     "tests/eval/gd/enemy.gd": "233872ef",
     "tests/eval/gd/enemy.gd.uid": "e1e29647",
@@ -613,7 +613,7 @@
     "S314": "7f094319",
     "S315": "bcf831a9",
     "I261": "bce022c3",
-    "S317": "1f0c2bb3",
+    "S317": "87715847",
     "S316": "a9a100fa",
     "S318": "8f371617",
     "S319": "5aa377fc",
