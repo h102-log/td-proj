@@ -76,3 +76,11 @@ def test_EV1020_guard_takes_big_hit(gd):
 
 def test_EV1021_first_wait_and_feud_marks(gd):
     gd("warhost", "EV1021")
+
+
+def test_EV1023_warhost_art_cells(gd):
+    gd("warhost", "EV1023")
+
+
+def test_EV1024_warhost_art_drawn(gd):
+    gd("warhost", "EV1024")

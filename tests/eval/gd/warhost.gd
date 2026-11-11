@@ -17,6 +17,7 @@ const TALL := {"hp": BIG}  # 체력만 크고 나머지는 종류 수치 그대�
 const WG := "warguard"
 const WC := "warchief"
 const WF := "warchief_foot"
+const WB := "warbanner"
 const THREE := [Vector2i(5, 19), Vector2i(15, 19), Vector2i(25, 19)]  # 출현 지점 셋(왼쪽·가운데·오른쪽)
 
 # 들판 판에 투척꾼(움직이지도 치지도 않음)을 (10,10)에, kind 적(over 수치)을 (11,10)에 두고 치지도 쫓지도 않는 궁수를 (15,10)에 세운다. [판, 투척꾼, 적, 궁수]
@@ -429,27 +430,10 @@ func ev991():
 	if why != "":
 		return why
 	var v = _rec(b)
-	var got := {}
-	var n := 0
-	for k in [WR, WC, "armored", WG, WF]:
-		var one = _cut(v, _still(b, k, Vector2(4 + n * 5, 6), {"hp": 100.0}))
-		n += 1
-		if one == null:
-			var cuts: int = v.cuts.size()
-			v.free()
-			return "%s 몸통이 그림 한 장이 아니다(%d장)" % [k, cuts]
-		got[k] = one
 	var hues: Dictionary = v.TELL_HUES
 	v.free()
-	if got[WC][1] != got[WR][1] or got[WG][1] != got["armored"][1] or got[WF][1] != got["armored"][1]:
-		return "원본 사각형: 대족장 %s(늑대 기수 %s) · 근위대 %s·내린 대족장 %s(장갑 %s)" % [got[WC][1], got[WR][1], got[WG][1], got[WF][1], got["armored"][1]]
-	var tints := [got[WR][2], got[WC][2], got["armored"][2], got[WG][2], got[WF][2]]
-	if got[WC][2] == got[WR][2] or got[WG][2] == got["armored"][2] or got[WF][2] == got["armored"][2] or got[WF][2] == got[WG][2]:
-		return "색이 같다: 늑대 기수·대족장·장갑·근위대·내린 대족장 %s" % [tints]
-	var grown: bool = (got[WC][0].size.is_equal_approx(got[WR][0].size * 2.0) and got[WF][0].size.is_equal_approx(got["armored"][0].size * 2.0)
-		and got[WG][0].size.is_equal_approx(got["armored"][0].size))
-	if not grown or not hues.has(b.ENEMY_KINDS[WF].skills.horn.get("color", "")):
-		return "그림 크기: 대족장 %s(늑대 기수 %s의 2배) · 내린 대족장 %s(장갑 %s의 2배) · 근위대 %s(장갑과 같다) · 뿔나팔 색 %s(예고 색 표에 있어야 한다)" % [got[WC][0].size, got[WR][0].size, got[WF][0].size, got["armored"][0].size, got[WG][0].size, b.ENEMY_KINDS[WF].skills.horn.get("color")]
+	if not hues.has(b.ENEMY_KINDS[WF].skills.horn.get("color", "")):
+		return "내린 대족장 뿔나팔 색 %s(예고 색 표에 있어야 한다)" % [b.ENEMY_KINDS[WF].skills.horn.get("color")]
 	var s := _snag(Vector2i(14, 10))
 	var e = s[1]
 	var h = s[2]
@@ -865,9 +849,161 @@ func ev1021():
 	var to: Vector2 = v._spot(c)
 	v.free()
 	var plain: bool = none[0].is_empty() and none[1].is_empty()
-	var drawn := [ring[0].any(func(r): return r[0] == mid and r[1] == 40), staff[0].any(func(r): return r[0] == pole and r[1] == 64) and staff[1].size() >= 3,
+	var drawn := [ring[0].any(func(r): return r[0] == mid and r[1] == 40), staff[0].any(func(r): return r[0] == pole and r[1] == 64) and staff[1].is_empty(),
 		chain[1].any(func(l): return (Vector2(l[0]).distance_to(from) <= 12.0 and Vector2(l[1]).distance_to(to) <= 12.0) or (Vector2(l[0]).distance_to(to) <= 12.0 and Vector2(l[1]).distance_to(from) <= 12.0)),
 		mute[1].size() == 2, skull[0].size() == 1 and skull[1].size() == 2, rush[1].size() == 2]
 	return check(hidden and plain and drawn.all(func(x): return x),
-		"숨어도 그리는 예고에 결투·족쇄·선고 %s · 아무것도 없을 때 그림 없음 %s · [결투장 고리, 깃발 고리와 깃대, 족쇄 선, 침묵 선 둘, 처형 고리와 선 둘, 군령 선 둘] %s" % [hidden, plain, drawn])
+		"숨어도 그리는 예고에 결투·족쇄·선고 %s · 아무것도 없을 때 그림 없음 %s · [결투장 고리, 깃발 고리(선 없음), 족쇄 선, 침묵 선 둘, 처형 고리와 선 둘, 군령 선 둘] %s" % [hidden, plain, drawn])
 
+# ── 오크 대족장 군단 그림(I286) ──
+
+const HOST_ART := {WC: ["idle", "walk", "attack", "charge", "order", "aim", "fall"], WF: ["idle", "walk", "attack", "horn", "banner", "roar", "verdict", "fall"],
+	WG: ["idle", "walk", "attack", "fall"], WB: ["idle", "sway"]}  # 종류 → 그림 칸의 자세
+const TWO := ["walk", "charge", "order", "aim", "horn", "banner", "roar", "verdict", "sway"]  # 2열 자세(나머지는 1열)
+
+# EV1023 · I286: 네 종류의 그림 칸이 heroes.json에 있고 칸마다 그림이 있다. 사슬 갈고리·사슬 족쇄·결투 신청은 겨눔 칸을 함께 쓴다.
+# 칸은 와이번 칸 오른쪽의 영웅 구역 안에 두 열(대족장 둘, 그 오른쪽에 근위대·깃발)로 위에서부터 쌓이고 서로 겹치지 않는다. 칸마다 몸의 높이(head)가 정지 그림에 맞다. 아틀라스 크기는 그대로다
+func ev1023():
+	var art: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/units/heroes.json"))
+	var img: Image = load("res://art/units/heroes.png").get_image()
+	var whole := Rect2i(Vector2i.ZERO, img.get_size())
+	var bad := []
+	var rects := []  # [이름, 시트 사각형]
+	for k in HOST_ART:
+		if not art.has(k):
+			return "heroes.json에 %s 칸이 없다" % k
+		var a: Dictionary = art[k]
+		var missing: Array = HOST_ART[k].filter(func(s): return not a.has(s))
+		if not a.has("x") or a.has("one") != (k == WB) or not missing.is_empty():
+			bad.append("%s 칸 x %s · one %s(깃발만) · 없는 자세 %s" % [k, a.get("x"), a.get("one"), missing])
+			continue
+		var c := int(a.c)
+		var x := int(a.x)
+		var top := c  # 정지 그림의 가장 높은 불투명 줄(칸 안 y)
+		for r in (1 if k == WB else 4):
+			for y in top:
+				if not img.get_region(Rect2i(x, int(a.idle) + r * c + y, c, 1)).is_invisible():
+					top = y
+					break
+		if not a.has("head") or int(a.head) != int(a.anchor[1]) - maxi(0, top - 3):
+			bad.append("%s head %s(기준점 y %d − max(0, 정지 그림 맨 윗줄 %d − 3))" % [k, a.get("head"), int(a.anchor[1]), top])
+		for s in HOST_ART[k]:
+			var n := c * (2 if s in ["attack", "fall"] else 1)
+			var cols := 2 if s in TWO else 1
+			var rows := 1 if s == "fall" or k == WB else 4
+			rects.append(["%s %s" % [k, s], Rect2i(x, int(a[s]), cols * n, rows * n)])
+			for r in rows:
+				for q in cols:
+					var cell := Rect2i(x + q * n, int(a[s]) + r * n, n, n)
+					if not whole.encloses(cell):
+						bad.append("%s %s %d행 %d열 %s가 그림 밖" % [k, s, r, q, cell])
+					elif img.get_region(cell).is_invisible():
+						bad.append("%s %s %d행 %d열 빈 칸" % [k, s, r, q])
+	if not bad.is_empty():
+		return "; ".join(bad.slice(0, 6))
+	var wc: Dictionary = art[WC]
+	if ["chain", "shackle", "duel"].any(func(s): return wc.get(s) != wc.aim):
+		bad.append("겨눔 칸 aim %s을 함께 쓰지 않는다: chain %s · shackle %s · duel %s" % [wc.aim, wc.get("chain"), wc.get("shackle"), wc.get("duel")])
+	var wy: Dictionary = art.wyvern
+	var left: int = int(wy.x) + 2 * int(wy.c)  # 와이번 칸의 오른쪽 끝(가장 넓은 시트가 2열)
+	var top: int = int(art.soldier.idle)  # 영웅 구역의 아래 끝
+	var side: int = left + 2 * maxi(int(art[WC].c), int(art[WF].c))  # 대족장 열의 오른쪽 끝
+	for col in [[left, WC, WF], [side, WG, WB]]:  # [x, 위 종류, 아래 종류]
+		for k in [col[1], col[2]]:
+			if int(art[k].x) != col[0]:
+				bad.append("%s x %d(%d)" % [k, int(art[k].x), col[0]])
+		if int(art[col[1]].idle) != 0 or int(art[col[2]].idle) <= int(art[col[1]].idle):
+			bad.append("%s 정지 y %d(0) · %s 정지 y %d(그 아래)" % [col[1], int(art[col[1]].idle), col[2], int(art[col[2]].idle)])
+	for i in rects.size():
+		var r: Rect2i = rects[i][1]
+		if r.end.y > top or not whole.encloses(r):
+			bad.append("%s %s가 영웅 구역(y ~%d) 안이 아니다" % [rects[i][0], r, top])
+		for j in i:
+			if r.intersects(rects[j][1]):
+				bad.append("%s와 %s가 겹친다" % [rects[i][0], rects[j][0]])
+	if img.get_size() != Vector2i(828, 15656):
+		bad.append("아틀라스 %s(828×15656)" % [img.get_size()])
+	return check(bad.is_empty(), "; ".join(bad.slice(0, 6)))
+
+# EV1024 · I286: 네 종류는 빌린 그림·큰 몸 표에 없이 제 칸의 그림 한 장을 키우지 않고 그린다. 스킬 자세는 시트의 0열·1열을, 예고·발동의 때와 방향에 맞게 그린다.
+# 깃발은 흔들림 칸을 그리고, 오크 대족장이 내릴 때 남는 몸은 오크 대족장 칸의 누운 자세(쓰러진 전쟁 늑대)로 그린다
+func ev1024():
+	var r := _lone("sylvia", Vector2i(14, 10))
+	var b = r[0]
+	var h = r[1]
+	var why := _need(b, [WR, WG, WC, WF, WB])
+	if why != "":
+		return why
+	var consts: Dictionary = (load("res://src/ui/battle_view.gd") as Script).get_script_constant_map()
+	var looks: Dictionary = consts.get("LOOKS", {})
+	var grow: Dictionary = consts.get("GROW", {})
+	if [WC, WF, WG, WB].any(func(k): return looks.has(k)) or grow.has(WC) or grow.has(WF):
+		return "빌린 그림 표에 %s · 큰 몸 표에 %s(넷 다 없어야 한다)" % [[WC, WF, WG, WB].filter(func(k): return looks.has(k)), [WC, WF].filter(func(k): return grow.has(k))]
+	var v = _rec(b)
+	var art: Dictionary = v.ART
+	var bad := []
+	var n := 0
+	for k in [WC, WF, WG, WB]:
+		var one = _cut(v, _still(b, k, Vector2(3 + n * 6, 3), {"hp": 100.0}))
+		n += 1
+		if one == null:
+			bad.append("%s 몸통이 그림 한 장이 아니다(%d장)" % [k, v.cuts.size()])
+			continue
+		var a: Dictionary = art[k]
+		var c := float(a.c)
+		var sheet: String = "sway" if k == WB else "idle"
+		var src: Rect2 = one[1]
+		var own: bool = src.size == Vector2(c, c) and src.position.x >= a.x and src.position.x < a.x + (2 if k == WB else 1) * c and src.position.y >= a[sheet] and src.position.y < a[sheet] + (1 if k == WB else 4) * c
+		if not own or one[0].size != Vector2(c, c) or one[2] != Color.WHITE:
+			bad.append("%s 원본 %s(제 %s 칸 x %d y %d, 칸 %d) · 대상 크기 %s(칸 그대로) · 색 %s(흰색)" % [k, src, sheet, int(a.x), int(a[sheet]), int(c), one[0].size, one[2]])
+	if not bad.is_empty():
+		v.free()
+		return "; ".join(bad)
+	var wc: Dictionary = art[WC]
+	var wf: Dictionary = art[WF]
+	var cw := float(wc.c)
+	var cf := float(wf.c)
+	var chief = _still(b, WC, Vector2(10, 10), {"hp": 100.0})  # 실비아(14,10)의 서쪽: 실비아 쪽은 동(1행)
+	var foot = _still(b, WF, Vector2(10, 14), {"hp": 100.0})
+	var bar: float = chief.pos.y - v.hp_bar_at(chief).y  # 보스 막대를 올린 높이(칸)
+	if v._head(chief) != float(wc.head) or v._head(foot) != float(wf.head) or not is_equal_approx(bar, (float(wc.head) - float(art.basic.anchor[1])) / v.CELL):
+		bad.append("몸의 높이: 대족장 %s(head %s) · 내린 대족장 %s(head %s) · 보스 막대 올림 %.3f칸(head − 기본 적 기준점 y %s, 칸으로)" % [v._head(chief), wc.head, v._head(foot), wf.head, bar, art.basic.anchor[1]])
+	var poses := []  # [이름, 그린 원본 자리, 맞는 원본 자리]
+	var shot := func(name: String, e, cast, want: Vector2):
+		e.cast = cast
+		var one = _cut(v, e)
+		e.cast = null
+		poses.append([name, one[1].position if one != null else null, want])
+	shot.call("군령 예고 중(0열, 남)", chief, {"id": "order", "left": 1.5}, Vector2(wc.x, wc.order))
+	shot.call("군령 예고 끝(1열, 남)", chief, {"id": "order", "left": 0.2}, Vector2(wc.x + cw, wc.order))
+	shot.call("결투 예고 중(겨눔 0열, 지목한 영웅 쪽 동)", chief, {"id": "duel", "left": 1.0, "who": h, "at": chief.pos}, Vector2(wc.x, wc.aim + cw))
+	shot.call("결투 예고 끝(겨눔 1열, 동)", chief, {"id": "duel", "left": 0.2, "who": h, "at": chief.pos}, Vector2(wc.x + cw, wc.aim + cw))
+	shot.call("사슬 예고 중(정지, 동)", chief, {"id": "chain", "left": 1.0, "dir": 0.0, "to": chief.pos + Vector2(6, 0)}, Vector2(wc.x, wc.idle + cw))
+	shot.call("사슬 예고 끝(겨눔 0열, 동)", chief, {"id": "chain", "left": 0.2, "dir": 0.0, "to": chief.pos + Vector2(6, 0)}, Vector2(wc.x, wc.aim + cw))
+	shot.call("돌진 예고 끝(0열, 동)", chief, {"id": "charge", "left": 0.2, "dir": 0.0, "to": chief.pos + Vector2(6, 0)}, Vector2(wc.x, wc.charge + cw))
+	shot.call("깃발 예고 중(0열, 화면 쪽 남)", foot, {"id": "banner", "left": 1.0, "at": foot.pos}, Vector2(wf.x, wf.banner))
+	shot.call("깃발 예고 끝(1열, 남)", foot, {"id": "banner", "left": 0.2, "at": foot.pos}, Vector2(wf.x + cf, wf.banner))
+	shot.call("포효 예고 끝(0열, 동)", foot, {"id": "roar", "left": 0.2, "dir": 0.0}, Vector2(wf.x, wf.roar + cf))
+	shot.call("선고 예고 끝(0열, 표식 영웅 쪽 동)", foot, {"id": "verdict", "left": 0.2, "mark": h, "at": Vector2(14, 14)}, Vector2(wf.x, wf.verdict + cf))
+	b.traces.append({"hero": foot, "slot": "verdict", "aim": null, "at": Vector2(14, 14), "radius": 0.8, "hits": [], "marked": false, "age": 0.0})
+	shot.call("처형 내려찍기(1열, 내려찍은 쪽 동)", foot, null, Vector2(wf.x + cf, wf.verdict + cf))
+	b.traces.clear()
+	for p in poses:
+		if p[1] == null or not Vector2(p[1]).is_equal_approx(p[2]):
+			bad.append("%s: 원본 자리 %s(%s)" % p)
+	var fell := []
+	for k in [WC, WR]:
+		var e = _still(b, k, Vector2(20 if k == WC else 26, 16), {"hp": 10.0})  # 위에 세운 깃발(21,3)의 불굴 반경 4칸 밖
+		b.damage(e, 50.0, "true")
+		var d: Array = v._fallen().filter(func(x): return x[0].pos.distance_to(e.pos) < 0.5)
+		if d.size() != 1 or d[0][0].kind != "wolf":
+			fell.append("%s가 내린 자리의 쓰러진 몸 %s(늑대 하나)" % [k, d.map(func(x): return x[0].kind)])
+			continue
+		v.cuts = []
+		v._corpse(d[0])
+		var want: Vector2 = Vector2(wc.x, wc.fall) if k == WC else Vector2(art.wolf.x, art.wolf.fall)
+		var size: float = 2.0 * (cw if k == WC else float(art.wolf.c))
+		if v.cuts.size() != 1 or not Vector2(v.cuts[0][1].position).is_equal_approx(want) or v.cuts[0][1].size != Vector2(size, size) or v.cuts[0][0].size != Vector2(size, size):
+			fell.append("%s가 내린 뒤 쓰러진 몸 그림 %s(원본 자리 %s, 크기 %d, 키우지 않음)" % [k, v.cuts.map(func(x): return [x[1], x[0].size]), want, int(size)])
+	v.free()
+	return check(bad.is_empty() and fell.is_empty(), "; ".join(bad + fell))

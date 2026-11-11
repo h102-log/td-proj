@@ -4712,7 +4712,7 @@ func _break(e: Enemy) -> void:
 		body.pos = e.pos
 		body.on_wall = e.on_wall
 		body.alive = false
-		fallen.append({"who": body, "age": 0.0})
+		fallen.append({"who": body, "age": 0.0, "rider": e.kind})  # rider: 타고 있던 종류. 화면이 쓰러진 몸의 그림을 고른다(I286 ②)
 	elif not fell:
 		wrecks.append({"who": e, "at": e.pos, "age": 0.0, "raid": not e.raid.is_empty(), "size": e.radius / e.girth if e.girth > 0.0 else 1.0})  # size는 부서질 때의 몸 그림 배율(I283 ⑨)
 	_turn(e, e.phase2)

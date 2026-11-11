@@ -1,6 +1,6 @@
 {
-  "approvedAt": "2026-11-11T05:15:15.000Z",
-  "evalMd": "b45f82f2",
+  "approvedAt": "2026-11-11T06:41:11.000Z",
+  "evalMd": "33b0c02c",
   "tests": {
     "tests/eval/conftest.py": "1d87ccc5",
     "tests/eval/gd/aura.gd": "010cc38a",
@@ -127,7 +127,7 @@
     "tests/eval/gd/village.gd.uid": "cf32acf7",
     "tests/eval/gd/wall.gd": "f0c4b507",
     "tests/eval/gd/wall.gd.uid": "5931bc74",
-    "tests/eval/gd/warhost.gd": "200e82ab",
+    "tests/eval/gd/warhost.gd": "ccf62a42",
     "tests/eval/gd/warhost.gd.uid": "d6482767",
     "tests/eval/gd/wolf.gd": "e69af530",
     "tests/eval/gd/wolf.gd.uid": "f8e3b505",
@@ -193,7 +193,7 @@
     "tests/eval/test_units.py": "05de9e3b",
     "tests/eval/test_village.py": "54fa0d71",
     "tests/eval/test_wall.py": "8ea59b76",
-    "tests/eval/test_warhost.py": "61b10475",
+    "tests/eval/test_warhost.py": "99480e23",
     "tests/eval/test_wolf.py": "ebecf39b",
     "tests/eval/test_wolfart.py": "2b4515ca"
   },
@@ -663,6 +663,7 @@
     "S348": "0ace6a2a",
     "S349": "d979fc94",
     "S350": "81b42778",
-    "I285": "c3643c24"
+    "I285": "c3643c24",
+    "I286": "55a1e75b"
   }
 }
