@@ -261,7 +261,7 @@ func ev1095():
 	_frame(main)
 	var said := " ".join(_labels(k.info)) if k.info.is_visible_in_tree() else ""
 	_done(main)
-	return check(warn[0].is_equal_approx(GOLD) and warn[1] and poor.is_equal_approx(RED) and faded[0] == 0.35 and faded[1].is_equal_approx(RED) and "인구 가득" in said,
+	return check(warn[0].is_equal_approx(GOLD) and warn[1] and poor.is_equal_approx(RED) and is_equal_approx(faded[0], 0.35) and faded[1].is_equal_approx(RED) and "인구 가득" in said,
 		"골드 25: 값 색·빗금 %s(기대 #e0c040·참) · 골드 10: %s(#ef3a0c) · 인구 상한: 그림 불투명도·인구 글 색 %s(0.35·#ef3a0c) · 설명 상자 «%s»(«인구 가득»)" % [warn, poor, faded, said])
 
 # EV1096 · I298 ④: 설명 상자는 패널 바로 위에 지연 없이, 이름·역할 한 줄·수치·다음 강화 효과
@@ -290,7 +290,7 @@ func ev1096():
 	return check(shown and r.end.y <= 262.0 and r.size.y > 0.0 and miss.is_empty() and gone,
 		"설명 상자 보임 %s · 사각형 %s(아래 가장자리 262 이하) · 없는 글 %s · 글 «%s» · 빈 자리로 옮긴 뒤 숨음 %s" % [shown, r, miss, said, gone])
 
-# EV1097 · I298 ⑤: 산 직후 카드 «+n»(0.8초)과 전투 단계 토스트 «이름 +n → 집결 지점»
+# EV1097 · I298 ⑤: 산 직후 카드 «+n»(0.8초)과 전투 단계 토스트 «이름 +n → 집결 지점»(토스트 줄의 3.5초 간격 뒤)
 func ev1097():
 	var main = _live_prep()
 	var b = main.view.battle
@@ -303,6 +303,7 @@ func ev1097():
 	k.cards[0].pressed.emit()
 	_frame(main)
 	var plus := [k.plus[0].is_visible_in_tree(), k.plus[0].text]
+	main.hud.toasts._process(4.0)  # 앞 토스트(라운드 미션)가 뜬 지 3.5초가 지나야 다음 토스트가 뜬다(I163)
 	var toasts: Array = _toasts(main)
 	var toast: bool = toasts.any(func(t): return "방패병 +1 → 집결 지점" in t)
 	main.hud._process(1.0)

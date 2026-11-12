@@ -23,6 +23,7 @@ extends RefCounted
 const CLICK_SLOP := 4.0  # 이보다 덜 끌고 떼면 클릭이다(맵 px)
 const BODY := Rect2(-0.5, -0.9, 1.0, 1.25)  # 좌클릭으로 유닛을 고르는 그림 자리(칸, 발 자리 기준, S204 2026-10-29 변경). 병사 그림은 발에서 약 13px(0.8칸) 솟는다
 const BattleView := preload("res://src/ui/battle_view.gd")
+const HudKeep := preload("res://src/ui/hud_keep.gd")
 const SKILL_KEYS := {KEY_Q: "q", KEY_W: "w", KEY_E: "e", KEY_R: "r"}  # 영웅 스킬 칸(S145)
 const PLACE_KEYS := {KEY_MINUS: "magic", KEY_4: "barracks", KEY_5: "engineer", KEY_6: "workshop", KEY_7: "archer", KEY_8: "cannon", KEY_9: "archery", KEY_0: "house", KEY_EQUAL: "church", KEY_BACKSLASH: "shelter"}
 
@@ -49,7 +50,9 @@ var missing := ""  # 전투 단계 용병 키를 눌렀는데 그 시설이 없�
 var picked := []  # 전투 단계에 고른 플레이어 구조물. 철거·취소·이어 짓기 팝업의 대상이다(S74, S83)
 var fort = null  # 고른 성곽 칸이나 잔해(I88). 그 옆에 여닫기·업그레이드·수리·복구 팝업이 뜬다(S85, S86, S116, I89)
 var moving = null  # 옮길 대포. 팝업의 «옮기기» 버튼이 넣는다(S91)
-var village := false  # 거점을 골랐다. 그 옆에 마을 레벨 팝업이 뜬다(S100)
+var village := false  # 거점을 골랐다. 준비·전투 단계면 거점 패널이 뜬다(S100, S365)
+var keep_tab := 0  # 거점 패널의 마지막 탭(I298 ①): 0 근접 · 1 원거리 · 2 지원. Tab·Shift+Tab·탭 버튼이 바꾼다
+var rallying := false  # 거점 집결 지점 고르기 중(I298 ⑥). 패널 «집결»이 켜고, 다음 맵 좌클릭이 거점 집결 지점을 정한다. 우클릭·ESC는 그만둔다
 var aiming := "":  # 조준 중인 스킬 칸(S147). 빈 문자열이면 조준 중이 아니다
 	set(v):
 		aiming = v
@@ -88,6 +91,7 @@ func handle(event: InputEvent) -> void:
 		aiming = ""
 		attacking = false
 		missing = ""
+		rallying = false
 		_state = battle.state
 	if aiming != "" and not (aim_hero and aim_hero.alive):  # 조준하던 영웅이 쓰러졌다
 		aiming = ""
@@ -121,8 +125,15 @@ func handle(event: InputEvent) -> void:
 				pick_all()
 			KEY_SPACE:
 				dash()
+			KEY_G:
+				toggle_keep()
+			KEY_TAB:
+				if village and battle.state in ["prep", "battle"]:  # 거점 패널 탭(S365): Tab은 다음, Shift+Tab은 앞
+					keep_tab = posmod(keep_tab + (-1 if event.shift_pressed else 1), HudKeep.TABS.size())
 			KEY_ESCAPE:
-				if placing == "" and moving == null and aiming == "" and not attacking:  # 취소할 것이 없으면 맵 팝업을 닫는다(S183)
+				if rallying:  # 집결 지점 고르기만 그만둔다(I298 ⑥)
+					rallying = false
+				elif placing == "" and moving == null and aiming == "" and not attacking:  # 취소할 것이 없으면 맵 팝업을 닫는다(S183)
 					_close_popups()
 				placing = ""
 				moving = null
@@ -144,6 +155,12 @@ func handle(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and _press != null:
 		drag_rect = Rect2(_press, event.position - _press).abs()
 	if not event is InputEventMouseButton:
+		return
+	if rallying and event.pressed and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:  # 거점 집결 지점 고르기(I298 ⑥). 고른 유닛은 그대로다
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			battle.set_rally(battle.base, Vector2i((event.position / cell_px).floor()))
+		rallying = false
+		_press = null
 		return
 	if aiming != "" and event.pressed and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:
 		if event.button_index == MOUSE_BUTTON_LEFT:
@@ -265,6 +282,15 @@ func pick_unit(u) -> void:
 	facility = null
 	shown = null
 
+# G 키(S365, I298 ①): 거점 패널이 떠 있으면 맵 팝업을 닫고(S183), 아니면 고른 유닛을 그대로 두고 거점을 고른다. 카메라는 옮기지 않는다. 준비·전투 단계에만
+func toggle_keep() -> void:
+	if battle.state not in ["prep", "battle"]:
+		return
+	if village:
+		_close_popups()
+	else:
+		pick_base()
+
 # 거점을 고른다. 거점 칸을 좌클릭한 것과 같되 고른 유닛은 그대로다(S100, I173). 건설 격자의 마을 레벨로 잠긴 칸이 해결 길로 부른다(I132)
 func pick_base() -> void:
 	_pick_at((Vector2(battle.base.cell) + Vector2(0.5, 0.5)) * cell_px)
@@ -280,6 +306,7 @@ func popup_open() -> bool:
 	return facility != null or fort != null or village or not selling.is_empty() or not picked.is_empty() or (shown != null and shown.alive)
 
 func _close_popups() -> void:
+	rallying = false
 	shown = null
 	facility = null
 	fort = null
@@ -299,6 +326,8 @@ func merc_key(kind: String, next := false) -> void:
 		return
 	var f = sellers[(sellers.find(facility) + 1) % sellers.size()]
 	_pick_at((Vector2(f.cell) + Vector2(0.5, 0.5)) * cell_px)
+	if f == battle.base and HudKeep.tab_of(kind) >= 0:  # 거점이면 거점 패널이 그 종류가 든 탭으로 뜬다(I298 ①)
+		keep_tab = HudKeep.tab_of(kind)
 	facility_key.emit(f)
 
 # 고른 영웅·용병이 있으면 공격 명령 조준을 켠다(S35). A 키와 HUD 태그(I139)가 부른다
