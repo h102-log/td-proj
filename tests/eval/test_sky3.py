@@ -48,3 +48,11 @@ def test_EV871_nest_chick_drawing(gd):
 
 def test_EV872_wyvern_drawing_tells(gd):
     gd("sky3", "EV872")
+
+
+def test_EV1052_trio_art_cells(gd):
+    gd("sky3", "EV1052")
+
+
+def test_EV1053_trio_art_drawn(gd):
+    gd("sky3", "EV1053")
