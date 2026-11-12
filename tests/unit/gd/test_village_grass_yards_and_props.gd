@@ -5,7 +5,7 @@ extends RefCounted
 #         → 2026-10-26 둘째 변경: 마을 흙은 길(S202)의 꼭짓점, 성곽 위 두 줄(성벽 안쪽 길), 성벽 쪽 두 모서리 텃밭, 시설 터(S215)다.
 #         → 2026-10-26 셋째 변경: 빈 블록 텃밭 다섯 곳도 흙이다.
 #         → 2026-10-26 넷째 변경: 사방 성곽 맵에서 마을 흙은 길 골격 꼭짓점, 사방 성벽 안쪽 길, 네 모서리 텃밭, 빈 블록 텃밭 다섯 곳, 시설 터다.
-#   S215. 마을 시설은 짓기 시작하면 둘레에 흙 터를 깐다 … 사격장 터는 과녁 쪽(아래)으로 밟힌 줄이 난다.
+#   S215. 마을 시설은 짓기 시작하면 둘레에 흙 터를 깐다
 #         → 2026-10-26 변경: 터는 차지 칸(S216) 가운데를 중심으로 하고 반지름은 차지 칸에 맞춘다(yard_radius).
 #         돌길·광장 돌 위에는 깔지 않는다. 다 지으면 마당 소품을 붙인다 … 타워·성벽에는 터가 없다.
 
@@ -62,7 +62,7 @@ static func _block(b, kind: String, cell: Vector2i):
 	s.size = b.STRUCTURE_KINDS[kind].size
 	return s
 
-func test_yard_ring_trample_and_no_stones():
+func test_yard_ring_and_no_stones():
 	var b = Battle.new(Main.stage())
 	var under: Image = View.bake_ground(b).get_image()
 	var house = _block(b, "house", Vector2i(20, 10))  # 차지 칸 (20..21, 9..10)
@@ -76,11 +76,6 @@ func test_yard_ring_trample_and_no_stones():
 	for p in [Vector2i.ZERO, img.get_size() - Vector2i.ONE]:
 		if img.get_pixelv(p).a > 0.0:
 			return "집 터 그림의 모서리 %s까지 칠했다" % p
-	var archery = _block(b, "archery", Vector2i(20, 10))  # 차지 칸 (20..22, 9..10)
-	var a: Array = View.bake_yard(b, archery, under)
-	var foot := Vector2i(Vector2(21.5, 10) * View.CELL + Vector2(0, 3 + View.yard_radius(archery).y + 10) - a[1])
-	if not Rect2i(Vector2i.ZERO, a[0].get_size()).has_point(foot) or a[0].get_image().get_pixelv(foot).a == 0.0:  # 그림 밖을 읽으면 불투명 검정이 와서 먼저 범위를 본다
-		return "사격장 터에 아래로 밟힌 줄이 없다"
 	var plaza = _block(b, "house", b.base.cell + Vector2i(0, 5))  # 광장 한가운데
 	var q: Array = View.bake_yard(b, plaza, under)
 	var qi: Image = q[0].get_image()

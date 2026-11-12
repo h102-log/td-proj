@@ -708,17 +708,17 @@ msgstr "Heroes"
 msgid "오른쪽 아래 칸(숫자 키)을 고르고\n맵을 누르면 공병이 가서 짓는다"
 msgstr "Pick a slot bottom right (keys)\nclick the map, an Engineer builds"
 
-msgid "거점을 누르면 마을 레벨을 올린다\n(새 시설이 열린다)"
-msgstr "Click the Keep to level the Village\n(unlocks new buildings)"
+msgid "거점을 누르면(G) 거점 패널이 뜬다\n(여기서 용병을 산다)"
+msgstr "Click the Keep (G) for its panel\n(buy mercs here)"
 
 msgid "준비가 끝나면 위 오른쪽\n▶ 전투 시작을 누른다"
 msgstr "When ready, top right:\nclick ▶ Start Battle"
 
-msgid "병영(4)을 짓고 용병 칸으로 산다\n용병은 적을 몸으로 붙잡는다"
-msgstr "Build Barracks (4), buy via slot\nMercs hold enemies in place"
+msgid "거점 패널 카드를 눌러 병사를 산다\n용병은 적을 몸으로 붙잡는다"
+msgstr "Buy a Soldier on the Keep panel\nMercs hold enemies in place"
 
-msgid "전투 중에도 용병 칸·5·7로 산다\n짓기는 공병(5)이 가서 한다"
-msgstr "In battle, buy with slot·5·7 too\nEngineers (5) go and build"
+msgid "전투 중에도 G로 패널을 열어 산다\n짓기는 공병(5)이 가서 한다"
+msgstr "In battle too, press G to buy\nEngineers (5) go and build"
 
 msgid "영웅을 누르고(1)\n우클릭한 칸으로 보낸다"
 msgstr "Select a hero (1)\nright-click to send it"
@@ -765,7 +765,10 @@ msgid "%s에서 산다 · 체력 %d"
 msgstr "Bought at %s · HP %d"
 
 msgid "거점·%s에서 산다 · 체력 %d"
-msgstr "Bought at the Keep or %s · HP %d"
+msgstr "From Keep or %s · HP %d"
+
+msgid "거점에서 산다 · 체력 %d"
+msgstr "Bought at the Keep · HP %d"
 
 msgid "마을 · %s를 판다"
 msgstr "Village · sells %s"

@@ -151,12 +151,12 @@ func ev791():
 # 돌아오고(1골드 미만 버림) 판 것은 모두 사라진다
 func ev805():
 	var b = battle({"village": Rect2i(0, 0, 30, 6), "gold": 1000})
-	var plan := [["house", Vector2i(10, 3), 1.0, 0.8], ["barracks", Vector2i(15, 3), 1.0, 0.8], ["wall", Vector2i(5, 12), 1.0, 0.8],
+	var plan := [["house", Vector2i(10, 3), 1.0, 0.8], ["workshop", Vector2i(15, 3), 1.0, 0.8], ["wall", Vector2i(5, 12), 1.0, 0.8],
 		["soldier", Vector2i(12, 12), 0.52, 1.0], ["archer", Vector2i(14, 12), 0.5, 1.0]]  # [종류, 칸, 남길 체력 비율, 판매 비율]
 	var made := []
 	for p in plan:
 		var g: int = b.gold
-		var x = b.build(p[0], p[1]) if p[0] in ["house", "barracks", "wall"] else b.place_merc(p[0], p[1])
+		var x = b.build(p[0], p[1]) if p[0] in ["house", "workshop", "wall"] else b.place_merc(p[0], p[1])
 		if x == null or g - b.gold <= 0:
 			return "시험 조건이 틀렸다: %s를 %s에 놓지 못했다(골드 %d → %d)" % [p[0], p[1], g, b.gold]
 		x.hp = x.max_hp * p[2]

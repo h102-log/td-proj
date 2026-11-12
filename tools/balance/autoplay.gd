@@ -29,7 +29,7 @@ const BOT := {
 	"plan": "balanced",     # 준비 단계 쇼핑 목록(PLANS)
 	"micro": true,          # 영웅이 가까운 적을 쫓아가 친다. 끄면 출전 칸에 서 있다
 	"skills": true,         # 영웅 Q·W·E·R을 상황 보고 쓴다
-	"recruit": true,        # 전투 중 병영에서 병사를 사서 정문 앞으로 보낸다
+	"recruit": true,        # 전투 중 거점에서 병사를 사서 정문 앞으로 보낸다(S98 2026-11-12 변경: 병영이 없다)
 	"battle_repair": true,  # 전투 중 공병이 정문을 고친다
 	"prep_repair": true,    # 준비 단계에 성곽·구조물·잔해를 고친다. 거점은 base_repair_below 아래일 때만
 	"base_repair_below": 0.5,
@@ -64,19 +64,19 @@ const PLANS := {
 		["build", "cannon", 29, 63], ["build", "cannon", 35, 63], ["upgrade", 32, 63, 3], ["build", "magic", 28, 68],
 		["build", "magic", 36, 68], ["build", "tower", 26, 66], ["build", "tower", 38, 66],
 	],
-	# 세 겹을 고루: 병영·병사 몸막기, 타워, 사격장·성벽 위 궁수, 집 몇 채, 공병 하나
+	# 세 겹을 고루: 병사 몸막기, 타워, 성벽 위 궁수, 집 몇 채, 공병 하나. 병사·궁수는 거점에서 산다(S98 2026-11-12 변경)
 	"balanced": [
-		["build", "barracks", 25, 57], ["merc", "soldier", 2, 32, 64], ["build", "tower", 30, 66], ["build", "tower", 34, 66],
-		["house", 2], ["build", "workshop", 37, 57], ["merc", "engineer", 1, 34, 58], ["village"], ["build", "archery", 22, 57],
+		["merc", "soldier", 2, 32, 64], ["build", "tower", 30, 66], ["build", "tower", 34, 66],
+		["house", 2], ["build", "workshop", 37, 57], ["merc", "engineer", 1, 34, 58],
 		["wallmerc", "archer", 2], ["build", "magic", 29, 65], ["build", "magic", 35, 65], ["merc", "soldier", 3, 32, 64],
 		["build", "cannon", 30, 63], ["house", 4], ["upgrade", 32, 63, 2], ["wallmerc", "archer", 4], ["build", "cannon", 34, 63],
 		["build", "tower", 30, 68], ["build", "tower", 34, 68], ["merc", "soldier", 4, 32, 64], ["upgrade", 32, 63, 3],
 		["house", 6], ["build", "cannon", 29, 63], ["build", "cannon", 35, 63], ["build", "magic", 28, 67], ["build", "magic", 36, 67],
 	],
-	# 숙련: 영웅 하나로 시작해 1라운드는 타워·대포로 버티고, 병영(정문 안쪽 2선)·사격장(성벽 궁수)·공병·집을 차례로 더한다
+	# 숙련: 영웅 하나로 시작해 1라운드는 타워·대포로 버티고, 병사(정문 안쪽 2선)·성벽 궁수·공병·집을 차례로 더한다
 	"smart": [
 		["build", "tower", 30, 66], ["build", "tower", 34, 66], ["build", "cannon", 30, 63], ["build", "magic", 29, 65],
-		["build", "barracks", 25, 57], ["merc", "soldier", 2, 32, 58], ["village"], ["build", "archery", 22, 57],
+		["merc", "soldier", 2, 32, 58],
 		["wallmerc", "archer", 2], ["build", "workshop", 37, 57], ["merc", "engineer", 1, 34, 57], ["house", 2],
 		["build", "magic", 35, 65], ["build", "cannon", 34, 63], ["upgrade", 32, 63, 2], ["wallmerc", "archer", 4],
 		["build", "tower", 30, 68], ["build", "tower", 34, 68], ["house", 4], ["merc", "soldier", 3, 32, 58],
@@ -85,9 +85,9 @@ const PLANS := {
 	],
 	# 집 6채를 먼저 짓고 방어를 늦게 갖춘다
 	"greedy": [
-		["house", 6], ["build", "tower", 30, 66], ["build", "tower", 34, 66], ["build", "barracks", 25, 57],
+		["house", 6], ["build", "tower", 30, 66], ["build", "tower", 34, 66],
 		["merc", "soldier", 2, 32, 64], ["build", "magic", 29, 65], ["build", "magic", 35, 65], ["build", "cannon", 30, 63],
-		["village"], ["build", "archery", 22, 57], ["wallmerc", "archer", 3], ["build", "cannon", 34, 63], ["upgrade", 32, 63, 2],
+		["wallmerc", "archer", 3], ["build", "cannon", 34, 63], ["upgrade", 32, 63, 2],
 		["merc", "soldier", 4, 32, 64], ["build", "tower", 30, 68], ["build", "tower", 34, 68], ["upgrade", 32, 63, 3],
 		["build", "cannon", 29, 63], ["build", "cannon", 35, 63], ["build", "magic", 28, 67], ["build", "magic", 36, 67],
 	],
@@ -432,7 +432,7 @@ func _defer(cells: Array) -> bool:
 	_wait = true
 	return true
 
-# 그 용병을 파는 첫 곳(sellers: 완성된 시설, live_prep의 공병은 거점도)에서 사서 그 칸으로 공격 이동시킨다(I20, S35, S98). 살 수 없으면 null
+# 그 용병을 파는 첫 곳(sellers: 공병은 작업장, 그다음 거점)에서 사서 그 칸으로 공격 이동시킨다(I20, S35, S98). 살 수 없으면 null
 func _recruit(kind: String, cell: Vector2i):
 	for s in b.sellers(kind).slice(0, 1):
 		var m = b.recruit(s, kind)
@@ -551,11 +551,10 @@ func _battle_actions() -> void:
 			if item[0] == "merc" and item[1] == "soldier":
 				want = maxi(want, item[2])
 		if _count("soldier") < want:
-			for s in b.structures.values():
-				if s.complete and "soldier" in s.produces and b.gold >= b.MERC_KINDS.soldier.cost + bot.reserve:
+			for s in b.sellers("soldier").slice(0, 1):  # 거점(S98 2026-11-12 변경)
+				if b.gold >= b.MERC_KINDS.soldier.cost + bot.reserve:
 					s.rally = Vector2i(bot.rally[0], bot.rally[1])
-					b.recruit(s)
-					break
+					b.recruit(s, "soldier")
 	if bot.battle_repair:
 		var gate = b.walls.get(GATE)
 		if gate and gate.hp < gate.max_hp * 0.6 and b.can_repair(gate) and b.gold >= b.repair_cost(gate):

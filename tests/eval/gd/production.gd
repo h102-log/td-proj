@@ -2,7 +2,8 @@ extends "res://tests/eval/gd/lib.gd"
 # WBS 2.15 생산 시설·집결 지점·전투 중 구매·배치 상한(S19~S21·S25·S43·S48·S81·S82·I22·I23). lib.gd 머리의 계약에 더하는 API:
 #   stage 키 village: Rect2i — 마을 칸. 생산 시설은 이 안에만, 타워·방벽은 이 밖에만 짓는다. 없으면 모든 칸이 들판이다
 #   stage 키 merc_cap: int — 배치 상한(살아 있는 용병 수, 공병 포함)
-#   구조물 kind "barracks" — 용병("soldier") 생산 시설. rally: Vector2i — 집결 지점
+#   구조물 kind "workshop" — 공병("engineer") 생산 시설(병영·사격장은 없다, S98 2026-11-12 변경). rally: Vector2i — 집결 지점
+#   Battle.base — 거점. 마을이 있는 판이면 용병 열한 종을 파는 시설처럼 쓴다(recruit(base, 종류))
 #   Battle.recruit(시설) -> 용병|null — 전투 단계에만, 그 시설에서 용병 하나를 산다
 #   Battle.set_rally(시설, cell) — 집결 지점을 바꾼다
 #   Controls.facility — 고른 생산 시설(구매 팝업 대상). 없으면 null
@@ -25,18 +26,18 @@ func _calm(b, secs: float, cond: Callable) -> bool:
 # EV40 · S19: 전투 단계에 생산 시설에서 용병을 사면 골드가 가격만큼 준다
 func ev40():
 	var b = _battle()
-	var f = b.build("barracks", F)
+	var f = b.build("workshop", F)
 	if f == null:
 		return "마을 칸에 생산 시설을 짓지 못했다"
 	b.start_battle()
 	var before: int = b.gold
 	var m = b.recruit(f)
-	return check(m != null and b.gold == before - b.MERC_KINDS.soldier.cost, "구매 결과 %s, 골드 %d → %d" % [m, before, b.gold])
+	return check(m != null and b.gold == before - b.MERC_KINDS.engineer.cost, "구매 결과 %s, 골드 %d → %d" % [m, before, b.gold])
 
 # EV41 · S20: 전투 중에 산 용병은 시설 옆 칸에서 나타나 집결 지점에 도착한다
 func ev41():
 	var b = _battle()
-	var f = b.build("barracks", F)
+	var f = b.build("workshop", F)
 	b.set_rally(f, R1)
 	b.start_battle()
 	var m = b.recruit(f)
@@ -47,7 +48,7 @@ func ev41():
 # EV42 · S21: 전투 중에 집결 지점을 바꾼 뒤 산 용병은 새 집결 지점에 도착한다
 func ev42():
 	var b = _battle()
-	var f = b.build("barracks", F)
+	var f = b.build("workshop", F)
 	b.start_battle()
 	b.set_rally(f, R2)
 	var m = b.recruit(f)
@@ -61,7 +62,7 @@ func ev47():
 	for x in [10, 12, 14]:
 		if b.place_merc("soldier", Vector2i(x, 12)) == null:
 			return "상한 안의 용병을 놓지 못했다"
-	var f = b.build("barracks", F)
+	var f = b.build("workshop", F)
 	var before: int = b.gold
 	var placed = b.place_merc("soldier", Vector2i(16, 12))
 	if placed != null or b.gold != before:
@@ -75,7 +76,7 @@ func ev47():
 func ev50():
 	var b = _battle({"merc_cap": 2})
 	b.place_merc("soldier", Vector2i(10, 12))
-	var f = b.build("barracks", F)
+	var f = b.build("workshop", F)
 	b.set_rally(f, R1)
 	b.start_battle()
 	var m = b.recruit(f)
@@ -88,7 +89,7 @@ func ev50():
 # EV64 · I22: 집결 지점을 바꾸면 걸어가던 용병은 새 지점으로 가고, 이미 닿은 용병은 남는다
 func ev64():
 	var b = _battle()
-	var f = b.build("barracks", F)
+	var f = b.build("workshop", F)
 	b.start_battle()
 	b.set_rally(f, R1)
 	var first = b.recruit(f)
@@ -104,16 +105,16 @@ func ev64():
 func ev65():
 	var b = _battle()
 	var before: int = b.gold
-	var field_facility = b.build("barracks", Vector2i(10, 12))
+	var field_facility = b.build("workshop", Vector2i(10, 12))
 	var village_tower = b.build("tower", Vector2i(12, 3))
 	if field_facility != null or village_tower != null or b.gold != before:
 		return "들판 생산 시설 %s, 마을 타워 %s, 골드 %d → %d" % [field_facility, village_tower, before, b.gold]
-	return check(b.build("barracks", F) != null, "마을 칸에 생산 시설을 짓지 못했다")
+	return check(b.build("workshop", F) != null, "마을 칸에 생산 시설을 짓지 못했다")
 
 # EV66 · S48: 파괴된 생산 시설에서는 살 수 없다
 func ev66():
 	var b = _battle()
-	var f = b.build("barracks", F)
+	var f = b.build("workshop", F)
 	b.start_battle()
 	b.damage(f, BIG)
 	var before: int = b.gold
@@ -124,7 +125,7 @@ func ev66():
 func ev67():
 	var b = _battle()
 	var c = controls(b)
-	var f = b.build("barracks", F)
+	var f = b.build("workshop", F)
 	b.start_battle()
 	click(c, MOUSE_BUTTON_LEFT, px(F))
 	if c.facility != f:
@@ -136,7 +137,7 @@ func ev67():
 func ev68():
 	var b = _battle()
 	var c = controls(b)
-	var f = b.build("barracks", F)
+	var f = b.build("workshop", F)
 	b.start_battle()
 	click(c, MOUSE_BUTTON_LEFT, px(F))
 	click(c, MOUSE_BUTTON_RIGHT, px(R2))
@@ -145,10 +146,9 @@ func ev68():
 # EV395 · I38: 시설에서 산 용병은 집결 지점까지 공격 이동으로 걷는다(가는 길에 사거리에 든 적 앞에 서서 친다)
 func ev395():
 	var b = _battle()
-	var f = b.build("barracks", F)
-	b.set_rally(f, R1)
+	b.set_rally(b.base, R1)  # 병사는 거점에서 산다(S98 2026-11-12 변경)
 	b.start_battle()
-	var m = b.recruit(f)
+	var m = b.recruit(b.base, "soldier")
 	if m == null or m.path.size() < 4:
 		return "사지 못했거나 집결 길이 짧다(%s)" % [m.path if m else null]
 	var foe = b.spawn_enemy("basic", m.path[3], {"speed": 0, "damage": 0, "sight": 0, "hp": BIG})
@@ -200,7 +200,7 @@ func ev739():
 	var h = b.build("house", Vector2i(2, 1))
 	var more := _fill(b, per, 13)
 	var refused2: bool = b.place_merc("soldier", Vector2i(2, 15)) == null
-	var f = b.build("barracks", F)
+	var f = b.build("workshop", F)
 	b.start_battle()
 	var g2: int = b.gold
 	var bought = b.recruit(f)

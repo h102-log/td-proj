@@ -30,7 +30,7 @@ def test_EV96_merc_drops_when_wall_cell_breaks(gd):
     gd("wall", "EV96")
 
 
-def test_EV97_archery_sells_archer(gd):
+def test_EV97_keep_sells_archer(gd):
     gd("wall", "EV97")
 
 

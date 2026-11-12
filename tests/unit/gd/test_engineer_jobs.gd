@@ -45,7 +45,7 @@ func test_engineer_does_not_attack():
 
 func test_facility_is_not_demolished():
 	var b = _battle()
-	var f = b.build("barracks", Vector2i(10, 3))
+	var f = b.build("workshop", Vector2i(10, 3))  # 생산 시설은 작업장뿐이다(S98 2026-11-12 변경)
 	var e = b.place_merc("engineer", Vector2i(12, 13))
 	_start(b)
 	b.demolish([f])

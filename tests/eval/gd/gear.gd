@@ -523,16 +523,12 @@ func ev616():
 	return out
 
 const VILLAGE := Rect2i(0, 0, 30, 6)  # 마을 칸(production.gd와 같다)
-const BARRACKS := Vector2i(10, 3)
 
-# 마을이 있고 라운드 둘(적 1마리 웨이브 하나씩)인 판의 준비 단계. barracks면 병영을 지어 둔다
-func _camp(barracks := true, over := {}):
+# 마을이 있고 라운드 둘(적 1마리 웨이브 하나씩)인 판의 준비 단계. 병사·궁수를 파는 곳은 거점이다(S98 2026-11-12 변경)
+func _camp(over := {}):
 	var stage := {"village": VILLAGE, "base_hp": BIG, "rounds": [[ONE_ENEMY], [ONE_ENEMY]], "seed": 7}
 	stage.merge(over, true)
-	var b = battle(stage)
-	if barracks:
-		b.build("barracks", BARRACKS)
-	return b
+	return battle(stage)
 
 # 강화 API가 없으면 그 이유. 없을 때 rank_up이 null을 내면 «거부»로 읽혀 빈 통과가 된다
 func _rank_api(b) -> String:
@@ -549,18 +545,18 @@ func _mdata(kind: String) -> Resource:
 
 # EV617 · S254: 강화는 준비 단계에, 파는 곳이 있고 골드가 있을 때만 된다. 마지막 단계면 거부한다
 func ev617():
-	var b = _camp(false)
-	var out := _rank_api(b)
+	var none = battle({"base_hp": BIG, "rounds": [[ONE_ENEMY], [ONE_ENEMY]], "seed": 7})  # 마을이 없는 판: 병사를 파는 곳이 없다
+	var out := _rank_api(none)
 	if out != "":
 		return out
-	var cost: Array = b.MERC_KINDS.soldier.rank_cost
-	var g0: int = b.gold
-	out = check(b.state == "prep" and not b.rank_up("soldier") and b.gold == g0 and b.merc_rank.get("soldier", 0) == 0, "병영 없는 준비 단계(%s)에서 강화됐다: 골드 %d → %d · 단계 %s" % [b.state, g0, b.gold, b.merc_rank])
-	if out == "":
-		out = check(b.build("barracks", BARRACKS) != null, "마을 %s에 병영을 짓지 못했다" % BARRACKS)
+	var cost: Array = none.MERC_KINDS.soldier.rank_cost
+	var g0: int = none.gold
+	out = check(none.state == "prep" and none.sellers("soldier").is_empty() and not none.rank_up("soldier") and none.gold == g0 and none.merc_rank.get("soldier", 0) == 0,
+		"파는 곳 없는 준비 단계(%s, 파는 곳 %s)에서 강화됐다: 골드 %d → %d · 단계 %s" % [none.state, none.sellers("soldier"), g0, none.gold, none.merc_rank])
+	var b = _camp()
 	if out == "":
 		g0 = b.gold
-		out = check(b.rank_up("soldier") and b.gold == g0 - cost[0] and b.merc_rank.get("soldier") == 1, "병영 뒤 강화: 골드 %d → %d(비용 %d) · 단계 %s" % [g0, b.gold, cost[0], b.merc_rank])
+		out = check(b.rank_up("soldier") and b.gold == g0 - cost[0] and b.merc_rank.get("soldier") == 1, "마을 판(파는 곳은 거점) 강화: 골드 %d → %d(비용 %d) · 단계 %s" % [g0, b.gold, cost[0], b.merc_rank])
 	if out == "":
 		b.gold = cost[1] - 1
 		out = check(not b.rank_up("soldier") and b.gold == cost[1] - 1 and b.merc_rank.soldier == 1, "골드 %d로 2단계가 됐다(비용 %d): 단계 %s" % [cost[1] - 1, cost[1], b.merc_rank])
@@ -602,7 +598,7 @@ func ev618():
 	if want <= base_hp:
 		return "용병 1단계가 체력을 올리지 않는다(ranks[0] %s)" % [b.MERC_KINDS.soldier.ranks[0]]
 	if not b.rank_up("soldier"):
-		return "병영이 있는 준비 단계에서 용병 강화가 거부됐다"
+		return "마을이 있는 준비 단계에서 병사 강화가 거부됐다"
 	var s3 = b.place_merc("soldier", Vector2i(18, 12))
 	return check(s1.max_hp == want and s1.hp == want and s2.max_hp == want and s2.hp == want - 10.0 and [a.max_hp, a.hp, a.damage] == arch
 		and s3 != null and s3.hp == want and s3.max_hp == want and b.MERC_KINDS.soldier.hp == base_hp,
@@ -614,9 +610,7 @@ func ev619():
 	var out := _rank_api(b)
 	if out != "":
 		return out
-	if b.build("barracks", BARRACKS) == null:
-		return "마을 %s에 병영을 짓지 못했다" % BARRACKS
-	for i in 3:
+	for i in 3:  # 병사를 파는 곳은 거점이다(S98 2026-11-12 변경)
 		if not b.rank_up("soldier"):
 			return "용병 %d단계 강화가 거부됐다" % (i + 1)
 	var m = b.place_merc("soldier", Vector2i(12, 10), {"hp": BIG, "damage": 0, "sight": 0, "range": 0})
@@ -672,7 +666,6 @@ func ev622():
 	var out := _rank_api(a)
 	if out != "":
 		return out
-	a.build("barracks", BARRACKS)
 	var m = a.place_merc("soldier", Vector2i(12, 12))
 	if m == null or not a.rank_up("soldier"):
 		return "용병을 두고 강화하지 못했다(%s, 단계 %s)" % [m, a.merc_rank]
@@ -694,42 +687,43 @@ func ev622():
 		out = check(c.merc_rank.is_empty() and c.units.size() == a.units.size(), "칸이 없는 저장의 단계 %s · 유닛 %d(기대 %d)" % [c.merc_rank, c.units.size(), a.units.size()])
 	return out
 
-# EV623 · S255: 준비 단계 병영 팝업의 «용병 강화 N» 버튼·툴팁·최대, 정보 칸 체력, 전투 단계엔 버튼 없음
+# EV623 · S255: 준비 단계 생산 시설(작업장, S98 2026-11-12 변경으로 생산 시설은 이것뿐) 팝업의 «공병 강화 N» 버튼·툴팁·최대, 정보 칸 체력, 전투 단계엔 버튼 없음
 func ev623():
 	var main = _prep()
 	var b = main.view.battle
 	var out := _rank_api(b)
 	var f = null
 	if out == "":
-		f = b.build("barracks", Vector2i(6, 6))
-		out = check(f != null, "준비 단계에 마을 (4,4)에 병영을 짓지 못했다")
+		f = b.build("workshop", Vector2i(6, 6))
+		out = check(f != null, "준비 단계에 마을 (6,6)에 작업장을 짓지 못했다")
 	var btn = null
 	if out == "":
 		main.controls.facility = f
 		_frame(main)
-		var cost: Array = b.MERC_KINDS.soldier.rank_cost
-		btn = _starts(main.hud.popup, "병사 강화")
-		out = check(btn != null and btn.text == "병사 강화 %d" % cost[0], "준비 단계 병영 팝업의 강화 버튼 %s(기대 «병사 강화 %d»)" % [btn.text if btn else null, cost[0]])
+		var d := _mdata("engineer")
+		var cost: Array = b.MERC_KINDS.engineer.rank_cost
+		btn = _starts(main.hud.popup, "공병 강화")
+		out = check(btn != null and btn.text == "공병 강화 %d" % cost[0], "준비 단계 작업장 팝업의 강화 버튼 %s(기대 «공병 강화 %d»)" % [btn.text if btn else null, cost[0]])
 		if out == "":
 			var tip := _tip_of(main, btn)
-			var line := "체력 %d → %d" % [int(_mdata("soldier").hp), int(b.MERC_KINDS.soldier.ranks[0].hp)]
+			var line := "이동 %s → %s칸/초" % [main.hud._num(d.speed), main.hud._num(d.ranks[0].speed)]
 			out = check(line in tip, "강화 버튼 툴팁 «%s»에 «%s»가 없다" % [tip, line])
 		if out == "":
 			btn.pressed.emit()
 			_frame(main)
-			var lines: String = str(main.hud.grid._lines("soldier"))
-			out = check(b.merc_rank.get("soldier") == 1 and btn.text == "병사 강화 %d" % cost[1] and "체력 %d" % int(b.MERC_KINDS.soldier.ranks[0].hp) in lines,
-				"누른 뒤 단계 %s · 버튼 «%s»(기대 «병사 강화 %d») · 정보 칸 %s" % [b.merc_rank, btn.text, cost[1], lines])
+			out = check(b.merc_rank.get("engineer") == 1 and btn.text == "공병 강화 %d" % cost[1], "누른 뒤 단계 %s · 버튼 «%s»(기대 «공병 강화 %d»)" % [b.merc_rank, btn.text, cost[1]])
 		if out == "":
-			b.rank_up("soldier")
-			b.rank_up("soldier")
+			btn.pressed.emit()
 			_frame(main)
-			out = check(b.merc_rank.get("soldier") == 3 and btn.is_visible_in_tree() and btn.text == "병사 강화 최대" and btn.disabled, "3단계 버튼 «%s» · 보임 %s · 못 누름 %s · 단계 %s" % [btn.text, btn.is_visible_in_tree(), btn.disabled, b.merc_rank])
+			var lines: String = str(main.hud.grid._lines("engineer"))
+			var hp := "체력 %d" % int(d.ranks[1].hp)
+			out = check(b.merc_rank.get("engineer") == 2 and btn.is_visible_in_tree() and btn.text == "공병 강화 최대" and btn.disabled and hp in lines,
+				"2단계(최대) 버튼 «%s» · 보임 %s · 못 누름 %s · 단계 %s · 정보 칸 %s(«%s»)" % [btn.text, btn.is_visible_in_tree(), btn.disabled, b.merc_rank, lines, hp])
 		if out == "":
 			b.start_battle()
 			_frame(main)
-			out = check(main.controls.facility == f and _starts(main.hud.popup, "병사 강화") == null and _starts(main.hud.popup, "병사") != null,
-				"전투 단계 팝업: 고른 시설 %s · 강화 버튼 %s · 구매 버튼 %s" % [main.controls.facility, _starts(main.hud.popup, "병사 강화"), _starts(main.hud.popup, "병사")])
+			out = check(main.controls.facility == f and _starts(main.hud.popup, "공병 강화") == null and _starts(main.hud.popup, "공병") != null,
+				"전투 단계 팝업: 고른 시설 %s · 강화 버튼 %s · 구매 버튼 %s" % [main.controls.facility, _starts(main.hud.popup, "공병 강화"), _starts(main.hud.popup, "공병")])
 	_done(main)
 	return out
 
@@ -739,11 +733,11 @@ func ev624():
 	var out := _rank_api(b)
 	if out != "":
 		return out
-	var f = b.structure_at(BARRACKS)
-	if f == null or not b.rank_up("soldier"):
-		return "병영(%s)이 있는 준비 단계에서 용병 강화가 거부됐다" % f
+	var f = b.base  # 병사는 거점에서 산다(S98 2026-11-12 변경)
+	if not b.rank_up("soldier"):
+		return "마을이 있는 준비 단계에서 병사 강화가 거부됐다"
 	b.start_battle()
-	var m = b.recruit(f)
+	var m = b.recruit(f, "soldier")
 	var want: float = b.MERC_KINDS.soldier.ranks[0].get("hp", 0.0)
 	return check(m != null and want > _mdata("soldier").hp and m.hp == want and m.max_hp == want, "강화 뒤 전투 단계에 산 용병 %s(기대 체력 %s)" % [[m.max_hp, m.hp] if m else null, want])
 
@@ -1201,12 +1195,10 @@ func ev737():
 	var rising := true
 	for i in range(1, steps.size()):
 		rising = rising and steps[i] > steps[i - 1]
-	var b = _camp(false)
-	b.village_level = 2
-	var f = b.build("archery", BARRACKS)
+	var b = _camp()  # 궁수를 파는 곳은 거점이다(S98 2026-11-12 변경)
 	var a = b.place_merc("archer", Vector2i(16, 12))
-	if f == null or a == null:
-		return "마을 판에 사격장 %s · 궁수 %s를 두지 못했다" % [f, a]
+	if a == null:
+		return "마을 판에 궁수를 두지 못했다"
 	var seen := [a.get("accuracy")]
 	for i in d.ranks.size():
 		b.rank_up("archer")
@@ -1230,7 +1222,7 @@ func ev737():
 	return check(rising and same and flown.size() == 200 and absf(rate - steps[0]) <= 0.1,
 		"단계별 명중률 %s(차례로 커져야) · 강화하며 본 궁수의 명중률 %s · 나간 화살 %d(200) · 대상을 따라가는 비율 %.3f(%.2f ± 0.1)" % [steps, seen, flown.size(), rate, steps[0]])
 
-# EV738 · S255: 사격장을 고른 준비 단계 팝업의 «궁수 강화 N» 버튼 툴팁에 다음 단계 명중률 줄 «명중률 (강화 전 × 100) → (1단계 × 100)%»가 있다
+# EV738 · S255: 궁수 강화의 다음 단계 효과에 명중률 줄 «명중률 (강화 전 × 100) → (1단계 × 100)%»가 있다. 궁수는 거점이 팔아(S98 2026-11-12 변경) 거점 패널(S365) 원거리 탭 궁수 카드의 설명 상자에서 본다
 func ev738():
 	var main = _prep()
 	var b = main.view.battle
@@ -1238,20 +1230,23 @@ func ev738():
 	var d := _mdata("archer")
 	if out == "" and d.get("accuracy") == null:
 		out = "archer.tres에 accuracy가 없다"
-	var f = null
+	var k = main.hud.get("keep")
+	if out == "" and not k is Control:
+		out = "main.hud.keep이 없다"
 	if out == "":
-		b.village_level = 2
-		f = b.build("archery", Vector2i(6, 6))
-		out = check(f != null, "준비 단계에 마을 (6,6)에 사격장을 짓지 못했다")
-	if out == "":
-		main.controls.facility = f
+		main.controls.keep_tab = 1  # 원거리 탭(I298 ①)
+		click(main.controls, MOUSE_BUTTON_LEFT, px(b.base.cell))
 		_frame(main)
-		var btn = _starts(main.hud.popup, "궁수 강화")
-		if btn == null:
-			out = "사격장 팝업에 «궁수 강화» 버튼이 없다"
+		_layout(main)
+		_frame(main)
+		var i: int = k.kinds.find("archer")
+		if i < 0:
+			out = "거점 패널 원거리 탭 칸 %s에 궁수가 없다" % [k.kinds]
 		else:
-			var tip := _tip_of(main, btn)
+			_move(k.cards[i].get_global_rect().get_center())
+			_frame(main)
+			var said := " ".join(_labels(k.info))
 			var line := "명중률 %d → %d%%" % [roundi(d.accuracy * 100.0), roundi(d.ranks[0].accuracy * 100.0)]
-			out = check(line in tip, "궁수 강화 버튼 툴팁 «%s»에 «%s»가 없다" % [tip, line])
+			out = check(k.info.is_visible_in_tree() and line in said, "궁수 카드 설명 상자(보임 %s) «%s»에 «%s»가 없다" % [k.info.is_visible_in_tree(), said, line])
 	_done(main)
 	return out

@@ -31,7 +31,7 @@ const DUSK := 0.3  # 이 어둠부터 야경꾼 말고 모두 집 안이다
 const PRIEST_LOOK := 8  # 사제의 검은 옷 프리셋(folk_man_8, S172)
 # 직업 → 일 자세(S172 2026-10-27 변경). carry_로 시작하면 4방향 들고 걷기, 나머지는 동·서 제자리 2프레임. play는 놀기(걷기)
 const POSE := {"farmer": "hoe", "gleaner": "squat", "herbalist": "squat", "washer": "squat", "fisher": "fish", "woodcutter": "axe",
-	"blacksmith": "hammer", "mason": "hammer", "carpenter": "saw", "spinner": "sit", "weaver": "sit", "bowyer": "sit",
+	"blacksmith": "hammer", "mason": "hammer", "carpenter": "saw", "spinner": "sit", "weaver": "sit",
 	"merchant": "stir", "brewer": "stir", "baker": "stir", "innkeeper": "stir", "priest": "stir",
 	"water_carrier": "carry_water", "porter": "carry_sack", "miller": "carry_sack", "midwife": "carry_basket",
 	"watchman": "carry_lantern", "goose_herd": "carry_stick", "play": "walk"}
@@ -204,8 +204,8 @@ static func _work(b, P: Dictionary, f: Dictionary, k: int, home, door: Vector2i,
 			return {"at": open_cell(P, OVEN[0] + Vector2i(1, 0)), "face": 1} if not pr.oven.is_empty() else here
 		"merchant":
 			return {"at": open_cell(P, STALLS[k % STALLS.size()] + Vector2i(1, 0)), "face": 1} if not pr.stalls.is_empty() else here
-		"blacksmith", "bowyer", "priest":
-			var at = first(b, {"blacksmith": "workshop", "bowyer": "archery", "priest": "church"}[f.job])
+		"blacksmith", "priest":
+			var at = first(b, {"blacksmith": "workshop", "priest": "church"}[f.job])
 			return {"at": open_cell(P, door_of(b, P, at) + Vector2i(1, 0)), "face": 1} if at else here
 		"miller":
 			if pr.mill.is_empty():

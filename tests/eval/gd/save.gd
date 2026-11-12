@@ -130,7 +130,7 @@ func ev306():
 	if a.hire(0) == null or a.hire(1) == null:
 		return "영입하지 못했다"
 	a.next_round()
-	for p in [["tower", Vector2i(30, 67)], ["tower", Vector2i(34, 67)], ["wall", Vector2i(32, 70)], ["barracks", Vector2i(16, 24)]]:  # 들판은 남벽(59~63행, S203) 아래
+	for p in [["tower", Vector2i(30, 67)], ["tower", Vector2i(34, 67)], ["wall", Vector2i(32, 70)], ["workshop", Vector2i(16, 24)]]:  # 들판은 남벽(59~63행, S203) 아래. 마을 시설은 작업장(병영은 없어졌다, S98 2026-11-12 변경)
 		if a.build(p[0], _near(a, p[0], p[1])) == null:
 			return "%s를 짓지 못했다" % p[0]
 	for want in [Vector2i(32, 66), Vector2i(28, 65)]:  # 용병은 병영이 있어야 놓는다(S50)
@@ -332,7 +332,7 @@ func ev422():
 	a.next_round()
 	a.state = "battle"  # 준비 단계 짓기는 바로 끝난다(S18 2026-11-06 변경). 공병이 일하는 판을 만들려고 잠시 전투 단계로 둔다
 	var t = a.build("tower", _near(a, "tower", Vector2i(28, 61)))
-	var f = a.build("barracks", _near(a, "barracks", Vector2i(26, 32)))
+	var f = a.build("workshop", _near(a, "workshop", Vector2i(26, 32)))
 	a.state = "prep"
 	if t == null or f == null or t.worker == null or f.worker == null:
 		return "공병이 짓게 하지 못했다(타워 %s · 병영 %s)" % [t, f]
@@ -488,3 +488,46 @@ func ev529():
 	var who: Array = c.people.filter(func(v): return v.m.get("away") != null and not v.m.away["in"])
 	return check(who.size() == 1 and who[0].m.away.get("pack", false) and who[0].pose == "carry_pack",
 		"불러온 판의 길 위 주민 [자세, pack] %s" % [who.map(func(v): return [v.pose, v.m.away.get("pack")])])
+
+# EV1104 · S98 2026-11-12 변경: 옛 저장의 병영·사격장은 불러올 때 판 것처럼(S69) 골드를 돌려주고 판에 두지 않는다.
+# 활 장인을 맡았던 주민은 원래 직업으로 돌아가고, 그 시설을 짓던 공병은 일 없이 선다. 저장 판은 그대로 7이다
+func ev1104():
+	var S = _save()
+	var a = _new(_stage())
+	a.begin_hiring()
+	a.next_round()
+	var homes: Array = []
+	for c in [Vector2i(24, 19), Vector2i(33, 17)]:
+		homes.append(a.build("house", c))
+	var w = a.build("workshop", Vector2i(42, 10))
+	if homes.has(null) or w == null or homes.any(func(h): return h.folk.is_empty()):
+		return "집 %s · 작업장 %s를 짓지 못했거나 집에 가족이 없다" % [homes, w]
+	var e = a.place_merc("engineer", Vector2i(40, 20))
+	var d: Dictionary = S.snapshot(a)
+	var shop: Dictionary = d.structures.filter(func(f): return f.kind == "workshop")[0]
+	var old_cells := [Vector2i(16, 24), Vector2i(16, 28)]
+	for i in 2:  # 옛 판의 병영(다 지음)·사격장(짓는 중, 체력 절반)
+		var f: Dictionary = shop.duplicate(true)
+		f.kind = ["barracks", "archery"][i]
+		f.cell = old_cells[i]
+		f.paid = 40
+		f.produces = [["soldier"], ["archer"]][i]
+		f.folk = []
+		f.hp = f.max_hp * (1.0 if i == 0 else 0.5)
+		d.structures.append(f)
+	var home: Dictionary = d.structures.filter(func(f): return f.kind == "house")[0]
+	home.folk[0].craft = "bowyer"
+	var unit: Dictionary = d.units.filter(func(u): return u is Dictionary and u.get("kind") == "engineer")[0]
+	unit.job = [old_cells[1], "archery"]
+	var b = _new(_stage())
+	S.apply(b, d)
+	var left: Array = b.structures.values().filter(func(s): return s.kind in ["barracks", "archery"])
+	var want: int = a.gold + floori(40 * 1.0 * 0.8 + 0.0001) + floori(40 * 0.5 * 0.8 + 0.0001)
+	var crafts: Array = []
+	for s in b.structures.values():
+		for m in s.folk:
+			if m.has("craft"):
+				crafts.append(m.craft)
+	var be: Array = b.units.filter(func(u): return u.kind == "engineer")
+	return check(left.is_empty() and b.gold == want and not "bowyer" in crafts and be.size() == 1 and be[0].job == null and S.VERSION == 7,
+		"남은 옛 시설 %s · 골드 %d(기대 %d = 저장 %d + 32 + 16) · 시설 직업 %s · 공병 %d명 일 %s · 저장 판 %d(7)" % [left, b.gold, want, a.gold, crafts, be.size(), be.map(func(u): return u.job), S.VERSION])

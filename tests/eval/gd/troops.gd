@@ -89,7 +89,7 @@ func ev1074():
 				bad.append("%s.%s %s(%s여야 한다)" % [k, key, d.get(key), want[k][key]])
 	return check(bad.is_empty(), "; ".join(bad))
 
-# EV1075 · S356: live_prep 판에서는 거점이 공병 다음에 여덟을 팔고, 강화 단계의 사전 값은 그 칸의 적힌 키만 덮는다
+# EV1075 · S356: 거점이 공병·병사·궁수 다음에 여덟을 팔고(S98 2026-11-12 변경: 마을이 있는 판이면 live_prep과 상관없이), 강화 단계의 사전 값은 그 칸의 적힌 키만 덮는다
 func ev1075():
 	var stage: Dictionary = load("res://src/main.gd").stage()
 	stage.gold = BIG
@@ -100,8 +100,8 @@ func ev1075():
 	var why := _need(b, NEW)
 	if why != "":
 		return why
-	if b.base.produces != ["engineer"] + NEW:
-		return "거점이 파는 것 %s(공병 다음 %s여야 한다)" % [b.base.produces, NEW]
+	if b.base.produces != ["engineer", "soldier", "archer"] + NEW:
+		return "거점이 파는 것 %s(공병·병사·궁수 다음 %s여야 한다)" % [b.base.produces, NEW]
 	var bad := []
 	for k in NEW:
 		if b.sellers(k) != [b.base]:
@@ -121,10 +121,10 @@ func ev1075():
 	var o = load("res://src/sim/battle.gd").new(off.duplicate(true))
 	o.begin_hiring()
 	o.next_round()
-	var closed: bool = NEW.all(func(k): return o.sellers(k).is_empty() and not o.can_buy(k))
-	return check(bad.is_empty() and kept and fresh and live and closed,
-		"%s · 데이터 그대로 %s · 강화 뒤 수치 %s(chain %s) · 있는 용병 %s(chain %s) · live_prep 아닌 마을 판은 여덟을 팔지 않음 %s" % [
-			"; ".join(bad), kept, fresh, stats.chain, live, t.chain, closed])
+	var open: bool = NEW.all(func(k): return o.sellers(k) == [o.base] and o.can_buy(k))
+	return check(bad.is_empty() and kept and fresh and live and open,
+		"%s · 데이터 그대로 %s · 강화 뒤 수치 %s(chain %s) · 있는 용병 %s(chain %s) · live_prep 아닌 마을 판도 여덟을 거점이 판다 %s" % [
+			"; ".join(bad), kept, fresh, stats.chain, live, t.chain, open])
 
 # EV1076 · S357: 정면에서 온 대장 돌진은 방패병 앞에서 멈추고, 방패병은 다치지도 밀리지도 않으며 대장이 1.5초 기절한다.
 # 방패병 앞 길의 병사는 맞고 뒤의 병사는 맞지 않는다. 동쪽 적을 친 방패병(보는 쪽 동쪽)은 남쪽에서 온 돌진에 다른 아군처럼 맞는다

@@ -43,3 +43,7 @@ def test_EV511_grow_state_saved(gd):
 
 def test_EV529_pack_saved_with_path(gd):
     gd("save", "EV529")
+
+
+def test_EV1104_old_save_drops_barracks_and_archery(gd):
+    gd("save", "EV1104")
