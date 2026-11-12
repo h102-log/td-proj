@@ -14,6 +14,8 @@ extends Resource
 @export var hunts := false  # 참이면 화면이 사냥감(지금 보스에서 가장 먼 산 원정대 영웅)의 머리 위에 표시를 그린다(S337 ⑨, I286 ④)
 @export var phase2 := {}  # 둘째 형태 {title, kind, stats, skills, plan}(S342 ④, I283 ①): 체력이 0이 되면 쓰러지지 않고 kind 종류로 바뀌어 이 수치·스킬·대본을 쓴다. 비면 한 형태다
 @export var scale := 0.0  # 몸 그림 배율(I283 ⑨). 0이면 층 수치의 몸 반지름 ÷ 그 종류의 몸 반지름으로 그린다(I280 ①). phase2에도 같은 뜻의 scale 칸을 둘 수 있다
+@export var pair: Array = []  # 함께 나오는 몸들 [{at, plan}](S354, I291 ①): 원정을 시작할 때 차례대로 보스 칸 + at 자리에 하나씩 낸다. 차례가 짝 번호이고 몸마다 제 plan을 돈다. 비면 몸 하나다
+@export var alone := {}  # 홀로 대본 {rest, lead, plan}(S354 ⑦, I291 ⑤): pair의 한 몸이 쓰러지면 남은 몸이 lead를 한 번, 그 뒤 plan을 쉼 × (1 − rest)로 되풀이한다
 @export var wreck := 0.0  # 첫 형태가 부서진 자리에 남는 수레 잔해 원의 반지름(칸, S342 ④·⑧). 둘째 형태의 돌진이 이 원 앞에서 멈춘다. 0이면 막지 않는다
 @export var ward := 0.0  # 평소 받는 피해 감소 비율(S323 ①). 0이면 경감이 없다
 @export var groggy := {"time": 5.0, "mult": 1.5}  # 그로기 초와 그동안 받는 피해 배율(S323 ②)

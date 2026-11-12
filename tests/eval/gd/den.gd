@@ -4215,17 +4215,18 @@ func ev1064():
 			if id != on.get(e) and id != null:
 				seen[e.mate].append([snappedf(t, 0.05), id])
 			on[e] = id
-	var want := {0: [[7.0, "lob"], [11.6, "cleave"], [17.0, "lob"], [23.6, "soak"], [31.6, "lob"]], 1: [[9.0, "leap"], [15.1, "slam"], [21.1, "leap"], [29.2, "leap"]]}
+	var want := {0: [[7.0, "lob"], [4.6, "cleave"], [5.4, "lob"], [6.6, "soak"], [8.0, "lob"]], 1: [[9.0, "leap"], [6.1, "slam"], [6.0, "leap"], [8.1, "leap"]]}  # [첫 예고까지 또는 앞 예고가 뜬 때부터 다음 예고까지 초, 예고]
 	var ok := true
 	for k in want:
 		if seen[k].size() != want[k].size():
 			ok = false
 			continue
 		for i in want[k].size():
-			if seen[k][i][1] != want[k][i][1] or absf(seen[k][i][0] - want[k][i][0]) > 0.2:
+			var gap: float = seen[k][i][0] - (seen[k][i - 1][0] if i > 0 else 0.0)
+			if seen[k][i][1] != want[k][i][1] or absf(gap - want[k][i][0]) > 0.2:
 				ok = false
 	return check(ok and not bodies.any(func(e): return _groggy(b, e)),
-		"32초 동안 [뜬 때, 예고] 형 %s · 아우 %s(기대 형 %s · 아우 %s, 0.2초 안) · 그로기 %s(없어야)" % [seen[0], seen[1], want[0], want[1], bodies.map(func(e): return _groggy(b, e))])
+		"32초 동안 [뜬 때, 예고] 형 %s · 아우 %s(기대 [첫 예고까지·앞 예고부터 다음 예고까지 초, 예고] 형 %s · 아우 %s, 0.2초 안) · 그로기 %s(없어야)" % [seen[0], seen[1], want[0], want[1], bodies.map(func(e): return _groggy(b, e))])
 
 # EV1065 · I291 ④⑤⑥: 남은 보스 체력 비율은 두 몸 체력의 합으로 센다. 던진 몸이 쓰러진 뒤 떨어진 바위는 형제를 맞히지 않는다.
 # 두 몸이 같은 스텝에 쓰러지면 처치이고, «다시»는 두 몸을 처음부터 낸다
@@ -4317,7 +4318,7 @@ func ev1067():
 	_toast_texts(main)
 	b.start_raid()
 	_frame(main)
-	if b.state != "raid" or b.enemies.size() != 2 or b.party.size() < 3:
+	if b.state != "raid" or b.enemies.size() != 2 or b.party.size() < 2:
 		_done(main)
 		return "5층 원정이 되지 않았다(판 %s · 적 %d · 원정대 %d)" % [b.state, b.enemies.size(), b.party.size()]
 	_freeze(b)
@@ -4327,7 +4328,7 @@ func ev1067():
 		e.pull = 0.0
 		e.rest = 999.0
 	var p = b.party
-	_stand(b, ROCK_FAR)
+	_stand(b, ROCK_FAR.slice(0, 2))
 	_frame(main)
 	var mark: Array = v.prey_mark()
 	var first := [main.hud._boss_name.text, v._shrunk(t[0]), v._shrunk(t[1]), v._hue(t[0]) != v._hue(t[1]), is_same(b.raid_prey(), p[1]), mark.size() == 2 and is_same(mark[0], p[1]),
