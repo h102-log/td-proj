@@ -1966,3 +1966,113 @@ msgstr "Net %s → %ss"
 
 msgid "그물 대기 %s → %s초"
 msgstr "Net cooldown %s → %ss"
+
+# ── 거점 패널(src/ui/hud_keep.gd, S365·I298) ──
+
+msgid "근접"
+msgstr "Melee"
+
+msgid "원거리"
+msgstr "Ranged"
+
+msgid "지원"
+msgstr "Support"
+
+msgid "값싼 근접 · 길을 막는다"
+msgstr "Cheap melee · blocks the path"
+
+msgid "정면 돌진을 막아 기절시키는 탱커"
+msgstr "Tank: stops frontal charges and stuns"
+
+msgid "둘째 줄 근접 · 나는 적도 친다"
+msgstr "Second-line melee · hits flyers too"
+
+msgid "빠른 근접 · 6칸 돌진"
+msgstr "Fast melee · 6-tile charge"
+
+msgid "원거리 물리 · 강화마다 명중률"
+msgstr "Ranged physical · accuracy per upgrade"
+
+msgid "나는 적을 그물로 끌어내린다"
+msgstr "Nets flyers down to the ground"
+
+msgid "느린 큰 한 방 · 범위 마법과 발화"
+msgstr "Slow heavy blast · area magic and burn"
+
+msgid "마법 · 확률로 4번 전이"
+msgstr "Magic · may chain 4 times"
+
+msgid "마법 · 냉기 4겹이면 빙결"
+msgstr "Magic · 4 chill stacks freeze"
+
+msgid "공격하지 않고 다친 아군을 회복"
+msgstr "Heals hurt allies · never attacks"
+
+msgid "짓고 고친다 · 공격하지 않음"
+msgstr "Builds and repairs · never attacks"
+
+msgid "클릭 1명 · Shift+클릭 5명 · 마우스 올리면 설명"
+msgstr "Click 1 · Shift+click 5 · hover for info"
+
+msgid "집결"
+msgstr "Rally"
+
+msgid "누르고 맵을 누르면 거점의 집결 지점이 된다 · 산 용병이 그리로 간다"
+msgstr "Press, then click the map to set the keep's rally point · new mercs go there"
+
+msgid "%s +%d → 집결 지점"
+msgstr "%s +%d → rally point"
+
+msgid "두 번 눌러 들어간다 · 횃불 하나를 쓴다"
+msgstr "Press twice to enter · uses one torch"
+
+msgid "거점 둘레가 막혀 나올 칸이 없다"
+msgstr "No free tile around the keep"
+
+msgid "강화 최대"
+msgstr "Max upg."
+
+msgid "체력 %s"
+msgstr "HP %s"
+
+msgid "마법 %s"
+msgstr "Magic %s"
+
+msgid "회복 %s"
+msgstr "Heal %s"
+
+msgid "원정?"
+msgstr "Expedition?"
+
+msgid "강화 %d"
+msgstr "Upg %d"
+
+msgid "%s · %d골드 · 보유 %d · 강화 %d/%d"
+msgstr "%s · %dg · Owned %d · Upgrade %d/%d"
+
+msgid "다음 강화 %d골드: %s"
+msgstr "Next upgrade %dg: %s"
+
+msgid "집결 지점: 좌클릭 · 끝: 우클릭·ESC"
+msgstr "Rally point: LMB · Done: RMB/ESC"
+
+# ── 거점 패널 묶음 ②(src/ui/hud_keep.gd, S366·S367·S368·I299) ──
+
+msgid "병사"
+msgstr "Soldier"
+
+msgid "구매 되돌리기"
+msgstr "Undo purchase"
+
+msgid "준비 단계에 거점 패널에서 산 것을 나중 것부터 무른다"
+msgstr "Undoes keep panel purchases this prep phase, latest first"
+
+msgid "직전 구매를 무른다\n%s ×%d · %d골드 돌려받음"
+msgstr "Undo the last purchase\n%s ×%d · %d gold back"
+
+msgid "무를 구매가 없다"
+msgstr "Nothing to undo"
+
+# 이유 줄 앞의 «✕ »(툴팁·설명 상자). 뒤 글은 다시 번역한다
+msgid "✕ %s"
+msgstr "✕ %s"

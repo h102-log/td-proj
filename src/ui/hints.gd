@@ -9,6 +9,7 @@ const Settings := preload("res://src/settings.gd")
 const AXES := ["시설", "용병", "영웅"]  # 1라운드 1·2·3웨이브가 소개하는 축(S192)
 const AT := Vector2(68, 300)  # 힌트 칸의 자리(S191)
 const RAID_AT := Vector2(4, 29)  # 원정 동안의 자리(S332 2026-11-11 변경): 위 띠 바로 아래 왼쪽. 보스방 바닥을 가리지 않는다
+const KEEP_AT := Vector2(4, 44)  # 거점 패널(S365)이 떠 있는 동안의 자리(I298 ⑧): 인구·타워 칸 바로 아래 왼쪽. 패널이 원래 자리를 덮는다
 const HINTS := [  # [이름, 1라운드 웨이브, 판 단계, 글](S192 임시값)
 	["build", 1, "prep", "오른쪽 아래 칸(숫자 키)을 고르고\n맵을 누르면 공병이 가서 짓는다"],
 	["keep", 1, "prep", "거점을 누르면 마을 레벨을 올린다\n(새 시설이 열린다)"],
@@ -86,7 +87,7 @@ func step() -> void:
 	_bought = t.merc_bought
 	_used = used
 	var now := _current()
-	position = RAID_AT if battle.state == "raid" else AT  # 원정 동안은 왼쪽 위다(I286 ③)
+	position = RAID_AT if battle.state == "raid" else KEEP_AT if controls.village and battle.state in ["prep", "battle"] else AT  # 원정 동안은 왼쪽 위다(I286 ③). 거점 패널이 떠 있으면 그 위로(I298 ⑧)
 	visible = Settings.hints and now != ""
 	for h in HINTS:
 		if h[0] == now:

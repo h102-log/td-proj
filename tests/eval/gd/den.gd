@@ -305,7 +305,7 @@ func ev893():
 func _screen(main, p: Vector2) -> Vector2:
 	return main.get_viewport().get_camera_2d().steady() * p
 
-# EV894 · S317·I262 ②⑧: 거점 팝업의 원정 버튼, 원정 중 고정 카메라·숨는 패널·철수 버튼·보스 막대, 돌아오면 카메라·미니맵이 돌아온다
+# EV894 · S317·I262 ②⑧: 거점 패널(S365)의 원정 버튼(두 번 눌러 확정), 원정 중 고정 카메라·숨는 패널·철수 버튼·보스 막대, 돌아오면 카메라·미니맵이 돌아온다
 func ev894():
 	var main = _prep()
 	var b = main.view.battle
@@ -330,6 +330,12 @@ func ev894():
 	if first[0] != true or first[1] != true or not "2라운드부터" in first[2] or second != [true, false, "원정 1층"]:
 		_done(main)
 		return "1라운드 버튼 보임·꺼짐·툴팁 %s(기대 참·참·«2라운드부터») · 2라운드 %s(기대 [참, 거짓, 원정 1층])" % [first, second]
+	hud.raid.pressed.emit()
+	_frame(main)
+	var armed := [hud.raid.text, b.state]
+	if armed != ["원정?", "prep"]:
+		_done(main)
+		return "원정 버튼을 한 번 누른 뒤 글·판 %s(기대 «원정?»·prep)" % [armed]
 	hud.raid.pressed.emit()
 	_frame(main)
 	var room := Vector2(ROOM.position + ROOM.size / 2) * 16.0  # 보스방 가운데(맵 px) = (1344, 1280)

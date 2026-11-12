@@ -18,7 +18,7 @@ extends CanvasLayer
 # 준비 단계 왼쪽 아래에 처음 하는 사람 힌트를 둔다(S191, hints.gd)
 # 준비·전투 단계 왼쪽 아래 구석에 미니맵을 둔다(S209, hud_minimap.gd)
 
-const NAMES := {"wall": "방벽", "tower": "타워", "magic": "마법 타워", "soldier": "용병", "barracks": "병영", "engineer": "공병", "workshop": "작업장", "archer": "궁수", "cannon": "대포", "archery": "사격장", "house": "집", "church": "교회", "shelter": "대피소",
+const NAMES := {"wall": "방벽", "tower": "타워", "magic": "마법 타워", "soldier": "병사", "barracks": "병영", "engineer": "공병", "workshop": "작업장", "archer": "궁수", "cannon": "대포", "archery": "사격장", "house": "집", "church": "교회", "shelter": "대피소",
 	"shieldman": "방패병", "fire_mage": "불마법사", "thunder_mage": "번개마법사", "spearman": "창병", "frost_mage": "얼음 마법사", "cleric": "사제", "cavalry": "기병", "netter": "그물 사수"}  # 새 용병 여덟(S356)
 const HEROES := {"aias": "아이아스(탱커)", "sylvia": "실비아(원거리)", "seraphina": "세라피나(힐러)", "vesper": "베스퍼(디버퍼)", "ignis": "이그니스(마법사)", "chronos": "크로노스(제어형)"}  # 이름(역할), S97·S157
 const GRADES := ["1성", "2성", "3성"]  # S94
@@ -66,6 +66,7 @@ const HudAlert := preload("res://src/ui/hud_alert.gd")
 const HudEvac := preload("res://src/ui/hud_evac.gd")
 const HudShop := preload("res://src/ui/hud_shop.gd")
 const HudAuto := preload("res://src/ui/hud_auto.gd")
+const HudKeep := preload("res://src/ui/hud_keep.gd")
 const Hints := preload("res://src/ui/hints.gd")
 const BattleView := preload("res://src/ui/battle_view.gd")
 const SkillCell := preload("res://src/ui/skill_cell.gd")
@@ -177,6 +178,7 @@ var minimap  # 미니맵(S209). 왼쪽 아래 구석
 var evac  # 대피령 버튼(S230). 미니맵 바로 위
 var shop  # «영입» 버튼(S272, I207). 대피령 버튼 바로 위
 var auto_all  # «전체 오토» 버튼(S313, I259). 영입 버튼 바로 위
+var keep  # 거점 패널(S365, I298). 화면 아래 미니맵 오른쪽
 var hp_button: Button  # 체력바 버튼(S276). 대피령 버튼 오른쪽, 누르면 V 키와 같다
 var view  # 맵 그림(BattleView). 미니맵이 구운 바닥을 빌린다. main이 넣는다
 var _hp: Label
@@ -187,7 +189,7 @@ var _round: Label
 var _eng: Label  # 공병 칸의 놀고 있는 공병 수
 var start: Button  # 진행 칸의 «▶ 전투 시작»(I13). 준비 단계에만
 var retreat: Button  # 진행 칸의 «철수»(S317, I262 ⑧). 원정 중에만
-var raid: Button  # 거점 팝업의 «원정 N층»(S316, I262 ②). 준비 단계에만
+var raid: Button  # 거점 패널 머리 줄의 «원정 N층»(S316·S365, I262 ②). 준비 단계에만. keep.raid다
 var boss_bar := Panel.new()  # 원정 보스 이름·체력 막대(S317, I262 ⑧). 위 띠 바로 아래 가운데, 원정 중에만
 var fade := ColorRect.new()  # 원정에 들고 날 때 화면 전체를 덮었다 걷히는 검은 덮개(S317, I262 ⑧)
 var again := PanelContainer.new()  # 전멸·불꽃 뒤의 «다시» 창(S331, I277 ③). 결과 창 자리에 뜨고 판을 덮지 않는다
@@ -240,7 +242,6 @@ var _gate: Button
 var _upgrade: Button
 var _repair: Button
 var _restore: Button
-var _village: Button
 var _heal := []  # 교회 팝업: 출전 영웅마다 치료 버튼(S137, I140)
 var window := PanelContainer.new()  # 결과·영입 창(S117). 영입·라운드 사이는 [16,34] 폭 608, 결과는 [170,110,300,110](I136)
 var dim := ColorRect.new()  # 창이 떠 있으면 띠 아래 맵을 덮는다(S117)
@@ -540,6 +541,9 @@ func _ready() -> void:
 	root.add_child(shop)
 	auto_all = HudAuto.new(self)
 	root.add_child(auto_all)
+	keep = HudKeep.new(self)
+	root.add_child(keep)
+	raid = keep.raid
 	hp_button = _bar_button(root, "", func(): controls.show_hp = not controls.show_hp)  # 체력바 버튼(S276): 그림 10×10을 2배로, 왼쪽 위에 키 글자
 	hp_button.position = HP_AT.position
 	hp_button.size = HP_AT.size
@@ -565,24 +569,15 @@ func _ready() -> void:
 	var hammer := HudBuild.dots(HAMMER, {"#": HudTheme.TEXT})
 	_sell = _pop(rows[0], _sell_now, "판매", coin)
 	_finish = _pop(rows[0], func(): _apply(battle.finish, battle.unfinished(controls.selling)), "완성", hammer)
-	var hq := [HBoxContainer.new(), HBoxContainer.new()]  # 거점이 파는 새 용병 여덟의 구매 줄·강화 줄(S356). 거점 탭 UI(사용자 예정 작업) 전까지의 임시 자리다
-	for i in 2:
-		popup.add_child(hq[i])
-		popup.move_child(hq[i], 1 + i)
-	var old: Array = battle.MERC_KINDS.keys().filter(func(k): return k not in battle.HQ_MERCS)
+	var old: Array = battle.MERC_KINDS.keys().filter(func(k): return k not in battle.HQ_MERCS)  # 새 여덟은 거점 패널에서만 산다(S365)
 	for kind in old:
 		_buy[kind] = _pop(rows[0], func(): battle.recruit(controls.facility, kind), "%s 구매" % NAMES[kind], HudBuild.icon(kind))
 	for kind in old:
 		_rank[kind] = _pop(rows[0], func(): battle.rank_up(kind), "%s 강화" % NAMES[kind], HudBuild.dots(UP, {"#": HudTheme.ACCENT}))
-	for kind in battle.HQ_MERCS:  # 새 여덟은 S356 표 차례로 줄을 따로 두고 제 그림(I297 ④)과 값만 보인다(이름은 툴팁, I294 ①)
-		_buy[kind] = _pop(hq[0], func(): battle.recruit(controls.facility, kind), "%s 구매" % NAMES[kind], HudBuild.icon(kind))
-		_rank[kind] = _pop(hq[1], func(): battle.rank_up(kind), "%s 강화" % NAMES[kind], HudBuild.icon(kind))
 	_demolish = _pop(rows[0], _demolish_press, "철거")
 	_move = _pop(rows[0], _start_move, "옮기기")
 	_resume = _pop(rows[0], func(): _apply(battle.resume, battle.unfinished(controls.picked)), "이어 짓기")
 	_cancel = _pop(rows[0], func(): _apply(battle.cancel, battle.unfinished(controls.picked)), "취소")
-	_village = _pop(rows[0], func(): battle.raise_village(), "마을 레벨 올리기")
-	raid = _pop(rows[0], func(): battle.start_raid(), "원정")
 	_upgrade = _pop(rows[0], func(): battle.upgrade(controls.fort), "업그레이드", HudBuild.dots(UP, {"#": HudTheme.ACCENT}))
 	_repair = _pop(rows[0], func(): _apply(battle.repair, _to_repair()), "수리", hammer)
 	_restore = _pop(rows[0], func(): battle.restore(controls.fort), "복구")
@@ -639,6 +634,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_now += delta
 	select.refresh()  # 정보 칸 자리(hud_build.info_box)가 패널이 보이는지를 본다. 자식(격자)보다 먼저 돈다
+	keep.refresh(delta)  # 거점 패널(S365): 평가가 hud._process만 돌려도 함께 새로 그린다
 	var prep: bool = battle.state == "prep"
 	var on: bool = battle.state in ["prep", "battle"]
 	var raiding: bool = battle.state == "raid"
@@ -738,7 +734,7 @@ func _process(delta: float) -> void:
 		var fixing: int = engineers.filter(func(u): return u.auto_fix).size()
 		_fix_pic.modulate = HOLD_LOOK[0 if fixing == 0 else 1 if fixing == engineers.size() else 2]
 	var refusing: bool = _now - _refused[1] < REFUSE_HINT
-	chip.visible = (controls.placing != "" or controls.moving != null or controls.aiming != "" or controls.attacking or refusing) and not tip.shows_in(bar)  # 위 띠 툴팁이 뜨면 숨는다(S147)
+	chip.visible = (controls.placing != "" or controls.moving != null or controls.aiming != "" or controls.attacking or controls.rallying or refusing) and not tip.shows_in(bar)  # 위 띠 툴팁이 뜨면 숨는다(S147)
 	hint.text = "%s 놓기: 좌클릭 · 끝: 우클릭·ESC" % NAMES.get(controls.placing, "")
 	if refusing:  # 거부된 놓기의 첫 이유(I128)
 		hint.text = "✕ " + _refused[2]
@@ -750,6 +746,8 @@ func _process(delta: float) -> void:
 		hint.text = "%s %s 대상: 좌클릭 · 취소: 우클릭·ESC" % [HEROES[controls.aim_hero.kind].get_slice("(", 0), controls.aiming.to_upper()]
 	if controls.attacking:  # 공격 명령 조준(S35)
 		hint.text = "공격 대상: 좌클릭 · 취소: 우클릭·ESC"
+	if controls.rallying:  # 거점 집결 지점 고르기(I298 ⑥)
+		hint.text = "집결 지점: 좌클릭 · 끝: 우클릭·ESC"
 	chip.reset_size()
 	_show_heroes()
 	var fresh: bool = battle.state != _seen
@@ -803,19 +801,16 @@ func _process(delta: float) -> void:
 		controls.facility = null
 	var pop_full: bool = battle.pop_used() >= battle.pop_cap()  # 인구 가득이면 구매 버튼을 끄고 이유를 툴팁에(I225 ④)
 	for kind in _buy:
-		_buy[kind].visible = battle.live() and controls.facility != null and kind in controls.facility.produces
-		_buy[kind].text = str(battle.MERC_KINDS[kind].cost) if kind in battle.HQ_MERCS else "%s %d" % [NAMES[kind], battle.MERC_KINDS[kind].cost]
+		_buy[kind].visible = battle.live() and controls.facility != null and controls.facility != battle.base and kind in controls.facility.produces
+		_buy[kind].text = "%s %d" % [NAMES[kind], battle.MERC_KINDS[kind].cost]
 		_buy[kind].disabled = pop_full
 		_why[_buy[kind]] = ("인구 가득 — 집을 지으면 %d명 늘어난다" % battle.STRUCTURE_KINDS.house.pop if battle.village.has_area() else "인구 가득") if pop_full else ""
 	for kind in _rank:  # 강화는 준비 단계에만(S255)
 		var d: Dictionary = battle.MERC_KINDS[kind]
 		var n: int = battle.merc_rank.get(kind, 0)
 		var top: bool = n >= d.ranks.size()
-		_rank[kind].visible = prep and controls.facility != null and kind in controls.facility.produces and not d.ranks.is_empty()
-		if kind in battle.HQ_MERCS:  # 새 여덟의 강화 줄(S356 임시 자리): 그림 + «+비용»
-			_rank[kind].text = "최대" if top else "+%d" % d.rank_cost[n]
-		else:
-			_rank[kind].text = "%s 강화 최대" % NAMES[kind] if top else "%s 강화 %d" % [NAMES[kind], d.rank_cost[n]]
+		_rank[kind].visible = prep and controls.facility != null and controls.facility != battle.base and kind in controls.facility.produces and not d.ranks.is_empty()
+		_rank[kind].text = "%s 강화 최대" % NAMES[kind] if top else "%s 강화 %d" % [NAMES[kind], d.rank_cost[n]]
 		_rank[kind].disabled = top
 		_steps[_rank[kind]] = "" if top else _rank_line(kind, d.ranks[n])
 	if not battle.live() or controls.placing != "":
@@ -854,20 +849,10 @@ func _process(delta: float) -> void:
 		_upgrade.text = "업그레이드 계속" if k.lift >= 0.0 else "업그레이드 %d" % battle.upgrade_cost(k)
 	if controls.placing != "":
 		controls.village = false
-	_village.visible = controls.village and prep and battle.village_level <= battle.VILLAGE_UP.size()
 	_opens = ""
-	if _village.visible:  # 그 레벨에 열리는 시설 이름은 툴팁·정보 칸에(I132)
+	if controls.village and prep and battle.village_level <= battle.VILLAGE_UP.size():  # 거점 패널 마을 레벨 버튼(S365)의 툴팁·정보 칸에 그 레벨에 열리는 시설 이름(I132)
 		var opens: Array = battle.STRUCTURE_KINDS.keys().filter(func(s): return battle.STRUCTURE_KINDS[s].village_level == battle.village_level + 1).map(func(s): return NAMES[s])
-		_village.text = "마을 Lv%d %d" % [battle.village_level + 1, battle.VILLAGE_UP[battle.village_level - 1]]
 		_opens = "" if opens.is_empty() else "Lv%d에 %s" % [battle.village_level + 1, ", ".join(opens)]
-	raid.visible = controls.village and prep and not battle.den.is_empty()  # 원정 버튼(S316, I262 ②)
-	if raid.visible:
-		var f: String = battle.next_floor()
-		var why: String = battle.raid_block()
-		raid.text = tr("원정 %d층") % (battle.floors_cleared + 1) if f != "" else "원정"
-		raid.disabled = why != ""
-		_why[raid] = tr("%d라운드부터") % battle.FLOOR_KINDS[f].opens if why == "round" else RAID_WHY.get(why, "")
-		_steps[raid] = (tr(battle.FLOOR_KINDS[f].title) + " · " if f != "" else "") + tr("남은 횃불 %d") % battle.torches
 	var fix := _to_repair()
 	_repair.visible = not fix.is_empty()
 	if _repair.visible:
@@ -911,7 +896,7 @@ func _pop(row: Control, on_press: Callable, name: String, icon: Texture2D = null
 	b.icon = icon
 	b.add_theme_constant_override("icon_max_width", 10)
 	b.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	tip.add(b, func(): return [name, "", "", _opens if b == _village else _steps.get(b, ""), "✕ " + _why[b] if _why.get(b, "") != "" else ""], popup)
+	tip.add(b, func(): return [name, "", "", _steps.get(b, ""), "✕ " + _why[b] if _why.get(b, "") != "" else ""], popup)
 	return b
 
 # 인구 칸 툴팁(I225 ③): «용병 n명 · 상한 m(거점 4 + 집 k채 × 4)»
@@ -953,7 +938,7 @@ func _place_popup() -> void:
 	var cell: Rect2 = t * Rect2((controls.sell_at / BattleView.CELL).floor() * BattleView.CELL, Vector2.ONE * BattleView.CELL)
 	var screen := Rect2(Vector2.ZERO, get_viewport().get_visible_rect().size)
 	var away := (cell.get_center() - screen.get_center()).sign()
-	var avoid: Array = [TOP, grid.get_global_rect(), grid.info_box()] + (tags + [fix_tag]).filter(func(g): return g.visible).map(func(g): return g.get_global_rect())
+	var avoid: Array = [TOP, grid.get_global_rect(), grid.info_box()] + (tags + [fix_tag] + [keep]).filter(func(g): return g.visible).map(func(g): return g.get_global_rect())  # 거점 패널(S365)도 피한다
 	var s := popup.size
 	for flip in [Vector2(1, 1), Vector2(-1, 1), Vector2(1, -1), Vector2(-1, -1)]:
 		var d: Vector2 = away * flip
