@@ -93,7 +93,8 @@ const CROWN := ["........", "#..##..#", "#..##..#", "##.##.##", "########", "###
 const COG := ["..#..#..", ".######.", "###..###", ".#....#.", ".#....#.", "###..###", ".######.", "..#..#.."]  # 유물 톱니(S343)
 const FANG := ["........", ".##..##.", ".##..##.", ".##..##.", ".##..##.", "..#..#..", "..#..#..", "........"]  # 유물 송곳니(S351)
 const SCALE := ["...##...", "..####..", ".######.", ".######.", ".######.", "..####..", "...##...", "........"]  # 유물 비늘(S353)
-const RELIC_PICS := {"iron_cog": COG, "wolf_fang": FANG, "wyvern_scale": SCALE}  # 유물 줄의 그림(I278 ⑤). 없는 유물은 왕관 그림이다
+const TUSK := [".......#", "......##", "......##", ".....###", "....###.", "..####..", "#####...", ".##....."]  # 유물 엄니(S355): 굵은 밑동에서 휘어 오르는 엄니
+const RELIC_PICS := {"iron_cog": COG, "wolf_fang": FANG, "wyvern_scale": SCALE, "troll_tusk": TUSK}  # 유물 줄의 그림(I278 ⑤). 없는 유물은 왕관 그림이다
 const SKULL := [".#####.", "#######", "#..#..#", "#######", ".##.##.", ".#####.", ".#.#.#."]  # 보스(S188)
 const MOON := ["..###..", ".###...", "###....", "###....", "###....", ".###...", "..###.."]  # 밤 웨이브(S214)
 const MOON_COLOR := Color("e8e0b0")
@@ -467,9 +468,15 @@ func _ready() -> void:
 		_gear_rows.append([k, line, make, wear, pic])
 	var relic_ids: Array = battle.RELIC_KINDS.keys()
 	relic_ids.sort_custom(func(a, b): return _relic_opens(a) < _relic_opens(b))  # 그 유물을 주는 층이 열리는 차례로(I284 ②)
-	for k in relic_ids:  # 유물마다 한 줄(S334, I278 ⑤). 장비 줄 아래에 두고 가방에 있는 유물만 보인다
+	var relic_box := GridContainer.new()  # 유물 줄은 장비 줄 아래에 두 개씩 나란히(I293 ④). 숨은 줄은 자리를 차지하지 않는다
+	relic_box.columns = 2
+	relic_box.add_theme_constant_override("h_separation", 8)
+	relic_box.add_theme_constant_override("v_separation", 1)
+	_gear.add_child(relic_box)
+	for k in relic_ids:  # 유물마다 한 줄(S334, I278 ⑤). 가방에 있는 유물만 보인다
 		var row := HBoxContainer.new()
-		_gear.add_child(row)
+		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		relic_box.add_child(row)
 		_pic(row, HudBuild.dots(RELIC_PICS.get(k, CROWN), {"#": HudTheme.ACCENT}), Vector2(16, 16))
 		var line := Label.new()
 		line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -490,8 +497,9 @@ func _ready() -> void:
 	for col in [left, right]:
 		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		cols.add_child(col)
-	for v in [box, _hire, _gear, left, right]:
+	for v in [box, _hire, left, right]:
 		v.add_theme_constant_override("separation", 2)
+	_gear.add_theme_constant_override("separation", 1)  # 장비 칸은 줄 사이 1px(I293 ④): 유물 다섯·미션·전리품 줄이 있어도 창이 화면 안에 든다
 	for i in battle.HIRE.slots:
 		_offers.append(_card(left, i))
 		_offer_kinds.append("")
