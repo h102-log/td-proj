@@ -1207,14 +1207,16 @@ func _aimed(e: Enemy, at: Vector2, r: float) -> bool:
 		return at.distance_to(sib.pos) <= r + sib.radius
 	return party.any(func(h): return h.alive and h.pos.distance_to(at) <= r)
 
-# 형제 맞히기(S354 ③, I292 ④): 맞은 형제가 그로기가 된다. 예고 중이면 끊기(S326 ④)처럼 예고가 취소되고 대본이 넘어간다. 뜬 형제와 이미 그로기인 형제는 그대로다
-func _bonk(o: Enemy) -> void:
+# 형제 맞히기(S354 ③, I292 ④): 맞은 형제가 그로기가 된다. 예고 중이면 끊기(S326 ④)처럼 예고가 취소되고 대본이 넘어간다. 뜬 형제와 이미 그로기인 형제는 그대로다.
+# 형제가 이번에 그로기가 되었으면 참이다(I293 ②: 부른 쪽이 흔적에 bonk를 적는다)
+func _bonk(o: Enemy) -> bool:
 	if not o.alive or _aloft(o) or _fx_on(o, "groggy") != null:
-		return
+		return false
 	if o.cast != null:
 		_interrupt(o)
 	else:
 		_fx(o, "groggy", {"groggy": true}, o.raid.groggy.time)
+	return _fx_on(o, "groggy") != null
 
 # 홀로 남음(S354 ⑦, I292 ⑤): 형제 body가 쓰러진 몸 o는 그 몸을 맡고 홀로 대본을 처음부터 돈다. 하던 예고는 버리되 뜬 동안이면 착지까지 마친다
 func _alone(o: Enemy, body: Enemy) -> void:
@@ -4518,9 +4520,11 @@ func _ground_near(at: Vector2, r: float) -> Array:
 	return units.filter(func(u): return not u.on_wall and u.pos.distance_to(at) <= r and not _carried(u))
 
 # 대지 강타(S195): 반경 안 땅 위 영웅·용병에게 물리 피해, 보스에게서 멀어지는 쪽으로 넉백(막힌 칸·몸에서 멈춘다), 둔화.
-# 보스와 같은 자리에 선 몸은 away 쪽으로 민다(점프 착지, S236). 오우거는 away가 없어 그 몸은 밀리지 않는다. 둔화 칸이 없으면(대장 착지, S288) 둔화하지 않는다
-func _slam(e: Enemy, sk: Dictionary, away := Vector2.ZERO) -> void:
+# 보스와 같은 자리에 선 몸은 away 쪽으로 민다(점프 착지, S236). 오우거는 away가 없어 그 몸은 밀리지 않는다. 둔화 칸이 없으면(대장 착지, S288) 둔화하지 않는다.
+# 남긴 흔적을 돌려준다(착지가 형제를 맞혔으면 _soar가 bonk를 적는다, I293 ②)
+func _slam(e: Enemy, sk: Dictionary, away := Vector2.ZERO) -> Dictionary:
 	_trace(e, "slam", null, e.pos, sk.radius)
+	var mark: Dictionary = _tracing
 	for u in _ground_near(e.pos, sk.radius):
 		damage(u, sk.damage, "phys", e)
 		if u.alive:
@@ -4529,6 +4533,7 @@ func _slam(e: Enemy, sk: Dictionary, away := Vector2.ZERO) -> void:
 			if sk.has("slow"):
 				_fx(u, "slam", {"slow": sk.slow}, sk.slow_time)
 	_tracing = null
+	return mark
 
 # 점프 내려찍기(S236)를 쓸 수 있다: range 안 땅 위 영웅·용병 가운데 반경 안에 땅 아군이 count 이상 몰렸고, 보스에서 곧은 선이
 # 막힌 칸을 지나지 않는 자리. 가장 많이 몰린 자리, 같으면 유닛 차례가 앞선 쪽. 착지 자리를 예고에 둔다(I188)
@@ -4667,10 +4672,10 @@ func _soar(e: Enemy, dt: float) -> void:
 	else:
 		var empty: bool = not _ground_near(c.at, sk.radius).any(func(u): return u in party)
 		var sib = _sibling(e)
-		_slam(e, sk if e.raid.is_empty() else sk.merged({"damage": sk.damage * raid_ramp()}, true), (c.at - c.from).normalized())  # 광폭(S323 ⑤)
+		var mark: Dictionary = _slam(e, sk if e.raid.is_empty() else sk.merged({"damage": sk.damage * raid_ramp()}, true), (c.at - c.from).normalized())  # 광폭(S323 ⑤)
 		if sib != null:  # 두 몸 층(S354 ③): 착지 원이 형제 몸에 닿은 채 비었으면 형제가 그로기다. 뛴 몸은 그로기가 아니다
-			if empty and c.at.distance_to(sib.pos) <= sk.radius + sib.radius:
-				_bonk(sib)
+			if empty and c.at.distance_to(sib.pos) <= sk.radius + sib.radius and _bonk(sib):
+				mark.bonk = sib  # 형제가 맞은 순간(S354 ⑭, I293 ②): 화면이 그 프레임에 맞은 형제 머리 위에 별 조각을 낸다
 		elif c.get("aimed", false) and empty:  # 겨눈 뜀이 아무도 못 맞혔다(S323 ②): 그 몸이 그로기가 된다
 			_fx(e, "groggy", {"groggy": true}, e.raid.groggy.time)
 	_find_path(e)
@@ -5734,10 +5739,13 @@ func _lobs(dt: float) -> void:
 		lobs.erase(l)
 		var empty: bool = not _ground_near(l.at, l.radius).any(func(u): return u in party)
 		_trace(l.by, l.look, null, l.at, l.radius)
+		var mark: Dictionary = _tracing
 		if l.get("raid", false) and l.by.alive and empty:  # 형제 맞히기(S354 ③, I292 ④): 던진 몸이 살아 있고 원이 비었으면, 원이 닿은 형제가 그로기다
 			var sib = _sibling(l.by)
-			if sib != null and l.at.distance_to(sib.pos) <= l.radius + sib.radius:
-				_bonk(sib)
+			if sib != null and l.at.distance_to(sib.pos) <= l.radius + sib.radius and _bonk(sib):
+				mark.bonk = sib  # 형제가 맞은 순간(S354 ⑭, I293 ②)
+		if l.look == "twin" and not l.by.raid.is_empty():  # 원정의 형제 던지기 몸이 떨어진 순간(S354 ⑭, I293 ③): 화면이 그 프레임에 먼지·흙먼지·돌 조각을 낸다. 디펜스(S329 ②)는 아니다
+			mark.slump = l.who
 		for u in units.duplicate():
 			if u.pos.distance_to(l.at) <= l.radius and not _carried(u):
 				damage(u, l.hit, "phys", l.by)

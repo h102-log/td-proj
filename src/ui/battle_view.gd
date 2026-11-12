@@ -3441,6 +3441,10 @@ func _scan() -> void:
 				_emit("crash", _center(c.at) + c.crash * CELL * c.hero.radius, c.crash, c.hero, null)
 			if c.has("thud"):  # 급강하가 빈 땅에 처박힘(S352 ⑭, I290 ②): 몸 둘레에서
 				_emit("thud", _center(c.at), Vector2.ZERO, c.hero, null, {"radius": CELL * c.hero.radius})
+			if c.has("bonk"):  # 형제 맞히기로 형제가 그로기가 됨(S354 ⑭, I293 ②): 맞은 형제 몸 가운데에
+				_emit("bonk", _center(c.bonk.pos), Vector2.ZERO, c.hero, c.bonk, {"radius": CELL * c.bonk.radius})
+			if c.has("slump"):  # 원정의 형제 던지기 몸이 떨어짐(S354 ⑭, I293 ③): 떨어진 자리에 형제 던지기 원 반경으로
+				_emit("slump", _center(c.at), Vector2.ZERO, c.hero, c.slump, {"radius": CELL * c.radius})
 	_known = battle.traces.duplicate()
 	var tell := {}
 	for e in battle.enemies:  # 보스 스킬 예고가 기절·빙결로 끊김(S194, S198)
@@ -3592,6 +3596,27 @@ func _react(e: Dictionary) -> void:
 				var d := Vector2.from_angle(deg_to_rad(i * 45.0 + _h(e.n, 30 + i, -12, 12)))
 				var flat := Vector2(d.x, d.y * 0.5)
 				_dot({"p0": e.at + flat * e.radius, "p1": e.at + flat * (e.radius * 2.0 + _h(e.n, 40 + i, 4, 10)), "rise": _h(e.n, 50 + i, 3, 6), "col": DUST, "size": Vector2(4, 4), "life": 0.7, "fade": 0.3})
+		"bonk":  # 형제가 맞은 순간(S354 ⑭, I293 ②): 맞은 형제의 머리 위에서 노란 별 조각 6점이 위쪽 부채꼴로 튀어 흐려지고, 먼지 8점이 몸 둘레에서 퍼진다
+			var top: Vector2 = e.at - Vector2(0, _head(e.dst) * _shrunk(e.dst))
+			for i in 6:  # 별 조각 하나는 가로·세로 막대를 겹친 십자다(집어 먹기 십자와 같은 꼴)
+				var d := Vector2.from_angle(deg_to_rad(-165.0 + i * 30.0 + _h(e.n, i, -8, 8)))
+				for size in [Vector2(5, 1), Vector2(1, 5)]:
+					_dot({"p0": top, "p1": top + d * _h(e.n, 10 + i, 12, 20), "rise": _h(e.n, 20 + i, 3, 6), "col": PX.cream, "to": PX.gold, "size": size, "life": 0.7, "fade": 0.3, "wait": i * 0.03})
+			for i in 8:
+				var d := Vector2.from_angle(deg_to_rad(i * 45.0 + _h(e.n, 30 + i, -12, 12)))
+				var flat := Vector2(d.x, d.y * 0.5)
+				_dot({"p0": e.at + flat * e.radius, "p1": e.at + flat * (e.radius * 2.0 + _h(e.n, 40 + i, 4, 10)), "rise": _h(e.n, 50 + i, 3, 6), "col": DUST, "size": Vector2(4, 4), "life": 0.7, "fade": 0.3})
+		"slump":  # 던져진 몸이 떨어진 순간(S354 ⑭, I293 ③): 먼지 12점이 원 둘레까지 퍼지고, 흙먼지 6점이 몸 자리에서 피어올라 흐려지며, 돌 조각 6점이 튀어 올랐다 떨어진다
+			for i in 12:
+				var d := Vector2.from_angle(deg_to_rad(i * 30.0 + _h(e.n, i, -10, 10)))
+				var flat := Vector2(d.x, d.y * 0.5)
+				_dot({"p0": e.at + flat * 6.0, "p1": e.at + flat * (e.radius + _h(e.n, 20 + i, -4, 4)), "rise": _h(e.n, 40 + i, 2, 5), "col": DUST, "size": Vector2(4, 4), "life": 0.75, "fade": 0.3})
+			for i in 6:
+				var x: float = (i - 2.5) * 5.0 + _h(e.n, 60 + i, -2, 2)
+				_dot({"p0": e.at + Vector2(x, -4), "p1": e.at + Vector2(x * 1.4, -18 - _h(e.n, 70 + i, 0, 10)), "col": DUST, "to": PX.smoke, "size": Vector2(6, 6), "life": 0.9, "fade": 0.5, "wait": i * 0.03})
+			for i in 6:
+				var d := Vector2.from_angle(deg_to_rad(i * 60.0 + _h(e.n, 80 + i, -15, 15)))
+				_dot({"p0": e.at, "p1": e.at + Vector2(d.x, d.y * 0.5) * (12.0 + _h(e.n, 90 + i, 6, 16)), "rise": _h(e.n, 100 + i, 14, 24), "col": STONE, "size": Vector2(3, 3), "life": 0.6, "fade": 0.15, "wait": i * 0.02})
 		"wreck":  # 원정의 수레가 부서진 순간(S342 ⑭, I284 ⑤): 잔해 둘레에서 먼지 12점이 바깥으로 퍼지고 부스러기 8점이 튀어 올랐다 떨어진다
 			for i in 12:
 				var d := Vector2.from_angle(deg_to_rad(i * 30.0 + _h(e.n, i, -12, 12)))

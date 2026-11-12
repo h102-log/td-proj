@@ -3727,7 +3727,7 @@ func _twins(b) -> Array:
 		e.rest = 999.0
 	return out
 
-# EV1054 · S354: 5층 층 정의의 수치와 층 차례. 디펜스 쌍둥이 트롤 종류는 그대로다
+# EV1054 · S354: 5층 층 정의의 수치(유물 엄니, S354 ⑫)와 층 차례. 디펜스 쌍둥이 트롤 종류는 그대로다
 func ev1054():
 	var f = load("res://data/dungeon/floor_5.tres")
 	if f == null:
@@ -3754,8 +3754,8 @@ func ev1054():
 		"plan": [{"id": "leap", "wait": 4.0}, {"id": "lob", "wait": 3.0}, {"id": "slam", "wait": 4.0}, {"id": "cleave", "wait": 2.0}, {"id": "soak", "wait": 5.0}]}
 	if f.get("pair") != pair or f.get("alone") != alone:
 		return "두 몸(pair) %s(기대 %s) · 홀로 대본(alone) %s(기대 %s)" % [f.get("pair"), pair, f.get("alone"), alone]
-	if f.ward != 0.9 or f.groggy != {"time": 4.5, "mult": 1.5} or f.enrage != {"soft": 100.0, "step": 10.0, "ramp": 0.15} or f.hard != 150.0 or f.gold != 220 or f.relic != "" or f.pull != 3.0:
-		return "경감 %s · 그로기 %s · 광폭 %s · 불꽃 %s · 층 골드 %s · 유물 «%s» · 서 있기 %s(기대 0.9·4.5초 1.5배·100초 10초 0.15·150·220·없음·3)" % [f.ward, f.groggy, f.enrage, f.hard, f.gold, f.relic, f.pull]
+	if f.ward != 0.9 or f.groggy != {"time": 4.5, "mult": 1.5} or f.enrage != {"soft": 100.0, "step": 10.0, "ramp": 0.15} or f.hard != 150.0 or f.gold != 220 or f.relic != "troll_tusk" or f.pull != 3.0:
+		return "경감 %s · 그로기 %s · 광폭 %s · 불꽃 %s · 층 골드 %s · 유물 «%s» · 서 있기 %s(기대 0.9·4.5초 1.5배·100초 10초 0.15·150·220·troll_tusk·3)" % [f.ward, f.groggy, f.enrage, f.hard, f.gold, f.relic, f.pull]
 	var troll = load("res://data/enemies/twin_troll.tres")
 	return check(_stage().den.floors == ["floor_1", "floor_2", "floor_3", "floor_4", "floor_5"] and troll.hp == 160.0 and troll.radius == 0.9 and troll.regen == 0.01 and troll.pack == 2 and troll.boss == true
 		and troll.skills.keys() == ["devour", "twin", "lob"] and troll.skills.lob.rock == 25.0 and troll.skills.twin.hit == 40.0,
@@ -4305,7 +4305,7 @@ func ev1068():
 		"[패턴, 불꽃 10초에 잃은 체력, 불꽃 101초에 잃은 체력] %s(뒤가 앞의 1.15배여야)" % [rows])
 
 # EV1069 · I292 ⑥⑧: 보스 막대의 이름은 «쌍둥이 트롤»이고 두 몸은 짝 색이 다르며 그림 배율은 디펜스와 같다. 두 몸 모두 머리 위 체력 막대가 있고
-# 사냥감 표시는 형의 사냥감이다. 한 몸을 쓰러뜨리면 남은 몸이 홀로가 되고, 둘 다 쓰러뜨리면 층 골드가 든 토스트가 뜬다
+# 사냥감 표시는 형의 사냥감이다. 한 몸을 쓰러뜨리면 남은 몸이 홀로가 되고, 둘 다 쓰러뜨리면 유물 엄니를 받아 출전 첫째가 끼고 유물 이름과 층 골드가 든 토스트가 뜬다
 func ev1069():
 	var main = _den_game()
 	var b = main.view.battle
@@ -4340,9 +4340,220 @@ func ev1069():
 	b.damage(t[0], BIG)
 	_spin(main, 3.1)
 	var after := [b.state, b.floors_cleared, b.gold - gold, b.relics, b.raid_block()]
+	var worn: Array = b.heroes.map(func(h): return h.relic)
 	var texts := _toast_texts(main)
 	_done(main)
 	if first != ["쌍둥이 트롤", 2.0, 2.0, true, true, true, true] or second != ["쌍둥이 트롤", true, 0.5]:
 		return "두 몸일 때 [이름, 형 그림 배율, 아우 그림 배율, 짝 색이 다름, 사냥감이 둘째, 표시가 둘째, 두 몸 체력 막대] %s(기대 [쌍둥이 트롤, 2, 2, 참, 참, 참, 참]) · 아우를 쓰러뜨린 뒤 [이름, 형 홀로, 남은 비율] %s(기대 [쌍둥이 트롤, 참, 0.5])" % [first, second]
-	return check(after == ["prep", 5, 220, {}, "done"] and texts.any(func(t): return "5층" in t and "220" in t),
-		"처치 3.1초 뒤 [판, 깬 층, 는 골드, 가방, 원정 버튼 이유] %s(기대 [prep, 5, 220, {}, done]) · 보인 토스트 %s(«5층»·«220»이 함께 든 것이 있어야)" % [after, texts])
+	var first_only: bool = worn.size() >= 1 and worn[0] == "troll_tusk" and worn.slice(1).all(func(r): return r == "")
+	return check(after == ["prep", 5, 220, {"troll_tusk": 0}, "done"] and first_only and texts.any(func(t): return "5층" in t and "엄니" in t and "220" in t),
+		"처치 3.1초 뒤 [판, 깬 층, 는 골드, 가방, 원정 버튼 이유] %s(기대 [prep, 5, 220, {troll_tusk: 0}, done]) · 낀 유물 %s(첫째만 troll_tusk) · 보인 토스트 %s(«5층»·«엄니»·«220»이 함께 든 것이 있어야)" % [after, worn, texts])
+
+# ── 원정 5층 묶음 ②(S354 2026-11-12 변경·S355·I293) ── 더하는 API:
+#   유물 troll_tusk(steps의 cdr_r) · 끝낸 힌트 이름 «raid5» · main.view.events의 사건 «bonk»(형제 맞히기)·«slump»(던져진 몸이 떨어짐)
+#   main.hud.relic_rows의 줄(Control)은 장비 칸 안에서 두 개씩 나란히 놓인다(I293 ④)
+
+const TUSK := "troll_tusk"
+
+# 라운드 사이에 가방에 엄니 +n을 두고 둘째 영웅에게 끼운 뒤 2라운드 전투를 열어, 오토를 끄고 Q·W·E·R 대기 50초·대시 대기 5초에서 1초 돌린다.
+# 영웅마다 [준 Q 대기, 준 W 대기, 준 E 대기, 준 R 대기, 준 대시 대기]이고 안 되면 []. 출전 셋은 스킬 대기 오라가 없는 영웅이다
+func _tusked(n: int) -> Array:
+	var st := _stage()
+	st.heroes = [TEAM[0], {"kind": "sylvia", "cell": Vector2i(33, 65)}, TEAM[2]]
+	var b = _new(st)
+	if not b.RELIC_KINDS.has(TUSK):
+		return []
+	b.state = "cleared"
+	b.relics[TUSK] = n
+	if not b.wear_relic(b.heroes[1], TUSK):
+		return []
+	b.next_round()
+	b.start_battle()
+	for h in b.heroes:
+		for k in h.auto:
+			h.auto[k] = false
+		for k in ["q", "w", "e", "r"]:
+			h.cd[k] = 50.0
+		h.dash_cd = 5.0
+	_go(b, 1.0)
+	return b.heroes.map(func(h): return [50.0 - h.cd.q, 50.0 - h.cd.w, 50.0 - h.cd.e, 50.0 - h.cd.r, 5.0 - h.dash_cd])
+
+# rows(영웅마다 [준 Q·W·E·R 대기, 준 대시 대기])가 둘째 영웅의 R 대기만 fast초이고 나머지는 모두 1초인가
+func _tusk_fast(rows: Array, fast: float) -> bool:
+	return rows.size() == 3 and range(3).all(func(i): return range(5).all(func(k): return absf(rows[i][k] - (fast if i == 1 and k == 3 else 1.0)) < 0.001))
+
+# EV1070 · S355: 엄니의 단계 수치. 엄니를 낀 영웅은 R 칸 대기만 12% 빨리 줄고 +4면 28%다
+func ev1070():
+	if not ResourceLoader.exists("res://data/relics/troll_tusk.tres"):
+		return "data/relics/troll_tusk.tres가 없다"
+	var r = load("res://data/relics/troll_tusk.tres")
+	var steps = r.get("steps")
+	var want := [0.12, 0.16, 0.2, 0.24, 0.28]
+	if r.get("title") != "엄니" or not steps is Array or steps.size() != 5 or range(5).any(func(i): return steps[i].size() != 1 or absf(steps[i].get("cdr_r", -1.0) - want[i]) > 0.000001) or r.get("notes").size() != 5:
+		return "엄니 이름 %s · 단계 %s(기대 cdr_r %s뿐) · 단계 글 %s(다섯)" % [r.get("title"), steps, want, r.get("notes")]
+	var base := _tusked(0)
+	var top := _tusked(4)
+	return check(_tusk_fast(base, 1.12) and _tusk_fast(top, 1.28), "전투 1초에 영웅마다 [준 Q·W·E·R 대기, 준 대시 대기]: 엄니 +0 %s(기대 둘째의 R만 1.12, 나머지 1) · 엄니 +4 %s(기대 둘째의 R만 1.28)" % [base, top])
+
+# EV1071 · S354 ⑬·I293 ①: 첫 원정 힌트가 끝나 있으면 5층 원정에 5층 힌트가 뜨고 어느 몸이든 그로기가 되면 끝나 다음 5층 원정에 뜨지 않는다. 1층 원정에는 뜨지 않는다
+func ev1071():
+	var st = _hints_reset()
+	st.hints_done = ["raid"]
+	var main = _den_game()
+	var b = main.view.battle
+	var hud = main.hud
+	for i in 4:
+		b.state = "cleared"
+		b.next_round()
+	b.floors_cleared = 4
+	b.torches = 9
+	_frame(main)
+	var out := ""
+	var before: bool = hud.hints.is_visible_in_tree()
+	b.start_raid()
+	_frame(main)
+	var said := _hint_says(main)
+	if before or b.state != "raid" or b.enemies.size() != 2 or b.enemies.any(func(e): return e.kind != "twin_troll") or not "형제" in said or not "성난다" in said:
+		out = "6라운드 준비 단계 힌트 칸 보임 %s(거짓) · 5층 원정 판 %s · 적 %s(쌍둥이 트롤 둘) · 힌트 글 «%s»(«형제»·«성난다»가 있어야)" % [before, b.state, b.enemies.map(func(e): return e.kind), said]
+	if out == "":
+		var y = b.enemies[0] if b.enemies[0].mate == 1 else b.enemies[1]
+		b._fx(y, "groggy", {"groggy": true}, 5.0)
+		_frame(main)
+		if hud.hints.is_visible_in_tree() or st.hints_done != ["raid", "raid5"]:
+			out = "아우 그로기 뒤 힌트 칸 보임 %s(거짓) · 끝낸 힌트 %s(기대 [raid, raid5])" % [hud.hints.is_visible_in_tree(), st.hints_done]
+	if out == "":
+		b.retreat()
+		_frame(main)
+		b.start_raid()
+		_frame(main)
+		if b.state != "raid" or hud.hints.is_visible_in_tree():
+			out = "다음 5층 원정(판 %s)에 힌트 칸 보임 %s(거짓)" % [b.state, hud.hints.is_visible_in_tree()]
+	if out == "":
+		b.retreat()
+		st.hints_done = ["raid"]
+		b.floors_cleared = 0
+		_frame(main)
+		b.start_raid()
+		_frame(main)
+		out = check(b.state == "raid" and b.enemies.size() > 0 and b.enemies[0].kind != "twin_troll" and not hud.hints.is_visible_in_tree(),
+			"끝낸 힌트 [raid]·깬 층 0의 1층 원정(판 %s)에 힌트 칸 보임 %s(거짓)" % [b.state, hud.hints.is_visible_in_tree()])
+	_done(main)
+	_hints_reset()
+	return out
+
+# 게임 장면을 0.05초씩 n번 돌리며 화면 사건 가운데 kinds를 [종류, 프레임, 자리, 반지름]으로 모은다. watch가 있으면 그 몸이 형제 던지기 예고를 처음 띄운 [프레임, 자리]를 seen에 둔다
+func _twin_events(main, kinds: Array, n: int, watch = null, seen := []) -> Array:
+	var out := []
+	for i in n:
+		main._process(0.05)
+		main.hud._process(0.05)
+		if watch != null and seen.is_empty() and watch.cast != null and watch.cast.id == "toss":
+			seen.append_array([i, watch.cast.at])
+		for x in main.view.events:
+			if x.kind in kinds:
+				out.append([x.kind, i, x.at, x.get("radius")])
+	return out
+
+# EV1072 · I293 ②③: 형제 맞히기로 형제가 그로기가 된 프레임에만 bonk 사건이 맞은 형제 자리에 나고, 이미 그로기인 형제에는 나지 않는다.
+# 원정의 형제 던지기 몸이 떨어진 프레임에만 slump 사건이 떨어진 자리에 난다
+func ev1072():
+	var main = _den_game()
+	var b = main.view.battle
+	for i in 4:
+		b.state = "cleared"
+		b.next_round()
+	b.floors_cleared = 4
+	_frame(main)
+	b.start_raid()
+	_frame(main)
+	if b.state != "raid" or b.enemies.size() != 2 or b.party.size() < 2:
+		_done(main)
+		return "5층 원정이 되지 않았다(판 %s · 적 %d · 원정대 %d)" % [b.state, b.enemies.size(), b.party.size()]
+	_freeze(b)
+	var t: Array = b.enemies.duplicate()
+	t.sort_custom(func(x, y): return x.mate < y.mate)
+	var e = t[0]
+	var y = t[1]
+	for x in t:
+		x.pull = 0.0
+		x.rest = 999.0
+	var p = b.party
+	var both := ["bonk", "slump"]
+	_stand(b, [Vector2(78, 76), Vector2(88, 82)])
+	_tell(b, e, 0)
+	p[1].pos = Vector2(88, 85)
+	var rock: Array = _twin_events(main, both, 50)
+	var y_groggy: bool = _groggy(b, y)
+	_stand(b, [Vector2(78, 76), Vector2(88, 82)])
+	_tell(b, e, 0)
+	p[1].pos = Vector2(88, 85)
+	var again: Array = _twin_events(main, both, 50)
+	e.cast = null
+	e.rest = 999.0
+	y.fx.erase("groggy")
+	_stand(b, [Vector2(72, 86), Vector2(83, 80)])
+	_tell(b, y, 0)
+	p[1].pos = Vector2(83, 76.4)
+	var leap: Array = _twin_events(main, both, 50)
+	var e_groggy: bool = _groggy(b, e)
+	e.fx.erase("groggy")
+	b.damage(y, BIG)
+	var tossed := []
+	var fell: Array = _twin_events(main, both, 100, e, tossed)
+	_done(main)
+	var px := func(v: Vector2) -> Vector2: return v * 16.0 + Vector2(8, 8)
+	var one := func(got: Array, kind: String, at: Vector2, r: float) -> bool: return got.size() == 1 and got[0][0] == kind and got[0][2].distance_to(at) < 0.01 and absf(got[0][3] - r) < 0.01
+	if not one.call(rock, "bonk", px.call(Vector2(87, 80)), 14.4) or not y_groggy:
+		return "① 아우 곁에 비킨 바위: 사건 %s(기대 bonk 하나, 자리 %s·반지름 14.4) · 아우 그로기 %s(참)" % [rock, px.call(Vector2(87, 80)), y_groggy]
+	if not again.is_empty():
+		return "② 그로기인 아우 곁에 떨어진 바위: 사건 %s(없어야)" % [again]
+	if not one.call(leap, "bonk", px.call(Vector2(81, 80)), 14.4) or not e_groggy:
+		return "③ 형 곁에 비킨 착지: 사건 %s(기대 bonk 하나, 자리 %s·반지름 14.4) · 형 그로기 %s(참)" % [leap, px.call(Vector2(81, 80)), e_groggy]
+	return check(tossed.size() == 2 and fell.size() == 1 and fell[0][0] == "slump" and fell[0][1] > tossed[0] and fell[0][2].distance_to(px.call(tossed[1])) < 0.01 and absf(fell[0][3] - 32.0) < 0.01,
+		"④ 아우를 쓰러뜨린 뒤 형제 던지기 예고 [프레임, 자리] %s(있어야) · 사건 %s(기대 그 뒤 slump 하나, 자리는 예고 자리의 가운데 px·반지름 32)" % [tossed, fell])
+
+# EV1073 · I293 ④: 장비 칸의 유물 줄은 두 개씩 나란히 놓이고, 유물 다섯·미션 판정 줄·전리품 줄이 함께 있어도 라운드 사이 창의 아래끝이 356 이하다
+func ev1073():
+	var main = _prep()
+	var b = main.view.battle
+	var hud = main.hud
+	if not _win(b):
+		_done(main)
+		return "1라운드를 이기지 못했다(%s)" % b.state
+	var ids := ["slime_crown", "wolf_fang", "iron_cog", "wyvern_scale", TUSK]
+	if not ids.all(func(k): return b.RELIC_KINDS.has(k)):
+		_done(main)
+		return "유물 %s 가운데 없는 것이 있다(있는 것 %s)" % [ids, b.RELIC_KINDS.keys()]
+	b.settled = [[b.QUEST_KINDS.keys()[0], true]]
+	b.dropped.assign([b.GEAR_KINDS.keys()[0], 0, 1])
+	for k in ids:
+		b.relics[k] = 0
+	_frame(main)
+	hud._gear_tab = true
+	_frame(main)
+	_layout(main)
+	var at := {}
+	for r in hud.relic_rows:
+		if r[1].is_visible_in_tree():
+			at[r[0]] = r[1].get_global_rect().position
+	var w: Rect2 = hud.window.get_global_rect()
+	var lines: int = hud._result_label.text.split("\n").size()
+	var loot: bool = hud._loot.is_visible_in_tree()
+	var near := func(a: float, c: float) -> bool: return absf(a - c) < 0.5
+	var out := ""
+	if at.size() != 5 or lines != 2 or not loot:
+		out = "보이는 유물 줄 %s(다섯) · 결과 글 줄 수 %d(2: 라운드·미션) · 전리품 줄 보임 %s(참)" % [at.keys(), lines, loot]
+	elif not (near.call(at.slime_crown.y, at.wolf_fang.y) and at.wolf_fang.x > at.slime_crown.x + 1.0
+			and near.call(at.iron_cog.y, at.wyvern_scale.y) and at.iron_cog.y > at.slime_crown.y + 1.0 and near.call(at.iron_cog.x, at.slime_crown.x) and near.call(at.wyvern_scale.x, at.wolf_fang.x)
+			and at[TUSK].y > at.iron_cog.y + 1.0 and near.call(at[TUSK].x, at.slime_crown.x)):
+		out = "유물 줄 [왼쪽 x, 윗변 y] %s(기대 왕관·송곳니 / 톱니·비늘 / 엄니로 두 개씩, 왼쪽 칸 x가 같음)" % [at]
+	elif not w.position.is_equal_approx(Vector2(16, 34)) or absf(w.size.x - 608.0) > 0.5 or w.end.y > 356.5:
+		out = "장비 칸 창 %s(기대: [16,34] 폭 608, 아래끝 356 이하)" % w
+	if out == "":
+		b.relics.erase("wolf_fang")
+		_frame(main)
+		_layout(main)
+		var cog: Vector2 = hud.relic_rows.filter(func(r): return r[0] == "iron_cog")[0][1].get_global_rect().position
+		out = check(near.call(cog.y, at.slime_crown.y) and near.call(cog.x, at.wolf_fang.x), "송곳니를 뺀 뒤 톱니 줄 %s(기대 y %s·x %s: 왕관 오른쪽)" % [cog, at.slime_crown.y, at.wolf_fang.x])
+	_done(main)
+	return out

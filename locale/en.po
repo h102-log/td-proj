@@ -1850,6 +1850,15 @@ msgstr "W cooldown %d%% faster"
 msgid "급강하를 피하면 땅에 처박힌다\n떨어진 뒤엔 옆구리에 선다"
 msgstr "Dodge the dive to ground it\nThen stand by its flank"
 
+msgid "엄니"
+msgstr "Tusk"
+
+msgid "R 대기 %d%% 빠름"
+msgstr "R cooldown %d%% faster"
+
+msgid "바위·착지를 형제에게 맞힌다\n하나가 쓰러지면 남은 쪽이 성난다"
+msgstr "Land rocks and leaps on the twin\nWhen one falls, the other rages"
+
 msgid "다시 (횃불 1)"
 msgstr "Retry (1 torch)"
 
