@@ -1,6 +1,6 @@
 {
-  "approvedAt": "2026-11-11T23:15:11.000Z",
-  "evalMd": "fc22f916",
+  "approvedAt": "2026-11-12T00:46:01.000Z",
+  "evalMd": "3ff1fe1a",
   "tests": {
     "tests/eval/conftest.py": "1d87ccc5",
     "tests/eval/gd/aura.gd": "010cc38a",
@@ -119,6 +119,8 @@
     "tests/eval/gd/towercap.gd.uid": "0dd43388",
     "tests/eval/gd/troll.gd": "c65d3799",
     "tests/eval/gd/troll.gd.uid": "e31535ba",
+    "tests/eval/gd/troops.gd": "241d8730",
+    "tests/eval/gd/troops.gd.uid": "ff9b915a",
     "tests/eval/gd/tuning.gd": "dac42f08",
     "tests/eval/gd/tuning.gd.uid": "174d5dd9",
     "tests/eval/gd/units.gd": "f1c8cb12",
@@ -189,6 +191,7 @@
     "tests/eval/test_tower.py": "9ca639b5",
     "tests/eval/test_towercap.py": "aa2ac5b3",
     "tests/eval/test_troll.py": "dc517541",
+    "tests/eval/test_troops.py": "1652244f",
     "tests/eval/test_tuning.py": "b4003da3",
     "tests/eval/test_units.py": "05de9e3b",
     "tests/eval/test_village.py": "54fa0d71",
@@ -672,6 +675,15 @@
     "I289": "2355a679",
     "S353": "80c24576",
     "I290": "bd329a9f",
-    "I291": "38fc01be"
+    "I291": "38fc01be",
+    "S354": "3f8f6b3c",
+    "S355": "488e1d6d",
+    "S356": "8aeb651d",
+    "S357": "2b473465",
+    "S358": "fa146d02",
+    "S359": "49206791",
+    "S360": "6cfe0c51",
+    "S361": "b2a85686",
+    "S362": "6d48724a"
   }
 }
