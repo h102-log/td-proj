@@ -376,3 +376,67 @@ def test_EV1050_floor4_hint_shows_once(gd):
 
 def test_EV1051_wyvern_crash_and_fall_events(gd):
     gd("den", "EV1051")
+
+
+def test_EV1054_floor5_data_and_order(gd):
+    gd("den", "EV1054")
+
+
+def test_EV1055_floor5_opens_two_bodies(gd):
+    gd("den", "EV1055")
+
+
+def test_EV1056_floor5_rock_throw(gd):
+    gd("den", "EV1056")
+
+
+def test_EV1057_floor5_rock_hits_younger(gd):
+    gd("den", "EV1057")
+
+
+def test_EV1058_floor5_leap_nearest(gd):
+    gd("den", "EV1058")
+
+
+def test_EV1059_floor5_leap_hits_elder(gd):
+    gd("den", "EV1059")
+
+
+def test_EV1060_floor5_struck_cast_cancelled(gd):
+    gd("den", "EV1060")
+
+
+def test_EV1061_floor5_sweep(gd):
+    gd("den", "EV1061")
+
+
+def test_EV1062_floor5_ground_slam_counter(gd):
+    gd("den", "EV1062")
+
+
+def test_EV1063_floor5_gold_circle(gd):
+    gd("den", "EV1063")
+
+
+def test_EV1064_floor5_alone_vault_toss(gd):
+    gd("den", "EV1064")
+
+
+def test_EV1065_floor5_alone_script(gd):
+    gd("den", "EV1065")
+
+
+def test_EV1066_floor5_two_scripts_timing(gd):
+    gd("den", "EV1066")
+
+
+def test_EV1067_floor5_left_rule_retry(gd):
+    gd("den", "EV1067")
+
+
+def test_EV1068_floor5_enrage_ramp(gd):
+    gd("den", "EV1068")
+
+
+def test_EV1069_floor5_game_scene(gd):
+    gd("den", "EV1069")

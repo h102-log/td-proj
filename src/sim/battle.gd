@@ -285,6 +285,7 @@ class Enemy:
 	var rest := 0.0  # 그 패턴의 예고까지 남은 쉼(초)
 	var turn := 0  # 씨앗 표식이 다음에 붙을 원정대 차례(I270 ③)
 	var shifted := false  # 체력이 층 정의 shift.below 이하가 된 적이 있다(S337 ⑥, I286 ①). 한 번 켜지면 꺼지지 않는다
+	var lone := false  # 두 몸 층(S354 ⑦, I292 ⑤)에서 형제가 쓰러져 홀로 남았다. 그 뒤로는 층의 홀로 대본(alone)을 돈다
 
 	func _init(k: String, cell: Vector2i, stats: Dictionary) -> void:
 		kind = k
@@ -1102,7 +1103,14 @@ func start_raid() -> bool:
 		_halt(h)
 		h.on_wall = false
 		h.still = 0.0
-	enemy_spawned.emit(_raid_body(0, Vector2(den.boss), raid_floor.pull))
+	var pair: Array = raid_floor.get("pair", [])
+	if pair.is_empty():
+		enemy_spawned.emit(_raid_body(0, Vector2(den.boss), raid_floor.pull))
+	for i in pair.size():  # 두 몸 층(S354, I292 ①): 차례대로 보스 칸 + at 자리에 내고, 차례가 짝 번호이며 몸마다 제 대본을 돈다
+		var e := _raid_body(0, Vector2(den.boss) + pair[i].at, raid_floor.pull)
+		e.mate = i
+		e.rest = pair[i].plan[0].wait
+		enemy_spawned.emit(e)
 	return true
 
 # 원정 보스 몸 하나를 낸다(S316): 층 수치 그대로이고 wait초 동안 서 있는다. 층에 세대(gens)가 있으면(S322) g세대의 체력·몸 반지름과
@@ -1150,7 +1158,52 @@ func _bud(dead: Enemy) -> void:
 func _plan_of(e: Enemy) -> Array:
 	if e.gen > 0:
 		return []
+	var pair: Array = e.raid.get("pair", [])
+	if not pair.is_empty():  # 두 몸 층(S354, I292 ①⑤): 몸마다 pair[짝 번호]의 대본이고, 홀로 남으면 홀로 대본의 lead와 plan을 이은 목록이다
+		return e.raid.alone.lead + e.raid.alone.plan if e.lone else pair[e.mate].plan
 	return e.raid.phase2.plan if _second(e) else e.raid.get("plan", [])
+
+# 두 몸 층의 어느 대본(pair의 plan, alone의 lead·plan)에든 든 패턴이다(I292 ①). 그런 패턴은 그 몸의 대본 차례에만 쓴다
+func _plotted(e: Enemy, id: String) -> bool:
+	var pair: Array = e.raid.get("pair", [])
+	if pair.is_empty():
+		return false
+	var plans: Array = pair.map(func(p): return p.plan) + [e.raid.alone.get("lead", []), e.raid.alone.get("plan", [])]
+	return plans.any(func(plan): return plan.any(func(p): return p.id == id))
+
+# 두 몸 층에서 이 몸의 형제(S354 ③): 홀로 남지 않았으면 방에 있는 다른 원정 몸이다. 두 몸 층이 아니거나 형제가 없으면 null
+func _sibling(e: Enemy):
+	if e.raid.get("pair", []).is_empty() or e.lone:
+		return null
+	for o in _raiders():
+		if o != e and o.alive:
+			return o
+	return null
+
+# 두 몸 층의 예고 원(at, 반경 r)이 겨눈 것인가(I292 ③): 형제가 있으면 원이 형제 몸에 닿아 있고, 홀로 남았으면 원 안에 산 원정대 영웅이 있다
+func _aimed(e: Enemy, at: Vector2, r: float) -> bool:
+	var sib = _sibling(e)
+	if sib != null:
+		return at.distance_to(sib.pos) <= r + sib.radius
+	return party.any(func(h): return h.alive and h.pos.distance_to(at) <= r)
+
+# 형제 맞히기(S354 ③, I292 ④): 맞은 형제가 그로기가 된다. 예고 중이면 끊기(S326 ④)처럼 예고가 취소되고 대본이 넘어간다. 뜬 형제와 이미 그로기인 형제는 그대로다
+func _bonk(o: Enemy) -> void:
+	if not o.alive or _aloft(o) or _fx_on(o, "groggy") != null:
+		return
+	if o.cast != null:
+		_interrupt(o)
+	else:
+		_fx(o, "groggy", {"groggy": true}, o.raid.groggy.time)
+
+# 홀로 남음(S354 ⑦, I292 ⑤): 형제 body가 쓰러진 몸 o는 그 몸을 맡고 홀로 대본을 처음부터 돈다. 하던 예고는 버리되 뜬 동안이면 착지까지 마친다
+func _alone(o: Enemy, body: Enemy) -> void:
+	o.lone = true
+	o.twin = body
+	o.beat = 0
+	o.rest = o.raid.alone.lead[0].wait
+	if o.cast != null and not _aloft(o):
+		o.cast = null
 
 # 원정 보스 몸이 층의 둘째 형태다(S342 ④, I283 ①)
 func _second(e: Enemy) -> bool:
@@ -1161,7 +1214,11 @@ func _second(e: Enemy) -> bool:
 func _next_beat(e: Enemy) -> void:
 	var plan := _plan_of(e)
 	e.beat = (e.beat + 1) % plan.size()
+	if e.lone and e.beat == 0:  # 홀로 대본(I292 ⑤): lead는 한 번만 돌고, 마지막 차례 다음은 lead 다음이다
+		e.beat = e.raid.alone.lead.size()
 	e.rest = plan[e.beat].wait * (1.0 - (e.skills.rage.get("rest", 0.0) if raging(e) else 0.0))  # 원정 대장의 분노(S342 ⑪, I284 ①): 차례가 넘어갈 때 분노 중이면 쉼이 짧다
+	if e.lone:  # 홀로 남은 몸(S354 ⑦)은 쉼이 alone.rest만큼 짧다
+		e.rest *= 1.0 - e.raid.alone.rest
 	if _shifted(e):  # 체력 50% 아래(S337 ⑥, I286 ①)
 		e.rest *= 1.0 - e.raid.shift.rest
 
@@ -1226,6 +1283,8 @@ func raid_left() -> float:
 			all += e.max_hp
 		for k in range(e.gen + 1, gens.size()):
 			left += gens[k].hp * (1 << (k - e.gen))
+	if not raid_floor.get("pair", []).is_empty():  # 두 몸 층(I292 ⑥): 산 몸의 체력 합 ÷ (몸 수 × 층 수치의 체력). 쓰러진 몸은 0이다
+		all = raid_floor.pair.size() * raid_floor.stats.hp
 	var p: Dictionary = raid_floor.get("phase2", {})
 	if not p.is_empty():  # 두 형태(I283 ⑧): 아직 나오지 않은 둘째 형태의 체력을 더해 두 형태의 합으로 나눈다
 		all = raid_floor.stats.hp + p.stats.hp
@@ -2073,7 +2132,7 @@ func _fx(t, src: String, eff: Dictionary, secs: float) -> void:
 		eff.erase("seal")
 		if eff.is_empty():
 			return
-	if t is Enemy and t.dashing:  # 효과가 걸리면 돌진이 끝난다(S293). 도약 늑대가 스스로 거는 둔화(_vault)는 돌진이 끝난 뒤다
+	if t is Enemy and t.dashing:  # 효과가 걸리면 돌진이 끝난다(S293). 도약 늑대가 스스로 거는 둔화(_vault_over)는 돌진이 끝난 뒤다
 		_end_dash(t)
 	if _tracing != null:
 		_tracing.marked = true
@@ -3914,6 +3973,10 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 				add_xp(h, target.xp)
 		_divide(target)  # 처치 골드·전염·경험치 다음이라 전염은 막 나온 적에게 옮지 않는다(S234)
 		_bud(target)
+		if not target.raid.get("pair", []).is_empty() and state == "raid":  # 두 몸 층(S354 ⑦): 남은 몸이 홀로 남아 이 몸을 맡는다
+			for o in _raiders():
+				if not o.lone:
+					_alone(o, target)
 		_disembark(target)  # 공성탑·수송 비행선(S284, S286)
 	elif target is Unit:  # 전장에서 빠진다. 영웅은 다음 준비 단계에 돌아온다(step, S26). 공병이 하던 일은 그 상태로 남는다(S24)
 		if target.job:
@@ -4269,7 +4332,7 @@ func _move(e: Enemy, dt: float) -> void:
 					e.climbed = 0.0
 					e.on_wall = true
 					if not e.vault.is_empty():  # 도약 늑대는 그 칸 아군을 먼저 밀어낸다(S239)
-						_vault(e, next)
+						_vault_over(e, next)
 					_shove(e, target - e.pos, units)
 				return
 			block = null  # 성벽 위에서는 이어진 성벽 칸을 걷고, 땅에서는 오를 자리까지 걷는다
@@ -4353,7 +4416,7 @@ func _skills(e: Enemy, dt: float, sealed: bool) -> bool:
 		return false
 	for id in e.skills:  # 쓸 수 있는 예고 스킬이 여럿이면 skills에 적힌 차례에서 앞선 것(I169)
 		var sk: Dictionary = e.skills[id]
-		if not sk.has("windup") or e.cd.get(id, 0.0) > 0.0 or plan.any(func(p): return p.id == id):  # 대본 패턴은 대본 차례에만 쓴다
+		if not sk.has("windup") or e.cd.get(id, 0.0) > 0.0 or plan.any(func(p): return p.id == id) or _plotted(e, id):  # 대본 패턴은 대본 차례에만 쓴다(두 몸 층은 어느 대본의 패턴이든, I292 ①)
 			continue
 		var ok = call("_%s_ready" % id, e, sk)
 		if ok:
@@ -4486,12 +4549,49 @@ func _face(e: Enemy) -> Dictionary:
 # 대본의 도약(S342 ⑥, I283 ⑦): 사냥감 자리(뜀 거리보다 멀면 그쪽으로 뜀 거리만큼 간 자리, 사냥감이 없으면 제자리)를 착지 자리로 두고,
 # 그 순간 착지 원 안에 산 원정대 영웅이 있으면 겨눈 뜀이다
 func _leap_aim(e: Enemy, sk: Dictionary) -> Dictionary:
-	var u = _prey(e)
+	var u = _closest(e) if sk.get("aim", "") == "near" else _prey(e)  # 5층 내려찍기(S354 ②)는 가까운 영웅을 노린다
 	var at: Vector2 = e.pos
 	if u != null:
 		var to: Vector2 = u.pos - e.pos
 		at = u.pos if to.length() <= sk.range else e.pos + to.normalized() * sk.range
-	return {"at": at, "aimed": party.any(func(h): return h.alive and h.pos.distance_to(at) <= sk.radius)}
+	if e.raid.get("pair", []).is_empty():
+		return {"at": at, "aimed": party.any(func(h): return h.alive and h.pos.distance_to(at) <= sk.radius)}
+	var sib = _sibling(e)
+	if sib != null and at.distance_to(sib.pos) < e.radius + sib.radius:  # 착지 자리가 형제 몸과 겹치면 형제 가운데에서 그쪽으로 두 몸 반지름의 합만큼 떨어진 자리로(S354 ②)
+		var out: Vector2 = at - sib.pos
+		var moved: Vector2 = sib.pos + (out.normalized() if out.length() > 0.001 else Vector2.RIGHT) * (e.radius + sib.radius)
+		if in_room(Vector2i(moved.round())):
+			at = moved
+	return {"at": at, "aimed": _aimed(e, at, sk.radius)}
+
+# 대본의 바위 던지기(S354 ①, I292 ③): 사냥감 자리(없으면 제자리)에 띄우고 오크를 집지 않는다
+func _lob_aim(e: Enemy, sk: Dictionary) -> Dictionary:
+	var u = _prey(e)
+	var at: Vector2 = u.pos if u != null else e.pos
+	return {"at": at, "who": null, "aimed": _aimed(e, at, sk.radius)}
+
+# 대본의 복수의 도약(S354 ⑧, I292 ③): 맡은 쓰러진 몸 자리(없으면 제자리)로 뛴다
+func _vault_aim(e: Enemy, sk: Dictionary) -> Dictionary:
+	var at: Vector2 = e.twin.pos if e.twin != null else e.pos
+	return {"at": at, "aimed": _aimed(e, at, sk.radius)}
+
+# 복수의 도약: 내려찍기와 같은 뜀이다(_soar가 착지를 맡는다)
+func _vault(e: Enemy, sk: Dictionary) -> void:
+	_leap(e, sk)
+
+# 대본의 형제 던지기(S354 ⑨, I292 ③): 사냥감 자리(없으면 제자리)
+func _toss_aim(e: Enemy, _sk: Dictionary) -> Dictionary:
+	var u = _prey(e)
+	return {"at": u.pos if u != null else e.pos}
+
+# 형제 던지기: 맡은 몸이 air초 날아 예고 자리에 떨어진다(_lobs). 던지면 맡은 몸이 비고 몸은 쓰러진 몸 목록에서 빠진다. 피해에 광폭(S323 ⑤)을 곱한다
+func _toss(e: Enemy, sk: Dictionary) -> void:
+	var body = e.twin
+	if body == null:
+		return
+	e.twin = null
+	fallen = fallen.filter(func(f): return f.who != body)
+	lobs.append({"from": body.pos, "at": e.cast.at, "left": sk.air, "air": sk.air, "radius": sk.radius, "hit": sk.hit * raid_ramp(), "by": e, "look": "twin", "who": body})
 
 # 뜀 자리가 빈다(I266 ①): 보스방 칸이고, 이 몸에서 뜀 거리 안이고, 다른 몸이 예고했거나 날아가는 착지 원·서 있는 다른 몸과 겹치지 않는다
 func _hop_free(e: Enemy, sk: Dictionary, at: Vector2) -> bool:
@@ -4509,7 +4609,7 @@ func _hop_free(e: Enemy, sk: Dictionary, at: Vector2) -> bool:
 # 웅크림이 끝나면 뜬다(S236): 붙잡던 유닛에서 풀리고, air초 동안 착지 자리로 곧장 난다
 func _leap(e: Enemy, sk: Dictionary) -> void:
 	_engage(e, null)
-	e.cast = {"id": "leap", "left": sk.air, "air": true, "from": e.pos, "at": e.cast.at, "aimed": e.cast.get("aimed", false)}
+	e.cast = {"id": e.cast.id, "left": sk.air, "air": true, "from": e.pos, "at": e.cast.at, "aimed": e.cast.get("aimed", false)}  # 복수의 도약(S354 ⑧)도 이 뜀이라 예고 id를 그대로 둔다
 
 # 뜬 동안(S236): 뜬 자리에서 착지 자리로 곧장 옮겨 가고, 다 날면 그 자리에서 내려찍은 뒤 길을 다시 찾는다. 박치기 활강(S305)·와이번 급강하(S310)도 같다
 func _soar(e: Enemy, dt: float) -> void:
@@ -4533,9 +4633,13 @@ func _soar(e: Enemy, dt: float) -> void:
 	elif c.id == "plunge":
 		_plunge_land(e, sk, c)
 	else:
-		var missed: bool = c.get("aimed", false) and not _ground_near(c.at, sk.radius).any(func(u): return u in party)
+		var empty: bool = not _ground_near(c.at, sk.radius).any(func(u): return u in party)
+		var sib = _sibling(e)
 		_slam(e, sk if e.raid.is_empty() else sk.merged({"damage": sk.damage * raid_ramp()}, true), (c.at - c.from).normalized())  # 광폭(S323 ⑤)
-		if missed:  # 겨눈 뜀이 아무도 못 맞혔다(S323 ②): 그 몸이 그로기가 된다
+		if sib != null:  # 두 몸 층(S354 ③): 착지 원이 형제 몸에 닿은 채 비었으면 형제가 그로기다. 뛴 몸은 그로기가 아니다
+			if empty and c.at.distance_to(sib.pos) <= sk.radius + sib.radius:
+				_bonk(sib)
+		elif c.get("aimed", false) and empty:  # 겨눈 뜀이 아무도 못 맞혔다(S323 ②): 그 몸이 그로기가 된다
 			_fx(e, "groggy", {"groggy": true}, e.raid.groggy.time)
 	_find_path(e)
 
@@ -5578,7 +5682,7 @@ func _lob(e: Enemy, sk: Dictionary) -> void:
 	if e.cast.who != null:
 		_hurl(e, sk)
 	else:
-		lobs.append({"from": e.pos, "at": e.cast.at, "left": sk.air, "air": sk.air, "radius": sk.radius, "hit": sk.rock, "by": e, "look": "rock", "who": null})
+		lobs.append({"from": e.pos, "at": e.cast.at, "left": sk.air, "air": sk.air, "radius": sk.radius, "hit": sk.rock * raid_ramp(), "by": e, "look": "rock", "who": null, "raid": not e.raid.is_empty()})  # 원정 바위(S354 ①)는 광폭을 곱한다. 원정이 아니면 1이다
 
 # 날아가는 바위·몸(S329 ②③, I273 ④): 다 날면 떨어진 자리에서 radius칸 안 아군(성벽 위 포함, 들린 것 빼고)에 물리 hit. 던진 적의 보스 스킬 흔적을 남긴다(S198)
 func _lobs(dt: float) -> void:
@@ -5587,7 +5691,12 @@ func _lobs(dt: float) -> void:
 		if l.left > 0.0:
 			continue
 		lobs.erase(l)
+		var empty: bool = not _ground_near(l.at, l.radius).any(func(u): return u in party)
 		_trace(l.by, l.look, null, l.at, l.radius)
+		if l.get("raid", false) and l.by.alive and empty:  # 형제 맞히기(S354 ③, I292 ④): 던진 몸이 살아 있고 원이 비었으면, 원이 닿은 형제가 그로기다
+			var sib = _sibling(l.by)
+			if sib != null and l.at.distance_to(sib.pos) <= l.radius + sib.radius:
+				_bonk(sib)
 		for u in units.duplicate():
 			if u.pos.distance_to(l.at) <= l.radius and not _carried(u):
 				damage(u, l.hit, "phys", l.by)
@@ -6519,7 +6628,7 @@ func _shove(e, by: Vector2, bodies: Array) -> void:
 # 밀리는 쪽은 칸 중심에서 치우친 쪽(가운데면 동쪽)이고, 성곽 칸이 아니면 반대쪽, 둘 다 아니면 제자리다. 늑대는 뛴 뒤 느려진다.
 # 옮긴 몸은 화면이 넉백처럼 미끄러뜨린다(S198). 기절은 매번 새로 건다(면역 없음)
 # ponytail: 성벽이 가로로만 놓여(S203) 이웃은 동·서다. 세로 성벽이 생기면 성벽 위 길(_wall)의 이웃으로 고른다
-func _vault(e: Enemy, cell: Vector2i) -> void:
+func _vault_over(e: Enemy, cell: Vector2i) -> void:
 	e.vaulted = true
 	if e.dashing:  # 뛰어오르면 돌진이 끝난다(S293)
 		_end_dash(e)
