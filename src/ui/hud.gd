@@ -19,7 +19,7 @@ extends CanvasLayer
 # 준비·전투 단계 왼쪽 아래 구석에 미니맵을 둔다(S209, hud_minimap.gd)
 
 const NAMES := {"wall": "방벽", "tower": "타워", "magic": "마법 타워", "soldier": "용병", "barracks": "병영", "engineer": "공병", "workshop": "작업장", "archer": "궁수", "cannon": "대포", "archery": "사격장", "house": "집", "church": "교회", "shelter": "대피소",
-	"shieldman": "방패병", "fire_mage": "불마법사", "thunder_mage": "번개마법사", "spearman": "창병", "frost_mage": "얼음 마법사", "cleric": "사제", "cavalry": "기병", "netter": "그물 사수"}  # 새 용병 여덟(S354)
+	"shieldman": "방패병", "fire_mage": "불마법사", "thunder_mage": "번개마법사", "spearman": "창병", "frost_mage": "얼음 마법사", "cleric": "사제", "cavalry": "기병", "netter": "그물 사수"}  # 새 용병 여덟(S355)
 const HEROES := {"aias": "아이아스(탱커)", "sylvia": "실비아(원거리)", "seraphina": "세라피나(힐러)", "vesper": "베스퍼(디버퍼)", "ignis": "이그니스(마법사)", "chronos": "크로노스(제어형)"}  # 이름(역할), S97·S157
 const GRADES := ["1성", "2성", "3성"]  # S94
 const GAPS := {"none": "공병 없음", "far": "닿는 공병 없음"}  # 공병 지시를 맡을 공병이 없는 이유(I128). 툴팁·정보 칸의 빨간 줄(✕는 그 줄이 붙인다)
@@ -109,7 +109,7 @@ const UP := ["..#..", ".###.", "#####", ".###.", ".###."]  # 팝업 업그레이
 # 용병 강화 툴팁의 수치 줄(S255): 키 → «이름 지금 → 다음» 틀
 const RANK_TEXT := {"hp": "체력 %s → %s", "damage": "공격력 %s → %s", "block": "블록 수 %s → %s", "attack_gap": "공격 간격 %s → %s초",
 	"range": "사거리 %s → %s칸", "sight": "인식 범위 %s → %s칸", "speed": "이동 %s → %s칸/초", "accuracy": "명중률 %s → %s%%", "armor": "방어력 %s → %s"}
-# 강화 단계의 사전 칸(S354): «칸.키» → 줄. 확률은 백분율이다
+# 강화 단계의 사전 칸(S355): «칸.키» → 줄. 확률은 백분율이다
 const RANK_SUB := {"chain.odds": "전이 확률 %s → %s%%", "thrust.reach": "꿰뚫는 길이 %s → %s칸", "frost.freeze": "빙결 %s → %s초", "mend.heal": "회복 %s → %s",
 	"mend.range": "회복 거리 %s → %s칸", "lance.damage": "돌진 피해 %s → %s", "lance.cd": "돌진 대기 %s → %s초", "net.time": "그물 %s → %s초", "net.cd": "그물 대기 %s → %s초"}
 const HP_AT := Rect2(65, 266, 24, 24)  # 체력바 버튼 자리(S276 Claude 임시값): 대피령 버튼 오른쪽
@@ -557,7 +557,7 @@ func _ready() -> void:
 	var hammer := HudBuild.dots(HAMMER, {"#": HudTheme.TEXT})
 	_sell = _pop(rows[0], _sell_now, "판매", coin)
 	_finish = _pop(rows[0], func(): _apply(battle.finish, battle.unfinished(controls.selling)), "완성", hammer)
-	var hq := [HBoxContainer.new(), HBoxContainer.new()]  # 거점이 파는 새 용병 여덟의 구매 줄·강화 줄(S354). 거점 탭 UI(사용자 예정 작업) 전까지의 임시 자리다
+	var hq := [HBoxContainer.new(), HBoxContainer.new()]  # 거점이 파는 새 용병 여덟의 구매 줄·강화 줄(S355). 거점 탭 UI(사용자 예정 작업) 전까지의 임시 자리다
 	for i in 2:
 		popup.add_child(hq[i])
 		popup.move_child(hq[i], 1 + i)
@@ -566,7 +566,7 @@ func _ready() -> void:
 		_buy[kind] = _pop(rows[0], func(): battle.recruit(controls.facility, kind), "%s 구매" % NAMES[kind], HudBuild.icon(kind))
 	for kind in old:
 		_rank[kind] = _pop(rows[0], func(): battle.rank_up(kind), "%s 강화" % NAMES[kind], HudBuild.dots(UP, {"#": HudTheme.ACCENT}))
-	for kind in battle.HQ_MERCS:  # 새 여덟은 S354 표 차례로 줄을 따로 두고 종류 색을 입힌 그림과 값만 보인다(이름은 툴팁, I292 ①)
+	for kind in battle.HQ_MERCS:  # 새 여덟은 S355 표 차례로 줄을 따로 두고 종류 색을 입힌 그림과 값만 보인다(이름은 툴팁, I293 ①)
 		_buy[kind] = _hue(_pop(hq[0], func(): battle.recruit(controls.facility, kind), "%s 구매" % NAMES[kind], HudBuild.icon(kind)), kind)
 		_rank[kind] = _hue(_pop(hq[1], func(): battle.rank_up(kind), "%s 강화" % NAMES[kind], HudBuild.icon(kind)), kind)
 	_demolish = _pop(rows[0], _demolish_press, "철거")
@@ -804,7 +804,7 @@ func _process(delta: float) -> void:
 		var n: int = battle.merc_rank.get(kind, 0)
 		var top: bool = n >= d.ranks.size()
 		_rank[kind].visible = prep and controls.facility != null and kind in controls.facility.produces and not d.ranks.is_empty()
-		if kind in battle.HQ_MERCS:  # 새 여덟의 강화 줄(S354 임시 자리): 그림 + «+비용»
+		if kind in battle.HQ_MERCS:  # 새 여덟의 강화 줄(S355 임시 자리): 그림 + «+비용»
 			_rank[kind].text = "최대" if top else "+%d" % d.rank_cost[n]
 		else:
 			_rank[kind].text = "%s 강화 최대" % NAMES[kind] if top else "%s 강화 %d" % [NAMES[kind], d.rank_cost[n]]
@@ -898,7 +898,7 @@ func _button(parent: Control, text: String, on_press: Callable) -> Button:
 	return b
 
 # 맵 위 팝업 버튼(I58): 아이콘(10px 안) + 짧은 글 + 비용. 툴팁은 이름과 못 누르는 이유이고 팝업 전체 아래에 뜬다(S187)
-# 빌린 그림(LOOKS)을 쓰는 종류의 버튼 그림에 그 종류 색을 곱한다(I292 ⑧)
+# 빌린 그림(LOOKS)을 쓰는 종류의 버튼 그림에 그 종류 색을 곱한다(I293 ⑧)
 func _hue(b: Button, kind: String) -> Button:
 	var c = BattleView.LOOKS.get(kind, [null, Color.WHITE])[1]
 	for k in ["icon_normal_color", "icon_hover_color", "icon_pressed_color", "icon_focus_color", "icon_hover_pressed_color"]:
@@ -927,7 +927,7 @@ func _rank_line(kind: String, step: Dictionary) -> String:
 	var shown := func(k, v): return str(roundi(v * 100.0)) if k in ["accuracy", "chain.odds"] else _num(v)
 	var lines := []
 	for k in step:
-		if step[k] is Dictionary:  # 사전 칸은 적힌 키마다 한 줄(S354)
+		if step[k] is Dictionary:  # 사전 칸은 적힌 키마다 한 줄(S355)
 			for s in step[k]:
 				var key: String = "%s.%s" % [k, s]
 				lines.append(RANK_SUB.get(key, key + " %s → %s") % [shown.call(key, now[k][s]), shown.call(key, step[k][s])])
