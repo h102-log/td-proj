@@ -1,6 +1,6 @@
 {
-  "approvedAt": "2026-11-11T11:05:22.090Z",
-  "evalMd": "e754b676",
+  "approvedAt": "2026-11-11T23:59:07.956Z",
+  "evalMd": "31e19117",
   "tests": {
     "tests/eval/conftest.py": "1d87ccc5",
     "tests/eval/gd/aura.gd": "010cc38a",
@@ -19,7 +19,7 @@
     "tests/eval/gd/data.gd.uid": "5a13beba",
     "tests/eval/gd/debuff.gd": "991abea6",
     "tests/eval/gd/debuff.gd.uid": "c967bf87",
-    "tests/eval/gd/den.gd": "fa12e467",
+    "tests/eval/gd/den.gd": "80325d7f",
     "tests/eval/gd/den.gd.uid": "350b8e87",
     "tests/eval/gd/enemy.gd": "233872ef",
     "tests/eval/gd/enemy.gd.uid": "e1e29647",
@@ -141,7 +141,7 @@
     "tests/eval/test_climb.py": "a1347f1b",
     "tests/eval/test_data.py": "33d27efc",
     "tests/eval/test_debuff.py": "c218fa12",
-    "tests/eval/test_den.py": "ed1a7381",
+    "tests/eval/test_den.py": "35495d45",
     "tests/eval/test_enemy.py": "e7f4f856",
     "tests/eval/test_engineer.py": "0c0414d9",
     "tests/eval/test_evac.py": "fc558366",
@@ -671,6 +671,8 @@
     "S352": "8baf4b60",
     "I289": "2355a679",
     "S353": "80c24576",
-    "I290": "bd329a9f"
+    "I290": "bd329a9f",
+    "S354": "b4335c15",
+    "I291": "0372500f"
   }
 }
