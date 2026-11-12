@@ -12,7 +12,7 @@ const KEYS := ["state", "round_index", "wave_index", "gold", "village_level", "o
 # 유닛·구조물에서 담지 않는 칸: 읽기만 하는 present와, 다른 객체를 가리키는 칸(지난 공격 대상·공병 일·스킬 지시·실비아 표식·나온 생산 시설).
 # 전투 단계가 아니면 공격 대상·공병 일·나온 생산 시설 말고는 비어 있다(_clear_effects). 공격 대상은 화면이 그리는 지난 타격이다.
 # 공병 일(준비 단계 실시간, S181 2026-10-25 변경)과 나온 생산 시설은 _fields가 칸으로 담는다
-const SKIP := ["present", "target", "worker", "job", "order", "mark", "rally_from"]
+const SKIP := ["present", "target", "worker", "job", "order", "mark", "rally_from", "cast", "rush"]  # cast·rush는 전투 중에만 있는 불마법사 예고·기병 돌진(S358·S363)
 
 static var path := ""  # 저장 파일. 비어 있으면 쓰지 않는다. 진입 장면(menu.gd)이 정하고, 평가는 평가용 파일로 바꾼다
 

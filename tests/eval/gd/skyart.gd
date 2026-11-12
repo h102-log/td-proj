@@ -165,7 +165,7 @@ func ev876():
 		return "heroes.json에 wyvern·wyvern_fallen 칸이 없다"
 	var size: Vector2i = load("res://art/units/heroes.png").get_image().get_size()
 	var bad := []
-	if size != Vector2i(828, 15656):
+	if size != Vector2i(868, 15656):
 		bad.append("heroes.png %s" % size)
 	var right := 0
 	for h in SIX:  # 영웅 시트 가운데 가장 넓은 것: 쓰러짐 5칸 × 2배 캔버스(atlas.py ANIMS, hero.py FALL)

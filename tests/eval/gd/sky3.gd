@@ -661,8 +661,8 @@ func ev1052():
 		for j in i:
 			if r.intersects(rects[j][1]):
 				bad.append("%s와 %s가 겹친다" % [rects[i][0], rects[j][0]])
-	if img.get_size() != Vector2i(828, 15656):
-		bad.append("아틀라스 %s(828×15656)" % [img.get_size()])
+	if img.get_size() != Vector2i(868, 15656):
+		bad.append("아틀라스 %s(868×15656)" % [img.get_size()])
 	return check(bad.is_empty(), "; ".join(bad.slice(0, 6)))
 
 # EV1053 · I291: 셋은 빌린 그림 표에 없이 제 칸의 그림 한 장을 흰색으로 그린다. 불화살 고블린은 불화살 예고를 띄운 뒤 0.12초까지 시위를 당긴 자세,

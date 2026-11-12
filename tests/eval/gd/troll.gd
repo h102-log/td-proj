@@ -636,6 +636,6 @@ func ev947():
 		for j in i:
 			if r.intersects(rects[j][1]):
 				bad.append("%s가 %s와 겹침" % [rects[i][0], rects[j][0]])
-	if img.get_size() != Vector2i(828, 15656):
-		bad.append("heroes.png %s(828×15656)" % img.get_size())
+	if img.get_size() != Vector2i(868, 15656):
+		bad.append("heroes.png %s(868×15656)" % img.get_size())
 	return check(bad.is_empty(), "%s" % [bad])

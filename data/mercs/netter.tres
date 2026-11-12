@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="MercDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/merc_def.gd" id="1_7oq4d"]
+
+[resource]
+script = ExtResource("1_7oq4d")
+cost = 30
+hp = 30.0
+speed = 2.5
+damage = 1.5
+range = 5.0
+attack_gap = 1.2
+sight = 6.0
+hold_radius = 2.0
+light = 2.5
+net = {
+"cd": 6.0,
+"time": 3.0,
+"boss": false
+}
+ranks = [{
+"net": {
+"time": 4.0
+}
+}, {
+"net": {
+"cd": 5.0
+}
+}, {
+"range": 6.0
+}]
+rank_cost = [45, 65, 95]
