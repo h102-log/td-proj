@@ -1,0 +1,143 @@
+[gd_resource type="Resource" script_class="FloorDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/floor_def.gd" id="1_floor"]
+
+[resource]
+script = ExtResource("1_floor")
+title = "쌍둥이 트롤"
+opens = 6
+kind = "twin_troll"
+stats = {
+"hp": 1000.0,
+"radius": 0.9,
+"regen": 0.0,
+"reward": 0,
+"xp": 0
+}
+skills = {
+"lob": {
+"air": 0.6,
+"radius": 1.5,
+"rock": 25.0,
+"windup": 1.6
+},
+"cleave": {
+"arc": 120.0,
+"knock": 1.5,
+"range": 3.0,
+"unit": 25.0,
+"windup": 1.4
+},
+"soak": {
+"color": "gold",
+"counter": 1.0,
+"damage": 60.0,
+"far": 5.0,
+"heal": 0.05,
+"miss": 20.0,
+"need": 2,
+"radius": 1.5,
+"turn": 90.0,
+"windup": 4.0
+},
+"leap": {
+"aim": "near",
+"air": 0.6,
+"damage": 30.0,
+"knock": 1.5,
+"radius": 2.5,
+"range": 8.0,
+"windup": 1.5
+},
+"slam": {
+"color": "blue",
+"counter": 1.0,
+"damage": 30.0,
+"knock": 1.5,
+"radius": 3.0,
+"windup": 2.0
+},
+"vault": {
+"air": 0.6,
+"damage": 30.0,
+"knock": 1.5,
+"radius": 2.5,
+"windup": 1.5
+},
+"toss": {
+"air": 0.6,
+"hit": 40.0,
+"radius": 2.0,
+"windup": 1.5
+}
+}
+walks = false
+hunts = true
+scale = 1.0
+pair = [{
+"at": Vector2(-3, 0),
+"plan": [{
+"id": "lob",
+"wait": 4.0
+}, {
+"id": "cleave",
+"wait": 3.0
+}, {
+"id": "lob",
+"wait": 4.0
+}, {
+"id": "soak",
+"wait": 5.0
+}]
+}, {
+"at": Vector2(3, 0),
+"plan": [{
+"id": "leap",
+"wait": 6.0
+}, {
+"id": "slam",
+"wait": 4.0
+}, {
+"id": "leap",
+"wait": 4.0
+}]
+}]
+alone = {
+"lead": [{
+"id": "vault",
+"wait": 0.0
+}, {
+"id": "toss",
+"wait": 0.0
+}],
+"plan": [{
+"id": "leap",
+"wait": 4.0
+}, {
+"id": "lob",
+"wait": 3.0
+}, {
+"id": "slam",
+"wait": 4.0
+}, {
+"id": "cleave",
+"wait": 2.0
+}, {
+"id": "soak",
+"wait": 5.0
+}],
+"rest": 0.3
+}
+ward = 0.9
+groggy = {
+"mult": 1.5,
+"time": 4.5
+}
+enrage = {
+"ramp": 0.15,
+"soft": 100.0,
+"step": 10.0
+}
+pull = 3.0
+hard = 150.0
+gold = 220
