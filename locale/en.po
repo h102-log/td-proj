@@ -1903,3 +1903,57 @@ msgstr "After the last hero it is taken off"
 
 msgid "스킬 대기 %d%% 빠름"
 msgstr "Skill cooldowns %d%% faster"
+
+msgid "방패병"
+msgstr "Shieldman"
+
+msgid "불마법사"
+msgstr "Fire Mage"
+
+msgid "번개마법사"
+msgstr "Storm Mage"
+
+msgid "창병"
+msgstr "Spearman"
+
+msgid "얼음 마법사"
+msgstr "Frost Mage"
+
+msgid "사제"
+msgstr "Cleric"
+
+msgid "기병"
+msgstr "Cavalry"
+
+msgid "그물 사수"
+msgstr "Netter"
+
+msgid "방어력 %s → %s"
+msgstr "Armor %s → %s"
+
+msgid "전이 확률 %s → %s%%"
+msgstr "Chain chance %s → %s%%"
+
+msgid "꿰뚫는 길이 %s → %s칸"
+msgstr "Pierce length %s → %s tiles"
+
+msgid "빙결 %s → %s초"
+msgstr "Freeze %s → %ss"
+
+msgid "회복 %s → %s"
+msgstr "Heal %s → %s"
+
+msgid "회복 거리 %s → %s칸"
+msgstr "Heal reach %s → %s tiles"
+
+msgid "돌진 피해 %s → %s"
+msgstr "Charge damage %s → %s"
+
+msgid "돌진 대기 %s → %s초"
+msgstr "Charge cooldown %s → %ss"
+
+msgid "그물 %s → %s초"
+msgstr "Net %s → %ss"
+
+msgid "그물 대기 %s → %s초"
+msgstr "Net cooldown %s → %ss"

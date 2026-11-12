@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="MercDef" format=3]
+
+[ext_resource type="Script" path="res://src/data/merc_def.gd" id="1_7oq4d"]
+
+[resource]
+script = ExtResource("1_7oq4d")
+cost = 35
+hp = 25.0
+speed = 2.4
+damage = 3.0
+range = 4.5
+attack_gap = 1.2
+damage_kind = "magic"
+sight = 5.5
+hold_radius = 2.0
+light = 2.5
+chain = {
+"odds": 0.25,
+"jumps": 4,
+"reach": 2.5
+}
+ranks = [{
+"damage": 4.0
+}, {
+"attack_gap": 1.0
+}, {
+"chain": {
+"odds": 0.35
+}
+}]
+rank_cost = [50, 75, 110]

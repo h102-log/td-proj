@@ -16,5 +16,16 @@ extends Resource
 @export var sight := 0.0  # 인식 범위(칸, I36)
 @export var hold_radius := 0.0  # 홀드 반경(칸, I37)
 @export var light := 0.0  # 밤 불빛 반경(칸, S211): 어둠 1일 때. 어둠 d면 ÷ d
-@export var ranks := []  # 강화 단계(S254): 칸마다 {키: 값}. [0]이 1단계다. 임시값
+@export var armor := 0.0  # 방어력(S149). 방패병만 있다(S354)
+@export var damage_kind := "phys"  # 기본 공격의 피해 종류(S149): "phys" | "magic". 불·번개·얼음 마법사는 magic(S354)
+# 새 용병 여덟의 스킬 칸(S355~S362). 없으면 비운다. 칸의 키는 SPEC 문장의 손잡이 이름 그대로다
+@export var parry := {}  # 방패병 돌진 막기(S355): stun
+@export var blast := {}  # 불마법사 예고 범위(S356): windup, radius, dps, time
+@export var chain := {}  # 번개마법사 전이(S357): odds, jumps, reach
+@export var thrust := {}  # 창병 꿰뚫기(S358): reach, width
+@export var frost := {}  # 얼음 마법사 냉기(S359): slow, stacks, time, freeze
+@export var mend := {}  # 사제 회복(S360): range, heal. 간격은 attack_gap
+@export var lance := {}  # 기병 돌진(S361): min, length, speed, damage, width, push, cd
+@export var net := {}  # 그물 사수 그물(S362): cd, time, boss
+@export var ranks := []  # 강화 단계(S254): 칸마다 {키: 값}. [0]이 1단계다. 값이 사전이면 그 칸 사전의 적힌 키만 덮는다(S354). 임시값
 @export var rank_cost := []  # 단계마다 골드(S254). 임시값
