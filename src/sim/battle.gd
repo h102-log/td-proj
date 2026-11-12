@@ -54,8 +54,8 @@ const POSE := 0.22  # 친 뒤 제자리에 서는 시간(초, S196). 용병·적
 const HERO_POSE := 0.3  # 영웅이 친 뒤 제자리에 서는 시간(초, S196). 공격 3프레임이 끝나는 때다(S165)
 const CONTACT := 0.08  # 걷기 명령을 받은 영웅이 다시 걷는 때(친 뒤 초, S196). 화면의 근접 공격이 닿는 때(battle_view CONTACT)와 같다. 원거리 유닛의 투사체가 나가는 때다(I174)
 const RANGED := 2.0  # 사거리가 이보다 큰 영웅·용병은 원거리다. 쏘는 구조물은 모두 원거리다(S178, I174)
-const MISSILES := {"archer": "arrow", "netter": "arrow", "sylvia": "arrow", "tower": "arrow", "cannon": "ball"}  # 원거리 기본 공격의 투사체(S178, S363). 나머지(마법 타워·마법 영웅·얼음 마법사)는 구슬(bolt)
-# 거점이 공병 다음에 파는 새 용병 여덟(S355, I293 ①). 거점 탭 UI(사용자 예정 작업)가 나오기 전의 임시 자리다
+const MISSILES := {"archer": "arrow", "netter": "arrow", "sylvia": "arrow", "tower": "arrow", "cannon": "ball"}  # 원거리 기본 공격의 투사체(S178, S364). 나머지(마법 타워·마법 영웅·얼음 마법사)는 구슬(bolt)
+# 거점이 공병 다음에 파는 새 용병 여덟(S356, I294 ①). 거점 탭 UI(사용자 예정 작업)가 나오기 전의 임시 자리다
 const HQ_MERCS := ["shieldman", "fire_mage", "thunder_mage", "spearman", "frost_mage", "cleric", "cavalry", "netter"]
 const SPEED := {"arrow": 15.0, "bolt": 10.0, "ball": 7.5}  # 투사체 속도(칸/초, S178)
 const FREE := ["tower", "cannon", "archer"]  # 논타겟팅 투사체를 쏘는 쪽(S178 2026-11-04 변경). 궁수는 명중하면 대상을 따라가고(_aim), 마법 타워와 원거리 영웅은 늘 따라간다
@@ -330,8 +330,8 @@ class Unit:
 	var auto_fix := false  # 공병 자동 수리가 켜져 있다(S277). 이동·정지 지시로는 꺼지지 않는다
 	var armor := 0.0  # 방어력(S149). 기본 0이고 세라피나 오라로만 오른다
 	var block := 1  # 블록 수(S159): 동시에 붙잡는 적 수. 요새화한 아이아스는 더 많다
-	var damage_kind := "phys"  # 기본 공격의 피해 종류(S149). 불·번개·얼음 마법사는 "magic"(S355)
-	# 새 용병 여덟의 스킬 칸(S356~S363). 뜻은 src/data/merc_def.gd. 없으면 빈 사전이다
+	var damage_kind := "phys"  # 기본 공격의 피해 종류(S149). 불·번개·얼음 마법사는 "magic"(S356)
+	# 새 용병 여덟의 스킬 칸(S357~S364). 뜻은 src/data/merc_def.gd. 없으면 빈 사전이다
 	var parry := {}
 	var blast := {}
 	var chain := {}
@@ -340,11 +340,11 @@ class Unit:
 	var mend := {}
 	var lance := {}
 	var net := {}
-	var face := Vector2(0, 1)  # 보는 쪽(S356, I293 ③): 칠 때 대상 쪽, 걸어서 움직이면 움직인 쪽. 처음은 남쪽(S51)
-	var cast = null  # 불마법사 예고(S357, I293 ⑥): {id «blast», at, left}. 없으면 null. 적의 예고(cast)와 같은 꼴이라 화면이 id를 읽는다
-	var rush = null  # 기병 돌진(S362, I295 ①): {to, dir, hit}. 없으면 null
+	var face := Vector2(0, 1)  # 보는 쪽(S357, I294 ③): 칠 때 대상 쪽, 걸어서 움직이면 움직인 쪽. 처음은 남쪽(S51)
+	var cast = null  # 불마법사 예고(S358, I294 ⑥): {id «blast», at, left}. 없으면 null. 적의 예고(cast)와 같은 꼴이라 화면이 id를 읽는다
+	var rush = null  # 기병 돌진(S363, I296 ①): {to, dir, hit}. 없으면 null
 	var rush_cd := 0.0  # 기병 돌진 대기(초)
-	var net_cd := 0.0  # 그물 사수 그물 대기(초, S363)
+	var net_cd := 0.0  # 그물 사수 그물 대기(초, S364)
 	var fx := {}  # 걸린 효과: 출처 → {효과 키: 값, left: 남은 초}(S150, I141)
 	var shields := {}  # 보호막: 출처 → {hp, left}(S150). 피해를 체력보다 먼저 받는다
 	# 영웅만 쓰는 칸. 종류별 수치와 칸의 뜻은 src/data/hero_def.gd(S97, I95)
@@ -570,7 +570,7 @@ var _luck := RandomNumberGenerator.new()  # 아이아스 패시브 확률 감소
 var _kin := RandomNumberGenerator.new()  # 집의 가족(S221). 영입소·전투 난수가 집 짓기에 따라 바뀌지 않게 따로 둔다
 var _loot := RandomNumberGenerator.new()  # 전리품(S252). 영입소 목록·미션이 전리품에 따라 바뀌지 않게 따로 둔다(I202)
 var _shot := RandomNumberGenerator.new()  # 궁수 명중(S178 2026-11-04 변경, I224 ③). 다른 난수가 사격에 따라 바뀌지 않게 따로 둔다
-var _spark := RandomNumberGenerator.new()  # 번개 전이 확률(S358, I293 ⑦). 다른 난수가 전이에 따라 바뀌지 않게 따로 둔다
+var _spark := RandomNumberGenerator.new()  # 번개 전이 확률(S359, I294 ⑦). 다른 난수가 전이에 따라 바뀌지 않게 따로 둔다
 var _chains := 0  # 영혼 사슬(S154)마다 붙이는 번호
 var _holds := {}  # 유닛 → 그 유닛이 붙잡은 적 수(S159). 스텝마다 적의 engaged로 다시 센다
 var _howled := {}  # 적 → 울부짖음(S242)으로 더하는 이동·공격 속도 비율. 스텝마다 다시 센다(I195)
@@ -699,7 +699,7 @@ func restart() -> void:
 	for k in castle.values():
 		field_y = maxi(field_y, k.cell.y + 1)
 		_fort = _fort.merge(area_of(k))
-	base.produces = ["engineer"] + HQ_MERCS  # live_prep 판에서는 거점도 공병과 새 용병 여덟을 판다(S98 2026-10-25 변경, S355, sellers)
+	base.produces = ["engineer"] + HQ_MERCS  # live_prep 판에서는 거점도 공병과 새 용병 여덟을 판다(S98 2026-10-25 변경, S356, sellers)
 	var exit = _exit_of(base)
 	base.rally = exit if exit != null else base.cell
 	bag.clear()
@@ -1810,7 +1810,7 @@ func raise_village() -> bool:
 func can_buy(kind: String) -> bool:
 	return not village.has_area() or not sellers(kind).is_empty()
 
-# 그 용병을 파는 곳: 완성된 생산 시설(지은 차례)과, live_prep 판의 공병·새 용병 여덟이면 맨 뒤에 거점(S98 2026-10-25 변경, S355)
+# 그 용병을 파는 곳: 완성된 생산 시설(지은 차례)과, live_prep 판의 공병·새 용병 여덟이면 맨 뒤에 거점(S98 2026-10-25 변경, S356)
 func sellers(kind: String) -> Array:
 	return structures.values().filter(func(s): return s.complete and kind in s.produces) + ([base] if live_prep and kind in base.produces else [])
 
@@ -1818,7 +1818,7 @@ func sellers(kind: String) -> Array:
 func merc_stats(kind: String) -> Dictionary:
 	var d: Dictionary = MERC_KINDS[kind].duplicate()
 	for step in d.ranks.slice(0, merc_rank.get(kind, 0)):
-		for key in step:  # 값이 사전이면 그 칸 사본에 적힌 키만 덮는다(S355, I293 ②)
+		for key in step:  # 값이 사전이면 그 칸 사본에 적힌 키만 덮는다(S356, I294 ②)
 			d[key] = d[key].merged(step[key], true) if step[key] is Dictionary else step[key]
 	return d
 
@@ -1836,7 +1836,7 @@ func rank_up(kind: String) -> bool:
 	var now := merc_stats(kind)
 	for u in units.filter(func(x): return x.kind == kind and x.alive):
 		for key in d.ranks[n]:
-			if now[key] is Dictionary:  # 사전 칸은 덮은 사본으로 바꾼다(I293 ②)
+			if now[key] is Dictionary:  # 사전 칸은 덮은 사본으로 바꾼다(I294 ②)
 				u.set(key, now[key].duplicate())
 				continue
 			var gain = d.ranks[n][key] - old[key]
@@ -1918,7 +1918,7 @@ func _drop_orders(u: Unit) -> void:
 	u.rally_from = null
 	u.order = null
 	u.prey = null
-	_unready(u)  # 불마법사 예고·기병 돌진은 지시를 받으면 끊긴다(S357, S362)
+	_unready(u)  # 불마법사 예고·기병 돌진은 지시를 받으면 끊긴다(S358, S363)
 	if u.job:
 		_release(u.job)
 
@@ -3910,7 +3910,7 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 	if target is Enemy:
 		if target.dashing:  # 공격받으면 돌진이 끝난다(S293)
 			_end_dash(target)
-			if src is Unit and _parries(src, target.pos):  # 정면의 방패병에게 맞았으면 기절한다(S356, I293 ③⑤)
+			if src is Unit and _parries(src, target.pos):  # 정면의 방패병에게 맞았으면 기절한다(S357, I294 ③⑤)
 				_fx(target, "parry", {"stun": true}, src.parry.stun)
 		var guard = _cover(target, amount) if target.boss and not _dotting else null
 		if guard != null:  # 대신 맞기(S350): 가까운 근위대가 뛰어들어 이 피해를 대신 받는다
@@ -4293,7 +4293,7 @@ func _move(e: Enemy, dt: float) -> void:
 		return
 	if e.dashing and (e.path.is_empty() or units.any(func(u): return u.alive and _touching(u, e) and _touch(e, u))):  # 아군 몸에 막히거나 길이 끝나면 돌진이 끝난다(I243 ④)
 		_end_dash(e)
-		for u in units:  # 정면의 방패병 몸에 막혔으면 기절한다(S356, I293 ③⑤)
+		for u in units:  # 정면의 방패병 몸에 막혔으면 기절한다(S357, I294 ③⑤)
 			if _touching(u, e) and _touch(e, u) and _parries(u, e.pos):
 				_fx(e, "parry", {"stun": true}, u.parry.stun)
 				break
@@ -5039,7 +5039,7 @@ func _charge(e: Enemy, sk: Dictionary) -> void:
 	var dir := Vector2.from_angle(e.cast.dir)
 	var from := e.pos
 	var got := _dash(from, dir, sk.length)
-	var guard = _bulwark(e, from, dir, got[0])  # 정면의 방패병이 막으면 그 앞에서 멈춘다(S356, I293 ④): [멈출 자리, 방패병]
+	var guard = _bulwark(e, from, dir, got[0])  # 정면의 방패병이 막으면 그 앞에서 멈춘다(S357, I294 ④): [멈출 자리, 방패병]
 	var to: Vector2 = got[0] if guard == null else guard[0]
 	var span := from.distance_to(to)
 	_engage(e, null)
@@ -5158,7 +5158,7 @@ func _dive_land(e: Enemy, sk: Dictionary, c: Dictionary) -> void:
 	e.cd.dive = sk.cd
 	e.back = c.from
 	var u = c.who
-	var parried: bool = u.alive and u in units and _parries(u, c.from)  # 정면에서 박으면 새 방패병이 막는다(S356, I293 ③⑤)
+	var parried: bool = u.alive and u in units and _parries(u, c.from)  # 정면에서 박으면 새 방패병이 막는다(S357, I294 ③⑤)
 	if u.alive and u in units and (u.kind in sk.shields or parried):
 		e.on_wall = u.on_wall and _climbable(Vector2i(e.pos.round()))
 		if parried:
@@ -6482,7 +6482,7 @@ func _land(m: Missile) -> void:
 				e.guard -= took
 				hurt -= took
 			damage(e, hurt, m.kind, s, m.ignore)
-			if e == m.target and s is Unit and not s.frost.is_empty() and e.alive:  # 얼음 마법사 냉기(S360)
+			if e == m.target and s is Unit and not s.frost.is_empty() and e.alive:  # 얼음 마법사 냉기(S361)
 				_chill(e, s.frost)
 			if e == m.target and s is Block and s.slow > 0.0 and e.alive:  # 마법 타워 둔화(S110 2026-10-29 변경): 출처가 하나라 다시 맞으면 시간만 새로 된다
 				_fx(e, "magic_tower", {"slow": s.slow}, s.slow_time)
@@ -6497,17 +6497,17 @@ func _act(u: Unit, dt: float) -> void:
 	u.cooldown -= dt * (1.0 + _haste(u)) * (1.0 - _fx_cut(u, "lag"))  # 노래(S306): 공격 속도 감소
 	if u.is_hero:
 		_hero_tick(u, dt)
-	u.rush_cd = maxf(u.rush_cd - dt, 0.0)  # 기병 돌진 대기(S362)
-	u.net_cd = maxf(u.net_cd - dt, 0.0)  # 그물 대기(S363)
+	u.rush_cd = maxf(u.rush_cd - dt, 0.0)  # 기병 돌진 대기(S363)
+	u.net_cd = maxf(u.net_cd - dt, 0.0)  # 그물 대기(S364)
 	if _seized(u):  # 기절(I192)·붙잡힘(S242): 움직이지도 치지도 일하지도 않는다. 받은 명령(path)은 남아 풀리면 따른다. 요새화 같은 패시브는 그대로다
-		_unready(u)  # 불마법사 예고·기병 돌진이 끊긴다(S357, S362)
+		_unready(u)  # 불마법사 예고·기병 돌진이 끊긴다(S358, S363)
 		if u.is_hero and u.passive.get("id") == "fortress":
 			_fortify(u, dt)
 		return
-	if u.rush != null:  # 기병 돌진 중(S362): 길을 따라 달리고 다른 것은 하지 않는다
+	if u.rush != null:  # 기병 돌진 중(S363): 길을 따라 달리고 다른 것은 하지 않는다
 		_ride(u, dt)
 		return
-	if u.cast != null:  # 불마법사 예고 중(S357): 걷지도 치지도 않는다
+	if u.cast != null:  # 불마법사 예고 중(S358): 걷지도 치지도 않는다
 		u.cast.left -= dt
 		if u.cast.left <= 0.0:
 			_scorch(u)
@@ -6523,10 +6523,10 @@ func _act(u: Unit, dt: float) -> void:
 	var wall_only: bool = u.on_wall and u.range < WALL_RANGE and not (top and top.open)  # 성벽 위 근접 유닛은 열린 성문 위에서만 들판의 적을 치고(S88, S89), 성벽 위의 적은 친다(I78)
 	var air: bool = u.range >= AIR_RANGE  # 근접 유닛은 날고 있는 적을 고르지도 쫓지도 않는다(S109 2026-11-09 변경)
 	var foe = _hunt(u, wall_only) if u.prey else _nearest_enemy(u.pos, _reach(u), u.anchor, zone, wall_only, u.radius, air)
-	if not u.mend.is_empty():  # 사제는 적을 노리지도 쫓지도 치지도 않는다(S361)
+	if not u.mend.is_empty():  # 사제는 적을 노리지도 쫓지도 치지도 않는다(S362)
 		foe = null
 	var walking := not u.path.is_empty()
-	if not u.lance.is_empty() and _charge_on(u, walking, dt):  # 기병 돌진을 시작했다(S362). 시작한 스텝부터 달린다
+	if not u.lance.is_empty() and _charge_on(u, walking, dt):  # 기병 돌진을 시작했다(S363). 시작한 스텝부터 달린다
 		return
 	var start := u.pos
 	if walking and u.move_mode == "move":  # 순수 이동·대상에게 걸어가는 동안은 치지 않는다(S14, S196)
@@ -6555,7 +6555,7 @@ func _act(u: Unit, dt: float) -> void:
 				if u.path.is_empty():
 					u.anchor = u.pos
 					u.rally_from = null
-	elif not foe and not u.on_wall and u.mend.is_empty():  # 성벽 위 유닛은 쫓아 내려가지 않는다(I70). 사제는 쫓지 않는다(S361)
+	elif not foe and not u.on_wall and u.mend.is_empty():  # 성벽 위 유닛은 쫓아 내려가지 않는다(I70). 사제는 쫓지 않는다(S362)
 		# ponytail: 적에게 곧장 다가간다. 벽 너머 적에게는 벽을 따라 미끄러질 뿐이다. 막히는 일이 보이면 경로로
 		var prey = u.prey if u.prey else _nearest_enemy(u.pos, u.sight, u.anchor, zone, false, 0.0, air)  # 길 끝에서도 대상(S35)이 사거리 밖이면 곧장 다가간다
 		if prey:
@@ -6563,18 +6563,18 @@ func _act(u: Unit, dt: float) -> void:
 			if u.hold:
 				p = u.anchor + (p - u.anchor).limit_length(u.hold_radius)
 			_shove(u, p - u.pos, enemies)
-	if (u.pos - start).length() > 0.01:  # 걸어서 움직인 쪽을 본다(S356, I293 ③)
+	if (u.pos - start).length() > 0.01:  # 걸어서 움직인 쪽을 본다(S357, I294 ③)
 		u.face = (u.pos - start).normalized()
 	if foe and u.cooldown <= 0.0:
 		u.cooldown = u.attack_gap
-		var snared = _net_target(u) if not u.net.is_empty() and u.net_cd <= 0.0 else null  # 그물 대기가 끝났으면 기본 공격 대신 그물(S363)
+		var snared = _net_target(u) if not u.net.is_empty() and u.net_cd <= 0.0 else null  # 그물 대기가 끝났으면 기본 공격 대신 그물(S364)
 		if snared != null:
 			_throw_net(u, snared)
 		else:
 			u.target = foe
 			_look(u, foe.pos)
 			_strike(u, foe)
-	elif not u.mend.is_empty() and u.cooldown <= 0.0:  # 사제 회복(S361): 고칠 아군이 없으면 대기를 돌리지 않는다
+	elif not u.mend.is_empty() and u.cooldown <= 0.0:  # 사제 회복(S362): 고칠 아군이 없으면 대기를 돌리지 않는다
 		_tend(u)
 	if u.is_hero and u.passive.get("id") == "fortress":
 		_fortify(u, dt)
@@ -6609,10 +6609,10 @@ func _strike(u: Unit, foe: Enemy) -> void:
 		aim = _aim_t(u, u.pos.distance_to(foe.pos))
 		hurt *= 1.0 + u.passive.might * aim
 		ignore = _aim_ignore(u, aim)
-	if not u.blast.is_empty():  # 불마법사(S357): 대상 자리에 예고를 띄운다. 터지는 것은 _scorch
+	if not u.blast.is_empty():  # 불마법사(S358): 대상 자리에 예고를 띄운다. 터지는 것은 _scorch
 		u.cast = {"id": "blast", "at": foe.pos, "left": u.blast.windup}
 		return
-	if not u.chain.is_empty():  # 번개마법사(S358): 투사체 없이 바로 꽂고 전이한다
+	if not u.chain.is_empty():  # 번개마법사(S359): 투사체 없이 바로 꽂고 전이한다
 		_zap(u, foe, hurt)
 		return
 	if u.range > RANGED:
@@ -6620,28 +6620,28 @@ func _strike(u: Unit, foe: Enemy) -> void:
 		return
 	var at: Vector2 = foe.pos
 	damage(foe, hurt, u.damage_kind, u, ignore)
-	if not u.thrust.is_empty():  # 창병 꿰뚫기(S359)
+	if not u.thrust.is_empty():  # 창병 꿰뚫기(S360)
 		_pierce(u, foe, at, hurt)
 	_bless(u, at)
 
-# ── 새 용병 여덟(S355~S363) ──
+# ── 새 용병 여덟(S356~S364) ──
 
-# 유닛이 at 쪽을 본다(S356, I293 ③). 제자리(0.01칸 안)면 그대로다
+# 유닛이 at 쪽을 본다(S357, I294 ③). 제자리(0.01칸 안)면 그대로다
 func _look(u: Unit, at: Vector2) -> void:
 	if at.distance_to(u.pos) > 0.01:
 		u.face = (at - u.pos).normalized()
 
-# 불마법사 예고와 기병 돌진을 끊는다(S357, S362): 기절·붙잡힘·들림이 걸렸거나 지시를 받았다. 끊긴 돌진은 대기가 돈다
+# 불마법사 예고와 기병 돌진을 끊는다(S358, S363): 기절·붙잡힘·들림이 걸렸거나 지시를 받았다. 끊긴 돌진은 대기가 돈다
 func _unready(u: Unit) -> void:
 	u.cast = null
 	if u.rush != null:
 		_rush_end(u)
 
-# 방패병 u가 from에서 온 돌진을 막는다(S356, I293 ③): 살아 있고, 기절·붙잡힘·들림이 아니고, from이 보는 쪽 절반에 있다
+# 방패병 u가 from에서 온 돌진을 막는다(S357, I294 ③): 살아 있고, 기절·붙잡힘·들림이 아니고, from이 보는 쪽 절반에 있다
 func _parries(u: Unit, from: Vector2) -> bool:
 	return u.alive and not u.parry.is_empty() and not _seized(u) and (from - u.pos).dot(u.face) > 0.0
 
-# 대장·대족장 돌진 길에서 막는 방패병(S356, I293 ④): from → end를 0.25칸 간격으로 짚어, 정면으로 막는 땅 위 방패병의 몸 가운데에서
+# 대장·대족장 돌진 길에서 막는 방패병(S357, I294 ④): from → end를 0.25칸 간격으로 짚어, 정면으로 막는 땅 위 방패병의 몸 가운데에서
 # «방패병 몸 반지름 + 적 몸 반지름» 안에 처음 드는 점 바로 앞 짚은 점(없으면 from)과 그 방패병. 없으면 null
 func _bulwark(e: Enemy, from: Vector2, dir: Vector2, end: Vector2):
 	var span := from.distance_to(end)
@@ -6657,7 +6657,7 @@ func _bulwark(e: Enemy, from: Vector2, dir: Vector2, end: Vector2):
 		prev = p
 	return null
 
-# 불마법사 예고가 끝났다(S357, I293 ⑥): 원 안에 몸 가운데가 든 적 모두(뜬 적 빼고)에 마법 피해와 발화. 흔적 «blast»
+# 불마법사 예고가 끝났다(S358, I294 ⑥): 원 안에 몸 가운데가 든 적 모두(뜬 적 빼고)에 마법 피해와 발화. 흔적 «blast»
 func _scorch(u: Unit) -> void:
 	var at: Vector2 = u.cast.at
 	u.cast = null
@@ -6669,7 +6669,7 @@ func _scorch(u: Unit) -> void:
 				_fx(e, "fire_mage", {"dot": u.blast.dps}, u.blast.time)
 	_tracing = null
 
-# 번개마법사 한 방(S358, I293 ⑦): 대상에 바로 꽂고, 전이가 터지면 jumps번 옮긴다. 옮길 새 적이 없으면 처음 대상을 친다. 흔적 «zap»의 hits가 맞은 차례다
+# 번개마법사 한 방(S359, I294 ⑦): 대상에 바로 꽂고, 전이가 터지면 jumps번 옮긴다. 옮길 새 적이 없으면 처음 대상을 친다. 흔적 «zap»의 hits가 맞은 차례다
 func _zap(u: Unit, first: Enemy, hurt: float) -> void:
 	var hits: Array = [first]
 	damage(first, hurt, u.damage_kind, u)
@@ -6692,7 +6692,7 @@ func _zap(u: Unit, first: Enemy, hurt: float) -> void:
 			last = next
 	traces.append({"hero": u, "slot": "zap", "aim": first, "at": first.pos, "radius": 0.0, "hits": hits, "marked": false, "age": 0.0})
 
-# 창병 꿰뚫기(S359, I294 ①): 대상 몸 가운데에서 창병 → 대상 쪽으로 reach칸 선분에 몸이 닿은 다른 적도 같은 피해
+# 창병 꿰뚫기(S360, I295 ①): 대상 몸 가운데에서 창병 → 대상 쪽으로 reach칸 선분에 몸이 닿은 다른 적도 같은 피해
 func _pierce(u: Unit, foe: Enemy, at: Vector2, hurt: float) -> void:
 	var dir: Vector2 = (at - u.pos).normalized() if at.distance_to(u.pos) > 0.01 else u.face
 	var end: Vector2 = at + dir * u.thrust.reach
@@ -6700,7 +6700,7 @@ func _pierce(u: Unit, foe: Enemy, at: Vector2, hurt: float) -> void:
 		if e != foe and e.alive and not _aloft(e) and Geometry2D.get_closest_point_to_segment(e.pos, at, end).distance_to(e.pos) <= u.thrust.width / 2.0 + e.radius:
 			damage(e, hurt, u.damage_kind, u)
 
-# 얼음 마법사의 구슬이 닿았다(S360, I294 ②): 냉기 한 겹. stacks겹이 되는 순간 겹이 사라지고 빙결한다
+# 얼음 마법사의 구슬이 닿았다(S361, I295 ②): 냉기 한 겹. stacks겹이 되는 순간 겹이 사라지고 빙결한다
 func _chill(e: Enemy, f: Dictionary) -> void:
 	var n: int = int(e.fx.get("frost_mage", {}).get("chill", 0)) + 1
 	if n >= f.stacks:
@@ -6709,7 +6709,7 @@ func _chill(e: Enemy, f: Dictionary) -> void:
 	else:
 		_fx(e, "frost_mage", {"slow": f.slow * n, "chill": n}, f.time)
 
-# 사제 회복(S361, I294 ③): range칸 안의 다친 아군 영웅·용병(자신 포함, 들린 용병 빼고) 가운데 체력 비율이 가장 낮은 것(같으면 가까운 것). 없으면 대기를 돌리지 않는다
+# 사제 회복(S362, I295 ③): range칸 안의 다친 아군 영웅·용병(자신 포함, 들린 용병 빼고) 가운데 체력 비율이 가장 낮은 것(같으면 가까운 것). 없으면 대기를 돌리지 않는다
 func _tend(u: Unit) -> void:
 	var best = null
 	var best_k := INF
@@ -6730,7 +6730,7 @@ func _tend(u: Unit) -> void:
 	_heal(best, u.mend.heal, u)
 	traces.append({"hero": u, "slot": "mend", "aim": best, "at": best.pos, "radius": 0.0, "hits": [best], "marked": false, "age": 0.0})
 
-# 기병 돌진 시작(S362, I295 ①): 홀드가 꺼져 있고 성벽 위가 아니고 순수 이동 중이 아니고 대기가 끝났으면, 인식 범위 안의 보이는 땅 위 적 가운데
+# 기병 돌진 시작(S363, I296 ①): 홀드가 꺼져 있고 성벽 위가 아니고 순수 이동 중이 아니고 대기가 끝났으면, 인식 범위 안의 보이는 땅 위 적 가운데
 # min칸 넘게 떨어진 가장 가까운 적 쪽으로 length칸 길(아군 길, _dash)을 잡고 그 스텝부터 달린다. 시작했으면 true
 func _charge_on(u: Unit, walking: bool, dt: float) -> bool:
 	if u.hold or u.on_wall or (walking and u.move_mode == "move") or u.rush_cd > 0.0:
@@ -6750,7 +6750,7 @@ func _charge_on(u: Unit, walking: bool, dt: float) -> bool:
 	_ride(u, dt)
 	return true
 
-# 돌진 한 스텝(S362, I295 ①): 길을 따라 speed칸 달리고, 그 스텝에 지난 선분 가운데 선에서 width/2 안의 땅 위 적은 한 번씩 물리 피해를 받고 길 옆으로 밀린다
+# 돌진 한 스텝(S363, I296 ①): 길을 따라 speed칸 달리고, 그 스텝에 지난 선분 가운데 선에서 width/2 안의 땅 위 적은 한 번씩 물리 피해를 받고 길 옆으로 밀린다
 func _ride(u: Unit, dt: float) -> void:
 	var from := u.pos
 	u.pos = u.pos.move_toward(u.rush.to, u.lance.speed * dt)
@@ -6771,7 +6771,7 @@ func _rush_end(u: Unit) -> void:
 	u.rush_cd = u.lance.cd
 	u.anchor = u.pos
 
-# 그물 대상(S363, I295 ②): 사거리 안의 보이는 날고 있는 적(보스는 net.boss일 때만). 아군을 든 낚아채기 하피가 먼저, 그다음 가까운 것. 없으면 null
+# 그물 대상(S364, I296 ②): 사거리 안의 보이는 날고 있는 적(보스는 net.boss일 때만). 아군을 든 낚아채기 하피가 먼저, 그다음 가까운 것. 없으면 null
 func _net_target(u: Unit):
 	var best = null
 	var best_d := INF
@@ -6787,7 +6787,7 @@ func _net_target(u: Unit):
 			best_lift = lift
 	return best
 
-# 그물을 던진다(S363, I295 ②): 바로 닿아 net.time초 봉인. 공격 대기(부른 쪽이 돌렸다)와 그물 대기가 돈다. 흔적 «net»
+# 그물을 던진다(S364, I296 ②): 바로 닿아 net.time초 봉인. 공격 대기(부른 쪽이 돌렸다)와 그물 대기가 돈다. 흔적 «net»
 func _throw_net(u: Unit, e: Enemy) -> void:
 	u.net_cd = u.net.cd
 	u.target = e

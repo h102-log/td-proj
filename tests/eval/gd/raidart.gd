@@ -122,7 +122,7 @@ func ev678():
 		bad.append("폭 glider %d · land_idle %d" % [used.glider.x, used.land.x])
 	return check(bad.is_empty(), "%s · 크기 %s" % [bad, used])
 
-# EV679 · I189: 아틀라스 868×15656(2026-11-03 셋째 변경, 폭은 새 용병 그림 I296으로 2026-11-12에 늘었다), 네 종 칸은 늑대·슬라임 옆 열 오른쪽의 둘째 옆 열에서 용병·적 8종 구역 안의 빈자리
+# EV679 · I189: 아틀라스 868×15656(2026-11-03 셋째 변경, 폭은 새 용병 그림 I297으로 2026-11-12에 늘었다), 네 종 칸은 늑대·슬라임 옆 열 오른쪽의 둘째 옆 열에서 용병·적 8종 구역 안의 빈자리
 func ev679():
 	var art := _art()
 	var img: Image = load("res://art/units/heroes.png").get_image()

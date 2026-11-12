@@ -1,12 +1,12 @@
 extends "res://tests/eval/gd/lib.gd"
-# 새 용병 여덟(S355~S363·I293~I295). lib.gd 머리의 계약에 더하는 API:
+# 새 용병 여덟(S356~S364·I294~I296). lib.gd 머리의 계약에 더하는 API:
 #   용병 kind "shieldman" · "fire_mage" · "thunder_mage" · "spearman" · "frost_mage" · "cleric" · "cavalry" · "netter"
 #   용병 칸 armor · damage_kind("phys" | "magic") · parry · blast · chain · thrust · frost · mend · lance · net (스킬 사전, data/mercs/<종류>.tres)
 #   유닛 face(보는 쪽, 단위 벡터) · cast(불마법사 예고 {at, left}, 없으면 null) · rush(기병 돌진 {to, dir, hit}, 없으면 null) · rush_cd · net_cd
 #   Battle.HQ_MERCS(거점이 공병 다음에 파는 종류) · Battle.effect(대상, 키) · Battle.regrows(적) · Battle.traces(흔적: slot·hero·aim·hits)
 #   Battle.missiles(날아가는 투사체: src·look) · Battle._flies(적) · Battle._pluck(하피, 든 것) · Battle._carried(유닛)
 # 적 kind는 기존 그대로: basic · flying · troll · chief(siege3.gd) · dive_harpy(sky.gd) · leap_wolf(wolf.gd) · snatch_harpy · wyvern
-# 그림(I296): res://art/units/heroes.json·heroes.png의 칸, 부위 시트 art/trial/<종류>/parts/idle_45_D_f24p_24.png, BattleView(_body·_region·ART·LOOKS)·HudBuild.icon
+# 그림(I297): res://art/units/heroes.json·heroes.png의 칸, 부위 시트 art/trial/<종류>/parts/idle_45_D_f24p_24.png, BattleView(_body·_region·ART·LOOKS)·HudBuild.icon
 
 const NEW := ["shieldman", "fire_mage", "thunder_mage", "spearman", "frost_mage", "cleric", "cavalry", "netter"]
 const ROWS4 := [0, 2, 4, 6]  # 8방향 시트에서 남·동·북·서 행(atlas.py FOUR_ROWS)
@@ -56,8 +56,8 @@ func _stun(x) -> void:
 func _zaps(b) -> Array:
 	return b.traces.filter(func(t): return t.slot == "zap")
 
-# EV1070 · S355: 여덟 종류의 수치와 강화 단계가 표와 같다
-func ev1070():
+# EV1074 · S356: 여덟 종류의 수치와 강화 단계가 표와 같다
+func ev1074():
 	var b = battle()
 	var why := _need(b, NEW)
 	if why != "":
@@ -89,8 +89,8 @@ func ev1070():
 				bad.append("%s.%s %s(%s여야 한다)" % [k, key, d.get(key), want[k][key]])
 	return check(bad.is_empty(), "; ".join(bad))
 
-# EV1071 · S355: live_prep 판에서는 거점이 공병 다음에 여덟을 팔고, 강화 단계의 사전 값은 그 칸의 적힌 키만 덮는다
-func ev1071():
+# EV1075 · S356: live_prep 판에서는 거점이 공병 다음에 여덟을 팔고, 강화 단계의 사전 값은 그 칸의 적힌 키만 덮는다
+func ev1075():
 	var stage: Dictionary = load("res://src/main.gd").stage()
 	stage.gold = BIG
 	var b = load("res://src/sim/battle.gd").new(stage.duplicate(true))
@@ -126,9 +126,9 @@ func ev1071():
 		"%s · 데이터 그대로 %s · 강화 뒤 수치 %s(chain %s) · 있는 용병 %s(chain %s) · live_prep 아닌 마을 판은 여덟을 팔지 않음 %s" % [
 			"; ".join(bad), kept, fresh, stats.chain, live, t.chain, closed])
 
-# EV1072 · S356: 정면에서 온 대장 돌진은 방패병 앞에서 멈추고, 방패병은 다치지도 밀리지도 않으며 대장이 1.5초 기절한다.
+# EV1076 · S357: 정면에서 온 대장 돌진은 방패병 앞에서 멈추고, 방패병은 다치지도 밀리지도 않으며 대장이 1.5초 기절한다.
 # 방패병 앞 길의 병사는 맞고 뒤의 병사는 맞지 않는다. 동쪽 적을 친 방패병(보는 쪽 동쪽)은 남쪽에서 온 돌진에 다른 아군처럼 맞는다
-func ev1072():
+func ev1076():
 	var b = battle({"base_hp": BIG})
 	var why := _need(b, ["shieldman"])
 	if why != "":
@@ -162,8 +162,8 @@ func ev1072():
 		"막음: 대장 (10,7.25) 멈춤 %s(%s) · 방패병 그대로 %s(체력 %s, 자리 %s) · 앞 병사 −30·뒤 병사 그대로 %s(%s, %s) · 대장 기절 %s · 1.5초 뒤 풀림 %s · 동쪽 적을 치면 보는 쪽 (1,0) %s(%s) · 등을 보인 방패병 −%.2f·대장 (10,4) %s(잃은 체력 %s, 대장 %s)" % [
 			stop, e.pos, safe, s.hp, s.pos, hit, _lost(front), _lost(back), stun, woke, faced, t.face, _phys(c, 30.0, 10.0), took, _lost(t), f.pos])
 
-# EV1073 · S356: 정면에서 박은 박치기 하피는 방패병과 곁 아군을 치지 못하고 기절해 땅에 떨어진다. 등 쪽에서 박으면 방패병이 맞고 밀린다
-func ev1073():
+# EV1077 · S357: 정면에서 박은 박치기 하피는 방패병과 곁 아군을 치지 못하고 기절해 땅에 떨어진다. 등 쪽에서 박으면 방패병이 맞고 밀린다
+func ev1077():
 	var b = battle()
 	var why := _need(b, ["shieldman"])
 	if why != "":
@@ -192,8 +192,8 @@ func _dasher(b):
 	b._find_path(w)
 	return w
 
-# EV1074 · S356: 돌진하는 도약 늑대가 정면의 방패병에게 맞거나 몸에 막혀 돌진이 끝나면 1.5초 기절한다. 기절한 방패병은 막지 못한다
-func ev1074():
+# EV1078 · S357: 돌진하는 도약 늑대가 정면의 방패병에게 맞거나 몸에 막혀 돌진이 끝나면 1.5초 기절한다. 기절한 방패병은 막지 못한다
+func ev1078():
 	var b = battle({"size": Vector2i(30, 20), "base": Vector2i(25, 2), "spawns": [Vector2i(0, 10)]})
 	var why := _need(b, ["shieldman"])
 	if why != "":
@@ -218,9 +218,9 @@ func ev1074():
 		"막음 %s · 기절 %s · 방패병 1.5칸 안 %s(늑대 %s) · 1.3초 뒤 기절 %s · 1.65초 뒤 풀림 %s · 기절한 방패병: 돌진 끝 %s·늑대 기절 %s" % [
 			got, stun, near, w.pos, still, woke, ended, c.effect(v, "stun")])
 
-# EV1075 · S357: 불마법사는 대상 자리에 1.5초 원을 예고한 뒤 반경 1.5칸 안의 적 모두(나는 적 포함)에 마법 12와 발화(초당 2, 3초)를 준다.
+# EV1079 · S358: 불마법사는 대상 자리에 1.5초 원을 예고한 뒤 반경 1.5칸 안의 적 모두(나는 적 포함)에 마법 12와 발화(초당 2, 3초)를 준다.
 # 원 밖의 적과 예고 동안 원을 나간 적은 맞지 않고, 다음 예고는 4초 뒤다
-func ev1075():
+func ev1079():
 	var b = battle()
 	var why := _need(b, ["fire_mage"])
 	if why != "":
@@ -262,8 +262,8 @@ func ev1075():
 		"예고 동안 그대로 %s · 터짐: 원 안 셋 −12·나간 적·원 밖 그대로 %s(%s, %s, %s / %s, %s) · 발화 %s(초당 2) · 3초 −6 %s(%.2f) · 예고 시작 차례 %s(4초 간격)" % [
 			calm, blast, _lost(a), _lost(near), _lost(bird), _lost(away), _lost(out), burn, burnt, _lost(a) - n0, starts])
 
-# EV1076 · S357: 예고 동안 불마법사가 기절하거나 이동 지시를 받으면 예고가 사라지고 터지지 않는다. 불마법사의 발화는 트롤 재생을 멈춘다
-func ev1076():
+# EV1080 · S358: 예고 동안 불마법사가 기절하거나 이동 지시를 받으면 예고가 사라지고 터지지 않는다. 불마법사의 발화는 트롤 재생을 멈춘다
+func ev1080():
 	var b = battle()
 	var why := _need(b, ["fire_mage"])
 	if why != "":
@@ -294,8 +294,8 @@ func ev1076():
 	return check(began and stunned and moved and spared and grows and stopped,
 		"예고 시작 %s · 기절하면 예고 사라짐·안 터짐 %s · 이동 지시에 사라짐 %s · 안 터짐 %s · 트롤 재생 %s → 발화 중 멈춤 %s" % [began, stunned, moved, spared, grows, stopped])
 
-# EV1077 · S358: 번개마법사는 투사체 없이 바로 마법 3을 꽂는다. 전이가 터지면 4번 전이하고, 옮길 새 적이 없으면 처음 대상을 친다
-func ev1077():
+# EV1081 · S359: 번개마법사는 투사체 없이 바로 마법 3을 꽂는다. 전이가 터지면 4번 전이하고, 옮길 새 적이 없으면 처음 대상을 친다
+func ev1081():
 	var b = battle()
 	var why := _need(b, ["thunder_mage"])
 	if why != "":
@@ -323,8 +323,8 @@ func ev1077():
 		"전이 없음: 바로 −3·투사체 없음 %s(%s, 투사체 %d) · 혼자인 적 −15 %s(%s) · 셋: 맞은 차례 [x,y,z,x,x] %s · x −9·y −3·z −3·먼 적 그대로 %s(%s, %s, %s, %s)" % [
 			once, _lost(a), b.missiles.size(), five, _lost(lone), order, dealt, _lost(x), _lost(y), _lost(z), _lost(far)])
 
-# EV1078 · S359: 창병은 2칸 떨어진 나는 적을 치고, 대상 뒤 1칸 선 위의 적도 같은 물리 피해로 꿰뚫는다. 선 밖의 적은 맞지 않는다
-func ev1078():
+# EV1082 · S360: 창병은 2칸 떨어진 나는 적을 치고, 대상 뒤 1칸 선 위의 적도 같은 물리 피해로 꿰뚫는다. 선 밖의 적은 맞지 않는다
+func ev1082():
 	var b = battle()
 	var why := _need(b, ["spearman"])
 	if why != "":
@@ -341,8 +341,8 @@ func ev1078():
 	var pierced: bool = is_equal_approx(_lost(a), 3.0) and is_equal_approx(_lost(behind), 3.0) and aside.hp == aside.max_hp
 	return check(hit and pierced, "나는 적을 침 %s · 대상 −3·뒤 −3·옆 그대로 %s(%s, %s, %s)" % [hit, pierced, _lost(a), _lost(behind), _lost(aside)])
 
-# EV1079 · S360: 얼음 마법사의 구슬이 닿을 때마다 냉기가 한 겹 쌓여 겹마다 둔화 15%이고, 넷째 겹에 겹이 사라지며 1.5초 빙결한다. 두 마법사가 함께 쌓는다
-func ev1079():
+# EV1083 · S361: 얼음 마법사의 구슬이 닿을 때마다 냉기가 한 겹 쌓여 겹마다 둔화 15%이고, 넷째 겹에 겹이 사라지며 1.5초 빙결한다. 두 마법사가 함께 쌓는다
+func ev1083():
 	var b = battle()
 	var why := _need(b, ["frost_mage"])
 	if why != "":
@@ -370,8 +370,8 @@ func ev1079():
 	return check(steps == [true, true, true] and look and froze and still == true and thaw and both,
 		"겹마다 둔화 15%%·30%%·45%% %s · 구슬(bolt) %s · 넷째 겹 빙결·겹 사라짐 %s · 1.4초 뒤 빙결 %s · 1.6초 뒤 풀림 %s · 두 마법사 3초 안 빙결(둘째 사격) %s" % [steps, look, froze, still, thaw, both])
 
-# EV1080 · S361: 사제는 적을 치지 않고, 3칸 안 다친 아군 가운데 체력 비율이 가장 낮은 것을 2초마다 8씩 고친다. 고칠 것이 없으면 기다렸다가 바로 고친다
-func ev1080():
+# EV1084 · S362: 사제는 적을 치지 않고, 3칸 안 다친 아군 가운데 체력 비율이 가장 낮은 것을 2초마다 8씩 고친다. 고칠 것이 없으면 기다렸다가 바로 고친다
+func ev1084():
 	var b = battle()
 	var why := _need(b, ["cleric"])
 	if why != "":
@@ -401,8 +401,8 @@ func ev1080():
 		"첫 회복 s1 38 %s(%s, %s, %s) · 1.95초까지 그대로 %s · 2초 s1 46 %s · 4초 s2 48 %s · 다 참·먼 궁수·적 그대로 %s(%s, %s, %s, 적 %s) · 기다리다 바로 %s(%s)" % [
 			first, s1.hp, s2.hp, far.hp, waited, second, third, full, s1.hp, s2.hp, far.hp, foe.hp, quick, s2.hp])
 
-# EV1081 · S362: 기병은 2.5칸 넘게 떨어진 적 쪽으로 6칸을 초당 12칸으로 달려, 지나간 적에게 물리 8을 주고 옆으로 1칸 민다. 끝나면 8초 대기. 홀드면 달리지 않는다
-func ev1081():
+# EV1085 · S363: 기병은 2.5칸 넘게 떨어진 적 쪽으로 6칸을 초당 12칸으로 달려, 지나간 적에게 물리 8을 주고 옆으로 1칸 민다. 끝나면 8초 대기. 홀드면 달리지 않는다
+func ev1085():
 	var b = battle()
 	var why := _need(b, ["cavalry"])
 	if why != "":
@@ -428,9 +428,9 @@ func ev1081():
 		"0.3초 x 8.6 %s(%s) · 끝·(11,10)·대기 8 %s(%s, %s) · 적 −8·(9,9)로 밀림 %s(%s, %s) · 홀드면 그대로 %s(%s)" % [
 			mid, k.pos, done, k.pos, k.rush_cd, hurt, _lost(a), a.pos, held, h.pos])
 
-# EV1082 · S363: 그물 사수는 사거리 안 나는 적에게 그물을 던져 3초 봉인하고(내려앉음), 아군을 든 낚아채기 하피를 먼저 노려 든 것을 내려놓게 한다.
+# EV1086 · S364: 그물 사수는 사거리 안 나는 적에게 그물을 던져 3초 봉인하고(내려앉음), 아군을 든 낚아채기 하피를 먼저 노려 든 것을 내려놓게 한다.
 # 보스는 노리지 않는다. 그물 대기 6초 동안은 화살을 쏜다
-func ev1082():
+func ev1086():
 	var b = battle()
 	var why := _need(b, ["netter"])
 	if why != "":
@@ -469,9 +469,9 @@ func _sheet_rect(a: Dictionary, s: String) -> Rect2i:
 	var n := c * (2 if s in ["attack", "fall"] else 1)
 	return Rect2i(int(a.x), int(a[s]), n * (2 if s == "walk" else 1), n * (1 if s == "fall" or a.get("one", false) else 4))
 
-# EV1083 · I296: 여덟은 heroes.json에 제 칸(x, 정지·걷기·공격·누운 자세)이 있고 모든 칸에 그림이 있다. 한 열에 S355 표 차례로 쌓이고 다른 칸과 겹치지 않는다.
+# EV1087 · I297: 여덟은 heroes.json에 제 칸(x, 정지·걷기·공격·누운 자세)이 있고 모든 칸에 그림이 있다. 한 열에 S356 표 차례로 쌓이고 다른 칸과 겹치지 않는다.
 # 몸의 높이는 든 것(sword 부위)을 뺀 정지 그림의 가장 높은 줄로 잰다
-func ev1083():
+func ev1087():
 	var art: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/units/heroes.json"))
 	var img: Image = load("res://art/units/heroes.png").get_image()
 	var whole := Rect2i(Vector2i.ZERO, img.get_size())
@@ -547,8 +547,8 @@ func ev1083():
 						bad.append("%s가 %s %s와 겹친다" % [m[0], k, s])
 	return check(bad.is_empty(), "; ".join(bad.slice(0, 6)))
 
-# EV1084 · I296: 여덟은 빌린 그림 표에 없이 제 정지 칸의 그림 한 장을 흰색으로 그린다. HUD 칸 그림도 제 정지 남쪽 칸 안의 조각이다
-func ev1084():
+# EV1088 · I297: 여덟은 빌린 그림 표에 없이 제 정지 칸의 그림 한 장을 흰색으로 그린다. HUD 칸 그림도 제 정지 남쪽 칸 안의 조각이다
+func ev1088():
 	var b = battle()
 	var why := _need(b, NEW)
 	if why != "":

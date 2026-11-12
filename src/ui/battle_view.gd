@@ -29,11 +29,11 @@ const TWINS := [Color(1.45, 1.1, 0.4), Color(0.8, 0.95, 1.3)]  # 쌍둥이 트�
 const LOOKS := {"feather_harpy": ["flying", Color(0.75, 1.2, 1.7)], "dive_harpy": ["flying", Color(1.7, 1.0, 0.6)], "song_harpy": ["flying", Color(1.45, 0.85, 1.75)],
 	"storm_harpy": ["flying", Color(0.85, 1.65, 1.35)], "snatch_harpy": ["flying", Color(1.65, 1.5, 0.65)],
 	"nest_harpy": ["flying", Color(1.3, 1.6, 0.8)], "harpy_chick": ["flying", Color(1.8, 1.7, 1.6)],
-	"ogre_thrower": ["boss", Color(0.8, 1.2, 0.7)], "twin_troll": ["troll", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288), 방패 고블린·불화살 고블린·둥지(I291)와 새 용병 여덟(I296)은 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)
-const ALLY_TELL := Color("f8d070")  # 불마법사 예고 원(S357): 아군 금빛 테와 차오르는 엷은 채움. 적 예고(주황·빨강)와 가른다
-const ZAP := Color("bfe8ff")  # 번개마법사 번개 줄(S358)
+	"ogre_thrower": ["boss", Color(0.8, 1.2, 0.7)], "twin_troll": ["troll", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288), 방패 고블린·불화살 고블린·둥지(I291)와 새 용병 여덟(I297)은 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)
+const ALLY_TELL := Color("f8d070")  # 불마법사 예고 원(S358): 아군 금빛 테와 차오르는 엷은 채움. 적 예고(주황·빨강)와 가른다
+const ZAP := Color("bfe8ff")  # 번개마법사 번개 줄(S359)
 const ZAP_TIME := 0.25  # 번개 줄이 남는 시간(초)
-const NET := Color("d8c890")  # 그물 사수가 던진 줄과 봉인된 적에 덮인 그물(S363)
+const NET := Color("d8c890")  # 그물 사수가 던진 줄과 봉인된 적에 덮인 그물(S364)
 const NET_TIME := 0.2  # 던진 줄이 남는 시간(초)
 const NOTE := Color("d8b0ff")  # 노래(S306)로 공격 속도가 느려진 아군 머리 위 음표와 노래 반경 고리의 색(I252 ④)
 const FEATHER := Color("f4f0e8")  # 날아가는 깃털(I250 ④)
@@ -498,7 +498,7 @@ func _draw() -> void:
 	_trails()  # 원정의 불길(S352 ⑥): 장판과 같은 바닥 층
 	_wards()  # 에너지 성벽 칸(S151, fx-2): 장판 다음, 몸통 아래
 	_tells()  # 보스 스킬 예고와 발동 채움(S194·S198)
-	_ally_tells()  # 불마법사 예고(S357)
+	_ally_tells()  # 불마법사 예고(S358)
 	_fx_dots(true)  # 바닥 균열(S198)은 몸통 아래
 	_traces(false)  # 폭발 연기·운석 그림자는 몸통 아래(4.1s, Gemini 고칠 점 2)
 	_folded_wings()  # 수호 천사·불사의 등 뒤 날개(I227 ③)
@@ -799,18 +799,18 @@ func _traces(top: bool) -> void:
 			"fireball", "meteor":
 				_boom(at, CELL * c.radius, c.age, seed, id == "meteor", top)
 				continue
-			"blast":  # 불마법사(S357): 화염구 작렬과 같은 폭발
+			"blast":  # 불마법사(S358): 화염구 작렬과 같은 폭발
 				_boom(at, CELL * c.radius, c.age, seed, false, top)
 				continue
-			"zap":  # 번개마법사(S358)
+			"zap":  # 번개마법사(S359)
 				if top:
 					_zap_line(c, seed)
 				continue
-			"mend":  # 사제(S361): 성스러운 빛줄기를 대상 하나로
+			"mend":  # 사제(S362): 성스러운 빛줄기를 대상 하나로
 				if top:
 					_beam(h, c.hits, c.age)
 				continue
-			"net":  # 그물 사수(S363): 던진 줄
+			"net":  # 그물 사수(S364): 던진 줄
 				if top and c.age < NET_TIME:
 					_pline(Vector2i(_muzzle(h).floor()), Vector2i(_chest(c.aim).floor()), Color(NET, 1.0 - c.age / NET_TIME))
 				continue
@@ -1942,7 +1942,7 @@ func _mire_marks() -> void:
 			_px(f + Vector2i(bx - 1, -5), PX.teal)
 			_px(f + Vector2i(bx + 1, -5), PX.teal)
 
-# 불마법사 예고(S357, I293 ⑥): 원을 아군 금빛 1px 테로 그리고, 안쪽은 가운데에서 남은 시간만큼 차오르는 엷은 채움이다. 장판과 같은 바닥 층
+# 불마법사 예고(S358, I294 ⑥): 원을 아군 금빛 1px 테로 그리고, 안쪽은 가운데에서 남은 시간만큼 차오르는 엷은 채움이다. 장판과 같은 바닥 층
 func _ally_tells() -> void:
 	for u in battle.units:
 		if u.cast == null or not u.alive:
@@ -1954,7 +1954,7 @@ func _ally_tells() -> void:
 			_pdisc(c, int(r * k), Color(ALLY_TELL, 0.22))
 		_pring(c, r, 1, ALLY_TELL)
 
-# 번개 줄(S358): 번개마법사 손에서 맞은 차례대로 잇는 꺾인 하늘색 줄. 같은 적을 다시 치면 그 자리에 작은 불꽃 십자. ZAP_TIME초에 흐려진다
+# 번개 줄(S359): 번개마법사 손에서 맞은 차례대로 잇는 꺾인 하늘색 줄. 같은 적을 다시 치면 그 자리에 작은 불꽃 십자. ZAP_TIME초에 흐려진다
 func _zap_line(c, seed: int) -> void:
 	if c.age >= ZAP_TIME:
 		return
@@ -1972,7 +1972,7 @@ func _zap_line(c, seed: int) -> void:
 		_pline(Vector2i(mid.floor()), Vector2i(p1.floor()), col)
 		p0 = p1
 
-# 그물에 봉인된 적(S363): 가슴 높이 10×8px에 엇갈린 줄 셋씩
+# 그물에 봉인된 적(S364): 가슴 높이 10×8px에 엇갈린 줄 셋씩
 func _net_mesh(e) -> void:
 	if not battle.seen(e.pos):
 		return
@@ -1984,9 +1984,9 @@ func _net_mesh(e) -> void:
 # 이그니스(I229 ①②): 빙결한 적의 얼음 판과 과부하 영웅 발밑 세 점. 몸통 위 층이라 _draw가 _marks 다음에 부른다
 func _ignis_marks() -> void:
 	for e in _foes:
-		if e.fx.has("ignis_w_freeze") or e.fx.has("frost_freeze"):  # 얼음 마법사 빙결(S360)도 같은 얼음 판이다
+		if e.fx.has("ignis_w_freeze") or e.fx.has("frost_freeze"):  # 얼음 마법사 빙결(S361)도 같은 얼음 판이다
 			_ice_plate(e)
-		if e.fx.has("net"):  # 그물에 봉인된 적(S363)
+		if e.fx.has("net"):  # 그물에 봉인된 적(S364)
 			_net_mesh(e)
 	for u in battle.units:
 		if u.is_hero and u.alive and u.passive.get("id") == "overload":
@@ -2008,7 +2008,7 @@ func _burning() -> void:
 
 # 기절이 서리 고리 빙결 하나뿐인가(그때는 머리 위 별을 그리지 않는다, I229 ①)
 func _ice_only(x) -> bool:
-	var ice := ["ignis_w_freeze", "frost_freeze"]  # 얼음 마법사 빙결(S360)도 얼음이다
+	var ice := ["ignis_w_freeze", "frost_freeze"]  # 얼음 마법사 빙결(S361)도 얼음이다
 	if not ice.any(func(s): return x.fx.has(s)):
 		return false
 	for src in x.fx:
