@@ -1,8 +1,8 @@
 {
-  "approvedAt": "2026-11-12T03:51:20.000Z",
-  "evalMd": "e99b2aa8",
+  "approvedAt": "2026-11-12T04:49:17.000Z",
+  "evalMd": "dde1315e",
   "tests": {
-    "tests/eval/conftest.py": "7b31d667",
+    "tests/eval/conftest.py": "1f6b15e9",
     "tests/eval/gd/aura.gd": "010cc38a",
     "tests/eval/gd/aura.gd.uid": "40dd7bb8",
     "tests/eval/gd/boss.gd": "5ce3b68b",
@@ -31,7 +31,7 @@
     "tests/eval/gd/footprint.gd.uid": "e16153f2",
     "tests/eval/gd/gates.gd": "7b7665ae",
     "tests/eval/gd/gates.gd.uid": "b0cc756e",
-    "tests/eval/gd/gear.gd": "6a768388",
+    "tests/eval/gd/gear.gd": "9ae04449",
     "tests/eval/gd/gear.gd.uid": "f0141d87",
     "tests/eval/gd/grow.gd": "cf921340",
     "tests/eval/gd/grow.gd.uid": "ef494385",
@@ -43,9 +43,9 @@
     "tests/eval/gd/hire.gd.uid": "47433f7e",
     "tests/eval/gd/house.gd": "704c8a45",
     "tests/eval/gd/house.gd.uid": "5fd6fb28",
-    "tests/eval/gd/hud.gd": "aaae58ad",
+    "tests/eval/gd/hud.gd": "d77c67b1",
     "tests/eval/gd/hud.gd.uid": "6038f593",
-    "tests/eval/gd/keep.gd": "4c4bba01",
+    "tests/eval/gd/keep.gd": "18ba5512",
     "tests/eval/gd/keep.gd.uid": "97aab968",
     "tests/eval/gd/kits.gd": "8ebb00a1",
     "tests/eval/gd/kits.gd.uid": "c48b27a3",
@@ -158,7 +158,7 @@
     "tests/eval/test_hire.py": "5069c2f8",
     "tests/eval/test_house.py": "4cbc5613",
     "tests/eval/test_hud.py": "c8c75ce8",
-    "tests/eval/test_keep.py": "92da7369",
+    "tests/eval/test_keep.py": "86000f28",
     "tests/eval/test_kits.py": "eee4260d",
     "tests/eval/test_levels.py": "2c71fe40",
     "tests/eval/test_locale.py": "56451d19",
@@ -694,6 +694,10 @@
     "S364": "c073d676",
     "I297": "973a86f3",
     "S365": "b2d4f9a4",
-    "I298": "88137b8d"
+    "I298": "88137b8d",
+    "S366": "2a96df4e",
+    "S367": "9faa6f6d",
+    "S368": "852fd1dc",
+    "I299": "662989c8"
   }
 }

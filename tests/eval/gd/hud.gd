@@ -1335,8 +1335,8 @@ func ev347():
 	_frame(main)
 	var near: float = gap.call()
 	var out := ""
-	if c.facility != f or _starts(main.hud.popup, "용병") == null or near >= far - 1.0:
-		out = "용병 칸 뒤 고른 시설 %s(병영 %s) · «용병» 구매 버튼 %s · 병영과 화면 (320,194) 거리 %.0f → %.0f" % [c.facility, f, _starts(main.hud.popup, "용병"), far, near]
+	if c.facility != f or _starts(main.hud.popup, "병사") == null or near >= far - 1.0:
+		out = "용병 칸 뒤 고른 시설 %s(병영 %s) · «병사» 구매 버튼 %s · 병영과 화면 (320,194) 거리 %.0f → %.0f" % [c.facility, f, _starts(main.hud.popup, "병사"), far, near]
 	if out == "":
 		var n := _soldiers(b)
 		var gold: int = b.gold
@@ -2418,7 +2418,7 @@ func ev410():
 	_frame(main)
 	var g = main.hud.grid
 	g._process(0.0)
-	var merc_miss := _missing(_sel_text(main), ["용병", "사거리 근접"])
+	var merc_miss := _missing(_sel_text(main), ["병사", "사거리 근접"])
 	var merc: bool = m != null and main.controls.selected == [m] and merc_miss.is_empty() and not g.info.is_visible_in_tree()
 	var info: bool = g.info.is_visible_in_tree()
 	main.controls.selected = []
@@ -2453,7 +2453,7 @@ func ev411():
 	if btns.size() > 2:
 		btns[2].pressed.emit()
 	_frame(main)
-	var one: bool = pick != null and c.selected == [pick] and "용병" in _sel_text(main)
+	var one: bool = pick != null and c.selected == [pick] and "병사" in _sel_text(main)
 	_done(main)
 	return check(five and one, "고른 것 %d · 보이는 칸 %d · 패널 안·안 겹침 %s · 셋째 칸 누름 뒤 그 유닛만 %s(고른 것 %d)" % [c.selected.size(), btns.size(), apart, one, c.selected.size()])
 
@@ -2639,13 +2639,13 @@ func ev423():
 	if out == "":
 		click(c, MOUSE_BUTTON_LEFT, px(f.cell))
 		_frame(main)
-		var buy = _starts(main.hud.popup, "용병")
+		var buy = _starts(main.hud.popup, "병사")
 		var n := _soldiers(b)
 		if buy:
 			buy.pressed.emit()
 		var m = b.units.filter(func(u): return u.kind == "soldier").back() if _soldiers(b) > 0 else null
 		if buy == null or _soldiers(b) != n + 1 or m.pos.distance_to(Vector2(f.cell)) > 1.5:
-			out = "병영 팝업 «용병» 버튼 %s · 용병 %d → %d · 나온 자리 %s(병영 %s)" % [buy, n, _soldiers(b), m.pos if m else null, f.cell]
+			out = "병영 팝업 «병사» 버튼 %s · 용병 %d → %d · 나온 자리 %s(병영 %s)" % [buy, n, _soldiers(b), m.pos if m else null, f.cell]
 	if out == "":
 		var n := _soldiers(b)
 		main.hud.grid.cells.soldier.pressed.emit()
@@ -3777,8 +3777,8 @@ func ev743():
 		b.start_battle()
 		main.controls.facility = f
 		_frame(main)
-		var btn = _starts(main.hud.popup, "용병")
-		out = check(btn != null and not btn.disabled, "전투 단계 병영 팝업의 «용병» 구매 버튼 %s(켜져 있어야)" % [btn])
+		var btn = _starts(main.hud.popup, "병사")
+		out = check(btn != null and not btn.disabled, "전투 단계 병영 팝업의 «병사» 구매 버튼 %s(켜져 있어야)" % [btn])
 		if out == "":
 			var n := 0
 			while n < 40 and b.recruit(f) != null:

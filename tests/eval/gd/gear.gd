@@ -708,8 +708,8 @@ func ev623():
 		main.controls.facility = f
 		_frame(main)
 		var cost: Array = b.MERC_KINDS.soldier.rank_cost
-		btn = _starts(main.hud.popup, "용병 강화")
-		out = check(btn != null and btn.text == "용병 강화 %d" % cost[0], "준비 단계 병영 팝업의 강화 버튼 %s(기대 «용병 강화 %d»)" % [btn.text if btn else null, cost[0]])
+		btn = _starts(main.hud.popup, "병사 강화")
+		out = check(btn != null and btn.text == "병사 강화 %d" % cost[0], "준비 단계 병영 팝업의 강화 버튼 %s(기대 «병사 강화 %d»)" % [btn.text if btn else null, cost[0]])
 		if out == "":
 			var tip := _tip_of(main, btn)
 			var line := "체력 %d → %d" % [int(_mdata("soldier").hp), int(b.MERC_KINDS.soldier.ranks[0].hp)]
@@ -718,18 +718,18 @@ func ev623():
 			btn.pressed.emit()
 			_frame(main)
 			var lines: String = str(main.hud.grid._lines("soldier"))
-			out = check(b.merc_rank.get("soldier") == 1 and btn.text == "용병 강화 %d" % cost[1] and "체력 %d" % int(b.MERC_KINDS.soldier.ranks[0].hp) in lines,
-				"누른 뒤 단계 %s · 버튼 «%s»(기대 «용병 강화 %d») · 정보 칸 %s" % [b.merc_rank, btn.text, cost[1], lines])
+			out = check(b.merc_rank.get("soldier") == 1 and btn.text == "병사 강화 %d" % cost[1] and "체력 %d" % int(b.MERC_KINDS.soldier.ranks[0].hp) in lines,
+				"누른 뒤 단계 %s · 버튼 «%s»(기대 «병사 강화 %d») · 정보 칸 %s" % [b.merc_rank, btn.text, cost[1], lines])
 		if out == "":
 			b.rank_up("soldier")
 			b.rank_up("soldier")
 			_frame(main)
-			out = check(b.merc_rank.get("soldier") == 3 and btn.is_visible_in_tree() and btn.text == "용병 강화 최대" and btn.disabled, "3단계 버튼 «%s» · 보임 %s · 못 누름 %s · 단계 %s" % [btn.text, btn.is_visible_in_tree(), btn.disabled, b.merc_rank])
+			out = check(b.merc_rank.get("soldier") == 3 and btn.is_visible_in_tree() and btn.text == "병사 강화 최대" and btn.disabled, "3단계 버튼 «%s» · 보임 %s · 못 누름 %s · 단계 %s" % [btn.text, btn.is_visible_in_tree(), btn.disabled, b.merc_rank])
 		if out == "":
 			b.start_battle()
 			_frame(main)
-			out = check(main.controls.facility == f and _starts(main.hud.popup, "용병 강화") == null and _starts(main.hud.popup, "용병") != null,
-				"전투 단계 팝업: 고른 시설 %s · 강화 버튼 %s · 구매 버튼 %s" % [main.controls.facility, _starts(main.hud.popup, "용병 강화"), _starts(main.hud.popup, "용병")])
+			out = check(main.controls.facility == f and _starts(main.hud.popup, "병사 강화") == null and _starts(main.hud.popup, "병사") != null,
+				"전투 단계 팝업: 고른 시설 %s · 강화 버튼 %s · 구매 버튼 %s" % [main.controls.facility, _starts(main.hud.popup, "병사 강화"), _starts(main.hud.popup, "병사")])
 	_done(main)
 	return out
 

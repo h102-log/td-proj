@@ -36,3 +36,19 @@ def test_EV1097_keep_panel_plus_and_toast(gd):
 
 def test_EV1098_keep_panel_rally_pick(gd):
     gd("keep", "EV1098")
+
+
+def test_EV1099_soldier_display_name(gd):
+    gd("keep", "EV1099")
+
+
+def test_EV1100_keep_panel_undo(gd):
+    gd("keep", "EV1100")
+
+
+def test_EV1101_keep_panel_recent_three(gd):
+    gd("keep", "EV1101")
+
+
+def test_EV1102_keep_panel_header_and_tab_row_layout(gd):
+    gd("keep", "EV1102")
