@@ -2362,24 +2362,28 @@ func ev389():
 	var ok := absf(edge - 160) <= 0.5 and absf(right.x - 160) <= 0.5 and absf(down.y - 160) <= 0.5 and absf(slow.x - 80) <= 0.5 and held.length() < 0.01
 	return check(ok, "가장자리 %.1f · → %s · ↓ %s · 속도 50%% → %s · 포커스 중 → %s (기대 x 160 · x 160 · y 160 · x 80 · 0)" % [edge, right, down, slow, held])
 
-# EV399 · S183: 맵 팝업이 떠 있으면 ESC는 그 팝업만 닫고 메뉴를 열지 않는다. 다음 ESC가 메뉴를 연다. 고른 영웅은 ESC로 풀리지 않는다
+# EV399 · S183: 맵 팝업(거점이면 거점 패널, S365)이 떠 있으면 ESC는 그것만 닫고 메뉴를 열지 않는다. 다음 ESC가 메뉴를 연다. 고른 영웅은 ESC로 풀리지 않는다
 func ev399():
 	var main = _prep()
 	var c = main.controls
 	var h = main.view.battle.heroes[0]
+	var k = main.hud.get("keep")
+	if not k is Control:
+		_done(main)
+		return "main.hud.keep이 없다"
 	c.selected = [h]
 	c.village = true
 	_frame(main)
-	var shown: bool = not _pops(main).is_empty()
+	var shown: bool = k.is_visible_in_tree()
 	_key(KEY_ESCAPE)
 	var first: bool = not main.get_tree().paused and not c.village
 	_frame(main)
-	var hidden: bool = _pops(main).is_empty()
+	var hidden: bool = not k.is_visible_in_tree()
 	_key(KEY_ESCAPE)
 	var menu: bool = main.get_tree().paused
 	var kept: bool = c.selected == [h]
 	_done(main)
-	return check(shown and first and hidden and menu and kept, "거점 팝업 뜸 %s · 첫 ESC에 팝업만 닫힘(멈추지 않음) %s · 팝업 숨음 %s · 둘째 ESC에 메뉴 %s · 고른 영웅 그대로 %s" % [shown, first, hidden, menu, kept])
+	return check(shown and first and hidden and menu and kept, "거점 패널 뜸 %s · 첫 ESC에 패널만 닫힘(멈추지 않음) %s · 패널 숨음 %s · 둘째 ESC에 메뉴 %s · 고른 영웅 그대로 %s" % [shown, first, hidden, menu, kept])
 
 # 2026-10-25 ui-sel(S206·S207, S186 변경). 위 계약에 더하는 API:
 #   main.hud.select — 선택 패널(Control, S206). 보이는 Label이 글이고, 여럿이면 보이는 BaseButton 하나가 그림 칸 하나다
@@ -2650,7 +2654,7 @@ func ev423():
 	_done(main)
 	return out
 
-# EV425 · S98: live_prep 게임 장면은 작업장이 없어도 공병 칸이 거점을 고르고 거점 팝업에서 공병을 산다. 거점을 고르고 우클릭하면 거점의 집결 지점이다
+# EV425 · S98: live_prep 게임 장면은 작업장이 없어도 공병 칸이 거점을 고르고 거점 패널(S365) 지원 탭에서 공병을 산다. 거점을 고르고 우클릭하면 거점의 집결 지점이다
 func ev425():
 	var main = _live_prep()
 	var b = main.view.battle
@@ -2666,15 +2670,16 @@ func ev425():
 	if out == "":
 		cell.pressed.emit()
 		_frame(main)
-		var buy = _starts(main.hud.popup, "공병")
-		if c.placing != "" or c.facility != b.base or buy == null:
-			out = "공병 칸을 누른 뒤 놓기 모드 «%s» · 고른 시설 %s(거점 %s) · 팝업 «공병» %s" % [c.placing, c.facility, b.base, buy]
+		var k = main.hud.get("keep")
+		var at: int = k.kinds.find("engineer") if k is Control else -1
+		if c.placing != "" or c.facility != b.base or not k is Control or not k.is_visible_in_tree() or c.get("keep_tab") != 2 or at < 0:
+			out = "공병 칸을 누른 뒤 놓기 모드 «%s» · 고른 시설 %s(거점 %s) · 거점 패널 %s · 탭 %s(2) · 칸 종류 %s" % [c.placing, c.facility, b.base, k.is_visible_in_tree() if k is Control else null, c.get("keep_tab"), k.kinds if k is Control else null]
 		else:
 			cell.pressed.emit()
 			var n: int = count.call()
-			buy.pressed.emit()
+			k.cards[at].pressed.emit()
 			if n != 1 or count.call() != 2:
-				out = "공병 칸을 다시 누른 뒤 공병 %d(1이어야 한다) · 팝업 버튼 뒤 %d(2여야 한다)" % [n, count.call()]
+				out = "공병 칸을 다시 누른 뒤 공병 %d(1이어야 한다) · 패널 공병 카드 뒤 %d(2여야 한다)" % [n, count.call()]
 	if out == "":
 		var to: Vector2i = _near(b, "barracks", Vector2i(26, 15))
 		click(c, MOUSE_BUTTON_LEFT, px(b.base.cell))
