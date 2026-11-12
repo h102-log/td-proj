@@ -127,7 +127,7 @@ func ev126():
 
 # EV127 · I49: 마을 안 적은 인식 범위 안의 생산 시설을 친다
 func ev127():
-	return _hits_in_village("barracks")
+	return _hits_in_village("workshop")  # 생산 시설은 작업장뿐이다(S98 2026-11-12 변경)
 
 # EV128 · I49: 들판의 적은 인식 범위 안의 마을 집을 치지 않는다
 func ev128():
@@ -415,7 +415,7 @@ func ev479():
 				return "씨앗 %d: 원래 직업이 %s인 주민이 있다" % [sd, j]
 	return ""
 
-# EV480 · S222: 작업장·사격장을 지으면 이미 사는 가장이 대장장이·활 장인이 되고, 팔면 원래 직업으로 돌아간다
+# EV480 · S222: 작업장을 지으면 이미 사는 가장이 대장장이가 되고, 팔면 원래 직업으로 돌아간다. 활 장인은 없다(S98 2026-11-12 변경)
 func ev480():
 	var b = null
 	for sd in range(1, 51):
@@ -425,7 +425,6 @@ func ev480():
 			break
 	if b == null:
 		return "씨앗 1~50에 원래 직업이 고유 직업이 아닌 가장이 둘 이상인 판이 없다"
-	b.village_level = 2
 	var heads := _heads(b)
 	var is_head := func(x): return heads.any(func(h): return h[0] == x[0] and h[1] == x[1])
 	if b.build("workshop", Vector2i(25, 3)) == null:
@@ -439,11 +438,8 @@ func ev480():
 			for i in s.folk.size():
 				if not (s == h[0] and i == h[1]) and b.trade(s, i) != s.folk[i].job:
 					return "대장장이가 아닌 주민 %s의 직업이 %s다(원래 %s)" % [s.folk[i].body, b.trade(s, i), s.folk[i].job]
-	if b.build("archery", Vector2i(25, 1)) == null:
-		return "사격장을 짓지 못했다"
-	var bow := _holders(b, "bowyer")
-	if bow.size() != 1 or not is_head.call(bow[0]) or (bow[0][0] == h[0] and bow[0][1] == h[1]):
-		return "활 장인이 대장장이가 아닌 가장 한 명이 아니다: %d명" % bow.size()
+	if "bowyer" in b.UNIQUE_JOBS or "bowyer" in b.FACILITY_JOBS.values():
+		return "활 장인이 고유 직업 %s·시설 직업 %s에 남았다" % [b.UNIQUE_JOBS, b.FACILITY_JOBS]
 	b.sell([b.structures[Vector2i(25, 3)]])
 	return check(b.trade(h[0], h[1]) == h[0].folk[h[1]].job and _holders(b, "blacksmith").is_empty(),
 		"작업장을 판 뒤 대장장이였던 주민의 직업 %s(원래 %s) · 대장장이 %d명" % [b.trade(h[0], h[1]), h[0].folk[h[1]].job, _holders(b, "blacksmith").size()])
@@ -492,15 +488,13 @@ func _off_work(b, f: Dictionary, p: Vector2) -> String:
 			ok = p.distance_to(b.middle(b.structures[f.home])) <= 3.5
 		"blacksmith":
 			ok = p.distance_to(mid_of.call("workshop")) <= 3.5
-		"bowyer":
-			ok = p.distance_to(mid_of.call("archery")) <= 3.5
 		"priest":
 			ok = p.distance_to(mid_of.call("church")) <= 3.5
 	return "" if ok else "%s가 일터 밖 %s에서 일한다" % [f.job, p]
 
 # EV483 · S223·S224: 낮에는 모두 일터에서 그 직업의 일 자세로 일하고 집 둘레에도 있으며, 걷는 길은 물·남의 구조물 위가 아니다
 func ev483():
-	var b = _town(3, [["workshop", Vector2i(22, 46)], ["archery", Vector2i(14, 46)], ["church", Vector2i(40, 26)]])
+	var b = _town(3, [["workshop", Vector2i(22, 46)], ["church", Vector2i(40, 26)]])
 	if b is String:
 		return b
 	var view = load(BV)

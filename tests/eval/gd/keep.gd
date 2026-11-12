@@ -21,8 +21,9 @@ const FIELD := Vector2i(10, 70)  # 시험 스테이지의 빈 들판 칸(유닛�
 const GOLD := Color("e0c040")
 const RED := Color("ef3a0c")
 const PIP := Color("ffd37f")
-const MELEE := ["shieldman", "spearman", "cavalry", "", ""]
-const RANGED := ["netter", "fire_mage", "thunder_mage", "frost_mage", ""]
+const MELEE := ["soldier", "shieldman", "spearman", "cavalry", ""]  # 병사·궁수도 거점이 판다(S98 2026-11-12 변경)
+const RANGED := ["archer", "netter", "fire_mage", "thunder_mage", "frost_mage"]
+const SHIELD := 1  # 근접 탭에서 방패병 카드 칸(병사 다음)
 const SUPPORT := ["engineer", "cleric", "", "", ""]
 
 func _panel(main):
@@ -143,7 +144,7 @@ func ev1091():
 	_frame(main)
 	var again: Array = [c.keep_tab, k.kinds.duplicate()]
 	_done(main)
-	var ok := first == 0 and heads and melee == MELEE and names == ["방패병", "창병", "기병"] and ranged == RANGED and support == SUPPORT and back == RANGED and again == [2, SUPPORT]
+	var ok := first == 0 and heads and melee == MELEE and names == ["병사", "방패병", "창병", "기병"] and ranged == RANGED and support == SUPPORT and back == RANGED and again == [2, SUPPORT]
 	return check(ok, "처음 탭 %d · 탭 글 %s · 근접 %s 이름 %s · Tab 뒤 %s · 또 Tab 뒤 %s · Shift+Tab 뒤 %s · 지원 탭 누르고 닫았다 G 뒤 %s" % [first, titles, melee, names, ranged, support, back, again])
 
 # EV1092 · S365: 카드를 누르면 한 명, Shift+누르면 다섯 명까지(인구가 되는 만큼) 거점에서 산다. 카드에 보유 «×n»과 값
@@ -158,14 +159,14 @@ func ev1092():
 	var cost: int = b.MERC_KINDS.shieldman.cost
 	var g0: int = b.gold
 	var n0 := _n_of(b, "shieldman")
-	k.cards[0].pressed.emit()
+	k.cards[SHIELD].pressed.emit()
 	_frame(main)
 	var n1 := _n_of(b, "shieldman")
 	var one: bool = n1 == n0 + 1 and b.gold == g0 - cost
-	var shown := [k.owned[0].text, k.costs[0].text, k.owned[0].is_visible_in_tree()]
+	var shown := [k.owned[SHIELD].text, k.costs[SHIELD].text, k.owned[SHIELD].is_visible_in_tree()]
 	var want: int = mini(5, b.pop_cap() - b.pop_used())
 	var g1: int = b.gold
-	_shift_click(k.cards[0])
+	_shift_click(k.cards[SHIELD])
 	_frame(main)
 	var many: bool = _n_of(b, "shieldman") == n0 + 1 + want and b.gold == g1 - want * cost
 	_done(main)
@@ -181,20 +182,20 @@ func ev1093():
 		_done(main)
 		return "main.hud.keep이 없다"
 	_open(main)
-	var before := [k.pips[0].size(), _filled(k, 0), k.strips[0].text]
+	var before := [k.pips[SHIELD].size(), _filled(k, SHIELD), k.strips[SHIELD].text]
 	var g0: int = b.gold
-	k.strips[0].pressed.emit()
+	k.strips[SHIELD].pressed.emit()
 	_frame(main)
-	var after := [b.merc_rank.get("shieldman", 0), g0 - b.gold, _filled(k, 0), k.strips[0].text]
+	var after := [b.merc_rank.get("shieldman", 0), g0 - b.gold, _filled(k, SHIELD), k.strips[SHIELD].text]
 	b.merc_rank["shieldman"] = 3
 	_frame(main)
-	var top := [k.strips[0].text, k.strips[0].disabled]
+	var top := [k.strips[SHIELD].text, k.strips[SHIELD].disabled]
 	b.merc_rank["shieldman"] = 1
 	b.start_battle()
 	_frame(main)
 	var g1: int = b.gold
-	var off: bool = k.strips[0].disabled
-	k.strips[0].pressed.emit()
+	var off: bool = k.strips[SHIELD].disabled
+	k.strips[SHIELD].pressed.emit()
 	_frame(main)
 	var still: bool = b.merc_rank.get("shieldman", 0) == 1 and b.gold == g1
 	_done(main)
@@ -249,16 +250,16 @@ func ev1095():
 	_open(main)
 	b.gold = 25
 	_frame(main)
-	var warn := [k.costs[0].get_theme_color("font_color"), k.slashes[0].is_visible_in_tree()]
+	var warn := [k.costs[SHIELD].get_theme_color("font_color"), k.slashes[SHIELD].is_visible_in_tree()]
 	b.gold = 10
 	_frame(main)
-	var poor: Color = k.costs[0].get_theme_color("font_color")
+	var poor: Color = k.costs[SHIELD].get_theme_color("font_color")
 	b.gold = BIG
 	while b.pop_used() < b.pop_cap() and b.recruit(b.base, "spearman") != null:
 		pass
 	_frame(main)
-	var faded := [snappedf(k.pics[0].modulate.a, 0.01), k.pop.get_theme_color("font_color")]
-	_move(k.cards[0].get_global_rect().get_center())
+	var faded := [snappedf(k.pics[SHIELD].modulate.a, 0.01), k.pop.get_theme_color("font_color")]
+	_move(k.cards[SHIELD].get_global_rect().get_center())
 	_frame(main)
 	_layout(main)
 	_frame(main)
@@ -277,7 +278,7 @@ func ev1096():
 		return "main.hud.keep이 없다"
 	b.rank_up("shieldman")
 	_open(main)
-	_move(k.cards[0].get_global_rect().get_center())
+	_move(k.cards[SHIELD].get_global_rect().get_center())
 	_frame(main)
 	_layout(main)
 	_frame(main)
@@ -303,14 +304,14 @@ func ev1097():
 		return "main.hud.keep이 없다"
 	b.start_battle()
 	_open(main)
-	k.cards[0].pressed.emit()
+	k.cards[SHIELD].pressed.emit()
 	_frame(main)
-	var plus := [k.plus[0].is_visible_in_tree(), k.plus[0].text]
+	var plus := [k.plus[SHIELD].is_visible_in_tree(), k.plus[SHIELD].text]
 	main.hud.toasts._process(4.0)  # 앞 토스트(라운드 미션)가 뜬 지 3.5초가 지나야 다음 토스트가 뜬다(I163)
 	var toasts: Array = _toasts(main)
 	var toast: bool = toasts.any(func(t): return "방패병 +1 → 집결 지점" in t)
 	main.hud._process(1.0)
-	var gone: bool = not k.plus[0].is_visible_in_tree()
+	var gone: bool = not k.plus[SHIELD].is_visible_in_tree()
 	_done(main)
 	return check(plus == [true, "+1"] and toast and gone, "산 뒤 «+n» 보임·글 %s(참·+1) · 토스트 %s(«방패병 +1 → 집결 지점») · 1초 뒤 숨음 %s" % [plus, toasts, gone])
 
@@ -423,7 +424,7 @@ func ev1100():
 		var want: int = mini(5, b.pop_cap() - b.pop_used())
 		var n0 := _n_of(b, "shieldman")
 		var g0: int = b.gold
-		_shift_click(k.cards[0])
+		_shift_click(k.cards[SHIELD])
 		_frame(main)
 		var got := _n_of(b, "shieldman") - n0
 		k.undo.pressed.emit()

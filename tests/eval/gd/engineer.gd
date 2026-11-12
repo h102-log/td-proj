@@ -132,10 +132,9 @@ func ev69():
 	for kind in ["soldier", "soldier", "engineer"]:
 		if b.place_merc(kind, Vector2i(10 + b.units.size() * 2, 12)) == null:
 			return "상한 안의 %s를 놓지 못했다" % kind
-	var f = b.build("barracks", Vector2i(10, 3))
 	_start(b)
 	var before: int = b.gold
-	var m = b.recruit(f)
+	var m = b.recruit(b.base, "soldier")  # 병사는 거점에서 산다(S98 2026-11-12 변경)
 	return check(m == null and b.gold == before, "공병을 세지 않고 샀다(골드 %d → %d)" % [before, b.gold])
 
 # EV70 · S74: 철거는 공병이 가서 시간을 들여 허물고, 골드는 돌려받지 않는다
@@ -272,27 +271,28 @@ func ev416():
 	var s3 = b.build("tower", Vector2i(16, 10))
 	return check(s3 != null and not s3.complete and s3.progress == 0.0 and s3.worker == e2, "전투 단계 타워 %s · 완성 %s · 진행률 %s · 일꾼이 새 공병 %s" % [s3, s3.complete if s3 else null, s3.progress if s3 else null, s3.worker == e2 if s3 else null])
 
-# EV417 · I20: 준비 단계 실시간 판의 준비 단계 구매는 시설 옆에 나와 집결 지점으로 걷는다. 건설 격자 용병 칸(merc_key)은 시설을 고르고 다시 누르면 산다. 칸을 눌러 놓지 않는다
+# EV417 · I20: 준비 단계 실시간 판의 준비 단계 구매는 시설 옆에 나와 집결 지점으로 걷는다. 건설 격자 용병 칸(merc_key)은 시설을 고르고 다시 누르면 산다. 칸을 눌러 놓지 않는다.
+# 생산 시설은 작업장뿐이라(S98 2026-11-12 변경) 작업장·공병으로 잰다. 공병을 파는 곳은 [작업장, 거점] 차례라 첫 키는 작업장을 고른다
 func ev417():
 	var b = _battle()
-	var f = b.build("barracks", Vector2i(10, 3))
+	var f = b.build("workshop", Vector2i(10, 3))
 	_live(b)
 	var rally := Vector2i(10, 12)
 	b.set_rally(f, rally)
 	var g: int = b.gold
 	var m = b.recruit(f)
-	if m == null or b.gold != g - b.MERC_KINDS.soldier.cost or m.pos.distance_to(Vector2(f.cell)) > 1.5:
-		return "준비 단계 구매: 용병 %s · 골드 %d → %d · 나온 자리 %s(병영 %s)" % [m, g, b.gold, m.pos if m else null, f.cell]
+	if m == null or m.kind != "engineer" or b.gold != g - b.MERC_KINDS.engineer.cost or m.pos.distance_to(Vector2(f.cell)) > 1.5:
+		return "준비 단계 구매: 공병 %s · 골드 %d → %d · 나온 자리 %s(작업장 %s)" % [m, g, b.gold, m.pos if m else null, f.cell]
 	if not run(b, 10.0, func(): return near(m.pos, rally)):
 		return "10초 안에 집결 지점에 닿지 않았다(%s)" % m.pos
 	var c = controls(b)
 	var n: int = b.units.size()
-	c.merc_key("soldier")  # 건설 격자 용병 칸과 같다. 용병 키 3은 없다(I108 2026-11-06 변경)
+	c.merc_key("engineer")  # 건설 격자 공병 칸·5 키와 같다
 	if c.placing != "" or c.facility != f:
-		return "용병 칸 뒤 놓기 모드 «%s» · 고른 시설 %s" % [c.placing, c.facility]
-	c.merc_key("soldier")  # 건설 격자 용병 칸과 같다. 용병 키 3은 없다(I108 2026-11-06 변경)
+		return "공병 칸 뒤 놓기 모드 «%s» · 고른 시설 %s(작업장 %s)" % [c.placing, c.facility, f]
+	c.merc_key("engineer")
 	if b.units.size() != n + 1:
-		return "용병 칸을 다시 눌러도 용병 %d → %d" % [n, b.units.size()]
+		return "공병 칸을 다시 눌러도 유닛 %d → %d" % [n, b.units.size()]
 	var cell := Vector2i(20, 14)
 	click(c, MOUSE_BUTTON_LEFT, px(cell))
 	return check(b.units.size() == n + 1 and not b.occupied(cell), "빈 칸 클릭 뒤 유닛 %d(%d여야 한다) · 그 칸에 유닛 %s" % [b.units.size(), n + 1, b.occupied(cell)])
@@ -341,9 +341,9 @@ func ev420():
 	if inner.size() != 1 or outer.size() != 1:
 		return "마을 안 공병 %d · 밖 공병 %d" % [inner.size(), outer.size()]
 	var t = b.build("tower", _nearest(b, "tower", Vector2i(28, 31)))
-	var f = b.build("barracks", _nearest(b, "barracks", Vector2i(26, 15)))
+	var f = b.build("workshop", _nearest(b, "workshop", Vector2i(26, 15)))  # 같은 크기의 생산 시설(병영은 없어졌다, S98 2026-11-12 변경)
 	if t == null or f == null or not t.complete or not f.complete or t.worker != null or f.worker != null or es.any(func(u): return u.job != null):  # 준비 단계 짓기는 바로 끝난다(S18 2026-11-06 변경)
-		return "타워 %s(완성 %s) · 병영 %s(완성 %s) · 일을 맡은 공병 %d" % [t, t.complete if t else null, f, f.complete if f else null, es.filter(func(u): return u.job != null).size()]
+		return "타워 %s(완성 %s) · 작업장 %s(완성 %s) · 일을 맡은 공병 %d" % [t, t.complete if t else null, f, f.complete if f else null, es.filter(func(u): return u.job != null).size()]
 	var g: int = b.gold
 	b.sell([inner[0]])
 	if b.gold != g:
@@ -353,7 +353,7 @@ func ev420():
 	var left: int = b.units.filter(func(u): return u.kind == "engineer").size()
 	return check(left == 1, "다음 라운드에 공병이 %d명이다(1명이어야 한다)" % left)
 
-# EV424 · S98: live_prep 판에서는 거점도 공병을 판다. 작업장이 생기면 작업장 다음이고, 끈 판은 작업장만 판다
+# EV424 · S98: live_prep 판에서는 거점도 공병을 판다. 작업장이 생기면 작업장 다음이다. 끈 판도 마을이 있으면 거점이 판다(2026-11-12 변경)
 func ev424():
 	var stage: Dictionary = load("res://src/main.gd").stage()
 	stage.gold = BIG
@@ -380,7 +380,8 @@ func ev424():
 	off.start_battle()
 	var og: int = off.gold
 	var oe = off.recruit(off.base, "engineer")
-	return check(off.state == "battle" and off.sellers("engineer") == [] and oe == null and off.gold == og, "끈 판 %s 단계: 파는 곳 %s · 거점 구매 %s · 골드 %d → %d" % [off.state, off.sellers("engineer"), oe, og, off.gold])
+	return check(off.state == "battle" and off.sellers("engineer") == [off.base] and oe != null and oe.kind == "engineer" and off.gold == og - off.MERC_KINDS.engineer.cost,
+		"끈 판 %s 단계: 파는 곳 %s([거점]) · 거점 구매 %s · 골드 %d → %d" % [off.state, off.sellers("engineer"), oe, og, off.gold])
 
 # 영웅 둘을 영입해 출전시키고 1라운드 준비 단계로 간 게임 장면(hud.gd _prep과 같다). 저장·설정은 평가용 파일로 바꿔 실제 파일을 건드리지 않는다
 func _scene():

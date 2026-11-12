@@ -37,7 +37,7 @@ extends "res://tests/eval/gd/save.gd"
 # 커서는 화면(640×360) 좌표의 InputEventMouseMotion으로 옮긴다. 빈 맵 자리는 (320,300)이다
 
 const EMPTY := Vector2(320, 300)
-const ROWS := [["wall", "tower", "magic", "cannon"], ["barracks", "workshop", "archery", "house", "church"], ["soldier", "engineer", "archer"]]  # 건설 격자 줄(S186)
+const ROWS := [["wall", "tower", "magic", "cannon"], ["workshop", "house", "church"], ["soldier", "engineer", "archer"]]  # 건설 격자 줄(S186). 2줄 1·3열(옛 병영·사격장)은 빈 자리다(S98 2026-11-12 변경)
 const DANGER := Color("ef3a0c")
 const QNAME := {"aias": "방패 강타", "sylvia": "관통의 바람살", "seraphina": "성스러운 빛줄기", "vesper": "부식의 독안개", "ignis": "화염구 작렬", "chronos": "무기 과충전"}  # S97 표의 Q
 
@@ -205,7 +205,7 @@ func _cell_text(c) -> String:
 func _red(c) -> bool:
 	return c.get_theme_stylebox("normal").border_color.is_equal_approx(DANGER)
 
-# 건설 격자 칸의 자리(S186): 13칸이 격자 안에 겹치지 않고 세 줄로, 용병은 파는 시설 아래, 대피소는 집 아래. 칸 글에 이유(I132)가 없다. 문제가 없으면 ""
+# 건설 격자 칸의 자리(S186): 11칸이 격자 안에 겹치지 않고 세 줄로. 3줄 용병·공병·궁수·대피소는 1줄과 같은 열, 2줄 작업장·집은 2·4열이고 1·3열(옛 병영·사격장 자리)은 비었다(S98 2026-11-12 변경). 칸 글에 이유(I132)가 없다. 문제가 없으면 ""
 func _grid_shape(g, r: Dictionary) -> String:
 	var area := Rect2(510, 288, 130, 72).grow(0.5)
 	for row in ROWS:
@@ -222,18 +222,21 @@ func _grid_shape(g, r: Dictionary) -> String:
 	for i in [1, 2]:
 		if r[ROWS[i][0]].position.y <= r[ROWS[i - 1][0]].position.y:
 			return "%d줄이 %d줄보다 아래가 아니다" % [i + 1, i]
-	for pair in [["soldier", "barracks"], ["engineer", "workshop"], ["archer", "archery"], ["shelter", "house"]]:
+	for pair in [["soldier", "wall"], ["engineer", "tower"], ["archer", "magic"], ["shelter", "cannon"], ["workshop", "tower"], ["house", "cannon"]]:
 		if not r.has(pair[0]):
 			return "«%s» 칸이 없다(%s)" % [pair[0], r.keys()]
 		if absf(r[pair[0]].position.x - r[pair[1]].position.x) > 0.5:
 			return "«%s» 칸 x %.1f가 «%s» 칸 x %.1f와 다르다" % [pair[0], r[pair[0]].position.x, pair[1], r[pair[1]].position.x]
 	if not area.encloses(r.shelter) or absf(r.shelter.position.y - r.soldier.position.y) > 0.5:  # 대피소는 3줄 4열(S186 2026-10-27 변경)
 		return "«shelter» 칸 %s가 격자 밖이거나 3줄(y %.1f)이 아니다" % [r.shelter, r.soldier.position.y]
-	if r.size() != 13:
+	for k in r:  # 2줄 1·3열은 빈 자리
+		if absf(r[k].position.y - r.workshop.position.y) < 0.5 and (absf(r[k].position.x - r.wall.position.x) < 0.5 or absf(r[k].position.x - r.magic.position.x) < 0.5):
+			return "2줄 빈 자리(1·3열)에 «%s» 칸 %s가 있다" % [k, r[k]]
+	if r.size() != 11:
 		return "칸이 %d개다(%s)" % [r.size(), r.keys()]
 	return ""
 
-# EV322 · S186: 준비·전투 단계에 건설 격자 13칸의 자리가 같고, 칸 글에 «없음»·«Lv»가 없다. 칸·- 키를 두 번 누르면 놓기 모드가 켜졌다 꺼진다
+# EV322 · S186: 준비·전투 단계에 건설 격자 11칸의 자리가 같고, 칸 글에 «없음»·«Lv»가 없다. 칸·- 키를 두 번 누르면 놓기 모드가 켜졌다 꺼진다
 func ev322():
 	var main = _prep()
 	var g = main.hud.get("grid")
@@ -275,8 +278,9 @@ func ev322():
 	_done(main)
 	return out
 
-# EV323 · I132: 마을 Lv1 준비 단계에 타워 칸 정보 칸은 «타워»·«(타워 값)골드»가 있고 «[»가 없으며(타워는 단축키가 없다, I108 2026-11-06 변경) 빨간 줄이 없고, 사격장 칸은 빨간 줄에 «마을 Lv2».
-# 사격장 칸을 누르면 놓기 모드 없이 거점이 골라져 마을 레벨 버튼이 뜨고, 칸 테두리가 0.2초에 빨갛고 0.4초에 아니다.
+# EV323 · I132: 마을 Lv1 준비 단계에 타워 칸 정보 칸은 «타워»·«(타워 값)골드»가 있고 «[»가 없으며(타워는 단축키가 없다, I108 2026-11-06 변경) 빨간 줄이 없다.
+# 마을 Lv2가 여는 구조물이 지금은 없어(S98 2026-11-12 변경) 판의 교회 마을 레벨을 2로 두어 잠긴 칸을 만든다: 빨간 줄에 «마을 Lv2».
+# 그 칸을 누르면 놓기 모드 없이 거점이 골라져 마을 레벨 버튼이 뜨고, 칸 테두리가 0.2초에 빨갛고 0.4초에 아니다.
 # 전투 단계에 누르면 마을 레벨 버튼이 없고 정보 칸에 «준비 단계에»
 func ev323():
 	var main = _prep()
@@ -292,33 +296,34 @@ func ev323():
 	var s := _tip_text(g.info)
 	if not g.info.is_visible_in_tree() or not ("타워" in s and "%d골드" % b.STRUCTURE_KINDS.tower.cost in s and not "[" in s) or g.reason.is_visible_in_tree():
 		out = "타워 칸 정보 칸이 «%s»다(보임 %s, 빨간 줄 %s)" % [s, g.info.is_visible_in_tree(), g.reason.is_visible_in_tree()]
-	var archery = g.cells.archery
+	b.STRUCTURE_KINDS.church.village_level = 2  # 판 데이터만 바꾼다(손잡이 data/structures의 village_level)
+	var locked = g.cells.church
 	if out == "":
-		_move(archery.get_global_rect().get_center())
+		_move(locked.get_global_rect().get_center())
 		g._process(0.0)
 		if not g.reason.is_visible_in_tree() or not "마을 Lv2" in g.reason.text:
-			out = "마을 Lv1 사격장 칸 정보 칸의 빨간 줄이 «%s»다(보임 %s)" % [g.reason.text, g.reason.is_visible_in_tree()]
+			out = "마을 Lv1에 Lv2로 잠근 교회 칸 정보 칸의 빨간 줄이 «%s»다(보임 %s)" % [g.reason.text, g.reason.is_visible_in_tree()]
 	if out == "":
-		archery.pressed.emit()
+		locked.pressed.emit()
 		main.hud._process(0.0)
 		var up = _starts(main.hud, "마을 Lv2")
 		g._process(0.2)
-		var red_early := _red(archery)
+		var red_early := _red(locked)
 		g._process(0.2)
 		if not c.village or up == null or c.placing != "":
-			out = "준비 단계에 사격장 칸을 누른 뒤 거점 고름 %s · 마을 레벨 버튼 %s · 놓기 모드 «%s»" % [c.village, up, c.placing]
-		elif not red_early or _red(archery):
-			out = "사격장 칸 테두리가 0.2초에 빨강 %s, 0.4초에 빨강 %s다" % [red_early, _red(archery)]
+			out = "준비 단계에 잠긴 칸을 누른 뒤 거점 고름 %s · 마을 레벨 버튼 %s · 놓기 모드 «%s»" % [c.village, up, c.placing]
+		elif not red_early or _red(locked):
+			out = "잠긴 칸 테두리가 0.2초에 빨강 %s, 0.4초에 빨강 %s다" % [red_early, _red(locked)]
 	if out == "":
 		c.village = false
 		b.start_battle()
 		_frame(main)
-		archery.pressed.emit()
+		locked.pressed.emit()
 		main.hud._process(0.0)
 		g._process(0.0)
 		s = _tip_text(g.info)
 		if _starts(main.hud, "마을 Lv") != null or not "준비 단계에" in s:
-			out = "전투 단계에 사격장 칸을 누른 뒤 마을 레벨 버튼 %s · 정보 칸 «%s»" % [_starts(main.hud, "마을 Lv"), s]
+			out = "전투 단계에 잠긴 칸을 누른 뒤 마을 레벨 버튼 %s · 정보 칸 «%s»" % [_starts(main.hud, "마을 Lv"), s]
 	_done(main)
 	return out
 
@@ -361,7 +366,7 @@ func ev325():
 	var map: Viewport = main.hud.map
 	var bottom: float = b.size.y * main.view.CELL
 	var out := ""
-	_move(g.cells.archery.get_global_rect().get_center())
+	_move(g.cells.workshop.get_global_rect().get_center())  # 정보 칸을 띄울 칸(옛 사격장 칸, S98 2026-11-12 변경)
 	for lv in 3:
 		cam.zoom_at(lv - cam.level, Vector2(320, 180))
 		cam.pan(Vector2(0, 1), 100.0)
@@ -1314,19 +1319,17 @@ func _shift_key(code: int) -> void:
 func _soldiers(b) -> int:
 	return b.units.filter(func(u): return u.kind == "soldier").size()
 
-# EV347 · S81: 병영 하나인 판의 전투 단계에서 건설 격자 용병 칸은 그 병영을 고르고(구매 팝업) 카메라를 병영 쪽으로 옮기며, 다시 누르면 용병 한 명을 산다. 3 키는 용병을 사지 않는다(I108 2026-11-06 변경)
+# EV347 · S81: 전투 단계에 건설 격자 병사 칸은 병사를 파는 거점을 고르고(거점 패널이 근접 탭으로 뜬다, S98 2026-11-12 변경·I298 ①) 카메라를 거점 쪽으로 옮기며,
+# 다시 누르면 병사 한 명을 산다. 3 키는 병사를 사지 않는다(I108 2026-11-06 변경)
 func ev347():
 	var main = _prep()
 	var b = main.view.battle
 	var c = main.controls
-	var f = b.build("barracks", Vector2i(6, 6))
-	if f == null:
-		_done(main)
-		return "준비 단계에 마을 (4,4)에 병영을 짓지 못했다"
+	var f = b.base
 	b.start_battle()
 	_frame(main)
 	var cam = _cam(main)
-	cam.focus(Vector2(600, 450))  # 병영에서 먼 들판 오른쪽 아래
+	cam.focus(Vector2(600, 450))  # 거점에서 먼 들판 오른쪽 아래
 	cam.force_update_scroll()
 	var gap := func(): return (main.hud.map.get_canvas_transform() * ((Vector2(f.cell) + Vector2(0.5, 0.5)) * CELL_PX)).distance_to(Vector2(320, 194))
 	var far: float = gap.call()
@@ -1334,56 +1337,59 @@ func ev347():
 	_settle(main)
 	_frame(main)
 	var near: float = gap.call()
+	var k = main.hud.get("keep")
 	var out := ""
-	if c.facility != f or _starts(main.hud.popup, "병사") == null or near >= far - 1.0:
-		out = "용병 칸 뒤 고른 시설 %s(병영 %s) · «병사» 구매 버튼 %s · 병영과 화면 (320,194) 거리 %.0f → %.0f" % [c.facility, f, _starts(main.hud.popup, "병사"), far, near]
+	if c.facility != f or not c.village or c.keep_tab != 0 or not (k is Control and k.is_visible_in_tree() and k.kinds[0] == "soldier") or near >= far - 1.0:
+		out = "병사 칸 뒤 고른 시설 %s(거점 %s) · 거점 고름 %s · 탭 %d(0) · 거점 패널 근접 탭 칸 %s · 거점과 화면 (320,194) 거리 %.0f → %.0f" % [c.facility, f, c.village, c.keep_tab, k.kinds if k else null, far, near]
 	if out == "":
 		var n := _soldiers(b)
 		var gold: int = b.gold
 		main.hud.grid.cells.soldier.pressed.emit()
-		out = check(_soldiers(b) == n + 1 and b.gold == gold - b.MERC_KINDS.soldier.cost and c.facility == f, "용병 칸을 다시 누르자 용병 %d → %d · 골드 %d → %d(용병 값 %d) · 고른 시설 %s" % [n, _soldiers(b), gold, b.gold, b.MERC_KINDS.soldier.cost, c.facility])
-	if out == "":  # 3 키는 영웅 키라 용병을 사지 않는다
+		out = check(_soldiers(b) == n + 1 and b.gold == gold - b.MERC_KINDS.soldier.cost and c.facility == f, "병사 칸을 다시 누르자 병사 %d → %d · 골드 %d → %d(병사 값 %d) · 고른 시설 %s" % [n, _soldiers(b), gold, b.gold, b.MERC_KINDS.soldier.cost, c.facility])
+	if out == "":  # 3 키는 영웅 키라 병사를 사지 않는다
 		var n := _soldiers(b)
 		_key(KEY_3)
-		out = check(_soldiers(b) == n, "3 키를 넣자 용병 %d → %d(그대로여야 한다)" % [n, _soldiers(b)])
+		out = check(_soldiers(b) == n, "3 키를 넣자 병사 %d → %d(그대로여야 한다)" % [n, _soldiers(b)])
 	_done(main)
 	return out
 
-# EV348 · S81: 사격장이 둘이면 Shift+7이 다음 사격장을 고른다(지은 차례로 돈다). 병영이 없을 때 건설 격자 용병 칸은 고른 시설·카메라를 그대로 두고
-# 정보 칸 빨간 줄에 «병영 없음»을 보인다. 그때 건설 격자 궁수 칸은 밝고 용병 칸은 흐리다. 용병 키 3은 없어 사격장·7로 잰다(I108 2026-11-06 변경)
+# EV348 · S81: 같은 종류를 파는 곳이 여럿이면 Shift+키가 다음 곳을 고른다(지은 차례로 돌고 거점은 맨 뒤). 공병(작업장 둘 + 거점)으로 잰다.
+# 궁수는 거점만 팔아(S98 2026-11-12 변경) 7 키가 거점을 고르고 거점 패널이 원거리 탭으로 뜬다. 그때 건설 격자 병사·궁수 칸은 밝다
 func ev348():
 	var main = _prep()
 	var b = main.view.battle
 	var c = main.controls
 	var g = main.hud.grid
-	b.raise_village()  # 사격장은 마을 Lv2부터(S98)
-	var f1 = b.build("archery", Vector2i(6, 6))
-	var f2 = b.build("archery", Vector2i(10, 6))
+	var f1 = b.build("workshop", Vector2i(6, 6))
+	var f2 = b.build("workshop", Vector2i(10, 6))
 	if f1 == null or f2 == null:
 		_done(main)
-		return "준비 단계에 마을 Lv2(%d)로 올려 사격장 둘(%s, %s)을 짓지 못했다" % [b.village_level, f1, f2]
+		return "준비 단계에 작업장 둘(%s, %s)을 짓지 못했다" % [f1, f2]
 	b.start_battle()
 	_frame(main)
-	_key(KEY_7)
+	_key(KEY_5)
 	var picks := [c.facility]
-	_shift_key(KEY_7)
-	picks.append(c.facility)
-	_shift_key(KEY_7)
-	picks.append(c.facility)
+	for i in 3:
+		_shift_key(KEY_5)
+		picks.append(c.facility)
 	var out := ""
-	if picks != [f1, f2, f1] or b.units.any(func(u): return u.kind == "archer"):
-		out = "7 → Shift+7 → Shift+7에 고른 시설 %s · 유닛 %s(기대 첫 사격장 %s → 둘째 %s → 첫, 궁수 없음)" % [picks, b.units.map(func(u): return u.kind), f1, f2]
+	if picks != [f1, f2, b.base, f1] or b.units.any(func(u): return u.kind == "engineer"):
+		out = "5 → Shift+5 ×3에 고른 시설 %s · 유닛 %s(기대 첫 작업장 %s → 둘째 %s → 거점 %s → 첫, 공병 없음)" % [picks, b.units.map(func(u): return u.kind), f1, f2, b.base]
 	if out == "":
-		var cam = _cam(main)
-		var pos: Vector2 = cam.position
-		g.cells.soldier.pressed.emit()
+		_key(KEY_7)
 		_frame(main)
 		g._process(0.0)
-		var why: String = g.reason.text if g.reason.is_visible_in_tree() else ""
-		if c.facility != f1 or cam.position != pos or not g.info.is_visible_in_tree() or not "병영 없음" in why:
-			out = "병영 없이 용병 칸: 고른 시설 %s · 카메라 %s → %s · 정보 칸 보임 %s · 빨간 줄 «%s»" % [c.facility, pos, cam.position, g.info.is_visible_in_tree(), why]
-		elif absf(g.cells.archer.modulate.a - 1.0) > 0.01 or absf(g.cells.soldier.modulate.a - 0.35) > 0.01:
-			out = "전투 단계 궁수 칸 불투명도 %.2f(1이어야 한다) · 용병 칸 %.2f(0.35여야 한다)" % [g.cells.archer.modulate.a, g.cells.soldier.modulate.a]
+		var k = main.hud.get("keep")
+		if c.facility != b.base or not c.village or c.keep_tab != 1 or not (k is Control and k.is_visible_in_tree()) or b.units.any(func(u): return u.kind == "archer"):
+			out = "7 키 뒤 고른 시설 %s(거점 %s) · 거점 고름 %s · 탭 %d(1) · 패널 보임 %s · 유닛 %s(궁수 없음)" % [c.facility, b.base, c.village, c.keep_tab, k.is_visible_in_tree() if k else null, b.units.map(func(u): return u.kind)]
+		elif absf(g.cells.archer.modulate.a - 1.0) > 0.01 or absf(g.cells.soldier.modulate.a - 1.0) > 0.01:
+			out = "전투 단계 궁수 칸 불투명도 %.2f · 병사 칸 %.2f(둘 다 1이어야 한다)" % [g.cells.archer.modulate.a, g.cells.soldier.modulate.a]
+	if out == "":  # 거점을 고른 채 병사 칸을 누르면 병사를 사고 패널이 근접 탭으로 바뀐다
+		var n := _soldiers(b)
+		g.cells.soldier.pressed.emit()
+		_frame(main)
+		if _soldiers(b) != n + 1 or c.facility != b.base or c.keep_tab != 0:
+			out = "거점을 고른 채 병사 칸: 병사 %d → %d(하나 늘어야) · 고른 시설 %s · 탭 %d(0)" % [n, _soldiers(b), c.facility, c.keep_tab]
 	_done(main)
 	return out
 
@@ -1910,9 +1916,7 @@ func ev356():
 		said = _hint_says(main)
 		if not "keep" in st.hints_done or not "전투 시작" in said:
 			out = "거점을 누른 뒤 끝낸 힌트 %s · 글 «%s»(기대: keep이 있고 «전투 시작»)" % [st.hints_done, said]
-	var f = b.build("barracks", Vector2i(6, 6)) if out == "" else null
-	if out == "" and f == null:
-		out = "준비 단계에 마을 (4,4)에 병영을 짓지 못했다"
+	var f = b.base  # 병사는 거점에서 산다(S98 2026-11-12 변경)
 	if out == "":
 		b.start_battle()
 		_frame(main)
@@ -2013,11 +2017,9 @@ func ev368():
 		else:
 			_frame(main)
 			var said := _hint_says(main)
-			if b.state != "prep" or b.wave_index != 1 or not "병영" in said or hud.hints.axis.text != "용병":
-				out = "1웨이브 뒤(단계 %s, 웨이브 %d) 힌트 글 «%s» · 축 «%s»(기대: 2웨이브 준비 단계, «병영», «용병»)" % [b.state, b.wave_index + 1, said, hud.hints.axis.text]
-	var f = b.build("barracks", Vector2i(6, 6)) if out == "" else null
-	if out == "" and f == null:
-		out = "2웨이브 준비 단계에 마을 (4,4)에 병영을 짓지 못했다"
+			if b.state != "prep" or b.wave_index != 1 or not "거점 패널" in said or not "병사" in said or "병영" in said or hud.hints.axis.text != "용병":
+				out = "1웨이브 뒤(단계 %s, 웨이브 %d) 힌트 글 «%s» · 축 «%s»(기대: 2웨이브 준비 단계, «거점 패널»·«병사» 있음·«병영» 없음, «용병»)" % [b.state, b.wave_index + 1, said, hud.hints.axis.text]
+	var f = b.base  # 병사는 거점에서 산다(S98 2026-11-12 변경)
 	if out == "":
 		if b.place_merc("soldier", Vector2i(12, 16)) == null:
 			out = "2웨이브 준비 단계에 (10,14)에 용병을 놓지 못했다"
@@ -2030,8 +2032,8 @@ func ev368():
 		_frame(main)
 		var r: Rect2 = hud.hints.get_global_rect()
 		var said := _hint_says(main)
-		if b.state != "battle" or r != Rect2(68, 300, 200, 40) or not "5·7" in said or "3·" in said:
-			out = "2웨이브 전투 단계(단계 %s) 힌트 칸 %s · 글 «%s»(기대: [68,300,200,40], «5·7» 있음·«3·» 없음)" % [b.state, r, said]
+		if b.state != "battle" or r != Rect2(68, 300, 200, 40) or not "G로" in said or "5·7" in said:
+			out = "2웨이브 전투 단계(단계 %s) 힌트 칸 %s · 글 «%s»(기대: [68,300,200,40], «G로» 있음·«5·7» 없음)" % [b.state, r, said]
 	if out == "":
 		b.recruit(f, "soldier")
 		_frame(main)
@@ -2147,13 +2149,13 @@ func ev372():
 	hud._process(0.0)
 	_gather(main, "놓기 거부", seen)
 	_key(KEY_ESCAPE)
-	var f = b.build("barracks", Vector2i(6, 6))
+	var f = b.build("workshop", Vector2i(6, 6))  # 생산 시설은 작업장뿐이다(S98 2026-11-12 변경)
 	b.start_battle()
 	_frame(main)
 	if f:
 		click(main.controls, MOUSE_BUTTON_LEFT, px(f.cell))
 		hud._process(0.0)
-		_gather(main, "전투 단계 병영 팝업", seen)
+		_gather(main, "전투 단계 작업장 팝업", seen)
 	_pass(main, 10.0)
 	b.damage(b.base, 5, "true")
 	hud._process(0.0)
@@ -2181,7 +2183,7 @@ func ev372():
 	var hangul := RegEx.create_from_string("[가-힣]")
 	var bad := seen.filter(func(p): return hangul.search(p[1]) != null)
 	if f == null or not won or not lost:
-		return "화면을 다 띄우지 못했다(병영 %s · 승리 %s · 패배 %s)" % [f != null, won, lost]
+		return "화면을 다 띄우지 못했다(작업장 %s · 승리 %s · 패배 %s)" % [f != null, won, lost]
 	if seen.size() < 100:
 		return "모은 화면 글이 %d개뿐이다" % seen.size()
 	var titled: bool = seen.any(func(p): return p[0] == "라운드 승리 창" and "Next Round" in p[1])
@@ -2510,7 +2512,7 @@ func ev413():
 	var cam = _cam(main)
 	_key(KEY_1)
 	_frame(main)
-	_move(g.cells.archery.get_global_rect().get_center())
+	_move(g.cells.workshop.get_global_rect().get_center())  # 정보 칸을 띄울 칸(옛 사격장 칸, S98 2026-11-12 변경)
 	var out := ""
 	for lv in 3:
 		cam.zoom_at(lv - cam.level, Vector2(320, 180))
@@ -2585,34 +2587,34 @@ func _live_prep():
 	M.live_prep = false
 	return main
 
-# EV418 · S83: 준비 단계 실시간 게임 장면의 준비 단계에 지은 병영은 바로 완성된다(S18 2026-11-06 변경). 전투에서 짓다 만 미완성 병영을 준비 단계에 누르면
+# EV418 · S83: 준비 단계 실시간 게임 장면의 준비 단계에 지은 작업장은 바로 완성된다(S18 2026-11-06 변경). 전투에서 짓다 만 미완성 작업장을 준비 단계에 누르면
 # «이어 짓기»·«취소»가 뜨고 «완성»·«판매»는 없다. «이어 짓기»는 골드를 더 내지 않고 바로 완성하고, «취소»는 건설비를 모두 돌려준다
 func ev418():
 	var main = _live_prep()
 	var b = main.view.battle
 	var c = main.controls
-	var done = b.build("barracks", _near(b, "barracks", Vector2i(26, 32)))
+	var done = b.build("workshop", _near(b, "workshop", Vector2i(26, 32)))
 	var texts := func(): return _pops(main).map(func(n): return n.text)
 	var out := ""
 	if done == null or not done.complete or done.worker != null:
-		out = "준비 단계 병영: %s · 완성 %s · 일꾼 %s" % [done, done.complete if done else null, done.worker if done else null]
+		out = "준비 단계 작업장: %s · 완성 %s · 일꾼 %s" % [done, done.complete if done else null, done.worker if done else null]
 	var half := []
 	if out == "":
-		b.state = "battle"  # 전투에서 짓다 만 병영 둘을 만든다. 일꾼을 멀리 보내 일을 그만두게 한다
+		b.state = "battle"  # 전투에서 짓다 만 작업장 둘을 만든다. 일꾼을 멀리 보내 일을 그만두게 한다
 		for i in 2:
-			var f = b.build("barracks", _near(b, "barracks", Vector2i(26, 32)))
+			var f = b.build("workshop", _near(b, "workshop", Vector2i(26, 32)))
 			if f and f.worker:
 				b.order_move([f.worker], Vector2i(40, 5))
 			half.append(f)
 		b.state = "prep"
 		if half.has(null) or half.any(func(f): return f.complete or f.worker != null):
-			out = "전투 단계 병영 둘: %s" % [half.map(func(f): return [f.complete, f.worker] if f else null)]
+			out = "전투 단계 작업장 둘: %s" % [half.map(func(f): return [f.complete, f.worker] if f else null)]
 	if out == "":
 		click(c, MOUSE_BUTTON_LEFT, px(half[0].cell))
 		_frame(main)
 		var t: Array = texts.call()
 		if not ("이어 짓기" in t and "취소" in t) or t.any(func(s): return s == "완성" or s.begins_with("판매")):
-			out = "미완성 병영의 팝업 버튼: %s" % [t]
+			out = "미완성 작업장의 팝업 버튼: %s" % [t]
 	if out == "":
 		var g: int = b.gold
 		_press(main.hud.popup, "이어 짓기")
@@ -2623,34 +2625,35 @@ func ev418():
 		_frame(main)
 		var g: int = b.gold
 		_press(main.hud.popup, "취소")
-		out = check(b.structure_at(half[1].cell) == null and b.gold == g + half[1].paid, "«취소» 뒤 병영 %s · 골드 %d → %d(건설비 %d)" % [b.structure_at(half[1].cell), g, b.gold, half[1].paid])
+		out = check(b.structure_at(half[1].cell) == null and b.gold == g + half[1].paid, "«취소» 뒤 작업장 %s · 골드 %d → %d(건설비 %d)" % [b.structure_at(half[1].cell), g, b.gold, half[1].paid])
 	_done(main)
 	return out
 
-# EV423 · I20: 준비 단계 실시간 게임 장면의 준비 단계에도 완성된 병영 팝업의 구매 버튼과 건설 격자 용병 칸으로 산다
+# EV423 · I20: 준비 단계 실시간 게임 장면의 준비 단계에도 완성된 생산 시설(작업장) 팝업의 구매 버튼으로 사고, 건설 격자 병사 칸으로 거점에서 산다(S98 2026-11-12 변경)
 func ev423():
 	var main = _live_prep()
 	var b = main.view.battle
 	var c = main.controls
-	var f = b.build("barracks", _near(b, "barracks", Vector2i(26, 32)))
+	var engineers := func(): return b.units.filter(func(u): return u.kind == "engineer").size()
+	var f = b.build("workshop", _near(b, "workshop", Vector2i(26, 32)))
 	var out := ""
 	if f == null or not run(b, 30.0, func(): return f.complete):
-		out = "준비 단계 병영이 30초 안에 완성되지 않았다(%s)" % f
+		out = "준비 단계 작업장이 30초 안에 완성되지 않았다(%s)" % f
 	if out == "":
 		click(c, MOUSE_BUTTON_LEFT, px(f.cell))
 		_frame(main)
-		var buy = _starts(main.hud.popup, "병사")
-		var n := _soldiers(b)
-		if buy:
+		var buy = _starts(main.hud.popup, "공병")
+		var n: int = engineers.call()
+		if buy and not buy.text.begins_with("공병 강화"):
 			buy.pressed.emit()
-		var m = b.units.filter(func(u): return u.kind == "soldier").back() if _soldiers(b) > 0 else null
-		if buy == null or _soldiers(b) != n + 1 or m.pos.distance_to(Vector2(f.cell)) > 1.5:
-			out = "병영 팝업 «병사» 버튼 %s · 용병 %d → %d · 나온 자리 %s(병영 %s)" % [buy, n, _soldiers(b), m.pos if m else null, f.cell]
+		var m = b.units.filter(func(u): return u.kind == "engineer").back() if engineers.call() > 0 else null
+		if buy == null or buy.text.begins_with("공병 강화") or engineers.call() != n + 1 or m.pos.distance_to(Vector2(f.cell)) > 1.5:
+			out = "작업장 팝업 «공병» 버튼 %s · 공병 %d → %d · 나온 자리 %s(작업장 %s)" % [buy.text if buy else null, n, engineers.call(), m.pos if m else null, f.cell]
 	if out == "":
 		var n := _soldiers(b)
 		main.hud.grid.cells.soldier.pressed.emit()
 		main.hud.grid.cells.soldier.pressed.emit()
-		out = check(c.placing == "" and _soldiers(b) > n, "건설 격자 용병 칸을 두 번 누른 뒤 놓기 모드 «%s» · 용병 %d → %d" % [c.placing, n, _soldiers(b)])
+		out = check(c.placing == "" and _soldiers(b) > n, "건설 격자 병사 칸을 두 번 누른 뒤 놓기 모드 «%s» · 병사 %d → %d" % [c.placing, n, _soldiers(b)])
 	_done(main)
 	return out
 
@@ -2681,7 +2684,7 @@ func ev425():
 			if n != 1 or count.call() != 2:
 				out = "공병 칸을 다시 누른 뒤 공병 %d(1이어야 한다) · 패널 공병 카드 뒤 %d(2여야 한다)" % [n, count.call()]
 	if out == "":
-		var to: Vector2i = _near(b, "barracks", Vector2i(26, 15))
+		var to: Vector2i = _near(b, "workshop", Vector2i(26, 15))
 		click(c, MOUSE_BUTTON_LEFT, px(b.base.cell))
 		click(c, MOUSE_BUTTON_RIGHT, px(to))
 		out = check(c.facility == b.base and b.base.rally == to, "거점을 누르고 %s 우클릭: 고른 시설 %s · 거점 집결 지점 %s" % [to, c.facility, b.base.rally])
@@ -3771,14 +3774,14 @@ func ev743():
 	var out := "" if b.get("POP_BASE") != null and per > 0 else "Battle.POP_BASE·house.tres pop 가운데 없는 것이 있다"
 	var f = null
 	if out == "":
-		f = b.build("barracks", Vector2i(6, 6))
-		out = check(f != null, "준비 단계에 마을 (6,6)에 병영을 짓지 못했다")
+		f = b.build("workshop", Vector2i(6, 6))  # 생산 시설은 작업장뿐이다(S98 2026-11-12 변경)
+		out = check(f != null, "준비 단계에 마을 (6,6)에 작업장을 짓지 못했다")
 	if out == "":
 		b.start_battle()
 		main.controls.facility = f
 		_frame(main)
-		var btn = _starts(main.hud.popup, "병사")
-		out = check(btn != null and not btn.disabled, "전투 단계 병영 팝업의 «병사» 구매 버튼 %s(켜져 있어야)" % [btn])
+		var btn = _starts(main.hud.popup, "공병")
+		out = check(btn != null and not btn.disabled, "전투 단계 작업장 팝업의 «공병» 구매 버튼 %s(켜져 있어야)" % [btn])
 		if out == "":
 			var n := 0
 			while n < 40 and b.recruit(f) != null:
@@ -3787,7 +3790,7 @@ func ev743():
 			var tip := _tip_of(main, btn)
 			var line := "✕ 인구 가득 — 집을 지으면 %d명 늘어난다" % per
 			out = check(n == b.POP_BASE and btn.disabled and line in tip,
-				"산 용병 %d(%d) · 버튼 꺼짐 %s · 툴팁 «%s»에 «%s»" % [n, b.POP_BASE, btn.disabled, tip, line])
+				"산 공병 %d(%d) · 버튼 꺼짐 %s · 툴팁 «%s»에 «%s»" % [n, b.POP_BASE, btn.disabled, tip, line])
 	_done(main)
 	return out
 
@@ -3803,7 +3806,7 @@ func _prep3():
 	_layout(main)
 	return main
 
-# EV789 · I108: 1·2·3 키는 출전 영웅 1·2·3을 고르고 놓기 모드를 켜지 않는다. F1·F2·F3은 영웅을 고르지 않는다. 전투 단계 3 키는 병영을 고르거나 용병을 사지 않는다
+# EV789 · I108: 1·2·3 키는 출전 영웅 1·2·3을 고르고 놓기 모드를 켜지 않는다. F1·F2·F3은 영웅을 고르지 않는다. 전투 단계 3 키는 병사를 파는 거점을 고르거나 병사를 사지 않는다
 func ev789():
 	var main = _prep3()
 	var b = main.view.battle
@@ -3823,18 +3826,17 @@ func ev789():
 		if not c.selected.is_empty():
 			out = "F1·F2·F3 뒤 고른 것 %s(비어 있어야 한다)" % [c.selected]
 	if out == "":
-		var f = b.build("barracks", Vector2i(6, 6))
 		b.start_battle()
 		_frame(main)
 		var n := _soldiers(b)
 		var gold: int = b.gold
 		_key(KEY_3)
-		if f == null or c.selected != [b.heroes[2]] or c.facility != null or _soldiers(b) != n or b.gold != gold:
-			out = "전투 단계 3 키: 병영 %s · 고른 것 %s · 고른 시설 %s · 용병 %d → %d · 골드 %d → %d(기대 셋째 영웅 하나·시설 없음·용병과 골드 그대로)" % [f, c.selected, c.facility, n, _soldiers(b), gold, b.gold]
+		if c.selected != [b.heroes[2]] or c.facility != null or c.village or _soldiers(b) != n or b.gold != gold:
+			out = "전투 단계 3 키: 고른 것 %s · 고른 시설 %s · 거점 고름 %s · 병사 %d → %d · 골드 %d → %d(기대 셋째 영웅 하나·시설 없음·병사와 골드 그대로)" % [c.selected, c.facility, c.village, n, _soldiers(b), gold, b.gold]
 	_done(main)
 	return out
 
-# EV790 · I108: 초상 키 글자는 1·2·3이고 «F»가 없다. 방벽·타워·용병 칸에는 단축키 글자가 없고, 다른 놓기 칸의 글자와 정보 칸 [키]는 그대로다
+# EV790 · I108: 초상 키 글자는 1·2·3이고 «F»가 없다. 방벽·타워·병사 칸에는 단축키 글자가 없고, 다른 놓기 칸의 글자와 정보 칸 [키]는 그대로다
 func ev790():
 	var main = _prep3()
 	var b = main.view.battle
@@ -3859,7 +3861,7 @@ func ev790():
 				out = "«%s» 칸 글 %s(기대 비용 «%s» 하나)" % [kind, said, g._costs[kind].text]
 				break
 	if out == "":
-		for pair in [["magic", "-"], ["barracks", "4"]]:
+		for pair in [["magic", "-"], ["workshop", "6"]]:  # 4(병영)는 비었다(S98 2026-11-12 변경)
 			var said: Array = g.cells[pair[0]].find_children("*", "Label", true, false).map(func(n): return n.text)
 			if not pair[1] in said:
 				out = "«%s» 칸 글 %s에 «%s»가 없다" % [pair[0], said, pair[1]]

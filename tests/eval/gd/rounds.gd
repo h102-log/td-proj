@@ -18,7 +18,7 @@ const T := Vector2i(12, 12)  # 성곽 맵의 들판 칸(타워)
 const W := Vector2i(20, 12)  # 성곽 맵의 들판 칸(방벽)
 const M := Vector2i(3, 15)  # 성곽 맵의 들판 칸(용병). 적의 길(15열)에서 멀다
 const H := Vector2i(20, 14)  # 성곽 맵의 영웅 시작 칸
-const BARRACKS := Vector2i(10, 3)  # 마을 칸
+const WORKSHOP := Vector2i(10, 3)  # 마을 칸
 const HOUSE := Vector2i(6, 3)
 const ONE := [{"kind": "basic", "count": 1}]
 const ONE_ONE := [[ONE], [ONE]]  # 라운드 2개, 라운드마다 적 1마리짜리 웨이브 하나
@@ -106,7 +106,7 @@ func _counts(waves: Array) -> Array:
 # EV159 · S63: 지은 구조물, 성곽 업그레이드, 마을 레벨이 다음 라운드로 그대로 이어진다
 func ev159():
 	var b = _castle()
-	var built := [b.build("tower", T), b.build("wall", W), b.build("barracks", BARRACKS), b.build("house", HOUSE)]
+	var built := [b.build("tower", T), b.build("wall", W), b.build("workshop", WORKSHOP), b.build("house", HOUSE)]
 	if built.has(null):
 		return "준비 단계에 짓지 못한 것이 있다(%s)" % [built]
 	var k = b.castle[TOP]

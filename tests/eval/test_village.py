@@ -1,12 +1,12 @@
-def test_EV110_barracks_does_not_sell_archer(gd):
+def test_EV110_workshop_sells_engineer_keep_sells_all(gd):
     gd("village", "EV110")
 
 
-def test_EV111_archery_locked_at_level_1(gd):
+def test_EV111_nothing_needs_level_2(gd):
     gd("village", "EV111")
 
 
-def test_EV112_raise_village_unlocks_archery(gd):
+def test_EV112_raise_village_costs_gold(gd):
     gd("village", "EV112")
 
 
@@ -22,7 +22,7 @@ def test_EV115_click_base_selects_village(gd):
     gd("village", "EV115")
 
 
-def test_EV116_prep_buy_needs_facility_in_village(gd):
+def test_EV116_prep_buy_from_keep_in_village(gd):
     gd("village", "EV116")
 
 
@@ -30,5 +30,9 @@ def test_EV117_prep_buy_without_village(gd):
     gd("village", "EV117")
 
 
-def test_EV118_key_9_builds_archery(gd):
+def test_EV118_keys_4_and_9_do_nothing(gd):
     gd("village", "EV118")
+
+
+def test_EV1103_no_barracks_or_archery(gd):
+    gd("village", "EV1103")
