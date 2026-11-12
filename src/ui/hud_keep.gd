@@ -1,8 +1,9 @@
 extends Panel  # 컨테이너가 아니라 자식을 좌표로 바로 놓는다(hud_build·hud_select와 같다)
 # 거점 패널(S365, I298): 거점을 고르면(controls.village) 준비·전투 단계에 화면 아래 [92,262,216,98]에 뜬다. G로 열고 닫는다(controls).
-# 위에서부터 머리 줄(거점·인구·마을 레벨·원정 / 전투 중 집결), 탭 줄(근접·원거리·지원), 카드 다섯, 카드 아래 강화 띠, 안내 줄이다.
+# 위에서부터 머리 줄(거점·인구·«↶»·마을 레벨·원정 / 전투 중 집결), 탭 줄(근접·원거리·지원·최근 산 3종), 카드 다섯, 카드 아래 강화 띠, 안내 줄이다.
 # 탭마다 TABS 목록 차례로 거점이 파는 종류만 앞 칸부터 놓고 남은 칸은 빈 채로 자리를 지킨다. 카드를 누르면 한 명, Shift+누르면 BATCH명까지 산다.
-# 카드·강화 띠에 마우스를 올리면 패널 바로 위에 설명 상자가 뜬다. 보이기와 글은 hud._process가 부르는 refresh가 정한다
+# 준비 단계의 «↶»는 이번 준비 단계에 패널에서 산 것을 나중 것부터 무른다(S367). 최근 칸 셋은 패널에서 산 최근 세 종류를 다시 산다(S368).
+# 카드·강화 띠·최근 칸에 마우스를 올리면 패널 바로 위에 설명 상자가 뜬다. 보이기와 글은 hud._process가 부르는 refresh가 정한다
 
 const HudTheme := preload("res://src/ui/hud_theme.gd")
 const HudBuild := preload("res://src/ui/hud_build.gd")
@@ -34,6 +35,10 @@ const ICONS := {
 	"plus": ["..###..", "..###..", "#######", "#######", "#######", "..###..", "..###.."]}
 const TORCH := [".o.o.", "oyyyo", ".oyo.", "..#..", "..#..", "..#..", "..#.."]
 const SLASH := [".......#", "......#.", ".....#..", "....#...", "...#....", "..#.....", ".#......", "#......."]  # 모자란 값 동전의 빗금(I298 ②)
+const UNDO := ["..#....", ".##....", "######.", ".##...#", "..#...#", "......#", "..####."]  # «↶» 휘어 돌아가는 화살(I299 ①). 글꼴에 ↶ 글자가 없어 그림으로 그린다
+const TAB_W := 48  # 탭 버튼 폭(I299 ③). 간격 2
+const RECENT := 3  # 최근 산 종류 칸 수(S368 임시값)
+const CELL := 12  # 머리 줄 «↶»·최근 칸 한 변(누르는 칸 최소 12)
 
 var hud
 var battle
@@ -52,6 +57,12 @@ var strips := []
 var village: Button
 var raid: Button
 var rally: Button
+var undo: Button  # 준비 단계 머리 줄 «↶»(S367)
+var undos := []  # 무를 목록: 패널 구매마다 [종류, 산 용병들](I299 ②). 판이 준비 단계가 아니면 비운다
+var recents := []  # 탭 줄 오른쪽 끝 최근 칸 셋(S368)
+var recent := []  # 최근 칸 셋의 종류(빈 칸 "")
+var recent_pics := []
+var tab_hint: Label  # 탭 줄 «Tab»
 var pop: Label
 var info := PanelContainer.new()  # 설명 상자(I298 ④)
 var _tab_names := []  # 탭 이름 Label
@@ -64,6 +75,8 @@ var _coins := []
 var _info := []  # 설명 상자 줄 Label: 머리·역할·수치·다음 강화·이유
 var _plus := {}  # 종류 → [보일 때까지(hud._now), 산 수](I298 ⑤)
 var _arm := -INF  # 원정 버튼을 한 번 누른 hud._now(I298 ⑦)
+var _last := {}  # 종류 → 패널에서 마지막으로 산 차례(_seq). 최근 칸이 가장 오래전에 산 칸을 고른다(S368)
+var _seq := 0
 
 func _init(h) -> void:
 	hud = h
@@ -77,10 +90,12 @@ func _ready() -> void:
 	_head()
 	for t in TABS.size():
 		_tab(t)
-	var hint := _label(self, "Tab", 7, HudTheme.ACCENT)
-	hint.position = Vector2(4 + TABS.size() * 52 + 2, 17)
-	hint.size = Vector2(20, 13)
-	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	tab_hint = _label(self, "Tab", 7, HudTheme.ACCENT)
+	tab_hint.position = Vector2(4 + TABS.size() * (TAB_W + 2) + 1, 17)
+	tab_hint.size = Vector2(14, 13)
+	tab_hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	for j in RECENT:
+		_recent_cell(j)
 	for i in SLOTS:
 		_card(i)
 	var foot := _label(self, "클릭 1명 · Shift+클릭 5명 · 마우스 올리면 설명", 7, HudTheme.DIM)
@@ -118,12 +133,18 @@ func _head() -> void:
 	key.size = Vector2(8, 13)
 	pop = _label(self, "", 8, HudTheme.TEXT)
 	pop.position = Vector2(48, 1)
-	pop.size = Vector2(44, 13)
+	pop.size = Vector2(40, 13)
 	hud.tip.add(pop_cell(), func(): return ["인구", "", "", hud._pop_line(), ""])
-	village = _head_button(Vector2(92, 2), Vector2(60, 12), HudBuild.dots(hud.UP, {"#": HudTheme.ACCENT}), HudTheme.LINE)
+	undo = _head_button(Vector2(90, 2), Vector2(CELL, CELL), HudBuild.dots(UNDO, {"#": HudTheme.TEXT}), HudTheme.LINE)
+	undo.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	for st in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
+		undo.get_theme_stylebox(st).content_margin_left = 0
+	undo.pressed.connect(undo_last)
+	hud.tip.add(undo, _undo_tip)
+	village = _head_button(Vector2(104, 2), Vector2(54, 12), HudBuild.dots(hud.UP, {"#": HudTheme.ACCENT}), HudTheme.LINE)
 	village.pressed.connect(func(): battle.raise_village())
 	hud.tip.add(village, func(): return ["마을 레벨 올리기", "", "", hud._opens, "✕ " + _gold_short(_village_cost()) if battle.gold < _village_cost() else ""])
-	raid = _head_button(Vector2(154, 2), Vector2(58, 12), HudBuild.dots(TORCH, {"#": Color("8a6a4a"), "o": HudTheme.DANGER, "y": HudTheme.ACCENT}), TORCH_EDGE)
+	raid = _head_button(Vector2(160, 2), Vector2(52, 12), HudBuild.dots(TORCH, {"#": Color("8a6a4a"), "o": HudTheme.DANGER, "y": HudTheme.ACCENT}), TORCH_EDGE)
 	raid.pressed.connect(_raid_press)
 	hud.tip.add(raid, _raid_tip)
 	rally = _head_button(Vector2(132, 2), Vector2(80, 12), HudBuild.dots(hud.FLAG, {"|": HudTheme.TEXT, "#": Color("3c9f9c")}), HudTheme.LINE)
@@ -155,17 +176,17 @@ func _head_button(at: Vector2, sz: Vector2, pic: Texture2D, line: Color) -> Butt
 		s.set_content_margin_all(0)
 		s.content_margin_left = 3
 		b.add_theme_stylebox_override(st[0], s)
+	add_child(b)  # 트리에 붙인 뒤 크기를 준다. 붙이기 전에는 기본 글꼴로 잰 최소 크기로 늘어난다
 	b.position = at
 	b.size = sz
-	add_child(b)
 	return b
 
 func _tab(t: int) -> void:
 	var b := Button.new()
 	b.toggle_mode = true
 	b.focus_mode = Control.FOCUS_NONE
-	b.position = Vector2(4 + t * 52, 17)
-	b.size = Vector2(50, 13)
+	b.position = Vector2(4 + t * (TAB_W + 2), 17)
+	b.size = Vector2(TAB_W, 13)
 	var off := StyleBoxFlat.new()
 	off.bg_color = HudTheme.CELL
 	off.border_color = HudTheme.LINE
@@ -189,17 +210,17 @@ func _tab(t: int) -> void:
 	b.add_child(pic)
 	var name := _label(b, TABS[t][0], 8, HudTheme.TEXT)
 	name.position = Vector2(12, 0)
-	name.size = Vector2(30, 13)
+	name.size = Vector2(TAB_W - 20, 13)
 	name.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	var count := _label(b, "", 7, HudTheme.DIM)
 	count.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	count.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	count.position = Vector2(41, 0)
+	count.position = Vector2(TAB_W - 9, 0)
 	count.size = Vector2(7, 13)
 	var line := ColorRect.new()
 	line.color = HudTheme.ACCENT
 	line.position = Vector2(1, 11)
-	line.size = Vector2(48, 1)
+	line.size = Vector2(TAB_W - 2, 1)
 	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	b.add_child(line)
 	tabs.append(b)
@@ -287,10 +308,10 @@ func _card(i: int) -> void:
 	strip.add_theme_constant_override("h_separation", 2)
 	strip.add_theme_font_size_override("font_size", 7)
 	strip.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	strip.pressed.connect(func(): rank(i))
+	add_child(strip)  # 머리 줄 버튼처럼 붙인 뒤 크기를 준다
 	strip.position = Vector2(4 + i * STEP, 32 + CARD.y + 1)
 	strip.size = Vector2(CARD.x, 12)
-	strip.pressed.connect(func(): rank(i))
-	add_child(strip)
 	cards.append(b)
 	names.append(name)
 	pics.append(pic)
@@ -303,6 +324,43 @@ func _card(i: int) -> void:
 	plus.append(got)
 	strips.append(strip)
 	kinds.append("")
+
+# 탭 줄 오른쪽 끝 최근 칸 하나(S368, I299 ③): 셋째 칸 오른쪽 끝이 카드 줄 오른쪽 끝(212)이다. 누르면 한 명, Shift+누르면 BATCH명까지
+func _recent_cell(j: int) -> void:
+	var b := Button.new()
+	b.focus_mode = Control.FOCUS_NONE
+	b.position = Vector2(4 + SLOTS * STEP - 2 - (RECENT - j) * (CELL + 2) + 2, 17)
+	b.size = Vector2(CELL, CELL)
+	var on := StyleBoxFlat.new()
+	on.bg_color = HudTheme.CELL
+	on.border_color = HudTheme.LINE
+	on.set_border_width_all(1)
+	on.set_content_margin_all(0)
+	var hover := on.duplicate()
+	hover.bg_color = Color("2b2f3a")
+	hover.border_color = HudTheme.HOVER
+	var empty := on.duplicate()
+	empty.bg_color = EMPTY_BG
+	empty.border_color = EMPTY_LINE
+	for k in ["normal", "pressed", "focus"]:
+		b.add_theme_stylebox_override(k, on)
+	b.add_theme_stylebox_override("hover", hover)
+	b.add_theme_stylebox_override("hover_pressed", hover)
+	b.add_theme_stylebox_override("disabled", empty)
+	b.pressed.connect(func(): buy_kind(recent[j], 1))
+	b.gui_input.connect(func(e): _recent_input(e, j))
+	add_child(b)
+	var pic := TextureRect.new()
+	pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	pic.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	pic.position = Vector2(1, 1)
+	pic.size = Vector2(CELL - 2, CELL - 2)
+	pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(pic)
+	recents.append(b)
+	recent_pics.append(pic)
+	recent.append("")
 
 func _label(parent: Control, text: String, font: int, color: Color) -> Label:
 	var l := Label.new()
@@ -333,21 +391,73 @@ func _card_input(e: InputEvent, i: int) -> void:
 		buy(i, BATCH)
 		accept_event()
 
-# 칸 i의 종류를 거점에서 count명까지 산다. 한 번이라도 못 사면 멈춘다(I298 ③). 산 수를 «+n»과 전투 단계 토스트로 보인다(I298 ⑤)
+# 최근 칸도 카드처럼 Shift를 누른 왼쪽 버튼 누름은 BATCH명까지 산다(S368)
+func _recent_input(e: InputEvent, j: int) -> void:
+	if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT and e.pressed and e.shift_pressed:
+		buy_kind(recent[j], BATCH)
+		accept_event()
+
+# 칸 i의 종류를 산다(buy_kind)
 func buy(i: int, count: int) -> int:
-	var k: String = kinds[i] if i < kinds.size() else ""
+	return buy_kind(kinds[i] if i < kinds.size() else "", count)
+
+# 그 종류를 거점에서 count명까지 산다. 한 번이라도 못 사면 멈춘다(I298 ③). 산 수를 «+n»과 전투 단계 토스트로 보이고(I298 ⑤),
+# 최근 칸(S368)에 적고, 준비 단계면 무를 목록(S367)에 더한다
+func buy_kind(k: String, count: int) -> int:
 	if k == "":
 		return 0
-	var n := 0
+	var got := []
 	for j in count:
-		if battle.recruit(battle.base, k) == null:
+		var m = battle.recruit(battle.base, k)
+		if m == null:
 			break
-		n += 1
-	if n > 0:
-		_plus[k] = [hud._now + PLUS_SECS, n]
+		got.append(m)
+	if not got.is_empty():
+		_plus[k] = [hud._now + PLUS_SECS, got.size()]
 		if battle.state == "battle":
-			hud.toasts.push("%s +%d → 집결 지점" % [hud.NAMES[k], n])
-	return n
+			hud.toasts.push("%s +%d → 집결 지점" % [hud.NAMES[k], got.size()])
+		elif battle.state == "prep":
+			undos.append([k, got])
+		_note(k)
+	return got.size()
+
+# 최근 칸에 산 종류를 적는다(S368): 칸에 있으면 그대로, 없으면 빈 칸(왼쪽부터)이나 가장 오래전에 산 종류의 칸에
+func _note(k: String) -> void:
+	_seq += 1
+	_last[k] = _seq
+	if k in recent:
+		return
+	var j: int = recent.find("")
+	if j < 0:
+		j = 0
+		for i in recent.size():
+			if _last.get(recent[i], 0) < _last.get(recent[j], 0):
+				j = i
+	recent[j] = k
+
+# 무를 목록의 마지막 구매 가운데 아직 남은 용병이 있는 것: [종류, 남은 용병들]. 없으면 []
+func _undo_left() -> Array:
+	for i in range(undos.size() - 1, -1, -1):
+		var left: Array = undos[i][1].filter(func(u): return u.alive and u in battle.units)
+		if not left.is_empty():
+			return [undos[i][0], left]
+	return []
+
+# «↶»(S367): 남은 용병이 있는 마지막 구매를 판매 규칙 그대로 판다(battle.sell, S69). 남은 것이 없는 구매는 건너뛰고 뺀다
+func undo_last() -> void:
+	while not undos.is_empty():
+		var e: Array = undos.pop_back()
+		var left: Array = e[1].filter(func(u): return u.alive and u in battle.units)
+		if not left.is_empty():
+			battle.sell(left)
+			return
+
+func _undo_tip() -> Array:
+	var e := _undo_left()
+	if e.is_empty():
+		return ["구매 되돌리기", "", "", "준비 단계에 거점 패널에서 산 것을 나중 것부터 무른다", "✕ 무를 구매가 없다"]
+	var back: int = e[1].reduce(func(n, u): return n + battle.refund(u), 0)
+	return ["구매 되돌리기", "", "", "직전 구매를 무른다\n%s ×%d · %d골드 돌려받음" % [hud.NAMES[e[0]], e[1].size(), back], ""]
 
 # 칸 i 종류를 한 단계 강화한다(S254). 준비 단계가 아니거나 최대·골드 모자람이면 battle이 거부한다
 func rank(i: int) -> void:
@@ -421,6 +531,8 @@ func stat_line(k: String) -> String:
 	return " · ".join(parts)
 
 func refresh(delta: float) -> void:
+	if battle.state != "prep":  # 무를 목록은 이번 준비 단계 것만(S367)
+		undos.clear()
 	visible = controls.village and battle.state in ["prep", "battle"] and not controls.shop
 	if not visible:
 		_arm = -INF
@@ -431,10 +543,13 @@ func refresh(delta: float) -> void:
 	var full: bool = battle.pop_used() >= battle.pop_cap()
 	pop.text = "인구 %d/%d" % [battle.pop_used(), battle.pop_cap()]
 	pop.add_theme_color_override("font_color", HudTheme.DANGER if full else HudTheme.TEXT)
+	undo.visible = prep
+	undo.disabled = _undo_left().is_empty()
 	village.visible = prep and battle.village_level <= battle.VILLAGE_UP.size()
 	if village.visible:
 		village.text = tr("마을 Lv%d %d") % [battle.village_level + 1, _village_cost()]
 		village.add_theme_color_override("font_color", cost_color(battle.gold, _village_cost()))
+		village.add_theme_font_size_override("font_size", _fit_button(village))
 	raid.visible = prep and not battle.den.is_empty()
 	if raid.visible:
 		var f: String = battle.next_floor()
@@ -442,6 +557,7 @@ func refresh(delta: float) -> void:
 		raid.text = "원정?" if _armed() and not raid.disabled else tr("원정 %d층") % (battle.floors_cleared + 1) if f != "" else "원정"
 		for c in ["font_color", "font_hover_color"]:
 			raid.add_theme_color_override(c, HudTheme.DANGER if raid.text == "원정?" else HudTheme.TEXT)
+		raid.add_theme_font_size_override("font_size", _fit_button(raid))
 	rally.visible = battle.state == "battle"
 	rally.text = "집결"
 	rally.button_pressed = controls.rallying
@@ -450,14 +566,25 @@ func refresh(delta: float) -> void:
 		tabs[i].button_pressed = i == t
 		_tab_lines[i].visible = i == t
 		_tab_names[i].add_theme_color_override("font_color", HudTheme.TEXT if i == t else HudTheme.DIM)
-		_tab_names[i].add_theme_font_size_override("font_size", _fit(_tab_names[i], TABS[i][0], 8, 30.0))  # 영어 «Support»처럼 넘치면 한 단계 작게(S193)
+		_tab_names[i].add_theme_font_size_override("font_size", _fit(_tab_names[i], TABS[i][0], 8, TAB_W - 20.0))  # 영어 «Support»처럼 넘치면 한 단계 작게(S193)
 		_tab_icons[i].modulate = [Color("d8705a"), Color("6aa8e0"), HudTheme.GOOD][i] if i == t else HudTheme.DIM
 		_tab_counts[i].text = str(tab_kinds(i).filter(func(k): return k != "").size())
 	var now := tab_kinds(t)
 	for i in SLOTS:
 		kinds[i] = now[i]
 		_show_card(i, prep, full)
+	for j in RECENT:
+		_show_recent(j)
 	_show_info()
+
+# 최근 칸 하나(S368): 빈 칸은 꺼진 빈 칸, 지금 사지 못하면(I298 ④ 이유) 그림을 흐리게
+func _show_recent(j: int) -> void:
+	var k: String = recent[j]
+	recents[j].disabled = k == ""
+	recent_pics[j].visible = k != ""
+	if k != "":
+		recent_pics[j].texture = HudBuild.icon(k)
+		recent_pics[j].modulate.a = FADE if buy_reason(k) != "" else 1.0
 
 func _show_card(i: int, prep: bool, full: bool) -> void:
 	var k: String = kinds[i]
@@ -512,18 +639,22 @@ func _show_card(i: int, prep: bool, full: bool) -> void:
 func _fit(l: Label, text: String, px: int, w: float) -> int:
 	return px if l.get_theme_font("font").get_string_size(tr(text), HORIZONTAL_ALIGNMENT_LEFT, -1, px).x <= w else px - 1
 
-# 마우스를 올린 카드·강화 띠의 설명 상자(I298 ④): 패널 바로 위, 지연 없이
+# 머리 줄 버튼 글자 크기(I299 ①): 그림 자리(왼쪽 여백 3 + 그림 7 + 사이 2)를 뺀 폭에 들면 7, 아니면 6
+func _fit_button(b: Button) -> int:
+	return 7 if b.get_theme_font("font").get_string_size(tr(b.text), HORIZONTAL_ALIGNMENT_LEFT, -1, 7).x <= b.size.x - 12 else 6
+
+# 마우스를 올린 카드·강화 띠·최근 칸(S368)의 설명 상자(I298 ④): 패널 바로 위, 지연 없이
 func _show_info() -> void:
 	var hov := get_viewport().gui_get_hovered_control()
-	var i: int = cards.find(hov)
-	var on_strip := false
-	if i < 0:
-		i = strips.find(hov)
-		on_strip = i >= 0
-	if i < 0 or kinds[i] == "":
+	var k := ""
+	var on_strip := strips.has(hov)
+	if cards.has(hov) or on_strip:
+		k = kinds[maxi(cards.find(hov), strips.find(hov))]
+	elif recents.has(hov):
+		k = recent[recents.find(hov)]
+	if k == "":
 		info.visible = false
 		return
-	var k: String = kinds[i]
 	var d: Dictionary = battle.MERC_KINDS[k]
 	var r: int = battle.merc_rank.get(k, 0)
 	var n: int = battle.units.filter(func(u): return u.kind == k and u.alive).size()

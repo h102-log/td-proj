@@ -18,7 +18,7 @@ extends CanvasLayer
 # 준비 단계 왼쪽 아래에 처음 하는 사람 힌트를 둔다(S191, hints.gd)
 # 준비·전투 단계 왼쪽 아래 구석에 미니맵을 둔다(S209, hud_minimap.gd)
 
-const NAMES := {"wall": "방벽", "tower": "타워", "magic": "마법 타워", "soldier": "용병", "barracks": "병영", "engineer": "공병", "workshop": "작업장", "archer": "궁수", "cannon": "대포", "archery": "사격장", "house": "집", "church": "교회", "shelter": "대피소",
+const NAMES := {"wall": "방벽", "tower": "타워", "magic": "마법 타워", "soldier": "병사", "barracks": "병영", "engineer": "공병", "workshop": "작업장", "archer": "궁수", "cannon": "대포", "archery": "사격장", "house": "집", "church": "교회", "shelter": "대피소",
 	"shieldman": "방패병", "fire_mage": "불마법사", "thunder_mage": "번개마법사", "spearman": "창병", "frost_mage": "얼음 마법사", "cleric": "사제", "cavalry": "기병", "netter": "그물 사수"}  # 새 용병 여덟(S356)
 const HEROES := {"aias": "아이아스(탱커)", "sylvia": "실비아(원거리)", "seraphina": "세라피나(힐러)", "vesper": "베스퍼(디버퍼)", "ignis": "이그니스(마법사)", "chronos": "크로노스(제어형)"}  # 이름(역할), S97·S157
 const GRADES := ["1성", "2성", "3성"]  # S94

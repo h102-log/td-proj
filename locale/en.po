@@ -2055,3 +2055,24 @@ msgstr "Next upgrade %dg: %s"
 
 msgid "집결 지점: 좌클릭 · 끝: 우클릭·ESC"
 msgstr "Rally point: LMB · Done: RMB/ESC"
+
+# ── 거점 패널 묶음 ②(src/ui/hud_keep.gd, S366·S367·S368·I299) ──
+
+msgid "병사"
+msgstr "Soldier"
+
+msgid "구매 되돌리기"
+msgstr "Undo purchase"
+
+msgid "준비 단계에 거점 패널에서 산 것을 나중 것부터 무른다"
+msgstr "Undoes keep panel purchases this prep phase, latest first"
+
+msgid "직전 구매를 무른다\n%s ×%d · %d골드 돌려받음"
+msgstr "Undo the last purchase\n%s ×%d · %d gold back"
+
+msgid "무를 구매가 없다"
+msgstr "Nothing to undo"
+
+# 이유 줄 앞의 «✕ »(툴팁·설명 상자). 뒤 글은 다시 번역한다
+msgid "✕ %s"
+msgstr "✕ %s"
