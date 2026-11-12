@@ -14,7 +14,7 @@ extends RefCounted
 # ESC: 조준·놓기·옮기기가 없으면 맵 팝업과 패널의 적을 닫는다(S183, S206). 고른 유닛은 풀지 않는다(S204)
 # 1·2·3: 출전 영웅 1·2·3을 고른다. F1·F2·F3은 영웅을 고르지 않는다(I108 2026-11-06 변경)
 # Space: 고른 출전 영웅이, 없으면 살아 있는 첫 영웅이 커서 쪽으로 대시한다(S315, I261). 전투 단계에만 된다
-# - 마법 타워(S110) · 4 병영 · 5 공병 · 6 작업장 · 7 궁수(I71) · 8 대포(S92) · 9 사격장(S98) · 0 집(S103) · = 교회(I140) · \ 대피소(S226): 놓기 모드(방벽·타워·용병은 키 없이 건설 격자 칸으로, I108 2026-11-06 변경). 그동안 좌클릭은 그 칸에 짓거나 놓고, 우클릭·ESC·같은 키는 모드를 끝낸다(사용자 2026-10-12, S186)
+# - 마법 타워(S110) · 5 공병 · 6 작업장 · 7 궁수(I71) · 8 대포(S92) · 0 집(S103) · = 교회(I140) · \ 대피소(S226): 놓기 모드(방벽·타워·용병은 키 없이 건설 격자 칸으로, I108 2026-11-06 변경). 그동안 좌클릭은 그 칸에 짓거나 놓고, 우클릭·ESC·같은 키는 모드를 끝낸다(사용자 2026-10-12, S186)
 # 전투 단계엔 구조물만 짓는다(공병이 가서 짓는다, S22). 단계가 바뀌면 모드가 끝난다
 # 옮길 대포(moving)가 있으면 다음 좌클릭한 칸으로 옮기고(S91), 우클릭·ESC·단계 변경은 옮기기를 그만둔다
 # 결과 창(라운드 사이·도전 끝)과 도전 시작 전 영입 창이 떠 있는 동안에는 아무 입력도 받지 않는다(S117, I109)
@@ -25,7 +25,7 @@ const BODY := Rect2(-0.5, -0.9, 1.0, 1.25)  # 좌클릭으로 유닛을 고르�
 const BattleView := preload("res://src/ui/battle_view.gd")
 const HudKeep := preload("res://src/ui/hud_keep.gd")
 const SKILL_KEYS := {KEY_Q: "q", KEY_W: "w", KEY_E: "e", KEY_R: "r"}  # 영웅 스킬 칸(S145)
-const PLACE_KEYS := {KEY_MINUS: "magic", KEY_4: "barracks", KEY_5: "engineer", KEY_6: "workshop", KEY_7: "archer", KEY_8: "cannon", KEY_9: "archery", KEY_0: "house", KEY_EQUAL: "church", KEY_BACKSLASH: "shelter"}
+const PLACE_KEYS := {KEY_MINUS: "magic", KEY_5: "engineer", KEY_6: "workshop", KEY_7: "archer", KEY_8: "cannon", KEY_0: "house", KEY_EQUAL: "church", KEY_BACKSLASH: "shelter"}  # 4·9(병영·사격장)는 비었다(S98 2026-11-12 변경)
 
 signal hero_key(i: int)  # 출전 영웅 i를 1·2·3 키나 초상으로 골랐다. HUD가 두 번 누름을 잰다(I165)
 signal skill_keyed(h, slot: String)  # Q·W·E·R 키(shift 없이). HUD가 못 쓰는 칸이면 번쩍임과 토스트로 알린다(I151)
@@ -322,6 +322,8 @@ func merc_key(kind: String, next := false) -> void:
 	if sellers.is_empty():
 		return
 	if facility in sellers and not next:
+		if facility == battle.base and HudKeep.tab_of(kind) >= 0:  # 거점은 여러 종류를 팔아 키마다 같은 시설이다. 산 종류의 카드(«+n»)가 보이게 그 탭으로(S98 2026-11-12 변경)
+			keep_tab = HudKeep.tab_of(kind)
 		battle.recruit(facility, kind)
 		return
 	var f = sellers[(sellers.find(facility) + 1) % sellers.size()]

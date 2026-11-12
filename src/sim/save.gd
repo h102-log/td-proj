@@ -64,7 +64,15 @@ static func apply(b, d: Dictionary) -> void:
 	for k in ["castle", "rubble", "structures"]:
 		b.get(k).clear()
 		for f in d[k]:
-			b.get(k)[f.cell] = _block(f)
+			var o = _block(f)
+			if k == "structures" and o.kind not in b.STRUCTURE_KINDS:  # 옛 저장의 병영·사격장(S98 2026-11-12 변경): 판 것처럼 골드를 돌려주고 판에 두지 않는다. 저장 판은 그대로
+				b.gold += b.refund(o)
+				continue
+			b.get(k)[f.cell] = o
+	for s in b.structures.values():  # 옛 저장에서 활 장인을 맡았던 주민은 원래 직업으로 돌아간다(S98 2026-11-12 변경)
+		for m in s.folk:
+			if m.has("craft") and m.craft not in b.FACILITY_JOBS.values():
+				m.erase("craft")
 	for pair in [[b.structures, b.footprint], [b.castle, b.walls], [b.rubble, b.debris]]:  # 차지 칸(S216·S217)은 Block에서 다시 편다
 		pair[1].clear()
 		for k in pair[0].values():
@@ -80,8 +88,9 @@ static func apply(b, d: Dictionary) -> void:
 			u.rally_from = b.structures.get(u.get_meta("rally_from"))
 			u.remove_meta("rally_from")
 		if u.has_meta("job"):
-			u.job = _job(b, u.get_meta("job")[0], u.get_meta("job")[1])
-			u.job.worker = u
+			u.job = _job(b, u.get_meta("job")[0], u.get_meta("job")[1])  # 판에서 뺀 병영·사격장을 짓던 공병은 일 없이 선다
+			if u.job:
+				u.job.worker = u
 			u.remove_meta("job")
 	b._census()  # 주민 몸은 구조물 folk에서 다시 만든다
 	b._forecast()

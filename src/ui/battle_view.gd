@@ -247,7 +247,7 @@ const PIXEL_FONT := preload("res://art/fonts/Galmuri7.ttf")  # 맵 위 숫자(S1
 const GROUND_TILES := preload("res://art/tiles/ground.png")  # 0행 풀↔흙 꼭짓점 16꼴, 1행 풀·흙 변종과 깃발, 2·3행 전환 꼴 변종(tools/art/tiles.py)
 const DECOR := preload("res://art/tiles/decor.png")  # 들판·마을 장식(S201·S202, tools/art/decor.py): 0행 16×16 바위 3·그루터기 2·구덩이 2·자갈 2·풀 2·풀꽃·우물, 1행 48×32 그을음 3, 2행 48×48 마른 나무 4, 3행 16×16 마당 소품(S215)
 const YARD_ROW := 96  # decor.png 3행(마당 소품)의 y: 텃밭 2·울타리 2·장작더미·목재 더미·톱밥·판석. 그림은 칸 왼쪽 위에 붙어 있다
-const YARDS := {"house": 0, "church": -4, "barracks": 10, "workshop": 0, "archery": 0}  # 터가 있는 시설(S215) → 터 가로 반지름에 더하는 px(yard_radius)
+const YARDS := {"house": 0, "church": -4, "workshop": 0}  # 터가 있는 시설(S215) → 터 가로 반지름에 더하는 px(yard_radius). 병영·사격장은 없어졌다(S98 2026-11-12 변경)
 # 다 지은 시설의 마당 소품(S215): 변형마다 [decor.png 3행 열, 구조물의 칸 왼쪽 위에서 본 그림 자리(px)]. 칸 x+y로 변형을 고른다.
 # 자리는 지금 크기(S216: 집 2×2·작업장 3×2·교회 2×3)에 맞춘 것이다. 크기를 바꾸면 다시 정한다
 const YARD_PROPS := {
@@ -4562,8 +4562,6 @@ static func bake_yard(b, s, under: Image) -> Array:
 	var center := (Vector2(r.position) + Vector2(r.size) / 2.0) * CELL + Vector2(0, 3)
 	var radius := yard_radius(s)
 	var blobs := [[center, radius]]
-	if s.kind == "archery":
-		blobs.append([center + Vector2(0, radius.y + 10), Vector2(8, 22)])  # 터 아래끝에서 아래로 난 밟힌 줄
 	var box := Rect2i(Vector2i(center), Vector2i.ZERO)
 	for bl in blobs:
 		box = box.merge(Rect2i(Vector2i(bl[0] - bl[1]) - Vector2i(8, 8), Vector2i(bl[1] * 2) + Vector2i(17, 17)))

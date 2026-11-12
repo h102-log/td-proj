@@ -1,5 +1,5 @@
 extends Panel  # 컨테이너가 아니라 자식을 정렬하지 않는다. 칸 자리는 좌표로 바로 정한다
-# 건설 격자(S186): 화면 오른쪽 아래 [510,288,130,72]에 놓기 칸 12개를 세 줄로 둔다. 칸이나 단축키를 누르면 놓기 모드를 켜고, 다시 누르면 끈다.
+# 건설 격자(S186): 화면 오른쪽 아래 [510,288,130,72]에 놓기 칸 11개를 세 줄로 둔다. 칸이나 단축키를 누르면 놓기 모드를 켜고, 다시 누르면 끈다.
 # 못 놓는 칸은 흐리게(0.35) 하고 이유는 정보 칸의 빨간 줄에 쓴다. 흐린 칸을 누르면 테두리가 번쩍이고,
 # 준비 단계에 마을 레벨로 잠긴 칸이면 거점을 골라 마을 레벨 팝업을 띄운다(I132).
 # 격자 위 정보 칸은 칸 호버 > 놓기 중 > 고른 구조물·성곽·거점을 보인다. 카메라가 맨 아래면 격자 왼쪽(선택 패널이 보이면 그 왼쪽)으로 옮긴다(S186).
@@ -7,7 +7,7 @@ extends Panel  # 컨테이너가 아니라 자식을 정렬하지 않는다. 칸
 
 const BattleView := preload("res://src/ui/battle_view.gd")
 const HudTheme := preload("res://src/ui/hud_theme.gd")
-const ROWS := [["wall", "tower", "magic", "cannon"], ["barracks", "workshop", "archery", "house", "church"], ["soldier", "engineer", "archer", "shelter"]]  # 용병은 파는 시설 바로 아래, 대피소는 집 아래(S186 2026-10-27 변경)
+const ROWS := [["wall", "tower", "magic", "cannon"], ["", "workshop", "", "house", "church"], ["soldier", "engineer", "archer", "shelter"]]  # «»는 칸 없이 자리만 지킨다(병영·사격장이 있던 자리, S98 2026-11-12 변경). 대피소는 집 아래(S186 2026-10-27 변경)
 const HEADS := ["공", "마", "용"]  # ponytail: 줄 머리는 한 글자 임시값. 전용 아이콘이 생기면 그림으로 바꾼다
 const PAD := 4  # 격자 안쪽 여백
 const HEAD := 12  # 줄 머리 폭
@@ -57,6 +57,8 @@ func _ready() -> void:
 		head.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		for col in ROWS[r].size():
 			var kind: String = ROWS[r][col]
+			if kind == "":
+				continue
 			cells[kind] = _cell(kind, costs[kind].cost, Vector2(PAD + HEAD + 2 + col * STEP, PAD + r * STEP))
 	var x := HBoxContainer.new()
 	x.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -258,10 +260,13 @@ func _lines(kind: String) -> Array:
 	if why == "" and battle.gold < d.cost:
 		why = "골드 %d 모자람" % (d.cost - battle.gold)
 	var about := "체력 %d · 적의 길을 막는다" % d.hp
-	if kind in battle.MERC_KINDS:
-		for s in battle.STRUCTURE_KINDS:
-			if kind in battle.STRUCTURE_KINDS[s].produces:
-				about = ("거점·%s에서 산다 · 체력 %d" if battle.base in battle.sellers(kind) else "%s에서 산다 · 체력 %d") % [hud.NAMES[s], d.hp]
+	if kind in battle.MERC_KINDS:  # 파는 곳: 그 용병을 파는 시설(지금은 공병의 작업장뿐)과 거점(S98 2026-11-12 변경). 파는 곳이 없는 판(마을 없음)은 체력만
+		var at: Array = battle.STRUCTURE_KINDS.keys().filter(func(s): return kind in battle.STRUCTURE_KINDS[s].produces)
+		var hq: bool = battle.base in battle.sellers(kind)
+		if not at.is_empty():
+			about = ("거점·%s에서 산다 · 체력 %d" if hq else "%s에서 산다 · 체력 %d") % [hud.NAMES[at[0]], d.hp]
+		else:
+			about = "%s에서 산다 · 체력 %d" % [THINGS.base, d.hp] if hq else "체력 %d" % d.hp
 	elif not d.produces.is_empty():
 		about = "마을 · %s를 판다" % ", ".join(d.produces.map(func(k): return hud.NAMES[k]))
 	elif d.tax > 0:

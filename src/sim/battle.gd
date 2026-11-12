@@ -42,10 +42,10 @@ const ROLE_JOBS := {
 	"elder": {"spinner": 40.0, "herbalist": 30.0, "midwife": 30.0},
 }
 const JOB_SEX := {"farmer": [1.0, 0.6], "fisher": [1.0, 0.5], "woodcutter": [1.0, 0.1], "carpenter": [1.0, 0.1], "mason": [1.0, 0.1], "porter": [1.0, 0.5],
-	"miller": [1.0, 0.2], "watchman": [1.0, 0.1], "blacksmith": [1.0, 0.1], "bowyer": [1.0, 0.2], "water_carrier": [0.5, 1.0], "washer": [0.1, 1.0],
+	"miller": [1.0, 0.2], "watchman": [1.0, 0.1], "blacksmith": [1.0, 0.1], "water_carrier": [0.5, 1.0], "washer": [0.1, 1.0],
 	"spinner": [0.1, 1.0], "brewer": [0.2, 1.0], "gleaner": [0.5, 1.0], "herbalist": [0.5, 1.0], "midwife": [0.05, 1.0]}  # 남·여 무게. 없으면 [1, 1]
-const UNIQUE_JOBS := ["priest", "blacksmith", "miller", "baker", "innkeeper", "watchman", "midwife", "bowyer"]  # 마을에 한 사람
-const FACILITY_JOBS := {"workshop": "blacksmith", "archery": "bowyer"}  # 그 시설을 다 지어야 생기는 고유 직업. 가장이 바뀌어 맡는다
+const UNIQUE_JOBS := ["priest", "blacksmith", "miller", "baker", "innkeeper", "watchman", "midwife"]  # 마을에 한 사람. 활 장인은 사격장과 함께 없어졌다(S98 2026-11-12 변경)
+const FACILITY_JOBS := {"workshop": "blacksmith"}  # 그 시설을 다 지어야 생기는 고유 직업. 가장이 바뀌어 맡는다
 const JOB_CAPS := {"fisher": 4, "merchant": 2}  # 물가 자리·좌판 수(I182)
 const TALLY_KEYS := ["base_hit", "castle_lost", "structure_lost", "merc_lost", "hero_down", "merc_bought", "built", "battle_time"]  # 라운드 집계의 키(I119)
 const SPAWN_GAP := 2.5  # 웨이브 안에서 적이 나오는 간격(초). 임시값: 1.0 → 0.9(2026-10-15 3장 자체 점검, 사용자 승인 2026-10-16 — insights/2026-10-15_ch3_self_check_balance.md §8) → 2.5(2026-10-21 5.1 판 길이, I91 — insights/2026-10-21_round_design.md)
@@ -55,7 +55,7 @@ const HERO_POSE := 0.3  # 영웅이 친 뒤 제자리에 서는 시간(초, S196
 const CONTACT := 0.08  # 걷기 명령을 받은 영웅이 다시 걷는 때(친 뒤 초, S196). 화면의 근접 공격이 닿는 때(battle_view CONTACT)와 같다. 원거리 유닛의 투사체가 나가는 때다(I174)
 const RANGED := 2.0  # 사거리가 이보다 큰 영웅·용병은 원거리다. 쏘는 구조물은 모두 원거리다(S178, I174)
 const MISSILES := {"archer": "arrow", "netter": "arrow", "sylvia": "arrow", "tower": "arrow", "cannon": "ball"}  # 원거리 기본 공격의 투사체(S178, S364). 나머지(마법 타워·마법 영웅·얼음 마법사)는 구슬(bolt)
-# 거점이 공병 다음에 파는 새 용병 여덟(S356, I294 ①). 거점 탭 UI(사용자 예정 작업)가 나오기 전의 임시 자리다
+# 거점이 공병·병사·궁수 다음에 파는 새 용병 여덟(S356). 거점 패널(S365)에서만 산다
 const HQ_MERCS := ["shieldman", "fire_mage", "thunder_mage", "spearman", "frost_mage", "cleric", "cavalry", "netter"]
 const SPEED := {"arrow": 15.0, "bolt": 10.0, "ball": 7.5}  # 투사체 속도(칸/초, S178)
 const FREE := ["tower", "cannon", "archer"]  # 논타겟팅 투사체를 쏘는 쪽(S178 2026-11-04 변경). 궁수는 명중하면 대상을 따라가고(_aim), 마법 타워와 원거리 영웅은 늘 따라간다
@@ -540,7 +540,7 @@ var raid_floor := {}  # 이번 원정의 층 정의(FLOOR_KINDS 값). 원정이 
 var _snap := {}  # 원정 직전 몸(I262 ④): 원정대 영웅 → 칸 사전, "tally" → 라운드 집계
 var _raid_end := ["", 0.0]  # 끝난 까닭("win"·"wipe"·"flame")과 돌아오기(처치)나 «다시» 기다림(전멸·불꽃, S331)까지 남은 초(I262 ⑥). 안 끝났으면 "". 끝났으면 셋째 칸이 그 순간의 보스 남은 체력 비율이다
 var merc_cap := MERC_CAP
-var village_level := 1  # 오를수록 지을 수 있는 생산 시설이 는다(S46, S99)
+var village_level := 1  # 마을 레벨(S46, S99). 지금 레벨 2가 여는 시설·용병은 없다(S98 2026-11-12 변경)
 var dark := 0.0  # 어둠(S210): 0 낮 ~ 1 한밤. 밤 웨이브의 전투 단계에 오르고, 전투가 끝나면 내린다. 저장에 담지 않는다(준비 단계는 낮)
 var wave_time := 0.0  # 이번 전투 단계가 시작된 뒤 흐른 시간(초). 밤 웨이브의 해 지는 때(at)를 잰다
 var people := []  # 주민 몸(Villager, Folk.folk_of 차례, S227). 주민이 바뀌면 _census가 다시 만든다
@@ -699,7 +699,7 @@ func restart() -> void:
 	for k in castle.values():
 		field_y = maxi(field_y, k.cell.y + 1)
 		_fort = _fort.merge(area_of(k))
-	base.produces = ["engineer"] + HQ_MERCS  # live_prep 판에서는 거점도 공병과 새 용병 여덟을 판다(S98 2026-10-25 변경, S356, sellers)
+	base.produces = ["engineer", "soldier", "archer"] + HQ_MERCS  # 마을이 있는 판의 거점은 용병 열한 종을 모두 판다(S98 2026-11-12 변경, S356, sellers)
 	var exit = _exit_of(base)
 	base.rally = exit if exit != null else base.cell
 	bag.clear()
@@ -1812,9 +1812,9 @@ func raise_village() -> bool:
 func can_buy(kind: String) -> bool:
 	return not village.has_area() or not sellers(kind).is_empty()
 
-# 그 용병을 파는 곳: 완성된 생산 시설(지은 차례)과, live_prep 판의 공병·새 용병 여덟이면 맨 뒤에 거점(S98 2026-10-25 변경, S356)
+# 그 용병을 파는 곳: 완성된 생산 시설(지은 차례, 지금은 공병을 파는 작업장뿐)과, 마을이 있는 판이면 맨 뒤에 거점(S98 2026-11-12 변경, S356)
 func sellers(kind: String) -> Array:
-	return structures.values().filter(func(s): return s.complete and kind in s.produces) + ([base] if live_prep and kind in base.produces else [])
+	return structures.values().filter(func(s): return s.complete and kind in s.produces) + ([base] if village.has_area() and kind in base.produces else [])
 
 # 용병 종류의 수치: 데이터 사본에 산 강화 단계(S254)의 «키 → 값»을 1단계부터 차례로 덮은 것. MERC_KINDS는 고치지 않는다(I203)
 func merc_stats(kind: String) -> Dictionary:
@@ -3031,11 +3031,11 @@ func structure_at(cell: Vector2i):
 	return footprint.get(cell)
 
 # 전투 단계(live)에만, 생산 시설에서 용병 하나를 산다(S20, I21, I20). 시설 옆 칸에 나타나 집결 지점으로 걸어간다(I61)
-# live_prep 판의 거점은 공병을 파는 시설처럼 쓴다(S98 2026-10-25 변경)
+# 마을이 있는 판의 거점은 용병 열한 종을 파는 시설처럼 쓴다(S98 2026-11-12 변경)
 # kind를 비우면 시설의 첫째 용병이다(S87). 시설이 팔지 않는 종류거나, 골드가 모자라거나, 배치 상한에 닿았거나(S25, I23),
 # 시설이 파괴됐으면(S48) 거부한다
 func recruit(f, kind := ""):
-	if not live() or (structures.get(f.cell) != f and not (live_prep and f == base)) or f.produces.is_empty() or not f.complete:  # 미완성 시설은 생산하지 않는다(I18)
+	if not live() or (structures.get(f.cell) != f and not (village.has_area() and f == base)) or f.produces.is_empty() or not f.complete:  # 미완성 시설은 생산하지 않는다(I18)
 		return null
 	if kind == "":
 		kind = f.produces[0]
@@ -3402,7 +3402,7 @@ func _move_in(s: Block) -> void:
 	if s.tax <= 0:
 		if s.kind == "church" and not structures.values().any(func(c): return c.kind == "church" and not c.folk.is_empty()):
 			s.folk = [{"body": "man", "look": Folk.PRIEST_LOOK, "job": "priest", "n": 0}]
-		_staff()  # 다 지은 작업장·사격장에 일할 사람(S222)
+		_staff()  # 다 지은 작업장에 일할 사람(S222)
 		return
 	var g := _grown()
 	if not g.is_empty():

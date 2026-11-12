@@ -20,7 +20,7 @@ const EMPTY_LINE := Color("2a2e38")
 const PIP_OFF := Color("4a505c")
 const TAB_ON := Color("2f3440")
 const TORCH_EDGE := Color("c06a2a")  # 원정 버튼 테두리(사기 버튼과 가른다)
-# 탭 이름·그림·목록(S365). 목록 차례로 거점이 파는 종류만 놓는다(병사·궁수는 병영·사격장을 지우면 들어온다)
+# 탭 이름·그림·목록(S365). 목록 차례로 거점이 파는 종류만 놓는다(병사·궁수도 거점이 판다, S98 2026-11-12 변경)
 const TABS := [["근접", "sword", ["soldier", "shieldman", "spearman", "cavalry"]],
 	["원거리", "bow", ["archer", "netter", "fire_mage", "thunder_mage", "frost_mage"]],
 	["지원", "plus", ["engineer", "cleric"]]]
