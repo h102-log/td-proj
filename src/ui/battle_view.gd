@@ -29,11 +29,7 @@ const TWINS := [Color(1.45, 1.1, 0.4), Color(0.8, 0.95, 1.3)]  # 쌍둥이 트�
 const LOOKS := {"feather_harpy": ["flying", Color(0.75, 1.2, 1.7)], "dive_harpy": ["flying", Color(1.7, 1.0, 0.6)], "song_harpy": ["flying", Color(1.45, 0.85, 1.75)],
 	"storm_harpy": ["flying", Color(0.85, 1.65, 1.35)], "snatch_harpy": ["flying", Color(1.65, 1.5, 0.65)],
 	"nest_harpy": ["flying", Color(1.3, 1.6, 0.8)], "harpy_chick": ["flying", Color(1.8, 1.7, 1.6)],
-	"ogre_thrower": ["boss", Color(0.8, 1.2, 0.7)], "twin_troll": ["troll", TWINS],
-	# 새 용병 여덟(S355, I293 ⑧): 그림이 나오기 전까지 근접 셋은 병사, 나머지 다섯은 궁수 그림에 종류 색을 곱한다
-	"shieldman": ["soldier", Color(0.75, 0.95, 1.4)], "spearman": ["soldier", Color(1.3, 1.15, 0.7)], "cavalry": ["soldier", Color(1.35, 0.8, 0.6)],
-	"fire_mage": ["archer", Color(1.8, 0.75, 0.45)], "thunder_mage": ["archer", Color(1.25, 1.25, 1.9)], "frost_mage": ["archer", Color(0.7, 1.25, 1.9)],
-	"cleric": ["archer", Color(1.7, 1.6, 1.2)], "netter": ["archer", Color(1.05, 1.35, 0.85)]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288), 방패 고블린·불화살 고블린·둥지(I291)는 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)
+	"ogre_thrower": ["boss", Color(0.8, 1.2, 0.7)], "twin_troll": ["troll", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288), 방패 고블린·불화살 고블린·둥지(I291)와 새 용병 여덟(I296)은 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)
 const ALLY_TELL := Color("f8d070")  # 불마법사 예고 원(S357): 아군 금빛 테와 차오르는 엷은 채움. 적 예고(주황·빨강)와 가른다
 const ZAP := Color("bfe8ff")  # 번개마법사 번개 줄(S358)
 const ZAP_TIME := 0.25  # 번개 줄이 남는 시간(초)

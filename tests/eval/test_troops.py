@@ -48,3 +48,11 @@ def test_EV1081_cavalry_charges_and_knocks_aside(gd):
 
 def test_EV1082_netter_grounds_flyers_and_frees_carried(gd):
     gd("troops", "EV1082")
+
+
+def test_EV1083_new_merc_atlas_cells(gd):
+    gd("troops", "EV1083")
+
+
+def test_EV1084_new_mercs_draw_own_cells(gd):
+    gd("troops", "EV1084")

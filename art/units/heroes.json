@@ -334,6 +334,110 @@
   "idle": 4184,
   "head": 17
  },
+ "shieldman": {
+  "c": 28,
+  "anchor": [
+   14.0,
+   20
+  ],
+  "x": 788,
+  "idle": 0,
+  "walk": 112,
+  "attack": 224,
+  "fall": 448,
+  "head": 15
+ },
+ "fire_mage": {
+  "c": 30,
+  "anchor": [
+   15.0,
+   24
+  ],
+  "x": 788,
+  "idle": 504,
+  "walk": 624,
+  "attack": 744,
+  "fall": 984,
+  "head": 16
+ },
+ "thunder_mage": {
+  "c": 32,
+  "anchor": [
+   16.0,
+   25
+  ],
+  "x": 788,
+  "idle": 1044,
+  "walk": 1172,
+  "attack": 1300,
+  "fall": 1556,
+  "head": 16
+ },
+ "spearman": {
+  "c": 32,
+  "anchor": [
+   16.0,
+   25
+  ],
+  "x": 788,
+  "idle": 1620,
+  "walk": 1748,
+  "attack": 1876,
+  "fall": 2132,
+  "head": 16
+ },
+ "frost_mage": {
+  "c": 32,
+  "anchor": [
+   16.0,
+   25
+  ],
+  "x": 788,
+  "idle": 2196,
+  "walk": 2324,
+  "attack": 2452,
+  "fall": 2708,
+  "head": 16
+ },
+ "cleric": {
+  "c": 32,
+  "anchor": [
+   16.0,
+   25
+  ],
+  "x": 788,
+  "idle": 2772,
+  "walk": 2900,
+  "attack": 3028,
+  "fall": 3284,
+  "head": 16
+ },
+ "cavalry": {
+  "c": 40,
+  "anchor": [
+   20.0,
+   31
+  ],
+  "x": 788,
+  "idle": 3348,
+  "walk": 3508,
+  "attack": 3668,
+  "fall": 3988,
+  "head": 19
+ },
+ "netter": {
+  "c": 28,
+  "anchor": [
+   14.0,
+   19
+  ],
+  "x": 788,
+  "idle": 4068,
+  "walk": 4180,
+  "attack": 4292,
+  "fall": 4516,
+  "head": 19
+ },
  "slimelet": {
   "c": 14,
   "anchor": [

@@ -6,8 +6,21 @@ extends "res://tests/eval/gd/lib.gd"
 #   Battle.HQ_MERCS(거점이 공병 다음에 파는 종류) · Battle.effect(대상, 키) · Battle.regrows(적) · Battle.traces(흔적: slot·hero·aim·hits)
 #   Battle.missiles(날아가는 투사체: src·look) · Battle._flies(적) · Battle._pluck(하피, 든 것) · Battle._carried(유닛)
 # 적 kind는 기존 그대로: basic · flying · troll · chief(siege3.gd) · dive_harpy(sky.gd) · leap_wolf(wolf.gd) · snatch_harpy · wyvern
+# 그림(I296): res://art/units/heroes.json·heroes.png의 칸, 부위 시트 art/trial/<종류>/parts/idle_45_D_f24p_24.png, BattleView(_body·_region·ART·LOOKS)·HudBuild.icon
 
 const NEW := ["shieldman", "fire_mage", "thunder_mage", "spearman", "frost_mage", "cleric", "cavalry", "netter"]
+const ROWS4 := [0, 2, 4, 6]  # 8방향 시트에서 남·동·북·서 행(atlas.py FOUR_ROWS)
+const HELD := 5  # 부위 시트의 sword 부위 번호(1 + troops.py PARTS의 차례): 든 창·지팡이·구슬
+
+# 그림 한 장 그리기를 모으는 화면(sky.gd Rec과 같다)
+class Rec extends "res://src/ui/battle_view.gd":
+	var cuts := []  # [대상 사각형, 원본 사각형, 색]
+
+	func _region(_tex: Texture2D, dst: Rect2, src: Rect2, tint: Color) -> void:
+		cuts.append([dst, src, tint])
+
+	func _shadow(_at: Vector2, _r: float) -> void:
+		pass
 const DUMMY := {"hp": BIG, "speed": 0.0, "damage": 0.0, "sight": 0.0}  # 움직이지도 치지도 않는 적(체력 큼)
 const STILL := {"hp": BIG, "speed": 0.0, "damage": 0.0}  # 움직이지도 치지도 않는 대장(siege3.gd와 같다)
 
@@ -449,3 +462,129 @@ func ev1082():
 	var skip: bool = d.effect(boss, "seal") == null and d.effect(other, "seal") == true
 	return check(netted and freed and first and skip,
 		"그물: 봉인·내려앉음·대기 6 %s · 3초 뒤 풀려 다시 낢(그물 대기 3초 남음) %s · 든 하피 먼저·병사 내려놓음 %s · 보스 건너뛰고 다른 하피 %s" % [netted, freed, first, skip])
+
+# 칸 a의 이름 자세 s가 차지하는 아틀라스 사각형(4방향 시트, 공격·쓰러짐 2배 칸, 걷기 2열, 쓰러짐 1행)
+func _sheet_rect(a: Dictionary, s: String) -> Rect2i:
+	var c := int(a.c)
+	var n := c * (2 if s in ["attack", "fall"] else 1)
+	return Rect2i(int(a.x), int(a[s]), n * (2 if s == "walk" else 1), n * (1 if s == "fall" or a.get("one", false) else 4))
+
+# EV1083 · I296: 여덟은 heroes.json에 제 칸(x, 정지·걷기·공격·누운 자세)이 있고 모든 칸에 그림이 있다. 한 열에 S355 표 차례로 쌓이고 다른 칸과 겹치지 않는다.
+# 몸의 높이는 든 것(sword 부위)을 뺀 정지 그림의 가장 높은 줄로 잰다
+func ev1083():
+	var art: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art/units/heroes.json"))
+	var img: Image = load("res://art/units/heroes.png").get_image()
+	var whole := Rect2i(Vector2i.ZERO, img.get_size())
+	var bad := []
+	var mine := []  # [이름, 사각형]
+	for k in NEW:
+		if not art.has(k):
+			return "heroes.json에 %s 칸이 없다" % k
+		var a: Dictionary = art[k]
+		var missing: Array = ["idle", "walk", "attack", "fall"].filter(func(s): return not a.has(s))
+		if not a.has("x") or a.get("one", false) or not missing.is_empty():
+			bad.append("%s 칸 x %s · one %s(없어야 한다) · 없는 자세 %s" % [k, a.get("x"), a.get("one"), missing])
+			continue
+		for s in ["idle", "walk", "attack", "fall"]:
+			var r := _sheet_rect(a, s)
+			mine.append(["%s %s" % [k, s], r])
+			var c := int(a.c)
+			var n := c * (2 if s in ["attack", "fall"] else 1)
+			for row in (1 if s == "fall" else 4):
+				for col in (2 if s == "walk" else 1):
+					var cell := Rect2i(r.position + Vector2i(col * n, row * n), Vector2i(n, n))
+					if not whole.encloses(cell):
+						bad.append("%s %s %d행 %d열 %s가 그림 밖" % [k, s, row, col, cell])
+					elif img.get_region(cell).is_invisible():
+						bad.append("%s %s %d행 %d열 빈 칸" % [k, s, row, col])
+		var sheet := Image.load_from_file(ProjectSettings.globalize_path("res://art/trial/%s/idle_45_D_f24p_24.png" % k))
+		var part := Image.load_from_file(ProjectSettings.globalize_path("res://art/trial/%s/parts/idle_45_D_f24p_24.png" % k))
+		if sheet == null or part == null:
+			bad.append("%s 정지 시트나 부위 시트가 없다" % k)
+			continue
+		var c := int(a.c)
+		var top := c
+		for r in ROWS4:
+			for y in c:
+				var hit := false
+				for x in c:
+					var v := int(round(part.get_pixel(x, r * c + y).r * 255.0))
+					if sheet.get_pixel(x, r * c + y).a > 0.0 and v != 0 and v != HELD:
+						hit = true
+						break
+				if hit:
+					top = mini(top, y)
+					break
+		if not a.has("head") or int(a.head) != int(a.anchor[1]) - maxi(0, top - 3):
+			bad.append("%s head %s(기준점 y %d − max(0, 든 것을 뺀 맨 윗줄 %d − 3))" % [k, a.get("head"), int(a.anchor[1]), top])
+	if not bad.is_empty():
+		return "; ".join(bad.slice(0, 6))
+	var x0 := int(art[NEW[0]].x)
+	for i in NEW.size():
+		if int(art[NEW[i]].x) != x0:
+			bad.append("%s x %d(방패병 열 %d)" % [NEW[i], int(art[NEW[i]].x), x0])
+		if i > 0 and int(art[NEW[i]].idle) <= int(art[NEW[i - 1]].idle):
+			bad.append("%s 정지 y %d가 %s 아래가 아니다" % [NEW[i], int(art[NEW[i]].idle), NEW[i - 1]])
+	if x0 <= int(art.warguard.x):
+		bad.append("새 열 x %d가 근위대 열 x %d 오른쪽이 아니다" % [x0, int(art.warguard.x)])
+	var hero_end: int = int(art.soldier.idle)  # 영웅 구역의 아래 끝
+	for i in mine.size():
+		var r: Rect2i = mine[i][1]
+		if r.end.y > hero_end:
+			bad.append("%s %s가 영웅 구역(~%d) 밖" % [mine[i][0], r, hero_end])
+		for j in i:
+			if r.intersects(mine[j][1]):
+				bad.append("%s와 %s가 겹친다" % [mine[i][0], mine[j][0]])
+	for k in art:  # 다른 종류의 칸과 겹치지 않는다
+		var a = art[k]
+		if k in NEW or not (a is Dictionary) or not a.has("x") or not a.has("c"):
+			continue
+		for s in ["idle", "walk", "attack", "fall"]:
+			if a.has(s) and not (a.get("one", false) and s != "idle"):
+				var other := _sheet_rect(a, s)
+				for m in mine:
+					if m[1].intersects(other):
+						bad.append("%s가 %s %s와 겹친다" % [m[0], k, s])
+	return check(bad.is_empty(), "; ".join(bad.slice(0, 6)))
+
+# EV1084 · I296: 여덟은 빌린 그림 표에 없이 제 정지 칸의 그림 한 장을 흰색으로 그린다. HUD 칸 그림도 제 정지 남쪽 칸 안의 조각이다
+func ev1084():
+	var b = battle()
+	var why := _need(b, NEW)
+	if why != "":
+		return why
+	var looks: Dictionary = (load("res://src/ui/battle_view.gd") as Script).get_script_constant_map().get("LOOKS", {})
+	if NEW.any(func(k): return looks.has(k)):
+		return "빌린 그림 표에 %s(여덟 다 없어야 한다)" % [NEW.filter(func(k): return looks.has(k))]
+	var v = Rec.new()
+	v.battle = b
+	v.clock = 0.0
+	var art: Dictionary = v.ART
+	var bad := []
+	var build = load("res://src/ui/hud_build.gd")
+	for i in NEW.size():
+		var k: String = NEW[i]
+		if not art.has(k):
+			v.free()
+			return "그림 칸 표에 %s가 없다" % k
+		var m = b.place_merc(k, Vector2i(3 + i * 3, 5), {"hp": BIG, "damage": 0, "sight": 0})
+		v.cuts = []
+		var next := {}
+		v._body(m, b.units.find(m), next)
+		v._seen = next
+		var a: Dictionary = art[k]
+		var c := float(a.c)
+		if v.cuts.size() != 1:
+			bad.append("%s 몸통이 그림 한 장이 아니다(%d장)" % [k, v.cuts.size()])
+			continue
+		var one: Array = v.cuts[0]
+		var src: Rect2 = one[1]
+		var own: bool = src.size == Vector2(c, c) and src.position.x == a.x and src.position.y >= a.idle and src.position.y < a.idle + 4 * c
+		if not own or one[0].size != Vector2(c, c) or one[2] != Color.WHITE:
+			bad.append("%s 원본 %s(제 정지 칸 x %d y %d, 칸 %d) · 대상 크기 %s(칸 그대로) · 색 %s(흰색)" % [k, src, int(a.x), int(a.idle), int(c), one[0].size, one[2]])
+		var t: AtlasTexture = build.icon(k)
+		if t.atlas == null or t.region.size.x < 1 or t.region.size.y < 1 or not Rect2(a.x, a.idle, a.c, a.c).encloses(t.region):
+			bad.append("%s HUD 칸 그림 %s(제 정지 남쪽 칸 %s 안의 조각)" % [k, t.region, Rect2(a.x, a.idle, a.c, a.c)])
+	v.free()
+	return check(bad.is_empty(), "; ".join(bad.slice(0, 6)))
+

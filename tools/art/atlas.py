@@ -16,6 +16,7 @@
 # 오크 대족장 군단 넷(I287)은 와이번 오른쪽에 쌓는다(x만, 깃발은 one): 대족장 둘을 한 열에, 근위대와 깃발을 그 오른쪽 열에. 한 열로는 영웅 구역 높이를 넘는다.
 # 같은 자세를 쓰는 스킬은 같은 칸을 가리킨다(SAME). 5라운드 오크 넷(I288)은 근위대·깃발 열의 깃발 아래에 쌓는다.
 # 방패 고블린·불화살 고블린·둥지(I291)는 그 아래(사슬 오크 아래)에 쌓는다. 둥지는 방향 없는 한 행이다(STILL)
+# 새 용병 여덟(I296)은 와이번 오른쪽 열들의 오른쪽에 새 열을 두고 S355 표 차례로 쌓는다(x만). 몸의 높이는 든 창·지팡이를 빼고 잰다(_body_head)
 # 스킬 자세까지 넣어 캔버스를 맞춰 발밑 기준점이 머리보다 높으므로, 몸의 높이(head)를 따로 적는다
 # 시설(4.1e)은 48×48 칸을 따로 한 장에 모은다(facility())
 # 사용: python tools/art/atlas.py → art/units/heroes.png, art/units/heroes.json, art/castle/walls.png, art/castle/keep.png, art/castle/ladder.png, art/castle/facility.png
@@ -52,6 +53,7 @@ WARHOST = [{"warchief": ["idle", "walk", "attack", "charge", "order", "aim", "fa
             "drummer": ["idle", "walk", "attack", "sway", "fall"], "chain_orc": ["idle", "walk", "attack", "hook", "fall"],  # 전쟁 북 고수(정지 중 북 치기 2열), 사슬 오크(갈고리 던지기 2열),
             "shieldbearer": ["idle", "walk", "attack", "fall"], "fire_archer": ["idle", "walk", "attack", "shoot", "fall"],  # 그 아래 색 원으로 그리던 셋(I291 ④): 방패 고블린, 불화살 고블린(시위 당김·놓음 2열),
             "nest": ["idle"]}]  # 둥지(방향 없는 한 행, 정지뿐) → 자세
+TROOPS = ["shieldman", "fire_mage", "thunder_mage", "spearman", "frost_mage", "cleric", "cavalry", "netter"]  # 새 용병 여덟(I296): 와이번 오른쪽 열들의 오른쪽 새 열, S355 표 차례
 STILL = ("warbanner", "nest")  # 와이번 오른쪽 열의 방향 없는 종류(one): 남쪽 한 행만 자른다
 SAME = {"warchief": {"chain": "aim", "shackle": "aim", "duel": "aim"}}  # 종류 → {스킬: 같은 칸을 쓰는 자세}. 사슬 갈고리·사슬 족쇄·결투 신청은 겨눔 자세 한 벌이다
 
@@ -69,6 +71,23 @@ def _head(folder, m):
     """몸의 높이(px, I287 ⑤): 발밑 기준점에서 정지 그림의 머리 끝까지 + 여백 3px. 스킬 자세까지 넣어 캔버스를 맞춘 종류는 기준점 y가 머리보다 높다"""
     im = _sheet(folder, "idle")
     top = min(im.crop((0, r * m["c"], m["c"], (r + 1) * m["c"])).getbbox()[1] for r in ([0] if m.get("one") else FOUR_ROWS))  # 아틀라스에 넣는 행만
+    return m["anchor"][1] - max(0, top - 3)
+
+
+def _body_head(folder, m):
+    """든 것을 뺀 몸의 높이(px, I296 ②): _head와 같되, 부위 시트(parts)에서 sword 부위(창·지팡이·구슬)를 빼고 가장 높은 줄을 잰다"""
+    from troops import PARTS
+    im = _sheet(folder, "idle")
+    part = Image.open(f"art/trial/{folder}/parts/idle_45_D_f24p_24.png").convert("L")
+    held = 1 + PARTS.index("sword")
+    c = m["c"]
+    top = c
+    for r in FOUR_ROWS:
+        for y in range(c):
+            row = [(x, r * c + y) for x in range(c)]
+            if any(im.getpixel(q)[3] > 0 and part.getpixel(q) not in (0, held) for q in row):
+                top = min(top, y)
+                break
     return m["anchor"][1] - max(0, top - 3)
 
 
@@ -124,6 +143,18 @@ def main():
             m["head"] = _head(kind, m)
             meta[kind] = m
         assert ow <= top, f"와이번 오른쪽 칸(x {xw}, 0~{ow})이 영웅 구역(0~{top})을 넘는다"
+    xt = max(ox + im.width for im, ox, _ in sheets if ox == xw)  # 새 용병 여덟(I296 ③): 와이번 오른쪽 마지막 열에서 가장 넓은 칸 폭만큼 옆
+    ot = 0
+    for kind in TROOPS:
+        m = dict(_fit(kind), x=xt)
+        for a in ANIMS:
+            im = _cut(_sheet(kind, a), m["c"], a, [0] if a == "fall" else FOUR_ROWS)
+            sheets.append((im, xt, ot))
+            m[a] = ot
+            ot += im.height
+        m["head"] = _body_head(kind, m)
+        meta[kind] = m
+    assert ot <= top, f"새 용병 칸(x {xt}, 0~{ot})이 영웅 구역(0~{top})을 넘는다"
     x = max(im.width for im, _, oy in sheets if oy >= top)
     oy = top
     for kind, folder in ONE.items():

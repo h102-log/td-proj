@@ -921,8 +921,8 @@ func ev1029():
 		for j in i:
 			if r.intersects(rects[j][1]):
 				bad.append("%s와 %s가 겹친다" % [rects[i][0], rects[j][0]])
-	if img.get_size() != Vector2i(828, 15656):
-		bad.append("아틀라스 %s(828×15656)" % [img.get_size()])
+	if img.get_size() != Vector2i(868, 15656):
+		bad.append("아틀라스 %s(868×15656)" % [img.get_size()])
 	return check(bad.is_empty(), "; ".join(bad.slice(0, 6)))
 
 # EV1030 · I287: 네 종류는 빌린 그림·큰 몸 표에 없이 제 칸의 그림 한 장을 키우지 않고 그린다. 스킬 자세는 시트의 0열·1열을, 예고·발동의 때와 방향에 맞게 그린다.

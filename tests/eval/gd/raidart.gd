@@ -122,11 +122,11 @@ func ev678():
 		bad.append("폭 glider %d · land_idle %d" % [used.glider.x, used.land.x])
 	return check(bad.is_empty(), "%s · 크기 %s" % [bad, used])
 
-# EV679 · I189: 아틀라스 828×15656(2026-11-03 셋째 변경), 네 종 칸은 늑대·슬라임 옆 열 오른쪽의 둘째 옆 열에서 용병·적 8종 구역 안의 빈자리
+# EV679 · I189: 아틀라스 868×15656(2026-11-03 셋째 변경, 폭은 새 용병 그림 I296으로 2026-11-12에 늘었다), 네 종 칸은 늑대·슬라임 옆 열 오른쪽의 둘째 옆 열에서 용병·적 8종 구역 안의 빈자리
 func ev679():
 	var art := _art()
 	var img: Image = load("res://art/units/heroes.png").get_image()
-	if img.get_size() != Vector2i(828, 15656):
+	if img.get_size() != Vector2i(868, 15656):
 		return "heroes.png 크기 %s" % img.get_size()
 	var top := INF
 	var bottom := -INF
@@ -1280,7 +1280,7 @@ func ev763():
 		return "heroes.json에 chief·wreck 칸이 없다"
 	var size: Vector2i = load("res://art/units/heroes.png").get_image().get_size()
 	var bad := []
-	if size != Vector2i(828, 15656):
+	if size != Vector2i(868, 15656):
 		bad.append("heroes.png %s" % size)
 	var right := 0
 	var top := size.y

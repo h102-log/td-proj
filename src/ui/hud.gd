@@ -566,9 +566,9 @@ func _ready() -> void:
 		_buy[kind] = _pop(rows[0], func(): battle.recruit(controls.facility, kind), "%s 구매" % NAMES[kind], HudBuild.icon(kind))
 	for kind in old:
 		_rank[kind] = _pop(rows[0], func(): battle.rank_up(kind), "%s 강화" % NAMES[kind], HudBuild.dots(UP, {"#": HudTheme.ACCENT}))
-	for kind in battle.HQ_MERCS:  # 새 여덟은 S355 표 차례로 줄을 따로 두고 종류 색을 입힌 그림과 값만 보인다(이름은 툴팁, I293 ①)
-		_buy[kind] = _hue(_pop(hq[0], func(): battle.recruit(controls.facility, kind), "%s 구매" % NAMES[kind], HudBuild.icon(kind)), kind)
-		_rank[kind] = _hue(_pop(hq[1], func(): battle.rank_up(kind), "%s 강화" % NAMES[kind], HudBuild.icon(kind)), kind)
+	for kind in battle.HQ_MERCS:  # 새 여덟은 S355 표 차례로 줄을 따로 두고 제 그림(I296 ④)과 값만 보인다(이름은 툴팁, I293 ①)
+		_buy[kind] = _pop(hq[0], func(): battle.recruit(controls.facility, kind), "%s 구매" % NAMES[kind], HudBuild.icon(kind))
+		_rank[kind] = _pop(hq[1], func(): battle.rank_up(kind), "%s 강화" % NAMES[kind], HudBuild.icon(kind))
 	_demolish = _pop(rows[0], _demolish_press, "철거")
 	_move = _pop(rows[0], _start_move, "옮기기")
 	_resume = _pop(rows[0], func(): _apply(battle.resume, battle.unfinished(controls.picked)), "이어 짓기")
@@ -898,13 +898,6 @@ func _button(parent: Control, text: String, on_press: Callable) -> Button:
 	return b
 
 # 맵 위 팝업 버튼(I58): 아이콘(10px 안) + 짧은 글 + 비용. 툴팁은 이름과 못 누르는 이유이고 팝업 전체 아래에 뜬다(S187)
-# 빌린 그림(LOOKS)을 쓰는 종류의 버튼 그림에 그 종류 색을 곱한다(I293 ⑧)
-func _hue(b: Button, kind: String) -> Button:
-	var c = BattleView.LOOKS.get(kind, [null, Color.WHITE])[1]
-	for k in ["icon_normal_color", "icon_hover_color", "icon_pressed_color", "icon_focus_color", "icon_hover_pressed_color"]:
-		b.add_theme_color_override(k, c)
-	return b
-
 func _pop(row: Control, on_press: Callable, name: String, icon: Texture2D = null) -> Button:
 	var b := _button(row, "" if icon else name, on_press)  # 아이콘 없는 버튼은 이름을 글로 둔다(이어 짓기·취소·옮기기). 값을 붙이는 버튼은 _process가 글을 덮는다
 	b.icon = icon
