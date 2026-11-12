@@ -2647,7 +2647,7 @@ func _body(x, i: int, next: Dictionary, tint := Color.WHITE, flash := true) -> v
 		tint *= RAGE
 	if x.get("raid") and x.grief > 0:  # 광분(S337 ④): 쌓인 원정 보스 몸을 분노 색으로 붉게 그린다
 		tint *= RAGE
-	if x.get("lone"):  # 홀로 남은 5층 몸(S354 ⑩, I291 ⑧)은 분노 색으로 붉게 그린다
+	if x.get("lone"):  # 홀로 남은 5층 몸(S354 ⑩, I292 ⑧)은 분노 색으로 붉게 그린다
 		tint *= RAGE
 	if x.get("raid") and battle.countering(x) and int(clock / 0.1) % 2 == 0:  # 카운터 창(S326 ④): 0.1초마다 파랗게 깜박인다
 		tint *= COUNTER

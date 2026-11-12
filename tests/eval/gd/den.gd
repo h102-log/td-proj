@@ -3695,7 +3695,7 @@ func ev1051():
 	return check(kind == "wyvern_fallen" and early.is_empty() and fell.size() == 1 and fell[0][0] == 0 and fell[0][1].distance_to(spot) < 0.01 and absf(fell[0][2] - 14.4) < 0.01,
 		"떨어뜨리기 전 떨어짐 사건 %s(없음) · 떨어뜨린 뒤 종류 %s(wyvern_fallen) · 떨어짐 사건 %s(기대 첫 프레임에 하나, 자리 %s·반지름 14.4)" % [early, kind, fell, spot])
 
-# ── 원정 5층 «쌍둥이 트롤»(S354·I291) ── 더하는 API:
+# ── 원정 5층 «쌍둥이 트롤»(S354·I292) ── 더하는 API:
 #   층 정의 pair([{at, plan}])·alone({rest, lead, plan}) · Enemy.mate(짝 번호)·twin(맡은 몸)·lone(홀로 남음)
 #   대본 패턴 lob(바위 던지기)·cleave(쓸어 치기)·soak(금색 원)·leap(내려찍기)·slam(땅 울림)·vault(복수의 도약)·toss(형제 던지기)
 
@@ -3727,8 +3727,8 @@ func _twins(b) -> Array:
 		e.rest = 999.0
 	return out
 
-# EV1052 · S354: 5층 층 정의의 수치와 층 차례. 디펜스 쌍둥이 트롤 종류는 그대로다
-func ev1052():
+# EV1054 · S354: 5층 층 정의의 수치와 층 차례. 디펜스 쌍둥이 트롤 종류는 그대로다
+func ev1054():
 	var f = load("res://data/dungeon/floor_5.tres")
 	if f == null:
 		return "data/dungeon/floor_5.tres가 없다"
@@ -3761,8 +3761,8 @@ func ev1052():
 		and troll.skills.keys() == ["devour", "twin", "lob"] and troll.skills.lob.rock == 25.0 and troll.skills.twin.hit == 40.0,
 		"층 차례 %s(기대 floor_1~floor_5) · 디펜스 쌍둥이 트롤 체력 %s·몸 %s·재생 %s·무리 %s·보스 %s·스킬 %s·바위 %s·형제 던지기 %s(160·0.9·0.01·2·참·devour twin lob·25·40)" % [_stage().den.floors, troll.hp, troll.radius, troll.regen, troll.pack, troll.boss, troll.skills.keys(), troll.skills.lob.rock, troll.skills.twin.hit])
 
-# EV1053 · S354: 5층은 6라운드부터 열리고 형·아우 둘이 층 수치로 나온다. 둘 다 걷지도 기본 공격도 하지 않는다
-func ev1053():
+# EV1055 · S354: 5층은 6라운드부터 열리고 형·아우 둘이 층 수치로 나온다. 둘 다 걷지도 기본 공격도 하지 않는다
+func ev1055():
 	var a = _den4()
 	a.floors_cleared = 4
 	var early: String = a.raid_block()
@@ -3785,8 +3785,8 @@ func ev1053():
 	return check(e.pos == ELDER and y.pos == YOUNGER and u.hp == hp and e.cast == null and y.cast == null,
 		"6초 뒤 형 %s(%s) · 아우 %s(%s) · 사이 영웅 체력 %s → %s · 예고 %s·%s(없음)" % [e.pos, ELDER, y.pos, YOUNGER, hp, u.hp, e.cast, y.cast])
 
-# EV1054 · S354 ①: 바위 던지기는 형의 사냥감 자리에 반경 1.5칸 원을 1.6초 예고하고 따라가지 않는다. 바위는 0.6초 날아 떨어지고 원 안의 영웅에 25(밀지 않는다)
-func ev1054():
+# EV1056 · S354 ①: 바위 던지기는 형의 사냥감 자리에 반경 1.5칸 원을 1.6초 예고하고 따라가지 않는다. 바위는 0.6초 날아 떨어지고 원 안의 영웅에 25(밀지 않는다)
+func ev1056():
 	var b = _den5()
 	var t := _twins(b)
 	if t.is_empty():
@@ -3824,8 +3824,8 @@ func _rocked(at: Array) -> Array:
 	var c = _tell(b, t[0], 0)
 	return [b, t[0], t[1], c] if c != null and c.id == "lob" else []
 
-# EV1055 · S354 ③: 바위가 아무도 못 맞히고 아우에 닿아 떨어지면 아우가 그로기다. 영웅이 맞거나, 아우에 닿지 않거나, 아우가 뜬 동안이면 아니다. 형은 그로기가 아니다
-func ev1055():
+# EV1057 · S354 ③: 바위가 아무도 못 맞히고 아우에 닿아 떨어지면 아우가 그로기다. 영웅이 맞거나, 아우에 닿지 않거나, 아우가 뜬 동안이면 아니다. 형은 그로기가 아니다
+func ev1057():
 	var r := _rocked(ROCK_BY)
 	if r.is_empty():
 		return "① 바위 예고가 뜨지 않았다"
@@ -3870,9 +3870,9 @@ func ev1055():
 	return check(not mid and not _groggy(b, y) and y.cast == null,
 		"④ 아우가 뜬 동안 떨어진 바위 뒤 그로기 %s(거짓) · 착지 뒤 그로기 %s(거짓) · 예고 %s(없음)" % [mid, _groggy(b, y), y.cast])
 
-# EV1056 · S354 ②: 내려찍기는 아우에서 가장 가까운 영웅 자리(8칸까지)에 반경 2.5칸 원을 1.5초 예고하고 0.6초 뛴다. 원 안의 영웅에 30과 1.5칸 밀기.
+# EV1058 · S354 ②: 내려찍기는 아우에서 가장 가까운 영웅 자리(8칸까지)에 반경 2.5칸 원을 1.5초 예고하고 0.6초 뛴다. 원 안의 영웅에 30과 1.5칸 밀기.
 # 형제가 둘 다 있는 동안 빈 땅에 내려도 아우는 그로기가 아니다
-func ev1056():
+func ev1058():
 	var b = _den5()
 	var t := _twins(b)
 	if t.is_empty():
@@ -3917,8 +3917,8 @@ func ev1056():
 	return check(t3[1].pos == Vector2(90, 82) and not _groggy(m, t3[1]) and not _groggy(m, t3[0]) and m.party.map(func(h): return h.hp) == hp3,
 		"③ 빈 땅에 내린 뒤 아우 %s((90,82)) · 그로기 아우 %s·형 %s(둘 다 거짓) · 영웅 체력 %s → %s(그대로)" % [t3[1].pos, _groggy(m, t3[1]), _groggy(m, t3[0]), hp3, m.party.map(func(h): return h.hp)])
 
-# EV1057 · S354 ②③: 착지가 아무도 못 맞히고 형에 닿으면 형이 그로기다. 영웅이 맞으면 아니다. 착지 자리가 형 몸과 겹치면 형 바깥으로 옮긴다
-func ev1057():
+# EV1059 · S354 ②③: 착지가 아무도 못 맞히고 형에 닿으면 형이 그로기다. 영웅이 맞으면 아니다. 착지 자리가 형 몸과 겹치면 형 바깥으로 옮긴다
+func ev1059():
 	var b = _den5()
 	var t := _twins(b)
 	if t.is_empty():
@@ -3951,8 +3951,8 @@ func ev1057():
 	return check(not _groggy(m, t3[0]) and m.party[1].hp < hp3,
 		"③ 영웅이 맞은 착지 뒤 형 그로기 %s(거짓) · 둘째 영웅 체력 %s → %s(줄어야)" % [_groggy(m, t3[0]), hp3, m.party[1].hp])
 
-# EV1058 · S354 ③: 착지에 맞은 형이 금색 원을 예고 중이었으면 그 예고가 취소되고 대본이 넘어간다. 금색 원은 내리지 않는다
-func ev1058():
+# EV1060 · S354 ③: 착지에 맞은 형이 금색 원을 예고 중이었으면 그 예고가 취소되고 대본이 넘어간다. 금색 원은 내리지 않는다
+func ev1060():
 	var b = _den5()
 	var t := _twins(b)
 	if t.is_empty():
@@ -3973,8 +3973,8 @@ func ev1058():
 	return check(b.party.map(func(h): return h.hp) == hp and e.hp == 900.0,
 		"금색 원이 끝났을 때(4.2초째) 영웅 체력 %s → %s(그대로) · 형 체력 %s(900 그대로)" % [hp, b.party.map(func(h): return h.hp), e.hp])
 
-# EV1059 · S354 ④: 쓸어 치기는 형에서 가장 가까운 영웅 쪽 부채꼴(반경 3, 120°)을 1.4초 예고하고, 안의 영웅에 25와 1.5칸 밀기
-func ev1059():
+# EV1061 · S354 ④: 쓸어 치기는 형에서 가장 가까운 영웅 쪽 부채꼴(반경 3, 120°)을 1.4초 예고하고, 안의 영웅에 25와 1.5칸 밀기
+func ev1061():
 	var b = _den5()
 	var t := _twins(b)
 	if t.is_empty():
@@ -3992,8 +3992,8 @@ func ev1059():
 	return check(e.cast == null and e.beat == 2 and lost[0] == 0.0 and absf(lost[1] - want[0]) < 0.01 and absf(lost[2] - want[1]) < 0.01 and p[1].pos.distance_to(Vector2(81, 83.5)) < 0.01 and p[2].pos.distance_to(Vector2(82.557, 83.893)) < 0.01 and p[0].pos == Vector2(81, 77) and not _groggy(b, e),
 		"예고 뒤 예고 %s(없음) · 대본 차례 %s(2) · 잃은 체력 %s(기대 0 · %s · %s) · 둘째 %s((81,83.5)) · 셋째 %s((82.56,83.89)) · 첫째 %s(그대로) · 그로기 %s(거짓)" % [e.cast, e.beat, lost, want[0], want[1], p[1].pos, p[2].pos, p[0].pos, _groggy(b, e)])
 
-# EV1060 · S354 ⑤: 땅 울림은 아우 둘레 반경 3칸 파랑 예고 2초이고 마지막 1초가 카운터 창이다. 끊으면 아우가 그로기, 못 끊으면 30과 1.5칸 밀기
-func ev1060():
+# EV1062 · S354 ⑤: 땅 울림은 아우 둘레 반경 3칸 파랑 예고 2초이고 마지막 1초가 카운터 창이다. 끊으면 아우가 그로기, 못 끊으면 30과 1.5칸 밀기
+func ev1062():
 	var b = _den5()
 	var t := _twins(b)
 	if t.is_empty():
@@ -4036,8 +4036,8 @@ func _gold5(hurt := 0.0) -> Array:
 	var c = _tell(b, t[0], 3)
 	return [b, t[0], c] if c != null and c.id == "soak" else []
 
-# EV1061 · S354 ⑥: 금색 원은 형에서 5칸 자리에 4초 예고한다. 2명이 모이면 60을 나눠 받고 형이 그로기, 못 채우면 모두 20을 받고 형이 5% 회복. 마지막 1초가 카운터 창이다
-func ev1061():
+# EV1063 · S354 ⑥: 금색 원은 형에서 5칸 자리에 4초 예고한다. 2명이 모이면 60을 나눠 받고 형이 그로기, 못 채우면 모두 20을 받고 형이 5% 회복. 마지막 1초가 카운터 창이다
+func ev1063():
 	var g := _gold5()
 	if g.is_empty():
 		return "① 금색 원 예고가 뜨지 않았다"
@@ -4082,9 +4082,9 @@ func ev1061():
 	return check(early == [true, false] and e.cast == null and _groggy(b, e),
 		"③ 3초째 기절 뒤 [금색 원 그대로, 그로기] %s(기대 [참, 거짓]) · 3.2초째 기절 뒤 예고 %s(없음)·그로기 %s(참)" % [early, e.cast, _groggy(b, e)])
 
-# EV1062 · S354 ⑦⑧⑨: 한 몸이 쓰러지면 남은 몸은 하던 예고를 버리고 쓰러진 몸 자리로 뛴 뒤(복수의 도약) 그 몸을 사냥감에게 던진다(형제 던지기).
+# EV1064 · S354 ⑦⑧⑨: 한 몸이 쓰러지면 남은 몸은 하던 예고를 버리고 쓰러진 몸 자리로 뛴 뒤(복수의 도약) 그 몸을 사냥감에게 던진다(형제 던지기).
 # 뜬 동안 형제가 쓰러지면 착지까지 마친다
-func ev1062():
+func ev1064():
 	var b = _den5()
 	var t := _twins(b)
 	if t.is_empty():
@@ -4140,9 +4140,9 @@ func ev1062():
 	return check(mid == [true, true, true] and landed == Vector2(90, 82) and t2[1].cast != null and t2[1].cast.id == "vault" and t2[1].cast.get("at") == ELDER,
 		"③ 뛰는 중 형을 쓰러뜨린 뒤 [뛰는 중, 홀로, 맡은 몸이 형] %s(기대 [참, 참, 참]) · 0.6초 뒤 아우 %s((90,82)에 내림) · 그 뒤 예고 %s(기대 vault·자리 %s)" % [mid, landed, t2[1].cast, ELDER])
 
-# EV1063 · S354 ⑦⑩: 홀로 대본은 복수의 도약 → 형제 던지기 뒤 내려찍기 → 바위 → 땅 울림 → 쓸어 치기 → 금색 원을 쉼 30%를 덜고 되풀이한다.
+# EV1065 · S354 ⑦⑩: 홀로 대본은 복수의 도약 → 형제 던지기 뒤 내려찍기 → 바위 → 땅 울림 → 쓸어 치기 → 금색 원을 쉼 30%를 덜고 되풀이한다.
 # 홀로 남은 몸의 겨눈 뜀을 모두 피하면 그 몸이 그로기이고, 바위는 빈 땅에 떨어져도 그로기가 아니다
-func ev1063():
+func ev1065():
 	var b = _den5()
 	var t := _twins(b)
 	if t.is_empty():
@@ -4193,8 +4193,8 @@ func ev1063():
 	return check(rock != null and rock.id == "lob" and rock.get("at") == Vector2(72, 86) and not _groggy(m, z) and m.lobs.is_empty() and m.party.map(func(h): return h.hp) == hp,
 		"③ 홀로 남은 형의 바위 예고 %s(기대 lob·자리 (72,86)) · 빈 땅에 떨어진 뒤 그로기 %s(거짓) · 나는 것 %d(0) · 영웅 체력 %s → %s(그대로)" % [rock, _groggy(m, z), m.lobs.size(), hp, m.party.map(func(h): return h.hp)])
 
-# EV1064 · S354: 두 몸은 저마다 제 대본을 돈다. 형은 바위 → 쓸어 치기 → 바위 → 금색 원(쉼 4·3·4·5), 아우는 내려찍기 → 땅 울림 → 내려찍기(쉼 6·4·4)
-func ev1064():
+# EV1066 · S354: 두 몸은 저마다 제 대본을 돈다. 형은 바위 → 쓸어 치기 → 바위 → 금색 원(쉼 4·3·4·5), 아우는 내려찍기 → 땅 울림 → 내려찍기(쉼 6·4·4)
+func ev1066():
 	var b = _den5()
 	b.start_raid()
 	if b.state != "raid" or b.enemies.size() != 2:
@@ -4228,9 +4228,9 @@ func ev1064():
 	return check(ok and not bodies.any(func(e): return _groggy(b, e)),
 		"32초 동안 [뜬 때, 예고] 형 %s · 아우 %s(기대 [첫 예고까지·앞 예고부터 다음 예고까지 초, 예고] 형 %s · 아우 %s, 0.2초 안) · 그로기 %s(없어야)" % [seen[0], seen[1], want[0], want[1], bodies.map(func(e): return _groggy(b, e))])
 
-# EV1065 · I291 ④⑤⑥: 남은 보스 체력 비율은 두 몸 체력의 합으로 센다. 던진 몸이 쓰러진 뒤 떨어진 바위는 형제를 맞히지 않는다.
+# EV1067 · I292 ④⑤⑥: 남은 보스 체력 비율은 두 몸 체력의 합으로 센다. 던진 몸이 쓰러진 뒤 떨어진 바위는 형제를 맞히지 않는다.
 # 두 몸이 같은 스텝에 쓰러지면 처치이고, «다시»는 두 몸을 처음부터 낸다
-func ev1065():
+func ev1067():
 	var b = _den5()
 	var t := _twins(b)
 	if t.is_empty():
@@ -4296,17 +4296,17 @@ func _crush(id: String, flame: float) -> float:
 	_go(b, 0.7)
 	return hp - u.hp
 
-# EV1066 · I291 ⑦: 불꽃 100초부터의 광폭 배율은 바위·쓸어 치기·내려찍기·땅 울림·형제 던지기의 피해에 든다
-func ev1066():
+# EV1068 · I292 ⑦: 불꽃 100초부터의 광폭 배율은 바위·쓸어 치기·내려찍기·땅 울림·형제 던지기의 피해에 든다
+func ev1068():
 	var rows := []
 	for id in ["lob", "cleave", "leap", "slam", "toss"]:
 		rows.append([id, _crush(id, 10.0), _crush(id, 101.0)])
 	return check(rows.all(func(r): return r[1] > 0.0 and absf(r[2] - r[1] * 1.15) < 0.01),
 		"[패턴, 불꽃 10초에 잃은 체력, 불꽃 101초에 잃은 체력] %s(뒤가 앞의 1.15배여야)" % [rows])
 
-# EV1067 · I291 ⑥⑧: 보스 막대의 이름은 «쌍둥이 트롤»이고 두 몸은 짝 색이 다르며 그림 배율은 디펜스와 같다. 두 몸 모두 머리 위 체력 막대가 있고
+# EV1069 · I292 ⑥⑧: 보스 막대의 이름은 «쌍둥이 트롤»이고 두 몸은 짝 색이 다르며 그림 배율은 디펜스와 같다. 두 몸 모두 머리 위 체력 막대가 있고
 # 사냥감 표시는 형의 사냥감이다. 한 몸을 쓰러뜨리면 남은 몸이 홀로가 되고, 둘 다 쓰러뜨리면 층 골드가 든 토스트가 뜬다
-func ev1067():
+func ev1069():
 	var main = _den_game()
 	var b = main.view.battle
 	var v = main.view

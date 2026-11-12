@@ -285,7 +285,7 @@ class Enemy:
 	var rest := 0.0  # 그 패턴의 예고까지 남은 쉼(초)
 	var turn := 0  # 씨앗 표식이 다음에 붙을 원정대 차례(I270 ③)
 	var shifted := false  # 체력이 층 정의 shift.below 이하가 된 적이 있다(S337 ⑥, I286 ①). 한 번 켜지면 꺼지지 않는다
-	var lone := false  # 두 몸 층(S354 ⑦, I291 ⑤)에서 형제가 쓰러져 홀로 남았다. 그 뒤로는 층의 홀로 대본(alone)을 돈다
+	var lone := false  # 두 몸 층(S354 ⑦, I292 ⑤)에서 형제가 쓰러져 홀로 남았다. 그 뒤로는 층의 홀로 대본(alone)을 돈다
 
 	func _init(k: String, cell: Vector2i, stats: Dictionary) -> void:
 		kind = k
@@ -1106,7 +1106,7 @@ func start_raid() -> bool:
 	var pair: Array = raid_floor.get("pair", [])
 	if pair.is_empty():
 		enemy_spawned.emit(_raid_body(0, Vector2(den.boss), raid_floor.pull))
-	for i in pair.size():  # 두 몸 층(S354, I291 ①): 차례대로 보스 칸 + at 자리에 내고, 차례가 짝 번호이며 몸마다 제 대본을 돈다
+	for i in pair.size():  # 두 몸 층(S354, I292 ①): 차례대로 보스 칸 + at 자리에 내고, 차례가 짝 번호이며 몸마다 제 대본을 돈다
 		var e := _raid_body(0, Vector2(den.boss) + pair[i].at, raid_floor.pull)
 		e.mate = i
 		e.rest = pair[i].plan[0].wait
@@ -1159,11 +1159,11 @@ func _plan_of(e: Enemy) -> Array:
 	if e.gen > 0:
 		return []
 	var pair: Array = e.raid.get("pair", [])
-	if not pair.is_empty():  # 두 몸 층(S354, I291 ①⑤): 몸마다 pair[짝 번호]의 대본이고, 홀로 남으면 홀로 대본의 lead와 plan을 이은 목록이다
+	if not pair.is_empty():  # 두 몸 층(S354, I292 ①⑤): 몸마다 pair[짝 번호]의 대본이고, 홀로 남으면 홀로 대본의 lead와 plan을 이은 목록이다
 		return e.raid.alone.lead + e.raid.alone.plan if e.lone else pair[e.mate].plan
 	return e.raid.phase2.plan if _second(e) else e.raid.get("plan", [])
 
-# 두 몸 층의 어느 대본(pair의 plan, alone의 lead·plan)에든 든 패턴이다(I291 ①). 그런 패턴은 그 몸의 대본 차례에만 쓴다
+# 두 몸 층의 어느 대본(pair의 plan, alone의 lead·plan)에든 든 패턴이다(I292 ①). 그런 패턴은 그 몸의 대본 차례에만 쓴다
 func _plotted(e: Enemy, id: String) -> bool:
 	var pair: Array = e.raid.get("pair", [])
 	if pair.is_empty():
@@ -1180,14 +1180,14 @@ func _sibling(e: Enemy):
 			return o
 	return null
 
-# 두 몸 층의 예고 원(at, 반경 r)이 겨눈 것인가(I291 ③): 형제가 있으면 원이 형제 몸에 닿아 있고, 홀로 남았으면 원 안에 산 원정대 영웅이 있다
+# 두 몸 층의 예고 원(at, 반경 r)이 겨눈 것인가(I292 ③): 형제가 있으면 원이 형제 몸에 닿아 있고, 홀로 남았으면 원 안에 산 원정대 영웅이 있다
 func _aimed(e: Enemy, at: Vector2, r: float) -> bool:
 	var sib = _sibling(e)
 	if sib != null:
 		return at.distance_to(sib.pos) <= r + sib.radius
 	return party.any(func(h): return h.alive and h.pos.distance_to(at) <= r)
 
-# 형제 맞히기(S354 ③, I291 ④): 맞은 형제가 그로기가 된다. 예고 중이면 끊기(S326 ④)처럼 예고가 취소되고 대본이 넘어간다. 뜬 형제와 이미 그로기인 형제는 그대로다
+# 형제 맞히기(S354 ③, I292 ④): 맞은 형제가 그로기가 된다. 예고 중이면 끊기(S326 ④)처럼 예고가 취소되고 대본이 넘어간다. 뜬 형제와 이미 그로기인 형제는 그대로다
 func _bonk(o: Enemy) -> void:
 	if not o.alive or _aloft(o) or _fx_on(o, "groggy") != null:
 		return
@@ -1196,7 +1196,7 @@ func _bonk(o: Enemy) -> void:
 	else:
 		_fx(o, "groggy", {"groggy": true}, o.raid.groggy.time)
 
-# 홀로 남음(S354 ⑦, I291 ⑤): 형제 body가 쓰러진 몸 o는 그 몸을 맡고 홀로 대본을 처음부터 돈다. 하던 예고는 버리되 뜬 동안이면 착지까지 마친다
+# 홀로 남음(S354 ⑦, I292 ⑤): 형제 body가 쓰러진 몸 o는 그 몸을 맡고 홀로 대본을 처음부터 돈다. 하던 예고는 버리되 뜬 동안이면 착지까지 마친다
 func _alone(o: Enemy, body: Enemy) -> void:
 	o.lone = true
 	o.twin = body
@@ -1214,7 +1214,7 @@ func _second(e: Enemy) -> bool:
 func _next_beat(e: Enemy) -> void:
 	var plan := _plan_of(e)
 	e.beat = (e.beat + 1) % plan.size()
-	if e.lone and e.beat == 0:  # 홀로 대본(I291 ⑤): lead는 한 번만 돌고, 마지막 차례 다음은 lead 다음이다
+	if e.lone and e.beat == 0:  # 홀로 대본(I292 ⑤): lead는 한 번만 돌고, 마지막 차례 다음은 lead 다음이다
 		e.beat = e.raid.alone.lead.size()
 	e.rest = plan[e.beat].wait * (1.0 - (e.skills.rage.get("rest", 0.0) if raging(e) else 0.0))  # 원정 대장의 분노(S342 ⑪, I284 ①): 차례가 넘어갈 때 분노 중이면 쉼이 짧다
 	if e.lone:  # 홀로 남은 몸(S354 ⑦)은 쉼이 alone.rest만큼 짧다
@@ -1283,7 +1283,7 @@ func raid_left() -> float:
 			all += e.max_hp
 		for k in range(e.gen + 1, gens.size()):
 			left += gens[k].hp * (1 << (k - e.gen))
-	if not raid_floor.get("pair", []).is_empty():  # 두 몸 층(I291 ⑥): 산 몸의 체력 합 ÷ (몸 수 × 층 수치의 체력). 쓰러진 몸은 0이다
+	if not raid_floor.get("pair", []).is_empty():  # 두 몸 층(I292 ⑥): 산 몸의 체력 합 ÷ (몸 수 × 층 수치의 체력). 쓰러진 몸은 0이다
 		all = raid_floor.pair.size() * raid_floor.stats.hp
 	var p: Dictionary = raid_floor.get("phase2", {})
 	if not p.is_empty():  # 두 형태(I283 ⑧): 아직 나오지 않은 둘째 형태의 체력을 더해 두 형태의 합으로 나눈다
@@ -4416,7 +4416,7 @@ func _skills(e: Enemy, dt: float, sealed: bool) -> bool:
 		return false
 	for id in e.skills:  # 쓸 수 있는 예고 스킬이 여럿이면 skills에 적힌 차례에서 앞선 것(I169)
 		var sk: Dictionary = e.skills[id]
-		if not sk.has("windup") or e.cd.get(id, 0.0) > 0.0 or plan.any(func(p): return p.id == id) or _plotted(e, id):  # 대본 패턴은 대본 차례에만 쓴다(두 몸 층은 어느 대본의 패턴이든, I291 ①)
+		if not sk.has("windup") or e.cd.get(id, 0.0) > 0.0 or plan.any(func(p): return p.id == id) or _plotted(e, id):  # 대본 패턴은 대본 차례에만 쓴다(두 몸 층은 어느 대본의 패턴이든, I292 ①)
 			continue
 		var ok = call("_%s_ready" % id, e, sk)
 		if ok:
@@ -4564,13 +4564,13 @@ func _leap_aim(e: Enemy, sk: Dictionary) -> Dictionary:
 			at = moved
 	return {"at": at, "aimed": _aimed(e, at, sk.radius)}
 
-# 대본의 바위 던지기(S354 ①, I291 ③): 사냥감 자리(없으면 제자리)에 띄우고 오크를 집지 않는다
+# 대본의 바위 던지기(S354 ①, I292 ③): 사냥감 자리(없으면 제자리)에 띄우고 오크를 집지 않는다
 func _lob_aim(e: Enemy, sk: Dictionary) -> Dictionary:
 	var u = _prey(e)
 	var at: Vector2 = u.pos if u != null else e.pos
 	return {"at": at, "who": null, "aimed": _aimed(e, at, sk.radius)}
 
-# 대본의 복수의 도약(S354 ⑧, I291 ③): 맡은 쓰러진 몸 자리(없으면 제자리)로 뛴다
+# 대본의 복수의 도약(S354 ⑧, I292 ③): 맡은 쓰러진 몸 자리(없으면 제자리)로 뛴다
 func _vault_aim(e: Enemy, sk: Dictionary) -> Dictionary:
 	var at: Vector2 = e.twin.pos if e.twin != null else e.pos
 	return {"at": at, "aimed": _aimed(e, at, sk.radius)}
@@ -4579,7 +4579,7 @@ func _vault_aim(e: Enemy, sk: Dictionary) -> Dictionary:
 func _vault(e: Enemy, sk: Dictionary) -> void:
 	_leap(e, sk)
 
-# 대본의 형제 던지기(S354 ⑨, I291 ③): 사냥감 자리(없으면 제자리)
+# 대본의 형제 던지기(S354 ⑨, I292 ③): 사냥감 자리(없으면 제자리)
 func _toss_aim(e: Enemy, _sk: Dictionary) -> Dictionary:
 	var u = _prey(e)
 	return {"at": u.pos if u != null else e.pos}
@@ -5693,7 +5693,7 @@ func _lobs(dt: float) -> void:
 		lobs.erase(l)
 		var empty: bool = not _ground_near(l.at, l.radius).any(func(u): return u in party)
 		_trace(l.by, l.look, null, l.at, l.radius)
-		if l.get("raid", false) and l.by.alive and empty:  # 형제 맞히기(S354 ③, I291 ④): 던진 몸이 살아 있고 원이 비었으면, 원이 닿은 형제가 그로기다
+		if l.get("raid", false) and l.by.alive and empty:  # 형제 맞히기(S354 ③, I292 ④): 던진 몸이 살아 있고 원이 비었으면, 원이 닿은 형제가 그로기다
 			var sib = _sibling(l.by)
 			if sib != null and l.at.distance_to(sib.pos) <= l.radius + sib.radius:
 				_bonk(sib)
