@@ -440,3 +440,19 @@ def test_EV1068_floor5_enrage_ramp(gd):
 
 def test_EV1069_floor5_game_scene(gd):
     gd("den", "EV1069")
+
+
+def test_EV1070_tusk_relic_speeds_r_slot(gd):
+    gd("den", "EV1070")
+
+
+def test_EV1071_floor5_hint_shows_once(gd):
+    gd("den", "EV1071")
+
+
+def test_EV1072_twin_bonk_and_slump_events(gd):
+    gd("den", "EV1072")
+
+
+def test_EV1073_relic_rows_two_per_line_fit(gd):
+    gd("den", "EV1073")
