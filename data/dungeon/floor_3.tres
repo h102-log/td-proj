@@ -9,7 +9,7 @@ opens = 4
 kind = "war_machine"
 stats = {
 "hp": 1000.0,
-"armor": 8.0,
+"armor": 3.0,
 "radius": 1.4,
 "reward": 0,
 "xp": 0
@@ -55,13 +55,15 @@ plan = [{
 "wait": 5.0
 }]
 walks = false
+hunts = true
 phase2 = {
 "title": "고블린 대장",
 "kind": "chief",
 "scale": 1.0,
+"rest": 2.0,
 "stats": {
 "hp": 1000.0,
-"armor": 10.0,
+"armor": 4.0,
 "radius": 1.5,
 "reward": 0,
 "xp": 0

@@ -190,6 +190,7 @@ const FLAME_RING := 0.5  # 불화살 예고 원 반경(칸, S302). 판정에 쓰
 const NEST_RING := 0.5  # 둥지 짓기 예고 원 반경(칸, S309). 짓는 칸 하나다
 const TELL := Color("ef3a0c")  # 보스 스킬 예고(S194): F24+ 빨강 테(바깥 어두운 테는 PX.maroon), 안쪽 성긴 칠이 차오른다(S198 fx-4)
 const COUNTER := Color(0.6, 0.9, 1.8)  # 카운터 창(S326 ④) 동안 왕 몸을 파랗게 깜박이는 modulate
+const COUNTER_FLASH := 0.2  # 카운터 창이 열린 뒤 예고 테 자리에 크림색 2px 테를 겹쳐 번쩍이는 초(S369 ③, I300 ③). 임시값
 const TELL_HUES := {"blue": ["ice3", "navy"], "gold": ["gold", "bronze"], "violet": ["vio1", "vio3"]}  # 대본 패턴 예고(S326)의 [칠·밝은 테, 어두운 테] 색. 없으면 빨강(TELL)
 const RAGE := Color(1.5, 0.55, 0.55)  # 분노한 보스(S195)를 붉게 그리는 modulate
 const CROUCH := Vector2(1.15, 0.75)  # 슬라임 킹이 웅크림 끝에 납작해지는 배율(가로·세로, S198). 임시값
@@ -371,6 +372,9 @@ var _rubble := {}  # 본 잔해 칸
 var _tell := {}  # 보스 id → [예고 가운데(맵 px), 반경(px)]. 예고가 끊기면 둘레에 조각을 흩는다(S198)
 var _fell := {}  # 지난 프레임에 방에 있던 원정 둘째 형태의 몸 id(S352 ⑭). 새로 바뀐 프레임에만 떨어짐 사건을 낸다
 var _bounced := {}  # 지난 프레임에 튕김 효과(I277 ⑤)가 있던 적 id. 새로 걸린 프레임에만 불티를 낸다
+var _opened := {}  # 카운터 창(S326 ④)이 열려 있는 원정 보스 몸 id → 창이 열린 화면 시계(S369 ③). 새로 열린 프레임에 counter 사건을 낸다
+var _dazed := {}  # 지난 프레임에 그로기였던 원정 보스 몸 id(S369 ⑥). 예고 없이 그로기가 된 프레임에도 끊김 사건을 낸다
+var _lone := {}  # 지난 프레임에 홀로였던 원정 보스 몸 id(S354 ⑦). 새로 홀로 남은 프레임에 alone 사건을 낸다
 var _dots := []  # 효과 점(I172): {p0, p1, rise, t0, life, fade, col, size, ground}
 var _fade := 1.0  # 지금 그리는 흔적의 불투명도(S179 2026-10-29). 아트 px 도우미가 색 알파에 곱한다
 var _slides := {}  # id → [지난 화면 자리, 시작 시각, 길이](S198 미끄러짐)
@@ -494,6 +498,7 @@ func _draw() -> void:
 		if s.dest != null:  # 옮겨 갈 칸(S44): 청사진 색 테두리와 대포에서 이어지는 점선. 칸의 대포 청사진은 _bodies가 그린다(S176)
 			draw_rect(_rect(s.dest), Color(BLUEPRINT, 1.0), false, 1.0)
 			draw_dashed_line(_center(Vector2(s.cell)), _center(Vector2(s.dest)), Color(1, 1, 1, 0.7), 1.0, 3.0)
+	_den_wrecks()  # 원정의 잔해(S370 ⑤): 예고 아래 바닥 층
 	_zones()
 	_trails()  # 원정의 불길(S352 ⑥): 장판과 같은 바닥 층
 	_wards()  # 에너지 성벽 칸(S151, fx-2): 장판 다음, 몸통 아래
@@ -513,6 +518,7 @@ func _draw() -> void:
 	_marks()
 	_brand_marks()
 	_prey_mark()
+	_counter_flashes()
 	_chrono_marks()
 	_sera_marks()
 	_mire_marks()
@@ -2520,8 +2526,8 @@ func _bodies() -> void:
 	var folk := feet + n  # 이 번호부터 주민
 	var grave := folk + day.size()  # 이 번호부터 성벽 위의 쓰러진 몸
 	var keys := PackedInt64Array()
-	for w in battle.wrecks:  # 수레 잔해(S172 2026-11-05 변경 ⑥)는 땅의 쓰러진 몸처럼 모든 몸통 아래. 어둠 속이면 그리지 않는다(S213)
-		if ART.has("wreck") and battle.seen(w.at):
+	for w in battle.wrecks:  # 수레 잔해(S172 2026-11-05 변경 ⑥)는 땅의 쓰러진 몸처럼 모든 몸통 아래. 어둠 속이면 그리지 않는다(S213). 원정의 잔해는 바닥 층(_den_wrecks)이다
+		if ART.has("wreck") and battle.seen(w.at) and wreck_layer(w) == "body":
 			_wreck(w)
 	var dead := _fallen()
 	for k in dead.size():
@@ -2763,6 +2769,8 @@ func _look(x) -> Array:
 		var k := t / POP
 		s *= lerpf(POP_FROM, 1.0, k)
 		up += POP_UP * 4.0 * k * (1.0 - k)
+	if x.get("raid") and x.fx.has("groggy"):  # 그로기(S323 ②)인 원정 보스 몸은 방향 있는 그림도 납작하게 퍼진다(I277 ⑥, S369 ②)
+		return [s * GROGGY_POSE, up]
 	if not (_boss(x) and ART.has(x.kind) and ART[x.kind].get("one", false)):
 		return [s, up]
 	var c = x.cast
@@ -2772,8 +2780,6 @@ func _look(x) -> Array:
 			var a: float = 1.0 - c.left / sk.air
 			return [s, up + LEAP_UP * g[0] * 4.0 * a * (1.0 - a)]
 		return [s * Vector2.ONE.lerp(CROUCH, 1.0 - c.left / sk.windup), up]
-	if x.fx.has("groggy"):  # 그로기(S323 ②)인 몸은 납작하게 퍼진다(I277 ⑥)
-		return [s * GROGGY_POSE, up]
 	var tr = _boss_trace(x)
 	if tr != null:
 		return [s * CROUCH.lerp(Vector2.ONE, tr.age / SLAM_POSE), up]
@@ -3125,6 +3131,27 @@ func _fallen() -> Array:
 	return out
 
 # 수레 잔해 하나(S172 2026-11-05 변경 ⑥): 부서질 때 기계가 보던 쪽의 잔해 그림을 그 자리에 두고, 지워지기(battle.WRECK) 전 WRECK_FADE 동안 흐린다
+# 잔해를 그리는 층(S370 ⑤, I301 ③): 원정의 잔해는 예고 아래 바닥 층(floor), 디펜스 잔해는 몸통 층(body)
+func wreck_layer(w: Dictionary) -> String:
+	return "floor" if w.get("raid", false) else "body"
+
+# 원정 잔해가 대장 돌진을 막는 원(S342 ⑧)의 테(S370 ⑤): [가운데 px, 반지름 px, 색]. 방의 원정 보스 몸이 돌진을 예고하는 동안 진하다. 디펜스 잔해는 []
+func wreck_ring(w: Dictionary) -> Array:
+	if wreck_layer(w) != "floor":
+		return []
+	var tense: bool = battle.enemies.any(func(e): return not e.raid.is_empty() and e.cast != null and e.cast.id == "charge")
+	return [Vector2i(_center(w.at).floor()), int(CELL * battle.raid_floor.get("wreck", 1.0)), Color(PX.ash, 1.0 if tense else 0.55)]  # 불투명도는 임시값. 0.35는 어두운 원정 바닥에서 거의 안 보였다(2026-11-13 캡처)
+
+# 원정의 잔해(S370 ⑤): 바닥 층에 예고보다 먼저 그리고, 막는 원을 1px 테와 가운데 작은 십자로 보인다
+func _den_wrecks() -> void:
+	for w in battle.wrecks:
+		if wreck_layer(w) == "floor" and ART.has("wreck") and battle.seen(w.at):
+			_wreck(w)
+			var r := wreck_ring(w)
+			_pring(r[0], r[1], 1, r[2])
+			_pline(r[0] - Vector2i(2, 0), r[0] + Vector2i(2, 0), r[2])
+			_pline(r[0] - Vector2i(0, 2), r[0] + Vector2i(0, 2), r[2])
+
 func _wreck(w: Dictionary) -> void:
 	var id: int = w.who.get_instance_id()
 	if not _wreck_dirs.has(id):
@@ -3328,8 +3355,8 @@ func tick(dt: float) -> void:
 	events = []
 	_fills = _fills.map(func(f): return [f[0], f[1] - 1]).filter(func(f): return f[1] > 0)
 	var firing := {}
-	for e in battle.enemies:  # 기관총(S287)은 발사를 시작한 때가 발동이다. 보스 스킬 흔적을 남기지 않아서 여기서 채움을 넣는다(S198)
-		if e.cast != null and e.cast.id == "mgun" and e.cast.get("fire", false):
+	for e in battle.enemies:  # 기관총(S287)은 발사를 시작한 때가 발동이다. 보스 스킬 흔적을 남기지 않아서 여기서 채움을 넣는다(S198). 원정 몸은 흔적 spray가 채운다(I300 ⑦)
+		if e.cast != null and e.cast.id == "mgun" and e.cast.get("fire", false) and e.raid.is_empty():
 			firing[e] = true
 			if not _firing.has(e):
 				_fills.append([{"at": e.pos, "dir": e.cast.dir, "range": e.skills.mgun.range, "arc": e.skills.mgun.arc}, FILL])
@@ -3447,13 +3474,38 @@ func _scan() -> void:
 				_emit("slump", _center(c.at), Vector2.ZERO, c.hero, c.slump, {"radius": CELL * c.radius})
 	_known = battle.traces.duplicate()
 	var tell := {}
+	var cut := {}  # 이번 프레임에 예고 둘레 끊김 사건을 낸 몸 id
 	for e in battle.enemies:  # 보스 스킬 예고가 기절·빙결로 끊김(S194, S198)
 		var id: int = e.get_instance_id()
 		if e.cast:
 			tell[id] = [_chest(e.cast.who), CELL * e.cast.who.radius + 4.0] if e.cast.id == "devour" else [_center(e.cast.get("at", e.pos)), CELL * battle.deed(e, e.cast.id).get("radius", 6.0 / CELL)]  # 조각은 예고 원 둘레에(점프는 착지 자리, S198). 덮치기(S242)는 대상 발밑 표식 6px. 집어 먹기(I273 ⑥)는 졸개 둘레 테
 		elif _tell.has(id) and ((e.fx.has("stagger") and e.fx.stagger.left > battle.STAGGER - 0.25) or (e.fx.has("groggy") and e.fx.groggy.left > e.raid.groggy.time - 0.25)):  # 이번에 막 걸린 비틀거림·그로기(I270 ⑦)만
 			_emit("interrupt", _tell[id][0], Vector2.ZERO, e, null, {"radius": _tell[id][1]})
+			cut[id] = true
 	_tell = tell
+	var dazed := {}
+	var opened := {}
+	var lone := {}
+	for e in battle.enemies:  # 원정 보스 몸(S369 ③⑥, I300 ③⑥): 예고 없이 그로기가 된 프레임·카운터 창이 열린 프레임·홀로 남은 프레임에 한 번씩
+		if e.raid.is_empty():
+			continue
+		var id: int = e.get_instance_id()
+		if e.fx.has("groggy"):
+			dazed[id] = true
+			if not _dazed.has(id) and not cut.has(id):
+				_emit("interrupt", _center(e.pos), Vector2.ZERO, e, null, {"radius": CELL * e.radius})
+		if battle.countering(e):
+			opened[id] = _opened.get(id, clock)
+			if not _opened.has(id):
+				var ring := _ring_of(e)
+				_emit("counter", Vector2(ring[0]), Vector2.ZERO, e, null, {"radius": float(ring[1])})
+		if e.get("lone"):
+			lone[id] = true
+			if not _lone.has(id):
+				_emit("alone", _center(e.pos), Vector2.ZERO, e, null, {"radius": CELL * e.radius})
+	_dazed = dazed
+	_opened = opened
+	_lone = lone
 	var bounced := {}
 	for e in battle.enemies:  # 튕김(I277 ⑤): 원정 보스 몸에서 기절·봉인이 지워졌다. 효과가 새로 걸린 프레임에만 낸다
 		if e.fx.has("deflect"):
@@ -3784,23 +3836,49 @@ func shell_ring(e) -> Array:
 	var hue: Array = [] if e.cast.has("aimed") else TELL_HUES.violet
 	return [Vector2i(_center(e.pos).floor()), int(CELL * e.radius), PX[hue[0]] if not hue.is_empty() else TELL, PX[hue[1]] if not hue.is_empty() else PX.maroon]
 
-# 사냥감 표시(S337 ⑨, I286 ④): 사냥감이 있으면 [그 영웅, 세모 꼭짓점 px(머리 위, 0.5초마다 1px 오르내린다)]이고 없으면 []
+# 사냥감 표시(S337 ⑨, S369 ④, I300 ④): 표시를 받는 영웅마다 [그 영웅, 세모 꼭짓점 px(머리 위, 0.5초마다 1px 오르내린다), 그 원정 몸](몸 차례)
+func prey_marks() -> Array:
+	var out := []
+	for p in battle.raid_preys():
+		var u = p[1]
+		out.append([u, Vector2i((_spot(u) - Vector2(0, _head(u) + 4 + int(clock / 0.5) % 2)).floor()), p[0]])
+	return out
+
+# 첫째 원정 몸의 사냥감 표시(I286 ④): [그 영웅, 세모 꼭짓점 px]이고 없으면 []
 func prey_mark() -> Array:
-	var u = battle.raid_prey()
-	if u == null:
-		return []
-	return [u, Vector2i((_spot(u) - Vector2(0, _head(u) + 4 + int(clock / 0.5) % 2)).floor())]
+	var m := prey_marks()
+	return [] if m.is_empty() else [m[0][0], m[0][1]]
 
 # 사냥감 머리 위에 아래로 뾰족한 빨간 세모(가로 7px·세로 4px)를 어두운 테와 함께 그린다
 func _prey_mark() -> void:
-	var m := prey_mark()
-	if m.is_empty():
-		return
-	var tip: Vector2i = m[1]
-	for row in 4:
-		_pline(tip + Vector2i(-row - 1, -row), tip + Vector2i(row + 1, -row), PX.maroon)
-	for row in 4:
-		_pline(tip + Vector2i(-row, -row - 1), tip + Vector2i(row, -row - 1), TELL)
+	for m in prey_marks():
+		var tip: Vector2i = m[1]
+		for row in 4:
+			_pline(tip + Vector2i(-row - 1, -row), tip + Vector2i(row + 1, -row), PX.maroon)
+		for row in 4:
+			_pline(tip + Vector2i(-row, -row - 1), tip + Vector2i(row, -row - 1), TELL)
+
+# 카운터 창 테 자리(S369 ③, I300 ③) [가운데 px, 반지름 px]: 원 예고는 예고 원, 덮치기는 대상 발밑 표식(6px), 내려앉음은 몸 둘레 파란 테
+func _ring_of(e) -> Array:
+	if e.cast.id == "perch":
+		return [Vector2i(_center(e.pos).floor()), int(CELL * e.radius) + 3]
+	if e.cast.id == "pounce" and e.cast.get("who") != null:
+		return [Vector2i(_spot(e.cast.who).floor()), 6]
+	return [Vector2i(_center(e.cast.get("at", e.pos)).floor()), int(CELL * battle.deed(e, e.cast.id).get("radius", 6.0 / CELL))]
+
+# 카운터 창이 열린 뒤 COUNTER_FLASH초 동안 [테 가운데 px, 반지름 px]이고, 그 밖에는 [](S369 ③)
+func counter_ring(e) -> Array:
+	var id: int = e.get_instance_id()
+	if not _opened.has(id) or e.cast == null or clock - _opened[id] >= COUNTER_FLASH - 0.001:
+		return []
+	return _ring_of(e)
+
+# 카운터 창이 열린 순간 예고 테 자리에 크림색 2px 테를 겹친다(S369 ③). 몸통 위 층이다
+func _counter_flashes() -> void:
+	for e in _foes:
+		var r := counter_ring(e)
+		if not r.is_empty():
+			_pring(r[0], r[1], 2, PX.cream)
 
 # 씨앗 표식(S326 ③)의 번호(I277 ⑦): 표식 원 가운데(표식 영웅) 머리 위에 그 영웅의 출전 칸 번호를 표식 색으로 그린다.
 # 예고(_tells)는 몸통 아래 층이라 몸에 가려서, 번호만 몸통 뒤에 따로 그린다
@@ -3812,7 +3890,7 @@ func _brand_marks() -> void:
 			draw_string(PIXEL_FONT, at + Vector2(1, 1), no, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, PX[TELL_HUES.violet[1]])
 			draw_string(PIXEL_FONT, at, no, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, PX[TELL_HUES.violet[0]])
 
-# 기관총 예고(S287)·대장 철퇴 예고(S288): 부채꼴(반경 range, 각 arc) 빨강 테와 차오르는 안쪽. 기관총 발사 동안은 테와 지금 총구 방향의 선(I223)
+# 기관총 예고(S287)·대장 철퇴 예고(S288): 부채꼴(반경 range, 각 tell_arc — 원정 기관총만 판정 각) 빨강 테와 차오르는 안쪽. 기관총 발사 동안은 테와 지금 총구 방향의 선(I223)
 func _fan_tell(e, back := false) -> void:
 	var sk: Dictionary = e.skills[e.cast.id]
 	var c := _center(e.pos)
@@ -3821,7 +3899,7 @@ func _fan_tell(e, back := false) -> void:
 		sk = sk.back.merged({"windup": sk.windup})
 		dir += PI
 	var r: float = CELL * sk.range
-	var rim := _fan_rim(c, r, dir, sk.arc)
+	var rim := _fan_rim(c, r, dir, sk.arc if back else tell_arc(e))
 	var n := rim.size() - 1
 	if e.cast.get("fire", false):
 		var to := c + Vector2.from_angle(battle.muzzle(e.cast.dir, sk, sk.fire - e.cast.left)) * r
@@ -3837,6 +3915,11 @@ func _fan_tell(e, back := false) -> void:
 	_pline(Vector2i(c.floor()), Vector2i(rim[n].floor()), TELL)
 	for i in n:
 		_pline(Vector2i(rim[i].floor()), Vector2i(rim[i + 1].floor()), TELL)
+
+# 부채꼴 예고를 그리는 각(도, S370 ④, I301 ②): 원정 보스 몸의 기관총은 총구가 도는 arc에 양쪽 spread를 더한 판정 각이고, 그 밖에는 arc다
+func tell_arc(e) -> float:
+	var sk: Dictionary = e.skills[e.cast.id]
+	return sk.arc + (2.0 * sk.spread if e.cast.id == "mgun" and not e.raid.is_empty() else 0.0)
 
 # 불길 그림 자리(S352 ⑥, I289 ⑪): 불길 줄마다 가운데 선을 따라 8px쯤마다 하나씩, 줄 폭의 1/4만큼 좌우로 번갈아 어긋난 불꽃 자리(맵 px)
 func trail_marks() -> Array:

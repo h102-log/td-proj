@@ -1251,15 +1251,33 @@ func _shifted(e: Enemy) -> bool:
 		e.shifted = true
 	return e.shifted
 
-# 지금 사냥감(S337 ⑨, I286 ④): 층 정의의 hunts가 참인 층의 원정에서, 보스 몸의 예고에 대상(who)이 있고 살아 있으면 그 영웅, 아니면 지금 고를 사냥감이다.
-# 원정이 아니거나 끝났거나 hunts가 거짓이면 null. 화면이 그 영웅의 머리 위에 표시를 그린다
-func raid_prey():
+# 사냥감 표시를 받는 영웅(S337 ⑨, S369 ④, I300 ④): 층 정의의 hunts가 참인 층의 원정에서 원정 보스 몸 차례로 [몸, 영웅]. 영웅이 없는 몸은 빠진다.
+# 원정이 아니거나 끝났거나 hunts가 거짓이면 []. 화면이 항목마다 그 영웅의 머리 위에 표시를 그린다
+func raid_preys() -> Array:
 	if state != "raid" or _raid_end[0] != "" or not raid_floor.get("hunts", false):
-		return null
-	for e in _raiders():
-		var who = e.cast.get("who") if e.cast != null else null
-		return who if who != null and who.alive else _prey(e)
-	return null
+		return []
+	var out := []
+	var bodies := _raiders()
+	for e in bodies:
+		var u = _marked(e, is_same(e, bodies[0]))
+		if u != null:
+			out.append([e, u])
+	return out
+
+# 원정 몸 e가 노리는 영웅: 예고에 적힌 대상(prey, 없으면 who)이 살아 있으면 그 영웅, 아니면 붙잡은 영웅, 아니면 첫째 몸(first)만 지금 고를 사냥감(S337)
+func _marked(e: Enemy, first: bool):
+	for k in ["prey", "who"]:
+		var u = e.cast.get(k) if e.cast != null else null
+		if u != null and u.alive:
+			return u
+	if e.grip != null and e.grip.who.alive:
+		return e.grip.who
+	return _prey(e) if first else null
+
+# 첫째 원정 몸의 사냥감 표시 영웅(I286 ④). 없으면 null
+func raid_prey():
+	var p := raid_preys()
+	return p[0][1] if not p.is_empty() else null
 
 # 카운터 창(S326 ④, I270 ④): 예고의 남은 시간이 그 패턴의 counter 이하다. 화면이 왕 몸을 파랗게 깜박인다
 func countering(e: Enemy) -> bool:
@@ -4500,7 +4518,7 @@ func _brand_aim(e: Enemy, _sk: Dictionary) -> Dictionary:
 		var k: int = (e.turn + i) % party.size()
 		if party[k].alive:
 			e.turn = k + 1
-			return {"mark": party[k], "at": party[k].pos}
+			return {"mark": party[k], "at": party[k].pos, "prey": party[k]}  # prey: 사냥감 표시가 받는 영웅(S369 ④)
 	return {"at": e.pos}
 
 # 씨앗 표식이 터진다(S326 ③): 원 안의 산 원정대 영웅 모두가 피해를 받는다
@@ -4581,7 +4599,7 @@ func _closest(e: Enemy):
 # 대본의 기관총·철퇴(S342 ②⑦, I283 ②): 가까운 영웅 쪽(같은 자리거나 없으면 남쪽)을 부채꼴 가운데 방향으로 둔다
 func _face(e: Enemy) -> Dictionary:
 	var u = _closest(e)
-	return {"dir": (u.pos - e.pos).angle() if u != null and u.pos.distance_to(e.pos) > 0.01 else PI / 2.0}
+	return {"dir": (u.pos - e.pos).angle() if u != null and u.pos.distance_to(e.pos) > 0.01 else PI / 2.0, "prey": u}
 
 # 대본의 도약(S342 ⑥, I283 ⑦): 사냥감 자리(뜀 거리보다 멀면 그쪽으로 뜀 거리만큼 간 자리, 사냥감이 없으면 제자리)를 착지 자리로 두고,
 # 그 순간 착지 원 안에 산 원정대 영웅이 있으면 겨눈 뜀이다
@@ -4592,20 +4610,20 @@ func _leap_aim(e: Enemy, sk: Dictionary) -> Dictionary:
 		var to: Vector2 = u.pos - e.pos
 		at = u.pos if to.length() <= sk.range else e.pos + to.normalized() * sk.range
 	if e.raid.get("pair", []).is_empty():
-		return {"at": at, "aimed": party.any(func(h): return h.alive and h.pos.distance_to(at) <= sk.radius)}
+		return {"at": at, "aimed": party.any(func(h): return h.alive and h.pos.distance_to(at) <= sk.radius), "prey": u}
 	var sib = _sibling(e)
 	if sib != null and at.distance_to(sib.pos) < e.radius + sib.radius:  # 착지 자리가 형제 몸과 겹치면 형제 가운데에서 그쪽으로 두 몸 반지름의 합만큼 떨어진 자리로(S354 ②)
 		var out: Vector2 = at - sib.pos
 		var moved: Vector2 = sib.pos + (out.normalized() if out.length() > 0.001 else Vector2.RIGHT) * (e.radius + sib.radius)
 		if in_room(Vector2i(moved.round())):
 			at = moved
-	return {"at": at, "aimed": _aimed(e, at, sk.radius)}
+	return {"at": at, "aimed": _aimed(e, at, sk.radius), "prey": u}
 
 # 대본의 바위 던지기(S354 ①, I292 ③): 사냥감 자리(없으면 제자리)에 띄우고 오크를 집지 않는다
 func _lob_aim(e: Enemy, sk: Dictionary) -> Dictionary:
 	var u = _prey(e)
 	var at: Vector2 = u.pos if u != null else e.pos
-	return {"at": at, "who": null, "aimed": _aimed(e, at, sk.radius)}
+	return {"at": at, "who": null, "aimed": _aimed(e, at, sk.radius), "prey": u}
 
 # 대본의 복수의 도약(S354 ⑧, I292 ③): 맡은 쓰러진 몸 자리(없으면 제자리)로 뛴다
 func _vault_aim(e: Enemy, sk: Dictionary) -> Dictionary:
@@ -4619,7 +4637,7 @@ func _vault(e: Enemy, sk: Dictionary) -> void:
 # 대본의 형제 던지기(S354 ⑨, I292 ③): 사냥감 자리(없으면 제자리)
 func _toss_aim(e: Enemy, _sk: Dictionary) -> Dictionary:
 	var u = _prey(e)
-	return {"at": u.pos if u != null else e.pos}
+	return {"at": u.pos if u != null else e.pos, "prey": u}
 
 # 형제 던지기: 맡은 몸이 air초 날아 예고 자리에 떨어진다(_lobs). 던지면 맡은 몸이 비고 몸은 쓰러진 몸 목록에서 빠진다. 피해에 광폭(S323 ⑤)을 곱한다
 func _toss(e: Enemy, sk: Dictionary) -> void:
@@ -4646,7 +4664,7 @@ func _hop_free(e: Enemy, sk: Dictionary, at: Vector2) -> bool:
 # 웅크림이 끝나면 뜬다(S236): 붙잡던 유닛에서 풀리고, air초 동안 착지 자리로 곧장 난다
 func _leap(e: Enemy, sk: Dictionary) -> void:
 	_engage(e, null)
-	e.cast = {"id": e.cast.id, "left": sk.air, "air": true, "from": e.pos, "at": e.cast.at, "aimed": e.cast.get("aimed", false)}  # 복수의 도약(S354 ⑧)도 이 뜀이라 예고 id를 그대로 둔다
+	e.cast = {"id": e.cast.id, "left": sk.air, "air": true, "from": e.pos, "at": e.cast.at, "aimed": e.cast.get("aimed", false), "prey": e.cast.get("prey")}  # 복수의 도약(S354 ⑧)도 이 뜀이라 예고 id를 그대로 둔다. 예고의 대상(S369 ④)도 옮긴다
 
 # 뜬 동안(S236): 뜬 자리에서 착지 자리로 곧장 옮겨 가고, 다 날면 그 자리에서 내려찍은 뒤 길을 다시 찾는다. 박치기 활강(S305)·와이번 급강하(S310)도 같다
 func _soar(e: Enemy, dt: float) -> void:
@@ -4726,12 +4744,14 @@ func _pounce_aim(e: Enemy, _sk: Dictionary) -> Dictionary:
 # 덮치기 착지(S242): 성벽 위 대상이면 그 성벽 칸 위에 선다. 대상에 물리 피해를 주고 붙잡는다
 func _pounce_land(e: Enemy, sk: Dictionary, u) -> void:
 	e.on_wall = u.on_wall and _climbable(Vector2i(e.pos.round()))
-	if not u.alive:
-		return
-	damage(u, sk.damage * raid_ramp() * _fury(e), "phys", e)  # 원정에서는 광폭(S323 ⑤)도 곱한다(S337 ④). 원정이 아니면 1이다
+	if not e.raid.is_empty():  # 원정의 덮치기 착지는 보스 스킬 발동이다(S369 ⑥, I300 ⑦): 흔적을 남겨 화면이 발동 사건·효과음을 낸다
+		_trace(e, "pounce", null, e.pos, 0.0)
+	if u.alive:
+		damage(u, sk.damage * raid_ramp() * _fury(e), "phys", e)  # 원정에서는 광폭(S323 ⑤)도 곱한다(S337 ④). 원정이 아니면 1이다
 	if u.alive:
 		_control(u, "pin", {"pin": e}, sk.pin_time)
 		e.grip = {"who": u, "hurt": 0.0, "held": 0.0}
+	_tracing = null
 
 # 붙잡음(S242): 붙잡은 아군만 초당 bite로 문다. 받은 피해 합이 break_dmg를 넘거나 기절·빙결·봉인되면(broken) 놓는다.
 # 붙잡힘이 먼저 풀렸으면(시간·쓰러짐·정화·다른 조작 효과, S243) 따라 놓는다. 아직 붙잡고 있으면 true
@@ -4819,7 +4839,7 @@ func _cannon_ready(e: Enemy, sk: Dictionary):
 # 대본의 대포(S342 ①, I283 ②): 포탄 원이 사냥감을 따라다닌다. 사냥감이 없으면 기계 자리다
 func _cannon_aim(e: Enemy, _sk: Dictionary) -> Dictionary:
 	var u = _prey(e)
-	return {"mark": u, "at": u.pos} if u != null else {"at": e.pos}
+	return {"mark": u, "at": u.pos, "prey": u} if u != null else {"at": e.pos}
 
 # 대포: 예고 원 안 구조물에 물리 structure, 아군에 물리 unit(I219). 땅 위 아군은 원 가운데에서 멀어지게 knock칸 민다(가운데면 남쪽, I223).
 # 원정에서는 광폭(S323 ⑤)을 곱하고, 기계 몸에 닿은 채 굳은 원이 산 원정대 영웅을 하나도 못 맞혔으면 기계가 그로기가 된다(되돌리기, S342 ①)
@@ -4854,6 +4874,10 @@ func _mgun_aim(e: Enemy, _sk: Dictionary) -> Dictionary:
 func _mgun(e: Enemy, sk: Dictionary) -> void:
 	if not e.cast.get("fire", false):
 		e.cast = {"id": "mgun", "left": sk.fire, "fire": true, "dir": e.cast.dir, "shot": 0}
+		if not e.raid.is_empty():  # 원정의 기관총 발사 시작은 보스 스킬 발동이다(S369 ⑥, I300 ⑦). 발동 채움은 판정이 닿는 각이다(S370 ④)
+			_trace(e, "spray", null, e.pos, 0.0)
+			_tracing.merge({"dir": e.cast.dir, "range": sk.range, "arc": sk.arc + 2.0 * sk.spread})
+			_tracing = null
 
 # 기관총 발사 t초 뒤 총구 방향(라디안, I223): 가운데 dir에서 −arc/2 → +arc/2 → −arc/2로 같은 빠르기로 돈다
 func muzzle(dir: float, sk: Dictionary, t: float) -> float:
@@ -4892,6 +4916,7 @@ func _break(e: Enemy) -> void:
 		fallen.append({"who": body, "age": 0.0, "rider": e.kind})  # rider: 타고 있던 종류. 화면이 쓰러진 몸의 그림을 고른다(I287 ②)
 	elif not fell:
 		wrecks.append({"who": e, "at": e.pos, "age": 0.0, "raid": not e.raid.is_empty(), "size": e.radius / e.girth if e.girth > 0.0 else 1.0})  # size는 부서질 때의 몸 그림 배율(I283 ⑨)
+	var dazed: float = e.fx.groggy.left if e.fx.has("groggy") else 0.0  # 원정 둘째 형태가 이어받을 남은 그로기(S370 ⑥, I301 ①). _turn이 효과를 모두 지운다
 	_turn(e, e.phase2)
 	if rode:
 		e.via = via
@@ -4902,7 +4927,7 @@ func _break(e: Enemy) -> void:
 			e.pos = Vector2(_bare_near(c))
 	var sk: Dictionary = e.skills.get("leap", {})
 	e.cast = null if sk.is_empty() else {"id": "leap", "left": sk.air, "air": true, "from": e.pos, "at": e.pos}
-	if _second(e):  # 원정의 둘째 형태(S342 ④, I283 ①): 층의 수치·스킬을 얹고 체력을 그 값으로 가득 채운다. 등장 뜬 단계 없이 대본 차례 0·쉼 0에서 시작한다
+	if _second(e):  # 원정의 둘째 형태(S342 ④, I283 ①): 층의 수치·스킬을 얹고 체력을 그 값으로 가득 채운다. 등장 뜬 단계 없이 대본 차례 0, 첫 쉼 phase2.rest(S370 ⑥, I301 ①)에서 시작한다
 		var p: Dictionary = e.raid.phase2
 		for key in p.stats:
 			e.set(key, p.stats[key])
@@ -4911,7 +4936,9 @@ func _break(e: Enemy) -> void:
 		e.girth = _girth(e, p)
 		e.cast = null
 		e.beat = 0
-		e.rest = 0.0
+		e.rest = p.get("rest", 0.0)
+		if dazed > 0.0:  # 그로기인 채 바뀌면 남은 그로기를 그대로 이어받는다. 그로기 동안 쉼은 줄지 않는다(I270 ①)
+			_fx(e, "groggy", {"groggy": true}, dazed)
 	_find_path(e)
 
 # 적 e를 그 자리에서 종류 k로 바꾼다(I230 ①·I255 ③·I257 ①): 종류 수치를 모두 k의 것으로 하고 체력은 k 체력 × 라운드 배율로 가득 채우며,
@@ -5006,7 +5033,7 @@ func _charge_aim(e: Enemy, sk: Dictionary) -> Dictionary:
 	var u = _prey(e)
 	var dir: Vector2 = (u.pos - e.pos).normalized() if u != null and u.pos.distance_to(e.pos) > 0.01 else Vector2.DOWN
 	var got := _dash(e.pos, dir, sk.length)
-	return {"dir": dir.angle(), "to": got[0], "aimed": _walled(e.pos, got, sk.length, sk.get("run", 0.0))}
+	return {"dir": dir.angle(), "to": got[0], "aimed": _walled(e.pos, got, sk.length, sk.get("run", 0.0)), "prey": u}
 
 # 돌진 길(_dash가 돌려준 것)이 length에 못 미쳐 바위·물·맵 밖이나 원정의 수레 잔해(S342 ⑧)에서 멈췄다(I280 ③). 막힌 칸(에너지 성벽 등)이나 거점에 막힌 것은 아니다.
 # run이 있으면 달린 거리가 그 이상이어야 한다(I283 ⑥)
@@ -6006,7 +6033,7 @@ func _plunge_ready(e: Enemy, sk: Dictionary):
 
 # 급강하 예고가 끝나면 air초 동안 예고 자리로 곧장 내리꽂는다(뜬 단계, _soar)
 func _plunge(e: Enemy, sk: Dictionary) -> void:
-	e.cast = {"id": "plunge", "left": sk.air, "air": true, "from": e.pos, "at": e.cast.at}
+	e.cast = {"id": "plunge", "left": sk.air, "air": true, "from": e.pos, "at": e.cast.at, "prey": e.cast.get("prey")}  # 예고의 대상(S369 ④)을 뜬 동안에도 둔다
 
 # 급강하가 닿았다(S310 ①, I256 ①): 원 안 아군(성벽 위 포함, 들린 용병 빼고)에 물리 damage를 주고 원 가운데에서 그 아군 쪽으로 knock칸 민다(박치기 밀기 _bump).
 # 그 뒤 down초 내려앉는다(rest·down). 닿은 자리가 성곽 성벽 칸이면 그 성벽 위다
@@ -6036,7 +6063,7 @@ func _plunge_land(e: Enemy, sk: Dictionary, c: Dictionary) -> void:
 # 대본의 급강하(S352 ①, I289 ①): 사냥감이 선 자리(없으면 제자리)에 원을 띄운다. 따라가지 않는다
 func _plunge_aim(e: Enemy, _sk: Dictionary) -> Dictionary:
 	var u = _prey(e)
-	return {"at": u.pos if u != null else e.pos}
+	return {"at": u.pos if u != null else e.pos, "prey": u}
 
 # 내려앉음이 끝났다(S352 ③): 못 끊었으면 다시 뜰 뿐 다른 일은 없다
 func _perch(_e: Enemy, _sk: Dictionary) -> void:
@@ -6046,7 +6073,7 @@ func _perch(_e: Enemy, _sk: Dictionary) -> void:
 func _carpet_aim(e: Enemy, sk: Dictionary) -> Dictionary:
 	var u = _prey(e)
 	var dir: Vector2 = (u.pos - e.pos).normalized() if u != null and u.pos.distance_to(e.pos) > 0.01 else Vector2.DOWN
-	return {"dir": dir.angle(), "to": _dash(e.pos, dir, sk.length)[0]}
+	return {"dir": dir.angle(), "to": _dash(e.pos, dir, sk.length)[0], "prey": u}
 
 # 불길(S352 ⑥, I289 ⑥): 줄 안(가운데 선분에서 width/2칸 안)의 땅 위 산 원정대 영웅에 스텝마다 불을 새로 붙이고, 남은 시간이 다 되면 사라진다
 func _trails(dt: float) -> void:
@@ -6083,6 +6110,9 @@ static func _off(p: Vector2, a: Vector2, b: Vector2) -> float:
 func _carpet(e: Enemy, sk: Dictionary) -> void:
 	if not e.cast.get("pass", false):
 		e.cast = {"id": "carpet", "left": sk["pass"], "pass": true, "from": e.pos, "to": e.cast.to, "dir": e.cast.dir, "hit": []}
+		if not e.raid.is_empty():  # 원정의 융단 폭격 지나가기 시작은 보스 스킬 발동이다(S369 ⑥, I300 ⑦)
+			_trace(e, "strafe", null, e.pos, 0.0)
+			_tracing = null
 	elif sk.has("trail") and not e.raid.is_empty():  # 원정의 불길(S352 ⑥): 다 지나간 줄이 trail초 동안 남는다
 		trails.append({"from": e.cast.from, "to": e.cast.to, "width": sk.width, "left": sk.trail, "dps": sk.dps, "time": sk.time})
 
