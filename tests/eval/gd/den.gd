@@ -4947,8 +4947,30 @@ func ev1114():
 		var calm = e.cast
 		_go(b, 0.2)
 		out.append([turned, calm, e.cast.id if e.cast != null else null])
-	return check(out[0] == [["chief", 0, 2.0, null], null, "leap"] and out[1] == [["wyvern_fallen", 0, 2.0, null], null, "lash"],
-		"[[바뀐 종류, 대본 차례, 쉼, 예고], 1.9초 뒤 예고, 2.1초 뒤 예고] 3층 %s · 4층 %s(기대 쉼 2초, 1.9초까지 예고 없음, 그 뒤 도약·앞뒤 휩쓸기)" % out)
+	if out[0] != [["chief", 0, 2.0, null], null, "leap"] or out[1] != [["wyvern_fallen", 0, 2.0, null], null, "lash"]:
+		return "[[바뀐 종류, 대본 차례, 쉼, 예고], 1.9초 뒤 예고, 2.1초 뒤 예고] 3층 %s · 4층 %s(기대 쉼 2초, 1.9초까지 예고 없음, 그 뒤 도약·앞뒤 휩쓸기)" % out
+	var kept := []  # 그로기인 채 바뀌면 남은 그로기를 이어받고, 첫 쉼은 그 그로기가 끝난 뒤부터 센다(S370 ⑥, I301 ①)
+	for f in [[_den3(), "war_machine", "leap"], [_den4(), "wyvern", "lash"]]:
+		var b = f[0]
+		b.start_raid()
+		if b.state != "raid" or b.enemies.size() != 1 or b.enemies[0].kind != f[1]:
+			return "%s 원정이 되지 않았다" % f[1]
+		_freeze(b)
+		var e = b.enemies[0]
+		e.pull = 0.0
+		e.rest = 999.0
+		b._fx(e, "groggy", {"groggy": true}, 5.0)
+		_go(b, 1.0)
+		var was: float = e.fx.groggy.left if e.fx.has("groggy") else -1.0
+		b.damage(e, BIG)
+		var left: float = e.fx.groggy.left if e.fx.has("groggy") else -1.0
+		var rest: float = e.rest
+		_go(b, was + 1.9)
+		var calm = e.cast
+		_go(b, 0.2)
+		kept.append([absf(left - was) < 0.001 and was > 3.9, snappedf(rest, 0.01), calm, e.cast.id if e.cast != null else null])
+	return check(kept[0] == [true, 2.0, null, "leap"] and kept[1] == [true, 2.0, null, "lash"],
+		"그로기 4초 남기고 바꾸면 [남은 그로기 그대로, 쉼, 남은 그로기 + 1.9초 뒤 예고, + 2.1초 뒤 예고] 3층 %s · 4층 %s(기대 [참, 2, null, 도약·앞뒤 휩쓸기])" % kept)
 
 # EV1115 · S370 ③, I301 ②: 원정의 기관총 부채꼴 예고는 판정이 닿는 각(arc + 양쪽 spread = 150°)으로 그리고, 디펜스 기관총과 원정 철퇴는 arc 그대로다
 func ev1115():

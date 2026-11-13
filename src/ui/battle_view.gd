@@ -3140,7 +3140,7 @@ func wreck_ring(w: Dictionary) -> Array:
 	if wreck_layer(w) != "floor":
 		return []
 	var tense: bool = battle.enemies.any(func(e): return not e.raid.is_empty() and e.cast != null and e.cast.id == "charge")
-	return [Vector2i(_center(w.at).floor()), int(CELL * battle.raid_floor.get("wreck", 1.0)), Color(PX.ash, 0.9 if tense else 0.35)]
+	return [Vector2i(_center(w.at).floor()), int(CELL * battle.raid_floor.get("wreck", 1.0)), Color(PX.ash, 1.0 if tense else 0.55)]  # 불투명도는 임시값. 0.35는 어두운 원정 바닥에서 거의 안 보였다(2026-11-13 캡처)
 
 # 원정의 잔해(S370 ⑤): 바닥 층에 예고보다 먼저 그리고, 막는 원을 1px 테와 가운데 작은 십자로 보인다
 func _den_wrecks() -> void:

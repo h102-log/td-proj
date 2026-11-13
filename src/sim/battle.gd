@@ -4916,6 +4916,7 @@ func _break(e: Enemy) -> void:
 		fallen.append({"who": body, "age": 0.0, "rider": e.kind})  # rider: 타고 있던 종류. 화면이 쓰러진 몸의 그림을 고른다(I287 ②)
 	elif not fell:
 		wrecks.append({"who": e, "at": e.pos, "age": 0.0, "raid": not e.raid.is_empty(), "size": e.radius / e.girth if e.girth > 0.0 else 1.0})  # size는 부서질 때의 몸 그림 배율(I283 ⑨)
+	var dazed: float = e.fx.groggy.left if e.fx.has("groggy") else 0.0  # 원정 둘째 형태가 이어받을 남은 그로기(S370 ⑥, I301 ①). _turn이 효과를 모두 지운다
 	_turn(e, e.phase2)
 	if rode:
 		e.via = via
@@ -4936,6 +4937,8 @@ func _break(e: Enemy) -> void:
 		e.cast = null
 		e.beat = 0
 		e.rest = p.get("rest", 0.0)
+		if dazed > 0.0:  # 그로기인 채 바뀌면 남은 그로기를 그대로 이어받는다. 그로기 동안 쉼은 줄지 않는다(I270 ①)
+			_fx(e, "groggy", {"groggy": true}, dazed)
 	_find_path(e)
 
 # 적 e를 그 자리에서 종류 k로 바꾼다(I230 ①·I255 ③·I257 ①): 종류 수치를 모두 k의 것으로 하고 체력은 k 체력 × 라운드 배율로 가득 채우며,
