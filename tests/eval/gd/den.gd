@@ -409,7 +409,7 @@ func ev895():
 
 const GEN_HP := [400.0, 200.0, 100.0, 50.0]
 const GEN_BODY := [1.6, 1.2, 0.9, 0.7]
-const GEN_LAND := [2.5, 2.0, 1.6, 1.3]
+const GEN_LAND := [2.5, 1.9, 1.6, 1.3]
 
 # 원정대를 멈춘다: 걷지도, 적을 찾지도, 치지도, 오토로 스킬을 쓰지도 않는다
 func _freeze(b) -> void:
@@ -867,7 +867,7 @@ func ev932():
 	var want := {
 		"slam": {"windup": 2.0, "radius": 3.0, "damage": 30.0, "knock": 1.5, "slow": 0.3, "slow_time": 3.0, "counter": 1.0, "color": "blue"},
 		"soak": {"windup": 4.0, "radius": 1.5, "far": 5.0, "turn": 90.0, "damage": 60.0, "need": 2, "miss": 20.0, "heal": 0.05, "counter": 1.0, "color": "gold"},
-		"brand": {"windup": 3.0, "radius": 2.0, "damage": 30.0, "color": "violet"},
+		"brand": {"windup": 3.0, "radius": 1.9, "damage": 30.0, "color": "violet"},
 	}
 	for id in want:
 		var sk: Dictionary = f.skills.get(id, {})
@@ -1626,14 +1626,14 @@ func ev971():
 	if f.plan != [{"id": "charge", "wait": 4.0}, {"id": "pounce", "wait": 5.0}, {"id": "charge", "wait": 4.0}, {"id": "brand", "wait": 5.0}]:
 		return "대본 %s(기대 돌진 4 → 덮치기 5 → 돌진 4 → 표식 5)" % [f.plan]
 	var charge := {"length": 8.0, "width": 1.0, "side": 1.0, "windup": 1.6, "unit": 30.0}
-	var pounce := {"windup": 2.0, "counter": 0.8, "air": 0.4, "damage": 25.0, "pin_time": 4.0, "bite": 8.0, "break_dmg": 5.0, "color": "blue"}
-	var brand := {"radius": 2.0, "windup": 3.0, "damage": 30.0, "color": "violet"}
+	var pounce := {"windup": 2.0, "counter": 1.0, "air": 0.4, "damage": 25.0, "pin_time": 4.0, "bite": 8.0, "break_dmg": 5.0, "color": "blue"}
+	var brand := {"radius": 1.9, "windup": 3.0, "damage": 30.0, "color": "violet"}
 	if sk.get("charge") != charge or sk.get("pounce") != pounce or sk.get("brand") != brand or sk.get("frenzy") != {"damage": 0.25, "cap": 3}:
 		return "돌진 %s · 덮치기 %s · 표식 %s · 광분 %s" % [sk.get("charge"), sk.get("pounce"), sk.get("brand"), sk.get("frenzy")]
 	if f.ward != 0.88 or f.groggy != {"time": 5.0, "mult": 1.5} or f.enrage != {"soft": 80.0, "step": 10.0, "ramp": 0.15} or f.hard != 120.0 or f.gold != 150 or f.relic != "wolf_fang":
 		return "경감 %s · 그로기 %s · 광폭 %s · 불꽃 %s · 층 골드 %s · 유물 «%s»(기대 0.88·5초 1.5배·80초 10초 0.15·120·150·wolf_fang)" % [f.ward, f.groggy, f.enrage, f.hard, f.gold, f.relic]
-	if f.get("shift") != {"below": 0.5, "rest": 0.3, "twice": "charge", "windup": 1.0} or f.get("hunts") != true:
-		return "체력 문턱 %s(기대 below 0.5·rest 0.3·twice charge·windup 1) · 사냥감 표시 %s(참)" % [f.get("shift"), f.get("hunts")]
+	if f.get("shift") != {"below": 0.5, "rest": 0.3, "twice": "charge", "windup": 1.4} or f.get("hunts") != true:
+		return "체력 문턱 %s(기대 below 0.5·rest 0.3·twice charge·windup 1.4) · 사냥감 표시 %s(참)" % [f.get("shift"), f.get("hunts")]
 	var wolf = load("res://data/enemies/alpha_wolf.tres")
 	return check(_stage().den.floors == ["floor_1", "floor_2", "floor_3", "floor_4", "floor_5"] and load("res://data/dungeon/floor_1.tres").get("walks") == true
 		and wolf.hp == 160.0 and wolf.radius == 0.45 and wolf.skills.pounce.break_dmg == 40.0 and wolf.skills.frenzy == {"damage": 0.25},
@@ -1840,18 +1840,18 @@ func ev979():
 	_stand(b, HUNT)
 	var u = b.party[1]
 	_tell(b, e, 1)
-	_go(b, 1.0)
+	_go(b, 0.8)
 	var open: bool = b.countering(e)
 	b._fx(e, "t1", {"stun": true}, 2.0)
 	var early := [e.cast != null and e.cast.id == "pounce", _groggy(b, e), b.effect(e, "deflect") != null]
-	_go(b, 0.4)
+	_go(b, 0.6)
 	var window: bool = b.countering(e)
 	b._fx(e, "t2", {"stun": true}, 2.0)
 	var late := [e.cast, _groggy(b, e), b._fx_on(e, "stun"), e.beat]
 	var hp: float = u.hp
 	_go(b, 1.5)
 	if open or early != [true, false, true] or not window or late != [null, true, null, 2] or u.hp != hp or b._fx_on(u, "pin") != null:
-		return "① 1.0초 카운터 창 %s(거짓) · 그때 기절 뒤 [예고 있음, 그로기, 튕김] %s(기대 [참, 거짓, 참]) · 1.4초 카운터 창 %s(참) · 그때 기절 뒤 [예고, 그로기, 기절, 대본 차례] %s(기대 [null, 참, null, 2]) · 영웅 체력 %s → %s · 붙잡힘 %s(없음)" % [open, early, window, late, hp, u.hp, b._fx_on(u, "pin")]
+		return "① 0.8초 카운터 창 %s(거짓) · 그때 기절 뒤 [예고 있음, 그로기, 튕김] %s(기대 [참, 거짓, 참]) · 1.4초 카운터 창 %s(참) · 그때 기절 뒤 [예고, 그로기, 기절, 대본 차례] %s(기대 [null, 참, null, 2]) · 영웅 체력 %s → %s · 붙잡힘 %s(없음)" % [open, early, window, late, hp, u.hp, b._fx_on(u, "pin")]
 	var k = _den2()
 	var w = _alpha(k)
 	if w == null:
@@ -2214,10 +2214,10 @@ func ev1001():
 		return "기계 체력 500일 때 남은 비율 %s(0.75) · 부서진 뒤 [판, 적 수, 같은 적, 종류, 살았나, 체력, 최대 체력, 몸, 방어력, 처치 골드, 경험치, 자리, 예고, 효과 없음, 는 골드, 깬 층] %s(기대 [raid, 1, 참, chief, 참, 1000, 1000, 1.5, 10, 0, 0, (84,80), null, 참, 0, 2])" % [half, now]
 	if absf(b.raid_left() - 0.5) > 0.0001 or b.wrecks.size() != 1 or b.wrecks[0].at != Vector2(BOSS) or (b.has_method("raid_title") and b.raid_title() != "고블린 대장") or not b.has_method("raid_title"):
 		return "부서진 뒤 남은 비율 %s(0.5) · 잔해 %s(하나, (84,80)) · 이름 %s(고블린 대장)" % [b.raid_left(), b.wrecks.map(func(w): return w.at), b.raid_title() if b.has_method("raid_title") else "raid_title 없음"]
-	b.step(DT)
+	_go(b, 2.05)
 	var first = e.cast
 	if first == null or first.id != "leap":
-		return "부서진 다음 스텝의 예고 %s(기대 leap)" % [first]
+		return "부서지고 2.05초 뒤 예고 %s(기대 leap: 첫 쉼 2초)" % [first]
 	e.cast = null
 	e.rest = 999.0
 	_go(b, 6.0)
@@ -2435,8 +2435,8 @@ func ev1006():
 		var id = w.cast.id if w.cast != null else null
 		_resolve(k, w)
 		seen.append([id, w.beat, snappedf(w.rest, 0.5)])
-	return check(born == ["chief", 0, 0.0] and seen == [["leap", 1, 2.0], ["cleave", 2, 4.0], ["charge", 3, 4.0], ["bombs", 4, 5.0], ["soak", 0, 4.0]],
-		"② 부서진 직후 [종류, 대본 차례, 쉼] %s(기대 [chief, 0, 0]) · 차례마다 [예고, 끝난 뒤 대본 차례, 다음 쉼] %s(기대 leap 1 2 · cleave 2 4 · charge 3 4 · bombs 4 5 · soak 0 4)" % [born, seen])
+	return check(born == ["chief", 0, 2.0] and seen == [["leap", 1, 2.0], ["cleave", 2, 4.0], ["charge", 3, 4.0], ["bombs", 4, 5.0], ["soak", 0, 4.0]],
+		"② 부서진 직후 [종류, 대본 차례, 쉼] %s(기대 [chief, 0, 2]) · 차례마다 [예고, 끝난 뒤 대본 차례, 다음 쉼] %s(기대 leap 1 2 · cleave 2 4 · charge 3 4 · bombs 4 5 · soak 0 4)" % [born, seen])
 
 # EV1007 · I283 ⑨: 보스 막대의 이름은 지금 형태를 따르고 기계·대장·잔해의 그림 배율은 1이다. 대장을 처치하면 유물 이름과 층 골드가 든 토스트가 뜬다
 func ev1007():
@@ -2750,9 +2750,9 @@ func ev1024():
 	var hp: Array = b.party.map(func(h): return h.hp)
 	_go(b, 1.7)
 	var second = e.cast
-	if e.pos.distance_to(Vector2(92, 80)) > 0.01 or _groggy(b, e) or second == null or second.id != "charge" or second.get("again") != true or second.left > 1.001 or second.left < 0.85 or Vector2.from_angle(second.dir).round() != Vector2(-1, 0) or e.beat != 0:
-		return "① 1.7초 뒤 알파 %s((92,80)) · 그로기 %s(거짓) · 예고 %s(기대 charge·again·남은 0.85~1.0초·서쪽) · 대본 차례 %s(0)" % [e.pos, _groggy(b, e), second, e.beat]
-	_go(b, 1.1)
+	if e.pos.distance_to(Vector2(92, 80)) > 0.01 or _groggy(b, e) or second == null or second.id != "charge" or second.get("again") != true or second.left > 1.401 or second.left < 1.25 or Vector2.from_angle(second.dir).round() != Vector2(-1, 0) or e.beat != 0:
+		return "① 1.7초 뒤 알파 %s((92,80)) · 그로기 %s(거짓) · 예고 %s(기대 charge·again·남은 1.25~1.4초·서쪽) · 대본 차례 %s(0)" % [e.pos, _groggy(b, e), second, e.beat]
+	_go(b, 1.5)
 	if e.pos.distance_to(Vector2(84, 80)) > 0.01 or e.cast != null or e.beat != 1 or e.rest > 3.501 or e.rest < 3.2 or _groggy(b, e) or b.party.map(func(h): return h.hp) != hp:
 		return "① 둘째 돌진 뒤 알파 %s((84,80)) · 예고 %s(없음) · 대본 차례 %s(1) · 쉼 %s(3.2~3.5 = 5 × 0.7에서 0.3초 안) · 그로기 %s(거짓) · 영웅 체력 %s → %s" % [e.pos, e.cast, e.beat, e.rest, _groggy(b, e), hp, b.party.map(func(h): return h.hp)]
 	var k = _den2()
@@ -2992,7 +2992,7 @@ func ev1033():
 	if f.title != "와이번" or f.opens != 5 or f.kind != "wyvern" or f.stats != {"hp": 1000.0, "radius": 0.9, "reward": 0, "xp": 0} or f.get("walks") != false or f.get("hunts") != true or not f.gens.is_empty() or f.get("scale") != 1.0 or f.get("wreck") != 0.0:
 		return "이름 %s · 열림 %s · 종류 %s · 수치 %s · walks %s · hunts %s · 세대 %s · 그림 배율 %s · 잔해 %s(기대 와이번·5·wyvern·체력 1000 몸 0.9 보상 0·거짓·참·없음·1·0)" % [f.title, f.opens, f.kind, f.stats, f.get("walks"), f.get("hunts"), f.gens, f.get("scale"), f.get("wreck")]
 	var sk: Dictionary = f.skills
-	var plunge := {"windup": 1.6, "air": 0.5, "radius": 2.0, "damage": 30.0, "knock": 1.0, "down": 2.0, "window": 1.0}
+	var plunge := {"windup": 1.6, "air": 0.5, "radius": 1.9, "damage": 30.0, "knock": 1.0, "down": 2.0, "window": 1.0}
 	var carpet := {"windup": 1.4, "pass": 0.8, "length": 12.0, "width": 1.5, "dps": 5.0, "time": 4.0, "trail": 8.0}
 	if sk.get("plunge") != plunge or sk.get("carpet") != carpet or sk.size() != 2:
 		return "1형 스킬: 급강하 %s · 융단 폭격 %s · 수 %d(둘)" % [sk.get("plunge"), sk.get("carpet"), sk.size()]
@@ -3002,7 +3002,7 @@ func ev1033():
 	if p.get("title") != "떨어진 와이번" or p.get("kind") != "wyvern_fallen" or p.get("scale") != 1.0 or p.get("stats") != {"hp": 1000.0, "radius": 0.9, "reward": 0, "xp": 0}:
 		return "2형 이름 %s · 종류 %s · 그림 배율 %s · 수치 %s(기대 떨어진 와이번·wyvern_fallen·1·체력 1000 몸 0.9 보상 0)" % [p.get("title"), p.get("kind"), p.get("scale"), p.get("stats")]
 	var want := {
-		"lash": {"windup": 1.35, "range": 4.0, "arc": 90.0, "dps": 5.0, "time": 4.0, "back": {"range": 3.0, "arc": 120.0, "unit": 20.0, "knock": 1.5}},
+		"lash": {"windup": 1.65, "range": 4.0, "arc": 90.0, "dps": 5.0, "time": 4.0, "back": {"range": 3.0, "arc": 120.0, "unit": 20.0, "knock": 1.5}},
 		"charge": {"windup": 1.35, "length": 8.0, "width": 1.0, "side": 1.0, "unit": 30.0, "run": 2.0, "dps": 5.0, "time": 4.0},
 		"soak": {"windup": 4.0, "radius": 1.5, "far": 5.0, "turn": 90.0, "damage": 60.0, "need": 2, "miss": 20.0, "heal": 0.05, "color": "gold", "counter": 1.0},
 	}
@@ -3284,12 +3284,12 @@ func ev1041():
 		return "떨어진 직후 [판, 적 수, 같은 적, 종류, 살아 있나, 체력, 최대 체력, 몸, 비행, 날고 있나, 처치 골드, 경험치, 예고, 효과 수, 자리] %s(기대 [raid, 1, 참, wyvern_fallen, 참, 1000, 1000, 0.9, 거짓, 거짓, 0, 0, null, 0, %s])" % [born, at]
 	if absf(half - 0.75) > 0.001 or b.raid_left() != 0.5 or b.gold != gold or b.floors_cleared != 3 or b.raid_title() != "떨어진 와이번" or b.trails.size() != 1:
 		return "고정 피해 500 뒤 남은 비율 %s(0.75) · 떨어진 뒤 %s(0.5) · 골드 %s → %s(그대로) · 깬 층 %s(3) · 보스 이름 %s(떨어진 와이번) · 불길 %d(1 그대로)" % [half, b.raid_left(), gold, b.gold, b.floors_cleared, b.raid_title(), b.trails.size()]
-	b.step(DT)
+	_go(b, 2.05)
 	var first = e.cast.id if e.cast != null else null
 	e.cast = null
 	e.rest = 999.0
 	_go(b, 10.0)
-	return check(first == "lash" and b.state == "raid" and e.kind == "wyvern_fallen" and not e.flying and at.distance_to(e.pos) < 0.001, "한 스텝 뒤 예고 %s(lash) · 10초 뒤 판 %s(raid) · 종류 %s(wyvern_fallen) · 비행 %s(거짓) · 자리 %s(%s 그대로)" % [first, b.state, e.kind, e.flying, e.pos, at])
+	return check(first == "lash" and b.state == "raid" and e.kind == "wyvern_fallen" and not e.flying and at.distance_to(e.pos) < 0.001, "쉼 2초 뒤 예고 %s(lash) · 10초 뒤 판 %s(raid) · 종류 %s(wyvern_fallen) · 비행 %s(거짓) · 자리 %s(%s 그대로)" % [first, b.state, e.kind, e.flying, e.pos, at])
 
 # EV1042 · S352 ⑨·I289 ⑧: 앞뒤 휩쓸기는 가까운 영웅 쪽 앞 부채꼴에 불을, 정반대 쪽 뒤 부채꼴에 피해 20·넉백 1.5칸을 준다. 옆구리는 무사하고 방향은 예고 때 굳으며 그로기가 없다
 func ev1042():
@@ -3300,14 +3300,14 @@ func ev1042():
 	var p = b.party
 	_stand(b, [Vector2(84, 78), Vector2(84, 82), Vector2(86.5, 80)])
 	var c = _tell(b, e, 0)
-	if c == null or c.id != "lash" or absf(c.left - 1.35) > 0.001 or absf(c.get("dir", 9.0) + PI / 2.0) > 0.001:
-		return "예고 %s(기대 lash·남은 1.35초·방향 북쪽: 가까운 첫째 영웅 쪽)" % [c]
+	if c == null or c.id != "lash" or absf(c.left - 1.65) > 0.001 or absf(c.get("dir", 9.0) + PI / 2.0) > 0.001:
+		return "예고 %s(기대 lash·남은 1.65초·방향 북쪽: 가까운 첫째 영웅 쪽)" % [c]
 	p[2].pos = Vector2(85, 80)
 	b.step(DT)
 	var turned: float = e.cast.dir if e.cast != null else 9.0
 	var hp: Array = p.map(func(h): return h.hp)
 	var want: float = _take(b, p[1], 20.0)
-	_go(b, 1.4)
+	_go(b, 1.7)
 	var lost: Array = range(3).map(func(i): return hp[i] - p[i].hp)
 	return check(absf(turned + PI / 2.0) < 0.001 and e.cast == null and not _groggy(b, e) and e.beat == 1 and p.map(_fire) == [5.0, 0.0, 0.0] and absf(lost[1] - want) < 0.01 and lost[2] == 0.0
 		and p[1].pos.distance_to(Vector2(84, 83.5)) < 0.01 and p[0].pos == Vector2(84, 78) and p[2].pos == Vector2(85, 80) and e.pos == Vector2(BOSS),
@@ -3443,8 +3443,8 @@ func ev1045():
 		var id = w.cast.id if w.cast != null else null
 		_resolve(k, w)
 		seen.append([id, w.beat, snappedf(w.rest, 0.5)])
-	return check(born == ["wyvern_fallen", 0, 0.0] and seen == [["lash", 1, 4.0], ["charge", 2, 3.0], ["lash", 3, 5.0], ["soak", 0, 3.0]],
-		"② 떨어진 직후 [종류, 대본 차례, 쉼] %s(기대 [wyvern_fallen, 0, 0]) · 차례마다 [예고, 끝난 뒤 대본 차례, 다음 쉼] %s(기대 lash 1 4 · charge 2 3 · lash 3 5 · soak 0 3)" % [born, seen])
+	return check(born == ["wyvern_fallen", 0, 2.0] and seen == [["lash", 1, 4.0], ["charge", 2, 3.0], ["lash", 3, 5.0], ["soak", 0, 3.0]],
+		"② 떨어진 직후 [종류, 대본 차례, 쉼] %s(기대 [wyvern_fallen, 0, 2]) · 차례마다 [예고, 끝난 뒤 대본 차례, 다음 쉼] %s(기대 lash 1 4 · charge 2 3 · lash 3 5 · soak 0 3)" % [born, seen])
 
 # EV1046 · S352 ⑫: 떨어진 와이번을 처치하면 깬 층 4·층 골드 200이고 유물 비늘 +0을 받아 출전 첫째 영웅이 낀다. 불길도 사라진다
 func ev1046():
@@ -3747,7 +3747,7 @@ func ev1054():
 		"leap": {"windup": 1.5, "air": 0.6, "range": 8.0, "radius": 2.5, "damage": 30.0, "knock": 1.5, "aim": "near"},
 		"slam": {"windup": 2.0, "radius": 3.0, "damage": 30.0, "knock": 1.5, "color": "blue", "counter": 1.0},
 		"vault": {"windup": 1.5, "air": 0.6, "radius": 2.5, "damage": 30.0, "knock": 1.5},
-		"toss": {"windup": 1.5, "air": 0.6, "radius": 2.0, "hit": 40.0},
+		"toss": {"windup": 1.5, "air": 0.6, "radius": 1.9, "hit": 40.0},
 	}
 	for id in want:
 		if f.skills.get(id) != want[id]:
@@ -4515,8 +4515,8 @@ func ev1072():
 		return "② 그로기인 아우 곁에 떨어진 바위: 사건 %s(없어야)" % [again]
 	if not one.call(leap, "bonk", px.call(Vector2(81, 80)), 14.4) or not e_groggy:
 		return "③ 형 곁에 비킨 착지: 사건 %s(기대 bonk 하나, 자리 %s·반지름 14.4) · 형 그로기 %s(참)" % [leap, px.call(Vector2(81, 80)), e_groggy]
-	return check(tossed.size() == 2 and fell.size() == 1 and fell[0][0] == "slump" and fell[0][1] > tossed[0] and fell[0][2].distance_to(px.call(tossed[1])) < 0.01 and absf(fell[0][3] - 32.0) < 0.01,
-		"④ 아우를 쓰러뜨린 뒤 형제 던지기 예고 [프레임, 자리] %s(있어야) · 사건 %s(기대 그 뒤 slump 하나, 자리는 예고 자리의 가운데 px·반지름 32)" % [tossed, fell])
+	return check(tossed.size() == 2 and fell.size() == 1 and fell[0][0] == "slump" and fell[0][1] > tossed[0] and fell[0][2].distance_to(px.call(tossed[1])) < 0.01 and absf(fell[0][3] - 30.4) < 0.01,
+		"④ 아우를 쓰러뜨린 뒤 형제 던지기 예고 [프레임, 자리] %s(있어야) · 사건 %s(기대 그 뒤 slump 하나, 자리는 예고 자리의 가운데 px·반지름 30.4)" % [tossed, fell])
 
 # EV1073 · I293 ④: 장비 칸의 유물 줄은 두 개씩 나란히 놓이고, 유물 다섯·미션 판정 줄·전리품 줄이 함께 있어도 라운드 사이 창의 아래끝이 356 이하다
 func ev1073():

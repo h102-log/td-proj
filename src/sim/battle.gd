@@ -4926,7 +4926,7 @@ func _break(e: Enemy) -> void:
 			e.pos = Vector2(_bare_near(c))
 	var sk: Dictionary = e.skills.get("leap", {})
 	e.cast = null if sk.is_empty() else {"id": "leap", "left": sk.air, "air": true, "from": e.pos, "at": e.pos}
-	if _second(e):  # 원정의 둘째 형태(S342 ④, I283 ①): 층의 수치·스킬을 얹고 체력을 그 값으로 가득 채운다. 등장 뜬 단계 없이 대본 차례 0·쉼 0에서 시작한다
+	if _second(e):  # 원정의 둘째 형태(S342 ④, I283 ①): 층의 수치·스킬을 얹고 체력을 그 값으로 가득 채운다. 등장 뜬 단계 없이 대본 차례 0, 첫 쉼 phase2.rest(S370 ⑥, I301 ①)에서 시작한다
 		var p: Dictionary = e.raid.phase2
 		for key in p.stats:
 			e.set(key, p.stats[key])
@@ -4935,7 +4935,7 @@ func _break(e: Enemy) -> void:
 		e.girth = _girth(e, p)
 		e.cast = null
 		e.beat = 0
-		e.rest = 0.0
+		e.rest = p.get("rest", 0.0)
 	_find_path(e)
 
 # 적 e를 그 자리에서 종류 k로 바꾼다(I230 ①·I255 ③·I257 ①): 종류 수치를 모두 k의 것으로 하고 체력은 k 체력 × 라운드 배율로 가득 채우며,

@@ -60,6 +60,7 @@ phase2 = {
 "title": "고블린 대장",
 "kind": "chief",
 "scale": 1.0,
+"rest": 2.0,
 "stats": {
 "hp": 1000.0,
 "armor": 10.0,

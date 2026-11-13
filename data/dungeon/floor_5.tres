@@ -67,7 +67,7 @@ skills = {
 "toss": {
 "air": 0.6,
 "hit": 40.0,
-"radius": 2.0,
+"radius": 1.9,
 "windup": 1.5
 }
 }

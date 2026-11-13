@@ -498,6 +498,7 @@ func _draw() -> void:
 		if s.dest != null:  # 옮겨 갈 칸(S44): 청사진 색 테두리와 대포에서 이어지는 점선. 칸의 대포 청사진은 _bodies가 그린다(S176)
 			draw_rect(_rect(s.dest), Color(BLUEPRINT, 1.0), false, 1.0)
 			draw_dashed_line(_center(Vector2(s.cell)), _center(Vector2(s.dest)), Color(1, 1, 1, 0.7), 1.0, 3.0)
+	_den_wrecks()  # 원정의 잔해(S370 ⑤): 예고 아래 바닥 층
 	_zones()
 	_trails()  # 원정의 불길(S352 ⑥): 장판과 같은 바닥 층
 	_wards()  # 에너지 성벽 칸(S151, fx-2): 장판 다음, 몸통 아래
@@ -2525,8 +2526,8 @@ func _bodies() -> void:
 	var folk := feet + n  # 이 번호부터 주민
 	var grave := folk + day.size()  # 이 번호부터 성벽 위의 쓰러진 몸
 	var keys := PackedInt64Array()
-	for w in battle.wrecks:  # 수레 잔해(S172 2026-11-05 변경 ⑥)는 땅의 쓰러진 몸처럼 모든 몸통 아래. 어둠 속이면 그리지 않는다(S213)
-		if ART.has("wreck") and battle.seen(w.at):
+	for w in battle.wrecks:  # 수레 잔해(S172 2026-11-05 변경 ⑥)는 땅의 쓰러진 몸처럼 모든 몸통 아래. 어둠 속이면 그리지 않는다(S213). 원정의 잔해는 바닥 층(_den_wrecks)이다
+		if ART.has("wreck") and battle.seen(w.at) and wreck_layer(w) == "body":
 			_wreck(w)
 	var dead := _fallen()
 	for k in dead.size():
@@ -3130,6 +3131,27 @@ func _fallen() -> Array:
 	return out
 
 # 수레 잔해 하나(S172 2026-11-05 변경 ⑥): 부서질 때 기계가 보던 쪽의 잔해 그림을 그 자리에 두고, 지워지기(battle.WRECK) 전 WRECK_FADE 동안 흐린다
+# 잔해를 그리는 층(S370 ⑤, I301 ③): 원정의 잔해는 예고 아래 바닥 층(floor), 디펜스 잔해는 몸통 층(body)
+func wreck_layer(w: Dictionary) -> String:
+	return "floor" if w.get("raid", false) else "body"
+
+# 원정 잔해가 대장 돌진을 막는 원(S342 ⑧)의 테(S370 ⑤): [가운데 px, 반지름 px, 색]. 방의 원정 보스 몸이 돌진을 예고하는 동안 진하다. 디펜스 잔해는 []
+func wreck_ring(w: Dictionary) -> Array:
+	if wreck_layer(w) != "floor":
+		return []
+	var tense: bool = battle.enemies.any(func(e): return not e.raid.is_empty() and e.cast != null and e.cast.id == "charge")
+	return [Vector2i(_center(w.at).floor()), int(CELL * battle.raid_floor.get("wreck", 1.0)), Color(PX.ash, 0.9 if tense else 0.35)]
+
+# 원정의 잔해(S370 ⑤): 바닥 층에 예고보다 먼저 그리고, 막는 원을 1px 테와 가운데 작은 십자로 보인다
+func _den_wrecks() -> void:
+	for w in battle.wrecks:
+		if wreck_layer(w) == "floor" and ART.has("wreck") and battle.seen(w.at):
+			_wreck(w)
+			var r := wreck_ring(w)
+			_pring(r[0], r[1], 1, r[2])
+			_pline(r[0] - Vector2i(2, 0), r[0] + Vector2i(2, 0), r[2])
+			_pline(r[0] - Vector2i(0, 2), r[0] + Vector2i(0, 2), r[2])
+
 func _wreck(w: Dictionary) -> void:
 	var id: int = w.who.get_instance_id()
 	if not _wreck_dirs.has(id):
@@ -3868,7 +3890,7 @@ func _brand_marks() -> void:
 			draw_string(PIXEL_FONT, at + Vector2(1, 1), no, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, PX[TELL_HUES.violet[1]])
 			draw_string(PIXEL_FONT, at, no, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, PX[TELL_HUES.violet[0]])
 
-# 기관총 예고(S287)·대장 철퇴 예고(S288): 부채꼴(반경 range, 각 arc) 빨강 테와 차오르는 안쪽. 기관총 발사 동안은 테와 지금 총구 방향의 선(I223)
+# 기관총 예고(S287)·대장 철퇴 예고(S288): 부채꼴(반경 range, 각 tell_arc — 원정 기관총만 판정 각) 빨강 테와 차오르는 안쪽. 기관총 발사 동안은 테와 지금 총구 방향의 선(I223)
 func _fan_tell(e, back := false) -> void:
 	var sk: Dictionary = e.skills[e.cast.id]
 	var c := _center(e.pos)
@@ -3877,7 +3899,7 @@ func _fan_tell(e, back := false) -> void:
 		sk = sk.back.merged({"windup": sk.windup})
 		dir += PI
 	var r: float = CELL * sk.range
-	var rim := _fan_rim(c, r, dir, sk.arc)
+	var rim := _fan_rim(c, r, dir, sk.arc if back else tell_arc(e))
 	var n := rim.size() - 1
 	if e.cast.get("fire", false):
 		var to := c + Vector2.from_angle(battle.muzzle(e.cast.dir, sk, sk.fire - e.cast.left)) * r
@@ -3893,6 +3915,11 @@ func _fan_tell(e, back := false) -> void:
 	_pline(Vector2i(c.floor()), Vector2i(rim[n].floor()), TELL)
 	for i in n:
 		_pline(Vector2i(rim[i].floor()), Vector2i(rim[i + 1].floor()), TELL)
+
+# 부채꼴 예고를 그리는 각(도, S370 ④, I301 ②): 원정 보스 몸의 기관총은 총구가 도는 arc에 양쪽 spread를 더한 판정 각이고, 그 밖에는 arc다
+func tell_arc(e) -> float:
+	var sk: Dictionary = e.skills[e.cast.id]
+	return sk.arc + (2.0 * sk.spread if e.cast.id == "mgun" and not e.raid.is_empty() else 0.0)
 
 # 불길 그림 자리(S352 ⑥, I289 ⑪): 불길 줄마다 가운데 선을 따라 8px쯤마다 하나씩, 줄 폭의 1/4만큼 좌우로 번갈아 어긋난 불꽃 자리(맵 px)
 func trail_marks() -> Array:

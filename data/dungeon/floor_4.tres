@@ -19,7 +19,7 @@ skills = {
 "damage": 30.0,
 "down": 2.0,
 "knock": 1.0,
-"radius": 2.0,
+"radius": 1.9,
 "window": 1.0,
 "windup": 1.6
 },
@@ -49,6 +49,7 @@ phase2 = {
 "title": "떨어진 와이번",
 "kind": "wyvern_fallen",
 "scale": 1.0,
+"rest": 2.0,
 "stats": {
 "hp": 1000.0,
 "radius": 0.9,
@@ -67,7 +68,7 @@ phase2 = {
 "dps": 5.0,
 "range": 4.0,
 "time": 4.0,
-"windup": 1.35
+"windup": 1.65
 },
 "charge": {
 "dps": 5.0,
