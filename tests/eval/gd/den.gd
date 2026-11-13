@@ -1986,8 +1986,8 @@ const FAR3 := [Vector2(80, 76), Vector2(84, 86), Vector2(88, 76)]  # 둘째 영�
 # EV994 · S342: 3층 층 정의의 수치와 층 차례. 디펜스 전쟁 기계·대장 종류는 그대로다
 func ev994():
 	var f = load("res://data/dungeon/floor_3.tres")
-	if f.title != "전쟁 기계" or f.opens != 4 or f.kind != "war_machine" or f.stats != {"hp": 1000.0, "armor": 8.0, "radius": 1.4, "reward": 0, "xp": 0} or f.get("walks") != false or not f.gens.is_empty() or f.get("wreck") != 1.4 or f.get("scale") != 1.0:
-		return "이름 %s · 열림 %s · 종류 %s · 수치 %s · walks %s · 세대 %s · 잔해 %s · 그림 배율 %s(기대 전쟁 기계·4·war_machine·체력 1000 방어력 8 몸 1.4 보상 0·거짓·없음·1.4·1)" % [f.title, f.opens, f.kind, f.stats, f.get("walks"), f.gens, f.get("wreck"), f.get("scale")]
+	if f.title != "전쟁 기계" or f.opens != 4 or f.kind != "war_machine" or f.stats != {"hp": 1000.0, "armor": 3.0, "radius": 1.4, "reward": 0, "xp": 0} or f.get("walks") != false or not f.gens.is_empty() or f.get("wreck") != 1.4 or f.get("scale") != 1.0:
+		return "이름 %s · 열림 %s · 종류 %s · 수치 %s · walks %s · 세대 %s · 잔해 %s · 그림 배율 %s(기대 전쟁 기계·4·war_machine·체력 1000 방어력 3 몸 1.4 보상 0·거짓·없음·1.4·1)" % [f.title, f.opens, f.kind, f.stats, f.get("walks"), f.gens, f.get("wreck"), f.get("scale")]
 	var sk: Dictionary = f.skills
 	var cannon := {"windup": 4.0, "lock": 1.0, "radius": 1.5, "unit": 30.0, "knock": 1.0, "color": "violet"}
 	var mgun := {"windup": 1.4, "fire": 2.0, "tick": 0.25, "range": 5.0, "arc": 120.0, "spread": 15.0, "unit": 8.0}
@@ -1997,8 +1997,8 @@ func ev994():
 	if f.plan != [{"id": "cannon", "wait": 5.0}, {"id": "mgun", "wait": 4.0}, {"id": "cannon", "wait": 5.0}, {"id": "slam", "wait": 5.0}]:
 		return "1형 대본 %s(기대 대포 5 → 기관총 4 → 대포 5 → 증기 배출 5)" % [f.plan]
 	var p: Dictionary = f.get("phase2")
-	if p.get("title") != "고블린 대장" or p.get("kind") != "chief" or p.get("scale") != 1.0 or p.get("stats") != {"hp": 1000.0, "armor": 10.0, "radius": 1.5, "reward": 0, "xp": 0}:
-		return "2형 이름 %s · 종류 %s · 그림 배율 %s · 수치 %s(기대 고블린 대장·chief·1·체력 1000 방어력 10 몸 1.5 보상 0)" % [p.get("title"), p.get("kind"), p.get("scale"), p.get("stats")]
+	if p.get("title") != "고블린 대장" or p.get("kind") != "chief" or p.get("scale") != 1.0 or p.get("stats") != {"hp": 1000.0, "armor": 4.0, "radius": 1.5, "reward": 0, "xp": 0}:
+		return "2형 이름 %s · 종류 %s · 그림 배율 %s · 수치 %s(기대 고블린 대장·chief·1·체력 1000 방어력 4 몸 1.5 보상 0)" % [p.get("title"), p.get("kind"), p.get("scale"), p.get("stats")]
 	var want := {
 		"leap": {"windup": 1.5, "air": 0.6, "range": 8.0, "radius": 2.5, "damage": 30.0, "knock": 1.5},
 		"cleave": {"windup": 1.4, "range": 3.5, "arc": 120.0, "unit": 40.0, "knock": 1.5},
@@ -2032,8 +2032,8 @@ func ev995():
 	var e = _machine(b)
 	if early != "round" or why != "" or e == null:
 		return "3라운드 이유 %s(round) · 4라운드 이유 «%s»(없음) · 원정 %s · 적 %d(기계 하나)" % [early, why, b.state, b.enemies.size()]
-	if e.pos != Vector2(BOSS) or e.hp != 1000.0 or e.max_hp != 1000.0 or e.radius != 1.4 or e.armor != 8.0 or e.reward != 0 or e.xp != 0 or e.raid.get("title") != "전쟁 기계" or b.raid_left() != 1.0 or b.torches != torches - 1:
-		return "자리 %s · 체력 %s/%s · 몸 %s · 방어력 %s · 보상 %s·%s · 층 %s · 남은 비율 %s · 횃불 %d(기대 (84,80)·1000·1.4·8·0·0·전쟁 기계·1·%d)" % [e.pos, e.hp, e.max_hp, e.radius, e.armor, e.reward, e.xp, e.raid.get("title"), b.raid_left(), b.torches, torches - 1]
+	if e.pos != Vector2(BOSS) or e.hp != 1000.0 or e.max_hp != 1000.0 or e.radius != 1.4 or e.armor != 3.0 or e.reward != 0 or e.xp != 0 or e.raid.get("title") != "전쟁 기계" or b.raid_left() != 1.0 or b.torches != torches - 1:
+		return "자리 %s · 체력 %s/%s · 몸 %s · 방어력 %s · 보상 %s·%s · 층 %s · 남은 비율 %s · 횃불 %d(기대 (84,80)·1000·1.4·3·0·0·전쟁 기계·1·%d)" % [e.pos, e.hp, e.max_hp, e.radius, e.armor, e.reward, e.xp, e.raid.get("title"), b.raid_left(), b.torches, torches - 1]
 	var u = b.party[1]
 	u.pos = Vector2(84, 82)
 	var hp: float = u.hp
@@ -2210,8 +2210,8 @@ func ev1001():
 	var gold: int = b.gold
 	b.damage(e, BIG)
 	var now := [b.state, b.enemies.size(), not b.enemies.is_empty() and is_same(b.enemies[0], e), e.kind, e.alive, e.hp, e.max_hp, e.radius, e.armor, e.reward, e.xp, e.pos, e.cast, e.fx.is_empty(), b.gold - gold, b.floors_cleared]
-	if absf(half - 0.75) > 0.0001 or now != ["raid", 1, true, "chief", true, 1000.0, 1000.0, 1.5, 10.0, 0, 0, Vector2(BOSS), null, true, 0, 2]:
-		return "기계 체력 500일 때 남은 비율 %s(0.75) · 부서진 뒤 [판, 적 수, 같은 적, 종류, 살았나, 체력, 최대 체력, 몸, 방어력, 처치 골드, 경험치, 자리, 예고, 효과 없음, 는 골드, 깬 층] %s(기대 [raid, 1, 참, chief, 참, 1000, 1000, 1.5, 10, 0, 0, (84,80), null, 참, 0, 2])" % [half, now]
+	if absf(half - 0.75) > 0.0001 or now != ["raid", 1, true, "chief", true, 1000.0, 1000.0, 1.5, 4.0, 0, 0, Vector2(BOSS), null, true, 0, 2]:
+		return "기계 체력 500일 때 남은 비율 %s(0.75) · 부서진 뒤 [판, 적 수, 같은 적, 종류, 살았나, 체력, 최대 체력, 몸, 방어력, 처치 골드, 경험치, 자리, 예고, 효과 없음, 는 골드, 깬 층] %s(기대 [raid, 1, 참, chief, 참, 1000, 1000, 1.5, 4, 0, 0, (84,80), null, 참, 0, 2])" % [half, now]
 	if absf(b.raid_left() - 0.5) > 0.0001 or b.wrecks.size() != 1 or b.wrecks[0].at != Vector2(BOSS) or (b.has_method("raid_title") and b.raid_title() != "고블린 대장") or not b.has_method("raid_title"):
 		return "부서진 뒤 남은 비율 %s(0.5) · 잔해 %s(하나, (84,80)) · 이름 %s(고블린 대장)" % [b.raid_left(), b.wrecks.map(func(w): return w.at), b.raid_title() if b.has_method("raid_title") else "raid_title 없음"]
 	_go(b, 2.05)
