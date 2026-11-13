@@ -456,3 +456,51 @@ def test_EV1072_twin_bonk_and_slump_events(gd):
 
 def test_EV1073_relic_rows_two_per_line_fit(gd):
     gd("den", "EV1073")
+
+
+def test_EV1105_select_panel_hidden_in_raid(gd):
+    gd("den", "EV1105")
+
+
+def test_EV1106_groggy_flat_four_way_bosses(gd):
+    gd("den", "EV1106")
+
+
+def test_EV1107_counter_window_flash_and_click(gd):
+    gd("den", "EV1107")
+
+
+def test_EV1108_prey_mark_fixed_to_tell_target(gd):
+    gd("den", "EV1108")
+
+
+def test_EV1109_raid_body_pick_radius(gd):
+    gd("den", "EV1109")
+
+
+def test_EV1110_raid_sound_keys_and_groggy_cut(gd):
+    gd("den", "EV1110")
+
+
+def test_EV1111_raid_skill_traces(gd):
+    gd("den", "EV1111")
+
+
+def test_EV1112_raid_hints_end_per_line(gd):
+    gd("den", "EV1112")
+
+
+def test_EV1113_floor_fairness_knobs(gd):
+    gd("den", "EV1113")
+
+
+def test_EV1114_second_form_first_rest(gd):
+    gd("den", "EV1114")
+
+
+def test_EV1115_raid_mgun_fan_drawn_hit_arc(gd):
+    gd("den", "EV1115")
+
+
+def test_EV1116_raid_wreck_ring_and_floor_layer(gd):
+    gd("den", "EV1116")

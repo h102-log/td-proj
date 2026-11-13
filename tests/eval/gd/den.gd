@@ -4563,3 +4563,436 @@ func ev1073():
 		out = check(near.call(cog.y, at.slime_crown.y) and near.call(cog.x, at.wolf_fang.x), "송곳니를 뺀 뒤 톱니 줄 %s(기대 y %s·x %s: 왕관 오른쪽)" % [cog, at.slime_crown.y, at.wolf_fang.x])
 	_done(main)
 	return out
+
+# ── 원정 보스 사다리 다듬기(S369·S370·I300·I301, gimmick_research/06) ── 더하는 API:
+#   Battle.raid_preys() -> [[원정 몸, 영웅], …](사냥감 표시를 받을 영웅, 몸 차례) · 대본 예고 cast의 prey(예고를 띄운 순간의 대상 영웅)
+#   층 정의 phase2.rest(둘째 형태의 첫 패턴 앞 쉼 초) · 흔적 «pounce»(덮치기 착지)·«spray»(기관총 발사 시작)·«strafe»(융단 폭격 지나가기 시작)
+#   BattleView.COUNTER_FLASH(초) · counter_ring(몸) -> [] | [가운데 px, 반지름 px] · prey_marks() -> [[영웅, 세모 꼭짓점 px, 원정 몸], …]
+#     tell_arc(몸) -> 부채꼴 예고를 그리는 각(도) · wreck_ring(잔해) -> [] | [가운데 px, 반지름 px, 색] · wreck_layer(잔해) -> "floor" | "body"
+#   화면 사건 «counter»(카운터 창이 열린 프레임)·«alone»(홀로 남은 프레임) · 힌트 이름 «raidb»·«raid<층>b»(둘째 줄)
+
+const BView := preload("res://src/ui/battle_view.gd")
+
+func _view_of(b):
+	var v = BView.new()
+	v.battle = b
+	return v
+
+# EV1105 · S369 ①: 선택 패널은 원정 동안 숨고, 준비 단계와 돌아온 뒤에는 보인다
+func ev1105():
+	var main = _den_game()
+	var b = main.view.battle
+	var hud = main.hud
+	var c = main.controls
+	c.selected = [b.heroes[0]]
+	_frame(main)
+	var prep: bool = hud.select.is_visible_in_tree()
+	b.start_raid()
+	var raid: String = b.state
+	c.selected = [b.party[0]]
+	_frame(main)
+	var one: bool = hud.select.is_visible_in_tree()
+	c.selected = b.party.duplicate()
+	_frame(main)
+	var many: bool = hud.select.is_visible_in_tree()
+	b.retreat()
+	c.selected = [b.heroes[0]]
+	_frame(main)
+	var back: bool = hud.select.is_visible_in_tree()
+	_done(main)
+	return check(prep and raid == "raid" and not one and not many and back,
+		"준비 단계 선택 패널 보임 %s(참) · 원정(%s) 동안 한 명 고름 %s·여럿 고름 %s(둘 다 거짓) · 돌아온 뒤 %s(참)" % [prep, raid, one, many, back])
+
+# EV1106 · S369 ②, I277 ⑥: 방향 있는 그림의 원정 보스(2층 알파·3층 기계·4층 와이번·5층 트롤)도 그로기인 동안 가로 1.2배·세로 0.7배로 납작하게 그린다
+func ev1106():
+	var bad := []
+	for f in [[_den2(), "alpha_wolf"], [_den3(), "war_machine"], [_den4(), "wyvern"], [_den5(), "twin_troll"]]:
+		var b = f[0]
+		b.start_raid()
+		if b.state != "raid" or b.enemies.is_empty() or b.enemies[0].kind != f[1]:
+			return "%s 원정이 되지 않았다(판 %s · 적 %s)" % [f[1], b.state, b.enemies.map(func(x): return x.kind)]
+		_freeze(b)
+		var e = b.enemies[0]
+		e.pull = 0.0
+		e.rest = 999.0
+		e.cast = null
+		var v = _view_of(b)
+		var base: Vector2 = v._look(e)[0]
+		b._fx(e, "groggy", {"groggy": true}, 5.0)
+		var flat: Vector2 = v._look(e)[0]
+		v.free()
+		if not flat.is_equal_approx(base * Vector2(1.2, 0.7)):
+			bad.append([f[1], base, flat])
+	return check(bad.is_empty(), "그로기 몸의 그림 배율 [종류, 평소, 그로기] %s(기대 그로기 = 평소 × (1.2, 0.7))" % [bad])
+
+# EV1107 · S369 ③, I300 ③: 카운터 창이 열리는 프레임에 사건 counter(효과음 click)가 한 번 나고, 그 뒤 COUNTER_FLASH초 동안만 예고 테 자리에 번쩍임 테가 있다.
+# 원 예고는 예고 원, 4층 내려앉음은 몸 둘레 파란 테(몸 반지름 + 3px) 자리다
+func ev1107():
+	var consts: Dictionary = (load("res://src/ui/battle_view.gd") as Script).get_script_constant_map()
+	var flash = consts.get("COUNTER_FLASH")
+	var key: String = load("res://src/sfx.gd").key_for({"kind": "counter"})
+	var main = _den_game()
+	var b = main.view.battle
+	var v = main.view
+	if flash == null or not v.has_method("counter_ring"):
+		_done(main)
+		return "BattleView.COUNTER_FLASH나 counter_ring이 없다"
+	b.start_raid()
+	_freeze(b)
+	var k = b.enemies[0]
+	k.pull = 0.0
+	k.rest = 999.0
+	_frame(main)
+	_tell(b, k, 0)
+	var seen := []
+	var lit := []
+	var opened := -1
+	for i in 40:
+		main._process(0.05)
+		main.hud._process(0.05)
+		for x in v.events:
+			if x.kind == "counter":
+				seen.append([i, x.at, x.get("radius")])
+		if opened < 0 and b.countering(k):
+			opened = i
+		if not v.counter_ring(k).is_empty():
+			lit.append([i, v.counter_ring(k)])
+	var at := Vector2i(v._center(k.pos).floor())
+	var want := [at, int(16 * 3.0)]
+	_done(main)
+	var frames: Array = lit.map(func(r): return r[0])
+	var lit_n := int(round(float(flash) / 0.05))  # 0.05초 프레임으로 COUNTER_FLASH초. 시계의 부동소수 누적으로 한 프레임 더 켜질 수 있다
+	if key != "click" or opened < 0 or seen.size() != 1 or seen[0][0] != opened or frames.size() < lit_n or frames.size() > lit_n + 1 or frames != range(opened, opened + frames.size()) or lit[0][1] != want:
+		return "효과음 키 %s(click) · 창 열린 프레임 %d · counter 사건 %s(그 프레임 하나) · 번쩍임 프레임 %s(기대 %d부터 이어서 %d~%d개) · 테 %s(기대 %s)" % [key, opened, seen, frames, opened, lit_n, lit_n + 1, lit[0][1] if not lit.is_empty() else null, want]
+	var b4 = _den4()
+	var w = _wyvern(b4)
+	if w == null:
+		return "4층 원정이 되지 않았다"
+	var v4 = _view_of(b4)
+	w.cast = {"id": "perch", "left": 1.5, "held": true, "sk": {"windup": 2.0, "counter": 1.0}}
+	v4.tick(0.0)
+	v4.tick(0.05)
+	var before: Array = v4.counter_ring(w)
+	w.cast.left = 0.95
+	v4.tick(0.05)
+	var ring: Array = v4.counter_ring(w)
+	var body := [Vector2i(v4._center(w.pos).floor()), int(16 * w.radius) + 3]
+	v4.free()
+	return check(before.is_empty() and ring == body, "4층 내려앉음 창 전 번쩍임 %s(없음) · 창이 열린 뒤 %s(기대 %s)" % [before, ring, body])
+
+# EV1108 · S369 ④, I300 ④: 사냥감 표시는 예고를 띄운 순간의 대상에 고정되고, 3층에도 뜨며, 두 몸 층(5층)은 몸마다 하나씩이다
+func ev1108():
+	var b = _den2()
+	var e = _alpha(b)
+	if e == null or not b.has_method("raid_preys"):
+		return "2층 원정이 되지 않았거나 Battle.raid_preys가 없다"
+	_stand(b, HUNT)
+	var p = b.party
+	var idle = b.raid_prey()
+	_tell(b, e, 0)
+	var aimed = e.cast.get("prey") if e.cast != null else null
+	p[0].pos = Vector2(84, 73)
+	var held = b.raid_prey()
+	var two := [is_same(idle, p[1]), e.cast != null and e.cast.id == "charge", is_same(aimed, p[1]), is_same(held, p[1])]
+	var b3 = _den3()
+	var m = _machine(b3)
+	if m == null:
+		return "3층 원정이 되지 않았다"
+	_stand(b3, FAR3)
+	var far = b3.raid_prey()
+	_tell(b3, m, 1)
+	var near = b3.raid_prey()
+	var three := [is_same(far, b3.party[1]), m.cast != null and m.cast.id == "mgun", near != null and not is_same(near, b3.party[1]) and b3.party.all(func(h): return m.pos.distance_to(h.pos) >= m.pos.distance_to(near.pos) - 0.001)]
+	var b5 = _den5()
+	var t: Array = _twins(b5)
+	if t.is_empty():
+		return "5층 원정이 되지 않았다"
+	_stand(b5, [Vector2(74, 76), Vector2(88, 82), Vector2(78, 86)])
+	var q = b5.party
+	_tell(b5, t[1], 0)
+	var pairs: Array = b5.raid_preys()
+	var v = _view_of(b5)
+	var marks: Array = v.prey_marks() if v.has_method("prey_marks") else []
+	v.free()
+	var five := [pairs.size() == 2 and is_same(pairs[0][0], t[0]) and is_same(pairs[0][1], q[0]) and is_same(pairs[1][0], t[1]) and is_same(pairs[1][1], q[1]),
+		marks.size() == 2 and is_same(marks[0][0], q[0]) and is_same(marks[1][0], q[1]) and is_same(marks[1][2], t[1])]
+	return check(two == [true, true, true, true] and three == [true, true, true] and five == [true, true],
+		"2층 [쉬는 동안 둘째, 돌진 예고, 예고 대상 둘째, 첫째가 더 멀어져도 둘째] %s · 3층 [쉬는 동안 가장 먼 둘째, 기관총 예고, 예고 중 가장 가까운 영웅] %s · 5층 [몸마다 (형 → 첫째, 아우 → 아우 내려찍기 대상 둘째), 표시 둘] %s (모두 참)" % [two, three, five])
+
+# EV1109 · S369 ⑤: 원정 보스 몸은 커서가 몸 가운데에서 max(0.7, 몸 반지름)칸 안이면 우클릭 대상이 되고, 디펜스 적은 0.7칸 그대로다
+func ev1109():
+	var main = _den_game()
+	var b = main.view.battle
+	var c = main.controls
+	b.state = "cleared"
+	b.next_round()
+	b.state = "cleared"
+	b.next_round()
+	b.floors_cleared = 2
+	_frame(main)
+	b.start_raid()
+	if b.state != "raid" or b.enemies.size() != 1 or b.enemies[0].kind != "war_machine":
+		_done(main)
+		return "3층 원정이 되지 않았다(판 %s)" % b.state
+	_freeze(b)
+	var e = b.enemies[0]
+	var picks := [c._closest([e], e.pos + Vector2(1.2, 0)) == e, c._closest([e], e.pos + Vector2(0, 1.35)) == e, c._closest([e], e.pos + Vector2(1.5, 0)) == null]
+	var h = b.party[0]
+	c.selected = [h]
+	c._command((e.pos + Vector2(1.2, 0) + Vector2(0.5, 0.5)) * c.cell_px, false)
+	var ordered: bool = is_same(h.get("prey"), e)
+	_done(main)
+	var d = _den()
+	var o = d._enemy("basic", Vector2i(40, 40), {})
+	o.radius = 1.4
+	var Ctl = load("res://src/ui/controls.gd")
+	var cd = Ctl.new(d, 16)
+	var plain := [cd._closest([o], o.pos + Vector2(1.2, 0)) == null, cd._closest([o], o.pos + Vector2(0.6, 0)) == o]
+	return check(picks == [true, true, true] and ordered and plain == [true, true],
+		"3층 기계(몸 1.4) [1.2칸 옆, 1.35칸 아래, 1.5칸 옆은 안 고름] %s · 1.2칸 옆 우클릭이 대상 공격 %s · 디펜스 적(몸 1.4) [1.2칸 옆은 안 고름, 0.6칸 옆] %s(모두 참)" % [picks, ordered, plain])
+
+# EV1110 · S369 ⑥, I300 ⑥: 원정 소리 키(카운터 창 click, 부서짐·떨어짐·홀로 남음 boss_appear). 예고가 없던 원정 몸이 그로기가 된 프레임(2층 구출)에도
+# 몸 둘레에 끊김 사건이 한 번 나고, 5층 한 몸이 홀로 남은 프레임에 alone 사건이 한 번 난다
+func ev1110():
+	var S = load("res://src/sfx.gd")
+	var keys := []
+	for k in ["counter", "wreck", "fall", "alone", "interrupt", "slump"]:
+		keys.append(S.key_for({"kind": k}))
+	if keys != ["click", "boss_appear", "boss_appear", "boss_appear", "interrupt", ""]:
+		return "효과음 키 [counter, wreck, fall, alone, interrupt, slump] %s(기대 [click, boss_appear, boss_appear, boss_appear, interrupt, \"\"])" % [keys]
+	var main = _den_game()
+	var b = main.view.battle
+	var v = main.view
+	b.state = "cleared"
+	b.next_round()
+	b.floors_cleared = 1
+	_frame(main)
+	b.start_raid()
+	if b.state != "raid" or b.enemies.size() != 1 or b.enemies[0].kind != "alpha_wolf":
+		_done(main)
+		return "2층 원정이 되지 않았다(판 %s)" % b.state
+	_freeze(b)
+	var e = b.enemies[0]
+	e.pull = 0.0
+	e.rest = 999.0
+	_stand(b, HUNT)
+	_frame(main)
+	_tell(b, e, 1)
+	var n := 0
+	while e.get("grip") == null and n < 80:
+		main._process(0.05)
+		main.hud._process(0.05)
+		n += 1
+	if e.get("grip") == null:
+		_done(main)
+		return "덮치기가 붙잡지 못했다"
+	_frame(main)
+	b.damage(e, 100.0)
+	var cut := []
+	for i in 6:
+		main._process(0.05)
+		main.hud._process(0.05)
+		for x in v.events:
+			if x.kind == "interrupt":
+				cut.append([i, x.at, x.get("radius")])
+	var groggy: bool = _groggy(b, e)
+	var want := [v._center(e.pos), 16.0 * e.radius]
+	_done(main)
+	if not groggy or cut.size() != 1 or cut[0][1].distance_to(want[0]) > 0.01 or absf(cut[0][2] - want[1]) > 0.01:
+		return "구출 그로기 %s(참) · 끊김 사건 %s(기대 하나, 자리 %s·반지름 %s)" % [groggy, cut, want[0], want[1]]
+	var m5 = _den_game()
+	var b5 = m5.view.battle
+	for i in 4:
+		b5.state = "cleared"
+		b5.next_round()
+	b5.floors_cleared = 4
+	_frame(m5)
+	var t: Array = _twins(b5)
+	if t.is_empty():
+		_done(m5)
+		return "5층 원정이 되지 않았다"
+	_frame(m5)
+	b5.damage(t[0], BIG)
+	var lone := _events_of(m5, "alone", 6)
+	var at: Vector2 = m5.view._center(t[1].pos)
+	_done(m5)
+	return check(t[1].get("lone") == true and lone.size() == 1 and lone[0][1].distance_to(at) < 0.01,
+		"형을 쓰러뜨린 뒤 아우 홀로 %s(참) · alone 사건 %s(기대 하나, 자리 %s)" % [t[1].get("lone"), lone, at])
+
+# EV1111 · S369 ⑥, I300 ⑦: 원정의 덮치기 착지·기관총 발사 시작·융단 폭격 지나가기 시작은 보스 스킬 흔적(pounce·spray·strafe)을 한 번 남긴다
+func ev1111():
+	var got := []
+	var b = _den2()
+	var e = _alpha(b)
+	if e == null:
+		return "2층 원정이 되지 않았다"
+	_stand(b, HUNT)
+	_tell(b, e, 1)
+	_go(b, 2.6)
+	got.append(b.traces.filter(func(c): return c.slot == "pounce" and c.hero == e).size())
+	var b3 = _den3()
+	var m = _machine(b3)
+	if m == null:
+		return "3층 원정이 되지 않았다"
+	_stand(b3, FAR3)
+	_tell(b3, m, 1)
+	_go(b3, 2.0)
+	var sprays: Array = b3.traces.filter(func(c): return c.slot == "spray" and c.hero == m)
+	got.append(sprays.size())
+	var b4 = _den4()
+	var w = _wyvern(b4)
+	if w == null:
+		return "4층 원정이 되지 않았다"
+	_stand(b4, [Vector2(80, 80), Vector2(84, 85), Vector2(88, 80)])
+	_tell(b4, w, 1)
+	_go(b4, 1.6)
+	got.append(b4.traces.filter(func(c): return c.slot == "strafe" and c.hero == w).size())
+	return check(got == [1, 1, 1] and sprays[0].get("arc") == 150.0, "흔적 수 [덮치기 착지 pounce, 기관총 발사 spray, 융단 폭격 strafe] %s(기대 [1, 1, 1]) · spray 부채꼴 각 %s(150)" % [got, sprays[0].get("arc") if not sprays.is_empty() else null])
+
+# EV1112 · S369 ⑦, I300 ⑧: 원정 힌트는 줄마다 끝난다. 첫 원정 힌트는 첫 줄만 뜨고 그로기에 끝나며, 둘째 줄은 금색 원 예고가 뜬 뒤 뜨고 다음 그로기에 끝난다.
+# 2층 힌트의 둘째 줄은 영웅이 붙잡힌 뒤 뜬다
+func ev1112():
+	var st = _hints_reset()
+	var main = _den_game()
+	var b = main.view.battle
+	var out := ""
+	b.start_raid()
+	_freeze(b)
+	var k = b.enemies[0]
+	k.pull = 0.0
+	k.rest = 999.0
+	_frame(main)
+	var a := _hint_says(main)
+	b._fx(k, "groggy", {"groggy": true}, 5.0)
+	_frame(main)
+	var gap := _hint_says(main)
+	var done1: Array = st.hints_done.duplicate()
+	k.fx.erase("groggy")
+	_frame(main)
+	_tell(b, k, 1)
+	_frame(main)
+	var gold := _hint_says(main)
+	b._fx(k, "groggy", {"groggy": true}, 5.0)
+	_frame(main)
+	var done2: Array = st.hints_done.duplicate()
+	if not "그로기" in a or "금색" in a or gap != "" or done1 != ["raid"] or not "금색" in gold or "그로기" in gold or done2 != ["raid", "raidb"]:
+		out = "1층 처음 «%s»(«그로기»만) · 그로기 뒤 «%s»(빈 칸) · 끝낸 힌트 %s([raid]) · 금색 원 예고 뒤 «%s»(«금색»만) · 다음 그로기 뒤 끝낸 힌트 %s([raid, raidb])" % [a, gap, done1, gold, done2]
+	if out == "":
+		b.retreat()
+		b.state = "cleared"
+		b.next_round()
+		b.floors_cleared = 1
+		_frame(main)
+		b.start_raid()
+		_freeze(b)
+		var e = b.enemies[0]
+		e.pull = 0.0
+		e.rest = 999.0
+		_stand(b, HUNT)
+		_frame(main)
+		var w1 := _hint_says(main)
+		b._fx(e, "groggy", {"groggy": true}, 5.0)
+		_frame(main)
+		var w2 := _hint_says(main)
+		e.fx.erase("groggy")
+		_frame(main)
+		_tell(b, e, 1)
+		var n := 0
+		while e.get("grip") == null and n < 80:
+			main._process(0.05)
+			main.hud._process(0.05)
+			n += 1
+		_frame(main)
+		var w3 := _hint_says(main)
+		b._let_go(e, true)
+		_frame(main)
+		out = check("박힌다" in w1 and not "구한다" in w1 and w2 == "" and "구한다" in w3 and st.hints_done == ["raid", "raidb", "raid2", "raid2b"],
+			"2층 처음 «%s»(«박힌다»만) · 그로기 뒤 «%s»(빈 칸) · 붙잡힌 뒤 «%s»(«구한다») · 구출 그로기 뒤 끝낸 힌트 %s([raid, raidb, raid2, raid2b])" % [w1, w2, w3, st.hints_done])
+	_done(main)
+	_hints_reset()
+	return out
+
+# EV1113 · S370 ①~⑥: 층 정의의 손잡이 값. 대시 거리와 같던 반경 다섯은 1.9칸이라 영웅 대시 거리보다 짧다
+func ev1113():
+	var f: Array = range(1, 6).map(func(i): return load("res://data/dungeon/floor_%d.tres" % i))
+	var dash: float = load("res://src/sim/battle.gd").DASH.length
+	var radii := [f[0].gens[1].land, f[0].skills.brand.radius, f[1].skills.brand.radius, f[3].skills.plunge.radius, f[4].skills.toss.radius]
+	var times := [f[1].shift.windup, f[1].skills.pounce.counter, f[3].phase2.skills.lash.windup]
+	var p3: Dictionary = f[2].phase2
+	var p4: Dictionary = f[3].phase2
+	var rest := [p3.get("rest"), p4.get("rest")]
+	var armor := [f[2].stats.armor, p3.stats.armor]
+	return check(radii == [1.9, 1.9, 1.9, 1.9, 1.9] and radii.all(func(r): return r < dash) and times == [1.4, 1.0, 1.65] and rest == [2.0, 2.0] and armor == [3.0, 4.0] and f[2].hunts == true,
+		"반경 [1층 1세대 착지, 1층 표식, 2층 표식, 4층 급강하, 5층 형제 던지기] %s(모두 1.9 < 대시 %s) · [2층 둘째 돌진 예고, 덮치기 카운터 창, 4층 앞뒤 휩쓸기 예고] %s([1.4, 1.0, 1.65]) · 둘째 형태 쉼 [3층, 4층] %s([2, 2]) · 3층 방어력 [기계, 대장] %s([3, 4]) · 3층 hunts %s(참)" % [radii, dash, times, rest, armor, f[2].hunts])
+
+# EV1114 · S370 ⑤, I301 ①: 3층 기계가 부서진 대장과 4층 떨어진 와이번은 첫 패턴 앞에 2초 쉰다
+func ev1114():
+	var out := []
+	for f in [[_den3(), "war_machine", "chief", "leap"], [_den4(), "wyvern", "wyvern_fallen", "lash"]]:
+		var b = f[0]
+		b.start_raid()
+		if b.state != "raid" or b.enemies.size() != 1 or b.enemies[0].kind != f[1]:
+			return "%s 원정이 되지 않았다" % f[1]
+		_freeze(b)
+		var e = b.enemies[0]
+		e.pull = 0.0
+		b.damage(e, BIG)
+		var turned := [e.kind, e.beat, snappedf(e.rest, 0.01), e.cast]
+		_go(b, 1.9)
+		var calm = e.cast
+		_go(b, 0.2)
+		out.append([turned, calm, e.cast.id if e.cast != null else null])
+	return check(out[0] == [["chief", 0, 2.0, null], null, "leap"] and out[1] == [["wyvern_fallen", 0, 2.0, null], null, "lash"],
+		"[[바뀐 종류, 대본 차례, 쉼, 예고], 1.9초 뒤 예고, 2.1초 뒤 예고] 3층 %s · 4층 %s(기대 쉼 2초, 1.9초까지 예고 없음, 그 뒤 도약·앞뒤 휩쓸기)" % out)
+
+# EV1115 · S370 ③, I301 ②: 원정의 기관총 부채꼴 예고는 판정이 닿는 각(arc + 양쪽 spread = 150°)으로 그리고, 디펜스 기관총과 원정 철퇴는 arc 그대로다
+func ev1115():
+	var b = _den3()
+	var m = _machine(b)
+	if m == null:
+		return "3층 원정이 되지 않았다"
+	var v = _view_of(b)
+	if not v.has_method("tell_arc"):
+		v.free()
+		return "BattleView.tell_arc가 없다"
+	_stand(b, FAR3)
+	_tell(b, m, 1)
+	var raid: float = v.tell_arc(m) if m.cast != null else -1.0
+	var d = _new(_stage())
+	var x = d._enemy("war_machine", Vector2i(40, 40), {})
+	x.cast = {"id": "mgun", "left": 1.0, "dir": 0.0}
+	var vd = _view_of(d)
+	var home: float = vd.tell_arc(x)
+	vd.free()
+	b.damage(m, BIG)
+	m.cast = {"id": "cleave", "left": 1.0, "dir": 0.0}
+	var chief: float = v.tell_arc(m)
+	v.free()
+	return check(is_equal_approx(raid, 150.0) and is_equal_approx(home, 120.0) and is_equal_approx(chief, 120.0),
+		"그리는 부채꼴 각: 원정 기관총 %s(150) · 디펜스 기관총 %s(120) · 원정 대장 철퇴 %s(120)" % [raid, home, chief])
+
+# EV1116 · S370 ④, I301 ③: 원정 잔해는 바닥 층(예고 아래)에 그리고, 막는 원(반지름 = 층의 wreck)을 옅은 테로 보이며 대장이 돌진을 예고하는 동안 진하다.
+# 디펜스 잔해는 몸통 층 그대로이고 테가 없다
+func ev1116():
+	var b = _den3()
+	var e = _chief(b)
+	if e == null or b.wrecks.is_empty():
+		return "3층 원정에서 대장이 나오지 않았거나 잔해가 없다"
+	var v = _view_of(b)
+	if not v.has_method("wreck_ring") or not v.has_method("wreck_layer"):
+		v.free()
+		return "BattleView.wreck_ring이나 wreck_layer가 없다"
+	var w = b.wrecks[0]
+	var calm: Array = v.wreck_ring(w)
+	_stand(b, FAR3)
+	_tell(b, e, 2)
+	var charging: bool = e.cast != null and e.cast.id == "charge"
+	var tense: Array = v.wreck_ring(w)
+	var want := [Vector2i(v._center(w.at).floor()), int(16 * 1.4)]
+	var layer: String = v.wreck_layer(w)
+	var home := {"who": e, "at": Vector2(40, 40), "age": 0.0, "raid": false, "size": 1.0}
+	var plain := [v.wreck_ring(home), v.wreck_layer(home)]
+	v.free()
+	var ok: bool = calm.size() == 3 and tense.size() == 3 and calm.slice(0, 2) == want and tense.slice(0, 2) == want and tense[2].a > calm[2].a
+	return check(ok and charging and layer == "floor" and plain == [[], "body"],
+		"원정 잔해 테 [가운데, 반지름, 색] 평소 %s · 돌진 예고(%s) 중 %s(기대 %s, 돌진 중 더 진함) · 층 %s(floor) · 디펜스 잔해 [테, 층] %s([[], body])" % [calm, charging, tense, want, layer, plain])
