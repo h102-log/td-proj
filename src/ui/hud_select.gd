@@ -122,7 +122,7 @@ func refresh() -> void:
 		controls.shown = null
 	var units: Array = controls.selected.filter(func(u): return u.alive)
 	var x = controls.shown if controls.shown else (units[0] if units.size() == 1 else null)
-	visible = battle.state in ["prep", "battle", "raid"] and (x != null or units.size() > 1)  # 원정(S316)에도 보인다
+	visible = battle.state in ["prep", "battle"] and (x != null or units.size() > 1)  # 원정 동안은 숨는다(S369 ①): 보스방 입구와 남쪽 바닥을 덮지 않게
 	if not visible:
 		return
 	one.visible = x != null

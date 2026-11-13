@@ -1255,8 +1255,8 @@ func ev955():
 	b.start_raid()
 	_frame(main)
 	var said := _hint_says(main)
-	if before or b.state != "raid" or b.enemies.is_empty() or not "그로기" in said or not "금색" in said:
-		out = "2라운드 준비 단계 힌트 칸 보임 %s(거짓) · 원정 판 %s · 힌트 글 «%s»(«그로기»·«금색»이 있어야)" % [before, b.state, said]
+	if before or b.state != "raid" or b.enemies.is_empty() or not "그로기" in said or "금색" in said:
+		out = "2라운드 준비 단계 힌트 칸 보임 %s(거짓) · 원정 판 %s · 힌트 글 «%s»(«그로기»가 있고 둘째 줄 «금색»은 없어야, S369 ⑦)" % [before, b.state, said]
 	if out == "":
 		b._fx(b.enemies[0], "groggy", {"groggy": true}, 5.0)
 		_frame(main)
@@ -2607,8 +2607,8 @@ func ev1012():
 	b.start_raid()
 	_frame(main)
 	var said := _hint_says(main)
-	if b.state != "raid" or b.enemies.is_empty() or not "포탄" in said or not "잔해" in said:
-		out = "① 3층 원정 판 %s · 힌트 글 «%s»(«포탄»·«잔해»가 있어야)" % [b.state, said]
+	if b.state != "raid" or b.enemies.is_empty() or not "포탄" in said or "잔해" in said:
+		out = "① 3층 원정 판 %s · 힌트 글 «%s»(«포탄»이 있고 둘째 줄 «잔해»는 없어야, S369 ⑦)" % [b.state, said]
 	if out == "":
 		b._fx(b.enemies[0], "groggy", {"groggy": true}, 5.0)
 		_frame(main)
@@ -2843,8 +2843,8 @@ func ev1026():
 	b.start_raid()
 	_frame(main)
 	var said := _hint_says(main)
-	if before or b.state != "raid" or b.enemies.is_empty() or b.enemies[0].kind != "alpha_wolf" or not "돌진" in said or not "구한다" in said:
-		out = "3라운드 준비 단계 힌트 칸 보임 %s(거짓) · 2층 원정 판 %s · 힌트 글 «%s»(«돌진»·«구한다»가 있어야)" % [before, b.state, said]
+	if before or b.state != "raid" or b.enemies.is_empty() or b.enemies[0].kind != "alpha_wolf" or not "돌진" in said or "구한다" in said:
+		out = "3라운드 준비 단계 힌트 칸 보임 %s(거짓) · 2층 원정 판 %s · 힌트 글 «%s»(«돌진»이 있고 둘째 줄 «구한다»는 없어야, S369 ⑦)" % [before, b.state, said]
 	if out == "":
 		b._fx(b.enemies[0], "groggy", {"groggy": true}, 5.0)
 		_frame(main)
@@ -3619,8 +3619,8 @@ func ev1050():
 	b.start_raid()
 	_frame(main)
 	var said := _hint_says(main)
-	if before or b.state != "raid" or b.enemies.is_empty() or b.enemies[0].kind != "wyvern" or not "급강하" in said or not "옆구리" in said:
-		out = "5라운드 준비 단계 힌트 칸 보임 %s(거짓) · 4층 원정 판 %s · 힌트 글 «%s»(«급강하»·«옆구리»가 있어야)" % [before, b.state, said]
+	if before or b.state != "raid" or b.enemies.is_empty() or b.enemies[0].kind != "wyvern" or not "급강하" in said or "옆구리" in said:
+		out = "5라운드 준비 단계 힌트 칸 보임 %s(거짓) · 4층 원정 판 %s · 힌트 글 «%s»(«급강하»가 있고 둘째 줄 «옆구리»는 없어야, S369 ⑦)" % [before, b.state, said]
 	if out == "":
 		b._fx(b.enemies[0], "groggy", {"groggy": true}, 5.0)
 		_frame(main)
@@ -4419,8 +4419,8 @@ func ev1071():
 	b.start_raid()
 	_frame(main)
 	var said := _hint_says(main)
-	if before or b.state != "raid" or b.enemies.size() != 2 or b.enemies.any(func(e): return e.kind != "twin_troll") or not "형제" in said or not "성난다" in said:
-		out = "6라운드 준비 단계 힌트 칸 보임 %s(거짓) · 5층 원정 판 %s · 적 %s(쌍둥이 트롤 둘) · 힌트 글 «%s»(«형제»·«성난다»가 있어야)" % [before, b.state, b.enemies.map(func(e): return e.kind), said]
+	if before or b.state != "raid" or b.enemies.size() != 2 or b.enemies.any(func(e): return e.kind != "twin_troll") or not "형제" in said or "성난다" in said:
+		out = "6라운드 준비 단계 힌트 칸 보임 %s(거짓) · 5층 원정 판 %s · 적 %s(쌍둥이 트롤 둘) · 힌트 글 «%s»(«형제»가 있고 둘째 줄 «성난다»는 없어야, S369 ⑦)" % [before, b.state, b.enemies.map(func(e): return e.kind), said]
 	if out == "":
 		var y = b.enemies[0] if b.enemies[0].mate == 1 else b.enemies[1]
 		b._fx(y, "groggy", {"groggy": true}, 5.0)
@@ -4577,6 +4577,11 @@ func _view_of(b):
 	var v = BView.new()
 	v.battle = b
 	return v
+
+# 원정대를 자리 at(출전 차례)에 원정대 수만큼 둔다. 게임 장면의 원정대는 시험 스테이지 영웅 수라 at보다 적을 수 있다
+func _stand_some(b, at: Array) -> void:
+	for i in mini(at.size(), b.party.size()):
+		b.party[i].pos = at[i]
 
 # EV1105 · S369 ①: 선택 패널은 원정 동안 숨고, 준비 단계와 돌아온 뒤에는 보인다
 func ev1105():
@@ -4775,7 +4780,7 @@ func ev1110():
 	var e = b.enemies[0]
 	e.pull = 0.0
 	e.rest = 999.0
-	_stand(b, HUNT)
+	_stand_some(b, HUNT)
 	_frame(main)
 	_tell(b, e, 1)
 	var n := 0
@@ -4888,7 +4893,7 @@ func ev1112():
 		var e = b.enemies[0]
 		e.pull = 0.0
 		e.rest = 999.0
-		_stand(b, HUNT)
+		_stand_some(b, HUNT)
 		_frame(main)
 		var w1 := _hint_says(main)
 		b._fx(e, "groggy", {"groggy": true}, 5.0)

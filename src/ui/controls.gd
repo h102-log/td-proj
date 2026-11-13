@@ -428,10 +428,12 @@ func _unit_at(pool: Array, at: Vector2):
 			best = u
 	return best
 
+# pool 가운데 at(칸 좌표)에서 0.7칸 안(원정 보스 몸은 max(0.7, 몸 반지름)칸 안, S369 ⑤)이고 가운데가 가장 가까운 것. 없으면 null
 func _closest(pool: Array, at: Vector2):
 	var best = null
 	for x in pool:
-		if x.pos.distance_to(at) <= 0.7 and (best == null or x.pos.distance_to(at) < best.pos.distance_to(at)):
+		var reach: float = maxf(0.7, x.radius) if x.get("raid") else 0.7
+		if x.pos.distance_to(at) <= reach and (best == null or x.pos.distance_to(at) < best.pos.distance_to(at)):
 			best = x
 	return best
 

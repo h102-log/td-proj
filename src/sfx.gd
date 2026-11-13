@@ -55,6 +55,10 @@ static func key_for(e: Dictionary) -> String:
 			return "interrupt"
 		"collapse":
 			return "collapse"
+		"counter":  # 원정 카운터 창 열림(S369 ⑥): 기존 키를 다시 쓴다(새 파일 없음)
+			return "click"
+		"wreck", "fall", "alone":  # 원정 보스의 형태 전환·홀로 남음(S369 ⑥)
+			return "boss_appear"
 	return ""
 
 # 한 프레임: 사건을 소리로 내고(seen은 보이는 맵 영역, 맵 px) 판 변화를 견준다

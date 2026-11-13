@@ -55,6 +55,7 @@ plan = [{
 "wait": 5.0
 }]
 walks = false
+hunts = true
 phase2 = {
 "title": "고블린 대장",
 "kind": "chief",

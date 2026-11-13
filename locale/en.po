@@ -1832,8 +1832,11 @@ msgstr "Cog"
 msgid "E 대기 %d%% 빠름"
 msgstr "E cooldown %d%% faster"
 
-msgid "포탄 원을 기계 옆에서 굳힌다\n대장 돌진은 잔해나 벽에 박는다"
-msgstr "Lock the shell by the machine\nBait the charge into wreck or wall"
+msgid "포탄 원을 기계 옆에서 굳힌다"
+msgstr "Lock the shell by the machine"
+
+msgid "대장 돌진은 잔해나 벽에 박는다"
+msgstr "Bait the charge into wreck or wall"
 
 msgid "송곳니"
 msgstr "Fang"
@@ -1841,8 +1844,11 @@ msgstr "Fang"
 msgid "Q 대기 %d%% 빠름"
 msgstr "Q cooldown %d%% faster"
 
-msgid "벽 앞에서 돌진을 피하면 박힌다\n붙잡힌 동료는 때려서 구한다"
-msgstr "Dodge the charge by a wall\nHit the wolf to free an ally"
+msgid "벽 앞에서 돌진을 피하면 박힌다"
+msgstr "Dodge the charge by a wall"
+
+msgid "붙잡힌 동료는 때려서 구한다"
+msgstr "Hit the wolf to free an ally"
 
 msgid "비늘"
 msgstr "Scale"
@@ -1850,8 +1856,11 @@ msgstr "Scale"
 msgid "W 대기 %d%% 빠름"
 msgstr "W cooldown %d%% faster"
 
-msgid "급강하를 피하면 땅에 처박힌다\n떨어진 뒤엔 옆구리에 선다"
-msgstr "Dodge the dive to ground it\nThen stand by its flank"
+msgid "급강하를 피하면 땅에 처박힌다"
+msgstr "Dodge the dive to ground it"
+
+msgid "떨어진 뒤엔 옆구리에 선다"
+msgstr "Once it falls, stand by its flank"
 
 msgid "엄니"
 msgstr "Tusk"
@@ -1859,8 +1868,11 @@ msgstr "Tusk"
 msgid "R 대기 %d%% 빠름"
 msgstr "R cooldown %d%% faster"
 
-msgid "바위·착지를 형제에게 맞힌다\n하나가 쓰러지면 남은 쪽이 성난다"
-msgstr "Land rocks and leaps on the twin\nWhen one falls, the other rages"
+msgid "바위·착지를 형제에게 맞힌다"
+msgstr "Land rocks and leaps on the twin"
+
+msgid "하나가 쓰러지면 남은 쪽이 성난다"
+msgstr "When one falls, the other rages"
 
 msgid "다시 (횃불 1)"
 msgstr "Retry (1 torch)"
@@ -1877,8 +1889,11 @@ msgstr "Expedition failed"
 msgid "보스 남은 체력 %d%%"
 msgstr "Boss HP left %d%%"
 
-msgid "보스는 그로기 때만 크게 맞는다\n빨강은 피하고 금색에 모인다"
-msgstr "Hit the boss hard when groggy\nDodge red, gather on gold"
+msgid "보스는 그로기 때만 크게 맞는다"
+msgstr "Hit the boss hard when groggy"
+
+msgid "빨강은 피하고 금색에 모인다"
+msgstr "Dodge red, gather on gold"
 
 msgid "점액 왕관"
 msgstr "Slime Crown"

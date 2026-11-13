@@ -67,7 +67,7 @@ const DOTS := {
 static var _set := []  # 마지막으로 건 [상태, 배율]. 같으면 다시 걸지 않는다(I211)
 
 # 커서 상태(S278). at은 지금 마우스 자리(맵 px), over_hud는 커서가 HUD 조작 위인가
-# 적 위 판정은 우클릭 대상 공격과 같다(controls의 _foes·_closest: 0.7칸 안, S213 숨은 적 빼고, S14)
+# 적 위 판정은 우클릭 대상 공격과 같다(controls의 _foes·_closest: 0.7칸 안(원정 보스 몸은 몸 반지름까지, S369 ⑤), S213 숨은 적 빼고, S14)
 static func kind(controls, at: Vector2, over_hud: bool) -> String:
 	if controls.battle.state not in ["prep", "battle", "raid"] or over_hud:
 		return "arrow"
