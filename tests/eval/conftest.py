@@ -43,6 +43,7 @@ MERGE_ONLY = {f"EV{n}" for n in (
     873, 874, 875, 876,  # skyart
     1073,  # den
     1090, 1102,  # keep
+    1120,  # village(거점 그림)
 )}
 _full = os.environ.get("EVAL_FULL") == "1"
 

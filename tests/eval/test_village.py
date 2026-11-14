@@ -36,3 +36,6 @@ def test_EV118_keys_4_and_9_do_nothing(gd):
 
 def test_EV1103_no_barracks_or_archery(gd):
     gd("village", "EV1103")
+
+def test_EV1120_keep_art_per_village_level(gd):
+    gd("village", "EV1120")
