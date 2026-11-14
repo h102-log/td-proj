@@ -794,7 +794,7 @@ func ev1117():
 		c.village_level = 1
 		c.merc_rank = {"soldier": 2}  # 마을 레벨보다 높은 단계를 담은 옛 저장
 		var g: int = c.gold
-		var refused: bool = not c.rank_up("soldier")
+		var refused: bool = not c.rank_up("soldier") and c.gold == g
 		var d := _mdata("soldier")
 		var hp: float = d.hp
 		var dmg: float = d.damage
@@ -802,8 +802,8 @@ func ev1117():
 			hp = r.get("hp", hp)
 			dmg = r.get("damage", dmg)
 		var m = c.place_merc("soldier", Vector2i(12, 12))
-		out = check(refused and c.gold == g and c.merc_rank.soldier == 2 and m != null and m.hp == hp and m.max_hp == hp and m.damage == dmg,
-			"마을 Lv%d·병사 단계 2 판: 강화 거부 %s · 골드 %d → %d · 단계 %s · 새 병사 체력·최대·공격력 %s(기대 %s·%s)" % [c.village_level, refused, g, c.gold, c.merc_rank, [m.hp, m.max_hp, m.damage] if m else null, hp, dmg])
+		out = check(refused and c.merc_rank.soldier == 2 and m != null and m.hp == hp and m.max_hp == hp and m.damage == dmg,
+			"마을 Lv%d·병사 단계 2 판: 강화 거부·골드 그대로 %s · 단계 %s · 새 병사 체력·최대·공격력 %s(기대 %s·%s)" % [c.village_level, refused, c.merc_rank, [m.hp, m.max_hp, m.damage] if m else null, hp, dmg])
 	return out
 
 const THRESHOLDS := [3, 6, 9]  # 문턱 단계. 장비가 처음 넣는 능력 키는 여기에만 나온다(I204)
