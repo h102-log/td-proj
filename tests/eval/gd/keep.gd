@@ -177,6 +177,7 @@ func ev1092():
 func ev1093():
 	var main = _live_prep()
 	var b = main.view.battle
+	b.village_level = b.VILLAGE_UP.size() + 1  # 마을 레벨이 강화 단계를 연다(S254 2026-11-14 변경). 띠·점·최대를 재므로 최대로 둔다
 	var k = _panel(main)
 	if not k is Control:
 		_done(main)
@@ -212,7 +213,7 @@ func ev1094():
 		return "main.hud.keep이 없다"
 	_open(main)
 	var vis := func(n): return n.is_visible_in_tree()
-	var prep1 := [vis.call(k.village) and k.village.text.begins_with("마을 Lv2 60"), vis.call(k.raid), k.raid.text, k.raid.disabled, vis.call(k.rally)]
+	var prep1 := [vis.call(k.village) and k.village.text.begins_with("마을 Lv2 %d" % b.VILLAGE_UP[0]), vis.call(k.raid), k.raid.text, k.raid.disabled, vis.call(k.rally)]
 	var said := _tip_of(main, k.raid)
 	var pop: bool = k.pop.text == "인구 %d/%d" % [b.pop_used(), b.pop_cap()]
 	b.state = "cleared"
@@ -237,7 +238,7 @@ func ev1094():
 	var fight := [k2.rally.is_visible_in_tree(), k2.village.is_visible_in_tree(), k2.raid.is_visible_in_tree()]
 	_done(main2)
 	return check(prep1 == [true, true, "원정 1층", true, false] and "2라운드부터" in said and pop and armed == ["원정?", "prep"] and cooled == "원정 1층" and went == "raid" and fight == [true, false, false],
-		"1라운드 머리 줄(마을 Lv2 60 보임·원정 보임·글·꺼짐·집결 보임) %s · 원정 툴팁 «%s» · 인구 글 맞음 %s · 2라운드 첫 누름 %s(원정?·prep) · 2.1초 뒤 «%s» · 두 번 누른 뒤 %s · 전투 단계 집결·마을·원정 보임 %s" % [prep1, said, pop, armed, cooled, went, fight])
+		"1라운드 머리 줄(마을 Lv2 비용 보임·원정 보임·글·꺼짐·집결 보임) %s · 원정 툴팁 «%s» · 인구 글 맞음 %s · 2라운드 첫 누름 %s(원정?·prep) · 2.1초 뒤 «%s» · 두 번 누른 뒤 %s · 전투 단계 집결·마을·원정 보임 %s" % [prep1, said, pop, armed, cooled, went, fight])
 
 # EV1095 · I298 ②④: 값 글자색(절반 이상 노랑·절반도 없으면 빨강)과 빗금, 인구 상한이면 그림 흐림·인구 글 빨강·설명 상자 «인구 가득»
 func ev1095():
@@ -276,6 +277,7 @@ func ev1096():
 	if not k is Control:
 		_done(main)
 		return "main.hud.keep이 없다"
+	b.village_level = b.VILLAGE_UP.size() + 1  # 마을 레벨이 강화 단계를 연다(S254 2026-11-14 변경)
 	b.rank_up("shieldman")
 	_open(main)
 	_move(k.cards[SHIELD].get_global_rect().get_center())
@@ -518,3 +520,38 @@ func ev1102():
 	TranslationServer.set_locale("ko")
 	return check(prep[0] == 11 and prep[1].is_empty() and fight[0] == 9 and fight[1].is_empty() and sizes.all(func(s): return s == Vector2(12, 12)) and is_zero_approx(edge) and wide.is_empty(),
 		"준비: 보이는 조작 %d(11) · %s · 전투: %d(9) · %s · 최근 칸 크기 %s(12×12) · 셋째 칸과 다섯째 카드 오른쪽 끝 차 %s(0) · 영어로 넘친 머리 줄 버튼 %s" % [prep[0], prep[1], fight[0], fight[1], sizes, edge, wide])
+
+# EV1118 · S254 2026-11-14 변경: 마을 레벨에 막힌 강화 띠는 «LvN 필요»이고 눌리지 않는다. 설명 상자 이유·마을 레벨 버튼 툴팁, 레벨을 올리면 열린다
+func ev1118():
+	var main = _live_prep()
+	var b = main.view.battle
+	var k = _panel(main)
+	if not k is Control:
+		_done(main)
+		return "main.hud.keep이 없다"
+	b.gold = BIG
+	_open(main)
+	var s: Button = k.strips[SHIELD]
+	var locked := [b.village_level, s.text, s.disabled]
+	var g0: int = b.gold
+	s.pressed.emit()
+	_frame(main)
+	var kept: bool = b.merc_rank.get("shieldman", 0) == 0 and b.gold == g0
+	_move(s.get_global_rect().get_center())
+	_frame(main)
+	_layout(main)
+	_frame(main)
+	var said := " ".join(_labels(k.info)) if k.info.is_visible_in_tree() else ""
+	_move(EMPTY)
+	_frame(main)
+	var tip := _tip_of(main, k.village)
+	k.village.pressed.emit()
+	_frame(main)
+	var cost: Array = b.MERC_KINDS.shieldman.rank_cost
+	var opened := [b.village_level, s.text, s.disabled]
+	s.pressed.emit()
+	_frame(main)
+	var next := [b.merc_rank.get("shieldman", 0), s.text]
+	_done(main)
+	return check(locked == [1, "Lv2 필요", true] and kept and "✕ 마을 Lv2 필요" in said and "Lv2에 강화 1단계" in tip and opened == [2, "강화 %d" % cost[0], false] and next == [1, "Lv3 필요"],
+		"마을 Lv1 띠 %s(1·Lv2 필요·눌리지 않음) · 눌러도 그대로 %s · 설명 상자 «%s»(«✕ 마을 Lv2 필요») · 마을 레벨 버튼 툴팁 «%s»(«Lv2에 강화 1단계») · 올린 뒤 %s(2·강화 %d·눌림) · 띠 누른 뒤 %s(1·Lv3 필요)" % [locked, kept, said, tip, opened, cost[0], next])

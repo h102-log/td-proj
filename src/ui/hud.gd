@@ -224,7 +224,7 @@ var chip := PanelContainer.new()  # 놓기·대포 옮기기·조준 중의 안�
 var popup := VBoxContainer.new()  # 맵 위 팝업(I58). 줄(HBox)마다 정해진 버튼. 고른 칸(클릭하거나 드래그를 놓은 지점의 칸) 바깥쪽 모서리에 뜬다
 var info_lines := ["", ""]  # 정보 칸 «고른 것»에 덧붙일 [설명, 빨간 이유](I124, I128, I132, I140). hud_build가 읽는다
 var _why := {}  # 팝업 버튼 → 못 누르는 이유(툴팁 빨간 줄)
-var _opens := ""  # 마을 레벨 버튼: 그 레벨에 열리는 시설(I132)
+var _opens := ""  # 마을 레벨 버튼: 그 레벨에 열리는 시설(I132)과 강화 단계(S254 2026-11-14 변경)
 var _arm := -INF  # 철거를 처음 누른 때(S74)
 var _arm_on := []  # 그때 고른 구조물. 고른 것이 바뀌면 첫 클릭부터 다시
 var _refused := [Vector2i.ZERO, -INF, ""]  # 거부된 놓기 칸·그때·이유(I128)
@@ -805,13 +805,15 @@ func _process(delta: float) -> void:
 		_buy[kind].text = "%s %d" % [NAMES[kind], battle.MERC_KINDS[kind].cost]
 		_buy[kind].disabled = pop_full
 		_why[_buy[kind]] = ("인구 가득 — 집을 지으면 %d명 늘어난다" % battle.STRUCTURE_KINDS.house.pop if battle.village.has_area() else "인구 가득") if pop_full else ""
-	for kind in _rank:  # 강화는 준비 단계에만(S255)
+	for kind in _rank:  # 강화는 준비 단계에만(S255), 마을 레벨이 연 단계까지(S254 2026-11-14 변경: 다음 단계는 마을 레벨 n + 2가 연다)
 		var d: Dictionary = battle.MERC_KINDS[kind]
 		var n: int = battle.merc_rank.get(kind, 0)
 		var top: bool = n >= d.ranks.size()
+		var shut: bool = not top and n >= battle.rank_cap()
 		_rank[kind].visible = prep and controls.facility != null and controls.facility != battle.base and kind in controls.facility.produces and not d.ranks.is_empty()
-		_rank[kind].text = "%s 강화 최대" % NAMES[kind] if top else "%s 강화 %d" % [NAMES[kind], d.rank_cost[n]]
-		_rank[kind].disabled = top
+		_rank[kind].text = "%s 강화 최대" % NAMES[kind] if top else "%s 강화 %d (마을 Lv%d)" % [NAMES[kind], d.rank_cost[n], n + 2] if shut else "%s 강화 %d" % [NAMES[kind], d.rank_cost[n]]
+		_rank[kind].disabled = top or shut
+		_why[_rank[kind]] = "마을 Lv%d 필요" % (n + 2) if shut else ""
 		_steps[_rank[kind]] = "" if top else _rank_line(kind, d.ranks[n])
 	if not battle.live() or controls.placing != "":
 		controls.picked = []
@@ -850,9 +852,10 @@ func _process(delta: float) -> void:
 	if controls.placing != "":
 		controls.village = false
 	_opens = ""
-	if controls.village and prep and battle.village_level <= battle.VILLAGE_UP.size():  # 거점 패널 마을 레벨 버튼(S365)의 툴팁·정보 칸에 그 레벨에 열리는 시설 이름(I132)
+	if controls.village and prep and battle.village_level <= battle.VILLAGE_UP.size():  # 거점 패널 마을 레벨 버튼(S365)의 툴팁·정보 칸에 그 레벨에 열리는 시설 이름(I132)과 강화 단계(S254 2026-11-14 변경)
 		var opens: Array = battle.STRUCTURE_KINDS.keys().filter(func(s): return battle.STRUCTURE_KINDS[s].village_level == battle.village_level + 1).map(func(s): return NAMES[s])
-		_opens = "" if opens.is_empty() else "Lv%d에 %s" % [battle.village_level + 1, ", ".join(opens)]
+		opens.append("강화 %d단계" % battle.village_level)  # 다음 레벨 L + 1의 강화 상한은 L이다(rank_cap)
+		_opens = "Lv%d에 %s" % [battle.village_level + 1, ", ".join(opens)]
 	var fix := _to_repair()
 	_repair.visible = not fix.is_empty()
 	if _repair.visible:

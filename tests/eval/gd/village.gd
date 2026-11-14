@@ -60,16 +60,20 @@ func ev112():
 	return check(b.raise_village() and b.village_level == 2 and b.gold == gold0 - b.VILLAGE_UP[0],
 		"레벨 올리기 뒤 레벨 %d, 골드 %d → %d(비용 %d)" % [b.village_level, gold0, b.gold, b.VILLAGE_UP[0]])
 
-# EV113 · S99: 골드가 모자라거나 이미 최대 레벨(2)이면 올리지 못한다
+# EV113 · S99: 골드가 모자라거나 이미 최대 레벨(4, 2026-11-14 변경)이면 올리지 못한다
 func ev113():
 	var poor = _battle()
 	poor.gold = poor.VILLAGE_UP[0] - 1
 	if poor.raise_village() or poor.village_level != 1 or poor.gold != poor.VILLAGE_UP[0] - 1:
 		return "골드가 모자란데 레벨 %d, 골드 %d" % [poor.village_level, poor.gold]
 	var b = _battle()
-	b.raise_village()
+	if b.VILLAGE_UP.size() != 3:
+		return "VILLAGE_UP 길이가 %d다(3이어야 최대 레벨 4)" % b.VILLAGE_UP.size()
+	for i in 3:
+		if not b.raise_village():
+			return "마을 Lv%d에서 레벨을 올리지 못했다" % b.village_level
 	var gold0: int = b.gold
-	return check(not b.raise_village() and b.village_level == 2 and b.gold == gold0, "최대 레벨에서 또 올랐다(레벨 %d, 골드 %d → %d)" % [b.village_level, gold0, b.gold])
+	return check(not b.raise_village() and b.village_level == 4 and b.gold == gold0, "최대 레벨에서 또 올랐다(레벨 %d, 골드 %d → %d)" % [b.village_level, gold0, b.gold])
 
 # EV114 · I47: 전투 단계에는 올리지 못한다
 func ev114():
@@ -127,3 +131,37 @@ func ev1103():
 	var missing: Array = b.MERC_KINDS.keys().filter(func(k): return k not in b.base.produces)
 	return check(gone.is_empty() and makers == ["workshop"] and missing.is_empty(),
 		"남은 옛 종류 %s · 생산 시설 %s([workshop]) · 거점이 팔지 않는 용병 %s" % [gone, makers, missing])
+
+# EV1120 · S99 2026-11-14 변경: 거점 그림은 마을 Lv1~4마다 한 칸(keep.png 320×80)이고 칸의 불투명 사각형이 누르는 사각형(KEEP_BODY)이다.
+# Lv3·Lv4의 커진 그림 가장자리를 누르면 그 레벨에서만 거점을 고른다
+func ev1120():
+	var BV = load("res://src/ui/battle_view.gd")
+	var img: Image = load("res://art/castle/keep.png").get_image()
+	var bodies: Array = BV.KEEP_BODY
+	if img.get_size() != Vector2i(320, 80) or bodies.size() != 4:
+		return "keep.png %s(320×80이어야) · KEEP_BODY %d개(4개여야)" % [img.get_size(), bodies.size()]
+	var used := []
+	var same := []
+	for i in 4:
+		used.append(Rect2(img.get_region(Rect2i(80 * i, 0, 80, 80)).get_used_rect()))
+		if i > 0 and img.get_region(Rect2i(80 * i, 0, 80, 80)).get_data() == img.get_region(Rect2i(80 * (i - 1), 0, 80, 80)).get_data():
+			same.append(i + 1)
+	if used != bodies or not same.is_empty():
+		return "칸마다 불투명 사각형 %s · KEEP_BODY %s · 앞 레벨과 같은 그림 Lv%s" % [used, bodies, same]
+	var b = battle(load("res://src/main.gd").stage())
+	var c = controls(b)
+	var at: Vector2 = Vector2(b.base.cell * CELL_PX) + BV.KEEP_AT  # 망루 그림 왼쪽 위
+	var spots := [at + Vector2(19.5, 40.5), at + Vector2(40.5, 7.5)]  # Lv3·4만 덮는 왼쪽 가장자리, Lv4만 덮는 본성 꼭대기
+	for p in spots:
+		var cell := Vector2i((p / CELL_PX).floor())
+		if cell == b.base.cell or b.structure_at(cell) != null or b.units.any(func(u): return Vector2i(u.pos.round()) == cell):
+			return "준비가 틀렸다: 누를 칸 %s가 빈 칸이 아니다" % [cell]
+	var got := []
+	for lv in [2, 3, 4]:
+		b.village_level = lv
+		var row := [lv]
+		for p in spots:
+			click(c, MOUSE_BUTTON_LEFT, p)
+			row.append(c.village)
+		got.append(row)
+	return check(got == [[2, false, false], [3, true, false], [4, true, true]], "[마을 레벨, 가장자리 누름에 거점, 본성 꼭대기 누름에 거점] %s(기대 [[2, 거짓, 거짓], [3, 참, 거짓], [4, 참, 참]])" % [got])

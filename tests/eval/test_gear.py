@@ -168,3 +168,9 @@ def test_EV737_archer_accuracy_rises_with_rank(gd):
 
 def test_EV738_archer_rank_tip_shows_accuracy(gd):
     gd("gear", "EV738")
+
+def test_EV1117_village_level_opens_merc_ranks(gd):
+    gd("gear", "EV1117")
+
+def test_EV1119_workshop_rank_button_village_lock(gd):
+    gd("gear", "EV1119")

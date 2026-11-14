@@ -528,7 +528,12 @@ const VILLAGE := Rect2i(0, 0, 30, 6)  # 마을 칸(production.gd와 같다)
 func _camp(over := {}):
 	var stage := {"village": VILLAGE, "base_hp": BIG, "rounds": [[ONE_ENEMY], [ONE_ENEMY]], "seed": 7}
 	stage.merge(over, true)
-	return battle(stage)
+	return _top(battle(stage))
+
+# 판의 마을 레벨을 최대로 둔다. 강화의 다른 조건·효과를 재는 평가가 쓴다(S254 2026-11-14 변경: 마을 레벨 L이면 L − 1단계까지)
+func _top(b):
+	b.village_level = b.VILLAGE_UP.size() + 1
+	return b
 
 # 강화 API가 없으면 그 이유. 없을 때 rank_up이 null을 내면 «거부»로 읽혀 빈 통과가 된다
 func _rank_api(b) -> String:
@@ -545,7 +550,7 @@ func _mdata(kind: String) -> Resource:
 
 # EV617 · S254: 강화는 준비 단계에, 파는 곳이 있고 골드가 있을 때만 된다. 마지막 단계면 거부한다
 func ev617():
-	var none = battle({"base_hp": BIG, "rounds": [[ONE_ENEMY], [ONE_ENEMY]], "seed": 7})  # 마을이 없는 판: 병사를 파는 곳이 없다
+	var none = _top(battle({"base_hp": BIG, "rounds": [[ONE_ENEMY], [ONE_ENEMY]], "seed": 7}))  # 마을이 없는 판: 병사를 파는 곳이 없다
 	var out := _rank_api(none)
 	if out != "":
 		return out
@@ -606,7 +611,7 @@ func ev618():
 
 # EV619 · S254: 3단계 용병(블록 수 2)은 EV301 배치에서 적 셋 가운데 둘을 붙잡고 하나는 지나간다
 func ev619():
-	var b = battle({"base": Vector2i(2, 10), "spawns": [Vector2i(29, 10)], "base_hp": BIG, "village": VILLAGE})
+	var b = _top(battle({"base": Vector2i(2, 10), "spawns": [Vector2i(29, 10)], "base_hp": BIG, "village": VILLAGE}))
 	var out := _rank_api(b)
 	if out != "":
 		return out
@@ -662,7 +667,7 @@ func ev621():
 func ev622():
 	var save = load("res://src/sim/save.gd")
 	var stage := {"village": VILLAGE, "base_hp": BIG, "rounds": [[ONE_ENEMY], [ONE_ENEMY]], "seed": 7}
-	var a = battle(stage)
+	var a = _top(battle(stage))
 	var out := _rank_api(a)
 	if out != "":
 		return out
@@ -690,7 +695,7 @@ func ev622():
 # EV623 · S255: 준비 단계 생산 시설(작업장, S98 2026-11-12 변경으로 생산 시설은 이것뿐) 팝업의 «공병 강화 N» 버튼·툴팁·최대, 정보 칸 체력, 전투 단계엔 버튼 없음
 func ev623():
 	var main = _prep()
-	var b = main.view.battle
+	var b = _top(main.view.battle)
 	var out := _rank_api(b)
 	var f = null
 	if out == "":
@@ -727,6 +732,30 @@ func ev623():
 	_done(main)
 	return out
 
+# EV1119 · S254 2026-11-14 변경: 작업장 팝업 공병 강화 버튼은 마을 레벨에 막히면 «(마을 LvN)»을 붙이고 눌리지 않으며 툴팁에 이유가 있다. 올리면 풀린다
+func ev1119():
+	var main = _prep()
+	var b = main.view.battle
+	var out := _rank_api(b)
+	var f = null
+	if out == "":
+		f = b.build("workshop", Vector2i(6, 6))
+		out = check(f != null, "준비 단계에 마을 (6,6)에 작업장을 짓지 못했다")
+	if out == "":
+		main.controls.facility = f
+		_frame(main)
+		var cost: Array = b.MERC_KINDS.engineer.rank_cost
+		var btn = _starts(main.hud.popup, "공병 강화")
+		var tip := _tip_of(main, btn) if btn != null else ""
+		out = check(b.village_level == 1 and btn != null and btn.text == "공병 강화 %d (마을 Lv2)" % cost[0] and btn.disabled and "✕ 마을 Lv2 필요" in tip,
+			"마을 Lv%d 작업장 팝업 강화 버튼 «%s»(기대 «공병 강화 %d (마을 Lv2)») · 못 누름 %s · 툴팁 «%s»(«✕ 마을 Lv2 필요»)" % [b.village_level, btn.text if btn else null, cost[0], btn.disabled if btn else null, tip])
+		if out == "":
+			b.raise_village()
+			_frame(main)
+			out = check(b.village_level == 2 and btn.text == "공병 강화 %d" % cost[0] and not btn.disabled, "마을 Lv%d로 올린 뒤 버튼 «%s»(기대 «공병 강화 %d») · 못 누름 %s" % [b.village_level, btn.text, cost[0], btn.disabled])
+	_done(main)
+	return out
+
 # EV624 · S254: 강화는 전투 단계에 생산 시설에서 산 용병(recruit)에도 든다
 func ev624():
 	var b = _camp()
@@ -740,6 +769,42 @@ func ev624():
 	var m = b.recruit(f, "soldier")
 	var want: float = b.MERC_KINDS.soldier.ranks[0].get("hp", 0.0)
 	return check(m != null and want > _mdata("soldier").hp and m.hp == want and m.max_hp == want, "강화 뒤 전투 단계에 산 용병 %s(기대 체력 %s)" % [[m.max_hp, m.hp] if m else null, want])
+
+# EV1117 · S254 2026-11-14 변경: 마을 레벨 L이면 종류마다 L − 1단계까지 강화한다. 마을 레벨보다 높은 옛 저장의 단계는 남는다
+func ev1117():
+	var b = _camp()
+	var out := _rank_api(b)
+	if out != "":
+		return out
+	b.village_level = 1
+	var got := []
+	for lv in [1, 2, 3, 4]:
+		if lv > 1 and not b.raise_village():
+			return "마을 Lv%d에서 레벨을 올리지 못했다" % b.village_level
+		var g: int = b.gold
+		var first: bool = b.rank_up("soldier")
+		var spent: int = g - b.gold
+		var second: bool = b.rank_up("soldier")
+		got.append([b.village_level, first, second, spent, b.merc_rank.get("soldier", 0), b.rank_up("engineer"), b.merc_rank.get("engineer", 0)])
+	var cost: Array = b.MERC_KINDS.soldier.rank_cost
+	var want := [[1, false, false, 0, 0, false, 0], [2, true, false, cost[0], 1, true, 1], [3, true, false, cost[1], 2, true, 2], [4, true, false, cost[2], 3, false, 2]]
+	out = check(got == want, "마을 레벨마다 [레벨, 병사 강화, 다음 강화, 쓴 골드, 병사 단계, 공병 강화, 공병 단계] %s(기대 %s)" % [got, want])
+	if out == "":
+		var c = _camp()
+		c.village_level = 1
+		c.merc_rank = {"soldier": 2}  # 마을 레벨보다 높은 단계를 담은 옛 저장
+		var g: int = c.gold
+		var refused: bool = not c.rank_up("soldier") and c.gold == g
+		var d := _mdata("soldier")
+		var hp: float = d.hp
+		var dmg: float = d.damage
+		for r in d.ranks.slice(0, 2):
+			hp = r.get("hp", hp)
+			dmg = r.get("damage", dmg)
+		var m = c.place_merc("soldier", Vector2i(12, 12))
+		out = check(refused and c.merc_rank.soldier == 2 and m != null and m.hp == hp and m.max_hp == hp and m.damage == dmg,
+			"마을 Lv%d·병사 단계 2 판: 강화 거부·골드 그대로 %s · 단계 %s · 새 병사 체력·최대·공격력 %s(기대 %s·%s)" % [c.village_level, refused, c.merc_rank, [m.hp, m.max_hp, m.damage] if m else null, hp, dmg])
+	return out
 
 const THRESHOLDS := [3, 6, 9]  # 문턱 단계. 장비가 처음 넣는 능력 키는 여기에만 나온다(I204)
 

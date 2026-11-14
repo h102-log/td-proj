@@ -512,6 +512,8 @@ func rank_reason(k: String) -> String:
 		return "강화 최대"
 	if battle.state != "prep":
 		return "준비 단계에만"
+	if r >= battle.rank_cap():  # S254 2026-11-14 변경
+		return "마을 Lv%d 필요" % (r + 2)
 	if battle.gold < d.rank_cost[r]:
 		return _gold_short(d.rank_cost[r])
 	return ""
@@ -627,10 +629,11 @@ func _show_card(i: int, prep: bool, full: bool) -> void:
 		p.color = HudTheme.ACCENT if j < r else PIP_OFF
 		p.position = Vector2(CARD.x - 4 * ranks.size() - 1 + j * 4, 36)
 	var top: bool = r >= ranks.size()
+	var shut: bool = not top and r >= battle.rank_cap()  # 다음 단계를 마을 레벨 r + 2가 연다(S254 2026-11-14 변경)
 	var s: Button = strips[i]
-	s.text = "강화 최대" if top else tr("강화 %d") % battle.MERC_KINDS[k].rank_cost[r]
-	s.disabled = top or not prep
-	s.add_theme_color_override("font_color", HudTheme.TEXT if top else cost_color(battle.gold, battle.MERC_KINDS[k].rank_cost[r]))
+	s.text = "강화 최대" if top else tr("Lv%d 필요") % (r + 2) if shut else tr("강화 %d") % battle.MERC_KINDS[k].rank_cost[r]
+	s.disabled = top or shut or not prep
+	s.add_theme_color_override("font_color", HudTheme.TEXT if top or shut else cost_color(battle.gold, battle.MERC_KINDS[k].rank_cost[r]))
 	var got: Array = _plus.get(k, [-INF, 0])
 	plus[i].visible = hud._now < got[0]
 	plus[i].text = "+%d" % got[1]

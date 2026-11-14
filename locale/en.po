@@ -2094,3 +2094,13 @@ msgstr "Nothing to undo"
 # 이유 줄 앞의 «✕ »(툴팁·설명 상자). 뒤 글은 다시 번역한다
 msgid "✕ %s"
 msgstr "✕ %s"
+
+# ── 마을 레벨이 여는 강화 단계(src/ui/hud_keep.gd·hud.gd, S254 2026-11-14 변경). 강화 띠 칸은 «Max upg.»만큼 짧게 ──
+msgid "Lv%d 필요"
+msgstr "Need Lv%d"
+
+msgid "%s 강화 %d (마을 Lv%d)"
+msgstr "%s upgrade %d (Village Lv%d)"
+
+msgid "강화 %d단계"
+msgstr "upgrade rank %d"

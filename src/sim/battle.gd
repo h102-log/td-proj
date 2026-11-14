@@ -19,7 +19,7 @@ var QUEST_KINDS := _kinds("res://data/quests/")  # 미션 정의(S77, I118). 칸
 var FLOOR_KINDS := _kinds("res://data/dungeon/")  # 던전 층(S316). 파일 이름이 층 id다. 칸의 뜻은 src/data/floor_def.gd 머리 주석
 var RELIC_KINDS := _kinds("res://data/relics/")  # 유물(S334). 파일 이름이 유물 id다. 칸의 뜻은 src/data/relic_def.gd 머리 주석
 var GEAR_KINDS := _kinds("res://data/gear/")  # 영웅 전용장비(S246). 파일 이름이 주인 영웅 종류다. 칸의 뜻은 src/data/gear_def.gd 머리 주석
-const VILLAGE_UP := [60]  # 마을 레벨 n→n+1 비용(S99). 길이+1이 최대 레벨이다. 임시값(Claude 예시, 사용자 2026-10-13 수락)
+const VILLAGE_UP := [300, 600, 1000]  # 마을 레벨 n→n+1 비용(S99 2026-11-14 변경). 길이+1이 최대 레벨이다. 임시값(사용자 2026-11-14 «300 600 1000»)
 const MERC_CAP := 10  # 마을이 없는 판의 배치 상한(S25 2026-11-04 변경). 임시값(사용자 2026-10-13), 스테이지의 merc_cap이 덮어쓴다
 const POP_BASE := 4  # 거점이 주는 인구(S25 2026-11-04 변경). 집 몫은 집의 pop이다. 임시값(사용자 2026-11-04 «거점도 4명»)
 const TOWER_BASE := 4  # 거점이 주는 쏘는 구조물 몫(S299). 집 몫은 집의 towers다. 임시값(Claude 초안, 사용자 2026-11-07 «진행»)
@@ -540,7 +540,7 @@ var raid_floor := {}  # 이번 원정의 층 정의(FLOOR_KINDS 값). 원정이 
 var _snap := {}  # 원정 직전 몸(I262 ④): 원정대 영웅 → 칸 사전, "tally" → 라운드 집계
 var _raid_end := ["", 0.0]  # 끝난 까닭("win"·"wipe"·"flame")과 돌아오기(처치)나 «다시» 기다림(전멸·불꽃, S331)까지 남은 초(I262 ⑥). 안 끝났으면 "". 끝났으면 셋째 칸이 그 순간의 보스 남은 체력 비율이다
 var merc_cap := MERC_CAP
-var village_level := 1  # 마을 레벨(S46, S99). 지금 레벨 2가 여는 시설·용병은 없다(S98 2026-11-12 변경)
+var village_level := 1  # 마을 레벨(S46, S99). 레벨 2·3·4가 용병 강화 1·2·3단계를 연다(S254 2026-11-14 변경). 여는 시설은 없다
 var dark := 0.0  # 어둠(S210): 0 낮 ~ 1 한밤. 밤 웨이브의 전투 단계에 오르고, 전투가 끝나면 내린다. 저장에 담지 않는다(준비 단계는 낮)
 var wave_time := 0.0  # 이번 전투 단계가 시작된 뒤 흐른 시간(초). 밤 웨이브의 해 지는 때(at)를 잰다
 var people := []  # 주민 몸(Villager, Folk.folk_of 차례, S227). 주민이 바뀌면 _census가 다시 만든다
@@ -1842,12 +1842,16 @@ func merc_stats(kind: String) -> Dictionary:
 			d[key] = d[key].merged(step[key], true) if step[key] is Dictionary else step[key]
 	return d
 
-# 준비 단계에, 그 용병을 파는 곳이 있으면 골드로 그 종류를 한 단계 강화한다(S254). 산 용병 수에 하나로 센다(I119).
+# 마을 레벨이 연 강화 단계 수(S254 2026-11-14 변경): Lv1은 0, 레벨 하나에 한 단계. 이미 산 단계는 이보다 높아도 그대로 둔다
+func rank_cap() -> int:
+	return village_level - 1
+
+# 준비 단계에, 그 용병을 파는 곳이 있고 마을 레벨이 다음 단계를 열었으면 골드로 그 종류를 한 단계 강화한다(S254). 산 용병 수에 하나로 센다(I119).
 # 지금 있는 그 종류 용병은 단계가 바꾼 만큼 수치가 바뀌고, 최대 체력이 오르면 체력도 같은 만큼 올라 입은 피해는 그대로다(I203)
 func rank_up(kind: String) -> bool:
 	var d: Dictionary = MERC_KINDS.get(kind, {})
 	var n: int = merc_rank.get(kind, 0)
-	if state != "prep" or n >= d.get("ranks", []).size() or sellers(kind).is_empty() or gold < d.rank_cost[n]:
+	if state != "prep" or n >= d.get("ranks", []).size() or n >= rank_cap() or sellers(kind).is_empty() or gold < d.rank_cost[n]:
 		return false
 	var old := merc_stats(kind)
 	gold -= d.rank_cost[n]
