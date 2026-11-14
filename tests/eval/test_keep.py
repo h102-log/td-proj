@@ -52,3 +52,6 @@ def test_EV1101_keep_panel_recent_three(gd):
 
 def test_EV1102_keep_panel_header_and_tab_row_layout(gd):
     gd("keep", "EV1102")
+
+def test_EV1118_keep_strip_village_lock(gd):
+    gd("keep", "EV1118")

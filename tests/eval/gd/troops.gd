@@ -109,6 +109,7 @@ func ev1075():
 	var t = b.recruit(b.base, "thunder_mage")
 	if t == null or t.kind != "thunder_mage" or b.base.rally != cell_of(t):
 		return "거점에서 번개마법사를 사지 못했다(%s, 집결 지점 %s)" % [t, b.base.rally]
+	b.village_level = b.VILLAGE_UP.size() + 1  # 마을 레벨이 강화 단계를 연다(S254 2026-11-14 변경)
 	for i in 3:
 		if not b.rank_up("thunder_mage"):
 			bad.append("번개마법사 %d단계 강화 실패" % (i + 1))

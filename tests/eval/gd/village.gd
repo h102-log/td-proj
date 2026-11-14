@@ -60,16 +60,20 @@ func ev112():
 	return check(b.raise_village() and b.village_level == 2 and b.gold == gold0 - b.VILLAGE_UP[0],
 		"레벨 올리기 뒤 레벨 %d, 골드 %d → %d(비용 %d)" % [b.village_level, gold0, b.gold, b.VILLAGE_UP[0]])
 
-# EV113 · S99: 골드가 모자라거나 이미 최대 레벨(2)이면 올리지 못한다
+# EV113 · S99: 골드가 모자라거나 이미 최대 레벨(4, 2026-11-14 변경)이면 올리지 못한다
 func ev113():
 	var poor = _battle()
 	poor.gold = poor.VILLAGE_UP[0] - 1
 	if poor.raise_village() or poor.village_level != 1 or poor.gold != poor.VILLAGE_UP[0] - 1:
 		return "골드가 모자란데 레벨 %d, 골드 %d" % [poor.village_level, poor.gold]
 	var b = _battle()
-	b.raise_village()
+	if b.VILLAGE_UP.size() != 3:
+		return "VILLAGE_UP 길이가 %d다(3이어야 최대 레벨 4)" % b.VILLAGE_UP.size()
+	for i in 3:
+		if not b.raise_village():
+			return "마을 Lv%d에서 레벨을 올리지 못했다" % b.village_level
 	var gold0: int = b.gold
-	return check(not b.raise_village() and b.village_level == 2 and b.gold == gold0, "최대 레벨에서 또 올랐다(레벨 %d, 골드 %d → %d)" % [b.village_level, gold0, b.gold])
+	return check(not b.raise_village() and b.village_level == 4 and b.gold == gold0, "최대 레벨에서 또 올랐다(레벨 %d, 골드 %d → %d)" % [b.village_level, gold0, b.gold])
 
 # EV114 · I47: 전투 단계에는 올리지 못한다
 func ev114():
