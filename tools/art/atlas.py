@@ -241,7 +241,7 @@ def main():
 # 성곽 조각(S217): 두께 5칸(2026-11-03 변경)·문 폭 3칸 장면(원점 픽셀 (4, 그림 높이 − 4), tools/art/wall.py GAME_GATES)에서 자른다. 조각 맨 아랫줄이 원점 줄(앞줄 바닥선)이다.
 # 행은 단계 1~3(S86)마다 몸체·앞층(흉벽·앞면, 성벽 위 유닛의 발을 가린다), 그다음 통로 그늘, 잔해(I88, 성벽 한 열만)다.
 # 열은 성벽 한 열(16px)·열린 문(48px)·닫힌 문(48px)·문 왼쪽·오른쪽 탑(16px씩)이다. battle_view.gd WALL_COLS와 같다
-# 거점 망루(tools/art/keep.py)는 마을 레벨 1·2를 80×80 두 칸으로 따로 모은다
+# 거점 망루(tools/art/keep.py)는 마을 레벨 1~4를 80×80 네 칸으로 따로 모은다(S99 2026-11-14 변경)
 WALL_LAYERS = ["wall_t5_L1", "front_t5_L1", "wall_t5_L2", "front_t5_L2", "wall_t5_L3", "front_t5_L3", "shade_t5", "rubble_t5"]
 WALL_STRIPS = [(6, 1), (1, 3), (9, 3), (8, 1), (12, 1)]  # (시험 그림의 칸 번호, 폭 칸): 성벽 한 열, 열린 문, 닫힌 문, 문 왼쪽 탑, 문 오른쪽 탑
 WALL_H = 145  # 조각 높이: 원점 줄부터 양옆 탑 뒤 모서리까지(두께 5·앞면 32px, tools/art/wall.py PIECE_H. 두께 3·앞면 24px일 때 105)
@@ -288,8 +288,8 @@ def castle():
                 x += 16 * w
     Path("art/castle").mkdir(exist_ok=True)
     out.save("art/castle/walls.png")
-    keep = Image.new("RGBA", (160, 80))
-    for i in (1, 2):
+    keep = Image.new("RGBA", (320, 80))
+    for i in (1, 2, 3, 4):
         keep.paste(Image.open(f"art/trial/walls/keep_45_f24p_L{i}.png").convert("RGBA"), (80 * (i - 1), 0))
     keep.save("art/castle/keep.png")
     Image.open("art/trial/ladder/ladder_45_D_f24p.png").save("art/castle/ladder.png")  # 공성탑 사다리 띠(S172 2026-11-03 둘째 변경 ④, tools/art/raid.py ladder)

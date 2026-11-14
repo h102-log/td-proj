@@ -288,9 +288,9 @@ const TOP_BAND := 92  # 맵 위 맵 밖 띠 높이(맵 px): 카메라가 위로 
 const RING := 4  # 문루·탑 둘레 난간 높이(px). 그 그림 윗변은 바닥보다 이만큼 더 높다(wall.py ph 0.32 = 3.6px)
 const LADDER := preload("res://art/castle/ladder.png")  # 공성탑 사다리 띠(S172 2026-11-03 둘째 변경 ④): 성벽 열 한 칸(16px)씩 3칸. 사다리 먼 끝부터 이어 자른다(tools/art/raid.py ladder)
 const TOWER_TOP := 59  # 공성탑 다리판 자세 북쪽 그림 맨 윗줄이 발밑보다 높은 px(heroes.png 공격 칸에서 잼). 사다리가 여기서 성벽 위로 걸친다(S172 2026-11-03 넷째 변경 ①)
-const KEEP := preload("res://art/castle/keep.png")  # 거점 망루 80×80, 마을 레벨 1·2. 칸 앞쪽 아래 왼쪽 모서리가 그림의 (32, 72)다(tools/art/keep.py)
+const KEEP := preload("res://art/castle/keep.png")  # 거점 망루 80×80, 마을 레벨 1~4(S99 2026-11-14 변경). 칸 앞쪽 아래 왼쪽 모서리가 그림의 (32, 72)다(tools/art/keep.py)
 const KEEP_AT := Vector2(-32, CELL - 72)  # 거점 칸 왼쪽 위에서 본 망루 그림 왼쪽 위
-const KEEP_BODY := [Rect2(29, 23, 22, 49), Rect2(21, 13, 38, 59)]  # 마을 레벨 1·2 망루 그림의 불투명 사각형(keep.png를 잼). 그림을 바꾸면 다시 잰다
+const KEEP_BODY := [Rect2(29, 23, 22, 49), Rect2(21, 13, 38, 59), Rect2(18, 11, 44, 61), Rect2(18, 5, 44, 67)]  # 마을 레벨 1~4 망루 그림의 불투명 사각형(keep.png를 잼, EV1120). 그림을 바꾸면 다시 잰다
 const FACILITY := preload("res://art/castle/facility.png")  # 시설 96×96: 0행 그림, 1행 청사진 바탕. 구조물의 칸(차지 칸의 앞 왼쪽 칸, S216) 앞쪽 아래 왼쪽 모서리가 그림의 FAC_FOOT다(tools/art/facility.py)
 const FAC_N := 96  # 시설 그림 한 칸의 크기(px)
 const FAC_FOOT := Vector2(16, 92)
@@ -299,7 +299,7 @@ static var FAC: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("re
 # 금(S199)을 구운 성곽·시설·망루 아틀라스(I172). 원본 대신 이것으로 그려서 금이 생겨도 텍스처가 바뀌지 않는다. 성곽은 앞층(바깥 벽면)에만 긋는다
 static var CASTLE_K: ImageTexture = crack_atlas(CASTLE, _wall_pieces())
 static var FACILITY_K: ImageTexture = crack_atlas(FACILITY, FAC.values().map(func(f): return Rect2i(FAC_N * int(f[0]), int(f[1]), FAC_N, int(f[2] - f[1]))))
-static var KEEP_K: ImageTexture = crack_atlas(KEEP, [Rect2i(0, 0, 80, 80), Rect2i(80, 0, 80, 80)])
+static var KEEP_K: ImageTexture = crack_atlas(KEEP, range(KEEP_BODY.size()).map(func(i): return Rect2i(80 * i, 0, 80, 80)))
 const BLUEPRINT := Color(0.55, 0.78, 1.0, 0.6)  # 청사진 색(사용자 2026-10-20, 림월드 설계도). 회색 바탕에 곱한다
 const GHOST := Color(1, 1, 1, 0.4)  # 거점에 가려진 유닛·시설을 덧그리는 색(C1, 사용자 2026-10-20)
 const SHADE := Color(0, 0, 0, 0.55)  # 성벽에 가려진 부분의 실루엣 색(S175). 55%는 사용자가 고른 시안의 합성 색에 맞춘 Claude 값
@@ -2591,7 +2591,7 @@ func _bodies() -> void:
 			_feet_mark(all[i - feet], i - feet)
 		elif i == m + blds.size():  # 거점 망루: 마을 레벨(S99)마다 한 장. 맞으면 흔들리고 깎이면 금(S199)
 			var at := Vector2(battle.base.cell * CELL) + KEEP_AT + _jolt(battle.base)
-			draw_texture_rect_region(KEEP_K, Rect2(at, Vector2(80, 80)), Rect2(80 * (clampi(battle.village_level, 1, 2) - 1), crack_y(battle.base, KEEP.get_height()), 80, 80))
+			draw_texture_rect_region(KEEP_K, Rect2(at, Vector2(80, 80)), Rect2(80 * (clampi(battle.village_level, 1, KEEP_BODY.size()) - 1), crack_y(battle.base, KEEP.get_height()), 80, 80))
 		elif i >= m:
 			_facility(blds[i - m])
 		elif i >= n:
@@ -4853,7 +4853,7 @@ static func _wall_pieces() -> Array:
 
 # 거점 망루 그림의 불투명 사각형(맵 px). 이 안을 누르면 거점을 고른다(S100)
 static func keep_rect(b) -> Rect2:
-	var body: Rect2 = KEEP_BODY[clampi(b.village_level, 1, 2) - 1]
+	var body: Rect2 = KEEP_BODY[clampi(b.village_level, 1, KEEP_BODY.size()) - 1]
 	return Rect2(Vector2(b.base.cell * CELL) + KEEP_AT + body.position, body.size)
 
 # 머리 위 체력바 자리(칸, 보스 막대가 쓴다): 성벽 위와 미끄러짐을 따른다. 보스(I185) 그림은 기본 적보다 키가 커서 막대를 그만큼 올린다(머리 위).
