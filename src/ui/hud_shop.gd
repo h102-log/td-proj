@@ -22,7 +22,7 @@ func _ready() -> void:
 	size = Vector2(60, 26)
 	focus_mode = Control.FOCUS_NONE  # 포커스가 가면 Enter·Space가 이 버튼을 다시 누른다
 	pressed.connect(func(): controls.set_shop(not controls.shop))
-	_on_box = HudTheme.box("normal", "Button", HudTheme.CELL, HudTheme.ACCENT)
+	_on_box = HudTheme.box("normal", "Button", HudTheme.PRESS, HudTheme.ACCENT)  # 창이 떠 있는 동안 = 테마 누름과 같은 모양(I207·S372)
 	var helm := TextureRect.new()
 	helm.texture = HudBuild.dots(HELM, {"r": HudTheme.DANGER, "s": Color("d0d6e0"), "#": Color("7a86a0")})
 	helm.expand_mode = TextureRect.EXPAND_IGNORE_SIZE

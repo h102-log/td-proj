@@ -20,7 +20,7 @@ func _ready() -> void:
 	size = Vector2(60, 26)
 	focus_mode = Control.FOCUS_NONE  # 포커스가 가면 Enter·Space가 이 버튼을 다시 누른다
 	pressed.connect(func(): battle.toggle_auto_all())
-	_on_box = HudTheme.box("normal", "Button", HudTheme.CELL, HudTheme.ACCENT)
+	_on_box = HudTheme.box("normal", "Button", HudTheme.PRESS, HudTheme.ACCENT)  # 켜진 동안 = 테마 누름과 같은 모양(S372)
 	var mark := TextureRect.new()
 	mark.texture = HudBuild.dots(CORNERS, {"#": HudTheme.ACCENT})
 	mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
