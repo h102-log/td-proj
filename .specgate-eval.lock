@@ -1,8 +1,8 @@
 {
-  "approvedAt": "2026-11-14T05:54:30.182Z",
-  "evalMd": "8adf3f05",
+  "approvedAt": "2026-11-15T12:58:14.894Z",
+  "evalMd": "de7012c2",
   "tests": {
-    "tests/eval/conftest.py": "31013454",
+    "tests/eval/conftest.py": "7b4a0d72",
     "tests/eval/gd/aura.gd": "010cc38a",
     "tests/eval/gd/aura.gd.uid": "40dd7bb8",
     "tests/eval/gd/boss.gd": "5ce3b68b",
@@ -43,7 +43,7 @@
     "tests/eval/gd/hire.gd.uid": "47433f7e",
     "tests/eval/gd/house.gd": "66d22834",
     "tests/eval/gd/house.gd.uid": "5fd6fb28",
-    "tests/eval/gd/hud.gd": "ea389da8",
+    "tests/eval/gd/hud.gd": "018cc758",
     "tests/eval/gd/hud.gd.uid": "6038f593",
     "tests/eval/gd/keep.gd": "aa96a877",
     "tests/eval/gd/keep.gd.uid": "97aab968",
@@ -59,7 +59,7 @@
     "tests/eval/gd/loop.gd.uid": "f8a3d823",
     "tests/eval/gd/map.gd": "6c830d47",
     "tests/eval/gd/map.gd.uid": "c812f8cf",
-    "tests/eval/gd/menu.gd": "dc223c25",
+    "tests/eval/gd/menu.gd": "3f923e65",
     "tests/eval/gd/menu.gd.uid": "80c43e3a",
     "tests/eval/gd/merc.gd": "13319940",
     "tests/eval/gd/merc.gd.uid": "5a159512",
@@ -157,14 +157,14 @@
     "tests/eval/test_heroes.py": "c3b8aa2a",
     "tests/eval/test_hire.py": "5069c2f8",
     "tests/eval/test_house.py": "4cbc5613",
-    "tests/eval/test_hud.py": "c8c75ce8",
+    "tests/eval/test_hud.py": "164d05d4",
     "tests/eval/test_keep.py": "2d9302f1",
     "tests/eval/test_kits.py": "eee4260d",
     "tests/eval/test_levels.py": "2c71fe40",
     "tests/eval/test_locale.py": "56451d19",
     "tests/eval/test_loop.py": "eb9dcfdc",
     "tests/eval/test_map.py": "9fd1d996",
-    "tests/eval/test_menu.py": "72915a71",
+    "tests/eval/test_menu.py": "2238f474",
     "tests/eval/test_merc.py": "c1713ec6",
     "tests/eval/test_missile.py": "b529b825",
     "tests/eval/test_night.py": "c0cd134d",
@@ -702,6 +702,7 @@
     "S369": "97babf3a",
     "I300": "a267851b",
     "S370": "3a6ec88a",
-    "I301": "6a41c038"
+    "I301": "6a41c038",
+    "S371": "791b1cda"
   }
 }

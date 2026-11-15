@@ -44,6 +44,7 @@ MERGE_ONLY = {f"EV{n}" for n in (
     1073,  # den
     1090, 1102,  # keep
     1120,  # village(거점 그림)
+    1121, 1122, 1123,  # 테두리 대비(S371)
 )}
 _full = os.environ.get("EVAL_FULL") == "1"
 
