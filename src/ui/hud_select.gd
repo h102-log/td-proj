@@ -32,7 +32,7 @@ func _init(h) -> void:
 func _ready() -> void:
 	position = Vector2(312, 288)
 	size = Vector2(196, 72)
-	_plain = HudTheme.framed(HudTheme.box("panel", "PanelContainer", HudTheme.PANEL, HudTheme.LINE))
+	_plain = HudTheme.framed(HudTheme.box("panel", "PanelContainer", HudTheme.PANEL, HudTheme.BORDER))
 	_red = HudTheme.framed(HudTheme.box("panel", "PanelContainer", HudTheme.PANEL, HudTheme.DANGER))
 	add_theme_stylebox_override("panel", _plain)
 	for c in [one, many]:
@@ -40,7 +40,7 @@ func _ready() -> void:
 		c.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(c)
 	var box := Panel.new()
-	box.add_theme_stylebox_override("panel", HudTheme.box("panel", "PanelContainer", HudTheme.CELL, HudTheme.LINE))
+	box.add_theme_stylebox_override("panel", HudTheme.box("panel", "PanelContainer", HudTheme.CELL, HudTheme.BORDER))
 	box.position = Vector2(4, 4)
 	box.size = Vector2(48, 48)
 	one.add_child(box)
@@ -82,7 +82,7 @@ func _bar(at: Vector2, sz: Vector2, fill: ColorRect, back := ColorRect.new()) ->
 func _cell(i: int) -> Button:
 	var b := Button.new()
 	b.focus_mode = Control.FOCUS_NONE
-	for st in [["normal", HudTheme.LINE], ["hover", HudTheme.HOVER], ["pressed", HudTheme.ACCENT]]:
+	for st in [["normal", HudTheme.BORDER], ["hover", HudTheme.HOVER], ["pressed", HudTheme.ACCENT]]:
 		var s := StyleBoxFlat.new()
 		s.bg_color = HudTheme.CELL
 		s.border_color = st[1]

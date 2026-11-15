@@ -45,7 +45,7 @@ func _init(h) -> void:
 func _ready() -> void:
 	position = Vector2(510, 288)
 	size = Vector2(130, 72)
-	add_theme_stylebox_override("panel", HudTheme.framed(HudTheme.box("panel", "PanelContainer", HudTheme.PANEL, HudTheme.LINE)))
+	add_theme_stylebox_override("panel", HudTheme.framed(HudTheme.box("panel", "PanelContainer", HudTheme.PANEL, HudTheme.BORDER)))
 	var costs: Dictionary = battle.STRUCTURE_KINDS.merged(battle.MERC_KINDS)
 	for key in controls.PLACE_KEYS:
 		_keys[controls.PLACE_KEYS[key]] = OS.get_keycode_string(key).replace("Minus", "-").replace("Equal", "=").replace("BackSlash", "\\")
@@ -70,7 +70,7 @@ func _ready() -> void:
 	add_child(band)
 	band.reset_size()
 	band.position = Vector2(2, PAD + STEP - 1 - band.size.y / 2)  # 1·2줄 사이 간격 가운데
-	info.add_theme_stylebox_override("panel", HudTheme.framed(HudTheme.box("panel", "PanelContainer", Color(HudTheme.PANEL, 1.0), HudTheme.LINE)))
+	info.add_theme_stylebox_override("panel", HudTheme.framed(HudTheme.box("panel", "PanelContainer", Color(HudTheme.PANEL, 1.0), HudTheme.BORDER)))
 	info.custom_minimum_size.x = size.x
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 0)
@@ -114,7 +114,7 @@ func _process(delta: float) -> void:
 		_flash[kind] = maxf(_flash.get(kind, 0.0) - delta, 0.0)
 		var red: bool = _flash[kind] > 0.0
 		for i in 3:
-			_styles[kind][i].border_color = HudTheme.DANGER if red else [HudTheme.LINE, HudTheme.HOVER, HudTheme.ACCENT][i]
+			_styles[kind][i].border_color = HudTheme.DANGER if red else [HudTheme.BORDER, HudTheme.HOVER, HudTheme.ACCENT][i]
 	_show_info()
 
 # 칸 하나: 그림, 오른쪽 위 노란 단축키(없는 칸은 비움, I108), 아래 비용. 1단계 테마의 칸 안쪽 여백 대신 자기 크기(20×20)를 따로 준다
@@ -124,7 +124,7 @@ func _cell(kind: String, cost: int, at: Vector2) -> Button:
 	b.focus_mode = Control.FOCUS_NONE
 	b.add_theme_font_size_override("font_size", 8)
 	var st := []
-	for line in [HudTheme.LINE, HudTheme.HOVER, HudTheme.ACCENT]:
+	for line in [HudTheme.BORDER, HudTheme.HOVER, HudTheme.ACCENT]:
 		var s := StyleBoxFlat.new()
 		s.bg_color = HudTheme.CELL
 		s.border_color = line

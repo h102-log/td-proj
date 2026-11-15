@@ -27,7 +27,7 @@ var _inner := 0.0  # 줄바꿈 글의 폭: WIDTH − 패널 안쪽 여백
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	visible = false
-	var panel := HudTheme.box("panel", "PanelContainer", Color(HudTheme.PANEL, 1.0), HudTheme.LINE)  # 불투명. 밑의 버튼 글자가 비치지 않게
+	var panel := HudTheme.box("panel", "PanelContainer", Color(HudTheme.PANEL, 1.0), HudTheme.BORDER)  # 불투명. 밑의 버튼 글자가 비치지 않게
 	add_theme_stylebox_override("panel", panel)
 	_inner = WIDTH - panel.get_margin(SIDE_LEFT) - panel.get_margin(SIDE_RIGHT)
 	var col := VBoxContainer.new()

@@ -299,7 +299,7 @@ func _ready() -> void:
 	add_child(root)
 	bar = Panel.new()
 	bar.size = Vector2(640, 28)
-	bar.add_theme_stylebox_override("panel", HudTheme.box("panel", "PanelContainer", HudTheme.PANEL, HudTheme.LINE))
+	bar.add_theme_stylebox_override("panel", HudTheme.box("panel", "PanelContainer", HudTheme.PANEL, HudTheme.BORDER))
 	root.add_child(bar)
 	_make_status()
 	var m := _cell("mission", _bar_button(bar, "", Callable()))
@@ -319,7 +319,7 @@ func _ready() -> void:
 	pop.size = POP_AT.size
 	pop.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	pop.mouse_filter = Control.MOUSE_FILTER_STOP  # 툴팁을 받고, 클릭이 맵으로 가지 않는다
-	var pop_box := HudTheme.box("panel", "PanelContainer", HudTheme.PANEL, HudTheme.LINE)
+	var pop_box := HudTheme.box("panel", "PanelContainer", HudTheme.PANEL, HudTheme.BORDER)
 	pop_box.set_content_margin_all(0)  # 12px 높이에 8px 글자가 들어가게
 	pop.add_theme_stylebox_override("normal", pop_box)
 	tip.add(pop, func(): return ["인구", "", "", _pop_line(), ""])

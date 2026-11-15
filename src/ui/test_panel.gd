@@ -145,7 +145,7 @@ func _theme() -> Theme:
 	for st in ["normal", "focus", "read_only"]:
 		var s := StyleBoxFlat.new()
 		s.bg_color = HudTheme.CELL
-		s.border_color = HudTheme.ACCENT if st == "focus" else HudTheme.LINE
+		s.border_color = HudTheme.ACCENT if st == "focus" else HudTheme.BORDER
 		s.set_border_width_all(1)
 		s.set_content_margin_all(PAD)
 		t.set_stylebox(st, "LineEdit", s)

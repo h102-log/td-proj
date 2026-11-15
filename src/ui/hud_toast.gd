@@ -21,7 +21,7 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for i in 2:
 		var p := Panel.new()
-		p.add_theme_stylebox_override("panel", HudTheme.box("panel", "PanelContainer", Color(HudTheme.PANEL, 1.0), HudTheme.LINE))
+		p.add_theme_stylebox_override("panel", HudTheme.box("panel", "PanelContainer", Color(HudTheme.PANEL, 1.0), HudTheme.BORDER))
 		p.position = Vector2(0, 18 * i)
 		p.size = Vector2(200, 16)
 		p.mouse_filter = Control.MOUSE_FILTER_IGNORE
