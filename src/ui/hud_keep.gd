@@ -86,7 +86,7 @@ func _init(h) -> void:
 func _ready() -> void:
 	position = AT.position
 	size = AT.size
-	add_theme_stylebox_override("panel", HudTheme.framed(HudTheme.box("panel", "PanelContainer", HudTheme.PANEL, HudTheme.LINE)))
+	add_theme_stylebox_override("panel", HudTheme.framed(HudTheme.box("panel", "PanelContainer", HudTheme.PANEL, HudTheme.BORDER)))
 	_head()
 	for t in TABS.size():
 		_tab(t)
@@ -101,7 +101,7 @@ func _ready() -> void:
 	var foot := _label(self, "클릭 1명 · Shift+클릭 5명 · 마우스 올리면 설명", 7, HudTheme.DIM)
 	foot.position = Vector2(4, 88)
 	foot.size = Vector2(208, 10)
-	info.add_theme_stylebox_override("panel", HudTheme.box("panel", "PanelContainer", Color(HudTheme.PANEL, 1.0), HudTheme.LINE))
+	info.add_theme_stylebox_override("panel", HudTheme.box("panel", "PanelContainer", Color(HudTheme.PANEL, 1.0), HudTheme.BORDER))
 	info.custom_minimum_size.x = AT.size.x
 	info.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	info.visible = false
@@ -135,19 +135,19 @@ func _head() -> void:
 	pop.position = Vector2(48, 1)
 	pop.size = Vector2(40, 13)
 	hud.tip.add(pop_cell(), func(): return ["인구", "", "", hud._pop_line(), ""])
-	undo = _head_button(Vector2(90, 2), Vector2(CELL, CELL), HudBuild.dots(UNDO, {"#": HudTheme.TEXT}), HudTheme.LINE)
+	undo = _head_button(Vector2(90, 2), Vector2(CELL, CELL), HudBuild.dots(UNDO, {"#": HudTheme.TEXT}), HudTheme.BORDER)
 	undo.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	for st in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
 		undo.get_theme_stylebox(st).content_margin_left = 0
 	undo.pressed.connect(undo_last)
 	hud.tip.add(undo, _undo_tip)
-	village = _head_button(Vector2(104, 2), Vector2(54, 12), HudBuild.dots(hud.UP, {"#": HudTheme.ACCENT}), HudTheme.LINE)
+	village = _head_button(Vector2(104, 2), Vector2(54, 12), HudBuild.dots(hud.UP, {"#": HudTheme.ACCENT}), HudTheme.BORDER)
 	village.pressed.connect(func(): battle.raise_village())
 	hud.tip.add(village, func(): return ["마을 레벨 올리기", "", "", hud._opens, "✕ " + _gold_short(_village_cost()) if battle.gold < _village_cost() else ""])
 	raid = _head_button(Vector2(160, 2), Vector2(52, 12), HudBuild.dots(TORCH, {"#": Color("8a6a4a"), "o": HudTheme.DANGER, "y": HudTheme.ACCENT}), TORCH_EDGE)
 	raid.pressed.connect(_raid_press)
 	hud.tip.add(raid, _raid_tip)
-	rally = _head_button(Vector2(132, 2), Vector2(80, 12), HudBuild.dots(hud.FLAG, {"|": HudTheme.TEXT, "#": Color("3c9f9c")}), HudTheme.LINE)
+	rally = _head_button(Vector2(132, 2), Vector2(80, 12), HudBuild.dots(hud.FLAG, {"|": HudTheme.TEXT, "#": Color("3c9f9c")}), HudTheme.BORDER)
 	rally.toggle_mode = true
 	rally.pressed.connect(func(): controls.rallying = not controls.rallying)
 	hud.tip.add(rally, func(): return ["집결", "", "", "누르고 맵을 누르면 거점의 집결 지점이 된다 · 산 용병이 그리로 간다", ""])
@@ -189,7 +189,7 @@ func _tab(t: int) -> void:
 	b.size = Vector2(TAB_W, 13)
 	var off := StyleBoxFlat.new()
 	off.bg_color = HudTheme.CELL
-	off.border_color = HudTheme.LINE
+	off.border_color = HudTheme.BORDER
 	off.set_border_width_all(1)
 	off.set_content_margin_all(0)
 	var on := off.duplicate()
@@ -236,7 +236,7 @@ func _card(i: int) -> void:
 	b.position = Vector2(4 + i * STEP, 32)
 	b.size = CARD
 	var st := []
-	for look in [[HudTheme.CELL, HudTheme.LINE], [Color("2b2f3a"), HudTheme.HOVER], [EMPTY_BG, EMPTY_LINE]]:
+	for look in [[HudTheme.CELL, HudTheme.BORDER], [Color("2b2f3a"), HudTheme.HOVER], [EMPTY_BG, EMPTY_LINE]]:
 		var s := StyleBoxFlat.new()
 		s.bg_color = look[0]
 		s.border_color = look[1]
@@ -333,7 +333,7 @@ func _recent_cell(j: int) -> void:
 	b.size = Vector2(CELL, CELL)
 	var on := StyleBoxFlat.new()
 	on.bg_color = HudTheme.CELL
-	on.border_color = HudTheme.LINE
+	on.border_color = HudTheme.BORDER
 	on.set_border_width_all(1)
 	on.set_content_margin_all(0)
 	var hover := on.duplicate()

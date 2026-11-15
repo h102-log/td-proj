@@ -50,7 +50,7 @@ func _init(b, c) -> void:
 func _ready() -> void:
 	position = AT
 	size = Vector2(200, 40)
-	add_theme_stylebox_override("panel", HudTheme.framed(HudTheme.box("panel", "PanelContainer", Color(HudTheme.PANEL, 1.0), HudTheme.LINE)))
+	add_theme_stylebox_override("panel", HudTheme.framed(HudTheme.box("panel", "PanelContainer", Color(HudTheme.PANEL, 1.0), HudTheme.BORDER)))
 	text.position = Vector2(4, 0)
 	text.size = Vector2(146, 40)
 	text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER

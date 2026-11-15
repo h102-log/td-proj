@@ -618,3 +618,36 @@ func ev572():
 	var band: Rect2 = load("res://src/ui/hud_alert.gd").BANDS.right
 	_done(main)
 	return check(ends.size() == 3 and ends.all(func(x): return x <= 632) and band.end.x <= 632, "태그 오른쪽 끝 %s · 오른쪽 표식 띠 %s" % [ends, band])
+
+# EV1123 · S371: 설정 화면의 언어 목록·슬라이더 색. 목록 panel 697288 테두리·불투명 바탕, 마우스 올린 줄 97a1b5 테두리,
+# 음량 슬라이더 홈 697288 테두리, 채운 쪽 697288 면
+func ev1123():
+	_settings()
+	var m = _menu()
+	var out := _ev1123(m)
+	m.free()
+	_settings()
+	return out
+
+func _ev1123(m) -> String:
+	if not _press(m, "설정"):
+		return "메인 메뉴에 «설정»이 없다"
+	var pick = _option(m)
+	var vol = _slider(m)
+	if pick == null or vol == null:
+		return "설정 화면에 «언어» OptionButton 또는 음량 슬라이더가 없다"
+	var pop: PopupMenu = pick.get_popup()
+	var bad := []
+	var panel: StyleBox = pop.get_theme_stylebox("panel")
+	if not panel is StyleBoxFlat or panel.border_color != Color("697288") or panel.bg_color.a < 1.0:
+		bad.append(["목록 panel", panel.border_color if panel is StyleBoxFlat else panel, panel.bg_color.a if panel is StyleBoxFlat else null])
+	var hover: StyleBox = pop.get_theme_stylebox("hover")
+	if not hover is StyleBoxFlat or hover.border_color != Color("97a1b5"):
+		bad.append(["목록 hover", hover.border_color if hover is StyleBoxFlat else hover])
+	var track: StyleBox = vol.get_theme_stylebox("slider")
+	if not track is StyleBoxFlat or track.border_color != Color("697288"):
+		bad.append(["슬라이더 홈", track.border_color if track is StyleBoxFlat else track])
+	var fill: StyleBox = vol.get_theme_stylebox("grabber_area")
+	if not fill is StyleBoxFlat or fill.bg_color != Color("697288"):
+		bad.append(["슬라이더 채움", fill.bg_color if fill is StyleBoxFlat else fill])
+	return check(bad.is_empty(), "어긋난 설정 부품 %s" % [bad])

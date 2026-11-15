@@ -4155,3 +4155,63 @@ func ev937():
 	return check("트롤 싸움꾼: 체력이 저절로 찬다(불·기절·봉인에 멈춘다), 앞을 쓸어 밀친다" in a
 		and "쌍둥이 트롤: 둘이 함께 나온다. 오크나 바위를 영웅에게 던지고, 다치면 졸개를 집어 먹는다. 하나가 쓰러지면 남은 쪽이 그 몸을 던진다" in a,
 		"5라운드 4웨이브 줄 «%s»" % a)
+
+# EV1121 · S371: 테두리 색. HUD 테마 Button 평상시·꺼짐 697288, 마우스 올림 97a1b5, 누름·포커스 ffd37f.
+# 위 띠·인구 칸·툴팁·토스트·거점 설명 상자 697288, 아래 패널 넷은 6b7280 그대로, LINE 3a3f4b 그대로
+func ev1121():
+	var main = _prep()
+	var h = main.hud
+	var bad := []
+	var t: Theme = h.bar.get_parent().theme
+	var want := {"normal": "697288", "disabled": "697288", "hover": "97a1b5", "pressed": "ffd37f", "focus": "ffd37f"}
+	for st in want:
+		var s: StyleBox = t.get_stylebox(st, "Button")
+		if not s is StyleBoxFlat or s.border_color != Color(want[st]):
+			bad.append(["Button " + st, s.border_color if s is StyleBoxFlat else s])
+	var boxes := [["위 띠", h.bar, "panel"], ["인구", h.pop, "normal"], ["툴팁", h.tip, "panel"], ["거점 설명", h.keep.info, "panel"]]
+	for p in h.toasts.get_children():
+		if p is Panel:
+			boxes.append(["토스트", p, "panel"])
+	for x in boxes:
+		var s: StyleBox = x[1].get_theme_stylebox(x[2])
+		if not s is StyleBoxFlat or s.border_color != Color("697288"):
+			bad.append([x[0], s.border_color if s is StyleBoxFlat else s])
+	for n in [h.grid, h.grid.info, h.select, h.hints]:
+		var s: StyleBox = n.get_theme_stylebox("panel")
+		if not s is StyleBoxFlat or s.border_color != Color("6b7280"):
+			bad.append([n.name, s.border_color if s is StyleBoxFlat else s])
+	var line_ok: bool = load("res://src/ui/hud_theme.gd").LINE == Color("3a3f4b")
+	_done(main)
+	return check(bad.is_empty() and line_ok, "어긋난 테두리 %s · LINE 3a3f4b %s" % [bad, line_ok])
+
+# EV1122 · S371: 테두리 대비. 평상시 테두리와 칸 바탕·패널 바탕(불투명, 그리고 α 그대로 순백 위) 사이 WCAG 대비 3.0 이상, hover가 평상시보다 밝다
+func ev1122():
+	var main = _prep()
+	var t: Theme = main.hud.bar.get_parent().theme
+	var line: StyleBox = t.get_stylebox("normal", "Button")
+	var hover: StyleBox = t.get_stylebox("hover", "Button")
+	var panel: Color = load("res://src/ui/hud_theme.gd").PANEL
+	_done(main)
+	if not line is StyleBoxFlat or not hover is StyleBoxFlat:
+		return "테마 Button 평상시·hover 스타일박스가 StyleBoxFlat이 아니다"
+	var opaque := Color(panel, 1.0)
+	var on_white: Color = Color.WHITE.lerp(opaque, panel.a)
+	var pairs := {"칸": _wcag(line.border_color, line.bg_color), "패널": _wcag(line.border_color, opaque), "패널(순백 위)": _wcag(line.border_color, on_white)}
+	var low := []
+	for k in pairs:
+		if pairs[k] < 3.0:
+			low.append("%s %.2f" % [k, pairs[k]])
+	var brighter: bool = _rel_lum(hover.border_color) > _rel_lum(line.border_color)
+	return check(low.is_empty() and brighter, "3:1 미달 %s · hover가 더 밝음 %s" % [low, brighter])
+
+# WCAG 2 상대 휘도(sRGB 0.04045 문턱)
+func _rel_lum(c: Color) -> float:
+	var v := []
+	for x in [c.r, c.g, c.b]:
+		v.append(x / 12.92 if x <= 0.04045 else pow((x + 0.055) / 1.055, 2.4))
+	return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]
+
+func _wcag(a: Color, b: Color) -> float:
+	var la := _rel_lum(a)
+	var lb := _rel_lum(b)
+	return (maxf(la, lb) + 0.05) / (minf(la, lb) + 0.05)

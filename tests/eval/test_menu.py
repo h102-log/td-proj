@@ -52,3 +52,7 @@ def test_EV542_reduce_flashing_setting(gd):
 
 def test_EV572_cursor_confine(gd):
     gd("menu", "EV572")
+
+
+def test_EV1123_settings_popup_slider_colors(gd):
+    gd("menu", "EV1123")

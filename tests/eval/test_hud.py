@@ -474,3 +474,11 @@ def test_EV993_horn_toast(gd):
 
 def test_EV1022_war_order_toasts(gd):
     gd("hud", "EV1022")
+
+
+def test_EV1121_border_colors(gd):
+    gd("hud", "EV1121")
+
+
+def test_EV1122_border_contrast(gd):
+    gd("hud", "EV1122")
