@@ -14,13 +14,15 @@ const DIM := Color("9aa0aa")
 const GOOD := Color("7cc85a")  # 거점 체력 막대·세금(S190)
 const MAP_EDGE := Color("0b0c10")  # 미니맵·하단 패널 바깥 테두리(S209 2026-10-28, S241)
 const MAP_RIM := Color("6b7280")  # 미니맵·하단 패널 안쪽 테두리(S209 2026-10-28, S241). 맵 가장자리 성벽 점(DIM)과 갈린다
+const PRESS := Color("2f3440")  # 누름·고른 칸 바탕(S372): 칸 바탕보다 한 단계 밝다(거점 고른 탭에 쓰던 값)
 
 static func make(font_size: int) -> Theme:
 	var t := Theme.new()
 	t.default_font_size = font_size
 	t.set_stylebox("panel", "PanelContainer", box("panel", "PanelContainer", PANEL, BORDER))
-	for st in [["normal", BORDER], ["hover", HOVER], ["pressed", ACCENT], ["hover_pressed", ACCENT], ["focus", ACCENT]]:
-		t.set_stylebox(st[0], "Button", box(st[0], "Button", Color.TRANSPARENT if st[0] == "focus" else CELL, st[1]))
+	for st in [["normal", CELL, BORDER], ["hover", CELL, HOVER], ["pressed", PRESS, ACCENT], ["hover_pressed", PRESS, ACCENT]]:
+		t.set_stylebox(st[0], "Button", box(st[0], "Button", st[1], st[2]))
+	t.set_stylebox("focus", "Button", focus_ring())
 	t.set_stylebox("disabled", "Button", box("disabled", "Button", CELL.darkened(0.3), BORDER))
 	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
 		t.set_color(c, "Button", TEXT)
@@ -28,7 +30,8 @@ static func make(font_size: int) -> Theme:
 	t.set_color("font_color", "Label", TEXT)
 	t.set_type_variation("BarCell", "Button")
 	for st in ["normal", "hover", "pressed", "hover_pressed", "focus", "disabled"]:
-		var s: StyleBox = t.get_stylebox(st, "Button").duplicate()
+		# focus 고리는 저장되지 않는 스크립트 변수(ring)에 있어 duplicate()로는 잃는다. 새로 만든다
+		var s: StyleBox = focus_ring() if st == "focus" else t.get_stylebox(st, "Button").duplicate()
 		s.set_content_margin_all(0)
 		t.set_stylebox(st, "BarCell", s)
 	# 설정 화면의 언어 목록·슬라이더(S371). 목록은 밑의 버튼 글자가 비치지 않게 불투명
@@ -61,10 +64,47 @@ static func box(name: String, type: String, bg: Color, line: Color) -> StyleBoxF
 	s.set_border_width_all(1)
 	return s
 
+# 키보드 포커스 모양(S372): 테두리 1px 안쪽에 ACCENT 고리를 한 겹 더 두른다(바탕은 비움). 누름은 테두리 자체가 ACCENT·바탕 PRESS다
+# 상자 밖에 두르면 창 가장자리에 붙은 버튼(«다음 라운드»·리롤)에서 고리가 창 밖으로 1px 나와(2026-11-15 시안 캡처) 안쪽에 둔다
+static func focus_ring() -> StyleBox:
+	var s := box("focus", "Button", Color.TRANSPARENT, ACCENT)
+	s.draw_center = false
+	return Inset.new(s)
+
+# 받은 상자를 1px 안으로 줄여 그린다(포커스 고리). 안쪽 여백은 받은 상자 것
+class Inset extends StyleBox:
+	var ring: StyleBoxFlat
+
+	func _init(s: StyleBoxFlat) -> void:
+		ring = s
+		for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
+			set_content_margin(side, s.get_content_margin(side))
+
+	func _draw(to_canvas_item: RID, rect: Rect2) -> void:
+		ring.draw(to_canvas_item, rect.grow(-1))
+
 # 화면 아래 HUD 패널의 두 겹 테두리(S241): 안쪽 선은 MAP_RIM(따로 정한 색이면 그대로), 바로 바깥 1px은 MAP_EDGE
-static func framed(s: StyleBoxFlat) -> StyleBoxFlat:
+# 바깥 선을 shadow_size 1로 그리면 창 배율만큼 투명으로 번지는 띠가 되어(2배 2·3배 3·6배 6 화면 px, 2026-11-15 캡처) 단색 상자로 따로 그린다(S372)
+static func framed(s: StyleBoxFlat) -> StyleBox:
 	if s.border_color == BORDER:
 		s.border_color = MAP_RIM
-	s.shadow_color = MAP_EDGE
-	s.shadow_size = 1
-	return s
+	return TwoLine.new(s)
+
+# 두 겹: 바깥 1px 단색 고리(rim)를 그린 뒤 안쪽 상자(inner)를 그린다. 안쪽 여백은 inner 것
+# rim은 안까지 MAP_EDGE로 채운다. 옛 그림자 채움처럼 반투명 패널 밑의 맵이 비치지 않게
+class TwoLine extends StyleBox:
+	var inner: StyleBoxFlat
+	var rim := StyleBoxFlat.new()
+
+	func _init(s: StyleBoxFlat) -> void:
+		inner = s
+		rim.bg_color = MAP_EDGE
+		rim.border_color = MAP_EDGE
+		rim.set_border_width_all(1)
+		rim.set_expand_margin_all(1)
+		for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
+			set_content_margin(side, s.get_content_margin(side))
+
+	func _draw(to_canvas_item: RID, rect: Rect2) -> void:
+		rim.draw(to_canvas_item, rect)
+		inner.draw(to_canvas_item, rect)

@@ -84,7 +84,7 @@ func _cell(i: int) -> Button:
 	b.focus_mode = Control.FOCUS_NONE
 	for st in [["normal", HudTheme.BORDER], ["hover", HudTheme.HOVER], ["pressed", HudTheme.ACCENT]]:
 		var s := StyleBoxFlat.new()
-		s.bg_color = HudTheme.CELL
+		s.bg_color = HudTheme.PRESS if st[0] == "pressed" else HudTheme.CELL  # 누름은 테마 누름과 같은 바탕(S372)
 		s.border_color = st[1]
 		s.set_border_width_all(1)
 		s.set_content_margin_all(0)

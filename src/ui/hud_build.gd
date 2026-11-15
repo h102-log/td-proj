@@ -126,7 +126,7 @@ func _cell(kind: String, cost: int, at: Vector2) -> Button:
 	var st := []
 	for line in [HudTheme.BORDER, HudTheme.HOVER, HudTheme.ACCENT]:
 		var s := StyleBoxFlat.new()
-		s.bg_color = HudTheme.CELL
+		s.bg_color = HudTheme.PRESS if line == HudTheme.ACCENT else HudTheme.CELL  # 놓기 중(누름)은 테마 누름과 같은 바탕(S372)
 		s.border_color = line
 		s.set_border_width_all(1)
 		s.set_content_margin_all(0)

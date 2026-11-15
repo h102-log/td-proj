@@ -3553,10 +3553,13 @@ func ev571():
 	var main = _prep()
 	var h = main.hud
 	var bad := []
-	for n in [h.grid, h.grid.info, h.select, h.hints]:
+	for n in [h.grid, h.grid.info, h.select, h.hints]:  # 두 겹 = 안쪽 상자(inner)와 바깥 1px 단색 고리(rim). 번지는 그림자는 없다(S372)
 		var s: StyleBox = n.get_theme_stylebox("panel")
-		if not s is StyleBoxFlat or s.border_color != Color("6b7280") or s.shadow_color != Color("0b0c10") or s.shadow_size != 1:
-			bad.append([n.name, s.border_color if s is StyleBoxFlat else s, s.shadow_color if s is StyleBoxFlat else null, s.shadow_size if s is StyleBoxFlat else null])
+		var inner = s.get("inner")
+		var rim = s.get("rim")
+		if not inner is StyleBoxFlat or not rim is StyleBoxFlat or inner.border_color != Color("6b7280") or inner.shadow_size != 0 \
+				or rim.border_color != Color("0b0c10") or rim.bg_color != Color("0b0c10") or rim.border_width_top != 1 or rim.expand_margin_top != 1:
+			bad.append([n.name, s, inner.border_color if inner is StyleBoxFlat else null, rim.border_color if rim is StyleBoxFlat else null])
 	var top: StyleBox = h.bar.get_theme_stylebox("panel")
 	var top_ok: bool = top is StyleBoxFlat and top.shadow_size == 0
 	_done(main)
@@ -4166,8 +4169,9 @@ func ev1121():
 	var want := {"normal": "697288", "disabled": "697288", "hover": "97a1b5", "pressed": "ffd37f", "focus": "ffd37f"}
 	for st in want:
 		var s: StyleBox = t.get_stylebox(st, "Button")
-		if not s is StyleBoxFlat or s.border_color != Color(want[st]):
-			bad.append(["Button " + st, s.border_color if s is StyleBoxFlat else s])
+		var b = s.get("ring") if s.get("ring") != null else s  # 포커스는 안쪽 고리(S372)
+		if not b is StyleBoxFlat or b.border_color != Color(want[st]):
+			bad.append(["Button " + st, b.border_color if b is StyleBoxFlat else s])
 	var boxes := [["위 띠", h.bar, "panel"], ["인구", h.pop, "normal"], ["툴팁", h.tip, "panel"], ["거점 설명", h.keep.info, "panel"]]
 	for p in h.toasts.get_children():
 		if p is Panel:
@@ -4178,8 +4182,9 @@ func ev1121():
 			bad.append([x[0], s.border_color if s is StyleBoxFlat else s])
 	for n in [h.grid, h.grid.info, h.select, h.hints]:
 		var s: StyleBox = n.get_theme_stylebox("panel")
-		if not s is StyleBoxFlat or s.border_color != Color("6b7280"):
-			bad.append([n.name, s.border_color if s is StyleBoxFlat else s])
+		var b = s.get("inner") if s.get("inner") != null else s  # 두 겹의 안쪽 상자(S372)
+		if not b is StyleBoxFlat or b.border_color != Color("6b7280"):
+			bad.append([n.name, b.border_color if b is StyleBoxFlat else s])
 	var line_ok: bool = load("res://src/ui/hud_theme.gd").LINE == Color("3a3f4b")
 	_done(main)
 	return check(bad.is_empty() and line_ok, "어긋난 테두리 %s · LINE 3a3f4b %s" % [bad, line_ok])
@@ -4215,3 +4220,31 @@ func _wcag(a: Color, b: Color) -> float:
 	var la := _rel_lum(a)
 	var lb := _rel_lum(b)
 	return (maxf(la, lb) + 0.05) / (minf(la, lb) + 0.05)
+
+# EV1124 · S372: 누름·고른 칸·포커스 모양. 테마 Button 누름은 바탕 2f3440·테두리 ffd37f, 위·아래 안쪽 여백은 평상시와 같다(글 내림 없음).
+# 포커스는 바탕 없는 ffd37f 고리(ring). 거점 탭·머리 버튼·선택 칸·건설 칸 누름과 켜진 전체 오토·영입 바탕도 2f3440·ffd37f
+func ev1124():
+	var main = _prep()
+	var h = main.hud
+	var t: Theme = h.bar.get_parent().theme
+	var bad := []
+	var n: StyleBox = t.get_stylebox("normal", "Button")
+	for st in ["pressed", "hover_pressed"]:
+		var s: StyleBox = t.get_stylebox(st, "Button")
+		if not _press_look(s) or s.content_margin_top != n.content_margin_top or s.content_margin_bottom != n.content_margin_bottom:
+			bad.append(["Button " + st, s])
+	var ring = t.get_stylebox("focus", "Button").get("ring")
+	if not ring is StyleBoxFlat or ring.border_color != Color("ffd37f") or ring.draw_center:
+		bad.append(["focus 고리", ring])
+	var boxes := [["거점 탭", h.keep.tabs[0].get_theme_stylebox("pressed")], ["거점 머리 마을", h.keep.village.get_theme_stylebox("pressed")],
+		["선택 칸", h.select.cells[0].get_theme_stylebox("pressed")], ["전체 오토 켜짐", h.auto_all._on_box], ["영입 켜짐", h.shop._on_box]]
+	for k in h.grid._styles:
+		boxes.append(["건설 칸 " + k, h.grid._styles[k][2]])
+	for x in boxes:
+		if not _press_look(x[1]):
+			bad.append([x[0], x[1]])
+	_done(main)
+	return check(bad.is_empty(), "어긋난 누름·포커스 모양 %s" % [bad])
+
+func _press_look(s) -> bool:
+	return s is StyleBoxFlat and s.bg_color == Color("2f3440") and s.border_color == Color("ffd37f")

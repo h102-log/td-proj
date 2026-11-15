@@ -18,7 +18,6 @@ const WARN := Color("e0c040")  # 골드가 모자란 값(절반 이상 있음). 
 const EMPTY_BG := Color("1b1d24")
 const EMPTY_LINE := Color("2a2e38")
 const PIP_OFF := Color("4a505c")
-const TAB_ON := Color("2f3440")
 const TORCH_EDGE := Color("c06a2a")  # 원정 버튼 테두리(사기 버튼과 가른다)
 # 탭 이름·그림·목록(S365). 목록 차례로 거점이 파는 종류만 놓는다(병사·궁수도 거점이 판다, S98 2026-11-12 변경)
 const TABS := [["근접", "sword", ["soldier", "shieldman", "spearman", "cavalry"]],
@@ -170,8 +169,8 @@ func _head_button(at: Vector2, sz: Vector2, pic: Texture2D, line: Color) -> Butt
 	b.add_theme_constant_override("h_separation", 2)
 	b.add_theme_font_size_override("font_size", 7)
 	b.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	for st in [["normal", HudTheme.CELL, line], ["hover", HudTheme.CELL, HudTheme.HOVER], ["pressed", HudTheme.CELL, HudTheme.ACCENT],
-			["hover_pressed", HudTheme.CELL, HudTheme.ACCENT], ["disabled", HudTheme.CELL.darkened(0.3), line]]:
+	for st in [["normal", HudTheme.CELL, line], ["hover", HudTheme.CELL, HudTheme.HOVER], ["pressed", HudTheme.PRESS, HudTheme.ACCENT],
+			["hover_pressed", HudTheme.PRESS, HudTheme.ACCENT], ["disabled", HudTheme.CELL.darkened(0.3), line]]:
 		var s := HudTheme.box(st[0], "Button", st[1], st[2])
 		s.set_content_margin_all(0)
 		s.content_margin_left = 3
@@ -193,7 +192,7 @@ func _tab(t: int) -> void:
 	off.set_border_width_all(1)
 	off.set_content_margin_all(0)
 	var on := off.duplicate()
-	on.bg_color = TAB_ON
+	on.bg_color = HudTheme.PRESS  # 고른 탭 = 테마 누름과 같은 바탕(S372)
 	on.border_color = HudTheme.ACCENT
 	var hover := off.duplicate()
 	hover.border_color = HudTheme.HOVER

@@ -482,3 +482,7 @@ def test_EV1121_border_colors(gd):
 
 def test_EV1122_border_contrast(gd):
     gd("hud", "EV1122")
+
+
+def test_EV1124_press_and_focus_look(gd):
+    gd("hud", "EV1124")
