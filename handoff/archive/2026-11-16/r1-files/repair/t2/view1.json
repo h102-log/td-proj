@@ -1,0 +1,2338 @@
+[
+ {
+  "id": "I81",
+  "a": "src/ui/battle_view.gd:9",
+  "t": "src/ui/battle_view.gd:9",
+  "feat": "OK-low",
+  "born": "88024e4",
+  "born_r": [
+   8,
+   8
+  ],
+  "born_txt": [
+   "\"wall\": Color(\"5a5a5a\"), \"tower\": Color(\"3060b0\"), \"magic\": Color(\"7030a0\"), \"merc\": Color(\"50a0f0\"),",
+   "\"wall\": Color(\"5a5a5a\"), \"tower\": Color(\"3060b0\"), \"magic\": Color(\"7030a0\"), \"merc\": Color(\"50a0f0\"),"
+  ],
+  "a_txt": [
+   "\"grid\": Color(0, 0, 0, 0.15), \"spawn\": Color(\"c03030\"), \"merc\": Color(\"50a0f0\"),",
+   "\"grid\": Color(0, 0, 0, 0.15), \"spawn\": Color(\"c03030\"), \"merc\": Color(\"50a0f0\"),"
+  ],
+  "t_txt": [
+   "\"grid\": Color(0, 0, 0, 0.15), \"spawn\": Color(\"c03030\"), \"merc\": Color(\"50a0f0\"),",
+   "\"grid\": Color(0, 0, 0, 0.15), \"spawn\": Color(\"c03030\"), \"merc\": Color(\"50a0f0\"),"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "c4e9026"
+   ]
+  ]
+ },
+ {
+  "id": "I81",
+  "a": "src/ui/battle_view.gd:12-63",
+  "t": "src/ui/battle_view.gd:12-63",
+  "feat": "OK-low",
+  "born": "fdf5f45",
+  "born_r": [
+   13,
+   21
+  ],
+  "born_txt": [
+   "const ENEMY_COLORS := {  # 적 종류마다 다른 색(I81)",
+   "}"
+  ],
+  "a_txt": [
+   "const ENEMY_COLORS := {  # 적 종류마다 다른 색(I81)",
+   "const EYES := Color(\"f0e060\")  # 어둠 속에 숨은 밤 늑대의 눈빛(S240, I193 ④)"
+  ],
+  "t_txt": [
+   "const ENEMY_COLORS := {  # 적 종류마다 다른 색(I81)",
+   "const EYES := Color(\"f0e060\")  # 어둠 속에 숨은 밤 늑대의 눈빛(S240, I193 ④)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "reauth",
+    "fdf5f45",
+    [
+     "src/ui/battle_view.gd",
+     13,
+     15
+    ],
+    [
+     "src/ui/battle_view.gd",
+     13,
+     15
+    ]
+   ]
+  ]
+ },
+ {
+  "id": "S288",
+  "a": "src/ui/battle_view.gd:18",
+  "t": "src/ui/battle_view.gd:18",
+  "feat": "OK-low",
+  "born": "0d2310d",
+  "born_r": [
+   18,
+   18
+  ],
+  "born_txt": [
+   "\"chief\": Color(\"a02838\"),",
+   "\"chief\": Color(\"a02838\"),"
+  ],
+  "a_txt": [
+   "\"chief\": Color(\"a02838\"), \"shieldbearer\": Color(\"4a6a8a\"), \"fire_archer\": Color(\"f0b020\"),",
+   "\"chief\": Color(\"a02838\"), \"shieldbearer\": Color(\"4a6a8a\"), \"fire_archer\": Color(\"f0b020\"),"
+  ],
+  "t_txt": [
+   "\"chief\": Color(\"a02838\"), \"shieldbearer\": Color(\"4a6a8a\"), \"fire_archer\": Color(\"f0b020\"),",
+   "\"chief\": Color(\"a02838\"), \"shieldbearer\": Color(\"4a6a8a\"), \"fire_archer\": Color(\"f0b020\"),"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "S106",
+  "a": "src/ui/battle_view.gd:24",
+  "t": "src/ui/battle_view.gd:24",
+  "feat": "OK-low",
+  "born": "712c7fb",
+  "born_r": [
+   24,
+   24
+  ],
+  "born_txt": [
+   "\"wolf_rider\": Color(\"94684e\"),",
+   "\"wolf_rider\": Color(\"94684e\"),"
+  ],
+  "a_txt": [
+   "\"wolf_rider\": Color(\"94684e\"), \"warguard\": Color(\"5c5470\"), \"warchief\": Color(\"b03058\"), \"warchief_foot\": Color(\"701c40\"),",
+   "\"wolf_rider\": Color(\"94684e\"), \"warguard\": Color(\"5c5470\"), \"warchief\": Color(\"b03058\"), \"warchief_foot\": Color(\"701c40\"),"
+  ],
+  "t_txt": [
+   "\"wolf_rider\": Color(\"94684e\"), \"warguard\": Color(\"5c5470\"), \"warchief\": Color(\"b03058\"), \"warchief_foot\": Color(\"701c40\"),",
+   "\"wolf_rider\": Color(\"94684e\"), \"warguard\": Color(\"5c5470\"), \"warchief\": Color(\"b03058\"), \"warchief_foot\": Color(\"701c40\"),"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "S106",
+  "a": "src/ui/battle_view.gd:31",
+  "t": "src/ui/battle_view.gd:31",
+  "feat": "OK-low",
+  "born": "e994757",
+  "born_r": [
+   26,
+   26
+  ],
+  "born_txt": [
+   "\"nest_harpy\": [\"flying\", Color(1.3, 1.6, 0.8)], \"harpy_chick\": [\"flying\", Color(1.8, 1.7, 1.6)], \"wyvern\": [\"flying\", Color(0.7, 1.4, 0.8)], \"wyvern_fallen\": [\"flying\", Color(1.5, 0.75, 0.6)]}  # 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피·와이번 둘(I255 ⑥·I256 ④·I257 ⑤)",
+   "\"nest_harpy\": [\"flying\", Color(1.3, 1.6, 0.8)], \"harpy_chick\": [\"flying\", Color(1.8, 1.7, 1.6)], \"wyvern\": [\"flying\", Color(0.7, 1.4, 0.8)], \"wyvern_fallen\": [\"flying\", Color(1.5, 0.75, 0.6)]}  # 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피·와이번 둘(I255 ⑥·I256 ④·I257 ⑤)"
+  ],
+  "a_txt": [
+   "\"nest_harpy\": [\"flying\", Color(1.3, 1.6, 0.8)], \"harpy_chick\": [\"flying\", Color(1.8, 1.7, 1.6)],",
+   "\"nest_harpy\": [\"flying\", Color(1.3, 1.6, 0.8)], \"harpy_chick\": [\"flying\", Color(1.8, 1.7, 1.6)],"
+  ],
+  "t_txt": [
+   "\"nest_harpy\": [\"flying\", Color(1.3, 1.6, 0.8)], \"harpy_chick\": [\"flying\", Color(1.8, 1.7, 1.6)],",
+   "\"nest_harpy\": [\"flying\", Color(1.3, 1.6, 0.8)], \"harpy_chick\": [\"flying\", Color(1.8, 1.7, 1.6)],"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "f8119c7"
+   ]
+  ]
+ },
+ {
+  "id": "I255",
+  "a": "src/ui/battle_view.gd:31",
+  "t": "src/ui/battle_view.gd:31",
+  "feat": "OK-low",
+  "born": "e994757",
+  "born_r": [
+   26,
+   26
+  ],
+  "born_txt": [
+   "\"nest_harpy\": [\"flying\", Color(1.3, 1.6, 0.8)], \"harpy_chick\": [\"flying\", Color(1.8, 1.7, 1.6)], \"wyvern\": [\"flying\", Color(0.7, 1.4, 0.8)], \"wyvern_fallen\": [\"flying\", Color(1.5, 0.75, 0.6)]}  # 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피·와이번 둘(I255 ⑥·I256 ④·I257 ⑤)",
+   "\"nest_harpy\": [\"flying\", Color(1.3, 1.6, 0.8)], \"harpy_chick\": [\"flying\", Color(1.8, 1.7, 1.6)], \"wyvern\": [\"flying\", Color(0.7, 1.4, 0.8)], \"wyvern_fallen\": [\"flying\", Color(1.5, 0.75, 0.6)]}  # 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피·와이번 둘(I255 ⑥·I256 ④·I257 ⑤)"
+  ],
+  "a_txt": [
+   "\"nest_harpy\": [\"flying\", Color(1.3, 1.6, 0.8)], \"harpy_chick\": [\"flying\", Color(1.8, 1.7, 1.6)],",
+   "\"nest_harpy\": [\"flying\", Color(1.3, 1.6, 0.8)], \"harpy_chick\": [\"flying\", Color(1.8, 1.7, 1.6)],"
+  ],
+  "t_txt": [
+   "\"nest_harpy\": [\"flying\", Color(1.3, 1.6, 0.8)], \"harpy_chick\": [\"flying\", Color(1.8, 1.7, 1.6)],",
+   "\"nest_harpy\": [\"flying\", Color(1.3, 1.6, 0.8)], \"harpy_chick\": [\"flying\", Color(1.8, 1.7, 1.6)],"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "f8119c7"
+   ]
+  ]
+ },
+ {
+  "id": "I256",
+  "a": "src/ui/battle_view.gd:31",
+  "t": "src/ui/battle_view.gd:31",
+  "feat": "OK-low",
+  "born": "e994757",
+  "born_r": [
+   26,
+   26
+  ],
+  "born_txt": [
+   "\"nest_harpy\": [\"flying\", Color(1.3, 1.6, 0.8)], \"harpy_chick\": [\"flying\", Color(1.8, 1.7, 1.6)], \"wyvern\": [\"flying\", Color(0.7, 1.4, 0.8)], \"wyvern_fallen\": [\"flying\", Color(1.5, 0.75, 0.6)]}  # 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피·와이번 둘(I255 ⑥·I256 ④·I257 ⑤)",
+   "\"nest_harpy\": [\"flying\", Color(1.3, 1.6, 0.8)], \"harpy_chick\": [\"flying\", Color(1.8, 1.7, 1.6)], \"wyvern\": [\"flying\", Color(0.7, 1.4, 0.8)], \"wyvern_fallen\": [\"flying\", Color(1.5, 0.75, 0.6)]}  # 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피·와이번 둘(I255 ⑥·I256 ④·I257 ⑤)"
+  ],
+  "a_txt": [
+   "\"nest_harpy\": [\"flying\", Color(1.3, 1.6, 0.8)], \"harpy_chick\": [\"flying\", Color(1.8, 1.7, 1.6)],",
+   "\"nest_harpy\": [\"flying\", Color(1.3, 1.6, 0.8)], \"harpy_chick\": [\"flying\", Color(1.8, 1.7, 1.6)],"
+  ],
+  "t_txt": [
+   "\"nest_harpy\": [\"flying\", Color(1.3, 1.6, 0.8)], \"harpy_chick\": [\"flying\", Color(1.8, 1.7, 1.6)],",
+   "\"nest_harpy\": [\"flying\", Color(1.3, 1.6, 0.8)], \"harpy_chick\": [\"flying\", Color(1.8, 1.7, 1.6)],"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "f8119c7"
+   ]
+  ]
+ },
+ {
+  "id": "I257",
+  "a": "src/ui/battle_view.gd:31",
+  "t": "src/ui/battle_view.gd:31",
+  "feat": "OK-low",
+  "born": "e994757",
+  "born_r": [
+   26,
+   26
+  ],
+  "born_txt": [
+   "\"nest_harpy\": [\"flying\", Color(1.3, 1.6, 0.8)], \"harpy_chick\": [\"flying\", Color(1.8, 1.7, 1.6)], \"wyvern\": [\"flying\", Color(0.7, 1.4, 0.8)], \"wyvern_fallen\": [\"flying\", Color(1.5, 0.75, 0.6)]}  # 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피·와이번 둘(I255 ⑥·I256 ④·I257 ⑤)",
+   "\"nest_harpy\": [\"flying\", Color(1.3, 1.6, 0.8)], \"harpy_chick\": [\"flying\", Color(1.8, 1.7, 1.6)], \"wyvern\": [\"flying\", Color(0.7, 1.4, 0.8)], \"wyvern_fallen\": [\"flying\", Color(1.5, 0.75, 0.6)]}  # 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피·와이번 둘(I255 ⑥·I256 ④·I257 ⑤)"
+  ],
+  "a_txt": [
+   "\"nest_harpy\": [\"flying\", Color(1.3, 1.6, 0.8)], \"harpy_chick\": [\"flying\", Color(1.8, 1.7, 1.6)],",
+   "\"nest_harpy\": [\"flying\", Color(1.3, 1.6, 0.8)], \"harpy_chick\": [\"flying\", Color(1.8, 1.7, 1.6)],"
+  ],
+  "t_txt": [
+   "\"nest_harpy\": [\"flying\", Color(1.3, 1.6, 0.8)], \"harpy_chick\": [\"flying\", Color(1.8, 1.7, 1.6)],",
+   "\"nest_harpy\": [\"flying\", Color(1.3, 1.6, 0.8)], \"harpy_chick\": [\"flying\", Color(1.8, 1.7, 1.6)],"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "f8119c7"
+   ]
+  ]
+ },
+ {
+  "id": "S324",
+  "a": "src/ui/battle_view.gd:32",
+  "t": "src/ui/battle_view.gd:32-37",
+  "feat": "C-low",
+  "born": "568279e",
+  "born_r": [
+   30,
+   30
+  ],
+  "born_txt": [
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"chain_orc\": [\"armored\", Color(0.75, 1.35, 1.05)]}  # 오우거 투척꾼은 오우거 그림, 사슬 오크는 장갑(오크) 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)",
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"chain_orc\": [\"armored\", Color(0.75, 1.35, 1.05)]}  # 오우거 투척꾼은 오우거 그림, 사슬 오크는 장갑(오크) 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)"
+  ],
+  "a_txt": [
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"twin_troll\": [\"troll\", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288), 방패 고블린·불화살 고블린·둥지(I291)와 새 용병 여덟(I297)은 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)",
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"twin_troll\": [\"troll\", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288), 방패 고블린·불화살 고블린·둥지(I291)와 새 용병 여덟(I297)은 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)"
+  ],
+  "t_txt": [
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"twin_troll\": [\"troll\", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288), 방패 고블린·불화살 고블린·둥지(I291)와 새 용병 여덟(I297)은 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)",
+   "const NET_TIME := 0.2  # 던진 줄이 남는 시간(초)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "dcd05ff"
+   ]
+  ]
+ },
+ {
+  "id": "I263",
+  "a": "src/ui/battle_view.gd:32",
+  "t": "src/ui/battle_view.gd:32-37",
+  "feat": "C-low",
+  "born": "f8119c7",
+  "born_r": [
+   28,
+   28
+  ],
+  "born_txt": [
+   "\"shield_orc\": [\"armored\", Color(0.8, 1.0, 1.5)], \"berserker\": [\"armored\", Color(1.25, 0.95, 0.8)], \"drummer\": [\"armored\", Color(1.4, 1.25, 0.6)]}  # 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)",
+   "\"shield_orc\": [\"armored\", Color(0.8, 1.0, 1.5)], \"berserker\": [\"armored\", Color(1.25, 0.95, 0.8)], \"drummer\": [\"armored\", Color(1.4, 1.25, 0.6)]}  # 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)"
+  ],
+  "a_txt": [
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"twin_troll\": [\"troll\", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288), 방패 고블린·불화살 고블린·둥지(I291)와 새 용병 여덟(I297)은 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)",
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"twin_troll\": [\"troll\", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288), 방패 고블린·불화살 고블린·둥지(I291)와 새 용병 여덟(I297)은 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)"
+  ],
+  "t_txt": [
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"twin_troll\": [\"troll\", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288), 방패 고블린·불화살 고블린·둥지(I291)와 새 용병 여덟(I297)은 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)",
+   "const NET_TIME := 0.2  # 던진 줄이 남는 시간(초)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "568279e"
+   ]
+  ]
+ },
+ {
+  "id": "I268",
+  "a": "src/ui/battle_view.gd:32",
+  "t": "src/ui/battle_view.gd:32-37",
+  "feat": "C-low",
+  "born": "568279e",
+  "born_r": [
+   30,
+   30
+  ],
+  "born_txt": [
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"chain_orc\": [\"armored\", Color(0.75, 1.35, 1.05)]}  # 오우거 투척꾼은 오우거 그림, 사슬 오크는 장갑(오크) 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)",
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"chain_orc\": [\"armored\", Color(0.75, 1.35, 1.05)]}  # 오우거 투척꾼은 오우거 그림, 사슬 오크는 장갑(오크) 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)"
+  ],
+  "a_txt": [
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"twin_troll\": [\"troll\", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288), 방패 고블린·불화살 고블린·둥지(I291)와 새 용병 여덟(I297)은 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)",
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"twin_troll\": [\"troll\", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288), 방패 고블린·불화살 고블린·둥지(I291)와 새 용병 여덟(I297)은 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)"
+  ],
+  "t_txt": [
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"twin_troll\": [\"troll\", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288), 방패 고블린·불화살 고블린·둥지(I291)와 새 용병 여덟(I297)은 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)",
+   "const NET_TIME := 0.2  # 던진 줄이 남는 시간(초)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "dcd05ff"
+   ]
+  ]
+ },
+ {
+  "id": "I274",
+  "a": "src/ui/battle_view.gd:32",
+  "t": "src/ui/battle_view.gd:32-37",
+  "feat": "C-low",
+  "born": "fe98c8b",
+  "born_r": [
+   31,
+   31
+  ],
+  "born_txt": [
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"chain_orc\": [\"armored\", Color(0.75, 1.35, 1.05)], \"twin_troll\": [\"troll\", TWINS]}  # 오우거 투척꾼은 오우거 그림, 사슬 오크는 장갑(오크) 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)",
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"chain_orc\": [\"armored\", Color(0.75, 1.35, 1.05)], \"twin_troll\": [\"troll\", TWINS]}  # 오우거 투척꾼은 오우거 그림, 사슬 오크는 장갑(오크) 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)"
+  ],
+  "a_txt": [
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"twin_troll\": [\"troll\", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288), 방패 고블린·불화살 고블린·둥지(I291)와 새 용병 여덟(I297)은 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)",
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"twin_troll\": [\"troll\", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288), 방패 고블린·불화살 고블린·둥지(I291)와 새 용병 여덟(I297)은 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)"
+  ],
+  "t_txt": [
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"twin_troll\": [\"troll\", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288), 방패 고블린·불화살 고블린·둥지(I291)와 새 용병 여덟(I297)은 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)",
+   "const NET_TIME := 0.2  # 던진 줄이 남는 시간(초)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "dcd05ff"
+   ]
+  ]
+ },
+ {
+  "id": "I282",
+  "a": "src/ui/battle_view.gd:32",
+  "t": "src/ui/battle_view.gd:32-37",
+  "feat": "C-low",
+  "born": "6c0613c",
+  "born_r": [
+   33,
+   33
+  ],
+  "born_txt": [
+   "\"warguard\": [\"armored\", Color(0.75, 0.7, 1.25)], \"warchief\": [\"wolf_rider\", Color(1.4, 0.8, 0.85)], \"warchief_foot\": [\"armored\", Color(1.5, 0.8, 0.9)]}  # 대족장 근위대·내린 대족장은 장갑(오크), 오크 대족장은 늑대 기수 그림이다(I282 ⑥). 오우거 투척꾼은 오우거 그림, 사슬 오크는 장갑(오크) 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)",
+   "\"warguard\": [\"armored\", Color(0.75, 0.7, 1.25)], \"warchief\": [\"wolf_rider\", Color(1.4, 0.8, 0.85)], \"warchief_foot\": [\"armored\", Color(1.5, 0.8, 0.9)]}  # 대족장 근위대·내린 대족장은 장갑(오크), 오크 대족장은 늑대 기수 그림이다(I282 ⑥). 오우거 투척꾼은 오우거 그림, 사슬 오크는 장갑(오크) 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)"
+  ],
+  "a_txt": [
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"twin_troll\": [\"troll\", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288), 방패 고블린·불화살 고블린·둥지(I291)와 새 용병 여덟(I297)은 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)",
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"twin_troll\": [\"troll\", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288), 방패 고블린·불화살 고블린·둥지(I291)와 새 용병 여덟(I297)은 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)"
+  ],
+  "t_txt": [
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"twin_troll\": [\"troll\", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288), 방패 고블린·불화살 고블린·둥지(I291)와 새 용병 여덟(I297)은 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)",
+   "const NET_TIME := 0.2  # 던진 줄이 남는 시간(초)"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "I287",
+  "a": "src/ui/battle_view.gd:32",
+  "t": "src/ui/battle_view.gd:32-37",
+  "feat": "C-low",
+  "born": "460bd46",
+  "born_r": [
+   33,
+   33
+  ],
+  "born_txt": [
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"chain_orc\": [\"armored\", Color(0.75, 1.35, 1.05)], \"twin_troll\": [\"troll\", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발은 제 그림이다(I287). 오우거 투척꾼은 오우거 그림, 사슬 오크는 장갑(오크) 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)",
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"chain_orc\": [\"armored\", Color(0.75, 1.35, 1.05)], \"twin_troll\": [\"troll\", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발은 제 그림이다(I287). 오우거 투척꾼은 오우거 그림, 사슬 오크는 장갑(오크) 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)"
+  ],
+  "a_txt": [
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"twin_troll\": [\"troll\", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288), 방패 고블린·불화살 고블린·둥지(I291)와 새 용병 여덟(I297)은 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)",
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"twin_troll\": [\"troll\", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288), 방패 고블린·불화살 고블린·둥지(I291)와 새 용병 여덟(I297)은 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)"
+  ],
+  "t_txt": [
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"twin_troll\": [\"troll\", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288), 방패 고블린·불화살 고블린·둥지(I291)와 새 용병 여덟(I297)은 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)",
+   "const NET_TIME := 0.2  # 던진 줄이 남는 시간(초)"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "I288",
+  "a": "src/ui/battle_view.gd:32",
+  "t": "src/ui/battle_view.gd:32-37",
+  "feat": "C-low",
+  "born": "98078df",
+  "born_r": [
+   32,
+   32
+  ],
+  "born_txt": [
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"twin_troll\": [\"troll\", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288)는 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)",
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"twin_troll\": [\"troll\", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288)는 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)"
+  ],
+  "a_txt": [
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"twin_troll\": [\"troll\", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288), 방패 고블린·불화살 고블린·둥지(I291)와 새 용병 여덟(I297)은 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)",
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"twin_troll\": [\"troll\", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288), 방패 고블린·불화살 고블린·둥지(I291)와 새 용병 여덟(I297)은 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)"
+  ],
+  "t_txt": [
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"twin_troll\": [\"troll\", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288), 방패 고블린·불화살 고블린·둥지(I291)와 새 용병 여덟(I297)은 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)",
+   "const NET_TIME := 0.2  # 던진 줄이 남는 시간(초)"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "I291",
+  "a": "src/ui/battle_view.gd:32",
+  "t": "src/ui/battle_view.gd:32-37",
+  "feat": "C-low",
+  "born": "bf10d1c",
+  "born_r": [
+   32,
+   32
+  ],
+  "born_txt": [
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"twin_troll\": [\"troll\", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288), 방패 고블린·불화살 고블린·둥지(I291)는 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)",
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"twin_troll\": [\"troll\", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288), 방패 고블린·불화살 고블린·둥지(I291)는 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)"
+  ],
+  "a_txt": [
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"twin_troll\": [\"troll\", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288), 방패 고블린·불화살 고블린·둥지(I291)와 새 용병 여덟(I297)은 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)",
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"twin_troll\": [\"troll\", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288), 방패 고블린·불화살 고블린·둥지(I291)와 새 용병 여덟(I297)은 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)"
+  ],
+  "t_txt": [
+   "\"ogre_thrower\": [\"boss\", Color(0.8, 1.2, 0.7)], \"twin_troll\": [\"troll\", TWINS]}  # 대족장 근위대·오크 대족장·내린 대족장·전쟁 깃발(I287)과 방패벽 오크·광전사 오크·전쟁 북 고수·사슬 오크(I288), 방패 고블린·불화살 고블린·둥지(I291)와 새 용병 여덟(I297)은 제 그림이다. 오우거 투척꾼은 오우거 그림이다(I268 ⑥). 하피 그림이 어두워 1을 넘겨 밝힌다. 둥지 하피·새끼 하피(I255 ⑥). 와이번 둘은 자기 그림이다(S172 2026-11-10 변경)",
+   "const NET_TIME := 0.2  # 던진 줄이 남는 시간(초)"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "I101",
+  "a": "src/ui/battle_view.gd:57",
+  "t": "src/ui/battle_view.gd:57",
+  "feat": "OK-low",
+  "born": "fdf5f45",
+  "born_r": [
+   16,
+   21
+  ],
+  "born_txt": [
+   "const HERO_COLORS := {  # 영웅 종류마다 다른 색(S56, I101)",
+   "}"
+  ],
+  "a_txt": [
+   "const HERO_COLORS := {  # 영웅 종류마다 다른 색(S56, S157, I101)",
+   "const HERO_COLORS := {  # 영웅 종류마다 다른 색(S56, S157, I101)"
+  ],
+  "t_txt": [
+   "const HERO_COLORS := {  # 영웅 종류마다 다른 색(S56, S157, I101)",
+   "const HERO_COLORS := {  # 영웅 종류마다 다른 색(S56, S157, I101)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2c211a2"
+   ]
+  ]
+ },
+ {
+  "id": "I101",
+  "a": "src/ui/battle_view.gd:60-62",
+  "t": "src/ui/battle_view.gd:60-62",
+  "feat": "OK-low",
+  "born": "fdf5f45",
+  "born_r": [
+   45,
+   47
+  ],
+  "born_txt": [
+   "for s in battle.structures.values() + battle.castle.values():  # 축성가 W를 받은 칸(I101)",
+   "draw_rect(_rect(s.cell).grow(-1), MARKS.ward, false, 1.0)"
+  ],
+  "a_txt": [
+   "# 구조물·성곽 칸에 걸린 효과의 테두리 색(I101): 받는 피해 감소·공격 속도. 에너지 성벽 칸은 벽 조각이다(_wards, fx-2).",
+   "const MARKS := {\"dr\": Color(\"80c0ff\"), \"haste\": Color.ORANGE}"
+  ],
+  "t_txt": [
+   "# 구조물·성곽 칸에 걸린 효과의 테두리 색(I101): 받는 피해 감소·공격 속도. 에너지 성벽 칸은 벽 조각이다(_wards, fx-2).",
+   "const MARKS := {\"dr\": Color(\"80c0ff\"), \"haste\": Color.ORANGE}"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2c211a2"
+   ]
+  ]
+ },
+ {
+  "id": "I193",
+  "a": "src/ui/battle_view.gd:63",
+  "t": "src/ui/battle_view.gd:62",
+  "feat": "C-low",
+  "born": "ae9f59e",
+  "born_r": [
+   23,
+   23
+  ],
+  "born_txt": [
+   "\"dr\": Color(\"80c0ff\"), \"haste\": Color.ORANGE, \"shield\": Color.WHITE, \"invuln\": Color.GOLD, \"bleed\": Color(\"a01818\"),",
+   "\"dr\": Color(\"80c0ff\"), \"haste\": Color.ORANGE, \"shield\": Color.WHITE, \"invuln\": Color.GOLD, \"bleed\": Color(\"a01818\"),"
+  ],
+  "a_txt": [
+   "const EYES := Color(\"f0e060\")  # 어둠 속에 숨은 밤 늑대의 눈빛(S240, I193 ④)",
+   "const EYES := Color(\"f0e060\")  # 어둠 속에 숨은 밤 늑대의 눈빛(S240, I193 ④)"
+  ],
+  "t_txt": [
+   "const MARKS := {\"dr\": Color(\"80c0ff\"), \"haste\": Color.ORANGE}",
+   "const MARKS := {\"dr\": Color(\"80c0ff\"), \"haste\": Color.ORANGE}"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "S165",
+  "a": "src/ui/battle_view.gd:65-66",
+  "t": "src/ui/battle_view.gd:65-67",
+  "feat": "C-low",
+  "born": "461f04f",
+  "born_r": [
+   29,
+   30
+  ],
+  "born_txt": [
+   "const UNITS := preload(\"res://art/units/heroes.png\")  # 영웅 6명 시트를 한 장에 모은 아틀라스(tools/art/atlas.py)",
+   "static var ART: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(\"res://art/units/heroes.json\"))  # 영웅 → 캔버스·발밑·시트 y"
+  ],
+  "a_txt": [
+   "const UNITS := preload(\"res://art/units/heroes.png\")  # 영웅 6명과 용병·적 시트를 한 장에 모은 아틀라스(tools/art/atlas.py)",
+   "static var ART: Dictionary = _art()  # 종류 → 캔버스·발밑·시트 y"
+  ],
+  "t_txt": [
+   "const UNITS := preload(\"res://art/units/heroes.png\")  # 영웅 6명과 용병·적 시트를 한 장에 모은 아틀라스(tools/art/atlas.py)",
+   "const LUNGE := 6.0  # 근접 돌진 거리(px). 대상 몸까지의 틈을 더한다(_lunge). 림월드 0.35칸을 16px 칸으로 옮겼다(06 §4)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "c4e9026"
+   ]
+  ]
+ },
+ {
+  "id": "S178",
+  "a": "src/ui/battle_view.gd:73-75",
+  "t": "src/ui/battle_view.gd:73-75",
+  "feat": "OK-low",
+  "born": "08dc4c5",
+  "born_r": [
+   33,
+   37
+  ],
+  "born_txt": [
+   "const MISSILES := {\"archer\": \"arrow\", \"sylvia\": \"arrow\", \"tower\": \"arrow\", \"cannon\": \"ball\"}  # 원거리 공격의 투사체(S178). 나머지(마법 타워·마법 영웅)는 마법 구슬",
+   "const BLAST := 0.25  # 대포알이 떨어진 곳의 범위 피해 고리가 퍼지는 시간(초)"
+  ],
+  "a_txt": [
+   "const MUZZLE := {\"tower\": Vector2(0, -15), \"magic\": Vector2(0, -24), \"cannon\": Vector2(0, -6)}  # 칸 가운데에서 쏘는 곳(px, 4.1e 그림): 지붕 밑 발판, 수정, 포신",
+   "const BLAST := 0.25  # 대포알이 떨어진 곳의 범위 피해 고리가 퍼지는 시간(초)"
+  ],
+  "t_txt": [
+   "const MUZZLE := {\"tower\": Vector2(0, -15), \"magic\": Vector2(0, -24), \"cannon\": Vector2(0, -6)}  # 칸 가운데에서 쏘는 곳(px, 4.1e 그림): 지붕 밑 발판, 수정, 포신",
+   "const BLAST := 0.25  # 대포알이 떨어진 곳의 범위 피해 고리가 퍼지는 시간(초)"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "S90",
+  "a": "src/ui/battle_view.gd:74-75",
+  "t": "src/ui/battle_view.gd:74-75",
+  "feat": "OK-low",
+  "born": "332b443",
+  "born_r": [
+   51,
+   54
+  ],
+  "born_txt": [
+   "if s.target and s.cooldown > s.fire_gap - 0.1:",
+   "draw_arc(_center(s.target.pos), CELL * s.splash, 0.0, TAU, 24, Color.YELLOW, 1.0)"
+  ],
+  "a_txt": [
+   "const BALL_ARC := 12.0  # 대포알 포물선 꼭대기 높이(px)",
+   "const BLAST := 0.25  # 대포알이 떨어진 곳의 범위 피해 고리가 퍼지는 시간(초)"
+  ],
+  "t_txt": [
+   "const BALL_ARC := 12.0  # 대포알 포물선 꼭대기 높이(px)",
+   "const BLAST := 0.25  # 대포알이 떨어진 곳의 범위 피해 고리가 퍼지는 시간(초)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "08dc4c5"
+   ]
+  ]
+ },
+ {
+  "id": "I199",
+  "a": "src/ui/battle_view.gd:144-156",
+  "t": "src/ui/battle_view.gd:896-902",
+  "feat": "C-low",
+  "born": "964e789",
+  "born_r": [
+   607,
+   611
+  ],
+  "born_txt": [
+   "\"aging\", \"loop\":  # 노화·타임 루프 되돌림 충격파(I199): 반경까지 퍼지는 크림 → 금 고리",
+   "continue"
+  ],
+  "a_txt": [
+   "const HAND_TURN := 2.4  # 시간의 문 긴 바늘이 반시계 방향으로 한 바퀴 도는 시간. 짧은 바늘은 HAND_RATIO배 느리다",
+   "const KEY_FLIP := 0.12  # 태엽 열쇠 손잡이가 정면 ↔ 옆으로 뒤집히는 간격"
+  ],
+  "t_txt": [
+   "\"aging\":",
+   "continue"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ],
+   [
+    "approx",
+    "83d1960"
+   ]
+  ]
+ },
+ {
+  "id": "I192",
+  "a": "src/ui/battle_view.gd:182",
+  "t": "src/ui/battle_view.gd:182",
+  "feat": "OK-low",
+  "born": "5e0449f",
+  "born_r": [
+   304,
+   305
+  ],
+  "born_txt": [
+   "for key in [\"dr\", \"haste\", \"shield\", \"invuln\", \"stun\"]:  # 기절은 도약 늑대가 건다(I192)",
+   "var on: bool = (not u.shields.is_empty()) if key == \"shield\" else (battle.effect(u, key) != null if key in [\"invuln\", \"stun\"] else battle.effect_sum(u, key) > 0.0)"
+  ],
+  "a_txt": [
+   "const ALLY_FX := [\"dr\", \"haste\", \"shield\", \"invuln\", \"stun\", \"bleed\", \"lag\", \"burn\"]  # 아군에 걸린 효과(I101, 기절은 I192, 출혈은 I193 ③, 노래의 공격 속도 감소는 I252 ④, 와이번의 불은 I256 ③)",
+   "const ALLY_FX := [\"dr\", \"haste\", \"shield\", \"invuln\", \"stun\", \"bleed\", \"lag\", \"burn\"]  # 아군에 걸린 효과(I101, 기절은 I192, 출혈은 I193 ③, 노래의 공격 속도 감소는 I252 ④, 와이번의 불은 I256 ③)"
+  ],
+  "t_txt": [
+   "const ALLY_FX := [\"dr\", \"haste\", \"shield\", \"invuln\", \"stun\", \"bleed\", \"lag\", \"burn\"]  # 아군에 걸린 효과(I101, 기절은 I192, 출혈은 I193 ③, 노래의 공격 속도 감소는 I252 ④, 와이번의 불은 I256 ③)",
+   "const ALLY_FX := [\"dr\", \"haste\", \"shield\", \"invuln\", \"stun\", \"bleed\", \"lag\", \"burn\"]  # 아군에 걸린 효과(I101, 기절은 I192, 출혈은 I193 ③, 노래의 공격 속도 감소는 I252 ④, 와이번의 불은 I256 ③)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "fe5df7d"
+   ]
+  ]
+ },
+ {
+  "id": "S279",
+  "a": "src/ui/battle_view.gd:185-188",
+  "t": "src/ui/battle_view.gd:185-189",
+  "feat": "C-low",
+  "born": "c0034eb",
+  "born_r": [
+   96,
+   98
+  ],
+  "born_txt": [
+   "const FOE_TELL := Color(\"ef692f\")  # 일반 적 예고(S279): F24+ 주황 1px 테가 BLINK초마다 켜졌다 꺼진다. 안쪽은 칠하지 않는다",
+   "const UNSEEN_TELLS := [\"pounce\", \"throw\"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기(S279). 덮개 위 층에 그린다"
+  ],
+  "a_txt": [
+   "const FOE_TELL := Color(\"ef692f\")  # 일반 적 예고(S279): F24+ 주황 1px 테가 BLINK초마다 켜졌다 꺼진다. 안쪽은 칠하지 않는다",
+   "const UNSEEN_TELLS := [\"pounce\", \"throw\", \"bomb\", \"drop\", \"cannon\", \"bombs\", \"flame\", \"dive\", \"gust\", \"snatch\", \"nest\", \"plunge\", \"carpet\", \"hurl\", \"hurled\", \"lob\", \"twin\", \"rift\", \"duel\", \"shackle\", \"verdict\"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287)·대장 폭탄(S288)·불화살(I249 ①)·박치기(I251 ⑦)·돌풍(I253 ④)·낚아채기(I254 ⑥)·둥지 짓기(I255 ⑥)·와이번 급강하·융단 폭격(S310)·오크 던지기와 던져진 오크가 떨어질 자리(I268 ⑤). 덮개 위 층에 그린다"
+  ],
+  "t_txt": [
+   "const FOE_TELL := Color(\"ef692f\")  # 일반 적 예고(S279): F24+ 주황 1px 테가 BLINK초마다 켜졌다 꺼진다. 안쪽은 칠하지 않는다",
+   "const FLAME_RING := 0.5  # 불화살 예고 원 반경(칸, S302). 판정에 쓰지 않는 그림 값이라 flame 데이터에 없다"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "b0925f8"
+   ]
+  ]
+ },
+ {
+  "id": "S213",
+  "a": "src/ui/battle_view.gd:188",
+  "t": "src/ui/battle_view.gd:187-189",
+  "feat": "C-low",
+  "born": "33f83d5",
+  "born_r": [
+   99,
+   99
+  ],
+  "born_txt": [
+   "const UNSEEN_TELLS := [\"pounce\", \"throw\", \"bomb\", \"drop\", \"cannon\"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287). 덮개 위 층에 그린다",
+   "const UNSEEN_TELLS := [\"pounce\", \"throw\", \"bomb\", \"drop\", \"cannon\"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287). 덮개 위 층에 그린다"
+  ],
+  "a_txt": [
+   "const UNSEEN_TELLS := [\"pounce\", \"throw\", \"bomb\", \"drop\", \"cannon\", \"bombs\", \"flame\", \"dive\", \"gust\", \"snatch\", \"nest\", \"plunge\", \"carpet\", \"hurl\", \"hurled\", \"lob\", \"twin\", \"rift\", \"duel\", \"shackle\", \"verdict\"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287)·대장 폭탄(S288)·불화살(I249 ①)·박치기(I251 ⑦)·돌풍(I253 ④)·낚아채기(I254 ⑥)·둥지 짓기(I255 ⑥)·와이번 급강하·융단 폭격(S310)·오크 던지기와 던져진 오크가 떨어질 자리(I268 ⑤). 덮개 위 층에 그린다",
+   "const UNSEEN_TELLS := [\"pounce\", \"throw\", \"bomb\", \"drop\", \"cannon\", \"bombs\", \"flame\", \"dive\", \"gust\", \"snatch\", \"nest\", \"plunge\", \"carpet\", \"hurl\", \"hurled\", \"lob\", \"twin\", \"rift\", \"duel\", \"shackle\", \"verdict\"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287)·대장 폭탄(S288)·불화살(I249 ①)·박치기(I251 ⑦)·돌풍(I253 ④)·낚아채기(I254 ⑥)·둥지 짓기(I255 ⑥)·와이번 급강하·융단 폭격(S310)·오크 던지기와 던져진 오크가 떨어질 자리(I268 ⑤). 덮개 위 층에 그린다"
+  ],
+  "t_txt": [
+   "const SWAT_FILL := 0.2  # 쓸기 예고(S328) 부채꼴 안쪽 칠의 불투명도(I272 ③). 임시값",
+   "const FLAME_RING := 0.5  # 불화살 예고 원 반경(칸, S302). 판정에 쓰지 않는 그림 값이라 flame 데이터에 없다"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "b0925f8"
+   ],
+   [
+    "approx",
+    "fe98c8b"
+   ]
+  ]
+ },
+ {
+  "id": "S285",
+  "a": "src/ui/battle_view.gd:188",
+  "t": "src/ui/battle_view.gd:187-189",
+  "feat": "C-low",
+  "born": "1a35db9",
+  "born_r": [
+   99,
+   99
+  ],
+  "born_txt": [
+   "const UNSEEN_TELLS := [\"pounce\", \"throw\", \"bomb\", \"drop\"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286). 덮개 위 층에 그린다",
+   "const UNSEEN_TELLS := [\"pounce\", \"throw\", \"bomb\", \"drop\"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286). 덮개 위 층에 그린다"
+  ],
+  "a_txt": [
+   "const UNSEEN_TELLS := [\"pounce\", \"throw\", \"bomb\", \"drop\", \"cannon\", \"bombs\", \"flame\", \"dive\", \"gust\", \"snatch\", \"nest\", \"plunge\", \"carpet\", \"hurl\", \"hurled\", \"lob\", \"twin\", \"rift\", \"duel\", \"shackle\", \"verdict\"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287)·대장 폭탄(S288)·불화살(I249 ①)·박치기(I251 ⑦)·돌풍(I253 ④)·낚아채기(I254 ⑥)·둥지 짓기(I255 ⑥)·와이번 급강하·융단 폭격(S310)·오크 던지기와 던져진 오크가 떨어질 자리(I268 ⑤). 덮개 위 층에 그린다",
+   "const UNSEEN_TELLS := [\"pounce\", \"throw\", \"bomb\", \"drop\", \"cannon\", \"bombs\", \"flame\", \"dive\", \"gust\", \"snatch\", \"nest\", \"plunge\", \"carpet\", \"hurl\", \"hurled\", \"lob\", \"twin\", \"rift\", \"duel\", \"shackle\", \"verdict\"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287)·대장 폭탄(S288)·불화살(I249 ①)·박치기(I251 ⑦)·돌풍(I253 ④)·낚아채기(I254 ⑥)·둥지 짓기(I255 ⑥)·와이번 급강하·융단 폭격(S310)·오크 던지기와 던져진 오크가 떨어질 자리(I268 ⑤). 덮개 위 층에 그린다"
+  ],
+  "t_txt": [
+   "const SWAT_FILL := 0.2  # 쓸기 예고(S328) 부채꼴 안쪽 칠의 불투명도(I272 ③). 임시값",
+   "const FLAME_RING := 0.5  # 불화살 예고 원 반경(칸, S302). 판정에 쓰지 않는 그림 값이라 flame 데이터에 없다"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "b0925f8"
+   ],
+   [
+    "approx",
+    "fe98c8b"
+   ]
+  ]
+ },
+ {
+  "id": "S286",
+  "a": "src/ui/battle_view.gd:188",
+  "t": "src/ui/battle_view.gd:187-189",
+  "feat": "C-low",
+  "born": "1a35db9",
+  "born_r": [
+   99,
+   99
+  ],
+  "born_txt": [
+   "const UNSEEN_TELLS := [\"pounce\", \"throw\", \"bomb\", \"drop\"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286). 덮개 위 층에 그린다",
+   "const UNSEEN_TELLS := [\"pounce\", \"throw\", \"bomb\", \"drop\"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286). 덮개 위 층에 그린다"
+  ],
+  "a_txt": [
+   "const UNSEEN_TELLS := [\"pounce\", \"throw\", \"bomb\", \"drop\", \"cannon\", \"bombs\", \"flame\", \"dive\", \"gust\", \"snatch\", \"nest\", \"plunge\", \"carpet\", \"hurl\", \"hurled\", \"lob\", \"twin\", \"rift\", \"duel\", \"shackle\", \"verdict\"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287)·대장 폭탄(S288)·불화살(I249 ①)·박치기(I251 ⑦)·돌풍(I253 ④)·낚아채기(I254 ⑥)·둥지 짓기(I255 ⑥)·와이번 급강하·융단 폭격(S310)·오크 던지기와 던져진 오크가 떨어질 자리(I268 ⑤). 덮개 위 층에 그린다",
+   "const UNSEEN_TELLS := [\"pounce\", \"throw\", \"bomb\", \"drop\", \"cannon\", \"bombs\", \"flame\", \"dive\", \"gust\", \"snatch\", \"nest\", \"plunge\", \"carpet\", \"hurl\", \"hurled\", \"lob\", \"twin\", \"rift\", \"duel\", \"shackle\", \"verdict\"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287)·대장 폭탄(S288)·불화살(I249 ①)·박치기(I251 ⑦)·돌풍(I253 ④)·낚아채기(I254 ⑥)·둥지 짓기(I255 ⑥)·와이번 급강하·융단 폭격(S310)·오크 던지기와 던져진 오크가 떨어질 자리(I268 ⑤). 덮개 위 층에 그린다"
+  ],
+  "t_txt": [
+   "const SWAT_FILL := 0.2  # 쓸기 예고(S328) 부채꼴 안쪽 칠의 불투명도(I272 ③). 임시값",
+   "const FLAME_RING := 0.5  # 불화살 예고 원 반경(칸, S302). 판정에 쓰지 않는 그림 값이라 flame 데이터에 없다"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "b0925f8"
+   ],
+   [
+    "approx",
+    "fe98c8b"
+   ]
+  ]
+ },
+ {
+  "id": "S287",
+  "a": "src/ui/battle_view.gd:188",
+  "t": "src/ui/battle_view.gd:187-189",
+  "feat": "C-low",
+  "born": "33f83d5",
+  "born_r": [
+   99,
+   99
+  ],
+  "born_txt": [
+   "const UNSEEN_TELLS := [\"pounce\", \"throw\", \"bomb\", \"drop\", \"cannon\"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287). 덮개 위 층에 그린다",
+   "const UNSEEN_TELLS := [\"pounce\", \"throw\", \"bomb\", \"drop\", \"cannon\"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287). 덮개 위 층에 그린다"
+  ],
+  "a_txt": [
+   "const UNSEEN_TELLS := [\"pounce\", \"throw\", \"bomb\", \"drop\", \"cannon\", \"bombs\", \"flame\", \"dive\", \"gust\", \"snatch\", \"nest\", \"plunge\", \"carpet\", \"hurl\", \"hurled\", \"lob\", \"twin\", \"rift\", \"duel\", \"shackle\", \"verdict\"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287)·대장 폭탄(S288)·불화살(I249 ①)·박치기(I251 ⑦)·돌풍(I253 ④)·낚아채기(I254 ⑥)·둥지 짓기(I255 ⑥)·와이번 급강하·융단 폭격(S310)·오크 던지기와 던져진 오크가 떨어질 자리(I268 ⑤). 덮개 위 층에 그린다",
+   "const UNSEEN_TELLS := [\"pounce\", \"throw\", \"bomb\", \"drop\", \"cannon\", \"bombs\", \"flame\", \"dive\", \"gust\", \"snatch\", \"nest\", \"plunge\", \"carpet\", \"hurl\", \"hurled\", \"lob\", \"twin\", \"rift\", \"duel\", \"shackle\", \"verdict\"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287)·대장 폭탄(S288)·불화살(I249 ①)·박치기(I251 ⑦)·돌풍(I253 ④)·낚아채기(I254 ⑥)·둥지 짓기(I255 ⑥)·와이번 급강하·융단 폭격(S310)·오크 던지기와 던져진 오크가 떨어질 자리(I268 ⑤). 덮개 위 층에 그린다"
+  ],
+  "t_txt": [
+   "const SWAT_FILL := 0.2  # 쓸기 예고(S328) 부채꼴 안쪽 칠의 불투명도(I272 ③). 임시값",
+   "const FLAME_RING := 0.5  # 불화살 예고 원 반경(칸, S302). 판정에 쓰지 않는 그림 값이라 flame 데이터에 없다"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "b0925f8"
+   ],
+   [
+    "approx",
+    "fe98c8b"
+   ]
+  ]
+ },
+ {
+  "id": "S288",
+  "a": "src/ui/battle_view.gd:188",
+  "t": "src/ui/battle_view.gd:187-189",
+  "feat": "C-low",
+  "born": "0d2310d",
+  "born_r": [
+   150,
+   150
+  ],
+  "born_txt": [
+   "const UNSEEN_TELLS := [\"pounce\", \"throw\", \"bomb\", \"drop\", \"cannon\", \"bombs\"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287)·대장 폭탄(S288). 덮개 위 층에 그린다",
+   "const UNSEEN_TELLS := [\"pounce\", \"throw\", \"bomb\", \"drop\", \"cannon\", \"bombs\"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287)·대장 폭탄(S288). 덮개 위 층에 그린다"
+  ],
+  "a_txt": [
+   "const UNSEEN_TELLS := [\"pounce\", \"throw\", \"bomb\", \"drop\", \"cannon\", \"bombs\", \"flame\", \"dive\", \"gust\", \"snatch\", \"nest\", \"plunge\", \"carpet\", \"hurl\", \"hurled\", \"lob\", \"twin\", \"rift\", \"duel\", \"shackle\", \"verdict\"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287)·대장 폭탄(S288)·불화살(I249 ①)·박치기(I251 ⑦)·돌풍(I253 ④)·낚아채기(I254 ⑥)·둥지 짓기(I255 ⑥)·와이번 급강하·융단 폭격(S310)·오크 던지기와 던져진 오크가 떨어질 자리(I268 ⑤). 덮개 위 층에 그린다",
+   "const UNSEEN_TELLS := [\"pounce\", \"throw\", \"bomb\", \"drop\", \"cannon\", \"bombs\", \"flame\", \"dive\", \"gust\", \"snatch\", \"nest\", \"plunge\", \"carpet\", \"hurl\", \"hurled\", \"lob\", \"twin\", \"rift\", \"duel\", \"shackle\", \"verdict\"]  # 적이 어둠 속에 숨어도 그리는 예고: 덮치기(S242)·던지기·폭탄·투하 표식(S279·S285·S286)·전쟁 기계 대포(S287)·대장 폭탄(S288)·불화살(I249 ①)·박치기(I251 ⑦)·돌풍(I253 ④)·낚아채기(I254 ⑥)·둥지 짓기(I255 ⑥)·와이번 급강하·융단 폭격(S310)·오크 던지기와 던져진 오크가 떨어질 자리(I268 ⑤). 덮개 위 층에 그린다"
+  ],
+  "t_txt": [
+   "const SWAT_FILL := 0.2  # 쓸기 예고(S328) 부채꼴 안쪽 칠의 불투명도(I272 ③). 임시값",
+   "const FLAME_RING := 0.5  # 불화살 예고 원 반경(칸, S302). 판정에 쓰지 않는 그림 값이라 flame 데이터에 없다"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "b0925f8"
+   ],
+   [
+    "approx",
+    "fe98c8b"
+   ]
+  ]
+ },
+ {
+  "id": "S198",
+  "a": "src/ui/battle_view.gd:204-229",
+  "t": "src/ui/battle_view.gd:204-235",
+  "feat": "LIKELY-x",
+  "born": "da47058",
+  "born_r": [
+   47,
+   54
+  ],
+  "born_txt": [
+   "const HEAVY := 6.0  # 보스가 친 타격·보스 스킬에 맞은 아군의 밀림(px, S198)",
+   "const CRACK := [Color(\"1f240a\"), Color(\"a56243\")]  # 바닥 균열의 어두운 금과 그 아래 밝은 가장자리(F24+). 어두운 금만으로는 풀 위에서 안 보였다(시안 V2)"
+  ],
+  "a_txt": [
+   "const HEAVY := 6.0  # 보스가 친 타격·보스 스킬에 맞은 아군의 밀림(px, S198)",
+   "const POP_UP := 6.0  # 그동안 포물선으로 뛰는 높이(px)"
+  ],
+  "t_txt": [
+   "const HEAVY := 6.0  # 보스가 친 타격·보스 스킬에 맞은 아군의 밀림(px, S198)",
+   "const CRACK := [Color(\"1f240a\"), Color(\"a56243\")]  # 바닥 균열의 어두운 금과 그 아래 밝은 가장자리(F24+). 어두운 금만으로는 풀 위에서 안 보였다(시안 V2)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "I287",
+  "a": "src/ui/battle_view.gd:221",
+  "t": "src/ui/battle_view.gd:221",
+  "feat": "OK-low",
+  "born": "460bd46",
+  "born_r": [
+   216,
+   216
+  ],
+  "born_txt": [
+   "const SWAY := 0.4  # 전쟁 깃발 천이 흔들리는 간격(초, I287 ③). 임시값",
+   "const SWAY := 0.4  # 전쟁 깃발 천이 흔들리는 간격(초, I287 ③). 임시값"
+  ],
+  "a_txt": [
+   "const SWAY := 0.4  # 정지 중 2열(sway 시트)을 번갈아 그리는 간격(초): 전쟁 깃발 천(I287 ③), 전쟁 북 고수의 북채(I288 ③). 임시값",
+   "const SWAY := 0.4  # 정지 중 2열(sway 시트)을 번갈아 그리는 간격(초): 전쟁 깃발 천(I287 ③), 전쟁 북 고수의 북채(I288 ③). 임시값"
+  ],
+  "t_txt": [
+   "const SWAY := 0.4  # 정지 중 2열(sway 시트)을 번갈아 그리는 간격(초): 전쟁 깃발 천(I287 ③), 전쟁 북 고수의 북채(I288 ③). 임시값",
+   "const SWAY := 0.4  # 정지 중 2열(sway 시트)을 번갈아 그리는 간격(초): 전쟁 깃발 천(I287 ③), 전쟁 북 고수의 북채(I288 ③). 임시값"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "S201",
+  "a": "src/ui/battle_view.gd:243",
+  "t": "src/ui/battle_view.gd:249",
+  "feat": "C-low",
+  "born": "057dc01",
+  "born_r": [
+   56,
+   57
+  ],
+  "born_txt": [
+   "const DECOR := preload(\"res://art/tiles/decor.png\")  # 들판·마을 장식(S201·S202, tools/art/decor.py): 0행 16×16 바위 3·그루터기 2·구덩이 2·자갈 2·풀 2·풀꽃·우물, 1행 48×32 그을음 3, 2행 48×48 마른 나무 4",
+   "const FOREST_FLOOR := Color(\"2a1d0d\")  # 맵 아래 맵 밖 띠(I50)의 바닥(S201): 마른 나무가 선 그을린 흙"
+  ],
+  "a_txt": [
+   "const STONE := Color(\"7a86a0\")  # 무너진 성곽 칸에서 떨어지는 돌 조각(S200, F24+ 성벽 돌색)",
+   "const STONE := Color(\"7a86a0\")  # 무너진 성곽 칸에서 떨어지는 돌 조각(S200, F24+ 성벽 돌색)"
+  ],
+  "t_txt": [
+   "const DECOR := preload(\"res://art/tiles/decor.png\")  # 들판·마을 장식(S201·S202, tools/art/decor.py): 0행 16×16 바위 3·그루터기 2·구덩이 2·자갈 2·풀 2·풀꽃·우물, 1행 48×32 그을음 3, 2행 48×48 마른 나무 4, 3행 16×16 마당 소품(S215)",
+   "const DECOR := preload(\"res://art/tiles/decor.png\")  # 들판·마을 장식(S201·S202, tools/art/decor.py): 0행 16×16 바위 3·그루터기 2·구덩이 2·자갈 2·풀 2·풀꽃·우물, 1행 48×32 그을음 3, 2행 48×48 마른 나무 4, 3행 16×16 마당 소품(S215)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "48e48a5"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S202",
+  "a": "src/ui/battle_view.gd:243-244",
+  "t": "src/ui/battle_view.gd:249-250",
+  "feat": "C-low",
+  "born": "057dc01",
+  "born_r": [
+   56,
+   56
+  ],
+  "born_txt": [
+   "const DECOR := preload(\"res://art/tiles/decor.png\")  # 들판·마을 장식(S201·S202, tools/art/decor.py): 0행 16×16 바위 3·그루터기 2·구덩이 2·자갈 2·풀 2·풀꽃·우물, 1행 48×32 그을음 3, 2행 48×48 마른 나무 4",
+   "const DECOR := preload(\"res://art/tiles/decor.png\")  # 들판·마을 장식(S201·S202, tools/art/decor.py): 0행 16×16 바위 3·그루터기 2·구덩이 2·자갈 2·풀 2·풀꽃·우물, 1행 48×32 그을음 3, 2행 48×48 마른 나무 4"
+  ],
+  "a_txt": [
+   "const STONE := Color(\"7a86a0\")  # 무너진 성곽 칸에서 떨어지는 돌 조각(S200, F24+ 성벽 돌색)",
+   "const DROP := 0.15  # 무너진 성곽 칸 위 유닛이 땅으로 내려오는 시간(초, S200)"
+  ],
+  "t_txt": [
+   "const DECOR := preload(\"res://art/tiles/decor.png\")  # 들판·마을 장식(S201·S202, tools/art/decor.py): 0행 16×16 바위 3·그루터기 2·구덩이 2·자갈 2·풀 2·풀꽃·우물, 1행 48×32 그을음 3, 2행 48×48 마른 나무 4, 3행 16×16 마당 소품(S215)",
+   "const YARD_ROW := 96  # decor.png 3행(마당 소품)의 y: 텃밭 2·울타리 2·장작더미·목재 더미·톱밥·판석. 그림은 칸 왼쪽 위에 붙어 있다"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "48e48a5"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S220",
+  "a": "src/ui/battle_view.gd:254-259",
+  "t": "src/ui/battle_view.gd:260-265",
+  "feat": "C-low",
+  "born": "98a16e4",
+  "born_r": [
+   65,
+   70
+  ],
+  "born_txt": [
+   "# 수로·연못(S220, tools/art/water.py): 바닥 위 물 덮개와 북벽 수문 덮개, 얹는 맵 px 왼쪽 위.",
+   "const CULVERT_AT := Vector2i(712, 16)"
+  ],
+  "a_txt": [
+   "const YARD_PROPS := {",
+   "const PAVE := Color(\"56607a\")  # 돌길·광장 박석 색(S202)"
+  ],
+  "t_txt": [
+   "# 수로·연못(S220, tools/art/water.py): 바닥 위 물 덮개와 북벽 수문 덮개, 얹는 맵 px 왼쪽 위.",
+   "const CULVERT_AT := Vector2i(744, 48)  # 수문 덮개 자리(옛 (712, 16) + PLAN_SHIFT칸). 그림은 아래 24px에 있어 높아진 북벽 안쪽 앞면(48~80) 아래에 앉는다"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "I50",
+  "a": "src/ui/battle_view.gd:260",
+  "t": "src/ui/battle_view.gd:266",
+  "feat": "C-low",
+  "born": "b25bd53",
+  "born_r": [
+   68,
+   68
+  ],
+  "born_txt": [
+   "draw_rect(Rect2(0, battle.size.y * CELL, battle.size.x * CELL, Camera.BOTTOM), OUTSIDE)  # 카메라가 아래로 보이는 맵 밖(I50)",
+   "draw_rect(Rect2(0, battle.size.y * CELL, battle.size.x * CELL, Camera.BOTTOM), OUTSIDE)  # 카메라가 아래로 보이는 맵 밖(I50)"
+  ],
+  "a_txt": [
+   "# 수로·연못(S220, tools/art/water.py): 바닥 위 물 덮개와 북벽 수문 덮개, 얹는 맵 px 왼쪽 위.",
+   "# 수로·연못(S220, tools/art/water.py): 바닥 위 물 덮개와 북벽 수문 덮개, 얹는 맵 px 왼쪽 위."
+  ],
+  "t_txt": [
+   "const FOREST_FLOOR := Color(\"2a1d0d\")  # 맵 아래 맵 밖 띠(I50)의 바닥(S201): 마른 나무가 선 그을린 흙",
+   "const FOREST_FLOOR := Color(\"2a1d0d\")  # 맵 아래 맵 밖 띠(I50)의 바닥(S201): 마른 나무가 선 그을린 흙"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "057dc01"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S170",
+  "a": "src/ui/battle_view.gd:261-282",
+  "t": "src/ui/battle_view.gd:277-288",
+  "feat": "C-low",
+  "born": "3d62521",
+  "born_r": [
+   32,
+   33
+  ],
+  "born_txt": [
+   "const CASTLE := preload(\"res://art/castle/walls.png\")  # 성곽 칸 조각 16×42: 행 단계 1~3마다 몸체·앞층, 통로 그늘, 잔해. 열 성벽·열린 문·닫힌 문(tools/art/atlas.py castle)",
+   "const KEEP := preload(\"res://art/castle/keep.png\")  # 거점 망루 80×80, 마을 레벨 1·2. 칸 앞쪽 아래 왼쪽 모서리가 그림의 (32, 72)다(tools/art/keep.py)"
+  ],
+  "a_txt": [
+   "# ponytail: 자리는 _plan의 물 칸(45열 수로·44~49열 연못)에 맞춘 지금 판 값이다. 판이 늘면 _plan과 함께 옮긴다",
+   "const WALL_TOP_UP := 33  # 성벽 그림 윗변이 성곽 윗줄 위끝보다 높은 px(S175, S170 2026-11-03 변경: 앞면 32px)"
+  ],
+  "t_txt": [
+   "const CASTLE := preload(\"res://art/castle/walls.png\")  # 성곽 조각(두께 5칸, S217 2026-11-03 변경): 행 단계 1~3마다 몸체·앞층, 통로 그늘, 잔해. 열 성벽 한 열·열린 문·닫힌 문·문 양옆 탑(tools/art/atlas.py castle)",
+   "const RING := 4  # 문루·탑 둘레 난간 높이(px). 그 그림 윗변은 바닥보다 이만큼 더 높다(wall.py ph 0.32 = 3.6px)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "1cb9de9"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S217",
+  "a": "src/ui/battle_view.gd:261-263",
+  "t": "src/ui/battle_view.gd:277-288",
+  "feat": "C-low",
+  "born": "1cb9de9",
+  "born_r": [
+   66,
+   68
+  ],
+  "born_txt": [
+   "const CASTLE := preload(\"res://art/castle/walls.png\")  # 성곽 조각(두께 3칸, S217): 행 단계 1~3마다 몸체·앞층, 통로 그늘, 잔해. 열 성벽 한 열·열린 문·닫힌 문(tools/art/atlas.py castle)",
+   "const WALL_COLS := {\"castle_wall\": [0, 16], \"open\": [16, 48], \"closed\": [64, 48]}  # 조각 열 [x, 폭](px)"
+  ],
+  "a_txt": [
+   "# ponytail: 자리는 _plan의 물 칸(45열 수로·44~49열 연못)에 맞춘 지금 판 값이다. 판이 늘면 _plan과 함께 옮긴다",
+   "const WATER_AT := Vector2i(704, 32)  # tools/art/water.py 덮개 왼쪽 위(옛 마을 (3,3) 기준 맵 px (672, 0))를 PLAN_SHIFT칸만큼 옮긴 자리"
+  ],
+  "t_txt": [
+   "const CASTLE := preload(\"res://art/castle/walls.png\")  # 성곽 조각(두께 5칸, S217 2026-11-03 변경): 행 단계 1~3마다 몸체·앞층, 통로 그늘, 잔해. 열 성벽 한 열·열린 문·닫힌 문·문 양옆 탑(tools/art/atlas.py castle)",
+   "const RING := 4  # 문루·탑 둘레 난간 높이(px). 그 그림 윗변은 바닥보다 이만큼 더 높다(wall.py ph 0.32 = 3.6px)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "98a16e4"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S219",
+  "a": "src/ui/battle_view.gd:263-265",
+  "t": "src/ui/battle_view.gd:279-282",
+  "feat": "C-low",
+  "born": "62e3917",
+  "born_r": [
+   68,
+   70
+  ],
+  "born_txt": [
+   "const WALL_COLS := {\"castle_wall\": [0, 16], \"open\": [16, 48], \"closed\": [64, 48], \"tower_l\": [112, 16], \"tower_r\": [128, 16],",
+   "\"nc_l\": [336, 48], \"nc_r\": [384, 48], \"w_strip\": [432, 48], \"e_strip\": [480, 48], \"w_gate\": [528, 48], \"e_gate\": [576, 48]}  # 조각 열 [x, 폭](px)"
+  ],
+  "a_txt": [
+   "const WATER_AT := Vector2i(704, 32)  # tools/art/water.py 덮개 왼쪽 위(옛 마을 (3,3) 기준 맵 px (672, 0))를 PLAN_SHIFT칸만큼 옮긴 자리",
+   "const CULVERT_AT := Vector2i(744, 48)  # 수문 덮개 자리(옛 (712, 16) + PLAN_SHIFT칸). 그림은 아래 24px에 있어 높아진 북벽 안쪽 앞면(48~80) 아래에 앉는다"
+  ],
+  "t_txt": [
+   "const WALL_COLS := {\"castle_wall\": [0, 16], \"open\": [16, 48], \"closed\": [64, 48], \"tower_l\": [112, 16], \"tower_r\": [128, 16],",
+   "const WALL_TOP_UP := 33  # 성벽 그림 윗변이 성곽 윗줄 위끝보다 높은 px(S175, S170 2026-11-03 변경: 앞면 32px)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S171",
+  "a": "src/ui/battle_view.gd:297",
+  "t": "src/ui/battle_view.gd:304-305",
+  "feat": "C-low",
+  "born": "3d62521",
+  "born_r": [
+   34,
+   34
+  ],
+  "born_txt": [
+   "const GHOST := Color(1, 1, 1, 0.4)  # 성벽·거점에 가려진 유닛을 덧그리는 색(C1, 사용자 2026-10-20)",
+   "const GHOST := Color(1, 1, 1, 0.4)  # 성벽·거점에 가려진 유닛을 덧그리는 색(C1, 사용자 2026-10-20)"
+  ],
+  "a_txt": [
+   "static var TUNNEL := []  # 터널 입구 그늘을 깔기 전 바닥 조각 [그림, 맵 px 왼쪽 위](S219 2026-10-28). 바닥을 구울 때(_wall_shade) 뜬다",
+   "static var TUNNEL := []  # 터널 입구 그늘을 깔기 전 바닥 조각 [그림, 맵 px 왼쪽 위](S219 2026-10-28). 바닥을 구울 때(_wall_shade) 뜬다"
+  ],
+  "t_txt": [
+   "const GHOST := Color(1, 1, 1, 0.4)  # 거점에 가려진 유닛·시설을 덧그리는 색(C1, 사용자 2026-10-20)",
+   "const SHADE := Color(0, 0, 0, 0.55)  # 성벽에 가려진 부분의 실루엣 색(S175). 55%는 사용자가 고른 시안의 합성 색에 맞춘 Claude 값"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "ced07eb"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S170",
+  "a": "src/ui/battle_view.gd:299",
+  "t": "src/ui/battle_view.gd:306",
+  "feat": "C-low",
+  "born": "3d62521",
+  "born_r": [
+   35,
+   35
+  ],
+  "born_txt": [
+   "const WALL_H := 24  # 성벽 앞면 높이(px, 4.0 확정값)",
+   "const WALL_H := 24  # 성벽 앞면 높이(px, 4.0 확정값)"
+  ],
+  "a_txt": [
+   "# 금(S199)을 구운 성곽·시설·망루 아틀라스(I172). 원본 대신 이것으로 그려서 금이 생겨도 텍스처가 바뀌지 않는다. 성곽은 앞층(바깥 벽면)에만 긋는다",
+   "# 금(S199)을 구운 성곽·시설·망루 아틀라스(I172). 원본 대신 이것으로 그려서 금이 생겨도 텍스처가 바뀌지 않는다. 성곽은 앞층(바깥 벽면)에만 긋는다"
+  ],
+  "t_txt": [
+   "const WALL_H := 32  # 성벽 앞면 높이(px). S170 2026-11-03 변경(사용자 «성벽 높이도 조금더 키우자» → «32px», 옛 4.0 확정값 24)",
+   "const WALL_H := 32  # 성벽 앞면 높이(px). S170 2026-11-03 변경(사용자 «성벽 높이도 조금더 키우자» → «32px», 옛 4.0 확정값 24)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S166",
+  "a": "src/ui/battle_view.gd:300-307",
+  "t": "src/ui/battle_view.gd:307-314",
+  "feat": "LIKELY-x",
+  "born": "2e70ff8",
+  "born_r": [
+   31,
+   32
+  ],
+  "born_txt": [
+   "const TEAM := [Color(\"3c9f9c\"), Color(\"ef3a0c\")]  # 발밑 팀 색(S166): 아군 청록, 적 빨강(F24+ 팔레트)",
+   "static var FEET: ImageTexture = _feet()  # 발밑 채운 타원 14×6px. 아군·적을 한 장에 나란히 둬서 draw call이 끊기지 않는다"
+  ],
+  "a_txt": [
+   "static var CASTLE_K: ImageTexture = crack_atlas(CASTLE, _wall_pieces())",
+   "const TEAM := [Color(\"3c9f9c\"), Color(\"ef3a0c\")]  # 발밑 팀 색(S166): 아군 청록, 적 빨강(F24+ 팔레트)"
+  ],
+  "t_txt": [
+   "const TEAM := [Color(\"3c9f9c\"), Color(\"ef3a0c\")]  # 발밑 팀 색(S166): 아군 청록, 적 빨강(F24+ 팔레트)",
+   "static var FEET: ImageTexture = _feet()  # 발밑 채운 타원 14×6px. 아군·적을 한 장에 나란히 둬서 draw call이 끊기지 않는다"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S198",
+  "a": "src/ui/battle_view.gd:368-383",
+  "t": "src/ui/battle_view.gd:380-390",
+  "feat": "LIKELY-x",
+  "born": "da47058",
+  "born_r": [
+   89,
+   91
+  ],
+  "born_txt": [
+   "var _slides := {}  # id → [지난 화면 자리, 시작 시각, 길이](S198 미끄러짐)",
+   "var _last := {}  # id → [지난 프레임 화면 자리, 성벽 위·기어오르기 상태]"
+  ],
+  "a_txt": [
+   "var _killed := {}  # 막타가 닿은 쓰러진 대상 id → [닿은 시각, 밀리는 방향(없으면 0), 대상, 보던 방향](S197). 몸이 남은 동안만 둔다",
+   "var _firing := {}  # 발사 중으로 본 기관총 적(S198 발동 채움). tick이 처음 본 발사에 채움을 넣는다"
+  ],
+  "t_txt": [
+   "var _slides := {}  # id → [지난 화면 자리, 시작 시각, 길이](S198 미끄러짐)",
+   "var _last := {}  # id → [지난 프레임 화면 자리, 성벽 위·기어오르기 상태]"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S213",
+  "a": "src/ui/battle_view.gd:428-436",
+  "t": "src/ui/battle_view.gd:436-448",
+  "feat": "LIKELY-x",
+  "born": "abd46b4",
+  "born_r": [
+   285,
+   293
+  ],
+  "born_txt": [
+   "# 맵에 그리는 적(S213): 어둠 속에 숨은 적은 뺀다",
+   ""
+  ],
+  "a_txt": [
+   "_draw_top()",
+   "# 맵에 그리는 적(S213): 어둠 속에 숨은 적은 뺀다"
+  ],
+  "t_txt": [
+   "# 맵에 그리는 적(S213): 어둠 속에 숨은 적은 뺀다",
+   ""
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "reauth",
+    "abd46b4",
+    [
+     "src/ui/battle_view.gd",
+     285,
+     288
+    ],
+    [
+     "src/ui/battle_view.gd",
+     285,
+     288
+    ]
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S213",
+  "a": "src/ui/battle_view.gd:431-435",
+  "t": "src/ui/battle_view.gd:439-447",
+  "feat": "C-low",
+  "born": "abd46b4",
+  "born_r": [
+   288,
+   292
+  ],
+  "born_txt": [
+   "",
+   "return battle.enemies.filter(func(e): return e.cast != null and (e.cast.id == \"pounce\" or e in vis))"
+  ],
+  "a_txt": [
+   "",
+   ""
+  ],
+  "t_txt": [
+   "",
+   "return TELL if e.cast != null and e.skills.has(e.cast.id) else FOE_TELL"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S242",
+  "a": "src/ui/battle_view.gd:431-435",
+  "t": "src/ui/battle_view.gd:439-447",
+  "feat": "C-low",
+  "born": "abd46b4",
+  "born_r": [
+   288,
+   292
+  ],
+  "born_txt": [
+   "",
+   "return battle.enemies.filter(func(e): return e.cast != null and (e.cast.id == \"pounce\" or e in vis))"
+  ],
+  "a_txt": [
+   "",
+   ""
+  ],
+  "t_txt": [
+   "",
+   "return TELL if e.cast != null and e.skills.has(e.cast.id) else FOE_TELL"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S169",
+  "a": "src/ui/battle_view.gd:453-461",
+  "t": "src/ui/battle_view.gd:461-469",
+  "feat": "C-low",
+  "born": "1be083c",
+  "born_r": [
+   41,
+   49
+  ],
+  "born_txt": [
+   "func _draw() -> void:",
+   "for y in battle.size.y + 1:"
+  ],
+  "a_txt": [
+   "var n := 0",
+   "func _draw() -> void:"
+  ],
+  "t_txt": [
+   "func _draw() -> void:",
+   "draw_texture(ground, Vector2.ZERO)  # 카메라가 아래로 보이는 맵 밖(I50)까지 한 장이다"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "48e48a5"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S201",
+  "a": "src/ui/battle_view.gd:456",
+  "t": "src/ui/battle_view.gd:464",
+  "feat": "C-low",
+  "born": "057dc01",
+  "born_r": [
+   98,
+   102
+  ],
+  "born_txt": [
+   "props = ground_props(battle)",
+   "draw_texture_rect_region(DECOR, Rect2(Vector2(p[0]) * CELL, Vector2(CELL, CELL)), Rect2(p[1] * CELL, 0, CELL, CELL))"
+  ],
+  "a_txt": [
+   "var c: Vector2 = l[0] * CELL + Vector2(CELL, CELL) / 2.0",
+   "var c: Vector2 = l[0] * CELL + Vector2(CELL, CELL) / 2.0"
+  ],
+  "t_txt": [
+   "_decor = ground_props(battle)",
+   "_decor = ground_props(battle)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "48e48a5"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S202",
+  "a": "src/ui/battle_view.gd:456",
+  "t": "src/ui/battle_view.gd:464",
+  "feat": "C-low",
+  "born": "057dc01",
+  "born_r": [
+   98,
+   102
+  ],
+  "born_txt": [
+   "props = ground_props(battle)",
+   "draw_texture_rect_region(DECOR, Rect2(Vector2(p[0]) * CELL, Vector2(CELL, CELL)), Rect2(p[1] * CELL, 0, CELL, CELL))"
+  ],
+  "a_txt": [
+   "var c: Vector2 = l[0] * CELL + Vector2(CELL, CELL) / 2.0",
+   "var c: Vector2 = l[0] * CELL + Vector2(CELL, CELL) / 2.0"
+  ],
+  "t_txt": [
+   "_decor = ground_props(battle)",
+   "_decor = ground_props(battle)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "48e48a5"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "I88",
+  "a": "src/ui/battle_view.gd:481-482",
+  "t": "src/ui/battle_view.gd:489-490",
+  "feat": "C-low",
+  "born": "2c211a2",
+  "born_r": [
+   44,
+   44
+  ],
+  "born_txt": [
+   "for k in battle.rubble.values():  # 잔해는 흐리게(I88)",
+   "for k in battle.rubble.values():  # 잔해는 흐리게(I88)"
+  ],
+  "a_txt": [
+   "_yards = yards",
+   "for p in _decor:  # 시설이 선 칸의 소품은 감춘다(S201)"
+  ],
+  "t_txt": [
+   "for r in battle.rubble.values():  # 잔해(I88)는 바닥 층: 몸통과 정렬하지 않고 장판·발밑·쓰러진 몸보다 먼저 깐다(S170 2026-10-28)",
+   "_wall_piece(r, 0)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "3d62521"
+   ],
+   [
+    "adjusted",
+    "2a5506d"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "I74",
+  "a": "src/ui/battle_view.gd:489-492",
+  "t": "src/ui/battle_view.gd:497-500",
+  "feat": "C-low",
+  "born": "332b443",
+  "born_r": [
+   28,
+   32
+  ],
+  "born_txt": [
+   "for s in battle.structures.values():  # 미완성·접은 대포는 흐리게. 진행률은 체력 막대로 보인다(I62, I74)",
+   "draw_rect(_rect(s.dest), col, false, 1.0)"
+  ],
+  "a_txt": [
+   "for r in battle.rubble.values():  # 잔해(I88)는 바닥 층: 몸통과 정렬하지 않고 장판·발밑·쓰러진 몸보다 먼저 깐다(S170 2026-10-28)",
+   "var map := Vector2(battle.size) * CELL"
+  ],
+  "t_txt": [
+   "for s in battle.structures.values():  # 시설 그림은 _bodies가 유닛과 함께 정렬해 그린다(4.1e)",
+   "draw_dashed_line(_center(Vector2(s.cell)), _center(Vector2(s.dest)), Color(1, 1, 1, 0.7), 1.0, 3.0)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S151",
+  "a": "src/ui/battle_view.gd:494",
+  "t": "src/ui/battle_view.gd:504",
+  "feat": "C-low",
+  "born": "2c211a2",
+  "born_r": [
+   60,
+   60
+  ],
+  "born_txt": [
+   "for c in battle.barriers:  # 에너지 성벽(S151): 밝은 칸",
+   "for c in battle.barriers:  # 에너지 성벽(S151): 밝은 칸"
+  ],
+  "a_txt": [
+   "draw_line(Vector2(x * CELL, 0), Vector2(x * CELL, map.y), COLORS.grid)",
+   "draw_line(Vector2(x * CELL, 0), Vector2(x * CELL, map.y), COLORS.grid)"
+  ],
+  "t_txt": [
+   "_wards()  # 에너지 성벽 칸(S151, fx-2): 장판 다음, 몸통 아래",
+   "_wards()  # 에너지 성벽 칸(S151, fx-2): 장판 다음, 몸통 아래"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "13df488"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S194",
+  "a": "src/ui/battle_view.gd:495",
+  "t": "src/ui/battle_view.gd:505",
+  "feat": "C-low",
+  "born": "5a3f7cb",
+  "born_r": [
+   95,
+   99
+  ],
+  "born_txt": [
+   "for e in battle.enemies:  # 보스 스킬 예고(S194): 빨간 테두리 안쪽이 남은 시간만큼 차오른다",
+   "draw_arc(_center(e.pos), CELL * sk.radius, 0.0, TAU, 48, Color(TELL, 0.9), 1.0)"
+  ],
+  "a_txt": [
+   "for y in battle.size.y + 1:",
+   "for y in battle.size.y + 1:"
+  ],
+  "t_txt": [
+   "_tells()  # 보스 스킬 예고와 발동 채움(S194·S198)",
+   "_tells()  # 보스 스킬 예고와 발동 채움(S194·S198)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "b7e18d6"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S36",
+  "a": "src/ui/battle_view.gd:513-514",
+  "t": "src/ui/battle_view.gd:538",
+  "feat": "C-low",
+  "born": "23d9740",
+  "born_r": [
+   39,
+   40
+  ],
+  "born_txt": [
+   "if u.hold:",
+   "draw_arc(u.anchor * CELL + Vector2(CELL, CELL) / 2, CELL * u.hold_radius, 0.0, TAU, 48, Color(1, 1, 1, 0.4), 1.0)"
+  ],
+  "a_txt": [
+   "if h.alive and not h.aura.is_empty():",
+   "_aura_ring(h)"
+  ],
+  "t_txt": [
+   "_status(u, true)  # 걸린 효과(I101 2026-10-27 변경): 효과마다 수단 하나",
+   "_status(u, true)  # 걸린 효과(I101 2026-10-27 변경): 효과마다 수단 하나"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "48e48a5"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "I101",
+  "a": "src/ui/battle_view.gd:515",
+  "t": "src/ui/battle_view.gd:538",
+  "feat": "C-low",
+  "born": "fdf5f45",
+  "born_r": [
+   102,
+   107
+  ],
+  "born_txt": [
+   "# 스킬 범위 원(S72): 영웅마다(I101). ponytail: 0.3초는 임시값, 짧거나 길면 바꾼다",
+   "draw_arc(_center(h.pos), CELL * h.buff_radius, 0.0, TAU, 48, Color.ORANGE, 1.0)"
+  ],
+  "a_txt": [
+   "_bodies()",
+   "_bodies()"
+  ],
+  "t_txt": [
+   "_status(u, true)  # 걸린 효과(I101 2026-10-27 변경): 효과마다 수단 하나",
+   "_status(u, true)  # 걸린 효과(I101 2026-10-27 변경): 효과마다 수단 하나"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2c211a2"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "I199",
+  "a": "src/ui/battle_view.gd:522",
+  "t": "src/ui/battle_view.gd:2052-2075",
+  "feat": "C-low",
+  "born": "964e789",
+  "born_r": [
+   1074,
+   1095
+  ],
+  "born_txt": [
+   "# 시간의 문(크로노스 E 타임 루프, I199): 구리 성긴 칠 + 12시에서 시계 방향으로 도는 짧은 바늘(금 2px)·긴 바늘(크림 1px) + 가운데 축 조각 + 금 테두리.",
+   "_edge(c, r, PX.ice1, PX.night, others)"
+  ],
+  "a_txt": [
+   "_chrono_marks()",
+   "_chrono_marks()"
+  ],
+  "t_txt": [
+   "# 시간의 문(크로노스 E 타임 루프, I199 2026-11-04 변경): 되감기. 얼음 성긴 칠(2/16) + 12·3·6·9시 눈금 + 12시에서 반시계로 도는 짧은 바늘(얼음 2px)·긴 바늘(크림 1px) +",
+   "_px(p - Vector2i(1, 1), PX.gold, Vector2i(2, 2))"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ],
+   [
+    "approx",
+    "83d1960"
+   ]
+  ]
+ },
+ {
+  "id": "I101",
+  "a": "src/ui/battle_view.gd:530",
+  "t": "src/ui/battle_view.gd:540",
+  "feat": "C-low",
+  "born": "2c211a2",
+  "born_r": [
+   118,
+   118
+  ],
+  "born_txt": [
+   "for key in [\"stun\", \"root\", \"slow\", \"expose\", \"taunt\", \"seal\", \"chain\", \"dot\"]:  # 걸린 효과(I101)",
+   "for key in [\"stun\", \"root\", \"slow\", \"expose\", \"taunt\", \"seal\", \"chain\", \"dot\"]:  # 걸린 효과(I101)"
+  ],
+  "a_txt": [
+   "for u in battle.units:",
+   "for u in battle.units:"
+  ],
+  "t_txt": [
+   "_status(e, false)",
+   "_status(e, false)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S180",
+  "a": "src/ui/battle_view.gd:531-533",
+  "t": "src/ui/battle_view.gd:541-543",
+  "feat": "C-low",
+  "born": "46fd931",
+  "born_r": [
+   121,
+   123
+  ],
+  "born_txt": [
+   "for h in battle.heroes:  # 쓰러진 영웅: 복귀할 때까지 쓰러진 자리에 그 영웅 색의 X(I130). 누운 몸(S180) 위에",
+   "var c := _spot(h)"
+  ],
+  "a_txt": [
+   "var at := _spot(u) + _slip(u)  # 넉백으로 미끄러지는 몸을 테두리·숫자가 따라간다(S198)",
+   "draw_string(PIXEL_FONT, at + Vector2(CELL * 0.3, -CELL * 0.3), str(u.level), HORIZONTAL_ALIGNMENT_LEFT, -1, 8)"
+  ],
+  "t_txt": [
+   "for h in battle.heroes:  # 쓰러진 영웅: 복귀할 때까지 쓰러진 자리에 그 영웅 색의 X(I130). 누운 몸(S180) 위에, 막타가 닿은 때부터 밀린 자리에(S197)",
+   "if at != null:"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "fdb6bcd"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S28",
+  "a": "src/ui/battle_view.gd:541-547",
+  "t": "src/ui/battle_view.gd:551-557",
+  "feat": "C-low",
+  "born": "3d62521",
+  "born_r": [
+   74,
+   79
+  ],
+  "born_txt": [
+   "# 타워 사격 선: 쏜 뒤 0.1초 동안. 대포는 맞은 곳에 범위 피해 원도 그린다(S90)",
+   "draw_arc(_center(s.target.pos), CELL * s.splash, 0.0, TAU, 24, Color.YELLOW, 1.0)"
+  ],
+  "a_txt": [
+   "for h in battle.heroes:  # 쓰러진 영웅: 복귀할 때까지 쓰러진 자리에 그 영웅 색의 X(I130). 누운 몸(S180) 위에, 막타가 닿은 때부터 밀린 자리에(S197)",
+   "draw_line(c + Vector2(-r.x, r.y), c + Vector2(r.x, -r.y), HERO_COLORS[h.kind], 2.0)"
+  ],
+  "t_txt": [
+   "# 원거리 공격은 시뮬레이션 투사체(S178). 근접 공격은 선을 그리지 않는다(S71 변경). 선(화살)과 원(구슬·대포알)이 번갈아 그려지면 배치가 끊겨서 모양끼리 모아 그린다",
+   "_shots = starts"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "08dc4c5"
+   ],
+   [
+    "adjusted",
+    "1149ca4"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S71",
+  "a": "src/ui/battle_view.gd:541",
+  "t": "src/ui/battle_view.gd:551-564",
+  "feat": "C-low",
+  "born": "813b987",
+  "born_r": [
+   48,
+   54
+  ],
+  "born_txt": [
+   "# 공격선: 친 뒤 0.1초 동안 아군은 흰색, 적은 빨간색(S71). 대상이 무엇이든 그린다(I59)",
+   "draw_line(_center(e.pos), _center(_pos_of(e.target)), Color.RED, 1.0)"
+  ],
+  "a_txt": [
+   "for h in battle.heroes:  # 쓰러진 영웅: 복귀할 때까지 쓰러진 자리에 그 영웅 색의 X(I130). 누운 몸(S180) 위에, 막타가 닿은 때부터 밀린 자리에(S197)",
+   "for h in battle.heroes:  # 쓰러진 영웅: 복귀할 때까지 쓰러진 자리에 그 영웅 색의 X(I130). 누운 몸(S180) 위에, 막타가 닿은 때부터 밀린 자리에(S197)"
+  ],
+  "t_txt": [
+   "# 원거리 공격은 시뮬레이션 투사체(S178). 근접 공격은 선을 그리지 않는다(S71 변경). 선(화살)과 원(구슬·대포알)이 번갈아 그려지면 배치가 끊겨서 모양끼리 모아 그린다",
+   "_pring(Vector2i(_drop_at(m).floor()), int(CELL * m.splash * m.age / BLAST), 2, Color(PX.orange, 1.0 - m.age / BLAST))"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "08dc4c5"
+   ],
+   [
+    "partial",
+    "48e48a5"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "I59",
+  "a": "src/ui/battle_view.gd:541",
+  "t": "src/ui/battle_view.gd:551-564",
+  "feat": "C-low",
+  "born": "813b987",
+  "born_r": [
+   48,
+   54
+  ],
+  "born_txt": [
+   "# 공격선: 친 뒤 0.1초 동안 아군은 흰색, 적은 빨간색(S71). 대상이 무엇이든 그린다(I59)",
+   "draw_line(_center(e.pos), _center(_pos_of(e.target)), Color.RED, 1.0)"
+  ],
+  "a_txt": [
+   "for h in battle.heroes:  # 쓰러진 영웅: 복귀할 때까지 쓰러진 자리에 그 영웅 색의 X(I130). 누운 몸(S180) 위에, 막타가 닿은 때부터 밀린 자리에(S197)",
+   "for h in battle.heroes:  # 쓰러진 영웅: 복귀할 때까지 쓰러진 자리에 그 영웅 색의 X(I130). 누운 몸(S180) 위에, 막타가 닿은 때부터 밀린 자리에(S197)"
+  ],
+  "t_txt": [
+   "# 원거리 공격은 시뮬레이션 투사체(S178). 근접 공격은 선을 그리지 않는다(S71 변경). 선(화살)과 원(구슬·대포알)이 번갈아 그려지면 배치가 끊겨서 모양끼리 모아 그린다",
+   "_pring(Vector2i(_drop_at(m).floor()), int(CELL * m.splash * m.age / BLAST), 2, Color(PX.orange, 1.0 - m.age / BLAST))"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "08dc4c5"
+   ],
+   [
+    "partial",
+    "48e48a5"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S178",
+  "a": "src/ui/battle_view.gd:541-551",
+  "t": "src/ui/battle_view.gd:551-564",
+  "feat": "C-low",
+  "born": "08dc4c5",
+  "born_r": [
+   121,
+   125
+  ],
+  "born_txt": [
+   "# 원거리 공격은 투사체(S178). 근접 공격은 선을 그리지 않는다(S71 변경). 선(화살)과 원(구슬·대포알)이 번갈아 그려지면 배치가 끊겨서 모양끼리 모아 그린다",
+   "_missile(x)"
+  ],
+  "a_txt": [
+   "for h in battle.heroes:  # 쓰러진 영웅: 복귀할 때까지 쓰러진 자리에 그 영웅 색의 X(I130). 누운 몸(S180) 위에, 막타가 닿은 때부터 밀린 자리에(S197)",
+   "# 원거리 공격은 시뮬레이션 투사체(S178). 근접 공격은 선을 그리지 않는다(S71 변경). 선(화살)과 원(구슬·대포알)이 번갈아 그려지면 배치가 끊겨서 모양끼리 모아 그린다"
+  ],
+  "t_txt": [
+   "# 원거리 공격은 시뮬레이션 투사체(S178). 근접 공격은 선을 그리지 않는다(S71 변경). 선(화살)과 원(구슬·대포알)이 번갈아 그려지면 배치가 끊겨서 모양끼리 모아 그린다",
+   "_pring(Vector2i(_drop_at(m).floor()), int(CELL * m.splash * m.age / BLAST), 2, Color(PX.orange, 1.0 - m.age / BLAST))"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S90",
+  "a": "src/ui/battle_view.gd:548-551",
+  "t": "src/ui/battle_view.gd:561-564",
+  "feat": "C-low",
+  "born": "08dc4c5",
+  "born_r": [
+   145,
+   148
+  ],
+  "born_txt": [
+   "if t < 0.0 or t >= fly:",
+   "draw_arc(_spot(x.target), CELL * x.splash * k, 0.0, TAU, 24, Color(1, 0.8, 0.3, 1.0 - k), 1.0)"
+  ],
+  "a_txt": [
+   "var rg := fall_ring(h)",
+   "# 원거리 공격은 시뮬레이션 투사체(S178). 근접 공격은 선을 그리지 않는다(S71 변경). 선(화살)과 원(구슬·대포알)이 번갈아 그려지면 배치가 끊겨서 모양끼리 모아 그린다"
+  ],
+  "t_txt": [
+   "_impacts()  # 사각형이라 구슬·대포알과 한 배치다. 대포알 고리도 아트 px 사각형이라 이어진다",
+   "_pring(Vector2i(_drop_at(m).floor()), int(CELL * m.splash * m.age / BLAST), 2, Color(PX.orange, 1.0 - m.age / BLAST))"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "1149ca4"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S72",
+  "a": "src/ui/battle_view.gd:553",
+  "t": "src/ui/battle_view.gd:566",
+  "feat": "C-low",
+  "born": "a362712",
+  "born_r": [
+   67,
+   72
+  ],
+  "born_txt": [
+   "# 스킬 범위 원(S72). ponytail: 0.3초는 임시값, 짧거나 길면 바꾼다",
+   "draw_arc(_center(h.pos), CELL * h.buff_radius, 0.0, TAU, 48, Color.ORANGE, 1.0)"
+  ],
+  "a_txt": [
+   "shots.sort_custom(func(a, b): return a.look < b.look)",
+   "shots.sort_custom(func(a, b): return a.look < b.look)"
+  ],
+  "t_txt": [
+   "_traces(true)",
+   "_traces(true)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "reauth",
+    "a362712",
+    [
+     "src/ui/battle_view.gd",
+     67,
+     70
+    ],
+    [
+     "src/ui/battle_view.gd",
+     65,
+     68
+    ]
+   ],
+   [
+    "adjusted",
+    "2c211a2"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S73",
+  "a": "src/ui/battle_view.gd:569-575",
+  "t": "src/ui/battle_view.gd:582-590",
+  "feat": "C-low",
+  "born": "813b987",
+  "born_r": [
+   59,
+   61
+  ],
+  "born_txt": [
+   "if controls.show_hp:",
+   "_hp_bar(u.pos, u)"
+  ],
+  "a_txt": [
+   "_top.queue_redraw()",
+   "_aim_preview()"
+  ],
+  "t_txt": [
+   "for u in battle.units + _foes:  # 영웅·용병·적 막대는 hp_bar_rect 자리에(S276)",
+   "_cv.draw_rect(Rect2(top.position, Vector2(top.size.x * u.guard / u.max_guard, top.size.y)), GUARD_BAR)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S284",
+  "a": "src/ui/battle_view.gd:571",
+  "t": "src/ui/battle_view.gd:577",
+  "feat": "C-low",
+  "born": "1a35db9",
+  "born_r": [
+   425,
+   425
+  ],
+  "born_txt": [
+   "_ladders()",
+   "_ladders()"
+  ],
+  "a_txt": [
+   "_draw_top()",
+   "_draw_top()"
+  ],
+  "t_txt": [
+   "_foe_tells()",
+   "_foe_tells()"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S198",
+  "a": "src/ui/battle_view.gd:575",
+  "t": "src/ui/battle_view.gd:585-590",
+  "feat": "C-low",
+  "born": "da47058",
+  "born_r": [
+   180,
+   180
+  ],
+  "born_txt": [
+   "_hp_bar(u.pos - Vector2(0, _lift(u) / CELL + head) + _slip(u) / CELL, u, bar)",
+   "_hp_bar(u.pos - Vector2(0, _lift(u) / CELL + head) + _slip(u) / CELL, u, bar)"
+  ],
+  "a_txt": [
+   "_aim_preview()",
+   "_aim_preview()"
+  ],
+  "t_txt": [
+   "var r := hp_bar_rect(u, bar)",
+   "_cv.draw_rect(Rect2(top.position, Vector2(top.size.x * u.guard / u.max_guard, top.size.y)), GUARD_BAR)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "I185",
+  "a": "src/ui/battle_view.gd:575",
+  "t": "src/ui/battle_view.gd:585-590",
+  "feat": "C-low",
+  "born": "74091a1",
+  "born_r": [
+   332,
+   332
+  ],
+  "born_txt": [
+   "var head: float = (ART[u.kind].anchor[1] - ART.basic.anchor[1]) / CELL if u.get(\"boss\") and ART.has(u.kind) else 0.0  # 보스(I185) 그림은 기본 적보다 키가 커서 막대를 그만큼 올린다(머리 위)",
+   "var head: float = (ART[u.kind].anchor[1] - ART.basic.anchor[1]) / CELL if u.get(\"boss\") and ART.has(u.kind) else 0.0  # 보스(I185) 그림은 기본 적보다 키가 커서 막대를 그만큼 올린다(머리 위)"
+  ],
+  "a_txt": [
+   "_aim_preview()",
+   "_aim_preview()"
+  ],
+  "t_txt": [
+   "var r := hp_bar_rect(u, bar)",
+   "_cv.draw_rect(Rect2(top.position, Vector2(top.size.x * u.guard / u.max_guard, top.size.y)), GUARD_BAR)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S276",
+  "a": "src/ui/battle_view.gd:576-580",
+  "t": "src/ui/battle_view.gd:582-590",
+  "feat": "C-low",
+  "born": "b9c782c",
+  "born_r": [
+   416,
+   419
+  ],
+  "born_txt": [
+   "for u in battle.units + _foes:  # 영웅·용병·적 막대는 hp_bar_rect 자리에(S276)",
+   "_bar_in(hp_bar_rect(u, bar), u)"
+  ],
+  "a_txt": [
+   "_pounce_tells()",
+   "if battle.state == \"prep\":"
+  ],
+  "t_txt": [
+   "for u in battle.units + _foes:  # 영웅·용병·적 막대는 hp_bar_rect 자리에(S276)",
+   "_cv.draw_rect(Rect2(top.position, Vector2(top.size.x * u.guard / u.max_guard, top.size.y)), GUARD_BAR)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ }
+]

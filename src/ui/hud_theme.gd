@@ -65,7 +65,7 @@ static func box(name: String, type: String, bg: Color, line: Color) -> StyleBoxF
 	return s
 
 # 키보드 포커스 모양(S372): 테두리 1px 안쪽에 ACCENT 고리를 한 겹 더 두른다(바탕은 비움). 누름은 테두리 자체가 ACCENT·바탕 PRESS다
-# 상자 밖에 두르면 창 가장자리에 붙은 버튼(«다음 라운드»·리롤)에서 고리가 창 밖으로 1px 나와(2026-11-15 시안 캡처) 안쪽에 둔다
+# 상자 밖에 두르면 창 가장자리에 붙은 버튼(«다음 라운드», 영입이 있던 때의 리롤)에서 고리가 창 밖으로 1px 나와(2026-11-15 시안 캡처) 안쪽에 둔다
 static func focus_ring() -> StyleBox:
 	var s := box("focus", "Button", Color.TRANSPARENT, ACCENT)
 	s.draw_center = false

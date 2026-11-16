@@ -1,0 +1,3608 @@
+{
+  "summary": "P5(영웅 셋 고르기) 뒤 SPEC §3.1 줄 참조 163곳과 바뀐·새·없어진 문장 행을 코드와 대조해 최종 값을 정한다(읽기만)",
+  "agentCount": 4,
+  "logs": [],
+  "result": {
+    "battle": {
+      "decisions": [
+        {
+          "id": "S46",
+          "auto": "src/sim/battle.gd:1016-1038",
+          "final": "src/sim/battle.gd:1026-1050",
+          "kind": "moved",
+          "why": "next_round 함수 전체(func 줄~return true)다. 옛 값 1021-1043은 2026-11-01부터 줄이 밀려 spawn_counts 안에서 시작해 next_round 중간(_draw_mission())에서 끊겨 있었다(e1548ef 773-795 때는 «func next_round() … return true»). 기계 값은 그 어긋난 줄을 그대로 옮긴 것이다. 문장의 «라운드가 바뀌어도 이어진다»를 받친다(next_round가 마을 레벨을 건드리지 않는다)."
+        },
+        {
+          "id": "S47",
+          "auto": "src/sim/battle.gd:815-815",
+          "final": "src/sim/battle.gd:821-822",
+          "kind": "moved",
+          "why": "세금을 골드로 걷는 두 줄(if state != \"won\": … gold += tax())이다. 옛 값 818-819는 줄이 밀려 지운 _draw_offers()·rerolls = 0을 가리켰고(원래 2026-11-01 e1548ef 634-635가 이 두 줄), 그 두 줄이 없어져 기계 값은 _drop_gear() 한 줄이 됐다."
+        },
+        {
+          "id": "S60",
+          "auto": "src/sim/battle.gd:1487-1487",
+          "final": "src/sim/battle.gd:1502-1504",
+          "kind": "moved",
+          "why": "«경험치로 오른다»를 받치는 add_xp(주석·func·_set_xp 호출 3줄)다. 옛 값 1526-1528은 줄이 밀려 지운 set_lineup 안(lineup.erase … append)을 가리켰다(원래 e1548ef 886-888이 add_xp). 기계 값은 _deploy 주석 한 줄이다."
+        },
+        {
+          "id": "S61",
+          "auto": "src/sim/battle.gd:1016-1038",
+          "final": "src/sim/battle.gd:1026-1050",
+          "kind": "moved",
+          "why": "next_round 함수 전체(func 줄~return true)다. 옛 값 1021-1043은 2026-11-01부터 줄이 밀려 spawn_counts 안에서 시작해 next_round 중간(_draw_mission())에서 끊겨 있었다(e1548ef 773-795 때는 «func next_round() … return true»). 기계 값은 그 어긋난 줄을 그대로 옮긴 것이다. «남은 골드는 다음 라운드로 이어진다»를 받친다(gold를 건드리지 않는다)."
+        },
+        {
+          "id": "S61",
+          "auto": "src/sim/battle.gd:1462",
+          "final": "",
+          "kind": "deleted",
+          "why": "원래(e1548ef 834) hire의 «gold -= cost»(영입 비용을 한 주머니 골드로 낸다)였고, 옛 값 1471은 줄이 밀려 _draw_offers 안을 가리켰다. 영입 비용은 S54 2026-11-16 변경으로 없어졌고 hire는 골드를 쓰지 않는다. 기계 값 1462(_hero_list의 return)는 무관하다."
+        },
+        {
+          "id": "S61",
+          "auto": "src/sim/battle.gd:1468",
+          "final": "",
+          "kind": "deleted",
+          "why": "원래(e1548ef 850) reroll의 «gold -= HIRE.reroll»(리롤 비용)였고, 옛 값 1487은 줄이 밀려 hire의 «if gold < cost:»를 가리켰다. 리롤과 영입 비용 둘 다 없어졌다. 기계 값 1468(hire 거부 조건의 둘째 줄)은 골드와 무관하다."
+        },
+        {
+          "id": "S63",
+          "auto": "src/sim/battle.gd:1016-1038",
+          "final": "src/sim/battle.gd:1026-1050",
+          "kind": "moved",
+          "why": "next_round 함수 전체(func 줄~return true)다. 옛 값 1021-1043은 2026-11-01부터 줄이 밀려 spawn_counts 안에서 시작해 next_round 중간(_draw_mission())에서 끊겨 있었다(e1548ef 773-795 때는 «func next_round() … return true»). 기계 값은 그 어긋난 줄을 그대로 옮긴 것이다. «타워·방벽·성곽·마을은 다음 라운드로 그대로 이어진다»를 받친다."
+        },
+        {
+          "id": "S77",
+          "auto": "src/sim/battle.gd:741-748",
+          "final": "src/sim/battle.gd:742-748",
+          "kind": "rescoped",
+          "why": "restart의 미션 차림(var q … _draw_mission()  # 1라운드의 미션) 일곱 줄이다. 옛 범위는 처음 적힐 때(03cbfbc)부터 한 줄 위 «rerolls = 0»에서 시작했고, 그 줄이 없어져 기계 값의 첫 줄이 offers.assign(_hero_list())(고르기 창 목록, 미션과 무관)이 됐다. 첫 줄만 뺀다."
+        },
+        {
+          "id": "S79",
+          "auto": "src/sim/battle.gd:1016-1038",
+          "final": "src/sim/battle.gd:1026-1050",
+          "kind": "moved",
+          "why": "next_round 함수 전체(func 줄~return true)다. 옛 값 1021-1043은 2026-11-01부터 줄이 밀려 spawn_counts 안에서 시작해 next_round 중간(_draw_mission())에서 끊겨 있었다(e1548ef 773-795 때는 «func next_round() … return true»). 기계 값은 그 어긋난 줄을 그대로 옮긴 것이다. «구조물·성곽·집·거점의 체력과 살아 있는 용병이 그대로 이어진다»를 받친다."
+        },
+        {
+          "id": "I15",
+          "auto": "src/sim/battle.gd:1016-1038",
+          "final": "src/sim/battle.gd:1026-1050",
+          "kind": "moved",
+          "why": "next_round 함수 전체(func 줄~return true)다. 옛 값 1021-1043은 2026-11-01부터 줄이 밀려 spawn_counts 안에서 시작해 next_round 중간(_draw_mission())에서 끊겨 있었다(e1548ef 773-795 때는 «func next_round() … return true»). 기계 값은 그 어긋난 줄을 그대로 옮긴 것이다. «남은 골드는 다음 라운드로 이어진다»를 받친다."
+        },
+        {
+          "id": "I46",
+          "auto": "src/sim/battle.gd:815-815",
+          "final": "src/sim/battle.gd:821-822",
+          "kind": "moved",
+          "why": "«전투 단계가 끝나 준비 단계나 라운드 사이로 넘어갈 때마다 걷는다»를 받치는 두 줄(if state != \"won\":  # …걷는다(I46) / gold += tax())이다. 옛 값 818-819는 줄이 밀려 지운 _draw_offers()·rerolls = 0을 가리켰다(원래 e1548ef 634-635). 기계 값은 _drop_gear() 한 줄이다."
+        },
+        {
+          "id": "S117",
+          "auto": "src/sim/battle.gd:1013-1038",
+          "final": "src/sim/battle.gd:1023-1050",
+          "kind": "moved",
+          "why": "next_round의 머리 주석 세 줄 + 함수 전체다(«라운드 사이에서 다음 라운드의 첫 준비 단계로 간다»). 옛 값 1018-1043은 줄이 밀려 spawn_counts 안에서 시작해 next_round 중간(_draw_mission())에서 끊겨 있었다(원래 e1548ef 770-795 «# 영입 창(S122)이나 라운드 사이(S117)에서 … return true»). 기계 값도 그대로 어긋나 있다."
+        },
+        {
+          "id": "S124",
+          "auto": "src/sim/battle.gd:1479-1487",
+          "final": "src/sim/battle.gd:1487-1500",
+          "kind": "moved",
+          "why": "_deploy의 주석 두 줄 + 함수 전체다(계속 출전하는 영웅은 그대로, 새 영웅은 출전 칸에, 빠진 영웅은 사라진다). 옛 값 1507-1524는 줄이 밀려 지운 reroll·dismiss·set_lineup에 걸쳐 있었다(원래 e1548ef 870-884 «# 출전 목록을 전장에 반영한다(S124) … hero = heroes[0] if heroes else null»). _deploy는 lineup 대신 roster를 보도록 바뀌었을 뿐 같은 구절을 받친다."
+        },
+        {
+          "id": "I107",
+          "auto": "src/sim/battle.gd:1479",
+          "final": "src/sim/battle.gd:1488",
+          "kind": "moved",
+          "why": "_deploy 머리 주석 둘째 줄 «새로 출전한 영웅은 … 첫 출전 칸에 최대 체력으로 선다(I107)»다. 옛 값 1508은 줄이 밀려 지운 reroll의 «rerolls += 1»을 가리켰다(원래 e1548ef 871이 이 주석). 기계 값 1479는 dismiss 주석이다."
+        },
+        {
+          "id": "S125",
+          "auto": "src/sim/battle.gd:1487-1487",
+          "final": "src/sim/battle.gd:1502-1504",
+          "kind": "moved",
+          "why": "add_xp(주석·func·_set_xp 호출 3줄)다. 옛 값 1526-1528은 줄이 밀려 지운 set_lineup 안을 가리켰다(원래 e1548ef 886-888). 기계 값은 _deploy 주석 한 줄이다."
+        },
+        {
+          "id": "S126",
+          "auto": "src/sim/battle.gd:1487-1502",
+          "final": "src/sim/battle.gd:1506-1523",
+          "kind": "moved",
+          "why": "_set_xp의 주석 세 줄 + 함수 전체다(누적 경험치로 레벨, 레벨마다 체력·공격력). 옛 값 1530-1547은 줄이 밀려 _deploy 전체를 가리켰다(원래 e1548ef 890-907 «# 경험치를 정하고 … h.damage = base.damage * mult»). 기계 값도 _deploy다."
+        },
+        {
+          "id": "I112",
+          "auto": "src/sim/battle.gd:1487-1502",
+          "final": "src/sim/battle.gd:1506-1523",
+          "kind": "moved",
+          "why": "_set_xp의 주석 세 줄 + 함수 전체다(레벨 L의 최대 체력·공격력 배율, 체력은 오른 만큼 오른다). 옛 값 1530-1547은 줄이 밀려 _deploy를 가리켰다(원래 e1548ef 890-907). 기계 값도 _deploy다."
+        },
+        {
+          "id": "I113",
+          "auto": "src/sim/battle.gd:1487",
+          "final": "src/sim/battle.gd:1506",
+          "kind": "moved",
+          "why": "_set_xp 머리 주석 첫 줄 «경험치를 정하고(최대 레벨의 누적 경험치가 상한, I113) …»다. 옛 값 1530은 줄이 밀려 set_lineup 뒤 빈 줄이었다(원래 e1548ef 890). 기계 값 1487은 _deploy 주석이다."
+        },
+        {
+          "id": "I118",
+          "auto": "src/sim/battle.gd:741-743",
+          "final": "src/sim/battle.gd:742-744",
+          "kind": "moved",
+          "why": "restart가 스테이지의 quests를 읽는 세 줄(var q … quests.sort())이다. 옛 값 744-746은 한 줄 밀려 «rerolls = 0»에서 시작했다(원래 e1548ef 567-569). 기계 값의 첫 줄은 offers.assign(_hero_list())로 미션과 무관하다."
+        },
+        {
+          "id": "I119",
+          "auto": "src/sim/battle.gd:512",
+          "final": "src/sim/battle.gd:516",
+          "kind": "moved",
+          "why": "«var tally := {}  # 라운드 집계(I119)» 한 줄이다. 옛 값 513은 줄이 밀려 지운 «var rerolls»를 가리켰다(원래 e1548ef 386이 var tally). 기계 값 512는 var offers(고르기 창 목록)다."
+        },
+        {
+          "id": "I120",
+          "auto": "src/sim/battle.gd:741-742",
+          "final": "src/sim/battle.gd:747-748",
+          "kind": "moved",
+          "why": "restart의 «_reset_tally()» / «_draw_mission()  # 1라운드의 미션(I120)» 두 줄이다(새 도전에서 집계가 사라지고 1라운드 미션을 새로 뽑는다). 옛 값 744-745는 줄이 밀려 «rerolls = 0»·«var q»를 가리켰다(원래 e1548ef 574-575). 기계 값도 offers.assign·var q다."
+        },
+        {
+          "id": "I120",
+          "auto": "src/sim/battle.gd:1023-1028",
+          "final": "src/sim/battle.gd:1033-1038",
+          "kind": "moved",
+          "why": "next_round가 새 라운드로 넘어가며 지난 판정을 비우고 집계를 돌리고 미션을 뽑는 여섯 줄(settled.clear() … _reset_tally() … _draw_mission())이다. 옛 값 1028-1033은 줄이 밀려 next_round 머리 주석~거부 가지를 가리켰다(원래 e1548ef 780-785 «commission_offers.clear() … _draw_mission()», 의뢰 줄은 2026-11-07에 없어짐). 기계 값도 머리 주석~return false다."
+        },
+        {
+          "id": "S151",
+          "auto": "src/sim/battle.gd:568",
+          "final": "src/sim/battle.gd:568",
+          "kind": "same",
+          "why": "«var _luck»(아이아스 패시브 확률 감소의 전투 난수) 한 줄이다. 옛 값 569도 이 줄이었고, 주석의 «영입소 목록»이 «미션»으로 바뀌었을 뿐이다. 지금 568에서 확인."
+        },
+        {
+          "id": "S179",
+          "auto": "src/sim/battle.gd:567",
+          "final": "src/sim/battle.gd:579",
+          "kind": "moved",
+          "why": "«var _tracing = null  # 지금 내는 스킬 흔적» 한 줄이다. 옛 값 568은 줄이 밀려 «var _rng»(영입소 목록 난수)를 가리켰다(원래 e1548ef 430이 var _tracing). 기계 값 567도 var _rng(지금은 미션 난수)라 S179와 무관하다."
+        },
+        {
+          "id": "S211",
+          "auto": "src/sim/battle.gd:568-570",
+          "final": "src/sim/battle.gd:580-581",
+          "kind": "moved",
+          "why": "«var _lit» / «var _all_lit»(불빛을 구역에 나눠 담는 칸) 두 줄이다. 옛 값 569-570은 줄이 밀려 var _luck·var _kin을 가리켰다(원래 84a761b 435-436이 _lit·_all_lit). 기계 값은 난수 변수 세 줄로 늘어났다."
+        },
+        {
+          "id": "S220",
+          "auto": "src/sim/battle.gd:521",
+          "final": "src/sim/battle.gd:527",
+          "kind": "moved",
+          "why": "«var water := {}  # 물 칸 → true(S220)» 한 줄이다. 옛 값 522는 줄이 밀려 «var state»를 가리켰다(원래 e1548ef 397이 var water). 기계 값 521도 var state다."
+        },
+        {
+          "id": "S247",
+          "auto": "src/sim/battle.gd:1462-1462",
+          "final": "src/sim/battle.gd:1472-1474",
+          "kind": "moved",
+          "why": "hire 안 «if bag.has(h.kind):  # 가방에 그 영웅 장비가 있으면 저절로 낀다(S247)» ~ _refit(h) 세 줄이다. 옛 값 1474-1476은 줄이 밀려 지운 _draw_offers 안을 가리켰다(원래 84a761b 842-844). 이 가지는 hire(고르기)에 남아 있다(주석: 옛 저장의 빈 자리를 채울 때만 닿는다). 기계 값 1462는 _hero_list의 return이다."
+        },
+        {
+          "id": "I258",
+          "auto": "src/sim/battle.gd:568",
+          "final": "src/sim/battle.gd:568",
+          "kind": "same",
+          "why": "③ «var _luck»(판의 전투 난수) 한 줄이다. 옛 값 569도 이 줄이었고 주석 글만 바뀌었다. 지금 568에서 확인."
+        }
+      ],
+      "empty_rows": [],
+      "other": [
+        {
+          "id": "S46",
+          "ref": "src/sim/battle.gd:523",
+          "final": "src/sim/battle.gd:542",
+          "why": "옛 어긋남. 원래 «var village_level := 1 …(S46, S99)»(e1548ef 399). 지금 523은 var wave_index다."
+        },
+        {
+          "id": "S46",
+          "ref": "src/sim/battle.gd:1729-1735",
+          "final": "src/sim/battle.gd:1777-1783",
+          "why": "옛 어긋남. 원래 마을 레벨을 올리는 함수의 주석+함수 7줄(«# 준비 단계에만 골드를 내고 마을 레벨을 하나 올린다(S99, I47)» ~ return true, e1548ef 1093-1099). 지금은 raise_village다."
+        },
+        {
+          "id": "S47",
+          "ref": "src/sim/battle.gd:1714-1727",
+          "final": "src/sim/battle.gd:1766-1775",
+          "why": "옛 어긋남. 원래 tax()·_tax_of 10줄(«# 준비 단계가 시작될 때 걷는 세금 …(I46, S102)» ~ _tax_of의 return, e1548ef 1082-1091)."
+        },
+        {
+          "id": "I46",
+          "ref": "src/sim/battle.gd:1714-1727",
+          "final": "src/sim/battle.gd:1766-1775",
+          "why": "옛 어긋남. S47과 같은 참조: tax()·_tax_of 10줄(e1548ef 1082-1091)."
+        },
+        {
+          "id": "S60",
+          "ref": "src/sim/battle.gd:350-351",
+          "final": "src/sim/battle.gd:355-356",
+          "why": "옛 어긋남. 원래 Unit의 «var level := 1  # 영웅 레벨(S60, S126)» / «var xp := 0»(e1548ef 243-244). 지금 350-351은 var shields와 주석이다."
+        },
+        {
+          "id": "S60",
+          "ref": "src/sim/battle.gd:3884-3886",
+          "final": "src/sim/battle.gd:3979-3981",
+          "why": "옛 어긋남. 원래 «for h in heroes:  # 누가 처치했든 …(S125)» ~ add_xp(h, target.xp) 3줄(e1548ef 2951-2953)."
+        },
+        {
+          "id": "S125",
+          "ref": "src/sim/battle.gd:3884-3886",
+          "final": "src/sim/battle.gd:3979-3981",
+          "why": "옛 어긋남. S60과 같은 참조: 처치 순간 살아 있는 출전 영웅 모두에게 add_xp 3줄(e1548ef 2951-2953)."
+        },
+        {
+          "id": "S125",
+          "ref": "src/sim/battle.gd:192",
+          "final": "src/sim/battle.gd:196",
+          "why": "옛 어긋남. 원래 Enemy의 «var xp := 0  # 처치되면 … 받는 경험치(S125)»(e1548ef 168). 지금 192는 var damage다."
+        },
+        {
+          "id": "S61",
+          "ref": "src/sim/battle.gd:618",
+          "final": "src/sim/battle.gd:625",
+          "why": "옛 어긋남. 원래 «gold = stage.get(\"gold\", 0)»(e1548ef 475). 지금 618은 주석이다."
+        },
+        {
+          "id": "I15",
+          "ref": "src/sim/battle.gd:618",
+          "final": "src/sim/battle.gd:625",
+          "why": "옛 어긋남. S61과 같은 참조: «gold = stage.get(\"gold\", 0)»(시작 골드)."
+        },
+        {
+          "id": "I15",
+          "ref": "src/sim/battle.gd:191",
+          "final": "src/sim/battle.gd:195",
+          "why": "옛 어긋남. 원래 «var reward := 0  # 처치하면 얻는 골드(I15)»(e1548ef 167). 지금 191은 var wall_k다."
+        },
+        {
+          "id": "S63",
+          "ref": "src/sim/battle.gd:470",
+          "final": "src/sim/battle.gd:475",
+          "why": "옛 어긋남. 원래 «var rounds: Array  # 도전의 라운드마다 웨이브 배열(S63, I91)»(e1548ef 352). 지금 470은 var size다."
+        },
+        {
+          "id": "S63",
+          "ref": "src/sim/battle.gd:595",
+          "final": "src/sim/battle.gd:602",
+          "why": "옛 어긋남. 원래 «rounds = stage.get(\"rounds\", …)»(e1548ef 453). 지금 595는 빈 줄이다."
+        },
+        {
+          "id": "S63",
+          "ref": "src/sim/battle.gd:794-809",
+          "final": "src/sim/battle.gd:809-817",
+          "why": "옛 어긋남. 원래 step의 웨이브 끝 가지 «if state == \"battle\" and _queue.is_empty() … state = \"won\"»(e1548ef 619-628). 가지 안의 _draw_offers()·rerolls = 0 두 줄이 이번에 없어져 지금 9줄이다."
+        },
+        {
+          "id": "S17",
+          "ref": "src/sim/battle.gd:794-809",
+          "final": "src/sim/battle.gd:809-817",
+          "why": "옛 어긋남. S63과 같은 참조: step의 웨이브 끝 가지(지운 _draw_offers() 호출이 있던 가지)."
+        },
+        {
+          "id": "I14",
+          "ref": "src/sim/battle.gd:794-809",
+          "final": "src/sim/battle.gd:809-817",
+          "why": "옛 어긋남. S63과 같은 참조: step의 웨이브 끝 가지(지운 _draw_offers() 호출이 있던 가지)."
+        },
+        {
+          "id": "S117",
+          "ref": "src/sim/battle.gd:799",
+          "final": "src/sim/battle.gd:814",
+          "why": "옛 어긋남. 원래 «state = \"cleared\"  # 라운드 사이(S117). 다음 라운드는 next_round로 간다»(e1548ef 624)."
+        },
+        {
+          "id": "S117",
+          "ref": "src/sim/battle.gd:3038-3040",
+          "final": "src/sim/battle.gd:3065-3067",
+          "why": "옛 어긋남. 원래 set_gate의 주석·func·거부 조건 3줄(«# 준비·전투 단계에 성문을 열거나 닫는다(S85, S117)»~, e1548ef 2149-2151)."
+        },
+        {
+          "id": "S124",
+          "ref": "src/sim/battle.gd:1032",
+          "final": "src/sim/battle.gd:1045",
+          "why": "옛 어긋남. 원래 next_round 안의 «_deploy()» 호출(e1548ef 790). 지금 1032는 «wave_index = 0»이다."
+        },
+        {
+          "id": "I107",
+          "ref": "src/sim/battle.gd:2891",
+          "final": "src/sim/battle.gd:2919",
+          "why": "옛 어긋남. 원래 «if c in _stage.get(\"hero_cells\", []):  # 출전 칸에는 짓지 못한다(I107)»(e1548ef 2017)."
+        },
+        {
+          "id": "S126",
+          "ref": "src/sim/battle.gd:1677",
+          "final": "src/sim/battle.gd:1709",
+          "why": "옛 어긋남. 원래 갈라져 나온 적의 경험치 0 «var e := _enemy(dead.split.kind, …, {\"reward\": 0, \"xp\": 0})»(e1548ef 1056)."
+        },
+        {
+          "id": "I113",
+          "ref": "src/sim/battle.gd:1504",
+          "final": "src/sim/battle.gd:1525",
+          "why": "옛 어긋남. 원래 can_transfer 주석 «… 상한(I113)을 넘지 않는다(S127, I116)»(e1548ef 909). 지금 1504는 add_xp의 본문 줄이다. _deploy 바로 옆이라 눈에 띄었다."
+        },
+        {
+          "id": "I119",
+          "ref": "src/sim/battle.gd:1580-1582",
+          "final": "src/sim/battle.gd:1641-1643",
+          "why": "옛 어긋남. 원래 _reset_tally 함수 3줄(e1548ef 985-987). 지금 1580-1582는 wear 앞뒤다."
+        },
+        {
+          "id": "I119",
+          "ref": "src/sim/battle.gd:752",
+          "final": "src/sim/battle.gd:764",
+          "why": "옛 어긋남. 원래 «tally.battle_time += dt  # 라운드 집계(I119)»(e1548ef 587). 지금 752는 func step 줄이다."
+        },
+        {
+          "id": "I119",
+          "ref": "src/sim/battle.gd:1817",
+          "final": "src/sim/battle.gd:1841",
+          "why": "옛 어긋남. 원래 place_merc의 «tally.merc_bought += 1»(e1548ef 1148). 1815의 같은 글은 rank_up(S254) 것이라 아니다."
+        },
+        {
+          "id": "I119",
+          "ref": "src/sim/battle.gd:2865",
+          "final": "src/sim/battle.gd:2894",
+          "why": "옛 어긋남. 원래 «tally.built += 1  # 라운드 집계(I119)»(e1548ef 1993)."
+        },
+        {
+          "id": "I119",
+          "ref": "src/sim/battle.gd:3003",
+          "final": "src/sim/battle.gd:3030",
+          "why": "옛 어긋남. 원래 recruit의 «tally.merc_bought += 1»(e1548ef 2114)."
+        },
+        {
+          "id": "I119",
+          "ref": "src/sim/battle.gd:3860-3861",
+          "final": "src/sim/battle.gd:3940-3941",
+          "why": "옛 어긋남. 원래 «if target == base and amount > 0.0:» / «tally.base_hit += 1»(e1548ef 2929-2930)."
+        },
+        {
+          "id": "I119",
+          "ref": "src/sim/battle.gd:3905-3906",
+          "final": "src/sim/battle.gd:3993-3996",
+          "why": "옛 어긋남. 원래 «if target.is_hero:  # 라운드 집계(I119)» ~ «tally.merc_lost += 1» 4줄(e1548ef 2959-2962)."
+        },
+        {
+          "id": "I119",
+          "ref": "src/sim/battle.gd:3914",
+          "final": "src/sim/battle.gd:4002",
+          "why": "옛 어긋남. 원래 «tally.structure_lost += 1  # 라운드 집계(I119)»(e1548ef 2968)."
+        },
+        {
+          "id": "I119",
+          "ref": "src/sim/battle.gd:3920",
+          "final": "src/sim/battle.gd:4008",
+          "why": "옛 어긋남. 원래 «tally.castle_lost += 1  # 라운드 집계(I119)»(e1548ef 2971)."
+        },
+        {
+          "id": "I120",
+          "ref": "src/sim/battle.gd:1585-1589",
+          "final": "src/sim/battle.gd:1646-1650",
+          "why": "옛 어긋남. 원래 _draw_mission 함수 5줄(e1548ef 990-994). 지금 1585-1589는 wear 안이다."
+        },
+        {
+          "id": "I120",
+          "ref": "src/sim/battle.gd:810-813",
+          "final": "src/sim/battle.gd:818-819",
+          "why": "옛 어긋남. 원래 «if state != \"prep\":  # 라운드를 이겼다: 미션… 판정…(S77, I120)» ~ 판정 호출(e1548ef 629-632, 의뢰 두 줄은 2026-11-07에 없어져 2줄). S77 행의 818-819와 같은 곳이다."
+        },
+        {
+          "id": "I120",
+          "ref": "src/sim/battle.gd:1647-1653",
+          "final": "src/sim/battle.gd:1654-1660",
+          "why": "옛 어긋남. 원래 _settle_quests 함수 전체(e1548ef 1012-1020, 의뢰 줄이 빠져 지금 7줄). 지금 값은 _draw_mission 본문~_settle_quests 주석에 걸쳐 있다."
+        },
+        {
+          "id": "I120",
+          "ref": "src/sim/battle.gd:731-738",
+          "final": "src/sim/battle.gd:742-745",
+          "why": "옛 어긋남. 원래 restart의 «var q = stage.get(\"quests\", [])» ~ 미션·의뢰 비우기(e1548ef 567-572). 의뢰 두 줄이 없어져 «var q … mission = \"\"» 4줄로 봤다(끝 줄은 판단). 지금 값은 난수 씨앗 줄들이다."
+        },
+        {
+          "id": "S247",
+          "ref": "src/sim/battle.gd:1560-1567",
+          "final": "src/sim/battle.gd:1581-1587",
+          "why": "옛 어긋남. 원래 wear의 주석+함수(«# 라운드 사이에만 보유 영웅에게 그 영웅의 장비를 끼우거나 뺀다(S247)» ~ return true, e1548ef 965-972)."
+        },
+        {
+          "id": "S247",
+          "ref": "src/sim/battle.gd:1545-1547",
+          "final": "src/sim/battle.gd:1566-1568",
+          "why": "옛 어긋남. 원래 _gain 안 «for h in roster.filter(…):» ~ _refit(h) 3줄(처음 만든 장비를 저절로 낀다, e1548ef 950-952)."
+        },
+        {
+          "id": "S247",
+          "ref": "src/sim/battle.gd:358",
+          "final": "src/sim/battle.gd:363",
+          "why": "옛 어긋남. 원래 «var worn := false  # 전용장비를 꼈다(S247)»(e1548ef 251). 지금 358은 var aura다."
+        },
+        {
+          "id": "S220",
+          "ref": "src/sim/battle.gd:622-624",
+          "final": "src/sim/battle.gd:629-631",
+          "why": "옛 어긋남. 원래 «water = stage.get(\"water\", {})» ~ grid.set_point_solid(c) 3줄(e1548ef 479-481)."
+        },
+        {
+          "id": "S220",
+          "ref": "src/sim/battle.gd:2889",
+          "final": "src/sim/battle.gd:2917",
+          "why": "옛 어긋남. 원래 짓기 검사 줄 «if not grid.is_in_boundsv(c) or … or water.has(c):»(e1548ef 2015). 지금은 in_strip(c)가 더 붙은 같은 줄이다."
+        },
+        {
+          "id": "S220",
+          "ref": "src/sim/battle.gd:6815",
+          "final": "src/sim/battle.gd:6868",
+          "why": "옛 어긋남. 원래 밀려도 물 칸에 들어가지 않는 줄 «if grid.is_in_boundsv(c) and (not blk or …) and c != base.cell and not water.has(c) …»(e1548ef 3715)."
+        },
+        {
+          "id": "S211",
+          "ref": "src/sim/battle.gd:99-102",
+          "final": "src/sim/battle.gd:104-105 · src/sim/battle.gd:109",
+          "why": "옛 어긋남. 원래 BASE_LIGHT·GATE_LIGHT·LIGHT_CHUNK 상수 세 줄(e1548ef 81-83). 지금은 사이에 다른 상수(GRABS·FIRES·FIRE_LIGHT)가 끼어 둘로 나눴다. 지금 값 99-102는 STAGGER~DUSK다."
+        },
+        {
+          "id": "S211",
+          "ref": "src/sim/battle.gd:550",
+          "final": "src/sim/battle.gd:556",
+          "why": "옛 어긋남. 원래 «var lights := []  # 불빛(S211)»(e1548ef 413). 지금 550은 var evac_round다."
+        },
+        {
+          "id": "S211",
+          "ref": "src/sim/battle.gd:744",
+          "final": "src/sim/battle.gd:750",
+          "why": "옛 어긋남. 원래 restart 끝의 «_light_up()»(e1548ef 577). 지금 744는 quests.sort()다."
+        },
+        {
+          "id": "S211",
+          "ref": "src/sim/battle.gd:825",
+          "final": "src/sim/battle.gd:835",
+          "why": "옛 어긋남. 원래 step 끝의 «_light_up()»(e1548ef 648). 지금 825는 _release(s)다."
+        },
+        {
+          "id": "S211",
+          "ref": "src/sim/battle.gd:844-889",
+          "final": "src/sim/battle.gd:854-899",
+          "why": "옛 어긋남. 원래 light_of·_light_up·seen(«# 어둠 1일 때 x의 불빛 반경(칸, S211)» ~ seen의 return false, e1548ef 665-711)."
+        },
+        {
+          "id": "S62",
+          "ref": "src/sim/battle.gd:1504-1523",
+          "final": "src/sim/battle.gd:1525-1544",
+          "why": "옛 어긋남. 원래 can_transfer·transfer(«# 라운드 사이에 보유 영웅 둘 사이이고 …» ~ transfer의 return true, e1548ef 909-928). 지금 값은 add_xp 본문~_set_xp 끝이다. _deploy 바로 옆이라 눈에 띄었다."
+        },
+        {
+          "id": "S127",
+          "ref": "src/sim/battle.gd:1504-1523",
+          "final": "src/sim/battle.gd:1525-1544",
+          "why": "옛 어긋남. S62와 같은 참조: can_transfer·transfer 20줄."
+        },
+        {
+          "id": "I116",
+          "ref": "src/sim/battle.gd:1504-1523",
+          "final": "src/sim/battle.gd:1525-1544",
+          "why": "옛 어긋남. S62와 같은 참조: can_transfer·transfer 20줄."
+        },
+        {
+          "id": "S208",
+          "ref": "src/sim/battle.gd:1029-1031",
+          "final": "src/sim/battle.gd:1041-1043",
+          "why": "옛 어긋남. 원래 next_round의 «elif live_prep:  # 도전의 첫 준비 단계: 시작 공병(S208)» ~ units.append(…) 3줄(e1548ef 786-788). 지금 값은 «if state == \"cleared\":» 쪽 3줄이다. next_round 주석이 바뀐 덩이 바로 옆이다."
+        },
+        {
+          "id": "S246",
+          "ref": "src/sim/battle.gd:1025",
+          "final": "src/sim/battle.gd:1034",
+          "why": "옛 어긋남. 원래 next_round의 «forged.clear()  # 창당 횟수는 라운드 사이 창마다 새로 센다(S246)»(e1548ef 782). 지금 1025는 next_round 머리 주석 셋째 줄(I93)이다."
+        },
+        {
+          "id": "S252",
+          "ref": "src/sim/battle.gd:1026",
+          "final": "src/sim/battle.gd:1036",
+          "why": "옛 어긋남. 원래 next_round의 «dropped.clear()»(e1548ef 783). 지금 1026은 func next_round 줄이다."
+        }
+      ],
+      "notes": "[먼저 알아야 할 것] 옛 값(f76bcbe)부터 틀려 있었다. 28개 가운데 26개는 옛 범위가 문장과 무관한 줄이었다(예: S47 «세금» → _draw_offers()·rerolls = 0, S220 «물 칸» → var state). 맞던 것은 2026-11-10에 새로 적힌 S151·I258의 var _luck 둘뿐이다. 그래서 final은 «기계 값이 옛 줄을 제대로 따라갔나»가 아니라 «원래 가리키던 코드가 지금 어디 있나»로 적었다. kind moved 23개는 모두 그 뜻이다(기계 값과 다른 줄).\n- 원인: 2026-11-01 668505a(언제든 영입)에서 battle.gd가 바뀌었는데 §3.1 줄이 옮겨지지 않았고, 이어진 e6c2b21·24d07e3 병합에서 더 벌어졌다. 그 뒤 기계 옮김은 어긋난 채로 평행 이동만 했다.\n- 크기: battle.gd 참조 가운데 «범위 안에 자기 문장 번호가 주석으로 있는» 비율이 aa8eb2a 55.9% → 668505a 27.3% → 24d07e3 10.3% → 지금 32.6%(그 뒤 새로 적힌 행이 올린 값). e1548ef(2026-11-01, 마지막으로 맞던 때)에 있던 battle.gd 참조 977개를 지금 행과 자리로 맞대면 첫 줄 글이 같은 것 32개, 그 글이 지금 파일의 다른 줄에 하나만 있는 것(확실한 어긋남) 732개, 판정 못 한 것 213개다. battle.gd 참조는 지금 모두 2,014개다.\n- 다른 몫에도 같은 함정이 있을 것이다. old 범위만 읽고 «같은 단위»를 잡으면 틀린다. I120의 옛 값 1028-1033은 어긋난 채로 우연히 그럴듯한 단위(next_round 머리 주석~거부 가지)라서 특히 속기 쉽다. hud.gd 등 다른 파일은 보지 않았다.\n- 기계 값을 그대로 두는 쪽을 고르면: S46·S61·S63·S79·I15·S117의 기계 값은 옛 값과 같은 줄을 가리킨다(첫·끝 줄 글 같음). 나머지 moved는 덩이 안이라 기계 값이 옛 값과도 다르다.\n\n[확인한 방법]\n- p5_q.json에서 path = src/sim/battle.gd이고 다시 쓰는 행이 아닌 것 28개를 파이썬으로 걸러 수를 맞췄고, decisions의 (id, auto) 짝이 목록과 같음을 스크립트로 검사했다.\n- 항목마다 SPEC 문장과 행을 읽고, f76bcbe의 old 범위와 git diff f76bcbe bfaba36을 읽었다. old가 문장과 맞지 않아 SPEC.md 히스토리 370커밋에서 그 행의 참조가 커밋마다 가리키던 첫·끝 줄 글을 찍어, 마지막으로 맞던 때(대부분 e1548ef, S211·S247은 84a761b, S77은 행을 다시 쓴 03cbfbc)의 글을 지금 파일에서 찾았다.\n- final 범위는 모두 지금 파일(7,196줄)에서 첫·끝 줄을 찍어 확인했고, 범위 끝이 빈 줄이 아님과 파일 길이 안임을 검사했다. other 52개도 ref가 지금 SPEC 행에 그대로 있고 목록 밖임을 검사했다.\n- 측정·pytest는 돌리지 않았고, 저장소 파일과 git 상태는 건드리지 않았다. 작업 중 HEAD가 bfaba36에서 acf07b2(기계 옮김 커밋)로 바뀌어 옛 표는 bfaba36:SPEC.md로 봤다.\n\n[empty_rows] 없다. S61은 둘을 지워도 next_round와 시작 골드 참조가 남는다(시작 골드 618은 625가 맞다, other).\n\n[other 52개] 모두 2026-11-01부터의 옛 어긋남이고, 이번 변경으로 새로 틀려진 목록 밖 참조는 찾지 못했다.\n- 44개는 내 28개가 있는 행의 다른 battle.gd 참조, 8개는 바뀐 함수 바로 옆이다(S17·I14 step 웨이브 끝 가지, S62·S127·I116 can_transfer·transfer, S208·S246·S252 next_round 안 줄).\n- 지운 함수·변수 자리: 지금 1443-1500(고르기~_deploy)을 가리키는 참조 30개는 목록 25개, 다시 쓰는 행 4개(S54·S272·S273·I108), S334 1483-1485(맞음)이다. e1548ef 때 hire·reroll·dismiss·set_lineup·_draw_offers·lineup·offers를 가리키던 참조를 자리로 따라가면, 다시 쓰는 행이 아닌 것은 S61 둘·S124·I107·S247(모두 목록 안)과 S17·S63·I14의 step 가지뿐이다.\n- 바뀐 덩이 ±5줄 안의 목록 밖 참조 78개는 기계가 깨끗이 옮겼지만(첫·끝 줄 글 같음) 대부분 옛 어긋남을 그대로 지닌다(예: S27·I28의 513은 var quests, 원래 var revive로 517). other에는 일부만 넣었다.\n- S151 행(15개 가운데 13개)과 S179 행(battle.gd 참조 11개 모두)의 나머지도 같은 식으로 어긋나 있지만 넣지 않았다.\n- 표 전체를 바로잡으려면 e1548ef(또는 행이 처음 적힌 커밋)의 첫·끝 줄 글을 지금 파일에서 찾는 방식으로 732개쯤은 기계로 옮길 수 있다. 쓴 스크립트: /tmp/claude-0/-home-user-td-proj/3a65bacf-d77b-5ad4-b30c-f51078f27e14/scratchpad/dec/remap2.py (사본 /tmp/claude-0/-home-user-td-proj/3a65bacf-d77b-5ad4-b30c-f51078f27e14/scratchpad/dec/b28_battle/remap2_e1548ef_text_match.py). 결과 사본: /tmp/claude-0/-home-user-td-proj/3a65bacf-d77b-5ad4-b30c-f51078f27e14/scratchpad/dec/b28_battle/final_battle28.json\n- dec/ 폴더는 다른 몫과 같이 써서 같은 이름 파일이 덮인다(내 near.py가 덮였다). 위 b28_battle/ 아래 사본만 믿으면 된다.\n\n[확신이 낮은 항목]\n- S77 742-748: 옛 범위가 처음 적힐 때부터 «rerolls = 0»에서 시작했다. 미션과 무관해 한 줄 어긋난 것으로 보고 뺐다. 일부러 넣은 것이었다면 그 줄은 지금 없으니 결과는 같다.\n- I120 1033-1038: 원래 여섯 줄 단위(비우기~미션 뽑기)를 살렸다. 좁히려면 1037-1038(_reset_tally()·_draw_mission())이다.\n- S61의 삭제 둘: 문장의 «건설·용병 구매를 이 골드로 한다»는 살아 있지만 이 행은 원래도 그 코드를 가리키지 않아 대신 넣지 않았다.\n- S247 1472-1474: 문장의 «영입하면 저절로 장착»은 S54 변경으로 뜻이 달라졌지만 코드가 hire에 남아 있어 살렸다(옛 저장의 빈 자리를 채울 때만 닿는다). 문장을 고칠지는 장부 쪽 판단이다.\n- other의 I120 731-738 → 742-745는 끝 줄이, S211 99-102 → 104-105 · 109는 둘로 나눈 것이 판단이다.\n- next_round 참조는 원래 단위대로 S46·S61·S63·S79·I15는 func~return true(1026-1050), S117만 머리 주석 포함(1023-1050)으로 달리 적었다."
+    },
+    "hud": {
+      "decisions": [
+        {
+          "id": "S19",
+          "auto": "src/ui/hud.gd:513",
+          "final": "src/ui/hud.gd:559",
+          "kind": "moved",
+          "why": "옛 값 526은 f76bcbe 때 이미 어긋나 영입 칸의 `_members.append([toggle, drop, give])`를 가리켰다. 문장(전투 중에도 골드를 쓴다)을 받치던 원래 지목은 구매 버튼 `_buy[kind] = _pop(… battle.recruit …)`(f588604 때 431)이고 지금 559다."
+        },
+        {
+          "id": "S20",
+          "auto": "src/ui/hud.gd:513",
+          "final": "src/ui/hud.gd:559",
+          "kind": "moved",
+          "why": "옛 값 526은 이미 어긋나 `_members.append([toggle, drop, give])`를 가리켰다. 원래 지목은 전투 중 용병 구매 버튼 `_buy[kind] = _pop(… battle.recruit …)`(f588604 때 431)이고 지금 559다."
+        },
+        {
+          "id": "S23",
+          "auto": "src/ui/hud.gd:743-745",
+          "final": "src/ui/hud.gd:805-809",
+          "kind": "moved",
+          "why": "옛 값 758-762는 이미 어긋나 언제든 영입 창 닫기부터 결과 창 보이기까지를 가리켰다. 원래 지목은 고른 미완성 구조물의 버튼 보이기 다섯 줄(`var todo`부터 `_cancel.visible`까지, f588604 때 574-578)이고 지금 805-809다."
+        },
+        {
+          "id": "S24",
+          "auto": "src/ui/hud.gd:745",
+          "final": "src/ui/hud.gd:808",
+          "kind": "moved",
+          "why": "옛 값 761은 이미 어긋나 `var wide … or anytime`을 가리켰다. 원래 지목은 `_resume.visible = todo.any(… s.worker == null)` 한 줄(짓는 공병이 없으면 «이어 짓기», f588604 때 577)이고 지금 808이다."
+        },
+        {
+          "id": "S70",
+          "auto": "src/ui/hud.gd:513",
+          "final": "src/ui/hud.gd:555",
+          "kind": "moved",
+          "why": "옛 값 526은 이미 어긋나 `_members.append([toggle, drop, give])`를 가리켰다. 원래 지목은 판매 버튼 만들기 `_sell = _pop(rows[0], _sell_now, «판매», coin)`(f588604 때 428)이고 지금 555다."
+        },
+        {
+          "id": "S74",
+          "auto": "src/ui/hud.gd:513",
+          "final": "src/ui/hud.gd:562",
+          "kind": "moved",
+          "why": "옛 값 526은 이미 어긋나 `_members.append([toggle, drop, give])`를 가리켰다. 원래 지목은 철거 버튼 만들기 `_demolish = _pop(rows[0], _demolish_press, «철거»)`(f588604 때 434)이고 지금 562다."
+        },
+        {
+          "id": "S74",
+          "auto": "src/ui/hud.gd:744",
+          "final": "src/ui/hud.gd:806",
+          "kind": "moved",
+          "why": "옛 값 759는 이미 어긋나 `controls.set_shop(false)`를 가리켰다. 원래 지목은 `_demolish.visible = controls.picked.any(battle.can_demolish)`(f588604 때 575)이고 지금 806이다."
+        },
+        {
+          "id": "S74",
+          "auto": "src/ui/hud.gd:751-757",
+          "final": "src/ui/hud.gd:816-822",
+          "kind": "moved",
+          "why": "첫 줄·끝 줄 글은 같지만 기계 값 751-757은 결과 창의 미션 판정·전리품 줄이고, 옛 값 769-775도 f76bcbe 때 이미 그 줄이었다. 원래 지목은 철거 두 번 눌러 확정(`var armed`부터 색 되돌리기까지 일곱 줄, f588604 때 585-591)이고 지금 816-822다."
+        },
+        {
+          "id": "S81",
+          "auto": "src/ui/hud.gd:513",
+          "final": "src/ui/hud.gd:559",
+          "kind": "moved",
+          "why": "옛 값 526은 이미 어긋나 `_members.append([toggle, drop, give])`를 가리켰다. 원래 지목은 시설 팝업 구매 버튼 `_buy[kind] = _pop(… battle.recruit …)`(f588604 때 431)이고 지금 559다."
+        },
+        {
+          "id": "S83",
+          "auto": "src/ui/hud.gd:510-516",
+          "final": "src/ui/hud.gd:548-565",
+          "kind": "moved",
+          "why": "옛 값 520-529는 이미 어긋나 출전 전환 버튼부터 결과 창 발 줄까지를 가리켰다. 원래 지목은 팝업 만들기부터 «취소» 버튼까지(`root.add_child(popup)` … `_cancel = _pop`, f588604 때 421-437)이고 지금 548-565다."
+        },
+        {
+          "id": "S83",
+          "auto": "src/ui/hud.gd:743-811",
+          "final": "src/ui/hud.gd:805-868",
+          "kind": "moved",
+          "why": "옛 값 758-827은 이미 어긋나 언제든 영입 창 닫기부터 성곽 고름 정리까지를 가리켰다. 원래 지목은 _process의 팝업 버튼 갱신 덩이(`var todo`부터 `_place_popup()`까지, f588604 때 574-638)이고 지금 805-868이다."
+        },
+        {
+          "id": "S85",
+          "auto": "src/ui/hud.gd:745-765",
+          "final": "src/ui/hud.gd:810-831",
+          "kind": "moved",
+          "why": "옛 값 763-784는 이미 어긋나 결과 창 덮개·제목·탭 줄을 가리켰다. 원래 지목은 성곽 칸 고름 정리부터 성문 버튼 글·끔·이유까지(`if controls.placing … controls.fort` … `_why[_gate]`, f588604 때 579-600)이고 지금 810-831이다."
+        },
+        {
+          "id": "S87",
+          "auto": "src/ui/hud.gd:513",
+          "final": "src/ui/hud.gd:559",
+          "kind": "moved",
+          "why": "옛 값 526은 이미 어긋나 `_members.append([toggle, drop, give])`를 가리켰다. 원래 지목은 구매 버튼 `_buy[kind] = _pop(… battle.recruit …)`(궁수도 이 버튼으로 산다, f588604 때 431)이고 지금 559다."
+        },
+        {
+          "id": "S100",
+          "auto": "src/ui/hud.gd:770-780",
+          "final": "src/ui/hud.gd:836-842",
+          "kind": "moved",
+          "why": "옛 값 789-796은 이미 어긋나 결과 창의 `_show_hire`·`_show_gear` 부르기부터 `_why.clear()`까지를 가리켰다. 원래 지목은 거점 고름 풀기와 마을 레벨 버튼 갱신 여덟 줄(`if controls.placing` … `_opens = …`, f588604 때 605-612)이다. 그 가운데 `_village` 버튼 줄은 2026-11-12 거점 패널(S365)로 옮겨져(hud_keep.gd:549-553) 여기에는 거점 고름 풀기와 «LvN에 …» 줄(`_opens`)만 남았고 지금 836-842다."
+        },
+        {
+          "id": "S105",
+          "auto": "src/ui/hud.gd:502-506",
+          "final": "src/ui/hud.gd:519-520",
+          "kind": "moved",
+          "why": "옛 값 506-508은 이미 어긋나 영입 칸 줄 간격과 `for i in battle.HIRE.slots`를 가리켰다. 원래 지목은 건설 격자 만들기 두 줄(`grid = HudBuild.new(self)`·`root.add_child(grid)`, f588604 때 408-409. 놓기 버튼은 건설 격자에 있다)이고 지금 519-520이다."
+        },
+        {
+          "id": "I19",
+          "auto": "src/ui/hud.gd:513",
+          "final": "src/ui/hud.gd:556",
+          "kind": "moved",
+          "why": "옛 값 526은 이미 어긋나 `_members.append([toggle, drop, give])`를 가리켰다. 원래 지목은 완성 버튼 만들기 `_finish = _pop(… battle.finish …, «완성», hammer)`(f588604 때 429)이고 지금 556이다."
+        },
+        {
+          "id": "I58",
+          "auto": "src/ui/hud.gd:510-523",
+          "final": "src/ui/hud.gd:548-571",
+          "kind": "moved",
+          "why": "옛 값 520-536은 이미 어긋나 출전 전환 버튼부터 `minimap = HudMinimap.new`까지를 가리켰다. 원래 지목은 팝업과 버튼 줄 만들기 전체(`root.add_child(popup)` … 치료 버튼 `_heal.append(_pop(…))`, f588604 때 421-444)이고 지금 548-571이다."
+        },
+        {
+          "id": "I71",
+          "auto": "src/ui/hud.gd:513",
+          "final": "src/ui/hud.gd:559",
+          "kind": "moved",
+          "why": "옛 값 526은 이미 어긋나 `_members.append([toggle, drop, give])`를 가리켰다. 원래 지목은 구매 버튼 `_buy[kind] = _pop(… battle.recruit …)`(사격장 팝업의 궁수 구매, f588604 때 431)이고 지금 559다."
+        },
+        {
+          "id": "S117",
+          "auto": "src/ui/hud.gd:256",
+          "final": "src/ui/hud.gd:269",
+          "kind": "moved",
+          "why": "옛 값 259는 이미 어긋나 `var _members`를 가리켰다. 원래 지목은 `var _wait := 0.0  # 결과 창이 뜨기까지 남은 시간(초, S117)`(f588604 때 205)이고 지금 269다."
+        },
+        {
+          "id": "S129",
+          "auto": "src/ui/hud.gd:470-496",
+          "final": "",
+          "kind": "deleted",
+          "why": "원래 지목은 영입 칸의 의뢰 목록·수락 버튼 만들기(`_hire.add_child(_quests)` … `_commissions.append(take)`, f588604 때 396-402)인데 의뢰가 2026-11-07에 없어지며(S77) 지워졌다. 그 뒤 값은 장비·유물 줄과 영입 칸 두 칸 만들기를 가리켰다. 문장 전체가 의뢰 규칙이라 받칠 지금 코드가 없다."
+        },
+        {
+          "id": "I122",
+          "auto": "src/ui/hud.gd:9-10",
+          "final": "src/ui/hud.gd:9-10",
+          "kind": "same",
+          "why": "머리 주석 9~10줄 그대로다. 이번에 9줄의 «보유 영웅»이 «고른 영웅»으로 바뀌었을 뿐이다. I122를 적은 줄은 10줄이고, 9줄은 2026-11-08 대조 때 의뢰 목록 언급을 지운 줄이라 함께 잡혀 있다."
+        },
+        {
+          "id": "I123",
+          "auto": "src/ui/hud.gd:763-765",
+          "final": "src/ui/hud.gd:826-831",
+          "kind": "moved",
+          "why": "옛 값 779-784는 이미 어긋나 결과 창의 `_giver = null`부터 탭 보이기까지를 가리켰다. 원래 지목은 성문 버튼 보이기부터 쿨타임 글·끔·이유까지(`_gate.visible` … `_why[_gate]`, f588604 때 595-600)이고 지금 826-831이다."
+        },
+        {
+          "id": "I124",
+          "auto": "src/ui/hud.gd:764-765",
+          "final": "src/ui/hud.gd:827-831",
+          "kind": "moved",
+          "why": "옛 값 780-784는 이미 어긋나 `_gear_tab = false`부터 탭 보이기까지를 가리켰다. 원래 지목은 `if _gate.visible:` 덩이 다섯 줄(칸 막힘 `stuck`, f588604 때 596-600)이고 지금 827-831이다."
+        },
+        {
+          "id": "I128",
+          "auto": "src/ui/hud.gd:749-762",
+          "final": "src/ui/hud.gd:814-825",
+          "kind": "moved",
+          "why": "첫 줄·끝 줄 글은 같지만 기계 값 749-762는 결과 창의 미션 판정부터 `_seen` 줄까지이고, 옛 값 767-778도 f76bcbe 때 이미 그 줄이었다. 원래 지목은 공병 지시 버튼 끄기(주석 «공병 지시 버튼…(I128)»부터 `_why[b] = gap`까지, f588604 때 583-594)이고 지금 814-825다."
+        },
+        {
+          "id": "I129",
+          "auto": "src/ui/hud.gd:257-260",
+          "final": "src/ui/hud.gd:275-278",
+          "kind": "moved",
+          "why": "첫 줄·끝 줄 글은 같지만 기계 값 257-260은 `_giver`·`_tabs`·`_gear_tab`·`_gear`이고 옛 값 260-263도 그랬다. 원래 지목은 `var portraits`·`slots`·`_rows`·`_faces` 네 줄(f588604 때 209-212)이고 지금 275-278이다."
+        },
+        {
+          "id": "I129",
+          "auto": "src/ui/hud.gd:1451-1488",
+          "final": "src/ui/hud.gd:1512-1556",
+          "kind": "moved",
+          "why": "옛 값 1460-1499는 이미 어긋나 영입 카드 비용 글 자리부터 `_gear_move_line`까지를 가리켰다. 원래 지목은 `func _show_heroes()`부터 `_hero_tip`의 return까지(_show_heroes·_empty_slot·_hero_tip, f588604 때 1200-1239)이고 지금 1512-1556이다."
+        },
+        {
+          "id": "I151",
+          "auto": "src/ui/hud.gd:258",
+          "final": "src/ui/hud.gd:276",
+          "kind": "moved",
+          "why": "옛 값 261은 이미 어긋나 `var _tabs`를 가리켰다. 원래 지목은 `var slots := []  # 출전 칸마다 {칸: 스킬 칸}(I151)`(f588604 때 210)이고 지금 276이다."
+        },
+        {
+          "id": "I151",
+          "auto": "src/ui/hud.gd:1475-1475",
+          "final": "src/ui/hud.gd:1539-1541",
+          "kind": "moved",
+          "why": "옛 값 1482-1484는 이미 어긋나 이번에 지운 `_offer_why`의 끝 세 줄을 가리켰다. 원래 지목은 _show_heroes의 스킬 칸 상태 넣기 세 줄(`for slot in battle.SLOTS:` … `show_state`, f588604 때 1222-1224)이고 지금 1539-1541이다."
+        },
+        {
+          "id": "I151",
+          "auto": "src/ui/hud.gd:1491-1516",
+          "final": "src/ui/hud.gd:1566-1598",
+          "kind": "moved",
+          "why": "옛 값 1509-1538은 이미 어긋나 이번에 지운 `_reroll_press`부터 `_show_heroes` 앞머리까지를 가리켰다. 원래 지목은 `func _skill_press`부터 `_slot_state` 끝까지(_skill_press·_skill_refuse·_auto_click·_slot_state, f588604 때 1249-1280)이고 지금 1566-1598이다."
+        },
+        {
+          "id": "S186",
+          "auto": "src/ui/hud.gd:502-506",
+          "final": "src/ui/hud.gd:519-520",
+          "kind": "moved",
+          "why": "옛 값 506-508은 이미 어긋나 영입 칸 줄 간격과 `for i in battle.HIRE.slots`를 가리켰다. 원래 지목은 건설 격자 만들기 두 줄(`grid = HudBuild.new(self)`·`root.add_child(grid)`, f588604 때 408-409)이고 지금 519-520이다."
+        },
+        {
+          "id": "S188",
+          "auto": "src/ui/hud.gd:1076-1128",
+          "final": "src/ui/hud.gd:1140-1189",
+          "kind": "moved",
+          "why": "첫 줄·끝 줄 글은 같지만 기계 값 1076-1128은 _show_progress 가운데부터 _wave_dots 가운데까지이고 옛 값 1092-1144도 그랬다. 원래 지목은 `_next_wave` 주석부터 `_wave_tip` 끝까지(_next_wave·_total·_boss·_night·_wave_lines·_wave_tip, f588604 때 882-928)이고 지금 1140-1189다."
+        },
+        {
+          "id": "S188",
+          "auto": "src/ui/hud.gd:1138-1165",
+          "final": "src/ui/hud.gd:1207-1234",
+          "kind": "moved",
+          "why": "첫 줄·끝 줄 글은 같지만 기계 값 1138-1165는 `return _dot_tex[k]`부터 _wave_lines 첫 줄까지이고 옛 값 1154-1181도 그랬다. 원래 지목은 아래 가장자리 표식(`_make_edges` 주석부터 `_show_edges`의 `m.position = …`까지, f588604 때 938-965)이고 지금 1207-1234다. 그 뒤 두 줄(1235-1236)은 같은 행의 다른 참조 몫이다."
+        },
+        {
+          "id": "S189",
+          "auto": "src/ui/hud.gd:525-533",
+          "final": "src/ui/hud.gd:573-575 · src/ui/hud.gd:593",
+          "kind": "rescoped",
+          "why": "옛 값 538-548은 이미 어긋나 `evac = HudEvac.new`부터 체력바 버튼 자리까지를 가리켰다. 원래 지목은 경보 만들기 세 줄과 `toasts.go.connect(…)  # 경보 토스트를 누르면 그 자리로`(사이에 힌트 두 줄이 끼어 있던 여섯 줄, f588604 때 446-451)이다. 지금은 그 사이에 원정 «다시·철수» 창 만들기가 끼어 한 범위로 잡을 수 없어 573-575와 593 둘로 나누고 힌트 두 줄(S191)은 뺐다."
+        },
+        {
+          "id": "S191",
+          "auto": "src/ui/hud.gd:67",
+          "final": "src/ui/hud.gd:69",
+          "kind": "moved",
+          "why": "옛 값 67은 이미 어긋나 `const HudShop := preload(…)`(이번에 지운 줄)를 가리켰고 기계 값 67은 `const HudAuto`다. 원래 지목은 `const Hints := preload(…hints.gd)`(f588604 때 66)이고 지금 69다."
+        },
+        {
+          "id": "S191",
+          "auto": "src/ui/hud.gd:527-532",
+          "final": "src/ui/hud.gd:576-577",
+          "kind": "moved",
+          "why": "옛 값 541-547은 이미 어긋나 `root.add_child(shop)`부터 체력바 버튼까지를 가리켰다. 원래 지목은 힌트 만들기 두 줄(`hints = Hints.new(battle, controls)`·`root.add_child(hints)`, f588604 때 449-450)이고 지금 576-577이다."
+        },
+        {
+          "id": "I165",
+          "auto": "src/ui/hud.gd:1490-1491",
+          "final": "src/ui/hud.gd:1558-1563",
+          "kind": "moved",
+          "why": "옛 값 1501-1506은 이미 어긋나 이번에 지운 `_cap_note`와 `_reroll_press` 주석을 가리켰다. 원래 지목은 `_tap` 함수와 그 주석(두 번 누르면 카메라가 그 영웅에게, f588604 때 1241-1246)이고 지금 1558-1563이다."
+        },
+        {
+          "id": "I167",
+          "auto": "src/ui/hud.gd:513",
+          "final": "src/ui/hud.gd:559",
+          "kind": "moved",
+          "why": "옛 값 526은 이미 어긋나 `_members.append([toggle, drop, give])`를 가리켰다. 원래 지목은 구매 버튼 줄 `_buy[kind] = _pop(…, «%s 구매» % NAMES[kind], …)`(이어 붙이던 글을 틀 글로 바꾼 예, f588604 때 431)이고 지금 559다."
+        },
+        {
+          "id": "S206",
+          "auto": "src/ui/hud.gd:505-506",
+          "final": "src/ui/hud.gd:521-522",
+          "kind": "moved",
+          "why": "옛 값 509-510은 이미 어긋나 영입 카드 만들기 `_offers.append(_card(left, i))`를 가리켰다. 원래 지목은 선택 패널 만들기 두 줄(`select = HudSelect.new(self)`·`root.add_child(select)`, f588604 때 410-411)이고 지금 521-522다."
+        },
+        {
+          "id": "S209",
+          "auto": "src/ui/hud.gd:506-506",
+          "final": "src/ui/hud.gd:523-524",
+          "kind": "moved",
+          "why": "옛 값 511-512는 이미 어긋나 리롤 버튼 만들기(이번에 지운 줄)를 가리켰다. 원래 지목은 미니맵 만들기 두 줄(`minimap = HudMinimap.new(self)`·`root.add_child(minimap)`, f588604 때 412-413)이고 지금 523-524다."
+        },
+        {
+          "id": "S217",
+          "auto": "src/ui/hud.gd:764",
+          "final": "src/ui/hud.gd:828",
+          "kind": "moved",
+          "why": "옛 값 781은 이미 어긋나 `_note.text = …  # 상한 리롤 이유…`(이번에 지운 줄)를 가리켰다. 원래 지목은 `var stuck: bool = k.open and battle.occupied_area(k)  # 문루 칸 어디든(S217)`(f588604 때 597)이고 지금 828이다."
+        },
+        {
+          "id": "S230",
+          "auto": "src/ui/hud.gd:506-506",
+          "final": "src/ui/hud.gd:525-526",
+          "kind": "moved",
+          "why": "옛 값 513-514는 이미 어긋나 `_note` 글 색·크기(이번에 지운 줄)를 가리켰다. 원래 지목은 대피령 버튼 만들기 두 줄(`evac = HudEvac.new(self)`·`root.add_child(evac)`, f588604 때 414-415)이고 지금 525-526이다."
+        },
+        {
+          "id": "S253",
+          "auto": "src/ui/hud.gd:1355",
+          "final": "src/ui/hud.gd:1469",
+          "kind": "replaced",
+          "why": "옛 값 1360은 이미 어긋나 영입 칸의 출전 버튼 끔 줄을 가리켰다. 원래 지목은 _card의 툴팁 줄 `tip.add(b, … «누르면 보유에 넣고 빈 출전 자리에 든다» + _gear_line(battle.offers[i]), _offer_why(i))`(f588604 때 1134)인데 이번에 `_card_tip`으로 나뉘었다. «장비 있음 +N» 줄을 붙이는 곳은 _card_tip의 «고르기» return(1469)이다. 툴팁 등록은 1461 `tip.add(b, func(): return _card_tip(i))`다."
+        },
+        {
+          "id": "S253",
+          "auto": "src/ui/hud.gd:1355-1355",
+          "final": "src/ui/hud.gd:1471-1473",
+          "kind": "moved",
+          "why": "옛 값 1363-1365는 이미 어긋나 영입 칸의 이관 버튼 세 줄을 가리켰다. 원래 지목은 `_gear_line` 함수와 그 주석(«… 장비 줄(S253)», f588604 때 1137-1139)이고 지금 1471-1473이다. 이번에 주석의 «영입 카드»가 «영웅 카드»로 바뀌었을 뿐이다."
+        },
+        {
+          "id": "S255",
+          "auto": "src/ui/hud.gd:513",
+          "final": "src/ui/hud.gd:561",
+          "kind": "moved",
+          "why": "옛 값 526은 이미 어긋나 `_members.append([toggle, drop, give])`를 가리켰다. 원래 지목은 강화 버튼 만들기 `_rank[kind] = _pop(… battle.rank_up(kind), «%s 강화» …)`(f588604 때 433)이고 지금 561이다."
+        },
+        {
+          "id": "S255",
+          "auto": "src/ui/hud.gd:730-739",
+          "final": "src/ui/hud.gd:792-801",
+          "kind": "moved",
+          "why": "옛 값 745-754는 이미 어긋나 조준 안내 줄부터 결과 창 `if fresh:`까지를 가리켰다. 원래 지목은 강화 버튼 갱신 덩이(`for kind in _rank:  # 강화는 준비 단계에만(S255)`부터 `_steps[_rank[kind]] = …`까지, f588604 때 563-570)이고 지금 792-801이다."
+        },
+        {
+          "id": "S274",
+          "auto": "src/ui/hud.gd:1351",
+          "final": "src/ui/hud.gd:1373",
+          "kind": "moved",
+          "why": "옛 값 1354는 이미 어긋나 영입 칸의 `_members[i][0].button_pressed = false`를 가리켰다. 원래 지목은 `row[4].modulate.a = 1.0 if n >= 0 else GEAR_DIM  # 가방에 없는 장비는 흐리게(S274)`(행을 쓴 cefd8a9 때 1128)이고 지금 1373이다."
+        },
+        {
+          "id": "S274",
+          "auto": "src/ui/hud.gd:1272-1272",
+          "final": "src/ui/hud.gd:1337-1339",
+          "kind": "moved",
+          "why": "옛 값 1288-1290은 이미 어긋나 proceed의 언제든 영입 창 «닫기» 가지(이번에 지운 줄)를 가리켰다. 원래 지목은 카드 작은 장비 아이콘 세 줄(`var mini: TextureRect = card.get_child(1)`·`mini.visible`·`mini.texture`, cefd8a9 때 1062-1064)이고 지금 _show_hire의 1337-1339다. 이번에 `mini.visible`에서 빈 칸 검사만 빠졌다."
+        },
+        {
+          "id": "S313",
+          "auto": "src/ui/hud.gd:178",
+          "final": "src/ui/hud.gd:178",
+          "kind": "same",
+          "why": "`var auto_all  # «전체 오토» 버튼(S313, I259)…` 한 줄 그대로다. 바로 위 `var shop` 줄이 지워져 180에서 178이 됐고 주석 뒷부분만 바뀌었다."
+        }
+      ],
+      "empty_rows": [
+        {
+          "id": "S129",
+          "suggest": "내 몫(hud.gd 참조 하나)만 지우면 battle.gd 참조 둘이 남는다. 그러나 그 둘도 f588604 때부터 의뢰와 상관없는 줄이고 문장 전체가 없어진 의뢰 규칙이다. 그 둘을 지우면 행을 «| S129 | (2026-11-07 없어짐 — 의뢰 제거, S77) |»로 쓴다(I121 행과 같은 꼴)."
+        }
+      ],
+      "other": [
+        {
+          "id": "S19",
+          "ref": "src/ui/hud.gd:971",
+          "final": "src/ui/hud.gd:1029",
+          "why": "[옛 어긋남] 위 띠 골드 글 `_gold.text`"
+        },
+        {
+          "id": "S23",
+          "ref": "src/ui/hud.gd:516",
+          "final": "src/ui/hud.gd:565",
+          "why": "[옛 어긋남] «취소» 버튼 만들기"
+        },
+        {
+          "id": "S24",
+          "ref": "src/ui/hud.gd:515",
+          "final": "src/ui/hud.gd:564",
+          "why": "[옛 어긋남] «이어 짓기» 버튼 만들기"
+        },
+        {
+          "id": "S70",
+          "ref": "src/ui/hud.gd:719-723",
+          "final": "src/ui/hud.gd:778-782",
+          "why": "[옛 어긋남] 판매 팝업 닫기와 «판매 +N» 글"
+        },
+        {
+          "id": "S70",
+          "ref": "src/ui/hud.gd:847-866",
+          "final": "src/ui/hud.gd:922-941",
+          "why": "[옛 어긋남] _place_popup 함수"
+        },
+        {
+          "id": "S70",
+          "ref": "src/ui/hud.gd:1616-1620",
+          "final": "src/ui/hud.gd:1695-1701",
+          "why": "[옛 어긋남] _sell_now 함수(주석 포함)"
+        },
+        {
+          "id": "S74",
+          "ref": "src/ui/hud.gd:837-843",
+          "final": "src/ui/hud.gd:911-918",
+          "why": "[옛 어긋남] _demolish_press 함수(주석 포함)"
+        },
+        {
+          "id": "S81",
+          "ref": "src/ui/hud.gd:725-729",
+          "final": "src/ui/hud.gd:784-789",
+          "why": "[옛 어긋남] 고른 시설 정리와 구매 버튼 보이기·글"
+        },
+        {
+          "id": "S81",
+          "ref": "src/ui/hud.gd:847-866",
+          "final": "src/ui/hud.gd:922-941",
+          "why": "[옛 어긋남] _place_popup 함수"
+        },
+        {
+          "id": "S81",
+          "ref": "src/ui/hud.gd:404",
+          "final": "src/ui/hud.gd:431",
+          "why": "[옛 어긋남] 용병 키로 고른 시설로 카메라(S81, I164)"
+        },
+        {
+          "id": "S83",
+          "ref": "src/ui/hud.gd:724",
+          "final": "src/ui/hud.gd:783",
+          "why": "[옛 어긋남] «완성» 버튼 보이기"
+        },
+        {
+          "id": "S83",
+          "ref": "src/ui/hud.gd:1593-1598",
+          "final": "src/ui/hud.gd:1672-1677",
+          "why": "[옛 어긋남] _apply 함수(주석 포함)"
+        },
+        {
+          "id": "S83",
+          "ref": "src/ui/hud.gd:825",
+          "final": "src/ui/hud.gd:882",
+          "why": "[옛 어긋남] _pop의 버튼 글 줄(이어 짓기·취소는 이름을 글로)"
+        },
+        {
+          "id": "S85",
+          "ref": "src/ui/hud.gd:521",
+          "final": "src/ui/hud.gd:569",
+          "why": "[옛 어긋남] 성문 버튼 만들기"
+        },
+        {
+          "id": "S87",
+          "ref": "src/ui/hud.gd:728-729",
+          "final": "src/ui/hud.gd:788-789",
+          "why": "[옛 어긋남] 구매 버튼 보이기·글"
+        },
+        {
+          "id": "S100",
+          "ref": "src/ui/hud.gd:517",
+          "final": "src/ui/hud_keep.gd:143-145",
+          "why": "원래 지목은 팝업의 `_village = _pop(… «마을 레벨 올리기»)`인데 2026-11-12 거점 패널(S365, 16c79db)에서 지워졌다. 지금 값은 결과 창 발 줄 `box.add_child(foot)`다. 버튼은 거점 패널 머리 줄로 옮겨졌다"
+        },
+        {
+          "id": "S105",
+          "ref": "src/ui/hud.gd:72-75",
+          "final": "src/ui/hud.gd:74-77",
+          "why": "[옛 어긋남] 위 띠 칸 자리 BAR"
+        },
+        {
+          "id": "S105",
+          "ref": "src/ui/hud.gd:283-287",
+          "final": "src/ui/hud.gd:297-301",
+          "why": "[옛 어긋남] 위 띠 만들기"
+        },
+        {
+          "id": "S105",
+          "ref": "src/ui/hud.gd:880-886",
+          "final": "src/ui/hud.gd:955-961",
+          "why": "[옛 어긋남] _cell 함수"
+        },
+        {
+          "id": "I19",
+          "ref": "src/ui/hud.gd:724",
+          "final": "src/ui/hud.gd:783",
+          "why": "[옛 어긋남] «완성» 버튼 보이기"
+        },
+        {
+          "id": "I58",
+          "ref": "src/ui/hud.gd:719-723",
+          "final": "src/ui/hud.gd:778-782",
+          "why": "[옛 어긋남] 판매 팝업 닫기와 «판매 +N» 글"
+        },
+        {
+          "id": "I58",
+          "ref": "src/ui/hud.gd:847-866",
+          "final": "src/ui/hud.gd:922-941",
+          "why": "[옛 어긋남] _place_popup 함수"
+        },
+        {
+          "id": "I58",
+          "ref": "src/ui/hud.gd:807-811",
+          "final": "src/ui/hud.gd:864-868",
+          "why": "[옛 어긋남] 이유 줄·빈 줄 숨기기·팝업 자리(_process 끝)"
+        },
+        {
+          "id": "I58",
+          "ref": "src/ui/hud.gd:823-830",
+          "final": "src/ui/hud.gd:880-887",
+          "why": "[옛 어긋남] _pop 함수(주석 포함)"
+        },
+        {
+          "id": "I71",
+          "ref": "src/ui/hud.gd:728-729",
+          "final": "src/ui/hud.gd:788-789",
+          "why": "[옛 어긋남] 구매 버튼 보이기·글"
+        },
+        {
+          "id": "S117",
+          "ref": "src/ui/hud.gd:675-701",
+          "final": "src/ui/hud.gd:738-758",
+          "why": "[이번 변경에 닿음] 결과 창 띄우기(`var fresh`부터 진행 버튼 글까지). 이번에 anytime 가지가 빠지고 창 제목이 «영웅 고르기»로 바뀐 곳"
+        },
+        {
+          "id": "S117",
+          "ref": "src/ui/hud.gd:763",
+          "final": "src/ui/hud.gd:826",
+          "why": "[옛 어긋남] 성문 버튼은 준비·전투 단계에만"
+        },
+        {
+          "id": "S117",
+          "ref": "src/ui/hud.gd:1213-1221",
+          "final": "src/ui/hud.gd:1270-1280",
+          "why": "[이번 변경에 닿음] proceed 함수(주석 포함). 이번에 shop 가지가 빠지고 `_short_now` 막기가 들어갔다"
+        },
+        {
+          "id": "S117",
+          "ref": "src/ui/hud.gd:238",
+          "final": "src/ui/hud.gd:245",
+          "why": "[옛 어긋남] 맵 덮개 dim"
+        },
+        {
+          "id": "S117",
+          "ref": "src/ui/hud.gd:406-410",
+          "final": "src/ui/hud.gd:433-437",
+          "why": "[옛 어긋남] 덮개 만들기"
+        },
+        {
+          "id": "S117",
+          "ref": "src/ui/hud.gd:675-692",
+          "final": "src/ui/hud.gd:738-747",
+          "why": "[이번 변경에 닿음] 결과 창 늦추기·보이기·자리(`var fresh`부터 창 크기까지)"
+        },
+        {
+          "id": "S117",
+          "ref": "src/ui/hud.gd:80",
+          "final": "src/ui/hud.gd:82",
+          "why": "[옛 어긋남] RESULT_WAIT"
+        },
+        {
+          "id": "S117",
+          "ref": "src/ui/hud.gd:1215-1217",
+          "final": "src/ui/hud.gd:1272-1274",
+          "why": "[옛 어긋남] 기다리는 동안 Enter는 창만 연다"
+        },
+        {
+          "id": "I124",
+          "ref": "src/ui/hud.gd:787-793",
+          "final": "src/ui/hud.gd:848-852",
+          "why": "[옛 어긋남] 복구 버튼 칸 막힘"
+        },
+        {
+          "id": "I124",
+          "ref": "src/ui/hud.gd:807-808",
+          "final": "src/ui/hud.gd:864-865",
+          "why": "[옛 어긋남] 정보 칸 이유 줄"
+        },
+        {
+          "id": "I128",
+          "ref": "src/ui/hud.gd:789-793",
+          "final": "src/ui/hud.gd:850-852",
+          "why": "[옛 어긋남] 복구 버튼 글·끔·이유"
+        },
+        {
+          "id": "I128",
+          "ref": "src/ui/hud.gd:1555-1562",
+          "final": "src/ui/hud.gd:1634-1641",
+          "why": "[옛 어긋남] _engineer_gap 함수"
+        },
+        {
+          "id": "I128",
+          "ref": "src/ui/hud.gd:403",
+          "final": "src/ui/hud.gd:430",
+          "why": "[옛 어긋남] 놓기 거부 신호 받기"
+        },
+        {
+          "id": "I128",
+          "ref": "src/ui/hud.gd:620-629",
+          "final": "src/ui/hud.gd:721-727",
+          "why": "[옛 어긋남] 거부 안내 줄"
+        },
+        {
+          "id": "I128",
+          "ref": "src/ui/hud.gd:807-808",
+          "final": "src/ui/hud.gd:864-865",
+          "why": "[옛 어긋남] 정보 칸 이유 줄"
+        },
+        {
+          "id": "I128",
+          "ref": "src/ui/hud.gd:868-871",
+          "final": "src/ui/hud.gd:943-946",
+          "why": "[옛 어긋남] _draw_refused 함수(주석 포함)"
+        },
+        {
+          "id": "I129",
+          "ref": "src/ui/hud.gd:137",
+          "final": "src/ui/hud.gd:156",
+          "why": "[옛 어긋남] LOW(초상 맥박 비율)"
+        },
+        {
+          "id": "I129",
+          "ref": "src/ui/hud.gd:302-363",
+          "final": "src/ui/hud.gd:330-378",
+          "why": "[옛 어긋남] 영웅 칸 만들기(for부터 `_rows.append(row)`까지)"
+        },
+        {
+          "id": "I151",
+          "ref": "src/ui/hud.gd:335-348",
+          "final": "src/ui/hud.gd:355-363",
+          "why": "[옛 어긋남] 스킬 칸 만들기"
+        },
+        {
+          "id": "I151",
+          "ref": "src/ui/hud.gd:365",
+          "final": "src/ui/hud.gd:380",
+          "why": "[옛 어긋남] 스킬 키 거부 표시 잇기"
+        },
+        {
+          "id": "S186",
+          "ref": "src/ui/hud.gd:540",
+          "final": "src/ui/hud.gd:621",
+          "why": "[옛 어긋남] `select.refresh()`(정보 칸 자리)"
+        },
+        {
+          "id": "S188",
+          "ref": "src/ui/hud.gd:90-100",
+          "final": "src/ui/hud.gd:99-102",
+          "why": "[옛 어긋남] 진행 칸·표식 그림 상수(PLAY~ARROW 다섯 줄). 지금은 PLAY(92)와 SKULL 사이에 유물 그림이 끼어 SKULL~ARROW만 잡았다"
+        },
+        {
+          "id": "S188",
+          "ref": "src/ui/hud.gd:119-135",
+          "final": "src/ui/hud.gd:124-154",
+          "why": "[옛 어긋남] ENEMIES·TRAITS·SIDES·VIEW·EDGE_X"
+        },
+        {
+          "id": "S188",
+          "ref": "src/ui/hud.gd:548-549",
+          "final": "src/ui/hud.gd:632-633",
+          "why": "[옛 어긋남] «다음 웨이브에 보스» 토스트"
+        },
+        {
+          "id": "S188",
+          "ref": "src/ui/hud.gd:1004-1045",
+          "final": "src/ui/hud.gd:1066-1116",
+          "why": "[이번 변경에 닿음] _show_progress(주석부터 웨이브 점 자리까지). 이번에 «영입» 글이 «영웅 고르기»·«다음 라운드»로 바뀐 곳"
+        },
+        {
+          "id": "S188",
+          "ref": "src/ui/hud.gd:1154",
+          "final": "src/ui/hud.gd:1223",
+          "why": "[옛 어긋남] _show_edges 주석"
+        },
+        {
+          "id": "S188",
+          "ref": "src/ui/hud.gd:1166-1167",
+          "final": "src/ui/hud.gd:1235-1236",
+          "why": "[옛 어긋남] 선택 패널과 겹치는 표식 올리기"
+        },
+        {
+          "id": "S188",
+          "ref": "src/ui/hud.gd:122",
+          "final": "src/ui/hud.gd:134",
+          "why": "[옛 어긋남] 슬라임 특성 줄"
+        },
+        {
+          "id": "S188",
+          "ref": "src/ui/hud.gd:123",
+          "final": "src/ui/hud.gd:135",
+          "why": "[옛 어긋남] 슬라임 킹 특성 줄"
+        },
+        {
+          "id": "S188",
+          "ref": "src/ui/hud.gd:121-125",
+          "final": "src/ui/hud.gd:133-137",
+          "why": "[옛 어긋남] TRAITS 첫 다섯 줄(기본~알파 늑대)"
+        },
+        {
+          "id": "S189",
+          "ref": "src/ui/hud.gd:163",
+          "final": "src/ui/hud.gd:171",
+          "why": "[옛 어긋남] `var alerts`"
+        },
+        {
+          "id": "S189",
+          "ref": "src/ui/hud.gd:566",
+          "final": "src/ui/hud.gd:696",
+          "why": "[옛 어긋남] `alerts.visible = on`"
+        },
+        {
+          "id": "S189",
+          "ref": "src/ui/hud.gd:569-570",
+          "final": "src/ui/hud.gd:701-702",
+          "why": "[옛 어긋남] `alerts.step(delta)`"
+        },
+        {
+          "id": "S191",
+          "ref": "src/ui/hud.gd:164",
+          "final": "src/ui/hud.gd:172",
+          "why": "[옛 어긋남] `var hints`"
+        },
+        {
+          "id": "S191",
+          "ref": "src/ui/hud.gd:571",
+          "final": "src/ui/hud.gd:703",
+          "why": "[옛 어긋남] `hints.step()`"
+        },
+        {
+          "id": "I165",
+          "ref": "src/ui/hud.gd:136",
+          "final": "src/ui/hud.gd:155",
+          "why": "[옛 어긋남] DOUBLE"
+        },
+        {
+          "id": "I165",
+          "ref": "src/ui/hud.gd:261-262",
+          "final": "src/ui/hud.gd:279-280",
+          "why": "[옛 어긋남] `_now`·`_taps`"
+        },
+        {
+          "id": "I165",
+          "ref": "src/ui/hud.gd:305",
+          "final": "src/ui/hud.gd:333",
+          "why": "[옛 어긋남] 초상 버튼 만들기"
+        },
+        {
+          "id": "I165",
+          "ref": "src/ui/hud.gd:364",
+          "final": "src/ui/hud.gd:379",
+          "why": "[옛 어긋남] 영웅 키 → _tap"
+        },
+        {
+          "id": "I165",
+          "ref": "src/ui/hud.gd:539",
+          "final": "src/ui/hud.gd:620",
+          "why": "[옛 어긋남] `_now += delta`"
+        },
+        {
+          "id": "I167",
+          "ref": "src/ui/hud.gd:547",
+          "final": "src/ui/hud.gd:631",
+          "why": "[옛 어긋남] 미션 토스트 틀 글"
+        },
+        {
+          "id": "S206",
+          "ref": "src/ui/hud.gd:169",
+          "final": "src/ui/hud.gd:175",
+          "why": "[옛 어긋남] `var select`"
+        },
+        {
+          "id": "S206",
+          "ref": "src/ui/hud.gd:540",
+          "final": "src/ui/hud.gd:621",
+          "why": "[옛 어긋남] `select.refresh()`"
+        },
+        {
+          "id": "S209",
+          "ref": "src/ui/hud.gd:170-172",
+          "final": "src/ui/hud.gd:176 · src/ui/hud.gd:181",
+          "why": "[옛 어긋남] `var minimap`과 `var view`(미니맵이 구운 바닥을 빌린다). 둘 사이에 다른 변수가 끼어 둘로 나눴다"
+        },
+        {
+          "id": "S209",
+          "ref": "src/ui/hud.gd:567-568",
+          "final": "src/ui/hud.gd:697-698",
+          "why": "[옛 어긋남] 미니맵 보이기·다시 그리기"
+        },
+        {
+          "id": "S217",
+          "ref": "src/ui/hud.gd:788",
+          "final": "src/ui/hud.gd:849",
+          "why": "[옛 어긋남] 잔해 칸 막힘(`occupied_area`)"
+        },
+        {
+          "id": "S230",
+          "ref": "src/ui/hud.gd:171",
+          "final": "src/ui/hud.gd:177",
+          "why": "[옛 어긋남] `var evac`"
+        },
+        {
+          "id": "S255",
+          "ref": "src/ui/hud.gd:829",
+          "final": "src/ui/hud.gd:886",
+          "why": "[옛 어긋남] _pop의 툴팁 줄(강화 버튼의 다음 단계 효과 `_steps`)"
+        },
+        {
+          "id": "S255",
+          "ref": "src/ui/hud.gd:832-835",
+          "final": "src/ui/hud.gd:897-909",
+          "why": "[옛 어긋남] _rank_line 함수(주석 포함)"
+        },
+        {
+          "id": "S255",
+          "ref": "src/ui/hud.gd:109-110",
+          "final": "src/ui/hud.gd:111-112",
+          "why": "[옛 어긋남] RANK_TEXT 두 줄. 지금 값은 UP 상수와 주석 줄이다"
+        },
+        {
+          "id": "S255",
+          "ref": "src/ui/hud.gd:897-901",
+          "final": "src/ui/hud.gd:897-909",
+          "why": "함수 전체를 가리키던 참조인데 _rank_line이 길어져(S356) 앞 다섯 줄만 남았다. 함수 끝까지 늘린다"
+        },
+        {
+          "id": "S274",
+          "ref": "src/ui/hud.gd:443",
+          "final": "src/ui/hud.gd:462",
+          "why": "[옛 어긋남] 장비 줄 머리 큰 아이콘"
+        },
+        {
+          "id": "S274",
+          "ref": "src/ui/hud.gd:716-721",
+          "final": "src/ui/hud.gd:752-757",
+          "why": "[이번 변경에 닿음] 전리품 줄(이번에 `and not anytime`이 빠졌다)"
+        },
+        {
+          "id": "S274",
+          "ref": "src/ui/hud.gd:343-344",
+          "final": "src/ui/hud.gd:350-351",
+          "why": "[옛 어긋남] 초상 귀퉁이 작은 아이콘 만들기"
+        },
+        {
+          "id": "S274",
+          "ref": "src/ui/hud.gd:1495-1496",
+          "final": "src/ui/hud.gd:1533-1534",
+          "why": "[옛 어긋남] 초상 귀퉁이 아이콘 보이기"
+        },
+        {
+          "id": "S274",
+          "ref": "src/ui/hud.gd:1416-1422",
+          "final": "src/ui/hud.gd:1454-1460",
+          "why": "[이번 변경에 닿음] 카드의 작은 장비 아이콘 만들기(_card 안. 이번에 주석이 «번호 왼쪽»으로 바뀌었다)"
+        },
+        {
+          "id": "S29",
+          "ref": "src/ui/hud.gd:675-701",
+          "final": "src/ui/hud.gd:738-758",
+          "why": "[이번 변경에 닿음] 결과 창 띄우기(`var fresh`부터 진행 버튼 글까지)"
+        },
+        {
+          "id": "S29",
+          "ref": "src/ui/hud.gd:1213-1221",
+          "final": "src/ui/hud.gd:1270-1280",
+          "why": "[이번 변경에 닿음] proceed 함수(주석 포함)"
+        },
+        {
+          "id": "S29",
+          "ref": "src/ui/hud.gd:1582-1587",
+          "final": "src/ui/hud.gd:1661-1666",
+          "why": "[옛 어긋남] _restart 앞 여섯 줄. 바로 위 주석 줄은 이번에 «고르기 창»으로 바뀌었다"
+        },
+        {
+          "id": "S64",
+          "ref": "src/ui/hud.gd:1213-1221",
+          "final": "src/ui/hud.gd:1270-1280",
+          "why": "[이번 변경에 닿음] proceed 함수(주석 포함)"
+        },
+        {
+          "id": "I12",
+          "ref": "src/ui/hud.gd:1223-1228",
+          "final": "src/ui/hud.gd:1282-1287",
+          "why": "[옛 어긋남] _window_button 함수(주석 포함)"
+        },
+        {
+          "id": "I12",
+          "ref": "src/ui/hud.gd:702-708",
+          "final": "src/ui/hud.gd:774-775",
+          "why": "[이번 변경에 닿음] `if fresh:`부터 `_next.grab_focus()`까지 일곱 줄. 이번에 포커스 줄이 `_show_hire` 뒤로 옮겨지고 `_home().grab_focus()`가 됐다. 포커스 두 줄만 잡았다(`if fresh:` 덩이는 761-764)"
+        },
+        {
+          "id": "I94",
+          "ref": "src/ui/hud.gd:973",
+          "final": "src/ui/hud.gd:1031",
+          "why": "[옛 어긋남] 위 띠 라운드 «r/R» 글"
+        },
+        {
+          "id": "I94",
+          "ref": "src/ui/hud.gd:572",
+          "final": "src/ui/hud.gd:704",
+          "why": "[옛 어긋남] `_show_progress()` 부르기"
+        },
+        {
+          "id": "I94",
+          "ref": "src/ui/hud.gd:701",
+          "final": "src/ui/hud.gd:758",
+          "why": "[이번 변경에 닿음] 진행 버튼 글 «… (Enter)». 이번에 «닫기 (T)» 가지가 빠진 줄"
+        },
+        {
+          "id": "S127",
+          "ref": "src/ui/hud.gd:1571-1579",
+          "final": "src/ui/hud.gd:1650-1658",
+          "why": "[옛 어긋남] _give 함수(주석 포함)"
+        },
+        {
+          "id": "S127",
+          "ref": "src/ui/hud.gd:1278",
+          "final": "src/ui/hud.gd:1348",
+          "why": "[이번 변경에 닿음] 이관 버튼은 라운드 사이에만 보인다. 이번에 `_members[i][2]`가 `_members[i][1]`이 됐다. 지금 값은 proceed의 `battle.next_round()`다"
+        },
+        {
+          "id": "I116",
+          "ref": "src/ui/hud.gd:1571-1579",
+          "final": "src/ui/hud.gd:1650-1658",
+          "why": "[옛 어긋남] _give 함수(주석 포함)"
+        },
+        {
+          "id": "I116",
+          "ref": "src/ui/hud.gd:1278-1280",
+          "final": "src/ui/hud.gd:1348 · src/ui/hud.gd:1354-1355",
+          "why": "[이번 변경에 닿음] 이관 버튼 보이기·글·끔 세 줄. 이번에 영웅 줄이 다시 쓰여 보이기(1348)와 글·끔(1354-1355)이 떨어졌다"
+        },
+        {
+          "id": "I116",
+          "ref": "src/ui/hud.gd:704",
+          "final": "src/ui/hud.gd:763",
+          "why": "[옛 어긋남] 창이 새로 뜨면 `_giver = null`"
+        },
+        {
+          "id": "I117",
+          "ref": "src/ui/hud.gd:1564-1569",
+          "final": "src/ui/hud.gd:1643-1648",
+          "why": "[옛 어긋남] _level 함수(주석 포함)"
+        },
+        {
+          "id": "I117",
+          "ref": "src/ui/hud.gd:1272",
+          "final": "src/ui/hud.gd:1353",
+          "why": "[이번 변경에 닿음] 영웅 줄 글(레벨·경험치 `_level(h)`). 이번에 «출전/대기»가 빠지고 번호가 붙었다. 지금 값은 proceed의 `if _wait > 0.0:`다"
+        },
+        {
+          "id": "S157",
+          "ref": "src/ui/hud.gd:1255",
+          "final": "src/ui/hud.gd:1341",
+          "why": "[이번 변경에 닿음] 카드 글의 이명(`# 이명(S157)` 주석이 붙어 있던 줄). 이번에 다시 쓰이며 주석이 빠졌다"
+        },
+        {
+          "id": "S214",
+          "ref": "src/ui/hud.gd:183-184",
+          "final": "src/ui/hud.gd:204-205",
+          "why": "[이번 변경에 닿음] `var moon`·`var _dusk`. 이번에 moon 주석이 «고르기 창»으로 바뀌었다. 지금 값은 `var _lv`·`var _gold`다"
+        },
+        {
+          "id": "S185",
+          "ref": "src/ui/hud.gd:1004-1045",
+          "final": "src/ui/hud.gd:1066-1116",
+          "why": "[이번 변경에 닿음] _show_progress(주석부터 웨이브 점 자리까지)"
+        }
+      ],
+      "notes": "■ 가장 큰 발견 — 48개 가운데 46개는 옛 참조(f76bcbe)가 이미 엉뚱한 코드를 가리키고 있었다. 예: S19 등 열 곳의 526은 영입 칸의 `_members.append([toggle, drop, give])`였다. 2026-11-01 PR #273(cefd8a9)·#274(6aeaa44)·#275(b9c782c) 머지 때 hud.gd는 바뀌었는데 §3.1 값이 안 옮겨졌고, 그 뒤 기계 옮김이 틀린 줄을 그대로 실어 왔다. 그래서 old 범위의 글이 아니라 문장을 받치던 원래 코드를 찾아 final로 줬다(moved 43 · rescoped 1 · replaced 1 · deleted 1). 기계 값이 맞는 것은 I122·S313 둘뿐이다. same_first·same_last가 모두 참인 것(S74 751-757, I128, I129 257-260, S188 둘)도 원래 지목이 아닌 줄이었다.\n\n■ 방법 — p5_q.json에서 path가 src/ui/hud.gd이고 «다시 쓰는 행»이 아닌 것을 파이썬으로 걸러 48개를 확인했다. 참조마다 SPEC.md 첫 부모 이력 238커밋을 거슬러 그 행·그 자리의 값이 커밋마다 hud.gd의 어떤 글을 가리켰는지 찍었다. 마지막으로 맞던 커밋(대부분 f588604 = PR #270 머지, S274는 행을 쓴 cefd8a9)의 범위를 지금 파일로 옮긴 뒤 SPEC 문장과 맞는지 읽었다. final은 모두 지금 파일에서 첫 줄·끝 줄과 앞뒤 줄을 찍어 확인했다. 저장소 파일과 git 상태는 건드리지 않았고 pytest·측정은 돌리지 않았다.\n\n■ 규모(내 몫 밖, 판단이 필요) — §3.1의 hud.gd 참조는 489개다. 기계 옮김 자체는 맞다(목록 밖 429개는 옮기기 전후에 가리키는 글이 같다). 그러나 적어도 213개(행 80여 개)는 원래 지목의 첫 줄·끝 줄이 지금 파일의 다른 줄에 글자 그대로 있어 옛 어긋남이 확실하다. 줄 글이 바뀌어 자동으로 못 가린 것이 146개 더 있다. 2026-11-08 뒤에 다시 쓴 행(I122·S313·S365 등)은 맞다. battle.gd도 같은 모양으로 보인다(S129의 battle.gd 참조 둘은 f588604 때 이미 의뢰와 상관없는 줄이었다). 세지는 않았다.\n\n■ other 100개 — 모두 지금 SPEC.md 행에 그 ref가 있고 final의 첫 줄·끝 줄 글이 기대와 같은지 스크립트로 확인했다. [옛 어긋남] = 2026-11-01부터 틀린 줄(내가 정한 행의 나머지 hud.gd 참조. 같은 행을 고칠 때 함께 고치라고 냈다). [이번 변경에 닿음] = 원래 지목이 이번에 고친 코드인데 값이 어긋나 있어 목록에 안 잡힌 것: S117·S188·S274(내 행)와 S29·S64·I12·I94·S127·I116·I117·S157·S214·S185. I122 행의 나머지 참조는 맞아서 뺐다. 지운 함수(_offer_why·_cap_note·_reroll_press)와 지운 변수 자리를 가리키던 참조는 모두 목록 안에 있었다.\n\n■ 확신이 낮은 것 — S100(836-842: «마을 레벨 올리기» 버튼은 hud_keep.gd로 갔고 여기는 거점 고름 풀기와 `_opens`만 남았다. other의 S100 517 → hud_keep.gd:143-145도 같은 까닭) · S189(둘로 나누고 힌트 두 줄을 뺐다) · S253 1469(툴팁 등록 줄 1461을 함께 넣을 수도 있다) · I122 9-10(I122를 적은 줄은 10줄뿐) · S129(문장이 의뢰 규칙이라 지웠다) · other의 I12 702-708과 S188 90-100(범위를 좁힘), S255 897-901(범위를 늘림). I116의 514는 f588604 때도 이미 어긋나 있어 내지 않았다(더 옛날 지목은 이관 버튼을 만드는 `_members.append` 줄이고 지금 그 코드는 511-513이다).\n\n■ 알릴 것 — 작업 중에 HEAD가 acf07b2(«SPEC §3.1 대조(기계 옮김)»)로 바뀌었다. 내가 한 것이 아니다. SPEC.md 내용은 받은 기계 값 그대로이고(48개의 id·auto 짝이 지금 행에 모두 있다) hud.gd는 bfaba36과 같다. 스크래치 dec/ 폴더를 다른 일꾼과 함께 써서 내 mine.json이 05:37에 덮였다. 결과에는 영향이 없다(내 파일을 dec/hud48/로 옮겨 검증을 다시 돌렸다). 다만 그 전에 공용 폴더에 둔 내 파일 이름(trace.py·map.py·near.py·other.json·build.py·finals.py 등)이 다른 일꾼 것과 겹쳤을 수 있다.\n\n■ 파일 — 이 답 전체: /tmp/claude-0/-home-user-td-proj/3a65bacf-d77b-5ad4-b30c-f51078f27e14/scratchpad/dec/hud48/answer_final.json · hud.gd 참조 489개의 마지막으로 맞던 범위와 지금 자리: /tmp/claude-0/-home-user-td-proj/3a65bacf-d77b-5ad4-b30c-f51078f27e14/scratchpad/dec/hud48/stale_all.json · 48개의 이력 추적: /tmp/claude-0/-home-user-td-proj/3a65bacf-d77b-5ad4-b30c-f51078f27e14/scratchpad/dec/hud48/trace2_all.txt · 검증 스크립트: /tmp/claude-0/-home-user-td-proj/3a65bacf-d77b-5ad4-b30c-f51078f27e14/scratchpad/dec/hud48/finals.py 와 /tmp/claude-0/-home-user-td-proj/3a65bacf-d77b-5ad4-b30c-f51078f27e14/scratchpad/dec/hud48/other.py"
+    },
+    "rest": {
+      "decisions": [
+        {
+          "id": "S18",
+          "auto": "src/ui/controls.gd:84-155",
+          "final": "src/ui/controls.gd:100-173",
+          "kind": "moved",
+          "why": "처음(dd19009 30-45)부터 handle의 키 묶음 H 줄~놓기 좌·우클릭 가지의 return이다(6f60dd1 88-142 = toggle_hold()~return). 2026-11-01부터 16~18줄 밀려 f76bcbe 때 97-168은 aiming 줄~else:였다. 지금 toggle_hold() 100, 놓기 가지 return 173"
+        },
+        {
+          "id": "S22",
+          "auto": "src/ui/controls.gd:71-73",
+          "final": "src/ui/controls.gd:75-82",
+          "kind": "moved",
+          "why": "처음(4a701c2 34-36)부터 «단계가 바뀌면 놓기 모드를 끝낸다» 가지(if battle.state != _state: … _state = battle.state)다. f76bcbe 때 72-78은 밀려서 _init 끝~지운 set_shop 머리였다"
+        },
+        {
+          "id": "S53",
+          "auto": "src/ui/camera.gd:55-100",
+          "final": "src/ui/camera.gd:55-100",
+          "kind": "same",
+          "why": "_process~_drive 그대로. 65줄 주석의 «영입 창» → «고르기 창»만 바뀌었다"
+        },
+        {
+          "id": "S77",
+          "auto": "src/sim/save.gd:9-10",
+          "final": "src/sim/save.gd:9-10",
+          "kind": "same",
+          "why": "KEYS 두 줄(quests·mission·settled) 그대로. offers만 빠졌다"
+        },
+        {
+          "id": "S94",
+          "auto": "src/data/hire_def.gd:3",
+          "final": "",
+          "kind": "deleted",
+          "why": "옛 3줄 주석 «등급마다 나뉜 값은 [1성, 2성, 3성] 순서다(S94)»는 등급별 배열 odds·cost와 함께 없어졌다. 지금 3줄은 고르기·장비·유물 수치 머리말이고 등급 얘기가 없다. 행에는 hero_def.gd:7(grade)이 남는다"
+        },
+        {
+          "id": "I30",
+          "auto": "data/hire.tres:7-7",
+          "final": "data/hire.tres:7",
+          "kind": "replaced",
+          "why": "옛 7-10은 slots·odds·cost·reroll(영입 수치)로 모두 지워졌다. «영웅 수치(상한)는 데이터 값» 구절은 살아 있고 지금은 출전 인원 lineup = 3 한 줄이 받친다(이 참조는 처음 e2f9e29 때 lineup까지 7-12였다). 기계 값과 같은 줄이지만 한 줄이라 «7»로 적는다"
+        },
+        {
+          "id": "I30",
+          "auto": "src/data/hire_def.gd:5-5",
+          "final": "src/data/hire_def.gd:5",
+          "kind": "replaced",
+          "why": "옛 5-10은 slots·odds·cost·reroll·reroll_step·cap 선언으로 모두 지워졌다. 남은 영웅 수 손잡이 lineup 선언 한 줄이 같은 구절을 받친다. 표기는 «5»"
+        },
+        {
+          "id": "S117",
+          "auto": "src/ui/controls.gd:74-74",
+          "final": "src/ui/controls.gd:87-90",
+          "kind": "moved",
+          "why": "처음(945f23f 43-46)부터 «창이 떠 있는 동안에는 맵 명령을 받지 않는다» 가지 네 줄이다. f76bcbe 때 83-86은 밀려서 지운 set_shop 안이었다. 기계 값 74는 func handle 줄"
+        },
+        {
+          "id": "I109",
+          "auto": "src/ui/controls.gd:74-74",
+          "final": "src/ui/controls.gd:87-90",
+          "kind": "moved",
+          "why": "처음(e2f9e29 44-47)부터 handle의 «창이 떠 있으면 맵 명령을 받지 않는다» 가지 네 줄(if battle.state not in […]: · _press = null · drag_rect = Rect2() · return)이다. f76bcbe 때 83-86은 밀려서 지운 set_shop 안이었다"
+        },
+        {
+          "id": "S157",
+          "auto": "src/data/hero_def.gd:6",
+          "final": "src/data/hero_def.gd:6",
+          "kind": "same",
+          "why": "title(이명) 선언 줄 그대로. 주석만 «영입 창» → «영웅 고르기 창»"
+        },
+        {
+          "id": "S161",
+          "auto": "src/main.gd:197-205",
+          "final": "src/main.gd:234-242",
+          "kind": "moved",
+          "why": "처음(c637f30 61-69)부터 fit_window와 window_scale(가장 큰 정수배·가운데) 두 함수다. f76bcbe 때 197-206은 밀려서 _unhandled_input 머리 주석~F11 가지였다"
+        },
+        {
+          "id": "S162",
+          "auto": "src/main.gd:206-208",
+          "final": "src/main.gd:249-255",
+          "kind": "moved",
+          "why": "처음(a2fc8b7 159-164)부터 toggle_fullscreen 함수 전체다(그 뒤 apply_cursor 줄이 함수 끝에 붙어 지금 249-255). f76bcbe 때 209-214는 밀려서 set_shop 호출~ESC 가지였다"
+        },
+        {
+          "id": "S162",
+          "auto": "src/main.gd:211-213",
+          "final": "src/main.gd:257-261",
+          "kind": "moved",
+          "why": "처음(a2fc8b7 166-170)부터 «# F11(S162)» 주석과 switch_fullscreen 함수다. 기계 값 211-213은 ui_accept 가지"
+        },
+        {
+          "id": "I153",
+          "auto": "src/main.gd:201",
+          "final": "src/main.gd:237",
+          "kind": "moved",
+          "why": "f76bcbe 때 201은 지운 T 키 주석이었지만 이 참조는 처음(c637f30 main.gd:64)부터 fit_window의 «작업 영역 가운데» 줄 w.position = …이다. 2026-11-01 병합 뒤로 밀려 있었다. 기계 값 201은 func _unhandled_input 줄"
+        },
+        {
+          "id": "I154",
+          "auto": "src/main.gd:206-208",
+          "final": "src/main.gd:250-254",
+          "kind": "moved",
+          "why": "처음(c637f30 73-77, e1548ef 166-170)부터 toggle_fullscreen의 if 전체화면 → 창·fit_window / else → 전체화면 다섯 줄이다. f76bcbe 때 210-214는 밀려서 shop_key 가지 끝과 ESC 가지였다"
+        },
+        {
+          "id": "S181",
+          "auto": "src/main.gd:52",
+          "final": "src/main.gd:57",
+          "kind": "moved",
+          "why": "처음(a2fc8b7 main.gd:38)부터 wave_starting.connect(…) «웨이브를 시작하기 직전에도 저장한다(S181)» 줄이다. f76bcbe 때 52(begin_hiring 줄)는 밀린 값이었다"
+        },
+        {
+          "id": "I156",
+          "auto": "src/sim/save.gd:9-15",
+          "final": "src/sim/save.gd:9-15",
+          "kind": "same",
+          "why": "KEYS(9-10)~SKIP(15) 그대로. KEYS에서 offers만 빠졌다"
+        },
+        {
+          "id": "I156",
+          "auto": "src/sim/save.gd:19-96",
+          "final": "src/sim/save.gd:19-97",
+          "kind": "rescoped",
+          "why": "처음(a2fc8b7 17-57)부터 snapshot~apply 두 함수 전체(끝 줄 b._forecast())다. 옛 19-95·기계 19-96은 한 줄 모자라 b._census()에서 끝난다(668505a가 rerolls 줄을 끼울 때부터). apply 끝은 97"
+        },
+        {
+          "id": "I157",
+          "auto": "src/sim/save.gd:7",
+          "final": "src/sim/save.gd:7",
+          "kind": "same",
+          "why": "VERSION 줄 그대로(주석 끝에 2026-11-16 메모가 붙었다)"
+        },
+        {
+          "id": "I160",
+          "auto": "src/main.gd:211-230",
+          "final": "src/main.gd:257-267",
+          "kind": "moved",
+          "why": "처음(a2fc8b7 166-176)부터 switch_fullscreen(F11 → 설정 저장)과 apply_window(설정의 창 모드 걸기) 두 함수와 그 주석이다. 지금 257-261·263-267. 기계 값 211-230은 ui_accept 가지~setup_window"
+        },
+        {
+          "id": "S186",
+          "auto": "src/ui/hud_build.gd:102-118",
+          "final": "src/ui/hud_build.gd:102-118",
+          "kind": "same",
+          "why": "_process 함수 전체 그대로. 103줄에서 «and not controls.shop»만 빠졌다"
+        },
+        {
+          "id": "S193",
+          "auto": "locale/en.po:1-12",
+          "final": "locale/en.po:1-14",
+          "kind": "rescoped",
+          "why": "S193의 «용어집(en.po 머리)». d204eeb 때 머리 주석 전체가 1-12였고 ace5787이 두 줄을 더해 지금 머리 주석은 1-14(적 이름·영웅 음역 줄까지)다. 옛 값은 그때부터 두 줄 모자랐다"
+        },
+        {
+          "id": "I167",
+          "auto": "locale/en.po:1-21",
+          "final": "locale/en.po:1-21",
+          "kind": "same",
+          "why": "머리 주석(1-14)·빈 msgid 머리(15-18)·첫 구획 주석까지 ace5787 때 적은 범위 그대로다. 11줄 용어집 글만 바뀌었다(끝 21줄은 그때부터 빈 줄)"
+        },
+        {
+          "id": "I176",
+          "auto": "src/sim/save.gd:20-21",
+          "final": "src/sim/save.gd:20-21",
+          "kind": "same",
+          "why": "snapshot의 var d := {…} 첫 두 줄. spare는 20줄에 그대로 있다(21줄에서 rerolls만 빠졌다)"
+        },
+        {
+          "id": "I179",
+          "auto": "src/sim/save.gd:7",
+          "final": "src/sim/save.gd:7",
+          "kind": "same",
+          "why": "VERSION 줄(저장 판 7) 그대로"
+        },
+        {
+          "id": "I179",
+          "auto": "src/sim/save.gd:7",
+          "final": "src/sim/save.gd:7",
+          "kind": "same",
+          "why": "VERSION 줄(저장 판 7) 그대로"
+        },
+        {
+          "id": "S221",
+          "auto": "src/sim/save.gd:7",
+          "final": "src/sim/save.gd:7",
+          "kind": "same",
+          "why": "VERSION 줄(4: 집의 가족 S221) 그대로"
+        },
+        {
+          "id": "S221",
+          "auto": "src/sim/save.gd:20-21",
+          "final": "src/sim/save.gd:20-21",
+          "kind": "same",
+          "why": "var d := {…} 첫 두 줄. kin은 20줄에 그대로"
+        },
+        {
+          "id": "S222",
+          "auto": "src/sim/save.gd:7",
+          "final": "src/sim/save.gd:7",
+          "kind": "same",
+          "why": "VERSION 줄(5: 주민의 원래 직업 S222) 그대로"
+        },
+        {
+          "id": "S225",
+          "auto": "src/ui/controls.gd:87-88",
+          "final": "src/ui/controls.gd:105-106",
+          "kind": "moved",
+          "why": "처음(8b826c0 90-91)부터 KEY_B: · battle.evacuate() 두 줄(B 키 대피령)이다. f76bcbe 때 100-101은 밀려서 창 가지 줄이었다"
+        },
+        {
+          "id": "S230",
+          "auto": "src/ui/controls.gd:87-88",
+          "final": "src/ui/controls.gd:105-106",
+          "kind": "moved",
+          "why": "처음(8b826c0 90-91)부터 KEY_B: · battle.evacuate() 두 줄(단축키 B)이다. f76bcbe 때 100-101은 밀린 값"
+        },
+        {
+          "id": "I183",
+          "auto": "src/sim/save.gd:9-10",
+          "final": "src/sim/save.gd:9-10",
+          "kind": "same",
+          "why": "KEYS 두 줄(trust·calm·evac_round·folk_clock, I183 ⑩ 주석) 그대로. offers만 빠졌다"
+        },
+        {
+          "id": "I184",
+          "auto": "src/sim/save.gd:7",
+          "final": "src/sim/save.gd:7",
+          "kind": "same",
+          "why": "VERSION 줄(저장 판 7) 그대로"
+        },
+        {
+          "id": "S246",
+          "auto": "src/data/hire_def.gd:5-6",
+          "final": "src/data/hire_def.gd:6-7",
+          "kind": "moved",
+          "why": "S246은 «gear_cost와 forge_cap은 hire.tres의 손잡이». 처음(39d1915) 11-12가 gear_cost·forge_cap이었는데 668505a가 reroll_step을 끼우며 한 줄 밀려 f76bcbe 때 lineup·gear_cost를 가리켰다. 지금 gear_cost 6줄·forge_cap 7줄"
+        },
+        {
+          "id": "I201",
+          "auto": "src/sim/save.gd:20-21",
+          "final": "src/sim/save.gd:20-21",
+          "kind": "same",
+          "why": "var d := {…} 첫 두 줄. bag·forged는 20줄에 그대로"
+        },
+        {
+          "id": "I202",
+          "auto": "src/sim/save.gd:21",
+          "final": "src/sim/save.gd:21",
+          "kind": "same",
+          "why": "loot·dropped가 든 줄 그대로(rerolls만 빠졌다)"
+        },
+        {
+          "id": "I203",
+          "auto": "src/sim/save.gd:21",
+          "final": "src/sim/save.gd:21",
+          "kind": "same",
+          "why": "ranks가 든 줄 그대로(rerolls만 빠졌다)"
+        },
+        {
+          "id": "I224",
+          "auto": "src/sim/save.gd:21",
+          "final": "src/sim/save.gd:21",
+          "kind": "same",
+          "why": "shot이 든 줄 그대로(rerolls만 빠졌다)"
+        },
+        {
+          "id": "S292",
+          "auto": "src/sim/tuning.gd:141-220",
+          "final": "src/sim/tuning.gd:141-220",
+          "kind": "same",
+          "why": "can_jump~_apply(라운드 이동·조정값 저장·불러오기) 그대로. 주석 글만 바뀌었다"
+        },
+        {
+          "id": "I235",
+          "auto": "src/sim/tuning.gd:141-154",
+          "final": "src/sim/tuning.gd:141-154",
+          "kind": "same",
+          "why": "can_jump·jump와 그 주석 그대로. 주석 세 줄(141·145·146)의 «영입 창»·«목록 뽑기» 글만 바뀌었다"
+        },
+        {
+          "id": "S313",
+          "auto": "src/ui/hud_auto.gd:1-48",
+          "final": "src/ui/hud_auto.gd:1-48",
+          "kind": "same",
+          "why": "파일 전체(48줄) 그대로. 2줄 주석의 «영입» 버튼 얘기만 바뀌었다"
+        },
+        {
+          "id": "I260",
+          "auto": "src/ui/controls.gd:87",
+          "final": "src/ui/controls.gd:87",
+          "kind": "same",
+          "why": "if battle.state not in [prep, battle, raid]: 줄 그대로(«or shop»만 빠졌다). 3574b54에서 새로 적은 참조라 밀리지 않았다"
+        },
+        {
+          "id": "I262",
+          "auto": "src/ui/controls.gd:87",
+          "final": "src/ui/controls.gd:87",
+          "kind": "same",
+          "why": "같은 줄(«원정(S316)은 받는다»). «or shop»만 빠졌다"
+        },
+        {
+          "id": "S365",
+          "auto": "src/ui/hud_keep.gd:534-643",
+          "final": "src/ui/hud_keep.gd:534-643",
+          "kind": "same",
+          "why": "refresh~_fit 그대로(93d7a75 때 적은 범위, 끝 643줄은 그때부터 빈 줄). 537줄에서 «and not controls.shop»만 빠졌다"
+        }
+      ],
+      "empty_rows": [],
+      "other": [
+        {
+          "id": "S14",
+          "ref": "src/main.gd:181",
+          "final": "src/main.gd:220",
+          "why": "e1548ef 때 controls.handle(event.xformed_by(…)) 한 줄 → 지금 그 호출은 220(변환 줄은 216으로 갈림)"
+        },
+        {
+          "id": "S16",
+          "ref": "src/ui/controls.gd:295-333",
+          "final": "src/ui/controls.gd:322-354",
+          "why": "attack_key~toggle_hold 함수들(e1548ef 260-293). 295-333은 merc_key 안~stop"
+        },
+        {
+          "id": "S18",
+          "ref": "src/ui/controls.gd:397-404",
+          "final": "src/ui/controls.gd:435-442",
+          "why": "원래(dd19009) _place 함수 전체. 397-404는 _aim_at 안"
+        },
+        {
+          "id": "S22",
+          "ref": "src/ui/controls.gd:110-123",
+          "final": "src/ui/controls.gd:139-141",
+          "why": "원래 «live()엔 구조물만 놓기 모드» 주석과 if not (…): placing 비우기 세 줄. 110-123은 키 묶음 안"
+        },
+        {
+          "id": "S37",
+          "ref": "src/main.gd:248",
+          "final": "src/main.gd:304-305",
+          "why": "원래(48efdcc) stage()의 castle 사전 줄(성곽 배치). 지금 두 줄. e1548ef 때 값도 이미 밀려 있었다. 확신 중간"
+        },
+        {
+          "id": "S39",
+          "ref": "src/main.gd:237",
+          "final": "src/main.gd:285",
+          "why": "e1548ef 때 var gates := [정문] + sealed 줄. 237은 fit_window 안. 확신 중간(행에 같은 참조가 둘)"
+        },
+        {
+          "id": "S51",
+          "ref": "src/main.gd:231-256",
+          "final": "src/main.gd:276-305",
+          "why": "stage() 머리 주석~castle 사전 끝(e1548ef 192-217)"
+        },
+        {
+          "id": "S65",
+          "ref": "src/sim/save.gd:103-126",
+          "final": "src/sim/save.gd:104-127",
+          "why": "store~read~erase 함수. 한 줄 밀림"
+        },
+        {
+          "id": "I12",
+          "ref": "src/main.gd:163-176",
+          "final": "src/main.gd:198-211",
+          "why": "[이번 변경] 원래 «창의 버튼에 키보드 포커스…» 주석~ui_accept 줄(사이의 T 키 주석·shop_key 가지가 빠짐). 163-176은 _on_menu~leave"
+        },
+        {
+          "id": "I28",
+          "ref": "src/main.gd:136",
+          "final": "src/main.gd:163",
+          "why": "_on_menu settings 가지의 view.battle.revive = Settings.revive 줄(e1548ef 101). 136은 _check의 elif 줄"
+        },
+        {
+          "id": "S117",
+          "ref": "src/main.gd:176-180",
+          "final": "src/main.gd:211-213",
+          "why": "[이번 변경] 원래 ui_accept 가지(«or controls.shop»이 빠짐). 176-180은 leave 끝"
+        },
+        {
+          "id": "I94",
+          "ref": "src/main.gd:162-180",
+          "final": "src/main.gd:197-213",
+          "why": "[이번 변경] 원래 _unhandled_input 머리 주석~ui_accept 가지(197줄 주석이 «영웅 고르기 창»으로 바뀌고 T 키 주석·shop_key 가지가 빠짐). 162-180은 _on_menu~leave"
+        },
+        {
+          "id": "S118",
+          "ref": "src/main.gd:45",
+          "final": "src/main.gd:52",
+          "why": "[이번 변경] 원래 begin_hiring() 줄(주석이 «영웅 고르기 창…(S122, S373)»으로 바뀜). 45는 func _ready"
+        },
+        {
+          "id": "I139",
+          "ref": "src/ui/controls.gd:295-333",
+          "final": "src/ui/controls.gd:322-354",
+          "why": "attack_key~toggle_hold 함수들(e1548ef 260-293)"
+        },
+        {
+          "id": "S161",
+          "ref": "src/main.gd:69",
+          "final": "src/main.gd:80",
+          "why": "setup_window(get_window(), false) 호출 줄"
+        },
+        {
+          "id": "S161",
+          "ref": "src/main.gd:194",
+          "final": "src/main.gd:230",
+          "why": "원래 setup_window 안의 fit_window(w) 호출 줄. 194는 _input 안"
+        },
+        {
+          "id": "S162",
+          "ref": "src/main.gd:166-169",
+          "final": "src/main.gd:202-205",
+          "why": "_unhandled_input의 F11 가지 네 줄. 166-169는 _on_menu 끝"
+        },
+        {
+          "id": "S163",
+          "ref": "src/main.gd:191-194",
+          "final": "src/main.gd:227-230",
+          "why": "원래 «내보낸 빌드면 전체화면» 가지 → 지금 if Settings.fullscreen_at_start(…): … else: fit_window 네 줄. 191-194는 _input 안"
+        },
+        {
+          "id": "S164",
+          "ref": "src/main.gd:186",
+          "final": "src/main.gd:225",
+          "why": "w.min_size = w.content_scale_size * 2 줄. 186은 _input 주석"
+        },
+        {
+          "id": "I153",
+          "ref": "src/main.gd:69",
+          "final": "src/main.gd:80",
+          "why": "원래 setup_window(get_window(), false) 호출 줄. 69는 hud.menu_pressed.connect"
+        },
+        {
+          "id": "I153",
+          "ref": "src/main.gd:187-190",
+          "final": "src/main.gd:226",
+          "why": "원래 «진입 씬일 때만» 가지(if not entry: return) → 지금 if entry: 한 줄. 187-190은 _input 머리"
+        },
+        {
+          "id": "I154",
+          "ref": "src/main.gd:166",
+          "final": "src/main.gd:202",
+          "why": "F11 키 줄(… KEY_F11:  # S162, I154). 166은 title·quit 가지 줄"
+        },
+        {
+          "id": "S181",
+          "ref": "src/main.gd:13",
+          "final": "src/main.gd:18",
+          "why": "const QUIET … 이때만 저장한다(S181) 줄. 13은 const Settings"
+        },
+        {
+          "id": "S181",
+          "ref": "src/main.gd:97-109",
+          "final": "src/main.gd:117-137",
+          "why": "_check 함수 전체. 97-109는 map_viewport 끝~_process"
+        },
+        {
+          "id": "S181",
+          "ref": "src/main.gd:148-150",
+          "final": "src/main.gd:170-172",
+          "why": "leave의 «전투 단계가 아니면 저장» 세 줄. 148-150은 pause 안"
+        },
+        {
+          "id": "S181",
+          "ref": "src/main.gd:158-160",
+          "final": "src/main.gd:181-183",
+          "why": "_notification(창 닫기 때 저장) 세 줄. 158-160은 _on_menu 안"
+        },
+        {
+          "id": "S181",
+          "ref": "src/sim/save.gd:90-94",
+          "final": "src/sim/save.gd:91-95",
+          "why": "apply의 if u.has_meta(job): … u.remove_meta(job). 한 줄 밀림"
+        },
+        {
+          "id": "S181",
+          "ref": "src/sim/save.gd:139-151",
+          "final": "src/sim/save.gd:140-151",
+          "why": "_fields의 if o.get(job): 두 줄~_job 함수 끝. 한 줄 밀림"
+        },
+        {
+          "id": "S182",
+          "ref": "src/main.gd:44-50",
+          "final": "src/main.gd:51-55",
+          "why": "[이번 변경] 원래 if resume.is_empty(): begin_hiring() / else: Save.apply 다섯 줄(52줄 주석 바뀜). 44-50은 _ready 머리"
+        },
+        {
+          "id": "S184",
+          "ref": "locale/en.po:79-92",
+          "final": "locale/en.po:88-101",
+          "why": "«화면 흔들림»~«번쩍임 줄이기»는 88-101. 지금 값은 «음악»부터. 확신 중간(S184가 음량 글까지 가리키게 고쳐 적었을 수 있다)"
+        },
+        {
+          "id": "I156",
+          "ref": "src/sim/save.gd:132-167",
+          "final": "src/sim/save.gd:133-168",
+          "why": "원래 _fields~_unit 함수들(static func _fields ~ return u). 한 줄 밀림"
+        },
+        {
+          "id": "I157",
+          "ref": "src/main.gd:106-109",
+          "final": "src/main.gd:134-137",
+          "why": "_check의 if s in QUIET: _store() / elif …: Save.erase() 네 줄. 106-109는 _process 안"
+        },
+        {
+          "id": "I157",
+          "ref": "src/sim/save.gd:103-126",
+          "final": "src/sim/save.gd:104-127",
+          "why": "store~read~erase 함수. 한 줄 밀림"
+        },
+        {
+          "id": "I158",
+          "ref": "src/main.gd:137",
+          "final": "src/main.gd:164",
+          "why": "_on_menu settings 가지의 controls.quickcast = Settings.quickcast 줄(e1548ef 102). 137은 Save.erase()"
+        },
+        {
+          "id": "I160",
+          "ref": "src/main.gd:135-138",
+          "final": "src/main.gd:162-165",
+          "why": "_on_menu의 settings 가지 네 줄(I160 주석). 135-138은 _check 끝"
+        },
+        {
+          "id": "I161",
+          "ref": "src/main.gd:148-160",
+          "final": "src/main.gd:170-183",
+          "why": "leave~_notification. 148-160은 pause~_on_menu"
+        },
+        {
+          "id": "S186",
+          "ref": "src/ui/controls.gd:100-106",
+          "final": "src/ui/controls.gd:129-135",
+          "why": "if event.keycode in PLACE_KEYS: 일곱 줄(단축키로 놓기 모드 켜고 끄기). 100-106은 H~B 키"
+        },
+        {
+          "id": "S191",
+          "ref": "src/ui/controls.gd:166",
+          "final": "src/ui/controls.gd:348-349",
+          "why": "원래(be78c5d) if selected.any(… u.is_hero): hero_sent.emit() 두 줄 → 지금 _command 안. 확신 중간"
+        },
+        {
+          "id": "S193",
+          "ref": "locale/en.po:1064-1065",
+          "final": "locale/en.po:1067-1068",
+          "why": "03cbfbc 때 적은 msgid «재사용 %s초»는 1067-1068. 지금 값은 «%s · 재사용 %s초 · 우클릭: 자동 시전»(3줄 밀림)"
+        },
+        {
+          "id": "S200",
+          "ref": "locale/en.po:79-89",
+          "final": "locale/en.po:88-98",
+          "why": "«화면 흔들림»·끔·약하게·보통은 88-98. 지금 값은 «음악»부터(2878214가 음량 글을 끼울 때부터 9줄 밀림)"
+        },
+        {
+          "id": "S203",
+          "ref": "src/main.gd:235-256",
+          "final": "src/main.gd:280-305",
+          "why": "stage()의 사방 성곽 주석~castle 사전 끝(e1548ef 196-217)"
+        },
+        {
+          "id": "S203",
+          "ref": "src/main.gd:236-256",
+          "final": "src/main.gd:284-305",
+          "why": "var sealed 줄~castle 사전 끝(e1548ef 197-217)"
+        },
+        {
+          "id": "S206",
+          "ref": "src/ui/controls.gd:225-235",
+          "final": "src/ui/controls.gd:247-251 · src/ui/controls.gd:267-270",
+          "why": "e1548ef 때 pick_hero·pick_unit 두 함수(212-222). 지금 사이에 pick_all·dash가 끼어 둘로 갈린다"
+        },
+        {
+          "id": "I176",
+          "ref": "src/main.gd:251",
+          "final": "src/main.gd:299",
+          "why": "stage()의 reward_scale 0.1 줄. 251은 toggle_fullscreen 안"
+        },
+        {
+          "id": "I179",
+          "ref": "src/sim/save.gd:65-76",
+          "final": "src/sim/save.gd:74-77",
+          "why": "apply의 «차지 칸(S216·S217)은 Block에서 다시 편다» for pair 네 줄"
+        },
+        {
+          "id": "S216",
+          "ref": "src/sim/save.gd:65-76",
+          "final": "src/sim/save.gd:74-77",
+          "why": "apply의 «차지 칸(S216·S217)은 Block에서 다시 편다» for pair 네 줄"
+        },
+        {
+          "id": "S217",
+          "ref": "src/main.gd:256",
+          "final": "src/main.gd:304-305",
+          "why": "e1548ef 때 castle 사전 줄(wall_size·gate_size). 지금 두 줄. 256은 빈 줄"
+        },
+        {
+          "id": "I180",
+          "ref": "src/main.gd:254",
+          "final": "src/main.gd:302",
+          "why": "«시작 공병은 거점 바로 아래…» → engineer_cells 줄(e1548ef 215). 254는 toggle_fullscreen 안"
+        },
+        {
+          "id": "I183",
+          "ref": "src/sim/save.gd:95",
+          "final": "src/sim/save.gd:96",
+          "why": "b._census() 줄. 95는 u.remove_meta(job)"
+        },
+        {
+          "id": "S233",
+          "ref": "locale/en.po:1172-1179",
+          "final": "locale/en.po:1217-1224",
+          "why": "«다 큰 자녀가 새 집으로 나갔다»~«아기가 태어났다»는 1217-1224. 지금 값은 «방어력 %s»~대피령 구획 머리"
+        },
+        {
+          "id": "S246",
+          "ref": "data/hire.tres:7-8",
+          "final": "data/hire.tres:8-9",
+          "why": "gear_cost·forge_cap 두 줄은 8-9. 지금 값은 lineup·gear_cost(668505a가 reroll_step을 끼울 때부터 한 줄 밀림)"
+        },
+        {
+          "id": "S249",
+          "ref": "data/hire.tres:7",
+          "final": "data/hire.tres:8",
+          "why": "gear_cost 줄은 8. 7은 lineup = 3(같은 밀림)"
+        },
+        {
+          "id": "S256",
+          "ref": "data/hire.tres:7",
+          "final": "data/hire.tres:8",
+          "why": "gear_cost 줄은 8. 7은 lineup = 3(같은 밀림)"
+        },
+        {
+          "id": "S276",
+          "ref": "locale/en.po:1184-1190",
+          "final": "locale/en.po:1226-1232",
+          "why": "«체력바 버튼(hud.gd, S276)» 구획은 1226-1232. 지금 값은 대피령 글"
+        },
+        {
+          "id": "I210",
+          "ref": "locale/en.po:1192-1198",
+          "final": "locale/en.po:1234-1240",
+          "why": "«자동 수리 태그(hud.gd, S277·I210)» 구획은 1234-1240. 지금 값은 대피령 글"
+        },
+        {
+          "id": "S14",
+          "ref": "src/ui/controls.gd:161-166",
+          "final": "src/ui/controls.gd:180-185",
+          "why": "밀림 · e1548ef 148-153"
+        },
+        {
+          "id": "S14",
+          "ref": "src/ui/controls.gd:308-327",
+          "final": "src/ui/controls.gd:334-349",
+          "why": "밀림 · e1548ef 272-287"
+        },
+        {
+          "id": "S16",
+          "ref": "src/ui/controls.gd:156-160",
+          "final": "src/ui/controls.gd:174-179",
+          "why": "밀림 · e1548ef 143-147 · 글 바뀜"
+        },
+        {
+          "id": "S16",
+          "ref": "src/ui/controls.gd:168-215",
+          "final": "src/ui/controls.gd:187-237",
+          "why": "밀림 · e1548ef 155-202 · 글 바뀜"
+        },
+        {
+          "id": "S16",
+          "ref": "src/ui/controls.gd:78-84",
+          "final": "src/ui/controls.gd:95-100",
+          "why": "밀림 · e1548ef 83-88"
+        },
+        {
+          "id": "S21",
+          "ref": "src/ui/controls.gd:161-165",
+          "final": "src/ui/controls.gd:180-184",
+          "why": "밀림 · e1548ef 148-152"
+        },
+        {
+          "id": "S30",
+          "ref": "src/main.gd:54-62",
+          "final": "src/main.gd:60-67",
+          "why": "밀림 · e1548ef 40-47"
+        },
+        {
+          "id": "S31",
+          "ref": "src/main.gd:234",
+          "final": "src/main.gd:279",
+          "why": "밀림 · e1548ef 195"
+        },
+        {
+          "id": "S31",
+          "ref": "src/main.gd:262-266",
+          "final": "src/main.gd:311-315",
+          "why": "밀림 · e1548ef 223-227"
+        },
+        {
+          "id": "S35",
+          "ref": "src/main.gd:171",
+          "final": "src/main.gd:207",
+          "why": "밀림 · e1548ef 131"
+        },
+        {
+          "id": "S35",
+          "ref": "src/ui/controls.gd:78-82",
+          "final": "src/ui/controls.gd:95-98",
+          "why": "밀림 · e1548ef 83-86"
+        },
+        {
+          "id": "S35",
+          "ref": "src/ui/controls.gd:134-138",
+          "final": "src/ui/controls.gd:158-162",
+          "why": "밀림 · e1548ef 127-131"
+        },
+        {
+          "id": "S35",
+          "ref": "src/ui/controls.gd:295-327",
+          "final": "src/ui/controls.gd:322-349",
+          "why": "밀림 · e1548ef 260-287"
+        },
+        {
+          "id": "S36",
+          "ref": "src/ui/controls.gd:83-84",
+          "final": "src/ui/controls.gd:99-100",
+          "why": "밀림 · e1548ef 87-88"
+        },
+        {
+          "id": "S36",
+          "ref": "src/ui/controls.gd:330-332",
+          "final": "src/ui/controls.gd:352-354",
+          "why": "밀림 · e1548ef 290-292"
+        },
+        {
+          "id": "S39",
+          "ref": "src/main.gd:236",
+          "final": "src/main.gd:284",
+          "why": "밀림 · e1548ef 197 · 글 바뀜"
+        },
+        {
+          "id": "S43",
+          "ref": "src/main.gd:257",
+          "final": "src/main.gd:306",
+          "why": "밀림 · e1548ef 218 · 글 바뀜"
+        },
+        {
+          "id": "S43",
+          "ref": "src/main.gd:258",
+          "final": "src/main.gd:307",
+          "why": "밀림 · e1548ef 219"
+        },
+        {
+          "id": "S49",
+          "ref": "src/ui/controls.gd:27",
+          "final": "src/ui/controls.gd:28",
+          "why": "밀림 · e1548ef 25 · 글 바뀜"
+        },
+        {
+          "id": "S50",
+          "ref": "src/ui/controls.gd:403-404",
+          "final": "src/ui/controls.gd:441-442",
+          "why": "밀림 · 5995e24 123-124"
+        },
+        {
+          "id": "S63",
+          "ref": "src/main.gd:14-18",
+          "final": "src/main.gd:23-25",
+          "why": "밀림 · e1548ef 14-16"
+        },
+        {
+          "id": "S65",
+          "ref": "src/main.gd:97-109",
+          "final": "src/main.gd:117-137",
+          "why": "밀림 · e1548ef 79-87"
+        },
+        {
+          "id": "S70",
+          "ref": "src/ui/controls.gd:168-215",
+          "final": "src/ui/controls.gd:187-237",
+          "why": "밀림 · e1548ef 155-202 · 글 바뀜"
+        },
+        {
+          "id": "S73",
+          "ref": "src/ui/controls.gd:85-86",
+          "final": "src/ui/controls.gd:103-104",
+          "why": "밀림 · e1548ef 89-90"
+        },
+        {
+          "id": "S74",
+          "ref": "src/ui/controls.gd:186",
+          "final": "src/ui/controls.gd:206",
+          "why": "밀림 · e1548ef 173"
+        },
+        {
+          "id": "S74",
+          "ref": "src/ui/controls.gd:213-215",
+          "final": "src/ui/controls.gd:235-237",
+          "why": "밀림 · e1548ef 200-202 · 글 바뀜"
+        },
+        {
+          "id": "S81",
+          "ref": "src/ui/controls.gd:45",
+          "final": "src/ui/controls.gd:48",
+          "why": "밀림 · e1548ef 43"
+        },
+        {
+          "id": "S81",
+          "ref": "src/ui/controls.gd:181",
+          "final": "src/ui/controls.gd:201",
+          "why": "밀림 · e1548ef 168"
+        },
+        {
+          "id": "S81",
+          "ref": "src/ui/controls.gd:32",
+          "final": "src/ui/controls.gd:33",
+          "why": "밀림 · e1548ef 30"
+        },
+        {
+          "id": "S81",
+          "ref": "src/ui/controls.gd:46",
+          "final": "src/ui/controls.gd:49",
+          "why": "밀림 · e1548ef 44"
+        },
+        {
+          "id": "S81",
+          "ref": "src/ui/controls.gd:100-106",
+          "final": "src/ui/controls.gd:129-135",
+          "why": "밀림 · e1548ef 104-110"
+        },
+        {
+          "id": "S81",
+          "ref": "src/ui/controls.gd:281-293",
+          "final": "src/ui/controls.gd:304-320",
+          "why": "밀림 · e1548ef 246-258 · 글 바뀜"
+        },
+        {
+          "id": "S81",
+          "ref": "src/ui/controls.gd:163",
+          "final": "src/ui/controls.gd:182",
+          "why": "밀림 · e1548ef 150"
+        },
+        {
+          "id": "S81",
+          "ref": "src/ui/controls.gd:241-245",
+          "final": "src/ui/controls.gd:285-289",
+          "why": "밀림 · e1548ef 228-232 · 글 바뀜"
+        },
+        {
+          "id": "S82",
+          "ref": "src/ui/controls.gd:161-165",
+          "final": "src/ui/controls.gd:180-184",
+          "why": "밀림 · e1548ef 148-152"
+        },
+        {
+          "id": "S83",
+          "ref": "src/ui/controls.gd:186",
+          "final": "src/ui/controls.gd:206",
+          "why": "밀림 · e1548ef 173"
+        },
+        {
+          "id": "S83",
+          "ref": "src/ui/controls.gd:214-216",
+          "final": "src/ui/controls.gd:236-238",
+          "why": "밀림 · e1548ef 201-203"
+        },
+        {
+          "id": "S85",
+          "ref": "src/ui/controls.gd:48",
+          "final": "src/ui/controls.gd:51",
+          "why": "밀림 · e1548ef 46"
+        },
+        {
+          "id": "S85",
+          "ref": "src/ui/controls.gd:182-184",
+          "final": "src/ui/controls.gd:202-204",
+          "why": "밀림 · e1548ef 169-171"
+        },
+        {
+          "id": "S86",
+          "ref": "src/ui/controls.gd:182-184",
+          "final": "src/ui/controls.gd:202-204",
+          "why": "밀림 · e1548ef 169-171"
+        },
+        {
+          "id": "S91",
+          "ref": "src/ui/controls.gd:49",
+          "final": "src/ui/controls.gd:52",
+          "why": "밀림 · e1548ef 47"
+        },
+        {
+          "id": "S91",
+          "ref": "src/ui/controls.gd:139-143",
+          "final": "src/ui/controls.gd:163-167",
+          "why": "밀림 · e1548ef 132-136"
+        },
+        {
+          "id": "S92",
+          "ref": "src/ui/controls.gd:27",
+          "final": "src/ui/controls.gd:28",
+          "why": "밀림 · e1548ef 25 · 글 바뀜"
+        },
+        {
+          "id": "S100",
+          "ref": "src/ui/controls.gd:185",
+          "final": "src/ui/controls.gd:205",
+          "why": "밀림 · e1548ef 172"
+        },
+        {
+          "id": "S100",
+          "ref": "src/ui/controls.gd:24",
+          "final": "src/ui/controls.gd:25",
+          "why": "밀림 · e1548ef 23"
+        },
+        {
+          "id": "S100",
+          "ref": "src/ui/controls.gd:194-195",
+          "final": "src/ui/controls.gd:216-217",
+          "why": "밀림 · e1548ef 181-182"
+        },
+        {
+          "id": "S103",
+          "ref": "src/ui/controls.gd:27",
+          "final": "src/ui/controls.gd:28",
+          "why": "밀림 · e1548ef 25 · 글 바뀜"
+        },
+        {
+          "id": "I9",
+          "ref": "src/ui/controls.gd:168-215",
+          "final": "src/ui/controls.gd:187-237",
+          "why": "밀림 · e1548ef 155-202 · 글 바뀜"
+        },
+        {
+          "id": "I9",
+          "ref": "src/ui/controls.gd:91-92",
+          "final": "src/ui/controls.gd:109-110",
+          "why": "밀림 · e1548ef 95-96 · 글 바뀜"
+        },
+        {
+          "id": "I9",
+          "ref": "src/ui/controls.gd:225-229",
+          "final": "src/ui/controls.gd:247-251",
+          "why": "밀림 · e1548ef 212-216"
+        },
+        {
+          "id": "I10",
+          "ref": "src/ui/controls.gd:10",
+          "final": "src/ui/controls.gd:11",
+          "why": "밀림 · e1548ef 10"
+        },
+        {
+          "id": "I11",
+          "ref": "src/main.gd:112-115",
+          "final": "src/main.gd:145-148",
+          "why": "밀림 · e1548ef 90-93"
+        },
+        {
+          "id": "I15",
+          "ref": "src/main.gd:249",
+          "final": "src/main.gd:297",
+          "why": "밀림 · e1548ef 210 · 글 바뀜"
+        },
+        {
+          "id": "I20",
+          "ref": "src/ui/controls.gd:100-106",
+          "final": "src/ui/controls.gd:129-135",
+          "why": "밀림 · e1548ef 104-110"
+        },
+        {
+          "id": "I21",
+          "ref": "src/ui/controls.gd:181",
+          "final": "src/ui/controls.gd:201",
+          "why": "밀림 · e1548ef 168"
+        },
+        {
+          "id": "I28",
+          "ref": "src/main.gd:51",
+          "final": "src/main.gd:56",
+          "why": "밀림 · e1548ef 37"
+        },
+        {
+          "id": "I42",
+          "ref": "src/main.gd:252",
+          "final": "src/main.gd:300",
+          "why": "밀림 · e1548ef 213 · 글 바뀜"
+        },
+        {
+          "id": "I57",
+          "ref": "src/ui/controls.gd:168-215",
+          "final": "src/ui/controls.gd:187-237",
+          "why": "밀림 · e1548ef 155-202 · 글 바뀜"
+        },
+        {
+          "id": "I57",
+          "ref": "src/ui/controls.gd:186",
+          "final": "src/ui/controls.gd:206",
+          "why": "밀림 · e1548ef 173"
+        },
+        {
+          "id": "I57",
+          "ref": "src/ui/controls.gd:214-216",
+          "final": "src/ui/controls.gd:236-238",
+          "why": "밀림 · e1548ef 201-203"
+        },
+        {
+          "id": "I58",
+          "ref": "src/ui/controls.gd:171",
+          "final": "src/ui/controls.gd:191",
+          "why": "밀림 · e1548ef 158"
+        },
+        {
+          "id": "I61",
+          "ref": "src/ui/controls.gd:181",
+          "final": "src/ui/controls.gd:201",
+          "why": "밀림 · e1548ef 168"
+        },
+        {
+          "id": "I66",
+          "ref": "src/main.gd:234",
+          "final": "src/main.gd:279",
+          "why": "밀림 · e1548ef 195"
+        },
+        {
+          "id": "I71",
+          "ref": "src/ui/controls.gd:27",
+          "final": "src/ui/controls.gd:28",
+          "why": "밀림 · e1548ef 25 · 글 바뀜"
+        },
+        {
+          "id": "S110",
+          "ref": "src/ui/controls.gd:15",
+          "final": "src/ui/controls.gd:17",
+          "why": "밀림 · e1548ef 15 · 글 바뀜"
+        },
+        {
+          "id": "S111",
+          "ref": "src/main.gd:249",
+          "final": "src/main.gd:297",
+          "why": "밀림 · e1548ef 210 · 글 바뀜"
+        },
+        {
+          "id": "S111",
+          "ref": "src/main.gd:251",
+          "final": "src/main.gd:299",
+          "why": "밀림 · e1548ef 212"
+        },
+        {
+          "id": "S96",
+          "ref": "src/data/hero_def.gd:18",
+          "final": "src/data/hero_def.gd:19",
+          "why": "밀림 · 7e1af00 18"
+        },
+        {
+          "id": "I88",
+          "ref": "src/ui/controls.gd:48",
+          "final": "src/ui/controls.gd:51",
+          "why": "밀림 · e1548ef 46"
+        },
+        {
+          "id": "I89",
+          "ref": "src/ui/controls.gd:182-184",
+          "final": "src/ui/controls.gd:202-204",
+          "why": "밀림 · e1548ef 169-171"
+        },
+        {
+          "id": "I90",
+          "ref": "src/ui/controls.gd:182-184",
+          "final": "src/ui/controls.gd:202-204",
+          "why": "밀림 · e1548ef 169-171"
+        },
+        {
+          "id": "I91",
+          "ref": "src/main.gd:14-18",
+          "final": "src/main.gd:23-25",
+          "why": "밀림 · e1548ef 14-16"
+        },
+        {
+          "id": "I91",
+          "ref": "src/main.gd:234",
+          "final": "src/main.gd:279",
+          "why": "밀림 · e1548ef 195"
+        },
+        {
+          "id": "I91",
+          "ref": "src/main.gd:262-266",
+          "final": "src/main.gd:311-315",
+          "why": "밀림 · e1548ef 223-227"
+        },
+        {
+          "id": "I91",
+          "ref": "src/main.gd:251",
+          "final": "src/main.gd:299",
+          "why": "밀림 · e1548ef 212"
+        },
+        {
+          "id": "S119",
+          "ref": "src/ui/controls.gd:10",
+          "final": "src/ui/controls.gd:11",
+          "why": "밀림 · e1548ef 10"
+        },
+        {
+          "id": "I101",
+          "ref": "src/ui/controls.gd:178-179",
+          "final": "src/ui/controls.gd:198-199",
+          "why": "밀림 · e1548ef 165-166"
+        },
+        {
+          "id": "I107",
+          "ref": "src/main.gd:252",
+          "final": "src/main.gd:300",
+          "why": "밀림 · e1548ef 213 · 글 바뀜"
+        },
+        {
+          "id": "I107",
+          "ref": "src/main.gd:253",
+          "final": "src/main.gd:301",
+          "why": "밀림 · e1548ef 214 · 글 바뀜"
+        },
+        {
+          "id": "S137",
+          "ref": "src/ui/controls.gd:27",
+          "final": "src/ui/controls.gd:28",
+          "why": "밀림 · e1548ef 25 · 글 바뀜"
+        },
+        {
+          "id": "S144",
+          "ref": "src/main.gd:263",
+          "final": "src/main.gd:312",
+          "why": "밀림 · e1548ef 224"
+        },
+        {
+          "id": "I128",
+          "ref": "src/ui/controls.gd:31",
+          "final": "src/ui/controls.gd:32",
+          "why": "밀림 · e1548ef 29"
+        },
+        {
+          "id": "I128",
+          "ref": "src/ui/controls.gd:397-404",
+          "final": "src/ui/controls.gd:435-442",
+          "why": "밀림 · 0fab43b 223-229"
+        },
+        {
+          "id": "I128",
+          "ref": "src/ui/controls.gd:406-429",
+          "final": "src/ui/controls.gd:436-457",
+          "why": "밀림 · e1548ef 366-387"
+        },
+        {
+          "id": "I132",
+          "ref": "src/ui/controls.gd:238-244",
+          "final": "src/ui/controls.gd:282-288",
+          "why": "밀림 · e1548ef 225-231"
+        },
+        {
+          "id": "I135",
+          "ref": "src/ui/controls.gd:190-191",
+          "final": "src/ui/controls.gd:210-211",
+          "why": "밀림 · e1548ef 177-178"
+        },
+        {
+          "id": "I139",
+          "ref": "src/ui/controls.gd:78-84",
+          "final": "src/ui/controls.gd:95-100",
+          "why": "밀림 · e1548ef 83-88"
+        },
+        {
+          "id": "I140",
+          "ref": "src/ui/controls.gd:27",
+          "final": "src/ui/controls.gd:28",
+          "why": "밀림 · e1548ef 25 · 글 바뀜"
+        },
+        {
+          "id": "S145",
+          "ref": "src/ui/controls.gd:10",
+          "final": "src/ui/controls.gd:11",
+          "why": "밀림 · e1548ef 10"
+        },
+        {
+          "id": "S145",
+          "ref": "src/ui/controls.gd:25",
+          "final": "src/ui/controls.gd:27",
+          "why": "밀림 · e1548ef 24"
+        },
+        {
+          "id": "S145",
+          "ref": "src/ui/controls.gd:334",
+          "final": "src/ui/controls.gd:362",
+          "why": "밀림 · e1548ef 294"
+        },
+        {
+          "id": "S147",
+          "ref": "src/ui/controls.gd:11",
+          "final": "src/ui/controls.gd:12",
+          "why": "밀림 · e1548ef 11 · 글 바뀜"
+        },
+        {
+          "id": "S147",
+          "ref": "src/ui/controls.gd:51",
+          "final": "src/ui/controls.gd:56",
+          "why": "밀림 · e1548ef 49 · 글 바뀜"
+        },
+        {
+          "id": "S147",
+          "ref": "src/ui/controls.gd:334",
+          "final": "src/ui/controls.gd:362",
+          "why": "밀림 · e1548ef 294"
+        },
+        {
+          "id": "S147",
+          "ref": "src/ui/controls.gd:362",
+          "final": "src/ui/controls.gd:390",
+          "why": "밀림 · e1548ef 322"
+        },
+        {
+          "id": "S158",
+          "ref": "src/ui/controls.gd:11",
+          "final": "src/ui/controls.gd:12",
+          "why": "밀림 · e1548ef 11 · 글 바뀜"
+        },
+        {
+          "id": "S158",
+          "ref": "src/ui/controls.gd:334",
+          "final": "src/ui/controls.gd:362",
+          "why": "밀림 · e1548ef 294"
+        },
+        {
+          "id": "I145",
+          "ref": "src/ui/controls.gd:362",
+          "final": "src/ui/controls.gd:390",
+          "why": "밀림 · e1548ef 322"
+        },
+        {
+          "id": "S159",
+          "ref": "src/data/hero_def.gd:15",
+          "final": "src/data/hero_def.gd:16",
+          "why": "밀림 · f995252 15"
+        },
+        {
+          "id": "I151",
+          "ref": "src/ui/controls.gd:11",
+          "final": "src/ui/controls.gd:12",
+          "why": "밀림 · e1548ef 11 · 글 바뀜"
+        },
+        {
+          "id": "I151",
+          "ref": "src/ui/controls.gd:345",
+          "final": "src/ui/controls.gd:373",
+          "why": "밀림 · e1548ef 305"
+        },
+        {
+          "id": "I151",
+          "ref": "src/ui/controls.gd:30",
+          "final": "src/ui/controls.gd:31",
+          "why": "밀림 · e1548ef 28"
+        },
+        {
+          "id": "I151",
+          "ref": "src/ui/controls.gd:337-341",
+          "final": "src/ui/controls.gd:365-369",
+          "why": "밀림 · e1548ef 297-301"
+        },
+        {
+          "id": "S183",
+          "ref": "src/main.gd:112-145",
+          "final": "src/main.gd:145-167",
+          "why": "밀림 · e1548ef 90-105"
+        },
+        {
+          "id": "S183",
+          "ref": "src/main.gd:170-175",
+          "final": "src/main.gd:206-210",
+          "why": "밀림 · e1548ef 130-134"
+        },
+        {
+          "id": "S183",
+          "ref": "src/main.gd:114",
+          "final": "src/main.gd:147",
+          "why": "밀림 · e1548ef 92"
+        },
+        {
+          "id": "S183",
+          "ref": "src/main.gd:164",
+          "final": "src/main.gd:200",
+          "why": "밀림 · e1548ef 124"
+        },
+        {
+          "id": "S183",
+          "ref": "src/ui/controls.gd:13",
+          "final": "src/ui/controls.gd:14",
+          "why": "밀림 · e1548ef 13"
+        },
+        {
+          "id": "S183",
+          "ref": "src/ui/controls.gd:93-95",
+          "final": "src/ui/controls.gd:120-124",
+          "why": "밀림 · e1548ef 97-99"
+        },
+        {
+          "id": "S183",
+          "ref": "src/ui/controls.gd:247-270",
+          "final": "src/ui/controls.gd:291-302",
+          "why": "밀림 · e1548ef 234-244"
+        },
+        {
+          "id": "I158",
+          "ref": "src/main.gd:54",
+          "final": "src/main.gd:60",
+          "why": "밀림 · e1548ef 40"
+        },
+        {
+          "id": "I158",
+          "ref": "src/ui/controls.gd:61",
+          "final": "src/ui/controls.gd:64",
+          "why": "밀림 · e1548ef 53"
+        },
+        {
+          "id": "I158",
+          "ref": "src/ui/controls.gd:342-343",
+          "final": "src/ui/controls.gd:370-371",
+          "why": "밀림 · e1548ef 302-303"
+        },
+        {
+          "id": "S185",
+          "ref": "src/main.gd:64",
+          "final": "src/main.gd:69",
+          "why": "밀림 · e1548ef 49"
+        },
+        {
+          "id": "S186",
+          "ref": "src/ui/controls.gd:27",
+          "final": "src/ui/controls.gd:28",
+          "why": "밀림 · e1548ef 25 · 글 바뀜"
+        },
+        {
+          "id": "S189",
+          "ref": "src/ui/controls.gd:33",
+          "final": "src/ui/controls.gd:34",
+          "why": "밀림 · e1548ef 31"
+        },
+        {
+          "id": "S189",
+          "ref": "src/ui/controls.gd:89-90",
+          "final": "src/ui/controls.gd:107-108",
+          "why": "밀림 · e1548ef 93-94"
+        },
+        {
+          "id": "S191",
+          "ref": "src/ui/controls.gd:34",
+          "final": "src/ui/controls.gd:35",
+          "why": "밀림 · e1548ef 32"
+        },
+        {
+          "id": "S200",
+          "ref": "src/main.gd:92",
+          "final": "src/main.gd:106",
+          "why": "밀림 · e1548ef 74 · 글 바뀜"
+        },
+        {
+          "id": "S200",
+          "ref": "src/main.gd:181",
+          "final": "src/main.gd:216",
+          "why": "밀림 · e1548ef 140 · 글 바뀜"
+        },
+        {
+          "id": "I165",
+          "ref": "src/ui/controls.gd:29",
+          "final": "src/ui/controls.gd:30",
+          "why": "밀림 · e1548ef 27 · 글 바뀜"
+        },
+        {
+          "id": "I165",
+          "ref": "src/ui/controls.gd:91-92",
+          "final": "src/ui/controls.gd:109-110",
+          "why": "밀림 · e1548ef 95-96 · 글 바뀜"
+        },
+        {
+          "id": "I165",
+          "ref": "src/ui/controls.gd:224-229",
+          "final": "src/ui/controls.gd:246-251",
+          "why": "밀림 · e1548ef 211-216 · 글 바뀜"
+        },
+        {
+          "id": "I170",
+          "ref": "src/main.gd:91",
+          "final": "src/main.gd:102",
+          "why": "밀림 · e1548ef 73 · 글 바뀜"
+        },
+        {
+          "id": "S203",
+          "ref": "src/main.gd:23",
+          "final": "src/main.gd:26",
+          "why": "밀림 · e1548ef 17 · 글 바뀜"
+        },
+        {
+          "id": "S203",
+          "ref": "src/main.gd:231-267",
+          "final": "src/main.gd:276-322",
+          "why": "밀림 · e1548ef 192-228"
+        },
+        {
+          "id": "S203",
+          "ref": "src/main.gd:60",
+          "final": "src/main.gd:65",
+          "why": "밀림 · e1548ef 45"
+        },
+        {
+          "id": "S204",
+          "ref": "src/main.gd:170-171",
+          "final": "src/main.gd:206-207",
+          "why": "밀림 · e1548ef 130-131"
+        },
+        {
+          "id": "S204",
+          "ref": "src/ui/controls.gd:13",
+          "final": "src/ui/controls.gd:14",
+          "why": "밀림 · e1548ef 13"
+        },
+        {
+          "id": "S204",
+          "ref": "src/ui/controls.gd:175",
+          "final": "src/ui/controls.gd:195",
+          "why": "밀림 · e1548ef 162"
+        },
+        {
+          "id": "S204",
+          "ref": "src/ui/controls.gd:198-199",
+          "final": "src/ui/controls.gd:220-221",
+          "why": "밀림 · e1548ef 185-186"
+        },
+        {
+          "id": "S204",
+          "ref": "src/ui/controls.gd:220-221",
+          "final": "src/ui/controls.gd:242-243",
+          "why": "밀림 · e1548ef 207-208"
+        },
+        {
+          "id": "S204",
+          "ref": "src/ui/controls.gd:93-95",
+          "final": "src/ui/controls.gd:120-124",
+          "why": "밀림 · e1548ef 97-99"
+        },
+        {
+          "id": "S204",
+          "ref": "src/ui/controls.gd:23",
+          "final": "src/ui/controls.gd:24",
+          "why": "밀림 · e1548ef 22"
+        },
+        {
+          "id": "S204",
+          "ref": "src/ui/controls.gd:187-188",
+          "final": "src/ui/controls.gd:207-208",
+          "why": "밀림 · e1548ef 174-175"
+        },
+        {
+          "id": "S205",
+          "ref": "src/ui/controls.gd:6",
+          "final": "src/ui/controls.gd:7",
+          "why": "밀림 · e1548ef 6"
+        },
+        {
+          "id": "S205",
+          "ref": "src/ui/controls.gd:62",
+          "final": "src/ui/controls.gd:65",
+          "why": "밀림 · e1548ef 54"
+        },
+        {
+          "id": "S205",
+          "ref": "src/ui/controls.gd:309",
+          "final": "src/ui/controls.gd:335",
+          "why": "밀림 · e1548ef 273"
+        },
+        {
+          "id": "S205",
+          "ref": "src/ui/controls.gd:324-325",
+          "final": "src/ui/controls.gd:346-347",
+          "why": "밀림 · e1548ef 284-285"
+        },
+        {
+          "id": "S206",
+          "ref": "src/ui/controls.gd:13",
+          "final": "src/ui/controls.gd:14",
+          "why": "밀림 · e1548ef 13"
+        },
+        {
+          "id": "S206",
+          "ref": "src/ui/controls.gd:63",
+          "final": "src/ui/controls.gd:66",
+          "why": "밀림 · e1548ef 55"
+        },
+        {
+          "id": "S206",
+          "ref": "src/ui/controls.gd:198-204",
+          "final": "src/ui/controls.gd:220-226",
+          "why": "밀림 · e1548ef 185-191"
+        },
+        {
+          "id": "S206",
+          "ref": "src/ui/controls.gd:217-222",
+          "final": "src/ui/controls.gd:239-244",
+          "why": "밀림 · e1548ef 204-209"
+        },
+        {
+          "id": "S206",
+          "ref": "src/ui/controls.gd:247-265",
+          "final": "src/ui/controls.gd:291-297",
+          "why": "밀림 · e1548ef 234-239"
+        },
+        {
+          "id": "S208",
+          "ref": "src/main.gd:254",
+          "final": "src/main.gd:302",
+          "why": "밀림 · e1548ef 215 · 글 바뀜"
+        },
+        {
+          "id": "S209",
+          "ref": "src/main.gd:63",
+          "final": "src/main.gd:68",
+          "why": "밀림 · e1548ef 48"
+        },
+        {
+          "id": "I173",
+          "ref": "src/ui/controls.gd:5",
+          "final": "src/ui/controls.gd:6",
+          "why": "밀림 · e1548ef 5 · 글 바뀜"
+        },
+        {
+          "id": "I173",
+          "ref": "src/ui/controls.gd:7",
+          "final": "src/ui/controls.gd:8",
+          "why": "밀림 · e1548ef 7"
+        },
+        {
+          "id": "I173",
+          "ref": "src/ui/controls.gd:163",
+          "final": "src/ui/controls.gd:182",
+          "why": "밀림 · e1548ef 150"
+        },
+        {
+          "id": "I173",
+          "ref": "src/ui/controls.gd:217-218",
+          "final": "src/ui/controls.gd:239-240",
+          "why": "밀림 · e1548ef 204-205"
+        },
+        {
+          "id": "I173",
+          "ref": "src/ui/controls.gd:237-245",
+          "final": "src/ui/controls.gd:281-289",
+          "why": "밀림 · e1548ef 224-232"
+        },
+        {
+          "id": "I173",
+          "ref": "src/ui/controls.gd:292",
+          "final": "src/ui/controls.gd:317",
+          "why": "밀림 · e1548ef 257"
+        },
+        {
+          "id": "I175",
+          "ref": "src/main.gd:26",
+          "final": "src/main.gd:30",
+          "why": "밀림 · e1548ef 20"
+        },
+        {
+          "id": "I175",
+          "ref": "src/main.gd:39",
+          "final": "src/main.gd:50",
+          "why": "밀림 · e1548ef 31"
+        },
+        {
+          "id": "I177",
+          "ref": "src/main.gd:251",
+          "final": "src/main.gd:299",
+          "why": "밀림 · e1548ef 212"
+        },
+        {
+          "id": "S210",
+          "ref": "src/main.gd:264",
+          "final": "src/main.gd:313",
+          "why": "밀림 · e1548ef 225"
+        },
+        {
+          "id": "S213",
+          "ref": "src/ui/controls.gd:202",
+          "final": "src/ui/controls.gd:224",
+          "why": "밀림 · e1548ef 189"
+        },
+        {
+          "id": "S213",
+          "ref": "src/ui/controls.gd:311",
+          "final": "src/ui/controls.gd:337",
+          "why": "밀림 · e1548ef 275"
+        },
+        {
+          "id": "S213",
+          "ref": "src/ui/controls.gd:369",
+          "final": "src/ui/controls.gd:397",
+          "why": "밀림 · e1548ef 329"
+        },
+        {
+          "id": "S213",
+          "ref": "src/ui/controls.gd:378-380",
+          "final": "src/ui/controls.gd:406-408",
+          "why": "밀림 · e1548ef 338-340"
+        },
+        {
+          "id": "S216",
+          "ref": "src/ui/controls.gd:213",
+          "final": "src/ui/controls.gd:235",
+          "why": "밀림 · e1548ef 200 · 글 바뀜"
+        },
+        {
+          "id": "S216",
+          "ref": "src/ui/controls.gd:415-420",
+          "final": "src/ui/controls.gd:453-457",
+          "why": "밀림 · bb90672 364-366"
+        },
+        {
+          "id": "S217",
+          "ref": "src/main.gd:235-241",
+          "final": "src/main.gd:280-289",
+          "why": "밀림 · e1548ef 196-202 · 글 바뀜"
+        },
+        {
+          "id": "S217",
+          "ref": "src/main.gd:238-247",
+          "final": "src/main.gd:286-295",
+          "why": "밀림 · e1548ef 199-208 · 글 바뀜"
+        },
+        {
+          "id": "S217",
+          "ref": "src/ui/controls.gd:182-184",
+          "final": "src/ui/controls.gd:202-204",
+          "why": "밀림 · e1548ef 169-171"
+        },
+        {
+          "id": "S217",
+          "ref": "src/ui/controls.gd:412",
+          "final": "src/ui/controls.gd:450",
+          "why": "밀림 · 54b932d 361"
+        },
+        {
+          "id": "S218",
+          "ref": "src/ui/controls.gd:192-193",
+          "final": "src/ui/controls.gd:214-215",
+          "why": "밀림 · e1548ef 179-180"
+        },
+        {
+          "id": "S218",
+          "ref": "src/ui/controls.gd:316-323",
+          "final": "src/ui/controls.gd:340-345",
+          "why": "밀림 · e1548ef 278-283"
+        },
+        {
+          "id": "S219",
+          "ref": "src/ui/controls.gd:182-184",
+          "final": "src/ui/controls.gd:202-204",
+          "why": "밀림 · e1548ef 169-171"
+        },
+        {
+          "id": "S220",
+          "ref": "src/main.gd:259",
+          "final": "src/main.gd:308",
+          "why": "밀림 · e1548ef 220"
+        },
+        {
+          "id": "S226",
+          "ref": "src/ui/controls.gd:409",
+          "final": "src/ui/controls.gd:447",
+          "why": "밀림 · 8b826c0 364"
+        },
+        {
+          "id": "S226",
+          "ref": "src/ui/controls.gd:27",
+          "final": "src/ui/controls.gd:28",
+          "why": "밀림 · e1548ef 25 · 글 바뀜"
+        },
+        {
+          "id": "I194",
+          "ref": "src/main.gd:224-229",
+          "final": "src/main.gd:269-274",
+          "why": "밀림 · e1548ef 185-190"
+        },
+        {
+          "id": "I194",
+          "ref": "src/main.gd:194",
+          "final": "src/main.gd:231",
+          "why": "밀림 · e1548ef 151"
+        },
+        {
+          "id": "I194",
+          "ref": "src/main.gd:209",
+          "final": "src/main.gd:255",
+          "why": "밀림 · e1548ef 171"
+        },
+        {
+          "id": "I194",
+          "ref": "src/main.gd:222",
+          "final": "src/main.gd:267",
+          "why": "밀림 · e1548ef 183"
+        }
+      ],
+      "notes": "[확인한 방법]\n1. p5_q.json을 파이썬으로 걸러 44개임을 확인했다. decisions의 (id, auto) 짝은 목록과 같다(스크립트로 대조).\n2. 파일마다 git diff f76bcbe bfaba36을 읽고, 항목마다 SPEC 문장·행, 옛 범위(git show f76bcbe), 지금 범위(awk·sed)를 읽었다. final 44개와 other 231개는 스크립트로 첫·끝 줄을 다시 찍어 확인했다. 범위가 파일 길이를 넘는 것은 없고, other의 ref는 모두 지금 SPEC 행에 그 글로 있다.\n3. 옛 범위가 문장과 맞지 않는 항목은 그 행을 git 이력의 처음 커밋까지 따라가 원래 가리키던 코드를 확인한 뒤 지금 줄을 정했다. 측정·pytest는 돌리지 않았고 저장소 파일·git 상태는 바꾸지 않았다.\n\n[큰 발견: 이번 변경보다 앞선 밀림]\nmain.gd·controls.gd·save.gd·hire.tres·en.po를 가리키는 §3.1 참조 다수가 2026-11-01 병합 때부터 줄 번호가 뒤처져 있다. 668505a(언제든 영입: controls.gd set_shop·shop 13줄, save.gd rerolls 1줄, hire.tres·hire_def.gd reroll_step 1줄), 2878214(소리), e6c2b21(후기 3)이 코드를 바꾸면서 이 파일들의 줄 참조를 옮기지 않았다. 예: S117의 controls.gd 참조는 a7abbe0까지 코드와 맞고 668505a부터 13줄 어긋난다. I160의 main.gd 참조는 668505a까지 맞고 2878214부터 어긋난다. 그 뒤 기계 옮김은 어긋난 값을 그대로 옮겼다. 그래서 f76bcbe 때 old 범위가 이미 엉뚱한 코드였던 항목이 내 44개 가운데 15개다(moved 14, I156 rescoped). 이 항목들은 처음 커밋에서 가리키던 코드의 지금 자리를 final로 했다.\n규모(다시 쓰는 행 22개는 뺌): controls.gd 참조 192개 가운데 132개, main.gd 142개 가운데 80개, save.gd 46개 가운데 8개, en.po 6개, hire.tres 3개, hero_def.gd 2개 = other 231개. tuning.gd·camera.gd·hud_keep.gd·hud_auto.gd·hud_build.gd에서는 어긋난 참조를 확정하지 못했다.\nother에서 why가 «밀림 · <커밋> <줄>»인 176개는 기계 대조다. 그 참조가 e1548ef(밀리기 전 마지막 커밋. 그보다 앞서 밀린 것은 처음 적은 커밋) 때 가리키던 범위의 첫·끝 줄 글을 지금 파일에서 찾은 자리다. «글 바뀜»은 그 줄 글이 조금 바뀌어 앞뒤 줄 사이에서 가장 비슷한 줄로 맞춘 것이다. 176개를 모두 한 번 훑어 글이 이어지는지 보았지만 문장과 하나하나 대조하지는 않았다. 나머지 55개는 행 이력과 문장을 읽고 손으로 정했다. «[이번 변경]» 5개(I12·I94·S117·S118·S182)는 참조가 밀려 있어 기계가 깨끗이 옮겼지만 진짜 대상(주석·가지)이 이번 커밋에서 바뀐 것이다.\n지운 코드: set_shop·shop·T 키 주석·shop_key 가지·rerolls·lineup 줄·hire 칸 여섯이 있던 자리를 가리키던 참조는 모두 목록 안이었다. 목록 밖에서 진짜 대상이 지운 코드뿐인 참조는 찾지 못했다(다시 쓰는 행 제외).\n\n[확신이 낮은 항목]\ndecisions: I30 둘(영입 수치가 지워졌으니 deleted로 볼 수도 있다. lineup을 영웅 수 «상한» 손잡이로 보고 남겼다) · S193(1-14로 넓힘) · S18(시작 줄 toggle_hold()는 계보 그대로다. 놓기 묶음만 가리키려면 129-173) · S162 첫째(apply_cursor 줄을 빼면 249-254) · I160(기계 계보로는 cursor 함수까지 257-274) · I167·S365(끝 줄이 빈 줄인 옛 범위를 그대로 두었다. 빈 줄을 빼려면 1-20, 534-642).\nother: why에 «확신 중간»이라 적은 S37·S39·S184·S191, 그리고 S163·S206(둘로 가름)·S30(60-67)·S14(main.gd 220).\n판단을 미룬 것(other에 넣지 않음): controls.gd S98 둘·S119(389)·S275, hud_build.gd S99·I128, hud_theme.gd S241, main.gd S203(251), en.po S188 넷·S195·S299·I246·S332·S352·S354, hud_keep.gd I298(413-460). 2026-11-01 뒤에 고쳐 적힌 행이거나 대조가 흔들려 지금 값이 맞는지 가리지 못했다. camera.gd I50(14-15, 156)·S203(14-15)은 지금 값이 맞다고 보았다.\n\n[그 밖]\n- HEAD가 acf07b2라 기계 옮김은 이미 커밋돼 있다(작업 트리 = HEAD, git diff -- SPEC.md는 비어 있다). 옛 값은 bfaba36·f76bcbe의 SPEC으로 보았다(두 판의 §3.1 행은 같다).\n- 기계 값 «7-7»·«5-5»·«74-74»는 한 줄 표기로 고쳤다.\n- S94 행에 남는 src/ui/hud.gd:25는 지금 GAPS 상수 줄이라 등급과 무관해 보인다(hud.gd 몫).\n- 새 문장 행을 만들 때 내 파일에서 쓸 자리: I304 → src/sim/save.gd:79-83 · src/sim/save.gd:7, I303 ⑤ → src/ui/hud_auto.gd:2, S373(Enter는 다 골라야 넘어감) → src/main.gd:197 · src/main.gd:211-213.\n- 스크래치 dec/ 폴더를 다른 일꾼과 같이 써서 파일 이름이 겹쳤다(내가 둔 SPEC_old.md·mine.json이 덮였다). 그 뒤로는 따로 만든 폴더에서만 일했다. 산출물: /tmp/claude-0/-home-user-td-proj/3a65bacf-d77b-5ad4-b30c-f51078f27e14/scratchpad/dec/w44_nonbattle/decisions.json, /tmp/claude-0/-home-user-td-proj/3a65bacf-d77b-5ad4-b30c-f51078f27e14/scratchpad/dec/w44_nonbattle/other.json(코드 글 조각 포함), /tmp/claude-0/-home-user-td-proj/3a65bacf-d77b-5ad4-b30c-f51078f27e14/scratchpad/dec/w44_nonbattle/drift_cls.json(참조 730개의 계보·판정), /tmp/claude-0/-home-user-td-proj/3a65bacf-d77b-5ad4-b30c-f51078f27e14/scratchpad/dec/w44_nonbattle/other_skipped.json."
+    },
+    "rows": {
+      "rows": [
+        {
+          "id": "S54",
+          "cell": "src/sim/battle.gd:16 · src/sim/battle.gd:505 · src/sim/battle.gd:741 · src/sim/battle.gd:1443-1447 · src/sim/battle.gd:1453-1456 · src/sim/battle.gd:1464-1476 · src/sim/battle.gd:1487-1500 · src/ui/hud.gd:8 · src/ui/hud.gd:1312-1320 · src/ui/hud.gd:1660-1663 · src/sim/save.gd:79-83",
+          "status": "rewritten",
+          "why": "옛 칸은 begin_hiring 한 곳(끝에 빈 줄)뿐이었다. 2026-11-16 변경의 구절마다 다시 잡았다: 카드 차례와 목록(HERO_ORDER, offers.assign), 고르기 창 열기(begin_hiring), 고르는 수(lineup_size), 골드 없이 고르기와 도중 거부(hire), 보유 = 출전(roster, _deploy), 화면의 고르기·빼기(_pick), 새 도전에서 다시 고르기(_restart), 옛 저장 거르기(save.gd apply)."
+        },
+        {
+          "id": "S55",
+          "cell": "",
+          "status": "unchanged",
+          "why": "빈 칸 그대로 둔다. 무작위 목록·등급 확률·영입 비용은 S54로 없어졌지만 «영웅마다 등급이 있다»는 남아 있어(S94) 통째로 없어진 문장이 아니다. 칸은 2026-10-12에 처음 생길 때부터 비어 있었다."
+        },
+        {
+          "id": "S57",
+          "cell": "(2026-11-16 없어짐 — 영입소 목록과 리롤이 없다, S54)",
+          "status": "gone",
+          "why": "라운드마다 무료로 바뀌는 목록과 리롤이 문장의 전부이고, S54 2026-11-16 변경이 S57을 짚어 «없다»고 한다. 문장에 표시 없이 중심 문장으로 없어진 행의 선례(I121 «2026-11-07 없어짐 — 의뢰 제거, S77»)를 따랐다. 칸은 처음부터 비어 있었다."
+        },
+        {
+          "id": "S59",
+          "cell": "(2026-11-16 없어짐 — 보유 상한·대기·출전 선택이 없다, S54)",
+          "status": "gone",
+          "why": "보유 상한과 라운드마다의 출전 선택이 문장의 전부이고, S54 2026-11-16 변경이 S59를 짚어 «없다»고 한다. I121 선례를 따랐다. 칸은 처음부터 비어 있었다."
+        },
+        {
+          "id": "S122",
+          "cell": "src/sim/battle.gd:1443-1447 · src/main.gd:52 · src/ui/hud.gd:1660-1663 · src/sim/battle.gd:1026-1045 · src/sim/battle.gd:521 · src/sim/battle.gd:1023 · src/ui/hud.gd:8 · src/sim/battle.gd:1464-1476 · src/ui/hud.gd:748",
+          "status": "rewritten",
+          "why": "원래 지목(begin_hiring, main의 begin_hiring 호출, _restart, next_round의 _deploy()까지, state 주석, next_round 주석, hud 머리 주석)을 지금 줄로 다시 잡고, 범위와 겹치던 한 줄 참조 둘을 뺐다. 2026-11-16 변경의 «골드 없이 고른다»(hire)와 창 머리 글 «도전 시작 — 영웅 고르기»를 더했다."
+        },
+        {
+          "id": "S123",
+          "cell": "data/hire.tres:7 · src/data/hire_def.gd:3 · src/data/hire_def.gd:5 · src/sim/battle.gd:17 · src/sim/battle.gd:1453-1456 · src/sim/battle.gd:1467-1469 · src/ui/hud.gd:506",
+          "status": "rewritten",
+          "why": "영입 비용·리롤 비용·출전 전환을 가리키던 주석 줄 셋을 뺐다(reroll·set_lineup은 지워졌다). 남은 수치 lineup의 손잡이(hire.tres, hire_def)와 그것을 읽는 곳(HIRE, lineup_size, hire의 출전 인원 거부, 영웅 줄 수)을 넣었다."
+        },
+        {
+          "id": "S248",
+          "cell": "src/ui/hud.gd:447-470 · src/ui/hud.gd:764-773 · src/ui/hud.gd:1346-1355 · src/ui/hud.gd:1357-1373 · src/ui/hud.gd:1417-1439",
+          "status": "rewritten",
+          "why": "원래 지목(전환 버튼과 장비 줄 만들기, 새 창의 쪽 정하기, 전환 보이기부터 _show_gear 호출까지, 장비 칸과 제작 이유·툴팁)을 지금 줄로 다시 잡았다. 유물 함수가 사이에 들어와 장비 칸 범위를 둘로 나눴다. «영웅» 쪽의 영웅 줄과 이관 버튼(I303 ④)을 더했다."
+        },
+        {
+          "id": "I13",
+          "cell": "src/sim/battle.gd:914 · src/sim/battle.gd:809 · src/sim/battle.gd:1019-1021 · src/ui/hud.gd:1033-1064 · src/ui/hud.gd:1066-1118 · src/ui/hud.gd:1126-1138 · src/ui/hud.gd:1199-1205 · src/ui/hud.gd:1266-1268 · src/main.gd:197 · src/main.gd:211-213 · src/ui/hud.gd:1043 · src/ui/hud.gd:1045 · src/ui/hud.gd:1106 · locale/en.po:1022-1026",
+          "status": "rewritten",
+          "why": "원래 지목(start_battle, 웨이브 끝 조건, enemies_left, _make_progress, _show_progress, _wave_dots, _to_enemy, _start_battle, main의 ui_accept, «전투 시작» 글 자리와 툴팁)을 지금 줄로 다시 잡았다. 2026-11-16 변경의 진행 칸 글 줄(«영웅 고르기»·«다음 라운드», 1106)과 그 영어 글(en.po)을 더했다."
+        },
+        {
+          "id": "I103",
+          "cell": "data/hire.tres:7 · src/data/hire_def.gd:1-5 · src/sim/battle.gd:17 · src/sim/battle.gd:1458-1462 · src/sim/battle.gd:1467-1469",
+          "status": "rewritten",
+          "why": "목록 뽑기(_draw_offers)와 등장 확률·비용 줄은 없어졌다. 남는 구절 둘을 받치는 줄로 다시 썼다: «수치는 data/hire.tres 하나에 둔다»(남은 수치 lineup)와 «같은 영웅을 둘 보유하지 않는다»(목록은 서로 다른 여섯, hire가 같은 영웅을 거부)."
+        },
+        {
+          "id": "I104",
+          "cell": "(2026-11-16 없어짐 — 영입소 목록 뽑기·영입 비용·리롤이 없다, S54)",
+          "status": "gone",
+          "why": "무료로 새로 뽑기, 영입한 칸 비우기, 리롤, 골드 모자람 거부가 문장의 전부다. 목록은 이제 늘 여섯이고 칸이 비지 않는다(I303 ①). 받칠 코드가 남지 않았다."
+        },
+        {
+          "id": "I105",
+          "cell": "src/sim/battle.gd:1478-1485 · src/sim/battle.gd:1490-1492 · src/sim/save.gd:28-31 · src/ui/hud.gd:1312-1320",
+          "status": "rewritten",
+          "why": "화면의 «내보내기» 버튼은 없어졌고 판 함수 dismiss와 «전장에 있던 영웅은 다음 라운드로 넘어갈 때 사라진다»(_deploy 앞머리)는 남았다(I303 ①). 화면에서 빼는 길(_pick, 고르기 창에서만)과 저장이 뺀 영웅을 담는 줄을 넣었다."
+        },
+        {
+          "id": "I106",
+          "cell": "src/sim/battle.gd:505 · src/sim/battle.gd:1453-1456 · src/sim/battle.gd:1467-1469 · src/sim/battle.gd:1475 · src/sim/battle.gd:1023-1050 · src/sim/battle.gd:1499 · src/ui/hud.gd:759-760 · src/ui/hud.gd:1275-1278 · src/ui/hud.gd:1294-1297",
+          "status": "rewritten",
+          "why": "출전 목록(lineup 변수, set_lineup)은 지워졌다. 다시 쓴 구절: 출전 인원 상한(lineup_size, hire의 거부), 보유 = 출전(roster, hire의 append, _deploy의 heroes.assign), 0명이어도 넘어가는 next_round, 화면이 막는 곳(_next.disabled, proceed, _short_now — 고르기 창에서만 막는다)."
+        },
+        {
+          "id": "I108",
+          "cell": "src/sim/battle.gd:502-503 · src/sim/battle.gd:505 · src/sim/battle.gd:1475 · src/sim/battle.gd:1499-1500 · src/ui/controls.gd:15-17 · src/ui/controls.gd:28 · src/ui/controls.gd:109-110 · src/ui/controls.gd:247-251 · src/ui/controls.gd:427-432 · src/ui/hud.gd:343 · src/ui/hud.gd:1556 · src/ui/hud_build.gd:150 · src/ui/hud_build.gd:288 · src/ui/hints.gd:17-19",
+          "status": "rewritten",
+          "why": "출전 순서 = 고른 순서(roster 주석, hire의 append, _deploy의 heroes.assign과 첫 영웅)로 바꿨다. 지워진 «출전 순서는 보유 순서다» 줄(_deploy의 team)은 뺐다. 1·2·3 키, 초상 키 글자와 툴팁, 놓기 키, 힌트 참조는 지금 줄로 맞췄고 스킬을 쓸 영웅(_hero)을 더했다."
+        },
+        {
+          "id": "I110",
+          "cell": "src/ui/hud.gd:492-518 · src/ui/hud.gd:758-760 · src/ui/hud.gd:774-776 · src/ui/hud.gd:1282-1292 · src/ui/hud.gd:1299-1310 · src/ui/hud.gd:1327 · src/ui/hud.gd:1329-1345 · src/ui/hud.gd:1441-1469 · src/ui/hud.gd:1475-1484 · src/ui/hud.gd:1491-1495 · src/main.gd:197-198 · src/main.gd:211-213",
+          "status": "rewritten",
+          "why": "원래 지목(영웅 칸 만들기부터 진행 버튼까지, 포커스를 주는 곳, 창 버튼과 포커스 되돌리기, 카드 글, 카드와 툴팁, 이관 툴팁, 초상, main의 Enter)을 지금 줄로 다시 잡았다. 비용 숫자·«영입함»·리롤·출전 전환·내보내기를 가리키던 것은 코드가 없어져 뺐다."
+        },
+        {
+          "id": "I127",
+          "cell": "(2026-11-16 없어짐 — 리롤과 보유 상한이 없다, S54)",
+          "status": "gone",
+          "why": "보유 상한에서의 리롤 거부와 그 표시가 문장의 전부다. reroll, _reroll_press, _cap_note, _note가 모두 지워졌다."
+        },
+        {
+          "id": "I136",
+          "cell": "src/ui/hud.gd:244 · src/ui/hud.gd:432-454 · src/ui/hud.gd:492-518 · src/ui/hud.gd:746-747 · src/ui/hud.gd:777 · src/ui/hud.gd:1346-1351 · src/ui/hud_tip.gd:86-104",
+          "status": "rewritten",
+          "why": "원래 지목(창 변수, 창 뼈대, 두 칸·카드·영웅 줄·진행 버튼, 창 자리와 폭, reset_size, 빈 줄도 자리를 지키는 영웅 줄)을 지금 줄로 다시 잡았다. 문장의 «툴팁은 조작 바로 아래(넘치면 위)»를 받치는 hud_tip.gd의 _show를 더했다."
+        },
+        {
+          "id": "I206",
+          "cell": "(2026-11-16 없어짐 — 언제든 영입 창이 없다, S54)",
+          "status": "gone",
+          "why": "언제든 영입 창의 글·포커스·숨는 것·그 순간 출전이 문장의 전부다. controls.shop·set_shop과 hud의 anytime 가지가 모두 지워졌고 hire는 준비·전투 단계에 거부한다."
+        },
+        {
+          "id": "I207",
+          "cell": "(2026-11-16 없어짐 — «영입» 버튼이 없다, S54)",
+          "status": "gone",
+          "why": "src/ui/hud_shop.gd가 지워졌다. 버튼 자리 [3,238,60,26]을 비워 두는 것은 I303 ⑤가 받는다."
+        },
+        {
+          "id": "I208",
+          "cell": "(2026-11-16 없어짐 — 리롤 횟수가 없다, S54)",
+          "status": "gone",
+          "why": "rerolls 변수와 저장 칸이 지워졌다. 옛 저장의 그 칸을 버리는 것은 I304가 받는다."
+        },
+        {
+          "id": "S272",
+          "cell": "(2026-11-16 없어짐 — 언제든 영입 창·«영입» 버튼·T 키가 없다, S54)",
+          "status": "gone",
+          "why": "S54 2026-11-16 변경이 S272를 짚어 «없다»고 한다. main의 T·ESC 가지, controls.shop, hud_shop.gd, can_hire가 모두 지워졌다."
+        },
+        {
+          "id": "S273",
+          "cell": "(2026-11-16 없어짐 — 리롤이 없다, S54)",
+          "status": "gone",
+          "why": "S54 2026-11-16 변경이 S273을 짚어 «없다»고 한다. reroll_cost, rerolls, hire.tres의 reroll·reroll_step이 모두 지워졌다."
+        },
+        {
+          "id": "S372",
+          "cell": "src/ui/hud_theme.gd:17 · src/ui/hud_theme.gd:23-25 · src/ui/hud_theme.gd:69-84 · src/ui/hud_theme.gd:88-110 · src/ui/hud_keep.gd:172 · src/ui/hud_keep.gd:195 · src/ui/hud_build.gd:129 · src/ui/hud_select.gd:87 · src/ui/hud_auto.gd:23",
+          "status": "rewritten",
+          "why": "지워진 src/ui/hud_shop.gd 참조만 뺐다. 나머지 아홉은 지금 파일에서 줄을 찍어 맞는 것을 확인했다."
+        },
+        {
+          "id": "S373",
+          "cell": "src/main.gd:52 · src/sim/battle.gd:1443-1447 · src/ui/hud.gd:748 · src/sim/battle.gd:16 · src/sim/battle.gd:741 · src/sim/battle.gd:1458-1462 · src/ui/hud.gd:504-505 · src/ui/hud.gd:1312-1320 · src/sim/battle.gd:1464-1476 · src/sim/battle.gd:1478-1485 · src/ui/hud.gd:1329-1345 · data/hire.tres:7 · src/sim/battle.gd:1453-1456 · src/ui/hud.gd:759-760 · src/ui/hud.gd:1270-1280 · src/ui/hud.gd:1294-1297 · src/main.gd:211-213 · src/ui/hud.gd:1660-1663",
+          "status": "new",
+          "why": "구절 차례로 적었다: 창이 먼저 뜬다(main, begin_hiring, 창 머리 글) / 카드 여섯·S97 표 차례(HERO_ORDER, offers.assign, _hero_list, 카드 만들기) / 누르면 고르고 다시 누르면 뺀다(_pick, hire, dismiss) / 고른 차례 번호와 다 고른 뒤 눌리지 않는 카드(_show_hire의 카드 줄들) / 출전 인원(hire.tres, lineup_size) / 다 고르기 전 막기(_next.disabled, proceed, _short_now, main의 Enter) / «새 도전»도 이 창에서(proceed, _restart)."
+        },
+        {
+          "id": "I303",
+          "cell": "① src/sim/battle.gd:512 · src/sim/battle.gd:1023-1050 · src/sim/battle.gd:1443-1447 · src/sim/battle.gd:1449-1451 · src/sim/battle.gd:1453-1456 · src/sim/battle.gd:1458-1462 · src/sim/battle.gd:1464-1476 · src/sim/battle.gd:1478-1485 · src/sim/battle.gd:1487-1500 · src/ui/hud.gd:1270-1280 · src/ui/hud.gd:1294-1297 · src/ui/hud.gd:1312-1320 · src/main.gd:211-213 · src/sim/tuning.gd:145-154 · ② src/ui/hud.gd:256 · src/ui/hud.gd:759-760 · src/ui/hud.gd:774-776 · src/ui/hud.gd:1289-1292 · src/ui/hud.gd:1299-1305 · src/ui/hud.gd:1307-1310 · ③ src/ui/hud.gd:504-513 · src/ui/hud.gd:748 · src/ui/hud.gd:1327 · src/ui/hud.gd:1340-1353 · src/ui/hud.gd:1441-1462 · src/ui/hud.gd:1464-1469 · locale/en.po:1078-1079 · locale/en.po:1105-1133 · ④ src/ui/hud.gd:254 · src/ui/hud.gd:450 · src/ui/hud.gd:764 · src/ui/hud.gd:1319-1320 · src/ui/hud.gd:1327-1328 · src/ui/hud.gd:1333 · src/ui/hud.gd:1348 · src/ui/hud.gd:1354-1355 · ⑤ src/ui/hud_auto.gd:2 · src/ui/hud_auto.gd:19-20 · src/ui/hud.gd:178 · src/ui/hud.gd:525-528 · src/main.gd:201-220 · ⑥ src/sim/tuning.gd:6 · src/sim/tuning.gd:82-85 · src/sim/tuning.gd:186-190 · src/sim/tuning.gd:204-220 · data/hire.tres:7-11 · src/data/hire_def.gd:5-9 · ⑦ src/sim/battle.gd:567 · src/sim/battle.gd:741 · src/sim/battle.gd:1645-1650",
+          "status": "new",
+          "why": "① 판: 목록, next_round, begin_hiring, hiring_open, lineup_size, _hero_list, hire, dismiss, _deploy, 화면이 막는 곳(proceed, _short_now, main의 Enter), 테스트 모드 라운드 이동(tuning.jump). ② 포커스: _short, _next.disabled, 포커스 주는 줄, _refocus, _home, _focus_home. ③ 창 글과 배치: 카드·영웅 줄 만들기, 머리 글, 안내 줄, 카드와 영웅 줄 글, _card, _card_tip, 영어 글. ④ «영웅» 쪽: _left, 전환 글, 뜨는 쪽, 빼기를 고르기 창으로만 막는 줄, 골드 줄, 카드 보임 조건, 이관 버튼. ⑤ 오토 버튼 자리와 T 가지가 없는 _unhandled_input. ⑥ «영입» 분류, 그 줄, 건너뛰기, 남은 수. ⑦ 미션 난수, 난수를 쓰지 않는 목록, _draw_mission."
+        },
+        {
+          "id": "I304",
+          "cell": "src/sim/save.gd:7 · src/sim/save.gd:9-10 · src/sim/save.gd:19-36 · src/sim/save.gd:40-41 · src/sim/save.gd:59 · src/sim/save.gd:78-85 · src/sim/battle.gd:1453-1456 · src/sim/battle.gd:1464-1476 · src/sim/battle.gd:1487-1500 · src/ui/hud.gd:764 · src/ui/hud.gd:1328 · src/ui/hud.gd:1333",
+          "status": "new",
+          "why": "저장 판 7 그대로(VERSION) / 목록·리롤 횟수를 버리고 새 저장에 담지 않는다(KEYS, snapshot, apply가 KEYS만 읽는 줄) / 유물은 가방에 남는다(relics 줄) / 출전 영웅 먼저, 대기 영웅으로 출전 인원까지, 전장의 영웅은 그대로(apply 78~85, lineup_size) / 채운 영웅이 서는 때(_deploy) / 모자라면 라운드 사이 창에서 빈 자리만큼 고른다(hire, 뜨는 쪽, 카드 보임 조건)."
+        }
+      ],
+      "other": [
+        {
+          "id": "S61",
+          "ref": "src/sim/battle.gd:1462",
+          "final": "",
+          "why": "원래 지목은 hire()의 «gold -= cost»(영입 비용)다. 영입 비용이 없어져(S54) 받칠 코드가 없다. 지금 값은 _hero_list()의 return 줄이다."
+        },
+        {
+          "id": "S61",
+          "ref": "src/sim/battle.gd:1468",
+          "final": "",
+          "why": "원래 지목은 reroll()의 «gold -= HIRE.reroll»이다. 리롤이 없어졌다(S54). 지금 값은 hire()의 «같은 영웅 거부» 조건 줄이다."
+        },
+        {
+          "id": "S94",
+          "ref": "src/data/hire_def.gd:3",
+          "final": "",
+          "why": "옛 머리 주석 «등급마다 나뉜 값은 [1성, 2성, 3성] 순서다(S94)»를 가리켰다. 등급마다 나뉜 값(odds·cost)이 지워져 주석이 «영웅 고르기·장비·유물 수치»로 바뀌었고 등급을 말하지 않는다."
+        },
+        {
+          "id": "I30",
+          "ref": "data/hire.tres:7-7",
+          "final": "data/hire.tres:7-11",
+          "why": "원래 지목은 hire.tres의 수치 줄 전체다. slots·odds·cost·reroll·reroll_step·cap이 지워져 남은 수치 줄은 7~11(lineup·gear_cost·forge_cap·relic_cost·relic_cap)이다."
+        },
+        {
+          "id": "I30",
+          "ref": "src/data/hire_def.gd:5-5",
+          "final": "src/data/hire_def.gd:5-9",
+          "why": "원래 지목은 HireDef의 @export 칸 전체다. 지금 @export는 5~9줄이다."
+        },
+        {
+          "id": "S246",
+          "ref": "data/hire.tres:7-8",
+          "final": "data/hire.tres:8-9",
+          "why": "원래 지목은 gear_cost·forge_cap 두 줄이다. 지금 값은 lineup·gear_cost다. f76bcbe 때 이미 한 줄 어긋난 13-14였고 기계 옮김이 그대로 옮겨 확인 목록(p5_q.json)에 없다."
+        },
+        {
+          "id": "S246",
+          "ref": "src/data/hire_def.gd:5-6",
+          "final": "src/data/hire_def.gd:6-7",
+          "why": "원래 지목은 @export gear_cost·forge_cap 두 줄이다. 지금 값은 lineup·gear_cost다."
+        },
+        {
+          "id": "S249",
+          "ref": "data/hire.tres:7",
+          "final": "data/hire.tres:8",
+          "why": "원래 지목은 gear_cost 줄이다. 지금 값은 «lineup = 3»이다. f76bcbe의 13도 lineup이었다(옛 어긋남이 깨끗이 옮겨져 확인 목록에 없다)."
+        },
+        {
+          "id": "S256",
+          "ref": "data/hire.tres:7",
+          "final": "data/hire.tres:8",
+          "why": "원래 지목은 gear_cost 줄(+7~+9 비용 100·120·150)이다. 지금 값은 «lineup = 3»이다. 확인 목록에 없다."
+        },
+        {
+          "id": "S247",
+          "ref": "src/sim/battle.gd:1462-1462",
+          "final": "src/sim/battle.gd:1472-1474",
+          "why": "원래 지목은 hire()의 «가방에 그 영웅 장비가 있으면 저절로 낀다(S247)» 세 줄이다. hire()가 다시 쓰였고 그 가지는 1472~1474에 남았다."
+        },
+        {
+          "id": "S253",
+          "ref": "src/ui/hud.gd:1355",
+          "final": "src/ui/hud.gd:1469",
+          "why": "원래 지목은 영입 카드 툴팁 줄(… + _gear_line(…))이다. 카드 툴팁이 _card_tip()으로 바뀌어 장비 줄을 붙이는 곳은 «고르기» 줄 1469다."
+        },
+        {
+          "id": "S253",
+          "ref": "src/ui/hud.gd:1355-1355",
+          "final": "src/ui/hud.gd:1471-1473",
+          "why": "원래 지목은 _gear_line() 주석과 함수다. 지금 값은 이관 버튼 disabled 줄이다."
+        },
+        {
+          "id": "S274",
+          "ref": "src/ui/hud.gd:1416-1422",
+          "final": "src/ui/hud.gd:1454-1460",
+          "why": "원래 지목은 _card()의 작은 장비 아이콘 만들기 일곱 줄이다. 주석이 «비용 숫자 왼쪽»에서 «번호 왼쪽»으로 바뀌었다."
+        },
+        {
+          "id": "S274",
+          "ref": "src/ui/hud.gd:1272-1272",
+          "final": "src/ui/hud.gd:1337-1339",
+          "why": "원래 지목은 _show_hire()의 카드 mini 아이콘 세 줄(var mini … mini.texture)이다. 지금 값은 proceed()의 _wait 줄이다."
+        },
+        {
+          "id": "S274",
+          "ref": "src/ui/hud.gd:716-721",
+          "final": "src/ui/hud.gd:752-757",
+          "why": "원래 지목은 전리품 줄 여섯 줄(_loot.visible … _loot_text.text)이다. 이 변경으로 «and not anytime»이 빠졌다."
+        },
+        {
+          "id": "S124",
+          "ref": "src/sim/battle.gd:1479-1487",
+          "final": "src/sim/battle.gd:1487-1500",
+          "why": "원래 지목은 _deploy() 주석과 함수 전체다. _deploy가 «보유 = 출전»으로 다시 쓰였다. 지금 값은 dismiss 주석부터 _deploy 주석까지다."
+        },
+        {
+          "id": "S124",
+          "ref": "src/sim/battle.gd:1032",
+          "final": "src/sim/battle.gd:1045",
+          "why": "원래 지목은 next_round()의 «_deploy()» 호출이다. 지금 값은 «wave_index = 0»이다(옛 어긋남)."
+        },
+        {
+          "id": "I107",
+          "ref": "src/sim/battle.gd:1479",
+          "final": "src/sim/battle.gd:1488",
+          "why": "원래 지목은 _deploy() 주석의 «새로 출전한 영웅은 … 첫 출전 칸에 최대 체력으로 선다(I107)» 줄이다. 지금 값은 dismiss 주석 줄이다."
+        },
+        {
+          "id": "S127",
+          "ref": "src/ui/hud.gd:1278",
+          "final": "src/ui/hud.gd:1348",
+          "why": "원래 지목은 영웅 줄의 «이관은 라운드 사이에만(S127)» 줄이다. 줄 구성이 [글, 이관 버튼]으로 바뀌어 _members[i][1].visible 줄이 됐다."
+        },
+        {
+          "id": "I116",
+          "ref": "src/ui/hud.gd:1278-1280",
+          "final": "src/ui/hud.gd:1348 · src/ui/hud.gd:1354-1355",
+          "why": "원래 지목은 이관 버튼의 보임·글·disabled 세 줄이다. 지금은 보임 1348, 글·disabled 1354~1355로 떨어져 있다."
+        },
+        {
+          "id": "I116",
+          "ref": "src/ui/hud.gd:514",
+          "final": "src/ui/hud.gd:511-513",
+          "why": "원래 지목은 보유 영웅 줄의 버튼 만들기(_members.append)다. 출전 전환·내보내기 버튼이 없어지고 이관 버튼·툴팁·append 세 줄이 됐다."
+        },
+        {
+          "id": "I117",
+          "ref": "src/ui/hud.gd:1272",
+          "final": "src/ui/hud.gd:1353",
+          "why": "원래 지목은 보유 영웅 줄 글(이름·등급·레벨·출전/대기)이다. 지금 글은 «번호 · 이름(역할) · 등급 · 레벨»이고 1353이다."
+        },
+        {
+          "id": "S117",
+          "ref": "src/ui/controls.gd:74-74",
+          "final": "src/ui/controls.gd:87-90",
+          "why": "원래 지목은 handle()의 «창이 떠 있는 동안은 맵 명령을 받지 않는다» 가지(조건부터 return까지 네 줄)다. 이 변경으로 «or shop»이 빠졌다. 지금 값은 func handle 줄이다."
+        },
+        {
+          "id": "I109",
+          "ref": "src/ui/controls.gd:74-74",
+          "final": "src/ui/controls.gd:87-90",
+          "why": "S117과 같은 가지다."
+        },
+        {
+          "id": "I156",
+          "ref": "src/sim/save.gd:19-96",
+          "final": "src/sim/save.gd:19-97",
+          "why": "원래 지목은 snapshot() 첫 줄부터 apply() 끝 줄(b._forecast())까지다. f76bcbe 때 이미 한 줄 짧았다(19-95, 끝이 b._census()). 지금 apply 끝 줄은 97이다."
+        },
+        {
+          "id": "S60",
+          "ref": "src/sim/battle.gd:1487-1487",
+          "final": "src/sim/battle.gd:1502-1504",
+          "why": "원래 지목은 add_xp() 주석과 함수다. 옛 어긋난 줄(1526-1528, set_lineup 안)이 지워진 덩이에 걸려 기계 값이 _deploy 주석 줄이 됐다."
+        },
+        {
+          "id": "S125",
+          "ref": "src/sim/battle.gd:1487-1487",
+          "final": "src/sim/battle.gd:1502-1504",
+          "why": "S60과 같은 참조다(add_xp 주석과 함수)."
+        },
+        {
+          "id": "S126",
+          "ref": "src/sim/battle.gd:1487-1502",
+          "final": "src/sim/battle.gd:1506-1523",
+          "why": "원래 지목은 _set_xp() 주석 석 줄과 함수 전체(18줄)다. 지금 값은 _deploy 주석부터 add_xp 주석까지다."
+        },
+        {
+          "id": "I112",
+          "ref": "src/sim/battle.gd:1487-1502",
+          "final": "src/sim/battle.gd:1506-1523",
+          "why": "S126과 같은 참조다(_set_xp 주석과 함수)."
+        },
+        {
+          "id": "I115",
+          "ref": "(더함)",
+          "final": "src/sim/battle.gd:1470",
+          "why": "행에 있던 참조를 바꾸는 것이 아니라 더하자는 제안이다. «영입한 영웅은 Lv1에서 시작한다»의 지금 꼴은 I303 ① «고른 영웅은 Lv1(I115)»이고, hire()가 Unit.new로 새 영웅을 만드는 줄(레벨 1·경험치 0 기본값)이 받친다. 넣을지는 판단에 맡긴다."
+        }
+      ],
+      "notes": "저장소 파일과 git 상태는 건드리지 않았다(끝에 git status 0줄 확인). pytest·측정은 돌리지 않았다. 스크래치는 /tmp/claude-0/-home-user-td-proj/3a65bacf-d77b-5ad4-b30c-f51078f27e14/scratchpad/dec/rows25/ 에 있다(cells.py 칸 정의, check.py 줄 확인, other.py other 확인, dry.json). 25행의 참조는 모두 지금 파일에서 첫 줄·끝 줄을 찍어 확인했고(범위 밖 0, 빈 줄로 시작·끝 0), /tmp/claude-0/-home-user-td-proj/3a65bacf-d77b-5ad4-b30c-f51078f27e14/scratchpad/int/p5_apply31.py 를 쓰지 않는 모드로 돌려 «행 다시 씀 21 · 새 행 3 · 범위 문제 0»을 봤다.\n\n1. 전제와 다른 점 — 옛 참조가 이미 어긋나 있었다. f76bcbe 때 내 행의 참조 대부분은 문장과 무관한 줄이었다(예: I13의 battle.gd:909는 «h.alive = true», S248의 hud.gd:419-441은 자동 수리 태그부터 창 붙이기까지, S54의 1451-1453은 begin_hiring과 빈 줄). e1548ef(2026-11-01) 때의 행은 맞았다(I13·S248·I110·S122·S123·I103·I105·I106·I136을 그 커밋의 파일로 확인). 그래서 f76bcbe 줄 번호를 옮기지 않고, e1548ef 때 가리키던 것(원래 지목)과 SPEC 문장을 기준으로 칸을 다시 썼다. 작업 트리의 SPEC.md는 커밋 전이 아니라 acf07b2로 이미 커밋돼 있다.\n   내 행 밖에도 같은 옛 어긋남이 넓게 있다(예: S111의 src/main.gd:249는 toggle_fullscreen, S2의 battle.gd:3875는 환불 계산 줄). other에는 이번 변경이 고치거나 지운 코드에 닿는 것만 넣었고, 코드는 그대로인데 줄만 어긋난 것(S62·S64·S117의 나머지 참조 등)은 넣지 않았다. dec/ 아래 다른 작업자 폴더(b28_battle·hud48·w44_nonbattle)가 같은 어긋남을 다루고 있어 other의 S117·I109·S124·S60·S125·S126·I112·S247·S253·S274·I30·S94·I156은 그쪽 결정과 겹칠 수 있다.\n\n2. 범위 관례. 함수 참조는 앞 주석 줄부터 함수 끝 줄까지로 잡았다(e1548ef 때 행의 관례). I110의 1282-1292·1299-1310·1441-1469와 S248의 1417-1439는 이웃한 함수 둘·셋을 한 범위로 묶어 사이에 빈 줄이 든다(범위의 끝은 아니다). 나누길 원하면 함수마다 쪼개면 된다.\n\n3. 판단이 갈린 곳.\n- S57·S59를 gone으로 했다. 칸이 처음부터 비어 있던 행을 «없어짐»으로 바꾼 선례는 없다. 근거는 S54가 두 문장을 짚어 «없다»고 한 것과 I121 선례다. .brain/brainlib/spec.py는 «없어짐» 칸의 문장을 removed로 읽는다. 빈 칸을 원하면 두 행을 unchanged로 돌리면 된다.\n- S55는 빈 칸 그대로(unchanged). «영웅마다 등급이 있다»가 남아 gone이 아니라고 봤다. 대안은 src/data/hero_def.gd:7(grade)을 넣는 것인데, 등급 코드가 있던 때도 칸이 비어 있어 넣지 않았다.\n- I103은 gone 후보였지만 rewritten으로 했다. 첫 문장 «수치는 data/hire.tres 하나에 둔다»와 «같은 영웅을 둘 보유하지 않는다»가 살아 있다고 봤다. 목록 뽑기 규칙이 문장의 중심이라고 보면 gone도 설 수 있다. I103을 근거로 하던 평가(EV196·EV400)는 a6ff135에서 지워졌다.\n- I105에 화면의 _pick(hud.gd:1312-1320)을 넣었다. «영입 창에서 내보낸다»의 지금 꼴(고르기 창에서 카드를 다시 눌러 빼기)이라고 봤다.\n- I13의 hud.gd:1043·1045·1106은 범위 1033-1064·1066-1118 안의 줄이다. 2026-11-10·2026-11-16 변경을 짚는 줄이라 옛 행처럼 따로 두었다. 겹침이 싫으면 셋을 빼도 된다.\n- I136에 hud_tip.gd:86-104를 더했다. 이번 변경의 코드는 아니고, 문장의 툴팁 구절을 받치는데 옛 행에 없던 것이다.\n- S372는 지시대로 hud_shop.gd만 뺐다. 문장의 «고른 칸»에 드는 새 코드(고른 카드, hud.gd:1342·1444)는 넣지 않았다. I303 ③이 받는다.\n- I303에서 battle.gd:741은 ⑦에만 두었다(①에도 맞지만 같은 참조가 두 번 나오지 않게).\n\n4. 받칠 코드가 없는 구절(없는 것을 말하는 구절). «영입에 쓴 골드는 돌려주지 않는다»(I304)는 참조가 없다. «T 키는 아무 일도 하지 않는다»(I303 ⑤)는 T 가지가 없는 _unhandled_input 전체(src/main.gd:201-220)로 대신했다. «비용 숫자·리롤 버튼은 없다» 같은 구절도 참조가 없다.\n\n5. other에서 확신이 높은 것: S61 둘(영입 비용·리롤 비용 줄, 지움), S94(hire_def.gd:3, 지움), S246·S249·S256의 hire.tres·hire_def 줄(gear_cost를 가리켜야 하는데 lineup을 가리킨다 — S249·S256과 S246의 hire.tres 참조는 깨끗이 옮겨져 p5_q.json에 없다). I115는 바꿈이 아니라 더하자는 제안이다(ref 칸에 «(더함)»이라고 적었다).\n\n6. 표 밖에서 본 것. locale/en.po:1028의 msgid «영입»은 지금 쓰는 코드가 없어 보인다(진행 칸 글과 «영입» 버튼이 없어졌고, 테스트 모드 분류 이름은 번역하지 않는다). 지우지 않았다."
+    }
+  },
+  "workflowProgress": [
+    {
+      "type": "workflow_phase",
+      "index": 1,
+      "title": "정하기"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 1,
+      "label": "정하기:battle",
+      "phaseIndex": 1,
+      "phaseTitle": "정하기",
+      "agentId": "af9a5c039e13f615f",
+      "model": "claude-fable-5-2",
+      "state": "done",
+      "startedAt": 1794806385944,
+      "queuedAt": 1794806385918,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "[먼저 알아야 할 것] 옛 값(f76bcbe)부터 틀려 있었다. 28개 가…",
+      "promptPreview": "너는 td-proj(/home/user/td-proj, Godot 4 GDScript 타워 디펜스 게임) 저장소에서 SPEC.md §3.1 «문장 대조» 표를 코드와 다시 맞추는 일을 맡았다.\n**어떤 저장소 파일도 고치지 않는다. git 상태도 바꾸지 않는다(커밋·stash·checkout 금지).** 스크립트·메모는 스크래치 폴더 /tmp/claude-0/-home-user-td-proj/3a65bacf-d77b-5ad4-b30c-f51078f27e14/scratchpad/dec/ 아래에만 쓴다. 측정(봇 sweep)·pytest는 돌리지 않는다. 읽기·grep·sed만으로 충분하다.\n\n## 배경\n- §3.1 표는 SPEC.md의 «### 3.1 문장 대조»부터 «### 3.2» 앞까지다. 행은 `| 문…",
+      "promptFramed": true,
+      "lastProgressAt": 1794807455817,
+      "tokens": 364156,
+      "toolCalls": 65,
+      "durationMs": 1069872,
+      "resultPreview": "{\"decisions\":[{\"id\":\"S46\",\"auto\":\"src/sim/battle.gd:1016-1038\",\"final\":\"src/sim/battle.gd:1026-1050\",\"kind\":\"moved\",\"why\":\"next_round 함수 전체(func 줄~return true)다. 옛 값 1021-1043은 2026-11-01부터 줄이 밀려 spawn_counts 안에서 시작해 next_round 중간(_draw_mission())에서 끊겨 있었다(e1548ef 773-795 때는 «func next_round() … return true»). 기계 값은 그 어긋난 줄을 그대로 옮긴 것이다. 문장의 «라운드가 바뀌어도 이어진다»를 받친다(next_round가 마을 레벨을 건드리지 않는다).\"},{\"i…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 2,
+      "label": "정하기:hud",
+      "phaseIndex": 1,
+      "phaseTitle": "정하기",
+      "agentId": "aebb9be84cbea60db",
+      "model": "claude-fable-5-2",
+      "state": "done",
+      "startedAt": 1794806385945,
+      "queuedAt": 1794806385918,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "■ 가장 큰 발견 — 48개 가운데 46개는 옛 참조(f76bcbe)가 이미…",
+      "promptPreview": "너는 td-proj(/home/user/td-proj, Godot 4 GDScript 타워 디펜스 게임) 저장소에서 SPEC.md §3.1 «문장 대조» 표를 코드와 다시 맞추는 일을 맡았다.\n**어떤 저장소 파일도 고치지 않는다. git 상태도 바꾸지 않는다(커밋·stash·checkout 금지).** 스크립트·메모는 스크래치 폴더 /tmp/claude-0/-home-user-td-proj/3a65bacf-d77b-5ad4-b30c-f51078f27e14/scratchpad/dec/ 아래에만 쓴다. 측정(봇 sweep)·pytest는 돌리지 않는다. 읽기·grep·sed만으로 충분하다.\n\n## 배경\n- §3.1 표는 SPEC.md의 «### 3.1 문장 대조»부터 «### 3.2» 앞까지다. 행은 `| 문…",
+      "promptFramed": true,
+      "lastProgressAt": 1794807766241,
+      "tokens": 445427,
+      "toolCalls": 78,
+      "durationMs": 1379622,
+      "resultPreview": "{\"decisions\":[{\"id\":\"S19\",\"auto\":\"src/ui/hud.gd:513\",\"final\":\"src/ui/hud.gd:559\",\"kind\":\"moved\",\"why\":\"옛 값 526은 f76bcbe 때 이미 어긋나 영입 칸의 `_members.append([toggle, drop, give])`를 가리켰다. 문장(전투 중에도 골드를 쓴다)을 받치던 원래 지목은 구매 버튼 `_buy[kind] = _pop(… battle.recruit …)`(f588604 때 431)이고 지금 559다.\"},{\"id\":\"S20\",\"auto\":\"src/ui/hud.gd:513\",\"final\":\"src/ui/hud.gd:559\",\"kind\":\"moved\",\"why\":\"옛 값 526은 이미 어긋나 `_members…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 3,
+      "label": "정하기:rest",
+      "phaseIndex": 1,
+      "phaseTitle": "정하기",
+      "agentId": "a0004a44270e4573d",
+      "model": "claude-fable-5-2",
+      "state": "done",
+      "startedAt": 1794807455836,
+      "queuedAt": 1794806385918,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "[확인한 방법] 1. p5_q.json을 파이썬으로 걸러 44개임을 확인…",
+      "promptPreview": "너는 td-proj(/home/user/td-proj, Godot 4 GDScript 타워 디펜스 게임) 저장소에서 SPEC.md §3.1 «문장 대조» 표를 코드와 다시 맞추는 일을 맡았다.\n**어떤 저장소 파일도 고치지 않는다. git 상태도 바꾸지 않는다(커밋·stash·checkout 금지).** 스크립트·메모는 스크래치 폴더 /tmp/claude-0/-home-user-td-proj/3a65bacf-d77b-5ad4-b30c-f51078f27e14/scratchpad/dec/ 아래에만 쓴다. 측정(봇 sweep)·pytest는 돌리지 않는다. 읽기·grep·sed만으로 충분하다.\n\n## 배경\n- §3.1 표는 SPEC.md의 «### 3.1 문장 대조»부터 «### 3.2» 앞까지다. 행은 `| 문…",
+      "promptFramed": true,
+      "lastProgressAt": 1794809401763,
+      "tokens": 535751,
+      "toolCalls": 112,
+      "durationMs": 1945925,
+      "resultPreview": "{\"decisions\":[{\"id\":\"S18\",\"auto\":\"src/ui/controls.gd:84-155\",\"final\":\"src/ui/controls.gd:100-173\",\"kind\":\"moved\",\"why\":\"처음(dd19009 30-45)부터 handle의 키 묶음 H 줄~놓기 좌·우클릭 가지의 return이다(6f60dd1 88-142 = toggle_hold()~return). 2026-11-01부터 16~18줄 밀려 f76bcbe 때 97-168은 aiming 줄~else:였다. 지금 toggle_hold() 100, 놓기 가지 return 173\"},{\"id\":\"S22\",\"auto\":\"src/ui/controls.gd:71-73\",\"final\":\"src/ui/controls.gd:75-82\",…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 4,
+      "label": "정하기:행 다시 쓰기",
+      "phaseIndex": 1,
+      "phaseTitle": "정하기",
+      "agentId": "a4d6c9ce65a19d50f",
+      "model": "claude-fable-5-2",
+      "state": "done",
+      "startedAt": 1794807766281,
+      "queuedAt": 1794806385918,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "저장소 파일과 git 상태는 건드리지 않았다(끝에 git status 0…",
+      "promptPreview": "너는 td-proj(/home/user/td-proj, Godot 4 GDScript 타워 디펜스 게임) 저장소에서 SPEC.md §3.1 «문장 대조» 표를 코드와 다시 맞추는 일을 맡았다.\n**어떤 저장소 파일도 고치지 않는다. git 상태도 바꾸지 않는다(커밋·stash·checkout 금지).** 스크립트·메모는 스크래치 폴더 /tmp/claude-0/-home-user-td-proj/3a65bacf-d77b-5ad4-b30c-f51078f27e14/scratchpad/dec/ 아래에만 쓴다. 측정(봇 sweep)·pytest는 돌리지 않는다. 읽기·grep·sed만으로 충분하다.\n\n## 배경\n- §3.1 표는 SPEC.md의 «### 3.1 문장 대조»부터 «### 3.2» 앞까지다. 행은 `| 문…",
+      "promptFramed": true,
+      "lastProgressAt": 1794808934196,
+      "tokens": 422357,
+      "toolCalls": 97,
+      "durationMs": 1167914,
+      "resultPreview": "{\"rows\":[{\"id\":\"S54\",\"cell\":\"src/sim/battle.gd:16 · src/sim/battle.gd:505 · src/sim/battle.gd:741 · src/sim/battle.gd:1443-1447 · src/sim/battle.gd:1453-1456 · src/sim/battle.gd:1464-1476 · src/sim/battle.gd:1487-1500 · src/ui/hud.gd:8 · src/ui/hud.gd:1312-1320 · src/ui/hud.gd:1660-1663 · src/sim/save.gd:79-83\",\"status\":\"rewritten\",\"why\":\"옛 칸은 begin_hiring 한 곳(끝에 빈 줄)뿐이었다. 2026-11-16 변경의 구절마다 다시 잡…"
+    }
+  ],
+  "totalTokens": 1767691,
+  "totalToolCalls": 352
+}

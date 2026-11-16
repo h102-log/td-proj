@@ -1,0 +1,2674 @@
+[
+ {
+  "id": "S223",
+  "a": "src/ui/battle_view.gd:580-585",
+  "t": "src/ui/battle_view.gd:594-599",
+  "feat": "LIKELY-x",
+  "born": "3df2b44",
+  "born_r": [
+   333,
+   338
+  ],
+  "born_txt": [
+   "if battle.dark > 0.0 and not _folk_now.is_empty():  # 야경꾼 등불(S223): 덮개 위 그림이라 불빛·숨긴 적은 그대로다",
+   "_cv.draw_rect(Rect2(lamp, Vector2.ONE), Color(\"efd8a1\"))"
+  ],
+  "a_txt": [
+   "if battle.state == \"prep\":",
+   "var r := hp_bar_rect(u, bar)"
+  ],
+  "t_txt": [
+   "if battle.dark > 0.0 and not _folk_now.is_empty():  # 야경꾼 등불(S223): 덮개 위 그림이라 불빛·숨긴 적은 그대로다",
+   "_cv.draw_rect(Rect2(lamp, Vector2.ONE), Color(\"efd8a1\"))"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ],
+   [
+    "approx",
+    "3c5fc84"
+   ]
+  ]
+ },
+ {
+  "id": "S205",
+  "a": "src/ui/battle_view.gd:595-597",
+  "t": "src/ui/battle_view.gd:604-606",
+  "feat": "C-low",
+  "born": "2c379d4",
+  "born_r": [
+   190,
+   192
+  ],
+  "born_txt": [
+   "var cue := order_ring()",
+   "draw_arc(cue[0], cue[1], 0.0, TAU, 24, cue[2], 1.0)"
+  ],
+  "a_txt": [
+   "for k in _folk_now[1].size():",
+   "var lamp := _center(_folk_now[0][k].pos) + LAMP"
+  ],
+  "t_txt": [
+   "var cue := order_ring()",
+   "_pring(Vector2i(cue[0].floor()), int(cue[1]), 1, cue[2])  # 아트 px(I101 2026-10-28 셋째 변경)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S28",
+  "a": "src/ui/battle_view.gd:622-694",
+  "t": "src/ui/battle_view.gd:676-703",
+  "feat": "C-low",
+  "born": "08dc4c5",
+  "born_r": [
+   141,
+   164
+  ],
+  "born_txt": [
+   "func _missile(x) -> void:",
+   "_blob(p - Vector2(0, 4.0 * BALL_ARC * t / fly * (1.0 - t / fly)), 2, Color(\"2a2a30\"))"
+  ],
+  "a_txt": [
+   "func _spawn_badges() -> void:",
+   "draw_line(p - d * 7, p, Color(\"e8dcc0\"), 1.0)"
+  ],
+  "t_txt": [
+   "# 날고 있는 투사체 하나(S178). 출발 자리(처음 그릴 때 쏜 쪽의 쏘는 곳 _muzzle, starts에 남긴다)에서 대상 가슴까지, 시뮬레이션에서 날아간 비율만큼 간 자리에 그린다.",
+   "_blob(p - Vector2(0, 4.0 * BALL_ARC * k * (1.0 - k)), 2, Color(\"2a2a30\"))"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "1149ca4"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S178",
+  "a": "src/ui/battle_view.gd:622-767",
+  "t": "src/ui/battle_view.gd:676-780",
+  "feat": "C-low",
+  "born": "08dc4c5",
+  "born_r": [
+   139,
+   187
+  ],
+  "born_txt": [
+   "# 원거리 공격 한 발(S178): 쏜 곳(_muzzle)에서 대상 가슴까지 _flight초 동안 날아간다. 유닛은 공격 키 포즈(CONTACT)에 놓는다.",
+   "return x.get(\"pos\") == null or (x.get(\"range\") != null and x.range > 2.0)"
+  ],
+  "a_txt": [
+   "func _spawn_badges() -> void:",
+   "func _muzzle(x) -> Vector2:"
+  ],
+  "t_txt": [
+   "# 날고 있는 투사체 하나(S178). 출발 자리(처음 그릴 때 쏜 쪽의 쏘는 곳 _muzzle, starts에 남긴다)에서 대상 가슴까지, 시뮬레이션에서 날아간 비율만큼 간 자리에 그린다.",
+   "return x.get(\"pos\") == null or (x.get(\"range\") != null and x.range > 2.0) or (x.get(\"feather\") is Dictionary and not x.feather.is_empty())"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S179",
+  "a": "src/ui/battle_view.gd:786-926",
+  "t": "src/ui/battle_view.gd:795-1032",
+  "feat": "C-low",
+  "born": "4cea6f6",
+  "born_r": [
+   188,
+   260
+  ],
+  "born_txt": [
+   "# 즉시 스킬 흔적(S179): 쓴 뒤 FX초 동안 영웅 색으로. 범위 스킬은 반경까지 퍼지는 고리, 방향·대상 스킬은 영웅에서 잇는 선이다.",
+   "draw_polyline(pts, Color(col, 0.8), 1.0)"
+  ],
+  "a_txt": [
+   "# 적을 노린 즉시 스킬이 아무도 못 맞혔나(S179 2026-10-29): 피해·회복을 받은 대상(hits)도 효과를 건 대상(marked)도 없다",
+   "links[v.chain] = []"
+  ],
+  "t_txt": [
+   "func _traces(top: bool) -> void:",
+   ""
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "fe5df7d"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S257",
+  "a": "src/ui/battle_view.gd:829",
+  "t": "src/ui/battle_view.gd:840-843",
+  "feat": "C-low",
+  "born": "fbf2896",
+  "born_r": [
+   573,
+   573
+  ],
+  "born_txt": [
+   "\"burst\", \"resonate\":  # 성벽 공명(S257)도 같은 터짐이다",
+   "\"burst\", \"resonate\":  # 성벽 공명(S257)도 같은 터짐이다"
+  ],
+  "a_txt": [
+   "_bash(at, CELL * c.radius, (c.aim - c.at).angle(), deg_to_rad(h.q.arc) / 2.0, c.age, c.hits)",
+   "_bash(at, CELL * c.radius, (c.aim - c.at).angle(), deg_to_rad(h.q.arc) / 2.0, c.age, c.hits)"
+  ],
+  "t_txt": [
+   "\"burst\":",
+   "\"resonate\":  # 성벽 공명(S257, I228 ⑥): 성벽 칸마다"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S195",
+  "a": "src/ui/battle_view.gd:892-894",
+  "t": "src/ui/battle_view.gd:903-905",
+  "feat": "C-low",
+  "born": "5a3f7cb",
+  "born_r": [
+   232,
+   232
+  ],
+  "born_txt": [
+   "\"war_cry\", \"brace\", \"burst\", \"fireball\", \"frost_ring\", \"enfeeble\", \"trap\", \"meteor\", \"slam\":",
+   "\"war_cry\", \"brace\", \"burst\", \"fireball\", \"frost_ring\", \"enfeeble\", \"trap\", \"meteor\", \"slam\":"
+  ],
+  "a_txt": [
+   "\"overcharge\":",
+   "_charge(h, c.aim, c.age)"
+  ],
+  "t_txt": [
+   "var k: float = c.age / FX",
+   "_pring(at, int(CELL * c.radius * (0.5 + 0.6 * _out(k))), 2 if k < 0.5 else 1, _ramp([\"orange\", \"red\", \"blood\"], k))"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "13df488"
+   ],
+   [
+    "adjusted",
+    "1634bdc"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S198",
+  "a": "src/ui/battle_view.gd:893-894",
+  "t": "src/ui/battle_view.gd:904-905",
+  "feat": "C-low",
+  "born": "da47058",
+  "born_r": [
+   255,
+   257
+  ],
+  "born_txt": [
+   "if _boss(h):  # 보스 스킬(S198): 고리가 반경의 절반에서 1.1배까지 퍼진다",
+   "continue"
+  ],
+  "a_txt": [
+   "if top:",
+   "_charge(h, c.aim, c.age)"
+  ],
+  "t_txt": [
+   "if top and k < 1.0 and _boss(h) and c.radius > 0.0 and c.slot != \"devour\":  # 보스 스킬(S198): 원 모양 스킬의 고리가 반경의 절반에서 1.1배까지 퍼진다. 예고색 램프(F24+, fx-4). 부채꼴·직선(대장 철퇴·돌진, S288)은 반경 0이라 고리가 없다. 집어 먹기(I273 ⑥)도 고리가 없다",
+   "_pring(at, int(CELL * c.radius * (0.5 + 0.6 * _out(k))), 2 if k < 0.5 else 1, _ramp([\"orange\", \"red\", \"blood\"], k))"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "1634bdc"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S179",
+  "a": "src/ui/battle_view.gd:902-903",
+  "t": "src/ui/battle_view.gd:911",
+  "feat": "C-low",
+  "born": "13df488",
+  "born_r": [
+   522,
+   523
+  ],
+  "born_txt": [
+   "if z.src == \"sylvia_r\":  # 화살비(실비아 R): 떨어지는 화살은 몸통 위, 꽂힌 화살은 몸통 아래 층",
+   "_rain(z, top)"
+  ],
+  "a_txt": [
+   "continue",
+   "var k: float = c.age / FX"
+  ],
+  "t_txt": [
+   "if not top:",
+   "if not top:"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S179",
+  "a": "src/ui/battle_view.gd:927-1252",
+  "t": "src/ui/battle_view.gd:932-1257",
+  "feat": "C-low",
+  "born": "fe5df7d",
+  "born_r": [
+   511,
+   575
+  ],
+  "born_txt": [
+   "func _ring(c: Vector2, r: float, k: float, col: Color) -> void:",
+   "# 같은 종류 장판끼리 겹친 곳은 빼서 바깥 테두리만 남는다. 이그니스 장판 셋은 재질, 나머지는 성긴 칠 + 아트 1px 무늬(S168)."
+  ],
+  "a_txt": [
+   "links[v.chain].append(e)",
+   "_pline(p0, p0 + Vector2i((dir * 6.0).round()), PX.lime0 if k < 0.5 else PX.lime2)"
+  ],
+  "t_txt": [
+   "for ed in edges:",
+   "# 표적 가슴 둘레의 괄호 넷이 SNIPE_MARK초 동안 조여든다. 맞은 적 섬광"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "13df488"
+   ],
+   [
+    "adjusted",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S168",
+  "a": "src/ui/battle_view.gd:1250-1252",
+  "t": "src/ui/battle_view.gd:1255-1257",
+  "feat": "C-low",
+  "born": "13df488",
+  "born_r": [
+   705,
+   726
+  ],
+  "born_txt": [
+   "func _rain(z: Dictionary, top: bool) -> void:",
+   "_px(p + Vector2i(sx, 0), PX.ash)"
+  ],
+  "a_txt": [
+   "continue",
+   "_pline(p0, p0 + Vector2i((dir * 6.0).round()), PX.lime0 if k < 0.5 else PX.lime2)"
+  ],
+  "t_txt": [
+   "# 폭풍의 대동맥 저격(실비아 R, I215 2026-11-01 변경): 0.05초 동안 총구 섬광(크림 원판 + 고리)과 가는 조준선 →",
+   "# 표적 가슴 둘레의 괄호 넷이 SNIPE_MARK초 동안 조여든다. 맞은 적 섬광"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S179",
+  "a": "src/ui/battle_view.gd:1250-1569",
+  "t": "src/ui/battle_view.gd:1255-1574",
+  "feat": "C-low",
+  "born": "6698414",
+  "born_r": [
+   751,
+   846
+  ],
+  "born_txt": [
+   "# 적인가(흔적의 hits에는 영웅·용병·구조물·적이 섞인다). 벽 오르기 배율은 적만 가졌다",
+   "# 같은 종류 장판끼리 겹친 곳은 빼서 바깥 테두리만 남는다. 이그니스 장판 셋·실비아 장판 둘·세라피나 성역·베스퍼 장판 둘은 재질, 나머지(크로노스)는 성긴 칠 + 아트 1px 무늬(S168)."
+  ],
+  "a_txt": [
+   "continue",
+   "_pline(p0, p, PX.cream)"
+  ],
+  "t_txt": [
+   "# 폭풍의 대동맥 저격(실비아 R, I215 2026-11-01 변경): 0.05초 동안 총구 섬광(크림 원판 + 고리)과 가는 조준선 →",
+   "var kk := t / 0.2"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S168",
+  "a": "src/ui/battle_view.gd:1571-1726",
+  "t": "src/ui/battle_view.gd:1683-1823",
+  "feat": "C-low",
+  "born": "240cf40",
+  "born_r": [
+   72,
+   72
+  ],
+  "born_txt": [
+   "_pattern(z.src, _center(z.pos).round(), CELL * z.radius, Color(col, 0.9))",
+   "_pattern(z.src, _center(z.pos).round(), CELL * z.radius, Color(col, 0.9))"
+  ],
+  "a_txt": [
+   "if f < int(FX_ART.charge[4]):",
+   "\"chronos_e\":"
+  ],
+  "t_txt": [
+   "func _zones() -> void:",
+   "# 그릴 장판 반지름(아트 px): 처음 본 뒤 age초 동안 ZONE_OPEN초에 걸쳐 빠르게 펼쳐지고, 남은 시간이 ZONE_CLOSE초 밑이면 줄어든다"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "fe5df7d"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S250",
+  "a": "src/ui/battle_view.gd:1707-1710",
+  "t": "src/ui/battle_view.gd:1715",
+  "feat": "C-low",
+  "born": "fd1b247",
+  "born_r": [
+   961,
+   964
+  ],
+  "born_txt": [
+   "if z.has(\"lit\"):  # 불타는 블랙홀(S250): 소용돌이 위에 불길 장판의 불꽃 조각과 붉은 테두리",
+   "_edge(c, r, PX.red, PX.soot, others)"
+  ],
+  "a_txt": [
+   "var others := []",
+   "others.append([_center(o.pos), CELL * o.radius])"
+  ],
+  "t_txt": [
+   "_hole_zone(c, r, age, seed, others, z.has(\"lit\"))  # 불타는 블랙홀(S250, I229 ⑤)",
+   "_hole_zone(c, r, age, seed, others, z.has(\"lit\"))  # 불타는 블랙홀(S250, I229 ⑤)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S168",
+  "a": "src/ui/battle_view.gd:1713-1716",
+  "t": "src/ui/battle_view.gd:1718-1725",
+  "feat": "C-low",
+  "born": "6698414",
+  "born_r": [
+   876,
+   888
+  ],
+  "born_txt": [
+   "\"sylvia_e\":  # 덫: 엷은 연두 칠 + 가운데 덫 조각(1.2초마다 반짝)",
+   "_swamp_zone(c, r, seed, others)"
+  ],
+  "a_txt": [
+   "_fire_zone(c, r, seed, others, _in_lit_hole(z.pos))",
+   "\"ignis_r\":"
+  ],
+  "t_txt": [
+   "\"sylvia_w\":",
+   "_swamp_zone(c, r, seed, others)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "reauth",
+    "6698414",
+    [
+     "src/ui/battle_view.gd",
+     876,
+     882
+    ],
+    [
+     "src/ui/battle_view.gd",
+     759,
+     765
+    ]
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S168",
+  "a": "src/ui/battle_view.gd:1727-1824",
+  "t": "src/ui/battle_view.gd:1824-1833",
+  "feat": "C-low",
+  "born": "240cf40",
+  "born_r": [
+   224,
+   285
+  ],
+  "born_txt": [
+   "func _pattern(src: String, c: Vector2, r: float, col: Color) -> void:",
+   "return out"
+  ],
+  "a_txt": [
+   "_law_zone(c, r, age, seed, others)",
+   "static func zone_r(z, age: float) -> int:"
+  ],
+  "t_txt": [
+   "static func zone_r(z, age: float) -> int:",
+   ""
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "fe5df7d"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S168",
+  "a": "src/ui/battle_view.gd:1826-2075",
+  "t": "src/ui/battle_view.gd:1835-2079",
+  "feat": "C-low",
+  "born": "fe5df7d",
+  "born_r": [
+   620,
+   657
+  ],
+  "born_txt": [
+   "func _fire_zone(c: Vector2i, r: int, seed: int, others: Array) -> void:",
+   "# 1차(기절·도발·봉인·속박·불사)는 머리 위 기호나 발밑 고리, 2차(둔화·받는 피해 증가·초당 피해·받는 피해 감소·공격 속도·보호막)는 몸·발의 작은 조각이다."
+  ],
+  "a_txt": [
+   "",
+   "_px(p - Vector2i(1, 1), PX.gold, Vector2i(2, 2))"
+  ],
+  "t_txt": [
+   "# 떠오르는 불티 넷. bare(불타는 블랙홀 안)면 가운데 칠과 불티를 뺀다(블랙홀 칠과 섞여 탁해진다, 시안 fx-11)",
+   "# 적의 둔화·공격력·방어력·마법 저항 감소는 능력치 감소 줄(_debuff_row)이다."
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S168",
+  "a": "src/ui/battle_view.gd:1925-2074",
+  "t": "src/ui/battle_view.gd:2052-2075",
+  "feat": "C-low",
+  "born": "fe5df7d",
+  "born_r": [
+   2155,
+   2189
+  ],
+  "born_txt": [
+   "func _pattern(src: String, c: Vector2, r: float, col: Color) -> void:",
+   "_pline(q + Vector2i(-2, 2), q + Vector2i(2, -2), col)"
+  ],
+  "a_txt": [
+   "_pnoise(c, int(r * 0.55), PX.deepteal, 8, posmod(seed + 2, 4))",
+   "_px(p - Vector2i(1, 1), PX.soot, Vector2i(3, 3))"
+  ],
+  "t_txt": [
+   "# 시간의 문(크로노스 E 타임 루프, I199 2026-11-04 변경): 되감기. 얼음 성긴 칠(2/16) + 12·3·6·9시 눈금 + 12시에서 반시계로 도는 짧은 바늘(얼음 2px)·긴 바늘(크림 1px) +",
+   "_px(p - Vector2i(1, 1), PX.gold, Vector2i(2, 2))"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "1634bdc"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ],
+   [
+    "approx",
+    "83d1960"
+   ]
+  ]
+ },
+ {
+  "id": "I101",
+  "a": "src/ui/battle_view.gd:2075-2212",
+  "t": "src/ui/battle_view.gd:2081-2234",
+  "feat": "C-sim-x",
+  "born": "fe5df7d",
+  "born_r": [
+   659,
+   736
+  ],
+  "born_txt": [
+   "func status_marks(x, ally: bool) -> Array:",
+   "# ── 아트 px 그리기(4.1s): 맵을 창 해상도로 그려도(S30) 원·선이 도트 그림과 같은 격자에 찍힌다 ──"
+  ],
+  "a_txt": [
+   "_px(p - Vector2i(1, 1), PX.gold, Vector2i(2, 2))",
+   "_pring(m.p, m.r, 1, m.c, m.get(\"dash\", 0))"
+  ],
+  "t_txt": [
+   "func status_marks(x, ally: bool) -> Array:",
+   "# ── 아트 px 그리기(4.1s): 맵을 창 해상도로 그려도(S30) 원·선이 도트 그림과 같은 격자에 찍힌다. 그리는 곳은 _cv다(덮개 위 층의 조준 미리보기, fx-4) ──"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ],
+   [
+    "approx",
+    "83d1960"
+   ]
+  ]
+ },
+ {
+  "id": "S198",
+  "a": "src/ui/battle_view.gd:2075",
+  "t": "src/ui/battle_view.gd:2082",
+  "feat": "C-low",
+  "born": "da47058",
+  "born_r": [
+   152,
+   152
+  ],
+  "born_txt": [
+   "draw_arc(_spot(e) + _slip(e), CELL * (e.radius + ring), 0.0, TAU, 24, MARKS[key], 1.0)",
+   "draw_arc(_spot(e) + _slip(e), CELL * (e.radius + ring), 0.0, TAU, 24, MARKS[key], 1.0)"
+  ],
+  "a_txt": [
+   "_px(p - Vector2i(1, 1), PX.gold, Vector2i(2, 2))",
+   "_px(p - Vector2i(1, 1), PX.gold, Vector2i(2, 2))"
+  ],
+  "t_txt": [
+   "var feet := Vector2i((_spot(x) + _slip(x)).floor())",
+   "var feet := Vector2i((_spot(x) + _slip(x)).floor())"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "fe5df7d"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ],
+   [
+    "approx",
+    "83d1960"
+   ]
+  ]
+ },
+ {
+  "id": "I192",
+  "a": "src/ui/battle_view.gd:2088",
+  "t": "src/ui/battle_view.gd:2097-2099",
+  "feat": "C-low",
+  "born": "fe5df7d",
+  "born_r": [
+   675,
+   675
+  ],
+  "born_txt": [
+   "\"stun\":  # 머리 위를 도는 별 둘",
+   "\"stun\":  # 머리 위를 도는 별 둘"
+  ],
+  "a_txt": [
+   "for key in ALLY_FX if ally else FOE_FX:",
+   "for key in ALLY_FX if ally else FOE_FX:"
+  ],
+  "t_txt": [
+   "\"stun\":  # 머리 위를 도는 별 둘. 서리 고리 빙결만으로 기절한 적은 별 대신 얼음 판이다(_ignis_marks, I229 ①)",
+   "continue"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S179",
+  "a": "src/ui/battle_view.gd:2142-2155",
+  "t": "src/ui/battle_view.gd:2172",
+  "feat": "C-low",
+  "born": "13df488",
+  "born_r": [
+   882,
+   883
+  ],
+  "born_txt": [
+   "if ally and x.get(\"toggle\"):  # 켜진 돌풍 갈래살(실비아 W, fx-2): 발 둘레를 도는 연두 바람 줄",
+   "out.append({k = \"gust\", p = feet + Vector2i(0, 1), f = int(clock * 12.0)})"
+  ],
+  "a_txt": [
+   "\"shield\":  # 몸 둘레 테 하나. 세라피나 빛의 보호막은 같은 자리 금 점선 테이고, 다른 보호막도 있을 때만 얼음 테를 함께 그린다(I227 ⑤). 전장의 포효 보호막만 있으면 머리 위 지붕 호 셋(바깥 밝은 보라 · 보라 · 안쪽 어두운 보라, I228 ④)",
+   "\"bleed\":  # 출혈(I193 ③): 몸에서 떨어지는 핏방울"
+  ],
+  "t_txt": [
+   "for i in icons.size():  # 머리 위 기호는 별(기절) 위로 한 줄에",
+   "for i in icons.size():  # 머리 위 기호는 별(기절) 위로 한 줄에"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "83d1960"
+   ],
+   [
+    "approx",
+    "93ef6e7"
+   ]
+  ]
+ },
+ {
+  "id": "I227",
+  "a": "src/ui/battle_view.gd:2142-2147",
+  "t": "src/ui/battle_view.gd:2142-2147",
+  "feat": "OK-low",
+  "born": "93ef6e7",
+  "born_r": [
+   1749,
+   1754
+  ],
+  "born_txt": [
+   "\"shield\":  # 몸 둘레 테 하나. 세라피나 빛의 보호막은 같은 자리 금 점선 테이고, 다른 보호막도 있을 때만 얼음 테를 함께 그린다(I227 ⑤)",
+   "out.append({k = \"ring\", p = feet - Vector2i(0, int(tall * 0.45)), r = int(tall * 0.6), c = PX.ice0})"
+  ],
+  "a_txt": [
+   "\"shield\":  # 몸 둘레 테 하나. 세라피나 빛의 보호막은 같은 자리 금 점선 테이고, 다른 보호막도 있을 때만 얼음 테를 함께 그린다(I227 ⑤). 전장의 포효 보호막만 있으면 머리 위 지붕 호 셋(바깥 밝은 보라 · 보라 · 안쪽 어두운 보라, I228 ④)",
+   "out.append({k = \"arc\", p = c, r = r, th = 1, a0 = -PI * 0.85, a1 = -PI * 0.15, c = PX.vio1})"
+  ],
+  "t_txt": [
+   "\"shield\":  # 몸 둘레 테 하나. 세라피나 빛의 보호막은 같은 자리 금 점선 테이고, 다른 보호막도 있을 때만 얼음 테를 함께 그린다(I227 ⑤). 전장의 포효 보호막만 있으면 머리 위 지붕 호 셋(바깥 밝은 보라 · 보라 · 안쪽 어두운 보라, I228 ④)",
+   "out.append({k = \"arc\", p = c, r = r, th = 1, a0 = -PI * 0.85, a1 = -PI * 0.15, c = PX.vio1})"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "18e704e"
+   ]
+  ]
+ },
+ {
+  "id": "S45",
+  "a": "src/ui/battle_view.gd:2460-2475",
+  "t": "src/ui/battle_view.gd:2469-2484",
+  "feat": "C-low",
+  "born": "f9601d5",
+  "born_r": [
+   45,
+   47
+  ],
+  "born_txt": [
+   "if controls.placing != \"\":  # 놓기 모드: 지금 지을(놓을) 수 있는 칸을 엷게(S45, I138)",
+   "draw_rect(_rect(c), Color(1, 1, 1, 0.25))"
+  ],
+  "a_txt": [
+   "",
+   "var g: Array = _ghost[4]"
+  ],
+  "t_txt": [
+   "if controls.placing in battle.STRUCTURE_KINDS:  # 구조물 놓기: 커서 칸에 차지 칸 미리보기를 지어질 그림 자리에(S216 2026-10-28, I138)",
+   "draw_rect(_rect(c), Color(1, 1, 1, 0.25))"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "3d62521"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "I138",
+  "a": "src/ui/battle_view.gd:2460-2475",
+  "t": "src/ui/battle_view.gd:2469-2484",
+  "feat": "C-low",
+  "born": "f9601d5",
+  "born_r": [
+   45,
+   47
+  ],
+  "born_txt": [
+   "if controls.placing != \"\":  # 놓기 모드: 지금 지을(놓을) 수 있는 칸을 엷게(S45, I138)",
+   "draw_rect(_rect(c), Color(1, 1, 1, 0.25))"
+  ],
+  "a_txt": [
+   "",
+   "var g: Array = _ghost[4]"
+  ],
+  "t_txt": [
+   "if controls.placing in battle.STRUCTURE_KINDS:  # 구조물 놓기: 커서 칸에 차지 칸 미리보기를 지어질 그림 자리에(S216 2026-10-28, I138)",
+   "draw_rect(_rect(c), Color(1, 1, 1, 0.25))"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "3d62521"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "I101",
+  "a": "src/ui/battle_view.gd:2476-2481",
+  "t": "src/ui/battle_view.gd:2485-2490",
+  "feat": "C-low",
+  "born": "2c211a2",
+  "born_r": [
+   54,
+   54
+  ],
+  "born_txt": [
+   "for s in battle.structures.values() + battle.castle.values():  # 받는 피해 감소·공격 속도가 걸린 칸(I101)",
+   "for s in battle.structures.values() + battle.castle.values():  # 받는 피해 감소·공격 속도가 걸린 칸(I101)"
+  ],
+  "a_txt": [
+   "var col: Color = GHOST_OK if g[1] else GHOST_NO",
+   "draw_rect(area, col, false, 1.0)"
+  ],
+  "t_txt": [
+   "for s in battle.structures.values() + battle.castle.values():  # 받는 피해 감소·공격 속도가 걸린 칸(I101)",
+   "ring += 2"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "reauth",
+    "2c211a2",
+    [
+     "src/ui/battle_view.gd",
+     100,
+     100
+    ],
+    [
+     "src/ui/battle_view.gd",
+     82,
+     82
+    ]
+   ],
+   [
+    "adjusted",
+    "3d62521"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S74",
+  "a": "src/ui/battle_view.gd:2482-2483",
+  "t": "src/ui/battle_view.gd:2491-2492",
+  "feat": "C-low",
+  "born": "161bbc9",
+  "born_r": [
+   29,
+   30
+  ],
+  "born_txt": [
+   "for s in controls.picked:  # 전투 단계에 고른 구조물(S74, S83)",
+   "draw_rect(_rect(s.cell), Color.WHITE, false, 1.0)"
+  ],
+  "a_txt": [
+   "elif controls.placing != \"\":  # 용병 놓기: 지금 놓을 수 있는 칸을 엷게(S45, I138)",
+   "for c in battle.placeable_cells(controls.placing):"
+  ],
+  "t_txt": [
+   "for s in controls.picked + ([controls.fort] if controls.fort else []) + ([battle.base] if controls.village else []):  # 전투 단계에 고른 구조물(S74, S83)·고른 성곽 칸(S85)·고른 거점(S100)",
+   "draw_rect(_box(s), Color.WHITE, false, 1.0)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "3d62521"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S100",
+  "a": "src/ui/battle_view.gd:2482",
+  "t": "src/ui/battle_view.gd:2491",
+  "feat": "LIKELY-x",
+  "born": "dc3fa79",
+  "born_r": [
+   33,
+   33
+  ],
+  "born_txt": [
+   "for s in controls.picked + ([controls.fort] if controls.fort else []) + ([battle.base] if controls.village else []):  # 전투 단계에 고른 구조물(S74, S83)·고른 성곽 칸(S85)·고른 거점(S100)",
+   "for s in controls.picked + ([controls.fort] if controls.fort else []) + ([battle.base] if controls.village else []):  # 전투 단계에 고른 구조물(S74, S83)·고른 성곽 칸(S85)·고른 거점(S100)"
+  ],
+  "a_txt": [
+   "elif controls.placing != \"\":  # 용병 놓기: 지금 놓을 수 있는 칸을 엷게(S45, I138)",
+   "elif controls.placing != \"\":  # 용병 놓기: 지금 놓을 수 있는 칸을 엷게(S45, I138)"
+  ],
+  "t_txt": [
+   "for s in controls.picked + ([controls.fort] if controls.fort else []) + ([battle.base] if controls.village else []):  # 전투 단계에 고른 구조물(S74, S83)·고른 성곽 칸(S85)·고른 거점(S100)",
+   "for s in controls.picked + ([controls.fort] if controls.fort else []) + ([battle.base] if controls.village else []):  # 전투 단계에 고른 구조물(S74, S83)·고른 성곽 칸(S85)·고른 거점(S100)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "3d62521"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S82",
+  "a": "src/ui/battle_view.gd:2484-2488",
+  "t": "src/ui/battle_view.gd:2493-2497",
+  "feat": "LIKELY-x",
+  "born": "7336c5b",
+  "born_r": [
+   27,
+   31
+  ],
+  "born_txt": [
+   "var f = controls.facility  # 고른 생산 시설: 테두리와 집결 지점 깃발(S82)",
+   "draw_rect(_rect(f.rally).grow(-5), Color.WHITE)"
+  ],
+  "a_txt": [
+   "draw_rect(_rect(c), Color(1, 1, 1, 0.25))",
+   "if battle.effect_sum(s, key) > 0.0:"
+  ],
+  "t_txt": [
+   "var f = controls.facility  # 고른 생산 시설: 테두리와 집결 지점 깃발(S82)",
+   "draw_rect(_rect(f.rally).grow(-5), Color.WHITE)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "3d62521"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "I59",
+  "a": "src/ui/battle_view.gd:2489-2496",
+  "t": "src/ui/battle_view.gd:2498-2505",
+  "feat": "C-low",
+  "born": "813b987",
+  "born_r": [
+   30,
+   34
+  ],
+  "born_txt": [
+   "_hp_bar(Vector2(base.cell), base)",
+   "_hp_bar(Vector2(b.cell), b)"
+  ],
+  "a_txt": [
+   "draw_rect(_box(s).grow(-ring), MARKS[key], false, 1.0)",
+   "draw_line(_center(battle.middle(f)), _center(Vector2(f.rally)), Color(1, 1, 1, 0.4), 1.0)"
+  ],
+  "t_txt": [
+   "_hp_bar(Vector2(battle.base.cell) - Vector2(0, 1.75), battle.base, Vector2(CELL, 2), true)  # 망루 흉벽 위(칸 위 1.75칸). 칸 위에 그리면 앞면 휘장을 가로질렀다",
+   "_hp_bar(Vector2(battle.middle(b).x, b.cell.y) - Vector2(0, (_lift(b) + top) / CELL), b, Vector2(CELL, 2), true)  # 차지 칸 가운데 위(S173)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "3d62521"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S28",
+  "a": "src/ui/battle_view.gd:2490-2496",
+  "t": "src/ui/battle_view.gd:2499-2505",
+  "feat": "C-low",
+  "born": "72769f0",
+  "born_r": [
+   31,
+   38
+  ],
+  "born_txt": [
+   "# 구조물·성곽은 깎였을 때만 체력 막대를 그린다(성곽 칸이 많아서)",
+   "draw_line(Vector2(s.cell) * CELL + Vector2(CELL, CELL) / 2, s.target.pos * CELL + Vector2(CELL, CELL) / 2, Color.YELLOW, 1.0)"
+  ],
+  "a_txt": [
+   "ring += 2",
+   "draw_line(_center(battle.middle(f)), _center(Vector2(f.rally)), Color(1, 1, 1, 0.4), 1.0)"
+  ],
+  "t_txt": [
+   "# 구조물·성곽은 깎였을 때만 체력 막대를 그린다(성곽 칸이 많아서). V로 켜면 구조물은 늘 그린다(S73, I59). 막대 색은 3단(S199)",
+   "_hp_bar(Vector2(battle.middle(b).x, b.cell.y) - Vector2(0, (_lift(b) + top) / CELL), b, Vector2(CELL, 2), true)  # 차지 칸 가운데 위(S173)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "3d62521"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S73",
+  "a": "src/ui/battle_view.gd:2490-2496",
+  "t": "src/ui/battle_view.gd:2499-2505",
+  "feat": "C-low",
+  "born": "813b987",
+  "born_r": [
+   31,
+   34
+  ],
+  "born_txt": [
+   "# 구조물·성곽은 깎였을 때만 체력 막대를 그린다(성곽 칸이 많아서). V로 켜면 구조물은 늘 그린다(S73, I59)",
+   "_hp_bar(Vector2(b.cell), b)"
+  ],
+  "a_txt": [
+   "ring += 2",
+   "draw_line(_center(battle.middle(f)), _center(Vector2(f.rally)), Color(1, 1, 1, 0.4), 1.0)"
+  ],
+  "t_txt": [
+   "# 구조물·성곽은 깎였을 때만 체력 막대를 그린다(성곽 칸이 많아서). V로 켜면 구조물은 늘 그린다(S73, I59). 막대 색은 3단(S199)",
+   "_hp_bar(Vector2(battle.middle(b).x, b.cell.y) - Vector2(0, (_lift(b) + top) / CELL), b, Vector2(CELL, 2), true)  # 차지 칸 가운데 위(S173)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "3d62521"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S165",
+  "a": "src/ui/battle_view.gd:2502-2597",
+  "t": "src/ui/battle_view.gd:2511-2616",
+  "feat": "LIKELY-x",
+  "born": "461f04f",
+  "born_r": [
+   159,
+   179
+  ],
+  "born_txt": [
+   "func _bodies() -> void:",
+   "_seen = next"
+  ],
+  "a_txt": [
+   "var top: float = FAC_FOOT.y - CELL - FAC[b.kind][1] if FAC.has(b.kind) else 0.0  # 시설은 그림 위에(4.1e). 칸 위에 그리면 그림을 가로질렀다",
+   "elif i >= n:"
+  ],
+  "t_txt": [
+   "func _bodies() -> void:",
+   "_seen = next"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S104",
+  "a": "src/ui/battle_view.gd:2510-2512",
+  "t": "src/ui/battle_view.gd:2519-2521",
+  "feat": "C-low",
+  "born": "f18131c",
+  "born_r": [
+   45,
+   46
+  ],
+  "born_txt": [
+   "for p in residents(battle, Time.get_ticks_msec() / 1000.0):",
+   "draw_circle(_center(p), CELL * 0.15, COLORS.resident)"
+  ],
+  "a_txt": [
+   "# 성벽·거점 그림에 가려진 땅 유닛과 시설은 끝에 한 번 더 그린다(_shade). 레벨·선택·효과 테두리는 _draw가 모든 몸통 뒤에 그린다",
+   "var all: Array = battle.units + _foes  # 숨은 적(S213)은 몸·발밑을 그리지 않는다"
+  ],
+  "t_txt": [
+   "var now := Time.get_ticks_msec() / 1000.0",
+   "_folk_now = [day, day.map(func(v): return v.f)]"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "c4e9026"
+   ],
+   [
+    "adjusted",
+    "3df2b44"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S172",
+  "a": "src/ui/battle_view.gd:2510-2512",
+  "t": "src/ui/battle_view.gd:2519-2521",
+  "feat": "C-low",
+  "born": "5c6f476",
+  "born_r": [
+   73,
+   79
+  ],
+  "born_txt": [
+   "var now := Time.get_ticks_msec() / 1000.0",
+   "_frame(ART.resident, \"walk\" if moving else \"idle\", _four(v), int(now * 8.0) % 2 if moving else 0, _center(ps[k]))"
+  ],
+  "a_txt": [
+   "# 성벽·거점 그림에 가려진 땅 유닛과 시설은 끝에 한 번 더 그린다(_shade). 레벨·선택·효과 테두리는 _draw가 모든 몸통 뒤에 그린다",
+   "var all: Array = battle.units + _foes  # 숨은 적(S213)은 몸·발밑을 그리지 않는다"
+  ],
+  "t_txt": [
+   "var now := Time.get_ticks_msec() / 1000.0",
+   "_folk_now = [day, day.map(func(v): return v.f)]"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "c4e9026"
+   ],
+   [
+    "adjusted",
+    "3df2b44"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S223",
+  "a": "src/ui/battle_view.gd:2510-2512",
+  "t": "src/ui/battle_view.gd:2519-2521",
+  "feat": "C-low",
+  "born": "3df2b44",
+  "born_r": [
+   530,
+   534
+  ],
+  "born_txt": [
+   "var now := Time.get_ticks_msec() / 1000.0",
+   "_folk_now = [day, who]"
+  ],
+  "a_txt": [
+   "# 성벽·거점 그림에 가려진 땅 유닛과 시설은 끝에 한 번 더 그린다(_shade). 레벨·선택·효과 테두리는 _draw가 모든 몸통 뒤에 그린다",
+   "var all: Array = battle.units + _foes  # 숨은 적(S213)은 몸·발밑을 그리지 않는다"
+  ],
+  "t_txt": [
+   "var now := Time.get_ticks_msec() / 1000.0",
+   "_folk_now = [day, day.map(func(v): return v.f)]"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S217",
+  "a": "src/ui/battle_view.gd:2526-2553",
+  "t": "src/ui/battle_view.gd:2541-2563",
+  "feat": "C-sim-x",
+  "born": "1cb9de9",
+  "born_r": [
+   512,
+   532
+  ],
+  "born_txt": [
+   "keys.append((1 << 44) | ((_wall_line(Vector2i(dead[k][0].pos.round())) + 5 + 64) << 20) | (grave + k))",
+   "keys.append((1 << 44) | (((_wall_line(blds[j].cell) if on else (blds[j].cell.y + 1) * CELL) + 64) << 20) | (m + j))"
+  ],
+  "a_txt": [
+   "var folk := feet + n  # 이 번호부터 주민",
+   "if fly and not hung:"
+  ],
+  "t_txt": [
+   "keys.append((1 << 44) | ((_wall_line(Vector2i(x.pos.round())) + 5 + 64) << 20) | (grave + k))",
+   "keys.append((1 << 44) | (((_wall_line(blds[j].cell) if on else (blds[j].cell.y + 1) * CELL) + 64) << 20) | (m + j))"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "fdb6bcd"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ],
+   [
+    "approx",
+    "077addb"
+   ]
+  ]
+ },
+ {
+  "id": "S166",
+  "a": "src/ui/battle_view.gd:2535-2538",
+  "t": "src/ui/battle_view.gd:2548-2550",
+  "feat": "C-low",
+  "born": "2e70ff8",
+  "born_r": [
+   167,
+   168
+  ],
+  "born_txt": [
+   "var foot := _center(x.pos) + (Vector2(0, CELL * 0.4) if fly else Vector2.ZERO)  # 비행 적은 그림자 자리",
+   "draw_texture_rect_region(FEET, Rect2((foot + Vector2(-7, -2)).round(), Vector2(14, 6)), Rect2(14 * int(i >= battle.units.size()), 0, 14, 6))"
+  ],
+  "a_txt": [
+   "var stand: bool = _last_blow(x)[0]",
+   "elif stand:  # 막타를 기다리거나 번쩍이는 선 몸은 산 몸과 같은 차례(S197)"
+  ],
+  "t_txt": [
+   "var fly: bool = x.get(\"flying\") == true or hung",
+   "keys.append((1 << 44) | ((_wall_line(Vector2i(x.pos.round())) + 5 + 64) << 20) | (feet + i))"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "66f9b73"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "I51",
+  "a": "src/ui/battle_view.gd:2539-2542",
+  "t": "src/ui/battle_view.gd:2551-2556",
+  "feat": "C-low",
+  "born": "dc96559",
+  "born_r": [
+   33,
+   33
+  ],
+  "born_txt": [
+   "draw_circle(e.pos * CELL + Vector2(CELL, CELL) / 2, CELL * e.radius, COLORS.enemy)",
+   "draw_circle(e.pos * CELL + Vector2(CELL, CELL) / 2, CELL * e.radius, COLORS.enemy)"
+  ],
+  "a_txt": [
+   "keys.append((1 << 44) | ((int(_wall_line(Vector2i(x.pos.round())) if x.on_wall else _center(x.pos).y) + 64) << 20) | (grave + k))",
+   "else:"
+  ],
+  "t_txt": [
+   "elif not hung:",
+   "keys.append(((2 if fly else 1) << 44) | ((int(y) + 64) << 20) | i)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "88024e4"
+   ],
+   [
+    "adjusted",
+    "4fd639a"
+   ],
+   [
+    "adjusted",
+    "461f04f"
+   ],
+   [
+    "adjusted",
+    "3d62521"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "I81",
+  "a": "src/ui/battle_view.gd:2539-2542",
+  "t": "src/ui/battle_view.gd:2551-2556",
+  "feat": "C-low",
+  "born": "88024e4",
+  "born_r": [
+   70,
+   73
+  ],
+  "born_txt": [
+   "for e in battle.enemies:  # 비행 적은 아래에 그림자를 그린다(I81)",
+   "draw_circle(_center(e.pos), CELL * e.radius, ENEMY_COLORS.get(e.kind, ENEMY_COLORS.basic))"
+  ],
+  "a_txt": [
+   "keys.append((1 << 44) | ((int(_wall_line(Vector2i(x.pos.round())) if x.on_wall else _center(x.pos).y) + 64) << 20) | (grave + k))",
+   "else:"
+  ],
+  "t_txt": [
+   "elif not hung:",
+   "keys.append(((2 if fly else 1) << 44) | ((int(y) + 64) << 20) | i)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "4fd639a"
+   ],
+   [
+    "adjusted",
+    "461f04f"
+   ],
+   [
+    "adjusted",
+    "3d62521"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S173",
+  "a": "src/ui/battle_view.gd:2548-2555",
+  "t": "src/ui/battle_view.gd:2561-2569",
+  "feat": "C-sim-x",
+  "born": "c4e9026",
+  "born_r": [
+   189,
+   193
+  ],
+  "born_txt": [
+   "for j in blds.size():  # 시설은 바닥선, 성벽 위 대포는 성곽 몸체와 앞층 사이(바닥선 + 1)",
+   "keys.append((1 << 44) | ((int(_center(ps[k]).y) + 64) << 20) | (folk + k))"
+  ],
+  "a_txt": [
+   "var fly: bool = x.get(\"flying\") == true or hung",
+   "var y: float = _wall_line(Vector2i(x.pos.round())) if x.on_wall else ((roundf(x.pos.y) + 1) * CELL + 1 if x.get(\"climbed\") else _center(x.pos).y)"
+  ],
+  "t_txt": [
+   "for j in blds.size():  # 시설은 바닥선, 성벽 위 대포는 성곽 몸체와 앞층 사이(바닥선 + 1)",
+   "keys.append((1 << 44) | ((int(_center(day[k].pos).y) + 64) << 20) | (folk + k))"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "3df2b44"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S104",
+  "a": "src/ui/battle_view.gd:2553-2555",
+  "t": "src/ui/battle_view.gd:2565-2569",
+  "feat": "C-sim-x",
+  "born": "c4e9026",
+  "born_r": [
+   192,
+   193
+  ],
+  "born_txt": [
+   "for k in ps.size():",
+   "keys.append((1 << 44) | ((int(_center(ps[k]).y) + 64) << 20) | (folk + k))"
+  ],
+  "a_txt": [
+   "if fly and not hung:",
+   "var y: float = _wall_line(Vector2i(x.pos.round())) if x.on_wall else ((roundf(x.pos.y) + 1) * CELL + 1 if x.get(\"climbed\") else _center(x.pos).y)"
+  ],
+  "t_txt": [
+   "for k in day.size():",
+   "keys.append((1 << 44) | ((int(_center(day[k].pos).y) + 64) << 20) | (folk + k))"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "3df2b44"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ],
+   [
+    "approx",
+    "077addb"
+   ]
+  ]
+ },
+ {
+  "id": "S172",
+  "a": "src/ui/battle_view.gd:2553-2555",
+  "t": "src/ui/battle_view.gd:2565-2569",
+  "feat": "C-sim-x",
+  "born": "c4e9026",
+  "born_r": [
+   192,
+   193
+  ],
+  "born_txt": [
+   "for k in ps.size():",
+   "keys.append((1 << 44) | ((int(_center(ps[k]).y) + 64) << 20) | (folk + k))"
+  ],
+  "a_txt": [
+   "if fly and not hung:",
+   "var y: float = _wall_line(Vector2i(x.pos.round())) if x.on_wall else ((roundf(x.pos.y) + 1) * CELL + 1 if x.get(\"climbed\") else _center(x.pos).y)"
+  ],
+  "t_txt": [
+   "for k in day.size():",
+   "keys.append((1 << 44) | ((int(_center(day[k].pos).y) + 64) << 20) | (folk + k))"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "3df2b44"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ],
+   [
+    "approx",
+    "077addb"
+   ]
+  ]
+ },
+ {
+  "id": "S223",
+  "a": "src/ui/battle_view.gd:2553-2555",
+  "t": "src/ui/battle_view.gd:2565-2569",
+  "feat": "LIKELY-x",
+  "born": "3df2b44",
+  "born_r": [
+   567,
+   569
+  ],
+  "born_txt": [
+   "for k in day.size():",
+   "keys.append((1 << 44) | ((int(_center(day[k].pos).y) + 64) << 20) | (folk + k))"
+  ],
+  "a_txt": [
+   "if fly and not hung:",
+   "var y: float = _wall_line(Vector2i(x.pos.round())) if x.on_wall else ((roundf(x.pos.y) + 1) * CELL + 1 if x.get(\"climbed\") else _center(x.pos).y)"
+  ],
+  "t_txt": [
+   "for k in day.size():",
+   "keys.append((1 << 44) | ((int(_center(day[k].pos).y) + 64) << 20) | (folk + k))"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ],
+   [
+    "approx",
+    "077addb"
+   ]
+  ]
+ },
+ {
+  "id": "S104",
+  "a": "src/ui/battle_view.gd:2569-2570",
+  "t": "src/ui/battle_view.gd:2588-2589",
+  "feat": "C-low",
+  "born": "c4e9026",
+  "born_r": [
+   198,
+   201
+  ],
+  "born_txt": [
+   "if i >= folk:  # 주민(4.1d): 움직이는 쪽을 보고 걷기 2위상. 자리가 연출이라(I46) 방향도 0.05초 전 자리와의 차로 구한다",
+   "_frame(ART.resident, \"walk\" if moving else \"idle\", _four(v), int(now * 8.0) % 2 if moving else 0, _center(ps[i - folk]))"
+  ],
+  "a_txt": [
+   "keys.append((1 << 44) | ((int(_center(day[k].pos).y) + 64) << 20) | (folk + k))",
+   "var prop0 := grave + dead.size()  # 이 번호부터 일터 소품(S224)"
+  ],
+  "t_txt": [
+   "elif i >= folk:",
+   "_folk_body(day[i - folk], now)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "3df2b44"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S172",
+  "a": "src/ui/battle_view.gd:2569-2570",
+  "t": "src/ui/battle_view.gd:2588-2589",
+  "feat": "C-low",
+  "born": "c4e9026",
+  "born_r": [
+   198,
+   201
+  ],
+  "born_txt": [
+   "if i >= folk:  # 주민(4.1d): 움직이는 쪽을 보고 걷기 2위상. 자리가 연출이라(I46) 방향도 0.05초 전 자리와의 차로 구한다",
+   "_frame(ART.resident, \"walk\" if moving else \"idle\", _four(v), int(now * 8.0) % 2 if moving else 0, _center(ps[i - folk]))"
+  ],
+  "a_txt": [
+   "keys.append((1 << 44) | ((int(_center(day[k].pos).y) + 64) << 20) | (folk + k))",
+   "var prop0 := grave + dead.size()  # 이 번호부터 일터 소품(S224)"
+  ],
+  "t_txt": [
+   "elif i >= folk:",
+   "_folk_body(day[i - folk], now)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "3df2b44"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "I18",
+  "a": "src/ui/battle_view.gd:2576-2577",
+  "t": "src/ui/battle_view.gd:2595-2596",
+  "feat": "C-low",
+  "born": "3d62521",
+  "born_r": [
+   193,
+   196
+  ],
+  "born_txt": [
+   "elif i >= m:",
+   "draw_rect(_box(s), col if s.complete and s.razed < 1.0 else Color(col, 0.4))"
+  ],
+  "a_txt": [
+   "for k in lads.size():",
+   "keys.append((1 << 44) | (((lads[k].col.cell.y + 1) * CELL - 3 + 64) << 20) | (lad0 + k))"
+  ],
+  "t_txt": [
+   "elif i >= m:",
+   "_facility(blds[i - m])"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "I62",
+  "a": "src/ui/battle_view.gd:2576-2577",
+  "t": "src/ui/battle_view.gd:2595-2596",
+  "feat": "C-low",
+  "born": "3d62521",
+  "born_r": [
+   193,
+   196
+  ],
+  "born_txt": [
+   "elif i >= m:",
+   "draw_rect(_box(s), col if s.complete and s.razed < 1.0 else Color(col, 0.4))"
+  ],
+  "a_txt": [
+   "for k in lads.size():",
+   "keys.append((1 << 44) | (((lads[k].col.cell.y + 1) * CELL - 3 + 64) << 20) | (lad0 + k))"
+  ],
+  "t_txt": [
+   "elif i >= m:",
+   "_facility(blds[i - m])"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S175",
+  "a": "src/ui/battle_view.gd:2582-2674",
+  "t": "src/ui/battle_view.gd:2601-2698",
+  "feat": "C-low",
+  "born": "9aeb9c3",
+  "born_r": [
+   219,
+   246
+  ],
+  "born_txt": [
+   "for i in n:",
+   "draw_texture_rect_region(tex, dst.grow_side(SIDE_TOP, -cut), src.grow_side(SIDE_TOP, -cut), tint)"
+  ],
+  "a_txt": [
+   "if i >= lad0:",
+   "return w if r > 0 and p.y >= (c.y + k) * CELL - WALL_TOP_UP - r - RING else null  # 그 열 그림 윗변 아래"
+  ],
+  "t_txt": [
+   "for i in n:",
+   "_cv.draw_colored_polygon(pts, col)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S174",
+  "a": "src/ui/battle_view.gd:2586-2589",
+  "t": "src/ui/battle_view.gd:2605-2608",
+  "feat": "C-sim-x",
+  "born": "c4e9026",
+  "born_r": [
+   216,
+   218
+  ],
+  "born_txt": [
+   "for s in blds:  # 시설도 같은 규칙으로 덧그린다(사용자 2026-10-20)",
+   "_facility(s, GHOST)"
+  ],
+  "a_txt": [
+   "elif i >= grave:",
+   "_folk_body(day[i - folk], now)"
+  ],
+  "t_txt": [
+   "for s in blds:  # 시설도 같은 규칙으로 덧그린다(사용자 2026-10-20)",
+   "_facility(s, t)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "9aeb9c3"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S170",
+  "a": "src/ui/battle_view.gd:2621-2669",
+  "t": "src/ui/battle_view.gd:2646-2689",
+  "feat": "C-sim-x",
+  "born": "e632ac3",
+  "born_r": [
+   597,
+   614
+  ],
+  "born_txt": [
+   "func _rise(c: Vector2i) -> int:",
+   ""
+  ],
+  "a_txt": [
+   "_clip = -INF",
+   "var c := Vector2i((p / CELL).floor())"
+  ],
+  "t_txt": [
+   "static func rise_at(bt, c: Vector2i) -> int:",
+   ""
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "7dc5b27"
+   ],
+   [
+    "adjusted",
+    "62e3917"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S218",
+  "a": "src/ui/battle_view.gd:2647-2668",
+  "t": "src/ui/battle_view.gd:2667-2688",
+  "feat": "LIKELY-x",
+  "born": "62e3917",
+  "born_r": [
+   629,
+   649
+  ],
+  "born_txt": [
+   "# 맵 px p가 문루·문 양옆 탑 그림 가운데 성곽 뒤 땅 칸 쪽으로 솟은 부분이면 그 성곽 Block, 아니면 null(S218). 보통 성벽 열은 null이다",
+   "return null"
+  ],
+  "a_txt": [
+   "var k = bt.walls.get(c)",
+   "static func raised_at(bt, p: Vector2):"
+  ],
+  "t_txt": [
+   "# 맵 px p가 문루·문 양옆 탑 그림 가운데 성곽 뒤 땅 칸 쪽으로 솟은 부분이면 그 성곽 Block, 아니면 null(S218). 보통 성벽 열은 null이다",
+   "return null"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "reauth",
+    "62e3917",
+    [
+     "src/ui/battle_view.gd",
+     629,
+     637
+    ],
+    [
+     "src/ui/battle_view.gd",
+     617,
+     625
+    ]
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S198",
+  "a": "src/ui/battle_view.gd:2671-2674",
+  "t": "src/ui/battle_view.gd:2691-2698",
+  "feat": "C-low",
+  "born": "763332c",
+  "born_r": [
+   685,
+   688
+  ],
+  "born_txt": [
+   "func _region(tex: Texture2D, dst: Rect2, src: Rect2, tint: Color) -> void:",
+   "draw_texture_rect_region(tex, dst.grow_side(SIDE_TOP, -cut), src.grow_side(SIDE_TOP, -cut * src.size.y / dst.size.y), tint)"
+  ],
+  "a_txt": [
+   "var w = bt.walls.get(c + Vector2i(0, k))",
+   "return w if r > 0 and p.y >= (c.y + k) * CELL - WALL_TOP_UP - r - RING else null  # 그 열 그림 윗변 아래"
+  ],
+  "t_txt": [
+   "func _region(tex: Texture2D, dst: Rect2, src: Rect2, tint: Color) -> void:",
+   "_cv.draw_colored_polygon(pts, col)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S83",
+  "a": "src/ui/battle_view.gd:2676-2693",
+  "t": "src/ui/battle_view.gd:2700-2712",
+  "feat": "C-low",
+  "born": "161bbc9",
+  "born_r": [
+   26,
+   30
+  ],
+  "born_txt": [
+   "for s in battle.structures.values():  # 미완성은 흐리게. 진행률은 체력 막대로 보인다(I62)",
+   "draw_rect(_rect(s.cell), Color.WHITE, false, 1.0)"
+  ],
+  "a_txt": [
+   "",
+   "if cut < dst.size.y:  # 덮개 위 층(_draw_top)에서 불러도 그 층에 그리도록 _cv에 그린다"
+  ],
+  "t_txt": [
+   "# 시설 하나(4.1e, 사용자 2026-10-20). 미완성은 청사진 위에 진행률만큼 아래부터 그림을 채우고, 철거 중은 거꾸로 위부터 청사진으로 돌아간다.",
+   "_region(FACILITY_K, Rect2(at + Vector2(0, cut), Vector2(FAC_N, FAC_N - cut)), Rect2(x, cut + crack_y(s, FACILITY.get_height()), FAC_N, FAC_N - cut), tint)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "3d62521"
+   ],
+   [
+    "adjusted",
+    "c4e9026"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "I18",
+  "a": "src/ui/battle_view.gd:2676-2693",
+  "t": "src/ui/battle_view.gd:497-500",
+  "feat": "C-low",
+  "born": "161bbc9",
+  "born_r": [
+   26,
+   28
+  ],
+  "born_txt": [
+   "for s in battle.structures.values():  # 미완성은 흐리게. 진행률은 체력 막대로 보인다(I62)",
+   "draw_rect(_rect(s.cell), col if s.complete else Color(col, 0.4))"
+  ],
+  "a_txt": [
+   "",
+   "if cut < dst.size.y:  # 덮개 위 층(_draw_top)에서 불러도 그 층에 그리도록 _cv에 그린다"
+  ],
+  "t_txt": [
+   "for s in battle.structures.values():  # 시설 그림은 _bodies가 유닛과 함께 정렬해 그린다(4.1e)",
+   "draw_dashed_line(_center(Vector2(s.cell)), _center(Vector2(s.dest)), Color(1, 1, 1, 0.7), 1.0, 3.0)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "f18131c"
+   ],
+   [
+    "approx",
+    "c4e9026"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "I62",
+  "a": "src/ui/battle_view.gd:2676-2693",
+  "t": "src/ui/battle_view.gd:497-500",
+  "feat": "C-low",
+  "born": "161bbc9",
+  "born_r": [
+   26,
+   28
+  ],
+  "born_txt": [
+   "for s in battle.structures.values():  # 미완성은 흐리게. 진행률은 체력 막대로 보인다(I62)",
+   "draw_rect(_rect(s.cell), col if s.complete else Color(col, 0.4))"
+  ],
+  "a_txt": [
+   "",
+   "if cut < dst.size.y:  # 덮개 위 층(_draw_top)에서 불러도 그 층에 그리도록 _cv에 그린다"
+  ],
+  "t_txt": [
+   "for s in battle.structures.values():  # 시설 그림은 _bodies가 유닛과 함께 정렬해 그린다(4.1e)",
+   "draw_dashed_line(_center(Vector2(s.cell)), _center(Vector2(s.dest)), Color(1, 1, 1, 0.7), 1.0, 3.0)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "f18131c"
+   ],
+   [
+    "approx",
+    "c4e9026"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S172",
+  "a": "src/ui/battle_view.gd:2707-2708",
+  "t": "src/ui/battle_view.gd:2742-2743",
+  "feat": "C-low",
+  "born": "5c6f476",
+  "born_r": [
+   216,
+   217
+  ],
+  "born_txt": [
+   "if ART.has(x.kind) and not x.get(\"is_hero\"):",
+   "_four_sprite(x, next, tint)"
+  ],
+  "a_txt": [
+   "var at := Vector2(s.cell * CELL) + Vector2(-FAC_FOOT.x, CELL - FAC_FOOT.y - _lift(s)) + _jolt(s) + _recoil(s)  # 맞으면 흔들린다(S199)",
+   "var x: float = FAC_N * f[0]"
+  ],
+  "t_txt": [
+   "if ART.has(x.kind) and not x.get(\"is_hero\"):",
+   "_four_sprite(x, next, tint * _hue(x))  # 빌린 그림은 종류마다 색을 곱한다(I250 ⑤)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "I51",
+  "a": "src/ui/battle_view.gd:2709",
+  "t": "src/ui/battle_view.gd:2744",
+  "feat": "C-low",
+  "born": "3d62521",
+  "born_r": [
+   210,
+   211
+  ],
+  "born_txt": [
+   "if i >= battle.units.size():",
+   "draw_circle(_spot(x), CELL * x.radius, ENEMY_COLORS.get(x.kind, ENEMY_COLORS.basic) * tint)"
+  ],
+  "a_txt": [
+   "if cut > 0:",
+   "if cut > 0:"
+  ],
+  "t_txt": [
+   "elif i >= battle.units.size():  # 그림이 없는 적은 색 원(I81)",
+   "elif i >= battle.units.size():  # 그림이 없는 적은 색 원(I81)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "5c6f476"
+   ],
+   [
+    "adjusted",
+    "763332c"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "I81",
+  "a": "src/ui/battle_view.gd:2709",
+  "t": "src/ui/battle_view.gd:2744",
+  "feat": "C-low",
+  "born": "3d62521",
+  "born_r": [
+   210,
+   211
+  ],
+  "born_txt": [
+   "if i >= battle.units.size():",
+   "draw_circle(_spot(x), CELL * x.radius, ENEMY_COLORS.get(x.kind, ENEMY_COLORS.basic) * tint)"
+  ],
+  "a_txt": [
+   "if cut > 0:",
+   "if cut > 0:"
+  ],
+  "t_txt": [
+   "elif i >= battle.units.size():  # 그림이 없는 적은 색 원(I81)",
+   "elif i >= battle.units.size():  # 그림이 없는 적은 색 원(I81)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "5c6f476"
+   ],
+   [
+    "adjusted",
+    "763332c"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S13",
+  "a": "src/ui/battle_view.gd:2714",
+  "t": "src/ui/battle_view.gd:2749",
+  "feat": "C-low",
+  "born": "d270c09",
+  "born_r": [
+   33,
+   33
+  ],
+  "born_txt": [
+   "draw_circle(m.pos * CELL + Vector2(CELL, CELL) / 2, CELL * m.radius, COLORS.merc)",
+   "draw_circle(m.pos * CELL + Vector2(CELL, CELL) / 2, CELL * m.radius, COLORS.merc)"
+  ],
+  "a_txt": [
+   "# 유닛·적 몸통 하나. 영웅은 8방향 시트, 그림이 있는 용병·적은 4방향 시트, 나머지는 원으로",
+   "# 유닛·적 몸통 하나. 영웅은 8방향 시트, 그림이 있는 용병·적은 4방향 시트, 나머지는 원으로"
+  ],
+  "t_txt": [
+   "draw_circle(_spot(x), CELL * x.radius, (HERO_COLORS.get(x.kind, COLORS.merc) if x.is_hero else COLORS.get(x.kind, COLORS.merc)) * tint)",
+   "draw_circle(_spot(x), CELL * x.radius, (HERO_COLORS.get(x.kind, COLORS.merc) if x.is_hero else COLORS.get(x.kind, COLORS.merc)) * tint)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "dbcba66"
+   ],
+   [
+    "adjusted",
+    "4fd639a"
+   ],
+   [
+    "adjusted",
+    "461f04f"
+   ],
+   [
+    "adjusted",
+    "3d62521"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S198",
+  "a": "src/ui/battle_view.gd:2716-2771",
+  "t": "src/ui/battle_view.gd:2756-2792",
+  "feat": "C-low",
+  "born": "b7e18d6",
+  "born_r": [
+   714,
+   733
+  ],
+  "born_txt": [
+   "# 그림이 없는 적은 색 원(I81). 슬라임 킹 점프(S236, S198): 웅크리는 동안 아래끝을 둔 채 점점 납작해지고, 뜬 동안은 그림자 위로 들어 올린다",
+   "draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)"
+  ],
+  "a_txt": [
+   "if x.get(\"skills\") and battle.raging(x):  # 분노(S195)",
+   "up += POP_UP * 4.0 * k * (1.0 - k)"
+  ],
+  "t_txt": [
+   "# 몸의 그림 배율: 지금 반지름 ÷ 나온 때 반지름(줄어듦, S236)에 몸이 큰 종류의 배율(GROW)을 곱한다. 보통 몸은 1",
+   "_cv.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S166",
+  "a": "src/ui/battle_view.gd:2786-2790",
+  "t": "src/ui/battle_view.gd:2816-2820",
+  "feat": "C-low",
+  "born": "3d62521",
+  "born_r": [
+   228,
+   230
+  ],
+  "born_txt": [
+   "func _feet_mark(x, i: int) -> void:",
+   "draw_texture_rect_region(FEET, Rect2((foot + Vector2(-7, -2)).round(), Vector2(14, 6)), Rect2(14 * int(i >= battle.units.size()), 0, 14, 6))"
+  ],
+  "a_txt": [
+   "return [s, up]",
+   "_cv.draw_set_transform(at, 0.0, Vector2(1.0, 0.4))"
+  ],
+  "t_txt": [
+   "func _feet_mark(x, i: int) -> void:",
+   "draw_texture_rect_region(FEET, rect, region)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "a358512"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ],
+   [
+    "approx",
+    "fe98c8b"
+   ]
+  ]
+ },
+ {
+  "id": "S172",
+  "a": "src/ui/battle_view.gd:2787",
+  "t": "src/ui/battle_view.gd:2817",
+  "feat": "C-low",
+  "born": "5c6f476",
+  "born_r": [
+   237,
+   237
+  ],
+  "born_txt": [
+   "var foot := (_spot(x) if x.on_wall else _center(x.pos)) + (Vector2(0, CELL * 0.4) if x.get(\"flying\") == true else Vector2.ZERO) + _lunge(x)",
+   "var foot := (_spot(x) if x.on_wall else _center(x.pos)) + (Vector2(0, CELL * 0.4) if x.get(\"flying\") == true else Vector2.ZERO) + _lunge(x)"
+  ],
+  "a_txt": [
+   "",
+   ""
+  ],
+  "t_txt": [
+   "var foot := _foot(x)",
+   "var foot := _foot(x)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S177",
+  "a": "src/ui/battle_view.gd:2787",
+  "t": "src/ui/battle_view.gd:2817",
+  "feat": "C-low",
+  "born": "ced07eb",
+  "born_r": [
+   294,
+   294
+  ],
+  "born_txt": [
+   "var foot := (_spot(x) if x.on_wall else _center(x.pos)) + (Vector2(0, CELL * 0.4) if x.get(\"flying\") == true else Vector2.ZERO) + _lunge(x) + _flinch(x)",
+   "var foot := (_spot(x) if x.on_wall else _center(x.pos)) + (Vector2(0, CELL * 0.4) if x.get(\"flying\") == true else Vector2.ZERO) + _lunge(x) + _flinch(x)"
+  ],
+  "a_txt": [
+   "",
+   ""
+  ],
+  "t_txt": [
+   "var foot := _foot(x)",
+   "var foot := _foot(x)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S276",
+  "a": "src/ui/battle_view.gd:2789-2791",
+  "t": "src/ui/battle_view.gd:2804-2806",
+  "feat": "LIKELY-x",
+  "born": "b9c782c",
+  "born_r": [
+   1681,
+   1683
+  ],
+  "born_txt": [
+   "# 발 자리(맵 px, S166): 성벽 위면 올린 자리, 비행 적은 그림자 자리. 돌진·움찔·미끄러짐을 따른다. 발밑 타원과 체력바(S276)가 같이 쓴다",
+   "return (_spot(x) if x.on_wall else _center(x.pos)) + (Vector2(0, CELL * 0.4) if x.get(\"flying\") == true else Vector2.ZERO) + _lunge(x) + _flinch(x) + _slip(x)"
+  ],
+  "a_txt": [
+   "func _shadow(at: Vector2, r: float) -> void:",
+   "_cv.draw_circle(Vector2.ZERO, r, Color(0, 0, 0, 0.3))"
+  ],
+  "t_txt": [
+   "# 발 자리(맵 px, S166): 성벽 위면 올린 자리, 비행 적은 그림자 자리. 돌진·움찔·미끄러짐을 따른다. 발밑 타원과 체력바(S276)가 같이 쓴다",
+   "return (_spot(x) if x.on_wall else _center(x.pos)) + (Vector2(0, CELL * 0.4) if x.get(\"flying\") == true else Vector2.ZERO) + _lunge(x) + _flinch(x) + _slip(x)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "7de860b"
+   ],
+   [
+    "approx",
+    "fe98c8b"
+   ]
+  ]
+ },
+ {
+  "id": "S85",
+  "a": "src/ui/battle_view.gd:2811-2827",
+  "t": "src/ui/battle_view.gd:2841-2857",
+  "feat": "C-low",
+  "born": "c470722",
+  "born_r": [
+   25,
+   25
+  ],
+  "born_txt": [
+   "draw_rect(_rect(b.cell), COLORS.gate_open if b.open else COLORS[b.kind])",
+   "draw_rect(_rect(b.cell), COLORS.gate_open if b.open else COLORS[b.kind])"
+  ],
+  "a_txt": [
+   "var hud = load(\"res://src/ui/hud.gd\")",
+   "func foot_mark(x) -> String:"
+  ],
+  "t_txt": [
+   "func _wall_piece(b, front: int) -> void:",
+   "draw_texture_rect_region(CASTLE_K, dst, Rect2(col[0], 6 * WALL_PIECE_H, col[1], WALL_PIECE_H))"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "4fd639a"
+   ],
+   [
+    "adjusted",
+    "3d62521"
+   ],
+   [
+    "adjusted",
+    "1cb9de9"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "S217",
+  "a": "src/ui/battle_view.gd:2811-2855",
+  "t": "src/ui/battle_view.gd:2841-2886",
+  "feat": "LIKELY-x",
+  "born": "1cb9de9",
+  "born_r": [
+   654,
+   674
+  ],
+  "born_txt": [
+   "func _wall_piece(b, front: int) -> void:",
+   ""
+  ],
+  "a_txt": [
+   "var hud = load(\"res://src/ui/hud.gd\")",
+   "draw_texture_rect_region(CULVERT, Rect2(x0, CULVERT_AT.y, x1 - x0, CULVERT.get_height()), Rect2(x0 - CULVERT_AT.x, 0, x1 - x0, CULVERT.get_height()))"
+  ],
+  "t_txt": [
+   "func _wall_piece(b, front: int) -> void:",
+   ""
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "I88",
+  "a": "src/ui/battle_view.gd:2813-2817",
+  "t": "src/ui/battle_view.gd:2843-2847",
+  "feat": "C-low",
+  "born": "adb5346",
+  "born_r": [
+   32,
+   33
+  ],
+  "born_txt": [
+   "for k in battle.rubble.values():  # 잔해는 흐리게(I88)",
+   "draw_rect(_rect(k.cell), Color(COLORS[k.kind], 0.3))"
+  ],
+  "a_txt": [
+   "return _hammer",
+   "var foot := _foot(x)"
+  ],
+  "t_txt": [
+   "if battle.rubble.get(b.cell) == b:",
+   "return"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "3d62521"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ },
+ {
+  "id": "I67",
+  "a": "src/ui/battle_view.gd:2818-2827",
+  "t": "src/ui/battle_view.gd:2848-2857",
+  "feat": "C-low",
+  "born": "c470722",
+  "born_r": [
+   25,
+   25
+  ],
+  "born_txt": [
+   "draw_rect(_rect(b.cell), COLORS.gate_open if b.open else COLORS[b.kind])",
+   "draw_rect(_rect(b.cell), COLORS.gate_open if b.open else COLORS[b.kind])"
+  ],
+  "a_txt": [
+   "var rect := Rect2(foot + Vector2(-7, -2), Vector2(14, 6))",
+   "func foot_mark(x) -> String:"
+  ],
+  "t_txt": [
+   "var col: Array = wall_col(battle, b)",
+   "draw_texture_rect_region(CASTLE_K, dst, Rect2(col[0], 6 * WALL_PIECE_H, col[1], WALL_PIECE_H))"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "4fd639a"
+   ],
+   [
+    "adjusted",
+    "3d62521"
+   ],
+   [
+    "adjusted",
+    "1cb9de9"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "partial",
+    "7de860b"
+   ]
+  ]
+ }
+]

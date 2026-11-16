@@ -1,23 +1,24 @@
 extends "res://tests/eval/gd/lib.gd"
-# WBS 3.5 영입소(S122~S124·I103~I109). lib.gd·rounds.gd·heroes.gd 머리의 계약에 더하는 API:
-#   stage 키 hero_cells: [칸, …] — 출전 칸(I107) · seed: int — 영입소 난수 씨앗. 같은 씨앗이면 같은 목록이 나온다
-#   res://data/hire.tres — slots · odds([1성, 2성, 3성]) · cost([1성, 2성, 3성]) · reroll · cap · lineup (S123). Battle.HIRE가 이 Resource다
-#   state "hiring" — 도전 시작 전 영입 창(S122). Battle.begin_hiring() — 1라운드 웨이브 1의 준비 단계(restart 직후)에서 연다
-#   Battle.next_round() -> bool — 영입 창이나 라운드 사이에서 출전 목록을 전장에 반영하고 1라운드나 다음 라운드의 첫 준비 단계로 간다
-#   Battle.offers — 목록(칸마다 영웅 종류, 영입한 칸은 ""). 평가가 바꿔 넣을 수 있다 · Battle.roster — 보유 영웅(영입 순서)
-#   Battle.lineup — 다음 라운드에 출전할 영웅 · Battle.heroes — 전장에 나온 출전 영웅(보유 순서) · Battle.hero — 첫 출전 영웅
-#   Battle.hire(칸 번호) -> 영웅|null · Battle.reroll() -> bool · Battle.dismiss(영웅) · Battle.set_lineup(영웅, 출전) -> bool(못 바꾸면 false)
-#   Controls: F1·F2·F3 키 — 출전 영웅 1·2·3을 고른다(I108)
-#   언제든 영입(S272·S273·I206·I208): 영입·리롤은 준비·전투 단계에도 받는다. HIRE.reroll_step — 리롤할 때마다 오르는 값
-#     Battle.reroll_cost() -> int — 지금 리롤 비용(reroll + 이번 라운드 리롤 횟수 × reroll_step) · 저장(save.gd snapshot)의 "rerolls" — 리롤 횟수
-#     Battle.restart() — 새 도전(1라운드 웨이브 1의 준비 단계)
-# 수치는 Battle.HIRE와 영웅 데이터에서 읽는다. 임시값이라(S123) 밸런스를 바꿔도 동작을 재는 평가는 깨지지 않게. EV194만 표를 대조한다
+# WBS 3.5 영입소(S122~S124·I103~I109) → 2026-11-16: 영웅 고르기(S54 2026-11-16 변경·S373·I303). lib.gd·rounds.gd·heroes.gd 머리의 계약에 더하는 API:
+#   stage 키 hero_cells: [칸, …] — 출전 칸(I107) · seed: int — 난수 씨앗(미션을 뽑는다)
+#   res://data/hire.tres — lineup(고르는 수 = 출전 인원, S123) · gear_cost · forge_cap · relic_cost · relic_cap. Battle.HIRE가 이 Resource다
+#   state "hiring" — 도전 시작 전 영웅 고르기 창(S122·S373). Battle.begin_hiring() — 1라운드 웨이브 1의 준비 단계(restart 직후)에서 연다
+#   Battle.next_round() -> bool — 고르기 창이나 라운드 사이에서 보유 영웅을 전장에 반영하고 1라운드나 다음 라운드의 첫 준비 단계로 간다. 영웅이 모자라도(0명도) 넘어간다(I106)
+#   Battle.offers — 고르기 창의 목록: 영웅 종류 여섯(S97 표 차례). 고른 뒤에도 칸이 비지 않는다. 평가가 바꿔 넣을 수 있다
+#   Battle.roster — 보유 영웅 = 출전 영웅(고른 순서) · Battle.heroes — 전장에 나온 출전 영웅(보유 순서) · Battle.hero — 첫 출전 영웅
+#   Battle.hire(칸 번호) -> 영웅|null — 고른다(골드 없음). 고르기 창과 영웅이 출전 인원보다 적은 라운드 사이에만 받고, 같은 영웅·출전 인원을 넘는 것은 거부한다
+#   Battle.dismiss(영웅) — 뺀다. 고르기 창과 라운드 사이에만 받는다(이름은 영입이 있던 때의 것이다, I303 ①)
+#   Controls: 1·2·3 키 — 출전 영웅 1·2·3을 고른다(I108)
+#   Battle.restart() — 새 도전(1라운드 웨이브 1의 준비 단계). 보유를 비운다
+# 수치는 Battle.HIRE와 영웅 데이터에서 읽는다. EV194만 데이터 파일을 대조한다
+
+const HERO_SIX := ["aias", "sylvia", "seraphina", "vesper", "ignis", "chronos"]  # 고르기 창의 목록 = S97 표 차례(S373)
 
 const CELLS := [Vector2i(10, 5), Vector2i(12, 5), Vector2i(14, 5)]  # 출전 칸(출전 3명, S123)
 const ONE := [{"kind": "basic", "count": 1}]
 const ONE_ONE := [[ONE], [ONE]]  # 라운드 2개, 라운드마다 적 1마리짜리 웨이브 하나
 
-# 영입 창이 열린 판(출전 칸·씨앗·라운드 2개)
+# 고르기 창이 열린 판(출전 칸·씨앗·라운드 2개)
 func _hiring(over := {}):
 	var stage := {"hero_cells": CELLS, "seed": 7, "base_hp": BIG, "rounds": ONE_ONE}
 	stage.merge(over, true)
@@ -45,41 +46,26 @@ func _win_round(b) -> bool:
 			return false
 	return b.state in ["cleared", "won"]
 
-func _cost(b, h) -> int:
-	return b.HIRE.cost[h.grade - 1]
+func _kinds(hs: Array) -> Array:
+	return hs.map(func(h): return h.kind)
 
-# 리롤 비용이 오르지 않는 판(HIRE 사본의 reroll_step 0). 같은 라운드 수천 번 리롤로 분포를 재는 평가가 쓴다(S273 개정)
-func _flat(b):
-	b.HIRE = b.HIRE.duplicate()
-	b.HIRE.reroll_step = 0
-	return b
-
-# 리롤을 n번 해 나온 목록의 종류별 수
-func _sample(b, n: int) -> Dictionary:
-	var seen := {}
-	for i in n:
-		b.reroll()
-		for k in b.offers:
-			seen[k] = seen.get(k, 0) + 1
-	return seen
-
-# EV192 · S122: 도전 시작 전 영입 창이 먼저 뜨고, 영입한 영웅이 1라운드 첫 준비 단계에 출전 칸에 선다
+# EV192 · S122: 도전 시작 전 고르기 창이 먼저 뜨고, 골드 없이 고른 영웅이 1라운드 첫 준비 단계에 출전 칸에 선다
 func ev192():
 	var b = _main()
 	var stage: Dictionary = load("res://src/main.gd").stage()
 	var cells: Array = stage.get("hero_cells", [])
 	b.begin_hiring()
 	if b.state != "hiring" or not b.heroes.is_empty() or b.hero != null or b.gold != stage.gold:
-		return "영입 창이 아니거나 영웅이 있다(%s, 영웅 %d명, hero %s, 골드 %d)" % [b.state, b.heroes.size(), b.hero, b.gold]
-	if b.offers.size() != b.HIRE.slots or b.offers.has(""):
-		return "목록이 다 차 있지 않다(%s)" % [b.offers]
+		return "고르기 창이 아니거나 영웅이 있다(%s, 영웅 %d명, hero %s, 골드 %d)" % [b.state, b.heroes.size(), b.hero, b.gold]
+	if b.offers != HERO_SIX:
+		return "목록이 %s다(영웅 여섯이 S97 표 차례 %s여야 한다)" % [b.offers, HERO_SIX]
 	var h = b.hire(0)
 	if h == null or cells.is_empty():
-		return "목록의 첫 영웅을 영입하지 못했거나 출전 칸이 없다(%s)" % [cells]
+		return "목록의 첫 영웅을 고르지 못했거나 출전 칸이 없다(%s)" % [cells]
 	var started: bool = b.next_round()
 	return check(started and b.state == "prep" and b.round_index == 0 and b.wave_index == 0 and b.heroes == [h] and b.hero == h
-		and h.present and h.hp == h.max_hp and near(h.pos, cells[0], 0.01) and b.gold == stage.gold - _cost(b, h),
-		"넘어감 %s · %s %d라운드 웨이브 %d · 출전 %d명 · 영웅 자리 %s 체력 %d/%d · 골드 %d" % [started, b.state, b.round_index + 1, b.wave_index + 1, b.heroes.size(), h.pos, h.hp, h.max_hp, b.gold])
+		and h.present and h.hp == h.max_hp and near(h.pos, cells[0], 0.01) and b.gold == stage.gold,
+		"넘어감 %s · %s %d라운드 웨이브 %d · 출전 %d명 · 영웅 자리 %s 체력 %d/%d · 골드 %d(시작 골드 %d 그대로여야 한다)" % [started, b.state, b.round_index + 1, b.wave_index + 1, b.heroes.size(), h.pos, h.hp, h.max_hp, b.gold, stage.gold])
 
 # EV193 · I109: 도전 시작 전 영입 창에서는 맵 명령을 받지 않는다
 func ev193():
@@ -95,78 +81,38 @@ func ev193():
 	return check(b.state == "hiring" and c.placing == "" and wall == null and merc == null and b.structures.is_empty() and b.units.is_empty() and b.gold == 500,
 		"단계 %s · 놓기 모드 «%s» · 방벽 %s · 용병 %s · 구조물 %d · 유닛 %d · 골드 %d" % [b.state, c.placing, wall, merc, b.structures.size(), b.units.size(), b.gold])
 
-# EV194 · S123: data/hire.tres의 값이 표와 같다
+# EV194 · S123: data/hire.tres에 남은 영웅 수치는 출전 인원(고르는 수) 3뿐이다. 영입이 있던 때의 칸은 없다
 func ev194():
 	var r = load("res://data/hire.tres")
 	if r == null:
 		return "data/hire.tres를 불러오지 못했다"
-	var odds := [0.6, 0.3, 0.1]
-	var cost := [30, 60, 100]
-	var ok: bool = r.slots == 3 and r.reroll == 10 and r.cap == 5 and r.lineup == 3 and r.odds.size() == 3 and r.cost.size() == 3
-	for i in 3:
-		ok = ok and is_equal_approx(r.odds[i], odds[i]) and r.cost[i] == cost[i]
-	return check(ok, "칸 %s · 등장 확률 %s · 영입 비용 %s · 리롤 %s · 보유 상한 %s · 출전 %s" % [r.slots, r.odds, r.cost, r.reroll, r.cap, r.lineup])
+	var left: Array = ["slots", "odds", "cost", "reroll", "reroll_step", "cap"].filter(func(k): return r.get(k) != null)
+	return check(r.get("lineup") == 3 and left.is_empty(), "출전 인원 %s(3이어야 한다) · 남아 있는 영입 칸 %s(없어야 한다)" % [r.get("lineup"), left])
 
-# 리롤을 n번 해 나온 칸의 등급별 수([1성, 2성, 3성])
-func _by_grade(b, n: int) -> Array:
-	var seen := _sample(b, n)
-	var by := [0, 0, 0]
-	for k in seen:
-		by[b.HERO_KINDS[k].grade - 1] += seen[k]
-	return by
-
-# EV195 · S123: 리롤마다 골드가 리롤 비용만큼 줄고, 영웅이 3성뿐이라 모든 칸이 3성이다
-func ev195():
-	var b = _flat(_hiring())
-	var g0: int = b.gold
-	var by := _by_grade(b, 6000)
-	if b.gold != g0 - 6000 * b.HIRE.reroll:
-		return "골드 %d → %d" % [g0, b.gold]
-	return check(by == [0, 0, 6000 * b.HIRE.slots], "등급별 칸 수 %s([0, 0, %d]여야 한다)" % [by, 6000 * b.HIRE.slots])
-
-# EV196 · I103: 영웅이 없는 등급은 빼고 남은 등급끼리 확률 비율대로, 등급 안에서는 같은 확률로 나온다. 후보가 모두 남은 첫 칸으로 등급 비율을 잰다
-func ev196():
-	var b = _flat(_hiring())
-	var seen := _sample(b, 6000)
-	var n: int = 6000 * b.HIRE.slots
-	for k in b.HERO_KINDS:
-		if absf(float(seen.get(k, 0)) / n - 1.0 / 6) > 0.02:
-			return "%s: %d / %d (1/6이어야 한다)" % [k, seen.get(k, 0), n]
-	var m = _flat(_hiring())
-	m.HERO_KINDS.aias.grade = 1
-	m.HERO_KINDS.sylvia.grade = 1
-	var first := [0, 0, 0]  # 첫 칸의 등급별 수
-	var by := [0, 0, 0]  # 모든 칸의 등급별 수
-	for i in 6000:
-		m.reroll()
-		first[m.HERO_KINDS[m.offers[0]].grade - 1] += 1
-		for k in m.offers:
-			by[m.HERO_KINDS[k].grade - 1] += 1
-	return check(by[1] == 0 and absf(float(first[0]) / 6000 - 0.6 / 0.7) <= 0.015,
-		"아이아스·실비아만 1성일 때 첫 칸 등급별 수 %s · 모든 칸 %s(첫 칸 1성 %.3f, 2성 0이어야 한다)" % [first, by, 0.6 / 0.7])
-
-# EV197 · S123: 영입하면 등급의 영입 비용만큼 골드가 줄고, 출전은 3명·보유는 5명까지다
+# EV197 · S123: 고르는 데 골드가 들지 않고, 출전 인원(lineup)만큼만 고른다. 같은 영웅은 두 번 고르지 못한다. lineup이 고르는 수 손잡이다
 func ev197():
 	var b = _hiring({"gold": 300})
-	b.offers = ["aias", "seraphina", "chronos"]
+	if b.offers != HERO_SIX:
+		return "고르기 창의 목록이 %s다(%s여야 한다)" % [b.offers, HERO_SIX]
 	var k = b.hire(0)
-	var p = b.hire(1)
-	var g = b.hire(2)
-	if k == null or p == null or g == null or b.gold != 300 - _cost(b, k) - _cost(b, p) - _cost(b, g):
-		return "셋을 영입하지 못했거나 골드가 %d다" % b.gold
-	if b.lineup != [k, p, g]:
-		return "출전 목록이 %s다(영입한 셋이어야 한다)" % [b.lineup.map(func(h): return h.kind)]
-	b.gold = BIG
-	b.offers = ["ignis", "sylvia", "vesper"]
-	var fourth = b.hire(0)
-	var in4: bool = b.set_lineup(fourth, true)
-	if in4 or b.lineup.size() != b.HIRE.lineup:
-		return "출전 목록 %d명 · 넷째 넣기 %s" % [b.lineup.size(), in4]
-	var fifth = b.hire(1)
-	var gold: int = b.gold
-	var sixth = b.hire(2)
-	return check(fourth != null and fifth != null and sixth == null and b.roster.size() == b.HIRE.cap and b.gold == gold,
-		"넷째 %s · 다섯째 %s · 여섯째 %s · 보유 %d명 · 골드 %d → %d" % [fourth, fifth, sixth, b.roster.size(), gold, b.gold])
+	var p = b.hire(2)
+	var c = b.hire(5)
+	if k == null or p == null or c == null or b.roster != [k, p, c] or b.gold != 300:
+		return "아이아스·세라피나·크로노스를 고른 뒤 보유 %s · 골드 %d(셋 모두 보유에 들고 300 그대로여야 한다)" % [_kinds(b.roster), b.gold]
+	var fourth = b.hire(4)
+	var capped: bool = fourth == null and b.roster == [k, p, c]
+	b.dismiss(c)
+	var twice = b.hire(2)
+	var m = b.hire(4)
+	var swapped: bool = twice == null and m != null and b.roster == [k, p, m] and b.gold == 300
+	var d = _hiring()
+	d.HIRE = d.HIRE.duplicate()
+	d.HIRE.lineup = 2
+	var two := [d.hire(0), d.hire(1)]
+	var third = d.hire(2)
+	var knob: bool = not two.has(null) and third == null and d.roster.size() == 2
+	return check(capped and swapped and knob,
+		"넷째 거부 %s · 크로노스를 뺀 뒤 세라피나 다시 고르기 거부·이그니스 받음 %s(보유 %s, 골드 %d) · lineup 2인 판에서 셋째 거부 %s(보유 %d명)" % [capped, swapped, _kinds(b.roster), b.gold, knob, d.roster.size()])
 
 # EV198 · S124: 계속 출전하는 영웅은 자리·체력이 그대로, 빠진 영웅은 사라지고, 새로 출전한 영웅은 출전 칸에 최대 체력으로 선다
 func ev198():
@@ -174,8 +120,6 @@ func ev198():
 	b.offers = ["aias", "seraphina", "ignis"]
 	var k = b.hire(0)
 	var p = b.hire(1)
-	b.set_lineup(k, true)
-	b.set_lineup(p, true)
 	b.next_round()
 	var to: Vector2i = CELLS[0] + Vector2i(0, 3)
 	b.order_move([k], to)
@@ -186,57 +130,18 @@ func ev198():
 	if not _win_round(b) or b.state != "cleared":
 		return "1라운드를 이겨 라운드 사이가 되지 않았다(%s)" % b.state
 	var at: Vector2 = k.pos
+	b.dismiss(p)  # 출전 전환이 없어졌다(S54 2026-11-16 변경). 빼고 고르는 것으로 같은 세 구절을 잰다
+	b.offers[2] = "ignis"
 	var m = b.hire(2)
-	if m == null or not b.set_lineup(p, false) or not b.set_lineup(m, true):
-		return "라운드 사이에 출전을 바꾸지 못했다"
+	if m == null or p in b.roster:
+		return "라운드 사이에 세라피나를 빼고 이그니스를 고르지 못했다(보유 %s)" % [_kinds(b.roster)]
 	b.next_round()
 	var kept: bool = k in b.units and k.pos.distance_to(at) < 0.1 and k.hp == hp
 	var gone: bool = p not in b.units and p not in b.heroes
 	var fresh: bool = m in b.units and m.present and near(m.pos, CELLS[1], 0.01) and m.hp == m.max_hp
 	return check(b.state == "prep" and kept and gone and fresh, "아이아스 그대로 %s · 세라피나 사라짐 %s · 이그니스가 출전 칸에 최대 체력 %s (%s)" % [kept, gone, fresh, m.pos])
 
-# EV199 · I104: 목록은 도전 시작·라운드 승리 때 무료로 새로 뽑는다. 영입한 칸은 그때까지 빈다. 준비 단계에도 영입한다(2026-11-01 변경)
-func ev199():
-	var b = _hiring()
-	b.hire(0)
-	var emptied: bool = b.offers[0] == ""
-	var g: int = b.gold
-	var rolled: bool = b.reroll() and not b.offers.has("") and b.gold == g - b.HIRE.reroll
-	b.hire(1)
-	b.next_round()
-	var hired: bool = b.hire(2) != null and b.offers[1] == "" and b.offers[2] == ""
-	g = b.gold
-	if not _win_round(b):
-		return "1라운드를 이기지 못했다(%s)" % b.state
-	var refilled: bool = not b.offers.has("") and b.gold == g + b.ENEMY_KINDS.basic.reward
-	b.gold = b.HIRE.reroll - 1
-	var before: Array = b.offers.duplicate()
-	var poor: bool = not b.reroll() and b.offers == before and b.gold == b.HIRE.reroll - 1
-	return check(emptied and rolled and hired and refilled and poor,
-		"영입한 칸 빔 %s · 리롤 %s · 준비 단계 영입 %s · 라운드 승리 뒤 다시 참 %s · 골드 모자라면 거부 %s" % [emptied, rolled, hired, refilled, poor])
-
-# EV200 · I105: 내보낸 영웅은 보유·출전 목록에서 빠지고 환불은 없다. 전장에 있었으면 다음 라운드에 사라진다
-func ev200():
-	var b = _hiring()
-	b.offers = ["aias", "seraphina", "ignis"]
-	var k = b.hire(0)
-	var p = b.hire(1)
-	b.set_lineup(k, true)
-	b.set_lineup(p, true)
-	var g: int = b.gold
-	b.dismiss(p)
-	var out: bool = b.roster == [k] and b.lineup == [k] and b.gold == g
-	b.next_round()
-	b.dismiss(k)
-	var kept: bool = b.roster == [k] and b.heroes == [k]
-	if not _win_round(b):
-		return "1라운드를 이기지 못했다(%s)" % b.state
-	b.dismiss(k)
-	b.next_round()
-	var gone: bool = b.roster.is_empty() and b.heroes.is_empty() and b.hero == null and k not in b.units
-	return check(out and kept and gone, "영입 창에서 내보냄 %s · 준비 단계에서는 그대로 %s · 라운드 사이에 내보내면 다음 라운드엔 없음 %s" % [out, kept, gone])
-
-# EV201 · I106: 영웅 없이도 시작하고, 영입한 영웅은 빈 출전 자리에 바로 들며, 출전 목록은 다음 라운드에도 그대로다
+# EV201 · I106: 판 함수는 영웅 없이도 시작하고, 고른 영웅은 모두 출전하며 다음 라운드에도 그대로다
 func ev201():
 	var b = _hiring()
 	var c = controls(b)
@@ -245,18 +150,14 @@ func ev201():
 	_key(c, KEY_W)
 	var d = _hiring({"gold": BIG})
 	d.offers = ["aias", "seraphina", "ignis"]
-	var k = d.hire(0)
-	var p = d.hire(1)
-	var m = d.hire(2)
-	d.offers = ["chronos", "", ""]
-	var x = d.hire(0)
-	var auto: bool = d.lineup == [k, p, m]
+	var team := [d.hire(0), d.hire(1), d.hire(2)]
 	d.next_round()
+	var lined: bool = not team.has(null) and d.heroes == team
 	if not _win_round(d):
 		return "1라운드를 이기지 못했다(%s)" % d.state
 	d.next_round()
-	var same: bool = d.heroes == [k, p, m] and x not in d.units
-	return check(started and auto and same, "영웅 없이 시작 %s · 처음 셋만 출전 %s · 다음 라운드도 같은 셋 %s" % [started, auto, same])
+	var same: bool = d.state == "prep" and d.heroes == team
+	return check(started and lined and same, "영웅 없이 시작 %s · 고른 셋이 고른 차례로 출전 %s · 다음 라운드도 같은 셋·같은 차례 %s" % [started, lined, same])
 
 # EV202 · I107: 시험 스테이지의 출전 칸은 정문 문루 앞 (29,61)·(31,61)·(30,61)이고, 영웅은 보유 순서대로 서며, 출전 칸에는 짓지 못한다
 func ev202():
@@ -265,8 +166,8 @@ func ev202():
 		return "출전 칸이 %s다" % [cells]
 	var b = _main()
 	b.begin_hiring()
-	b.gold = BIG  # 시작 골드(S111)가 바뀌어도 셋을 영입한다
-	b.offers = ["aias", "sylvia", "aias"]
+	b.gold = BIG
+	b.offers = ["aias", "sylvia", "seraphina"]  # 같은 영웅은 두 번 고르지 못한다(I303 ①)
 	var team := [b.hire(0), b.hire(1), b.hire(2)]
 	b.next_round()
 	var placed := true
@@ -278,195 +179,91 @@ func ev202():
 	var beside = b.build("wall", cells[0] + Vector2i(-1, 0))
 	return check(placed and blocked and beside != null, "보유 순서대로 섬 %s · 출전 칸에 못 지음 %s · 옆 칸에 지음 %s" % [placed, blocked, beside != null])
 
-# EV203 · I108: 출전 순서는 보유 순서이고 첫 출전 영웅이 hero다. F2로 고르고, 빠진 영웅을 골라 둔 채면 첫 출전 영웅이 스킬을 쓴다
+# EV203 · I108: 출전 순서는 고른 순서이고 첫 출전 영웅이 hero다. 2 키로 고른 영웅이 스킬을 쓰고, 다음 라운드에도 차례가 그대로다
 func ev203():
 	var b = _hiring()
 	b.offers = ["aias", "seraphina", "chronos"]
+	var m = b.hire(2)  # 고른 순서: 크로노스 → 아이아스 → 세라피나(목록 차례와 다르게)
 	var k = b.hire(0)
 	var p = b.hire(1)
-	var m = b.hire(2)
 	for h in b.roster:
 		b.add_xp(h, 50)  # E는 Lv3에 열린다(S145)
-		b.set_lineup(h, false)
-	b.set_lineup(m, true)
-	b.set_lineup(k, true)
 	b.next_round()
-	if b.heroes != [k, m] or b.hero != k:
-		return "출전 영웅 %s · hero %s (아이아스, 크로노스 순이어야 한다)" % [b.heroes.map(func(h): return h.kind), b.hero.kind if b.hero else "없음"]
+	if b.heroes != [m, k, p] or b.hero != m:
+		return "출전 영웅 %s · hero %s (크로노스, 아이아스, 세라피나 순이고 hero는 크로노스여야 한다)" % [_kinds(b.heroes), b.hero.kind if b.hero else "없음"]
 	var c = controls(b)
 	_key(c, KEY_2)
-	var picked: bool = c.selected == [m]
+	var picked: bool = c.selected == [k]
 	b.start_battle()  # 스킬은 전투 단계에만 쓴다(S136)
-	_key(c, KEY_E)
-	click(c, MOUSE_BUTTON_LEFT, px(Vector2i(m.pos.round())))  # 크로노스 E는 지점 칸이다(S158 2026-10-30). 아이아스 E는 즉시 칸이다
-	var second_e: bool = m.skill_uses == 1 and k.skill_uses == 0
+	_key(c, KEY_E)  # 아이아스 E는 즉시 칸이다
+	var second_e: bool = k.skill_uses == 1 and m.skill_uses == 0 and p.skill_uses == 0
 	if not clear_wave(b) or not _win_round(b):
 		return "1라운드를 이기지 못했다(%s)" % b.state
-	b.set_lineup(m, false)
-	b.set_lineup(p, true)
 	b.next_round()
-	b.start_battle()
-	_key(c, KEY_E)
-	var first_e: bool = k.skill_uses == 1 and m.skill_uses == 1 and p.skill_uses == 0
-	return check(picked and second_e and first_e, "2 키로 크로노스 고름 %s · 크로노스가 E %s · 다음 라운드엔 아이아스가 E %s" % [picked, second_e, first_e])
+	var same: bool = b.state == "prep" and b.heroes == [m, k, p]
+	_key(c, KEY_3)
+	var third: bool = c.selected == [p]
+	return check(picked and second_e and same and third, "2 키로 아이아스 고름 %s · 아이아스만 E %s · 다음 라운드도 같은 차례 %s · 3 키로 세라피나 고름 %s" % [picked, second_e, same, third])
 
-# EV232 · I127: 보유 영웅이 상한이면 리롤은 거부되고 골드와 목록이 그대로다
-func ev232():
-	var b = _hiring({"gold": BIG})
-	for i in 3:
-		b.hire(i)
-	var rolled: bool = b.reroll()
-	b.hire(0)
-	b.hire(1)
-	if b.roster.size() != b.HIRE.cap:
-		return "보유 영웅이 상한(%d)까지 차지 않았다(%d)" % [b.HIRE.cap, b.roster.size()]
-	var before: Array = b.offers.duplicate()
-	var g: int = b.gold
-	var refused: bool = not b.reroll() and b.offers == before and b.gold == g
-	return check(rolled and refused, "상한 전 리롤 %s · 상한에서 리롤 거부 %s(골드 %d → %d)" % [rolled, refused, g, b.gold])
+# ── 영웅 고르기(S54 2026-11-16 변경) ──
 
-# EV400 · I103: 목록에는 같은 영웅이 두 번 나오지 않고 보유한 영웅도 나오지 않는다. 후보가 모자라면 남는 칸은 빈 칸이고, 내보낸 영웅은 다시 나온다
-func ev400():
-	var b = _flat(_hiring())
-	var twice := 0  # 같은 영웅이 두 번 나온 목록 수
-	for i in 300:
-		b.reroll()
-		var kinds: Array = b.offers.filter(func(k): return k != "")
-		if kinds.any(func(k): return kinds.count(k) > 1):
-			twice += 1
-	b.offers = ["sylvia", "vesper", "chronos"]
-	for i in 3:
-		b.hire(i)
-	b.offers = ["ignis", "", ""]
-	b.hire(0)
-	var owned: Array = b.roster.map(func(h): return h.kind)
-	var bad := 0  # 아이아스·세라피나 한 번씩과 빈 칸 하나가 아닌 목록 수(보유한 영웅이 나와도 여기에 든다)
-	for i in 300:
-		b.reroll()
-		var kinds: Array = b.offers.filter(func(k): return k != "")
-		if b.offers.size() != b.HIRE.slots or kinds.size() != 2 or not ("aias" in kinds and "seraphina" in kinds):
-			bad += 1
-	b.dismiss(b.roster[0])
-	var back := 0  # 내보낸 실비아가 나온 목록 수
-	for i in 300:
-		b.reroll()
-		back += int("sylvia" in b.offers)
-	var m = _flat(_hiring())
-	m.HERO_KINDS.aias.grade = 1
-	m.HERO_KINDS.sylvia.grade = 1
-	var short := 0  # 세 칸이 다 차지 않은 목록 수. 1성 후보가 목록 안에서 떨어진 칸은 후보가 남은 3성에서 골라야 한다
-	for i in 300:
-		m.reroll()
-		short += int(m.offers.size() != m.HIRE.slots or m.offers.has(""))
-	return check(twice == 0 and owned.size() == 4 and bad == 0 and back > 0 and short == 0,
-		"같은 영웅이 두 번 나온 목록 %d/300 · 보유 %s · 보유 넷일 때 어긋난 목록 %d/300(아이아스·세라피나 한 번씩과 빈 칸 하나여야 한다) · 실비아를 내보낸 뒤 실비아가 나온 목록 %d/300 · 1성 둘인 판에서 덜 찬 목록 %d/300" % [twice, owned, bad, back, short])
-
-# ── 언제든 영입(S272·S273·I206·I208) ──
-
-# 준비·전투 단계의 내보내기·출전 전환이 거부되면 참(보유·출전 그대로)
-func _locked(b) -> bool:
-	var keep: Array = b.roster.duplicate()
-	var line: Array = b.lineup.duplicate()
-	b.dismiss(b.roster[0])
-	var off: bool = b.set_lineup(b.roster[0], false)
-	return not off and b.roster == keep and b.lineup == line
-
-# EV649 · S272: 준비·전투 단계에도 영입·리롤이 받아들여지고, 패배 뒤에는 거부된다. 내보내기·출전 전환은 준비·전투 단계에 거부된다
-func ev649():
-	var b = _hiring()
-	b.offers = ["aias", "seraphina", "ignis"]
-	b.hire(0)
+# EV1127 · S54: 영웅 여섯 가운데 셋을 골드 없이 고르고, 그 셋이 도전 내내 출전한다. 준비·전투 단계에는 고르지도 빼지도 못한다
+func ev1127():
+	var b = _hiring({"gold": 500})
+	if b.offers != HERO_SIX:
+		return "고르기 창의 목록이 %s다(%s여야 한다)" % [b.offers, HERO_SIX]
+	var m = b.hire(4)
+	var k = b.hire(0)
+	var p = b.hire(2)
+	if m == null or k == null or p == null or b.roster != [m, k, p]:
+		return "이그니스·아이아스·세라피나를 차례로 고른 뒤 보유가 %s다" % [_kinds(b.roster)]
+	var free: bool = b.gold == 500 and b.offers == HERO_SIX and b.roster.all(func(h): return h.level == 1)
+	b.dismiss(k)
+	var out: bool = b.roster == [m, p]
+	var c = b.hire(5)
+	var team := [m, p, c]
+	var again: bool = c != null and b.roster == team
 	b.next_round()
+	var stood: bool = b.state == "prep" and b.heroes == team and b.hero == m
+	for i in 3:
+		stood = stood and team[i] != null and team[i].present and near(team[i].pos, CELLS[i], 0.01) and team[i].hp == team[i].max_hp
+	if not _win_round(b) or b.state != "cleared":
+		return "1라운드를 이겨 라운드 사이가 되지 않았다(%s)" % b.state
+	var full: bool = b.hire(1) == null and b.offers == HERO_SIX and b.roster == team
+	b.next_round()
+	var same: bool = b.state == "prep" and b.heroes == team
+	var d = _hiring({"gold": 500})
+	var a = d.hire(0)
+	var s = d.hire(1)
+	d.next_round()
 	var seen := []
 	for phase in ["prep", "battle"]:
 		if phase == "battle":
-			b.start_battle()
-		if b.state != phase:
-			return "%s 단계가 아니다(%s)" % [phase, b.state]
-		b.offers = ["seraphina", "", ""] if phase == "prep" else ["ignis", "", ""]
-		var g: int = b.gold
-		var n: int = b.roster.size()
-		var h = b.hire(0)
-		var hired: bool = h != null and b.gold == g - _cost(b, h) and b.roster.size() == n + 1
-		g = b.gold
-		var cost: int = b.reroll_cost()
-		var rolled: bool = b.reroll() and b.gold == g - cost
-		seen.append([phase, hired, rolled, _locked(b)])
+			d.start_battle()
+		var got = d.hire(2)
+		d.dismiss(s)
+		seen.append([d.state, got == null, d.roster == [a, s] and d.heroes == [a, s]])
+	return check(free and out and again and stood and full and same and seen == [["prep", true, true], ["battle", true, true]],
+		"골드·목록 그대로·Lv1 %s · 아이아스 빼기 %s · 크로노스 고르기 %s · 셋이 고른 차례로 출전 칸에 최대 체력 %s · 라운드 사이 넷째 거부·목록 그대로 %s · 다음 라운드도 같은 셋 %s · 둘만 고른 판 [단계, 고르기 거부, 보유·출전 둘 그대로] %s" % [free, out, again, stood, full, same, seen])
+
+# EV1128 · S54: 새 도전에서는 다시 고른다. 리롤·출전 선택·언제든 영입의 판 함수와 칸은 없다
+func ev1128():
+	var b = _hiring()
+	for i in 3:
+		b.hire(i)
+	b.next_round()
+	for h in b.roster:
+		b.add_xp(h, 30)
 	b.damage(b.base, BIG)
-	var before: Array = b.offers.duplicate()
-	var g: int = b.gold
-	var n: int = b.roster.size()
-	var lost: bool = b.state == "lost" and not b.reroll() and b.hire(0) == null and b.offers == before and b.gold == g and b.roster.size() == n
-	return check(seen == [["prep", true, true, true], ["battle", true, true, true]] and lost,
-		"[단계, 영입, 리롤, 내보내기·출전 거부] %s · 패배 뒤 거부 %s" % [seen, lost])
-
-# EV650 · I206: 준비·전투 단계에 영입한 영웅은 출전 자리가 있으면 바로 빈 출전 칸에 최대 체력·Lv1로 선다. 출전이 차 있으면 보유에만 든다
-func ev650():
-	var b = _hiring()
-	b.offers = ["aias", "", ""]
-	var k = b.hire(0)
-	b.next_round()
-	var seen := []
-	for i in 2:
-		if i == 1:
-			b.start_battle()
-		b.offers = [["seraphina", "ignis"][i], "", ""]
-		var h = b.hire(0)
-		seen.append(h != null and h in b.lineup and h in b.heroes and h in b.units and h.alive and h.home == CELLS[i + 1] and near(h.pos, CELLS[i + 1], 0.01) and h.hp == h.max_hp and h.level == 1)
-	b.offers = ["sylvia", "", ""]
-	var s = b.hire(0)
-	var bench: bool = s != null and s in b.roster and not s in b.lineup and not s in b.heroes and not s in b.units
-	return check(k in b.heroes and seen == [true, true] and bench, "준비·전투 단계 영입이 빈 출전 칸에 섬 %s · 출전 3명일 때 보유에만 %s" % [seen, bench])
-
-# EV651 · S273: 리롤 비용은 reroll + 이번 라운드 리롤 횟수 × reroll_step이고, 라운드를 이기거나 새 도전이면 처음 값이다
-func ev651():
-	var data = load("res://data/hire.tres")
-	if data.get("reroll_step") != 10:
-		return "data/hire.tres의 reroll_step이 %s다(10이어야 한다)" % data.get("reroll_step")
-	var b = _hiring()
-	var r: int = b.HIRE.reroll
-	var s: int = b.HIRE.reroll_step
-	var paid := []
-	var roll := func():
-		var g: int = b.gold
-		b.reroll()
-		paid.append(g - b.gold)
-	roll.call()
-	roll.call()
-	b.next_round()
-	roll.call()
-	if not _win_round(b):
-		return "1라운드를 이기지 못했다(%s)" % b.state
-	roll.call()
+	if b.state != "lost" or b.roster.size() != 3:
+		return "준비가 틀렸다: 단계 %s · 보유 %d명(셋을 고른 판이 져야 한다)" % [b.state, b.roster.size()]
 	b.restart()
 	b.begin_hiring()
-	roll.call()
-	b.gold = b.reroll_cost() - 1
-	var before: Array = b.offers.duplicate()
-	var poor: bool = not b.reroll() and b.offers == before and b.gold == r + s - 1
-	return check(paid == [r, r + s, r + 2 * s, r, r] and poor,
-		"리롤마다 준 골드 %s(기대 %s) · 골드가 모자라면 거부 %s" % [paid, [r, r + s, r + 2 * s, r, r], poor])
-
-# EV652 · I208: 리롤 횟수가 저장을 왕복하고, 그 칸이 없는 저장은 0이다
-func ev652():
-	var save = load("res://src/sim/save.gd")
-	var a = _hiring()
-	a.reroll()
-	a.reroll()
-	var d: Dictionary = save.snapshot(a)
-	if not d.has("rerolls"):
-		return "저장에 rerolls 칸이 없다(%s)" % [d.keys()]
-	var b = _hiring()
-	save.apply(b, d)
-	var bare: Dictionary = d.duplicate(true)
-	bare.erase("rerolls")
-	var c = _hiring()
-	save.apply(c, bare)
-	var paid := []
-	for x in [a, b, c]:
-		var g: int = x.gold
-		x.reroll()
-		paid.append(g - x.gold)
-	var r: int = a.HIRE.reroll
-	var s: int = a.HIRE.reroll_step
-	return check(paid == [r + 2 * s, r + 2 * s, r], "다음 리롤로 준 골드 [원래 판, 불러온 판, 칸 없는 저장] %s(기대 %s)" % [paid, [r + 2 * s, r + 2 * s, r]])
+	if b.state != "hiring" or not b.roster.is_empty() or not b.heroes.is_empty() or b.hero != null or b.offers != HERO_SIX:
+		return "새 도전: 단계 %s · 보유 %s · 출전 %s · 목록 %s(고르기 창이고 보유·출전이 비고 목록은 %s여야 한다)" % [b.state, _kinds(b.roster), _kinds(b.heroes), b.offers, HERO_SIX]
+	var team := [b.hire(3), b.hire(4), b.hire(5)]
+	var fresh: bool = not team.has(null) and b.roster == team and team.all(func(h): return h.level == 1 and h.xp == 0)
+	var funcs: Array = ["reroll", "reroll_cost", "set_lineup", "can_hire"].filter(func(n): return b.has_method(n))
+	var vars: Array = ["lineup", "rerolls"].filter(func(n): return b.get(n) != null)
+	return check(fresh and funcs.is_empty() and vars.is_empty(),
+		"앞 도전과 다른 셋을 Lv1·경험치 0으로 고름 %s(보유 %s) · 남아 있는 메서드 %s · 속성 %s(없어야 한다)" % [fresh, _kinds(b.roster), funcs, vars])

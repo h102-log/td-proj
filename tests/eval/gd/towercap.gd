@@ -1,7 +1,7 @@
 extends "res://tests/eval/gd/lib.gd"
 # 타워 상한(S299·I246): 마을이 있는 판의 쏘는 구조물(타워·마법 타워·대포, 성벽 위 대포 포함)은 거점 4 + 다 지은 집 한 채마다 4개까지다.
 # lib.gd·engineer.gd·cannon.gd·save.gd·hud.gd 머리의 계약에 더하는 API:
-#   main.hud.towers — 인구 칸 오른쪽 [60,30,52,12]의 타워 칸(Label, I246 ④). 글 «타워 n/m», n ≥ m이면 글자색(테마 font_color)이 HudTheme.DANGER.
+#   main.hud.towers — 인구 칸 오른쪽 [66,30,52,12]의 타워 칸(Label, I246 ④). 글 «타워 n/m», n ≥ m이면 글자색(테마 font_color)이 HudTheme.DANGER.
 #     툴팁(main.hud.tip)에 «타워·마법 타워·대포 n개 · 상한 m(거점 4 + 집 k채 × 4)». 마을이 없는 판에서는 숨는다
 #   data/structures/house.tres의 towers — 집 한 채 몫(S299 손잡이). EV806이 4인지 본다
 # 그 밖은 있는 API의 행동으로 잰다: 상한에 닿으면 build(kind, cell)이 null이고 골드가 그대로다(준비 단계 즉시 건설·전투 단계 청사진 모두).
@@ -232,7 +232,7 @@ func _near(b, kind: String, want: Vector2i) -> Vector2i:
 func _red(l) -> bool:
 	return l.get_theme_color("font_color").is_equal_approx(DANGER)
 
-# EV809 · I246: 타워 칸은 인구 칸 오른쪽 [60,30,52,12]에 «타워 n/m»이다. 상한에 닿으면 빨강이고 툴팁에 상한 내역이 있다.
+# EV809 · I246: 타워 칸은 인구 칸 오른쪽 [66,30,52,12]에 «타워 n/m»이다. 상한에 닿으면 빨강이고 툴팁에 상한 내역이 있다.
 # 집 한 채를 지으면 «타워 4/8»로 빨강이 풀린다. 넷을 더 짓고 집을 팔면 «타워 8/4»로 상한을 넘어도 빨강이고, 전투 단계에서도 그대로 보인다.
 # 마을이 없는 판에서는 숨는다
 func ev809():
@@ -247,8 +247,8 @@ func ev809():
 		out = "준비가 틀렸다: 1라운드 준비 단계에 쏘는 구조물이 이미 있다"
 	if out == "":
 		var r: Rect2 = tw.get_global_rect()
-		out = check(tw.is_visible_in_tree() and r.position.distance_to(Vector2(60, 30)) <= 0.5 and r.size.distance_to(Vector2(52, 12)) <= 0.5 and tw.text == "타워 0/4",
-			"타워 칸 %s(보임 %s) · 글 «%s»(기대 [60,30,52,12] «타워 0/4»)" % [r, tw.is_visible_in_tree(), tw.text])
+		out = check(tw.is_visible_in_tree() and r.position.distance_to(Vector2(66, 30)) <= 0.5 and r.size.distance_to(Vector2(52, 12)) <= 0.5 and tw.text == "타워 0/4",
+			"타워 칸 %s(보임 %s) · 글 «%s»(기대 [66,30,52,12] «타워 0/4»)" % [r, tw.is_visible_in_tree(), tw.text])
 	if out == "":
 		var n := 0
 		for k in ["tower", "magic", "cannon", "tower"]:

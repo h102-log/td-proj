@@ -504,3 +504,11 @@ def test_EV1115_raid_mgun_fan_drawn_hit_arc(gd):
 
 def test_EV1116_raid_wreck_ring_and_floor_layer(gd):
     gd("den", "EV1116")
+
+
+def test_EV1126_raid_progress_cell_without_flame(gd):
+    gd("den", "EV1126")
+
+
+def test_EV1148_raid_party_forms_rows(gd):
+    gd("den", "EV1148")

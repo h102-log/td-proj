@@ -40,3 +40,7 @@ def test_EV251_flying_enemy_ignores_nearest_gate(gd):
 
 def test_EV252_round3_forecast_passes_nearest_gate(gd):
     gd("gates", "EV252")
+
+
+def test_EV1152_gate_reroute_and_chase_split_sixteen(gd):
+    gd("gates", "EV1152")

@@ -1,0 +1,2200 @@
+[
+ {
+  "id": "I151",
+  "a": "src/ui/hud.gd:335-348",
+  "t": "src/ui/hud.gd:355-363",
+  "feat": "C-low",
+  "born": "2c211a2",
+  "born_r": [
+   96,
+   96
+  ],
+  "born_txt": [
+   "_fix_width(who, \"F3 세라피나 — 마나 200\")",
+   "_fix_width(who, \"F3 세라피나 — 마나 200\")"
+  ],
+  "a_txt": [
+   "var row := {\"pic\": _pic(face, null, Vector2(22, 22))}",
+   "row.lv.position = Vector2(12, 16)"
+  ],
+  "t_txt": [
+   "for j in battle.SLOTS.size():",
+   "cells_of[slot] = sb"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "c7e60f0"
+   ],
+   [
+    "adjusted",
+    "1053119"
+   ],
+   [
+    "adjusted",
+    "bca556c"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "S185",
+  "a": "src/ui/hud.gd:366-372",
+  "t": "src/ui/hud.gd:381-387",
+  "feat": "C-low",
+  "born": "1053119",
+  "born_r": [
+   155,
+   168
+  ],
+  "born_txt": [
+   "var p := _cell(\"progress\", Control.new())  # ponytail: 진행 칸은 «전투 시작»과 웨이브·단계 글만. 계기판·웨이브 미리보기는 4단계",
+   "n.mouse_filter = Control.MOUSE_FILTER_IGNORE"
+  ],
+  "a_txt": [
+   "back.color = HudTheme.CELL",
+   "back.add_child(row.hp)"
+  ],
+  "t_txt": [
+   "_make_progress()",
+   "n.mouse_filter = Control.MOUSE_FILTER_IGNORE"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "I139",
+  "a": "src/ui/hud.gd:373-390",
+  "t": "src/ui/hud.gd:388-405",
+  "feat": "C-low",
+  "born": "f9601d5",
+  "born_r": [
+   86,
+   87
+  ],
+  "born_txt": [
+   "_mode = _button(row, \"\", controls.toggle_move_mode)",
+   "_hold = _button(row, \"\", controls.toggle_hold)"
+  ],
+  "a_txt": [
+   "row.down = _text(cell, 9, HudTheme.DANGER)",
+   "for i in 3:  # 오른쪽 가장자리 태그 24×24, 자리는 고정(I139). 그림 10×10을 2배로, 왼쪽 위에 키 글자"
+  ],
+  "t_txt": [
+   "var sword := {\"g\": HudTheme.ACCENT, \"h\": Color(\"6b5537\"), \"s\": Color(\"d8dde6\"), \"#\": HudTheme.TEXT}",
+   "tip.add(tags[2], func(): return [\"홀드\", \"H\", \"\", _hold_tip, \"\"])"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "1053119"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "S187",
+  "a": "src/ui/hud.gd:388-390",
+  "t": "src/ui/hud.gd:403-405",
+  "feat": "C-low",
+  "born": "1053119",
+  "born_r": [
+   171,
+   172
+  ],
+  "born_txt": [
+   "tip.add(_mode, func(): return [\"이동 방식\", \"A\", \"\", \"이동 중 공격 ↔ 무조건 이동\", \"\"])",
+   "tip.add(_hold, func(): return [\"홀드\", \"H\", \"\", \"켜면 기준 지점 반경 안의 적만 친다\", \"\"])"
+  ],
+  "a_txt": [
+   "var sword := {\"g\": HudTheme.ACCENT, \"h\": Color(\"6b5537\"), \"s\": Color(\"d8dde6\"), \"#\": HudTheme.TEXT}",
+   "for i in 3:  # 오른쪽 가장자리 태그 24×24, 자리는 고정(I139). 그림 10×10을 2배로, 왼쪽 위에 키 글자"
+  ],
+  "t_txt": [
+   "tip.add(tags[0], func(): return [\"공격 이동\", \"A\", \"\", \"누른 뒤 땅: 가는 길의 적을 친다\\n적: 그 적만 친다\", \"\"])  # 툴팁 폭 160이라 줄을 나눈다",
+   "tip.add(tags[2], func(): return [\"홀드\", \"H\", \"\", _hold_tip, \"\"])"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "37b70d7"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "S147",
+  "a": "src/ui/hud.gd:391-402",
+  "t": "src/ui/hud.gd:418-429",
+  "feat": "C-low",
+  "born": "2c211a2",
+  "born_r": [
+   105,
+   105
+  ],
+  "born_txt": [
+   "col.add_child(_hint)  # 영웅 줄 아래. 조준·놓기 안내가 뜨고 질 때 스킬 버튼이 밀리지 않게",
+   "col.add_child(_hint)  # 영웅 줄 아래. 조준·놓기 안내가 뜨고 질 때 스킬 버튼이 밀리지 않게"
+  ],
+  "a_txt": [
+   "var t := _bar_button(root, \"\", [controls.attack_key, controls.stop, controls.toggle_hold][i])",
+   "tags.append(t)"
+  ],
+  "t_txt": [
+   "chip.position = Vector2(134, 30)  # 위 띠 바로 아래(S147 임시값). 글이 길면 오른쪽으로 는다",
+   "root.add_child(chip)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "1053119"
+   ],
+   [
+    "adjusted",
+    "d2bd978"
+   ],
+   [
+    "adjusted",
+    "19c8199"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "S334",
+  "a": "src/ui/hud.gd:471-491",
+  "t": "src/ui/hud.gd:471-491",
+  "feat": "OK-low",
+  "born": "8478ffc",
+  "born_r": [
+   454,
+   466
+  ],
+  "born_txt": [
+   "for k in battle.RELIC_KINDS:  # 유물마다 한 줄(S334, I278 ⑤). 장비 줄 아래에 두고 가방에 있는 유물만 보인다",
+   "relic_rows.append([k, row, line, up, swap])"
+  ],
+  "a_txt": [
+   "var relic_ids: Array = battle.RELIC_KINDS.keys()",
+   "relic_rows.append([k, row, line, up, swap])"
+  ],
+  "t_txt": [
+   "var relic_ids: Array = battle.RELIC_KINDS.keys()",
+   "relic_rows.append([k, row, line, up, swap])"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "I278",
+  "a": "src/ui/hud.gd:471-491",
+  "t": "src/ui/hud.gd:471-491",
+  "feat": "OK-low",
+  "born": "8478ffc",
+  "born_r": [
+   454,
+   466
+  ],
+  "born_txt": [
+   "for k in battle.RELIC_KINDS:  # 유물마다 한 줄(S334, I278 ⑤). 장비 줄 아래에 두고 가방에 있는 유물만 보인다",
+   "relic_rows.append([k, row, line, up, swap])"
+  ],
+  "a_txt": [
+   "var relic_ids: Array = battle.RELIC_KINDS.keys()",
+   "relic_rows.append([k, row, line, up, swap])"
+  ],
+  "t_txt": [
+   "var relic_ids: Array = battle.RELIC_KINDS.keys()",
+   "relic_rows.append([k, row, line, up, swap])"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "S100",
+  "a": "src/ui/hud.gd:517",
+  "t": "src/ui/hud.gd:566",
+  "feat": "C-low",
+  "born": "dc3fa79",
+  "born_r": [
+   75,
+   75
+  ],
+  "born_txt": [
+   "_village = _button(_popup, \"\", func(): battle.raise_village())",
+   "_village = _button(_popup, \"\", func(): battle.raise_village())"
+  ],
+  "a_txt": [
+   "box.add_child(foot)",
+   "box.add_child(foot)"
+  ],
+  "t_txt": [
+   "_upgrade = _pop(rows[0], func(): battle.upgrade(controls.fort), \"업그레이드\", HudBuild.dots(UP, {\"#\": HudTheme.ACCENT}))",
+   "_upgrade = _pop(rows[0], func(): battle.upgrade(controls.fort), \"업그레이드\", HudBuild.dots(UP, {\"#\": HudTheme.ACCENT}))"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "d2bd978"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "S38",
+  "a": "src/ui/hud.gd:518",
+  "t": "src/ui/hud.gd:566",
+  "feat": "C-low",
+  "born": "c470722",
+  "born_r": [
+   71,
+   71
+  ],
+  "born_txt": [
+   "_upgrade = _button(_popup, \"\", func(): battle.upgrade(controls.fort))",
+   "_upgrade = _button(_popup, \"\", func(): battle.upgrade(controls.fort))"
+  ],
+  "a_txt": [
+   "_next = _window_button(foot, proceed)",
+   "_next = _window_button(foot, proceed)"
+  ],
+  "t_txt": [
+   "_upgrade = _pop(rows[0], func(): battle.upgrade(controls.fort), \"업그레이드\", HudBuild.dots(UP, {\"#\": HudTheme.ACCENT}))",
+   "_upgrade = _pop(rows[0], func(): battle.upgrade(controls.fort), \"업그레이드\", HudBuild.dots(UP, {\"#\": HudTheme.ACCENT}))"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "d2bd978"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "S86",
+  "a": "src/ui/hud.gd:518",
+  "t": "src/ui/hud.gd:566",
+  "feat": "C-low",
+  "born": "c470722",
+  "born_r": [
+   71,
+   71
+  ],
+  "born_txt": [
+   "_upgrade = _button(_popup, \"\", func(): battle.upgrade(controls.fort))",
+   "_upgrade = _button(_popup, \"\", func(): battle.upgrade(controls.fort))"
+  ],
+  "a_txt": [
+   "_next = _window_button(foot, proceed)",
+   "_next = _window_button(foot, proceed)"
+  ],
+  "t_txt": [
+   "_upgrade = _pop(rows[0], func(): battle.upgrade(controls.fort), \"업그레이드\", HudBuild.dots(UP, {\"#\": HudTheme.ACCENT}))",
+   "_upgrade = _pop(rows[0], func(): battle.upgrade(controls.fort), \"업그레이드\", HudBuild.dots(UP, {\"#\": HudTheme.ACCENT}))"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "d2bd978"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "S316",
+  "a": "src/ui/hud.gd:531",
+  "t": "src/ui/hud.gd:531",
+  "feat": "OK-low",
+  "born": "eb04e6f",
+  "born_r": [
+   525,
+   525
+  ],
+  "born_txt": [
+   "raid = _pop(rows[0], func(): battle.start_raid(), \"원정\")",
+   "raid = _pop(rows[0], func(): battle.start_raid(), \"원정\")"
+  ],
+  "a_txt": [
+   "raid = keep.raid",
+   "raid = keep.raid"
+  ],
+  "t_txt": [
+   "raid = keep.raid",
+   "raid = keep.raid"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "f90d993"
+   ]
+  ]
+ },
+ {
+  "id": "S214",
+  "a": "src/ui/hud.gd:550-557",
+  "t": "src/ui/hud.gd:634-678",
+  "feat": "C-sim-x",
+  "born": "fb67c43",
+  "born_r": [
+   400,
+   407
+  ],
+  "born_txt": [
+   "if prep and _seen != \"prep\" and _night(_next_wave()):  # S214",
+   "toasts.push(\"해가 진다\")"
+  ],
+  "a_txt": [
+   "for i in 2 + battle.HIRE.lineup:",
+   "var old: Array = battle.MERC_KINDS.keys().filter(func(k): return k not in battle.HQ_MERCS)  # 새 여덟은 거점 패널에서만 산다(S365)"
+  ],
+  "t_txt": [
+   "if arrived and _night(_next_wave()):  # S214",
+   "toasts.push(\"해가 진다\")"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "c0034eb"
+   ],
+   [
+    "approx",
+    "dac62b2"
+   ]
+  ]
+ },
+ {
+  "id": "S356",
+  "a": "src/ui/hud.gd:553-559",
+  "t": "src/ui/hud.gd:553-559",
+  "feat": "OK-low",
+  "born": "dac62b2",
+  "born_r": [
+   568,
+   579
+  ],
+  "born_txt": [
+   "var hq := [HBoxContainer.new(), HBoxContainer.new()]  # 거점이 파는 새 용병 여덟의 구매 줄·강화 줄(S356). 거점 탭 UI(사용자 예정 작업) 전까지의 임시 자리다",
+   "_rank[kind] = _pop(hq[1], func(): battle.rank_up(kind), \"%s 강화\" % NAMES[kind], HudBuild.icon(kind))"
+  ],
+  "a_txt": [
+   "var coin := HudBuild.dots(COIN, {\"#\": HudTheme.ACCENT, \"o\": Color(\"b08a3a\")})",
+   "_buy[kind] = _pop(rows[0], func(): battle.recruit(controls.facility, kind), \"%s 구매\" % NAMES[kind], HudBuild.icon(kind))"
+  ],
+  "t_txt": [
+   "var coin := HudBuild.dots(COIN, {\"#\": HudTheme.ACCENT, \"o\": Color(\"b08a3a\")})",
+   "_buy[kind] = _pop(rows[0], func(): battle.recruit(controls.facility, kind), \"%s 구매\" % NAMES[kind], HudBuild.icon(kind))"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "f90d993"
+   ]
+  ]
+ },
+ {
+  "id": "S74",
+  "a": "src/ui/hud.gd:562",
+  "t": "src/ui/hud.gd:562",
+  "feat": "OK-low",
+  "born": "161bbc9",
+  "born_r": [
+   63,
+   63
+  ],
+  "born_txt": [
+   "_demolish = _button(_popup, \"철거\", func(): _apply(func(s): battle.demolish([s]), controls.picked))",
+   "_demolish = _button(_popup, \"철거\", func(): _apply(func(s): battle.demolish([s]), controls.picked))"
+  ],
+  "a_txt": [
+   "_demolish = _pop(rows[0], _demolish_press, \"철거\")",
+   "_demolish = _pop(rows[0], _demolish_press, \"철거\")"
+  ],
+  "t_txt": [
+   "_demolish = _pop(rows[0], _demolish_press, \"철거\")",
+   "_demolish = _pop(rows[0], _demolish_press, \"철거\")"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "d2bd978"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ],
+   [
+    "partial",
+    "b0925f8"
+   ],
+   [
+    "healed",
+    "4e74c56"
+   ]
+  ]
+ },
+ {
+  "id": "S189",
+  "a": "src/ui/hud.gd:566",
+  "t": "src/ui/hud.gd:696",
+  "feat": "C-low",
+  "born": "fbdf6e0",
+  "born_r": [
+   363,
+   365
+  ],
+  "born_txt": [
+   "alerts.visible = on",
+   "alerts.step(delta)"
+  ],
+  "a_txt": [
+   "_upgrade = _pop(rows[0], func(): battle.upgrade(controls.fort), \"업그레이드\", HudBuild.dots(UP, {\"#\": HudTheme.ACCENT}))",
+   "_upgrade = _pop(rows[0], func(): battle.upgrade(controls.fort), \"업그레이드\", HudBuild.dots(UP, {\"#\": HudTheme.ACCENT}))"
+  ],
+  "t_txt": [
+   "alerts.visible = on",
+   "alerts.visible = on"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "3842d11"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "S17",
+  "a": "src/ui/hud.gd:572",
+  "t": "src/ui/hud.gd:704",
+  "feat": "C-low",
+  "born": "2540ee1",
+  "born_r": [
+   54,
+   54
+  ],
+  "born_txt": [
+   "_info.text = \"골드 %d · 웨이브 %d/%d · %s\" % [battle.gold, mini(battle.wave_index + 1, n), n, STATES[battle.state]]",
+   "_info.text = \"골드 %d · 웨이브 %d/%d · %s\" % [battle.gold, mini(battle.wave_index + 1, n), n, STATES[battle.state]]"
+  ],
+  "a_txt": [
+   "_make_edges(root)",
+   "_make_edges(root)"
+  ],
+  "t_txt": [
+   "_show_progress()",
+   "_show_progress()"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2be4f3c"
+   ],
+   [
+    "adjusted",
+    "1053119"
+   ],
+   [
+    "adjusted",
+    "a568782"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "I94",
+  "a": "src/ui/hud.gd:572",
+  "t": "src/ui/hud.gd:704",
+  "feat": "C-low",
+  "born": "1053119",
+  "born_r": [
+   249,
+   249
+  ],
+  "born_txt": [
+   "_wave.text = \"웨이브 %d/%d\\n%s\" % [mini(battle.wave_index + 1, n), n, STATES[battle.state]]",
+   "_wave.text = \"웨이브 %d/%d\\n%s\" % [mini(battle.wave_index + 1, n), n, STATES[battle.state]]"
+  ],
+  "a_txt": [
+   "_make_edges(root)",
+   "_make_edges(root)"
+  ],
+  "t_txt": [
+   "_show_progress()",
+   "_show_progress()"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "a568782"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "I139",
+  "a": "src/ui/hud.gd:574-619",
+  "t": "src/ui/hud.gd:706-715",
+  "feat": "C-low",
+  "born": "1053119",
+  "born_r": [
+   251,
+   262
+  ],
+  "born_txt": [
+   "var mercs: Array = controls.selected.filter(func(u): return not u.is_hero and u.alive)  # 고른 용병의 이동 방식·홀드(U11, I139)",
+   "t.position = Vector2(640 - t.size.x, 182 + 26 * i)"
+  ],
+  "a_txt": [
+   "root.add_child(alerts)",
+   "func _process(delta: float) -> void:"
+  ],
+  "t_txt": [
+   "var picked: Array = controls.selected.filter(func(u): return u.alive)  # 고른 영웅·용병의 명령 태그, 용병의 홀드(I139)",
+   "_hold_tip = HOLD_TIPS[h]"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "reauth",
+    "1053119",
+    [
+     "src/ui/hud.gd",
+     251,
+     258
+    ],
+    [
+     "src/ui/hud.gd",
+     182,
+     189
+    ]
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "S91",
+  "a": "src/ui/hud.gd:620-632",
+  "t": "src/ui/hud.gd:721-730",
+  "feat": "C-low",
+  "born": "332b443",
+  "born_r": [
+   83,
+   86
+  ],
+  "born_txt": [
+   "_hint.visible = controls.placing != \"\" or controls.moving != null",
+   "_hint.text = \"대포 옮길 칸: 좌클릭 · 끝내기: 우클릭·ESC\""
+  ],
+  "a_txt": [
+   "_now += delta",
+   "if arrived and _boss(_next_wave()):  # S188"
+  ],
+  "t_txt": [
+   "var refusing: bool = _now - _refused[1] < REFUSE_HINT",
+   "if controls.aiming != \"\":  # 조준 중(S147)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2c211a2"
+   ],
+   [
+    "adjusted",
+    "19c8199"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "S317",
+  "a": "src/ui/hud.gd:645-654",
+  "t": "src/ui/hud.gd:645-654",
+  "feat": "OK-low",
+  "born": "eb04e6f",
+  "born_r": [
+   590,
+   593
+  ],
+  "born_txt": [
+   "boss_bar.visible = raiding and battle.raid_boss != null",
+   "_boss_fill.size.x = 136.0 * clampf(battle.raid_boss.hp / battle.raid_boss.max_hp, 0.0, 1.0) if battle.raid_boss.alive else 0.0"
+  ],
+  "a_txt": [
+   "boss_bar.visible = raiding",
+   "_boss_fill.size.x = _boss_track.size.x * battle.raid_left()  # 남은 총 체력 비율(S322)"
+  ],
+  "t_txt": [
+   "boss_bar.visible = raiding",
+   "_boss_fill.size.x = _boss_track.size.x * battle.raid_left()  # 남은 총 체력 비율(S322)"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "I262",
+  "a": "src/ui/hud.gd:645-654",
+  "t": "src/ui/hud.gd:645-654",
+  "feat": "OK-low",
+  "born": "eb04e6f",
+  "born_r": [
+   590,
+   593
+  ],
+  "born_txt": [
+   "boss_bar.visible = raiding and battle.raid_boss != null",
+   "_boss_fill.size.x = 136.0 * clampf(battle.raid_boss.hp / battle.raid_boss.max_hp, 0.0, 1.0) if battle.raid_boss.alive else 0.0"
+  ],
+  "a_txt": [
+   "boss_bar.visible = raiding",
+   "_boss_fill.size.x = _boss_track.size.x * battle.raid_left()  # 남은 총 체력 비율(S322)"
+  ],
+  "t_txt": [
+   "boss_bar.visible = raiding",
+   "_boss_fill.size.x = _boss_track.size.x * battle.raid_left()  # 남은 총 체력 비율(S322)"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "S252",
+  "a": "src/ui/hud.gd:697-700",
+  "t": "src/ui/hud.gd:752-760",
+  "feat": "C-low",
+  "born": "378d464",
+  "born_r": [
+   526,
+   529
+  ],
+  "born_txt": [
+   "if not battle.dropped.is_empty():  # 이번 전리품(S252)",
+   "_result_label.text += \"\\n\" + (\"전리품 %s\" % title if d[1] < 0 else \"전리품 %s +%d → +%d\" % [title, d[1], d[2]])"
+  ],
+  "a_txt": [
+   "minimap.visible = on",
+   "hp_button.modulate.a = 1.0 if controls.show_hp else 0.35  # 꺼져 있으면 흐리게(S276). 대피령 버튼의 흐림과 같은 값"
+  ],
+  "t_txt": [
+   "_loot.visible = not battle.dropped.is_empty()  # 이번 전리품(S252): 장비 큰 아이콘과 글(S274)",
+   "_next.disabled = short"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "S70",
+  "a": "src/ui/hud.gd:719-723",
+  "t": "src/ui/hud.gd:778-782",
+  "feat": "C-low",
+  "born": "813b987",
+  "born_r": [
+   66,
+   72
+  ],
+  "born_txt": [
+   "if not prep or controls.placing != \"\":  # 전투가 시작되거나 놓기 모드에 들어가면 판매 팝업을 닫는다(I58)",
+   "_sell.position = get_viewport().get_canvas_transform() * controls.sell_at + Vector2(6, 6)"
+  ],
+  "a_txt": [
+   "var fixing: int = engineers.filter(func(u): return u.auto_fix).size()",
+   "hint.text = \"%s 놓기: 좌클릭 · 끝: 우클릭·ESC\" % NAMES.get(controls.placing, \"\")"
+  ],
+  "t_txt": [
+   "if not prep or controls.placing != \"\":  # 전투가 시작되거나 놓기 모드에 들어가면 판매 팝업을 닫는다(I58)",
+   "_sell.text = \"판매 +%d\" % controls.selling.reduce(func(n, t): return n + battle.refund(t), 0)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "161bbc9"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "I58",
+  "a": "src/ui/hud.gd:719-723",
+  "t": "src/ui/hud.gd:778-782",
+  "feat": "C-low",
+  "born": "813b987",
+  "born_r": [
+   66,
+   72
+  ],
+  "born_txt": [
+   "if not prep or controls.placing != \"\":  # 전투가 시작되거나 놓기 모드에 들어가면 판매 팝업을 닫는다(I58)",
+   "_sell.position = get_viewport().get_canvas_transform() * controls.sell_at + Vector2(6, 6)"
+  ],
+  "a_txt": [
+   "var fixing: int = engineers.filter(func(u): return u.auto_fix).size()",
+   "hint.text = \"%s 놓기: 좌클릭 · 끝: 우클릭·ESC\" % NAMES.get(controls.placing, \"\")"
+  ],
+  "t_txt": [
+   "if not prep or controls.placing != \"\":  # 전투가 시작되거나 놓기 모드에 들어가면 판매 팝업을 닫는다(I58)",
+   "_sell.text = \"판매 +%d\" % controls.selling.reduce(func(n, t): return n + battle.refund(t), 0)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "161bbc9"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "S81",
+  "a": "src/ui/hud.gd:725-729",
+  "t": "src/ui/hud.gd:784-789",
+  "feat": "C-low",
+  "born": "7336c5b",
+  "born_r": [
+   75,
+   81
+  ],
+  "born_txt": [
+   "if controls.facility and not controls.facility.alive:  # 파괴되거나 팔린 시설",
+   "_buy.position = _sell.position"
+  ],
+  "a_txt": [
+   "hint.text = \"✕ \" + _refused[2]",
+   "hint.text = \"대포 옮길 칸: 좌클릭 · 끝: 우클릭·ESC\""
+  ],
+  "t_txt": [
+   "if controls.facility and not controls.facility.alive:  # 파괴되거나 팔린 시설",
+   "_buy[kind].text = \"%s %d\" % [NAMES[kind], battle.MERC_KINDS[kind].cost]"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "161bbc9"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "I20",
+  "a": "src/ui/hud.gd:728",
+  "t": "src/ui/hud.gd:788-789",
+  "feat": "C-low",
+  "born": "56fdb36",
+  "born_r": [
+   457,
+   457
+  ],
+  "born_txt": [
+   "_buy[kind].visible = battle.live() and controls.facility != null and kind in controls.facility.produces",
+   "_buy[kind].visible = battle.live() and controls.facility != null and kind in controls.facility.produces"
+  ],
+  "a_txt": [
+   "if controls.moving:",
+   "if controls.moving:"
+  ],
+  "t_txt": [
+   "_buy[kind].visible = battle.live() and controls.facility != null and controls.facility != battle.base and kind in controls.facility.produces",
+   "_buy[kind].text = \"%s %d\" % [NAMES[kind], battle.MERC_KINDS[kind].cost]"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "I61",
+  "a": "src/ui/hud.gd:728",
+  "t": "src/ui/hud.gd:788-789",
+  "feat": "C-low",
+  "born": "7336c5b",
+  "born_r": [
+   77,
+   77
+  ],
+  "born_txt": [
+   "_buy.visible = battle.state == \"battle\" and controls.facility != null",
+   "_buy.visible = battle.state == \"battle\" and controls.facility != null"
+  ],
+  "a_txt": [
+   "if controls.moving:",
+   "if controls.moving:"
+  ],
+  "t_txt": [
+   "_buy[kind].visible = battle.live() and controls.facility != null and controls.facility != battle.base and kind in controls.facility.produces",
+   "_buy[kind].text = \"%s %d\" % [NAMES[kind], battle.MERC_KINDS[kind].cost]"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "c470722"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "I122",
+  "a": "src/ui/hud.gd:749-751",
+  "t": "src/ui/hud.gd:1504-1508",
+  "feat": "C-low",
+  "born": "872fcaf",
+  "born_r": [
+   262,
+   268
+  ],
+  "born_txt": [
+   "func _quest_lines() -> Array:",
+   "return out"
+  ],
+  "a_txt": [
+   "for s in battle.settled:  # 지난 라운드의 미션 판정(I120, I122)",
+   "_result_label.text += \"\\n%s «%s» %s\" % [\"미션\", q.text, \"달성 +%d골드\" % q.reward if s[1] else \"실패\"]"
+  ],
+  "t_txt": [
+   "func _quest_lines() -> Array:",
+   "return [\"%s: %s (+%d골드)\" % [\"미션\", q.text, q.reward] + (\"\" if battle.quest_met(battle.mission) else \" — 실패\")]"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "c0034eb"
+   ],
+   [
+    "approx",
+    "3c5fc84"
+   ]
+  ]
+ },
+ {
+  "id": "I132",
+  "a": "src/ui/hud.gd:777-780",
+  "t": "src/ui/hud.gd:839-842",
+  "feat": "C-low",
+  "born": "f9601d5",
+  "born_r": [
+   219,
+   221
+  ],
+  "born_txt": [
+   "if _village.visible:  # 그 레벨에 열리는 시설 이름을 붙인다(I132)",
+   "_village.text = \"마을 레벨 %d로 올리기 %d골드\" % [battle.village_level + 1, battle.VILLAGE_UP[battle.village_level - 1]] + (\"\" if opens.is_empty() else \" — \" + \", \".join(opens))"
+  ],
+  "a_txt": [
+   "window.reset_size()",
+   "_why.clear()"
+  ],
+  "t_txt": [
+   "if controls.village and prep and battle.village_level <= battle.VILLAGE_UP.size():  # 거점 패널 마을 레벨 버튼(S365)의 툴팁·정보 칸에 그 레벨에 열리는 시설 이름(I132)과 강화 단계(S254 2026-11-14 변경)",
+   "_opens = \"Lv%d에 %s\" % [battle.village_level + 1, \", \".join(opens)]"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "d2bd978"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "S80",
+  "a": "src/ui/hud.gd:781-793",
+  "t": "src/ui/hud.gd:843-852",
+  "feat": "C-low",
+  "born": "adb5346",
+  "born_r": [
+   136,
+   142
+  ],
+  "born_txt": [
+   "var fix := _to_repair()",
+   "_restore.text = \"복구 %d골드\" % battle.repair_cost(k)"
+  ],
+  "a_txt": [
+   "_sell.visible = not controls.selling.is_empty()",
+   "var d: Dictionary = battle.MERC_KINDS[kind]"
+  ],
+  "t_txt": [
+   "var fix := _to_repair()",
+   "_why[_restore] = \"칸 막힘\" if blocked else gap"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "d2bd978"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "S116",
+  "a": "src/ui/hud.gd:781-793",
+  "t": "src/ui/hud.gd:843-852",
+  "feat": "C-low",
+  "born": "adb5346",
+  "born_r": [
+   136,
+   142
+  ],
+  "born_txt": [
+   "var fix := _to_repair()",
+   "_restore.text = \"복구 %d골드\" % battle.repair_cost(k)"
+  ],
+  "a_txt": [
+   "_sell.visible = not controls.selling.is_empty()",
+   "var d: Dictionary = battle.MERC_KINDS[kind]"
+  ],
+  "t_txt": [
+   "var fix := _to_repair()",
+   "_why[_restore] = \"칸 막힘\" if blocked else gap"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "d2bd978"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "I90",
+  "a": "src/ui/hud.gd:781-793",
+  "t": "src/ui/hud.gd:843-852",
+  "feat": "C-low",
+  "born": "adb5346",
+  "born_r": [
+   136,
+   142
+  ],
+  "born_txt": [
+   "var fix := _to_repair()",
+   "_restore.text = \"복구 %d골드\" % battle.repair_cost(k)"
+  ],
+  "a_txt": [
+   "_sell.visible = not controls.selling.is_empty()",
+   "var d: Dictionary = battle.MERC_KINDS[kind]"
+  ],
+  "t_txt": [
+   "var fix := _to_repair()",
+   "_why[_restore] = \"칸 막힘\" if blocked else gap"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "d2bd978"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "I89",
+  "a": "src/ui/hud.gd:785-793",
+  "t": "src/ui/hud.gd:847-852",
+  "feat": "C-low",
+  "born": "adb5346",
+  "born_r": [
+   140,
+   142
+  ],
+  "born_txt": [
+   "_restore.visible = k != null and battle.rubble.get(k.cell) == k and k.worker == null and battle.state in [\"prep\", \"battle\"]",
+   "_restore.text = \"복구 %d골드\" % battle.repair_cost(k)"
+  ],
+  "a_txt": [
+   "controls.facility = null",
+   "var d: Dictionary = battle.MERC_KINDS[kind]"
+  ],
+  "t_txt": [
+   "_restore.visible = k != null and battle.rubble.get(k.cell) == k and k.worker == null and battle.state in [\"prep\", \"battle\"]",
+   "_why[_restore] = \"칸 막힘\" if blocked else gap"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "d2bd978"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "I124",
+  "a": "src/ui/hud.gd:787-793",
+  "t": "src/ui/hud.gd:848-852",
+  "feat": "C-low",
+  "born": "2f21f28",
+  "born_r": [
+   194,
+   197
+  ],
+  "born_txt": [
+   "if _restore.visible:  # 잔해 칸에 누가 있으면 복구하지 못한다(I124)",
+   "_restore.disabled = blocked"
+  ],
+  "a_txt": [
+   "for kind in _buy:",
+   "var d: Dictionary = battle.MERC_KINDS[kind]"
+  ],
+  "t_txt": [
+   "if _restore.visible:  # 잔해 칸에 누가 있으면 복구하지 못한다(I124)",
+   "_why[_restore] = \"칸 막힘\" if blocked else gap"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "d2bd978"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "S217",
+  "a": "src/ui/hud.gd:788",
+  "t": "src/ui/hud.gd:849",
+  "feat": "LIKELY-x",
+  "born": "1cb9de9",
+  "born_r": [
+   527,
+   527
+  ],
+  "born_txt": [
+   "var blocked: bool = battle.occupied_area(k)",
+   "var blocked: bool = battle.occupied_area(k)"
+  ],
+  "a_txt": [
+   "_buy[kind].visible = battle.live() and controls.facility != null and controls.facility != battle.base and kind in controls.facility.produces",
+   "_buy[kind].visible = battle.live() and controls.facility != null and controls.facility != battle.base and kind in controls.facility.produces"
+  ],
+  "t_txt": [
+   "var blocked: bool = battle.occupied_area(k)",
+   "var blocked: bool = battle.occupied_area(k)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "c0034eb"
+   ],
+   [
+    "approx",
+    "f90d993"
+   ]
+  ]
+ },
+ {
+  "id": "I128",
+  "a": "src/ui/hud.gd:789-793",
+  "t": "src/ui/hud.gd:850-852",
+  "feat": "C-low",
+  "born": "f9601d5",
+  "born_r": [
+   215,
+   215
+  ],
+  "born_txt": [
+   "_upgrade.text = (\"업그레이드 계속\" if k.lift >= 0.0 else \"업그레이드 %d골드\" % battle.upgrade_cost(k)) + gap",
+   "_upgrade.text = (\"업그레이드 계속\" if k.lift >= 0.0 else \"업그레이드 %d골드\" % battle.upgrade_cost(k)) + gap"
+  ],
+  "a_txt": [
+   "_buy[kind].text = \"%s %d\" % [NAMES[kind], battle.MERC_KINDS[kind].cost]",
+   "var d: Dictionary = battle.MERC_KINDS[kind]"
+  ],
+  "t_txt": [
+   "_restore.text = \"복구 %d\" % battle.repair_cost(k)",
+   "_why[_restore] = \"칸 막힘\" if blocked else gap"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "d2bd978"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "S255",
+  "a": "src/ui/hud.gd:792-801",
+  "t": "src/ui/hud.gd:792-801",
+  "feat": "OK-low",
+  "born": "1e042bf",
+  "born_r": [
+   566,
+   573
+  ],
+  "born_txt": [
+   "for kind in _rank:  # 강화는 준비 단계에만(S255)",
+   "_steps[_rank[kind]] = \"\" if top else _rank_line(kind, d.ranks[n])"
+  ],
+  "a_txt": [
+   "for kind in _rank:  # 강화는 준비 단계에만(S255), 마을 레벨이 연 단계까지(S254 2026-11-14 변경: 다음 단계는 마을 레벨 n + 2가 연다)",
+   "_steps[_rank[kind]] = \"\" if top else _rank_line(kind, d.ranks[n])"
+  ],
+  "t_txt": [
+   "for kind in _rank:  # 강화는 준비 단계에만(S255), 마을 레벨이 연 단계까지(S254 2026-11-14 변경: 다음 단계는 마을 레벨 n + 2가 연다)",
+   "_steps[_rank[kind]] = \"\" if top else _rank_line(kind, d.ranks[n])"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "c0034eb"
+   ],
+   [
+    "healed",
+    "4e74c56"
+   ]
+  ]
+ },
+ {
+  "id": "S137",
+  "a": "src/ui/hud.gd:794-806",
+  "t": "src/ui/hud.gd:853-863",
+  "feat": "C-sim-x",
+  "born": "7407293",
+  "born_r": [
+   234,
+   241
+  ],
+  "born_txt": [
+   "# 고른 교회의 치료 버튼(S137): 살아 있고 깎인 출전 영웅마다. 전투 단계에는 끄고 이유를 붙인다(I140)",
+   "_heal[i].disabled = not prep"
+  ],
+  "a_txt": [
+   "var n: int = battle.merc_rank.get(kind, 0)",
+   "_demolish.visible = controls.picked.any(battle.can_demolish)"
+  ],
+  "t_txt": [
+   "# 고른 교회의 치료 버튼(S137): 출전 영웅마다 늘. 전투 단계·체력 가득·쓰러짐이면 끄고 이유는 툴팁·정보 칸에(I140)",
+   "_heal[i].disabled = _why[_heal[i]] != \"\""
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "d2bd978"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "I140",
+  "a": "src/ui/hud.gd:797-806",
+  "t": "src/ui/hud.gd:856-863",
+  "feat": "C-low",
+  "born": "7407293",
+  "born_r": [
+   238,
+   241
+  ],
+  "born_txt": [
+   "_heal[i].visible = church and h != null and h.alive and h.hp < h.max_hp",
+   "_heal[i].disabled = not prep"
+  ],
+  "a_txt": [
+   "_rank[kind].visible = prep and controls.facility != null and controls.facility != battle.base and kind in controls.facility.produces and not d.ranks.is_empty()",
+   "_demolish.visible = controls.picked.any(battle.can_demolish)"
+  ],
+  "t_txt": [
+   "var h = battle.heroes[i] if i < battle.heroes.size() else null",
+   "_heal[i].disabled = _why[_heal[i]] != \"\""
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "d2bd978"
+   ],
+   [
+    "adjusted",
+    "46b5e75"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ],
+   [
+    "approx",
+    "f90d993"
+   ]
+  ]
+ },
+ {
+  "id": "S356",
+  "a": "src/ui/hud.gd:797-798",
+  "t": "src/ui/hud.gd:797-798",
+  "feat": "OK-low",
+  "born": "dac62b2",
+  "born_r": [
+   815,
+   818
+  ],
+  "born_txt": [
+   "if kind in battle.HQ_MERCS:  # 새 여덟의 강화 줄(S356 임시 자리): 그림 + «+비용»",
+   "_rank[kind].text = \"%s 강화 최대\" % NAMES[kind] if top else \"%s 강화 %d\" % [NAMES[kind], d.rank_cost[n]]"
+  ],
+  "a_txt": [
+   "_rank[kind].visible = prep and controls.facility != null and controls.facility != battle.base and kind in controls.facility.produces and not d.ranks.is_empty()",
+   "_rank[kind].text = \"%s 강화 최대\" % NAMES[kind] if top else \"%s 강화 %d (마을 Lv%d)\" % [NAMES[kind], d.rank_cost[n], n + 2] if shut else \"%s 강화 %d\" % [NAMES[kind], d.rank_cost[n]]"
+  ],
+  "t_txt": [
+   "_rank[kind].visible = prep and controls.facility != null and controls.facility != battle.base and kind in controls.facility.produces and not d.ranks.is_empty()",
+   "_rank[kind].text = \"%s 강화 최대\" % NAMES[kind] if top else \"%s 강화 %d (마을 Lv%d)\" % [NAMES[kind], d.rank_cost[n], n + 2] if shut else \"%s 강화 %d\" % [NAMES[kind], d.rank_cost[n]]"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "f90d993"
+   ],
+   [
+    "adjusted",
+    "0e7952a"
+   ]
+  ]
+ },
+ {
+  "id": "S83",
+  "a": "src/ui/hud.gd:805-868",
+  "t": "src/ui/hud.gd:805-868",
+  "feat": "OK-low",
+  "born": "161bbc9",
+  "born_r": [
+   92,
+   98
+  ],
+  "born_txt": [
+   "var todo: Array = battle.unfinished(controls.picked)",
+   "_popup.position = get_viewport().get_canvas_transform() * controls.sell_at + Vector2(6, 6)"
+  ],
+  "a_txt": [
+   "var todo: Array = battle.unfinished(controls.picked)",
+   "_place_popup()"
+  ],
+  "t_txt": [
+   "var todo: Array = battle.unfinished(controls.picked)",
+   "_place_popup()"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "c0034eb"
+   ],
+   [
+    "healed",
+    "4e74c56"
+   ]
+  ]
+ },
+ {
+  "id": "S85",
+  "a": "src/ui/hud.gd:810-831",
+  "t": "src/ui/hud.gd:810-831",
+  "feat": "OK-low",
+  "born": "c470722",
+  "born_r": [
+   102,
+   107
+  ],
+  "born_txt": [
+   "if controls.placing != \"\" or (controls.fort and not controls.fort.alive):  # 놓기 모드거나 부서진 성곽 칸",
+   "_gate.text = \"닫기\" if k.open else \"열기\""
+  ],
+  "a_txt": [
+   "if controls.placing != \"\" or (controls.fort and not controls.fort.alive and battle.rubble.get(controls.fort.cell) != controls.fort):  # 놓기 모드거나 판에서 사라진 성곽 칸. 잔해는 남긴다(I89)",
+   "_why[_gate] = \"칸 막힘\" if stuck else \"%d초 뒤에 여닫는다\" % ceili(k.lock) if k.lock > 0.0 else \"\""
+  ],
+  "t_txt": [
+   "if controls.placing != \"\" or (controls.fort and not controls.fort.alive and battle.rubble.get(controls.fort.cell) != controls.fort):  # 놓기 모드거나 판에서 사라진 성곽 칸. 잔해는 남긴다(I89)",
+   "_why[_gate] = \"칸 막힘\" if stuck else \"%d초 뒤에 여닫는다\" % ceili(k.lock) if k.lock > 0.0 else \"\""
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "d2bd978"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ],
+   [
+    "healed",
+    "4e74c56"
+   ]
+  ]
+ },
+ {
+  "id": "I128",
+  "a": "src/ui/hud.gd:814-825",
+  "t": "src/ui/hud.gd:814-825",
+  "feat": "OK-low",
+  "born": "f9601d5",
+  "born_r": [
+   200,
+   206
+  ],
+  "born_txt": [
+   "# 공병 지시 버튼(철거·옮기기·이어 짓기·업그레이드·수리·복구)은 고른 것의 칸에 맡을 공병이 없으면 끄고 이유를 붙인다(I128)",
+   "b.disabled = gap != \"\""
+  ],
+  "a_txt": [
+   "# 공병 지시 버튼(철거·옮기기·이어 짓기·업그레이드·수리·복구)은 고른 것의 칸에 맡을 공병이 없으면 끄고, 이유는 툴팁·정보 칸에(I128)",
+   "_why[b] = gap"
+  ],
+  "t_txt": [
+   "# 공병 지시 버튼(철거·옮기기·이어 짓기·업그레이드·수리·복구)은 고른 것의 칸에 맡을 공병이 없으면 끄고, 이유는 툴팁·정보 칸에(I128)",
+   "_why[b] = gap"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "d2bd978"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ],
+   [
+    "healed",
+    "4e74c56"
+   ]
+  ]
+ },
+ {
+  "id": "I123",
+  "a": "src/ui/hud.gd:826-831",
+  "t": "src/ui/hud.gd:826-831",
+  "feat": "OK-low",
+  "born": "dfe3d51",
+  "born_r": [
+   175,
+   178
+  ],
+  "born_txt": [
+   "_gate.visible = live and k.kind == \"gate\" and battle.state in [\"prep\", \"battle\"]",
+   "_gate.disabled = k.lock > 0.0"
+  ],
+  "a_txt": [
+   "_gate.visible = live and k.kind == \"gate\" and not k.sealed and battle.state in [\"prep\", \"battle\"]  # 닫힌 문루는 여닫기 버튼이 없다(S39)",
+   "_why[_gate] = \"칸 막힘\" if stuck else \"%d초 뒤에 여닫는다\" % ceili(k.lock) if k.lock > 0.0 else \"\""
+  ],
+  "t_txt": [
+   "_gate.visible = live and k.kind == \"gate\" and not k.sealed and battle.state in [\"prep\", \"battle\"]  # 닫힌 문루는 여닫기 버튼이 없다(S39)",
+   "_why[_gate] = \"칸 막힘\" if stuck else \"%d초 뒤에 여닫는다\" % ceili(k.lock) if k.lock > 0.0 else \"\""
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "d2bd978"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ],
+   [
+    "healed",
+    "4e74c56"
+   ]
+  ]
+ },
+ {
+  "id": "I124",
+  "a": "src/ui/hud.gd:827-831",
+  "t": "src/ui/hud.gd:827-831",
+  "feat": "OK-low",
+  "born": "2f21f28",
+  "born_r": [
+   176,
+   179
+  ],
+  "born_txt": [
+   "if _gate.visible:  # 쿨타임 중이면 누르지 못하고 남은 초를 올림해 붙인다(I123). 성문 칸에 누가 있어 못 닫으면 «(칸 막힘)»(I124)",
+   "_gate.disabled = k.lock > 0.0 or stuck"
+  ],
+  "a_txt": [
+   "if _gate.visible:  # 쿨타임 중이면 누르지 못하고 남은 초를 올림해 붙인다(I123). 성문 칸에 누가 있어 못 닫으면 어둡게(I124)",
+   "_why[_gate] = \"칸 막힘\" if stuck else \"%d초 뒤에 여닫는다\" % ceili(k.lock) if k.lock > 0.0 else \"\""
+  ],
+  "t_txt": [
+   "if _gate.visible:  # 쿨타임 중이면 누르지 못하고 남은 초를 올림해 붙인다(I123). 성문 칸에 누가 있어 못 닫으면 어둡게(I124)",
+   "_why[_gate] = \"칸 막힘\" if stuck else \"%d초 뒤에 여닫는다\" % ceili(k.lock) if k.lock > 0.0 else \"\""
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "d2bd978"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ],
+   [
+    "healed",
+    "4e74c56"
+   ]
+  ]
+ },
+ {
+  "id": "S255",
+  "a": "src/ui/hud.gd:832-835",
+  "t": "src/ui/hud.gd:897-909",
+  "feat": "C-low",
+  "born": "1e042bf",
+  "born_r": [
+   662,
+   665
+  ],
+  "born_txt": [
+   "# 용병 강화 다음 단계 step의 효과 줄(S255): «체력 50 → 65»처럼 지금 값 → 다음 값",
+   "return \"\\n\".join(step.keys().map(func(k): return RANK_TEXT[k] % [_num(now[k]), _num(step[k])]))"
+  ],
+  "a_txt": [
+   "# 공병이 올리는 중이면 숨긴다. 그만둔 업그레이드는 «계속»으로 골드 없이 이어 올린다(I68)",
+   "_upgrade.text = \"업그레이드 계속\" if k.lift >= 0.0 else \"업그레이드 %d\" % battle.upgrade_cost(k)"
+  ],
+  "t_txt": [
+   "# 용병 강화 다음 단계 step의 효과 줄(S255): «체력 50 → 65»처럼 지금 값 → 다음 값. 명중률은 백분율이다(«명중률 50 → 60%»)",
+   "return \"\\n\".join(lines)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "S100",
+  "a": "src/ui/hud.gd:836-842",
+  "t": "src/ui/hud.gd:836-842",
+  "feat": "OK-low",
+  "born": "dc3fa79",
+  "born_r": [
+   124,
+   128
+  ],
+  "born_txt": [
+   "if controls.placing != \"\":",
+   "_village.text = \"마을 레벨 %d로 올리기 %d골드\" % [battle.village_level + 1, battle.VILLAGE_UP[battle.village_level - 1]]"
+  ],
+  "a_txt": [
+   "if controls.placing != \"\":",
+   "_opens = \"Lv%d에 %s\" % [battle.village_level + 1, \", \".join(opens)]"
+  ],
+  "t_txt": [
+   "if controls.placing != \"\":",
+   "_opens = \"Lv%d에 %s\" % [battle.village_level + 1, \", \".join(opens)]"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "c0034eb"
+   ],
+   [
+    "healed",
+    "4e74c56"
+   ]
+  ]
+ },
+ {
+  "id": "S70",
+  "a": "src/ui/hud.gd:847-866",
+  "t": "src/ui/hud.gd:922-941",
+  "feat": "C-low",
+  "born": "161bbc9",
+  "born_r": [
+   96,
+   98
+  ],
+  "born_txt": [
+   "_popup.reset_size()",
+   "_popup.position = get_viewport().get_canvas_transform() * controls.sell_at + Vector2(6, 6)"
+  ],
+  "a_txt": [
+   "_restore.visible = k != null and battle.rubble.get(k.cell) == k and k.worker == null and battle.state in [\"prep\", \"battle\"]",
+   "for r in popup.get_children():"
+  ],
+  "t_txt": [
+   "func _place_popup() -> void:",
+   "popup.position = at"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "d2bd978"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "S81",
+  "a": "src/ui/hud.gd:847-866",
+  "t": "src/ui/hud.gd:922-941",
+  "feat": "C-low",
+  "born": "161bbc9",
+  "born_r": [
+   96,
+   98
+  ],
+  "born_txt": [
+   "_popup.reset_size()",
+   "_popup.position = get_viewport().get_canvas_transform() * controls.sell_at + Vector2(6, 6)"
+  ],
+  "a_txt": [
+   "_restore.visible = k != null and battle.rubble.get(k.cell) == k and k.worker == null and battle.state in [\"prep\", \"battle\"]",
+   "for r in popup.get_children():"
+  ],
+  "t_txt": [
+   "func _place_popup() -> void:",
+   "popup.position = at"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "d2bd978"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "I58",
+  "a": "src/ui/hud.gd:847-866",
+  "t": "src/ui/hud.gd:922-941",
+  "feat": "C-low",
+  "born": "161bbc9",
+  "born_r": [
+   96,
+   98
+  ],
+  "born_txt": [
+   "_popup.reset_size()",
+   "_popup.position = get_viewport().get_canvas_transform() * controls.sell_at + Vector2(6, 6)"
+  ],
+  "a_txt": [
+   "_restore.visible = k != null and battle.rubble.get(k.cell) == k and k.worker == null and battle.state in [\"prep\", \"battle\"]",
+   "for r in popup.get_children():"
+  ],
+  "t_txt": [
+   "func _place_popup() -> void:",
+   "popup.position = at"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "d2bd978"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "I137",
+  "a": "src/ui/hud.gd:847-866",
+  "t": "src/ui/hud.gd:922-941",
+  "feat": "C-low",
+  "born": "f9601d5",
+  "born_r": [
+   232,
+   234
+  ],
+  "born_txt": [
+   "# 맵 px → 화면 좌표. 전투 화면(BattleView)이 원점에 있어 카메라 변환만 곱한다. 화면 밖으로 나가면 안으로 당긴다(I137)",
+   "_popup.position = at.clamp(Vector2.ZERO, get_viewport().get_visible_rect().size - _popup.size)"
+  ],
+  "a_txt": [
+   "_restore.visible = k != null and battle.rubble.get(k.cell) == k and k.worker == null and battle.state in [\"prep\", \"battle\"]",
+   "for r in popup.get_children():"
+  ],
+  "t_txt": [
+   "func _place_popup() -> void:",
+   "popup.position = at"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "d2bd978"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "S255",
+  "a": "src/ui/hud.gd:897-901",
+  "t": "src/ui/hud.gd:897-901",
+  "feat": "OK-low",
+  "born": "09ca425",
+  "born_r": [
+   721,
+   725
+  ],
+  "born_txt": [
+   "# 용병 강화 다음 단계 step의 효과 줄(S255): «체력 50 → 65»처럼 지금 값 → 다음 값. 명중률은 백분율이다(«명중률 50 → 60%»)",
+   "return \"\\n\".join(step.keys().map(func(k): return RANK_TEXT[k] % [shown.call(k, now[k]), shown.call(k, step[k])]))"
+  ],
+  "a_txt": [
+   "# 용병 강화 다음 단계 step의 효과 줄(S255): «체력 50 → 65»처럼 지금 값 → 다음 값. 명중률은 백분율이다(«명중률 50 → 60%»)",
+   "var lines := []"
+  ],
+  "t_txt": [
+   "# 용병 강화 다음 단계 step의 효과 줄(S255): «체력 50 → 65»처럼 지금 값 → 다음 값. 명중률은 백분율이다(«명중률 50 → 60%»)",
+   "var lines := []"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "dac62b2"
+   ]
+  ]
+ },
+ {
+  "id": "S19",
+  "a": "src/ui/hud.gd:971",
+  "t": "src/ui/hud.gd:1029",
+  "feat": "C-low",
+  "born": "2540ee1",
+  "born_r": [
+   54,
+   54
+  ],
+  "born_txt": [
+   "_info.text = \"골드 %d · 웨이브 %d/%d · %s\" % [battle.gold, mini(battle.wave_index + 1, n), n, STATES[battle.state]]",
+   "_info.text = \"골드 %d · 웨이브 %d/%d · %s\" % [battle.gold, mini(battle.wave_index + 1, n), n, STATES[battle.state]]"
+  ],
+  "a_txt": [
+   "# 도트·대역 그림(S30). 컨테이너 안이면 size가 최소 크기다",
+   "# 도트·대역 그림(S30). 컨테이너 안이면 size가 최소 크기다"
+  ],
+  "t_txt": [
+   "_gold.text = str(battle.gold)",
+   "_gold.text = str(battle.gold)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2be4f3c"
+   ],
+   [
+    "adjusted",
+    "1053119"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "I75",
+  "a": "src/ui/hud.gd:972",
+  "t": "src/ui/hud.gd:1030",
+  "feat": "C-low",
+  "born": "f18131c",
+  "born_r": [
+   81,
+   81
+  ],
+  "born_txt": [
+   "_info.text = \"골드 %d (세금 +%d) · 웨이브 %d/%d · %s · 마을 Lv%d\" % [battle.gold, battle.tax(), mini(battle.wave_index + 1, n), n, STATES[battle.state], battle.village_level]",
+   "_info.text = \"골드 %d (세금 +%d) · 웨이브 %d/%d · %s · 마을 Lv%d\" % [battle.gold, battle.tax(), mini(battle.wave_index + 1, n), n, STATES[battle.state], battle.village_level]"
+  ],
+  "a_txt": [
+   "func _pic(parent: Control, tex: Texture2D, size: Vector2) -> TextureRect:",
+   "func _pic(parent: Control, tex: Texture2D, size: Vector2) -> TextureRect:"
+  ],
+  "t_txt": [
+   "_tax.text = \"+%d\" % battle.tax()",
+   "_tax.text = \"+%d\" % battle.tax()"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2be4f3c"
+   ],
+   [
+    "adjusted",
+    "1053119"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "I94",
+  "a": "src/ui/hud.gd:973",
+  "t": "src/ui/hud.gd:1031",
+  "feat": "C-low",
+  "born": "2be4f3c",
+  "born_r": [
+   87,
+   88
+  ],
+  "born_txt": [
+   "var round_no: int = battle.round_index + 1",
+   "_info.text = \"골드 %d (세금 +%d) · 라운드 %d/%d · 웨이브 %d/%d · %s · 마을 Lv%d\" % [battle.gold, battle.tax(), round_no, battle.rounds.size(), mini(battle.wave_index + 1, n), n, STATES[battle.state], battle.village_level]"
+  ],
+  "a_txt": [
+   "var r := TextureRect.new()",
+   "var r := TextureRect.new()"
+  ],
+  "t_txt": [
+   "_round.text = \"%d/%d\" % [round_no, battle.rounds.size()]",
+   "_round.text = \"%d/%d\" % [round_no, battle.rounds.size()]"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "1053119"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "I13",
+  "a": "src/ui/hud.gd:1033-1064",
+  "t": "src/ui/hud.gd:1033-1064",
+  "feat": "OK-low",
+  "born": "2540ee1",
+  "born_r": [
+   39,
+   39
+  ],
+  "born_txt": [
+   "_start = _button(row, \"전투 시작 (Enter)\", _start_battle)",
+   "_start = _button(row, \"전투 시작 (Enter)\", _start_battle)"
+  ],
+  "a_txt": [
+   "# 진행 칸(S185): 준비 단계 금색 «▶ 전투 시작»과 다음 웨이브 버튼, 원정은 «철수»와 불꽃·횃불 글(S317), 그 밖에는 칸 전체가 웨이브 버튼 하나다(I13)",
+   "tip.add(gauge, _wave_tip)"
+  ],
+  "t_txt": [
+   "# 진행 칸(S185): 준비 단계 금색 «▶ 전투 시작»과 다음 웨이브 버튼, 원정은 «철수»와 불꽃·횃불 글(S317), 그 밖에는 칸 전체가 웨이브 버튼 하나다(I13)",
+   "tip.add(gauge, _wave_tip)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "1053119"
+   ],
+   [
+    "adjusted",
+    "a568782"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ],
+   [
+    "healed",
+    "4e74c56"
+   ]
+  ]
+ },
+ {
+  "id": "I54",
+  "a": "src/ui/hud.gd:1281-1288",
+  "t": "src/ui/hud.gd:1356",
+  "feat": "C-low",
+  "born": "872fcaf",
+  "born_r": [
+   252,
+   259
+  ],
+  "born_txt": [
+   "_quests.visible = battle.state == \"cleared\" and not battle.commission_offers.is_empty()  # 의뢰는 라운드 사이에만(I121)",
+   "_commissions[i].text = \"%s · +%d골드 · %s\" % [q.text, q.reward, \"수락함 (다시 누르면 무름)\" if on else \"수락\"]"
+  ],
+  "a_txt": [
+   "",
+   ""
+  ],
+  "t_txt": [
+   "",
+   ""
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "S136",
+  "a": "src/ui/hud.gd:1498-1499",
+  "t": "src/ui/hud.gd:1577-1578",
+  "feat": "C-low",
+  "born": "7407293",
+  "born_r": [
+   166,
+   166
+  ],
+  "born_txt": [
+   "_heroes.text = \"   \".join(_hero_lines()) + (\"\" if battle.state == \"battle\" else \" — Q·W는 전투 단계에만\")  # S136",
+   "_heroes.text = \"   \".join(_hero_lines()) + (\"\" if battle.state == \"battle\" else \" — Q·W는 전투 단계에만\")  # S136"
+  ],
+  "a_txt": [
+   "func cover() -> void:",
+   "grid.visible = false"
+  ],
+  "t_txt": [
+   "if not battle.fighting():  # 원정(S316)에도 쓴다",
+   "why = \"스킬은 전투 단계에만\""
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2c211a2"
+   ],
+   [
+    "adjusted",
+    "1053119"
+   ],
+   [
+    "adjusted",
+    "bca556c"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "I122",
+  "a": "src/ui/hud.gd:1503-1508",
+  "t": "src/ui/hud.gd:1356",
+  "feat": "C-low",
+  "born": "872fcaf",
+  "born_r": [
+   252,
+   259
+  ],
+  "born_txt": [
+   "_quests.visible = battle.state == \"cleared\" and not battle.commission_offers.is_empty()  # 의뢰는 라운드 사이에만(I121)",
+   "_commissions[i].text = \"%s · +%d골드 · %s\" % [q.text, q.reward, \"수락함 (다시 누르면 무름)\" if on else \"수락\"]"
+  ],
+  "a_txt": [
+   "# 미션 줄(I122): «미션: 조건 (+N골드)». 조건이 깨졌으면 «— 실패»를 붙인다(I131)",
+   "return [\"%s: %s (+%d골드)\" % [\"미션\", q.text, q.reward] + (\"\" if battle.quest_met(battle.mission) else \" — 실패\")]"
+  ],
+  "t_txt": [
+   "",
+   ""
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "c0034eb"
+   ],
+   [
+    "approx",
+    "3c5fc84"
+   ]
+  ]
+ },
+ {
+  "id": "I131",
+  "a": "src/ui/hud.gd:1503-1508",
+  "t": "src/ui/hud.gd:1504-1508",
+  "feat": "C-low",
+  "born": "f9601d5",
+  "born_r": [
+   306,
+   312
+  ],
+  "born_txt": [
+   "func _quest_lines() -> Array:",
+   "return out"
+  ],
+  "a_txt": [
+   "# 미션 줄(I122): «미션: 조건 (+N골드)». 조건이 깨졌으면 «— 실패»를 붙인다(I131)",
+   "return [\"%s: %s (+%d골드)\" % [\"미션\", q.text, q.reward] + (\"\" if battle.quest_met(battle.mission) else \" — 실패\")]"
+  ],
+  "t_txt": [
+   "func _quest_lines() -> Array:",
+   "return [\"%s: %s (+%d골드)\" % [\"미션\", q.text, q.reward] + (\"\" if battle.quest_met(battle.mission) else \" — 실패\")]"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "c0034eb"
+   ],
+   [
+    "approx",
+    "3c5fc84"
+   ]
+  ]
+ },
+ {
+  "id": "S136",
+  "a": "src/ui/hud.gd:1504-1506",
+  "t": "src/ui/hud.gd:1583-1585",
+  "feat": "C-low",
+  "born": "1053119",
+  "born_r": [
+   173,
+   176
+  ],
+  "born_txt": [
+   "_heroes.position = Vector2(340, 30)  # 영웅 칸 아래, 안내 줄과 토스트 사이",
+   "root.add_child(_heroes)"
+  ],
+  "a_txt": [
+   "func _quest_lines() -> Array:",
+   "return []"
+  ],
+  "t_txt": [
+   "if why != \"\" and i >= 0:",
+   "toasts.push(why)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "reauth",
+    "1053119",
+    [
+     "src/ui/hud.gd",
+     544,
+     544
+    ],
+    [
+     "src/ui/hud.gd",
+     365,
+     365
+    ]
+   ],
+   [
+    "adjusted",
+    "bca556c"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ],
+   [
+    "approx",
+    "3c5fc84"
+   ]
+  ]
+ },
+ {
+  "id": "I114",
+  "a": "src/ui/hud.gd:1513",
+  "t": "src/ui/hud.gd:1595",
+  "feat": "C-low",
+  "born": "2c211a2",
+  "born_r": [
+   373,
+   376
+  ],
+  "born_txt": [
+   "var sk: Dictionary = h.get(slot)",
+   "return \"Lv%d\" % need"
+  ],
+  "a_txt": [
+   "var on: bool = battle.state in [\"prep\", \"battle\", \"raid\"]  # 원정(S316)에도 보인다",
+   "var on: bool = battle.state in [\"prep\", \"battle\", \"raid\"]  # 원정(S316)에도 보인다"
+  ],
+  "t_txt": [
+   "var sk: Dictionary = h.get(slot)",
+   "var sk: Dictionary = h.get(slot)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "c7e60f0"
+   ],
+   [
+    "adjusted",
+    "bca556c"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "I151",
+  "a": "src/ui/hud.gd:1539-1541",
+  "t": "src/ui/hud.gd:1539-1541",
+  "feat": "OK-low",
+  "born": "2c211a2",
+  "born_r": [
+   101,
+   101
+  ],
+  "born_txt": [
+   "_fix_width(sb, \"Q 마나 200 자동\")",
+   "_fix_width(sb, \"Q 마나 200 자동\")"
+  ],
+  "a_txt": [
+   "for slot in battle.SLOTS:",
+   "slots[i][slot].show_state(_slot_state(h, slot))"
+  ],
+  "t_txt": [
+   "for slot in battle.SLOTS:",
+   "slots[i][slot].show_state(_slot_state(h, slot))"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "1053119"
+   ],
+   [
+    "adjusted",
+    "bca556c"
+   ],
+   [
+    "partial",
+    "c0034eb"
+   ],
+   [
+    "healed",
+    "4e74c56"
+   ]
+  ]
+ }
+]

@@ -1,6 +1,6 @@
 extends Node
 # 게임 장면의 효과음 연결(S269, S270). main이 프레임마다 화면 사건 목록(I171)을 hear로 넘기면 사건을 효과음 키로 바꿔 소리 노드(audio.gd)로 내고,
-# 판 변화(놓기·공사 끝·영입·레벨)는 지난 프레임과 견줘 낸다. 웨이브 시작·보스 출현·놓기 거부는 신호로 받는다
+# 판 변화(놓기·공사 끝·영웅 고르기·레벨)는 지난 프레임과 견줘 낸다. 웨이브 시작·보스 출현·놓기 거부는 신호로 받는다
 
 const Audio := preload("res://src/audio.gd")
 const Battle := preload("res://src/sim/battle.gd")
@@ -59,6 +59,8 @@ static func key_for(e: Dictionary) -> String:
 			return "click"
 		"wreck", "fall", "alone":  # 원정 보스의 형태 전환·홀로 남음(S369 ⑥)
 			return "boss_appear"
+		"dash":  # 영웅 대시(S315 2026-11-16 변경, I261 ⑧): 기존 키를 다시 쓴다(새 파일 없음). NEAR에 넣지 않아 화면 밖이어도 낸다
+			return "swing"
 	return ""
 
 # 한 프레임: 사건을 소리로 내고(seen은 보이는 맵 영역, 맵 px) 판 변화를 견준다

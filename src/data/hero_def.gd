@@ -3,7 +3,7 @@ extends Resource
 # 영웅 종류 하나의 수치(S31, I95). data/heroes/<종류>.tres, 파일 이름이 종류 이름이다(I66). 종류는 S157의 6명이다
 # 기본 능력치는 S121 표, 패시브·오라·Q·W·E·R은 S97 표의 임시값이다. 스킬 칸마다 id가 battle.gd의 _cast_<id>를 고른다
 
-@export var title := ""  # 이명(S157). 영입 창에 이름과 함께 보인다
+@export var title := ""  # 이명(S157). 영웅 고르기 창에 이름과 함께 보인다
 @export var grade := 1  # 등급(S94): 1성 Q·W·E · 2성 +패시브 · 3성 +R. 지금 6명은 모두 3성
 @export var hp := 0.0
 @export var radius := 0.3  # 몸 반지름(칸, I51)

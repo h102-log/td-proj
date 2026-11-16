@@ -29,7 +29,9 @@ extends "res://tests/eval/gd/save.gd"
 #   카메라 busy() — 가감속·부드러운 줌·미끄러짐이 아직 움직이는 중 · glide(delta) — 그것을 delta만큼 흘린다(S52·S53·I164)
 #   main.hud.alerts — 경보(Control, S189). recent: 최근 경보 칸(Vector2i, 새 것이 앞, 최대 5). 보이는 BaseButton 자식이 화면 밖 가장자리 표식이다
 #     토스트 칸(main.hud.toasts의 보이는 자식)은 자리가 있으면 gui_input에 왼쪽 버튼 누름을 넣어 누른다(I163)
-#   main.hud.window — 결과·영입 창(Control, S117·I136). 그 안의 보이는 BaseButton이 창 버튼(«리롤…»·«다음 라운드…»)이다 · main.hud.dim — 띠 아래 맵 덮개(ColorRect)
+#   main.hud.window — 결과·고르기 창(Control, S117·I136·S373). 그 안의 보이는 BaseButton이 창 버튼(«1라운드 시작…»·«다음 라운드…»)이다 · main.hud.dim — 띠 아래 맵 덮개(ColorRect)
+#     영웅 카드는 글에 이명 «…»이 든 BaseButton이다(I303 ③). 고른 카드는 button_pressed이고 카드 안 보이는 Label이 고른 번호다. 다 고르면 나머지 카드는 disabled다
+#     영웅 줄은 글이 «번호 · 이름(역할) · 등급 · 레벨»인 보이는 Label이나 BaseButton이다(빈 줄은 «빈 자리»). 라운드 사이 창의 전환 버튼은 «영웅»·«장비»다(S248)
 #   main.hud.hints — 처음 하는 사람 힌트 칸(Control, S191). 그 안의 보이는 Label이 힌트 글이고, «건너뛰기» 버튼이 있다
 #     hints.axis — 튜토리얼 축 이름(Label, S192). 글이 «시설»·«용병»·«영웅»이다 · hints.text — 힌트 글(Label) · hints.HINTS — [이름, 웨이브, 판 단계, 글] 표
 #   언어(S193, I167): settings.gd static var language(«ko»·«en») · apply_language()(번역기를 넣고 언어를 건다)
@@ -513,6 +515,18 @@ func ev328():
 func _labels(node: Node) -> Array:
 	return node.find_children("*", "Label", true, false).filter(func(l): return l.is_visible_in_tree()).map(func(l): return l.text)
 
+# node 아래 보이는 영웅 카드(I303 ③): 글에 이명 «…»이 든 BaseButton. 트리 차례 = 위에서부터
+func _cards(node: Node) -> Array:
+	return node.find_children("*", "BaseButton", true, false).filter(func(n): return n.is_visible_in_tree() and "«" in n.text)
+
+# node 아래 보이는 영웅 줄의 글(I303 ③④): «번호 · …»로 시작하는 Label이나 BaseButton
+func _hero_rows(node: Node) -> Array:
+	var out := []
+	for n in node.find_children("*", "Label", true, false) + node.find_children("*", "BaseButton", true, false):
+		if n.is_visible_in_tree() and n.text.length() > 4 and n.text[0].is_valid_int() and n.text.substr(1, 3) == " · ":
+			out.append(n.text)
+	return out
+
 # EV329 · S190: 상태 묶음의 숫자가 거점 체력이고, 피해에 0.2초 하얗게 번쩍인 뒤 50% 밑 노랑, 25% 밑 빨강이다
 func ev329():
 	var main = _prep()
@@ -720,7 +734,7 @@ func _wave_total(b, r: int, w: int) -> int:
 func _count(d: Dictionary) -> int:
 	return d.values().reduce(func(n, x): return n + x, 0)
 
-# EV336 · I13: 진행 칸은 영입 «영입»·«다음 적 N» → 준비 «전투 시작»(누르면 전투) → 전투 «남은 적 N» → 패배 «패배»다
+# EV336 · I13: 진행 칸은 고르기 창 «영웅 고르기»·«다음 적 N» → 준비 «전투 시작»(누르면 전투) → 전투 «남은 적 N» → 라운드 사이 «다음 라운드» → 패배 «패배»다
 func ev336():
 	var main = _game()
 	_frame(main)
@@ -732,7 +746,7 @@ func ev336():
 		return "main.hud.cells나 main.hud.start 버튼이 없다"
 	var n := _wave_total(b, 0, 0)
 	var text := func(): return " ".join(_labels(cells.progress))
-	var out := check(b.state == "hiring" and "영입" in text.call() and "다음 적 %d" % n in text.call(), "영입 창(%s) 진행 칸 글이 «%s»다(기대 «영입»·«다음 적 %d»)" % [b.state, text.call(), n])
+	var out := check(b.state == "hiring" and "영웅 고르기" in text.call() and "다음 적 %d" % n in text.call(), "고르기 창(%s) 진행 칸 글이 «%s»다(기대 «영웅 고르기»·«다음 적 %d»)" % [b.state, text.call(), n])
 	if out == "":
 		b.gold = BIG
 		for i in 2:
@@ -748,6 +762,10 @@ func ev336():
 		main.hud._process(0.0)
 		if start.is_visible_in_tree() or not "남은 적 %d" % n in text.call() or "전투 시작" in text.call():
 			out = "전투 단계 전투 시작 버튼 보임 %s · 진행 칸 글 «%s»(기대 «남은 적 %d», «전투 시작» 없음)" % [start.is_visible_in_tree(), text.call(), n]
+	if out == "":
+		var won: bool = _win(b)
+		main.hud._process(0.0)
+		out = check(won and "다음 라운드" in text.call() and not "영입" in text.call(), "라운드 사이(%s) 진행 칸 글이 «%s»다(기대 «다음 라운드», «영입» 없음)" % [b.state, text.call()])
 	if out == "":
 		b.damage(b.base, BIG)
 		main.hud._process(0.0)
@@ -920,10 +938,8 @@ func ev341():
 		var main = _game()
 		var b = main.view.battle
 		b.gold = BIG
-		for i in 3:
+		for i in n:  # 출전 전환이 없어졌다(S54 2026-11-16 변경). n명만 고른다
 			b.hire(i)
-		for h in b.roster.slice(n):
-			b.set_lineup(h, false)
 		b.next_round()
 		_frame(main)
 		var cells = main.hud.get("cells")
@@ -932,7 +948,7 @@ func ev341():
 		if not cells is Dictionary or not faces is Array or faces.size() != 3 or not slots is Array or slots.size() != 3:
 			out = "main.hud.cells·portraits·slots가 없거나 칸이 셋이 아니다"
 		elif b.heroes.size() != n:
-			out = "출전 %d명으로 두었는데 전장 영웅이 %d명이다" % [n, b.heroes.size()]
+			out = "영웅 %d명을 골랐는데 전장 영웅이 %d명이다" % [n, b.heroes.size()]
 		for i in 3:
 			if out != "":
 				break
@@ -1540,16 +1556,6 @@ func ev351():
 	_done(main)
 	return out
 
-# 보유를 상한(5명)까지 채운다(목록이 비면 리롤)
-func _five(b) -> void:
-	for t in 6:
-		for i in b.HIRE.slots:
-			if b.roster.size() < b.HIRE.cap:
-				b.hire(i)
-		if b.roster.size() >= b.HIRE.cap:
-			return
-		b.reroll()
-
 # EV352 · S117: 영입 창·라운드 사이 창이 떠 있으면 띠 아래 맵 덮개(검정 50%)가 보이고 건설 격자는 숨는다. 준비 단계에는 반대다
 func ev352():
 	var main = _game()
@@ -1599,7 +1605,12 @@ func ev353():
 	_done(main)
 	return out
 
-# EV354 · I136: 보유 5명인 라운드 사이 창은 [16,34]에서 폭 608로 뜨고 아래끝이 356 이하다. 한 명을 내보낸 뒤 영입해도 리롤·진행 버튼 자리가 같다
+# 창 사각형이 [16,34]에서 폭 608로 뜨고 아래끝이 356 이하다(I136)
+func _window_fits(w: Rect2) -> bool:
+	return w.position.is_equal_approx(Vector2(16, 34)) and absf(w.size.x - 608.0) <= 0.5 and w.end.y <= 356.5
+
+# EV354 · I136: 고르기 창은 [16,34]에서 폭 608로 뜨고 아래끝이 356 이하이며 카드 여섯이 창 안에 겹치지 않게 든다. 고르고 빼도 진행 버튼 자리가 같다.
+# 영웅 셋인 라운드 사이 창도 «장비» 쪽·«영웅» 쪽 모두 같은 자리·폭이고 아래끝이 356 이하다
 func ev354():
 	var main = _game()
 	var b = main.view.battle
@@ -1607,61 +1618,54 @@ func ev354():
 	if not hud.get("window") is Control:
 		_done(main)
 		return "main.hud.window가 없다"
-	b.gold = BIG
-	_five(b)
-	b.next_round()
-	var won: bool = _win(b)
 	_frame(main)
 	_layout(main)
 	var w: Rect2 = hud.window.get_global_rect()
+	var cards := _cards(hud.window)
+	var go = _starts(hud.window, "1라운드 시작")
 	var out := ""
-	if not won or b.roster.size() != 5:
-		out = "준비가 틀렸다: 1라운드 승리 %s · 보유 %d" % [won, b.roster.size()]
-	elif not w.position.is_equal_approx(Vector2(16, 34)) or absf(w.size.x - 608.0) > 0.5 or w.end.y > 356.5:
-		out = "보유 5명 라운드 사이 창 %s(기대: [16,34] 폭 608, 아래끝 356 이하)" % w
+	if b.state != "hiring" or not _window_fits(w) or go == null:
+		out = "고르기 창(%s) %s · «1라운드 시작» 버튼 %s(기대: [16,34] 폭 608, 아래끝 356 이하)" % [b.state, w, go]
+	elif cards.size() != 6:
+		out = "고르기 창의 보이는 카드가 %d장이다(여섯이어야 한다)" % cards.size()
+	for i in cards.size():
+		if out != "":
+			break
+		var r: Rect2 = cards[i].get_global_rect()
+		if not w.grow(0.5).encloses(r) or r.size.x < 1.0 or r.size.y < 1.0:
+			out = "%d번 카드 %s가 창 %s 밖이거나 크기가 없다" % [i, r, w]
+		for j in range(i + 1, cards.size()):
+			if out == "" and r.intersects(cards[j].get_global_rect()):
+				out = "%d번 카드 %s와 %d번 카드 %s가 겹친다" % [i, r, j, cards[j].get_global_rect()]
 	if out == "":
-		b.dismiss(b.roster[4])
+		var at: Rect2 = go.get_global_rect()
+		for i in [0, 2, 4]:
+			cards[i].pressed.emit()
 		_frame(main)
 		_layout(main)
-		var re = _starts(hud.window, "리롤")
-		var go = _starts(hud.window, "다음 라운드")
-		if re == null or go == null:
-			out = "라운드 사이 창에 «리롤»(%s)·«다음 라운드»(%s) 버튼이 없다" % [re, go]
+		var full: Rect2 = go.get_global_rect()
+		var three: int = b.roster.size()
+		cards[2].pressed.emit()
+		_frame(main)
+		_layout(main)
+		var less: Rect2 = go.get_global_rect()
+		out = check(three == 3 and b.roster.size() == 2 and full == at and less == at, "카드 셋을 누른 뒤 보유 %d · 하나를 다시 누른 뒤 보유 %d · «1라운드 시작» 버튼 %s → %s → %s(자리가 같아야 한다)" % [three, b.roster.size(), at, full, less])
+	if out == "":
+		cards[2].pressed.emit()
+		b.next_round()
+		var won: bool = _win(b)
+		_frame(main)
+		_layout(main)
+		var gear: Rect2 = hud.window.get_global_rect()
+		var tab = _button(hud.window, "영웅")
+		if not won or b.roster.size() != 3 or tab == null:
+			out = "준비가 틀렸다: 1라운드 승리 %s · 보유 %d · «영웅» 버튼 %s" % [won, b.roster.size(), tab]
 		else:
-			var at := [re.get_global_rect(), go.get_global_rect()]
-			for i in b.HIRE.slots:
-				if b.offers[i] != "":
-					b.hire(i)
-					break
+			tab.pressed.emit()
 			_frame(main)
 			_layout(main)
-			var now := [re.get_global_rect(), go.get_global_rect()]
-			out = check(b.roster.size() == 5 and now == at, "내보내고 영입한 뒤 보유 %d · 리롤·진행 버튼 %s → %s" % [b.roster.size(), at, now])
-	_done(main)
-	return out
-
-# EV355 · I127: 보유가 상한이면 리롤 버튼이 0.35로 흐리지만 누를 수 있고, 누르면 창에 «내보내야 영입할 수 있다»가 보이며 골드·목록이 그대로다
-func ev355():
-	var main = _game()
-	var b = main.view.battle
-	var hud = main.hud
-	if not hud.get("window") is Control:
-		_done(main)
-		return "main.hud.window가 없다"
-	b.gold = BIG
-	_five(b)
-	_frame(main)
-	var re = _starts(hud.window, "리롤")
-	var out := ""
-	if re == null or b.roster.size() != 5 or absf(re.modulate.a - 0.35) > 0.01 or re.disabled:
-		out = "보유 %d명 영입 창의 리롤 버튼 %s(불투명도 0.35이고 누를 수 있어야 한다)" % [b.roster.size(), [re.modulate.a, re.disabled] if re else null]
-	else:
-		var gold: int = b.gold
-		var offers: Array = b.offers.duplicate()
-		re.pressed.emit()
-		main.hud._process(0.0)
-		var said := " ".join(_labels(hud.window))
-		out = check(b.gold == gold and b.offers == offers and "내보내야 영입할 수 있다" in said, "상한에서 리롤을 누른 뒤 골드 %d → %d · 목록 %s → %s · 창 글 «%s»" % [gold, b.gold, offers, b.offers, said])
+			var team: Rect2 = hud.window.get_global_rect()
+			out = check(_window_fits(gear) and _window_fits(team) and _hero_rows(hud.window).size() == 3, "영웅 셋 라운드 사이 창: «장비» 쪽 %s · «영웅» 쪽 %s(기대: [16,34] 폭 608, 아래끝 356 이하) · 영웅 줄 %s" % [gear, team, _hero_rows(hud.window)])
 	_done(main)
 	return out
 
@@ -1801,28 +1805,6 @@ func ev365():
 	_done(main)
 	return out
 
-# EV366 · I110: 도전 시작 전 영입 창에만 «준비 단계에 지을 골드도 남긴다»가 있다
-func ev366():
-	var main = _game()
-	var b = main.view.battle
-	var hud = main.hud
-	if not hud.get("window") is Control:
-		_done(main)
-		return "main.hud.window가 없다"
-	b.gold = BIG
-	_frame(main)
-	var before := " ".join(_labels(hud.window))
-	for i in 2:
-		b.hire(i)
-	b.next_round()
-	var won: bool = _win(b)
-	_frame(main)
-	var after := " ".join(_labels(hud.window))
-	var out := check(b.state == "cleared" and won and "지을 골드도 남긴다" in before and not "지을 골드도 남긴다" in after and after != "",
-		"도전 시작 전 영입 창 글 «%s» · 1라운드 승리(%s) 뒤 창 글 «%s»" % [before, won, after])
-	_done(main)
-	return out
-
 # btn에 커서를 0.25초 둔 뒤 툴팁 안의 보이는 글. 툴팁이 없으면 ""
 func _tip_of(main, btn) -> String:
 	_layout(main)
@@ -1830,7 +1812,7 @@ func _tip_of(main, btn) -> String:
 	main.hud.tip._process(0.25)
 	return _tip_text(main.hud.tip) if main.hud.tip.visible else ""
 
-# EV360 · I110: 라운드 사이 창에 의뢰 수락 버튼·의뢰 글이 없고(S77), 내보내기·이관 버튼과 이관 중 «여기로»에 툴팁이 있다
+# EV360 · I110: 라운드 사이 창에 의뢰 수락·내보내기·리롤 버튼과 의뢰 글이 없고, 이관 버튼과 이관 중 «여기로»에 툴팁이 있다
 func ev360():
 	var main = _game()
 	var b = main.view.battle
@@ -1846,22 +1828,20 @@ func ev360():
 	_frame(main)
 	_layout(main)
 	var shown: Array = hud.window.find_children("*", "BaseButton", true, false).filter(func(n): return n.is_visible_in_tree())
-	var drop: Array = shown.filter(func(n): return n.text == "내보내기")
 	var give: Array = shown.filter(func(n): return n.text == "이관" and not n.disabled)
-	if not won or drop.is_empty() or give.is_empty():
+	if not won or give.is_empty():
 		_done(main)
-		return "준비가 틀렸다: 1라운드 승리 %s · 내보내기 %d · 눌리는 이관 %d" % [won, drop.size(), give.size()]
-	var take: Array = shown.map(func(n): return str(n.get("text"))).filter(func(t): return "수락" in t)
+		return "준비가 틀렸다: 1라운드 승리 %s · 눌리는 이관 %d" % [won, give.size()]
+	var gone: Array = shown.map(func(n): return str(n.get("text"))).filter(func(t): return "수락" in t or "내보내기" in t or "리롤" in t)
 	var named: Array = _labels(hud.window).filter(func(t): return "의뢰" in t)
-	var said := [_tip_of(main, drop[0]), _tip_of(main, give[0])]
+	var said := [_tip_of(main, give[0])]
 	give[0].pressed.emit()
 	_frame(main)
 	var to = _starts(hud.window, "여기로")
 	said.append(_tip_of(main, to) if to else "«여기로» 버튼 없음")
-	var out := check(take.is_empty() and named.is_empty(), "라운드 사이 창에 «수락» 버튼 %s · «의뢰» 글 %s가 보인다(의뢰는 없다, S77 2026-11-07 변경)" % [take, named])
+	var out := check(gone.is_empty() and named.is_empty(), "라운드 사이 창에 «수락»·«내보내기»·«리롤» 버튼 %s · «의뢰» 글 %s가 보인다(의뢰는 없다, S77 2026-11-07 변경. 내보내기·리롤은 없다, S54 2026-11-16 변경)" % [gone, named])
 	if out == "":
-		out = check("골드는 돌려받지 못한다" in said[0] and "Lv1로" in said[1] and "경험치를 받는다" in said[2],
-			"툴팁 글 내보내기·이관·여기로 %s" % [said])
+		out = check("Lv1로" in said[0] and "경험치를 받는다" in said[1], "툴팁 글 이관·여기로 %s" % [said])
 	_done(main)
 	return out
 
@@ -3735,15 +3715,15 @@ func _house_pop() -> int:
 	var v = d.get("pop")
 	return int(v) if v != null else 0
 
-# 들판(성 아래)에 용병을 n명 놓는다. 놓인 수
+# 들판(성 아래)에 용병을 n명 놓는다(한 줄에 스무 명, 2칸 간격). 놓인 수
 func _field_mercs(b, n: int) -> int:
 	var placed := 0
 	for i in n:
-		if b.place_merc("soldier", Vector2i(10 + 2 * i, 66)) != null:
+		if b.place_merc("soldier", Vector2i(10 + 2 * (i % 20), 66 + 2 * (i / 20))) != null:
 			placed += 1
 	return placed
 
-# EV742 · I225: 인구 칸은 위 띠 바로 아래 [4,30,52,12]에 «인구 n/m»이다. 상한에 닿으면 빨강이고, 툴팁에 상한 내역이 있다
+# EV742 · I225: 인구 칸은 위 띠 바로 아래 [4,30,58,12]에 «인구 n/m»이다. 상한에 닿으면 빨강이고, 툴팁에 상한 내역이 있다
 func ev742():
 	var main = _prep()
 	var b = main.view.battle
@@ -3755,8 +3735,8 @@ func ev742():
 	if out == "":
 		var r: Rect2 = pop.get_global_rect()
 		var want := "인구 0/%d" % b.POP_BASE
-		out = check(pop.is_visible_in_tree() and r.position.distance_to(Vector2(4, 30)) <= 0.5 and r.size.distance_to(Vector2(52, 12)) <= 0.5 and pop.text == want,
-			"인구 칸 %s(보임 %s) · 글 «%s»(기대 [4,30,52,12] «%s»)" % [r, pop.is_visible_in_tree(), pop.text, want])
+		out = check(pop.is_visible_in_tree() and r.position.distance_to(Vector2(4, 30)) <= 0.5 and r.size.distance_to(Vector2(58, 12)) <= 0.5 and pop.text == want,
+			"인구 칸 %s(보임 %s) · 글 «%s»(기대 [4,30,58,12] «%s»)" % [r, pop.is_visible_in_tree(), pop.text, want])
 	if out == "":
 		var placed := _field_mercs(b, b.POP_BASE)
 		_frame(main)
@@ -4222,7 +4202,7 @@ func _wcag(a: Color, b: Color) -> float:
 	return (maxf(la, lb) + 0.05) / (minf(la, lb) + 0.05)
 
 # EV1124 · S372: 누름·고른 칸·포커스 모양. 테마 Button 누름은 바탕 2f3440·테두리 ffd37f, 위·아래 안쪽 여백은 평상시와 같다(글 내림 없음).
-# 포커스는 바탕 없는 ffd37f 고리(ring). 거점 탭·머리 버튼·선택 칸·건설 칸 누름과 켜진 전체 오토·영입 바탕도 2f3440·ffd37f
+# 포커스는 바탕 없는 ffd37f 고리(ring). 거점 탭·머리 버튼·선택 칸·건설 칸 누름과 켜진 전체 오토 바탕도 2f3440·ffd37f(«영입» 버튼은 없어졌다, S54 2026-11-16 변경)
 func ev1124():
 	var main = _prep()
 	var h = main.hud
@@ -4237,7 +4217,7 @@ func ev1124():
 	if not ring is StyleBoxFlat or ring.border_color != Color("ffd37f") or ring.draw_center:
 		bad.append(["focus 고리", ring])
 	var boxes := [["거점 탭", h.keep.tabs[0].get_theme_stylebox("pressed")], ["거점 머리 마을", h.keep.village.get_theme_stylebox("pressed")],
-		["선택 칸", h.select.cells[0].get_theme_stylebox("pressed")], ["전체 오토 켜짐", h.auto_all._on_box], ["영입 켜짐", h.shop._on_box]]
+		["선택 칸", h.select.cells[0].get_theme_stylebox("pressed")], ["전체 오토 켜짐", h.auto_all._on_box]]
 	for k in h.grid._styles:
 		boxes.append(["건설 칸 " + k, h.grid._styles[k][2]])
 	for x in boxes:

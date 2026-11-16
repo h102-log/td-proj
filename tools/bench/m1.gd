@@ -93,7 +93,7 @@ func _process(_d: float) -> bool:
 func _reset() -> void:
 	var stage := Main.stage()
 	stage["hero_start"] = Vector2i(20, 15)  # 아군 줄(11~18행) 가운데
-	stage["seed"] = 7  # battle.gd의 _rng(영입소·미션)·_luck(치명타·기절) 씨앗. 없으면 실행마다 판이 달라져 A·B·C가 다른 판이 됐다
+	stage["seed"] = 7  # battle.gd의 _rng(미션)·_luck(치명타·기절) 씨앗. 없으면 실행마다 판이 달라져 A·B·C가 다른 판이 됐다
 	b = Battle.new(stage)
 	b.gold = 1 << 30
 	b.merc_cap = 1 << 20

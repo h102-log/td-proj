@@ -17,7 +17,7 @@ extends RefCounted
 # - 마법 타워(S110) · 5 공병 · 6 작업장 · 7 궁수(I71) · 8 대포(S92) · 0 집(S103) · = 교회(I140) · \ 대피소(S226): 놓기 모드(방벽·타워·용병은 키 없이 건설 격자 칸으로, I108 2026-11-06 변경). 그동안 좌클릭은 그 칸에 짓거나 놓고, 우클릭·ESC·같은 키는 모드를 끝낸다(사용자 2026-10-12, S186)
 # 전투 단계엔 구조물만 짓는다(공병이 가서 짓는다, S22). 단계가 바뀌면 모드가 끝난다
 # 옮길 대포(moving)가 있으면 다음 좌클릭한 칸으로 옮기고(S91), 우클릭·ESC·단계 변경은 옮기기를 그만둔다
-# 결과 창(라운드 사이·도전 끝)과 도전 시작 전 영입 창이 떠 있는 동안에는 아무 입력도 받지 않는다(S117, I109)
+# 결과 창(라운드 사이·도전 끝)과 도전 시작 전 영웅 고르기 창이 떠 있는 동안에는 아무 입력도 받지 않는다(S117, I109)
 
 # ponytail: 맵 px 기준이라 줌에 따라 화면에서 느끼는 거리가 달라진다. 거슬리면 화면 px로 잰다
 const CLICK_SLOP := 4.0  # 이보다 덜 끌고 떼면 클릭이다(맵 px)
@@ -33,6 +33,7 @@ signal refused(cell: Vector2i, why: String)  # 구조물 놓기가 거부됐다.
 signal facility_key(f)  # 전투 단계 용병 키로 시설을 골랐다. HUD가 카메라를 그 시설로 옮긴다(S81, I164)
 signal alert_key  # C 키. HUD가 마지막 경보 자리로 카메라를 옮긴다(S189)
 signal hero_sent  # 고른 것에 영웅이 있는 채 이동·공격 명령을 내렸다. 힌트(S191)가 듣는다
+signal dash_refused(waiting: Array)  # Space를 눌렀는데 아무도 대시하지 못했고 대시하려던 영웅 가운데 대기 중인 영웅이 있다. HUD가 그 초상을 번쩍이고 토스트·소리로 알린다(I261 ⑦)
 
 var battle
 var cell_px: int
@@ -64,25 +65,12 @@ var mouse := Vector2()  # 마지막 마우스 위치(맵 px). 화면이 조준 �
 var quickcast := false  # 퀵캐스트(I158): 조준하는 칸의 키를 누르는 순간 커서 자리에 쓴다. main이 설정(S184)에서 넣는다
 var order := {}  # 마지막으로 간 명령(S205): at(맵 px)·attack·foe. 명령마다 새 사전이라 화면이 is_same으로 새 명령을 안다
 var shown = null  # 선택 패널에 보인 적(S206). 유닛·구조물을 다시 고르거나 ESC를 누르면 비운다. 그 적이 쓰러지면 패널(hud_select)이 비운다
-var shop := false  # 언제든 영입 창(S272)이 떠 있다. 그동안 맵 입력을 받지 않는다(I206). set_shop으로 바꾼다
 var _state: String  # 마지막으로 본 판 단계. 바뀌면 놓기 모드를 끝낸다
 
 func _init(b, px: int) -> void:
 	battle = b
 	cell_px = px
 	_state = b.state
-
-# 언제든 영입 창을 열거나 닫는다(S272). 열면 놓기·대포 옮기기·조준·공격 이동 모드를 끈다(I206)
-func set_shop(on: bool) -> void:
-	shop = on
-	if on:
-		placing = ""
-		moving = null
-		aiming = ""
-		attacking = false
-		missing = ""
-		_press = null
-		drag_rect = Rect2()
 
 func handle(event: InputEvent) -> void:
 	if battle.state != _state:  # 키보다 먼저 본다. 단계가 바뀐 뒤 첫 입력이 놓기 키여도 모드가 켜지게
@@ -97,7 +85,7 @@ func handle(event: InputEvent) -> void:
 		aiming = ""
 	if event is InputEventMouse:
 		mouse = event.position
-	if battle.state not in ["prep", "battle", "raid"] or shop:  # 창이 떠 있는 동안은 맵 명령을 받지 않는다(S117, I109, I206). 원정(S316)은 받는다
+	if battle.state not in ["prep", "battle", "raid"]:  # 창이 떠 있는 동안은 맵 명령을 받지 않는다(S117, I109). 원정(S316)은 받는다
 		_press = null
 		drag_rect = Rect2()
 		return
@@ -256,9 +244,20 @@ func _release(rect: Rect2, at: Vector2, double := false) -> void:
 		selected = units
 		shown = null
 
-# 출전 영웅 i를 고른다(I108). 1·2·3 키와 HUD 초상(I165)이 부른다. 쓰러진 영웅은 고르지 않는다. 우클릭이 집결 지점 대신 영웅을 옮기게 시설 선택을 푼다
+# 출전 영웅 i의 키(I108 2026-11-16 변경). 1·2·3 키와 HUD 초상(I165)이 부른다. 쓰러졌거나 없는 영웅이면 고른 것도 카메라(hero_key)도 그대로다.
+# 살아 있는 용병이 섞인 고른 것에 그 영웅이 있으면 고른 것을 그대로 두고 그 영웅을 맨 앞(스킬 쓸 영웅)으로 옮기고, 아니면 그 영웅 하나만 고른다.
+# 스킬 쓸 영웅이 바뀌면 다른 영웅의 조준은 끈다. 우클릭이 집결 지점 대신 영웅을 옮기게 시설 선택을 푼다
 func pick_hero(i: int) -> void:
-	selected = battle.heroes.slice(i, i + 1).filter(func(h): return h.alive)
+	var h = battle.heroes[i] if i < battle.heroes.size() else null
+	if h == null or not h.alive:
+		return
+	var was = caster()
+	if h in selected and selected.any(func(u): return not u.is_hero and u.alive):
+		selected = [h] + selected.filter(func(u): return u != h)
+	else:
+		selected = [h]
+	if aiming != "" and caster() != was and aim_hero != caster():
+		aiming = ""
 	facility = null
 	shown = null
 	hero_key.emit(i)
@@ -269,12 +268,17 @@ func pick_all() -> void:
 	facility = null
 	shown = null
 
-# Space(S315, I261 ②③): 고른 것 가운데 살아 있는 출전 영웅 모두가, 없으면 살아 있는 첫 영웅이 커서(mouse) 쪽으로 대시한다
+# Space(S315, I261 ②③): 고른 것 가운데 살아 있는 출전 영웅 모두가, 없으면 살아 있는 첫 영웅이 커서(mouse) 쪽으로 대시한다.
+# 전투 단계·원정에 아무도 대시하지 못했고 그 가운데 대기 중인 영웅이 있으면 dash_refused로 알린다(I261 ⑦)
 func dash() -> void:
 	var group: Array = selected.filter(func(u): return u.is_hero and u.alive and u in battle.heroes)
 	if group.is_empty() and battle._first_alive():
 		group = [battle._first_alive()]
+	var waiting: Array = group.filter(func(h): return h.dash_cd > 0.0)
+	var ready: Array = group.filter(func(h): return h.dash_cd <= 0.0)
 	battle.dash(group, mouse / cell_px - Vector2(0.5, 0.5))
+	if battle.fighting() and not waiting.is_empty() and not ready.any(func(h): return h.dash_cd > 0.0):
+		dash_refused.emit(waiting)
 
 # 선택 패널의 그림 칸(S206)이 그 유닛 하나만 고른다. 우클릭이 그 유닛을 옮기게 시설 선택을 푼다
 func pick_unit(u) -> void:
@@ -375,8 +379,8 @@ func toggle_auto_fix() -> void:
 # 스킬 키(S145, S147, S158). Q·W·E·R 키와 테스트가 부른다. shift면 자동 시전을 켜고 끈다.
 # 즉시·켜고 끄는 칸(그리고 태세 중인 반격의 태세)은 바로 쓰고, 고르는 칸은 지금 쓸 수 있을 때만 조준 상태가 된다
 func skill_key(slot: String, shift := false) -> void:
-	var h = _hero()
-	h = h if h and h.alive else battle._first_alive()
+	var h = caster()
+	h = h if h else battle._first_alive()
 	if h and not shift:
 		skill_keyed.emit(h, slot)
 	skill_for(h, slot, shift)
@@ -437,10 +441,11 @@ func _closest(pool: Array, at: Vector2):
 			best = x
 	return best
 
-# 스킬을 쓸 영웅: 고른 출전 영웅. 없으면 null이라 첫 출전 영웅이 쓴다(S119). 출전에서 빠진 영웅은 고르지 않은 것으로 본다(I108)
-func _hero():
+# 스킬 쓸 영웅(S119, I108 2026-11-16 변경): 고른 것 가운데 앞에서부터 첫 살아 있는 출전 영웅. 없으면 null이라 살아 있는 첫 출전 영웅이 쓴다(I126).
+# 출전에서 빠진 영웅은 고르지 않은 것으로 본다(I108). 위 띠 초상의 세모(I310 ②)도 이 영웅에 붙는다
+func caster():
 	for u in selected:
-		if u.is_hero and u in battle.heroes:
+		if u.is_hero and u.alive and u in battle.heroes:
 			return u
 	return null
 

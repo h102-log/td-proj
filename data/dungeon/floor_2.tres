@@ -74,6 +74,5 @@ enrage = {
 "step": 10.0
 }
 pull = 3.0
-hard = 120.0
 gold = 150
 relic = "wolf_fang"

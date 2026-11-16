@@ -331,3 +331,115 @@ func ev659():
 	_double_click(c, px(Vector2i(16, 10)))
 	var hero: bool = c.selected == [sylvia]
 	return check(group and sale and single and hero, "더블클릭에 화면 안 병사 셋 %s(%d개) · 판매 후보 누른 병사 하나 %s(%d개) · double_click 없는 클릭 두 번에 매번 그 하나 %s(%s개) · 실비아 더블클릭에 실비아 하나 %s(%d개)" % [group, sel.size(), sale, sale_n, single, single_n, hero, c.selected.size()])
+
+# 걷는 길의 끝 칸(오르내리면 after의 끝). 길이 없으면 선 칸
+func _end_cell(u) -> Vector2i:
+	if not u.after.is_empty():
+		return u.after.back()
+	return u.path.back() if not u.path.is_empty() else cell_of(u)
+
+# 전투 단계를 연다. 웨이브 적은 바로 처치하고, 움직이지도 치지도 않는 적 하나를 먼 구석에 남겨 전투 단계가 이어지게 한다
+func _battle_on(b) -> void:
+	b.start_battle()
+	run(b, 5.0, func(): return not b.enemies.is_empty())
+	var idle = b.spawn_enemy("basic", Vector2i(29, 19), {"speed": 0, "sight": 0, "damage": 0})
+	for x in b.enemies.duplicate():
+		if x != idle:
+			b.damage(x, BIG)
+
+# EV1150 · I309 ③: 줄에 선 유닛은 옛 길을 그대로 걷는다. 순수 이동이면 사거리 안 적을 치지 않고, 공격 이동이면 서서 친다
+func ev1150():
+	var b = battle({"merc_cap": 40})
+	var us := squad(b, "soldier", 40)
+	if us.size() != 40:
+		return "병사 40명을 놓지 못했다"
+	b.order_move(us, Vector2i(20, 15))
+	run(b, 0.5)
+	if us.any(func(u): return u.path.is_empty()) or not in_line(us).is_empty():
+		return "첫 지시 0.5초 뒤 걷는 길이 빈 병사 %d · 기다리는 병사 %d(둘 다 0)" % [us.filter(func(u): return u.path.is_empty()).size(), in_line(us).size()]
+	var before := us.map(func(u): return _end_cell(u))
+	b.order_move(us, Vector2i(20, 3))
+	var wait := in_line(us)
+	var kept := wait.filter(func(u): return _end_cell(u) == before[us.find(u)]).size()
+	if wait.size() != 24 or kept < 23:
+		return "다시 지시한 직후 기다리는 병사 %d(24) · 그 가운데 길 끝 칸이 다시 지시하기 전 그대로인 병사 %d(23 이상)" % [wait.size(), kept]
+	var at := us.map(func(u): return u.pos)
+	b.step(DT)
+	wait = in_line(us)
+	var walked := wait.filter(func(u): return u.pos.distance_to(at[us.find(u)]) > 0.01).size()
+	if wait.size() != 8 or walked != 8:
+		return "한 스텝 뒤 기다리는 병사 %d(8) · 그 가운데 그 스텝에 0.01칸 넘게 걸은 병사 %d(8)" % [wait.size(), walked]
+	b.step(DT)
+	var moved := range(40).filter(func(i): return _end_cell(us[i]) != before[i]).size()
+	if not in_line(us).is_empty() or moved != 40:
+		return "두 스텝 뒤 기다리는 병사 %d(0) · 길 끝 칸이 다시 지시하기 전과 다른 병사 %d(40)" % [in_line(us).size(), moved]
+	for attack in [false, true]:
+		b = battle({"merc_cap": 40})
+		us = []
+		for x in range(5, 12):
+			for y in range(5, 11):
+				if Vector2i(x, y) != Vector2i(8, 7) and Vector2i(x, y) != Vector2i(8, 8):
+					us.append(b.place_merc("archer", Vector2i(x, y)))
+		if us.size() != 40 or us.has(null):
+			return "궁수 40명을 놓지 못했다"
+		b.order_move(us, Vector2i(20, 15), attack)
+		var e = b.spawn_enemy("basic", Vector2i(8, 7), {"speed": 0, "damage": 0, "sight": 0, "hp": BIG})
+		b.step(DT)
+		wait = in_line(us)
+		if wait.size() != 8:
+			return "%s: 지시하고 한 스텝 뒤 기다리는 궁수 %d(8)" % ["공격 이동" if attack else "순수 이동", wait.size()]
+		if not attack and (not b.missiles.is_empty() or not b.landed.is_empty() or e.hp < e.max_hp):
+			return "순수 이동: 한 스텝에 투사체 %d·%d(0) · 적 체력 %s/%s(그대로)" % [b.missiles.size(), b.landed.size(), e.hp, e.max_hp]
+		if attack and wait.any(func(u): return u.target != e):
+			return "공격 이동: 그 스텝에도 기다린 궁수 8 가운데 그 적을 친 궁수 %d(8)" % wait.filter(func(u): return u.target == e).size()
+	return ""
+
+# EV1151 · I309 ④: 정지·혼자 다시 받은 지시·대시는 줄에서 뺀다. 빠진 유닛은 뒤늦게 옛 지시의 길을 받지 않는다
+func ev1151():
+	var b = battle({"merc_cap": 40})
+	var us := squad(b, "soldier", 40)
+	if us.size() != 40:
+		return "병사 40명을 놓지 못했다"
+	var at := us.map(func(u): return u.pos)
+	b.order_move(us, Vector2i(20, 15))
+	if in_line(us).size() != 24:
+		return "① 지시 직후 기다리는 병사 %d(24)" % in_line(us).size()
+	b.stop(us)
+	if not in_line(us).is_empty():
+		return "① 정지 직후 기다리는 병사 %d(0)" % in_line(us).size()
+	run(b, 1.0)
+	var off := range(40).filter(func(i): return not (us[i].path.is_empty() and us[i].after.is_empty()) or us[i].pos.distance_to(at[i]) > 0.05).size()
+	if off > 0:
+		return "① 정지 1초 뒤 걷는 길이 있거나 처음 자리에서 0.05칸 넘게 벗어난 병사 %d(0)" % off
+	b = battle({"merc_cap": 40})
+	us = squad(b, "soldier", 40)
+	b.order_move(us, Vector2i(20, 15))
+	var wait := in_line(us)
+	if us.size() != 40 or wait.size() != 24:
+		return "② 지시 직후 기다리는 병사 %d(24)" % wait.size()
+	var one = wait[0]
+	b.order_move([one], Vector2i(3, 17))
+	var ends := [_end_cell(one), in_line([one]).size()]
+	b.step(DT)
+	b.step(DT)
+	ends += [_end_cell(one), in_line([one]).size()]
+	if ends != [Vector2i(3, 17), 0, Vector2i(3, 17), 0]:
+		return "② 기다리던 병사에게 혼자 (3,17)로 지시: [길 끝, 기다림] 직후·두 스텝 뒤 %s(기대 [(3,17), 0, (3,17), 0])" % [ends]
+	b = battle({"merc_cap": 40, "heroes": [{"kind": "aias", "cell": Vector2i(2, 2)}], "waves": [[{"kind": "basic", "count": 1}]]})
+	var h = b.hero
+	us = [h] + squad(b, "soldier", 9, Vector2i(3, 2), 9) + squad(b, "soldier", 30, Vector2i(2, 3))  # 아이아스는 (2,2), 목적지에서 가장 먼 칸
+	if h == null or us.size() != 40:
+		return "③ 아이아스와 병사 39명을 놓지 못했다(%d)" % us.size()
+	_battle_on(b)
+	b.order_move(us, Vector2i(20, 15))
+	if in_line([h]).is_empty():
+		return "③ 40명 지시 직후 아이아스가 길을 기다리지 않는다(판을 잘못 차렸다 — 자리 짝짓기 차례 맨 뒤여야 한다)"
+	b.dash([h], h.pos + Vector2(-2, 0))
+	if h.dash_cd <= 0.0:
+		return "③ 아이아스가 대시하지 않았다"
+	var bad := []
+	for i in 20:
+		b.step(DT)
+		if not (h.path.is_empty() and h.after.is_empty()) or not in_line([h]).is_empty():
+			bad.append(i)
+	return check(bad.is_empty(), "③ 대시 뒤 1초 동안 아이아스의 걷는 길이 있거나 기다린 스텝 %s(없어야 한다)" % [bad])

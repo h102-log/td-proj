@@ -55,3 +55,11 @@ def test_EV1102_keep_panel_header_and_tab_row_layout(gd):
 
 def test_EV1118_keep_strip_village_lock(gd):
     gd("keep", "EV1118")
+
+
+def test_EV1125_icon_cut_once_and_shared(gd):
+    gd("keep", "EV1125")
+
+
+def test_EV1137_pop_text_fits_at_hundred(gd):
+    gd("keep", "EV1137")

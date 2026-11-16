@@ -7,9 +7,12 @@ extends "res://tests/eval/gd/lib.gd"
 #   res://src/main.tscn — 게임 장면. Main(res://src/main.gd).resume: 비어 있지 않으면 _ready가 새 도전 대신 그 값을 불러온다
 #     main.view.battle · main.controls · main.menus(ESC 메뉴) · main._process(delta)는 판을 delta만큼 돌리고 단계가 바뀌었으면 저장한다
 #   ESC 메뉴: 게임 장면에서 ESC 키로 연다. 버튼은 글자로 찾는다(«계속»·«설정»·«메인 메뉴로»·«게임 종료»)
+#   영입이 있던 때의 저장(I304): 저장 사전의 offers(목록)·rerolls(리롤 횟수)·lineup(출전 목록, heroes 사전의 차례 번호) 칸. 새 저장에는 없다
+#     저장 사전의 heroes(영웅 사전 배열) · roster·deployed(그 차례 번호) · relics(유물 가방) · 영웅 사전의 relic(낀 유물 id)
 # 저장 경로는 평가용 파일로 바꿔 둔다. 실제 저장(user://save.dat)을 건드리지 않게
 
 const PATH := "user://eval_save.dat"
+const HERO_SIX := ["aias", "sylvia", "seraphina", "vesper", "ignis", "chronos"]  # 고르기 창의 목록 = S97 표 차례(S373)
 
 func _save():
 	var s = load("res://src/sim/save.gd")
@@ -531,3 +534,183 @@ func ev1104():
 	var be: Array = b.units.filter(func(u): return u.kind == "engineer")
 	return check(left.is_empty() and b.gold == want and not "bowyer" in crafts and be.size() == 1 and be[0].job == null and S.VERSION == 7,
 		"남은 옛 시설 %s · 골드 %d(기대 %d = 저장 %d + 32 + 16) · 시설 직업 %s · 공병 %d명 일 %s · 저장 판 %d(7)" % [left, b.gold, want, a.gold, crafts, be.size(), be.map(func(u): return u.job), S.VERSION])
+
+func _kinds(hs: Array) -> Array:
+	return hs.map(func(h): return h.kind)
+
+# 시험 스테이지 판의 고르기 창에서 kinds를 차례로 고른 판(목록 앞 칸을 그 종류로 바꿔 넣는다 — EV306과 같은 방법). 출전 인원(셋)까지다
+func _picked(kinds: Array):
+	var b = _new(_stage())
+	b.begin_hiring()
+	for i in kinds.size():
+		b.offers[i] = kinds[i]
+		b.hire(i)
+	return b
+
+# 영웅 kinds의 저장 사전(옛 저장 꼴을 만드는 재료). 고르기 창에서 셋씩 고른 판의 저장에서 모은다. 전장에 선 적 없는 영웅이다
+func _hero_dicts(kinds: Array) -> Array:
+	var out := []
+	for at in range(0, kinds.size(), 3):
+		out.append_array(_save().snapshot(_picked(kinds.slice(at, at + 3))).heroes)
+	return out
+
+# 지금 라운드의 웨이브를 모두 이긴다. 라운드 사이가 되면 참
+func _clear_round(b) -> bool:
+	for i in 20:
+		if b.state == "prep":
+			b.start_battle()
+		if b.state != "battle" or not clear_wave(b):
+			break
+	return b.state == "cleared"
+
+# EV1132 · I304: 영입이 있던 때의 저장은 불러올 때 거른다. 목록·리롤 횟수는 버리고, 보유는 출전하던 영웅 먼저·대기 영웅으로 출전 인원까지다.
+# 넘는 대기 영웅이 끼던 유물은 가방에 남는다. 채운 영웅은 다음 라운드에 서고, 모자란 판은 라운드 사이에 빈 자리를 고른다. 새 저장에는 그 칸들이 없다
+func ev1132():
+	var S = _save()
+	var cells: Array = _stage().hero_cells
+	var a = _picked(["aias", "sylvia"])
+	a.next_round()
+	var d: Dictionary = S.snapshot(a)
+	var pool := _hero_dicts(["seraphina", "vesper", "ignis", "aias", "sylvia"])  # 대기 영웅 사전의 재료
+	if a.state != "prep" or d.get("heroes", []).size() != 2 or pool.size() != 5:
+		return "준비가 틀렸다: 단계 %s · 저장의 영웅 %d · 영웅 사전 %d" % [a.state, d.get("heroes", []).size(), pool.size()]
+	var bare: Array = ["offers", "rerolls", "lineup"].filter(func(k): return d.has(k))  # 새 판의 저장에 남은 영입 칸
+	for f in pool.slice(0, 3):
+		d.heroes.append(f.duplicate(true))
+	d.heroes[3].relic = "slime_crown"  # 버려질 대기 영웅(베스퍼)이 유물을 끼고 있다
+	d.roster = [0, 1, 2, 3, 4]
+	d.lineup = [0, 1]
+	d.offers = ["vesper", "", ""]
+	d.rerolls = 2
+	d.relics = {"slime_crown": 0}
+	var b = _new(_stage())
+	S.apply(b, d)
+	if _kinds(b.roster) != ["aias", "sylvia", "seraphina"] or _kinds(b.heroes) != ["aias", "sylvia"]:
+		return "옛 저장(보유 다섯·출전 둘)을 불러온 보유 %s · 전장 %s(보유 [aias, sylvia, seraphina] · 전장 [aias, sylvia]여야 한다)" % [_kinds(b.roster), _kinds(b.heroes)]
+	if b.offers != HERO_SIX or b.relics != {"slime_crown": 0} or b.roster.any(func(h): return h.relic != "") or b.gold != d.gold:
+		return "불러온 판의 목록 %s(영웅 여섯) · 유물 가방 %s({slime_crown: 0}) · 보유 영웅이 낀 유물 %s(없어야) · 골드 %d(저장 %d)" % [b.offers, b.relics, b.roster.map(func(h): return h.relic), b.gold, d.gold]
+	var again: Dictionary = S.snapshot(b)
+	bare.append_array(["offers", "rerolls", "lineup"].filter(func(k): return again.has(k)))
+	if not bare.is_empty():
+		return "새 저장에 영입이 있던 때의 칸 %s가 있다(새 판의 저장에도, 옛 저장을 불러와 다시 뜬 저장에도 없어야 한다)" % [bare]
+	if not _clear_round(b):
+		return "불러온 판에서 1라운드를 이기지 못했다(%s)" % b.state
+	b.next_round()
+	var p = b.roster[2]
+	var stood: bool = b.state == "prep" and b.heroes == b.roster and b.roster.all(func(h): return h in b.units and h.present) and near(p.pos, cells[2], 0.01) and p.hp == p.max_hp
+	if not stood:
+		return "다음 라운드: 단계 %s · 전장 %s · 세라피나 자리 %s(셋째 출전 칸 %s) 체력 %s/%s" % [b.state, _kinds(b.heroes), p.pos, cells[2], p.hp, p.max_hp]
+	var e = _new(_stage())
+	e.begin_hiring()
+	var f: Dictionary = S.snapshot(e)
+	f.heroes = [pool[3], pool[4], pool[0], pool[1]].map(func(x): return x.duplicate(true))  # 아이아스·실비아·세라피나·베스퍼
+	f.roster = [0, 1, 2, 3]
+	f.lineup = [3, 1]
+	var g = _new(_stage())
+	S.apply(g, f)
+	if _kinds(g.roster) != ["sylvia", "vesper", "aias"]:
+		return "보유 [0,1,2,3]·출전 [3,1]인 옛 저장을 불러온 보유 %s([sylvia, vesper, aias]여야 한다 — 출전하던 영웅을 보유 순서대로 먼저, 대기 영웅을 보유 순서대로)" % [_kinds(g.roster)]
+	var one = _picked(["aias"])
+	one.next_round()
+	var o: Dictionary = S.snapshot(one)
+	o.heroes.append(pool[4].duplicate(true))
+	o.roster = [0, 1]
+	o.lineup = [0]
+	var h = _new(_stage())
+	S.apply(h, o)
+	var two: bool = _kinds(h.roster) == ["aias", "sylvia"] and _kinds(h.heroes) == ["aias"]
+	if not two or not _clear_round(h):
+		return "보유 둘·출전 하나인 옛 저장: 보유 %s · 전장 %s · 1라운드 뒤 단계 %s" % [_kinds(h.roster), _kinds(h.heroes), h.state]
+	var third = h.hire(h.offers.find("ignis")) if "ignis" in h.offers else null
+	return check(third != null and _kinds(h.roster) == ["aias", "sylvia", "ignis"], "영웅이 모자란 판의 라운드 사이에 이그니스를 고른 뒤 보유 %s(셋이어야 한다)" % [_kinds(h.roster)])
+
+# EV1147 · I308 ③: 대열로 걷는 중에 저장해도 가는 자리(post)와 같이 걷기 상한(pace)이 담겨 불러온 판이 같은 결과를 낸다.
+# 그 두 칸이 없는 옛 저장의 유닛은 자리·상한 없이 불러온다(저장 형식 판 그대로)
+func ev1147():
+	var stage := _stage()
+	var a = _new(stage)
+	var us := []
+	for want in [Vector2i(40, 68), Vector2i(41, 68), Vector2i(42, 69), Vector2i(43, 69)]:
+		var m = a.place_merc("soldier", _near(a, "soldier", want))
+		if m == null:
+			return "병사를 놓지 못했다"
+		us.append(m)
+	a.order_move(us, Vector2i(42, 76))
+	run(a, 1.0)
+	if us.any(func(u): return u.path.is_empty()):
+		return "1초에 걷는 길이 빈 병사가 있다(걷는 중에 저장해야 한다)"
+	var S = _save()
+	var snap: Dictionary = S.snapshot(a)
+	var dicts: Array = []
+	for x in snap.units:
+		if x is Dictionary and x.kind == "soldier":
+			dicts.append(x)
+	if dicts.size() != 4:
+		return "snapshot의 병사 사전 %d개(4)" % dicts.size()
+	for i in 4:
+		if not dicts[i].get("pace", 0.0) > 0.0 or dicts[i].get("post") != us[i].path.back():
+			return "snapshot의 병사 %d: pace %s(0보다 커야) · post %s(기대 길 끝 %s)" % [i, dicts[i].get("pace"), dicts[i].get("post"), us[i].path.back()]
+	var old: Dictionary = snap.duplicate(true)
+	var why := _twin(a, stage, func(_x): pass)
+	if why != "":
+		return why
+	var cells := []
+	for u in us:
+		var c := cell_of(u)
+		if u.pos.distance_to(Vector2(c)) > 0.05 or c in cells:
+			return "20초 뒤 병사 자리 %s(기대 서로 다른 칸 중심)" % [us.map(func(v): return v.pos)]
+		cells.append(c)
+	for x in old.units:
+		if x is Dictionary:
+			x.erase("pace")
+			x.erase("post")
+	var c = _new(stage)
+	S.apply(c, old)
+	var back: Array = c.units.filter(func(u): return u.kind == "soldier")
+	return check(c.units.size() == a.units.size() and back.size() == 4 and back.all(func(u): return u.pace == 0.0 and u.post == Vector2i(-1, -1)),
+		"pace·post 없는 저장: 유닛 %d(%d) · 병사 %d(4) · pace %s · post %s(기대 0·(-1,-1))" % [c.units.size(), a.units.size(), back.size(), back.map(func(u): return u.get("pace")), back.map(func(u): return u.get("post"))])
+
+# EV1154 · I309 ⑥: 줄에 선 채(길을 기다리는 유닛이 있는 채) 저장해도 기다리는 목적지 칸(due)이 담겨 불러온 판이 같은 결과를 낸다.
+# 그 칸이 없는 옛 저장의 유닛은 기다리지 않는 것으로 읽는다(저장 형식 판 그대로)
+func ev1154():
+	var stage := _stage()
+	stage.merge({"merc_cap": 40}, true)
+	var a = _new(stage)
+	var us := []
+	for i in 20:
+		var m = a.place_merc("soldier", _near(a, "soldier", Vector2i(38 + i % 5, 66 + i / 5)))
+		if m == null:
+			return "병사를 놓지 못했다"
+		us.append(m)
+	a.order_move(us, Vector2i(40, 80))
+	if in_line(us).size() != 4:
+		return "지시 직후 기다리는 병사 %d(4)" % in_line(us).size()
+	var S = _save()
+	var snap: Dictionary = S.snapshot(a)
+	var dues: int = snap.units.filter(func(x): return x is Dictionary and x.get("due", Vector2i(-1, -1)) != Vector2i(-1, -1)).size()
+	if dues != 4:
+		return "snapshot에서 due가 있는 유닛 사전 %d(4)" % dues
+	var old: Dictionary = snap.duplicate(true)
+	var b = _new(stage)
+	S.apply(b, snap)
+	var back: Dictionary = S.snapshot(b)
+	for k in snap:
+		if back.get(k) != snap[k]:
+			return "불러온 판의 snapshot «%s»가 다르다" % k
+	if in_line(b.units).size() != 4:
+		return "불러온 판에서 기다리는 병사 %d(4)" % in_line(b.units).size()
+	for x in [a, b]:
+		run(x, 20.0)
+	var sa := _sum(a)
+	var sb := _sum(b)
+	if sa != sb:
+		return "20초 뒤 두 판의 요약이 다르다"
+	if not in_line(a.units).is_empty() or not in_line(b.units).is_empty():
+		return "20초 뒤 기다리는 유닛 %d·%d(0)" % [in_line(a.units).size(), in_line(b.units).size()]
+	for x in old.units:
+		if x is Dictionary:
+			x.erase("due")
+	var c = _new(stage)
+	S.apply(c, old)
+	return check(c.units.size() == a.units.size() and in_line(c.units).is_empty(),
+		"due 없는 저장: 유닛 %d(%d) · 기다리는 유닛 %d(0)" % [c.units.size(), a.units.size(), in_line(c.units).size()])

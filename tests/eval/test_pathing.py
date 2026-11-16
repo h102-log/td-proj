@@ -36,3 +36,11 @@ def test_EV469_cross_water_by_bridge_only(gd):
 
 def test_EV472_order_into_water_stops_at_shore(gd):
     gd("pathing", "EV472")
+
+
+def test_EV1149_unit_routes_sixteen_per_order_and_step(gd):
+    gd("pathing", "EV1149")
+
+
+def test_EV1153_native_ground_route_same_cost_and_end(gd):
+    gd("pathing", "EV1153")

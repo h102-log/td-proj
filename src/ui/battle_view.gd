@@ -378,6 +378,17 @@ var _lone := {}  # 지난 프레임에 홀로였던 원정 보스 몸 id(S354 �
 var _dots := []  # 효과 점(I172): {p0, p1, rise, t0, life, fade, col, size, ground}
 var _fade := 1.0  # 지금 그리는 흔적의 불투명도(S179 2026-10-29). 아트 px 도우미가 색 알파에 곱한다
 var _slides := {}  # id → [지난 화면 자리, 시작 시각, 길이](S198 미끄러짐)
+# 대시 연출(S315 2026-11-16 변경, I261 ⑧). 시뮬레이션과 미끄러짐(S198, 2칸 0.12초)은 그대로 두고 잔상·먼지·자세만 더한다. 값은 시안(handoff/2026-11-16/r1-files/p4) 값이다
+const DASH_GHOSTS := 4  # 출발 → 도착 길의 잔상 수의 위 끝. 2칸을 다 가면 넷이다
+const DASH_STEP := 8.0  # 잔상 하나가 맡는 길(맵 px). 짧게 끊긴 대시는 잔상이 그만큼 준다(8px 이하는 출발 자리 하나)
+const DASH_GHOST := 0.18  # 잔상 하나가 사라지는 시간(초)
+const DASH_SIL := [["cream", 0.8], ["tan", 0.55], ["ash", 0.35]]  # 잔상 실루엣이 사라지며 거치는 [팔레트 색, 불투명도] 세 단. 이어서 흐려지지 않고 단으로 바뀐다
+const DASH_POSE := 0.1  # 미끄러짐이 없는 짧은 대시(8px 이하)가 걷기 자세를 잡는 시간(초)
+const DASH_KICK := 7  # 2칸을 다 간 대시의 출발 먼지 점 수. 짧게 끊기면 간 거리만큼 준다(아래 끝 3)
+const DASH_LAND := 4  # 2칸을 다 간 대시의 착지 먼지 점 수(아래 끝 2)
+var _dash_seen := {}  # 영웅 id → 마지막으로 본 판의 대시 번호(battle.dashed). 바뀐 프레임에 dash 사건을 낸다
+var _dashes := {}  # 영웅 id → 그리는 대시 {hero, from·to(맵 px), t0(화면 시계), len(미끄러짐 초, 없으면 0), dir(8방향), n(모양 씨앗), far(간 거리 ÷ 2칸), ghosts(잔상 수)}
+static var _sils := {}  # «종류:방향» → 걷기 그림 내딛는 칸의 흰 실루엣(ImageTexture). 영웅이 판에 처음 보일 때 아틀라스에서 굽는다(새 그림 파일은 없다)
 var _pops := {}  # 갈라져 나온 적 id → 나온 시각(S234 2026-10-29 변경)
 var _fills := []  # [보스 스킬 흔적, 남은 프레임](S198 발동 채움). tick마다 하나씩 줄인다. 기관총은 흔적 대신 {at, dir, range, arc}다
 var _firing := {}  # 발사 중으로 본 기관총 적(S198 발동 채움). tick이 처음 본 발사에 채움을 넣는다
@@ -512,6 +523,7 @@ func _draw() -> void:
 	for h in battle.heroes:  # 오라 반경(S113): 오라가 있는 살아 있는 영웅마다 둘레에 늘 엷게, 유닛 아래에(I101)
 		if h.alive and not h.aura.is_empty():
 			_aura_ring(h)
+	_dash_ghosts()  # 대시 잔상(I261 ⑧)은 몸통 아래
 	_bodies()
 	_wall_links()
 	_chain_links()
@@ -2949,6 +2961,12 @@ func _sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
 	elif moving:
 		anim = "walk"
 		col = int(Time.get_ticks_msec() / 125.0) % 4
+	var ds = _dashes.get(id)  # 대시(I261 ⑧): 미끄러지는 동안(짧은 대시는 DASH_POSE초) 대상이 있어도 대시 쪽을 보는 걷기 그림(내딛는 칸)이다
+	if ds != null and clock - ds.t0 < maxf(ds.len, DASH_POSE):
+		dir = ds.dir
+		anim = "walk"
+		col = 1
+		next[id] = [x.pos, dir]
 	var size := c * (2 if anim == "attack" else 1)  # 공격은 2배 캔버스(tools/art/hero.py)
 	var at := _spot(x) + _flinch(x) + _slip(x) - Vector2(a.anchor[0], a.anchor[1]) - Vector2.ONE * (size - c) / 2.0
 	_region(UNITS, Rect2(at, Vector2(size, size)), Rect2(col * size, a[anim] + dir * size, size, size), tint)
@@ -3366,6 +3384,11 @@ func tick(dt: float) -> void:
 		_react(e)
 	_dots = _dots.filter(func(d): return clock - d.t0 < d.life)
 	_slide_scan()
+	_dash_land()
+	for h in battle.heroes:  # 대시 잔상 실루엣(I261 ⑧): 영웅이 판에 처음 보일 때(대개 준비 단계) 한 번 굽는다. 첫 대시 때 아틀라스를 읽으면 그 프레임이 끊긴다
+		if not _sils.has("%s:0" % h.kind):
+			_bake_sils(battle.heroes.map(func(x): return x.kind))
+			break
 
 # 이번 프레임에 새로 생긴 사건(I171). 판 단계가 준비·전투일 때와, 전투에서 넘어온 라운드 사이·도전 성공·패배에서 낸다.
 # 근접의 닿음·처치는 공격자의 친 뒤 시간이 닿는 때(_contact)를 넘은 프레임에 공격 하나에 한 번이고, 처치는 쓰러진 대상을 노린 마지막 공격이 닿을 때다(S197).
@@ -3533,6 +3556,14 @@ func _scan() -> void:
 		if not _rubble.has(c):
 			_emit("collapse", _center(battle.middle(battle.rubble[c])), Vector2.ZERO, null, battle.rubble[c], {"cell": c})
 	_rubble = battle.rubble.duplicate()
+	var seen := {}
+	for h in battle.dashed:  # 영웅 대시(S315, I261 ⑧): 판이 남긴 대시 번호가 바뀐 영웅마다 한 번. 원정에 들고 나며 몸을 옮기는 것(I262)은 판이 남기지 않는다
+		var d: Array = battle.dashed[h]
+		var id: int = h.get_instance_id()
+		seen[id] = d[2]
+		if _dash_seen.get(id) != d[2]:
+			_emit("dash", _center(d[1]), (d[1] - d[0]).normalized(), h, null, {"from": _center(d[0])})
+	_dash_seen = seen
 	_primed = true
 
 # 막타가 닿았다(S197): dir이 있으면 그 몸이 번쩍이며 밀려 눕고, 없으면 바로 눕는다
@@ -3682,6 +3713,10 @@ func _react(e: Dictionary) -> void:
 				var d := Vector2.from_angle(deg_to_rad(-150.0 + i * 24.0 + _h(e.n, i, -8, 8)))
 				var p: Vector2 = e.at + d * e.radius * 0.8
 				_dot({"p0": p, "p1": p + d * _h(e.n, 10 + i, 10, 16), "col": PX.cream, "to": PX.gold, "size": Vector2(2, 2), "life": 0.3, "fade": 0.15})
+		"dash":  # 영웅 대시(I261 ⑧): 잔상·자세를 그릴 대시로 담는다. 미끄러짐 길이와 먼지는 이 프레임의 미끄러짐을 정한 뒤(_dash_land)
+			var far: float = e.from.distance_to(e.at)
+			_dashes[e.src.get_instance_id()] = {"hero": e.src, "from": e.from, "to": e.at, "t0": clock, "len": 0.0, "dir": _dir_of(e.at - e.from), "n": e.n,
+				"far": clampf(far / (battle.DASH.length * CELL), 0.0, 1.0), "ghosts": clampi(ceili(far / DASH_STEP), 1, DASH_GHOSTS), "fresh": true}
 
 # 부스러기 2점(S199): 좌우로 하나씩 4~7px 튀어 올랐다가 떨어진다
 func _debris(at: Vector2, n: int) -> void:
@@ -3760,6 +3795,79 @@ func _slide_scan() -> void:
 	for id in _pops.keys():
 		if clock - _pops[id] >= POP:
 			_pops.erase(id)
+
+# 대시(I261 ⑧): 이번 프레임에 담은 대시는 _slide_scan이 정한 미끄러짐 길이를 읽고(8px 이하 짧은 대시는 미끄러짐이 없어 0) 먼지를 낸다. 다 그린 대시는 버린다
+func _dash_land() -> void:
+	for id in _dashes.keys():
+		var d: Dictionary = _dashes[id]
+		if d.fresh:
+			var s = _slides.get(id)
+			d.len = s[2] if s != null and s[1] == clock else 0.0
+			d.fresh = false
+			_dash_dust(d)
+		elif clock - d.t0 > maxf(d.len, DASH_POSE) + DASH_GHOST:
+			_dashes.erase(id)
+
+# 대시 먼지(I261 ⑧): 출발 자리에서 뒤쪽으로 DASH_KICK점을 차내고, 몸이 닿는 때(미끄러짐 끝) 착지 자리 앞·옆으로 DASH_LAND점이 낮게 퍼진다. 크기는 기존 먼지(S198)와 같은 2×2이고,
+# 흙길 위에서 DUST만으로는 묻혀서(2026-11-16 시안 캡처) 크림색에서 DUST로 바뀐다. 짧게 끊긴 대시는 간 거리만큼 점 수와 퍼지는 거리가 준다
+func _dash_dust(d: Dictionary) -> void:
+	var back: Vector2 = (d.from - d.to).normalized()
+	var foot: Vector2 = d.from + Vector2(0, 2)
+	var reach: float = maxf(d.far, 0.5)
+	for i in clampi(roundi(DASH_KICK * d.far), 3, DASH_KICK):
+		var v := Vector2.from_angle(back.angle() + deg_to_rad(_h(d.n, i, -50, 50)))
+		_dot({"p0": foot, "p1": foot + Vector2(v.x, v.y * 0.6) * _h(d.n, 10 + i, 8, 16) * reach, "rise": _h(d.n, 20 + i, 1, 4), "col": PX.cream, "to": DUST, "size": Vector2(2, 2), "life": 0.3 + 0.02 * _h(d.n, 30 + i, 0, 4), "fade": 0.15})
+	var land: Vector2 = d.to + Vector2(0, 2)
+	for i in clampi(roundi(DASH_LAND * d.far), 2, DASH_LAND):
+		var v := Vector2.from_angle((-back).angle() + deg_to_rad(_h(d.n, 40 + i, -70, 70)))
+		_dot({"p0": land, "p1": land + Vector2(v.x, v.y * 0.6) * _h(d.n, 50 + i, 5, 9) * reach, "rise": _h(d.n, 60 + i, 0, 2), "col": PX.cream, "to": DUST, "size": Vector2(2, 2), "life": 0.3, "fade": 0.15, "wait": d.len})
+
+# 대시 잔상(I261 ⑧): 출발 → 도착 길의 잔상 자리에, 미끄러지는 몸이 그 자리를 지난 때부터 DASH_GHOST초 동안 세 단으로 바뀌며 사라진다(출발 쪽부터 사라진다). 몸통 아래 층이다.
+# 잔상 수는 간 거리 ÷ DASH_STEP(2칸이면 넷)이라 짧게 끊긴 대시에서 겹쳐 덩어리지지 않는다. 미끄러짐이 없는 짧은 대시는 출발 자리 하나가 툭 옮겨진 두 자리를 잇는다
+func _dash_ghosts() -> void:
+	for d in _dashes.values():
+		var t: float = clock - d.t0
+		for i in int(d.ghosts):
+			var u: float = float(i) / d.ghosts
+			var k: float = (t - d.len * (1.0 - sqrt(1.0 - u))) / DASH_GHOST  # _out으로 미끄러지는 몸이 u 자리를 지나는 때는 len × (1 − √(1 − u))다
+			if k < 0.0 or k >= 1.0:
+				continue
+			var step: Array = DASH_SIL[clampi(int(k * DASH_SIL.size()), 0, DASH_SIL.size() - 1)]
+			_hero_sil(d.hero.kind, d.from.lerp(d.to, u).round(), d.dir, Color(PX[step[0]], step[1]))
+
+# 영웅 걷기 그림(내딛는 칸)의 단색 실루엣을 발 자리 p에 그린다. 색은 tint가 정한다
+func _hero_sil(kind: String, p: Vector2, dir: int, tint: Color) -> void:
+	var tex = _sils.get("%s:%d" % [kind, dir])
+	if tex == null:
+		return
+	var a: Dictionary = ART[kind]
+	var c := int(a.c)
+	_region(tex, Rect2(p - Vector2(a.anchor[0], a.anchor[1]), Vector2(c, c)), Rect2(0, 0, c, c), tint)
+
+# 영웅 종류마다 여덟 방향 걷기 그림 내딛는 칸(둘째 칸)의 불투명한(α>0.5) 점을 흰색으로 바꾼 실루엣을 굽는다. 아틀라스 그림은 한 번만 읽고 버린다.
+# 그림이 없는 종류는 빈 값으로 둔다(다시 굽지 않게)
+static func _bake_sils(kinds: Array) -> void:
+	var img: Image = null
+	for kind in kinds:
+		if _sils.has("%s:0" % kind):
+			continue
+		if not ART.has(kind) or not ART[kind].has("walk"):
+			for dir in 8:
+				_sils["%s:%d" % [kind, dir]] = null
+			continue
+		if img == null:
+			img = UNITS.get_image()
+			if img.is_compressed():
+				img.decompress()
+			img.convert(Image.FORMAT_RGBA8)
+		var a: Dictionary = ART[kind]
+		var c := int(a.c)
+		for dir in 8:
+			var im := img.get_region(Rect2i(c, int(a.walk) + dir * c, c, c))
+			for y in c:
+				for x in c:
+					im.set_pixel(x, y, Color(1, 1, 1, 1.0 if im.get_pixel(x, y).a > 0.5 else 0.0))
+			_sils["%s:%d" % [kind, dir]] = ImageTexture.create_from_image(im)
 
 # 미끄러지는 몸을 그릴 자리와 시뮬레이션 자리의 차(S198)
 func _slip(x) -> Vector2:
@@ -4342,12 +4450,14 @@ static func _open_cells(b, road: Dictionary) -> Array:
 				out.append(c)
 	return out
 
-# 켜진 벽 횃불 수(S317, I262 ⑨): 원정이 아니면 모두다. 원정 중이면 불꽃이 다 타는 시간의 1/4이 지날 때마다 하나씩 준다
+# 켜진 벽 횃불 수(S317, I262 ⑨): 원정이 아니거나 불꽃이 다 타지 않는 층(층 정의 hard 0, S316 2026-11-16 변경)이면 모두다.
+# 다 타는 층의 원정 중이면 다 타는 시간의 1/4이 지날 때마다 하나씩 준다
 func den_torches() -> int:
 	var n: int = battle.den.get("lamps", []).size()
-	if battle.state != "raid" or battle.raid_floor.is_empty():
+	var hard: float = battle.raid_floor.get("hard", 0.0)
+	if battle.state != "raid" or hard <= 0.0:
 		return n
-	return clampi(n - floori(battle.flame / (battle.raid_floor.hard / n)), 0, n)
+	return clampi(n - floori(battle.flame / (hard / n)), 0, n)
 
 # 보스방 바닥(S317): 방 사각형 크기에 흙 타일 변종을 깔고 점액 얼룩을 몇 개 얹는다. 모서리 막힌 칸은 비운다(아래 바위가 보인다).
 # 동굴 색은 그릴 때 DEN_TINT를 곱한다

@@ -5,8 +5,8 @@ extends CanvasLayer
 # 고른 구조물에 따라 같은 자리에 철거(S74)·이어 짓기·취소(전투 단계, live 판의 준비 단계)와 완성(live가 아닌 준비 단계) 버튼도 띄운다(S83, I175). 대포면 옮기기(S91)도 띄운다.
 # 성곽 칸을 고르면 같은 자리에 성문 열기·닫기(S85)와 업그레이드(S86) 버튼을 띄운다. 거점을 고르면 마을 레벨 올리기(S100) 버튼을 띄운다.
 # 고른 것 가운데 깎인 것이 있으면 수리(S116, I90), 잔해를 고르면 복구(I89) 버튼도 같은 자리에 띄운다.
-# 영입 창(도전 시작 전 S122·라운드 사이 S117)이면 결과 창 안에 영입 칸을 띄운다: 목록 영입·리롤·출전 전환·내보내기(S54, I110),
-# 보유 영웅의 레벨·경험치(I117), 라운드 사이의 경험치 이관(S127, I116).
+# 영웅 고르기 창(도전 시작 전 S122·S373)과 라운드 사이 창(S117)이면 결과 창 안에 영웅 칸을 띄운다: 고르기 창은 영웅 카드 여섯을 눌러 고르고 빼기(S54, I303),
+# 고른 영웅의 레벨·경험치(I117), 라운드 사이의 경험치 이관(S127, I116).
 # 준비·전투 단계에는 임무 칸에 미션의 점을 보이고, 라운드 첫 준비 단계와 조건이 깨질 때 토스트를 띄운다. 결과 창에 지난 라운드의 달성·실패를 보인다(I122).
 # 결과 창의 버튼만 키보드 포커스를 받는다. 창이 열리면 «1라운드 시작»·«다음 라운드»·«새 도전»에 포커스가 간다(I12, I110)
 # 출전 영웅 칸마다 초상(누르면 고르기, 두 번이면 카메라, I165)·그림 상태 스킬 칸(좌클릭은 쓰기, 우클릭은 자동 시전, I151, skill_cell.gd)·체력 막대와 쓰러짐(I129)을,
@@ -64,7 +64,6 @@ const HudMinimap := preload("res://src/ui/hud_minimap.gd")
 const HudToast := preload("res://src/ui/hud_toast.gd")
 const HudAlert := preload("res://src/ui/hud_alert.gd")
 const HudEvac := preload("res://src/ui/hud_evac.gd")
-const HudShop := preload("res://src/ui/hud_shop.gd")
 const HudAuto := preload("res://src/ui/hud_auto.gd")
 const HudKeep := preload("res://src/ui/hud_keep.gd")
 const Hints := preload("res://src/ui/hints.gd")
@@ -76,8 +75,8 @@ const BAR := {  # 위 띠 칸 자리(S185, 임시값)
 	"status": Rect2(4, 2, 96, 24), "mission": Rect2(104, 2, 24, 24), "engineer": Rect2(130, 2, 20, 24),
 	"hero0": Rect2(156, 2, 104, 24), "hero1": Rect2(264, 2, 104, 24), "hero2": Rect2(372, 2, 104, 24),
 	"progress": Rect2(480, 2, 136, 24), "menu": Rect2(620, 2, 16, 24)}
-const POP_AT := Rect2(4, 30, 52, 12)  # 인구 칸(I225 ③): 위 띠 바로 아래 왼쪽, 상태 묶음 밑
-const TOWERS_AT := Rect2(60, 30, 52, 12)  # 타워 칸(I246 ④): 인구 칸 오른쪽
+const POP_AT := Rect2(4, 30, 58, 12)  # 인구 칸(I225 ③): 위 띠 바로 아래 왼쪽, 상태 묶음 밑. 폭은 «인구 150/150»이 테두리에 닿지 않게
+const TOWERS_AT := Rect2(66, 30, 52, 12)  # 타워 칸(I246 ④): 인구 칸 오른쪽
 const FLASH := 0.2  # 거점이 맞으면 체력 막대가 하얗게 번쩍이는 초(S190 임시값)
 const MISSION_SECS := 6.0  # 라운드 첫 미션 토스트를 보이는 초(I122 임시값)
 const RESULT_WAIT := 1.0  # 전투에서 넘어온 결과 창을 늦추는 초(S117, 사용자 2026-10-22)
@@ -176,8 +175,7 @@ var grid  # 건설 격자·정보 칸(S186)
 var select  # 선택 패널(S206). 건설 격자 바로 왼쪽
 var minimap  # 미니맵(S209). 왼쪽 아래 구석
 var evac  # 대피령 버튼(S230). 미니맵 바로 위
-var shop  # «영입» 버튼(S272, I207). 대피령 버튼 바로 위
-var auto_all  # «전체 오토» 버튼(S313, I259). 영입 버튼 바로 위
+var auto_all  # «전체 오토» 버튼(S313, I259). 왼쪽 아래 [3,210,60,26]. 그 아래 영입 버튼이 있던 자리는 비어 있다(I303 ⑤)
 var keep  # 거점 패널(S365, I298). 화면 아래 미니맵 오른쪽
 var hp_button: Button  # 체력바 버튼(S276). 대피령 버튼 오른쪽, 누르면 V 키와 같다
 var view  # 맵 그림(BattleView). 미니맵이 구운 바닥을 빌린다. main이 넣는다
@@ -201,9 +199,9 @@ var _boss_fill := ColorRect.new()
 var _boss_track := ColorRect.new()  # 보스 체력 막대의 바탕. 광분 글(S337 ④)이 길면 그만큼 오른쪽으로 줄인다
 var _raid_seen := false  # 지난 프레임에 원정이었나. 바뀌면 덮개를 다시 덮는다
 var _fade_t := FADE  # 덮개가 덮인 뒤 지난 초. FADE 넘으면 숨는다
-var gauge: Button  # 진행 칸의 웨이브 버튼: 준비 단계 다음 웨이브(S188)·전투 단계 계기판·영입·승패(I13)
+var gauge: Button  # 진행 칸의 웨이브 버튼: 준비 단계 다음 웨이브(S188)·전투 단계 계기판·영웅 고르기·다음 라운드·승패(I13)
 var skull: TextureRect  # 진행 칸의 보스 해골(S188)
-var moon: TextureRect  # 진행 칸의 달(S214): 준비 단계·영입·라운드 사이는 다음 웨이브, 전투 단계는 이번 웨이브가 밤이면
+var moon: TextureRect  # 진행 칸의 달(S214): 준비 단계·고르기 창·라운드 사이는 다음 웨이브, 전투 단계는 이번 웨이브가 밤이면
 var _dusk := []  # «해가 진다» 토스트를 띄운 웨이브 [라운드, 웨이브](S214). 준비 단계에 비운다
 var edges := Control.new()  # 화면 밖 출현 지점의 아래 가장자리 표식(S188). 출현 지점마다 하나
 var _g1: Label  # 웨이브 버튼 윗줄
@@ -243,23 +241,22 @@ var _upgrade: Button
 var _repair: Button
 var _restore: Button
 var _heal := []  # 교회 팝업: 출전 영웅마다 치료 버튼(S137, I140)
-var window := PanelContainer.new()  # 결과·영입 창(S117). 영입·라운드 사이는 [16,34] 폭 608, 결과는 [170,110,300,110](I136)
+var window := PanelContainer.new()  # 결과·영웅 고르기 창(S117, S373). 고르기 창·라운드 사이는 [16,34] 폭 608, 결과는 [170,110,300,110](I136)
 var dim := ColorRect.new()  # 창이 떠 있으면 띠 아래 맵을 덮는다(S117)
 var _result_label := Label.new()
 var _loot := HBoxContainer.new()  # 라운드 승리 창의 전리품 줄(S252): 장비 큰 아이콘(S274)과 글
 var _loot_pic: TextureRect
 var _loot_text := Label.new()
 var _next: Button  # 결과 창의 «1라운드 시작»·«다음 라운드»·«새 도전»
-var _hire := VBoxContainer.new()  # 결과 창 안의 영입 칸
+var _hire := VBoxContainer.new()  # 결과 창 안의 영웅 칸(S373, I303 ③④). 이름은 영입이 있던 때의 것이다
 var _hire_info := Label.new()
-var _offers := []  # 목록 칸마다 영입 카드(I110)
-var _offer_kinds := []  # 목록 칸마다 마지막으로 본 영웅 종류. 영입한 칸은 그 초상을 흐리게 남긴다
-var _note := Label.new()  # 상한에서 리롤을 누르면 보이는 빨간 이유(I127)
-var _reroll: Button
-var _members := []  # 보유 영웅마다 [출전·대기 전환 버튼, 내보내기 버튼, 이관 버튼]
+var _offers := []  # 목록 칸마다 영웅 카드(I303 ③)
+var _left := VBoxContainer.new()  # 영웅 칸의 왼쪽 칸(카드). 영웅이 출전 인원만큼인 라운드 사이에는 숨는다(I303 ④)
+var _members := []  # 영웅 줄마다 [글, 이관 버튼]
+var _short := false  # 지난 프레임에 다 고르기 전이었나(I303 ②)
 var _giver = null  # 이관(I116)에서 먼저 고른 주는 영웅
-var _tabs := HBoxContainer.new()  # 라운드 사이 창 머리의 «영입»·«장비» 전환(S248)
-var _gear_tab := false  # 장비 칸을 보는 중. 창이 새로 뜨면 영입 칸이다
+var _tabs := HBoxContainer.new()  # 라운드 사이 창 머리의 «영웅»·«장비» 전환(S248)
+var _gear_tab := false  # 장비 칸을 보는 중. 라운드 사이 창이 새로 뜨면 장비 칸이고, 영웅이 출전 인원보다 적으면 영웅 칸이다(S248)
 var _gear := VBoxContainer.new()  # 장비 칸(S248)
 var _gear_info := Label.new()
 var _gear_rows := []  # 장비마다 [영웅 종류, 줄 글, 제작·강화 버튼, 장착·해제 버튼, 줄 머리 아이콘(S274)]
@@ -277,7 +274,9 @@ var fix_tag: Button  # 고른 공병의 자동 수리 태그(I210). tags(A·S·H
 var _fix_pic: TextureRect  # 자동 수리 태그의 망치 그림. 밝기가 끔·켬·섞임이다
 var portraits := []  # 출전 칸마다 초상 버튼(I129). 누르면 그 영웅을 고른다(I165)
 var slots := []  # 출전 칸마다 {칸: 스킬 칸}(I151)
-var _rows := []  # 출전 칸마다 {pic: 초상 그림, dash: 대시 대기 막(I261 ⑦), lv: 레벨 글, hp·mp: 막대, down: «쓰러짐»}(I129)
+var _rows := []  # 출전 칸마다 {pic: 초상 그림, dash: 대시 대기 막(I261 ⑦), lv: 레벨 글, hp·mp: 막대, down: «쓰러짐», face: 초상 버튼, secs: 남은 대시 초, no: 대시 거부 테두리, point: 스킬 쓸 영웅 세모(I310), picked: 고른 칸 모양인가, reject: 거부 표시를 시작한 때(_now)}(I129)
+const SECS := 10  # 초상 위 남은 대시 초(I261 ⑦)의 글자 크기. 스킬 칸(18px 칸에 8px)과 같은 비율이다. 8px은 막이 얇을 때 초상 그림에 묻히고 레벨 숫자(7px)와 헷갈렸다(2026-11-16 시안 캡처)
+const POINTER := ["oo....", "o#o...", "o##o..", "o###o.", "o####o", "o###o.", "o##o..", "o#o...", "oo...."]  # 스킬 쓸 영웅 세모(I310 ②): 안쪽 4×7과 어두운 테. 초상 안 (20,7)에 두면 끝이 초상과 Q 칸 사이 틈(x 24)에 닿는다
 var _faces := {}  # 영웅 종류 → 초상 대역 그림(S30)
 var _now := 0.0  # HUD 시계(초). 맥박·거부 표시·두 번 누름(I165)
 var _taps := {}  # 출전 칸 → 마지막으로 F키·초상을 누른 때(_now)
@@ -352,6 +351,25 @@ func _ready() -> void:
 		row.lv.size = Vector2(11, 8)
 		row.gear = _pic(face, null, Vector2(8, 8))  # 낀 장비 작은 아이콘(S274): 초상 왼쪽 아래 귀퉁이
 		row.gear.position = Vector2(1, 15)
+		row.face = face
+		row.secs = _text(face, SECS, HudTheme.TEXT)  # 남은 대시 초(I261 ⑦): 대기 막 위 가운데. 초상 그림 위라 검은 테를 둔다(건설 격자 비용 글과 같은 값)
+		row.secs.add_theme_color_override("font_outline_color", Color.BLACK)
+		row.secs.add_theme_constant_override("outline_size", 3)
+		row.secs.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		row.secs.position = Vector2(0, 4)
+		row.secs.size = Vector2(24, 14)
+		row.no = Panel.new()  # 대기 중 Space 거부 테두리(I261 ⑦): 스킬 칸 거부(I151)와 같은 색·길이
+		var no_box := StyleBoxFlat.new()
+		no_box.draw_center = false
+		no_box.border_color = HudTheme.DANGER
+		no_box.set_border_width_all(1)
+		row.no.add_theme_stylebox_override("panel", no_box)
+		row.no.size = face.size
+		face.add_child(row.no)
+		row.point = _pic(face, HudBuild.dots(POINTER, {"#": HudTheme.ACCENT, "o": HudTheme.MAP_EDGE}), Vector2(6, 9))  # 거부 테두리보다 뒤 자식이라 위에 그린다(I310 ②)
+		row.point.position = Vector2(20, 7)
+		row.picked = false
+		row.reject = -INF
 		tip.add(face, func(): return _hero_tip(i))
 		portraits.append(face)
 		var cells_of := {}
@@ -381,6 +399,7 @@ func _ready() -> void:
 		_rows.append(row)
 	controls.hero_key.connect(_tap)
 	controls.skill_keyed.connect(_skill_refuse)
+	controls.dash_refused.connect(_dash_refuse)
 	_make_progress()
 	var menu := _cell("menu", _bar_button(bar, "", func(): menu_pressed.emit()))
 	_pic(menu, HudBuild.dots(MENU), Vector2(8, 7)).position = Vector2(4, 8)
@@ -432,7 +451,7 @@ func _ready() -> void:
 	root.add_child(chip)
 	controls.refused.connect(func(cell, why): _refused = [cell, _now, why])
 	controls.facility_key.connect(func(f): _focus(Vector2(f.cell)))  # 용병 키로 고른 시설로 카메라(S81, I164)
-	# 창은 윗변을 고정해 아래로만 자란다(I136). 영입·라운드 사이는 두 칸: 왼쪽 영입 카드·리롤, 오른쪽 보유 5칸, 진행 버튼은 오른쪽 아래
+	# 창은 윗변을 고정해 아래로만 자란다(I136). 고르기 창·라운드 사이의 영웅 칸은 두 칸: 왼쪽 영웅 카드 여섯, 오른쪽 영웅 줄 셋, 진행 버튼은 오른쪽 아래
 	dim.position = VIEW.position
 	dim.size = VIEW.size
 	dim.color = Color(0, 0, 0, 0.5)
@@ -450,7 +469,7 @@ func _ready() -> void:
 	box.add_child(_tabs)
 	for on in [false, true]:
 		var t := _window_button(_tabs, func(): _gear_tab = on)
-		t.text = "장비" if on else "영입"
+		t.text = "장비" if on else "영웅"
 		t.toggle_mode = true
 		t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	box.add_child(_hire)
@@ -497,33 +516,23 @@ func _ready() -> void:
 	var cols := HBoxContainer.new()
 	cols.add_theme_constant_override("separation", 8)
 	_hire.add_child(cols)
-	var left := VBoxContainer.new()
 	var right := VBoxContainer.new()
-	for col in [left, right]:
+	for col in [_left, right]:
 		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		cols.add_child(col)
-	for v in [box, _hire, left, right]:
+	for v in [box, _hire, _left, right]:
 		v.add_theme_constant_override("separation", 2)
 	_gear.add_theme_constant_override("separation", 1)  # 장비 칸은 줄 사이 1px(I293 ④): 유물 다섯·미션·전리품 줄이 있어도 창이 화면 안에 든다
-	for i in battle.HIRE.slots:
-		_offers.append(_card(left, i))
-		_offer_kinds.append("")
-	_reroll = _window_button(left, _reroll_press)
-	tip.add(_reroll, func(): return ["리롤", "", "", "목록을 새로 뽑는다", _cap_note()])
-	_note.add_theme_color_override("font_color", HudTheme.DANGER)
-	_note.add_theme_font_size_override("font_size", 8)
-	left.add_child(_note)
-	for i in battle.HIRE.cap:  # 보유 칸은 늘 cap줄이다. 빈 칸도 자리를 지킨다(I136)
+	for i in battle.offers.size():  # 영웅 카드는 목록 칸 수만큼(여섯, S373)
+		_offers.append(_card(_left, i))
+	for i in battle.HIRE.lineup:  # 영웅 줄은 늘 출전 인원만큼이다. 빈 줄도 자리를 지킨다(I136)
 		var member := HBoxContainer.new()
 		right.add_child(member)
-		var toggle := _window_button(member, func(): battle.set_lineup(battle.roster[i], battle.roster[i] not in battle.lineup))
-		toggle.toggle_mode = true
-		toggle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var drop := _window_button(member, func(): battle.dismiss(battle.roster[i]))
+		var line := _text(member, 10, HudTheme.TEXT)
+		line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var give := _window_button(member, func(): _give(battle.roster[i]))
-		tip.add(drop, func(): return ["내보내기", "", "", "보유에서 뺀다 · 골드는 돌려받지 못한다", ""])
 		tip.add(give, func(): return _give_tip(i))
-		_members.append([toggle, drop, give])
+		_members.append([line, give])
 	var foot := HBoxContainer.new()
 	foot.alignment = BoxContainer.ALIGNMENT_END
 	foot.size_flags_vertical = Control.SIZE_EXPAND | Control.SIZE_SHRINK_END  # 결과 창(높이 110 고정)에서도 진행 버튼이 오른쪽 아래
@@ -537,8 +546,6 @@ func _ready() -> void:
 	root.add_child(minimap)
 	evac = HudEvac.new(self)
 	root.add_child(evac)
-	shop = HudShop.new(self)
-	root.add_child(shop)
 	auto_all = HudAuto.new(self)
 	root.add_child(auto_all)
 	keep = HudKeep.new(self)
@@ -751,36 +758,32 @@ func _process(delta: float) -> void:
 	chip.reset_size()
 	_show_heroes()
 	var fresh: bool = battle.state != _seen
-	if fresh:  # 전투에서 라운드 사이·도전 성공·패배로 넘어오면 결과 창을 늦춰 마지막 처치를 보인다(S117). 영입 창·이어하기는 바로 뜬다
+	if fresh:  # 전투에서 라운드 사이·도전 성공·패배로 넘어오면 결과 창을 늦춰 마지막 처치를 보인다(S117). 고르기 창·이어하기는 바로 뜬다
 		_wait = RESULT_WAIT if _seen == "battle" and battle.state in ["cleared", "won", "lost"] else 0.0
 	_wait = maxf(_wait - delta, 0.0)
 	var was: bool = window.visible
-	if controls.shop and battle.state not in ["prep", "battle"]:  # 준비·전투 단계를 벗어나면 언제든 영입 창은 닫힌다(S272)
-		controls.set_shop(false)
-	var anytime: bool = controls.shop  # 언제든 영입 창(S272, I206)
-	var wide: bool = battle.hiring_open() or anytime
-	window.visible = (battle.state in ["hiring", "cleared", "won", "lost"] and _wait == 0.0) or anytime
-	dim.visible = window.visible and not anytime  # 언제든 영입 창은 판을 덮지 않는다(I206)
+	var wide: bool = battle.hiring_open()
+	window.visible = battle.state in ["hiring", "cleared", "won", "lost"] and _wait == 0.0
+	dim.visible = window.visible
 	window.position = Vector2(16, 34) if wide else Vector2(170, 110)  # I136 임시값
 	window.custom_minimum_size = Vector2(608, 0) if wide else Vector2(300, 110)
-	_result_label.text = "영입" if anytime else {"hiring": "도전 시작 — 영웅 영입", "cleared": "%d라운드 승리" % round_no, "won": "도전 성공!", "lost": "%d라운드 패배 — 도전 끝" % round_no}.get(battle.state, "")
+	_result_label.text = {"hiring": "도전 시작 — 영웅 고르기", "cleared": "%d라운드 승리" % round_no, "won": "도전 성공!", "lost": "%d라운드 패배 — 도전 끝" % round_no}.get(battle.state, "")
 	for s in battle.settled:  # 지난 라운드의 미션 판정(I120, I122)
 		var q: Dictionary = battle.QUEST_KINDS[s[0]]
 		_result_label.text += "\n%s «%s» %s" % ["미션", q.text, "달성 +%d골드" % q.reward if s[1] else "실패"]
-	_loot.visible = not battle.dropped.is_empty() and not anytime  # 이번 전리품(S252): 장비 큰 아이콘과 글(S274)
+	_loot.visible = not battle.dropped.is_empty()  # 이번 전리품(S252): 장비 큰 아이콘과 글(S274)
 	if _loot.visible:
 		var d: Array = battle.dropped
 		var title: String = battle.GEAR_KINDS[d[0]].title
 		_loot_pic.texture = HudBuild.gear_icon(d[0])
 		_loot_text.text = "전리품 %s" % title if d[1] < 0 else "전리품 %s +%d → +%d" % [title, d[1], d[2]]
-	_next.text = "닫기 (T)" if anytime else {"hiring": "1라운드 시작 (Enter)", "cleared": "다음 라운드 (Enter)"}.get(battle.state, "새 도전 (Enter)")
+	_next.text = {"hiring": "1라운드 시작 (Enter)", "cleared": "다음 라운드 (Enter)"}.get(battle.state, "새 도전 (Enter)")
+	var short: bool = _short_now()
+	_next.disabled = short
 	if fresh:
 		_seen = battle.state
 		_giver = null
-		_gear_tab = false  # 창이 새로 뜨면 영입 칸(S248)
-		_note.text = ""  # 상한 리롤 이유는 그 창에서만(I127)
-	if window.visible and (fresh or not was):  # 포커스는 창이 처음 보이는 프레임에(I110, S117)
-		_next.grab_focus()
+		_gear_tab = battle.state == "cleared" and battle.roster.size() >= battle.lineup_size()  # 창이 새로 뜨면 «장비» 쪽, 영웅이 모자라면 «영웅» 쪽(S248)
 	_tabs.visible = battle.state == "cleared"  # 장비 전환은 라운드 사이 창에만(S248)
 	_tabs.get_child(0).button_pressed = not _gear_tab
 	_tabs.get_child(1).button_pressed = _gear_tab
@@ -790,6 +793,9 @@ func _process(delta: float) -> void:
 		_show_hire()
 	if _gear.visible:
 		_show_gear()
+	if window.visible and (fresh or not was or (_short and not short)):  # 포커스는 창이 처음 보이는 프레임과 다 고른 순간에(I110, S117, I303 ②)
+		_home().grab_focus()
+	_short = short
 	window.reset_size()
 	if not prep or controls.placing != "":  # 전투가 시작되거나 놓기 모드에 들어가면 판매 팝업을 닫는다(I58)
 		controls.selling = []
@@ -902,7 +908,7 @@ func _pop(row: Control, on_press: Callable, name: String, icon: Texture2D = null
 	tip.add(b, func(): return [name, "", "", _steps.get(b, ""), "✕ " + _why[b] if _why.get(b, "") != "" else ""], popup)
 	return b
 
-# 인구 칸 툴팁(I225 ③): «용병 n명 · 상한 m(거점 4 + 집 k채 × 4)»
+# 인구 칸 툴팁(I225 ③): «용병 n명 · 상한 m(거점 몫 + 집 k채 × 집 몫)»
 func _pop_line() -> String:
 	return "용병 %d명 · 상한 %d(거점 %d + 집 %d채 × %d)" % [battle.pop_used(), battle.pop_cap(), battle.POP_BASE, battle.pop_houses().size(), battle.STRUCTURE_KINDS.house.pop]
 
@@ -1105,7 +1111,7 @@ func _show_progress() -> void:
 				_line(_g1, 9, HudTheme.TEXT, Rect2(4, 1, 60, 11))
 				_line(_g2, 8, HudTheme.DIM, Rect2(4, 12, 80, 11))
 				skull.position = Vector2(124, 14)
-			"raid":  # 원정(S317, I262 ⑧): 윗줄 남은 불꽃·횃불, 아랫줄 층
+			"raid":  # 원정(S317, I262 ⑧): 윗줄 남은 불꽃·횃불(불꽃이 다 타지 않는 층은 횃불만), 아랫줄 층
 				_line(_g1, 9, HudTheme.ACCENT, Rect2(3, 1, 80, 11))
 				_line(_g2, 8, HudTheme.DIM, Rect2(3, 12, 80, 11))
 			_:
@@ -1119,10 +1125,10 @@ func _show_progress() -> void:
 			_g1.text = "남은 적 %d" % battle.enemies_left()
 			_fill.size = Vector2(128.0 * (1.0 - float(battle.enemies_left()) / maxi(_total([battle.round_index, battle.wave_index]), 1)), 3)
 		"hiring", "cleared":
-			_g1.text = "영입"
+			_g1.text = "영웅 고르기" if st == "hiring" else "다음 라운드"
 			_g2.text = "다음 적 %d" % _total(nw)
 		"raid":
-			_g1.text = tr("불꽃 %d · 횃불 %d") % [_flame_left(), battle.torches]
+			_g1.text = tr("불꽃 %d · 횃불 %d") % [_flame_left(), battle.torches] if _timed() else tr("횃불 %d") % battle.torches
 			_g2.text = tr("원정 %d층") % (battle.floors_cleared + 1)
 		_:
 			_g1.text = {"won": "승리", "lost": "패배"}[st]
@@ -1153,7 +1159,7 @@ func _wave_dots(n: int, now: int) -> Texture2D:
 		_dot_tex[k] = HudBuild.dots(rows, {"#": HudTheme.TEXT, "c": HudTheme.ACCENT, "o": HudTheme.DIM})
 	return _dot_tex[k]
 
-# 진행 칸이 보이는 웨이브 [라운드, 웨이브](S188): 준비 단계는 곧 부를 웨이브, 전투 단계는 그다음, 영입·라운드 사이는 다음 라운드 첫 웨이브. 없으면 []
+# 진행 칸이 보이는 웨이브 [라운드, 웨이브](S188): 준비 단계는 곧 부를 웨이브, 전투 단계는 그다음, 고르기 창·라운드 사이는 다음 라운드 첫 웨이브. 없으면 []
 func _next_wave() -> Array:
 	match battle.state:
 		"prep":
@@ -1189,7 +1195,7 @@ func _wave_lines(rw: Array) -> String:
 		lines.append(tr("밤 — 전투 %d초에 해가 진다") % int(battle.night(rw[0], rw[1]).get("at", 0.0)))
 	return "\n".join(lines)
 
-# 웨이브 버튼 툴팁(S188): 준비 단계는 곧 부를 웨이브, 전투 단계는 그다음 웨이브, 영입·라운드 사이는 다음 라운드 첫 웨이브의 출현 지점별 구성
+# 웨이브 버튼 툴팁(S188): 준비 단계는 곧 부를 웨이브, 전투 단계는 그다음 웨이브, 고르기 창·라운드 사이는 다음 라운드 첫 웨이브의 출현 지점별 구성
 func _wave_tip() -> Array:
 	var nw := _next_wave()
 	match battle.state:
@@ -1199,13 +1205,18 @@ func _wave_tip() -> Array:
 			return ["남은 적 %d" % battle.enemies_left(), "", "", ("다음 웨이브\n" + _wave_lines(nw) if not nw.is_empty() else "이 라운드의 마지막 웨이브") + "\n누르면 거점에 가장 가까운 적을 비춘다", ""]
 		"hiring", "cleared":
 			return ["다음 라운드 첫 웨이브", "", "", _wave_lines(nw), ""]
-		"raid":  # 원정(S317)
-			return [tr("원정 %d층") % (battle.floors_cleared + 1), "", "", tr("남은 불꽃 %d초 · 횃불 %d자루\n불꽃이 다 타면 이번 원정은 진다") % [_flame_left(), battle.torches], ""]
+		"raid":  # 원정(S317). 불꽃이 다 타지 않는 층은 횃불 줄만 보인다
+			var body: String = tr("남은 불꽃 %d초 · 횃불 %d자루\n불꽃이 다 타면 이번 원정은 진다") % [_flame_left(), battle.torches] if _timed() else tr("횃불 %d자루") % battle.torches
+			return [tr("원정 %d층") % (battle.floors_cleared + 1), "", "", body, ""]
 	return [{"won": "승리", "lost": "패배"}[battle.state], "", "", "", ""]
 
 # 원정의 남은 불꽃 초(올림, I262 ⑧). 원정이 아니면 0
 func _flame_left() -> int:
 	return ceili(maxf(battle.raid_floor.get("hard", 0.0) - battle.flame, 0.0))
+
+# 이번 원정의 불꽃이 다 타는 층인가(층 정의 hard가 0보다 크다). 0이면 시간 제한이 없어 남은 불꽃 초를 보이지 않는다(S316 2026-11-16 변경)
+func _timed() -> bool:
+	return battle.raid_floor.get("hard", 0.0) > 0.0
 
 # 전투 중 진행 칸을 누르면 거점에 가장 가까운 적에게 카메라가 간다(I13, I164)
 func _to_enemy() -> void:
@@ -1278,15 +1289,14 @@ func _start_battle() -> void:
 	controls.placing = ""
 	battle.start_battle()
 
-# 결과 창의 버튼(S117): 영입 창이면 1라운드나 다음 라운드로, 도전이 끝났으면 새 도전을 시작한다. main이 Enter로도 부른다(I94)
+# 결과 창의 버튼(S117): 고르기 창·라운드 사이면 1라운드나 다음 라운드로, 도전이 끝났으면 새 도전을 시작한다. main이 Enter로도 부른다(I94)
 func proceed() -> void:
-	if controls.shop:  # 언제든 영입 창의 «닫기 (T)»(I206)
-		controls.set_shop(false)
-		return
 	if _wait > 0.0:  # 결과 창을 기다리는 동안 Enter는 넘어가지 않고 창만 연다(S117)
 		_wait = 0.0
 		return
 	if battle.hiring_open():
+		if _short_now():  # 셋을 다 골라야 넘어간다(S373). 포커스가 없을 때 main이 Enter로 부르는 길도 여기서 막힌다(I110의 2026-10-16 기록)
+			return
 		battle.next_round()
 	elif battle.state in ["won", "lost"]:
 		_restart()
@@ -1298,66 +1308,73 @@ func _window_button(parent: Control, on_press: Callable) -> Button:
 	b.gui_input.connect(_refocus)
 	return b
 
-# 창 버튼을 마우스로 누른 뒤 포커스를 진행 버튼에 돌려준다. 안 그러면 Enter가 방금 누른 리롤·내보내기를 다시 누른다(I110)
+# 창 버튼을 마우스로 누른 뒤 포커스를 진행 버튼에(다 고르기 전에는 첫 카드에) 돌려준다. 안 그러면 Enter가 방금 누른 버튼을 다시 누른다(I110, I303 ②)
 func _refocus(e: InputEvent) -> void:
 	if e is InputEventMouseButton and not e.pressed:
-		_next.grab_focus.call_deferred()
+		_focus_home.call_deferred()
 
-# 영입 칸(I110): 골드·보유·출전 수, 목록 칸마다 영웅 이름(역할)·등급·영입 비용, 리롤, 보유 영웅마다 출전·대기와 내보내기
+# 고르기 창에서 아직 넘어갈 수 없다(S373): 보유가 출전 인원보다 적고, 고를 수 있는 카드(목록에 있고 고르지 않은 영웅)가 남았다
+func _short_now() -> bool:
+	return battle.state == "hiring" and battle.roster.size() < battle.lineup_size() \
+			and battle.offers.any(func(k): return battle.HERO_KINDS.has(k) and _owner(k) == null)
+
+# 창의 키보드 포커스가 돌아갈 곳(I303 ②): 진행 버튼. 다 고르기 전에는 보이는 첫 카드
+func _home() -> Control:
+	if _next.disabled:
+		for c in _offers:
+			if c.is_visible_in_tree():
+				return c
+	return _next
+
+# 누른 바로 뒤에는 _process가 아직 돌지 않아 진행 버튼의 disabled가 낡았다. 판을 다시 보고 포커스를 준다
+func _focus_home() -> void:
+	_next.disabled = _short_now()
+	_home().grab_focus()
+
+# 카드를 누르면 고르고, 고른 카드를 누르면 뺀다(S373). 빼기는 고르기 창에서만 한다 — 판 함수 dismiss는 라운드 사이에도 받으므로 여기서 막는다(I303 ①④)
+func _pick(i: int) -> void:
+	if i >= battle.offers.size():
+		return
+	var h = _owner(battle.offers[i])
+	if h == null:
+		battle.hire(i)
+	elif battle.state == "hiring":
+		battle.dismiss(h)
+
+# 영웅 칸(S373, I303 ③④): 고르기 창이면 카드 여섯과 고른 영웅 줄, 라운드 사이면 영웅 줄과 이관(I116). 영웅이 모자란 라운드 사이에는 고르지 않은 영웅 카드도 보인다(I304)
 func _show_hire() -> void:
-	var hire = battle.HIRE
-	_hire_info.text = "골드 %d · 보유 %d/%d · 출전 %d/%d" % [battle.gold, battle.roster.size(), hire.cap, battle.lineup.size(), hire.lineup]
-	if battle.state == "hiring":  # 도전 시작 전에는 지을 골드를 남기라고 알린다(O-1)
-		_hire_info.text += " · 준비 단계에 지을 골드도 남긴다"
-	var anytime: bool = controls.shop  # 언제든 영입 창(I206): 출전 전환·내보내기·이관은 라운드 사이에만
-	if anytime:
-		_hire_info.text += " · 출전·내보내기는 라운드 사이에"
-	var full: bool = battle.roster.size() >= hire.cap
-	for i in _offers.size():  # 영입 카드(I110): 영입한 칸은 초상을 흐리게 «영입함», 골드가 모자라면 비용만 빨강
-		var k: String = battle.offers[i]
+	var need: int = battle.lineup_size()
+	var n: int = battle.roster.size()
+	var picking: bool = battle.state == "hiring"
+	_hire_info.text = "영웅 %d/%d · 다 골라야 시작한다 · 도전 내내 바꾸지 못한다" % [n, need] if picking else "골드 %d · 영웅 %d/%d" % [battle.gold, n, need]
+	_left.visible = picking or n < need
+	for i in _offers.size():
 		var card: Button = _offers[i]
-		var cost: Label = card.get_child(0)
-		var mini: TextureRect = card.get_child(1)
-		mini.visible = k != "" and battle.bag.has(k)
-		mini.texture = HudBuild.gear_icon(k, true) if mini.visible else null
-		if k != "":
-			_offer_kinds[i] = k
-		var was: String = _offer_kinds[i]
-		card.icon = _face(was) if was != "" else null
-		card.disabled = k == "" or full
-		cost.visible = k != ""
-		if k == "":
-			card.text = ("%s — 영입함" % HEROES[was]) if was != "" else "영입함"
+		var k: String = battle.offers[i] if i < battle.offers.size() else ""  # 평가가 목록을 3칸·""로 바꿔 넣는다
+		var at: int = battle.roster.find_custom(func(h): return h.kind == k)
+		card.visible = battle.HERO_KINDS.has(k) and (picking or (n < need and at < 0))
+		if not card.visible:
 			continue
-		var grade: int = battle.HERO_KINDS[k].grade
-		card.text = "%s «%s» · %s" % [HEROES[k], battle.HERO_KINDS[k].title, GRADES[grade - 1]]  # 이명(S157)
-		cost.text = str(hire.cost[grade - 1])
-		cost.add_theme_color_override("font_color", HudTheme.DANGER if battle.gold < hire.cost[grade - 1] else HudTheme.TEXT)
-	_reroll.text = "리롤 %d골드" % battle.reroll_cost()  # 리롤할수록 오른다(S273)
-	_reroll.disabled = battle.gold < battle.reroll_cost() and not full
-	_reroll.modulate.a = 0.35 if full else 1.0  # 상한이면 흐리게 두고 누르면 이유를 보인다(I127)
-	if not full:
-		_note.text = ""
-	_note.visible = _note.text != ""
-	for i in _members.size():  # 보유 칸은 빈 칸도 자리를 지킨다(I136)
-		var here: bool = i < battle.roster.size()
-		_members[i][0].disabled = not here
-		_members[i][1].visible = here
-		_members[i][2].visible = here
+		var num: Label = card.get_child(0)
+		var mini: TextureRect = card.get_child(1)
+		mini.visible = battle.bag.has(k)
+		mini.texture = HudBuild.gear_icon(k, true) if mini.visible else null
+		card.icon = _face(k)
+		card.text = "%s «%s» · %s" % [HEROES[k], battle.HERO_KINDS[k].title, GRADES[battle.HERO_KINDS[k].grade - 1]]
+		card.button_pressed = at >= 0  # 고른 카드는 고른 칸 모양(S372)
+		card.disabled = at < 0 and n >= need
+		num.visible = at >= 0
+		num.text = str(at + 1)
+	for i in _members.size():  # 영웅 줄은 빈 줄도 자리를 지킨다(I136)
+		var here: bool = i < n
+		_members[i][1].visible = here and battle.state == "cleared"  # 이관은 라운드 사이에만(S127)
 		if not here:
 			_members[i][0].text = "빈 자리"
-			_members[i][0].button_pressed = false
-		else:
-			var h = battle.roster[i]
-			var out: bool = h in battle.lineup
-			_members[i][0].text = "%s · %s · %s · %s" % [HEROES[h.kind], GRADES[h.grade - 1], _level(h), "출전" if out else "대기"]
-			_members[i][0].button_pressed = out
-			_members[i][0].disabled = anytime or (not out and battle.lineup.size() >= hire.lineup)
-			_members[i][1].visible = not anytime
-			_members[i][1].text = "내보내기"
-			_members[i][2].visible = battle.state == "cleared"  # 이관은 라운드 사이에만(S127)
-			_members[i][2].text = "이관" if _giver == null else ("취소" if _giver == h else "여기로")
-			_members[i][2].disabled = (_giver == null and h.xp == 0) or (_giver not in [null, h] and not battle.can_transfer(_giver, h))  # 넘치는 이관은 «여기로»를 끈다(I116)
+			continue
+		var h = battle.roster[i]
+		_members[i][0].text = "%d · %s · %s · %s" % [i + 1, HEROES[h.kind], GRADES[h.grade - 1], _level(h)]
+		_members[i][1].text = "이관" if _giver == null else ("취소" if _giver == h else "여기로")
+		_members[i][1].disabled = (_giver == null and h.xp == 0) or (_giver not in [null, h] and not battle.can_transfer(_giver, h))  # 넘치는 이관은 «여기로»를 끈다(I116)
 
 # 장비 칸(S248): 골드·창당 횟수, 장비마다 «이름 +N · 주인(역할) · 장착/해제/미보유»(장비가 없으면 보유/미보유) 줄, 제작·강화 버튼, 주인을 보유하고 장비가 있으면 장착·해제
 func _show_gear() -> void:
@@ -1443,40 +1460,39 @@ func _forge_tip(k: String) -> Array:
 	var about: String = "+%d: %s" % [up, g.notes[up]] if up < g.steps.size() else "모든 단계를 받았다"
 	return ["제작" if up == 0 else "강화", "", "", about, _forge_why(k)]
 
-# 영입 카드(I110): 초상·이름(역할)·이명·등급, 오른쪽에 비용 숫자. 툴팁은 누르면 생기는 일과 모자란 조건만
+# 영웅 카드(I303 ③): 초상·이름(역할)·이명·등급, 오른쪽 끝에 고른 번호(금색). 누르면 고르고 다시 누르면 뺀다. 툴팁은 누르면 생기는 일과 못 누르는 이유만
 func _card(parent: Control, i: int) -> Button:
-	var b := _window_button(parent, func(): battle.hire(i))
+	var b := _window_button(parent, func(): _pick(i))
+	b.toggle_mode = true
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	b.add_theme_constant_override("icon_max_width", 16)
 	b.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	var cost := _text(b, 10, HudTheme.TEXT)
-	cost.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
-	cost.offset_left = -40
-	cost.offset_right = -4
-	cost.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	cost.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var mini := _pic(b, null, Vector2(8, 8))  # 가방에 그 영웅 장비가 있으면 작은 아이콘(S274). 비용 숫자 왼쪽
+	var num := _text(b, 10, HudTheme.ACCENT)
+	num.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
+	num.offset_left = -40
+	num.offset_right = -4
+	num.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	num.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var mini := _pic(b, null, Vector2(8, 8))  # 가방에 그 영웅 장비가 있으면 작은 아이콘(S274). 번호 왼쪽
 	mini.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
 	mini.offset_left = -50
 	mini.offset_right = -42
 	mini.offset_top = -4
 	mini.offset_bottom = 4
 	mini.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tip.add(b, func(): return ["영입", "", "", "누르면 보유에 넣고 빈 출전 자리에 든다" + _gear_line(battle.offers[i]), _offer_why(i)])
+	tip.add(b, func(): return _card_tip(i))
 	return b
 
-# 영입 카드 툴팁에 붙는 그 영웅 장비 줄(S253). 가방에 없으면 ""
+# 영웅 카드 툴팁(I303 ③): 고른 카드는 «빼기», 아니면 «고르기»와 못 누르는 이유
+func _card_tip(i: int) -> Array:
+	var k: String = battle.offers[i] if i < battle.offers.size() else ""
+	if _owner(k):
+		return ["빼기", "", "", "누르면 고른 영웅에서 뺀다", ""]
+	return ["고르기", "", "", "누르면 이 영웅으로 도전한다" + _gear_line(k), "다 골랐다 · 고른 영웅을 빼야 바꾼다" if battle.roster.size() >= battle.lineup_size() else ""]
+
+# 영웅 카드 툴팁에 붙는 그 영웅 장비 줄(S253). 가방에 없으면 ""
 func _gear_line(k: String) -> String:
 	return "\n장비 있음 +%d" % battle.bag[k] if battle.bag.has(k) else ""
-
-func _offer_why(i: int) -> String:
-	var k: String = battle.offers[i]
-	if k == "":
-		return ""
-	if _cap_note() != "":
-		return _cap_note()
-	var cost: int = battle.HIRE.cost[battle.HERO_KINDS[k].grade - 1]
-	return "골드 %d 모자람" % (cost - battle.gold) if battle.gold < cost else ""
 
 # 이관 버튼 툴팁(I110, I116): 버튼 글(이관·여기로·취소)마다 누르면 생기는 일과 못 누르는 이유
 func _give_tip(i: int) -> Array:
@@ -1494,18 +1510,7 @@ func _gear_move_line(from, to) -> String:
 	var n: int = battle.gear_move(from, to)
 	return "" if n == 0 else "\n%s +%d → +%d" % [battle.GEAR_KINDS[to.kind].title, battle.bag[to.kind], battle.bag[to.kind] + n]
 
-# 보유가 상한이면 영입할 수 없는 이유(I127). 아니면 ""
-func _cap_note() -> String:
-	return "보유 %d/%d — 내보내야 영입할 수 있다" % [battle.roster.size(), battle.HIRE.cap] if battle.roster.size() >= battle.HIRE.cap else ""
-
-# 리롤(I127): 상한이면 리롤해도 영입하지 못해 거부하고 이유를 창에 보인다
-func _reroll_press() -> void:
-	if _cap_note() != "":
-		_note.text = _cap_note()
-	else:
-		battle.reroll()
-
-# 영입 카드의 영웅 초상 대역(S30). 출전 칸·치료 버튼과 같은 _faces 사전을 쓴다
+# 영웅 카드의 영웅 초상 대역(S30). 출전 칸·치료 버튼과 같은 _faces 사전을 쓴다
 func _face(kind: String) -> Texture2D:
 	if not _faces.has(kind):
 		_faces[kind] = HudBuild.icon(kind)
@@ -1547,6 +1552,9 @@ func _show_heroes() -> void:
 		var wait: float = clampf(h.dash_cd / battle.DASH.cd, 0.0, 1.0) if h.alive else 0.0
 		row.dash.visible = wait > 0.0
 		row.dash.size = Vector2(22, 22.0 * wait)
+		row.secs.visible = wait > 0.0
+		row.secs.text = str(ceili(h.dash_cd))
+		_show_pick(row, h)
 		row.gear.visible = h.worn and battle.bag.has(h.kind)
 		row.gear.texture = HudBuild.gear_icon(h.kind, true) if row.gear.visible else null
 		var r: float = clampf(h.hp / h.max_hp, 0.0, 1.0)
@@ -1557,6 +1565,31 @@ func _show_heroes() -> void:
 			slots[i][slot].visible = h.alive
 			slots[i][slot].show_state(_slot_state(h, slot))
 
+# 초상의 고름 표시(I310): 고른 살아 있는 출전 영웅은 «고른 칸»(S372, 테마의 누름 모양을 평소·올림에도), 스킬 쓸 영웅에만 세모.
+# 대기 중 Space 거부 테두리(I261 ⑦)는 SkillCell.FLASH초. 모양이 바뀔 때만 덮어쓴다(프레임마다 테마 바뀜 알림을 내지 않게)
+func _show_pick(row: Dictionary, h) -> void:
+	var picked: bool = h.alive and h in controls.selected
+	if picked != row.picked:
+		row.picked = picked
+		for st in ["normal", "hover"]:
+			if picked:
+				row.face.add_theme_stylebox_override(st, row.face.get_theme_stylebox("pressed"))
+			else:
+				row.face.remove_theme_stylebox_override(st)
+	row.point.visible = picked and h == controls.caster()
+	row.no.visible = h.alive and _now - row.reject < SkillCell.FLASH
+
+# 대기 중 Space(I261 ⑦): 아무도 대시하지 못했고 대시하려던 영웅 가운데 대기 중인 영웅이 있다. 그 초상을 번쩍이고, 가장 짧은 대기로 토스트와 refuse
+func _dash_refuse(waiting: Array) -> void:
+	var left := INF
+	for h in waiting:
+		var i: int = battle.heroes.find(h)
+		if i >= 0 and i < _rows.size():
+			_rows[i].reject = _now
+		left = minf(left, h.dash_cd)
+	toasts.push("대시 대기 %d초" % ceili(left))
+	Audio.of(get_tree()).play("refuse")  # S269
+
 # 빈 출전 칸은 점선 테두리로 자리를 지킨다(I129)
 func _empty_slot(cell: Control, i: int) -> void:
 	if i < battle.heroes.size():
@@ -1566,11 +1599,11 @@ func _empty_slot(cell: Control, i: int) -> void:
 	for k in 4:
 		cell.draw_dashed_line(corners[k], corners[(k + 1) % 4], HudTheme.LINE, 1.0, 3.0)
 
-# 초상 툴팁(I129): 이름(역할)·1·2·3 키, 레벨·체력 수치. 쓰러졌으면 빨간 줄에 돌아오는 때(I28·I93)
+# 초상 툴팁(I129): 이름(역할)·1·2·3 키, 레벨·체력 수치, 키 설명(I108 2026-11-16 변경), 대시 줄(I261 ⑦). 쓰러졌으면 빨간 줄에 돌아오는 때(I28·I93)
 func _hero_tip(i: int) -> Array:
 	var h = battle.heroes[i]
 	var back := "" if h.alive else "쓰러짐 — " + ("다음 준비 단계에 복귀" if battle.revive else "다음 라운드에 복귀")
-	return [HEROES[h.kind], str(i + 1), "", "Lv%d · 체력 %d/%d\n누르면 고름 · 두 번이면 카메라" %[h.level, ceili(h.hp), ceili(h.max_hp)], back]
+	return [HEROES[h.kind], str(i + 1), "", "Lv%d · 체력 %d/%d\n누르면 고름 · 두 번이면 카메라\n용병과 함께 고른 무리는 그대로 두고 스킬 쓸 영웅만 바꿈\nSpace: 커서 쪽 %s칸 대시 · 대기 %s초" % [h.level, ceili(h.hp), ceili(h.max_hp), _num(battle.DASH.length), _num(battle.DASH.cd)], back]
 
 # 1·2·3 키·초상을 DOUBLE초 안에 두 번 누르면 카메라가 그 영웅에게 간다(I165, I164)
 func _tap(i: int) -> void:
@@ -1674,7 +1707,7 @@ func _give(h) -> void:
 		battle.transfer(_giver, h)
 		_giver = null
 
-# 고른 유닛·놓기 모드도 비운다. 재시작 뒤의 영웅은 새 객체다. 새 도전도 영입 창에서 시작한다(S122)
+# 고른 유닛·놓기 모드도 비운다. 재시작 뒤의 영웅은 새 객체다. 새 도전도 고르기 창에서 시작한다(S122, S373)
 func _restart() -> void:
 	battle.restart()
 	battle.begin_hiring()

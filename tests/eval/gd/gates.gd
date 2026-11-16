@@ -210,3 +210,54 @@ func ev252():
 		return "3라운드 준비 단계로 가지 못했다(라운드 %d, %s)" % [b.round_index + 1, b.state]
 	var q: Array = b.forecast[0]
 	return check(NEAR in q and FAR not in q and q[-1] == b.base.cell, "3라운드 준비 단계 예상 경로가 NEAR를 지나 거점에서 끝나지 않는다(%s)" % [q])
+
+# _battle()의 판(세로 성곽, 성문 둘 닫힘)에 용병 상한 40
+func _wide():
+	var walls := []
+	for y in 20:
+		if y != A.y and y != B.y:
+			walls.append(Vector2i(X, y))
+	return battle({"castle": {"walls": walls, "gates": [A, B], "wall_hp": 300, "gate_hp": 150}, "base_hp": BIG, "merc_cap": 40,
+		"waves": [[{"kind": "basic", "count": 1}], [{"kind": "basic", "count": 1}]]})
+
+# EV1152 · I309 ①⑤: 성문 여닫기의 다시 구하기와 대상 공격의 길도 16명씩 나눈다. 대상이 옮겨 가 다시 구하는 길도 한 스텝에 16명을 넘지 않는다
+func ev1152():
+	var b = _wide()
+	var us := squad(b, "soldier", 20, Vector2i(5, 6), 5)
+	if us.size() != 20:
+		return "① 병사 20명을 놓지 못했다"
+	b.order_move(us, Vector2i(22, 8))
+	b.step(DT)
+	b.step(DT)
+	if not in_line(us).is_empty() or us.any(func(u): return u.path.is_empty()):
+		return "① 지시하고 두 스텝 뒤 기다리는 병사 %d · 걷는 길이 빈 병사 %d(둘 다 0)" % [in_line(us).size(), us.filter(func(u): return u.path.is_empty()).size()]
+	b.set_gate(b.castle[A], true)
+	var got := [in_line(us).size()]
+	b.step(DT)
+	got.append(in_line(us).size())
+	if got != [4, 0]:
+		return "① 성문을 연 직후·한 스텝 뒤 기다리는 병사 %s(기대 [4, 0])" % [got]
+	if not run(b, 40.0, func(): return us.all(func(u): return u.pos.x > X + 0.5)):
+		return "① 성문을 연 뒤 40초 안에 성곽 동쪽에 닿지 못한 병사 %d" % us.filter(func(u): return u.pos.x <= X + 0.5).size()
+	b = battle({"merc_cap": 40})
+	us = squad(b, "archer", 40)
+	var e = b.spawn_enemy("basic", Vector2i(24, 18), {"speed": 1.0, "damage": 0, "sight": 0, "hp": BIG})
+	if us.size() != 40:
+		return "② 궁수 40명을 놓지 못했다"
+	b.step(DT)
+	var old := us.map(func(u): return u.path)
+	b.order_attack(us, e)
+	var first := range(40).filter(func(i): return not is_same(old[i], us[i].path)).size()
+	if first != 16:
+		return "② 대상 공격 직후 새 길을 받은 궁수 %d(16)" % first
+	var most := 0
+	var late := false
+	for k in 80:
+		old = us.map(func(u): return u.path)
+		b.step(DT)
+		var n := range(40).filter(func(i): return not is_same(old[i], us[i].path)).size()
+		most = maxi(most, n)
+		if k >= 3 and n > 0:
+			late = true
+	return check(most <= 16 and late and us.all(func(u): return u.prey == e),
+		"② 4초 동안 한 스텝에 새 길을 받은 궁수 최대 %d(16 이하) · 넷째 스텝부터 새 길을 받은 스텝 %s(있어야 한다) · 대상이 그 적인 궁수 %d(40)" % [most, late, us.filter(func(u): return u.prey == e).size()])

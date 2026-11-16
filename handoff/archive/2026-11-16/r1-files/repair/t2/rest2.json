@@ -1,0 +1,2447 @@
+[
+ {
+  "id": "I50",
+  "a": "src/ui/camera.gd:151-156",
+  "t": "src/ui/camera.gd:151-156",
+  "feat": "OK-low",
+  "born": "d94436d",
+  "born_r": [
+   26,
+   26
+  ],
+  "born_txt": [
+   "if not mouse_in or not get_window().has_focus():",
+   "if not mouse_in or not get_window().has_focus():"
+  ],
+  "a_txt": [
+   "func pan(dir: Vector2, delta: float) -> void:",
+   "position = (position + dir * SPEED * Settings.camera_speed / 100.0 * delta / zoom.x).clamp(half - Vector2(0, TOP + TOP_BAR / zoom.x), map_px - half + Vector2(0, BOTTOM / zoom.x))"
+  ],
+  "t_txt": [
+   "func pan(dir: Vector2, delta: float) -> void:",
+   "position = (position + dir * SPEED * Settings.camera_speed / 100.0 * delta / zoom.x).clamp(half - Vector2(0, TOP + TOP_BAR / zoom.x), map_px - half + Vector2(0, BOTTOM / zoom.x))"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "ccc2c08"
+   ],
+   [
+    "adjusted",
+    "b25bd53"
+   ]
+  ]
+ },
+ {
+  "id": "I164",
+  "a": "src/ui/camera.gd:159-176",
+  "t": "src/ui/camera.gd:159-176",
+  "feat": "OK-low",
+  "born": "1053119",
+  "born_r": [
+   56,
+   59
+  ],
+  "born_txt": [
+   "# 맵 px의 대상을 화면 FOCUS에 놓고 경계 안으로 당긴다(I164)",
+   "pan(Vector2.ZERO, 0.0)"
+  ],
+  "a_txt": [
+   "func focus(at: Vector2) -> void:",
+   ""
+  ],
+  "t_txt": [
+   "func focus(at: Vector2) -> void:",
+   ""
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "a3ccad1"
+   ]
+  ]
+ },
+ {
+  "id": "S16",
+  "a": "src/ui/controls.gd:3",
+  "t": "src/ui/controls.gd:3-8",
+  "feat": "C-low",
+  "born": "2c211a2",
+  "born_r": [
+   3,
+   3
+  ],
+  "born_txt": [
+   "# 좌클릭: 영웅이나 생산 시설·성곽 칸·거점을 고르거나(I9, S81, S85, S86, S100) 선택을 푼다 · 좌드래그: 사각형 안의 용병을 고른다(S16, I9)",
+   "# 좌클릭: 영웅이나 생산 시설·성곽 칸·거점을 고르거나(I9, S81, S85, S86, S100) 선택을 푼다 · 좌드래그: 사각형 안의 용병을 고른다(S16, I9)"
+  ],
+  "a_txt": [
+   "# 좌클릭: 영웅·용병이나 생산 시설·성곽 칸·거점을 고른다(I9, S81, S85, S86, S100). 빈 땅·적을 누르면 팝업만 닫고 고른 유닛은 그대로다(S204).",
+   "# 좌클릭: 영웅·용병이나 생산 시설·성곽 칸·거점을 고른다(I9, S81, S85, S86, S100). 빈 땅·적을 누르면 팝업만 닫고 고른 유닛은 그대로다(S204)."
+  ],
+  "t_txt": [
+   "# 좌클릭: 영웅·용병이나 생산 시설·성곽 칸·거점을 고른다(I9, S81, S85, S86, S100). 빈 땅·적을 누르면 팝업만 닫고 고른 유닛은 그대로다(S204).",
+   "# 살아 있는 고른 유닛 없이 생산 시설을 골랐으면 그 칸을 집결 지점으로(S82, I173)"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "S204",
+  "a": "src/ui/controls.gd:3",
+  "t": "src/ui/controls.gd:3-4",
+  "feat": "C-low",
+  "born": "2c379d4",
+  "born_r": [
+   3,
+   3
+  ],
+  "born_txt": [
+   "# 좌클릭: 영웅·용병이나 생산 시설·성곽 칸·거점을 고른다(I9, S81, S85, S86, S100). 빈 땅·적을 누르면 팝업만 닫고 고른 유닛은 그대로다(S204)",
+   "# 좌클릭: 영웅·용병이나 생산 시설·성곽 칸·거점을 고른다(I9, S81, S85, S86, S100). 빈 땅·적을 누르면 팝업만 닫고 고른 유닛은 그대로다(S204)"
+  ],
+  "a_txt": [
+   "# 좌클릭: 영웅·용병이나 생산 시설·성곽 칸·거점을 고른다(I9, S81, S85, S86, S100). 빈 땅·적을 누르면 팝업만 닫고 고른 유닛은 그대로다(S204).",
+   "# 좌클릭: 영웅·용병이나 생산 시설·성곽 칸·거점을 고른다(I9, S81, S85, S86, S100). 빈 땅·적을 누르면 팝업만 닫고 고른 유닛은 그대로다(S204)."
+  ],
+  "t_txt": [
+   "# 좌클릭: 영웅·용병이나 생산 시설·성곽 칸·거점을 고른다(I9, S81, S85, S86, S100). 빈 땅·적을 누르면 팝업만 닫고 고른 유닛은 그대로다(S204).",
+   "# 누른 적은 선택 패널에 보인다(shown, S206)"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "I10",
+  "a": "src/ui/controls.gd:10",
+  "t": "src/ui/controls.gd:11",
+  "feat": "C-low",
+  "born": "a362712",
+  "born_r": [
+   39,
+   42
+  ],
+  "born_txt": [
+   "KEY_Q:",
+   "battle.use_buff()"
+  ],
+  "a_txt": [
+   "# 전투 단계의 좌클릭·좌드래그는 철거·취소·이어 짓기 후보(picked)를 정한다(S74, S83). live 판(I175)의 준비 단계에는 미완성 구조물만 이어 짓기·취소 후보다(I57)",
+   "# 전투 단계의 좌클릭·좌드래그는 철거·취소·이어 짓기 후보(picked)를 정한다(S74, S83). live 판(I175)의 준비 단계에는 미완성 구조물만 이어 짓기·취소 후보다(I57)"
+  ],
+  "t_txt": [
+   "# Q·W·E·R: 영웅 스킬(S145, I10). 고른 영웅이, 없으면 첫 영웅이 쓴다(S119). 즉시·켜고 끄는 칸은 바로 쓰고, 지점·방향·대상을 고르는 칸은",
+   "# Q·W·E·R: 영웅 스킬(S145, I10). 고른 영웅이, 없으면 첫 영웅이 쓴다(S119). 즉시·켜고 끄는 칸은 바로 쓰고, 지점·방향·대상을 고르는 칸은"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "reauth",
+    "a362712",
+    [
+     "src/ui/controls.gd",
+     39,
+     40
+    ],
+    [
+     "src/ui/controls.gd",
+     39,
+     40
+    ]
+   ],
+   [
+    "adjusted",
+    "2c211a2"
+   ]
+  ]
+ },
+ {
+  "id": "S119",
+  "a": "src/ui/controls.gd:10",
+  "t": "src/ui/controls.gd:11",
+  "feat": "C-low",
+  "born": "fdf5f45",
+  "born_r": [
+   49,
+   52
+  ],
+  "born_txt": [
+   "KEY_Q:",
+   "battle.use_buff(_hero())"
+  ],
+  "a_txt": [
+   "# 전투 단계의 좌클릭·좌드래그는 철거·취소·이어 짓기 후보(picked)를 정한다(S74, S83). live 판(I175)의 준비 단계에는 미완성 구조물만 이어 짓기·취소 후보다(I57)",
+   "# 전투 단계의 좌클릭·좌드래그는 철거·취소·이어 짓기 후보(picked)를 정한다(S74, S83). live 판(I175)의 준비 단계에는 미완성 구조물만 이어 짓기·취소 후보다(I57)"
+  ],
+  "t_txt": [
+   "# Q·W·E·R: 영웅 스킬(S145, I10). 고른 영웅이, 없으면 첫 영웅이 쓴다(S119). 즉시·켜고 끄는 칸은 바로 쓰고, 지점·방향·대상을 고르는 칸은",
+   "# Q·W·E·R: 영웅 스킬(S145, I10). 고른 영웅이, 없으면 첫 영웅이 쓴다(S119). 즉시·켜고 끄는 칸은 바로 쓰고, 지점·방향·대상을 고르는 칸은"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2c211a2"
+   ]
+  ]
+ },
+ {
+  "id": "I108",
+  "a": "src/ui/controls.gd:15-17",
+  "t": "src/ui/controls.gd:15-17",
+  "feat": "OK-low",
+  "born": "c2eb551",
+  "born_r": [
+   60,
+   63
+  ],
+  "born_txt": [
+   "KEY_F1, KEY_F2:  # 쓰러진 영웅은 고르지 않는다. 우클릭이 집결 지점 대신 영웅을 옮기게 시설 선택을 푼다",
+   "facility = null"
+  ],
+  "a_txt": [
+   "# 1·2·3: 출전 영웅 1·2·3을 고른다. F1·F2·F3은 영웅을 고르지 않는다(I108 2026-11-06 변경)",
+   "# - 마법 타워(S110) · 5 공병 · 6 작업장 · 7 궁수(I71) · 8 대포(S92) · 0 집(S103) · = 교회(I140) · \\ 대피소(S226): 놓기 모드(방벽·타워·용병은 키 없이 건설 격자 칸으로, I108 2026-11-06 변경). 그동안 좌클릭은 그 칸에 짓거나 놓고, 우클릭·ESC·같은 키는 모드를 끝낸다(사용자 2026-10-12, S186)"
+  ],
+  "t_txt": [
+   "# 1·2·3: 출전 영웅 1·2·3을 고른다. F1·F2·F3은 영웅을 고르지 않는다(I108 2026-11-06 변경)",
+   "# - 마법 타워(S110) · 5 공병 · 6 작업장 · 7 궁수(I71) · 8 대포(S92) · 0 집(S103) · = 교회(I140) · \\ 대피소(S226): 놓기 모드(방벽·타워·용병은 키 없이 건설 격자 칸으로, I108 2026-11-06 변경). 그동안 좌클릭은 그 칸에 짓거나 놓고, 우클릭·ESC·같은 키는 모드를 끝낸다(사용자 2026-10-12, S186)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2c211a2"
+   ]
+  ]
+ },
+ {
+  "id": "S49",
+  "a": "src/ui/controls.gd:27",
+  "t": "src/ui/controls.gd:28",
+  "feat": "C-low",
+  "born": "161bbc9",
+  "born_r": [
+   13,
+   13
+  ],
+  "born_txt": [
+   "const PLACE_KEYS := {KEY_1: \"wall\", KEY_2: \"tower\", KEY_3: \"soldier\", KEY_4: \"barracks\", KEY_5: \"engineer\", KEY_6: \"workshop\"}",
+   "const PLACE_KEYS := {KEY_1: \"wall\", KEY_2: \"tower\", KEY_3: \"soldier\", KEY_4: \"barracks\", KEY_5: \"engineer\", KEY_6: \"workshop\"}"
+  ],
+  "a_txt": [
+   "const SKILL_KEYS := {KEY_Q: \"q\", KEY_W: \"w\", KEY_E: \"e\", KEY_R: \"r\"}  # 영웅 스킬 칸(S145)",
+   "const SKILL_KEYS := {KEY_Q: \"q\", KEY_W: \"w\", KEY_E: \"e\", KEY_R: \"r\"}  # 영웅 스킬 칸(S145)"
+  ],
+  "t_txt": [
+   "const PLACE_KEYS := {KEY_MINUS: \"magic\", KEY_5: \"engineer\", KEY_6: \"workshop\", KEY_7: \"archer\", KEY_8: \"cannon\", KEY_0: \"house\", KEY_EQUAL: \"church\", KEY_BACKSLASH: \"shelter\"}  # 4·9(병영·사격장)는 비었다(S98 2026-11-12 변경)",
+   "const PLACE_KEYS := {KEY_MINUS: \"magic\", KEY_5: \"engineer\", KEY_6: \"workshop\", KEY_7: \"archer\", KEY_8: \"cannon\", KEY_0: \"house\", KEY_EQUAL: \"church\", KEY_BACKSLASH: \"shelter\"}  # 4·9(병영·사격장)는 비었다(S98 2026-11-12 변경)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "5c3fb58"
+   ]
+  ]
+ },
+ {
+  "id": "S92",
+  "a": "src/ui/controls.gd:27",
+  "t": "src/ui/controls.gd:28",
+  "feat": "C-low",
+  "born": "332b443",
+  "born_r": [
+   14,
+   14
+  ],
+  "born_txt": [
+   "const PLACE_KEYS := {KEY_1: \"wall\", KEY_2: \"tower\", KEY_3: \"soldier\", KEY_4: \"barracks\", KEY_5: \"engineer\", KEY_6: \"workshop\", KEY_7: \"archer\", KEY_8: \"cannon\"}",
+   "const PLACE_KEYS := {KEY_1: \"wall\", KEY_2: \"tower\", KEY_3: \"soldier\", KEY_4: \"barracks\", KEY_5: \"engineer\", KEY_6: \"workshop\", KEY_7: \"archer\", KEY_8: \"cannon\"}"
+  ],
+  "a_txt": [
+   "const SKILL_KEYS := {KEY_Q: \"q\", KEY_W: \"w\", KEY_E: \"e\", KEY_R: \"r\"}  # 영웅 스킬 칸(S145)",
+   "const SKILL_KEYS := {KEY_Q: \"q\", KEY_W: \"w\", KEY_E: \"e\", KEY_R: \"r\"}  # 영웅 스킬 칸(S145)"
+  ],
+  "t_txt": [
+   "const PLACE_KEYS := {KEY_MINUS: \"magic\", KEY_5: \"engineer\", KEY_6: \"workshop\", KEY_7: \"archer\", KEY_8: \"cannon\", KEY_0: \"house\", KEY_EQUAL: \"church\", KEY_BACKSLASH: \"shelter\"}  # 4·9(병영·사격장)는 비었다(S98 2026-11-12 변경)",
+   "const PLACE_KEYS := {KEY_MINUS: \"magic\", KEY_5: \"engineer\", KEY_6: \"workshop\", KEY_7: \"archer\", KEY_8: \"cannon\", KEY_0: \"house\", KEY_EQUAL: \"church\", KEY_BACKSLASH: \"shelter\"}  # 4·9(병영·사격장)는 비었다(S98 2026-11-12 변경)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "5c3fb58"
+   ]
+  ]
+ },
+ {
+  "id": "S103",
+  "a": "src/ui/controls.gd:27",
+  "t": "src/ui/controls.gd:28",
+  "feat": "C-low",
+  "born": "f18131c",
+  "born_r": [
+   14,
+   14
+  ],
+  "born_txt": [
+   "const PLACE_KEYS := {KEY_1: \"wall\", KEY_2: \"tower\", KEY_3: \"soldier\", KEY_4: \"barracks\", KEY_5: \"engineer\", KEY_6: \"workshop\", KEY_7: \"archer\", KEY_8: \"cannon\", KEY_9: \"archery\", KEY_0: \"house\"}",
+   "const PLACE_KEYS := {KEY_1: \"wall\", KEY_2: \"tower\", KEY_3: \"soldier\", KEY_4: \"barracks\", KEY_5: \"engineer\", KEY_6: \"workshop\", KEY_7: \"archer\", KEY_8: \"cannon\", KEY_9: \"archery\", KEY_0: \"house\"}"
+  ],
+  "a_txt": [
+   "const SKILL_KEYS := {KEY_Q: \"q\", KEY_W: \"w\", KEY_E: \"e\", KEY_R: \"r\"}  # 영웅 스킬 칸(S145)",
+   "const SKILL_KEYS := {KEY_Q: \"q\", KEY_W: \"w\", KEY_E: \"e\", KEY_R: \"r\"}  # 영웅 스킬 칸(S145)"
+  ],
+  "t_txt": [
+   "const PLACE_KEYS := {KEY_MINUS: \"magic\", KEY_5: \"engineer\", KEY_6: \"workshop\", KEY_7: \"archer\", KEY_8: \"cannon\", KEY_0: \"house\", KEY_EQUAL: \"church\", KEY_BACKSLASH: \"shelter\"}  # 4·9(병영·사격장)는 비었다(S98 2026-11-12 변경)",
+   "const PLACE_KEYS := {KEY_MINUS: \"magic\", KEY_5: \"engineer\", KEY_6: \"workshop\", KEY_7: \"archer\", KEY_8: \"cannon\", KEY_0: \"house\", KEY_EQUAL: \"church\", KEY_BACKSLASH: \"shelter\"}  # 4·9(병영·사격장)는 비었다(S98 2026-11-12 변경)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "5c3fb58"
+   ]
+  ]
+ },
+ {
+  "id": "I71",
+  "a": "src/ui/controls.gd:27",
+  "t": "src/ui/controls.gd:28",
+  "feat": "C-low",
+  "born": "c470722",
+  "born_r": [
+   13,
+   13
+  ],
+  "born_txt": [
+   "const PLACE_KEYS := {KEY_1: \"wall\", KEY_2: \"tower\", KEY_3: \"soldier\", KEY_4: \"barracks\", KEY_5: \"engineer\", KEY_6: \"workshop\", KEY_7: \"archer\"}",
+   "const PLACE_KEYS := {KEY_1: \"wall\", KEY_2: \"tower\", KEY_3: \"soldier\", KEY_4: \"barracks\", KEY_5: \"engineer\", KEY_6: \"workshop\", KEY_7: \"archer\"}"
+  ],
+  "a_txt": [
+   "const SKILL_KEYS := {KEY_Q: \"q\", KEY_W: \"w\", KEY_E: \"e\", KEY_R: \"r\"}  # 영웅 스킬 칸(S145)",
+   "const SKILL_KEYS := {KEY_Q: \"q\", KEY_W: \"w\", KEY_E: \"e\", KEY_R: \"r\"}  # 영웅 스킬 칸(S145)"
+  ],
+  "t_txt": [
+   "const PLACE_KEYS := {KEY_MINUS: \"magic\", KEY_5: \"engineer\", KEY_6: \"workshop\", KEY_7: \"archer\", KEY_8: \"cannon\", KEY_0: \"house\", KEY_EQUAL: \"church\", KEY_BACKSLASH: \"shelter\"}  # 4·9(병영·사격장)는 비었다(S98 2026-11-12 변경)",
+   "const PLACE_KEYS := {KEY_MINUS: \"magic\", KEY_5: \"engineer\", KEY_6: \"workshop\", KEY_7: \"archer\", KEY_8: \"cannon\", KEY_0: \"house\", KEY_EQUAL: \"church\", KEY_BACKSLASH: \"shelter\"}  # 4·9(병영·사격장)는 비었다(S98 2026-11-12 변경)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "5c3fb58"
+   ]
+  ]
+ },
+ {
+  "id": "S147",
+  "a": "src/ui/controls.gd:51",
+  "t": "src/ui/controls.gd:56-60",
+  "feat": "C-low",
+  "born": "2c211a2",
+  "born_r": [
+   35,
+   35
+  ],
+  "born_txt": [
+   "var aiming := \"\"  # 조준 중인 스킬 칸(S147). 빈 문자열이면 조준 중이 아니다",
+   "var aiming := \"\"  # 조준 중인 스킬 칸(S147). 빈 문자열이면 조준 중이 아니다"
+  ],
+  "a_txt": [
+   "var fort = null  # 고른 성곽 칸이나 잔해(I88). 그 옆에 여닫기·업그레이드·수리·복구 팝업이 뜬다(S85, S86, S116, I89)",
+   "var fort = null  # 고른 성곽 칸이나 잔해(I88). 그 옆에 여닫기·업그레이드·수리·복구 팝업이 뜬다(S85, S86, S116, I89)"
+  ],
+  "t_txt": [
+   "var aiming := \"\":  # 조준 중인 스킬 칸(S147). 빈 문자열이면 조준 중이 아니다",
+   "battle.held = aim_hero if v != \"\" else null  # 조준 중인 영웅은 오토가 쉰다(S298)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "5c3fb58"
+   ]
+  ]
+ },
+ {
+  "id": "S16",
+  "a": "src/ui/controls.gd:78-84",
+  "t": "src/ui/controls.gd:95-100",
+  "feat": "C-low",
+  "born": "23d9740",
+  "born_r": [
+   24,
+   27
+  ],
+  "born_txt": [
+   "KEY_A:  # 모두 «무조건 이동»이면 «이동 중 공격»으로, 아니면 모두 «무조건 이동»으로",
+   "battle.set_hold(selected, not selected.all(func(u): return u.hold))"
+  ],
+  "a_txt": [
+   "aiming = \"\"",
+   "aiming = \"\""
+  ],
+  "t_txt": [
+   "KEY_A:",
+   "toggle_hold()"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "41ef113"
+   ]
+  ]
+ },
+ {
+  "id": "S35",
+  "a": "src/ui/controls.gd:78-82",
+  "t": "src/ui/controls.gd:95-98",
+  "feat": "C-low",
+  "born": "23d9740",
+  "born_r": [
+   24,
+   25
+  ],
+  "born_txt": [
+   "KEY_A:  # 모두 «무조건 이동»이면 «이동 중 공격»으로, 아니면 모두 «무조건 이동»으로",
+   "battle.set_move_mode(selected, \"attack_move\" if selected.all(func(u): return u.move_mode == \"move\") else \"move\")"
+  ],
+  "a_txt": [
+   "aiming = \"\"",
+   "_state = battle.state"
+  ],
+  "t_txt": [
+   "KEY_A:",
+   "stop()"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "41ef113"
+   ]
+  ]
+ },
+ {
+  "id": "S36",
+  "a": "src/ui/controls.gd:83-84",
+  "t": "src/ui/controls.gd:99-100",
+  "feat": "C-low",
+  "born": "23d9740",
+  "born_r": [
+   26,
+   27
+  ],
+  "born_txt": [
+   "KEY_H:",
+   "battle.set_hold(selected, not selected.all(func(u): return u.hold))"
+  ],
+  "a_txt": [
+   "if aiming != \"\" and not (aim_hero and aim_hero.alive):  # 조준하던 영웅이 쓰러졌다",
+   "aiming = \"\""
+  ],
+  "t_txt": [
+   "KEY_H:",
+   "toggle_hold()"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "41ef113"
+   ]
+  ]
+ },
+ {
+  "id": "S117",
+  "a": "src/ui/controls.gd:87-90",
+  "t": "src/ui/controls.gd:87-90",
+  "feat": "OK-low",
+  "born": "2be4f3c",
+  "born_r": [
+   43,
+   46
+  ],
+  "born_txt": [
+   "if battle.state not in [\"prep\", \"battle\"]:",
+   "return"
+  ],
+  "a_txt": [
+   "if battle.state not in [\"prep\", \"battle\", \"raid\"]:  # 창이 떠 있는 동안은 맵 명령을 받지 않는다(S117, I109). 원정(S316)은 받는다",
+   "return"
+  ],
+  "t_txt": [
+   "if battle.state not in [\"prep\", \"battle\", \"raid\"]:  # 창이 떠 있는 동안은 맵 명령을 받지 않는다(S117, I109). 원정(S316)은 받는다",
+   "return"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "41ef113"
+   ],
+   [
+    "healed",
+    "4e74c56"
+   ]
+  ]
+ },
+ {
+  "id": "I109",
+  "a": "src/ui/controls.gd:87-90",
+  "t": "src/ui/controls.gd:87-90",
+  "feat": "OK-low",
+  "born": "c2eb551",
+  "born_r": [
+   44,
+   47
+  ],
+  "born_txt": [
+   "if battle.state not in [\"prep\", \"battle\"]:",
+   "return"
+  ],
+  "a_txt": [
+   "if battle.state not in [\"prep\", \"battle\", \"raid\"]:  # 창이 떠 있는 동안은 맵 명령을 받지 않는다(S117, I109). 원정(S316)은 받는다",
+   "return"
+  ],
+  "t_txt": [
+   "if battle.state not in [\"prep\", \"battle\", \"raid\"]:  # 창이 떠 있는 동안은 맵 명령을 받지 않는다(S117, I109). 원정(S316)은 받는다",
+   "return"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "41ef113"
+   ],
+   [
+    "healed",
+    "4e74c56"
+   ]
+  ]
+ },
+ {
+  "id": "I9",
+  "a": "src/ui/controls.gd:91-92",
+  "t": "src/ui/controls.gd:109-110",
+  "feat": "C-low",
+  "born": "c2eb551",
+  "born_r": [
+   60,
+   63
+  ],
+  "born_txt": [
+   "KEY_F1, KEY_F2:  # 쓰러진 영웅은 고르지 않는다. 우클릭이 집결 지점 대신 영웅을 옮기게 시설 선택을 푼다",
+   "facility = null"
+  ],
+  "a_txt": [
+   "if event is InputEventKey and event.pressed and not event.echo:",
+   "match event.keycode:"
+  ],
+  "t_txt": [
+   "KEY_1, KEY_2, KEY_3:",
+   "pick_hero(event.keycode - KEY_1)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2c211a2"
+   ],
+   [
+    "adjusted",
+    "bca556c"
+   ],
+   [
+    "partial",
+    "41ef113"
+   ]
+  ]
+ },
+ {
+  "id": "S186",
+  "a": "src/ui/controls.gd:100-106",
+  "t": "src/ui/controls.gd:129-135",
+  "feat": "C-low",
+  "born": "b25bd53",
+  "born_r": [
+   78,
+   79
+  ],
+  "born_txt": [
+   "if event.keycode in PLACE_KEYS:",
+   "placing = \"\" if placing == PLACE_KEYS[event.keycode] else PLACE_KEYS[event.keycode]"
+  ],
+  "a_txt": [
+   "toggle_hold()",
+   "battle.evacuate()"
+  ],
+  "t_txt": [
+   "if event.keycode in PLACE_KEYS:",
+   "missing = \"\""
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "41ef113"
+   ]
+  ]
+ },
+ {
+  "id": "S18",
+  "a": "src/ui/controls.gd:100-173",
+  "t": "src/ui/controls.gd:100-173",
+  "feat": "OK-low",
+  "born": "2540ee1",
+  "born_r": [
+   30,
+   45
+  ],
+  "born_txt": [
+   "battle.set_hold(selected, not selected.all(func(u): return u.hold))",
+   "return"
+  ],
+  "a_txt": [
+   "toggle_hold()",
+   "return"
+  ],
+  "t_txt": [
+   "toggle_hold()",
+   "return"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "41ef113"
+   ],
+   [
+    "healed",
+    "4e74c56"
+   ]
+  ]
+ },
+ {
+  "id": "S35",
+  "a": "src/ui/controls.gd:134-138",
+  "t": "src/ui/controls.gd:158-162",
+  "feat": "C-low",
+  "born": "f9601d5",
+  "born_r": [
+   129,
+   130
+  ],
+  "born_txt": [
+   "func toggle_move_mode() -> void:",
+   "battle.set_move_mode(selected, \"attack_move\" if selected.all(func(u): return u.move_mode == \"move\") else \"move\")"
+  ],
+  "a_txt": [
+   "placing = \"\" if placing == kind else kind",
+   "attacking = false"
+  ],
+  "t_txt": [
+   "if attacking and event.pressed and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:",
+   "return"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "24e7b93"
+   ],
+   [
+    "partial",
+    "41ef113"
+   ]
+  ]
+ },
+ {
+  "id": "S14",
+  "a": "src/ui/controls.gd:161-166",
+  "t": "src/ui/controls.gd:180-185",
+  "feat": "C-low",
+  "born": "dbcba66",
+  "born_r": [
+   22,
+   23
+  ],
+  "born_txt": [
+   "elif event.button_index == MOUSE_BUTTON_RIGHT:",
+   "battle.order_move(selected, cell)"
+  ],
+  "a_txt": [
+   "attacking = false",
+   "moving = null"
+  ],
+  "t_txt": [
+   "elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:",
+   "_command(event.position, false)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "23d9740"
+   ],
+   [
+    "partial",
+    "41ef113"
+   ]
+  ]
+ },
+ {
+  "id": "S21",
+  "a": "src/ui/controls.gd:161-165",
+  "t": "src/ui/controls.gd:180-184",
+  "feat": "C-low",
+  "born": "7336c5b",
+  "born_r": [
+   59,
+   64
+  ],
+  "born_txt": [
+   "elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:",
+   "battle.order_move(selected, cell)"
+  ],
+  "a_txt": [
+   "attacking = false",
+   "battle.move_cannon(moving, Vector2i((event.position / cell_px).floor()))"
+  ],
+  "t_txt": [
+   "elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:",
+   "else:"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "24e7b93"
+   ],
+   [
+    "partial",
+    "41ef113"
+   ]
+  ]
+ },
+ {
+  "id": "S82",
+  "a": "src/ui/controls.gd:161-165",
+  "t": "src/ui/controls.gd:180-184",
+  "feat": "C-low",
+  "born": "7336c5b",
+  "born_r": [
+   59,
+   64
+  ],
+  "born_txt": [
+   "elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:",
+   "battle.order_move(selected, cell)"
+  ],
+  "a_txt": [
+   "attacking = false",
+   "battle.move_cannon(moving, Vector2i((event.position / cell_px).floor()))"
+  ],
+  "t_txt": [
+   "elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:",
+   "else:"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "24e7b93"
+   ],
+   [
+    "partial",
+    "41ef113"
+   ]
+  ]
+ },
+ {
+  "id": "S191",
+  "a": "src/ui/controls.gd:166",
+  "t": "src/ui/controls.gd:185",
+  "feat": "C-low",
+  "born": "141b27b",
+  "born_r": [
+   130,
+   131
+  ],
+  "born_txt": [
+   "if selected.any(func(u): return u.is_hero):",
+   "hero_sent.emit()"
+  ],
+  "a_txt": [
+   "moving = null",
+   "moving = null"
+  ],
+  "t_txt": [
+   "_command(event.position, false)",
+   "_command(event.position, false)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "41ef113"
+   ]
+  ]
+ },
+ {
+  "id": "S16",
+  "a": "src/ui/controls.gd:168-215",
+  "t": "src/ui/controls.gd:187-238",
+  "feat": "C-low",
+  "born": "23d9740",
+  "born_r": [
+   40,
+   48
+  ],
+  "born_txt": [
+   "func _release(rect: Rect2) -> void:",
+   "selected = battle.units.filter(func(u): return u != h and rect.has_point((u.pos + Vector2(0.5, 0.5)) * cell_px))"
+  ],
+  "a_txt": [
+   "if placing != \"\" and event.pressed and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:",
+   "fort = BattleView.raised_at(battle, rect.position)"
+  ],
+  "t_txt": [
+   "func _release(rect: Rect2, at: Vector2, double := false) -> void:",
+   "picked = todo if prep else built"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "813b987"
+   ],
+   [
+    "adjusted",
+    "161bbc9"
+   ],
+   [
+    "partial",
+    "8677347"
+   ],
+   [
+    "partial",
+    "41ef113"
+   ]
+  ]
+ },
+ {
+  "id": "S70",
+  "a": "src/ui/controls.gd:168-215",
+  "t": "src/ui/controls.gd:187-238",
+  "feat": "C-low",
+  "born": "813b987",
+  "born_r": [
+   60,
+   80
+  ],
+  "born_txt": [
+   "func _release(rect: Rect2, at: Vector2) -> void:",
+   "selling = (selected + battle.structures.values().filter(func(s): return inside.call(Vector2(s.cell)))) if prep else []"
+  ],
+  "a_txt": [
+   "if placing != \"\" and event.pressed and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:",
+   "fort = BattleView.raised_at(battle, rect.position)"
+  ],
+  "t_txt": [
+   "func _release(rect: Rect2, at: Vector2, double := false) -> void:",
+   "picked = todo if prep else built"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "8677347"
+   ],
+   [
+    "partial",
+    "41ef113"
+   ]
+  ]
+ },
+ {
+  "id": "I9",
+  "a": "src/ui/controls.gd:168-215",
+  "t": "src/ui/controls.gd:187-238",
+  "feat": "C-low",
+  "born": "dbcba66",
+  "born_r": [
+   19,
+   21
+  ],
+  "born_txt": [
+   "if event.button_index == MOUSE_BUTTON_LEFT:",
+   "selected = [h] if h and h.alive and Vector2i(h.pos.round()) == cell else []"
+  ],
+  "a_txt": [
+   "if placing != \"\" and event.pressed and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:",
+   "fort = BattleView.raised_at(battle, rect.position)"
+  ],
+  "t_txt": [
+   "func _release(rect: Rect2, at: Vector2, double := false) -> void:",
+   "picked = todo if prep else built"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "23d9740"
+   ],
+   [
+    "adjusted",
+    "813b987"
+   ],
+   [
+    "adjusted",
+    "161bbc9"
+   ],
+   [
+    "partial",
+    "8677347"
+   ],
+   [
+    "partial",
+    "41ef113"
+   ]
+  ]
+ },
+ {
+  "id": "I57",
+  "a": "src/ui/controls.gd:168-215",
+  "t": "src/ui/controls.gd:187-238",
+  "feat": "C-low",
+  "born": "813b987",
+  "born_r": [
+   60,
+   80
+  ],
+  "born_txt": [
+   "func _release(rect: Rect2, at: Vector2) -> void:",
+   "selling = (selected + battle.structures.values().filter(func(s): return inside.call(Vector2(s.cell)))) if prep else []"
+  ],
+  "a_txt": [
+   "if placing != \"\" and event.pressed and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:",
+   "fort = BattleView.raised_at(battle, rect.position)"
+  ],
+  "t_txt": [
+   "func _release(rect: Rect2, at: Vector2, double := false) -> void:",
+   "picked = todo if prep else built"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "8677347"
+   ],
+   [
+    "partial",
+    "41ef113"
+   ]
+  ]
+ },
+ {
+  "id": "I101",
+  "a": "src/ui/controls.gd:178-179",
+  "t": "src/ui/controls.gd:198-199",
+  "feat": "C-low",
+  "born": "fdf5f45",
+  "born_r": [
+   101,
+   101
+  ],
+  "born_txt": [
+   "selected = battle.heroes.filter(func(h): return h.alive and Vector2i(h.pos.round()) == cell).slice(0, 1)  # 클릭한 칸의 영웅(I9, I101)",
+   "selected = battle.heroes.filter(func(h): return h.alive and Vector2i(h.pos.round()) == cell).slice(0, 1)  # 클릭한 칸의 영웅(I9, I101)"
+  ],
+  "a_txt": [
+   "elif _press != null:",
+   "_release(Rect2(_press, event.position - _press).abs(), event.position, _double)"
+  ],
+  "t_txt": [
+   "var mine = _unit_at(battle.heroes.filter(func(h): return h.alive) + mercs, rect.position / cell_px - Vector2(0.5, 0.5))  # 누른 자리가 그림 자리 안인 영웅·용병(S204 2026-10-29 변경)",
+   "units = [mine] if mine and mine.is_hero else []"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "41ef113"
+   ]
+  ]
+ },
+ {
+  "id": "S85",
+  "a": "src/ui/controls.gd:182-184",
+  "t": "src/ui/controls.gd:202-204",
+  "feat": "C-low",
+  "born": "c470722",
+  "born_r": [
+   90,
+   90
+  ],
+  "born_txt": [
+   "fort = battle.castle.get(cell)",
+   "fort = battle.castle.get(cell)"
+  ],
+  "a_txt": [
+   "if facility and not selected.any(func(u): return u.alive):  # 고른 유닛이 있으면 시설을 골랐어도 유닛 명령이다(I173)",
+   "else:"
+  ],
+  "t_txt": [
+   "fort = BattleView.side_at(battle, rect.position)  # 동·서 성벽·닫힌 문루·모서리 탑은 올려 그린 그림으로(S219)",
+   "fort = battle.walls.get(cell, battle.debris.get(cell))  # 성곽 차지 칸 어디를 눌러도(S217)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "41ef113"
+   ]
+  ]
+ },
+ {
+  "id": "S86",
+  "a": "src/ui/controls.gd:182-184",
+  "t": "src/ui/controls.gd:202-204",
+  "feat": "C-low",
+  "born": "c470722",
+  "born_r": [
+   90,
+   90
+  ],
+  "born_txt": [
+   "fort = battle.castle.get(cell)",
+   "fort = battle.castle.get(cell)"
+  ],
+  "a_txt": [
+   "if facility and not selected.any(func(u): return u.alive):  # 고른 유닛이 있으면 시설을 골랐어도 유닛 명령이다(I173)",
+   "else:"
+  ],
+  "t_txt": [
+   "fort = BattleView.side_at(battle, rect.position)  # 동·서 성벽·닫힌 문루·모서리 탑은 올려 그린 그림으로(S219)",
+   "fort = battle.walls.get(cell, battle.debris.get(cell))  # 성곽 차지 칸 어디를 눌러도(S217)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "41ef113"
+   ]
+  ]
+ },
+ {
+  "id": "I89",
+  "a": "src/ui/controls.gd:182-184",
+  "t": "src/ui/controls.gd:202-204",
+  "feat": "C-low",
+  "born": "adb5346",
+  "born_r": [
+   100,
+   100
+  ],
+  "born_txt": [
+   "fort = battle.castle.get(cell, battle.rubble.get(cell))",
+   "fort = battle.castle.get(cell, battle.rubble.get(cell))"
+  ],
+  "a_txt": [
+   "if facility and not selected.any(func(u): return u.alive):  # 고른 유닛이 있으면 시설을 골랐어도 유닛 명령이다(I173)",
+   "else:"
+  ],
+  "t_txt": [
+   "fort = BattleView.side_at(battle, rect.position)  # 동·서 성벽·닫힌 문루·모서리 탑은 올려 그린 그림으로(S219)",
+   "fort = battle.walls.get(cell, battle.debris.get(cell))  # 성곽 차지 칸 어디를 눌러도(S217)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "41ef113"
+   ]
+  ]
+ },
+ {
+  "id": "I90",
+  "a": "src/ui/controls.gd:182-184",
+  "t": "src/ui/controls.gd:202-204",
+  "feat": "C-low",
+  "born": "adb5346",
+  "born_r": [
+   100,
+   100
+  ],
+  "born_txt": [
+   "fort = battle.castle.get(cell, battle.rubble.get(cell))",
+   "fort = battle.castle.get(cell, battle.rubble.get(cell))"
+  ],
+  "a_txt": [
+   "if facility and not selected.any(func(u): return u.alive):  # 고른 유닛이 있으면 시설을 골랐어도 유닛 명령이다(I173)",
+   "else:"
+  ],
+  "t_txt": [
+   "fort = BattleView.side_at(battle, rect.position)  # 동·서 성벽·닫힌 문루·모서리 탑은 올려 그린 그림으로(S219)",
+   "fort = battle.walls.get(cell, battle.debris.get(cell))  # 성곽 차지 칸 어디를 눌러도(S217)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "41ef113"
+   ]
+  ]
+ },
+ {
+  "id": "S217",
+  "a": "src/ui/controls.gd:182-184",
+  "t": "src/ui/controls.gd:202-204",
+  "feat": "C-low",
+  "born": "1cb9de9",
+  "born_r": [
+   165,
+   165
+  ],
+  "born_txt": [
+   "fort = battle.walls.get(cell, battle.debris.get(cell))  # 성곽 차지 칸 어디를 눌러도(S217)",
+   "fort = battle.walls.get(cell, battle.debris.get(cell))  # 성곽 차지 칸 어디를 눌러도(S217)"
+  ],
+  "a_txt": [
+   "if facility and not selected.any(func(u): return u.alive):  # 고른 유닛이 있으면 시설을 골랐어도 유닛 명령이다(I173)",
+   "else:"
+  ],
+  "t_txt": [
+   "fort = BattleView.side_at(battle, rect.position)  # 동·서 성벽·닫힌 문루·모서리 탑은 올려 그린 그림으로(S219)",
+   "fort = battle.walls.get(cell, battle.debris.get(cell))  # 성곽 차지 칸 어디를 눌러도(S217)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "41ef113"
+   ]
+  ]
+ },
+ {
+  "id": "S74",
+  "a": "src/ui/controls.gd:186",
+  "t": "src/ui/controls.gd:206",
+  "feat": "C-low",
+  "born": "161bbc9",
+  "born_r": [
+   87,
+   87
+  ],
+  "born_txt": [
+   "picked = [hit] if hit and not prep else []",
+   "picked = [hit] if hit and not prep else []"
+  ],
+  "a_txt": [
+   "",
+   ""
+  ],
+  "t_txt": [
+   "picked = [hit] if hit and (not prep or (battle.live() and not hit.complete)) else []  # live 준비 단계의 미완성은 판매 대신 이어 짓기·취소(S83, I57)",
+   "picked = [hit] if hit and (not prep or (battle.live() and not hit.complete)) else []  # live 준비 단계의 미완성은 판매 대신 이어 짓기·취소(S83, I57)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "41ef113"
+   ]
+  ]
+ },
+ {
+  "id": "S83",
+  "a": "src/ui/controls.gd:186",
+  "t": "src/ui/controls.gd:206",
+  "feat": "C-low",
+  "born": "161bbc9",
+  "born_r": [
+   87,
+   87
+  ],
+  "born_txt": [
+   "picked = [hit] if hit and not prep else []",
+   "picked = [hit] if hit and not prep else []"
+  ],
+  "a_txt": [
+   "",
+   ""
+  ],
+  "t_txt": [
+   "picked = [hit] if hit and (not prep or (battle.live() and not hit.complete)) else []  # live 준비 단계의 미완성은 판매 대신 이어 짓기·취소(S83, I57)",
+   "picked = [hit] if hit and (not prep or (battle.live() and not hit.complete)) else []  # live 준비 단계의 미완성은 판매 대신 이어 짓기·취소(S83, I57)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "41ef113"
+   ]
+  ]
+ },
+ {
+  "id": "S74",
+  "a": "src/ui/controls.gd:213-215",
+  "t": "src/ui/controls.gd:235-238",
+  "feat": "C-low",
+  "born": "161bbc9",
+  "born_r": [
+   98,
+   100
+  ],
+  "born_txt": [
+   "var built: Array = battle.structures.values().filter(func(s): return inside.call(Vector2(s.cell)))",
+   "picked = [] if prep else built"
+  ],
+  "a_txt": [
+   "units += mercs.filter(func(u): return u != hit and u.alive and u.kind == hit.kind and view.has_point(u.pos + Vector2(0.5, 0.5)))",
+   "fort = BattleView.raised_at(battle, rect.position)"
+  ],
+  "t_txt": [
+   "var built: Array = [] if not units.is_empty() else battle.structures.values().filter(func(s): return battle.cells_in(battle.area_of(s)).any(func(c): return inside.call(Vector2(c))))  # 유닛이 들면 구조물은 고르지 않는다(I173 2026-11-06 변경). 차지 칸이 걸치면(S216)",
+   "picked = todo if prep else built"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "8677347"
+   ],
+   [
+    "partial",
+    "41ef113"
+   ]
+  ]
+ },
+ {
+  "id": "S206",
+  "a": "src/ui/controls.gd:225-235",
+  "t": "src/ui/controls.gd:247-270",
+  "feat": "LIKELY-x",
+  "born": "a358512",
+  "born_r": [
+   202,
+   212
+  ],
+  "born_txt": [
+   "func pick_hero(i: int) -> void:",
+   "shown = null"
+  ],
+  "a_txt": [
+   "if foe:",
+   "var built: Array = [] if not units.is_empty() else battle.structures.values().filter(func(s): return battle.cells_in(battle.area_of(s)).any(func(c): return inside.call(Vector2(c))))  # 유닛이 들면 구조물은 고르지 않는다(I173 2026-11-06 변경). 차지 칸이 걸치면(S216)"
+  ],
+  "t_txt": [
+   "func pick_hero(i: int) -> void:",
+   "shown = null"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "41ef113"
+   ]
+  ]
+ },
+ {
+  "id": "S16",
+  "a": "src/ui/controls.gd:295-333",
+  "t": "src/ui/controls.gd:322-355",
+  "feat": "C-low",
+  "born": "f9601d5",
+  "born_r": [
+   129,
+   134
+  ],
+  "born_txt": [
+   "func toggle_move_mode() -> void:",
+   "battle.set_hold(selected, not selected.all(func(u): return u.hold))"
+  ],
+  "a_txt": [
+   "func _close_popups() -> void:",
+   ""
+  ],
+  "t_txt": [
+   "# 고른 영웅·용병이 있으면 공격 명령 조준을 켠다(S35). A 키와 HUD 태그(I139)가 부른다",
+   ""
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "24e7b93"
+   ],
+   [
+    "partial",
+    "41ef113"
+   ]
+  ]
+ },
+ {
+  "id": "I139",
+  "a": "src/ui/controls.gd:295-333",
+  "t": "src/ui/controls.gd:322-355",
+  "feat": "C-low",
+  "born": "f9601d5",
+  "born_r": [
+   129,
+   134
+  ],
+  "born_txt": [
+   "func toggle_move_mode() -> void:",
+   "battle.set_hold(selected, not selected.all(func(u): return u.hold))"
+  ],
+  "a_txt": [
+   "func _close_popups() -> void:",
+   ""
+  ],
+  "t_txt": [
+   "# 고른 영웅·용병이 있으면 공격 명령 조준을 켠다(S35). A 키와 HUD 태그(I139)가 부른다",
+   ""
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "24e7b93"
+   ],
+   [
+    "partial",
+    "41ef113"
+   ]
+  ]
+ },
+ {
+  "id": "S119",
+  "a": "src/ui/controls.gd:389",
+  "t": "src/ui/controls.gd:427",
+  "feat": "C-low",
+  "born": "fdf5f45",
+  "born_r": [
+   123,
+   128
+  ],
+  "born_txt": [
+   "# Q·W를 쓸 영웅: 고른 영웅. 고른 영웅이 없으면 null이라 첫 영웅이 쓴다(S119)",
+   "return null"
+  ],
+  "a_txt": [
+   "",
+   ""
+  ],
+  "t_txt": [
+   "# 스킬을 쓸 영웅: 고른 출전 영웅. 없으면 null이라 첫 출전 영웅이 쓴다(S119). 출전에서 빠진 영웅은 고르지 않은 것으로 본다(I108)",
+   "# 스킬을 쓸 영웅: 고른 출전 영웅. 없으면 null이라 첫 출전 영웅이 쓴다(S119). 출전에서 빠진 영웅은 고르지 않은 것으로 본다(I108)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2c211a2"
+   ],
+   [
+    "mech?",
+    "57b7ceb",
+    1
+   ],
+   [
+    "partial",
+    "41ef113"
+   ]
+  ]
+ },
+ {
+  "id": "S18",
+  "a": "src/ui/controls.gd:397-404",
+  "t": "src/ui/controls.gd:435-442",
+  "feat": "LIKELY-x",
+  "born": "2540ee1",
+  "born_r": [
+   65,
+   69
+  ],
+  "born_txt": [
+   "func _place(cell: Vector2i) -> void:",
+   "battle.place_merc(placing, cell)"
+  ],
+  "a_txt": [
+   "aim = _closest(_foes(), at)",
+   "aiming = \"\""
+  ],
+  "t_txt": [
+   "func _place(cell: Vector2i) -> void:",
+   "battle.place_merc(placing, cell)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "mech?",
+    "57b7ceb",
+    1
+   ],
+   [
+    "partial",
+    "41ef113"
+   ]
+  ]
+ },
+ {
+  "id": "I128",
+  "a": "src/ui/controls.gd:397-404",
+  "t": "src/ui/controls.gd:435-442",
+  "feat": "LIKELY-x",
+  "born": "d2bd978",
+  "born_r": [
+   223,
+   229
+  ],
+  "born_txt": [
+   "func _place(cell: Vector2i) -> void:",
+   "battle.place_merc(placing, cell)"
+  ],
+  "a_txt": [
+   "aim = _closest(_foes(), at)",
+   "aiming = \"\""
+  ],
+  "t_txt": [
+   "func _place(cell: Vector2i) -> void:",
+   "battle.place_merc(placing, cell)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "mech?",
+    "57b7ceb",
+    1
+   ],
+   [
+    "partial",
+    "41ef113"
+   ]
+  ]
+ },
+ {
+  "id": "I128",
+  "a": "src/ui/controls.gd:406-429",
+  "t": "src/ui/controls.gd:444-467",
+  "feat": "C-sim-x",
+  "born": "5ffa659",
+  "born_r": [
+   262,
+   281
+  ],
+  "born_txt": [
+   "# 구조물 놓기가 거부된 첫 이유(I128): 마을 레벨 → 구역(S43) → 빈 칸 → 골드 → 집 상한(S101) → 전투 단계 공병. 받아들여질 칸이면 \"\"",
+   "return \"\""
+  ],
+  "a_txt": [
+   "# 고르거나 노릴 수 있는 적: 어둠 속에 숨은 적(S213)은 뺀다",
+   "for u in selected:"
+  ],
+  "t_txt": [
+   "# 구조물 놓기가 거부된 첫 이유(I128): 마을 레벨 → 구역(S43) → 길 칸(S43) → 빈 칸 → 골드 → 집 상한(S101) → 쏘는 구조물 상한(S299) → 전투 단계 공병. 받아들여질 칸이면 \"\"",
+   "return \"\""
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "mech?",
+    "57b7ceb",
+    1
+   ],
+   [
+    "partial",
+    "41ef113"
+   ]
+  ]
+ },
+ {
+  "id": "S216",
+  "a": "src/ui/controls.gd:415-420",
+  "t": "src/ui/controls.gd:453-457",
+  "feat": "LIKELY-x",
+  "born": "94ed474",
+  "born_r": [
+   364,
+   366
+  ],
+  "born_txt": [
+   "elif not battle.cells_in(battle.area_at(cell, d.size)).all(func(c): return battle.village.has_point(c) == inner):  # 차지 칸이 모두(S216)",
+   "if not battle.can_build(kind, cell):"
+  ],
+  "a_txt": [
+   "best = u",
+   "var best = null"
+  ],
+  "t_txt": [
+   "elif not battle.cells_in(battle.area_at(cell, d.size)).all(func(c): return battle.village.has_point(c) == inner):  # 차지 칸이 모두(S216)",
+   "if not battle.can_build(kind, cell):"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "mech?",
+    "57b7ceb",
+    1
+   ],
+   [
+    "partial",
+    "41ef113"
+   ]
+  ]
+ },
+ {
+  "id": "S191",
+  "a": "src/ui/hints.gd:1-150",
+  "t": "src/ui/hints.gd:1-150",
+  "feat": "OK-low",
+  "born": "141b27b",
+  "born_r": [
+   1,
+   70
+  ],
+  "born_txt": [
+   "extends Panel",
+   ""
+  ],
+  "a_txt": [
+   "extends Panel",
+   "return battle.heroes.reduce(func(s, h): return s + h.skill_uses, 0)"
+  ],
+  "t_txt": [
+   "extends Panel",
+   "return battle.heroes.reduce(func(s, h): return s + h.skill_uses, 0)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "e168b6f"
+   ]
+  ]
+ },
+ {
+  "id": "S332",
+  "a": "src/ui/hints.gd:22-23",
+  "t": "src/ui/hints.gd:22-23",
+  "feat": "OK-low",
+  "born": "36c1010",
+  "born_r": [
+   18,
+   18
+  ],
+  "born_txt": [
+   "[\"raid\", 0, \"raid\", \"보스는 그로기 때만 크게 맞는다\\n빨강은 피하고 금색에 모인다\"],  # 첫 원정 힌트(S332): 웨이브 0은 라운드·웨이브와 상관없이 원정 동안이다(I277 ④)",
+   "[\"raid\", 0, \"raid\", \"보스는 그로기 때만 크게 맞는다\\n빨강은 피하고 금색에 모인다\"],  # 첫 원정 힌트(S332): 웨이브 0은 라운드·웨이브와 상관없이 원정 동안이다(I277 ④)"
+  ],
+  "a_txt": [
+   "[\"raid\", 0, \"raid\", \"보스는 그로기 때만 크게 맞는다\"],  # 첫 원정 힌트(S332): 웨이브 0은 라운드·웨이브와 상관없이 원정 동안이다(I277 ④)",
+   "[\"raidb\", 0, \"raid\", \"빨강은 피하고 금색에 모인다\", \"gold\"],"
+  ],
+  "t_txt": [
+   "[\"raid\", 0, \"raid\", \"보스는 그로기 때만 크게 맞는다\"],  # 첫 원정 힌트(S332): 웨이브 0은 라운드·웨이브와 상관없이 원정 동안이다(I277 ④)",
+   "[\"raidb\", 0, \"raid\", \"빨강은 피하고 금색에 모인다\", \"gold\"],"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "29b78c8"
+   ]
+  ]
+ },
+ {
+  "id": "S342",
+  "a": "src/ui/hints.gd:26-27",
+  "t": "src/ui/hints.gd:26-27",
+  "feat": "OK-low",
+  "born": "b97cdaf",
+  "born_r": [
+   19,
+   19
+  ],
+  "born_txt": [
+   "[\"raid3\", 0, \"raid\", \"포탄 원을 기계 옆에서 굳힌다\\n대장 돌진은 잔해나 벽에 박는다\"],  # 3층 힌트(S342 ⑬): 이름 끝의 수가 층 번호다(I284 ③)",
+   "[\"raid3\", 0, \"raid\", \"포탄 원을 기계 옆에서 굳힌다\\n대장 돌진은 잔해나 벽에 박는다\"],  # 3층 힌트(S342 ⑬): 이름 끝의 수가 층 번호다(I284 ③)"
+  ],
+  "a_txt": [
+   "[\"raid3\", 0, \"raid\", \"포탄 원을 기계 옆에서 굳힌다\"],  # 3층 힌트(S342 ⑬): 이름 끝의 수가 층 번호다(I284 ③)",
+   "[\"raid3b\", 0, \"raid\", \"대장 돌진은 잔해나 벽에 박는다\", \"phase2\"],"
+  ],
+  "t_txt": [
+   "[\"raid3\", 0, \"raid\", \"포탄 원을 기계 옆에서 굳힌다\"],  # 3층 힌트(S342 ⑬): 이름 끝의 수가 층 번호다(I284 ③)",
+   "[\"raid3b\", 0, \"raid\", \"대장 돌진은 잔해나 벽에 박는다\", \"phase2\"],"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "29b78c8"
+   ]
+  ]
+ },
+ {
+  "id": "I284",
+  "a": "src/ui/hints.gd:26-27",
+  "t": "src/ui/hints.gd:26-27",
+  "feat": "OK-low",
+  "born": "b97cdaf",
+  "born_r": [
+   19,
+   19
+  ],
+  "born_txt": [
+   "[\"raid3\", 0, \"raid\", \"포탄 원을 기계 옆에서 굳힌다\\n대장 돌진은 잔해나 벽에 박는다\"],  # 3층 힌트(S342 ⑬): 이름 끝의 수가 층 번호다(I284 ③)",
+   "[\"raid3\", 0, \"raid\", \"포탄 원을 기계 옆에서 굳힌다\\n대장 돌진은 잔해나 벽에 박는다\"],  # 3층 힌트(S342 ⑬): 이름 끝의 수가 층 번호다(I284 ③)"
+  ],
+  "a_txt": [
+   "[\"raid3\", 0, \"raid\", \"포탄 원을 기계 옆에서 굳힌다\"],  # 3층 힌트(S342 ⑬): 이름 끝의 수가 층 번호다(I284 ③)",
+   "[\"raid3b\", 0, \"raid\", \"대장 돌진은 잔해나 벽에 박는다\", \"phase2\"],"
+  ],
+  "t_txt": [
+   "[\"raid3\", 0, \"raid\", \"포탄 원을 기계 옆에서 굳힌다\"],  # 3층 힌트(S342 ⑬): 이름 끝의 수가 층 번호다(I284 ③)",
+   "[\"raid3b\", 0, \"raid\", \"대장 돌진은 잔해나 벽에 박는다\", \"phase2\"],"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "29b78c8"
+   ]
+  ]
+ },
+ {
+  "id": "S354",
+  "a": "src/ui/hints.gd:30-31",
+  "t": "src/ui/hints.gd:30-31",
+  "feat": "OK-low",
+  "born": "5c94e42",
+  "born_r": [
+   24,
+   24
+  ],
+  "born_txt": [
+   "[\"raid5\", 0, \"raid\", \"바위·착지를 형제에게 맞힌다\\n하나가 쓰러지면 남은 쪽이 성난다\"],  # 5층 힌트(S354 ⑬): 두 몸 가운데 어느 몸이든 그로기가 되면 끝난다(I293 ①)",
+   "[\"raid5\", 0, \"raid\", \"바위·착지를 형제에게 맞힌다\\n하나가 쓰러지면 남은 쪽이 성난다\"],  # 5층 힌트(S354 ⑬): 두 몸 가운데 어느 몸이든 그로기가 되면 끝난다(I293 ①)"
+  ],
+  "a_txt": [
+   "[\"raid5\", 0, \"raid\", \"바위·착지를 형제에게 맞힌다\"],  # 5층 힌트(S354 ⑬): 두 몸 가운데 어느 몸이든 그로기가 되면 끝난다(I293 ①)",
+   "[\"raid5b\", 0, \"raid\", \"하나가 쓰러지면 남은 쪽이 성난다\", \"lone\"],"
+  ],
+  "t_txt": [
+   "[\"raid5\", 0, \"raid\", \"바위·착지를 형제에게 맞힌다\"],  # 5층 힌트(S354 ⑬): 두 몸 가운데 어느 몸이든 그로기가 되면 끝난다(I293 ①)",
+   "[\"raid5b\", 0, \"raid\", \"하나가 쓰러지면 남은 쪽이 성난다\", \"lone\"],"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "29b78c8"
+   ]
+  ]
+ },
+ {
+  "id": "I293",
+  "a": "src/ui/hints.gd:30-31",
+  "t": "src/ui/hints.gd:30-31",
+  "feat": "OK-low",
+  "born": "5c94e42",
+  "born_r": [
+   24,
+   24
+  ],
+  "born_txt": [
+   "[\"raid5\", 0, \"raid\", \"바위·착지를 형제에게 맞힌다\\n하나가 쓰러지면 남은 쪽이 성난다\"],  # 5층 힌트(S354 ⑬): 두 몸 가운데 어느 몸이든 그로기가 되면 끝난다(I293 ①)",
+   "[\"raid5\", 0, \"raid\", \"바위·착지를 형제에게 맞힌다\\n하나가 쓰러지면 남은 쪽이 성난다\"],  # 5층 힌트(S354 ⑬): 두 몸 가운데 어느 몸이든 그로기가 되면 끝난다(I293 ①)"
+  ],
+  "a_txt": [
+   "[\"raid5\", 0, \"raid\", \"바위·착지를 형제에게 맞힌다\"],  # 5층 힌트(S354 ⑬): 두 몸 가운데 어느 몸이든 그로기가 되면 끝난다(I293 ①)",
+   "[\"raid5b\", 0, \"raid\", \"하나가 쓰러지면 남은 쪽이 성난다\", \"lone\"],"
+  ],
+  "t_txt": [
+   "[\"raid5\", 0, \"raid\", \"바위·착지를 형제에게 맞힌다\"],  # 5층 힌트(S354 ⑬): 두 몸 가운데 어느 몸이든 그로기가 되면 끝난다(I293 ①)",
+   "[\"raid5b\", 0, \"raid\", \"하나가 쓰러지면 남은 쪽이 성난다\", \"lone\"],"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "29b78c8"
+   ]
+  ]
+ },
+ {
+  "id": "S332",
+  "a": "src/ui/hints.gd:91-94",
+  "t": "src/ui/hints.gd:91-94",
+  "feat": "OK-low",
+  "born": "36c1010",
+  "born_r": [
+   71,
+   72
+  ],
+  "born_txt": [
+   "if battle.state == \"raid\" and battle.enemies.any(func(e): return battle.effect(e, \"groggy\") != null):  # 첫 원정 힌트(S332)는 보스 몸이 그로기가 되면 끝난다",
+   "_finish(\"raid\")"
+  ],
+  "a_txt": [
+   "var groggy: bool = battle.state == \"raid\" and battle.enemies.any(func(e): return battle.effect(e, \"groggy\") != null)",
+   "_groggy = groggy"
+  ],
+  "t_txt": [
+   "var groggy: bool = battle.state == \"raid\" and battle.enemies.any(func(e): return battle.effect(e, \"groggy\") != null)",
+   "_groggy = groggy"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "I277",
+  "a": "src/ui/hints.gd:91-94",
+  "t": "src/ui/hints.gd:91-94",
+  "feat": "OK-low",
+  "born": "36c1010",
+  "born_r": [
+   71,
+   72
+  ],
+  "born_txt": [
+   "if battle.state == \"raid\" and battle.enemies.any(func(e): return battle.effect(e, \"groggy\") != null):  # 첫 원정 힌트(S332)는 보스 몸이 그로기가 되면 끝난다",
+   "_finish(\"raid\")"
+  ],
+  "a_txt": [
+   "var groggy: bool = battle.state == \"raid\" and battle.enemies.any(func(e): return battle.effect(e, \"groggy\") != null)",
+   "_groggy = groggy"
+  ],
+  "t_txt": [
+   "var groggy: bool = battle.state == \"raid\" and battle.enemies.any(func(e): return battle.effect(e, \"groggy\") != null)",
+   "_groggy = groggy"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "S332",
+  "a": "src/ui/hints.gd:111-117",
+  "t": "src/ui/hints.gd:111-117",
+  "feat": "OK-low",
+  "born": "36c1010",
+  "born_r": [
+   88,
+   89
+  ],
+  "born_txt": [
+   "if battle.state == \"raid\":  # 첫 원정 힌트(S332)",
+   "return \"\" if \"raid\" in Settings.hints_done else \"raid\""
+  ],
+  "a_txt": [
+   "if battle.state == \"raid\":  # 첫 원정 힌트(S332), 그다음 그 층의 힌트(S342 ⑬, I284 ③). 줄마다 첫 줄 → 둘째 줄(S369 ⑦)",
+   "return \"\""
+  ],
+  "t_txt": [
+   "if battle.state == \"raid\":  # 첫 원정 힌트(S332), 그다음 그 층의 힌트(S342 ⑬, I284 ③). 줄마다 첫 줄 → 둘째 줄(S369 ⑦)",
+   "return \"\""
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "I277",
+  "a": "src/ui/hints.gd:111-117",
+  "t": "src/ui/hints.gd:111-117",
+  "feat": "OK-low",
+  "born": "36c1010",
+  "born_r": [
+   88,
+   89
+  ],
+  "born_txt": [
+   "if battle.state == \"raid\":  # 첫 원정 힌트(S332)",
+   "return \"\" if \"raid\" in Settings.hints_done else \"raid\""
+  ],
+  "a_txt": [
+   "if battle.state == \"raid\":  # 첫 원정 힌트(S332), 그다음 그 층의 힌트(S342 ⑬, I284 ③). 줄마다 첫 줄 → 둘째 줄(S369 ⑦)",
+   "return \"\""
+  ],
+  "t_txt": [
+   "if battle.state == \"raid\":  # 첫 원정 힌트(S332), 그다음 그 층의 힌트(S342 ⑬, I284 ③). 줄마다 첫 줄 → 둘째 줄(S369 ⑦)",
+   "return \"\""
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "S39",
+  "a": "src/ui/hud_alert.gd:78-91",
+  "t": "src/ui/hud_alert.gd:80-93",
+  "feat": "C-low",
+  "born": "1cb9de9",
+  "born_r": [
+   78,
+   85
+  ],
+  "born_txt": [
+   "# ponytail: 성문 이름은 성문 차례다. 하나면 정문(시험 스테이지, S39 2026-10-26 변경), 셋이면 왼쪽 쪽문·정문·오른쪽 쪽문. 다른 수의 맵이 생기면 x로 이름을 정한다",
+   "return \"왼쪽 쪽문\" if i == 0 else \"오른쪽 쪽문\" if i == gates.size() - 1 else \"정문\""
+  ],
+  "a_txt": [
+   "_hp[k] = k.hp",
+   "return \"서문\" if d.x < 0 else \"동문\""
+  ],
+  "t_txt": [
+   "# ponytail: 성문 이름은 x 차례다. 하나면 정문, 셋이면 왼쪽 쪽문·정문·오른쪽 쪽문이다. 넷(사방 성곽)이면 거점에서 본 방향으로 정문(남)·북문·서문·동문이다(I180).",
+   "return \"왼쪽 쪽문\" if i == 0 else \"오른쪽 쪽문\" if i == gates.size() - 1 else \"정문\""
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "S98",
+  "a": "src/ui/hud_build.gd:58-61",
+  "t": "src/ui/hud_build.gd:274-277",
+  "feat": "C-low",
+  "born": "8677347",
+  "born_r": [
+   248,
+   248
+  ],
+  "born_txt": [
+   "about = (\"거점·%s에서 산다 · 체력 %d\" if battle.base in battle.sellers(kind) else \"%s에서 산다 · 체력 %d\") % [hud.NAMES[s], d.hp]",
+   "about = (\"거점·%s에서 산다 · 체력 %d\" if battle.base in battle.sellers(kind) else \"%s에서 산다 · 체력 %d\") % [hud.NAMES[s], d.hp]"
+  ],
+  "a_txt": [
+   "for col in ROWS[r].size():",
+   "continue"
+  ],
+  "t_txt": [
+   "if not at.is_empty():",
+   "about = \"%s에서 산다 · 체력 %d\" % [THINGS.base, d.hp] if hq else \"체력 %d\" % d.hp"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "3c5fc84"
+   ],
+   [
+    "approx",
+    "6e66d44"
+   ]
+  ]
+ },
+ {
+  "id": "S186",
+  "a": "src/ui/hud_build.gd:290-323",
+  "t": "src/ui/hud_build.gd:290-323",
+  "feat": "OK-low",
+  "born": "b25bd53",
+  "born_r": [
+   249,
+   276
+  ],
+  "born_txt": [
+   "func _picked() -> Array:",
+   "info.global_position = (Vector2(376, 360) if low else Vector2(510, 288)) - Vector2(0, info.size.y)"
+  ],
+  "a_txt": [
+   "# 고른 것(구조물·성곽·거점)의 이름과 체력. 없으면 []. 고른 용병(판매 후보 포함)은 선택 패널이 보인다(S206)",
+   "return Rect2(Vector2(178 if hud.select.visible else 376, 306) if low else Vector2(510, 234), Vector2(130, 54))"
+  ],
+  "t_txt": [
+   "# 고른 것(구조물·성곽·거점)의 이름과 체력. 없으면 []. 고른 용병(판매 후보 포함)은 선택 패널이 보인다(S206)",
+   "return Rect2(Vector2(178 if hud.select.visible else 376, 306) if low else Vector2(510, 234), Vector2(130, 54))"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "a358512"
+   ],
+   [
+    "partial",
+    "3c5fc84"
+   ],
+   [
+    "healed",
+    "96d77b5"
+   ]
+  ]
+ },
+ {
+  "id": "S187",
+  "a": "src/ui/hud_build.gd:299-323",
+  "t": "src/ui/hud_build.gd:299-323",
+  "feat": "OK-low",
+  "born": "b25bd53",
+  "born_r": [
+   258,
+   276
+  ],
+  "born_txt": [
+   "func _show_info() -> void:",
+   "info.global_position = (Vector2(376, 360) if low else Vector2(510, 288)) - Vector2(0, info.size.y)"
+  ],
+  "a_txt": [
+   "# 정보 칸: 칸 호버 > 놓기 중 > 시설 없는 용병 키(S81) > 고른 것. 빈 줄은 숨기고 위로만 자란다. 카메라가 맨 아래면 격자 왼쪽 맵 밖 띠에 아래로 붙인다(S186)",
+   "return Rect2(Vector2(178 if hud.select.visible else 376, 306) if low else Vector2(510, 234), Vector2(130, 54))"
+  ],
+  "t_txt": [
+   "# 정보 칸: 칸 호버 > 놓기 중 > 시설 없는 용병 키(S81) > 고른 것. 빈 줄은 숨기고 위로만 자란다. 카메라가 맨 아래면 격자 왼쪽 맵 밖 띠에 아래로 붙인다(S186)",
+   "return Rect2(Vector2(178 if hud.select.visible else 376, 306) if low else Vector2(510, 234), Vector2(130, 54))"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "a358512"
+   ],
+   [
+    "partial",
+    "3c5fc84"
+   ],
+   [
+    "healed",
+    "96d77b5"
+   ]
+  ]
+ },
+ {
+  "id": "S241",
+  "a": "src/ui/hud_theme.gd:86-110",
+  "t": "src/ui/hud_theme.gd:86-110",
+  "feat": "OK-low",
+  "born": "9d8b6bf",
+  "born_r": [
+   46,
+   52
+  ],
+  "born_txt": [
+   "# 화면 아래 HUD 패널의 두 겹 테두리(S241): 안쪽 선은 MAP_RIM(따로 정한 색이면 그대로), 바로 바깥 1px은 MAP_EDGE",
+   "return s"
+  ],
+  "a_txt": [
+   "# 화면 아래 HUD 패널의 두 겹 테두리(S241): 안쪽 선은 MAP_RIM(따로 정한 색이면 그대로), 바로 바깥 1px은 MAP_EDGE",
+   "inner.draw(to_canvas_item, rect)"
+  ],
+  "t_txt": [
+   "# 화면 아래 HUD 패널의 두 겹 테두리(S241): 안쪽 선은 MAP_RIM(따로 정한 색이면 그대로), 바로 바깥 1px은 MAP_EDGE",
+   "inner.draw(to_canvas_item, rect)"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "I163",
+  "a": "src/ui/hud_toast.gd:1-73",
+  "t": "src/ui/hud_toast.gd:1-73",
+  "feat": "OK-low",
+  "born": "1053119",
+  "born_r": [
+   1,
+   62
+  ],
+  "born_txt": [
+   "extends Control",
+   "_rows[i].get_child(0).text = t.text + (\" (%d)\" % t.n if t.n > 1 else \"\")"
+  ],
+  "a_txt": [
+   "extends Control",
+   "go.emit(_shown[i].at)"
+  ],
+  "t_txt": [
+   "extends Control",
+   "go.emit(_shown[i].at)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "fbdf6e0"
+   ]
+  ]
+ },
+ {
+  "id": "S184",
+  "a": "src/ui/menus.gd:68-108",
+  "t": "src/ui/menus.gd:68-110",
+  "feat": "LIKELY-x",
+  "born": "6512b0b",
+  "born_r": [
+   64,
+   103
+  ],
+  "born_txt": [
+   "_button(\"설정\", _settings)",
+   "_changed())"
+  ],
+  "a_txt": [
+   "_button(\"설정\", _settings)",
+   "cam_pct.text = \"%d%%\" % v"
+  ],
+  "t_txt": [
+   "_button(\"설정\", _settings)",
+   "_changed())"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "reauth",
+    "6512b0b",
+    [
+     "src/ui/menus.gd",
+     64,
+     86
+    ],
+    [
+     "src/ui/menus.gd",
+     64,
+     86
+    ]
+   ],
+   [
+    "partial",
+    "d0f0bad"
+   ]
+  ]
+ },
+ {
+  "id": "S172",
+  "a": "tools/art/atlas.py:5-10",
+  "t": "tools/art/atlas.py:5-11",
+  "feat": "C-low",
+  "born": "5c6f476",
+  "born_r": [
+   5,
+   5
+  ],
+  "born_txt": [
+   "# 용병·적·주민(4.1d)은 C 절충안에 쓰는 칸만 골라 영웅 아래에 붙인다: 행 S·E·N·W, 정지 1열, 걷기 2위상 2열, 공격 키 포즈 1열, 누운 자세 1장",
+   "# 용병·적·주민(4.1d)은 C 절충안에 쓰는 칸만 골라 영웅 아래에 붙인다: 행 S·E·N·W, 정지 1열, 걷기 2위상 2열, 공격 키 포즈 1열, 누운 자세 1장"
+  ],
+  "a_txt": [
+   "# 용병·적(4.1d)은 C 절충안에 쓰는 칸만 골라 영웅 아래에 붙인다: 행 S·E·N·W, 정지 1열, 걷기 2위상 2열, 공격 키 포즈 1열, 누운 자세 1장",
+   "# 전쟁 기계(I189 2026-11-03 셋째 변경)는 셋째 옆 열 오른쪽의 넷째 옆 열에 쌓는다(x만). 스킬 자세(대포·기관총·집어 던지기·내려찍기)는 시트 열을 모두 담은 c×c 칸이다"
+  ],
+  "t_txt": [
+   "# 용병·적(4.1d)은 C 절충안에 쓰는 칸만 골라 영웅 아래에 붙인다: 행 S·E·N·W, 정지 1열, 걷기 2위상 2열, 공격 키 포즈 1열, 누운 자세 1장",
+   "# 주민(S172 2026-10-26·27 변경)은 몸마다 folk.py 시트 한 장을 그대로 붙이고, look마다 x로 가른다(folk_<몸>_<look>). 일 자세는 자세 이름이 그 첫 행의 y다"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "S172",
+  "a": "tools/art/atlas.py:29-33",
+  "t": "tools/art/atlas.py:30-38",
+  "feat": "C-low",
+  "born": "5c6f476",
+  "born_r": [
+   14,
+   17
+  ],
+  "born_txt": [
+   "FOUR = {\"soldier\": \"soldier\", \"archer\": \"archer\", \"engineer\": \"engineer\", \"basic\": \"goblin\", \"fast\": \"kobold\",  # 게임 종류 → 그림 폴더(art/trial/)",
+   "FOUR_COLS = {\"idle\": [0], \"walk\": [0, 1], \"attack\": [1], \"fall\": [4]}  # 걷기 접지·통과, 공격 내려침, 쓰러짐 마지막(누운 자세)"
+  ],
+  "a_txt": [
+   "ANIMS = [\"idle\", \"walk\", \"attack\", \"fall\"]",
+   "FOUR_ROWS = [0, 2, 4, 6]  # 8방향 시트(render.DIRS 순서)에서 S·E·N·W"
+  ],
+  "t_txt": [
+   "FOUR = {\"soldier\": \"soldier\", \"archer\": \"archer\", \"engineer\": \"engineer\", \"basic\": \"goblin\", \"fast\": \"kobold\",  # 게임 종류 → 그림 폴더(art/trial/)",
+   "\"order\": [0, 1], \"aim\": [0, 1], \"horn\": [0, 1], \"banner\": [0, 1], \"roar\": [0, 1], \"verdict\": [0, 1], \"sway\": [0, 1], \"hook\": [0, 1], \"shoot\": [0, 1]}  # 걷기 접지·통과, 공격 내려침, 쓰러짐 마지막(누운 자세). 전쟁 기계·대장 스킬은 시트 열을 모두 쓴다"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "826529e"
+   ]
+  ]
+ },
+ {
+  "id": "I189",
+  "a": "tools/art/atlas.py:33",
+  "t": "tools/art/atlas.py:34-38",
+  "feat": "C-low",
+  "born": "f643b75",
+  "born_r": [
+   22,
+   22
+  ],
+  "born_txt": [
+   "FOUR_COLS = {\"idle\": [0], \"walk\": [0, 1], \"attack\": [1], \"fall\": [4], \"crouch\": [0], \"air\": [0]}  # 걷기 접지·통과, 공격 내려침, 쓰러짐 마지막(누운 자세)",
+   "FOUR_COLS = {\"idle\": [0], \"walk\": [0, 1], \"attack\": [1], \"fall\": [4], \"crouch\": [0], \"air\": [0]}  # 걷기 접지·통과, 공격 내려침, 쓰러짐 마지막(누운 자세)"
+  ],
+  "a_txt": [
+   "FOUR_ROWS = [0, 2, 4, 6]  # 8방향 시트(render.DIRS 순서)에서 S·E·N·W",
+   "FOUR_ROWS = [0, 2, 4, 6]  # 8방향 시트(render.DIRS 순서)에서 S·E·N·W"
+  ],
+  "t_txt": [
+   "FOUR_COLS = {\"idle\": [0], \"walk\": [0, 1], \"attack\": [1], \"fall\": [4], \"crouch\": [0], \"air\": [0], \"land_idle\": [0], \"land_walk\": [0, 1],",
+   "\"order\": [0, 1], \"aim\": [0, 1], \"horn\": [0, 1], \"banner\": [0, 1], \"roar\": [0, 1], \"verdict\": [0, 1], \"sway\": [0, 1], \"hook\": [0, 1], \"shoot\": [0, 1]}  # 걷기 접지·통과, 공격 내려침, 쓰러짐 마지막(누운 자세). 전쟁 기계·대장 스킬은 시트 열을 모두 쓴다"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "826529e"
+   ]
+  ]
+ },
+ {
+  "id": "S165",
+  "a": "tools/art/atlas.py:102-212",
+  "t": "tools/art/atlas.py:105-238",
+  "feat": "LIKELY-x",
+  "born": "461f04f",
+  "born_r": [
+   14,
+   31
+  ],
+  "born_txt": [
+   "def main():",
+   "print(out.size)"
+  ],
+  "a_txt": [
+   "return cut",
+   "c = fit[\"c\"]"
+  ],
+  "t_txt": [
+   "def main():",
+   "print(out.size)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "763332c"
+   ],
+   [
+    "partial",
+    "826529e"
+   ]
+  ]
+ },
+ {
+  "id": "S172",
+  "a": "tools/art/atlas.py:108-109",
+  "t": "tools/art/atlas.py:111-112",
+  "feat": "C-low",
+  "born": "5c6f476",
+  "born_r": [
+   27,
+   34
+  ],
+  "born_txt": [
+   "if kind in FOUR:",
+   "im = cut"
+  ],
+  "a_txt": [
+   "m = _fit(folder)",
+   "for a in ANIMS:"
+  ],
+  "t_txt": [
+   "if kind in FOUR:",
+   "im = _cut(im, m[\"c\"], a, [0] if a == \"fall\" else FOUR_ROWS)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "763332c"
+   ],
+   [
+    "partial",
+    "826529e"
+   ]
+  ]
+ },
+ {
+  "id": "S170",
+  "a": "tools/art/atlas.py:215-280",
+  "t": "tools/art/atlas.py:241-296",
+  "feat": "C-sim-x",
+  "born": "5c6f476",
+  "born_r": [
+   48,
+   70
+  ],
+  "born_txt": [
+   "# 성곽 칸 조각: 시험 그림(6칸 장면, 원점 픽셀 (4, 100), tools/art/wall.py)에서 칸 하나 폭으로 자른다. 조각 맨 아랫줄이 원점 줄이다.",
+   "print(out.size, keep.size)"
+  ],
+  "a_txt": [
+   "for look in range(im.width // (2 * c)):",
+   "im = Image.open(f\"art/trial/walls/{_layer(name, front)}_L{level}.png\").convert(\"RGBA\")"
+  ],
+  "t_txt": [
+   "# 성곽 조각(S217): 두께 5칸(2026-11-03 변경)·문 폭 3칸 장면(원점 픽셀 (4, 그림 높이 − 4), tools/art/wall.py GAME_GATES)에서 자른다. 조각 맨 아랫줄이 원점 줄(앞줄 바닥선)이다.",
+   "print(out.size, keep.size)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "reauth",
+    "5c6f476",
+    [
+     "tools/art/atlas.py",
+     48,
+     69
+    ],
+    [
+     "tools/art/atlas.py",
+     35,
+     56
+    ]
+   ],
+   [
+    "partial",
+    "763332c"
+   ],
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "S202",
+  "a": "tools/art/decor.py:1-5",
+  "t": "tools/art/decor.py:1-6",
+  "feat": "C-low",
+  "born": "057dc01",
+  "born_r": [
+   1,
+   5
+  ],
+  "born_txt": [
+   "# 들판 장식(S201, 사용자 2026-10-23 — 농경지·전장 흔적·숲 가장자리 시안 가운데 «전장 흔적»)과 마을 장식(S202 — 돌길·광장·생활·보급 시안 가운데",
+   "# 1행 48×32: 그을음 3, 2행 48×48: 맵 아래 맵 밖 띠의 마른 나무 4(줄기 밑동이 그림의 (24, 44))"
+  ],
+  "a_txt": [
+   "# 들판 장식(S201, 사용자 2026-10-23 — 농경지·전장 흔적·숲 가장자리 시안 가운데 «전장 흔적»)과 마을 장식(S202 — 돌길·광장·생활·보급 시안 가운데",
+   "# 1행 48×32: 그을음 3, 2행 48×48: 맵 아래 맵 밖 띠의 마른 나무 4(줄기 밑동이 그림의 (24, 44)),"
+  ],
+  "t_txt": [
+   "# 들판 장식(S201, 사용자 2026-10-23 — 농경지·전장 흔적·숲 가장자리 시안 가운데 «전장 흔적»)과 마을 장식(S202 — 돌길·광장·생활·보급 시안 가운데",
+   "# 3행 16×16: 마을 시설 마당 소품(S215) 텃밭 2·울타리 2·장작더미·목재 더미·톱밥·판석"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "S201",
+  "a": "tools/art/decor.py:1-151",
+  "t": "tools/art/decor.py:1-151",
+  "feat": "OK-low",
+  "born": "057dc01",
+  "born_r": [
+   1,
+   169
+  ],
+  "born_txt": [
+   "# 들판 장식(S201, 사용자 2026-10-23 — 농경지·전장 흔적·숲 가장자리 시안 가운데 «전장 흔적»)과 마을 장식(S202 — 돌길·광장·생활·보급 시안 가운데",
+   "print(s.size)"
+  ],
+  "a_txt": [
+   "# 들판 장식(S201, 사용자 2026-10-23 — 농경지·전장 흔적·숲 가장자리 시안 가운데 «전장 흔적»)과 마을 장식(S202 — 돌길·광장·생활·보급 시안 가운데",
+   ""
+  ],
+  "t_txt": [
+   "# 들판 장식(S201, 사용자 2026-10-23 — 농경지·전장 흔적·숲 가장자리 시안 가운데 «전장 흔적»)과 마을 장식(S202 — 돌길·광장·생활·보급 시안 가운데",
+   ""
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "48e48a5"
+   ]
+  ]
+ },
+ {
+  "id": "S172",
+  "a": "tools/art/folk.py:65-107",
+  "t": "tools/art/folk.py:65-107",
+  "feat": "OK-low",
+  "born": "b1ef904",
+  "born_r": [
+   22,
+   48
+  ],
+  "born_txt": [
+   "",
+   ""
+  ],
+  "a_txt": [
+   "",
+   "return dict(c, **TOOLS)"
+  ],
+  "t_txt": [
+   "",
+   "return dict(c, **TOOLS)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "b860b99"
+   ]
+  ]
+ },
+ {
+  "id": "S221",
+  "a": "tools/art/folk.py:65-107",
+  "t": "tools/art/folk.py:65-107",
+  "feat": "OK-low",
+  "born": "b1ef904",
+  "born_r": [
+   22,
+   48
+  ],
+  "born_txt": [
+   "",
+   ""
+  ],
+  "a_txt": [
+   "",
+   "return dict(c, **TOOLS)"
+  ],
+  "t_txt": [
+   "",
+   "return dict(c, **TOOLS)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "b860b99"
+   ]
+  ]
+ },
+ {
+  "id": "S179",
+  "a": "tools/art/fx.py:378-390",
+  "t": "tools/art/fx.py:378-386",
+  "feat": "C-low",
+  "born": "13df488",
+  "born_r": [
+   306,
+   318
+  ],
+  "born_txt": [
+   "# fx-2: 아이아스(보라)·실비아(연두)",
+   "\"stuck\": [ascii([\"L.L\", \".L.\", \".B.\", \".B.\", \".B.\", \".N.\"], {\"L\": LIME[1], \"B\": rgb(\"efb775\"), \"N\": rgb(\"392a1c\")})],  # 화살비: 땅에 꽂힌 화살"
+  ],
+  "a_txt": [
+   "# fx-2: 아이아스(보라)·실비아(연두)",
+   "[\".......\", \"...G...\", \"...C...\", \".GCCCG.\", \"...C...\", \"...G...\", \".......\"],"
+  ],
+  "t_txt": [
+   "# fx-2: 아이아스(보라)·실비아(연두)",
+   "\"gust\": [gust(f) for f in range(4)],"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "S217",
+  "a": "tools/art/wall.py:14",
+  "t": "tools/art/wall.py:14-17",
+  "feat": "C-low",
+  "born": "1cb9de9",
+  "born_r": [
+   14,
+   14
+  ],
+  "born_txt": [
+   "GAME_GATES = {\"open\": 2.5, \"closed\": 9.5}  # 게임 성곽(두께 3, 문 폭 3) 12칸 장면의 문 가운데 x(칸)",
+   "GAME_GATES = {\"open\": 2.5, \"closed\": 9.5}  # 게임 성곽(두께 3, 문 폭 3) 12칸 장면의 문 가운데 x(칸)"
+  ],
+  "a_txt": [
+   "GAME_GATES = {\"open\": 2.5, \"closed\": 10.5}  # 게임 성곽(문 폭 3) 14칸 장면의 문 가운데 x(칸)",
+   "GAME_GATES = {\"open\": 2.5, \"closed\": 10.5}  # 게임 성곽(문 폭 3) 14칸 장면의 문 가운데 x(칸)"
+  ],
+  "t_txt": [
+   "GAME_GATES = {\"open\": 2.5, \"closed\": 10.5}  # 게임 성곽(문 폭 3) 14칸 장면의 문 가운데 x(칸)",
+   "GATE_RISE, TOWER_RISE = 17, 27  # 문루·양옆 탑 바닥이 성벽 통로보다 높은 px(시안 C, 사용자 2026-10-26). battle_view.gd와 같다"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "S170",
+  "a": "tools/art/wall.py:52",
+  "t": "tools/art/wall.py:52",
+  "feat": "OK-low",
+  "born": "3d62521",
+  "born_r": [
+   36,
+   36
+  ],
+  "born_txt": [
+   "def wall(elev, H, pal, level=1):",
+   "def wall(elev, H, pal, level=1):"
+  ],
+  "a_txt": [
+   "def wall(elev, H, pal, level=1, thick=1, gate_w=1, W=W, gates=GATES, house=False, back=False, corners=False):",
+   "def wall(elev, H, pal, level=1, thick=1, gate_w=1, W=W, gates=GATES, house=False, back=False, corners=False):"
+  ],
+  "t_txt": [
+   "def wall(elev, H, pal, level=1, thick=1, gate_w=1, W=W, gates=GATES, house=False, back=False, corners=False):",
+   "def wall(elev, H, pal, level=1, thick=1, gate_w=1, W=W, gates=GATES, house=False, back=False, corners=False):"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "e632ac3"
+   ]
+  ]
+ },
+ {
+  "id": "S217",
+  "a": "tools/art/wall.py:52-65",
+  "t": "tools/art/wall.py:52-65",
+  "feat": "OK-low",
+  "born": "1cb9de9",
+  "born_r": [
+   37,
+   49
+  ],
+  "born_txt": [
+   "def wall(elev, H, pal, level=1, thick=1, gate_w=1, W=W, gates=GATES):",
+   "parapet = R.box([W / 2, pd / 2, h + ph / 2], [W / 2, pd / 2, ph / 2])"
+  ],
+  "a_txt": [
+   "def wall(elev, H, pal, level=1, thick=1, gate_w=1, W=W, gates=GATES, house=False, back=False, corners=False):",
+   "py = D - pd / 2 if back else pd / 2  # 북벽(back)은 흉벽이 바깥인 뒤쪽이다(사방 성벽, 사용자 2026-10-26 «흉벽을 바깥으로»)"
+  ],
+  "t_txt": [
+   "def wall(elev, H, pal, level=1, thick=1, gate_w=1, W=W, gates=GATES, house=False, back=False, corners=False):",
+   "py = D - pd / 2 if back else pd / 2  # 북벽(back)은 흉벽이 바깥인 뒤쪽이다(사방 성벽, 사용자 2026-10-26 «흉벽을 바깥으로»)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "e632ac3"
+   ],
+   [
+    "adjusted",
+    "62e3917"
+   ]
+  ]
+ }
+]

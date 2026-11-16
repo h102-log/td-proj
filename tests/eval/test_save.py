@@ -47,3 +47,15 @@ def test_EV529_pack_saved_with_path(gd):
 
 def test_EV1104_old_save_drops_barracks_and_archery(gd):
     gd("save", "EV1104")
+
+
+def test_EV1132_old_save_roster_filtered(gd):
+    gd("save", "EV1132")
+
+
+def test_EV1147_group_slots_and_pace_saved(gd):
+    gd("save", "EV1147")
+
+
+def test_EV1154_queued_route_target_saved(gd):
+    gd("save", "EV1154")

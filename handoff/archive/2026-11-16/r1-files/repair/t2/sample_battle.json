@@ -1,0 +1,1052 @@
+[
+ {
+  "id": "I102",
+  "old": "src/sim/battle.gd:891",
+  "new": "src/sim/battle.gd:901",
+  "cls": "SURE",
+  "born": "2c211a2",
+  "born_r": [
+   395,
+   395
+  ],
+  "born_txt": [
+   "# 영웅을 자기 시작 칸에 세운다. 체력은 쓰러졌다 돌아올 때(S26, I102) 1이고(S138, I27), 새로 출전할 때(S124) 가득 찬다.",
+   "# 영웅을 자기 시작 칸에 세운다. 체력은 쓰러졌다 돌아올 때(S26, I102) 1이고(S138, I27), 새로 출전할 때(S124) 가득 찬다."
+  ]
+ },
+ {
+  "id": "S125",
+  "old": "src/sim/battle.gd:3884-3886",
+  "new": "src/sim/battle.gd:3979-3981",
+  "cls": "SURE",
+  "born": "6a04a9b",
+  "born_r": [
+   1054,
+   1056
+  ],
+  "born_txt": [
+   "for h in heroes:  # 누가 처치했든 그때 살아 있는 출전 영웅이 모두 받는다(S125)",
+   "add_xp(h, target.xp)"
+  ]
+ },
+ {
+  "id": "I178",
+  "old": "src/sim/battle.gd:3289",
+  "new": "src/sim/battle.gd:3345",
+  "cls": "C-sim",
+  "born": "94ed474",
+  "born_r": [
+   2006,
+   2006
+  ],
+  "born_txt": [
+   "u.path = grid.path(Vector2i(u.pos.round()), _spot(u, _site(s))).slice(1, -1)",
+   "u.path = grid.path(Vector2i(u.pos.round()), _spot(u, _site(s))).slice(1, -1)"
+  ]
+ },
+ {
+  "id": "I142",
+  "old": "src/sim/battle.gd:480",
+  "new": "src/sim/battle.gd:486",
+  "cls": "SURE",
+  "born": "2c211a2",
+  "born_r": [
+   222,
+   222
+  ],
+  "born_txt": [
+   "var barriers := {}  # Vector2i → 에너지 성벽 칸 Block(S151, I142). 그 장판(zones)이 끝나면 사라진다",
+   "var barriers := {}  # Vector2i → 에너지 성벽 칸 Block(S151, I142). 그 장판(zones)이 끝나면 사라진다"
+  ]
+ },
+ {
+  "id": "I183",
+  "old": "src/sim/battle.gd:3441-3526",
+  "new": "src/sim/battle.gd:3493-3577",
+  "cls": "LIKELY",
+  "born": "1ac3c73",
+  "born_r": [
+   2288,
+   2372
+  ],
+  "born_txt": [
+   "# ── 주민 대피·다침·신뢰(S225~S229, I183) ──",
+   ""
+  ]
+ },
+ {
+  "id": "S156",
+  "old": "src/sim/battle.gd:2696",
+  "new": "src/sim/battle.gd:2740",
+  "cls": "SURE",
+  "born": "2c211a2",
+  "born_r": [
+   1265,
+   1265
+  ],
+  "born_txt": [
+   "# ── 이그니스(S156) ──",
+   "# ── 이그니스(S156) ──"
+  ]
+ },
+ {
+  "id": "I196",
+  "old": "src/sim/battle.gd:6845",
+  "new": "src/sim/battle.gd:7194",
+  "cls": "C-sim",
+  "born": "964e789",
+  "born_r": [
+   3608,
+   3608
+  ],
+  "born_txt": [
+   "damage(target, e.damage * (1.0 - _fx_cut(e, \"weaken\")))  # 공격력 감소(S154)",
+   "damage(target, e.damage * (1.0 - _fx_cut(e, \"weaken\")))  # 공격력 감소(S154)"
+  ]
+ },
+ {
+  "id": "S19",
+  "old": "src/sim/battle.gd:518",
+  "new": "src/sim/battle.gd:524",
+  "cls": "SURE",
+  "born": "2540ee1",
+  "born_r": [
+   134,
+   134
+  ],
+  "born_txt": [
+   "var gold := 0",
+   "var gold := 0"
+  ]
+ },
+ {
+  "id": "I183",
+  "old": "src/sim/battle.gd:690-693",
+  "new": "src/sim/battle.gd:697-700",
+  "cls": "SURE",
+  "born": "1ac3c73",
+  "born_r": [
+   504,
+   507
+  ],
+  "born_txt": [
+   "_fort = village",
+   "_fort = _fort.merge(area_of(k))"
+  ]
+ },
+ {
+  "id": "S115",
+  "old": "src/sim/battle.gd:3751-3755",
+  "new": "src/sim/battle.gd:3803-3808",
+  "cls": "LIKELY",
+  "born": "adb5346",
+  "born_r": [
+   759,
+   763
+  ],
+  "born_txt": [
+   "elif s.mend > 0.0:",
+   "_raise(s)"
+  ]
+ },
+ {
+  "id": "S13",
+  "old": "src/sim/battle.gd:5071-6214",
+  "new": "src/sim/battle.gd:6256-6268",
+  "cls": "LIKELY",
+  "born": "2c211a2",
+  "born_r": [
+   2010,
+   2020
+  ],
+  "born_txt": [
+   "# 몸끼리 닿는가(S13, S159): 유닛과 적 사이는 그 유닛이 그 적을 붙잡을 수 있을 때만 막는다. 비행 적은 막지 않는다(S109). 아군은 에너지 성벽을 지나간다(I142)",
+   "# 같은 편(bodies)끼리 겹친 만큼 반씩 밀어낸다. 상대 편(others)과는 겹치지 않게 민다. 비행 적은 밀지도 밀리지도 않는다(I79)."
+  ]
+ },
+ {
+  "id": "I184",
+  "old": "src/sim/battle.gd:3340-3365",
+  "new": "src/sim/battle.gd:3392-3417",
+  "cls": "SURE",
+  "born": "5fda505",
+  "born_r": [
+   2208,
+   2233
+  ],
+  "born_txt": [
+   "# 집 s의 새 가족(S221): 유형을 가중치로 고르고 몸을 정한다. 피부(look % 3)는 가족이 같이 쓴다. n은 가족 안 원래 차례라",
+   "m.grow = Folk.GROW[0] + posmod(hash([s.cell, i, round_index]), Folk.GROW[1] - Folk.GROW[0] + 1)"
+  ]
+ },
+ {
+  "id": "S229",
+  "old": "src/sim/battle.gd:3514-3520",
+  "new": "src/sim/battle.gd:3566-3572",
+  "cls": "SURE",
+  "born": "1ac3c73",
+  "born_r": [
+   2360,
+   2366
+  ],
+  "born_txt": [
+   "# 정문 바로 안쪽 마을 칸(떠나는 가족이 걸어 나가는 곳, S229). 성곽이 없으면 거점 열의 마을 맨 아래 칸",
+   "return Vector2i(r.position.x + r.size.x / 2, r.position.y - 1)"
+  ]
+ },
+ {
+  "id": "S178",
+  "old": "src/sim/battle.gd:6286",
+  "new": "src/sim/battle.gd:6342",
+  "cls": "SURE",
+  "born": "1149ca4",
+  "born_r": [
+   2261,
+   2261
+  ],
+  "born_txt": [
+   "_shoot(s, best, s.damage * _might(s), \"magic\" if s.pierce else \"phys\")",
+   "_shoot(s, best, s.damage * _might(s), \"magic\" if s.pierce else \"phys\")"
+  ]
+ },
+ {
+  "id": "I119",
+  "old": "src/sim/battle.gd:2865",
+  "new": "src/sim/battle.gd:2894",
+  "cls": "SURE",
+  "born": "872fcaf",
+  "born_r": [
+   755,
+   755
+  ],
+  "born_txt": [
+   "tally.built += 1  # 라운드 집계(I119)",
+   "tally.built += 1  # 라운드 집계(I119)"
+  ]
+ },
+ {
+  "id": "S242",
+  "old": "src/sim/battle.gd:1979",
+  "new": "src/sim/battle.gd:2006",
+  "cls": "C-sim",
+  "born": "abd46b4",
+  "born_r": [
+   1175,
+   1175
+  ],
+  "born_txt": [
+   "if not h or state != \"battle\" or _seized(h):  # 기절·붙잡힌 영웅은 누른 스킬을 쓰지 않는다(I192·S242)",
+   "if not h or state != \"battle\" or _seized(h):  # 기절·붙잡힌 영웅은 누른 스킬을 쓰지 않는다(I192·S242)"
+  ]
+ },
+ {
+  "id": "S216",
+  "old": "src/sim/battle.gd:2928-2944",
+  "new": "src/sim/battle.gd:2955-2982",
+  "cls": "C-sim",
+  "born": "94ed474",
+  "born_r": [
+   1681,
+   1689
+  ],
+  "born_txt": [
+   "func _occupy(s: Block) -> void:",
+   "footprint.erase(c)"
+  ]
+ },
+ {
+  "id": "S242",
+  "old": "src/sim/battle.gd:3863-3864",
+  "new": "src/sim/battle.gd:3947-3948",
+  "cls": "SURE",
+  "born": "abd46b4",
+  "born_r": [
+   2756,
+   2757
+  ],
+  "born_txt": [
+   "if target is Enemy and target.grip:  # 붙잡은 동안 받은 피해 합(S242)",
+   "target.grip.hurt += amount"
+  ]
+ },
+ {
+  "id": "S159",
+  "old": "src/sim/battle.gd:6582",
+  "new": "src/sim/battle.gd:6804",
+  "cls": "SURE",
+  "born": "2c211a2",
+  "born_r": [
+   2171,
+   2171
+  ],
+  "born_txt": [
+   "h.block = HERO_KINDS[h.kind].block + (h.passive.block if h.fort else 0)  # 블록 수 +3(S159)",
+   "h.block = HERO_KINDS[h.kind].block + (h.passive.block if h.fort else 0)  # 블록 수 +3(S159)"
+  ]
+ },
+ {
+  "id": "S242",
+  "old": "src/sim/battle.gd:220-225",
+  "new": "src/sim/battle.gd:227-229",
+  "cls": "SURE",
+  "born": "abd46b4",
+  "born_r": [
+   190,
+   192
+  ],
+  "born_txt": [
+   "var grip = null  # 덮치기로 붙잡은 아군과 그동안 받은 피해 {who, hurt}(S242). 없으면 null",
+   "var away := 0.0  # 노린 아군이 far 넘게 떨어진 채 지난 시간(초)"
+  ]
+ },
+ {
+  "id": "I138",
+  "old": "src/sim/battle.gd:2881",
+  "new": "src/sim/battle.gd:2911",
+  "cls": "SURE",
+  "born": "f9601d5",
+  "born_r": [
+   793,
+   793
+  ],
+  "born_txt": [
+   "func _buildable(kind: String, cell: Vector2i, taken = null) -> bool:",
+   "func _buildable(kind: String, cell: Vector2i, taken = null) -> bool:"
+  ]
+ },
+ {
+  "id": "S36",
+  "old": "src/sim/battle.gd:6215",
+  "new": "src/sim/battle.gd:6270",
+  "cls": "SURE",
+  "born": "57b7ceb",
+  "born_r": [
+   3229,
+   3229
+  ],
+  "born_txt": [
+   "# 홀드를 켜고 서 있는 용병은 아군에게 밀리지 않고 겹친 쪽이 다 밀려난다. 둘 다 그러면 반씩이다(S36 2026-10-29 변경)",
+   "# 홀드를 켜고 서 있는 용병은 아군에게 밀리지 않고 겹친 쪽이 다 밀려난다. 둘 다 그러면 반씩이다(S36 2026-10-29 변경)"
+  ]
+ },
+ {
+  "id": "S139",
+  "old": "src/sim/battle.gd:461",
+  "new": "src/sim/battle.gd:468",
+  "cls": "C-sim",
+  "born": "a4b68f9",
+  "born_r": [
+   211,
+   211
+  ],
+  "born_txt": [
+   "return Vector2(to - from).length() + (b.hp / pow(UPGRADE_MULT, b.level - 1) * wall_k if b else 0.0)",
+   "return Vector2(to - from).length() + (b.hp / pow(UPGRADE_MULT, b.level - 1) * wall_k if b else 0.0)"
+  ]
+ },
+ {
+  "id": "I195",
+  "old": "src/sim/battle.gd:4153",
+  "new": "src/sim/battle.gd:4281",
+  "cls": "C-sim",
+  "born": "abd46b4",
+  "born_r": [
+   2937,
+   2937
+  ],
+  "born_txt": [
+   "var speed: float = 0.0 if rooted else e.speed * (1.0 - _fx_cut(e, \"slow\")) * (1.0 + (e.skills.rage.stride if rage else 0.0)) * (1.0 + sh.get(\"stride_max\", 0.0) * quick) * (1.0 + e.night.get(\"stride\", 0.0) * dusk) * howl",
+   "var speed: float = 0.0 if rooted else e.speed * (1.0 - _fx_cut(e, \"slow\")) * (1.0 + (e.skills.rage.stride if rage else 0.0)) * (1.0 + sh.get(\"stride_max\", 0.0) * quick) * (1.0 + e.night.get(\"stride\", 0.0) * dusk) * howl"
+  ]
+ },
+ {
+  "id": "S216",
+  "old": "src/sim/battle.gd:663",
+  "new": "src/sim/battle.gd:670",
+  "cls": "SURE",
+  "born": "94ed474",
+  "born_r": [
+   391,
+   391
+  ],
+  "born_txt": [
+   "footprint.clear()",
+   "footprint.clear()"
+  ]
+ },
+ {
+  "id": "I178",
+  "old": "src/sim/battle.gd:3021-3036",
+  "new": "src/sim/battle.gd:3048-3063",
+  "cls": "LIKELY",
+  "born": "94ed474",
+  "born_r": [
+   1752,
+   1767
+  ],
+  "born_txt": [
+   "# 시설 차지 칸 둘레의 빈 칸. 앞(아래, 들판 쪽 S51) 줄 → 왼쪽 옆 → 오른쪽 옆 → 뒤 줄 순서로, 앞·뒤 줄은 왼쪽부터, 옆 줄은 앞부터 본다(I61, I178)",
+   "return null"
+  ]
+ },
+ {
+  "id": "S217",
+  "old": "src/sim/battle.gd:3907-3957",
+  "new": "src/sim/battle.gd:3997-4031",
+  "cls": "LIKELY",
+  "born": "1cb9de9",
+  "born_r": [
+   2185,
+   2213
+  ],
+  "born_txt": [
+   "else:  # 구조물·성곽: 칸이 비고 경로를 다시 구한다(I5)",
+   "u.after.clear()"
+  ]
+ },
+ {
+  "id": "I48",
+  "old": "src/sim/battle.gd:3205-3214",
+  "new": "src/sim/battle.gd:3261-3270",
+  "cls": "LIKELY",
+  "born": "332b443",
+  "born_r": [
+   555,
+   563
+  ],
+  "born_txt": [
+   "# 전투 단계에만, 놀고 있는 가장 가까운 공병을 보내 대포를 그 칸으로 옮긴다. 골드는 들지 않는다(S44, I48).",
+   "_send(engineer, s)"
+  ]
+ },
+ {
+  "id": "S221",
+  "old": "src/sim/battle.gd:728",
+  "new": "src/sim/battle.gd:737",
+  "cls": "SURE",
+  "born": "b1ef904",
+  "born_r": [
+   467,
+   467
+  ],
+  "born_txt": [
+   "_kin.randomize()",
+   "_kin.randomize()"
+  ]
+ },
+ {
+  "id": "I91",
+  "old": "src/sim/battle.gd:595",
+  "new": "src/sim/battle.gd:602",
+  "cls": "SURE",
+  "born": "2be4f3c",
+  "born_r": [
+   228,
+   228
+  ],
+  "born_txt": [
+   "rounds = stage.get(\"rounds\", [stage.get(\"waves\", [])])",
+   "rounds = stage.get(\"rounds\", [stage.get(\"waves\", [])])"
+  ]
+ },
+ {
+  "id": "I79",
+  "old": "src/sim/battle.gd:4187",
+  "new": "src/sim/battle.gd:4313",
+  "cls": "SURE",
+  "born": "2c211a2",
+  "born_r": [
+   1939,
+   1939
+  ],
+  "born_txt": [
+   "if e.flying:  # 막힌 칸을 넘어 대상으로 곧장 날아가 닿는 거리에서 친다(I79). 봉인되면 막힌 칸·몸에 막힌다(S155)",
+   "if e.flying:  # 막힌 칸을 넘어 대상으로 곧장 날아가 닿는 거리에서 친다(I79). 봉인되면 막힌 칸·몸에 막힌다(S155)"
+  ]
+ },
+ {
+  "id": "S140",
+  "old": "src/sim/battle.gd:4104",
+  "new": "src/sim/battle.gd:4205",
+  "cls": "SURE",
+  "born": "a4b68f9",
+  "born_r": [
+   1300,
+   1300
+  ],
+  "born_txt": [
+   "e.held -= dt",
+   "e.held -= dt"
+  ]
+ },
+ {
+  "id": "I197",
+  "old": "src/sim/battle.gd:2368-2378",
+  "new": "src/sim/battle.gd:2401-2405",
+  "cls": "C-sim",
+  "born": "964e789",
+  "born_r": [
+   1535,
+   1539
+  ],
+  "born_txt": [
+   "\"chronos_e\":  # 시간의 문: 처음 든 적 count명을 든 자리와 함께 표시한다. 되돌리기는 _loops",
+   "loops.append({\"e\": e, \"at\": e.pos, \"wall\": e.on_wall, \"left\": z.wait, \"owner\": z.owner, \"blast\": z.blast, \"damage\": z.damage})"
+  ]
+ },
+ {
+  "id": "S13",
+  "old": "src/sim/battle.gd:6801-6817",
+  "new": "src/sim/battle.gd:6854-6870",
+  "cls": "C-sim",
+  "born": "d270c09",
+  "born_r": [
+   302,
+   312
+  ],
+  "born_txt": [
+   "func _shove(e: Enemy, by: Vector2) -> void:",
+   "return"
+  ]
+ },
+ {
+  "id": "I109",
+  "old": "src/sim/battle.gd:2803-2806",
+  "new": "src/sim/battle.gd:2878-2879",
+  "cls": "SURE",
+  "born": "c2eb551",
+  "born_r": [
+   634,
+   635
+  ],
+  "born_txt": [
+   "if state not in [\"prep\", \"battle\"] or not _buildable(kind, cell) or STRUCTURE_KINDS[kind].village_level > village_level:",
+   "return null"
+  ]
+ },
+ {
+  "id": "I176",
+  "old": "src/sim/battle.gd:619",
+  "new": "src/sim/battle.gd:626",
+  "cls": "SURE",
+  "born": "74f5bb6",
+  "born_r": [
+   365,
+   365
+  ],
+  "born_txt": [
+   "_spare = 0.0",
+   "_spare = 0.0"
+  ]
+ },
+ {
+  "id": "S225",
+  "old": "src/sim/battle.gd:3480-3505",
+  "new": "src/sim/battle.gd:3532-3556",
+  "cls": "LIKELY",
+  "born": "1ac3c73",
+  "born_r": [
+   2326,
+   2351
+  ],
+  "born_txt": [
+   "func _folk(dt: float) -> void:",
+   ""
+  ]
+ },
+ {
+  "id": "I74",
+  "old": "src/sim/battle.gd:3216-3235",
+  "new": "src/sim/battle.gd:3272-3290",
+  "cls": "LIKELY",
+  "born": "332b443",
+  "born_r": [
+   565,
+   583
+  ],
+  "born_txt": [
+   "# 접은 대포를 새 칸으로 옮겨 진행률 0부터 다시 짓는다. 새 칸에 지을 수 없게 됐으면 그만둔다(I74)",
+   "return s.dest if s.dest != null and s.razed >= 1.0 else s.cell"
+  ]
+ },
+ {
+  "id": "I87",
+  "old": "src/sim/battle.gd:145",
+  "new": "src/sim/battle.gd:149",
+  "cls": "SURE",
+  "born": "adb5346",
+  "born_r": [
+   64,
+   64
+  ],
+  "born_txt": [
+   "var mend := 0.0  # 수리비를 냈지만 아직 채우지 못한 체력(I87). 0보다 크면 공병이 마저 고친다",
+   "var mend := 0.0  # 수리비를 냈지만 아직 채우지 못한 체력(I87). 0보다 크면 공병이 마저 고친다"
+  ]
+ },
+ {
+  "id": "I63",
+  "old": "src/sim/battle.gd:3281-3297",
+  "new": "src/sim/battle.gd:3337-3353",
+  "cls": "LIKELY",
+  "born": "161bbc9",
+  "born_r": [
+   426,
+   439
+  ],
+  "born_txt": [
+   "# 공병에게 그 구조물 일을 맡기고 옆 칸(대각선 포함)까지 걸어가게 한다(I63)",
+   "s.worker = null"
+  ]
+ },
+ {
+  "id": "I119",
+  "old": "src/sim/battle.gd:3920",
+  "new": "src/sim/battle.gd:4008",
+  "cls": "SURE",
+  "born": "872fcaf",
+  "born_r": [
+   1148,
+   1148
+  ],
+  "born_txt": [
+   "tally.castle_lost += 1  # 라운드 집계(I119)",
+   "tally.castle_lost += 1  # 라운드 집계(I119)"
+  ]
+ },
+ {
+  "id": "I187",
+  "old": "src/sim/battle.gd:3715",
+  "new": "src/sim/battle.gd:3767",
+  "cls": "SURE",
+  "born": "b860b99",
+  "born_r": [
+   2608,
+   2608
+  ],
+  "born_txt": [
+   "_go(v, \"home\", null, true)",
+   "_go(v, \"home\", null, true)"
+  ]
+ },
+ {
+  "id": "I191",
+  "old": "src/sim/battle.gd:4160-4163",
+  "new": "src/sim/battle.gd:4282-4285",
+  "cls": "SURE",
+  "born": "5e0449f",
+  "born_r": [
+   2921,
+   2924
+  ],
+  "born_txt": [
+   "if e.on_wall and not _climbable(Vector2i(e.pos.round())):  # 성벽에서 내려왔거나 그 성벽이 부서졌다(I76)",
+   "e.climb = 0.0"
+  ]
+ },
+ {
+  "id": "S143",
+  "old": "src/sim/battle.gd:1699-1712",
+  "new": "src/sim/battle.gd:1724-1737",
+  "cls": "LIKELY",
+  "born": "6194b7c",
+  "born_r": [
+   602,
+   610
+  ],
+  "born_txt": [
+   "# GATE_SPLIT_ROUND부터 그 칸에서 가장 가까운(직선 거리) 성문 칸. 거리가 같으면 성문 목록에서 앞선 것이다. 그 전이거나 성문이 없으면 null(S143)",
+   "return best"
+  ]
+ },
+ {
+  "id": "I175",
+  "old": "src/sim/battle.gd:514-515",
+  "new": "src/sim/battle.gd:518-520",
+  "cls": "SURE",
+  "born": "56fdb36",
+  "born_r": [
+   298,
+   300
+  ],
+  "born_txt": [
+   "# 준비 단계를 적 없는 전투로 돈다(S18 2026-10-25 변경, I175): 짓기·업그레이드·수리·복구는 공병, 용병은 시설에서 산다. 시작 공병(S208)도 이것이 켜졌을 때다",
+   "var live_prep := false"
+  ]
+ },
+ {
+  "id": "I41",
+  "old": "src/sim/battle.gd:461",
+  "new": "src/sim/battle.gd:468",
+  "cls": "C-sim",
+  "born": "a4b68f9",
+  "born_r": [
+   211,
+   211
+  ],
+  "born_txt": [
+   "return Vector2(to - from).length() + (b.hp / pow(UPGRADE_MULT, b.level - 1) * wall_k if b else 0.0)",
+   "return Vector2(to - from).length() + (b.hp / pow(UPGRADE_MULT, b.level - 1) * wall_k if b else 0.0)"
+  ]
+ },
+ {
+  "id": "S109",
+  "old": "src/sim/battle.gd:4046",
+  "new": "src/sim/battle.gd:4148",
+  "cls": "SURE",
+  "born": "2c211a2",
+  "born_r": [
+   1893,
+   1893
+  ],
+  "born_txt": [
+   "# 성벽 위 유닛은 몸으로 길을 막을 때만 친다(U13, S89, I70). 비행 적·기어오르는 적은 그 성벽 위 유닛도 노리고(I77), 비행 적은 몸에 막히지 않는다(S109)",
+   "# 성벽 위 유닛은 몸으로 길을 막을 때만 친다(U13, S89, I70). 비행 적·기어오르는 적은 그 성벽 위 유닛도 노리고(I77), 비행 적은 몸에 막히지 않는다(S109)"
+  ]
+ },
+ {
+  "id": "S247",
+  "old": "src/sim/battle.gd:1560-1567",
+  "new": "src/sim/battle.gd:1581-1587",
+  "cls": "SURE",
+  "born": "fd1b247",
+  "born_r": [
+   933,
+   940
+  ],
+  "born_txt": [
+   "# 라운드 사이에만 보유 영웅에게 그 영웅의 장비를 끼우거나 뺀다(S247)",
+   ""
+  ]
+ },
+ {
+  "id": "S91",
+  "old": "src/sim/battle.gd:3205-3214",
+  "new": "src/sim/battle.gd:3261-3270",
+  "cls": "LIKELY",
+  "born": "332b443",
+  "born_r": [
+   555,
+   563
+  ],
+  "born_txt": [
+   "# 전투 단계에만, 놀고 있는 가장 가까운 공병을 보내 대포를 그 칸으로 옮긴다. 골드는 들지 않는다(S44, I48).",
+   "_send(engineer, s)"
+  ]
+ },
+ {
+  "id": "I91",
+  "old": "src/sim/battle.gd:470",
+  "new": "src/sim/battle.gd:475",
+  "cls": "SURE",
+  "born": "2be4f3c",
+  "born_r": [
+   184,
+   184
+  ],
+  "born_txt": [
+   "var rounds: Array  # 도전의 라운드마다 웨이브 배열(S63, I91). stage에 rounds가 없으면 waves 하나가 1라운드짜리 도전이다",
+   "var rounds: Array  # 도전의 라운드마다 웨이브 배열(S63, I91). stage에 rounds가 없으면 waves 하나가 1라운드짜리 도전이다"
+  ]
+ },
+ {
+  "id": "S217",
+  "old": "src/sim/battle.gd:2893",
+  "new": "src/sim/battle.gd:2921",
+  "cls": "SURE",
+  "born": "1cb9de9",
+  "born_r": [
+   1665,
+   1665
+  ],
+  "born_txt": [
+   "if walls.has(c) and (kind != \"cannon\" or walls[c].kind != \"castle_wall\"):",
+   "if walls.has(c) and (kind != \"cannon\" or walls[c].kind != \"castle_wall\"):"
+  ]
+ },
+ {
+  "id": "I102",
+  "old": "src/sim/battle.gd:493",
+  "new": "src/sim/battle.gd:502",
+  "cls": "SURE",
+  "born": "2c211a2",
+  "born_r": [
+   226,
+   226
+  ],
+  "born_txt": [
+   "var heroes := []  # 전장에 나온 출전 영웅(Unit)들, 보유 순서(I108). 쓰러진 영웅도 들어 있다(I102)",
+   "var heroes := []  # 전장에 나온 출전 영웅(Unit)들, 보유 순서(I108). 쓰러진 영웅도 들어 있다(I102)"
+  ]
+ },
+ {
+  "id": "S228",
+  "old": "src/sim/battle.gd:3704-3726",
+  "new": "src/sim/battle.gd:3756-3778",
+  "cls": "C-sim",
+  "born": "5fda505",
+  "born_r": [
+   2572,
+   2594
+  ],
+  "born_txt": [
+   "# 다 큰 자녀 m이 빈 집 s로 나가 혼자 새 가구의 가장이 되고(차례 0), 지금 자리에서 새 집 문까지 걷는다(S233 ①, I184 ⑥)",
+   "s.folk[i].away = {\"to\": \"home\", \"cell\": door, \"pts\": r.pts, \"len\": r.len, \"s\": -0.7 * i, \"in\": false}"
+  ]
+ },
+ {
+  "id": "S9",
+  "old": "src/sim/battle.gd:452-461",
+  "new": "src/sim/battle.gd:457-468",
+  "cls": "C-sim",
+  "born": "dc96559",
+  "born_r": [
+   58,
+   63
+  ],
+  "born_txt": [
+   "func _compute_cost(from: Vector2i, to: Vector2i) -> float:",
+   "return Vector2(to - from).length() + (b.hp * wall_k if b else 0.0)"
+  ]
+ },
+ {
+  "id": "S210",
+  "old": "src/sim/battle.gd:95-97",
+  "new": "src/sim/battle.gd:102-103",
+  "cls": "SURE",
+  "born": "fb67c43",
+  "born_r": [
+   51,
+   52
+  ],
+  "born_txt": [
+   "const DUSK := 10.0  # 밤 웨이브에 fade가 없을 때 어둠이 dark까지 오르는 시간(초, S210). 임시값",
+   "const DAWN := 3.0  # 전투 단계가 끝난 뒤 어둠이 1에서 0까지 내리는 시간(초, S210). 임시값"
+  ]
+ },
+ {
+  "id": "I43",
+  "old": "src/sim/battle.gd:4230-4290",
+  "new": "src/sim/battle.gd:4335-4350",
+  "cls": "LIKELY",
+  "born": "88024e4",
+  "born_r": [
+   819,
+   829
+  ],
+  "born_txt": [
+   "var block = base if next == base.cell else grid.block_at(next)",
+   "block = null  # 성벽 위에서는 이어진 성벽 칸을 걷고, 땅에서는 오를 자리까지 걷는다"
+  ]
+ },
+ {
+  "id": "S115",
+  "old": "src/sim/battle.gd:3102-3108",
+  "new": "src/sim/battle.gd:3130-3140",
+  "cls": "C-sim",
+  "born": "adb5346",
+  "born_r": [
+   585,
+   591
+  ],
+  "born_txt": [
+   "var engineer = _idle_engineer(t.cell) if state == \"battle\" else null",
+   "_send(engineer, t)"
+  ]
+ },
+ {
+  "id": "S154",
+  "old": "src/sim/battle.gd:3959",
+  "new": "src/sim/battle.gd:4033",
+  "cls": "SURE",
+  "born": "2c211a2",
+  "born_r": [
+   1839,
+   1839
+  ],
+  "born_txt": [
+   "# 영혼 사슬(S154): 묶인 적 하나가 받은 피해(줄인 뒤)의 비율을 같은 사슬의 다른 적이 고정 피해로 받는다. 나눠 받은 고정 피해는 다시 나뉘지 않는다",
+   "# 영혼 사슬(S154): 묶인 적 하나가 받은 피해(줄인 뒤)의 비율을 같은 사슬의 다른 적이 고정 피해로 받는다. 나눠 받은 고정 피해는 다시 나뉘지 않는다"
+  ]
+ },
+ {
+  "id": "S150",
+  "old": "src/sim/battle.gd:2295",
+  "new": "src/sim/battle.gd:2331",
+  "cls": "SURE",
+  "born": "2c211a2",
+  "born_r": [
+   1006,
+   1006
+  ],
+  "born_txt": [
+   "# ── 장판(S150, I141) ──",
+   "# ── 장판(S150, I141) ──"
+  ]
+ },
+ {
+  "id": "S210",
+  "old": "src/sim/battle.gd:823",
+  "new": "src/sim/battle.gd:833",
+  "cls": "SURE",
+  "born": "fb67c43",
+  "born_r": [
+   498,
+   498
+  ],
+  "born_txt": [
+   "_night(dt)",
+   "_night(dt)"
+  ]
+ },
+ {
+  "id": "I119",
+  "old": "src/sim/battle.gd:1817",
+  "new": "src/sim/battle.gd:1841",
+  "cls": "SURE",
+  "born": "872fcaf",
+  "born_r": [
+   601,
+   601
+  ],
+  "born_txt": [
+   "tally.merc_bought += 1  # 라운드 집계(I119)",
+   "tally.merc_bought += 1  # 라운드 집계(I119)"
+  ]
+ },
+ {
+  "id": "I169",
+  "old": "src/sim/battle.gd:209",
+  "new": "src/sim/battle.gd:213",
+  "cls": "SURE",
+  "born": "5a3f7cb",
+  "born_r": [
+   114,
+   114
+  ],
+  "born_txt": [
+   "var skills := {}  # 보스 스킬 이름 → 수치(S194, I169). 종류의 사전을 같이 쓰니 적마다 바뀌는 값은 cast·cd에 둔다",
+   "var skills := {}  # 보스 스킬 이름 → 수치(S194, I169). 종류의 사전을 같이 쓰니 적마다 바뀌는 값은 cast·cd에 둔다"
+  ]
+ },
+ {
+  "id": "I47",
+  "old": "src/sim/battle.gd:1731",
+  "new": "src/sim/battle.gd:1779",
+  "cls": "SURE",
+  "born": "dc3fa79",
+  "born_r": [
+   302,
+   302
+  ],
+  "born_txt": [
+   "if state != \"prep\" or village_level > VILLAGE_UP.size() or gold < VILLAGE_UP[village_level - 1]:",
+   "if state != \"prep\" or village_level > VILLAGE_UP.size() or gold < VILLAGE_UP[village_level - 1]:"
+  ]
+ },
+ {
+  "id": "S221",
+  "old": "src/sim/battle.gd:562",
+  "new": "src/sim/battle.gd:569-570",
+  "cls": "C-sim",
+  "born": "b1ef904",
+  "born_r": [
+   351,
+   351
+  ],
+  "born_txt": [
+   "var _kin := RandomNumberGenerator.new()  # 집의 가족(S221). 영입소·전투 난수가 집 짓기에 따라 바뀌지 않게 따로 둔다",
+   "var _kin := RandomNumberGenerator.new()  # 집의 가족(S221). 영입소·전투 난수가 집 짓기에 따라 바뀌지 않게 따로 둔다"
+  ]
+ },
+ {
+  "id": "S240",
+  "old": "src/sim/battle.gd:218-219",
+  "new": "src/sim/battle.gd:225-226",
+  "cls": "SURE",
+  "born": "ae9f59e",
+  "born_r": [
+   188,
+   189
+  ],
+  "born_txt": [
+   "var night := {}  # 어둠에 세짐(S240). 비어 있으면 어둠과 상관없다",
+   "var bleed := {}  # 물면 거는 출혈(S240). 비어 있으면 걸지 않는다"
+  ]
+ },
+ {
+  "id": "S151",
+  "old": "src/sim/battle.gd:2424",
+  "new": "src/sim/battle.gd:2454",
+  "cls": "C-sim",
+  "born": "2c211a2",
+  "born_r": [
+   1092,
+   1092
+  ],
+  "born_txt": [
+   "# ── 바스티온(S151) ──",
+   "# ── 바스티온(S151) ──"
+  ]
+ },
+ {
+  "id": "S195",
+  "old": "src/sim/battle.gd:2058-2059",
+  "new": "src/sim/battle.gd:2085-2086",
+  "cls": "C-sim",
+  "born": "5a3f7cb",
+  "born_r": [
+   877,
+   878
+  ],
+  "born_txt": [
+   "# 보스 강타(S195)도 남긴다. 그때 h는 그 적이고 slot은 스킬 이름이다",
+   "func _trace(h, slot: String, aim, at: Vector2, radius: float) -> void:"
+  ]
+ },
+ {
+  "id": "I178",
+  "old": "src/sim/battle.gd:2918-2926",
+  "new": "src/sim/battle.gd:2945-2953",
+  "cls": "SURE",
+  "born": "94ed474",
+  "born_r": [
+   1671,
+   1679
+  ],
+  "born_txt": [
+   "# 구조물에서 p(칸 좌표)에 가장 가까운 차지 칸 가운데(I178). 칸 하나인 구조물·성곽·거점은 그 칸이다",
+   "return Vector2(r.position) + Vector2(r.size - Vector2i.ONE) / 2.0"
+  ]
+ },
+ {
+  "id": "I185",
+  "old": "src/sim/battle.gd:212",
+  "new": "src/sim/battle.gd:216",
+  "cls": "SURE",
+  "born": "74091a1",
+  "born_r": [
+   182,
+   182
+  ],
+  "born_txt": [
+   "var boss := false  # 보스 표시(I185). 종류 수치의 boss 칸",
+   "var boss := false  # 보스 표시(I185). 종류 수치의 boss 칸"
+  ]
+ },
+ {
+  "id": "S142",
+  "old": "src/sim/battle.gd:468",
+  "new": "src/sim/battle.gd:473",
+  "cls": "SURE",
+  "born": "a4b68f9",
+  "born_r": [
+   215,
+   215
+  ],
+  "born_txt": [
+   "var forecast := []  # 출현 지점마다 기본 적이 지금 나오면 걸을 길(칸 배열, S142). 화면이 선으로 그린다",
+   "var forecast := []  # 출현 지점마다 기본 적이 지금 나오면 걸을 길(칸 배열, S142). 화면이 선으로 그린다"
+  ]
+ }
+]

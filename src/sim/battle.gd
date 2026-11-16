@@ -13,7 +13,8 @@ var ENEMY_KINDS := _kinds("res://data/enemies/")
 var MERC_KINDS := _kinds("res://data/mercs/")
 var STRUCTURE_KINDS := _kinds("res://data/structures/")
 var HERO_KINDS := _kinds("res://data/heroes/")  # 칸의 뜻은 src/data/hero_def.gd 머리 주석(S97, I95)
-var HIRE = load("res://data/hire.tres")  # 영입소 수치(S123, I103)
+const HERO_ORDER := ["aias", "sylvia", "seraphina", "vesper", "ignis", "chronos"]  # 고르기 창 카드 차례 = S97 표 차례(S373). 난이도 손잡이가 아니다
+var HIRE = load("res://data/hire.tres")  # 영웅 고르기·장비·유물 수치(S123, S246, S334)
 var LEVELS = load("res://data/levels.tres")  # 영웅 레벨 수치(S126, I111)
 var QUEST_KINDS := _kinds("res://data/quests/")  # 미션 정의(S77, I118). 칸의 뜻은 src/data/quest_def.gd 머리 주석
 var FLOOR_KINDS := _kinds("res://data/dungeon/")  # 던전 층(S316). 파일 이름이 층 id다. 칸의 뜻은 src/data/floor_def.gd 머리 주석
@@ -21,7 +22,7 @@ var RELIC_KINDS := _kinds("res://data/relics/")  # 유물(S334). 파일 이름�
 var GEAR_KINDS := _kinds("res://data/gear/")  # 영웅 전용장비(S246). 파일 이름이 주인 영웅 종류다. 칸의 뜻은 src/data/gear_def.gd 머리 주석
 const VILLAGE_UP := [300, 600, 1000]  # 마을 레벨 n→n+1 비용(S99 2026-11-14 변경). 길이+1이 최대 레벨이다. 임시값(사용자 2026-11-14 «300 600 1000»)
 const MERC_CAP := 10  # 마을이 없는 판의 배치 상한(S25 2026-11-04 변경). 임시값(사용자 2026-10-13), 스테이지의 merc_cap이 덮어쓴다
-const POP_BASE := 4  # 거점이 주는 인구(S25 2026-11-04 변경). 집 몫은 집의 pop이다. 임시값(사용자 2026-11-04 «거점도 4명»)
+const POP_BASE := 30  # 거점이 주는 인구(S25 2026-11-16 변경). 집 몫은 집의 pop이다. 임시값(play_review 2026-11-15 8번 안 A, 사용자 2026-11-16 «권장안대로 진행»)
 const TOWER_BASE := 4  # 거점이 주는 쏘는 구조물 몫(S299). 집 몫은 집의 towers다. 임시값(Claude 초안, 사용자 2026-11-07 «진행»)
 const HOUSE_CAP := 6  # 마을에 지을 수 있는 집 수(S101). 임시값(사용자 2026-10-13)
 # 가구 유형(S221): [가중치, 어른, 아이 최소, 아이 최대, 노인]. 어른 둘은 남녀 한 쌍, 하나는 남녀 반반이다. 손잡이 값(사용자 2026-10-26 «조사 표 그대로»)
@@ -61,6 +62,8 @@ const SPEED := {"arrow": 15.0, "bolt": 10.0, "ball": 7.5}  # 투사체 속도(�
 const FREE := ["tower", "cannon", "archer"]  # 논타겟팅 투사체를 쏘는 쪽(S178 2026-11-04 변경). 궁수는 명중하면 대상을 따라가고(_aim), 마법 타워와 원거리 영웅은 늘 따라간다
 const REPATH_PER_STEP := 8  # 한 스텝에 경로를 다시 구하는 적 수(I155). 적 40명을 한 번에 구하면 61ms(디버그)라 나눈다(사용자 2026-10-20)
 const UNIT_WALL_K := 1e6  # 유닛 경로의 막힌 칸 비용 배율. 돌아갈 길이 있으면 막힌 칸(닫힌 성문 포함, I42)을 지나지 않는다
+const UNIT_ROUTES_PER_STEP := 16  # 지시 한 번·스텝 한 번에 길을 구하는 아군 수(I309). 100명 지시 한 번이 한 프레임을 멎게 하지 않게 나눈다(play_review 2026-11-15 8번 안 A, 사용자 2026-11-16 «권장안대로 진행»). 임시값
+const SOFT_COST := 1000.0  # 유닛 길에서 이보다 싼 막힌 칸(체력 0인 미완성 구조물·막 다시 세운 성곽)은 돌아가는 길보다 쌀 수 있다. 그런 칸이 있으면 비용 격자로 확인한다(I309 ⑦)
 const WORK_REACH := 2.0  # 공병이 일하는 거리(중심 사이). 옆 칸 대각선(1.41)에, 무리에 밀려 0.5칸 못 미친 도착(I51)을 더했다
 # 성곽 업그레이드(S86): 한 단계마다 최대 체력 ×UPGRADE_MULT. 비용은 종류별 1→2단계 값이고 다음 단계는 2배. 수치는 임시값
 const UPGRADE_COST := {"castle_wall": 10, "gate": 20}
@@ -87,6 +90,9 @@ const GROUND_ONLY := ["shield_bash", "brace"]  # 날고 있는 적에 들지 않
 const SLOTS := ["q", "w", "e", "r"]  # 영웅 스킬 칸(S145)
 const CAST_RANGE := 6.0  # 지점·대상을 고르는 스킬의 시전 사거리(칸, S147). 임시값
 const DASH := {"length": 2.0, "cd": 5.0}  # 영웅 대시(S315): 거리(칸)·영웅마다 재사용 대기(초). 임시값
+# 무리 대열(S374): gap 자리 간격(칸) · front 근접으로 앞줄에 서는 사거리 상한(칸, 0 초과 이하. «앞» 방향을 정하는 _front()와 다른 뜻) · pace 같이 걷기 켬. 임시값
+const FORM := {"gap": 1, "front": 2.0, "pace": true}
+const NO_POST := Vector2i(-1, -1)  # 가는 대열 자리가 없다(I307)
 # 오토(S297, I244)의 기준값. 밸런스 봇(tools/balance/autoplay.gd의 _skills·_think) 값을 옮겼다(사용자 2026-11-07 «봇 규칙 옮기기»).
 # think 쓸 곳이 없던 칸을 다시 보는 간격(초) · crowd 광역 칸을 쓰는 적 수 · heal·guard 빛줄기·성역 / 수호 천사를 쓰는 체력 비율 · hurt·hurt_n 기적의 체력 비율·아군 수 · chain 영혼 사슬 적 수 · spread 반경 없는 칸의 반경(칸)
 const AUTO := {"think": 0.25, "crowd": 2, "heal": 0.6, "guard": 0.35, "hurt": 0.5, "hurt_n": 3, "chain": 3, "spread": 2.0}
@@ -181,12 +187,19 @@ class Villager:
 		max_hp = top
 
 class Enemy:
+	static var stir := 0  # 적이 생기거나 자리·몸 반지름이 바뀔 때마다 오른다(I305). 판이 적 버킷이 낡았는지 이 값으로 본다
 	var kind: String
-	var pos: Vector2  # 칸 단위, 칸 (x,y)의 중심 = Vector2(x,y)
+	var pos: Vector2:  # 칸 단위, 칸 (x,y)의 중심 = Vector2(x,y)
+		set(v):
+			pos = v
+			stir += 1
 	var hp: float
 	var max_hp: float
 	var speed: float
-	var radius: float  # 몸 반지름(칸 단위)
+	var radius: float:  # 몸 반지름(칸 단위)
+		set(v):
+			radius = v
+			stir += 1
 	var wall_k: float
 	var damage: float
 	var attack_gap: float  # 공격 간격(초)
@@ -300,11 +313,18 @@ class Enemy:
 
 # 영웅과 용병(I1). 스킬은 영웅만, 홀드는 용병만 쓴다(S16)
 class Unit:
+	static var stir := 0  # 아군이 생기거나 자리·몸 반지름이 바뀔 때마다 오른다(I305). 판이 아군 버킷이 낡았는지 이 값으로 본다
 	var kind: String
-	var pos: Vector2  # 칸 단위, Enemy.pos와 같다
+	var pos: Vector2:  # 칸 단위, Enemy.pos와 같다
+		set(v):
+			pos = v
+			stir += 1
 	var hp: float
 	var max_hp: float
-	var radius: float  # 몸 반지름(칸 단위)
+	var radius: float:  # 몸 반지름(칸 단위)
+		set(v):
+			radius = v
+			stir += 1
 	var alive := true
 	var present: bool:  # 전장에 있다. 쓰러진 영웅은 다음 준비 단계에 돌아올 때까지 거짓이다(S26)
 		get:
@@ -376,6 +396,9 @@ class Unit:
 	var braced := 0.0  # 태세 동안 들어온 피해(줄이기 전 값)
 	var on_wall := false  # 성벽 위에 있다(S42, I44)
 	var after: Array[Vector2i] = []  # path 끝에서 오르내린 뒤 걸을 길. 첫 칸이 오르내려 서는 칸이다(I69)
+	var pace := 0.0  # 같이 걷기(S374 ④, I308): 걷는 속도 상한(칸/초). 0이면 없다
+	var post := Vector2i(-1, -1)  # 가고 있는 대열 자리(S374, I307). 없으면 (-1, -1). 닿으면 지운다
+	var due := Vector2i(-1, -1)  # 길을 기다리는 목적지 칸(I309 ②). 기다리지 않으면 (-1, -1). 차례가 오면 그 칸으로 길을 구하고 비운다. 저장에 담긴다(I309 ⑥)
 
 	func _init(k: String, cell: Vector2i, stats: Dictionary) -> void:
 		kind = k
@@ -501,16 +524,14 @@ var units := []  # 살아 있는 영웅·용병
 var heroes := []  # 전장에 나온 출전 영웅(Unit)들, 보유 순서(I108). 쓰러진 영웅도 들어 있다(I102)
 var hero  # 첫 출전 영웅(S119, I108). 영웅이 없으면 null
 var held = null  # 플레이어가 스킬을 조준 중인 영웅(S298). 조작(controls.gd)이 정하고, 그 영웅은 오토가 쉰다
-var roster := []  # 보유 영웅, 영입 순서(S58, S59). 새 도전이면 비운다(S64)
-var lineup := []  # 다음 라운드에 출전할 영웅(S59, I106). 영입 창에서 바꾸고 다음 라운드로 넘어갈 때 전장에 반영한다(S124)
+var roster := []  # 보유 영웅 = 출전 영웅, 고른 순서(S373, I108). 새 도전이면 비운다(S64)
 var bag := {}  # 가진 전용장비: 영웅 종류 → 강화 수치(+0부터, S246). 새 도전이면 비운다
 var forged := {}  # 이번 라운드 사이 창에서 장비마다 제작·강화한 횟수(S246). 다음 라운드로 넘어갈 때 비운다
 var dropped := []  # 이번 라운드 사이의 전리품 [영웅 종류, 전 수치(없던 장비면 -1), 뒤 수치](S252). 없으면 []. 결과 창이 보인다
 var relics := {}  # 가진 유물: 유물 id → 강화 수치(+0부터, S334). 새 도전이면 비운다
 var relic_forged := {}  # 이번 라운드 사이 창에서 유물마다 강화한 횟수(S334). 다음 라운드로 넘어갈 때 비운다
 var merc_rank := {}  # 용병 종류 → 산 강화 단계 수(S254). 키가 없으면 0. 새 도전이면 비운다
-var offers := []  # 영입소 목록: 칸마다 영웅 종류, 영입한 칸은 ""(I103, I104)
-var rerolls := 0  # 이번 라운드에 리롤한 횟수(S273). 도전을 시작할 때와 라운드를 이겨 목록을 무료로 새로 뽑을 때 0이 된다
+var offers := []  # 고르기 창 목록: 영웅 종류 여섯(S97 표 차례). 고른 뒤에도 칸이 비지 않는다(I303 ①). 평가가 바꿔 넣을 수 있다
 var quests := []  # 이 도전에서 뜰 수 있는 미션 이름(I118). 스테이지의 quests가 정한다. 비어 있으면 미션이 없다
 var mission := ""  # 지금 라운드의 미션(S77, I120). 없으면 ""
 var settled := []  # 지난 라운드의 미션 판정 [이름, 달성 여부](I120). 결과 창이 보인다(I122)
@@ -519,7 +540,7 @@ var revive := true  # 쓰러진 영웅이 다음 준비 단계에 돌아온다(S
 # 준비 단계를 적 없는 전투로 돈다(S18 2026-10-25 변경, I175): 짓기·업그레이드·수리·복구는 공병, 용병은 시설에서 산다. 시작 공병(S208)도 이것이 켜졌을 때다
 # ponytail: 평가 300여 곳이 준비 단계 즉시 짓기·놓기로 판을 차려서, 끄면 옛 규칙인 길을 남긴다. 게임 장면(Main.live_prep)·하네스·봇이 켠다
 var live_prep := false
-var state := "prep"  # "prep" | "battle" | "raid"(보스방 원정, S316) | "hiring"(도전 시작 전 영입 창, S122) | "cleared"(라운드 사이, S117) | "won"(도전 성공) | "lost"
+var state := "prep"  # "prep" | "battle" | "raid"(보스방 원정, S316) | "hiring"(도전 시작 전 영웅 고르기 창, S122·S373) | "cleared"(라운드 사이, S117) | "won"(도전 성공) | "lost"
 var round_index := 0
 var wave_index := 0
 var gold := 0
@@ -558,6 +579,15 @@ var lights := []  # 불빛(S211): [자리(칸), 어둠 1일 때 반경(칸)]. st
 
 var grid := CostGrid.new()
 var _wall := AStarGrid2D.new()  # 성벽 위 길. 성곽 칸만 걸을 수 있다(I69)
+var _plain := AStarGrid2D.new()  # 아군 땅 길(I309 ⑦): 막힌 칸(성곽·닫힌 성문·구조물)·물·바위가 solid다. 에너지 성벽·열린 성문·잔해·거점 칸은 빈 칸(비용 격자의 유닛 길과 같다)
+var _dirty := true  # 막힌 칸이 바뀌어 아군 길 격자(_wall·_plain)를 다시 깔아야 한다. _put·_cut·set_gate·restart가 켠다
+var _soft := false  # SOFT_COST보다 싼 막힌 칸이 판에 있다
+var _soft_step := -1  # _soft를 센 스텝
+var _steps := 0  # 지난 스텝 수
+var _slow := false  # 방금 구한 땅 길(_ground)이 비용 격자에서 나왔다. _cost가 읽는다
+var _asks := 0  # 이 지시에서 길을 청한 유닛 수(I309 ①)
+var _routed := 0  # 이번 스텝에 줄(_serve)과 대상 쫓기(_hunt)로 구한 길 수(I309 ②⑤)
+var _strode := {}  # 이번 스텝에 명령받은 길을 따라 실제로 움직였고 길이 남은 유닛(I307 ②). 스텝마다 다시 센다. 저장에 들지 않고 _passes만 읽는다
 var _repath := false  # 막힌 칸이 바뀌어 적 경로를 다시 구해야 한다
 var _stale := {}  # 경로를 다시 구할 적, 먼저 밀린 순서(I155)
 var _fix_clock := 0.0  # 다음 자동 수리 판정(S277)까지 남은 초
@@ -565,10 +595,10 @@ var _queue := []      # 이번 웨이브에서 아직 안 나온 적 [종류, �
 var _spawn_timer := 0.0
 var _spare := 0.0  # 아직 1골드가 되지 않은 처치 보상(I176)
 var _stage: Dictionary  # 재시작할 때 다시 읽는다
-var _rng := RandomNumberGenerator.new()  # 영입소 목록을 뽑는다. 스테이지에 seed가 있으면 그 씨앗이다(평가용)
-var _luck := RandomNumberGenerator.new()  # 아이아스 패시브 확률 감소(S151, I258). 영입소 목록이 전투에 따라 바뀌지 않게 따로 둔다
-var _kin := RandomNumberGenerator.new()  # 집의 가족(S221). 영입소·전투 난수가 집 짓기에 따라 바뀌지 않게 따로 둔다
-var _loot := RandomNumberGenerator.new()  # 전리품(S252). 영입소 목록·미션이 전리품에 따라 바뀌지 않게 따로 둔다(I202)
+var _rng := RandomNumberGenerator.new()  # 미션을 뽑는다(I120). 스테이지에 seed가 있으면 그 씨앗이다(평가용)
+var _luck := RandomNumberGenerator.new()  # 아이아스 패시브 확률 감소(S151, I258). 미션이 전투에 따라 바뀌지 않게 따로 둔다
+var _kin := RandomNumberGenerator.new()  # 집의 가족(S221). 미션·전투 난수가 집 짓기에 따라 바뀌지 않게 따로 둔다
+var _loot := RandomNumberGenerator.new()  # 전리품(S252). 미션이 전리품에 따라 바뀌지 않게 따로 둔다(I202)
 var _shot := RandomNumberGenerator.new()  # 궁수 명중(S178 2026-11-04 변경, I224 ③). 다른 난수가 사격에 따라 바뀌지 않게 따로 둔다
 var _spark := RandomNumberGenerator.new()  # 번개 전이 확률(S359, I294 ⑦). 다른 난수가 전이에 따라 바뀌지 않게 따로 둔다
 var _chains := 0  # 영혼 사슬(S154)마다 붙이는 번호
@@ -608,6 +638,9 @@ func _init(stage: Dictionary) -> void:
 	_wall.region = grid.region
 	_wall.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
 	_wall.update()
+	_plain.region = grid.region
+	_plain.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
+	_plain.update()
 	grid.castle = walls
 	grid.ladders = ladders
 	grid.structures = footprint
@@ -681,6 +714,8 @@ func restart() -> void:
 	units.clear()
 	_queue.clear()
 	_repath = false
+	_dirty = true
+	_soft_step = -1
 	_stale.clear()
 	var fort: Dictionary = stage.get("castle", {})
 	for kind in ["castle_wall", "gate"]:  # 크기(S217)가 없으면 칸 하나다. 성벽은 열마다, 성문은 문마다 Block 하나
@@ -725,7 +760,6 @@ func restart() -> void:
 		units.append(h)
 	hero = heroes[0] if heroes else null
 	roster = heroes.duplicate()
-	lineup = heroes.duplicate()
 	if stage.has("seed"):
 		_rng.seed = stage.seed
 		_luck.seed = stage.seed + 1
@@ -740,8 +774,7 @@ func restart() -> void:
 		_loot.randomize()
 		_shot.randomize()
 		_spark.randomize()
-	_draw_offers()  # 도전을 시작할 때 무료로 뽑는다(I104)
-	rerolls = 0
+	offers.assign(_hero_list())  # 고르기 창의 목록(S373). 난수를 쓰지 않는다
 	var q = stage.get("quests", [])  # 미션(I118): true면 data/quests의 모든 것, 배열이면 그 이름들만(평가용). 없으면 뜨지 않는다
 	quests = QUEST_KINDS.keys() if q is bool and q else (q.duplicate() if q is Array else [])
 	quests.sort()
@@ -753,6 +786,7 @@ func restart() -> void:
 	_light_up()
 
 func step(dt: float) -> void:
+	_steps += 1
 	for t in traces + fallen + landed + wrecks + blown:
 		t.age += dt
 	blown = blown.filter(func(t): return t.age < BLOWN)
@@ -779,6 +813,7 @@ func step(dt: float) -> void:
 		if e.alive:
 			_find_path(e)
 			n += 1
+	_serve()  # 줄에 선 아군의 길(I309 ②). 적 경로 다음이다
 	_tick(dt)
 	_zones(dt)
 	_loops(dt)
@@ -798,6 +833,7 @@ func step(dt: float) -> void:
 	_push_apart(enemies, units)
 	_auto_fix(dt)
 	var ground := units.filter(func(u): return not u.on_wall)  # 성벽 위 유닛은 밀리지 않는다(I70)
+	_strode.clear()
 	for u in units:
 		if state != "raid" or u in party:  # 원정 동안 집에 남은 용병·공병은 행동하지 않는다(S316)
 			_act(u, dt)
@@ -815,8 +851,6 @@ func step(dt: float) -> void:
 			state = "prep"
 		elif round_index + 1 < rounds.size():
 			state = "cleared"  # 라운드 사이(S117). 다음 라운드는 next_round로 간다
-			_draw_offers()  # 목록은 라운드를 이길 때 무료로 새로 뽑고, 리롤 비용은 처음 값으로 돌아간다(I104, S273)
-			rerolls = 0
 			_drop_gear()
 		else:
 			state = "won"  # 마지막 라운드를 이겨 도전에 성공했다(I92)
@@ -914,6 +948,9 @@ func _return_hero(h: Unit, fresh := false) -> void:
 	h.on_wall = false
 	h.path.clear()
 	h.after.clear()
+	h.pace = 0.0  # 대열 자리·같이 걷기가 풀린다(I308 ②)
+	h.post = NO_POST
+	h.due = NO_POST  # 길을 기다리지 않는다(I309 ④)
 	units.append(h)
 
 func start_battle() -> void:
@@ -1025,8 +1062,8 @@ func spawn_counts(r: int, w: int) -> Array:
 func enemies_left() -> int:
 	return _queue.size() + enemies.size()
 
-# 영입 창(S122)이나 라운드 사이(S117)에서 1라운드나 다음 라운드의 첫 준비 단계로 간다. 그 밖에서는 거부한다
-# 출전 목록을 전장에 반영하고(S124), 구조물·성곽·마을·용병·골드와 계속 출전하는 영웅은 그대로 이어진다(S63, S79, S61, I93)
+# 고르기 창(S122)이나 라운드 사이(S117)에서 1라운드나 다음 라운드의 첫 준비 단계로 간다. 그 밖에서는 거부한다
+# 보유 영웅을 전장에 반영하고(S124), 구조물·성곽·마을·용병·골드와 계속 출전하는 영웅은 그대로 이어진다(S63, S79, S61, I93). 영웅이 모자라도(0명도) 넘어간다(I106)
 # 쓰러진 영웅은 부활 설정과 상관없이 시작 지점으로 돌아온다(I93)
 func next_round() -> bool:
 	if not hiring_open():
@@ -1379,7 +1416,8 @@ func retry() -> bool:
 	return start_raid()
 
 # 원정 한 스텝(I262 ⑥): 끝났으면 기다림을 세어, 처치는 다 되면 돌아오고 전멸·불꽃은 «다시»·«철수»를 기다린다(S331).
-# 아니면 처치(방 안에 보스 몸이 없다, S322) → 전멸 → 불꽃 차례로 끝을 보고 불꽃을 태운다
+# 아니면 처치(방 안에 보스 몸이 없다, S322) → 전멸 → 불꽃 차례로 끝을 보고 불꽃을 태운다.
+# 불꽃은 층 정의 hard가 0보다 클 때만 끝을 낸다. 0이면 다 타지 않고 지난 초로만 흐른다(S316 2026-11-16 변경)
 func _raid_step(dt: float) -> void:
 	if _raid_end[0] != "":
 		_raid_end[1] -= dt
@@ -1390,7 +1428,7 @@ func _raid_step(dt: float) -> void:
 		_end_raid("win", den.win_wait)
 	elif not party.any(func(h): return h.alive):
 		_end_raid("wipe", den.wipe_wait)
-	elif flame >= raid_floor.hard:  # 다 타면 보스 몸이 모두 사라진다. 남은 체력 비율은 사라지기 전에 굳힌다
+	elif raid_floor.hard > 0.0 and flame >= raid_floor.hard:  # 다 타면 보스 몸이 모두 사라진다. 남은 체력 비율은 사라지기 전에 굳힌다
 		_end_raid("flame", den.wipe_wait)
 		for e in _raiders():
 			enemies.erase(e)
@@ -1444,103 +1482,63 @@ func _body(h: Unit) -> Dictionary:
 			out[p.name] = v.duplicate(true) if v is Array or v is Dictionary else v
 	return out
 
-# [동작] 도전 시작 전 영입 창(S122)을 연다. main·HUD가 새 도전(restart) 직후에 부른다
+# [동작] 도전 시작 전 영웅 고르기 창(S122, S373)을 연다. main·HUD가 새 도전(restart) 직후에 부른다. 이름은 영입이 있던 때의 것이다(I303 ①)
 # [이유] restart()가 곧바로 열지 않는 것은 동결된 평가(EV36·EV80·EV165·EV170)가
 #        «restart 직후 = 1라운드 웨이브 1의 준비 단계»에 기대서다
 func begin_hiring() -> void:
 	state = "hiring"
 
-# 영입 창(도전 시작 전·라운드 사이)이 떠 있다. 내보내기·출전 선택은 이때만 한다(I104, I206)
+# 고르기 창(도전 시작 전)이나 라운드 사이 창이 떠 있다. 고르기·빼기는 이때만 받는다(I303 ①). 이름은 영입이 있던 때의 것이다
 func hiring_open() -> bool:
 	return state in ["hiring", "cleared"]
 
-# 영입·리롤을 받는 때: 영입 창과 준비·전투 단계(S272)
-func can_hire() -> bool:
-	return hiring_open() or state in ["prep", "battle"]
+# 고르는 수 = 출전 인원(S123의 lineup, S373). 출전 칸(I107)보다 많이는 세울 자리가 없어 칸 수를 넘지 않는다.
+# 출전 칸보다 큰 lineup(테스트 모드 «영입» 분류의 줄)은 지원하지 않는다 — 그 값이 넷째를 고르게 해 _deploy가 깨지지 않게만 한다
+func lineup_size() -> int:
+	return mini(HIRE.lineup, _stage.hero_cells.size()) if _stage.has("hero_cells") else HIRE.lineup
 
-# 지금 리롤 비용: 기본값 + 이번 라운드에 리롤한 횟수 × 오름값(S273)
-func reroll_cost() -> int:
-	return HIRE.reroll + rerolls * HIRE.reroll_step
+# 고르기 창의 목록(S373): S97 표 차례. 표에 없는 영웅 데이터는 이름순으로 뒤에 붙는다
+func _hero_list() -> Array:
+	var rest: Array = HERO_KINDS.keys().filter(func(k): return k not in HERO_ORDER)
+	rest.sort()
+	return HERO_ORDER.filter(func(k): return HERO_KINDS.has(k)) + rest
 
-# 목록을 모두 새로 뽑는다(I103): 칸마다 보유하지 않았고 이 목록에 아직 없는 영웅이 후보다. 후보가 있는 등급만 등장 확률 비율대로 고르고,
-# 그 등급의 후보 가운데 하나를 같은 확률로 고른다. 후보가 없으면 빈 칸이다
-func _draw_offers() -> void:
-	offers.clear()
-	for i in HIRE.slots:
-		var free := HERO_KINDS.keys().filter(func(k): return not k in offers and not roster.any(func(h): return h.kind == k))
-		if free.is_empty():
-			offers.append("")
-			continue
-		var odds := PackedFloat32Array(range(HIRE.odds.size()).map(func(g): return HIRE.odds[g] if free.any(func(k): return HERO_KINDS[k].grade == g + 1) else 0.0))
-		var grade: int = _rng.rand_weighted(odds) + 1
-		var kinds := free.filter(func(k): return HERO_KINDS[k].grade == grade)
-		offers.append(kinds[_rng.randi_range(0, kinds.size() - 1)])
-
-# 목록의 i번째 영웅을 영입한다(S54, S272). 빈 칸이거나, 골드가 모자라거나(I104), 보유 상한(S123)이면 거부한다
-# 출전 목록이 차지 않았으면 바로 출전 목록에 넣고(I106), 준비·전투 단계면 그 순간 빈 출전 칸에 세운다(I206)
+# 목록의 i번째 영웅을 고른다(S54 2026-11-16 변경, S373). 골드는 들지 않는다. 함수 이름은 영입이 있던 때의 것이다(I303 ①)
+# 고르기 창과, 영웅이 출전 인원보다 적은 라운드 사이에만 받는다. 빈 칸·이미 고른 영웅·출전 인원이 찼으면 거부한다
 func hire(i: int):
-	if not can_hire() or offers[i] == "" or roster.size() >= HIRE.cap:
+	if not hiring_open() or i < 0 or i >= offers.size() or not HERO_KINDS.has(offers[i]) or roster.size() >= lineup_size() \
+			or roster.any(func(h): return h.kind == offers[i]):
 		return null
-	var stats: Dictionary = HERO_KINDS[offers[i]]
-	var cost: int = HIRE.cost[stats.grade - 1]
-	if gold < cost:
-		return null
-	gold -= cost
-	var h := Unit.new(offers[i], Vector2i.ZERO, stats)
+	var h := Unit.new(offers[i], Vector2i.ZERO, HERO_KINDS[offers[i]])
 	h.is_hero = true
-	if bag.has(h.kind):  # 가방에 그 영웅 장비가 있으면 저절로 낀다(S247)
+	if bag.has(h.kind):  # 가방에 그 영웅 장비가 있으면 저절로 낀다(S247). 옛 저장의 빈 자리를 채울 때만 닿는다
 		h.worn = true
 		_refit(h)
-	offers[i] = ""
 	roster.append(h)
-	if lineup.size() < HIRE.lineup:
-		lineup.append(h)
-		if state in ["prep", "battle"]:
-			_deploy()
 	return h
 
-# 지금 리롤 비용(S273)을 내고 목록을 모두 새로 뽑는다(S57, I104). 골드가 모자라거나 보유 영웅이 상한이면 거부한다(I127)
-func reroll() -> bool:
-	if not can_hire() or gold < reroll_cost() or roster.size() >= HIRE.cap:
-		return false
-	gold -= reroll_cost()
-	rerolls += 1
-	_draw_offers()
-	return true
-
-# 보유 영웅을 내보낸다(I105). 환불은 없다. 전장에 있으면 다음 라운드로 넘어갈 때 사라진다(S124)
+# 고른 영웅을 뺀다(S373). 화면에서는 고르기 창의 카드를 다시 눌러서만 뺀다(hud.gd#_pick). 라운드 사이에도 받는 것은 평가가 쓰는 판 동작이다(I303 ①)
+# 전장에 있으면 다음 라운드로 넘어갈 때 사라진다(S124)
 func dismiss(h) -> void:
 	if hiring_open():
 		roster.erase(h)
-		lineup.erase(h)
 		if h.relic != "":  # 끼던 유물은 가방에 남는다(S334)
 			h.relic = ""
 			_refit(h)
 
-# 보유 영웅을 출전 목록에 넣거나 뺀다(S59). 출전 인원(S123)이 차 있으면 넣기를 거부한다
-func set_lineup(h, on: bool) -> bool:
-	if not hiring_open() or h not in roster or (on and h not in lineup and lineup.size() >= HIRE.lineup):
-		return false
-	if not on:
-		lineup.erase(h)
-	elif h not in lineup:
-		lineup.append(h)
-	return true
-
-# 출전 목록을 전장에 반영한다(S124). 빠진 영웅은 전장에서 사라지고, 계속 출전하는 영웅은 자리·체력이 그대로다.
+# 보유 영웅을 전장에 반영한다(S124). 빠진 영웅은 전장에서 사라지고, 계속 출전하는 영웅은 자리·체력이 그대로다.
 # 새로 출전한 영웅은 다른 출전 영웅이 시작 칸으로 쓰지 않는 첫 출전 칸에 최대 체력으로 선다(I107)
 func _deploy() -> void:
 	for h in heroes:
-		if h not in lineup:
+		if h not in roster:
 			units.erase(h)
-	var team := roster.filter(func(h): return h in lineup)  # 출전 순서는 보유 순서다(I108)
-	var homes := team.filter(func(h): return h in heroes).map(func(h): return h.home)
-	for h in team:
+	var homes := roster.filter(func(h): return h in heroes).map(func(h): return h.home)
+	for h in roster:
 		if h not in heroes:
 			h.home = _stage.hero_cells.filter(func(c): return c not in homes)[0]
 			homes.append(h.home)
 			_return_hero(h, true)
-	heroes.assign(team)
+	heroes.assign(roster)
 	hero = heroes[0] if heroes else null
 
 # 영웅 경험치를 n만큼 더한다(S125). 레벨·최대 체력·공격력은 _set_xp가 맞춘다
@@ -1889,27 +1887,43 @@ func place_merc(kind: String, cell: Vector2i, overrides := {}):
 func _merc_cell(cell: Vector2i) -> bool:
 	return grid.is_in_boundsv(cell) and not in_strip(cell) and cell != base.cell and not water.has(cell) and (not grid.block_at(cell) or (walls.has(cell) and not footprint.has(cell)))
 
-# 유닛들을 그 칸으로 보낸다(S14). attack이면 공격 이동, 아니면 순수 이동이다(S35). 맵 밖 칸이면 무시한다. 성곽 칸이면 성벽 위의 그 칸으로 간다(I69)
+# 유닛들을 그 칸으로 보낸다(S14). attack이면 공격 이동, 아니면 순수 이동이다(S35). 맵 밖 칸이면 무시한다. 성곽 칸이면 성벽 위의 그 칸으로 간다(I69).
+# 둘 이상이면 대열로 선다(S374, I306). 명령을 먼저 다 지우고 길을 구한다(_drop_orders와 _route는 유닛끼리 기대지 않는다)
 func order_move(group: Array, cell: Vector2i, attack := false) -> void:
 	if not grid.is_in_boundsv(cell):
 		return
 	_unit_paths()
+	_asks = 0
 	for u in group:
 		_drop_orders(u)
 		u.move_mode = "attack_move" if attack else "move"
-		if u.alive:
-			_route(u, cell)
+	var team := _team(group)
+	var formed := team.size() >= 2 and _form_up(team, cell)
+	var rest := {}  # 대열 자리를 받지 않은 고른 유닛
+	for u in group:
+		rest[u] = true
+	if formed:
+		for u in team:
+			rest.erase(u)
+	for u in units:  # 판의 유닛 차례로 길을 청한다(I309 ①). units에는 산 유닛만 있다
+		if rest.has(u):
+			_ask(u, cell)
 
-# 유닛들이 적 e를 대상 공격한다(S35). 걸어가는 동안은 순수 이동처럼 다른 적을 치지 않는다
+# 유닛들이 적 e를 대상 공격한다(S35). 걸어가는 동안은 순수 이동처럼 다른 적을 치지 않는다. 길은 판의 유닛 차례로 청한다(I309 ①)
 func order_attack(group: Array, e: Enemy) -> void:
 	_unit_paths()
+	_asks = 0
+	var cell := Vector2i(e.pos.round())
+	var picked := {}
 	for u in group:
 		_drop_orders(u)
 		u.move_mode = "move"
-		if u.alive:
+		picked[u] = true
+	for u in units:
+		if picked.has(u):
 			u.prey = e
-			u.chase_to = Vector2i(e.pos.round())
-			_route(u, u.chase_to)
+			u.chase_to = cell
+			_ask(u, cell)
 
 # 정지(S35): 명령을 지우고 그 자리에 선다
 func stop(group: Array) -> void:
@@ -1917,8 +1931,12 @@ func stop(group: Array) -> void:
 		_drop_orders(u)
 		_halt(u)
 
+var dashed := {}  # 마지막 대시(S315): 영웅 → [출발 자리, 내린 자리, 번호]. 번호는 판에서 대시마다 1씩 는다. 화면이 대시 사건(I261 ⑧)을 내려고 읽고, 시뮬레이션·저장은 쓰지 않는다
+var _dash_n := 0
+
 # 대시(S315, I261): 전투 단계·원정(S316)에 group의 출전 영웅이 저마다 at(칸 좌표) 쪽으로 DASH.length칸 순간 이동한다. 길은 아군 돌진 길(_dash)이고,
-# 기절·붙잡힘·들림·성벽 위·대기 중인 영웅과 한 걸음도 못 나간 영웅은 빠진다. 대시하면 정지처럼 명령을 지우고 서며, 요새화가 풀린다(still)
+# 기절·붙잡힘·들림·성벽 위·대기 중인 영웅과 한 걸음도 못 나간 영웅은 빠진다. 대시하면 정지처럼 명령을 지우고 서며, 요새화가 풀린다(still).
+# 대시한 영웅은 dashed에 남긴다. 원정에 들고 나며 몸을 옮기거나 대기를 되돌리는 것(I262)은 대시가 아니라서 남기지 않는다
 func dash(group: Array, at: Vector2) -> void:
 	if not fighting():
 		return
@@ -1932,16 +1950,24 @@ func dash(group: Array, at: Vector2) -> void:
 		if to == h.pos:
 			continue
 		_drop_orders(h)
+		for k in dashed.keys():  # 판에서 빠진 영웅(새 도전 전의 몸)은 버린다
+			if k not in heroes:
+				dashed.erase(k)
+		_dash_n += 1
+		dashed[h] = [h.pos, to, _dash_n]
 		h.pos = to
 		_halt(h)
 		h.still = 0.0
 		h.dash_cd = DASH.cd
 
-# 앞선 명령을 지운다: 집결(I22)·걸어가서 쓰려던 스킬(S147)·대상 공격(S35)·공병의 일(I63)
+# 앞선 명령을 지운다: 집결(I22)·걸어가서 쓰려던 스킬(S147)·대상 공격(S35)·공병의 일(I63)·대열 자리와 같이 걷기(S374 ④)
 func _drop_orders(u: Unit) -> void:
 	u.rally_from = null
 	u.order = null
 	u.prey = null
+	u.pace = 0.0
+	u.post = NO_POST
+	u.due = NO_POST  # 길을 기다리던 줄에서도 빠진다(I309 ④)
 	_unready(u)  # 불마법사 예고·기병 돌진은 지시를 받으면 끊긴다(S358, S363)
 	if u.job:
 		_release(u.job)
@@ -1951,13 +1977,33 @@ func _halt(u: Unit) -> void:
 	u.after.clear()
 	u.anchor = u.pos
 	u.rally_from = null
+	u.pace = 0.0
+	u.post = NO_POST
+	u.due = NO_POST  # 정지·대시·원정·끌려옴·들림·비켜섬은 줄에서 뺀다(I309 ④)
 
-# 유닛 경로를 구하기 전에 부른다. 부서진 성곽 칸이 빠지게 성벽 위 격자를 매번 새로 깐다
+# 유닛 경로를 구하기 전에 부른다. 막힌 칸이 바뀌었으면(_dirty) 성벽 위 격자와 땅 격자를 다시 깔고(부서진 성곽 칸이 빠진다),
+# 스텝마다 한 번 싼 막힌 칸(SOFT_COST 미만)이 있는지 센다(I309 ⑦).
+# 전제: 막힌 칸 사전(castle/walls·structures/footprint)은 _put·_cut·restart·Save.apply(_put으로 다시 편다)만 바꾸고 성문 open은 set_gate만 바꾼다.
+# 막힌 칸을 직접 바꾸는 코드가 생기면 _dirty를 켜야 한다
 func _unit_paths() -> void:
 	grid.wall_k = UNIT_WALL_K
-	_wall.fill_solid_region(_wall.region)
-	for c in walls:  # 성벽 위는 차지 칸 어디로나 걷는다(S217 «성벽 위에서 이동»)
-		_wall.set_point_solid(c, false)
+	if _dirty:
+		_dirty = false
+		_soft_step = -1
+		_wall.fill_solid_region(_wall.region)
+		_plain.fill_solid_region(_plain.region, false)
+		for c in water:
+			_plain.set_point_solid(c)
+		for c in rock:
+			_plain.set_point_solid(c)
+		for c in footprint:
+			_plain.set_point_solid(c)
+		for c in walls:  # 성벽 위는 차지 칸 어디로나 걷는다(S217 «성벽 위에서 이동»). 땅은 성곽을 먼저 본다(block_at): 열린 성문 칸은 빈 칸이다
+			_wall.set_point_solid(c, false)
+			_plain.set_point_solid(c, not walls[c].open)
+	if _soft_step != _steps:
+		_soft_step = _steps
+		_soft = (structures.values() + castle.values()).any(func(k): return not k.open and k.hp / pow(UPGRADE_MULT, k.level - 1) * UNIT_WALL_K < SOFT_COST)
 
 # 땅과 성벽 위를 오가면 path 끝(성문 안쪽 칸이나 성문 칸)에서 오르내린 뒤 after를 걷는다(I44).
 # 오르내릴 성문은 «땅 위 경로 비용 + 성벽 위 걸음 수»가 가장 작은 곳이고, 같으면 성곽 칸 차례가 앞선 곳이다(I69)
@@ -1969,10 +2015,12 @@ func _unit_paths() -> void:
 func _route(u: Unit, cell: Vector2i) -> void:
 	var from := Vector2i(u.pos.round())
 	var up := walls.has(cell)
+	u.due = NO_POST  # 길을 구하면 줄에서 빠진다(I309 ④)
 	u.path.clear()
 	u.after.clear()
 	if u.on_wall == up:
-		u.path = (_wall.get_id_path(from, cell) if up else _short(grid.path(from, cell))).slice(1)
+		u.path = (_wall.get_id_path(from, cell) if up else _short(_ground(from, cell))).slice(1)
+		_seat(u, cell)
 		return
 	var cands := []  # [하한, 차례, 계단 칸, 성벽 위 길]
 	for g in walls:
@@ -1989,13 +2037,14 @@ func _route(u: Unit, cell: Vector2i) -> void:
 	for c in cands:
 		if c[0] > best:
 			break
-		var ground: Array[Vector2i] = _short(grid.path(c[2], cell)) if u.on_wall else grid.path(from, c[2])
-		var cost: float = _cost(ground) + c[3].size()
+		var ground: Array[Vector2i] = _short(_ground(c[2], cell)) if u.on_wall else _ground(from, c[2])
+		var cost: float = _cost(ground) + c[3].size()  # _ground 바로 뒤라 _slow가 이 길의 것이다
 		if cost < best or (cost == best and c[1] < best_i):
 			best = cost
 			best_i = c[1]
 			u.path = (c[3] if u.on_wall else ground).slice(1)
 			u.after = ground if u.on_wall else c[3]
+	_seat(u, cell)
 
 # 목적지 칸이 들어갈 수 없는 칸(구조물·거점)이면 길은 그 앞 칸에서 끝난다(S14). 에너지 성벽은 아군이 지나간다(I142)
 func _short(p: Array[Vector2i]) -> Array[Vector2i]:
@@ -2015,10 +2064,11 @@ func _stair(g: Vector2i):
 			return g + d
 	return null
 
+# 방금 _ground가 구한 땅 길의 비용. 비용 격자의 길이면 그 격자가 편 배열로 재고, 네이티브 길이면(막힌 칸을 지나지 않는다) 걸음 길이의 합이다(I309 ⑦)
 func _cost(path: Array[Vector2i]) -> float:
 	var sum := 0.0
 	for i in range(1, path.size()):
-		sum += grid._compute_cost(path[i - 1], path[i])
+		sum += grid._compute_cost(path[i - 1], path[i]) if _slow else Vector2(path[i] - path[i - 1]).length()
 	return sum
 
 # 용병의 홀드(S36)를 바꾼다. 영웅에게는 걸지 않는다(S16)
@@ -2142,9 +2192,10 @@ func _follow_order(h: Unit) -> void:
 		h.order = null
 		h.path.clear()
 		h.after.clear()
+		h.due = NO_POST  # 멈춰서 쓴다. 성문 여닫기로 줄에 섰어도 옛 목적지로 걷지 않는다(I309 ④)
 		if can_cast(h, slot) and _aim_ok(h, h.get(slot), aim):
 			_use(h, slot, aim)
-	elif h.path.is_empty() and h.after.is_empty():
+	elif h.path.is_empty() and h.after.is_empty() and h.due == NO_POST:  # 길을 기다리는 동안은 길이 끝난 것이 아니다(I309 ③)
 		h.order = null
 
 # 유닛·적은 pos, 구조물·성곽은 cell, 지점은 그대로
@@ -3016,11 +3067,13 @@ func _vacate(s: Block) -> void:
 
 # 칸 → Block 사전(d)과 차지 칸 → Block 사전(fp)에 함께 넣고 뺀다(S216, S217)
 func _put(d: Dictionary, fp: Dictionary, s: Block) -> void:
+	_dirty = true  # 아군 길 격자를 다시 깐다(I309 ⑦)
 	d[s.cell] = s
 	for c in cells_in(area_of(s)):
 		fp[c] = s
 
 func _cut(d: Dictionary, fp: Dictionary, s: Block) -> void:
+	_dirty = true
 	d.erase(s.cell)
 	for c in cells_in(area_of(s)):
 		fp.erase(c)
@@ -3085,8 +3138,15 @@ func set_rally(f, cell: Vector2i) -> void:
 		if u.rally_from == f and u.pos.distance_to(old) > 0.5:
 			_to_rally(u, f)
 
+# 집결 지점까지 공격 이동(I38). 집결 칸에 다른 유닛이 서 있거나 가고 있으면 가장 가까운 빈 칸으로 간다(S374 ⑤, I306 ⑧)
 func _to_rally(u: Unit, f: Block) -> void:
-	order_move([u], f.rally, true)  # 집결 지점까지 공격 이동(I38)
+	if grid.is_in_boundsv(f.rally):
+		_unit_paths()
+		_asks = 0  # 집결 길은 나누지 않는다: 용병마다 그 자리에서 구한다(I309 ①)
+		_drop_orders(u)
+		u.move_mode = "attack_move"
+		if u.alive and not _form_up([u], f.rally):
+			_route(u, f.rally)
 	u.rally_from = f
 
 # 시설 차지 칸 둘레의 빈 칸. 앞(아래, 들판 쪽 S51) 줄 → 왼쪽 옆 → 오른쪽 옆 → 뒤 줄 순서로, 앞·뒤 줄은 왼쪽부터, 옆 줄은 앞부터 본다(I61, I178)
@@ -3114,10 +3174,13 @@ func set_gate(g: Block, open: bool) -> void:
 		return
 	g.open = open
 	_repath = true
+	_dirty = true
 	_unit_paths()
-	for u in units:  # 걷던 유닛도 지금 목적지까지 길을 다시 구한다(I133). 명령(집결·대상·이동 방식)은 그대로다. 일하러 가는 공병은 그대로 둔다
-		if u.job == null and not (u.path.is_empty() and u.after.is_empty()):
-			_route(u, (u.after if not u.after.is_empty() else u.path).back())
+	_asks = 0
+	for u in units:  # 걷던 유닛도 지금 목적지까지 길을 다시 구한다(I133). 명령(집결·대상·이동 방식)은 그대로다. 일하러 가는 공병은 그대로 둔다.
+		# 16명을 넘으면 나머지는 줄에 선다. 이미 줄에 선 유닛은 제 차례에 새 성문 상태로 구한다(I309 ①④)
+		if u.job == null and u.due == NO_POST and not (u.path.is_empty() and u.after.is_empty()):
+			_ask(u, (u.after if not u.after.is_empty() else u.path).back())
 	if state == "battle":
 		g.lock = GATE_LOCK
 
@@ -3196,7 +3259,7 @@ func _auto_fix(dt: float) -> void:
 		return
 	_fix_clock = AUTO_FIX_EVERY
 	for u in units:
-		if not (u.auto_fix and u.alive and u.kind == "engineer" and not u.on_wall and u.job == null and u.path.is_empty() and u.after.is_empty()):
+		if not (u.auto_fix and u.alive and u.kind == "engineer" and not u.on_wall and u.job == null and u.path.is_empty() and u.after.is_empty() and u.due == NO_POST):  # 길을 기다리는 공병은 걷는 공병이다(I309 ③)
 			continue
 		var best = null
 		for t in structures.values() + castle.values() + [base]:
@@ -3384,6 +3447,9 @@ func _send(u: Unit, s: Block) -> void:
 	u.rally_from = null
 	u.prey = null
 	u.after.clear()
+	u.pace = 0.0  # 일을 맡으면 대열 자리·같이 걷기가 풀린다(I308 ②)
+	u.post = NO_POST
+	u.due = NO_POST  # 길을 기다리던 줄에서도 빠진다(I309 ④)
 	s.worker = u
 	grid.wall_k = UNIT_WALL_K
 	u.path = grid.path(Vector2i(u.pos.round()), _spot(u, s)).slice(1, -1)
@@ -4073,6 +4139,8 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 			if here != null or (u.path if u.on_wall else u.after).any(func(p): return area.has_point(p)):
 				u.path.clear()
 				u.after.clear()
+				u.pace = 0.0  # 대열 자리·같이 걷기가 풀린다(I308 ②)
+				u.post = NO_POST
 
 # 영혼 사슬(S154): 묶인 적 하나가 받은 피해(줄인 뒤)의 비율을 같은 사슬의 다른 적이 고정 피해로 받는다. 나눠 받은 고정 피해는 다시 나뉘지 않는다
 func _share(e: Enemy, amount: float, src) -> void:
@@ -4182,11 +4250,12 @@ func _target_of(e: Enemy):
 	var ranged: float = e.flank.get("ranged", INF)  # 늑대 기수(S335 ①): 후보 가운데 가장 가까운 원거리 아군(far)도 함께 찾는다. 다른 적은 INF라 찾지 않는다
 	var far = null
 	var far_d := INF
-	for m in units:
-		if not _free(m, e) or _carried(m):  # 블록 자리가 찬 유닛은 노리지 않고 지나간다(S159). 들린 용병(S308)은 노리지 않는다
-			continue
+	for i in _units_near(e.pos, maxf(sight, e.radius + 0.01)):  # 버킷 후보만 본다(I305). 후보는 units의 차례 그대로이고, 아래 조건이 반응하는 거리 안의 유닛은 모두 든다
+		var m = units[i]
 		var d := e.pos.distance_to(m.pos)
-		if d >= best_d and (d >= far_d or m.range < ranged):
+		if d >= best_d and (d >= far_d or m.range < ranged):  # 거리부터 본다. 아래 _free·_carried는 읽기만 해서 차례를 바꿔도 결과가 같다
+			continue
+		if not _free(m, e) or _carried(m):  # 블록 자리가 찬 유닛은 노리지 않고 지나간다(S159). 들린 용병(S308)은 노리지 않는다
 			continue
 		# 밀어낸 직후 거리는 반지름 합과 같아서 0.01 여유를 둔다(S13: 몸으로 막은 유닛은 인식 범위 밖이어도 친다)
 		# 성벽 위 유닛은 몸으로 길을 막을 때만 친다(U13, S89, I70). 비행 적·기어오르는 적은 그 성벽 위 유닛도 노리고(I77), 비행 적은 몸에 막히지 않는다(S109)
@@ -6312,7 +6381,8 @@ func _touch(mover, body) -> bool:
 # 같은 편(bodies)끼리 겹친 만큼 반씩 밀어낸다. 상대 편(others)과는 겹치지 않게 민다. 비행 적은 밀지도 밀리지도 않는다(I79).
 # 공성탑도 같은 편과는 밀지도 밀리지도 않는다. 고블린이 탑을 지나 사다리에 오른다(S284).
 # 홀드를 켜고 서 있는 용병은 아군에게 밀리지 않고 겹친 쪽이 다 밀려난다. 둘 다 그러면 반씩이다(S36 2026-10-29 변경)
-# 경로는 그대로라 밀려난 쪽은 _move·_act가 다시 데려간다(I51)
+# 경로는 그대로라 밀려난 쪽은 _move·_act가 다시 데려간다(I51). 길이 빈 유닛은 밀린 자리에 남는다(I307 ④).
+# 대열 자리로 걷는 유닛은 걷지 않는 아군·마주 걷는 아군을 밀지 않고 지나간다(_passes, I307 ②)
 # 1칸 버킷의 이웃 아홉 칸만 비교한다. 반지름 0.5칸 이하 몸끼리는 반지름 합이 1.0 이하라 겹친 쌍은 늘 이웃 버킷이다. 차례는 전수 비교(i < j)와 같다.
 # 그보다 큰 몸(슬라임 킹 2칸, S236 2026-10-29 변경)은 버킷에 넣지 않고 그 뒤에 모든 몸과 비교한다
 # ponytail: 버킷은 스텝 처음 자리로 나눈다. 한 스텝 안에서 0.1칸 넘게 밀려 새로 겹친 쌍은 다음 스텝에 민다
@@ -6358,7 +6428,7 @@ func _ghost(x) -> bool:
 func _part(a, o, others: Array) -> void:
 	var gap: Vector2 = o.pos - a.pos
 	var overlap: float = a.radius + o.radius - gap.length()
-	if overlap > 0.0:
+	if overlap > 0.0 and not _passes(a, o):
 		var push := (gap.normalized() if gap != Vector2.ZERO else Vector2.RIGHT) * overlap
 		var share := 0.5 if _planted(a) == _planted(o) else (1.0 if _planted(a) else 0.0)  # o가 밀리는 몫
 		if share < 1.0:
@@ -6366,9 +6436,9 @@ func _part(a, o, others: Array) -> void:
 		if share > 0.0:
 			_shove(o, push * share, others)
 
-# 홀드를 켜고 서 있는(걷는 길이 없는) 용병(S36). 적에는 hold가 없다
+# 홀드를 켜고 서 있는(걷는 길이 없고 길을 기다리지도 않는) 용병(S36, I309 ③). 적에는 hold가 없다(앞 조건에서 걸러진다)
 func _planted(x) -> bool:
-	return x.get("hold") == true and x.path.is_empty()
+	return x.get("hold") == true and x.path.is_empty() and x.due == NO_POST
 
 # 쏘는 구조물은 사거리 안에서 가장 가까운 적을 쏜다(S28, I29). 피해·반격·범위 피해·축복은 투사체가 닿을 때다(_land, S178).
 # 마법 타워는 마법 피해다(S110, S149). 공격 속도·공격력·사거리는 영웅 효과를 받는다(_haste·_might·_reach, S150)
@@ -6559,15 +6629,19 @@ func _act(u: Unit, dt: float) -> void:
 		u.pos = Vector2(u.after[0])
 		u.path = u.after.slice(1)
 		u.after.clear()
+		if u.path.is_empty() and u.due == NO_POST:  # 오르내려 서는 칸이 대열 자리였다(I307 ④). 줄에 선 유닛의 옛 길 끝은 도착이 아니다(I309 ③)
+			u.pace = 0.0
+			u.post = NO_POST
+	var waiting: bool = u.due != NO_POST  # 길을 기다린다: 걷는 유닛으로 센다(I309 ③)
 	# 걷는 동안엔 반경을 보지 않는다. 홀드 중 이동 지시를 받으면 도착한 곳이 새 기준이다(I37)
-	var zone := u.hold_radius if u.hold and u.path.is_empty() else INF
+	var zone := u.hold_radius if u.hold and u.path.is_empty() and not waiting else INF
 	var top = walls.get(Vector2i(u.pos.round()))
 	var wall_only: bool = u.on_wall and u.range < WALL_RANGE and not (top and top.open)  # 성벽 위 근접 유닛은 열린 성문 위에서만 들판의 적을 치고(S88, S89), 성벽 위의 적은 친다(I78)
 	var air: bool = u.range >= AIR_RANGE  # 근접 유닛은 날고 있는 적을 고르지도 쫓지도 않는다(S109 2026-11-09 변경)
 	var foe = _hunt(u, wall_only) if u.prey else _nearest_enemy(u.pos, _reach(u), u.anchor, zone, wall_only, u.radius, air)
 	if not u.mend.is_empty():  # 사제는 적을 노리지도 쫓지도 치지도 않는다(S362)
 		foe = null
-	var walking := not u.path.is_empty()
+	var walking := not u.path.is_empty() or waiting  # 기다리는 동안 옛 길이 없으면 제자리다(걷는 고리가 돌지 않는다)
 	if not u.lance.is_empty() and _charge_on(u, walking, dt):  # 기병 돌진을 시작했다(S363). 시작한 스텝부터 달린다
 		return
 	var start := u.pos
@@ -6575,7 +6649,8 @@ func _act(u: Unit, dt: float) -> void:
 		foe = null
 	elif walking and foe:  # 공격 이동: 멈춰서 친다(S35, I35)
 		walking = false
-	var left: float = u.speed * dt * ((1.0 + _aura("stride", u.pos)) if u.is_hero else 1.0) * (1.0 - _fx_cut(u, "slow"))  # 크로노스 오라: 영웅이 더 빨리 걷는다(S158). 둔화(I168)
+	# 크로노스 오라: 영웅이 더 빨리 걷는다(S158). 둔화(I168). 무리로 걸으면 같이 걷기 상한이 속도 자리에 든다(S374 ④)
+	var left: float = (minf(u.speed, u.pace) if u.pace > 0.0 else u.speed) * dt * ((1.0 + _aura("stride", u.pos)) if u.is_hero else 1.0) * (1.0 - _fx_cut(u, "slow"))
 	if u.attack_gap - u.cooldown < (CONTACT if u.is_hero and walking else (HERO_POSE if u.is_hero else POSE)):  # 친 뒤 공격 자세 동안 제자리에 선다(S196)
 		left = 0.0
 	if walking:
@@ -6590,13 +6665,20 @@ func _act(u: Unit, dt: float) -> void:
 			# 길의 칸(목적지 포함)은 다른 유닛과 몸이 닿은 채 0.5칸 안에 들어도 닿은 것이다. 같은 칸을 지나거나 같은 칸으로 가는 무리가 서로 밀며 끝없이 걷지 않게(I51).
 			# 마지막 칸만 봐주던 때는 성문 앞에서 길이 한 칸으로 모인 무리가 그 칸 가운데를 서로 다투다 멈췄다(EV794)
 			# 길의 칸(목적지 포함)에 적이 서 있으면 그 적 몸에 닿을 때 그 칸에 닿은 것으로 친다(S14). 그래야 막은 몸을 돌아 다음 칸으로 간다
-			var crowded := d <= 0.5 and units.any(func(o): return o != u and o.pos.distance_to(u.pos) < u.radius + o.radius + 0.01)
+			# 대열 자리 칸(길의 마지막 칸이 post)은 중심에 닿아야 도착이다. 그 칸에 서 있는 유닛이나 홀드로 선 용병에 닿았을 때만 몸 닿음으로 친다(I307 ①)
+			var mine: bool = u.post == u.path[0] and u.path.size() == 1 and u.after.is_empty()
+			var crowded := d <= 0.5 and units.any(func(o): return o != u and o.pos.distance_to(u.pos) < u.radius + o.radius + 0.01 \
+				and (not mine or _planted(o) or (o.path.is_empty() and o.after.is_empty() and Vector2i(o.pos.round()) == u.path[0])))
 			var taken := d <= 1.1 and enemies.any(func(e): return not _flies(e) and not _aloft(e) and e.pos.distance_to(Vector2(u.path[0])) <= 0.5 and e.pos.distance_to(u.pos) < u.radius + e.radius + 0.01)
 			if d < 0.01 or crowded or taken:
 				u.path.remove_at(0)
 				if u.path.is_empty():
 					u.anchor = u.pos
-					u.rally_from = null
+					if u.due == NO_POST:  # 줄에 선 유닛의 옛 길 끝은 지시의 도착이 아니다(I309 ③)
+						u.rally_from = null
+						if u.after.is_empty():  # 자리에 닿았다: 자리를 잊고 같이 걷기가 풀린다(I307 ④)
+							u.pace = 0.0
+							u.post = NO_POST
 	elif not foe and not u.on_wall and u.mend.is_empty():  # 성벽 위 유닛은 쫓아 내려가지 않는다(I70). 사제는 쫓지 않는다(S362)
 		# ponytail: 적에게 곧장 다가간다. 벽 너머 적에게는 벽을 따라 미끄러질 뿐이다. 막히는 일이 보이면 경로로
 		var prey = u.prey if u.prey else _nearest_enemy(u.pos, u.sight, u.anchor, zone, false, 0.0, air)  # 길 끝에서도 대상(S35)이 사거리 밖이면 곧장 다가간다
@@ -6607,6 +6689,8 @@ func _act(u: Unit, dt: float) -> void:
 			_shove(u, p - u.pos, enemies)
 	if (u.pos - start).length() > 0.01:  # 걸어서 움직인 쪽을 본다(S357, I294 ③)
 		u.face = (u.pos - start).normalized()
+		if walking and not (u.path.is_empty() and u.after.is_empty()):  # 길을 따라 실제로 걸었고 길이 남았다(I307 ②). 적 몸에 막혀 제자리면 걷지 않은 것이다
+			_strode[u] = true
 	if foe and u.cooldown <= 0.0:
 		u.cooldown = u.attack_gap
 		var snared = _net_target(u) if not u.net.is_empty() and u.net_cd <= 0.0 else null  # 그물 대기가 끝났으면 기본 공격 대신 그물(S364)
@@ -6840,7 +6924,7 @@ func _throw_net(u: Unit, e: Enemy) -> void:
 # 아이아스 패시브 요새화(S151, I147): 이동 지시 없이 still초가 지나면 요새화. 받는 피해 감소, 블록 수 +3. 이동 지시를 받으면 풀린다.
 # 적을 쫓거나(S141) 밀려서 움직인 것은 이동 지시가 아니다(기획서 원문). 걸어갈 길(path·after)은 이동 지시로만 생긴다
 func _fortify(h: Unit, dt: float) -> void:
-	if not (h.path.is_empty() and h.after.is_empty()):
+	if not (h.path.is_empty() and h.after.is_empty()) or h.due != NO_POST:  # 길을 기다리는 동안도 이동 지시를 받은 것이다(I309 ③)
 		h.still = 0.0
 	else:
 		h.still += dt
@@ -6862,12 +6946,17 @@ func _hunt(u: Unit, wall_only: bool):
 	if (e.pos.distance_to(u.pos) <= _reach(u) or _touching(u, e)) and (e.on_wall or not wall_only):
 		u.path.clear()
 		u.after.clear()
+		u.due = NO_POST  # 칠 수 있다: 길을 기다리던 줄에서도 빠진다(I309 ④)
 		return e
 	var c := Vector2i(e.pos.round())
 	if maxi(absi(c.x - u.chase_to.x), absi(c.y - u.chase_to.y)) > 1:
-		_unit_paths()
 		u.chase_to = c
-		_route(u, c)
+		if _routed < UNIT_ROUTES_PER_STEP:  # 이 스텝 몫이 남았다(I309 ⑤)
+			_routed += 1
+			_unit_paths()
+			_route(u, c)
+		else:
+			u.due = c  # 줄에 서서 옛 길을 걷는다
 	return null
 
 # from에서 reach 안의 가장 가까운 적. center에서 zone보다 먼 적은 뺀다(홀드 반경). on_wall이면 성벽 위의 적만 본다(I78).
@@ -6876,7 +6965,8 @@ func _hunt(u: Unit, wall_only: bool):
 func _nearest_enemy(from: Vector2, reach: float, center := Vector2.ZERO, zone := INF, on_wall := false, body := 0.0, air := true):
 	var best = null
 	var best_d := INF
-	for e in enemies:
+	for i in _foes_near(from, maxf(reach, (body + 0.01) if body > 0.0 else 0.0)):  # 버킷 후보만 본다(I305). 후보는 enemies의 차례 그대로다
+		var e = enemies[i]
 		var d: float = e.pos.distance_to(from)
 		var touch: bool = body > 0.0 and d <= body + e.radius + 0.01  # 밀어낸 직후 거리는 반지름 합과 같아서 0.01 여유(적 쪽 S13과 같다)
 		if d <= best_d and (touch or (e.lit and d <= reach and e.pos.distance_to(center) <= zone)) and (e.on_wall or not on_wall) and not _aloft(e) and (air or not _flies(e)):
@@ -6896,15 +6986,26 @@ func _touching(u: Unit, e: Enemy) -> bool:
 #        (test_crowd_cannot_pass_merc_in_one_cell_gap)
 # ponytail: 몸 하나씩 차례로 밀어낸다. 몸끼리 붙어 있으면 앞 몸 쪽으로 다시 겹칠 수 있다. 겹친 채 남는 일이 보이면 몇 번 되풀이한다
 func _shove(e, by: Vector2, bodies: Array) -> void:
+	var mine: bool = bodies.size() > BUCKET_MIN and (is_same(bodies, units) or is_same(bodies, enemies))  # 버킷에 물을 목록(I305): 그 편의 목록이고 몸이 적지 않다. 그 밖(빈 배열·시험이 넘긴 배열·몸이 적은 편)은 모든 몸을 본다
 	for v in [by, Vector2(by.x, 0), Vector2(0, by.y)]:
 		var p: Vector2 = e.pos + v
-		for m in bodies:
+		var at := p  # 후보를 뽑은 자리
+		var ids: Array = _side_near(bodies, at, e.radius + SHOVE_SLACK) if mine else range(bodies.size())
+		var k := 0
+		while k < ids.size():  # 후보를 bodies의 차례대로 돈다
+			var i: int = ids[k]
+			k += 1
+			var m = bodies[i]
 			var gap: Vector2 = p - m.pos
 			if gap.length() < e.radius + m.radius and _touch(e, m):  # 비행 적은 길을 막지 않는다(S109). 봉인된 비행 적은 막는다(S155). 블록 자리가 없으면 지나간다(S159)
 				var n := gap.normalized() if gap != Vector2.ZERO else Vector2.LEFT
 				p = m.pos + n * (e.radius + m.radius)
 				if e is Unit and p.distance_to(e.pos) < v.length() * 0.25:  # 아군은 정면으로 막은 몸의 둘레를 따라 돌아간다(S14). 적은 막힌 채로 둔다(위 [의도])
 					p = m.pos + n.rotated(v.length() / (e.radius + m.radius) * (1.0 if n.cross(v) >= 0.0 else -1.0)) * (e.radius + m.radius)
+				if mine and p.distance_to(at) > SHOVE_SLACK:  # 밀려서 후보를 뽑은 범위를 벗어났다: 그 자리에서 다시 뽑고 지난 번호는 건너뛴다
+					at = p
+					ids = _side_near(bodies, at, e.radius + SHOVE_SLACK)
+					k = ids.bsearch(i + 1)
 		var c := Vector2i(p.round())
 		var blk = grid.block_at(c)
 		if blk and blk.kind == "barrier" and e is Unit:  # 아군은 에너지 성벽을 지나간다(I142)
@@ -7238,3 +7339,295 @@ func _attack(e: Enemy, target) -> void:
 		damage(target, e.damage * (1.0 - _fx_cut(e, "weaken")) * _fury(e))  # 공격력 감소(S154), 광분(S295)
 		if not e.bleed.is_empty() and target is Unit and target.alive:  # 출혈(S240): 아군 유닛에만, 하나만 걸려 다시 물면 시간이 새로 된다
 			_fx(target, "bleed", {"bleed": e.bleed.dps}, e.bleed.time)
+
+# ── 2칸 버킷(I305): 보는 몸 수만 줄이고 결과는 그 편의 몸을 차례로 다 본 것과 같다 ──
+# 적이 노릴 유닛(_target_of)·가장 가까운 적(_nearest_enemy)·몸 막기(_shove)가 그 편의 몸을 다 훑지 않고 버킷의 후보만 돈다.
+# 버킷은 편마다 하나이고, 그 편의 세대 수(Unit.stir·Enemy.stir: pos·radius를 쓸 때마다 오른다)나 목록의 수가 담은 때와 다르면 다음 물음에 통째로 다시 담는다.
+# 그 편의 몸이 BUCKET_MIN 이하면 버킷을 거치지 않고 모두 본다(영웅 셋·용병 다섯 대 적 300의 판에서 버킷에 묻는 값이 다 보는 값보다 컸다).
+# units·enemies에 이미 있던 몸을 pos를 건드리지 않고 뺐다가 같은 수만큼 도로 넣는 코드를 새로 쓰면 Unit.stir += 1(Enemy.stir += 1)을 함께 쓴다.
+# 지금은 넣는 길이 모두 몸을 새로 만들거나 pos를 먼저 넣는다(_return_hero·_come_home).
+const BUCKET := 2.0  # 버킷 한 변(칸)
+const BUCKET_BIG := 1.0  # 몸 반지름이 이보다 크면 버킷에 넣지 않고 늘 후보다(슬라임 킹·원정 보스 몸)
+const BUCKET_PAD := 0.05  # 부동소수 여유(칸). 후보를 넓게만 잡는다
+const BUCKET_MIN := 16  # 그 편의 몸이 이 수 이하면 버킷을 거치지 않고 모두 본다. 몸이 적으면 다 보는 쪽이 싸다
+const SHOVE_SLACK := 1.0  # _shove가 후보를 다시 뽑지 않고 밀려도 되는 거리(칸)
+const NOBODY := []
+
+class Near:
+	var cells := {}  # Vector2i(버킷 칸) → 그 칸에 든 몸의 배열 번호(오름차순)
+	var big := []  # 큰 몸의 번호
+	var rmax := 0.0  # 버킷에 든 몸의 가장 큰 반지름
+	var stamp := -1  # 담은 때의 세대 수
+	var n := -1  # 담은 때의 배열 크기
+
+var _ub := Near.new()  # 아군(units)
+var _eb := Near.new()  # 적(enemies)
+var scan_all := false  # 참이면 버킷 없이 모든 몸을 본다(옛 길). 동치 평가와 성능 비교가 켠다
+var audit = null  # 시험이 [0, 0, 0, 0]을 넣으면 물을 때마다 전수와 견줘 [물은 횟수, 놓친 몸 수, 후보 수 합, 전체 수 합]을 센다
+
+func _units_near(p: Vector2, r: float) -> Array:
+	return _near(_ub, units, Unit.stir, p, r)
+
+func _foes_near(p: Vector2, r: float) -> Array:
+	return _near(_eb, enemies, Enemy.stir, p, r)
+
+# bodies(units나 enemies 그 객체)의 버킷에 묻는다(_shove)
+func _side_near(bodies: Array, p: Vector2, r: float) -> Array:
+	return _units_near(p, r) if is_same(bodies, units) else _foes_near(p, r)
+
+# arr에서 «p에서 r + 그 몸의 반지름» 안에 있는 몸의 번호를 빠짐없이, 오름차순으로. 더 들어 있을 수 있다
+func _near(ix: Near, arr: Array, stir: int, p: Vector2, r: float) -> Array:
+	if scan_all or arr.size() <= BUCKET_MIN:
+		return range(arr.size())
+	if ix.stamp != stir or ix.n != arr.size():  # 누가 움직였거나 들고 났다: 다시 담는다
+		ix.cells.clear()
+		ix.big.clear()
+		ix.rmax = 0.0
+		for i in arr.size():
+			var m = arr[i]
+			if m.radius > BUCKET_BIG:
+				ix.big.append(i)
+				continue
+			ix.rmax = maxf(ix.rmax, m.radius)
+			var k := Vector2i((m.pos / BUCKET).floor())
+			if ix.cells.has(k):
+				ix.cells[k].append(i)
+			else:
+				ix.cells[k] = [i]
+		ix.stamp = stir
+		ix.n = arr.size()
+	var reach := r + ix.rmax + BUCKET_PAD
+	var ids: Array
+	if not is_finite(reach) or reach > 32.0:
+		ids = range(ix.n)
+	else:
+		var a := Vector2i(((p - Vector2(reach, reach)) / BUCKET).floor())
+		var b := Vector2i(((p + Vector2(reach, reach)) / BUCKET).floor())
+		ids = ix.big.duplicate()
+		if (b.x - a.x + 1) * (b.y - a.y + 1) <= ix.cells.size():  # 훑을 칸이 더 적다: 칸을 하나씩 찾는다
+			for y in range(a.y, b.y + 1):
+				for x in range(a.x, b.x + 1):
+					ids.append_array(ix.cells.get(Vector2i(x, y), NOBODY))
+		else:  # 몸이 든 칸이 더 적다(몸이 뭉쳐 있다): 든 칸을 돌며 범위 안인 칸만 모은다. 모든 번호로 돌아가지 않는다
+			for k in ix.cells:
+				if k.x >= a.x and k.x <= b.x and k.y >= a.y and k.y <= b.y:
+					ids.append_array(ix.cells[k])
+		ids.sort()  # 칸 안은 오름차순이지만 칸끼리는 섞인다
+	if audit != null:
+		audit[0] += 1
+		audit[2] += ids.size()
+		audit[3] += arr.size()
+		for j in arr.size():
+			if p.distance_to(arr[j].pos) <= r + arr[j].radius:
+				var at := ids.bsearch(j)
+				if at >= ids.size() or ids[at] != j:
+					audit[1] += 1
+	return ids
+
+# ── 무리 대열(S374, I306~I308): 둘 이상 고른 이동·공격 이동과 집결 도착은 한 칸에 한 명씩 가로 줄 자리로 간다 ──
+# order_move·_to_rally가 자리(post)와 같이 걷기 상한(pace)을 정하고, _act가 자리 칸 도착을 보며, _part가 지나가기(_passes)를 묻는다.
+# 여기서는 units·enemies의 차례를 바꾸거나 몸을 옮기지 않는다(버킷 I305의 낡음은 그대로다)
+
+# 무리: group 가운데 살아서 전장에 있는 유닛(원정 중에는 원정대만). 차례는 고른 순서가 아니라 판의 유닛 차례다(I306 ①)
+func _team(group: Array) -> Array:
+	return units.filter(func(u): return u.alive and u in group and (state != "raid" or u in party))
+
+# 가고 있는 길의 끝 칸. 길을 기다리면 기다리는 목적지 칸(I309 ②), 서 있으면 선 칸
+func _end_of(u: Unit) -> Vector2i:
+	if u.due != NO_POST:
+		return u.due
+	if not u.after.is_empty():
+		return u.after.back()
+	return u.path.back() if not u.path.is_empty() else Vector2i(u.pos.round())
+
+func _open_gate(c: Vector2i) -> bool:
+	var k = walls.get(c)
+	return k != null and k.kind == "gate" and k.open
+
+# 무리를 대열 자리로 보낸다(I306). 이끄는 유닛(유닛 차례가 가장 앞선 유닛)에게 찍은 칸의 층으로 가는 길이 없거나, 성벽 위 칸인데
+# 그 유닛의 길이 그 칸에서 끝나지 않으면 거짓이다. 그때는 이끄는 유닛의 _route만 한 상태라 부른 쪽이 모두를 옛 방식으로 보낸다
+func _form_up(team: Array, cell: Vector2i) -> bool:
+	var lead: Unit = team[0]
+	_route(lead, cell)
+	var up: bool = lead.on_wall if lead.after.is_empty() else not lead.on_wall
+	if up != walls.has(cell):
+		return false
+	var pivot := _end_of(lead)  # 기준 칸: 앞줄 가운데
+	if up and pivot != cell:  # 성벽 위 길이 끊겼다(_wall.get_id_path는 닿지 못하면 빈 길이라 길 끝이 선 칸이 된다)
+		return false
+	while up and team.size() >= 2 and walls.get(pivot + Vector2i(0, 1)) == walls.get(pivot):  # 같은 성곽 Block의 아래(들판 쪽) 끝 칸. 집결(한 명)은 찍은 칸 그대로
+		pivot.y += 1
+	var mid := Vector2.ZERO
+	var slow := INF
+	for u in team:
+		mid += u.pos / team.size()
+		slow = minf(slow, u.speed)
+	var go: Vector2 = Vector2(pivot) - mid
+	var f := Vector2i(0, 1) if up else _front(pivot, go)
+	var van := team.filter(func(u): return u.range >= WALL_RANGE if up else (u.range > 0.0 and u.range <= FORM.front))  # 앞 묶음(I306 ⑦)
+	var rear := team.filter(func(u): return u not in van)
+	var taken := {}  # 무리 밖 유닛이 서 있거나 가고 있는 칸
+	for o in units:
+		if o not in team:
+			taken[_end_of(o)] = true
+	var cells := _form_cells(pivot, team.size(), van.size(), f, up, taken)
+	var axis: Vector2 = go.normalized() if go.length() > 0.01 else Vector2(f)
+	for part in [[van, cells.slice(0, van.size())], [rear, cells.slice(van.size())]]:
+		var us: Array = _by_axis(part[0].map(func(u): return [u, u.pos - Vector2(pivot)]), axis)
+		var cs: Array = _by_axis(part[1].map(func(c): return [c, Vector2(c - pivot)]), axis)
+		for i in us.size():
+			var u: Unit = us[i]
+			var c: Vector2i = cs[i] if i < cs.size() else pivot  # 자리가 모자라면 기준 칸
+			u.pace = slow if FORM.pace and team.size() >= 2 else 0.0  # 걸을 길이 없으면 _seat가 푼다(I308 ①)
+			u.post = c  # 가려는 자리. 길을 구할 때 _seat가 확정한다(I309 ③)
+			_ask(u, c)
+	return true
+
+# 대열의 «앞»(I306 ⑦): 기준 칸에서 가장 가까운 보이는 적 쪽(같으면 enemies 차례가 앞선 적), 적이 없으면 무리가 걸어가는 쪽(go).
+# 상하좌우 넷 가운데 가까운 쪽이고, 세로·가로가 같으면 세로, 길이가 없으면 맵 아래쪽이다
+func _front(pivot: Vector2i, go: Vector2) -> Vector2i:
+	var v := go
+	var best := INF
+	for e in enemies:
+		if e.alive and e.lit:
+			var d: float = Vector2(pivot).distance_squared_to(e.pos)
+			if d < best:
+				best = d
+				v = e.pos - Vector2(pivot)
+	if v.length() < 0.01:
+		return Vector2i(0, 1)
+	if absf(v.y) >= absf(v.x):
+		return Vector2i(0, 1 if v.y > 0.0 else -1)
+	return Vector2i(1 if v.x > 0.0 else -1, 0)
+
+# rows = [[것, 기준 칸에서 본 벡터]]를 (벡터·axis 내림, 벡터·옆 오름, 들어온 차례 오름)의 전순서로 늘어놓은 «것»(I306 ⑥)
+func _by_axis(rows: Array, axis: Vector2) -> Array:
+	var ortho := axis.orthogonal()
+	var keyed := []
+	for i in rows.size():
+		var v: Vector2 = rows[i][1]
+		keyed.append([-v.dot(axis), v.dot(ortho), i, rows[i][0]])
+	keyed.sort_custom(func(a, b): return a[0] < b[0] or (a[0] == b[0] and (a[1] < b[1] or (a[1] == b[1] and a[2] < b[2]))))
+	return keyed.map(func(k): return k[3])
+
+# 대열 자리 n칸(I306 ③~⑤)을 앞 차례로. 앞에서부터 m칸이 앞 묶음 자리다. f는 «앞», 옆 s는 f를 돌린 쪽.
+# 줄 블록(한 줄 ceil(√n)칸, 줄 r의 k번째 칸은 가운데부터 0, +1, −1, +2, −2 …)에서 설 수 있고 기준 칸에서 4방향으로 닿는 칸을 쓰고,
+# 모자라면 4방향 BFS가 찾은 차례(같은 거리면 옆 → 뒤 → 앞)로 채운다
+func _form_cells(pivot: Vector2i, n: int, m: int, f: Vector2i, up: bool, taken: Dictionary) -> Array:
+	var s := Vector2i(-f.y, f.x)
+	var w := ceili(sqrt(float(n)))
+	var want := []
+	var row := 0
+	for count in [m, n - m]:
+		for i in count:
+			var k: int = i % w
+			want.append(pivot + (s * ((k + 1) / 2 * (1 if k % 2 == 1 else -1)) - f * (row + i / w)) * FORM.gap)
+		row += ceili(count / float(w))
+	var far := 0
+	for c in want:
+		far = maxi(far, absi(c.x - pivot.x) + absi(c.y - pivot.y))
+	var gate := _open_gate(pivot)  # 기준 칸이 열린 문루 칸이면 문루 칸도 쓴다
+	var dist := {pivot: 0}
+	var queue := [pivot]
+	var ok := {}  # 설 수 있는 칸 → 찾은 차례
+	var head := 0
+	while head < queue.size():
+		var c: Vector2i = queue[head]
+		head += 1
+		if dist[c] > far + 2 and (ok.size() >= n or dist[c] > far + 12):
+			break
+		var d := c - pivot
+		if not taken.has(c) and (gate or not _open_gate(c)) and posmod(d.x, FORM.gap) == 0 and posmod(d.y, FORM.gap) == 0 \
+				and ((walls.has(c) and not footprint.has(c)) if up else _bare(c)):  # 성벽 위는 대포 칸이 아닌 성곽 칸(I134)
+			ok[c] = ok.size()
+		for dv in [s, -s, -f, f]:  # 옆 → 뒤 → 앞: 같은 거리면 앞 칸이 맨 나중에 찾아진다
+			var k: Vector2i = c + dv
+			if not dist.has(k) and (walls.has(k) if up else (_bare(k) or barriers.has(k))):  # 아군은 에너지 성벽을 지난다(I142)
+				dist[k] = dist[c] + 1
+				queue.append(k)
+	var cells := want.filter(func(c): return ok.has(c))
+	for c in ok:  # 사전은 넣은 차례로 돈다
+		if cells.size() >= n:
+			break
+		if c not in cells:
+			cells.append(c)
+	var keyed := cells.map(func(c): return _row_key(c, pivot, f, s, ok) + [c])
+	keyed.sort_custom(func(a, b): return a[0] < b[0] or (a[0] == b[0] and (a[1] < b[1] or (a[1] == b[1] and a[2] < b[2]))))
+	return keyed.map(func(k): return k[3])
+
+# 자리 칸의 앞 차례 키: [줄 번호(앞이 작다), 가운데에서 옆으로 떨어진 칸 수, 찾은 차례]. 오크 방패벽의 _ranks와 다른 것이다
+func _row_key(c: Vector2i, pivot: Vector2i, f: Vector2i, s: Vector2i, ok: Dictionary) -> Array:
+	var d := c - pivot
+	return [-(d.x * f.x + d.y * f.y), absi(d.x * s.x + d.y * s.y), ok[c]]
+
+# 대열 자리로 걷는 유닛은 걷지 않는 아군·마주 걷는 아군과 서로 밀지 않고 지나간다(I307 ②). 홀드로 선 용병은 지금처럼 밀어낸다(S36).
+# 겹친 쌍에서만 묻는다(_part)
+func _passes(a, o) -> bool:
+	if not (a is Unit and o is Unit):
+		return false
+	var sa: bool = _strode.has(a)
+	var so: bool = _strode.has(o)
+	if not ((sa and a.post != NO_POST) or (so and o.post != NO_POST)):
+		return false
+	if sa and so:
+		return a.face.dot(o.face) < 0.0
+	return not _planted(o if sa else a)
+
+# ── 아군 길 나눠 구하기(I309): 지시 한 번·스텝 한 번에 UNIT_ROUTES_PER_STEP명까지 길을 구하고, 땅 길은 막힌 칸이 solid인 네이티브 격자에서 먼저 구한다 ──
+# 지시(order_move·order_attack·set_gate·_form_up)는 _ask로 길을 청하고, step 첫머리의 _serve와 대상 쫓기(_hunt)가 줄(유닛 칸 due)을 푼다.
+# _route가 길을 구한 뒤 _seat가 대열 자리(post)를 확정한다. 여기서는 units·enemies의 차례를 바꾸거나 몸을 옮기지 않는다(버킷 I305의 낡음은 그대로다)
+
+# 땅 길(I309 ⑦). 막힌 칸을 지나지 않고 to에 닿으면 네이티브 격자(_plain)의 가장 짧은 길, 아니면 비용 격자(grid.path)의 길이다. 둘 다 from부터 담긴다.
+# 네이티브 길은 비용 격자의 답과 비용·끝 칸이 같을 때만 쓴다: 출발 칸이 막힌 칸이 아니고(같은 Block 안은 거리만 센다, I179), 목적지가 거점 칸이 아니고(_short가 자르는 앞 칸),
+# 닿았고(solid 목적지·닿지 못하는 목적지는 빈 길이다), SOFT_COST보다 짧고, 싼 막힌 칸이 없거나 그 길이 막힌 칸 없는 맵의 최단 길이다. 부르기 전에 _unit_paths()를 부른다
+func _ground(from: Vector2i, to: Vector2i) -> Array[Vector2i]:
+	var p: Array[Vector2i] = []
+	if to != base.cell and not _plain.is_point_solid(from):
+		p = _plain.get_id_path(from, to)
+	_slow = p.is_empty() or p.size() * 1.42 >= SOFT_COST or (_soft and not _straight(p))
+	return grid.path(from, to) if _slow else p
+
+# 길 p가 막힌 칸이 하나도 없는 맵의 최단 길인가: 걸음 수가 긴 변이고 대각선 수가 짧은 변이다
+func _straight(p: Array[Vector2i]) -> bool:
+	var d := (p[-1] - p[0]).abs()
+	var diag := 0
+	for i in range(1, p.size()):
+		if p[i].x != p[i - 1].x and p[i].y != p[i - 1].y:
+			diag += 1
+	return p.size() - 1 == maxi(d.x, d.y) and diag == mini(d.x, d.y)
+
+# 지시가 유닛의 길을 청한다(I309 ①). 이 지시에서 UNIT_ROUTES_PER_STEP명까지는 그 자리에서 구하고, 그 뒤는 줄에 세운다. 줄에 선 유닛은 옛 길을 걷는다.
+# 부르기 전에 _unit_paths()를 부르고 _asks를 0으로 둔다
+func _ask(u: Unit, cell: Vector2i) -> void:
+	_asks += 1
+	if _asks <= UNIT_ROUTES_PER_STEP:
+		_route(u, cell)
+	else:
+		u.due = cell
+
+# 줄에 선 유닛의 길을 판의 유닛 차례로 UNIT_ROUTES_PER_STEP명까지 구한다(I309 ②). 기다리는 유닛이 있나 따로 적어 두지 않아,
+# 불러온 판·원정에서 돌아온 몸(_body)의 due도 놓치지 않는다
+func _serve() -> void:
+	_routed = 0
+	for u in units:
+		if u.due == NO_POST:
+			continue
+		if _routed == UNIT_ROUTES_PER_STEP:
+			break
+		if _routed == 0:
+			_unit_paths()
+		_routed += 1
+		_route(u, u.due)
+
+# 대열 자리(post)로 가는 길을 구한 뒤의 뒷일(I307 ③, I308 ①): 제 칸이 자리여도 칸 중심까지 걷고, 길이 자리에서 끝나면 자리를 확정한다.
+# 걸을 길이 없으면 닿은 것과 같아 자리와 같이 걷기 상한이 풀린다. 자리가 없는 길(이끄는 유닛의 기준 칸 길 등)에서는 아무것도 하지 않는다
+func _seat(u: Unit, cell: Vector2i) -> void:
+	if u.post == NO_POST:
+		return
+	if u.post == cell and u.path.is_empty() and u.after.is_empty() and Vector2i(u.pos.round()) == cell and u.pos.distance_to(Vector2(cell)) > 0.01:
+		u.path.append(cell)
+	var going := not (u.path.is_empty() and u.after.is_empty())
+	if not going:
+		u.pace = 0.0
+	if u.post != cell or _end_of(u) != cell or not going:
+		u.post = NO_POST

@@ -1,0 +1,2393 @@
+[
+ {
+  "id": "S194",
+  "a": "src/sim/battle.gd:4311-4342",
+  "t": "src/sim/battle.gd:4373-4430",
+  "feat": "C-low",
+  "born": "5a3f7cb",
+  "born_r": [
+   2082,
+   2105
+  ],
+  "born_txt": [
+   "# ── 보스 스킬(S194) ──",
+   "return true"
+  ],
+  "a_txt": [
+   "_attack(e, aim)",
+   "e.climbed += dt"
+  ],
+  "t_txt": [
+   "# ── 보스 스킬(S194) ──",
+   "var sk: Dictionary = e.skills[id]"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "74091a1"
+   ],
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "I169",
+  "a": "src/sim/battle.gd:4317-4362",
+  "t": "src/sim/battle.gd:4379-4495",
+  "feat": "LIKELY-x",
+  "born": "74091a1",
+  "born_r": [
+   2935,
+   2960
+  ],
+  "born_txt": [
+   "# 대기를 줄이고, 예고 중이면 시간을 세어 다 되면 발동한다. 예고가 없으면 쓸 수 있는 스킬의 예고를 시작한다. 이번 스텝을 스킬에 썼으면 true",
+   ""
+  ],
+  "a_txt": [
+   "elif sealed:",
+   "# 칸에 들어서면 도착으로 친다. 밀려나 칸 중심에 못 닿는 적들이 같은 중심을 노리며 멈추지 않게(I51)"
+  ],
+  "t_txt": [
+   "# 대기를 줄이고, 예고 중이면 시간을 세어 다 되면 발동한다. 예고가 없으면 쓸 수 있는 스킬의 예고를 시작한다. 이번 스텝을 스킬에 썼으면 true",
+   ""
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S236",
+  "a": "src/sim/battle.gd:4317-4351",
+  "t": "src/sim/battle.gd:4379-4439",
+  "feat": "LIKELY-x",
+  "born": "b7e18d6",
+  "born_r": [
+   2977,
+   3007
+  ],
+  "born_txt": [
+   "# 대기를 줄이고, 예고 중이면 시간을 세어 다 되면 발동한다. 예고가 없으면 쓸 수 있는 스킬의 예고를 시작한다. 이번 스텝을 스킬에 썼으면 true",
+   "return false"
+  ],
+  "a_txt": [
+   "elif sealed:",
+   "if block and block.kind == \"castle_wall\" and e.via != null and castle.get(e.via) == block and _ladderable(e):"
+  ],
+  "t_txt": [
+   "# 대기를 줄이고, 예고 중이면 시간을 세어 다 되면 발동한다. 예고가 없으면 쓸 수 있는 스킬의 예고를 시작한다. 이번 스텝을 스킬에 썼으면 true",
+   "return false"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "approx",
+    "1a35db9"
+   ]
+  ]
+ },
+ {
+  "id": "S236",
+  "a": "src/sim/battle.gd:4367-4713",
+  "t": "src/sim/battle.gd:4500-6231",
+  "feat": "LIKELY-x",
+  "born": "b7e18d6",
+  "born_r": [
+   3017,
+   3069
+  ],
+  "born_txt": [
+   "# 대지 강타(S195): 반경 안 땅 위 영웅·용병에게 물리 피해, 보스에게서 멀어지는 쪽으로 넉백(막힌 칸·몸에서 멈춘다), 둔화.",
+   "return true"
+  ],
+  "a_txt": [
+   "e.path.remove_at(0)",
+   "e.grip = {\"who\": u, \"hurt\": 0.0, \"held\": 0.0}"
+  ],
+  "t_txt": [
+   "# 대지 강타(S195): 반경 안 땅 위 영웅·용병에게 물리 피해, 보스에게서 멀어지는 쪽으로 넉백(막힌 칸·몸에서 멈춘다), 둔화.",
+   "return true"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "I188",
+  "a": "src/sim/battle.gd:4381-4713",
+  "t": "src/sim/battle.gd:4518-6231",
+  "feat": "LIKELY-x",
+  "born": "b7e18d6",
+  "born_r": [
+   3031,
+   3069
+  ],
+  "born_txt": [
+   "func _leap_ready(e: Enemy, sk: Dictionary):",
+   "return true"
+  ],
+  "a_txt": [
+   "# 조건이 사전을 돌려주면 예고에 더하고(점프의 착지 자리), 효과는 예고를 다음 단계로 바꿔 둘 수 있다(뜬 단계, I188)",
+   "e.grip = {\"who\": u, \"hurt\": 0.0, \"held\": 0.0}"
+  ],
+  "t_txt": [
+   "func _leap_ready(e: Enemy, sk: Dictionary):",
+   "return true"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S326",
+  "a": "src/sim/battle.gd:4396-4398",
+  "t": "src/sim/battle.gd:4396-4398",
+  "feat": "OK-low",
+  "born": "356f74f",
+  "born_r": [
+   4043,
+   4044
+  ],
+  "born_txt": [
+   "if e.cast.has(\"mark\") and e.cast.mark.alive:  # 씨앗 표식(S326 ③): 원이 표식 영웅을 따라다닌다",
+   "e.cast.at = e.cast.mark.pos"
+  ],
+  "a_txt": [
+   "var loose: bool = e.cast.has(\"mark\") and not e.cast.has(\"aimed\")  # 굳지 않은 따라다니는 원",
+   "e.cast.at = e.cast.mark.pos"
+  ],
+  "t_txt": [
+   "var loose: bool = e.cast.has(\"mark\") and not e.cast.has(\"aimed\")  # 굳지 않은 따라다니는 원",
+   "e.cast.at = e.cast.mark.pos"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "I270",
+  "a": "src/sim/battle.gd:4396-4398",
+  "t": "src/sim/battle.gd:4396-4398",
+  "feat": "OK-low",
+  "born": "356f74f",
+  "born_r": [
+   4043,
+   4044
+  ],
+  "born_txt": [
+   "if e.cast.has(\"mark\") and e.cast.mark.alive:  # 씨앗 표식(S326 ③): 원이 표식 영웅을 따라다닌다",
+   "e.cast.at = e.cast.mark.pos"
+  ],
+  "a_txt": [
+   "var loose: bool = e.cast.has(\"mark\") and not e.cast.has(\"aimed\")  # 굳지 않은 따라다니는 원",
+   "e.cast.at = e.cast.mark.pos"
+  ],
+  "t_txt": [
+   "var loose: bool = e.cast.has(\"mark\") and not e.cast.has(\"aimed\")  # 굳지 않은 따라다니는 원",
+   "e.cast.at = e.cast.mark.pos"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "I270",
+  "a": "src/sim/battle.gd:4417-4418",
+  "t": "src/sim/battle.gd:4417-4418",
+  "feat": "OK-low",
+  "born": "356f74f",
+  "born_r": [
+   4057,
+   4058
+  ],
+  "born_txt": [
+   "if scripted:",
+   "_next_beat(e)"
+  ],
+  "a_txt": [
+   "elif scripted and not c.get(\"held\", false) and not (e.cast != null and (e.cast.get(\"fire\", false) or e.cast.get(\"pass\", false))):  # 기관총·융단 폭격의 대본 차례는 발사·지나가기가 끝난 때 넘어간다(I283 ④·I289 ⑤). 내려앉은 틈은 넘기지 않는다",
+   "_next_beat(e)"
+  ],
+  "t_txt": [
+   "elif scripted and not c.get(\"held\", false) and not (e.cast != null and (e.cast.get(\"fire\", false) or e.cast.get(\"pass\", false))):  # 기관총·융단 폭격의 대본 차례는 발사·지나가기가 끝난 때 넘어간다(I283 ④·I289 ⑤). 내려앉은 틈은 넘기지 않는다",
+   "_next_beat(e)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "faf8de4"
+   ]
+  ]
+ },
+ {
+  "id": "S242",
+  "a": "src/sim/battle.gd:4435-4438",
+  "t": "src/sim/battle.gd:4640-4658",
+  "feat": "C-low",
+  "born": "abd46b4",
+  "born_r": [
+   3095,
+   3098
+  ],
+  "born_txt": [
+   "if c.id == \"pounce\":",
+   "_slam(e, sk, (c.at - c.from).normalized())"
+  ],
+  "a_txt": [
+   "e.cast = {\"id\": id, \"left\": sk.windup}",
+   "return true"
+  ],
+  "t_txt": [
+   "if c.id == \"hurled\":",
+   "_fx(e, \"groggy\", {\"groggy\": true}, e.raid.groggy.time)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S242",
+  "a": "src/sim/battle.gd:4492-4650",
+  "t": "src/sim/battle.gd:4661-4737",
+  "feat": "LIKELY-x",
+  "born": "abd46b4",
+  "born_r": [
+   3101,
+   3149
+  ],
+  "born_txt": [
+   "# 덮치기(S242)를 쓸 수 있다: ① range 안 성벽 위 원거리 아군 가운데 가장 가까운 것, 없으면 ② 노린 아군이 far 넘게 떨어진 채",
+   "return true"
+  ],
+  "a_txt": [
+   "# 대지 강타(S195)를 쓸 수 있다: 둘레 반경 안에 땅 위 영웅·용병이 정한 수 이상",
+   "else:"
+  ],
+  "t_txt": [
+   "# 덮치기(S242)를 쓸 수 있다: ① range 안 성벽 위 원거리 아군 가운데 가장 가까운 것, 없으면 ② 노린 아군이 far 넘게 떨어진 채",
+   "return true"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S342",
+  "a": "src/sim/battle.gd:4549-4580",
+  "t": "src/sim/battle.gd:4549-4580",
+  "feat": "OK-low",
+  "born": "b97cdaf",
+  "born_r": [
+   4392,
+   4415
+  ],
+  "born_txt": [
+   "func _closest(e: Enemy):",
+   "return {\"at\": at, \"aimed\": party.any(func(h): return h.alive and h.pos.distance_to(at) <= sk.radius)}"
+  ],
+  "a_txt": [
+   "func _closest(e: Enemy):",
+   "return {\"at\": at, \"aimed\": _aimed(e, at, sk.radius), \"prey\": u}"
+  ],
+  "t_txt": [
+   "func _closest(e: Enemy):",
+   "return {\"at\": at, \"aimed\": _aimed(e, at, sk.radius), \"prey\": u}"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "98beb56"
+   ]
+  ]
+ },
+ {
+  "id": "I283",
+  "a": "src/sim/battle.gd:4549-4580",
+  "t": "src/sim/battle.gd:4549-4580",
+  "feat": "OK-low",
+  "born": "b97cdaf",
+  "born_r": [
+   4392,
+   4415
+  ],
+  "born_txt": [
+   "func _closest(e: Enemy):",
+   "return {\"at\": at, \"aimed\": party.any(func(h): return h.alive and h.pos.distance_to(at) <= sk.radius)}"
+  ],
+  "a_txt": [
+   "func _closest(e: Enemy):",
+   "return {\"at\": at, \"aimed\": _aimed(e, at, sk.radius), \"prey\": u}"
+  ],
+  "t_txt": [
+   "func _closest(e: Enemy):",
+   "return {\"at\": at, \"aimed\": _aimed(e, at, sk.radius), \"prey\": u}"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "98beb56"
+   ]
+  ]
+ },
+ {
+  "id": "I283",
+  "a": "src/sim/battle.gd:4566-4580",
+  "t": "src/sim/battle.gd:4566-4580",
+  "feat": "OK-low",
+  "born": "b97cdaf",
+  "born_r": [
+   4409,
+   4415
+  ],
+  "born_txt": [
+   "func _leap_aim(e: Enemy, sk: Dictionary) -> Dictionary:",
+   "return {\"at\": at, \"aimed\": party.any(func(h): return h.alive and h.pos.distance_to(at) <= sk.radius)}"
+  ],
+  "a_txt": [
+   "func _leap_aim(e: Enemy, sk: Dictionary) -> Dictionary:",
+   "return {\"at\": at, \"aimed\": _aimed(e, at, sk.radius), \"prey\": u}"
+  ],
+  "t_txt": [
+   "func _leap_aim(e: Enemy, sk: Dictionary) -> Dictionary:",
+   "return {\"at\": at, \"aimed\": _aimed(e, at, sk.radius), \"prey\": u}"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "98beb56"
+   ]
+  ]
+ },
+ {
+  "id": "S243",
+  "a": "src/sim/battle.gd:4670-4676",
+  "t": "src/sim/battle.gd:5741-6215",
+  "feat": "C-low",
+  "born": "abd46b4",
+  "born_r": [
+   3162,
+   3168
+  ],
+  "born_txt": [
+   "# 적이 아군에 거는 조작 효과(S243): 기절·붙잡힘은 하나만 걸리고 뒤에 건 것이 앞의 것을 지운다",
+   ""
+  ],
+  "a_txt": [
+   "best_d = d",
+   "# 웅크림이 끝나면 대상 옆(대상에서 알파 쪽으로 0.4칸)으로 뛴다(S242). 대상이 쓰러졌으면 뛰지 않는다"
+  ],
+  "t_txt": [
+   "# 폭풍날개 하피가 겨누는 자리(S307, I253 ①): p에서 가장 가까운 서 있는 성곽 칸 가운데. 성곽이 없으면 거점의 가장 가까운 차지 칸",
+   ""
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S295",
+  "a": "src/sim/battle.gd:4710",
+  "t": "src/sim/battle.gd:4710",
+  "feat": "OK-low",
+  "born": "245028a",
+  "born_r": [
+   3635,
+   3635
+  ],
+  "born_txt": [
+   "damage(u, sk.damage * _fury(e), \"phys\", e)",
+   "damage(u, sk.damage * _fury(e), \"phys\", e)"
+  ],
+  "a_txt": [
+   "damage(u, sk.damage * raid_ramp() * _fury(e), \"phys\", e)  # 원정에서는 광폭(S323 ⑤)도 곱한다(S337 ④). 원정이 아니면 1이다",
+   "damage(u, sk.damage * raid_ramp() * _fury(e), \"phys\", e)  # 원정에서는 광폭(S323 ⑤)도 곱한다(S337 ④). 원정이 아니면 1이다"
+  ],
+  "t_txt": [
+   "damage(u, sk.damage * raid_ramp() * _fury(e), \"phys\", e)  # 원정에서는 광폭(S323 ⑤)도 곱한다(S337 ④). 원정이 아니면 1이다",
+   "damage(u, sk.damage * raid_ramp() * _fury(e), \"phys\", e)  # 원정에서는 광폭(S323 ⑤)도 곱한다(S337 ④). 원정이 아니면 1이다"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "29b78c8"
+   ]
+  ]
+ },
+ {
+  "id": "S4",
+  "a": "src/sim/battle.gd:4716-4730",
+  "t": "src/sim/battle.gd:6233-6245",
+  "feat": "LIKELY-x",
+  "born": "2c211a2",
+  "born_r": [
+   1987,
+   1999
+  ],
+  "born_txt": [
+   "# 블록 수(S159, I150): 유닛 m이 적 e를 붙잡고 있거나 블록 자리가 남았다. 붙잡을 수 있는 유닛만 e를 노리고 몸으로 막는다",
+   "_holds[m] = _holds.get(m, 0) + 1"
+  ],
+  "a_txt": [
+   "# 붙잡음(S242): 붙잡은 아군만 초당 bite로 문다. 받은 피해 합이 break_dmg를 넘거나 기절·빙결·봉인되면(broken) 놓는다.",
+   "if e.raid.is_empty():"
+  ],
+  "t_txt": [
+   "# 블록 수(S159, I150): 유닛 m이 적 e를 붙잡고 있거나 블록 자리가 남았다. 붙잡을 수 있는 유닛만 e를 노리고 몸으로 막는다",
+   "_holds[m] = _holds.get(m, 0) + 1"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "approx",
+    "52a350f"
+   ]
+  ]
+ },
+ {
+  "id": "S287",
+  "a": "src/sim/battle.gd:4758-4860",
+  "t": "src/sim/battle.gd:4758-4860",
+  "feat": "OK-low",
+  "born": "33f83d5",
+  "born_r": [
+   3542,
+   3626
+  ],
+  "born_txt": [
+   "# ── 고블린 전쟁 기계(S287, I223) ── 내려찍기는 대지 강타(slam)를 그대로 쓴다",
+   "damage(u, sk.unit, \"phys\", e)"
+  ],
+  "a_txt": [
+   "# ── 고블린 전쟁 기계(S287, I223) ── 내려찍기는 대지 강타(slam)를 그대로 쓴다",
+   "damage(u, sk.unit * raid_ramp() * _fury(e), \"phys\", e)  # 원정에서는 광폭(S323 ⑤)을 곱한다(I283 ④). 원정이 아니면 1이다"
+  ],
+  "t_txt": [
+   "# ── 고블린 전쟁 기계(S287, I223) ── 내려찍기는 대지 강타(slam)를 그대로 쓴다",
+   "damage(u, sk.unit * raid_ramp() * _fury(e), \"phys\", e)  # 원정에서는 광폭(S323 ⑤)을 곱한다(I283 ④). 원정이 아니면 1이다"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "I223",
+  "a": "src/sim/battle.gd:4850-4860",
+  "t": "src/sim/battle.gd:4850-4860",
+  "feat": "OK-low",
+  "born": "33f83d5",
+  "born_r": [
+   3616,
+   3626
+  ],
+  "born_txt": [
+   "func _spray(e: Enemy, sk: Dictionary) -> void:",
+   "damage(u, sk.unit, \"phys\", e)"
+  ],
+  "a_txt": [
+   "func _spray(e: Enemy, sk: Dictionary) -> void:",
+   "damage(u, sk.unit * raid_ramp() * _fury(e), \"phys\", e)  # 원정에서는 광폭(S323 ⑤)을 곱한다(I283 ④). 원정이 아니면 1이다"
+  ],
+  "t_txt": [
+   "func _spray(e: Enemy, sk: Dictionary) -> void:",
+   "damage(u, sk.unit * raid_ramp() * _fury(e), \"phys\", e)  # 원정에서는 광폭(S323 ⑤)을 곱한다(I283 ④). 원정이 아니면 1이다"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "S172",
+  "a": "src/sim/battle.gd:4865-4878",
+  "t": "src/sim/battle.gd:4865-4878",
+  "feat": "OK-low",
+  "born": "826529e",
+  "born_r": [
+   3702,
+   3705
+  ],
+  "born_txt": [
+   "# 그 자리에 그리기용 수레 잔해를 남긴다(S172 2026-11-05 변경 ⑥)",
+   "wrecks.append({\"who\": e, \"at\": e.pos, \"age\": 0.0})"
+  ],
+  "a_txt": [
+   "# 그 자리에 그리기용 수레 잔해를 남긴다(S172 2026-11-05 변경 ⑥). 와이번(S311)은 하늘에서 떨어져 잔해가 없고, 땅 적이 설 수 있는 칸에 선다(I257 ①).",
+   "wrecks.append({\"who\": e, \"at\": e.pos, \"age\": 0.0, \"raid\": not e.raid.is_empty(), \"size\": e.radius / e.girth if e.girth > 0.0 else 1.0})  # size는 부서질 때의 몸 그림 배율(I283 ⑨)"
+  ],
+  "t_txt": [
+   "# 그 자리에 그리기용 수레 잔해를 남긴다(S172 2026-11-05 변경 ⑥). 와이번(S311)은 하늘에서 떨어져 잔해가 없고, 땅 적이 설 수 있는 칸에 선다(I257 ①).",
+   "wrecks.append({\"who\": e, \"at\": e.pos, \"age\": 0.0, \"raid\": not e.raid.is_empty(), \"size\": e.radius / e.girth if e.girth > 0.0 else 1.0})  # size는 부서질 때의 몸 그림 배율(I283 ⑨)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "e994757"
+   ]
+  ]
+ },
+ {
+  "id": "I230",
+  "a": "src/sim/battle.gd:4867-4918",
+  "t": "src/sim/battle.gd:4867-4918",
+  "feat": "OK-low",
+  "born": "0d2310d",
+  "born_r": [
+   3699,
+   3714
+  ],
+  "born_txt": [
+   "func _break(e: Enemy) -> void:",
+   "_find_path(e)"
+  ],
+  "a_txt": [
+   "func _break(e: Enemy) -> void:",
+   "e.cast = null"
+  ],
+  "t_txt": [
+   "func _break(e: Enemy) -> void:",
+   "e.cast = null"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "I251",
+  "a": "src/sim/battle.gd:5155-5156",
+  "t": "src/sim/battle.gd:5155-5156",
+  "feat": "OK-low",
+  "born": "b0925f8",
+  "born_r": [
+   4101,
+   4102
+  ],
+  "born_txt": [
+   "e.on_wall = u.on_wall and _climbable(Vector2i(e.pos.round()))",
+   "_fx(e, \"dive\", {\"stun\": true, \"down\": true}, sk.stun)"
+  ],
+  "a_txt": [
+   "e.on_wall = u.on_wall and _climbable(Vector2i(e.pos.round()))",
+   "if parried:"
+  ],
+  "t_txt": [
+   "e.on_wall = u.on_wall and _climbable(Vector2i(e.pos.round()))",
+   "if parried:"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "dac62b2"
+   ]
+  ]
+ },
+ {
+  "id": "I269",
+  "a": "src/sim/battle.gd:5335",
+  "t": "src/sim/battle.gd:5335",
+  "feat": "OK-low",
+  "born": "568279e",
+  "born_r": [
+   4552,
+   4558
+  ],
+  "born_txt": [
+   "var dir := Vector2.from_angle(e.cast.dir)",
+   "best = u"
+  ],
+  "a_txt": [
+   "var best = _snared(e.pos, dir, span, sk.width, _ground_near(e.pos, span + sk.width))",
+   "var best = _snared(e.pos, dir, span, sk.width, _ground_near(e.pos, span + sk.width))"
+  ],
+  "t_txt": [
+   "var best = _snared(e.pos, dir, span, sk.width, _ground_near(e.pos, span + sk.width))",
+   "var best = _snared(e.pos, dir, span, sk.width, _ground_near(e.pos, span + sk.width))"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "6c0613c"
+   ]
+  ]
+ },
+ {
+  "id": "I269",
+  "a": "src/sim/battle.gd:5343-5350",
+  "t": "src/sim/battle.gd:5343-5350",
+  "feat": "OK-low",
+  "born": "568279e",
+  "born_r": [
+   4563,
+   4569
+  ],
+  "born_txt": [
+   "if e.pos.distance_to(best.pos) > sk.gap:",
+   "_halt(best)"
+  ],
+  "a_txt": [
+   "# 사슬 띠(I269 ②): from에서 dir 쪽으로 span칸까지의 가운데 선에서 width/2 안인 pool의 아군 가운데 from에 가장 가까운 것. 없으면 null",
+   "return best"
+  ],
+  "t_txt": [
+   "# 사슬 띠(I269 ②): from에서 dir 쪽으로 span칸까지의 가운데 선에서 width/2 안인 pool의 아군 가운데 from에 가장 가까운 것. 없으면 null",
+   "return best"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "6c0613c"
+   ]
+  ]
+ },
+ {
+  "id": "S354",
+  "a": "src/sim/battle.gd:5727-5733",
+  "t": "src/sim/battle.gd:5727-5733",
+  "feat": "OK-low",
+  "born": "98beb56",
+  "born_r": [
+   5694,
+   5699
+  ],
+  "born_txt": [
+   "var empty: bool = not _ground_near(l.at, l.radius).any(func(u): return u in party)",
+   "_bonk(sib)"
+  ],
+  "a_txt": [
+   "var empty: bool = not _ground_near(l.at, l.radius).any(func(u): return u in party)",
+   "mark.bonk = sib  # 형제가 맞은 순간(S354 ⑭, I293 ②)"
+  ],
+  "t_txt": [
+   "var empty: bool = not _ground_near(l.at, l.radius).any(func(u): return u in party)",
+   "mark.bonk = sib  # 형제가 맞은 순간(S354 ⑭, I293 ②)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "5c94e42"
+   ]
+  ]
+ },
+ {
+  "id": "I292",
+  "a": "src/sim/battle.gd:5727-5733",
+  "t": "src/sim/battle.gd:5727-5733",
+  "feat": "OK-low",
+  "born": "98beb56",
+  "born_r": [
+   5694,
+   5699
+  ],
+  "born_txt": [
+   "var empty: bool = not _ground_near(l.at, l.radius).any(func(u): return u in party)",
+   "_bonk(sib)"
+  ],
+  "a_txt": [
+   "var empty: bool = not _ground_near(l.at, l.radius).any(func(u): return u in party)",
+   "mark.bonk = sib  # 형제가 맞은 순간(S354 ⑭, I293 ②)"
+  ],
+  "t_txt": [
+   "var empty: bool = not _ground_near(l.at, l.radius).any(func(u): return u in party)",
+   "mark.bonk = sib  # 형제가 맞은 순간(S354 ⑭, I293 ②)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "5c94e42"
+   ]
+  ]
+ },
+ {
+  "id": "S13",
+  "a": "src/sim/battle.gd:6214-6271",
+  "t": "src/sim/battle.gd:6268-6327",
+  "feat": "C-low",
+  "born": "23d9740",
+  "born_r": [
+   346,
+   359
+  ],
+  "born_txt": [
+   "# 같은 편(bodies)끼리 겹친 만큼 반씩 밀어낸다. 상대 편(others)과는 겹치지 않게 민다.",
+   "_shove(o, push, others)"
+  ],
+  "a_txt": [
+   "_fx(u, src, eff, secs)",
+   "# 경로는 그대로라 밀려난 쪽은 _move·_act가 다시 데려간다(I51)"
+  ],
+  "t_txt": [
+   "# 같은 편(bodies)끼리 겹친 만큼 반씩 밀어낸다. 상대 편(others)과는 겹치지 않게 민다. 비행 적은 밀지도 밀리지도 않는다(I79).",
+   "return x.get(\"hold\") == true and x.path.is_empty()"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "I51",
+  "a": "src/sim/battle.gd:6214-6271",
+  "t": "src/sim/battle.gd:6268-6327",
+  "feat": "C-low",
+  "born": "dc96559",
+  "born_r": [
+   196,
+   216
+  ],
+  "born_txt": [
+   "# 겹친 적끼리 겹친 만큼 반씩 밀어낸다. 경로는 그대로라 밀려난 적은 _move가 다시 데려간다(I51)",
+   "return"
+  ],
+  "a_txt": [
+   "_fx(u, src, eff, secs)",
+   "# 경로는 그대로라 밀려난 쪽은 _move·_act가 다시 데려간다(I51)"
+  ],
+  "t_txt": [
+   "# 같은 편(bodies)끼리 겹친 만큼 반씩 밀어낸다. 상대 편(others)과는 겹치지 않게 민다. 비행 적은 밀지도 밀리지도 않는다(I79).",
+   "return x.get(\"hold\") == true and x.path.is_empty()"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "d270c09"
+   ],
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "I79",
+  "a": "src/sim/battle.gd:6256",
+  "t": "src/sim/battle.gd:6315",
+  "feat": "C-low",
+  "born": "88024e4",
+  "born_r": [
+   854,
+   855
+  ],
+  "born_txt": [
+   "if a.get(\"flying\") or o.get(\"flying\"):",
+   "continue"
+  ],
+  "a_txt": [
+   "# 몸끼리 닿는가(S13, S159): 유닛과 적 사이는 그 유닛이 그 적을 붙잡을 수 있을 때만 막는다. 비행 적은 막지 않는다(S109). 아군은 에너지 성벽을 지나간다(I142)",
+   "# 몸끼리 닿는가(S13, S159): 유닛과 적 사이는 그 유닛이 그 적을 붙잡을 수 있을 때만 막는다. 비행 적은 막지 않는다(S109). 아군은 에너지 성벽을 지나간다(I142)"
+  ],
+  "t_txt": [
+   "var gap: Vector2 = o.pos - a.pos",
+   "var gap: Vector2 = o.pos - a.pos"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "57b7ceb"
+   ],
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S36",
+  "a": "src/sim/battle.gd:6261-6271",
+  "t": "src/sim/battle.gd:6318-6327",
+  "feat": "LIKELY-x",
+  "born": "57b7ceb",
+  "born_r": [
+   3273,
+   3282
+  ],
+  "born_txt": [
+   "var push := (gap.normalized() if gap != Vector2.ZERO else Vector2.RIGHT) * overlap",
+   "return x.get(\"hold\") == true and x.path.is_empty()"
+  ],
+  "a_txt": [
+   "return false",
+   "# 경로는 그대로라 밀려난 쪽은 _move·_act가 다시 데려간다(I51)"
+  ],
+  "t_txt": [
+   "var push := (gap.normalized() if gap != Vector2.ZERO else Vector2.RIGHT) * overlap",
+   "return x.get(\"hold\") == true and x.path.is_empty()"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "approx",
+    "077addb"
+   ]
+  ]
+ },
+ {
+  "id": "S28",
+  "a": "src/sim/battle.gd:6275-6286",
+  "t": "src/sim/battle.gd:6331-6342",
+  "feat": "C-low",
+  "born": "d270c09",
+  "born_r": [
+   276,
+   293
+  ],
+  "born_txt": [
+   "func _fire(dt: float) -> void:",
+   "damage(best, s.damage)"
+  ],
+  "a_txt": [
+   "func _push_apart(bodies: Array, others: Array) -> void:",
+   "elif near.has(k):"
+  ],
+  "t_txt": [
+   "func _fire(dt: float) -> void:",
+   "_shoot(s, best, s.damage * _might(s), \"magic\" if s.pierce else \"phys\")"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2c211a2"
+   ],
+   [
+    "adjusted",
+    "1149ca4"
+   ],
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S90",
+  "a": "src/sim/battle.gd:6275-6286",
+  "t": "src/sim/battle.gd:6331-6342",
+  "feat": "C-low",
+  "born": "332b443",
+  "born_r": [
+   793,
+   809
+  ],
+  "born_txt": [
+   "# 쏘는 구조물은 사거리 안에서 가장 가까운 적을 쏘고(S28, I29), 맞은 적은 그 구조물에 반격한다(S5).",
+   "damage(e, s.damage)"
+  ],
+  "a_txt": [
+   "func _push_apart(bodies: Array, others: Array) -> void:",
+   "elif near.has(k):"
+  ],
+  "t_txt": [
+   "func _fire(dt: float) -> void:",
+   "_shoot(s, best, s.damage * _might(s), \"magic\" if s.pierce else \"phys\")"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2c211a2"
+   ],
+   [
+    "adjusted",
+    "1149ca4"
+   ],
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "I7",
+  "a": "src/sim/battle.gd:6277-6278",
+  "t": "src/sim/battle.gd:6333-6334",
+  "feat": "C-low",
+  "born": "d270c09",
+  "born_r": [
+   278,
+   279
+  ],
+  "born_txt": [
+   "if s.range <= 0.0:",
+   "continue"
+  ],
+  "a_txt": [
+   "var home := []",
+   "var big := []  # 반지름 0.5칸을 넘는 몸의 번호"
+  ],
+  "t_txt": [
+   "if s.range <= 0.0 or not s.complete or s.razed >= 1.0:  # 미완성 타워(I18)·접은 대포(I74)는 쏘지 않는다",
+   "continue"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "I29",
+  "a": "src/sim/battle.gd:6282-6286",
+  "t": "src/sim/battle.gd:6338-6342",
+  "feat": "C-low",
+  "born": "d270c09",
+  "born_r": [
+   283,
+   293
+  ],
+  "born_txt": [
+   "var best = null",
+   "damage(best, s.damage)"
+  ],
+  "a_txt": [
+   "if _ghost(bodies[i]):  # 뜬 적(S236)도 밀지도 밀리지도 않는다",
+   "elif near.has(k):"
+  ],
+  "t_txt": [
+   "var best = _nearest_enemy(Vector2(s.cell), _reach(s))",
+   "_shoot(s, best, s.damage * _might(s), \"magic\" if s.pierce else \"phys\")"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2c211a2"
+   ],
+   [
+    "adjusted",
+    "1149ca4"
+   ],
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S110",
+  "a": "src/sim/battle.gd:6286",
+  "t": "src/sim/battle.gd:6342",
+  "feat": "C-low",
+  "born": "88024e4",
+  "born_r": [
+   879,
+   879
+  ],
+  "born_txt": [
+   "damage(e, s.damage, s.pierce)",
+   "damage(e, s.damage, s.pierce)"
+  ],
+  "a_txt": [
+   "elif near.has(k):",
+   "elif near.has(k):"
+  ],
+  "t_txt": [
+   "_shoot(s, best, s.damage * _might(s), \"magic\" if s.pierce else \"phys\")",
+   "_shoot(s, best, s.damage * _might(s), \"magic\" if s.pierce else \"phys\")"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2c211a2"
+   ],
+   [
+    "adjusted",
+    "1149ca4"
+   ],
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S149",
+  "a": "src/sim/battle.gd:6286",
+  "t": "src/sim/battle.gd:6342",
+  "feat": "C-low",
+  "born": "2c211a2",
+  "born_r": [
+   2039,
+   2039
+  ],
+  "born_txt": [
+   "# 대포는 맞은 적 splash칸 안의 적에게도 같은 피해를 주고, 그 적들도 반격한다(S90, I73). 마법 타워는 마법 피해다(S110, S149)",
+   "# 대포는 맞은 적 splash칸 안의 적에게도 같은 피해를 주고, 그 적들도 반격한다(S90, I73). 마법 타워는 마법 피해다(S110, S149)"
+  ],
+  "a_txt": [
+   "elif near.has(k):",
+   "elif near.has(k):"
+  ],
+  "t_txt": [
+   "_shoot(s, best, s.damage * _might(s), \"magic\" if s.pierce else \"phys\")",
+   "_shoot(s, best, s.damage * _might(s), \"magic\" if s.pierce else \"phys\")"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "1149ca4"
+   ],
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S178",
+  "a": "src/sim/battle.gd:6288-6362",
+  "t": "src/sim/battle.gd:6344-6489",
+  "feat": "LIKELY-x",
+  "born": "1149ca4",
+  "born_r": [
+   2263,
+   2328
+  ],
+  "born_txt": [
+   "# 원거리 기본 공격의 투사체를 낸다(S178, I174). 유닛은 친 뒤 CONTACT초에 그때 선 자리에서, 구조물은 바로 그 칸에서 출발한다.",
+   "landed.append(m)"
+  ],
+  "a_txt": [
+   "else:",
+   "if b != null:"
+  ],
+  "t_txt": [
+   "# 원거리 기본 공격의 투사체를 낸다(S178, I174). 유닛은 친 뒤 CONTACT초에 그때 선 자리에서, 구조물은 바로 그 칸에서 출발한다.",
+   "landed.append(m)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "I174",
+  "a": "src/sim/battle.gd:6288-6362",
+  "t": "src/sim/battle.gd:6344-6489",
+  "feat": "LIKELY-x",
+  "born": "1149ca4",
+  "born_r": [
+   2263,
+   2328
+  ],
+  "born_txt": [
+   "# 원거리 기본 공격의 투사체를 낸다(S178, I174). 유닛은 친 뒤 CONTACT초에 그때 선 자리에서, 구조물은 바로 그 칸에서 출발한다.",
+   "landed.append(m)"
+  ],
+  "a_txt": [
+   "else:",
+   "if b != null:"
+  ],
+  "t_txt": [
+   "# 원거리 기본 공격의 투사체를 낸다(S178, I174). 유닛은 친 뒤 CONTACT초에 그때 선 자리에서, 구조물은 바로 그 칸에서 출발한다.",
+   "landed.append(m)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S152",
+  "a": "src/sim/battle.gd:6304-6307",
+  "t": "src/sim/battle.gd:6361-6364",
+  "feat": "C-low",
+  "born": "2c211a2",
+  "born_r": [
+   2040,
+   2040
+  ],
+  "born_txt": [
+   "# 공격 속도·공격력·사거리는 영웅 효과를 받는다(_haste·_might·_reach, S150). 축복이 걸렸으면 맞은 곳에 마법 피해를 더한다(S152)",
+   "# 공격 속도·공격력·사거리는 영웅 효과를 받는다(_haste·_might·_reach, S150). 축복이 걸렸으면 맞은 곳에 마법 피해를 더한다(S152)"
+  ],
+  "a_txt": [
+   "for j in bodies.size():",
+   "_part(bodies[i], o, others)"
+  ],
+  "t_txt": [
+   "var b = _fx_on(src, \"bless\")",
+   "m.bless_r = src.fx.seraphina_r.splash"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "1149ca4"
+   ],
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S140",
+  "a": "src/sim/battle.gd:6345-6353",
+  "t": "src/sim/battle.gd:6465-6473",
+  "feat": "C-low",
+  "born": "a4b68f9",
+  "born_r": [
+   1394,
+   1396
+  ],
+  "born_txt": [
+   "if e.attacker == s or e.held <= 0.0 or not (e.attacker and e.attacker.alive):",
+   "e.held = COUNTER_HOLD"
+  ],
+  "a_txt": [
+   "# 피해량·종류·방어 무시·정조준 비율(I213)·축복은 지금 정해 담는다",
+   "m.from = _where(src)"
+  ],
+  "t_txt": [
+   "# 같은 step이면 먼저 쏜 투사체가 먼저 닿는다(S140). 축복이 실렸으면 닿은 자리 둘레에 마법 피해를 더한다(S152). 놓친 대포알(missed)의 노린 적은 맞지 않는다",
+   "e.held = COUNTER_HOLD"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "1149ca4"
+   ],
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S5",
+  "a": "src/sim/battle.gd:6348-6353",
+  "t": "src/sim/battle.gd:6468-6473",
+  "feat": "C-low",
+  "born": "d270c09",
+  "born_r": [
+   290,
+   293
+  ],
+  "born_txt": [
+   "if best:",
+   "damage(best, s.damage)"
+  ],
+  "a_txt": [
+   "m.src = src",
+   "m.from = _where(src)"
+  ],
+  "t_txt": [
+   "var stands: bool = s is Block and s.alive and structures.get(s.cell) == s",
+   "e.held = COUNTER_HOLD"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2c211a2"
+   ],
+   [
+    "adjusted",
+    "1149ca4"
+   ],
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "I73",
+  "a": "src/sim/battle.gd:6349-6356",
+  "t": "src/sim/battle.gd:6469-6482",
+  "feat": "C-low",
+  "born": "332b443",
+  "born_r": [
+   806,
+   809
+  ],
+  "born_txt": [
+   "for e in enemies.duplicate():",
+   "damage(e, s.damage)"
+  ],
+  "a_txt": [
+   "m.target = e",
+   "m.hurt = hurt"
+  ],
+  "t_txt": [
+   "for e in enemies.duplicate():",
+   "damage(e, hurt, m.kind, s, m.ignore)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2c211a2"
+   ],
+   [
+    "adjusted",
+    "1149ca4"
+   ],
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S152",
+  "a": "src/sim/battle.gd:6360-6361",
+  "t": "src/sim/battle.gd:6487-6488",
+  "feat": "C-low",
+  "born": "2c211a2",
+  "born_r": [
+   2137,
+   2137
+  ],
+  "born_txt": [
+   "# 바스티온: 요새화 중이면 확률로 기절시킨다(S151). 축복이 걸렸으면 맞은 곳에 마법 피해를 더한다(S152)",
+   "# 바스티온: 요새화 중이면 확률로 기절시킨다(S151). 축복이 걸렸으면 맞은 곳에 마법 피해를 더한다(S152)"
+  ],
+  "a_txt": [
+   "m.splash = src.splash if src is Block else 0.0",
+   "var b = _fx_on(src, \"bless\")"
+  ],
+  "t_txt": [
+   "if m.bless > 0.0:",
+   "_blessing(s, m.at, m.bless, m.bless_r)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "1149ca4"
+   ],
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "I192",
+  "a": "src/sim/battle.gd:6381-6389",
+  "t": "src/sim/battle.gd:6495-6504",
+  "feat": "C-low",
+  "born": "5e0449f",
+  "born_r": [
+   3244,
+   3250
+  ],
+  "born_txt": [
+   "u.cooldown -= dt * (1.0 + _haste(u))",
+   "return"
+  ],
+  "a_txt": [
+   "# 대포알은 마지막 자리로 간다. 닿으면 _land. 쏜 쪽이 날아가는 동안 쓰러지거나 팔려도 닿는다. 닿기 전에 이 step에 지난 길로 실비아의 바람을 받는다(_wind).",
+   "m.wait -= dt"
+  ],
+  "t_txt": [
+   "u.cooldown -= dt * (1.0 + _haste(u)) * (1.0 - _fx_cut(u, \"lag\"))  # 노래(S306): 공격 속도 감소",
+   "return"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S36",
+  "a": "src/sim/battle.gd:6396",
+  "t": "src/sim/battle.gd:6519",
+  "feat": "C-low",
+  "born": "23d9740",
+  "born_r": [
+   382,
+   383
+  ],
+  "born_txt": [
+   "var zone := u.hold_radius if u.hold and u.path.is_empty() else INF",
+   "var foe = _nearest_enemy(u.pos, u.range, u.anchor, zone)"
+  ],
+  "a_txt": [
+   "m.pos = m.from",
+   "m.pos = m.from"
+  ],
+  "t_txt": [
+   "var zone := u.hold_radius if u.hold and u.path.is_empty() else INF",
+   "var zone := u.hold_radius if u.hold and u.path.is_empty() else INF"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2c211a2"
+   ],
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S42",
+  "a": "src/sim/battle.gd:6397-6404",
+  "t": "src/sim/battle.gd:6520-6521",
+  "feat": "C-low",
+  "born": "c470722",
+  "born_r": [
+   770,
+   772
+  ],
+  "born_txt": [
+   "var top = castle.get(Vector2i(u.pos.round()))",
+   "foe = null"
+  ],
+  "a_txt": [
+   "left = -m.wait",
+   "if m.target.alive:"
+  ],
+  "t_txt": [
+   "var top = walls.get(Vector2i(u.pos.round()))",
+   "var wall_only: bool = u.on_wall and u.range < WALL_RANGE and not (top and top.open)  # 성벽 위 근접 유닛은 열린 성문 위에서만 들판의 적을 치고(S88, S89), 성벽 위의 적은 친다(I78)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2c211a2"
+   ],
+   [
+    "adjusted",
+    "24e7b93"
+   ],
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S88",
+  "a": "src/sim/battle.gd:6397-6404",
+  "t": "src/sim/battle.gd:6520-6521",
+  "feat": "C-low",
+  "born": "c470722",
+  "born_r": [
+   770,
+   772
+  ],
+  "born_txt": [
+   "var top = castle.get(Vector2i(u.pos.round()))",
+   "foe = null"
+  ],
+  "a_txt": [
+   "left = -m.wait",
+   "if m.target.alive:"
+  ],
+  "t_txt": [
+   "var top = walls.get(Vector2i(u.pos.round()))",
+   "var wall_only: bool = u.on_wall and u.range < WALL_RANGE and not (top and top.open)  # 성벽 위 근접 유닛은 열린 성문 위에서만 들판의 적을 치고(S88, S89), 성벽 위의 적은 친다(I78)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2c211a2"
+   ],
+   [
+    "adjusted",
+    "24e7b93"
+   ],
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S89",
+  "a": "src/sim/battle.gd:6397-6404",
+  "t": "src/sim/battle.gd:6520-6521",
+  "feat": "C-low",
+  "born": "c470722",
+  "born_r": [
+   770,
+   772
+  ],
+  "born_txt": [
+   "var top = castle.get(Vector2i(u.pos.round()))",
+   "foe = null"
+  ],
+  "a_txt": [
+   "left = -m.wait",
+   "if m.target.alive:"
+  ],
+  "t_txt": [
+   "var top = walls.get(Vector2i(u.pos.round()))",
+   "var wall_only: bool = u.on_wall and u.range < WALL_RANGE and not (top and top.open)  # 성벽 위 근접 유닛은 열린 성문 위에서만 들판의 적을 치고(S88, S89), 성벽 위의 적은 친다(I78)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2c211a2"
+   ],
+   [
+    "adjusted",
+    "24e7b93"
+   ],
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "I78",
+  "a": "src/sim/battle.gd:6397-6404",
+  "t": "src/sim/battle.gd:6520-6521",
+  "feat": "C-low",
+  "born": "88024e4",
+  "born_r": [
+   897,
+   899
+  ],
+  "born_txt": [
+   "var top = castle.get(Vector2i(u.pos.round()))",
+   "foe = _nearest_enemy(u.pos, u.range, u.anchor, zone, true)"
+  ],
+  "a_txt": [
+   "left = -m.wait",
+   "if m.target.alive:"
+  ],
+  "t_txt": [
+   "var top = walls.get(Vector2i(u.pos.round()))",
+   "var wall_only: bool = u.on_wall and u.range < WALL_RANGE and not (top and top.open)  # 성벽 위 근접 유닛은 열린 성문 위에서만 들판의 적을 치고(S88, S89), 성벽 위의 적은 친다(I78)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2c211a2"
+   ],
+   [
+    "adjusted",
+    "24e7b93"
+   ],
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S35",
+  "a": "src/sim/battle.gd:6405-6411",
+  "t": "src/sim/battle.gd:6522-6533",
+  "feat": "C-low",
+  "born": "23d9740",
+  "born_r": [
+   384,
+   389
+  ],
+  "born_txt": [
+   "var walking := not u.path.is_empty()",
+   "walking = false"
+  ],
+  "a_txt": [
+   "m.at = m.target.pos",
+   "m.pos += to.normalized() * m.speed * left"
+  ],
+  "t_txt": [
+   "var air: bool = u.range >= AIR_RANGE  # 근접 유닛은 날고 있는 적을 고르지도 쫓지도 않는다(S109 2026-11-09 변경)",
+   "walking = false"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "24e7b93"
+   ],
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S236",
+  "a": "src/sim/battle.gd:6405",
+  "t": "src/sim/battle.gd:6522-6523",
+  "feat": "C-low",
+  "born": "57b7ceb",
+  "born_r": [
+   3390,
+   3390
+  ],
+  "born_txt": [
+   "var foe = _hunt(u, wall_only) if u.prey else _nearest_enemy(u.pos, _reach(u), u.anchor, zone, wall_only, u.radius)",
+   "var foe = _hunt(u, wall_only) if u.prey else _nearest_enemy(u.pos, _reach(u), u.anchor, zone, wall_only, u.radius)"
+  ],
+  "a_txt": [
+   "m.at = m.target.pos",
+   "m.at = m.target.pos"
+  ],
+  "t_txt": [
+   "var air: bool = u.range >= AIR_RANGE  # 근접 유닛은 날고 있는 적을 고르지도 쫓지도 않는다(S109 2026-11-09 변경)",
+   "var foe = _hunt(u, wall_only) if u.prey else _nearest_enemy(u.pos, _reach(u), u.anchor, zone, wall_only, u.radius, air)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S196",
+  "a": "src/sim/battle.gd:6407-6411",
+  "t": "src/sim/battle.gd:6530-6533",
+  "feat": "C-low",
+  "born": "6af05d1",
+  "born_r": [
+   2220,
+   2221
+  ],
+  "born_txt": [
+   "if walking and (u.is_hero or u.move_mode == \"move\"):  # 영웅은 걷는 동안 치지 않는다(S196)",
+   "foe = null"
+  ],
+  "a_txt": [
+   "continue",
+   "m.pos += to.normalized() * m.speed * left"
+  ],
+  "t_txt": [
+   "if walking and u.move_mode == \"move\":  # 순수 이동·대상에게 걸어가는 동안은 치지 않는다(S14, S196)",
+   "walking = false"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "24e7b93"
+   ],
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S13",
+  "a": "src/sim/battle.gd:6466",
+  "t": "src/sim/battle.gd:6543",
+  "feat": "LIKELY-x",
+  "born": "dbcba66",
+  "born_r": [
+   341,
+   341
+  ],
+  "born_txt": [
+   "_shove(u, to.limit_length(left), enemies)",
+   "_shove(u, to.limit_length(left), enemies)"
+  ],
+  "a_txt": [
+   "func _land(m: Missile) -> void:",
+   "func _land(m: Missile) -> void:"
+  ],
+  "t_txt": [
+   "_shove(u, to.limit_length(left), enemies)",
+   "_shove(u, to.limit_length(left), enemies)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "23d9740"
+   ],
+   [
+    "adjusted",
+    "c470722"
+   ],
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "I37",
+  "a": "src/sim/battle.gd:6475-6476",
+  "t": "src/sim/battle.gd:6553-6554",
+  "feat": "LIKELY-x",
+  "born": "23d9740",
+  "born_r": [
+   401,
+   402
+  ],
+  "born_txt": [
+   "if u.path.is_empty():",
+   "u.anchor = u.pos"
+  ],
+  "a_txt": [
+   "m.side.append(e)",
+   "var cut: float = e.ranged_cut if m.kind == \"phys\" and _fx_on(e, \"seal\") == null else 0.0  # 투사체 물리 피해 덜 받기(I217). 봉인되면 꺼진다(S281)"
+  ],
+  "t_txt": [
+   "if u.path.is_empty():",
+   "u.anchor = u.pos"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "approx",
+    "c0034eb"
+   ]
+  ]
+ },
+ {
+  "id": "S281",
+  "a": "src/sim/battle.gd:6476-6477",
+  "t": "src/sim/battle.gd:6476-6477",
+  "feat": "OK-low",
+  "born": "c0034eb",
+  "born_r": [
+   3679,
+   3680
+  ],
+  "born_txt": [
+   "var cut: float = e.ranged_cut if m.kind == \"phys\" and _fx_on(e, \"seal\") == null else 0.0  # 투사체 물리 피해 덜 받기(I217). 봉인되면 꺼진다(S281)",
+   "damage(e, m.hurt * (1.0 - cut), m.kind, s, m.ignore)"
+  ],
+  "a_txt": [
+   "var cut: float = e.ranged_cut if m.kind == \"phys\" and _fx_on(e, \"seal\") == null else 0.0  # 투사체 물리 피해 덜 받기(I217). 봉인되면 꺼진다(S281)",
+   "var hurt: float = m.hurt * (1.0 - cut) * (1.0 - _wall_cut(e, m)) * (1.0 - (edict.cut if edict.get(\"kind\") == \"shield\" else 0.0))  # 방패벽(S319, I263 ②), 방패령(S345)"
+  ],
+  "t_txt": [
+   "var cut: float = e.ranged_cut if m.kind == \"phys\" and _fx_on(e, \"seal\") == null else 0.0  # 투사체 물리 피해 덜 받기(I217). 봉인되면 꺼진다(S281)",
+   "var hurt: float = m.hurt * (1.0 - cut) * (1.0 - _wall_cut(e, m)) * (1.0 - (edict.cut if edict.get(\"kind\") == \"shield\" else 0.0))  # 방패벽(S319, I263 ②), 방패령(S345)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "3c5fc84"
+   ]
+  ]
+ },
+ {
+  "id": "I217",
+  "a": "src/sim/battle.gd:6476-6477",
+  "t": "src/sim/battle.gd:6476-6477",
+  "feat": "OK-low",
+  "born": "c0034eb",
+  "born_r": [
+   3679,
+   3680
+  ],
+  "born_txt": [
+   "var cut: float = e.ranged_cut if m.kind == \"phys\" and _fx_on(e, \"seal\") == null else 0.0  # 투사체 물리 피해 덜 받기(I217). 봉인되면 꺼진다(S281)",
+   "damage(e, m.hurt * (1.0 - cut), m.kind, s, m.ignore)"
+  ],
+  "a_txt": [
+   "var cut: float = e.ranged_cut if m.kind == \"phys\" and _fx_on(e, \"seal\") == null else 0.0  # 투사체 물리 피해 덜 받기(I217). 봉인되면 꺼진다(S281)",
+   "var hurt: float = m.hurt * (1.0 - cut) * (1.0 - _wall_cut(e, m)) * (1.0 - (edict.cut if edict.get(\"kind\") == \"shield\" else 0.0))  # 방패벽(S319, I263 ②), 방패령(S345)"
+  ],
+  "t_txt": [
+   "var cut: float = e.ranged_cut if m.kind == \"phys\" and _fx_on(e, \"seal\") == null else 0.0  # 투사체 물리 피해 덜 받기(I217). 봉인되면 꺼진다(S281)",
+   "var hurt: float = m.hurt * (1.0 - cut) * (1.0 - _wall_cut(e, m)) * (1.0 - (edict.cut if edict.get(\"kind\") == \"shield\" else 0.0))  # 방패벽(S319, I263 ②), 방패령(S345)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "3c5fc84"
+   ]
+  ]
+ },
+ {
+  "id": "S36",
+  "a": "src/sim/battle.gd:6486-6493",
+  "t": "src/sim/battle.gd:6556-6563",
+  "feat": "C-low",
+  "born": "23d9740",
+  "born_r": [
+   403,
+   410
+  ],
+  "born_txt": [
+   "elif not foe:",
+   "_shove(u, p - u.pos, enemies)"
+  ],
+  "a_txt": [
+   "_fx(e, \"magic_tower\", {\"slow\": s.slow}, s.slow_time)",
+   "# 홀드가 켜진 용병은 서 있는 동안 기준 지점 반경 안의 적만 노리고, 그 반경 밖으로 쫓아가지 않는다(S36)"
+  ],
+  "t_txt": [
+   "elif not foe and not u.on_wall and u.mend.is_empty():  # 성벽 위 유닛은 쫓아 내려가지 않는다(I70). 사제는 쫓지 않는다(S362)",
+   "_shove(u, p - u.pos, enemies)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "I36",
+  "a": "src/sim/battle.gd:6486-6493",
+  "t": "src/sim/battle.gd:6556-6563",
+  "feat": "C-low",
+  "born": "23d9740",
+  "born_r": [
+   403,
+   410
+  ],
+  "born_txt": [
+   "elif not foe:",
+   "_shove(u, p - u.pos, enemies)"
+  ],
+  "a_txt": [
+   "_fx(e, \"magic_tower\", {\"slow\": s.slow}, s.slow_time)",
+   "# 홀드가 켜진 용병은 서 있는 동안 기준 지점 반경 안의 적만 노리고, 그 반경 밖으로 쫓아가지 않는다(S36)"
+  ],
+  "t_txt": [
+   "elif not foe and not u.on_wall and u.mend.is_empty():  # 성벽 위 유닛은 쫓아 내려가지 않는다(I70). 사제는 쫓지 않는다(S362)",
+   "_shove(u, p - u.pos, enemies)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S71",
+  "a": "src/sim/battle.gd:6496",
+  "t": "src/sim/battle.gd:6568-6576",
+  "feat": "C-low",
+  "born": "813b987",
+  "born_r": [
+   471,
+   471
+  ],
+  "born_txt": [
+   "u.target = foe",
+   "u.target = foe"
+  ],
+  "a_txt": [
+   "if u.is_hero:",
+   "if u.is_hero:"
+  ],
+  "t_txt": [
+   "var snared = _net_target(u) if not u.net.is_empty() and u.net_cd <= 0.0 else null  # 그물 대기가 끝났으면 기본 공격 대신 그물(S364)",
+   "_tend(u)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S136",
+  "a": "src/sim/battle.gd:6514",
+  "t": "src/sim/battle.gd:6582",
+  "feat": "C-low",
+  "born": "7407293",
+  "born_r": [
+   720,
+   720
+  ],
+  "born_txt": [
+   "if state != \"battle\" or not h or not h.alive or not h.buff_ready() or h.level < LEVELS.buff_level:  # W는 정해진 레벨에 열린다(S76, I114)",
+   "if state != \"battle\" or not h or not h.alive or not h.buff_ready() or h.level < LEVELS.buff_level:  # W는 정해진 레벨에 열린다(S76, I114)"
+  ],
+  "a_txt": [
+   "u.on_wall = not u.on_wall",
+   "u.on_wall = not u.on_wall"
+  ],
+  "t_txt": [
+   "# 영웅 칸의 시간(S136): 전투 단계·원정(S316)에만 재사용 대기가 준다(크로노스 R과 이그니스 오라 안에서는 빠르게).",
+   "# 영웅 칸의 시간(S136): 전투 단계·원정(S316)에만 재사용 대기가 준다(크로노스 R과 이그니스 오라 안에서는 빠르게)."
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2c211a2"
+   ],
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S146",
+  "a": "src/sim/battle.gd:6519-6521",
+  "t": "src/sim/battle.gd:6587-6589",
+  "feat": "C-low",
+  "born": "2c211a2",
+  "born_r": [
+   396,
+   396
+  ],
+  "born_txt": [
+   "# 마나도 돌아올 때 0, 새로 출전할 때 가득이다(S146). 공격·스킬 대기는 쓰러질 때 값을 이어 간다(S67)",
+   "# 마나도 돌아올 때 0, 새로 출전할 때 가득이다(S146). 공격·스킬 대기는 쓰러질 때 값을 이어 간다(S67)"
+  ],
+  "a_txt": [
+   "var zone := u.hold_radius if u.hold and u.path.is_empty() else INF",
+   "var wall_only: bool = u.on_wall and u.range < WALL_RANGE and not (top and top.open)  # 성벽 위 근접 유닛은 열린 성문 위에서만 들판의 적을 치고(S88, S89), 성벽 위의 적은 친다(I78)"
+  ],
+  "t_txt": [
+   "var pace: float = 1.0 + _fx_sum(h, \"cdr\") + _aura(\"cdr\", h.pos) + h.relic_fx.get(\"cdr\", 0.0)  # 낀 유물(S334)의 빠르기도 더한다",
+   "h.cd[slot] -= dt * (pace + h.relic_fx.get(\"cdr_\" + slot, 0.0))  # 칸별 대기 효과(S343, I284 ②)는 그 칸에만 더한다"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "250613d"
+   ],
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S158",
+  "a": "src/sim/battle.gd:6521",
+  "t": "src/sim/battle.gd:6589",
+  "feat": "C-low",
+  "born": "964e789",
+  "born_r": [
+   3466,
+   3466
+  ],
+  "born_txt": [
+   "h.cd[slot] -= dt * (1.0 + _fx_sum(h, \"cdr\"))",
+   "h.cd[slot] -= dt * (1.0 + _fx_sum(h, \"cdr\"))"
+  ],
+  "a_txt": [
+   "var wall_only: bool = u.on_wall and u.range < WALL_RANGE and not (top and top.open)  # 성벽 위 근접 유닛은 열린 성문 위에서만 들판의 적을 치고(S88, S89), 성벽 위의 적은 친다(I78)",
+   "var wall_only: bool = u.on_wall and u.range < WALL_RANGE and not (top and top.open)  # 성벽 위 근접 유닛은 열린 성문 위에서만 들판의 적을 치고(S88, S89), 성벽 위의 적은 친다(I78)"
+  ],
+  "t_txt": [
+   "h.cd[slot] -= dt * (pace + h.relic_fx.get(\"cdr_\" + slot, 0.0))  # 칸별 대기 효과(S343, I284 ②)는 그 칸에만 더한다",
+   "h.cd[slot] -= dt * (pace + h.relic_fx.get(\"cdr_\" + slot, 0.0))  # 칸별 대기 효과(S343, I284 ②)는 그 칸에만 더한다"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "I198",
+  "a": "src/sim/battle.gd:6521",
+  "t": "src/sim/battle.gd:6589",
+  "feat": "C-low",
+  "born": "964e789",
+  "born_r": [
+   3466,
+   3466
+  ],
+  "born_txt": [
+   "h.cd[slot] -= dt * (1.0 + _fx_sum(h, \"cdr\"))",
+   "h.cd[slot] -= dt * (1.0 + _fx_sum(h, \"cdr\"))"
+  ],
+  "a_txt": [
+   "var wall_only: bool = u.on_wall and u.range < WALL_RANGE and not (top and top.open)  # 성벽 위 근접 유닛은 열린 성문 위에서만 들판의 적을 치고(S88, S89), 성벽 위의 적은 친다(I78)",
+   "var wall_only: bool = u.on_wall and u.range < WALL_RANGE and not (top and top.open)  # 성벽 위 근접 유닛은 열린 성문 위에서만 들판의 적을 치고(S88, S89), 성벽 위의 적은 친다(I78)"
+  ],
+  "t_txt": [
+   "h.cd[slot] -= dt * (pace + h.relic_fx.get(\"cdr_\" + slot, 0.0))  # 칸별 대기 효과(S343, I284 ②)는 그 칸에만 더한다",
+   "h.cd[slot] -= dt * (pace + h.relic_fx.get(\"cdr_\" + slot, 0.0))  # 칸별 대기 효과(S343, I284 ②)는 그 칸에만 더한다"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S15",
+  "a": "src/sim/battle.gd:6536",
+  "t": "src/sim/battle.gd:6599",
+  "feat": "C-low",
+  "born": "23d9740",
+  "born_r": [
+   411,
+   413
+  ],
+  "born_txt": [
+   "if foe and u.cooldown <= 0.0:",
+   "damage(foe, u.damage)"
+  ],
+  "a_txt": [
+   "left = 0.0",
+   "left = 0.0"
+  ],
+  "t_txt": [
+   "# 기본 공격 한 방(S15). 실비아(I213): 쏘는 순간 거리로 정조준 피해·방어 무시를 정한다(S153).",
+   "# 기본 공격 한 방(S15). 실비아(I213): 쏘는 순간 거리로 정조준 피해·방어 무시를 정한다(S153)."
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2c211a2"
+   ],
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S146",
+  "a": "src/sim/battle.gd:6549-6553",
+  "t": "src/sim/battle.gd:6609",
+  "feat": "C-low",
+  "born": "2c211a2",
+  "born_r": [
+   2120,
+   2120
+  ],
+  "born_txt": [
+   "# 영웅 칸의 시간(S136, S146): 전투 단계에만 재사용 대기가 줄고(크로노스 R은 빠르게) 마나가 찬다(이그니스 오라는 더).",
+   "# 영웅 칸의 시간(S136, S146): 전투 단계에만 재사용 대기가 줄고(크로노스 R은 빠르게) 마나가 찬다(이그니스 오라는 더)."
+  ],
+  "a_txt": [
+   "var crowded := d <= 0.5 and units.any(func(o): return o != u and o.pos.distance_to(u.pos) < u.radius + o.radius + 0.01)",
+   "if u.path.is_empty():"
+  ],
+  "t_txt": [
+   "ignore = _aim_ignore(u, aim)",
+   "ignore = _aim_ignore(u, aim)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "250613d"
+   ],
+   [
+    "partial",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S35",
+  "a": "src/sim/battle.gd:6588-6605",
+  "t": "src/sim/battle.gd:6588-6605",
+  "feat": "OK-low",
+  "born": "24e7b93",
+  "born_r": [
+   2356,
+   2373
+  ],
+  "born_txt": [
+   "# 대상 공격(S35): 대상이 죽거나 사라졌으면 그 자리에 서고 null. 칠 수 있는 거리면 서서 그 적을 돌려준다.",
+   "return null"
+  ],
+  "a_txt": [
+   "for slot in SLOTS:",
+   "var aim := 0.0"
+  ],
+  "t_txt": [
+   "for slot in SLOTS:",
+   "var aim := 0.0"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S153",
+  "a": "src/sim/battle.gd:6602-6619",
+  "t": "src/sim/battle.gd:6602-6619",
+  "feat": "OK-low",
+  "born": "2c211a2",
+  "born_r": [
+   886,
+   886
+  ],
+  "born_txt": [
+   "# 공격 속도 증가율(S150): 영웅·쏘는 구조물은 크로노스 오라, 그리고 걸린 효과의 합. 실비아는 패시브 중첩(S153)도 더한다",
+   "# 공격 속도 증가율(S150): 영웅·쏘는 구조물은 크로노스 오라, 그리고 걸린 효과의 합. 실비아는 패시브 중첩(S153)도 더한다"
+  ],
+  "a_txt": [
+   "func _strike(u: Unit, foe: Enemy) -> void:",
+   "var at: Vector2 = foe.pos"
+  ],
+  "t_txt": [
+   "func _strike(u: Unit, foe: Enemy) -> void:",
+   "var at: Vector2 = foe.pos"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "I148",
+  "a": "src/sim/battle.gd:6602-6619",
+  "t": "src/sim/battle.gd:6602-6619",
+  "feat": "OK-low",
+  "born": "2c211a2",
+  "born_r": [
+   2136,
+   2136
+  ],
+  "born_txt": [
+   "# 기본 공격 한 방(S15). 실비아(I148): 같은 적을 이어 치면 중첩이 쌓이고 다 차면 방어력 일부를 무시한다, W가 켜져 있으면 둘레 적에게도 들어간다(S153).",
+   "# 기본 공격 한 방(S15). 실비아(I148): 같은 적을 이어 치면 중첩이 쌓이고 다 차면 방어력 일부를 무시한다, W가 켜져 있으면 둘레 적에게도 들어간다(S153)."
+  ],
+  "a_txt": [
+   "func _strike(u: Unit, foe: Enemy) -> void:",
+   "var at: Vector2 = foe.pos"
+  ],
+  "t_txt": [
+   "func _strike(u: Unit, foe: Enemy) -> void:",
+   "var at: Vector2 = foe.pos"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S28",
+  "a": "src/sim/battle.gd:6605-6618",
+  "t": "src/sim/battle.gd:6605-6618",
+  "feat": "OK-low",
+  "born": "dbcba66",
+  "born_r": [
+   351,
+   359
+  ],
+  "born_txt": [
+   "func _nearest_enemy(from: Vector2, reach: float):",
+   "return best"
+  ],
+  "a_txt": [
+   "var aim := 0.0",
+   "return"
+  ],
+  "t_txt": [
+   "var aim := 0.0",
+   "return"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "23d9740"
+   ],
+   [
+    "adjusted",
+    "57b7ceb"
+   ],
+   [
+    "adjusted",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "I29",
+  "a": "src/sim/battle.gd:6605-6618",
+  "t": "src/sim/battle.gd:6605-6618",
+  "feat": "OK-low",
+  "born": "dbcba66",
+  "born_r": [
+   351,
+   359
+  ],
+  "born_txt": [
+   "func _nearest_enemy(from: Vector2, reach: float):",
+   "return best"
+  ],
+  "a_txt": [
+   "var aim := 0.0",
+   "return"
+  ],
+  "t_txt": [
+   "var aim := 0.0",
+   "return"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "23d9740"
+   ],
+   [
+    "adjusted",
+    "57b7ceb"
+   ],
+   [
+    "adjusted",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "I78",
+  "a": "src/sim/battle.gd:6605-6618",
+  "t": "src/sim/battle.gd:6605-6618",
+  "feat": "OK-low",
+  "born": "88024e4",
+  "born_r": [
+   939,
+   947
+  ],
+  "born_txt": [
+   "func _nearest_enemy(from: Vector2, reach: float, center := Vector2.ZERO, zone := INF, on_wall := false):",
+   "return best"
+  ],
+  "a_txt": [
+   "var aim := 0.0",
+   "return"
+  ],
+  "t_txt": [
+   "var aim := 0.0",
+   "return"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "57b7ceb"
+   ],
+   [
+    "adjusted",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S236",
+  "a": "src/sim/battle.gd:6605-6618",
+  "t": "src/sim/battle.gd:6605-6618",
+  "feat": "OK-low",
+  "born": "57b7ceb",
+  "born_r": [
+   3515,
+   3526
+  ],
+  "born_txt": [
+   "# from에서 reach 안의 가장 가까운 적. center에서 zone보다 먼 적은 뺀다(홀드 반경). on_wall이면 성벽 위의 적만 본다(I78).",
+   "return best"
+  ],
+  "a_txt": [
+   "var aim := 0.0",
+   "return"
+  ],
+  "t_txt": [
+   "var aim := 0.0",
+   "return"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "0419644"
+   ]
+  ]
+ },
+ {
+  "id": "S236",
+  "a": "src/sim/battle.gd:6620",
+  "t": "src/sim/battle.gd:6843-6845",
+  "feat": "LIKELY-x",
+  "born": "57b7ceb",
+  "born_r": [
+   3528,
+   3530
+  ],
+  "born_txt": [
+   "# 유닛 u와 적 e의 몸이 닿았다(_nearest_enemy와 같은 0.01 여유)",
+   "return e.pos.distance_to(u.pos) <= u.radius + e.radius + 0.01"
+  ],
+  "a_txt": [
+   "damage(foe, hurt, u.damage_kind, u, ignore)",
+   "damage(foe, hurt, u.damage_kind, u, ignore)"
+  ],
+  "t_txt": [
+   "# 유닛 u와 적 e의 몸이 닿았다(_nearest_enemy와 같은 0.01 여유)",
+   "return e.pos.distance_to(u.pos) <= u.radius + e.radius + 0.01"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "approx",
+    "dac62b2"
+   ]
+  ]
+ },
+ {
+  "id": "S14",
+  "a": "src/sim/battle.gd:6806-6810",
+  "t": "src/sim/battle.gd:6859-6863",
+  "feat": "LIKELY-x",
+  "born": "24e7b93",
+  "born_r": [
+   2398,
+   2402
+  ],
+  "born_txt": [
+   "if gap.length() < e.radius + m.radius and _touch(e, m):  # 비행 적은 길을 막지 않는다(S109). 봉인된 비행 적은 막는다(S155). 블록 자리가 없으면 지나간다(S159)",
+   "p = m.pos + n.rotated(v.length() / (e.radius + m.radius) * (1.0 if n.cross(v) >= 0.0 else -1.0)) * (e.radius + m.radius)"
+  ],
+  "a_txt": [
+   "_fx(h, \"aias_p\", {\"dr\": h.passive.dr}, STAY)",
+   "# 대상 공격(S35): 대상이 죽거나 사라졌거나, 몸이 닿지 않은 채 어둠 속에 숨었거나(I247 ④), 근접 유닛의 대상이 날고 있으면(S109 2026-11-09 변경) 그 자리에 서고 null."
+  ],
+  "t_txt": [
+   "if gap.length() < e.radius + m.radius and _touch(e, m):  # 비행 적은 길을 막지 않는다(S109). 봉인된 비행 적은 막는다(S155). 블록 자리가 없으면 지나간다(S159)",
+   "p = m.pos + n.rotated(v.length() / (e.radius + m.radius) * (1.0 if n.cross(v) >= 0.0 else -1.0)) * (e.radius + m.radius)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "approx",
+    "b0925f8"
+   ]
+  ]
+ },
+ {
+  "id": "S196",
+  "a": "src/sim/battle.gd:6806-6810",
+  "t": "src/sim/battle.gd:6859-6863",
+  "feat": "C-low",
+  "born": "6af05d1",
+  "born_r": [
+   2228,
+   2229
+  ],
+  "born_txt": [
+   "var from := u.pos",
+   "var step := left"
+  ],
+  "a_txt": [
+   "_fx(h, \"aias_p\", {\"dr\": h.passive.dr}, STAY)",
+   "# 대상 공격(S35): 대상이 죽거나 사라졌거나, 몸이 닿지 않은 채 어둠 속에 숨었거나(I247 ④), 근접 유닛의 대상이 날고 있으면(S109 2026-11-09 변경) 그 자리에 서고 null."
+  ],
+  "t_txt": [
+   "if gap.length() < e.radius + m.radius and _touch(e, m):  # 비행 적은 길을 막지 않는다(S109). 봉인된 비행 적은 막는다(S155). 블록 자리가 없으면 지나간다(S159)",
+   "p = m.pos + n.rotated(v.length() / (e.radius + m.radius) * (1.0 if n.cross(v) >= 0.0 else -1.0)) * (e.radius + m.radius)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "24e7b93"
+   ],
+   [
+    "partial",
+    "0419644"
+   ],
+   [
+    "approx",
+    "b0925f8"
+   ]
+  ]
+ }
+]

@@ -235,10 +235,11 @@ func ev891():
 	return check(b.enemies.is_empty() and b.zones.is_empty() and b.missiles.is_empty() and b.loops.is_empty() and b.raid_block() == "round",
 		"돌아온 뒤 적 %d · 장판 %d · 투사체 %d · 루프 %d · 이유 %s(기대 모두 0, round)" % [b.enemies.size(), b.zones.size(), b.missiles.size(), b.loops.size(), b.raid_block()])
 
-# EV892 · S316·I262 ⑥: 전멸·불꽃·철수로 끝난다. 전멸·불꽃 뒤에는 «다시»를 기다리다(S331) 철수로, 철수는 바로 돌아오고, 쓴 횃불은 돌아오지 않는다
+# EV892 · S316·I262 ⑥: 전멸·철수로 끝나고, 불꽃이 다 타지 않는 층(층 정의 hard 0)은 불꽃이 아무리 흘러도 끝나지 않는다. hard를 적은 층은 그 초에 불꽃이 다 타서 끝난다.
+# 전멸·불꽃 뒤에는 «다시»를 기다리다(S331) 철수로, 철수는 바로 돌아오고, 쓴 횃불은 돌아오지 않는다
 func ev892():
 	var b = _den()
-	b.torches = 4
+	b.torches = 5
 	var hp: Array = b.heroes.map(func(h): return h.hp)
 	b.start_raid()
 	for h in b.party:
@@ -251,6 +252,16 @@ func ev892():
 	if mid != "raid" or late != "raid" or b.state != "prep" or not b.heroes.all(func(h): return h.alive) or b.heroes.map(func(h): return h.hp) != hp or b.floors_cleared != 0:
 		return "전멸 뒤 2.4초 %s(raid) · 2.6초 %s(raid) · 철수 뒤 %s(prep) · 체력 %s(기대 %s, 모두 살아) · 깬 층 %d(0)" % [mid, late, b.state, b.heroes.map(func(h): return h.hp), hp, b.floors_cleared]
 	b.start_raid()
+	var burnt := []
+	for t in [119.9, 3600.0]:
+		b.flame = t
+		_go(b, 0.2)
+		burnt.append([b.enemies.size(), b.state, b.raid_pending()])
+	b.retreat()
+	if burnt != [[1, "raid", false], [1, "raid", false]] or b.state != "prep":
+		return "hard 0에서 불꽃 119.9·3600초로 두고 0.2초 뒤 [적 수, 판, 기다림] %s(기대 둘 다 [1, raid, 거짓]) · 철수 뒤 %s(prep)" % [burnt, b.state]
+	b.FLOOR_KINDS.floor_1.hard = 120.0  # 값만 다시 적으면 되살아나는 손잡이
+	b.start_raid()
 	b.flame = 119.9
 	_go(b, 0.2)
 	var gone: bool = b.enemies.is_empty()
@@ -258,7 +269,7 @@ func ev892():
 	var left: String = b.state
 	b.retreat()
 	if not gone or left != "raid" or b.state != "prep":
-		return "불꽃 120초 뒤 보스 사라짐 %s · 2.8초 %s(raid) · 철수 뒤 %s(prep)" % [gone, left, b.state]
+		return "hard 120에서 불꽃 120초 뒤 보스 사라짐 %s · 2.8초 %s(raid) · 철수 뒤 %s(prep)" % [gone, left, b.state]
 	b.start_raid()
 	b.retreat()
 	return check(b.state == "prep" and b.torches == 1 and b.floors_cleared == 0, "철수 뒤 %s(prep) · 횃불 %d(1) · 깬 층 %d(0)" % [b.state, b.torches, b.floors_cleared])
@@ -369,7 +380,8 @@ func ev894():
 func _shade(hud) -> float:
 	return hud.fade.color.a * hud.fade.modulate.a if hud.fade.visible else 0.0
 
-# EV895 · S317·I262 ⑧⑨: 켜진 벽 횃불은 불꽃의 1/4마다 하나씩 준다. 검은 덮개는 들어갈 때·돌아올 때 불투명에서 0.4초 동안 걷힌다
+# EV895 · S317·I262 ⑧⑨: 불꽃이 다 타지 않는 층(층 정의 hard 0)의 벽 횃불은 늘 넷 다 켜져 있고, hard를 적은 층은 그 1/4마다 하나씩 준다.
+# 검은 덮개는 들어갈 때·돌아올 때 불투명에서 0.4초 동안 걷힌다
 func ev895():
 	var main = _den_game()
 	var b = main.view.battle
@@ -387,9 +399,14 @@ func ev895():
 	hud._process(0.21)
 	shades.append(_shade(hud))
 	lit.append(main.view.den_torches())
-	for t in [29.9, 30.1, 60.1, 90.1, 119.9]:
+	for t in [29.9, 30.1, 60.1, 90.1, 119.9, 130.0]:
 		b.flame = t
 		lit.append(main.view.den_torches())
+	b.raid_floor.hard = 120.0  # 값만 다시 적으면 되살아나는 손잡이
+	var timed := []
+	for t in [29.9, 30.1, 60.1, 90.1, 119.9]:
+		b.flame = t
+		timed.append(main.view.den_torches())
 	b.retreat()
 	main._process(0.0)
 	hud._process(0.0)
@@ -397,8 +414,8 @@ func ev895():
 	hud._process(0.41)
 	back.append(_shade(hud))
 	_done(main)
-	if lit != [4, 4, 4, 3, 2, 1, 1]:
-		return "켜진 횃불 %s(기대 원정 밖 4 · 시작 4 · 29.9초 4 · 30.1초 3 · 60.1초 2 · 90.1초 1 · 119.9초 1)" % [lit]
+	if lit != [4, 4, 4, 4, 4, 4, 4, 4] or timed != [4, 3, 2, 1, 1]:
+		return "켜진 횃불 hard 0에서 %s(기대 원정 밖 4 · 시작 4 · 불꽃 29.9·30.1·60.1·90.1·119.9·130초 모두 4) · hard 120에서 %s(기대 29.9초 4 · 30.1초 3 · 60.1초 2 · 90.1초 1 · 119.9초 1)" % [lit, timed]
 	return check(shades[0] >= 0.9 and shades[1] > 0.3 and shades[1] < 0.7 and shades[2] == 0.0 and back[0] >= 0.9 and back[1] == 0.0,
 		"들어갈 때 덮개 %s(기대 0.9 이상 → 0.2초 0.3~0.7 → 0.41초 0) · 돌아올 때 %s(기대 0.9 이상 → 0)" % [shades, back])
 
@@ -410,6 +427,8 @@ func ev895():
 const GEN_HP := [400.0, 200.0, 100.0, 50.0]
 const GEN_BODY := [1.6, 1.2, 0.9, 0.7]
 const GEN_LAND := [2.5, 1.9, 1.6, 1.3]
+const GEN_GAP := [3.0, 6.0, 6.0, 6.0]
+const LEAP := 8.0  # 뜀 거리(칸)
 
 # 원정대를 멈춘다: 걷지도, 적을 찾지도, 치지도, 오토로 스킬을 쓰지도 않는다
 func _freeze(b) -> void:
@@ -458,10 +477,10 @@ func ev921():
 		return "floor_1의 gens %s(기대 4행)" % [gens]
 	for g in 4:
 		var row: Dictionary = gens[g]
-		if row.get("hp") != GEN_HP[g] or row.get("radius") != GEN_BODY[g] or row.get("land") != GEN_LAND[g] or row.get("gap") != [6.0, 12.0, 12.0, 12.0][g]:
-			return "세대 %d %s(기대 체력 %s · 몸 %s · 착지 원 %s · 간격 %s)" % [g, row, GEN_HP[g], GEN_BODY[g], GEN_LAND[g], [6.0, 12.0, 12.0, 12.0][g]]
+		if row.get("hp") != GEN_HP[g] or row.get("radius") != GEN_BODY[g] or row.get("land") != GEN_LAND[g] or row.get("gap") != GEN_GAP[g]:
+			return "세대 %d %s(기대 체력 %s · 몸 %s · 착지 원 %s · 간격 %s)" % [g, row, GEN_HP[g], GEN_BODY[g], GEN_LAND[g], GEN_GAP[g]]
 	var leap: Dictionary = f.skills.get("leap", {})
-	var want := {"damage": 35.0, "knock": 1.0, "slow": 0.3, "slow_time": 3.0, "windup": 1.5, "air": 0.6, "range": 5.0, "retry": 0.5, "born": 1.5}
+	var want := {"damage": 35.0, "knock": 1.0, "slow": 0.3, "slow_time": 3.0, "windup": 1.5, "air": 0.6, "range": LEAP, "retry": 0.5, "born": 1.5}
 	for k in want:
 		if leap.get(k) != want[k]:
 			return "leap.%s %s(기대 %s)" % [k, leap.get(k), want[k]]
@@ -471,7 +490,7 @@ func ev921():
 	return check(king.speed == 1.0 and king.skills.has("shrink") and king.skills.leap.count == 3 and king.skills.leap.radius == 2.0,
 		"디펜스 slime_king 속도 %s(1) · shrink %s · 점프 몰린 수 %s(3) · 반경 %s(2)" % [king.speed, king.skills.has("shrink"), king.skills.leap.get("count"), king.skills.leap.get("radius")])
 
-# EV922 · S322: 왕은 걷지도 기본 공격도 하지 않고, 3초 선 뒤 가장 가까운 영웅 자리로 뛰어 원 안에만 피해를 준다. 뜀 거리 밖 영웅에게는 그쪽으로 5칸만 뛴다
+# EV922 · S322: 왕은 걷지도 기본 공격도 하지 않고, 3초 선 뒤 가장 가까운 영웅 자리로 뛰어 원 안에만 피해를 준다. 뜀 거리 밖 영웅에게는 그쪽으로 8칸만 뛴다
 func ev922():
 	var b = _den()
 	var e = _king(b)
@@ -497,20 +516,21 @@ func ev922():
 		return "착지 뒤 왕 %s(기대 %s) · 예고 %s(없어야) · 첫째 체력 %s → %s(줄어야) · 입구 둘 %s → %s(그대로여야)" % [e.pos, spot, e.cast, hp0, a.hp, others, [b.party[1].hp, b.party[2].hp]]
 	var at: Vector2 = e.pos
 	var hp1: float = a.hp
-	_go(b, 5.0)
+	_go(b, 2.0)
 	if e.pos != at or e.cast != null or a.hp < hp1:
-		return "착지 뒤 5초에 왕 %s → %s(그대로여야) · 예고 %s(없어야) · 첫째 체력 %s → %s(줄지 않아야)" % [at, e.pos, e.cast, hp1, a.hp]
+		return "착지 뒤 2초에 왕 %s → %s(그대로여야) · 예고 %s(없어야) · 첫째 체력 %s → %s(줄지 않아야)" % [at, e.pos, e.cast, hp1, a.hp]
 	_go(b, 0.5)
 	if e.cast == null:
-		return "뜬 뒤 뜀 간격 6초가 지났는데 다시 예고하지 않았다"
+		return "뜬 뒤 뜀 간격 3초가 지났는데 다시 예고하지 않았다"
 	var b2 = _den()
 	var e2 = _king(b2)
 	if e2 == null:
 		return "둘째 판 원정이 되지 않았다"
 	b2.damage(b2.party[1], BIG)
 	b2.damage(b2.party[2], BIG)
+	b2.party[0].pos = Vector2(72, 86)  # 방 서쪽 구석: 왕에서 약 13.4칸이라 뜀 거리 밖이다(입구는 7.07칸이라 안이다)
 	_go(b2, 3.2)
-	var far: Vector2 = Vector2(BOSS) + (b2.party[0].pos - Vector2(BOSS)).normalized() * 5.0
+	var far: Vector2 = Vector2(BOSS) + (b2.party[0].pos - Vector2(BOSS)).normalized() * LEAP
 	return check(e2.cast != null and e2.cast.at.distance_to(far) < 0.01, "뜀 거리 밖 영웅 %s에게 예고 %s(기대 착지 %s)" % [b2.party[0].pos, e2.cast, far])
 
 # 왕을 처치해 얻은 1세대 둘. 쉼을 없앤다
@@ -540,8 +560,8 @@ func ev923():
 		return "① 한 스텝 뒤 예고 %s · %s(둘 다 있어야)" % [kids[0].cast, kids[1].cast]
 	var p: Vector2 = kids[0].cast.at
 	var q: Vector2 = kids[1].cast.at
-	if not p.is_equal_approx(hero) or p.distance_to(q) < 4.0 - 0.001 or not b.in_room(Vector2i(q.round())) or kids[1].pos.distance_to(q) > 5.0 + 0.001:
-		return "① 앞 몸 착지 %s(기대 %s) · 뒤 몸 착지 %s(앞 착지에서 %.2f칸, 4 이상 · 방 안 %s · 몸에서 %.2f칸, 5 이하)" % [p, hero, q, p.distance_to(q), b.in_room(Vector2i(q.round())), kids[1].pos.distance_to(q)]
+	if not p.is_equal_approx(hero) or p.distance_to(q) < 4.0 - 0.001 or not b.in_room(Vector2i(q.round())) or kids[1].pos.distance_to(q) > LEAP + 0.001:
+		return "① 앞 몸 착지 %s(기대 %s) · 뒤 몸 착지 %s(앞 착지에서 %.2f칸, 4 이상 · 방 안 %s · 몸에서 %.2f칸, 뜀 거리 %s 이하)" % [p, hero, q, p.distance_to(q), b.in_room(Vector2i(q.round())), kids[1].pos.distance_to(q), LEAP]
 	var out := []
 	for reach in [4.0, 0.0]:
 		var c = _den()
@@ -596,11 +616,11 @@ func ev924():
 	_go(b, 0.3)
 	if k0.cast == null or k1.cast != null:
 		return "1.7초에 첫째 예고 %s(있어야) · 둘째 예고 %s(없어야)" % [k0.cast, k1.cast]
-	_go(b, 5.7)
+	_go(b, 2.7)
 	var late: bool = k1.cast == null and not b._aloft(k1) and k1.pos == at[1]
 	_go(b, 0.4)
 	if not late or k1.cast == null:
-		return "둘째: 7.4초까지 안 뜀 %s(참) · 7.8초 예고 %s(있어야)" % [late, k1.cast]
+		return "둘째: 4.4초까지 안 뜀 %s(참) · 4.8초 예고 %s(있어야)" % [late, k1.cast]
 	k1.pos = Vector2(70, 81)
 	b.damage(k1, BIG)
 	var g2: Array = b.enemies.filter(func(x): return x.gen == 2)
@@ -615,7 +635,7 @@ func ev924():
 	b.damage(g3[0], BIG)
 	return check(b.enemies.size() == n - 1, "3세대 처치 뒤 적 %d → %d(1 줄어야)" % [n, b.enemies.size()])
 
-# EV925 · S322·I266 ④: 몸이 남으면 끝나지 않고, 모두 처치하면 처치로 끝난다. 불꽃이 다 타면 모든 몸이 사라지고, 전멸 뒤에는 어느 몸도 움직이지 않는다
+# EV925 · S322·I266 ④: 몸이 남으면 끝나지 않고, 모두 처치하면 처치로 끝난다. 불꽃이 다 타는 층(층 정의 hard를 적은 층)은 다 타면 모든 몸이 사라지고, 전멸 뒤에는 어느 몸도 움직이지 않는다
 func ev925():
 	var b = _den()
 	var e = _king(b)
@@ -631,13 +651,16 @@ func ev925():
 	_go(b, 0.2)
 	if slain != 15 or mid != "raid" or b.state != "prep" or b.floors_cleared != 1:
 		return "① 처치한 몸 %d(15) · 2.9초 %s(raid) · 3.1초 %s(prep) · 깬 층 %d(1)" % [slain, mid, b.state, b.floors_cleared]
-	var c = _den()
-	if _pair(c).size() != 2:
-		return "② 왕을 처치했는데 몸이 둘이 아니다"
-	c.flame = 119.9
-	_go(c, 0.2)
-	if not c.enemies.is_empty():
-		return "② 불꽃 120초 뒤 적 %d(0)" % c.enemies.size()
+	for hard in [0.0, 120.0]:
+		var c = _den()
+		if hard > 0.0:  # 0은 층 정의를 덮어쓰지 않고 그대로 읽는다(hard 0). 120은 값만 다시 적으면 되살아나는 손잡이
+			c.FLOOR_KINDS.floor_1.hard = hard
+		if _pair(c).size() != 2:
+			return "② 왕을 처치했는데 몸이 둘이 아니다"
+		c.flame = 119.9
+		_go(c, 0.2)
+		if c.enemies.size() != (2 if hard == 0.0 else 0):
+			return "② %s(hard %s)에서 불꽃 120초 뒤 적 %d(기대 층 정의 그대로인 hard 0이면 2 그대로, 120이면 0)" % ["층 정의 그대로" if hard == 0.0 else "hard를 120으로 둔 판", c.FLOOR_KINDS.floor_1.hard, c.enemies.size()]
 	var d = _den()
 	var kids := _pair(d)
 	if kids.size() != 2:
@@ -1091,12 +1114,13 @@ func ev950():
 	_go(b, 2.9)
 	return check(e.pos == from and e.cast == null, "새 왕이 2.9초 안에 %s → %s · 예고 %s(서 있어야)" % [from, e.pos, e.cast])
 
-# EV951 · S331·I277 ①②: 불꽃이 다 타도 기다리고 끝난 순간의 남은 체력이 남는다. 횃불이 없거나 끝나기 전이면 retry가 거짓이다. 철수는 돌아오고, 처치는 기다림 없이 3초 뒤 돌아온다
+# EV951 · S331·I277 ①②: 불꽃이 다 타는 층(층 정의 hard를 120으로 둔다)은 다 타도 기다리고 끝난 순간의 남은 체력이 남는다. 횃불이 없거나 끝나기 전이면 retry가 거짓이다. 철수는 돌아오고, 처치는 기다림 없이 3초 뒤 돌아온다
 func ev951():
 	var b = _den()
 	if not b.has_method("retry") or not b.has_method("raid_pending"):
 		return "Battle에 retry·raid_pending이 없다"
 	var hp: Array = b.heroes.map(func(h): return h.hp)
+	b.FLOOR_KINDS.floor_1.hard = 120.0  # 층 정의는 0(다 타지 않음)이다. 값만 다시 적으면 되살아나는 손잡이
 	var e = _king(b)
 	if e == null:
 		return "① 원정이 되지 않았다(판 %s · 적 %d)" % [b.state, b.enemies.size()]
@@ -1630,8 +1654,8 @@ func ev971():
 	var brand := {"radius": 1.9, "windup": 3.0, "damage": 30.0, "color": "violet"}
 	if sk.get("charge") != charge or sk.get("pounce") != pounce or sk.get("brand") != brand or sk.get("frenzy") != {"damage": 0.25, "cap": 3}:
 		return "돌진 %s · 덮치기 %s · 표식 %s · 광분 %s" % [sk.get("charge"), sk.get("pounce"), sk.get("brand"), sk.get("frenzy")]
-	if f.ward != 0.88 or f.groggy != {"time": 5.0, "mult": 1.5} or f.enrage != {"soft": 80.0, "step": 10.0, "ramp": 0.15} or f.hard != 120.0 or f.gold != 150 or f.relic != "wolf_fang":
-		return "경감 %s · 그로기 %s · 광폭 %s · 불꽃 %s · 층 골드 %s · 유물 «%s»(기대 0.88·5초 1.5배·80초 10초 0.15·120·150·wolf_fang)" % [f.ward, f.groggy, f.enrage, f.hard, f.gold, f.relic]
+	if f.ward != 0.88 or f.groggy != {"time": 5.0, "mult": 1.5} or f.enrage != {"soft": 80.0, "step": 10.0, "ramp": 0.15} or f.hard != 0.0 or f.gold != 150 or f.relic != "wolf_fang":
+		return "경감 %s · 그로기 %s · 광폭 %s · 불꽃 %s · 층 골드 %s · 유물 «%s»(기대 0.88·5초 1.5배·80초 10초 0.15·0·150·wolf_fang)" % [f.ward, f.groggy, f.enrage, f.hard, f.gold, f.relic]
 	if f.get("shift") != {"below": 0.5, "rest": 0.3, "twice": "charge", "windup": 1.4} or f.get("hunts") != true:
 		return "체력 문턱 %s(기대 below 0.5·rest 0.3·twice charge·windup 1.4) · 사냥감 표시 %s(참)" % [f.get("shift"), f.get("hunts")]
 	var wolf = load("res://data/enemies/alpha_wolf.tres")
@@ -2013,8 +2037,8 @@ func ev994():
 			return "2형 %s %s(기대 %s)" % [id, got.get(id), want[id]]
 	if got.size() != 6 or p.get("plan") != [{"id": "leap", "wait": 4.0}, {"id": "cleave", "wait": 2.0}, {"id": "charge", "wait": 4.0}, {"id": "bombs", "wait": 4.0}, {"id": "soak", "wait": 5.0}]:
 		return "2형 스킬 수 %d(분노까지 여섯) · 대본 %s(기대 도약 4 → 철퇴 2 → 돌진 4 → 폭탄 4 → 금색 원 5)" % [got.size(), p.get("plan")]
-	if f.ward != 0.89 or f.groggy != {"time": 5.0, "mult": 1.5} or f.enrage != {"soft": 100.0, "step": 10.0, "ramp": 0.15} or f.hard != 150.0 or f.gold != 180 or f.relic != "iron_cog":
-		return "경감 %s · 그로기 %s · 광폭 %s · 불꽃 %s · 층 골드 %s · 유물 «%s»(기대 0.89·5초 1.5배·100초 10초 0.15·150·180·iron_cog)" % [f.ward, f.groggy, f.enrage, f.hard, f.gold, f.relic]
+	if f.ward != 0.89 or f.groggy != {"time": 5.0, "mult": 1.5} or f.enrage != {"soft": 100.0, "step": 10.0, "ramp": 0.15} or f.hard != 0.0 or f.gold != 180 or f.relic != "iron_cog":
+		return "경감 %s · 그로기 %s · 광폭 %s · 불꽃 %s · 층 골드 %s · 유물 «%s»(기대 0.89·5초 1.5배·100초 10초 0.15·0·180·iron_cog)" % [f.ward, f.groggy, f.enrage, f.hard, f.gold, f.relic]
 	var machine = load("res://data/enemies/war_machine.tres")
 	var chief = load("res://data/enemies/chief.tres")
 	return check(_stage().den.floors == ["floor_1", "floor_2", "floor_3", "floor_4", "floor_5"] and machine.hp == 200.0 and machine.radius == 0.7 and machine.armor == 15.0 and machine.phase2 == "chief"
@@ -3012,8 +3036,8 @@ func ev1033():
 			return "2형 %s %s(기대 %s)" % [id, got.get(id), want[id]]
 	if got.size() != 3 or p.get("plan") != [{"id": "lash", "wait": 3.0}, {"id": "charge", "wait": 4.0}, {"id": "lash", "wait": 3.0}, {"id": "soak", "wait": 5.0}]:
 		return "2형 스킬 수 %d(셋) · 대본 %s(기대 앞뒤 휩쓸기 3 → 맹진 4 → 앞뒤 휩쓸기 3 → 불덩이 5)" % [got.size(), p.get("plan")]
-	if f.ward != 0.89 or f.groggy != {"time": 5.0, "mult": 1.5} or f.enrage != {"soft": 100.0, "step": 10.0, "ramp": 0.15} or f.hard != 150.0 or f.gold != 200 or f.relic != "wyvern_scale":
-		return "경감 %s · 그로기 %s · 광폭 %s · 불꽃 %s · 층 골드 %s · 유물 «%s»(기대 0.89·5초 1.5배·100초 10초 0.15·150·200·wyvern_scale)" % [f.ward, f.groggy, f.enrage, f.hard, f.gold, f.relic]
+	if f.ward != 0.89 or f.groggy != {"time": 5.0, "mult": 1.5} or f.enrage != {"soft": 100.0, "step": 10.0, "ramp": 0.15} or f.hard != 0.0 or f.gold != 200 or f.relic != "wyvern_scale":
+		return "경감 %s · 그로기 %s · 광폭 %s · 불꽃 %s · 층 골드 %s · 유물 «%s»(기대 0.89·5초 1.5배·100초 10초 0.15·0·200·wyvern_scale)" % [f.ward, f.groggy, f.enrage, f.hard, f.gold, f.relic]
 	var wyvern = load("res://data/enemies/wyvern.tres")
 	var down = load("res://data/enemies/wyvern_fallen.tres")
 	return check(_stage().den.floors == ["floor_1", "floor_2", "floor_3", "floor_4", "floor_5"] and wyvern.hp == 160.0 and wyvern.radius == 0.9 and wyvern.flying == true and wyvern.phase2 == "wyvern_fallen"
@@ -3760,8 +3784,8 @@ func ev1054():
 		"plan": [{"id": "leap", "wait": 4.0}, {"id": "lob", "wait": 3.0}, {"id": "slam", "wait": 4.0}, {"id": "cleave", "wait": 2.0}, {"id": "soak", "wait": 5.0}]}
 	if f.get("pair") != pair or f.get("alone") != alone:
 		return "두 몸(pair) %s(기대 %s) · 홀로 대본(alone) %s(기대 %s)" % [f.get("pair"), pair, f.get("alone"), alone]
-	if f.ward != 0.9 or f.groggy != {"time": 4.5, "mult": 1.5} or f.enrage != {"soft": 100.0, "step": 10.0, "ramp": 0.15} or f.hard != 150.0 or f.gold != 220 or f.relic != "troll_tusk" or f.pull != 3.0:
-		return "경감 %s · 그로기 %s · 광폭 %s · 불꽃 %s · 층 골드 %s · 유물 «%s» · 서 있기 %s(기대 0.9·4.5초 1.5배·100초 10초 0.15·150·220·troll_tusk·3)" % [f.ward, f.groggy, f.enrage, f.hard, f.gold, f.relic, f.pull]
+	if f.ward != 0.9 or f.groggy != {"time": 4.5, "mult": 1.5} or f.enrage != {"soft": 100.0, "step": 10.0, "ramp": 0.15} or f.hard != 0.0 or f.gold != 220 or f.relic != "troll_tusk" or f.pull != 3.0:
+		return "경감 %s · 그로기 %s · 광폭 %s · 불꽃 %s · 층 골드 %s · 유물 «%s» · 서 있기 %s(기대 0.9·4.5초 1.5배·100초 10초 0.15·0·220·troll_tusk·3)" % [f.ward, f.groggy, f.enrage, f.hard, f.gold, f.relic, f.pull]
 	var troll = load("res://data/enemies/twin_troll.tres")
 	return check(_stage().den.floors == ["floor_1", "floor_2", "floor_3", "floor_4", "floor_5"] and troll.hp == 160.0 and troll.radius == 0.9 and troll.regen == 0.01 and troll.pack == 2 and troll.boss == true
 		and troll.skills.keys() == ["devour", "twin", "lob"] and troll.skills.lob.rock == 25.0 and troll.skills.twin.hit == 40.0,
@@ -5023,3 +5047,65 @@ func ev1116():
 	var ok: bool = calm.size() == 3 and tense.size() == 3 and calm.slice(0, 2) == want and tense.slice(0, 2) == want and tense[2].a > calm[2].a
 	return check(ok and charging and layer == "floor" and plain == [[], "body"],
 		"원정 잔해 테 [가운데, 반지름, 색] 평소 %s · 돌진 예고(%s) 중 %s(기대 %s, 돌진 중 더 진함) · 층 %s(floor) · 디펜스 잔해 [테, 층] %s([[], body])" % [calm, charging, tense, want, layer, plain])
+
+# ── 시간 제한 끄기(S316·S317 2026-11-16 변경) ──
+
+# EV1126 · S317: 불꽃이 다 타지 않는 층(층 정의 hard 0)의 원정에서 진행 칸은 «횃불 N»만 보이고 툴팁에 불꽃 줄이 없다.
+# hard를 적은 층은 남은 불꽃 초와 «불꽃이 다 타면 이번 원정은 진다»를 보인다
+func ev1126():
+	var main = _den_game()
+	var b = main.view.battle
+	var hud = main.hud
+	var cells = hud.get("cells")
+	if not cells is Dictionary or not hud.get("gauge") is BaseButton:
+		_done(main)
+		return "main.hud.cells나 gauge 버튼이 없다"
+	b.start_raid()
+	_frame(main)
+	var rows := []
+	for t in [0.0, 130.0]:
+		b.flame = t
+		_frame(main)
+		rows.append([" ".join(_labels(cells.progress)), _tip_of(main, hud.gauge)])
+	b.raid_floor.hard = 120.0  # 값만 다시 적으면 되살아나는 손잡이
+	b.flame = 33.5
+	_frame(main)
+	var timed := [" ".join(_labels(cells.progress)), _tip_of(main, hud.gauge)]
+	var st: String = b.state
+	_done(main)
+	if st != "raid" or not rows.all(func(r): return "횃불 1" in r[0] and not "불꽃" in r[0] and "횃불 1자루" in r[1] and not "불꽃" in r[1] and not "진다" in r[1]):
+		return "판 %s(raid) · hard 0에서 불꽃 0·130초의 [진행 칸 글, 툴팁] %s(진행 칸에 «횃불 1»이 있고 «불꽃»이 없어야, 툴팁에 «횃불 1자루»가 있고 «불꽃»·«진다»가 없어야)" % [st, rows]
+	return check("불꽃 87 · 횃불 1" in timed[0] and "남은 불꽃 87초" in timed[1] and "불꽃이 다 타면 이번 원정은 진다" in timed[1],
+		"hard 120·불꽃 33.5초의 [진행 칸 글, 툴팁] %s(진행 칸에 «불꽃 87 · 횃불 1», 툴팁에 «남은 불꽃 87초»와 «불꽃이 다 타면 이번 원정은 진다»가 있어야)" % [timed])
+
+# EV1148 · S374 ⑥·I306 ①: 원정에서도 둘 이상 고른 이동은 대열이다. 보스가 «가장 가까운 적»이고, 집에 남은 병사는 대열에 세지 않고 움직이지 않는다(S316)
+func ev1148():
+	var b = _den()
+	var m = b.place_merc("soldier", _near(b, "soldier", Vector2i(40, 68)))
+	if m == null:
+		return "병사를 놓지 못했다"
+	var m0: Vector2 = m.pos
+	if not b.start_raid() or b.state != "raid" or b.party.size() != 3 or b.party[0].kind != "aias":
+		return "원정대 셋(아이아스 먼저)으로 원정에 들어가지 못했다(판 %s)" % b.state
+	for e in b.enemies:  # 보스를 움직이지도 치지도 않게 둔다
+		e.speed = 0.0
+		e.rest = 999.0
+		e.cd["leap"] = 999.0
+	var track := {"moved": 0.0}
+	b.order_move(b.party + [m], Vector2i(84, 85))
+	var idle := func(u): return u.path.is_empty() and u.after.is_empty()
+	var done := run(b, 5.0, func():
+		track.moved = maxf(track.moved, m.pos.distance_to(m0))
+		return b.party.all(func(h): return idle.call(h)))
+	if not done or b.state != "raid":
+		return "5초 안에 원정대가 서지 않았다(판 %s · 자리 %s · 걷는 길 %s)" % [b.state, b.party.map(func(h): return h.pos), b.party.map(func(h): return h.path)]
+	var cells := []
+	for h in b.party:
+		var c := cell_of(h)
+		if h.pos.distance_to(Vector2(c)) > 0.05 or c in cells:
+			return "원정대가 선 자리 %s(기대 서로 다른 칸 중심)" % [b.party.map(func(h2): return h2.pos)]
+		cells.append(c)
+	var boss: Vector2 = b.enemies[0].pos
+	var lead: float = Vector2(cells[0]).distance_to(boss)
+	return check(lead <= Vector2(cells[1]).distance_to(boss) and lead <= Vector2(cells[2]).distance_to(boss) and track.moved <= 0.05,
+		"선 칸 %s(아이아스 먼저) · 보스 %s · 아이아스가 가장 가까워야 · 집의 병사가 벗어난 거리 %.3f(0.05 이하)" % [cells, boss, track.moved])

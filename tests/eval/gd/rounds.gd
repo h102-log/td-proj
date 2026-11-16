@@ -325,7 +325,7 @@ func ev367():
 	return check(early == 1 and n[0] == 2, "0.2초 뒤 %d명, 0.4초 뒤 %d명이 나왔다(1명·2명이어야 한다)" % [early, n[0]])
 
 # EV243 · S138: 쓰러진 영웅은 체력 1로 돌아온다(부활이 켜져 있으면 다음 준비 단계, 꺼져 있으면 다음 라운드).
-#   쓰러진 채 출전에서 빠졌다가 다시 출전한 영웅은 S124대로 최대 체력이다
+#   «출전에서 빠졌다가 다시 출전한 영웅은 최대 체력»은 출전 전환이 없어져 재지 않는다(S54 2026-11-16 변경)
 func ev243():
 	var start := Vector2i(20, 5)
 	var b = battle({"hero_start": start, "base_hp": BIG, "rounds": [[ONE, ONE], [ONE]]})
@@ -342,25 +342,7 @@ func ev243():
 	clear_wave(d)
 	d.next_round()
 	var later: bool = d.state == "prep" and d.hero.present and d.hero.hp == 1.0
-	var r = battle({"hero_cells": [Vector2i(10, 5), Vector2i(12, 5)], "seed": 7, "base_hp": BIG, "rounds": [[ONE], [ONE], [ONE]]})
-	r.begin_hiring()
-	r.offers = ["aias", "seraphina", "ignis"]
-	var k = r.hire(0)
-	r.hire(1)
-	r.next_round()
-	r.start_battle()
-	r.damage(k, BIG)
-	clear_wave(r)
-	r.set_lineup(k, false)
-	r.next_round()
-	var benched: bool = not k.present and k not in r.heroes
-	r.start_battle()
-	clear_wave(r)
-	r.set_lineup(k, true)
-	r.next_round()
-	var back: bool = r.state == "prep" and k in r.heroes and k.present and k.hp == k.max_hp
-	return check(wave and later and benched and back,
-		"부활 켜짐: 웨이브 끝 체력 1 %s(%s) · 부활 꺼짐: 다음 라운드 체력 1 %s(%s) · 빠졌다 다시 출전: 빠짐 %s, 최대 체력 %s(%s/%s)" % [wave, b.hero.hp, later, d.hero.hp, benched, back, k.hp, k.max_hp])
+	return check(wave and later, "부활 켜짐: 웨이브 끝 체력 1 %s(%s) · 부활 꺼짐: 다음 라운드 체력 1 %s(%s)" % [wave, b.hero.hp, later, d.hero.hp])
 
 # EV253 · S144: 라운드 체력 배율(stage 키 hp_mult: [라운드마다 배율], 없으면 1). 3라운드(1.5)의 기본 적은 체력·최대 체력이 1.5배이고
 # 1라운드는 그대로다. 처치 보상은 배율과 상관없다

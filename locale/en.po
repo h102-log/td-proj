@@ -8,7 +8,7 @@
 #   거점 Keep · 성곽 Rampart · 성벽 Wall · 성문 Gate · 마을 Village · 마을 레벨 Village Lv · 집 House · 교회 Church
 #   방벽 Barricade · 타워 Tower · 마법 타워 Mage Tower · 대포 Cannon
 #   병영 Barracks · 작업장 Workshop · 사격장 Archery Range · 용병 Merc · 공병 Engineer · 궁수 Archer
-#   영입 Recruit · 리롤 Reroll · 이관 Transfer · 내보내기 Dismiss · 출전 Deployed · 대기 Reserve · 보유 Roster
+#   영웅 고르기 Pick Heroes · 고르기 Pick · 빼기 Remove · 이관 Transfer · 보유 Roster · 영입 Recruit(테스트 모드 분류 이름에만 남았다, S54 2026-11-16 변경)
 #   미션 Mission · 준비 단계 Prep · 전투 단계 Battle · 웨이브 Wave · 라운드 Round · 도전 Run
 #   적: 기본 Grunt · 빠름 Runner · 장갑 Armored · 비행 Flyer · 보스 Boss · 슬라임 Slime · 꼬마 슬라임 Slimelet · 큰 슬라임 Big Slime · 슬라임 킹 Slime King · 늑대 Wolf · 도약 늑대 Leaping Wolf · 밤 늑대 Night Wolf · 알파 늑대 Alpha Wolf · 폭파병 Sapper · 공성 망치 Battering Ram · 투석기 Catapult · 글라이더 고블린 Glider Goblin · 공성탑 Siege Tower · 폭탄 열기구 Bomb Balloon · 수송 비행선 Troop Airship · 고블린 전쟁 기계 Goblin War Machine · 고블린 대장 Goblin Chief · 방패 고블린 Shield Goblin · 불화살 고블린 Fire Archer Goblin · 깃털 사수 하피 Feather Harpy · 박치기 하피 Diving Harpy · 노래하는 하피 Singing Harpy · 폭풍날개 하피 Stormwing Harpy · 낚아채기 하피 Snatcher Harpy · 둥지 하피 Nesting Harpy · 둥지 Nest · 새끼 하피 Harpy Chick · 와이번 Wyvern · 떨어진 와이번 Grounded Wyvern · 방패벽 오크 Shieldwall Orc · 광전사 오크 Berserker Orc · 전쟁 북 고수 War Drummer · 오우거 투척꾼 Ogre Thrower · 사슬 오크 Chain Orc
 #   영웅 이름은 음역한다: 아이아스 Aias · 실비아 Sylvia · 세라피나 Seraphina · 베스퍼 Vesper · 이그니스 Ignis · 크로노스 Chronos
@@ -1019,6 +1019,12 @@ msgstr "Enemies left %d"
 msgid "다음 적 %d"
 msgstr "Next enemies %d"
 
+msgid "영웅 고르기"
+msgstr "Pick Heroes"
+
+msgid "다음 라운드"
+msgstr "Next Round"
+
 msgid "영입"
 msgstr "Recruit"
 
@@ -1040,8 +1046,11 @@ msgstr "Click to view the enemy nearest the Keep"
 msgid "다음 라운드 첫 웨이브"
 msgstr "Next round, first wave"
 
-msgid "Lv%d · 체력 %d/%d\n누르면 고름 · 두 번이면 카메라"
-msgstr "Lv%d · HP %d/%d\nClick to select · twice to view"
+msgid "Lv%d · 체력 %d/%d\n누르면 고름 · 두 번이면 카메라\n용병과 함께 고른 무리는 그대로 두고 스킬 쓸 영웅만 바꿈\nSpace: 커서 쪽 %s칸 대시 · 대기 %s초"
+msgstr "Lv%d · HP %d/%d\nClick to select · twice to view\nIn a group with mercenaries: keeps the group, only changes who casts\nSpace: dash %s tiles toward the cursor · cooldown %ss"
+
+msgid "대시 대기 %d초"
+msgstr "Dash cooldown %ds"
 
 msgid "스킬은 전투 단계에만"
 msgstr "Skills only in battle"
@@ -1067,10 +1076,10 @@ msgstr "RMB: autocast"
 msgid "Lv%d 최대"
 msgstr "Lv%d max"
 
-# ── 영입 창·결과 창(hud.gd) ──
+# ── 영웅 고르기 창·결과 창(hud.gd) ──
 
-msgid "도전 시작 — 영웅 영입"
-msgstr "New run — Recruit heroes"
+msgid "도전 시작 — 영웅 고르기"
+msgstr "Run Start — Pick Heroes"
 
 msgid "%d라운드 승리"
 msgstr "Round %d won"
@@ -1093,59 +1102,44 @@ msgstr "Next Round (Enter)"
 msgid "새 도전 (Enter)"
 msgstr "New Run (Enter)"
 
-msgid "골드 %d · 보유 %d/%d · 출전 %d/%d"
-msgstr "Gold %d · Roster %d/%d · Deployed %d/%d"
-
 msgid "골드 %d"
 msgstr "Gold %d"
 
-msgid "보유 %d/%d"
-msgstr "Roster %d/%d"
+msgid "영웅 %d/%d"
+msgstr "Heroes %d/%d"
 
-msgid "출전 %d/%d"
-msgstr "Deployed %d/%d"
+msgid "다 골라야 시작한다"
+msgstr "Pick all to start"
 
-msgid "준비 단계에 지을 골드도 남긴다"
-msgstr "Save gold for building in prep"
+msgid "도전 내내 바꾸지 못한다"
+msgstr "Fixed for the whole run"
 
-msgid "%s — 영입함"
-msgstr "%s — Recruited"
+msgid "고르기"
+msgstr "Pick"
 
-msgid "영입함"
-msgstr "Recruited"
+msgid "빼기"
+msgstr "Remove"
 
-msgid "리롤"
-msgstr "Reroll"
+msgid "누르면 이 영웅으로 도전한다"
+msgstr "Click to take this hero"
 
-msgid "리롤 %d골드"
-msgstr "Reroll %d gold"
+msgid "누르면 고른 영웅에서 뺀다"
+msgstr "Click to remove this pick"
 
-msgid "목록을 새로 뽑는다"
-msgstr "Draws a new list"
+msgid "다 골랐다"
+msgstr "All picked"
+
+msgid "고른 영웅을 빼야 바꾼다"
+msgstr "Remove a pick to change"
 
 msgid "빈 자리"
 msgstr "Empty"
-
-msgid "출전"
-msgstr "Deployed"
-
-msgid "대기"
-msgstr "Reserve"
-
-msgid "내보내기"
-msgstr "Dismiss"
-
-msgid "보유에서 뺀다 · 골드는 돌려받지 못한다"
-msgstr "Removes from roster · no gold back"
 
 msgid "이관"
 msgstr "Transfer"
 
 msgid "여기로"
 msgstr "Here"
-
-msgid "누르면 보유에 넣고 빈 출전 자리에 든다"
-msgstr "Adds to roster and fills an open deploy slot"
 
 msgid "경험치를 모두 다른 영웅에게 옮긴다 · 이 영웅은 Lv1로"
 msgstr "Moves all XP to another hero · this one goes to Lv1"
@@ -1161,9 +1155,6 @@ msgstr "This hero receives the XP"
 
 msgid "받으면 레벨 상한을 넘는다"
 msgstr "Would exceed the level cap"
-
-msgid "보유 %d/%d — 내보내야 영입할 수 있다"
-msgstr "Roster %d/%d — dismiss one to recruit"
 
 # ── 선택 패널(hud_select.gd, S206). 칸 폭 68px(글자 8)에 들어가게 줄인다 ──
 
@@ -1747,18 +1738,6 @@ msgstr "Frost Ring damage 20"
 
 msgid "메테오 스웜 운석 5개 · 간격 1.5칸"
 msgstr "Meteor Swarm 5 meteors · 1.5-cell spacing"
-
-msgid "닫기 (T)"
-msgstr "Close (T)"
-
-msgid "출전·내보내기는 라운드 사이에"
-msgstr "Lineup and dismissal between rounds"
-
-msgid "영웅을 영입하고 목록을 리롤한다"
-msgstr "Hire heroes and reroll the list"
-
-msgid "판은 멈추지 않는다"
-msgstr "The game keeps running"
 
 msgid "오토"
 msgstr "Auto"
