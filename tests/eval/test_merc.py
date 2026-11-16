@@ -60,3 +60,11 @@ def test_EV598_melee_lunge_reaches_body(gd):
 
 def test_EV659_double_click_selects_same_kind_on_screen(gd):
     gd("merc", "EV659")
+
+
+def test_EV1150_queued_units_walk_old_path_and_fight_by_mode(gd):
+    gd("merc", "EV1150")
+
+
+def test_EV1151_stop_new_order_dash_leave_queue(gd):
+    gd("merc", "EV1151")

@@ -669,3 +669,48 @@ func ev1147():
 	var back: Array = c.units.filter(func(u): return u.kind == "soldier")
 	return check(c.units.size() == a.units.size() and back.size() == 4 and back.all(func(u): return u.pace == 0.0 and u.post == Vector2i(-1, -1)),
 		"pace·post 없는 저장: 유닛 %d(%d) · 병사 %d(4) · pace %s · post %s(기대 0·(-1,-1))" % [c.units.size(), a.units.size(), back.size(), back.map(func(u): return u.get("pace")), back.map(func(u): return u.get("post"))])
+
+# EV1154 · I309 ⑥: 줄에 선 채(길을 기다리는 유닛이 있는 채) 저장해도 기다리는 목적지 칸(due)이 담겨 불러온 판이 같은 결과를 낸다.
+# 그 칸이 없는 옛 저장의 유닛은 기다리지 않는 것으로 읽는다(저장 형식 판 그대로)
+func ev1154():
+	var stage := _stage()
+	stage.merge({"merc_cap": 40}, true)
+	var a = _new(stage)
+	var us := []
+	for i in 20:
+		var m = a.place_merc("soldier", _near(a, "soldier", Vector2i(38 + i % 5, 66 + i / 5)))
+		if m == null:
+			return "병사를 놓지 못했다"
+		us.append(m)
+	a.order_move(us, Vector2i(40, 80))
+	if in_line(us).size() != 4:
+		return "지시 직후 기다리는 병사 %d(4)" % in_line(us).size()
+	var S = _save()
+	var snap: Dictionary = S.snapshot(a)
+	var dues: int = snap.units.filter(func(x): return x is Dictionary and x.get("due", Vector2i(-1, -1)) != Vector2i(-1, -1)).size()
+	if dues != 4:
+		return "snapshot에서 due가 있는 유닛 사전 %d(4)" % dues
+	var old: Dictionary = snap.duplicate(true)
+	var b = _new(stage)
+	S.apply(b, snap)
+	var back: Dictionary = S.snapshot(b)
+	for k in snap:
+		if back.get(k) != snap[k]:
+			return "불러온 판의 snapshot «%s»가 다르다" % k
+	if in_line(b.units).size() != 4:
+		return "불러온 판에서 기다리는 병사 %d(4)" % in_line(b.units).size()
+	for x in [a, b]:
+		run(x, 20.0)
+	var sa := _sum(a)
+	var sb := _sum(b)
+	if sa != sb:
+		return "20초 뒤 두 판의 요약이 다르다"
+	if not in_line(a.units).is_empty() or not in_line(b.units).is_empty():
+		return "20초 뒤 기다리는 유닛 %d·%d(0)" % [in_line(a.units).size(), in_line(b.units).size()]
+	for x in old.units:
+		if x is Dictionary:
+			x.erase("due")
+	var c = _new(stage)
+	S.apply(c, old)
+	return check(c.units.size() == a.units.size() and in_line(c.units).is_empty(),
+		"due 없는 저장: 유닛 %d(%d) · 기다리는 유닛 %d(0)" % [c.units.size(), a.units.size(), in_line(c.units).size()])

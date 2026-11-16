@@ -55,3 +55,7 @@ def test_EV1132_old_save_roster_filtered(gd):
 
 def test_EV1147_group_slots_and_pace_saved(gd):
     gd("save", "EV1147")
+
+
+def test_EV1154_queued_route_target_saved(gd):
+    gd("save", "EV1154")

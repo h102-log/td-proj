@@ -16,6 +16,8 @@ extends RefCounted
 #   Controls res://src/ui/controls.gd  Controls.new(battle, cell_px) · handle(event) · selected
 #   kind: 적 "basic" · 용병 "soldier" · 구조물 "wall" "tower"
 #   overrides 키: 적 sight·wall_k·hp·speed·damage / 용병 hp·damage·range·sight·hold_radius / 타워 range·damage
+#   아군 길 나눠 구하기(I309): Battle.UNIT_ROUTES_PER_STEP · 유닛 due(길을 기다리는 목적지 칸, 기다리지 않으면 (-1, -1)) ·
+#     Battle._slow(방금 구한 땅 길이 비용 격자에서 나왔다) · Battle._short(길) · Battle.grid.path(from, to)
 
 const DT := 0.05
 const BIG := 1000000
@@ -105,3 +107,19 @@ func drag(c, from: Vector2, to: Vector2) -> void:
 
 func check(ok: bool, why: String) -> String:
 	return "" if ok else why
+
+# 준비 단계에 kind 용병 n명을 at부터 가로 w칸씩 줄지어 놓는다(아군 길 나눠 구하기 I309의 평가). 하나라도 못 놓으면 빈 배열
+func squad(b, kind: String, n: int, at := Vector2i(2, 2), w := 10) -> Array:
+	var us := []
+	for i in n:
+		var m = b.place_merc(kind, at + Vector2i(i % w, i / w))
+		if m == null:
+			return []
+		us.append(m)
+	return us
+
+# us 가운데 길을 기다리는 유닛(I309: 유닛 칸 due가 (-1, -1)이 아니다). due 칸이 없는 판에서는 아무도 기다리지 않는다
+func in_line(us: Array) -> Array:
+	return us.filter(func(u):
+		var d = u.get("due")
+		return d is Vector2i and d != Vector2i(-1, -1))

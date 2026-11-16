@@ -189,3 +189,127 @@ func ev472():
 	var e = b.spawn_enemy("basic", Vector2i(9, 12), {"speed": 0.0})
 	b._shove(e, Vector2(1, 0), [])
 	return check(cell_of(e) == Vector2i(9, 12), "동쪽으로 민 적이 %s에 있다((9,12)여야 한다)" % [e.pos])
+
+# EV1149 · I309 ①②: 지시 한 번에 16명(UNIT_ROUTES_PER_STEP)까지는 그 자리에서 길을 구하고, 나머지는 줄에 서서 스텝마다 16명씩 받는다
+func ev1149():
+	var b = battle({"merc_cap": 40})
+	if b.get("UNIT_ROUTES_PER_STEP") != 16:
+		return "UNIT_ROUTES_PER_STEP이 %s다(I309는 16)" % [b.get("UNIT_ROUTES_PER_STEP")]
+	var us := squad(b, "soldier", 40)
+	if us.size() != 40:
+		return "병사 40명을 놓지 못했다"
+	b.order_move(us, Vector2i(20, 15))
+	var got := [in_line(us).size()]
+	for i in 2:
+		b.step(DT)
+		got.append(in_line(us).size())
+	var idle := us.filter(func(u): return u.path.is_empty()).size()
+	if got != [24, 8, 0] or idle > 0:
+		return "40명: 지시 직후·한 스텝·두 스텝 뒤 기다리는 병사 %s(기대 [24, 8, 0]) · 두 스텝 뒤 걷는 길이 빈 병사 %d(0)" % [got, idle]
+	for n in [16, 1]:
+		b = battle({"merc_cap": 40})
+		us = squad(b, "soldier", n)
+		b.order_move(us, Vector2i(20, 15))
+		idle = us.filter(func(u): return u.path.is_empty()).size()
+		if us.size() != n or not in_line(us).is_empty() or idle > 0:
+			return "%d명: 지시 직후 기다리는 병사 %d(0) · 걷는 길이 빈 병사 %d(0)" % [n, in_line(us).size(), idle]
+	return ""
+
+# 시험 스테이지(씨앗 7) 판. kind 0: 준비 단계에 타워 둘·방벽·집을 짓고 정문을 연 판 · 1: 같은 판에서 정문을 닫은 판 ·
+# 2: 0의 판에서 전투 단계를 시작하고 공병이 있는 채 정문 앞 들판 길목 (32,66)에 방벽 하나를 놓은 판(미완성이라 체력 0. 스텝은 돌리지 않는다).
+# [판, 길을 구할 병사] 또는 [null, 까닭]
+func _town(kind: int) -> Array:
+	var stage: Dictionary = load("res://src/main.gd").stage()
+	stage.merge({"seed": 7, "gold": BIG}, true)
+	var b = load("res://src/sim/battle.gd").new(stage)
+	for pair in [["tower", Vector2i(26, 70)], ["tower", Vector2i(40, 72)], ["wall", Vector2i(36, 68)], ["house", Vector2i(20, 24)]]:
+		if b.build(pair[0], _spot(b, pair[0], pair[1])) == null:
+			return [null, "준비 단계에 %s를 짓지 못했다" % pair[0]]
+	b.set_gate(b.castle[stage.castle.gates[0]], kind != 1)
+	var s = b.place_merc("soldier", _spot(b, "soldier", Vector2i(20, 90)))
+	if s == null:
+		return [null, "병사를 놓지 못했다"]
+	if kind == 2:
+		var eng = b.place_merc("engineer", _spot(b, "engineer", Vector2i(30, 70)))
+		b.start_battle()
+		var w = b.build("wall", Vector2i(32, 66)) if eng and b.state == "battle" else null
+		if w == null or w.hp != 0.0:
+			return [null, "전투 단계에 (32,66)에 체력 0인 방벽을 놓지 못했다(%s)" % [w.hp if w else null]]
+	return [b, s]
+
+# 그 종류를 놓을 수 있는 칸 가운데 want에 가장 가까운 칸
+func _spot(b, kind: String, want: Vector2i) -> Vector2i:
+	var cells: Array = b.placeable_cells(kind)
+	var best: Vector2i = cells[0]
+	for c in cells:
+		if Vector2(c - want).length() < Vector2(best - want).length():
+			best = c
+	return best
+
+# 유닛이 설 수 있는 땅 칸(성곽·구조물·물·거점·바위가 아닌 맵 안 칸)
+func _ground_cell(b, c: Vector2i) -> bool:
+	return Rect2i(Vector2i.ZERO, b.size).has_point(c) and not (b.walls.has(c) or b.footprint.has(c) or b.water.has(c) or c == b.base.cell or b.rock.has(c))
+
+# 칸 배열의 길 비용(grid._compute_cost의 합). 바로 앞에 grid.path를 불러 둔 판에서 잰다
+func _path_cost(b, p: Array) -> float:
+	var sum := 0.0
+	for i in range(1, p.size()):
+		sum += b.grid._compute_cost(p[i - 1], p[i])
+	return sum
+
+func _same_cells(p: Array, q: Array) -> bool:
+	if p.size() != q.size():
+		return false
+	for i in p.size():
+		if p[i] != q[i]:
+			return false
+	return true
+
+# EV1153 · I309 ⑦: 아군 땅 길은 비용 격자의 길과 끝 칸·비용이 같다. 닫힌 성곽을 지나야 하는 길은 칸 차례까지 같고,
+# 막힌 칸 없이 목적지에 닿는 길은 네이티브 격자에서 나온다(_slow 거짓). 목적지가 구조물·물·거점 칸이면 비용 격자다(_slow 참)
+func ev1153():
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1153
+	var clean := 0
+	for kind in 3:
+		var made := _town(kind)
+		if made[0] == null:
+			return "판 %d: %s" % [kind, made[1]]
+		var b = made[0]
+		var s = made[1]
+		var pairs := []
+		var fixed := []
+		if kind == 2:  # 체력 0 방벽 (32,66)을 세로로 곧게 지나는 두 쌍: 비용 격자는 그 칸을 지나는 길이 가장 싸다(I309 ⑦의 싼 막힌 칸)
+			fixed = [[Vector2i(32, 50), Vector2i(32, 90)], [Vector2i(32, 90), Vector2i(32, 50)]]
+			if not fixed.all(func(p): return _ground_cell(b, p[0]) and _ground_cell(b, p[1])):
+				return "판 2: (32,50)·(32,90)이 설 수 있는 땅 칸이 아니다"
+		while pairs.size() < 100 - fixed.size():
+			var a := Vector2i(rng.randi_range(0, b.size.x - 1), rng.randi_range(0, b.size.y - 1))
+			var z := Vector2i(rng.randi_range(0, b.size.x - 1), rng.randi_range(0, b.size.y - 1))
+			if pairs.size() >= 98 - fixed.size():
+				z = b.base.cell  # 판마다 마지막 두 쌍은 거점 칸 목적지
+			if _ground_cell(b, a) and not b.walls.has(z):
+				pairs.append([a, z])
+		pairs = fixed + pairs
+		for p in pairs:
+			var a: Vector2i = p[0]
+			var z: Vector2i = p[1]
+			s.pos = Vector2(a)
+			s.on_wall = false
+			b.order_move([s], z)
+			var slow = b.get("_slow")
+			var mine: Array = [a] + s.path
+			var old: Array = b._short(b.grid.path(a, z))
+			var cm := _path_cost(b, mine)
+			var co := _path_cost(b, old)
+			if mine.back() != old.back() or absf(cm - co) > 0.001:
+				return "판 %d %s → %s: 끝 칸 %s / 비용 격자 %s · 비용 %.4f / %.4f" % [kind, a, z, mine.back(), old.back(), cm, co]
+			if kind == 1 and b.village.has_point(a) and z.y >= b.field_y and not _same_cells(mine, old):
+				return "판 1(정문 닫힘) %s → %s: 닫힌 성곽을 지나는 길의 칸이 비용 격자와 다르다(%d칸 / %d칸)" % [a, z, mine.size(), old.size()]
+			if (b.footprint.has(z) or b.water.has(z) or z == b.base.cell) and slow != true:
+				return "판 %d %s → %s: 목적지가 구조물·물·거점 칸인데 _slow가 %s다(참이어야 한다)" % [kind, a, z, slow]
+			if z != b.base.cell and old.back() == z and old.all(func(c): return b.grid.block_at(c) == null):
+				clean += 1
+				if kind < 2 and slow != false:
+					return "판 %d %s → %s: 막힌 칸 없이 닿는 길인데 _slow가 %s다(네이티브 격자면 거짓)" % [kind, a, z, slow]
+	return check(clean >= 50, "300쌍 가운데 막힌 칸 없이 목적지에 닿는 쌍 %d(50 이상)" % clean)
