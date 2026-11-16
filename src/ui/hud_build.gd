@@ -176,9 +176,17 @@ static func gear_icon(kind: String, small := false) -> AtlasTexture:
 	t.region = Rect2(i * 8, 16, 8, 8) if small else Rect2(i * 16, 0, 16, 16)
 	return t
 
+# 2026-11-16
+# [동작] 종류마다 한 번 자른 칸 그림을 담아 두고 icon이 같은 객체를 돌려준다(I302). 돌려받은 그림의 atlas·region은 바꾸지 않는다(여러 칸이 나눠 쓴다)
+# [이유] 여백을 자르려고 아틀라스를 통째로 읽는(get_image) 값이 창 모드에서 한 번에 약 15ms다. 거점 패널이 프레임마다 카드·최근 칸 그림을 다시 넣어 프레임이 9.9ms에서 77ms가 됐다(play_review/2026-11-15.md 1번)
+static var _icons := {}  # 종류 → 잘라 둔 칸 그림
+
 # 시설·용병 그림을 잘라 칸 그림 대역으로 쓴다(S30, ui_research/00_brief.md §7). 빈 여백을 잘라 칸을 채우고, 칸에 맞춰 줄이는 것은 TextureRect가 한다
 static func icon(kind: String) -> AtlasTexture:
+	if _icons.has(kind):
+		return _icons[kind]
 	var t := AtlasTexture.new()
+	_icons[kind] = t
 	if BattleView.FAC.has(kind):  # [열, 그림 맨 윗줄, 맨 아랫줄 + 1]
 		var f: Array = BattleView.FAC[kind]
 		t.atlas = BattleView.FACILITY
