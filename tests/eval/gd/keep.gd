@@ -556,13 +556,18 @@ func ev1118():
 	return check(locked == [1, "Lv2 필요", true] and kept and "✕ 마을 Lv2 필요" in said and "Lv2에 강화 1단계" in tip and opened == [2, "강화 %d" % cost[0], false] and next == [1, "Lv3 필요"],
 		"마을 Lv1 띠 %s(1·Lv2 필요·눌리지 않음) · 눌러도 그대로 %s · 설명 상자 «%s»(«✕ 마을 Lv2 필요») · 마을 레벨 버튼 툴팁 «%s»(«Lv2에 강화 1단계») · 올린 뒤 %s(2·강화 %d·눌림) · 띠 누른 뒤 %s(1·Lv3 필요)" % [locked, kept, said, tip, opened, cost[0], next])
 
-# EV1125 · I302: 칸 그림 대역은 종류마다 한 번 잘라 나눠 쓴다. icon을 같은 종류로 두 번 부르면 같은 객체이고, 거점 패널을 연 채 HUD를 돌려도 카드·최근 칸 그림 객체가 그대로다
+# EV1125 · I302: 칸 그림 대역은 종류마다 한 번 잘라 나눠 쓴다. icon을 같은 종류로 두 번 부르면 같은 객체이고 다시 자르지 않는다. 거점 패널을 연 채 HUD를 돌려도 카드·최근 칸 그림 객체가 그대로다
 func ev1125():
 	var build = load("res://src/ui/hud_build.gd")
 	var twice := {}
 	for kind in ["soldier", "workshop", "base"]:  # 용병·시설·거점
 		twice[kind] = is_same(build.icon(kind), build.icon(kind))
 	var apart: bool = not is_same(build.icon("soldier"), build.icon("archer"))
+	var probe: AtlasTexture = build.icon("soldier")
+	var cut: Rect2 = probe.region
+	probe.region = Rect2(0, 0, 1, 1)  # 다시 자르면 region이 잘린 칸으로 되돌아온다. 확인하고 되돌린다
+	var once: bool = build.icon("soldier").region == Rect2(0, 0, 1, 1)
+	probe.region = cut
 	var main = _live_prep()
 	var b = main.view.battle
 	var k = _panel(main)
@@ -583,5 +588,5 @@ func ev1125():
 	var recent := [k.recent[0], recent0 != null and is_same(recent0, k.recent_pics[0].texture), is_same(k.recent_pics[0].texture, build.icon("shieldman"))]
 	var cards: Array = shown.map(func(i): return k.kinds[i])
 	_done(main)
-	return check(twice.values().all(func(v): return v) and apart and cards == MELEE.slice(0, 4) and kept.all(func(v): return v) and shared.all(func(v): return v) and recent == ["shieldman", true, true],
-		"icon 두 번 같은 객체 %s(모두 참) · 병사·궁수 다른 객체 %s · 근접 탭 카드 %s · HUD 두 번 뒤 카드 그림 그대로 %s(모두 참) · icon과 같은 객체 %s(모두 참) · 첫 최근 칸 [종류, 그대로, icon과 같음] %s([shieldman, 참, 참])" % [twice, apart, cards, kept, shared, recent])
+	return check(twice.values().all(func(v): return v) and apart and once and cards == MELEE.slice(0, 4) and kept.all(func(v): return v) and shared.all(func(v): return v) and recent == ["shieldman", true, true],
+		"icon 두 번 같은 객체 %s(모두 참) · 병사·궁수 다른 객체 %s · 다시 자르지 않음 %s · 근접 탭 카드 %s · HUD 두 번 뒤 카드 그림 그대로 %s(모두 참) · icon과 같은 객체 %s(모두 참) · 첫 최근 칸 [종류, 그대로, icon과 같음] %s([shieldman, 참, 참])" % [twice, apart, once, cards, kept, shared, recent])
