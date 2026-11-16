@@ -46,6 +46,8 @@ MERGE_ONLY = {f"EV{n}" for n in (
     1120,  # village(거점 그림)
     1121, 1122, 1123,  # 테두리 대비(S371)
     1124,  # 누름·포커스 모양(S372)
+    1161,  # herobar(초상 세모 그림·남은 초 글 모양, I310)
+    1166, 1167,  # dashfx(대시 잔상·먼지·자세, I261 ⑧)
 )}
 _full = os.environ.get("EVAL_FULL") == "1"
 
