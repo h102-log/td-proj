@@ -8,7 +8,7 @@ extends SceneTree
 # 명령(한 줄에 하나, 좌표는 기준 해상도 640×360. 캡처는 창 크기 1280×720이라 캡처에서 잰 좌표를 반으로 줄여 쓴다):
 #   click x y · rclick x y · move x y(커서만 옮기고 툴팁이 뜰 만큼 프레임을 쉰다) · drag x1 y1 x2 y2(좌버튼) · pan x1 y1 x2 y2(휠 버튼 드래그) · wheel up|down x y
 #   key 이름(Enter·Space·Escape·Q·F1·1·Minus …) · wait 초(게임 시간 진행, 단계가 바뀌면 거기서 멈춘다) · quit
-# 게임 시간은 wait에서만 흐른다. seed를 주면 영입 목록·미션이 매번 같아서, log.txt를 새 폴더의 하네스에 통째로 보내면 같은 판이 재생된다.
+# 게임 시간은 wait에서만 흐른다. seed를 주면 미션이 매번 같아서, log.txt를 새 폴더의 하네스에 통째로 보내면 같은 판이 재생된다.
 # 실행마다 새 폴더를 쓴다(캡처 번호가 001부터 다시 시작하고 log.txt는 이어 붙는다).
 
 const DT := 0.05  # autoplay.gd의 기본 한 걸음과 같다
@@ -40,7 +40,7 @@ func _start() -> void:
 	main.view.get_viewport().get_camera_2d().manual = false  # 실제 마우스 위치로 하는 가장자리 스크롤·방향키(camera.gd _process)를 읽지 않는다
 	if seed != null:
 		var b = main.view.battle
-		b._stage["seed"] = seed  # restart()가 이 씨앗으로 영입 목록·미션을 뽑는다. 새 도전도 같은 씨앗이다
+		b._stage["seed"] = seed  # restart()가 이 씨앗으로 미션을 뽑는다. 새 도전도 같은 씨앗이다
 		b.restart()
 		b.begin_hiring()
 

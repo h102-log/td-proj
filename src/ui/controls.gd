@@ -17,7 +17,7 @@ extends RefCounted
 # - 마법 타워(S110) · 5 공병 · 6 작업장 · 7 궁수(I71) · 8 대포(S92) · 0 집(S103) · = 교회(I140) · \ 대피소(S226): 놓기 모드(방벽·타워·용병은 키 없이 건설 격자 칸으로, I108 2026-11-06 변경). 그동안 좌클릭은 그 칸에 짓거나 놓고, 우클릭·ESC·같은 키는 모드를 끝낸다(사용자 2026-10-12, S186)
 # 전투 단계엔 구조물만 짓는다(공병이 가서 짓는다, S22). 단계가 바뀌면 모드가 끝난다
 # 옮길 대포(moving)가 있으면 다음 좌클릭한 칸으로 옮기고(S91), 우클릭·ESC·단계 변경은 옮기기를 그만둔다
-# 결과 창(라운드 사이·도전 끝)과 도전 시작 전 영입 창이 떠 있는 동안에는 아무 입력도 받지 않는다(S117, I109)
+# 결과 창(라운드 사이·도전 끝)과 도전 시작 전 영웅 고르기 창이 떠 있는 동안에는 아무 입력도 받지 않는다(S117, I109)
 
 # ponytail: 맵 px 기준이라 줌에 따라 화면에서 느끼는 거리가 달라진다. 거슬리면 화면 px로 잰다
 const CLICK_SLOP := 4.0  # 이보다 덜 끌고 떼면 클릭이다(맵 px)
@@ -64,25 +64,12 @@ var mouse := Vector2()  # 마지막 마우스 위치(맵 px). 화면이 조준 �
 var quickcast := false  # 퀵캐스트(I158): 조준하는 칸의 키를 누르는 순간 커서 자리에 쓴다. main이 설정(S184)에서 넣는다
 var order := {}  # 마지막으로 간 명령(S205): at(맵 px)·attack·foe. 명령마다 새 사전이라 화면이 is_same으로 새 명령을 안다
 var shown = null  # 선택 패널에 보인 적(S206). 유닛·구조물을 다시 고르거나 ESC를 누르면 비운다. 그 적이 쓰러지면 패널(hud_select)이 비운다
-var shop := false  # 언제든 영입 창(S272)이 떠 있다. 그동안 맵 입력을 받지 않는다(I206). set_shop으로 바꾼다
 var _state: String  # 마지막으로 본 판 단계. 바뀌면 놓기 모드를 끝낸다
 
 func _init(b, px: int) -> void:
 	battle = b
 	cell_px = px
 	_state = b.state
-
-# 언제든 영입 창을 열거나 닫는다(S272). 열면 놓기·대포 옮기기·조준·공격 이동 모드를 끈다(I206)
-func set_shop(on: bool) -> void:
-	shop = on
-	if on:
-		placing = ""
-		moving = null
-		aiming = ""
-		attacking = false
-		missing = ""
-		_press = null
-		drag_rect = Rect2()
 
 func handle(event: InputEvent) -> void:
 	if battle.state != _state:  # 키보다 먼저 본다. 단계가 바뀐 뒤 첫 입력이 놓기 키여도 모드가 켜지게
@@ -97,7 +84,7 @@ func handle(event: InputEvent) -> void:
 		aiming = ""
 	if event is InputEventMouse:
 		mouse = event.position
-	if battle.state not in ["prep", "battle", "raid"] or shop:  # 창이 떠 있는 동안은 맵 명령을 받지 않는다(S117, I109, I206). 원정(S316)은 받는다
+	if battle.state not in ["prep", "battle", "raid"]:  # 창이 떠 있는 동안은 맵 명령을 받지 않는다(S117, I109). 원정(S316)은 받는다
 		_press = null
 		drag_rect = Rect2()
 		return

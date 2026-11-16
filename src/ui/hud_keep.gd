@@ -534,7 +534,7 @@ func stat_line(k: String) -> String:
 func refresh(delta: float) -> void:
 	if battle.state != "prep":  # 무를 목록은 이번 준비 단계 것만(S367)
 		undos.clear()
-	visible = controls.village and battle.state in ["prep", "battle"] and not controls.shop
+	visible = controls.village and battle.state in ["prep", "battle"]
 	if not visible:
 		_arm = -INF
 		controls.rallying = false

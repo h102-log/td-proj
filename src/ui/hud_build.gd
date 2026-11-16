@@ -100,7 +100,7 @@ func _ready() -> void:
 		n.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 func _process(delta: float) -> void:
-	visible = battle.state in ["prep", "battle"] and not controls.shop  # 언제든 영입 창이 떠 있으면 숨는다(I206)
+	visible = battle.state in ["prep", "battle"]
 	if not visible:
 		return
 	_none = battle.crewed() and battle.engineer_gap([]) == "none"

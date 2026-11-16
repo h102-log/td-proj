@@ -62,7 +62,7 @@ func _process(delta: float) -> void:
 		keys(delta)
 	glide(delta)
 
-# 방향키 이동(S53). 버튼에 키보드 포커스가 있으면(영입 창·결과 창, I110) 방향키는 그 버튼이 쓴다
+# 방향키 이동(S53). 버튼에 키보드 포커스가 있으면(고르기 창·결과 창, I110) 방향키는 그 버튼이 쓴다
 func keys(delta: float) -> void:
 	if get_tree().root.gui_get_focus_owner() != null:
 		return

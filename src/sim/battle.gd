@@ -13,7 +13,8 @@ var ENEMY_KINDS := _kinds("res://data/enemies/")
 var MERC_KINDS := _kinds("res://data/mercs/")
 var STRUCTURE_KINDS := _kinds("res://data/structures/")
 var HERO_KINDS := _kinds("res://data/heroes/")  # 칸의 뜻은 src/data/hero_def.gd 머리 주석(S97, I95)
-var HIRE = load("res://data/hire.tres")  # 영입소 수치(S123, I103)
+const HERO_ORDER := ["aias", "sylvia", "seraphina", "vesper", "ignis", "chronos"]  # 고르기 창 카드 차례 = S97 표 차례(S373). 난이도 손잡이가 아니다
+var HIRE = load("res://data/hire.tres")  # 영웅 고르기·장비·유물 수치(S123, S246, S334)
 var LEVELS = load("res://data/levels.tres")  # 영웅 레벨 수치(S126, I111)
 var QUEST_KINDS := _kinds("res://data/quests/")  # 미션 정의(S77, I118). 칸의 뜻은 src/data/quest_def.gd 머리 주석
 var FLOOR_KINDS := _kinds("res://data/dungeon/")  # 던전 층(S316). 파일 이름이 층 id다. 칸의 뜻은 src/data/floor_def.gd 머리 주석
@@ -501,16 +502,14 @@ var units := []  # 살아 있는 영웅·용병
 var heroes := []  # 전장에 나온 출전 영웅(Unit)들, 보유 순서(I108). 쓰러진 영웅도 들어 있다(I102)
 var hero  # 첫 출전 영웅(S119, I108). 영웅이 없으면 null
 var held = null  # 플레이어가 스킬을 조준 중인 영웅(S298). 조작(controls.gd)이 정하고, 그 영웅은 오토가 쉰다
-var roster := []  # 보유 영웅, 영입 순서(S58, S59). 새 도전이면 비운다(S64)
-var lineup := []  # 다음 라운드에 출전할 영웅(S59, I106). 영입 창에서 바꾸고 다음 라운드로 넘어갈 때 전장에 반영한다(S124)
+var roster := []  # 보유 영웅 = 출전 영웅, 고른 순서(S373, I108). 새 도전이면 비운다(S64)
 var bag := {}  # 가진 전용장비: 영웅 종류 → 강화 수치(+0부터, S246). 새 도전이면 비운다
 var forged := {}  # 이번 라운드 사이 창에서 장비마다 제작·강화한 횟수(S246). 다음 라운드로 넘어갈 때 비운다
 var dropped := []  # 이번 라운드 사이의 전리품 [영웅 종류, 전 수치(없던 장비면 -1), 뒤 수치](S252). 없으면 []. 결과 창이 보인다
 var relics := {}  # 가진 유물: 유물 id → 강화 수치(+0부터, S334). 새 도전이면 비운다
 var relic_forged := {}  # 이번 라운드 사이 창에서 유물마다 강화한 횟수(S334). 다음 라운드로 넘어갈 때 비운다
 var merc_rank := {}  # 용병 종류 → 산 강화 단계 수(S254). 키가 없으면 0. 새 도전이면 비운다
-var offers := []  # 영입소 목록: 칸마다 영웅 종류, 영입한 칸은 ""(I103, I104)
-var rerolls := 0  # 이번 라운드에 리롤한 횟수(S273). 도전을 시작할 때와 라운드를 이겨 목록을 무료로 새로 뽑을 때 0이 된다
+var offers := []  # 고르기 창 목록: 영웅 종류 여섯(S97 표 차례). 고른 뒤에도 칸이 비지 않는다(I303 ①). 평가가 바꿔 넣을 수 있다
 var quests := []  # 이 도전에서 뜰 수 있는 미션 이름(I118). 스테이지의 quests가 정한다. 비어 있으면 미션이 없다
 var mission := ""  # 지금 라운드의 미션(S77, I120). 없으면 ""
 var settled := []  # 지난 라운드의 미션 판정 [이름, 달성 여부](I120). 결과 창이 보인다(I122)
@@ -519,7 +518,7 @@ var revive := true  # 쓰러진 영웅이 다음 준비 단계에 돌아온다(S
 # 준비 단계를 적 없는 전투로 돈다(S18 2026-10-25 변경, I175): 짓기·업그레이드·수리·복구는 공병, 용병은 시설에서 산다. 시작 공병(S208)도 이것이 켜졌을 때다
 # ponytail: 평가 300여 곳이 준비 단계 즉시 짓기·놓기로 판을 차려서, 끄면 옛 규칙인 길을 남긴다. 게임 장면(Main.live_prep)·하네스·봇이 켠다
 var live_prep := false
-var state := "prep"  # "prep" | "battle" | "raid"(보스방 원정, S316) | "hiring"(도전 시작 전 영입 창, S122) | "cleared"(라운드 사이, S117) | "won"(도전 성공) | "lost"
+var state := "prep"  # "prep" | "battle" | "raid"(보스방 원정, S316) | "hiring"(도전 시작 전 영웅 고르기 창, S122·S373) | "cleared"(라운드 사이, S117) | "won"(도전 성공) | "lost"
 var round_index := 0
 var wave_index := 0
 var gold := 0
@@ -565,10 +564,10 @@ var _queue := []      # 이번 웨이브에서 아직 안 나온 적 [종류, �
 var _spawn_timer := 0.0
 var _spare := 0.0  # 아직 1골드가 되지 않은 처치 보상(I176)
 var _stage: Dictionary  # 재시작할 때 다시 읽는다
-var _rng := RandomNumberGenerator.new()  # 영입소 목록을 뽑는다. 스테이지에 seed가 있으면 그 씨앗이다(평가용)
-var _luck := RandomNumberGenerator.new()  # 아이아스 패시브 확률 감소(S151, I258). 영입소 목록이 전투에 따라 바뀌지 않게 따로 둔다
-var _kin := RandomNumberGenerator.new()  # 집의 가족(S221). 영입소·전투 난수가 집 짓기에 따라 바뀌지 않게 따로 둔다
-var _loot := RandomNumberGenerator.new()  # 전리품(S252). 영입소 목록·미션이 전리품에 따라 바뀌지 않게 따로 둔다(I202)
+var _rng := RandomNumberGenerator.new()  # 미션을 뽑는다(I120). 스테이지에 seed가 있으면 그 씨앗이다(평가용)
+var _luck := RandomNumberGenerator.new()  # 아이아스 패시브 확률 감소(S151, I258). 미션이 전투에 따라 바뀌지 않게 따로 둔다
+var _kin := RandomNumberGenerator.new()  # 집의 가족(S221). 미션·전투 난수가 집 짓기에 따라 바뀌지 않게 따로 둔다
+var _loot := RandomNumberGenerator.new()  # 전리품(S252). 미션이 전리품에 따라 바뀌지 않게 따로 둔다(I202)
 var _shot := RandomNumberGenerator.new()  # 궁수 명중(S178 2026-11-04 변경, I224 ③). 다른 난수가 사격에 따라 바뀌지 않게 따로 둔다
 var _spark := RandomNumberGenerator.new()  # 번개 전이 확률(S359, I294 ⑦). 다른 난수가 전이에 따라 바뀌지 않게 따로 둔다
 var _chains := 0  # 영혼 사슬(S154)마다 붙이는 번호
@@ -725,7 +724,6 @@ func restart() -> void:
 		units.append(h)
 	hero = heroes[0] if heroes else null
 	roster = heroes.duplicate()
-	lineup = heroes.duplicate()
 	if stage.has("seed"):
 		_rng.seed = stage.seed
 		_luck.seed = stage.seed + 1
@@ -740,8 +738,7 @@ func restart() -> void:
 		_loot.randomize()
 		_shot.randomize()
 		_spark.randomize()
-	_draw_offers()  # 도전을 시작할 때 무료로 뽑는다(I104)
-	rerolls = 0
+	offers.assign(_hero_list())  # 고르기 창의 목록(S373). 난수를 쓰지 않는다
 	var q = stage.get("quests", [])  # 미션(I118): true면 data/quests의 모든 것, 배열이면 그 이름들만(평가용). 없으면 뜨지 않는다
 	quests = QUEST_KINDS.keys() if q is bool and q else (q.duplicate() if q is Array else [])
 	quests.sort()
@@ -815,8 +812,6 @@ func step(dt: float) -> void:
 			state = "prep"
 		elif round_index + 1 < rounds.size():
 			state = "cleared"  # 라운드 사이(S117). 다음 라운드는 next_round로 간다
-			_draw_offers()  # 목록은 라운드를 이길 때 무료로 새로 뽑고, 리롤 비용은 처음 값으로 돌아간다(I104, S273)
-			rerolls = 0
 			_drop_gear()
 		else:
 			state = "won"  # 마지막 라운드를 이겨 도전에 성공했다(I92)
@@ -1025,8 +1020,8 @@ func spawn_counts(r: int, w: int) -> Array:
 func enemies_left() -> int:
 	return _queue.size() + enemies.size()
 
-# 영입 창(S122)이나 라운드 사이(S117)에서 1라운드나 다음 라운드의 첫 준비 단계로 간다. 그 밖에서는 거부한다
-# 출전 목록을 전장에 반영하고(S124), 구조물·성곽·마을·용병·골드와 계속 출전하는 영웅은 그대로 이어진다(S63, S79, S61, I93)
+# 고르기 창(S122)이나 라운드 사이(S117)에서 1라운드나 다음 라운드의 첫 준비 단계로 간다. 그 밖에서는 거부한다
+# 보유 영웅을 전장에 반영하고(S124), 구조물·성곽·마을·용병·골드와 계속 출전하는 영웅은 그대로 이어진다(S63, S79, S61, I93). 영웅이 모자라도(0명도) 넘어간다(I106)
 # 쓰러진 영웅은 부활 설정과 상관없이 시작 지점으로 돌아온다(I93)
 func next_round() -> bool:
 	if not hiring_open():
@@ -1445,103 +1440,63 @@ func _body(h: Unit) -> Dictionary:
 			out[p.name] = v.duplicate(true) if v is Array or v is Dictionary else v
 	return out
 
-# [동작] 도전 시작 전 영입 창(S122)을 연다. main·HUD가 새 도전(restart) 직후에 부른다
+# [동작] 도전 시작 전 영웅 고르기 창(S122, S373)을 연다. main·HUD가 새 도전(restart) 직후에 부른다. 이름은 영입이 있던 때의 것이다(I303 ①)
 # [이유] restart()가 곧바로 열지 않는 것은 동결된 평가(EV36·EV80·EV165·EV170)가
 #        «restart 직후 = 1라운드 웨이브 1의 준비 단계»에 기대서다
 func begin_hiring() -> void:
 	state = "hiring"
 
-# 영입 창(도전 시작 전·라운드 사이)이 떠 있다. 내보내기·출전 선택은 이때만 한다(I104, I206)
+# 고르기 창(도전 시작 전)이나 라운드 사이 창이 떠 있다. 고르기·빼기는 이때만 받는다(I303 ①). 이름은 영입이 있던 때의 것이다
 func hiring_open() -> bool:
 	return state in ["hiring", "cleared"]
 
-# 영입·리롤을 받는 때: 영입 창과 준비·전투 단계(S272)
-func can_hire() -> bool:
-	return hiring_open() or state in ["prep", "battle"]
+# 고르는 수 = 출전 인원(S123의 lineup, S373). 출전 칸(I107)보다 많이는 세울 자리가 없어 칸 수를 넘지 않는다.
+# 출전 칸보다 큰 lineup(테스트 모드 «영입» 분류의 줄)은 지원하지 않는다 — 그 값이 넷째를 고르게 해 _deploy가 깨지지 않게만 한다
+func lineup_size() -> int:
+	return mini(HIRE.lineup, _stage.hero_cells.size()) if _stage.has("hero_cells") else HIRE.lineup
 
-# 지금 리롤 비용: 기본값 + 이번 라운드에 리롤한 횟수 × 오름값(S273)
-func reroll_cost() -> int:
-	return HIRE.reroll + rerolls * HIRE.reroll_step
+# 고르기 창의 목록(S373): S97 표 차례. 표에 없는 영웅 데이터는 이름순으로 뒤에 붙는다
+func _hero_list() -> Array:
+	var rest: Array = HERO_KINDS.keys().filter(func(k): return k not in HERO_ORDER)
+	rest.sort()
+	return HERO_ORDER.filter(func(k): return HERO_KINDS.has(k)) + rest
 
-# 목록을 모두 새로 뽑는다(I103): 칸마다 보유하지 않았고 이 목록에 아직 없는 영웅이 후보다. 후보가 있는 등급만 등장 확률 비율대로 고르고,
-# 그 등급의 후보 가운데 하나를 같은 확률로 고른다. 후보가 없으면 빈 칸이다
-func _draw_offers() -> void:
-	offers.clear()
-	for i in HIRE.slots:
-		var free := HERO_KINDS.keys().filter(func(k): return not k in offers and not roster.any(func(h): return h.kind == k))
-		if free.is_empty():
-			offers.append("")
-			continue
-		var odds := PackedFloat32Array(range(HIRE.odds.size()).map(func(g): return HIRE.odds[g] if free.any(func(k): return HERO_KINDS[k].grade == g + 1) else 0.0))
-		var grade: int = _rng.rand_weighted(odds) + 1
-		var kinds := free.filter(func(k): return HERO_KINDS[k].grade == grade)
-		offers.append(kinds[_rng.randi_range(0, kinds.size() - 1)])
-
-# 목록의 i번째 영웅을 영입한다(S54, S272). 빈 칸이거나, 골드가 모자라거나(I104), 보유 상한(S123)이면 거부한다
-# 출전 목록이 차지 않았으면 바로 출전 목록에 넣고(I106), 준비·전투 단계면 그 순간 빈 출전 칸에 세운다(I206)
+# 목록의 i번째 영웅을 고른다(S54 2026-11-16 변경, S373). 골드는 들지 않는다. 함수 이름은 영입이 있던 때의 것이다(I303 ①)
+# 고르기 창과, 영웅이 출전 인원보다 적은 라운드 사이에만 받는다. 빈 칸·이미 고른 영웅·출전 인원이 찼으면 거부한다
 func hire(i: int):
-	if not can_hire() or offers[i] == "" or roster.size() >= HIRE.cap:
+	if not hiring_open() or i < 0 or i >= offers.size() or not HERO_KINDS.has(offers[i]) or roster.size() >= lineup_size() \
+			or roster.any(func(h): return h.kind == offers[i]):
 		return null
-	var stats: Dictionary = HERO_KINDS[offers[i]]
-	var cost: int = HIRE.cost[stats.grade - 1]
-	if gold < cost:
-		return null
-	gold -= cost
-	var h := Unit.new(offers[i], Vector2i.ZERO, stats)
+	var h := Unit.new(offers[i], Vector2i.ZERO, HERO_KINDS[offers[i]])
 	h.is_hero = true
-	if bag.has(h.kind):  # 가방에 그 영웅 장비가 있으면 저절로 낀다(S247)
+	if bag.has(h.kind):  # 가방에 그 영웅 장비가 있으면 저절로 낀다(S247). 옛 저장의 빈 자리를 채울 때만 닿는다
 		h.worn = true
 		_refit(h)
-	offers[i] = ""
 	roster.append(h)
-	if lineup.size() < HIRE.lineup:
-		lineup.append(h)
-		if state in ["prep", "battle"]:
-			_deploy()
 	return h
 
-# 지금 리롤 비용(S273)을 내고 목록을 모두 새로 뽑는다(S57, I104). 골드가 모자라거나 보유 영웅이 상한이면 거부한다(I127)
-func reroll() -> bool:
-	if not can_hire() or gold < reroll_cost() or roster.size() >= HIRE.cap:
-		return false
-	gold -= reroll_cost()
-	rerolls += 1
-	_draw_offers()
-	return true
-
-# 보유 영웅을 내보낸다(I105). 환불은 없다. 전장에 있으면 다음 라운드로 넘어갈 때 사라진다(S124)
+# 고른 영웅을 뺀다(S373). 화면에서는 고르기 창의 카드를 다시 눌러서만 뺀다(hud.gd#_pick). 라운드 사이에도 받는 것은 평가가 쓰는 판 동작이다(I303 ①)
+# 전장에 있으면 다음 라운드로 넘어갈 때 사라진다(S124)
 func dismiss(h) -> void:
 	if hiring_open():
 		roster.erase(h)
-		lineup.erase(h)
 		if h.relic != "":  # 끼던 유물은 가방에 남는다(S334)
 			h.relic = ""
 			_refit(h)
 
-# 보유 영웅을 출전 목록에 넣거나 뺀다(S59). 출전 인원(S123)이 차 있으면 넣기를 거부한다
-func set_lineup(h, on: bool) -> bool:
-	if not hiring_open() or h not in roster or (on and h not in lineup and lineup.size() >= HIRE.lineup):
-		return false
-	if not on:
-		lineup.erase(h)
-	elif h not in lineup:
-		lineup.append(h)
-	return true
-
-# 출전 목록을 전장에 반영한다(S124). 빠진 영웅은 전장에서 사라지고, 계속 출전하는 영웅은 자리·체력이 그대로다.
+# 보유 영웅을 전장에 반영한다(S124). 빠진 영웅은 전장에서 사라지고, 계속 출전하는 영웅은 자리·체력이 그대로다.
 # 새로 출전한 영웅은 다른 출전 영웅이 시작 칸으로 쓰지 않는 첫 출전 칸에 최대 체력으로 선다(I107)
 func _deploy() -> void:
 	for h in heroes:
-		if h not in lineup:
+		if h not in roster:
 			units.erase(h)
-	var team := roster.filter(func(h): return h in lineup)  # 출전 순서는 보유 순서다(I108)
-	var homes := team.filter(func(h): return h in heroes).map(func(h): return h.home)
-	for h in team:
+	var homes := roster.filter(func(h): return h in heroes).map(func(h): return h.home)
+	for h in roster:
 		if h not in heroes:
 			h.home = _stage.hero_cells.filter(func(c): return c not in homes)[0]
 			homes.append(h.home)
 			_return_hero(h, true)
-	heroes.assign(team)
+	heroes.assign(roster)
 	hero = heroes[0] if heroes else null
 
 # 영웅 경험치를 n만큼 더한다(S125). 레벨·최대 체력·공격력은 _set_xp가 맞춘다

@@ -1,6 +1,6 @@
 extends Node
 # 게임 장면의 효과음 연결(S269, S270). main이 프레임마다 화면 사건 목록(I171)을 hear로 넘기면 사건을 효과음 키로 바꿔 소리 노드(audio.gd)로 내고,
-# 판 변화(놓기·공사 끝·영입·레벨)는 지난 프레임과 견줘 낸다. 웨이브 시작·보스 출현·놓기 거부는 신호로 받는다
+# 판 변화(놓기·공사 끝·영웅 고르기·레벨)는 지난 프레임과 견줘 낸다. 웨이브 시작·보스 출현·놓기 거부는 신호로 받는다
 
 const Audio := preload("res://src/audio.gd")
 const Battle := preload("res://src/sim/battle.gd")

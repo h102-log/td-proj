@@ -138,12 +138,12 @@ func add_enemy(r: int, w: int, kind: String) -> bool:
 	b.rounds[r][w].append({"kind": kind, "count": 1})
 	return true
 
-# 라운드 이동은 영입 창(도전 시작 전·라운드 사이)과 준비 단계에서만 한다(I235)
+# 라운드 이동은 고르기 창(도전 시작 전)·라운드 사이와 준비 단계에서만 한다(I235)
 func can_jump() -> bool:
 	return b.state in ["hiring", "prep", "cleared"]
 
-# 라운드 차례 r의 웨이브 1 준비 단계로 간다(I235). 도전 시작 전이면 먼저 1라운드로 들어간다(출전·시작 공병).
-# 라운드를 이긴 것이 아니라서 판정·세금·전리품·목록 뽑기 없이, 라운드 사이에서 다음 라운드로 갈 때(next_round)와 같이 넘어간다
+# 라운드 차례 r의 웨이브 1 준비 단계로 간다(I235). 도전 시작 전이면 먼저 1라운드로 들어간다(고른 만큼만 출전·시작 공병, I303 ①).
+# 라운드를 이긴 것이 아니라서 판정·세금·전리품 없이, 라운드 사이에서 다음 라운드로 갈 때(next_round)와 같이 넘어간다
 func jump(r: int) -> bool:
 	if not can_jump() or r < 0 or r >= b.rounds.size():
 		return false

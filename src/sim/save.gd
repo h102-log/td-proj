@@ -4,9 +4,9 @@ extends RefCounted
 # 공병 일과 집결 중인 시설뿐이다. 그래서 유닛·구조물은 스크립트 변수를 모두 담고, 객체를 가리키는 칸(SKIP)은 빼되 그 둘은 칸으로 담아 다시 잇는다
 
 const Battle := preload("res://src/sim/battle.gd")
-const VERSION := 7  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179). 4: 집의 가족(S221). 5: 주민의 원래 직업(S222). 6: 주민 체력·대피·신뢰(S225~S229). 7: 숙련·성장·다 큰 자녀(S231~S233, 주민 사전 xp·grow·grown)
+const VERSION := 7  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179). 4: 집의 가족(S221). 5: 주민의 원래 직업(S222). 6: 주민 체력·대피·신뢰(S225~S229). 7: 숙련·성장·다 큰 자녀(S231~S233, 주민 사전 xp·grow·grown). 2026-11-16: offers·rerolls·lineup 칸은 쓰지 않는다. 옛 저장의 그 칸은 apply가 거른다(I304, 판은 그대로)
 # 판에서 담는 칸. 맵·라운드·마을 칸은 같은 스테이지로 새 판을 만들면 같다
-const KEYS := ["state", "round_index", "wave_index", "gold", "village_level", "offers", "quests", "mission", "settled", "tally", "_chains",
+const KEYS := ["state", "round_index", "wave_index", "gold", "village_level", "quests", "mission", "settled", "tally", "_chains",
 	"trust", "calm", "evac_round", "folk_clock"]  # 주민의 체력·가는 길·일과 위상과 집의 죽은 식구 수는 구조물 folk·lost에 담긴다(I183 ⑩)
 
 # 유닛·구조물에서 담지 않는 칸: 읽기만 하는 present와, 다른 객체를 가리키는 칸(지난 공격 대상·공병 일·스킬 지시·실비아 표식·나온 생산 시설).
@@ -18,7 +18,7 @@ static var path := ""  # 저장 파일. 비어 있으면 쓰지 않는다. 진�
 
 static func snapshot(b) -> Dictionary:
 	var d := {"version": VERSION, "rng": b._rng.state, "luck": b._luck.state, "kin": b._kin.state, "spare": b._spare, "bag": b.bag.duplicate(), "forged": b.forged.duplicate(),
-		"loot": b._loot.state, "shot": b._shot.state, "dropped": b.dropped.duplicate(), "ranks": b.merc_rank.duplicate(), "rerolls": b.rerolls,
+		"loot": b._loot.state, "shot": b._shot.state, "dropped": b.dropped.duplicate(), "ranks": b.merc_rank.duplicate(),
 		"torches": b.torches, "floors_cleared": b.floors_cleared, "relics": b.relics.duplicate(), "relic_forged": b.relic_forged.duplicate()}
 	for k in KEYS:
 		d[k] = _copy(b.get(k))
@@ -31,7 +31,6 @@ static func snapshot(b) -> Dictionary:
 			people.append(h)
 	d.heroes = people.map(func(h): return _fields(h))
 	d.roster = b.roster.map(func(h): return people.find(h))
-	d.lineup = b.lineup.map(func(h): return people.find(h))
 	d.deployed = b.heroes.map(func(h): return people.find(h))
 	d.units = b.units.map(func(u): return people.find(u) if u.is_hero else _fields(u))  # 순서가 행동 순서라 그대로 둔다
 	return d
@@ -55,7 +54,6 @@ static func apply(b, d: Dictionary) -> void:
 	if d.has("shot"):  # 궁수 명중 난수(I224 ③). 이 칸이 생기기 전 저장은 새 판 그대로
 		b._shot.state = d.shot
 	b.merc_rank = d.get("ranks", {}).duplicate()  # 용병 강화 단계(I203). 이 칸이 생기기 전 저장은 0. 용병 수치는 유닛 칸에 담긴다
-	b.rerolls = d.get("rerolls", 0)  # 이번 라운드 리롤 횟수(I208). 이 칸이 생기기 전 저장은 0
 	b.torches = d.get("torches", 0)  # 횃불 자루와 깬 던전 층 수(S316, I262 ③). 이 칸이 생기기 전 저장은 0
 	b.floors_cleared = d.get("floors_cleared", 0)
 	b.relics = d.get("relics", {}).duplicate()  # 유물 가방과 창당 횟수(S334, I278 ②). 이 칸이 생기기 전 저장은 비어 있다. 낀 유물은 영웅 칸 relic이다
@@ -78,8 +76,11 @@ static func apply(b, d: Dictionary) -> void:
 		for k in pair[0].values():
 			b._put(pair[0], pair[1], k)
 	var people: Array = d.heroes.map(func(f): return _unit(f, b.HERO_KINDS))
-	b.roster.assign(d.roster.map(func(i): return people[i]))
-	b.lineup.assign(d.lineup.map(func(i): return people[i]))
+	var owned: Array = d.roster.map(func(i): return people[i])
+	if d.has("lineup"):  # 영입이 있던 때의 저장에만 출전 목록 칸이 있다(I304): 출전하던 영웅을 보유 순서대로 먼저, 모자라면 대기 영웅을 보유 순서대로 출전 인원까지
+		var out: Array = d.lineup.map(func(i): return people[i])
+		owned = (owned.filter(func(h): return h in out) + owned.filter(func(h): return h not in out)).slice(0, b.lineup_size())  # 넘는 대기 영웅은 버린다. 끼던 유물은 가방(relics)에 남는다
+	b.roster.assign(owned)
 	b.heroes.assign(d.deployed.map(func(i): return people[i]))
 	b.hero = b.heroes[0] if b.heroes else null
 	b.units.assign(d.units.map(func(x): return people[x] if x is int else _unit(x, b.MERC_KINDS)))

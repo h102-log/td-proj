@@ -1,14 +1,14 @@
 extends SceneTree
 # 밸런스 자동 플레이(WBS 3.4·5.5용 도구). 평가가 아니다 — 동결된 tests/eval과 상관없다.
-# 시험 스테이지(main.gd stage())의 6라운드 도전을 봇이 영입 창부터 끝까지 headless로 플레이하고,
+# 시험 스테이지(main.gd stage())의 6라운드 도전을 봇이 영웅 고르기 창부터 끝까지 headless로 플레이하고,
 # 웨이브마다 긴장감 지표를 «RESULT {json}» 한 줄로 낸다.
 #
 #   godot --headless --path . -s res://tools/balance/autoplay.gd -- '<설정 json>'
 #
 # 설정 키(모두 생략 가능):
-#   seed        영입 목록 씨앗(정수)
+#   seed        미션 씨앗(정수). 고르기 창의 목록은 늘 같다(S373)
 #   dt          시뮬 한 걸음(초, 기본 0.05)
-#   bot         봇 전략 손잡이(아래 BOT 기본값을 덮는다)
+#   bot         봇 전략 손잡이(아래 BOT 기본값을 덮는다). heroes가 고르기 창에서 고를 영웅이다
 #   over        수치 오버라이드. data/ 파일을 바꾸지 않고 이 실행에서만 바꾼다
 #     enemies/mercs/structures/heroes: {종류: {키: 값}}  · hire/levels: {키: 값}
 #     stage: {gold, base_hp, wall_hp, gate_hp, rounds: [[{종류: 수}, ...웨이브], ...라운드]}
@@ -21,8 +21,8 @@ extends SceneTree
 #                 battle.gd가 GATE_SPLIT_ROUND부터 같은 규칙(S143)을 걸어서, 그보다 이른 라운드를 재 볼 때만 뜻이 있다
 # ponytail: 봇은 «무난한 플레이어» 하나를 흉내 낼 뿐이다. 사람의 손을 대신하지 않는다. 판정은 사람이 한다
 # 준비 단계는 적 없는 전투다(live_prep, S18 2026-10-25 변경). 봇은 정문을 열어 두고 짓고 산 것이 다 될 때까지만 판을 돌린 뒤(PREP_MAX 상한) 정문을 닫는다.
-# 사람과 다른 점: 준비 단계 Q·오라 회복을 쓰지 않는다. 영웅을 마을로 부르지 않고 그 밖에는 성문을 여닫지 않고
-# 리롤하지 않는다. 미션 조건에 맞춰 운영을 바꾸지 않는다. 잔해 위 유닛은 한 칸 물려 세운다(사람이 준비 단계에 걸어서 비키는 손을 대신한다, 복구 거부 I89를 피한다)
+# 사람과 다른 점: 준비 단계 Q·오라 회복을 쓰지 않는다. 영웅을 마을로 부르지 않고 그 밖에는 성문을 여닫지 않는다.
+# 미션 조건에 맞춰 운영을 바꾸지 않는다. 잔해 위 유닛은 한 칸 물려 세운다(사람이 준비 단계에 걸어서 비키는 손을 대신한다, 복구 거부 I89를 피한다)
 
 const BOT := {
 	"name": "balanced",
@@ -34,11 +34,8 @@ const BOT := {
 	"prep_repair": true,    # 준비 단계에 성곽·구조물·잔해를 고친다. 거점은 base_repair_below 아래일 때만
 	"base_repair_below": 0.5,
 	"reserve": 0,           # 준비 단계에 남겨 둘 골드
-	"hire_reserve": 20,     # 영입 뒤 남겨 둘 골드(최소)
-	"hire_keep": 0.5,       # 영입 한 번마다 그때 골드의 이 비율은 방어에 남긴다
+	"heroes": ["aias", "sylvia", "seraphina"],  # 고르기 창에서 고를 영웅(차례대로, S54 2026-11-16 변경)
 	"lead": 6.0,            # 영웅이 정문 앞 기준점에서 쫓아가는 최대 거리(칸)
-	"hire_first_grade": 3,  # 도전을 시작할 때(1라운드 전) 영입하는 최고 등급
-	"hire_first_count": 2,  # 도전을 시작할 때 영입하는 최대 인원
 	"rally": [32, 64],      # 전투 중 산 병사를 보낼 칸
 	"fill": false,          # 쇼핑 목록을 다 사면 들판·성벽에 타워·마법 타워·대포를 계속 짓는다(골드가 놀지 않게)
 	"village_heroes": 0,    # 출전 영웅 가운데 뒤에서 이만큼을 준비 단계마다 마을 안 거점 옆(station)에 세운다
@@ -143,7 +140,7 @@ func _initialize() -> void:
 	b = _battle_class(over).new(stage)
 	b.live_prep = true  # 게임과 같은 준비 단계(I175)
 	_override_kinds(over)
-	b.restart()  # 오버라이드한 영입 확률로 목록을 다시 뽑는다
+	b.restart()  # 오버라이드한 수치로 판을 다시 차린다
 	b.begin_hiring()
 	b.enemy_spawned.connect(func(_e): _spawned += 1)
 	var out := _play()
@@ -304,55 +301,16 @@ func _fight() -> bool:
 	log.append(cur)
 	return not cur.has("stall")
 
-# ---------------------------------------------------------------- 영입 창
+# ---------------------------------------------------------------- 영웅 고르기 창
 
+# 고르기 창에서 bot.heroes 차례로 출전 인원만큼 고른다(S54 2026-11-16 변경). 모자라면 목록 앞에서부터 채운다. 라운드 사이에는 하는 일이 없다
 func _hire() -> void:
-	var hire = b.HIRE
-	# 출전 인원이 빌 때까지, 남겨 둘 골드를 지키며 살 수 있는 가장 높은 등급을 산다
-	var first: bool = b.state == "hiring"
-	for _i in 3:
-		if b.lineup.size() >= hire.lineup or b.roster.size() >= hire.cap:
-			break
-		if first and b.roster.size() >= bot.hire_first_count:
-			break
-		var best := -1
-		var best_grade := 0
-		for i in b.offers.size():
-			var k: String = b.offers[i]
-			if k == "":
-				continue
-			var g: int = b.HERO_KINDS[k].grade
-			# 도전 시작 전에는 최소 예비만 남긴다. 시작 골드 150일 때 절반을 남기면 3성(100골드)을 아무도 못 샀다(2026-10-19). 시작 220 패널도 이 규칙으로 쟀다
-			var keep: float = bot.hire_reserve if first else maxf(bot.hire_reserve, b.gold * bot.hire_keep)
-			if first and g > bot.hire_first_grade:
-				continue
-			if b.gold - hire.cost[g - 1] >= keep and g > best_grade:
-				best = i
-				best_grade = g
-		if best < 0:
-			break
-		var kind: String = b.offers[best]
-		if b.hire(best):
-			hires.append("R%d:%s" % [b.round_index + 1 + (1 if b.state == "cleared" else 0), kind])
-	# 출전 중인 영웅보다 높은 등급이 목록에 있고 넉넉하면 산 뒤 경험치를 옮겨 바꿔 낸다(S62의 의도)
-	if b.state == "cleared" and b.roster.size() < hire.cap:
-		for i in b.offers.size():
-			var k: String = b.offers[i]
-			if k == "":
-				continue
-			var g: int = b.HERO_KINDS[k].grade
-			var weak = null
-			for h in b.lineup:
-				if h.grade < g and (weak == null or h.grade < weak.grade):
-					weak = h
-			if weak and b.gold - hire.cost[g - 1] >= bot.hire_reserve + 60:
-				var h = b.hire(i)
-				if h:
-					hires.append("R%d:%s(교체)" % [b.round_index + 2, k])
-					b.transfer(weak, h)
-					b.set_lineup(weak, false)
-					b.set_lineup(h, true)
-				break
+	if b.state != "hiring":
+		return
+	for k in bot.heroes + b.offers:
+		var i: int = b.offers.find(k)
+		if i >= 0 and b.hire(i):
+			hires.append("R1:%s" % k)
 
 # ---------------------------------------------------------------- 준비 단계
 
