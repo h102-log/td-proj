@@ -21,6 +21,6 @@ extends Resource
 @export var groggy := {"time": 5.0, "mult": 1.5}  # 그로기 초와 그동안 받는 피해 배율(S323 ②)
 @export var enrage := {}  # 광폭 {soft, step, ramp}: 불꽃이 soft초 넘게 타면 step초마다 착지 피해가 ramp씩 는다(S323 ⑤). 비면 늘지 않는다
 @export var pull := 3.0  # 보스가 나와서 움직이기 전까지 서 있는 초(I262 ④)
-@export var hard := 120.0  # 불꽃이 다 타는 초(I262 ⑥)
+@export var hard := 0.0  # 불꽃이 다 타는 초(I262 ⑥). 0이면 다 타지 않는다(시간 제한 없음, S316 2026-11-16 변경)
 @export var gold := 0  # 처치하면 받는 층 골드(S333). 처치 보상 배율을 받지 않는다
 @export var relic := ""  # 처치하면 +0으로 받는 유물 id(data/relics 파일 이름, S333). 비면 유물이 없다

@@ -17,7 +17,7 @@ skills = {
 "born": 1.5,
 "damage": 35.0,
 "knock": 1.0,
-"range": 5.0,
+"range": 8.0,
 "reach": 4.0,
 "retry": 0.5,
 "slow": 0.3,
@@ -65,22 +65,22 @@ plan = [{
 "wait": 6.0
 }]
 gens = [{
-"gap": 6.0,
+"gap": 3.0,
 "hp": 400.0,
 "land": 2.5,
 "radius": 1.6
 }, {
-"gap": 12.0,
+"gap": 6.0,
 "hp": 200.0,
 "land": 1.9,
 "radius": 1.2
 }, {
-"gap": 12.0,
+"gap": 6.0,
 "hp": 100.0,
 "land": 1.6,
 "radius": 0.9
 }, {
-"gap": 12.0,
+"gap": 6.0,
 "hp": 50.0,
 "land": 1.3,
 "radius": 0.7
@@ -96,6 +96,5 @@ enrage = {
 "step": 10.0
 }
 pull = 3.0
-hard = 120.0
 gold = 120
 relic = "slime_crown"

@@ -1105,7 +1105,7 @@ func _show_progress() -> void:
 				_line(_g1, 9, HudTheme.TEXT, Rect2(4, 1, 60, 11))
 				_line(_g2, 8, HudTheme.DIM, Rect2(4, 12, 80, 11))
 				skull.position = Vector2(124, 14)
-			"raid":  # 원정(S317, I262 ⑧): 윗줄 남은 불꽃·횃불, 아랫줄 층
+			"raid":  # 원정(S317, I262 ⑧): 윗줄 남은 불꽃·횃불(불꽃이 다 타지 않는 층은 횃불만), 아랫줄 층
 				_line(_g1, 9, HudTheme.ACCENT, Rect2(3, 1, 80, 11))
 				_line(_g2, 8, HudTheme.DIM, Rect2(3, 12, 80, 11))
 			_:
@@ -1122,7 +1122,7 @@ func _show_progress() -> void:
 			_g1.text = "영입"
 			_g2.text = "다음 적 %d" % _total(nw)
 		"raid":
-			_g1.text = tr("불꽃 %d · 횃불 %d") % [_flame_left(), battle.torches]
+			_g1.text = tr("불꽃 %d · 횃불 %d") % [_flame_left(), battle.torches] if _timed() else tr("횃불 %d") % battle.torches
 			_g2.text = tr("원정 %d층") % (battle.floors_cleared + 1)
 		_:
 			_g1.text = {"won": "승리", "lost": "패배"}[st]
@@ -1199,13 +1199,18 @@ func _wave_tip() -> Array:
 			return ["남은 적 %d" % battle.enemies_left(), "", "", ("다음 웨이브\n" + _wave_lines(nw) if not nw.is_empty() else "이 라운드의 마지막 웨이브") + "\n누르면 거점에 가장 가까운 적을 비춘다", ""]
 		"hiring", "cleared":
 			return ["다음 라운드 첫 웨이브", "", "", _wave_lines(nw), ""]
-		"raid":  # 원정(S317)
-			return [tr("원정 %d층") % (battle.floors_cleared + 1), "", "", tr("남은 불꽃 %d초 · 횃불 %d자루\n불꽃이 다 타면 이번 원정은 진다") % [_flame_left(), battle.torches], ""]
+		"raid":  # 원정(S317). 불꽃이 다 타지 않는 층은 횃불 줄만 보인다
+			var body: String = tr("남은 불꽃 %d초 · 횃불 %d자루\n불꽃이 다 타면 이번 원정은 진다") % [_flame_left(), battle.torches] if _timed() else tr("횃불 %d자루") % battle.torches
+			return [tr("원정 %d층") % (battle.floors_cleared + 1), "", "", body, ""]
 	return [{"won": "승리", "lost": "패배"}[battle.state], "", "", "", ""]
 
 # 원정의 남은 불꽃 초(올림, I262 ⑧). 원정이 아니면 0
 func _flame_left() -> int:
 	return ceili(maxf(battle.raid_floor.get("hard", 0.0) - battle.flame, 0.0))
+
+# 이번 원정의 불꽃이 다 타는 층인가(층 정의 hard가 0보다 크다). 0이면 시간 제한이 없어 남은 불꽃 초를 보이지 않는다(S316 2026-11-16 변경)
+func _timed() -> bool:
+	return battle.raid_floor.get("hard", 0.0) > 0.0
 
 # 전투 중 진행 칸을 누르면 거점에 가장 가까운 적에게 카메라가 간다(I13, I164)
 func _to_enemy() -> void:

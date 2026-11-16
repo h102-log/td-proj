@@ -4342,12 +4342,14 @@ static func _open_cells(b, road: Dictionary) -> Array:
 				out.append(c)
 	return out
 
-# 켜진 벽 횃불 수(S317, I262 ⑨): 원정이 아니면 모두다. 원정 중이면 불꽃이 다 타는 시간의 1/4이 지날 때마다 하나씩 준다
+# 켜진 벽 횃불 수(S317, I262 ⑨): 원정이 아니거나 불꽃이 다 타지 않는 층(층 정의 hard 0, S316 2026-11-16 변경)이면 모두다.
+# 다 타는 층의 원정 중이면 다 타는 시간의 1/4이 지날 때마다 하나씩 준다
 func den_torches() -> int:
 	var n: int = battle.den.get("lamps", []).size()
-	if battle.state != "raid" or battle.raid_floor.is_empty():
+	var hard: float = battle.raid_floor.get("hard", 0.0)
+	if battle.state != "raid" or hard <= 0.0:
 		return n
-	return clampi(n - floori(battle.flame / (battle.raid_floor.hard / n)), 0, n)
+	return clampi(n - floori(battle.flame / (hard / n)), 0, n)
 
 # 보스방 바닥(S317): 방 사각형 크기에 흙 타일 변종을 깔고 점액 얼룩을 몇 개 얹는다. 모서리 막힌 칸은 비운다(아래 바위가 보인다).
 # 동굴 색은 그릴 때 DEN_TINT를 곱한다

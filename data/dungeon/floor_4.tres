@@ -119,6 +119,5 @@ enrage = {
 "step": 10.0
 }
 pull = 3.0
-hard = 150.0
 gold = 200
 relic = "wyvern_scale"

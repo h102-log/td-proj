@@ -1379,7 +1379,8 @@ func retry() -> bool:
 	return start_raid()
 
 # 원정 한 스텝(I262 ⑥): 끝났으면 기다림을 세어, 처치는 다 되면 돌아오고 전멸·불꽃은 «다시»·«철수»를 기다린다(S331).
-# 아니면 처치(방 안에 보스 몸이 없다, S322) → 전멸 → 불꽃 차례로 끝을 보고 불꽃을 태운다
+# 아니면 처치(방 안에 보스 몸이 없다, S322) → 전멸 → 불꽃 차례로 끝을 보고 불꽃을 태운다.
+# 불꽃은 층 정의 hard가 0보다 클 때만 끝을 낸다. 0이면 다 타지 않고 지난 초로만 흐른다(S316 2026-11-16 변경)
 func _raid_step(dt: float) -> void:
 	if _raid_end[0] != "":
 		_raid_end[1] -= dt
@@ -1390,7 +1391,7 @@ func _raid_step(dt: float) -> void:
 		_end_raid("win", den.win_wait)
 	elif not party.any(func(h): return h.alive):
 		_end_raid("wipe", den.wipe_wait)
-	elif flame >= raid_floor.hard:  # 다 타면 보스 몸이 모두 사라진다. 남은 체력 비율은 사라지기 전에 굳힌다
+	elif raid_floor.hard > 0.0 and flame >= raid_floor.hard:  # 다 타면 보스 몸이 모두 사라진다. 남은 체력 비율은 사라지기 전에 굳힌다
 		_end_raid("flame", den.wipe_wait)
 		for e in _raiders():
 			enemies.erase(e)
