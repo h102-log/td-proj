@@ -262,3 +262,36 @@ func ev1136():
 	S.apply(c, d)
 	return check(h1 != null and h2 != null and old == 2 and c.pop_houses().size() == 2 and c.pop_cap() == c.POP_BASE + 2 * per,
 		"지은 집 %s·%s · pop을 1로 바꾼 저장 구조물 %d(2) · 불러온 판의 인구를 주는 집 %d(2) · 상한 %d(기대 %d = 거점 몫 %d + 2 × 집 몫 %d)" % [h1, h2, old, c.pop_houses().size(), c.pop_cap(), c.POP_BASE + 2 * per, c.POP_BASE, per])
+
+# EV1142 · S374 ⑤: 잇달아 산 용병은 집결 칸이 차 있으면(먼저 산 용병이 가고 있다) 집결 지점에서 가장 가까운 빈 칸에 선다.
+# 먼저 선 용병은 뒤따라 걷는 용병에게 밀리지 않는다(I307 ②)
+func ev1142():
+	var b = _battle()
+	var f = b.build("workshop", F)
+	if f == null:
+		return "마을 칸에 작업장을 짓지 못했다"
+	b.set_rally(f, R1)
+	b.start_battle()
+	var ms := []
+	for i in 3:
+		var m = b.recruit(f)
+		if m == null:
+			return "%d번째 공병을 사지 못했다" % (i + 1)
+		ms.append(m)
+	var first = ms[0]
+	var track := {"at": null, "drift": 0.0}
+	var idle := func(u): return u.path.is_empty() and u.after.is_empty()
+	var done := _calm(b, 30.0, func():
+		if track.at == null and idle.call(first):
+			track.at = first.pos
+		elif track.at != null:
+			track.drift = maxf(track.drift, first.pos.distance_to(track.at))
+		return ms.all(func(m): return idle.call(m)))
+	var cells := []
+	for m in ms:
+		var c := cell_of(m)
+		if m.pos.distance_to(Vector2(c)) <= 0.05 and c not in cells:
+			cells.append(c)
+	var side := [R1 + Vector2i.LEFT, R1 + Vector2i.RIGHT, R1 + Vector2i.UP, R1 + Vector2i.DOWN]
+	return check(done and cells.size() == 3 and cells[0] == R1 and cells[1] in side and cells[2] in side and track.drift <= 0.05,
+		"30초 안에 다 섬 %s · 선 자리 %s(기대 첫째 %s, 나머지 둘은 그 4방향 이웃 칸 중심) · 첫째가 닿은 뒤 벗어난 거리 %.3f(0.05 이하)" % [done, ms.map(func(m): return m.pos), R1, track.drift])

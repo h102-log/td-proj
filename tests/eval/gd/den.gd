@@ -5077,3 +5077,35 @@ func ev1126():
 		return "판 %s(raid) · hard 0에서 불꽃 0·130초의 [진행 칸 글, 툴팁] %s(진행 칸에 «횃불 1»이 있고 «불꽃»이 없어야, 툴팁에 «횃불 1자루»가 있고 «불꽃»·«진다»가 없어야)" % [st, rows]
 	return check("불꽃 87 · 횃불 1" in timed[0] and "남은 불꽃 87초" in timed[1] and "불꽃이 다 타면 이번 원정은 진다" in timed[1],
 		"hard 120·불꽃 33.5초의 [진행 칸 글, 툴팁] %s(진행 칸에 «불꽃 87 · 횃불 1», 툴팁에 «남은 불꽃 87초»와 «불꽃이 다 타면 이번 원정은 진다»가 있어야)" % [timed])
+
+# EV1148 · S374 ⑥·I306 ①: 원정에서도 둘 이상 고른 이동은 대열이다. 보스가 «가장 가까운 적»이고, 집에 남은 병사는 대열에 세지 않고 움직이지 않는다(S316)
+func ev1148():
+	var b = _den()
+	var m = b.place_merc("soldier", _near(b, "soldier", Vector2i(40, 68)))
+	if m == null:
+		return "병사를 놓지 못했다"
+	var m0: Vector2 = m.pos
+	if not b.start_raid() or b.state != "raid" or b.party.size() != 3 or b.party[0].kind != "aias":
+		return "원정대 셋(아이아스 먼저)으로 원정에 들어가지 못했다(판 %s)" % b.state
+	for e in b.enemies:  # 보스를 움직이지도 치지도 않게 둔다
+		e.speed = 0.0
+		e.rest = 999.0
+		e.cd["leap"] = 999.0
+	var track := {"moved": 0.0}
+	b.order_move(b.party + [m], Vector2i(84, 85))
+	var idle := func(u): return u.path.is_empty() and u.after.is_empty()
+	var done := run(b, 5.0, func():
+		track.moved = maxf(track.moved, m.pos.distance_to(m0))
+		return b.party.all(func(h): return idle.call(h)))
+	if not done or b.state != "raid":
+		return "5초 안에 원정대가 서지 않았다(판 %s · 자리 %s · 걷는 길 %s)" % [b.state, b.party.map(func(h): return h.pos), b.party.map(func(h): return h.path)]
+	var cells := []
+	for h in b.party:
+		var c := cell_of(h)
+		if h.pos.distance_to(Vector2(c)) > 0.05 or c in cells:
+			return "원정대가 선 자리 %s(기대 서로 다른 칸 중심)" % [b.party.map(func(h2): return h2.pos)]
+		cells.append(c)
+	var boss: Vector2 = b.enemies[0].pos
+	var lead: float = Vector2(cells[0]).distance_to(boss)
+	return check(lead <= Vector2(cells[1]).distance_to(boss) and lead <= Vector2(cells[2]).distance_to(boss) and track.moved <= 0.05,
+		"선 칸 %s(아이아스 먼저) · 보스 %s · 아이아스가 가장 가까워야 · 집의 병사가 벗어난 거리 %.3f(0.05 이하)" % [cells, boss, track.moved])

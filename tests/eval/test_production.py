@@ -56,3 +56,7 @@ def test_EV741_unfinished_or_sold_house_population(gd):
 
 def test_EV1136_loaded_save_takes_house_pop_from_data(gd):
     gd("production", "EV1136")
+
+
+def test_EV1142_recruits_spread_around_full_rally(gd):
+    gd("production", "EV1142")

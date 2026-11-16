@@ -623,3 +623,49 @@ func ev1132():
 		return "보유 둘·출전 하나인 옛 저장: 보유 %s · 전장 %s · 1라운드 뒤 단계 %s" % [_kinds(h.roster), _kinds(h.heroes), h.state]
 	var third = h.hire(h.offers.find("ignis")) if "ignis" in h.offers else null
 	return check(third != null and _kinds(h.roster) == ["aias", "sylvia", "ignis"], "영웅이 모자란 판의 라운드 사이에 이그니스를 고른 뒤 보유 %s(셋이어야 한다)" % [_kinds(h.roster)])
+
+# EV1147 · I308 ③: 대열로 걷는 중에 저장해도 가는 자리(post)와 같이 걷기 상한(pace)이 담겨 불러온 판이 같은 결과를 낸다.
+# 그 두 칸이 없는 옛 저장의 유닛은 자리·상한 없이 불러온다(저장 형식 판 그대로)
+func ev1147():
+	var stage := _stage()
+	var a = _new(stage)
+	var us := []
+	for want in [Vector2i(40, 68), Vector2i(41, 68), Vector2i(42, 69), Vector2i(43, 69)]:
+		var m = a.place_merc("soldier", _near(a, "soldier", want))
+		if m == null:
+			return "병사를 놓지 못했다"
+		us.append(m)
+	a.order_move(us, Vector2i(42, 76))
+	run(a, 1.0)
+	if us.any(func(u): return u.path.is_empty()):
+		return "1초에 걷는 길이 빈 병사가 있다(걷는 중에 저장해야 한다)"
+	var S = _save()
+	var snap: Dictionary = S.snapshot(a)
+	var dicts: Array = []
+	for x in snap.units:
+		if x is Dictionary and x.kind == "soldier":
+			dicts.append(x)
+	if dicts.size() != 4:
+		return "snapshot의 병사 사전 %d개(4)" % dicts.size()
+	for i in 4:
+		if not dicts[i].get("pace", 0.0) > 0.0 or dicts[i].get("post") != us[i].path.back():
+			return "snapshot의 병사 %d: pace %s(0보다 커야) · post %s(기대 길 끝 %s)" % [i, dicts[i].get("pace"), dicts[i].get("post"), us[i].path.back()]
+	var old: Dictionary = snap.duplicate(true)
+	var why := _twin(a, stage, func(_x): pass)
+	if why != "":
+		return why
+	var cells := []
+	for u in us:
+		var c := cell_of(u)
+		if u.pos.distance_to(Vector2(c)) > 0.05 or c in cells:
+			return "20초 뒤 병사 자리 %s(기대 서로 다른 칸 중심)" % [us.map(func(v): return v.pos)]
+		cells.append(c)
+	for x in old.units:
+		if x is Dictionary:
+			x.erase("pace")
+			x.erase("post")
+	var c = _new(stage)
+	S.apply(c, old)
+	var back: Array = c.units.filter(func(u): return u.kind == "soldier")
+	return check(c.units.size() == a.units.size() and back.size() == 4 and back.all(func(u): return u.pace == 0.0 and u.post == Vector2i(-1, -1)),
+		"pace·post 없는 저장: 유닛 %d(%d) · 병사 %d(4) · pace %s · post %s(기대 0·(-1,-1))" % [c.units.size(), a.units.size(), back.size(), back.map(func(u): return u.get("pace")), back.map(func(u): return u.get("post"))])
