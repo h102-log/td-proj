@@ -1046,8 +1046,11 @@ msgstr "Click to view the enemy nearest the Keep"
 msgid "다음 라운드 첫 웨이브"
 msgstr "Next round, first wave"
 
-msgid "Lv%d · 체력 %d/%d\n누르면 고름 · 두 번이면 카메라"
-msgstr "Lv%d · HP %d/%d\nClick to select · twice to view"
+msgid "Lv%d · 체력 %d/%d\n누르면 고름 · 두 번이면 카메라\n용병과 함께 고른 무리는 그대로 두고 스킬 쓸 영웅만 바꿈\nSpace: 커서 쪽 %s칸 대시 · 대기 %s초"
+msgstr "Lv%d · HP %d/%d\nClick to select · twice to view\nIn a group with mercenaries: keeps the group, only changes who casts\nSpace: dash %s tiles toward the cursor · cooldown %ss"
+
+msgid "대시 대기 %d초"
+msgstr "Dash cooldown %ds"
 
 msgid "스킬은 전투 단계에만"
 msgstr "Skills only in battle"

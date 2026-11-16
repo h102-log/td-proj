@@ -1900,8 +1900,12 @@ func stop(group: Array) -> void:
 		_drop_orders(u)
 		_halt(u)
 
+var dashed := {}  # 마지막 대시(S315): 영웅 → [출발 자리, 내린 자리, 번호]. 번호는 판에서 대시마다 1씩 는다. 화면이 대시 사건(I261 ⑧)을 내려고 읽고, 시뮬레이션·저장은 쓰지 않는다
+var _dash_n := 0
+
 # 대시(S315, I261): 전투 단계·원정(S316)에 group의 출전 영웅이 저마다 at(칸 좌표) 쪽으로 DASH.length칸 순간 이동한다. 길은 아군 돌진 길(_dash)이고,
-# 기절·붙잡힘·들림·성벽 위·대기 중인 영웅과 한 걸음도 못 나간 영웅은 빠진다. 대시하면 정지처럼 명령을 지우고 서며, 요새화가 풀린다(still)
+# 기절·붙잡힘·들림·성벽 위·대기 중인 영웅과 한 걸음도 못 나간 영웅은 빠진다. 대시하면 정지처럼 명령을 지우고 서며, 요새화가 풀린다(still).
+# 대시한 영웅은 dashed에 남긴다. 원정에 들고 나며 몸을 옮기거나 대기를 되돌리는 것(I262)은 대시가 아니라서 남기지 않는다
 func dash(group: Array, at: Vector2) -> void:
 	if not fighting():
 		return
@@ -1915,6 +1919,11 @@ func dash(group: Array, at: Vector2) -> void:
 		if to == h.pos:
 			continue
 		_drop_orders(h)
+		for k in dashed.keys():  # 판에서 빠진 영웅(새 도전 전의 몸)은 버린다
+			if k not in heroes:
+				dashed.erase(k)
+		_dash_n += 1
+		dashed[h] = [h.pos, to, _dash_n]
 		h.pos = to
 		_halt(h)
 		h.still = 0.0

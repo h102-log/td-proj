@@ -274,7 +274,9 @@ var fix_tag: Button  # 고른 공병의 자동 수리 태그(I210). tags(A·S·H
 var _fix_pic: TextureRect  # 자동 수리 태그의 망치 그림. 밝기가 끔·켬·섞임이다
 var portraits := []  # 출전 칸마다 초상 버튼(I129). 누르면 그 영웅을 고른다(I165)
 var slots := []  # 출전 칸마다 {칸: 스킬 칸}(I151)
-var _rows := []  # 출전 칸마다 {pic: 초상 그림, dash: 대시 대기 막(I261 ⑦), lv: 레벨 글, hp·mp: 막대, down: «쓰러짐»}(I129)
+var _rows := []  # 출전 칸마다 {pic: 초상 그림, dash: 대시 대기 막(I261 ⑦), lv: 레벨 글, hp·mp: 막대, down: «쓰러짐», face: 초상 버튼, secs: 남은 대시 초, no: 대시 거부 테두리, point: 스킬 쓸 영웅 세모(I310), picked: 고른 칸 모양인가, reject: 거부 표시를 시작한 때(_now)}(I129)
+const SECS := 10  # 초상 위 남은 대시 초(I261 ⑦)의 글자 크기. 스킬 칸(18px 칸에 8px)과 같은 비율이다. 8px은 막이 얇을 때 초상 그림에 묻히고 레벨 숫자(7px)와 헷갈렸다(2026-11-16 시안 캡처)
+const POINTER := ["oo....", "o#o...", "o##o..", "o###o.", "o####o", "o###o.", "o##o..", "o#o...", "oo...."]  # 스킬 쓸 영웅 세모(I310 ②): 안쪽 4×7과 어두운 테. 초상 안 (20,7)에 두면 끝이 초상과 Q 칸 사이 틈(x 24)에 닿는다
 var _faces := {}  # 영웅 종류 → 초상 대역 그림(S30)
 var _now := 0.0  # HUD 시계(초). 맥박·거부 표시·두 번 누름(I165)
 var _taps := {}  # 출전 칸 → 마지막으로 F키·초상을 누른 때(_now)
@@ -349,6 +351,25 @@ func _ready() -> void:
 		row.lv.size = Vector2(11, 8)
 		row.gear = _pic(face, null, Vector2(8, 8))  # 낀 장비 작은 아이콘(S274): 초상 왼쪽 아래 귀퉁이
 		row.gear.position = Vector2(1, 15)
+		row.face = face
+		row.secs = _text(face, SECS, HudTheme.TEXT)  # 남은 대시 초(I261 ⑦): 대기 막 위 가운데. 초상 그림 위라 검은 테를 둔다(건설 격자 비용 글과 같은 값)
+		row.secs.add_theme_color_override("font_outline_color", Color.BLACK)
+		row.secs.add_theme_constant_override("outline_size", 3)
+		row.secs.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		row.secs.position = Vector2(0, 4)
+		row.secs.size = Vector2(24, 14)
+		row.no = Panel.new()  # 대기 중 Space 거부 테두리(I261 ⑦): 스킬 칸 거부(I151)와 같은 색·길이
+		var no_box := StyleBoxFlat.new()
+		no_box.draw_center = false
+		no_box.border_color = HudTheme.DANGER
+		no_box.set_border_width_all(1)
+		row.no.add_theme_stylebox_override("panel", no_box)
+		row.no.size = face.size
+		face.add_child(row.no)
+		row.point = _pic(face, HudBuild.dots(POINTER, {"#": HudTheme.ACCENT, "o": HudTheme.MAP_EDGE}), Vector2(6, 9))  # 거부 테두리보다 뒤 자식이라 위에 그린다(I310 ②)
+		row.point.position = Vector2(20, 7)
+		row.picked = false
+		row.reject = -INF
 		tip.add(face, func(): return _hero_tip(i))
 		portraits.append(face)
 		var cells_of := {}
@@ -378,6 +399,7 @@ func _ready() -> void:
 		_rows.append(row)
 	controls.hero_key.connect(_tap)
 	controls.skill_keyed.connect(_skill_refuse)
+	controls.dash_refused.connect(_dash_refuse)
 	_make_progress()
 	var menu := _cell("menu", _bar_button(bar, "", func(): menu_pressed.emit()))
 	_pic(menu, HudBuild.dots(MENU), Vector2(8, 7)).position = Vector2(4, 8)
@@ -1530,6 +1552,9 @@ func _show_heroes() -> void:
 		var wait: float = clampf(h.dash_cd / battle.DASH.cd, 0.0, 1.0) if h.alive else 0.0
 		row.dash.visible = wait > 0.0
 		row.dash.size = Vector2(22, 22.0 * wait)
+		row.secs.visible = wait > 0.0
+		row.secs.text = str(ceili(h.dash_cd))
+		_show_pick(row, h)
 		row.gear.visible = h.worn and battle.bag.has(h.kind)
 		row.gear.texture = HudBuild.gear_icon(h.kind, true) if row.gear.visible else null
 		var r: float = clampf(h.hp / h.max_hp, 0.0, 1.0)
@@ -1540,6 +1565,31 @@ func _show_heroes() -> void:
 			slots[i][slot].visible = h.alive
 			slots[i][slot].show_state(_slot_state(h, slot))
 
+# 초상의 고름 표시(I310): 고른 살아 있는 출전 영웅은 «고른 칸»(S372, 테마의 누름 모양을 평소·올림에도), 스킬 쓸 영웅에만 세모.
+# 대기 중 Space 거부 테두리(I261 ⑦)는 SkillCell.FLASH초. 모양이 바뀔 때만 덮어쓴다(프레임마다 테마 바뀜 알림을 내지 않게)
+func _show_pick(row: Dictionary, h) -> void:
+	var picked: bool = h.alive and h in controls.selected
+	if picked != row.picked:
+		row.picked = picked
+		for st in ["normal", "hover"]:
+			if picked:
+				row.face.add_theme_stylebox_override(st, row.face.get_theme_stylebox("pressed"))
+			else:
+				row.face.remove_theme_stylebox_override(st)
+	row.point.visible = picked and h == controls.caster()
+	row.no.visible = h.alive and _now - row.reject < SkillCell.FLASH
+
+# 대기 중 Space(I261 ⑦): 아무도 대시하지 못했고 대시하려던 영웅 가운데 대기 중인 영웅이 있다. 그 초상을 번쩍이고, 가장 짧은 대기로 토스트와 refuse
+func _dash_refuse(waiting: Array) -> void:
+	var left := INF
+	for h in waiting:
+		var i: int = battle.heroes.find(h)
+		if i >= 0 and i < _rows.size():
+			_rows[i].reject = _now
+		left = minf(left, h.dash_cd)
+	toasts.push("대시 대기 %d초" % ceili(left))
+	Audio.of(get_tree()).play("refuse")  # S269
+
 # 빈 출전 칸은 점선 테두리로 자리를 지킨다(I129)
 func _empty_slot(cell: Control, i: int) -> void:
 	if i < battle.heroes.size():
@@ -1549,11 +1599,11 @@ func _empty_slot(cell: Control, i: int) -> void:
 	for k in 4:
 		cell.draw_dashed_line(corners[k], corners[(k + 1) % 4], HudTheme.LINE, 1.0, 3.0)
 
-# 초상 툴팁(I129): 이름(역할)·1·2·3 키, 레벨·체력 수치. 쓰러졌으면 빨간 줄에 돌아오는 때(I28·I93)
+# 초상 툴팁(I129): 이름(역할)·1·2·3 키, 레벨·체력 수치, 키 설명(I108 2026-11-16 변경), 대시 줄(I261 ⑦). 쓰러졌으면 빨간 줄에 돌아오는 때(I28·I93)
 func _hero_tip(i: int) -> Array:
 	var h = battle.heroes[i]
 	var back := "" if h.alive else "쓰러짐 — " + ("다음 준비 단계에 복귀" if battle.revive else "다음 라운드에 복귀")
-	return [HEROES[h.kind], str(i + 1), "", "Lv%d · 체력 %d/%d\n누르면 고름 · 두 번이면 카메라" %[h.level, ceili(h.hp), ceili(h.max_hp)], back]
+	return [HEROES[h.kind], str(i + 1), "", "Lv%d · 체력 %d/%d\n누르면 고름 · 두 번이면 카메라\n용병과 함께 고른 무리는 그대로 두고 스킬 쓸 영웅만 바꿈\nSpace: 커서 쪽 %s칸 대시 · 대기 %s초" % [h.level, ceili(h.hp), ceili(h.max_hp), _num(battle.DASH.length), _num(battle.DASH.cd)], back]
 
 # 1·2·3 키·초상을 DOUBLE초 안에 두 번 누르면 카메라가 그 영웅에게 간다(I165, I164)
 func _tap(i: int) -> void:

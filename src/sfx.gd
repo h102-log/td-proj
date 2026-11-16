@@ -59,6 +59,8 @@ static func key_for(e: Dictionary) -> String:
 			return "click"
 		"wreck", "fall", "alone":  # 원정 보스의 형태 전환·홀로 남음(S369 ⑥)
 			return "boss_appear"
+		"dash":  # 영웅 대시(S315 2026-11-16 변경, I261 ⑧): 기존 키를 다시 쓴다(새 파일 없음). NEAR에 넣지 않아 화면 밖이어도 낸다
+			return "swing"
 	return ""
 
 # 한 프레임: 사건을 소리로 내고(seen은 보이는 맵 영역, 맵 px) 판 변화를 견준다
