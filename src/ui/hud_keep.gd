@@ -542,7 +542,7 @@ func refresh(delta: float) -> void:
 		return
 	var prep: bool = battle.state == "prep"
 	var full: bool = battle.pop_used() >= battle.pop_cap()
-	pop.text = "인구 %d/%d" % [battle.pop_used(), battle.pop_cap()]
+	pop.text = "%d/%d" % [battle.pop_used(), battle.pop_cap()]  # «인구»를 넣으면 세 자리 수 둘이 폭 40에 들지 않는다(I225 ⑥)
 	pop.add_theme_color_override("font_color", HudTheme.DANGER if full else HudTheme.TEXT)
 	undo.visible = prep
 	undo.disabled = _undo_left().is_empty()

@@ -22,7 +22,7 @@ var RELIC_KINDS := _kinds("res://data/relics/")  # 유물(S334). 파일 이름�
 var GEAR_KINDS := _kinds("res://data/gear/")  # 영웅 전용장비(S246). 파일 이름이 주인 영웅 종류다. 칸의 뜻은 src/data/gear_def.gd 머리 주석
 const VILLAGE_UP := [300, 600, 1000]  # 마을 레벨 n→n+1 비용(S99 2026-11-14 변경). 길이+1이 최대 레벨이다. 임시값(사용자 2026-11-14 «300 600 1000»)
 const MERC_CAP := 10  # 마을이 없는 판의 배치 상한(S25 2026-11-04 변경). 임시값(사용자 2026-10-13), 스테이지의 merc_cap이 덮어쓴다
-const POP_BASE := 4  # 거점이 주는 인구(S25 2026-11-04 변경). 집 몫은 집의 pop이다. 임시값(사용자 2026-11-04 «거점도 4명»)
+const POP_BASE := 30  # 거점이 주는 인구(S25 2026-11-16 변경). 집 몫은 집의 pop이다. 임시값(play_review 2026-11-15 8번 안 A, 사용자 2026-11-16 «권장안대로 진행»)
 const TOWER_BASE := 4  # 거점이 주는 쏘는 구조물 몫(S299). 집 몫은 집의 towers다. 임시값(Claude 초안, 사용자 2026-11-07 «진행»)
 const HOUSE_CAP := 6  # 마을에 지을 수 있는 집 수(S101). 임시값(사용자 2026-10-13)
 # 가구 유형(S221): [가중치, 어른, 아이 최소, 아이 최대, 노인]. 어른 둘은 남녀 한 쌍, 하나는 남녀 반반이다. 손잡이 값(사용자 2026-10-26 «조사 표 그대로»)
@@ -182,12 +182,19 @@ class Villager:
 		max_hp = top
 
 class Enemy:
+	static var stir := 0  # 적이 생기거나 자리·몸 반지름이 바뀔 때마다 오른다(I305). 판이 적 버킷이 낡았는지 이 값으로 본다
 	var kind: String
-	var pos: Vector2  # 칸 단위, 칸 (x,y)의 중심 = Vector2(x,y)
+	var pos: Vector2:  # 칸 단위, 칸 (x,y)의 중심 = Vector2(x,y)
+		set(v):
+			pos = v
+			stir += 1
 	var hp: float
 	var max_hp: float
 	var speed: float
-	var radius: float  # 몸 반지름(칸 단위)
+	var radius: float:  # 몸 반지름(칸 단위)
+		set(v):
+			radius = v
+			stir += 1
 	var wall_k: float
 	var damage: float
 	var attack_gap: float  # 공격 간격(초)
@@ -301,11 +308,18 @@ class Enemy:
 
 # 영웅과 용병(I1). 스킬은 영웅만, 홀드는 용병만 쓴다(S16)
 class Unit:
+	static var stir := 0  # 아군이 생기거나 자리·몸 반지름이 바뀔 때마다 오른다(I305). 판이 아군 버킷이 낡았는지 이 값으로 본다
 	var kind: String
-	var pos: Vector2  # 칸 단위, Enemy.pos와 같다
+	var pos: Vector2:  # 칸 단위, Enemy.pos와 같다
+		set(v):
+			pos = v
+			stir += 1
 	var hp: float
 	var max_hp: float
-	var radius: float  # 몸 반지름(칸 단위)
+	var radius: float:  # 몸 반지름(칸 단위)
+		set(v):
+			radius = v
+			stir += 1
 	var alive := true
 	var present: bool:  # 전장에 있다. 쓰러진 영웅은 다음 준비 단계에 돌아올 때까지 거짓이다(S26)
 		get:
@@ -4138,11 +4152,12 @@ func _target_of(e: Enemy):
 	var ranged: float = e.flank.get("ranged", INF)  # 늑대 기수(S335 ①): 후보 가운데 가장 가까운 원거리 아군(far)도 함께 찾는다. 다른 적은 INF라 찾지 않는다
 	var far = null
 	var far_d := INF
-	for m in units:
-		if not _free(m, e) or _carried(m):  # 블록 자리가 찬 유닛은 노리지 않고 지나간다(S159). 들린 용병(S308)은 노리지 않는다
-			continue
+	for i in _units_near(e.pos, maxf(sight, e.radius + 0.01)):  # 버킷 후보만 본다(I305). 후보는 units의 차례 그대로이고, 아래 조건이 반응하는 거리 안의 유닛은 모두 든다
+		var m = units[i]
 		var d := e.pos.distance_to(m.pos)
-		if d >= best_d and (d >= far_d or m.range < ranged):
+		if d >= best_d and (d >= far_d or m.range < ranged):  # 거리부터 본다. 아래 _free·_carried는 읽기만 해서 차례를 바꿔도 결과가 같다
+			continue
+		if not _free(m, e) or _carried(m):  # 블록 자리가 찬 유닛은 노리지 않고 지나간다(S159). 들린 용병(S308)은 노리지 않는다
 			continue
 		# 밀어낸 직후 거리는 반지름 합과 같아서 0.01 여유를 둔다(S13: 몸으로 막은 유닛은 인식 범위 밖이어도 친다)
 		# 성벽 위 유닛은 몸으로 길을 막을 때만 친다(U13, S89, I70). 비행 적·기어오르는 적은 그 성벽 위 유닛도 노리고(I77), 비행 적은 몸에 막히지 않는다(S109)
@@ -6832,7 +6847,8 @@ func _hunt(u: Unit, wall_only: bool):
 func _nearest_enemy(from: Vector2, reach: float, center := Vector2.ZERO, zone := INF, on_wall := false, body := 0.0, air := true):
 	var best = null
 	var best_d := INF
-	for e in enemies:
+	for i in _foes_near(from, maxf(reach, (body + 0.01) if body > 0.0 else 0.0)):  # 버킷 후보만 본다(I305). 후보는 enemies의 차례 그대로다
+		var e = enemies[i]
 		var d: float = e.pos.distance_to(from)
 		var touch: bool = body > 0.0 and d <= body + e.radius + 0.01  # 밀어낸 직후 거리는 반지름 합과 같아서 0.01 여유(적 쪽 S13과 같다)
 		if d <= best_d and (touch or (e.lit and d <= reach and e.pos.distance_to(center) <= zone)) and (e.on_wall or not on_wall) and not _aloft(e) and (air or not _flies(e)):
@@ -6852,15 +6868,26 @@ func _touching(u: Unit, e: Enemy) -> bool:
 #        (test_crowd_cannot_pass_merc_in_one_cell_gap)
 # ponytail: 몸 하나씩 차례로 밀어낸다. 몸끼리 붙어 있으면 앞 몸 쪽으로 다시 겹칠 수 있다. 겹친 채 남는 일이 보이면 몇 번 되풀이한다
 func _shove(e, by: Vector2, bodies: Array) -> void:
+	var mine: bool = bodies.size() > BUCKET_MIN and (is_same(bodies, units) or is_same(bodies, enemies))  # 버킷에 물을 목록(I305): 그 편의 목록이고 몸이 적지 않다. 그 밖(빈 배열·시험이 넘긴 배열·몸이 적은 편)은 모든 몸을 본다
 	for v in [by, Vector2(by.x, 0), Vector2(0, by.y)]:
 		var p: Vector2 = e.pos + v
-		for m in bodies:
+		var at := p  # 후보를 뽑은 자리
+		var ids: Array = _side_near(bodies, at, e.radius + SHOVE_SLACK) if mine else range(bodies.size())
+		var k := 0
+		while k < ids.size():  # 후보를 bodies의 차례대로 돈다
+			var i: int = ids[k]
+			k += 1
+			var m = bodies[i]
 			var gap: Vector2 = p - m.pos
 			if gap.length() < e.radius + m.radius and _touch(e, m):  # 비행 적은 길을 막지 않는다(S109). 봉인된 비행 적은 막는다(S155). 블록 자리가 없으면 지나간다(S159)
 				var n := gap.normalized() if gap != Vector2.ZERO else Vector2.LEFT
 				p = m.pos + n * (e.radius + m.radius)
 				if e is Unit and p.distance_to(e.pos) < v.length() * 0.25:  # 아군은 정면으로 막은 몸의 둘레를 따라 돌아간다(S14). 적은 막힌 채로 둔다(위 [의도])
 					p = m.pos + n.rotated(v.length() / (e.radius + m.radius) * (1.0 if n.cross(v) >= 0.0 else -1.0)) * (e.radius + m.radius)
+				if mine and p.distance_to(at) > SHOVE_SLACK:  # 밀려서 후보를 뽑은 범위를 벗어났다: 그 자리에서 다시 뽑고 지난 번호는 건너뛴다
+					at = p
+					ids = _side_near(bodies, at, e.radius + SHOVE_SLACK)
+					k = ids.bsearch(i + 1)
 		var c := Vector2i(p.round())
 		var blk = grid.block_at(c)
 		if blk and blk.kind == "barrier" and e is Unit:  # 아군은 에너지 성벽을 지나간다(I142)
@@ -7194,3 +7221,87 @@ func _attack(e: Enemy, target) -> void:
 		damage(target, e.damage * (1.0 - _fx_cut(e, "weaken")) * _fury(e))  # 공격력 감소(S154), 광분(S295)
 		if not e.bleed.is_empty() and target is Unit and target.alive:  # 출혈(S240): 아군 유닛에만, 하나만 걸려 다시 물면 시간이 새로 된다
 			_fx(target, "bleed", {"bleed": e.bleed.dps}, e.bleed.time)
+
+# ── 2칸 버킷(I305): 보는 몸 수만 줄이고 결과는 그 편의 몸을 차례로 다 본 것과 같다 ──
+# 적이 노릴 유닛(_target_of)·가장 가까운 적(_nearest_enemy)·몸 막기(_shove)가 그 편의 몸을 다 훑지 않고 버킷의 후보만 돈다.
+# 버킷은 편마다 하나이고, 그 편의 세대 수(Unit.stir·Enemy.stir: pos·radius를 쓸 때마다 오른다)나 목록의 수가 담은 때와 다르면 다음 물음에 통째로 다시 담는다.
+# 그 편의 몸이 BUCKET_MIN 이하면 버킷을 거치지 않고 모두 본다(영웅 셋·용병 다섯 대 적 300의 판에서 버킷에 묻는 값이 다 보는 값보다 컸다).
+# units·enemies에 이미 있던 몸을 pos를 건드리지 않고 뺐다가 같은 수만큼 도로 넣는 코드를 새로 쓰면 Unit.stir += 1(Enemy.stir += 1)을 함께 쓴다.
+# 지금은 넣는 길이 모두 몸을 새로 만들거나 pos를 먼저 넣는다(_return_hero·_come_home).
+const BUCKET := 2.0  # 버킷 한 변(칸)
+const BUCKET_BIG := 1.0  # 몸 반지름이 이보다 크면 버킷에 넣지 않고 늘 후보다(슬라임 킹·원정 보스 몸)
+const BUCKET_PAD := 0.05  # 부동소수 여유(칸). 후보를 넓게만 잡는다
+const BUCKET_MIN := 16  # 그 편의 몸이 이 수 이하면 버킷을 거치지 않고 모두 본다. 몸이 적으면 다 보는 쪽이 싸다
+const SHOVE_SLACK := 1.0  # _shove가 후보를 다시 뽑지 않고 밀려도 되는 거리(칸)
+const NOBODY := []
+
+class Near:
+	var cells := {}  # Vector2i(버킷 칸) → 그 칸에 든 몸의 배열 번호(오름차순)
+	var big := []  # 큰 몸의 번호
+	var rmax := 0.0  # 버킷에 든 몸의 가장 큰 반지름
+	var stamp := -1  # 담은 때의 세대 수
+	var n := -1  # 담은 때의 배열 크기
+
+var _ub := Near.new()  # 아군(units)
+var _eb := Near.new()  # 적(enemies)
+var scan_all := false  # 참이면 버킷 없이 모든 몸을 본다(옛 길). 동치 평가와 성능 비교가 켠다
+var audit = null  # 시험이 [0, 0, 0, 0]을 넣으면 물을 때마다 전수와 견줘 [물은 횟수, 놓친 몸 수, 후보 수 합, 전체 수 합]을 센다
+
+func _units_near(p: Vector2, r: float) -> Array:
+	return _near(_ub, units, Unit.stir, p, r)
+
+func _foes_near(p: Vector2, r: float) -> Array:
+	return _near(_eb, enemies, Enemy.stir, p, r)
+
+# bodies(units나 enemies 그 객체)의 버킷에 묻는다(_shove)
+func _side_near(bodies: Array, p: Vector2, r: float) -> Array:
+	return _units_near(p, r) if is_same(bodies, units) else _foes_near(p, r)
+
+# arr에서 «p에서 r + 그 몸의 반지름» 안에 있는 몸의 번호를 빠짐없이, 오름차순으로. 더 들어 있을 수 있다
+func _near(ix: Near, arr: Array, stir: int, p: Vector2, r: float) -> Array:
+	if scan_all or arr.size() <= BUCKET_MIN:
+		return range(arr.size())
+	if ix.stamp != stir or ix.n != arr.size():  # 누가 움직였거나 들고 났다: 다시 담는다
+		ix.cells.clear()
+		ix.big.clear()
+		ix.rmax = 0.0
+		for i in arr.size():
+			var m = arr[i]
+			if m.radius > BUCKET_BIG:
+				ix.big.append(i)
+				continue
+			ix.rmax = maxf(ix.rmax, m.radius)
+			var k := Vector2i((m.pos / BUCKET).floor())
+			if ix.cells.has(k):
+				ix.cells[k].append(i)
+			else:
+				ix.cells[k] = [i]
+		ix.stamp = stir
+		ix.n = arr.size()
+	var reach := r + ix.rmax + BUCKET_PAD
+	var ids: Array
+	if not is_finite(reach) or reach > 32.0:
+		ids = range(ix.n)
+	else:
+		var a := Vector2i(((p - Vector2(reach, reach)) / BUCKET).floor())
+		var b := Vector2i(((p + Vector2(reach, reach)) / BUCKET).floor())
+		ids = ix.big.duplicate()
+		if (b.x - a.x + 1) * (b.y - a.y + 1) <= ix.cells.size():  # 훑을 칸이 더 적다: 칸을 하나씩 찾는다
+			for y in range(a.y, b.y + 1):
+				for x in range(a.x, b.x + 1):
+					ids.append_array(ix.cells.get(Vector2i(x, y), NOBODY))
+		else:  # 몸이 든 칸이 더 적다(몸이 뭉쳐 있다): 든 칸을 돌며 범위 안인 칸만 모은다. 모든 번호로 돌아가지 않는다
+			for k in ix.cells:
+				if k.x >= a.x and k.x <= b.x and k.y >= a.y and k.y <= b.y:
+					ids.append_array(ix.cells[k])
+		ids.sort()  # 칸 안은 오름차순이지만 칸끼리는 섞인다
+	if audit != null:
+		audit[0] += 1
+		audit[2] += ids.size()
+		audit[3] += arr.size()
+		for j in arr.size():
+			if p.distance_to(arr[j].pos) <= r + arr[j].radius:
+				var at := ids.bsearch(j)
+				if at >= ids.size() or ids[at] != j:
+					audit[1] += 1
+	return ids

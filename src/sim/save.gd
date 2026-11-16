@@ -68,6 +68,7 @@ static func apply(b, d: Dictionary) -> void:
 				continue
 			b.get(k)[f.cell] = o
 	for s in b.structures.values():  # 옛 저장에서 활 장인을 맡았던 주민은 원래 직업으로 돌아간다(S98 2026-11-12 변경)
+		s.pop = b.STRUCTURE_KINDS[s.kind].pop  # 집 몫은 손잡이 값이라 지금 데이터 값으로 맞춘다(I225 ⑤). 저장 판은 그대로
 		for m in s.folk:
 			if m.has("craft") and m.craft not in b.FACILITY_JOBS.values():
 				m.erase("craft")

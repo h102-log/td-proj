@@ -75,8 +75,8 @@ const BAR := {  # 위 띠 칸 자리(S185, 임시값)
 	"status": Rect2(4, 2, 96, 24), "mission": Rect2(104, 2, 24, 24), "engineer": Rect2(130, 2, 20, 24),
 	"hero0": Rect2(156, 2, 104, 24), "hero1": Rect2(264, 2, 104, 24), "hero2": Rect2(372, 2, 104, 24),
 	"progress": Rect2(480, 2, 136, 24), "menu": Rect2(620, 2, 16, 24)}
-const POP_AT := Rect2(4, 30, 52, 12)  # 인구 칸(I225 ③): 위 띠 바로 아래 왼쪽, 상태 묶음 밑
-const TOWERS_AT := Rect2(60, 30, 52, 12)  # 타워 칸(I246 ④): 인구 칸 오른쪽
+const POP_AT := Rect2(4, 30, 58, 12)  # 인구 칸(I225 ③): 위 띠 바로 아래 왼쪽, 상태 묶음 밑. 폭은 «인구 150/150»이 테두리에 닿지 않게
+const TOWERS_AT := Rect2(66, 30, 52, 12)  # 타워 칸(I246 ④): 인구 칸 오른쪽
 const FLASH := 0.2  # 거점이 맞으면 체력 막대가 하얗게 번쩍이는 초(S190 임시값)
 const MISSION_SECS := 6.0  # 라운드 첫 미션 토스트를 보이는 초(I122 임시값)
 const RESULT_WAIT := 1.0  # 전투에서 넘어온 결과 창을 늦추는 초(S117, 사용자 2026-10-22)
@@ -886,7 +886,7 @@ func _pop(row: Control, on_press: Callable, name: String, icon: Texture2D = null
 	tip.add(b, func(): return [name, "", "", _steps.get(b, ""), "✕ " + _why[b] if _why.get(b, "") != "" else ""], popup)
 	return b
 
-# 인구 칸 툴팁(I225 ③): «용병 n명 · 상한 m(거점 4 + 집 k채 × 4)»
+# 인구 칸 툴팁(I225 ③): «용병 n명 · 상한 m(거점 몫 + 집 k채 × 집 몫)»
 func _pop_line() -> String:
 	return "용병 %d명 · 상한 %d(거점 %d + 집 %d채 × %d)" % [battle.pop_used(), battle.pop_cap(), battle.POP_BASE, battle.pop_houses().size(), battle.STRUCTURE_KINDS.house.pop]
 
