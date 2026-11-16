@@ -257,7 +257,7 @@ func ev767():
 		["용병", "archer"]: [["cost", "ranks[0].damage", "rank_cost[0]"], []],
 		["구조물", "tower"]: [["cost", "hp", "damage", "range"], ["size", "pierce"]],
 		["장비", "ignis"]: [["steps[1].q.damage", "steps[9].r.count"], ["steps[6].q.ignite", "title"]],
-		["영입", "hire"]: [["slots", "cost[0]", "odds[2]", "gear_cost[9]"], []],
+		["영입", "hire"]: [["lineup", "gear_cost[9]", "relic_cost[0]"], []],
 		["레벨", "levels"]: [["steps[0]", "growth", "unlock.q"], []],
 		["미션", "base_safe"]: [["reward"], ["commission", "text"]],
 	}
@@ -269,6 +269,10 @@ func ev767():
 		for n in want[k][1]:
 			if n in names:
 				return "%s %s 줄에 수가 아닌 %s가 있다" % [k[0], k[1], n]
+	var hire := _names(t.fields("영입", "hire"))
+	for n in ["slots", "cost[0]", "odds[2]"]:  # 영입이 없어져 지운 칸(S54 2026-11-16 변경, I303 ⑥)
+		if n in hire:
+			return "영입 hire 줄에 없어진 칸 %s가 있다: %s" % [n, hire]
 	var stage := [["gold"], ["stage", "gold"], ["stage", "base_hp"], ["stage", "castle", "wall_hp"], ["stage", "castle", "gate_hp"], ["stage", "spawn_gap"], ["stage", "reward_scale"]]
 	if _paths(t.fields("판", "stage")) != stage:
 		return "판 줄이 %s다(%s여야 한다)" % [_paths(t.fields("판", "stage")), stage]
@@ -672,18 +676,18 @@ func ev777():
 	var b = _new(_stage())
 	var t = T.new(b)
 	var split: int = b.ENEMY_KINDS.slime.split.count
-	var cost: int = b.HIRE.cost[0]
+	var cost: int = b.HIRE.gear_cost[0]  # 영입 비용(cost) 칸은 없어졌다(S54 2026-11-16 변경). 영입 분류에 남은 장비 제작 비용으로 잰다
 	var growth: float = b.LEVELS.growth
 	t.put("적", "slime", ["split", "count"], split + 3)
-	t.put("영입", "hire", ["cost", 0], cost + 7)
+	t.put("영입", "hire", ["gear_cost", 0], cost + 7)
 	t.put("레벨", "levels", ["growth"], growth + 0.3)
 	var other = _new(_stage())
-	if other.ENEMY_KINDS.slime.split.count != split or other.HIRE.cost[0] != cost or not is_equal_approx(other.LEVELS.growth, growth):
-		return "뒤에 만든 다른 판의 데이터 표가 바뀌었다(split %d, cost %d, growth %s)" % [other.ENEMY_KINDS.slime.split.count, other.HIRE.cost[0], other.LEVELS.growth]
-	if load("res://data/enemies/slime.tres").split.count != split or load("res://data/hire.tres").cost[0] != cost or not is_equal_approx(load("res://data/levels.tres").growth, growth):
+	if other.ENEMY_KINDS.slime.split.count != split or other.HIRE.gear_cost[0] != cost or not is_equal_approx(other.LEVELS.growth, growth):
+		return "뒤에 만든 다른 판의 데이터 표가 바뀌었다(split %d, gear_cost %d, growth %s)" % [other.ENEMY_KINDS.slime.split.count, other.HIRE.gear_cost[0], other.LEVELS.growth]
+	if load("res://data/enemies/slime.tres").split.count != split or load("res://data/hire.tres").gear_cost[0] != cost or not is_equal_approx(load("res://data/levels.tres").growth, growth):
 		return "데이터 Resource가 바뀌었다"
 	b.restart()
-	return check(b.ENEMY_KINDS.slime.split.count == split + 3 and b.HIRE.cost[0] == cost + 7, "새 도전(restart) 뒤 바꾼 수치가 남지 않았다")
+	return check(b.ENEMY_KINDS.slime.split.count == split + 3 and b.HIRE.gear_cost[0] == cost + 7, "새 도전(restart) 뒤 바꾼 수치가 남지 않았다")
 
 # EV778 · S289: 판 분류의 지금 골드는 바로, 시작 골드는 새 도전부터
 func ev778():

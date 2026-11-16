@@ -8,14 +8,14 @@ extends "res://tests/eval/gd/hud.gd"
 #   stage heroes 항목 gear: n — 그 수치의 장비를 가방에 넣고 낀 채 시작한다(평가용)
 #   res://data/hire.tres — gear_cost(단계마다 비용, [0]이 제작) · forge_cap(창마다 장비 하나에 누르는 횟수)
 #   BattleView.aim_r(판, 영웅, 칸) -> int — 지점 스킬 조준 원 반지름(아트 px, static)
-#   게임 장면: 라운드 사이 창(main.hud.window)의 «영입»·«장비» 버튼. 장비 칸 줄 글은 Label, 제작·강화·장착 버튼은 BaseButton
+#   게임 장면: 라운드 사이 창(main.hud.window)의 «영웅»·«장비» 버튼(S248 2026-11-16 변경). 장비 칸 줄 글은 Label, 제작·강화·장착 버튼은 BaseButton
 #   PR2 전리품(S252·S253·I202): Battle.dropped — 이번 라운드 사이의 전리품 [영웅 종류, 전 수치(없던 장비면 -1), 뒤 수치]. 없으면 []
 #     Battle.GEAR_KINDS는 평가가 바꿔 넣을 수 있다(전리품 후보를 정하려고)
 #   PR3 용병 종류 강화(S254·S255·I203): Battle.rank_up(용병 종류) -> bool — 한 단계 강화. 못 하면 false이고 아무것도 바뀌지 않는다
 #     Battle.merc_rank — 용병 종류 → 산 강화 단계 수. 키가 없으면 0 · MERC_KINDS[종류].ranks(단계마다 {키: 값}) · rank_cost(단계마다 골드)
 #     저장 snapshot의 강화 칸 이름은 "ranks"다 · 게임 장면: 시설 팝업(main.hud.popup)의 «이름 강화 …» 버튼
 #   아이아스 방패(S256~S258·I204): data/gear/aias.tres(+0~+9) · BattleView.wall_preview(판, 영웅, 지점) -> Array[Vector2i] — R 조준 미리보기 칸(static)
-#     성벽 공명 흔적: Battle.traces의 slot "resonate"(성벽 칸마다 하나) · 이관(transfer)이 장비 수치도 옮긴다 · main.hud._members[i][2] — 보유 i의 이관 버튼
+#     성벽 공명 흔적: Battle.traces의 slot "resonate"(성벽 칸마다 하나) · 이관(transfer)이 장비 수치도 옮긴다 · main.hud._members[i][1] — 보유 i의 이관 버튼(영웅 줄은 [글, 이관 버튼]이다)
 #   실비아 장궁(S259·S260): data/gear/sylvia.tres(+0~+9) · 바람의 렌즈는 Battle.zones의 src "sylvia_e"(pos = 깐 지점)
 #   세라피나 성수병(S261·S262): data/gear/seraphina.tres(+0~+9) · 용병은 Battle.units에 놓은 차례로 든다
 #   베스퍼 향로(S263·S264): data/gear/vesper.tres(+0~+9) · 적 fx "vesper_q"(중독)·"vesper_w"(저주), 남은 시간은 그 효과의 left
@@ -302,7 +302,7 @@ func ev609():
 		out = check(view.aim_r(b3, b3.hero, "q") == want, "+3 과부하 Q 조준 원 %s(기대 %d)" % [view.aim_r(b3, b3.hero, "q"), want])
 	return out
 
-# EV610 · S248: 라운드 사이 창에만 «영입»·«장비» 전환이 있고, 장비 칸에서 제작한다
+# EV610 · S248: 라운드 사이 창에만 «영웅»·«장비» 전환이 있다. 영웅이 모자라면 «영웅» 쪽(영웅 줄 + 고르지 않은 영웅 카드), 다 찼으면 «장비» 쪽으로 뜬다. 장비 칸에서 제작한다
 func ev610():
 	var main = _game()
 	var b = main.view.battle
@@ -312,7 +312,7 @@ func ev610():
 	_layout(main)
 	var win = main.hud.window
 	if out == "":
-		out = check(b.state == "hiring" and _button(win, "장비") == null, "도전 시작 영입 창(%s)에 «장비» 버튼이 있다" % b.state)
+		out = check(b.state == "hiring" and _button(win, "장비") == null, "도전 시작 고르기 창(%s)에 «장비» 버튼이 있다" % b.state)
 	if out == "":
 		for i in 2:
 			b.hire(i)
@@ -322,10 +322,20 @@ func ev610():
 		out = check(b.state == "prep" and _button(win, "장비") == null, "준비 단계(%s)에 «장비» 버튼이 있다" % b.state)
 	if out == "":
 		out = check(_win_bare(b), "1라운드를 이겨 라운드 사이가 되지 않았다(%s)" % b.state)
+	var words := func(): return win.find_children("*", "BaseButton", true, false).filter(func(n): return n.is_visible_in_tree()).map(func(n): return n.text)
 	if out == "":
 		_frame(main)
 		_layout(main)
-		out = check(_button(win, "영입") != null and _button(win, "장비") != null and _starts(win, "리롤") != null, "라운드 사이 창: «영입» %s · «장비» %s · 리롤 %s" % [_button(win, "영입") != null, _button(win, "장비") != null, _starts(win, "리롤") != null])
+		var rows := _hero_rows(win)
+		var gone: Array = words.call().filter(func(t): return "리롤" in t or "내보내기" in t)
+		out = check(_button(win, "영웅") != null and _button(win, "장비") != null and rows.size() == 2 and rows[0].begins_with("1 · ") and rows[1].begins_with("2 · ")
+			and _cards(win).size() == b.offers.size() - 2 and gone.is_empty(),
+			"영웅 둘 라운드 사이 창: «영웅» %s · «장비» %s · 영웅 줄 %s(«1 · »·«2 · » 둘) · 고르지 않은 영웅 카드 %d장(%d장) · «리롤»·«내보내기» 버튼 %s(없어야)" % [_button(win, "영웅") != null, _button(win, "장비") != null, rows, _cards(win).size(), b.offers.size() - 2, gone])
+	if out == "":
+		_cards(win)[0].pressed.emit()
+		_frame(main)
+		_layout(main)
+		out = check(b.roster.size() == 3 and _cards(win).is_empty() and _hero_rows(win).size() == 3, "카드를 누른 뒤 보유 %d(셋) · 보이는 카드 %d장(없어야) · 영웅 줄 %s" % [b.roster.size(), _cards(win).size(), _hero_rows(win)])
 	var title: String = b.GEAR_KINDS.ignis.title if out == "" else ""
 	var craft := "제작 %d골드" % b.HIRE.gear_cost[0] if out == "" else ""
 	if out == "":
@@ -333,7 +343,7 @@ func ev610():
 		_frame(main)
 		_layout(main)
 		var rows: Array = _labels(win).filter(func(t): return t.begins_with(title + " — 없음"))
-		out = check(_starts(win, "리롤") == null and rows.size() == 1 and _row_button(win, title + " — 없음", craft) != null, "«장비» 뒤: 리롤 %s · 줄 %s · 왕홀 줄 «%s» %s" % [_starts(win, "리롤") != null, _labels(win), craft, _row_button(win, title + " — 없음", craft) != null])
+		out = check(_hero_rows(win).is_empty() and rows.size() == 1 and _row_button(win, title + " — 없음", craft) != null, "«장비» 뒤: 영웅 줄 %s(숨어야) · 줄 %s · 왕홀 줄 «%s» %s" % [_hero_rows(win), _labels(win), craft, _row_button(win, title + " — 없음", craft) != null])
 	if out == "":
 		_row_button(win, title + " — 없음", craft).pressed.emit()
 		_frame(main)
@@ -341,10 +351,31 @@ func ev610():
 		var rows: Array = _labels(win).filter(func(t): return t.begins_with(title + " +0"))
 		out = check(b.bag.get("ignis") == 0 and rows.size() == 1, "제작 뒤 가방 %s · 줄 %s" % [b.bag, _labels(win)])
 	if out == "":
-		_press(win, "영입")
+		_press(win, "영웅")
 		_frame(main)
 		_layout(main)
-		out = check(_starts(win, "리롤") != null, "«영입»을 눌러도 영입 칸이 다시 보이지 않는다")
+		out = check(_hero_rows(win).size() == 3, "«영웅»을 눌러도 영웅 줄이 다시 보이지 않는다(%s)" % [_hero_rows(win)])
+	_done(main)
+	if out != "":
+		return out
+	main = _game()  # 영웅 셋인 판: «장비» 쪽으로 뜨고, «영웅» 쪽에는 빼거나 바꾸는 길이 없다
+	b = main.view.battle
+	win = main.hud.window
+	b.gold = BIG
+	for i in 3:
+		b.hire(i)
+	b.next_round()
+	out = check(_win_bare(b) and b.roster.size() == 3, "영웅 셋으로 1라운드를 이겨 라운드 사이가 되지 않았다(%s, 보유 %d)" % [b.state, b.roster.size()])
+	if out == "":
+		_frame(main)
+		_layout(main)
+		var rows: Array = _labels(win).filter(func(t): return t.begins_with(title))
+		out = check(rows.size() == 1 and _hero_rows(win).is_empty(), "영웅 셋 라운드 사이 창이 «장비» 쪽으로 뜨지 않았다: 왕홀 줄 %s · 영웅 줄 %s(숨어야)" % [rows, _hero_rows(win)])
+	if out == "":
+		_press(win, "영웅")
+		_frame(main)
+		_layout(main)
+		out = check(_hero_rows(win).size() == 3 and _starts(win, "이관") != null and _cards(win).is_empty(), "«영웅» 뒤: 영웅 줄 %s(셋) · «이관» 버튼 %s · 보이는 카드 %d장(없어야 — 빼거나 바꾸는 길이 없다)" % [_hero_rows(win), _starts(win, "이관") != null, _cards(win).size()])
 	_done(main)
 	return out
 
@@ -420,7 +451,7 @@ func ev612():
 		out = check(_win(b) and b.bag.ignis == last and b.dropped.is_empty(), "마지막 단계에서 라운드 승리: 가방 %s · 전리품 %s" % [b.bag, b.dropped])
 	return out
 
-# EV613 · I202: 같은 씨앗이면 전리품이 있든 없든 영입 목록·다음 라운드 미션이 같다
+# EV613 · I202: 같은 씨앗이면 전리품이 있든 없든 다음 라운드 미션이 같다(목록은 늘 같아 견주지 않는다, S54 2026-11-16 변경)
 func ev613():
 	var a = _rounds([1, 1], [], ["ignis", "sylvia", "vesper"], {"quests": true})
 	var z = _rounds([1, 1], [], ["ignis", "sylvia", "vesper"], {"quests": true})
@@ -431,11 +462,9 @@ func ev613():
 	var won: bool = _win(a) and _win(z)
 	out = check(won and not a.dropped.is_empty() and z.dropped.is_empty(), "준비: 승리 %s · 전리품 %s / %s" % [won, a.dropped, z.dropped])
 	if out == "":
-		var lists := [a.offers == z.offers]
 		a.next_round()
 		z.next_round()
-		lists.append(a.mission == z.mission)
-		out = check(lists == [true, true], "[영입 목록, 미션] 같음 %s" % [lists])
+		out = check(a.mission == z.mission, "다음 라운드 미션 «%s» / «%s»(같아야 한다)" % [a.mission, z.mission])
 	return out
 
 # EV614 · I202: 전리품과 전리품 난수가 저장을 왕복하고, 그 칸이 없는 저장은 전리품 없음이다
@@ -951,12 +980,17 @@ func ev630():
 		var title: String = b.GEAR_KINDS.ignis.title
 		b.bag = {"aias": 5, "ignis": 6}
 		_frame(main)
-		main.hud._members[0][2].pressed.emit()
+		var give = main.hud._members[0][1] if main.hud._members[0].size() == 2 else null  # 영웅 줄은 [글, 이관 버튼]이다(S54 2026-11-16 변경)
+		if not give is BaseButton or give.text != "이관":
+			var row: Array = main.hud._members[0].map(func(n): return n.get("text"))  # 장면을 풀기 전에 읽는다
+			_done(main)
+			return "main.hud._members[0]이 [글, «이관» 버튼]이 아니다(%s)" % [row]
+		give.pressed.emit()
 		_frame(main)
-		var with := _tip_of(main, main.hud._members[1][2])
+		var with := _tip_of(main, main.hud._members[1][1])
 		b.bag = {"aias": 5}
 		_frame(main)
-		var without := _tip_of(main, main.hud._members[1][2])
+		var without := _tip_of(main, main.hud._members[1][1])
 		out = check(("%s +6 → +9" % title) in with and not title in without, "«여기로» 툴팁: 둘 다 있을 때 «%s» · 왕홀 없을 때 «%s»" % [with, without])
 	_done(main)
 	return out

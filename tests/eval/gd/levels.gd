@@ -12,7 +12,7 @@ const CELLS := [Vector2i(10, 5), Vector2i(12, 5), Vector2i(14, 5)]  # 출전 칸
 const ONE := [{"kind": "basic", "count": 1}]
 const ONE_ONE := [[ONE], [ONE]]  # 라운드 2개, 라운드마다 적 1마리짜리 웨이브 하나
 
-# 영입 창이 열린 판(출전 칸·씨앗·라운드 2개)
+# 고르기 창이 열린 판(출전 칸·씨앗·라운드 2개)
 func _hiring(over := {}):
 	var stage := {"hero_cells": CELLS, "seed": 7, "base_hp": BIG, "rounds": ONE_ONE}
 	stage.merge(over, true)
@@ -55,17 +55,15 @@ func ev204():
 	b.offers = ["aias", "seraphina", "ignis"]
 	var k = b.hire(0)
 	var p = b.hire(1)
-	var m = b.hire(2)
-	b.set_lineup(m, false)
 	b.next_round()
 	var x: int = b.ENEMY_KINDS.basic.xp
 	_kill(b, 1)
-	var first := [k.xp, p.xp, m.xp]
+	var first := [k.xp, p.xp]
 	b.damage(p, BIG)
 	_kill(b, 1)
-	var got := [k.xp, p.xp, m.xp]
-	return check(first == [x, x, 0] and got == [2 * x, x, 0],
-		"처치 한 번 뒤 %s([%d, %d, 0]이어야 한다) · 세라피나가 쓰러진 뒤 한 번 더 %s([%d, %d, 0]이어야 한다)" % [first, x, x, got, 2 * x, x])
+	var got := [k.xp, p.xp]
+	return check(first == [x, x] and got == [2 * x, x],
+		"처치 한 번 뒤 %s([%d, %d]이어야 한다) · 세라피나가 쓰러진 뒤 한 번 더 %s([%d, %d]이어야 한다)" % [first, x, x, got, 2 * x, x])
 
 # EV205 · S126: data/levels.tres와 적 경험치가 표와 같다
 func ev205():
@@ -167,13 +165,13 @@ func ev210():
 	var p = b.hire(1)
 	b.add_xp(p, 10)
 	var early: bool = not b.transfer(k, p)
-	b.set_lineup(p, false)
 	b.next_round()
 	b.add_xp(k, 50)
 	var prep: bool = not b.transfer(k, p) and k.xp == 50 and p.xp == 10
 	if not _win_round(b) or b.state != "cleared":
 		return "1라운드를 이겨 라운드 사이가 되지 않았다(%s)" % b.state
 	b.add_xp(k, 60 - k.xp)
+	b.add_xp(p, 10 - p.xp)  # 세라피나도 출전해 처치 경험치를 받는다(출전 전환이 없어졌다, S54 2026-11-16 변경). 이관 전 값을 10으로 맞춘다
 	var g: int = b.gold
 	var moved: bool = b.transfer(k, p)
 	var after: bool = moved and p.xp == 70 and p.level == 3 and k.xp == 0 and k.level == 1 and k in b.roster \

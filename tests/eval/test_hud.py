@@ -134,12 +134,8 @@ def test_EV353_esc_menu_hides_grid_tags(gd):
     gd("hud", "EV353")
 
 
-def test_EV354_between_rounds_window_fits(gd):
+def test_EV354_pick_window_and_between_rounds_window_fit(gd):
     gd("hud", "EV354")
-
-
-def test_EV355_reroll_at_cap_dim_reason(gd):
-    gd("hud", "EV355")
 
 
 def test_EV356_hint_shows_and_advances(gd):
@@ -176,10 +172,6 @@ def test_EV364_church_heal_rows(gd):
 
 def test_EV365_keep_art_selects_base(gd):
     gd("hud", "EV365")
-
-
-def test_EV366_hire_gold_note(gd):
-    gd("hud", "EV366")
 
 
 def test_EV368_tutorial_waves(gd):

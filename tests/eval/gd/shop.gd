@@ -1,24 +1,15 @@
 extends "res://tests/eval/gd/gear.gd"
-# 언제든 영입 창·장비 아이콘(S272·S274·I206·I207·I209). lib.gd·hire.gd·save.gd·hud.gd·gear.gd 머리의 계약에 더하는 API:
-#   게임 장면 준비·전투 단계: T 키(입력 경로)나 main.hud.shop(BaseButton, 왼쪽 아래 «영입» 버튼)으로 언제든 영입 창(main.hud.window)을 열고 닫는다
-#     창 안의 «닫기 (T)» 버튼 · 영입 카드는 글에 이명 «…»이 든 BaseButton이다(카드 안 TextureRect는 장비 작은 아이콘뿐)
+# 영웅 고르기 창·장비 아이콘(S373·I303·S274·I209). lib.gd·hire.gd·save.gd·hud.gd·gear.gd 머리의 계약에 더하는 API:
+#   게임 장면 고르기 창(main.hud.window, 판 단계 "hiring"): 영웅 카드는 글에 이명 «…»이 든 BaseButton이다(카드 안 TextureRect는 장비 작은 아이콘뿐)
+#     카드를 누르면(pressed) 고르고, 고른 카드를 다시 누르면 뺀다. 고른 카드는 button_pressed이고 카드 안 보이는 Label 글이 고른 번호다
+#     다 고르기 전에는 «1라운드 시작» 버튼이 disabled이고 main.hud.proceed()와 Enter(입력 경로)가 넘어가지 않는다. 그때 키보드 포커스는 보이는 첫 카드다(I303 ②)
+#   준비·전투 단계: «영입» 버튼(main.hud.shop)과 언제든 영입 창은 없다. T 키는 아무 일도 하지 않는다(I303 ⑤)
 #   res://art/gear/gear.png — 장비 아이콘 96×24. y 0에 16×16, y 16에 8×8, 열 차례 GEAR_COLS(I209)
 #   아이콘은 AtlasTexture(atlas가 gear.png)를 쓴 TextureRect다. 장비 칸 줄(HBoxContainer)의 첫 TextureRect가 큰 아이콘이다
 #   main.hud.portraits[i] 안의 TextureRect 가운데 atlas가 gear.png인 것이 초상 귀퉁이 작은 아이콘이다
 
 const GEAR_PNG := "res://art/gear/gear.png"
 const GEAR_COLS := ["aias", "chronos", "ignis", "seraphina", "sylvia", "vesper"]
-
-# 준비 단계 게임 장면(아이아스 출전)
-func _shop_prep():
-	var main = _game()
-	var b = main.view.battle
-	b.gold = BIG
-	b.offers = ["aias", "", ""]
-	b.hire(0)
-	b.next_round()
-	_frame(main)
-	return main
 
 # 장비 k의 아이콘 자리: 큰 것은 y 0의 16×16, 작은 것은 y 16의 8×8
 func _icon_rect(k: String, small: bool) -> Rect2:
@@ -38,129 +29,144 @@ func _focus_text(main) -> String:
 	var f = main.get_viewport().gui_get_focus_owner()
 	return f.text if f is BaseButton else ""
 
-# EV653 · S272: T로 열고 닫고, ESC는 ESC 메뉴 대신 창을 닫는다. 창이 떠 있어도 판이 흐르고, 준비·전투 단계를 벗어나면 닫힌다
-func ev653():
-	var main = _shop_prep()
-	var b = main.view.battle
-	var w = main.hud.window
-	var seen := []
-	_key(KEY_T)
-	_frame(main)
-	seen.append(w.visible and not Engine.get_main_loop().paused)
-	_key(KEY_T)
-	_frame(main)
-	seen.append(not w.visible)
-	_key(KEY_T)
-	_frame(main)
-	_key(KEY_ESCAPE)
-	_frame(main)
-	seen.append(not w.visible and not Engine.get_main_loop().paused)
-	b.start_battle()
-	_key(KEY_T)
-	_frame(main)
-	var t0: float = b.wave_time
-	main._process(0.5)
-	main.hud._process(0.5)
-	seen.append(w.visible and b.state == "battle" and b.wave_time > t0)
-	var won := _win(b)
-	_frame(main)
-	b.next_round()
-	_frame(main)
-	seen.append(won and b.state == "prep" and not w.visible)
-	_done(main)
-	return check(seen == [true, true, true, true, true], "[T로 열림·안 멈춤, T로 닫힘, ESC로 닫힘·안 멈춤, 전투 중 판이 흐름, 라운드 뒤 다음 준비 단계에 닫혀 있음] %s" % [seen])
+# 카드 안 보이는 Label 글을 이은 것(고른 번호, I303 ③). 고르지 않은 카드는 ""
+func _num_of(card) -> String:
+	return "".join(_labels(card))
 
-# EV654 · I206: 언제든 영입 창의 모양과, 창이 떠 있는 동안 맵 명령을 받지 않는 것
-func ev654():
-	var main = _shop_prep()
-	var b = main.view.battle
-	var hud = main.hud
-	var c = main.controls
-	var t = b.build("tower", Vector2i(22, 66))
-	if t == null:
-		_done(main)
-		return "준비 단계에 타워를 놓지 못했다"
-	click(c, MOUSE_BUTTON_LEFT, px(t.cell))  # 창이 닫혀 있으면 골라진다(재는 것이 헛돌지 않게)
-	var picks_closed: bool = not (c.picked + c.selling).is_empty()
-	c.picked = []
-	c.selling = []
-	_key(KEY_MINUS)
-	_frame(main)
-	var placing_before: bool = c.placing != ""
-	_key(KEY_T)
-	_frame(main)
-	hud.grid._process(0.0)  # 격자는 자기 _process에서 보이기를 정한다(_frame은 돌리지 않는다)
-	var out := ""
-	var words := " ".join(_labels(hud.window))
-	var toggles: Array = hud.window.find_children("*", "BaseButton", true, false).filter(func(n): return n.is_visible_in_tree() and (n.text.ends_with("출전") or n.text.ends_with("대기")))
-	if not (picks_closed and placing_before):
-		out = "준비가 틀렸다: 창이 닫혀 있을 때 클릭으로 골라짐 %s · - 키로 놓기 모드 %s" % [picks_closed, placing_before]
-	elif not hud.window.visible or hud.dim.visible:
-		out = "창 보임 %s · 맵 덮개 보임 %s(창은 보이고 덮개는 없어야 한다)" % [hud.window.visible, hud.dim.visible]
-	elif not ("영입" in words and "출전·내보내기는 라운드 사이에" in words) or _focus_text(main) != "닫기 (T)":
-		out = "창 글 «%s» · 포커스 «%s»(«영입»·«출전·내보내기는 라운드 사이에»와 «닫기 (T)» 포커스여야 한다)" % [words, _focus_text(main)]
-	elif _button(hud.window, "장비") != null or _button(hud.window, "내보내기") != null or hud.window.find_children("*", "BaseButton", true, false).any(func(n): return n.is_visible_in_tree() and "수락" in n.text):
-		out = "언제든 영입 창에 «장비»·«내보내기»·의뢰 버튼이 있다"
-	elif toggles.is_empty() or toggles.any(func(n): return not n.disabled):
-		out = "보유 영웅 출전 전환 버튼 %s(있고 모두 disabled여야 한다)" % [toggles.map(func(n): return [n.text, n.disabled])]
-	elif hud.grid.visible or c.placing != "":
-		out = "창을 연 뒤 건설 격자 보임 %s · 놓기 모드 «%s»(숨고 꺼져야 한다)" % [hud.grid.visible, c.placing]
-	if out == "":
-		_key(KEY_MINUS)
-		_frame(main)
-		click(c, MOUSE_BUTTON_LEFT, px(t.cell))
-		_frame(main)
-		if c.placing != "" or not (c.picked + c.selling).is_empty():
-			out = "창이 열린 동안 - 키에 놓기 모드 «%s» · 타워 클릭에 골라짐 %s(둘 다 없어야 한다)" % [c.placing, c.picked + c.selling]
-	if out == "":
-		b.offers = ["seraphina", "", ""]
-		_frame(main)  # 카드 글은 HUD 프레임에서 목록을 읽어 정한다
-		var n: int = b.roster.size()
-		var card = hud.window.find_children("*", "BaseButton", true, false).filter(func(x): return x.is_visible_in_tree() and "«" in x.text and not x.disabled)
-		if card.is_empty():
-			out = "영입 카드가 없다"
-		else:
-			card[0].pressed.emit()
-			out = check(b.roster.size() == n + 1, "카드를 눌렀는데 보유가 %d → %d다" % [n, b.roster.size()])
-	_done(main)
-	return out
+# 영웅 종류 k의 보이는 카드. 없으면 null
+func _card_of(main, k: String):
+	for c in _cards(main.hud.window):
+		if c.text.begins_with(main.hud.HEROES[k]):
+			return c
+	return null
 
-# EV655 · I207: «영입» 버튼 자리·글·보이는 단계, 눌러서 열고 닫기
-func ev655():
+# 한 프레임(_frame)에 더해, 자기 _process에서 보이기를 정하는 HUD 버튼(대피령·전체 오토 같은 것)도 돌린다
+func _tick(main) -> void:
+	_frame(main)
+	for n in main.hud.find_children("*", "BaseButton", true, false):
+		if n.get_script() != null and n.has_method("_process"):
+			n._process(0.0)
+
+# EV1129 · S373: 고르기 창의 카드 여섯(S97 표 차례), 눌러 고르고 다시 눌러 빼기, 고른 차례 번호, 다 고르면 나머지 카드와 진행 버튼
+func ev1129():
 	var main = _game()
 	var b = main.view.battle
 	var hud = main.hud
-	b.gold = BIG
-	var shop = hud.get("shop")
-	if not shop is BaseButton:
-		_done(main)
-		return "main.hud.shop(BaseButton)이 없다"
-	var tick := func():  # 버튼은 자기 _process에서 보이기를 정한다(_frame은 돌리지 않는다. 대피령 버튼 평가와 같다)
+	_frame(main)
+	_layout(main)
+	var words := " ".join(_labels(hud.window))
+	var cards := _cards(hud.window)
+	var go = _starts(hud.window, "1라운드 시작")
+	var out := ""
+	if b.state != "hiring" or not ("영웅 고르기" in words and "영웅 0/3" in words):
+		out = "고르기 창(%s)의 글 «%s»에 «영웅 고르기»·«영웅 0/3»이 없다" % [b.state, words]
+	elif cards.size() != HERO_SIX.size():
+		out = "보이는 카드가 %d장이다(여섯이어야 한다): %s" % [cards.size(), cards.map(func(c): return c.text)]
+	for i in cards.size():
+		if out == "" and not cards[i].text.begins_with(hud.HEROES[HERO_SIX[i]]):
+			out = "%d번 카드 글이 «%s»다(«%s»로 시작해야 한다 — S97 표 차례)" % [i + 1, cards[i].text, hud.HEROES[HERO_SIX[i]]]
+		if out == "" and i > 0 and cards[i].get_global_rect().position.y <= cards[i - 1].get_global_rect().position.y:
+			out = "%d번 카드가 앞 카드보다 아래에 있지 않다(%s / %s)" % [i + 1, cards[i - 1].get_global_rect(), cards[i].get_global_rect()]
+	if out == "":
+		var bad: Array = hud.window.find_children("*", "BaseButton", true, false).filter(func(n): return n.is_visible_in_tree() and ("리롤" in n.text or "내보내기" in n.text or "영입" in n.text)).map(func(n): return n.text)
+		if go == null or not go.disabled or not bad.is_empty():
+			out = "«1라운드 시작» 버튼 %s(있고 disabled여야 한다) · 글에 «리롤»·«내보내기»·«영입»이 든 버튼 %s(없어야 한다)" % [[go.text, go.disabled] if go else null, bad]
+	if out == "":
+		var gold: int = b.gold
+		cards[4].pressed.emit()
+		var picked: bool = _kinds(b.roster) == ["ignis"] and b.gold == gold
 		_frame(main)
-		shop._process(0.0)
-	tick.call()
-	var seen := [shop.visible]
-	b.offers = ["aias", "", ""]
-	b.hire(0)
-	b.next_round()
-	tick.call()
-	var words := " ".join(_labels(shop))
-	var at := Rect2(shop.position, shop.size)
-	seen.append(shop.visible and at == Rect2(3, 238, 60, 26) and "영입" in words and "T" in words)
-	shop.pressed.emit()
-	tick.call()
-	seen.append(hud.window.visible)
-	shop.pressed.emit()
-	tick.call()
-	seen.append(not hud.window.visible)
-	b.start_battle()
-	tick.call()
-	seen.append(shop.visible)
-	var won := _win(b)
-	tick.call()
-	seen.append(won and not shop.visible)
+		out = check(picked and cards[4].button_pressed and _num_of(cards[4]) == "1", "이그니스 카드를 누른 뒤 보유 %s · 골드 %d → %d · 카드 눌린 모양 %s · 카드 안 번호 «%s»(기대 [ignis], 골드 그대로, 눌린 모양, «1»)" % [_kinds(b.roster), gold, b.gold, cards[4].button_pressed, _num_of(cards[4])])
+	if out == "":
+		cards[0].pressed.emit()
+		cards[2].pressed.emit()
+		_frame(main)
+		var nums: Array = cards.map(func(c): return _num_of(c))
+		var off: Array = cards.map(func(c): return c.disabled)
+		out = check(_kinds(b.roster) == ["ignis", "aias", "seraphina"] and nums == ["2", "", "3", "", "1", ""] and off == [false, true, false, true, false, true] and not go.disabled,
+			"셋을 고른 뒤 보유 %s · 카드 번호 %s(기대 [2, , 3, , 1, ]) · 카드 disabled %s(고르지 않은 셋만) · «1라운드 시작» disabled %s(아니어야)" % [_kinds(b.roster), nums, off, go.disabled])
+	if out == "":
+		cards[4].pressed.emit()
+		_frame(main)
+		var nums: Array = cards.map(func(c): return _num_of(c))
+		out = check(_kinds(b.roster) == ["aias", "seraphina"] and nums == ["1", "", "2", "", "", ""] and go.disabled and not cards[4].button_pressed,
+			"이그니스 카드를 다시 누른 뒤 보유 %s · 카드 번호 %s(기대 [1, , 2, , , ]) · «1라운드 시작» disabled %s(다시 disabled여야)" % [_kinds(b.roster), nums, go.disabled])
 	_done(main)
-	return check(seen == [false, true, true, true, true, true], "[영입 창에 보임, 준비 단계 자리·글, 눌러 열림, 다시 눌러 닫힘, 전투 단계 보임, 라운드 사이에 숨음] %s(기대 [false, true, true, true, true, true]) · 자리 %s · 글 «%s»" % [seen, at, words])
+	return out
+
+# EV1130 · S373: 다 고르기 전에는 Enter(포커스가 없을 때 main이 부르는 길)와 진행 버튼 함수가 넘어가지 않는다. 다 고르면 넘어가고, 진 뒤의 새 도전도 고르기 창에서 시작한다
+func ev1130():
+	var main = _game()
+	var b = main.view.battle
+	var hud = main.hud
+	_frame(main)
+	var team := [b.hire(2), b.hire(0)]
+	_frame(main)
+	main.get_viewport().gui_release_focus()
+	_key(KEY_ENTER)
+	_frame(main)
+	var out := check(b.state == "hiring" and b.roster == team and not team.has(null), "둘만 고른 채 Enter를 넣은 뒤 단계 %s · 보유 %s(hiring이고 고른 둘 그대로여야 한다)" % [b.state, _kinds(b.roster)])
+	if out == "":
+		hud.proceed()
+		out = check(b.state == "hiring", "둘만 고른 채 hud.proceed()를 부른 뒤 단계 %s(hiring이어야 한다)" % b.state)
+	if out == "":
+		team.append(b.hire(1))
+		_frame(main)
+		main.get_viewport().gui_release_focus()
+		_key(KEY_ENTER)
+		_frame(main)
+		out = check(b.state == "prep" and b.round_index == 0 and b.heroes == team and not team.has(null), "셋째를 고르고 Enter를 넣은 뒤 단계 %s · 출전 %s(1라운드 준비 단계이고 고른 차례 [seraphina, aias, sylvia]여야 한다)" % [b.state, _kinds(b.heroes)])
+	if out == "":
+		b.damage(b.base, BIG)
+		_frame(main)
+		hud._process(1.1)
+		hud.proceed()
+		var again: bool = b.state == "hiring" and b.roster.is_empty() and b.heroes.is_empty()
+		_frame(main)
+		var go = _starts(hud.window, "1라운드 시작")
+		out = check(again and _cards(hud.window).size() == 6 and go != null and go.disabled, "진 뒤 새 도전: 단계 %s · 보유 %d명 · 보이는 카드 %d장 · «1라운드 시작» %s(고르기 창·보유 없음·카드 여섯·disabled여야 한다)" % [b.state, b.roster.size(), _cards(hud.window).size(), [go.text, go.disabled] if go else null])
+	_done(main)
+	return out
+
+# EV1131 · I303: 고르기 창의 포커스는 다 고르기 전에 첫 카드, 다 고르면 «1라운드 시작»이다. 준비·전투 단계에는 «영입» 버튼이 없고 T 키가 아무 일도 하지 않는다
+func ev1131():
+	var main = _game()
+	var b = main.view.battle
+	var hud = main.hud
+	var c = main.controls
+	_frame(main)
+	var out := check(b.state == "hiring" and _focus_text(main).begins_with(hud.HEROES.aias), "고르기 창이 처음 보인 프레임의 포커스가 «%s»다(첫 카드 «%s…»여야 한다)" % [_focus_text(main), hud.HEROES.aias])
+	if out == "":
+		for k in ["sylvia", "vesper", "chronos"]:
+			var card = _card_of(main, k)
+			if card:
+				card.pressed.emit()
+		_frame(main)
+		out = check(b.roster.size() == 3 and _focus_text(main).begins_with("1라운드 시작"), "카드 셋을 누른 뒤 보유 %d · 포커스 «%s»(«1라운드 시작…»이어야 한다)" % [b.roster.size(), _focus_text(main)])
+	if out == "":
+		b.next_round()
+		for phase in ["prep", "battle"]:
+			if out != "":
+				break
+			if phase == "battle":
+				b.start_battle()
+			_tick(main)
+			var at: Array = hud.find_children("*", "BaseButton", true, false).filter(func(n): return n.is_visible_in_tree() and n.get_global_rect().is_equal_approx(Rect2(3, 238, 60, 26))).map(func(n): return " ".join(_labels(n)))
+			if b.state != phase or hud.get("shop") != null or not at.is_empty():
+				out = "%s 단계(%s): main.hud.shop %s(없어야 한다) · [3,238,60,26]의 보이는 버튼 %s(없어야 한다)" % [phase, b.state, hud.get("shop"), at]
+				break
+			_key(KEY_2)
+			_key(KEY_MINUS)
+			_tick(main)
+			var before := [c.placing, c.selected.duplicate()]
+			_key(KEY_T)
+			_tick(main)
+			if before[0] == "" or before[1] != [b.heroes[1]]:
+				out = "준비가 틀렸다(%s 단계): - 키 뒤 놓기 모드 «%s» · 2 키 뒤 고른 유닛 %s" % [phase, before[0], before[1]]
+			elif hud.window.visible or c.placing != before[0] or c.selected != before[1]:
+				out = "%s 단계에 T 키를 넣은 뒤 창 보임 %s · 놓기 모드 «%s» → «%s» · 고른 유닛 %s → %s(창이 뜨지 않고 그대로여야 한다)" % [phase, hud.window.visible, before[0], c.placing, before[1], c.selected]
+	_done(main)
+	return out
 
 # EV656 · I209: 아이콘 그림이 96×24, 팔레트 색만, 반투명 없음, 칸마다 1/4 이상 칠함, 같은 크기끼리 서로 다름
 func ev656():
@@ -238,14 +244,23 @@ func ev657():
 	_done(main)
 	return out
 
-# EV658 · S274: 장비를 낀 출전 영웅 초상 귀퉁이와, 가방에 장비가 있는 영웅의 영입 카드에 작은 아이콘
+# EV658 · S274: 장비를 낀 출전 영웅 초상 귀퉁이와, 가방에 장비가 있는 영웅의 고르기 창 카드에 작은 아이콘
 func ev658():
 	var main = _game()
 	var b = main.view.battle
 	var hud = main.hud
 	b.gold = BIG
-	b.offers = ["ignis", "", ""]
-	var h = b.hire(0)
+	b.offers = ["seraphina", "chronos", "ignis"]
+	b.bag["seraphina"] = 0
+	_frame(main)
+	var cards := {}
+	for n in _cards(hud.window):
+		for k in ["seraphina", "chronos"]:
+			if n.text.begins_with(hud.HEROES[k]):
+				cards[k] = _pics(n).filter(func(r): return r.texture is AtlasTexture and r.texture.atlas != null and r.texture.atlas.resource_path == GEAR_PNG)
+	var has: bool = cards.has("seraphina") and cards.seraphina.size() == 1 and _is_icon(cards.seraphina[0], "seraphina", true)
+	var none: bool = cards.has("chronos") and cards.chronos.is_empty()
+	var h = b.hire(2)
 	b.next_round()
 	b.bag["ignis"] = 2
 	h.worn = true
@@ -256,20 +271,8 @@ func ev658():
 	h.worn = false
 	_frame(main)
 	var bare: bool = corner.call().is_empty()
-	_key(KEY_T)
-	b.offers = ["seraphina", "chronos", ""]
-	b.bag["seraphina"] = 0
-	_frame(main)
-	var cards := {}
-	for n in hud.window.find_children("*", "BaseButton", true, false):
-		if n.is_visible_in_tree() and "«" in n.text:
-			for k in {"seraphina": "세라피나", "chronos": "크로노스"}:
-				if n.text.begins_with({"seraphina": "세라피나", "chronos": "크로노스"}[k]):
-					cards[k] = _pics(n).filter(func(r): return r.texture is AtlasTexture and r.texture.atlas != null and r.texture.atlas.resource_path == GEAR_PNG)
-	var has: bool = cards.has("seraphina") and cards.seraphina.size() == 1 and _is_icon(cards.seraphina[0], "seraphina", true)
-	var none: bool = cards.has("chronos") and cards.chronos.is_empty()
 	_done(main)
-	return check(worn and bare and has and none, "초상 귀퉁이: 낌 %s · 해제 뒤 없음 %s / 영입 카드: 가방에 있는 세라피나 %s · 없는 크로노스 숨음 %s" % [worn, bare, has, none])
+	return check(worn and bare and has and none, "초상 귀퉁이: 낌 %s · 해제 뒤 없음 %s / 고르기 창 카드: 가방에 있는 세라피나 %s · 없는 크로노스 숨음 %s" % [worn, bare, has, none])
 
 # EV880 · S313·I259: «전체 오토» 버튼의 자리·글·툴팁·보이는 단계, 눌러서 모두 켜고 끄기, 모두 켜진 동안 금색 테두리
 func ev880():
@@ -281,7 +284,7 @@ func ev880():
 	if not btn is BaseButton:
 		_done(main)
 		return "main.hud.auto_all(BaseButton)이 없다"
-	var tick := func():  # 버튼은 자기 _process에서 보이기·테두리를 정한다(EV655와 같다)
+	var tick := func():  # 버튼은 자기 _process에서 보이기·테두리를 정한다(_frame은 돌리지 않는다. 대피령 버튼 평가와 같다)
 		_frame(main)
 		btn._process(0.0)
 	tick.call()
