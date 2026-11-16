@@ -3715,15 +3715,15 @@ func _house_pop() -> int:
 	var v = d.get("pop")
 	return int(v) if v != null else 0
 
-# 들판(성 아래)에 용병을 n명 놓는다. 놓인 수
+# 들판(성 아래)에 용병을 n명 놓는다(한 줄에 스무 명, 2칸 간격). 놓인 수
 func _field_mercs(b, n: int) -> int:
 	var placed := 0
 	for i in n:
-		if b.place_merc("soldier", Vector2i(10 + 2 * i, 66)) != null:
+		if b.place_merc("soldier", Vector2i(10 + 2 * (i % 20), 66 + 2 * (i / 20))) != null:
 			placed += 1
 	return placed
 
-# EV742 · I225: 인구 칸은 위 띠 바로 아래 [4,30,52,12]에 «인구 n/m»이다. 상한에 닿으면 빨강이고, 툴팁에 상한 내역이 있다
+# EV742 · I225: 인구 칸은 위 띠 바로 아래 [4,30,58,12]에 «인구 n/m»이다. 상한에 닿으면 빨강이고, 툴팁에 상한 내역이 있다
 func ev742():
 	var main = _prep()
 	var b = main.view.battle
@@ -3735,8 +3735,8 @@ func ev742():
 	if out == "":
 		var r: Rect2 = pop.get_global_rect()
 		var want := "인구 0/%d" % b.POP_BASE
-		out = check(pop.is_visible_in_tree() and r.position.distance_to(Vector2(4, 30)) <= 0.5 and r.size.distance_to(Vector2(52, 12)) <= 0.5 and pop.text == want,
-			"인구 칸 %s(보임 %s) · 글 «%s»(기대 [4,30,52,12] «%s»)" % [r, pop.is_visible_in_tree(), pop.text, want])
+		out = check(pop.is_visible_in_tree() and r.position.distance_to(Vector2(4, 30)) <= 0.5 and r.size.distance_to(Vector2(58, 12)) <= 0.5 and pop.text == want,
+			"인구 칸 %s(보임 %s) · 글 «%s»(기대 [4,30,58,12] «%s»)" % [r, pop.is_visible_in_tree(), pop.text, want])
 	if out == "":
 		var placed := _field_mercs(b, b.POP_BASE)
 		_frame(main)

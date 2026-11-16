@@ -241,3 +241,24 @@ func ev741():
 	return check(h1 != null and h2 != null and cap2 == b.POP_BASE + 2 * per and placed == cap2 and cap1 == b.POP_BASE + per and kept == cap2 and refused
 		and eng != null and bp != null and not bp.complete and c.pop_cap() == cap0,
 		"집 둘 상한 %d(%d) · 놓인 수 %d · 한 채 판 뒤 상한 %d(%d) · 남은 용병 %d(%d) · 더 놓기 거부 %s · 전투 중 짓는 집 %s(미완성 %s) · 상한 %d → %d(그대로)" % [cap2, b.POP_BASE + 2 * per, placed, cap1, b.POP_BASE + per, kept, cap2, refused, bp, bp.complete if bp else null, cap0, c.pop_cap()])
+
+# EV1136 · I225 ⑤: 저장을 불러오면 구조물의 pop을 지금 데이터 값으로 맞춘다. 집 몫이 달랐던 저장도 지금 집 몫으로 센다
+func ev1136():
+	var b = _battle()
+	var out := _pop_api(b)
+	if out != "":
+		return out
+	var per := _house_pop()
+	var h1 = b.build("house", Vector2i(2, 1))
+	var h2 = b.build("house", Vector2i(5, 1))
+	var S = load("res://src/sim/save.gd")
+	var d: Dictionary = S.snapshot(b)
+	var old := 0
+	for f in d.structures:
+		if f.has("pop"):
+			f.pop = 1
+			old += 1
+	var c = _battle()
+	S.apply(c, d)
+	return check(h1 != null and h2 != null and old == 2 and c.pop_houses().size() == 2 and c.pop_cap() == c.POP_BASE + 2 * per,
+		"지은 집 %s·%s · pop을 1로 바꾼 저장 구조물 %d(2) · 불러온 판의 인구를 주는 집 %d(2) · 상한 %d(기대 %d = 거점 몫 %d + 2 × 집 몫 %d)" % [h1, h2, old, c.pop_houses().size(), c.pop_cap(), c.POP_BASE + 2 * per, c.POP_BASE, per])

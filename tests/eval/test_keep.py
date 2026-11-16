@@ -59,3 +59,7 @@ def test_EV1118_keep_strip_village_lock(gd):
 
 def test_EV1125_icon_cut_once_and_shared(gd):
     gd("keep", "EV1125")
+
+
+def test_EV1137_pop_text_fits_at_hundred(gd):
+    gd("keep", "EV1137")

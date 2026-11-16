@@ -9,7 +9,7 @@ extends "res://tests/eval/gd/hud.gd"
 #     keep.pips — 카드마다 강화 점(ColorRect 배열, 산 단계만큼 color가 #ffd37f) · keep.plus — 카드마다 «+n» Label
 #     keep.strips — 카드 아래 강화 띠 다섯(BaseButton, 글은 text)
 #     keep.village·keep.raid·keep.rally — 머리 줄 버튼(BaseButton, 글은 text). main.hud.raid는 keep.raid다
-#     keep.pop — 머리 줄 인구 Label(«인구 n/m», 상한이면 font_color #ef3a0c)
+#     keep.pop — 머리 줄 인구 Label(«n/m», 상한이면 font_color #ef3a0c. S25 2026-11-16 변경·I225 ⑥)
 #     keep.info — 설명 상자(Control). 그 안의 보이는 Label이 글이다
 #     keep.undo — 준비 단계 머리 줄 «↶»(BaseButton, S367) · keep.undos — 무를 목록(Array, 구매마다 하나)
 #     keep.recents — 탭 줄 오른쪽 끝 최근 칸 셋(BaseButton, S368). 누르면(pressed) 한 명, gui_input Shift 누름은 다섯 명까지
@@ -215,7 +215,7 @@ func ev1094():
 	var vis := func(n): return n.is_visible_in_tree()
 	var prep1 := [vis.call(k.village) and k.village.text.begins_with("마을 Lv2 %d" % b.VILLAGE_UP[0]), vis.call(k.raid), k.raid.text, k.raid.disabled, vis.call(k.rally)]
 	var said := _tip_of(main, k.raid)
-	var pop: bool = k.pop.text == "인구 %d/%d" % [b.pop_used(), b.pop_cap()]
+	var pop: bool = k.pop.text == "%d/%d" % [b.pop_used(), b.pop_cap()]
 	b.state = "cleared"
 	b.next_round()
 	main.controls.village = true
@@ -475,6 +475,8 @@ func ev1101():
 			out = "둘째 최근 칸: 기병 %d → %d · 골드 %d → %d(값 %d) · 탭 %d(2 그대로)" % [n0, _n_of(b, "cavalry"), g0, b.gold, b.MERC_KINDS.cavalry.cost, c.keep_tab]
 	if out == "":
 		b.sell(b.units.filter(func(u): return u.kind == "cavalry" and u.alive))
+		while b.pop_used() < b.pop_cap() - 3 and b.recruit(b.base, "spearman") != null:  # 인구를 상한 − 3으로 채운다. Shift 구매 뒤에 상한에 닿게
+			pass
 		var want: int = mini(5, b.pop_cap() - b.pop_used())
 		var n0 := _n_of(b, "shieldman")
 		_shift_click(k.recents[0])
@@ -590,3 +592,49 @@ func ev1125():
 	_done(main)
 	return check(twice.values().all(func(v): return v) and apart and once and cards == MELEE.slice(0, 4) and kept.all(func(v): return v) and shared.all(func(v): return v) and recent == ["shieldman", true, true],
 		"icon 두 번 같은 객체 %s(모두 참) · 병사·궁수 다른 객체 %s · 다시 자르지 않음 %s · 근접 탭 카드 %s · HUD 두 번 뒤 카드 그림 그대로 %s(모두 참) · icon과 같은 객체 %s(모두 참) · 첫 최근 칸 [종류, 그대로, icon과 같음] %s([shieldman, 참, 참])" % [twice, apart, once, cards, kept, shared, recent])
+
+# 칸의 글꼴·글자 크기로 잰 화면 글(번역된 글) 폭
+func _text_w(l: Label) -> float:
+	return l.get_theme_font("font").get_string_size(tr(l.text), HORIZONTAL_ALIGNMENT_LEFT, -1, l.get_theme_font_size("font_size")).x
+
+# 집 넷·용병 100명의 준비 단계 게임 장면에서 인구 칸과 거점 패널 머리 줄 인구 글을 잰다. 맞으면 ""
+func _pop_fit(lang: String) -> String:
+	var main = _prep()
+	var b = main.view.battle
+	var hud = main.hud
+	var k = _panel(main)
+	if not k is Control or not hud.get("pop") is Label or not hud.get("towers") is Label:
+		_done(main)
+		return "%s: main.hud.keep·pop·towers 가운데 없는 것이 있다" % lang
+	b.gold = BIG
+	var houses := 0
+	for want in [Vector2i(14, 14), Vector2i(20, 14), Vector2i(14, 20), Vector2i(20, 20)]:
+		if b.build("house", _near(b, "house", want)) != null:
+			houses += 1
+	var placed := 0
+	for i in 100:
+		if b.place_merc("soldier", Vector2i(10 + 2 * (i % 20), 66 + 2 * (i / 20))) != null:
+			placed += 1
+	_frame(main)
+	var cap: int = b.pop_cap()
+	var r: Rect2 = hud.pop.get_global_rect()
+	var top := [hud.pop.text, r, _text_w(hud.pop) <= 56.01, hud.pop.is_visible_in_tree() and hud.towers.is_visible_in_tree(), r.intersects(hud.towers.get_global_rect())]
+	_open(main)
+	var p: Rect2 = k.pop.get_global_rect()
+	var hit: Array = [k.undo, k.village, k.raid].filter(func(n): return n.is_visible_in_tree() and p.intersects(n.get_global_rect())).map(func(n): return _part(n))
+	var shown: int = [k.undo, k.village, k.raid].filter(func(n): return n.is_visible_in_tree()).size()
+	var head := [k.pop.text, _text_w(k.pop) <= 40.01, k.get_global_rect().encloses(p), hit, shown]
+	_done(main)
+	return check(houses == 4 and placed == 100
+		and top == ["인구 100/%d" % cap, Rect2(4, 30, 58, 12), true, true, false]
+		and head == ["100/%d" % cap, true, true, [], 3],
+		"%s: 지은 집 %d(4) · 놓인 용병 %d(100) · 상한 %d · 인구 칸 [글, 사각형, 글 폭 56 이하, 인구·타워 칸 보임, 타워 칸과 겹침] %s(«인구 100/%d»·[4,30,58,12]·참·참·거짓) · 머리 줄 [글, 글 폭 40 이하, 패널 안, 겹친 버튼, 보이는 버튼 수] %s(«100/%d»·참·참·[]·3)" % [lang, houses, placed, cap, top, cap, head, cap])
+
+# EV1137 · I225 ③⑥: 용병 100명·집 넷의 판에서 인구 칸 «인구 100/m»이 [4,30,58,12]에 들고 타워 칸과 겹치지 않는다. 거점 패널 머리 줄 «100/m»은 폭 40에 들고 «↶»·마을·원정과 겹치지 않는다. 영어도
+func ev1137():
+	var out := _pop_fit("한국어")
+	if out == "":
+		var st = _english()
+		out = _pop_fit("영어")
+		_english_off(st)
+	return out
