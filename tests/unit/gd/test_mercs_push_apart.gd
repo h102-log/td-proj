@@ -2,8 +2,7 @@ extends RefCounted
 # 용병끼리 겹치지 않고 밀어내며, 서로를 멈춰 세우지 않는지 본다(WBS 2.8).
 # 지키는 요구:
 #   I51. 같은 편끼리(적끼리, 아군끼리)는 서로 밀어내며 비켜 가고, 서로를 멈춰 세우지 않는다.
-# 드래그로 고른 무리는 한 칸으로 이동 지시를 받는다. 모두 그 칸 중심에 닿아야 도착이면
-# 서로 밀어내며 끝없이 걷는다(도착하지 못하면 I36의 추적도 시작하지 않는다).
+# 무리는 대열 자리로 간다(S374). 모두 서고 겹치지 않는지 본다.
 
 func _battle():
 	return load("res://src/sim/battle.gd").new({"size": Vector2i(20, 20), "base": Vector2i(19, 19), "base_hp": 1000000, "gold": 1000000, "spawns": [Vector2i(0, 0)]})
@@ -35,6 +34,12 @@ func test_group_sent_to_one_cell_all_arrive():
 	var walking := ms.filter(func(m): return not m.path.is_empty())
 	if not walking.is_empty():
 		return "10초 뒤에도 걷는 용병: %s" % [walking.map(func(m): return m.pos)]
-	if ms.any(func(m): return m.pos.distance_to(Vector2(10, 10)) > 1.0):
-		return "목적지에서 1칸보다 멀리 섰다: %s" % [ms.map(func(m): return m.pos)]
+	if ms.any(func(m): return m.pos.distance_to(Vector2(10, 10)) > 1.5):
+		return "목적지에서 1.5칸보다 멀리 섰다: %s" % [ms.map(func(m): return m.pos)]
+	var cells := []
+	for m in ms:
+		var c := Vector2i(m.pos.round())
+		if m.pos.distance_to(Vector2(c)) > 0.05 or c in cells:
+			return "넷이 서로 다른 칸 중심에 서지 않았다: %s" % [ms.map(func(m2): return m2.pos)]
+		cells.append(c)
 	return "겹쳐 있다: %s" % [ms.map(func(m): return m.pos)] if _overlapping(ms) else ""
