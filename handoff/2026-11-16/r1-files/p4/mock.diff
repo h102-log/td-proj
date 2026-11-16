@@ -1,0 +1,315 @@
+diff --git a/src/ui/battle_view.gd b/src/ui/battle_view.gd
+index 09dc2f1..61a5201 100644
+--- a/src/ui/battle_view.gd
++++ b/src/ui/battle_view.gd
+@@ -378,6 +378,21 @@ var _lone := {}  # 지난 프레임에 홀로였던 원정 보스 몸 id(S354 
+ var _dots := []  # 효과 점(I172): {p0, p1, rise, t0, life, fade, col, size, ground}
+ var _fade := 1.0  # 지금 그리는 흔적의 불투명도(S179 2026-10-29). 아트 px 도우미가 색 알파에 곱한다
+ var _slides := {}  # id → [지난 화면 자리, 시작 시각, 길이](S198 미끄러짐)
++# ── 시안(P4, 머지하지 않는다): 대시 연출(후기 3 안 A). 시뮬레이션과 미끄러짐(S198, 2칸 0.12초)은 그대로 두고 잔상·먼지·자세만 더한다 ──
++static var dash_mock := ""  # «» 지금 그대로 · «sil» 단색 영웅 실루엣 잔상 · «pic» 반투명 영웅 그림 잔상 · «bar» 단색 막대 실루엣 잔상(크로노스 E 되돌림 잔상과 같은 모양)
++const DASH_GHOSTS := 4  # 출발 → 도착 길의 잔상 수의 위 끝(크로노스 E의 GHOSTS와 같다). 2칸을 다 가면 넷이다
++const DASH_STEP := 8.0  # 잔상 하나가 맡는 길(맵 px). 짧게 끊긴 대시는 잔상이 그만큼 준다(8px 이하는 출발 자리 하나)
++const DASH_GHOST := 0.18  # 잔상 하나가 흐려져 사라지는 시간(초)
++const DASH_ALPHA := 0.55  # 잔상이 나타날 때의 불투명도(pic·bar)
++const DASH_SIL := [["cream", 0.8], ["tan", 0.55], ["ash", 0.35]]  # 단색 실루엣(sil)이 사라지며 거치는 [팔레트 색, 불투명도] 세 단. 이어서 흐려지지 않고 단으로 바뀐다
++const DASH_POSE := 0.1  # 미끄러짐이 없는 짧은 대시(8px 이하)가 걷기 자세를 잡는 시간(초)
++const DASH_KICK := 7  # 2칸을 다 간 대시의 출발 먼지 점 수. 짧게 끊기면 간 거리만큼 준다(아래 끝 3)
++const DASH_LAND := 4  # 2칸을 다 간 대시의 착지 먼지 점 수(아래 끝 2)
++var _dash_cd := {}  # 영웅 id → 지난 프레임의 dash_cd. 오른 프레임이 대시다
++var _dash_state := ""  # 지난 프레임의 판 단계. 원정에 들고 나는 프레임은 대시로 보지 않는다
++var _dashes := {}  # 영웅 id → {hero, from·to(맵 px), t0(화면 시계), len(미끄러짐 초, 없으면 0), dir(8방향), n(모양 씨앗), far(간 거리 ÷ 2칸), ghosts(잔상 수)}
++var _sils := {}  # «종류:방향» → 걷기 그림 한 칸의 흰 실루엣. 처음 쓸 때 아틀라스에서 그 칸만 떠서 굽는다(새 그림 파일은 없다)
++static var _units_img: Image  # 실루엣을 뜰 아틀라스 그림. 한 번만 읽는다
+ var _pops := {}  # 갈라져 나온 적 id → 나온 시각(S234 2026-10-29 변경)
+ var _fills := []  # [보스 스킬 흔적, 남은 프레임](S198 발동 채움). tick마다 하나씩 줄인다. 기관총은 흔적 대신 {at, dir, range, arc}다
+ var _firing := {}  # 발사 중으로 본 기관총 적(S198 발동 채움). tick이 처음 본 발사에 채움을 넣는다
+@@ -512,6 +527,7 @@ func _draw() -> void:
+ 	for h in battle.heroes:  # 오라 반경(S113): 오라가 있는 살아 있는 영웅마다 둘레에 늘 엷게, 유닛 아래에(I101)
+ 		if h.alive and not h.aura.is_empty():
+ 			_aura_ring(h)
++	_dash_ghosts()  # 시안(P4): 대시 잔상은 몸통 아래
+ 	_bodies()
+ 	_wall_links()
+ 	_chain_links()
+@@ -2949,6 +2965,12 @@ func _sprite(x, next: Dictionary, tint := Color.WHITE) -> void:
+ 	elif moving:
+ 		anim = "walk"
+ 		col = int(Time.get_ticks_msec() / 125.0) % 4
++	var ds = _dashes.get(id)  # 시안(P4): 대시로 미끄러지는 동안은 대상이 있어도 대시 쪽을 보는 걷기 그림(내딛는 칸)이다
++	if ds != null and clock - ds.t0 < maxf(ds.len, DASH_POSE):
++		dir = ds.dir
++		anim = "walk"
++		col = 1
++		next[id] = [x.pos, dir]
+ 	var size := c * (2 if anim == "attack" else 1)  # 공격은 2배 캔버스(tools/art/hero.py)
+ 	var at := _spot(x) + _flinch(x) + _slip(x) - Vector2(a.anchor[0], a.anchor[1]) - Vector2.ONE * (size - c) / 2.0
+ 	_region(UNITS, Rect2(at, Vector2(size, size)), Rect2(col * size, a[anim] + dir * size, size, size), tint)
+@@ -3365,7 +3387,9 @@ func tick(dt: float) -> void:
+ 	for e in events:
+ 		_react(e)
+ 	_dots = _dots.filter(func(d): return clock - d.t0 < d.life)
++	var was := _last  # _slide_scan이 새 사전으로 바꾼다. 대시(시안)가 지난 프레임 자리를 여기서 읽는다
+ 	_slide_scan()
++	_dash_scan(was)
+ 
+ # 이번 프레임에 새로 생긴 사건(I171). 판 단계가 준비·전투일 때와, 전투에서 넘어온 라운드 사이·도전 성공·패배에서 낸다.
+ # 근접의 닿음·처치는 공격자의 친 뒤 시간이 닿는 때(_contact)를 넘은 프레임에 공격 하나에 한 번이고, 처치는 쓰러진 대상을 노린 마지막 공격이 닿을 때다(S197).
+@@ -3761,6 +3785,93 @@ func _slide_scan() -> void:
+ 		if clock - _pops[id] >= POP:
+ 			_pops.erase(id)
+ 
++# ── 시안(P4, 머지하지 않는다) ──
++# 대시를 알아본다: 영웅의 dash_cd가 오른 프레임이다. 판 단계가 바뀐 프레임(원정에 들고 남)과 2칸보다 멀리 옮겨진 프레임(«다시»로 입구에 되돌려짐)은 뺀다.
++# 미끄러짐은 _slide_scan이 정한 그대로 읽기만 한다(8px 이하 짧은 대시는 미끄러짐이 없어 len 0)
++func _dash_scan(was: Dictionary) -> void:
++	for h in battle.heroes:
++		var id: int = h.get_instance_id()
++		var cd = _dash_cd.get(id)
++		var last = was.get(id)
++		if dash_mock != "" and _live and cd != null and last != null and h.alive and h.dash_cd > cd and battle.state == _dash_state:
++			var from: Vector2 = last[1]
++			var to := _center(h.pos)
++			if from.distance_to(to) <= battle.DASH.length * CELL + 0.5:
++				var s = _slides.get(id)
++				_n += 1
++				var far: float = clampf(from.distance_to(to) / (battle.DASH.length * CELL), 0.0, 1.0)
++				_dashes[id] = {"hero": h, "from": from, "to": to, "t0": clock, "len": s[2] if s != null and s[1] == clock else 0.0, "dir": _dir_of(to - from), "n": _n,
++					"far": far, "ghosts": clampi(ceili(from.distance_to(to) / DASH_STEP), 1, DASH_GHOSTS)}
++				_dash_dust(_dashes[id])
++		_dash_cd[id] = h.dash_cd
++	_dash_state = battle.state
++	for id in _dashes.keys():
++		if clock - _dashes[id].t0 > 1.0:
++			_dashes.erase(id)
++
++# 대시 먼지: 출발 자리에서 뒤쪽으로 DASH_KICK점을 차내고, 몸이 닿는 때(미끄러짐 끝) 착지 자리 앞·옆으로 DASH_LAND점이 낮게 퍼진다. 크기는 기존 먼지(S198)와 같은 2×2이고,
++# 흙길 위에서 DUST만으로는 묻혀서(2026-11-16 캡처) 크림색에서 DUST로 바뀐다. 짧게 끊긴 대시는 간 거리만큼 점 수와 날아가는 거리가 준다(4px 대시에 2칸짜리 먼지가 이는 것이 어색했다)
++func _dash_dust(d: Dictionary) -> void:
++	var back: Vector2 = (d.from - d.to).normalized()
++	var foot: Vector2 = d.from + Vector2(0, 2)
++	var reach: float = maxf(d.far, 0.5)
++	for i in clampi(roundi(DASH_KICK * d.far), 3, DASH_KICK):
++		var v := Vector2.from_angle(back.angle() + deg_to_rad(_h(d.n, i, -50, 50)))
++		_dot({"p0": foot, "p1": foot + Vector2(v.x, v.y * 0.6) * _h(d.n, 10 + i, 8, 16) * reach, "rise": _h(d.n, 20 + i, 1, 4), "col": PX.cream, "to": DUST, "size": Vector2(2, 2), "life": 0.3 + 0.02 * _h(d.n, 30 + i, 0, 4), "fade": 0.15})
++	var land: Vector2 = d.to + Vector2(0, 2)
++	for i in clampi(roundi(DASH_LAND * d.far), 2, DASH_LAND):
++		var v := Vector2.from_angle((-back).angle() + deg_to_rad(_h(d.n, 40 + i, -70, 70)))
++		_dot({"p0": land, "p1": land + Vector2(v.x, v.y * 0.6) * _h(d.n, 50 + i, 5, 9) * reach, "rise": _h(d.n, 60 + i, 0, 2), "col": PX.cream, "to": DUST, "size": Vector2(2, 2), "life": 0.3, "fade": 0.15, "wait": d.len})
++
++# 대시 잔상: 출발 → 도착 길의 잔상 자리에, 미끄러지는 몸이 그 자리를 지난 때부터 DASH_GHOST초 동안 사라진다(출발 쪽부터 사라진다). 몸통 아래 층이다.
++# 잔상 수는 간 거리 ÷ DASH_STEP(2칸이면 넷)이라 짧게 끊긴 대시에서 겹쳐 덩어리지지 않는다. 미끄러짐이 없는 짧은 대시는 출발 자리 하나가 툭 옮겨진 두 자리를 잇는다
++func _dash_ghosts() -> void:
++	for d in _dashes.values():
++		var t: float = clock - d.t0
++		for i in int(d.ghosts):
++			var u: float = float(i) / d.ghosts
++			var k: float = (t - d.len * (1.0 - sqrt(1.0 - u))) / DASH_GHOST  # _out으로 미끄러지는 몸이 u 자리를 지나는 때는 len × (1 − √(1 − u))다
++			if k < 0.0 or k >= 1.0:
++				continue
++			var p: Vector2 = d.from.lerp(d.to, u).round()
++			if dash_mock == "bar":
++				var tall := int(_head(d.hero) * 0.8)
++				var col := Color(_ramp(["cream", "tan", "ash"], k), DASH_ALPHA * (1.0 - k))
++				_px(Vector2i(p) + Vector2i(-1, -tall), col, Vector2i(3, tall))
++				_px(Vector2i(p) + Vector2i(-2, -tall + 2), col, Vector2i(5, tall - 4))
++			elif dash_mock == "sil":
++				var step: Array = DASH_SIL[clampi(int(k * DASH_SIL.size()), 0, DASH_SIL.size() - 1)]
++				_hero_sil(d.hero.kind, p, d.dir, Color(PX[step[0]], step[1]))
++			else:
++				_hero_frame(d.hero.kind, p, "walk", 1, d.dir, Color(1, 1, 1, DASH_ALPHA * (1.0 - k)))
++
++# 영웅 그림 한 칸을 발 자리 가운데 p에 그린다(_sprite의 마지막 줄과 같은 셈). 잔상이 쓴다
++func _hero_frame(kind: String, p: Vector2, anim: String, col: int, dir: int, tint: Color) -> void:
++	if not ART.has(kind):
++		return
++	var a: Dictionary = ART[kind]
++	var c := int(a.c)
++	var size := c * (2 if anim == "attack" else 1)
++	_region(UNITS, Rect2(p - Vector2(a.anchor[0], a.anchor[1]) - Vector2.ONE * (size - c) / 2.0, Vector2(size, size)), Rect2(col * size, a[anim] + dir * size, size, size), tint)
++
++# 영웅 걷기 그림(내딛는 칸)의 단색 실루엣을 발 자리 가운데 p에 그린다. 실루엣은 그 칸의 불투명한 점을 모두 흰색으로 바꾼 그림이고 색은 tint가 정한다
++func _hero_sil(kind: String, p: Vector2, dir: int, tint: Color) -> void:
++	if not ART.has(kind):
++		return
++	var a: Dictionary = ART[kind]
++	var c := int(a.c)
++	var key := "%s:%d" % [kind, dir]
++	if not _sils.has(key):
++		if _units_img == null:
++			_units_img = UNITS.get_image()
++		var im := _units_img.get_region(Rect2i(c, int(a.walk) + dir * c, c, c))
++		im.convert(Image.FORMAT_RGBA8)
++		for y in c:
++			for x in c:
++				im.set_pixel(x, y, Color(1, 1, 1, 1.0 if im.get_pixel(x, y).a > 0.5 else 0.0))
++		_sils[key] = ImageTexture.create_from_image(im)
++	_region(_sils[key], Rect2(p - Vector2(a.anchor[0], a.anchor[1]), Vector2(c, c)), Rect2(0, 0, c, c), tint)
++
+ # 미끄러지는 몸을 그릴 자리와 시뮬레이션 자리의 차(S198)
+ func _slip(x) -> Vector2:
+ 	var s = _slides.get(x.get_instance_id())
+diff --git a/src/ui/controls.gd b/src/ui/controls.gd
+index d432b99..315cf98 100644
+--- a/src/ui/controls.gd
++++ b/src/ui/controls.gd
+@@ -33,6 +33,7 @@ signal refused(cell: Vector2i, why: String)  # 구조물 놓기가 거부됐다.
+ signal facility_key(f)  # 전투 단계 용병 키로 시설을 골랐다. HUD가 카메라를 그 시설로 옮긴다(S81, I164)
+ signal alert_key  # C 키. HUD가 마지막 경보 자리로 카메라를 옮긴다(S189)
+ signal hero_sent  # 고른 것에 영웅이 있는 채 이동·공격 명령을 내렸다. 힌트(S191)가 듣는다
++signal dash_refused(waiting: Array)  # 시안(P4, 머지하지 않는다): Space를 눌렀는데 아무도 대시하지 못했고 대기 중인 영웅이 있다. HUD가 그 초상을 번쩍인다
+ 
+ var battle
+ var cell_px: int
+@@ -274,7 +275,14 @@ func dash() -> void:
+ 	var group: Array = selected.filter(func(u): return u.is_hero and u.alive and u in battle.heroes)
+ 	if group.is_empty() and battle._first_alive():
+ 		group = [battle._first_alive()]
++	var before: Array = group.map(func(h): return h.dash_cd)
+ 	battle.dash(group, mouse / cell_px - Vector2(0.5, 0.5))
++	var went := false
++	for k in group.size():
++		went = went or group[k].dash_cd > before[k]
++	var waiting: Array = group.filter(func(h): return h.dash_cd > 0.0)
++	if battle.fighting() and not went and not waiting.is_empty():  # 시안(P4): 아무도 대시하지 못했고 그 까닭이 대기일 때만(후기 3 Claude 기본값)
++		dash_refused.emit(waiting)
+ 
+ # 선택 패널의 그림 칸(S206)이 그 유닛 하나만 고른다. 우클릭이 그 유닛을 옮기게 시설 선택을 푼다
+ func pick_unit(u) -> void:
+diff --git a/src/ui/hud.gd b/src/ui/hud.gd
+index 1bea0bb..7fdbd08 100644
+--- a/src/ui/hud.gd
++++ b/src/ui/hud.gd
+@@ -278,6 +278,16 @@ var _fix_pic: TextureRect  # 자동 수리 태그의 망치 그림. 밝기가 
+ var portraits := []  # 출전 칸마다 초상 버튼(I129). 누르면 그 영웅을 고른다(I165)
+ var slots := []  # 출전 칸마다 {칸: 스킬 칸}(I151)
+ var _rows := []  # 출전 칸마다 {pic: 초상 그림, dash: 대시 대기 막(I261 ⑦), lv: 레벨 글, hp·mp: 막대, down: «쓰러짐»}(I129)
++# ── 시안(P4, 머지하지 않는다): 위 띠 초상 한 칸에 고른 영웅·스킬 쓸 영웅·대시 남은 초·대기 중 Space 거부를 함께 보인다 ──
++# mock: «» 지금 그대로 · «A» 고름 = S372 고른 칸, 스킬 영웅 = 그 영웅 스킬 칸 글자를 키 글자색으로
++#       «B» 고름 = 청록 테두리(발밑 팀 색), 스킬 영웅 = S372 고른 칸 · «C»(추천) 고름 = S372 고른 칸, 스킬 영웅 = 초상 오른쪽 변의 금색 세모(스킬 칸 쪽을 가리킨다)
++# 세 안 모두: 대시 대기 막(I261 ⑦) 위에 올림한 남은 초(SECS px), 대기 중 Space에는 초상 테두리가 SkillCell.FLASH초 빨갛고 토스트 «대시 대기 N초»와 refuse 소리
++# 글자를 이어 쓰면 겹친다(«AC» = A의 글자색 + C의 세모)
++static var mock := ""
++const SECS := 10  # 초상 위 남은 대시 초의 글자 크기. 스킬 칸(18px 칸에 8px)과 같은 비율이다. 8px은 막이 얇을 때 초상 그림에 묻히고 레벨 숫자(7px)와 헷갈렸다(2026-11-16 캡처)
++const POINTER := ["oo....", "o#o...", "o##o..", "o###o.", "o####o", "o###o.", "o##o..", "o#o...", "oo...."]  # 시안 C: 스킬 칸 쪽을 가리키는 세모 4×7과 어두운 테
++var _looks := {}  # 시안: 초상 테두리 모양 이름 → StyleBox
++var _pointer: Texture2D
+ var _faces := {}  # 영웅 종류 → 초상 대역 그림(S30)
+ var _now := 0.0  # HUD 시계(초). 맥박·거부 표시·두 번 누름(I165)
+ var _taps := {}  # 출전 칸 → 마지막으로 F키·초상을 누른 때(_now)
+@@ -352,6 +362,19 @@ func _ready() -> void:
+ 		row.lv.size = Vector2(11, 8)
+ 		row.gear = _pic(face, null, Vector2(8, 8))  # 낀 장비 작은 아이콘(S274): 초상 왼쪽 아래 귀퉁이
+ 		row.gear.position = Vector2(1, 15)
++		row.face = face  # 시안(P4): 테두리 모양을 바꿀 초상 버튼, 남은 대시 초, 그 위 덧그림(거부 테두리·세모), 거부 표시를 시작한 때
++		row.secs = _text(face, SECS, HudTheme.TEXT)  # 초상 그림 위라 검은 테를 둔다(건설 격자 비용 글과 같은 값)
++		row.secs.add_theme_color_override("font_outline_color", Color.BLACK)
++		row.secs.add_theme_constant_override("outline_size", 3)
++		row.secs.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
++		row.secs.position = Vector2(0, 4)
++		row.secs.size = Vector2(24, 14)
++		row.over = Control.new()
++		row.over.size = face.size
++		row.over.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
++		row.over.draw.connect(func(): _face_paint(i))
++		face.add_child(row.over)
++		row.reject = -INF
+ 		tip.add(face, func(): return _hero_tip(i))
+ 		portraits.append(face)
+ 		var cells_of := {}
+@@ -381,6 +404,7 @@ func _ready() -> void:
+ 		_rows.append(row)
+ 	controls.hero_key.connect(_tap)
+ 	controls.skill_keyed.connect(_skill_refuse)
++	controls.dash_refused.connect(_dash_refuse)  # 시안(P4)
+ 	_make_progress()
+ 	var menu := _cell("menu", _bar_button(bar, "", func(): menu_pressed.emit()))
+ 	_pic(menu, HudBuild.dots(MENU), Vector2(8, 7)).position = Vector2(4, 8)
+@@ -1547,6 +1571,7 @@ func _show_heroes() -> void:
+ 		var wait: float = clampf(h.dash_cd / battle.DASH.cd, 0.0, 1.0) if h.alive else 0.0
+ 		row.dash.visible = wait > 0.0
+ 		row.dash.size = Vector2(22, 22.0 * wait)
++		_show_face(row, i, h, wait > 0.0)  # 시안(P4)
+ 		row.gear.visible = h.worn and battle.bag.has(h.kind)
+ 		row.gear.texture = HudBuild.gear_icon(h.kind, true) if row.gear.visible else null
+ 		var r: float = clampf(h.hp / h.max_hp, 0.0, 1.0)
+@@ -1557,6 +1582,62 @@ func _show_heroes() -> void:
+ 			slots[i][slot].visible = h.alive
+ 			slots[i][slot].show_state(_slot_state(h, slot))
+ 
++# ── 시안(P4, 머지하지 않는다) ──
++# Q·W·E·R을 쓸 영웅(후기 2 안 A): 고른 것 가운데 첫 산 출전 영웅. 고른 영웅이 없으면 null이다(그때는 첫 영웅이 쓰지만 표시하지 않는다)
++func _caster():
++	for u in controls.selected:
++		if u.is_hero and u.alive and u in battle.heroes:
++			return u
++	return null
++
++# 초상 테두리 모양: pick = S372 고른 칸(금색 테두리 + PRESS 바탕) · mate = 청록 테두리(발밑 팀 색, 바탕 그대로)
++func _look(name: String) -> StyleBox:
++	if not _looks.has(name):
++		var s := HudTheme.box("pressed", "Button", HudTheme.PRESS if name == "pick" else HudTheme.CELL, HudTheme.ACCENT if name == "pick" else SkillCell.TEAL)
++		s.set_content_margin_all(0)
++		_looks[name] = s
++	return _looks[name]
++
++# 초상 한 칸의 시안 표시: 고른 영웅 테두리(S369 ①), 스킬 쓸 영웅, 남은 대시 초. 쓰러진 영웅에는 아무것도 없다
++func _show_face(row: Dictionary, i: int, h, waiting: bool) -> void:
++	var picked: bool = mock != "" and h.alive and h in controls.selected
++	var casts: bool = mock != "" and h == _caster()
++	var look := ""
++	if picked:
++		look = "pick" if not "B" in mock or casts else "mate"
++	for st in ["normal", "hover"]:  # 누르고 있는 동안은 테마의 누름 모양(S372) 그대로다
++		if look == "":
++			row.face.remove_theme_stylebox_override(st)
++		else:
++			row.face.add_theme_stylebox_override(st, _look(look))
++	row.secs.visible = mock != "" and waiting
++	row.secs.text = str(ceili(h.dash_cd))
++	row.casts = casts
++	row.over.queue_redraw()
++	for slot in battle.SLOTS:  # 시안 A: 스킬 쓸 영웅의 스킬 칸 글자는 키 글자색(초상 «1», 태그 A·S·H와 같은 ACCENT)
++		slots[i][slot].tint_key(HudTheme.ACCENT if "A" in mock and casts else HudTheme.TEXT)
++
++# 초상 위 덧그림: 대기 중 Space 거부 테두리(스킬 칸 거부 I151과 같은 색·길이), 그 위에 시안 C의 세모(빨간 테두리가 세모를 자르지 않게 나중에 그린다)
++func _face_paint(i: int) -> void:
++	var row: Dictionary = _rows[i]
++	if mock != "" and _now - row.reject < SkillCell.FLASH:
++		row.over.draw_rect(Rect2(Vector2.ZERO, row.over.size).grow(-0.5), HudTheme.DANGER, false, 1.0)
++	if "C" in mock and row.get("casts", false):
++		if _pointer == null:
++			_pointer = HudBuild.dots(POINTER, {"#": HudTheme.ACCENT, "o": HudTheme.MAP_EDGE})
++		row.over.draw_texture(_pointer, Vector2(20, 7))  # 세모 끝이 초상과 Q 칸 사이 1px 틈(x 24)에 닿는다
++
++# 대기 중 Space(후기 3 안 A): 아무도 대시하지 못했고 그 까닭이 대기일 때 controls가 알린다. 대기 중인 영웅의 초상 테두리를 번쩍이고 토스트와 refuse 소리를 낸다
++func _dash_refuse(waiting: Array) -> void:
++	if mock == "":
++		return
++	var left := INF
++	for h in waiting:
++		_rows[battle.heroes.find(h)].reject = _now
++		left = minf(left, h.dash_cd)
++	toasts.push("대시 대기 %d초" % ceili(left))
++	Audio.of(get_tree()).play("refuse")
++
+ # 빈 출전 칸은 점선 테두리로 자리를 지킨다(I129)
+ func _empty_slot(cell: Control, i: int) -> void:
+ 	if i < battle.heroes.size():
+diff --git a/src/ui/skill_cell.gd b/src/ui/skill_cell.gd
+index ecdbc5c..8f851d3 100644
+--- a/src/ui/skill_cell.gd
++++ b/src/ui/skill_cell.gd
+@@ -66,6 +66,12 @@ func show_state(s: Dictionary) -> void:
+ 	self_modulate = LOCKED if s.lock else Color.WHITE
+ 	_over.queue_redraw()
+ 
++# 시안 A(P4, 머지하지 않는다): 칸 글자색. 스킬 쓸 영웅의 칸은 키 글자색으로 쓴다
++func tint_key(c: Color) -> void:
++	for n in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color"]:
++		add_theme_color_override(n, c)
++	_key.add_theme_color_override("font_color", c)
++
+ # 거부 표시(I151): 테두리가 FLASH초 빨갛다
+ func reject() -> void:
+ 	_reject = _st.get("now", 0.0)

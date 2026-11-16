@@ -1,0 +1,2369 @@
+[
+ {
+  "id": "S316",
+  "a": "data/dungeon/floor_1.tres:7-98",
+  "t": "data/dungeon/floor_1.tres:7-98",
+  "feat": "OK-low",
+  "born": "eb04e6f",
+  "born_r": [
+   7,
+   40
+  ],
+  "born_txt": [
+   "title = \"점액 왕\"",
+   "hard = 120.0"
+  ],
+  "a_txt": [
+   "title = \"점액 왕\"",
+   "pull = 3.0"
+  ],
+  "t_txt": [
+   "title = \"점액 왕\"",
+   "pull = 3.0"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "S337",
+  "a": "data/dungeon/floor_2.tres:7-78",
+  "t": "data/dungeon/floor_2.tres:7-78",
+  "feat": "OK-low",
+  "born": "52a350f",
+  "born_r": [
+   7,
+   71
+  ],
+  "born_txt": [
+   "title = \"알파 늑대\"",
+   "gold = 150"
+  ],
+  "a_txt": [
+   "title = \"알파 늑대\"",
+   "relic = \"wolf_fang\""
+  ],
+  "t_txt": [
+   "title = \"알파 늑대\"",
+   "relic = \"wolf_fang\""
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "faf8de4"
+   ]
+  ]
+ },
+ {
+  "id": "I34",
+  "a": "data/enemies/armored.tres:6-13",
+  "t": "data/enemies/armored.tres:6-13",
+  "feat": "OK-low",
+  "born": "88024e4",
+  "born_r": [
+   6,
+   14
+  ],
+  "born_txt": [
+   "script = ExtResource(\"1_ldbao\")",
+   "armor = 2.0"
+  ],
+  "a_txt": [
+   "script = ExtResource(\"1_ldbao\")",
+   "reward = 8"
+  ],
+  "t_txt": [
+   "script = ExtResource(\"1_ldbao\")",
+   "reward = 8"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2c211a2"
+   ]
+  ]
+ },
+ {
+  "id": "S259",
+  "a": "data/gear/sylvia.tres:7-29",
+  "t": "data/gear/sylvia.tres:7-29",
+  "feat": "OK-low",
+  "born": "cc1d3cf",
+  "born_r": [
+   7,
+   30
+  ],
+  "born_txt": [
+   "title = \"취풍 장궁\"",
+   "notes = [\"약점 포착 공격 속도 +10%\", \"관통의 바람살 220%\", \"천공의 화살비 초당 10\", \"관통의 바람살 중첩 5\", \"관통의 바람살 240%\", \"폭풍의 덫 속박 3.5초\", \"돌풍 갈래살 4명 · 마나 6\", \"천공의 화살비 6초\", \"폭풍의 덫 치명타 35%\", \"덫 꿰기 — 관통의 바람살이 지나가는 줄의 덫을 먼저 모두 터뜨린다\"]"
+  ],
+  "a_txt": [
+   "title = \"취풍 장궁\"",
+   "notes = [\"정조준 거리 최대 피해 +70%\", \"관통의 바람살 440%\", \"순풍의 영역 공격 속도 +35%\", \"바람의 렌즈 피해 +80%\", \"관통의 바람살 480%\", \"순풍의 영역 7초\", \"폭풍의 대동맥 바람의 길 11초\", \"바람의 렌즈 6초\", \"정조준 거리 최대 방어 무시 60%\", \"렌즈 꿰기 — 관통의 바람살이 자기 렌즈를 지난 뒤 맞는 적은 렌즈만큼 더 아프다\"]"
+  ],
+  "t_txt": [
+   "title = \"취풍 장궁\"",
+   "notes = [\"정조준 거리 최대 피해 +70%\", \"관통의 바람살 440%\", \"순풍의 영역 공격 속도 +35%\", \"바람의 렌즈 피해 +80%\", \"관통의 바람살 480%\", \"순풍의 영역 7초\", \"폭풍의 대동맥 바람의 길 11초\", \"바람의 렌즈 6초\", \"정조준 거리 최대 방어 무시 60%\", \"렌즈 꿰기 — 관통의 바람살이 자기 렌즈를 지난 뒤 맞는 적은 렌즈만큼 더 아프다\"]"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "I103",
+  "a": "data/hire.tres:7",
+  "t": "data/hire.tres:7",
+  "feat": "OK-low",
+  "born": "c2eb551",
+  "born_r": [
+   7,
+   12
+  ],
+  "born_txt": [
+   "slots = 3",
+   "lineup = 2"
+  ],
+  "a_txt": [
+   "lineup = 3",
+   "lineup = 3"
+  ],
+  "t_txt": [
+   "lineup = 3",
+   "lineup = 3"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2c211a2"
+   ]
+  ]
+ },
+ {
+  "id": "I30",
+  "a": "data/levels.tres:7-8",
+  "t": "data/levels.tres:7-8",
+  "feat": "OK-low",
+  "born": "6a04a9b",
+  "born_r": [
+   7,
+   10
+  ],
+  "born_txt": [
+   "steps = [20, 30, 50, 70]",
+   "aura_level = 5"
+  ],
+  "a_txt": [
+   "steps = [20, 30, 50, 70]",
+   "growth = 0.1"
+  ],
+  "t_txt": [
+   "steps = [20, 30, 50, 70]",
+   "growth = 0.1"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2c211a2"
+   ]
+  ]
+ },
+ {
+  "id": "S126",
+  "a": "data/levels.tres:7-8",
+  "t": "data/levels.tres:7-8",
+  "feat": "OK-low",
+  "born": "6a04a9b",
+  "born_r": [
+   7,
+   10
+  ],
+  "born_txt": [
+   "steps = [20, 30, 50, 70]",
+   "aura_level = 5"
+  ],
+  "a_txt": [
+   "steps = [20, 30, 50, 70]",
+   "growth = 0.1"
+  ],
+  "t_txt": [
+   "steps = [20, 30, 50, 70]",
+   "growth = 0.1"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2c211a2"
+   ]
+  ]
+ },
+ {
+  "id": "I91",
+  "a": "data/waves/round_3.tres:31-41",
+  "t": "data/waves/round_3.tres:31-41",
+  "feat": "OK-low",
+  "born": "33f83d5",
+  "born_r": [
+   27,
+   35
+  ],
+  "born_txt": [
+   "\"basic\": 300,",
+   "\"war_machine\": 1"
+  ],
+  "a_txt": [
+   "\"shieldbearer\": 15,",
+   "\"war_machine\": 1"
+  ],
+  "t_txt": [
+   "\"shieldbearer\": 15,",
+   "\"war_machine\": 1"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "S287",
+  "a": "data/waves/round_3.tres:31-41",
+  "t": "data/waves/round_3.tres:31-41",
+  "feat": "OK-low",
+  "born": "33f83d5",
+  "born_r": [
+   27,
+   35
+  ],
+  "born_txt": [
+   "\"basic\": 300,",
+   "\"war_machine\": 1"
+  ],
+  "a_txt": [
+   "\"shieldbearer\": 15,",
+   "\"war_machine\": 1"
+  ],
+  "t_txt": [
+   "\"shieldbearer\": 15,",
+   "\"war_machine\": 1"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "S188",
+  "a": "locale/en.po:384-424",
+  "t": "locale/en.po:393-622",
+  "feat": "LIKELY-x",
+  "born": "4faf717",
+  "born_r": [
+   366,
+   385
+  ],
+  "born_txt": [
+   "msgid \"슬라임\"",
+   "msgstr \"No bounty\""
+  ],
+  "a_txt": [
+   "msgid \"길을 무시하고 무리로 온다, 근접은 못 친다\"",
+   "msgstr \"Catapult\""
+  ],
+  "t_txt": [
+   "msgid \"슬라임\"",
+   "msgstr \"No bounty\""
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "d0f0bad"
+   ]
+  ]
+ },
+ {
+  "id": "S188",
+  "a": "locale/en.po:396-412",
+  "t": "locale/en.po:405-454",
+  "feat": "LIKELY-x",
+  "born": "5e0449f",
+  "born_r": [
+   393,
+   409
+  ],
+  "born_txt": [
+   "msgid \"늑대\"",
+   "msgstr \"Leaps onto walls, shoving and stunning defenders\""
+  ],
+  "a_txt": [
+   "msgid \"꼬마 슬라임\"",
+   "msgstr \"Night Wolf\""
+  ],
+  "t_txt": [
+   "msgid \"늑대\"",
+   "msgstr \"Leaps onto walls, shoving and stunning defenders\""
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "d0f0bad"
+   ]
+  ]
+ },
+ {
+  "id": "I80",
+  "a": "src/data/enemy_def.gd:17-18",
+  "t": "src/data/enemy_def.gd:17-18",
+  "feat": "OK-low",
+  "born": "88024e4",
+  "born_r": [
+   15,
+   17
+  ],
+  "born_txt": [
+   "@export var armor := 0.0  # 받는 피해를 이만큼 줄인다(S108)",
+   "@export var climb := 0.0  # 성곽 성벽을 기어오르는 시간(초). 0이면 오르지 않는다(S107, I76)"
+  ],
+  "a_txt": [
+   "@export var flying := false  # 경로 층을 무시하고 대상으로 곧장 난다(S109, I79)",
+   "@export var climb := 0.0  # 성곽 성벽을 기어오르는 시간(초). 0이면 오르지 않는다(S107, I76)"
+  ],
+  "t_txt": [
+   "@export var flying := false  # 경로 층을 무시하고 대상으로 곧장 난다(S109, I79)",
+   "@export var climb := 0.0  # 성곽 성벽을 기어오르는 시간(초). 0이면 오르지 않는다(S107, I76)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2c211a2"
+   ]
+  ]
+ },
+ {
+  "id": "I66",
+  "a": "src/data/hero_def.gd:1-3",
+  "t": "src/data/hero_def.gd:1-3",
+  "feat": "OK-low",
+  "born": "fdf5f45",
+  "born_r": [
+   1,
+   4
+  ],
+  "born_txt": [
+   "class_name HeroDef",
+   "# 스킬·오라 수치는 S97 표, 기본 능력치는 S121 표의 임시값이다. 0인 효과는 그 영웅에게 없다"
+  ],
+  "a_txt": [
+   "class_name HeroDef",
+   "# 영웅 종류 하나의 수치(S31, I95). data/heroes/<종류>.tres, 파일 이름이 종류 이름이다(I66). 종류는 S157의 6명이다"
+  ],
+  "t_txt": [
+   "class_name HeroDef",
+   "# 영웅 종류 하나의 수치(S31, I95). data/heroes/<종류>.tres, 파일 이름이 종류 이름이다(I66). 종류는 S157의 6명이다"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2c211a2"
+   ]
+  ]
+ },
+ {
+  "id": "I30",
+  "a": "src/data/hero_def.gd:7-14",
+  "t": "src/data/hero_def.gd:7-15",
+  "feat": "C-sim-x",
+  "born": "fdf5f45",
+  "born_r": [
+   6,
+   39
+  ],
+  "born_txt": [
+   "@export var grade := 1  # 등급(S94): 1 동 · 2 은 · 3 금",
+   "@export var aura_gunnery := 0.0"
+  ],
+  "a_txt": [
+   "@export var grade := 1  # 등급(S94): 1성 Q·W·E · 2성 +패시브 · 3성 +R. 지금 6명은 모두 3성",
+   "@export var light := 2.5  # 밤 불빛 반경(칸, S211). 모든 영웅이 같은 임시값이라 파일마다 적지 않는다"
+  ],
+  "t_txt": [
+   "@export var grade := 1  # 등급(S94): 1성 Q·W·E · 2성 +패시브 · 3성 +R. 지금 6명은 모두 3성",
+   "@export var attack_gap := 1.0  # 공격 간격(초)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2c211a2"
+   ]
+  ]
+ },
+ {
+  "id": "I30",
+  "a": "src/data/level_def.gd:5-6",
+  "t": "src/data/level_def.gd:5-6",
+  "feat": "OK-low",
+  "born": "6a04a9b",
+  "born_r": [
+   5,
+   8
+  ],
+  "born_txt": [
+   "@export var steps := []  # 다음 레벨까지 필요한 경험치 [Lv2, Lv3, Lv4, Lv5]. 길이 + 1이 최대 레벨이다",
+   "@export var aura_level := 0  # 오라가 열리는 레벨(S76, S97)"
+  ],
+  "a_txt": [
+   "@export var steps := []  # 다음 레벨까지 필요한 경험치 [Lv2, Lv3, Lv4, Lv5]. 길이 + 1이 최대 레벨이다",
+   "@export var growth := 0.0  # 레벨마다 Lv1 최대 체력·공격력에 더하는 비율(I112)"
+  ],
+  "t_txt": [
+   "@export var steps := []  # 다음 레벨까지 필요한 경험치 [Lv2, Lv3, Lv4, Lv5]. 길이 + 1이 최대 레벨이다",
+   "@export var growth := 0.0  # 레벨마다 Lv1 최대 체력·공격력에 더하는 비율(I112)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2c211a2"
+   ]
+  ]
+ },
+ {
+  "id": "S126",
+  "a": "src/data/level_def.gd:5-6",
+  "t": "src/data/level_def.gd:5-6",
+  "feat": "OK-low",
+  "born": "6a04a9b",
+  "born_r": [
+   5,
+   8
+  ],
+  "born_txt": [
+   "@export var steps := []  # 다음 레벨까지 필요한 경험치 [Lv2, Lv3, Lv4, Lv5]. 길이 + 1이 최대 레벨이다",
+   "@export var aura_level := 0  # 오라가 열리는 레벨(S76, S97)"
+  ],
+  "a_txt": [
+   "@export var steps := []  # 다음 레벨까지 필요한 경험치 [Lv2, Lv3, Lv4, Lv5]. 길이 + 1이 최대 레벨이다",
+   "@export var growth := 0.0  # 레벨마다 Lv1 최대 체력·공격력에 더하는 비율(I112)"
+  ],
+  "t_txt": [
+   "@export var steps := []  # 다음 레벨까지 필요한 경험치 [Lv2, Lv3, Lv4, Lv5]. 길이 + 1이 최대 레벨이다",
+   "@export var growth := 0.0  # 레벨마다 Lv1 최대 체력·공격력에 더하는 비율(I112)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2c211a2"
+   ]
+  ]
+ },
+ {
+  "id": "I118",
+  "a": "src/data/quest_def.gd:1-8",
+  "t": "src/data/quest_def.gd:1-8",
+  "feat": "OK-low",
+  "born": "872fcaf",
+  "born_r": [
+   1,
+   10
+  ],
+  "born_txt": [
+   "class_name QuestDef",
+   "@export var time_limit := 0.0  # 0보다 크면 라운드의 전투 단계 시간 합(초)이 이 값 이하여야 한다"
+  ],
+  "a_txt": [
+   "class_name QuestDef",
+   "@export var zero: Array[String] = []  # 라운드 동안 0이어야 하는 집계 키(I119): base_hit · castle_lost · structure_lost · merc_lost · hero_down · merc_bought · built"
+  ],
+  "t_txt": [
+   "class_name QuestDef",
+   "@export var zero: Array[String] = []  # 라운드 동안 0이어야 하는 집계 키(I119): base_hit · castle_lost · structure_lost · merc_lost · hero_down · merc_bought · built"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "3c5fc84"
+   ]
+  ]
+ },
+ {
+  "id": "S181",
+  "a": "src/main.gd:13",
+  "t": "src/main.gd:18-22",
+  "feat": "C-low",
+  "born": "052daf8",
+  "born_r": [
+   13,
+   13
+  ],
+  "born_txt": [
+   "const QUIET := [\"hiring\", \"prep\", \"cleared\"]  # 전투 단계가 아닌 판 단계. 이때만 저장한다(S181)",
+   "const QUIET := [\"hiring\", \"prep\", \"cleared\"]  # 전투 단계가 아닌 판 단계. 이때만 저장한다(S181)"
+  ],
+  "a_txt": [
+   "const Settings := preload(\"res://src/settings.gd\")",
+   "const Settings := preload(\"res://src/settings.gd\")"
+  ],
+  "t_txt": [
+   "const QUIET := [\"hiring\", \"prep\", \"cleared\"]  # 전투 단계·원정(S316)이 아닌 판 단계. 이때만 저장한다(S181)",
+   "}"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "S203",
+  "a": "src/main.gd:23",
+  "t": "src/main.gd:26-27",
+  "feat": "C-low",
+  "born": "d117809",
+  "born_r": [
+   17,
+   17
+  ],
+  "born_txt": [
+   "const FIELD_ROWS := 66  # 시험 스테이지 들판 줄 수(S203): 성 아래 60행부터. 맵 높이와 출현 줄은 여기서 셈한다(사용자 2026-10-28)",
+   "const FIELD_ROWS := 66  # 시험 스테이지 들판 줄 수(S203): 성 아래 60행부터. 맵 높이와 출현 줄은 여기서 셈한다(사용자 2026-10-28)"
+  ],
+  "a_txt": [
+   "# 도전의 라운드 순서(S63, I91): data/waves/의 웨이브 파일 이름. 1라운드는 시험 스테이지(S111, 슬라임 테마)다",
+   "# 도전의 라운드 순서(S63, I91): data/waves/의 웨이브 파일 이름. 1라운드는 시험 스테이지(S111, 슬라임 테마)다"
+  ],
+  "t_txt": [
+   "const FIELD_ROWS := 66  # 시험 스테이지 들판 줄 수(S203): 성 바로 아래 줄부터. 맵 높이와 출현 줄은 여기서 셈한다(사용자 2026-10-28)",
+   "const WALL_T := 5  # 시험 스테이지 성곽 두께(줄, S217 2026-11-03 변경). 성곽·마을·거점·출현·출전 칸은 여기서 셈한다. 성곽 그림(tools/art/wall.py)을 이 두께로 굽으므로 바꾸면 다시 굽는다"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "d0f0bad"
+   ]
+  ]
+ },
+ {
+  "id": "S30",
+  "a": "src/main.gd:54-62",
+  "t": "src/main.gd:60-67",
+  "feat": "C-low",
+  "born": "584e8ed",
+  "born_r": [
+   18,
+   30
+  ],
+  "born_txt": [
+   "var box := map_viewport(get_window())",
+   "map.add_child(cam)"
+  ],
+  "a_txt": [
+   "Save.apply(view.battle, resume)",
+   "add_child(view)  # 맵은 루트 뷰포트에 바로 그려 창 해상도다(S30 2026-10-25 변경). 카메라·HUD 좌표는 그대로 기준 해상도 단위다"
+  ],
+  "t_txt": [
+   "controls.quickcast = Settings.quickcast  # I158",
+   "hud = Hud.new(view.battle, controls, get_viewport())"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "a3ccad1"
+   ],
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "S161",
+  "a": "src/main.gd:69",
+  "t": "src/main.gd:80",
+  "feat": "C-low",
+  "born": "f87f2b8",
+  "born_r": [
+   30,
+   30
+  ],
+  "born_txt": [
+   "setup_window(get_window(), get_tree().current_scene == self)",
+   "setup_window(get_window(), get_tree().current_scene == self)"
+  ],
+  "a_txt": [
+   "hud.menu_pressed.connect(pause)  # 위 띠 메뉴 칸(S185)",
+   "hud.menu_pressed.connect(pause)  # 위 띠 메뉴 칸(S185)"
+  ],
+  "t_txt": [
+   "setup_window(get_window(), false)  # 창 크기·시작 모드는 진입 장면(menu.gd)이 정했다",
+   "setup_window(get_window(), false)  # 창 크기·시작 모드는 진입 장면(menu.gd)이 정했다"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "052daf8"
+   ],
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "I153",
+  "a": "src/main.gd:69",
+  "t": "src/main.gd:80",
+  "feat": "C-low",
+  "born": "f87f2b8",
+  "born_r": [
+   30,
+   30
+  ],
+  "born_txt": [
+   "setup_window(get_window(), get_tree().current_scene == self)",
+   "setup_window(get_window(), get_tree().current_scene == self)"
+  ],
+  "a_txt": [
+   "hud.menu_pressed.connect(pause)  # 위 띠 메뉴 칸(S185)",
+   "hud.menu_pressed.connect(pause)  # 위 띠 메뉴 칸(S185)"
+  ],
+  "t_txt": [
+   "setup_window(get_window(), false)  # 창 크기·시작 모드는 진입 장면(menu.gd)이 정했다",
+   "setup_window(get_window(), false)  # 창 크기·시작 모드는 진입 장면(menu.gd)이 정했다"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "052daf8"
+   ],
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "I170",
+  "a": "src/main.gd:91",
+  "t": "src/main.gd:100-104",
+  "feat": "C-low",
+  "born": "da47058",
+  "born_r": [
+   71,
+   71
+  ],
+  "born_txt": [
+   "view.tick(delta)  # 화면 시계와 사건 목록(I170, I171). step과 같은 delta라 ESC 메뉴면 같이 멈춘다",
+   "view.tick(delta)  # 화면 시계와 사건 목록(I170, I171). step과 같은 delta라 ESC 메뉴면 같이 멈춘다"
+  ],
+  "a_txt": [
+   "box.focus_mode = Control.FOCUS_NONE  # 기본값 FOCUS_CLICK이면 맵을 클릭할 때 키보드 포커스를 가져가, 포커스가 없을 때만 받는 Enter·Space(I94)가 막힌다",
+   "box.focus_mode = Control.FOCUS_NONE  # 기본값 FOCUS_CLICK이면 맵을 클릭할 때 키보드 포커스를 가져가, 포커스가 없을 때만 받는 Enter·Space(I94)가 막힌다"
+  ],
+  "t_txt": [
+   "for i in speed:  # 배속(I236): 같은 delta로 speed번 돌리고, 그 사이에 생긴 사건을 모두 연출·효과음에 넘긴다",
+   "view.events = heard"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "S200",
+  "a": "src/main.gd:92",
+  "t": "src/main.gd:105-109",
+  "feat": "C-low",
+  "born": "50c3e04",
+  "born_r": [
+   73,
+   73
+  ],
+  "born_txt": [
+   "get_viewport().get_camera_2d().rumble(view.events, delta)  # 화면 흔들림(S200): 방금 낸 사건 목록을 읽는다",
+   "get_viewport().get_camera_2d().rumble(view.events, delta)  # 화면 흔들림(S200): 방금 낸 사건 목록을 읽는다"
+  ],
+  "a_txt": [
+   "var sv := SubViewport.new()",
+   "var sv := SubViewport.new()"
+  ],
+  "t_txt": [
+   "var cam := get_viewport().get_camera_2d()",
+   "Audio.of(get_tree()).follow(b.state, b.enemies.any(func(e): return e.alive and e.boss))  # 음악(S271)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "S65",
+  "a": "src/main.gd:97-109",
+  "t": "src/main.gd:117-137",
+  "feat": "LIKELY-x",
+  "born": "052daf8",
+  "born_r": [
+   74,
+   82
+  ],
+  "born_txt": [
+   "func _check() -> void:",
+   "Save.erase()"
+  ],
+  "a_txt": [
+   "",
+   "Audio.of(get_tree()).follow(b.state, b.enemies.any(func(e): return e.alive and e.boss))  # 음악(S271)"
+  ],
+  "t_txt": [
+   "func _check() -> void:",
+   "Save.erase()"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "S181",
+  "a": "src/main.gd:97-109",
+  "t": "src/main.gd:117-137",
+  "feat": "LIKELY-x",
+  "born": "052daf8",
+  "born_r": [
+   74,
+   82
+  ],
+  "born_txt": [
+   "func _check() -> void:",
+   "Save.erase()"
+  ],
+  "a_txt": [
+   "",
+   "Audio.of(get_tree()).follow(b.state, b.enemies.any(func(e): return e.alive and e.boss))  # 음악(S271)"
+  ],
+  "t_txt": [
+   "func _check() -> void:",
+   "Save.erase()"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "S269",
+  "a": "src/main.gd:102",
+  "t": "src/main.gd:107",
+  "feat": "LIKELY-x",
+  "born": "6aeaa44",
+  "born_r": [
+   82,
+   82
+  ],
+  "born_txt": [
+   "sfx.hear(view.events, cam.steady().affine_inverse() * Hud.VIEW)  # 효과음(S269, S270): 위 띠 아래 보이는 맵 영역",
+   "sfx.hear(view.events, cam.steady().affine_inverse() * Hud.VIEW)  # 효과음(S269, S270): 위 띠 아래 보이는 맵 영역"
+  ],
+  "a_txt": [
+   "view.tick(delta)  # 화면 시계와 사건 목록(I170, I171). step과 같은 delta라 ESC 메뉴면 같이 멈춘다",
+   "view.tick(delta)  # 화면 시계와 사건 목록(I170, I171). step과 같은 delta라 ESC 메뉴면 같이 멈춘다"
+  ],
+  "t_txt": [
+   "sfx.hear(view.events, cam.steady().affine_inverse() * Hud.VIEW)  # 효과음(S269, S270): 위 띠 아래 보이는 맵 영역",
+   "sfx.hear(view.events, cam.steady().affine_inverse() * Hud.VIEW)  # 효과음(S269, S270): 위 띠 아래 보이는 맵 영역"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "96ea0f2"
+   ],
+   [
+    "approx",
+    "d0f0bad"
+   ]
+  ]
+ },
+ {
+  "id": "S270",
+  "a": "src/main.gd:102",
+  "t": "src/main.gd:107",
+  "feat": "LIKELY-x",
+  "born": "6aeaa44",
+  "born_r": [
+   82,
+   82
+  ],
+  "born_txt": [
+   "sfx.hear(view.events, cam.steady().affine_inverse() * Hud.VIEW)  # 효과음(S269, S270): 위 띠 아래 보이는 맵 영역",
+   "sfx.hear(view.events, cam.steady().affine_inverse() * Hud.VIEW)  # 효과음(S269, S270): 위 띠 아래 보이는 맵 영역"
+  ],
+  "a_txt": [
+   "view.tick(delta)  # 화면 시계와 사건 목록(I170, I171). step과 같은 delta라 ESC 메뉴면 같이 멈춘다",
+   "view.tick(delta)  # 화면 시계와 사건 목록(I170, I171). step과 같은 delta라 ESC 메뉴면 같이 멈춘다"
+  ],
+  "t_txt": [
+   "sfx.hear(view.events, cam.steady().affine_inverse() * Hud.VIEW)  # 효과음(S269, S270): 위 띠 아래 보이는 맵 영역",
+   "sfx.hear(view.events, cam.steady().affine_inverse() * Hud.VIEW)  # 효과음(S269, S270): 위 띠 아래 보이는 맵 영역"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "96ea0f2"
+   ],
+   [
+    "approx",
+    "d0f0bad"
+   ]
+  ]
+ },
+ {
+  "id": "I11",
+  "a": "src/main.gd:112-115",
+  "t": "src/main.gd:145-148",
+  "feat": "LIKELY-x",
+  "born": "052daf8",
+  "born_r": [
+   85,
+   87
+  ],
+  "born_txt": [
+   "func pause() -> void:",
+   "get_tree().paused = true"
+  ],
+  "a_txt": [
+   "var at: Vector2 = get_viewport().get_camera_2d().steady().affine_inverse() * get_viewport().get_mouse_position()  # 지금 마우스 자리 → 맵 px(handle에 넘기는 것과 같은 변환)",
+   "# 판 단계가 바뀌면 전투 단계가 아닌 단계는 저장하고(S181), 도전이 끝났으면 저장을 지운다(S65, I157). 테스트 모드는 둘 다 하지 않는다(I231)."
+  ],
+  "t_txt": [
+   "func pause() -> void:",
+   "get_tree().paused = true"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "96ea0f2"
+   ],
+   [
+    "approx",
+    "eb04e6f"
+   ]
+  ]
+ },
+ {
+  "id": "S181",
+  "a": "src/main.gd:148-150",
+  "t": "src/main.gd:170-173",
+  "feat": "C-low",
+  "born": "052daf8",
+  "born_r": [
+   102,
+   104
+  ],
+  "born_txt": [
+   "func leave(to_title: bool) -> void:",
+   "Save.write(view.battle)"
+  ],
+  "a_txt": [
+   "get_tree().paused = true",
+   "HudCursor.apply(\"arrow\", cursor_scale(get_window()))  # ESC 메뉴 위는 기본 화살표(S278). 멈춘 동안 _process가 커서를 정하지 않는다"
+  ],
+  "t_txt": [
+   "func leave(to_title: bool) -> void:",
+   "test = false"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "I161",
+  "a": "src/main.gd:148-160",
+  "t": "src/main.gd:170-183",
+  "feat": "C-low",
+  "born": "052daf8",
+  "born_r": [
+   102,
+   114
+  ],
+  "born_txt": [
+   "func leave(to_title: bool) -> void:",
+   "Save.write(view.battle)"
+  ],
+  "a_txt": [
+   "get_tree().paused = true",
+   "menus.close()"
+  ],
+  "t_txt": [
+   "func leave(to_title: bool) -> void:",
+   "_store()"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "S181",
+  "a": "src/main.gd:158-160",
+  "t": "src/main.gd:181-183",
+  "feat": "C-low",
+  "born": "052daf8",
+  "born_r": [
+   112,
+   114
+  ],
+  "born_txt": [
+   "func _notification(what: int) -> void:",
+   "Save.write(view.battle)"
+  ],
+  "a_txt": [
+   "match what:",
+   "menus.close()"
+  ],
+  "t_txt": [
+   "func _notification(what: int) -> void:",
+   "_store()"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "S162",
+  "a": "src/main.gd:166-169",
+  "t": "src/main.gd:202-205",
+  "feat": "LIKELY-x",
+  "born": "f87f2b8",
+  "born_r": [
+   39,
+   42
+  ],
+  "born_txt": [
+   "if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F11:  # S162, I154",
+   "return"
+  ],
+  "a_txt": [
+   "\"title\", \"quit\":",
+   "# 메인 메뉴로·게임 종료(I161): 전투 단계가 아니면 그때 상태를 저장하고 나간다. 나가면 테스트 모드가 끝난다(I231)"
+  ],
+  "t_txt": [
+   "if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F11:  # S162, I154",
+   "return"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "052daf8"
+   ],
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "S14",
+  "a": "src/main.gd:181",
+  "t": "src/main.gd:220",
+  "feat": "C-low",
+  "born": "dbcba66",
+  "born_r": [
+   31,
+   31
+  ],
+  "born_txt": [
+   "controls.handle(view.make_input_local(event))  # 화면 좌표 → 맵 px(카메라 줌·이동 반영)",
+   "controls.handle(view.make_input_local(event))  # 화면 좌표 → 맵 px(카메라 줌·이동 반영)"
+  ],
+  "a_txt": [
+   "func _notification(what: int) -> void:",
+   "func _notification(what: int) -> void:"
+  ],
+  "t_txt": [
+   "controls.handle(event.xformed_by(to_map))",
+   "controls.handle(event.xformed_by(to_map))"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "S200",
+  "a": "src/main.gd:181",
+  "t": "src/main.gd:220",
+  "feat": "C-low",
+  "born": "50c3e04",
+  "born_r": [
+   139,
+   139
+  ],
+  "born_txt": [
+   "controls.handle(event.xformed_by(get_viewport().get_camera_2d().steady().affine_inverse()))  # 화면 좌표 → 맵 px(카메라 줌·이동 반영, 흔들림은 뺌 S200)",
+   "controls.handle(event.xformed_by(get_viewport().get_camera_2d().steady().affine_inverse()))  # 화면 좌표 → 맵 px(카메라 줌·이동 반영, 흔들림은 뺌 S200)"
+  ],
+  "a_txt": [
+   "func _notification(what: int) -> void:",
+   "func _notification(what: int) -> void:"
+  ],
+  "t_txt": [
+   "controls.handle(event.xformed_by(to_map))",
+   "controls.handle(event.xformed_by(to_map))"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "I153",
+  "a": "src/main.gd:187-190",
+  "t": "src/main.gd:226-231",
+  "feat": "C-low",
+  "born": "f87f2b8",
+  "born_r": [
+   53,
+   54
+  ],
+  "born_txt": [
+   "if not entry:",
+   "return"
+  ],
+  "a_txt": [
+   "func _input(event: InputEvent) -> void:",
+   "if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:"
+  ],
+  "t_txt": [
+   "if entry:",
+   "apply_cursor(w)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "S163",
+  "a": "src/main.gd:191-194",
+  "t": "src/main.gd:228-231",
+  "feat": "C-low",
+  "born": "f87f2b8",
+  "born_r": [
+   55,
+   56
+  ],
+  "born_txt": [
+   "if OS.has_feature(\"template\"):  # 내보낸 빌드",
+   "w.mode = Window.MODE_FULLSCREEN"
+  ],
+  "a_txt": [
+   "var to_map: bool = event.double_click and _map_press",
+   "get_viewport().set_input_as_handled()"
+  ],
+  "t_txt": [
+   "w.mode = Window.MODE_FULLSCREEN",
+   "apply_cursor(w)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "052daf8"
+   ],
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "S161",
+  "a": "src/main.gd:194",
+  "t": "src/main.gd:231",
+  "feat": "C-low",
+  "born": "f87f2b8",
+  "born_r": [
+   58,
+   58
+  ],
+  "born_txt": [
+   "fit_window(w)",
+   "fit_window(w)"
+  ],
+  "a_txt": [
+   "get_viewport().set_input_as_handled()",
+   "get_viewport().set_input_as_handled()"
+  ],
+  "t_txt": [
+   "apply_cursor(w)",
+   "apply_cursor(w)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "I94",
+  "a": "src/main.gd:197-213",
+  "t": "src/main.gd:197-213",
+  "feat": "OK-low",
+  "born": "2be4f3c",
+  "born_r": [
+   34,
+   40
+  ],
+  "born_txt": [
+   "# 전투 시작은 HUD 버튼 말고 Enter·Space(기본 ui_accept)로도 된다. 결과 창이 떠 있으면 그 버튼을 누른다(I94)",
+   "view.battle.start_battle()"
+  ],
+  "a_txt": [
+   "# 결과 창·영웅 고르기 창이 떠 있으면 Enter·Space(기본 ui_accept)로 그 버튼을 누른다(I94). 고르기 창은 다 골라야 넘어간다(S373, hud.proceed). 전투 시작은 HUD 버튼을 마우스로 누를 때만이다(I13 2026-11-10 변경)",
+   "hud.proceed()"
+  ],
+  "t_txt": [
+   "# 결과 창·영웅 고르기 창이 떠 있으면 Enter·Space(기본 ui_accept)로 그 버튼을 누른다(I94). 고르기 창은 다 골라야 넘어간다(S373, hud.proceed). 전투 시작은 HUD 버튼을 마우스로 누를 때만이다(I13 2026-11-10 변경)",
+   "hud.proceed()"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "96ea0f2"
+   ],
+   [
+    "healed",
+    "4e74c56"
+   ]
+  ]
+ },
+ {
+  "id": "S117",
+  "a": "src/main.gd:211-213",
+  "t": "src/main.gd:211-213",
+  "feat": "OK-low",
+  "born": "2be4f3c",
+  "born_r": [
+   36,
+   40
+  ],
+  "born_txt": [
+   "if event.is_action_pressed(\"ui_accept\"):",
+   "view.battle.start_battle()"
+  ],
+  "a_txt": [
+   "if event.is_action_pressed(\"ui_accept\") and get_viewport().gui_get_focus_owner() == null:",
+   "hud.proceed()"
+  ],
+  "t_txt": [
+   "if event.is_action_pressed(\"ui_accept\") and get_viewport().gui_get_focus_owner() == null:",
+   "hud.proceed()"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "96ea0f2"
+   ],
+   [
+    "healed",
+    "4e74c56"
+   ]
+  ]
+ },
+ {
+  "id": "S51",
+  "a": "src/main.gd:231-256",
+  "t": "src/main.gd:276-322",
+  "feat": "C-low",
+  "born": "3d012b2",
+  "born_r": [
+   29,
+   41
+  ],
+  "born_txt": [
+   "static func stage() -> Dictionary:",
+   "}"
+  ],
+  "a_txt": [
+   "apply_cursor(w)",
+   ""
+  ],
+  "t_txt": [
+   "# W1 시험 스테이지(60 × (60 + FIELD_ROWS), S203·S51 위아래 구도). 위쪽 60×60은 두께 3줄 사방 성곽(S217)이 두른 성이고, 적은 아래쪽 가장자리에서 온다.",
+   "}"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "reauth",
+    "3d012b2",
+    [
+     "src/main.gd",
+     29,
+     39
+    ],
+    [
+     "src/main.gd",
+     18,
+     28
+    ]
+   ],
+   [
+    "adjusted",
+    "dbcba66"
+   ],
+   [
+    "partial",
+    "50c3e04"
+   ],
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "S203",
+  "a": "src/main.gd:235-256",
+  "t": "src/main.gd:280-306",
+  "feat": "C-low",
+  "born": "1cb9de9",
+  "born_r": [
+   185,
+   198
+  ],
+  "born_txt": [
+   "var gates := [Vector2i(29, 29)]  # 정문 하나(좌우 쪽문은 없앴다, S39 2026-10-26 변경). 성곽의 칸은 앞(들판 쪽) 왼쪽 칸이고 문루는 3×3이다(S217)",
+   "\"castle\": {\"walls\": walls, \"gates\": gates, \"wall_hp\": 300, \"gate_hp\": 150, \"wall_size\": Vector2i(1, 3), \"gate_size\": Vector2i(3, 3)},"
+  ],
+  "a_txt": [
+   "var usable := DisplayServer.screen_get_usable_rect(w.current_screen)",
+   ""
+  ],
+  "t_txt": [
+   "# 사방 성곽(S203·S217 2026-11-03 변경). 성곽의 칸은 차지 칸 가운데 가장 왼쪽·가장 아래 칸이고, 문루는 남·북 3×t·동·서 t×3이다",
+   "\"village\": Rect2i(t, t, 54, 54),  # 사방 성곽 안쪽. 생산 시설은 여기에만 짓는다(S43)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "62e3917"
+   ],
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "S217",
+  "a": "src/main.gd:235-241",
+  "t": "src/main.gd:280-293",
+  "feat": "C-low",
+  "born": "1cb9de9",
+  "born_r": [
+   185,
+   189
+  ],
+  "born_txt": [
+   "var gates := [Vector2i(29, 29)]  # 정문 하나(좌우 쪽문은 없앴다, S39 2026-10-26 변경). 성곽의 칸은 앞(들판 쪽) 왼쪽 칸이고 문루는 3×3이다(S217)",
+   "walls.append(Vector2i(x, 29))"
+  ],
+  "a_txt": [
+   "var usable := DisplayServer.screen_get_usable_rect(w.current_screen)",
+   "var k := (usable - deco) / base"
+  ],
+  "t_txt": [
+   "# 사방 성곽(S203·S217 2026-11-03 변경). 성곽의 칸은 차지 칸 가운데 가장 왼쪽·가장 아래 칸이고, 문루는 남·북 3×t·동·서 t×3이다",
+   "if y < mid - 1 or y > mid + 1:"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "62e3917"
+   ],
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "S39",
+  "a": "src/main.gd:236",
+  "t": "src/main.gd:281-293",
+  "feat": "C-low",
+  "born": "62e3917",
+  "born_r": [
+   186,
+   186
+  ],
+  "born_txt": [
+   "var sealed := [Vector2i(29, 2), Vector2i(0, 31), Vector2i(57, 31)]  # 북·서·동 닫힌 문루(S39)",
+   "var sealed := [Vector2i(29, 2), Vector2i(0, 31), Vector2i(57, 31)]  # 북·서·동 닫힌 문루(S39)"
+  ],
+  "a_txt": [
+   "w.size = w.content_scale_size * window_scale(usable.size, w.get_size_with_decorations() - w.size, w.content_scale_size)",
+   "w.size = w.content_scale_size * window_scale(usable.size, w.get_size_with_decorations() - w.size, w.content_scale_size)"
+  ],
+  "t_txt": [
+   "var t := WALL_T",
+   "if y < mid - 1 or y > mid + 1:"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "S203",
+  "a": "src/main.gd:236-256",
+  "t": "src/main.gd:281-306",
+  "feat": "C-low",
+  "born": "62e3917",
+  "born_r": [
+   186,
+   206
+  ],
+  "born_txt": [
+   "var sealed := [Vector2i(29, 2), Vector2i(0, 31), Vector2i(57, 31)]  # 북·서·동 닫힌 문루(S39)",
+   "\"castle\": {\"walls\": walls, \"gates\": gates, \"wall_hp\": 300, \"gate_hp\": 150, \"wall_size\": Vector2i(1, 3), \"gate_size\": Vector2i(3, 3), \"side_walls\": side, \"side_wall_size\": Vector2i(3, 1), \"sealed\": sealed},"
+  ],
+  "a_txt": [
+   "w.size = w.content_scale_size * window_scale(usable.size, w.get_size_with_decorations() - w.size, w.content_scale_size)",
+   ""
+  ],
+  "t_txt": [
+   "var t := WALL_T",
+   "\"village\": Rect2i(t, t, 54, 54),  # 사방 성곽 안쪽. 생산 시설은 여기에만 짓는다(S43)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "S39",
+  "a": "src/main.gd:237",
+  "t": "src/main.gd:282-293",
+  "feat": "C-low",
+  "born": "c470722",
+  "born_r": [
+   37,
+   37
+  ],
+  "born_txt": [
+   "var gates := [Vector2i(0, 9), Vector2i(20, 9), Vector2i(39, 9)]  # 쪽문, 정문, 쪽문",
+   "var gates := [Vector2i(0, 9), Vector2i(20, 9), Vector2i(39, 9)]  # 쪽문, 정문, 쪽문"
+  ],
+  "a_txt": [
+   "w.position = usable.position + (usable.size - w.size) / 2",
+   "w.position = usable.position + (usable.size - w.size) / 2"
+  ],
+  "t_txt": [
+   "var n := 54 + 2 * t  # 성 한 변(칸): 마을 54칸(S203, 사용자 2026-11-03 «마을크기는 그대로») + 양쪽 성곽",
+   "if y < mid - 1 or y > mid + 1:"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "62e3917"
+   ],
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "S39",
+  "a": "src/main.gd:237",
+  "t": "src/main.gd:282-293",
+  "feat": "C-low",
+  "born": "1cb9de9",
+  "born_r": [
+   185,
+   185
+  ],
+  "born_txt": [
+   "var gates := [Vector2i(29, 29)]  # 정문 하나(좌우 쪽문은 없앴다, S39 2026-10-26 변경). 성곽의 칸은 앞(들판 쪽) 왼쪽 칸이고 문루는 3×3이다(S217)",
+   "var gates := [Vector2i(29, 29)]  # 정문 하나(좌우 쪽문은 없앴다, S39 2026-10-26 변경). 성곽의 칸은 앞(들판 쪽) 왼쪽 칸이고 문루는 3×3이다(S217)"
+  ],
+  "a_txt": [
+   "w.position = usable.position + (usable.size - w.size) / 2",
+   "w.position = usable.position + (usable.size - w.size) / 2"
+  ],
+  "t_txt": [
+   "var n := 54 + 2 * t  # 성 한 변(칸): 마을 54칸(S203, 사용자 2026-11-03 «마을크기는 그대로») + 양쪽 성곽",
+   "if y < mid - 1 or y > mid + 1:"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "62e3917"
+   ],
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "S217",
+  "a": "src/main.gd:238-247",
+  "t": "src/main.gd:283-295",
+  "feat": "C-low",
+  "born": "62e3917",
+  "born_r": [
+   188,
+   197
+  ],
+  "born_txt": [
+   "var walls := []  # 남·북 성벽은 열마다 하나(남 57~59행, 북 0~2행). 네 모서리 3×3도 여기다",
+   "side.append(Vector2i(57, y))"
+  ],
+  "a_txt": [
+   "",
+   ""
+  ],
+  "t_txt": [
+   "var mid := n / 2  # 거점 열·행. 문루는 이 줄을 가운데로 폭 3칸이다",
+   "side.append(Vector2i(n - t, y))"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "S37",
+  "a": "src/main.gd:248",
+  "t": "src/main.gd:304-307",
+  "feat": "C-low",
+  "born": "e24543b",
+  "born_r": [
+   25,
+   25
+  ],
+  "born_txt": [
+   "\"castle\": {\"walls\": walls.filter(func(c): return c not in gates), \"gates\": gates, \"wall_hp\": 300, \"gate_hp\": 150},",
+   "\"castle\": {\"walls\": walls.filter(func(c): return c not in gates), \"gates\": gates, \"wall_hp\": 300, \"gate_hp\": 150},"
+  ],
+  "a_txt": [
+   "# 전체화면이면 창 모드로 돌아가며 그때의 화면에 맞춰 크기를 다시 정하고, 아니면 전체화면으로 간다(S162, I154)",
+   "# 전체화면이면 창 모드로 돌아가며 그때의 화면에 맞춰 크기를 다시 정하고, 아니면 전체화면으로 간다(S162, I154)"
+  ],
+  "t_txt": [
+   "\"castle\": {\"walls\": walls, \"gates\": gates, \"wall_hp\": 300, \"gate_hp\": 150, \"wall_size\": Vector2i(1, t), \"gate_size\": Vector2i(3, t), \"side_walls\": side, \"side_wall_size\": Vector2i(t, 1),",
+   "\"roads\": BattleView.roads(),  # 마을 길 칸(광장·큰길·문루 안 공터): 짓지 못한다(S43 2026-10-26 둘째 변경). 표는 바닥 그림과 같은 BattleView._plan"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "50c3e04"
+   ],
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "I15",
+  "a": "src/main.gd:249",
+  "t": "src/main.gd:297-302",
+  "feat": "C-low",
+  "born": "2540ee1",
+  "born_r": [
+   43,
+   43
+  ],
+  "born_txt": [
+   "\"size\": Vector2i(40, 32), \"base\": Vector2i(20, 4), \"base_hp\": 100, \"gold\": 100,",
+   "\"size\": Vector2i(40, 32), \"base\": Vector2i(20, 4), \"base_hp\": 100, \"gold\": 100,"
+  ],
+  "a_txt": [
+   "static func toggle_fullscreen(w: Window) -> void:",
+   "static func toggle_fullscreen(w: Window) -> void:"
+  ],
+  "t_txt": [
+   "\"size\": Vector2i(n, n + FIELD_ROWS), \"base\": Vector2i(mid, mid), \"base_hp\": 100, \"gold\": 1000,  # 거점은 마을 한가운데(S37, S203). 시작 골드(S111)",
+   "\"engineer_cells\": [Vector2i(mid, mid + 1), Vector2i(mid - 2, n + 1)],  # 시작 공병(S208): 거점 아래 마을 칸, 출전 칸 옆 들판 칸. 성문이 닫혀 있어도 마을·들판에 하나씩 짓는다(사용자 2026-10-25)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "56fdb36"
+   ],
+   [
+    "approx",
+    "62e3917"
+   ],
+   [
+    "approx",
+    "d117809"
+   ],
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "S111",
+  "a": "src/main.gd:249",
+  "t": "src/main.gd:297-302",
+  "feat": "C-low",
+  "born": "88024e4",
+  "born_r": [
+   43,
+   43
+  ],
+  "born_txt": [
+   "\"size\": Vector2i(40, 32), \"base\": Vector2i(20, 4), \"base_hp\": 100, \"gold\": 150,  # 시작 골드(S111)",
+   "\"size\": Vector2i(40, 32), \"base\": Vector2i(20, 4), \"base_hp\": 100, \"gold\": 150,  # 시작 골드(S111)"
+  ],
+  "a_txt": [
+   "static func toggle_fullscreen(w: Window) -> void:",
+   "static func toggle_fullscreen(w: Window) -> void:"
+  ],
+  "t_txt": [
+   "\"size\": Vector2i(n, n + FIELD_ROWS), \"base\": Vector2i(mid, mid), \"base_hp\": 100, \"gold\": 1000,  # 거점은 마을 한가운데(S37, S203). 시작 골드(S111)",
+   "\"engineer_cells\": [Vector2i(mid, mid + 1), Vector2i(mid - 2, n + 1)],  # 시작 공병(S208): 거점 아래 마을 칸, 출전 칸 옆 들판 칸. 성문이 닫혀 있어도 마을·들판에 하나씩 짓는다(사용자 2026-10-25)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "56fdb36"
+   ],
+   [
+    "approx",
+    "62e3917"
+   ],
+   [
+    "approx",
+    "d117809"
+   ],
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "I42",
+  "a": "src/main.gd:252",
+  "t": "src/main.gd:300-302",
+  "feat": "C-low",
+  "born": "2c211a2",
+  "born_r": [
+   57,
+   57
+  ],
+  "born_txt": [
+   "# 출전 칸(I107): 정문(20,9) 바로 앞 들판의 세 칸. 성문은 닫힌 채 시작해서(I67) 마을 안에 두면 나올 수 없다(I42, 사용자 2026-10-12)",
+   "# 출전 칸(I107): 정문(20,9) 바로 앞 들판의 세 칸. 성문은 닫힌 채 시작해서(I67) 마을 안에 두면 나올 수 없다(I42, 사용자 2026-10-12)"
+  ],
+  "a_txt": [
+   "fit_window(w)",
+   "fit_window(w)"
+  ],
+  "t_txt": [
+   "# 출전 칸(I107): 정문 문루 바로 앞 들판(한 줄 띄움)의 세 칸. 성문은 닫힌 채 시작해서(I67) 마을 안에 두면 나올 수 없다(I42, 사용자 2026-10-12)",
+   "\"engineer_cells\": [Vector2i(mid, mid + 1), Vector2i(mid - 2, n + 1)],  # 시작 공병(S208): 거점 아래 마을 칸, 출전 칸 옆 들판 칸. 성문이 닫혀 있어도 마을·들판에 하나씩 짓는다(사용자 2026-10-25)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "56fdb36"
+   ],
+   [
+    "adjusted",
+    "62e3917"
+   ],
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "I107",
+  "a": "src/main.gd:252",
+  "t": "src/main.gd:300-302",
+  "feat": "C-low",
+  "born": "c2eb551",
+  "born_r": [
+   57,
+   58
+  ],
+  "born_txt": [
+   "# 출전 칸(I107): 정문(20,9) 바로 앞 들판의 두 칸. 성문은 닫힌 채 시작해서(I67) 마을 안에 두면 나올 수 없다(I42, 사용자 2026-10-12)",
+   "\"hero_cells\": [Vector2i(19, 11), Vector2i(21, 11)],"
+  ],
+  "a_txt": [
+   "fit_window(w)",
+   "fit_window(w)"
+  ],
+  "t_txt": [
+   "# 출전 칸(I107): 정문 문루 바로 앞 들판(한 줄 띄움)의 세 칸. 성문은 닫힌 채 시작해서(I67) 마을 안에 두면 나올 수 없다(I42, 사용자 2026-10-12)",
+   "\"engineer_cells\": [Vector2i(mid, mid + 1), Vector2i(mid - 2, n + 1)],  # 시작 공병(S208): 거점 아래 마을 칸, 출전 칸 옆 들판 칸. 성문이 닫혀 있어도 마을·들판에 하나씩 짓는다(사용자 2026-10-25)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2c211a2"
+   ],
+   [
+    "partial",
+    "56fdb36"
+   ],
+   [
+    "adjusted",
+    "62e3917"
+   ],
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "I107",
+  "a": "src/main.gd:253",
+  "t": "src/main.gd:301-302",
+  "feat": "C-low",
+  "born": "1cb9de9",
+  "born_r": [
+   195,
+   195
+  ],
+  "born_txt": [
+   "\"hero_cells\": [Vector2i(29, 31), Vector2i(31, 31), Vector2i(30, 31)],",
+   "\"hero_cells\": [Vector2i(29, 31), Vector2i(31, 31), Vector2i(30, 31)],"
+  ],
+  "a_txt": [
+   "else:",
+   "else:"
+  ],
+  "t_txt": [
+   "\"hero_cells\": [Vector2i(mid - 1, n + 1), Vector2i(mid + 1, n + 1), Vector2i(mid, n + 1)],",
+   "\"engineer_cells\": [Vector2i(mid, mid + 1), Vector2i(mid - 2, n + 1)],  # 시작 공병(S208): 거점 아래 마을 칸, 출전 칸 옆 들판 칸. 성문이 닫혀 있어도 마을·들판에 하나씩 짓는다(사용자 2026-10-25)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "62e3917"
+   ],
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "S217",
+  "a": "src/main.gd:256",
+  "t": "src/main.gd:304-306",
+  "feat": "C-low",
+  "born": "1cb9de9",
+  "born_r": [
+   198,
+   198
+  ],
+  "born_txt": [
+   "\"castle\": {\"walls\": walls, \"gates\": gates, \"wall_hp\": 300, \"gate_hp\": 150, \"wall_size\": Vector2i(1, 3), \"gate_size\": Vector2i(3, 3)},",
+   "\"castle\": {\"walls\": walls, \"gates\": gates, \"wall_hp\": 300, \"gate_hp\": 150, \"wall_size\": Vector2i(1, 3), \"gate_size\": Vector2i(3, 3)},"
+  ],
+  "a_txt": [
+   "",
+   ""
+  ],
+  "t_txt": [
+   "\"castle\": {\"walls\": walls, \"gates\": gates, \"wall_hp\": 300, \"gate_hp\": 150, \"wall_size\": Vector2i(1, t), \"gate_size\": Vector2i(3, t), \"side_walls\": side, \"side_wall_size\": Vector2i(t, 1),",
+   "\"village\": Rect2i(t, t, 54, 54),  # 사방 성곽 안쪽. 생산 시설은 여기에만 짓는다(S43)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "62e3917"
+   ],
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "S43",
+  "a": "src/main.gd:257",
+  "t": "src/main.gd:305-306",
+  "feat": "C-low",
+  "born": "7336c5b",
+  "born_r": [
+   49,
+   49
+  ],
+  "born_txt": [
+   "\"village\": Rect2i(0, 0, 40, 9),  # 성곽(9행) 위쪽. 생산 시설은 여기에만 짓는다(S43)",
+   "\"village\": Rect2i(0, 0, 40, 9),  # 성곽(9행) 위쪽. 생산 시설은 여기에만 짓는다(S43)"
+  ],
+  "a_txt": [
+   "# F11(S162): 창 모드를 바꾸고 설정에 남긴다(I160)",
+   "# F11(S162): 창 모드를 바꾸고 설정에 남긴다(I160)"
+  ],
+  "t_txt": [
+   "\"side_gates\": sealed.slice(1), \"side_gate_size\": Vector2i(t, 3), \"sealed\": sealed},",
+   "\"village\": Rect2i(t, t, 54, 54),  # 사방 성곽 안쪽. 생산 시설은 여기에만 짓는다(S43)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "62e3917"
+   ],
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "S31",
+  "a": "src/main.gd:262-266",
+  "t": "src/main.gd:311-315",
+  "feat": "C-low",
+  "born": "f8d62fb",
+  "born_r": [
+   50,
+   50
+  ],
+  "born_txt": [
+   "\"waves\": load(\"res://data/waves/test_stage.tres\").to_stage(),  # S31, I66",
+   "\"waves\": load(\"res://data/waves/test_stage.tres\").to_stage(),  # S31, I66"
+  ],
+  "a_txt": [
+   "",
+   "toggle_fullscreen(w)"
+  ],
+  "t_txt": [
+   "\"rounds\": rounds,",
+   "\"waves\": rounds[0],  # 1라운드. 라운드 하나뿐인 스테이지의 키라 시험 스테이지 평가(EV144)가 읽는다"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "96ea0f2"
+   ]
+  ]
+ },
+ {
+  "id": "S317",
+  "a": "src/main.gd:319",
+  "t": "src/main.gd:319-321",
+  "feat": "C-low",
+  "born": "eb04e6f",
+  "born_r": [
+   325,
+   325
+  ],
+  "born_txt": [
+   "\"den\": {\"strip\": 40, \"room\": Rect2i(74, 76, 20, 12), \"cut\": 2, \"entry\": [Vector2i(83, 87), Vector2i(85, 87), Vector2i(84, 87)], \"boss\": Vector2i(84, 80),",
+   "\"den\": {\"strip\": 40, \"room\": Rect2i(74, 76, 20, 12), \"cut\": 2, \"entry\": [Vector2i(83, 87), Vector2i(85, 87), Vector2i(84, 87)], \"boss\": Vector2i(84, 80),"
+  ],
+  "a_txt": [
+   "\"den\": {\"strip\": 40, \"room\": Rect2i(70, 72, 28, 16), \"cut\": 2, \"entry\": [Vector2i(83, 87), Vector2i(85, 87), Vector2i(84, 87)], \"boss\": Vector2i(84, 80),",
+   "\"den\": {\"strip\": 40, \"room\": Rect2i(70, 72, 28, 16), \"cut\": 2, \"entry\": [Vector2i(83, 87), Vector2i(85, 87), Vector2i(84, 87)], \"boss\": Vector2i(84, 80),"
+  ],
+  "t_txt": [
+   "\"den\": {\"strip\": 40, \"room\": Rect2i(70, 72, 28, 16), \"cut\": 2, \"entry\": [Vector2i(83, 87), Vector2i(85, 87), Vector2i(84, 87)], \"boss\": Vector2i(84, 80),",
+   "\"torches\": 2, \"torch_cap\": 4, \"floors\": [\"floor_1\", \"floor_2\", \"floor_3\", \"floor_4\", \"floor_5\"], \"win_wait\": 3.0, \"wipe_wait\": 2.5},"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "acf07b2"
+   ]
+  ]
+ },
+ {
+  "id": "I262",
+  "a": "src/main.gd:319",
+  "t": "src/main.gd:319-321",
+  "feat": "C-low",
+  "born": "eb04e6f",
+  "born_r": [
+   325,
+   325
+  ],
+  "born_txt": [
+   "\"den\": {\"strip\": 40, \"room\": Rect2i(74, 76, 20, 12), \"cut\": 2, \"entry\": [Vector2i(83, 87), Vector2i(85, 87), Vector2i(84, 87)], \"boss\": Vector2i(84, 80),",
+   "\"den\": {\"strip\": 40, \"room\": Rect2i(74, 76, 20, 12), \"cut\": 2, \"entry\": [Vector2i(83, 87), Vector2i(85, 87), Vector2i(84, 87)], \"boss\": Vector2i(84, 80),"
+  ],
+  "a_txt": [
+   "\"den\": {\"strip\": 40, \"room\": Rect2i(70, 72, 28, 16), \"cut\": 2, \"entry\": [Vector2i(83, 87), Vector2i(85, 87), Vector2i(84, 87)], \"boss\": Vector2i(84, 80),",
+   "\"den\": {\"strip\": 40, \"room\": Rect2i(70, 72, 28, 16), \"cut\": 2, \"entry\": [Vector2i(83, 87), Vector2i(85, 87), Vector2i(84, 87)], \"boss\": Vector2i(84, 80),"
+  ],
+  "t_txt": [
+   "\"den\": {\"strip\": 40, \"room\": Rect2i(70, 72, 28, 16), \"cut\": 2, \"entry\": [Vector2i(83, 87), Vector2i(85, 87), Vector2i(84, 87)], \"boss\": Vector2i(84, 80),",
+   "\"torches\": 2, \"torch_cap\": 4, \"floors\": [\"floor_1\", \"floor_2\", \"floor_3\", \"floor_4\", \"floor_5\"], \"win_wait\": 3.0, \"wipe_wait\": 2.5},"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "acf07b2"
+   ]
+  ]
+ },
+ {
+  "id": "I262",
+  "a": "src/main.gd:320",
+  "t": "src/main.gd:320-321",
+  "feat": "C-low",
+  "born": "eb04e6f",
+  "born_r": [
+   326,
+   326
+  ],
+  "born_txt": [
+   "\"stairs\": Rect2i(83, 88, 3, 2), \"lamps\": [Vector2i(73, 81), Vector2i(79, 75), Vector2i(88, 75), Vector2i(94, 81)],",
+   "\"stairs\": Rect2i(83, 88, 3, 2), \"lamps\": [Vector2i(73, 81), Vector2i(79, 75), Vector2i(88, 75), Vector2i(94, 81)],"
+  ],
+  "a_txt": [
+   "\"stairs\": Rect2i(83, 88, 3, 2), \"lamps\": [Vector2i(69, 80), Vector2i(77, 71), Vector2i(90, 71), Vector2i(98, 80)],",
+   "\"stairs\": Rect2i(83, 88, 3, 2), \"lamps\": [Vector2i(69, 80), Vector2i(77, 71), Vector2i(90, 71), Vector2i(98, 80)],"
+  ],
+  "t_txt": [
+   "\"stairs\": Rect2i(83, 88, 3, 2), \"lamps\": [Vector2i(69, 80), Vector2i(77, 71), Vector2i(90, 71), Vector2i(98, 80)],",
+   "\"torches\": 2, \"torch_cap\": 4, \"floors\": [\"floor_1\", \"floor_2\", \"floor_3\", \"floor_4\", \"floor_5\"], \"win_wait\": 3.0, \"wipe_wait\": 2.5},"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "acf07b2"
+   ]
+  ]
+ },
+ {
+  "id": "S184",
+  "a": "src/settings.gd:4-69",
+  "t": "src/settings.gd:4-86",
+  "feat": "C-low",
+  "born": "052daf8",
+  "born_r": [
+   4,
+   36
+  ],
+  "born_txt": [
+   "static var path := \"\"  # 설정 파일. 비어 있으면 쓰지 않는다. 진입 장면(menu.gd)이 정하고, 평가는 평가용 파일로 바꾼다",
+   "AudioServer.set_bus_mute(0, volume == 0)"
+  ],
+  "a_txt": [
+   "static var path := \"\"  # 설정 파일. 비어 있으면 쓰지 않는다. 진입 장면(menu.gd)이 정하고, 평가는 평가용 파일로 바꾼다",
+   "static func fullscreen_at_start(exported: bool) -> bool:"
+  ],
+  "t_txt": [
+   "static var path := \"\"  # 설정 파일. 비어 있으면 쓰지 않는다. 진입 장면(menu.gd)이 정하고, 평가는 평가용 파일로 바꾼다",
+   "return i"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "I167",
+  "a": "src/settings.gd:16",
+  "t": "src/settings.gd:18",
+  "feat": "C-low",
+  "born": "5b145a5",
+  "born_r": [
+   42,
+   44
+  ],
+  "born_txt": [
+   "# 게임 글의 언어를 건다. 자동 번역하는 글은 그 자리에서 다시 그린다(I167)",
+   "TranslationServer.set_locale(language)"
+  ],
+  "a_txt": [
+   "static var hints_done := []  # 끝낸 힌트 이름(I166). 설정 파일의 hints 칸에 둔다",
+   "static var hints_done := []  # 끝낸 힌트 이름(I166). 설정 파일의 hints 칸에 둔다"
+  ],
+  "t_txt": [
+   "static var _english = null  # 영어 번역기(I167). apply_language가 처음 한 번 만들어 TranslationServer에 넣는다",
+   "static var _english = null  # 영어 번역기(I167). apply_language가 처음 한 번 만들어 TranslationServer에 넣는다"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "2396cf3"
+   ]
+  ]
+ },
+ {
+  "id": "I157",
+  "a": "src/sim/save.gd:7",
+  "t": "src/sim/save.gd:7",
+  "feat": "OK-low",
+  "born": "052daf8",
+  "born_r": [
+   7,
+   7
+  ],
+  "born_txt": [
+   "const VERSION := 1  # 저장 형식 판. 다르면 읽지 않는다(I157)",
+   "const VERSION := 1  # 저장 형식 판. 다르면 읽지 않는다(I157)"
+  ],
+  "a_txt": [
+   "const VERSION := 7  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179). 4: 집의 가족(S221). 5: 주민의 원래 직업(S222). 6: 주민 체력·대피·신뢰(S225~S229). 7: 숙련·성장·다 큰 자녀(S231~S233, 주민 사전 xp·grow·grown). 2026-11-16: offers·rerolls·lineup 칸은 쓰지 않는다. 옛 저장의 그 칸은 apply가 거른다(I304, 판은 그대로)",
+   "const VERSION := 7  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179). 4: 집의 가족(S221). 5: 주민의 원래 직업(S222). 6: 주민 체력·대피·신뢰(S225~S229). 7: 숙련·성장·다 큰 자녀(S231~S233, 주민 사전 xp·grow·grown). 2026-11-16: offers·rerolls·lineup 칸은 쓰지 않는다. 옛 저장의 그 칸은 apply가 거른다(I304, 판은 그대로)"
+  ],
+  "t_txt": [
+   "const VERSION := 7  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179). 4: 집의 가족(S221). 5: 주민의 원래 직업(S222). 6: 주민 체력·대피·신뢰(S225~S229). 7: 숙련·성장·다 큰 자녀(S231~S233, 주민 사전 xp·grow·grown). 2026-11-16: offers·rerolls·lineup 칸은 쓰지 않는다. 옛 저장의 그 칸은 apply가 거른다(I304, 판은 그대로)",
+   "const VERSION := 7  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179). 4: 집의 가족(S221). 5: 주민의 원래 직업(S222). 6: 주민 체력·대피·신뢰(S225~S229). 7: 숙련·성장·다 큰 자녀(S231~S233, 주민 사전 xp·grow·grown). 2026-11-16: offers·rerolls·lineup 칸은 쓰지 않는다. 옛 저장의 그 칸은 apply가 거른다(I304, 판은 그대로)"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "I179",
+  "a": "src/sim/save.gd:7",
+  "t": "src/sim/save.gd:7",
+  "feat": "OK-low",
+  "born": "1cb9de9",
+  "born_r": [
+   7,
+   7
+  ],
+  "born_txt": [
+   "const VERSION := 2  # 저장 형식 판. 다르면 읽지 않는다(I157). 2: 두꺼운 성곽·맵 60×63(S217)",
+   "const VERSION := 2  # 저장 형식 판. 다르면 읽지 않는다(I157). 2: 두꺼운 성곽·맵 60×63(S217)"
+  ],
+  "a_txt": [
+   "const VERSION := 7  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179). 4: 집의 가족(S221). 5: 주민의 원래 직업(S222). 6: 주민 체력·대피·신뢰(S225~S229). 7: 숙련·성장·다 큰 자녀(S231~S233, 주민 사전 xp·grow·grown). 2026-11-16: offers·rerolls·lineup 칸은 쓰지 않는다. 옛 저장의 그 칸은 apply가 거른다(I304, 판은 그대로)",
+   "const VERSION := 7  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179). 4: 집의 가족(S221). 5: 주민의 원래 직업(S222). 6: 주민 체력·대피·신뢰(S225~S229). 7: 숙련·성장·다 큰 자녀(S231~S233, 주민 사전 xp·grow·grown). 2026-11-16: offers·rerolls·lineup 칸은 쓰지 않는다. 옛 저장의 그 칸은 apply가 거른다(I304, 판은 그대로)"
+  ],
+  "t_txt": [
+   "const VERSION := 7  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179). 4: 집의 가족(S221). 5: 주민의 원래 직업(S222). 6: 주민 체력·대피·신뢰(S225~S229). 7: 숙련·성장·다 큰 자녀(S231~S233, 주민 사전 xp·grow·grown). 2026-11-16: offers·rerolls·lineup 칸은 쓰지 않는다. 옛 저장의 그 칸은 apply가 거른다(I304, 판은 그대로)",
+   "const VERSION := 7  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179). 4: 집의 가족(S221). 5: 주민의 원래 직업(S222). 6: 주민 체력·대피·신뢰(S225~S229). 7: 숙련·성장·다 큰 자녀(S231~S233, 주민 사전 xp·grow·grown). 2026-11-16: offers·rerolls·lineup 칸은 쓰지 않는다. 옛 저장의 그 칸은 apply가 거른다(I304, 판은 그대로)"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "I179",
+  "a": "src/sim/save.gd:7",
+  "t": "src/sim/save.gd:7",
+  "feat": "OK-low",
+  "born": "62e3917",
+  "born_r": [
+   7,
+   7
+  ],
+  "born_txt": [
+   "const VERSION := 3  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179)",
+   "const VERSION := 3  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179)"
+  ],
+  "a_txt": [
+   "const VERSION := 7  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179). 4: 집의 가족(S221). 5: 주민의 원래 직업(S222). 6: 주민 체력·대피·신뢰(S225~S229). 7: 숙련·성장·다 큰 자녀(S231~S233, 주민 사전 xp·grow·grown). 2026-11-16: offers·rerolls·lineup 칸은 쓰지 않는다. 옛 저장의 그 칸은 apply가 거른다(I304, 판은 그대로)",
+   "const VERSION := 7  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179). 4: 집의 가족(S221). 5: 주민의 원래 직업(S222). 6: 주민 체력·대피·신뢰(S225~S229). 7: 숙련·성장·다 큰 자녀(S231~S233, 주민 사전 xp·grow·grown). 2026-11-16: offers·rerolls·lineup 칸은 쓰지 않는다. 옛 저장의 그 칸은 apply가 거른다(I304, 판은 그대로)"
+  ],
+  "t_txt": [
+   "const VERSION := 7  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179). 4: 집의 가족(S221). 5: 주민의 원래 직업(S222). 6: 주민 체력·대피·신뢰(S225~S229). 7: 숙련·성장·다 큰 자녀(S231~S233, 주민 사전 xp·grow·grown). 2026-11-16: offers·rerolls·lineup 칸은 쓰지 않는다. 옛 저장의 그 칸은 apply가 거른다(I304, 판은 그대로)",
+   "const VERSION := 7  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179). 4: 집의 가족(S221). 5: 주민의 원래 직업(S222). 6: 주민 체력·대피·신뢰(S225~S229). 7: 숙련·성장·다 큰 자녀(S231~S233, 주민 사전 xp·grow·grown). 2026-11-16: offers·rerolls·lineup 칸은 쓰지 않는다. 옛 저장의 그 칸은 apply가 거른다(I304, 판은 그대로)"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "S221",
+  "a": "src/sim/save.gd:7",
+  "t": "src/sim/save.gd:7",
+  "feat": "OK-low",
+  "born": "b1ef904",
+  "born_r": [
+   7,
+   7
+  ],
+  "born_txt": [
+   "const VERSION := 4  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179). 4: 집의 가족(S221)",
+   "const VERSION := 4  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179). 4: 집의 가족(S221)"
+  ],
+  "a_txt": [
+   "const VERSION := 7  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179). 4: 집의 가족(S221). 5: 주민의 원래 직업(S222). 6: 주민 체력·대피·신뢰(S225~S229). 7: 숙련·성장·다 큰 자녀(S231~S233, 주민 사전 xp·grow·grown). 2026-11-16: offers·rerolls·lineup 칸은 쓰지 않는다. 옛 저장의 그 칸은 apply가 거른다(I304, 판은 그대로)",
+   "const VERSION := 7  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179). 4: 집의 가족(S221). 5: 주민의 원래 직업(S222). 6: 주민 체력·대피·신뢰(S225~S229). 7: 숙련·성장·다 큰 자녀(S231~S233, 주민 사전 xp·grow·grown). 2026-11-16: offers·rerolls·lineup 칸은 쓰지 않는다. 옛 저장의 그 칸은 apply가 거른다(I304, 판은 그대로)"
+  ],
+  "t_txt": [
+   "const VERSION := 7  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179). 4: 집의 가족(S221). 5: 주민의 원래 직업(S222). 6: 주민 체력·대피·신뢰(S225~S229). 7: 숙련·성장·다 큰 자녀(S231~S233, 주민 사전 xp·grow·grown). 2026-11-16: offers·rerolls·lineup 칸은 쓰지 않는다. 옛 저장의 그 칸은 apply가 거른다(I304, 판은 그대로)",
+   "const VERSION := 7  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179). 4: 집의 가족(S221). 5: 주민의 원래 직업(S222). 6: 주민 체력·대피·신뢰(S225~S229). 7: 숙련·성장·다 큰 자녀(S231~S233, 주민 사전 xp·grow·grown). 2026-11-16: offers·rerolls·lineup 칸은 쓰지 않는다. 옛 저장의 그 칸은 apply가 거른다(I304, 판은 그대로)"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "S222",
+  "a": "src/sim/save.gd:7",
+  "t": "src/sim/save.gd:7",
+  "feat": "OK-low",
+  "born": "3df2b44",
+  "born_r": [
+   7,
+   7
+  ],
+  "born_txt": [
+   "const VERSION := 5  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179). 4: 집의 가족(S221). 5: 주민의 원래 직업(S222)",
+   "const VERSION := 5  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179). 4: 집의 가족(S221). 5: 주민의 원래 직업(S222)"
+  ],
+  "a_txt": [
+   "const VERSION := 7  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179). 4: 집의 가족(S221). 5: 주민의 원래 직업(S222). 6: 주민 체력·대피·신뢰(S225~S229). 7: 숙련·성장·다 큰 자녀(S231~S233, 주민 사전 xp·grow·grown). 2026-11-16: offers·rerolls·lineup 칸은 쓰지 않는다. 옛 저장의 그 칸은 apply가 거른다(I304, 판은 그대로)",
+   "const VERSION := 7  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179). 4: 집의 가족(S221). 5: 주민의 원래 직업(S222). 6: 주민 체력·대피·신뢰(S225~S229). 7: 숙련·성장·다 큰 자녀(S231~S233, 주민 사전 xp·grow·grown). 2026-11-16: offers·rerolls·lineup 칸은 쓰지 않는다. 옛 저장의 그 칸은 apply가 거른다(I304, 판은 그대로)"
+  ],
+  "t_txt": [
+   "const VERSION := 7  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179). 4: 집의 가족(S221). 5: 주민의 원래 직업(S222). 6: 주민 체력·대피·신뢰(S225~S229). 7: 숙련·성장·다 큰 자녀(S231~S233, 주민 사전 xp·grow·grown). 2026-11-16: offers·rerolls·lineup 칸은 쓰지 않는다. 옛 저장의 그 칸은 apply가 거른다(I304, 판은 그대로)",
+   "const VERSION := 7  # 저장 형식 판. 다르면 읽지 않는다(I157). 3: 사방 성곽·맵 60×93(S203, I179). 4: 집의 가족(S221). 5: 주민의 원래 직업(S222). 6: 주민 체력·대피·신뢰(S225~S229). 7: 숙련·성장·다 큰 자녀(S231~S233, 주민 사전 xp·grow·grown). 2026-11-16: offers·rerolls·lineup 칸은 쓰지 않는다. 옛 저장의 그 칸은 apply가 거른다(I304, 판은 그대로)"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "I176",
+  "a": "src/sim/save.gd:20-21",
+  "t": "src/sim/save.gd:20-22",
+  "feat": "C-low",
+  "born": "74f5bb6",
+  "born_r": [
+   19,
+   19
+  ],
+  "born_txt": [
+   "var d := {\"version\": VERSION, \"rng\": b._rng.state, \"luck\": b._luck.state, \"spare\": b._spare}",
+   "var d := {\"version\": VERSION, \"rng\": b._rng.state, \"luck\": b._luck.state, \"spare\": b._spare}"
+  ],
+  "a_txt": [
+   "var d := {\"version\": VERSION, \"rng\": b._rng.state, \"luck\": b._luck.state, \"kin\": b._kin.state, \"spare\": b._spare, \"bag\": b.bag.duplicate(), \"forged\": b.forged.duplicate(),",
+   "\"loot\": b._loot.state, \"shot\": b._shot.state, \"dropped\": b.dropped.duplicate(), \"ranks\": b.merc_rank.duplicate(),"
+  ],
+  "t_txt": [
+   "var d := {\"version\": VERSION, \"rng\": b._rng.state, \"luck\": b._luck.state, \"kin\": b._kin.state, \"spare\": b._spare, \"bag\": b.bag.duplicate(), \"forged\": b.forged.duplicate(),",
+   "\"torches\": b.torches, \"floors_cleared\": b.floors_cleared, \"relics\": b.relics.duplicate(), \"relic_forged\": b.relic_forged.duplicate()}"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "S221",
+  "a": "src/sim/save.gd:20-21",
+  "t": "src/sim/save.gd:20-22",
+  "feat": "C-low",
+  "born": "b1ef904",
+  "born_r": [
+   19,
+   19
+  ],
+  "born_txt": [
+   "var d := {\"version\": VERSION, \"rng\": b._rng.state, \"luck\": b._luck.state, \"kin\": b._kin.state, \"spare\": b._spare}",
+   "var d := {\"version\": VERSION, \"rng\": b._rng.state, \"luck\": b._luck.state, \"kin\": b._kin.state, \"spare\": b._spare}"
+  ],
+  "a_txt": [
+   "var d := {\"version\": VERSION, \"rng\": b._rng.state, \"luck\": b._luck.state, \"kin\": b._kin.state, \"spare\": b._spare, \"bag\": b.bag.duplicate(), \"forged\": b.forged.duplicate(),",
+   "\"loot\": b._loot.state, \"shot\": b._shot.state, \"dropped\": b.dropped.duplicate(), \"ranks\": b.merc_rank.duplicate(),"
+  ],
+  "t_txt": [
+   "var d := {\"version\": VERSION, \"rng\": b._rng.state, \"luck\": b._luck.state, \"kin\": b._kin.state, \"spare\": b._spare, \"bag\": b.bag.duplicate(), \"forged\": b.forged.duplicate(),",
+   "\"torches\": b.torches, \"floors_cleared\": b.floors_cleared, \"relics\": b.relics.duplicate(), \"relic_forged\": b.relic_forged.duplicate()}"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "I201",
+  "a": "src/sim/save.gd:20-21",
+  "t": "src/sim/save.gd:20-22",
+  "feat": "C-low",
+  "born": "fd1b247",
+  "born_r": [
+   20,
+   20
+  ],
+  "born_txt": [
+   "var d := {\"version\": VERSION, \"rng\": b._rng.state, \"luck\": b._luck.state, \"kin\": b._kin.state, \"spare\": b._spare, \"bag\": b.bag.duplicate(), \"forged\": b.forged.duplicate()}",
+   "var d := {\"version\": VERSION, \"rng\": b._rng.state, \"luck\": b._luck.state, \"kin\": b._kin.state, \"spare\": b._spare, \"bag\": b.bag.duplicate(), \"forged\": b.forged.duplicate()}"
+  ],
+  "a_txt": [
+   "var d := {\"version\": VERSION, \"rng\": b._rng.state, \"luck\": b._luck.state, \"kin\": b._kin.state, \"spare\": b._spare, \"bag\": b.bag.duplicate(), \"forged\": b.forged.duplicate(),",
+   "\"loot\": b._loot.state, \"shot\": b._shot.state, \"dropped\": b.dropped.duplicate(), \"ranks\": b.merc_rank.duplicate(),"
+  ],
+  "t_txt": [
+   "var d := {\"version\": VERSION, \"rng\": b._rng.state, \"luck\": b._luck.state, \"kin\": b._kin.state, \"spare\": b._spare, \"bag\": b.bag.duplicate(), \"forged\": b.forged.duplicate(),",
+   "\"torches\": b.torches, \"floors_cleared\": b.floors_cleared, \"relics\": b.relics.duplicate(), \"relic_forged\": b.relic_forged.duplicate()}"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "I202",
+  "a": "src/sim/save.gd:21",
+  "t": "src/sim/save.gd:21-22",
+  "feat": "C-low",
+  "born": "378d464",
+  "born_r": [
+   21,
+   21
+  ],
+  "born_txt": [
+   "\"loot\": b._loot.state, \"dropped\": b.dropped.duplicate()}",
+   "\"loot\": b._loot.state, \"dropped\": b.dropped.duplicate()}"
+  ],
+  "a_txt": [
+   "\"loot\": b._loot.state, \"shot\": b._shot.state, \"dropped\": b.dropped.duplicate(), \"ranks\": b.merc_rank.duplicate(),",
+   "\"loot\": b._loot.state, \"shot\": b._shot.state, \"dropped\": b.dropped.duplicate(), \"ranks\": b.merc_rank.duplicate(),"
+  ],
+  "t_txt": [
+   "\"loot\": b._loot.state, \"shot\": b._shot.state, \"dropped\": b.dropped.duplicate(), \"ranks\": b.merc_rank.duplicate(),",
+   "\"torches\": b.torches, \"floors_cleared\": b.floors_cleared, \"relics\": b.relics.duplicate(), \"relic_forged\": b.relic_forged.duplicate()}"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "I203",
+  "a": "src/sim/save.gd:21",
+  "t": "src/sim/save.gd:21-22",
+  "feat": "C-low",
+  "born": "1e042bf",
+  "born_r": [
+   21,
+   21
+  ],
+  "born_txt": [
+   "\"loot\": b._loot.state, \"dropped\": b.dropped.duplicate(), \"ranks\": b.merc_rank.duplicate()}",
+   "\"loot\": b._loot.state, \"dropped\": b.dropped.duplicate(), \"ranks\": b.merc_rank.duplicate()}"
+  ],
+  "a_txt": [
+   "\"loot\": b._loot.state, \"shot\": b._shot.state, \"dropped\": b.dropped.duplicate(), \"ranks\": b.merc_rank.duplicate(),",
+   "\"loot\": b._loot.state, \"shot\": b._shot.state, \"dropped\": b.dropped.duplicate(), \"ranks\": b.merc_rank.duplicate(),"
+  ],
+  "t_txt": [
+   "\"loot\": b._loot.state, \"shot\": b._shot.state, \"dropped\": b.dropped.duplicate(), \"ranks\": b.merc_rank.duplicate(),",
+   "\"torches\": b.torches, \"floors_cleared\": b.floors_cleared, \"relics\": b.relics.duplicate(), \"relic_forged\": b.relic_forged.duplicate()}"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "I224",
+  "a": "src/sim/save.gd:21",
+  "t": "src/sim/save.gd:21-22",
+  "feat": "C-low",
+  "born": "09ca425",
+  "born_r": [
+   21,
+   21
+  ],
+  "born_txt": [
+   "\"loot\": b._loot.state, \"shot\": b._shot.state, \"dropped\": b.dropped.duplicate(), \"ranks\": b.merc_rank.duplicate(), \"rerolls\": b.rerolls}",
+   "\"loot\": b._loot.state, \"shot\": b._shot.state, \"dropped\": b.dropped.duplicate(), \"ranks\": b.merc_rank.duplicate(), \"rerolls\": b.rerolls}"
+  ],
+  "a_txt": [
+   "\"loot\": b._loot.state, \"shot\": b._shot.state, \"dropped\": b.dropped.duplicate(), \"ranks\": b.merc_rank.duplicate(),",
+   "\"loot\": b._loot.state, \"shot\": b._shot.state, \"dropped\": b.dropped.duplicate(), \"ranks\": b.merc_rank.duplicate(),"
+  ],
+  "t_txt": [
+   "\"loot\": b._loot.state, \"shot\": b._shot.state, \"dropped\": b.dropped.duplicate(), \"ranks\": b.merc_rank.duplicate(),",
+   "\"torches\": b.torches, \"floors_cleared\": b.floors_cleared, \"relics\": b.relics.duplicate(), \"relic_forged\": b.relic_forged.duplicate()}"
+  ],
+  "touched": true,
+  "ev": []
+ },
+ {
+  "id": "S216",
+  "a": "src/sim/save.gd:65-76",
+  "t": "src/sim/save.gd:74-77",
+  "feat": "C-low",
+  "born": "94ed474",
+  "born_r": [
+   49,
+   51
+  ],
+  "born_txt": [
+   "b.footprint.clear()",
+   "b._occupy(s)"
+  ],
+  "a_txt": [
+   "var o = _block(f)",
+   "for k in pair[0].values():"
+  ],
+  "t_txt": [
+   "for pair in [[b.structures, b.footprint], [b.castle, b.walls], [b.rubble, b.debris]]:  # 차지 칸(S216·S217)은 Block에서 다시 편다",
+   "b._put(pair[0], pair[1], k)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "partial",
+    "09ca425"
+   ]
+  ]
+ },
+ {
+  "id": "S52",
+  "a": "src/ui/camera.gd:44-53",
+  "t": "src/ui/camera.gd:44-53",
+  "feat": "OK-low",
+  "born": "d94436d",
+  "born_r": [
+   18,
+   23
+  ],
+  "born_txt": [
+   "func _unhandled_input(event: InputEvent) -> void:",
+   "zoom_at(-1, event.position)"
+  ],
+  "a_txt": [
+   "func _unhandled_input(event: InputEvent) -> void:",
+   "pan(Vector2.ZERO, 0.0)"
+  ],
+  "t_txt": [
+   "func _unhandled_input(event: InputEvent) -> void:",
+   "pan(Vector2.ZERO, 0.0)"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "a3ccad1"
+   ]
+  ]
+ },
+ {
+  "id": "S53",
+  "a": "src/ui/camera.gd:55-100",
+  "t": "src/ui/camera.gd:55-100",
+  "feat": "OK-low",
+  "born": "d94436d",
+  "born_r": [
+   25,
+   32
+  ],
+  "born_txt": [
+   "func _process(delta: float) -> void:",
+   "pan(dir, delta)"
+  ],
+  "a_txt": [
+   "func _process(delta: float) -> void:",
+   "_vel.y = 0.0"
+  ],
+  "t_txt": [
+   "func _process(delta: float) -> void:",
+   "_vel.y = 0.0"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "ccc2c08"
+   ],
+   [
+    "adjusted",
+    "a3ccad1"
+   ]
+  ]
+ },
+ {
+  "id": "S52",
+  "a": "src/ui/camera.gd:107-111",
+  "t": "src/ui/camera.gd:107-111",
+  "feat": "OK-low",
+  "born": "d94436d",
+  "born_r": [
+   40,
+   48
+  ],
+  "born_txt": [
+   "func zoom_at(step: int, cursor: Vector2) -> void:",
+   "pan(Vector2.ZERO, 0.0)"
+  ],
+  "a_txt": [
+   "if _zoom_t < 1.0:",
+   "_set_zoom(roundf(s) / k, _anchor)  # 화면 배율은 정수만 지난다. 아트 1px이 늘 정수 화면 px라 도트가 번지지 않는다"
+  ],
+  "t_txt": [
+   "if _zoom_t < 1.0:",
+   "_set_zoom(roundf(s) / k, _anchor)  # 화면 배율은 정수만 지난다. 아트 1px이 늘 정수 화면 px라 도트가 번지지 않는다"
+  ],
+  "touched": true,
+  "ev": [
+   [
+    "adjusted",
+    "a3ccad1"
+   ]
+  ]
+ }
+]

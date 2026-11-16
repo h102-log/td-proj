@@ -1,0 +1,11 @@
+--- a/tools/audio/make.py
++++ b/tools/audio/make.py
+@@ -441,7 +441,7 @@
+             ("A#5", 1.5), ("A5", 0.5), ("G5", 1), ("F5", 1), ("E5", 4)] * 2
+     total = n_of(64 * 60 / bpm)
+     b = lp(voice(bass, bpm, "square", 0.5, 0.002, 0.04, 0.5, 0.03, total=total), 1000) * 0.32
+-    l_ = lp(voice(lead, bpm, "saw", a=0.01, d=0.1, s=0.6, r=0.08, vib=0.01, total=total), 3500) * 0.13
++    l_ = lp(voice(lead, bpm, "saw", a=0.01, d=0.1, s=0.6, r=0.08, vib=0.01, total=total), 3500) * 0.22
+     stab = voice([(n[:-1] + str(int(n[-1]) - 1), d) for n, d in lead], bpm, "square", 0.125, total=total) * 0.07
+     d = beat_drums("k.hkskh.kkh.skhs", bpm, total) * 0.6
+     return b + l_ + stab + d, 60 / bpm * 0.5, 0.25, 0.18
