@@ -105,6 +105,9 @@ const STOP := ["..######..", ".#oooooo#.", "#oooooooo#", "#oooooooo#", "#ooooooo
 const SHIELD := ["..........", "..########", "..#oooooo#", "..#oooooo#", "..#oooooo#", "..#oooooo#", "...#oooo#.", "...#oooo#.", "....#oo#..", ".....##..."]  # 홀드(I139)
 const HOLD_TIPS := ["홀드 끔\n켜면 기준 지점 반경 안의 적만 친다", "홀드 켬\n기준 지점 반경 안의 적만 친다", "홀드 섞임\n누르면 모두 켠다"]
 const HOLD_LOOK := [Color(0.4, 0.4, 0.4), Color.WHITE, Color(0.7, 0.7, 0.7)]  # 홀드 방패 밝기: 끔·켬·섞임
+const RETREAT_PIC := ["....#.....", "...##.....", "..########", ".#########", "..########", "...##.....", "....#.....", "..........", "..........", ".........."]  # 후퇴 태그(S36 2026-11-17 변경): 왼쪽 화살표
+const FLAG_PIC := ["#.........", "####......", "#######...", "##########", "#######...", "####......", "#.........", "#.........", "#.........", "#........."]  # 깃발 태그(S36 2026-11-17 변경)
+const RETREAT_TIPS := ["후퇴 끔\n켜면 체력 30% 밑에서 피난처로 물러나 60%에 돌아온다", "후퇴 켬\n체력 30% 밑에서 피난처로 물러나 60%에 돌아온다", "후퇴 섞임\n누르면 모두 켠다"]
 const HAMMER := [".#####.", ".#####.", "...#...", "...#...", "...#...", "...#..."]  # 팝업 완성·수리(I58)
 const UP := ["..#..", ".###.", "#####", ".###.", ".###."]  # 팝업 업그레이드(I58)
 # 용병 강화 툴팁의 수치 줄(S255): 키 → «이름 지금 → 다음» 틀
@@ -272,6 +275,9 @@ var _wait := 0.0  # 결과 창이 뜨기까지 남은 시간(초, S117). 트리�
 var tags := []  # 고른 영웅·용병의 상황 태그 [A 공격 이동, S 정지, H 홀드](I139)
 var _tag_pics := []  # 태그마다 그림
 var _hold_tip := ""  # 홀드 태그 툴팁의 지금 상태 글
+var _retreat_tip := ""  # 후퇴 태그 툴팁의 지금 상태 글(S36 2026-11-17 변경)
+var dtags := []  # 용병 교리 태그 [T 후퇴, D 주둔 깃발](S36 2026-11-17 변경, I139). tags(A·S·H)와 따로
+var _dtag_pics := []
 var fix_tag: Button  # 고른 공병의 자동 수리 태그(I210). tags(A·S·H)와 따로 둔다. 누르면 F 키와 같다
 var _fix_pic: TextureRect  # 자동 수리 태그의 망치 그림. 밝기가 끔·켬·섞임이다
 var portraits := []  # 출전 칸마다 초상 버튼(I129). 누르면 그 영웅을 고른다(I165)
@@ -427,6 +433,21 @@ func _ready() -> void:
 	tip.add(tags[0], func(): return ["공격 이동", "A", "", "누른 뒤 땅: 가는 길의 적을 친다\n적: 그 적만 친다", ""])  # 툴팁 폭 160이라 줄을 나눈다
 	tip.add(tags[1], func(): return ["정지", "S", "", "그 자리에 선다", ""])
 	tip.add(tags[2], func(): return ["홀드", "H", "", _hold_tip, ""])
+	for i in 2:  # 후퇴·깃발 태그(S36 2026-11-17 변경, I139): S·H 태그 왼쪽. 그림 10×10을 2배로, 왼쪽 위에 키 글자. tags(A·S·H)와 따로 둔다
+		var t := _bar_button(root, "", [controls.toggle_retreat, controls.flag_key][i])
+		t.position = Vector2(582, 234 - 26 * i)
+		t.size = Vector2(24, 24)
+		_dtag_pics.append(_pic(t, HudBuild.dots([RETREAT_PIC, FLAG_PIC][i], {"#": HudTheme.TEXT}), Vector2(20, 20)))
+		_dtag_pics[i].position = Vector2(2, 2)
+		var key := _text(t, 7, HudTheme.ACCENT)
+		key.text = "TD"[i]
+		key.position = Vector2(1, -1)
+		key.size = Vector2(8, 8)
+		for n in t.get_children():
+			n.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		dtags.append(t)
+	tip.add(dtags[0], func(): return ["후퇴", "T", "", _retreat_tip, ""])
+	tip.add(dtags[1], func(): return ["주둔 깃발", "D", "", "누른 뒤 땅: 고른 용병이 그 칸의 깃발에 배속돼 대열로 선다\n성곽 가까이면 원거리는 성벽 위에", ""])
 	fix_tag = _bar_button(root, "", controls.toggle_auto_fix)  # 자동 수리 태그(I210): 망치 7×6을 2배로, 왼쪽 위에 키 글자
 	fix_tag.position = FIX_AT.position
 	fix_tag.size = FIX_AT.size
@@ -738,6 +759,15 @@ func _process(delta: float) -> void:
 		var h := 0 if held == 0 else 1 if held == mercs.size() else 2  # 끔·켬·섞임
 		_tag_pics[2].modulate = HOLD_LOOK[h]
 		_hold_tip = HOLD_TIPS[h]
+	var fighters: Array = mercs.filter(func(u): return u.kind != "engineer")  # 후퇴·깃발 태그(S36 2026-11-17 변경): 공병이 아닌 용병을 골랐을 때
+	dtags[0].visible = on and not fighters.is_empty()
+	dtags[1].visible = dtags[0].visible
+	if dtags[0].visible:
+		var back: int = fighters.filter(func(u): return u.retreat).size()
+		var r := 0 if back == 0 else 1 if back == fighters.size() else 2
+		_dtag_pics[0].modulate = HOLD_LOOK[r]
+		_retreat_tip = RETREAT_TIPS[r]
+		_dtag_pics[1].modulate = HudTheme.ACCENT if controls.flagging else Color.WHITE
 	var engineers: Array = mercs.filter(func(u): return u.kind == "engineer")  # 자동 수리 태그(I210): 밝기는 홀드와 같은 끔·켬·섞임
 	fix_tag.visible = on and not engineers.is_empty()
 	if fix_tag.visible:

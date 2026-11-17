@@ -54,6 +54,7 @@ var moving = null  # 옮길 대포. 팝업의 «옮기기» 버튼이 넣는다(
 var village := false  # 거점을 골랐다. 준비·전투 단계면 거점 패널이 뜬다(S100, S365)
 var keep_tab := 0  # 거점 패널의 마지막 탭(I298 ①): 0 근접 · 1 원거리 · 2 지원. Tab·Shift+Tab·탭 버튼이 바꾼다
 var rallying := false  # 거점 집결 지점 고르기 중(I298 ⑥). 패널 «집결»이 켜고, 다음 맵 좌클릭이 거점 집결 지점을 정한다. 우클릭·ESC는 그만둔다
+var flagging := false  # 주둔 깃발 칸 고르기 중(S36 2026-11-17 변경). D 키·깃발 태그가 켜고, 다음 맵 좌클릭 칸에 고른 용병을 배속한다. 우클릭·ESC는 그만둔다
 var aiming := "":  # 조준 중인 스킬 칸(S147). 빈 문자열이면 조준 중이 아니다
 	set(v):
 		aiming = v
@@ -99,6 +100,10 @@ func handle(event: InputEvent) -> void:
 				stop()
 			KEY_H:
 				toggle_hold()
+			KEY_T:
+				toggle_retreat()
+			KEY_D:
+				flag_key()
 			KEY_F:
 				toggle_auto_fix()
 			KEY_V:
@@ -121,6 +126,8 @@ func handle(event: InputEvent) -> void:
 			KEY_ESCAPE:
 				if rallying:  # 집결 지점 고르기만 그만둔다(I298 ⑥)
 					rallying = false
+				elif flagging:  # 깃발 칸 고르기만 그만둔다(S36 2026-11-17 변경)
+					flagging = false
 				elif placing == "" and moving == null and aiming == "" and not attacking:  # 취소할 것이 없으면 맵 팝업을 닫는다(S183)
 					_close_popups()
 				placing = ""
@@ -148,6 +155,16 @@ func handle(event: InputEvent) -> void:
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			battle.set_rally(battle.base, Vector2i((event.position / cell_px).floor()))
 		rallying = false
+		_press = null
+		return
+	if flagging and event.pressed and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:  # 주둔 깃발(S36 2026-11-17 변경): 좌클릭 칸에 고른 용병을 배속한다. 고른 유닛은 그대로다
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			var cell := Vector2i((event.position / cell_px).floor())
+			var top = BattleView.raised_at(battle, event.position)  # 문루·탑 그림이 솟은 부분은 그 열의 성곽 뒷줄 칸으로(S218 2026-10-28)
+			if top != null:
+				cell = Vector2i(cell.x, top.cell.y - top.size.y + 1)
+			battle.plant_flag(selected, cell)
+		flagging = false
 		_press = null
 		return
 	if aiming != "" and event.pressed and event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:
@@ -364,6 +381,21 @@ func _command(px: Vector2, attack: bool) -> void:
 		order = {"at": px, "attack": attack or foe != null, "foe": foe}
 	if selected.any(func(u): return u.is_hero):
 		hero_sent.emit()
+
+# 고른 용병의 후퇴 교리 전환(S36 2026-11-17 변경): 모두 켜져 있으면 끄고 아니면 켠다. T 키와 HUD 태그가 부른다
+func toggle_retreat() -> void:
+	var mercs := selected.filter(func(u): return not u.is_hero and u.kind != "engineer")
+	if not mercs.is_empty():
+		battle.set_retreat(mercs, not mercs.all(func(u): return u.retreat))
+
+# 주둔 깃발 칸 고르기(S36 2026-11-17 변경): 고른 살아 있는 용병이 있으면 다음 맵 좌클릭 칸에 배속한다. D 키와 HUD 태그가 부른다
+func flag_key() -> void:
+	if selected.any(func(u): return u.alive and not u.is_hero):
+		flagging = true
+		placing = ""
+		moving = null
+		aiming = ""
+		attacking = false
 
 # 고른 용병의 홀드 전환(S36). H 키와 HUD 태그(I139)이 부른다
 func toggle_hold() -> void:

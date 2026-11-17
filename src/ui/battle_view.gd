@@ -2502,6 +2502,10 @@ func _marks() -> void:
 				ring += 2
 	for s in controls.picked + ([controls.fort] if controls.fort else []) + ([battle.base] if controls.village else []):  # 전투 단계에 고른 구조물(S74, S83)·고른 성곽 칸(S85)·고른 거점(S100)
 		draw_rect(_box(s), Color.WHITE, false, 1.0)
+	for c in battle.flags:  # 주둔 깃발(S36 2026-11-17 변경): 깃대와 금빛 깃발. 그림은 PR⑤에서 정한다
+		var at := _center(Vector2(c))
+		draw_line(at + Vector2(-2, 6), at + Vector2(-2, -8), Color(0.9, 0.9, 0.9, 0.9), 1.0)
+		draw_rect(Rect2(at + Vector2(-1, -8), Vector2(6, 4)), Color(0.95, 0.75, 0.25, 0.95))
 	var f = controls.facility  # 고른 생산 시설: 테두리와 집결 지점 깃발(S82)
 	if f and f.alive:
 		draw_rect(_box(f), Color.WHITE, false, 1.0)

@@ -72,6 +72,15 @@ const UPGRADE_MAX := 3
 const UPGRADE_TIME := 5.0  # 전투 중 공병이 한 단계 올리는 시간(초)
 const GATE_LOCK := 20.0  # 전투 단계에 여닫은 성문을 다시 여닫지 못하는 시간(초, S135). 핑퐁 봇 측정을 보고 사용자가 고름(insights/2026-10-16_gate_cooldown.md)
 const QUEUE_CAP := 5  # 생산 시설 하나의 대기열 길이(S20 2026-11-17 변경). 임시값
+const RETURN_DELAY := 8.0  # 사거리·인식 범위에 적이 없는 채 선 용병이 기준 지점으로 돌아가기까지 초(I36 2026-11-17 변경). 임시값
+const RETREAT_AT := 0.3  # 후퇴 교리(S36 2026-11-17 변경): 체력 비율이 이 밑이면 물러난다. 임시값
+const RETREAT_BACK := 0.6  # 체력 비율이 이 위로 차면 자리로 돌아온다. 임시값
+const RETREAT_TIMEOUT := 90.0  # 차지 않아도 이 초가 지나면 돌아온다. 임시값
+const FLAG_CAP := 6  # 주둔 깃발 수(S36 2026-11-17 변경). 임시값
+const DOCTRINE_EVERY := 0.5  # 복귀·후퇴 판정 간격(초). 임시값
+const REACT_REACH := 2.0  # 반응(S36 2026-11-17 변경): 이 칸 안의 아군을 치는 적은 leash 밖이라도 쫓는다. 임시값
+const REACT_STEP := 1.0  # 그때 leash 밖으로 더 나가는 칸. 임시값
+const WALL_POST_NEAR := 2  # 깃발이 성곽 칸에서 이 칸 안이면 원거리 배속은 성벽 위 자리에 선다(S36 2026-11-17 변경). 임시값
 const HERO_BACK := 30.0  # 전투 중 쓰러진 영웅이 거점 옆으로 돌아오기까지 초(S26 2026-11-17 변경). 스테이지 hero_back이 덮는다. 임시값
 const HERO_BACK_HP := 0.5  # 그때 돌아오는 체력 비율(S138 2026-11-17 변경). 스테이지 hero_back_hp가 덮는다. 임시값
 const COUNTER_HOLD := 3.0  # 반격 대상이 이만큼 쏘지 않아야 다른 구조물로 바뀐다(초, S140). 가장 느린 쏘는 간격(2.5초)보다 길다. 임시값
@@ -350,9 +359,16 @@ class Unit:
 	var move_mode := "attack_move"  # 지금 걷는 길의 명령: "move" 순수 이동(S14) | "attack_move" 공격 이동(S35)
 	var prey  # 대상 공격(S35)하는 적. 없으면 null
 	var chase_to: Vector2i  # 대상에게 가는 길을 구한 칸. 대상이 여기서 1칸 넘게 옮기면 다시 구한다
-	var hold := false  # 켜지면 anchor에서 hold_radius 안에서만 싸운다(S36)
+	var hold := false  # 켜지면 anchor에서 hold_radius 안에서만 싸운다(S36). 꺼지면 leash 안에서만 쫓는다(I36 2026-11-17 변경)
 	var hold_radius := 0.0
-	var anchor: Vector2  # 홀드 기준 지점(I37)
+	var anchor: Vector2  # 홀드·leash 기준 지점(I37): 도착한 자리
+	var leash := 0.0  # 홀드가 꺼진 용병이 anchor에서 적을 쫓아가는 최대 거리(칸, I36 2026-11-17 변경). 0이면 sight
+	var retreat := false  # 후퇴 교리(S36 2026-11-17 변경): 체력이 RETREAT_AT 밑이면 피난처로 물러난다
+	var fleeing := false  # 후퇴 중이다
+	var flee_from := Vector2.ZERO  # 후퇴 전 기준 지점. 차면 여기로 돌아온다
+	var flee_left := 0.0  # 후퇴 시한(초, RETREAT_TIMEOUT)
+	var idle_secs := 0.0  # 적 없이 서 있은 초. RETURN_DELAY가 되면 anchor로 돌아간다
+	var flag_at := Vector2i(-1, -1)  # 배속된 주둔 깃발 칸(S36 2026-11-17 변경). (-1,-1)이면 없다. 직접 명령을 받으면 풀린다
 	var auto_fix := false  # 공병 자동 수리가 켜져 있다(S277). 이동·정지 지시로는 꺼지지 않는다
 	var armor := 0.0  # 방어력(S149). 기본 0이고 세라피나 오라로만 오른다
 	var block := 1  # 블록 수(S159): 동시에 붙잡는 적 수. 요새화한 아이아스는 더 많다
@@ -410,6 +426,7 @@ class Unit:
 	func _init(k: String, cell: Vector2i, stats: Dictionary) -> void:
 		kind = k
 		pos = Vector2(cell)
+		anchor = pos  # 선 자리가 첫 기준 지점이다(I37, I36 2026-11-17 변경: 홀드가 꺼져도 leash의 기준이라 처음부터 있어야 한다)
 		for key in stats:
 			set(key, stats[key])
 		max_hp = hp
@@ -605,6 +622,8 @@ var _plan := []       # 이 라운드에 남은 파도 [{wave, idx, of, turns}](
 var _surge := {}      # 지금 집결 중인 파도 {wave, idx, of}(S375). 비어 있으면 이 라운드에 더 부를 파도가 없다
 var muster_left := 0.0  # 집결 남은 초(S375). 0 이하이고 살아 있는 적이 pressure_cap 아래면 돌격한다
 var waves_done := 0   # 이 라운드에서 끝난 웨이브 수(S375 «웨이브 끝»). 라운드 안에서만 뜻이 있어 저장하지 않는다
+var flags := []  # 주둔 깃발 칸(Vector2i, S36 2026-11-17 변경). 배속은 유닛의 flag_at이고, 배속이 없는 깃발은 _prune_flags가 지운다. 저장에 담지 않고 불러온 유닛의 flag_at에서 다시 센다
+var _doc_clock := 0.0  # 다음 복귀·후퇴 판정(DOCTRINE_EVERY)까지 남은 초
 var _round_charged := false  # 이 라운드에서 파도가 한 번이라도 돌격했다(▶ 뒤). 다음 웨이브의 첫 파도가 돌격할 때 세금을 걷는 기준(I46 2026-11-17 변경)
 var _spare := 0.0  # 아직 1골드가 되지 않은 처치 보상(I176)
 var _stage: Dictionary  # 재시작할 때 다시 읽는다
@@ -732,6 +751,7 @@ func restart() -> void:
 	muster_left = 0.0
 	waves_done = 0
 	_round_charged = false
+	flags.clear()
 	_repath = false
 	_dirty = true
 	_soft_step = -1
@@ -860,6 +880,8 @@ func step(dt: float) -> void:
 	for u in units:
 		if state != "raid" or u in party:  # 원정 동안 집에 남은 용병·공병은 행동하지 않는다(S316)
 			_act(u, dt)
+	if state == "battle":
+		_doctrine(dt)
 	_push_apart(ground, enemies)
 	if state != "raid":  # 원정 동안 구조물은 쏘지 않는다(S316)
 		_fire(dt)
@@ -2189,6 +2211,8 @@ func _drop_orders(u: Unit) -> void:
 	u.rally_from = null
 	u.order = null
 	u.prey = null
+	u.flag_at = NO_POST  # 직접 명령은 깃발 배속을 푼다(S36 2026-11-17 변경)
+	u.fleeing = false
 	u.pace = 0.0
 	u.post = NO_POST
 	u.due = NO_POST  # 길을 기다리던 줄에서도 빠진다(I309 ④)
@@ -2301,6 +2325,160 @@ func set_hold(group: Array, on: bool) -> void:
 		if not u.is_hero:
 			u.hold = on
 			u.anchor = u.pos  # 기준 지점은 켠 순간의 위치(I37)
+
+# 용병의 후퇴 교리(S36 2026-11-17 변경)를 바꾼다. 영웅·공병에게는 걸지 않는다. 끄면 후퇴 중이던 용병은 그 자리에서 다시 싸운다
+func set_retreat(group: Array, on: bool) -> void:
+	for u in group:
+		if not u.is_hero and u.kind != "engineer":
+			u.retreat = on
+			if not on and u.fleeing:
+				u.fleeing = false
+				u.anchor = u.pos
+
+# 홀드가 꺼진 용병이 anchor에서 적을 쫓아가는 거리(I36 2026-11-17 변경): 데이터 leash, 없으면 인식 범위
+func leash_of(u: Unit) -> float:
+	return u.leash if u.leash > 0.0 else u.sight
+
+# 반응(S36 2026-11-17 변경): u에서 REACT_REACH칸 안의 아군을 노리는 살아 있는 적이 u의 인식 범위 안에 있다
+func _ally_attacked_near(u: Unit) -> bool:
+	for i in _foes_near(u.pos, u.sight):
+		var e = enemies[i]
+		var t = e.target
+		if e.alive and t is Unit and t != u and t.alive and t.pos.distance_to(u.pos) <= REACT_REACH and e.pos.distance_to(u.pos) <= u.sight:
+			return true
+	return false
+
+# 주둔 깃발(S36 2026-11-17 변경): 고른 용병을 cell의 깃발에 배속한다. 깃발은 FLAG_CAP개까지이고 같은 칸이면 그 깃발이다.
+# 배속된 용병은 깃발 둘레에 대열(S374)로 서고, 깃발이 성곽 칸에서 WALL_POST_NEAR칸 안이면 성벽 위에서 칠 수 있는 원거리(S88)는 가까운 빈 성벽 칸에 선다.
+# 영웅은 배속하지 않는다. 배속된 용병이 모두 죽거나 직접 명령으로 풀리면 깃발은 사라진다(_prune_flags)
+func plant_flag(group: Array, cell: Vector2i) -> bool:
+	if state not in ["prep", "battle"] or not grid.is_in_boundsv(cell):
+		return false
+	var team := group.filter(func(u): return u is Unit and not u.is_hero and u.alive)
+	if team.is_empty():
+		return false
+	if cell not in flags:
+		if flags.size() >= FLAG_CAP:
+			return false
+		flags.append(cell)
+	var up := _wall_posts(team, cell)
+	var ground := team.filter(func(u): return u not in up)
+	if not ground.is_empty():
+		order_move(ground, cell, true)
+	for u in team:
+		u.flag_at = cell
+	_prune_flags()
+	return true
+
+# 깃발이 성곽 가까이면 원거리 배속에게 성벽 위 자리를 준다: 깃발에서 가까운 빈 성곽 칸(대포 칸·다른 유닛이 서거나 가는 칸 빼고)부터. 자리를 받은 유닛을 돌려준다
+func _wall_posts(team: Array, cell: Vector2i) -> Array:
+	var near := false
+	for c in walls:
+		if maxi(absi(c.x - cell.x), absi(c.y - cell.y)) <= WALL_POST_NEAR:
+			near = true
+			break
+	if not near:
+		return []
+	var ranged := team.filter(func(u): return u.range >= WALL_RANGE and u.kind != "engineer")
+	if ranged.is_empty():
+		return []
+	var taken := {}
+	for o in units:
+		if o not in team:
+			taken[_end_of(o)] = true
+	var cands := walls.keys().filter(func(c): return not footprint.has(c) and not taken.has(c))
+	cands.sort_custom(func(a, b): return Vector2(a).distance_squared_to(Vector2(cell)) < Vector2(b).distance_squared_to(Vector2(cell)))
+	var out := []
+	_unit_paths()
+	_asks = 0
+	for i in mini(ranged.size(), cands.size()):
+		var u: Unit = ranged[i]
+		_drop_orders(u)
+		u.move_mode = "attack_move"
+		u.post = cands[i]
+		_ask(u, cands[i])
+		out.append(u)
+	return out
+
+# 배속이 하나도 남지 않은 깃발을 지우고, 불러온 유닛의 flag_at에 있는 깃발을 되살린다(S36 2026-11-17 변경)
+func _prune_flags() -> void:
+	var live := []
+	for u in units:
+		if u.alive and not u.is_hero and u.flag_at != NO_POST and u.flag_at not in live:
+			live.append(u.flag_at)
+	flags = live
+
+# 피난처 칸(S36 2026-11-17 변경): 다른 깃발·생산 시설 집결 지점, 완성된 교회 둘레의 빈 칸, 성문 안쪽 칸 가운데 u에서 가장 가까운 칸. 없으면 null
+func _haven(u: Unit):
+	var cands := []
+	for c in flags:
+		if c != u.flag_at:
+			cands.append(c)
+	for f in [base] + structures.values():
+		if f == base and not village.has_area():
+			continue
+		if not f.produces.is_empty() and f.complete and grid.is_in_boundsv(f.rally) and f.rally != u.flag_at:
+			cands.append(f.rally)
+		if f.kind == "church" and f.complete:
+			cands.append(_bare_near(Vector2i(middle(f).round())))
+	for g in walls:
+		var s = _stair(g)
+		if s != null and not walls[g].sealed:
+			cands.append(s)
+	var best = null
+	var best_d := INF
+	for c in cands:
+		var d: float = u.pos.distance_to(Vector2(c))
+		if d < best_d:
+			best = c
+			best_d = d
+	return best
+
+# 복귀·후퇴 판정(S36·I36 2026-11-17 변경, DOCTRINE_EVERY마다, 전투 단계). 영웅·공병은 빼고 용병마다:
+# 후퇴 교리가 켜진 용병은 체력이 RETREAT_AT 밑이면 피난처로 순수 이동하고(치지 않는다), RETREAT_BACK 위로 차거나 RETREAT_TIMEOUT이 지나면 후퇴 전 기준 지점으로 공격 이동해 돌아온다.
+# 그 밖의 용병은 걷지 않고 사거리·인식 범위에 적이 없는 채 RETURN_DELAY초가 지나면 기준 지점(anchor)으로 공격 이동해 돌아간다. 돌아갈 자리에서 0.5칸 안이면 그대로 선다
+func _doctrine(dt: float) -> void:
+	_doc_clock -= dt
+	if _doc_clock > 0.0:
+		return
+	_doc_clock = DOCTRINE_EVERY
+	_prune_flags()
+	_unit_paths()
+	_asks = 0
+	for u in units:
+		if u.is_hero or not u.alive or u.kind == "engineer" or _seized(u):
+			continue
+		if u.retreat and not u.fleeing and u.hp <= u.max_hp * RETREAT_AT:
+			var to = _haven(u)
+			if to != null:
+				u.fleeing = true
+				u.flee_from = u.anchor
+				u.flee_left = RETREAT_TIMEOUT
+				u.prey = null
+				u.move_mode = "move"
+				u.pace = 0.0
+				u.post = NO_POST
+				_ask(u, to)
+				continue
+		if u.fleeing:
+			u.flee_left -= DOCTRINE_EVERY
+			if u.hp >= u.max_hp * RETREAT_BACK or u.flee_left <= 0.0:
+				u.fleeing = false
+				u.move_mode = "attack_move"
+				u.anchor = u.flee_from
+				_ask(u, Vector2i(u.flee_from.round()))
+			continue
+		var standing: bool = u.path.is_empty() and u.after.is_empty() and u.due == NO_POST
+		if not standing or u.prey != null or u.on_wall or _nearest_enemy(u.pos, u.sight, u.pos, INF, false, u.radius, u.range >= AIR_RANGE) != null:
+			u.idle_secs = 0.0
+			continue
+		u.idle_secs += DOCTRINE_EVERY
+		if u.idle_secs >= RETURN_DELAY and u.pos.distance_to(u.anchor) > 0.5:
+			u.idle_secs = 0.0
+			u.move_mode = "attack_move"
+			var home: Vector2 = u.anchor
+			_ask(u, Vector2i(home.round()))
+			u.anchor = home  # 길을 구해도 기준 지점은 그대로다(도착하면 다시 그 자리다)
 
 # 공병의 자동 수리(S277)를 켜고 끈다. 다른 유닛에는 걸지 않고, 일을 맡기는 것은 step이 한다(_auto_fix)
 func set_auto_fix(group: Array, on: bool) -> void:
@@ -6952,12 +7130,20 @@ func _act(u: Unit, dt: float) -> void:
 			u.post = NO_POST
 	var waiting: bool = u.due != NO_POST  # 길을 기다린다: 걷는 유닛으로 센다(I309 ③)
 	# 걷는 동안엔 반경을 보지 않는다. 홀드 중 이동 지시를 받으면 도착한 곳이 새 기준이다(I37)
-	var zone := u.hold_radius if u.hold and u.path.is_empty() and not waiting else INF
+	# 서 있는 용병은 홀드면 hold_radius(버팀), 아니면 leash(추격) 안에서만 적을 고르고 쫓는다(S36·I36 2026-11-17 변경). 영웅은 그대로다(S141)
+	var zone := INF  # 쫓는 반경(기준 지점 중심)
+	if u.path.is_empty() and not waiting and not u.is_hero:
+		zone = u.hold_radius if u.hold else leash_of(u)
+		if not u.hold and u.pos.distance_to(u.anchor) > zone + 0.01:  # 기준 지점에서 leash 밖에 서 있다(밀려나거나 옮겨졌다): 선 자리가 새 기준이다(I37 2026-11-17 변경)
+			u.anchor = u.pos
+		if _ally_attacked_near(u):  # 반응(S36 2026-11-17 변경): 옆 아군을 치는 적이 있으면 REACT_STEP칸까지 더 나간다
+			zone += REACT_STEP
+	var hit_zone := zone if u.hold else INF  # 치는 반경: 홀드만 반경 안의 적만 친다(S36). leash는 쫓기만 묶고 사거리 안의 적은 친다(I36 2026-11-17 변경)
 	var top = walls.get(Vector2i(u.pos.round()))
 	var wall_only: bool = u.on_wall and u.range < WALL_RANGE and not (top and top.open)  # 성벽 위 근접 유닛은 열린 성문 위에서만 들판의 적을 치고(S88, S89), 성벽 위의 적은 친다(I78)
 	var air: bool = u.range >= AIR_RANGE  # 근접 유닛은 날고 있는 적을 고르지도 쫓지도 않는다(S109 2026-11-09 변경)
-	var foe = _hunt(u, wall_only) if u.prey else _nearest_enemy(u.pos, _reach(u), u.anchor, zone, wall_only, u.radius, air)
-	if not u.mend.is_empty():  # 사제는 적을 노리지도 쫓지도 치지도 않는다(S362)
+	var foe = _hunt(u, wall_only) if u.prey else _nearest_enemy(u.pos, _reach(u), u.anchor, hit_zone, wall_only, u.radius, air)
+	if not u.mend.is_empty() or u.fleeing:  # 사제는 적을 노리지도 쫓지도 치지도 않는다(S362). 후퇴 중인 용병도 치지 않는다(S36 2026-11-17 변경)
 		foe = null
 	var walking := not u.path.is_empty() or waiting  # 기다리는 동안 옛 길이 없으면 제자리다(걷는 고리가 돌지 않는다)
 	if not u.lance.is_empty() and _charge_on(u, walking, dt):  # 기병 돌진을 시작했다(S363). 시작한 스텝부터 달린다
@@ -6997,13 +7183,13 @@ func _act(u: Unit, dt: float) -> void:
 						if u.after.is_empty():  # 자리에 닿았다: 자리를 잊고 같이 걷기가 풀린다(I307 ④)
 							u.pace = 0.0
 							u.post = NO_POST
-	elif not foe and not u.on_wall and u.mend.is_empty():  # 성벽 위 유닛은 쫓아 내려가지 않는다(I70). 사제는 쫓지 않는다(S362)
+	elif not foe and not u.on_wall and u.mend.is_empty() and not u.fleeing:  # 성벽 위 유닛은 쫓아 내려가지 않는다(I70). 사제·후퇴 중은 쫓지 않는다(S362, S36)
 		# ponytail: 적에게 곧장 다가간다. 벽 너머 적에게는 벽을 따라 미끄러질 뿐이다. 막히는 일이 보이면 경로로
 		var prey = u.prey if u.prey else _nearest_enemy(u.pos, u.sight, u.anchor, zone, false, 0.0, air)  # 길 끝에서도 대상(S35)이 사거리 밖이면 곧장 다가간다
 		if prey:
 			var p: Vector2 = u.pos + (prey.pos - u.pos).limit_length(left)
-			if u.hold:
-				p = u.anchor + (p - u.anchor).limit_length(u.hold_radius)
+			if zone < INF:  # 홀드 반경·leash 밖으로는 나가지 않는다(S36, I36 2026-11-17 변경)
+				p = u.anchor + (p - u.anchor).limit_length(zone)
 			_shove(u, p - u.pos, enemies)
 	if (u.pos - start).length() > 0.01:  # 걸어서 움직인 쪽을 본다(S357, I294 ③)
 		u.face = (u.pos - start).normalized()

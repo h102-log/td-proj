@@ -1019,6 +1019,24 @@ msgstr "Hold on\nOnly hits enemies near its post"
 msgid "홀드 섞임\n누르면 모두 켠다"
 msgstr "Hold mixed\nClick: turn all on"
 
+msgid "후퇴"
+msgstr "Retreat"
+
+msgid "후퇴 끔\n켜면 체력 30% 밑에서 피난처로 물러나 60%에 돌아온다"
+msgstr "Retreat off\nOn: falls back to a haven under 30% HP, returns at 60%"
+
+msgid "후퇴 켬\n체력 30% 밑에서 피난처로 물러나 60%에 돌아온다"
+msgstr "Retreat on\nFalls back to a haven under 30% HP, returns at 60%"
+
+msgid "후퇴 섞임\n누르면 모두 켠다"
+msgstr "Retreat mixed\nClick to turn all on"
+
+msgid "주둔 깃발"
+msgstr "Post flag"
+
+msgid "누른 뒤 땅: 고른 용병이 그 칸의 깃발에 배속돼 대열로 선다\n성곽 가까이면 원거리는 성벽 위에"
+msgstr "Then click ground: selected mercs post at that flag in formation\nNear the rampart, ranged ones take the wall"
+
 msgid "거점 %d/%d"
 msgstr "Keep %d/%d"
 

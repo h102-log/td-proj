@@ -16,6 +16,7 @@ extends Resource
 @export var block := 1  # 블록 수(S159): 동시에 붙잡는 적 수. 임시값
 @export var sight := 0.0  # 인식 범위(칸, I36)
 @export var hold_radius := 0.0  # 홀드 반경(칸, I37)
+@export var leash := 0.0  # 홀드가 꺼진 용병이 도착한 자리에서 적을 쫓아가는 최대 거리(칸, I36 2026-11-17 변경). 0이면 인식 범위. 임시값
 @export var light := 0.0  # 밤 불빛 반경(칸, S211): 어둠 1일 때. 어둠 d면 ÷ d
 @export var armor := 0.0  # 방어력(S149). 방패병만 있다(S356)
 @export var damage_kind := "phys"  # 기본 공격의 피해 종류(S149): "phys" | "magic". 불·번개·얼음 마법사는 magic(S356)
