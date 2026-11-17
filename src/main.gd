@@ -308,6 +308,13 @@ static func stage() -> Dictionary:
 		"hero_back": 30.0, "hero_back_hp": 0.5, "hero_back_cell": Vector2i(mid, mid + 1),  # 전투 중 쓰러진 영웅은 30초 뒤 거점 아래 칸에 체력 절반으로(S26·S138 2026-11-17 변경, 임시값)
 		"calm_mult": 1.5,  # 평시 세금 보너스(I46 2026-11-17 변경): 걷는 순간 성벽 근처에 적이 없으면 ×1.5. 임시값
 		"build_time_scale": 2.0,  # 전투 중 공병 일의 시간 배율(S22 2026-11-17 변경). 임시값
+		# 지형 이점·세 띠(S377, 임시값. 기본값은 battle.gd TERRAIN): 성벽 위 사거리 +1, 열린 성문 둘레 2칸 혼잡(땅 적 속도 ×0.5), 포위(3번째 공격자부터 +15%, 상한 +60%),
+		# 전장 띠 6줄(성벽 위 궁수 사거리 5+1), 노출 피해 1.0 → ×1.25·불빛 ×0.7·블록 자리 무시(깃발 둘레 2칸 면제), 처치 골드 포격 띠 ×0.5·집결 띠 ×0,
+		# 집결 띠의 아군은 1칸/초 밀리고 2초마다 잠든 적 6이 깨어남, 2라운드부터 파도마다 사냥꾼 3(12칸), 지휘 보너스 4칸 안 아군 1명마다 +2%(상한 +30%)
+		"wall_range_bonus": 1.0, "crowd_pad": 2, "crowd_slow": 0.5, "surround_from": 3, "surround_step": 0.15, "surround_cap": 0.6,
+		"harvest_rows": 6, "exposed_cap": 1.25, "exposed_light": 0.7, "exposed_block_mode": true, "flag_cover": 2.0,
+		"bombard_gold": 0.5, "band_gold": 0.0, "band_push": 1.0, "band_wake": 6, "band_wake_every": 2.0,
+		"hunts_hero": 3, "hunts_from": 2, "hunt_sight": 12.0, "command_per": 0.02, "command_cap": 0.3, "command_radius": 4.0,
 		# 출전 칸(I107): 정문 문루 바로 앞 들판(한 줄 띄움)의 세 칸. 성문은 닫힌 채 시작해서(I67) 마을 안에 두면 나올 수 없다(I42, 사용자 2026-10-12)
 		"hero_cells": [Vector2i(mid - 1, n + 1), Vector2i(mid + 1, n + 1), Vector2i(mid, n + 1)],
 		"engineer_cells": [Vector2i(mid, mid + 1), Vector2i(mid - 2, n + 1)],  # 시작 공병(S208): 거점 아래 마을 칸, 출전 칸 옆 들판 칸. 성문이 닫혀 있어도 마을·들판에 하나씩 짓는다(사용자 2026-10-25)

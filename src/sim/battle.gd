@@ -81,6 +81,18 @@ const DOCTRINE_EVERY := 0.5  # 복귀·후퇴 판정 간격(초). 임시값
 const REACT_REACH := 2.0  # 반응(S36 2026-11-17 변경): 이 칸 안의 아군을 치는 적은 leash 밖이라도 쫓는다. 임시값
 const REACT_STEP := 1.0  # 그때 leash 밖으로 더 나가는 칸. 임시값
 const WALL_POST_NEAR := 2  # 깃발이 성곽 칸에서 이 칸 안이면 원거리 배속은 성벽 위 자리에 선다(S36 2026-11-17 변경). 임시값
+# ── 지형 이점·세 띠(S377, 임시값). 스테이지 사전의 같은 이름 키가 덮는다(knob). 행은 성곽(없으면 마을) 아래 가장자리에서 센 상대값이다 ──
+const TERRAIN := {
+	"wall_range_bonus": 1.0,  # ① 성벽 위 원거리 유닛의 사거리 +(칸)
+	"crowd_pad": 2, "crowd_slow": 0.5,  # ② 열린 성문 차지 칸 둘레 crowd_pad칸이 혼잡 칸: 땅 적 속도 ×crowd_slow(아군은 그대로)
+	"surround_from": 3, "surround_step": 0.15, "surround_cap": 0.6,  # ③ 포위: surround_from번째 공격자부터 하나마다 받는 피해 +step, 상한 +cap
+	"harvest_rows": 6,  # ④ 전장 띠: 성곽 아래 이 줄 수(마을·성벽 위 포함). 그 아래가 포격 띠, 맨 아래 band_rows줄이 집결 띠(S375)
+	"exposed_cap": 1.25, "exposed_light": 0.7, "exposed_block_mode": true, "flag_cover": 2.0,  # ⑤ 노출: 포격 띠 첫 줄 1.0 → 마지막 줄 cap, 불빛 ×, 블록 자리 무시. 깃발 둘레 cover칸은 면제
+	"bombard_gold": 0.5, "band_gold": 0.0,  # ⑥ 처치 골드 배율(I176에 곱): 전장 띠 1 · 포격 띠 · 집결 띠
+	"band_push": 1.0, "band_wake": 6, "band_wake_every": 2.0,  # ⑦ 집결 띠의 아군: 성곽 쪽으로 밀리고(칸/초), every초마다 가장 가까운 잠든 적 n이 깨어난다
+	"hunts_hero": 3, "hunts_from": 2, "hunt_sight": 12.0,  # ⑧ hunts_from라운드(1부터)부터 파도마다 사냥꾼 n: hunt_sight칸 안의 지키는 자리 밖 영웅을 먼저 노린다
+	"command_per": 0.02, "command_cap": 0.3, "command_radius": 4.0,  # ⑨ 지휘 보너스: 영웅 둘레 radius칸 안의 다른 아군 1명마다 피해 +per, 상한 +cap
+}
 const HERO_BACK := 30.0  # 전투 중 쓰러진 영웅이 거점 옆으로 돌아오기까지 초(S26 2026-11-17 변경). 스테이지 hero_back이 덮는다. 임시값
 const HERO_BACK_HP := 0.5  # 그때 돌아오는 체력 비율(S138 2026-11-17 변경). 스테이지 hero_back_hp가 덮는다. 임시값
 const COUNTER_HOLD := 3.0  # 반격 대상이 이만큼 쏘지 않아야 다른 구조물로 바뀐다(초, S140). 가장 느린 쏘는 간격(2.5초)보다 길다. 임시값
@@ -204,6 +216,7 @@ class Enemy:
 	var kind: String
 	var wave := 0  # 소속 웨이브 차례(S375). 그 웨이브 소속으로 깨어난 적이 0이 되는 때가 «웨이브 끝»이다
 	var group := 1  # 한 차례에 함께 깨어나는 마릿수(S238·S294·S375). 깨어나는 줄(_queue)에서 맨 앞 적의 값만 읽는다
+	var hunter := false  # 영웅 사냥꾼(S377 ⑧): 지키는 자리 밖의 영웅을 S4 ①보다 먼저 노린다. 파도가 돌격할 때 _surge_charge가 정한다
 	var pos: Vector2:  # 칸 단위, 칸 (x,y)의 중심 = Vector2(x,y)
 		set(v):
 			pos = v
@@ -623,6 +636,8 @@ var _surge := {}      # 지금 집결 중인 파도 {wave, idx, of}(S375). 비�
 var muster_left := 0.0  # 집결 남은 초(S375). 0 이하이고 살아 있는 적이 pressure_cap 아래면 돌격한다
 var waves_done := 0   # 이 라운드에서 끝난 웨이브 수(S375 «웨이브 끝»). 라운드 안에서만 뜻이 있어 저장하지 않는다
 var flags := []  # 주둔 깃발 칸(Vector2i, S36 2026-11-17 변경). 배속은 유닛의 flag_at이고, 배속이 없는 깃발은 _prune_flags가 지운다. 저장에 담지 않고 불러온 유닛의 flag_at에서 다시 센다
+var _crowd_rects := []  # 혼잡 칸(S377 ②): 열린 성문의 차지 칸을 crowd_pad칸 넓힌 사각형. 스텝마다 _terrain이 다시 모은다
+var _wake_clock := 0.0  # 집결 띠에 아군이 있는 동안 흐르는 깨우기 시계(S377 ⑦)
 var _doc_clock := 0.0  # 다음 복귀·후퇴 판정(DOCTRINE_EVERY)까지 남은 초
 var _round_charged := false  # 이 라운드에서 파도가 한 번이라도 돌격했다(▶ 뒤). 다음 웨이브의 첫 파도가 돌격할 때 세금을 걷는 기준(I46 2026-11-17 변경)
 var _spare := 0.0  # 아직 1골드가 되지 않은 처치 보상(I176)
@@ -861,6 +876,7 @@ func step(dt: float) -> void:
 	_zones(dt)
 	_loops(dt)
 	_count_holds()
+	_terrain(dt)
 	_howls()
 	_songs(dt)
 	_ranks()
@@ -951,6 +967,14 @@ func _surge_charge() -> void:
 		wave_time = 0.0
 		edict = {}
 	_round_charged = true
+	if round_index + 1 >= int(knob("hunts_from")):  # 영웅 사냥꾼(S377 ⑧): 파도마다 hunts_hero마리(사다리를 쓸 땅 적 가운데 앞선 것)
+		var n: int = int(knob("hunts_hero"))
+		for e in dormant:
+			if n <= 0:
+				break
+			if _ladderable(e) and e.sight > 0.0:
+				e.hunter = true
+				n -= 1
 	_queue.append_array(dormant)
 	dormant.clear()
 	_spawn_timer = 0.0
@@ -1096,7 +1120,8 @@ func _night(dt: float) -> void:
 # 어둠 1일 때 x의 불빛 반경(칸, S211). 데이터 값이라 저장된 판에도 같다. 빛이 없으면 0
 func light_of(x) -> float:
 	if x is Unit:
-		return (HERO_KINDS if x.is_hero else MERC_KINDS)[x.kind].get("light", 0.0)
+		var lit: float = (HERO_KINDS if x.is_hero else MERC_KINDS)[x.kind].get("light", 0.0)
+		return lit * float(knob("exposed_light")) if exposed(x.pos) > 0.0 and not _sheltered(x) else lit  # 노출 띠의 불빛은 줄어든다(S377 ⑤)
 	if x == base:
 		return BASE_LIGHT
 	if x.kind == "gate":
@@ -2689,11 +2714,178 @@ func _haste(x) -> float:
 
 # 공격력 배율: 걸린 «공격력 +» 효과의 합(크로노스 Q, S158)
 func _might(x) -> float:
-	return 1.0 + _fx_sum(x, "might")
+	var up := _fx_sum(x, "might")
+	if x is Unit and x.is_hero:  # 지휘 보너스(S377 ⑨)
+		up += command_bonus(x)
+	return 1.0 + up
+
+# ── 지형 이점·세 띠(S377): 성곽 띠에 수치 이점을 준다. 행은 성곽(없으면 마을, _fort)의 아래 가장자리에서 센다(S203·S51 위아래 구도) ──
+
+# 스테이지의 손잡이 값(TERRAIN의 키). 스테이지 사전에 있으면 그 값, 없으면 TERRAIN의 기본값
+func knob(key: String):
+	return _stage.get(key, TERRAIN[key])
+
+func _cell_of(p) -> Vector2i:
+	return p if p is Vector2i else Vector2i((p as Vector2).round())
+
+# 집결 띠의 첫 행(S375 band_rows). band_rows가 없으면 맵 높이라 집결 띠가 없다
+func band_top() -> int:
+	return size.y - int(_stage.get("band_rows", 0))
+
+# 포격 띠의 첫 행: 성곽 아래 harvest_rows줄(전장 띠) 다음 줄
+func bombard_top() -> int:
+	return _fort.end.y + int(knob("harvest_rows"))
+
+# 집결 띠(적의 땅)인가. 숨은 띠(S317)는 아니다
+func in_band(p) -> bool:
+	var c := _cell_of(p)
+	return c.y >= band_top() and not in_strip(c)
+
+# 지대: "front"(전장 띠 — 마을·성벽 위·성곽 아래 harvest_rows줄) · "bombard"(포격 띠) · "band"(집결 띠). 숨은 띠는 전장이다
+func zone_of(p) -> String:
+	var c := _cell_of(p)
+	if in_strip(c):
+		return "front"
+	if c.y >= band_top():
+		return "band"
+	return "front" if c.y < bombard_top() else "bombard"
+
+# 노출 정도 0~1(S377 ⑤): 전장 띠 0, 포격 띠는 첫 줄 0에서 마지막 줄 1까지 줄마다 고르게, 집결 띠 1
+func exposed(p) -> float:
+	var c := _cell_of(p)
+	var from := bombard_top()
+	var to := band_top()
+	if in_strip(c) or c.y < from:
+		return 0.0
+	if c.y >= to - 1:
+		return 1.0
+	return float(c.y - from) / float(maxi(1, to - 1 - from))
+
+# 처치 골드 배율(S377 ⑥, I176 2026-11-17 변경): 쓰러진 자리의 지대로. 전장 1 · 포격 bombard_gold · 집결 band_gold
+func gold_mult(p) -> float:
+	match zone_of(p):
+		"band":
+			return float(knob("band_gold"))
+		"bombard":
+			return float(knob("bombard_gold"))
+	return 1.0
+
+# 혼잡 칸(S377 ②)인가: 열린 성문의 차지 칸 둘레 crowd_pad칸(_terrain이 스텝마다 모은다)
+func in_crowd(p) -> bool:
+	var c := _cell_of(p)
+	for r in _crowd_rects:
+		if (r as Rect2i).has_point(c):
+			return true
+	return false
+
+# 노출 면제(S377 ⑤)인가: 성벽 위·혼잡 칸·방벽(에너지 성벽) 이웃 칸·깃발 둘레 flag_cover칸
+func _sheltered(u: Unit) -> bool:
+	if u.on_wall or in_crowd(u.pos):
+		return true
+	var c := Vector2i(u.pos.round())
+	if not barriers.is_empty():
+		for dy in range(-1, 2):
+			for dx in range(-1, 2):
+				if barriers.has(c + Vector2i(dx, dy)):
+					return true
+	var cover: float = knob("flag_cover")
+	for f in flags:
+		if u.pos.distance_to(Vector2(f)) <= cover:
+			return true
+	return false
+
+# 노출 띠에서는 블록 자리가 찬 유닛에도 적이 붙는다(S377 ⑤, S159 2026-11-17 변경). 면제 자리는 아니다
+func _open_season(u: Unit) -> bool:
+	return bool(knob("exposed_block_mode")) and exposed(u.pos) > 0.0 and not _sheltered(u)
+
+# 포위 보너스(S377 ③): 이 유닛을 노리는(붙잡은) 적이 surround_from번째부터 하나마다 받는 피해 +surround_step, 상한 surround_cap.
+# 성벽 위·혼잡 칸·방벽 이웃은 면제다
+func surround_bonus(u: Unit) -> float:
+	if u.on_wall or in_crowd(u.pos):
+		return 0.0
+	var c := Vector2i(u.pos.round())
+	if not barriers.is_empty():
+		for dy in range(-1, 2):
+			for dx in range(-1, 2):
+				if barriers.has(c + Vector2i(dx, dy)):
+					return 0.0
+	var extra: int = _holds.get(u, 0) - (int(knob("surround_from")) - 1)
+	return minf(float(knob("surround_cap")), float(knob("surround_step")) * extra) if extra > 0 else 0.0
+
+# 유닛이 받는 피해 배율(S377 ③⑤): (노출 1.0 → exposed_cap, 면제 자리는 1) × (1 + 포위 보너스)
+func taken_mult(u: Unit) -> float:
+	var m := 1.0
+	if not _sheltered(u):
+		m *= 1.0 + (float(knob("exposed_cap")) - 1.0) * exposed(u.pos)
+	return m * (1.0 + surround_bonus(u))
+
+# 지휘 보너스(S377 ⑨): 영웅 h 둘레 command_radius칸 안의 다른 산 아군(영웅·용병·공병) 1명마다 command_per, 상한 command_cap
+func command_bonus(h: Unit) -> float:
+	var per: float = knob("command_per")
+	if per <= 0.0:
+		return 0.0
+	var r: float = knob("command_radius")
+	var n := 0
+	for i in _units_near(h.pos, r):
+		var u = units[i]
+		if u != h and u.alive and u.pos.distance_to(h.pos) <= r:
+			n += 1
+	return minf(float(knob("command_cap")), per * n)
+
+# 사냥꾼 e가 노릴 영웅(S377 ⑧): hunt_sight칸 안의, 지키는 자리(마을·성벽 위·혼잡 칸) 밖에 선 산 영웅 가운데 가장 가까운 것. 없으면 null
+func _quarry(e: Enemy):
+	var best = null
+	var best_d: float = knob("hunt_sight")
+	for h in heroes:
+		if not h.alive or h.on_wall or _carried(h) or village.has_point(Vector2i(h.pos.round())) or in_crowd(h.pos):
+			continue
+		var d := e.pos.distance_to(h.pos)
+		if d <= best_d:
+			best = h
+			best_d = d
+	return best
+
+# 스텝마다(S377): 혼잡 칸을 모으고, 전투 단계면 집결 띠에 든 아군을 성곽 쪽으로 band_push칸/초 밀고(기절 없음), 아군이 든 동안 band_wake_every초마다
+# 그 아군에 가장 가까운 잠든 적 band_wake마리를 깨운다(⑦). 성벽 위·들린 유닛은 밀리지 않는다
+func _terrain(dt: float) -> void:
+	_crowd_rects.clear()
+	var pad: int = int(knob("crowd_pad"))
+	for g in castle.values():
+		if g.kind == "gate" and g.alive and g.open:
+			_crowd_rects.append(area_of(g).grow(pad))
+	if state != "battle":
+		_wake_clock = 0.0
+		return
+	var push: float = knob("band_push")
+	var intruder = null
+	for u in units:
+		if u.alive and not u.on_wall and not _carried(u) and in_band(u.pos):
+			if intruder == null:
+				intruder = u
+			if push > 0.0:
+				var toward := -1.0 if Vector2(_fort.get_center()).y <= u.pos.y else 1.0
+				u.pos = Vector2(u.pos.x, clampf(u.pos.y + toward * push * dt, 0.0, float(size.y - 1)))
+	if intruder == null:
+		_wake_clock = 0.0
+		return
+	_wake_clock += dt
+	var every: float = knob("band_wake_every")
+	var n: int = int(knob("band_wake"))
+	if n <= 0 or every <= 0.0 or _wake_clock < every or dormant.is_empty():
+		return
+	_wake_clock -= every
+	var at: Vector2 = intruder.pos
+	var near := dormant.duplicate()
+	near.sort_custom(func(a, b): return a.pos.distance_to(at) < b.pos.distance_to(at))
+	for e in near.slice(0, n):
+		dormant.erase(e)
+		_wake(e)
 
 # 사거리(S153 실비아 오라, I144): 영웅·쏘는 구조물은 오라만큼 늘어난다. 용병은 그대로다
 func _reach(x) -> float:
 	var base_range: float = x.range
+	if x is Unit and x.on_wall and x.range >= WALL_RANGE:  # 성벽 위 원거리 유닛은 사거리가 wall_range_bonus칸 는다(S377 ①, S88 2026-11-17 변경)
+		base_range += float(knob("wall_range_bonus"))
 	return base_range * (1.0 + _aura("reach", _where(x))) if x is Block or x.is_hero else base_range
 
 # 방어력(S149): 적은 기본값 + 걸린 증감 − 베스퍼 오라, 아군 유닛은 기본값 + 세라피나 오라 + 걸린 증감, 구조물은 방벽만 세라피나 오라를 받는다. 주민은 방어가 없다(S227)
@@ -3411,7 +3603,7 @@ func _buildable(kind: String, cell: Vector2i, taken = null) -> bool:
 	if taken == null:
 		taken = _taken(true)
 	for c in cells_in(area_at(cell, def.size)):
-		if not grid.is_in_boundsv(c) or in_strip(c) or footprint.has(c) or c == base.cell or debris.has(c) or barriers.has(c) or roads.has(c) or water.has(c):  # 숨은 띠(S317)·잔해(I88)·에너지 성벽(I142)·길(S43)·물(S220) 칸에는 짓지 못한다
+		if not grid.is_in_boundsv(c) or in_strip(c) or in_band(c) or footprint.has(c) or c == base.cell or debris.has(c) or barriers.has(c) or roads.has(c) or water.has(c):  # 숨은 띠(S317)·잔해(I88)·에너지 성벽(I142)·길(S43)·물(S220) 칸에는 짓지 못한다
 			return false
 		if c in _stage.get("hero_cells", []):  # 출전 칸에는 짓지 못한다(I107). 영웅이 서거나 돌아올 칸이다
 			return false
@@ -4519,6 +4711,7 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 			_tracing = keep
 		if _fx_on(target, "invuln") != null:
 			return
+		amount *= taken_mult(target)  # 노출·포위(S377 ③⑤): 지키는 자리 밖에서 받는 피해가 는다
 		if target.is_hero and target.passive.get("id") == "fortress" and _luck.randf() < target.passive.guard_odds:  # 강철의 요새(S151 2026-11-10 변경, I258): 요새화와 상관없이 맞을 때마다
 			amount *= 1.0 - target.passive.guard_cut
 		amount = _absorb(target, amount * armor_mult(armor_of(target)) * (1.0 - _fx_cut(target, "dr")))
@@ -4572,7 +4765,7 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 				if o.kind == target.kind and o.twin == null:
 					o.twin = target
 					break
-		_spare += target.reward * _stage.get("reward_scale", 1.0)  # 처치 보상 배율(I176). 1골드에 못 미치는 나머지는 쌓아 둔다
+		_spare += target.reward * _stage.get("reward_scale", 1.0) * gold_mult(target.pos)  # 처치 보상 배율(I176)에 띠 배율(S377 ⑥)을 곱한다. 1골드에 못 미치는 나머지는 쌓아 둔다
 		gold += floori(_spare)
 		_spare -= floori(_spare)
 		_spread(target)
@@ -4740,6 +4933,11 @@ func _target_of(e: Enemy):
 				near = h
 		_engage(e, near)
 		return near if near else base
+	if e.hunter:  # 영웅 사냥꾼(S377 ⑧, S4 2026-11-17 변경): 지키는 자리 밖의 영웅이 hunt_sight칸 안에 있으면 S4 ①보다 먼저, 블록 자리와 상관없이 노린다
+		var q = _quarry(e)
+		if q != null:
+			_engage(e, q)
+			return q
 	var sight: float = 0.0 if _fetching(e) else e.sight  # 형제의 몸으로 가는 쌍둥이 트롤(S329 ②)은 몸이 닿은 아군만 노린다
 	var best = null
 	var best_d := INF
@@ -4751,7 +4949,7 @@ func _target_of(e: Enemy):
 		var d := e.pos.distance_to(m.pos)
 		if d >= best_d and (d >= far_d or m.range < ranged):  # 거리부터 본다. 아래 _free·_carried는 읽기만 해서 차례를 바꿔도 결과가 같다
 			continue
-		if not _free(m, e) or _carried(m):  # 블록 자리가 찬 유닛은 노리지 않고 지나간다(S159). 들린 용병(S308)은 노리지 않는다
+		if not (_free(m, e) or _open_season(m)) or _carried(m):  # 블록 자리가 찬 유닛은 노리지 않고 지나간다(S159). 노출 띠의 유닛은 자리가 차도 붙는다(S377 ⑤). 들린 용병(S308)은 노리지 않는다
 			continue
 		# 밀어낸 직후 거리는 반지름 합과 같아서 0.01 여유를 둔다(S13: 몸으로 막은 유닛은 인식 범위 밖이어도 친다)
 		# 성벽 위 유닛은 몸으로 길을 막을 때만 친다(U13, S89, I70). 비행 적·기어오르는 적은 그 성벽 위 유닛도 노리고(I77), 비행 적은 몸에 막히지 않는다(S109)
@@ -4888,6 +5086,8 @@ func _move(e: Enemy, dt: float) -> void:
 				break
 	var rooted := _fx_on(e, "root") != null  # 속박(S150): 움직이지 않지만 닿는 대상은 친다
 	var speed: float = 0.0 if rooted else e.speed * (1.0 - _fx_cut(e, "slow")) * (1.0 + (e.skills.rage.get("stride", 0.0) if rage else 0.0)) * (1.0 + sh.get("stride_max", 0.0) * quick) * (1.0 + e.night.get("stride", 0.0) * dusk) * howl * (e.dash.stride if e.dashing else 1.0) * (1.0 + e.frenzy.get("stride", 0.0) * mad) * (1.0 + beat.get("stride", 0.0)) * (1.0 + _charged("stride"))  # 돌진(S293), 격노(S320), 전쟁 북(S321)
+	if not _flies(e) and in_crowd(e.pos):  # 혼잡 칸(S377 ②): 열린 성문 둘레의 땅 적은 느리다. 길 비용에는 넣지 않는다(S143)
+		speed *= float(knob("crowd_slow"))
 	if e.on_wall and not _climbable(Vector2i(e.pos.round())):  # 성벽에서 내려왔거나 그 성벽이 부서졌다(I76)
 		e.on_wall = false
 		if e.vaulted:  # 한 번만 뛴다. 내려온 뒤로는 기어오르지 않는 땅 적이다(I191 ⑥)
