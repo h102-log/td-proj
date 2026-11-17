@@ -1016,6 +1016,18 @@ msgstr "Enemies %d"
 msgid "남은 적 %d"
 msgstr "Enemies left %d"
 
+msgid "파도 %d/%d · 집결 %d초"
+msgstr "Surge %d/%d · muster %ds"
+
+msgid "북"
+msgstr "Drum"
+
+msgid "집결 중인 파도를 바로 돌격시킨다"
+msgstr "Sends the mustering surge charging now"
+
+msgid "집결 중 — Enter를 누르면 북을 울려 바로 돌격시킨다"
+msgstr "Mustering — press Enter to beat the drum and charge now"
+
 msgid "다음 적 %d"
 msgstr "Next enemies %d"
 

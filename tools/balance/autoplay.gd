@@ -640,8 +640,7 @@ func _spawn_wave(dt: float) -> void:
 	_spawn_timer -= dt
 	if _queue.is_empty() or _spawn_timer > 0.0:
 		return
-	var next: Array = _queue.pop_front()
-	spawn_enemy(next[0], next[2])
+	_wake(_queue.pop_front())  # 깨어나는 줄은 잠든 적(Enemy)이다(S375)
 	_spawn_timer = gaps[mini(round_index, gaps.size() - 1)]
 	_forecast()
 """ % [JSON.stringify(gaps)]

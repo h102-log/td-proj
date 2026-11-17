@@ -30,8 +30,8 @@ func _rounds(n: int, over := {}):
 
 # 웨이브 하나를 끝낸다(라운드를 이기면 라운드 사이에 머문다). 안 되면 그 까닭(글)
 func _win(b) -> String:
-	b.start_battle()
-	if not clear_wave(b) or b.state == "battle":
+	b.start_battle()  # 라운드 안에서는 아무 일도 하지 않고, 웨이브 끝에는 전투 단계가 이어진다(S17 2026-11-17 변경)
+	if not clear_wave(b):
 		return "웨이브가 끝나지 않았다(%s)" % b.state
 	return ""
 

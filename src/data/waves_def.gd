@@ -9,6 +9,11 @@ extends Resource
 # 웨이브 차례마다 출현 지점 묶음(S338, I281 ①): {적 종류: 출현 지점 차례(0부터 — 시험 스테이지는 0 왼쪽 · 1 가운데 · 2 오른쪽)}.
 # 묶인 종류는 그 출현 지점에서만 나온다. 비었거나 없는 종류는 차례마다 출현 지점을 돌아간다
 @export var fronts: Array[Dictionary] = []
+# 웨이브 차례마다 파도 수(S375): 그 웨이브의 적을 이 수의 파도(덩어리)로 갈라 집결 띠에서 차례로 돌격시킨다. 비었거나 없으면 1. 임시값
+@export var surges: Array[int] = []
+# 집결 초(S375): 웨이브 첫 파도(muster_first)와 그다음 파도(muster)가 집결 띠에 잠들어 있는 시간. 0 이상이면 스테이지 값을 덮고, 음수면 스테이지 값이다. 임시값
+@export var muster_first := -1.0
+@export var muster := -1.0
 
 # Battle stage의 waves 모양([[{kind, count}, ...], ...])으로 바꾼다. 출현 지점에 묶인 종류는 항목에 front가 붙는다
 func to_stage() -> Array:

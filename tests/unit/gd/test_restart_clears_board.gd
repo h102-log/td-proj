@@ -25,6 +25,6 @@ func test_restart_clears_built_and_placed():
 	if b.castle[Vector2i(7, 7)].hp != 300:
 		why.append("성곽 체력 %d" % b.castle[Vector2i(7, 7)].hp)
 	b.start_battle()
-	if b._queue.size() != 3:  # 남은 출현 대기열이 이어지지 않는다
-		why.append("대기열 %d" % b._queue.size())
+	if b.enemies_left() != 3 or not b.enemies.is_empty():  # 남은 출현(집결 띠에 잠든 적, S375)이 이어지지 않고 웨이브가 처음부터다
+		why.append("남은 적 %d" % b.enemies_left())
 	return "" if why.is_empty() else "재시작 뒤 남은 것: %s" % ", ".join(why)

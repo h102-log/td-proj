@@ -73,9 +73,9 @@ func ev487():
 		return "전투 단계에 B 키를 눌러도 대피령이 나지 않았다"
 	if b.evacuate():
 		return "대피령 중에 대피령을 다시 냈다"
-	if not clear_wave(b) or b.state != "prep":
+	if not clear_wave(b):
 		return "웨이브가 끝나지 않았다(%s)" % b.state
-	return check(b.evac == false, "웨이브가 끝났는데 대피령 중이다")
+	return check(b.evac == false and b.state == "battle", "웨이브가 끝났는데 대피령 중이다(%s · 단계 %s)" % [b.evac, b.state])
 
 # EV488 · S226: 신뢰 5에서 대피령을 내면 모두 안에 들고, 대피소에 자리 수만큼, 나머지는 자기 집에 든다. 대피소에 든 주민이 집으로 간 주민보다 멀지 않았다
 func ev488():
@@ -109,7 +109,7 @@ func ev489():
 	var bad := _evacuated(b)
 	if bad != "":
 		return bad
-	if not clear_wave(b) or b.state != "prep" or b.evac:
+	if not clear_wave(b) or b.evac:
 		return "웨이브가 끝나지 않았거나 대피령이 남았다(%s, 대피령 %s)" % [b.state, b.evac]
 	if not run(b, 60.0, func(): return b.people.all(func(v): return v.m.get("away") == null)):
 		return "웨이브 끝 60초 뒤에도 일과로 돌아오지 않은 주민 %d명" % b.people.filter(func(v): return v.m.get("away") != null).size()
@@ -324,7 +324,7 @@ func _alarm(b, at: Vector2i) -> String:
 		return "웨이브 %d에 대피령이 나지 않았다" % b.wave_index
 	b.spawn_enemy("basic", at, {"hp": BIG})
 	b.step(DT)
-	if not clear_wave(b) or b.state == "battle":
+	if not clear_wave(b):
 		return "웨이브가 끝나지 않았다"
 	return ""
 

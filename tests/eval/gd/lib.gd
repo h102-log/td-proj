@@ -27,6 +27,7 @@ func battle(over := {}):
 	var stage := {
 		"size": Vector2i(30, 20), "base": Vector2i(25, 10), "base_hp": 100,
 		"spawns": [Vector2i(0, 10)], "gold": BIG, "waves": [], "hero_start": null,
+		"muster_first": 1.0e9,  # 평가 판은 다음 웨이브가 저절로 오지 않고 start_battle()(북, S375)을 기다린다 — 옛 준비 단계 자리(I311 ⑤)
 	}
 	stage.merge(over, true)
 	return load("res://src/sim/battle.gd").new(stage)
@@ -44,9 +45,21 @@ func run(b, secs: float, cond := Callable()) -> bool:
 		t += DT
 	return not cond.is_valid() or cond.call()
 
-# 전투 단계가 끝날 때까지 나오는 적을 모두 처치한다
+# 이 웨이브가 끝날 때까지(끝난 웨이브 수가 오르거나 전투 단계가 끝날 때까지, S17 2026-11-17 변경) 이 웨이브(와 앞 웨이브) 소속으로 나오는 적을 처치한다.
+# 라운드 안에서는 웨이브가 끝나도 전투 단계가 이어지고(S375) 다음 웨이브의 적은 그대로 둔다. 라운드의 마지막 웨이브면 라운드 사이·승리가 된다
 func clear_wave(b, secs := 120.0) -> bool:
+	var done: int = b.waves_done
 	return run(b, secs, func():
+		for e in b.enemies.duplicate():
+			if e.alive and e.wave <= done:
+				b.damage(e, BIG)
+		return b.state != "battle" or b.waves_done > done)
+
+# 라운드의 남은 웨이브를 모두 처치해 라운드 사이·승리까지 간다. 집결 중인 파도는 북으로 바로 부른다
+func clear_round(b, secs := 300.0) -> bool:
+	return run(b, secs, func():
+		if b.mustering():
+			b.drum()
 		kill_all(b)
 		return b.state != "battle")
 

@@ -6,17 +6,17 @@ func _waves(n: int) -> Array:
 		ws.append([{"kind": "basic", "count": 1}])
 	return ws
 
-# EV34 · S17: 웨이브 3개짜리 판은 준비→전투를 세 번 되풀이한다
+# EV34 · S17 2026-11-17 변경: 웨이브 3개짜리 판은 준비 → 전투 한 번이고, 웨이브가 끝나도 전투 단계가 이어진 뒤 마지막 웨이브 끝에 승리다
 func ev34():
 	var b = battle({"base_hp": BIG, "waves": _waves(3)})
 	var seq := [b.state]
 	for i in 3:
-		b.start_battle()
+		b.start_battle()  # 둘째·셋째는 전투 단계라 아무 일도 하지 않는다
 		seq.append(b.state)
 		clear_wave(b)
 		seq.append(b.state)
-	var want := ["prep", "battle", "prep", "battle", "prep", "battle", "won"]
-	return check(seq == want, "단계 순서가 %s다" % [seq])
+	var want := ["prep", "battle", "battle", "battle", "battle", "battle", "won"]
+	return check(seq == want and b.waves_done == 3, "단계 순서가 %s다(끝난 웨이브 %d)" % [seq, b.waves_done])
 
 # EV35 · S18: 준비 단계의 건설은 그 자리에서 완성된다
 func ev35():

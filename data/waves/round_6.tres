@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_83rh7")
+surges = Array[int]([4,5,5,5])
 hp_mult = 7.69
 waves = Array[Dictionary]([{
 "slime": 80,

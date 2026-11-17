@@ -71,6 +71,8 @@ const UPGRADE_MULT := 1.5
 const UPGRADE_MAX := 3
 const UPGRADE_TIME := 5.0  # 전투 중 공병이 한 단계 올리는 시간(초)
 const GATE_LOCK := 20.0  # 전투 단계에 여닫은 성문을 다시 여닫지 못하는 시간(초, S135). 핑퐁 봇 측정을 보고 사용자가 고름(insights/2026-10-16_gate_cooldown.md)
+const HERO_BACK := 30.0  # 전투 중 쓰러진 영웅이 거점 옆으로 돌아오기까지 초(S26 2026-11-17 변경). 스테이지 hero_back이 덮는다. 임시값
+const HERO_BACK_HP := 0.5  # 그때 돌아오는 체력 비율(S138 2026-11-17 변경). 스테이지 hero_back_hp가 덮는다. 임시값
 const COUNTER_HOLD := 3.0  # 반격 대상이 이만큼 쏘지 않아야 다른 구조물로 바뀐다(초, S140). 가장 느린 쏘는 간격(2.5초)보다 길다. 임시값
 const GATE_SPLIT_ROUND := 3  # 이 라운드부터 땅 적은 출현 지점에서 가장 가까운 성문을 먼저 노린다(S143). 임시값
 const SPLIT_RING := 0.25  # 갈라져 나온 적을 죽은 자리에서 이만큼 떨어진 둘레에 놓는다(칸, S234). 임시값
@@ -189,6 +191,8 @@ class Villager:
 class Enemy:
 	static var stir := 0  # 적이 생기거나 자리·몸 반지름이 바뀔 때마다 오른다(I305). 판이 적 버킷이 낡았는지 이 값으로 본다
 	var kind: String
+	var wave := 0  # 소속 웨이브 차례(S375). 그 웨이브 소속으로 깨어난 적이 0이 되는 때가 «웨이브 끝»이다
+	var group := 1  # 한 차례에 함께 깨어나는 마릿수(S238·S294·S375). 깨어나는 줄(_queue)에서 맨 앞 적의 값만 읽는다
 	var pos: Vector2:  # 칸 단위, 칸 (x,y)의 중심 = Vector2(x,y)
 		set(v):
 			pos = v
@@ -370,6 +374,7 @@ class Unit:
 	# 영웅만 쓰는 칸. 종류별 수치와 칸의 뜻은 src/data/hero_def.gd(S97, I95)
 	var is_hero := false
 	var home: Vector2i  # 쓰러진 영웅이 돌아오는 시작 칸(S26, I102)
+	var rise := 0.0  # 전투 중 쓰러진 영웅이 거점 옆으로 돌아오기까지 남은 초(S26 2026-11-17 변경)
 	var grade := 0
 	var level := 1  # 영웅 레벨(S60, S126). 경험치로 정해진다(Battle._set_xp)
 	var xp := 0
@@ -591,8 +596,13 @@ var _strode := {}  # 이번 스텝에 명령받은 길을 따라 실제로 움�
 var _repath := false  # 막힌 칸이 바뀌어 적 경로를 다시 구해야 한다
 var _stale := {}  # 경로를 다시 구할 적, 먼저 밀린 순서(I155)
 var _fix_clock := 0.0  # 다음 자동 수리 판정(S277)까지 남은 초
-var _queue := []      # 이번 웨이브에서 아직 안 나온 적 [종류, 출현 지점, 나올 칸](wave_plan)
+var _queue := []      # 돌격 중인 파도에서 아직 들판에 나오지 않은 적(Enemy, 깨어나는 차례. S375). spawn_gap마다 wake_batch 차례씩 나온다
 var _spawn_timer := 0.0
+var dormant := []     # 집결 띠에 잠든 다음 파도의 적(Enemy, S375). enemies와 별도라 대상·피해·밀침·사격·버킷에 들지 않는다
+var _plan := []       # 이 라운드에 남은 파도 [{wave, idx, of, turns}](S375). 맨 앞이 다음에 집결할 파도다
+var _surge := {}      # 지금 집결 중인 파도 {wave, idx, of}(S375). 비어 있으면 이 라운드에 더 부를 파도가 없다
+var muster_left := 0.0  # 집결 남은 초(S375). 0 이하이고 살아 있는 적이 pressure_cap 아래면 돌격한다
+var waves_done := 0   # 이 라운드에서 끝난 웨이브 수(S375 «웨이브 끝»). 라운드 안에서만 뜻이 있어 저장하지 않는다
 var _spare := 0.0  # 아직 1골드가 되지 않은 처치 보상(I176)
 var _stage: Dictionary  # 재시작할 때 다시 읽는다
 var _rng := RandomNumberGenerator.new()  # 미션을 뽑는다(I120). 스테이지에 seed가 있으면 그 씨앗이다(평가용)
@@ -713,6 +723,11 @@ func restart() -> void:
 	ladders.clear()
 	units.clear()
 	_queue.clear()
+	dormant.clear()
+	_plan.clear()
+	_surge = {}
+	muster_left = 0.0
+	waves_done = 0
 	_repath = false
 	_dirty = true
 	_soft_step = -1
@@ -797,9 +812,11 @@ func step(dt: float) -> void:
 	if not trails.is_empty():
 		_trails(dt)
 	if state == "battle":
+		_muster(dt)
 		_spawn_wave(dt)
 		tally.battle_time += dt  # 라운드 집계(I119)
 		wave_time += dt
+		_rise(dt)
 	if _repath:
 		_repath = false
 		for e in enemies:
@@ -845,29 +862,9 @@ func step(dt: float) -> void:
 	_lobs(dt)
 	if state == "raid":
 		_raid_step(dt)
-	if state == "battle" and _queue.is_empty() and enemies.is_empty():
-		wave_index += 1
-		if wave_index < waves.size():
-			state = "prep"
-		elif round_index + 1 < rounds.size():
-			state = "cleared"  # 라운드 사이(S117). 다음 라운드는 next_round로 간다
-			_drop_gear()
-		else:
-			state = "won"  # 마지막 라운드를 이겨 도전에 성공했다(I92)
-		if state != "prep":  # 라운드를 이겼다: 미션을 판정해 보상을 준다(S77, I120)
-			_settle_quests()
-		_judge()  # 대피령 판정·떠남(S229)은 세금보다 먼저다(I183 ⑥)
-		if state != "won":  # 준비 단계나 라운드 사이로 넘어갈 때 걷는다(I46)
-			gold += tax()
-		_seasons()  # 숙련·자라기·분가·이사·출생(S231~S233)은 세금 다음이라 새 가구는 다음 세금부터 낸다(I184 ③)
-		for s in structures.values() + castle.values() + rubble.values() + [base]:  # 하던 건설·철거·업그레이드·수리·복구는 그 상태로 멈춘다(I19, I68, I87)
-			_release(s)
-		_clear_effects()
-		if state == "prep" and revive:
-			for h in heroes:
-				if not h.alive:
-					_return_hero(h)
-	for k in castle.values() + rubble.values():  # 성문 쿨타임은 전투 단계에만 줄고, 웨이브가 끝나면 사라진다(S135)
+	if state == "battle":
+		_settle_waves()
+	for k in castle.values() + rubble.values():  # 성문 쿨타임은 전투 단계에만 줄고, 라운드가 끝나면 사라진다(S135 2026-11-17 변경)
 		k.lock = maxf(k.lock - dt, 0.0) if state == "battle" else 0.0
 	_night(dt)
 	_folk(dt)
@@ -875,15 +872,189 @@ func step(dt: float) -> void:
 	for e in enemies:  # 다음 스텝의 고르기가 쓰는 보이는 적(I247 ①). 고를 때마다 seen을 부르지 않게 한 번만 정한다
 		e.lit = seen(e.pos)
 
+# 웨이브 끝·라운드 끝(S17 2026-11-17 변경, S375): 끝난 웨이브 다음 웨이브가 끝났으면(파도를 모두 불렀고 그 소속으로 깨어난·깨어날 적이 0)
+# 웨이브 끝 사건을 내고, 그것이 라운드의 마지막 웨이브면 라운드를 이긴다. 라운드 안에서는 준비 단계로 돌아가지 않는다.
+# 웨이브 끝: 대피령 판정(S229)은 세금(I46)보다 먼저고, 숙련·자라기·분가·이사·출생(S231~S233)은 세금 다음이라 새 가구는 다음 세금부터 낸다(I184 ③).
+# 라운드 끝에만: 미션 판정(S77, I120), 하던 건설·철거·업그레이드·수리·복구 멈춤(I19, I68, I87), 효과 지우기
+func _settle_waves() -> void:
+	while waves_done < waves.size() and _wave_over(waves_done):
+		waves_done += 1
+		var last := waves_done == waves.size()
+		if last:
+			wave_index = waves.size()
+			if round_index + 1 < rounds.size():
+				state = "cleared"  # 라운드 사이(S117). 다음 라운드는 next_round로 간다
+				_drop_gear()
+			else:
+				state = "won"  # 마지막 라운드를 이겨 도전에 성공했다(I92)
+			_settle_quests()
+		_judge()
+		if state != "won":
+			gold += tax()
+		_seasons()
+		if last:
+			for s in structures.values() + castle.values() + rubble.values() + [base]:
+				_release(s)
+			_clear_effects()
+
+# 웨이브 w가 끝났나(S375 «웨이브 끝»): 그 웨이브의 파도를 모두 불렀고(집결 중·남은 파도에 없다), 깨어날 줄과 들판에 그 소속 적이 없다
+func _wave_over(w: int) -> bool:
+	if (not _surge.is_empty() and _surge.wave == w) or _plan.any(func(s): return s.wave == w):
+		return false
+	return not _queue.any(func(e): return e.wave == w) and not enemies.any(func(e): return e.wave == w)
+
+# 집결(S375): 집결 중인 파도의 남은 초를 줄이고, 0 이하이면서 살아 있는·깨어날 적이 pressure_cap(0이면 상한 없음) 아래면 돌격한다
+func _muster(dt: float) -> void:
+	if _surge.is_empty():
+		return
+	muster_left -= dt
+	var cap: int = _stage.get("pressure_cap", 0)
+	if muster_left <= 0.0 and (cap <= 0 or enemies.size() + _queue.size() < cap):
+		_surge_charge()
+
+# 돌격(S375): 잠든 적 모두가 깨어나는 줄에 서고(spawn_gap마다 wake_batch 차례씩 들판에 나온다), 다음 파도가 집결을 시작한다.
+# 웨이브의 첫 파도가 돌격하는 순간이 그 웨이브의 시작이다: 밤의 at(S210)·대피령 한 번(S225)·군령(S345)을 여기서 새로 센다
+func _surge_charge() -> void:
+	if _surge.idx == 0:
+		wave_index = _surge.wave
+		wave_time = 0.0
+		edict = {}
+	_queue.append_array(dormant)
+	dormant.clear()
+	_spawn_timer = 0.0
+	_surge = {}
+	_muster_next()
+
+# 북(S375): 집결 중이면 그 파도를 바로 돌격시킨다(다음 스텝). 돌격은 pressure_cap을 그대로 본다. 집결 중이 아니면 거부
+func drum() -> bool:
+	if not mustering() or muster_left <= 0.0:
+		return false
+	muster_left = 0.0
+	return true
+
+# 집결 중인가(S375): 전투 단계이고 다음 파도의 적이 집결 띠에 잠들어 있다
+func mustering() -> bool:
+	return state == "battle" and not _surge.is_empty()
+
+# 집결 중인 파도의 웨이브 차례(0부터). 집결 중이 아니면 -1
+func muster_wave() -> int:
+	return _surge.wave if mustering() else -1
+
+# 집결 중인 파도의 [차례(1부터), 그 웨이브의 파도 수]. 집결 중이 아니면 []
+func muster_surge() -> Array:
+	return [_surge.idx + 1, _surge.of] if mustering() else []
+
+# 다음 파도의 집결 시작(S375): 남은 파도 맨 앞을 꺼내 그 적을 출현 칸(I177)에서 안쪽 band_rows줄 안에 잠든 채 세우고, 집결 초를 센다
+func _muster_next() -> void:
+	if _plan.is_empty():
+		return
+	var s: Dictionary = _plan.pop_front()
+	_surge = {"wave": s.wave, "idx": s.idx, "of": s.of}
+	muster_left = muster_secs(s.idx == 0)
+	var rows: int = maxi(1, _stage.get("band_rows", 1))
+	var stood := {}  # 출현 지점 → 거기 세운 수. 띠의 줄을 차례로 돌린다
+	for turn in s.turns:
+		for p in turn:
+			var n: int = stood.get(p[1], 0)
+			stood[p[1]] = n + 1
+			var e := _enemy(p[0], _band_cell(p[2], n % rows) if rows > 1 else p[2], {})
+			e.wave = s.wave
+			e.group = turn.size()
+			dormant.append(e)
+
+# 집결 초(S375): 웨이브의 첫 파도는 muster_first, 그다음 파도는 muster. 라운드 웨이브 파일이 정했으면(0 이상) 그 값, 아니면 스테이지 값, 없으면 0(바로 돌격)
+func muster_secs(first: bool) -> float:
+	var key := "muster_first" if first else "muster"
+	var rows: Array = _stage.get(key + "_rounds", [])
+	if round_index < rows.size() and rows[round_index] is float and rows[round_index] >= 0.0:
+		return rows[round_index]
+	return _stage.get(key, 0.0)
+
+# 출현 칸 c에서 맵 안쪽으로 j줄 들어간 칸(S375 집결 띠). 맨 아래·맨 위·왼쪽·오른쪽 가장자리 차례로 본다
+func _band_cell(c: Vector2i, j: int) -> Vector2i:
+	var d := Vector2i.UP if c.y >= size.y - 1 else Vector2i.DOWN if c.y <= 0 else Vector2i.RIGHT if c.x <= 0 else Vector2i.LEFT if c.x >= size.x - 1 else Vector2i.ZERO
+	return (c + d * j).clamp(Vector2i.ZERO, size - Vector2i.ONE)
+
+# 이 라운드에서 wave_index부터 남은 웨이브를 파도로 나눈 차례(S375). 파도 하나는 {wave, idx, of, turns}
+func _round_plan() -> Array:
+	var out := []
+	for w in range(wave_index, waves.size()):
+		var parts := _deal(_turns(wave_plan(round_index, w)), surges_of(w), _stage.get("wave_climax", 1.0))
+		for j in parts.size():
+			out.append({"wave": w, "idx": j, "of": parts.size(), "turns": parts[j]})
+	return out
+
+# 웨이브 w의 파도 수(S375): 스테이지 surges[라운드][웨이브]. 없으면 1
+func surges_of(w: int) -> int:
+	var s: Array = _stage.get("surges", [])
+	var row: Array = s[round_index] if round_index < s.size() and s[round_index] is Array else []
+	return maxi(1, int(row[w])) if w < row.size() else 1
+
+# 나오는 차례 목록(wave_plan)을 차례(한 순간에 함께 나오는 묶음, S238·S294·S301)로 가른다. 묶음의 마릿수는 맨 앞 항목의 넷째 칸이다
+func _turns(flat: Array) -> Array:
+	var out := []
+	var i := 0
+	while i < flat.size():
+		var n: int = maxi(1, flat[i][3])
+		out.append(flat.slice(i, i + n))
+		i += n
+	return out
+
+# 차례들을 k개 파도로 가른다(S375): 공성(siege)·보스 종류가 든 차례는 마지막 파도에, 나머지는 몫(마지막 파도는 climax배)에 견줘 가장 덜 찬 파도에 차례대로.
+# 차례 안의 순서는 그대로다. k가 1이면 한 파도다
+func _deal(turns: Array, k: int, climax: float) -> Array:
+	var parts := []
+	var fill := []
+	for j in k:
+		parts.append([])
+		fill.append(0)
+	if k <= 1:
+		parts[0] = turns
+		return parts
+	for turn in turns:
+		var at := k - 1
+		if not turn.any(func(p): return ENEMY_KINDS[p[0]].get("siege", false) or ENEMY_KINDS[p[0]].get("boss", false)):
+			at = 0
+			for j in range(1, k):
+				var w: float = climax if j == k - 1 else 1.0
+				if float(fill[j]) / w < float(fill[at]) / (climax if at == k - 1 else 1.0):
+					at = j
+		parts[at].append(turn)
+		fill[at] += turn.size()
+	return parts
+
+# 전투 중 쓰러진 영웅의 복귀(S26 2026-11-17 변경): 부활이 켜져 있으면 hero_back초 뒤 거점 옆 칸(back_cell)에 최대 체력 × hero_back_hp(1 이상)로 돌아온다
+func _rise(dt: float) -> void:
+	if not revive:
+		return
+	for h in heroes:
+		if h.alive:
+			continue
+		h.rise -= dt
+		if h.rise <= 0.0:
+			_return_hero(h, false, back_cell())
+			h.hp = maxf(1.0, floorf(h.max_hp * _stage.get("hero_back_hp", HERO_BACK_HP)))
+
+# 전투 중 쓰러진 영웅이 돌아오는 칸(S26 2026-11-17 변경): 스테이지 hero_back_cell, 없으면 거점 바로 아래 칸. 막힌 칸·물·바위면 거점 둘레에서 가장 가까운 빈 칸
+func back_cell() -> Vector2i:
+	var c: Vector2i = _stage.get("hero_back_cell", base.cell + Vector2i.DOWN)
+	for r in range(0, 4):
+		for d in [Vector2i.ZERO, Vector2i.DOWN, Vector2i.UP, Vector2i.LEFT, Vector2i.RIGHT, Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)]:
+			var p: Vector2i = (c + d * r).clamp(Vector2i.ZERO, size - Vector2i.ONE)
+			if grid.block_at(p) == null and p != base.cell and not water.has(p) and not rock.has(p):
+				return p
+	return c.clamp(Vector2i.ZERO, size - Vector2i.ONE)
+
 # 라운드 r·웨이브 w의 밤(S210): {at, dark, fade}. 낮이면 {}
 func night(r: int, w: int) -> Dictionary:
 	if r >= nights.size() or w >= nights[r].size():
 		return {}
 	return nights[r][w]
 
-# 어둠(S210): 밤 웨이브의 전투 단계에서 at초가 지나면 dark까지 fade초에 오르고, 그 밖에는 1을 DAWN초에 내리는 빠르기로 0까지 내린다
+# 어둠(S210): 밤 웨이브의 전투 단계에서 at초(그 웨이브 첫 파도가 돌격한 뒤, S210 2026-11-17 변경)가 지나면 dark까지 fade초에 오르고,
+# 그 밖(웨이브가 끝났거나 전투 단계가 아닐 때)에는 1을 DAWN초에 내리는 빠르기로 0까지 내린다
 func _night(dt: float) -> void:
-	var n := night(round_index, wave_index) if state == "battle" else {}
+	var n := night(round_index, wave_index) if state == "battle" and waves_done <= wave_index else {}
 	if n.is_empty() or wave_time < n.get("at", 0.0):
 		dark = maxf(dark - dt / DAWN, 0.0)
 		return
@@ -939,11 +1110,14 @@ func seen(p: Vector2) -> bool:
 
 # 영웅을 자기 시작 칸에 세운다. 체력은 쓰러졌다 돌아올 때(S26, I102) 1이고(S138, I27), 새로 출전할 때(S124) 가득 찬다.
 # 공격·스킬 대기는 쓰러질 때 값을 이어 간다(S67)
-func _return_hero(h: Unit, fresh := false) -> void:
+func _return_hero(h: Unit, fresh := false, at = null) -> void:
 	h.alive = true
 	h.hp = h.max_hp if fresh else 1.0
 	h.order = null
-	h.pos = Vector2(h.home)
+	h.pos = Vector2(at if at != null else h.home)
+	h.fx.clear()  # 쓰러진 채 남아 있던 효과·보호막·반격의 태세는 지운다(S26 2026-11-17 변경). 돌아온 영웅이 옛 출혈로 다시 쓰러지지 않게
+	h.shields.clear()
+	h.brace = 0.0
 	h.still = 0.0  # 요새화 시간도 새로 센다(I147)
 	h.on_wall = false
 	h.path.clear()
@@ -953,16 +1127,26 @@ func _return_hero(h: Unit, fresh := false) -> void:
 	h.due = NO_POST  # 길을 기다리지 않는다(I309 ④)
 	units.append(h)
 
+# ▶ 전투 시작(I13): 라운드 첫 준비를 끝내고 첫 웨이브의 첫 파도를 바로 돌격시킨다(▶가 첫 북이다, S375). 전투 단계에 부르면 북(drum)이다
 func start_battle() -> void:
+	if state == "battle":
+		drum()
+		return
 	if state != "prep" or wave_index >= waves.size():
 		return
 	wave_starting.emit()
 	state = "battle"
-	_queue = wave_plan(round_index, wave_index)
+	_plan = _round_plan()  # 라운드의 남은 웨이브를 파도로 가른다(S375). 라운드 안에서는 다시 준비 단계로 돌아가지 않는다(S17 2026-11-17 변경)
+	_queue.clear()
+	dormant.clear()
+	waves_done = wave_index  # 저장에서 이어 온 판(S181)은 앞 웨이브가 끝나 있다
 	_spawn_timer = 0.0
 	wave_time = 0.0
 	near_wall = false
 	edict = {}
+	_muster_next()
+	if not _surge.is_empty():
+		_surge_charge()  # 첫 파도는 집결 없이 바로 돌격한다. 집결은 그다음 파도부터다
 
 # 라운드 r·웨이브 w의 적을 나오는 차례대로 [종류, 출현 지점, 나올 칸, 한꺼번에 나오는 마릿수]. 무리(S238)는 한 차례에 함께 나온다.
 # 출현 지점마다 줄을 두고(S338, I281 ②) 웨이브 항목을 차례대로 읽어 차례(무리 하나·한 마리·호위를 데린 한 마리)를 줄 끝에 세운다.
@@ -1058,9 +1242,13 @@ func spawn_counts(r: int, w: int) -> Array:
 		d[p[0]] = d.get(p[0], 0) + 1
 	return out
 
-# 이번 웨이브에서 아직 안 나왔거나 살아 있는 적 수(I13 «남은 적»)
+# 이 라운드에서 아직 안 나왔거나(남은 파도·집결 중·깨어나는 줄) 살아 있는 적 수(I13 «남은 적», S375)
 func enemies_left() -> int:
-	return _queue.size() + enemies.size()
+	var n := _queue.size() + dormant.size() + enemies.size()
+	for s in _plan:
+		for t in s.turns:
+			n += t.size()
+	return n
 
 # 고르기 창(S122)이나 라운드 사이(S117)에서 1라운드나 다음 라운드의 첫 준비 단계로 간다. 그 밖에서는 거부한다
 # 보유 영웅을 전장에 반영하고(S124), 구조물·성곽·마을·용병·골드와 계속 출전하는 영웅은 그대로 이어진다(S63, S79, S61, I93). 영웅이 모자라도(0명도) 넘어간다(I106)
@@ -1708,13 +1896,26 @@ func quest_met(name: String) -> bool:
 
 func spawn_enemy(kind: String, cell: Vector2i, overrides := {}):
 	var e := _enemy(kind, cell, overrides)
+	_emerge(e)
+	return e
+
+# 적 e가 지금 선 칸에서 들판에 나온다: 먼저 노리는 성문(S143)은 그 칸에서 가장 가깝다, 쌍둥이 짝(I273 ①), 길 찾기, 출현 신호
+func _emerge(e: Enemy) -> void:
+	var cell := Vector2i(e.pos.round())
 	if not e.flying:
 		e.via = _via_of(cell, _ladderable(e))
 	if e.skills.has("twin"):  # 쌍둥이 트롤의 짝 번호(I273 ①)
-		e.mate = enemies.filter(func(o): return o.kind == kind).size() % 2
+		e.mate = enemies.filter(func(o): return o.kind == e.kind).size() % 2
 	_field(e)
 	enemy_spawned.emit(e)
-	return e
+
+# 잠든 적이 깨어난다(S375): 들판에 나오고, 웨이브에서 나온 도약 늑대는 돌진한다(S293, I243 ①)
+func _wake(e: Enemy) -> void:
+	_emerge(e)
+	if not e.dash.is_empty():
+		e.dashing = true
+		e.lane = int(roundf(e.pos.x))
+		_find_path(e)
 
 # 종류 수치에 덮어쓸 수치를 얹어 적을 만든다. 체력과 방패 내구도(S301)에는 라운드 체력 배율(S144)을 곱하고, 처치 보상은 그대로다.
 # 원정 보스(덮어쓸 수치에 raid가 있다)는 층 수치 그대로다(S316)
@@ -1723,7 +1924,9 @@ func _enemy(kind: String, cell: Vector2i, overrides: Dictionary) -> Enemy:
 	var m := 1.0 if overrides.has("raid") else _hp_mult()
 	stats.hp *= m
 	stats.guard *= m
-	return _prime(Enemy.new(kind, cell, stats))
+	var e := _prime(Enemy.new(kind, cell, stats))
+	e.wave = wave_index  # 지금 웨이브 소속(S375). 파도로 잠든 적은 _muster_next가 그 파도의 웨이브로 바꾼다
+	return e
 
 # 스킬의 첫 대기(I285 ①): skills의 칸에 first가 있으면 나온 때(종류가 바뀐 때)의 대기가 0이 아니라 그 초다
 func _prime(e: Enemy) -> Enemy:
@@ -1751,6 +1954,7 @@ func _divide(dead: Enemy) -> void:
 		var e := _enemy(dead.split.kind, Vector2i(at.round()), {"reward": 0, "xp": 0})
 		e.pos = at
 		e.via = dead.via
+		e.wave = dead.wave  # 죽은 적의 웨이브를 잇는다(S375)
 		e.split_from = dead.pos
 		_field(e)
 
@@ -4100,8 +4304,9 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 		if target.job:
 			_release(target.job)
 		units.erase(target)
-		if target.is_hero:  # 라운드 집계(I119)
+		if target.is_hero:  # 라운드 집계(I119). 전투 중 복귀까지 초(S26 2026-11-17 변경)
 			tally.hero_down += 1
+			target.rise = _stage.get("hero_back", HERO_BACK)
 		else:
 			tally.merc_lost += 1
 	else:  # 구조물·성곽: 칸이 비고 경로를 다시 구한다(I5)
@@ -4157,22 +4362,25 @@ func _share(e: Enemy, amount: float, src) -> void:
 			damage(o, part, "true", src)
 	_tracing = tr
 
+# 돌격한 파도의 적이 깨어나는 줄(S375): spawn_gap마다 wake_batch 차례가 들판에 나온다. 한 차례는 무리·함께 나오는 종류(S238, S294)다.
+# wake_batch가 1이면 옛 규칙 그대로 한 차례씩이고 다음 차례는 그 마릿수만큼 늦다. 1보다 크면 묶음마다 한 간격이다
 func _spawn_wave(dt: float) -> void:
 	_spawn_timer -= dt
 	if _queue.is_empty() or _spawn_timer > 0.0:
 		return
-	var gap: float = _stage.get("spawn_gap", SPAWN_GAP)  # 시험 스테이지는 적 10배라 0.25초(I91)
-	var n: int = _queue[0][3]  # 무리·함께 나오는 종류는 한꺼번에 나오고, 다음 차례는 그 마릿수만큼 늦다(S238, S294)
+	var gap: float = _stage.get("spawn_gap", SPAWN_GAP)
+	var batch: int = maxi(1, _stage.get("wake_batch", 1))
 	var due := false
-	for i in n:
-		var next: Array = _queue.pop_front()
-		var e = spawn_enemy(next[0], next[2])
-		if not e.dash.is_empty():  # 웨이브에서 나온 도약 늑대는 돌진한다(S293, I243 ①)
-			e.dashing = true
-			e.lane = next[2].x
-			_find_path(e)
+	var out := 0
+	for b in batch:
+		if _queue.is_empty():
+			break
+		var n: int = mini(_queue[0].group, _queue.size())
+		for i in n:
+			_wake(_queue.pop_front())
+		out += n
 		due = due or _queue.size() % maxi(1, roundi(SPAWN_GAP / gap)) == 0  # 성곽이 깎인 만큼 길이 바뀌었을 수 있다. 다시 구하는 것은 2.5초에 한 번꼴(S142)
-	_spawn_timer += gap * n  # 그 스텝에 넘친 시간을 이어 간다. 새로 놓으면 차례마다 한 스텝씩 늦어져 쌓인다
+	_spawn_timer += gap * (out if batch == 1 else 1)  # 그 스텝에 넘친 시간을 이어 간다. 새로 놓으면 차례마다 한 스텝씩 늦어져 쌓인다
 	if due:
 		_forecast()
 

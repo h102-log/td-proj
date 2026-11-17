@@ -428,7 +428,7 @@ func ev611():
 	b.start_battle()
 	clear_wave(b)
 	seen.append([b.state, b.bag.duplicate(), b.dropped.duplicate(), b.forged.size()])
-	var want := [["prep", {}, [], 0], ["cleared", {"ignis": 0}, ["ignis", -1, 0], 0], ["cleared", {"ignis": 1}, ["ignis", 0, 1], 0], ["won", {"ignis": 1}, [], 0]]
+	var want := [["battle", {}, [], 0], ["cleared", {"ignis": 0}, ["ignis", -1, 0], 0], ["cleared", {"ignis": 1}, ["ignis", 0, 1], 0], ["won", {"ignis": 1}, [], 0]]  # 웨이브 사이는 전투 단계다(S17 2026-11-17 변경)
 	return check(seen == want, "[단계, 가방, 전리품, 창당 횟수 수] 차례 %s(기대 %s)" % [seen, want])
 
 # EV612 · S252: 보유한 영웅의 장비를 처음 받으면 낀다. 전리품 뒤에도 그 창에서 2번 제작·강화된다. 마지막 단계 장비는 나오지 않는다

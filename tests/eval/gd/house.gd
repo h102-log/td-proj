@@ -30,8 +30,8 @@ func _key(c, key: int) -> void:
 # 웨이브 하나를 끝내고 준비 단계에서 늘어난 골드. 끝나지 않으면 null
 func _wave_income(b):
 	var gold0: int = b.gold
-	b.start_battle()
-	if not clear_wave(b) or b.state != "prep":
+	b.start_battle()  # 라운드 안에서는 아무 일도 하지 않는다(S17 2026-11-17 변경). 웨이브 끝에 세금을 걷는다(I46)
+	if not clear_wave(b):
 		return null
 	return b.gold - gold0
 
@@ -71,7 +71,7 @@ func ev122():
 	if h == null or h.complete:
 		return "전투 중에 미완성 집이 놓이지 않았다(%s)" % [h]
 	var gold0: int = b.gold
-	if not clear_wave(b) or b.state != "prep" or h.complete:
+	if not clear_wave(b) or h.complete:
 		return "웨이브가 끝나지 않았거나 집이 다 지어졌다(%s, 완성 %s)" % [b.state, h.complete]
 	var want: int = gold0 + b.ENEMY_KINDS.basic.reward
 	return check(b.gold == want, "골드 %d, 기대 %d" % [b.gold, want])
@@ -85,7 +85,7 @@ func ev123():
 	b.damage(dead, BIG)
 	b.damage(hurt, hurt.max_hp / 2.0)
 	var gold0: int = b.gold
-	if not clear_wave(b) or b.state != "prep":
+	if not clear_wave(b):
 		return "웨이브가 끝나지 않았다(%s)" % b.state
 	var want: int = gold0 + b.ENEMY_KINDS.basic.reward + b.STRUCTURE_KINDS.house.tax
 	return check(b.gold == want, "골드 %d, 기대 %d" % [b.gold, want])
@@ -286,7 +286,7 @@ func ev474():
 
 # EV475 · S221: 짓는 동안은 가족이 없고, 다 지으면 생기고, 팔면 함께 없어진다
 func ev475():
-	var b = _battle()
+	var b = _battle({"rounds": [[[{"kind": "basic", "count": 1}]], [[{"kind": "basic", "count": 1}]]]})
 	b.place_merc("engineer", Vector2i(12, 5))
 	b.start_battle()
 	var h = b.build("house", H1)
@@ -299,8 +299,8 @@ func ev475():
 		return "60초 안에 다 짓지 못했다"
 	if h.folk.is_empty() or h.folk.size() > 5 or view.residents(b, 0.0).size() != h.folk.size():
 		return "다 지은 집의 가족 %s · 주민 %d명" % [h.folk, view.residents(b, 0.0).size()]
-	if not clear_wave(b) or b.state != "prep":
-		return "웨이브가 끝나지 않았다(%s)" % b.state
+	if not clear_round(b) or not b.next_round() or b.state != "prep":  # 판매는 라운드 첫 준비에만(S69, S17 2026-11-17 변경)
+		return "라운드가 끝나 다음 라운드 첫 준비가 되지 않았다(%s)" % b.state
 	b.sell([h])
 	return check(view.residents(b, 0.0).is_empty(), "판 집의 주민이 남았다(%d명)" % view.residents(b, 0.0).size())
 

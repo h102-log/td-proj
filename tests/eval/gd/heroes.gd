@@ -142,12 +142,14 @@ func ev191():
 	var one := [{"kind": "basic", "count": 1}]
 	var ka := Vector2i(5, 5)
 	var pa := Vector2i(8, 5)
-	var b = _heroes([_hero("aias", ka), _hero("seraphina", pa)], {"waves": [one, one], "merc_cap": 1})
+	var b = _heroes([_hero("aias", ka), _hero("seraphina", pa)], {"rounds": [[one], [one]], "merc_cap": 1})
+	b.revive = false  # 전투 중 복귀(S26 2026-11-17 변경) 없이 다음 라운드 첫 준비의 복귀(I93)를 잰다
 	b.start_battle()
 	run(b, 1.0)
 	for h in b.heroes:
 		b.damage(h, BIG)
-	clear_wave(b)
+	clear_round(b)
+	b.next_round()
 	var back: bool = b.state == "prep" and b.heroes.all(func(h): return h.present and h.hp == 1.0) and near(b.heroes[0].pos, ka, 0.01) and near(b.heroes[1].pos, pa, 0.01)  # 체력 1로 돌아온다(S138)
 	var m = b.place_merc("soldier", Vector2i(12, 5))
 	return check(back and m != null, "돌아옴 %s(%s) · 상한 1에서 용병 %s" % [back, b.heroes.map(func(h): return [h.kind, h.pos, h.hp]), m])
@@ -202,18 +204,21 @@ func ev239():
 	clear_wave(b)
 	var now := func(): return [k.cd.w, k.cd.e]
 	var at: Array = now.call()
-	run(b, 10.0)
-	var prep: bool = b.state == "prep" and now.call() == at
-	var after_prep: Array = now.call()
-	_start(b)
 	run(b, 1.0)
-	var fight: bool = k.cd.w < at[0]
-	clear_wave(b)
+	var wave_gap: bool = b.state == "battle" and now.call()[0] < at[0]  # 웨이브 사이도 전투 단계라 대기가 돈다(S17 2026-11-17 변경)
+	clear_round(b)
 	var between: Array = now.call()
 	run(b, 10.0)
 	var cleared: bool = b.state == "cleared" and now.call() == between
-	return check(prep and fight and cleared,
-		"준비 단계 10초 [W 대기, E 대기] %s → %s · 전투 단계 1초에 줄고 참 %s · 라운드 사이(%s) 10초 %s → %s" % [at, after_prep, fight, b.state, between, now.call()])
+	b.next_round()
+	run(b, 10.0)
+	var prep: bool = b.state == "prep" and now.call() == between
+	var after_prep: Array = now.call()
+	_start(b)
+	run(b, 1.0)
+	var fight: bool = k.cd.w < between[0]
+	return check(wave_gap and cleared and prep and fight,
+		"웨이브 사이(전투 단계) 1초에 줄음 %s · 라운드 사이(%s) 10초 %s → 그대로 %s · 준비 단계 10초 %s → %s · 전투 단계 1초에 줄고 참 %s" % [wave_gap, b.state, between, cleared, after_prep, now.call(), fight])
 
 # EV881 · S314·I260: ` 키는 살아 있는 출전 영웅을 출전 순서대로 모두 고른다(쓰러진 영웅·용병은 빠진다). 영입 단계에는 듣지 않는다
 func ev881():

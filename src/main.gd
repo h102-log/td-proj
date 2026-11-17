@@ -211,6 +211,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_accept") and get_viewport().gui_get_focus_owner() == null:
 		if view.battle.state in ["hiring", "cleared", "won", "lost"]:
 			hud.proceed()
+		elif event is InputEventKey and event.keycode in [KEY_ENTER, KEY_KP_ENTER] and view.battle.drum():  # 북(S375): 집결 중 Enter는 그 파도를 바로 돌격시킨다. Space는 대시(S315)
+			get_viewport().set_input_as_handled()
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		_map_press = true
 	var to_map: Transform2D = get_viewport().get_camera_2d().steady().affine_inverse()  # 화면 좌표 → 맵 px(카메라 줌·이동 반영, 흔들림은 뺌 S200)
@@ -296,7 +298,14 @@ static func stage() -> Dictionary:
 	return {
 		"size": Vector2i(n, n + FIELD_ROWS), "base": Vector2i(mid, mid), "base_hp": 100, "gold": 1000,  # 거점은 마을 한가운데(S37, S203). 시작 골드(S111)
 		"spawns": [Vector2i(mid - 21, n - 1 + FIELD_ROWS), Vector2i(mid, n - 1 + FIELD_ROWS), Vector2i(mid + 20, n - 1 + FIELD_ROWS)],  # 맨 아래 줄. x는 거점 열에서 잰 자리(S203)
-		"spawn_spread": 10, "spawn_gap": 0.25, "reward_scale": 0.1,  # 맨 아래 줄 전체에서 흩어져 나온다(I177). 적 10배라 간격 0.25초(I91), 처치 보상 0.1배(I176)
+		"spawn_spread": 10, "spawn_gap": 0.05, "reward_scale": 0.1,  # 맨 아래 줄 전체에서 흩어져 나온다(I177). 처치 보상 0.1배(I176). 깨어나는 간격은 한 스텝(S375, 옛 0.25초 줄은 I91)
+		# 파도·집결(S375, 임시값): 웨이브 첫 파도 집결 45초·그다음 20초, 한 스텝에 깨어나는 차례 32, 살아 있는 적 상한 300(넘으면 돌격을 미룬다), 집결 띠 6줄, 마지막 파도 1.5배.
+		# 라운드 웨이브 파일(WavesDef)의 surges·muster_first·muster가 라운드마다 덮는다(1라운드 튜토리얼은 파도 1·30초)
+		"muster_first": 45.0, "muster": 20.0, "wake_batch": 32, "pressure_cap": 300, "band_rows": 6, "wave_climax": 1.5,
+		"surges": ROUNDS.map(func(r): return load("res://data/waves/%s.tres" % r).surges),
+		"muster_first_rounds": ROUNDS.map(func(r): return load("res://data/waves/%s.tres" % r).muster_first),
+		"muster_rounds": ROUNDS.map(func(r): return load("res://data/waves/%s.tres" % r).muster),
+		"hero_back": 30.0, "hero_back_hp": 0.5, "hero_back_cell": Vector2i(mid, mid + 1),  # 전투 중 쓰러진 영웅은 30초 뒤 거점 아래 칸에 체력 절반으로(S26·S138 2026-11-17 변경, 임시값)
 		# 출전 칸(I107): 정문 문루 바로 앞 들판(한 줄 띄움)의 세 칸. 성문은 닫힌 채 시작해서(I67) 마을 안에 두면 나올 수 없다(I42, 사용자 2026-10-12)
 		"hero_cells": [Vector2i(mid - 1, n + 1), Vector2i(mid + 1, n + 1), Vector2i(mid, n + 1)],
 		"engineer_cells": [Vector2i(mid, mid + 1), Vector2i(mid - 2, n + 1)],  # 시작 공병(S208): 거점 아래 마을 칸, 출전 칸 옆 들판 칸. 성문이 닫혀 있어도 마을·들판에 하나씩 짓는다(사용자 2026-10-25)

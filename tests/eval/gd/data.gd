@@ -59,7 +59,7 @@ func ev80():
 	var b = load("res://src/sim/battle.gd").new(load("res://src/main.gd").stage())
 	var n := [0]
 	b.enemy_spawned.connect(func(_e): n[0] += 1)
-	b.start_battle()
+	b.start_battle()  # ▶가 첫 북이라 첫 웨이브는 바로 온다(S375)
 	run(b, 10.0)
 	return check(n[0] == 2, "첫 웨이브에 적이 %d명 나왔다(2명이어야 한다)" % n[0])
 

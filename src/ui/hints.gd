@@ -80,7 +80,7 @@ func step() -> void:
 	if battle.state == "battle":
 		_finish("start")
 	if _bought >= 0 and t.merc_bought > _bought:
-		_finish("buy" if battle.state == "battle" else "merc")
+		_finish("buy" if _phase() == "battle" else "merc")  # 다음 웨이브 첫 파도가 집결 중이면 그 웨이브의 «준비» 힌트다(S17 2026-11-17 변경)
 	if controls.village:
 		_finish("keep")
 	if battle.state == "raid":
@@ -118,9 +118,20 @@ func _current() -> String:
 	if battle.round_index > 0:
 		return ""
 	for h in HINTS:
-		if h[1] == battle.wave_index + 1 and h[2] == battle.state and not h[0] in Settings.hints_done:
+		if h[1] == _hint_wave() + 1 and h[2] == _phase() and not h[0] in Settings.hints_done:
 			return h[0]
 	return ""
+
+# 힌트가 보는 판 단계(S17 2026-11-17 변경): 라운드 안에는 준비 단계가 없어, 다음 웨이브의 첫 파도가 집결하는 동안을 그 웨이브의 «준비»로 본다
+func _phase() -> String:
+	return "prep" if _next_mustering() else battle.state
+
+# 힌트가 보는 웨이브 차례: 다음 웨이브의 첫 파도가 집결 중이면 그 웨이브, 아니면 지금 웨이브
+func _hint_wave() -> int:
+	return battle.muster_wave() if _next_mustering() else battle.wave_index
+
+func _next_mustering() -> bool:  # 지금 웨이브가 끝났고(끝난 웨이브 수가 집결 웨이브와 같다) 다음 웨이브의 첫 파도가 집결 중이다
+	return battle.state == "battle" and battle.mustering() and battle.muster_surge()[0] == 1 and battle.muster_wave() > battle.wave_index and battle.waves_done == battle.muster_wave()
 
 func _hint(name: String):
 	for h in HINTS:

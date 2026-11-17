@@ -175,9 +175,9 @@ func ev406():
 	return check(shot and calm and none and fired and gone and hit and f.attacker == null,
 		"궁수가 침 %s · 친 step에 그대로 %s · 궁수가 쓰러진 뒤 1초 동안 그대로 %s · 탑이 쏨 %s · 탑 부서짐 %s · 화살이 닿음 %s · 반격 대상 %s(없어야)" % [shot, calm, none, fired, gone, hit, f.attacker])
 
-# EV407 · I143: 웨이브가 끝나면 날던 투사체가 사라진다. 대포알이 나는 동안 대상이 쓰러져 웨이브가 끝나면, 준비 단계의 투사체 목록은 비어 있다
+# EV407 · I143 2026-11-17 변경: 라운드가 끝나면 날던 투사체가 사라진다. 대포알이 나는 동안 대상이 쓰러져 마지막 웨이브가 끝나면, 승리 뒤 투사체 목록은 비어 있다
 func ev407():
-	var b = battle({"waves": [[{"kind": "basic", "count": 1}], [{"kind": "basic", "count": 1}]]})
+	var b = battle({"waves": [[{"kind": "basic", "count": 1}]]})
 	var cn = b.build("cannon", Vector2i(4, 10))
 	b.start_battle()
 	var fired := _until_shot(b, cn) >= 0.0
@@ -187,8 +187,8 @@ func ev407():
 		b.damage(e, BIG * 2.0, "true")
 	b.step(DT)
 	ms = b.get("missiles")
-	return check(fired and flying == 1 and b.state == "prep" and ms != null and ms.is_empty(),
-		"대포가 쏨 %s · 쏜 뒤 나는 투사체 %d개(1) · 판 단계 %s(prep) · 웨이브가 끝난 뒤 투사체 %s(빈 목록)" % [fired, flying, b.state, ms])
+	return check(fired and flying == 1 and b.state == "won" and ms != null and ms.is_empty(),
+		"대포가 쏨 %s · 쏜 뒤 나는 투사체 %d개(1) · 판 단계 %s(won) · 라운드가 끝난 뒤 투사체 %s(빈 목록)" % [fired, flying, b.state, ms])
 
 # EV408 · I213: 정조준 비율은 쏠 때 거리로 정해 화살에 담는다. 실비아가 far칸 앞 과녁을 쏜 step에는 과녁 체력이 그대로이고,
 # 쏜 뒤 과녁을 near칸 앞으로 옮겨도 닿은 피해는 far칸 값(공격력 × (1 + might))이다
