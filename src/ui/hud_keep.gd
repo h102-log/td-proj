@@ -614,10 +614,11 @@ func _show_card(i: int, prep: bool, full: bool) -> void:
 	pics[i].texture = HudBuild.icon(k)
 	pics[i].modulate.a = FADE if full else 1.0
 	var n: int = battle.units.filter(func(u): return u.kind == k and u.alive).size()
-	owned[i].text = "×%d" % n
-	owned[i].visible = n > 0
-	_owned_bg[i].visible = n > 0
-	if n > 0:
+	var q: int = battle.base.queue.filter(func(j): return j.kind == k).size()  # 거점 대기열에 선 수(S20 2026-11-17 변경, S378 ④): «×보유+대기»
+	owned[i].text = ("×%d" % n if n > 0 else "") + ("+%d" % q if q > 0 else "")
+	owned[i].visible = n > 0 or q > 0
+	_owned_bg[i].visible = owned[i].visible
+	if owned[i].visible:
 		var w: float = owned[i].get_theme_font("font").get_string_size(owned[i].text, HORIZONTAL_ALIGNMENT_LEFT, -1, 7).x
 		_owned_bg[i].position = Vector2(CARD.x - w - 4, 17)
 		_owned_bg[i].size = Vector2(w + 3, 9)

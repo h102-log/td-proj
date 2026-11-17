@@ -14,6 +14,7 @@ const STRUCTURE := Color("8fd8ff")
 const BASE := Color("ffd37f")
 const ALLY := Color("3ce0d8")
 const FOE := Color("ff3b3b")
+const DORMANT := Color("7a2626")  # 집결 띠에 잠든 적(S375, S378 ②): 어두운 빨강
 const HERO := Color.WHITE
 const NIGHT := Color("0b1030")  # 밤에 바닥을 덮는 색(S212). 맵 어둠 덮개(battle_view NIGHT_COLOR)와 같다
 const NIGHT_ALPHA := 0.6  # 바닥 덮개 불투명도 = 이 값 × 어둠(S212). 점이 묻히지 않게 맵보다 엷다
@@ -66,6 +67,8 @@ func marks() -> Array:
 	for u in battle.units:
 		if not u.is_hero:
 			out.append([_dot(u.pos, 1), ALLY])
+	for e in battle.dormant:  # 집결 띠에 잠든 적(S378 ②)은 어두운 점. 미리보기라 어둠과 상관없이 찍는다
+		out.append([_dot(e.pos, 1), DORMANT])
 	for e in battle.enemies:
 		if battle.seen(e.pos):  # 어둠 속에 숨은 적(S213)은 점을 찍지 않는다
 			out.append([_dot(e.pos, 2 if e.boss else 1), FOE])  # 보스 표시(I185)는 2×2

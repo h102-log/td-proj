@@ -55,6 +55,7 @@ var village := false  # 거점을 골랐다. 준비·전투 단계면 거점 패
 var keep_tab := 0  # 거점 패널의 마지막 탭(I298 ①): 0 근접 · 1 원거리 · 2 지원. Tab·Shift+Tab·탭 버튼이 바꾼다
 var rallying := false  # 거점 집결 지점 고르기 중(I298 ⑥). 패널 «집결»이 켜고, 다음 맵 좌클릭이 거점 집결 지점을 정한다. 우클릭·ESC는 그만둔다
 var flagging := false  # 주둔 깃발 칸 고르기 중(S36 2026-11-17 변경). D 키·깃발 태그가 켜고, 다음 맵 좌클릭 칸에 고른 용병을 배속한다. 우클릭·ESC는 그만둔다
+var zoning := false  # Alt를 누르고 있는 동안(S378 ①): 화면이 지대 색 띠(전장·포격·집결·혼잡 칸)와 깃발 면제 반경을 그린다
 var aiming := "":  # 조준 중인 스킬 칸(S147). 빈 문자열이면 조준 중이 아니다
 	set(v):
 		aiming = v
@@ -86,6 +87,8 @@ func handle(event: InputEvent) -> void:
 		aiming = ""
 	if event is InputEventMouse:
 		mouse = event.position
+	if event is InputEventKey and event.keycode == KEY_ALT and not event.echo:  # 지대 색 띠(S378 ①): 누르고 있는 동안만
+		zoning = event.pressed
 	if battle.state not in ["prep", "battle", "raid"]:  # 창이 떠 있는 동안은 맵 명령을 받지 않는다(S117, I109). 원정(S316)은 받는다
 		_press = null
 		drag_rect = Rect2()

@@ -1141,7 +1141,7 @@ func _show_progress() -> void:
 		retreat.visible = st == "raid"
 		gauge.position.x = start.size.x + 2 if start.visible else 52 if retreat.visible else 0
 		gauge.size = Vector2(136 - gauge.position.x, 24)
-		_track.visible = st == "battle" and key != "battle/muster"  # 집결 중에는 둘째 줄이 그 자리다
+		_track.visible = st == "battle"  # 집결 중에는 집결 막대(I13 2026-11-17 변경)
 		_dots.visible = st in ["prep", "battle"]
 		_g2.visible = st not in ["battle", "won", "lost"] or key == "battle/muster"
 		match st:
@@ -1150,13 +1150,14 @@ func _show_progress() -> void:
 				_line(_g2, 9, HudTheme.TEXT, Rect2(3, 12, 32, 11))
 				skull.position = Vector2(38, 14)
 			"battle":
-				if key == "battle/muster":  # ▶(북) 옆 칸에 두 줄 작은 글(임시, PR⑤): 남은 적 / 파도·집결 초
-					_line(_g1, 7, HudTheme.TEXT, Rect2(2, 1, 86, 11))
-					_line(_g2, 7, HudTheme.DIM, Rect2(2, 12, 86, 11))
+				if key == "battle/muster":  # ▶(북) 옆 칸: 두 줄 작은 글(남은 적 / 파도·집결 m:ss)과 그 아래 집결 막대(I13 2026-11-17 변경)
+					_line(_g1, 7, HudTheme.TEXT, Rect2(2, 0, 86, 10))
+					_line(_g2, 7, HudTheme.DIM, Rect2(2, 9, 86, 10))
+					_track.position = Vector2(4, 20)
 				else:
 					_line(_g1, 10, HudTheme.TEXT, Rect2(4, 1, 90, 13))
-				_track.position = Vector2(4, 17)
-				_track.size = Vector2(128, 3)
+					_track.position = Vector2(4, 17)
+				_track.size = Vector2(gauge.size.x - 8, 3)
 			"hiring", "cleared":
 				_line(_g1, 9, HudTheme.TEXT, Rect2(4, 1, 60, 11))
 				_line(_g2, 8, HudTheme.DIM, Rect2(4, 12, 80, 11))
@@ -1173,10 +1174,15 @@ func _show_progress() -> void:
 			_g2.text = "적 %d" % _total(nw)
 		"battle":
 			_g1.text = "남은 적 %d" % battle.enemies_left()
-			if battle.mustering():  # 집결 중(S375, I13 2026-11-17 변경): 둘째 줄에 몇째 파도가 몇 초 뒤 오는지. 제대로 된 진행 칸 그림은 PR⑤
+			if battle.mustering():  # 집결 중(S375, I13 2026-11-17 변경): 둘째 줄에 몇째 파도가 몇 초 뒤 오는지(m:ss), 막대는 금색으로 남은 집결 비율
 				var sg: Array = battle.muster_surge()
-				_g2.text = tr("파도 %d/%d · 집결 %d초") % [sg[0], sg[1], ceili(maxf(battle.muster_left, 0.0))]
-			_fill.size = Vector2(128.0 * (1.0 - float(battle.enemies_left()) / maxi(_round_total(), 1)), 3)
+				var secs: int = ceili(maxf(battle.muster_left, 0.0))
+				_g2.text = tr("파도 %d/%d · 집결 %d:%02d") % [sg[0], sg[1], secs / 60, secs % 60]
+				_fill.color = HudTheme.ACCENT
+				_fill.size = Vector2(_track.size.x * clampf(battle.muster_left / maxf(battle.muster_total(), 0.01), 0.0, 1.0), 3)
+			else:  # 돌격 중: 빨간 막대는 라운드 전체 적 가운데 남은 비율
+				_fill.color = HudTheme.DANGER
+				_fill.size = Vector2(_track.size.x * (1.0 - float(battle.enemies_left()) / maxi(_round_total(), 1)), 3)
 		"hiring", "cleared":
 			_g1.text = "영웅 고르기" if st == "hiring" else "다음 라운드"
 			_g2.text = "다음 적 %d" % _total(nw)
@@ -1250,6 +1256,10 @@ func _wave_lines(rw: Array) -> String:
 	for i in counts.size():
 		lines.append("%s — %s" % [SIDES[i] if i < SIDES.size() else str(i + 1), " · ".join(counts[i].keys().map(func(k): return "%s %d" % [ENEMIES[k], counts[i][k]]))])
 		kinds.merge(counts[i])
+	if battle.surges_of(rw[1], rw[0]) > 1:  # 파도별 종류 × 수(S188 2026-11-17 변경): 파도가 둘 이상인 웨이브만
+		var parts: Array = battle.surge_counts(rw[0], rw[1])
+		for j in parts.size():
+			lines.append(tr("파도 %d — %s") % [j + 1, " · ".join(parts[j].keys().map(func(k): return "%s %d" % [ENEMIES[k], parts[j][k]]))])
 	lines.append_array(kinds.keys().filter(func(k): return TRAITS.has(k)).map(func(k): return "%s: %s" % [ENEMIES[k], TRAITS[k]]))
 	if _night(rw):  # S214
 		lines.append(tr("밤 — 전투 %d초에 해가 진다") % int(battle.night(rw[0], rw[1]).get("at", 0.0)))

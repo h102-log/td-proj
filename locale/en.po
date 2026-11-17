@@ -2140,3 +2140,24 @@ msgstr "%s upgrade %d (Village Lv%d)"
 
 msgid "강화 %d단계"
 msgstr "upgrade rank %d"
+
+msgid "파도 %d/%d · 집결 %d:%02d"
+msgstr "Surge %d/%d · muster %d:%02d"
+
+msgid "파도 %d — %s"
+msgstr "Surge %d — %s"
+
+msgid "먼 곳 ×%s"
+msgstr "far ×%s"
+
+msgid "적의 땅 ×%s"
+msgstr "enemy ground ×%s"
+
+msgid "전장"
+msgstr "Front"
+
+msgid "포격"
+msgstr "Bombard"
+
+msgid "혼잡"
+msgstr "Crowd"

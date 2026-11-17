@@ -78,6 +78,7 @@ const RETREAT_BACK := 0.6  # 체력 비율이 이 위로 차면 자리로 돌아
 const RETREAT_TIMEOUT := 90.0  # 차지 않아도 이 초가 지나면 돌아온다. 임시값
 const FLAG_CAP := 6  # 주둔 깃발 수(S36 2026-11-17 변경). 임시값
 const DOCTRINE_EVERY := 0.5  # 복귀·후퇴 판정 간격(초). 임시값
+const FAR_TEXT := 1.2  # 먼 곳 처치 글이 보이는 초(S378 ⑤). 임시값
 const REACT_REACH := 2.0  # 반응(S36 2026-11-17 변경): 이 칸 안의 아군을 치는 적은 leash 밖이라도 쫓는다. 임시값
 const REACT_STEP := 1.0  # 그때 leash 밖으로 더 나가는 칸. 임시값
 const WALL_POST_NEAR := 2  # 깃발이 성곽 칸에서 이 칸 안이면 원거리 배속은 성벽 위 자리에 선다(S36 2026-11-17 변경). 임시값
@@ -638,6 +639,7 @@ var waves_done := 0   # 이 라운드에서 끝난 웨이브 수(S375 «웨이�
 var flags := []  # 주둔 깃발 칸(Vector2i, S36 2026-11-17 변경). 배속은 유닛의 flag_at이고, 배속이 없는 깃발은 _prune_flags가 지운다. 저장에 담지 않고 불러온 유닛의 flag_at에서 다시 센다
 var _crowd_rects := []  # 혼잡 칸(S377 ②): 열린 성문의 차지 칸을 crowd_pad칸 넓힌 사각형. 스텝마다 _terrain이 다시 모은다
 var _wake_clock := 0.0  # 집결 띠에 아군이 있는 동안 흐르는 깨우기 시계(S377 ⑦)
+var far_hits := []  # 먼 곳 처치 글(S378 ⑤): 포격·집결 띠에서 적이 쓰러진 자리 {at, zone, mult, age}. FAR_TEXT초 뒤 사라진다. 화면만 읽는다
 var _doc_clock := 0.0  # 다음 복귀·후퇴 판정(DOCTRINE_EVERY)까지 남은 초
 var _round_charged := false  # 이 라운드에서 파도가 한 번이라도 돌격했다(▶ 뒤). 다음 웨이브의 첫 파도가 돌격할 때 세금을 걷는 기준(I46 2026-11-17 변경)
 var _spare := 0.0  # 아직 1골드가 되지 않은 처치 보상(I176)
@@ -846,6 +848,9 @@ func step(dt: float) -> void:
 	blown = blown.filter(func(t): return t.age < BLOWN)
 	traces = traces.filter(func(t): return t.age < 1.0)
 	landed = landed.filter(func(m): return m.age < 1.0)
+	for f in far_hits:
+		f.age += dt
+	far_hits = far_hits.filter(func(f): return f.age < FAR_TEXT)
 	fallen = fallen.filter(func(f): return f.age < FALLEN)
 	wrecks = wrecks.filter(func(w): return w.age < WRECK or w.get("raid", false))  # 원정의 잔해(S342 ④)는 원정 시도가 끝날 때까지 남는다
 	if not trails.is_empty():
@@ -1040,11 +1045,27 @@ func _round_plan() -> Array:
 			out.append({"wave": w, "idx": j, "of": parts.size(), "turns": parts[j]})
 	return out
 
-# 웨이브 w의 파도 수(S375): 스테이지 surges[라운드][웨이브]. 없으면 1
-func surges_of(w: int) -> int:
+# 웨이브 w의 파도 수(S375): 스테이지 surges[라운드][웨이브]. 없으면 1. r이 0 이상이면 그 라운드, 아니면 지금 라운드
+func surges_of(w: int, r := -1) -> int:
+	var ri: int = r if r >= 0 else round_index
 	var s: Array = _stage.get("surges", [])
-	var row: Array = s[round_index] if round_index < s.size() and s[round_index] is Array else []
+	var row: Array = s[ri] if ri < s.size() and s[ri] is Array else []
 	return maxi(1, int(row[w])) if w < row.size() else 1
+
+# 라운드 r·웨이브 w의 파도마다 {적 종류: 수}(S188 2026-11-17 변경): 돌격 차례를 파도로 가른 것(_deal)과 같다
+func surge_counts(r: int, w: int) -> Array:
+	var out := []
+	for part in _deal(_turns(wave_plan(r, w)), surges_of(w, r), _stage.get("wave_climax", 1.0)):
+		var d := {}
+		for turn in part:
+			for p in turn:
+				d[p[0]] = d.get(p[0], 0) + 1
+		out.append(d)
+	return out
+
+# 집결 중인 파도의 집결 초 전체(S375, I13 2026-11-17 변경의 집결 막대). 집결 중이 아니면 0
+func muster_total() -> float:
+	return muster_secs(_surge.idx == 0) if mustering() else 0.0
 
 # 나오는 차례 목록(wave_plan)을 차례(한 순간에 함께 나오는 묶음, S238·S294·S301)로 가른다. 묶음의 마릿수는 맨 앞 항목의 넷째 칸이다
 func _turns(flat: Array) -> Array:
@@ -4768,6 +4789,9 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 		_spare += target.reward * _stage.get("reward_scale", 1.0) * gold_mult(target.pos)  # 처치 보상 배율(I176)에 띠 배율(S377 ⑥)을 곱한다. 1골드에 못 미치는 나머지는 쌓아 둔다
 		gold += floori(_spare)
 		_spare -= floori(_spare)
+		var zone := zone_of(target.pos)
+		if zone != "front":  # 먼 곳 처치 글(S378 ⑤): 화면이 쓰러진 자리에 띠 배율을 띄운다
+			far_hits.append({"at": target.pos, "zone": zone, "mult": gold_mult(target.pos), "age": 0.0})
 		_spread(target)
 		target.fx.clear()  # 도발은 영웅을 가리킨다. 죽은 적이 영웅을 붙잡아 두지 않게
 		for h in heroes:  # 누가 처치했든 그때 살아 있는 출전 영웅이 모두 받는다(S125)
