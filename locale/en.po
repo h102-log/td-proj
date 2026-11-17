@@ -2162,8 +2162,8 @@ msgstr "Bombard"
 msgid "혼잡"
 msgstr "Crowd"
 
-msgid "집결이 길면 위 오른쪽 ▶ 북(Enter)으로\n파도를 바로 돌격시킨다"
-msgstr "If the muster drags, ▶ Drum (Enter) top right\nsends the surge charging now"
+msgid "집결이 길면 ▶ 북(Enter)으로\n파도를 바로 돌격시킨다"
+msgstr "Muster too long? ▶ Drum (Enter)\ntop right sends the surge now"
 
-msgid "용병을 고르고 D로 깃발을 세우면 둘레에 서고\n원거리는 가까운 성벽 위에 오른다"
-msgstr "Select mercs, press D to plant a flag: they form around it\nand ranged ones climb the nearest rampart"
+msgid "용병을 고르고 D로 깃발을 세운다\n원거리는 가까운 성벽에 오른다"
+msgstr "Select mercs, D plants a flag:\nthey hold it, archers take walls"
