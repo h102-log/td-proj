@@ -200,3 +200,38 @@ func ev1199():
 	var many: float = b._might(h)
 	return check(none == 1.0 and far == 0.0 and absf(three - 1.06) < 0.001 and crowd >= 15 and absf(many - 1.3) < 0.001,
 		"혼자 %.2f(1.0) · 5칸 밖 하나 %.2f(0) · 셋 %.3f(1.06) · 4칸 안 %d명 %.3f(1.3)" % [none, far, three, crowd, many])
+
+# EV1208 · S377 ⑦(S211 2026-11-17 변경): 집결 띠는 낮에도 band_dark(0.8)만큼 어두워 불빛 반경 ÷ 0.8 밖의 적은 보이지 않는다(lit 거짓). 띠 밖은 낮이라 모두 보이고,
+# band_dark 0이면 띠 안도 보인다
+func ev1208():
+	var b = _board({"band_dark": 0.8})
+	var m = b.place_merc("soldier", Vector2i(15, 13), {"sight": 10, "damage": 0.0})  # 병사 불빛 3.5 → 띠 안에서는 4.375칸
+	_fight(b)
+	var darks := [b.dark_at(Vector2i(15, 18)), b.dark_at(Vector2i(15, 12)), b.dark]
+	var e = _dummy(b, Vector2i(15, 18))
+	b.step(DT)
+	var hidden: bool = not e.lit and not b.seen(Vector2(15, 18)) and b.seen(Vector2(15, 12))
+	m.pos = Vector2(15, 15)
+	b.step(DT)
+	var lit: bool = e.lit and b.seen(Vector2(15, 18))
+	var c = _board({"band_dark": 0.0})
+	_fight(c)
+	var day = _dummy(c, Vector2i(15, 18))
+	c.step(DT)
+	return check(darks == [0.8, 0.0, 0.0] and hidden and lit and day.lit, "어둠 [띠 안, 띠 밖, 판] %s(0.8·0·0) · 5칸 떨어진 띠 안의 적 숨음 %s · 3칸이면 보임 %s · band_dark 0이면 보임 %s" % [darks, hidden, lit, day.lit])
+
+# EV1209 · S377 ⑩: 라운드 웨이브 파일의 band_scale(스테이지 band_scale_rounds)이 그 라운드의 밀림·깨우기·상시 어둠에 곱한다. 0.5면 1초에 0.5칸 밀리고 2.1초에 3마리가 깨며 띠 어둠은 0.4다
+func ev1209():
+	var b = _board({"waves": [W, [{"kind": "basic", "count": 10}]], "band_dark": 0.8, "band_scale_rounds": [0.5]})
+	var m = b.place_merc("soldier", Vector2i(15, 12), {"damage": 0.0, "sight": 0, "hp": BIG})
+	b.start_battle()
+	run(b, 3.0, func(): return b.dormant.size() == 10 and not b.enemies.is_empty())
+	kill_all(b)
+	var foes: int = b.enemies.size()
+	var scale := [b.band_scale(), b.band_dark()]
+	m.pos = Vector2(15, 19)
+	run(b, 1.0)
+	var pushed: float = 19.0 - m.pos.y
+	run(b, 1.1)
+	var woke: int = b.enemies.size() - foes
+	return check(scale == [0.5, 0.4] and absf(pushed - 0.5) <= 0.1 and woke == 3, "배율·띠 어둠 %s(0.5·0.4) · 1초에 밀린 거리 %.2f(0.5) · 2.1초에 깨어난 적 %d(3)" % [scale, pushed, woke])

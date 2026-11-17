@@ -36,3 +36,11 @@ def test_EV1198_hunts_hero(gd):
 
 def test_EV1199_command_bonus(gd):
     gd("terrain", "EV1199")
+
+
+def test_EV1208_band_darkness(gd):
+    gd("terrain", "EV1208")
+
+
+def test_EV1209_band_scale(gd):
+    gd("terrain", "EV1209")

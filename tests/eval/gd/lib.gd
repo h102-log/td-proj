@@ -32,7 +32,7 @@ func battle(over := {}):
 		# 지형 이점·세 띠(S377)는 평가 판에서 끈다(terrain 스위트가 켜서 잰다): 사거리 보너스 0, 혼잡 ×1, 포위·전장 띠 없음, 노출 블록 무시 끔, 띠 골드 ×1, 밀림·깨우기·사냥꾼·지휘 0.
 		# band_rows가 없어 집결 띠도 없다(S375의 잠든 적은 출현 칸에 선다)
 		"wall_range_bonus": 0.0, "crowd_slow": 1.0, "surround_from": BIG, "harvest_rows": BIG, "exposed_block_mode": false, "exposed_light": 1.0,
-		"bombard_gold": 1.0, "band_gold": 1.0, "band_push": 0.0, "band_wake": 0, "hunts_hero": 0, "command_per": 0.0,
+		"bombard_gold": 1.0, "band_gold": 1.0, "band_push": 0.0, "band_wake": 0, "band_dark": 0.0, "hunts_hero": 0, "command_per": 0.0,
 	}
 	stage.merge(over, true)
 	return load("res://src/sim/battle.gd").new(stage)

@@ -14,6 +14,8 @@ extends Resource
 # 집결 초(S375): 웨이브 첫 파도(muster_first)와 그다음 파도(muster)가 집결 띠에 잠들어 있는 시간. 0 이상이면 스테이지 값을 덮고, 음수면 스테이지 값이다. 임시값
 @export var muster_first := -1.0
 @export var muster := -1.0
+# 집결 띠 디버프 배율(S377 ⑩): 이 라운드의 band_push·band_wake·band_dark에 곱한다. 1라운드 튜토리얼은 0.5. 임시값
+@export var band_scale := 1.0
 
 # Battle stage의 waves 모양([[{kind, count}, ...], ...])으로 바꾼다. 출현 지점에 묶인 종류는 항목에 front가 붙는다
 func to_stage() -> Array:

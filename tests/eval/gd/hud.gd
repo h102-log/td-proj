@@ -2047,7 +2047,17 @@ func ev368():
 			out = "첫 출전 영웅이 Q(%s)를 쓰지 못했다" % h.q.aim
 		else:
 			_frame(main)
-			out = check(not hud.hints.is_visible_in_tree() and "skill" in st.hints_done, "Q를 쓴 뒤 힌트 칸 보임 %s · 끝낸 힌트 %s(기대: 숨고 skill이 있다)" % [hud.hints.is_visible_in_tree(), st.hints_done])
+			var said := _hint_says(main)
+			if not "skill" in st.hints_done or not "깃발" in said:  # Q 다음은 깃발 힌트다(S192 2026-11-17 변경)
+				out = "Q를 쓴 뒤 힌트 글 «%s» · 끝낸 힌트 %s(기대: «깃발» 있음, skill이 있다)" % [said, st.hints_done]
+	if out == "":
+		run(b, 7.0)  # 전투 중 산 병사 둘이 대기열(6초, S20 2026-11-17 변경)에서 나온다
+		var mercs: Array = b.units.filter(func(u): return not u.is_hero and u.kind == "soldier")
+		if not b.plant_flag(mercs, Vector2i(32, 70)):
+			out = "병사 %d명으로 깃발을 세우지 못했다" % mercs.size()
+		else:
+			_frame(main)
+			out = check(not hud.hints.is_visible_in_tree() and "flag" in st.hints_done, "깃발을 세운 뒤 힌트 칸 보임 %s · 끝낸 힌트 %s(기대: 숨고 flag가 있다)" % [hud.hints.is_visible_in_tree(), st.hints_done])
 	_done(main)
 	_hints_reset()
 	return out

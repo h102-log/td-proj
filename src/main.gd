@@ -305,6 +305,7 @@ static func stage() -> Dictionary:
 		"surges": ROUNDS.map(func(r): return load("res://data/waves/%s.tres" % r).surges),
 		"muster_first_rounds": ROUNDS.map(func(r): return load("res://data/waves/%s.tres" % r).muster_first),
 		"muster_rounds": ROUNDS.map(func(r): return load("res://data/waves/%s.tres" % r).muster),
+		"band_scale_rounds": ROUNDS.map(func(r): return load("res://data/waves/%s.tres" % r).band_scale),  # 라운드마다 집결 띠 디버프 배율(S377 ⑩, 1라운드 0.5)
 		"hero_back": 30.0, "hero_back_hp": 0.5, "hero_back_cell": Vector2i(mid, mid + 1),  # 전투 중 쓰러진 영웅은 30초 뒤 거점 아래 칸에 체력 절반으로(S26·S138 2026-11-17 변경, 임시값)
 		"calm_mult": 1.5,  # 평시 세금 보너스(I46 2026-11-17 변경): 걷는 순간 성벽 근처에 적이 없으면 ×1.5. 임시값
 		"build_time_scale": 2.0,  # 전투 중 공병 일의 시간 배율(S22 2026-11-17 변경). 임시값
@@ -313,7 +314,7 @@ static func stage() -> Dictionary:
 		# 집결 띠의 아군은 1칸/초 밀리고 2초마다 잠든 적 6이 깨어남, 2라운드부터 파도마다 사냥꾼 3(12칸), 지휘 보너스 4칸 안 아군 1명마다 +2%(상한 +30%)
 		"wall_range_bonus": 1.0, "crowd_pad": 2, "crowd_slow": 0.5, "surround_from": 3, "surround_step": 0.15, "surround_cap": 0.6,
 		"harvest_rows": 6, "exposed_cap": 1.25, "exposed_light": 0.7, "exposed_block_mode": true, "flag_cover": 2.0,
-		"bombard_gold": 0.5, "band_gold": 0.0, "band_push": 1.0, "band_wake": 6, "band_wake_every": 2.0,
+		"bombard_gold": 0.5, "band_gold": 0.0, "band_push": 1.0, "band_wake": 6, "band_wake_every": 2.0, "band_dark": 0.8,
 		"hunts_hero": 3, "hunts_from": 2, "hunt_sight": 12.0, "command_per": 0.02, "command_cap": 0.3, "command_radius": 4.0,
 		# 출전 칸(I107): 정문 문루 바로 앞 들판(한 줄 띄움)의 세 칸. 성문은 닫힌 채 시작해서(I67) 마을 안에 두면 나올 수 없다(I42, 사용자 2026-10-12)
 		"hero_cells": [Vector2i(mid - 1, n + 1), Vector2i(mid + 1, n + 1), Vector2i(mid, n + 1)],

@@ -177,3 +177,71 @@ func ev1207():
 	var left: int = v.far_texts().size()
 	v.free()
 	return check(front == 0 and texts == ["먼 곳 ×0.5", "적의 땅 ×0"] and left == 0, "전장 띠 처치 글 %d(0) · 글 %s · %.1f초 뒤 %d(0)" % [front, texts, b.FAR_TEXT + 0.1, left])
+
+# EV1210 · S377 ⑦(S212·S211 2026-11-17 변경): 시험 스테이지 1라운드(band_scale 0.5 → 띠 어둠 0.4) 준비 단계에 집결 띠 덮개(`view.band_night`)는 맵의 자식으로 (0, 124행 px)에서
+# 낮에도 보이고 셰이더 어둠이 0.4이며 밤 덮개(`view.night`)는 숨어 있다. 판의 어둠이 0.6이면 띠 덮개는 숨고, 0.2면 겹친 불투명도가 0.85 × 0.4가 되는 어둠(≈0.241)과 반경 ÷ 0.4의 불빛을 넘긴다
+func ev1210():
+	var main = _prep()
+	var v = main.view
+	var b = v.battle
+	_frame(main)
+	var at: Vector2 = v.band_night.position
+	var day := [v.band_night.get_parent() == v, at == Vector2(0, b.band_top() * 16), v.band_night.visible, v.band_night.material.get_shader_parameter("dark"), v.night.visible]
+	b.dark = 0.6
+	v.tick(0.0)
+	var dusk_hidden: bool = not v.band_night.visible and v.band_night_params().is_empty()
+	b.dark = 0.2
+	v.tick(0.0)
+	var p: Dictionary = v.band_night_params()
+	var want: float = (0.85 * 0.4 - 0.85 * 0.2) / (1.0 - 0.85 * 0.2) / 0.85
+	var l: Array = b.lights[0]
+	var radius_ok: bool = p.lights[0].is_equal_approx(Vector4(l[0].x * 16 + 8, l[0].y * 16 + 8, l[1] / 0.4 * 16, 0))
+	_done(main)
+	return check(day[0] and day[1] and day[2] and absf(day[3] - 0.4) < 0.001 and not day[4] and dusk_hidden and absf(p.dark - want) < 0.002 and p.count == b.lights.size() and radius_ok,
+		"낮: 부모 %s 자리 %s(0,%d) 보임 %s 어둠 %.3f(0.4) 밤 덮개 보임 %s(거짓) · 어둠 0.6이면 숨음 %s · 어둠 0.2 띠 어둠 %.3f(%.3f) 불빛 %d(%d) 반경 %s" % [day[0], at, b.band_top() * 16, day[2], day[3], day[4], dusk_hidden, p.get("dark", -1.0), want, p.get("count", -1), b.lights.size(), radius_ok])
+
+# EV1211 · S192 2026-11-17 변경: 1라운드 3웨이브 집결 중 영웅 이동 힌트 다음은 «북» 힌트이고 북을 울리면 끝난다. 3웨이브 전투의 스킬 힌트 다음은 «깃발» 힌트이고 깃발을 세우면 끝난다
+func ev1211():
+	var st = _hints_reset()
+	var main = _prep()
+	var b = main.view.battle
+	var hud = main.hud
+	var m = b.place_merc("soldier", Vector2i(30, 66))
+	b.start_battle()
+	var out := ""
+	if not clear_wave(b):
+		out = "1웨이브를 끝내지 못했다"
+	run(b, 31.0, func(): return b.wave_index >= 1 and not b.mustering())  # 2웨이브 첫 파도가 북 없이 돌격한다(집결 30초)
+	if out == "" and not clear_wave(b):
+		out = "2웨이브를 끝내지 못했다"
+	if out == "":
+		_frame(main)
+		if b.muster_wave() != 2 or not "우클릭" in _hint_says(main):
+			out = "3웨이브 집결 중(집결 웨이브 %d) 힌트 «%s»(기대: «우클릭»)" % [b.muster_wave(), _hint_says(main)]
+	if out == "":
+		main.view.controls.hero_sent.emit()
+		_frame(main)
+		if not "북" in _hint_says(main) or "drum" in st.hints_done:
+			out = "영웅 이동 뒤 힌트 «%s» · 끝낸 힌트 %s(기대: «북» 있음, drum 없음)" % [_hint_says(main), st.hints_done]
+	if out == "":
+		b.start_battle()
+		_frame(main)
+		if not "drum" in st.hints_done or b.mustering() or not "스킬" in _hint_says(main):
+			out = "북 뒤 끝낸 힌트 %s · 집결 중 %s · 힌트 «%s»(기대: drum 있음, 돌격, «스킬»)" % [st.hints_done, b.mustering(), _hint_says(main)]
+	if out == "":
+		var h = b.heroes[0]
+		if not b.cast(h, "q", h if h.q.aim == "ally" else h.pos + Vector2(1, 0)):
+			out = "영웅이 Q를 쓰지 못했다"
+		else:
+			_frame(main)
+			if not "깃발" in _hint_says(main) or not "skill" in st.hints_done:
+				out = "Q 뒤 힌트 «%s»(기대: «깃발»)" % _hint_says(main)
+	if out == "":
+		if m == null or not b.plant_flag([m], Vector2i(32, 70)):
+			out = "깃발을 세우지 못했다"
+		else:
+			_frame(main)
+			out = check(not hud.hints.is_visible_in_tree() and "flag" in st.hints_done, "깃발 뒤 힌트 칸 보임 %s · 끝낸 힌트 %s(기대: 숨고 flag가 있다)" % [hud.hints.is_visible_in_tree(), st.hints_done])
+	_done(main)
+	_hints_reset()
+	return out

@@ -91,6 +91,7 @@ const TERRAIN := {
 	"exposed_cap": 1.25, "exposed_light": 0.7, "exposed_block_mode": true, "flag_cover": 2.0,  # ⑤ 노출: 포격 띠 첫 줄 1.0 → 마지막 줄 cap, 불빛 ×, 블록 자리 무시. 깃발 둘레 cover칸은 면제
 	"bombard_gold": 0.5, "band_gold": 0.0,  # ⑥ 처치 골드 배율(I176에 곱): 전장 띠 1 · 포격 띠 · 집결 띠
 	"band_push": 1.0, "band_wake": 6, "band_wake_every": 2.0,  # ⑦ 집결 띠의 아군: 성곽 쪽으로 밀리고(칸/초), every초마다 가장 가까운 잠든 적 n이 깨어난다
+	"band_dark": 0.8,  # ⑦ 집결 띠의 상시 어둠(0~1): 낮에도 불빛 밖의 적이 보이지 않는다. 밤이 더 어두우면 밤 어둠이다. 라운드 웨이브 파일의 band_scale이 push·wake·dark에 곱한다
 	"hunts_hero": 3, "hunts_from": 2, "hunt_sight": 12.0,  # ⑧ hunts_from라운드(1부터)부터 파도마다 사냥꾼 n: hunt_sight칸 안의 지키는 자리 밖 영웅을 먼저 노린다
 	"command_per": 0.02, "command_cap": 0.3, "command_radius": 4.0,  # ⑨ 지휘 보너스: 영웅 둘레 radius칸 안의 다른 아군 1명마다 피해 +per, 상한 +cap
 }
@@ -640,6 +641,8 @@ var flags := []  # 주둔 깃발 칸(Vector2i, S36 2026-11-17 변경). 배속은
 var _crowd_rects := []  # 혼잡 칸(S377 ②): 열린 성문의 차지 칸을 crowd_pad칸 넓힌 사각형. 스텝마다 _terrain이 다시 모은다
 var _wake_clock := 0.0  # 집결 띠에 아군이 있는 동안 흐르는 깨우기 시계(S377 ⑦)
 var far_hits := []  # 먼 곳 처치 글(S378 ⑤): 포격·집결 띠에서 적이 쓰러진 자리 {at, zone, mult, age}. FAR_TEXT초 뒤 사라진다. 화면만 읽는다
+var drummed := 0  # 울린 북 수(S375). 튜토리얼 힌트(S192 2026-11-17 변경)가 읽는다
+var flags_planted := 0  # 세운 주둔 깃발 수(S36 2026-11-17 변경). 튜토리얼 힌트가 읽는다
 var _doc_clock := 0.0  # 다음 복귀·후퇴 판정(DOCTRINE_EVERY)까지 남은 초
 var _round_charged := false  # 이 라운드에서 파도가 한 번이라도 돌격했다(▶ 뒤). 다음 웨이브의 첫 파도가 돌격할 때 세금을 걷는 기준(I46 2026-11-17 변경)
 var _spare := 0.0  # 아직 1골드가 되지 않은 처치 보상(I176)
@@ -991,6 +994,7 @@ func drum() -> bool:
 	if not mustering() or muster_left <= 0.0:
 		return false
 	muster_left = 0.0
+	drummed += 1
 	return true
 
 # 집결 중인가(S375): 전투 단계이고 다음 파도의 적이 집결 띠에 잠들어 있다
@@ -1179,6 +1183,12 @@ func _light_up() -> void:
 
 # 칸 좌표 p가 보이나(S211, S213): 어둠이 0이면 늘 보이고, 아니면 어느 불빛의 지금 반경(밤 반경 ÷ 어둠) 안이어야 한다
 func seen(p: Vector2) -> bool:
+	var bd := band_dark()
+	if bd > dark and in_band(p):  # 집결 띠의 상시 어둠(S377 ⑦, S211 2026-11-17 변경): 낮이어도 불빛 반경 ÷ 띠 어둠 안이어야 보인다. 구역 표는 판의 어둠으로 담겨 있어 불빛을 바로 본다
+		for l in lights:
+			if p.distance_to(l[0]) <= l[1] / bd:
+				return true
+		return false
 	if _all_lit:
 		return true
 	for l in _lit.get(Vector2i((p / LIGHT_CHUNK).floor()).clamp(Vector2i.ZERO, (size - Vector2i.ONE) / LIGHT_CHUNK), []):
@@ -2414,6 +2424,7 @@ func plant_flag(group: Array, cell: Vector2i) -> bool:
 	for u in team:
 		u.flag_at = cell
 	_prune_flags()
+	flags_planted += 1
 	return true
 
 # 깃발이 성곽 가까이면 원거리 배속에게 성벽 위 자리를 준다: 깃발에서 가까운 빈 성곽 칸(대포 칸·다른 유닛이 서거나 가는 칸 빼고)부터. 자리를 받은 유닛을 돌려준다
@@ -2749,6 +2760,19 @@ func knob(key: String):
 func _cell_of(p) -> Vector2i:
 	return p if p is Vector2i else Vector2i((p as Vector2).round())
 
+# 이 라운드의 집결 띠 디버프 배율(S377 ⑩): 라운드 웨이브 파일(I66)의 band_scale(스테이지 band_scale_rounds). 없으면 1. 1라운드 튜토리얼은 0.5
+func band_scale() -> float:
+	var rows: Array = _stage.get("band_scale_rounds", [])
+	return maxf(0.0, float(rows[round_index])) if round_index < rows.size() and (rows[round_index] is float or rows[round_index] is int) else 1.0
+
+# 집결 띠의 상시 어둠(S377 ⑦): band_dark × 이 라운드의 배율
+func band_dark() -> float:
+	return clampf(float(knob("band_dark")) * band_scale(), 0.0, 1.0)
+
+# 자리 p의 어둠(S211 2026-11-17 변경): 집결 띠 안이면 판의 어둠과 띠의 상시 어둠 가운데 큰 쪽, 밖이면 판의 어둠
+func dark_at(p) -> float:
+	return maxf(dark, band_dark()) if in_band(p) else dark
+
 # 집결 띠의 첫 행(S375 band_rows). band_rows가 없으면 맵 높이라 집결 띠가 없다
 func band_top() -> int:
 	return size.y - int(_stage.get("band_rows", 0))
@@ -2877,7 +2901,8 @@ func _terrain(dt: float) -> void:
 	if state != "battle":
 		_wake_clock = 0.0
 		return
-	var push: float = knob("band_push")
+	var scale := band_scale()  # 라운드 배율(S377 ⑩)
+	var push: float = float(knob("band_push")) * scale
 	var intruder = null
 	for u in units:
 		if u.alive and not u.on_wall and not _carried(u) and in_band(u.pos):
@@ -2891,7 +2916,7 @@ func _terrain(dt: float) -> void:
 		return
 	_wake_clock += dt
 	var every: float = knob("band_wake_every")
-	var n: int = int(knob("band_wake"))
+	var n: int = roundi(int(knob("band_wake")) * scale)
 	if n <= 0 or every <= 0.0 or _wake_clock < every or dormant.is_empty():
 		return
 	_wake_clock -= every

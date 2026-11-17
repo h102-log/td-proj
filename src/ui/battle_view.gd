@@ -408,6 +408,7 @@ var _order_t0 := 0.0  # 그 명령을 처음 본 화면 시각
 var _shots := {}  # 날고 있는 투사체 id → 출발 자리(맵 px). 처음 그릴 때 쏜 쪽의 쏘는 곳이다
 var _landed := {}  # 지난 프레임까지 본 닿은 투사체(battle.landed) id. 닿음·처치는 투사체 하나에 한 번이다(I171)
 var night: ColorRect  # 어둠 덮개(S212): 바닥 그림(맵 밖 아래 띠까지)을 덮는 사각형 하나에 셰이더를 바른다. 맵의 자식이라 맵 그림 다음에 그린다
+var band_night: ColorRect  # 집결 띠의 상시 어둠 덮개(S377 ⑦). 띠 줄만 덮고 낮에도 보인다
 var _top: Node2D  # 덮개 위 층: 조준 미리보기·출현 배지·체력 막대·명령 표식·드래그 사각형(_draw_top). 덮개 다음 자식이다
 var _cv: CanvasItem = self  # _draw_top의 그리기 함수가 그리는 곳. 층이 없으면(트리 밖에서 만든 맵) 맵 자신이다
 var _foes := []  # 이번 프레임에 보이는 적(S213). 숨은 적은 몸·발밑·막대·효과 테두리·예고를 그리지 않는다
@@ -437,6 +438,21 @@ func _night_layer() -> void:
 	mat.set_shader_parameter("torch_color", TORCH)
 	night.material = mat
 	add_child(night)
+	band_night = ColorRect.new()  # 집결 띠의 상시 어둠 덮개(S377 ⑦, S211 2026-11-17 변경): 띠 줄만 덮는 같은 셰이더. 낮에도 보인다
+	band_night.position = Vector2(0, battle.band_top() * CELL)
+	band_night.size = Vector2(battle.size.x * CELL, maxi(battle.size.y - battle.band_top(), 0) * CELL + int(Camera.BOTTOM))
+	band_night.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	band_night.visible = false
+	var bmat := ShaderMaterial.new()
+	bmat.shader = sh
+	bmat.set_shader_parameter("px_size", band_night.size)
+	bmat.set_shader_parameter("origin", band_night.position)
+	bmat.set_shader_parameter("alpha", NIGHT_ALPHA)
+	bmat.set_shader_parameter("torch_alpha", TORCH_ALPHA)
+	bmat.set_shader_parameter("night_color", NIGHT_COLOR)
+	bmat.set_shader_parameter("torch_color", TORCH)
+	band_night.material = bmat
+	add_child(band_night)
 	_top = Node2D.new()
 	_top.draw.connect(func():
 		_cv = _top
@@ -448,9 +464,30 @@ func _night_layer() -> void:
 func eyes() -> Array:
 	return [] if battle.dark <= 0.0 else battle.enemies.filter(func(e): return not e.night.is_empty() and not battle.seen(e.pos))
 
-# 맵에 그리는 적(S213): 어둠 속에 숨은 적은 뺀다
+# 맵에 그리는 적(S213): 어둠 속에 숨은 적은 뺀다. 낮에는 집결 띠의 상시 어둠(S377 ⑦, S211 2026-11-17 변경) 속에 숨은 적만 뺀다
 func foes() -> Array:
-	return battle.enemies if battle.dark <= 0.0 else battle.enemies.filter(func(e): return battle.seen(e.pos))
+	if battle.dark > 0.0:
+		return battle.enemies.filter(func(e): return battle.seen(e.pos))
+	if battle.band_dark() > 0.0 and battle.band_top() < battle.size.y:
+		return battle.enemies.filter(func(e): return not battle.in_band(e.pos) or battle.seen(e.pos))
+	return battle.enemies
+
+# 집결 띠 덮개(S377 ⑦)의 셰이더 값: 띠 어둠이 판의 어둠보다 짙을 때만 보이고, 두 덮개가 겹친 불투명도가 «NIGHT_ALPHA × 띠 어둠»이 되게 띠 덮개의 어둠을 줄여 넘긴다.
+# 불빛 반경은 띠 어둠으로 나눈다. 보이지 않으면 {}
+func band_night_params() -> Dictionary:
+	var bd: float = battle.band_dark()
+	if bd <= battle.dark or battle.band_top() >= battle.size.y:
+		return {}
+	var a1: float = NIGHT_ALPHA * battle.dark
+	var dark2: float = (NIGHT_ALPHA * bd - a1) / maxf(1.0 - a1, 0.0001) / NIGHT_ALPHA
+	var pts := PackedVector4Array()
+	pts.resize(NIGHT_LIGHTS)
+	var n := 0
+	for l in battle.lights.slice(0, NIGHT_LIGHTS):
+		var c: Vector2 = l[0] * CELL + Vector2(CELL, CELL) / 2.0
+		pts[n] = Vector4(c.x, c.y, minf(l[1] / bd, 4096.0) * CELL, 0.0)
+		n += 1
+	return {"dark": clampf(dark2, 0.0, 1.0), "count": n, "lights": pts}
 
 # 예고를 그리는 적(S194): 예고 중인 보이는 적. UNSEEN_TELLS(덮치기 S242, 던지기·폭탄·투하 S279, 대포 S287, 불화살 I249)는 적이 어둠 속에 숨어도 그린다(S213)
 func tellers(shown = null) -> Array:
@@ -3475,6 +3512,13 @@ func tick(dt: float) -> void:
 		for k in params:
 			mat.set_shader_parameter(k, params[k])
 		night.visible = battle.dark > 0.0
+	if band_night:  # 집결 띠 덮개(S377 ⑦)
+		var bp := band_night_params()
+		band_night.visible = not bp.is_empty()
+		if band_night.visible:
+			var bmat: ShaderMaterial = band_night.material
+			for k in bp:
+				bmat.set_shader_parameter(k, bp[k])
 	events = []
 	_fills = _fills.map(func(f): return [f[0], f[1] - 1]).filter(func(f): return f[1] > 0)
 	var firing := {}

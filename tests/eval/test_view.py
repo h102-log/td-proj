@@ -28,3 +28,11 @@ def test_EV1206_keep_queue_badge(gd):
 
 def test_EV1207_far_kill_texts(gd):
     gd("view", "EV1207")
+
+
+def test_EV1210_band_night_layer(gd):
+    gd("view", "EV1210")
+
+
+def test_EV1211_drum_and_flag_hints(gd):
+    gd("view", "EV1211")
