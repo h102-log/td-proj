@@ -874,6 +874,33 @@ msgstr "Heal"
 msgid "치료 %s"
 msgstr "Heal %s"
 
+msgid "용병 치료"
+msgstr "Heal mercs"
+
+msgid "용병 치료 %d"
+msgstr "Heal mercs %d"
+
+msgid "다친 용병 없음"
+msgstr "No hurt mercs"
+
+msgid "골드 부족"
+msgstr "Not enough gold"
+
+msgid "%s +%d → 대기열 %d"
+msgstr "%s +%d → queue %d"
+
+msgid "%s 생산 취소 — 환불"
+msgstr "%s training cancelled — refunded"
+
+msgid "클릭 1명 · Shift+클릭 5명 · 우클릭 대기 취소 · 마우스 올리면 설명"
+msgstr "Click 1 · Shift+click 5 · RMB cancel queue · hover for info"
+
+msgid "0이 되면 도전 끝 · 마을 Lv%d · 다음 파도 세금 +%d · 라운드 %d/%d — 누르면 카메라가 거점으로 간다"
+msgstr "0 = run over · Village Lv%d · next-surge tax +%d · round %d/%d — click to view the Keep"
+
+msgid "0이 되면 도전 끝 · 마을 Lv%d · 다음 파도 세금 +%d(평시 보너스) · 라운드 %d/%d — 누르면 카메라가 거점으로 간다"
+msgstr "0 = run over · Village Lv%d · next-surge tax +%d (calm bonus) · round %d/%d — click to view the Keep"
+
 # ── 안내 칩·토스트·경보(hud.gd, hud_alert.gd) ──
 
 msgid "%s 놓기: 좌클릭 · 끝: 우클릭·ESC"
@@ -992,6 +1019,24 @@ msgstr "Hold on\nOnly hits enemies near its post"
 msgid "홀드 섞임\n누르면 모두 켠다"
 msgstr "Hold mixed\nClick: turn all on"
 
+msgid "후퇴"
+msgstr "Retreat"
+
+msgid "후퇴 끔\n켜면 체력 30% 밑에서 피난처로 물러나 60%에 돌아온다"
+msgstr "Retreat off\nOn: falls back to a haven under 30% HP, returns at 60%"
+
+msgid "후퇴 켬\n체력 30% 밑에서 피난처로 물러나 60%에 돌아온다"
+msgstr "Retreat on\nFalls back to a haven under 30% HP, returns at 60%"
+
+msgid "후퇴 섞임\n누르면 모두 켠다"
+msgstr "Retreat mixed\nClick to turn all on"
+
+msgid "주둔 깃발"
+msgstr "Post flag"
+
+msgid "누른 뒤 땅: 고른 용병이 그 칸의 깃발에 배속돼 대열로 선다\n성곽 가까이면 원거리는 성벽 위에"
+msgstr "Then click ground: selected mercs post at that flag in formation\nNear the rampart, ranged ones take the wall"
+
 msgid "거점 %d/%d"
 msgstr "Keep %d/%d"
 
@@ -1015,6 +1060,18 @@ msgstr "Enemies %d"
 
 msgid "남은 적 %d"
 msgstr "Enemies left %d"
+
+msgid "파도 %d/%d · 집결 %d초"
+msgstr "Surge %d/%d · muster %ds"
+
+msgid "북"
+msgstr "Drum"
+
+msgid "집결 중인 파도를 바로 돌격시킨다"
+msgstr "Sends the mustering surge charging now"
+
+msgid "집결 중 — Enter를 누르면 북을 울려 바로 돌격시킨다"
+msgstr "Mustering — press Enter to beat the drum and charge now"
 
 msgid "다음 적 %d"
 msgstr "Next enemies %d"
@@ -2083,3 +2140,30 @@ msgstr "%s upgrade %d (Village Lv%d)"
 
 msgid "강화 %d단계"
 msgstr "upgrade rank %d"
+
+msgid "파도 %d/%d · 집결 %d:%02d"
+msgstr "Surge %d/%d · muster %d:%02d"
+
+msgid "파도 %d — %s"
+msgstr "Surge %d — %s"
+
+msgid "먼 곳 ×%s"
+msgstr "far ×%s"
+
+msgid "적의 땅 ×%s"
+msgstr "enemy ground ×%s"
+
+msgid "전장"
+msgstr "Front"
+
+msgid "포격"
+msgstr "Bombard"
+
+msgid "혼잡"
+msgstr "Crowd"
+
+msgid "집결이 길면 ▶ 북(Enter)으로\n파도를 바로 돌격시킨다"
+msgstr "Muster too long? ▶ Drum (Enter)\ntop right sends the surge now"
+
+msgid "용병을 고르고 D로 깃발을 세운다\n원거리는 가까운 성벽에 오른다"
+msgstr "Select mercs, D plants a flag:\nthey hold it, archers take walls"

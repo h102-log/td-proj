@@ -41,13 +41,9 @@ func _kill(b, n: int) -> void:
 
 # 지금 라운드의 웨이브를 모두 이긴다. 라운드 사이나 승리가 되면 참
 func _win_round(b) -> bool:
-	for i in 20:
-		if b.state != "prep":
-			break
+	if b.state == "prep":  # 라운드 첫 준비에서 ▶ 한 번이면 라운드의 웨이브가 모두 이어진다(S17 2026-11-17 변경)
 		b.start_battle()
-		if not clear_wave(b):
-			return false
-	return b.state in ["cleared", "won"]
+	return clear_round(b) and b.state in ["cleared", "won"]
 
 # EV204 · S125: 적이 처치되면 그때 전장에 살아 있는 출전 영웅이 모두 경험치를 받는다
 func ev204():

@@ -2,9 +2,11 @@ extends "res://tests/eval/gd/lib.gd"
 
 const START := Vector2i(5, 5)
 
-func _two_waves():
+func _two_waves(over := {}):
 	var one := [{"kind": "basic", "count": 1}]
-	return battle({"hero_start": Vector2i(20, 5), "base_hp": BIG, "waves": [one, one]})
+	var st := {"hero_start": Vector2i(20, 5), "base_hp": BIG, "waves": [one, one]}
+	st.merge(over, true)
+	return battle(st)
 
 # EV19 · S14: 영웅을 클릭해 고르고 우클릭한 지점으로 간다
 func ev19():
@@ -32,29 +34,33 @@ func ev21():
 	run(b, 10)
 	return check(b.hero.skill_uses == 0 and b.state == "battle", "명령 없이 스킬을 %d번 썼다(%s)" % [b.hero.skill_uses, b.state])
 
-# EV22 · S26: 쓰러진 영웅은 웨이브 동안 없고, 다음 준비 단계에 시작 지점에 있다
+# EV22 · S26 2026-11-17 변경: 쓰러진 영웅은 hero_back(이 판 5초) 동안 전장에 없고, 그 뒤 전투 중에 거점 옆 칸으로 돌아온다. 웨이브가 끝나도 준비 단계는 오지 않는다
 func ev22():
-	var b = _two_waves()
+	var b = _two_waves({"hero_back": 5.0})
 	b.start_battle()
 	run(b, 1)
 	b.damage(b.hero, BIG)
 	run(b, 3)
 	if b.hero.present:
-		return "쓰러진 영웅이 웨이브 도중 전장에 있다"
-	if not clear_wave(b) or b.state != "prep":
-		return "웨이브가 끝나지 않았다"
-	return check(b.hero.present and near(b.hero.pos, Vector2i(20, 5)), "다음 준비 단계에 시작 지점으로 복귀하지 않았다")
+		return "쓰러진 영웅이 3초 뒤 전장에 있다"
+	if not clear_wave(b) or b.state != "battle":
+		return "웨이브가 끝나지 않았거나 전투 단계가 아니다(%s)" % b.state
+	run(b, 5.0)
+	return check(b.hero.present and near(b.hero.pos, b.back_cell(), 0.01) and b.state == "battle",
+		"복귀 %s · 자리 %s(거점 옆 %s) · 단계 %s(battle)" % [b.hero.present, b.hero.pos, b.back_cell(), b.state])
 
-# EV23 · S27: 부활을 끄면 다음 준비 단계에도 돌아오지 않는다
+# EV23 · S27: 부활을 끄면 hero_back이 지나도, 웨이브가 끝나도 돌아오지 않는다
 func ev23():
-	var b = _two_waves()
+	var b = _two_waves({"hero_back": 1.0})
 	b.revive = false
 	b.start_battle()
 	run(b, 1)
 	b.damage(b.hero, BIG)
-	if not clear_wave(b) or b.state != "prep":
-		return "웨이브가 끝나지 않았다"
-	return check(not b.hero.present, "부활을 껐는데 영웅이 돌아왔다")
+	run(b, 3)
+	var mid: bool = not b.hero.present
+	if not clear_wave(b) or b.state != "battle":
+		return "웨이브가 끝나지 않았다(%s)" % b.state
+	return check(mid and not b.hero.present, "부활을 껐는데 영웅이 돌아왔다(3초 뒤 없음 %s · 웨이브 끝 뒤 없음 %s)" % [mid, not b.hero.present])
 
 # EV24 · I26: 영웅이 쓰러져도 판은 계속된다
 func ev24():

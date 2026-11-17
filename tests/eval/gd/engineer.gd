@@ -159,16 +159,16 @@ func ev71():
 	click(c, MOUSE_BUTTON_LEFT, px(T))
 	return check(c.picked == [t], "철거 후보가 %s다" % [c.picked])
 
-# EV72 · I19: 준비 단계에 남은 미완성 구조물은 추가 비용 없이 바로 완성시킬 수 있다
+# EV72 · I19: 라운드 첫 준비에 남은 미완성 구조물은 추가 비용 없이 바로 완성시킬 수 있다(라운드 안에는 준비 단계가 없다, S17 2026-11-17 변경)
 func ev72():
-	var b = _battle()
+	var b = _battle({"rounds": [[[{"kind": "basic", "count": 1}]], [[{"kind": "basic", "count": 1}]]]})
 	var e = b.place_merc("engineer", NEAR)
 	var idle = _start(b)
 	var s = b.build("tower", T)
 	b.damage(e, BIG)
 	b.damage(idle, BIG)
-	if s == null or not run(b, 5.0, func(): return b.state == "prep") or s.complete:
-		return "준비 단계에 미완성 구조물이 없다(%s, %s)" % [b.state, s]
+	if s == null or not run(b, 5.0, func(): return b.state == "cleared") or not b.next_round() or s.complete:
+		return "다음 라운드 첫 준비에 미완성 구조물이 없다(%s, %s)" % [b.state, s]
 	var before: int = b.gold
 	b.finish(s)
 	return check(s.complete and b.gold == before, "완성 %s, 골드 %d → %d" % [s.complete, before, b.gold])
@@ -297,10 +297,10 @@ func ev417():
 	click(c, MOUSE_BUTTON_LEFT, px(cell))
 	return check(b.units.size() == n + 1 and not b.occupied(cell), "빈 칸 클릭 뒤 유닛 %d(%d여야 한다) · 그 칸에 유닛 %s" % [b.units.size(), n + 1, b.occupied(cell)])
 
-# EV419 · I19: 준비 단계 실시간 판의 전투 단계에 짓기 시작한 일은 웨이브가 끝나면 멈추고 미완성으로 남는다.
-# 준비 단계에 이어 짓기를 하면 골드를 더 내지 않고 바로 완성된다(S18 2026-11-06 변경)
+# EV419 · I19 2026-11-17 변경: 준비 단계 실시간 판의 전투 단계에 짓기 시작한 일은 라운드가 끝나면 멈추고 미완성으로 남는다.
+# 다음 라운드 첫 준비에 이어 짓기를 하면 골드를 더 내지 않고 바로 완성된다(S18 2026-11-06 변경)
 func ev419():
-	var b = _battle()
+	var b = _battle({"rounds": [[[{"kind": "basic", "count": 1}]], [[{"kind": "basic", "count": 1}]]]})
 	var e = b.place_merc("engineer", NEAR)
 	_live(b)
 	var idle = _start(b)
@@ -309,12 +309,14 @@ func ev419():
 	if s == null or s.progress <= 0.0 or e.job != s:
 		return "전투 단계 4초 뒤 진행률 %s · 공병의 일이 그 타워 %s" % [s.progress if s else null, e.job == s if s else null]
 	b.damage(idle, BIG)
-	if not run(b, 5.0, func(): return b.state == "prep"):
-		return "웨이브가 끝나지 않았다(%s)" % b.state
+	if not run(b, 5.0, func(): return b.state == "cleared"):
+		return "라운드가 끝나지 않았다(%s)" % b.state
 	var p: float = s.progress
 	run(b, 1.0)
 	if e.job != null or s.worker != null or p >= 1.0 or s.progress != p:
-		return "웨이브 뒤 공병의 일 %s · 일꾼 %s · 진행률 %.3f → %.3f" % [e.job, s.worker, p, s.progress]
+		return "라운드 뒤 공병의 일 %s · 일꾼 %s · 진행률 %.3f → %.3f" % [e.job, s.worker, p, s.progress]
+	if not b.next_round():
+		return "다음 라운드로 넘어가지 못했다(%s)" % b.state
 	var g: int = b.gold
 	var got = b.resume(s)
 	return check(s.complete and got == null and b.gold == g and e.job == null, "준비 단계 이어 짓기 뒤 완성 %s · 돌려받은 공병 %s · 골드 %d → %d · 공병의 일 %s" % [s.complete, got, g, b.gold, e.job])

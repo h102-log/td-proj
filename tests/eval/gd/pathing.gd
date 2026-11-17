@@ -45,7 +45,7 @@ func ev7():
 # EV8 · S10: 준비 단계에 기존 경로 위에 성벽을 놓으면 다음 전투의 적은 그 칸을 지나지 않는다
 func ev8():
 	var one := [{"kind": "basic", "count": 1}]
-	var b = battle({"base_hp": BIG, "waves": [one, one]})
+	var b = battle({"base_hp": BIG, "rounds": [[one], [one]]})  # 다음 준비 단계는 다음 라운드의 첫 준비다(S17 2026-11-17 변경)
 	var got := []
 	b.enemy_spawned.connect(func(e): got.append(e))
 	b.start_battle()
@@ -54,8 +54,8 @@ func ev8():
 		if got.size() > 0:
 			path1[cell_of(got[0])] = true
 		return got.size() > 0 and at_base(b, got[0]))
-	if not clear_wave(b) or b.state != "prep":
-		return "1웨이브가 끝나지 않았다"
+	if not clear_round(b) or not b.next_round() or b.state != "prep":
+		return "1라운드가 끝나 다음 라운드 첫 준비가 되지 않았다(%s)" % b.state
 	var keys := path1.keys()
 	var block: Vector2i = Vector2i(12, 10) if path1.has(Vector2i(12, 10)) else keys[keys.size() / 2]
 	if b.build("wall", block) == null:

@@ -7,13 +7,15 @@ const X := 15  # 성곽 열. 출현 지점(0,10)과 거점(25,10) 사이를 세�
 const A := Vector2i(X, 10)
 const B := Vector2i(X, 5)
 
-func _battle():
+func _battle(over := {}):
 	var walls := []
 	for y in 20:
 		if y != A.y and y != B.y:
 			walls.append(Vector2i(X, y))
-	return battle({"castle": {"walls": walls, "gates": [A, B], "wall_hp": 300, "gate_hp": 150}, "base_hp": BIG,
-		"waves": [[{"kind": "basic", "count": 1}], [{"kind": "basic", "count": 1}]]})
+	var st := {"castle": {"walls": walls, "gates": [A, B], "wall_hp": 300, "gate_hp": 150}, "base_hp": BIG,
+		"waves": [[{"kind": "basic", "count": 1}], [{"kind": "basic", "count": 1}]]}
+	st.merge(over, true)
+	return battle(st)
 
 # 전투 단계를 연다. 웨이브 적은 바로 처치하고, 움직이지도 치지도 않는 적 하나를 구석에 남겨 전투 단계가 이어지게 한다(castle.gd와 같다)
 func _start(b):
@@ -72,19 +74,23 @@ func ev224():
 	b.set_gate(a, false)
 	return check(a.open and g.open, "쿨타임 중인 성문이 닫혔다(A 열림 %s, B 열림 %s)" % [a.open, g.open])
 
-# EV225 · S135: 웨이브가 끝나면 남은 쿨타임은 사라진다
+# EV225 · S135 2026-11-17 변경: 라운드 안에서는 웨이브가 끝나도 남은 쿨타임이 남아 다음 웨이브 첫 닫기가 거부되고, 라운드가 끝나면 사라져 다음 라운드 첫 준비의 닫기가 된다
 func ev225():
-	var b = _battle()
+	var b = _battle({"rounds": [[[{"kind": "basic", "count": 1}], [{"kind": "basic", "count": 1}]], [[{"kind": "basic", "count": 1}]]]})
 	var g = b.castle[A]
 	_start(b)
 	b.set_gate(g, true)
 	if not g.open:
 		return "전투 중 열지 못했다"
-	if not clear_wave(b) or b.state != "prep":
+	if not clear_wave(b) or b.state != "battle":
 		return "1웨이브를 끝내지 못했다(%s)" % b.state
 	_start(b)
 	b.set_gate(g, false)
-	return check(not g.open, "앞 웨이브의 쿨타임이 남아 다음 웨이브 첫 닫기가 거부됐다")
+	var kept: bool = g.open
+	if not clear_round(b) or not b.next_round() or b.state != "prep":
+		return "1라운드를 끝내 다음 라운드 첫 준비가 되지 않았다(%s)" % b.state
+	b.set_gate(g, false)
+	return check(kept and not g.open, "라운드 안 다음 웨이브 첫 닫기 거부(열린 채) %s · 다음 라운드 첫 준비에 닫힘 %s" % [kept, not g.open])
 
 # EV226 · S135: 거부된 지시에는 쿨타임이 걸리지 않는다(적이 선 성문 닫기, I67)
 func ev226():
@@ -134,7 +140,7 @@ func _split(kind := "basic"):
 func _to_round3(b) -> bool:
 	for i in 2:
 		b.start_battle()
-		if not clear_wave(b) or not b.next_round():
+		if not clear_round(b) or not b.next_round():
 			return false
 	return b.round_index == 2 and b.state == "prep"
 

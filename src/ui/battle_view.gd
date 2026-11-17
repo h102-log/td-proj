@@ -60,6 +60,10 @@ const HERO_COLORS := {  # 영웅 종류마다 다른 색(S56, S157, I101)
 # 구조물·성곽 칸에 걸린 효과의 테두리 색(I101): 받는 피해 감소·공격 속도. 에너지 성벽 칸은 벽 조각이다(_wards, fx-2).
 # 유닛에 걸린 효과는 테두리 대신 효과마다 조각 하나다(status_marks, I101 2026-10-27 변경)
 const MARKS := {"dr": Color("80c0ff"), "haste": Color.ORANGE}
+# 지대 색 띠(S378 ①): 전장 띠 풀빛·포격 띠 호박빛·집결 띠 핏빛·혼잡 칸 푸른빛. 글은 띠 왼쪽 위(카메라가 보는 거점 열)
+const ZONE_COLORS := {"front": Color(0.35, 0.8, 0.35, 0.12), "bombard": Color(0.9, 0.6, 0.2, 0.13), "band": Color(0.9, 0.25, 0.2, 0.16), "crowd": Color(0.3, 0.55, 1.0, 0.22)}
+const ZONE_NAMES := {"front": "전장", "bombard": "포격", "band": "집결", "crowd": "혼잡"}
+const FAR_TEXT_COLOR := Color(0.78, 0.78, 0.78)  # 먼 곳 처치 글(S378 ⑤) 회색
 const EYES := Color("f0e060")  # 어둠 속에 숨은 밤 늑대의 눈빛(S240, I193 ④)
 
 const UNITS := preload("res://art/units/heroes.png")  # 영웅 6명과 용병·적 시트를 한 장에 모은 아틀라스(tools/art/atlas.py)
@@ -404,6 +408,7 @@ var _order_t0 := 0.0  # 그 명령을 처음 본 화면 시각
 var _shots := {}  # 날고 있는 투사체 id → 출발 자리(맵 px). 처음 그릴 때 쏜 쪽의 쏘는 곳이다
 var _landed := {}  # 지난 프레임까지 본 닿은 투사체(battle.landed) id. 닿음·처치는 투사체 하나에 한 번이다(I171)
 var night: ColorRect  # 어둠 덮개(S212): 바닥 그림(맵 밖 아래 띠까지)을 덮는 사각형 하나에 셰이더를 바른다. 맵의 자식이라 맵 그림 다음에 그린다
+var band_night: ColorRect  # 집결 띠의 상시 어둠 덮개(S377 ⑦). 띠 줄만 덮고 낮에도 보인다
 var _top: Node2D  # 덮개 위 층: 조준 미리보기·출현 배지·체력 막대·명령 표식·드래그 사각형(_draw_top). 덮개 다음 자식이다
 var _cv: CanvasItem = self  # _draw_top의 그리기 함수가 그리는 곳. 층이 없으면(트리 밖에서 만든 맵) 맵 자신이다
 var _foes := []  # 이번 프레임에 보이는 적(S213). 숨은 적은 몸·발밑·막대·효과 테두리·예고를 그리지 않는다
@@ -433,6 +438,21 @@ func _night_layer() -> void:
 	mat.set_shader_parameter("torch_color", TORCH)
 	night.material = mat
 	add_child(night)
+	band_night = ColorRect.new()  # 집결 띠의 상시 어둠 덮개(S377 ⑦, S211 2026-11-17 변경): 띠 줄만 덮는 같은 셰이더. 낮에도 보인다
+	band_night.position = Vector2(0, battle.band_top() * CELL)
+	band_night.size = Vector2(battle.size.x * CELL, maxi(battle.size.y - battle.band_top(), 0) * CELL + int(Camera.BOTTOM))
+	band_night.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	band_night.visible = false
+	var bmat := ShaderMaterial.new()
+	bmat.shader = sh
+	bmat.set_shader_parameter("px_size", band_night.size)
+	bmat.set_shader_parameter("origin", band_night.position)
+	bmat.set_shader_parameter("alpha", NIGHT_ALPHA)
+	bmat.set_shader_parameter("torch_alpha", TORCH_ALPHA)
+	bmat.set_shader_parameter("night_color", NIGHT_COLOR)
+	bmat.set_shader_parameter("torch_color", TORCH)
+	band_night.material = bmat
+	add_child(band_night)
 	_top = Node2D.new()
 	_top.draw.connect(func():
 		_cv = _top
@@ -444,9 +464,30 @@ func _night_layer() -> void:
 func eyes() -> Array:
 	return [] if battle.dark <= 0.0 else battle.enemies.filter(func(e): return not e.night.is_empty() and not battle.seen(e.pos))
 
-# 맵에 그리는 적(S213): 어둠 속에 숨은 적은 뺀다
+# 맵에 그리는 적(S213): 어둠 속에 숨은 적은 뺀다. 낮에는 집결 띠의 상시 어둠(S377 ⑦, S211 2026-11-17 변경) 속에 숨은 적만 뺀다
 func foes() -> Array:
-	return battle.enemies if battle.dark <= 0.0 else battle.enemies.filter(func(e): return battle.seen(e.pos))
+	if battle.dark > 0.0:
+		return battle.enemies.filter(func(e): return battle.seen(e.pos))
+	if battle.band_dark() > 0.0 and battle.band_top() < battle.size.y:
+		return battle.enemies.filter(func(e): return not battle.in_band(e.pos) or battle.seen(e.pos))
+	return battle.enemies
+
+# 집결 띠 덮개(S377 ⑦)의 셰이더 값: 띠 어둠이 판의 어둠보다 짙을 때만 보이고, 두 덮개가 겹친 불투명도가 «NIGHT_ALPHA × 띠 어둠»이 되게 띠 덮개의 어둠을 줄여 넘긴다.
+# 불빛 반경은 띠 어둠으로 나눈다. 보이지 않으면 {}
+func band_night_params() -> Dictionary:
+	var bd: float = battle.band_dark()
+	if bd <= battle.dark or battle.band_top() >= battle.size.y:
+		return {}
+	var a1: float = NIGHT_ALPHA * battle.dark
+	var dark2: float = (NIGHT_ALPHA * bd - a1) / maxf(1.0 - a1, 0.0001) / NIGHT_ALPHA
+	var pts := PackedVector4Array()
+	pts.resize(NIGHT_LIGHTS)
+	var n := 0
+	for l in battle.lights.slice(0, NIGHT_LIGHTS):
+		var c: Vector2 = l[0] * CELL + Vector2(CELL, CELL) / 2.0
+		pts[n] = Vector4(c.x, c.y, minf(l[1] / bd, 4096.0) * CELL, 0.0)
+		n += 1
+	return {"dark": clampf(dark2, 0.0, 1.0), "count": n, "lights": pts}
 
 # 예고를 그리는 적(S194): 예고 중인 보이는 적. UNSEEN_TELLS(덮치기 S242, 던지기·폭탄·투하 S279, 대포 S287, 불화살 I249)는 적이 어둠 속에 숨어도 그린다(S213)
 func tellers(shown = null) -> Array:
@@ -518,8 +559,12 @@ func _draw() -> void:
 	_fx_dots(true)  # 바닥 균열(S198)은 몸통 아래
 	_traces(false)  # 폭발 연기·운석 그림자는 몸통 아래(4.1s, Gemini 고칠 점 2)
 	_folded_wings()  # 수호 천사·불사의 등 뒤 날개(I227 ③)
+	_zone_bands()  # 지대 색 띠(S378 ①): 바닥 위, 경로·유닛 아래
 	for p in battle.forecast:  # 기본 적의 예상 경로(S142): 엷은 빨간 선, 유닛 아래에. 너비 1이면 1배 줌에서 칸 중심을 지나는 가로·세로 구간이 안 그려진다
-		draw_polyline(PackedVector2Array(p.map(func(c): return _center(Vector2(c)))), Color(COLORS.spawn, 0.5), 1.5)
+		var pts: Array = forecast_line(p)
+		if pts.size() >= 2:
+			draw_polyline(PackedVector2Array(pts.map(func(c): return _center(Vector2(c)))), Color(COLORS.spawn, 0.5), 1.5)
+	_blobs()  # 집결 띠에 잠든 적 덩어리(S378 ②): 유닛 아래
 	for h in battle.heroes:  # 오라 반경(S113): 오라가 있는 살아 있는 영웅마다 둘레에 늘 엷게, 유닛 아래에(I101)
 		if h.alive and not h.aura.is_empty():
 			_aura_ring(h)
@@ -530,6 +575,7 @@ func _draw() -> void:
 	_marks()
 	_brand_marks()
 	_prey_mark()
+	_hunter_marks()
 	_counter_flashes()
 	_chrono_marks()
 	_sera_marks()
@@ -576,6 +622,7 @@ func _draw() -> void:
 			_pring(Vector2i(_drop_at(m).floor()), int(CELL * m.splash * m.age / BLAST), 2, Color(PX.orange, 1.0 - m.age / BLAST))
 	_fx_dots(false)  # 먼지·조각(I172): 투사체 다음 층에 모아서
 	_traces(true)
+	_far_texts()  # 먼 곳 처치 글(S378 ⑤): 효과 위
 	# 어둠 덮개(S212)는 맵의 자식이라 여기까지(효과) 위에 그려진다. 그 위 층(_top)이 조준 미리보기·체력 막대·명령 표식·드래그 사각형이다
 	if _top:
 		_top.queue_redraw()
@@ -2502,6 +2549,8 @@ func _marks() -> void:
 				ring += 2
 	for s in controls.picked + ([controls.fort] if controls.fort else []) + ([battle.base] if controls.village else []):  # 전투 단계에 고른 구조물(S74, S83)·고른 성곽 칸(S85)·고른 거점(S100)
 		draw_rect(_box(s), Color.WHITE, false, 1.0)
+	for c in battle.flags:  # 주둔 깃발(S36 2026-11-17 변경, S378 ③): 금빛 발밑 고리·깃대·오른쪽으로 뾰족한 금빛 세모 깃발
+		_flag(c)
 	var f = controls.facility  # 고른 생산 시설: 테두리와 집결 지점 깃발(S82)
 	if f and f.alive:
 		draw_rect(_box(f), Color.WHITE, false, 1.0)
@@ -2802,6 +2851,99 @@ func _shadow(at: Vector2, r: float) -> void:
 	_cv.draw_set_transform(at, 0.0, Vector2(1.0, 0.4))
 	_cv.draw_circle(Vector2.ZERO, r, Color(0, 0, 0, 0.3))
 	_cv.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+# ── 지대·집결·표식 그림(S378) ──
+
+# 지대 색 띠(S378 ①): Alt를 누르고 있거나 깃발 칸을 고르는 동안 [지대 이름, 맵 px 사각형]. 전장 띠는 성곽 아래 harvest_rows줄(마을은 칠하지 않는다),
+# 포격 띠, 집결 띠, 그리고 열린 성문 둘레 혼잡 칸("crowd"). 그 밖에는 []
+func zone_bands() -> Array:
+	if not (controls.zoning or controls.flagging):
+		return []
+	var out := []
+	var f0: int = clampi(battle._fort.end.y, 0, battle.size.y)
+	var b0: int = clampi(battle.bombard_top(), f0, battle.size.y)
+	var m0: int = clampi(battle.band_top(), b0, battle.size.y)
+	for z in [["front", f0, b0], ["bombard", b0, m0], ["band", m0, battle.size.y]]:
+		if z[2] > z[1]:
+			out.append([z[0], Rect2(0, z[1] * CELL, battle.size.x * CELL, (z[2] - z[1]) * CELL)])
+	for r in battle._crowd_rects:
+		out.append(["crowd", Rect2(Vector2(r.position * CELL), Vector2(r.size * CELL))])
+	return out
+
+func _zone_bands() -> void:
+	var bands := zone_bands()
+	if bands.is_empty():
+		return
+	var x: float = (battle.base.cell.x + 0.5) * CELL  # 글은 거점 열(카메라가 보는 가운데)
+	for z in bands:
+		var r: Rect2 = z[1]
+		draw_rect(r, ZONE_COLORS[z[0]])
+		if z[0] != "crowd":
+			draw_line(r.position, r.position + Vector2(r.size.x, 0), Color(ZONE_COLORS[z[0]], 0.6), 1.0)
+			draw_string(PIXEL_FONT, Vector2(x - 12, r.position.y + 9), tr(ZONE_NAMES[z[0]]), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(ZONE_COLORS[z[0]], 0.9))
+
+# 집결 띠에 잠든 적 덩어리(S378 ②): 잠든 적마다 [자리, 몸 반지름]. 미리보기라 어둠과 상관없다
+func blobs() -> Array:
+	return battle.dormant.map(func(e): return [e.pos, e.radius])
+
+func _blobs() -> void:
+	for b in blobs():
+		var at: Vector2 = _center(b[0])
+		var r: float = CELL * b[1] * 1.4 + 2.0
+		_shadow(at, r)  # 그림자를 두 겹 겹쳐 어두운 덩어리로(화면 px 원은 그림자 길(_shadow)로만 그린다, test_fx)
+		_shadow(at, r * 0.7)
+
+# 영웅 사냥꾼 표식(S377 ⑧, S378 ③): 보이는 사냥꾼마다 [적, 깃대 밑 px]
+func hunter_marks() -> Array:
+	var out := []
+	for e in foes():
+		if e.hunter and e.alive:
+			out.append([e, Vector2i((_spot(e) - Vector2(0, _head(e) + 2)).floor())])
+	return out
+
+# 사냥꾼 머리 위 작은 핏빛 깃발: 크림색 깃대 6px, 오른쪽으로 뾰족한 세모(가로 4·세로 3)
+func _hunter_marks() -> void:
+	for m in hunter_marks():
+		var at: Vector2i = m[1]
+		_pline(at, at + Vector2i(0, -6), PX.cream)
+		_pline(at + Vector2i(1, -6), at + Vector2i(4, -6), PX.red)
+		_pline(at + Vector2i(1, -5), at + Vector2i(3, -5), PX.red)
+		_px(at + Vector2i(1, -4), PX.red)
+
+# 주둔 깃발(S36 2026-11-17 변경, S378 ③): 발밑 금빛 고리(반지름 3), 크림색 깃대 12px, 오른쪽으로 뾰족한 금빛 세모(가로 5·세로 4).
+# 지대 띠를 보일 때(Alt·깃발 고르기)는 노출 면제 반경(flag_cover, S377 ⑤)을 점선 고리로 더 그린다
+func _flag(c: Vector2i) -> void:
+	var at := Vector2i(_center(Vector2(c)).floor())
+	_pring(at, 3, 1, Color(PX.gold, 0.7))
+	_pline(at + Vector2i(0, 2), at + Vector2i(0, -10), PX.cream)
+	for i in 4:
+		_pline(at + Vector2i(1, -10 + i), at + Vector2i(1 + (4 - i), -10 + i), PX.gold)
+	if controls.zoning or controls.flagging:
+		_pring(at, int(CELL * float(battle.knob("flag_cover"))), 1, Color(PX.gold, 0.45), 2)
+
+# 예상 경로(S142 2026-11-17 변경)에서 그리는 칸: 집결 띠 안의 칸은 뺀다(길은 띠 경계에서 시작한다)
+func forecast_line(p: Array) -> Array:
+	var top: int = battle.band_top()
+	return p.filter(func(c): return c.y < top)
+
+# 먼 곳 처치 글(S378 ⑤): 포격·집결 띠에서 적이 쓰러진 자리마다 [글, 맵 px, 불투명도]. 글은 띠 배율(«먼 곳 ×0.5»·«적의 땅 ×0»)이고 위로 떠오르며 흐려진다
+func far_texts() -> Array:
+	var out := []
+	for f in battle.far_hits:
+		var k: float = f.age / battle.FAR_TEXT
+		var text: String = (tr("먼 곳 ×%s") if f.zone == "bombard" else tr("적의 땅 ×%s")) % _mult_text(f.mult)
+		out.append([text, _center(f.at) - Vector2(0, 10.0 + 8.0 * k), 1.0 - k])
+	return out
+
+# 배율 글: 0.5 → «0.5», 0 → «0», 1 → «1»(뒤 0과 점을 뗀다)
+static func _mult_text(m: float) -> String:
+	var t := String.num(m, 2).rstrip("0").rstrip(".")
+	return t if t != "" else "0"
+
+func _far_texts() -> void:
+	for t in far_texts():
+		var p: Vector2 = t[1]
+		draw_string(PIXEL_FONT, Vector2(p.x - 20, p.y).floor(), t[0], HORIZONTAL_ALIGNMENT_CENTER, 40, 8, Color(FAR_TEXT_COLOR, t[2]))
 
 # 성벽·거점 그림이 덮는 자리에 선 땅 유닛이나 시설: 성곽 그림이 발을 덮는 뒤 줄(성벽 두 줄, 문루 세 줄, 탑 네 줄), 거점 칸 뒤 두 줄과 그 양옆(C1, 사용자 2026-10-20)
 func _behind(x) -> bool:
@@ -3370,6 +3512,13 @@ func tick(dt: float) -> void:
 		for k in params:
 			mat.set_shader_parameter(k, params[k])
 		night.visible = battle.dark > 0.0
+	if band_night:  # 집결 띠 덮개(S377 ⑦)
+		var bp := band_night_params()
+		band_night.visible = not bp.is_empty()
+		if band_night.visible:
+			var bmat: ShaderMaterial = band_night.material
+			for k in bp:
+				bmat.set_shader_parameter(k, bp[k])
 	events = []
 	_fills = _fills.map(func(f): return [f[0], f[1] - 1]).filter(func(f): return f[1] > 0)
 	var firing := {}

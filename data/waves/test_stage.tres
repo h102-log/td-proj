@@ -4,6 +4,9 @@
 
 [resource]
 script = ExtResource("1_83rh7")
+surges = Array[int]([1,1,1])
+muster_first = 30.0
+band_scale = 0.5
 waves = Array[Dictionary]([{
 "slime": 36
 }, {

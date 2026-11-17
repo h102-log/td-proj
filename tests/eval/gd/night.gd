@@ -30,13 +30,14 @@ func _close(a: float, b: float, tol := 0.03) -> bool:
 
 # EV438 · S210: 밤 웨이브는 at초 뒤 fade초 동안 dark까지 오르고(fade가 없으면 10초), 전투가 끝나면 1을 3초에 내리는 빠르기로 0까지 내린다
 func ev438():
-	var b = battle({"waves": [W, W, W, W], "nights": [[{}, {"at": 2.0, "dark": 0.8, "fade": 4.0}, {}, {"at": 0.0, "dark": 1.0}]]})
-	b.start_battle()
+	# 웨이브마다 첫 파도의 집결을 길게 두고 북으로 시작한다(S375): 옛 «전투 시작»처럼 웨이브의 시작 때를 평가가 정한다
+	var b = battle({"waves": [W, W, W, W], "nights": [[{}, {"at": 2.0, "dark": 0.8, "fade": 4.0}, {}, {"at": 0.0, "dark": 1.0}]], "muster_first": 1000.0})
+	b.start_battle()  # ▶가 첫 북이라 1웨이브는 바로 온다
 	run(b, 5.0)
 	var day: float = b.dark
-	if not clear_wave(b) or b.state != "prep":
+	if not clear_wave(b) or b.state != "battle":
 		return "1웨이브가 끝나지 않았다(%s)" % b.state
-	b.start_battle()
+	b.drum()
 	run(b, 1.9)
 	var before: float = b.dark
 	run(b, 2.1)
@@ -51,11 +52,11 @@ func ev438():
 	var dawn: float = b.dark
 	run(b, 1.5)
 	var morning: float = b.dark
-	if not (b.state == "prep" and _close(dawn, cleared - 0.5, 0.05) and morning == 0.0):
+	if not (b.state == "battle" and _close(dawn, cleared - 0.5, 0.05) and morning == 0.0):
 		return "웨이브가 끝난 뒤(%s) 어둠 %.3f → 1.5초 %.3f(%.3f) → 3초 %.3f(0)" % [b.state, cleared, dawn, cleared - 0.5, morning]
-	b.start_battle()
+	b.drum()
 	clear_wave(b)
-	b.start_battle()
+	b.drum()
 	run(b, 5.0)
 	return check(_close(b.dark, 0.5), "fade가 없는 밤 웨이브 5초 어둠 %.3f(0.5)" % b.dark)
 

@@ -64,15 +64,16 @@ func test_battle_build_rejected_on_enemy_cell():
 	var idle = _start(b)
 	return check(b.build("wall", cell_of(idle)) == null, "적이 선 칸에 지어졌다")
 
+# 라운드가 끝나면(라운드 안의 웨이브 끝에는 아니다, S17 2026-11-17 변경) 공병의 일이 그 상태로 멈춘다(I19)
 func test_prep_stops_jobs():
-	var b = _battle()
+	var b = battle({"village": Rect2i(0, 0, 30, 6), "base_hp": BIG, "waves": [[{"kind": "basic", "count": 1}]]})  # 웨이브 하나라 적이 다 죽으면 라운드가 끝난다
 	var e = b.place_merc("engineer", Vector2i(12, 13))
 	var idle = _start(b)
 	var s = b.build("tower", T)
 	run(b, 30.0, func(): return s.progress >= 0.3)
 	b.damage(idle, BIG)
-	run(b, 1.0, func(): return b.state == "prep")
+	run(b, 1.0, func(): return b.state != "battle")
 	var p: float = s.progress
 	run(b, 2.0)
-	return check(b.state == "prep" and e.job == null and not s.complete and s.progress == p,
-		"준비 단계에 %s, 일 %s, 진행률 %.2f → %.2f" % [b.state, e.job, p, s.progress])
+	return check(b.state in ["won", "cleared"] and e.job == null and not s.complete and s.progress == p,
+		"라운드 끝에 %s, 일 %s, 진행률 %.2f → %.2f" % [b.state, e.job, p, s.progress])

@@ -146,29 +146,26 @@ func ev306():
 	_cast_q(a)
 	if a.heroes.any(func(h): return h.cd.q <= 0.0):  # 웨이브가 끝날 때까지 기다리면 재사용 대기가 다 돌 수 있어 쓴 바로 뒤에 본다
 		return "웨이브 1에서 Q를 쓰지 못했다"
-	if not clear_wave(a) or a.state != "prep":
-		return "웨이브 1 뒤 준비 단계가 아니다(%s)" % a.state
+	if not clear_wave(a) or a.state != "battle":  # 라운드 안에는 준비 단계가 없다(S17 2026-11-17 변경): 저장 시점은 라운드 사이다
+		return "웨이브 1 뒤 전투 단계가 아니다(%s)" % a.state
 	a.order_move(a.heroes, Vector2i(32, 78))
 	run(a, 6.0)
+	if not clear_round(a) or a.state != "cleared":
+		return "1라운드를 이기지 못했다(%s)" % a.state
 	var why := _twin(a, stage, func(x):
+		x.next_round()
 		x.start_battle()
 		_cast_q(x))
 	if why != "":
-		return "준비 단계: " + why
-	for i in 20:
-		if a.state == "cleared":
-			break
-		if a.state == "prep":
-			a.start_battle()
-		clear_wave(a)
-	if a.state != "cleared":
-		return "1라운드를 이기지 못했다(%s)" % a.state
+		return "라운드 사이: " + why
+	if not clear_round(a) or a.state != "cleared":
+		return "2라운드를 이기지 못했다(%s)" % a.state
 	a.dismiss(a.roster[1])
 	why = _twin(a, stage, func(x):
 		x.next_round()
 		x.start_battle()
 		_cast_q(x))
-	return "" if why == "" else "라운드 사이: " + why
+	return "" if why == "" else "라운드 사이(영웅을 보낸 뒤): " + why
 
 # EV307 · I157: 파일 왕복, 임시 파일, 깨진 파일·다른 형식 판·지운 뒤는 저장 없음
 func ev307():

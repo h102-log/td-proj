@@ -332,6 +332,7 @@ func ev323():
 # EV324 · I128: 전투 단계에 놀고 있는 공병이 없으면 «공병 없음» 띠가 보이고 1·2줄 칸이 0.35다. 공병을 사면 띠가 숨고 칸이 밝다
 func ev324():
 	var main = _prep()
+	main.view.battle._stage.train_scale = 0.0  # 공병 띠만 재므로 전투 단계 구매가 바로 나오게(S20 2026-11-17 변경의 대기열은 economy 스위트가 잰다)
 	var g = main.hud.get("grid")
 	if g == null:
 		_done(main)
@@ -473,14 +474,9 @@ func _bar_shape(main, phase: String) -> String:
 
 # 판의 1라운드 웨이브를 모두 이겨 라운드 사이로 간다
 func _win(b) -> bool:
-	for i in 10:
-		if b.state == "prep":
-			b.start_battle()
-		if b.state == "battle" and not clear_wave(b):
-			return false
-		if b.state == "cleared":
-			return true
-	return false
+	if b.state == "prep":  # ▶ 한 번이면 라운드의 웨이브가 모두 이어진다(S17 2026-11-17 변경)
+		b.start_battle()
+	return clear_round(b) and b.state == "cleared"
 
 # EV328 · S185: 영입 창·준비·전투·라운드 사이에서 위 띠와 칸 사각형이 같고, 임무·공병 칸은 준비·전투 단계에만 보인다
 func ev328():
@@ -690,6 +686,7 @@ func ev333():
 # EV334 · S185: 전투 단계 공병 칸은 놀고 있는 공병 수이고 0이면 빨갛다. 툴팁은 «놀고 있는 공병 N · 전체 M», 누르면 그 공병에게 카메라가 간다(I164)
 func ev334():
 	var main = _prep()
+	main.view.battle._stage.train_scale = 0.0  # 공병 칸만 재므로 전투 단계 구매가 바로 나오게(S20 2026-11-17 변경)
 	var cells = main.hud.get("cells")
 	if not cells is Dictionary:
 		_done(main)
@@ -758,10 +755,18 @@ func ev336():
 	if out == "":
 		start.pressed.emit()
 		out = check(b.state == "battle", "전투 시작 버튼을 누른 뒤 판이 %s다" % b.state)
-	if out == "":
+	var total: int = _wave_total(b, 0, 0) + _wave_total(b, 0, 1) + _wave_total(b, 0, 2)  # «남은 적»은 라운드 전체를 센다(I13 2026-11-17 변경)
+	if out == "":  # ▶ 뒤 1웨이브가 바로 오고 2웨이브 첫 파도가 30초 집결한다(S375): «남은 적 N» 아래 «파도 1/1 · 집결 N초», ▶ 자리에 «북»
 		main.hud._process(0.0)
-		if start.is_visible_in_tree() or not "남은 적 %d" % n in text.call() or "전투 시작" in text.call():
-			out = "전투 단계 전투 시작 버튼 보임 %s · 진행 칸 글 «%s»(기대 «남은 적 %d», «전투 시작» 없음)" % [start.is_visible_in_tree(), text.call(), n]
+		var labels := " ".join(_labels(start))
+		if not start.is_visible_in_tree() or not "북" in labels or "전투 시작" in labels or not "남은 적 %d" % total in text.call() or not "집결" in text.call() or not "파도 1/1" in text.call():
+			out = "집결 중 ▶ 버튼 보임 %s · 글 %s · 진행 칸 글 «%s»(기대: 보임, «북», «남은 적 %d»·«파도 1/1»·«집결»)" % [start.is_visible_in_tree(), labels, text.call(), total]
+	if out == "":
+		start.pressed.emit()  # 북: 2웨이브가 바로 오고 3웨이브 첫 파도가 집결한다. 아무도 죽지 않아 남은 적은 그대로다
+		b.step(1.0 / 60.0)
+		main.hud._process(0.0)
+		if not "남은 적 %d" % total in text.call() or not "집결" in text.call():
+			out = "북 뒤 진행 칸 글 «%s»(기대: «남은 적 %d»·«집결»)" % [text.call(), total]
 	if out == "":
 		var won: bool = _win(b)
 		main.hud._process(0.0)
@@ -1340,6 +1345,7 @@ func _soldiers(b) -> int:
 func ev347():
 	var main = _prep()
 	var b = main.view.battle
+	b._stage.train_scale = 0.0  # 건설 격자 칸만 재므로 전투 단계 구매가 바로 나오게(S20 2026-11-17 변경)
 	var c = main.controls
 	var f = b.base
 	b.start_battle()
@@ -1374,6 +1380,7 @@ func ev347():
 func ev348():
 	var main = _prep()
 	var b = main.view.battle
+	b._stage.train_scale = 0.0  # Shift+키 고르기만 재므로 전투 단계 구매가 바로 나오게(S20 2026-11-17 변경)
 	var c = main.controls
 	var g = main.hud.grid
 	var f1 = b.build("workshop", Vector2i(6, 6))
@@ -1997,16 +2004,16 @@ func ev368():
 		else:
 			_frame(main)
 			var said := _hint_says(main)
-			if b.state != "prep" or b.wave_index != 1 or not "거점 패널" in said or not "병사" in said or "병영" in said or hud.hints.axis.text != "용병":
-				out = "1웨이브 뒤(단계 %s, 웨이브 %d) 힌트 글 «%s» · 축 «%s»(기대: 2웨이브 준비 단계, «거점 패널»·«병사» 있음·«병영» 없음, «용병»)" % [b.state, b.wave_index + 1, said, hud.hints.axis.text]
+			if b.state != "battle" or b.muster_wave() != 1 or not "거점 패널" in said or not "병사" in said or "병영" in said or hud.hints.axis.text != "용병":  # 2웨이브 첫 파도 집결 중이 옛 «2웨이브 준비 단계»다(S17 2026-11-17 변경)
+				out = "1웨이브 뒤(단계 %s, 집결 웨이브 %d) 힌트 글 «%s» · 축 «%s»(기대: 2웨이브 집결 중, «거점 패널»·«병사» 있음·«병영» 없음, «용병»)" % [b.state, b.muster_wave() + 1, said, hud.hints.axis.text]
 	var f = b.base  # 병사는 거점에서 산다(S98 2026-11-12 변경)
 	if out == "":
-		if b.place_merc("soldier", Vector2i(12, 16)) == null:
-			out = "2웨이브 준비 단계에 (10,14)에 용병을 놓지 못했다"
+		if b.recruit(f, "soldier") == null:
+			out = "2웨이브 집결 중에 거점에서 병사를 사지 못했다"
 		else:
 			_frame(main)
 			if hud.hints.is_visible_in_tree() or not "merc" in st.hints_done:
-				out = "용병을 놓은 뒤 힌트 칸 보임 %s · 끝낸 힌트 %s(기대: 숨고 merc가 있다)" % [hud.hints.is_visible_in_tree(), st.hints_done]
+				out = "용병을 산 뒤 힌트 칸 보임 %s · 끝낸 힌트 %s(기대: 숨고 merc가 있다)" % [hud.hints.is_visible_in_tree(), st.hints_done]
 	if out == "":
 		b.start_battle()
 		_frame(main)
@@ -2025,8 +2032,8 @@ func ev368():
 		else:
 			_frame(main)
 			var said := _hint_says(main)
-			if b.state != "prep" or b.wave_index != 2 or not "우클릭" in said or not "(1)" in said or "F1" in said or hud.hints.axis.text != "영웅":
-				out = "2웨이브 뒤(단계 %s, 웨이브 %d) 힌트 글 «%s» · 축 «%s»(기대: 3웨이브 준비 단계, «우클릭»·«(1)» 있음·«F1» 없음, «영웅»)" % [b.state, b.wave_index + 1, said, hud.hints.axis.text]
+			if b.state != "battle" or b.muster_wave() != 2 or not "우클릭" in said or not "(1)" in said or "F1" in said or hud.hints.axis.text != "영웅":
+				out = "2웨이브 뒤(단계 %s, 집결 웨이브 %d) 힌트 글 «%s» · 축 «%s»(기대: 3웨이브 집결 중, «우클릭»·«(1)» 있음·«F1» 없음, «영웅»)" % [b.state, b.muster_wave() + 1, said, hud.hints.axis.text]
 	if out == "":
 		b.start_battle()
 		_frame(main)
@@ -2040,7 +2047,17 @@ func ev368():
 			out = "첫 출전 영웅이 Q(%s)를 쓰지 못했다" % h.q.aim
 		else:
 			_frame(main)
-			out = check(not hud.hints.is_visible_in_tree() and "skill" in st.hints_done, "Q를 쓴 뒤 힌트 칸 보임 %s · 끝낸 힌트 %s(기대: 숨고 skill이 있다)" % [hud.hints.is_visible_in_tree(), st.hints_done])
+			var said := _hint_says(main)
+			if not "skill" in st.hints_done or not "깃발" in said:  # Q 다음은 깃발 힌트다(S192 2026-11-17 변경)
+				out = "Q를 쓴 뒤 힌트 글 «%s» · 끝낸 힌트 %s(기대: «깃발» 있음, skill이 있다)" % [said, st.hints_done]
+	if out == "":
+		run(b, 7.0)  # 전투 중 산 병사 둘이 대기열(6초, S20 2026-11-17 변경)에서 나온다
+		var mercs: Array = b.units.filter(func(u): return not u.is_hero and u.kind == "soldier")
+		if not b.plant_flag(mercs, Vector2i(32, 70)):
+			out = "병사 %d명으로 깃발을 세우지 못했다" % mercs.size()
+		else:
+			_frame(main)
+			out = check(not hud.hints.is_visible_in_tree() and "flag" in st.hints_done, "깃발을 세운 뒤 힌트 칸 보임 %s · 끝낸 힌트 %s(기대: 숨고 flag가 있다)" % [hud.hints.is_visible_in_tree(), st.hints_done])
 	_done(main)
 	_hints_reset()
 	return out
@@ -3224,7 +3241,7 @@ func ev502():
 		_pass(main, 10.0)
 		b.evacuate()
 		e._process(0.0)
-		if not clear_wave(b) or b.state == "battle":
+		if not clear_wave(b):
 			out = "웨이브가 끝나지 않았다"
 		else:
 			e._process(0.0)
@@ -3753,6 +3770,7 @@ func ev742():
 func ev743():
 	var main = _prep()
 	var b = main.view.battle
+	b._stage.train_scale = 0.0  # 인구 상한만 재므로 전투 단계 구매가 바로 나오게(S20 2026-11-17 변경의 대기열 5가 먼저 막지 않게)
 	var per := _house_pop()
 	var out := "" if b.get("POP_BASE") != null and per > 0 else "Battle.POP_BASE·house.tres pop 가운데 없는 것이 있다"
 	var f = null

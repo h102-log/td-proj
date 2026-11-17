@@ -469,7 +469,7 @@ func ev825():
 	if not took or e2.job != t2 or ratio <= 0.8:
 		return "자동 수리: 불붙은 타워 체력 %.0f%%(80%% 넘음) · 1.5초 안에 맡음 %s · 맡은 것이 불붙은 타워 %s · 50%%인 타워 %s" % [
 			ratio * 100.0, took, e2.job == t2, e2.job == worse]
-	var d = battle({"waves": WW})
+	var d = battle({"rounds": [WW, WW]})  # 불이 꺼지는 때는 라운드 끝이다(I143 2026-11-17 변경)
 	var t3 = d.build("tower", T0)
 	if t3 == null:
 		return "셋째 판을 차리지 못했다"
@@ -479,16 +479,17 @@ func ev825():
 	var h3: float = t3.hp
 	run(d, 1.0)
 	var lit: bool = h3 - t3.hp >= 3.5
-	if not clear_wave(d) or d.state != "prep":
-		return "셋째 판: 웨이브가 끝나 준비 단계로 가지 않았다(%s)" % d.state
+	if not clear_round(d) or d.state != "cleared":
+		return "셋째 판: 라운드가 끝나 라운드 사이로 가지 않았다(%s)" % d.state
 	var h4: float = t3.hp
 	run(d, 3.0)
 	var h5: float = t3.hp
-	d.start_battle()  # 준비 단계에 불을 멈춰 두기만 했다면 다음 웨이브에 다시 탄다
+	d.next_round()
+	d.start_battle()  # 불을 멈춰 두기만 했다면 다음 라운드 전투에 다시 탄다
 	var next: bool = d.state == "battle"
 	run(d, 2.0)
 	return check(lit and h5 == h4 and next and t3.hp == h5,
-		"웨이브 끝: 끝나기 전 1초 불 피해 %s · 준비 단계 3초 동안 타워 체력 %.2f → %.2f(그대로) · 다음 웨이브 시작 %s · 시작 뒤 2초 동안 %.2f → %.2f(그대로)" % [
+		"라운드 끝: 끝나기 전 1초 불 피해 %s · 라운드 사이 3초 동안 타워 체력 %.2f → %.2f(그대로) · 다음 라운드 전투 시작 %s · 시작 뒤 2초 동안 %.2f → %.2f(그대로)" % [
 			lit, h4, h5, next, h5, t3.hp])
 
 # EV826 · I249·S279: 불화살 예고 중 기절이면 꺼지고 비틀거리지 않으며 대기가 처음부터 돈다. 봉인 중엔 시작하지 않는다.

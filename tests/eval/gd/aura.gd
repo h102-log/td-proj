@@ -43,16 +43,14 @@ func ev147():
 	var after := _next_hit(b, m)
 	return check(is_equal_approx(after, HIT), "영웅이 다운된 뒤 한 방이 %s다(%s여야 한다)" % [after, HIT])
 
-# EV148 · I83: 웨이브 중 다운된 영웅이 다음 준비 단계에 복귀하면 오라가 다시 걸린다
+# EV148 · I83: 전투 중 다운된 영웅이 복귀하면(S26 2026-11-17 변경: hero_back 뒤 거점 옆 칸) 오라가 다시 걸린다
 func ev148():
-	var b = _seraphina({"waves": [[{"kind": "basic", "count": 1}], [{"kind": "basic", "count": 1}]]})
+	var b = _seraphina({"waves": [[{"kind": "basic", "count": 1}], [{"kind": "basic", "count": 1}]], "hero_back": 2.0})
+	var m = _merc(b, "soldier", b.back_cell() + Vector2i(1, 0))
 	b.start_battle()
 	b.damage(b.hero, BIG)
-	if not clear_wave(b):
-		return "첫 웨이브가 끝나지 않았다(%s)" % b.state
-	if b.state != "prep" or not b.hero.alive:
-		return "준비 단계에 영웅이 돌아오지 않았다(상태 %s, 영웅 생존 %s)" % [b.state, b.hero.alive]
-	var m = _merc(b, "soldier", IN)
-	_striker(b, IN + Vector2i(1, 0))
+	if not run(b, 5.0, func(): return b.hero.alive) or b.state != "battle":
+		return "전투 중에 영웅이 돌아오지 않았다(상태 %s, 영웅 생존 %s)" % [b.state, b.hero.alive]
+	_striker(b, b.back_cell() + Vector2i(2, 0))
 	var hit := _next_hit(b, m)
 	return check(is_equal_approx(hit, _guarded(b)), "복귀한 영웅 옆 용병의 한 방이 %s다(%s여야 한다)" % [hit, _guarded(b)])

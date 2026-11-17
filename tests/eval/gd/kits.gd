@@ -800,9 +800,9 @@ func ev292():
 
 # ── 추론 문장 ──
 
-# EV293 · I143: 웨이브가 끝나면 장판·에너지 성벽·보호막·태세가 사라지고, 재사용 대기는 그대로다
+# EV293 · I143 2026-11-17 변경: 라운드가 끝나면 장판·에너지 성벽·보호막·태세가 사라지고, 재사용 대기는 그대로다
 func ev293():
-	var b = _kit([["aias", H]])
+	var b = _kit([["aias", H]], {"waves": [NONE]})
 	var k = b.hero
 	_quiet(b)
 	var foe = _dummy(b, H + Vector2i(2, 0))
@@ -820,7 +820,7 @@ func ev293():
 	var kept := true  # 마지막 전투 스텝 한 번만큼(대기 −DT)만 다르다
 	for i in 3:
 		kept = kept and _near_f(now[i], keep[i], 0.11)
-	return check(had and b.state == "prep" and b.zones.is_empty() and b.barriers.is_empty() and k.shields.is_empty() and k.brace == 0.0 and kept,
+	return check(had and b.state == "won" and b.zones.is_empty() and b.barriers.is_empty() and k.shields.is_empty() and k.brace == 0.0 and kept,
 		"있었음 %s · %s · 장판 %d · 성벽 %d · 보호막 %d · 태세 %s · 대기 그대로 %s(%s → %s)" % [had, b.state, b.zones.size(), b.barriers.size(), k.shields.size(), k.brace, kept, keep, now])
 
 # EV294 · I145: 대상이 맞지 않으면 쓰지 않는다(세라피나 Q를 적에게, 베스퍼 E를 용병에게). 조준 중 맞는 대상이 없는 곳을 누르면 조준이 이어진다
@@ -1047,9 +1047,9 @@ func ev668():
 		ok = ok and _near_f(got[i], want[i], 0.001)
 	return check(ok, "[관문을 가로지름, 관문 끝 너머, 관문과 나란히 1칸] 궁수 화살 피해 %s(기대 %s)" % [got, want])
 
-# EV725 · I143: 쓰러진 영웅에게 남은 효과·반격의 태세도 웨이브가 끝나면 사라져, 체력 1로 돌아온 영웅이 준비 단계에서 다시 쓰러지지 않는다
+# EV725 · S26 2026-11-17 변경: 쓰러진 영웅에게 남은 효과·반격의 태세는 hero_back 뒤 전투 중에 돌아올 때 지워져, 돌아온 영웅이 옛 출혈로 다시 쓰러지지 않는다
 func ev725():
-	var b = _kit([["aias", H]])
+	var b = _kit([["aias", H]], {"hero_back": 1.0})
 	var k = b.hero
 	_quiet(b)
 	_start(b)
@@ -1057,15 +1057,13 @@ func ev725():
 	k.brace = 1.0  # 반격의 태세(S151) 중
 	b.damage(k, BIG)
 	var down: bool = not k.alive
-	for e in b.enemies.duplicate():
-		b.damage(e, BIG)
-	b.step(DT)
-	var back: bool = b.state == "prep" and k.alive
+	run(b, 1.1)
+	var back: bool = b.state == "battle" and k.alive
 	var left: Array = k.fx.keys()
 	var brace: float = k.brace
 	run(b, 2.0)
 	return check(down and back and left.is_empty() and brace == 0.0 and k.alive and k.hp >= 1.0,
-		"쓰러짐 %s · 준비 단계에 돌아옴 %s(%s) · 남은 효과 %s · 태세 %s · 2초 뒤 살아 있음 %s(체력 %s)" % [down, back, b.state, left, brace, k.alive, k.hp])
+		"쓰러짐 %s · 전투 중 돌아옴 %s(%s) · 남은 효과 %s · 태세 %s · 2초 뒤 살아 있음 %s(체력 %s)" % [down, back, b.state, left, brace, k.alive, k.hp])
 
 # ── 오토(S296~S298, I244·I245) ──
 
@@ -1269,8 +1267,8 @@ func ev802():
 	k4.level = 2
 	var opened := _used(b4, k4, "w")
 	var on := OFF.merged({"q": true, "r": true}, true)
-	var ok: bool = start == OFF and back == on and off == OFF and b.state == "prep" and kept == on and locked and opened
-	return check(ok, "처음 %s · 저장 뒤 %s · 옛 저장 %s · 다음 준비 단계(%s) %s · Lv1 W 켬·안 씀 %s · Lv2 씀 %s" % [start, back, off, b.state, kept, locked, opened])
+	var ok: bool = start == OFF and back == on and off == OFF and b.state == "battle" and kept == on and locked and opened  # 웨이브 사이는 전투 단계다(S17 2026-11-17 변경)
+	return check(ok, "처음 %s · 저장 뒤 %s · 옛 저장 %s · 다음 웨이브(%s) %s · Lv1 W 켬·안 씀 %s · Lv2 씀 %s" % [start, back, off, b.state, kept, locked, opened])
 
 # EV877 · S151 2026-11-10 변경·I258: 피해를 받을 때마다 guard_odds 확률로 그 피해를 guard_cut만큼 덜 받는다. 요새화와 상관없고, 요새화 감소와 곱으로 겹친다
 func ev877():

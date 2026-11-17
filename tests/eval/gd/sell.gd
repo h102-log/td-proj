@@ -25,12 +25,13 @@ func ev54():
 
 # EV55 · S69 2026-11-07 변경: 앞 웨이브에서 깎인 타워를 다음 준비 단계에 팔면 낸 골드 × 남은 체력 비율 × 0.8(내림)이 돌아온다
 func ev55():
-	var b = battle({"gold": 100, "base_hp": BIG, "waves": _waves(2)})
+	var b = battle({"gold": 100, "base_hp": BIG, "rounds": [_waves(1), _waves(1)]})  # 다음 준비 단계는 다음 라운드의 첫 준비다(S17 2026-11-17 변경)
 	var t = b.build("tower", Vector2i(5, 5))
 	var paid: int = 100 - b.gold
 	b.start_battle()
 	b.damage(t, t.max_hp * 0.4)
-	clear_wave(b)
+	clear_round(b)
+	b.next_round()
 	var want: int = floori(paid * float(t.hp) / t.max_hp * 0.8)
 	if b.state != "prep" or t.hp >= t.max_hp:
 		return "다음 준비 단계에 깎인 타워가 없다(%s, 체력 %d/%d)" % [b.state, t.hp, t.max_hp]

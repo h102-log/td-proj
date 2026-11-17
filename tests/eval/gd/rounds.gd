@@ -69,13 +69,9 @@ func _castle(over := {}):
 
 # 지금 라운드의 웨이브를 모두 이긴다. 라운드 사이나 승리가 되면 참
 func _win_round(b) -> bool:
-	for i in 20:
-		if b.state != "prep":
-			break
+	if b.state == "prep":  # 라운드 첫 준비에서 ▶ 한 번이면 라운드의 웨이브가 모두 이어진다(S17 2026-11-17 변경)
 		b.start_battle()
-		if not clear_wave(b):
-			return false
-	return b.state in ["cleared", "won"]
+	return clear_round(b) and b.state in ["cleared", "won"]
 
 func _key(c, key: int) -> void:
 	var ev := InputEventKey.new()
@@ -181,7 +177,7 @@ func ev163():
 	seq.append(b.state)
 	clear_wave(b)
 	seq.append(b.state)
-	var want := ["prep", "battle", "prep", "battle", "cleared", "cleared", "prep", "battle", "won"]
+	var want := ["prep", "battle", "battle", "battle", "cleared", "cleared", "prep", "battle", "won"]  # 라운드 안에는 준비 단계가 없다(S17 2026-11-17 변경)
 	return check(seq == want and refused, "단계 순서 %s · 준비 단계에서 다음 라운드 거부 %s" % [seq, refused])
 
 # EV164 · S117: 라운드 사이에는 맵 명령을 받지 않는다
@@ -308,32 +304,54 @@ func ev170():
 	if not _win_round(b) or not b.next_round():
 		return "1라운드를 이기고 다음 라운드로 넘어가지 못했다(%s)" % b.state
 	var n := [0]
-	b.enemy_spawned.connect(func(_e): n[0] += 1)
-	b.start_battle()
-	run(b, 10.0)
+	b.enemy_spawned.connect(func(e): n[0] += int(e.wave == 0))  # 1웨이브 소속만 센다(S375)
+	b.start_battle()  # ▶가 첫 북이라 첫 파도는 바로 온다(S375). 2라운드 웨이브 1은 파도 3개라 남은 파도는 북으로 부른다
+	for i in 6:
+		run(b, 0.5)
+		if b.muster_wave() == 0:
+			b.drum()
+	run(b, 1.0)
 	return check(n[0] == 2, "2라운드 첫 웨이브에 적이 %d명 나왔다(2명이어야 한다)" % n[0])
 
-# EV367 · I91: 시험 스테이지 판에서 적은 0.25초 간격으로 나온다. 첫 적은 전투를 시작하자마자 나온다
+# EV367 · I91·S375: 시험 스테이지 1라운드 첫 웨이브(슬라임 36)는 ▶ 뒤 첫 스텝에 32마리, 둘째 스텝에 남은 4마리가 나온다(▶가 첫 북, wake_batch 32·간격 한 스텝).
+#   그 뒤 2웨이브(34마리)의 첫 파도는 30초 집결 동안 잠들어 있다가(아무도 나오지 않는다) 집결이 끝나면 같은 꼴로 나온다. 북을 울리면 바로 그렇게 된다
 func ev367():
 	var b = load("res://src/sim/battle.gd").new(load("res://src/main.gd").stage())
 	var n := [0]
 	b.enemy_spawned.connect(func(_e): n[0] += 1)
 	b.start_battle()
-	run(b, 0.2)
-	var early: int = n[0]
-	run(b, 0.2)
-	return check(early == 1 and n[0] == 2, "0.2초 뒤 %d명, 0.4초 뒤 %d명이 나왔다(1명·2명이어야 한다)" % [early, n[0]])
+	b.step(DT)
+	var batch: int = n[0]
+	b.step(DT)
+	var first: int = n[0]
+	kill_all(b)
+	b.step(DT)
+	run(b, 28.5)
+	var asleep := [n[0], b.dormant.size(), b.muster_left > 0.0]
+	run(b, 1.5)
+	var second: int = n[0]
+	var c = load("res://src/sim/battle.gd").new(load("res://src/main.gd").stage())
+	var m := [0]
+	c.enemy_spawned.connect(func(_e): m[0] += 1)
+	c.start_battle()
+	c.step(DT)
+	kill_all(c)
+	c.step(DT)
+	c.drum()
+	c.step(DT)
+	return check(batch == 32 and first == 36 and asleep == [36, 34, true] and second == 70 and m[0] == 68,
+		"▶ 첫 스텝 %d(32) · 둘째 %d(36) · 2웨이브 집결 29초 [나온 수, 잠든 수, 집결 중] %s([36, 34, true]) · 30.5초 나온 수 %d(70) · 북 뒤 첫 스텝 %d(68)" % [batch, first, asleep, second, m[0]])
 
-# EV243 · S138: 쓰러진 영웅은 체력 1로 돌아온다(부활이 켜져 있으면 다음 준비 단계, 꺼져 있으면 다음 라운드).
+# EV243 · S138 2026-11-17 변경: 전투 중 쓰러진 영웅은 hero_back 뒤 최대 체력 × hero_back_hp(내림)로 돌아오고, 부활을 끈 영웅은 다음 라운드 첫 준비에 체력 1로 돌아온다.
 #   «출전에서 빠졌다가 다시 출전한 영웅은 최대 체력»은 출전 전환이 없어져 재지 않는다(S54 2026-11-16 변경)
 func ev243():
 	var start := Vector2i(20, 5)
-	var b = battle({"hero_start": start, "base_hp": BIG, "rounds": [[ONE, ONE], [ONE]]})
+	var b = battle({"hero_start": start, "base_hp": BIG, "rounds": [[ONE, ONE], [ONE]], "hero_back": 2.0, "hero_back_hp": 0.5})
 	b.start_battle()
 	run(b, 1.0)
 	b.damage(b.hero, BIG)
-	clear_wave(b)
-	var wave: bool = b.state == "prep" and b.hero.present and b.hero.hp == 1.0 and near(b.hero.pos, start, 0.01)
+	run(b, 2.5)
+	var wave: bool = b.state == "battle" and b.hero.present and b.hero.hp == floorf(b.hero.max_hp * 0.5) and near(b.hero.pos, b.back_cell(), 0.01)
 	var d = battle({"hero_start": start, "base_hp": BIG, "rounds": ONE_ONE})
 	d.revive = false
 	d.start_battle()
@@ -342,7 +360,7 @@ func ev243():
 	clear_wave(d)
 	d.next_round()
 	var later: bool = d.state == "prep" and d.hero.present and d.hero.hp == 1.0
-	return check(wave and later, "부활 켜짐: 웨이브 끝 체력 1 %s(%s) · 부활 꺼짐: 다음 라운드 체력 1 %s(%s)" % [wave, b.hero.hp, later, d.hero.hp])
+	return check(wave and later, "부활 켜짐: 전투 중 복귀 체력 절반 %s(%s) · 부활 꺼짐: 다음 라운드 체력 1 %s(%s)" % [wave, b.hero.hp, later, d.hero.hp])
 
 # EV253 · S144: 라운드 체력 배율(stage 키 hp_mult: [라운드마다 배율], 없으면 1). 3라운드(1.5)의 기본 적은 체력·최대 체력이 1.5배이고
 # 1라운드는 그대로다. 처치 보상은 배율과 상관없다
@@ -396,12 +414,14 @@ func ev427():
 	if cells.size() != plan.size():
 		return "1라운드 첫 웨이브에 적이 %d명 나왔다(계획 %d명)" % [cells.size(), plan.size()]
 	var xs := {}
+	var rows: int = load("res://src/main.gd").stage().get("band_rows", 1)
 	for k in cells.size():
 		var s: Vector2i = plan[k][1]
 		var n: int = k / b.spawns.size()
 		var x := clampi(s.x - 10 + int(fposmod(n * 0.6180339887, 1.0) * 21.0), 0, b.size.x - 1)  # 맵 오른쪽 끝 열에서 자른다
-		if cells[k] != Vector2i(x, b.size.y - 1):  # 맨 아래 줄(S203)
-			return "%d번째 적이 %s에서 나왔다(출현 지점 %s, %s여야 한다)" % [k, cells[k], s, Vector2i(x, b.size.y - 1)]
+		var want := Vector2i(x, b.size.y - 1 - n % rows)  # 맨 아래 줄(S203)에서 집결 띠 band_rows줄 안쪽으로 차례로(S375)
+		if cells[k] != want:
+			return "%d번째 적이 %s에서 나왔다(출현 지점 %s, %s여야 한다)" % [k, cells[k], s, want]
 		xs[x] = true
 	var h = battle({"spawns": [Vector2i(0, 5)], "waves": [[{"kind": "basic", "count": 3}]]})
 	var at := []

@@ -105,6 +105,9 @@ const STOP := ["..######..", ".#oooooo#.", "#oooooooo#", "#oooooooo#", "#ooooooo
 const SHIELD := ["..........", "..########", "..#oooooo#", "..#oooooo#", "..#oooooo#", "..#oooooo#", "...#oooo#.", "...#oooo#.", "....#oo#..", ".....##..."]  # 홀드(I139)
 const HOLD_TIPS := ["홀드 끔\n켜면 기준 지점 반경 안의 적만 친다", "홀드 켬\n기준 지점 반경 안의 적만 친다", "홀드 섞임\n누르면 모두 켠다"]
 const HOLD_LOOK := [Color(0.4, 0.4, 0.4), Color.WHITE, Color(0.7, 0.7, 0.7)]  # 홀드 방패 밝기: 끔·켬·섞임
+const RETREAT_PIC := ["....#.....", "...##.....", "..########", ".#########", "..########", "...##.....", "....#.....", "..........", "..........", ".........."]  # 후퇴 태그(S36 2026-11-17 변경): 왼쪽 화살표
+const FLAG_PIC := ["#.........", "####......", "#######...", "##########", "#######...", "####......", "#.........", "#.........", "#.........", "#........."]  # 깃발 태그(S36 2026-11-17 변경)
+const RETREAT_TIPS := ["후퇴 끔\n켜면 체력 30% 밑에서 피난처로 물러나 60%에 돌아온다", "후퇴 켬\n체력 30% 밑에서 피난처로 물러나 60%에 돌아온다", "후퇴 섞임\n누르면 모두 켠다"]
 const HAMMER := [".#####.", ".#####.", "...#...", "...#...", "...#...", "...#..."]  # 팝업 완성·수리(I58)
 const UP := ["..#..", ".###.", "#####", ".###.", ".###."]  # 팝업 업그레이드(I58)
 # 용병 강화 툴팁의 수치 줄(S255): 키 → «이름 지금 → 다음» 틀
@@ -205,6 +208,7 @@ var moon: TextureRect  # 진행 칸의 달(S214): 준비 단계·고르기 창·
 var _dusk := []  # «해가 진다» 토스트를 띄운 웨이브 [라운드, 웨이브](S214). 준비 단계에 비운다
 var edges := Control.new()  # 화면 밖 출현 지점의 아래 가장자리 표식(S188). 출현 지점마다 하나
 var _g1: Label  # 웨이브 버튼 윗줄
+var _go: Label  # ▶ 버튼 글: «전투 시작», 집결 중에는 «북»(S375)
 var _g2: Label  # 웨이브 버튼 아랫줄
 var _dots: TextureRect  # 웨이브 점
 var _track := ColorRect.new()  # 전투 진행 막대 바탕
@@ -241,6 +245,7 @@ var _upgrade: Button
 var _repair: Button
 var _restore: Button
 var _heal := []  # 교회 팝업: 출전 영웅마다 치료 버튼(S137, I140)
+var _heal_mercs: Button  # 교회 팝업: 용병 모두 치료 버튼(S137 2026-11-17 변경)
 var window := PanelContainer.new()  # 결과·영웅 고르기 창(S117, S373). 고르기 창·라운드 사이는 [16,34] 폭 608, 결과는 [170,110,300,110](I136)
 var dim := ColorRect.new()  # 창이 떠 있으면 띠 아래 맵을 덮는다(S117)
 var _result_label := Label.new()
@@ -270,6 +275,9 @@ var _wait := 0.0  # 결과 창이 뜨기까지 남은 시간(초, S117). 트리�
 var tags := []  # 고른 영웅·용병의 상황 태그 [A 공격 이동, S 정지, H 홀드](I139)
 var _tag_pics := []  # 태그마다 그림
 var _hold_tip := ""  # 홀드 태그 툴팁의 지금 상태 글
+var _retreat_tip := ""  # 후퇴 태그 툴팁의 지금 상태 글(S36 2026-11-17 변경)
+var dtags := []  # 용병 교리 태그 [T 후퇴, D 주둔 깃발](S36 2026-11-17 변경, I139). tags(A·S·H)와 따로
+var _dtag_pics := []
 var fix_tag: Button  # 고른 공병의 자동 수리 태그(I210). tags(A·S·H)와 따로 둔다. 누르면 F 키와 같다
 var _fix_pic: TextureRect  # 자동 수리 태그의 망치 그림. 밝기가 끔·켬·섞임이다
 var portraits := []  # 출전 칸마다 초상 버튼(I129). 누르면 그 영웅을 고른다(I165)
@@ -425,6 +433,21 @@ func _ready() -> void:
 	tip.add(tags[0], func(): return ["공격 이동", "A", "", "누른 뒤 땅: 가는 길의 적을 친다\n적: 그 적만 친다", ""])  # 툴팁 폭 160이라 줄을 나눈다
 	tip.add(tags[1], func(): return ["정지", "S", "", "그 자리에 선다", ""])
 	tip.add(tags[2], func(): return ["홀드", "H", "", _hold_tip, ""])
+	for i in 2:  # 후퇴·깃발 태그(S36 2026-11-17 변경, I139): S·H 태그 왼쪽. 그림 10×10을 2배로, 왼쪽 위에 키 글자. tags(A·S·H)와 따로 둔다
+		var t := _bar_button(root, "", [controls.toggle_retreat, controls.flag_key][i])
+		t.position = Vector2(582, 234 - 26 * i)
+		t.size = Vector2(24, 24)
+		_dtag_pics.append(_pic(t, HudBuild.dots([RETREAT_PIC, FLAG_PIC][i], {"#": HudTheme.TEXT}), Vector2(20, 20)))
+		_dtag_pics[i].position = Vector2(2, 2)
+		var key := _text(t, 7, HudTheme.ACCENT)
+		key.text = "TD"[i]
+		key.position = Vector2(1, -1)
+		key.size = Vector2(8, 8)
+		for n in t.get_children():
+			n.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		dtags.append(t)
+	tip.add(dtags[0], func(): return ["후퇴", "T", "", _retreat_tip, ""])
+	tip.add(dtags[1], func(): return ["주둔 깃발", "D", "", "누른 뒤 땅: 고른 용병이 그 칸의 깃발에 배속돼 대열로 선다\n성곽 가까이면 원거리는 성벽 위에", ""])
 	fix_tag = _bar_button(root, "", controls.toggle_auto_fix)  # 자동 수리 태그(I210): 망치 7×6을 2배로, 왼쪽 위에 키 글자
 	fix_tag.position = FIX_AT.position
 	fix_tag.size = FIX_AT.size
@@ -589,6 +612,7 @@ func _ready() -> void:
 	_repair = _pop(rows[0], func(): _apply(battle.repair, _to_repair()), "수리", hammer)
 	_restore = _pop(rows[0], func(): battle.restore(controls.fort), "복구")
 	_gate = _pop(rows[1], func(): battle.set_gate(controls.fort, not controls.fort.open), "성문")
+	_heal_mercs = _pop(rows[1], func(): battle.heal_mercs(), "용병 치료")  # 교회 팝업(S137 2026-11-17 변경)
 	for i in battle.HIRE.lineup:
 		_heal.append(_pop(rows[2 + i], func(): battle.heal(battle.heroes[i]), "치료"))
 	_make_edges(root)
@@ -735,6 +759,15 @@ func _process(delta: float) -> void:
 		var h := 0 if held == 0 else 1 if held == mercs.size() else 2  # 끔·켬·섞임
 		_tag_pics[2].modulate = HOLD_LOOK[h]
 		_hold_tip = HOLD_TIPS[h]
+	var fighters: Array = mercs.filter(func(u): return u.kind != "engineer")  # 후퇴·깃발 태그(S36 2026-11-17 변경): 공병이 아닌 용병을 골랐을 때
+	dtags[0].visible = on and not fighters.is_empty()
+	dtags[1].visible = dtags[0].visible
+	if dtags[0].visible:
+		var back: int = fighters.filter(func(u): return u.retreat).size()
+		var r := 0 if back == 0 else 1 if back == fighters.size() else 2
+		_dtag_pics[0].modulate = HOLD_LOOK[r]
+		_retreat_tip = RETREAT_TIPS[r]
+		_dtag_pics[1].modulate = HudTheme.ACCENT if controls.flagging else Color.WHITE
 	var engineers: Array = mercs.filter(func(u): return u.kind == "engineer")  # 자동 수리 태그(I210): 밝기는 홀드와 같은 끔·켬·섞임
 	fix_tag.visible = on and not engineers.is_empty()
 	if fix_tag.visible:
@@ -883,6 +916,13 @@ func _process(delta: float) -> void:
 			_heal[i].icon = _faces.get(h.kind)
 			_why[_heal[i]] = "준비 단계에만" if not prep else "쓰러짐" if not h.alive else "체력 가득" if full else ""
 			_heal[i].disabled = _why[_heal[i]] != ""
+	_heal_mercs.visible = church
+	if church:  # 용병 모두 치료(S137 2026-11-17 변경): 라운드 첫 준비에만, 다친 용병이 있을 때
+		var cost: int = battle.heal_mercs_cost()
+		var hurt: bool = battle.units.any(func(u): return not u.is_hero and u.alive and u.hp < u.max_hp)
+		_heal_mercs.text = "용병 치료" + (" %d" % cost if hurt else "")
+		_why[_heal_mercs] = "준비 단계에만" if not prep else "다친 용병 없음" if not hurt else "골드 부족" if battle.gold < cost else ""
+		_heal_mercs.disabled = _why[_heal_mercs] != ""
 	var shown: Array = _why.keys().filter(func(b): return b.visible and _why[b] != "")
 	info_lines = [_opens, _why[shown[0]].get_slice(" — ", 0) if not shown.is_empty() else ""]  # 정보 칸은 좁아 이유의 « — » 앞만(툴팁은 전체, I225 ④)
 	for r in popup.get_children():
@@ -1034,7 +1074,7 @@ func _make_status() -> void:
 	_pic(rows[1], HudBuild.dots(FLAG, {"|": HudTheme.DIM, "#": HudTheme.DANGER}), Vector2(6, 6))
 	_round = _text(rows[1], 9, HudTheme.TEXT)
 	tip.add(s, func(): return ["거점 %d/%d" % [ceili(battle.base.hp), ceili(battle.base.max_hp)], "", "",
-		"0이 되면 도전 끝 · 마을 Lv%d · 다음 준비 단계 세금 +%d · 라운드 %d/%d — 누르면 카메라가 거점으로 간다" % [battle.village_level, battle.tax(), battle.round_index + 1, battle.rounds.size()], ""])
+		("0이 되면 도전 끝 · 마을 Lv%d · 다음 파도 세금 +%d(평시 보너스) · 라운드 %d/%d — 누르면 카메라가 거점으로 간다" if battle.tax_due() > battle.tax() else "0이 되면 도전 끝 · 마을 Lv%d · 다음 파도 세금 +%d · 라운드 %d/%d — 누르면 카메라가 거점으로 간다") % [battle.village_level, battle.tax_due(), battle.round_index + 1, battle.rounds.size()], ""])
 
 # 상태 묶음 글과 거점 체력 막대(S190): 줄면 FLASH초 하얗고, 50% 밑 노랑, 25% 밑 빨강
 func _show_status(delta: float, round_no: int) -> void:
@@ -1049,7 +1089,7 @@ func _show_status(delta: float, round_no: int) -> void:
 	_hp.text = str(ceili(hp))
 	_lv.text = "Lv%d" % battle.village_level
 	_gold.text = str(battle.gold)
-	_tax.text = "+%d" % battle.tax()
+	_tax.text = "+%d" % battle.tax_due()  # 지금 걷으면 받을 세금(I75 2026-11-17 변경): 성벽 근처에 적이 없으면 평시 보너스가 붙은 값
 	_round.text = "%d/%d" % [round_no, battle.rounds.size()]
 
 # 진행 칸(S185): 준비 단계 금색 «▶ 전투 시작»과 다음 웨이브 버튼, 원정은 «철수»와 불꽃·횃불 글(S317), 그 밖에는 칸 전체가 웨이브 버튼 하나다(I13)
@@ -1060,11 +1100,14 @@ func _make_progress() -> void:
 	for st in ["normal", "hover", "pressed", "hover_pressed"]:
 		start.add_theme_stylebox_override(st, HudTheme.box(st, "Button", Color("3d3218") if st == "normal" else Color("5a4a22"), HudTheme.ACCENT))
 	_pic(start, HudBuild.dots(PLAY, {"#": HudTheme.ACCENT}), Vector2(4, 7)).position = Vector2(6, 8)
-	var go := _text(start, 9, HudTheme.ACCENT)
-	go.text = "전투 시작"
-	go.position = Vector2(14, 6)  # 키 글자 줄이 없어(마우스로만 시작, I13 2026-11-10 변경) 가운데 줄에 둔다
-	go.size = Vector2(68, 12)
-	tip.add(start, func(): return ["전투 시작", "", "", "웨이브 %d/%d를 부른다" % [battle.wave_index + 1, battle.waves.size()], ""])
+	_go = _text(start, 9, HudTheme.ACCENT)
+	_go.text = "전투 시작"
+	_go.position = Vector2(14, 6)  # 키 글자 줄이 없어(마우스로만 시작, I13 2026-11-10 변경) 가운데 줄에 둔다
+	_go.size = Vector2(68, 12)
+	tip.add(start, func():
+		if battle.mustering():  # 집결 중의 ▶는 북이다(S375, I13 2026-11-17 변경)
+			return ["북", "Enter", "", "집결 중인 파도를 바로 돌격시킨다", ""]
+		return ["전투 시작", "", "", "웨이브 %d/%d를 부른다" % [battle.wave_index + 1, battle.waves.size()], ""])
 	retreat = _bar_button(p, "", func(): battle.retreat())  # 원정 중 «철수»(S317, I262 ⑧)
 	retreat.size = Vector2(50, 24)
 	var back := _text(retreat, 9, HudTheme.DANGER)
@@ -1089,24 +1132,32 @@ func _make_progress() -> void:
 func _show_progress() -> void:
 	var st: String = battle.state
 	var nw := _next_wave()
-	if st != _laid:  # 단계가 바뀔 때만 자리·글꼴을 다시 정한다
-		_laid = st
-		start.visible = st == "prep"
+	var key := st + ("/muster" if st == "battle" and battle.mustering() else "")  # 집결 중(S375)은 전투 단계의 다른 배치다
+	if key != _laid:  # 단계가 바뀔 때만 자리·글꼴을 다시 정한다
+		_laid = key
+		start.visible = st == "prep" or key == "battle/muster"  # 집결 중의 ▶는 북(I13 2026-11-17 변경): 글이 짧아 버튼을 좁히고 계기판에 자리를 준다
+		_go.text = "북" if key == "battle/muster" else "전투 시작"
+		start.size.x = 44 if key == "battle/muster" else 84
 		retreat.visible = st == "raid"
-		gauge.position.x = 86 if start.visible else 52 if retreat.visible else 0
+		gauge.position.x = start.size.x + 2 if start.visible else 52 if retreat.visible else 0
 		gauge.size = Vector2(136 - gauge.position.x, 24)
-		_track.visible = st == "battle"
+		_track.visible = st == "battle"  # 집결 중에는 집결 막대(I13 2026-11-17 변경)
 		_dots.visible = st in ["prep", "battle"]
-		_g2.visible = st not in ["battle", "won", "lost"]
+		_g2.visible = st not in ["battle", "won", "lost"] or key == "battle/muster"
 		match st:
 			"prep":
 				_line(_g1, 7, HudTheme.DIM, Rect2(3, 1, 26, 11))
 				_line(_g2, 9, HudTheme.TEXT, Rect2(3, 12, 32, 11))
 				skull.position = Vector2(38, 14)
 			"battle":
-				_line(_g1, 10, HudTheme.TEXT, Rect2(4, 1, 90, 13))
-				_track.position = Vector2(4, 17)
-				_track.size = Vector2(128, 3)
+				if key == "battle/muster":  # ▶(북) 옆 칸: 두 줄 작은 글(남은 적 / 파도·집결 m:ss)과 그 아래 집결 막대(I13 2026-11-17 변경)
+					_line(_g1, 7, HudTheme.TEXT, Rect2(2, 0, 86, 10))
+					_line(_g2, 7, HudTheme.DIM, Rect2(2, 9, 86, 10))
+					_track.position = Vector2(4, 20)
+				else:
+					_line(_g1, 10, HudTheme.TEXT, Rect2(4, 1, 90, 13))
+					_track.position = Vector2(4, 17)
+				_track.size = Vector2(gauge.size.x - 8, 3)
 			"hiring", "cleared":
 				_line(_g1, 9, HudTheme.TEXT, Rect2(4, 1, 60, 11))
 				_line(_g2, 8, HudTheme.DIM, Rect2(4, 12, 80, 11))
@@ -1123,7 +1174,15 @@ func _show_progress() -> void:
 			_g2.text = "적 %d" % _total(nw)
 		"battle":
 			_g1.text = "남은 적 %d" % battle.enemies_left()
-			_fill.size = Vector2(128.0 * (1.0 - float(battle.enemies_left()) / maxi(_total([battle.round_index, battle.wave_index]), 1)), 3)
+			if battle.mustering():  # 집결 중(S375, I13 2026-11-17 변경): 둘째 줄에 몇째 파도가 몇 초 뒤 오는지(m:ss), 막대는 금색으로 남은 집결 비율
+				var sg: Array = battle.muster_surge()
+				var secs: int = ceili(maxf(battle.muster_left, 0.0))
+				_g2.text = tr("파도 %d/%d · 집결 %d:%02d") % [sg[0], sg[1], secs / 60, secs % 60]
+				_fill.color = HudTheme.ACCENT
+				_fill.size = Vector2(_track.size.x * clampf(battle.muster_left / maxf(battle.muster_total(), 0.01), 0.0, 1.0), 3)
+			else:  # 돌격 중: 빨간 막대는 라운드 전체 적 가운데 남은 비율
+				_fill.color = HudTheme.DANGER
+				_fill.size = Vector2(_track.size.x * (1.0 - float(battle.enemies_left()) / maxi(_round_total(), 1)), 3)
 		"hiring", "cleared":
 			_g1.text = "영웅 고르기" if st == "hiring" else "다음 라운드"
 			_g2.text = "다음 적 %d" % _total(nw)
@@ -1172,6 +1231,13 @@ func _next_wave() -> Array:
 			return [battle.round_index + 1, 0]
 	return []
 
+# 이 라운드의 적 수 합(S375): 진행 막대는 라운드 전체에서 남은 적 비율이다
+func _round_total() -> int:
+	var n := 0
+	for w in battle.waves.size():
+		n += _total([battle.round_index, w])
+	return n
+
 func _total(rw: Array) -> int:
 	return battle.rounds[rw[0]][rw[1]].reduce(func(n, e): return n + e.count * (1 + battle.ENEMY_KINDS[e.kind].escort.get("count", 0)), 0)  # 호위(S301)도 적 수에 든다(I248 ⑤)
 
@@ -1190,6 +1256,10 @@ func _wave_lines(rw: Array) -> String:
 	for i in counts.size():
 		lines.append("%s — %s" % [SIDES[i] if i < SIDES.size() else str(i + 1), " · ".join(counts[i].keys().map(func(k): return "%s %d" % [ENEMIES[k], counts[i][k]]))])
 		kinds.merge(counts[i])
+	if battle.surges_of(rw[1], rw[0]) > 1:  # 파도별 종류 × 수(S188 2026-11-17 변경): 파도가 둘 이상인 웨이브만
+		var parts: Array = battle.surge_counts(rw[0], rw[1])
+		for j in parts.size():
+			lines.append(tr("파도 %d — %s") % [j + 1, " · ".join(parts[j].keys().map(func(k): return "%s %d" % [ENEMIES[k], parts[j][k]]))])
 	lines.append_array(kinds.keys().filter(func(k): return TRAITS.has(k)).map(func(k): return "%s: %s" % [ENEMIES[k], TRAITS[k]]))
 	if _night(rw):  # S214
 		lines.append(tr("밤 — 전투 %d초에 해가 진다") % int(battle.night(rw[0], rw[1]).get("at", 0.0)))
@@ -1202,7 +1272,8 @@ func _wave_tip() -> Array:
 		"prep":
 			return ["웨이브 %d/%d" % [battle.wave_index + 1, battle.waves.size()], "", "", _wave_lines(nw), ""]
 		"battle":
-			return ["남은 적 %d" % battle.enemies_left(), "", "", ("다음 웨이브\n" + _wave_lines(nw) if not nw.is_empty() else "이 라운드의 마지막 웨이브") + "\n누르면 거점에 가장 가까운 적을 비춘다", ""]
+			var drum: String = "\n집결 중 — Enter를 누르면 북을 울려 바로 돌격시킨다" if battle.mustering() else ""  # S375
+			return ["남은 적 %d" % battle.enemies_left(), "", "", ("다음 웨이브\n" + _wave_lines(nw) if not nw.is_empty() else "이 라운드의 마지막 웨이브") + drum + "\n누르면 거점에 가장 가까운 적을 비춘다", ""]
 		"hiring", "cleared":
 			return ["다음 라운드 첫 웨이브", "", "", _wave_lines(nw), ""]
 		"raid":  # 원정(S317). 불꽃이 다 타지 않는 층은 횃불 줄만 보인다

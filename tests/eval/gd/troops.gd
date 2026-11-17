@@ -373,7 +373,7 @@ func ev1083():
 
 # EV1084 · S362: 사제는 적을 치지 않고, 3칸 안 다친 아군 가운데 체력 비율이 가장 낮은 것을 2초마다 8씩 고친다. 고칠 것이 없으면 기다렸다가 바로 고친다
 func ev1084():
-	var b = battle()
+	var b = battle({"waves": [[{"kind": "basic", "count": 1}]], "spawns": [Vector2i(0, 19)], "base_hp": BIG})  # 전투 단계가 되게 웨이브 하나(S362 2026-11-17 변경)
 	var why := _need(b, ["cleric"])
 	if why != "":
 		return why
@@ -385,6 +385,10 @@ func ev1084():
 	s1.hp = 30.0
 	s2.hp = 40.0
 	far.hp = 10.0
+	b.start_battle()  # 사제는 전투 단계에만 고친다(S362 2026-11-17 변경). 웨이브의 적은 바로 치우고 곁의 적(foe)이 전투 단계를 잇는다
+	for e in b.enemies.duplicate():
+		if e != foe:
+			b.damage(e, BIG)
 	b.step(DT)
 	var first: bool = is_equal_approx(s1.hp, 38.0) and is_equal_approx(s2.hp, 40.0) and is_equal_approx(far.hp, 10.0)
 	run(b, 1.9)
