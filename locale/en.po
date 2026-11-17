@@ -874,6 +874,33 @@ msgstr "Heal"
 msgid "치료 %s"
 msgstr "Heal %s"
 
+msgid "용병 치료"
+msgstr "Heal mercs"
+
+msgid "용병 치료 %d"
+msgstr "Heal mercs %d"
+
+msgid "다친 용병 없음"
+msgstr "No hurt mercs"
+
+msgid "골드 부족"
+msgstr "Not enough gold"
+
+msgid "%s +%d → 대기열 %d"
+msgstr "%s +%d → queue %d"
+
+msgid "%s 생산 취소 — 환불"
+msgstr "%s training cancelled — refunded"
+
+msgid "클릭 1명 · Shift+클릭 5명 · 우클릭 대기 취소 · 마우스 올리면 설명"
+msgstr "Click 1 · Shift+click 5 · RMB cancel queue · hover for info"
+
+msgid "0이 되면 도전 끝 · 마을 Lv%d · 다음 파도 세금 +%d · 라운드 %d/%d — 누르면 카메라가 거점으로 간다"
+msgstr "0 = run over · Village Lv%d · next-surge tax +%d · round %d/%d — click to view the Keep"
+
+msgid "0이 되면 도전 끝 · 마을 Lv%d · 다음 파도 세금 +%d(평시 보너스) · 라운드 %d/%d — 누르면 카메라가 거점으로 간다"
+msgstr "0 = run over · Village Lv%d · next-surge tax +%d (calm bonus) · round %d/%d — click to view the Keep"
+
 # ── 안내 칩·토스트·경보(hud.gd, hud_alert.gd) ──
 
 msgid "%s 놓기: 좌클릭 · 끝: 우클릭·ESC"

@@ -97,7 +97,7 @@ func _ready() -> void:
 		_recent_cell(j)
 	for i in SLOTS:
 		_card(i)
-	var foot := _label(self, "클릭 1명 · Shift+클릭 5명 · 마우스 올리면 설명", 7, HudTheme.DIM)
+	var foot := _label(self, "클릭 1명 · Shift+클릭 5명 · 우클릭 대기 취소 · 마우스 올리면 설명", 7, HudTheme.DIM)
 	foot.position = Vector2(4, 88)
 	foot.size = Vector2(208, 10)
 	info.add_theme_stylebox_override("panel", HudTheme.box("panel", "PanelContainer", Color(HudTheme.PANEL, 1.0), HudTheme.BORDER))
@@ -389,6 +389,10 @@ func _card_input(e: InputEvent, i: int) -> void:
 	if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT and e.pressed and e.shift_pressed:
 		buy(i, BATCH)
 		accept_event()
+	elif e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_RIGHT and e.pressed and i < kinds.size():  # 우클릭: 그 종류의 마지막 대기 차례를 취소(전액 환불, S20 2026-11-17 변경)
+		if battle.cancel_train(battle.base, kinds[i]):
+			hud.toasts.push("%s 생산 취소 — 환불" % hud.NAMES[kinds[i]])
+		accept_event()
 
 # 최근 칸도 카드처럼 Shift를 누른 왼쪽 버튼 누름은 BATCH명까지 산다(S368)
 func _recent_input(e: InputEvent, j: int) -> void:
@@ -414,7 +418,7 @@ func buy_kind(k: String, count: int) -> int:
 	if not got.is_empty():
 		_plus[k] = [hud._now + PLUS_SECS, got.size()]
 		if battle.state == "battle":
-			hud.toasts.push("%s +%d → 집결 지점" % [hud.NAMES[k], got.size()])
+			hud.toasts.push(("%s +%d → 대기열 %d" % [hud.NAMES[k], got.size(), battle.base.queue.size()]) if got[0] is Dictionary else ("%s +%d → 집결 지점" % [hud.NAMES[k], got.size()]))  # 전투 중에는 대기열에 든다(S20 2026-11-17 변경)
 		elif battle.state == "prep":
 			undos.append([k, got])
 		_note(k)

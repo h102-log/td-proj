@@ -332,6 +332,7 @@ func ev323():
 # EV324 · I128: 전투 단계에 놀고 있는 공병이 없으면 «공병 없음» 띠가 보이고 1·2줄 칸이 0.35다. 공병을 사면 띠가 숨고 칸이 밝다
 func ev324():
 	var main = _prep()
+	main.view.battle._stage.train_scale = 0.0  # 공병 띠만 재므로 전투 단계 구매가 바로 나오게(S20 2026-11-17 변경의 대기열은 economy 스위트가 잰다)
 	var g = main.hud.get("grid")
 	if g == null:
 		_done(main)
@@ -685,6 +686,7 @@ func ev333():
 # EV334 · S185: 전투 단계 공병 칸은 놀고 있는 공병 수이고 0이면 빨갛다. 툴팁은 «놀고 있는 공병 N · 전체 M», 누르면 그 공병에게 카메라가 간다(I164)
 func ev334():
 	var main = _prep()
+	main.view.battle._stage.train_scale = 0.0  # 공병 칸만 재므로 전투 단계 구매가 바로 나오게(S20 2026-11-17 변경)
 	var cells = main.hud.get("cells")
 	if not cells is Dictionary:
 		_done(main)
@@ -1343,6 +1345,7 @@ func _soldiers(b) -> int:
 func ev347():
 	var main = _prep()
 	var b = main.view.battle
+	b._stage.train_scale = 0.0  # 건설 격자 칸만 재므로 전투 단계 구매가 바로 나오게(S20 2026-11-17 변경)
 	var c = main.controls
 	var f = b.base
 	b.start_battle()
@@ -1377,6 +1380,7 @@ func ev347():
 func ev348():
 	var main = _prep()
 	var b = main.view.battle
+	b._stage.train_scale = 0.0  # Shift+키 고르기만 재므로 전투 단계 구매가 바로 나오게(S20 2026-11-17 변경)
 	var c = main.controls
 	var g = main.hud.grid
 	var f1 = b.build("workshop", Vector2i(6, 6))
@@ -3756,6 +3760,7 @@ func ev742():
 func ev743():
 	var main = _prep()
 	var b = main.view.battle
+	b._stage.train_scale = 0.0  # 인구 상한만 재므로 전투 단계 구매가 바로 나오게(S20 2026-11-17 변경의 대기열 5가 먼저 막지 않게)
 	var per := _house_pop()
 	var out := "" if b.get("POP_BASE") != null and per > 0 else "Battle.POP_BASE·house.tres pop 가운데 없는 것이 있다"
 	var f = null

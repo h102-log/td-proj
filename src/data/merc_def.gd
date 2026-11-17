@@ -5,6 +5,7 @@ extends Resource
 # 공병(engineer)은 공격하지 않는다(I63). 공격력·사거리·인식 범위 0
 
 @export var cost := 0  # soldier 20은 임시값(사용자 2026-10-12)
+@export var train_time := 0.0  # 전투 단계에 산 뒤 시설에서 나오기까지 초(S20 2026-11-17 변경). 0이면 바로 나온다. 임시값
 @export var hp := 0.0
 @export var radius := 0.3  # 몸 반지름(칸, I51)
 @export var speed := 0.0

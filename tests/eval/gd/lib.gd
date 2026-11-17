@@ -28,6 +28,7 @@ func battle(over := {}):
 		"size": Vector2i(30, 20), "base": Vector2i(25, 10), "base_hp": 100,
 		"spawns": [Vector2i(0, 10)], "gold": BIG, "waves": [], "hero_start": null,
 		"muster_first": 1.0e9,  # 평가 판은 다음 웨이브가 저절로 오지 않고 start_battle()(북, S375)을 기다린다 — 옛 준비 단계 자리(I311 ⑤)
+		"train_scale": 0.0,  # 평가 판은 전투 중에 산 용병이 바로 나온다(S20 2026-11-17 변경의 대기열은 economy 스위트가 train_scale 1로 잰다, I312)
 	}
 	stage.merge(over, true)
 	return load("res://src/sim/battle.gd").new(stage)

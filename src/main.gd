@@ -306,6 +306,8 @@ static func stage() -> Dictionary:
 		"muster_first_rounds": ROUNDS.map(func(r): return load("res://data/waves/%s.tres" % r).muster_first),
 		"muster_rounds": ROUNDS.map(func(r): return load("res://data/waves/%s.tres" % r).muster),
 		"hero_back": 30.0, "hero_back_hp": 0.5, "hero_back_cell": Vector2i(mid, mid + 1),  # 전투 중 쓰러진 영웅은 30초 뒤 거점 아래 칸에 체력 절반으로(S26·S138 2026-11-17 변경, 임시값)
+		"calm_mult": 1.5,  # 평시 세금 보너스(I46 2026-11-17 변경): 걷는 순간 성벽 근처에 적이 없으면 ×1.5. 임시값
+		"build_time_scale": 2.0,  # 전투 중 공병 일의 시간 배율(S22 2026-11-17 변경). 임시값
 		# 출전 칸(I107): 정문 문루 바로 앞 들판(한 줄 띄움)의 세 칸. 성문은 닫힌 채 시작해서(I67) 마을 안에 두면 나올 수 없다(I42, 사용자 2026-10-12)
 		"hero_cells": [Vector2i(mid - 1, n + 1), Vector2i(mid + 1, n + 1), Vector2i(mid, n + 1)],
 		"engineer_cells": [Vector2i(mid, mid + 1), Vector2i(mid - 2, n + 1)],  # 시작 공병(S208): 거점 아래 마을 칸, 출전 칸 옆 들판 칸. 성문이 닫혀 있어도 마을·들판에 하나씩 짓는다(사용자 2026-10-25)

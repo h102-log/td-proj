@@ -242,6 +242,7 @@ var _upgrade: Button
 var _repair: Button
 var _restore: Button
 var _heal := []  # 교회 팝업: 출전 영웅마다 치료 버튼(S137, I140)
+var _heal_mercs: Button  # 교회 팝업: 용병 모두 치료 버튼(S137 2026-11-17 변경)
 var window := PanelContainer.new()  # 결과·영웅 고르기 창(S117, S373). 고르기 창·라운드 사이는 [16,34] 폭 608, 결과는 [170,110,300,110](I136)
 var dim := ColorRect.new()  # 창이 떠 있으면 띠 아래 맵을 덮는다(S117)
 var _result_label := Label.new()
@@ -590,6 +591,7 @@ func _ready() -> void:
 	_repair = _pop(rows[0], func(): _apply(battle.repair, _to_repair()), "수리", hammer)
 	_restore = _pop(rows[0], func(): battle.restore(controls.fort), "복구")
 	_gate = _pop(rows[1], func(): battle.set_gate(controls.fort, not controls.fort.open), "성문")
+	_heal_mercs = _pop(rows[1], func(): battle.heal_mercs(), "용병 치료")  # 교회 팝업(S137 2026-11-17 변경)
 	for i in battle.HIRE.lineup:
 		_heal.append(_pop(rows[2 + i], func(): battle.heal(battle.heroes[i]), "치료"))
 	_make_edges(root)
@@ -884,6 +886,13 @@ func _process(delta: float) -> void:
 			_heal[i].icon = _faces.get(h.kind)
 			_why[_heal[i]] = "준비 단계에만" if not prep else "쓰러짐" if not h.alive else "체력 가득" if full else ""
 			_heal[i].disabled = _why[_heal[i]] != ""
+	_heal_mercs.visible = church
+	if church:  # 용병 모두 치료(S137 2026-11-17 변경): 라운드 첫 준비에만, 다친 용병이 있을 때
+		var cost: int = battle.heal_mercs_cost()
+		var hurt: bool = battle.units.any(func(u): return not u.is_hero and u.alive and u.hp < u.max_hp)
+		_heal_mercs.text = "용병 치료" + (" %d" % cost if hurt else "")
+		_why[_heal_mercs] = "준비 단계에만" if not prep else "다친 용병 없음" if not hurt else "골드 부족" if battle.gold < cost else ""
+		_heal_mercs.disabled = _why[_heal_mercs] != ""
 	var shown: Array = _why.keys().filter(func(b): return b.visible and _why[b] != "")
 	info_lines = [_opens, _why[shown[0]].get_slice(" — ", 0) if not shown.is_empty() else ""]  # 정보 칸은 좁아 이유의 « — » 앞만(툴팁은 전체, I225 ④)
 	for r in popup.get_children():
@@ -1035,7 +1044,7 @@ func _make_status() -> void:
 	_pic(rows[1], HudBuild.dots(FLAG, {"|": HudTheme.DIM, "#": HudTheme.DANGER}), Vector2(6, 6))
 	_round = _text(rows[1], 9, HudTheme.TEXT)
 	tip.add(s, func(): return ["거점 %d/%d" % [ceili(battle.base.hp), ceili(battle.base.max_hp)], "", "",
-		"0이 되면 도전 끝 · 마을 Lv%d · 다음 준비 단계 세금 +%d · 라운드 %d/%d — 누르면 카메라가 거점으로 간다" % [battle.village_level, battle.tax(), battle.round_index + 1, battle.rounds.size()], ""])
+		("0이 되면 도전 끝 · 마을 Lv%d · 다음 파도 세금 +%d(평시 보너스) · 라운드 %d/%d — 누르면 카메라가 거점으로 간다" if battle.tax_due() > battle.tax() else "0이 되면 도전 끝 · 마을 Lv%d · 다음 파도 세금 +%d · 라운드 %d/%d — 누르면 카메라가 거점으로 간다") % [battle.village_level, battle.tax_due(), battle.round_index + 1, battle.rounds.size()], ""])
 
 # 상태 묶음 글과 거점 체력 막대(S190): 줄면 FLASH초 하얗고, 50% 밑 노랑, 25% 밑 빨강
 func _show_status(delta: float, round_no: int) -> void:
@@ -1050,7 +1059,7 @@ func _show_status(delta: float, round_no: int) -> void:
 	_hp.text = str(ceili(hp))
 	_lv.text = "Lv%d" % battle.village_level
 	_gold.text = str(battle.gold)
-	_tax.text = "+%d" % battle.tax()
+	_tax.text = "+%d" % battle.tax_due()  # 지금 걷으면 받을 세금(I75 2026-11-17 변경): 성벽 근처에 적이 없으면 평시 보너스가 붙은 값
 	_round.text = "%d/%d" % [round_no, battle.rounds.size()]
 
 # 진행 칸(S185): 준비 단계 금색 «▶ 전투 시작»과 다음 웨이브 버튼, 원정은 «철수»와 불꽃·횃불 글(S317), 그 밖에는 칸 전체가 웨이브 버튼 하나다(I13)

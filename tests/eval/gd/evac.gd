@@ -313,8 +313,8 @@ func ev495():
 	for x in fam.call():
 		b.damage(x, F.HP)
 	got.append(_wave_income(b))
-	var want := [R + T, R + T - 1, R + T - 1, R + T - 1, R]
-	return check(got == want, "웨이브 끝마다 늘어난 골드 %s, 기대 %s(처치 %d + 세금)" % [got, want, R])
+	var want := [R, R + T - 1, R + T - 1, R + T - 1, R]  # 세금은 다음 웨이브 첫 파도 돌격 때라 첫 웨이브(▶)에는 없다(I46 2026-11-17 변경)
+	return check(got == want, "웨이브마다 늘어난 골드 %s, 기대 %s(처치 %d + 세금)" % [got, want, R])
 
 # 대피령을 내고 at에 적을 한 스텝 둔 뒤 웨이브를 끝낸다. 안 되면 그 까닭(글)
 func _alarm(b, at: Vector2i) -> String:

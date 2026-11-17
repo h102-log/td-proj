@@ -28,9 +28,10 @@ func _key(c, key: int) -> void:
 	c.handle(ev)
 
 # 웨이브 하나를 끝내고 준비 단계에서 늘어난 골드. 끝나지 않으면 null
+# 다음 웨이브를 시작해(▶ 또는 북) 끝낼 때까지 늘어난 골드. 세금은 웨이브의 첫 파도가 돌격하는 순간 걷으므로(I46 2026-11-17 변경) 첫 웨이브(▶)에는 없고 둘째 웨이브부터 든다
 func _wave_income(b):
 	var gold0: int = b.gold
-	b.start_battle()  # 라운드 안에서는 아무 일도 하지 않는다(S17 2026-11-17 변경). 웨이브 끝에 세금을 걷는다(I46)
+	b.start_battle()
 	if not clear_wave(b):
 		return null
 	return b.gold - gold0
@@ -53,14 +54,15 @@ func ev120():
 	var gold0: int = b.gold
 	return check(b.build("house", H1) == null and b.gold == gold0, "상한 %d채를 넘어 지어졌다(골드 %d → %d)" % [b.HOUSE_CAP, gold0, b.gold])
 
-# EV121 · I46: 완성된 집 2채면 웨이브가 끝날 때 세금 2채분이 들어온다
+# EV121 · I46 2026-11-17 변경: 완성된 집 2채면 다음 웨이브의 첫 파도가 돌격할 때 세금 2채분이 들어온다(첫 웨이브 ▶에는 처치 보상뿐)
 func ev121():
 	var b = _battle()
 	b.build("house", H1)
 	b.build("house", H2)
+	var first = _wave_income(b)
 	var got = _wave_income(b)
 	var want: int = b.ENEMY_KINDS.basic.reward + 2 * b.STRUCTURE_KINDS.house.tax
-	return check(got == want, "늘어난 골드 %s, 기대 %d" % [got, want])
+	return check(first == b.ENEMY_KINDS.basic.reward and got == want, "1웨이브 늘어난 골드 %s(%d) · 2웨이브 %s(%d)" % [first, b.ENEMY_KINDS.basic.reward, got, want])
 
 # EV122 · I46: 미완성 집은 세금을 내지 않는다
 func ev122():
@@ -70,9 +72,14 @@ func ev122():
 	var h = b.build("house", H1)
 	if h == null or h.complete:
 		return "전투 중에 미완성 집이 놓이지 않았다(%s)" % [h]
-	var gold0: int = b.gold
 	if not clear_wave(b) or h.complete:
 		return "웨이브가 끝나지 않았거나 집이 다 지어졌다(%s, 완성 %s)" % [b.state, h.complete]
+	for e in b.units.filter(func(u): return u.kind == "engineer"):  # 다음 웨이브까지도 다 짓지 못하게 공병을 없앤다
+		b.damage(e, BIG)
+	var gold0: int = b.gold
+	b.start_battle()  # 2웨이브 첫 파도 돌격 순간 세금(I46 2026-11-17 변경): 미완성 집은 0
+	if not clear_wave(b) or h.complete:
+		return "2웨이브가 끝나지 않았거나 집이 다 지어졌다(%s, 완성 %s)" % [b.state, h.complete]
 	var want: int = gold0 + b.ENEMY_KINDS.basic.reward
 	return check(b.gold == want, "골드 %d, 기대 %d" % [b.gold, want])
 
@@ -84,9 +91,12 @@ func ev123():
 	b.start_battle()
 	b.damage(dead, BIG)
 	b.damage(hurt, hurt.max_hp / 2.0)
-	var gold0: int = b.gold
 	if not clear_wave(b):
 		return "웨이브가 끝나지 않았다(%s)" % b.state
+	var gold0: int = b.gold
+	b.start_battle()  # 2웨이브 첫 파도 돌격 순간 세금(I46 2026-11-17 변경)
+	if not clear_wave(b):
+		return "2웨이브가 끝나지 않았다(%s)" % b.state
 	var want: int = gold0 + b.ENEMY_KINDS.basic.reward + b.STRUCTURE_KINDS.house.tax
 	return check(b.gold == want, "골드 %d, 기대 %d" % [b.gold, want])
 

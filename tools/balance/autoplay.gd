@@ -394,6 +394,8 @@ func _defer(cells: Array) -> bool:
 func _recruit(kind: String, cell: Vector2i):
 	for s in b.sellers(kind).slice(0, 1):
 		var m = b.recruit(s, kind)
+		if m is Dictionary:  # 전투 중에는 대기열에 든다(S20 2026-11-17 변경): 나오면 집결 지점으로 간다
+			return m
 		if m:
 			b.order_move([m], cell, true)
 		return m

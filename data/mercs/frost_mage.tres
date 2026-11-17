@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_7oq4d")
 cost = 35
+train_time = 10.0
 hp = 25.0
 speed = 2.4
 damage = 2.0

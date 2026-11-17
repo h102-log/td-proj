@@ -71,6 +71,7 @@ const UPGRADE_MULT := 1.5
 const UPGRADE_MAX := 3
 const UPGRADE_TIME := 5.0  # 전투 중 공병이 한 단계 올리는 시간(초)
 const GATE_LOCK := 20.0  # 전투 단계에 여닫은 성문을 다시 여닫지 못하는 시간(초, S135). 핑퐁 봇 측정을 보고 사용자가 고름(insights/2026-10-16_gate_cooldown.md)
+const QUEUE_CAP := 5  # 생산 시설 하나의 대기열 길이(S20 2026-11-17 변경). 임시값
 const HERO_BACK := 30.0  # 전투 중 쓰러진 영웅이 거점 옆으로 돌아오기까지 초(S26 2026-11-17 변경). 스테이지 hero_back이 덮는다. 임시값
 const HERO_BACK_HP := 0.5  # 그때 돌아오는 체력 비율(S138 2026-11-17 변경). 스테이지 hero_back_hp가 덮는다. 임시값
 const COUNTER_HOLD := 3.0  # 반격 대상이 이만큼 쏘지 않아야 다른 구조물로 바뀐다(초, S140). 가장 느린 쏘는 간격(2.5초)보다 길다. 임시값
@@ -137,6 +138,7 @@ class Block:
 	var paid := 0  # 지을 때 낸 골드. 판매 환불의 기준(S69)
 	var produces := []  # 생산 시설이면 파는 용병 kind들. 첫째가 기본이다(S20, S87)
 	var rally: Vector2i  # 생산 시설의 집결 지점(S21)
+	var queue := []  # 생산 대기열(S20 2026-11-17 변경): {kind, paid, left(남은 초), stats}. 전투 단계에 산 용병이 차례로 나온다
 	var tax := 0  # 집이면 준비 단계마다 내는 세금(S101)
 	var pop := 0  # 다 지으면 주는 인구(S25 2026-11-04 변경). 집만 준다
 	var towers := 0  # 다 지으면 주는 쏘는 구조물 몫(S299). 집만 준다
@@ -603,6 +605,7 @@ var _plan := []       # 이 라운드에 남은 파도 [{wave, idx, of, turns}](
 var _surge := {}      # 지금 집결 중인 파도 {wave, idx, of}(S375). 비어 있으면 이 라운드에 더 부를 파도가 없다
 var muster_left := 0.0  # 집결 남은 초(S375). 0 이하이고 살아 있는 적이 pressure_cap 아래면 돌격한다
 var waves_done := 0   # 이 라운드에서 끝난 웨이브 수(S375 «웨이브 끝»). 라운드 안에서만 뜻이 있어 저장하지 않는다
+var _round_charged := false  # 이 라운드에서 파도가 한 번이라도 돌격했다(▶ 뒤). 다음 웨이브의 첫 파도가 돌격할 때 세금을 걷는 기준(I46 2026-11-17 변경)
 var _spare := 0.0  # 아직 1골드가 되지 않은 처치 보상(I176)
 var _stage: Dictionary  # 재시작할 때 다시 읽는다
 var _rng := RandomNumberGenerator.new()  # 미션을 뽑는다(I120). 스테이지에 seed가 있으면 그 씨앗이다(평가용)
@@ -728,6 +731,7 @@ func restart() -> void:
 	_surge = {}
 	muster_left = 0.0
 	waves_done = 0
+	_round_charged = false
 	_repath = false
 	_dirty = true
 	_soft_step = -1
@@ -817,6 +821,8 @@ func step(dt: float) -> void:
 		tally.battle_time += dt  # 라운드 집계(I119)
 		wave_time += dt
 		_rise(dt)
+		_train(dt)
+		_sanctuary(dt)
 	if _repath:
 		_repath = false
 		for e in enemies:
@@ -889,12 +895,13 @@ func _settle_waves() -> void:
 				state = "won"  # 마지막 라운드를 이겨 도전에 성공했다(I92)
 			_settle_quests()
 		_judge()
-		if state != "won":
-			gold += tax()
+		if last and state != "won":  # 라운드 마지막 웨이브의 세금은 라운드를 이기는 순간(I46 2026-11-17 변경). 라운드 안의 세금은 다음 웨이브 첫 파도가 돌격할 때다(_surge_charge)
+			gold += tax_due()
 		_seasons()
 		if last:
 			for s in structures.values() + castle.values() + rubble.values() + [base]:
 				_release(s)
+				_flush_queue(s)
 			_clear_effects()
 
 # 웨이브 w가 끝났나(S375 «웨이브 끝»): 그 웨이브의 파도를 모두 불렀고(집결 중·남은 파도에 없다), 깨어날 줄과 들판에 그 소속 적이 없다
@@ -916,9 +923,12 @@ func _muster(dt: float) -> void:
 # 웨이브의 첫 파도가 돌격하는 순간이 그 웨이브의 시작이다: 밤의 at(S210)·대피령 한 번(S225)·군령(S345)을 여기서 새로 센다
 func _surge_charge() -> void:
 	if _surge.idx == 0:
+		if _round_charged:  # 다음 웨이브의 첫 파도가 돌격하는 순간 세금을 걷는다(I46 2026-11-17 변경). ▶(라운드 첫 돌격)에는 걷지 않는다
+			gold += tax_due()
 		wave_index = _surge.wave
 		wave_time = 0.0
 		edict = {}
+	_round_charged = true
 	_queue.append_array(dormant)
 	dormant.clear()
 	_spawn_timer = 0.0
@@ -1140,6 +1150,7 @@ func start_battle() -> void:
 	_queue.clear()
 	dormant.clear()
 	waves_done = wave_index  # 저장에서 이어 온 판(S181)은 앞 웨이브가 끝나 있다
+	_round_charged = false
 	_spawn_timer = 0.0
 	wave_time = 0.0
 	near_wall = false
@@ -2012,6 +2023,15 @@ func _ladderable(e: Enemy) -> bool:
 # 준비 단계가 시작될 때 걷는 세금: 완성된 집마다 _tax_of의 합이다. 미완성·부서진·팔린 집은 내지 않는다(I46, S102)
 func tax() -> int:
 	return structures.values().reduce(func(n, s): return n + (_tax_of(s) if s.complete else 0), 0)
+
+# 지금 걷으면 받는 세금(I46 2026-11-17 변경): tax()에 평시 보너스를 곱해 내린다. 성벽 바깥 Folk.NEAR칸 안(마을 포함)에 적이 없으면 calm_mult(스테이지, 없으면 1)배다
+func tax_due() -> int:
+	return floori(tax() * (_stage.get("calm_mult", 1.0) if peaceful() else 1.0))
+
+# 평시(I46 2026-11-17 변경): 성곽(없으면 마을) 둘레 Folk.NEAR칸 안에 살아 있는 적이 하나도 없다(S229의 «성벽 근처»와 같은 칸)
+func peaceful() -> bool:
+	var near := _fort.grow(Folk.NEAR)
+	return not enemies.any(func(e): return e.alive and near.has_point(Vector2i(e.pos.round())))
 
 # 집 하나의 이번 세금(S228): 기본 세금 − 죽은 식구 − 지금 다친 식구, 0 밑으로 내려가지 않는다. 식구가 없거나 모두 떠나는 집은 0
 func _tax_of(s: Block) -> int:
@@ -3324,13 +3344,64 @@ func recruit(f, kind := ""):
 	var exit = _exit_of(f)
 	if exit == null or gold < stats.cost or _mercs() >= pop_cap():
 		return null
+	var wait: float = stats.get("train_time", 0.0) * _stage.get("train_scale", 1.0)
+	if crewed() and wait > 0.0:  # 전투 단계(S20 2026-11-17 변경): 대기열에 들고 train_time 뒤에 나온다. 골드와 인구는 산 순간 차지한다
+		if f.queue.size() >= QUEUE_CAP:
+			return null
+		gold -= stats.cost
+		var job := {"kind": kind, "paid": stats.cost, "left": wait, "stats": stats}
+		f.queue.append(job)
+		tally.merc_bought += 1  # 라운드 집계(I119)
+		return job
 	gold -= stats.cost
-	var m := Unit.new(kind, exit, stats)
-	m.paid = stats.cost
-	units.append(m)
 	tally.merc_bought += 1  # 라운드 집계(I119)
+	return _muster_merc(f, kind, stats, exit, stats.cost)
+
+# 용병이 시설 옆 칸(exit)에 나와 집결 지점으로 걸어간다(S20, I20)
+func _muster_merc(f, kind: String, stats: Dictionary, exit: Vector2i, paid: int) -> Unit:
+	var m := Unit.new(kind, exit, stats)
+	m.paid = paid
+	units.append(m)
 	_to_rally(m, f)
 	return m
+
+# 생산 대기열(S20 2026-11-17 변경, I312): 전투 단계에 시설마다 맨 앞 차례의 남은 초를 줄이고, 0이 되면 시설 옆 빈 칸에 내보낸다. 빈 칸이 없으면 날 때까지 기다린다
+func _train(dt: float) -> void:
+	for f in [base] + structures.values():
+		if f.queue.is_empty():
+			continue
+		var job: Dictionary = f.queue[0]
+		job.left -= dt
+		if job.left > 0.0:
+			continue
+		var exit = _exit_of(f)
+		if exit == null:
+			continue
+		f.queue.pop_front()
+		_muster_merc(f, job.kind, job.stats, exit, job.paid)
+
+# 대기열에서 뺀다(S20 2026-11-17 변경): kind가 있으면 그 종류의 마지막 차례, 없으면 맨 뒤 차례. 낸 골드를 모두 돌려준다. 없으면 거짓
+func cancel_train(f, kind := "") -> bool:
+	for i in range(f.queue.size() - 1, -1, -1):
+		if kind == "" or f.queue[i].kind == kind:
+			gold += f.queue[i].paid
+			f.queue.remove_at(i)
+			return true
+	return false
+
+# 대기열을 비운다(S20 2026-11-17 변경): 라운드가 끝나면 남은 차례는 바로 나오고(빈 칸이 없으면 환불), 시설이 부서지거나 팔리면 모두 환불한다
+func _flush_queue(f, refund := false) -> void:
+	while not f.queue.is_empty():
+		var job: Dictionary = f.queue.pop_front()
+		var exit = _exit_of(f) if not refund and f.alive and f.complete else null
+		if exit == null:
+			gold += job.paid
+		else:
+			_muster_merc(f, job.kind, job.stats, exit, job.paid)
+
+# 시설들의 대기열에 든 용병 수(인구에 센다, I225 ② 2026-11-17 변경)
+func _queued() -> int:
+	return ([base] + structures.values()).reduce(func(n, f): return n + f.queue.size(), 0)
 
 # 아직 집결 지점에 닿지 않은 그 시설의 용병도 새 집결 지점으로 간다(I22). 0.5칸 안에 들어왔으면 닿은 것이다
 func set_rally(f, cell: Vector2i) -> void:
@@ -3487,6 +3558,40 @@ func heal(h: Unit) -> void:
 		return
 	gold -= heal_cost(h)
 	h.hp = h.max_hp
+
+# 교회의 용병 치료비(S137 2026-11-17 변경): 살아 있는 용병마다 잃은 체력 × (낸 골드 ÷ 최대 체력) × 교회 데이터의 heal_merc, 1골드 미만은 올려 더한 값.
+# 판매 환불(S69, 낸 골드 × 체력 비율)의 나머지와 같아 치료한 뒤 팔아도 이득이 없다
+func heal_mercs_cost() -> int:
+	var k: float = STRUCTURE_KINDS.church.get("heal_merc", 1.0)
+	return units.filter(func(u): return not u.is_hero and u.alive and u.hp < u.max_hp).reduce(func(n, u): return n + ceili((u.max_hp - u.hp) * (u.paid / u.max_hp) * k - 0.0001), 0)
+
+# 라운드 첫 준비에 완성된 교회가 있으면 용병 치료비를 내고 살아 있는 용병 모두의 체력을 가득 채운다(S137 2026-11-17 변경). 다친 용병이 없거나 골드가 모자라면 거부
+func heal_mercs() -> bool:
+	var cost := heal_mercs_cost()
+	if state != "prep" or cost <= 0 and not units.any(func(u): return not u.is_hero and u.alive and u.hp < u.max_hp) or gold < cost:
+		return false
+	if not structures.values().any(func(s): return s.kind == "church" and s.complete):
+		return false
+	gold -= cost
+	for u in units:
+		if not u.is_hero and u.alive:
+			u.hp = u.max_hp
+	return true
+
+# 교회 둘레 회복(S137 2026-11-17 변경): 전투 단계에 완성된 교회의 가운데에서 mend_radius칸 안의 살아 있는 영웅·용병은 초당 mend_rate만큼 찬다(교회 데이터 값, 0이면 없다)
+func _sanctuary(dt: float) -> void:
+	var d: Dictionary = STRUCTURE_KINDS.get("church", {})
+	var r: float = d.get("mend_radius", 0.0)
+	var rate: float = d.get("mend_rate", 0.0)
+	if r <= 0.0 or rate <= 0.0 or not fighting():
+		return
+	for c in structures.values():
+		if c.kind != "church" or not c.complete:
+			continue
+		var at := middle(c)
+		for u in units:
+			if u.alive and u.hp < u.max_hp and u.pos.distance_to(at) <= r:
+				_heal(u, rate * dt)
 
 # 잔해를 되살린다(I89). 복구비는 지시할 때 낸다. 준비 단계엔 바로 가득 찬 채 서고(S18 2026-11-06 변경), 전투 단계(crewed)엔 놀고 있는
 # 가장 가까운 공병이 가서 닿으면 다시 세운 뒤 채운다(_work). 지시할 때 칸에 누가 있으면 거부한다
@@ -4117,23 +4222,27 @@ func _work(u: Unit, dt: float) -> void:
 	elif s.mend > 0.0:
 		if rubble.get(s.cell) != s:
 			s.fx.erase("flame")  # 고치기 시작하면 불이 꺼진다(I249 ⑥)
-			_mend(s, s.max_hp / (s.build_time if structures.get(s.cell) == s else REPAIR_TIME) * dt)
+			_mend(s, s.max_hp / ((s.build_time if structures.get(s.cell) == s else REPAIR_TIME) * work_scale()) * dt)
 		elif not occupied_area(s):  # 잔해는 칸이 비어야 다시 세운다(I89)
 			_raise(s)
 	elif s.lift >= 0.0:
-		_lift(s, dt / UPGRADE_TIME)
+		_lift(s, dt / (UPGRADE_TIME * work_scale()))
 	elif not s.complete:
-		_grow(s, dt / s.build_time)
+		_grow(s, dt / (s.build_time * work_scale()))
 	elif s.razed >= 1.0:
 		_settle(s)
 	else:
-		s.razed += dt / (s.build_time / 2.0)
+		s.razed += dt / (s.build_time / 2.0 * work_scale())
 		if s.razed >= 1.0 and s.dest == null:
 			_remove(s)
 
-# 배치 상한에 세는 살아 있는 용병 수(공병 포함, 영웅 제외, I23)
+# 전투 중 공병이 하는 일(짓기·업그레이드·수리·복구·철거·대포 옮기기)의 시간 배율(S22 2026-11-17 변경): 스테이지 build_time_scale, 없으면 1
+func work_scale() -> float:
+	return maxf(_stage.get("build_time_scale", 1.0), 0.01)
+
+# 배치 상한에 세는 살아 있는 용병 수(공병 포함, 영웅 제외, I23). 대기열의 용병도 센다(I225 ② 2026-11-17 변경)
 func _mercs() -> int:
-	return units.filter(func(u): return not u.is_hero).size()
+	return units.filter(func(u): return not u.is_hero).size() + _queued()
 
 # 화면의 인구 칸(I225 ③)이 읽는 용병 수(_mercs)
 func pop_used() -> int:
@@ -4311,6 +4420,7 @@ func damage(target, amount: float, kind := "phys", src = null, ignore := 0.0) ->
 			tally.merc_lost += 1
 	else:  # 구조물·성곽: 칸이 비고 경로를 다시 구한다(I5)
 		_release(target)
+		_flush_queue(target, true)  # 부서진 시설의 대기열은 환불한다(S20 2026-11-17 변경)
 		_repath = true
 		if structures.get(target.cell) == target:  # 성벽 위 대포가 부서져도 성벽 칸은 남는다(S93)
 			_vacate(target)
@@ -6908,7 +7018,7 @@ func _act(u: Unit, dt: float) -> void:
 			u.target = foe
 			_look(u, foe.pos)
 			_strike(u, foe)
-	elif not u.mend.is_empty() and u.cooldown <= 0.0:  # 사제 회복(S362): 고칠 아군이 없으면 대기를 돌리지 않는다
+	elif not u.mend.is_empty() and u.cooldown <= 0.0 and fighting():  # 사제 회복(S362): 고칠 아군이 없으면 대기를 돌리지 않는다. 준비 단계에는 고치지 않는다(2026-11-17 변경)
 		_tend(u)
 	if u.is_hero and u.passive.get("id") == "fortress":
 		_fortify(u, dt)

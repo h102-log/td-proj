@@ -311,11 +311,11 @@ func ev1097():
 	var plus := [k.plus[SHIELD].is_visible_in_tree(), k.plus[SHIELD].text]
 	main.hud.toasts._process(4.0)  # 앞 토스트(라운드 미션)가 뜬 지 3.5초가 지나야 다음 토스트가 뜬다(I163)
 	var toasts: Array = _toasts(main)
-	var toast: bool = toasts.any(func(t): return "방패병 +1 → 집결 지점" in t)
+	var toast: bool = toasts.any(func(t): return "방패병 +1 → 대기열 1" in t)  # 전투 단계 구매는 대기열에 든다(S20 2026-11-17 변경)
 	main.hud._process(1.0)
 	var gone: bool = not k.plus[SHIELD].is_visible_in_tree()
 	_done(main)
-	return check(plus == [true, "+1"] and toast and gone, "산 뒤 «+n» 보임·글 %s(참·+1) · 토스트 %s(«방패병 +1 → 집결 지점») · 1초 뒤 숨음 %s" % [plus, toasts, gone])
+	return check(plus == [true, "+1"] and toast and gone, "산 뒤 «+n» 보임·글 %s(참·+1) · 토스트 %s(«방패병 +1 → 대기열 1») · 1초 뒤 숨음 %s" % [plus, toasts, gone])
 
 # EV1098 · I298 ⑥: 전투 단계 «집결»을 누르면 집결 지점 고르기, 다음 맵 좌클릭 칸이 거점 집결 지점. 우클릭은 그만둔다. 고른 영웅은 그대로
 func ev1098():
